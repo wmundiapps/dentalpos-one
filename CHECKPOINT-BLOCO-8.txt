@@ -1,0 +1,8 @@
+DENTALPOS ONE — CHECKPOINT BLOCO 8
+Arquitetura SaaS comercial e integração final.
+
+Inclui: isolamento por clínica, storage por tenant, feature flags, ambientes de release,
+segredos criptografados por clínica, remetentes REVAH individualizados, REVAH Leads,
+e biblioteca FDI 32 dentes preparada para masters STL editáveis por caso.
+
+IMPORTANTE: modelos STL anatômicos reais, integrações externas e validação clínica permanecem dependências explícitas.

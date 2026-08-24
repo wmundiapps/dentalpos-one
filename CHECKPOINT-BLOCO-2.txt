@@ -1,0 +1,2 @@
+DENTALPOS ONE ALPHA — CHECKPOINT BLOCO 2
+Bloco clínico integrado: Pacientes + Prontuário + Odontograma + Evoluções + Próximo Procedimento + ponte para Agenda e Orçamento.

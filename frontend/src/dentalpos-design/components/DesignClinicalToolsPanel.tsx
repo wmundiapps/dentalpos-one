@@ -1,0 +1,20 @@
+import { useRef, useState } from "react";
+import { Box, Button, Chip, MenuItem, Paper, Slider, TextField, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import BorderStyleIcon from "@mui/icons-material/BorderStyle";
+import CompareIcon from "@mui/icons-material/Compare";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import ViewInArIcon from "@mui/icons-material/ViewInAr";
+const teeth=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28,48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+export default function DesignClinicalToolsPanel(){
+ const antagonistRef=useRef<HTMLInputElement|null>(null);const biteRef=useRef<HTMLInputElement|null>(null);
+ const [antagonist,setAntagonist]=useState<File|null>(null);const [bite,setBite]=useState<File|null>(null);const [tooth,setTooth]=useState(11);const [profile,setProfile]=useState("Adulto natural");const [brush,setBrush]=useState(1.5);
+ const file=(e:React.ChangeEvent<HTMLInputElement>,setter:(f:File|null)=>void)=>{const f=e.target.files?.[0]??null;if(f&&!f.name.toLowerCase().endsWith(".stl")){alert("Selecione um STL válido.");return}setter(f);e.target.value=""};
+ return <Paper elevation={0} sx={{mb:1.5,p:1.5,bgcolor:"#101c2a",color:"#fff",border:"1px solid #243447",borderRadius:2.5}}><input ref={antagonistRef} type="file" accept=".stl" hidden onChange={e=>file(e,setAntagonist)}/><input ref={biteRef} type="file" accept=".stl" hidden onChange={e=>file(e,setBite)}/>
+ <Box sx={{display:"flex",gap:1,alignItems:"center",flexWrap:"wrap"}}><Button size="small" variant="outlined" startIcon={<ViewInArIcon/>} onClick={()=>antagonistRef.current?.click()}>Antagonista</Button><Button size="small" variant="outlined" startIcon={<CompareIcon/>} onClick={()=>biteRef.current?.click()}>Registro de mordida</Button><Chip size="small" color={antagonist?"success":"default"} label={antagonist?`Antag.: ${antagonist.name}`:"Sem antagonista"}/><Chip size="small" color={bite?"success":"default"} label={bite?`Mordida: ${bite.name}`:"Sem registro"}/><Button size="small" variant="contained" disabled={!antagonist||!bite} startIcon={<AutoFixHighIcon/>}>Ocluir pelos registros</Button></Box>
+ <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",lg:"1fr 1fr 2fr"},gap:1.2,mt:1.5}}><TextField select size="small" label="Banco de dentes" value={tooth} onChange={e=>setTooth(Number(e.target.value))} sx={{"& .MuiInputBase-root":{color:"#fff"},"& .MuiInputLabel-root":{color:"#94a3b8"}}}>{teeth.map(t=><MenuItem key={t} value={t}>Dente {t} • anatomia base</MenuItem>)}</TextField><TextField select size="small" label="Caracterização" value={profile} onChange={e=>setProfile(e.target.value)} sx={{"& .MuiInputBase-root":{color:"#fff"},"& .MuiInputLabel-root":{color:"#94a3b8"}}}>{["Jovem","Adulto natural","Idoso / desgaste","Suave / feminino","Marcado / masculino"].map(x=><MenuItem key={x} value={x}>{x}</MenuItem>)}</TextField><Box><Typography variant="caption" sx={{color:"#94a3b8"}}>Raio da ferramenta: {brush.toFixed(1)} mm</Typography><Slider size="small" value={brush} min={.3} max={4} step={.1} onChange={(_,v)=>setBrush(v as number)}/></Box></Box>
+ <Box sx={{display:"flex",gap:.8,flexWrap:"wrap",mt:1}}><Button size="small" startIcon={<BorderStyleIcon/>} variant="outlined">Delimitar término</Button><Button size="small" startIcon={<AddIcon/>} variant="outlined">Acrescentar</Button><Button size="small" startIcon={<RemoveIcon/>} variant="outlined">Remover</Button><Button size="small" startIcon={<AutoFixHighIcon/>} variant="outlined">Suavizar</Button><Button size="small" startIcon={<UploadFileIcon/>} variant="outlined">Esculpir</Button></Box>
+ <Typography variant="caption" sx={{display:"block",mt:1,color:"#64748b"}}>Banco FDI 11–48 estruturado. As ferramentas CAD avançadas estão conectadas ao fluxo visual nesta versão e serão ligadas progressivamente às operações de malha 3D.</Typography></Paper>
+}

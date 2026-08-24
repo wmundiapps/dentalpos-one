@@ -1,0 +1,25 @@
+DENTALPOS ONE - CÓDIGO COMPLETO ATUALIZADO
+Data: 23/08/2026
+
+Este pacote parte do Checkpoint Bloco 8 e incorpora os arquivos de correção já gerados nesta conversa:
+- frontend/src/components/Odontogram.tsx
+- frontend/src/pages/Login.tsx
+- frontend/src/pages/Patients.tsx
+- frontend/src/pages/Revah.tsx
+- backend/prisma/schema.prisma corrigido
+
+Estado validado no PC do projeto nesta conversa:
+- Docker Desktop funcionando
+- PostgreSQL 16 em container saudável na porta 5432
+- Prisma db push concluído
+- seed:core concluído
+- bootstrap de clínica/admin concluído
+- backend iniciado na porta 3000 e conectado ao banco
+- frontend Vite iniciado em http://localhost:5173/
+
+IMPORTANTE:
+- O arquivo .env com senhas/segredos NÃO está incluído neste ZIP.
+- node_modules NÃO está incluído.
+- No Windows local foi necessário usar 127.0.0.1 em DATABASE_URL no lugar de localhost.
+- O odontograma ainda precisa da melhoria solicitada: editar/corrigir/remover marcações erradas mantendo auditoria/histórico.
+- Próxima fase: revisão completa de layout/UX e conexão/validação dos fluxos reais de cada módulo.

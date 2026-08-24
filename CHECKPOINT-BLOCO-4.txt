@@ -1,0 +1,7 @@
+DENTALPOS ONE — CHECKPOINT BLOCO 4
+Laboratório + DentalPos Design integrados.
+
+Status técnico:
+- Arquivos TypeScript novos/alterados passaram por verificação sintática via TypeScript transpileModule.
+- O build Vite completo não foi concluído neste ambiente porque a instalação local das dependências ficou incompleta/indisponível; validar npm install + npm run build no Windows no fechamento do piloto.
+- Rotinas CAD permanecem ALPHA e exigem validação clínica/geométrica antes de fabricação.

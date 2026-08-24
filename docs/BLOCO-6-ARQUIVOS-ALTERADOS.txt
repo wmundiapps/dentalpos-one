@@ -1,0 +1,7 @@
+frontend/src/pages/HumanResources.tsx
+frontend/src/types/humanResources.ts
+backend/prisma/schema.prisma
+backend/src/controllers/hrController.ts
+backend/src/routes/index.ts
+docs/BLOCO-6-RH.md
+CHECKPOINT-BLOCO-6.txt

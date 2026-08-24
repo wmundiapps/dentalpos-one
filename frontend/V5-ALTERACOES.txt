@@ -1,0 +1,27 @@
+DENTALPOS ONE V5 - CONSOLIDACAO OPERACIONAL 1
+
+Implementado nesta entrega:
+- Agenda inteligente semanal por profissional.
+- Visao simultanea de profissionais.
+- Intervalos configuraveis de 10, 15 e 30 minutos.
+- Cadastro local de profissionais na agenda.
+- Situacao financeira do paciente visivel no agendamento.
+- Indicadores de ocupacao, horarios disponiveis e impacto financeiro estimado da ociosidade.
+- Alertas de Agenda/Laboratorio na agenda.
+- Novo agendamento integrado a proximo procedimento e lembretes.
+- Prontuario por paciente acessivel ao clicar no paciente.
+- Odontograma interativo de 32 dentes com 5 faces.
+- Vermelho claro para pendente e azul para realizado.
+- Marcadores clinicos: carie, implante, endodontia, coroa, NMF, ausente, incluso, aumento de coroa, raspagem, enxerto, tracionamento, periodontal e anomalias.
+- Evolucao clinica exige procedimento, anotacao, proximo procedimento e odontograma marcado.
+- Opcao de criar proxima consulta ao salvar evolucao.
+- Laboratorio: moldagem analogica/digital, itens recebidos, cor obrigatoria, idade, sexo, biotipo e formato facial.
+- POP/IT: botao Novo documento agora abre formulario funcional.
+- Estruturas integradas existentes de Laboratorio <-> Design <-> Agenda <-> alertas preservadas.
+
+Validacao:
+- TypeScript (tsc -b): APROVADO sem erros neste ambiente.
+- O build Vite completo nao pode ser repetido no ambiente Linux porque o ZIP traz dependencias nativas do Windows e o registry interno nao disponibilizou vite 8.2.0. No Windows, executar npm install e npm run build como de costume.
+
+Observacao:
+Esta versao ainda e Alpha. Integracoes bancarias, WhatsApp/SMS/e-mail/telefonia, fiscal real e backend persistente exigem APIs/credenciais e serao conectadas em etapas posteriores.

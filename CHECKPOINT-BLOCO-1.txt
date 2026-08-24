@@ -1,0 +1,23 @@
+DENTALPOS ONE — CHECKPOINT BLOCO 1: NÚCLEO
+
+Status: concluído para integração incremental.
+
+Incluído:
+- versão-mãe frontend + backend
+- PostgreSQL/Prisma
+- endurecimento multi-tenant
+- identidade visual por clínica
+- RBAC/permissões por módulo e ação
+- perfis Admin, Gestor, Recepção, Dentista, Laboratório, Financeiro, RH
+- auditoria persistente
+- sessão /api/auth/me enriquecida
+- bootstrap seguro de clínica/admin
+- cadastro público desabilitado por padrão
+- rate limit de autenticação
+- estrutura de refresh token e recuperação de senha
+- docker-compose de PostgreSQL
+- documentação de instalação e núcleo
+
+Validação neste ambiente:
+- arquivos TypeScript passaram por verificação sintática; a checagem completa de tipos/build do backend depende de npm install/prisma generate, indisponível no ambiente sem acesso ao registry.
+- a validação completa será feita antes do ZIP final de piloto ou no Windows do usuário quando chegarmos à instalação.

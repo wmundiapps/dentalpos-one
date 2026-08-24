@@ -1,0 +1,9 @@
+frontend/src/pages/Agenda.tsx
+frontend/src/services/OperationsHubService.ts
+backend/prisma/schema.prisma
+backend/src/controllers/appointmentController.ts
+backend/src/controllers/scheduleController.ts
+backend/src/routes/index.ts
+docs/BLOCO-3-AGENDA.md
+docs/BLOCO-3-ARQUIVOS-ALTERADOS.txt
+CHECKPOINT-BLOCO-3.txt

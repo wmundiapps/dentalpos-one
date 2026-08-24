@@ -1,0 +1,7 @@
+DENTALPOS ONE — CHECKPOINT BLOCO 9
+Data: 23/08/2026
+
+Agenda, pacientes, prontuário, odontograma, catálogo CBHPO, orçamento, financeiro, REVAH e agendamento online integrados no frontend Alpha.
+Odontograma agora permite correção/remoção com auditoria.
+Cobranças e lembretes geram fila REVAH.
+Integrações externas reais continuam condicionadas às credenciais/webhooks de cada clínica.

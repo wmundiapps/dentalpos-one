@@ -1,0 +1,17 @@
+export type FunnelStage =
+  | "Lead"
+  | "Contato"
+  | "Agendado"
+  | "Chegou"
+  | "Triagem"
+  | "Consulta"
+  | "Planejamento"
+  | "Orçamento"
+  | "Negociação"
+  | "Aprovado"
+  | "Cirurgia"
+  | "Prótese"
+  | "Controle"
+  | "Garantia"
+  | "Recall"
+  | "Indicação";

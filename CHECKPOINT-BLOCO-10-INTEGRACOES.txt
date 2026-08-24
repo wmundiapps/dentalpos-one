@@ -1,0 +1,11 @@
+DentalPos One Bloco 10 — Integrações e Operação
+- Asaas: adapter PIX/boleto/cartão + webhooks
+- Stripe: PaymentIntent cartão + webhook básico
+- Financeiro: dashboard API, contas bancárias e regras de importação
+- Orçamento: cenários Completo/Parcial/Essencial + campo Simulaclinic
+- REVAH: Z-API, Comtele, Resend, Telegram e Twilio por remetente/credencial da clínica
+- REVAH automations e campanhas periódicas estruturadas
+- Sales: jornada de lead persistida
+- Frontend preparado para /dentalposone/
+- Integrações page adicionada
+- Clinicorp/Jacad: auditoria UX fica como próxima frente após validação deste checkpoint.

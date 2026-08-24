@@ -1,0 +1,6 @@
+DENTALPOS ONE ALPHA — CHECKPOINT BLOCO 6
+RH e Gestão de Pessoas
+
+Inclui cadastro/edição de colaboradores, vínculos, experiência, ponto, faltas, atrasos, atestados, horas extras, banco de horas, lançamentos e fechamento de folha, férias, contratos/documentos, advertências/ocorrências, alertas e backend Prisma/API multi-tenant com auditoria.
+
+Status: checkpoint Alpha. Validação final do build completo será realizada no ambiente Windows do piloto.

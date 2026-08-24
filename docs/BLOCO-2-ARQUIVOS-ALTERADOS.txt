@@ -1,0 +1,11 @@
+frontend/src/types/patientClinical.ts
+frontend/src/services/PatientClinicalService.ts
+frontend/src/components/Odontogram.tsx
+frontend/src/pages/Patients.tsx
+frontend/src/pages/ClinicalRecord.tsx
+frontend/src/pages/TreatmentPlanning.tsx
+backend/prisma/schema.prisma
+backend/src/controllers/patientController.ts
+backend/src/controllers/clinicalController.ts
+backend/src/routes/index.ts
+docs/BLOCO-2-CLINICO.md

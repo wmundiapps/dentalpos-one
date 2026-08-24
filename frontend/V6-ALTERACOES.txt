@@ -1,0 +1,18 @@
+DENTALPOS ONE V6 - CONSOLIDACAO PILOTO
+
+Implementado nesta consolidação:
+- Dashboard: cards principais clicáveis, abrindo Agenda, Laboratório, Financeiro e Notificações.
+- Sidebar: alça fixa lateral para recolher/expandir sem voltar ao topo.
+- Aparência: tema visual refinado, fundo com profundidade, header translúcido e preferências persistentes.
+- Configurações: paleta ampliada (18 cores), seletor de cor livre, modo claro/escuro persistente e identidade da clínica.
+- Pagamentos e Recebimentos: novo módulo com Asaas, Stripe e Bancos/Open Finance; PIX, cartão, boleto e simulador local.
+- Orçamentos e Tratamentos: corrigido; valores manuais; forma de pagamento e provedor (Asaas/Stripe/Bancos/Manual); impressão e aprovação.
+- REVAH: novo módulo omnichannel baseado na arquitetura identificada do MundiBusiness; canais Z-API/WhatsApp, Comtele/SMS, Resend/e-mail, Telegram e ligação planejada; simulador de automações.
+- Agenda: visão semanal/multi-profissional, intervalos 10/15/30, situação financeira, impacto de ociosidade, alteração/remarcação/cancelamento/falta com motivo obrigatório e histórico por agendamento.
+- DentalPos Design: painel clínico CAD com entrada de antagonista e registro de mordida, ação de oclusão pelo registro, banco FDI 11-48, perfis de caracterização e ferramentas visuais de delimitação, acrescentar, remover, suavizar e esculpir.
+- TypeScript: tsc -b validado sem erros neste ambiente.
+
+Observações:
+- Vite completo precisa ser validado no Windows do usuário porque o node_modules usado para checagem contém binários nativos Windows e o ambiente de geração é Linux.
+- As integrações reais Asaas/Stripe/Bancos/REVAH exigem backend, credenciais e webhooks; nenhum segredo deve ser colocado no frontend.
+- O MundiBusiness original não foi alterado.

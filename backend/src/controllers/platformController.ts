@@ -1,0 +1,13 @@
+import { Response } from 'express'
+import { prisma } from '../lib/prisma'
+import { AuthRequest } from '../middleware/auth'
+import { encryptSecret } from '../services/secretVault'
+import { writeAudit } from '../services/auditService'
+
+const ctx=(req:AuthRequest)=>({clinicId:req.user!.clinicId,tenantId:req.user!.tenantId})
+export async function units(req:AuthRequest,res:Response){res.json(await prisma.clinicUnit.findMany({where:ctx(req),orderBy:{name:'asc'}}))}
+export async function upsertUnit(req:AuthRequest,res:Response){const c=ctx(req);const b=req.body;const row=await prisma.clinicUnit.upsert({where:{clinicId_code:{clinicId:c.clinicId,code:String(b.code)}},update:{name:b.name,phone:b.phone||null,email:b.email||null,isActive:b.isActive!==false},create:{...c,code:String(b.code),name:String(b.name),phone:b.phone||null,email:b.email||null}});await writeAudit({ ...c, actorId:req.user!.id,module:'platform',action:'UNIT_UPSERT',entityType:'ClinicUnit',entityId:row.id});res.json(row)}
+export async function featureFlags(req:AuthRequest,res:Response){res.json(await prisma.tenantFeatureFlag.findMany({where:ctx(req),orderBy:{key:'asc'}}))}
+export async function setFeatureFlag(req:AuthRequest,res:Response){const c=ctx(req);const key=String(req.params.key);const row=await prisma.tenantFeatureFlag.upsert({where:{clinicId_key:{clinicId:c.clinicId,key}},update:{enabled:Boolean(req.body.enabled),rolloutStage:String(req.body.rolloutStage||'PILOT'),metadata:req.body.metadata},create:{...c,key,enabled:Boolean(req.body.enabled),rolloutStage:String(req.body.rolloutStage||'PILOT'),metadata:req.body.metadata}});res.json(row)}
+export async function storage(req:AuthRequest,res:Response){const rows=await prisma.tenantStorageConfig.findMany({where:ctx(req),select:{id:true,provider:true,bucket:true,rootPrefix:true,region:true,endpoint:true,isActive:true,createdAt:true,updatedAt:true}});res.json(rows)}
+export async function setStorage(req:AuthRequest,res:Response){const c=ctx(req);const b=req.body;const provider=String(b.provider||'S3_COMPATIBLE');const encryptedSecret=b.credentials?encryptSecret(b.credentials):undefined;const row=await prisma.tenantStorageConfig.upsert({where:{clinicId_provider:{clinicId:c.clinicId,provider}},update:{bucket:b.bucket,rootPrefix:`tenants/${c.tenantId}/clinics/${c.clinicId}`,region:b.region||null,endpoint:b.endpoint||null,isActive:b.isActive!==false,...(encryptedSecret?{encryptedSecret}:{})},create:{...c,provider,bucket:String(b.bucket),rootPrefix:`tenants/${c.tenantId}/clinics/${c.clinicId}`,region:b.region||null,endpoint:b.endpoint||null,isActive:b.isActive!==false,encryptedSecret}});res.json({id:row.id,provider:row.provider,bucket:row.bucket,rootPrefix:row.rootPrefix,isActive:row.isActive})}

@@ -1,0 +1,17 @@
+frontend/src/services/FinanceHubService.ts
+frontend/src/pages/Financial.tsx
+frontend/src/pages/PaymentCenter.tsx
+frontend/src/pages/TreatmentPlanning.tsx
+frontend/src/pages/Agenda.tsx
+frontend/src/services/OperationsHubService.ts
+frontend/src/pages/Dashboard.tsx
+backend/prisma/schema.prisma
+backend/src/controllers/financialController.ts
+backend/src/controllers/paymentProviderController.ts
+backend/src/controllers/budgetController.ts
+backend/src/controllers/paymentController.ts
+backend/src/routes/index.ts
+backend/.env.example
+docs/BLOCO-5-FINANCEIRO-RECEBIMENTOS.md
+docs/BLOCO-5-ARQUIVOS-ALTERADOS.txt
+CHECKPOINT-BLOCO-5.txt

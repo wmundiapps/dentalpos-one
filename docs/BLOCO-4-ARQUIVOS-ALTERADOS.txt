@@ -1,0 +1,13 @@
+frontend/src/pages/Laboratory.tsx
+frontend/src/types/operationsHub.ts
+frontend/src/services/OperationsHubService.ts
+frontend/src/dentalpos-design/pages/DentalPosDesign.tsx
+frontend/src/dentalpos-design/components/Dental3DViewer.tsx
+frontend/src/dentalpos-design/components/DesignCaseWorkspacePanel.tsx (novo)
+backend/prisma/schema.prisma
+backend/src/controllers/laboratoryController.ts (novo)
+backend/src/controllers/designController.ts (novo)
+backend/src/routes/index.ts
+docs/BLOCO-4-LABORATORIO-DESIGN.md
+docs/BLOCO-4-ARQUIVOS-ALTERADOS.txt
+CHECKPOINT-BLOCO-4.txt

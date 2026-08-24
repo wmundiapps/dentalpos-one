@@ -1,0 +1,16 @@
+DENTALPOS ONE — CHECKPOINT BLOCO 5
+Orçamentos + Financeiro + Recebimentos
+
+- Orçamento aprovado gera contas a receber.
+- Entrada e parcelas preservam vínculo/origem.
+- Financeiro usa fonte integrada no frontend Alpha.
+- Baixa altera status financeiro usado por Agenda, alertas e Dashboard.
+- Asaas, Stripe, Banco/Open Finance e modo Manual preparados.
+- PIX, cartão, boleto, transferência e dinheiro previstos conforme provedor.
+- Backend multi-tenant com auditoria e configuração segura de provedores.
+- Nenhuma credencial real incluída no pacote.
+- Integrações externas reais dependem de credenciais, webhooks e homologação.
+
+Validação realizada neste ambiente:
+- verificação sintática/transpilação TypeScript dos arquivos alterados: OK.
+- build completo depende da instalação das dependências do projeto no Windows/piloto.

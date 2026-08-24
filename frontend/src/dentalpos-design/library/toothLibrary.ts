@@ -1,0 +1,6 @@
+export type ToothFamily='INCISOR_CENTRAL'|'INCISOR_LATERAL'|'CANINE'|'PREMOLAR_1'|'PREMOLAR_2'|'MOLAR_1'|'MOLAR_2'|'MOLAR_3';
+export interface ToothLibraryItem { fdi:number; family:ToothFamily; arch:'MAXILLA'|'MANDIBLE'; side:'RIGHT'|'LEFT'; asset:string; editable:true; masterReadonly:true; }
+const family=(n:number):ToothFamily=>({1:'INCISOR_CENTRAL',2:'INCISOR_LATERAL',3:'CANINE',4:'PREMOLAR_1',5:'PREMOLAR_2',6:'MOLAR_1',7:'MOLAR_2',8:'MOLAR_3'}[n%10] as ToothFamily);
+export const TOOTH_LIBRARY:ToothLibraryItem[]=[11,12,13,14,15,16,17,18,21,22,23,24,25,26,27,28,31,32,33,34,35,36,37,38,41,42,43,44,45,46,47,48].map(fdi=>({fdi,family:family(fdi),arch:fdi<30?'MAXILLA':'MANDIBLE',side:[1,4].includes(Math.floor(fdi/10))?'RIGHT':'LEFT',asset:`/tooth-library/${fdi}.stl`,editable:true,masterReadonly:true}));
+export function getToothMaster(fdi:number){return TOOTH_LIBRARY.find(x=>x.fdi===fdi)}
+export function createEditableToothInstance(fdi:number,caseId:string){const master=getToothMaster(fdi);if(!master)throw new Error('Dente FDI inválido');return {...master,instanceId:`${caseId}-${fdi}-${Date.now()}`,sourceMasterFdi:fdi,transform:{position:[0,0,0],rotation:[0,0,0],scale:[1,1,1]},history:[] as string[]}}
