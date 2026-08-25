@@ -1,0 +1,7 @@
+DentalPos One — Checkpoint consolidado
+
+Incluído:
+- REVAH Leads ampliado com fontes autorizadas/licenciadas e arquivos CSV/JSON.
+- REVAH Chatbot Omnichannel com conversas, mensagens, handoff humano e vínculo preparado com CRM.
+- Menu lateral reorganizado por setores, recolhível, com subitens em ordem alfabética e duplicação funcional quando útil.
+- Nenhuma credencial real de provedor foi incluída. Envios externos permanecem condicionados à configuração e validação.

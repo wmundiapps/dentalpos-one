@@ -32,6 +32,7 @@ import PatientFlow from "../pages/PatientFlow";
 import PatientJourney from "../pages/PatientJourney";
 import PaymentCenter from "../pages/PaymentCenter";
 import Revah from "../pages/Revah";
+import RevahChatbot from "../pages/RevahChatbot";
 import Patients from "../pages/Patients";
 import ProfitIntelligence from "../pages/ProfitIntelligence";
 import Recall from "../pages/Recall";
@@ -181,6 +182,8 @@ export default function AppRoutes() {
       <Route path="/pagamentos" element={<PaymentCenter />} />
 
       <Route path="/revah" element={<Revah />} />
+
+      <Route path="/revah-chatbot" element={<RevahChatbot />} />
 
       <Route path="/pacientes" element={<Patients />} />
 

@@ -27,6 +27,7 @@ import * as revahController from '../controllers/revahController'
 import * as salesController from '../controllers/salesController'
 import * as platformController from '../controllers/platformController'
 import * as revahSenderController from '../controllers/revahSenderController'
+import * as revahChatbotController from '../controllers/revahChatbotController'
 import * as leadDiscoveryController from '../controllers/leadDiscoveryController'
 import * as webhookController from '../controllers/webhookController'
 import { requirePermission } from '../middleware/permission'
@@ -209,6 +210,11 @@ router.get('/revah/messages', requirePermission('marketing.view'), revahControll
 router.post('/revah/send', requirePermission('marketing.send'), revahController.send)
 router.get('/revah/automations', requirePermission('marketing.view'), revahController.automations)
 router.post('/revah/automations', requirePermission('marketing.send'), revahController.createAutomation)
+router.get('/revah/conversations', requirePermission('marketing.view'), revahChatbotController.conversations)
+router.get('/revah/conversations/:id', requirePermission('marketing.view'), revahChatbotController.conversation)
+router.post('/revah/conversations', requirePermission('marketing.send'), revahChatbotController.createConversation)
+router.post('/revah/conversations/:id/handoff', requirePermission('marketing.send'), revahChatbotController.handoff)
+router.post('/revah/conversations/:id/messages', requirePermission('marketing.send'), revahChatbotController.sendMessage)
 router.get('/sales/leads', requirePermission('sales.view'), salesController.leads)
 router.post('/sales/leads', requirePermission('sales.edit'), salesController.createLead)
 router.put('/sales/leads/:id', requirePermission('sales.edit'), salesController.updateLead)

@@ -74,6 +74,8 @@ model Clinic {
   revahMessages RevahMessage[]
   salesLeads SalesLead[]
   salesProducts SalesProduct[]
+  revahConversations RevahConversation[]
+  revahConversationMessages RevahConversationMessage[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -1239,5 +1241,52 @@ model SalesLeadEvent {
   metadata Json?
   createdAt DateTime @default(now())
   @@index([clinicId, leadId, createdAt])
+  @@index([tenantId])
+}
+
+
+model RevahConversation {
+  id String @id @default(cuid())
+  clinicId String
+  clinic Clinic @relation(fields:[clinicId], references:[id], onDelete:Cascade)
+  tenantId String
+  contactId String?
+  leadId String?
+  channel String
+  provider String?
+  externalConversationId String?
+  contactName String
+  destination String?
+  status String @default("BOT")
+  assignedUserId String?
+  lastMessageAt DateTime @default(now())
+  unreadCount Int @default(0)
+  metadata Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages RevahConversationMessage[]
+  @@index([clinicId, status, lastMessageAt])
+  @@index([tenantId])
+}
+
+model RevahConversationMessage {
+  id String @id @default(cuid())
+  clinicId String
+  clinic Clinic @relation(fields:[clinicId], references:[id], onDelete:Cascade)
+  tenantId String
+  conversationId String
+  conversation RevahConversation @relation(fields:[conversationId], references:[id], onDelete:Cascade)
+  direction String
+  channel String
+  provider String?
+  providerMessageId String?
+  content String
+  status String @default("RECEIVED")
+  aiGenerated Boolean @default(false)
+  sentByUserId String?
+  error String?
+  metadata Json?
+  createdAt DateTime @default(now())
+  @@index([clinicId, conversationId, createdAt])
   @@index([tenantId])
 }
