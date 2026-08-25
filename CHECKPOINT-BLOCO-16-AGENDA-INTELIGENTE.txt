@@ -1,0 +1,16 @@
+DENTALPOS ONE — CHECKPOINT BLOCO 16 — AGENDA INTELIGENTE
+
+Escopo:
+- Sugestão de duração do atendimento por tipo/complexidade de procedimento.
+- Sugestão do próximo retorno com janela mínima/máxima configurável.
+- Preferência para manter o mesmo dia da semana do paciente quando a janela clínica permitir.
+- Regras configuráveis por laboratório: prazo de produção + margem de segurança.
+- Conciliação administrativa com plano de pagamento e quantidade estimada de sessões restantes.
+- Financeiro nunca reduz prazo clínico, nunca bloqueia atendimento e só oferece alternativa dentro da janela clínica.
+- Alertas na tela quando o tempo reservado é menor que o sugerido, quando o retorno foge da sugestão anterior, quando muda o dia habitual ou quando há parcelas vencidas.
+- Próximo retorno sugerido armazenado junto ao agendamento local para facilitar o reagendamento seguinte.
+- Botão “Agendar próximo retorno” a partir da consulta aberta.
+- Configuração por clínica sincronizada, quando permitido, no TenantFeatureFlag SMART_SCHEDULING; fallback local mantém a Alpha funcional sem API.
+
+IMPORTANTE:
+As regras clínicas iniciais são exemplos editáveis. A clínica/profissional deve validar os tempos e intervalos conforme procedimento, paciente e protocolo assistencial. Critérios financeiros são apenas administrativos e não devem prevalecer sobre indicação clínica ou urgência.

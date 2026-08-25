@@ -72,7 +72,22 @@ export interface IntegratedAppointment {
   status: AppointmentStatus;
   source: "Interno" | "Paciente" | "Marketing";
   category?: "1ª consulta" | "Em tratamento" | "Retorno" | "Pagamento" | "Periódico" | "Marketing" | "Indicação" | "Urgência" | "Outro";
+  durationMinutes?: number;
+  laboratoryName?: string;
   laboratoryWorkId?: number;
+  smartSchedule?: {
+    recommendedDurationMinutes: number;
+    recommendedReturnDateISO?: string;
+    returnWindowStartISO?: string;
+    returnWindowEndISO?: string;
+    preferredWeekday?: number;
+    preferredWeekdayLabel?: string;
+    financialCadenceDays?: number;
+    financialCadenceLabel?: string;
+    financialAlternativeDateISO?: string;
+    reasons?: string[];
+    warnings?: Array<{ severity: "info" | "warning" | "error"; code: string; message: string }>;
+  };
   reminders: {
     onBooking: boolean;
     oneDayBefore: boolean;
