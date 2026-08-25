@@ -61,7 +61,7 @@ export const navigationGroups: NavigationGroup[] = [
     icon: <SupportAgentIcon />,
     items: alphabetical([
       item("Agenda", "/agenda", <EventIcon />),
-      item("Agendamento online", "/agenda", <EventIcon />),
+      item("Agendamento online", "/agendamento-online", <EventIcon />),
       item("Avaliação do Atendimento", "/avaliacoes-atendimento", <RateReviewIcon />),
       item("Cobranças", "/pagamentos", <CreditCardIcon />),
       item("Comunicações", "/comunicacoes", <ChatIcon />),
@@ -155,7 +155,13 @@ export const navigationGroups: NavigationGroup[] = [
     label: "Acadêmico",
     icon: <SchoolIcon />,
     items: alphabetical([
-      item("Acadêmico", "/academico", <SchoolIcon />),
+      item("Alunos", "/academico?secao=alunos", <PeopleAltIcon />),
+      item("Cursos", "/academico?secao=cursos", <SchoolIcon />),
+      item("Financeiro acadêmico", "/academico?secao=financeiro", <PaymentsIcon />),
+      item("Frequência e documentos", "/academico?secao=documentos", <DescriptionIcon />),
+      item("Professores", "/academico?secao=professores", <GroupsIcon />),
+      item("Turmas", "/academico?secao=turmas", <EventIcon />),
+      item("Visão geral", "/academico", <SpaceDashboardIcon />),
     ]),
   },
   {

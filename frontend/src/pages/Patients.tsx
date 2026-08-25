@@ -223,6 +223,12 @@ export default function Patients() {
                 >
                   Orçamento
                 </Button>
+                <Button onClick={() => navigate(`/financeiro?paciente=${encodeURIComponent(patient.fullName)}`)}>
+                  Financeiro
+                </Button>
+                <Button onClick={() => navigate(`/jornada-paciente?patientId=${encodeURIComponent(patient.id)}`)}>
+                  Jornada
+                </Button>
               </Box>
             </Paper>
           ))}

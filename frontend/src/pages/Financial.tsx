@@ -17,12 +17,13 @@ export default function Financial(){
  const navigate=useNavigate();
  const [searchParams]=useSearchParams();
  const initialType=searchParams.get("tipo");
+ const initialPatient=searchParams.get("paciente")||"";
  const [entries,setEntries]=useState<FinanceEntry[]>(()=>listFinanceEntries());
- const [open,setOpen]=useState(false); const [filter,setFilter]=useState(initialType==="Receita"||initialType==="Despesa"?initialType:"Todos"); const [search,setSearch]=useState("");
+ const [open,setOpen]=useState(false); const [filter,setFilter]=useState(initialType==="Receita"||initialType==="Despesa"?initialType:"Todos"); const [search,setSearch]=useState(initialPatient);
  const [form,setForm]=useState({description:"",category:"",personName:"",type:"Despesa" as FinanceEntryType,value:"",dueDate:"",competenceDate:"",paymentMethod:"Transferência" as PaymentMethod,provider:"Manual" as PaymentProvider,notes:""});
  const refresh=()=>setEntries(listFinanceEntries());
  useEffect(()=>{const fn=()=>refresh();window.addEventListener("dentalpos:finance-changed",fn);return()=>window.removeEventListener("dentalpos:finance-changed",fn)},[]);
- useEffect(()=>{const type=searchParams.get("tipo");if(type==="Receita"||type==="Despesa")setFilter(type)},[searchParams]);
+ useEffect(()=>{const type=searchParams.get("tipo");const patient=searchParams.get("paciente");if(type==="Receita"||type==="Despesa")setFilter(type);if(patient)setSearch(patient)},[searchParams]);
  const totals=useMemo(()=>{const valid=entries.filter(e=>e.status!=="Cancelado");const paidIncome=valid.filter(e=>e.type==="Receita"&&e.status==="Pago").reduce((a,e)=>a+e.value,0);const paidExpense=valid.filter(e=>e.type==="Despesa"&&e.status==="Pago").reduce((a,e)=>a+e.value,0);const receivable=valid.filter(e=>e.type==="Receita"&&e.status!=="Pago").reduce((a,e)=>a+e.value,0);const payable=valid.filter(e=>e.type==="Despesa"&&e.status!=="Pago").reduce((a,e)=>a+e.value,0);const overdue=valid.filter(e=>e.status==="Vencido").reduce((a,e)=>a+e.value,0);return{receivable,payable,cash:paidIncome-paidExpense,overdue}},[entries]);
  const visible=useMemo(()=>entries.filter(e=>(filter==="Todos"||e.status===filter||e.type===filter)&&(!search||`${e.description} ${e.personName} ${e.category} ${e.origin||""}`.toLowerCase().includes(search.toLowerCase()))),[entries,filter,search]);
  const add=()=>{if(!form.description.trim()||!form.personName.trim()||!form.value||!form.dueDate)return;const row:FinanceEntry={id:Date.now(),description:form.description.trim(),category:form.category.trim()||"Geral",personName:form.personName.trim(),type:form.type,status:form.dueDate<new Date().toISOString().slice(0,10)?"Vencido":"Pendente",value:Number(form.value),dueDate:form.dueDate,competenceDate:form.competenceDate||undefined,paymentMethod:form.paymentMethod,provider:form.provider,origin:"Manual",notes:form.notes||undefined};saveFinanceEntries([row,...entries]);refresh();setOpen(false);setForm({description:"",category:"",personName:"",type:"Despesa",value:"",dueDate:"",competenceDate:"",paymentMethod:"Transferência",provider:"Manual",notes:""})};

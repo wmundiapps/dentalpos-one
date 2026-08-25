@@ -1,0 +1,15 @@
+DENTALPOS ONE — CHECKPOINT BLOCO 14
+
+Escopo:
+- Auditoria funcional/UX com referências públicas Clinicorp e JACAD.
+- Busca global funcional no cabeçalho.
+- Sidebar com seleção correta de rotas que usam query string.
+- Persistência dos grupos abertos do menu.
+- Correção do agendamento online sob /dentalposone/.
+- Agenda com filtros rápidos de status e atalhos de paciente.
+- Pacientes com atalhos para financeiro e jornada.
+- Financeiro filtrável por paciente via URL.
+- Acadêmico reorganizado em alunos, cursos, professores, turmas, financeiro e frequência/documentos.
+
+Observação:
+Este bloco melhora navegação e consistência. Integrações externas e rotinas regulatórias não são consideradas homologadas sem credenciais/testes reais.
