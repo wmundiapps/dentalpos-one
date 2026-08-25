@@ -76,6 +76,11 @@ model Clinic {
   salesProducts SalesProduct[]
   revahConversations RevahConversation[]
   revahConversationMessages RevahConversationMessage[]
+  suppliers Supplier[]
+  accountingAccounts AccountingAccount[]
+  costCenters CostCenter[]
+  taxObligations TaxObligation[]
+  accountantPortalAccesses AccountantPortalAccess[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -449,7 +454,22 @@ model FinancialEntry {
   accountingMode  String?
   costCenter      String?
   supplier        String?
+  supplierId      String?
+  supplierRecord  Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  accountingAccountId String?
+  accountingAccount AccountingAccount? @relation(fields: [accountingAccountId], references: [id], onDelete: SetNull)
+  costCenterId    String?
+  costCenterRecord CostCenter? @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  documentNumber  String?
+  fiscalDocumentType String?
+  taxWithheld     Float    @default(0)
+  netAmount       Float?
+  accountingStatus String  @default("PENDING")
+  accountantNotes String?
+  recurrence      String?
+  approvedAt      DateTime?
   sourceDocumentHash String?
+  taxObligation   TaxObligation?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -457,6 +477,10 @@ model FinancialEntry {
   @@index([tenantId])
   @@index([patientId])
   @@index([origin, originId])
+  @@index([supplierId])
+  @@index([accountingAccountId])
+  @@index([costCenterId])
+  @@index([accountingStatus])
 }
 
 model PaymentProviderConfig {
@@ -476,6 +500,121 @@ model PaymentProviderConfig {
 
   @@unique([clinicId, provider])
   @@index([tenantId])
+}
+
+model Supplier {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  name            String
+  tradeName       String?
+  document        String?
+  email           String?
+  phone           String?
+  pixKey          String?
+  bankData        String?
+  category        String   @default("GERAL")
+  paymentTerms    String?
+  notes           String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  financialEntries FinancialEntry[]
+
+  @@unique([clinicId, document])
+  @@index([clinicId, name])
+  @@index([tenantId])
+}
+
+model AccountingAccount {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  code            String
+  name            String
+  group           String
+  parentCode      String?
+  nature          String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  financialEntries FinancialEntry[]
+
+  @@unique([clinicId, code])
+  @@index([clinicId, group])
+  @@index([tenantId])
+}
+
+model CostCenter {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  code            String
+  name            String
+  department      String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  financialEntries FinancialEntry[]
+
+  @@unique([clinicId, code])
+  @@index([clinicId, name])
+  @@index([tenantId])
+}
+
+model TaxObligation {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  name            String
+  entityName      String
+  legalEntity     String   @default("PJ")
+  regime          String?
+  competence      String
+  dueDate         DateTime
+  estimatedValue  Float    @default(0)
+  finalValue      Float?
+  status          String   @default("TO_CALCULATE")
+  responsible     String?
+  requiresAccountantApproval Boolean @default(true)
+  approvedBy      String?
+  approvedAt      DateTime?
+  notes           String?
+  financialEntryId String?  @unique
+  financialEntry  FinancialEntry? @relation(fields: [financialEntryId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([clinicId, dueDate])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model AccountantPortalAccess {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  name            String
+  email           String
+  status          String   @default("INVITED")
+  canViewFinance  Boolean  @default(true)
+  canViewTax      Boolean  @default(true)
+  canViewPayroll  Boolean  @default(false)
+  canExport       Boolean  @default(true)
+  canApproveTax   Boolean  @default(false)
+  lastAccessAt    DateTime?
+  invitedAt       DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([clinicId, email])
+  @@index([tenantId])
+  @@index([status])
 }
 
 model Feedback {

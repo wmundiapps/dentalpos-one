@@ -8,6 +8,7 @@ export const PERMISSIONS = [
   ['laboratory.view', 'laboratory', 'view'], ['laboratory.create', 'laboratory', 'create'], ['laboratory.edit', 'laboratory', 'edit'],
   ['design.view', 'design', 'view'], ['design.edit', 'design', 'edit'],
   ['finance.view', 'finance', 'view'], ['finance.create', 'finance', 'create'], ['finance.edit', 'finance', 'edit'], ['finance.approve', 'finance', 'approve'], ['finance.values', 'finance', 'values'],
+  ['accounting.view', 'accounting', 'view'], ['accounting.edit', 'accounting', 'edit'], ['accounting.approve', 'accounting', 'approve'], ['accounting.portal', 'accounting', 'portal'],
   ['hr.view', 'hr', 'view'], ['hr.create', 'hr', 'create'], ['hr.edit', 'hr', 'edit'], ['hr.sensitive', 'hr', 'sensitive'],
   ['sales.view', 'sales', 'view'], ['sales.edit', 'sales', 'edit'],
   ['marketing.view', 'marketing', 'view'], ['marketing.send', 'marketing', 'send'],
@@ -46,8 +47,9 @@ export async function createDefaultProfiles(clinicId: string, tenantId: string) 
     RECEPCAO: ['dashboard.view','agenda.view','agenda.create','agenda.edit','agenda.cancel','patients.view','patients.create','patients.edit','clinical.view','finance.view','finance.values','marketing.view'],
     DENTISTA: ['dashboard.view','agenda.view','patients.view','clinical.view','clinical.edit','laboratory.view','laboratory.create','design.view','design.edit'],
     LABORATORIO: ['dashboard.view','laboratory.view','laboratory.create','laboratory.edit','design.view','design.edit'],
-    FINANCEIRO: ['dashboard.view','patients.view','finance.view','finance.create','finance.edit','finance.approve','finance.values'],
-    RH: ['dashboard.view','hr.view','hr.create','hr.edit','hr.sensitive','documents.view','documents.edit']
+    FINANCEIRO: ['dashboard.view','patients.view','finance.view','finance.create','finance.edit','finance.approve','finance.values','accounting.view','accounting.edit'],
+    RH: ['dashboard.view','hr.view','hr.create','hr.edit','hr.sensitive','documents.view','documents.edit','finance.view'],
+    CONTADOR: ['dashboard.view','finance.view','finance.values','accounting.view','accounting.edit','accounting.approve','accounting.portal','documents.view']
   }
 
   for (const [code, codes] of Object.entries(definitions)) {

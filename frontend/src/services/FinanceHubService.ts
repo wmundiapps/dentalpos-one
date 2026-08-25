@@ -18,7 +18,7 @@ export interface FinanceEntry {
   provider?: PaymentProvider;
   installment?: number;
   installments?: number;
-  origin?: "Manual" | "Orçamento" | "Agenda" | "RH" | "Laboratório";
+  origin?: "Manual" | "Orçamento" | "Agenda" | "RH" | "Laboratório" | "Fiscal";
   originId?: string;
   paidAt?: string;
   externalId?: string;

@@ -30,6 +30,7 @@ import * as revahSenderController from '../controllers/revahSenderController'
 import * as revahChatbotController from '../controllers/revahChatbotController'
 import * as leadDiscoveryController from '../controllers/leadDiscoveryController'
 import * as webhookController from '../controllers/webhookController'
+import * as backofficeController from '../controllers/backofficeController'
 import { requirePermission } from '../middleware/permission'
 
 const router = Router()
@@ -235,6 +236,25 @@ router.get('/revah/senders', requirePermission('marketing.view'), revahSenderCon
 router.put('/revah/senders', requirePermission('marketing.send'), revahSenderController.upsert)
 router.get('/lead-discovery/imports', requirePermission('sales.view'), leadDiscoveryController.imports)
 router.post('/lead-discovery/imports', requirePermission('sales.edit'), leadDiscoveryController.createImport)
+
+// ======================
+// BACKOFFICE / CONTÁBIL / FISCAL
+// ======================
+
+router.get('/backoffice/dashboard', requirePermission('accounting.view'), backofficeController.dashboard)
+router.get('/backoffice/dre', requirePermission('accounting.view'), backofficeController.dre)
+router.get('/suppliers', requirePermission('accounting.view'), backofficeController.suppliers)
+router.post('/suppliers', requirePermission('accounting.edit'), backofficeController.createSupplier)
+router.get('/accounting/accounts', requirePermission('accounting.view'), backofficeController.accounts)
+router.post('/accounting/accounts/bootstrap', requirePermission('accounting.edit'), backofficeController.bootstrapAccounts)
+router.get('/accounting/cost-centers', requirePermission('accounting.view'), backofficeController.costCenters)
+router.post('/accounting/cost-centers/bootstrap', requirePermission('accounting.edit'), backofficeController.bootstrapCostCenters)
+router.get('/accounting/tax-obligations', requirePermission('accounting.view'), backofficeController.taxObligations)
+router.post('/accounting/tax-obligations', requirePermission('accounting.edit'), backofficeController.createTaxObligation)
+router.post('/accounting/tax-obligations/:id/approve', requirePermission('accounting.approve'), backofficeController.approveTaxObligation)
+router.get('/accounting/accountant-access', requirePermission('accounting.portal'), backofficeController.accountantAccesses)
+router.post('/accounting/accountant-access', requirePermission('accounting.portal'), backofficeController.createAccountantAccess)
+router.put('/accounting/accountant-access/:id', requirePermission('accounting.portal'), backofficeController.updateAccountantAccess)
 
 // ======================
 // FEEDBACKS

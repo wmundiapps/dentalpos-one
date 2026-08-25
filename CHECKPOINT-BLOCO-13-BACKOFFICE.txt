@@ -1,0 +1,19 @@
+DENTALPOS ONE — CHECKPOINT BLOCO 13 — BACKOFFICE INTEGRADO
+Data: 24/08/2026
+
+Escopo:
+- Contas a pagar e contas a receber integradas ao núcleo financeiro.
+- Backoffice integrado com painel de recebíveis, pagáveis, caixa, vencidos e pendências contábeis.
+- Cadastro de fornecedores por clínica/tenant.
+- Plano de contas e centros de custo com bootstrap inicial.
+- Obrigações fiscais com fluxo de aprovação e geração automática de conta a pagar.
+- DRE backend por período e categoria.
+- RH integrado: fechamento de folha gera contas a pagar de folha líquida e encargos sem duplicar por referência.
+- Portal do Contador com acesso restrito por capacidade.
+- Perfil CONTADOR e permissões accounting.view/edit/approve/portal.
+- Atalhos setoriais: Backoffice, Contas a Pagar, Contas a Receber e Portal do Contador.
+- Integração visual local mantida para demonstração da Alpha; backend preparado para persistência real.
+
+Observações:
+- Obrigações, guias, transmissões e decisões tributárias exigem validação do contador responsável.
+- O Portal do Contador deste bloco implementa estrutura de acesso e permissões; autenticação externa dedicada poderá ser endurecida na homologação.

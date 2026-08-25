@@ -4,6 +4,7 @@ import Academic from "../pages/Academic";
 import Accounting from "../pages/Accounting";
 import Agenda from "../pages/Agenda";
 import Backup from "../pages/Backup";
+import Backoffice from "../pages/Backoffice";
 import Benchmark from "../pages/Benchmark";
 import BusinessIntelligence from "../pages/BusinessIntelligence";
 import ClinicHealth from "../pages/ClinicHealth";
@@ -70,6 +71,8 @@ export default function AppRoutes() {
       <Route path="/backup" element={<Backup />} />
 
       <Route path="/benchmark" element={<Benchmark />} />
+
+      <Route path="/backoffice" element={<Backoffice />} />
 
       <Route
         path="/ceo-ia"
