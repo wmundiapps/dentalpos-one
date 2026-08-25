@@ -135,7 +135,7 @@ model Doctor {
   userId        String   @unique
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  cro           String   @unique
+  cro           String
 
   specialty     String
 
@@ -150,6 +150,7 @@ model Doctor {
   appointments  Appointment[]
   schedules     Schedule[]
 
+  @@unique([clinicId, cro])
   @@index([clinicId])
   @@index([tenantId])
 }

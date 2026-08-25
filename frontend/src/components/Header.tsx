@@ -16,6 +16,7 @@ import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchIcon from "@mui/icons-material/Search";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BrandName from "./BrandName";
@@ -173,6 +174,17 @@ export default function Header() {
             <Badge badgeContent={unreadCount} color="error">
               <NotificationsNoneIcon />
             </Badge>
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Sair com segurança">
+          <IconButton
+            onClick={() => {
+              localStorage.removeItem("dentalpos.token");
+              window.location.href = import.meta.env.BASE_URL;
+            }}
+          >
+            <LogoutIcon />
           </IconButton>
         </Tooltip>
 

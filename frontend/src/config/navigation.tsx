@@ -34,6 +34,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import ViewKanbanIcon from "@mui/icons-material/ViewKanban";
 import WorkIcon from "@mui/icons-material/Work";
+import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
@@ -172,6 +173,7 @@ export const navigationGroups: NavigationGroup[] = [
       item("Clínicas e unidades", "/clinicas", <LocalHospitalIcon />),
       item("Configurações", "/configuracoes", <SettingsIcon />),
       item("Integrações", "/integracoes", <HubIcon />),
+      item("Homologação e Segurança", "/homologacao", <VerifiedUserIcon />),
       item("Plataforma SaaS", "/plataforma-saas", <SettingsIcon />),
       item("Sugestões e Problemas", "/sugestoes-problemas", <BugReportIcon />),
     ]),

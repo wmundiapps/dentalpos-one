@@ -31,7 +31,7 @@ export default function Login() {
 
       localStorage.setItem("dentalpos.token", token);
       localStorage.setItem("dentalpos.clinicId", clinicId);
-      window.location.href = "/";
+      window.location.href = import.meta.env.BASE_URL;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no login");
     } finally {

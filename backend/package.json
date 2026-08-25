@@ -15,7 +15,8 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "seed:core": "tsx src/scripts/seedCore.ts",
-    "bootstrap:admin": "tsx src/scripts/bootstrapAdmin.ts"
+    "bootstrap:admin": "tsx src/scripts/bootstrapAdmin.ts",
+    "preflight:release": "tsx src/scripts/releasePreflight.ts"
   },
   "engines": {
     "node": ">=20"

@@ -1,0 +1,33 @@
+DENTALPOS ONE — BLOCO 15 — ARQUIVOS DO PATCH
+Base esperada: commit e8d15c5 / branch bloco-15-homologacao criada a partir da main.
+
+Arquivos novos/modificados principais:
+- backend/prisma/schema.prisma
+- backend/.env.example
+- backend/package.json
+- backend/src/app.ts
+- backend/src/server.ts
+- backend/src/config/runtime.ts
+- backend/src/middleware/requestContext.ts
+- backend/src/controllers/authController.ts
+- backend/src/controllers/doctorController.ts
+- backend/src/controllers/feedbackController.ts
+- backend/src/controllers/webhookController.ts
+- backend/src/controllers/platformReadinessController.ts
+- backend/src/routes/index.ts
+- backend/src/scripts/releasePreflight.ts
+- frontend/src/App.tsx
+- frontend/src/components/Header.tsx
+- frontend/src/config/navigation.tsx
+- frontend/src/pages/Login.tsx
+- frontend/src/pages/Backup.tsx
+- frontend/src/pages/Homologation.tsx
+- frontend/src/routes/AppRoutes.tsx
+- frontend/src/services/PlatformReadinessApi.ts
+- scripts/backup-postgres.ps1
+- scripts/restore-postgres.ps1
+- docs/BLOCO-15-HOMOLOGACAO-SEGURANCA.md
+- docs/HOMOLOGACAO-RUNBOOK.md
+- docs/RELEASE-CHECKLIST.md
+- DEPLOY-WMUNDI-DENTALPOSONE.md
+- CHECKPOINT-BLOCO-15-HOMOLOGACAO.txt

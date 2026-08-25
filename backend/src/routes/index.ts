@@ -31,6 +31,7 @@ import * as revahChatbotController from '../controllers/revahChatbotController'
 import * as leadDiscoveryController from '../controllers/leadDiscoveryController'
 import * as webhookController from '../controllers/webhookController'
 import * as backofficeController from '../controllers/backofficeController'
+import * as platformReadinessController from '../controllers/platformReadinessController'
 import { requirePermission } from '../middleware/permission'
 
 const router = Router()
@@ -94,21 +95,21 @@ router.delete('/clinic/:id', requirePermission('settings.edit'), clinicControlle
 // DOCTORS
 // ======================
 
-router.get('/doctors', doctorController.index)
-router.get('/doctor/:id', doctorController.show)
-router.post('/doctors', doctorController.store)
-router.put('/doctor/:id', doctorController.update)
-router.delete('/doctor/:id', doctorController.remove)
+router.get('/doctors', requirePermission('agenda.view'), doctorController.index)
+router.get('/doctor/:id', requirePermission('agenda.view'), doctorController.show)
+router.post('/doctors', requirePermission('settings.edit'), doctorController.store)
+router.put('/doctor/:id', requirePermission('settings.edit'), doctorController.update)
+router.delete('/doctor/:id', requirePermission('settings.edit'), doctorController.remove)
 
 // ======================
 // PATIENTS
 // ======================
 
-router.get('/patients', patientController.index)
-router.get('/patient/:id', patientController.show)
-router.post('/patients', patientController.store)
-router.put('/patient/:id', patientController.update)
-router.delete('/patient/:id', patientController.remove)
+router.get('/patients', requirePermission('patients.view'), patientController.index)
+router.get('/patient/:id', requirePermission('patients.view'), patientController.show)
+router.post('/patients', requirePermission('patients.create'), patientController.store)
+router.put('/patient/:id', requirePermission('patients.edit'), patientController.update)
+router.delete('/patient/:id', requirePermission('patients.edit'), patientController.remove)
 
 // CLINICAL RECORD / ODONTOGRAM / TREATMENT PLAN
 router.get('/patients/:patientId/clinical', requirePermission('clinical.view'), clinicalController.patientClinical)
@@ -231,6 +232,7 @@ router.put('/platform/units', requirePermission('settings.edit'), platformContro
 router.get('/platform/feature-flags', requirePermission('settings.view'), platformController.featureFlags)
 router.put('/platform/feature-flags/:key', requirePermission('settings.edit'), platformController.setFeatureFlag)
 router.get('/platform/storage', requirePermission('settings.view'), platformController.storage)
+router.get('/platform/readiness', requirePermission('settings.view'), platformReadinessController.readiness)
 router.put('/platform/storage', requirePermission('settings.edit'), platformController.setStorage)
 router.get('/revah/senders', requirePermission('marketing.view'), revahSenderController.index)
 router.put('/revah/senders', requirePermission('marketing.send'), revahSenderController.upsert)
@@ -260,10 +262,10 @@ router.put('/accounting/accountant-access/:id', requirePermission('accounting.po
 // FEEDBACKS
 // ======================
 
-router.get('/feedbacks', feedbackController.index)
-router.get('/feedback/:id', feedbackController.show)
-router.post('/feedbacks', feedbackController.store)
-router.put('/feedback/:id', feedbackController.update)
-router.delete('/feedback/:id', feedbackController.remove)
+router.get('/feedbacks', requirePermission('patients.view'), feedbackController.index)
+router.get('/feedback/:id', requirePermission('patients.view'), feedbackController.show)
+router.post('/feedbacks', requirePermission('patients.edit'), feedbackController.store)
+router.put('/feedback/:id', requirePermission('patients.edit'), feedbackController.update)
+router.delete('/feedback/:id', requirePermission('patients.edit'), feedbackController.remove)
 
 export default router

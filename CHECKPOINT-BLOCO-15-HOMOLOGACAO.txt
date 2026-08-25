@@ -1,0 +1,18 @@
+DENTALPOS ONE — CHECKPOINT BLOCO 15
+
+Escopo:
+- Pré-flight de homologação/produção no backend e painel visual no frontend.
+- Validação de sessão antes de abrir o sistema e logout explícito.
+- Login sem exposição do hash de senha e token com validade reduzida/configurável.
+- Rate limit reforçado para autenticação e limite global de API.
+- CORS restrito, request ID, no-store em APIs e health/readiness checks.
+- Verificação criptográfica do webhook Stripe e token obrigatório no webhook Asaas.
+- Isolamento multi-tenant reforçado em profissionais e avaliações.
+- Permissões explícitas em pacientes, profissionais e avaliações.
+- CRO único por clínica, não globalmente.
+- Tela Homologação e Segurança sem exibir segredos.
+- Backup sem dados fictícios + scripts de backup/restauração de teste.
+- Runbook de homologação e checklist de promoção.
+
+IMPORTANTE:
+Este bloco prepara e endurece o ambiente, mas não declara integrações externas homologadas sem credenciais reais e testes do provedor. Produção também exige backup externo, restauração testada, HTTPS/reverse proxy e revisão LGPD operacional.

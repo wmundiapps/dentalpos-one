@@ -46,6 +46,7 @@ import TreatmentPlanning from "../pages/TreatmentPlanning";
 import PlatformAdministration from "../pages/PlatformAdministration";
 import LeadDiscovery from "../pages/LeadDiscovery";
 import Integrations from "../pages/Integrations";
+import Homologation from "../pages/Homologation";
 
 import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
 
@@ -209,6 +210,7 @@ export default function AppRoutes() {
       <Route path="/plataforma-saas" element={<PlatformAdministration />} />
       <Route path="/revah-leads" element={<LeadDiscovery />} />
       <Route path="/integracoes" element={<Integrations />} />
+      <Route path="/homologacao" element={<Homologation />} />
 
       {/* DENTALPOS DESIGN */}
       <Route
