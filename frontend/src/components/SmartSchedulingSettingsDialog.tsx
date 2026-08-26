@@ -3,6 +3,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -27,6 +28,10 @@ import {
   type ProcedureTimingRule,
   type SmartSchedulingConfig,
 } from "../services/SmartSchedulingService";
+import {
+  loadSmartSchedulingBackendConfig,
+  saveSmartSchedulingBackendConfig,
+} from "../services/SmartSchedulingApi";
 
 interface Props {
   open: boolean;
@@ -34,7 +39,13 @@ interface Props {
   onSaved?: (config: SmartSchedulingConfig) => void;
 }
 
-const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+type MessageState = {
+  severity: "success" | "info" | "warning" | "error";
+  text: string;
+};
+
+const clone = <T,>(value: T): T =>
+  JSON.parse(JSON.stringify(value)) as T;
 
 function parseKeywords(value: string) {
   return value
@@ -67,121 +78,329 @@ function laboratoryRule(): LaboratoryTimingRule {
   };
 }
 
-export default function SmartSchedulingSettingsDialog({ open, onClose, onSaved }: Props) {
-  const [config, setConfig] = useState<SmartSchedulingConfig>(clone(DEFAULT_SMART_SCHEDULING_CONFIG));
+export default function SmartSchedulingSettingsDialog({
+  open,
+  onClose,
+  onSaved,
+}: Props) {
+  const [config, setConfig] = useState<SmartSchedulingConfig>(
+    clone(DEFAULT_SMART_SCHEDULING_CONFIG),
+  );
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [storageMode, setStorageMode] = useState<"backend" | "local">(
+    "local",
+  );
+  const [message, setMessage] = useState<MessageState | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
     setLoading(true);
     setMessage(null);
+
     void loadSmartSchedulingConfig()
-      .then((value) => setConfig(clone(value)))
-      .finally(() => setLoading(false));
+      .then(async (localValue) => {
+        try {
+          const remoteValue =
+            await loadSmartSchedulingBackendConfig(localValue);
+          if (cancelled) return;
+          setConfig(clone(remoteValue));
+          setStorageMode("backend");
+        } catch {
+          if (cancelled) return;
+          setConfig(clone(localValue));
+          setStorageMode("local");
+          setMessage({
+            severity: "warning",
+            text: "Backend indisponível. A tela está usando o modo local seguro.",
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
-  const updateProcedure = (id: string, patch: Partial<ProcedureTimingRule>) => {
+  const updateProcedure = (
+    id: string,
+    patch: Partial<ProcedureTimingRule>,
+  ) => {
     setConfig((current) => ({
       ...current,
-      procedureRules: current.procedureRules.map((rule) => (rule.id === id ? { ...rule, ...patch } : rule)),
+      procedureRules: current.procedureRules.map((rule) =>
+        rule.id === id ? { ...rule, ...patch } : rule,
+      ),
     }));
   };
 
-  const updateLaboratory = (id: string, patch: Partial<LaboratoryTimingRule>) => {
+  const updateLaboratory = (
+    id: string,
+    patch: Partial<LaboratoryTimingRule>,
+  ) => {
     setConfig((current) => ({
       ...current,
-      laboratoryRules: current.laboratoryRules.map((rule) => (rule.id === id ? { ...rule, ...patch } : rule)),
+      laboratoryRules: current.laboratoryRules.map((rule) =>
+        rule.id === id ? { ...rule, ...patch } : rule,
+      ),
     }));
   };
 
   const save = async () => {
     setSaving(true);
     setMessage(null);
-    const saved = await saveSmartSchedulingConfig(config);
-    setConfig(clone(saved));
+
+    let saved = clone(config);
+    let backendSaved = false;
+
+    try {
+      saved = await saveSmartSchedulingBackendConfig(config);
+      backendSaved = true;
+    } catch {
+      backendSaved = false;
+    }
+
+    const localSaved = await saveSmartSchedulingConfig(saved);
+    setConfig(clone(localSaved));
+    setStorageMode(backendSaved ? "backend" : "local");
     setSaving(false);
-    setMessage("Configuração salva para a Agenda Inteligente.");
-    onSaved?.(saved);
+
+    if (backendSaved) {
+      setMessage({
+        severity: "success",
+        text: "Configuração sincronizada com o backend/PostgreSQL da clínica.",
+      });
+    } else {
+      setMessage({
+        severity: "warning",
+        text: "Não foi possível sincronizar com o backend. A configuração foi preservada no modo local seguro.",
+      });
+    }
+
+    onSaved?.(localSaved);
   };
 
   const restoreDefaults = () => {
     const restored = resetSmartSchedulingConfig();
     setConfig(clone(restored));
-    setMessage("Regras padrão restauradas localmente. Clique em Salvar para sincronizar com a clínica.");
+    setMessage({
+      severity: "info",
+      text: "Regras padrão restauradas. Clique em Salvar configuração para sincronizar.",
+    });
   };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
-      <DialogTitle>Configurar Agenda Inteligente</DialogTitle>
-      <DialogContent sx={{ pt: "12px!important" }}>
-        {loading ? <Alert severity="info">Carregando configuração...</Alert> : null}
-        {message ? <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert> : null}
+      <DialogTitle>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1,
+            flexWrap: "wrap",
+          }}
+        >
+          <span>Configurar Agenda Inteligente</span>
+          <Chip
+            size="small"
+            color={storageMode === "backend" ? "success" : "default"}
+            label={
+              storageMode === "backend"
+                ? "Backend / PostgreSQL"
+                : "Modo local seguro"
+            }
+          />
+        </Box>
+      </DialogTitle>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Regras gerais</Typography>
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+      <DialogContent sx={{ pt: "12px!important" }}>
+        {loading ? (
+          <Alert severity="info">Carregando configuração...</Alert>
+        ) : null}
+
+        {message ? (
+          <Alert severity={message.severity} sx={{ mb: 2 }}>
+            {message.text}
+          </Alert>
+        ) : null}
+
+        <Paper
+          variant="outlined"
+          sx={{ p: 2, borderRadius: 3, mb: 2 }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>
+            Regras gerais
+          </Typography>
+
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <FormControlLabel
-              control={<Switch checked={config.enabled} onChange={(event) => setConfig({ ...config, enabled: event.target.checked })} />}
+              control={
+                <Switch
+                  checked={config.enabled}
+                  onChange={(event) =>
+                    setConfig({
+                      ...config,
+                      enabled: event.target.checked,
+                    })
+                  }
+                />
+              }
               label="Agenda Inteligente ativa"
             />
+
             <FormControlLabel
-              control={<Switch checked={config.sameWeekdayDefault} onChange={(event) => setConfig({ ...config, sameWeekdayDefault: event.target.checked })} />}
+              control={
+                <Switch
+                  checked={config.sameWeekdayDefault}
+                  onChange={(event) =>
+                    setConfig({
+                      ...config,
+                      sameWeekdayDefault: event.target.checked,
+                    })
+                  }
+                />
+              }
               label="Manter o dia da semana do paciente"
             />
+
             <FormControlLabel
-              control={<Switch checked={config.financialAlignmentEnabled} onChange={(event) => setConfig({ ...config, financialAlignmentEnabled: event.target.checked })} />}
+              control={
+                <Switch
+                  checked={config.financialAlignmentEnabled}
+                  onChange={(event) =>
+                    setConfig({
+                      ...config,
+                      financialAlignmentEnabled:
+                        event.target.checked,
+                    })
+                  }
+                />
+              }
               label="Sugerir conciliação com o plano financeiro"
             />
+
             <TextField
               size="small"
               type="number"
               label="Duração padrão (min)"
               value={config.defaultDurationMinutes}
-              onChange={(event) => setConfig({ ...config, defaultDurationMinutes: Math.max(10, Number(event.target.value || 30)) })}
+              onChange={(event) =>
+                setConfig({
+                  ...config,
+                  defaultDurationMinutes: Math.max(
+                    10,
+                    Number(event.target.value || 30),
+                  ),
+                })
+              }
               sx={{ width: 180 }}
             />
+
             <TextField
               size="small"
               type="number"
               label="Retorno padrão (dias)"
               value={config.defaultReturnDays}
-              onChange={(event) => setConfig({ ...config, defaultReturnDays: Math.max(1, Number(event.target.value || 14)) })}
+              onChange={(event) =>
+                setConfig({
+                  ...config,
+                  defaultReturnDays: Math.max(
+                    1,
+                    Number(event.target.value || 14),
+                  ),
+                })
+              }
               sx={{ width: 190 }}
             />
+
             <TextField
               size="small"
               type="number"
               label="Janela máxima padrão"
               value={config.defaultMaxReturnDays}
-              onChange={(event) => setConfig({ ...config, defaultMaxReturnDays: Math.max(config.defaultReturnDays, Number(event.target.value || 30)) })}
+              onChange={(event) =>
+                setConfig({
+                  ...config,
+                  defaultMaxReturnDays: Math.max(
+                    config.defaultReturnDays,
+                    Number(event.target.value || 30),
+                  ),
+                })
+              }
               sx={{ width: 210 }}
             />
           </Box>
+
           <Alert severity="info" sx={{ mt: 2 }}>
-            O critério clínico e o prazo do laboratório têm prioridade. O financeiro é apenas uma sugestão administrativa dentro da janela clínica e nunca bloqueia atendimento.
+            O critério clínico e o prazo do laboratório têm prioridade.
+            O financeiro é apenas uma sugestão administrativa dentro da
+            janela clínica e nunca bloqueia atendimento.
           </Alert>
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap", mb: 1 }}>
+        <Paper
+          variant="outlined"
+          sx={{ p: 2, borderRadius: 3, mb: 2 }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1,
+              flexWrap: "wrap",
+              mb: 1,
+            }}
+          >
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 900 }}>Tempo por procedimento e retorno</Typography>
-              <Typography variant="body2" color="text.secondary">Edite conforme a rotina dos profissionais da clínica.</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 900 }}>
+                Tempo por procedimento e retorno
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Edite conforme a rotina dos profissionais da clínica.
+              </Typography>
             </Box>
-            <Button startIcon={<AddIcon />} onClick={() => setConfig({ ...config, procedureRules: [...config.procedureRules, procedureRule()] })}>
+
+            <Button
+              startIcon={<AddIcon />}
+              onClick={() =>
+                setConfig({
+                  ...config,
+                  procedureRules: [
+                    ...config.procedureRules,
+                    procedureRule(),
+                  ],
+                })
+              }
+            >
               Nova regra
             </Button>
           </Box>
+
           <Divider sx={{ mb: 2 }} />
+
           <Box sx={{ display: "grid", gap: 1.5 }}>
             {config.procedureRules.map((rule) => (
               <Box
                 key={rule.id}
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: { xs: "1fr", md: "minmax(180px,1.2fr) minmax(220px,2fr) 110px 110px 110px auto auto" },
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    md: "minmax(180px,1.2fr) minmax(220px,2fr) 110px 110px 110px auto auto",
+                  },
                   gap: 1,
                   alignItems: "center",
                   p: 1.5,
@@ -190,16 +409,102 @@ export default function SmartSchedulingSettingsDialog({ open, onClose, onSaved }
                   borderRadius: 2,
                 }}
               >
-                <TextField size="small" label="Regra" value={rule.label} onChange={(event) => updateProcedure(rule.id, { label: event.target.value })} />
-                <TextField size="small" label="Palavras-chave" value={rule.keywords.join(", ")} onChange={(event) => updateProcedure(rule.id, { keywords: parseKeywords(event.target.value) })} />
-                <TextField size="small" type="number" label="Minutos" value={rule.durationMinutes} onChange={(event) => updateProcedure(rule.id, { durationMinutes: Math.max(10, Number(event.target.value || 30)) })} />
-                <TextField size="small" type="number" label="Retorno" value={rule.returnDays} onChange={(event) => updateProcedure(rule.id, { returnDays: Math.max(1, Number(event.target.value || 1)) })} />
-                <TextField size="small" type="number" label="Máximo" value={rule.maxReturnDays} onChange={(event) => updateProcedure(rule.id, { maxReturnDays: Math.max(rule.returnDays, Number(event.target.value || rule.returnDays)) })} />
+                <TextField
+                  size="small"
+                  label="Regra"
+                  value={rule.label}
+                  onChange={(event) =>
+                    updateProcedure(rule.id, {
+                      label: event.target.value,
+                    })
+                  }
+                />
+
+                <TextField
+                  size="small"
+                  label="Palavras-chave"
+                  value={rule.keywords.join(", ")}
+                  onChange={(event) =>
+                    updateProcedure(rule.id, {
+                      keywords: parseKeywords(event.target.value),
+                    })
+                  }
+                />
+
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Minutos"
+                  value={rule.durationMinutes}
+                  onChange={(event) =>
+                    updateProcedure(rule.id, {
+                      durationMinutes: Math.max(
+                        10,
+                        Number(event.target.value || 30),
+                      ),
+                    })
+                  }
+                />
+
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Retorno"
+                  value={rule.returnDays}
+                  onChange={(event) =>
+                    updateProcedure(rule.id, {
+                      returnDays: Math.max(
+                        1,
+                        Number(event.target.value || 1),
+                      ),
+                    })
+                  }
+                />
+
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Máximo"
+                  value={rule.maxReturnDays}
+                  onChange={(event) =>
+                    updateProcedure(rule.id, {
+                      maxReturnDays: Math.max(
+                        rule.returnDays,
+                        Number(
+                          event.target.value || rule.returnDays,
+                        ),
+                      ),
+                    })
+                  }
+                />
+
                 <FormControlLabel
-                  control={<Switch size="small" checked={rule.sameWeekday} onChange={(event) => updateProcedure(rule.id, { sameWeekday: event.target.checked })} />}
+                  control={
+                    <Switch
+                      size="small"
+                      checked={rule.sameWeekday}
+                      onChange={(event) =>
+                        updateProcedure(rule.id, {
+                          sameWeekday: event.target.checked,
+                        })
+                      }
+                    />
+                  }
                   label="Mesmo dia"
                 />
-                <IconButton aria-label="Excluir regra" onClick={() => setConfig({ ...config, procedureRules: config.procedureRules.filter((item) => item.id !== rule.id) })}>
+
+                <IconButton
+                  aria-label="Excluir regra"
+                  onClick={() =>
+                    setConfig({
+                      ...config,
+                      procedureRules:
+                        config.procedureRules.filter(
+                          (item) => item.id !== rule.id,
+                        ),
+                    })
+                  }
+                >
                   <DeleteOutlineIcon />
                 </IconButton>
               </Box>
@@ -208,23 +513,54 @@ export default function SmartSchedulingSettingsDialog({ open, onClose, onSaved }
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap", mb: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1,
+              flexWrap: "wrap",
+              mb: 1,
+            }}
+          >
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 900 }}>Prazos de laboratório</Typography>
-              <Typography variant="body2" color="text.secondary">Exemplo: 15 dias de produção + 6 dias de margem = retorno a partir de 21 dias.</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 900 }}>
+                Prazos de laboratório
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Exemplo: 15 dias de produção + 6 dias de margem =
+                retorno a partir de 21 dias.
+              </Typography>
             </Box>
-            <Button startIcon={<AddIcon />} onClick={() => setConfig({ ...config, laboratoryRules: [...config.laboratoryRules, laboratoryRule()] })}>
+
+            <Button
+              startIcon={<AddIcon />}
+              onClick={() =>
+                setConfig({
+                  ...config,
+                  laboratoryRules: [
+                    ...config.laboratoryRules,
+                    laboratoryRule(),
+                  ],
+                })
+              }
+            >
               Novo laboratório
             </Button>
           </Box>
+
           <Divider sx={{ mb: 2 }} />
+
           <Box sx={{ display: "grid", gap: 1.5 }}>
             {config.laboratoryRules.map((rule) => (
               <Box
                 key={rule.id}
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: { xs: "1fr", md: "minmax(180px,1.2fr) minmax(220px,2fr) 130px 130px auto" },
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    md: "minmax(180px,1.2fr) minmax(220px,2fr) 130px 130px auto",
+                  },
                   gap: 1,
                   alignItems: "center",
                   p: 1.5,
@@ -233,11 +569,72 @@ export default function SmartSchedulingSettingsDialog({ open, onClose, onSaved }
                   borderRadius: 2,
                 }}
               >
-                <TextField size="small" label="Laboratório" value={rule.laboratoryName} onChange={(event) => updateLaboratory(rule.id, { laboratoryName: event.target.value })} />
-                <TextField size="small" label="Serviços / palavras-chave" value={rule.serviceKeywords.join(", ")} onChange={(event) => updateLaboratory(rule.id, { serviceKeywords: parseKeywords(event.target.value) })} />
-                <TextField size="small" type="number" label="Produção (dias)" value={rule.turnaroundDays} onChange={(event) => updateLaboratory(rule.id, { turnaroundDays: Math.max(0, Number(event.target.value || 0)) })} />
-                <TextField size="small" type="number" label="Margem (dias)" value={rule.safetyDays} onChange={(event) => updateLaboratory(rule.id, { safetyDays: Math.max(0, Number(event.target.value || 0)) })} />
-                <IconButton aria-label="Excluir laboratório" onClick={() => setConfig({ ...config, laboratoryRules: config.laboratoryRules.filter((item) => item.id !== rule.id) })}>
+                <TextField
+                  size="small"
+                  label="Laboratório"
+                  value={rule.laboratoryName}
+                  onChange={(event) =>
+                    updateLaboratory(rule.id, {
+                      laboratoryName: event.target.value,
+                    })
+                  }
+                />
+
+                <TextField
+                  size="small"
+                  label="Serviços / palavras-chave"
+                  value={rule.serviceKeywords.join(", ")}
+                  onChange={(event) =>
+                    updateLaboratory(rule.id, {
+                      serviceKeywords: parseKeywords(
+                        event.target.value,
+                      ),
+                    })
+                  }
+                />
+
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Produção (dias)"
+                  value={rule.turnaroundDays}
+                  onChange={(event) =>
+                    updateLaboratory(rule.id, {
+                      turnaroundDays: Math.max(
+                        0,
+                        Number(event.target.value || 0),
+                      ),
+                    })
+                  }
+                />
+
+                <TextField
+                  size="small"
+                  type="number"
+                  label="Margem (dias)"
+                  value={rule.safetyDays}
+                  onChange={(event) =>
+                    updateLaboratory(rule.id, {
+                      safetyDays: Math.max(
+                        0,
+                        Number(event.target.value || 0),
+                      ),
+                    })
+                  }
+                />
+
+                <IconButton
+                  aria-label="Excluir laboratório"
+                  onClick={() =>
+                    setConfig({
+                      ...config,
+                      laboratoryRules:
+                        config.laboratoryRules.filter(
+                          (item) => item.id !== rule.id,
+                        ),
+                    })
+                  }
+                >
                   <DeleteOutlineIcon />
                 </IconButton>
               </Box>
@@ -245,11 +642,31 @@ export default function SmartSchedulingSettingsDialog({ open, onClose, onSaved }
           </Box>
         </Paper>
       </DialogContent>
-      <DialogActions sx={{ display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
-        <Button startIcon={<RestartAltIcon />} onClick={restoreDefaults}>Restaurar padrões</Button>
+
+      <DialogActions
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 1,
+          flexWrap: "wrap",
+        }}
+      >
+        <Button
+          startIcon={<RestartAltIcon />}
+          onClick={restoreDefaults}
+        >
+          Restaurar padrões
+        </Button>
+
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button onClick={onClose}>Fechar</Button>
-          <Button variant="contained" disabled={saving} onClick={save}>{saving ? "Salvando..." : "Salvar configuração"}</Button>
+          <Button
+            variant="contained"
+            disabled={saving}
+            onClick={save}
+          >
+            {saving ? "Salvando..." : "Salvar configuração"}
+          </Button>
         </Box>
       </DialogActions>
     </Dialog>

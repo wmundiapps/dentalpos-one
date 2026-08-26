@@ -1,0 +1,21 @@
+# CHECKPOINT — BLOCO 19 — AGENDA CONFIGURAÇÕES
+
+Objetivo:
+Sincronizar a tela de configurações da Agenda Inteligente com o backend multi-tenant/PostgreSQL.
+
+Entregas:
+- leitura de /smart-scheduling/config;
+- sincronização da política geral;
+- sincronização das regras de procedimentos;
+- sincronização das regras de laboratório;
+- desativação no backend de regras removidas na interface;
+- agrupamento de serviços laboratoriais na interface;
+- indicador visual Backend / PostgreSQL ou Modo local seguro;
+- preservação do fallback local/feature flag;
+- prioridade clínica e financeiro não bloqueante preservados.
+
+Validação:
+- npm run build no frontend;
+- npm run build no backend;
+- npm run preflight:release;
+- git diff --check.
