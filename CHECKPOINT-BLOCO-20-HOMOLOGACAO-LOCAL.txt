@@ -1,0 +1,27 @@
+# CHECKPOINT — BLOCO 20 — HOMOLOGAÇÃO LOCAL
+
+Objetivo:
+Validar a integração real da Agenda Inteligente com backend, autenticação multi-tenant e PostgreSQL.
+
+Teste automatizado:
+- inicia API local isolada na porta 3199;
+- usa administrador ativo e JWT sem exibir senha;
+- lê configuração da Agenda Inteligente;
+- testa gravação idempotente da política;
+- testa regra clínica;
+- testa regra laboratorial;
+- cria paciente temporário;
+- solicita sugestão real;
+- confirma CLINICAL_FIRST;
+- confirma consideração do laboratório;
+- aceita a decisão;
+- relê configuração;
+- remove dados temporários ao final.
+
+O script não exibe JWT_SECRET, senha ou credenciais.
+
+Comando:
+npx tsx src/scripts/homologacaoLocal.ts
+
+Critério de aprovação:
+HOMOLOGAÇÃO LOCAL APROVADA — BLOCO 20
