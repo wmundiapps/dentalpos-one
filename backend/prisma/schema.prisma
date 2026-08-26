@@ -1430,3 +1430,111 @@ model RevahConversationMessage {
   @@index([clinicId, conversationId, createdAt])
   @@index([tenantId])
 }
+
+// ======================
+// BLOCO 17 - AGENDA INTELIGENTE / BACKEND
+// Critério clínico sempre prioritário; financeiro é apenas fator auxiliar e alerta.
+// ======================
+
+model SmartSchedulingPolicy {
+  id                            String   @id @default(cuid())
+  clinicId                      String   @unique
+  tenantId                      String
+  enabled                       Boolean  @default(true)
+  respectPreferredWeekday       Boolean  @default(true)
+  financeOptimizationEnabled    Boolean  @default(true)
+  financeNeverOverridesClinical Boolean  @default(true)
+  overdueWarningOnly            Boolean  @default(true)
+  defaultDurationMinutes        Int      @default(30)
+  defaultReturnIntervalDays     Int      @default(14)
+  maxLookAheadDays              Int      @default(180)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model SmartProcedureRule {
+  id                          String   @id @default(cuid())
+  clinicId                    String
+  tenantId                    String
+  procedureKey                String
+  procedureName               String
+  durationMinutes             Int      @default(30)
+  clinicalMinReturnDays       Int      @default(0)
+  clinicalMaxReturnDays       Int?
+  preferredReturnIntervalDays Int?
+  isActive                    Boolean  @default(true)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  @@unique([clinicId, procedureKey])
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+}
+
+model SmartLaboratoryRule {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  laboratoryName String
+  serviceKey     String
+  serviceName    String
+  leadTimeDays   Int      @default(15)
+  safetyDays     Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([clinicId, laboratoryName, serviceKey])
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+}
+
+model PatientSchedulingPreference {
+  id                 String   @id @default(cuid())
+  clinicId           String
+  tenantId           String
+  patientId          String
+  preferredWeekday   Int?
+  preferredTimeStart String?
+  preferredTimeEnd   String?
+  notes              String?
+  source             String   @default("MANUAL")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([clinicId, patientId])
+  @@index([tenantId])
+}
+
+model SmartSchedulingDecision {
+  id                    String   @id @default(cuid())
+  clinicId              String
+  tenantId              String
+  patientId             String
+  appointmentId         String?
+  procedure             String
+  durationMinutes       Int
+  referenceAt           DateTime
+  clinicalEarliestAt    DateTime
+  clinicalLatestAt      DateTime?
+  laboratoryReadyAt     DateTime?
+  financeReferenceAt    DateTime?
+  suggestedReturnAt     DateTime
+  chosenReturnAt        DateTime?
+  recommendation        String
+  warnings              Json?
+  factors               Json?
+  status                String   @default("SUGGESTED")
+  overridden            Boolean  @default(false)
+  overrideReason        String?
+  createdById           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([clinicId, patientId, createdAt])
+  @@index([clinicId, status])
+  @@index([appointmentId])
+  @@index([tenantId])
+}

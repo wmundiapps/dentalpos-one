@@ -1,4 +1,4 @@
-import { Router } from 'express'
+﻿import { Router } from 'express'
 
 import { authMiddleware } from '../middleware/auth'
 import tenantMiddleware from '../middleware/tenant'
@@ -32,6 +32,7 @@ import * as leadDiscoveryController from '../controllers/leadDiscoveryController
 import * as webhookController from '../controllers/webhookController'
 import * as backofficeController from '../controllers/backofficeController'
 import * as platformReadinessController from '../controllers/platformReadinessController'
+import * as smartSchedulingController from '../controllers/smartSchedulingController'
 import { requirePermission } from '../middleware/permission'
 
 const router = Router()
@@ -139,6 +140,21 @@ router.put('/appointment/:id', requirePermission('agenda.edit'), appointmentCont
 router.delete('/appointment/:id', requirePermission('agenda.cancel'), appointmentController.remove)
 
 // ======================
+// SMART SCHEDULING / AGENDA INTELIGENTE
+// ======================
+
+router.get('/smart-scheduling/config', requirePermission('agenda.view'), smartSchedulingController.config)
+router.post('/smart-scheduling/bootstrap', requirePermission('agenda.edit'), smartSchedulingController.bootstrap)
+router.put('/smart-scheduling/policy', requirePermission('agenda.edit'), smartSchedulingController.updatePolicy)
+router.put('/smart-scheduling/procedure-rules/:procedureKey', requirePermission('agenda.edit'), smartSchedulingController.upsertProcedureRule)
+router.put('/smart-scheduling/laboratory-rules', requirePermission('agenda.edit'), smartSchedulingController.upsertLaboratoryRule)
+router.get('/patients/:patientId/scheduling-preference', requirePermission('agenda.view'), smartSchedulingController.patientPreference)
+router.put('/patients/:patientId/scheduling-preference', requirePermission('agenda.edit'), smartSchedulingController.updatePatientPreference)
+router.post('/smart-scheduling/suggest', requirePermission('agenda.create'), smartSchedulingController.suggest)
+router.get('/smart-scheduling/decisions', requirePermission('agenda.view'), smartSchedulingController.decisions)
+router.post('/smart-scheduling/decisions/:id/accept', requirePermission('agenda.edit'), smartSchedulingController.acceptDecision)
+router.post('/smart-scheduling/decisions/:id/override', requirePermission('agenda.edit'), smartSchedulingController.overrideDecision)
+// ======================
 // SCHEDULES
 // ======================
 
@@ -240,7 +256,7 @@ router.get('/lead-discovery/imports', requirePermission('sales.view'), leadDisco
 router.post('/lead-discovery/imports', requirePermission('sales.edit'), leadDiscoveryController.createImport)
 
 // ======================
-// BACKOFFICE / CONTÁBIL / FISCAL
+// BACKOFFICE / CONTÃBIL / FISCAL
 // ======================
 
 router.get('/backoffice/dashboard', requirePermission('accounting.view'), backofficeController.dashboard)
@@ -269,3 +285,4 @@ router.put('/feedback/:id', requirePermission('patients.edit'), feedbackControll
 router.delete('/feedback/:id', requirePermission('patients.edit'), feedbackController.remove)
 
 export default router
+

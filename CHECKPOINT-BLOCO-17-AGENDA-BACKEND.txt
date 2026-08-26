@@ -1,0 +1,26 @@
+BLOCO 17 - AGENDA INTELIGENTE / BACKEND
+
+Objetivo:
+- Persistir regras inteligentes por clínica/tenant no PostgreSQL.
+- Tornar duração, retorno clínico, laboratório, preferência semanal e alertas financeiros disponíveis por API.
+- Registrar sugestões, aceite e override com motivo.
+- Preservar a regra: necessidade clínica sempre prevalece sobre otimização financeira.
+
+Incluído:
+- SmartSchedulingPolicy
+- SmartProcedureRule
+- SmartLaboratoryRule
+- PatientSchedulingPreference
+- SmartSchedulingDecision
+- Serviço de cálculo puro e testável
+- Controller multi-tenant
+- Bootstrap de regras iniciais
+- APIs de configuração, sugestão, histórico, aceite e override
+- Auditoria das decisões principais
+
+Após aplicar:
+1. backend: npx prisma format
+2. backend: npx prisma db push
+3. backend: npx prisma generate
+4. backend: npm run build
+5. validar endpoints com usuário autenticado
