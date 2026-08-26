@@ -1,0 +1,24 @@
+DENTALPOS ONE - CHECKPOINT BLOCO 18 - AGENDA FRONTEND + BACKEND
+Data: 2026-08-25
+
+Objetivo:
+Conectar a interface da Agenda Inteligente criada no Bloco 16 ao backend/PostgreSQL criado no Bloco 17.
+
+Entregas:
+- cliente frontend para POST /smart-scheduling/suggest
+- sugestão do backend exibida na Agenda
+- decisão aceita registrada no backend
+- fallback local mantido caso API esteja indisponível ou não exista patientId
+- identificação visual Backend/PostgreSQL x Modo local seguro
+- prioridade clínica preservada
+- financeiro permanece apenas informativo e nunca bloqueante
+
+Arquivos:
+- frontend/src/services/SmartSchedulingApi.ts
+- frontend/src/components/SmartSchedulingAssistant.tsx
+- docs/BLOCO-18-AGENDA-INTEGRACAO.md
+
+Validação prevista:
+- npm run build no frontend
+- preflight de release no backend
+- git diff --check
