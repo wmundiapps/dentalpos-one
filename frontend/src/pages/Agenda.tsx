@@ -36,6 +36,7 @@ import {
 } from "../services/OperationsHubService";
 import { patientFinancialSummary } from "../services/FinanceHubService";
 import { listPatients } from "../services/PatientClinicalService";
+import { loadBackendPatients } from "../services/PatientApi";
 import { enqueueAppointmentReminders } from "../services/RevahQueueService";
 import type { SmartScheduleSuggestion } from "../services/SmartSchedulingService";
 import type { IntegratedAppointment } from "../types/operationsHub";
@@ -130,8 +131,22 @@ export default function Agenda() {
     }
   });
   const [form, setForm] = useState<AppointmentForm>(() => initialForm(date));
+  const [backendPatients, setBackendPatients] = useState<Array<{ id: string; fullName: string; phone: string }>>([]);
 
   useEffect(() => subscribeOperations(() => setItems(getAppointments())), []);
+  useEffect(() => {
+    let active = true;
+    loadBackendPatients()
+      .then((patients) => {
+        if (active) setBackendPatients(patients);
+      })
+      .catch(() => {
+        if (active) setBackendPatients([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   useEffect(() => {
     localStorage.setItem(KEY, JSON.stringify({ channel, booking: true, oneDayBefore: true, onDay: true }));
   }, [channel]);
@@ -183,7 +198,7 @@ export default function Agenda() {
     [items],
   );
   const alerts = getOperationalAlerts().filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
-  const selectedPatient = listPatients().find((patient) => patient.fullName.toLowerCase() === form.patientName.toLowerCase());
+  const selectedPatient = backendPatients.find((patient) => patient.fullName.toLowerCase() === form.patientName.toLowerCase()) || listPatients().find((patient) => patient.fullName.toLowerCase() === form.patientName.toLowerCase());
 
   const openNew = (prefill?: Partial<AppointmentForm>) => {
     setSmartSuggestion(null);
