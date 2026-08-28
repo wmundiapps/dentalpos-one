@@ -39,6 +39,7 @@ import {
 import { patientFinancialSummary } from "../services/FinanceHubService";
 import { listPatients } from "../services/PatientClinicalService";
 import { loadBackendPatients } from "../services/PatientApi";
+import { createBackendAppointment, loadBackendDoctors, type BackendDoctor } from "../services/AppointmentApi";
 import { enqueueAppointmentReminders } from "../services/RevahQueueService";
 import type { SmartScheduleSuggestion } from "../services/SmartSchedulingService";
 import type { IntegratedAppointment } from "../types/operationsHub";
@@ -134,6 +135,7 @@ export default function Agenda() {
   });
   const [form, setForm] = useState<AppointmentForm>(() => initialForm(date));
   const [backendPatients, setBackendPatients] = useState<Array<{ id: string; fullName: string; phone: string }>>([]);
+  const [backendDoctors, setBackendDoctors] = useState<BackendDoctor[]>([]);
 
   useEffect(() => subscribeOperations(() => setItems(getAppointments())), []);
   useEffect(() => {
@@ -148,6 +150,9 @@ export default function Agenda() {
     return () => {
       active = false;
     };
+  }, []);
+  useEffect(() => {
+    loadBackendDoctors().then(setBackendDoctors).catch(() => setBackendDoctors([]));
   }, []);
   useEffect(() => {
     localStorage.setItem(KEY, JSON.stringify({ channel, booking: true, oneDayBefore: true, onDay: true }));
@@ -211,8 +216,53 @@ export default function Agenda() {
     setOpen(true);
   };
 
-  const save = () => {
+  const save = async () => {
     if (!form.patientName.trim() || !form.procedure.trim()) return;
+
+    const normalizeName = (value: string) =>
+      value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim();
+
+    const backendPatient = backendPatients.find(
+      (patient) => normalizeName(patient.fullName) === normalizeName(form.patientName),
+    );
+
+    const backendDoctor = backendDoctors.find((doctor) => {
+      const fullName = `${doctor.user.firstName} ${doctor.user.lastName}`.trim();
+      const candidate = normalizeName(fullName);
+      const target = normalizeName(form.professionalName);
+      return candidate === target || candidate.includes(target) || target.includes(candidate);
+    });
+
+    if (!backendPatient) {
+      window.alert("Selecione um paciente cadastrado no sistema.");
+      return;
+    }
+
+    if (!backendDoctor) {
+      window.alert("Profissional não encontrado no cadastro do sistema.");
+      return;
+    }
+
+    const scheduledAt = new Date(`${form.dateISO}T${form.time}:00`);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      window.alert("Data ou horário inválido.");
+      return;
+    }
+
+    try {
+      await createBackendAppointment({
+        patientId: backendPatient.id,
+        doctorId: backendDoctor.id,
+        procedure: form.procedure,
+        nextProcedure: form.nextProcedure || undefined,
+        room: form.room || undefined,
+        scheduledAt: scheduledAt.toISOString(),
+        reminderChannel: channel === "SMS" ? "SMS" : "WHATSAPP",
+      });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Não foi possível salvar o agendamento.");
+      return;
+    }
     const appointment = createAppointment({
       ...form,
       durationMinutes: Number(form.durationMinutes || 30),
