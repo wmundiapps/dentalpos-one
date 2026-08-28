@@ -274,7 +274,7 @@ export default function Agenda() {
       <PageHeader
         title="Agenda inteligente"
         description="Tempo clínico, retorno, laboratório, plano financeiro e dia habitual do paciente em uma única agenda."
-        actionLabel="Nova consulta"
+        actionLabel="Novo agendamento"
         actionIcon={<AddIcon />}
         onAction={() => openNew({ dateISO: date })}
       />
@@ -334,7 +334,7 @@ export default function Agenda() {
             </Typography>
           </Box>
           {filtered.length === 0 ? (
-            <Box sx={{ p: 5, textAlign: "center" }}><Typography color="text.secondary">Nenhuma consulta no período.</Typography></Box>
+            <Box sx={{ p: 5, textAlign: "center" }}><Typography color="text.secondary" sx={{ mb: 2 }}>Nenhuma consulta no período.</Typography><Button variant="contained" startIcon={<AddIcon />} onClick={() => openNew({ dateISO: date })}>Novo agendamento</Button></Box>
           ) : filtered.map((appointment) => {
             const financial = patientFinancialSummary(appointment.patientName);
             const overdueCount = (() => {
@@ -379,7 +379,7 @@ export default function Agenda() {
                     ) : null}
                   </Box>
                   <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: { md: "flex-end" } }}>
-                    {smartWarnings ? <Chip size="small" color="warning" icon={<WarningAmberIcon />} label={`${smartWarnings} alerta(s)`} /> : null}
+                    {smartWarnings ? <Chip size="small" color="warning" icon={<WarningAmberIcon />} label={`${smartWarnings} alerta(s)`} /> : null}<Button size="small" startIcon={<AddIcon />} onClick={(event) => { event.stopPropagation(); openNew({ patientName: appointment.patientName, patientPhone: appointment.patientPhone || "", professionalName: appointment.professionalName, room: appointment.room, dateISO: date }); }}>Agendar novo</Button>
                     <Chip
                       label={appointment.status}
                       color={appointment.status === "Confirmado" || appointment.status === "Finalizado" ? "success" : appointment.status === "Faltou" || appointment.status === "Cancelado" ? "error" : "default"}
@@ -402,7 +402,7 @@ export default function Agenda() {
       </Box>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle>Nova consulta</DialogTitle>
+        <DialogTitle>Novo agendamento</DialogTitle>
         <DialogContent sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2, pt: "12px!important" }}>
           <Autocomplete
             freeSolo
@@ -551,7 +551,7 @@ export default function Agenda() {
             return (
               <>
                 <Button disabled={!patient} onClick={() => patient && navigate(`/prontuario?patientId=${encodeURIComponent(patient.id)}`)}>Prontuário</Button>
-                <Button onClick={() => navigate(`/financeiro?paciente=${encodeURIComponent(edit.patientName)}`)}>Financeiro</Button>
+                <Button onClick={() => navigate(`/financeiro?paciente=${encodeURIComponent(edit.patientName)}`)}>Financeiro</Button><Button startIcon={<AddIcon />} onClick={() => { const current = edit; setEdit(null); if (current) openNew({ patientName: current.patientName, patientPhone: current.patientPhone || "", professionalName: current.professionalName, dateISO: date }); }}>Agendar novo</Button>
               </>
             );
           })() : null}
