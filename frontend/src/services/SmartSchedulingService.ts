@@ -239,7 +239,7 @@ export async function loadSmartSchedulingConfig(): Promise<SmartSchedulingConfig
     const flag = rows.find((row) => row.key === FEATURE_KEY);
     if (!flag) return fallback;
     const config = sanitizeConfig({ ...(flag.metadata as Partial<SmartSchedulingConfig>), enabled: flag.enabled !== false });
-    saveLocalConfig(config);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     return config;
   } catch {
     return fallback;

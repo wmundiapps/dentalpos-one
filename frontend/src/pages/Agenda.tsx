@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Autocomplete,
   Alert,
   Box,
   Button,
@@ -15,6 +16,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import LinkIcon from "@mui/icons-material/Link";
@@ -198,7 +200,10 @@ export default function Agenda() {
     [items],
   );
   const alerts = getOperationalAlerts().filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
-  const selectedPatient = backendPatients.find((patient) => patient.fullName.toLowerCase() === form.patientName.toLowerCase()) || listPatients().find((patient) => patient.fullName.toLowerCase() === form.patientName.toLowerCase());
+  const normalizedPatientName = form.patientName.trim().toLowerCase();
+  const selectedPatient =
+    backendPatients.find((patient) => patient.fullName.trim().toLowerCase() === normalizedPatientName) ||
+    listPatients().find((patient) => patient.fullName.trim().toLowerCase() === normalizedPatientName);
 
   const openNew = (prefill?: Partial<AppointmentForm>) => {
     setSmartSuggestion(null);
@@ -399,14 +404,42 @@ export default function Agenda() {
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>Nova consulta</DialogTitle>
         <DialogContent sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2, pt: "12px!important" }}>
-          <TextField
-            label="Paciente"
-            value={form.patientName}
-            onChange={(event) => {
-              const name = event.target.value;
-              const patient = listPatients().find((item) => item.fullName.toLowerCase() === name.toLowerCase());
-              setForm({ ...form, patientName: name, patientPhone: patient?.phone || form.patientPhone });
+          <Autocomplete
+            freeSolo
+            options={backendPatients.map((patient) => patient.fullName)}
+            value={form.patientName || null}
+            inputValue={form.patientName}
+            onInputChange={(_, name, reason) => {
+              if (reason !== "input" && reason !== "clear") return;
+              const normalized = name.trim().toLowerCase();
+              const patient =
+                backendPatients.find((item) => item.fullName.trim().toLowerCase() === normalized) ||
+                listPatients().find((item) => item.fullName.trim().toLowerCase() === normalized);
+              setForm((current) => ({
+                ...current,
+                patientName: name,
+                patientPhone: patient?.phone || current.patientPhone,
+              }));
             }}
+            onChange={(_, name) => {
+              const patientName = typeof name === "string" ? name : "";
+              const normalized = patientName.trim().toLowerCase();
+              const patient =
+                backendPatients.find((item) => item.fullName.trim().toLowerCase() === normalized) ||
+                listPatients().find((item) => item.fullName.trim().toLowerCase() === normalized);
+              setForm((current) => ({
+                ...current,
+                patientName,
+                patientPhone: patient?.phone || current.patientPhone,
+              }));
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Paciente"
+                placeholder="Digite ou selecione o paciente"
+              />
+            )}
           />
           <TextField label="Celular" value={form.patientPhone} onChange={(event) => setForm({ ...form, patientPhone: event.target.value })} />
           <TextField label="Profissional" value={form.professionalName} onChange={(event) => setForm({ ...form, professionalName: event.target.value })} />
