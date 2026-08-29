@@ -187,6 +187,28 @@ export async function update(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Informe o motivo da remarcação, cancelamento, falta ou alteração.' })
     }
 
+    if (changedSchedule && newScheduledAt.getTime() < Date.now()) {
+      return res.status(400).json({ error: 'Não é permitido remarcar para data ou horário retroativo.' })
+    }
+
+    if (changedSchedule && newStatus !== 'CANCELLED') {
+      const conflict = await prisma.appointment.findFirst({
+        where: {
+          id: { not: id },
+          clinicId: req.user.clinicId,
+          tenantId: req.user.tenantId,
+          doctorId: existing.doctorId,
+          scheduledAt: newScheduledAt,
+          status: { not: 'CANCELLED' }
+        },
+        select: { id: true }
+      })
+
+      if (conflict) {
+        return res.status(409).json({ error: 'Este profissional já possui um agendamento neste horário.' })
+      }
+    }
+
     const appointment = await prisma.$transaction(async tx => {
       const updated = await tx.appointment.update({
         where: { id },
