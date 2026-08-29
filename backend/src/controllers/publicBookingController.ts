@@ -245,8 +245,11 @@ export async function store(req: Request, res: Response) {
   try {
     const clinicId = String(req.params.clinicId || '')
     const {
-      patientName,
+      firstName,
+      lastName,
+      birthDate,
       patientPhone,
+      city,
       doctorId,
       procedure,
       dateISO,
@@ -255,8 +258,26 @@ export async function store(req: Request, res: Response) {
       reminderChannel: rawChannel,
     } = req.body || {}
 
-    if (!patientName?.trim() || !patientPhone?.trim() || !doctorId || !procedure?.trim() || !dateISO || !time) {
-      return res.status(400).json({ error: 'Nome, telefone, profissional, procedimento, data e horário são obrigatórios.' })
+    if (
+      !firstName?.trim() ||
+      !lastName?.trim() ||
+      !birthDate ||
+      !patientPhone?.trim() ||
+      !city?.trim() ||
+      !doctorId ||
+      !procedure?.trim() ||
+      !dateISO ||
+      !time
+    ) {
+      return res.status(400).json({
+        error: 'Nome, sobrenome, data de nascimento, WhatsApp, cidade, profissional, procedimento, data e horário são obrigatórios.'
+      })
+    }
+
+    const patientName = `${String(firstName).trim()} ${String(lastName).trim()}`.trim()
+    const parsedBirthDate = new Date(`${String(birthDate)}T12:00:00-03:00`)
+    if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate.getTime() > Date.now()) {
+      return res.status(400).json({ error: 'Data de nascimento inválida.' })
     }
 
     const clinic = await prisma.clinic.findFirst({ where: { id: clinicId, isActive: true } })
@@ -307,7 +328,7 @@ export async function store(req: Request, res: Response) {
     const incomingDigits = String(patientPhone).replace(/\D/g, '')
     const patients = await prisma.patient.findMany({
       where: { clinicId, tenantId: clinic.tenantId, isActive: true },
-      select: { id: true, phone: true },
+      select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
     })
     let patient = patients.find(row => row.phone.replace(/\D/g, '') === incomingDigits)
 
@@ -316,10 +337,21 @@ export async function store(req: Request, res: Response) {
         data: {
           clinicId,
           tenantId: clinic.tenantId,
-          fullName: String(patientName).trim(),
+          fullName: patientName,
           phone: String(patientPhone).trim(),
+          birthDate: parsedBirthDate,
+          city: String(city).trim(),
         },
-        select: { id: true, phone: true },
+        select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
+      })
+    } else if (!patient.birthDate || !patient.city) {
+      patient = await prisma.patient.update({
+        where: { id: patient.id },
+        data: {
+          ...(!patient.birthDate ? { birthDate: parsedBirthDate } : {}),
+          ...(!patient.city ? { city: String(city).trim() } : {}),
+        },
+        select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
       })
     }
 

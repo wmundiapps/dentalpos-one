@@ -80,8 +80,11 @@ export async function loadPublicAvailability(input: {
 
 export async function createPublicBooking(input: {
   clinicId: string;
-  patientName: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
   patientPhone: string;
+  city: string;
   doctorId: string;
   procedure: string;
   dateISO: string;

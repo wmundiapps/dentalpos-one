@@ -33,8 +33,11 @@ export default function PublicBooking() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
-    patientName: "",
+    firstName: "",
+    lastName: "",
+    birthDate: "",
     patientPhone: "",
+    city: "",
     doctorId: "",
     procedure: "Consulta inicial / avaliação",
     dateISO: today(),
@@ -82,7 +85,19 @@ export default function PublicBooking() {
   }, [clinicId, form.doctorId, form.dateISO, form.durationMinutes]);
 
   const save = async () => {
-    if (!form.patientName.trim() || !form.patientPhone.trim() || !form.doctorId || !form.time) return;
+    if (
+      !form.firstName.trim() ||
+      !form.lastName.trim() ||
+      !form.birthDate ||
+      !form.patientPhone.trim() ||
+      !form.city.trim() ||
+      !form.doctorId ||
+      !form.time
+    ) {
+      setError("Preencha nome, sobrenome, data de nascimento, WhatsApp, cidade, profissional e horário.");
+      return;
+    }
+
     setError("");
     try {
       await createPublicBooking({
@@ -102,12 +117,15 @@ export default function PublicBooking() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#f6f8fb", display: "grid", placeItems: "center", p: 2 }}>
-      <Paper sx={{ maxWidth: 760, width: "100%", p: { xs: 3, md: 5 }, borderRadius: 4 }}>
+      <Paper sx={{ maxWidth: 820, width: "100%", p: { xs: 3, md: 5 }, borderRadius: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 900 }}>
           {config?.clinic.name || "DentalPos"} • Agendamento online
         </Typography>
-        <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Os horários exibidos são consultados diretamente na agenda da clínica.
+        <Typography color="text.secondary" sx={{ mb: 1 }}>
+          Escolha um dos horários disponibilizados pela clínica.
+        </Typography>
+        <Typography color="text.secondary" variant="body2" sx={{ mb: 3 }}>
+          Se este WhatsApp já estiver cadastrado, o agendamento será vinculado automaticamente ao cadastro existente.
         </Typography>
 
         {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
@@ -124,14 +142,34 @@ export default function PublicBooking() {
             <TextField
               required
               label="Nome"
-              value={form.patientName}
-              onChange={(event) => setForm({ ...form, patientName: event.target.value })}
+              value={form.firstName}
+              onChange={(event) => setForm({ ...form, firstName: event.target.value })}
             />
             <TextField
               required
-              label="Celular / WhatsApp"
+              label="Sobrenome"
+              value={form.lastName}
+              onChange={(event) => setForm({ ...form, lastName: event.target.value })}
+            />
+            <TextField
+              required
+              type="date"
+              label="Data de nascimento"
+              value={form.birthDate}
+              onChange={(event) => setForm({ ...form, birthDate: event.target.value })}
+              slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: today() } }}
+            />
+            <TextField
+              required
+              label="Telefone / WhatsApp"
               value={form.patientPhone}
               onChange={(event) => setForm({ ...form, patientPhone: event.target.value })}
+            />
+            <TextField
+              required
+              label="Cidade"
+              value={form.city}
+              onChange={(event) => setForm({ ...form, city: event.target.value })}
             />
             <TextField
               select
@@ -147,17 +185,11 @@ export default function PublicBooking() {
             </TextField>
             <TextField
               type="date"
-              label="Data"
+              label="Data da consulta"
               value={form.dateISO}
               onChange={(event) => setForm({ ...form, dateISO: event.target.value })}
               slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: today() } }}
             />
-            <Box sx={{ gridColumn: { md: "1/-1" } }}>
-              <ProcedurePicker
-                value={form.procedure}
-                onChange={(name) => setForm({ ...form, procedure: name })}
-              />
-            </Box>
             <TextField
               select
               label={loadingSlots ? "Consultando horários..." : "Horário disponível"}
@@ -167,7 +199,13 @@ export default function PublicBooking() {
             >
               {slots.map((slot) => <MenuItem key={slot} value={slot}>{slot}</MenuItem>)}
             </TextField>
-            <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Box sx={{ gridColumn: { md: "1/-1" } }}>
+              <ProcedurePicker
+                value={form.procedure}
+                onChange={(name) => setForm({ ...form, procedure: name })}
+              />
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gridColumn: { md: "1/-1" } }}>
               <Button
                 fullWidth
                 size="large"
@@ -181,7 +219,7 @@ export default function PublicBooking() {
             </Box>
             {!loadingSlots && slots.length === 0 && form.doctorId ? (
               <Alert severity="info" sx={{ gridColumn: { md: "1/-1" } }}>
-                Não há horário livre nessa data para o tempo reservado. Escolha outra data.
+                Não há horário online disponível nessa data. Escolha outra data.
               </Alert>
             ) : null}
           </Box>
