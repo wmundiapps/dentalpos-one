@@ -678,7 +678,7 @@ export default function Agenda() {
               </Box>
 
               <SmartSchedulingAssistant
-                patientId={listPatients().find((patient) => patient.fullName.toLowerCase() === edit.patientName.toLowerCase())?.id}
+                patientId={backendPatients.find((patient) => patient.fullName.toLowerCase() === edit.patientName.toLowerCase())?.id || listPatients().find((patient) => patient.fullName.toLowerCase() === edit.patientName.toLowerCase())?.id}
                 patientName={edit.patientName}
                 procedure={edit.procedure}
                 category={edit.category}
