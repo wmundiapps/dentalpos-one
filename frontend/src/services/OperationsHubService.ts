@@ -369,7 +369,7 @@ export function getOperationalAlerts(): OperationalAlert[] {
     const days = daysBetween(appointment.dateISO);
     if (days === 0 && appointment.status !== "Cancelado" && appointment.status !== "Finalizado") {
       alerts.push({ id: `agenda-today-${appointment.id}`, area: "Agenda", severity: "info", title: "Consulta hoje", description: `${appointment.time} • ${appointment.patientName} • ${appointment.procedure}. Próximo: ${appointment.nextProcedure}`, dueISO: appointment.dateISO, route: "/agenda" });
-    } else if (days === 1 && (appointment.reminders?.oneDayBefore ?? true)) {
+    } else if (days === 1 && appointment.reminders.oneDayBefore) {
       alerts.push({ id: `agenda-tomorrow-${appointment.id}`, area: "Agenda", severity: "info", title: "Lembrete de consulta para amanhã", description: `${appointment.patientName} às ${appointment.time}.`, dueISO: appointment.dateISO, route: "/agenda" });
     }
     const futureForPatient = agendaRows.some(a=>a.patientName.toLowerCase()===appointment.patientName.toLowerCase() && a.dateISO>todayISO() && !["Cancelado","Faltou"].includes(a.status));
