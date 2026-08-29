@@ -139,6 +139,9 @@ router.put('/design-cases/:id', requirePermission('design.edit'), designControll
 // APPOINTMENTS
 // ======================
 
+router.get('/public-booking-settings', requirePermission('agenda.view'), publicBookingController.settings)
+router.put('/public-booking-settings', requirePermission('agenda.edit'), publicBookingController.saveSettings)
+router.get('/appointments/availability', requirePermission('agenda.view'), appointmentController.availability)
 router.get('/appointments', requirePermission('agenda.view'), appointmentController.index)
 router.get('/appointment/:id', requirePermission('agenda.view'), appointmentController.show)
 router.post('/appointments', requirePermission('agenda.create'), appointmentController.store)

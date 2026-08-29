@@ -15,6 +15,27 @@ function normalizeReminderChannel(value: unknown) {
   return allowedReminderChannels.has(channel) ? channel : 'WHATSAPP'
 }
 
+function parseLocalDateTime(dateISO: string, time: string) {
+  const value = new Date(`${dateISO}T${time}:00-03:00`)
+  return Number.isNaN(value.getTime()) ? undefined : value
+}
+
+function dayBounds(dateISO: string) {
+  return {
+    start: new Date(`${dateISO}T00:00:00-03:00`),
+    end: new Date(`${dateISO}T23:59:59.999-03:00`)
+  }
+}
+
+function timeMinutes(value: string) {
+  const [hours, minutes] = value.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function timeLabel(value: number) {
+  return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
+}
+
 function reminderDates(scheduledAt: Date) {
   const booking = new Date()
   const oneDayBefore = new Date(scheduledAt)
@@ -60,6 +81,97 @@ export async function index(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error('Erro ao listar agendamentos:', error)
     return res.status(500).json({ error: 'Erro ao listar agendamentos.' })
+  }
+}
+
+export async function availability(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
+
+    const doctorId = String(req.query.doctorId || '')
+    const dateISO = String(req.query.date || '')
+    const durationMinutes = Math.max(10, Math.min(480, Number(req.query.durationMinutes || 30)))
+    const excludeAppointmentId = req.query.excludeAppointmentId ? String(req.query.excludeAppointmentId) : undefined
+
+    if (!doctorId || !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
+      return res.status(400).json({ error: 'Profissional e data são obrigatórios.' })
+    }
+
+    const doctor = await prisma.doctor.findFirst({
+      where: {
+        id: doctorId,
+        clinicId: req.user.clinicId,
+        tenantId: req.user.tenantId,
+        isActive: true
+      }
+    })
+    if (!doctor) return res.status(404).json({ error: 'Profissional não encontrado.' })
+
+    const date = new Date(`${dateISO}T12:00:00-03:00`)
+    const dayOfWeek = date.getDay()
+    const schedules = await prisma.schedule.findMany({
+      where: {
+        clinicId: req.user.clinicId,
+        tenantId: req.user.tenantId,
+        doctorId,
+        dayOfWeek
+      },
+      orderBy: { startTime: 'asc' }
+    })
+
+    const { start, end } = dayBounds(dateISO)
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        clinicId: req.user.clinicId,
+        tenantId: req.user.tenantId,
+        doctorId,
+        ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
+        status: { not: 'CANCELLED' },
+        scheduledAt: { gte: start, lte: end }
+      },
+      select: { scheduledAt: true, durationMinutes: true }
+    })
+
+    const blocks = schedules.length
+      ? schedules.map(row => ({
+          startTime: row.startTime,
+          endTime: row.endTime,
+          step: row.slotDuration || 30
+        }))
+      : [
+          { startTime: '08:00', endTime: '12:00', step: 30 },
+          { startTime: '13:00', endTime: '17:30', step: 30 }
+        ]
+
+    const now = Date.now()
+    const slots: string[] = []
+
+    for (const block of blocks) {
+      const blockStart = timeMinutes(block.startTime)
+      const blockEnd = timeMinutes(block.endTime)
+      const step = Math.max(10, block.step || 30)
+
+      for (let cursor = blockStart; cursor + durationMinutes <= blockEnd; cursor += step) {
+        const time = timeLabel(cursor)
+        const candidate = parseLocalDateTime(dateISO, time)
+        if (!candidate || candidate.getTime() <= now) continue
+
+        const candidateStart = candidate.getTime()
+        const candidateEnd = candidateStart + durationMinutes * 60000
+        const conflict = appointments.some(item => {
+          const itemStart = item.scheduledAt.getTime()
+          const itemEnd = itemStart + item.durationMinutes * 60000
+          return itemStart < candidateEnd && itemEnd > candidateStart
+        })
+
+        if (!conflict) slots.push(time)
+      }
+    }
+
+    return res.json({ doctorId, dateISO, durationMinutes, slots })
+  } catch (error) {
+    console.error('Erro ao consultar disponibilidade interna:', error)
+    return res.status(500).json({ error: 'Erro ao consultar horários disponíveis.' })
   }
 }
 

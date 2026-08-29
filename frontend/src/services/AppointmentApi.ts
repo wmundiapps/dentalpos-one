@@ -68,6 +68,30 @@ export async function loadBackendAppointments(): Promise<BackendAppointment[]> {
   return response.json();
 }
 
+export async function loadBackendAvailability(input: {
+  doctorId: string;
+  dateISO: string;
+  durationMinutes?: number;
+  excludeAppointmentId?: string;
+}): Promise<string[]> {
+  const params = new URLSearchParams({
+    doctorId: input.doctorId,
+    date: input.dateISO,
+    durationMinutes: String(input.durationMinutes || 30),
+  });
+  if (input.excludeAppointmentId) params.set("excludeAppointmentId", input.excludeAppointmentId);
+
+  const response = await fetch(`${API}/appointments/availability?${params.toString()}`, {
+    headers: headers(),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || `Erro HTTP ${response.status}`);
+  }
+  const body = await response.json();
+  return body.slots || [];
+}
+
 export async function createBackendAppointment(input: {
   patientId: string;
   doctorId: string;

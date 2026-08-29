@@ -1,7 +1,32 @@
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
+import type { AuthRequest } from '../middleware/auth'
 
 const allowedChannels = new Set(['WHATSAPP', 'SMS', 'TELEGRAM', 'MANUAL'])
+const ONLINE_BOOKING_FLAG = 'ONLINE_BOOKING_SLOTS'
+
+type OnlineSlots = Record<string, Record<string, string[]>>
+
+function sanitizeTime(value: unknown) {
+  const time = String(value || '')
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : undefined
+}
+
+async function loadOnlineBookingSettings(clinicId: string) {
+  const row = await prisma.tenantFeatureFlag.findUnique({
+    where: { clinicId_key: { clinicId, key: ONLINE_BOOKING_FLAG } }
+  })
+  const metadata = (row?.metadata || {}) as any
+  const slots = metadata?.slots && typeof metadata.slots === 'object' ? metadata.slots as OnlineSlots : {}
+  return { enabled: row?.enabled === true, slots }
+}
+
+function onlineTimesFor(settings: { enabled: boolean; slots: OnlineSlots }, doctorId: string, dayOfWeek: number) {
+  if (!settings.enabled) return []
+  const values = settings.slots?.[doctorId]?.[String(dayOfWeek)]
+  if (!Array.isArray(values)) return []
+  return values.map(sanitizeTime).filter((value): value is string => Boolean(value)).sort()
+}
 
 function normalizeChannel(value: unknown) {
   const channel = String(value || 'WHATSAPP').toUpperCase()
@@ -42,6 +67,81 @@ function reminderDates(scheduledAt: Date) {
     { type: 'ONE_DAY_BEFORE', scheduledFor: oneDayBefore },
     { type: 'ON_DAY', scheduledFor: onDay },
   ].filter(item => item.type === 'ON_BOOKING' || item.scheduledFor.getTime() > booking.getTime())
+}
+
+export async function settings(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
+    const current = await loadOnlineBookingSettings(req.user.clinicId)
+    return res.json(current)
+  } catch (error) {
+    console.error('Erro ao carregar configuração do agendamento online:', error)
+    return res.status(500).json({ error: 'Erro ao carregar horários online.' })
+  }
+}
+
+export async function saveSettings(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
+
+    const doctors = await prisma.doctor.findMany({
+      where: {
+        clinicId: req.user.clinicId,
+        tenantId: req.user.tenantId,
+        isActive: true
+      },
+      select: { id: true }
+    })
+    const validDoctorIds = new Set(doctors.map(item => item.id))
+    const rawSlots = req.body?.slots && typeof req.body.slots === 'object' ? req.body.slots : {}
+    const slots: OnlineSlots = {}
+
+    for (const [doctorId, rawDays] of Object.entries(rawSlots as Record<string, unknown>)) {
+      if (!validDoctorIds.has(doctorId) || !rawDays || typeof rawDays !== 'object') continue
+      const days: Record<string, string[]> = {}
+
+      for (const [day, rawTimes] of Object.entries(rawDays as Record<string, unknown>)) {
+        const dayNumber = Number(day)
+        if (!Number.isInteger(dayNumber) || dayNumber < 0 || dayNumber > 6 || !Array.isArray(rawTimes)) continue
+        const times = Array.from(
+          new Set(rawTimes.map(sanitizeTime).filter((value): value is string => Boolean(value)))
+        ).sort()
+        days[String(dayNumber)] = times
+      }
+
+      slots[doctorId] = days
+    }
+
+    const row = await prisma.tenantFeatureFlag.upsert({
+      where: {
+        clinicId_key: {
+          clinicId: req.user.clinicId,
+          key: ONLINE_BOOKING_FLAG
+        }
+      },
+      update: {
+        enabled: req.body?.enabled !== false,
+        rolloutStage: 'PILOT',
+        metadata: { version: 1, slots }
+      },
+      create: {
+        clinicId: req.user.clinicId,
+        tenantId: req.user.tenantId,
+        key: ONLINE_BOOKING_FLAG,
+        enabled: req.body?.enabled !== false,
+        rolloutStage: 'PILOT',
+        metadata: { version: 1, slots }
+      }
+    })
+
+    return res.json({
+      enabled: row.enabled,
+      slots
+    })
+  } catch (error) {
+    console.error('Erro ao salvar configuração do agendamento online:', error)
+    return res.status(500).json({ error: 'Erro ao salvar horários online.' })
+  }
 }
 
 export async function config(req: Request, res: Response) {
@@ -98,10 +198,12 @@ export async function availability(req: Request, res: Response) {
 
     const date = new Date(`${dateISO}T12:00:00-03:00`)
     const dayOfWeek = date.getDay()
-    const schedules = await prisma.schedule.findMany({
-      where: { clinicId, tenantId: clinic.tenantId, doctorId, dayOfWeek },
-      orderBy: { startTime: 'asc' },
-    })
+    const onlineSettings = await loadOnlineBookingSettings(clinicId)
+    const configuredTimes = onlineTimesFor(onlineSettings, doctorId, dayOfWeek)
+
+    if (!configuredTimes.length) {
+      return res.json({ dateISO, doctorId, durationMinutes, slots: [] })
+    }
 
     const { start, end } = dayBounds(dateISO)
     const appointments = await prisma.appointment.findMany({
@@ -115,35 +217,21 @@ export async function availability(req: Request, res: Response) {
       select: { scheduledAt: true, durationMinutes: true, status: true },
     })
 
-    const blocks = schedules.length
-      ? schedules.map(row => ({ startTime: row.startTime, endTime: row.endTime, step: row.slotDuration || 30 }))
-      : [
-          { startTime: '08:00', endTime: '12:00', step: 30 },
-          { startTime: '13:00', endTime: '17:30', step: 30 },
-        ]
-
     const now = Date.now()
     const slots: string[] = []
 
-    for (const block of blocks) {
-      const blockStart = minutes(block.startTime)
-      const blockEnd = minutes(block.endTime)
-      const step = Math.max(10, block.step || 30)
+    for (const time of configuredTimes) {
+      const candidate = parseLocalDateTime(dateISO, time)
+      if (!candidate || candidate.getTime() <= now) continue
 
-      for (let cursor = blockStart; cursor + durationMinutes <= blockEnd; cursor += step) {
-        const time = timeLabel(cursor)
-        const candidate = parseLocalDateTime(dateISO, time)
-        if (!candidate || candidate.getTime() <= now) continue
-
-        const candidateStart = candidate.getTime()
-        const candidateEnd = candidateStart + durationMinutes * 60000
-        const conflict = appointments.some(item => {
-          const itemStart = item.scheduledAt.getTime()
-          const itemEnd = itemStart + item.durationMinutes * 60000
-          return itemStart < candidateEnd && itemEnd > candidateStart
-        })
-        if (!conflict) slots.push(time)
-      }
+      const candidateStart = candidate.getTime()
+      const candidateEnd = candidateStart + durationMinutes * 60000
+      const conflict = appointments.some(item => {
+        const itemStart = item.scheduledAt.getTime()
+        const itemEnd = itemStart + item.durationMinutes * 60000
+        return itemStart < candidateEnd && itemEnd > candidateStart
+      })
+      if (!conflict) slots.push(time)
     }
 
     return res.json({ dateISO, doctorId, durationMinutes, slots })
@@ -182,6 +270,13 @@ export async function store(req: Request, res: Response) {
     const scheduledAt = parseLocalDateTime(String(dateISO), String(time))
     if (!scheduledAt || scheduledAt.getTime() <= Date.now()) {
       return res.status(400).json({ error: 'Escolha um horário futuro válido.' })
+    }
+
+    const date = new Date(`${String(dateISO)}T12:00:00-03:00`)
+    const onlineSettings = await loadOnlineBookingSettings(clinicId)
+    const allowedTimes = onlineTimesFor(onlineSettings, doctor.id, date.getDay())
+    if (!allowedTimes.includes(String(time))) {
+      return res.status(409).json({ error: 'Este horário não está liberado para agendamento online.' })
     }
 
     const durationMinutes = Math.max(10, Math.min(480, Number(rawDuration || 30)))

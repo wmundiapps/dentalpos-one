@@ -13,6 +13,7 @@ import {
   Paper,
   TextField,
   ToggleButton,
+  Switch,
   ToggleButtonGroup,
   Typography,
 
@@ -40,7 +41,8 @@ import {
 
 import { listPatients } from "../services/PatientClinicalService";
 import { loadBackendPatients } from "../services/PatientApi";
-import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, updateBackendAppointment, type BackendAppointment, type BackendDoctor } from "../services/AppointmentApi";
+import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, type BackendAppointment, type BackendDoctor } from "../services/AppointmentApi";
+import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import type { SmartScheduleSuggestion } from "../services/SmartSchedulingService";
 import type { IntegratedAppointment } from "../types/operationsHub";
 import type { AppointmentStatus } from "../types/appointment";
@@ -72,6 +74,19 @@ type AppointmentForm = {
 };
 
 const defaultProfessionals = ["Todos", "Dr. Robson", "Dra. Cássia"];
+const onlineDays = [
+  { value: 1, label: "Segunda-feira" },
+  { value: 2, label: "Terça-feira" },
+  { value: 3, label: "Quarta-feira" },
+  { value: 4, label: "Quinta-feira" },
+  { value: 5, label: "Sexta-feira" },
+  { value: 6, label: "Sábado" },
+  { value: 0, label: "Domingo" },
+];
+const onlineTimeOptions = Array.from({ length: 29 }, (_, index) => {
+  const totalMinutes = 7 * 60 + index * 30;
+  return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+});
 
 function dateLabel(value: string) {
   return new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR", {
@@ -235,6 +250,15 @@ export default function Agenda() {
   const [form, setForm] = useState<AppointmentForm>(() => initialForm(date));
   const [backendPatients, setBackendPatients] = useState<Array<{ id: string; fullName: string; phone: string }>>([]);
   const [backendDoctors, setBackendDoctors] = useState<BackendDoctor[]>([]);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [onlineSlotsOpen, setOnlineSlotsOpen] = useState(false);
+  const [onlineSettings, setOnlineSettings] = useState<OnlineBookingSettings>({ enabled: false, slots: {} });
+  const [onlineDoctorId, setOnlineDoctorId] = useState("");
+  const [onlineDay, setOnlineDay] = useState(1);
+  const [onlineSettingsLoading, setOnlineSettingsLoading] = useState(false);
+  const [onlineSettingsSaving, setOnlineSettingsSaving] = useState(false);
 
   useEffect(() => subscribeOperations(() => setItems(getAppointments())), []);
   useEffect(() => {
@@ -253,6 +277,68 @@ export default function Agenda() {
   useEffect(() => {
     loadBackendDoctors().then(setBackendDoctors).catch(() => setBackendDoctors([]));
   }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setAvailableTimes([]);
+      setAvailabilityError("");
+      setAvailabilityLoading(false);
+      return;
+    }
+
+    const normalizeName = (value: string) =>
+      value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim();
+
+    const backendDoctor = backendDoctors.find((doctor) => {
+      const fullName = `${doctor.user.firstName} ${doctor.user.lastName}`.trim();
+      const candidate = normalizeName(fullName);
+      const target = normalizeName(form.professionalName);
+      return candidate === target || candidate.includes(target) || target.includes(candidate);
+    });
+
+    if (!backendDoctor || !form.dateISO || !form.durationMinutes) {
+      setAvailableTimes([]);
+      setAvailabilityError(
+        !backendDoctor && form.professionalName
+          ? "Selecione um profissional cadastrado para consultar os horários."
+          : "",
+      );
+      setAvailabilityLoading(false);
+      return;
+    }
+
+    let active = true;
+    setAvailabilityLoading(true);
+    setAvailabilityError("");
+
+    void loadBackendAvailability({
+      doctorId: backendDoctor.id,
+      dateISO: form.dateISO,
+      durationMinutes: Number(form.durationMinutes || 30),
+    })
+      .then((slots) => {
+        if (!active) return;
+        setAvailableTimes(slots);
+        setForm((current) => {
+          const nextTime = slots.includes(current.time) ? current.time : slots[0] || "";
+          return current.time === nextTime ? current : { ...current, time: nextTime };
+        });
+      })
+      .catch((error) => {
+        if (!active) return;
+        setAvailableTimes([]);
+        setAvailabilityError(
+          error instanceof Error ? error.message : "Não foi possível consultar os horários disponíveis.",
+        );
+      })
+      .finally(() => {
+        if (active) setAvailabilityLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, backendDoctors, form.professionalName, form.dateISO, form.durationMinutes]);
 
   useEffect(() => {
     let active = true;
@@ -416,6 +502,55 @@ export default function Agenda() {
     }
   };
 
+  const openOnlineSlots = async () => {
+    setOnlineSlotsOpen(true);
+    setOnlineSettingsLoading(true);
+    try {
+      const settings = await loadOnlineBookingSettings();
+      setOnlineSettings(settings);
+      setOnlineDoctorId((current) => current || backendDoctors[0]?.id || "");
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Não foi possível carregar os horários online.");
+    } finally {
+      setOnlineSettingsLoading(false);
+    }
+  };
+
+  const selectedOnlineTimes =
+    (onlineDoctorId && onlineSettings.slots?.[onlineDoctorId]?.[String(onlineDay)]) || [];
+
+  const toggleOnlineTime = (time: string) => {
+    if (!onlineDoctorId) return;
+    setOnlineSettings((current) => {
+      const doctorSlots = { ...(current.slots[onlineDoctorId] || {}) };
+      const currentTimes = doctorSlots[String(onlineDay)] || [];
+      doctorSlots[String(onlineDay)] = currentTimes.includes(time)
+        ? currentTimes.filter((item) => item !== time)
+        : [...currentTimes, time].sort();
+      return {
+        ...current,
+        slots: {
+          ...current.slots,
+          [onlineDoctorId]: doctorSlots,
+        },
+      };
+    });
+  };
+
+  const saveOnlineSlots = async () => {
+    setOnlineSettingsSaving(true);
+    try {
+      const saved = await saveOnlineBookingSettings(onlineSettings);
+      setOnlineSettings(saved);
+      window.alert("Horários do agendamento online salvos.");
+      setOnlineSlotsOpen(false);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Não foi possível salvar os horários online.");
+    } finally {
+      setOnlineSettingsSaving(false);
+    }
+  };
+
   const scheduleNextReturn = (appointment: IntegratedAppointment, returnDateISO: string) => {
     const patient = listPatients().find((item) => item.fullName.toLowerCase() === appointment.patientName.toLowerCase());
     setEdit(null);
@@ -479,6 +614,7 @@ export default function Agenda() {
 
           <Box sx={{ display: "flex", gap: 1, justifyContent: { lg: "flex-end" }, flexWrap: "wrap" }}>
             <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
+            <Button onClick={() => void openOnlineSlots()}>Horários online</Button>
             <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Inteligência</Button>
           </Box>
         </Box>
@@ -629,7 +765,32 @@ export default function Agenda() {
             <ProcedurePicker value={form.procedure} onChange={(name) => setForm({ ...form, procedure: name })} />
           </Box>
           <TextField type="date" label="Data" slotProps={{ inputLabel: { shrink: true } }} value={form.dateISO} onChange={(event) => setForm({ ...form, dateISO: event.target.value })} />
-          <TextField type="time" label="Horário" slotProps={{ inputLabel: { shrink: true } }} value={form.time} onChange={(event) => setForm({ ...form, time: event.target.value })} />
+          <TextField
+            select
+            label="Horários disponíveis"
+            value={availableTimes.includes(form.time) ? form.time : ""}
+            onChange={(event) => setForm({ ...form, time: event.target.value })}
+            disabled={availabilityLoading}
+            helperText={
+              availabilityLoading
+                ? "Consultando a agenda do profissional..."
+                : availabilityError
+                  ? availabilityError
+                  : availableTimes.length
+                    ? `${availableTimes.length} horário(s) livre(s) para esta data e duração.`
+                    : "Nenhum horário disponível para esta data e duração."
+            }
+          >
+            {availabilityLoading ? (
+              <MenuItem value="" disabled>Consultando horários...</MenuItem>
+            ) : availableTimes.length === 0 ? (
+              <MenuItem value="" disabled>Nenhum horário disponível</MenuItem>
+            ) : (
+              availableTimes.map((time) => (
+                <MenuItem key={time} value={time}>{time}</MenuItem>
+              ))
+            )}
+          </TextField>
           <TextField
             label="Laboratório (se houver)"
             placeholder="Ex.: Laboratório X"
@@ -656,7 +817,7 @@ export default function Agenda() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={save}>Agendar e gerar lembretes</Button>
+          <Button variant="contained" onClick={save} disabled={!form.time || availabilityLoading}>Agendar e gerar lembretes</Button>
         </DialogActions>
       </Dialog>
 
@@ -793,6 +954,98 @@ export default function Agenda() {
               Salvar alterações
             </Button>
           ) : null}
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={onlineSlotsOpen} onClose={() => setOnlineSlotsOpen(false)} fullWidth maxWidth="md">
+        <DialogTitle>Horários disponíveis para agendamento online</DialogTitle>
+        <DialogContent sx={{ pt: "12px!important", display: "grid", gap: 2 }}>
+          <Alert severity="info">
+            A equipe interna continua vendo todos os horários livres. Aqui você escolhe somente os horários que poderão aparecer para o paciente no agendamento online.
+          </Alert>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Switch
+              checked={onlineSettings.enabled}
+              onChange={(event) =>
+                setOnlineSettings((current) => ({ ...current, enabled: event.target.checked }))
+              }
+            />
+            <Typography sx={{ fontWeight: 800 }}>
+              Agendamento online {onlineSettings.enabled ? "ativo" : "desativado"}
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+            <TextField
+              select
+              label="Profissional"
+              value={onlineDoctorId}
+              onChange={(event) => setOnlineDoctorId(event.target.value)}
+              disabled={onlineSettingsLoading}
+            >
+              {backendDoctors.map((doctor) => (
+                <MenuItem key={doctor.id} value={doctor.id}>
+                  {"Dr(a). " + doctor.user.firstName + " " + doctor.user.lastName}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              label="Dia da semana"
+              value={String(onlineDay)}
+              onChange={(event) => setOnlineDay(Number(event.target.value))}
+              disabled={onlineSettingsLoading}
+            >
+              {onlineDays.map((day) => (
+                <MenuItem key={day.value} value={String(day.value)}>{day.label}</MenuItem>
+              ))}
+            </TextField>
+          </Box>
+
+          <Box>
+            <Typography sx={{ fontWeight: 900, mb: 1 }}>
+              Selecione os horários que o paciente poderá escolher
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              {onlineTimeOptions.map((time) => {
+                const selected = selectedOnlineTimes.includes(time);
+                return (
+                  <Chip
+                    key={time}
+                    clickable
+                    label={time}
+                    color={selected ? "primary" : "default"}
+                    variant={selected ? "filled" : "outlined"}
+                    onClick={() => toggleOnlineTime(time)}
+                  />
+                );
+              })}
+            </Box>
+          </Box>
+
+          {!onlineDoctorId ? (
+            <Alert severity="warning">Nenhum profissional cadastrado foi encontrado.</Alert>
+          ) : selectedOnlineTimes.length === 0 ? (
+            <Alert severity="warning">
+              Nenhum horário foi liberado para este profissional neste dia. O paciente não verá horários online neste dia.
+            </Alert>
+          ) : (
+            <Alert severity="success">
+              {selectedOnlineTimes.length} horário(s) liberado(s) para este profissional neste dia.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOnlineSlotsOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            disabled={onlineSettingsLoading || onlineSettingsSaving || !onlineDoctorId}
+            onClick={() => void saveOnlineSlots()}
+          >
+            {onlineSettingsSaving ? "Salvando..." : "Salvar horários online"}
+          </Button>
         </DialogActions>
       </Dialog>
 

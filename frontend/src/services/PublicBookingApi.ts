@@ -13,6 +13,41 @@ export interface PublicBookingConfig {
   doctors: PublicBookingDoctor[];
 }
 
+export interface OnlineBookingSettings {
+  enabled: boolean;
+  slots: Record<string, Record<string, string[]>>;
+}
+
+function authHeaders(json = false) {
+  const token = localStorage.getItem("dentalpos.token") || "";
+  const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
+  return {
+    Authorization: `Bearer ${token}`,
+    ...(clinicId ? { "X-Clinic-ID": clinicId } : {}),
+    ...(json ? { "Content-Type": "application/json" } : {}),
+  };
+}
+
+export async function loadOnlineBookingSettings(): Promise<OnlineBookingSettings> {
+  const response = await fetch(`${API}/public-booking-settings`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(await errorMessage(response));
+  return response.json();
+}
+
+export async function saveOnlineBookingSettings(
+  input: OnlineBookingSettings,
+): Promise<OnlineBookingSettings> {
+  const response = await fetch(`${API}/public-booking-settings`, {
+    method: "PUT",
+    headers: authHeaders(true),
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw new Error(await errorMessage(response));
+  return response.json();
+}
+
 async function errorMessage(response: Response) {
   const body = await response.json().catch(() => null);
   return body?.error || `Erro HTTP ${response.status}`;
