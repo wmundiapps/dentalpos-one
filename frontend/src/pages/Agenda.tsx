@@ -40,7 +40,7 @@ import {
 import { patientFinancialSummary } from "../services/FinanceHubService";
 import { listPatients } from "../services/PatientClinicalService";
 import { loadBackendPatients } from "../services/PatientApi";
-import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, type BackendAppointment, type BackendDoctor } from "../services/AppointmentApi";
+import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, updateBackendAppointment, type BackendAppointment, type BackendDoctor } from "../services/AppointmentApi";
 import { enqueueAppointmentReminders } from "../services/RevahQueueService";
 import type { SmartScheduleSuggestion } from "../services/SmartSchedulingService";
 import type { IntegratedAppointment } from "../types/operationsHub";
@@ -103,6 +103,19 @@ function backendStatus(status: string): AppointmentStatus {
   return map[status] || "Agendado";
 }
 
+function backendStatusValue(status: AppointmentStatus): string {
+  const map: Record<AppointmentStatus, string> = {
+    "Agendado": "SCHEDULED",
+    "Confirmado": "CONFIRMED",
+    "Aguardando": "WAITING",
+    "Sala em preparação": "ROOM_PREPARATION",
+    "Em atendimento": "IN_PROGRESS",
+    "Finalizado": "COMPLETED",
+    "Cancelado": "CANCELLED",
+    "Faltou": "NO_SHOW",
+  };
+  return map[status];
+}
 function mapBackendAppointment(appointment: BackendAppointment): IntegratedAppointment {
   const scheduled = new Date(appointment.scheduledAt);
   const doctorName = appointment.doctor?.user
@@ -621,8 +634,26 @@ export default function Agenda() {
                   select
                   label="Status"
                   value={edit.status}
-                  onChange={(event) => {
+                  onChange={async (event) => {
                     const status = event.target.value as AppointmentStatus;
+                    if (edit.backendId) {
+                      try {
+                        const updated = await updateBackendAppointment(edit.backendId, {
+                          status: backendStatusValue(status),
+                          reason: "Atualização pela agenda",
+                          requestedBy: "CLINIC",
+                          reminderChannel: channel === "SMS" ? "SMS" : "WHATSAPP",
+                        });
+                        const mapped = mapBackendAppointment(updated);
+                        const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
+                        saveAppointments(refreshed);
+                        setItems(refreshed);
+                        setEdit(mapped);
+                      } catch (error) {
+                        window.alert(error instanceof Error ? error.message : "Não foi possível atualizar o status.");
+                      }
+                      return;
+                    }
                     changeAppointmentWithHistory(edit.id, { status, requestedBy: "Clínica", reason: "Atualização pela agenda" });
                     setItems(getAppointments());
                     setEdit({ ...edit, status });
@@ -675,7 +706,32 @@ export default function Agenda() {
           {edit ? (
             <Button
               variant="contained"
-              onClick={() => {
+              onClick={async () => {
+                if (edit.backendId) {
+                  const scheduledAt = new Date(`${edit.dateISO}T${edit.time}:00`);
+                  if (Number.isNaN(scheduledAt.getTime())) {
+                    window.alert("Data ou horário inválido.");
+                    return;
+                  }
+                  try {
+                    await updateBackendAppointment(edit.backendId, {
+                      scheduledAt: scheduledAt.toISOString(),
+                      procedure: edit.procedure,
+                      nextProcedure: edit.nextProcedure,
+                      room: edit.room,
+                      reason: "Remarcação pela agenda",
+                      requestedBy: "CLINIC",
+                      reminderChannel: channel === "SMS" ? "SMS" : "WHATSAPP",
+                    });
+                    const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
+                    saveAppointments(refreshed);
+                    setItems(refreshed);
+                    setEdit(null);
+                  } catch (error) {
+                    window.alert(error instanceof Error ? error.message : "Não foi possível salvar as alterações.");
+                  }
+                  return;
+                }
                 changeAppointmentWithHistory(edit.id, {
                   dateISO: edit.dateISO,
                   time: edit.time,

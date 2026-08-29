@@ -72,3 +72,26 @@ export async function createBackendAppointment(input: {
 
   return response.json() as Promise<BackendAppointment>;
 }
+export async function updateBackendAppointment(id: string, input: {
+  scheduledAt?: string;
+  status?: string;
+  procedure?: string;
+  nextProcedure?: string;
+  room?: string;
+  reason: string;
+  requestedBy?: string;
+  reminderChannel?: "WHATSAPP" | "SMS";
+}) {
+  const response = await fetch(`${API}/appointment/${id}`, {
+    method: "PUT",
+    headers: headers(true),
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || `Erro HTTP ${response.status}`);
+  }
+
+  return response.json() as Promise<BackendAppointment>;
+}
