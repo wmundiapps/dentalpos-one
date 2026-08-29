@@ -361,6 +361,24 @@ function TimeGridView({
     return rows;
   };
 
+  const breakRows = (dayISO: string) => {
+    if (!professionalId) return [];
+    const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
+
+    return recurringBreaks
+      .filter(
+        (item) =>
+          item.doctorId === professionalId &&
+          item.dayOfWeek === dayOfWeek,
+      )
+      .map((item) => ({
+        ...item,
+        start: Math.max(START_MINUTES, minuteOfDay(item.startTime)),
+        end: Math.min(END_MINUTES, minuteOfDay(item.endTime)),
+      }))
+      .filter((item) => item.end > item.start);
+  };
+
   return (
     <Box sx={{ overflowX: "auto" }}>
       <Box sx={{ minWidth: view === "week" ? 1160 : 760 }}>
@@ -491,6 +509,51 @@ function TimeGridView({
                   );
                 })}
 
+                {breakRows(dayISO).map((item) => {
+                  const top = ((item.start - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
+                  const height = Math.max(
+                    30,
+                    ((item.end - item.start) / TOTAL_MINUTES) * GRID_HEIGHT,
+                  );
+                  return (
+                    <Box
+                      key={`break-${dayISO}-${item.id}`}
+                      title={`${item.reason} • ${item.startTime}–${item.endTime}`}
+                      sx={{
+                        position: "absolute",
+                        top,
+                        left: 2,
+                        right: 2,
+                        height,
+                        zIndex: 3,
+                        px: 1,
+                        py: 0.5,
+                        border: 1,
+                        borderColor: "warning.main",
+                        borderRadius: 1.25,
+                        bgcolor: "action.disabledBackground",
+                        cursor: "not-allowed",
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        textAlign: "center",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 900,
+                          lineHeight: 1.15,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {item.reason} • {item.startTime}–{item.endTime}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+
                 {dayItems.map((appointment) => {
                   const start = minuteOfDay(appointment.time);
                   const duration = Math.max(10, appointment.durationMinutes || 30);
@@ -545,7 +608,7 @@ function TimeGridView({
         </Box>
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", p: 1 }}>
-        Toda a faixa de um horário livre é clicável, tanto na Semana quanto no Dia. Clique em qualquer ponto da linha para abrir o agendamento já na data e horário escolhidos.
+        Toda a faixa livre é clicável na Semana e no Dia. Intervalos fixos aparecem bloqueados na grade com o motivo e horário. Em "Todos", selecione um profissional para visualizar os intervalos dele.
       </Typography>
     </Box>
   );
