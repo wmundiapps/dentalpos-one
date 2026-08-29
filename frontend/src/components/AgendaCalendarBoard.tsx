@@ -1,4 +1,3 @@
-import type { MouseEvent } from "react";
 import { Box, Chip, Paper, Typography } from "@mui/material";
 import type { IntegratedAppointment } from "../types/operationsHub";
 import type { AgendaBlock, BackendSchedule, RecurringBreak } from "../services/ScheduleApi";
@@ -14,6 +13,7 @@ type AppointmentPrefill = {
   dateISO: string;
   time?: string;
   professionalName?: string;
+  durationMinutes?: number;
 };
 
 interface Props {
@@ -298,10 +298,7 @@ function TimeGridView({
   const hours = Array.from({ length: 15 }, (_, index) => 7 + index);
   const gridTemplateColumns = `68px repeat(${dates.length}, minmax(${view === "day" ? "620px" : "155px"}, 1fr))`;
 
-  const handleEmptyClick = (event: MouseEvent<HTMLDivElement>, dayISO: string) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const relative = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
-    const rawMinutes = START_MINUTES + (relative / rect.height) * TOTAL_MINUTES;
+  const slotRows = (dayISO: string, dayItems: IntegratedAppointment[]) => {
     const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
 
     const doctorSchedules = professionalId
@@ -310,7 +307,7 @@ function TimeGridView({
           .sort((a, b) => a.startTime.localeCompare(b.startTime))
       : [];
 
-    const workingPeriods = doctorSchedules.length
+    const periods = doctorSchedules.length
       ? doctorSchedules.map((item) => ({
           start: minuteOfDay(item.startTime),
           end: minuteOfDay(item.endTime),
@@ -318,45 +315,50 @@ function TimeGridView({
         }))
       : [{ start: 8 * 60, end: 18 * 60, step: 30 }];
 
-    const period = workingPeriods.find(
-      (item) => rawMinutes >= item.start && rawMinutes < item.end,
-    );
-    if (!period) return;
+    const rows: Array<{ start: number; end: number; step: number }> = [];
 
-    const offset = rawMinutes - period.start;
-    const snapped = Math.min(
-      period.end - period.step,
-      period.start + Math.round(offset / period.step) * period.step,
-    );
-    if (snapped < period.start || snapped >= period.end) return;
+    for (const period of periods) {
+      for (let cursor = period.start; cursor + period.step <= period.end; cursor += period.step) {
+        const slotEnd = cursor + period.step;
+        if (cursor < START_MINUTES || slotEnd > END_MINUTES) continue;
 
-    const slotEnd = Math.min(period.end, snapped + period.step);
+        const fixedBreak = professionalId
+          ? recurringBreaks.some((item) => {
+              if (item.doctorId !== professionalId || item.dayOfWeek !== dayOfWeek) return false;
+              const breakStart = minuteOfDay(item.startTime);
+              const breakEnd = minuteOfDay(item.endTime);
+              return breakStart < slotEnd && breakEnd > cursor;
+            })
+          : false;
+        if (fixedBreak) continue;
 
-    if (professionalId) {
-      const fixedBreak = recurringBreaks.some((item) => {
-        if (item.doctorId !== professionalId || item.dayOfWeek !== dayOfWeek) return false;
-        const breakStart = minuteOfDay(item.startTime);
-        const breakEnd = minuteOfDay(item.endTime);
-        return breakStart < slotEnd && breakEnd > snapped;
-      });
-      if (fixedBreak) return;
+        const startDate = new Date(`${dayISO}T${timeFromMinutes(cursor)}:00`);
+        const endDate = new Date(startDate.getTime() + period.step * 60000);
+        const eventualBlock = agendaBlocks.some((item) => {
+          if (item.doctorId) {
+            if (!professionalId || item.doctorId !== professionalId) return false;
+          }
+          const blockStart = new Date(item.startAt).getTime();
+          const blockEnd = new Date(item.endAt).getTime();
+          return blockStart < endDate.getTime() && blockEnd > startDate.getTime();
+        });
+        if (eventualBlock) continue;
 
-      const startDate = new Date(`${dayISO}T${timeFromMinutes(snapped)}:00`);
-      const endDate = new Date(startDate.getTime() + (slotEnd - snapped) * 60000);
-      const eventualBlock = agendaBlocks.some((item) => {
-        if (item.doctorId && item.doctorId !== professionalId) return false;
-        const blockStart = new Date(item.startAt).getTime();
-        const blockEnd = new Date(item.endAt).getTime();
-        return blockStart < endDate.getTime() && blockEnd > startDate.getTime();
-      });
-      if (eventualBlock) return;
+        const occupied = professionalId
+          ? dayItems.some((appointment) => {
+              const appointmentStart = minuteOfDay(appointment.time);
+              const appointmentEnd =
+                appointmentStart + Math.max(10, appointment.durationMinutes || 30);
+              return appointmentStart < slotEnd && appointmentEnd > cursor;
+            })
+          : false;
+        if (occupied) continue;
+
+        rows.push({ start: cursor, end: slotEnd, step: period.step });
+      }
     }
 
-    onNew({
-      dateISO: dayISO,
-      time: timeFromMinutes(snapped),
-      professionalName: professional === "Todos" ? undefined : professional,
-    });
+    return rows;
   };
 
   return (
@@ -427,17 +429,68 @@ function TimeGridView({
             return (
               <Box
                 key={dayISO}
-                onClick={(event) => handleEmptyClick(event, dayISO)}
                 sx={{
                   position: "relative",
                   height: GRID_HEIGHT,
                   borderRight: 1,
                   borderColor: "divider",
-                  cursor: "crosshair",
+                  cursor: "default",
                   backgroundImage:
                     "repeating-linear-gradient(to bottom, transparent 0, transparent 29px, rgba(0,0,0,.08) 30px)",
                 }}
               >
+                {slotRows(dayISO, dayItems).map((slot) => {
+                  const top = ((slot.start - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
+                  const height = ((slot.end - slot.start) / TOTAL_MINUTES) * GRID_HEIGHT;
+                  const startLabel = timeFromMinutes(slot.start);
+                  const endLabel = timeFromMinutes(slot.end - 1);
+                  return (
+                    <Box
+                      key={`free-${dayISO}-${slot.start}`}
+                      role="button"
+                      tabIndex={0}
+                      title={`Novo agendamento • ${startLabel}–${endLabel}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onNew({
+                          dateISO: dayISO,
+                          time: startLabel,
+                          durationMinutes: slot.step,
+                          professionalName: professional === "Todos" ? undefined : professional,
+                        });
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onNew({
+                          dateISO: dayISO,
+                          time: startLabel,
+                          durationMinutes: slot.step,
+                          professionalName: professional === "Todos" ? undefined : professional,
+                        });
+                      }}
+                      sx={{
+                        position: "absolute",
+                        top,
+                        left: 0,
+                        right: 0,
+                        height,
+                        zIndex: 1,
+                        cursor: "pointer",
+                        borderBottom: 1,
+                        borderColor: "divider",
+                        "&:hover": {
+                          bgcolor: "action.hover",
+                          outline: "1px solid",
+                          outlineColor: "primary.light",
+                          outlineOffset: "-1px",
+                        },
+                      }}
+                    />
+                  );
+                })}
+
                 {dayItems.map((appointment) => {
                   const start = minuteOfDay(appointment.time);
                   const duration = Math.max(10, appointment.durationMinutes || 30);
@@ -492,7 +545,7 @@ function TimeGridView({
         </Box>
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", p: 1 }}>
-        Clique diretamente em uma linha livre para abrir o agendamento. A linha respeita a jornada, a grade configurada, intervalos fixos e bloqueios.
+        Toda a faixa de um horário livre é clicável, tanto na Semana quanto no Dia. Clique em qualquer ponto da linha para abrir o agendamento já na data e horário escolhidos.
       </Typography>
     </Box>
   );
