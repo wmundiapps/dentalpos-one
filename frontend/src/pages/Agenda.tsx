@@ -416,7 +416,13 @@ export default function Agenda() {
             <ToggleButton value="week">Semana</ToggleButton>
             <ToggleButton value="month">Mês</ToggleButton>
           </ToggleButtonGroup>
-          <TextField`n            size="small"`n            type={view === "month" ? "month" : "date"}`n            value={view === "month" ? date.slice(0, 7) : date}`n            onChange={(event) => setDate(view === "month" ? `${event.target.value}-01` : event.target.value)}`n            sx={{ minWidth: view === "month" ? 160 : 170 }}`n          />
+          <TextField
+            size="small"
+            type={view === "month" ? "month" : "date"}
+            value={view === "month" ? date.slice(0, 7) : date}
+            onChange={(event) => setDate(view === "month" ? `${event.target.value}-01` : event.target.value)}
+            sx={{ minWidth: view === "month" ? 160 : 170 }}
+          />
           <TextField size="small" select label="Agenda" value={professional} onChange={(event) => setProfessional(event.target.value)} sx={{ minWidth: 220 }}>
             {professionals.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
           </TextField>
