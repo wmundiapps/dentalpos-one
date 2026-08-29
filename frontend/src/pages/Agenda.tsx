@@ -416,13 +416,13 @@ export default function Agenda() {
             <ToggleButton value="week">Semana</ToggleButton>
             <ToggleButton value="month">Mês</ToggleButton>
           </ToggleButtonGroup>
-          <TextField size="small" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+          <TextField`n            size="small"`n            type={view === "month" ? "month" : "date"}`n            value={view === "month" ? date.slice(0, 7) : date}`n            onChange={(event) => setDate(view === "month" ? `${event.target.value}-01` : event.target.value)}`n            sx={{ minWidth: view === "month" ? 160 : 170 }}`n          />
           <TextField size="small" select label="Agenda" value={professional} onChange={(event) => setProfessional(event.target.value)} sx={{ minWidth: 220 }}>
             {professionals.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
           </TextField>
-          <Button onClick={() => move(-1)}>Anterior</Button>
+          <Button onClick={() => move(-1)}>{view === "month" ? "‹ Mês" : "Anterior"}</Button>
           <Button onClick={() => setDate(today())}>Hoje</Button>
-          <Button onClick={() => move(1)}>Próximo</Button>
+          <Button onClick={() => move(1)}>{view === "month" ? "Mês ›" : "Próximo"}</Button>
           <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
           <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Configurar inteligência</Button>
           <TextField size="small" select label="Avisos ao paciente" value={channel} onChange={(event) => setChannel(event.target.value as Channel)} sx={{ minWidth: 180 }}>
