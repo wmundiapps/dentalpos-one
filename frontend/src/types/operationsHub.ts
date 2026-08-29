@@ -74,7 +74,6 @@ export interface IntegratedAppointment {
   source: "Interno" | "Paciente" | "Marketing";
   category?: "1ª consulta" | "Em tratamento" | "Retorno" | "Pagamento" | "Periódico" | "Marketing" | "Indicação" | "Urgência" | "Outro";
   durationMinutes?: number;
-  reminderChannel?: "WhatsApp" | "SMS";
   laboratoryName?: string;
   laboratoryWorkId?: number;
   smartSchedule?: {

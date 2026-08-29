@@ -21,13 +21,6 @@ export interface BackendAppointment {
   scheduledAt: string;
   durationMinutes: number;
   status: string;
-  reminders?: Array<{
-    id: string;
-    type: "ON_BOOKING" | "ONE_DAY_BEFORE" | "ON_DAY" | string;
-    channel: "WHATSAPP" | "SMS" | string;
-    status: string;
-    scheduledFor: string;
-  }>;
   patient?: {
     id: string;
     fullName: string;
@@ -67,11 +60,6 @@ export async function createBackendAppointment(input: {
   scheduledAt: string;
   durationMinutes?: number;
   reminderChannel?: "WHATSAPP" | "SMS";
-  reminders?: {
-    onBooking: boolean;
-    oneDayBefore: boolean;
-    onDay: boolean;
-  };
 }) {
   const response = await fetch(`${API}/appointments`, {
     method: "POST",
@@ -96,11 +84,6 @@ export async function updateBackendAppointment(id: string, input: {
   reason: string;
   requestedBy?: string;
   reminderChannel?: "WHATSAPP" | "SMS";
-  reminders?: {
-    onBooking: boolean;
-    oneDayBefore: boolean;
-    onDay: boolean;
-  };
 }) {
   const response = await fetch(`${API}/appointment/${id}`, {
     method: "PUT",

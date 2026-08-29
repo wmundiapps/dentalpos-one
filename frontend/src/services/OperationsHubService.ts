@@ -6,7 +6,6 @@ import type { LaboratoryWorkStatus } from "../types/laboratory";
 import { repairObjectText } from "../utils/textEncoding";
 import { listPatients, listTreatmentItems } from "./PatientClinicalService";
 import { listFinanceEntries, type FinanceEntry } from "./FinanceHubService";
-import { inventoryItems } from "./InventoryService";
 
 export const OPERATIONS_EVENT = "dentalpos:operations-updated";
 const LAB_KEY = "dentalpos.operations.labWorks.v1";
@@ -396,34 +395,6 @@ export function getOperationalAlerts(): OperationalAlert[] {
     }
   });
 
-
-  inventoryItems.forEach((item) => {
-    const lowStock = item.status === "Estoque baixo" || item.status === "Crítico" || item.currentQuantity <= item.minimumQuantity;
-    if (lowStock) {
-      alerts.push({
-        id: `stock-level-${item.id}`,
-        area: "Estoque",
-        severity: item.status === "Crítico" || item.currentQuantity <= 0 ? "error" : "warning",
-        title: item.status === "Crítico" ? "Material em nível crítico" : "Reposição de estoque necessária",
-        description: `${item.name} • ${item.currentQuantity} ${item.unit} disponíveis • mínimo ${item.minimumQuantity}.`,
-        route: "/estoque",
-      });
-    }
-
-    const expirationISO = brToISO(item.expirationDate);
-    const expirationDays = daysBetween(expirationISO);
-    if (item.status === "Vencimento próximo" || (Number.isFinite(expirationDays) && expirationDays >= 0 && expirationDays <= 45)) {
-      alerts.push({
-        id: `stock-expiry-${item.id}`,
-        area: "Estoque",
-        severity: expirationDays <= 15 ? "error" : "warning",
-        title: "Material com vencimento próximo",
-        description: `${item.name} • lote ${item.batch} • vence em ${item.expirationDate || "data não informada"}.`,
-        dueISO: expirationISO,
-        route: "/estoque",
-      });
-    }
-  });
   employees.forEach((employee) => {
     const days = daysBetween(brToISO(employee.experienceEndDate));
     if (Number.isFinite(days) && days >= 0 && days <= 15) {

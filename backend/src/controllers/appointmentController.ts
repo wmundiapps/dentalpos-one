@@ -9,26 +9,18 @@ function parseDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? undefined : date
 }
 
-type ReminderSelection = {
-  onBooking?: boolean
-  oneDayBefore?: boolean
-  onDay?: boolean
-}
-
-function reminderDates(scheduledAt: Date, selected: ReminderSelection = {}) {
+function reminderDates(scheduledAt: Date) {
   const booking = new Date()
   const oneDayBefore = new Date(scheduledAt)
   oneDayBefore.setDate(oneDayBefore.getDate() - 1)
   oneDayBefore.setHours(9, 0, 0, 0)
   const onDay = new Date(scheduledAt)
   onDay.setHours(Math.max(7, scheduledAt.getHours() - 2), scheduledAt.getMinutes(), 0, 0)
-
-  const rows: Array<{ type: string; scheduledFor: Date }> = []
-  if (selected.onBooking !== false) rows.push({ type: 'ON_BOOKING', scheduledFor: booking })
-  if (selected.oneDayBefore !== false) rows.push({ type: 'ONE_DAY_BEFORE', scheduledFor: oneDayBefore })
-  if (selected.onDay !== false) rows.push({ type: 'ON_DAY', scheduledFor: onDay })
-
-  return rows.filter(item => item.type === 'ON_BOOKING' || item.scheduledFor.getTime() > booking.getTime())
+  return [
+    { type: 'ON_BOOKING', scheduledFor: booking },
+    { type: 'ONE_DAY_BEFORE', scheduledFor: oneDayBefore },
+    { type: 'ON_DAY', scheduledFor: onDay }
+  ].filter(item => item.type === 'ON_BOOKING' || item.scheduledFor.getTime() > booking.getTime())
 }
 
 const includeDetails = {
@@ -84,7 +76,7 @@ export async function show(req: AuthRequest, res: Response) {
 export async function store(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
-    const { patientId, doctorId, procedure, nextProcedure, scheduledAt, room, notes, source, budgetId, reminderChannel, reminders: reminderSelection } = req.body
+    const { patientId, doctorId, procedure, nextProcedure, scheduledAt, room, notes, source, budgetId, reminderChannel } = req.body
     if (!patientId || !doctorId || !procedure || !scheduledAt) {
       return res.status(400).json({ error: 'Paciente, profissional, procedimento e data/hora são obrigatórios.' })
     }
@@ -161,7 +153,7 @@ export async function store(req: AuthRequest, res: Response) {
           newStatus: created.status
         }
       })
-      const reminders = reminderDates(when, reminderSelection).map(item => ({
+      const reminders = reminderDates(when).map(item => ({
         clinicId: req.user!.clinicId,
         tenantId: req.user!.tenantId,
         appointmentId: created.id,
@@ -280,9 +272,9 @@ export async function update(req: AuthRequest, res: Response) {
           }
         })
       }
-      if (changedSchedule || req.body.reminders !== undefined || req.body.reminderChannel !== undefined) {
+      if (changedSchedule) {
         await tx.appointmentReminder.deleteMany({ where: { appointmentId: id, status: 'PENDING' } })
-        const reminders = reminderDates(newScheduledAt, req.body.reminders).map(item => ({
+        const reminders = reminderDates(newScheduledAt).map(item => ({
           clinicId: req.user!.clinicId,
           tenantId: req.user!.tenantId,
           appointmentId: id,
