@@ -209,20 +209,8 @@ export default function Agenda() {
         if (!active) return;
 
         const backendItems = appointments.map(mapBackendAppointment);
-        const signature = (item: IntegratedAppointment) =>
-          [item.patientName, item.professionalName, item.procedure, item.dateISO, item.time]
-            .map((value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim())
-            .join("|");
-
-        const backendIds = new Set(backendItems.map((item) => item.backendId));
-        const backendSignatures = new Set(backendItems.map(signature));
-        const localOnly = getAppointments().filter((item) =>
-          item.backendId ? !backendIds.has(item.backendId) : !backendSignatures.has(signature(item)),
-        );
-
-        const merged = [...backendItems, ...localOnly];
-        saveAppointments(merged);
-        setItems(merged);
+        saveAppointments(backendItems);
+        setItems(backendItems);
       })
       .catch(() => undefined);
 
