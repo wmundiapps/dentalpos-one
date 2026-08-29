@@ -61,6 +61,7 @@ export interface AppointmentHistoryEvent {
 
 export interface IntegratedAppointment {
   id: number;
+  backendId?: string;
   patientName: string;
   patientPhone?: string;
   professionalName: string;

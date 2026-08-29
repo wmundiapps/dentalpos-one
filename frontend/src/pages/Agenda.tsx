@@ -32,6 +32,7 @@ import {
   changeAppointmentWithHistory,
   createAppointment,
   getAppointments,
+  saveAppointments,
   getOperationalAlerts,
   subscribeOperations,
   updateAppointment,
@@ -39,7 +40,7 @@ import {
 import { patientFinancialSummary } from "../services/FinanceHubService";
 import { listPatients } from "../services/PatientClinicalService";
 import { loadBackendPatients } from "../services/PatientApi";
-import { createBackendAppointment, loadBackendDoctors, type BackendDoctor } from "../services/AppointmentApi";
+import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, type BackendAppointment, type BackendDoctor } from "../services/AppointmentApi";
 import { enqueueAppointmentReminders } from "../services/RevahQueueService";
 import type { SmartScheduleSuggestion } from "../services/SmartSchedulingService";
 import type { IntegratedAppointment } from "../types/operationsHub";
@@ -81,6 +82,52 @@ function dateLabel(value: string) {
   });
 }
 
+function backendAppointmentId(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) hash = ((hash << 5) - hash + value.charCodeAt(index)) | 0;
+  return -Math.abs(hash || 1);
+}
+
+function backendStatus(status: string): AppointmentStatus {
+  const map: Record<string, AppointmentStatus> = {
+    SCHEDULED: "Agendado",
+    CONFIRMED: "Confirmado",
+    WAITING: "Aguardando",
+    ROOM_PREPARATION: "Sala em preparação",
+    IN_PROGRESS: "Em atendimento",
+    COMPLETED: "Finalizado",
+    FINALIZED: "Finalizado",
+    CANCELLED: "Cancelado",
+    NO_SHOW: "Faltou",
+  };
+  return map[status] || "Agendado";
+}
+
+function mapBackendAppointment(appointment: BackendAppointment): IntegratedAppointment {
+  const scheduled = new Date(appointment.scheduledAt);
+  const doctorName = appointment.doctor?.user
+    ? `Dr. ${appointment.doctor.user.firstName} ${appointment.doctor.user.lastName}`.trim()
+    : "Profissional";
+
+  return {
+    id: backendAppointmentId(appointment.id),
+    backendId: appointment.id,
+    patientName: appointment.patient?.fullName || "Paciente",
+    patientPhone: appointment.patient?.phone || "",
+    professionalName: doctorName,
+    procedure: appointment.procedure,
+    nextProcedure: appointment.nextProcedure || "Definir após atendimento",
+    dateISO: iso(scheduled),
+    time: scheduled.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false }),
+    room: appointment.room || "A definir",
+    status: backendStatus(appointment.status),
+    source: "Interno",
+    category: "1ª consulta",
+    durationMinutes: 30,
+    reminders: { onBooking: true, oneDayBefore: true, onDay: true },
+    createdAtISO: appointment.scheduledAt,
+  };
+}
 function smartScheduleSnapshot(suggestion: SmartScheduleSuggestion | null): IntegratedAppointment["smartSchedule"] {
   if (!suggestion) return undefined;
   return {
@@ -153,6 +200,35 @@ export default function Agenda() {
   }, []);
   useEffect(() => {
     loadBackendDoctors().then(setBackendDoctors).catch(() => setBackendDoctors([]));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    loadBackendAppointments()
+      .then((appointments) => {
+        if (!active) return;
+
+        const backendItems = appointments.map(mapBackendAppointment);
+        const signature = (item: IntegratedAppointment) =>
+          [item.patientName, item.professionalName, item.procedure, item.dateISO, item.time]
+            .map((value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim())
+            .join("|");
+
+        const backendIds = new Set(backendItems.map((item) => item.backendId));
+        const backendSignatures = new Set(backendItems.map(signature));
+        const localOnly = getAppointments().filter((item) =>
+          item.backendId ? !backendIds.has(item.backendId) : !backendSignatures.has(signature(item)),
+        );
+
+        const merged = [...backendItems, ...localOnly];
+        saveAppointments(merged);
+        setItems(merged);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
   }, []);
   useEffect(() => {
     localStorage.setItem(KEY, JSON.stringify({ channel, booking: true, oneDayBefore: true, onDay: true }));
@@ -249,8 +325,9 @@ export default function Agenda() {
       return;
     }
 
+    let backendCreated: BackendAppointment;
     try {
-      await createBackendAppointment({
+      backendCreated = await createBackendAppointment({
         patientId: backendPatient.id,
         doctorId: backendDoctor.id,
         procedure: form.procedure,
@@ -265,6 +342,7 @@ export default function Agenda() {
     }
     const appointment = createAppointment({
       ...form,
+      backendId: backendCreated.id,
       durationMinutes: Number(form.durationMinutes || 30),
       laboratoryName: form.laboratoryName || undefined,
       smartSchedule: smartScheduleSnapshot(smartSuggestion),
