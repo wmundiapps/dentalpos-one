@@ -62,6 +62,7 @@ export interface AppointmentHistoryEvent {
 export interface IntegratedAppointment {
   id: number;
   backendId?: string;
+  patientId?: string;
   patientName: string;
   patientPhone?: string;
   professionalName: string;
@@ -95,6 +96,8 @@ export interface IntegratedAppointment {
     onDay: boolean;
   };
   createdAtISO: string;
+  confirmation?: string;
+  confirmChannel?: string;
   history?: AppointmentHistoryEvent[];
 }
 

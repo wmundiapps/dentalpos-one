@@ -9,6 +9,12 @@ function parseDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? undefined : date
 }
 
+const allowedReminderChannels = new Set(['WHATSAPP', 'SMS', 'TELEGRAM', 'MANUAL'])
+function normalizeReminderChannel(value: unknown) {
+  const channel = String(value || 'WHATSAPP').toUpperCase()
+  return allowedReminderChannels.has(channel) ? channel : 'WHATSAPP'
+}
+
 function reminderDates(scheduledAt: Date) {
   const booking = new Date()
   const oneDayBefore = new Date(scheduledAt)
@@ -87,6 +93,7 @@ export async function store(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Duração do agendamento inválida.' })
     }
     const durationMinutes = Math.round(parsedDuration)
+    const normalizedReminderChannel = normalizeReminderChannel(reminderChannel)
 
     const [patient, doctor] = await Promise.all([
       prisma.patient.findFirst({ where: { id: String(patientId), clinicId: req.user.clinicId, tenantId: req.user.tenantId, isActive: true } }),
@@ -139,6 +146,8 @@ export async function store(req: AuthRequest, res: Response) {
           scheduledAt: when,
           durationMinutes,
           status: 'SCHEDULED',
+          confirmation: 'PENDING',
+          confirmChannel: normalizedReminderChannel,
           budgetId: budgetId ? String(budgetId) : null
         }
       })
@@ -158,7 +167,7 @@ export async function store(req: AuthRequest, res: Response) {
         tenantId: req.user!.tenantId,
         appointmentId: created.id,
         type: item.type,
-        channel: reminderChannel ? String(reminderChannel) : 'WHATSAPP',
+        channel: normalizedReminderChannel,
         scheduledFor: item.scheduledFor
       }))
       if (reminders.length) await tx.appointmentReminder.createMany({ data: reminders })
@@ -197,6 +206,7 @@ export async function update(req: AuthRequest, res: Response) {
     const newScheduledAt = req.body.scheduledAt ? parseDate(req.body.scheduledAt) : existing.scheduledAt
     if (!newScheduledAt) return res.status(400).json({ error: 'Data/hora inválida.' })
     const newStatus = req.body.status ? String(req.body.status) : existing.status
+    const normalizedReminderChannel = normalizeReminderChannel(req.body.reminderChannel || existing.confirmChannel || 'WHATSAPP')
     const parsedDuration = req.body.durationMinutes !== undefined ? Number(req.body.durationMinutes) : existing.durationMinutes
     if (!Number.isFinite(parsedDuration) || parsedDuration < 5 || parsedDuration > 480) {
       return res.status(400).json({ error: 'Duração do agendamento inválida.' })
@@ -248,6 +258,8 @@ export async function update(req: AuthRequest, res: Response) {
           scheduledAt: newScheduledAt,
           durationMinutes: newDurationMinutes,
           status: newStatus,
+          confirmation: newStatus === 'CONFIRMED' ? 'CONFIRMED' : newStatus === 'CANCELLED' ? 'CANCELLED' : existing.confirmation,
+          confirmChannel: normalizedReminderChannel,
           procedure: req.body.procedure !== undefined ? String(req.body.procedure) : existing.procedure,
           nextProcedure: req.body.nextProcedure !== undefined ? String(req.body.nextProcedure || '') || null : existing.nextProcedure,
           room: req.body.room !== undefined ? String(req.body.room || '') || null : existing.room,
@@ -272,17 +284,35 @@ export async function update(req: AuthRequest, res: Response) {
           }
         })
       }
-      if (changedSchedule) {
+      if (changedSchedule && newStatus !== 'CANCELLED') {
         await tx.appointmentReminder.deleteMany({ where: { appointmentId: id, status: 'PENDING' } })
         const reminders = reminderDates(newScheduledAt).map(item => ({
           clinicId: req.user!.clinicId,
           tenantId: req.user!.tenantId,
           appointmentId: id,
           type: item.type,
-          channel: req.body.reminderChannel ? String(req.body.reminderChannel) : 'WHATSAPP',
+          channel: normalizedReminderChannel,
           scheduledFor: item.scheduledFor
         }))
         if (reminders.length) await tx.appointmentReminder.createMany({ data: reminders })
+      }
+      if (changedStatus && newStatus === 'CONFIRMED') {
+        await tx.appointmentReminder.create({
+          data: {
+            clinicId: req.user!.clinicId,
+            tenantId: req.user!.tenantId,
+            appointmentId: id,
+            type: 'CONFIRMATION',
+            channel: normalizedReminderChannel,
+            scheduledFor: new Date()
+          }
+        })
+      }
+      if (changedStatus && ['CANCELLED', 'NO_SHOW'].includes(newStatus)) {
+        await tx.appointmentReminder.updateMany({
+          where: { appointmentId: id, status: 'PENDING' },
+          data: { status: 'CANCELLED' }
+        })
       }
       return updated
     })

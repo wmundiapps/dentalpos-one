@@ -5,9 +5,11 @@ dotenv.config()
 import app from './app'
 import { prisma } from './lib/prisma'
 import { assertRuntimeConfiguration, runtimeChecks } from './config/runtime'
+import { startAppointmentReminderWorker } from './services/appointmentReminderService'
 
 const PORT = Number(process.env.PORT) || 3000
 let server: ReturnType<typeof app.listen> | undefined
+let reminderTimer: ReturnType<typeof setInterval> | undefined
 
 async function startServer() {
   try {
@@ -22,6 +24,8 @@ async function startServer() {
 
     await prisma.$connect()
     console.log('✅ Banco de dados conectado.')
+
+    reminderTimer = startAppointmentReminderWorker()
 
     server = app.listen(PORT, '0.0.0.0', () => {
       console.log('=================================')
@@ -40,6 +44,8 @@ async function startServer() {
 
 async function shutdown(signal: string) {
   console.log(`\n${signal} recebido. Encerrando aplicação...`)
+
+  if (reminderTimer) clearInterval(reminderTimer)
 
   if (server) {
     await new Promise<void>((resolve) => server!.close(() => resolve()))

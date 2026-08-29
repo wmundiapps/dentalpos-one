@@ -2,8 +2,12 @@ import type { MouseEvent } from "react";
 import { Box, Chip, Paper, Typography } from "@mui/material";
 import type { IntegratedAppointment } from "../types/operationsHub";
 import { patientFinancialSummary } from "../services/FinanceHubService";
+import { clinicalDocuments } from "../services/ClinicalDocumentService";
+import { getLaboratoryWorks } from "../services/OperationsHubService";
+import { listPatients, listTreatmentItems } from "../services/PatientClinicalService";
 
 type View = "day" | "week" | "month";
+type BadgeTone = "success" | "error" | "warning" | "info" | "default";
 
 type AppointmentPrefill = {
   dateISO: string;
@@ -65,32 +69,57 @@ function shortDate(dateISO: string) {
   });
 }
 
-function overdueInstallments(patientName: string) {
-  try {
-    const entries = JSON.parse(localStorage.getItem("dentalpos.financial.entries.v3") || "[]") as Array<{
-      type?: string;
-      personName?: string;
-      status?: string;
-    }>;
-    return entries.filter(
-      (entry) =>
-        entry.type === "Receita" &&
-        entry.personName?.toLowerCase() === patientName.toLowerCase() &&
-        entry.status === "Vencido",
-    ).length;
-  } catch {
-    return 0;
-  }
+function money(value: number) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function financialText(appointment: IntegratedAppointment) {
-  const overdue = overdueInstallments(appointment.patientName);
-  if (overdue) return `${overdue} parcela(s) em atraso`;
+function operationalBadges(appointment: IntegratedAppointment): Array<{ label: string; color: BadgeTone }> {
+  const result: Array<{ label: string; color: BadgeTone }> = [];
+  const name = appointment.patientName.trim().toLowerCase();
+
   try {
-    return patientFinancialSummary(appointment.patientName).status === "Em dia" ? "Financeiro OK" : "Pendência";
+    const finance = patientFinancialSummary(appointment.patientName);
+    if (finance.overdue > 0) result.push({ label: `Financeiro atraso ${money(finance.overdue)}`, color: "error" });
+    else if (finance.open > 0) result.push({ label: `Financeiro pendente ${money(finance.open)}`, color: "warning" });
+    else result.push({ label: "Financeiro OK", color: "success" });
   } catch {
-    return "Financeiro";
+    result.push({ label: "Financeiro", color: "default" });
   }
+
+  const unsigned = clinicalDocuments.find(
+    (document) =>
+      document.patientName.trim().toLowerCase() === name &&
+      (document.status !== "Assinado" || !document.digitallySigned) &&
+      ["Termo de consentimento", "Garantia"].includes(document.documentType),
+  );
+  if (unsigned) result.push({ label: `Assinar: ${unsigned.title}`, color: "warning" });
+
+  try {
+    const lab = getLaboratoryWorks().find(
+      (work) =>
+        work.patientName.trim().toLowerCase() === name &&
+        !["Entregue", "Liberado"].includes(work.status),
+    );
+    if (lab) result.push({ label: `Laboratório: ${lab.status}`, color: "info" });
+  } catch {
+    // Sem alerta de laboratório se a base ainda não estiver disponível.
+  }
+
+  try {
+    const patient = listPatients().find((item) => item.fullName.trim().toLowerCase() === name);
+    if (patient) {
+      const supply = listTreatmentItems(patient.id).find((item) => {
+        const text = `${item.procedure}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const pending = !["Concluído", "COMPLETED"].includes(String(item.status));
+        return pending && /(enxerto|membrana|biomaterial|componente|material|parafuso)/.test(text);
+      });
+      if (supply) result.push({ label: `Providenciar: ${supply.procedure}`, color: "warning" });
+    }
+  } catch {
+    // Sem alerta de material se o plano ainda não estiver disponível.
+  }
+
+  return result.slice(0, 4);
 }
 
 function statusColor(status: IntegratedAppointment["status"]): "success" | "error" | "warning" | "default" {
@@ -109,7 +138,7 @@ function AppointmentCard({
   compact?: boolean;
   onClick: () => void;
 }) {
-  const finance = financialText(appointment);
+  const badges = operationalBadges(appointment);
   return (
     <Paper
       variant="outlined"
@@ -131,16 +160,18 @@ function AppointmentCard({
       </Typography>
       {!compact ? (
         <>
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", my: 0.6 }}>
+            {badges.map((badge) => (
+              <Chip key={badge.label} size="small" label={badge.label} color={badge.color} />
+            ))}
+          </Box>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
             {appointment.procedure}
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
             {appointment.professionalName} • {appointment.room}
           </Typography>
-          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.6 }}>
-            <Chip size="small" label={finance} color={finance === "Financeiro OK" ? "success" : "error"} />
-            <Chip size="small" label={appointment.status} color={statusColor(appointment.status)} />
-          </Box>
+          <Chip size="small" sx={{ mt: 0.6 }} label={appointment.status} color={statusColor(appointment.status)} />
         </>
       ) : null}
     </Paper>
@@ -165,7 +196,7 @@ function MonthView({
     return day >= 1 && day <= daysInMonth ? day : null;
   });
   const selectedItems = items
-    .filter((appointment) => appointment.dateISO === dateISO)
+    .filter((appointment) => appointment.dateISO === dateISO && appointment.status !== "Cancelado")
     .sort((a, b) => a.time.localeCompare(b.time));
   const weekLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -186,7 +217,7 @@ function MonthView({
           }
           const cellISO = iso(new Date(year, month, day, 12));
           const dayItems = items
-            .filter((appointment) => appointment.dateISO === cellISO)
+            .filter((appointment) => appointment.dateISO === cellISO && appointment.status !== "Cancelado")
             .sort((a, b) => a.time.localeCompare(b.time));
           const selected = cellISO === dateISO;
           return (
@@ -208,12 +239,7 @@ function MonthView({
               <Typography sx={{ fontWeight: selected ? 900 : 700, mb: 0.5 }}>{day}</Typography>
               <Box sx={{ display: "grid", gap: 0.45 }}>
                 {dayItems.slice(0, 3).map((appointment) => (
-                  <AppointmentCard
-                    key={appointment.id}
-                    appointment={appointment}
-                    compact
-                    onClick={() => onAppointmentClick(appointment)}
-                  />
+                  <AppointmentCard key={appointment.id} appointment={appointment} compact onClick={() => onAppointmentClick(appointment)} />
                 ))}
                 {dayItems.length > 3 ? (
                   <Typography variant="caption" color="text.secondary">+ {dayItems.length - 3} consulta(s)</Typography>
@@ -306,7 +332,7 @@ function TimeGridView({
 
           {dates.map((dayISO) => {
             const dayItems = items
-              .filter((appointment) => appointment.dateISO === dayISO)
+              .filter((appointment) => appointment.dateISO === dayISO && appointment.status !== "Cancelado")
               .sort((a, b) => a.time.localeCompare(b.time));
             return (
               <Box
@@ -330,6 +356,7 @@ function TimeGridView({
                   const visibleEnd = Math.min(END_MINUTES, start + duration);
                   const top = ((visibleStart - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
                   const height = Math.max(28, ((visibleEnd - visibleStart) / TOTAL_MINUTES) * GRID_HEIGHT);
+                  const badges = operationalBadges(appointment);
                   return (
                     <Box
                       key={appointment.id}
@@ -358,14 +385,12 @@ function TimeGridView({
                       <Typography variant="caption" sx={{ display: "block", fontWeight: 900, lineHeight: 1.15 }}>
                         {appointment.time}–{endTime(appointment)} • {appointment.patientName}
                       </Typography>
-                      {height >= 48 ? (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.15 }}>
-                          {appointment.procedure}
-                        </Typography>
+                      {height >= 48 && badges[0] ? (
+                        <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />
                       ) : null}
-                      {height >= 70 ? (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.15 }}>
-                          {appointment.professionalName} • {appointment.room}
+                      {height >= 72 ? (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.15, mt: 0.3 }}>
+                          {appointment.procedure}
                         </Typography>
                       ) : null}
                     </Box>

@@ -41,7 +41,6 @@ import {
 import { listPatients } from "../services/PatientClinicalService";
 import { loadBackendPatients } from "../services/PatientApi";
 import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, updateBackendAppointment, type BackendAppointment, type BackendDoctor } from "../services/AppointmentApi";
-import { enqueueAppointmentReminders } from "../services/RevahQueueService";
 import type { SmartScheduleSuggestion } from "../services/SmartSchedulingService";
 import type { IntegratedAppointment } from "../types/operationsHub";
 import type { AppointmentStatus } from "../types/appointment";
@@ -55,7 +54,7 @@ const today = () => iso(new Date());
 const KEY = "dentalpos.agenda.notification-settings.v1";
 
 type View = "day" | "week" | "month";
-type Channel = "WhatsApp" | "SMS";
+type Channel = "WhatsApp" | "SMS" | "Telegram" | "Manual";
 type StatusFilter = "Todos" | AppointmentStatus;
 
 type AppointmentForm = {
@@ -103,6 +102,30 @@ function backendStatus(status: string): AppointmentStatus {
   return map[status] || "Agendado";
 }
 
+function backendRequestedBy(value: "Paciente" | "Clínica" | "Dentista" | "Outro") {
+  return ({ Paciente: "PATIENT", Clínica: "CLINIC", Dentista: "DOCTOR", Outro: "OTHER" } as const)[value];
+}
+
+function backendChannel(value: Channel) {
+  return ({ WhatsApp: "WHATSAPP", SMS: "SMS", Telegram: "TELEGRAM", Manual: "MANUAL" } as const)[value];
+}
+
+function historyAction(value: string): "Criado" | "Remarcado" | "Cancelado" | "Faltou" | "Alterado" {
+  if (value === "RESCHEDULED") return "Remarcado";
+  if (value === "CANCELLED") return "Cancelado";
+  if (value === "NO_SHOW") return "Faltou";
+  if (value === "CREATED" || value === "ONLINE_REQUEST") return "Criado";
+  return "Alterado";
+}
+
+function historyRequestedBy(value?: string | null): "Paciente" | "Clínica" | "Dentista" | "Outro" | undefined {
+  if (!value) return undefined;
+  if (value === "PATIENT") return "Paciente";
+  if (value === "CLINIC") return "Clínica";
+  if (value === "DOCTOR") return "Dentista";
+  return "Outro";
+}
+
 function backendStatusValue(status: AppointmentStatus): string {
   const map: Record<AppointmentStatus, string> = {
     "Agendado": "SCHEDULED",
@@ -125,6 +148,7 @@ function mapBackendAppointment(appointment: BackendAppointment): IntegratedAppoi
   return {
     id: backendAppointmentId(appointment.id),
     backendId: appointment.id,
+    patientId: appointment.patientId,
     patientName: appointment.patient?.fullName || "Paciente",
     patientPhone: appointment.patient?.phone || "",
     professionalName: doctorName,
@@ -139,6 +163,19 @@ function mapBackendAppointment(appointment: BackendAppointment): IntegratedAppoi
     durationMinutes: appointment.durationMinutes || 30,
     reminders: { onBooking: true, oneDayBefore: true, onDay: true },
     createdAtISO: appointment.scheduledAt,
+    confirmation: appointment.confirmation || undefined,
+    confirmChannel: appointment.confirmChannel || undefined,
+    history: (appointment.history || []).map((event) => ({
+      id: backendAppointmentId(event.id),
+      atISO: event.createdAt,
+      action: historyAction(event.action),
+      requestedBy: historyRequestedBy(event.requestedBy),
+      reason: event.reason || undefined,
+      previousDateISO: event.previousScheduledAt ? iso(new Date(event.previousScheduledAt)) : undefined,
+      previousTime: event.previousScheduledAt ? new Date(event.previousScheduledAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false }) : undefined,
+      newDateISO: event.newScheduledAt ? iso(new Date(event.newScheduledAt)) : undefined,
+      newTime: event.newScheduledAt ? new Date(event.newScheduledAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false }) : undefined,
+    })),
   };
 }
 function smartScheduleSnapshot(suggestion: SmartScheduleSuggestion | null): IntegratedAppointment["smartSchedule"] {
@@ -183,10 +220,12 @@ export default function Agenda() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Todos");
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<IntegratedAppointment | null>(null);
+  const [editReason, setEditReason] = useState("");
+  const [editRequestedBy, setEditRequestedBy] = useState<"Paciente" | "Clínica" | "Dentista" | "Outro">("Paciente");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [smartSuggestion, setSmartSuggestion] = useState<SmartScheduleSuggestion | null>(null);
   const [editSmartSuggestion, setEditSmartSuggestion] = useState<SmartScheduleSuggestion | null>(null);
-  const [channel] = useState<Channel>(() => {
+  const [channel, setChannel] = useState<Channel>(() => {
     try {
       return JSON.parse(localStorage.getItem(KEY) || "{}")?.channel || "WhatsApp";
     } catch {
@@ -256,7 +295,7 @@ export default function Agenda() {
   const baseFiltered = useMemo(
     () =>
       items
-        .filter((appointment) => range.includes(appointment.dateISO) && (professional === "Todos" || appointment.professionalName === professional))
+        .filter((appointment) => appointment.status !== "Cancelado" && range.includes(appointment.dateISO) && (professional === "Todos" || appointment.professionalName === professional))
         .sort((a, b) => (a.dateISO + a.time).localeCompare(b.dateISO + b.time)),
     [items, professional, range],
   );
@@ -336,13 +375,13 @@ export default function Agenda() {
         room: form.room || undefined,
         scheduledAt: scheduledAt.toISOString(),
         durationMinutes: Number(form.durationMinutes || 30),
-        reminderChannel: channel === "SMS" ? "SMS" : "WHATSAPP",
+        reminderChannel: backendChannel(channel),
       });
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível salvar o agendamento.");
       return;
     }
-    const appointment = createAppointment({
+    createAppointment({
       ...form,
       backendId: backendCreated.id,
       durationMinutes: Number(form.durationMinutes || 30),
@@ -351,14 +390,6 @@ export default function Agenda() {
       status: "Agendado",
       source: "Interno",
       reminders: { onBooking: true, oneDayBefore: true, onDay: true },
-    });
-    enqueueAppointmentReminders({
-      appointmentId: appointment.id,
-      patientName: appointment.patientName,
-      phone: appointment.patientPhone,
-      dateISO: appointment.dateISO,
-      time: appointment.time,
-      channel,
     });
     setOpen(false);
     setItems(getAppointments());
@@ -375,7 +406,8 @@ export default function Agenda() {
   };
 
   const copyBooking = async () => {
-    const url = `${window.location.origin}${import.meta.env.BASE_URL}agendamento-online`;
+    const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
+    const url = `${window.location.origin}${import.meta.env.BASE_URL}agendamento-online?clinicId=${encodeURIComponent(clinicId)}`;
     try {
       await navigator.clipboard.writeText(url);
       alert("Link de agendamento online copiado.");
@@ -514,6 +546,8 @@ export default function Agenda() {
             onDateChange={setDate}
             onAppointmentClick={(appointment) => {
               setEdit(appointment);
+              setEditReason("");
+              setEditRequestedBy("Paciente");
               setEditSmartSuggestion(null);
             }}
             onNew={(prefill) => openNew(prefill)}
@@ -569,6 +603,12 @@ export default function Agenda() {
             )}
           />
           <TextField label="Celular" value={form.patientPhone} onChange={(event) => setForm({ ...form, patientPhone: event.target.value })} />
+          <TextField select label="Avisos / confirmação" value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
+            <MenuItem value="WhatsApp">WhatsApp • automático</MenuItem>
+            <MenuItem value="SMS">SMS • automático</MenuItem>
+            <MenuItem value="Telegram">Telegram • automático</MenuItem>
+            <MenuItem value="Manual">Manual • recepção</MenuItem>
+          </TextField>
           <TextField label="Profissional" value={form.professionalName} onChange={(event) => setForm({ ...form, professionalName: event.target.value })} />
           <TextField label="Sala" value={form.room} onChange={(event) => setForm({ ...form, room: event.target.value })} />
           <TextField
@@ -632,30 +672,7 @@ export default function Agenda() {
                   select
                   label="Status"
                   value={edit.status}
-                  onChange={async (event) => {
-                    const status = event.target.value as AppointmentStatus;
-                    if (edit.backendId) {
-                      try {
-                        const updated = await updateBackendAppointment(edit.backendId, {
-                          status: backendStatusValue(status),
-                          reason: "Atualização pela agenda",
-                          requestedBy: "CLINIC",
-                          reminderChannel: channel === "SMS" ? "SMS" : "WHATSAPP",
-                        });
-                        const mapped = mapBackendAppointment(updated);
-                        const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
-                        saveAppointments(refreshed);
-                        setItems(refreshed);
-                        setEdit(mapped);
-                      } catch (error) {
-                        window.alert(error instanceof Error ? error.message : "Não foi possível atualizar o status.");
-                      }
-                      return;
-                    }
-                    changeAppointmentWithHistory(edit.id, { status, requestedBy: "Clínica", reason: "Atualização pela agenda" });
-                    setItems(getAppointments());
-                    setEdit({ ...edit, status });
-                  }}
+                  onChange={(event) => setEdit({ ...edit, status: event.target.value as AppointmentStatus })}
                 >
                   {["Agendado", "Confirmado", "Aguardando", "Sala em preparação", "Em atendimento", "Finalizado", "Cancelado", "Faltou"].map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
                 </TextField>
@@ -672,6 +689,21 @@ export default function Agenda() {
                   value={edit.laboratoryName || ""}
                   onChange={(event) => setEdit({ ...edit, laboratoryName: event.target.value })}
                   sx={{ gridColumn: { md: "1/-1" } }}
+                />
+                <TextField
+                  select
+                  label="Alteração solicitada por"
+                  value={editRequestedBy}
+                  onChange={(event) => setEditRequestedBy(event.target.value as "Paciente" | "Clínica" | "Dentista" | "Outro")}
+                >
+                  {["Paciente", "Clínica", "Dentista", "Outro"].map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+                </TextField>
+                <TextField
+                  required
+                  label="Motivo da alteração"
+                  placeholder="Ex.: paciente solicitou mudança de horário"
+                  value={editReason}
+                  onChange={(event) => setEditReason(event.target.value)}
                 />
               </Box>
 
@@ -700,12 +732,22 @@ export default function Agenda() {
               </>
             );
           })() : null}
+          {edit ? (
+            <>
+              <Button color="warning" onClick={() => setEdit({ ...edit, status: "Faltou" })}>Marcar falta</Button>
+              <Button color="error" onClick={() => setEdit({ ...edit, status: "Cancelado" })}>Cancelar consulta</Button>
+            </>
+          ) : null}
           <Button onClick={() => setEdit(null)}>Fechar</Button>
           {edit ? (
             <Button
               variant="contained"
               onClick={async () => {
                 if (edit.backendId) {
+                  if (!editReason.trim()) {
+                    window.alert("Informe o motivo da alteração, remarcação, cancelamento ou falta.");
+                    return;
+                  }
                   const scheduledAt = new Date(`${edit.dateISO}T${edit.time}:00`);
                   if (Number.isNaN(scheduledAt.getTime())) {
                     window.alert("Data ou horário inválido.");
@@ -718,9 +760,10 @@ export default function Agenda() {
                       procedure: edit.procedure,
                       nextProcedure: edit.nextProcedure,
                       room: edit.room,
-                      reason: "Remarcação pela agenda",
-                      requestedBy: "CLINIC",
-                      reminderChannel: channel === "SMS" ? "SMS" : "WHATSAPP",
+                      status: backendStatusValue(edit.status),
+                      reason: editReason.trim(),
+                      requestedBy: backendRequestedBy(editRequestedBy),
+                      reminderChannel: backendChannel(channel),
                     });
                     const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
                     saveAppointments(refreshed);
@@ -734,8 +777,9 @@ export default function Agenda() {
                 changeAppointmentWithHistory(edit.id, {
                   dateISO: edit.dateISO,
                   time: edit.time,
-                  requestedBy: "Clínica",
-                  reason: "Remarcação pela agenda",
+                  status: edit.status,
+                  requestedBy: editRequestedBy,
+                  reason: editReason.trim(),
                 });
                 updateAppointment(edit.id, {
                   durationMinutes: edit.durationMinutes || 30,

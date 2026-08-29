@@ -9,6 +9,7 @@ import * as clinicController from '../controllers/clinicController'
 import * as doctorController from '../controllers/doctorController'
 import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
+import * as publicBookingController from '../controllers/publicBookingController'
 import * as scheduleController from '../controllers/scheduleController'
 import * as budgetController from '../controllers/budgetController'
 import * as paymentController from '../controllers/paymentController'
@@ -48,6 +49,11 @@ router.get('/auth/me', authMiddleware, tenantMiddleware, sessionController.me)
 // PUBLIC WEBHOOKS
 router.post('/webhooks/asaas', webhookController.asaas)
 router.post('/webhooks/stripe', webhookController.stripe)
+
+// PUBLIC BOOKING
+router.get('/public/booking/:clinicId', publicBookingController.config)
+router.get('/public/booking/:clinicId/availability', publicBookingController.availability)
+router.post('/public/booking/:clinicId', publicBookingController.store)
 
 // ======================
 // MIDDLEWARES
