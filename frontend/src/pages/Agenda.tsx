@@ -28,6 +28,7 @@ import AgendaCalendarBoard from "../components/AgendaCalendarBoard";
 import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
 import SmartSchedulingSettingsDialog from "../components/SmartSchedulingSettingsDialog";
+import AgendaAvailabilitySettingsDialog from "../components/AgendaAvailabilitySettingsDialog";
 import { useNavigate } from "react-router-dom";
 import {
   changeAppointmentWithHistory,
@@ -88,6 +89,15 @@ const onlineTimeOptions = Array.from({ length: 29 }, (_, index) => {
   const totalMinutes = 7 * 60 + index * 30;
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
 });
+
+function appointmentRangeLabel(startTime: string, durationMinutes: number) {
+  const [hour, minute] = startTime.split(":").map(Number);
+  const start = hour * 60 + minute;
+  const endInclusive = start + Math.max(1, durationMinutes) - 1;
+  const endHour = Math.floor(endInclusive / 60);
+  const endMinute = endInclusive % 60;
+  return `${startTime}–${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`;
+}
 
 function dateLabel(value: string) {
   return new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR", {
@@ -239,6 +249,7 @@ export default function Agenda() {
   const [editReason, setEditReason] = useState("");
   const [editRequestedBy, setEditRequestedBy] = useState<"Paciente" | "Clínica" | "Dentista" | "Outro">("Paciente");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [availabilitySettingsOpen, setAvailabilitySettingsOpen] = useState(false);
   const [smartSuggestion, setSmartSuggestion] = useState<SmartScheduleSuggestion | null>(null);
   const [editSmartSuggestion, setEditSmartSuggestion] = useState<SmartScheduleSuggestion | null>(null);
   const [channel, setChannel] = useState<Channel>(() => {
@@ -262,6 +273,9 @@ export default function Agenda() {
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
+  const [editAvailableTimes, setEditAvailableTimes] = useState<string[]>([]);
+  const [editAvailabilityLoading, setEditAvailabilityLoading] = useState(false);
+  const [editAvailabilityError, setEditAvailabilityError] = useState("");
   const [onlineSlotsOpen, setOnlineSlotsOpen] = useState(false);
   const [onlineSettings, setOnlineSettings] = useState<OnlineBookingSettings>({ enabled: false, slots: {} });
   const [onlineDoctorId, setOnlineDoctorId] = useState("");
@@ -348,6 +362,58 @@ export default function Agenda() {
       active = false;
     };
   }, [open, backendDoctors, form.professionalName, form.dateISO, form.durationMinutes]);
+
+  useEffect(() => {
+    if (!edit?.backendId) {
+      setEditAvailableTimes([]);
+      setEditAvailabilityError("");
+      setEditAvailabilityLoading(false);
+      return;
+    }
+
+    const normalizeName = (value: string) =>
+      value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim();
+    const doctor = backendDoctors.find((item) => {
+      const fullName = `${item.user.firstName} ${item.user.lastName}`.trim();
+      const candidate = normalizeName(fullName);
+      const target = normalizeName(edit.professionalName);
+      return candidate === target || candidate.includes(target) || target.includes(candidate);
+    });
+
+    if (!doctor || !edit.dateISO || !edit.durationMinutes) {
+      setEditAvailableTimes([]);
+      setEditAvailabilityError("Não foi possível identificar profissional, data ou duração.");
+      return;
+    }
+
+    let active = true;
+    setEditAvailabilityLoading(true);
+    setEditAvailabilityError("");
+
+    void loadBackendAvailability({
+      doctorId: doctor.id,
+      dateISO: edit.dateISO,
+      durationMinutes: Number(edit.durationMinutes || 30),
+      excludeAppointmentId: edit.backendId,
+    })
+      .then((slots) => {
+        if (active) setEditAvailableTimes(slots);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setEditAvailableTimes([]);
+        setEditAvailabilityError(
+          error instanceof Error ? error.message : "Não foi possível consultar os horários.",
+        );
+      })
+      .finally(() => {
+        if (active) setEditAvailabilityLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [edit?.backendId, edit?.dateISO, edit?.durationMinutes, edit?.professionalName, backendDoctors]);
 
   useEffect(() => {
     let active = true;
@@ -695,6 +761,7 @@ export default function Agenda() {
           <Box sx={{ display: "flex", gap: 1, justifyContent: { lg: "flex-end" }, flexWrap: "wrap" }}>
             <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
             <Button onClick={() => void openOnlineSlots()}>Horários online</Button>
+            <Button onClick={() => setAvailabilitySettingsOpen(true)}>Jornada / bloqueios</Button>
             <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Inteligência</Button>
           </Box>
         </Box>
@@ -922,7 +989,9 @@ export default function Agenda() {
               <MenuItem value="" disabled>Nenhum horário disponível</MenuItem>
             ) : (
               availableTimes.map((time) => (
-                <MenuItem key={time} value={time}>{time}</MenuItem>
+                <MenuItem key={time} value={time}>
+                  {appointmentRangeLabel(time, Number(form.durationMinutes || 30))}
+                </MenuItem>
               ))
             )}
           </TextField>
@@ -984,8 +1053,39 @@ export default function Agenda() {
                   value={edit.durationMinutes || 30}
                   onChange={(event) => setEdit({ ...edit, durationMinutes: Math.max(10, Number(event.target.value || 30)) })}
                 />
-                <TextField type="date" label="Remarcar data" value={edit.dateISO} onChange={(event) => setEdit({ ...edit, dateISO: event.target.value })} />
-                <TextField type="time" label="Remarcar horário" value={edit.time} onChange={(event) => setEdit({ ...edit, time: event.target.value })} />
+                <TextField
+                  type="date"
+                  label="Remarcar data"
+                  value={edit.dateISO}
+                  onChange={(event) => setEdit({ ...edit, dateISO: event.target.value })}
+                />
+                <TextField
+                  select
+                  label="Horários disponíveis para remarcação"
+                  value={edit.time}
+                  disabled={editAvailabilityLoading}
+                  onChange={(event) => setEdit({ ...edit, time: event.target.value })}
+                  helperText={
+                    editAvailabilityLoading
+                      ? "Consultando jornada, bloqueios e horários ocupados..."
+                      : editAvailabilityError
+                        ? editAvailabilityError
+                        : editAvailableTimes.length
+                          ? `${editAvailableTimes.length} horário(s) disponível(is) nesta data.`
+                          : "Nenhum outro horário disponível nesta data."
+                  }
+                >
+                  {!editAvailableTimes.includes(edit.time) ? (
+                    <MenuItem value={edit.time}>
+                      {appointmentRangeLabel(edit.time, Number(edit.durationMinutes || 30))} • horário atual
+                    </MenuItem>
+                  ) : null}
+                  {editAvailableTimes.map((time) => (
+                    <MenuItem key={time} value={time}>
+                      {appointmentRangeLabel(time, Number(edit.durationMinutes || 30))}
+                    </MenuItem>
+                  ))}
+                </TextField>
                 <TextField
                   label="Laboratório (se houver)"
                   value={edit.laboratoryName || ""}
@@ -1189,6 +1289,12 @@ export default function Agenda() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <AgendaAvailabilitySettingsDialog
+        open={availabilitySettingsOpen}
+        onClose={() => setAvailabilitySettingsOpen(false)}
+        doctors={backendDoctors}
+      />
 
       <SmartSchedulingSettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </Box>

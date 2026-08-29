@@ -1,6 +1,13 @@
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import type { AuthRequest } from '../middleware/auth'
+import {
+  fitsWorkBlocks,
+  fitsWorkSchedule,
+  getWorkBlocks,
+  isAgendaBlocked,
+  listAgendaBlocks,
+} from '../services/agendaAvailabilityService'
 
 const allowedChannels = new Set(['WHATSAPP', 'SMS', 'TELEGRAM', 'MANUAL'])
 const ONLINE_BOOKING_FLAG = 'ONLINE_BOOKING_SLOTS'
@@ -200,6 +207,8 @@ export async function availability(req: Request, res: Response) {
     const dayOfWeek = date.getDay()
     const onlineSettings = await loadOnlineBookingSettings(clinicId)
     const configuredTimes = onlineTimesFor(onlineSettings, doctorId, dayOfWeek)
+    const workBlocks = await getWorkBlocks(clinicId, clinic.tenantId, doctorId, dayOfWeek)
+    const agendaBlocks = await listAgendaBlocks(clinicId)
 
     if (!configuredTimes.length) {
       return res.json({ dateISO, doctorId, durationMinutes, slots: [] })
@@ -223,6 +232,7 @@ export async function availability(req: Request, res: Response) {
     for (const time of configuredTimes) {
       const candidate = parseLocalDateTime(dateISO, time)
       if (!candidate || candidate.getTime() <= now) continue
+      if (!fitsWorkBlocks(workBlocks, minutes(time), durationMinutes)) continue
 
       const candidateStart = candidate.getTime()
       const candidateEnd = candidateStart + durationMinutes * 60000
@@ -231,7 +241,13 @@ export async function availability(req: Request, res: Response) {
         const itemEnd = itemStart + item.durationMinutes * 60000
         return itemStart < candidateEnd && itemEnd > candidateStart
       })
-      if (!conflict) slots.push(time)
+      const blocked = isAgendaBlocked(
+        agendaBlocks,
+        doctorId,
+        candidate,
+        new Date(candidateEnd)
+      )
+      if (!conflict && !blocked) slots.push(time)
     }
 
     return res.json({ dateISO, doctorId, durationMinutes, slots })
@@ -301,6 +317,27 @@ export async function store(req: Request, res: Response) {
     }
 
     const durationMinutes = Math.max(10, Math.min(480, Number(rawDuration || 30)))
+    const withinJourney = await fitsWorkSchedule(
+      clinicId,
+      clinic.tenantId,
+      doctor.id,
+      scheduledAt,
+      durationMinutes
+    )
+    if (!withinJourney) {
+      return res.status(409).json({ error: 'Este horário não está dentro da jornada do profissional.' })
+    }
+
+    const agendaBlocks = await listAgendaBlocks(clinicId)
+    if (isAgendaBlocked(
+      agendaBlocks,
+      doctor.id,
+      scheduledAt,
+      new Date(scheduledAt.getTime() + durationMinutes * 60000)
+    )) {
+      return res.status(409).json({ error: 'Este período está indisponível na agenda.' })
+    }
+
     const incomingStart = scheduledAt.getTime()
     const incomingEnd = incomingStart + durationMinutes * 60000
 

@@ -1,4 +1,4 @@
-﻿import { Router } from 'express'
+import { Router } from 'express'
 
 import { authMiddleware } from '../middleware/auth'
 import tenantMiddleware from '../middleware/tenant'
@@ -172,6 +172,9 @@ router.get('/schedule/:id', requirePermission('agenda.view'), scheduleController
 router.post('/schedules', requirePermission('agenda.edit'), scheduleController.store)
 router.put('/schedule/:id', requirePermission('agenda.edit'), scheduleController.update)
 router.delete('/schedule/:id', requirePermission('agenda.edit'), scheduleController.remove)
+router.get('/agenda-blocks', requirePermission('agenda.view'), scheduleController.blocks)
+router.post('/agenda-blocks', requirePermission('agenda.edit'), scheduleController.createBlock)
+router.delete('/agenda-blocks/:id', requirePermission('agenda.edit'), scheduleController.deleteBlock)
 
 // ======================
 // BUDGETS

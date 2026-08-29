@@ -2,6 +2,12 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import {
+  fitsWorkSchedule,
+  getWorkBlocks,
+  isAgendaBlocked,
+  listAgendaBlocks,
+} from '../services/agendaAvailabilityService'
 
 function parseDate(value: unknown) {
   if (!value) return undefined
@@ -109,15 +115,13 @@ export async function availability(req: AuthRequest, res: Response) {
 
     const date = new Date(`${dateISO}T12:00:00-03:00`)
     const dayOfWeek = date.getDay()
-    const schedules = await prisma.schedule.findMany({
-      where: {
-        clinicId: req.user.clinicId,
-        tenantId: req.user.tenantId,
-        doctorId,
-        dayOfWeek
-      },
-      orderBy: { startTime: 'asc' }
-    })
+    const blocks = await getWorkBlocks(
+      req.user.clinicId,
+      req.user.tenantId,
+      doctorId,
+      dayOfWeek
+    )
+    const agendaBlocks = await listAgendaBlocks(req.user.clinicId)
 
     const { start, end } = dayBounds(dateISO)
     const appointments = await prisma.appointment.findMany({
@@ -131,17 +135,6 @@ export async function availability(req: AuthRequest, res: Response) {
       },
       select: { scheduledAt: true, durationMinutes: true }
     })
-
-    const blocks = schedules.length
-      ? schedules.map(row => ({
-          startTime: row.startTime,
-          endTime: row.endTime,
-          step: row.slotDuration || 30
-        }))
-      : [
-          { startTime: '08:00', endTime: '12:00', step: 30 },
-          { startTime: '13:00', endTime: '17:30', step: 30 }
-        ]
 
     const now = Date.now()
     const slots: string[] = []
@@ -163,8 +156,14 @@ export async function availability(req: AuthRequest, res: Response) {
           const itemEnd = itemStart + item.durationMinutes * 60000
           return itemStart < candidateEnd && itemEnd > candidateStart
         })
+        const blocked = isAgendaBlocked(
+          agendaBlocks,
+          doctorId,
+          candidate,
+          new Date(candidateEnd)
+        )
 
-        if (!conflict) slots.push(time)
+        if (!conflict && !blocked) slots.push(time)
       }
     }
 
@@ -216,6 +215,29 @@ export async function store(req: AuthRequest, res: Response) {
 
     if (when.getTime() < Date.now()) {
       return res.status(400).json({ error: 'Não é permitido criar agendamento em data ou horário retroativo.' })
+    }
+
+    const withinJourney = await fitsWorkSchedule(
+      req.user.clinicId,
+      req.user.tenantId,
+      doctor.id,
+      when,
+      durationMinutes
+    )
+    if (!withinJourney) {
+      return res.status(409).json({
+        error: 'Horário fora da jornada configurada do profissional ou fora da grade de intervalos.'
+      })
+    }
+
+    const agendaBlocks = await listAgendaBlocks(req.user.clinicId)
+    if (isAgendaBlocked(
+      agendaBlocks,
+      doctor.id,
+      when,
+      new Date(when.getTime() + durationMinutes * 60000)
+    )) {
+      return res.status(409).json({ error: 'A agenda está bloqueada neste período.' })
     }
 
     const incomingStart = when.getTime()
@@ -336,6 +358,29 @@ export async function update(req: AuthRequest, res: Response) {
     }
 
     if ((changedSchedule || changedDuration) && newStatus !== 'CANCELLED') {
+      const withinJourney = await fitsWorkSchedule(
+        req.user.clinicId,
+        req.user.tenantId,
+        existing.doctorId,
+        newScheduledAt,
+        newDurationMinutes
+      )
+      if (!withinJourney) {
+        return res.status(409).json({
+          error: 'Horário fora da jornada configurada do profissional ou fora da grade de intervalos.'
+        })
+      }
+
+      const agendaBlocks = await listAgendaBlocks(req.user.clinicId)
+      if (isAgendaBlocked(
+        agendaBlocks,
+        existing.doctorId,
+        newScheduledAt,
+        new Date(newScheduledAt.getTime() + newDurationMinutes * 60000)
+      )) {
+        return res.status(409).json({ error: 'A agenda está bloqueada neste período.' })
+      }
+
       const incomingStart = newScheduledAt.getTime()
       const incomingEnd = incomingStart + newDurationMinutes * 60000
       const possibleConflicts = await prisma.appointment.findMany({
