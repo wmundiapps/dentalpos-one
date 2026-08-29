@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 import { Box, Chip, Paper, Typography } from "@mui/material";
 import type { IntegratedAppointment } from "../types/operationsHub";
+import type { AgendaBlock, BackendSchedule, RecurringBreak } from "../services/ScheduleApi";
 import { patientFinancialSummary } from "../services/FinanceHubService";
 import { clinicalDocuments } from "../services/ClinicalDocumentService";
 import { getLaboratoryWorks } from "../services/OperationsHubService";
@@ -20,6 +21,10 @@ interface Props {
   dateISO: string;
   items: IntegratedAppointment[];
   professional: string;
+  professionalId?: string;
+  scheduleBlocks?: BackendSchedule[];
+  agendaBlocks?: AgendaBlock[];
+  recurringBreaks?: RecurringBreak[];
   onDateChange: (dateISO: string) => void;
   onDayOpen?: (dateISO: string) => void;
   onAppointmentClick: (appointment: IntegratedAppointment) => void;
@@ -281,6 +286,10 @@ function TimeGridView({
   dateISO,
   items,
   professional,
+  professionalId,
+  scheduleBlocks = [],
+  agendaBlocks = [],
+  recurringBreaks = [],
   onDayOpen,
   onAppointmentClick,
   onNew,
@@ -293,7 +302,56 @@ function TimeGridView({
     const rect = event.currentTarget.getBoundingClientRect();
     const relative = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
     const rawMinutes = START_MINUTES + (relative / rect.height) * TOTAL_MINUTES;
-    const snapped = Math.min(END_MINUTES - 15, Math.round(rawMinutes / 15) * 15);
+    const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
+
+    const doctorSchedules = professionalId
+      ? scheduleBlocks
+          .filter((item) => item.doctorId === professionalId && item.dayOfWeek === dayOfWeek)
+          .sort((a, b) => a.startTime.localeCompare(b.startTime))
+      : [];
+
+    const workingPeriods = doctorSchedules.length
+      ? doctorSchedules.map((item) => ({
+          start: minuteOfDay(item.startTime),
+          end: minuteOfDay(item.endTime),
+          step: Math.max(10, item.slotDuration || 30),
+        }))
+      : [{ start: 8 * 60, end: 18 * 60, step: 30 }];
+
+    const period = workingPeriods.find(
+      (item) => rawMinutes >= item.start && rawMinutes < item.end,
+    );
+    if (!period) return;
+
+    const offset = rawMinutes - period.start;
+    const snapped = Math.min(
+      period.end - period.step,
+      period.start + Math.round(offset / period.step) * period.step,
+    );
+    if (snapped < period.start || snapped >= period.end) return;
+
+    const slotEnd = Math.min(period.end, snapped + period.step);
+
+    if (professionalId) {
+      const fixedBreak = recurringBreaks.some((item) => {
+        if (item.doctorId !== professionalId || item.dayOfWeek !== dayOfWeek) return false;
+        const breakStart = minuteOfDay(item.startTime);
+        const breakEnd = minuteOfDay(item.endTime);
+        return breakStart < slotEnd && breakEnd > snapped;
+      });
+      if (fixedBreak) return;
+
+      const startDate = new Date(`${dayISO}T${timeFromMinutes(snapped)}:00`);
+      const endDate = new Date(startDate.getTime() + (slotEnd - snapped) * 60000);
+      const eventualBlock = agendaBlocks.some((item) => {
+        if (item.doctorId && item.doctorId !== professionalId) return false;
+        const blockStart = new Date(item.startAt).getTime();
+        const blockEnd = new Date(item.endAt).getTime();
+        return blockStart < endDate.getTime() && blockEnd > startDate.getTime();
+      });
+      if (eventualBlock) return;
+    }
+
     onNew({
       dateISO: dayISO,
       time: timeFromMinutes(snapped),
@@ -434,7 +492,7 @@ function TimeGridView({
         </Box>
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", p: 1 }}>
-        Clique em um horário livre para criar um agendamento. O horário é ajustado em intervalos de 15 minutos.
+        Clique diretamente em uma linha livre para abrir o agendamento. A linha respeita a jornada, a grade configurada, intervalos fixos e bloqueios.
       </Typography>
     </Box>
   );
@@ -459,6 +517,10 @@ export default function AgendaCalendarBoard(props: Props) {
       dateISO={props.dateISO}
       items={props.items}
       professional={props.professional}
+      professionalId={props.professionalId}
+      scheduleBlocks={props.scheduleBlocks}
+      agendaBlocks={props.agendaBlocks}
+      recurringBreaks={props.recurringBreaks}
       onDayOpen={props.onDayOpen}
       onAppointmentClick={props.onAppointmentClick}
       onNew={props.onNew}

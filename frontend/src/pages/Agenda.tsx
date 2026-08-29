@@ -44,6 +44,14 @@ import { listPatients } from "../services/PatientClinicalService";
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, type BackendAppointment, type BackendDoctor } from "../services/AppointmentApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
+import {
+  loadAgendaBlocks,
+  loadBackendSchedules,
+  loadRecurringBreaks,
+  type AgendaBlock,
+  type BackendSchedule,
+  type RecurringBreak,
+} from "../services/ScheduleApi";
 import type { SmartScheduleSuggestion } from "../services/SmartSchedulingService";
 import type { IntegratedAppointment } from "../types/operationsHub";
 import type { AppointmentStatus } from "../types/appointment";
@@ -271,6 +279,9 @@ export default function Agenda() {
   });
   const [backendPatients, setBackendPatients] = useState<BackendPatient[]>([]);
   const [backendDoctors, setBackendDoctors] = useState<BackendDoctor[]>([]);
+  const [scheduleBlocks, setScheduleBlocks] = useState<BackendSchedule[]>([]);
+  const [agendaBlocks, setAgendaBlocks] = useState<AgendaBlock[]>([]);
+  const [recurringBreaks, setRecurringBreaks] = useState<RecurringBreak[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
@@ -300,6 +311,30 @@ export default function Agenda() {
   }, []);
   useEffect(() => {
     loadBackendDoctors().then(setBackendDoctors).catch(() => setBackendDoctors([]));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      loadBackendSchedules(),
+      loadAgendaBlocks(),
+      loadRecurringBreaks(),
+    ])
+      .then(([schedules, blocks, breaks]) => {
+        if (!active) return;
+        setScheduleBlocks(schedules);
+        setAgendaBlocks(blocks);
+        setRecurringBreaks(breaks);
+      })
+      .catch(() => {
+        if (!active) return;
+        setScheduleBlocks([]);
+        setAgendaBlocks([]);
+        setRecurringBreaks([]);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -483,6 +518,17 @@ export default function Agenda() {
     [items],
   );
   const alerts = getOperationalAlerts().filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
+  const normalizeProfessionalName = (value: string) =>
+    value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim();
+  const selectedBackendDoctorId =
+    professional === "Todos"
+      ? undefined
+      : backendDoctors.find((doctor) => {
+          const fullName = `${doctor.user.firstName} ${doctor.user.lastName}`.trim();
+          const candidate = normalizeProfessionalName(fullName);
+          const target = normalizeProfessionalName(professional);
+          return candidate === target || candidate.includes(target) || target.includes(candidate);
+        })?.id;
   const normalizedPatientName = form.patientName.trim().toLowerCase();
   const selectedPatient =
     patientMode === "registered"
@@ -874,6 +920,10 @@ export default function Agenda() {
             dateISO={date}
             items={filtered}
             professional={professional}
+            professionalId={selectedBackendDoctorId}
+            scheduleBlocks={scheduleBlocks}
+            agendaBlocks={agendaBlocks}
+            recurringBreaks={recurringBreaks}
             onDateChange={setDate}
             onDayOpen={(dayISO) => {
               setDate(dayISO);
