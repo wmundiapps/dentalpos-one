@@ -90,6 +90,24 @@ export async function store(req: AuthRequest, res: Response) {
     if (!patient) return res.status(404).json({ error: 'Paciente não pertence à clínica atual.' })
     if (!doctor) return res.status(404).json({ error: 'Profissional não pertence à clínica atual.' })
 
+    if (when.getTime() < Date.now()) {
+      return res.status(400).json({ error: 'Não é permitido criar agendamento em data ou horário retroativo.' })
+    }
+
+    const conflict = await prisma.appointment.findFirst({
+      where: {
+        clinicId: req.user.clinicId,
+        tenantId: req.user.tenantId,
+        doctorId: doctor.id,
+        scheduledAt: when,
+        status: { not: 'CANCELLED' }
+      },
+      select: { id: true }
+    })
+    if (conflict) {
+      return res.status(409).json({ error: 'Este profissional já possui um agendamento neste horário.' })
+    }
+
     const appointment = await prisma.$transaction(async tx => {
       const created = await tx.appointment.create({
         data: {
