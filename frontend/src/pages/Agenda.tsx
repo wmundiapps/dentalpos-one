@@ -9,7 +9,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   MenuItem,
   Paper,
   TextField,
@@ -20,10 +19,11 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import LinkIcon from "@mui/icons-material/Link";
-import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+
 import TuneIcon from "@mui/icons-material/Tune";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+
 import PageHeader from "../components/PageHeader";
+import AgendaCalendarBoard from "../components/AgendaCalendarBoard";
 import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
 import SmartSchedulingSettingsDialog from "../components/SmartSchedulingSettingsDialog";
@@ -37,7 +37,7 @@ import {
   subscribeOperations,
   updateAppointment,
 } from "../services/OperationsHubService";
-import { patientFinancialSummary } from "../services/FinanceHubService";
+
 import { listPatients } from "../services/PatientClinicalService";
 import { loadBackendPatients } from "../services/PatientApi";
 import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, updateBackendAppointment, type BackendAppointment, type BackendDoctor } from "../services/AppointmentApi";
@@ -186,7 +186,7 @@ export default function Agenda() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [smartSuggestion, setSmartSuggestion] = useState<SmartScheduleSuggestion | null>(null);
   const [editSmartSuggestion, setEditSmartSuggestion] = useState<SmartScheduleSuggestion | null>(null);
-  const [channel, setChannel] = useState<Channel>(() => {
+  const [channel] = useState<Channel>(() => {
     try {
       return JSON.parse(localStorage.getItem(KEY) || "{}")?.channel || "WhatsApp";
     } catch {
@@ -366,7 +366,11 @@ export default function Agenda() {
 
   const move = (delta: number) => {
     const next = new Date(`${date}T12:00:00`);
-    next.setDate(next.getDate() + delta * (view === "day" ? 1 : view === "week" ? 7 : 30));
+    if (view === "month") {
+      next.setMonth(next.getMonth() + delta, 1);
+    } else {
+      next.setDate(next.getDate() + delta * (view === "day" ? 1 : 7));
+    }
     setDate(iso(next));
   };
 
@@ -410,34 +414,71 @@ export default function Agenda() {
       />
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
-        <Box sx={{ display: "flex", gap: 1.5, alignItems: "center", flexWrap: "wrap" }}>
-          <ToggleButtonGroup exclusive value={view} onChange={(_, value) => value && setView(value)} size="small">
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", lg: "minmax(220px,1fr) auto minmax(220px,1fr)" },
+            gap: 1.5,
+            alignItems: "center",
+          }}
+        >
+          <TextField
+            size="small"
+            select
+            label="Agenda"
+            value={professional}
+            onChange={(event) => setProfessional(event.target.value)}
+            sx={{ minWidth: 220, maxWidth: 320 }}
+          >
+            {professionals.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+          </TextField>
+
+          <ToggleButtonGroup
+            exclusive
+            value={view}
+            onChange={(_, value) => value && setView(value)}
+            size="small"
+            sx={{ justifySelf: { lg: "center" } }}
+          >
             <ToggleButton value="day">Dia</ToggleButton>
             <ToggleButton value="week">Semana</ToggleButton>
             <ToggleButton value="month">Mês</ToggleButton>
           </ToggleButtonGroup>
+
+          <Box sx={{ display: "flex", gap: 1, justifyContent: { lg: "flex-end" }, flexWrap: "wrap" }}>
+            <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
+            <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Inteligência</Button>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1, mt: 1.5, flexWrap: "wrap" }}>
+          <Button
+            variant="outlined"
+            onClick={() => move(-1)}
+            aria-label="Período anterior"
+            sx={{ minWidth: 44, fontSize: 24, lineHeight: 1 }}
+          >
+            ‹
+          </Button>
           <TextField
             size="small"
             type={view === "month" ? "month" : "date"}
             value={view === "month" ? date.slice(0, 7) : date}
             onChange={(event) => setDate(view === "month" ? `${event.target.value}-01` : event.target.value)}
-            sx={{ minWidth: view === "month" ? 160 : 170 }}
+            sx={{ minWidth: view === "month" ? 170 : 180 }}
           />
-          <TextField size="small" select label="Agenda" value={professional} onChange={(event) => setProfessional(event.target.value)} sx={{ minWidth: 220 }}>
-            {professionals.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
-          </TextField>
-          <Button onClick={() => move(-1)}>{view === "month" ? "‹ Mês" : "Anterior"}</Button>
-          <Button onClick={() => setDate(today())}>Hoje</Button>
-          <Button onClick={() => move(1)}>{view === "month" ? "Mês ›" : "Próximo"}</Button>
-          <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
-          <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Configurar inteligência</Button>
-          <TextField size="small" select label="Avisos ao paciente" value={channel} onChange={(event) => setChannel(event.target.value as Channel)} sx={{ minWidth: 180 }}>
-            <MenuItem value="WhatsApp">WhatsApp</MenuItem>
-            <MenuItem value="SMS">SMS</MenuItem>
-          </TextField>
+          <Button
+            variant="outlined"
+            onClick={() => move(1)}
+            aria-label="Próximo período"
+            sx={{ minWidth: 44, fontSize: 24, lineHeight: 1 }}
+          >
+            ›
+          </Button>
+          <Button variant="contained" onClick={() => setDate(today())}>Hoje</Button>
         </Box>
 
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5, mb: 1 }}>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>
           {([
             ["Todos", statusMetrics.total],
             ["Confirmado", statusMetrics.confirmed],
@@ -455,79 +496,29 @@ export default function Agenda() {
             />
           ))}
         </Box>
-        <Typography variant="caption" color="text.secondary">
-          <NotificationsActiveIcon sx={{ fontSize: 14, verticalAlign: "middle" }} /> Confirmação no agendamento + 1 dia antes + no dia. Canal escolhido pela clínica: {channel}.
-        </Typography>
       </Paper>
-
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "minmax(0,2.2fr) minmax(320px,1fr)" }, gap: 2 }}>
-        <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
-          <Box sx={{ p: 2, bgcolor: "action.hover" }}>
+        <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden", minWidth: 0 }}>
+          <Box sx={{ px: 2, py: 1.25, bgcolor: "action.hover", borderBottom: 1, borderColor: "divider" }}>
             <Typography sx={{ fontWeight: 900 }}>
               {view === "month"
                 ? new Date(`${date}T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
                 : `${dateLabel(range[0])}${view === "week" ? ` a ${dateLabel(range[range.length - 1])}` : ""}`}
             </Typography>
           </Box>
-          {filtered.length === 0 ? (
-            <Box sx={{ p: 5, textAlign: "center" }}><Typography color="text.secondary" sx={{ mb: 2 }}>Nenhuma consulta no período.</Typography><Button variant="contained" startIcon={<AddIcon />} onClick={() => openNew({ dateISO: date })}>Novo agendamento</Button></Box>
-          ) : filtered.map((appointment) => {
-            const financial = patientFinancialSummary(appointment.patientName);
-            const overdueCount = (() => {
-              try {
-                return JSON.parse(localStorage.getItem("dentalpos.financial.entries.v3") || "[]").filter(
-                  (entry: any) => entry.type === "Receita" && entry.personName?.toLowerCase() === appointment.patientName.toLowerCase() && entry.status === "Vencido",
-                ).length;
-              } catch {
-                return 0;
-              }
-            })();
-            const smartWarnings = appointment.smartSchedule?.warnings?.filter((warning) => warning.severity !== "info").length || 0;
-            return (
-              <Box key={appointment.id}>
-                <Box
-                  sx={{ p: 2, display: "grid", gridTemplateColumns: { xs: "1fr", md: "120px 1fr auto" }, gap: 2, alignItems: "center", cursor: "pointer" }}
-                  onClick={() => {
-                    setEdit(appointment);
-                    setEditSmartSuggestion(null);
-                  }}
-                >
-                  <Box>
-                    <Typography sx={{ fontWeight: 900 }}>{dateLabel(appointment.dateISO)}</Typography>
-                    <Typography color="text.secondary">{appointment.time} • {appointment.durationMinutes || 30} min</Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontWeight: 900 }}>
-                      {appointment.patientName}{" "}
-                      <Chip
-                        size="small"
-                        color={financial.status === "Em dia" ? "success" : "error"}
-                        label={overdueCount ? `${overdueCount} parcela(s) em atraso` : financial.status === "Em dia" ? "Financeiro OK" : "Pendência"}
-                      />
-                    </Typography>
-                    <Typography color="text.secondary">
-                      {appointment.professionalName} • {appointment.category || "Consulta"} • {appointment.procedure} • {appointment.room}
-                    </Typography>
-                    {appointment.smartSchedule?.recommendedReturnDateISO ? (
-                      <Typography variant="caption" color="text.secondary">
-                        Próximo retorno sugerido: {dateLabel(appointment.smartSchedule.recommendedReturnDateISO)}
-                      </Typography>
-                    ) : null}
-                  </Box>
-                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: { md: "flex-end" } }}>
-                    {smartWarnings ? <Chip size="small" color="warning" icon={<WarningAmberIcon />} label={`${smartWarnings} alerta(s)`} /> : null}<Button size="small" startIcon={<AddIcon />} onClick={(event) => { event.stopPropagation(); openNew({ patientName: appointment.patientName, patientPhone: appointment.patientPhone || "", professionalName: appointment.professionalName, room: appointment.room, dateISO: date }); }}>Agendar novo</Button>
-                    <Chip
-                      label={appointment.status}
-                      color={appointment.status === "Confirmado" || appointment.status === "Finalizado" ? "success" : appointment.status === "Faltou" || appointment.status === "Cancelado" ? "error" : "default"}
-                    />
-                  </Box>
-                </Box>
-                <Divider />
-              </Box>
-            );
-          })}
+          <AgendaCalendarBoard
+            view={view}
+            dateISO={date}
+            items={filtered}
+            professional={professional}
+            onDateChange={setDate}
+            onAppointmentClick={(appointment) => {
+              setEdit(appointment);
+              setEditSmartSuggestion(null);
+            }}
+            onNew={(prefill) => openNew(prefill)}
+          />
         </Paper>
-
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
           <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório e agenda ficam visíveis para a equipe.</Typography>
