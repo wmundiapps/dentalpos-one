@@ -21,6 +21,7 @@ interface Props {
   items: IntegratedAppointment[];
   professional: string;
   onDateChange: (dateISO: string) => void;
+  onDayOpen?: (dateISO: string) => void;
   onAppointmentClick: (appointment: IntegratedAppointment) => void;
   onNew: (prefill: AppointmentPrefill) => void;
 }
@@ -280,6 +281,7 @@ function TimeGridView({
   dateISO,
   items,
   professional,
+  onDayOpen,
   onAppointmentClick,
   onNew,
 }: Omit<Props, "onDateChange">) {
@@ -305,8 +307,38 @@ function TimeGridView({
         <Box sx={{ display: "grid", gridTemplateColumns }}>
           <Box sx={{ borderRight: 1, borderBottom: 1, borderColor: "divider", bgcolor: "action.hover" }} />
           {dates.map((dayISO) => (
-            <Box key={dayISO} sx={{ p: 1, textAlign: "center", borderRight: 1, borderBottom: 1, borderColor: "divider", bgcolor: "action.hover" }}>
-              <Typography variant="caption" sx={{ fontWeight: 900 }}>{shortDate(dayISO)}</Typography>
+            <Box
+              key={dayISO}
+              role={view === "week" ? "button" : undefined}
+              tabIndex={view === "week" ? 0 : undefined}
+              onClick={() => view === "week" && onDayOpen?.(dayISO)}
+              onKeyDown={(event) => {
+                if (view !== "week") return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onDayOpen?.(dayISO);
+                }
+              }}
+              sx={{
+                p: 1,
+                textAlign: "center",
+                borderRight: 1,
+                borderBottom: 1,
+                borderColor: "divider",
+                bgcolor: "action.hover",
+                cursor: view === "week" ? "pointer" : "default",
+                transition: "background-color .15s ease",
+                "&:hover": view === "week" ? { bgcolor: "action.selected" } : undefined,
+              }}
+            >
+              <Typography variant="caption" sx={{ fontWeight: 900 }}>
+                {shortDate(dayISO)}
+              </Typography>
+              {view === "week" ? (
+                <Typography variant="caption" color="primary.main" sx={{ display: "block", fontSize: 10 }}>
+                  Clique para abrir o dia
+                </Typography>
+              ) : null}
             </Box>
           ))}
         </Box>
@@ -427,6 +459,7 @@ export default function AgendaCalendarBoard(props: Props) {
       dateISO={props.dateISO}
       items={props.items}
       professional={props.professional}
+      onDayOpen={props.onDayOpen}
       onAppointmentClick={props.onAppointmentClick}
       onNew={props.onNew}
     />

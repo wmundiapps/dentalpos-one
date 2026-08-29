@@ -242,6 +242,7 @@ export default function Agenda() {
   const [items, setItems] = useState<IntegratedAppointment[]>(getAppointments);
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(today());
+  const [dayExpanded, setDayExpanded] = useState(false);
   const [professional, setProfessional] = useState("Todos");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("Todos");
   const [open, setOpen] = useState(false);
@@ -749,7 +750,11 @@ export default function Agenda() {
           <ToggleButtonGroup
             exclusive
             value={view}
-            onChange={(_, value) => value && setView(value)}
+            onChange={(_, value) => {
+              if (!value) return;
+              setDayExpanded(false);
+              setView(value);
+            }}
             size="small"
             sx={{ justifySelf: { lg: "center" } }}
           >
@@ -813,13 +818,56 @@ export default function Agenda() {
         </Box>
       </Paper>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "minmax(0,2.2fr) minmax(320px,1fr)" }, gap: 2 }}>
-        <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden", minWidth: 0 }}>
-          <Box sx={{ px: 2, py: 1.25, bgcolor: "action.hover", borderBottom: 1, borderColor: "divider" }}>
+        <Paper
+          variant="outlined"
+          sx={{
+            borderRadius: dayExpanded ? 0 : 3,
+            overflow: dayExpanded ? "auto" : "hidden",
+            minWidth: 0,
+            ...(dayExpanded
+              ? {
+                  position: "fixed",
+                  inset: 0,
+                  zIndex: 1400,
+                  bgcolor: "background.default",
+                  width: "100vw",
+                  height: "100vh",
+                }
+              : {}),
+          }}
+        >
+          <Box
+            sx={{
+              px: 2,
+              py: 1.25,
+              bgcolor: "action.hover",
+              borderBottom: 1,
+              borderColor: "divider",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 2,
+              position: dayExpanded ? "sticky" : "static",
+              top: 0,
+              zIndex: dayExpanded ? 10 : "auto",
+            }}
+          >
             <Typography sx={{ fontWeight: 900 }}>
               {view === "month"
                 ? new Date(`${date}T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
                 : `${dateLabel(range[0])}${view === "week" ? ` a ${dateLabel(range[range.length - 1])}` : ""}`}
             </Typography>
+            {dayExpanded ? (
+              <Button
+                variant="contained"
+                onClick={() => {
+                  setDayExpanded(false);
+                  setView("week");
+                }}
+              >
+                ← Voltar para semana
+              </Button>
+            ) : null}
           </Box>
           <AgendaCalendarBoard
             view={view}
@@ -827,6 +875,11 @@ export default function Agenda() {
             items={filtered}
             professional={professional}
             onDateChange={setDate}
+            onDayOpen={(dayISO) => {
+              setDate(dayISO);
+              setView("day");
+              setDayExpanded(true);
+            }}
             onAppointmentClick={(appointment) => {
               setEdit(appointment);
               setEditReason("");
@@ -836,7 +889,7 @@ export default function Agenda() {
             onNew={(prefill) => openNew(prefill)}
           />
         </Paper>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, display: dayExpanded ? "none" : "block" }}>
           <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
           <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório e agenda ficam visíveis para a equipe.</Typography>
           {alerts.length === 0 ? <Alert severity="success">Nenhuma pendência crítica agora.</Alert> : alerts.map((alert) => (
