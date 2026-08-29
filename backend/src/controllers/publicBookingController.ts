@@ -6,7 +6,9 @@ import {
   fitsWorkSchedule,
   getWorkBlocks,
   isAgendaBlocked,
+  isRecurringBreakBlocked,
   listAgendaBlocks,
+  listRecurringBreaks,
 } from '../services/agendaAvailabilityService'
 
 const allowedChannels = new Set(['WHATSAPP', 'SMS', 'TELEGRAM', 'MANUAL'])
@@ -209,6 +211,7 @@ export async function availability(req: Request, res: Response) {
     const configuredTimes = onlineTimesFor(onlineSettings, doctorId, dayOfWeek)
     const workBlocks = await getWorkBlocks(clinicId, clinic.tenantId, doctorId, dayOfWeek)
     const agendaBlocks = await listAgendaBlocks(clinicId)
+    const recurringBreaks = await listRecurringBreaks(clinicId)
 
     if (!configuredTimes.length) {
       return res.json({ dateISO, doctorId, durationMinutes, slots: [] })
@@ -247,7 +250,13 @@ export async function availability(req: Request, res: Response) {
         candidate,
         new Date(candidateEnd)
       )
-      if (!conflict && !blocked) slots.push(time)
+      const recurringBlocked = isRecurringBreakBlocked(
+        recurringBreaks,
+        doctorId,
+        candidate,
+        durationMinutes
+      )
+      if (!conflict && !blocked && !recurringBlocked) slots.push(time)
     }
 
     return res.json({ dateISO, doctorId, durationMinutes, slots })
@@ -336,6 +345,13 @@ export async function store(req: Request, res: Response) {
       new Date(scheduledAt.getTime() + durationMinutes * 60000)
     )) {
       return res.status(409).json({ error: 'Este período está indisponível na agenda.' })
+    }
+
+    const recurringBreaks = await listRecurringBreaks(clinicId)
+    if (isRecurringBreakBlocked(recurringBreaks, doctor.id, scheduledAt, durationMinutes)) {
+      return res.status(409).json({
+        error: 'Este horário coincide com um intervalo indisponível do profissional.'
+      })
     }
 
     const incomingStart = scheduledAt.getTime()

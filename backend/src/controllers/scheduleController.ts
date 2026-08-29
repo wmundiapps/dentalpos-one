@@ -4,9 +4,12 @@ import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
 import {
   addAgendaBlock,
+  addRecurringBreak,
   clockMinutes,
   listAgendaBlocks,
+  listRecurringBreaks,
   removeAgendaBlock,
+  removeRecurringBreak,
   validateScheduleConfig,
   validClock,
 } from '../services/agendaAvailabilityService'
@@ -344,5 +347,88 @@ export async function deleteBlock(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error('Erro ao remover bloqueio da agenda:', error)
     return res.status(500).json({ error: 'Erro ao remover bloqueio da agenda.' })
+  }
+}
+
+export async function recurringBreaks(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
+    return res.json(await listRecurringBreaks(req.user.clinicId))
+  } catch (error) {
+    console.error('Erro ao listar intervalos fixos:', error)
+    return res.status(500).json({ error: 'Erro ao listar intervalos fixos.' })
+  }
+}
+
+export async function createRecurringBreak(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
+    const doctorId = String(req.body?.doctorId || '')
+    const doctor = await prisma.doctor.findFirst({
+      where: {
+        id: doctorId,
+        clinicId: req.user.clinicId,
+        tenantId: req.user.tenantId,
+        isActive: true,
+      },
+    })
+    if (!doctor) return res.status(404).json({ error: 'Profissional não encontrado.' })
+
+    const item = await addRecurringBreak({
+      clinicId: req.user.clinicId,
+      tenantId: req.user.tenantId,
+      doctorId: doctor.id,
+      dayOfWeek: req.body?.dayOfWeek,
+      startTime: req.body?.startTime,
+      endTime: req.body?.endTime,
+      reason: req.body?.reason,
+    })
+
+    await writeAudit({
+      clinicId: req.user.clinicId,
+      tenantId: req.user.tenantId,
+      actorId: req.user.id,
+      module: 'agenda',
+      action: 'recurring-break-create',
+      entityType: 'RecurringBreak',
+      entityId: item.id,
+      afterData: item,
+      summary: item.reason,
+    })
+
+    return res.status(201).json(item)
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Erro ao criar intervalo fixo.'
+    return res.status(400).json({ error: message })
+  }
+}
+
+export async function deleteRecurringBreak(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
+    const id = String(req.params.id)
+    const existing = (await listRecurringBreaks(req.user.clinicId)).find(
+      item => item.id === id,
+    )
+    if (!existing) return res.status(404).json({ error: 'Intervalo não encontrado.' })
+
+    await removeRecurringBreak(req.user.clinicId, req.user.tenantId, id)
+    await writeAudit({
+      clinicId: req.user.clinicId,
+      tenantId: req.user.tenantId,
+      actorId: req.user.id,
+      module: 'agenda',
+      action: 'recurring-break-delete',
+      entityType: 'RecurringBreak',
+      entityId: id,
+      beforeData: existing,
+      summary: existing.reason,
+    })
+
+    return res.json({ message: 'Intervalo fixo removido.' })
+  } catch (error) {
+    console.error('Erro ao remover intervalo fixo:', error)
+    return res.status(500).json({ error: 'Erro ao remover intervalo fixo.' })
   }
 }

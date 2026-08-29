@@ -17,6 +17,15 @@ export interface AgendaBlock {
   reason: string;
 }
 
+export interface RecurringBreak {
+  id: string;
+  doctorId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  reason: string;
+}
+
 function headers(json = false) {
   const token = localStorage.getItem("dentalpos.token") || "";
   const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
@@ -85,6 +94,36 @@ export async function createAgendaBlock(input: {
 
 export async function deleteAgendaBlock(id: string): Promise<void> {
   const response = await fetch(`${API}/agenda-blocks/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: headers(),
+  });
+  if (!response.ok) throw new Error(await errorMessage(response));
+}
+
+export async function loadRecurringBreaks(): Promise<RecurringBreak[]> {
+  const response = await fetch(`${API}/agenda-recurring-breaks`, { headers: headers() });
+  if (!response.ok) throw new Error(await errorMessage(response));
+  return response.json();
+}
+
+export async function createRecurringBreak(input: {
+  doctorId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  reason: string;
+}): Promise<RecurringBreak> {
+  const response = await fetch(`${API}/agenda-recurring-breaks`, {
+    method: "POST",
+    headers: headers(true),
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw new Error(await errorMessage(response));
+  return response.json();
+}
+
+export async function deleteRecurringBreak(id: string): Promise<void> {
+  const response = await fetch(`${API}/agenda-recurring-breaks/${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: headers(),
   });

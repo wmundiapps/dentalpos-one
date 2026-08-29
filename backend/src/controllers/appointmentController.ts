@@ -6,7 +6,9 @@ import {
   fitsWorkSchedule,
   getWorkBlocks,
   isAgendaBlocked,
+  isRecurringBreakBlocked,
   listAgendaBlocks,
+  listRecurringBreaks,
 } from '../services/agendaAvailabilityService'
 
 function parseDate(value: unknown) {
@@ -122,6 +124,7 @@ export async function availability(req: AuthRequest, res: Response) {
       dayOfWeek
     )
     const agendaBlocks = await listAgendaBlocks(req.user.clinicId)
+    const recurringBreaks = await listRecurringBreaks(req.user.clinicId)
 
     const { start, end } = dayBounds(dateISO)
     const appointments = await prisma.appointment.findMany({
@@ -162,8 +165,14 @@ export async function availability(req: AuthRequest, res: Response) {
           candidate,
           new Date(candidateEnd)
         )
+        const recurringBlocked = isRecurringBreakBlocked(
+          recurringBreaks,
+          doctorId,
+          candidate,
+          durationMinutes
+        )
 
-        if (!conflict && !blocked) slots.push(time)
+        if (!conflict && !blocked && !recurringBlocked) slots.push(time)
       }
     }
 
@@ -238,6 +247,13 @@ export async function store(req: AuthRequest, res: Response) {
       new Date(when.getTime() + durationMinutes * 60000)
     )) {
       return res.status(409).json({ error: 'A agenda está bloqueada neste período.' })
+    }
+
+    const recurringBreaks = await listRecurringBreaks(req.user.clinicId)
+    if (isRecurringBreakBlocked(recurringBreaks, doctor.id, when, durationMinutes)) {
+      return res.status(409).json({
+        error: 'Este horário coincide com um intervalo fixo da jornada do profissional.'
+      })
     }
 
     const incomingStart = when.getTime()
@@ -379,6 +395,18 @@ export async function update(req: AuthRequest, res: Response) {
         new Date(newScheduledAt.getTime() + newDurationMinutes * 60000)
       )) {
         return res.status(409).json({ error: 'A agenda está bloqueada neste período.' })
+      }
+
+      const recurringBreaks = await listRecurringBreaks(req.user.clinicId)
+      if (isRecurringBreakBlocked(
+        recurringBreaks,
+        existing.doctorId,
+        newScheduledAt,
+        newDurationMinutes
+      )) {
+        return res.status(409).json({
+          error: 'Este horário coincide com um intervalo fixo da jornada do profissional.'
+        })
       }
 
       const incomingStart = newScheduledAt.getTime()

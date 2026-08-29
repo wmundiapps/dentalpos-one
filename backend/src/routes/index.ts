@@ -175,6 +175,9 @@ router.delete('/schedule/:id', requirePermission('agenda.edit'), scheduleControl
 router.get('/agenda-blocks', requirePermission('agenda.view'), scheduleController.blocks)
 router.post('/agenda-blocks', requirePermission('agenda.edit'), scheduleController.createBlock)
 router.delete('/agenda-blocks/:id', requirePermission('agenda.edit'), scheduleController.deleteBlock)
+router.get('/agenda-recurring-breaks', requirePermission('agenda.view'), scheduleController.recurringBreaks)
+router.post('/agenda-recurring-breaks', requirePermission('agenda.edit'), scheduleController.createRecurringBreak)
+router.delete('/agenda-recurring-breaks/:id', requirePermission('agenda.edit'), scheduleController.deleteRecurringBreak)
 
 // ======================
 // BUDGETS

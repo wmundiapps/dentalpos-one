@@ -19,12 +19,16 @@ import type { BackendDoctor } from "../services/AppointmentApi";
 import {
   createAgendaBlock,
   createBackendSchedule,
+  createRecurringBreak,
   deleteAgendaBlock,
   deleteBackendSchedule,
+  deleteRecurringBreak,
   loadAgendaBlocks,
   loadBackendSchedules,
+  loadRecurringBreaks,
   type AgendaBlock,
   type BackendSchedule,
+  type RecurringBreak,
 } from "../services/ScheduleApi";
 
 const days = [
@@ -86,6 +90,7 @@ export default function AgendaAvailabilitySettingsDialog({
 }: Props) {
   const [schedules, setSchedules] = useState<BackendSchedule[]>([]);
   const [blocks, setBlocks] = useState<AgendaBlock[]>([]);
+  const [recurringBreaks, setRecurringBreaks] = useState<RecurringBreak[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -94,6 +99,10 @@ export default function AgendaAvailabilitySettingsDialog({
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("18:00");
   const [intervalMode, setIntervalMode] = useState("30");
+
+  const [breakStartTime, setBreakStartTime] = useState("12:00");
+  const [breakEndTime, setBreakEndTime] = useState("14:00");
+  const [breakReason, setBreakReason] = useState("Almoço");
 
   const [blockTarget, setBlockTarget] = useState("ALL");
   const [blockMode, setBlockMode] = useState<"HOURS" | "DAYS">("HOURS");
@@ -112,12 +121,14 @@ export default function AgendaAvailabilitySettingsDialog({
   const [blockReason, setBlockReason] = useState("Compromisso externo");
 
   const refresh = async () => {
-    const [scheduleRows, blockRows] = await Promise.all([
+    const [scheduleRows, blockRows, recurringRows] = await Promise.all([
       loadBackendSchedules(),
       loadAgendaBlocks(),
+      loadRecurringBreaks(),
     ]);
     setSchedules(scheduleRows);
     setBlocks(blockRows);
+    setRecurringBreaks(recurringRows);
   };
 
   useEffect(() => {
@@ -132,6 +143,10 @@ export default function AgendaAvailabilitySettingsDialog({
   }, [open, doctors]);
 
   const selectedBlocks = schedules
+    .filter((item) => item.doctorId === doctorId && item.dayOfWeek === dayOfWeek)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  const selectedRecurringBreaks = recurringBreaks
     .filter((item) => item.doctorId === doctorId && item.dayOfWeek === dayOfWeek)
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
 
@@ -170,6 +185,42 @@ export default function AgendaAvailabilitySettingsDialog({
       await refresh();
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível remover o período.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addFixedBreak = async () => {
+    if (!doctorId) return;
+    if (minutes(breakEndTime) <= minutes(breakStartTime)) {
+      window.alert("O final do intervalo deve ser posterior ao início.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await createRecurringBreak({
+        doctorId,
+        dayOfWeek,
+        startTime: breakStartTime,
+        endTime: breakEndTime,
+        reason: breakReason.trim() || "Intervalo",
+      });
+      await refresh();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Não foi possível criar o intervalo fixo.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeFixedBreak = async (id: string) => {
+    setSaving(true);
+    try {
+      await deleteRecurringBreak(id);
+      await refresh();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Não foi possível remover o intervalo fixo.");
     } finally {
       setSaving(false);
     }
@@ -235,8 +286,8 @@ export default function AgendaAvailabilitySettingsDialog({
       <DialogContent sx={{ pt: "12px!important", display: "grid", gap: 3 }}>
         <Alert severity="info">
           Sem jornada específica, o padrão é <b>08:00–18:00</b> com grade de
-          <b> 30 minutos</b>. Para intervalo de almoço, crie dois períodos, como
-          09:00–12:00 e 14:00–19:00.
+          <b> 30 minutos</b>. Os intervalos fixos abaixo são travas obrigatórias:
+          mesmo dentro da jornada, almoço, jantar ou outra pausa nunca aparecem como disponíveis.
         </Alert>
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, display: "grid", gap: 2 }}>
@@ -339,7 +390,66 @@ export default function AgendaAvailabilitySettingsDialog({
 
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, display: "grid", gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 900 }}>
-            Bloqueios / compromissos
+            Intervalos fixos da jornada
+          </Typography>
+          <Alert severity="warning">
+            Esta é uma <b>trava recorrente</b>. Qualquer consulta que encoste no intervalo
+            será retirada da disponibilidade e recusada pelo servidor, inclusive online.
+          </Alert>
+
+          {selectedRecurringBreaks.length === 0 ? (
+            <Alert severity="info">
+              Nenhum intervalo fixo cadastrado para este profissional neste dia.
+            </Alert>
+          ) : (
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              {selectedRecurringBreaks.map((item) => (
+                <Chip
+                  key={item.id}
+                  color="warning"
+                  label={`${item.reason} • ${item.startTime}–${item.endTime}`}
+                  onDelete={saving ? undefined : () => void removeFixedBreak(item.id)}
+                />
+              ))}
+            </Box>
+          )}
+
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 2 }}>
+            <TextField
+              type="time"
+              label="Início do intervalo"
+              value={breakStartTime}
+              onChange={(event) => setBreakStartTime(event.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <TextField
+              type="time"
+              label="Fim do intervalo"
+              value={breakEndTime}
+              onChange={(event) => setBreakEndTime(event.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <TextField
+              label="Motivo"
+              placeholder="Almoço, jantar, reunião..."
+              value={breakReason}
+              onChange={(event) => setBreakReason(event.target.value)}
+            />
+          </Box>
+
+          <Button
+            color="warning"
+            variant="contained"
+            disabled={saving || !doctorId}
+            onClick={() => void addFixedBreak()}
+          >
+            Adicionar intervalo fixo
+          </Button>
+        </Paper>
+
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, display: "grid", gap: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 900 }}>
+            Bloqueios / compromissos eventuais
           </Typography>
           <Typography color="text.secondary" variant="body2">
             Feche um horário, algumas horas, um dia inteiro ou vários dias. O período

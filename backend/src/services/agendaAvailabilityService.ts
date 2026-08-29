@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import { prisma } from '../lib/prisma'
 
 const BLOCK_FLAG = 'AGENDA_BLOCKS'
+const RECURRING_BREAK_FLAG = 'AGENDA_RECURRING_BREAKS'
 const FIXED_INTERVALS = [10, 15, 30, 45, 60]
 
 export type WorkBlock = {
@@ -15,6 +16,15 @@ export type AgendaBlock = {
   doctorId: string | null
   startAt: string
   endAt: string
+  reason: string
+}
+
+export type RecurringBreak = {
+  id: string
+  doctorId: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string
   reason: string
 }
 
@@ -259,4 +269,165 @@ export function isAgendaBlocked(
     const blockEnd = new Date(block.endAt).getTime()
     return blockStart < incomingEnd && blockEnd > incomingStart
   })
+}
+
+function normalizeRecurringBreak(value: unknown): RecurringBreak | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const row = value as Record<string, unknown>
+  const doctorId = String(row.doctorId || '')
+  const dayOfWeek = Number(row.dayOfWeek)
+  const startTime = String(row.startTime || '')
+  const endTime = String(row.endTime || '')
+  if (
+    !doctorId ||
+    !Number.isInteger(dayOfWeek) ||
+    dayOfWeek < 0 ||
+    dayOfWeek > 6 ||
+    !validClock(startTime) ||
+    !validClock(endTime) ||
+    clockMinutes(endTime) <= clockMinutes(startTime)
+  ) {
+    return undefined
+  }
+
+  return {
+    id: String(row.id || randomUUID()),
+    doctorId,
+    dayOfWeek,
+    startTime,
+    endTime,
+    reason: String(row.reason || 'Intervalo').trim() || 'Intervalo',
+  }
+}
+
+export async function listRecurringBreaks(clinicId: string): Promise<RecurringBreak[]> {
+  const row = await prisma.tenantFeatureFlag.findUnique({
+    where: { clinicId_key: { clinicId, key: RECURRING_BREAK_FLAG } },
+  })
+  const metadata = (row?.metadata || {}) as Record<string, unknown>
+  const raw = Array.isArray(metadata.breaks) ? metadata.breaks : []
+  return raw
+    .map(normalizeRecurringBreak)
+    .filter((item): item is RecurringBreak => Boolean(item))
+    .sort((a, b) =>
+      `${a.doctorId}-${a.dayOfWeek}-${a.startTime}`.localeCompare(
+        `${b.doctorId}-${b.dayOfWeek}-${b.startTime}`,
+      ),
+    )
+}
+
+async function persistRecurringBreaks(
+  clinicId: string,
+  tenantId: string,
+  breaks: RecurringBreak[],
+) {
+  await prisma.tenantFeatureFlag.upsert({
+    where: { clinicId_key: { clinicId, key: RECURRING_BREAK_FLAG } },
+    update: {
+      enabled: true,
+      rolloutStage: 'PILOT',
+      metadata: { version: 1, breaks },
+    },
+    create: {
+      clinicId,
+      tenantId,
+      key: RECURRING_BREAK_FLAG,
+      enabled: true,
+      rolloutStage: 'PILOT',
+      metadata: { version: 1, breaks },
+    },
+  })
+}
+
+export async function addRecurringBreak(input: {
+  clinicId: string
+  tenantId: string
+  doctorId: string
+  dayOfWeek: unknown
+  startTime: unknown
+  endTime: unknown
+  reason?: unknown
+}) {
+  const dayOfWeek = Number(input.dayOfWeek)
+  const startTime = String(input.startTime || '')
+  const endTime = String(input.endTime || '')
+  if (
+    !input.doctorId ||
+    !Number.isInteger(dayOfWeek) ||
+    dayOfWeek < 0 ||
+    dayOfWeek > 6 ||
+    !validClock(startTime) ||
+    !validClock(endTime) ||
+    clockMinutes(endTime) <= clockMinutes(startTime)
+  ) {
+    throw new Error('Intervalo fixo inválido.')
+  }
+
+  const current = await listRecurringBreaks(input.clinicId)
+  const start = clockMinutes(startTime)
+  const end = clockMinutes(endTime)
+  const overlap = current.find(item => {
+    if (item.doctorId !== input.doctorId || item.dayOfWeek !== dayOfWeek) return false
+    const itemStart = clockMinutes(item.startTime)
+    const itemEnd = clockMinutes(item.endTime)
+    return itemStart < end && itemEnd > start
+  })
+  if (overlap) {
+    throw new Error('Este intervalo se sobrepõe a outro intervalo fixo já cadastrado.')
+  }
+
+  const item: RecurringBreak = {
+    id: randomUUID(),
+    doctorId: input.doctorId,
+    dayOfWeek,
+    startTime,
+    endTime,
+    reason: String(input.reason || 'Intervalo').trim() || 'Intervalo',
+  }
+  current.push(item)
+  await persistRecurringBreaks(input.clinicId, input.tenantId, current)
+  return item
+}
+
+export async function removeRecurringBreak(
+  clinicId: string,
+  tenantId: string,
+  breakId: string,
+) {
+  const current = await listRecurringBreaks(clinicId)
+  const next = current.filter(item => item.id !== breakId)
+  if (next.length === current.length) return false
+  await persistRecurringBreaks(clinicId, tenantId, next)
+  return true
+}
+
+export function isRecurringBreakBlockedByClock(
+  breaks: RecurringBreak[],
+  doctorId: string,
+  dayOfWeek: number,
+  startMinute: number,
+  endMinute: number,
+) {
+  return breaks.some(item => {
+    if (item.doctorId !== doctorId || item.dayOfWeek !== dayOfWeek) return false
+    const breakStart = clockMinutes(item.startTime)
+    const breakEnd = clockMinutes(item.endTime)
+    return breakStart < endMinute && breakEnd > startMinute
+  })
+}
+
+export function isRecurringBreakBlocked(
+  breaks: RecurringBreak[],
+  doctorId: string,
+  scheduledAt: Date,
+  durationMinutes: number,
+) {
+  const local = saoPauloClock(scheduledAt)
+  return isRecurringBreakBlockedByClock(
+    breaks,
+    doctorId,
+    local.dayOfWeek,
+    local.minuteOfDay,
+    local.minuteOfDay + durationMinutes,
+  )
 }
