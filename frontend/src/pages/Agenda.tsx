@@ -863,23 +863,25 @@ export default function Agenda() {
           ))}
         </Box>
       </Paper>
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "minmax(0,2.2fr) minmax(320px,1fr)" }, gap: 2 }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: dayExpanded
+            ? "minmax(0,1fr)"
+            : { xs: "1fr", lg: "minmax(0,2.2fr) minmax(320px,1fr)" },
+          gap: dayExpanded ? 0 : 2,
+          width: "100%",
+        }}
+      >
         <Paper
           variant="outlined"
           sx={{
-            borderRadius: dayExpanded ? 0 : 3,
-            overflow: dayExpanded ? "auto" : "hidden",
+            borderRadius: dayExpanded ? 1 : 3,
+            overflow: "hidden",
             minWidth: 0,
-            ...(dayExpanded
-              ? {
-                  position: "fixed",
-                  inset: 0,
-                  zIndex: 1400,
-                  bgcolor: "background.default",
-                  width: "100vw",
-                  height: "100vh",
-                }
-              : {}),
+            width: "100%",
+            minHeight: dayExpanded ? "calc(100vh - 32px)" : "auto",
+            bgcolor: "background.paper",
           }}
         >
           <Box
@@ -895,7 +897,7 @@ export default function Agenda() {
               gap: 2,
               position: dayExpanded ? "sticky" : "static",
               top: 0,
-              zIndex: dayExpanded ? 10 : "auto",
+              zIndex: dayExpanded ? 2 : "auto",
             }}
           >
             <Typography sx={{ fontWeight: 900 }}>
