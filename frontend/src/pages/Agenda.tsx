@@ -9,7 +9,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
+  Checkbox,
+  FormControlLabel,
   MenuItem,
   Paper,
   TextField,
@@ -22,8 +23,8 @@ import AddIcon from "@mui/icons-material/Add";
 import LinkIcon from "@mui/icons-material/Link";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import TuneIcon from "@mui/icons-material/Tune";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import PageHeader from "../components/PageHeader";
+import AgendaCalendarBoard from "../components/AgendaCalendarBoard";
 import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
 import SmartSchedulingSettingsDialog from "../components/SmartSchedulingSettingsDialog";
@@ -37,7 +38,6 @@ import {
   subscribeOperations,
   updateAppointment,
 } from "../services/OperationsHubService";
-import { patientFinancialSummary } from "../services/FinanceHubService";
 import { listPatients } from "../services/PatientClinicalService";
 import { loadBackendPatients } from "../services/PatientApi";
 import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, updateBackendAppointment, type BackendAppointment, type BackendDoctor } from "../services/AppointmentApi";
@@ -52,7 +52,6 @@ const iso = (date: Date) => {
   return copy.toISOString().slice(0, 10);
 };
 const today = () => iso(new Date());
-const KEY = "dentalpos.agenda.notification-settings.v1";
 
 type View = "day" | "week" | "month";
 type Channel = "WhatsApp" | "SMS";
@@ -70,6 +69,12 @@ type AppointmentForm = {
   category: NonNullable<IntegratedAppointment["category"]>;
   durationMinutes: number;
   laboratoryName: string;
+  reminderChannel: Channel;
+  reminders: {
+    onBooking: boolean;
+    oneDayBefore: boolean;
+    onDay: boolean;
+  };
 };
 
 const defaultProfessionals = ["Todos", "Dr. Robson", "Dra. Cássia"];
@@ -121,6 +126,10 @@ function mapBackendAppointment(appointment: BackendAppointment): IntegratedAppoi
   const doctorName = appointment.doctor?.user
     ? `Dr. ${appointment.doctor.user.firstName} ${appointment.doctor.user.lastName}`.trim()
     : "Profissional";
+  const activeReminders = (appointment.reminders || []).filter((reminder) => reminder.status !== "CANCELLED");
+  const reminderTypes = new Set(activeReminders.map((reminder) => reminder.type));
+  const hasReminderData = Array.isArray(appointment.reminders);
+  const reminderChannel: Channel = activeReminders[0]?.channel === "SMS" ? "SMS" : "WhatsApp";
 
   return {
     id: backendAppointmentId(appointment.id),
@@ -137,7 +146,14 @@ function mapBackendAppointment(appointment: BackendAppointment): IntegratedAppoi
     source: "Interno",
     category: "1ª consulta",
     durationMinutes: appointment.durationMinutes || 30,
-    reminders: { onBooking: true, oneDayBefore: true, onDay: true },
+    reminderChannel,
+    reminders: hasReminderData
+      ? {
+          onBooking: reminderTypes.has("ON_BOOKING"),
+          oneDayBefore: reminderTypes.has("ONE_DAY_BEFORE"),
+          onDay: reminderTypes.has("ON_DAY"),
+        }
+      : { onBooking: true, oneDayBefore: true, onDay: true },
     createdAtISO: appointment.scheduledAt,
   };
 }
@@ -171,6 +187,8 @@ function initialForm(dateISO: string): AppointmentForm {
     category: "1ª consulta",
     durationMinutes: 30,
     laboratoryName: "",
+    reminderChannel: "WhatsApp",
+    reminders: { onBooking: true, oneDayBefore: true, onDay: true },
   };
 }
 
@@ -186,13 +204,6 @@ export default function Agenda() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [smartSuggestion, setSmartSuggestion] = useState<SmartScheduleSuggestion | null>(null);
   const [editSmartSuggestion, setEditSmartSuggestion] = useState<SmartScheduleSuggestion | null>(null);
-  const [channel, setChannel] = useState<Channel>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(KEY) || "{}")?.channel || "WhatsApp";
-    } catch {
-      return "WhatsApp";
-    }
-  });
   const [form, setForm] = useState<AppointmentForm>(() => initialForm(date));
   const [backendPatients, setBackendPatients] = useState<Array<{ id: string; fullName: string; phone: string }>>([]);
   const [backendDoctors, setBackendDoctors] = useState<BackendDoctor[]>([]);
@@ -231,9 +242,6 @@ export default function Agenda() {
       active = false;
     };
   }, []);
-  useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify({ channel, booking: true, oneDayBefore: true, onDay: true }));
-  }, [channel]);
 
   const range = useMemo(() => {
     const base = new Date(`${date}T12:00:00`);
@@ -281,7 +289,7 @@ export default function Agenda() {
     () => Array.from(new Set([...defaultProfessionals, ...items.map((appointment) => appointment.professionalName)])),
     [items],
   );
-  const alerts = getOperationalAlerts().filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
+  const alerts = getOperationalAlerts().filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro", "Estoque"].includes(alert.area)).slice(0, 12);
   const normalizedPatientName = form.patientName.trim().toLowerCase();
   const selectedPatient =
     backendPatients.find((patient) => patient.fullName.trim().toLowerCase() === normalizedPatientName) ||
@@ -336,7 +344,8 @@ export default function Agenda() {
         room: form.room || undefined,
         scheduledAt: scheduledAt.toISOString(),
         durationMinutes: Number(form.durationMinutes || 30),
-        reminderChannel: channel === "SMS" ? "SMS" : "WHATSAPP",
+        reminderChannel: form.reminderChannel === "SMS" ? "SMS" : "WHATSAPP",
+        reminders: form.reminders,
       });
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível salvar o agendamento.");
@@ -350,7 +359,8 @@ export default function Agenda() {
       smartSchedule: smartScheduleSnapshot(smartSuggestion),
       status: "Agendado",
       source: "Interno",
-      reminders: { onBooking: true, oneDayBefore: true, onDay: true },
+      reminderChannel: form.reminderChannel,
+      reminders: form.reminders,
     });
     enqueueAppointmentReminders({
       appointmentId: appointment.id,
@@ -358,7 +368,8 @@ export default function Agenda() {
       phone: appointment.patientPhone,
       dateISO: appointment.dateISO,
       time: appointment.time,
-      channel,
+      channel: form.reminderChannel,
+      reminders: form.reminders,
     });
     setOpen(false);
     setItems(getAppointments());
@@ -366,7 +377,8 @@ export default function Agenda() {
 
   const move = (delta: number) => {
     const next = new Date(`${date}T12:00:00`);
-    next.setDate(next.getDate() + delta * (view === "day" ? 1 : view === "week" ? 7 : 30));
+    if (view === "month") next.setMonth(next.getMonth() + delta);
+    else next.setDate(next.getDate() + delta * (view === "day" ? 1 : 7));
     setDate(iso(next));
   };
 
@@ -410,34 +422,64 @@ export default function Agenda() {
       />
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
-        <Box sx={{ display: "flex", gap: 1.5, alignItems: "center", flexWrap: "wrap" }}>
-          <ToggleButtonGroup exclusive value={view} onChange={(_, value) => value && setView(value)} size="small">
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", lg: "minmax(220px,1fr) auto minmax(320px,1fr)" },
+            gap: 1.5,
+            alignItems: "center",
+          }}
+        >
+          <TextField
+            size="small"
+            select
+            label="Agenda"
+            value={professional}
+            onChange={(event) => setProfessional(event.target.value)}
+            sx={{ minWidth: 220 }}
+          >
+            {professionals.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+          </TextField>
+
+          <ToggleButtonGroup
+            exclusive
+            value={view}
+            onChange={(_, value) => value && setView(value)}
+            size="small"
+            sx={{ justifySelf: { lg: "center" } }}
+          >
             <ToggleButton value="day">Dia</ToggleButton>
             <ToggleButton value="week">Semana</ToggleButton>
             <ToggleButton value="month">Mês</ToggleButton>
           </ToggleButtonGroup>
-          <TextField
-            size="small"
-            type={view === "month" ? "month" : "date"}
-            value={view === "month" ? date.slice(0, 7) : date}
-            onChange={(event) => setDate(view === "month" ? `${event.target.value}-01` : event.target.value)}
-            sx={{ minWidth: view === "month" ? 160 : 170 }}
-          />
-          <TextField size="small" select label="Agenda" value={professional} onChange={(event) => setProfessional(event.target.value)} sx={{ minWidth: 220 }}>
-            {professionals.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
-          </TextField>
-          <Button onClick={() => move(-1)}>{view === "month" ? "‹ Mês" : "Anterior"}</Button>
-          <Button onClick={() => setDate(today())}>Hoje</Button>
-          <Button onClick={() => move(1)}>{view === "month" ? "Mês ›" : "Próximo"}</Button>
-          <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
-          <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Configurar inteligência</Button>
-          <TextField size="small" select label="Avisos ao paciente" value={channel} onChange={(event) => setChannel(event.target.value as Channel)} sx={{ minWidth: 180 }}>
-            <MenuItem value="WhatsApp">WhatsApp</MenuItem>
-            <MenuItem value="SMS">SMS</MenuItem>
-          </TextField>
+
+          <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", justifyContent: { lg: "flex-end" }, flexWrap: "wrap" }}>
+            <Button
+              variant="outlined"
+              onClick={() => move(-1)}
+              sx={{ minWidth: 44, px: 1, fontSize: 24, lineHeight: 1 }}
+            >
+              ‹
+            </Button>
+            <TextField
+              size="small"
+              type={view === "month" ? "month" : "date"}
+              value={view === "month" ? date.slice(0, 7) : date}
+              onChange={(event) => setDate(view === "month" ? `${event.target.value}-01` : event.target.value)}
+              sx={{ minWidth: view === "month" ? 160 : 170 }}
+            />
+            <Button
+              variant="outlined"
+              onClick={() => move(1)}
+              sx={{ minWidth: 44, px: 1, fontSize: 24, lineHeight: 1 }}
+            >
+              ›
+            </Button>
+            <Button onClick={() => setDate(today())}>Hoje</Button>
+          </Box>
         </Box>
 
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5, mb: 1 }}>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>
           {([
             ["Todos", statusMetrics.total],
             ["Confirmado", statusMetrics.confirmed],
@@ -455,82 +497,28 @@ export default function Agenda() {
             />
           ))}
         </Box>
-        <Typography variant="caption" color="text.secondary">
-          <NotificationsActiveIcon sx={{ fontSize: 14, verticalAlign: "middle" }} /> Confirmação no agendamento + 1 dia antes + no dia. Canal escolhido pela clínica: {channel}.
-        </Typography>
+
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>
+          <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
+          <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Configurar inteligência</Button>
+        </Box>
       </Paper>
-
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "minmax(0,2.2fr) minmax(320px,1fr)" }, gap: 2 }}>
-        <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
-          <Box sx={{ p: 2, bgcolor: "action.hover" }}>
-            <Typography sx={{ fontWeight: 900 }}>
-              {view === "month"
-                ? new Date(`${date}T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
-                : `${dateLabel(range[0])}${view === "week" ? ` a ${dateLabel(range[range.length - 1])}` : ""}`}
-            </Typography>
-          </Box>
-          {filtered.length === 0 ? (
-            <Box sx={{ p: 5, textAlign: "center" }}><Typography color="text.secondary" sx={{ mb: 2 }}>Nenhuma consulta no período.</Typography><Button variant="contained" startIcon={<AddIcon />} onClick={() => openNew({ dateISO: date })}>Novo agendamento</Button></Box>
-          ) : filtered.map((appointment) => {
-            const financial = patientFinancialSummary(appointment.patientName);
-            const overdueCount = (() => {
-              try {
-                return JSON.parse(localStorage.getItem("dentalpos.financial.entries.v3") || "[]").filter(
-                  (entry: any) => entry.type === "Receita" && entry.personName?.toLowerCase() === appointment.patientName.toLowerCase() && entry.status === "Vencido",
-                ).length;
-              } catch {
-                return 0;
-              }
-            })();
-            const smartWarnings = appointment.smartSchedule?.warnings?.filter((warning) => warning.severity !== "info").length || 0;
-            return (
-              <Box key={appointment.id}>
-                <Box
-                  sx={{ p: 2, display: "grid", gridTemplateColumns: { xs: "1fr", md: "120px 1fr auto" }, gap: 2, alignItems: "center", cursor: "pointer" }}
-                  onClick={() => {
-                    setEdit(appointment);
-                    setEditSmartSuggestion(null);
-                  }}
-                >
-                  <Box>
-                    <Typography sx={{ fontWeight: 900 }}>{dateLabel(appointment.dateISO)}</Typography>
-                    <Typography color="text.secondary">{appointment.time} • {appointment.durationMinutes || 30} min</Typography>
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontWeight: 900 }}>
-                      {appointment.patientName}{" "}
-                      <Chip
-                        size="small"
-                        color={financial.status === "Em dia" ? "success" : "error"}
-                        label={overdueCount ? `${overdueCount} parcela(s) em atraso` : financial.status === "Em dia" ? "Financeiro OK" : "Pendência"}
-                      />
-                    </Typography>
-                    <Typography color="text.secondary">
-                      {appointment.professionalName} • {appointment.category || "Consulta"} • {appointment.procedure} • {appointment.room}
-                    </Typography>
-                    {appointment.smartSchedule?.recommendedReturnDateISO ? (
-                      <Typography variant="caption" color="text.secondary">
-                        Próximo retorno sugerido: {dateLabel(appointment.smartSchedule.recommendedReturnDateISO)}
-                      </Typography>
-                    ) : null}
-                  </Box>
-                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: { md: "flex-end" } }}>
-                    {smartWarnings ? <Chip size="small" color="warning" icon={<WarningAmberIcon />} label={`${smartWarnings} alerta(s)`} /> : null}<Button size="small" startIcon={<AddIcon />} onClick={(event) => { event.stopPropagation(); openNew({ patientName: appointment.patientName, patientPhone: appointment.patientPhone || "", professionalName: appointment.professionalName, room: appointment.room, dateISO: date }); }}>Agendar novo</Button>
-                    <Chip
-                      label={appointment.status}
-                      color={appointment.status === "Confirmado" || appointment.status === "Finalizado" ? "success" : appointment.status === "Faltou" || appointment.status === "Cancelado" ? "error" : "default"}
-                    />
-                  </Box>
-                </Box>
-                <Divider />
-              </Box>
-            );
-          })}
-        </Paper>
-
+        <AgendaCalendarBoard
+          view={view}
+          dateISO={date}
+          items={filtered}
+          professional={professional}
+          onDateChange={setDate}
+          onAppointmentClick={(appointment) => {
+            setEdit(appointment);
+            setEditSmartSuggestion(null);
+          }}
+          onNew={(prefill) => openNew(prefill)}
+        />
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
-          <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório e agenda ficam visíveis para a equipe.</Typography>
+          <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório, agenda e estoque ficam visíveis para a equipe.</Typography>
           {alerts.length === 0 ? <Alert severity="success">Nenhuma pendência crítica agora.</Alert> : alerts.map((alert) => (
             <Alert key={alert.id} severity={alert.severity} sx={{ mb: 1 }}><b>{alert.title}</b><br />{alert.description}</Alert>
           ))}
@@ -599,7 +587,38 @@ export default function Agenda() {
           </Box>
           <TextField type="date" label="Data" slotProps={{ inputLabel: { shrink: true } }} value={form.dateISO} onChange={(event) => setForm({ ...form, dateISO: event.target.value })} />
           <TextField type="time" label="Horário" slotProps={{ inputLabel: { shrink: true } }} value={form.time} onChange={(event) => setForm({ ...form, time: event.target.value })} />
-          <TextField
+          <Box sx={{ gridColumn: { md: "1/-1" }, p: 1.5, border: 1, borderColor: "divider", borderRadius: 2 }}>
+            <Typography sx={{ fontWeight: 900, mb: 0.5 }}>
+              <NotificationsActiveIcon sx={{ fontSize: 18, verticalAlign: "middle", mr: 0.5 }} />
+              Confirmações ao paciente
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+              <FormControlLabel
+                control={<Checkbox checked={form.reminders.onBooking} onChange={(event) => setForm({ ...form, reminders: { ...form.reminders, onBooking: event.target.checked } })} />}
+                label="Ao agendar"
+              />
+              <FormControlLabel
+                control={<Checkbox checked={form.reminders.oneDayBefore} onChange={(event) => setForm({ ...form, reminders: { ...form.reminders, oneDayBefore: event.target.checked } })} />}
+                label="1 dia antes"
+              />
+              <FormControlLabel
+                control={<Checkbox checked={form.reminders.onDay} onChange={(event) => setForm({ ...form, reminders: { ...form.reminders, onDay: event.target.checked } })} />}
+                label="No dia"
+              />
+              <TextField
+                size="small"
+                select
+                label="Canal"
+                value={form.reminderChannel}
+                onChange={(event) => setForm({ ...form, reminderChannel: event.target.value as Channel })}
+                sx={{ minWidth: 150 }}
+              >
+                <MenuItem value="WhatsApp">WhatsApp</MenuItem>
+                <MenuItem value="SMS">SMS</MenuItem>
+              </TextField>
+            </Box>
+          </Box>          <TextField
+
             label="Laboratório (se houver)"
             placeholder="Ex.: Laboratório X"
             value={form.laboratoryName}
@@ -634,7 +653,7 @@ export default function Agenda() {
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
           {edit ? (
             <>
-              <Typography><b>{edit.dateISO} às {edit.time}</b> • {edit.professionalName}</Typography>
+              <Typography><b>{dateLabel(edit.dateISO)} às {edit.time}</b> • {edit.professionalName}</Typography>
               <Typography>{edit.procedure}</Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
                 <TextField
@@ -649,7 +668,6 @@ export default function Agenda() {
                           status: backendStatusValue(status),
                           reason: "Atualização pela agenda",
                           requestedBy: "CLINIC",
-                          reminderChannel: channel === "SMS" ? "SMS" : "WHATSAPP",
                         });
                         const mapped = mapBackendAppointment(updated);
                         const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
@@ -676,7 +694,38 @@ export default function Agenda() {
                 />
                 <TextField type="date" label="Remarcar data" value={edit.dateISO} onChange={(event) => setEdit({ ...edit, dateISO: event.target.value })} />
                 <TextField type="time" label="Remarcar horário" value={edit.time} onChange={(event) => setEdit({ ...edit, time: event.target.value })} />
-                <TextField
+                <Box sx={{ gridColumn: { md: "1/-1" }, p: 1.5, border: 1, borderColor: "divider", borderRadius: 2 }}>
+                  <Typography sx={{ fontWeight: 900, mb: 0.5 }}>
+                    <NotificationsActiveIcon sx={{ fontSize: 18, verticalAlign: "middle", mr: 0.5 }} />
+                    Confirmações ao paciente
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                    <FormControlLabel
+                      control={<Checkbox checked={edit.reminders.onBooking} onChange={(event) => setEdit({ ...edit, reminders: { ...edit.reminders, onBooking: event.target.checked } })} />}
+                      label="Ao agendar"
+                    />
+                    <FormControlLabel
+                      control={<Checkbox checked={edit.reminders.oneDayBefore} onChange={(event) => setEdit({ ...edit, reminders: { ...edit.reminders, oneDayBefore: event.target.checked } })} />}
+                      label="1 dia antes"
+                    />
+                    <FormControlLabel
+                      control={<Checkbox checked={edit.reminders.onDay} onChange={(event) => setEdit({ ...edit, reminders: { ...edit.reminders, onDay: event.target.checked } })} />}
+                      label="No dia"
+                    />
+                    <TextField
+                      size="small"
+                      select
+                      label="Canal"
+                      value={edit.reminderChannel || "WhatsApp"}
+                      onChange={(event) => setEdit({ ...edit, reminderChannel: event.target.value as Channel })}
+                      sx={{ minWidth: 150 }}
+                    >
+                      <MenuItem value="WhatsApp">WhatsApp</MenuItem>
+                      <MenuItem value="SMS">SMS</MenuItem>
+                    </TextField>
+                  </Box>
+                </Box>                <TextField
+
                   label="Laboratório (se houver)"
                   value={edit.laboratoryName || ""}
                   onChange={(event) => setEdit({ ...edit, laboratoryName: event.target.value })}
@@ -729,7 +778,8 @@ export default function Agenda() {
                       room: edit.room,
                       reason: "Remarcação pela agenda",
                       requestedBy: "CLINIC",
-                      reminderChannel: channel === "SMS" ? "SMS" : "WHATSAPP",
+                      reminderChannel: (edit.reminderChannel || "WhatsApp") === "SMS" ? "SMS" : "WHATSAPP",
+                      reminders: edit.reminders,
                     });
                     const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
                     saveAppointments(refreshed);
@@ -749,6 +799,8 @@ export default function Agenda() {
                 updateAppointment(edit.id, {
                   durationMinutes: edit.durationMinutes || 30,
                   laboratoryName: edit.laboratoryName,
+                  reminderChannel: edit.reminderChannel || "WhatsApp",
+                  reminders: edit.reminders,
                   smartSchedule: smartScheduleSnapshot(editSmartSuggestion),
                 });
                 setItems(getAppointments());
