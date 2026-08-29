@@ -136,7 +136,7 @@ function mapBackendAppointment(appointment: BackendAppointment): IntegratedAppoi
     status: backendStatus(appointment.status),
     source: "Interno",
     category: "1ª consulta",
-    durationMinutes: 30,
+    durationMinutes: appointment.durationMinutes || 30,
     reminders: { onBooking: true, oneDayBefore: true, onDay: true },
     createdAtISO: appointment.scheduledAt,
   };
@@ -335,6 +335,7 @@ export default function Agenda() {
         nextProcedure: form.nextProcedure || undefined,
         room: form.room || undefined,
         scheduledAt: scheduledAt.toISOString(),
+        durationMinutes: Number(form.durationMinutes || 30),
         reminderChannel: channel === "SMS" ? "SMS" : "WHATSAPP",
       });
     } catch (error) {
@@ -716,6 +717,7 @@ export default function Agenda() {
                   try {
                     await updateBackendAppointment(edit.backendId, {
                       scheduledAt: scheduledAt.toISOString(),
+                      durationMinutes: Number(edit.durationMinutes || 30),
                       procedure: edit.procedure,
                       nextProcedure: edit.nextProcedure,
                       room: edit.room,

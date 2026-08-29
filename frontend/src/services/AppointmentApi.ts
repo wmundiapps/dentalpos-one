@@ -19,6 +19,7 @@ export interface BackendAppointment {
   nextProcedure?: string | null;
   room?: string | null;
   scheduledAt: string;
+  durationMinutes: number;
   status: string;
   patient?: {
     id: string;
@@ -57,6 +58,7 @@ export async function createBackendAppointment(input: {
   nextProcedure?: string;
   room?: string;
   scheduledAt: string;
+  durationMinutes?: number;
   reminderChannel?: "WHATSAPP" | "SMS";
 }) {
   const response = await fetch(`${API}/appointments`, {
@@ -74,6 +76,7 @@ export async function createBackendAppointment(input: {
 }
 export async function updateBackendAppointment(id: string, input: {
   scheduledAt?: string;
+  durationMinutes?: number;
   status?: string;
   procedure?: string;
   nextProcedure?: string;

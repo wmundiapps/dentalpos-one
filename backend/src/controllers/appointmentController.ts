@@ -82,6 +82,11 @@ export async function store(req: AuthRequest, res: Response) {
     }
     const when = parseDate(scheduledAt)
     if (!when) return res.status(400).json({ error: 'Data/hora inválida.' })
+    const parsedDuration = Number(req.body.durationMinutes ?? 30)
+    if (!Number.isFinite(parsedDuration) || parsedDuration < 5 || parsedDuration > 480) {
+      return res.status(400).json({ error: 'Duração do agendamento inválida.' })
+    }
+    const durationMinutes = Math.round(parsedDuration)
 
     const [patient, doctor] = await Promise.all([
       prisma.patient.findFirst({ where: { id: String(patientId), clinicId: req.user.clinicId, tenantId: req.user.tenantId, isActive: true } }),
@@ -94,15 +99,25 @@ export async function store(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Não é permitido criar agendamento em data ou horário retroativo.' })
     }
 
-    const conflict = await prisma.appointment.findFirst({
+    const incomingStart = when.getTime()
+    const incomingEnd = incomingStart + durationMinutes * 60000
+    const possibleConflicts = await prisma.appointment.findMany({
       where: {
         clinicId: req.user.clinicId,
         tenantId: req.user.tenantId,
         doctorId: doctor.id,
-        scheduledAt: when,
-        status: { not: 'CANCELLED' }
+        status: { not: 'CANCELLED' },
+        scheduledAt: {
+          gte: new Date(incomingStart - 480 * 60000),
+          lt: new Date(incomingEnd)
+        }
       },
-      select: { id: true }
+      select: { id: true, scheduledAt: true, durationMinutes: true }
+    })
+    const conflict = possibleConflicts.find(item => {
+      const itemStart = item.scheduledAt.getTime()
+      const itemEnd = itemStart + item.durationMinutes * 60000
+      return itemStart < incomingEnd && itemEnd > incomingStart
     })
     if (conflict) {
       return res.status(409).json({ error: 'Este profissional já possui um agendamento neste horário.' })
@@ -122,6 +137,7 @@ export async function store(req: AuthRequest, res: Response) {
           notes: notes ? String(notes) : null,
           source: source ? String(source) : 'INTERNAL',
           scheduledAt: when,
+          durationMinutes,
           status: 'SCHEDULED',
           budgetId: budgetId ? String(budgetId) : null
         }
@@ -181,9 +197,15 @@ export async function update(req: AuthRequest, res: Response) {
     const newScheduledAt = req.body.scheduledAt ? parseDate(req.body.scheduledAt) : existing.scheduledAt
     if (!newScheduledAt) return res.status(400).json({ error: 'Data/hora inválida.' })
     const newStatus = req.body.status ? String(req.body.status) : existing.status
+    const parsedDuration = req.body.durationMinutes !== undefined ? Number(req.body.durationMinutes) : existing.durationMinutes
+    if (!Number.isFinite(parsedDuration) || parsedDuration < 5 || parsedDuration > 480) {
+      return res.status(400).json({ error: 'Duração do agendamento inválida.' })
+    }
+    const newDurationMinutes = Math.round(parsedDuration)
     const changedSchedule = newScheduledAt.getTime() !== existing.scheduledAt.getTime()
+    const changedDuration = newDurationMinutes !== existing.durationMinutes
     const changedStatus = newStatus !== existing.status
-    if ((changedSchedule || changedStatus) && !String(req.body.reason || '').trim()) {
+    if ((changedSchedule || changedDuration || changedStatus) && !String(req.body.reason || '').trim()) {
       return res.status(400).json({ error: 'Informe o motivo da remarcação, cancelamento, falta ou alteração.' })
     }
 
@@ -191,17 +213,27 @@ export async function update(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Não é permitido remarcar para data ou horário retroativo.' })
     }
 
-    if (changedSchedule && newStatus !== 'CANCELLED') {
-      const conflict = await prisma.appointment.findFirst({
+    if ((changedSchedule || changedDuration) && newStatus !== 'CANCELLED') {
+      const incomingStart = newScheduledAt.getTime()
+      const incomingEnd = incomingStart + newDurationMinutes * 60000
+      const possibleConflicts = await prisma.appointment.findMany({
         where: {
           id: { not: id },
           clinicId: req.user.clinicId,
           tenantId: req.user.tenantId,
           doctorId: existing.doctorId,
-          scheduledAt: newScheduledAt,
-          status: { not: 'CANCELLED' }
+          status: { not: 'CANCELLED' },
+          scheduledAt: {
+            gte: new Date(incomingStart - 480 * 60000),
+            lt: new Date(incomingEnd)
+          }
         },
-        select: { id: true }
+        select: { id: true, scheduledAt: true, durationMinutes: true }
+      })
+      const conflict = possibleConflicts.find(item => {
+        const itemStart = item.scheduledAt.getTime()
+        const itemEnd = itemStart + item.durationMinutes * 60000
+        return itemStart < incomingEnd && itemEnd > incomingStart
       })
 
       if (conflict) {
@@ -214,6 +246,7 @@ export async function update(req: AuthRequest, res: Response) {
         where: { id },
         data: {
           scheduledAt: newScheduledAt,
+          durationMinutes: newDurationMinutes,
           status: newStatus,
           procedure: req.body.procedure !== undefined ? String(req.body.procedure) : existing.procedure,
           nextProcedure: req.body.nextProcedure !== undefined ? String(req.body.nextProcedure || '') || null : existing.nextProcedure,

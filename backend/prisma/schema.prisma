@@ -264,6 +264,7 @@ model Appointment {
   source          String   @default("INTERNAL")
 
   scheduledAt     DateTime
+  durationMinutes Int      @default(30)
 
   startedAt       DateTime?
   endedAt         DateTime?
