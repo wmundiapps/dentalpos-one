@@ -344,8 +344,8 @@ export default function Agenda() {
       return;
     }
 
-    const normalizeName = (value: string) =>
-      value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim();
+    const normalizeName = (value: unknown) =>
+      String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim();
 
     const backendDoctor = backendDoctors.find((doctor) => {
       const fullName = `${doctor.user.firstName} ${doctor.user.lastName}`.trim();
@@ -517,8 +517,8 @@ export default function Agenda() {
     [items],
   );
   const alerts = getOperationalAlerts().filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
-  const normalizeProfessionalName = (value: string) =>
-    value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim();
+  const normalizeProfessionalName = (value: unknown) =>
+    String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim();
   const selectedBackendDoctorId =
     professional === "Todos"
       ? undefined
@@ -539,7 +539,17 @@ export default function Agenda() {
     setSmartSuggestion(null);
     setPatientMode("registered");
     setNewPatient({ firstName: "", lastName: "", birthDate: "", phone: "", city: "" });
-    setForm({ ...initialForm(date), ...prefill, dateISO: prefill?.dateISO || date });
+
+    const cleanPrefill = Object.fromEntries(
+      Object.entries(prefill || {}).filter(([, value]) => value !== undefined),
+    ) as Partial<AppointmentForm>;
+    const targetDate = prefill?.dateISO || date;
+
+    setForm({
+      ...initialForm(targetDate),
+      ...cleanPrefill,
+      dateISO: targetDate,
+    });
     setOpen(true);
   };
 
