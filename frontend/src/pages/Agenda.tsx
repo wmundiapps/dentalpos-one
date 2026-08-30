@@ -513,18 +513,34 @@ export default function Agenda() {
 
   useEffect(() => {
     let active = true;
-    loadBackendAppointments()
-      .then((appointments) => {
-        if (!active) return;
 
-        const backendItems = appointments.map(mapBackendAppointment);
-        saveAppointments(backendItems);
-        setItems(backendItems);
-      })
-      .catch(() => undefined);
+    const refreshBackendAppointments = () => {
+      void loadBackendAppointments()
+        .then((appointments) => {
+          if (!active) return;
+
+          const backendItems = appointments.map(mapBackendAppointment);
+          saveAppointments(backendItems);
+          setItems(backendItems);
+        })
+        .catch(() => undefined);
+    };
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refreshBackendAppointments();
+    };
+
+    refreshBackendAppointments();
+
+    const timer = window.setInterval(refreshBackendAppointments, 10000);
+    window.addEventListener("focus", refreshBackendAppointments);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
       active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshBackendAppointments);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, []);
   useEffect(() => {
