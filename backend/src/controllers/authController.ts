@@ -1,11 +1,13 @@
 import { Request, Response } from 'express'
 import jwt, { SignOptions } from 'jsonwebtoken'
+import { prisma } from '../lib/prisma'
 import {
   createUser,
   getUserByEmail,
   comparePassword
 } from '../services/userService'
 import { writeAudit } from '../services/auditService'
+import { getDemoAccess } from '../services/demoAccessService'
 
 function jwtSecret() {
   const secret = process.env.JWT_SECRET
@@ -105,12 +107,32 @@ export async function login(req: Request, res: Response) {
   try {
     const { clinicId, email, password } = req.body
 
-    if (!clinicId || !email || !password) {
-      return res.status(400).json({ error: 'Dados obrigatórios não informados.' })
+    if (!email || !password) {
+      return res.status(400).json({ error: 'E-mail e senha são obrigatórios.' })
     }
 
     const normalizedEmail = String(email).trim().toLowerCase()
-    const user = await getUserByEmail(String(clinicId), normalizedEmail)
+    let user
+
+    if (clinicId) {
+      user = await getUserByEmail(String(clinicId), normalizedEmail)
+    } else {
+      const matches = await prisma.user.findMany({
+        where: { email: normalizedEmail, isActive: true },
+        take: 3,
+        orderBy: { createdAt: 'asc' },
+      })
+
+      if (matches.length > 1) {
+        return res.status(409).json({
+          code: 'CLINIC_ID_REQUIRED',
+          error:
+            'Este e-mail está vinculado a mais de uma clínica. Informe também o ID da clínica.',
+        })
+      }
+
+      user = matches[0]
+    }
 
     if (!user || !user.isActive) {
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
@@ -120,6 +142,16 @@ export async function login(req: Request, res: Response) {
 
     if (!validPassword) {
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
+    }
+
+    const demo = await getDemoAccess(user.clinicId)
+    if (demo.isDemo && demo.phase === 'ENDED') {
+      return res.status(403).json({
+        code: 'DEMO_ENDED',
+        error:
+          'A demonstração gratuita foi encerrada. Seus dados permanecem preservados. Solicite uma proposta para reativar o acesso.',
+        demo,
+      })
     }
 
     const token = generateToken({
@@ -147,7 +179,7 @@ export async function login(req: Request, res: Response) {
       console.warn('Falha ao registrar auditoria de login:', auditError)
     }
 
-    return res.json({ token, user: safeUser(user) })
+    return res.json({ token, user: safeUser(user), demo })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro interno do servidor.' })

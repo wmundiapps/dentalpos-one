@@ -1,0 +1,15 @@
+DENTALPOS ONE — BLOCO DEMO COMERCIAL / EARLY ACCESS
+Base segura: d8bc576d842eed68b98c88fc72ad068fbe99ab43
+
+Objetivo:
+- Demo gratuita temporária por clínica.
+- Agenda + Pacientes no primeiro estágio.
+- Registro público controlado por ENABLE_DEMO_REGISTRATION.
+- ID, login e link público gerados por clínica.
+- Expiração backend-authoritative.
+- 7 dias padrão em somente leitura.
+- Dados não apagados automaticamente no vencimento.
+- Conversão sem trocar tenant/banco.
+- Liberação progressiva de módulos por clínica.
+- Sem alteração no schema Prisma.
+- Sem migration.

@@ -20,6 +20,11 @@ import { useEffect, useMemo, useState } from "react";
 import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
+import {
+  pathAllowedForDemo,
+  readDemoAccess,
+  readSessionUser,
+} from "../services/DemoAccess";
 
 const OPEN_GROUPS_KEY = "dentalpos.navigation.open-groups.v1";
 
@@ -36,12 +41,35 @@ function pathMatches(target: string, pathname: string, search: string) {
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const demo = readDemoAccess();
+  const sessionUser = readSessionUser();
   const isDesign = location.pathname === "/design" || location.pathname.startsWith("/design/");
   const [collapsed, setCollapsed] = useState(isDesign);
+
+  const visibleGroups = useMemo(() => {
+    if (!demo?.isDemo) return navigationGroups;
+
+    const seenPaths = new Set<string>();
+    return navigationGroups
+      .map((group) => {
+        const items = group.items.filter((item) => {
+          if (item.path === "/agendamento-online") return false;
+          const pathname = item.path.split("?")[0] || "/";
+          if (!pathAllowedForDemo(pathname, demo)) return false;
+          if (seenPaths.has(item.path)) return false;
+          seenPaths.add(item.path);
+          return true;
+        });
+        return { ...group, items };
+      })
+      .filter((group) => group.items.length > 0);
+  }, [demo?.isDemo, demo?.modules.join("|")]);
+
   const activeGroup = useMemo(
-    () => navigationGroups.find((group) => group.items.some((item) => pathMatches(item.path, location.pathname, location.search)))?.label,
-    [location.pathname, location.search],
+    () => visibleGroups.find((group) => group.items.some((item) => pathMatches(item.path, location.pathname, location.search)))?.label,
+    [location.pathname, location.search, visibleGroups],
   );
+
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     try {
       return JSON.parse(localStorage.getItem(OPEN_GROUPS_KEY) || "") as Record<string, boolean>;
@@ -64,6 +92,9 @@ export default function Sidebar() {
 
   const sidebarWidth = collapsed ? 72 : 288;
   const go = (path: string) => navigate(path);
+  const initials = `${sessionUser?.firstName?.[0] || ""}${sessionUser?.lastName?.[0] || ""}`.toUpperCase() || "DP";
+  const displayName = [sessionUser?.firstName, sessionUser?.lastName].filter(Boolean).join(" ") || "Usuário";
+  const roleLabel = demo?.isDemo ? "Demo / Administrador" : sessionUser?.role || "Usuário";
 
   return (
     <Box component="aside" sx={{ width: sidebarWidth, minWidth: sidebarWidth, height: "100vh", bgcolor: "#0F172A", color: "#FFFFFF", display: "flex", flexDirection: "column", position: "sticky", top: 0, overflowY: "auto", overflowX: "visible", transition: "width 0.25s ease, min-width 0.25s ease", flexShrink: 0 }}>
@@ -74,13 +105,18 @@ export default function Sidebar() {
       </Tooltip>
 
       <Box sx={{ px: collapsed ? 1 : 3, pt: 2, pb: collapsed ? 1.5 : 2, textAlign: "center" }}>
-        <Avatar sx={{ width: collapsed ? 42 : 72, height: collapsed ? 42 : 72, mx: "auto", mb: collapsed ? 0 : 2, bgcolor: "primary.main", fontSize: collapsed ? 18 : 28, transition: "width 0.25s ease, height 0.25s ease" }}>R</Avatar>
-        {!collapsed && <><Typography variant="h6" sx={{ fontWeight: 700 }}>Dr. Robson</Typography><Typography variant="body2" sx={{ color: "#94A3B8" }}>Administrador</Typography></>}
+        <Avatar sx={{ width: collapsed ? 42 : 72, height: collapsed ? 42 : 72, mx: "auto", mb: collapsed ? 0 : 2, bgcolor: "primary.main", fontSize: collapsed ? 15 : 24, transition: "width 0.25s ease, height 0.25s ease" }}>{initials}</Avatar>
+        {!collapsed && (
+          <>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>{displayName}</Typography>
+            <Typography variant="body2" sx={{ color: "#94A3B8" }}>{roleLabel}</Typography>
+          </>
+        )}
       </Box>
       <Divider sx={{ borderColor: "#334155" }} />
 
       <List sx={{ mt: 1, px: collapsed ? 0.75 : 1 }}>
-        {navigationGroups.map((group) => {
+        {visibleGroups.map((group) => {
           const groupSelected = group.items.some((item) => pathMatches(item.path, location.pathname, location.search));
           const groupOpen = Boolean(openGroups[group.label]);
           if (collapsed) {
@@ -119,7 +155,13 @@ export default function Sidebar() {
 
       <Box sx={{ flexGrow: 1 }} />
       <Box sx={{ py: 2, textAlign: "center", color: "#64748B", whiteSpace: "nowrap" }}>
-        {collapsed ? <Typography sx={{ fontSize: 10, fontWeight: 700 }}>DP</Typography> : <Typography sx={{ fontSize: 12 }}><BrandName /> • {appConfig.version}</Typography>}
+        {collapsed ? (
+          <Typography sx={{ fontSize: 10, fontWeight: 700 }}>DP</Typography>
+        ) : (
+          <Typography sx={{ fontSize: 12 }}>
+            {demo?.isDemo ? `DEMO • ${demo.daysRemaining ?? 0} dias` : <><BrandName /> • {appConfig.version}</>}
+          </Typography>
+        )}
       </Box>
     </Box>
   );

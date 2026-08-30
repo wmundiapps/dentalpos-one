@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 import type { ReactNode } from "react";
 
+import DemoBanner from "./DemoBanner";
 import Footer from "./Footer";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
@@ -32,6 +33,7 @@ export default function Layout({
         }}
       >
         <Header />
+        <DemoBanner />
 
         <Box
           component="main"

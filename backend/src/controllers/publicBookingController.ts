@@ -11,6 +11,7 @@ import {
   listAgendaBlocks,
   listRecurringBreaks,
 } from '../services/agendaAvailabilityService'
+import { getDemoAccess } from '../services/demoAccessService'
 
 const allowedChannels = new Set(['WHATSAPP', 'SMS', 'TELEGRAM', 'MANUAL'])
 const ONLINE_BOOKING_FLAG = 'ONLINE_BOOKING_SLOTS'
@@ -77,6 +78,19 @@ function reminderDates(scheduledAt: Date) {
     { type: 'ONE_DAY_BEFORE', scheduledFor: oneDayBefore },
     { type: 'ON_DAY', scheduledFor: onDay },
   ].filter(item => item.type === 'ON_BOOKING' || item.scheduledFor.getTime() > booking.getTime())
+}
+
+async function demoBookingClosed(clinicId: string, res: Response) {
+  const demo = await getDemoAccess(clinicId)
+  if (!demo.isDemo || demo.phase === 'ACTIVE') return false
+
+  res.status(410).json({
+    code: 'DEMO_BOOKING_CLOSED',
+    error:
+      'O período gratuito desta clínica foi encerrado. O agendamento online está temporariamente indisponível.',
+    demo,
+  })
+  return true
 }
 
 export async function settings(req: AuthRequest, res: Response) {
@@ -162,6 +176,7 @@ export async function config(req: Request, res: Response) {
       select: { id: true, tenantId: true, name: true, displayName: true },
     })
     if (!clinic) return res.status(404).json({ error: 'Clínica não encontrada.' })
+    if (await demoBookingClosed(clinicId, res)) return
 
     const doctors = await prisma.doctor.findMany({
       where: { clinicId: clinic.id, tenantId: clinic.tenantId, isActive: true },
@@ -200,6 +215,7 @@ export async function availability(req: Request, res: Response) {
 
     const clinic = await prisma.clinic.findFirst({ where: { id: clinicId, isActive: true } })
     if (!clinic) return res.status(404).json({ error: 'Clínica não encontrada.' })
+    if (await demoBookingClosed(clinicId, res)) return
 
     const doctor = await prisma.doctor.findFirst({
       where: { id: doctorId, clinicId, tenantId: clinic.tenantId, isActive: true },
@@ -310,6 +326,7 @@ export async function store(req: Request, res: Response) {
 
     const clinic = await prisma.clinic.findFirst({ where: { id: clinicId, isActive: true } })
     if (!clinic) return res.status(404).json({ error: 'Clínica não encontrada.' })
+    if (await demoBookingClosed(clinicId, res)) return
 
     const doctor = await prisma.doctor.findFirst({
       where: { id: String(doctorId), clinicId, tenantId: clinic.tenantId, isActive: true },

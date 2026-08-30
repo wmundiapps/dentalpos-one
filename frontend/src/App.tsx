@@ -4,10 +4,19 @@ import Layout from "./components/Layout";
 import AppRoutes from "./routes/AppRoutes";
 import Login from "./pages/Login";
 import PublicBooking from "./pages/PublicBooking";
+import DemoLanding from "./pages/DemoLanding";
+import {
+  clearClientSession,
+  demoSalesUrl,
+  formatDemoDate,
+  type DemoAccessSnapshot,
+  writeDemoAccess,
+  writeSessionUser,
+} from "./services/DemoAccess";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-type SessionState = "checking" | "valid" | "invalid" | "unavailable";
+type SessionState = "checking" | "valid" | "invalid" | "unavailable" | "expired";
 
 function currentAppPath() {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -19,7 +28,7 @@ function currentAppPath() {
 }
 
 function clearSession() {
-  localStorage.removeItem("dentalpos.token");
+  clearClientSession();
 }
 
 export default function App() {
@@ -27,6 +36,7 @@ export default function App() {
   const [session, setSession] = useState<SessionState>(() =>
     localStorage.getItem("dentalpos.token") ? "checking" : "invalid",
   );
+  const [expiredDemo, setExpiredDemo] = useState<DemoAccessSnapshot | null>(null);
 
   const validateSession = async () => {
     const token = localStorage.getItem("dentalpos.token");
@@ -57,6 +67,18 @@ export default function App() {
         return;
       }
 
+      const data = await response.json();
+      writeSessionUser(data);
+      writeDemoAccess(data.demo);
+      if (data.clinicId) localStorage.setItem("dentalpos.clinicId", data.clinicId);
+
+      if (data.demo?.isDemo && data.demo?.phase === "ENDED") {
+        setExpiredDemo(data.demo);
+        setSession("expired");
+        return;
+      }
+
+      setExpiredDemo(null);
       setSession("valid");
     } catch {
       setSession("unavailable");
@@ -64,11 +86,15 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online") void validateSession();
+    if (appPath !== "/agendamento-online" && appPath !== "/demo") void validateSession();
   }, [appPath]);
 
   if (appPath === "/agendamento-online") {
     return <PublicBooking />;
+  }
+
+  if (appPath === "/demo") {
+    return <DemoLanding />;
   }
 
   if (session === "invalid") return <Login />;
@@ -80,6 +106,53 @@ export default function App() {
           <CircularProgress size={36} />
           <Typography color="text.secondary" sx={{ mt: 2 }}>Validando sessão...</Typography>
         </Box>
+      </Box>
+    );
+  }
+
+  if (session === "expired") {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          p: 2,
+          bgcolor: "background.default",
+        }}
+      >
+        <Paper variant="outlined" sx={{ p: 4, borderRadius: 4, width: "min(620px,100%)" }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            A demonstração gratuita foi encerrada.
+          </Alert>
+          <Typography variant="h4" sx={{ fontWeight: 950 }}>Seus dados continuam preservados</Typography>
+          <Typography color="text.secondary" sx={{ mt: 1, mb: 1 }}>
+            O período gratuito terminou em {formatDemoDate(expiredDemo?.endAt)}.
+            Pacientes, agenda e histórico não são apagados automaticamente pelo vencimento da demo.
+          </Typography>
+          <Typography color="text.secondary" sx={{ mb: 3 }}>
+            Para reativar o acesso e continuar utilizando o DentalPos One, solicite uma proposta comercial.
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              onClick={() => {
+                window.location.href = demoSalesUrl();
+              }}
+            >
+              Solicitar proposta
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                clearSession();
+                setSession("invalid");
+              }}
+            >
+              Sair
+            </Button>
+          </Box>
+        </Paper>
       </Box>
     );
   }

@@ -16,7 +16,8 @@
     "prisma:studio": "prisma studio",
     "seed:core": "tsx src/scripts/seedCore.ts",
     "bootstrap:admin": "tsx src/scripts/bootstrapAdmin.ts",
-    "preflight:release": "tsx src/scripts/releasePreflight.ts"
+    "preflight:release": "tsx src/scripts/releasePreflight.ts",
+    "demo:admin": "tsx src/scripts/demoAdmin.ts"
   },
   "engines": {
     "node": ">=20"

@@ -24,23 +24,42 @@ import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
 import { useAppTheme } from "../contexts/AppThemeContext";
 import { notifications } from "../services/NotificationService";
+import {
+  appRootUrl,
+  clearClientSession,
+  pathAllowedForDemo,
+  readDemoAccess,
+  readSessionUser,
+} from "../services/DemoAccess";
 
 export default function Header() {
   const navigate = useNavigate();
   const { mode, toggleMode } = useAppTheme();
+  const demo = readDemoAccess();
+  const sessionUser = readSessionUser();
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
   const unreadCount = notifications.filter((notification) => !notification.lida).length;
 
-  const searchableItems = useMemo(
-    () =>
-      navigationGroups.flatMap((group) =>
-        group.items.map((item) => ({ ...item, group: group.label })),
-      ),
-    [],
-  );
+  const searchableItems = useMemo(() => {
+    const entries = navigationGroups.flatMap((group) =>
+      group.items.map((item) => ({ ...item, group: group.label })),
+    );
+
+    if (!demo?.isDemo) return entries;
+
+    const seen = new Set<string>();
+    return entries.filter((entry) => {
+      if (entry.path === "/agendamento-online") return false;
+      const pathname = entry.path.split("?")[0] || "/";
+      if (!pathAllowedForDemo(pathname, demo)) return false;
+      if (seen.has(entry.path)) return false;
+      seen.add(entry.path);
+      return true;
+    });
+  }, [demo?.isDemo, demo?.modules.join("|")]);
 
   const results = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR");
@@ -73,6 +92,9 @@ export default function Header() {
     navigate(path);
   };
 
+  const initials =
+    `${sessionUser?.firstName?.[0] || ""}${sessionUser?.lastName?.[0] || ""}`.toUpperCase() || "DP";
+
   return (
     <AppBar
       position="sticky"
@@ -94,7 +116,7 @@ export default function Header() {
             <BrandName />
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {appConfig.environment}
+            {demo?.isDemo ? "Demo gratuita • Early Access" : appConfig.environment}
           </Typography>
         </Box>
 
@@ -169,27 +191,29 @@ export default function Header() {
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Abrir notificações">
-          <IconButton onClick={() => navigate("/notificacoes")}>
-            <Badge badgeContent={unreadCount} color="error">
-              <NotificationsNoneIcon />
-            </Badge>
-          </IconButton>
-        </Tooltip>
+        {!demo?.isDemo ? (
+          <Tooltip title="Abrir notificações">
+            <IconButton onClick={() => navigate("/notificacoes")}>
+              <Badge badgeContent={unreadCount} color="error">
+                <NotificationsNoneIcon />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+        ) : null}
 
         <Tooltip title="Sair com segurança">
           <IconButton
             onClick={() => {
-              localStorage.removeItem("dentalpos.token");
-              window.location.href = import.meta.env.BASE_URL;
+              clearClientSession();
+              window.location.href = appRootUrl();
             }}
           >
             <LogoutIcon />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Perfil do usuário">
-          <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>R</Avatar>
+        <Tooltip title={sessionUser ? `${sessionUser.firstName} ${sessionUser.lastName}` : "Perfil do usuário"}>
+          <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>{initials}</Avatar>
         </Tooltip>
       </Toolbar>
     </AppBar>

@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import Academic from "../pages/Academic";
 import Accounting from "../pages/Accounting";
@@ -49,8 +49,22 @@ import Integrations from "../pages/Integrations";
 import Homologation from "../pages/Homologation";
 
 import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
+import {
+  pathAllowedForDemo,
+  readDemoAccess,
+} from "../services/DemoAccess";
 
 export default function AppRoutes() {
+  const location = useLocation();
+  const demo = readDemoAccess();
+
+  if (demo?.isDemo) {
+    if (location.pathname === "/") return <Navigate to="/agenda" replace />;
+    if (!pathAllowedForDemo(location.pathname, demo)) {
+      return <Navigate to="/agenda" replace />;
+    }
+  }
+
   return (
     <Routes>
       <Route path="/" element={<Dashboard />} />
@@ -212,7 +226,6 @@ export default function AppRoutes() {
       <Route path="/integracoes" element={<Integrations />} />
       <Route path="/homologacao" element={<Homologation />} />
 
-      {/* DENTALPOS DESIGN */}
       <Route
         path="/design"
         element={<DentalPosDesign />}

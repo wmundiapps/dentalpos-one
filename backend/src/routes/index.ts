@@ -34,6 +34,7 @@ import * as webhookController from '../controllers/webhookController'
 import * as backofficeController from '../controllers/backofficeController'
 import * as platformReadinessController from '../controllers/platformReadinessController'
 import * as smartSchedulingController from '../controllers/smartSchedulingController'
+import * as demoController from '../controllers/demoController'
 import { requirePermission } from '../middleware/permission'
 
 const router = Router()
@@ -44,6 +45,8 @@ const router = Router()
 
 router.post('/auth/register', authController.register)
 router.post('/auth/login', authController.login)
+router.get('/demo/config', demoController.config)
+router.post('/demo/register', demoController.register)
 router.get('/auth/me', authMiddleware, tenantMiddleware, sessionController.me)
 
 // PUBLIC WEBHOOKS
