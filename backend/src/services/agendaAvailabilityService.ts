@@ -339,23 +339,25 @@ async function persistRecurringBreaks(
   })
 }
 
-export async function addRecurringBreak(input: {
+export async function addRecurringBreaks(input: {
   clinicId: string
   tenantId: string
   doctorId: string
-  dayOfWeek: unknown
+  dayOfWeeks: unknown[]
   startTime: unknown
   endTime: unknown
   reason?: unknown
 }) {
-  const dayOfWeek = Number(input.dayOfWeek)
+  const dayOfWeeks = Array.from(
+    new Set((Array.isArray(input.dayOfWeeks) ? input.dayOfWeeks : []).map(Number)),
+  ).sort((a, b) => a - b)
   const startTime = String(input.startTime || '')
   const endTime = String(input.endTime || '')
+
   if (
     !input.doctorId ||
-    !Number.isInteger(dayOfWeek) ||
-    dayOfWeek < 0 ||
-    dayOfWeek > 6 ||
+    !dayOfWeeks.length ||
+    dayOfWeeks.some(day => !Number.isInteger(day) || day < 0 || day > 6) ||
     !validClock(startTime) ||
     !validClock(endTime) ||
     clockMinutes(endTime) <= clockMinutes(startTime)
@@ -366,27 +368,58 @@ export async function addRecurringBreak(input: {
   const current = await listRecurringBreaks(input.clinicId)
   const start = clockMinutes(startTime)
   const end = clockMinutes(endTime)
-  const overlap = current.find(item => {
-    if (item.doctorId !== input.doctorId || item.dayOfWeek !== dayOfWeek) return false
-    const itemStart = clockMinutes(item.startTime)
-    const itemEnd = clockMinutes(item.endTime)
-    return itemStart < end && itemEnd > start
-  })
-  if (overlap) {
-    throw new Error('Este intervalo se sobrepõe a outro intervalo fixo já cadastrado.')
+
+  for (const dayOfWeek of dayOfWeeks) {
+    const overlap = current.find(item => {
+      if (item.doctorId !== input.doctorId || item.dayOfWeek !== dayOfWeek) return false
+      const itemStart = clockMinutes(item.startTime)
+      const itemEnd = clockMinutes(item.endTime)
+      return itemStart < end && itemEnd > start
+    })
+    if (overlap) {
+      throw new Error(
+        `Já existe intervalo fixo sobreposto no dia ${dayOfWeek}: ${overlap.startTime}–${overlap.endTime}.`,
+      )
+    }
   }
 
-  const item: RecurringBreak = {
+  const reason = String(input.reason || 'Intervalo').trim() || 'Intervalo'
+  const created = dayOfWeeks.map(dayOfWeek => ({
     id: randomUUID(),
     doctorId: input.doctorId,
     dayOfWeek,
     startTime,
     endTime,
-    reason: String(input.reason || 'Intervalo').trim() || 'Intervalo',
-  }
-  current.push(item)
-  await persistRecurringBreaks(input.clinicId, input.tenantId, current)
-  return item
+    reason,
+  }))
+
+  await persistRecurringBreaks(
+    input.clinicId,
+    input.tenantId,
+    [...current, ...created],
+  )
+  return created
+}
+
+export async function addRecurringBreak(input: {
+  clinicId: string
+  tenantId: string
+  doctorId: string
+  dayOfWeek: unknown
+  startTime: unknown
+  endTime: unknown
+  reason?: unknown
+}) {
+  const created = await addRecurringBreaks({
+    clinicId: input.clinicId,
+    tenantId: input.tenantId,
+    doctorId: input.doctorId,
+    dayOfWeeks: [input.dayOfWeek],
+    startTime: input.startTime,
+    endTime: input.endTime,
+    reason: input.reason,
+  })
+  return created[0]
 }
 
 export async function removeRecurringBreak(

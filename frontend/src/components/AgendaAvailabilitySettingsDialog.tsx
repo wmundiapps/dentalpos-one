@@ -20,6 +20,7 @@ import {
   createAgendaBlock,
   createBackendSchedule,
   createRecurringBreak,
+  createRecurringBreaks,
   deleteAgendaBlock,
   deleteBackendSchedule,
   deleteRecurringBreak,
@@ -105,6 +106,7 @@ export default function AgendaAvailabilitySettingsDialog({
   const [breakStartTime, setBreakStartTime] = useState("12:00");
   const [breakEndTime, setBreakEndTime] = useState("14:00");
   const [breakReason, setBreakReason] = useState("Almoço");
+  const [breakApplyMode, setBreakApplyMode] = useState<"WEEKDAYS" | "CURRENT">("WEEKDAYS");
 
   const [blockTarget, setBlockTarget] = useState("ALL");
   const [blockMode, setBlockMode] = useState<"HOURS" | "DAYS">("HOURS");
@@ -203,13 +205,24 @@ export default function AgendaAvailabilitySettingsDialog({
 
     setSaving(true);
     try {
-      await createRecurringBreak({
-        doctorId,
-        dayOfWeek,
-        startTime: breakStartTime,
-        endTime: breakEndTime,
-        reason: breakReason.trim() || "Intervalo",
-      });
+      const reason = breakReason.trim() || "Intervalo";
+      if (breakApplyMode === "WEEKDAYS") {
+        await createRecurringBreaks({
+          doctorId,
+          dayOfWeeks: [1, 2, 3, 4, 5],
+          startTime: breakStartTime,
+          endTime: breakEndTime,
+          reason,
+        });
+      } else {
+        await createRecurringBreak({
+          doctorId,
+          dayOfWeek,
+          startTime: breakStartTime,
+          endTime: breakEndTime,
+          reason,
+        });
+      }
       await refresh();
       onChanged?.(doctorId);
     } catch (error) {
@@ -399,8 +412,10 @@ export default function AgendaAvailabilitySettingsDialog({
             Intervalos fixos da jornada
           </Typography>
           <Alert severity="warning">
-            Esta é uma <b>trava recorrente</b>. Qualquer consulta que encoste no intervalo
-            será retirada da disponibilidade e recusada pelo servidor, inclusive online.
+            Esta é uma <b>trava recorrente</b>. O horário só fica bloqueado depois de clicar
+            em <b> Salvar intervalo fixo</b>. Os valores 12:00–14:00 abaixo são apenas a
+            sugestão inicial. Depois de salvo, o intervalo desaparece da Agenda, do Novo
+            agendamento, da remarcação e do online.
           </Alert>
 
           {selectedRecurringBreaks.length === 0 ? (
@@ -419,6 +434,25 @@ export default function AgendaAvailabilitySettingsDialog({
               ))}
             </Box>
           )}
+
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+            <TextField
+              select
+              label="Aplicar intervalo"
+              value={breakApplyMode}
+              onChange={(event) =>
+                setBreakApplyMode(event.target.value as "WEEKDAYS" | "CURRENT")
+              }
+            >
+              <MenuItem value="WEEKDAYS">Segunda a sexta</MenuItem>
+              <MenuItem value="CURRENT">Somente o dia selecionado acima</MenuItem>
+            </TextField>
+            <Alert severity="info" sx={{ alignItems: "center" }}>
+              {breakApplyMode === "WEEKDAYS"
+                ? "Será salvo de segunda a sexta em uma única operação."
+                : "Será salvo apenas no dia da semana selecionado."}
+            </Alert>
+          </Box>
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 2 }}>
             <TextField
@@ -449,7 +483,7 @@ export default function AgendaAvailabilitySettingsDialog({
             disabled={saving || !doctorId}
             onClick={() => void addFixedBreak()}
           >
-            Adicionar intervalo fixo
+            Salvar intervalo fixo
           </Button>
         </Paper>
 

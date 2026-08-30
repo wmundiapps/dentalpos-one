@@ -5,6 +5,7 @@ import { writeAudit } from '../services/auditService'
 import {
   addAgendaBlock,
   addRecurringBreak,
+  addRecurringBreaks,
   clockMinutes,
   listAgendaBlocks,
   listRecurringBreaks,
@@ -374,29 +375,35 @@ export async function createRecurringBreak(req: AuthRequest, res: Response) {
     })
     if (!doctor) return res.status(404).json({ error: 'Profissional não encontrado.' })
 
-    const item = await addRecurringBreak({
+    const requestedDays = Array.isArray(req.body?.dayOfWeeks)
+      ? req.body.dayOfWeeks
+      : [req.body?.dayOfWeek]
+
+    const items = await addRecurringBreaks({
       clinicId: req.user.clinicId,
       tenantId: req.user.tenantId,
       doctorId: doctor.id,
-      dayOfWeek: req.body?.dayOfWeek,
+      dayOfWeeks: requestedDays,
       startTime: req.body?.startTime,
       endTime: req.body?.endTime,
       reason: req.body?.reason,
     })
 
-    await writeAudit({
-      clinicId: req.user.clinicId,
-      tenantId: req.user.tenantId,
-      actorId: req.user.id,
-      module: 'agenda',
-      action: 'recurring-break-create',
-      entityType: 'RecurringBreak',
-      entityId: item.id,
-      afterData: item,
-      summary: item.reason,
-    })
+    for (const item of items) {
+      await writeAudit({
+        clinicId: req.user.clinicId,
+        tenantId: req.user.tenantId,
+        actorId: req.user.id,
+        module: 'agenda',
+        action: 'recurring-break-create',
+        entityType: 'RecurringBreak',
+        entityId: item.id,
+        afterData: item,
+        summary: item.reason,
+      })
+    }
 
-    return res.status(201).json(item)
+    return res.status(201).json(items.length === 1 ? items[0] : items)
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Erro ao criar intervalo fixo.'

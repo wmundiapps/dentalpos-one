@@ -122,6 +122,23 @@ export async function createRecurringBreak(input: {
   return response.json();
 }
 
+export async function createRecurringBreaks(input: {
+  doctorId: string;
+  dayOfWeeks: number[];
+  startTime: string;
+  endTime: string;
+  reason: string;
+}): Promise<RecurringBreak[]> {
+  const response = await fetch(`${API}/agenda-recurring-breaks`, {
+    method: "POST",
+    headers: headers(true),
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw new Error(await errorMessage(response));
+  const body = await response.json();
+  return Array.isArray(body) ? body : [body];
+}
+
 export async function deleteRecurringBreak(id: string): Promise<void> {
   const response = await fetch(`${API}/agenda-recurring-breaks/${encodeURIComponent(id)}`, {
     method: "DELETE",
