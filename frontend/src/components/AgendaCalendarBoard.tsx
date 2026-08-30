@@ -306,6 +306,7 @@ function TimeGridView({
   const gridTemplateColumns = `68px repeat(${dates.length}, minmax(${view === "day" ? "620px" : "155px"}, 1fr))`;
 
   const slotRows = (dayISO: string, dayItems: IntegratedAppointment[]) => {
+    if (!professionalId) return [];
     const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
 
     const doctorSchedules = professionalId

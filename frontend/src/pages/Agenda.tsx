@@ -102,6 +102,36 @@ const onlineTimeOptions = Array.from({ length: 29 }, (_, index) => {
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
 });
 
+function agendaMinute(value: string) {
+  const [hour, minute] = String(value || "").split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+function agendaWeekday(dateISO: string) {
+  const [year, month, day] = dateISO.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12)).getUTCDay();
+}
+
+function withoutRecurringBreaks(
+  slots: string[],
+  recurringBreaks: RecurringBreak[],
+  doctorId: string,
+  dateISO: string,
+  durationMinutes: number,
+) {
+  const dayOfWeek = agendaWeekday(dateISO);
+  return slots.filter((time) => {
+    const start = agendaMinute(time);
+    const end = start + durationMinutes;
+    return !recurringBreaks.some((item) => {
+      if (item.doctorId !== doctorId || item.dayOfWeek !== dayOfWeek) return false;
+      const breakStart = agendaMinute(item.startTime);
+      const breakEnd = agendaMinute(item.endTime);
+      return breakStart < end && breakEnd > start;
+    });
+  });
+}
+
 function appointmentRangeLabel(startTime: string, durationMinutes: number) {
   const [hour, minute] = startTime.split(":").map(Number);
   const start = hour * 60 + minute;
@@ -391,9 +421,16 @@ export default function Agenda() {
     })
       .then((slots) => {
         if (!active) return;
-        setAvailableTimes(slots);
+        const safeSlots = withoutRecurringBreaks(
+          slots,
+          recurringBreaks,
+          backendDoctor.id,
+          form.dateISO,
+          Number(form.durationMinutes || 30),
+        );
+        setAvailableTimes(safeSlots);
         setForm((current) => {
-          const nextTime = slots.includes(current.time) ? current.time : slots[0] || "";
+          const nextTime = safeSlots.includes(current.time) ? current.time : safeSlots[0] || "";
           return current.time === nextTime ? current : { ...current, time: nextTime };
         });
       })
@@ -411,7 +448,7 @@ export default function Agenda() {
     return () => {
       active = false;
     };
-  }, [open, backendDoctors, form.professionalName, form.dateISO, form.durationMinutes]);
+  }, [open, backendDoctors, recurringBreaks, form.professionalName, form.dateISO, form.durationMinutes]);
 
   useEffect(() => {
     if (!edit?.backendId) {
@@ -447,7 +484,16 @@ export default function Agenda() {
       excludeAppointmentId: edit.backendId,
     })
       .then((slots) => {
-        if (active) setEditAvailableTimes(slots);
+        if (!active) return;
+        setEditAvailableTimes(
+          withoutRecurringBreaks(
+            slots,
+            recurringBreaks,
+            doctor.id,
+            edit.dateISO,
+            Number(edit.durationMinutes || 30),
+          ),
+        );
       })
       .catch((error) => {
         if (!active) return;
@@ -463,7 +509,7 @@ export default function Agenda() {
     return () => {
       active = false;
     };
-  }, [edit?.backendId, edit?.dateISO, edit?.durationMinutes, edit?.professionalName, backendDoctors]);
+  }, [edit?.backendId, edit?.dateISO, edit?.durationMinutes, edit?.professionalName, backendDoctors, recurringBreaks]);
 
   useEffect(() => {
     let active = true;

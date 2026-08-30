@@ -7,6 +7,7 @@ import {
   getWorkBlocks,
   isAgendaBlocked,
   isRecurringBreakBlocked,
+  isRecurringBreakBlockedByClock,
   listAgendaBlocks,
   listRecurringBreaks,
 } from '../services/agendaAvailabilityService'
@@ -250,11 +251,13 @@ export async function availability(req: Request, res: Response) {
         candidate,
         new Date(candidateEnd)
       )
-      const recurringBlocked = isRecurringBreakBlocked(
+      const startMinute = minutes(time)
+      const recurringBlocked = isRecurringBreakBlockedByClock(
         recurringBreaks,
         doctorId,
-        candidate,
-        durationMinutes
+        dayOfWeek,
+        startMinute,
+        startMinute + durationMinutes
       )
       if (!conflict && !blocked && !recurringBlocked) slots.push(time)
     }
