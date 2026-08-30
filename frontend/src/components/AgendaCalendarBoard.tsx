@@ -306,7 +306,6 @@ function TimeGridView({
   const gridTemplateColumns = `68px repeat(${dates.length}, minmax(${view === "day" ? "620px" : "155px"}, 1fr))`;
 
   const slotRows = (dayISO: string, dayItems: IntegratedAppointment[]) => {
-    if (!professionalId) return [];
     const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
 
     const doctorSchedules = professionalId
@@ -330,14 +329,13 @@ function TimeGridView({
         const slotEnd = cursor + period.step;
         if (cursor < START_MINUTES || slotEnd > END_MINUTES) continue;
 
-        const fixedBreak = professionalId
-          ? recurringBreaks.some((item) => {
-              if (item.doctorId !== professionalId || item.dayOfWeek !== dayOfWeek) return false;
-              const breakStart = minuteOfDay(item.startTime);
-              const breakEnd = minuteOfDay(item.endTime);
-              return breakStart < slotEnd && breakEnd > cursor;
-            })
-          : false;
+        const fixedBreak = recurringBreaks.some((item) => {
+          if (item.dayOfWeek !== dayOfWeek) return false;
+          if (professionalId && item.doctorId !== professionalId) return false;
+          const breakStart = minuteOfDay(item.startTime);
+          const breakEnd = minuteOfDay(item.endTime);
+          return breakStart < slotEnd && breakEnd > cursor;
+        });
         if (fixedBreak) continue;
 
         const startDate = new Date(`${dayISO}T${timeFromMinutes(cursor)}:00`);
@@ -352,14 +350,12 @@ function TimeGridView({
         });
         if (eventualBlock) continue;
 
-        const occupied = professionalId
-          ? dayItems.some((appointment) => {
-              const appointmentStart = minuteOfDay(appointment.time);
-              const appointmentEnd =
-                appointmentStart + Math.max(10, appointment.durationMinutes || 30);
-              return appointmentStart < slotEnd && appointmentEnd > cursor;
-            })
-          : false;
+        const occupied = dayItems.some((appointment) => {
+          const appointmentStart = minuteOfDay(appointment.time);
+          const appointmentEnd =
+            appointmentStart + Math.max(10, appointment.durationMinutes || 30);
+          return appointmentStart < slotEnd && appointmentEnd > cursor;
+        });
         if (occupied) continue;
 
         rows.push({ start: cursor, end: slotEnd, step: period.step });
