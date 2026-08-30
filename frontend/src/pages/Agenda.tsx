@@ -84,6 +84,10 @@ type AppointmentForm = {
 };
 
 const defaultProfessionals = ["Todos", "Dr. Robson", "Dra. Cássia"];
+
+function backendDoctorDisplayName(doctor: BackendDoctor) {
+  return `Dr. ${doctor.user.firstName} ${doctor.user.lastName}`.trim();
+}
 const onlineDays = [
   { value: 1, label: "Segunda-feira" },
   { value: 2, label: "Terça-feira" },
@@ -312,9 +316,20 @@ export default function Agenda() {
     loadBackendDoctors().then(setBackendDoctors).catch(() => setBackendDoctors([]));
   }, []);
 
+  const refreshAgendaConfiguration = async () => {
+    const [schedules, blocks, breaks] = await Promise.all([
+      loadBackendSchedules(),
+      loadAgendaBlocks(),
+      loadRecurringBreaks(),
+    ]);
+    setScheduleBlocks(schedules);
+    setAgendaBlocks(blocks);
+    setRecurringBreaks(breaks);
+  };
+
   useEffect(() => {
     let active = true;
-    Promise.all([
+    void Promise.all([
       loadBackendSchedules(),
       loadAgendaBlocks(),
       loadRecurringBreaks(),
@@ -513,8 +528,15 @@ export default function Agenda() {
   );
 
   const professionals = useMemo(
-    () => Array.from(new Set([...defaultProfessionals, ...items.map((appointment) => appointment.professionalName)])),
-    [items],
+    () =>
+      Array.from(
+        new Set([
+          ...defaultProfessionals,
+          ...backendDoctors.map(backendDoctorDisplayName),
+          ...items.map((appointment) => appointment.professionalName),
+        ]),
+      ),
+    [items, backendDoctors],
   );
   const alerts = getOperationalAlerts().filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
   const normalizeProfessionalName = (value: unknown) =>
@@ -1401,7 +1423,15 @@ export default function Agenda() {
 
       <AgendaAvailabilitySettingsDialog
         open={availabilitySettingsOpen}
-        onClose={() => setAvailabilitySettingsOpen(false)}
+        onClose={() => {
+          setAvailabilitySettingsOpen(false);
+          void refreshAgendaConfiguration().catch(() => undefined);
+        }}
+        onChanged={(doctorId) => {
+          void refreshAgendaConfiguration().catch(() => undefined);
+          const doctor = backendDoctors.find((item) => item.id === doctorId);
+          if (doctor) setProfessional(backendDoctorDisplayName(doctor));
+        }}
         doctors={backendDoctors}
       />
 

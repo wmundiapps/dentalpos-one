@@ -188,8 +188,8 @@ function MonthView({
   dateISO,
   items,
   onDateChange,
+  onDayOpen,
   onAppointmentClick,
-  onNew,
 }: Omit<Props, "view" | "professional">) {
   const base = new Date(`${dateISO}T12:00:00`);
   const year = base.getFullYear();
@@ -229,8 +229,15 @@ function MonthView({
           return (
             <Box
               key={cellISO}
-              onClick={() => onDateChange(cellISO)}
-              onDoubleClick={() => onNew({ dateISO: cellISO })}
+              role="button"
+              tabIndex={0}
+              onClick={() => (onDayOpen ? onDayOpen(cellISO) : onDateChange(cellISO))}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                if (onDayOpen) onDayOpen(cellISO);
+                else onDateChange(cellISO);
+              }}
               sx={{
                 minHeight: 118,
                 p: 0.7,
@@ -273,7 +280,7 @@ function MonthView({
           </Box>
         ) : (
           <Typography color="text.secondary" sx={{ py: 1.5 }}>
-            Nenhum agendamento. Dê dois cliques no dia para agendar.
+            Nenhum agendamento. Clique no dia para abrir a agenda diária.
           </Typography>
         )}
       </Box>
@@ -621,6 +628,7 @@ export default function AgendaCalendarBoard(props: Props) {
         dateISO={props.dateISO}
         items={props.items}
         onDateChange={props.onDateChange}
+        onDayOpen={props.onDayOpen}
         onAppointmentClick={props.onAppointmentClick}
         onNew={props.onNew}
       />

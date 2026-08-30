@@ -80,12 +80,14 @@ function doctorName(doctor: BackendDoctor) {
 interface Props {
   open: boolean;
   onClose: () => void;
+  onChanged?: (doctorId: string) => void;
   doctors: BackendDoctor[];
 }
 
 export default function AgendaAvailabilitySettingsDialog({
   open,
   onClose,
+  onChanged,
   doctors,
 }: Props) {
   const [schedules, setSchedules] = useState<BackendSchedule[]>([]);
@@ -171,6 +173,7 @@ export default function AgendaAvailabilitySettingsDialog({
         slotDuration: intervalMinutes,
       });
       await refresh();
+      onChanged?.(doctorId);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível adicionar o período.");
     } finally {
@@ -183,6 +186,7 @@ export default function AgendaAvailabilitySettingsDialog({
     try {
       await deleteBackendSchedule(id);
       await refresh();
+      onChanged?.(doctorId);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível remover o período.");
     } finally {
@@ -207,6 +211,7 @@ export default function AgendaAvailabilitySettingsDialog({
         reason: breakReason.trim() || "Intervalo",
       });
       await refresh();
+      onChanged?.(doctorId);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível criar o intervalo fixo.");
     } finally {
@@ -219,6 +224,7 @@ export default function AgendaAvailabilitySettingsDialog({
     try {
       await deleteRecurringBreak(id);
       await refresh();
+      onChanged?.(doctorId);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível remover o intervalo fixo.");
     } finally {
