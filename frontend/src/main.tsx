@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+﻿import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
@@ -13,12 +13,12 @@ repairLocalStorageText();
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
-  throw new Error("Elemento root não encontrado.");
+  throw new Error("Elemento root nÃ£o encontrado.");
 }
 
 createRoot(rootElement).render(
   <StrictMode>
-    <BrowserRouter basename="/dentalposone">
+    <BrowserRouter>
       <AppThemeProvider>
         <App />
       </AppThemeProvider>
