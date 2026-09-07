@@ -85,7 +85,6 @@ model Clinic {
   costCenters CostCenter[]
   taxObligations TaxObligation[]
   accountantPortalAccesses AccountantPortalAccess[]
-  financialAlertResolutions FinancialAlertResolution[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -125,6 +124,7 @@ model User {
   auditLogs       AuditLog[] @relation("AuditActor")
   refreshTokens   RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  financialAlertResolutions FinancialAlertResolution[]
   @@unique([clinicId, email])
   @@index([clinicId])
   @@index([tenantId])
@@ -1568,7 +1568,7 @@ model RevahConversationMessage {
 
 // ======================
 // BLOCO 17 - AGENDA INTELIGENTE / BACKEND
-// Critério clínico sempre prioritário; financeiro é apenas fator auxiliar e alerta.
+// CritÃ©rio clÃ­nico sempre prioritÃ¡rio; financeiro Ã© apenas fator auxiliar e alerta.
 // ======================
 
 model SmartSchedulingPolicy {
@@ -1936,8 +1936,8 @@ model OperationalAlertResolution {
 }
 
 
-// ===== CHAT 8 / 5787 — ADIÇÕES PENDENTES DE MIGRAÇÃO CONTROLADA =====
-// Somente ADITIVO. Não executar prisma migrate dev.
+// ===== CHAT 8 / 5787 â€” ADIÃ‡Ã•ES PENDENTES DE MIGRAÃ‡ÃƒO CONTROLADA =====
+// Somente ADITIVO. NÃ£o executar prisma migrate dev.
 
 model PatientAcquisition {
   id        String   @id @default(cuid())

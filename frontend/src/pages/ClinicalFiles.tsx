@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteIcon from "@mui/icons-material/Delete";
 import DesignServicesIcon from "@mui/icons-material/DesignServices";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PageHeader from "../components/PageHeader";
@@ -139,9 +139,9 @@ export default function ClinicalFiles() {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "repeat(2, minmax(0, 1fr))" }, gap: 2 }}>
         {rows.map((row) => (
           <Paper key={row.id} elevation={0} sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
-            <Stack direction="row" justifyContent="space-between" spacing={2}>
+            <Stack direction="row" spacing={2} sx={{ justifyContent:"space-between" }}>
               <Box>
-                <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Stack direction="row" spacing={1} sx={{ flexWrap:"wrap" }}>
                   <Chip size="small" label={KINDS.find((k) => k.value === row.kind)?.label || row.kind} />
                   <Chip size="small" variant="outlined" label={row.previewKind} />
                   <Chip size="small" color={row.storageStatus === "AVAILABLE" ? "success" : "warning"} label={row.storageStatus} />
@@ -168,7 +168,7 @@ export default function ClinicalFiles() {
               {["STL", "PLY", "OBJ"].includes(row.kind) && (
                 <Button size="small" startIcon={<DesignServicesIcon />} onClick={() => void openDesign(row)}>DentalPos Design</Button>
               )}
-              <Button size="small" color="error" startIcon={<DeleteOutlineIcon />} onClick={() => void remove(row)}>Arquivar</Button>
+              <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => void remove(row)}>Arquivar</Button>
             </Stack>
           </Paper>
         ))}

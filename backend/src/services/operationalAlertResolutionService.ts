@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { writeAudit } from './auditService'
 
@@ -60,7 +61,7 @@ export async function registerOperationalResolution(ctx: Context, input: Registe
       reason,
       note,
       resolvedById: ctx.actorId,
-      metadata: input.metadata || undefined,
+      metadata: input.metadata ? (input.metadata as Prisma.InputJsonValue) : undefined,
     },
   })
   const protocol = protocolFromSequence(created.sequence)

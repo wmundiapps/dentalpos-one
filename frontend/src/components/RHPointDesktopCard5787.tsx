@@ -8,7 +8,7 @@ export default function RHPointDesktopCard5787(){
   const url=import.meta.env.VITE_REVAH_RH_POINT_URL || "http://localhost:8787/kiosk";
   return <Card sx={{border:2,borderColor:"primary.main"}}>
     <CardContent>
-      <Stack direction="row" spacing={1} alignItems="center">
+      <Stack direction="row" spacing={1} sx={{ alignItems:"center" }}>
         <FingerprintIcon color="primary"/>
         <Typography variant="h6" sx={{fontWeight:900}}>REGISTRAR PONTO — REVAH RH</Typography>
       </Stack>

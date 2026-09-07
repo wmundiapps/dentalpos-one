@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma'
+import { prisma } from '../lib/prisma'
 
 export async function listCriticalStock(clinicId:string){
   // Usa o estoque já existente; adaptar os nomes abaixo aos campos definitivos do schema integrado.

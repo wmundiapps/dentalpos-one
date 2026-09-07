@@ -98,11 +98,11 @@ export default function OdontogramPeriodontogram() {
     {error && <Alert severity="error" sx={{mb:2}} onClose={()=>setError('')}>{error}</Alert>}
 
     <Paper variant="outlined" sx={{p:2,borderRadius:3,mb:2}}>
-      <Stack direction={{xs:'column',md:'row'}} spacing={2} alignItems={{md:'center'}}>
+      <Stack direction={{xs:'column',md:'row'}} spacing={2} sx={{ alignItems:{md:'center'} }}>
         <FormControl sx={{minWidth:190}}><InputLabel>Dentição</InputLabel><Select value={dentition} label="Dentição" onChange={e=>setDentition(e.target.value as Dentition)}>
           <MenuItem value="ADULT">Adulto • FDI</MenuItem><MenuItem value="CHILD">Infantil • FDI</MenuItem>
         </Select></FormControl>
-        <Stack direction="row" spacing={1} flexWrap="wrap">
+        <Stack direction="row" spacing={1} sx={{ flexWrap:"wrap" }}>
           <Chip label="Atual" variant="outlined"/><Chip label="Planejado" color="warning"/><Chip label="Concluído" color="success"/>
         </Stack>
       </Stack>
@@ -114,7 +114,7 @@ export default function OdontogramPeriodontogram() {
 
     {tab===0 && <>
       <Paper variant="outlined" sx={{p:2,borderRadius:3,mb:2}}>
-        <Typography variant="h6" fontWeight={900}>Registrar achado</Typography>
+        <Typography variant="h6" sx={{ fontWeight:900 }}>Registrar achado</Typography>
         <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'repeat(5,1fr)'},gap:1.5,mt:2}}>
           <FormControl><InputLabel>Dente FDI</InputLabel><Select value={selectedTooth} label="Dente FDI" onChange={e=>setSelectedTooth(Number(e.target.value))}>
             {teeth.map(t=><MenuItem key={t} value={t}>{t}</MenuItem>)}
@@ -134,7 +134,7 @@ export default function OdontogramPeriodontogram() {
       </Paper>
       <Box sx={{display:'grid',gridTemplateColumns:{xs:'repeat(4,1fr)',md:'repeat(8,1fr)'},gap:1}}>
         {teeth.map(tooth=><Paper key={tooth} variant="outlined" sx={{p:1.25,minHeight:110,borderRadius:2}}>
-          <Typography fontWeight={900} textAlign="center">{tooth}</Typography>
+          <Typography sx={{ fontWeight:900, textAlign:"center" }}>{tooth}</Typography>
           <Divider sx={{my:.75}}/>
           <Stack spacing={0.5}>
             {(grouped[tooth]||[]).map(e=><Chip key={e.id} size="small" label={`${e.surface?e.surface+' • ':''}${e.findingLabel} • ${stateLabel[e.clinicalState]}`}
@@ -145,7 +145,7 @@ export default function OdontogramPeriodontogram() {
     </>}
 
     {tab===1 && <Paper variant="outlined" sx={{p:2,borderRadius:3}}>
-      <Typography variant="h6" fontWeight={900}>Novo exame periodontal</Typography>
+      <Typography variant="h6" sx={{ fontWeight:900 }}>Novo exame periodontal</Typography>
       <Stack direction={{xs:'column',md:'row'}} spacing={1.5} sx={{my:2}}>
         <TextField label="Profissional" value={professionalName} onChange={e=>setProfessionalName(e.target.value)}/>
         <TextField fullWidth label="Observações gerais" value={examNotes} onChange={e=>setExamNotes(e.target.value)}/>
@@ -154,14 +154,14 @@ export default function OdontogramPeriodontogram() {
       <Box sx={{overflowX:'auto'}}>
         <Box sx={{minWidth:1100}}>
           {teeth.map(tooth=><Box key={tooth} sx={{display:'grid',gridTemplateColumns:'70px repeat(6, 1fr)',gap:.5,mb:.75,alignItems:'center'}}>
-            <Typography fontWeight={900}>FDI {tooth}</Typography>
+            <Typography sx={{ fontWeight:900 }}>FDI {tooth}</Typography>
             {SITES.map(site=>{
               const r=getRecord(tooth,site)
               return <Paper key={site} variant="outlined" sx={{p:.75}}>
-                <Typography variant="caption" fontWeight={900}>{site}</Typography>
+                <Typography variant="caption" sx={{ fontWeight:900 }}>{site}</Typography>
                 <TextField size="small" type="number" label="PS" value={r.probingDepth} onChange={e=>patchRecord(tooth,site,{probingDepth:Number(e.target.value)})} sx={{mt:.5}}/>
                 <TextField size="small" type="number" label="REC" value={r.recession} onChange={e=>patchRecord(tooth,site,{recession:Number(e.target.value)})} sx={{mt:.5}}/>
-                <Stack direction="row" spacing={.5} sx={{mt:.5}} flexWrap="wrap">
+                <Stack direction="row" spacing={.5} sx={{ mt:.5, flexWrap:"wrap" }}>
                   <Chip size="small" clickable color={r.bleeding?'error':'default'} label="Sang." onClick={()=>patchRecord(tooth,site,{bleeding:!r.bleeding})}/>
                   <Chip size="small" clickable color={r.plaque?'warning':'default'} label="Placa" onClick={()=>patchRecord(tooth,site,{plaque:!r.plaque})}/>
                   <Chip size="small" clickable color={r.suppuration?'error':'default'} label="Sup." onClick={()=>patchRecord(tooth,site,{suppuration:!r.suppuration})}/>
@@ -177,7 +177,7 @@ export default function OdontogramPeriodontogram() {
     {tab===2 && <Stack spacing={1.5}>
       {exams.length===0 ? <Alert severity="info">Nenhum exame periodontal registrado.</Alert> :
         exams.map(exam=><Paper key={exam.id} variant="outlined" sx={{p:2,borderRadius:3}}>
-          <Typography fontWeight={900}>{new Date(exam.examinedAt).toLocaleString('pt-BR')} • {exam.professionalName||'Profissional não informado'}</Typography>
+          <Typography sx={{ fontWeight:900 }}>{new Date(exam.examinedAt).toLocaleString('pt-BR')} • {exam.professionalName||'Profissional não informado'}</Typography>
           <Typography color="text.secondary">{exam.sites.length} sítio(s) registrados • {exam.notes||'Sem observações gerais'}</Typography>
         </Paper>)}
     </Stack>}

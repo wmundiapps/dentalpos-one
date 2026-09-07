@@ -60,7 +60,7 @@ export default function Stock(){
       <TextField label="Quantidade atual" type="number" value={form.currentQuantity} onChange={e=>setForm({...form,currentQuantity:e.target.value})}/><TextField label="Estoque mínimo" type="number" value={form.minimumQuantity} onChange={e=>setForm({...form,minimumQuantity:e.target.value})}/>
       <TextField select label="Unidade" value={form.unit} onChange={e=>setForm({...form,unit:e.target.value})}>{["unidades","caixas","pacotes","frascos","seringas","kits"].map(v=><MenuItem key={v} value={v}>{v}</MenuItem>)}</TextField>
       <TextField label="Custo unitário" type="number" value={form.unitCost} onChange={e=>setForm({...form,unitCost:e.target.value})}/>
-      <TextField label="Lote" value={form.batch} onChange={e=>setForm({...form,batch:e.target.value})}/><TextField label="Validade" type="date" InputLabelProps={{shrink:true}} value={form.expirationDate} onChange={e=>setForm({...form,expirationDate:e.target.value})}/>
+      <TextField label="Lote" value={form.batch} onChange={e=>setForm({...form,batch:e.target.value})}/><TextField label="Validade" type="date" slotProps={{ inputLabel: { shrink:true } }} value={form.expirationDate} onChange={e=>setForm({...form,expirationDate:e.target.value})}/>
       <TextField label="Localização" value={form.location} onChange={e=>setForm({...form,location:e.target.value})} sx={{gridColumn:"1/-1"}}/>
     </DialogContent><DialogActions><Button onClick={()=>setOpen(false)}>Cancelar</Button><Button variant="contained" onClick={save}>Salvar</Button></DialogActions></Dialog>
   </Box>

@@ -41,13 +41,13 @@ export default function Reports(){
       <TextField select size="small" label="Categoria" value={group} onChange={e=>setGroup(e.target.value)} sx={{minWidth:220}}>
         {["Todos","Financeiro","Pacientes","Comercial","Gestão","Agenda","REVAH"].map(v=><MenuItem key={v} value={v}>{v}</MenuItem>)}
       </TextField>
-      <TextField size="small" type="date" label="De" value={from} onChange={e=>setFrom(e.target.value)} InputLabelProps={{shrink:true}}/>
-      <TextField size="small" type="date" label="Até" value={to} onChange={e=>setTo(e.target.value)} InputLabelProps={{shrink:true}}/>
+      <TextField size="small" type="date" label="De" value={from} onChange={e=>setFrom(e.target.value)} slotProps={{ inputLabel: { shrink:true } }}/>
+      <TextField size="small" type="date" label="Até" value={to} onChange={e=>setTo(e.target.value)} slotProps={{ inputLabel: { shrink:true } }}/>
     </Stack>
     <Grid container spacing={2}>
       {filtered.map(r=><Grid key={r.key} size={{xs:12,md:6,lg:4}}>
         <Card sx={{height:"100%"}}><CardContent>
-          <Stack direction="row" spacing={1} alignItems="center"><AssessmentIcon color="primary"/><Typography variant="h6" sx={{fontWeight:850}}>{r.title}</Typography></Stack>
+          <Stack direction="row" spacing={1} sx={{ alignItems:"center" }}><AssessmentIcon color="primary"/><Typography variant="h6" sx={{fontWeight:850}}>{r.title}</Typography></Stack>
           <Chip size="small" label={r.group} sx={{my:1}}/>
           <Typography variant="body2" color="text.secondary" sx={{minHeight:64}}>{r.description}</Typography>
           <Button variant="contained" startIcon={<DownloadIcon/>} onClick={()=>exportCsv(r.key)} sx={{mt:2}}>Gerar relatório CSV</Button>

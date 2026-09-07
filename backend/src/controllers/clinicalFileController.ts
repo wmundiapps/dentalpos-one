@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
@@ -183,6 +184,7 @@ export async function uploadIntent(req: AuthRequest, res: Response) {
       data: {
         clinicId, tenantId, patientId, createdById: actorUserId,
         ...parsed.data,
+        metadata: parsed.data.metadata as Prisma.InputJsonValue | undefined,
         extension,
         previewKind,
         storageProvider: parsed.data.externalUrl ? 'EXTERNAL_REFERENCE' : 'PENDING',
@@ -247,7 +249,7 @@ export async function completeUpload(req: AuthRequest, res: Response) {
       data: {
         storageStatus: 'AVAILABLE',
         checksum: parsed.data.checksum || existing.checksum,
-        metadata: parsed.data.metadata || existing.metadata
+        metadata: parsed.data.metadata ? (parsed.data.metadata as Prisma.InputJsonValue) : (existing.metadata ?? Prisma.JsonNull)
       }
     })
     await writeAudit({
@@ -279,7 +281,8 @@ export async function update(req: AuthRequest, res: Response) {
         ...parsed.data,
         examDate: parsed.data.examDate === undefined
           ? undefined
-          : parsed.data.examDate ? new Date(parsed.data.examDate) : null
+          : parsed.data.examDate ? new Date(parsed.data.examDate) : null,
+        metadata: parsed.data.metadata === undefined ? undefined : (parsed.data.metadata as Prisma.InputJsonValue)
       }
     })
     await writeAudit({

@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma'
+import { prisma } from '../lib/prisma'
 
 export type RevahSegment =
   | 'AGENDA_AMANHA'|'FALTOSOS'|'DEVEDORES'|'SEM_PROXIMO_AGENDAMENTO'
