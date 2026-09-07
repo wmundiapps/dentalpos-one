@@ -78,7 +78,7 @@ router.use(tenantMiddleware)
 // Clinical modules integrated by Chat 8. Authentication and tenant context are already resolved above.
 router.use(clinicalRecordRoutes)
 router.use(dentalChartRoutes)
-router.use(specialtyClinicalRoutes)
+router.use('/specialty-clinical', specialtyClinicalRoutes)
 router.use(specializedClinicalRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
