@@ -16,6 +16,8 @@ import {
   Switch,
   ToggleButtonGroup,
   Typography,
+  FormControlLabel,
+  Checkbox,
 
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -42,7 +44,7 @@ import {
 
 import { listPatients } from "../services/PatientClinicalService";
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
-import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, type BackendAppointment, type BackendDoctor } from "../services/AppointmentApi";
+import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import {
   loadAgendaBlocks,
@@ -65,7 +67,7 @@ const today = () => iso(new Date());
 const KEY = "dentalpos.agenda.notification-settings.v1";
 
 type View = "day" | "week" | "month";
-type Channel = "WhatsApp" | "SMS" | "Telegram" | "Manual";
+type Channel = "WhatsApp" | "SMS";
 type StatusFilter = "Todos" | AppointmentStatus;
 type PatientMode = "registered" | "new";
 
@@ -83,7 +85,7 @@ type AppointmentForm = {
   laboratoryName: string;
 };
 
-const defaultProfessionals = ["Todos", "Dr. Robson", "Dra. Cássia"];
+const defaultProfessionals = ["Todos"];
 
 function backendDoctorDisplayName(doctor: BackendDoctor) {
   return `Dr. ${doctor.user.firstName} ${doctor.user.lastName}`.trim();
@@ -175,7 +177,7 @@ function backendRequestedBy(value: "Paciente" | "Clínica" | "Dentista" | "Outro
 }
 
 function backendChannel(value: Channel) {
-  return ({ WhatsApp: "WHATSAPP", SMS: "SMS", Telegram: "TELEGRAM", Manual: "MANUAL" } as const)[value];
+  return ({ WhatsApp: "WHATSAPP", SMS: "SMS" } as const)[value];
 }
 
 function historyAction(value: string): "Criado" | "Remarcado" | "Cancelado" | "Faltou" | "Alterado" {
@@ -229,7 +231,11 @@ function mapBackendAppointment(appointment: BackendAppointment): IntegratedAppoi
     source: "Interno",
     category: "1ª consulta",
     durationMinutes: appointment.durationMinutes || 30,
-    reminders: { onBooking: true, oneDayBefore: true, onDay: true },
+    reminders: {
+      onBooking: appointment.reminders?.some((item) => item.type === "ON_BOOKING" && item.status !== "CANCELLED") ?? true,
+      oneDayBefore: appointment.reminders?.some((item) => item.type === "ONE_DAY_BEFORE" && item.status !== "CANCELLED") ?? true,
+      onDay: appointment.reminders?.some((item) => item.type === "ON_DAY" && item.status !== "CANCELLED") ?? true,
+    },
     createdAtISO: appointment.scheduledAt,
     confirmation: appointment.confirmation || undefined,
     confirmChannel: appointment.confirmChannel || undefined,
@@ -296,10 +302,16 @@ export default function Agenda() {
   const [editSmartSuggestion, setEditSmartSuggestion] = useState<SmartScheduleSuggestion | null>(null);
   const [channel, setChannel] = useState<Channel>(() => {
     try {
-      return JSON.parse(localStorage.getItem(KEY) || "{}")?.channel || "WhatsApp";
+      const saved = JSON.parse(localStorage.getItem(KEY) || "{}")?.channel;
+      return saved === "SMS" ? "SMS" : "WhatsApp";
     } catch {
       return "WhatsApp";
     }
+  });
+  const [reminderSelection, setReminderSelection] = useState<ReminderSelection>({
+    onBooking: true,
+    oneDayBefore: true,
+    onDay: true,
   });
   const [form, setForm] = useState<AppointmentForm>(() => initialForm(date));
   const [patientMode, setPatientMode] = useState<PatientMode>("registered");
@@ -544,7 +556,7 @@ export default function Agenda() {
     };
   }, []);
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify({ channel, booking: true, oneDayBefore: true, onDay: true }));
+    localStorage.setItem(KEY, JSON.stringify({ channel }));
   }, [channel]);
 
   const range = useMemo(() => {
@@ -621,6 +633,7 @@ export default function Agenda() {
 
   const openNew = (prefill?: Partial<AppointmentForm>) => {
     setSmartSuggestion(null);
+    setReminderSelection({ onBooking: true, oneDayBefore: true, onDay: true });
     setPatientMode("registered");
     setNewPatient({ firstName: "", lastName: "", birthDate: "", phone: "", city: "" });
 
@@ -746,6 +759,7 @@ export default function Agenda() {
         scheduledAt: scheduledAt.toISOString(),
         durationMinutes: Number(form.durationMinutes || 30),
         reminderChannel: backendChannel(channel),
+        reminders: reminderSelection,
       });
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível salvar o agendamento.");
@@ -761,7 +775,7 @@ export default function Agenda() {
       smartSchedule: smartScheduleSnapshot(smartSuggestion),
       status: "Agendado",
       source: "Interno",
-      reminders: { onBooking: true, oneDayBefore: true, onDay: true },
+      reminders: reminderSelection,
     });
     setOpen(false);
     setItems(getAppointments());
@@ -870,70 +884,53 @@ export default function Agenda() {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", lg: "minmax(220px,1fr) auto minmax(220px,1fr)" },
+            gridTemplateColumns: { xs: "1fr", lg: "minmax(300px,1fr) auto minmax(260px,1fr)" },
             gap: 1.5,
             alignItems: "center",
           }}
         >
-          <TextField
-            size="small"
-            select
-            label="Agenda"
-            value={professional}
-            onChange={(event) => setProfessional(event.target.value)}
-            sx={{ minWidth: 220, maxWidth: 320 }}
-          >
-            {professionals.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
-          </TextField>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", justifyContent: { xs: "center", lg: "flex-start" } }}>
+            <Button variant="outlined" onClick={() => move(-1)} aria-label="Período anterior" sx={{ minWidth: 44, fontSize: 24, lineHeight: 1 }}>‹</Button>
+            <TextField
+              size="small"
+              type={view === "month" ? "month" : "date"}
+              value={view === "month" ? date.slice(0, 7) : date}
+              onChange={(event) => setDate(view === "month" ? `${event.target.value}-01` : event.target.value)}
+              sx={{ minWidth: view === "month" ? 170 : 180 }}
+            />
+            <Button variant="outlined" onClick={() => move(1)} aria-label="Próximo período" sx={{ minWidth: 44, fontSize: 24, lineHeight: 1 }}>›</Button>
+            <Button variant="contained" onClick={() => setDate(today())}>Hoje</Button>
+          </Box>
 
           <ToggleButtonGroup
             exclusive
             value={view}
-            onChange={(_, value) => {
-              if (!value) return;
-              setView(value);
-            }}
+            onChange={(_, value) => { if (value) setView(value); }}
             size="small"
-            sx={{ justifySelf: { lg: "center" } }}
+            sx={{ justifySelf: "center" }}
           >
             <ToggleButton value="day">Dia</ToggleButton>
             <ToggleButton value="week">Semana</ToggleButton>
             <ToggleButton value="month">Mês</ToggleButton>
           </ToggleButtonGroup>
 
-          <Box sx={{ display: "flex", gap: 1, justifyContent: { lg: "flex-end" }, flexWrap: "wrap" }}>
-            <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
-            <Button onClick={() => void openOnlineSlots()}>Horários online</Button>
-            <Button onClick={() => setAvailabilitySettingsOpen(true)}>Jornada / bloqueios</Button>
-            <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Inteligência</Button>
-          </Box>
-        </Box>
-
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1, mt: 1.5, flexWrap: "wrap" }}>
-          <Button
-            variant="outlined"
-            onClick={() => move(-1)}
-            aria-label="Período anterior"
-            sx={{ minWidth: 44, fontSize: 24, lineHeight: 1 }}
-          >
-            ‹
-          </Button>
           <TextField
             size="small"
-            type={view === "month" ? "month" : "date"}
-            value={view === "month" ? date.slice(0, 7) : date}
-            onChange={(event) => setDate(view === "month" ? `${event.target.value}-01` : event.target.value)}
-            sx={{ minWidth: view === "month" ? 170 : 180 }}
-          />
-          <Button
-            variant="outlined"
-            onClick={() => move(1)}
-            aria-label="Próximo período"
-            sx={{ minWidth: 44, fontSize: 24, lineHeight: 1 }}
+            select
+            label="Agenda / profissional"
+            value={professional}
+            onChange={(event) => setProfessional(event.target.value)}
+            sx={{ minWidth: 220, maxWidth: 320, justifySelf: { lg: "end" } }}
           >
-            ›
-          </Button>
-          <Button variant="contained" onClick={() => setDate(today())}>Hoje</Button>
+            {professionals.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+          </TextField>
+        </Box>
+
+        <Box sx={{ display: "flex", gap: 1, justifyContent: { xs: "center", lg: "flex-end" }, flexWrap: "wrap", mt: 1.25 }}>
+          <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
+          <Button onClick={() => void openOnlineSlots()}>Horários online</Button>
+          <Button onClick={() => setAvailabilitySettingsOpen(true)}>Jornada / bloqueios</Button>
+          <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Inteligência</Button>
         </Box>
 
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>
@@ -1134,12 +1131,20 @@ export default function Agenda() {
               />
             </>
           )}
-          <TextField select label="Avisos / confirmação" value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
-            <MenuItem value="WhatsApp">WhatsApp • automático</MenuItem>
-            <MenuItem value="SMS">SMS • automático</MenuItem>
-            <MenuItem value="Telegram">Telegram • automático</MenuItem>
-            <MenuItem value="Manual">Manual • recepção</MenuItem>
-          </TextField>
+          <Box sx={{ gridColumn: { md: "1/-1" }, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+            <Typography sx={{ fontWeight: 900, mb: 1 }}>Confirmações do paciente</Typography>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "220px 1fr" }, gap: 1, alignItems: "start" }}>
+              <TextField select size="small" label="Canal" value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
+                <MenuItem value="WhatsApp">WhatsApp</MenuItem>
+                <MenuItem value="SMS">SMS</MenuItem>
+              </TextField>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <FormControlLabel control={<Checkbox checked={reminderSelection.onBooking} onChange={(e) => setReminderSelection((current) => ({ ...current, onBooking: e.target.checked }))} />} label="Ao agendar" />
+                <FormControlLabel control={<Checkbox checked={reminderSelection.oneDayBefore} onChange={(e) => setReminderSelection((current) => ({ ...current, oneDayBefore: e.target.checked }))} />} label="1 dia antes" />
+                <FormControlLabel control={<Checkbox checked={reminderSelection.onDay} onChange={(e) => setReminderSelection((current) => ({ ...current, onDay: e.target.checked }))} />} label="No dia" />
+              </Box>
+            </Box>
+          </Box>
           <TextField label="Profissional" value={form.professionalName} onChange={(event) => setForm({ ...form, professionalName: event.target.value })} />
           <TextField label="Sala" value={form.room} onChange={(event) => setForm({ ...form, room: event.target.value })} />
           <TextField
@@ -1279,6 +1284,20 @@ export default function Agenda() {
                     </MenuItem>
                   ))}
                 </TextField>
+                <Box sx={{ gridColumn: { md: "1/-1" }, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                  <Typography sx={{ fontWeight: 900, mb: 1 }}>Confirmações do paciente</Typography>
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "220px 1fr" }, gap: 1, alignItems: "start" }}>
+                    <TextField select size="small" label="Canal" value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
+                      <MenuItem value="WhatsApp">WhatsApp</MenuItem>
+                      <MenuItem value="SMS">SMS</MenuItem>
+                    </TextField>
+                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      <FormControlLabel control={<Checkbox checked={edit.reminders.onBooking} onChange={(e) => setEdit({ ...edit, reminders: { ...edit.reminders, onBooking: e.target.checked } })} />} label="Ao agendar" />
+                      <FormControlLabel control={<Checkbox checked={edit.reminders.oneDayBefore} onChange={(e) => setEdit({ ...edit, reminders: { ...edit.reminders, oneDayBefore: e.target.checked } })} />} label="1 dia antes" />
+                      <FormControlLabel control={<Checkbox checked={edit.reminders.onDay} onChange={(e) => setEdit({ ...edit, reminders: { ...edit.reminders, onDay: e.target.checked } })} />} label="No dia" />
+                    </Box>
+                  </Box>
+                </Box>
                 <TextField
                   label="Laboratório (se houver)"
                   value={edit.laboratoryName || ""}
@@ -1359,6 +1378,7 @@ export default function Agenda() {
                       reason: editReason.trim(),
                       requestedBy: backendRequestedBy(editRequestedBy),
                       reminderChannel: backendChannel(channel),
+                      reminders: edit.reminders,
                     });
                     const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
                     saveAppointments(refreshed);

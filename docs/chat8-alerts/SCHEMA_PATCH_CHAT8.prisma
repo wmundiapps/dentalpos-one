@@ -1,0 +1,36 @@
+// CHAT 8 — acrescentar de forma aditiva ao schema.prisma consolidado.
+// NÃO aplicar neste Chat 3.
+model FinancialAlertResolution {
+  id                    String    @id @default(cuid())
+  clinicId              String
+  clinic                Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId              String
+  sourceEntityType      String
+  sourceEntityId        String
+  status                String    @default("ACTIVE")
+  action                String?
+  reason                String?
+  resolvedById          String?
+  resolvedBy            User?     @relation(fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt            DateTime?
+  patientId             String?
+  patient               Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  supplierId            String?
+  supplier              Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  personName            String?
+  amount                Float     @default(0)
+  replacementEntityType String?
+  replacementEntityId   String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  @@unique([clinicId, sourceEntityType, sourceEntityId])
+  @@index([tenantId, status])
+  @@index([patientId])
+  @@index([supplierId])
+}
+
+// Relações inversas a adicionar pelo Chat 8:
+// Clinic.financialAlertResolutions FinancialAlertResolution[]
+// User.financialAlertResolutions FinancialAlertResolution[]
+// Patient.financialAlertResolutions FinancialAlertResolution[]
+// Supplier.financialAlertResolutions FinancialAlertResolution[]

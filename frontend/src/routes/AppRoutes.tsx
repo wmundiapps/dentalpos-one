@@ -11,6 +11,10 @@ import ClinicHealth from "../pages/ClinicHealth";
 import Clinics from "../pages/Clinics";
 import ClinicalDocuments from "../pages/ClinicalDocuments";
 import ClinicalRecord from "../pages/ClinicalRecord";
+import ClinicalFiles from "../pages/ClinicalFiles";
+import OdontogramPeriodontogram from "../pages/OdontogramPeriodontogram";
+import SurgeryImplantProsthesis from "../pages/SurgeryImplantProsthesis";
+import SpecializedClinical from "../pages/SpecializedClinical";
 import CommandCenter from "../pages/CommandCenter";
 import Commercial from "../pages/Commercial";
 import Communications from "../pages/Communications";
@@ -209,6 +213,10 @@ export default function AppRoutes() {
         path="/prontuario"
         element={<ClinicalRecord />}
       />
+      <Route path="/odontograma-periodontograma" element={<OdontogramPeriodontogram />} />
+      <Route path="/arquivos-exames-clinicos" element={<ClinicalFiles />} />
+      <Route path="/cirurgia-implantes-protese" element={<SurgeryImplantProsthesis />} />
+      <Route path="/clinico-especializado" element={<SpecializedClinical />} />
 
       <Route path="/recall" element={<Recall />} />
 

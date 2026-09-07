@@ -24,6 +24,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ReplayIcon from "@mui/icons-material/Replay";
 import PageHeader from "../components/PageHeader";
+import AffiliateSupplierForm5787 from "../components/AffiliateSupplierForm5787";
 
 type Opportunity = {
   id: number;
@@ -46,6 +47,7 @@ const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" 
 
 export default function Sales() {
   const [tab, setTab] = useState(0);
+  const [storeDiscount, setStoreDiscount] = useState(()=>Number(localStorage.getItem("dentalpos.sales.storeDiscount")||"5"));
   const pipeline = useMemo(() => opportunities.reduce((sum, item) => sum + item.value, 0), []);
 
   return (
@@ -91,6 +93,8 @@ export default function Sales() {
           <Tab label="Recuperação" />
           <Tab label="Pedidos" />
           <Tab label="Automação" />
+          <Tab label="Loja virtual" />
+          <Tab label="Fornecedores afiliados" />
         </Tabs>
         <Divider />
         <CardContent>
@@ -98,6 +102,8 @@ export default function Sales() {
           {tab === 1 && <RecoveryPanel />}
           {tab === 2 && <OrderFlow />}
           {tab === 3 && <AutomationPanel />}
+          {tab === 4 && <StorePanel discount={storeDiscount} onDiscount={(v)=>{setStoreDiscount(v);localStorage.setItem("dentalpos.sales.storeDiscount",String(v))}} />}
+          {tab === 5 && <AffiliateSupplierForm5787 />}
         </CardContent>
       </Card>
     </Box>
@@ -170,4 +176,24 @@ function Flow({ title, detail, progress }: { title: string; detail: string; prog
 
 function FlowCard({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
   return <Grid size={{ xs: 12, md: 4 }}><Card variant="outlined" sx={{ height: "100%" }}><CardContent><Stack direction="row" spacing={1} sx={{ alignItems: "center" }}><Box>{icon}</Box><Typography sx={{ fontWeight: 700 }}>{title}</Typography></Stack><Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{text}</Typography><Button size="small" sx={{ mt: 1 }}>Configurar integração</Button></CardContent></Card></Grid>;
+}
+
+
+function StorePanel({discount,onDiscount}:{discount:number;onDiscount:(v:number)=>void}) {
+  return <Stack spacing={2}>
+    <Alert severity="success"><strong>Loja DentalPos:</strong> compras realizadas pela loja própria podem receber desconto configurável pela clínica.</Alert>
+    <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"280px 1fr"},gap:2}}>
+      <Box>
+        <Typography sx={{fontWeight:700,mb:1}}>Desconto da loja própria</Typography>
+        <input aria-label="Desconto percentual da loja" type="number" min="0" max="100" step="0.5" value={discount}
+          onChange={(e)=>onDiscount(Math.max(0,Math.min(100,Number(e.target.value)||0)))}
+          style={{width:"100%",padding:"12px",fontSize:"16px",border:"1px solid #ccc",borderRadius:"8px"}} />
+        <Typography variant="caption" color="text.secondary">Percentual atual: {discount}%</Typography>
+      </Box>
+      <Box>
+        <Typography sx={{fontWeight:700}}>Integração DentalPos Componentes</Typography>
+        <Typography variant="body2" color="text.secondary">Produtos, estoque, pedido, pagamento, fiscal e expedição compartilham a mesma origem comercial.</Typography>
+      </Box>
+    </Box>
+  </Stack>
 }

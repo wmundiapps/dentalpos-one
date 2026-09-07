@@ -6,11 +6,17 @@ import type { LaboratoryWorkStatus } from "../types/laboratory";
 import { repairObjectText } from "../utils/textEncoding";
 import { listPatients, listTreatmentItems } from "./PatientClinicalService";
 import { listFinanceEntries, type FinanceEntry } from "./FinanceHubService";
+import { isOperationalAlertResolved } from "./OperationalAlertResolutionApi";
+import { inventoryItems } from "./InventoryService";
 
 export const OPERATIONS_EVENT = "dentalpos:operations-updated";
 const LAB_KEY = "dentalpos.operations.labWorks.v1";
 const LEGACY_LAB_KEY = "dentalpos.laboratory.queue.v3";
 const AGENDA_KEY = "dentalpos.operations.appointments.v1";
+
+const demoDataEnabled = () =>
+  import.meta.env.VITE_ENABLE_DEMO_DATA === "true" ||
+  localStorage.getItem("dentalpos.demoData.enabled") === "true";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const brToISO = (value?: string): string | undefined => {
@@ -23,7 +29,7 @@ const brToISO = (value?: string): string | undefined => {
 const formatPatientCode = (name: string) =>
   name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || "PAC";
 
-const seedLabWorks: IntegratedLaboratoryWork[] = laboratorySeed.map((work) => ({
+const seedLabWorks: IntegratedLaboratoryWork[] = demoDataEnabled() ? laboratorySeed.map((work) => ({
   id: work.id,
   trackingCode: work.trackingCode,
   patientName: work.patientCode,
@@ -41,9 +47,9 @@ const seedLabWorks: IntegratedLaboratoryWork[] = laboratorySeed.map((work) => ({
   observations: work.observations,
   source: "Laboratório",
   updatedAtISO: new Date().toISOString(),
-}));
+})) : [];
 
-const seedAppointments: IntegratedAppointment[] = appointmentSeed.map((appointment) => ({
+const seedAppointments: IntegratedAppointment[] = demoDataEnabled() ? appointmentSeed.map((appointment) => ({
   id: appointment.id,
   patientName: appointment.patientName,
   professionalName: appointment.professionalName,
@@ -56,7 +62,7 @@ const seedAppointments: IntegratedAppointment[] = appointmentSeed.map((appointme
   source: "Interno",
   reminders: { onBooking: true, oneDayBefore: true, onDay: true },
   createdAtISO: new Date().toISOString(),
-}));
+})) : [];
 
 function read<T>(key: string, seed: T): T {
   try {
@@ -357,9 +363,9 @@ export function getOperationalAlerts(): OperationalAlert[] {
     const dueDays = daysBetween(work.dueDateISO);
     const returnDays = daysBetween(work.patientReturnDateISO);
     if (dueDays < 0) {
-      alerts.push({ id: `lab-overdue-${work.id}`, area: "Laboratório", severity: "error", title: "Trabalho laboratorial atrasado", description: `${work.patientName} • ${work.workType} • prazo vencido há ${Math.abs(dueDays)} dia(s).`, dueISO: work.dueDateISO, route: "/laboratorio" });
+      alerts.push({ id: `lab-overdue-${work.id}`, area: "Laboratório", severity: "error", title: "Trabalho laboratorial atrasado", description: `${work.patientName} • ${work.workType} • prazo vencido há ${Math.abs(dueDays)} dia(s).`, dueISO: work.dueDateISO, route: "/laboratorio", sourceEntityType:"LaboratoryWork", sourceEntityId:String(work.id) });
     } else if (dueDays <= 2 || returnDays <= 2) {
-      alerts.push({ id: `lab-risk-${work.id}`, area: "Laboratório", severity: "warning", title: "Trabalho em risco de atraso", description: `${work.patientName} • ${work.workType} • retorno/prazo próximo.`, dueISO: work.patientReturnDateISO || work.dueDateISO, route: "/laboratorio" });
+      alerts.push({ id: `lab-risk-${work.id}`, area: "Laboratório", severity: "warning", title: "Trabalho em risco de atraso", description: `${work.patientName} • ${work.workType} • retorno/prazo próximo.`, dueISO: work.patientReturnDateISO || work.dueDateISO, route: "/laboratorio", sourceEntityType:"LaboratoryWork", sourceEntityId:String(work.id) });
     }
   });
 
@@ -389,31 +395,81 @@ export function getOperationalAlerts(): OperationalAlert[] {
     const dueISO = brToISO(entry.dueDate);
     const days = daysBetween(dueISO);
     if (entry.status === "Vencido" || days < 0) {
-      alerts.push({ id: `financial-overdue-${entry.id}`, area: entry.type === "Receita" ? "Pacientes" : "Financeiro", severity: "error", title: entry.type === "Receita" ? "Recebimento vencido" : "Conta vencida", description: `${entry.personName} • ${entry.description} • R$ ${entry.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.`, dueISO, route: "/financeiro" });
+      alerts.push({ id: `financial-overdue-${entry.id}`, area: entry.type === "Receita" ? "Pacientes" : "Financeiro", severity: "error", title: entry.type === "Receita" ? "Recebimento vencido" : "Conta vencida", description: `${entry.personName} • ${entry.description} • R$ ${entry.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.`, dueISO, route: "/financeiro", sourceEntityType:"FinancialEntry", sourceEntityId:String(entry.id) });
     } else if ([0, 1, 7].includes(days)) {
-      alerts.push({ id: `financial-due-${entry.id}`, area: "Financeiro", severity: days === 0 ? "error" : "warning", title: days === 0 ? "Conta vence hoje" : `Conta vence em ${days} dia(s)`, description: `${entry.personName} • ${entry.description}.`, dueISO, route: "/financeiro" });
+      alerts.push({ id: `financial-due-${entry.id}`, area: "Financeiro", severity: days === 0 ? "error" : "warning", title: days === 0 ? "Conta vence hoje" : `Conta vence em ${days} dia(s)`, description: `${entry.personName} • ${entry.description}.`, dueISO, route: "/financeiro", sourceEntityType:"FinancialEntry", sourceEntityId:String(entry.id) });
     }
   });
 
-  employees.forEach((employee) => {
+
+  const operationalInventoryItems = demoDataEnabled() ? inventoryItems : [];
+  operationalInventoryItems.forEach((item) => {
+    const low = item.currentQuantity <= item.minimumQuantity;
+    const critical = item.status === "Crítico" || item.currentQuantity <= Math.max(1, Math.floor(item.minimumQuantity / 2));
+    const expirationISO = brToISO(item.expirationDate);
+    const expirationDays = daysBetween(expirationISO);
+
+    if (critical) {
+      alerts.push({
+        id: `inventory-critical-${item.id}`,
+        area: "Estoque",
+        severity: "error",
+        title: "Estoque crítico",
+        description: `${item.name} • saldo ${item.currentQuantity} ${item.unit} • mínimo ${item.minimumQuantity}.`,
+        route: "/estoque",
+        sourceEntityType: "Inventory",
+        sourceEntityId: String(item.id),
+      });
+    } else if (low) {
+      alerts.push({
+        id: `inventory-low-${item.id}`,
+        area: "Estoque",
+        severity: "warning",
+        title: "Material para comprar / repor",
+        description: `${item.name} • saldo ${item.currentQuantity} ${item.unit} • mínimo ${item.minimumQuantity}.`,
+        route: "/estoque",
+        sourceEntityType: "Inventory",
+        sourceEntityId: String(item.id),
+      });
+    }
+
+    if (Number.isFinite(expirationDays) && expirationDays >= 0 && expirationDays <= 30) {
+      alerts.push({
+        id: `inventory-expiry-${item.id}`,
+        area: "Estoque",
+        severity: expirationDays <= 7 ? "error" : "warning",
+        title: "Material com vencimento próximo",
+        description: `${item.name} • vence em ${expirationDays} dia(s) • lote ${item.batch || "não informado"}.`,
+        dueISO: expirationISO,
+        route: "/estoque",
+        sourceEntityType: "Inventory",
+        sourceEntityId: String(item.id),
+      });
+    }
+  });
+
+  const operationalEmployees = demoDataEnabled() ? employees : [];
+  operationalEmployees.forEach((employee) => {
     const days = daysBetween(brToISO(employee.experienceEndDate));
     if (Number.isFinite(days) && days >= 0 && days <= 15) {
       alerts.push({ id: `hr-exp-${employee.id}`, area: "RH", severity: "warning", title: "Experiência próxima do vencimento", description: `${employee.name} • término em ${days} dia(s).`, route: "/rh" });
     }
   });
 
-  hrDocuments.forEach((document) => {
+  const operationalHrDocuments = demoDataEnabled() ? hrDocuments : [];
+  operationalHrDocuments.forEach((document) => {
     const days = daysBetween(brToISO(document.expiresAt));
     if (document.status === "Vencido" || (Number.isFinite(days) && days >= 0 && days <= 15)) {
       alerts.push({ id: `hr-doc-${document.id}`, area: "RH", severity: document.status === "Vencido" ? "error" : "warning", title: "Documento de RH requer atenção", description: `${document.employeeName} • ${document.title}.`, route: "/rh" });
     }
   });
 
-  vacationControls.filter((item) => item.status === "Vencida").forEach((vacation) => {
+  const operationalVacations = demoDataEnabled() ? vacationControls : [];
+  operationalVacations.filter((item) => item.status === "Vencida").forEach((vacation) => {
     alerts.push({ id: `hr-vac-${vacation.id}`, area: "RH", severity: "error", title: "Férias vencidas", description: `${vacation.employeeName} possui período vencido.`, route: "/rh" });
   });
 
-  return alerts.sort((a, b) => ({ error: 0, warning: 1, info: 2, success: 3 }[a.severity] - { error: 0, warning: 1, info: 2, success: 3 }[b.severity]));
+  return alerts.filter((alert) => !isOperationalAlertResolved(alert)).sort((a, b) => ({ error: 0, warning: 1, info: 2, success: 3 }[a.severity] - { error: 0, warning: 1, info: 2, success: 3 }[b.severity]));
 }
 
 export function mapDesignStatusToLaboratory(status: string): LaboratoryWorkStatus {

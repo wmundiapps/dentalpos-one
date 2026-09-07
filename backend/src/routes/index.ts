@@ -36,6 +36,16 @@ import * as platformReadinessController from '../controllers/platformReadinessCo
 import * as smartSchedulingController from '../controllers/smartSchedulingController'
 import * as demoController from '../controllers/demoController'
 import { requirePermission } from '../middleware/permission'
+import clinicalRecordRoutes from './clinicalRecordRoutes'
+import dentalChartRoutes from './dentalChartRoutes'
+import { specialtyClinicalRoutes } from './specialtyClinicalRoutes'
+import specializedClinicalRoutes from './specializedClinicalRoutes'
+import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
+import * as clinicalFileController from '../controllers/clinicalFileController'
+import * as treatmentPlanController from '../controllers/treatmentPlanController'
+import * as financialAlertResolutionController from '../controllers/financialAlertResolutionController'
+import * as operationalAlertResolutionController from '../controllers/operationalAlertResolutionController'
+import * as reportController5787 from '../controllers/reportController5787'
 
 const router = Router()
 
@@ -64,6 +74,21 @@ router.post('/public/booking/:clinicId', publicBookingController.store)
 
 router.use(authMiddleware)
 router.use(tenantMiddleware)
+
+// Clinical modules integrated by Chat 8. Authentication and tenant context are already resolved above.
+router.use(clinicalRecordRoutes)
+router.use(dentalChartRoutes)
+router.use(specialtyClinicalRoutes)
+router.use(specializedClinicalRoutes)
+
+router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
+
+// Operational alert resolution / Homologação 5787
+router.get('/operational-alert-resolutions', requirePermission('dashboard.view'), operationalAlertResolutionController.index)
+router.post('/operational-alert-resolutions/dismiss', requirePermission('dashboard.view'), operationalAlertResolutionController.dismiss)
+router.get('/financial-alert-resolutions', requirePermission('finance.view'), financialAlertResolutionController.listResolutionStates)
+router.post('/financial-alert-resolutions/in-progress', requirePermission('finance.edit'), financialAlertResolutionController.markInProgress)
+router.post('/financial-alert-resolutions/resolve', requirePermission('finance.edit'), financialAlertResolutionController.resolveFromOperation)
 
 // ======================
 // CORE / ACCESS / SETTINGS / AUDIT
@@ -126,6 +151,36 @@ router.get('/patients/:patientId/clinical', requirePermission('clinical.view'), 
 router.post('/patients/:patientId/odontogram', requirePermission('clinical.edit'), clinicalController.upsertOdontogramMark)
 router.post('/patients/:patientId/evolutions', requirePermission('clinical.edit'), clinicalController.createEvolution)
 router.get('/patients/:patientId/treatment-plan', requirePermission('clinical.view'), clinicalController.treatmentPlan)
+
+// TREATMENT PLAN V2 — reconstructed Chat 3
+router.get('/patients/:patientId/treatment-plan-v2', requirePermission('clinical.view'), treatmentPlanController.index)
+router.post('/patients/:patientId/treatment-plan-v2/items', requirePermission('clinical.edit'), treatmentPlanController.createItem)
+router.put('/treatment-plan-v2/items/:id', requirePermission('clinical.edit'), treatmentPlanController.updateItem)
+router.post('/patients/:patientId/treatment-plan-v2/import-odontogram', requirePermission('clinical.edit'), treatmentPlanController.importOdontogram)
+router.get('/patients/:patientId/treatment-plan-v2/revisions', requirePermission('clinical.view'), treatmentPlanController.revisions)
+
+// CLINICAL DOCUMENTS — Chat 4
+router.get('/clinical-document-templates', requirePermission('clinical.view'), clinicalDocumentController.listTemplates)
+router.post('/clinical-document-templates', requirePermission('clinical.edit'), clinicalDocumentController.createTemplate)
+router.put('/clinical-document-templates/:id', requirePermission('clinical.edit'), clinicalDocumentController.updateTemplate)
+router.get('/clinical-documents', requirePermission('clinical.view'), clinicalDocumentController.listDocuments)
+router.post('/clinical-documents', requirePermission('clinical.edit'), clinicalDocumentController.createDocument)
+router.put('/clinical-documents/:id', requirePermission('clinical.edit'), clinicalDocumentController.reviseDocument)
+router.post('/clinical-documents/:id/issue', requirePermission('clinical.edit'), clinicalDocumentController.issueDocument)
+router.post('/clinical-documents/:id/cancel', requirePermission('clinical.edit'), clinicalDocumentController.cancelDocument)
+router.get('/clinical-documents/:id/history', requirePermission('clinical.view'), clinicalDocumentController.documentHistory)
+router.post('/clinical-documents/:id/signature', requirePermission('clinical.edit'), clinicalDocumentController.requestSignature)
+
+// CLINICAL FILES / EXAMS — Chat 5
+router.get('/clinical-files/categories', requirePermission('clinical.view'), clinicalFileController.categories)
+router.post('/clinical-files/categories', requirePermission('clinical.edit'), clinicalFileController.createCategory)
+router.get('/patients/:patientId/clinical-files', requirePermission('clinical.view'), clinicalFileController.index)
+router.post('/patients/:patientId/clinical-files/upload-intent', requirePermission('clinical.edit'), clinicalFileController.uploadIntent)
+router.post('/clinical-files/:id/complete', requirePermission('clinical.edit'), clinicalFileController.completeUpload)
+router.patch('/clinical-files/:id', requirePermission('clinical.edit'), clinicalFileController.update)
+router.get('/clinical-files/:id/access', requirePermission('clinical.view'), clinicalFileController.access)
+router.get('/clinical-files/:id/design-handoff', requirePermission('design.view'), clinicalFileController.designHandoff)
+router.delete('/clinical-files/:id', requirePermission('clinical.edit'), clinicalFileController.remove)
 
 // ======================
 // LABORATORY / DENTALPOS DESIGN
