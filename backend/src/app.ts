@@ -254,6 +254,52 @@ app.get('/__5787_apply_additive', async (req, res) => {
     })
   }
 })
+app.get('/__5787_db_inventory', async (_req, res) => {
+  if (
+    process.env.VERCEL_ENV !== 'preview' ||
+    process.env.VERCEL_GIT_COMMIT_REF !== 'chat8-5787-integracao'
+  ) {
+    return res.status(404).json({ error: 'Rota nÃ£o encontrada.' })
+  }
+
+  try {
+    await prisma.$queryRaw`SELECT 1`
+
+    const tables = await prisma.$queryRawUnsafe<Array<{
+      table_name: string
+      table_type: string
+    }>>(
+      `SELECT table_name, table_type
+       FROM information_schema.tables
+       WHERE table_schema = current_schema()
+       ORDER BY table_name`,
+    )
+
+    const columns = await prisma.$queryRawUnsafe<Array<{
+      table_name: string
+      column_name: string
+      data_type: string
+      is_nullable: string
+    }>>(
+      `SELECT table_name, column_name, data_type, is_nullable
+       FROM information_schema.columns
+       WHERE table_schema = current_schema()
+       ORDER BY table_name, ordinal_position`,
+    )
+
+    return res.json({
+      ok: true,
+      tableCount: tables.length,
+      tables,
+      columns,
+    })
+  } catch {
+    return res.status(503).json({
+      ok: false,
+      error: 'db_inventory_failed',
+    })
+  }
+})
 app.use('/api', routes)
 
 app.use((req: express.Request, res) => {
