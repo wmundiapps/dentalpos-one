@@ -115,6 +115,104 @@ app.get('/ready', async (_req, res) => {
   }
 })
 
+app.get('/__5787_schema_probe', async (_req, res) => {
+  if (process.env.VERCEL_ENV !== 'preview') {
+    return res.status(404).json({ error: 'Rota nÃ£o encontrada.' })
+  }
+
+  const expectedTables = [
+    'SalesProduct',
+    'SalesLead',
+    'SalesLeadEvent',
+    'TenantFeatureFlag',
+    'Supplier',
+    'IntegrationWebhookEvent',
+    'PasswordResetToken',
+    'PatientClinicalRecord',
+    'PatientClinicalRecordRevision',
+    'ClinicalCustomFieldDefinition',
+    'SpecializedClinicalRecord',
+    'SpecializedClinicalEvolution',
+    'SpecializedClinicalAttachment',
+    'DentalChartEntry',
+    'DentalFindingDefinition',
+    'PeriodontalExam',
+    'PeriodontalSiteRecord',
+    'TreatmentPlanRevision',
+    'BudgetRevision',
+    'FinancialAlertResolution',
+    'OperationalAlertResolution',
+    'ClinicalDocumentTemplate',
+    'ClinicalDocument',
+    'ClinicalDocumentHistory',
+    'ClinicalFileCategory',
+    'ClinicalFile',
+    'SurgeryCase',
+    'SurgeryFollowUp',
+    'ImplantRecord',
+    'ProsthesisCase',
+    'ProsthesisHistory',
+  ]
+
+  const expectedColumns: Record<string, string[]> = {
+    TreatmentItem: ['planningData'],
+    Budget: ['acceptedAt', 'acceptedByName', 'acceptedByDocument', 'acceptanceEvidence'],
+    ClinicalEvolution: [
+      'appointmentId',
+      'teeth',
+      'regions',
+      'anesthetic',
+      'materials',
+      'complications',
+      'guidance',
+      'attachments',
+      'authoredBy',
+    ],
+  }
+
+  try {
+    await prisma.$queryRaw`SELECT 1`
+
+    const tableRows = await prisma.$queryRawUnsafe<Array<{ table_name: string }>>(
+      'SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema()',
+    )
+    const haveTables = new Set(tableRows.map(row => row.table_name))
+    const missingTables = expectedTables.filter(name => !haveTables.has(name))
+
+    const columnRows = await prisma.$queryRawUnsafe<Array<{ table_name: string; column_name: string }>>(
+      'SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = current_schema()',
+    )
+    const haveColumns = new Set(
+      columnRows.map(row => `${row.table_name}.${row.column_name}`),
+    )
+
+    const missingColumns: string[] = []
+    for (const [table, columns] of Object.entries(expectedColumns)) {
+      for (const column of columns) {
+        const key = `${table}.${column}`
+        if (!haveColumns.has(key)) missingColumns.push(key)
+      }
+    }
+
+    const migrationHistory = await prisma.$queryRawUnsafe<Array<{ name: string | null }>>(
+      `SELECT to_regclass('"_prisma_migrations"')::text AS name`,
+    )
+
+    return res.json({
+      ok: missingTables.length === 0 && missingColumns.length === 0,
+      database: true,
+      prismaMigrationHistoryPresent: Boolean(migrationHistory[0]?.name),
+      missingTables,
+      missingColumns,
+    })
+  } catch {
+    return res.status(503).json({
+      ok: false,
+      database: false,
+      error: 'schema_probe_failed',
+    })
+  }
+})
 app.use('/api', routes)
 
 app.use((req: express.Request, res) => {
