@@ -55,6 +55,8 @@ const router = Router()
 
 router.post('/auth/register', authController.register)
 router.post('/auth/login', authController.login)
+router.post('/auth/password-reset/request', authController.requestPasswordReset)
+router.post('/auth/password-reset/confirm', authController.resetPassword)
 router.get('/demo/config', demoController.config)
 router.post('/demo/register', demoController.register)
 router.get('/auth/me', authMiddleware, tenantMiddleware, sessionController.me)
@@ -311,7 +313,12 @@ router.post('/sales/leads', requirePermission('sales.edit'), salesController.cre
 router.put('/sales/leads/:id', requirePermission('sales.edit'), salesController.updateLead)
 router.get('/sales/leads/:id/journey', requirePermission('sales.view'), salesController.journey)
 router.get('/sales/products', requirePermission('sales.view'), salesController.products)
+router.get('/sales/critical-stock', requirePermission('sales.view'), salesController.criticalStock)
 router.put('/sales/products', requirePermission('sales.edit'), salesController.upsertProduct)
+router.get('/sales/store-config', requirePermission('sales.view'), salesController.storeConfig)
+router.put('/sales/store-config', requirePermission('sales.edit'), salesController.updateStoreConfig)
+router.get('/sales/affiliate-suppliers', requirePermission('sales.view'), salesController.affiliateSuppliers)
+router.post('/sales/affiliate-suppliers', requirePermission('sales.edit'), salesController.createAffiliateSupplier)
 
 // ======================
 // SAAS PLATFORM / TENANT OPERATIONS
@@ -358,4 +365,3 @@ router.put('/feedback/:id', requirePermission('patients.edit'), feedbackControll
 router.delete('/feedback/:id', requirePermission('patients.edit'), feedbackController.remove)
 
 export default router
-

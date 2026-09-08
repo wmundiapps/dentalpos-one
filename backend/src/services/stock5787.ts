@@ -1,19 +1,27 @@
 import { prisma } from '../lib/prisma'
 
-export async function listCriticalStock(clinicId:string){
-  // Usa o estoque já existente; adaptar os nomes abaixo aos campos definitivos do schema integrado.
-  return prisma.$queryRawUnsafe<any[]>(`
-    SELECT * FROM "StockItem"
-    WHERE "clinicId" = $1
-      AND "isActive" = true
-      AND quantity <= "minimumQuantity"
-    ORDER BY ("minimumQuantity" - quantity) DESC
-  `, clinicId)
+export async function listCriticalStock(clinicId: string, tenantId?: string) {
+  const rows = await prisma.salesProduct.findMany({
+    where: {
+      clinicId,
+      ...(tenantId ? { tenantId } : {}),
+      active: true,
+    },
+    orderBy: { name: 'asc' },
+  })
+
+  return rows
+    .filter((item) => Number(item.stockQuantity) <= Number(item.minStock))
+    .sort(
+      (a, b) =>
+        (Number(b.minStock) - Number(b.stockQuantity)) -
+        (Number(a.minStock) - Number(a.stockQuantity)),
+    )
 }
 
-export function stockStatus(quantity:number,minimum:number){
-  if(quantity<=0)return 'SEM_ESTOQUE'
-  if(quantity<=minimum)return 'CRITICO'
-  if(quantity<=minimum*1.5)return 'BAIXO'
+export function stockStatus(quantity: number, minimum: number) {
+  if (quantity <= 0) return 'SEM_ESTOQUE'
+  if (quantity <= minimum) return 'CRITICO'
+  if (quantity <= minimum * 1.5) return 'BAIXO'
   return 'OK'
 }

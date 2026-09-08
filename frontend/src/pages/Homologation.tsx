@@ -117,13 +117,56 @@ export default function Homologation() {
             </Box>
           </Paper>
 
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>
+              Banco e migrations — Piloto 5787
+            </Typography>
+            {data.databaseSchema ? (
+              <>
+                <Alert
+                  severity={
+                    data.databaseSchema.missingTables.length === 0 &&
+                    data.databaseSchema.missingColumns.length === 0
+                      ? "success"
+                      : "warning"
+                  }
+                  sx={{ mb: 2 }}
+                >
+                  {data.databaseSchema.missingTables.length === 0 &&
+                  data.databaseSchema.missingColumns.length === 0
+                    ? "O schema clínico esperado foi localizado no PostgreSQL."
+                    : "Há objetos clínicos pendentes no banco. Não execute migrate deploy às cegas; use a migração controlada do release."}
+                </Alert>
+                <Typography variant="body2" color="text.secondary">
+                  Histórico Prisma: {data.databaseSchema.prismaMigrationHistoryPresent ? "identificado" : "não localizado"}.
+                </Typography>
+                {data.databaseSchema.missingTables.length > 0 && (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    <strong>Tabelas pendentes:</strong>{" "}
+                    {data.databaseSchema.missingTables.join(", ")}
+                  </Typography>
+                )}
+                {data.databaseSchema.missingColumns.length > 0 && (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    <strong>Colunas pendentes:</strong>{" "}
+                    {data.databaseSchema.missingColumns.join(", ")}
+                  </Typography>
+                )}
+              </>
+            ) : (
+              <Typography color="text.secondary">
+                O banco não respondeu à inspeção somente leitura.
+              </Typography>
+            )}
+          </Paper>
+
           <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
               <SecurityIcon color="primary" />
               <Typography variant="h6" sx={{ fontWeight: 900 }}>Integrações da clínica</Typography>
             </Box>
             <Typography color="text.secondary" sx={{ mb: 2 }}>
-              Remetentes REVAH ativos: {data.integrations.activeRevahSenders} • Storage ativo: {data.integrations.activeStorageConfigs}
+              Remetentes REVAH ativos: {data.integrations.activeRevahSenders} • Storage ativo: {data.integrations.activeStorageConfigs} • E-mail de redefinição: {data.integrations.passwordResetEmailSenderConfigured ? "configurado" : "pendente"}
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" }, gap: 1.5 }}>
               {data.integrations.paymentProviders.length ? data.integrations.paymentProviders.map((provider) => (

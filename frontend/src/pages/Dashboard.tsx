@@ -31,8 +31,25 @@ import {
 } from "../services/OperationsHubService";
 import type { IntegratedAppointment, OperationalAlert } from "../types/operationsHub";
 import { dismissOperationalAlert, OPERATIONAL_RESOLUTION_EVENT, refreshOperationalResolutions } from "../services/OperationalAlertResolutionApi";
+import { Sales5787Api, type SalesProduct5787 } from "../services/Sales5787Api";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+
+function stockAlert5787(product: SalesProduct5787): OperationalAlert {
+  const quantity = Number(product.stockQuantity || 0);
+  const minimum = Number(product.minStock || 0);
+  const critical = quantity <= 0 || quantity <= Math.max(1, Math.floor(minimum / 2));
+  return {
+    id: `inventory-server-${product.id}`,
+    area: "Estoque",
+    severity: critical ? "error" : "warning",
+    title: critical ? "Estoque crítico" : "Material para comprar / repor",
+    description: `${product.name} • saldo ${quantity} • mínimo ${minimum}.`,
+    route: "/estoque",
+    sourceEntityType: "SalesProduct",
+    sourceEntityId: product.id,
+  };
+}
 
 function severityColor(severity: OperationalAlert["severity"]) {
   if (severity === "error") return { bg: "rgba(239,68,68,.08)", text: "#991B1B" };
@@ -54,16 +71,27 @@ export default function Dashboard() {
   const [lastProtocol, setLastProtocol] = useState("");
 
   useEffect(() => {
-    const refresh = () => {
+    const refresh = async () => {
       setAppointments(getAppointments());
-      setAlerts(getOperationalAlerts());
       setLabCount(getLaboratoryWorks().filter((work) => !["Entregue", "Liberado"].includes(work.status)).length);
+      const baseAlerts = getOperationalAlerts();
+      try {
+        const stock = await Sales5787Api.criticalStock();
+        setAlerts([...baseAlerts, ...stock.map(stockAlert5787)]);
+      } catch {
+        setAlerts(baseAlerts);
+      }
     };
-    const unsubscribe = subscribeOperations(refresh);
-    window.addEventListener("dentalpos:finance-changed", refresh);
-    window.addEventListener(OPERATIONAL_RESOLUTION_EVENT, refresh);
-    refreshOperationalResolutions().then(refresh).catch(() => undefined);
-    return () => { unsubscribe(); window.removeEventListener("dentalpos:finance-changed", refresh); window.removeEventListener(OPERATIONAL_RESOLUTION_EVENT, refresh); };
+    const handler = () => { void refresh(); };
+    const unsubscribe = subscribeOperations(handler);
+    window.addEventListener("dentalpos:finance-changed", handler);
+    window.addEventListener(OPERATIONAL_RESOLUTION_EVENT, handler);
+    refreshOperationalResolutions().then(handler).catch(() => handler());
+    return () => {
+      unsubscribe();
+      window.removeEventListener("dentalpos:finance-changed", handler);
+      window.removeEventListener(OPERATIONAL_RESOLUTION_EVENT, handler);
+    };
   }, []);
 
   const todayAppointments = useMemo(

@@ -16,6 +16,13 @@ export interface PlatformReadiness {
     publicAppUrl: string | null;
   };
   checks: ReadinessCheck[];
+  databaseSchema: {
+    tables: Array<{ name: string; exists: boolean }>;
+    columns: Array<{ tableName: string; columnName: string; exists: boolean }>;
+    missingTables: string[];
+    missingColumns: string[];
+    prismaMigrationHistoryPresent: boolean;
+  } | null;
   integrations: {
     paymentProviders: Array<{
       provider: string;
@@ -26,6 +33,7 @@ export interface PlatformReadiness {
     }>;
     activeRevahSenders: number;
     activeStorageConfigs: number;
+    passwordResetEmailSenderConfigured: boolean;
   };
   productionReady: boolean;
   criticalPending: number;

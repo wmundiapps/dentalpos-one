@@ -1568,7 +1568,7 @@ model RevahConversationMessage {
 
 // ======================
 // BLOCO 17 - AGENDA INTELIGENTE / BACKEND
-// CritÃ©rio clÃ­nico sempre prioritÃ¡rio; financeiro Ã© apenas fator auxiliar e alerta.
+// Critério clínico sempre prioritário; financeiro é apenas fator auxiliar e alerta.
 // ======================
 
 model SmartSchedulingPolicy {
@@ -1933,72 +1933,4 @@ model OperationalAlertResolution {
   @@index([clinicId, tenantId, resolvedAt])
   @@index([clinicId, alertKey])
   @@index([clinicId, sourceEntityType, sourceEntityId])
-}
-
-
-// ===== CHAT 8 / 5787 â€” ADIÃ‡Ã•ES PENDENTES DE MIGRAÃ‡ÃƒO CONTROLADA =====
-// Somente ADITIVO. NÃ£o executar prisma migrate dev.
-
-model PatientAcquisition {
-  id        String   @id @default(cuid())
-  clinicId  String
-  tenantId  String
-  patientId String   @unique
-  source    String
-  detail    String?
-  campaign  String?
-  referrer  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@index([clinicId, source])
-  @@index([tenantId])
-}
-
-model SalesStoreConfig {
-  id                    String   @id @default(cuid())
-  clinicId              String   @unique
-  tenantId              String
-  directDiscountPercent Float    @default(0)
-  affiliateCommissionPercent Float @default(10)
-  storefrontEnabled     Boolean  @default(false)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  @@index([tenantId])
-}
-
-model AffiliateSupplier {
-  id                String   @id @default(cuid())
-  clinicId          String
-  tenantId          String
-  legalName         String
-  tradeName         String?
-  document          String
-  contactName       String
-  email             String
-  phone             String?
-  storeUrl          String?
-  status            String   @default("PENDING")
-  commissionPercent Float    @default(10)
-  acceptedTerms     Boolean  @default(false)
-  acceptedAt        DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  @@unique([clinicId, document])
-  @@index([tenantId, status])
-}
-
-model AffiliateSale {
-  id                String   @id @default(cuid())
-  clinicId          String
-  tenantId          String
-  supplierId        String
-  orderReference    String
-  grossAmount       Float
-  commissionPercent Float    @default(10)
-  commissionAmount  Float
-  status            String   @default("PENDING")
-  createdAt         DateTime @default(now())
-  paidAt            DateTime?
-  @@index([clinicId, supplierId, status])
-  @@index([tenantId])
 }

@@ -1,13 +1,17 @@
+import { createHash, randomBytes } from 'crypto'
 import { Request, Response } from 'express'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import { prisma } from '../lib/prisma'
 import {
   createUser,
   getUserByEmail,
-  comparePassword
+  comparePassword,
+  hashPassword
 } from '../services/userService'
 import { writeAudit } from '../services/auditService'
 import { getDemoAccess } from '../services/demoAccessService'
+import { decryptSecret } from '../services/secretVault'
+import { dispatchRevah } from '../services/revahProviderService'
 
 function jwtSecret() {
   const secret = process.env.JWT_SECRET
@@ -188,4 +192,201 @@ export async function login(req: Request, res: Response) {
 
 export async function me(_req: Request, res: Response) {
   return res.json({ message: 'Autenticado.' })
+}
+
+function hashResetToken(token: string) {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+function passwordResetBaseUrl() {
+  const configured = String(process.env.PUBLIC_APP_URL || '').trim()
+  if (!configured) return ''
+  return configured.endsWith('/') ? configured : `${configured}/`
+}
+
+async function deliverPasswordReset(input: {
+  clinicId: string
+  tenantId: string
+  email: string
+  firstName: string
+  token: string
+}) {
+  const sender = await prisma.revahSender.findFirst({
+    where: {
+      clinicId: input.clinicId,
+      tenantId: input.tenantId,
+      channel: 'EMAIL',
+      isActive: true,
+      isDefault: true,
+    },
+  })
+  if (!sender) return false
+
+  const base = passwordResetBaseUrl()
+  if (!base) return false
+
+  const url = new URL('redefinir-senha', base)
+  url.searchParams.set('token', input.token)
+
+  const credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {}
+  const result = await dispatchRevah(
+    'EMAIL',
+    input.email,
+    [
+      `Olá, ${input.firstName}.`,
+      '',
+      'Recebemos uma solicitação para redefinir sua senha do DentalPos One.',
+      `Use este link temporário: ${url.toString()}`,
+      '',
+      'O link expira em 30 minutos. Se você não solicitou a alteração, ignore esta mensagem.',
+    ].join('\n'),
+    {
+      ...credentials,
+      subject: 'Redefinição de senha — DentalPos One',
+    },
+    sender.address,
+  )
+
+  return !result.simulated
+}
+
+export async function requestPasswordReset(req: Request, res: Response) {
+  const generic = {
+    message:
+      'Se o e-mail estiver vinculado a uma conta elegível, enviaremos as instruções de redefinição.',
+  }
+
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase()
+    const clinicId = String(req.body?.clinicId || '').trim()
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.json(generic)
+    }
+
+    const matches = await prisma.user.findMany({
+      where: {
+        email,
+        isActive: true,
+        ...(clinicId ? { clinicId } : {}),
+      },
+      take: 2,
+      orderBy: { createdAt: 'asc' },
+    })
+
+    // Sem clinicId, mais de uma clínica não deve revelar qual conta existe.
+    if (matches.length !== 1) return res.json(generic)
+
+    const user = matches[0]
+    const token = randomBytes(32).toString('hex')
+    const tokenHash = hashResetToken(token)
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000)
+
+    await prisma.passwordResetToken.create({
+      data: {
+        clinicId: user.clinicId,
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      },
+    })
+
+    try {
+      await deliverPasswordReset({
+        clinicId: user.clinicId,
+        tenantId: user.tenantId,
+        email: user.email,
+        firstName: user.firstName,
+        token,
+      })
+    } catch (deliveryError) {
+      console.warn('Falha ao entregar e-mail de redefinição:', deliveryError)
+    }
+
+    try {
+      await writeAudit({
+        clinicId: user.clinicId,
+        tenantId: user.tenantId,
+        actorId: user.id,
+        module: 'auth',
+        action: 'PASSWORD_RESET_REQUEST',
+        entityType: 'User',
+        entityId: user.id,
+        summary: 'Solicitação de redefinição de senha registrada.',
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') || undefined,
+      })
+    } catch {}
+
+    return res.json(generic)
+  } catch (error) {
+    console.error('Erro na solicitação de redefinição:', error)
+    return res.json(generic)
+  }
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    const token = String(req.body?.token || '').trim()
+    const password = String(req.body?.password || '')
+
+    if (!token || password.length < 10) {
+      return res.status(400).json({
+        error: 'Token válido e senha com pelo menos 10 caracteres são obrigatórios.',
+      })
+    }
+
+    const tokenHash = hashResetToken(token)
+    const row = await prisma.passwordResetToken.findFirst({
+      where: {
+        tokenHash,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: { user: true },
+    })
+
+    if (!row || !row.user.isActive) {
+      return res.status(400).json({
+        error: 'Este link é inválido ou expirou. Solicite uma nova redefinição.',
+      })
+    }
+
+    const passwordHash = await hashPassword(password)
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: row.userId },
+        data: { password: passwordHash },
+      }),
+      prisma.passwordResetToken.update({
+        where: { id: row.id },
+        data: { usedAt: new Date() },
+      }),
+      prisma.refreshToken.updateMany({
+        where: { userId: row.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ])
+
+    try {
+      await writeAudit({
+        clinicId: row.user.clinicId,
+        tenantId: row.user.tenantId,
+        actorId: row.user.id,
+        module: 'auth',
+        action: 'PASSWORD_RESET_CONFIRM',
+        entityType: 'User',
+        entityId: row.user.id,
+        summary: 'Senha redefinida; sessões anteriores foram revogadas.',
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') || undefined,
+      })
+    } catch {}
+
+    return res.json({ message: 'Senha redefinida com sucesso.' })
+  } catch (error) {
+    console.error('Erro ao redefinir senha:', error)
+    return res.status(500).json({ error: 'Não foi possível redefinir a senha.' })
+  }
 }
