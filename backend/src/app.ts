@@ -300,6 +300,61 @@ app.get('/__5787_db_inventory', async (_req, res) => {
     })
   }
 })
+app.get('/__5787_db_trace', async (_req, res) => {
+  if (
+    process.env.VERCEL_ENV !== 'preview' ||
+    process.env.VERCEL_GIT_COMMIT_REF !== 'chat8-5787-integracao'
+  ) {
+    return res.status(404).json({ error: 'Rota nÃ£o encontrada.' })
+  }
+
+  try {
+    const identity = await prisma.$queryRawUnsafe<Array<{
+      database_name: string
+      schema_name: string | null
+      current_user: string
+      search_path: string
+    }>>(
+      `SELECT current_database() AS database_name,
+              current_schema() AS schema_name,
+              current_user AS current_user,
+              current_setting('search_path') AS search_path`
+    )
+
+    const schemas = await prisma.$queryRawUnsafe<Array<{ schema_name: string }>>(
+      `SELECT schema_name
+       FROM information_schema.schemata
+       WHERE schema_name NOT LIKE 'pg_%'
+         AND schema_name <> 'information_schema'
+       ORDER BY schema_name`
+    )
+
+    const tables = await prisma.$queryRawUnsafe<Array<{
+      table_schema: string
+      table_name: string
+      table_type: string
+    }>>(
+      `SELECT table_schema, table_name, table_type
+       FROM information_schema.tables
+       WHERE table_schema NOT LIKE 'pg_%'
+         AND table_schema <> 'information_schema'
+       ORDER BY table_schema, table_name`
+    )
+
+    return res.json({
+      ok: true,
+      identity: identity[0] || null,
+      schemas,
+      tableCount: tables.length,
+      tables,
+    })
+  } catch {
+    return res.status(503).json({
+      ok: false,
+      error: 'db_trace_failed',
+    })
+  }
+})
 app.use('/api', routes)
 
 app.use((req: express.Request, res) => {
