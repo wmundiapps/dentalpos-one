@@ -38,10 +38,12 @@ export async function upsertOdontogramMark(req: AuthRequest, res: Response) {
 export async function createEvolution(req: AuthRequest, res: Response) {
   try {
     const { clinicId, tenantId, actorUserId } = ctx(req); const patientId=String(req.params.patientId)
-    const { professionalName, professionalId, procedure, notes, nextProcedure, completedMarkIds=[], nextAppointmentCreated=false }=req.body
-    if(!procedure?.trim()||!notes?.trim()||!nextProcedure?.trim()||!Array.isArray(completedMarkIds)||completedMarkIds.length===0)return res.status(400).json({error:'Procedimento, evolução, próximo procedimento e marcações do odontograma são obrigatórios.'})
+    const { professionalName, professionalId, procedure, notes, nextProcedure, completedMarkIds=[], nextAppointmentCreated=false, appointmentId, teeth=[], regions=[], anesthetic, materials, complications, guidance, attachments }=req.body
+    if(!procedure?.trim()||!notes?.trim()||!nextProcedure?.trim()||!Array.isArray(completedMarkIds))return res.status(400).json({error:'Procedimento, evolução e próxima conduta são obrigatórios.'})
+    const patient=await prisma.patient.findFirst({where:{id:patientId,clinicId,tenantId},select:{id:true}}); if(!patient)return res.status(404).json({error:'Paciente não encontrado.'})
+    if(appointmentId){const appt=await prisma.appointment.findFirst({where:{id:String(appointmentId),patientId,clinicId,tenantId},select:{id:true}});if(!appt)return res.status(400).json({error:'Agendamento não pertence ao paciente/clínica.'})}
     const evolution=await prisma.$transaction(async tx=>{
-      const row=await tx.clinicalEvolution.create({data:{clinicId,tenantId,patientId,professionalName,professionalId:professionalId||null,procedure,notes,nextProcedure,nextAppointmentCreated}})
+      const row=await tx.clinicalEvolution.create({data:{clinicId,tenantId,patientId,professionalName,professionalId:professionalId||null,procedure,notes,nextProcedure,nextAppointmentCreated,appointmentId:appointmentId||null,teeth:Array.isArray(teeth)?teeth.map(String):[],regions:Array.isArray(regions)?regions.map(String):[],anesthetic:anesthetic||null,materials:materials||null,complications:complications||null,guidance:guidance||null,attachments:attachments||undefined,authoredBy:actorUserId}})
       await tx.odontogramMark.updateMany({where:{id:{in:completedMarkIds},patientId,clinicId,tenantId},data:{state:'DONE',completedAt:new Date(),sourceEvolutionId:row.id}})
       await tx.treatmentItem.updateMany({where:{patientId,clinicId,tenantId,odontogramMarkId:{in:completedMarkIds}},data:{status:'COMPLETED',completedAt:new Date()}})
       return row

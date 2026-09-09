@@ -1,15 +1,6 @@
 import {
-  Avatar,
-  Box,
-  Collapse,
-  Divider,
-  IconButton,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Tooltip,
-  Typography,
+  Avatar, Box, Collapse, Divider, IconButton, List, ListItemButton, ListItemIcon,
+  ListItemText, Tooltip, Typography
 } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -20,149 +11,147 @@ import { useEffect, useMemo, useState } from "react";
 import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
-import {
-  pathAllowedForDemo,
-  readDemoAccess,
-  readSessionUser,
-} from "../services/DemoAccess";
+import { pathAllowedForDemo, readDemoAccess, readSessionUser } from "../services/DemoAccess";
 
-const OPEN_GROUPS_KEY = "dentalpos.navigation.open-groups.v1";
+const OPEN_GROUPS_KEY = "dentalpos.navigation.open-groups.v2";
+const COLLAPSED_KEY = "dentalpos.navigation.collapsed.v2";
 
-function pathMatches(target: string, pathname: string, search: string) {
-  const [targetPath, query = ""] = target.split("?");
-  if (targetPath !== pathname) return false;
-  if (!query) return true;
-
-  const targetParams = new URLSearchParams(query);
-  const currentParams = new URLSearchParams(search);
-  return Array.from(targetParams.entries()).every(([key, value]) => currentParams.get(key) === value);
+function pathMatches(target:string, pathname:string, search:string){
+  const [targetPath,query=""]=target.split("?");
+  if(targetPath!==pathname)return false;
+  if(!query)return true;
+  const t=new URLSearchParams(query), c=new URLSearchParams(search);
+  return Array.from(t.entries()).every(([k,v])=>c.get(k)===v);
 }
 
-export default function Sidebar() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const demo = readDemoAccess();
-  const sessionUser = readSessionUser();
-  const isDesign = location.pathname === "/design" || location.pathname.startsWith("/design/");
-  const [collapsed, setCollapsed] = useState(isDesign);
-
-  const visibleGroups = useMemo(() => {
-    if (!demo?.isDemo) return navigationGroups;
-
-    const seenPaths = new Set<string>();
-    return navigationGroups
-      .map((group) => {
-        const items = group.items.filter((item) => {
-          if (item.path === "/agendamento-online") return false;
-          const pathname = item.path.split("?")[0] || "/";
-          if (!pathAllowedForDemo(pathname, demo)) return false;
-          if (seenPaths.has(item.path)) return false;
-          seenPaths.add(item.path);
-          return true;
-        });
-        return { ...group, items };
-      })
-      .filter((group) => group.items.length > 0);
-  }, [demo?.isDemo, demo?.modules.join("|")]);
-
-  const activeGroup = useMemo(
-    () => visibleGroups.find((group) => group.items.some((item) => pathMatches(item.path, location.pathname, location.search)))?.label,
-    [location.pathname, location.search, visibleGroups],
-  );
-
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(OPEN_GROUPS_KEY) || "") as Record<string, boolean>;
-    } catch {
-      return { Recepção: true, Gestão: true };
-    }
+export default function Sidebar(){
+  const navigate=useNavigate();
+  const location=useLocation();
+  const demo=readDemoAccess();
+  const sessionUser=readSessionUser();
+  const isDesign=location.pathname==="/design"||location.pathname.startsWith("/design/");
+  const [collapsed,setCollapsed]=useState(()=>{
+    if(isDesign)return true;
+    const saved=localStorage.getItem(COLLAPSED_KEY);
+    return saved===null ? true : saved==="1"; // compacto por padrão
   });
 
-  useEffect(() => {
-    if (isDesign) setCollapsed(true);
-  }, [isDesign]);
+  const visibleGroups=useMemo(()=>{
+    const seen=new Set<string>();
+    return navigationGroups.map(group=>{
+      const items=group.items.filter(it=>{
+        const dedupeKey=it.path;
+        if(seen.has(dedupeKey))return false;
+        if(demo?.isDemo){
+          if(it.path==="/agendamento-online")return false;
+          const pathname=it.path.split("?")[0]||"/";
+          if(!pathAllowedForDemo(pathname,demo))return false;
+        }
+        seen.add(dedupeKey);
+        return true;
+      });
+      return {...group,items};
+    }).filter(g=>g.items.length>0);
+  },[demo?.isDemo,demo?.modules.join("|")]);
 
-  useEffect(() => {
-    if (activeGroup) setOpenGroups((current) => ({ ...current, [activeGroup]: true }));
-  }, [activeGroup]);
-
-  useEffect(() => {
-    localStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify(openGroups));
-  }, [openGroups]);
-
-  const sidebarWidth = collapsed ? 72 : 288;
-  const go = (path: string) => navigate(path);
-  const initials = `${sessionUser?.firstName?.[0] || ""}${sessionUser?.lastName?.[0] || ""}`.toUpperCase() || "DP";
-  const displayName = [sessionUser?.firstName, sessionUser?.lastName].filter(Boolean).join(" ") || "Usuário";
-  const roleLabel = demo?.isDemo ? "Demo / Administrador" : sessionUser?.role || "Usuário";
-
-  return (
-    <Box component="aside" sx={{ width: sidebarWidth, minWidth: sidebarWidth, height: "100vh", bgcolor: "#0F172A", color: "#FFFFFF", display: "flex", flexDirection: "column", position: "sticky", top: 0, overflowY: "auto", overflowX: "visible", transition: "width 0.25s ease, min-width 0.25s ease", flexShrink: 0 }}>
-      <Tooltip title={collapsed ? "Expandir menu" : "Recolher menu"} placement="right">
-        <IconButton aria-label={collapsed ? "Expandir menu" : "Recolher menu"} onClick={() => setCollapsed((value) => !value)} size="small" sx={{ position: "fixed", left: sidebarWidth - 16, top: "50%", transform: "translateY(-50%)", zIndex: 1400, width: 32, height: 54, borderRadius: "0 12px 12px 0", bgcolor: "#0F172A", color: "#fff", border: "1px solid #334155", boxShadow: "0 8px 24px rgba(0,0,0,.28)", transition: "left .25s ease", "&:hover": { bgcolor: "primary.main" } }}>
-          {collapsed ? <MenuIcon fontSize="small" /> : <MenuOpenIcon fontSize="small" />}
-        </IconButton>
-      </Tooltip>
-
-      <Box sx={{ px: collapsed ? 1 : 3, pt: 2, pb: collapsed ? 1.5 : 2, textAlign: "center" }}>
-        <Avatar sx={{ width: collapsed ? 42 : 72, height: collapsed ? 42 : 72, mx: "auto", mb: collapsed ? 0 : 2, bgcolor: "primary.main", fontSize: collapsed ? 15 : 24, transition: "width 0.25s ease, height 0.25s ease" }}>{initials}</Avatar>
-        {!collapsed && (
-          <>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>{displayName}</Typography>
-            <Typography variant="body2" sx={{ color: "#94A3B8" }}>{roleLabel}</Typography>
-          </>
-        )}
-      </Box>
-      <Divider sx={{ borderColor: "#334155" }} />
-
-      <List sx={{ mt: 1, px: collapsed ? 0.75 : 1 }}>
-        {visibleGroups.map((group) => {
-          const groupSelected = group.items.some((item) => pathMatches(item.path, location.pathname, location.search));
-          const groupOpen = Boolean(openGroups[group.label]);
-          if (collapsed) {
-            return (
-              <Tooltip key={group.label} title={`${group.label}: ${group.items.map((i) => i.label).join(", ")}`} placement="right" arrow>
-                <ListItemButton onClick={() => { const first = group.items.find((i) => pathMatches(i.path, location.pathname, location.search)) ?? group.items[0]; if (first) go(first.path); }} selected={groupSelected} sx={{ mb: .5, minHeight: 48, borderRadius: 2, justifyContent: "center", px: 1, color: groupSelected ? "#fff" : "#CBD5E1", "&.Mui-selected": { bgcolor: "#1976D2" }, "&:hover": { bgcolor: "#1E293B", color: "#fff" } }}>
-                  <ListItemIcon sx={{ color: "inherit", minWidth: 0, justifyContent: "center" }}>{group.icon}</ListItemIcon>
-                </ListItemButton>
-              </Tooltip>
-            );
-          }
-          return (
-            <Box key={group.label} sx={{ mb: .5 }}>
-              <ListItemButton onClick={() => setOpenGroups((current) => ({ ...current, [group.label]: !groupOpen }))} sx={{ borderRadius: 2, minHeight: 44, color: groupSelected ? "#fff" : "#CBD5E1", bgcolor: groupSelected ? "rgba(25,118,210,.16)" : "transparent", "&:hover": { bgcolor: "#1E293B", color: "#fff" } }}>
-                <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>{group.icon}</ListItemIcon>
-                <ListItemText primary={<Typography component="span" sx={{ fontWeight: groupSelected ? 800 : 700 }}>{group.label}</Typography>} />
-                {groupOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-              </ListItemButton>
-              <Collapse in={groupOpen} timeout="auto" unmountOnExit>
-                <List disablePadding sx={{ pl: 1 }}>
-                  {group.items.map((item, index) => {
-                    const selected = pathMatches(item.path, location.pathname, location.search);
-                    return (
-                      <ListItemButton key={`${group.label}-${item.path}-${index}`} selected={selected} onClick={() => go(item.path)} sx={{ minHeight: 40, borderRadius: 2, my: .25, pl: 2.25, color: selected ? "#fff" : "#94A3B8", "&.Mui-selected": { bgcolor: "#1976D2", color: "#fff" }, "&.Mui-selected:hover": { bgcolor: "#1565C0" }, "&:hover": { bgcolor: "#1E293B", color: "#fff" } }}>
-                        <ListItemIcon sx={{ color: "inherit", minWidth: 34 }}>{item.icon}</ListItemIcon>
-                        <ListItemText primary={<Typography component="span" sx={{ fontSize: 13.5 }}>{item.label}</Typography>} />
-                      </ListItemButton>
-                    );
-                  })}
-                </List>
-              </Collapse>
-            </Box>
-          );
-        })}
-      </List>
-
-      <Box sx={{ flexGrow: 1 }} />
-      <Box sx={{ py: 2, textAlign: "center", color: "#64748B", whiteSpace: "nowrap" }}>
-        {collapsed ? (
-          <Typography sx={{ fontSize: 10, fontWeight: 700 }}>DP</Typography>
-        ) : (
-          <Typography sx={{ fontSize: 12 }}>
-            {demo?.isDemo ? `DEMO • ${demo.daysRemaining ?? 0} dias` : <><BrandName /> • {appConfig.version}</>}
-          </Typography>
-        )}
-      </Box>
-    </Box>
+  const activeGroup=useMemo(
+    ()=>visibleGroups.find(g=>g.items.some(it=>pathMatches(it.path,location.pathname,location.search)))?.label,
+    [location.pathname,location.search,visibleGroups]
   );
+
+  const [openGroups,setOpenGroups]=useState<Record<string,boolean>>(()=>{
+    try{return JSON.parse(localStorage.getItem(OPEN_GROUPS_KEY)||"") as Record<string,boolean>;}
+    catch{return {};}
+  });
+
+  useEffect(()=>{if(isDesign)setCollapsed(true)},[isDesign]);
+  useEffect(()=>{localStorage.setItem(COLLAPSED_KEY,collapsed?"1":"0")},[collapsed]);
+  useEffect(()=>{
+    if(activeGroup)setOpenGroups({[activeGroup]:true}); // somente um grupo aberto
+  },[activeGroup]);
+  useEffect(()=>{localStorage.setItem(OPEN_GROUPS_KEY,JSON.stringify(openGroups))},[openGroups]);
+
+  const sidebarWidth=collapsed?58:224;
+  const initials=`${sessionUser?.firstName?.[0]||""}${sessionUser?.lastName?.[0]||""}`.toUpperCase()||"DP";
+  const displayName=[sessionUser?.firstName,sessionUser?.lastName].filter(Boolean).join(" ")||"Usuário";
+  const roleLabel=demo?.isDemo?"Demo / Administrador":sessionUser?.role||"Usuário";
+
+  return <Box component="aside" sx={{
+    width:sidebarWidth,minWidth:sidebarWidth,height:"100vh",bgcolor:"#0F172A",color:"#fff",
+    display:"flex",flexDirection:"column",position:"sticky",top:0,overflowY:"auto",overflowX:"visible",
+    transition:"width .2s ease,min-width .2s ease",flexShrink:0
+  }}>
+    <Tooltip title={collapsed?"Expandir menu":"Recolher menu"} placement="right">
+      <IconButton onClick={()=>setCollapsed(v=>!v)} size="small" sx={{
+        position:"fixed",left:sidebarWidth-13,top:72,zIndex:1400,width:26,height:42,
+        borderRadius:"0 10px 10px 0",bgcolor:"#0F172A",color:"#fff",border:"1px solid #334155",
+        transition:"left .2s ease","&:hover":{bgcolor:"primary.main"}
+      }}>
+        {collapsed?<MenuIcon fontSize="small"/>:<MenuOpenIcon fontSize="small"/>}
+      </IconButton>
+    </Tooltip>
+
+    <Box sx={{px:collapsed?.5:1.5,pt:1.2,pb:1,textAlign:"center"}}>
+      <Avatar sx={{width:collapsed?34:48,height:collapsed?34:48,mx:"auto",mb:collapsed?0:.8,bgcolor:"primary.main",fontSize:14}}>
+        {initials}
+      </Avatar>
+      {!collapsed&&<>
+        <Typography sx={{fontWeight:800,fontSize:14,lineHeight:1.2}}>{displayName}</Typography>
+        <Typography sx={{color:"#94A3B8",fontSize:11}}>{roleLabel}</Typography>
+      </>}
+    </Box>
+    <Divider sx={{borderColor:"#334155"}}/>
+
+    <List sx={{mt:.5,px:collapsed?.4:.7}}>
+      {visibleGroups.map(group=>{
+        const selected=group.items.some(i=>pathMatches(i.path,location.pathname,location.search));
+        const open=Boolean(openGroups[group.label]);
+
+        if(collapsed){
+          return <Tooltip key={group.label} title={group.label} placement="right" arrow>
+            <ListItemButton onClick={()=>{
+              const current=group.items.find(i=>pathMatches(i.path,location.pathname,location.search));
+              navigate((current||group.items[0]).path);
+            }} selected={selected} sx={{
+              mb:.3,minHeight:42,borderRadius:2,justifyContent:"center",px:.5,color:selected?"#fff":"#CBD5E1",
+              "&.Mui-selected":{bgcolor:"#1976D2"},"&:hover":{bgcolor:"#1E293B",color:"#fff"}
+            }}>
+              <ListItemIcon sx={{color:"inherit",minWidth:0,justifyContent:"center"}}>{group.icon}</ListItemIcon>
+            </ListItemButton>
+          </Tooltip>
+        }
+
+        return <Box key={group.label} sx={{mb:.25}}>
+          <ListItemButton onClick={()=>setOpenGroups(open?{}:{[group.label]:true})} sx={{
+            borderRadius:2,minHeight:39,color:selected?"#fff":"#CBD5E1",
+            bgcolor:selected?"rgba(25,118,210,.16)":"transparent","&:hover":{bgcolor:"#1E293B"}
+          }}>
+            <ListItemIcon sx={{color:"inherit",minWidth:34}}>{group.icon}</ListItemIcon>
+            <ListItemText primary={<Typography component="span" sx={{fontWeight:selected?800:700,fontSize:13}}>{group.label}</Typography>}/>
+            {open?<ExpandLessIcon fontSize="small"/>:<ExpandMoreIcon fontSize="small"/>}
+          </ListItemButton>
+          <Collapse in={open} timeout="auto" unmountOnExit>
+            <List disablePadding sx={{pl:.5}}>
+              {group.items.map(it=>{
+                const active=pathMatches(it.path,location.pathname,location.search);
+                return <ListItemButton key={it.path} selected={active} onClick={()=>navigate(it.path)} sx={{
+                  minHeight:36,borderRadius:2,my:.15,pl:1.5,color:active?"#fff":"#94A3B8",
+                  "&.Mui-selected":{bgcolor:"#1976D2",color:"#fff"},"&:hover":{bgcolor:"#1E293B",color:"#fff"}
+                }}>
+                  <ListItemIcon sx={{color:"inherit",minWidth:30}}>{it.icon}</ListItemIcon>
+                  <ListItemText primary={<Typography component="span" sx={{fontSize:12.5}}>{it.label}</Typography>}/>
+                </ListItemButton>
+              })}
+            </List>
+          </Collapse>
+        </Box>
+      })}
+    </List>
+
+    <Box sx={{flexGrow:1}}/>
+    <Box sx={{py:1.2,textAlign:"center",color:"#64748B",whiteSpace:"nowrap"}}>
+      {collapsed?<Typography sx={{fontSize:9,fontWeight:800}}>DP</Typography>:
+        <Typography sx={{fontSize:10.5}}>{demo?.isDemo?`DEMO • ${demo.daysRemaining??0} dias`:<><BrandName/> • {appConfig.version}</>}</Typography>}
+    </Box>
+  </Box>
 }

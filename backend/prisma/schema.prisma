@@ -53,9 +53,13 @@ model Clinic {
   auditLogs      AuditLog[]
   refreshTokens  RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  financialAlertResolutions FinancialAlertResolution[]
   laboratoryWorks LaboratoryWork[]
   dentalDesignCases DentalDesignCase[]
   financialEntries FinancialEntry[]
+  specializedClinicalRecords SpecializedClinicalRecord[]
+  specializedClinicalEvolutions SpecializedClinicalEvolution[]
+  specializedClinicalAttachments SpecializedClinicalAttachment[]
   paymentProviderConfigs PaymentProviderConfig[]
   hrEmployees HREmployee[]
   hrAttendance HRAttendance[]
@@ -85,6 +89,7 @@ model Clinic {
   @@unique([tenantId, cnpj])
   @@index([tenantId])
 }
+
 
 model User {
   id            String   @id @default(cuid())
@@ -119,6 +124,7 @@ model User {
   auditLogs       AuditLog[] @relation("AuditActor")
   refreshTokens   RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  financialAlertResolutions FinancialAlertResolution[]
   @@unique([clinicId, email])
   @@index([clinicId])
   @@index([tenantId])
@@ -199,11 +205,18 @@ model Patient {
   budgets        Budget[]
   feedbacks      Feedback[]
   clinicalEvolutions ClinicalEvolution[]
+  clinicalRecord PatientClinicalRecord?
+  clinicalRecordRevisions PatientClinicalRecordRevision[]
   odontogramMarks OdontogramMark[]
   treatmentItems TreatmentItem[]
+  treatmentPlanRevisions TreatmentPlanRevision[]
   laboratoryWorks LaboratoryWork[]
   dentalDesignCases DentalDesignCase[]
   financialEntries FinancialEntry[]
+  specializedClinicalRecords SpecializedClinicalRecord[]
+  specializedClinicalEvolutions SpecializedClinicalEvolution[]
+  specializedClinicalAttachments SpecializedClinicalAttachment[]
+  financialAlertResolutions FinancialAlertResolution[]
 
   @@unique([clinicId, cpf])
   @@index([clinicId])
@@ -363,6 +376,10 @@ model Budget {
   paymentMethod      String @default("PIX")
   paymentProvider    String @default("MANUAL")
   version            Int    @default(1)
+  acceptedAt         DateTime?
+  acceptedByName     String?
+  acceptedByDocument String?
+  acceptanceEvidence Json?
   optionsJson        Json?
   simulaClinicJson   Json?
 
@@ -371,12 +388,29 @@ model Budget {
   appointments       Appointment[] @relation("AppointmentBudget")
 
   payments           Payment[]
+  revisions          BudgetRevision[]
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   @@index([clinicId])
   @@index([patientId])
+  @@index([tenantId])
+}
+
+model BudgetRevision {
+  id          String   @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  budgetId    String
+  version     Int
+  reason      String
+  snapshot    Json
+  createdById String
+  createdAt   DateTime @default(now())
+  budget      Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  @@unique([budgetId, version])
+  @@index([clinicId, budgetId, createdAt])
   @@index([tenantId])
 }
 
@@ -523,6 +557,7 @@ model Supplier {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   financialEntries FinancialEntry[]
+  financialAlertResolutions FinancialAlertResolution[]
 
   @@unique([clinicId, document])
   @@index([clinicId, name])
@@ -661,6 +696,15 @@ model ClinicalEvolution {
   notes          String
   nextProcedure  String
   nextAppointmentCreated Boolean @default(false)
+  appointmentId    String?
+  teeth            String[] @default([])
+  regions          String[] @default([])
+  anesthetic       String?
+  materials        String?
+  complications    String?
+  guidance         String?
+  attachments      Json?
+  authoredBy       String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -669,6 +713,78 @@ model ClinicalEvolution {
 
   @@index([clinicId, patientId])
   @@index([tenantId])
+}
+
+model PatientClinicalRecord {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  patientId      String   @unique
+  revisionNumber Int      @default(1)
+  status         String   @default("DRAFT")
+  data           Json
+  riskFlags      String[]
+  alertSummary   String?
+  responsibleProfessionalId String?
+  responsibleProfessionalName String
+  createdById    String
+  updatedById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  revisions      PatientClinicalRecordRevision[]
+
+  @@index([clinicId, patientId])
+  @@index([tenantId])
+  @@index([clinicId, status])
+}
+
+model PatientClinicalRecordRevision {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  patientId      String
+  clinicalRecordId String
+  revisionNumber Int
+  dataSnapshot   Json
+  riskFlags      String[]
+  alertSummary   String?
+  changeReason   String
+  changedFields  String[]
+  authorId       String
+  authorName     String
+  createdAt      DateTime @default(now())
+
+  patient        Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  clinicalRecord PatientClinicalRecord @relation(fields: [clinicalRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicalRecordId, revisionNumber])
+  @@index([clinicId, patientId, createdAt])
+  @@index([tenantId])
+}
+
+model ClinicalCustomFieldDefinition {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  key            String
+  label          String
+  section        String
+  fieldType      String
+  options        String[]
+  required       Boolean  @default(false)
+  sensitive      Boolean  @default(true)
+  displayOrder   Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdById    String
+  updatedById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([clinicId, key])
+  @@index([tenantId])
+  @@index([clinicId, section, displayOrder])
 }
 
 model OdontogramMark {
@@ -706,12 +822,30 @@ model TreatmentItem {
   clinicalEvolutionId String?
   odontogramMarkId String? @unique
   completedAt    DateTime?
+  planningData   Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   patient        Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([clinicId, patientId])
+  @@index([tenantId])
+}
+
+
+model TreatmentPlanRevision {
+  id          String   @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  patientId   String
+  version     Int
+  reason      String
+  snapshot    Json
+  createdById String
+  createdAt   DateTime @default(now())
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  @@unique([patientId, version])
+  @@index([clinicId, patientId, createdAt])
   @@index([tenantId])
 }
 
@@ -1538,4 +1672,265 @@ model SmartSchedulingDecision {
   @@index([clinicId, status])
   @@index([appointmentId])
   @@index([tenantId])
+}
+
+
+// ===== Chat 4: clinical documents =====
+model ClinicalDocumentTemplate {
+  id           String   @id @default(cuid())
+  clinicId     String
+  tenantId     String
+  documentType String
+  title        String
+  content      String
+  footer       String?
+  isActive     Boolean  @default(true)
+  createdBy    String
+  updatedBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@index([clinicId, documentType])
+  @@index([tenantId])
+}
+
+model ClinicalDocument {
+  id                 String   @id @default(cuid())
+  clinicId           String
+  tenantId           String
+  patientId          String
+  professionalId     String?
+  professionalName   String
+  documentType       String
+  templateId         String?
+  title              String
+  content            String
+  footer             String?
+  status             String   @default("DRAFT")
+  issuedAt           DateTime?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  authoredBy         String
+  contentHash        String
+  version            Int      @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  @@index([clinicId, patientId])
+  @@index([tenantId])
+  @@index([documentType, status])
+}
+
+model ClinicalDocumentHistory {
+  id          String   @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  documentId  String
+  version     Int
+  title       String
+  content     String
+  footer      String?
+  status      String
+  contentHash String
+  authoredBy  String
+  snapshotAt  DateTime @default(now())
+  @@unique([documentId, version])
+  @@index([clinicId, documentId])
+  @@index([tenantId])
+}
+
+
+// ===== Chat 5: clinical files =====
+model ClinicalFileCategory {
+  id          String   @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  name        String
+  kind        String   @default("OTHER")
+  description String?
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@unique([clinicId, name])
+  @@index([clinicId, kind])
+  @@index([tenantId])
+}
+
+model ClinicalFile {
+  id                        String   @id @default(cuid())
+  clinicId                  String
+  tenantId                  String
+  patientId                 String
+  categoryId                String?
+  kind                      String
+  title                     String
+  originalName              String
+  extension                 String
+  mimeType                  String
+  sizeBytes                 Int
+  storageProvider           String   @default("PENDING")
+  storageKey                String
+  storageStatus             String   @default("PENDING_UPLOAD")
+  externalUrl               String?
+  checksum                  String?
+  previewKind               String   @default("DOWNLOAD")
+  examDate                  DateTime?
+  origin                    String?
+  requesterProfessionalId   String?
+  requesterProfessionalName String?
+  description               String?
+  tags                      String[]
+  tooth                     String?
+  region                    String?
+  treatmentItemId           String?
+  clinicalEvolutionId       String?
+  metadata                  Json?
+  createdById               String?
+  deletedAt                 DateTime?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  @@index([clinicId, patientId, createdAt])
+  @@index([tenantId])
+  @@index([patientId, kind])
+  @@index([categoryId])
+  @@index([treatmentItemId])
+  @@index([clinicalEvolutionId])
+  @@index([storageStatus])
+}
+
+
+// ===== Chat 7: orthodontics / OFM / TMD =====
+model SpecializedClinicalRecord {
+  id                   String   @id @default(cuid())
+  clinicId             String
+  tenantId             String
+  patientId            String
+  specialty            String
+  status               String   @default("ACTIVE")
+  chiefComplaint       String?
+  diagnosis            String?
+  diagnosticHypothesis String?
+  treatmentPlan        String?
+  responsibleId        String?
+  responsibleName      String?
+  clinicalData         Json
+  startedAt            DateTime @default(now())
+  finishedAt           DateTime?
+  createdById          String
+  updatedById          String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  clinic      Clinic                           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient     Patient                          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  evolutions  SpecializedClinicalEvolution[]
+  attachments SpecializedClinicalAttachment[]
+  @@index([clinicId, patientId, specialty])
+  @@index([clinicId, specialty, status])
+  @@index([tenantId])
+}
+
+model SpecializedClinicalEvolution {
+  id               String   @id @default(cuid())
+  clinicId         String
+  tenantId         String
+  patientId        String
+  recordId         String
+  evolutionType    String
+  professionalId   String?
+  professionalName String
+  summary          String
+  clinicalData     Json
+  occurredAt       DateTime @default(now())
+  createdById      String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  clinic  Clinic                    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient Patient                   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  record  SpecializedClinicalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  @@index([clinicId, patientId, occurredAt])
+  @@index([clinicId, recordId, occurredAt])
+  @@index([tenantId])
+}
+
+model SpecializedClinicalAttachment {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  patientId      String
+  recordId       String
+  category       String
+  clinicalFileId String?
+  fileName       String
+  mimeType       String?
+  storageKey     String?
+  capturedAt     DateTime?
+  notes          String?
+  metadata       Json
+  isActive       Boolean  @default(true)
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  clinic  Clinic                    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient Patient                   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  record  SpecializedClinicalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  @@index([clinicId, patientId, category])
+  @@index([clinicId, recordId])
+  @@index([tenantId])
+  @@index([clinicalFileId])
+}
+
+
+model FinancialAlertResolution {
+  id                    String    @id @default(cuid())
+  clinicId              String
+  clinic                Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId              String
+  sourceEntityType      String
+  sourceEntityId        String
+  status                String    @default("ACTIVE")
+  action                String?
+  reason                String?
+  resolvedById          String?
+  resolvedBy            User?     @relation(fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt            DateTime?
+  patientId             String?
+  patient               Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  supplierId            String?
+  supplier              Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  personName            String?
+  amount                Float     @default(0)
+  replacementEntityType String?
+  replacementEntityId   String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([clinicId, sourceEntityType, sourceEntityId])
+  @@index([tenantId, status])
+  @@index([patientId])
+  @@index([supplierId])
+}
+
+
+model OperationalAlertResolution {
+  id               String   @id @default(cuid())
+  sequence         Int      @unique @default(autoincrement())
+  protocol         String?  @unique
+  clinicId         String
+  tenantId         String
+  alertKey         String?
+  area             String
+  sourceEntityType String?
+  sourceEntityId   String?
+  status           String
+  action           String
+  reason           String?
+  note             String?
+  resolvedById     String
+  resolvedAt       DateTime @default(now())
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([clinicId, tenantId, resolvedAt])
+  @@index([clinicId, alertKey])
+  @@index([clinicId, sourceEntityType, sourceEntityId])
 }

@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { resolveFinancialAlertFromOperation } from '../services/financialAlertResolutionService'
 
 function context(req: AuthRequest) {
   if (!req.user) throw new Error('Não autenticado')
@@ -56,7 +57,8 @@ export async function settle(req: AuthRequest, res: Response) {
     if (!existing) return res.status(404).json({ error: 'Lançamento não encontrado.' })
     const row = await prisma.financialEntry.update({ where: { id }, data: { status: 'PAID', paidAt: new Date() } })
     await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_SETTLE', entityType: 'FinancialEntry', entityId: id, beforeData: existing, afterData: row, summary: `Baixa financeira: ${row.description}` })
-    return res.json(row)
+    const resolution = await resolveFinancialAlertFromOperation({clinicId,tenantId,actorId,ipAddress:req.ip,userAgent:req.get('user-agent')},{sourceEntityType:'FinancialEntry',sourceEntityId:id,action:'SETTLEMENT'})
+    return res.json({ ...row, resolutionProtocol:(resolution as any).protocol || null })
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao baixar lançamento.' }) }
 }
 
@@ -67,7 +69,8 @@ export async function remove(req: AuthRequest, res: Response) {
     if (!existing) return res.status(404).json({ error: 'Lançamento não encontrado.' })
     const row = await prisma.financialEntry.update({ where: { id }, data: { status: 'CANCELLED' } })
     await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_CANCEL', entityType: 'FinancialEntry', entityId: id, beforeData: existing, afterData: row, summary: `Lançamento cancelado: ${row.description}` })
-    return res.json(row)
+    const resolution = await resolveFinancialAlertFromOperation({clinicId,tenantId,actorId,ipAddress:req.ip,userAgent:req.get('user-agent')},{sourceEntityType:'FinancialEntry',sourceEntityId:id,action:'CANCELLATION',reason:String(req.body?.reason||'Cancelado no fluxo financeiro.')})
+    return res.json({ ...row, resolutionProtocol:(resolution as any).protocol || null })
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao cancelar lançamento.' }) }
 }
 

@@ -1,74 +1,14 @@
-import type { ClinicalDocument } from "../types/clinicalDocument";
-
-export const clinicalDocuments: ClinicalDocument[] = [
-  {
-    id: 1,
-    patientName: "Maria Oliveira",
-    patientCode: "MARI",
-    professionalName: "Dr. Robson",
-    documentType: "Receita",
-    title: "Prescrição pós-operatória",
-    content:
-      "Medicação prescrita conforme avaliação clínica e procedimento realizado.",
-    issuedAt: "02/08/2026",
-    status: "Assinado",
-    digitallySigned: true,
-    sentToPatient: true,
-  },
-  {
-    id: 2,
-    patientName: "Carlos Pereira",
-    patientCode: "CARL",
-    professionalName: "Dra. Cássia",
-    documentType: "Solicitação de exame",
-    title: "Solicitação de tomografia",
-    content:
-      "Solicitada tomografia computadorizada para planejamento implantodôntico.",
-    issuedAt: "02/08/2026",
-    status: "Emitido",
-    digitallySigned: true,
-    sentToPatient: true,
-  },
-  {
-    id: 3,
-    patientName: "Fernanda Lima",
-    patientCode: "FERN",
-    professionalName: "Dra. Cássia",
-    documentType: "Atestado",
-    title: "Atestado odontológico",
-    content:
-      "Paciente esteve em atendimento odontológico nesta data.",
-    issuedAt: "01/08/2026",
-    status: "Assinado",
-    digitallySigned: true,
-    sentToPatient: false,
-  },
-  {
-    id: 4,
-    patientName: "João Ribeiro",
-    patientCode: "JOAO",
-    professionalName: "Dr. Robson",
-    documentType: "Termo de consentimento",
-    title: "Consentimento para cirurgia de implantes",
-    content:
-      "Termo de consentimento informado referente ao procedimento cirúrgico planejado.",
-    issuedAt: "01/08/2026",
-    status: "Rascunho",
-    digitallySigned: false,
-    sentToPatient: false,
-  },
-  {
-    id: 5,
-    patientName: "Ana Costa",
-    patientCode: "ANAC",
-    professionalName: "Dra. Juliana",
-    documentType: "Garantia",
-    title: "Termo de garantia do tratamento",
-    content:
-      "Condições, responsabilidades e prazo da garantia contratada.",
-    issuedAt: "31/07/2026",
-    status: "Emitido",
-    digitallySigned: false,
-    sentToPatient: true,
-  },
-];
+import type { ClinicalDocument, ClinicalDocumentTemplate, ClinicalDocumentStatus, ClinicalDocumentType } from '../types/clinicalDocument'
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+function headers(json=false){ const token=localStorage.getItem('dentalpos.token')||''; const clinicId=localStorage.getItem('dentalpos.clinicId')||''; return {Authorization:`Bearer ${token}`,...(clinicId?{'X-Clinic-ID':clinicId}:{}),...(json?{'Content-Type':'application/json'}:{})} }
+async function request<T>(url:string, init?:RequestInit):Promise<T>{ const response=await fetch(`${API}${url}`,init); const body=await response.json().catch(()=>null); if(!response.ok) throw new Error(body?.error||`Erro HTTP ${response.status}`); return body }
+export const listClinicalDocuments=(patientId?:string)=>request<ClinicalDocument[]>(`/clinical-documents${patientId?`?patientId=${encodeURIComponent(patientId)}`:''}`,{headers:headers()})
+export const listClinicalDocumentTemplates=()=>request<ClinicalDocumentTemplate[]>('/clinical-document-templates',{headers:headers()})
+export const createClinicalDocument=(input:{patientId:string;professionalId?:string;professionalName:string;documentType:ClinicalDocumentType;templateId?:string;title:string;content:string;footer?:string;status?:ClinicalDocumentStatus})=>request<ClinicalDocument>('/clinical-documents',{method:'POST',headers:headers(true),body:JSON.stringify(input)})
+export const reviseClinicalDocument=(id:string,input:{title?:string;content?:string;footer?:string|null})=>request<ClinicalDocument>(`/clinical-documents/${id}`,{method:'PUT',headers:headers(true),body:JSON.stringify(input)})
+export const issueClinicalDocument=(id:string)=>request<ClinicalDocument>(`/clinical-documents/${id}/issue`,{method:'POST',headers:headers(true)})
+export const cancelClinicalDocument=(id:string,reason:string)=>request<ClinicalDocument>(`/clinical-documents/${id}/cancel`,{method:'POST',headers:headers(true),body:JSON.stringify({reason})})
+export const getClinicalDocumentHistory=(id:string)=>request<{current:ClinicalDocument;history:unknown[]}>(`/clinical-documents/${id}/history`,{headers:headers()})
+export const requestClinicalDocumentSignature=(id:string,input:{signerName?:string;signerDocument?:string}={})=>request<{provider:string;status:string}>(`/clinical-documents/${id}/signature`,{method:'POST',headers:headers(true),body:JSON.stringify(input)})
+export const createClinicalDocumentTemplate=(input:{documentType:ClinicalDocumentType;title:string;content:string;footer?:string})=>request<ClinicalDocumentTemplate>('/clinical-document-templates',{method:'POST',headers:headers(true),body:JSON.stringify(input)})
+export const updateClinicalDocumentTemplate=(id:string,input:Partial<Pick<ClinicalDocumentTemplate,'title'|'content'|'footer'|'isActive'>>)=>request<ClinicalDocumentTemplate>(`/clinical-document-templates/${id}`,{method:'PUT',headers:headers(true),body:JSON.stringify(input)})

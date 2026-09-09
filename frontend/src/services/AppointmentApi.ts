@@ -13,6 +13,21 @@ export interface BackendDoctor {
 
 export type ReminderChannel = "WHATSAPP" | "SMS" | "TELEGRAM" | "MANUAL";
 
+export type ReminderSelection = {
+  onBooking: boolean;
+  oneDayBefore: boolean;
+  onDay: boolean;
+};
+
+export interface BackendAppointmentReminder {
+  id: string;
+  type: string;
+  channel: ReminderChannel;
+  scheduledFor: string;
+  status: string;
+  sentAt?: string | null;
+}
+
 export interface BackendAppointmentHistory {
   id: string;
   action: string;
@@ -38,6 +53,7 @@ export interface BackendAppointment {
   confirmation?: string | null;
   confirmChannel?: string | null;
   history?: BackendAppointmentHistory[];
+  reminders?: BackendAppointmentReminder[];
   patient?: {
     id: string;
     fullName: string;
@@ -101,6 +117,7 @@ export async function createBackendAppointment(input: {
   scheduledAt: string;
   durationMinutes?: number;
   reminderChannel?: ReminderChannel;
+  reminders?: ReminderSelection;
 }) {
   const response = await fetch(`${API}/appointments`, {
     method: "POST",
@@ -125,6 +142,7 @@ export async function updateBackendAppointment(id: string, input: {
   reason: string;
   requestedBy?: string;
   reminderChannel?: ReminderChannel;
+  reminders?: ReminderSelection;
 }) {
   const response = await fetch(`${API}/appointment/${id}`, {
     method: "PUT",

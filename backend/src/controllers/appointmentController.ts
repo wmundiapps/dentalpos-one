@@ -45,7 +45,18 @@ function timeLabel(value: number) {
   return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`
 }
 
-function reminderDates(scheduledAt: Date) {
+type ReminderSelection = { onBooking: boolean; oneDayBefore: boolean; onDay: boolean }
+
+function normalizeReminderSelection(value: unknown): ReminderSelection {
+  const source = value && typeof value === 'object' ? value as Record<string, unknown> : {}
+  return {
+    onBooking: source.onBooking !== false,
+    oneDayBefore: source.oneDayBefore !== false,
+    onDay: source.onDay !== false
+  }
+}
+
+function reminderDates(scheduledAt: Date, selection: ReminderSelection = { onBooking: true, oneDayBefore: true, onDay: true }) {
   const booking = new Date()
   const oneDayBefore = new Date(scheduledAt)
   oneDayBefore.setDate(oneDayBefore.getDate() - 1)
@@ -53,10 +64,19 @@ function reminderDates(scheduledAt: Date) {
   const onDay = new Date(scheduledAt)
   onDay.setHours(Math.max(7, scheduledAt.getHours() - 2), scheduledAt.getMinutes(), 0, 0)
   return [
-    { type: 'ON_BOOKING', scheduledFor: booking },
-    { type: 'ONE_DAY_BEFORE', scheduledFor: oneDayBefore },
-    { type: 'ON_DAY', scheduledFor: onDay }
-  ].filter(item => item.type === 'ON_BOOKING' || item.scheduledFor.getTime() > booking.getTime())
+    selection.onBooking ? { type: 'ON_BOOKING', scheduledFor: booking } : null,
+    selection.oneDayBefore ? { type: 'ONE_DAY_BEFORE', scheduledFor: oneDayBefore } : null,
+    selection.onDay ? { type: 'ON_DAY', scheduledFor: onDay } : null
+  ].filter((item): item is { type: string; scheduledFor: Date } => Boolean(item) && (item!.type === 'ON_BOOKING' || item!.scheduledFor.getTime() > booking.getTime()))
+}
+
+function selectionFromReminderTypes(types: string[]): ReminderSelection {
+  const set = new Set(types)
+  return {
+    onBooking: set.has('ON_BOOKING'),
+    oneDayBefore: set.has('ONE_DAY_BEFORE'),
+    onDay: set.has('ON_DAY')
+  }
 }
 
 const includeDetails = {
@@ -216,6 +236,7 @@ export async function store(req: AuthRequest, res: Response) {
     }
     const durationMinutes = Math.round(parsedDuration)
     const normalizedReminderChannel = normalizeReminderChannel(reminderChannel)
+    const reminderSelection = normalizeReminderSelection(req.body.reminders)
 
     const [patient, doctor] = await Promise.all([
       prisma.patient.findFirst({ where: { id: String(patientId), clinicId: req.user.clinicId, tenantId: req.user.tenantId, isActive: true } }),
@@ -314,7 +335,7 @@ export async function store(req: AuthRequest, res: Response) {
           newStatus: created.status
         }
       })
-      const reminders = reminderDates(when).map(item => ({
+      const reminders = reminderDates(when, reminderSelection).map(item => ({
         clinicId: req.user!.clinicId,
         tenantId: req.user!.tenantId,
         appointmentId: created.id,
@@ -352,13 +373,24 @@ export async function update(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
     const id = String(req.params.id)
-    const existing = await prisma.appointment.findFirst({ where: { id, clinicId: req.user.clinicId, tenantId: req.user.tenantId } })
+    const existing = await prisma.appointment.findFirst({
+      where: { id, clinicId: req.user.clinicId, tenantId: req.user.tenantId },
+      include: { reminders: { orderBy: { scheduledFor: 'asc' } } }
+    })
     if (!existing) return res.status(404).json({ error: 'Agendamento não encontrado.' })
 
     const newScheduledAt = req.body.scheduledAt ? parseDate(req.body.scheduledAt) : existing.scheduledAt
     if (!newScheduledAt) return res.status(400).json({ error: 'Data/hora inválida.' })
     const newStatus = req.body.status ? String(req.body.status) : existing.status
     const normalizedReminderChannel = normalizeReminderChannel(req.body.reminderChannel || existing.confirmChannel || 'WHATSAPP')
+    const reminderSelectionProvided = req.body.reminders && typeof req.body.reminders === 'object'
+    const lifecycleTypes = ['ON_BOOKING', 'ONE_DAY_BEFORE', 'ON_DAY']
+    const pendingReminderTypes = existing.reminders.filter(item => item.status === 'PENDING').map(item => item.type).filter(type => lifecycleTypes.includes(type))
+    const sentReminderTypes = existing.reminders.filter(item => item.status === 'SENT').map(item => item.type).filter(type => lifecycleTypes.includes(type))
+    const knownReminderTypes = existing.reminders.map(item => item.type).filter(type => lifecycleTypes.includes(type))
+    const reminderSelection = reminderSelectionProvided
+      ? normalizeReminderSelection(req.body.reminders)
+      : selectionFromReminderTypes(pendingReminderTypes)
     const parsedDuration = req.body.durationMinutes !== undefined ? Number(req.body.durationMinutes) : existing.durationMinutes
     if (!Number.isFinite(parsedDuration) || parsedDuration < 5 || parsedDuration > 480) {
       return res.status(400).json({ error: 'Duração do agendamento inválida.' })
@@ -471,17 +503,33 @@ export async function update(req: AuthRequest, res: Response) {
           }
         })
       }
-      if (changedSchedule && newStatus !== 'CANCELLED') {
-        await tx.appointmentReminder.deleteMany({ where: { appointmentId: id, status: 'PENDING' } })
-        const reminders = reminderDates(newScheduledAt).map(item => ({
-          clinicId: req.user!.clinicId,
-          tenantId: req.user!.tenantId,
-          appointmentId: id,
-          type: item.type,
-          channel: normalizedReminderChannel,
-          scheduledFor: item.scheduledFor
-        }))
+      if ((changedSchedule || reminderSelectionProvided) && newStatus !== 'CANCELLED') {
+        await tx.appointmentReminder.updateMany({
+          where: { appointmentId: id, status: 'PENDING' },
+          data: { status: 'CANCELLED' }
+        })
+        const reminders = reminderDates(newScheduledAt, reminderSelection)
+          .filter(item => {
+            if (changedSchedule) {
+              if (pendingReminderTypes.includes(item.type)) return true
+              return reminderSelectionProvided && !knownReminderTypes.includes(item.type) && !sentReminderTypes.includes(item.type)
+            }
+            return !sentReminderTypes.includes(item.type)
+          })
+          .map(item => ({
+            clinicId: req.user!.clinicId,
+            tenantId: req.user!.tenantId,
+            appointmentId: id,
+            type: item.type,
+            channel: normalizedReminderChannel,
+            scheduledFor: item.scheduledFor
+          }))
         if (reminders.length) await tx.appointmentReminder.createMany({ data: reminders })
+      } else if (req.body.reminderChannel && newStatus !== 'CANCELLED') {
+        await tx.appointmentReminder.updateMany({
+          where: { appointmentId: id, status: 'PENDING' },
+          data: { channel: normalizedReminderChannel }
+        })
       }
       if (changedStatus && newStatus === 'CONFIRMED') {
         await tx.appointmentReminder.create({
@@ -533,7 +581,10 @@ export async function remove(req: AuthRequest, res: Response) {
     const id = String(req.params.id)
     const reason = String(req.body?.reason || '').trim()
     if (!reason) return res.status(400).json({ error: 'Informe o motivo do cancelamento.' })
-    const existing = await prisma.appointment.findFirst({ where: { id, clinicId: req.user.clinicId, tenantId: req.user.tenantId } })
+    const existing = await prisma.appointment.findFirst({
+      where: { id, clinicId: req.user.clinicId, tenantId: req.user.tenantId },
+      include: { reminders: { orderBy: { scheduledFor: 'asc' } } }
+    })
     if (!existing) return res.status(404).json({ error: 'Agendamento não encontrado.' })
 
     const appointment = await prisma.$transaction(async tx => {

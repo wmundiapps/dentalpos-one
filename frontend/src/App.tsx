@@ -5,6 +5,7 @@ import AppRoutes from "./routes/AppRoutes";
 import Login from "./pages/Login";
 import PublicBooking from "./pages/PublicBooking";
 import DemoLanding from "./pages/DemoLanding";
+import PasswordReset from "./pages/PasswordReset";
 import {
   clearClientSession,
   demoSalesUrl,
@@ -86,7 +87,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online" && appPath !== "/demo") void validateSession();
+    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/redefinir-senha") void validateSession();
   }, [appPath]);
 
   if (appPath === "/agendamento-online") {
@@ -95,6 +96,10 @@ export default function App() {
 
   if (appPath === "/demo") {
     return <DemoLanding />;
+  }
+
+  if (appPath === "/redefinir-senha") {
+    return <PasswordReset />;
   }
 
   if (session === "invalid") return <Login />;

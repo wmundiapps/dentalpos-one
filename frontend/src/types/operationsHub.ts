@@ -117,4 +117,6 @@ export interface OperationalAlert {
   description: string;
   dueISO?: string;
   route: string;
+  sourceEntityType?: "LaboratoryWork" | "FinancialEntry" | "Appointment" | "Patient" | "HR" | "Inventory" | "SalesProduct";
+  sourceEntityId?: string;
 }

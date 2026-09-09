@@ -1,29 +1,4 @@
-export type ClinicalDocumentType =
-  | "Receita"
-  | "Atestado"
-  | "Declaração"
-  | "Termo de consentimento"
-  | "Contrato"
-  | "Garantia"
-  | "Encaminhamento"
-  | "Solicitação de exame";
-
-export type ClinicalDocumentStatus =
-  | "Rascunho"
-  | "Emitido"
-  | "Assinado"
-  | "Cancelado";
-
-export interface ClinicalDocument {
-  id: number;
-  patientName: string;
-  patientCode: string;
-  professionalName: string;
-  documentType: ClinicalDocumentType;
-  title: string;
-  content: string;
-  issuedAt: string;
-  status: ClinicalDocumentStatus;
-  digitallySigned: boolean;
-  sentToPatient: boolean;
-}
+export type ClinicalDocumentType = 'PRESCRIPTION' | 'CERTIFICATE' | 'DECLARATION' | 'REFERRAL' | 'EXAM_REQUEST' | 'REPORT' | 'CONSENT' | 'CLINICAL_CONTRACT' | 'REFUSAL' | 'POST_OP_INSTRUCTIONS';
+export type ClinicalDocumentStatus = 'DRAFT' | 'ISSUED' | 'CANCELLED';
+export interface ClinicalDocumentTemplate { id:string; documentType:ClinicalDocumentType; title:string; content:string; footer?:string|null; isActive:boolean }
+export interface ClinicalDocument { id:string; patientId:string; professionalId?:string|null; professionalName:string; documentType:ClinicalDocumentType; templateId?:string|null; title:string; content:string; footer?:string|null; status:ClinicalDocumentStatus; issuedAt?:string|null; cancelledAt?:string|null; cancellationReason?:string|null; authoredBy:string; contentHash:string; version:number; createdAt:string; updatedAt:string }

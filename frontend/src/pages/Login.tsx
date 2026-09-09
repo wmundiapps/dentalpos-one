@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Alert, Box, Button, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, TextField, Typography } from "@mui/material";
 import {
   appRootUrl,
   clearClientSession,
@@ -19,6 +19,12 @@ export default function Login() {
   const [error, setError] = useState("");
   const [expired, setExpired] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetClinicId, setResetClinicId] = useState("");
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetError, setResetError] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,6 +62,32 @@ export default function Login() {
       setError(err instanceof Error ? err.message : "Falha no login");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function requestReset() {
+    setResetBusy(true);
+    setResetMessage("");
+    setResetError("");
+    try {
+      const response = await fetch(`${API}/auth/password-reset/request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: resetEmail.trim(),
+          ...(resetClinicId.trim() ? { clinicId: resetClinicId.trim() } : {}),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Falha ao solicitar redefinição.");
+      setResetMessage(
+        data.message ||
+          "Se o e-mail estiver vinculado a uma conta elegível, enviaremos as instruções.",
+      );
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : "Falha ao solicitar redefinição.");
+    } finally {
+      setResetBusy(false);
     }
   }
 
@@ -159,11 +191,50 @@ export default function Login() {
         <Button
           fullWidth
           sx={{ mt: 1 }}
-          onClick={() => alert("A recuperação de senha será disponibilizada no ambiente público.")}
+          onClick={() => {
+            setResetEmail(email);
+            setResetClinicId(clinicId);
+            setResetMessage("");
+            setResetError("");
+            setResetOpen(true);
+          }}
         >
           Esqueci minha senha
         </Button>
       </Paper>
+
+      <Dialog open={resetOpen} onClose={resetBusy ? undefined : () => setResetOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Redefinir senha</DialogTitle>
+        <DialogContent sx={{ pt: "12px!important" }}>
+          {resetMessage && <Alert severity="success" sx={{ mb: 2 }}>{resetMessage}</Alert>}
+          {resetError && <Alert severity="error" sx={{ mb: 2 }}>{resetError}</Alert>}
+          <TextField
+            fullWidth
+            label="E-mail"
+            type="email"
+            value={resetEmail}
+            onChange={(event) => setResetEmail(event.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="ID da clínica (opcional)"
+            value={resetClinicId}
+            onChange={(event) => setResetClinicId(event.target.value)}
+            helperText="Informe apenas quando o mesmo e-mail pertence a mais de uma clínica."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetOpen(false)} disabled={resetBusy}>Fechar</Button>
+          <Button
+            variant="contained"
+            onClick={() => void requestReset()}
+            disabled={resetBusy || !resetEmail.trim()}
+          >
+            {resetBusy ? "Enviando..." : "Enviar instruções"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

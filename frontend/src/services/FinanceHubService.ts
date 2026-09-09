@@ -42,6 +42,10 @@ const ENTRIES_KEY = "dentalpos.financial.entries.v3";
 const PROVIDERS_KEY = "dentalpos.payment.providers.v2";
 const LEGACY_KEY = "dentalpos.financial.entries.v2";
 
+const demoDataEnabled = () =>
+  import.meta.env.VITE_ENABLE_DEMO_DATA === "true" ||
+  localStorage.getItem("dentalpos.demoData.enabled") === "true";
+
 const isoToday = () => new Date().toISOString().slice(0, 10);
 const addMonths = (date: Date, months: number) => {
   const copy = new Date(date);
@@ -89,8 +93,11 @@ export function listFinanceEntries(): FinanceEntry[] {
     const migrated = migrateLegacy();
     if (migrated) { saveFinanceEntries(migrated); return migrated; }
   } catch { /* fallback */ }
-  saveFinanceEntries(seed);
-  return seed.map(normalizeStatus);
+  if (demoDataEnabled()) {
+    saveFinanceEntries(seed);
+    return seed.map(normalizeStatus);
+  }
+  return [];
 }
 
 export function saveFinanceEntries(entries: FinanceEntry[]) {

@@ -18,6 +18,15 @@ const isProduction = process.env.NODE_ENV === 'production'
 const bodyLimit = process.env.API_BODY_LIMIT || '2mb'
 const allowedOrigins = allowedCorsOrigins()
 
+const trustedDentalPosVercelOrigins = new Set([
+  'https://dentalpos-one.vercel.app',
+  'https://dentalpos-one-git-chat8-5787-in-e16b45-robsonraveloliveira-7222.vercel.app',
+])
+
+function isTrustedDentalPosVercelOrigin(origin: string) {
+  return trustedDentalPosVercelOrigins.has(origin)
+}
+
 if (process.env.TRUST_PROXY === 'true') {
   app.set('trust proxy', 1)
 }
@@ -30,6 +39,7 @@ app.use(
     origin(origin, callback) {
       if (!origin) return callback(null, true)
       if (allowedOrigins.includes(origin)) return callback(null, true)
+      if (isTrustedDentalPosVercelOrigin(origin)) return callback(null, true)
       if (!isProduction && allowedOrigins.length === 0) return callback(null, true)
       return callback(new Error('Origem não autorizada pelo CORS.'))
     },
@@ -80,6 +90,8 @@ const apiLimiter = rateLimit({
 })
 
 app.use('/api/auth/login', authLimiter)
+app.use('/api/auth/password-reset/request', authLimiter)
+app.use('/api/auth/password-reset/confirm', authLimiter)
 app.use('/api/auth/register', authLimiter)
 app.use('/api/demo/register', authLimiter)
 app.use('/api', apiLimiter)

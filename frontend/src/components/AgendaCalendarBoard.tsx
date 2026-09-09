@@ -2,7 +2,6 @@ import { Box, Chip, Paper, Typography } from "@mui/material";
 import type { IntegratedAppointment } from "../types/operationsHub";
 import type { AgendaBlock, BackendSchedule, RecurringBreak } from "../services/ScheduleApi";
 import { patientFinancialSummary } from "../services/FinanceHubService";
-import { clinicalDocuments } from "../services/ClinicalDocumentService";
 import { getLaboratoryWorks } from "../services/OperationsHubService";
 import { listPatients, listTreatmentItems } from "../services/PatientClinicalService";
 
@@ -53,7 +52,7 @@ function timeFromMinutes(value: number) {
 }
 
 function endTime(appointment: IntegratedAppointment) {
-  return timeFromMinutes(minuteOfDay(appointment.time) + Math.max(10, appointment.durationMinutes || 30));
+  return timeFromMinutes(minuteOfDay(appointment.time) + Math.max(10, appointment.durationMinutes || 30) - 1);
 }
 
 function weekDates(dateISO: string) {
@@ -91,14 +90,6 @@ function operationalBadges(appointment: IntegratedAppointment): Array<{ label: s
   } catch {
     result.push({ label: "Financeiro", color: "default" });
   }
-
-  const unsigned = clinicalDocuments.find(
-    (document) =>
-      document.patientName.trim().toLowerCase() === name &&
-      (document.status !== "Assinado" || !document.digitallySigned) &&
-      ["Termo de consentimento", "Garantia"].includes(document.documentType),
-  );
-  if (unsigned) result.push({ label: `Assinar: ${unsigned.title}`, color: "warning" });
 
   try {
     const lab = getLaboratoryWorks().find(

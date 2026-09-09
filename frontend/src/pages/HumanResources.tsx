@@ -6,6 +6,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import PageHeader from "../components/PageHeader";
+import RHPointDesktopCard5787 from "../components/RHPointDesktopCard5787";
 import { employees as seedEmployees } from "../services/HumanResourcesService";
 import { listFinanceEntries, saveFinanceEntries, type FinanceEntry } from "../services/FinanceHubService";
 import type {
@@ -64,7 +65,9 @@ export default function HumanResources(){
   const addDocument=()=>{const id=Number(documentForm.employeeId);if(!id||!documentForm.title.trim())return;const item:HRDocument={id:Date.now(),employeeId:id,employeeName:employeeName(id),type:documentForm.type,title:documentForm.title,issuedAt:documentForm.issuedAt,expiresAt:documentForm.expiresAt||undefined,status:documentForm.status,digitallySigned:documentForm.digitallySigned,notes:documentForm.notes};persist(KEYS.documents,[item,...documents],setDocuments)};
   const addDiscipline=()=>{const id=Number(disciplineForm.employeeId);if(!id||!disciplineForm.reason.trim())return;const item:DisciplinaryAction={id:Date.now(),employeeId:id,employeeName:employeeName(id),type:disciplineForm.type,date:disciplineForm.date,reason:disciplineForm.reason,daysSuspended:Number(disciplineForm.daysSuspended)||undefined,status:"Aplicada"};persist(KEYS.discipline,[item,...discipline],setDiscipline)};
 
+  const showPoint = new URLSearchParams(window.location.search).get("ponto") === "1";
   return <Box>
+    {showPoint && <Box sx={{mb:2}}><RHPointDesktopCard5787/></Box>}
     <PageHeader title="RH e Gestão de Pessoas" description="Admissão, contratos, ponto, banco de horas, folha, férias, documentos, ocorrências e desligamentos." actionLabel="Novo colaborador" actionIcon={<AddIcon/>} onAction={()=>{resetEmployee();setOpenEmployee(true)}}/>
     {alertCount>0&&<Alert severity="warning" sx={{mb:2}}>Há {alertCount} alerta(s) de RH: experiência próxima do vencimento, documentos vencidos ou férias em atenção.</Alert>}
     <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"repeat(4,1fr)"},gap:2,mb:2}}>{[["Colaboradores ativos",active.length],["Em experiência",active.filter(e=>e.status==="Experiência").length],["Custo-base mensal",money(monthlyCost)],["Alertas",alertCount]].map(([t,v])=><Paper key={String(t)} sx={{p:2.2,borderRadius:3}}><Typography color="text.secondary">{t}</Typography><Typography variant="h5" sx={{fontWeight:900}}>{v}</Typography></Paper>)}</Box>
