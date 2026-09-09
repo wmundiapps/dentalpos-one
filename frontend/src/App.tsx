@@ -87,14 +87,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/redefinir-senha") void validateSession();
+    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/redefinir-senha") void validateSession();
   }, [appPath]);
 
   if (appPath === "/agendamento-online") {
     return <PublicBooking />;
   }
 
-  if (appPath === "/demo") {
+  if (appPath === "/demo" || appPath === "/experience") {
     return <DemoLanding />;
   }
 
@@ -128,12 +128,12 @@ export default function App() {
       >
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 4, width: "min(620px,100%)" }}>
           <Alert severity="warning" sx={{ mb: 2 }}>
-            A demonstração gratuita foi encerrada.
+            O EXPERIENCE gratuito foi encerrado.
           </Alert>
           <Typography variant="h4" sx={{ fontWeight: 950 }}>Seus dados continuam preservados</Typography>
           <Typography color="text.secondary" sx={{ mt: 1, mb: 1 }}>
             O período gratuito terminou em {formatDemoDate(expiredDemo?.endAt)}.
-            Pacientes, agenda e histórico não são apagados automaticamente pelo vencimento da demo.
+            Pacientes, agenda e histórico não são apagados automaticamente pelo vencimento do EXPERIENCE.
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
             Para reativar o acesso e continuar utilizando o DentalPos One, solicite uma proposta comercial.

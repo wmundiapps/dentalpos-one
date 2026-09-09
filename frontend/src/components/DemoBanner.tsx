@@ -26,8 +26,8 @@ export default function DemoBanner() {
 
   const title =
     demo.phase === "READ_ONLY"
-      ? "Demo encerrada • modo somente leitura"
-      : `Demo gratuita • ${days} ${days === 1 ? "dia restante" : "dias restantes"}`;
+      ? "EXPERIENCE encerrado • modo somente leitura"
+      : `EXPERIENCE gratuito • ${days} ${days === 1 ? "dia restante" : "dias restantes"}`;
 
   const bookingUrl = publicBookingUrl(user?.clinicId);
 

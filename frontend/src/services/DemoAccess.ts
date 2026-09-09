@@ -79,7 +79,7 @@ export function appRootUrl() {
 }
 
 export function demoRegistrationUrl() {
-  return new URL("demo", appRootUrl()).toString();
+  return new URL("experience", appRootUrl()).toString();
 }
 
 export function publicBookingUrl(clinicId?: string | null) {

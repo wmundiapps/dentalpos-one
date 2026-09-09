@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       'import.meta.env.VITE_API_URL': JSON.stringify(
-        configuredApi || fallbackApi,
+        configuredApi && !configuredApi.includes('localhost') && !configuredApi.includes('127.0.0.1') ? configuredApi : fallbackApi,
       ),
     },
   }

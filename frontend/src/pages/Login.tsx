@@ -174,7 +174,7 @@ export default function Login() {
 
         <Box sx={{ mt: 3, pt: 2.5, borderTop: "1px solid", borderColor: "divider" }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Ainda não usa o DentalPos One? A demonstração gratuita é temporária e informa claramente
+            Ainda não usa o DentalPos One? O EXPERIENCE é gratuito, temporário e informa claramente
             a data de encerramento.
           </Typography>
           <Button
@@ -184,7 +184,7 @@ export default function Login() {
               window.location.href = demoRegistrationUrl();
             }}
           >
-            Quero testar gratuitamente
+            Conhecer o EXPERIENCE
           </Button>
         </Box>
 

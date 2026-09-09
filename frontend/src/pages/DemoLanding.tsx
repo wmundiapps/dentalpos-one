@@ -134,7 +134,7 @@ export default function DemoLanding() {
   function credentialsText() {
     if (!result) return "";
     return [
-      "DENTALPOS ONE — ACESSO DEMO",
+      "DENTALPOS ONE — ACESSO EXPERIENCE",
       "",
       `Clínica: ${form.clinicName}`,
       `ID da clínica: ${result.clinicId}`,
@@ -153,7 +153,7 @@ export default function DemoLanding() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `DentalPos-One-Demo-${result?.clinicId || "acesso"}.txt`;
+    anchor.download = `DentalPos-One-Experience-${result?.clinicId || "acesso"}.txt`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -187,7 +187,7 @@ export default function DemoLanding() {
         }}
       >
         <Typography variant="overline" color="primary" sx={{ fontWeight: 900 }}>
-          DENTALPOS ONE • EARLY ACCESS
+          DENTALPOS ONE • EXPERIENCE
         </Typography>
         <Typography variant="h3" sx={{ fontWeight: 950, lineHeight: 1.05, mb: 1 }}>
           Experimente gratuitamente
@@ -197,7 +197,7 @@ export default function DemoLanding() {
         </Typography>
 
         <Alert severity="info" sx={{ mt: 3 }}>
-          <strong>Demo gratuita por {config?.durationDays || 30} dias.</strong>{" "}
+          <strong>EXPERIENCE gratuito por {config?.durationDays || 30} dias.</strong>{" "}
           O acesso é temporário. Ao final do período, será necessária a contratação de um plano para
           continuar utilizando o sistema. O vencimento da demo não apaga automaticamente os dados cadastrados.
         </Alert>
@@ -211,7 +211,7 @@ export default function DemoLanding() {
         ) : result ? (
           <Box sx={{ mt: 4 }}>
             <Alert severity="success" sx={{ mb: 3 }}>
-              Demo criada. Guarde estas credenciais e envie-as somente às pessoas autorizadas da clínica.
+              EXPERIENCE criado. Guarde estas credenciais e envie-as somente às pessoas autorizadas da clínica.
             </Alert>
 
             <Box sx={{ display: "grid", gap: 1.5 }}>
@@ -340,7 +340,7 @@ export default function DemoLanding() {
             </Box>
 
             <Paper variant="outlined" sx={{ mt: 3, p: 2.5, borderRadius: 3, bgcolor: "background.default" }}>
-              <Typography sx={{ fontWeight: 900, mb: 1 }}>Condições da demonstração</Typography>
+              <Typography sx={{ fontWeight: 900, mb: 1 }}>Condições do EXPERIENCE</Typography>
               <Typography variant="body2" color="text.secondary">
                 O acesso é gratuito, temporário e faz parte do programa Early Access. A demonstração
                 terá duração de {config?.durationDays || 30} dias a partir do cadastro. Novos módulos
@@ -370,7 +370,7 @@ export default function DemoLanding() {
               disabled={busy || !form.acceptTerms}
               onClick={() => void register()}
             >
-              {busy ? "Criando ambiente..." : `Criar minha demo gratuita de ${config?.durationDays || 30} dias`}
+              {busy ? "Criando ambiente..." : `Criar meu EXPERIENCE gratuito de ${config?.durationDays || 30} dias`}
             </Button>
 
             <Button fullWidth sx={{ mt: 1 }} onClick={() => { window.location.href = loginUrl; }}>
