@@ -6,7 +6,6 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
@@ -19,7 +18,6 @@ import {
   readSessionUser,
   demoSalesUrl,
 } from "../services/DemoAccess";
-import type { DemoModuleStatus } from "../services/DemoAccess";
 
 const OPEN_GROUPS_KEY = "dentalpos.navigation.open-groups.v2";
 const COLLAPSED_KEY = "dentalpos.navigation.collapsed.v2";
@@ -44,7 +42,7 @@ export default function Sidebar(){
     const saved=localStorage.getItem(COLLAPSED_KEY);
     return saved===null ? true : saved==="1"; // compacto por padrão
   });
-  const [statusDialog,setStatusDialog]=useState<DemoModuleStatus|null>(null);
+  const [showInDevelopment,setShowInDevelopment]=useState(false);
 
   // No EXPERIENCE, nenhum item deve desaparecer do menu — apenas deduplicado.
   const visibleGroups=useMemo(()=>{
@@ -82,10 +80,10 @@ export default function Sidebar(){
   const displayName=[sessionUser?.firstName,sessionUser?.lastName].filter(Boolean).join(" ")||"Usuário";
   const roleLabel=demo?.isDemo?"Demo / Administrador":sessionUser?.role||"Usuário";
 
-  function statusForItem(path:string):DemoModuleStatus{
-    if(!demo?.isDemo)return "LIBERADO";
+  function isInDevelopment(path:string):boolean{
+    if(!demo?.isDemo)return false;
     const pathname=path.split("?")[0]||"/";
-    return getDemoModuleStatus(pathname,demo);
+    return getDemoModuleStatus(pathname,demo)==="EM_DESENVOLVIMENTO";
   }
 
   function handleItemClick(path:string){
@@ -94,9 +92,8 @@ export default function Sidebar(){
       window.location.href=path;
       return;
     }
-    const status=statusForItem(path);
-    if(status==="ASSINATURA_NECESSARIA"||status==="EM_DESENVOLVIMENTO"){
-      setStatusDialog(status);
+    if(isInDevelopment(path)){
+      setShowInDevelopment(true);
       return;
     }
     navigate(path);
@@ -106,6 +103,8 @@ export default function Sidebar(){
     const current=group.items.find(i=>pathMatches(i.path,location.pathname,location.search));
     handleItemClick((current||group.items[0]).path);
   }
+
+  const daysRemaining=demo?.daysRemaining??0;
 
   return <Box component="aside" sx={{
     width:sidebarWidth,minWidth:sidebarWidth,height:"100vh",bgcolor:"#0F172A",color:"#fff",
@@ -162,16 +161,13 @@ export default function Sidebar(){
             <List disablePadding sx={{pl:.5}}>
               {group.items.map(it=>{
                 const active=pathMatches(it.path,location.pathname,location.search);
-                const status=statusForItem(it.path);
-                const locked=status==="ASSINATURA_NECESSARIA";
-                const inProgress=status==="EM_DESENVOLVIMENTO";
+                const inProgress=isInDevelopment(it.path);
                 return <ListItemButton key={it.path} selected={active} onClick={()=>handleItemClick(it.path)} sx={{
                   minHeight:36,borderRadius:2,my:.15,pl:1.5,color:active?"#fff":"#94A3B8",
                   "&.Mui-selected":{bgcolor:"#1976D2",color:"#fff"},"&:hover":{bgcolor:"#1E293B",color:"#fff"}
                 }}>
                   <ListItemIcon sx={{color:"inherit",minWidth:30}}>{it.icon}</ListItemIcon>
                   <ListItemText primary={<Typography component="span" sx={{fontSize:12.5}}>{it.label}</Typography>}/>
-                  {locked&&<Tooltip title="Assinatura necessária"><LockOutlinedIcon sx={{fontSize:15,color:"#94A3B8",ml:.5}}/></Tooltip>}
                   {inProgress&&<Tooltip title="Em desenvolvimento"><ConstructionOutlinedIcon sx={{fontSize:15,color:"#94A3B8",ml:.5}}/></Tooltip>}
                 </ListItemButton>
               })}
@@ -182,29 +178,56 @@ export default function Sidebar(){
     </List>
 
     <Box sx={{flexGrow:1}}/>
-    <Box sx={{py:1.2,textAlign:"center",color:"#64748B",whiteSpace:"nowrap"}}>
-      {collapsed?<Typography sx={{fontSize:9,fontWeight:800}}>DP</Typography>:
-        <Typography sx={{fontSize:10.5}}>{demo?.isDemo?`DEMO • ${demo.daysRemaining??0} dias`:<><BrandName/> • {appConfig.version}</>}</Typography>}
-    </Box>
 
-    <Dialog open={statusDialog==="ASSINATURA_NECESSARIA"} onClose={()=>setStatusDialog(null)} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{fontWeight:800}}>Funcionalidade disponível no DentalPos One</DialogTitle>
-      <DialogContent>
-        <Typography>Faça sua assinatura e acesse esta funcionalidade.</Typography>
-      </DialogContent>
-      <DialogActions sx={{px:3,pb:2}}>
-        <Button onClick={()=>setStatusDialog(null)}>Voltar</Button>
-        <Button variant="contained" href={demoSalesUrl()} onClick={()=>setStatusDialog(null)}>Assinar DentalPos One</Button>
-      </DialogActions>
-    </Dialog>
+    {demo?.isDemo ? (
+      collapsed ? (
+        <Tooltip title={`${daysRemaining} dia${daysRemaining===1?"":"s"} restante${daysRemaining===1?"":"s"} — Assinar DentalPos One`} placement="right">
+          <IconButton
+            onClick={()=>window.open(demoSalesUrl(),"_blank")}
+            size="small"
+            sx={{
+              mx:"auto",mb:1.5,width:34,height:34,borderRadius:"50%",
+              bgcolor:"#1976D2",color:"#fff","&:hover":{bgcolor:"#1565C0"}
+            }}
+          >
+            <Typography sx={{fontSize:11,fontWeight:800}}>{daysRemaining}</Typography>
+          </IconButton>
+        </Tooltip>
+      ) : (
+        <Box sx={{mx:1,mb:1.5,p:1.5,borderRadius:2,bgcolor:"#1E293B",border:"1px solid #334155"}}>
+          <Typography sx={{fontSize:10.5,color:"#94A3B8",fontWeight:800,letterSpacing:.4,mb:.4}}>
+            MODO EXPERIENCE
+          </Typography>
+          <Typography sx={{fontSize:13,fontWeight:800,mb:1}}>
+            {daysRemaining>0
+              ? `${daysRemaining} dia${daysRemaining===1?"":"s"} restante${daysRemaining===1?"":"s"}`
+              : "Período encerrado"}
+          </Typography>
+          <Button
+            fullWidth
+            size="small"
+            variant="contained"
+            href={demoSalesUrl()}
+            sx={{fontSize:12,fontWeight:800,textTransform:"none"}}
+          >
+            Assinar DentalPos One
+          </Button>
+        </Box>
+      )
+    ) : (
+      <Box sx={{py:1.2,textAlign:"center",color:"#64748B",whiteSpace:"nowrap"}}>
+        {collapsed?<Typography sx={{fontSize:9,fontWeight:800}}>DP</Typography>:
+          <Typography sx={{fontSize:10.5}}><BrandName/> • {appConfig.version}</Typography>}
+      </Box>
+    )}
 
-    <Dialog open={statusDialog==="EM_DESENVOLVIMENTO"} onClose={()=>setStatusDialog(null)} maxWidth="xs" fullWidth>
+    <Dialog open={showInDevelopment} onClose={()=>setShowInDevelopment(false)} maxWidth="xs" fullWidth>
       <DialogTitle sx={{fontWeight:800}}>Em desenvolvimento</DialogTitle>
       <DialogContent>
         <Typography>Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no DentalPos One.</Typography>
       </DialogContent>
       <DialogActions sx={{px:3,pb:2}}>
-        <Button onClick={()=>setStatusDialog(null)}>Voltar</Button>
+        <Button onClick={()=>setShowInDevelopment(false)}>Voltar</Button>
       </DialogActions>
     </Dialog>
   </Box>

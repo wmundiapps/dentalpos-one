@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 import Academic from "../pages/Academic";
 import Accounting from "../pages/Accounting";
@@ -58,12 +58,9 @@ import {
   getDemoModuleStatus,
   moduleForPath,
   readDemoAccess,
-  demoSalesUrl,
 } from "../services/DemoAccess";
-import type { DemoModuleStatus } from "../services/DemoAccess";
 
-function DemoLockedPage({ status }: { status: Exclude<DemoModuleStatus, "LIBERADO"> }) {
-  const isLocked = status === "ASSINATURA_NECESSARIA";
+function DemoInDevelopmentPage() {
   return (
     <Box
       sx={{
@@ -78,18 +75,11 @@ function DemoLockedPage({ status }: { status: Exclude<DemoModuleStatus, "LIBERAD
       }}
     >
       <Typography variant="h5" sx={{ fontWeight: 800, mb: 1.5 }}>
-        {isLocked ? "Funcionalidade disponível no DentalPos One" : "Em desenvolvimento"}
+        Em desenvolvimento
       </Typography>
-      <Typography sx={{ color: "text.secondary", mb: 3, maxWidth: 420 }}>
-        {isLocked
-          ? "Faça sua assinatura e acesse esta funcionalidade."
-          : "Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no DentalPos One."}
+      <Typography sx={{ color: "text.secondary", maxWidth: 420 }}>
+        Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no DentalPos One.
       </Typography>
-      {isLocked && (
-        <Button variant="contained" href={demoSalesUrl()}>
-          Assinar DentalPos One
-        </Button>
-      )}
     </Box>
   );
 }
@@ -100,12 +90,12 @@ export default function AppRoutes() {
 
   if (demo?.isDemo) {
     const moduleName = moduleForPath(location.pathname);
-    // Só intercepta rotas reconhecidas (módulo existe no mapa).
-    // URLs realmente inexistentes seguem para o catch-all "*" abaixo.
+    // Só intercepta rotas reconhecidas e explicitamente marcadas como em
+    // desenvolvimento. URLs inexistentes seguem para o catch-all "*" abaixo.
     if (moduleName) {
       const status = getDemoModuleStatus(location.pathname, demo);
-      if (status !== "LIBERADO") {
-        return <DemoLockedPage status={status} />;
+      if (status === "EM_DESENVOLVIMENTO") {
+        return <DemoInDevelopmentPage />;
       }
     }
   }
