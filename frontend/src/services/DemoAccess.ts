@@ -1,5 +1,7 @@
 export type DemoPhase = "NONE" | "ACTIVE" | "READ_ONLY" | "ENDED";
 
+export type DemoModuleStatus = "LIBERADO" | "ASSINATURA_NECESSARIA" | "EM_DESENVOLVIMENTO";
+
 export interface DemoAccessSnapshot {
   isDemo: boolean;
   phase: DemoPhase;
@@ -117,15 +119,52 @@ export function moduleForPath(pathname: string) {
   return ROUTE_MODULES.find(([pattern]) => pattern.test(normalized))?.[1] || null;
 }
 
+/**
+ * Módulos que ainda não têm implementação real (frontend/backend) e por isso
+ * devem aparecer como "Em desenvolvimento" mesmo fora do que o backend libera
+ * no demo. Ajustar depois de inspecionar Sidebar.tsx e AppRoutes.tsx.
+ */
+const NOT_IMPLEMENTED_MODULES = new Set<string>([
+  // ex: "laboratory",
+]);
+
+/**
+ * Módulos sempre liberados no EXPERIENCE, independente do que a API retorna
+ * em demo.modules (ex.: dashboard, para o visitante ver a visão executiva).
+ */
+const ALWAYS_LIBERADO_IN_DEMO = new Set<string>(["dashboard"]);
+
+/**
+ * Determina o status comercial de um módulo dentro do EXPERIENCE (demo).
+ * Fora do demo, tudo é LIBERADO (autorização real continua a cargo do backend).
+ */
+export function getDemoModuleStatus(
+  pathname: string,
+  demo: DemoAccessSnapshot | null | undefined,
+): DemoModuleStatus {
+  if (!demo?.isDemo) return "LIBERADO";
+
+  const moduleName = moduleForPath(pathname);
+
+  if (!moduleName) return "EM_DESENVOLVIMENTO";
+  if (ALWAYS_LIBERADO_IN_DEMO.has(moduleName)) return "LIBERADO";
+  if (demo.modules.includes(moduleName)) return "LIBERADO";
+  if (NOT_IMPLEMENTED_MODULES.has(moduleName)) return "EM_DESENVOLVIMENTO";
+
+  return "ASSINATURA_NECESSARIA";
+}
+
+/**
+ * Mantido por compatibilidade com outros pontos do código. NÃO deve mais ser
+ * usado para esconder itens do menu — apenas para decidir se a navegação
+ * segue direto para a página real (true) ou se deve exibir a tela de
+ * "assinatura necessária" / "em desenvolvimento" (false).
+ */
 export function pathAllowedForDemo(
   pathname: string,
   demo: DemoAccessSnapshot | null | undefined,
 ) {
-  if (!demo?.isDemo) return true;
-  if (pathname === "/") return true;
-
-  const moduleName = moduleForPath(pathname);
-  return Boolean(moduleName && demo.modules.includes(moduleName));
+  return getDemoModuleStatus(pathname, demo) === "LIBERADO";
 }
 
 export function formatDemoDate(value?: string | null) {

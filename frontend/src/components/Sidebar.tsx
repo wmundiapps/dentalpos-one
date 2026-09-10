@@ -1,20 +1,29 @@
 import {
   Avatar, Box, Collapse, Divider, IconButton, List, ListItemButton, ListItemIcon,
-  ListItemText, Tooltip, Typography
+  ListItemText, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button
 } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
-import { pathAllowedForDemo, readDemoAccess, readSessionUser } from "../services/DemoAccess";
+import {
+  getDemoModuleStatus,
+  readDemoAccess,
+  readSessionUser,
+  demoSalesUrl,
+} from "../services/DemoAccess";
+import type { DemoModuleStatus } from "../services/DemoAccess";
 
 const OPEN_GROUPS_KEY = "dentalpos.navigation.open-groups.v2";
 const COLLAPSED_KEY = "dentalpos.navigation.collapsed.v2";
+const AGENDAMENTO_ONLINE_PATH = "/agendamento-online";
 
 function pathMatches(target:string, pathname:string, search:string){
   const [targetPath,query=""]=target.split("?");
@@ -35,24 +44,21 @@ export default function Sidebar(){
     const saved=localStorage.getItem(COLLAPSED_KEY);
     return saved===null ? true : saved==="1"; // compacto por padrão
   });
+  const [statusDialog,setStatusDialog]=useState<DemoModuleStatus|null>(null);
 
+  // No EXPERIENCE, nenhum item deve desaparecer do menu — apenas deduplicado.
   const visibleGroups=useMemo(()=>{
     const seen=new Set<string>();
     return navigationGroups.map(group=>{
       const items=group.items.filter(it=>{
         const dedupeKey=it.path;
         if(seen.has(dedupeKey))return false;
-        if(demo?.isDemo){
-          if(it.path==="/agendamento-online")return false;
-          const pathname=it.path.split("?")[0]||"/";
-          if(!pathAllowedForDemo(pathname,demo))return false;
-        }
         seen.add(dedupeKey);
         return true;
       });
       return {...group,items};
     }).filter(g=>g.items.length>0);
-  },[demo?.isDemo,demo?.modules.join("|")]);
+  },[]);
 
   const activeGroup=useMemo(
     ()=>visibleGroups.find(g=>g.items.some(it=>pathMatches(it.path,location.pathname,location.search)))?.label,
@@ -75,6 +81,31 @@ export default function Sidebar(){
   const initials=`${sessionUser?.firstName?.[0]||""}${sessionUser?.lastName?.[0]||""}`.toUpperCase()||"DP";
   const displayName=[sessionUser?.firstName,sessionUser?.lastName].filter(Boolean).join(" ")||"Usuário";
   const roleLabel=demo?.isDemo?"Demo / Administrador":sessionUser?.role||"Usuário";
+
+  function statusForItem(path:string):DemoModuleStatus{
+    if(!demo?.isDemo)return "LIBERADO";
+    const pathname=path.split("?")[0]||"/";
+    return getDemoModuleStatus(pathname,demo);
+  }
+
+  function handleItemClick(path:string){
+    // Rota pública tratada fora do React Router (ver App.tsx) — precisa de navegação de página inteira.
+    if(path.split("?")[0]===AGENDAMENTO_ONLINE_PATH){
+      window.location.href=path;
+      return;
+    }
+    const status=statusForItem(path);
+    if(status==="ASSINATURA_NECESSARIA"||status==="EM_DESENVOLVIMENTO"){
+      setStatusDialog(status);
+      return;
+    }
+    navigate(path);
+  }
+
+  function handleGroupClick(group:typeof visibleGroups[number]){
+    const current=group.items.find(i=>pathMatches(i.path,location.pathname,location.search));
+    handleItemClick((current||group.items[0]).path);
+  }
 
   return <Box component="aside" sx={{
     width:sidebarWidth,minWidth:sidebarWidth,height:"100vh",bgcolor:"#0F172A",color:"#fff",
@@ -109,10 +140,7 @@ export default function Sidebar(){
 
         if(collapsed){
           return <Tooltip key={group.label} title={group.label} placement="right" arrow>
-            <ListItemButton onClick={()=>{
-              const current=group.items.find(i=>pathMatches(i.path,location.pathname,location.search));
-              navigate((current||group.items[0]).path);
-            }} selected={selected} sx={{
+            <ListItemButton onClick={()=>handleGroupClick(group)} selected={selected} sx={{
               mb:.3,minHeight:42,borderRadius:2,justifyContent:"center",px:.5,color:selected?"#fff":"#CBD5E1",
               "&.Mui-selected":{bgcolor:"#1976D2"},"&:hover":{bgcolor:"#1E293B",color:"#fff"}
             }}>
@@ -134,12 +162,17 @@ export default function Sidebar(){
             <List disablePadding sx={{pl:.5}}>
               {group.items.map(it=>{
                 const active=pathMatches(it.path,location.pathname,location.search);
-                return <ListItemButton key={it.path} selected={active} onClick={()=>navigate(it.path)} sx={{
+                const status=statusForItem(it.path);
+                const locked=status==="ASSINATURA_NECESSARIA";
+                const inProgress=status==="EM_DESENVOLVIMENTO";
+                return <ListItemButton key={it.path} selected={active} onClick={()=>handleItemClick(it.path)} sx={{
                   minHeight:36,borderRadius:2,my:.15,pl:1.5,color:active?"#fff":"#94A3B8",
                   "&.Mui-selected":{bgcolor:"#1976D2",color:"#fff"},"&:hover":{bgcolor:"#1E293B",color:"#fff"}
                 }}>
                   <ListItemIcon sx={{color:"inherit",minWidth:30}}>{it.icon}</ListItemIcon>
                   <ListItemText primary={<Typography component="span" sx={{fontSize:12.5}}>{it.label}</Typography>}/>
+                  {locked&&<Tooltip title="Assinatura necessária"><LockOutlinedIcon sx={{fontSize:15,color:"#94A3B8",ml:.5}}/></Tooltip>}
+                  {inProgress&&<Tooltip title="Em desenvolvimento"><ConstructionOutlinedIcon sx={{fontSize:15,color:"#94A3B8",ml:.5}}/></Tooltip>}
                 </ListItemButton>
               })}
             </List>
@@ -153,5 +186,26 @@ export default function Sidebar(){
       {collapsed?<Typography sx={{fontSize:9,fontWeight:800}}>DP</Typography>:
         <Typography sx={{fontSize:10.5}}>{demo?.isDemo?`DEMO • ${demo.daysRemaining??0} dias`:<><BrandName/> • {appConfig.version}</>}</Typography>}
     </Box>
+
+    <Dialog open={statusDialog==="ASSINATURA_NECESSARIA"} onClose={()=>setStatusDialog(null)} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{fontWeight:800}}>Funcionalidade disponível no DentalPos One</DialogTitle>
+      <DialogContent>
+        <Typography>Faça sua assinatura e acesse esta funcionalidade.</Typography>
+      </DialogContent>
+      <DialogActions sx={{px:3,pb:2}}>
+        <Button onClick={()=>setStatusDialog(null)}>Voltar</Button>
+        <Button variant="contained" href={demoSalesUrl()} onClick={()=>setStatusDialog(null)}>Assinar DentalPos One</Button>
+      </DialogActions>
+    </Dialog>
+
+    <Dialog open={statusDialog==="EM_DESENVOLVIMENTO"} onClose={()=>setStatusDialog(null)} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{fontWeight:800}}>Em desenvolvimento</DialogTitle>
+      <DialogContent>
+        <Typography>Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no DentalPos One.</Typography>
+      </DialogContent>
+      <DialogActions sx={{px:3,pb:2}}>
+        <Button onClick={()=>setStatusDialog(null)}>Voltar</Button>
+      </DialogActions>
+    </Dialog>
   </Box>
 }

@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Box, Button, Typography } from "@mui/material";
 
 import Academic from "../pages/Academic";
 import Accounting from "../pages/Accounting";
@@ -54,18 +55,58 @@ import Homologation from "../pages/Homologation";
 
 import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
 import {
-  pathAllowedForDemo,
+  getDemoModuleStatus,
+  moduleForPath,
   readDemoAccess,
+  demoSalesUrl,
 } from "../services/DemoAccess";
+import type { DemoModuleStatus } from "../services/DemoAccess";
+
+function DemoLockedPage({ status }: { status: Exclude<DemoModuleStatus, "LIBERADO"> }) {
+  const isLocked = status === "ASSINATURA_NECESSARIA";
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100%",
+        minHeight: "60vh",
+        textAlign: "center",
+        px: 3,
+      }}
+    >
+      <Typography variant="h5" sx={{ fontWeight: 800, mb: 1.5 }}>
+        {isLocked ? "Funcionalidade disponível no DentalPos One" : "Em desenvolvimento"}
+      </Typography>
+      <Typography sx={{ color: "text.secondary", mb: 3, maxWidth: 420 }}>
+        {isLocked
+          ? "Faça sua assinatura e acesse esta funcionalidade."
+          : "Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no DentalPos One."}
+      </Typography>
+      {isLocked && (
+        <Button variant="contained" href={demoSalesUrl()}>
+          Assinar DentalPos One
+        </Button>
+      )}
+    </Box>
+  );
+}
 
 export default function AppRoutes() {
   const location = useLocation();
   const demo = readDemoAccess();
 
   if (demo?.isDemo) {
-    if (location.pathname === "/") return <Navigate to="/agenda" replace />;
-    if (!pathAllowedForDemo(location.pathname, demo)) {
-      return <Navigate to="/agenda" replace />;
+    const moduleName = moduleForPath(location.pathname);
+    // Só intercepta rotas reconhecidas (módulo existe no mapa).
+    // URLs realmente inexistentes seguem para o catch-all "*" abaixo.
+    if (moduleName) {
+      const status = getDemoModuleStatus(location.pathname, demo);
+      if (status !== "LIBERADO") {
+        return <DemoLockedPage status={status} />;
+      }
     }
   }
 
