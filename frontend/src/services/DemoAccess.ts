@@ -91,9 +91,11 @@ export function publicBookingUrl(clinicId?: string | null) {
 }
 
 export function demoSalesUrl() {
+  const phone = "5544984535069";
+  const message = "Quero contratar o DentalPos One";
   return (
     import.meta.env.VITE_SALES_URL ||
-    "mailto:contato@dentalpos.com.br?subject=Quero%20contratar%20o%20DentalPos%20One"
+    `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
   );
 }
 

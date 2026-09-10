@@ -17,6 +17,7 @@ import {
   readDemoAccess,
   readSessionUser,
   demoSalesUrl,
+  publicBookingUrl,
 } from "../services/DemoAccess";
 
 const OPEN_GROUPS_KEY = "dentalpos.navigation.open-groups.v2";
@@ -87,9 +88,10 @@ export default function Sidebar(){
   }
 
   function handleItemClick(path:string){
-    // Rota pública tratada fora do React Router (ver App.tsx) — precisa de navegação de página inteira.
+    // Rota pública tratada fora do React Router (ver App.tsx) — precisa de navegação de
+    // página inteira, com o clinicId incluído na URL para a página pública saber qual clínica.
     if(path.split("?")[0]===AGENDAMENTO_ONLINE_PATH){
-      window.location.href=path;
+      window.location.href=publicBookingUrl(sessionUser?.clinicId);
       return;
     }
     if(isInDevelopment(path)){
