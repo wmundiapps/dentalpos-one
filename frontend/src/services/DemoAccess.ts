@@ -112,6 +112,7 @@ const ROUTE_MODULES: Array<[RegExp, string]> = [
   [/^\/(?:sales|comercial|crm|crm-inteligente|estoque|revah-leads)(?:\/|$)/, "sales"],
   [/^\/(?:backup|clinicas|configuracoes|integracoes|homologacao|plataforma-saas|sugestoes-problemas)(?:\/|$)/, "settings"],
   [/^\/(?:centro-de-comando|centro-de-inteligencia|painel-executivo|indice-saude-clinica|benchmark|relatorios|notificacoes)(?:\/|$)/, "dashboard"],
+  [/^\/(?:evidencias-operacionais|operacional)(?:\/|$)/, "operational"],
   [/^\/academico(?:\/|$)/, "academic"],
 ];
 
