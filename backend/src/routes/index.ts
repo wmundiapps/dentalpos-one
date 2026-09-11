@@ -35,6 +35,7 @@ import * as backofficeController from '../controllers/backofficeController'
 import * as platformReadinessController from '../controllers/platformReadinessController'
 import * as smartSchedulingController from '../controllers/smartSchedulingController'
 import * as demoController from '../controllers/demoController'
+import * as debugDemoController from '../controllers/debugDemoController'
 import { requirePermission } from '../middleware/permission'
 import clinicalRecordRoutes from './clinicalRecordRoutes'
 import dentalChartRoutes from './dentalChartRoutes'
@@ -59,6 +60,8 @@ router.post('/auth/password-reset/request', authController.requestPasswordReset)
 router.post('/auth/password-reset/confirm', authController.resetPassword)
 router.get('/demo/config', demoController.config)
 router.post('/demo/register', demoController.register)
+router.get('/debug/demo-clinics', debugDemoController.list)
+router.post('/debug/demo-clinics/modules', debugDemoController.setModules)
 router.get('/auth/me', authMiddleware, tenantMiddleware, sessionController.me)
 
 // PUBLIC WEBHOOKS
@@ -336,7 +339,7 @@ router.get('/lead-discovery/imports', requirePermission('sales.view'), leadDisco
 router.post('/lead-discovery/imports', requirePermission('sales.edit'), leadDiscoveryController.createImport)
 
 // ======================
-// BACKOFFICE / CONTÃBIL / FISCAL
+// BACKOFFICE / CONTÁBIL / FISCAL
 // ======================
 
 router.get('/backoffice/dashboard', requirePermission('accounting.view'), backofficeController.dashboard)
