@@ -21,6 +21,9 @@ const allowedOrigins = allowedCorsOrigins()
 const trustedDentalPosVercelOrigins = new Set([
   'https://dentalpos-one.vercel.app',
   'https://dentalpos-one-git-chat8-5787-in-e16b45-robsonraveloliveira-7222.vercel.app',
+  'https://dentalpos-landing.vercel.app',
+  'https://one.dentalpos.com.br',
+  'http://one.dentalpos.com.br',
 ])
 
 function isTrustedDentalPosVercelOrigin(origin: string) {

@@ -36,6 +36,7 @@ import * as platformReadinessController from '../controllers/platformReadinessCo
 import * as smartSchedulingController from '../controllers/smartSchedulingController'
 import * as demoController from '../controllers/demoController'
 import * as debugDemoController from '../controllers/debugDemoController'
+import * as landingLeadController from '../controllers/landingLeadController'
 import { requirePermission } from '../middleware/permission'
 import clinicalRecordRoutes from './clinicalRecordRoutes'
 import dentalChartRoutes from './dentalChartRoutes'
@@ -62,6 +63,8 @@ router.get('/demo/config', demoController.config)
 router.post('/demo/register', demoController.register)
 router.get('/debug/demo-clinics', debugDemoController.list)
 router.post('/debug/demo-clinics/modules', debugDemoController.setModules)
+router.post('/landing/lead', landingLeadController.submitLead)
+router.post('/landing/lead-event', landingLeadController.submitEvent)
 router.get('/auth/me', authMiddleware, tenantMiddleware, sessionController.me)
 
 // PUBLIC WEBHOOKS
