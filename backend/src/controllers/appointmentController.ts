@@ -18,7 +18,7 @@ function parseDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? undefined : date
 }
 
-const allowedReminderChannels = new Set(['WHATSAPP', 'SMS', 'TELEGRAM', 'MANUAL'])
+const allowedReminderChannels = new Set(['WHATSAPP', 'SMS', 'EMAIL', 'TELEGRAM', 'MANUAL'])
 function normalizeReminderChannel(value: unknown) {
   const channel = String(value || 'WHATSAPP').toUpperCase()
   return allowedReminderChannels.has(channel) ? channel : 'WHATSAPP'
@@ -383,6 +383,11 @@ export async function update(req: AuthRequest, res: Response) {
     if (!newScheduledAt) return res.status(400).json({ error: 'Data/hora inválida.' })
     const newStatus = req.body.status ? String(req.body.status) : existing.status
     const normalizedReminderChannel = normalizeReminderChannel(req.body.reminderChannel || existing.confirmChannel || 'WHATSAPP')
+    const confirmationChannels = Array.from(new Set(
+      existing.reminders
+        .map(item => String(item.channel).toUpperCase())
+        .filter(channel => ['WHATSAPP', 'SMS', 'EMAIL', 'TELEGRAM'].includes(channel))
+    ))
     const reminderSelectionProvided = req.body.reminders && typeof req.body.reminders === 'object'
     const lifecycleTypes = ['ON_BOOKING', 'ONE_DAY_BEFORE', 'ON_DAY']
     const pendingReminderTypes = existing.reminders.filter(item => item.status === 'PENDING').map(item => item.type).filter(type => lifecycleTypes.includes(type))
@@ -532,16 +537,20 @@ export async function update(req: AuthRequest, res: Response) {
         })
       }
       if (changedStatus && newStatus === 'CONFIRMED') {
-        await tx.appointmentReminder.create({
-          data: {
-            clinicId: req.user!.clinicId,
-            tenantId: req.user!.tenantId,
-            appointmentId: id,
-            type: 'CONFIRMATION',
-            channel: normalizedReminderChannel,
-            scheduledFor: new Date()
-          }
-        })
+        const channels = confirmationChannels.length
+          ? confirmationChannels
+          : [normalizedReminderChannel]
+
+        const confirmationReminders = channels.map(channel => ({
+          clinicId: req.user!.clinicId,
+          tenantId: req.user!.tenantId,
+          appointmentId: id,
+          type: 'CONFIRMATION',
+          channel,
+          scheduledFor: new Date()
+        }))
+
+        await tx.appointmentReminder.createMany({ data: confirmationReminders })
       }
       if (changedStatus && ['CANCELLED', 'NO_SHOW'].includes(newStatus)) {
         await tx.appointmentReminder.updateMany({
