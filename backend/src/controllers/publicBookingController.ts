@@ -13,7 +13,7 @@ import {
 } from '../services/agendaAvailabilityService'
 import { getDemoAccess } from '../services/demoAccessService'
 
-const allowedChannels = new Set(['WHATSAPP', 'SMS', 'TELEGRAM', 'MANUAL'])
+const allowedChannels = new Set(['WHATSAPP', 'SMS', 'EMAIL', 'TELEGRAM', 'MANUAL'])
 const ONLINE_BOOKING_FLAG = 'ONLINE_BOOKING_SLOTS'
 
 type OnlineSlots = Record<string, Record<string, string[]>>
@@ -42,6 +42,14 @@ function onlineTimesFor(settings: { enabled: boolean; slots: OnlineSlots }, doct
 function normalizeChannel(value: unknown) {
   const channel = String(value || 'WHATSAPP').toUpperCase()
   return allowedChannels.has(channel) ? channel : 'WHATSAPP'
+}
+
+function normalizeEmail(value: unknown) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
 function parseLocalDateTime(dateISO: string, time: string) {
@@ -293,6 +301,7 @@ export async function store(req: Request, res: Response) {
       lastName,
       birthDate,
       patientPhone,
+      patientEmail,
       city,
       doctorId,
       procedure,
@@ -315,6 +324,13 @@ export async function store(req: Request, res: Response) {
     ) {
       return res.status(400).json({
         error: 'Nome, sobrenome, data de nascimento, WhatsApp, cidade, profissional, procedimento, data e horário são obrigatórios.'
+      })
+    }
+
+    const normalizedEmail = normalizeEmail(patientEmail)
+    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+      return res.status(400).json({
+        error: 'E-mail inválido. Corrija o endereço ou deixe o campo em branco.'
       })
     }
 
@@ -401,7 +417,7 @@ export async function store(req: Request, res: Response) {
     const incomingDigits = String(patientPhone).replace(/\D/g, '')
     const patients = await prisma.patient.findMany({
       where: { clinicId, tenantId: clinic.tenantId, isActive: true },
-      select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
+      select: { id: true, phone: true, email: true, fullName: true, birthDate: true, city: true },
     })
     let patient = patients.find(row => row.phone.replace(/\D/g, '') === incomingDigits)
 
@@ -412,23 +428,31 @@ export async function store(req: Request, res: Response) {
           tenantId: clinic.tenantId,
           fullName: patientName,
           phone: String(patientPhone).trim(),
+          ...(normalizedEmail ? { email: normalizedEmail } : {}),
           birthDate: parsedBirthDate,
           city: String(city).trim(),
         },
-        select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
+        select: { id: true, phone: true, email: true, fullName: true, birthDate: true, city: true },
       })
-    } else if (!patient.birthDate || !patient.city) {
+    } else if (!patient.birthDate || !patient.city || (!patient.email && normalizedEmail)) {
       patient = await prisma.patient.update({
         where: { id: patient.id },
         data: {
           ...(!patient.birthDate ? { birthDate: parsedBirthDate } : {}),
           ...(!patient.city ? { city: String(city).trim() } : {}),
+          ...(!patient.email && normalizedEmail ? { email: normalizedEmail } : {}),
         },
-        select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
+        select: { id: true, phone: true, email: true, fullName: true, birthDate: true, city: true },
       })
     }
 
     const reminderChannel = normalizeChannel(rawChannel)
+    const communicationChannels = [
+      'WHATSAPP',
+      'SMS',
+      ...(patient.email ? ['EMAIL'] : []),
+    ]
+
     const appointment = await prisma.$transaction(async tx => {
       const created = await tx.appointment.create({
         data: {
@@ -462,14 +486,16 @@ export async function store(req: Request, res: Response) {
         },
       })
 
-      const reminders = reminderDates(scheduledAt).map(item => ({
-        clinicId,
-        tenantId: clinic.tenantId,
-        appointmentId: created.id,
-        type: item.type,
-        channel: reminderChannel,
-        scheduledFor: item.scheduledFor,
-      }))
+      const reminders = reminderDates(scheduledAt).flatMap(item =>
+        communicationChannels.map(channel => ({
+          clinicId,
+          tenantId: clinic.tenantId,
+          appointmentId: created.id,
+          type: item.type,
+          channel,
+          scheduledFor: item.scheduledFor,
+        }))
+      )
       if (reminders.length) await tx.appointmentReminder.createMany({ data: reminders })
 
       return created

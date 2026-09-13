@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma'
 import { decryptSecret } from './secretVault'
 import { dispatchRevah, type RevahChannel } from './revahProviderService'
 
-const AUTOMATIC_CHANNELS = ['WHATSAPP', 'SMS', 'TELEGRAM'] as const
+const AUTOMATIC_CHANNELS = ['WHATSAPP', 'SMS', 'EMAIL', 'TELEGRAM'] as const
 let running = false
 
 function formatAppointmentDate(date: Date) {
@@ -86,24 +86,45 @@ export async function processDueAppointmentReminders() {
         },
       })
 
-      if (!sender) {
+      const canUseSystemEmail =
+        channel === 'EMAIL' && Boolean(process.env.RESEND_API_KEY)
+
+      if (!sender && !canUseSystemEmail) {
         await postponeWithError(reminder.id, `Configure um remetente ativo para ${channel}.`)
         continue
       }
 
       let credentials: Record<string, unknown> = {}
-      try {
-        credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {}
-      } catch {
-        await postponeWithError(reminder.id, `Credenciais de ${channel} não puderam ser abertas. Verifique a configuração segura da clínica.`)
-        continue
+
+      if (sender) {
+        try {
+          credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {}
+        } catch {
+          await postponeWithError(
+            reminder.id,
+            `Credenciais de ${channel} não puderam ser abertas. Verifique a configuração segura da clínica.`,
+          )
+          continue
+        }
+      } else if (canUseSystemEmail) {
+        credentials = {
+          apiKey: process.env.RESEND_API_KEY,
+          from: 'DentalPos One <contato@dentalpos.com.br>',
+          subject: 'DentalPos One • Agendamento',
+        }
       }
+
       if (Object.keys(credentials).length === 0 || credentials.simulated === true) {
         await postponeWithError(reminder.id, `Credenciais reais de ${channel} ainda não configuradas.`)
         continue
       }
 
       let destination = appointment.patient.phone || ''
+
+      if (channel === 'EMAIL') {
+        destination = appointment.patient.email || ''
+      }
+
       if (channel === 'TELEGRAM') {
         const contact = await prisma.revahContact.findFirst({
           where: {
@@ -123,7 +144,9 @@ export async function processDueAppointmentReminders() {
           reminder.id,
           channel === 'TELEGRAM'
             ? 'Paciente sem Telegram vinculado.'
-            : 'Paciente sem telefone para envio.',
+            : channel === 'EMAIL'
+              ? 'Paciente sem e-mail para envio.'
+              : 'Paciente sem telefone para envio.',
         )
         continue
       }
@@ -132,9 +155,14 @@ export async function processDueAppointmentReminders() {
         const result = await dispatchRevah(
           channel,
           destination,
-          reminderMessage(reminder.type, appointment.patient.fullName, appointment.scheduledAt, appointment.status),
+          reminderMessage(
+            reminder.type,
+            appointment.patient.fullName,
+            appointment.scheduledAt,
+            appointment.status,
+          ),
           credentials,
-          sender.address,
+          sender?.address,
         )
 
         if (result.simulated) {
@@ -151,10 +179,15 @@ export async function processDueAppointmentReminders() {
             data: {
               clinicId: reminder.clinicId,
               tenantId: reminder.tenantId,
-              senderId: sender.id,
+              senderId: sender?.id || null,
               channel,
               destination,
-              content: reminderMessage(reminder.type, appointment.patient.fullName, appointment.scheduledAt, appointment.status),
+              content: reminderMessage(
+                reminder.type,
+                appointment.patient.fullName,
+                appointment.scheduledAt,
+                appointment.status,
+              ),
               contactName: appointment.patient.fullName,
               provider: result.provider,
               providerMessageId: result.providerMessageId,
@@ -164,7 +197,10 @@ export async function processDueAppointmentReminders() {
           }),
         ])
       } catch (error) {
-        await postponeWithError(reminder.id, error instanceof Error ? error.message : 'Falha no envio automático.')
+        await postponeWithError(
+          reminder.id,
+          error instanceof Error ? error.message : 'Falha no envio automático.',
+        )
       }
     }
   } finally {
