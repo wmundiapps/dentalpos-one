@@ -11,7 +11,7 @@ export interface BackendDoctor {
   };
 }
 
-export type ReminderChannel = "WHATSAPP" | "SMS" | "TELEGRAM" | "MANUAL";
+export type ReminderChannel = "WHATSAPP" | "SMS" | "EMAIL" | "TELEGRAM" | "MANUAL";
 
 export type ReminderSelection = {
   onBooking: boolean;

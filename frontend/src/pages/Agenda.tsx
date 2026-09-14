@@ -67,7 +67,7 @@ const today = () => iso(new Date());
 const KEY = "dentalpos.agenda.notification-settings.v1";
 
 type View = "day" | "week" | "month";
-type Channel = "WhatsApp" | "SMS";
+type Channel = "WhatsApp" | "SMS" | "E-mail";
 type StatusFilter = "Todos" | AppointmentStatus;
 type PatientMode = "registered" | "new";
 
@@ -177,7 +177,7 @@ function backendRequestedBy(value: "Paciente" | "Clínica" | "Dentista" | "Outro
 }
 
 function backendChannel(value: Channel) {
-  return ({ WhatsApp: "WHATSAPP", SMS: "SMS" } as const)[value];
+  return ({ WhatsApp: "WHATSAPP", SMS: "SMS", "E-mail": "EMAIL" } as const)[value];
 }
 
 function historyAction(value: string): "Criado" | "Remarcado" | "Cancelado" | "Faltou" | "Alterado" {
@@ -303,7 +303,7 @@ export default function Agenda() {
   const [channel, setChannel] = useState<Channel>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || "{}")?.channel;
-      return saved === "SMS" ? "SMS" : "WhatsApp";
+      return saved === "SMS" || saved === "E-mail" ? saved : "WhatsApp";
     } catch {
       return "WhatsApp";
     }
@@ -320,6 +320,7 @@ export default function Agenda() {
     lastName: "",
     birthDate: "",
     phone: "",
+    email: "",
     city: "",
   });
   const [backendPatients, setBackendPatients] = useState<BackendPatient[]>([]);
@@ -635,7 +636,7 @@ export default function Agenda() {
     setSmartSuggestion(null);
     setReminderSelection({ onBooking: true, oneDayBefore: true, onDay: true });
     setPatientMode("registered");
-    setNewPatient({ firstName: "", lastName: "", birthDate: "", phone: "", city: "" });
+    setNewPatient({ firstName: "", lastName: "", birthDate: "", phone: "", email: "", city: "" });
 
     const cleanPrefill = Object.fromEntries(
       Object.entries(prefill || {}).filter(([, value]) => value !== undefined),
@@ -704,6 +705,7 @@ export default function Agenda() {
         const createdPatient = await createBackendPatient({
           fullName,
           phone: newPatient.phone.trim(),
+          email: newPatient.email.trim() || undefined,
           birthDate: birthDate.toISOString(),
           city: newPatient.city.trim(),
         });
@@ -1137,6 +1139,7 @@ export default function Agenda() {
               <TextField select size="small" label="Canal" value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
                 <MenuItem value="WhatsApp">WhatsApp</MenuItem>
                 <MenuItem value="SMS">SMS</MenuItem>
+                <MenuItem value="E-mail">E-mail</MenuItem>
               </TextField>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <FormControlLabel control={<Checkbox checked={reminderSelection.onBooking} onChange={(e) => setReminderSelection((current) => ({ ...current, onBooking: e.target.checked }))} />} label="Ao agendar" />
@@ -1290,6 +1293,7 @@ export default function Agenda() {
                     <TextField select size="small" label="Canal" value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
                       <MenuItem value="WhatsApp">WhatsApp</MenuItem>
                       <MenuItem value="SMS">SMS</MenuItem>
+                <MenuItem value="E-mail">E-mail</MenuItem>
                     </TextField>
                     <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                       <FormControlLabel control={<Checkbox checked={edit.reminders.onBooking} onChange={(e) => setEdit({ ...edit, reminders: { ...edit.reminders, onBooking: e.target.checked } })} />} label="Ao agendar" />

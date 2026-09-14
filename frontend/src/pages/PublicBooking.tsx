@@ -37,6 +37,7 @@ export default function PublicBooking() {
     lastName: "",
     birthDate: "",
     patientPhone: "",
+    patientEmail: "",
     city: "",
     doctorId: "",
     procedure: "Consulta inicial / avaliação",
@@ -98,11 +99,20 @@ export default function PublicBooking() {
       return;
     }
 
+    if (
+      form.patientEmail.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.patientEmail.trim())
+    ) {
+      setError("O e-mail informado parece inválido. Corrija o endereço ou deixe o campo em branco.");
+      return;
+    }
+
     setError("");
     try {
       await createPublicBooking({
         clinicId,
         ...form,
+        patientEmail: form.patientEmail.trim(),
         reminderChannel: "WHATSAPP",
       });
       setSent(true);
@@ -135,7 +145,7 @@ export default function PublicBooking() {
             severity="success"
             action={<Button onClick={() => setSent(false)}>Novo agendamento</Button>}
           >
-            Solicitação registrada na agenda da clínica. A confirmação será enviada automaticamente por WhatsApp.
+            Solicitação registrada na agenda da clínica. A confirmação será enviada pelos canais de comunicação disponíveis.
           </Alert>
         ) : (
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
@@ -164,6 +174,13 @@ export default function PublicBooking() {
               label="Telefone / WhatsApp"
               value={form.patientPhone}
               onChange={(event) => setForm({ ...form, patientPhone: event.target.value })}
+            />
+            <TextField
+              type="email"
+              label="E-mail (opcional)"
+              value={form.patientEmail}
+              onChange={(event) => setForm({ ...form, patientEmail: event.target.value })}
+              helperText="Se informado, também poderá receber confirmações e lembretes por e-mail."
             />
             <TextField
               required

@@ -1,6 +1,6 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-export type PublicBookingChannel = "WHATSAPP" | "SMS" | "TELEGRAM" | "MANUAL";
+export type PublicBookingChannel = "WHATSAPP" | "SMS" | "EMAIL" | "TELEGRAM" | "MANUAL";
 
 export interface PublicBookingDoctor {
   id: string;
@@ -84,6 +84,7 @@ export async function createPublicBooking(input: {
   lastName: string;
   birthDate: string;
   patientPhone: string;
+  patientEmail?: string;
   city: string;
   doctorId: string;
   procedure: string;

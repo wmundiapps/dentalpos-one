@@ -4,6 +4,7 @@ export interface BackendPatient {
   id: string;
   fullName: string;
   phone: string;
+  email?: string | null;
   birthDate?: string | null;
   city?: string | null;
   isActive?: boolean;
@@ -29,6 +30,7 @@ export async function loadBackendPatients(): Promise<BackendPatient[]> {
 export async function createBackendPatient(input: {
   fullName: string;
   phone: string;
+  email?: string;
   birthDate: string;
   city: string;
 }): Promise<BackendPatient> {
