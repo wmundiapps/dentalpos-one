@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { processDueAppointmentReminders } from '../services/appointmentReminderService'
 import {
   fitsWorkSchedule,
   getWorkBlocks,
@@ -361,6 +362,8 @@ export async function store(req: AuthRequest, res: Response) {
       userAgent: req.get('user-agent')
     })
 
+    await processDueAppointmentReminders()
+
     const full = await prisma.appointment.findUnique({ where: { id: appointment.id }, include: includeDetails })
     return res.status(201).json(full)
   } catch (error) {
@@ -575,6 +578,8 @@ export async function update(req: AuthRequest, res: Response) {
       ipAddress: req.ip,
       userAgent: req.get('user-agent')
     })
+
+    await processDueAppointmentReminders()
 
     const full = await prisma.appointment.findUnique({ where: { id }, include: includeDetails })
     return res.status(200).json(full)
