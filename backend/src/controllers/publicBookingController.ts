@@ -74,10 +74,10 @@ function reminderDates(scheduledAt: Date) {
   onDay.setHours(Math.max(7, scheduledAt.getHours() - 2), scheduledAt.getMinutes(), 0, 0)
 
   return [
-    { type: 'ON_BOOKING', scheduledFor: booking },
+    { type: 'CONFIRMATION', scheduledFor: booking },
     { type: 'ONE_DAY_BEFORE', scheduledFor: oneDayBefore },
     { type: 'ON_DAY', scheduledFor: onDay },
-  ].filter(item => item.type === 'ON_BOOKING' || item.scheduledFor.getTime() > booking.getTime())
+  ].filter(item => item.type === 'CONFIRMATION' || item.scheduledFor.getTime() > booking.getTime())
 }
 
 async function demoBookingClosed(clinicId: string, res: Response) {
@@ -443,8 +443,8 @@ export async function store(req: Request, res: Response) {
           source: 'ONLINE',
           scheduledAt,
           durationMinutes,
-          status: 'WAITING',
-          confirmation: 'PENDING',
+          status: 'CONFIRMED',
+          confirmation: 'CONFIRMED',
           confirmChannel: reminderChannel,
         },
       })
@@ -456,9 +456,9 @@ export async function store(req: Request, res: Response) {
           appointmentId: created.id,
           action: 'ONLINE_REQUEST',
           requestedBy: 'PATIENT',
-          reason: 'Solicitação realizada pelo agendamento online.',
+          reason: 'Agendamento confirmado automaticamente pelo agendamento online.',
           newScheduledAt: scheduledAt,
-          newStatus: 'WAITING',
+          newStatus: 'CONFIRMED',
         },
       })
 
@@ -478,7 +478,7 @@ export async function store(req: Request, res: Response) {
     return res.status(201).json({
       id: appointment.id,
       status: appointment.status,
-      message: 'Solicitação registrada. A clínica fará a confirmação.',
+      message: 'Agendamento confirmado! Você receberá a confirmação pelo canal escolhido.',
     })
   } catch (error) {
     console.error('Erro ao criar agendamento público:', error)

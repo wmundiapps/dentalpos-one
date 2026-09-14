@@ -65,6 +65,15 @@ export async function store(req: AuthRequest, res: Response) {
     const linkedUser = await prisma.user.findFirst({ where: { id: userId, clinicId, tenantId, isActive: true } })
     if (!linkedUser) return res.status(400).json({ error: 'Usuário não pertence à clínica atual.' })
 
+    let consultationValue: number | undefined
+    if (req.body.consultationValue !== undefined && req.body.consultationValue !== null && req.body.consultationValue !== '') {
+      const parsed = Number(req.body.consultationValue)
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        return res.status(400).json({ error: 'Valor da consulta inválido.' })
+      }
+      consultationValue = parsed
+    }
+
     const doctor = await prisma.doctor.create({
       data: {
         clinicId,
@@ -74,6 +83,7 @@ export async function store(req: AuthRequest, res: Response) {
         specialty,
         bio: req.body.bio ? String(req.body.bio) : undefined,
         photo: req.body.photo ? String(req.body.photo) : undefined,
+        consultationValue,
         isActive: req.body.isActive !== false
       }
     })
@@ -103,9 +113,26 @@ export async function update(req: AuthRequest, res: Response) {
     const existing = await prisma.doctor.findFirst({ where: { id, clinicId, tenantId } })
     if (!existing) return res.status(404).json({ error: 'Profissional não encontrado.' })
 
-    const allowed = ['cro', 'specialty', 'bio', 'photo', 'isActive']
-    const data = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)))
-    const doctor = await prisma.doctor.update({ where: { id }, data })
+    const allowed = ['cro', 'specialty', 'bio', 'photo', 'isActive', 'consultationValue']
+    const data: Record<string, unknown> = Object.fromEntries(
+      Object.entries(req.body).filter(([key]) => allowed.includes(key))
+    )
+    if ('consultationValue' in data) {
+      if (data.consultationValue === null || data.consultationValue === '') {
+        data.consultationValue = null
+      } else {
+        const parsed = Number(data.consultationValue)
+        if (!Number.isFinite(parsed) || parsed < 0) {
+          return res.status(400).json({ error: 'Valor da consulta inválido.' })
+        }
+        data.consultationValue = parsed
+      }
+    }
+    const doctor = await prisma.doctor.update({
+      where: { id },
+      data,
+      include: { user: { select: safeUserSelect } }
+    })
 
     await writeAudit({
       clinicId,

@@ -3,6 +3,7 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 export interface BackendDoctor {
   id: string;
   specialty?: string;
+  consultationValue?: number | null;
   user: {
     id: string;
     firstName: string;
@@ -75,6 +76,22 @@ function headers(json = false) {
 export async function loadBackendDoctors(): Promise<BackendDoctor[]> {
   const response = await fetch(`${API}/doctors`, { headers: headers() });
   if (!response.ok) throw new Error(`Erro HTTP ${response.status}`);
+  return response.json();
+}
+
+export async function updateDoctorConsultationValue(
+  doctorId: string,
+  consultationValue: number | null,
+): Promise<BackendDoctor> {
+  const response = await fetch(`${API}/doctor/${encodeURIComponent(doctorId)}`, {
+    method: "PUT",
+    headers: headers(true),
+    body: JSON.stringify({ consultationValue }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || `Erro HTTP ${response.status}`);
+  }
   return response.json();
 }
 

@@ -16,21 +16,53 @@ function formatAppointmentDate(date: Date) {
   }).format(date)
 }
 
-function reminderMessage(type: string, patientName: string, scheduledAt: Date, status: string) {
+function formatClinicAddress(clinic: { address?: string | null; city?: string | null; state?: string | null } | null | undefined) {
+  if (!clinic) return ''
+  return [clinic.address, clinic.city, clinic.state]
+    .filter((part): part is string => Boolean(part && part.trim()))
+    .join(', ')
+}
+
+function formatConsultationValue(value: number | null | undefined) {
+  if (value === null || value === undefined) return ''
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function formatDoctorName(doctor: { user?: { firstName: string; lastName: string } | null } | null | undefined) {
+  if (!doctor?.user) return ''
+  return `Dr(a). ${doctor.user.firstName} ${doctor.user.lastName}`.trim()
+}
+
+interface ReminderMessageContext {
+  type: string
+  patientName: string
+  scheduledAt: Date
+  status: string
+  doctorName: string
+  clinicAddress: string
+  consultationValueLabel: string
+}
+
+function reminderMessage(context: ReminderMessageContext) {
+  const { type, patientName, scheduledAt, status, doctorName, clinicAddress, consultationValueLabel } = context
   const when = formatAppointmentDate(scheduledAt)
+  const withDoctor = doctorName ? ` com ${doctorName}` : ''
+  const addressLine = clinicAddress ? ` Local: ${clinicAddress}.` : ''
+  const valueLine = consultationValueLabel ? ` Valor da consulta: ${consultationValueLabel}.` : ''
+
   if (type === 'CONFIRMATION') {
-    return `Olá ${patientName}. Sua consulta está confirmada para ${when}. Se precisar alterar o horário, entre em contato com a clínica.`
+    return `Olá ${patientName}. Sua consulta${withDoctor} está confirmada para ${when}.${addressLine}${valueLine} Se precisar alterar o horário, entre em contato com a clínica.`
   }
   if (type === 'ON_BOOKING' && status === 'WAITING') {
-    return `Olá ${patientName}. Recebemos sua solicitação de agendamento para ${when}. A clínica fará a confirmação.`
+    return `Olá ${patientName}. Recebemos sua solicitação de agendamento${withDoctor} para ${when}. A clínica fará a confirmação.`
   }
   if (type === 'ON_BOOKING') {
-    return `Olá ${patientName}. Seu agendamento foi registrado para ${when}.`
+    return `Olá ${patientName}. Seu agendamento${withDoctor} foi registrado para ${when}.${addressLine}${valueLine}`
   }
   if (type === 'ONE_DAY_BEFORE') {
-    return `Olá ${patientName}. Lembramos que sua consulta está prevista para amanhã, ${when}.`
+    return `Olá ${patientName}. Lembramos que sua consulta${withDoctor} está prevista para amanhã, ${when}.${addressLine}`
   }
-  return `Olá ${patientName}. Lembramos sua consulta hoje, ${when}.`
+  return `Olá ${patientName}. Lembramos sua consulta${withDoctor} hoje, ${when}.${addressLine}`
 }
 
 async function postponeWithError(id: string, message: string) {
@@ -53,7 +85,11 @@ export async function processDueAppointmentReminders() {
       },
       include: {
         appointment: {
-          include: { patient: true },
+          include: {
+            patient: true,
+            doctor: { include: { user: { select: { firstName: true, lastName: true } } } },
+            clinic: { select: { address: true, city: true, state: true } },
+          },
         },
       },
       orderBy: { scheduledFor: 'asc' },
@@ -129,13 +165,17 @@ export async function processDueAppointmentReminders() {
       }
 
       try {
-        const result = await dispatchRevah(
-          channel,
-          destination,
-          reminderMessage(reminder.type, appointment.patient.fullName, appointment.scheduledAt, appointment.status),
-          credentials,
-          sender.address,
-        )
+        const message = reminderMessage({
+          type: reminder.type,
+          patientName: appointment.patient.fullName,
+          scheduledAt: appointment.scheduledAt,
+          status: appointment.status,
+          doctorName: formatDoctorName(appointment.doctor),
+          clinicAddress: formatClinicAddress(appointment.clinic),
+          consultationValueLabel: formatConsultationValue(appointment.doctor?.consultationValue ?? null),
+        })
+
+        const result = await dispatchRevah(channel, destination, message, credentials, sender.address)
 
         if (result.simulated) {
           await postponeWithError(reminder.id, `O provedor ${result.provider} está em modo simulado.`)
@@ -154,7 +194,7 @@ export async function processDueAppointmentReminders() {
               senderId: sender.id,
               channel,
               destination,
-              content: reminderMessage(reminder.type, appointment.patient.fullName, appointment.scheduledAt, appointment.status),
+              content: message,
               contactName: appointment.patient.fullName,
               provider: result.provider,
               providerMessageId: result.providerMessageId,

@@ -148,6 +148,8 @@ model Doctor {
   bio           String?
   photo         String?
 
+  consultationValue Float?
+
   isActive      Boolean @default(true)
 
   createdAt     DateTime @default(now())

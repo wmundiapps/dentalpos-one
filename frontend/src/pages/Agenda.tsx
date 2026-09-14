@@ -44,7 +44,7 @@ import {
 
 import { listPatients } from "../services/PatientClinicalService";
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
-import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
+import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import {
   loadAgendaBlocks,
@@ -339,6 +339,7 @@ export default function Agenda() {
   const [onlineDay, setOnlineDay] = useState(1);
   const [onlineSettingsLoading, setOnlineSettingsLoading] = useState(false);
   const [onlineSettingsSaving, setOnlineSettingsSaving] = useState(false);
+  const [consultationValueInput, setConsultationValueInput] = useState("");
 
   useEffect(() => subscribeOperations(() => setItems(getAppointments())), []);
   useEffect(() => {
@@ -808,7 +809,12 @@ export default function Agenda() {
     try {
       const settings = await loadOnlineBookingSettings();
       setOnlineSettings(settings);
-      setOnlineDoctorId((current) => current || backendDoctors[0]?.id || "");
+      const nextDoctorId = onlineDoctorId || backendDoctors[0]?.id || "";
+      setOnlineDoctorId(nextDoctorId);
+      const doctor = backendDoctors.find((item) => item.id === nextDoctorId);
+      setConsultationValueInput(
+        doctor?.consultationValue != null ? String(doctor.consultationValue) : "",
+      );
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível carregar os horários online.");
     } finally {
@@ -842,7 +848,24 @@ export default function Agenda() {
     try {
       const saved = await saveOnlineBookingSettings(onlineSettings);
       setOnlineSettings(saved);
-      window.alert("Horários do agendamento online salvos.");
+
+      if (onlineDoctorId) {
+        const trimmed = consultationValueInput.trim();
+        const parsedValue = trimmed === "" ? null : Number(trimmed);
+        if (parsedValue !== null && (!Number.isFinite(parsedValue) || parsedValue < 0)) {
+          window.alert("Informe um valor de consulta válido ou deixe em branco.");
+          return;
+        }
+        const currentDoctor = backendDoctors.find((item) => item.id === onlineDoctorId);
+        if ((currentDoctor?.consultationValue ?? null) !== parsedValue) {
+          const updatedDoctor = await updateDoctorConsultationValue(onlineDoctorId, parsedValue);
+          setBackendDoctors((current) =>
+            current.map((item) => (item.id === onlineDoctorId ? { ...item, ...updatedDoctor } : item)),
+          );
+        }
+      }
+
+      window.alert("Horários e valor da consulta salvos.");
       setOnlineSlotsOpen(false);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível salvar os horários online.");
@@ -1435,7 +1458,14 @@ export default function Agenda() {
               select
               label="Profissional"
               value={onlineDoctorId}
-              onChange={(event) => setOnlineDoctorId(event.target.value)}
+              onChange={(event) => {
+                const nextId = event.target.value;
+                setOnlineDoctorId(nextId);
+                const doctor = backendDoctors.find((item) => item.id === nextId);
+                setConsultationValueInput(
+                  doctor?.consultationValue != null ? String(doctor.consultationValue) : "",
+                );
+              }}
               disabled={onlineSettingsLoading}
             >
               {backendDoctors.map((doctor) => (
@@ -1457,6 +1487,17 @@ export default function Agenda() {
               ))}
             </TextField>
           </Box>
+
+          <TextField
+            label="Valor da consulta deste profissional (R$)"
+            placeholder="Ex.: 250"
+            type="number"
+            value={consultationValueInput}
+            onChange={(event) => setConsultationValueInput(event.target.value)}
+            disabled={onlineSettingsLoading || !onlineDoctorId}
+            helperText="Usado na mensagem automática de confirmação enviada ao paciente."
+            slotProps={{ htmlInput: { min: 0, step: "0.01" } }}
+          />
 
           <Box>
             <Typography sx={{ fontWeight: 900, mb: 1 }}>
