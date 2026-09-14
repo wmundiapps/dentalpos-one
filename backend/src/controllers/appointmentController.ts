@@ -362,7 +362,7 @@ export async function store(req: AuthRequest, res: Response) {
       userAgent: req.get('user-agent')
     })
 
-    await processDueAppointmentReminders()
+    await processDueAppointmentReminders(appointment.id)
 
     const full = await prisma.appointment.findUnique({ where: { id: appointment.id }, include: includeDetails })
     return res.status(201).json(full)
@@ -579,7 +579,7 @@ export async function update(req: AuthRequest, res: Response) {
       userAgent: req.get('user-agent')
     })
 
-    await processDueAppointmentReminders()
+    await processDueAppointmentReminders(id)
 
     const full = await prisma.appointment.findUnique({ where: { id }, include: includeDetails })
     return res.status(200).json(full)

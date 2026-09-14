@@ -41,7 +41,7 @@ async function postponeWithError(id: string, message: string) {
   })
 }
 
-export async function processDueAppointmentReminders() {
+export async function processDueAppointmentReminders(appointmentId?: string) {
   if (running) return
   running = true
   try {
@@ -50,6 +50,7 @@ export async function processDueAppointmentReminders() {
         status: 'PENDING',
         scheduledFor: { lte: new Date() },
         channel: { in: [...AUTOMATIC_CHANNELS] },
+        ...(appointmentId ? { appointmentId } : {}),
       },
       include: {
         appointment: {
@@ -88,6 +89,16 @@ export async function processDueAppointmentReminders() {
 
       const canUseSystemEmail =
         channel === 'EMAIL' && Boolean(process.env.RESEND_API_KEY)
+
+      if (channel === 'EMAIL') {
+        console.info('[appointment-reminder] email-check', {
+          reminderId: reminder.id,
+          appointmentId: appointment.id,
+          hasSender: Boolean(sender),
+          hasSystemEmail: canUseSystemEmail,
+          hasDestination: Boolean(appointment.patient.email),
+        })
+      }
 
       if (!sender && !canUseSystemEmail) {
         await postponeWithError(reminder.id, `Configure um remetente ativo para ${channel}.`)
@@ -197,6 +208,12 @@ export async function processDueAppointmentReminders() {
           }),
         ])
       } catch (error) {
+        console.error('[appointment-reminder] envio-falhou', {
+          reminderId: reminder.id,
+          appointmentId: appointment.id,
+          channel,
+          error: error instanceof Error ? error.message : 'Falha no envio automático.',
+        })
         await postponeWithError(
           reminder.id,
           error instanceof Error ? error.message : 'Falha no envio automático.',
