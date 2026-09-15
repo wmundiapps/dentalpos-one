@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { hashPassword } from '../services/userService'
+import { dispatchRevah } from '../services/revahProviderService'
 import {
   createDemoMetadata,
   demoOptions,
@@ -14,6 +15,14 @@ function normalizedText(value: unknown) {
 
 function normalizedEmail(value: unknown) {
   return normalizedText(value).toLowerCase()
+}
+
+function resendCredentials() {
+  const apiKey = process.env.RESEND_API_KEY || ''
+  return {
+    apiKey,
+    from: 'DentalPos One <contato@dentalpos.com.br>',
+  }
 }
 
 function defaultOnlineTimes() {
@@ -228,6 +237,41 @@ export async function register(req: Request, res: Response) {
     })
 
     const demo = await getDemoAccess(created.clinicId)
+
+    try {
+      const credentials = resendCredentials()
+      if (credentials.apiKey) {
+        const validUntil = demo.endAt
+          ? new Date(demo.endAt).toLocaleDateString('pt-BR')
+          : null
+        const welcomeContent = [
+          `Olá ${created.firstName},`,
+          '',
+          `Sua demonstração gratuita do DentalPos One para a clínica "${clinicName}" está pronta.`,
+          '',
+          `Acesse: https://dentalpos-one.vercel.app/`,
+          `E-mail de login: ${created.email}`,
+          `Senha: a que você cadastrou agora`,
+          validUntil ? `Demo gratuita válida até: ${validUntil}` : null,
+          '',
+          'Dentro do sistema, na última página do menu, tem um espaço dedicado para sugestões, elogios ou reclamações — fique à vontade para nos contar o que achou.',
+          '',
+          'Qualquer dúvida, estamos à disposição pelo WhatsApp: (44) 98453-5069.',
+          '',
+          'Equipe DentalPos One',
+          'Você só precisa atender.',
+        ].filter((line): line is string => line !== null).join('\n')
+
+        await dispatchRevah('EMAIL', created.email, welcomeContent, {
+          ...credentials,
+          subject: 'Seu acesso à demonstração do DentalPos One está pronto',
+        })
+      } else {
+        console.error('RESEND_API_KEY não configurada — e-mail de boas-vindas do demo não enviado.')
+      }
+    } catch (emailError) {
+      console.error('Falha ao enviar e-mail de boas-vindas do demo:', emailError)
+    }
 
     return res.status(201).json({
       clinicId: created.clinicId,
