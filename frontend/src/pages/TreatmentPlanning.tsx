@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress, MenuItem, Paper, TextField, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PageHeader from '../components/PageHeader';
@@ -7,8 +8,9 @@ import { createTreatmentItem, getTreatmentPlan, importOdontogram, updateTreatmen
 import { approveBudget, cancelBudget, createBudget, listBudgets, type BudgetRow } from '../services/BudgetApi';
 
 const money=(v:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0);
-export default function TreatmentPlanning(){
- const [patients,setPatients]=useState<BackendPatient[]>([]),[patientId,setPatientId]=useState(''),[items,setItems]=useState<TreatmentPlanItem[]>([]),[progress,setProgress]=useState(0),[budgets,setBudgets]=useState<BudgetRow[]>([]),[error,setError]=useState(''),[open,setOpen]=useState(false);
+export default function TreatmentPlanning({ initialPatientId }: { initialPatientId?: string } = {}){
+ const [searchParams]=useSearchParams();
+ const [patients,setPatients]=useState<BackendPatient[]>([]),[patientId,setPatientId]=useState(initialPatientId||searchParams.get('patientId')||''),[items,setItems]=useState<TreatmentPlanItem[]>([]),[progress,setProgress]=useState(0),[budgets,setBudgets]=useState<BudgetRow[]>([]),[error,setError]=useState(''),[open,setOpen]=useState(false);
  const [form,setForm]=useState<any>({procedure:'',tooth:'',region:'',phase:'1',priority:'NORMAL',specialty:'',professionalName:'',estimatedMinutes:60,unitValue:0,laboratoryRequired:false,status:'PLANNED'});
  const patient=patients.find(p=>p.id===patientId); const total=useMemo(()=>items.reduce((s,i)=>s+Number(i.planningData?.unitValue||0),0),[items]);
  async function refresh(id=patientId){if(!id){setItems([]);setProgress(0);return}try{const r=await getTreatmentPlan(id);setItems(r.items);setProgress(r.progressPercent);setBudgets((await listBudgets()).filter(b=>b.patientId===id));setError('')}catch(e:any){setError(e.message)}}

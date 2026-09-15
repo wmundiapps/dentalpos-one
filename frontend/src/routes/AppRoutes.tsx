@@ -12,6 +12,7 @@ import ClinicHealth from "../pages/ClinicHealth";
 import Clinics from "../pages/Clinics";
 import ClinicalDocuments from "../pages/ClinicalDocuments";
 import ClinicalRecord from "../pages/ClinicalRecord";
+import PatientFile from "../pages/PatientFile";
 import ClinicalFiles from "../pages/ClinicalFiles";
 import OdontogramPeriodontogram from "../pages/OdontogramPeriodontogram";
 import SurgeryImplantProsthesis from "../pages/SurgeryImplantProsthesis";
@@ -239,6 +240,7 @@ export default function AppRoutes() {
       <Route path="/revah-chatbot" element={<RevahChatbot />} />
 
       <Route path="/pacientes" element={<Patients />} />
+      <Route path="/ficha-paciente" element={<PatientFile />} />
 
       <Route
         path="/prontuario"

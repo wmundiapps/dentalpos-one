@@ -44,3 +44,5 @@ coverage/
 
 # Prisma
 .prisma/
+.vercel
+.env*

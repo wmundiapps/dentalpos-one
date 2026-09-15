@@ -77,7 +77,7 @@ export const navigationGroups:NavigationGroup[] = [
     ])
   },
   {
-    label:"REVAH",
+    label:"Marketing",
     icon:<SendIcon/>,
     items:alphabetical([
       item("CRM","/crm",<HubIcon/>),

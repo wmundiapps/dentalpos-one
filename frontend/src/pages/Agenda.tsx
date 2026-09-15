@@ -42,8 +42,9 @@ import {
   updateAppointment,
 } from "../services/OperationsHubService";
 
-import { listPatients } from "../services/PatientClinicalService";
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
+import { getTreatmentPlan } from "../services/TreatmentPlanApi";
+import { loadFinancialEntries } from "../services/FinancialApi";
 import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import {
@@ -340,6 +341,8 @@ export default function Agenda() {
   const [onlineSettingsLoading, setOnlineSettingsLoading] = useState(false);
   const [onlineSettingsSaving, setOnlineSettingsSaving] = useState(false);
   const [consultationValueInput, setConsultationValueInput] = useState("");
+  const [materialAlerts, setMaterialAlerts] = useState<Map<string, string>>(new Map());
+  const [financialAlerts, setFinancialAlerts] = useState<Map<string, { open: number; overdue: number }>>(new Map());
 
   useEffect(() => subscribeOperations(() => setItems(getAppointments())), []);
   useEffect(() => {
@@ -350,6 +353,64 @@ export default function Agenda() {
       })
       .catch(() => {
         if (active) setBackendPatients([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    if (!backendPatients.length) {
+      setMaterialAlerts(new Map());
+      return;
+    }
+    Promise.all(
+      backendPatients.map(async (patient) => {
+        try {
+          const plan = await getTreatmentPlan(patient.id);
+          const supply = plan.items.find((item) => {
+            const text = `${item.procedure}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            const pending = !["COMPLETED", "CANCELLED"].includes(String(item.status));
+            return pending && /(enxerto|membrana|biomaterial|componente|material|parafuso)/.test(text);
+          });
+          return [patient.fullName.trim().toLowerCase(), supply?.procedure] as const;
+        } catch {
+          return [patient.fullName.trim().toLowerCase(), undefined] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (!active) return;
+      const next = new Map<string, string>();
+      for (const [name, procedure] of entries) {
+        if (procedure) next.set(name, procedure);
+      }
+      setMaterialAlerts(next);
+    });
+    return () => {
+      active = false;
+    };
+  }, [backendPatients]);
+  useEffect(() => {
+    let active = true;
+    loadFinancialEntries()
+      .then((rows) => {
+        if (!active) return;
+        const today = new Date().toISOString().slice(0, 10);
+        const next = new Map<string, { open: number; overdue: number }>();
+        for (const row of rows) {
+          if (row.type !== "INCOME" || row.status === "CANCELLED") continue;
+          const key = row.personName.trim().toLowerCase();
+          const current = next.get(key) || { open: 0, overdue: 0 };
+          if (row.status !== "PAID") {
+            current.open += row.amount;
+            if (row.dueDate.slice(0, 10) < today) current.overdue += row.amount;
+          }
+          next.set(key, current);
+        }
+        setFinancialAlerts(next);
+      })
+      .catch(() => {
+        if (active) setFinancialAlerts(new Map());
       });
     return () => {
       active = false;
@@ -628,8 +689,7 @@ export default function Agenda() {
   const normalizedPatientName = form.patientName.trim().toLowerCase();
   const selectedPatient =
     patientMode === "registered"
-      ? backendPatients.find((patient) => patient.fullName.trim().toLowerCase() === normalizedPatientName) ||
-        listPatients().find((patient) => patient.fullName.trim().toLowerCase() === normalizedPatientName)
+      ? backendPatients.find((patient) => patient.fullName.trim().toLowerCase() === normalizedPatientName)
       : undefined;
 
   const openNew = (prefill?: Partial<AppointmentForm>) => {
@@ -875,7 +935,7 @@ export default function Agenda() {
   };
 
   const scheduleNextReturn = (appointment: IntegratedAppointment, returnDateISO: string) => {
-    const patient = listPatients().find((item) => item.fullName.toLowerCase() === appointment.patientName.toLowerCase());
+    const patient = backendPatients.find((item) => item.fullName.toLowerCase() === appointment.patientName.toLowerCase());
     setEdit(null);
     setEditSmartSuggestion(null);
     openNew({
@@ -1035,6 +1095,8 @@ export default function Agenda() {
             scheduleBlocks={scheduleBlocks}
             agendaBlocks={agendaBlocks}
             recurringBreaks={recurringBreaks}
+            materialAlerts={materialAlerts}
+            financialAlerts={financialAlerts}
             onDateChange={setDate}
             onDayOpen={(dayISO) => {
               setDate(dayISO);
@@ -1345,7 +1407,7 @@ export default function Agenda() {
               </Box>
 
               <SmartSchedulingAssistant
-                patientId={backendPatients.find((patient) => patient.fullName.toLowerCase() === edit.patientName.toLowerCase())?.id || listPatients().find((patient) => patient.fullName.toLowerCase() === edit.patientName.toLowerCase())?.id}
+                patientId={backendPatients.find((patient) => patient.fullName.toLowerCase() === edit.patientName.toLowerCase())?.id}
                 patientName={edit.patientName}
                 procedure={edit.procedure}
                 category={edit.category}
@@ -1361,7 +1423,7 @@ export default function Agenda() {
         </DialogContent>
         <DialogActions sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {edit ? (() => {
-            const patient = listPatients().find((item) => item.fullName.toLowerCase() === edit.patientName.toLowerCase());
+            const patient = backendPatients.find((item) => item.fullName.toLowerCase() === edit.patientName.toLowerCase());
             return (
               <>
                 <Button disabled={!patient} onClick={() => patient && navigate(`/prontuario?patientId=${encodeURIComponent(patient.id)}`)}>Prontuário</Button>

@@ -197,6 +197,11 @@ model Patient {
   allergies      String?
   notes          String?
 
+  status         String?  @default("Ativo")
+  treatment      String?
+  mainComplaint  String?
+  medications    String?
+
   isActive       Boolean @default(true)
 
   createdAt      DateTime @default(now())
@@ -505,6 +510,7 @@ model FinancialEntry {
   accountingStatus String  @default("PENDING")
   accountantNotes String?
   recurrence      String?
+  issuerEntity    String  @default("INSTITUTO_RAVEL")
   approvedAt      DateTime?
   sourceDocumentHash String?
   taxObligation   TaxObligation?

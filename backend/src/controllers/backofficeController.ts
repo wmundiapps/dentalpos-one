@@ -122,7 +122,16 @@ export async function dre(req: AuthRequest, res: Response) {
     }
     const revenue = rows.filter((row) => row.type === 'INCOME').reduce((total, row) => total + Number(row.netAmount ?? row.amount), 0)
     const expense = rows.filter((row) => row.type === 'EXPENSE').reduce((total, row) => total + Number(row.netAmount ?? row.amount), 0)
-    return res.json({ revenue, expense, result: revenue - expense, lines: [...grouped.values()] })
+    const issuers = new Map<string, { issuerEntity: string; revenue: number; expense: number }>()
+    for (const row of rows) {
+      const key = row.issuerEntity || 'INSTITUTO_RAVEL'
+      const current = issuers.get(key) || { issuerEntity: key, revenue: 0, expense: 0 }
+      const amount = Number(row.netAmount ?? row.amount)
+      if (row.type === 'INCOME') current.revenue += amount
+      else current.expense += amount
+      issuers.set(key, current)
+    }
+    return res.json({ revenue, expense, result: revenue - expense, lines: [...grouped.values()], byIssuer: [...issuers.values()] })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao gerar DRE.' })

@@ -152,13 +152,13 @@ export async function approve(req: AuthRequest, res: Response) {
       })
       if (existing.entryAmount > 0) {
         await tx.payment.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, budgetId: id, amount: existing.entryAmount, grossAmount: existing.entryAmount, netAmount: existing.entryAmount, method, provider, installment: 0, dueDate: now, status: 'PENDING' } })
-        await tx.financialEntry.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, patientId: existing.patientId, type: 'INCOME', description: `${existing.description} • Entrada`, category: 'TRATAMENTO', personName: existing.patient.fullName, amount: existing.entryAmount, dueDate: now, status: 'PENDING', paymentMethod: method, provider, origin: 'BUDGET', originId: id, installment: 0, installments: count } })
+        await tx.financialEntry.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, patientId: existing.patientId, type: 'INCOME', description: `${existing.description} • Entrada`, category: 'TRATAMENTO', personName: existing.patient.fullName, amount: existing.entryAmount, dueDate: now, status: 'PENDING', paymentMethod: method, provider, origin: 'BUDGET', originId: id, installment: 0, installments: count, issuerEntity: 'INSTITUTO_RAVEL' } })
       }
       for (let i = 1; i <= count && financed > 0; i++) {
         const due = new Date(now)
         due.setMonth(due.getMonth() + i - (existing.entryAmount > 0 ? 0 : 1))
         await tx.payment.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, budgetId: id, amount: installmentValue, grossAmount: installmentValue, netAmount: installmentValue, method, provider, installment: i, dueDate: due, status: 'PENDING' } })
-        await tx.financialEntry.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, patientId: existing.patientId, type: 'INCOME', description: `${existing.description} • Parcela ${i}/${count}`, category: 'TRATAMENTO', personName: existing.patient.fullName, amount: installmentValue, dueDate: due, status: 'PENDING', paymentMethod: method, provider, origin: 'BUDGET', originId: id, installment: i, installments: count } })
+        await tx.financialEntry.create({ data: { clinicId: u.clinicId, tenantId: u.tenantId, patientId: existing.patientId, type: 'INCOME', description: `${existing.description} • Parcela ${i}/${count}`, category: 'TRATAMENTO', personName: existing.patient.fullName, amount: installmentValue, dueDate: due, status: 'PENDING', paymentMethod: method, provider, origin: 'BUDGET', originId: id, installment: i, installments: count, issuerEntity: 'INSTITUTO_RAVEL' } })
       }
     })
     const row = await prisma.budget.findUnique({ where: { id }, include: { patient: true, payments: true } })

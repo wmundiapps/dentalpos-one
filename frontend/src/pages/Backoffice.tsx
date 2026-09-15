@@ -25,14 +25,15 @@ import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import WorkIcon from "@mui/icons-material/Work";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
-import { listFinanceEntries, saveFinanceEntries, type FinanceEntry } from "../services/FinanceHubService";
 import {
   BackofficeApi,
   type AccountantAccessRow,
   type BackofficeDashboard,
+  type DreResponse,
   type SupplierRow,
   type TaxObligationRow,
 } from "../services/BackofficeApi";
+import { issuerEntityLabels, type IssuerEntity } from "../services/FinancialApi";
 
 const money = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
@@ -55,6 +56,7 @@ export default function Backoffice() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [dashboard, setDashboard] = useState<BackofficeDashboard | null>(null);
+  const [dre, setDre] = useState<DreResponse | null>(null);
   const [suppliers, setSuppliers] = useState<SupplierRow[]>([]);
   const [taxes, setTaxes] = useState<TaxObligationRow[]>([]);
   const [accountants, setAccountants] = useState<AccountantAccessRow[]>([]);
@@ -71,13 +73,15 @@ export default function Backoffice() {
     setBusy(true);
     setError("");
     try {
-      const [summary, supplierRows, taxRows, accountantRows] = await Promise.all([
+      const [summary, dreData, supplierRows, taxRows, accountantRows] = await Promise.all([
         BackofficeApi.dashboard(),
+        BackofficeApi.dre(),
         BackofficeApi.suppliers(),
         BackofficeApi.taxObligations(),
         BackofficeApi.accountantAccesses(),
       ]);
       setDashboard(summary);
+      setDre(dreData);
       setSuppliers(supplierRows);
       setTaxes(taxRows);
       setAccountants(accountantRows);
@@ -143,26 +147,7 @@ export default function Backoffice() {
   async function approveTax(row: TaxObligationRow) {
     setBusy(true);
     try {
-      const approved = await BackofficeApi.approveTaxObligation(row.id, Number(row.finalValue ?? row.estimatedValue));
-      const finance = listFinanceEntries().filter((entry) => !(entry.origin === "Fiscal" && entry.originId === row.id));
-      const amount = Number(approved.finalValue ?? approved.estimatedValue);
-      const localEntry: FinanceEntry = {
-        id: Date.now(),
-        description: `${approved.name} • ${approved.competence}`,
-        category: "Tributos",
-        personName: approved.entityName,
-        type: "Despesa",
-        status: "Pendente",
-        value: amount,
-        dueDate: approved.dueDate.slice(0, 10),
-        competenceDate: approved.dueDate.slice(0, 10),
-        paymentMethod: "Transferência",
-        provider: "Manual",
-        origin: "Fiscal",
-        originId: row.id,
-        notes: "Gerado automaticamente após aprovação no Contábil/Fiscal.",
-      };
-      saveFinanceEntries([localEntry, ...finance]);
+      await BackofficeApi.approveTaxObligation(row.id, Number(row.finalValue ?? row.estimatedValue));
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao aprovar obrigação fiscal.");
@@ -219,15 +204,36 @@ export default function Backoffice() {
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
               <Button variant="contained" onClick={() => navigate("/financeiro?tipo=Receita")}>Contas a receber</Button>
               <Button variant="outlined" onClick={() => navigate("/financeiro?tipo=Despesa")}>Contas a pagar</Button>
-              <Button onClick={() => navigate("/contabil-fiscal")}>DRE e contábil</Button>
             </Box>
           </Box>
           <Divider sx={{ my: 2 }} />
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 1.5 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 1.5, mb: 2 }}>
             <MiniMetric label="Conferência contábil" value={`${dashboard?.accountingPending || 0} lançamentos`} />
             <MiniMetric label="Fornecedores ativos" value={String(dashboard?.suppliers ?? suppliers.filter((row) => row.isActive).length)} />
             <MiniMetric label="Contadores ativos" value={String(dashboard?.activeAccountants ?? accountants.filter((row) => row.status === "ACTIVE").length)} />
           </Box>
+
+          <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>DRE (todo o período)</Typography>
+          {dre ? (
+            <>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 1.5, mb: 2 }}>
+                <MiniMetric label="Receita" value={money(dre.revenue)} />
+                <MiniMetric label="Despesa" value={money(dre.expense)} />
+                <MiniMetric label="Resultado" value={money(dre.result)} />
+              </Box>
+              <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>Por razão social emissora</Typography>
+              <Box sx={{ display: "grid", gap: 1 }}>
+                {dre.byIssuer.map((row) => (
+                  <Box key={row.issuerEntity} sx={{ display: "flex", justifyContent: "space-between", gap: 2, p: 1.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+                    <Typography variant="body2">{issuerEntityLabels[row.issuerEntity as IssuerEntity] || row.issuerEntity}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>{money(row.revenue - row.expense)}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </>
+          ) : (
+            <Typography color="text.secondary">Carregando DRE...</Typography>
+          )}
         </Paper>
 
         <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>

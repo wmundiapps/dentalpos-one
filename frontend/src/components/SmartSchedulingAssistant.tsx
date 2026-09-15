@@ -22,6 +22,8 @@ import {
   acceptSmartScheduleDecision,
   requestSmartScheduleSuggestion,
 } from "../services/SmartSchedulingApi";
+import { getTreatmentPlan } from "../services/TreatmentPlanApi";
+import { loadFinancialEntries } from "../services/FinancialApi";
 
 interface Props {
   patientId?: string;
@@ -67,6 +69,56 @@ export default function SmartSchedulingAssistant({
   );
   const [decisionId, setDecisionId] = useState<string | null>(null);
   const [source, setSource] = useState<"backend" | "local" | null>(null);
+  const [remainingVisits, setRemainingVisits] = useState<number | undefined>(undefined);
+  const [financialInstallments, setFinancialInstallments] = useState<number | undefined>(undefined);
+  const [financialOverdueInstallments, setFinancialOverdueInstallments] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    if (!patientId) {
+      setRemainingVisits(undefined);
+      setFinancialInstallments(undefined);
+      setFinancialOverdueInstallments(0);
+      return;
+    }
+    getTreatmentPlan(patientId)
+      .then((plan) => {
+        if (!alive) return;
+        const pending = plan.items.filter(
+          (item) => item.status !== "COMPLETED" && item.status !== "CANCELLED",
+        );
+        setRemainingVisits(pending.length ? Math.max(1, pending.length) : undefined);
+      })
+      .catch(() => {
+        if (alive) setRemainingVisits(undefined);
+      });
+    loadFinancialEntries()
+      .then((rows) => {
+        if (!alive) return;
+        const today = new Date().toISOString().slice(0, 10);
+        const patientRows = rows.filter(
+          (row) => row.type === "INCOME" && row.status !== "CANCELLED" && row.patientId === patientId,
+        );
+        const installments = patientRows.reduce(
+          (max, row) => Math.max(max, Number(row.installments || 0)),
+          0,
+        );
+        const overdue = patientRows.filter(
+          (row) => row.status !== "PAID" && row.dueDate.slice(0, 10) < today,
+        ).length;
+        setFinancialInstallments(installments || undefined);
+        setFinancialOverdueInstallments(overdue);
+      })
+      .catch(() => {
+        if (alive) {
+          setFinancialInstallments(undefined);
+          setFinancialOverdueInstallments(0);
+        }
+      });
+    return () => {
+      alive = false;
+    };
+  }, [patientId]);
 
   useEffect(() => {
     let alive = true;
@@ -118,6 +170,9 @@ export default function SmartSchedulingAssistant({
       currentAppointmentDateISO,
       selectedDurationMinutes,
       laboratoryName,
+      remainingVisitsOverride: remainingVisits,
+      financialInstallmentsOverride: financialInstallments,
+      financialOverdueInstallmentsOverride: financialOverdueInstallments,
     };
 
     const localSuggestion = calculateSmartScheduleSuggestion(input, config);
@@ -170,6 +225,9 @@ export default function SmartSchedulingAssistant({
     patientId,
     patientName,
     procedure,
+    remainingVisits,
+    financialInstallments,
+    financialOverdueInstallments,
     selectedDurationMinutes,
   ]);
 

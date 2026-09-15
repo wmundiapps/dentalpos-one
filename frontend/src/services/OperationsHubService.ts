@@ -4,10 +4,11 @@ import { laboratoryWorks as laboratorySeed } from "./LaboratoryService";
 import type { IntegratedAppointment, IntegratedLaboratoryWork, OperationalAlert } from "../types/operationsHub";
 import type { LaboratoryWorkStatus } from "../types/laboratory";
 import { repairObjectText } from "../utils/textEncoding";
-import { listPatients, listTreatmentItems } from "./PatientClinicalService";
 import { listFinanceEntries, type FinanceEntry } from "./FinanceHubService";
 import { isOperationalAlertResolved } from "./OperationalAlertResolutionApi";
 import { inventoryItems } from "./InventoryService";
+import { loadBackendPatients } from "./PatientApi";
+import { getTreatmentPlan } from "./TreatmentPlanApi";
 
 export const OPERATIONS_EVENT = "dentalpos:operations-updated";
 const LAB_KEY = "dentalpos.operations.labWorks.v1";
@@ -232,25 +233,32 @@ export interface AgendaFillSuggestion {
   reason: string;
 }
 
-export function getAgendaFillSuggestions(limit = 8): AgendaFillSuggestion[] {
+export async function getAgendaFillSuggestions(limit = 8): Promise<AgendaFillSuggestion[]> {
   const appointments = getAppointments();
   const activeFuture = appointments.filter((a) =>
     !["Cancelado", "Faltou", "Finalizado"].includes(a.status) &&
     a.dateISO >= todayISO()
   );
 
+  const patients = (await loadBackendPatients()).filter((p) => p.status !== "Inativo");
   const suggestions: AgendaFillSuggestion[] = [];
-  for (const patient of listPatients().filter((p) => p.status !== "Inativo")) {
+  for (const patient of patients) {
     const alreadyScheduled = activeFuture.some((a) => a.patientName.toLowerCase() === patient.fullName.toLowerCase());
     if (alreadyScheduled) continue;
-    const pending = listTreatmentItems(patient.id).filter((item) => item.status !== "Concluído");
+    let plan;
+    try {
+      plan = await getTreatmentPlan(patient.id);
+    } catch {
+      continue;
+    }
+    const pending = plan.items.filter((item) => item.status !== "COMPLETED" && item.status !== "CANCELLED");
     for (const item of pending.slice(0, 2)) {
       suggestions.push({
         patientId: patient.id,
         patientName: patient.fullName,
         patientPhone: patient.phone,
         procedure: item.procedure,
-        tooth: item.tooth,
+        tooth: item.tooth ?? undefined,
         reason: item.origin === "Odontograma" ? "Procedimento pendente no odontograma" : "Tratamento pendente sem próximo agendamento",
       });
       if (suggestions.length >= limit) return suggestions;

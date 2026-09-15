@@ -17,15 +17,20 @@ import EditIcon from "@mui/icons-material/Edit";
 import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import SearchIcon from "@mui/icons-material/Search";
 import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
-import { listPatients, savePatient, listTreatmentItems } from "../services/PatientClinicalService";
-import { listFinanceEntries } from "../services/FinanceHubService";
+import {
+  loadBackendPatients,
+  createBackendPatient,
+  updateBackendPatient,
+  type BackendPatient,
+  type PatientGender,
+  type PatientStatus,
+} from "../services/PatientApi";
+import { getTreatmentPlan } from "../services/TreatmentPlanApi";
+import { loadFinancialEntries, type FinancialEntry } from "../services/FinancialApi";
 import { getAppointments } from "../services/OperationsHubService";
-import type { PatientProfile, PatientStatus } from "../types/patientClinical";
-
-type PatientGender = NonNullable<PatientProfile["gender"]>;
 
 type PatientForm = {
   fullName: string;
@@ -66,23 +71,75 @@ export default function Patients() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [quickFilter, setQuickFilter] = useState<"Todos"|"Ativos"|"Em tratamento"|"Inadimplentes"|"Novos no mês"|"Finalizados">("Todos");
-  const [patients, setPatients] = useState<PatientProfile[]>(() => listPatients());
+  const [patients, setPatients] = useState<BackendPatient[]>([]);
+  const [treatmentStatusByPatient, setTreatmentStatusByPatient] = useState<Record<string,{hasTreatment:boolean;isFinished:boolean}>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string>();
   const [form, setForm] = useState<PatientForm>({ ...emptyForm });
+  const [financeRows, setFinanceRows] = useState<FinancialEntry[]>([]);
 
-  const financeRows = listFinanceEntries();
+  useEffect(() => {
+    let active = true;
+    loadFinancialEntries()
+      .then((rows) => {
+        if (active) setFinanceRows(rows);
+      })
+      .catch(() => {
+        if (active) setFinanceRows([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const appointments = getAppointments();
   const currentMonth = new Date().toISOString().slice(0,7);
-  const isOverdue = (name:string) => financeRows.some(x=>x.type==="Receita" && x.status==="Vencido" && x.personName.toLowerCase()===name.toLowerCase());
-  const hasTreatment = (id:string) => listTreatmentItems(id).some(x=>x.status!=="Concluído");
-  const isFinished = (id:string) => { const rows=listTreatmentItems(id); return rows.length>0 && rows.every(x=>x.status==="Concluído"); };
+  const isOverdue = (name:string) => {
+    const today = new Date().toISOString().slice(0, 10);
+    return financeRows.some(x=>x.type==="INCOME" && x.status!=="PAID" && x.status!=="CANCELLED" && x.dueDate.slice(0,10)<today && x.personName.toLowerCase()===name.toLowerCase());
+  };
+  const hasTreatment = (id:string) => treatmentStatusByPatient[id]?.hasTreatment ?? false;
+  const isFinished = (id:string) => treatmentStatusByPatient[id]?.isFinished ?? false;
+
+  const reload = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const rows = await loadBackendPatients();
+      setPatients(rows);
+      const entries = await Promise.all(
+        rows.map(async (p) => {
+          try {
+            const plan = await getTreatmentPlan(p.id);
+            const items = plan.items || [];
+            return [p.id, {
+              hasTreatment: items.some(i => i.status !== "COMPLETED" && i.status !== "CANCELLED"),
+              isFinished: items.length > 0 && items.every(i => i.status === "COMPLETED"),
+            }] as const;
+          } catch {
+            return [p.id, { hasTreatment: false, isFinished: false }] as const;
+          }
+        })
+      );
+      setTreatmentStatusByPatient(Object.fromEntries(entries));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao carregar pacientes.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { void reload(); }, []);
+
   const metrics = {
     total: patients.length,
     active: patients.filter(p=>p.status!=="Inativo").length,
     treating: patients.filter(p=>hasTreatment(p.id)).length,
     overdue: patients.filter(p=>isOverdue(p.fullName)).length,
-    newMonth: patients.filter(p=>p.createdAt.slice(0,7)===currentMonth).length,
+    newMonth: patients.filter(p=>(p.createdAt||"").slice(0,7)===currentMonth).length,
     finished: patients.filter(p=>isFinished(p.id)).length,
     attendedMonth: new Set(appointments.filter(a=>a.dateISO.slice(0,7)===currentMonth && !["Cancelado","Faltou"].includes(a.status)).map(a=>a.patientName.toLowerCase())).size,
   };
@@ -92,10 +149,10 @@ export default function Patients() {
     if(quickFilter==="Ativos") return patient.status!=="Inativo";
     if(quickFilter==="Em tratamento") return hasTreatment(patient.id);
     if(quickFilter==="Inadimplentes") return isOverdue(patient.fullName);
-    if(quickFilter==="Novos no mês") return patient.createdAt.slice(0,7)===currentMonth;
+    if(quickFilter==="Novos no mês") return (patient.createdAt||"").slice(0,7)===currentMonth;
     if(quickFilter==="Finalizados") return isFinished(patient.id);
     return true;
-  }), [patients, search, quickFilter]);
+  }), [patients, search, quickFilter, treatmentStatusByPatient]);
 
   const openNew = () => {
     setEditId(undefined);
@@ -103,17 +160,17 @@ export default function Patients() {
     setOpen(true);
   };
 
-  const openEdit = (patient: PatientProfile) => {
+  const openEdit = (patient: BackendPatient) => {
     setEditId(patient.id);
     setForm({
       fullName: patient.fullName,
       phone: patient.phone,
       email: patient.email || "",
       cpf: patient.cpf || "",
-      birthDate: patient.birthDate || "",
+      birthDate: (patient.birthDate || "").slice(0,10),
       gender: patient.gender || "Não informado",
       treatment: patient.treatment || "",
-      status: patient.status,
+      status: patient.status || "Ativo",
       mainComplaint: patient.mainComplaint || "",
       allergies: patient.allergies || "",
       medications: patient.medications || "",
@@ -123,11 +180,23 @@ export default function Patients() {
     setOpen(true);
   };
 
-  const save = () => {
+  const save = async () => {
     if (!form.fullName.trim() || !form.phone.trim()) return;
-    savePatient({ ...form, id: editId });
-    setPatients(listPatients());
-    setOpen(false);
+    setSaving(true);
+    setError("");
+    try {
+      if (editId) {
+        await updateBackendPatient(editId, form);
+      } else {
+        await createBackendPatient(form);
+      }
+      setOpen(false);
+      await reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao salvar paciente.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -139,6 +208,12 @@ export default function Patients() {
         actionIcon={<AddIcon />}
         onAction={openNew}
       />
+
+      {error && (
+        <Paper variant="outlined" sx={{ p: 2, mb: 2, borderColor: "error.main" }}>
+          <Typography color="error">{error}</Typography>
+        </Paper>
+      )}
 
       <Box sx={{display:"grid",gridTemplateColumns:{xs:"repeat(2,1fr)",md:"repeat(6,1fr)"},gap:1.5,mb:2}}>
         {[
@@ -169,7 +244,7 @@ export default function Patients() {
         <Typography variant="h6" sx={{ fontWeight: 800 }}>
           Pacientes cadastrados
         </Typography>
-        <Typography color="text.secondary">{filtered.length} resultado(s)</Typography>
+        <Typography color="text.secondary">{loading ? "Carregando..." : `${filtered.length} resultado(s)`}</Typography>
       </Box>
 
       {filtered.length ? (
@@ -200,34 +275,20 @@ export default function Patients() {
               <Typography sx={{ mt: 1 }}>
                 <b>Tratamento:</b> {patient.treatment || "Não definido"}
               </Typography>
-              <Typography><b>Status:</b> {patient.status}</Typography>
+              <Typography><b>Status:</b> {patient.status || "Ativo"}</Typography>
               <Box sx={{display:"flex",gap:1,mt:1,flexWrap:"wrap"}}><Chip size="small" color={isOverdue(patient.fullName)?"error":"success"} label={isOverdue(patient.fullName)?"Inadimplente":"Financeiro OK"}/>{hasTreatment(patient.id)&&<Chip size="small" color="info" label="Em tratamento"/>}{isFinished(patient.id)&&<Chip size="small" color="success" label="Finalizado"/>}</Box>
 
               <Box sx={{ display: "flex", gap: 1, mt: 2, flexWrap: "wrap" }}>
                 <Button
                   variant="contained"
                   startIcon={<MedicalInformationIcon />}
-                  onClick={() => navigate(`/prontuario?patientId=${encodeURIComponent(patient.id)}`)}
-                >
-                  Abrir prontuário
-                </Button>
-                <Button onClick={() => navigate(`/agenda?patient=${encodeURIComponent(patient.fullName)}`)}>
-                  Agenda
-                </Button>
-                <Button
                   onClick={() =>
                     navigate(
-                      `/orcamentos-tratamentos?patient=${encodeURIComponent(patient.fullName)}&patientId=${encodeURIComponent(patient.id)}`,
+                      `/ficha-paciente?patientId=${encodeURIComponent(patient.id)}&patient=${encodeURIComponent(patient.fullName)}&paciente=${encodeURIComponent(patient.fullName)}`,
                     )
                   }
                 >
-                  Orçamento
-                </Button>
-                <Button onClick={() => navigate(`/financeiro?paciente=${encodeURIComponent(patient.fullName)}`)}>
-                  Financeiro
-                </Button>
-                <Button onClick={() => navigate(`/jornada-paciente?patientId=${encodeURIComponent(patient.id)}`)}>
-                  Jornada
+                  Abrir ficha completa
                 </Button>
               </Box>
             </Paper>
@@ -237,7 +298,7 @@ export default function Patients() {
         <Paper variant="outlined" sx={{ p: 5, textAlign: "center" }}>
           <PersonSearchIcon sx={{ fontSize: 48, color: "text.secondary" }} />
           <Typography variant="h6" sx={{ fontWeight: 800 }}>
-            Nenhum paciente encontrado
+            {loading ? "Carregando pacientes..." : "Nenhum paciente encontrado"}
           </Typography>
         </Paper>
       )}
@@ -353,10 +414,10 @@ export default function Patients() {
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
           <Button
             variant="contained"
-            disabled={!form.fullName.trim() || !form.phone.trim()}
+            disabled={!form.fullName.trim() || !form.phone.trim() || saving}
             onClick={save}
           >
-            Salvar paciente
+            {saving ? "Salvando..." : "Salvar paciente"}
           </Button>
         </DialogActions>
       </Dialog>

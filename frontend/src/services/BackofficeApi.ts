@@ -81,8 +81,35 @@ export interface AccountantAccessRow {
   canApproveTax: boolean;
 }
 
+export interface DreLine {
+  category: string;
+  type: "INCOME" | "EXPENSE";
+  amount: number;
+}
+
+export interface DreByIssuer {
+  issuerEntity: string;
+  revenue: number;
+  expense: number;
+}
+
+export interface DreResponse {
+  revenue: number;
+  expense: number;
+  result: number;
+  lines: DreLine[];
+  byIssuer: DreByIssuer[];
+}
+
 export const BackofficeApi = {
   dashboard: () => request<BackofficeDashboard>("/backoffice/dashboard"),
+  dre: (from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const query = params.toString();
+    return request<DreResponse>(`/backoffice/dre${query ? `?${query}` : ""}`);
+  },
   suppliers: () => request<SupplierRow[]>("/suppliers"),
   createSupplier: (body: Record<string, unknown>) => request<SupplierRow>("/suppliers", { method: "POST", body: JSON.stringify(body) }),
   taxObligations: () => request<TaxObligationRow[]>("/accounting/tax-obligations"),

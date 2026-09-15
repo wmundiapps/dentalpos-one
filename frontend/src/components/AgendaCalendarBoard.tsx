@@ -1,9 +1,7 @@
 import { Box, Chip, Paper, Typography } from "@mui/material";
 import type { IntegratedAppointment } from "../types/operationsHub";
 import type { AgendaBlock, BackendSchedule, RecurringBreak } from "../services/ScheduleApi";
-import { patientFinancialSummary } from "../services/FinanceHubService";
 import { getLaboratoryWorks } from "../services/OperationsHubService";
-import { listPatients, listTreatmentItems } from "../services/PatientClinicalService";
 
 type View = "day" | "week" | "month";
 type BadgeTone = "success" | "error" | "warning" | "info" | "default";
@@ -28,8 +26,9 @@ interface Props {
   onDayOpen?: (dateISO: string) => void;
   onAppointmentClick: (appointment: IntegratedAppointment) => void;
   onNew: (prefill: AppointmentPrefill) => void;
+  materialAlerts?: Map<string, string>;
+  financialAlerts?: Map<string, { open: number; overdue: number }>;
 }
-
 const START_MINUTES = 7 * 60;
 const END_MINUTES = 21 * 60;
 const TOTAL_MINUTES = END_MINUTES - START_MINUTES;
@@ -78,18 +77,18 @@ function money(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function operationalBadges(appointment: IntegratedAppointment): Array<{ label: string; color: BadgeTone }> {
+function operationalBadges(
+  appointment: IntegratedAppointment,
+  materialAlerts?: Map<string, string>,
+  financialAlerts?: Map<string, { open: number; overdue: number }>,
+): Array<{ label: string; color: BadgeTone }> {
   const result: Array<{ label: string; color: BadgeTone }> = [];
   const name = appointment.patientName.trim().toLowerCase();
 
-  try {
-    const finance = patientFinancialSummary(appointment.patientName);
-    if (finance.overdue > 0) result.push({ label: `Financeiro atraso ${money(finance.overdue)}`, color: "error" });
-    else if (finance.open > 0) result.push({ label: `Financeiro pendente ${money(finance.open)}`, color: "warning" });
-    else result.push({ label: "Financeiro OK", color: "success" });
-  } catch {
-    result.push({ label: "Financeiro", color: "default" });
-  }
+  const finance = financialAlerts?.get(name);
+  if (finance && finance.overdue > 0) result.push({ label: `Financeiro atraso ${money(finance.overdue)}`, color: "error" });
+  else if (finance && finance.open > 0) result.push({ label: `Financeiro pendente ${money(finance.open)}`, color: "warning" });
+  else result.push({ label: "Financeiro OK", color: "success" });
 
   try {
     const lab = getLaboratoryWorks().find(
@@ -102,18 +101,9 @@ function operationalBadges(appointment: IntegratedAppointment): Array<{ label: s
     // Sem alerta de laboratório se a base ainda não estiver disponível.
   }
 
-  try {
-    const patient = listPatients().find((item) => item.fullName.trim().toLowerCase() === name);
-    if (patient) {
-      const supply = listTreatmentItems(patient.id).find((item) => {
-        const text = `${item.procedure}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-        const pending = !["Concluído", "COMPLETED"].includes(String(item.status));
-        return pending && /(enxerto|membrana|biomaterial|componente|material|parafuso)/.test(text);
-      });
-      if (supply) result.push({ label: `Providenciar: ${supply.procedure}`, color: "warning" });
-    }
-  } catch {
-    // Sem alerta de material se o plano ainda não estiver disponível.
+  const materialProcedure = materialAlerts?.get(name);
+  if (materialProcedure) {
+    result.push({ label: `Providenciar: ${materialProcedure}`, color: "warning" });
   }
 
   return result.slice(0, 4);
@@ -130,12 +120,16 @@ function AppointmentCard({
   appointment,
   compact = false,
   onClick,
+  materialAlerts,
+  financialAlerts,
 }: {
   appointment: IntegratedAppointment;
   compact?: boolean;
   onClick: () => void;
+  materialAlerts?: Map<string, string>;
+  financialAlerts?: Map<string, { open: number; overdue: number }>;
 }) {
-  const badges = operationalBadges(appointment);
+  const badges = operationalBadges(appointment, materialAlerts, financialAlerts);
   return (
     <Paper
       variant="outlined"
@@ -181,6 +175,8 @@ function MonthView({
   onDateChange,
   onDayOpen,
   onAppointmentClick,
+  materialAlerts,
+  financialAlerts,
 }: Omit<Props, "view" | "professional">) {
   const base = new Date(`${dateISO}T12:00:00`);
   const year = base.getFullYear();
@@ -243,7 +239,7 @@ function MonthView({
               <Typography sx={{ fontWeight: selected ? 900 : 700, mb: 0.5 }}>{day}</Typography>
               <Box sx={{ display: "grid", gap: 0.45 }}>
                 {dayItems.slice(0, 3).map((appointment) => (
-                  <AppointmentCard key={appointment.id} appointment={appointment} compact onClick={() => onAppointmentClick(appointment)} />
+                  <AppointmentCard key={appointment.id} appointment={appointment} compact onClick={() => onAppointmentClick(appointment)} materialAlerts={materialAlerts} financialAlerts={financialAlerts} />
                 ))}
                 {dayItems.length > 3 ? (
                   <Typography variant="caption" color="text.secondary">+ {dayItems.length - 3} consulta(s)</Typography>
@@ -266,7 +262,7 @@ function MonthView({
         {selectedItems.length ? (
           <Box sx={{ display: "grid", gap: 1 }}>
             {selectedItems.map((appointment) => (
-              <AppointmentCard key={appointment.id} appointment={appointment} onClick={() => onAppointmentClick(appointment)} />
+              <AppointmentCard key={appointment.id} appointment={appointment} onClick={() => onAppointmentClick(appointment)} materialAlerts={materialAlerts} financialAlerts={financialAlerts} />
             ))}
           </Box>
         ) : (
@@ -291,6 +287,8 @@ function TimeGridView({
   onDayOpen,
   onAppointmentClick,
   onNew,
+  materialAlerts,
+  financialAlerts,
 }: Omit<Props, "onDateChange">) {
   const dates = view === "day" ? [dateISO] : weekDates(dateISO);
   const hours = Array.from({ length: 15 }, (_, index) => 7 + index);
@@ -557,7 +555,7 @@ function TimeGridView({
                   const visibleEnd = Math.min(END_MINUTES, start + duration);
                   const top = ((visibleStart - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
                   const height = Math.max(28, ((visibleEnd - visibleStart) / TOTAL_MINUTES) * GRID_HEIGHT);
-                  const badges = operationalBadges(appointment);
+                  const badges = operationalBadges(appointment, materialAlerts, financialAlerts);
                   return (
                     <Box
                       key={appointment.id}
@@ -619,6 +617,8 @@ export default function AgendaCalendarBoard(props: Props) {
         onDayOpen={props.onDayOpen}
         onAppointmentClick={props.onAppointmentClick}
         onNew={props.onNew}
+        materialAlerts={props.materialAlerts}
+        financialAlerts={props.financialAlerts}
       />
     );
   }
@@ -636,6 +636,8 @@ export default function AgendaCalendarBoard(props: Props) {
       onDayOpen={props.onDayOpen}
       onAppointmentClick={props.onAppointmentClick}
       onNew={props.onNew}
+      materialAlerts={props.materialAlerts}
+      financialAlerts={props.financialAlerts}
     />
   );
 }

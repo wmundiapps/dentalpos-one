@@ -1,6 +1,4 @@
-import { listFinanceEntries } from "./FinanceHubService";
 import { getAppointments, getLaboratoryWorks } from "./OperationsHubService";
-import { listTreatmentItems } from "./PatientClinicalService";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const STORAGE_KEY = "dentalpos.smart-scheduling.config.v1";
@@ -72,6 +70,9 @@ export interface SmartScheduleInput {
   currentAppointmentDateISO: string;
   selectedDurationMinutes?: number;
   laboratoryName?: string;
+  remainingVisitsOverride?: number;
+  financialInstallmentsOverride?: number;
+  financialOverdueInstallmentsOverride?: number;
 }
 
 const defaultProcedureRules: ProcedureTimingRule[] = [
@@ -339,23 +340,6 @@ function latestPreviousAppointment(patientName: string, currentDateISO: string) 
     .sort((a, b) => b.dateISO.localeCompare(a.dateISO))[0];
 }
 
-function financialData(patientId: string | undefined, patientName: string) {
-  const rows = listFinanceEntries().filter((entry) => {
-    const samePatient = patientId ? entry.patientId === patientId || normalize(entry.personName) === normalize(patientName) : normalize(entry.personName) === normalize(patientName);
-    return samePatient && entry.type === "Receita" && entry.status !== "Cancelado";
-  });
-  const installments = rows.reduce((max, entry) => Math.max(max, Number(entry.installments || 0)), 0) || undefined;
-  const overdueInstallments = rows.filter((entry) => entry.status === "Vencido").length;
-  return { installments, overdueInstallments };
-}
-
-function estimatedRemainingVisits(patientId: string | undefined) {
-  if (!patientId) return undefined;
-  const pending = listTreatmentItems(patientId).filter((item) => item.status !== "Concluído");
-  if (!pending.length) return undefined;
-  return Math.max(1, pending.length);
-}
-
 function financialCadence(installments: number | undefined, visits: number | undefined) {
   if (!installments || installments <= 0 || !visits || visits <= 0) return undefined;
   const estimatedPaymentHorizonDays = Math.max(30, installments * 30);
@@ -432,8 +416,11 @@ export function calculateSmartScheduleSuggestion(
     : rawMinimumDateISO;
   const recommendedReturnDateISO = alignedRecommended <= returnWindowEndISO ? alignedRecommended : rawMinimumDateISO;
 
-  const finance = financialData(input.patientId, input.patientName);
-  const visits = estimatedRemainingVisits(input.patientId);
+  const finance = {
+    installments: input.financialInstallmentsOverride,
+    overdueInstallments: input.financialOverdueInstallmentsOverride ?? 0,
+  };
+  const visits = input.remainingVisitsOverride;
   const cadenceDays = config.financialAlignmentEnabled ? financialCadence(finance.installments, visits) : undefined;
   const financialAlternativeDateISO = config.financialAlignmentEnabled
     ? findFinancialAlternative(
