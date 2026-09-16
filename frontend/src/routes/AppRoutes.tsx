@@ -13,6 +13,7 @@ import Clinics from "../pages/Clinics";
 import ClinicalDocuments from "../pages/ClinicalDocuments";
 import ClinicalRecord from "../pages/ClinicalRecord";
 import PatientFile from "../pages/PatientFile";
+import WmundiStaffOnly from "../components/WmundiStaffOnly";
 import ClinicalFiles from "../pages/ClinicalFiles";
 import OdontogramPeriodontogram from "../pages/OdontogramPeriodontogram";
 import SurgeryImplantProsthesis from "../pages/SurgeryImplantProsthesis";
@@ -119,7 +120,7 @@ export default function AppRoutes() {
         element={<ServiceEvaluations />}
       />
 
-      <Route path="/backup" element={<Backup />} />
+      <Route path="/backup" element={<WmundiStaffOnly><Backup /></WmundiStaffOnly>} />
 
       <Route path="/benchmark" element={<Benchmark />} />
 
@@ -265,7 +266,7 @@ export default function AppRoutes() {
       <Route path="/plataforma-saas" element={<PlatformAdministration />} />
       <Route path="/revah-leads" element={<LeadDiscovery />} />
       <Route path="/integracoes" element={<Integrations />} />
-      <Route path="/homologacao" element={<Homologation />} />
+      <Route path="/homologacao" element={<WmundiStaffOnly><Homologation /></WmundiStaffOnly>} />
 
       <Route
         path="/design"

@@ -2,3 +2,5 @@
 backups/
 .vercel
 .env*
+
+HANDOFF*.md

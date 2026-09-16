@@ -35,3 +35,19 @@ export function requirePermission(code: string) {
     }
   }
 }
+
+const WMUNDI_STAFF_EMAILS = (process.env.WMUNDI_STAFF_EMAILS || 'contato@dentalpos.com.br')
+  .split(',')
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean)
+
+export function requireWmundiStaff(req: AuthRequest, res: Response, next: NextFunction) {
+  if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
+
+  const email = (req.user.email || '').toLowerCase()
+  if (!WMUNDI_STAFF_EMAILS.includes(email)) {
+    return res.status(404).json({ error: 'Não encontrado.' })
+  }
+
+  return next()
+}

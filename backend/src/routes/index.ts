@@ -37,7 +37,7 @@ import * as smartSchedulingController from '../controllers/smartSchedulingContro
 import * as demoController from '../controllers/demoController'
 import * as debugDemoController from '../controllers/debugDemoController'
 import * as landingLeadController from '../controllers/landingLeadController'
-import { requirePermission } from '../middleware/permission'
+import { requirePermission, requireWmundiStaff } from '../middleware/permission'
 import clinicalRecordRoutes from './clinicalRecordRoutes'
 import dentalChartRoutes from './dentalChartRoutes'
 import { specialtyClinicalRoutes } from './specialtyClinicalRoutes'
@@ -334,7 +334,7 @@ router.put('/platform/units', requirePermission('settings.edit'), platformContro
 router.get('/platform/feature-flags', requirePermission('settings.view'), platformController.featureFlags)
 router.put('/platform/feature-flags/:key', requirePermission('settings.edit'), platformController.setFeatureFlag)
 router.get('/platform/storage', requirePermission('settings.view'), platformController.storage)
-router.get('/platform/readiness', requirePermission('settings.view'), platformReadinessController.readiness)
+router.get('/platform/readiness', requireWmundiStaff, platformReadinessController.readiness)
 router.put('/platform/storage', requirePermission('settings.edit'), platformController.setStorage)
 router.get('/revah/senders', requirePermission('marketing.view'), revahSenderController.index)
 router.put('/revah/senders', requirePermission('marketing.send'), revahSenderController.upsert)
