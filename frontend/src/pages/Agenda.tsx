@@ -68,7 +68,7 @@ const today = () => iso(new Date());
 const KEY = "dentalpos.agenda.notification-settings.v1";
 
 type View = "day" | "week" | "month";
-type Channel = "WhatsApp" | "SMS";
+type Channel = "WhatsApp" | "SMS" | "E-mail" | "Telegram" | "Voz";
 type StatusFilter = "Todos" | AppointmentStatus;
 type PatientMode = "registered" | "new";
 
@@ -178,7 +178,7 @@ function backendRequestedBy(value: "Paciente" | "Clínica" | "Dentista" | "Outro
 }
 
 function backendChannel(value: Channel) {
-  return ({ WhatsApp: "WHATSAPP", SMS: "SMS" } as const)[value];
+  return ({ WhatsApp: "WHATSAPP", SMS: "SMS", "E-mail": "EMAIL", Telegram: "TELEGRAM", Voz: "VOICE" } as const)[value];
 }
 
 function historyAction(value: string): "Criado" | "Remarcado" | "Cancelado" | "Faltou" | "Alterado" {
@@ -270,11 +270,11 @@ function smartScheduleSnapshot(suggestion: SmartScheduleSuggestion | null): Inte
   };
 }
 
-function initialForm(dateISO: string): AppointmentForm {
+function initialForm(dateISO: string, professionalName = ""): AppointmentForm {
   return {
     patientName: "",
     patientPhone: "",
-    professionalName: "Dr. Robson",
+    professionalName,
     procedure: "Consulta inicial / avaliação",
     nextProcedure: "Definir após atendimento",
     dateISO,
@@ -304,7 +304,8 @@ export default function Agenda() {
   const [channel, setChannel] = useState<Channel>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || "{}")?.channel;
-      return saved === "SMS" ? "SMS" : "WhatsApp";
+      const valid: Channel[] = ["WhatsApp", "SMS", "E-mail", "Telegram", "Voz"];
+      return valid.includes(saved) ? saved : "WhatsApp";
     } catch {
       return "WhatsApp";
     }
@@ -702,9 +703,12 @@ export default function Agenda() {
       Object.entries(prefill || {}).filter(([, value]) => value !== undefined),
     ) as Partial<AppointmentForm>;
     const targetDate = prefill?.dateISO || date;
+    const defaultDoctorName = backendDoctors[0]
+      ? `${backendDoctors[0].user.firstName} ${backendDoctors[0].user.lastName}`.trim()
+      : "";
 
     setForm({
-      ...initialForm(targetDate),
+      ...initialForm(targetDate, defaultDoctorName),
       ...cleanPrefill,
       dateISO: targetDate,
     });
@@ -1222,6 +1226,9 @@ export default function Agenda() {
               <TextField select size="small" label="Canal" value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
                 <MenuItem value="WhatsApp">WhatsApp</MenuItem>
                 <MenuItem value="SMS">SMS</MenuItem>
+                <MenuItem value="E-mail">E-mail</MenuItem>
+                <MenuItem value="Telegram">Telegram</MenuItem>
+                <MenuItem value="Voz">Voz</MenuItem>
               </TextField>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <FormControlLabel control={<Checkbox checked={reminderSelection.onBooking} onChange={(e) => setReminderSelection((current) => ({ ...current, onBooking: e.target.checked }))} />} label="Ao agendar" />
@@ -1230,7 +1237,22 @@ export default function Agenda() {
               </Box>
             </Box>
           </Box>
-          <TextField label="Profissional" value={form.professionalName} onChange={(event) => setForm({ ...form, professionalName: event.target.value })} />
+          <TextField
+            select
+            label="Profissional"
+            value={form.professionalName}
+            onChange={(event) => setForm({ ...form, professionalName: event.target.value })}
+            helperText={!backendDoctors.length ? "Nenhum profissional cadastrado ainda." : undefined}
+          >
+            {backendDoctors.map((doctor) => {
+              const fullName = `${doctor.user.firstName} ${doctor.user.lastName}`.trim();
+              return (
+                <MenuItem key={doctor.id} value={fullName}>
+                  {fullName}
+                </MenuItem>
+              );
+            })}
+          </TextField>
           <TextField label="Sala" value={form.room} onChange={(event) => setForm({ ...form, room: event.target.value })} />
           <TextField
             select
@@ -1375,6 +1397,9 @@ export default function Agenda() {
                     <TextField select size="small" label="Canal" value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
                       <MenuItem value="WhatsApp">WhatsApp</MenuItem>
                       <MenuItem value="SMS">SMS</MenuItem>
+                      <MenuItem value="E-mail">E-mail</MenuItem>
+                      <MenuItem value="Telegram">Telegram</MenuItem>
+                      <MenuItem value="Voz">Voz</MenuItem>
                     </TextField>
                     <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                       <FormControlLabel control={<Checkbox checked={edit.reminders.onBooking} onChange={(e) => setEdit({ ...edit, reminders: { ...edit.reminders, onBooking: e.target.checked } })} />} label="Ao agendar" />

@@ -1,7 +1,6 @@
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import BackupIcon from "@mui/icons-material/Backup";
 import BiotechIcon from "@mui/icons-material/Biotech";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -31,7 +30,6 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
-import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import WorkIcon from "@mui/icons-material/Work";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import type { ReactNode } from "react";
@@ -146,8 +144,6 @@ export const navigationGroups:NavigationGroup[] = [
       item("Configurações","/configuracoes",<SettingsIcon/>),
       item("Clínicas e unidades","/clinicas",<LocalHospitalIcon/>),
       item("Integrações","/integracoes",<HubIcon/>),
-      item("Homologação e Segurança","/homologacao",<VerifiedUserIcon/>),
-      item("Backup","/backup",<BackupIcon/>),
       item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),
     ])
   }

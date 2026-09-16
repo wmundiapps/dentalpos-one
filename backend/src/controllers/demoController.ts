@@ -266,6 +266,21 @@ export async function register(req: Request, res: Response) {
           ...credentials,
           subject: 'Seu acesso à demonstração do DentalPos One está pronto',
         })
+
+        const adminContent = [
+          'Novo demo criado no DentalPos One:',
+          '',
+          `Clínica: ${clinicName}`,
+          `Responsável: ${created.firstName} ${created.lastName}`,
+          `Telefone: ${phone}`,
+          `E-mail: ${created.email}`,
+          validUntil ? `Demo válida até: ${validUntil}` : null,
+        ].filter((line): line is string => line !== null).join('\n')
+
+        await dispatchRevah('EMAIL', 'contato@dentalpos.com.br', adminContent, {
+          ...credentials,
+          subject: `Novo demo criado — ${clinicName}`,
+        })
       } else {
         console.error('RESEND_API_KEY não configurada — e-mail de boas-vindas do demo não enviado.')
       }
