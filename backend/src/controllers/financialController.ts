@@ -55,7 +55,20 @@ export async function settle(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = context(req); const id = String(req.params.id)
     const existing = await prisma.financialEntry.findFirst({ where: { id, clinicId, tenantId } })
     if (!existing) return res.status(404).json({ error: 'Lançamento não encontrado.' })
-    const row = await prisma.financialEntry.update({ where: { id }, data: { status: 'PAID', paidAt: new Date() } })
+    if (existing.status === 'PAID' || existing.status === 'CANCELLED') return res.status(409).json({ error: 'Este lan\u00e7amento j\u00e1 est\u00e1 baixado ou cancelado.' })
+    const b = req.body || {}
+    const paidAt = b.paidAt ? new Date(String(b.paidAt)) : new Date()
+    if (Number.isNaN(paidAt.getTime())) return res.status(400).json({ error: 'Data de pagamento inv\u00e1lida.' })
+    if (paidAt.getTime() > Date.now() + 36 * 60 * 60 * 1000) return res.status(400).json({ error: 'A data do pagamento n\u00e3o pode ser futura.' })
+    const actor = await prisma.user.findFirst({ where: { id: actorId, clinicId }, select: { firstName: true, lastName: true, email: true } })
+    const settledByName = actor ? (`${actor.firstName} ${actor.lastName}`.trim() || actor.email) : (req.user?.email || 'Usu\u00e1rio')
+    const note = typeof b.settlementNote === 'string' ? b.settlementNote.trim().slice(0, 500) : ''
+    const row = await prisma.financialEntry.update({ where: { id }, data: {
+      status: 'PAID', paidAt, settledById: actorId, settledByName,
+      paymentMethod: typeof b.paymentMethod === 'string' && b.paymentMethod.trim() ? b.paymentMethod.trim().slice(0, 40) : existing.paymentMethod,
+      paymentReceipt: typeof b.paymentReceipt === 'string' && b.paymentReceipt.trim() ? b.paymentReceipt.trim().slice(0, 120) : null,
+      ...(note ? { notes: `${existing.notes ? existing.notes + '\n' : ''}[Baixa] ${note}` } : {}),
+    } })
     await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_SETTLE', entityType: 'FinancialEntry', entityId: id, beforeData: existing, afterData: row, summary: `Baixa financeira: ${row.description}` })
     const resolution = await resolveFinancialAlertFromOperation({clinicId,tenantId,actorId,ipAddress:req.ip,userAgent:req.get('user-agent')},{sourceEntityType:'FinancialEntry',sourceEntityId:id,action:'SETTLEMENT'})
     return res.json({ ...row, resolutionProtocol:(resolution as any).protocol || null })

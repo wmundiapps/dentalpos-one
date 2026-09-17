@@ -489,6 +489,9 @@ model FinancialEntry {
   installment     Int?
   installments    Int?
   paidAt          DateTime?
+  settledById     String?
+  settledByName   String?
+  paymentReceipt  String?
   notes           String?
   externalId      String?
   barcode         String?

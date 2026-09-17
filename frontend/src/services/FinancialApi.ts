@@ -37,6 +37,9 @@ export interface FinancialEntry {
   installment?: number | null;
   installments?: number | null;
   paidAt?: string | null;
+  settledById?: string | null;
+  settledByName?: string | null;
+  paymentReceipt?: string | null;
   notes?: string | null;
   issuerEntity?: IssuerEntity | null;
 }
@@ -119,10 +122,18 @@ export async function updateFinancialEntry(
   return parse<FinancialEntry>(response);
 }
 
-export async function settleFinancialEntry(id: string): Promise<FinancialEntry> {
+export interface SettleFinancialEntryInput {
+  paymentMethod?: string;
+  paidAt?: string;
+  paymentReceipt?: string;
+  settlementNote?: string;
+}
+
+export async function settleFinancialEntry(id: string, input: SettleFinancialEntryInput = {}): Promise<FinancialEntry> {
   const response = await fetch(`${API}/financial-entries/${encodeURIComponent(id)}/settle`, {
     method: "POST",
     headers: headers(true),
+    body: JSON.stringify(input),
   });
   return parse<FinancialEntry>(response);
 }
