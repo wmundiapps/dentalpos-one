@@ -17,6 +17,7 @@ import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchIcon from "@mui/icons-material/Search";
 import LogoutIcon from "@mui/icons-material/Logout";
+import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BrandName from "./BrandName";
@@ -37,6 +38,7 @@ export default function Header() {
   const { mode, toggleMode } = useAppTheme();
   const demo = readDemoAccess();
   const sessionUser = readSessionUser();
+  const clinicLogo = localStorage.getItem("dentalpos.clinicLogo") || "";
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -111,6 +113,7 @@ export default function Header() {
       }}
     >
       <Toolbar sx={{ gap: { xs: 1, md: 2 }, minHeight: 72 }}>
+        <Box component="img" src={`${import.meta.env.BASE_URL}brand/logo-leao.png`} alt="DentalPos One" sx={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)" }} />
         <Box sx={{ display: { xs: "none", lg: "block" } }}>
           <Typography variant="h6" sx={{ fontWeight: 700, color: "primary.main", lineHeight: 1.2, whiteSpace: "nowrap" }}>
             <BrandName />
@@ -212,6 +215,16 @@ export default function Header() {
           </IconButton>
         </Tooltip>
 
+        <Tooltip title={clinicLogo ? "Logo da cl\u00ednica" : "Espa\u00e7o para a logo da sua cl\u00ednica"}>
+          {clinicLogo ? (
+            <Box component="img" src={clinicLogo} alt="Logo da clinica" sx={{ height: 40, maxWidth: 120, objectFit: "contain", borderRadius: 1 }} />
+          ) : (
+            <Box sx={{ height: 40, px: 1.25, display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 0.75, border: "1px dashed", borderColor: "divider", borderRadius: 2, color: "text.secondary" }}>
+              <LocalHospitalOutlinedIcon fontSize="small" />
+              <Typography variant="caption" sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>{"Sua cl\u00ednica"}</Typography>
+            </Box>
+          )}
+        </Tooltip>
         <Tooltip title={sessionUser ? `${sessionUser.firstName} ${sessionUser.lastName}` : "Perfil do usuário"}>
           <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>{initials}</Avatar>
         </Tooltip>

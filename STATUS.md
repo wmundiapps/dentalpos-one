@@ -41,6 +41,12 @@ Design/CAD-CAM, Administrativo (permissões + biometria), Gestão (hora clínica
 - Unificar a lista de e-mails da equipe WMundi (hoje duplicada em `permission.ts` e `WmundiStaffOnly.tsx`).
 - Revisar 1 vulnerabilidade alta do `npm audit` no frontend (não rodar `npm audit fix` sem revisão).
 
+### 13. Pesquisa de satisfação pós-atendimento — status: PENDENTE (planejado em 16/09/2026; fazer depois do pacote visual)
+- Envio automático algumas horas após o atendimento "Finalizado", pelo canal preferido (WhatsApp/SMS/e-mail); link público de uso único; no máximo 1 pesquisa por semana por paciente; opção de não receber mais.
+- Perguntas por jornada: primeira consulta (recepção, pontualidade, ambiente, profissional, equipe; solicitação resolvida; recebeu orçamento; contratou ou não e motivo; quer contato); durante o tratamento (conforto/dor, explicação, andamento); fim do tratamento (resultado, depoimento com autorização). Em todas: nota 0 a 10 (NPS) e comentário.
+- Nota 0 a 6 gera alerta ao responsável (ligar ao item 6); "não contratou" vai para o REVAH com o motivo; relatórios em Gestão (NPS, por profissional, motivos, conversão de primeiras consultas). LGPD: consentimento e descadastro.
+- Precisa de: tabela nova no banco, página pública de resposta, ligação com a Agenda e os canais de envio.
+
 ---
 
 ## Credenciais e acessos
