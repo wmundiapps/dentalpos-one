@@ -5,6 +5,7 @@ import type { IntegratedAppointment, IntegratedLaboratoryWork, OperationalAlert 
 import type { LaboratoryWorkStatus } from "../types/laboratory";
 import { repairObjectText } from "../utils/textEncoding";
 import { listFinanceEntries, type FinanceEntry } from "./FinanceHubService";
+import { loadFinancialEntries, type FinancialEntry } from "./FinancialApi";
 import { isOperationalAlertResolved } from "./OperationalAlertResolutionApi";
 import { inventoryItems } from "./InventoryService";
 import { loadBackendPatients } from "./PatientApi";
@@ -352,8 +353,82 @@ export function changeAppointmentWithHistory(id: number, input: {
   }
 }
 
-function getFinancialEntries(): FinanceEntry[] {
-  return listFinanceEntries();
+type AlertFinanceRow = {
+  id: string;
+  type: "Receita" | "Despesa";
+  status: "Pago" | "Cancelado" | "Vencido" | "Pendente";
+  personName: string;
+  description: string;
+  value: number;
+  dueISO?: string;
+  originId?: string;
+};
+
+const FINANCE_REFRESH_MS = 30000;
+let realFinanceRows: FinancialEntry[] = [];
+let realFinanceSession = "";
+let realFinanceLoadedAt = 0;
+let realFinanceLoading: Promise<void> | null = null;
+
+const financeSessionKey = () =>
+  `${localStorage.getItem("dentalpos.token") || ""}|${localStorage.getItem("dentalpos.clinicId") || ""}`;
+
+const toDayISO = (value?: string | null): string | undefined => {
+  if (!value) return undefined;
+  const day = value.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : brToISO(value);
+};
+
+export function refreshRealFinancialEntries(force = false): Promise<void> {
+  const session = financeSessionKey();
+  if (session !== realFinanceSession) {
+    realFinanceSession = session;
+    realFinanceRows = [];
+    realFinanceLoadedAt = 0;
+    realFinanceLoading = null;
+  }
+  if (!localStorage.getItem("dentalpos.token")) return Promise.resolve();
+  if (realFinanceLoading) return realFinanceLoading;
+  if (!force && Date.now() - realFinanceLoadedAt < FINANCE_REFRESH_MS) return Promise.resolve();
+  realFinanceLoadedAt = Date.now();
+  const request: Promise<void> = loadFinancialEntries()
+    .then((rows) => {
+      if (financeSessionKey() !== session) return;
+      realFinanceRows = Array.isArray(rows) ? rows : [];
+      window.dispatchEvent(new CustomEvent("dentalpos:finance-changed"));
+    })
+    .catch(() => { /* mantém os últimos dados; nova tentativa após o intervalo */ })
+    .finally(() => { if (realFinanceLoading === request) realFinanceLoading = null; });
+  realFinanceLoading = request;
+  return request;
+}
+
+const fromMockFinance = (e: FinanceEntry): AlertFinanceRow => ({
+  id: String(e.id),
+  type: e.type === "Receita" ? "Receita" : "Despesa",
+  status: e.status === "Pago" || e.status === "Cancelado" || e.status === "Vencido" ? e.status : "Pendente",
+  personName: e.personName || "",
+  description: e.description || "",
+  value: Number(e.value) || 0,
+  dueISO: brToISO(e.dueDate),
+  originId: e.originId,
+});
+
+const fromRealFinance = (e: FinancialEntry): AlertFinanceRow => ({
+  id: e.id,
+  type: e.type === "INCOME" ? "Receita" : "Despesa",
+  status: e.status === "PAID" ? "Pago" : e.status === "CANCELLED" ? "Cancelado" : "Pendente",
+  personName: e.personName || "",
+  description: e.description || "",
+  value: Number(e.amount) || 0,
+  dueISO: toDayISO(e.dueDate),
+  originId: e.originId ?? undefined,
+});
+
+function getFinancialEntries(): AlertFinanceRow[] {
+  if (demoDataEnabled()) return listFinanceEntries().map(fromMockFinance);
+  void refreshRealFinancialEntries();
+  return realFinanceRows.map(fromRealFinance);
 }
 
 const daysBetween = (dateISO?: string) => {
@@ -393,14 +468,14 @@ export function getOperationalAlerts(): OperationalAlert[] {
       alerts.push({ id:`agenda-return-${appointment.id}`, area:"Pacientes", severity:"info", title:"Atendimento concluído sem próximo retorno", description:`${appointment.patientName} foi atendido e não possui retorno futuro registrado. Próximo procedimento informado: ${appointment.nextProcedure}.`, dueISO:appointment.dateISO, route:"/agenda" });
     }
     if (appointment.status === "Finalizado") {
-      const charged = getFinancialEntries().some(e=>e.type==="Receita" && e.personName.toLowerCase()===appointment.patientName.toLowerCase() && (e.originId===String(appointment.id) || e.dueDate>=appointment.dateISO));
+      const charged = getFinancialEntries().some(e=>e.type==="Receita" && e.personName.toLowerCase()===appointment.patientName.toLowerCase() && (e.originId===String(appointment.id) || (e.dueISO ?? "")>=appointment.dateISO));
       if(!charged) alerts.push({ id:`agenda-unbilled-${appointment.id}`, area:"Financeiro", severity:"warning", title:"Conferir cobrança do atendimento", description:`${appointment.patientName} teve atendimento finalizado sem lançamento financeiro identificado para a data.`, dueISO:appointment.dateISO, route:"/financeiro" });
     }
   });
 
   getFinancialEntries().forEach((entry) => {
     if (entry.status === "Pago" || entry.status === "Cancelado") return;
-    const dueISO = brToISO(entry.dueDate);
+    const dueISO = entry.dueISO;
     const days = daysBetween(dueISO);
     if (entry.status === "Vencido" || days < 0) {
       alerts.push({ id: `financial-overdue-${entry.id}`, area: entry.type === "Receita" ? "Pacientes" : "Financeiro", severity: "error", title: entry.type === "Receita" ? "Recebimento vencido" : "Conta vencida", description: `${entry.personName} • ${entry.description} • R$ ${entry.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.`, dueISO, route: "/financeiro", sourceEntityType:"FinancialEntry", sourceEntityId:String(entry.id) });
