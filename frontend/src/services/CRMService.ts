@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { CRMLead } from "../types/crm";
 
-export const crmLeads: CRMLead[] = [
+export const crmLeads: CRMLead[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     nome: "João Silva",

@@ -10,7 +10,7 @@ import { listFinanceEntries, listProviderConfigs, saveProviderConfigs, type Paym
 const money=(v:number)=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v||0);
 export default function PaymentCenter(){
  const [providers,setProviders]=useState<PaymentProviderConfig[]>(()=>listProviderConfigs());
- const [amount,setAmount]=useState("350"); const [method,setMethod]=useState<PaymentMethod>("PIX"); const [provider,setProvider]=useState("asaas"); const [last,setLast]=useState("");
+ const [amount,setAmount]=useState(""); const [method,setMethod]=useState<PaymentMethod>("PIX"); const [provider,setProvider]=useState("asaas"); const [last,setLast]=useState("");
  const entries=listFinanceEntries();
  const totals=useMemo(()=>({open:entries.filter(x=>x.type==="Receita"&&x.status!=="Pago"&&x.status!=="Cancelado").reduce((a,x)=>a+x.value,0),paid:entries.filter(x=>x.type==="Receita"&&x.status==="Pago").reduce((a,x)=>a+x.value,0)}),[entries]);
  const persist=(next:PaymentProviderConfig[])=>{setProviders(next);saveProviderConfigs(next)};

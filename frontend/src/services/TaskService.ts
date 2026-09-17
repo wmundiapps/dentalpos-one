@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { Task } from "../types/task";
 
-export const tasks: Task[] = [
+export const tasks: Task[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     titulo: "Confirmar pacientes de amanhã",

@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { OperationalTask } from "../types/operationalTask";
 
-export const operationalTasks: OperationalTask[] = [
+export const operationalTasks: OperationalTask[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Realizar teste da autoclave",

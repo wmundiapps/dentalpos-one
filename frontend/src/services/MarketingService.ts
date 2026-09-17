@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { MarketingCampaign } from "../types/marketing";
 
-export const marketingCampaigns: MarketingCampaign[] = [
+export const marketingCampaigns: MarketingCampaign[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     name: "Implantes Agosto",

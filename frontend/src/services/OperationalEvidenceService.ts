@@ -1,7 +1,8 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { OperationalEvidence } from "../types/operationalEvidence";
 import type { OperationalTask } from "../types/operationalTask";
 
-export const operationalEvidence: OperationalEvidence[] = [];
+export const operationalEvidence: OperationalEvidence[] = !DEMO_DATA_ON ? [] : [];
 
 export function canCompleteOperationalTask(
   task: OperationalTask,

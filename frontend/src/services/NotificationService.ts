@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { Notification } from "../types/notification";
 
-export const notifications: Notification[] = [
+export const notifications: Notification[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     titulo: "Paciente aguardando",

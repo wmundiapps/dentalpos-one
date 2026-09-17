@@ -1,8 +1,9 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   ServiceEvaluation,
 } from "../types/serviceEvaluation";
 
-export const serviceEvaluations: ServiceEvaluation[] = [
+export const serviceEvaluations: ServiceEvaluation[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     patientName: "Maria Oliveira",

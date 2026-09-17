@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { PatientRecall } from "../types/recall";
 
-export const patientRecalls: PatientRecall[] = [
+export const patientRecalls: PatientRecall[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     patientName: "Maria Oliveira",

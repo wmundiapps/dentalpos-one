@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { Appointment } from "../types/appointment";
 
-export const appointments: Appointment[] = [
+export const appointments: Appointment[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     patientName: "Maria Oliveira",

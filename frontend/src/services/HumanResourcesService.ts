@@ -1,3 +1,4 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   AttendanceRecord,
   DisciplinaryAction,
@@ -9,7 +10,7 @@ import type {
   VacationControl,
 } from "../types/humanResources";
 
-export const employees: Employee[] = [
+export const employees: Employee[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     name: "Roberto Almeida",
@@ -107,7 +108,7 @@ export const employees: Employee[] = [
   },
 ];
 
-export const attendanceRecords: AttendanceRecord[] = [
+export const attendanceRecords: AttendanceRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 2,
@@ -164,7 +165,7 @@ export const attendanceRecords: AttendanceRecord[] = [
   },
 ];
 
-export const payrollEntries: PayrollEntry[] = [
+export const payrollEntries: PayrollEntry[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 2,
@@ -221,7 +222,7 @@ export const payrollEntries: PayrollEntry[] = [
   },
 ];
 
-export const payrollClosings: PayrollClosing[] = [
+export const payrollClosings: PayrollClosing[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     referenceMonth: "08/2026",
@@ -246,7 +247,7 @@ export const payrollClosings: PayrollClosing[] = [
   },
 ];
 
-export const hrDocuments: HRDocument[] = [
+export const hrDocuments: HRDocument[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 3,
@@ -281,7 +282,7 @@ export const hrDocuments: HRDocument[] = [
   },
 ];
 
-export const disciplinaryActions: DisciplinaryAction[] = [
+export const disciplinaryActions: DisciplinaryAction[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 2,
@@ -304,7 +305,7 @@ export const disciplinaryActions: DisciplinaryAction[] = [
   },
 ];
 
-export const vacationControls: VacationControl[] = [
+export const vacationControls: VacationControl[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 2,
@@ -333,7 +334,7 @@ export const vacationControls: VacationControl[] = [
   },
 ];
 
-export const employeeBenefits: EmployeeBenefit[] = [
+export const employeeBenefits: EmployeeBenefit[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 2,

@@ -1,3 +1,4 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   BenchmarkEvolution,
   BenchmarkIndicator,
@@ -15,7 +16,7 @@ export const benchmarkPosition: BenchmarkPosition = {
     "Implantodontia, Prótese, Ortodontia e HOF",
 };
 
-export const benchmarkIndicators: BenchmarkIndicator[] = [
+export const benchmarkIndicators: BenchmarkIndicator[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Conversão de orçamentos",
@@ -130,7 +131,7 @@ export const benchmarkIndicators: BenchmarkIndicator[] = [
   },
 ];
 
-export const benchmarkEvolution: BenchmarkEvolution[] = [
+export const benchmarkEvolution: BenchmarkEvolution[] = !DEMO_DATA_ON ? [] : [
   {
     period: "Mar",
     clinicScore: 68,

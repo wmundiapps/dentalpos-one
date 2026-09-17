@@ -1,3 +1,4 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 export interface ExecutiveCard {
   title: string;
   value: string;
@@ -5,7 +6,7 @@ export interface ExecutiveCard {
   color: "success" | "warning" | "error" | "info";
 }
 
-export const executiveCards: ExecutiveCard[] = [
+export const executiveCards: ExecutiveCard[] = !DEMO_DATA_ON ? [] : [
   {
     title: "Faturamento Hoje",
     value: "R$ 18.420",

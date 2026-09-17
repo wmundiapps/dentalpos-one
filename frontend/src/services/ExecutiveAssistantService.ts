@@ -1,3 +1,4 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   ExecutiveAlert,
   ExecutiveSummary,
@@ -15,7 +16,7 @@ export const executiveSummary: ExecutiveSummary = {
   overdueReceivables: 3200,
 };
 
-export const executiveAlerts: ExecutiveAlert[] = [
+export const executiveAlerts: ExecutiveAlert[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Orçamentos aguardando retorno",

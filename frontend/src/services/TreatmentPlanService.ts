@@ -1,10 +1,11 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   PaymentSimulation,
   TreatmentItem,
   TreatmentPlan,
 } from "../types/treatmentPlan";
 
-export const treatmentPlans: TreatmentPlan[] = [
+export const treatmentPlans: TreatmentPlan[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     patientName: "Maria Oliveira",

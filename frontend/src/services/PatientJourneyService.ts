@@ -1,10 +1,11 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   JourneyBottleneck,
   JourneyConversion,
   PatientJourney,
 } from "../types/patientJourney";
 
-export const patientJourneys: PatientJourney[] = [
+export const patientJourneys: PatientJourney[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     patientName: "Maria Oliveira",
@@ -259,7 +260,7 @@ export const patientJourneys: PatientJourney[] = [
   },
 ];
 
-export const journeyConversions: JourneyConversion[] = [
+export const journeyConversions: JourneyConversion[] = !DEMO_DATA_ON ? [] : [
   {
     stage: "Leads",
     patients: 100,
@@ -302,7 +303,7 @@ export const journeyConversions: JourneyConversion[] = [
   },
 ];
 
-export const journeyBottlenecks: JourneyBottleneck[] = [
+export const journeyBottlenecks: JourneyBottleneck[] = !DEMO_DATA_ON ? [] : [
   {
     module: "Orçamento → Aprovação",
     severity: 88,

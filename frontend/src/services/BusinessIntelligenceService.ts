@@ -1,9 +1,10 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
 AIInsight,
 BIIndicator,
 } from "../types/businessIntelligence";
 
-export const indicators:BIIndicator[]=[
+export const indicators:BIIndicator[]=!DEMO_DATA_ON ? [] : [
 
 {
 id:1,
@@ -43,7 +44,7 @@ description:"Redução das faltas."
 
 ];
 
-export const aiInsights:AIInsight[]=[
+export const aiInsights:AIInsight[]=!DEMO_DATA_ON ? [] : [
 
 {
 id:1,

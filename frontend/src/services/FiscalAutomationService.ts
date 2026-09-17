@@ -1,3 +1,4 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   FiscalAlert,
   FiscalAutomationStatus,
@@ -7,7 +8,7 @@ import type {
   FiscalSendRecord,
 } from "../types/fiscalAutomation";
 
-export const fiscalPayments: FiscalPayment[] = [
+export const fiscalPayments: FiscalPayment[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     paymentCode: "PAG-000841",
@@ -174,7 +175,7 @@ export const fiscalPayments: FiscalPayment[] = [
   },
 ];
 
-export const fiscalSendRecords: FiscalSendRecord[] = [
+export const fiscalSendRecords: FiscalSendRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     fiscalPaymentId: 3,
@@ -226,7 +227,7 @@ export const fiscalSendRecords: FiscalSendRecord[] = [
   },
 ];
 
-export const fiscalAlerts: FiscalAlert[] = [
+export const fiscalAlerts: FiscalAlert[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     fiscalPaymentId: 2,

@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { LaboratoryWork } from "../types/laboratory";
 
-export const laboratoryWorks: LaboratoryWork[] = [
+export const laboratoryWorks: LaboratoryWork[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     trackingCode: "LAB-2026-0001",

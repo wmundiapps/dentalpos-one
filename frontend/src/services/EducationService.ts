@@ -1,9 +1,10 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   CourseCurrency,
   EducationalCourse,
 } from "../types/education";
 
-export const educationalCourses: EducationalCourse[] = [
+export const educationalCourses: EducationalCourse[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Introdução ao Sistema Multiple W48",

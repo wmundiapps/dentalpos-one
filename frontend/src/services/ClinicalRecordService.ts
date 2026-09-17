@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { ClinicalRecord } from "../types/clinicalRecord";
 
-export const clinicalRecords: ClinicalRecord[] = [
+export const clinicalRecords: ClinicalRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     patientName: "Maria Oliveira",

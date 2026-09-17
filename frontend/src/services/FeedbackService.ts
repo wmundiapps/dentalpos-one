@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { UserFeedback } from "../types/feedback";
 
-export const userFeedbacks: UserFeedback[] = [
+export const userFeedbacks: UserFeedback[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     type: "Sugestão",

@@ -1,9 +1,10 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   CommunicationChannel,
   CommunicationMessage,
 } from "../types/communication";
 
-export const communicationMessages: CommunicationMessage[] = [
+export const communicationMessages: CommunicationMessage[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     recipientName: "Maria Oliveira",

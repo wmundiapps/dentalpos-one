@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { InventoryItem } from "../types/inventory";
 
-export const inventoryItems: InventoryItem[] = [
+export const inventoryItems: InventoryItem[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     code: "W48-CM-25",

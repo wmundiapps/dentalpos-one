@@ -1,3 +1,4 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   ClinicHealthHistory,
   ClinicHealthIndicator,
@@ -5,7 +6,7 @@ import type {
   ClinicHealthSummary,
 } from "../types/clinicHealth";
 
-export const clinicHealthIndicators: ClinicHealthIndicator[] = [
+export const clinicHealthIndicators: ClinicHealthIndicator[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Ocupação da agenda",
@@ -107,7 +108,7 @@ export const clinicHealthIndicators: ClinicHealthIndicator[] = [
   },
 ];
 
-export const clinicHealthHistory: ClinicHealthHistory[] = [
+export const clinicHealthHistory: ClinicHealthHistory[] = !DEMO_DATA_ON ? [] : [
   {
     date: "27/07",
     score: 742,

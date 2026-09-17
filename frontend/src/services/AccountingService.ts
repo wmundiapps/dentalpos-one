@@ -1,3 +1,4 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   AccountingEntry,
   AccountingSummary,
@@ -111,7 +112,7 @@ export const chartOfAccounts: ChartOfAccount[] = [
   },
 ];
 
-export const accountingEntries: AccountingEntry[] = [
+export const accountingEntries: AccountingEntry[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     description: "Tratamento implantodôntico",
@@ -250,7 +251,7 @@ export const accountingEntries: AccountingEntry[] = [
   },
 ];
 
-export const bankTransactions: BankTransaction[] = [
+export const bankTransactions: BankTransaction[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     bankName: "Banco Digital",
@@ -297,7 +298,7 @@ export const bankTransactions: BankTransaction[] = [
   },
 ];
 
-export const taxObligations: TaxObligation[] = [
+export const taxObligations: TaxObligation[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     name: "DARF previdenciário",
@@ -378,7 +379,7 @@ export const taxObligations: TaxObligation[] = [
   },
 ];
 
-export const taxRegimeSimulations: TaxRegimeSimulation[] = [
+export const taxRegimeSimulations: TaxRegimeSimulation[] = !DEMO_DATA_ON ? [] : [
   {
     regime: "Simples Nacional",
     estimatedMonthlyTax: 68200,

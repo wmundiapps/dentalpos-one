@@ -1,3 +1,4 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   CEOAlert,
   CEOAreaScore,
@@ -21,7 +22,7 @@ export const ceoSummary: CEOSummary = {
   generatedAt: "Hoje, 16:30",
 };
 
-export const ceoAreaScores: CEOAreaScore[] = [
+export const ceoAreaScores: CEOAreaScore[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     area: "Financeiro",
@@ -124,7 +125,7 @@ export const ceoAreaScores: CEOAreaScore[] = [
   },
 ];
 
-export const ceoKPIs: CEOKPI[] = [
+export const ceoKPIs: CEOKPI[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Faturamento mensal",
@@ -199,7 +200,7 @@ export const ceoKPIs: CEOKPI[] = [
   },
 ];
 
-export const ceoAlerts: CEOAlert[] = [
+export const ceoAlerts: CEOAlert[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Conversão abaixo da meta",
@@ -267,7 +268,7 @@ export const ceoAlerts: CEOAlert[] = [
   },
 ];
 
-export const ceoRecommendations: CEORecommendation[] = [
+export const ceoRecommendations: CEORecommendation[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Reativar orçamentos de maior potencial",
@@ -318,7 +319,7 @@ export const ceoRecommendations: CEORecommendation[] = [
   },
 ];
 
-export const ceoForecasts: CEOForecast[] = [
+export const ceoForecasts: CEOForecast[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     type: "Faturamento",
@@ -375,7 +376,7 @@ export const ceoForecasts: CEOForecast[] = [
   },
 ];
 
-export const ceoMorningItems: CEOMorningItem[] = [
+export const ceoMorningItems: CEOMorningItem[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Confirmar pagamento de entrada",

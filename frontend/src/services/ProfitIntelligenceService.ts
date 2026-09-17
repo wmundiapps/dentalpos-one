@@ -1,3 +1,4 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   FinancialInsight,
   ProcedurePricingResult,
@@ -8,7 +9,7 @@ import type {
   RoomProfitability,
 } from "../types/profitIntelligence";
 
-export const proceduresProfitability: ProcedureProfitability[] = [
+export const proceduresProfitability: ProcedureProfitability[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     name: "Implante unitário",
@@ -131,7 +132,7 @@ export const proceduresProfitability: ProcedureProfitability[] = [
   },
 ];
 
-export const professionalProfitability: ProfessionalProfitability[] = [
+export const professionalProfitability: ProfessionalProfitability[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     professionalName: "Dr. Robson",
@@ -176,7 +177,7 @@ export const professionalProfitability: ProfessionalProfitability[] = [
   },
 ];
 
-export const roomProfitability: RoomProfitability[] = [
+export const roomProfitability: RoomProfitability[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     roomName: "Consultório 1",
@@ -215,7 +216,7 @@ export const roomProfitability: RoomProfitability[] = [
   },
 ];
 
-export const profitScenarios: ProfitScenario[] = [
+export const profitScenarios: ProfitScenario[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Reajuste geral de 5%",
@@ -257,7 +258,7 @@ export const profitScenarios: ProfitScenario[] = [
   },
 ];
 
-export const financialInsights: FinancialInsight[] = [
+export const financialInsights: FinancialInsight[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Clareamento com margem insuficiente",

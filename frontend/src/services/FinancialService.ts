@@ -1,6 +1,7 @@
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { FinancialEntry } from "../types/financial";
 
-export const financialEntries: FinancialEntry[] = [
+export const financialEntries: FinancialEntry[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     description: "Tratamento implantodôntico",
