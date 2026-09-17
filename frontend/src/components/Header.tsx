@@ -17,9 +17,10 @@ import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchIcon from "@mui/icons-material/Search";
 import LogoutIcon from "@mui/icons-material/Logout";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
@@ -35,6 +36,7 @@ import {
 
 export default function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { mode, toggleMode } = useAppTheme();
   const demo = readDemoAccess();
   const sessionUser = readSessionUser();
@@ -113,6 +115,17 @@ export default function Header() {
       }}
     >
       <Toolbar sx={{ gap: { xs: 1, md: 2 }, minHeight: 72 }}>
+        {location.pathname !== "/" && location.pathname !== "/dashboard" && (
+          <Tooltip title="Voltar">
+            <IconButton
+              aria-label="Voltar"
+              onClick={() => { if ((window.history.state?.idx ?? 0) > 0) navigate(-1); else navigate("/"); }}
+              sx={{ border: "1px solid", borderColor: "divider", flexShrink: 0 }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+          </Tooltip>
+        )}
         <Box component="img" src={`${import.meta.env.BASE_URL}brand/logo-leao.png`} alt="DentalPos One" sx={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)" }} />
         <Box sx={{ display: { xs: "none", lg: "block" } }}>
           <Typography variant="h6" sx={{ fontWeight: 700, color: "primary.main", lineHeight: 1.2, whiteSpace: "nowrap" }}>
