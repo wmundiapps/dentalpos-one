@@ -30,6 +30,7 @@ import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import SchoolIcon from "@mui/icons-material/School";
 import SendIcon from "@mui/icons-material/Send";
+import SettingsInputAntennaIcon from "@mui/icons-material/SettingsInputAntenna";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
@@ -100,6 +101,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Leads","/revah-leads",<PeopleAltIcon/>),
       item("Recall e Reativa\u00e7\u00e3o","/recall",<SendIcon/>),
       item("Central REVAH","/revah",<SendIcon/>),
+      item("Canais de Envio","/canais-envio",<SettingsInputAntennaIcon/>),
     ])
   },
   {

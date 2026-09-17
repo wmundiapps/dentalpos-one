@@ -27,6 +27,7 @@ import Dashboard from "../pages/Dashboard";
 import ExecutiveAssistant from "../pages/ExecutiveAssistant";
 import ExecutiveDashboard from "../pages/ExecutiveDashboard";
 import Feedback from "../pages/Feedback";
+import Channels from "../pages/Channels";
 import Financial from "../pages/Financial";
 import FinancialScanner from "../pages/FinancialScanner";
 import FiscalAutomation from "../pages/FiscalAutomation";
@@ -252,6 +253,7 @@ export default function AppRoutes() {
       <Route path="/cirurgia-implantes-protese" element={<SurgeryImplantProsthesis />} />
       <Route path="/clinico-especializado" element={<SpecializedClinical />} />
 
+      <Route path="/canais-envio" element={<Channels />} />
       <Route path="/recall" element={<Recall />} />
 
       <Route path="/relatorios" element={<Reports />} />
