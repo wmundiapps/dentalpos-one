@@ -1945,3 +1945,25 @@ model OperationalAlertResolution {
   @@index([clinicId, alertKey])
   @@index([clinicId, sourceEntityType, sourceEntityId])
 }
+model PlatformFeedback {
+  id          String   @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  userId      String
+  userName    String
+  userEmail   String
+  type        String
+  title       String
+  description String
+  module      String?
+  pagePath    String?
+  priority    String   @default("Média")
+  status      String   @default("Enviado")
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clinicId])
+  @@index([status])
+  @@index([createdAt])
+}

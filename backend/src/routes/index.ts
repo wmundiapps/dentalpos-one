@@ -16,6 +16,7 @@ import * as paymentController from '../controllers/paymentController'
 import * as financialController from '../controllers/financialController'
 import * as paymentProviderController from '../controllers/paymentProviderController'
 import * as feedbackController from '../controllers/feedbackController'
+import * as platformFeedbackController from '../controllers/platformFeedbackController'
 import * as accessController from '../controllers/accessController'
 import * as auditController from '../controllers/auditController'
 import * as settingsController from '../controllers/settingsController'
@@ -369,5 +370,9 @@ router.get('/feedback/:id', requirePermission('patients.view'), feedbackControll
 router.post('/feedbacks', requirePermission('patients.edit'), feedbackController.store)
 router.put('/feedback/:id', requirePermission('patients.edit'), feedbackController.update)
 router.delete('/feedback/:id', requirePermission('patients.edit'), feedbackController.remove)
+router.post('/platform-feedbacks', platformFeedbackController.create)
+router.get('/platform-feedbacks', platformFeedbackController.listMine)
+router.get('/platform-feedbacks/all', requireWmundiStaff, platformFeedbackController.listAll)
+router.put('/platform-feedbacks/:id/status', requireWmundiStaff, platformFeedbackController.updateStatus)
 
 export default router

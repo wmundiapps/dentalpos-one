@@ -1,403 +1,89 @@
-import {
-  Box,
-  Button,
-  Chip,
-  MenuItem,
-  Paper,
-  TextField,
-  Typography,
-} from "@mui/material";
-
-import AttachFileIcon from "@mui/icons-material/AttachFile";
-import BugReportIcon from "@mui/icons-material/BugReport";
-import LightbulbIcon from "@mui/icons-material/Lightbulb";
-import SendIcon from "@mui/icons-material/Send";
-import SupportAgentIcon from "@mui/icons-material/SupportAgent";
-
-import type { ReactNode } from "react";
-
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Box, Button, Chip, FormControlLabel, MenuItem, Paper, Switch, TextField, Typography } from "@mui/material";
+import AddCommentIcon from "@mui/icons-material/AddComment";
 import PageHeader from "../components/PageHeader";
-import {
-  countCriticalFeedbacks,
-  countOpenFeedbacks,
-  userFeedbacks,
-} from "../services/FeedbackService";
-import type {
-  FeedbackPriority,
-  FeedbackStatus,
-  FeedbackType,
-} from "../types/feedback";
+import FeedbackDialog from "../components/FeedbackDialog";
+import { isWmundiStaff } from "../components/WmundiStaffOnly";
+import { FEEDBACK_STATUSES, listPlatformFeedbacks, updatePlatformFeedbackStatus, type PlatformFeedback } from "../services/PlatformFeedbackApi";
 
-function getTypeIcon(type: FeedbackType): ReactNode {
-  switch (type) {
-    case "Bug":
-    case "Problema":
-      return <BugReportIcon />;
-
-    case "Sugestão":
-    case "Melhoria":
-      return <LightbulbIcon />;
-
-    default:
-      return <SupportAgentIcon />;
-  }
-}
-
-function getPriorityColor(priority: FeedbackPriority) {
-  switch (priority) {
-    case "Crítica":
-      return "error" as const;
-
-    case "Alta":
-      return "warning" as const;
-
-    case "Média":
-      return "info" as const;
-
-    default:
-      return "default" as const;
-  }
-}
-
-function getStatusColor(status: FeedbackStatus) {
-  switch (status) {
-    case "Resolvido":
-      return "success" as const;
-
-    case "Em desenvolvimento":
-      return "primary" as const;
-
-    case "Em análise":
-      return "warning" as const;
-
-    case "Arquivado":
-      return "default" as const;
-
-    default:
-      return "info" as const;
-  }
-}
+type ChipColor = "default" | "primary" | "info" | "success" | "warning" | "error";
+const statusColor = (s: string): ChipColor => s === "Resolvido" ? "success" : s === "Em desenvolvimento" ? "primary" : s === "Em an\u00e1lise" ? "warning" : s === "Arquivado" ? "default" : "info";
+const priorityColor = (p: string): ChipColor => p === "Cr\u00edtica" ? "error" : p === "Alta" ? "warning" : p === "M\u00e9dia" ? "info" : "default";
 
 export default function Feedback() {
-  const openFeedbacks = countOpenFeedbacks();
-  const criticalFeedbacks = countCriticalFeedbacks();
+  const staff = isWmundiStaff();
+  const [rows, setRows] = useState<PlatformFeedback[]>([]);
+  const [all, setAll] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try { setRows(await listPlatformFeedbacks(staff && all)); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao carregar relatos."); }
+    finally { setLoading(false); }
+  }, [staff, all]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const changeStatus = async (id: string, status: string) => {
+    try { await updatePlatformFeedbackStatus(id, status); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao atualizar."); }
+  };
+
+  const openCount = rows.filter((r) => r.status !== "Resolvido" && r.status !== "Arquivado").length;
+  const critical = rows.filter((r) => r.priority === "Cr\u00edtica" && r.status !== "Resolvido").length;
+  const cards: [string, number][] = [["Relatos", rows.length], ["Em aberto", openCount], ["Cr\u00edticos", critical]];
 
   return (
     <Box>
-      <PageHeader
-        title="Sugestões e Problemas"
-        description="Envie sugestões, relate defeitos, bugs, dúvidas e oportunidades de melhoria."
-      />
-
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            xl: "1fr 1.2fr",
-          },
-          gap: 3,
-        }}
-      >
-        <Paper
-          elevation={0}
-          sx={{
-            p: 3,
-            borderRadius: 3,
-            border: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 900,
-              mb: 3,
-            }}
-          >
-            Enviar novo relato
-          </Typography>
-
-          <TextField
-            select
-            fullWidth
-            label="Tipo do relato"
-            defaultValue="Sugestão"
-            sx={{ mb: 2 }}
-          >
-            <MenuItem value="Sugestão">Sugestão</MenuItem>
-            <MenuItem value="Bug">Bug</MenuItem>
-            <MenuItem value="Problema">Problema</MenuItem>
-            <MenuItem value="Dúvida">Dúvida</MenuItem>
-            <MenuItem value="Melhoria">Melhoria</MenuItem>
-          </TextField>
-
-          <TextField
-            fullWidth
-            label="Título"
-            placeholder="Resuma o que aconteceu ou sua sugestão."
-            sx={{ mb: 2 }}
-          />
-
-          <TextField
-            fullWidth
-            label="Módulo"
-            placeholder="Exemplo: Agenda, Financeiro, Estoque..."
-            sx={{ mb: 2 }}
-          />
-
-          <TextField
-            select
-            fullWidth
-            label="Prioridade"
-            defaultValue="Média"
-            sx={{ mb: 2 }}
-          >
-            <MenuItem value="Baixa">Baixa</MenuItem>
-            <MenuItem value="Média">Média</MenuItem>
-            <MenuItem value="Alta">Alta</MenuItem>
-            <MenuItem value="Crítica">Crítica</MenuItem>
-          </TextField>
-
-          <TextField
-            fullWidth
-            multiline
-            minRows={6}
-            label="Descrição"
-            placeholder="Descreva detalhadamente o problema, sugestão ou melhoria."
-            sx={{ mb: 2 }}
-          />
-
-          <Button
-            fullWidth
-            component="label"
-            variant="outlined"
-            startIcon={<AttachFileIcon />}
-            sx={{ mb: 2 }}
-          >
-            Anexar imagem ou arquivo
-
-            <input
-              hidden
-              multiple
-              type="file"
-              accept="image/*,.pdf,.txt"
-            />
-          </Button>
-
-          <Button
-            fullWidth
-            variant="contained"
-            startIcon={<SendIcon />}
-          >
-            Enviar relato
-          </Button>
-        </Paper>
-
-        <Box>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(3, 1fr)",
-              },
-              gap: 2,
-              mb: 3,
-            }}
-          >
-            <SummaryCard
-              title="Relatos cadastrados"
-              value={String(userFeedbacks.length)}
-            />
-
-            <SummaryCard
-              title="Em aberto"
-              value={String(openFeedbacks)}
-            />
-
-            <SummaryCard
-              title="Críticos"
-              value={String(criticalFeedbacks)}
-            />
-          </Box>
-
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              border: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 900,
-                mb: 3,
-              }}
-            >
-              Histórico de relatos
-            </Typography>
-
-            {userFeedbacks.map((feedback) => (
-              <Paper
-                key={feedback.id}
-                variant="outlined"
-                sx={{
-                  p: 2.5,
-                  mb: 2,
-                  borderRadius: 2,
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 2,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 2,
-                      bgcolor: "primary.main",
-                      color: "#FFFFFF",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {getTypeIcon(feedback.type)}
-                  </Box>
-
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 2,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <Box>
-                        <Typography
-                          sx={{
-                            fontWeight: 900,
-                          }}
-                        >
-                          {feedback.title}
-                        </Typography>
-
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                        >
-                          {feedback.type} • {feedback.module}
-                        </Typography>
-                      </Box>
-
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 1,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <Chip
-                          size="small"
-                          label={feedback.priority}
-                          color={getPriorityColor(
-                            feedback.priority,
-                          )}
-                        />
-
-                        <Chip
-                          size="small"
-                          label={feedback.status}
-                          color={getStatusColor(
-                            feedback.status,
-                          )}
-                        />
-                      </Box>
-                    </Box>
-
-                    <Typography
-                      color="text.secondary"
-                      sx={{
-                        mt: 1.5,
-                      }}
-                    >
-                      {feedback.description}
-                    </Typography>
-
-                    {feedback.attachmentName && (
-                      <Chip
-                        size="small"
-                        icon={<AttachFileIcon />}
-                        label={feedback.attachmentName}
-                        variant="outlined"
-                        sx={{ mt: 2 }}
-                      />
-                    )}
-
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{
-                        display: "block",
-                        mt: 2,
-                      }}
-                    >
-                      Enviado por {feedback.userName} em{" "}
-                      {feedback.createdAt}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Paper>
-            ))}
-          </Paper>
-        </Box>
+      <PageHeader title={"Sugest\u00f5es e Problemas"} description={"Relate bugs, bot\u00f5es que n\u00e3o funcionam, corre\u00e7\u00f5es e ideias de novas funcionalidades. Cada relato chega direto \u00e0 equipe DentalPos One."} />
+      <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
+        <Button variant="contained" startIcon={<AddCommentIcon />} onClick={() => setOpen(true)}>Novo relato</Button>
+        {staff && <FormControlLabel control={<Switch checked={all} onChange={(_, v) => setAll(v)} />} label={"Todas as cl\u00ednicas (equipe WMundi)"} />}
       </Box>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3,1fr)" }, gap: 2, mb: 2 }}>
+        {cards.map(([t, v]) => (
+          <Paper key={t} variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+            <Typography color="text.secondary">{t}</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 900 }}>{v}</Typography>
+          </Paper>
+        ))}
+      </Box>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+        {loading ? (
+          <Typography color="text.secondary">Carregando...</Typography>
+        ) : rows.length === 0 ? (
+          <Typography color="text.secondary">{"Nenhum relato ainda. Use o bot\u00e3o acima ou o \u00edcone de bal\u00e3o no topo de qualquer tela."}</Typography>
+        ) : rows.map((r) => (
+          <Paper key={r.id} variant="outlined" sx={{ p: 2, mb: 1.5, borderRadius: 2 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+              <Box>
+                <Typography sx={{ fontWeight: 800 }}>{r.title}</Typography>
+                <Typography variant="body2" color="text.secondary">{`${r.type} \u2022 ${r.module || "-"}`}</Typography>
+              </Box>
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                <Chip size="small" label={r.priority} color={priorityColor(r.priority)} />
+                {staff ? (
+                  <TextField select size="small" value={r.status} onChange={(e) => void changeStatus(r.id, e.target.value)} sx={{ minWidth: 170 }}>
+                    {FEEDBACK_STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+                  </TextField>
+                ) : (
+                  <Chip size="small" label={r.status} color={statusColor(r.status)} />
+                )}
+              </Box>
+            </Box>
+            <Typography color="text.secondary" sx={{ mt: 1, whiteSpace: "pre-wrap" }}>{r.description}</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+              {`Enviado por ${r.userName} em ${new Date(r.createdAt).toLocaleString("pt-BR")}${r.pagePath ? ` \u2022 tela ${r.pagePath}` : ""}`}
+            </Typography>
+          </Paper>
+        ))}
+      </Paper>
+      <FeedbackDialog open={open} onClose={() => setOpen(false)} onSent={() => void load()} />
     </Box>
-  );
-}
-
-interface SummaryCardProps {
-  title: string;
-  value: string;
-}
-
-function SummaryCard({
-  title,
-  value,
-}: SummaryCardProps) {
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 2.5,
-        borderRadius: 3,
-        border: "1px solid",
-        borderColor: "divider",
-      }}
-    >
-      <Typography color="text.secondary">
-        {title}
-      </Typography>
-
-      <Typography
-        variant="h4"
-        sx={{
-          mt: 1,
-          fontWeight: 900,
-        }}
-      >
-        {value}
-      </Typography>
-    </Paper>
   );
 }

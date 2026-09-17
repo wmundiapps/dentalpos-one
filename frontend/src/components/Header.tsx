@@ -18,6 +18,8 @@ import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchIcon from "@mui/icons-material/Search";
 import LogoutIcon from "@mui/icons-material/Logout";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
+import FeedbackDialog from "./FeedbackDialog";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -37,6 +39,7 @@ import {
 export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { mode, toggleMode } = useAppTheme();
   const demo = readDemoAccess();
   const sessionUser = readSessionUser();
@@ -201,6 +204,12 @@ export default function Header() {
 
         <Box sx={{ flexGrow: 1 }} />
 
+        <Tooltip title={"Relatar problema ou sugest\u00e3o"}>
+          <IconButton onClick={() => setFeedbackOpen(true)} sx={{ color: "warning.main" }}>
+            <FeedbackOutlinedIcon />
+          </IconButton>
+        </Tooltip>
+        <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
         <Tooltip title={mode === "light" ? "Ativar modo escuro" : "Ativar modo claro"}>
           <IconButton onClick={toggleMode}>
             {mode === "light" ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}
