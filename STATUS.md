@@ -47,6 +47,18 @@ Design/CAD-CAM, Administrativo (permissões + biometria), Gestão (hora clínica
 - Nota 0 a 6 gera alerta ao responsável (ligar ao item 6); "não contratou" vai para o REVAH com o motivo; relatórios em Gestão (NPS, por profissional, motivos, conversão de primeiras consultas). LGPD: consentimento e descadastro.
 - Precisa de: tabela nova no banco, página pública de resposta, ligação com a Agenda e os canais de envio.
 
+### 14. Remover nomes de fornecedores das telas (segredo comercial) — status: EM ANDAMENTO
+- Nenhum nome de fornecedor/ferramenta (Z-API, Comtele, Resend, Twilio, Asaas, Stripe, MundiBusiness etc.) no código do frontend; nomes só no backend ou visíveis apenas para a equipe WMundi.
+
+### 15. Entregar o sistema limpo (sem exemplos nem números carregados) — status: PENDENTE
+- Contas novas e demos começam do zero. NÃO apagar dados reais existentes; qualquer dado de exemplo misturado no banco deve ser mostrado ao Robson antes.
+
+### 16. Tutorial das funcionalidades — status: PENDENTE
+- Ícone no cabeçalho que abre um guia por módulo (o que faz e como usar).
+
+### 17. Canal de feedback visível em todas as telas — status: PENDENTE (prioridade na implantação)
+- Botão fixo para relatar bugs, sugestões, funcionalidades desejadas, correções e botões que não funcionam; registra a tela de origem; aproveita a tela existente "Sugestões e Problemas" (/sugestoes-problemas).
+
 ---
 
 ## Credenciais e acessos

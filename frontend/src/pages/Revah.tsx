@@ -20,11 +20,11 @@ type Campaign = {
 };
 
 const channels = [
-  { name: "WhatsApp", provider: "Z-API", icon: <WhatsAppIcon /> },
-  { name: "SMS", provider: "Comtele", icon: <SmsIcon /> },
-  { name: "E-mail", provider: "Resend", icon: <EmailIcon /> },
-  { name: "Telegram", provider: "Telegram Bot API", icon: <TelegramIcon /> },
-  { name: "Ligação", provider: "Twilio / a validar", icon: <PhoneInTalkIcon /> },
+  { name: "WhatsApp", provider: "Mensagens instantâneas", icon: <WhatsAppIcon /> },
+  { name: "SMS", provider: "Mensagem de texto", icon: <SmsIcon /> },
+  { name: "E-mail", provider: "Envio por e-mail", icon: <EmailIcon /> },
+  { name: "Telegram", provider: "Mensagens por bot", icon: <TelegramIcon /> },
+  { name: "Ligação", provider: "Ligação automática", icon: <PhoneInTalkIcon /> },
 ];
 
 const KEY = "dentalpos_revah_campaigns_v1";
@@ -71,9 +71,7 @@ export default function Revah() {
       />
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        Arquitetura reaproveitada do MundiBusiness sem alterar o original. O envio real fica bloqueado até
-        configurar credenciais, consentimento/opt-out e validar o provedor. O Alpha registra campanhas com
-        rastreabilidade.
+        Crie campanhas e automações pelos canais abaixo. O envio é liberado depois que o canal for ativado pela equipe DentalPos One e o paciente autorizar o contato (LGPD).
       </Alert>
 
       <Box
@@ -100,7 +98,7 @@ export default function Revah() {
             <Typography sx={{ fontWeight: 900 }}>{item.name}</Typography>
             <Typography variant="caption">{item.provider}</Typography>
             <br />
-            <Chip size="small" label="Preparado no backend" sx={{ mt: 1 }} />
+            <Chip size="small" label="Em ativação" sx={{ mt: 1 }} />
           </Paper>
         ))}
       </Box>
