@@ -16,6 +16,7 @@ import * as paymentController from '../controllers/paymentController'
 import * as financialController from '../controllers/financialController'
 import * as paymentProviderController from '../controllers/paymentProviderController'
 import * as feedbackController from '../controllers/feedbackController'
+import * as cronController from '../controllers/cronController'
 import * as platformFeedbackController from '../controllers/platformFeedbackController'
 import * as accessController from '../controllers/accessController'
 import * as auditController from '../controllers/auditController'
@@ -71,6 +72,7 @@ router.get('/auth/me', authMiddleware, tenantMiddleware, sessionController.me)
 // PUBLIC WEBHOOKS
 router.post('/webhooks/asaas', webhookController.asaas)
 router.post('/webhooks/stripe', webhookController.stripe)
+router.all('/cron/reminders', cronController.reminders)
 
 // PUBLIC BOOKING
 router.get('/public/booking/:clinicId', publicBookingController.config)

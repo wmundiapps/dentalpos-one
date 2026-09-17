@@ -122,14 +122,17 @@ export async function processDueAppointmentReminders() {
         },
       })
 
-      if (!sender) {
+      const platformWhatsapp = !sender && channel === 'WHATSAPP' && process.env.REMINDERS_USE_PLATFORM_WHATSAPP === 'true' && process.env.Z_API_INSTANCE && process.env.Z_API_TOKEN
+        ? { instanceId: process.env.Z_API_INSTANCE, token: process.env.Z_API_TOKEN, clientToken: process.env.Z_API_CLIENT_TOKEN }
+        : null
+      if (!sender && !platformWhatsapp) {
         await postponeWithError(reminder.id, `Configure um remetente ativo para ${channel}.`)
         continue
       }
 
-      let credentials: Record<string, unknown> = {}
+      let credentials: Record<string, unknown> = platformWhatsapp || {}
       try {
-        credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {}
+        if (sender) credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {}
       } catch {
         await postponeWithError(reminder.id, `Credenciais de ${channel} não puderam ser abertas. Verifique a configuração segura da clínica.`)
         continue
@@ -175,13 +178,17 @@ export async function processDueAppointmentReminders() {
           consultationValueLabel: formatConsultationValue(appointment.doctor?.consultationValue ?? null),
         })
 
-        const result = await dispatchRevah(channel, destination, message, credentials, sender.address)
+        const result = await dispatchRevah(channel, destination, message, credentials, sender?.address)
 
         if (result.simulated) {
           await postponeWithError(reminder.id, `O provedor ${result.provider} está em modo simulado.`)
           continue
         }
 
+        if (!sender) {
+          await prisma.appointmentReminder.update({ where: { id: reminder.id }, data: { status: 'SENT', sentAt: new Date(), errorMessage: null } })
+          continue
+        }
         await prisma.$transaction([
           prisma.appointmentReminder.update({
             where: { id: reminder.id },
