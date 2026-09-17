@@ -60,9 +60,9 @@ const seed: FinanceEntry[] = [
 ];
 
 const providersSeed: PaymentProviderConfig[] = [
-  { id: "asaas", name: "Gateway de pagamento", active: false, environment: "Teste", supports: ["PIX", "Cartão", "Boleto"], webhookConfigured: false, credentialsConfigured: false },
-  { id: "stripe", name: "Cartão internacional", active: false, environment: "Teste", supports: ["Cartão"], webhookConfigured: false, credentialsConfigured: false },
-  { id: "bank", name: "Banco", active: false, environment: "Teste", supports: ["PIX", "Transferência"], webhookConfigured: false, credentialsConfigured: false },
+  { id: "asaas", name: "Asaas", active: false, environment: "Teste", supports: ["PIX", "Cartão", "Boleto"], webhookConfigured: false, credentialsConfigured: false },
+  { id: "stripe", name: "Stripe", active: false, environment: "Teste", supports: ["Cartão"], webhookConfigured: false, credentialsConfigured: false },
+  { id: "bank", name: "Banco / Open Finance", active: false, environment: "Teste", supports: ["PIX", "Transferência"], webhookConfigured: false, credentialsConfigured: false },
 ];
 
 function normalizeStatus(entry: FinanceEntry): FinanceEntry {
