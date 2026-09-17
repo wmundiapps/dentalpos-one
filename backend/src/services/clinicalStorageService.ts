@@ -23,10 +23,14 @@ function credentials() {
 }
 
 async function configFor(clinicId: string, tenantId: string) {
-  return prisma.tenantStorageConfig.findFirst({
+  const row = await prisma.tenantStorageConfig.findFirst({
     where: { clinicId, tenantId, isActive: true },
     orderBy: { updatedAt: 'desc' }
   })
+  if (row) return row
+  const bucket = process.env.CLINICAL_STORAGE_BUCKET
+  if (!bucket) return null
+  return { provider: 'S3_COMPATIBLE', bucket, region: null as string | null, endpoint: null as string | null, rootPrefix: null as string | null }
 }
 
 function safeName(value: string) {
@@ -79,7 +83,8 @@ function presign(input: {
   const service = 's3'
   const scope = `${dateStamp}/${input.region}/${service}/aws4_request`
   const endpoint = new URL(input.endpoint)
-  const canonicalUri = `/${encodeURIComponent(input.bucket)}/${encodePath(input.key)}`
+  const basePath = endpoint.pathname.replace(/\/+$/, '')
+  const canonicalUri = `${basePath}/${encodeURIComponent(input.bucket)}/${encodePath(input.key)}`
   const query = new URLSearchParams({
     'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
     'X-Amz-Credential': `${input.accessKeyId}/${scope}`,
