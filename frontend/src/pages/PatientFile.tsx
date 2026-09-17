@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import {
-  Alert,
-  Box,
-  Chip,
-  CircularProgress,
-  Paper,
-  Tab,
-  Tabs,
-  Typography,
-} from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, Paper, Typography } from "@mui/material";
+import SummarizeIcon from "@mui/icons-material/Summarize";
+import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import GridOnIcon from "@mui/icons-material/GridOn";
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
+import ImageIcon from "@mui/icons-material/Image";
+import DescriptionIcon from "@mui/icons-material/Description";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import EventIcon from "@mui/icons-material/Event";
+import type { ReactNode } from "react";
 import PageHeader from "../components/PageHeader";
+import PatientHeader, { type ClinicalAlerts } from "../components/patient/PatientHeader";
+import MedicalHistoryTab from "../components/patient/MedicalHistoryTab";
 import ClinicalRecord from "./ClinicalRecord";
 import OdontogramPeriodontogram from "./OdontogramPeriodontogram";
 import TreatmentPlanning from "./TreatmentPlanning";
@@ -20,228 +23,85 @@ import ClinicalDocuments from "./ClinicalDocuments";
 import { loadBackendPatient, type BackendPatient } from "../services/PatientApi";
 import { loadBackendAppointments, type BackendAppointment } from "../services/AppointmentApi";
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
+import { loadClinicalRecord } from "../services/ClinicalAnamnesisApi";
+import type { ClinicalRecordData } from "../types/clinicalAnamnesis";
 
-function doctorName(appointment: BackendAppointment) {
-  if (!appointment.doctor) return "";
-  return `Dr(a). ${appointment.doctor.user.firstName} ${appointment.doctor.user.lastName}`.trim();
+const STATUS_CONSULTA: Record<string, string> = { SCHEDULED: "Agendado", CONFIRMED: "Confirmado", WAITING: "Aguardando confirma\u00e7\u00e3o", IN_PROGRESS: "Em atendimento", COMPLETED: "Finalizado", FINALIZED: "Finalizado", CANCELLED: "Cancelado", NO_SHOW: "Faltou" };
+
+function doctorName(a: BackendAppointment) {
+  if (!a.doctor) return "";
+  return `Dr(a). ${a.doctor.user.firstName} ${a.doctor.user.lastName}`.trim();
+}
+function dataHora(iso: string) {
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 }
 
-function formatDateTime(iso: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
-
-function AppointmentHistoryTab({ patientId }: { patientId: string }) {
-  const [appointments, setAppointments] = useState<BackendAppointment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    loadBackendAppointments()
-      .then((rows) => {
-        if (active) setAppointments(rows.filter((a) => a.patientId === patientId));
-      })
-      .catch((e) => {
-        if (active) setError(e instanceof Error ? e.message : "Erro ao carregar agenda.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [patientId]);
-
-  const now = new Date().toISOString();
-  const upcoming = appointments
-    .filter((a) => a.scheduledAt >= now && a.status !== "CANCELLED")
-    .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
-  const past = appointments
-    .filter((a) => a.scheduledAt < now || a.status === "CANCELLED")
-    .sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt));
-
-  if (loading) {
-    return (
-      <Box sx={{ display: "grid", placeItems: "center", minHeight: 200 }}>
-        <CircularProgress />
+function Consultas({ rows, loading }: { rows: BackendAppointment[]; loading: boolean }) {
+  if (loading) return <Box sx={{ display: "grid", placeItems: "center", minHeight: 200 }}><CircularProgress /></Box>;
+  const agora = new Date().toISOString();
+  const futuras = rows.filter((a) => a.scheduledAt >= agora && a.status !== "CANCELLED").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+  const passadas = rows.filter((a) => a.scheduledAt < agora || a.status === "CANCELLED").sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt));
+  const lista = (itens: BackendAppointment[], vazio: string) => itens.length
+    ? <Box sx={{ display: "grid", gap: 1, mb: 3 }}>{itens.map((a) => (
+        <Paper key={a.id} variant="outlined" sx={{ p: 2 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+            <Box>
+              <Typography sx={{ fontWeight: 800 }}>{a.procedure}</Typography>
+              <Typography variant="body2" color="text.secondary">{dataHora(a.scheduledAt)}{doctorName(a) ? ` \u2022 ${doctorName(a)}` : ""}</Typography>
+            </Box>
+            <Chip size="small" label={STATUS_CONSULTA[a.status] || a.status} />
+          </Box>
+        </Paper>))}
       </Box>
-    );
-  }
-
+    : <Typography color="text.secondary" sx={{ mb: 3 }}>{vazio}</Typography>;
   return (
     <Box>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-        Próximos agendamentos
-      </Typography>
-      {upcoming.length ? (
-        <Box sx={{ display: "grid", gap: 1, mb: 3 }}>
-          {upcoming.map((a) => (
-            <Paper key={a.id} variant="outlined" sx={{ p: 2 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-                <Box>
-                  <Typography sx={{ fontWeight: 800 }}>{a.procedure}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatDateTime(a.scheduledAt)} {doctorName(a) ? `• ${doctorName(a)}` : ""}
-                  </Typography>
-                </Box>
-                <Chip size="small" label={a.status} />
-              </Box>
-            </Paper>
-          ))}
-        </Box>
-      ) : (
-        <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Nenhum agendamento futuro.
-        </Typography>
-      )}
-
-      <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-        Histórico
-      </Typography>
-      {past.length ? (
-        <Box sx={{ display: "grid", gap: 1 }}>
-          {past.map((a) => (
-            <Paper key={a.id} variant="outlined" sx={{ p: 2 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-                <Box>
-                  <Typography sx={{ fontWeight: 800 }}>{a.procedure}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatDateTime(a.scheduledAt)} {doctorName(a) ? `• ${doctorName(a)}` : ""}
-                  </Typography>
-                </Box>
-                <Chip size="small" variant="outlined" label={a.status} />
-              </Box>
-            </Paper>
-          ))}
-        </Box>
-      ) : (
-        <Typography color="text.secondary">Nenhum atendimento anterior registrado.</Typography>
-      )}
+      <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{"Pr\u00f3ximos atendimentos"}</Typography>
+      {lista(futuras, "Nenhum atendimento futuro.")}
+      <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{"Atendimentos anteriores"}</Typography>
+      {lista(passadas, "Nenhum atendimento anterior.")}
     </Box>
   );
 }
 
-function OverviewTab({ patient }: { patient: BackendPatient }) {
-  const [progress, setProgress] = useState<number | null>(null);
-  const [pendingCount, setPendingCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    getTreatmentPlan(patient.id)
-      .then((plan) => {
-        if (!active) return;
-        setProgress(plan.progressPercent);
-        setPendingCount(plan.items.filter((i) => i.status !== "COMPLETED" && i.status !== "CANCELLED").length);
-      })
-      .catch(() => {
-        if (active) {
-          setProgress(null);
-          setPendingCount(null);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [patient.id]);
-
+function Resumo({ patient, plan, appts, ir }: { patient: BackendPatient; plan: { progress: number | null; pending: number | null }; appts: BackendAppointment[]; ir: (k: string) => void }) {
+  const agora = new Date().toISOString();
+  const proxima = appts.filter((a) => a.scheduledAt >= agora && a.status !== "CANCELLED").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))[0];
+  const ultima = appts.filter((a) => a.scheduledAt < agora).sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt))[0];
+  const cards: Array<[string, string]> = [
+    ["Execu\u00e7\u00e3o do tratamento", plan.progress === null ? "\u2014" : `${plan.progress}%`],
+    ["Procedimentos pendentes", plan.pending === null ? "\u2014" : String(plan.pending)],
+    ["Pr\u00f3ximo atendimento", proxima ? dataHora(proxima.scheduledAt) : "Nenhum agendado"],
+    ["\u00daltimo atendimento", ultima ? dataHora(ultima.scheduledAt) : "\u2014"],
+  ];
   return (
-    <Box>
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" },
-          gap: 2,
-          mb: 3,
-        }}
-      >
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-          <Typography color="text.secondary">Status</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 900 }}>
-            {patient.status || "Ativo"}
-          </Typography>
-        </Paper>
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-          <Typography color="text.secondary">Execução do tratamento</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 900 }}>
-            {progress === null ? "—" : `${progress}%`}
-          </Typography>
-        </Paper>
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-          <Typography color="text.secondary">Procedimentos pendentes</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 900 }}>
-            {pendingCount === null ? "—" : pendingCount}
-          </Typography>
-        </Paper>
+    <Box sx={{ display: "grid", gap: 2 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4,1fr)" }, gap: 2 }}>
+        {cards.map(([t, v]) => (
+          <Paper key={t} variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+            <Typography variant="body2" color="text.secondary">{t}</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 900 }}>{v}</Typography>
+          </Paper>
+        ))}
       </Box>
-
-      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mb: 2 }}>
-        <Typography sx={{ fontWeight: 800, mb: 1 }}>Dados cadastrais</Typography>
-        <Typography>
-          <b>Telefone:</b> {patient.phone}
-        </Typography>
-        {patient.email && (
-          <Typography>
-            <b>E-mail:</b> {patient.email}
-          </Typography>
-        )}
-        {patient.cpf && (
-          <Typography>
-            <b>CPF:</b> {patient.cpf}
-          </Typography>
-        )}
-        {patient.birthDate && (
-          <Typography>
-            <b>Nascimento:</b> {new Date(patient.birthDate).toLocaleDateString("pt-BR")}
-          </Typography>
-        )}
-        <Typography sx={{ mt: 1 }}>
-          <b>Tratamento principal:</b> {patient.treatment || "Não definido"}
-        </Typography>
+      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+        <Typography sx={{ fontWeight: 900, mb: 1 }}>Atalhos</Typography>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Button variant="contained" startIcon={<ImageIcon />} onClick={() => ir("exames")}>Adicionar exame ou imagem</Button>
+          <Button variant="outlined" startIcon={<AssignmentIndIcon />} onClick={() => ir("prontuario")}>{"Abrir prontu\u00e1rio"}</Button>
+          <Button variant="outlined" startIcon={<GridOnIcon />} onClick={() => ir("odontograma")}>Odontograma</Button>
+          <Button variant="outlined" startIcon={<RequestQuoteIcon />} onClick={() => ir("plano")}>{"Plano e or\u00e7amento"}</Button>
+        </Box>
       </Paper>
-
-      {(patient.mainComplaint || patient.allergies || patient.medications || patient.medicalHistory || patient.notes) && (
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
-          <Typography sx={{ fontWeight: 800, mb: 1 }}>Informações clínicas cadastradas</Typography>
-          {patient.mainComplaint && (
-            <Typography sx={{ mb: 1 }}>
-              <b>Queixa principal:</b> {patient.mainComplaint}
-            </Typography>
-          )}
-          {patient.allergies && (
-            <Typography sx={{ mb: 1 }}>
-              <b>Alergias:</b> {patient.allergies}
-            </Typography>
-          )}
-          {patient.medications && (
-            <Typography sx={{ mb: 1 }}>
-              <b>Medicamentos:</b> {patient.medications}
-            </Typography>
-          )}
-          {patient.medicalHistory && (
-            <Typography sx={{ mb: 1 }}>
-              <b>Histórico médico:</b> {patient.medicalHistory}
-            </Typography>
-          )}
-          {patient.notes && (
-            <Typography>
-              <b>Observações:</b> {patient.notes}
-            </Typography>
-          )}
-        </Paper>
-      )}
+      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+        <Typography sx={{ fontWeight: 900, mb: 1 }}>Dados cadastrais</Typography>
+        <Typography><b>Telefone:</b> {patient.phone}</Typography>
+        {patient.email && <Typography><b>E-mail:</b> {patient.email}</Typography>}
+        {patient.cpf && <Typography><b>CPF:</b> {patient.cpf}</Typography>}
+        {patient.birthDate && <Typography><b>Nascimento:</b> {new Date(patient.birthDate).toLocaleDateString("pt-BR")}</Typography>}
+        {patient.city && <Typography><b>Cidade:</b> {patient.city}</Typography>}
+        <Typography sx={{ mt: 1 }}><b>Tratamento principal:</b> {patient.treatment || "N\u00e3o definido"}</Typography>
+      </Paper>
     </Box>
   );
 }
@@ -253,109 +113,104 @@ export default function PatientFile() {
   const [patient, setPatient] = useState<BackendPatient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState("resumo");
+  const [record, setRecord] = useState<ClinicalRecordData | null>(null);
+  const [recordLoading, setRecordLoading] = useState(true);
+  const [appts, setAppts] = useState<BackendAppointment[]>([]);
+  const [apptsLoading, setApptsLoading] = useState(true);
+  const [plan, setPlan] = useState<{ progress: number | null; pending: number | null }>({ progress: null, pending: null });
 
   useEffect(() => {
     let active = true;
-    if (!patientId) {
-      setError("Selecione um paciente para abrir a ficha.");
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError("");
+    if (!patientId) { setError("Selecione um paciente para abrir a ficha."); setLoading(false); return; }
+    setLoading(true); setError(""); setTab("resumo");
     loadBackendPatient(patientId)
-      .then((data) => {
-        if (active) setPatient(data);
-      })
-      .catch((e) => {
-        if (active) setError(e instanceof Error ? e.message : "Erro ao carregar paciente.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+      .then((d) => { if (active) setPatient(d); })
+      .catch((e) => { if (active) setError(e instanceof Error ? e.message : "Erro ao carregar paciente."); })
+      .finally(() => { if (active) setLoading(false); });
+    setRecordLoading(true);
+    loadClinicalRecord(patientId)
+      .then((b) => { if (active) setRecord(b.record.data); })
+      .catch(() => { if (active) setRecord(null); })
+      .finally(() => { if (active) setRecordLoading(false); });
+    setApptsLoading(true);
+    loadBackendAppointments()
+      .then((rows) => { if (active) setAppts(rows.filter((a) => a.patientId === patientId)); })
+      .catch(() => undefined)
+      .finally(() => { if (active) setApptsLoading(false); });
+    getTreatmentPlan(patientId)
+      .then((p) => { if (active) setPlan({ progress: p.progressPercent, pending: p.items.filter((i) => i.status !== "COMPLETED" && i.status !== "CANCELLED").length }); })
+      .catch(() => undefined);
+    return () => { active = false; };
   }, [patientId]);
 
-  useEffect(() => {
-    setTab(0);
-  }, [patientId]);
-
-  // Garante que o restante da ficha (Odontograma, que lê window.location.search
-  // diretamente) sempre encontre patientId/patient/paciente na URL desta tela.
-  const patientNameParam = patient?.fullName || "";
+  const nome = patient?.fullName || "";
   useEffect(() => {
     if (!patient) return;
     const next = new URLSearchParams(searchParams);
     let changed = false;
-    if (next.get("patient") !== patientNameParam) {
-      next.set("patient", patientNameParam);
-      changed = true;
-    }
-    if (next.get("paciente") !== patientNameParam) {
-      next.set("paciente", patientNameParam);
-      changed = true;
-    }
-    if (changed) {
-      navigate(`/ficha-paciente?${next.toString()}`, { replace: true });
-    }
+    if (next.get("patient") !== nome) { next.set("patient", nome); changed = true; }
+    if (next.get("paciente") !== nome) { next.set("paciente", nome); changed = true; }
+    if (changed) navigate(`/ficha-paciente?${next.toString()}`, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient]);
 
-  const tabs = useMemo(
-    () => ["Vis\u00e3o Geral", "Prontu\u00e1rio", "Odontograma", "Plano e Or\u00e7amento", "Exames e Imagens", "Documentos e Contratos", "Financeiro", "Agenda"],
-    [],
-  );
+  const alerts: ClinicalAlerts = useMemo(() => ({
+    allergies: record?.allergies?.length ? record.allergies : (patient?.allergies ? [patient.allergies] : []),
+    diseases: record?.systemicDiseases || [],
+    medications: record?.medications?.length ? record.medications : (patient?.medications ? [patient.medications] : []),
+    alerts: [...(record?.clinicalAlerts || []), ...(record?.riskConditions || [])],
+  }), [record, patient]);
 
-  if (loading) {
-    return (
-      <Box sx={{ display: "grid", placeItems: "center", minHeight: 320 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const ir = useCallback((k: string) => setTab(k), []);
 
+  const abas: Array<{ key: string; label: string; icon: ReactNode }> = [
+    { key: "resumo", label: "Resumo", icon: <SummarizeIcon /> },
+    { key: "historico", label: "Hist\u00f3rico M\u00e9dico", icon: <MonitorHeartIcon /> },
+    { key: "prontuario", label: "Prontu\u00e1rio", icon: <AssignmentIndIcon /> },
+    { key: "odontograma", label: "Odontograma", icon: <GridOnIcon /> },
+    { key: "plano", label: "Plano e Or\u00e7amento", icon: <RequestQuoteIcon /> },
+    { key: "exames", label: "Exames e Imagens", icon: <ImageIcon /> },
+    { key: "documentos", label: "Documentos", icon: <DescriptionIcon /> },
+    { key: "financeiro", label: "Financeiro", icon: <PaymentsIcon /> },
+    { key: "atendimentos", label: "Atendimentos", icon: <EventIcon /> },
+  ];
+
+  if (loading) return <Box sx={{ display: "grid", placeItems: "center", minHeight: 320 }}><CircularProgress /></Box>;
   if (error || !patient) {
     return (
       <Box>
-        <PageHeader title="Ficha do paciente" description="Cadastro, prontuário, odontograma, orçamento, financeiro e agenda em um só lugar." />
-        <Alert severity="error">{error || "Paciente não encontrado."}</Alert>
+        <PageHeader title="Ficha do paciente" description={"Cadastro, hist\u00f3rico, prontu\u00e1rio, exames, or\u00e7amento e atendimentos em um s\u00f3 lugar."} />
+        <Alert severity="error">{error || "Paciente n\u00e3o encontrado."}</Alert>
       </Box>
     );
   }
 
   return (
     <Box>
-      <PageHeader
-        title={`Ficha • ${patient.fullName}`}
-        description={`${patient.phone}${patient.cpf ? ` • CPF ${patient.cpf}` : ""}`}
-      />
-
-      <Paper variant="outlined" sx={{ borderRadius: 3, mb: 3 }}>
-        <Tabs
-          value={tab}
-          onChange={(_, value) => setTab(value)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{ px: 2, borderBottom: "1px solid", borderColor: "divider" }}
-        >
-          {tabs.map((label) => (
-            <Tab key={label} label={label} />
-          ))}
-        </Tabs>
-
-        <Box key={patient.id} sx={{ p: { xs: 2, md: 3 } }}>
-          {tab === 0 && <OverviewTab patient={patient} />}
-          {tab === 1 && <ClinicalRecord />}
-          {tab === 2 && <OdontogramPeriodontogram />}
-          {tab === 3 && <TreatmentPlanning initialPatientId={patient.id} />}
-          {tab === 4 && <ClinicalFiles fixedPatientId={patient.id} />}
-          {tab === 5 && <ClinicalDocuments fixedPatientId={patient.id} />}
-          {tab === 6 && <Financial />}
-          {tab === 7 && <AppointmentHistoryTab patientId={patient.id} />}
-        </Box>
+      <PatientHeader patient={patient} alerts={alerts} />
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(3,1fr)", sm: "repeat(5,1fr)", lg: "repeat(9,1fr)" }, gap: 1, mb: 2 }}>
+        {abas.map((a) => {
+          const ativo = tab === a.key;
+          return (
+            <Paper key={a.key} variant="outlined" onClick={() => setTab(a.key)}
+              sx={{ p: 1.2, borderRadius: 2, cursor: "pointer", textAlign: "center", borderColor: ativo ? "primary.main" : "divider", bgcolor: ativo ? "primary.main" : "background.paper", color: ativo ? "#fff" : "text.primary", "&:hover": { borderColor: "primary.main" } }}>
+              <Box sx={{ display: "flex", justifyContent: "center", mb: 0.3 }}>{a.icon}</Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.1, display: "block" }}>{a.label}</Typography>
+            </Paper>
+          );
+        })}
+      </Box>
+      <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2, md: 3 } }}>
+        {tab === "resumo" && <Resumo patient={patient} plan={plan} appts={appts} ir={ir} />}
+        {tab === "historico" && <MedicalHistoryTab patient={patient} data={record} loading={recordLoading} />}
+        {tab === "prontuario" && <ClinicalRecord />}
+        {tab === "odontograma" && <OdontogramPeriodontogram />}
+        {tab === "plano" && <TreatmentPlanning initialPatientId={patient.id} />}
+        {tab === "exames" && <ClinicalFiles fixedPatientId={patient.id} />}
+        {tab === "documentos" && <ClinicalDocuments fixedPatientId={patient.id} />}
+        {tab === "financeiro" && <Financial />}
+        {tab === "atendimentos" && <Consultas rows={appts} loading={apptsLoading} />}
       </Paper>
     </Box>
   );
