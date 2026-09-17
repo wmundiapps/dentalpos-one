@@ -32,11 +32,11 @@ const KINDS: Array<{ value: ClinicalFileKind; label: string }> = [
   { value: "OTHER", label: "Outro" },
 ];
 
-export default function ClinicalFiles() {
+export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: string } = {}) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [patients, setPatients] = useState<Array<{ id: string; fullName: string }>>([]);
-  const [patientId, setPatientId] = useState(searchParams.get("patientId") || "");
+  const [patientId, setPatientId] = useState(fixedPatientId || searchParams.get("patientId") || "");
   const [rows, setRows] = useState<ClinicalFile[]>([]);
   const [categories, setCategories] = useState<ClinicalFileCategory[]>([]);
   const [kind, setKind] = useState("");
@@ -71,7 +71,7 @@ export default function ClinicalFiles() {
   }
 
   useEffect(() => {
-    setSearchParams(patientId ? { patientId } : {});
+    if (!fixedPatientId) setSearchParams(patientId ? { patientId } : {});
     void load();
   }, [patientId, kind]); // pesquisa é acionada pelo botão
 
@@ -107,17 +107,17 @@ export default function ClinicalFiles() {
         title="Arquivos e Exames Clínicos"
         description="Fotografias, radiografias, tomografias, DICOM, PDFs, exames laboratoriais e arquivos odontológicos 3D."
         actionLabel="Adicionar arquivo"
-        actionIcon={<AddIcon />}
+        actionIcon={<AddIcon />} onAction={() => { if (patientId) setUploadOpen(true); }}
       />
 
       <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
         <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-          <FormControl sx={{ minWidth: 260 }}>
+          {!fixedPatientId && <FormControl sx={{ minWidth: 260 }}>
             <InputLabel>Paciente</InputLabel>
             <Select label="Paciente" value={patientId} onChange={(e) => setPatientId(e.target.value)}>
               {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.fullName}</MenuItem>)}
             </Select>
-          </FormControl>
+          </FormControl>}
           <FormControl sx={{ minWidth: 180 }}>
             <InputLabel>Tipo</InputLabel>
             <Select label="Tipo" value={kind} onChange={(e) => setKind(e.target.value)}>
@@ -143,8 +143,8 @@ export default function ClinicalFiles() {
               <Box>
                 <Stack direction="row" spacing={1} sx={{ flexWrap:"wrap" }}>
                   <Chip size="small" label={KINDS.find((k) => k.value === row.kind)?.label || row.kind} />
-                  <Chip size="small" variant="outlined" label={row.previewKind} />
-                  <Chip size="small" color={row.storageStatus === "AVAILABLE" ? "success" : "warning"} label={row.storageStatus} />
+                  
+                  <Chip size="small" color={row.storageStatus === "AVAILABLE" ? "success" : "warning"} label={({ AVAILABLE: "Dispon\u00edvel", PENDING_UPLOAD: "Enviando", AWAITING_STORAGE_CONFIGURATION: "Aguardando armazenamento", ARCHIVED: "Arquivado" } as Record<string, string>)[row.storageStatus] || row.storageStatus} />
                 </Stack>
                 <Typography variant="h6" sx={{ fontWeight: 800, mt: 1 }}>{row.title}</Typography>
                 <Typography variant="body2" color="text.secondary">{row.originalName}</Typography>
@@ -191,7 +191,7 @@ export default function ClinicalFiles() {
           try {
             const result = await uploadClinicalFile({ patientId, ...data });
             if (!result.upload?.configured) {
-              setStorageWarning("O registro clínico foi criado, mas o storage externo ainda não está configurado. Configure TenantStorageConfig e as credenciais do provedor para concluir o upload.");
+              setStorageWarning("O exame foi registrado, mas o armazenamento de imagens desta cl\u00ednica ainda est\u00e1 sendo ativado pela equipe DentalPos One. O arquivo ficar\u00e1 dispon\u00edvel assim que a ativa\u00e7\u00e3o for conclu\u00edda.");
             } else {
               setUploadOpen(false);
             }

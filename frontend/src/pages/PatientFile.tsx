@@ -15,6 +15,8 @@ import ClinicalRecord from "./ClinicalRecord";
 import OdontogramPeriodontogram from "./OdontogramPeriodontogram";
 import TreatmentPlanning from "./TreatmentPlanning";
 import Financial from "./Financial";
+import ClinicalFiles from "./ClinicalFiles";
+import ClinicalDocuments from "./ClinicalDocuments";
 import { loadBackendPatient, type BackendPatient } from "../services/PatientApi";
 import { loadBackendAppointments, type BackendAppointment } from "../services/AppointmentApi";
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
@@ -303,7 +305,7 @@ export default function PatientFile() {
   }, [patient]);
 
   const tabs = useMemo(
-    () => ["Visão Geral", "Prontuário", "Odontograma", "Orçamento", "Financeiro", "Agenda"],
+    () => ["Vis\u00e3o Geral", "Prontu\u00e1rio", "Odontograma", "Plano e Or\u00e7amento", "Exames e Imagens", "Documentos e Contratos", "Financeiro", "Agenda"],
     [],
   );
 
@@ -349,8 +351,10 @@ export default function PatientFile() {
           {tab === 1 && <ClinicalRecord />}
           {tab === 2 && <OdontogramPeriodontogram />}
           {tab === 3 && <TreatmentPlanning initialPatientId={patient.id} />}
-          {tab === 4 && <Financial />}
-          {tab === 5 && <AppointmentHistoryTab patientId={patient.id} />}
+          {tab === 4 && <ClinicalFiles fixedPatientId={patient.id} />}
+          {tab === 5 && <ClinicalDocuments fixedPatientId={patient.id} />}
+          {tab === 6 && <Financial />}
+          {tab === 7 && <AppointmentHistoryTab patientId={patient.id} />}
         </Box>
       </Paper>
     </Box>
