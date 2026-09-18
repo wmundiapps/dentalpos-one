@@ -40,6 +40,8 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [filtroStatus, setFiltroStatus] = useState("");
   const [view, setView] = useState<Doc | null>(null);
   const emptyForm = () => ({ patientId: filterPatient, professionalName: sessionName, documentType: "PRESCRIPTION" as ClinicalDocumentType, title: "", content: "", templateId: "" });
   const [form, setForm] = useState(emptyForm);
@@ -58,14 +60,17 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
   useEffect(() => { void load(); }, []);
 
   const nameOf = (id?: string) => patients.find((p) => p.id === id)?.fullName || "\u2014";
-  const visible = useMemo(() => (filterPatient ? rows.filter((r) => r.patientId === filterPatient) : rows), [rows, filterPatient]);
-  const stats = useMemo(() => ({ total: visible.length, issued: visible.filter((x) => x.status === "ISSUED").length, drafts: visible.filter((x) => x.status === "DRAFT").length, cancelled: visible.filter((x) => x.status === "CANCELLED").length }), [visible]);
+  const porPaciente = useMemo(() => (filterPatient ? rows.filter((r) => r.patientId === filterPatient) : rows), [rows, filterPatient]);
+  const visible = useMemo(() => (filtroStatus ? porPaciente.filter((r) => r.status === filtroStatus) : porPaciente), [porPaciente, filtroStatus]);
+  const stats = useMemo(() => ({ total: porPaciente.length, issued: porPaciente.filter((x) => x.status === "ISSUED").length, drafts: porPaciente.filter((x) => x.status === "DRAFT").length, cancelled: porPaciente.filter((x) => x.status === "CANCELLED").length }), [porPaciente]);
   const statLabels: Record<string, string> = { total: "Total", issued: "Emitidos", drafts: "Rascunhos", cancelled: "Cancelados" };
   const chooseTemplate = (id: string) => { const t = templates.find((x) => x.id === id); setForm((v) => ({ ...v, templateId: id, ...(t ? { documentType: t.documentType, title: t.title, content: t.content } : {}) })); };
   const openNew = () => { setForm(emptyForm()); setOpen(true); };
   const canSave = Boolean(form.patientId && form.professionalName.trim().length >= 2 && form.title.trim() && form.content.trim());
 
   const save = async () => {
+    if (saving) return;
+    setSaving(true);
     setError("");
     try {
       await createClinicalDocument({ ...form, templateId: form.templateId || undefined, status: "DRAFT" });
@@ -73,7 +78,7 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao criar documento.");
-    }
+    } finally { setSaving(false); }
   };
   const issue = async (id: string) => {
     try { await issueClinicalDocument(id); await load(); }
@@ -93,18 +98,17 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
         </Paper>
       )}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", lg: "repeat(4,1fr)" }, gap: 2, mb: 3 }}>
-        {Object.entries(stats).map(([k, v]) => (
-          <Paper key={k} variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+        {(Object.entries(stats) as Array<[string, number]>).map(([k, v]) => { const alvo = ({ total: "", issued: "ISSUED", drafts: "DRAFT", cancelled: "CANCELLED" } as Record<string, string>)[k]; const ativo = filtroStatus === alvo; return (
+          <Paper key={k} variant="outlined" onClick={() => setFiltroStatus(alvo)} sx={{ p: 2, borderRadius: 3, cursor: "pointer", borderColor: ativo ? "primary.main" : "divider", bgcolor: ativo ? "rgba(25,118,210,.08)" : "background.paper", "&:hover": { borderColor: "primary.main" } }}>
             <Typography color="text.secondary">{statLabels[k]}</Typography>
             <Typography variant="h5" sx={{ fontWeight: 900 }}>{v}</Typography>
-          </Paper>
-        ))}
+          </Paper>); })}
       </Box>
       <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
         {loading ? (
           <Typography sx={{ p: 3 }}>Carregando...</Typography>
         ) : visible.length === 0 ? (
-          <Typography sx={{ p: 3 }} color="text.secondary">{"Nenhum documento. Use \u201cNovo documento\u201d ou gere o contrato a partir de um or\u00e7amento."}</Typography>
+          <Typography sx={{ p: 3 }} color="text.secondary">{filtroStatus ? "Nenhum documento neste filtro." : "Nenhum documento. Use \u201cNovo documento\u201d ou gere o contrato a partir de um or\u00e7amento."}</Typography>
         ) : visible.map((doc) => (
           <Box key={doc.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr auto 1fr auto" }, gap: 2, p: 2, borderBottom: "1px solid", borderColor: "divider", alignItems: "center" }}>
             <Box>
@@ -145,7 +149,7 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant="contained" disabled={!canSave} onClick={() => void save()}>Salvar rascunho</Button>
+          <Button variant="contained" disabled={!canSave || saving} onClick={() => void save()}>{saving ? "Salvando..." : "Salvar rascunho"}</Button>
         </DialogActions>
       </Dialog>
 
