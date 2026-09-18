@@ -36,6 +36,7 @@ import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import WorkIcon from "@mui/icons-material/Work";
+import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
 import { Box } from "@mui/material";
 import { createSvgIcon } from "@mui/material/utils";
 import type { ReactNode } from "react";
@@ -124,6 +125,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Automa\u00e7\u00e3o Fiscal","/automacao-fiscal",<ReceiptLongIcon/>),
       item("Evid\u00eancias Operacionais","/evidencias-operacionais",<DescriptionIcon/>),
       item("Gest\u00e3o Operacional","/operacional",<CleaningServicesIcon/>),
+      item("Corpo Cl\u00ednico","/corpo-clinico",<MedicalInformationIcon/>),
       item("RH e Gest\u00e3o de Pessoas","/rh",<WorkIcon/>),
       item("Registrar ponto","/rh?ponto=1",<FingerprintIcon/>),
     ])

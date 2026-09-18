@@ -155,6 +155,45 @@ model Doctor {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  contractType String @default("CLINICA")
+  croState String?
+  rqe String?
+  specialties String[] @default([])
+  cpf String?
+  rg String?
+  birthDate DateTime?
+  personalAddress String?
+  personalCity String?
+  personalState String?
+  personalZipCode String?
+  companyName String?
+  tradeName String?
+  cnpj String?
+  companyCro String?
+  technicalManager String?
+  companyAddress String?
+  companyCity String?
+  companyState String?
+  companyZipCode String?
+  municipalRegistration String?
+  documentIssuer String @default("CLINICA")
+  revenueModel String @default("HONORARIO")
+  revenuePercent Float?
+  revenueBase String @default("BRUTO")
+  materialSplit String @default("RATEADO")
+  labSplit String @default("RATEADO")
+  cardFeeSplit String @default("RATEADO")
+  commissionPercent Float?
+  payoutDay Int?
+  bankName String?
+  bankAgency String?
+  bankAccount String?
+  pixKey String?
+  contractStartDate DateTime?
+  contractEndDate DateTime?
+  notes String?
+  documents DoctorDocument[]
+
   appointments  Appointment[]
   schedules     Schedule[]
 
@@ -1966,4 +2005,29 @@ model PlatformFeedback {
   @@index([clinicId])
   @@index([status])
   @@index([createdAt])
+}
+model DoctorDocument {
+  id String @id @default(cuid())
+  clinicId String
+  tenantId String
+  doctorId String
+  doctor Doctor @relation(fields:[doctorId],references:[id],onDelete:Cascade)
+  documentType String
+  title String
+  fileName String?
+  storageKey String?
+  storageProvider String @default("PENDING")
+  storageStatus String @default("PENDING_UPLOAD")
+  mimeType String?
+  sizeBytes Int?
+  issueDate DateTime?
+  expiresAt DateTime?
+  notes String?
+  createdById String?
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([doctorId])
+  @@index([clinicId])
+  @@index([expiresAt])
 }

@@ -146,6 +146,9 @@ router.get('/doctor/:id', requirePermission('agenda.view'), doctorController.sho
 router.post('/doctors', requirePermission('settings.edit'), doctorController.store)
 router.put('/doctor/:id', requirePermission('settings.edit'), doctorController.update)
 router.delete('/doctor/:id', requirePermission('settings.edit'), doctorController.remove)
+router.get('/doctor/:id/documents', requirePermission('settings.edit'), doctorController.documents)
+router.post('/doctor/:id/documents', requirePermission('settings.edit'), doctorController.addDocument)
+router.delete('/doctor/:id/documents/:documentId', requirePermission('settings.edit'), doctorController.removeDocument)
 
 // ======================
 // PATIENTS
