@@ -36,7 +36,7 @@ export default function DesignCaseWorkspacePanel({ antagonistFile, biteFile, onA
     <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",lg:"1.1fr 1.1fr 1.5fr"},gap:1.2,mt:1.3}}>
       <Button size="small" variant={antagonistFile?"contained":"outlined"} startIcon={<UploadFileIcon/>} onClick={()=>antagonistRef.current?.click()}>{antagonistFile?`Antagonista: ${antagonistFile.name}`:"Importar antagonista"}</Button>
       <Button size="small" variant={biteFile?"contained":"outlined"} startIcon={<JoinInnerIcon/>} onClick={()=>biteRef.current?.click()}>{biteFile?`Mordida: ${biteFile.name}`:"Importar registro de mordida"}</Button>
-      <Button size="small" variant="contained" color="secondary" disabled={!antagonistFile||!biteFile} startIcon={<AutoFixHighIcon/>} onClick={onOcclude}>Ocluir conforme registro (Alpha)</Button>
+      <Button size="small" variant="contained" color="secondary" disabled={!antagonistFile||!biteFile} startIcon={<AutoFixHighIcon/>} onClick={onOcclude}>Ocluir conforme registro (versão 2.0)</Button>
     </Box>
     <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"1.2fr 1fr 1fr"},gap:1.2,mt:1.3,alignItems:"center"}}>
       <TextField select size="small" label="Ferramenta ativa" value={tool} onChange={e=>onTool(e.target.value as DesignSculptTool)} sx={{"& .MuiInputBase-root":{color:"white"},"& .MuiInputLabel-root":{color:"#94a3b8"}}}>{["Navegação","Delimitar término","Acrescentar","Remover","Suavizar","Esculpir"].map(v=><MenuItem key={v} value={v}>{v}</MenuItem>)}</TextField>

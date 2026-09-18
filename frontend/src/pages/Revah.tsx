@@ -158,7 +158,7 @@ export default function Revah() {
             {selected?.name} • {selected?.provider} • variáveis: {"{{nome}} {{clinica}} {{data}} {{hora}}"}
           </Typography>
           <Button variant="contained" startIcon={<CampaignIcon />} onClick={save}>
-            Salvar campanha Alpha
+            Salvar campanha versão 2.0
           </Button>
         </Stack>
       </Paper>

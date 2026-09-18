@@ -135,7 +135,7 @@ export default function Header() {
             <BrandName />
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {demo?.isDemo ? "Demo gratuita • Early Access" : appConfig.environment}
+            {demo?.isDemo ? "Modo Experience \u2022 versão temporária e gratuita" : appConfig.environment}
           </Typography>
         </Box>
 

@@ -114,6 +114,9 @@ const ROUTE_MODULES: Array<[RegExp, string]> = [
   [/^\/(?:centro-de-comando|centro-de-inteligencia|painel-executivo|indice-saude-clinica|benchmark|relatorios|notificacoes)(?:\/|$)/, "dashboard"],
   [/^\/(?:evidencias-operacionais|operacional)(?:\/|$)/, "operational"],
   [/^\/academico(?:\/|$)/, "academic"],
+  [/^\/(?:corpo-clinico|canais-envio)(?:\/|$)/, "settings"],
+  [/^\/(?:ficha-paciente|jornada-paciente|arquivos-exames-clinicos|odontograma-periodontograma|clinico-especializado|cirurgia-implantes-protese|ceo-ia)(?:\/|$)/, "clinical"],
+  [/^\/financeiro\/digitalizar(?:\/|$)/, "finance"],
 ];
 
 export function moduleForPath(pathname: string) {
@@ -144,7 +147,7 @@ export function getDemoModuleStatus(
   if (!demo?.isDemo) return "LIBERADO";
 
   const moduleName = moduleForPath(pathname);
-  if (!moduleName) return "EM_DESENVOLVIMENTO";
+  if (!moduleName) return "LIBERADO";
   if (NOT_IMPLEMENTED_MODULES.has(moduleName)) return "EM_DESENVOLVIMENTO";
 
   return "LIBERADO";

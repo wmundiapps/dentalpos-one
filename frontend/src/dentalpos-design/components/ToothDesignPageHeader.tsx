@@ -11,7 +11,7 @@ export default function ToothDesignPageHeader({
 
   selectedTooth = null,
 
-  status = "DentalPos Design Alpha",
+  status = "DentalPos Design versão 2.0",
 }: ToothDesignPageHeaderProps) {
   return (
     <header

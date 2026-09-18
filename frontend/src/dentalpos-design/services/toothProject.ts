@@ -45,7 +45,7 @@ export function createDentalPosProject(
     new Date().toISOString();
 
   return {
-    version: "ALPHA",
+    version: "2.0",
 
     name,
 

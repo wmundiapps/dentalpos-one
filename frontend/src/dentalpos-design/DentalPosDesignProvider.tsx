@@ -26,7 +26,7 @@ export function DentalPosDesignProvider({
   const value =
     useMemo<DentalPosDesignContextValue>(
       () => ({
-        version: "ALPHA",
+        version: "2.0",
         productName:
           "DentalPos Design",
         environment:

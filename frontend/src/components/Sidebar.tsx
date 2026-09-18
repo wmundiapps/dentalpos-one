@@ -201,7 +201,7 @@ export default function Sidebar(){
             MODO EXPERIENCE
           </Typography>
           <Typography sx={{fontSize:13,fontWeight:800,mb:1}}>
-            {daysRemaining>0
+            {/* aviso */}{daysRemaining>0
               ? `${daysRemaining} dia${daysRemaining===1?"":"s"} restante${daysRemaining===1?"":"s"}`
               : "Período encerrado"}
           </Typography>
