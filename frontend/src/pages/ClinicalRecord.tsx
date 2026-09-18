@@ -2,6 +2,7 @@ import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, Dial
 import HistoryIcon from "@mui/icons-material/History"; import PrintIcon from "@mui/icons-material/Print"; import SaveIcon from "@mui/icons-material/Save";
 import { useEffect, useState } from "react"; import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
+import PatientPicker from "../components/patient/PatientPicker";
 import ClinicalAnamnesisForm from "../components/clinical/ClinicalAnamnesisForm";
 import ClinicalRevisionHistory from "../components/clinical/ClinicalRevisionHistory";
 import { loadClinicalRecord, saveClinicalRecord } from "../services/ClinicalAnamnesisApi";
@@ -10,9 +11,10 @@ import type { ClinicalRecordBundle, ClinicalRecordData, ClinicalRecordRevision }
 export default function ClinicalRecord(){
  const [params]=useSearchParams();const navigate=useNavigate();const patientId=params.get("patientId")||"";
  const [bundle,setBundle]=useState<ClinicalRecordBundle|null>(null);const [data,setData]=useState<ClinicalRecordData|null>(null);const [loading,setLoading]=useState(true);const [saving,setSaving]=useState(false);const [error,setError]=useState("");const [success,setSuccess]=useState("");const [tab,setTab]=useState(0);const [reason,setReason]=useState("");const [professional,setProfessional]=useState("");const [revision,setRevision]=useState<ClinicalRecordRevision|null>(null);
- const reload=async()=>{if(!patientId){setError("Selecione um paciente real para abrir o prontuário.");setLoading(false);return}setLoading(true);setError("");try{const result=await loadClinicalRecord(patientId);setBundle(result);setData(result.record.data);setProfessional(result.record.responsibleProfessionalName||"")}catch(e){setError(e instanceof Error?e.message:"Erro ao carregar prontuário.")}finally{setLoading(false)}};
+ const reload=async()=>{if(!patientId){setLoading(false);return}setLoading(true);setError("");try{const result=await loadClinicalRecord(patientId);setBundle(result);setData(result.record.data);setProfessional(result.record.responsibleProfessionalName||"")}catch(e){setError(e instanceof Error?e.message:"Erro ao carregar prontuário.")}finally{setLoading(false)}};
  useEffect(()=>{void reload()},[patientId]);
  const save=async()=>{if(!bundle||!data||professional.trim().length<2||reason.trim().length<5)return;setSaving(true);setError("");setSuccess("");try{await saveClinicalRecord(patientId,{data,expectedRevision:bundle.record.revisionNumber,changeReason:reason,responsibleProfessionalName:professional,status:"ACTIVE"});setReason("");setSuccess("Nova revisão clínica registrada com autoria, data e hora.");await reload()}catch(e){setError(e instanceof Error?e.message:"Erro ao salvar prontuário.")}finally{setSaving(false)}};
+ if(!patientId)return <PatientPicker titulo="Prontu\u00e1rio cl\u00ednico" descricao="Escolha o paciente para abrir a ficha cl\u00ednica e a anamnese."/>;
  if(loading)return <Box sx={{display:"grid",placeItems:"center",minHeight:320}}><CircularProgress/></Box>;
  if(!bundle||!data)return <Box><PageHeader title="Prontuário clínico" description="Ficha clínica e anamnese vinculadas ao cadastro do paciente."/><Alert severity="error">{error||"Prontuário indisponível."}</Alert></Box>;
  return <Box><PageHeader title={`Prontuário • ${bundle.patient.fullName}`} description="Ficha clínica versionada: cada salvamento cria uma revisão permanente com autoria e data/hora."/>

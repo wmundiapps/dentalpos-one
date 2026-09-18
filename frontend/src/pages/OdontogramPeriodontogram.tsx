@@ -4,6 +4,7 @@ import {
   Select, Stack, Tab, Tabs, TextField, Typography
 } from '@mui/material'
 import PageHeader from '../components/PageHeader'
+import PatientPicker from '../components/patient/PatientPicker'
 import { DentalChartService } from '../services/DentalChartService'
 import type {
   ClinicalState, DentalChartEntry, DentalFinding, Dentition,
@@ -91,6 +92,8 @@ export default function OdontogramPeriodontogram() {
       setRecords({});setExamNotes('');await load()
     }catch(e:any){setError(e.message)}
   }
+
+  if (!patientId) return <PatientPicker titulo="Odontograma e Periodontograma" descricao="Escolha o paciente para abrir o odontograma." />
 
   return <Box>
     <PageHeader title={`Odontograma e Periodontograma • ${patientName}`} description="FDI adulto/infantil, histórico longitudinal, plano de tratamento e auditoria integrados." />
