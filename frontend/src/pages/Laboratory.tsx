@@ -44,11 +44,22 @@ export default function Laboratory(){
   const [works,setWorks]=useState<IntegratedLaboratoryWork[]>(getLaboratoryWorks);
   const [open,setOpen]=useState(false); const [editing,setEditing]=useState<IntegratedLaboratoryWork|null>(null); const [historyWork,setHistoryWork]=useState<IntegratedLaboratoryWork|null>(null);
   const [search,setSearch]=useState(""); const [form,setForm]=useState<LabForm>(blankForm());
+  const [filtro,setFiltro]=useState<""|"ativos"|"design"|"atrasados"|"risco"|"entregues">("");
   useEffect(()=>subscribeOperations(()=>setWorks(getLaboratoryWorks())),[]);
 
   const delayedWorks=works.filter(w=>!["Entregue","Liberado"].includes(w.status)&&((w.dueDateISO&&daysUntil(w.dueDateISO)<0)||w.status==="Atrasado")).length;
   const riskWorks=works.filter(w=>!["Entregue","Liberado"].includes(w.status)&&(daysUntil(w.patientReturnDateISO)<=2||daysUntil(w.dueDateISO)<=2)).length;
-  const visible=useMemo(()=>{ const q=search.trim().toLowerCase(); return !q?works:works.filter(w=>`${w.patientName} ${w.workType} ${w.trackingCode} ${w.dentistName} ${w.responsibleTechnician} ${w.teeth||""} ${w.toothShade||""}`.toLowerCase().includes(q)); },[works,search]);
+  const isDelayed=(w:IntegratedLaboratoryWork)=>!["Entregue","Liberado"].includes(w.status)&&((w.dueDateISO&&daysUntil(w.dueDateISO)<0)||w.status==="Atrasado");
+  const isRisk=(w:IntegratedLaboratoryWork)=>!["Entregue","Liberado"].includes(w.status)&&!isDelayed(w)&&(daysUntil(w.patientReturnDateISO)<=2||daysUntil(w.dueDateISO)<=2);
+  const porFiltro=useMemo(()=>{
+    if(filtro==="ativos")return works.filter(w=>w.status!=="Entregue");
+    if(filtro==="design")return works.filter(w=>w.designStatus&&w.designStatus!=="N\u00e3o enviado");
+    if(filtro==="atrasados")return works.filter(isDelayed);
+    if(filtro==="risco")return works.filter(isRisk);
+    if(filtro==="entregues")return works.filter(w=>["Liberado","Entregue"].includes(w.status));
+    return works;
+  },[works,filtro]);
+  const visible=useMemo(()=>{ const q=search.trim().toLowerCase(); return !q?porFiltro:porFiltro.filter(w=>`${w.patientName} ${w.workType} ${w.trackingCode} ${w.dentistName} ${w.responsibleTechnician} ${w.teeth||""} ${w.toothShade||""}`.toLowerCase().includes(q)); },[porFiltro,search]);
 
   const loadForm=(w?:IntegratedLaboratoryWork):LabForm => w ? ({ patientName:w.patientName,dentistName:w.dentistName,workType:w.workType,teeth:w.teeth||"",material:w.material,technician:w.responsibleTechnician,dueDateISO:w.dueDateISO||"",patientReturnDateISO:w.patientReturnDateISO||"",priority:w.priority,nextAction:w.nextAction||"",observations:w.observations||"",impressionType:w.impressionType||"Digital",toothShade:w.toothShade||"",shadeSystem:w.shadeSystem||"VITA Classical",shadeNotes:w.shadeNotes||"",patientAge:w.patientAge?String(w.patientAge):"",patientSex:w.patientSex||"Masculino",faceBiotype:w.faceBiotype||"Mesocéfalo",faceShape:w.faceShape||"Ovoide",faceDescription:w.faceDescription||"",receivedItems:w.receivedItems||[] }) : blankForm();
   const openNew=()=>{setEditing(null);setForm(blankForm());setOpen(true)};
@@ -60,10 +71,12 @@ export default function Laboratory(){
   return <Box>
     <PageHeader title="Laboratório" description="Fila clínica integrada à Agenda e ao DentalPos Design, com rastreabilidade e conferência de entrada." actionLabel="Novo trabalho" actionIcon={<AddIcon/>} onAction={openNew}/>
     <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"repeat(2,1fr)",xl:"repeat(5,1fr)"},gap:2,mb:3}}>
-      <Summary title="Trabalhos ativos" value={String(works.filter(w=>w.status!=="Entregue").length)} icon={<PrecisionManufacturingIcon/>}/><Summary title="No Design" value={String(works.filter(w=>w.designStatus&&w.designStatus!=="Não enviado").length)} icon={<ArchitectureIcon/>}/><Summary title="Atrasados" value={String(delayedWorks)} icon={<AssignmentLateIcon/>}/><Summary title="Em risco" value={String(riskWorks)} icon={<WarningAmberIcon/>}/><Summary title="Liberados/entregues" value={String(works.filter(w=>["Liberado","Entregue"].includes(w.status)).length)} icon={<LocalShippingIcon/>}/>
+      {([["ativos","Trabalhos ativos",works.filter(w=>w.status!=="Entregue").length,<PrecisionManufacturingIcon/>],["design","No Design",works.filter(w=>w.designStatus&&w.designStatus!=="N\u00e3o enviado").length,<ArchitectureIcon/>],["atrasados","Atrasados",delayedWorks,<AssignmentLateIcon/>],["risco","Em risco",riskWorks,<WarningAmberIcon/>],["entregues","Liberados/entregues",works.filter(w=>["Liberado","Entregue"].includes(w.status)).length,<LocalShippingIcon/>]] as Array<[typeof filtro,string,number,ReactNode]>).map(([chave,titulo,valor,icone])=><Summary key={titulo} title={titulo} value={String(valor)} icon={icone} ativo={filtro===chave} onClick={()=>setFiltro(filtro===chave?"":chave)}/>)}
     </Box>
     <TextField size="small" placeholder="Buscar paciente, trabalho, código, dentes, cor, dentista ou técnico..." value={search} onChange={e=>setSearch(e.target.value)} sx={{mb:2,minWidth:{xs:"100%",md:500}}}/>
+    {filtro&&<Chip sx={{ml:1,mb:2}} color="primary" label={`Filtro: ${({ativos:"Trabalhos ativos",design:"No Design",atrasados:"Atrasados",risco:"Em risco",entregues:"Liberados/entregues"} as Record<string,string>)[filtro]} \u2022 ${visible.length}`} onDelete={()=>setFiltro("")}/>}
     <Paper elevation={0} sx={{borderRadius:3,border:"1px solid",borderColor:"divider",overflow:"hidden"}}>
+      {visible.length===0&&<Typography sx={{p:3}} color="text.secondary">{filtro?"Nenhum trabalho neste filtro.":"Nenhum trabalho laboratorial cadastrado. Use \u201cNovo trabalho\u201d para come\u00e7ar."}</Typography>}
       {visible.map(w=>{const delayed=!["Entregue","Liberado"].includes(w.status)&&daysUntil(w.dueDateISO)<0;const risk=!delayed&&!["Entregue","Liberado"].includes(w.status)&&(daysUntil(w.patientReturnDateISO)<=2||daysUntil(w.dueDateISO)<=2);return <Box key={w.id} sx={{p:2,borderBottom:"1px solid",borderColor:"divider",bgcolor:delayed?"rgba(239,68,68,.045)":risk?"rgba(245,158,11,.045)":"transparent"}}>
         <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",xl:"1.15fr 1.3fr 1fr 1fr 190px"},gap:2,alignItems:"center"}}>
           <Box><Typography sx={{fontWeight:900}}>{w.patientName}</Typography><Typography variant="body2" color="text.secondary">{w.trackingCode} • {w.source}</Typography><Box sx={{display:"flex",gap:.6,mt:.6,flexWrap:"wrap"}}><Chip size="small" label={w.priority} color={priorityColor(w.priority)}/>{delayed&&<Chip size="small" label="ATRASADO" color="error"/>}{risk&&<Chip size="small" label="EM RISCO" color="warning"/>}<Chip size="small" label={w.designStatus||"Não enviado"}/></Box></Box>
@@ -89,4 +102,4 @@ export default function Laboratory(){
   </Box>
 }
 
-function Summary({title,value,icon}:{title:string;value:string;icon:ReactNode}){return <Paper elevation={0} sx={{p:2.2,borderRadius:3,border:"1px solid",borderColor:"divider"}}><Box sx={{display:"flex",gap:1.2,alignItems:"center",mb:1}}><Box sx={{color:"primary.main"}}>{icon}</Box><Typography color="text.secondary">{title}</Typography></Box><Typography variant="h4" sx={{fontWeight:900}}>{value}</Typography></Paper>}
+function Summary({title,value,icon,ativo=false,onClick}:{title:string;value:string;icon:ReactNode;ativo?:boolean;onClick?:()=>void}){return <Paper elevation={0} onClick={onClick} sx={{p:2.2,borderRadius:3,border:"1px solid",borderColor:ativo?"primary.main":"divider",bgcolor:ativo?"rgba(25,118,210,.08)":"background.paper",cursor:onClick?"pointer":"default","&:hover":onClick?{borderColor:"primary.main"}:undefined}}><Box sx={{display:"flex",gap:1.2,alignItems:"center",mb:1}}><Box sx={{color:"primary.main"}}>{icon}</Box><Typography color="text.secondary">{title}</Typography></Box><Typography variant="h4" sx={{fontWeight:900}}>{value}</Typography></Paper>}
