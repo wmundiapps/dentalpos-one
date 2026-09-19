@@ -2031,3 +2031,203 @@ model DoctorDocument {
   @@index([clinicId])
   @@index([expiresAt])
 }
+// =====================================================================
+// PAGAMENTOS E ACORDOS FINANCEIROS â€” 19/09/2026
+// Espelha o SQL 20260919_pagamentos_acordos.sql (ja aplicado no Supabase)
+// COLAR NO FIM DO backend/prisma/schema.prisma, sem alterar nada acima.
+// NAO rodar prisma migrate nem db push. Depois de colar: npx prisma generate
+// =====================================================================
+
+model PaymentAccount {
+  id                String   @id @default(cuid())
+  clinicId          String
+  tenantId          String
+  provider          String   @default("ASAAS")
+  beneficiaryType   String
+  doctorId          String?
+  holderName        String
+  holderDocument    String
+  holderType        String
+  externalAccountId String?
+  status            String   @default("PENDENTE")
+  isDefault         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  charges BeneficiaryCharge[]
+
+  @@index([clinicId])
+  @@index([doctorId])
+  @@index([tenantId, clinicId])
+}
+
+model PartnershipAgreement {
+  id                  String    @id @default(cuid())
+  clinicId            String
+  tenantId            String
+  doctorId            String
+  arrangement         String
+  professionalPercent Decimal?  @db.Decimal(5, 2)
+  tableMode           String?
+  taxLoadPercent      Decimal?  @db.Decimal(5, 2)
+  taxLoadReviewedAt   DateTime? @db.Date
+  dailyRate           Decimal?  @db.Decimal(12, 2)
+  rentAmount          Decimal?  @db.Decimal(12, 2)
+  rentDueDay          Int?
+  defaultRisk         String    @default("COMPARTILHADA")
+  separateFinance     Boolean   @default(false)
+  paymentDay          Int?
+  startDate           DateTime  @default(now()) @db.Date
+  endDate             DateTime? @db.Date
+  status              String    @default("ATIVO")
+  notes               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  prices  AgreementProcedurePrice[]
+  charges BeneficiaryCharge[]
+
+  @@index([clinicId])
+  @@index([doctorId])
+  @@index([tenantId, clinicId])
+}
+
+model AgreementProcedurePrice {
+  id                  String   @id @default(cuid())
+  agreementId         String
+  tenantId            String
+  procedureCode       String?
+  procedureName       String
+  grossAmount         Decimal? @db.Decimal(12, 2)
+  professionalAmount  Decimal? @db.Decimal(12, 2)
+  professionalPercent Decimal? @db.Decimal(5, 2)
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  agreement PartnershipAgreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+
+  @@index([agreementId])
+}
+
+model SingleChargeTerm {
+  id               String   @id @default(cuid())
+  clinicId         String
+  tenantId         String
+  agreementId      String?
+  patientId        String?
+  issuerAccountId  String?
+  termVersion      String   @default("v1")
+  textSnapshot     String
+  acceptedByUserId String
+  acceptedByName   String
+  acceptedAt       DateTime @default(now())
+  acceptedIp       String?
+  acceptedDevice   String?
+  createdAt        DateTime @default(now())
+
+  groups ChargeGroup[]
+
+  @@index([clinicId])
+  @@index([agreementId])
+}
+
+model ChargeGroup {
+  id                 String   @id @default(cuid())
+  clinicId           String
+  tenantId           String
+  patientId          String
+  treatmentPlanId    String?
+  groupingMode       String   @default("BENEFICIARIO")
+  totalAmount        Decimal  @default(0) @db.Decimal(12, 2)
+  singleChargeTermId String?
+  status             String   @default("ABERTO")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  term    SingleChargeTerm?   @relation(fields: [singleChargeTermId], references: [id])
+  charges BeneficiaryCharge[]
+
+  @@index([clinicId])
+  @@index([patientId])
+  @@index([tenantId, clinicId])
+}
+
+model BeneficiaryCharge {
+  id                 String    @id @default(cuid())
+  clinicId           String
+  tenantId           String
+  chargeGroupId      String
+  paymentAccountId   String
+  agreementId        String?
+  doctorId           String?
+  beneficiaryType    String
+  description        String
+  grossAmount        Decimal   @db.Decimal(12, 2)
+  discountAmount     Decimal   @default(0) @db.Decimal(12, 2)
+  financialCost      Decimal   @default(0) @db.Decimal(12, 2)
+  netAmount          Decimal   @db.Decimal(12, 2)
+  paymentMethod      String
+  installments       Int       @default(1)
+  interestOwner      String    @default("CLINICA")
+  dueDate            DateTime  @db.Date
+  status             String    @default("PENDENTE")
+  paidAt             DateTime?
+  paidAmount         Decimal?  @db.Decimal(12, 2)
+  externalChargeId   String?
+  externalInvoiceUrl String?
+  financialEntryId   String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  group        ChargeGroup           @relation(fields: [chargeGroupId], references: [id], onDelete: Cascade)
+  account      PaymentAccount        @relation(fields: [paymentAccountId], references: [id])
+  agreement    PartnershipAgreement? @relation(fields: [agreementId], references: [id])
+  calculations ChargeCalculation[]
+
+  @@index([clinicId])
+  @@index([chargeGroupId])
+  @@index([doctorId])
+  @@index([status, dueDate])
+  @@index([tenantId, clinicId])
+}
+
+model ChargeCalculation {
+  id                  String   @id @default(cuid())
+  chargeId            String
+  tenantId            String
+  procedureCode       String?
+  procedureName       String
+  toothOrArch         String?
+  grossAmount         Decimal  @db.Decimal(12, 2)
+  discountAmount      Decimal  @default(0) @db.Decimal(12, 2)
+  professionalPercent Decimal? @db.Decimal(5, 2)
+  professionalAmount  Decimal  @default(0) @db.Decimal(12, 2)
+  clinicAmount        Decimal  @default(0) @db.Decimal(12, 2)
+  financialCost       Decimal  @default(0) @db.Decimal(12, 2)
+  materialCost        Decimal  @default(0) @db.Decimal(12, 2)
+  labCost             Decimal  @default(0) @db.Decimal(12, 2)
+  taxLoadPercent      Decimal? @db.Decimal(5, 2)
+  taxLoadAmount       Decimal  @default(0) @db.Decimal(12, 2)
+  netToBeneficiary    Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt           DateTime @default(now())
+
+  charge BeneficiaryCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([chargeId])
+}
+
+model PaymentWebhookEvent {
+  id           String    @id @default(cuid())
+  provider     String    @default("ASAAS")
+  tenantId     String?
+  eventType    String
+  externalId   String?
+  payload      Json
+  status       String    @default("RECEBIDO")
+  errorMessage String?
+  receivedAt   DateTime  @default(now())
+  processedAt  DateTime?
+
+  @@index([status])
+}
