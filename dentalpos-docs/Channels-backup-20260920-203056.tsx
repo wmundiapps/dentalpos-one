@@ -18,12 +18,11 @@ const CHANNELS: ChannelDef[] = [
     key: "WHATSAPP", name: "WhatsApp", icon: <WhatsAppIcon />,
     addressLabel: "Número do WhatsApp da clínica", addressHelp: "Com DDD, ex.: 44999998888",
     fields: [
-      { key: "phoneNumberId", label: "ID do n\u00famero (Phone Number ID)", secret: true },
-      { key: "accessToken", label: "Token de acesso permanente", secret: true },
-      { key: "wabaId", label: "ID da conta WhatsApp Business (WABA ID)", secret: true, optional: true },
-      { key: "templateName", label: "Nome do modelo aprovado para lembretes", optional: true },
+      { key: "instanceId", label: "Identificador da conexão", secret: true },
+      { key: "token", label: "Chave de acesso", secret: true },
+      { key: "clientToken", label: "Chave adicional", secret: true, optional: true },
     ],
-    note: "N\u00famero pr\u00f3prio da cl\u00ednica, registrado na Meta (WhatsApp Business Platform). Esse n\u00famero n\u00e3o pode estar em uso no WhatsApp comum nem no WhatsApp Business. A Meta cobra as mensagens direto no cart\u00e3o da cl\u00ednica.",
+    note: "Use o número da própria clínica. O paciente reconhece quem está falando e o número não corre risco de bloqueio por envio em massa.",
   },
   {
     key: "SMS", name: "SMS", icon: <SmsIcon />,
