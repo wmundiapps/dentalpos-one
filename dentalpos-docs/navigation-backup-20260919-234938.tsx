@@ -11,7 +11,7 @@ import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import DescriptionIcon from "@mui/icons-material/Description";
-// import DesignServicesIcon from "@mui/icons-material/DesignServices"; // DPD oculto
+import DesignServicesIcon from "@mui/icons-material/DesignServices";
 import EventIcon from "@mui/icons-material/Event";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
@@ -89,8 +89,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Orçamentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
       item("Laboratório","/laboratorio",<BiotechIcon/>),
       item("DentalPos AI","/ceo-ia",<AutoAwesomeIcon/>),
-      // DPD oculto do menu em 20/09 por decisao do Robson. Rota e dados preservados.
-            // item("DentalPos Design","/design",<DesignServicesIcon/>),
+      item("DentalPos Design","/design",<DesignServicesIcon/>),
     ])
   },
   {
