@@ -69,25 +69,25 @@ const tile = (icon: ReactNode, color: string): ReactNode => (
  */
 export const navigationGroups:NavigationGroup[] = [
   {
-    label:"Recep\u00e7\u00e3o",
+    label:"Recepção",
     icon:tile(<SupportAgentIcon/>,"#3B6FE0"),
     items:alphabetical([
       item("Agenda","/agenda",<EventIcon/>),
       item("Agendamento online","/agendamento-online",<EventIcon/>),
-      item("Avalia\u00e7\u00e3o do Atendimento","/avaliacoes-atendimento",<RateReviewIcon/>),
+      item("Avaliação do Atendimento","/avaliacoes-atendimento",<RateReviewIcon/>),
       item("Painel de Atendimentos","/painel-atendimentos",<GroupsIcon/>),
       item("Pacientes","/pacientes",<PeopleAltIcon/>),
       item("Jornada do Paciente","/jornada-paciente",<HubIcon/>),
     ])
   },
   {
-    label:"Cl\u00ednico",
+    label:"Clínico",
     icon:tile(<ToothIcon/>,"#38A8E8"),
     items:alphabetical([
-      item("Prontu\u00e1rio","/prontuario",<FolderSharedIcon/>),
-      item("Documentos Cl\u00ednicos","/documentos-clinicos",<DescriptionIcon/>),
-      item("Or\u00e7amentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
-      item("Laborat\u00f3rio","/laboratorio",<BiotechIcon/>),
+      item("Prontuário","/prontuario",<FolderSharedIcon/>),
+      item("Documentos Clínicos","/documentos-clinicos",<DescriptionIcon/>),
+      item("Orçamentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
+      item("Laboratório","/laboratorio",<BiotechIcon/>),
       item("DentalPos AI","/ceo-ia",<AutoAwesomeIcon/>),
       item("DentalPos Design","/design",<DesignServicesIcon/>),
     ])
@@ -97,10 +97,10 @@ export const navigationGroups:NavigationGroup[] = [
     icon:tile(<SendIcon/>,"#1FB894"),
     items:alphabetical([
       item("CRM","/crm",<HubIcon/>),
-      item("Comunica\u00e7\u00f5es","/comunicacoes",<ChatIcon/>),
+      item("Comunicações","/comunicacoes",<ChatIcon/>),
       item("Chatbot e IA","/revah-chatbot",<ChatIcon/>),
       item("Leads","/revah-leads",<PeopleAltIcon/>),
-      item("Recall e Reativa\u00e7\u00e3o","/recall",<SendIcon/>),
+      item("Recall e Reativação","/recall",<SendIcon/>),
       item("Central REVAH","/revah",<SendIcon/>),
       item("Canais de Envio","/canais-envio",<SettingsInputAntennaIcon/>),
     ])
@@ -109,10 +109,10 @@ export const navigationGroups:NavigationGroup[] = [
     label:"Financeiro",
     icon:tile(<AccountBalanceWalletIcon/>,"#F0A020"),
     items:[
-      item("Vis\u00e3o geral","/financeiro",<PaymentsIcon/>),
+      item("Visão geral","/financeiro",<PaymentsIcon/>),
       item("Contas a Receber","/financeiro?tipo=Receita",<PaymentsIcon/>),
       item("Contas a Pagar","/financeiro?tipo=Despesa",<ReceiptLongIcon/>),
-      item("Cobran\u00e7as","/pagamentos",<CreditCardIcon/>),
+      item("Cobranças","/pagamentos",<CreditCardIcon/>),
       item("Digitalizar Financeiro","/financeiro/digitalizar",<ReceiptLongIcon/>),
     ]
   },
@@ -121,27 +121,27 @@ export const navigationGroups:NavigationGroup[] = [
     icon:tile(<AssignmentIcon/>,"#0E7C86"),
     items:alphabetical([
       item("Backoffice","/backoffice",<AccountBalanceIcon/>),
-      item("Cont\u00e1bil e Fiscal","/contabil-fiscal",<AccountBalanceIcon/>),
-      item("Automa\u00e7\u00e3o Fiscal","/automacao-fiscal",<ReceiptLongIcon/>),
-      item("Evid\u00eancias Operacionais","/evidencias-operacionais",<DescriptionIcon/>),
-      item("Gest\u00e3o Operacional","/operacional",<CleaningServicesIcon/>),
-      item("Corpo Cl\u00ednico","/corpo-clinico",<MedicalInformationIcon/>),
-      item("RH e Gest\u00e3o de Pessoas","/rh",<WorkIcon/>),
+      item("Contábil e Fiscal","/contabil-fiscal",<AccountBalanceIcon/>),
+      item("Automação Fiscal","/automacao-fiscal",<ReceiptLongIcon/>),
+      item("Evidências Operacionais","/evidencias-operacionais",<DescriptionIcon/>),
+      item("Gestão Operacional","/operacional",<CleaningServicesIcon/>),
+      item("Corpo Clínico","/corpo-clinico",<MedicalInformationIcon/>),
+      item("RH e Gestão de Pessoas","/rh",<WorkIcon/>),
       item("Registrar ponto","/rh?ponto=1",<FingerprintIcon/>),
     ])
   },
   {
-    label:"Gest\u00e3o",
+    label:"Gestão",
     icon:tile(<BarChartIcon/>,"#8B5CF6"),
     items:alphabetical([
       item("Dashboard","/",<DashboardIcon/>),
       item("Painel Executivo","/painel-executivo",<SpaceDashboardIcon/>),
       item("Centro de Comando","/centro-de-comando",<HubIcon/>),
-      item("Centro de Intelig\u00eancia","/centro-de-inteligencia",<InsightsIcon/>),
-      item("Intelig\u00eancia Financeira","/inteligencia-financeira",<MonetizationOnIcon/>),
-      item("\u00cdndice de Sa\u00fade da Cl\u00ednica","/indice-saude-clinica",<HealthAndSafetyIcon/>),
+      item("Centro de Inteligência","/centro-de-inteligencia",<InsightsIcon/>),
+      item("Inteligência Financeira","/inteligencia-financeira",<MonetizationOnIcon/>),
+      item("Índice de Saúde da Clínica","/indice-saude-clinica",<HealthAndSafetyIcon/>),
       item("Benchmark","/benchmark",<AssessmentIcon/>),
-      item("Relat\u00f3rios","/relatorios",<AssessmentIcon/>),
+      item("Relatórios","/relatorios",<AssessmentIcon/>),
     ])
   },
   {
@@ -153,26 +153,26 @@ export const navigationGroups:NavigationGroup[] = [
     ])
   },
   {
-    label:"Acad\u00eamico",
+    label:"Acadêmico",
     icon:tile(<SchoolIcon/>,"#6366F1"),
     items:alphabetical([
-      item("Vis\u00e3o geral","/academico",<SpaceDashboardIcon/>),
+      item("Visão geral","/academico",<SpaceDashboardIcon/>),
       item("Alunos","/academico?secao=alunos",<PeopleAltIcon/>),
       item("Cursos","/academico?secao=cursos",<SchoolIcon/>),
       item("Professores","/academico?secao=professores",<GroupsIcon/>),
       item("Turmas","/academico?secao=turmas",<EventIcon/>),
-      item("Financeiro acad\u00eamico","/academico?secao=financeiro",<PaymentsIcon/>),
-      item("Frequ\u00eancia e documentos","/academico?secao=documentos",<DescriptionIcon/>),
+      item("Financeiro acadêmico","/academico?secao=financeiro",<PaymentsIcon/>),
+      item("Frequência e documentos","/academico?secao=documentos",<DescriptionIcon/>),
     ])
   },
   {
-    label:"Configura\u00e7\u00f5es",
+    label:"Configurações",
     icon:tile(<SettingsIcon/>,"#64748B"),
     items:alphabetical([
-      item("Configura\u00e7\u00f5es","/configuracoes",<SettingsIcon/>),
-      item("Cl\u00ednicas e unidades","/clinicas",<LocalHospitalIcon/>),
-      item("Integra\u00e7\u00f5es","/integracoes",<HubIcon/>),
-      item("Sugest\u00f5es e Problemas","/sugestoes-problemas",<BugReportIcon/>),
+      item("Configurações","/configuracoes",<SettingsIcon/>),
+      item("Clínicas e unidades","/clinicas",<LocalHospitalIcon/>),
+      item("Integrações","/integracoes",<HubIcon/>),
+      item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),
     ])
   }
 ];

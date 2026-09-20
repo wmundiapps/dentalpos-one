@@ -44,7 +44,7 @@ export default function PatientHeader({ patient, alerts }: { patient: BackendPat
     if (!file) return;
     setBusy(true); setError("");
     try {
-      await uploadClinicalFile({ patientId: patient.id, file, kind: "PHOTO", title: `Foto de ${patient.fullName}`, tags: [PHOTO_TAG], description: "Foto de identifica\u00e7\u00e3o do paciente" });
+      await uploadClinicalFile({ patientId: patient.id, file, kind: "PHOTO", title: `Foto de ${patient.fullName}`, tags: [PHOTO_TAG], description: "Foto de identificação do paciente" });
       const rows = await listClinicalFiles(patient.id, { kind: "PHOTO" });
       const row = rows.filter((r) => (r.tags || []).includes(PHOTO_TAG)).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
       if (row) {
@@ -52,15 +52,15 @@ export default function PatientHeader({ patient, alerts }: { patient: BackendPat
         if (access?.url) setPhoto(access.url);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "N\u00e3o foi poss\u00edvel enviar a foto.");
+      setError(e instanceof Error ? e.message : "Não foi possível enviar a foto.");
     } finally { setBusy(false); }
   };
 
   const linhas: Array<[string, string[], "error" | "warning" | "info"]> = [
     ["Alergias", alerts?.allergies || [], "error"],
-    ["Doen\u00e7as", alerts?.diseases || [], "warning"],
+    ["Doenças", alerts?.diseases || [], "warning"],
     ["Medicamentos", alerts?.medications || [], "info"],
-    ["Aten\u00e7\u00e3o", alerts?.alerts || [], "warning"],
+    ["Atenção", alerts?.alerts || [], "warning"],
   ];
   const temAlerta = linhas.some(([, v]) => v.length > 0);
 
@@ -81,7 +81,7 @@ export default function PatientHeader({ patient, alerts }: { patient: BackendPat
         <Box sx={{ flexGrow: 1, minWidth: 220 }}>
           <Typography variant="h5" sx={{ fontWeight: 900, lineHeight: 1.2 }}>{patient.fullName}</Typography>
           <Typography color="text.secondary">
-            {[age(patient.birthDate), patient.phone, patient.cpf ? `CPF ${patient.cpf}` : "", patient.email || ""].filter(Boolean).join("  \u2022  ")}
+            {[age(patient.birthDate), patient.phone, patient.cpf ? `CPF ${patient.cpf}` : "", patient.email || ""].filter(Boolean).join("  •  ")}
           </Typography>
           <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>
             <Chip size="small" color={patient.status === "Inativo" ? "default" : "success"} label={patient.status || "Ativo"} />
@@ -94,7 +94,7 @@ export default function PatientHeader({ patient, alerts }: { patient: BackendPat
         <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: "error.main", color: "#fff" }}>
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 0.5 }}>
             <WarningAmberIcon fontSize="small" />
-            <Typography sx={{ fontWeight: 900 }}>{"Aten\u00e7\u00e3o antes de atender"}</Typography>
+            <Typography sx={{ fontWeight: 900 }}>{"Atenção antes de atender"}</Typography>
           </Box>
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
             {linhas.filter(([, v]) => v.length > 0).map(([titulo, valores]) => (

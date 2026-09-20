@@ -144,7 +144,7 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
                 <Stack direction="row" spacing={1} sx={{ flexWrap:"wrap" }}>
                   <Chip size="small" label={KINDS.find((k) => k.value === row.kind)?.label || row.kind} />
                   
-                  <Chip size="small" color={row.storageStatus === "AVAILABLE" ? "success" : "warning"} label={({ AVAILABLE: "Dispon\u00edvel", PENDING_UPLOAD: "Enviando", AWAITING_STORAGE_CONFIGURATION: "Aguardando armazenamento", ARCHIVED: "Arquivado" } as Record<string, string>)[row.storageStatus] || row.storageStatus} />
+                  <Chip size="small" color={row.storageStatus === "AVAILABLE" ? "success" : "warning"} label={({ AVAILABLE: "Disponível", PENDING_UPLOAD: "Enviando", AWAITING_STORAGE_CONFIGURATION: "Aguardando armazenamento", ARCHIVED: "Arquivado" } as Record<string, string>)[row.storageStatus] || row.storageStatus} />
                 </Stack>
                 <Typography variant="h6" sx={{ fontWeight: 800, mt: 1 }}>{row.title}</Typography>
                 <Typography variant="body2" color="text.secondary">{row.originalName}</Typography>
@@ -191,7 +191,7 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
           try {
             const result = await uploadClinicalFile({ patientId, ...data });
             if (!result.upload?.configured) {
-              setStorageWarning("O exame foi registrado, mas o armazenamento de imagens desta cl\u00ednica ainda est\u00e1 sendo ativado pela equipe DentalPos One. O arquivo ficar\u00e1 dispon\u00edvel assim que a ativa\u00e7\u00e3o for conclu\u00edda.");
+              setStorageWarning("O exame foi registrado, mas o armazenamento de imagens desta clínica ainda está sendo ativado pela equipe DentalPos One. O arquivo ficará disponível assim que a ativação for concluída.");
             } else {
               setUploadOpen(false);
             }

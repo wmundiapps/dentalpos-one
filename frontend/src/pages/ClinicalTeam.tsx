@@ -6,12 +6,12 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import PageHeader from "../components/PageHeader";
 import { addDoctorDocument, createDoctor, loadClinicUsers, loadDoctorDocuments, loadDoctors, removeDoctorDocument, updateDoctor, type Doctor, type DoctorDocument, type DoctorUser } from "../services/DoctorApi";
 
-const VINCULOS: Array<[string, string]> = [["CLINICA","S\u00f3cio / da cl\u00ednica"],["CLT","CLT"],["PJ","PJ contratado"],["AUTONOMO","Aut\u00f4nomo"],["LOCACAO","Loca\u00e7\u00e3o de espa\u00e7o"]];
-const MODELOS: Array<[string, string]> = [["HONORARIO","Honor\u00e1rio (a cl\u00ednica cobra o paciente e paga o profissional)"],["PARTICIPACAO","Participa\u00e7\u00e3o na receita (cobran\u00e7a dividida entre as partes)"],["LOCACAO","Loca\u00e7\u00e3o de espa\u00e7o (o profissional cobra o paciente e paga a cl\u00ednica)"]];
-const BASES: Array<[string, string]> = [["BRUTO","Sobre o valor bruto do procedimento"],["LIQUIDO","Sobre o l\u00edquido (ap\u00f3s material, laborat\u00f3rio e taxas)"]];
-const RATEIOS: Array<[string, string]> = [["RATEADO","Rateado no mesmo percentual"],["PROFISSIONAL","Por conta do profissional"],["CLINICA","Por conta da cl\u00ednica"]];
-const ESPECIALIDADES = ["Cl\u00ednica geral","Implantodontia","Pr\u00f3tese","Ortodontia","Endodontia","Periodontia","Odontopediatria","Cirurgia","Dent\u00edstica","Est\u00e9tica","Harmoniza\u00e7\u00e3o orofacial","DTM e dor orofacial","Radiologia","Odontogeriatria"];
-const TIPOS_DOC: Array<[string, string]> = [["RG_CPF","RG / CPF"],["ENDERECO","Comprovante de endere\u00e7o"],["DIPLOMA","Diploma"],["CRO","Carteira do CRO"],["CRO_REGULARIDADE","Certid\u00e3o de regularidade do CRO"],["ESPECIALIZACAO","T\u00edtulo de especialista"],["CNPJ","Cart\u00e3o CNPJ"],["CONTRATO_SOCIAL","Contrato social"],["ALVARA","Alvar\u00e1 de funcionamento"],["ALVARA_SANITARIO","Alvar\u00e1 sanit\u00e1rio"],["RESP_TECNICA","Responsabilidade t\u00e9cnica"],["CONTRATO_PRESTACAO","Contrato de presta\u00e7\u00e3o de servi\u00e7o"],["SEGURO","Seguro de responsabilidade civil"],["OUTRO","Outro"]];
+const VINCULOS: Array<[string, string]> = [["CLINICA","Sócio / da clínica"],["CLT","CLT"],["PJ","PJ contratado"],["AUTONOMO","Autônomo"],["LOCACAO","Locação de espaço"]];
+const MODELOS: Array<[string, string]> = [["HONORARIO","Honorário (a clínica cobra o paciente e paga o profissional)"],["PARTICIPACAO","Participação na receita (cobrança dividida entre as partes)"],["LOCACAO","Locação de espaço (o profissional cobra o paciente e paga a clínica)"]];
+const BASES: Array<[string, string]> = [["BRUTO","Sobre o valor bruto do procedimento"],["LIQUIDO","Sobre o líquido (após material, laboratório e taxas)"]];
+const RATEIOS: Array<[string, string]> = [["RATEADO","Rateado no mesmo percentual"],["PROFISSIONAL","Por conta do profissional"],["CLINICA","Por conta da clínica"]];
+const ESPECIALIDADES = ["Clínica geral","Implantodontia","Prótese","Ortodontia","Endodontia","Periodontia","Odontopediatria","Cirurgia","Dentística","Estética","Harmonização orofacial","DTM e dor orofacial","Radiologia","Odontogeriatria"];
+const TIPOS_DOC: Array<[string, string]> = [["RG_CPF","RG / CPF"],["ENDERECO","Comprovante de endereço"],["DIPLOMA","Diploma"],["CRO","Carteira do CRO"],["CRO_REGULARIDADE","Certidão de regularidade do CRO"],["ESPECIALIZACAO","Título de especialista"],["CNPJ","Cartão CNPJ"],["CONTRATO_SOCIAL","Contrato social"],["ALVARA","Alvará de funcionamento"],["ALVARA_SANITARIO","Alvará sanitário"],["RESP_TECNICA","Responsabilidade técnica"],["CONTRATO_PRESTACAO","Contrato de prestação de serviço"],["SEGURO","Seguro de responsabilidade civil"],["OUTRO","Outro"]];
 
 const VAZIO = {
   userId:"", cro:"", croState:"", rqe:"", specialty:"", specialties:[] as string[], contractType:"CLINICA", documentIssuer:"CLINICA",
@@ -44,7 +44,7 @@ export default function ClinicalTeam() {
   const carregar = useCallback(async () => {
     setLoading(true);
     try { const [d, u] = await Promise.all([loadDoctors(), loadClinicUsers().catch(() => [] as DoctorUser[])]); setRows(d); setUsers(u); setError(""); }
-    catch (e) { setError(e instanceof Error ? e.message : "Erro ao carregar o corpo cl\u00ednico."); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao carregar o corpo clínico."); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void carregar(); }, [carregar]);
@@ -69,10 +69,10 @@ export default function ClinicalTeam() {
   const salvar = async () => {
     setBusy(true); setError("");
     try {
-      const payload: Record<string, unknown> = { ...form, specialty: form.specialty || form.specialties[0] || "Cl\u00ednica geral" };
+      const payload: Record<string, unknown> = { ...form, specialty: form.specialty || form.specialties[0] || "Clínica geral" };
       if (editId) { delete payload.userId; await updateDoctor(editId, payload); }
       else {
-        if (!form.userId) { setError("Escolha o usu\u00e1rio do sistema ligado a este profissional."); setBusy(false); return; }
+        if (!form.userId) { setError("Escolha o usuário do sistema ligado a este profissional."); setBusy(false); return; }
         if (!form.cro.trim()) { setError("Informe o CRO."); setBusy(false); return; }
         await createDoctor(payload);
       }
@@ -101,9 +101,9 @@ export default function ClinicalTeam() {
   const vencimento = (d: DoctorDocument) => {
     if (!d.expiresAt) return null;
     const dias = Math.ceil((new Date(d.expiresAt).getTime() - Date.now()) / 86400000);
-    if (dias < 0) return <Chip size="small" color="error" label={`Vencido h\u00e1 ${Math.abs(dias)} dia(s)`} />;
+    if (dias < 0) return <Chip size="small" color="error" label={`Vencido há ${Math.abs(dias)} dia(s)`} />;
     if (dias <= 30) return <Chip size="small" color="warning" label={`Vence em ${dias} dia(s)`} />;
-    return <Chip size="small" variant="outlined" label={`V\u00e1lido at\u00e9 ${dataBR(d.expiresAt)}`} />;
+    return <Chip size="small" variant="outlined" label={`Válido até ${dataBR(d.expiresAt)}`} />;
   };
 
   const divide = form.revenueModel === "PARTICIPACAO";
@@ -118,25 +118,25 @@ export default function ClinicalTeam() {
 
   return (
     <Box>
-      <PageHeader title={"Corpo Cl\u00ednico"} description={"Profissionais da cl\u00ednica: identifica\u00e7\u00e3o, CRO, dados de PJ, modelo de remunera\u00e7\u00e3o e documentos."} actionLabel="Novo profissional" actionIcon={<AddIcon />} onAction={abrirNovo} />
+      <PageHeader title={"Corpo Clínico"} description={"Profissionais da clínica: identificação, CRO, dados de PJ, modelo de remuneração e documentos."} actionLabel="Novo profissional" actionIcon={<AddIcon />} onAction={abrirNovo} />
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
       {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
       <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
         {loading ? <Typography sx={{ p: 3 }}>Carregando...</Typography>
-          : rows.length === 0 ? <Typography sx={{ p: 3 }} color="text.secondary">{"Nenhum profissional cadastrado. Use \u201cNovo profissional\u201d."}</Typography>
+          : rows.length === 0 ? <Typography sx={{ p: 3 }} color="text.secondary">{"Nenhum profissional cadastrado. Use “Novo profissional”."}</Typography>
           : rows.map((d) => (
             <Box key={d.id} sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider", display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1.4fr 1.2fr auto" }, gap: 2, alignItems: "center" }}>
               <Box>
                 <Typography sx={{ fontWeight: 800 }}>{nomeDe(d)}</Typography>
-                <Typography variant="body2" color="text.secondary">{[`CRO ${d.cro}${d.croState ? `/${d.croState}` : ""}`, (d.specialties && d.specialties.length ? d.specialties.join(", ") : d.specialty)].filter(Boolean).join(" \u2022 ")}</Typography>
+                <Typography variant="body2" color="text.secondary">{[`CRO ${d.cro}${d.croState ? `/${d.croState}` : ""}`, (d.specialties && d.specialties.length ? d.specialties.join(", ") : d.specialty)].filter(Boolean).join(" • ")}</Typography>
               </Box>
               <Box>
                 <Chip size="small" label={rotulo(VINCULOS, d.contractType)} />
                 {d.cnpj && <Typography variant="body2" color="text.secondary">{`CNPJ ${d.cnpj}`}</Typography>}
               </Box>
               <Box>
-                <Typography variant="body2">{d.revenueModel === "PARTICIPACAO" ? `Participa\u00e7\u00e3o ${d.revenuePercent ?? 0}%` : d.revenueModel === "LOCACAO" ? "Loca\u00e7\u00e3o de espa\u00e7o" : "Honor\u00e1rio"}</Typography>
-                <Typography variant="caption" color="text.secondary">{d.documentIssuer === "PROFISSIONAL" ? "Documentos em nome do profissional" : "Documentos em nome da cl\u00ednica"}</Typography>
+                <Typography variant="body2">{d.revenueModel === "PARTICIPACAO" ? `Participação ${d.revenuePercent ?? 0}%` : d.revenueModel === "LOCACAO" ? "Locação de espaço" : "Honorário"}</Typography>
+                <Typography variant="caption" color="text.secondary">{d.documentIssuer === "PROFISSIONAL" ? "Documentos em nome do profissional" : "Documentos em nome da clínica"}</Typography>
               </Box>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <Button size="small" onClick={() => abrirEdicao(d)}>Editar</Button>
@@ -150,17 +150,17 @@ export default function ClinicalTeam() {
         <DialogTitle>{editId ? "Editar profissional" : "Novo profissional"}</DialogTitle>
         <DialogContent dividers>
           <Tabs value={aba} onChange={(_, v) => setAba(v)} sx={{ mb: 2 }} variant="scrollable">
-            <Tab label={"Identifica\u00e7\u00e3o"} /><Tab label={"Pessoa jur\u00eddica"} /><Tab label={"Remunera\u00e7\u00e3o"} /><Tab label="Banco" />
+            <Tab label={"Identificação"} /><Tab label={"Pessoa jurídica"} /><Tab label={"Remuneração"} /><Tab label="Banco" />
           </Tabs>
           {aba === 0 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
               {!editId && (
-                <TextField select required label={"Usu\u00e1rio do sistema"} value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} sx={{ gridColumn: { md: "1/-1" } }} helperText={"O profissional precisa de um usu\u00e1rio para ter acesso e agenda."}>
-                  {users.map((u) => <MenuItem key={u.id} value={u.id}>{`${u.firstName} ${u.lastName} \u2014 ${u.email}`}</MenuItem>)}
+                <TextField select required label={"Usuário do sistema"} value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} sx={{ gridColumn: { md: "1/-1" } }} helperText={"O profissional precisa de um usuário para ter acesso e agenda."}>
+                  {users.map((u) => <MenuItem key={u.id} value={u.id}>{`${u.firstName} ${u.lastName} — ${u.email}`}</MenuItem>)}
                 </TextField>
               )}
-              {seletor("contractType", "V\u00ednculo", VINCULOS)}
-              {seletor("documentIssuer", "Documentos do paciente em nome de", [["CLINICA","Cl\u00ednica"],["PROFISSIONAL","Profissional"]], { helperText: "Define o cabe\u00e7alho dos contratos e termos." })}
+              {seletor("contractType", "Vínculo", VINCULOS)}
+              {seletor("documentIssuer", "Documentos do paciente em nome de", [["CLINICA","Clínica"],["PROFISSIONAL","Profissional"]], { helperText: "Define o cabeçalho dos contratos e termos." })}
               {campo("cro", "CRO", { required: true })}
               {campo("croState", "UF do CRO")}
               {campo("rqe", "RQE / registro de especialista")}
@@ -170,46 +170,46 @@ export default function ClinicalTeam() {
               {campo("rg", "RG")}
               {campo("birthDate", "Nascimento", { type: "date", slotProps: { inputLabel: { shrink: true } } })}
               {campo("personalZipCode", "CEP")}
-              {campo("personalAddress", "Endere\u00e7o", { sx: { gridColumn: { md: "1/-1" } } })}
+              {campo("personalAddress", "Endereço", { sx: { gridColumn: { md: "1/-1" } } })}
               {campo("personalCity", "Cidade")}
               {campo("personalState", "UF")}
-              {campo("contractStartDate", "In\u00edcio do contrato", { type: "date", slotProps: { inputLabel: { shrink: true } } })}
+              {campo("contractStartDate", "Início do contrato", { type: "date", slotProps: { inputLabel: { shrink: true } } })}
               {campo("contractEndDate", "Fim do contrato", { type: "date", slotProps: { inputLabel: { shrink: true } } })}
-              {campo("notes", "Observa\u00e7\u00f5es", { multiline: true, minRows: 2, sx: { gridColumn: { md: "1/-1" } } })}
+              {campo("notes", "Observações", { multiline: true, minRows: 2, sx: { gridColumn: { md: "1/-1" } } })}
             </Box>
           )}
           {aba === 1 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
-              <Alert severity="info" sx={{ gridColumn: { md: "1/-1" } }}>{"Preencha quando o profissional atender como pessoa jur\u00eddica. Estes dados v\u00e3o para o cabe\u00e7alho dos documentos e para a nota fiscal."}</Alert>
-              {campo("companyName", "Raz\u00e3o social", { sx: { gridColumn: { md: "1/-1" } } })}
+              <Alert severity="info" sx={{ gridColumn: { md: "1/-1" } }}>{"Preencha quando o profissional atender como pessoa jurídica. Estes dados vão para o cabeçalho dos documentos e para a nota fiscal."}</Alert>
+              {campo("companyName", "Razão social", { sx: { gridColumn: { md: "1/-1" } } })}
               {campo("tradeName", "Nome fantasia")}
               {campo("cnpj", "CNPJ")}
-              {campo("companyCro", "CRO da pessoa jur\u00eddica")}
-              {campo("technicalManager", "Respons\u00e1vel t\u00e9cnico")}
-              {campo("municipalRegistration", "Inscri\u00e7\u00e3o municipal")}
+              {campo("companyCro", "CRO da pessoa jurídica")}
+              {campo("technicalManager", "Responsável técnico")}
+              {campo("municipalRegistration", "Inscrição municipal")}
               {campo("companyZipCode", "CEP")}
-              {campo("companyAddress", "Endere\u00e7o", { sx: { gridColumn: { md: "1/-1" } } })}
+              {campo("companyAddress", "Endereço", { sx: { gridColumn: { md: "1/-1" } } })}
               {campo("companyCity", "Cidade")}
               {campo("companyState", "UF")}
             </Box>
           )}
           {aba === 2 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
-              {seletor("revenueModel", "Modelo de remunera\u00e7\u00e3o", MODELOS, { sx: { gridColumn: { md: "1/-1" } } })}
-              {divide && <Alert severity="warning" sx={{ gridColumn: { md: "1/-1" } }}>{"Na participa\u00e7\u00e3o, o or\u00e7amento aprovado gera duas cobran\u00e7as: uma da cl\u00ednica e uma do profissional, cada uma com a pr\u00f3pria nota fiscal."}</Alert>}
-              {divide && campo("revenuePercent", "Percentual do profissional (%)", { helperText: "O restante fica com a cl\u00ednica." })}
-              {divide && seletor("revenueBase", "Base de c\u00e1lculo", BASES)}
+              {seletor("revenueModel", "Modelo de remuneração", MODELOS, { sx: { gridColumn: { md: "1/-1" } } })}
+              {divide && <Alert severity="warning" sx={{ gridColumn: { md: "1/-1" } }}>{"Na participação, o orçamento aprovado gera duas cobranças: uma da clínica e uma do profissional, cada uma com a própria nota fiscal."}</Alert>}
+              {divide && campo("revenuePercent", "Percentual do profissional (%)", { helperText: "O restante fica com a clínica." })}
+              {divide && seletor("revenueBase", "Base de cálculo", BASES)}
               {divide && seletor("materialSplit", "Material", RATEIOS)}
-              {divide && seletor("labSplit", "Laborat\u00f3rio de pr\u00f3tese", RATEIOS)}
-              {divide && seletor("cardFeeSplit", "Taxas de cart\u00e3o e boleto", RATEIOS)}
-              {!divide && campo("commissionPercent", "Honor\u00e1rio / comiss\u00e3o (%)", { helperText: "Deixe em branco se o pagamento for por valor fixo." })}
+              {divide && seletor("labSplit", "Laboratório de prótese", RATEIOS)}
+              {divide && seletor("cardFeeSplit", "Taxas de cartão e boleto", RATEIOS)}
+              {!divide && campo("commissionPercent", "Honorário / comissão (%)", { helperText: "Deixe em branco se o pagamento for por valor fixo." })}
               {campo("payoutDay", "Dia do repasse")}
             </Box>
           )}
           {aba === 3 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
               {campo("bankName", "Banco")}
-              {campo("bankAgency", "Ag\u00eancia")}
+              {campo("bankAgency", "Agência")}
               {campo("bankAccount", "Conta")}
               {campo("pixKey", "Chave PIX")}
             </Box>
@@ -222,17 +222,17 @@ export default function ClinicalTeam() {
       </Dialog>
 
       <Dialog open={Boolean(docsDe)} onClose={() => setDocsDe(null)} fullWidth maxWidth="md">
-        <DialogTitle>{docsDe ? `Documentos \u2022 ${nomeDe(docsDe)}` : ""}</DialogTitle>
+        <DialogTitle>{docsDe ? `Documentos • ${nomeDe(docsDe)}` : ""}</DialogTitle>
         <DialogContent dividers>
-          <Alert severity="info" sx={{ mb: 2 }}>{"Registre os documentos obrigat\u00f3rios e a validade de cada um. O sistema avisa quando estiver perto de vencer."}</Alert>
+          <Alert severity="info" sx={{ mb: 2 }}>{"Registre os documentos obrigatórios e a validade de cada um. O sistema avisa quando estiver perto de vencer."}</Alert>
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2, mb: 2 }}>
             <TextField select label="Tipo" value={docForm.documentType} onChange={(e) => setDocForm({ ...docForm, documentType: e.target.value })}>
               {TIPOS_DOC.map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}
             </TextField>
-            <TextField required label={"T\u00edtulo / n\u00famero"} value={docForm.title} onChange={(e) => setDocForm({ ...docForm, title: e.target.value })} />
-            <TextField label={"Emiss\u00e3o"} type="date" slotProps={{ inputLabel: { shrink: true } }} value={docForm.issueDate} onChange={(e) => setDocForm({ ...docForm, issueDate: e.target.value })} />
+            <TextField required label={"Título / número"} value={docForm.title} onChange={(e) => setDocForm({ ...docForm, title: e.target.value })} />
+            <TextField label={"Emissão"} type="date" slotProps={{ inputLabel: { shrink: true } }} value={docForm.issueDate} onChange={(e) => setDocForm({ ...docForm, issueDate: e.target.value })} />
             <TextField label="Validade" type="date" slotProps={{ inputLabel: { shrink: true } }} value={docForm.expiresAt} onChange={(e) => setDocForm({ ...docForm, expiresAt: e.target.value })} />
-            <TextField label={"Observa\u00e7\u00e3o"} value={docForm.notes} onChange={(e) => setDocForm({ ...docForm, notes: e.target.value })} sx={{ gridColumn: { md: "1/-1" } }} />
+            <TextField label={"Observação"} value={docForm.notes} onChange={(e) => setDocForm({ ...docForm, notes: e.target.value })} sx={{ gridColumn: { md: "1/-1" } }} />
           </Box>
           <Button variant="contained" startIcon={<AddIcon />} disabled={busy || !docForm.title.trim()} onClick={() => void salvarDoc()}>Registrar documento</Button>
           <Box sx={{ mt: 3, display: "grid", gap: 1 }}>
@@ -240,7 +240,7 @@ export default function ClinicalTeam() {
               <Paper key={d.id} variant="outlined" sx={{ p: 2, borderRadius: 2, display: "flex", justifyContent: "space-between", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
                 <Box>
                   <Typography sx={{ fontWeight: 700 }}>{d.title}</Typography>
-                  <Typography variant="body2" color="text.secondary">{rotulo(TIPOS_DOC, d.documentType)}{d.issueDate ? ` \u2022 emitido em ${dataBR(d.issueDate)}` : ""}</Typography>
+                  <Typography variant="body2" color="text.secondary">{rotulo(TIPOS_DOC, d.documentType)}{d.issueDate ? ` • emitido em ${dataBR(d.issueDate)}` : ""}</Typography>
                   {d.notes && <Typography variant="body2" color="text.secondary">{d.notes}</Typography>}
                 </Box>
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>

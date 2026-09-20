@@ -13,10 +13,10 @@ import { formatBRL, money, parseBRL } from "../utils/money";
 type BudgetExtra = BudgetRow & { entryAmount?: number; paymentMethod?: string; discountPercent?: number; validUntil?: string; optionsJson?: { treatmentItemIds?: unknown } | null };
 type Planning = Record<string, unknown>;
 
-const ITEM_STATUS: Record<string, string> = { PLANNED: "Planejado", APPROVED: "Aprovado", IN_PROGRESS: "Em andamento", COMPLETED: "Conclu\u00eddo", CANCELLED: "Cancelado" };
+const ITEM_STATUS: Record<string, string> = { PLANNED: "Planejado", APPROVED: "Aprovado", IN_PROGRESS: "Em andamento", COMPLETED: "Concluído", CANCELLED: "Cancelado" };
 const PRIORITY: Record<string, string> = { URGENT: "Urgente", HIGH: "Alta", NORMAL: "Normal", LOW: "Baixa" };
 const BUDGET_STATUS: Record<string, string> = { PENDING: "Pendente", APPROVED: "Aprovado", CANCELLED: "Cancelado", REJECTED: "Recusado", EXPIRED: "Vencido" };
-const PAYMENT_METHODS = ["PIX", "Cart\u00e3o", "Boleto", "Transfer\u00eancia", "Dinheiro", "Promiss\u00f3ria", "Cheque"];
+const PAYMENT_METHODS = ["PIX", "Cartão", "Boleto", "Transferência", "Dinheiro", "Promissória", "Cheque"];
 const EMPTY_ITEM = { procedure: "", tooth: "", region: "", phase: "1", priority: "NORMAL", specialty: "", professionalName: "", estimatedMinutes: 60, unitValue: "", laboratoryRequired: false, status: "PLANNED" };
 const EMPTY_TERMS = { discountPercent: "0", entryAmount: "", installments: "1", paymentMethod: "PIX", validDays: "30" };
 const txt = (v: unknown) => (v === undefined || v === null ? "" : String(v));
@@ -26,47 +26,47 @@ function buildContract(p: BackendPatient | undefined, b: BudgetExtra, list: Trea
   const ident = [pa.fullName || "Paciente", pa.cpf ? `CPF ${pa.cpf}` : "", pa.phone ? `telefone ${pa.phone}` : "", [pa.address, pa.city, pa.state].filter(Boolean).join(", ")].filter(Boolean).join(", ");
   const lines = list.map((i) => {
     const pd = (i.planningData || {}) as Planning;
-    return `- ${i.procedure}${i.tooth ? ` (dente ${i.tooth})` : ""}${pd.region ? ` \u2014 ${txt(pd.region)}` : ""}: ${money(Number(pd.unitValue || 0))}`;
+    return `- ${i.procedure}${i.tooth ? ` (dente ${i.tooth})` : ""}${pd.region ? ` — ${txt(pd.region)}` : ""}: ${money(Number(pd.unitValue || 0))}`;
   });
   const entry = Number(b.entryAmount || 0);
   const disc = Number(b.discountPercent || 0);
   const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
   return [
-    "CONTRATO DE PRESTA\u00c7\u00c3O DE SERVI\u00c7OS ODONTOL\u00d3GICOS",
+    "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ODONTOLÓGICOS",
     "",
     `CONTRATANTE (PACIENTE): ${ident}.`,
-    `CONTRATADA: a cl\u00ednica respons\u00e1vel por este atendimento, representada pelo(a) profissional ${professional}.`,
+    `CONTRATADA: a clínica responsável por este atendimento, representada pelo(a) profissional ${professional}.`,
     "",
     "1. OBJETO",
-    "A CONTRATADA prestar\u00e1 ao CONTRATANTE os procedimentos abaixo, conforme o plano de tratamento apresentado e aprovado:",
-    ...(lines.length ? lines : [`- Conforme o or\u00e7amento: ${b.description}`]),
+    "A CONTRATADA prestará ao CONTRATANTE os procedimentos abaixo, conforme o plano de tratamento apresentado e aprovado:",
+    ...(lines.length ? lines : [`- Conforme o orçamento: ${b.description}`]),
     "",
     "2. VALOR E FORMA DE PAGAMENTO",
     `Valor total: ${money(b.totalAmount)}${disc > 0 ? ` (com desconto de ${disc.toLocaleString("pt-BR")}%)` : ""}.`,
     entry > 0 ? `Entrada: ${money(entry)}.` : "Sem entrada.",
     `Saldo: ${b.installments}x de ${money(b.installmentValue)}${b.paymentMethod ? `, via ${b.paymentMethod}` : ""}.`,
-    "O atraso no pagamento poder\u00e1 ser cobrado com os acr\u00e9scimos permitidos em lei.",
+    "O atraso no pagamento poderá ser cobrado com os acréscimos permitidos em lei.",
     "",
-    "3. OBRIGA\u00c7\u00d5ES DO CONTRATANTE",
-    "Comparecer \u00e0s consultas agendadas, seguir as orienta\u00e7\u00f5es cl\u00ednicas, informar altera\u00e7\u00f5es de sa\u00fade e de medicamentos e efetuar os pagamentos nas datas combinadas.",
+    "3. OBRIGAÇÕES DO CONTRATANTE",
+    "Comparecer às consultas agendadas, seguir as orientações clínicas, informar alterações de saúde e de medicamentos e efetuar os pagamentos nas datas combinadas.",
     "",
-    "4. OBRIGA\u00c7\u00d5ES DA CONTRATADA",
-    "Executar os procedimentos com t\u00e9cnica adequada, manter o prontu\u00e1rio atualizado, esclarecer d\u00favidas e informar riscos, alternativas e cuidados de cada etapa.",
+    "4. OBRIGAÇÕES DA CONTRATADA",
+    "Executar os procedimentos com técnica adequada, manter o prontuário atualizado, esclarecer dúvidas e informar riscos, alternativas e cuidados de cada etapa.",
     "",
-    "5. FALTAS E REMARCA\u00c7\u00d5ES",
-    "Faltas e remarca\u00e7\u00f5es devem ser comunicadas com anteced\u00eancia m\u00ednima de 24 horas. Faltas sem aviso podem alterar o cronograma do tratamento.",
+    "5. FALTAS E REMARCAÇÕES",
+    "Faltas e remarcações devem ser comunicadas com antecedência mínima de 24 horas. Faltas sem aviso podem alterar o cronograma do tratamento.",
     "",
-    "6. RESULTADOS E ALTERA\u00c7\u00d5ES DO PLANO",
-    "O resultado depende tamb\u00e9m da resposta biol\u00f3gica e da colabora\u00e7\u00e3o do CONTRATANTE. Qualquer altera\u00e7\u00e3o no plano ou nos valores ser\u00e1 apresentada previamente e s\u00f3 ser\u00e1 executada com a concord\u00e2ncia do CONTRATANTE.",
+    "6. RESULTADOS E ALTERAÇÕES DO PLANO",
+    "O resultado depende também da resposta biológica e da colaboração do CONTRATANTE. Qualquer alteração no plano ou nos valores será apresentada previamente e só será executada com a concordância do CONTRATANTE.",
     "",
-    "7. RESCIS\u00c3O",
-    "Qualquer das partes pode rescindir este contrato mediante aviso, ficando devidos os procedimentos j\u00e1 realizados.",
+    "7. RESCISÃO",
+    "Qualquer das partes pode rescindir este contrato mediante aviso, ficando devidos os procedimentos já realizados.",
     "",
-    "8. PROTE\u00c7\u00c3O DE DADOS",
-    "Os dados pessoais e de sa\u00fade do CONTRATANTE s\u00e3o tratados conforme a Lei Geral de Prote\u00e7\u00e3o de Dados (Lei 13.709/2018), exclusivamente para a presta\u00e7\u00e3o dos servi\u00e7os e o cumprimento de obriga\u00e7\u00f5es legais.",
+    "8. PROTEÇÃO DE DADOS",
+    "Os dados pessoais e de saúde do CONTRATANTE são tratados conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018), exclusivamente para a prestação dos serviços e o cumprimento de obrigações legais.",
     "",
     "9. FORO",
-    "Fica eleito o foro do domic\u00edlio do CONTRATANTE.",
+    "Fica eleito o foro do domicílio do CONTRATANTE.",
     "",
     `${pa.city ? `${pa.city}, ` : ""}${today}.`,
     "",
@@ -129,7 +129,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
       if (text) setNotice(text);
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "N\u00e3o foi poss\u00edvel concluir a opera\u00e7\u00e3o.");
+      setError(e instanceof Error ? e.message : "Não foi possível concluir a operação.");
     } finally {
       setBusy(false);
     }
@@ -153,7 +153,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
     valid.setDate(valid.getDate() + (Number(terms.validDays) || 30));
     await createBudget({
       patientId,
-      description: `Plano de tratamento \u2022 ${patient?.fullName || "Paciente"}`,
+      description: `Plano de tratamento • ${patient?.fullName || "Paciente"}`,
       totalAmount: finalTotal,
       installments,
       installmentValue,
@@ -167,28 +167,28 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
     });
     setBudgetOpen(false);
     setTerms(EMPTY_TERMS);
-  }, "Or\u00e7amento gerado.");
+  }, "Orçamento gerado.");
 
   const generateContract = (row: BudgetRow) => run(async () => {
     const b = row as BudgetExtra;
     const ids = Array.isArray(b.optionsJson?.treatmentItemIds) ? (b.optionsJson?.treatmentItemIds as string[]) : [];
     const list = ids.length ? items.filter((i) => ids.includes(i.id)) : activeItems;
-    const professional = sessionName || "Profissional respons\u00e1vel";
+    const professional = sessionName || "Profissional responsável";
     await createClinicalDocument({
       patientId: b.patientId,
       professionalName: professional,
       documentType: "CLINICAL_CONTRACT",
-      title: `Contrato \u2022 ${patient?.fullName || "Paciente"}`,
+      title: `Contrato • ${patient?.fullName || "Paciente"}`,
       content: buildContract(patient, b, list, professional),
       templateId: undefined,
       status: "DRAFT",
     });
-    return "Contrato gerado como rascunho na aba Documentos e Contratos. Revise o texto com a assessoria jur\u00eddica da cl\u00ednica antes de emitir.";
+    return "Contrato gerado como rascunho na aba Documentos e Contratos. Revise o texto com a assessoria jurídica da clínica antes de emitir.";
   });
 
   return (
     <Box>
-      <PageHeader title={"Plano de Tratamento e Or\u00e7amento"} description={"Procedimentos por dente e regi\u00e3o, or\u00e7amento com condi\u00e7\u00f5es de pagamento e contrato do paciente."} actionLabel="Novo procedimento" actionIcon={<AddIcon />} onAction={() => { if (patientId) openItem(); }} />
+      <PageHeader title={"Plano de Tratamento e Orçamento"} description={"Procedimentos por dente e região, orçamento com condições de pagamento e contrato do paciente."} actionLabel="Novo procedimento" actionIcon={<AddIcon />} onAction={() => { if (patientId) openItem(); }} />
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
       {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
       {!initialPatientId && (
@@ -205,22 +205,22 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
           <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
               <Box>
-                <Typography sx={{ fontWeight: 800 }}>{`Execu\u00e7\u00e3o do tratamento: ${progress}%`}</Typography>
-                <Typography variant="body2" color="text.secondary">{`${activeItems.length} procedimento(s) \u2022 Total ${money(total)}`}</Typography>
+                <Typography sx={{ fontWeight: 800 }}>{`Execução do tratamento: ${progress}%`}</Typography>
+                <Typography variant="body2" color="text.secondary">{`${activeItems.length} procedimento(s) • Total ${money(total)}`}</Typography>
               </Box>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <Button variant="outlined" startIcon={<AddIcon />} disabled={busy} onClick={openItem}>Novo procedimento</Button>
                 <Button disabled={busy} onClick={() => void importFromOdontogram()}>Importar odontograma</Button>
-                <Button variant="contained" disabled={busy || !activeItems.length} onClick={() => setBudgetOpen(true)}>{"Gerar or\u00e7amento"}</Button>
+                <Button variant="contained" disabled={busy || !activeItems.length} onClick={() => setBudgetOpen(true)}>{"Gerar orçamento"}</Button>
               </Box>
             </Box>
             <LinearProgress variant="determinate" value={progress} sx={{ mt: 1 }} />
           </Paper>
 
-          {items.length === 0 && <Alert severity="info" sx={{ mb: 2 }}>{"Nenhum procedimento ainda. Use \u201cNovo procedimento\u201d ou \u201cImportar odontograma\u201d."}</Alert>}
+          {items.length === 0 && <Alert severity="info" sx={{ mb: 2 }}>{"Nenhum procedimento ainda. Use “Novo procedimento” ou “Importar odontograma”."}</Alert>}
           {items.map((i) => {
             const pd = (i.planningData || {}) as Planning;
-            const info = [i.tooth ? `Dente ${i.tooth}` : "", txt(pd.region), `Fase ${txt(pd.phase) || "1"}`, PRIORITY[txt(pd.priority) || "NORMAL"] || txt(pd.priority), txt(pd.specialty), txt(pd.professionalName), money(Number(pd.unitValue || 0))].filter(Boolean).join(" \u2022 ");
+            const info = [i.tooth ? `Dente ${i.tooth}` : "", txt(pd.region), `Fase ${txt(pd.phase) || "1"}`, PRIORITY[txt(pd.priority) || "NORMAL"] || txt(pd.priority), txt(pd.specialty), txt(pd.professionalName), money(Number(pd.unitValue || 0))].filter(Boolean).join(" • ");
             return (
               <Paper key={i.id} variant="outlined" sx={{ p: 2, mb: 1, opacity: i.status === "CANCELLED" ? 0.6 : 1 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
@@ -236,12 +236,12 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
             );
           })}
 
-          <Typography variant="h6" sx={{ mt: 3, mb: 1, fontWeight: 800 }}>{"Or\u00e7amentos"}</Typography>
+          <Typography variant="h6" sx={{ mt: 3, mb: 1, fontWeight: 800 }}>{"Orçamentos"}</Typography>
           {budgets.length === 0 ? (
-            <Typography color="text.secondary">{"Nenhum or\u00e7amento para este paciente."}</Typography>
+            <Typography color="text.secondary">{"Nenhum orçamento para este paciente."}</Typography>
           ) : budgets.map((row) => {
             const b = row as BudgetExtra;
-            const details = [money(b.totalAmount), b.entryAmount ? `entrada ${money(b.entryAmount)}` : "", `${b.installments}x de ${money(b.installmentValue)}`, b.paymentMethod || "", b.validUntil ? `v\u00e1lido at\u00e9 ${new Date(b.validUntil).toLocaleDateString("pt-BR")}` : ""].filter(Boolean).join(" \u2022 ");
+            const details = [money(b.totalAmount), b.entryAmount ? `entrada ${money(b.entryAmount)}` : "", `${b.installments}x de ${money(b.installmentValue)}`, b.paymentMethod || "", b.validUntil ? `válido até ${new Date(b.validUntil).toLocaleDateString("pt-BR")}` : ""].filter(Boolean).join(" • ");
             return (
               <Paper key={b.id} variant="outlined" sx={{ p: 2, mb: 1 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
@@ -251,9 +251,9 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
                   </Box>
                   <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                     <Chip size="small" label={BUDGET_STATUS[b.status] || b.status} color={b.status === "APPROVED" ? "success" : b.status === "CANCELLED" ? "default" : "warning"} />
-                    {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => void run(() => approveBudget(b.id), "Or\u00e7amento aprovado.")}>Aprovar</Button>}
+                    {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => void run(() => approveBudget(b.id), "Orçamento aprovado.")}>Aprovar</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" disabled={busy} onClick={() => void generateContract(b)}>Gerar contrato</Button>}
-                    {b.status !== "CANCELLED" && <Button size="small" color="error" disabled={busy} onClick={() => { if (window.confirm("Cancelar este or\u00e7amento?")) void run(() => cancelBudget(b.id), "Or\u00e7amento cancelado."); }}>Cancelar</Button>}
+                    {b.status !== "CANCELLED" && <Button size="small" color="error" disabled={busy} onClick={() => { if (window.confirm("Cancelar este orçamento?")) void run(() => cancelBudget(b.id), "Orçamento cancelado."); }}>Cancelar</Button>}
                   </Box>
                 </Box>
               </Paper>
@@ -268,14 +268,14 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr" }, gap: 2 }}>
             <TextField required label="Procedimento" value={form.procedure} onChange={(e) => setForm({ ...form, procedure: e.target.value })} />
             <TextField label="Dente (FDI)" value={form.tooth} onChange={(e) => setForm({ ...form, tooth: e.target.value.replace(/\D/g, "").slice(0, 2) })} />
-            <TextField label={"Regi\u00e3o"} value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
+            <TextField label={"Região"} value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
             <TextField label="Fase" value={form.phase} onChange={(e) => setForm({ ...form, phase: e.target.value })} />
             <TextField select label="Prioridade" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
               {Object.entries(PRIORITY).map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}
             </TextField>
             <TextField label="Especialidade" value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} />
             <TextField label="Profissional" value={form.professionalName} onChange={(e) => setForm({ ...form, professionalName: e.target.value })} />
-            <TextField type="number" label={"Dura\u00e7\u00e3o (min)"} value={form.estimatedMinutes} onChange={(e) => setForm({ ...form, estimatedMinutes: Number(e.target.value) })} />
+            <TextField type="number" label={"Duração (min)"} value={form.estimatedMinutes} onChange={(e) => setForm({ ...form, estimatedMinutes: Number(e.target.value) })} />
             <TextField label="Valor (R$)" placeholder="Ex.: 1.250,90" value={form.unitValue} onChange={(e) => setForm({ ...form, unitValue: e.target.value.replace(/[^\d.,]/g, "") })} onBlur={() => setForm((f) => ({ ...f, unitValue: formatBRL(f.unitValue) }))} slotProps={{ htmlInput: { inputMode: "decimal" }, input: { startAdornment: <InputAdornment position="start">R$</InputAdornment> } }} />
           </Box>
         </DialogContent>
@@ -286,10 +286,10 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
       </Dialog>
 
       <Dialog open={budgetOpen} onClose={() => { if (!busy) setBudgetOpen(false); }} maxWidth="sm" fullWidth>
-        <DialogTitle>{"Gerar or\u00e7amento"}</DialogTitle>
+        <DialogTitle>{"Gerar orçamento"}</DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
           <Typography>{`Soma dos procedimentos: ${money(total)}`}</Typography>
-          {total <= 0 && <Alert severity="warning">{"Informe o valor dos procedimentos para gerar o or\u00e7amento."}</Alert>}
+          {total <= 0 && <Alert severity="warning">{"Informe o valor dos procedimentos para gerar o orçamento."}</Alert>}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
             <TextField label="Desconto (%)" value={terms.discountPercent} onChange={(e) => setTerms({ ...terms, discountPercent: e.target.value.replace(/[^\d.,]/g, "") })} slotProps={{ htmlInput: { inputMode: "decimal" } }} />
             <TextField label="Entrada (R$)" placeholder="0,00" value={terms.entryAmount} onChange={(e) => setTerms({ ...terms, entryAmount: e.target.value.replace(/[^\d.,]/g, "") })} onBlur={() => setTerms((t) => ({ ...t, entryAmount: formatBRL(t.entryAmount) }))} slotProps={{ htmlInput: { inputMode: "decimal" }, input: { startAdornment: <InputAdornment position="start">R$</InputAdornment> } }} />
@@ -305,12 +305,12 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
           </Box>
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Typography sx={{ fontWeight: 800 }}>{`Total: ${money(finalTotal)}`}</Typography>
-            <Typography variant="body2">{`Entrada: ${money(entry)} \u2022 Saldo: ${installments}x de ${money(installmentValue)}`}</Typography>
+            <Typography variant="body2">{`Entrada: ${money(entry)} • Saldo: ${installments}x de ${money(installmentValue)}`}</Typography>
           </Paper>
         </DialogContent>
         <DialogActions>
           <Button disabled={busy} onClick={() => setBudgetOpen(false)}>Cancelar</Button>
-          <Button variant="contained" disabled={busy || finalTotal <= 0} onClick={() => void createProposal()}>{busy ? "Gerando..." : "Gerar or\u00e7amento"}</Button>
+          <Button variant="contained" disabled={busy || finalTotal <= 0} onClick={() => void createProposal()}>{busy ? "Gerando..." : "Gerar orçamento"}</Button>
         </DialogActions>
       </Dialog>
     </Box>

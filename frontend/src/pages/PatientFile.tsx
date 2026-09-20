@@ -26,7 +26,7 @@ import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadClinicalRecord } from "../services/ClinicalAnamnesisApi";
 import type { ClinicalRecordData } from "../types/clinicalAnamnesis";
 
-const STATUS_CONSULTA: Record<string, string> = { SCHEDULED: "Agendado", CONFIRMED: "Confirmado", WAITING: "Aguardando confirma\u00e7\u00e3o", IN_PROGRESS: "Em atendimento", COMPLETED: "Finalizado", FINALIZED: "Finalizado", CANCELLED: "Cancelado", NO_SHOW: "Faltou" };
+const STATUS_CONSULTA: Record<string, string> = { SCHEDULED: "Agendado", CONFIRMED: "Confirmado", WAITING: "Aguardando confirmação", IN_PROGRESS: "Em atendimento", COMPLETED: "Finalizado", FINALIZED: "Finalizado", CANCELLED: "Cancelado", NO_SHOW: "Faltou" };
 
 function doctorName(a: BackendAppointment) {
   if (!a.doctor) return "";
@@ -47,7 +47,7 @@ function Consultas({ rows, loading }: { rows: BackendAppointment[]; loading: boo
           <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
             <Box>
               <Typography sx={{ fontWeight: 800 }}>{a.procedure}</Typography>
-              <Typography variant="body2" color="text.secondary">{dataHora(a.scheduledAt)}{doctorName(a) ? ` \u2022 ${doctorName(a)}` : ""}</Typography>
+              <Typography variant="body2" color="text.secondary">{dataHora(a.scheduledAt)}{doctorName(a) ? ` • ${doctorName(a)}` : ""}</Typography>
             </Box>
             <Chip size="small" label={STATUS_CONSULTA[a.status] || a.status} />
           </Box>
@@ -56,7 +56,7 @@ function Consultas({ rows, loading }: { rows: BackendAppointment[]; loading: boo
     : <Typography color="text.secondary" sx={{ mb: 3 }}>{vazio}</Typography>;
   return (
     <Box>
-      <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{"Pr\u00f3ximos atendimentos"}</Typography>
+      <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{"Próximos atendimentos"}</Typography>
       {lista(futuras, "Nenhum atendimento futuro.")}
       <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{"Atendimentos anteriores"}</Typography>
       {lista(passadas, "Nenhum atendimento anterior.")}
@@ -69,10 +69,10 @@ function Resumo({ patient, plan, appts, ir }: { patient: BackendPatient; plan: {
   const proxima = appts.filter((a) => a.scheduledAt >= agora && a.status !== "CANCELLED").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))[0];
   const ultima = appts.filter((a) => a.scheduledAt < agora).sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt))[0];
   const cards: Array<[string, string]> = [
-    ["Execu\u00e7\u00e3o do tratamento", plan.progress === null ? "\u2014" : `${plan.progress}%`],
-    ["Procedimentos pendentes", plan.pending === null ? "\u2014" : String(plan.pending)],
-    ["Pr\u00f3ximo atendimento", proxima ? dataHora(proxima.scheduledAt) : "Nenhum agendado"],
-    ["\u00daltimo atendimento", ultima ? dataHora(ultima.scheduledAt) : "\u2014"],
+    ["Execução do tratamento", plan.progress === null ? "—" : `${plan.progress}%`],
+    ["Procedimentos pendentes", plan.pending === null ? "—" : String(plan.pending)],
+    ["Próximo atendimento", proxima ? dataHora(proxima.scheduledAt) : "Nenhum agendado"],
+    ["Último atendimento", ultima ? dataHora(ultima.scheduledAt) : "—"],
   ];
   return (
     <Box sx={{ display: "grid", gap: 2 }}>
@@ -88,9 +88,9 @@ function Resumo({ patient, plan, appts, ir }: { patient: BackendPatient; plan: {
         <Typography sx={{ fontWeight: 900, mb: 1 }}>Atalhos</Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
           <Button variant="contained" startIcon={<ImageIcon />} onClick={() => ir("exames")}>Adicionar exame ou imagem</Button>
-          <Button variant="outlined" startIcon={<AssignmentIndIcon />} onClick={() => ir("prontuario")}>{"Abrir prontu\u00e1rio"}</Button>
+          <Button variant="outlined" startIcon={<AssignmentIndIcon />} onClick={() => ir("prontuario")}>{"Abrir prontuário"}</Button>
           <Button variant="outlined" startIcon={<GridOnIcon />} onClick={() => ir("odontograma")}>Odontograma</Button>
-          <Button variant="outlined" startIcon={<RequestQuoteIcon />} onClick={() => ir("plano")}>{"Plano e or\u00e7amento"}</Button>
+          <Button variant="outlined" startIcon={<RequestQuoteIcon />} onClick={() => ir("plano")}>{"Plano e orçamento"}</Button>
         </Box>
       </Paper>
       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
@@ -100,7 +100,7 @@ function Resumo({ patient, plan, appts, ir }: { patient: BackendPatient; plan: {
         {patient.cpf && <Typography><b>CPF:</b> {patient.cpf}</Typography>}
         {patient.birthDate && <Typography><b>Nascimento:</b> {new Date(patient.birthDate).toLocaleDateString("pt-BR")}</Typography>}
         {patient.city && <Typography><b>Cidade:</b> {patient.city}</Typography>}
-        <Typography sx={{ mt: 1 }}><b>Tratamento principal:</b> {patient.treatment || "N\u00e3o definido"}</Typography>
+        <Typography sx={{ mt: 1 }}><b>Tratamento principal:</b> {patient.treatment || "Não definido"}</Typography>
       </Paper>
     </Box>
   );
@@ -166,10 +166,10 @@ export default function PatientFile() {
 
   const abas: Array<{ key: string; label: string; icon: ReactNode }> = [
     { key: "resumo", label: "Resumo", icon: <SummarizeIcon /> },
-    { key: "historico", label: "Hist\u00f3rico M\u00e9dico", icon: <MonitorHeartIcon /> },
-    { key: "prontuario", label: "Prontu\u00e1rio", icon: <AssignmentIndIcon /> },
+    { key: "historico", label: "Histórico Médico", icon: <MonitorHeartIcon /> },
+    { key: "prontuario", label: "Prontuário", icon: <AssignmentIndIcon /> },
     { key: "odontograma", label: "Odontograma", icon: <GridOnIcon /> },
-    { key: "plano", label: "Plano e Or\u00e7amento", icon: <RequestQuoteIcon /> },
+    { key: "plano", label: "Plano e Orçamento", icon: <RequestQuoteIcon /> },
     { key: "exames", label: "Exames e Imagens", icon: <ImageIcon /> },
     { key: "documentos", label: "Documentos", icon: <DescriptionIcon /> },
     { key: "financeiro", label: "Financeiro", icon: <PaymentsIcon /> },
@@ -180,8 +180,8 @@ export default function PatientFile() {
   if (error || !patient) {
     return (
       <Box>
-        <PageHeader title="Ficha do paciente" description={"Cadastro, hist\u00f3rico, prontu\u00e1rio, exames, or\u00e7amento e atendimentos em um s\u00f3 lugar."} />
-        <Alert severity="error">{error || "Paciente n\u00e3o encontrado."}</Alert>
+        <PageHeader title="Ficha do paciente" description={"Cadastro, histórico, prontuário, exames, orçamento e atendimentos em um só lugar."} />
+        <Alert severity="error">{error || "Paciente não encontrado."}</Alert>
       </Box>
     );
   }

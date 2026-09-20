@@ -53,7 +53,7 @@ export default function Laboratory(){
   const isRisk=(w:IntegratedLaboratoryWork)=>!["Entregue","Liberado"].includes(w.status)&&!isDelayed(w)&&(daysUntil(w.patientReturnDateISO)<=2||daysUntil(w.dueDateISO)<=2);
   const porFiltro=useMemo(()=>{
     if(filtro==="ativos")return works.filter(w=>w.status!=="Entregue");
-    if(filtro==="design")return works.filter(w=>w.designStatus&&w.designStatus!=="N\u00e3o enviado");
+    if(filtro==="design")return works.filter(w=>w.designStatus&&w.designStatus!=="Não enviado");
     if(filtro==="atrasados")return works.filter(isDelayed);
     if(filtro==="risco")return works.filter(isRisk);
     if(filtro==="entregues")return works.filter(w=>["Liberado","Entregue"].includes(w.status));
@@ -71,12 +71,12 @@ export default function Laboratory(){
   return <Box>
     <PageHeader title="Laboratório" description="Fila clínica integrada à Agenda e ao DentalPos Design, com rastreabilidade e conferência de entrada." actionLabel="Novo trabalho" actionIcon={<AddIcon/>} onAction={openNew}/>
     <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"repeat(2,1fr)",xl:"repeat(5,1fr)"},gap:2,mb:3}}>
-      {([["ativos","Trabalhos ativos",works.filter(w=>w.status!=="Entregue").length,<PrecisionManufacturingIcon/>],["design","No Design",works.filter(w=>w.designStatus&&w.designStatus!=="N\u00e3o enviado").length,<ArchitectureIcon/>],["atrasados","Atrasados",delayedWorks,<AssignmentLateIcon/>],["risco","Em risco",riskWorks,<WarningAmberIcon/>],["entregues","Liberados/entregues",works.filter(w=>["Liberado","Entregue"].includes(w.status)).length,<LocalShippingIcon/>]] as Array<[typeof filtro,string,number,ReactNode]>).map(([chave,titulo,valor,icone])=><Summary key={titulo} title={titulo} value={String(valor)} icon={icone} ativo={filtro===chave} onClick={()=>setFiltro(filtro===chave?"":chave)}/>)}
+      {([["ativos","Trabalhos ativos",works.filter(w=>w.status!=="Entregue").length,<PrecisionManufacturingIcon/>],["design","No Design",works.filter(w=>w.designStatus&&w.designStatus!=="Não enviado").length,<ArchitectureIcon/>],["atrasados","Atrasados",delayedWorks,<AssignmentLateIcon/>],["risco","Em risco",riskWorks,<WarningAmberIcon/>],["entregues","Liberados/entregues",works.filter(w=>["Liberado","Entregue"].includes(w.status)).length,<LocalShippingIcon/>]] as Array<[typeof filtro,string,number,ReactNode]>).map(([chave,titulo,valor,icone])=><Summary key={titulo} title={titulo} value={String(valor)} icon={icone} ativo={filtro===chave} onClick={()=>setFiltro(filtro===chave?"":chave)}/>)}
     </Box>
     <TextField size="small" placeholder="Buscar paciente, trabalho, código, dentes, cor, dentista ou técnico..." value={search} onChange={e=>setSearch(e.target.value)} sx={{mb:2,minWidth:{xs:"100%",md:500}}}/>
-    {filtro&&<Chip sx={{ml:1,mb:2}} color="primary" label={`Filtro: ${({ativos:"Trabalhos ativos",design:"No Design",atrasados:"Atrasados",risco:"Em risco",entregues:"Liberados/entregues"} as Record<string,string>)[filtro]} \u2022 ${visible.length}`} onDelete={()=>setFiltro("")}/>}
+    {filtro&&<Chip sx={{ml:1,mb:2}} color="primary" label={`Filtro: ${({ativos:"Trabalhos ativos",design:"No Design",atrasados:"Atrasados",risco:"Em risco",entregues:"Liberados/entregues"} as Record<string,string>)[filtro]} • ${visible.length}`} onDelete={()=>setFiltro("")}/>}
     <Paper elevation={0} sx={{borderRadius:3,border:"1px solid",borderColor:"divider",overflow:"hidden"}}>
-      {visible.length===0&&<Typography sx={{p:3}} color="text.secondary">{filtro?"Nenhum trabalho neste filtro.":"Nenhum trabalho laboratorial cadastrado. Use \u201cNovo trabalho\u201d para come\u00e7ar."}</Typography>}
+      {visible.length===0&&<Typography sx={{p:3}} color="text.secondary">{filtro?"Nenhum trabalho neste filtro.":"Nenhum trabalho laboratorial cadastrado. Use “Novo trabalho” para começar."}</Typography>}
       {visible.map(w=>{const delayed=!["Entregue","Liberado"].includes(w.status)&&daysUntil(w.dueDateISO)<0;const risk=!delayed&&!["Entregue","Liberado"].includes(w.status)&&(daysUntil(w.patientReturnDateISO)<=2||daysUntil(w.dueDateISO)<=2);return <Box key={w.id} sx={{p:2,borderBottom:"1px solid",borderColor:"divider",bgcolor:delayed?"rgba(239,68,68,.045)":risk?"rgba(245,158,11,.045)":"transparent"}}>
         <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",xl:"1.15fr 1.3fr 1fr 1fr 190px"},gap:2,alignItems:"center"}}>
           <Box><Typography sx={{fontWeight:900}}>{w.patientName}</Typography><Typography variant="body2" color="text.secondary">{w.trackingCode} • {w.source}</Typography><Box sx={{display:"flex",gap:.6,mt:.6,flexWrap:"wrap"}}><Chip size="small" label={w.priority} color={priorityColor(w.priority)}/>{delayed&&<Chip size="small" label="ATRASADO" color="error"/>}{risk&&<Chip size="small" label="EM RISCO" color="warning"/>}<Chip size="small" label={w.designStatus||"Não enviado"}/></Box></Box>

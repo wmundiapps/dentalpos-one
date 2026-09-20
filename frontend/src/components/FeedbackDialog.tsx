@@ -14,7 +14,7 @@ function moduleFromPath(pathname: string): string {
   return pathname === "/" ? "Dashboard" : pathname;
 }
 
-const EMPTY = { type: "Bug", priority: "M\u00e9dia", title: "", description: "" };
+const EMPTY = { type: "Bug", priority: "Média", title: "", description: "" };
 
 export default function FeedbackDialog({ open, onClose, onSent }: { open: boolean; onClose: () => void; onSent?: () => void }) {
   const location = useLocation();
@@ -32,8 +32,8 @@ export default function FeedbackDialog({ open, onClose, onSent }: { open: boolea
   };
 
   const submit = async () => {
-    if (form.title.trim().length < 3) { setError("Informe um t\u00edtulo."); return; }
-    if (form.description.trim().length < 5) { setError("Descreva o que aconteceu ou o que voc\u00ea sugere."); return; }
+    if (form.title.trim().length < 3) { setError("Informe um título."); return; }
+    if (form.description.trim().length < 5) { setError("Descreva o que aconteceu ou o que você sugere."); return; }
     setBusy(true);
     setError("");
     try {
@@ -42,7 +42,7 @@ export default function FeedbackDialog({ open, onClose, onSent }: { open: boolea
       setForm(EMPTY);
       onSent?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "N\u00e3o foi poss\u00edvel enviar.");
+      setError(e instanceof Error ? e.message : "Não foi possível enviar.");
     } finally {
       setBusy(false);
     }
@@ -50,18 +50,18 @@ export default function FeedbackDialog({ open, onClose, onSent }: { open: boolea
 
   return (
     <Dialog open={open} onClose={close} fullWidth maxWidth="sm">
-      <DialogTitle sx={{ fontWeight: 800 }}>{"Relatar problema ou sugest\u00e3o"}</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 800 }}>{"Relatar problema ou sugestão"}</DialogTitle>
       <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
         {sent ? (
-          <Alert severity="success">{"Recebemos seu relato. Obrigado! Voc\u00ea pode acompanhar em Configura\u00e7\u00f5es \u2192 Sugest\u00f5es e Problemas."}</Alert>
+          <Alert severity="success">{"Recebemos seu relato. Obrigado! Você pode acompanhar em Configurações → Sugestões e Problemas."}</Alert>
         ) : (
           <>
             <Typography variant="body2" color="text.secondary">{`Tela atual: ${modulo}`}</Typography>
             <TextField select label="Tipo" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
               {FEEDBACK_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
             </TextField>
-            <TextField required label={"T\u00edtulo"} placeholder={"Ex.: Bot\u00e3o Salvar n\u00e3o responde"} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} slotProps={{ htmlInput: { maxLength: 160 } }} />
-            <TextField required multiline minRows={4} label={"Descri\u00e7\u00e3o"} placeholder={"O que voc\u00ea fez, o que aconteceu e o que esperava que acontecesse."} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <TextField required label={"Título"} placeholder={"Ex.: Botão Salvar não responde"} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} slotProps={{ htmlInput: { maxLength: 160 } }} />
+            <TextField required multiline minRows={4} label={"Descrição"} placeholder={"O que você fez, o que aconteceu e o que esperava que acontecesse."} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <TextField select label="Prioridade" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
               {FEEDBACK_PRIORITIES.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
             </TextField>

@@ -7,8 +7,8 @@ import { isWmundiStaff } from "../components/WmundiStaffOnly";
 import { FEEDBACK_STATUSES, listPlatformFeedbacks, updatePlatformFeedbackStatus, type PlatformFeedback } from "../services/PlatformFeedbackApi";
 
 type ChipColor = "default" | "primary" | "info" | "success" | "warning" | "error";
-const statusColor = (s: string): ChipColor => s === "Resolvido" ? "success" : s === "Em desenvolvimento" ? "primary" : s === "Em an\u00e1lise" ? "warning" : s === "Arquivado" ? "default" : "info";
-const priorityColor = (p: string): ChipColor => p === "Cr\u00edtica" ? "error" : p === "Alta" ? "warning" : p === "M\u00e9dia" ? "info" : "default";
+const statusColor = (s: string): ChipColor => s === "Resolvido" ? "success" : s === "Em desenvolvimento" ? "primary" : s === "Em análise" ? "warning" : s === "Arquivado" ? "default" : "info";
+const priorityColor = (p: string): ChipColor => p === "Crítica" ? "error" : p === "Alta" ? "warning" : p === "Média" ? "info" : "default";
 
 export default function Feedback() {
   const staff = isWmundiStaff();
@@ -34,15 +34,15 @@ export default function Feedback() {
   };
 
   const openCount = rows.filter((r) => r.status !== "Resolvido" && r.status !== "Arquivado").length;
-  const critical = rows.filter((r) => r.priority === "Cr\u00edtica" && r.status !== "Resolvido").length;
-  const cards: [string, number][] = [["Relatos", rows.length], ["Em aberto", openCount], ["Cr\u00edticos", critical]];
+  const critical = rows.filter((r) => r.priority === "Crítica" && r.status !== "Resolvido").length;
+  const cards: [string, number][] = [["Relatos", rows.length], ["Em aberto", openCount], ["Críticos", critical]];
 
   return (
     <Box>
-      <PageHeader title={"Sugest\u00f5es e Problemas"} description={"Relate bugs, bot\u00f5es que n\u00e3o funcionam, corre\u00e7\u00f5es e ideias de novas funcionalidades. Cada relato chega direto \u00e0 equipe DentalPos One."} />
+      <PageHeader title={"Sugestões e Problemas"} description={"Relate bugs, botões que não funcionam, correções e ideias de novas funcionalidades. Cada relato chega direto à equipe DentalPos One."} />
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
         <Button variant="contained" startIcon={<AddCommentIcon />} onClick={() => setOpen(true)}>Novo relato</Button>
-        {staff && <FormControlLabel control={<Switch checked={all} onChange={(_, v) => setAll(v)} />} label={"Todas as cl\u00ednicas (equipe WMundi)"} />}
+        {staff && <FormControlLabel control={<Switch checked={all} onChange={(_, v) => setAll(v)} />} label={"Todas as clínicas (equipe WMundi)"} />}
       </Box>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3,1fr)" }, gap: 2, mb: 2 }}>
         {cards.map(([t, v]) => (
@@ -57,13 +57,13 @@ export default function Feedback() {
         {loading ? (
           <Typography color="text.secondary">Carregando...</Typography>
         ) : rows.length === 0 ? (
-          <Typography color="text.secondary">{"Nenhum relato ainda. Use o bot\u00e3o acima ou o \u00edcone de bal\u00e3o no topo de qualquer tela."}</Typography>
+          <Typography color="text.secondary">{"Nenhum relato ainda. Use o botão acima ou o ícone de balão no topo de qualquer tela."}</Typography>
         ) : rows.map((r) => (
           <Paper key={r.id} variant="outlined" sx={{ p: 2, mb: 1.5, borderRadius: 2 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
               <Box>
                 <Typography sx={{ fontWeight: 800 }}>{r.title}</Typography>
-                <Typography variant="body2" color="text.secondary">{`${r.type} \u2022 ${r.module || "-"}`}</Typography>
+                <Typography variant="body2" color="text.secondary">{`${r.type} • ${r.module || "-"}`}</Typography>
               </Box>
               <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                 <Chip size="small" label={r.priority} color={priorityColor(r.priority)} />
@@ -78,7 +78,7 @@ export default function Feedback() {
             </Box>
             <Typography color="text.secondary" sx={{ mt: 1, whiteSpace: "pre-wrap" }}>{r.description}</Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-              {`Enviado por ${r.userName} em ${new Date(r.createdAt).toLocaleString("pt-BR")}${r.pagePath ? ` \u2022 tela ${r.pagePath}` : ""}`}
+              {`Enviado por ${r.userName} em ${new Date(r.createdAt).toLocaleString("pt-BR")}${r.pagePath ? ` • tela ${r.pagePath}` : ""}`}
             </Typography>
           </Paper>
         ))}

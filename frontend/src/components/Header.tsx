@@ -135,7 +135,7 @@ export default function Header() {
             <BrandName />
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {demo?.isDemo ? "Modo Experience \u2022 versão temporária e gratuita" : appConfig.environment}
+            {demo?.isDemo ? "Modo Experience • versão temporária e gratuita" : appConfig.environment}
           </Typography>
         </Box>
 
@@ -204,7 +204,7 @@ export default function Header() {
 
         <Box sx={{ flexGrow: 1 }} />
 
-        <Tooltip title={"Relatar problema ou sugest\u00e3o"}>
+        <Tooltip title={"Relatar problema ou sugestão"}>
           <IconButton onClick={() => setFeedbackOpen(true)} sx={{ color: "warning.main" }}>
             <FeedbackOutlinedIcon />
           </IconButton>
@@ -237,13 +237,13 @@ export default function Header() {
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={clinicLogo ? "Logo da cl\u00ednica" : "Espa\u00e7o para a logo da sua cl\u00ednica"}>
+        <Tooltip title={clinicLogo ? "Logo da clínica" : "Espaço para a logo da sua clínica"}>
           {clinicLogo ? (
             <Box component="img" src={clinicLogo} alt="Logo da clinica" sx={{ height: 40, maxWidth: 120, objectFit: "contain", borderRadius: 1 }} />
           ) : (
             <Box sx={{ height: 40, px: 1.25, display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 0.75, border: "1px dashed", borderColor: "divider", borderRadius: 2, color: "text.secondary" }}>
               <LocalHospitalOutlinedIcon fontSize="small" />
-              <Typography variant="caption" sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>{"Sua cl\u00ednica"}</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>{"Sua clínica"}</Typography>
             </Box>
           )}
         </Tooltip>
