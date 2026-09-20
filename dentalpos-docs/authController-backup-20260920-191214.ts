@@ -199,7 +199,8 @@ function hashResetToken(token: string) {
 }
 
 function passwordResetBaseUrl() {
-  const configured = String(process.env.PUBLIC_APP_URL || '').trim() || 'https://app.dentalpos.com.br'
+  const configured = String(process.env.PUBLIC_APP_URL || '').trim()
+  if (!configured) return ''
   return configured.endsWith('/') ? configured : `${configured}/`
 }
 
@@ -219,24 +220,15 @@ async function deliverPasswordReset(input: {
       isDefault: true,
     },
   })
-  const base = passwordResetBaseUrl()
+  if (!sender) return false
 
-  // Recuperacao de senha NUNCA pode depender de a clinica ter configurado canal.
-  // Sem remetente proprio, o envio sai pela conta da plataforma (WMundi).
-  const platformKey = String(process.env.RESEND_API_KEY || '').trim()
-  if (!sender && !platformKey) {
-    console.error('RESEND_API_KEY ausente: e-mail de redefinicao nao enviado.')
-    return false
-  }
-  const credentialsToUse = sender
-    ? decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {}
-    : { apiKey: platformKey }
-  const addressToUse = sender ? sender.address : 'DentalPos One <contato@dentalpos.com.br>'
+  const base = passwordResetBaseUrl()
+  if (!base) return false
 
   const url = new URL('redefinir-senha', base)
   url.searchParams.set('token', input.token)
 
-
+  const credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {}
   const result = await dispatchRevah(
     'EMAIL',
     input.email,
@@ -249,10 +241,10 @@ async function deliverPasswordReset(input: {
       'O link expira em 30 minutos. Se você não solicitou a alteração, ignore esta mensagem.',
     ].join('\n'),
     {
-      ...credentialsToUse,
+      ...credentials,
       subject: 'Redefinição de senha — DentalPos One',
     },
-    addressToUse,
+    sender.address,
   )
 
   return !result.simulated
