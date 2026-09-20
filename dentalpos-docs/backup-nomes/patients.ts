@@ -1,12 +1,12 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { Patient } from "../types/patient";
 
 export const patients: Patient[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
-    nome: "Paciente Exemplo 3",
+    nome: "Maria Oliveira",
     telefone: "(44) 99999-0001",
-    email: "paciente3@exemplo.invalid",
+    email: "maria@email.com",
     nascimento: "1987-04-18",
     cpf: "000.000.000-01",
     convenio: "",
@@ -14,9 +14,9 @@ export const patients: Patient[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 2,
-    nome: "Paciente Exemplo 2",
+    nome: "Carlos Pereira",
     telefone: "(44) 99999-0002",
-    email: "paciente2@exemplo.invalid",
+    email: "carlos@email.com",
     nascimento: "1975-09-12",
     cpf: "000.000.000-02",
     convenio: "",
@@ -24,9 +24,9 @@ export const patients: Patient[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 3,
-    nome: "Paciente Exemplo 5",
+    nome: "Fernanda Lima",
     telefone: "(44) 99999-0003",
-    email: "paciente5@exemplo.invalid",
+    email: "fernanda@email.com",
     nascimento: "1991-01-05",
     cpf: "000.000.000-03",
     convenio: "",

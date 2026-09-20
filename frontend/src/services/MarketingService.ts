@@ -1,4 +1,4 @@
-import { DEMO_DATA_ON } from "../utils/demoMode";
+﻿import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { MarketingCampaign } from "../types/marketing";
 
 export const marketingCampaigns: MarketingCampaign[] = !DEMO_DATA_ON ? [] : [
@@ -30,7 +30,7 @@ export const marketingCampaigns: MarketingCampaign[] = !DEMO_DATA_ON ? [] : [
     startDate: "05/08/2026",
     endDate: "20/08/2026",
     status: "Agendada",
-    responsible: "Juliana",
+    responsible: "Recepcao Exemplo",
   },
   {
     id: 3,
@@ -60,7 +60,7 @@ export const marketingCampaigns: MarketingCampaign[] = !DEMO_DATA_ON ? [] : [
     startDate: "10/08/2026",
     endDate: "30/08/2026",
     status: "Aguardando aprovação",
-    responsible: "Robson",
+    responsible: "Gestor Exemplo",
   },
 ];
 

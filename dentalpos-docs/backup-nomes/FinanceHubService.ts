@@ -1,4 +1,4 @@
-﻿export type FinanceEntryType = "Receita" | "Despesa";
+export type FinanceEntryType = "Receita" | "Despesa";
 export type FinanceEntryStatus = "Pendente" | "Pago" | "Vencido" | "Cancelado";
 export type PaymentMethod = "PIX" | "Cartão" | "Boleto" | "Transferência" | "Dinheiro";
 export type PaymentProvider = "Asaas" | "Stripe" | "Banco / Open Finance" | "Manual";
@@ -54,8 +54,8 @@ const addMonths = (date: Date, months: number) => {
 };
 
 const seed: FinanceEntry[] = [
-  { id: 1, description: "Tratamento implantodôntico", category: "Implantodontia", personName: "Paciente Exemplo 3", type: "Receita", status: "Pago", value: 8500, dueDate: "2026-08-02", paymentMethod: "PIX", provider: "Asaas", origin: "Manual", paidAt: "2026-08-02" },
-  { id: 2, description: "Parcela de tratamento ortodôntico", category: "Ortodontia", personName: "Paciente Exemplo 5", type: "Receita", status: "Pendente", value: 680, dueDate: "2026-08-15", paymentMethod: "Boleto", provider: "Asaas", origin: "Manual" },
+  { id: 1, description: "Tratamento implantodôntico", category: "Implantodontia", personName: "Maria Oliveira", type: "Receita", status: "Pago", value: 8500, dueDate: "2026-08-02", paymentMethod: "PIX", provider: "Asaas", origin: "Manual", paidAt: "2026-08-02" },
+  { id: 2, description: "Parcela de tratamento ortodôntico", category: "Ortodontia", personName: "Fernanda Lima", type: "Receita", status: "Pendente", value: 680, dueDate: "2026-08-15", paymentMethod: "Boleto", provider: "Asaas", origin: "Manual" },
   { id: 3, description: "Compra de componentes protéticos", category: "Materiais", personName: "Fornecedor Dental", type: "Despesa", status: "Pendente", value: 4200, dueDate: "2026-08-18", origin: "Manual" },
 ];
 

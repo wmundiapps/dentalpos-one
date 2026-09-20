@@ -1,4 +1,4 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { FinancialEntry } from "../types/financial";
 
 export const financialEntries: FinancialEntry[] = !DEMO_DATA_ON ? [] : [
@@ -6,7 +6,7 @@ export const financialEntries: FinancialEntry[] = !DEMO_DATA_ON ? [] : [
     id: 1,
     description: "Tratamento implantodôntico",
     category: "Implantodontia",
-    personName: "Paciente Exemplo 3",
+    personName: "Maria Oliveira",
     type: "Receita",
     status: "Pago",
     value: 8500,
@@ -17,7 +17,7 @@ export const financialEntries: FinancialEntry[] = !DEMO_DATA_ON ? [] : [
     id: 2,
     description: "Parcela de tratamento ortodôntico",
     category: "Ortodontia",
-    personName: "Paciente Exemplo 5",
+    personName: "Fernanda Lima",
     type: "Receita",
     status: "Pendente",
     value: 680,
@@ -49,7 +49,7 @@ export const financialEntries: FinancialEntry[] = !DEMO_DATA_ON ? [] : [
     id: 5,
     description: "Prótese protocolo",
     category: "Prótese",
-    personName: "Paciente Exemplo 2",
+    personName: "Carlos Pereira",
     type: "Receita",
     status: "Vencido",
     value: 3200,

@@ -1,4 +1,4 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   FinancialInsight,
   ProcedurePricingResult,
@@ -135,7 +135,7 @@ export const proceduresProfitability: ProcedureProfitability[] = !DEMO_DATA_ON ?
 export const professionalProfitability: ProfessionalProfitability[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
-    professionalName: "Dr. Exemplo 1",
+    professionalName: "Dr. Robson",
     specialty: "Implantodontia e Prótese",
     grossRevenue: 142800,
     materialCost: 18400,
@@ -149,7 +149,7 @@ export const professionalProfitability: ProfessionalProfitability[] = !DEMO_DATA
   },
   {
     id: 2,
-    professionalName: "Dra. Exemplo 2",
+    professionalName: "Dra. Cássia",
     specialty: "Ortodontia e Clínica",
     grossRevenue: 86400,
     materialCost: 7200,
@@ -163,7 +163,7 @@ export const professionalProfitability: ProfessionalProfitability[] = !DEMO_DATA
   },
   {
     id: 3,
-    professionalName: "Dra. Exemplo 3",
+    professionalName: "Dra. Juliana",
     specialty: "Harmonização Orofacial",
     grossRevenue: 54800,
     materialCost: 17200,

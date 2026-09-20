@@ -1,4 +1,4 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   AccountingEntry,
   AccountingSummary,
@@ -117,7 +117,7 @@ export const accountingEntries: AccountingEntry[] = !DEMO_DATA_ON ? [] : [
     id: 1,
     description: "Tratamento implantodôntico",
     legalEntity: "Pessoa Jurídica",
-    personName: "Paciente Exemplo 3",
+    personName: "Maria Oliveira",
     documentNumber: "NFS-000145",
     documentType: "NFS-e",
     entryType: "Receita",
@@ -137,13 +137,13 @@ export const accountingEntries: AccountingEntry[] = !DEMO_DATA_ON ? [] : [
     id: 2,
     description: "Consulta odontológica particular",
     legalEntity: "Pessoa Física",
-    personName: "Paciente Exemplo 2",
+    personName: "Carlos Pereira",
     documentNumber: "REC-000318",
     documentType: "Recibo",
     entryType: "Receita",
     accountCode: "3.1.01",
     accountName: "Receitas de serviços odontológicos",
-    costCenter: "Dr. Exemplo 1 PF",
+    costCenter: "Dr. Robson PF",
     competenceDate: "02/08/2026",
     dueDate: "02/08/2026",
     paymentDate: "02/08/2026",
@@ -367,7 +367,7 @@ export const taxObligations: TaxObligation[] = !DEMO_DATA_ON ? [] : [
   {
     id: 6,
     name: "Livro-caixa e recolhimento PF",
-    entityName: "Dr. Exemplo 1 — Pessoa Física",
+    entityName: "Dr. Robson — Pessoa Física",
     legalEntity: "Pessoa Física",
     regime: "Pessoa Física",
     competence: "07/2026",

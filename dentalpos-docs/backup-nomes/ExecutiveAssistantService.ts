@@ -1,11 +1,11 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   ExecutiveAlert,
   ExecutiveSummary,
 } from "../types/executiveAssistant";
 
 export const executiveSummary: ExecutiveSummary = {
-  greeting: "Bom dia, Dr. Exemplo 1.",
+  greeting: "Bom dia, Dr. Robson.",
   clinicStatus:
     "A operação está funcionando normalmente, mas existem pontos importantes que exigem atenção.",
   confirmedPatients: 15,

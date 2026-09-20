@@ -1,4 +1,4 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   FiscalAlert,
   FiscalAutomationStatus,
@@ -18,14 +18,14 @@ export const fiscalPayments: FiscalPayment[] = !DEMO_DATA_ON ? [] : [
     issuerName: "DentalPos Clínica",
     issuerDocument: "12.345.678/0001-90",
     payer: {
-      name: "Paciente Exemplo 3",
+      name: "Maria Oliveira",
       document: "123.456.789-00",
-      email: "paciente3@exemplo.invalid",
+      email: "maria@email.com",
       phone: "44999990001",
       telegramUser: "@mariaoliveira",
     },
     patient: {
-      name: "Paciente Exemplo 3",
+      name: "Maria Oliveira",
       document: "123.456.789-00",
     },
     paymentDate: "02/08/2026",
@@ -49,16 +49,16 @@ export const fiscalPayments: FiscalPayment[] = !DEMO_DATA_ON ? [] : [
     paymentCode: "PAG-000842",
     treatmentReference: "Consulta particular",
     issuerType: "Dentista Pessoa Física",
-    issuerName: "Dr. Exemplo 1",
+    issuerName: "Dr. Robson Ravel",
     issuerDocument: "987.654.321-00",
     payer: {
-      name: "Paciente Exemplo 2",
+      name: "Carlos Pereira",
       document: "222.333.444-55",
-      email: "paciente2@exemplo.invalid",
+      email: "carlos@email.com",
       phone: "44999990002",
     },
     patient: {
-      name: "Paciente Exemplo 2",
+      name: "Carlos Pereira",
       document: "222.333.444-55",
     },
     paymentDate: "02/08/2026",
@@ -84,13 +84,13 @@ export const fiscalPayments: FiscalPayment[] = !DEMO_DATA_ON ? [] : [
     issuerName: "DentalPos Clínica",
     issuerDocument: "12.345.678/0001-90",
     payer: {
-      name: "Paciente Exemplo 5",
+      name: "Fernanda Lima",
       document: "333.444.555-66",
-      email: "paciente5@exemplo.invalid",
+      email: "fernanda@email.com",
       phone: "44999990003",
     },
     patient: {
-      name: "Paciente Exemplo 5",
+      name: "Fernanda Lima",
       document: "333.444.555-66",
     },
     paymentDate: "02/08/2026",
@@ -119,11 +119,11 @@ export const fiscalPayments: FiscalPayment[] = !DEMO_DATA_ON ? [] : [
     payer: {
       name: "Empresa Pagadora Ltda.",
       document: "45.678.901/0001-22",
-      email: "financeiro@exemplo.invalid",
+      email: "financeiro@empresapagadora.com.br",
       phone: "44999990004",
     },
     patient: {
-      name: "Paciente Exemplo 6",
+      name: "João Ribeiro",
       document: "444.555.666-77",
     },
     paymentDate: "01/08/2026",
@@ -146,16 +146,16 @@ export const fiscalPayments: FiscalPayment[] = !DEMO_DATA_ON ? [] : [
     paymentCode: "PAG-000845",
     treatmentReference: "Avaliação clínica",
     issuerType: "Dentista Pessoa Física",
-    issuerName: "Dra. Exemplo 2",
+    issuerName: "Dra. Cássia Ravel",
     issuerDocument: "111.222.333-44",
     payer: {
-      name: "Paciente Exemplo 1",
+      name: "Ana Costa",
       document: "",
-      email: "paciente1@exemplo.invalid",
+      email: "ana@email.com",
       phone: "44999990005",
     },
     patient: {
-      name: "Paciente Exemplo 1",
+      name: "Ana Costa",
       document: "555.666.777-88",
     },
     paymentDate: "01/08/2026",
@@ -179,9 +179,9 @@ export const fiscalSendRecords: FiscalSendRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     fiscalPaymentId: 3,
-    recipientName: "Paciente Exemplo 5",
+    recipientName: "Fernanda Lima",
     channel: "E-mail",
-    destination: "paciente5@exemplo.invalid",
+    destination: "fernanda@email.com",
     status: "Entregue",
     sentAt: "02/08/2026, 13:25",
     deliveredAt: "02/08/2026, 13:26",
@@ -189,7 +189,7 @@ export const fiscalSendRecords: FiscalSendRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 2,
     fiscalPaymentId: 3,
-    recipientName: "Paciente Exemplo 5",
+    recipientName: "Fernanda Lima",
     channel: "WhatsApp",
     destination: "44999990003",
     status: "Lido",
@@ -200,7 +200,7 @@ export const fiscalSendRecords: FiscalSendRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 3,
     fiscalPaymentId: 1,
-    recipientName: "Paciente Exemplo 3",
+    recipientName: "Maria Oliveira",
     channel: "Telegram",
     destination: "@mariaoliveira",
     status: "Programado",
@@ -211,7 +211,7 @@ export const fiscalSendRecords: FiscalSendRecord[] = !DEMO_DATA_ON ? [] : [
     fiscalPaymentId: 4,
     recipientName: "Empresa Pagadora Ltda.",
     channel: "E-mail",
-    destination: "financeiro@exemplo.invalid",
+    destination: "financeiro@empresapagadora.com.br",
     status: "Não enviado",
   },
   {

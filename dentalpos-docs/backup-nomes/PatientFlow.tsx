@@ -1,4 +1,4 @@
-﻿import {
+import {
   Box,
   Chip,
   Paper,
@@ -23,17 +23,17 @@ interface PacienteFila {
 const pacientes: PacienteFila[] = [
   {
     id: 1,
-    nome: "Paciente Exemplo 13",
+    nome: "Robson",
     horario: "08:00",
-    profissional: "Dr. Exemplo 4",
+    profissional: "Dr. Carlos",
     sala: "Consultório 1",
     status: "Atendimento finalizado",
   },
   {
     id: 2,
-    nome: "Paciente Exemplo 14",
+    nome: "Mariana",
     horario: "09:00",
-    profissional: "Dra. Exemplo 3",
+    profissional: "Dra. Juliana",
     sala: "Consultório 2",
     status: "Em atendimento",
   },
@@ -41,7 +41,7 @@ const pacientes: PacienteFila[] = [
     id: 3,
     nome: "João",
     horario: "09:30",
-    profissional: "Dr. Exemplo 4",
+    profissional: "Dr. Carlos",
     sala: "Consultório 1",
     status: "Sala em preparação",
   },
@@ -49,7 +49,7 @@ const pacientes: PacienteFila[] = [
     id: 4,
     nome: "Ana",
     horario: "10:00",
-    profissional: "Dra. Exemplo 3",
+    profissional: "Dra. Juliana",
     sala: "Consultório 2",
     status: "Aguardando",
   },

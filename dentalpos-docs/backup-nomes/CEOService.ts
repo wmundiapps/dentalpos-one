@@ -1,4 +1,4 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   CEOAlert,
   CEOAreaScore,
@@ -11,7 +11,7 @@ import type {
 } from "../types/ceo";
 
 export const ceoSummary: CEOSummary = {
-  greeting: "Boa tarde, Dr. Exemplo 1.",
+  greeting: "Boa tarde, Dr. Robson.",
   dateLabel: "02 de agosto de 2026",
   clinicName: "DentalPos Clinical Group",
   generalScore: 826,
@@ -381,7 +381,7 @@ export const ceoMorningItems: CEOMorningItem[] = !DEMO_DATA_ON ? [] : [
     id: 1,
     title: "Confirmar pagamento de entrada",
     description:
-      "Paciente Paciente Exemplo 3 aguarda confirmação financeira para agendamento cirúrgico.",
+      "Paciente Maria Oliveira aguarda confirmação financeira para agendamento cirúrgico.",
     area: "Financeiro",
     priority: "Alta",
     completed: false,
@@ -390,7 +390,7 @@ export const ceoMorningItems: CEOMorningItem[] = !DEMO_DATA_ON ? [] : [
     id: 2,
     title: "Resolver atraso laboratorial",
     description:
-      "O guia cirúrgico do paciente Paciente Exemplo 6 precisa ser liberado hoje.",
+      "O guia cirúrgico do paciente João Ribeiro precisa ser liberado hoje.",
     area: "Laboratório",
     priority: "Crítica",
     completed: false,

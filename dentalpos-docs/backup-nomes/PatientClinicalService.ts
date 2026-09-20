@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   ClinicalEvolutionEntry,
   OdontogramMark,
   PatientProfile,
@@ -9,10 +9,10 @@ const PATIENTS_KEY = "dentalpos.clinical.patients.v2";
 const patientKey = (id: string, suffix: string) => `dentalpos.clinical.${id}.${suffix}.v2`;
 
 const seedPatients: PatientProfile[] = [
-  { id:"p-joao", fullName:"Paciente Exemplo 4", phone:"(44) 99999-0001", treatment:"Implantodontia", lastAppointment:"01/08/2026", status:"Ativo", gender:"Masculino", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() },
-  { id:"p-maria", fullName:"Paciente Exemplo 3", phone:"(44) 99999-0002", treatment:"Ortodontia", lastAppointment:"30/07/2026", status:"Em acompanhamento", gender:"Feminino", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() },
-  { id:"p-carlos", fullName:"Paciente Exemplo 2", phone:"(44) 99999-0003", treatment:"Prótese Dentária", lastAppointment:"25/07/2026", status:"Ativo", gender:"Masculino", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() },
-  { id:"p-ana", fullName:"Paciente Exemplo 1", phone:"(44) 99999-0004", treatment:"Harmonização Orofacial", lastAppointment:"10/05/2026", status:"Inativo", gender:"Feminino", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() },
+  { id:"p-joao", fullName:"João da Silva", phone:"(44) 99999-0001", treatment:"Implantodontia", lastAppointment:"01/08/2026", status:"Ativo", gender:"Masculino", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() },
+  { id:"p-maria", fullName:"Maria Oliveira", phone:"(44) 99999-0002", treatment:"Ortodontia", lastAppointment:"30/07/2026", status:"Em acompanhamento", gender:"Feminino", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() },
+  { id:"p-carlos", fullName:"Carlos Pereira", phone:"(44) 99999-0003", treatment:"Prótese Dentária", lastAppointment:"25/07/2026", status:"Ativo", gender:"Masculino", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() },
+  { id:"p-ana", fullName:"Ana Costa", phone:"(44) 99999-0004", treatment:"Harmonização Orofacial", lastAppointment:"10/05/2026", status:"Inativo", gender:"Feminino", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() },
 ];
 
 function read<T>(key:string, fallback:T):T { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; } }

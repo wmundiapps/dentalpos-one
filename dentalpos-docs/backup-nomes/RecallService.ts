@@ -1,13 +1,13 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { PatientRecall } from "../types/recall";
 
 export const patientRecalls: PatientRecall[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
-    patientName: "Paciente Exemplo 3",
+    patientName: "Maria Oliveira",
     patientCode: "MARI",
     phone: "(44) 99999-0001",
-    professionalName: "Dr. Exemplo 1",
+    professionalName: "Dr. Robson",
     treatment: "Implantodontia",
     lastAppointment: "02/07/2026",
     nextContactDate: "02/08/2026",
@@ -18,10 +18,10 @@ export const patientRecalls: PatientRecall[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 2,
-    patientName: "Paciente Exemplo 2",
+    patientName: "Carlos Pereira",
     patientCode: "CARL",
     phone: "(44) 99999-0002",
-    professionalName: "Dra. Exemplo 2",
+    professionalName: "Dra. Cássia",
     treatment: "Prótese protocolo",
     lastAppointment: "02/06/2026",
     nextContactDate: "02/08/2026",
@@ -31,10 +31,10 @@ export const patientRecalls: PatientRecall[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 3,
-    patientName: "Paciente Exemplo 5",
+    patientName: "Fernanda Lima",
     patientCode: "FERN",
     phone: "(44) 99999-0003",
-    professionalName: "Dra. Exemplo 2",
+    professionalName: "Dra. Cássia",
     treatment: "Ortodontia",
     lastAppointment: "02/05/2026",
     nextContactDate: "02/08/2026",
@@ -44,10 +44,10 @@ export const patientRecalls: PatientRecall[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 4,
-    patientName: "Paciente Exemplo 6",
+    patientName: "João Ribeiro",
     patientCode: "JOAO",
     phone: "(44) 99999-0004",
-    professionalName: "Dr. Exemplo 1",
+    professionalName: "Dr. Robson",
     treatment: "Cirurgia de implante",
     lastAppointment: "02/02/2026",
     nextContactDate: "02/08/2026",
@@ -58,10 +58,10 @@ export const patientRecalls: PatientRecall[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 5,
-    patientName: "Paciente Exemplo 1",
+    patientName: "Ana Costa",
     patientCode: "ANAC",
     phone: "(44) 99999-0005",
-    professionalName: "Dra. Exemplo 3",
+    professionalName: "Dra. Juliana",
     treatment: "Harmonização Orofacial",
     lastAppointment: "02/08/2025",
     nextContactDate: "02/08/2026",

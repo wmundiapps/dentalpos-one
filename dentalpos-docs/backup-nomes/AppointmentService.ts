@@ -1,11 +1,11 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { Appointment } from "../types/appointment";
 
 export const appointments: Appointment[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
-    patientName: "Paciente Exemplo 3",
-    professionalName: "Dr. Exemplo 1",
+    patientName: "Maria Oliveira",
+    professionalName: "Dr. Robson",
     procedure: "Avaliação implantodôntica",
     date: "02/08/2026",
     time: "08:00",
@@ -14,8 +14,8 @@ export const appointments: Appointment[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 2,
-    patientName: "Paciente Exemplo 2",
-    professionalName: "Dr. Exemplo 1",
+    patientName: "Carlos Pereira",
+    professionalName: "Dr. Robson",
     procedure: "Prova de prótese",
     date: "02/08/2026",
     time: "09:00",
@@ -24,8 +24,8 @@ export const appointments: Appointment[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 3,
-    patientName: "Paciente Exemplo 5",
-    professionalName: "Dra. Exemplo 2",
+    patientName: "Fernanda Lima",
+    professionalName: "Dra. Cássia",
     procedure: "Manutenção ortodôntica",
     date: "02/08/2026",
     time: "10:00",
@@ -34,8 +34,8 @@ export const appointments: Appointment[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 4,
-    patientName: "Paciente Exemplo 6",
-    professionalName: "Dr. Exemplo 1",
+    patientName: "João Ribeiro",
+    professionalName: "Dr. Robson",
     procedure: "Cirurgia de implante",
     date: "02/08/2026",
     time: "11:00",
@@ -44,8 +44,8 @@ export const appointments: Appointment[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 5,
-    patientName: "Paciente Exemplo 1",
-    professionalName: "Dra. Exemplo 2",
+    patientName: "Ana Costa",
+    professionalName: "Dra. Cássia",
     procedure: "Avaliação clínica",
     date: "02/08/2026",
     time: "14:00",

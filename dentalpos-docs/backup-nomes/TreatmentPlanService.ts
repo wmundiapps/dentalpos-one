@@ -1,4 +1,4 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   PaymentSimulation,
   TreatmentItem,
@@ -8,9 +8,9 @@ import type {
 export const treatmentPlans: TreatmentPlan[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
-    patientName: "Paciente Exemplo 3",
+    patientName: "Maria Oliveira",
     patientCode: "MARI",
-    professionalName: "Dr. Exemplo 1",
+    professionalName: "Dr. Robson",
     title: "Reabilitação implantossuportada",
     createdAt: "02/08/2026",
     validUntil: "17/08/2026",
@@ -72,9 +72,9 @@ export const treatmentPlans: TreatmentPlan[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 2,
-    patientName: "Paciente Exemplo 2",
+    patientName: "Carlos Pereira",
     patientCode: "CARL",
-    professionalName: "Dra. Exemplo 2",
+    professionalName: "Dra. Cássia",
     title: "Protocolo superior",
     createdAt: "01/08/2026",
     validUntil: "16/08/2026",

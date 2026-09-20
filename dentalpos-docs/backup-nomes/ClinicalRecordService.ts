@@ -1,12 +1,12 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type { ClinicalRecord } from "../types/clinicalRecord";
 
 export const clinicalRecords: ClinicalRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
-    patientName: "Paciente Exemplo 3",
+    patientName: "Maria Oliveira",
     patientCode: "MARI",
-    professionalName: "Dr. Exemplo 1",
+    professionalName: "Dr. Robson",
     mainComplaint:
       "Dificuldade mastigatória e ausência de dentes posteriores.",
     diagnosis:
@@ -43,7 +43,7 @@ export const clinicalRecords: ClinicalRecord[] = !DEMO_DATA_ON ? [] : [
       {
         id: 1,
         date: "01/08/2026",
-        professionalName: "Dr. Exemplo 1",
+        professionalName: "Dr. Robson",
         procedure: "Avaliação inicial",
         description:
           "Paciente avaliada clinicamente. Solicitada tomografia para planejamento.",
@@ -51,7 +51,7 @@ export const clinicalRecords: ClinicalRecord[] = !DEMO_DATA_ON ? [] : [
       {
         id: 2,
         date: "02/08/2026",
-        professionalName: "Dr. Exemplo 1",
+        professionalName: "Dr. Robson",
         procedure: "Planejamento implantodôntico",
         description:
           "Exame analisado e proposta terapêutica apresentada à paciente.",
@@ -60,9 +60,9 @@ export const clinicalRecords: ClinicalRecord[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 2,
-    patientName: "Paciente Exemplo 2",
+    patientName: "Carlos Pereira",
     patientCode: "CARL",
-    professionalName: "Dra. Exemplo 2",
+    professionalName: "Dra. Cássia",
     mainComplaint:
       "Insatisfação com prótese removível e dificuldade para sorrir.",
     diagnosis:
@@ -85,7 +85,7 @@ export const clinicalRecords: ClinicalRecord[] = !DEMO_DATA_ON ? [] : [
       {
         id: 3,
         date: "31/07/2026",
-        professionalName: "Dra. Exemplo 2",
+        professionalName: "Dra. Cássia",
         procedure: "Consulta inicial",
         description:
           "Realizada avaliação clínica, fotografias e solicitação de exames.",

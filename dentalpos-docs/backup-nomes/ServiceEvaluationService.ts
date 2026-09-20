@@ -1,4 +1,4 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   ServiceEvaluation,
 } from "../types/serviceEvaluation";
@@ -6,9 +6,9 @@ import type {
 export const serviceEvaluations: ServiceEvaluation[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
-    patientName: "Paciente Exemplo 3",
+    patientName: "Maria Oliveira",
     patientCode: "MARI",
-    professionalName: "Dr. Exemplo 1",
+    professionalName: "Dr. Robson",
     appointmentDate: "02/08/2026",
     procedure: "Avaliação implantodôntica",
     channel: "WhatsApp",
@@ -26,9 +26,9 @@ export const serviceEvaluations: ServiceEvaluation[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 2,
-    patientName: "Paciente Exemplo 2",
+    patientName: "Carlos Pereira",
     patientCode: "CARL",
-    professionalName: "Dra. Exemplo 2",
+    professionalName: "Dra. Cássia",
     appointmentDate: "02/08/2026",
     procedure: "Prova de prótese",
     channel: "Terminal da clínica",
@@ -45,9 +45,9 @@ export const serviceEvaluations: ServiceEvaluation[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 3,
-    patientName: "Paciente Exemplo 5",
+    patientName: "Fernanda Lima",
     patientCode: "FERN",
-    professionalName: "Dra. Exemplo 2",
+    professionalName: "Dra. Cássia",
     appointmentDate: "02/08/2026",
     procedure: "Manutenção ortodôntica",
     channel: "E-mail",
@@ -57,9 +57,9 @@ export const serviceEvaluations: ServiceEvaluation[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 4,
-    patientName: "Paciente Exemplo 6",
+    patientName: "João Ribeiro",
     patientCode: "JOAO",
-    professionalName: "Dr. Exemplo 1",
+    professionalName: "Dr. Robson",
     appointmentDate: "02/08/2026",
     procedure: "Cirurgia de implante",
     channel: "SMS",

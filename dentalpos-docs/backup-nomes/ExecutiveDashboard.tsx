@@ -1,4 +1,4 @@
-﻿import {
+import {
   Box,
   Chip,
   LinearProgress,
@@ -44,7 +44,7 @@ interface ProcedurePerformance {
 const professionalProduction: ProfessionalProduction[] = [
   {
     id: 1,
-    name: "Dr. Exemplo 1",
+    name: "Dr. Robson",
     specialty: "Implantodontia e Prótese",
     appointments: 14,
     production: 28500,
@@ -52,7 +52,7 @@ const professionalProduction: ProfessionalProduction[] = [
   },
   {
     id: 2,
-    name: "Dra. Exemplo 2",
+    name: "Dra. Cássia",
     specialty: "Ortodontia e Clínica",
     appointments: 18,
     production: 17400,
@@ -60,7 +60,7 @@ const professionalProduction: ProfessionalProduction[] = [
   },
   {
     id: 3,
-    name: "Dra. Exemplo 3",
+    name: "Dra. Juliana",
     specialty: "Harmonização Orofacial",
     appointments: 9,
     production: 12800,
@@ -68,7 +68,7 @@ const professionalProduction: ProfessionalProduction[] = [
   },
   {
     id: 4,
-    name: "Dr. Exemplo 5",
+    name: "Dr. Marcelo",
     specialty: "Cirurgia Oral",
     appointments: 6,
     production: 9600,
@@ -111,19 +111,19 @@ const clinicRooms = [
   {
     id: 1,
     room: "Consultório 1",
-    professional: "Dr. Exemplo 1",
+    professional: "Dr. Robson",
     occupancy: 94,
   },
   {
     id: 2,
     room: "Consultório 2",
-    professional: "Dra. Exemplo 2",
+    professional: "Dra. Cássia",
     occupancy: 89,
   },
   {
     id: 3,
     room: "Consultório 3",
-    professional: "Dra. Exemplo 3",
+    professional: "Dra. Juliana",
     occupancy: 71,
   },
   {

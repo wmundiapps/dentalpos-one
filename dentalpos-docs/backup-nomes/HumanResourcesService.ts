@@ -1,4 +1,4 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   AttendanceRecord,
   DisciplinaryAction,
@@ -13,7 +13,7 @@ import type {
 export const employees: Employee[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
-    name: "Paciente Exemplo 9",
+    name: "Roberto Almeida",
     employeeCode: "COL-001",
     category: "Cirurgião-dentista",
     department: "Clínico",
@@ -23,16 +23,16 @@ export const employees: Employee[] = !DEMO_DATA_ON ? [] : [
     admissionDate: "10/01/2025",
     baseSalary: 0,
     monthlyWorkload: 120,
-    supervisor: "Dr. Exemplo 1",
-    email: "paciente9@exemplo.invalid",
+    supervisor: "Dr. Robson",
+    email: "roberto@dentalpos.com.br",
     phone: "(44) 99999-1001",
     bankName: "Banco Digital",
     bankAccount: "000123-4",
-    pixKey: "paciente9@exemplo.invalid",
+    pixKey: "roberto@dentalpos.com.br",
   },
   {
     id: 2,
-    name: "Dra. Exemplo 3",
+    name: "Juliana Martins",
     employeeCode: "COL-002",
     category: "Recepção",
     department: "Atendimento",
@@ -43,7 +43,7 @@ export const employees: Employee[] = !DEMO_DATA_ON ? [] : [
     baseSalary: 2450,
     monthlyWorkload: 220,
     supervisor: "Coordenação Administrativa",
-    email: "profissional3@exemplo.invalid",
+    email: "juliana@dentalpos.com.br",
     phone: "(44) 99999-1002",
     bankName: "Banco do Brasil",
     bankAccount: "45678-9",
@@ -53,7 +53,7 @@ export const employees: Employee[] = !DEMO_DATA_ON ? [] : [
   },
   {
     id: 3,
-    name: "Paciente Exemplo 7",
+    name: "Carla Souza",
     employeeCode: "COL-003",
     category: "ASB",
     department: "Clínico",
@@ -65,13 +65,13 @@ export const employees: Employee[] = !DEMO_DATA_ON ? [] : [
     baseSalary: 2300,
     monthlyWorkload: 220,
     supervisor: "Responsável Técnico",
-    email: "paciente7@exemplo.invalid",
+    email: "carla@dentalpos.com.br",
     phone: "(44) 99999-1003",
     pixKey: "44999991003",
   },
   {
     id: 4,
-    name: "Paciente Exemplo 8",
+    name: "Marcos Ferreira",
     employeeCode: "COL-004",
     category: "Técnico em Prótese Dentária",
     department: "Laboratório",
@@ -82,15 +82,15 @@ export const employees: Employee[] = !DEMO_DATA_ON ? [] : [
     baseSalary: 6800,
     monthlyWorkload: 176,
     supervisor: "Coordenação do Laboratório",
-    email: "paciente8@exemplo.invalid",
+    email: "marcos@dentalpos.com.br",
     phone: "(44) 99999-1004",
     bankName: "Banco Digital",
     bankAccount: "99887-1",
-    pixKey: "laboratorio@exemplo.invalid",
+    pixKey: "marcos@laboratorio.com.br",
   },
   {
     id: 5,
-    name: "Paciente Exemplo 10",
+    name: "Aparecida Oliveira",
     employeeCode: "COL-005",
     category: "Zeladoria",
     department: "Serviços Gerais",
@@ -101,7 +101,7 @@ export const employees: Employee[] = !DEMO_DATA_ON ? [] : [
     baseSalary: 1980,
     monthlyWorkload: 220,
     supervisor: "Coordenação Administrativa",
-    email: "paciente10@exemplo.invalid",
+    email: "aparecida@dentalpos.com.br",
     phone: "(44) 99999-1005",
     unionName: "Sindicato da categoria",
     nextVacationDate: "01/09/2026",
@@ -112,7 +112,7 @@ export const attendanceRecords: AttendanceRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 2,
-    employeeName: "Dra. Exemplo 3",
+    employeeName: "Juliana Martins",
     date: "02/08/2026",
     clockIn: "07:58",
     lunchOut: "12:02",
@@ -126,7 +126,7 @@ export const attendanceRecords: AttendanceRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 2,
     employeeId: 3,
-    employeeName: "Paciente Exemplo 7",
+    employeeName: "Carla Souza",
     date: "02/08/2026",
     clockIn: "08:17",
     lunchOut: "12:05",
@@ -141,7 +141,7 @@ export const attendanceRecords: AttendanceRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 3,
     employeeId: 4,
-    employeeName: "Paciente Exemplo 8",
+    employeeName: "Marcos Ferreira",
     date: "02/08/2026",
     clockIn: "08:00",
     lunchOut: "12:00",
@@ -155,7 +155,7 @@ export const attendanceRecords: AttendanceRecord[] = !DEMO_DATA_ON ? [] : [
   {
     id: 4,
     employeeId: 5,
-    employeeName: "Paciente Exemplo 10",
+    employeeName: "Aparecida Oliveira",
     date: "02/08/2026",
     workedHours: 0,
     overtimeHours: 0,
@@ -169,7 +169,7 @@ export const payrollEntries: PayrollEntry[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 2,
-    employeeName: "Dra. Exemplo 3",
+    employeeName: "Juliana Martins",
     description: "Salário-base",
     type: "Provento",
     value: 2450,
@@ -178,7 +178,7 @@ export const payrollEntries: PayrollEntry[] = !DEMO_DATA_ON ? [] : [
   {
     id: 2,
     employeeId: 2,
-    employeeName: "Dra. Exemplo 3",
+    employeeName: "Juliana Martins",
     description: "Bônus de desempenho",
     type: "Provento",
     value: 350,
@@ -187,7 +187,7 @@ export const payrollEntries: PayrollEntry[] = !DEMO_DATA_ON ? [] : [
   {
     id: 3,
     employeeId: 2,
-    employeeName: "Dra. Exemplo 3",
+    employeeName: "Juliana Martins",
     description: "Vale-transporte",
     type: "Desconto",
     value: 147,
@@ -196,7 +196,7 @@ export const payrollEntries: PayrollEntry[] = !DEMO_DATA_ON ? [] : [
   {
     id: 4,
     employeeId: 3,
-    employeeName: "Paciente Exemplo 7",
+    employeeName: "Carla Souza",
     description: "Salário-base",
     type: "Provento",
     value: 2300,
@@ -205,7 +205,7 @@ export const payrollEntries: PayrollEntry[] = !DEMO_DATA_ON ? [] : [
   {
     id: 5,
     employeeId: 4,
-    employeeName: "Paciente Exemplo 8",
+    employeeName: "Marcos Ferreira",
     description: "Prestação de serviços PJ",
     type: "Provento",
     value: 6800,
@@ -214,7 +214,7 @@ export const payrollEntries: PayrollEntry[] = !DEMO_DATA_ON ? [] : [
   {
     id: 6,
     employeeId: 5,
-    employeeName: "Paciente Exemplo 10",
+    employeeName: "Aparecida Oliveira",
     description: "Adiantamento salarial",
     type: "Desconto",
     value: 500,
@@ -251,7 +251,7 @@ export const hrDocuments: HRDocument[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 3,
-    employeeName: "Paciente Exemplo 7",
+    employeeName: "Carla Souza",
     type: "Contrato de experiência",
     title: "Contrato de experiência — primeiro período",
     issuedAt: "15/07/2026",
@@ -262,7 +262,7 @@ export const hrDocuments: HRDocument[] = !DEMO_DATA_ON ? [] : [
   {
     id: 2,
     employeeId: 4,
-    employeeName: "Paciente Exemplo 8",
+    employeeName: "Marcos Ferreira",
     type: "Contrato PJ",
     title: "Contrato de prestação de serviços laboratoriais",
     issuedAt: "01/02/2026",
@@ -273,7 +273,7 @@ export const hrDocuments: HRDocument[] = !DEMO_DATA_ON ? [] : [
   {
     id: 3,
     employeeId: 2,
-    employeeName: "Dra. Exemplo 3",
+    employeeName: "Juliana Martins",
     type: "Promoção",
     title: "Promoção para líder de recepção",
     issuedAt: "01/08/2026",
@@ -286,7 +286,7 @@ export const disciplinaryActions: DisciplinaryAction[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 2,
-    employeeName: "Dra. Exemplo 3",
+    employeeName: "Juliana Martins",
     type: "Orientação",
     date: "15/06/2026",
     reason:
@@ -296,7 +296,7 @@ export const disciplinaryActions: DisciplinaryAction[] = !DEMO_DATA_ON ? [] : [
   {
     id: 2,
     employeeId: 4,
-    employeeName: "Paciente Exemplo 8",
+    employeeName: "Marcos Ferreira",
     type: "Advertência escrita",
     date: "20/07/2026",
     reason:
@@ -309,7 +309,7 @@ export const vacationControls: VacationControl[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 2,
-    employeeName: "Dra. Exemplo 3",
+    employeeName: "Juliana Martins",
     acquisitionStart: "05/03/2025",
     acquisitionEnd: "04/03/2026",
     concessionDeadline: "04/03/2027",
@@ -322,7 +322,7 @@ export const vacationControls: VacationControl[] = !DEMO_DATA_ON ? [] : [
   {
     id: 2,
     employeeId: 5,
-    employeeName: "Paciente Exemplo 10",
+    employeeName: "Aparecida Oliveira",
     acquisitionStart: "08/05/2025",
     acquisitionEnd: "07/05/2026",
     concessionDeadline: "07/05/2027",
@@ -338,7 +338,7 @@ export const employeeBenefits: EmployeeBenefit[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     employeeId: 2,
-    employeeName: "Dra. Exemplo 3",
+    employeeName: "Juliana Martins",
     description: "Vale-alimentação",
     monthlyValue: 620,
     employeeDiscount: 0,
@@ -347,7 +347,7 @@ export const employeeBenefits: EmployeeBenefit[] = !DEMO_DATA_ON ? [] : [
   {
     id: 2,
     employeeId: 2,
-    employeeName: "Dra. Exemplo 3",
+    employeeName: "Juliana Martins",
     description: "Plano de saúde",
     monthlyValue: 480,
     employeeDiscount: 120,
@@ -356,7 +356,7 @@ export const employeeBenefits: EmployeeBenefit[] = !DEMO_DATA_ON ? [] : [
   {
     id: 3,
     employeeId: 3,
-    employeeName: "Paciente Exemplo 7",
+    employeeName: "Carla Souza",
     description: "Vale-transporte",
     monthlyValue: 280,
     employeeDiscount: 138,

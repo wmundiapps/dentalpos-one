@@ -1,4 +1,4 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   CourseCurrency,
   EducationalCourse,
@@ -8,7 +8,7 @@ export const educationalCourses: EducationalCourse[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
     title: "Introdução ao Sistema Multiple W48",
-    teacherName: "Prof. Exemplo 1",
+    teacherName: "Prof. Me. Robson Ravel",
     category: "Implantodontia",
     description:
       "Fundamentos, indicações clínicas e aplicações protéticas do sistema Multiple W48.",
@@ -46,7 +46,7 @@ export const educationalCourses: EducationalCourse[] = !DEMO_DATA_ON ? [] : [
   {
     id: 3,
     title: "Fotografia Odontológica Aplicada",
-    teacherName: "Dra. Exemplo 7",
+    teacherName: "Dra. Mariana Costa",
     category: "Fotografia",
     description:
       "Protocolo prático para documentação clínica, marketing e acompanhamento de tratamentos.",

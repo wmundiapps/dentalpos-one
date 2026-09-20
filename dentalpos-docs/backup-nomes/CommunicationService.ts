@@ -1,4 +1,4 @@
-﻿import { DEMO_DATA_ON } from "../utils/demoMode";
+import { DEMO_DATA_ON } from "../utils/demoMode";
 import type {
   CommunicationChannel,
   CommunicationMessage,
@@ -7,7 +7,7 @@ import type {
 export const communicationMessages: CommunicationMessage[] = !DEMO_DATA_ON ? [] : [
   {
     id: 1,
-    recipientName: "Paciente Exemplo 3",
+    recipientName: "Maria Oliveira",
     recipientContact: "(44) 99999-0001",
     channel: "WhatsApp",
     subject: "Confirmação de consulta",
@@ -18,8 +18,8 @@ export const communicationMessages: CommunicationMessage[] = !DEMO_DATA_ON ? [] 
   },
   {
     id: 2,
-    recipientName: "Paciente Exemplo 2",
-    recipientContact: "paciente2@exemplo.invalid",
+    recipientName: "Carlos Pereira",
+    recipientContact: "carlos@email.com",
     channel: "E-mail",
     subject: "Orçamento do tratamento",
     message:
@@ -29,7 +29,7 @@ export const communicationMessages: CommunicationMessage[] = !DEMO_DATA_ON ? [] 
   },
   {
     id: 3,
-    recipientName: "Paciente Exemplo 5",
+    recipientName: "Fernanda Lima",
     recipientContact: "(44) 99999-0003",
     channel: "SMS",
     subject: "Lembrete de retorno",

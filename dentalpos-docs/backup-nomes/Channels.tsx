@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Paper, TextField, Typography } from "@mui/material";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import SmsIcon from "@mui/icons-material/Sms";
@@ -32,7 +32,7 @@ const CHANNELS: ChannelDef[] = [
   },
   {
     key: "EMAIL", name: "E-mail", icon: <EmailIcon />,
-    addressLabel: "E-mail remetente", addressHelp: "Ex.: clinica@exemplo.invalid",
+    addressLabel: "E-mail remetente", addressHelp: "Ex.: contato@suaclinica.com.br",
     fields: [{ key: "apiKey", label: "Chave de acesso", secret: true }],
     note: "O dom\u00ednio do e-mail precisa estar verificado no servi\u00e7o de envio.",
   },

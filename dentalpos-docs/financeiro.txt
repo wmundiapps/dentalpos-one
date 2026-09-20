@@ -1,0 +1,114 @@
+﻿BASE PARA PAGAMENTOS
+Arquivos backend: 97
+
+=== ARQUIVOS DE FINANCEIRO / PAGAMENTO ===
+backend\src\controllers\clinicalController.ts
+backend\src\controllers\clinicalDocumentController.ts
+backend\src\controllers\clinicalFileController.ts
+backend\src\controllers\clinicalRecordController.ts
+backend\src\controllers\clinicController.ts
+backend\src\controllers\doctorController.ts
+backend\src\controllers\financialAlertResolutionController.ts
+backend\src\controllers\financialController.ts
+backend\src\controllers\paymentController.ts
+backend\src\controllers\paymentProviderController.ts
+backend\src\controllers\specializedClinicalController.ts
+backend\src\controllers\specialtyClinicalController.ts
+backend\src\controllers\treatmentPlanController.ts
+backend\src\routes\clinicalRecordRoutes.ts
+backend\src\routes\specializedClinicalRoutes.ts
+backend\src\routes\specialtyClinicalRoutes.ts
+backend\src\services\clinicalRecordService.ts
+backend\src\services\clinicalSignatureAdapter.ts
+backend\src\services\clinicalStorageService.ts
+backend\src\services\financialAlertResolutionService.ts
+backend\src\services\paymentAdapterService.ts
+backend\src\services\specializedClinicalService.ts
+backend\src\types\clinicalRecord.ts
+backend\src\types\financialAlertResolution.ts
+backend\src\types\specializedClinical.ts
+backend\src\types\specialtyClinical.ts
+backend\src\validation\specializedClinicalSchemas.ts
+backend\src\validation\specialtyClinicalValidation.ts
+backend\src\validators\clinicalFileValidator.ts
+backend\src\validators\clinicalRecordValidator.ts
+
+=== MODELOS NO SCHEMA ===
+model Clinic {
+model User {
+model Doctor {
+model Patient {
+model Schedule {
+model Appointment {
+model AppointmentHistory {
+model AppointmentReminder {
+model Budget {
+model BudgetRevision {
+model Payment {
+model FinancialEntry {
+model PaymentProviderConfig {
+model Supplier {
+model AccountingAccount {
+model CostCenter {
+model TaxObligation {
+model AccountantPortalAccess {
+model Feedback {
+model ClinicalEvolution {
+model PatientClinicalRecord {
+model PatientClinicalRecordRevision {
+model ClinicalCustomFieldDefinition {
+model OdontogramMark {
+model TreatmentItem {
+model TreatmentPlanRevision {
+model LaboratoryWork {
+model LaboratoryWorkHistory {
+model DentalDesignCase {
+model Permission {
+model AccessProfile {
+model AccessProfilePermission {
+model UserAccessProfile {
+model AuditLog {
+model RefreshToken {
+model PasswordResetToken {
+model HREmployee {
+model HRAttendance {
+model HRPayrollEntry {
+model HRPayrollClosing {
+model HRVacation {
+model HRDocument {
+model HRDisciplinaryAction {
+model RevahContact {
+model RevahCampaign {
+model RevahMessage {
+model SalesLead {
+model SalesProduct {
+model ClinicUnit {
+model TenantStorageConfig {
+model TenantFeatureFlag {
+model RevahSender {
+model LeadImport {
+model IntegrationWebhookEvent {
+model BankConnection {
+model ExpenseImportRule {
+model FinancialDocument {
+model RevahAutomation {
+model SalesLeadEvent {
+model RevahConversation {
+model RevahConversationMessage {
+model SmartSchedulingPolicy {
+model SmartProcedureRule {
+model SmartLaboratoryRule {
+model PatientSchedulingPreference {
+model SmartSchedulingDecision {
+model ClinicalDocumentTemplate {
+model ClinicalDocument {
+model ClinicalDocumentHistory {
+model ClinicalFileCategory {
+model ClinicalFile {
+model SpecializedClinicalRecord {
+model SpecializedClinicalEvolution {
+model SpecializedClinicalAttachment {
+model FinancialAlertResolution {
+model OperationalAlertResolution {
+model PlatformFeedback {
+model DoctorDocument {
