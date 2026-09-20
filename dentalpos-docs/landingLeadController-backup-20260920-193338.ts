@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import { dispatchRevah } from '../services/revahProviderService'
 
 const ADMIN_EMAIL = 'contato@dentalpos.com.br'
-const EXPERIENCE_URL = 'https://app.dentalpos.com.br/'
+const EXPERIENCE_URL = 'https://dentalpos-one.vercel.app/'
 
 function resendCredentials() {
   const apiKey = process.env.RESEND_API_KEY || ''

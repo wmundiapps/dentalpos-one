@@ -249,7 +249,7 @@ export async function register(req: Request, res: Response) {
           '',
           `Sua demonstração gratuita do DentalPos One para a clínica "${clinicName}" está pronta.`,
           '',
-          `Acesse: https://app.dentalpos.com.br/`,
+          `Acesse: https://dentalpos-one.vercel.app/`,
           `E-mail de login: ${created.email}`,
           `Senha: a que você cadastrou agora`,
           validUntil ? `Demo gratuita válida até: ${validUntil}` : null,
