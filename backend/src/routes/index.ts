@@ -31,6 +31,7 @@ import * as salesController from '../controllers/salesController'
 import * as platformController from '../controllers/platformController'
 import * as revahSenderController from '../controllers/revahSenderController'
 import * as aiController from '../controllers/aiController'
+import * as platformBillingController from '../controllers/platformBillingController'
 import * as revahChatbotController from '../controllers/revahChatbotController'
 import * as leadDiscoveryController from '../controllers/leadDiscoveryController'
 import * as webhookController from '../controllers/webhookController'
@@ -73,6 +74,7 @@ router.get('/auth/me', authMiddleware, tenantMiddleware, sessionController.me)
 // PUBLIC WEBHOOKS
 router.post('/webhooks/asaas', webhookController.asaas)
 router.post('/webhooks/stripe', webhookController.stripe)
+router.post('/webhooks/platform-asaas', platformBillingController.webhook)
 router.all('/cron/reminders', cronController.reminders)
 
 // PUBLIC BOOKING
@@ -347,6 +349,9 @@ router.get('/revah/senders', requirePermission('marketing.view'), revahSenderCon
 router.get('/ai/balance', requirePermission('dashboard.view'), aiController.balance)
 router.get('/ai/statement', requirePermission('dashboard.view'), aiController.statement)
 router.post('/ai/run', requirePermission('dashboard.view'), aiController.run)
+router.get('/credits/packages', requirePermission('dashboard.view'), platformBillingController.packages)
+router.get('/credits/purchases', requirePermission('dashboard.view'), platformBillingController.purchases)
+router.post('/credits/purchase', requirePermission('dashboard.view'), platformBillingController.purchase)
 router.put('/revah/senders', requirePermission('marketing.send'), revahSenderController.upsert)
 router.get('/lead-discovery/imports', requirePermission('sales.view'), leadDiscoveryController.imports)
 router.post('/lead-discovery/imports', requirePermission('sales.edit'), leadDiscoveryController.createImport)
