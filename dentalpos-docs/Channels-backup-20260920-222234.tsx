@@ -6,7 +6,6 @@ import EmailIcon from "@mui/icons-material/Email";
 import TelegramIcon from "@mui/icons-material/Telegram";
 import PhoneInTalkIcon from "@mui/icons-material/PhoneInTalk";
 import SendIcon from "@mui/icons-material/Send";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import type { ReactNode } from "react";
 import PageHeader from "../components/PageHeader";
 import { listSenders, saveSender, sendTest, type RevahSender } from "../services/RevahSenderApi";
@@ -56,15 +55,6 @@ const CHANNELS: ChannelDef[] = [
 ];
 
 // Custo por canal. SMS e voz: creditos vendidos pela DentalPos One (a clinica nao usa chave propria).
-// Pergunta pronta por canal. O botao "Como configurar" abre o assistente ja com ela.
-const AJUDA: Record<string, string> = {
-  WHATSAPP: "Explique em passo a passo simples, para um dentista sem conhecimento tecnico, como registrar o numero da clinica na WhatsApp Business Platform da Meta e obter o ID do numero e o token de acesso permanente. Avise que o numero nao pode estar em uso no WhatsApp comum nem no WhatsApp Business, e que a Meta cobra por mensagem no cartao da clinica.",
-  EMAIL: "Explique de forma simples como obter a chave de acesso do servico de e-mail e por que o dominio do e-mail precisa estar verificado para as mensagens nao cairem em spam.",
-  TELEGRAM: "Explique em passo a passo simples como criar um bot no Telegram pelo BotFather e obter a chave do bot. Avise que so funciona para pacientes que iniciaram conversa com o bot.",
-  SMS: "Explique como funciona o envio de SMS pela clinica e por que ele exige pacote de creditos comprado na DentalPos One.",
-  VOICE: "Explique como funciona a ligacao automatica com mensagem falada para o paciente e por que ela exige pacote de creditos comprado na DentalPos One.",
-};
-
 const COSTS: Record<string, { sev: "success" | "info" | "warning"; text: string }> = {
   EMAIL: { sev: "success", text: "Gratuito, inclusive na demonstra\u00e7\u00e3o." },
   TELEGRAM: { sev: "success", text: "Gratuito. O Telegram n\u00e3o cobra por mensagem." },
@@ -166,7 +156,6 @@ export default function Channels() {
                 {COSTS[def.key] && <Alert severity={COSTS[def.key].sev} sx={{ mt: 1.5 }}>{COSTS[def.key].text}</Alert>}
                 <Box sx={{ display: "flex", gap: 1, mt: 2, flexWrap: "wrap" }}>
                   <Button size="small" variant="contained" disabled={def.key === "SMS" || def.key === "VOICE"} onClick={() => openEdit(def)}>{row ? "Atualizar" : "Configurar"}</Button>
-                  <Button size="small" startIcon={<AutoAwesomeIcon />} onClick={() => { window.location.href = `/assistente-ia?p=${encodeURIComponent(AJUDA[def.key] || "")}`; }}>Como configurar</Button>
                   <Button size="small" startIcon={<SendIcon />} disabled={!ativo} onClick={() => { setTest(def); setTestTo(""); setNotice(""); setError(""); }}>Enviar teste</Button>
                 </Box>
               </Paper>

@@ -39,6 +39,16 @@ export default function AiAssistant() {
   }, []);
   useEffect(() => { void carregar(); }, [carregar]);
 
+  // Pergunta vinda de outra tela (ex.: botao "Como configurar" nos Canais de Envio).
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("p");
+    if (!p) return;
+    setPrompt(p);
+    void executar(p, "TUTORIAL_META");
+    window.history.replaceState({}, "", "/assistente-ia");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const executar = async (texto: string, tipo: string) => {
     if (!texto.trim()) return;
     setBusy(true); setError(""); setResposta("");
