@@ -45,6 +45,7 @@ const formatCurrency = (value: number) =>
 
 export default function CRM() {
   const [leads, setLeads] = useState<SalesLead5787[]>([]);
+  const [crmFilter, setCrmFilter] = useState<"" | "ATIVOS" | "APROVADOS">("");
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -112,9 +113,9 @@ export default function CRM() {
           mb: 3,
         }}
       >
-        <SummaryCard title="Leads cadastrados" value={String(leads.length)} />
-        <SummaryCard title="Valor do funil" value={formatCurrency(totalPipeline)} />
-        <SummaryCard title="Valor aprovado" value={formatCurrency(approvedValue)} />
+        <SummaryCard title="Leads cadastrados" value={String(leads.length)} onClick={() => setCrmFilter("")} active={crmFilter === ""} />
+        <SummaryCard title="Valor do funil" value={formatCurrency(totalPipeline)} onClick={() => setCrmFilter(crmFilter === "ATIVOS" ? "" : "ATIVOS")} active={crmFilter === "ATIVOS"} />
+        <SummaryCard title="Valor aprovado" value={formatCurrency(approvedValue)} onClick={() => setCrmFilter(crmFilter === "APROVADOS" ? "" : "APROVADOS")} active={crmFilter === "APROVADOS"} />
       </Box>
 
       <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1.5 }}>
@@ -134,7 +135,7 @@ export default function CRM() {
         </Paper>
       ) : (
         <Box sx={{ display: "flex", gap: 2, overflowX: "auto", pb: 2 }}>
-          {stages.map((stage) => {
+          {stages.filter((stage) => crmFilter === "APROVADOS" ? ["WON", "CONVERTED"].includes(stage.code) : crmFilter === "ATIVOS" ? stage.code !== "LOST" : true).map((stage) => {
             const stageLeads = leads.filter((lead) => lead.stage === stage.code);
             const stageValue = stageLeads.reduce(
               (sum, lead) => sum + Number(lead.estimatedValue || 0),
@@ -285,15 +286,15 @@ function LeadCard({
   );
 }
 
-function SummaryCard({ title, value }: { title: string; value: string }) {
+function SummaryCard({ title, value, onClick, active }: { title: string; value: string; onClick?: () => void; active?: boolean }) {
   return (
     <Paper
-      elevation={0}
+      elevation={0} onClick={onClick}
       sx={{
         p: 3,
         borderRadius: 3,
         border: "1px solid",
-        borderColor: "divider",
+        borderColor: active ? "primary.main" : "divider", cursor: onClick ? "pointer" : "default",
       }}
     >
       <Typography variant="body2" color="text.secondary">
