@@ -30,7 +30,6 @@ import * as revahController from '../controllers/revahController'
 import * as salesController from '../controllers/salesController'
 import * as platformController from '../controllers/platformController'
 import * as revahSenderController from '../controllers/revahSenderController'
-import * as aiController from '../controllers/aiController'
 import * as revahChatbotController from '../controllers/revahChatbotController'
 import * as leadDiscoveryController from '../controllers/leadDiscoveryController'
 import * as webhookController from '../controllers/webhookController'
@@ -344,9 +343,6 @@ router.get('/platform/storage', requirePermission('settings.view'), platformCont
 router.get('/platform/readiness', requireWmundiStaff, platformReadinessController.readiness)
 router.put('/platform/storage', requirePermission('settings.edit'), platformController.setStorage)
 router.get('/revah/senders', requirePermission('marketing.view'), revahSenderController.index)
-router.get('/ai/balance', requirePermission('dashboard.view'), aiController.balance)
-router.get('/ai/statement', requirePermission('dashboard.view'), aiController.statement)
-router.post('/ai/run', requirePermission('dashboard.view'), aiController.run)
 router.put('/revah/senders', requirePermission('marketing.send'), revahSenderController.upsert)
 router.get('/lead-discovery/imports', requirePermission('sales.view'), leadDiscoveryController.imports)
 router.post('/lead-discovery/imports', requirePermission('sales.edit'), leadDiscoveryController.createImport)

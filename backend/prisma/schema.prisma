@@ -2293,7 +2293,7 @@ model CreditLedger {
   referenceType  String?
   referenceId    String?
   actorId        String?
-  idempotencyKey String?
+  idempotencyKey String?  @unique
   createdAt      DateTime @default(now()) @db.Timestamp(3)
 
   @@index([walletId, createdAt])
@@ -2329,4 +2329,17 @@ model CreditPurchase {
   updatedAt        DateTime  @default(now()) @db.Timestamp(3)
 
   @@index([clinicId, status])
+}
+
+model PlanAllowance {
+  id          String   @id
+  plan        String
+  kind        String
+  monthlyFree Decimal  @default(0) @db.Decimal(14, 4)
+  maxPerTask  Int?
+  notes       String?
+  createdAt   DateTime @default(now()) @db.Timestamp(3)
+  updatedAt   DateTime @default(now()) @db.Timestamp(3)
+
+  @@unique([plan, kind])
 }
