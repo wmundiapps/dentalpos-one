@@ -70,7 +70,7 @@ const statusOptions: PatientStatus[] = ["Ativo", "Em acompanhamento", "Inativo"]
 export default function Patients() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [quickFilter, setQuickFilter] = useState<"Todos"|"Ativos"|"Em tratamento"|"Inadimplentes"|"Novos no mês"|"Finalizados">("Todos");
+  const [quickFilter, setQuickFilter] = useState<"Todos"|"Ativos"|"Em tratamento"|"Inadimplentes"|"Novos no mês"|"Finalizados">((new URLSearchParams(window.location.search).get("filtro") || "Todos") as any);
   const [patients, setPatients] = useState<BackendPatient[]>([]);
   const [treatmentStatusByPatient, setTreatmentStatusByPatient] = useState<Record<string,{hasTreatment:boolean;isFinished:boolean}>>({});
   const [loading, setLoading] = useState(true);

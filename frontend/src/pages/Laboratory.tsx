@@ -44,7 +44,7 @@ export default function Laboratory(){
   const [works,setWorks]=useState<IntegratedLaboratoryWork[]>(getLaboratoryWorks);
   const [open,setOpen]=useState(false); const [editing,setEditing]=useState<IntegratedLaboratoryWork|null>(null); const [historyWork,setHistoryWork]=useState<IntegratedLaboratoryWork|null>(null);
   const [search,setSearch]=useState(""); const [form,setForm]=useState<LabForm>(blankForm());
-  const [filtro,setFiltro]=useState<""|"ativos"|"design"|"atrasados"|"risco"|"entregues">("");
+  const [filtro,setFiltro]=useState<""|"ativos"|"design"|"atrasados"|"risco"|"entregues">(((new URLSearchParams(window.location.search).get("filtro")) || "") as ""|"ativos"|"design"|"atrasados"|"risco"|"entregues");
   useEffect(()=>subscribeOperations(()=>setWorks(getLaboratoryWorks())),[]);
 
   const delayedWorks=works.filter(w=>!["Entregue","Liberado"].includes(w.status)&&((w.dueDateISO&&daysUntil(w.dueDateISO)<0)||w.status==="Atrasado")).length;

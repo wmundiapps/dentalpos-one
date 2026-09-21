@@ -116,7 +116,7 @@ export default function Dashboard() {
 
   const cards = [
     { titulo: "Agenda hoje", valor: String(todayAppointments.length), descricao: "Consultas programadas", icone: <EventIcon />, path: "/agenda" },
-    { titulo: "Laboratório ativo", valor: String(labCount), descricao: "Trabalhos em andamento", icone: <BiotechIcon />, path: "/laboratorio" },
+    { titulo: "Laboratório ativo", valor: String(labCount), descricao: "Trabalhos em andamento", icone: <BiotechIcon />, path: "/laboratorio?filtro=ativos" },
     { titulo: "Financeiro / cobranças", valor: String(financialAlerts), descricao: "Avisos que exigem ação", icone: <PaymentsIcon />, path: "/financeiro" },
     { titulo: "Alertas críticos", valor: String(criticalAlerts), descricao: "Atenção imediata", icone: <WarningAmberIcon />, path: "/notificacoes" },
   ];
