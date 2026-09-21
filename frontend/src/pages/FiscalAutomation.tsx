@@ -1,853 +1,229 @@
-import {
-  Box,
-  Button,
-  Chip,
-  Paper,
-  Typography,
-} from "@mui/material";
-
+import { useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, MenuItem, Paper, Switch, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DescriptionIcon from "@mui/icons-material/Description";
-import EmailIcon from "@mui/icons-material/Email";
 import ErrorIcon from "@mui/icons-material/Error";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ScheduleSendIcon from "@mui/icons-material/ScheduleSend";
-import SendIcon from "@mui/icons-material/Send";
-import SmsIcon from "@mui/icons-material/Sms";
-import TelegramIcon from "@mui/icons-material/Telegram";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-
-import type { ReactNode } from "react";
-
 import PageHeader from "../components/PageHeader";
+import { FiscalApi, type FiscalAlertRow, type FiscalDoc, type FiscalRuleData, type FiscalSendRow, type FiscalSummaryData } from "../services/FiscalApi";
 
-import {
-  fiscalAlerts,
-  fiscalPayments,
-  fiscalSendRecords,
-  formatFiscalMoney,
-  getFiscalAutomationSummary,
-  getFiscalDocumentLabel,
-  requiresImmediateFiscalAction,
-} from "../services/FiscalAutomationService";
-
-import type {
-  FiscalAutomationStatus,
-  FiscalPriority,
-  FiscalSendChannel,
-  FiscalSendStatus,
-} from "../types/fiscalAutomation";
-
-function getFiscalStatusColor(
-  status: FiscalAutomationStatus,
-) {
-  switch (status) {
-    case "Fiscalmente concluído":
-    case "Documento entregue":
-      return "success" as const;
-
-    case "Documento emitido":
-    case "Documento enviado":
-      return "info" as const;
-
-    case "Nota programada":
-    case "Aguardando Receita Saúde":
-    case "Documento aguardando emissão":
-      return "warning" as const;
-
-    case "Falha na emissão":
-      return "error" as const;
-
-    default:
-      return "default" as const;
-  }
-}
-
-function getSendStatusColor(
-  status: FiscalSendStatus,
-) {
-  switch (status) {
-    case "Entregue":
-    case "Lido":
-      return "success" as const;
-
-    case "Enviado":
-      return "info" as const;
-
-    case "Programado":
-      return "warning" as const;
-
-    case "Falhou":
-      return "error" as const;
-
-    default:
-      return "default" as const;
-  }
-}
-
-function getPriorityColor(priority: FiscalPriority) {
-  switch (priority) {
-    case "Crítica":
-      return "error" as const;
-
-    case "Alta":
-      return "warning" as const;
-
-    case "Média":
-      return "info" as const;
-
-    default:
-      return "default" as const;
-  }
-}
-
-function getChannelIcon(
-  channel: FiscalSendChannel,
-): ReactNode {
-  switch (channel) {
-    case "E-mail":
-      return <EmailIcon />;
-
-    case "WhatsApp":
-      return <WhatsAppIcon />;
-
-    case "SMS":
-      return <SmsIcon />;
-
-    case "Telegram":
-      return <TelegramIcon />;
-
-    default:
-      return <SendIcon />;
-  }
-}
+type Cor = "default" | "success" | "info" | "warning" | "error";
+const STATUS: Record<string, { label: string; color: Cor }> = {
+  AGUARDANDO_EMISSAO: { label: "Aguardando emiss\u00e3o", color: "warning" },
+  PROGRAMADO: { label: "Programado", color: "warning" },
+  AGUARDANDO_RECEITA_SAUDE: { label: "Aguardando Receita Sa\u00fade", color: "warning" },
+  EMITIDO: { label: "Emitido", color: "info" },
+  ENVIADO: { label: "Enviado", color: "info" },
+  CONCLUIDO: { label: "Conclu\u00eddo", color: "success" },
+  FALHA: { label: "Falha na emiss\u00e3o", color: "error" },
+  CANCELADO: { label: "Cancelado", color: "default" },
+};
+const KIND: Record<string, string> = { NFSE: "NFS-e", RECEITA_SAUDE: "Receita Sa\u00fade", RECIBO: "Recibo", INDEFINIDO: "A definir" };
+const PRIO: Record<string, Cor> = { CRITICA: "error", ALTA: "warning", MEDIA: "info", BAIXA: "default" };
+const ENVIO: Record<string, Cor> = { ENVIADO: "info", ENTREGUE: "success", LIDO: "success", PROGRAMADO: "warning", FALHOU: "error", NAO_ENVIADO: "default" };
+const PENDENTES = ["AGUARDANDO_EMISSAO", "PROGRAMADO", "AGUARDANDO_RECEITA_SAUDE", "FALHA"];
+const money = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const dia = (v?: string | null) => (v ? new Date(v).toLocaleDateString("pt-BR") : "-");
+const hora = (v?: string | null) => (v ? new Date(v).toLocaleString("pt-BR") : "-");
 
 export default function FiscalAutomation() {
-  const summary = getFiscalAutomationSummary();
+  const [summary, setSummary] = useState<FiscalSummaryData | null>(null);
+  const [docs, setDocs] = useState<FiscalDoc[]>([]);
+  const [alerts, setAlerts] = useState<FiscalAlertRow[]>([]);
+  const [sends, setSends] = useState<FiscalSendRow[]>([]);
+  const [grupo, setGrupo] = useState("");
+  const [sendFilter, setSendFilter] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [doc, setDoc] = useState<FiscalDoc | null>(null);
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [rules, setRules] = useState<FiscalRuleData | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [s, d, a, e] = await Promise.all([FiscalApi.summary(), FiscalApi.documents(grupo), FiscalApi.alerts(), FiscalApi.sends(sendFilter)]);
+      setSummary(s); setDocs(d); setAlerts(a); setSends(e);
+    } catch (err) { setError(err instanceof Error ? err.message : "Erro ao carregar."); }
+  }, [grupo, sendFilter]);
+  useEffect(() => { void load(); }, [load]);
+
+  const run = async (fn: () => Promise<unknown>, ok: (r: any) => string) => {
+    setBusy(true); setError(""); setNotice("");
+    try { const r = await fn(); setNotice(ok(r)); setDoc(null); setRules(null); await load(); }
+    catch (err) { setError(err instanceof Error ? err.message : "Erro."); }
+    finally { setBusy(false); }
+  };
+
+  const openDoc = (d: FiscalDoc) => {
+    setDoc(d);
+    setForm({ kind: d.kind === "INDEFINIDO" ? "NFSE" : d.kind, payerDocument: d.payerDocument || "", payerEmail: d.payerEmail || "", payerPhone: d.payerPhone || "", documentNumber: d.documentNumber || "", protocolNumber: d.protocolNumber || "", documentUrl: d.documentUrl || "" });
+  };
+  const openDocById = async (id?: string | null) => {
+    if (!id) return;
+    const lista = grupo ? await FiscalApi.documents() : docs;
+    const d = lista.find((x) => x.id === id);
+    if (d) openDoc(d);
+  };
+  const filtrar = (g: string) => { setGrupo(g); document.getElementById("lista-fiscal")?.scrollIntoView({ behavior: "smooth" }); };
+  const verFalhas = () => { setSendFilter("FALHOU"); document.getElementById("envios-fiscais")?.scrollIntoView({ behavior: "smooth" }); };
+  const f = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
+  const emitido = doc ? ["EMITIDO", "ENVIADO", "CONCLUIDO"].includes(doc.status) : false;
 
   return (
     <Box>
-      <PageHeader
-        title="Automação Fiscal"
-        description="Emissão de recibos, Receita Saúde, notas fiscais, protocolos e envio automático aos pagadores."
-        actionLabel="Novo processamento"
-        actionIcon={<AddIcon />}
-      />
+      <PageHeader title={"Automa\u00e7\u00e3o Fiscal"} description={"Recibos, Receita Sa\u00fade e notas fiscais a partir dos pagamentos confirmados, com envio autom\u00e1tico ao pagador."} />
 
-      <Paper
-        elevation={0}
-        sx={{
-          p: 2.5,
-          mb: 4,
-          borderRadius: 3,
-          border: "1px solid",
-          borderColor: "warning.main",
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 1.5,
-          }}
-        >
-          <WarningAmberIcon color="warning" />
-
-          <Box>
-            <Typography sx={{ fontWeight: 900 }}>
-              Emissão assistida e controlada
-            </Typography>
-
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mt: 0.5 }}
-            >
-              O sistema prepara, programa e acompanha os
-              documentos. Transmissões oficiais exigirão
-              integrações autorizadas e validação fiscal.
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
-
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            md: "repeat(2, 1fr)",
-            xl: "repeat(5, 1fr)",
-          },
-          gap: 3,
-          mb: 4,
-        }}
-      >
-        <FiscalSummary
-          title="Pagamentos confirmados"
-          value={String(summary.confirmedPayments)}
-          icon={<PaymentsIcon />}
-        />
-
-        <FiscalSummary
-          title="Documentos pendentes"
-          value={String(summary.pendingDocuments)}
-          icon={<WarningAmberIcon />}
-        />
-
-        <FiscalSummary
-          title="Documentos emitidos"
-          value={String(summary.issuedDocuments)}
-          icon={<DescriptionIcon />}
-        />
-
-        <FiscalSummary
-          title="Falhas de envio"
-          value={String(summary.deliveryFailures)}
-          icon={<ErrorIcon />}
-        />
-
-        <FiscalSummary
-          title="Valor pendente fiscal"
-          value={formatFiscalMoney(
-            summary.pendingTaxValue,
-          )}
-          icon={<ReceiptLongIcon />}
-        />
+      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
+        <Button variant="contained" startIcon={<AddIcon />} disabled={busy} onClick={() => void run(() => FiscalApi.sync(), (r) => `${r.criados} novo(s) documento(s) criado(s) a partir de ${r.encontrados} pagamento(s) confirmado(s).`)}>Novo processamento</Button>
+        <Button variant="outlined" startIcon={<CheckCircleIcon />} disabled={busy} onClick={() => void run(() => FiscalApi.process(), (r) => `Processado: ${r.importados} importado(s), ${r.liberados} liberado(s) para emiss\u00e3o, ${r.enviados} enviado(s). ${r.aguardandoEmissao} aguardando emiss\u00e3o.`)}>{"Processar pend\u00eancias"}</Button>
+        <Button variant="outlined" startIcon={<ScheduleSendIcon />} disabled={busy} onClick={async () => { try { setRules(await FiscalApi.rules()); } catch (e) { setError(e instanceof Error ? e.message : "Erro."); } }}>{"Configurar regras de emiss\u00e3o"}</Button>
       </Box>
 
-      <Paper
-        elevation={0}
-        sx={{
-          mb: 4,
-          borderRadius: 3,
-          border: "1px solid",
-          borderColor: "divider",
-          overflow: "hidden",
-        }}
-      >
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr 130px",
-              xl: "1.4fr 1fr 130px 130px 160px 190px",
-            },
-            gap: 2,
-            px: 3,
-            py: 2,
-            bgcolor: "primary.main",
-            color: "#FFFFFF",
-          }}
-        >
-          <Typography sx={{ fontWeight: 700 }}>
-            Pagamento
-          </Typography>
+      <Alert severity="warning" sx={{ mb: 3 }}>{"Receita Sa\u00fade n\u00e3o tem integra\u00e7\u00e3o p\u00fablica: lance no app da Receita e registre o protocolo aqui. NFS-e emitida fora do sistema tamb\u00e9m \u00e9 registrada aqui, com o n\u00famero da nota."}</Alert>
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
+      {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
 
-          <Typography sx={{ fontWeight: 700 }}>
-            Status
-          </Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(5, 1fr)" }, gap: 2, mb: 3 }}>
+        <Resumo titulo="Pagamentos confirmados" valor={String(summary?.confirmedPayments ?? "-")} icone={<PaymentsIcon />} onClick={() => filtrar("")} />
+        <Resumo titulo="Documentos pendentes" valor={String(summary?.pendingDocuments ?? "-")} icone={<WarningAmberIcon />} onClick={() => filtrar("PENDENTES")} />
+        <Resumo titulo="Documentos emitidos" valor={String(summary?.issuedDocuments ?? "-")} icone={<DescriptionIcon />} onClick={() => filtrar("EMITIDOS")} />
+        <Resumo titulo="Falhas de envio" valor={String(summary?.deliveryFailures ?? "-")} icone={<ErrorIcon />} onClick={verFalhas} />
+        <Resumo titulo="Valor pendente fiscal" valor={summary ? money(summary.pendingTaxValue) : "-"} icone={<ReceiptLongIcon />} onClick={() => filtrar("PENDENTES")} />
+      </Box>
 
-          <Typography
-            sx={{
-              fontWeight: 700,
-              display: {
-                xs: "none",
-                xl: "block",
-              },
-            }}
-          >
-            Documento
-          </Typography>
-
-          <Typography
-            sx={{
-              fontWeight: 700,
-              display: {
-                xs: "none",
-                xl: "block",
-              },
-            }}
-          >
-            Valor
-          </Typography>
-
-          <Typography
-            sx={{
-              fontWeight: 700,
-              display: {
-                xs: "none",
-                xl: "block",
-              },
-            }}
-          >
-            Pagador
-          </Typography>
-
-          <Typography
-            sx={{
-              fontWeight: 700,
-              display: {
-                xs: "none",
-                xl: "block",
-              },
-            }}
-          >
-            Ação
-          </Typography>
+      <Paper id="lista-fiscal" variant="outlined" sx={{ borderRadius: 3, mb: 3, overflow: "hidden" }}>
+        <Box sx={{ px: 3, py: 2, bgcolor: "primary.main", color: "#FFFFFF", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+          <Typography sx={{ fontWeight: 800 }}>{grupo === "PENDENTES" ? "Documentos pendentes" : grupo === "EMITIDOS" ? "Documentos emitidos" : "Todos os documentos fiscais"}</Typography>
+          {grupo && <Button size="small" sx={{ color: "#FFFFFF" }} onClick={() => setGrupo("")}>Mostrar todos</Button>}
         </Box>
-
-        {fiscalPayments.map((payment) => (
-          <Box
-            key={payment.id}
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr 130px",
-                xl: "1.4fr 1fr 130px 130px 160px 190px",
-              },
-              gap: 2,
-              alignItems: "center",
-              px: 3,
-              py: 2,
-              borderBottom: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontWeight: 900 }}>
-                {payment.treatmentReference}
-              </Typography>
-
-              <Typography
-                variant="body2"
-                color="text.secondary"
-              >
-                {payment.paymentCode} •{" "}
-                {payment.paymentDate} •{" "}
-                {payment.paymentMethod}
-              </Typography>
-
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                Emissor: {payment.issuerName}
-              </Typography>
+        {docs.length === 0 && <Typography sx={{ p: 3 }} color="text.secondary">{"Nenhum documento. Clique em Novo processamento para importar os pagamentos confirmados do financeiro."}</Typography>}
+        {docs.map((d) => (
+          <Box key={d.id} sx={{ px: 3, py: 2, borderBottom: "1px solid", borderColor: "divider", display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", cursor: "pointer", "&:hover": { bgcolor: "action.hover" } }} onClick={() => openDoc(d)}>
+            <Box sx={{ flex: "1 1 240px" }}>
+              <Typography sx={{ fontWeight: 800 }}>{d.payerName}</Typography>
+              <Typography variant="body2" color="text.secondary">{`${d.description || "Pagamento"} \u2022 ${dia(d.paymentDate)} \u2022 ${d.paymentMethod || "-"}`}</Typography>
             </Box>
-
-            <Chip
-              size="small"
-              label={payment.status}
-              color={getFiscalStatusColor(
-                payment.status,
-              )}
-            />
-
-            <Typography
-              sx={{
-                display: {
-                  xs: "none",
-                  xl: "block",
-                },
-                fontWeight: 800,
-              }}
-            >
-              {getFiscalDocumentLabel(payment)}
-            </Typography>
-
-            <Typography
-              sx={{
-                display: {
-                  xs: "none",
-                  xl: "block",
-                },
-                fontWeight: 900,
-              }}
-            >
-              {formatFiscalMoney(
-                payment.receivedValue,
-              )}
-            </Typography>
-
-            <Box
-              sx={{
-                display: {
-                  xs: "none",
-                  xl: "block",
-                },
-              }}
-            >
-              <Typography sx={{ fontWeight: 700 }}>
-                {payment.payer.name}
-              </Typography>
-
-              <Typography
-                variant="caption"
-                color="text.secondary"
-              >
-                {payment.payer.document ||
-                  "Documento ausente"}
-              </Typography>
-            </Box>
-
-            <Box
-              sx={{
-                display: {
-                  xs: "none",
-                  xl: "block",
-                },
-              }}
-            >
-              {requiresImmediateFiscalAction(
-                payment.status,
-              ) ? (
-                <Button
-                  size="small"
-                  variant="contained"
-                  startIcon={<ReceiptLongIcon />}
-                >
-                  Resolver pendência
-                </Button>
-              ) : payment.status ===
-                "Nota programada" ? (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<ScheduleSendIcon />}
-                >
-                  Ver programação
-                </Button>
-              ) : (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<DescriptionIcon />}
-                >
-                  Abrir documento
-                </Button>
-              )}
-            </Box>
+            <Chip size="small" label={STATUS[d.status]?.label || d.status} color={STATUS[d.status]?.color || "default"} />
+            <Typography sx={{ width: 120, fontWeight: 700 }}>{KIND[d.kind] || d.kind}</Typography>
+            <Typography sx={{ width: 120, fontWeight: 800 }}>{money(d.amount)}</Typography>
+            <Button size="small" variant={PENDENTES.includes(d.status) ? "contained" : "outlined"} onClick={(e) => { e.stopPropagation(); openDoc(d); }}>
+              {PENDENTES.includes(d.status) ? (d.status === "PROGRAMADO" ? "Ver programa\u00e7\u00e3o" : "Resolver pend\u00eancia") : "Abrir documento"}
+            </Button>
           </Box>
         ))}
       </Paper>
 
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            xl: "1.1fr 1fr",
-          },
-          gap: 3,
-          mb: 4,
-        }}
-      >
-        <Paper
-          elevation={0}
-          sx={{
-            p: 3,
-            borderRadius: 3,
-            border: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 900,
-              mb: 3,
-            }}
-          >
-            Alertas fiscais
-          </Typography>
-
-          {fiscalAlerts.map((alert) => (
-            <Paper
-              key={alert.id}
-              variant="outlined"
-              sx={{
-                p: 2.5,
-                mb: 2,
-                borderRadius: 2,
-                opacity: alert.resolved ? 0.65 : 1,
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: 2,
-                  flexWrap: "wrap",
-                }}
-              >
-                <Box>
-                  <Typography sx={{ fontWeight: 900 }}>
-                    {alert.title}
-                  </Typography>
-
-                  <Typography
-                    color="text.secondary"
-                    sx={{ mt: 1 }}
-                  >
-                    {alert.description}
-                  </Typography>
-                </Box>
-
-                <Chip
-                  size="small"
-                  label={
-                    alert.resolved
-                      ? "Resolvido"
-                      : alert.priority
-                  }
-                  color={
-                    alert.resolved
-                      ? "success"
-                      : getPriorityColor(
-                          alert.priority,
-                        )
-                  }
-                />
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", xl: "1fr 1fr" }, gap: 3 }}>
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 900, mb: 2 }}>Alertas fiscais</Typography>
+          {alerts.length === 0 && <Typography color="text.secondary">Nenhum alerta.</Typography>}
+          {alerts.map((a) => (
+            <Paper key={a.id} variant="outlined" sx={{ p: 2, mb: 1.5, borderRadius: 2, opacity: a.resolved ? 0.6 : 1, cursor: a.fiscalDocumentId ? "pointer" : "default" }} onClick={() => void openDocById(a.fiscalDocumentId)}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
+                <Typography sx={{ fontWeight: 800 }}>{a.title}</Typography>
+                <Chip size="small" label={a.resolved ? "Resolvido" : a.priority} color={a.resolved ? "success" : PRIO[a.priority] || "default"} />
               </Box>
-
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{
-                  display: "block",
-                  mt: 2,
-                }}
-              >
-                Criado em {alert.createdAt}
-              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{a.description}</Typography>
             </Paper>
           ))}
         </Paper>
 
-        <Paper
-          elevation={0}
-          sx={{
-            p: 3,
-            borderRadius: 3,
-            border: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: 900,
-              mb: 3,
-            }}
-          >
-            Histórico de envios
-          </Typography>
-
-          {fiscalSendRecords.map((record) => (
-            <Paper
-              key={record.id}
-              variant="outlined"
-              sx={{
-                p: 2,
-                mb: 2,
-                borderRadius: 2,
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 1.5,
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 2,
-                    bgcolor: "primary.main",
-                    color: "#FFFFFF",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  {getChannelIcon(record.channel)}
-                </Box>
-
-                <Box sx={{ flexGrow: 1 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 2,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <Box>
-                      <Typography
-                        sx={{ fontWeight: 900 }}
-                      >
-                        {record.recipientName}
-                      </Typography>
-
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                      >
-                        {record.channel} •{" "}
-                        {record.destination}
-                      </Typography>
-                    </Box>
-
-                    <Chip
-                      size="small"
-                      label={record.status}
-                      color={getSendStatusColor(
-                        record.status,
-                      )}
-                    />
-                  </Box>
-
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{
-                      display: "block",
-                      mt: 1.5,
-                    }}
-                  >
-                    {record.readAt
-                      ? `Lido em ${record.readAt}`
-                      : record.deliveredAt
-                        ? `Entregue em ${record.deliveredAt}`
-                        : record.sentAt
-                          ? `Enviado em ${record.sentAt}`
-                          : record.scheduledAt
-                            ? `Programado para ${record.scheduledAt}`
-                            : "Ainda não enviado"}
-                  </Typography>
-
-                  {record.failureReason && (
-                    <Typography
-                      variant="body2"
-                      color="error.main"
-                      sx={{ mt: 1 }}
-                    >
-                      {record.failureReason}
-                    </Typography>
-                  )}
-                </Box>
+        <Paper id="envios-fiscais" variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 900 }}>{"Hist\u00f3rico de envios"}</Typography>
+            {sendFilter && <Button size="small" onClick={() => setSendFilter("")}>Mostrar todos</Button>}
+          </Box>
+          {sends.length === 0 && <Typography color="text.secondary">Nenhum envio registrado.</Typography>}
+          {sends.map((s) => (
+            <Paper key={s.id} variant="outlined" sx={{ p: 2, mb: 1.5, borderRadius: 2, cursor: "pointer" }} onClick={() => void openDocById(s.fiscalDocumentId)}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
+                <Typography sx={{ fontWeight: 800 }}>{s.recipientName || s.destination}</Typography>
+                <Chip size="small" label={s.status} color={ENVIO[s.status] || "default"} />
               </Box>
+              <Typography variant="body2" color="text.secondary">{`${s.channel} \u2022 ${s.destination} \u2022 ${hora(s.sentAt || s.createdAt)}`}</Typography>
+              {s.failureReason && <Typography variant="body2" color="error.main" sx={{ mt: 0.5 }}>{s.failureReason}</Typography>}
             </Paper>
           ))}
         </Paper>
       </Box>
 
-      <Paper
-        elevation={0}
-        sx={{
-          p: 3,
-          borderRadius: 3,
-          border: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <Typography
-          variant="h5"
-          sx={{
-            fontWeight: 900,
-            mb: 3,
-          }}
-        >
-          Fluxo automático configurado
-        </Typography>
+      <Dialog open={Boolean(doc)} onClose={() => { if (!busy) setDoc(null); }} fullWidth maxWidth="sm">
+        <DialogTitle>{doc ? `${doc.payerName} \u2014 ${money(doc.amount)}` : ""}</DialogTitle>
+        {doc && (
+          <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Chip size="small" label={STATUS[doc.status]?.label || doc.status} color={STATUS[doc.status]?.color || "default"} />
+              {doc.documentNumber && <Chip size="small" label={`N. ${doc.documentNumber}`} />}
+              {doc.protocolNumber && <Chip size="small" label={`Protocolo ${doc.protocolNumber}`} />}
+            </Box>
+            {doc.status === "PROGRAMADO" && <Alert severity="info">{`Emiss\u00e3o programada para ${hora(doc.scheduledAt)}.`}</Alert>}
+            {doc.failureReason && <Alert severity="error">{doc.failureReason}</Alert>}
+            <TextField select label="Tipo de documento" value={form.kind || "NFSE"} onChange={f("kind")} disabled={emitido}>
+              <MenuItem value="NFSE">NFS-e</MenuItem>
+              <MenuItem value="RECEITA_SAUDE">{"Receita Sa\u00fade"}</MenuItem>
+              <MenuItem value="RECIBO">Recibo</MenuItem>
+            </TextField>
+            <TextField label={"CPF ou CNPJ do pagador"} value={form.payerDocument || ""} onChange={f("payerDocument")} />
+            <TextField label="E-mail do pagador" value={form.payerEmail || ""} onChange={f("payerEmail")} />
+            <TextField label="Telefone do pagador" value={form.payerPhone || ""} onChange={f("payerPhone")} />
+            <Typography sx={{ fontWeight: 800, mt: 1 }}>{emitido ? "Documento emitido" : "Registrar emiss\u00e3o"}</Typography>
+            <TextField label={"N\u00famero da nota ou recibo"} value={form.documentNumber || ""} onChange={f("documentNumber")} disabled={emitido} />
+            <TextField label={"Protocolo (Receita Sa\u00fade)"} value={form.protocolNumber || ""} onChange={f("protocolNumber")} disabled={emitido} />
+            <TextField label="Link do documento (opcional)" value={form.documentUrl || ""} onChange={f("documentUrl")} disabled={emitido} />
+          </DialogContent>
+        )}
+        {doc && (
+          <DialogActions sx={{ flexWrap: "wrap", gap: 1 }}>
+            <Button disabled={busy} onClick={() => setDoc(null)}>Fechar</Button>
+            <Button disabled={busy} onClick={() => void run(() => FiscalApi.update(doc.id, { kind: form.kind, payerDocument: form.payerDocument, payerEmail: form.payerEmail, payerPhone: form.payerPhone }), () => "Dados do pagador atualizados.")}>Salvar dados</Button>
+            {!emitido && <Button variant="contained" disabled={busy} onClick={() => void run(async () => { await FiscalApi.update(doc.id, { kind: form.kind, payerDocument: form.payerDocument, payerEmail: form.payerEmail, payerPhone: form.payerPhone }); return FiscalApi.issue(doc.id, { documentNumber: form.documentNumber, protocolNumber: form.protocolNumber, documentUrl: form.documentUrl }); }, () => "Emiss\u00e3o registrada e documento enviado ao pagador.")}>{"Registrar emiss\u00e3o e enviar"}</Button>}
+            {emitido && doc.documentUrl && <Button href={doc.documentUrl} target="_blank" rel="noopener">Abrir documento</Button>}
+            {emitido && <Button disabled={busy} onClick={() => void run(() => FiscalApi.send(doc.id), () => "Documento reenviado.")}>Reenviar</Button>}
+            {emitido && doc.status !== "CONCLUIDO" && <Button variant="contained" disabled={busy} onClick={() => void run(() => FiscalApi.conclude(doc.id), () => "Documento conclu\u00eddo.")}>Concluir</Button>}
+          </DialogActions>
+        )}
+      </Dialog>
 
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              md: "repeat(3, 1fr)",
-              xl: "repeat(6, 1fr)",
-            },
-            gap: 2,
-          }}
-        >
-          <AutomationStep
-            number="1"
-            title="Pagamento"
-            description="Confirmação bancária."
-          />
-
-          <AutomationStep
-            number="2"
-            title="Identificação"
-            description="PF, PJ, pagador e paciente."
-          />
-
-          <AutomationStep
-            number="3"
-            title="Documento"
-            description="Receita Saúde ou NFS-e."
-          />
-
-          <AutomationStep
-            number="4"
-            title="Protocolo"
-            description="Número e comprovante."
-          />
-
-          <AutomationStep
-            number="5"
-            title="Envio"
-            description="Canais configurados."
-          />
-
-          <AutomationStep
-            number="6"
-            title="Conclusão"
-            description="Baixa fiscal e contábil."
-          />
-        </Box>
-
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 2,
-            flexWrap: "wrap",
-            mt: 3,
-          }}
-        >
-          <Button
-            variant="outlined"
-            startIcon={<ScheduleSendIcon />}
-          >
-            Configurar regras de emissão
-          </Button>
-
-          <Button
-            variant="contained"
-            startIcon={<CheckCircleIcon />}
-          >
-            Processar pendências
-          </Button>
-        </Box>
-      </Paper>
+      <Dialog open={Boolean(rules)} onClose={() => { if (!busy) setRules(null); }} fullWidth maxWidth="sm">
+        <DialogTitle>{"Regras de emiss\u00e3o"}</DialogTitle>
+        {rules && (
+          <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+            <FormControlLabel control={<Switch checked={rules.autoProcess} onChange={(e) => setRules({ ...rules, autoProcess: e.target.checked })} />} label={"Programar emiss\u00e3o automaticamente ap\u00f3s o pagamento"} />
+            <TextField type="number" label="Prazo para programar (minutos)" value={rules.issueDelayMinutes} onChange={(e) => setRules({ ...rules, issueDelayMinutes: Number(e.target.value) })} />
+            <TextField select label={"Documento padr\u00e3o da cl\u00ednica (PJ)"} value={rules.defaultKindPJ} onChange={(e) => setRules({ ...rules, defaultKindPJ: e.target.value })}>
+              <MenuItem value="NFSE">NFS-e</MenuItem>
+              <MenuItem value="RECIBO">Recibo</MenuItem>
+            </TextField>
+            <TextField select label={"Documento padr\u00e3o do profissional (PF)"} value={rules.defaultKindPF} onChange={(e) => setRules({ ...rules, defaultKindPF: e.target.value })}>
+              <MenuItem value="RECEITA_SAUDE">{"Receita Sa\u00fade"}</MenuItem>
+              <MenuItem value="RECIBO">Recibo</MenuItem>
+            </TextField>
+            <TextField label="Canais de envio (EMAIL, WHATSAPP, SMS)" value={rules.sendChannels} onChange={(e) => setRules({ ...rules, sendChannels: e.target.value })} helperText={"Separe por v\u00edrgula. E-mail funciona mesmo sem canal configurado."} />
+            <TextField label={"C\u00f3digo do servi\u00e7o (NFS-e)"} value={rules.serviceCode || ""} onChange={(e) => setRules({ ...rules, serviceCode: e.target.value })} />
+            <TextField type="number" label={"Al\u00edquota de ISS (%)"} value={rules.issRate ?? ""} onChange={(e) => setRules({ ...rules, issRate: e.target.value === "" ? null : Number(e.target.value) })} />
+          </DialogContent>
+        )}
+        <DialogActions>
+          <Button disabled={busy} onClick={() => setRules(null)}>Cancelar</Button>
+          <Button variant="contained" disabled={busy || !rules} onClick={() => rules && void run(() => FiscalApi.saveRules(rules), () => "Regras salvas.")}>Salvar</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
 
-interface FiscalSummaryProps {
-  title: string;
-  value: string;
-  icon: ReactNode;
-}
-
-function FiscalSummary({
-  title,
-  value,
-  icon,
-}: FiscalSummaryProps) {
+function Resumo({ titulo, valor, icone, onClick }: { titulo: string; valor: string; icone: ReactNode; onClick: () => void }) {
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 3,
-        borderRadius: 3,
-        border: "1px solid",
-        borderColor: "divider",
-      }}
-    >
-      <Box
-        sx={{
-          width: 46,
-          height: 46,
-          mb: 2,
-          borderRadius: 2,
-          bgcolor: "primary.main",
-          color: "#FFFFFF",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {icon}
-      </Box>
-
-      <Typography color="text.secondary">
-        {title}
-      </Typography>
-
-      <Typography
-        variant="h5"
-        sx={{
-          mt: 1,
-          fontWeight: 900,
-        }}
-      >
-        {value}
-      </Typography>
-    </Paper>
-  );
-}
-
-interface AutomationStepProps {
-  number: string;
-  title: string;
-  description: string;
-}
-
-function AutomationStep({
-  number,
-  title,
-  description,
-}: AutomationStepProps) {
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        borderRadius: 2,
-        textAlign: "center",
-      }}
-    >
-      <Box
-        sx={{
-          width: 36,
-          height: 36,
-          mx: "auto",
-          mb: 1.5,
-          borderRadius: "50%",
-          bgcolor: "primary.main",
-          color: "#FFFFFF",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontWeight: 900,
-        }}
-      >
-        {number}
-      </Box>
-
-      <Typography sx={{ fontWeight: 900 }}>
-        {title}
-      </Typography>
-
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mt: 0.5 }}
-      >
-        {description}
-      </Typography>
+    <Paper variant="outlined" onClick={onClick} sx={{ p: 2.5, borderRadius: 3, cursor: "pointer", transition: "0.15s", "&:hover": { borderColor: "primary.main", boxShadow: 2 } }}>
+      <Box sx={{ width: 42, height: 42, mb: 1.5, borderRadius: 2, bgcolor: "primary.main", color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>{icone}</Box>
+      <Typography color="text.secondary">{titulo}</Typography>
+      <Typography variant="h5" sx={{ mt: 0.5, fontWeight: 900 }}>{valor}</Typography>
     </Paper>
   );
 }
