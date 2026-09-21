@@ -70,6 +70,7 @@ export default function AiAssistant() {
           <Chip color="primary" label={`Plano ${saldo.plano}`} />
           <Typography variant="body2">{`Franquia do m\u00eas: ${saldo.franquiaRestante} de ${saldo.franquiaMensal}`}</Typography>
           <Typography variant="body2" color="text.secondary">{`Cr\u00e9ditos comprados: ${saldo.saldoComprado}`}</Typography>
+          <Button size="small" variant="outlined" href="/creditos?tipo=IA">{"Comprar cr\u00e9ditos"}</Button>
           {saldo.disponivel <= 0 && <Alert severity="warning" sx={{ py: 0 }}>{"Franquia esgotada. Compre um pacote para continuar."}</Alert>}
         </Paper>
       )}

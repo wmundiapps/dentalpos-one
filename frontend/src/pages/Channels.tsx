@@ -69,8 +69,8 @@ const COSTS: Record<string, { sev: "success" | "info" | "warning"; text: string 
   EMAIL: { sev: "success", text: "Gratuito, inclusive na demonstra\u00e7\u00e3o." },
   TELEGRAM: { sev: "success", text: "Gratuito. O Telegram n\u00e3o cobra por mensagem." },
   WHATSAPP: { sev: "info", text: "Cobrado pela Meta por mensagem, direto no cart\u00e3o da cl\u00ednica. N\u00e3o incluso na demonstra\u00e7\u00e3o." },
-  SMS: { sev: "warning", text: "Funciona com pacote de cr\u00e9ditos comprado na DentalPos One. Cr\u00e9ditos n\u00e3o inclusos na demonstra\u00e7\u00e3o. Compra dispon\u00edvel em breve." },
-  VOICE: { sev: "warning", text: "Funciona com pacote de cr\u00e9ditos comprado na DentalPos One. Cr\u00e9ditos n\u00e3o inclusos na demonstra\u00e7\u00e3o. Compra dispon\u00edvel em breve." },
+  SMS: { sev: "warning", text: "Funciona com pacote de cr\u00e9ditos comprado na DentalPos One. Cr\u00e9ditos n\u00e3o inclusos na demonstra\u00e7\u00e3o." },
+  VOICE: { sev: "warning", text: "Funciona com pacote de cr\u00e9ditos comprado na DentalPos One. Cr\u00e9ditos n\u00e3o inclusos na demonstra\u00e7\u00e3o." },
 };
 
 export default function Channels() {
@@ -166,6 +166,7 @@ export default function Channels() {
                 {COSTS[def.key] && <Alert severity={COSTS[def.key].sev} sx={{ mt: 1.5 }}>{COSTS[def.key].text}</Alert>}
                 <Box sx={{ display: "flex", gap: 1, mt: 2, flexWrap: "wrap" }}>
                   <Button size="small" variant="contained" disabled={def.key === "SMS" || def.key === "VOICE"} onClick={() => openEdit(def)}>{row ? "Atualizar" : "Configurar"}</Button>
+                  {(def.key === "SMS" || def.key === "VOICE") && <Button size="small" variant="outlined" href={`/creditos?tipo=${def.key === "SMS" ? "SMS" : "VOZ"}`}>{"Comprar cr\u00e9ditos"}</Button>}
                   <Button size="small" startIcon={<AutoAwesomeIcon />} onClick={() => { window.location.href = `/assistente-ia?p=${encodeURIComponent(AJUDA[def.key] || "")}`; }}>Como configurar</Button>
                   <Button size="small" startIcon={<SendIcon />} disabled={!ativo} onClick={() => { setTest(def); setTestTo(""); setNotice(""); setError(""); }}>Enviar teste</Button>
                 </Box>

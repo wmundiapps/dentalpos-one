@@ -30,6 +30,7 @@ import Feedback from "../pages/Feedback";
 import ClinicalTeam from "../pages/ClinicalTeam";
 import Channels from "../pages/Channels";
 import AiAssistant from "../pages/AiAssistant";
+import Credits from "../pages/Credits";
 import Financial from "../pages/Financial";
 import FinancialScanner from "../pages/FinancialScanner";
 import FiscalAutomation from "../pages/FiscalAutomation";
@@ -258,6 +259,7 @@ export default function AppRoutes() {
       <Route path="/corpo-clinico" element={<ClinicalTeam />} />
       <Route path="/canais-envio" element={<Channels />} />
         <Route path="/assistente-ia" element={<AiAssistant />} />
+        <Route path="/creditos" element={<Credits />} />
       <Route path="/recall" element={<Recall />} />
 
       <Route path="/relatorios" element={<Reports />} />
