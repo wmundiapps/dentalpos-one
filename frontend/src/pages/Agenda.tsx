@@ -292,7 +292,7 @@ export default function Agenda() {
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(today());
   const [professional, setProfessional] = useState("Todos");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("Todos");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(((new URLSearchParams(window.location.search).get("status")) || "Todos") as StatusFilter);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<IntegratedAppointment | null>(null);
   const [editReason, setEditReason] = useState("");
