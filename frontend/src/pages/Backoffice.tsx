@@ -217,9 +217,9 @@ export default function Backoffice() {
           {dre ? (
             <>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3,1fr)" }, gap: 1.5, mb: 2 }}>
-                <MiniMetric label="Receita" value={money(dre.revenue)} />
-                <MiniMetric label="Despesa" value={money(dre.expense)} />
-                <MiniMetric label="Resultado" value={money(dre.result)} />
+                <MiniMetric label="Receita" value={money(dre.revenue)} to="/financeiro?tipo=Receita" />
+                <MiniMetric label="Despesa" value={money(dre.expense)} to="/financeiro?tipo=Despesa" />
+                <MiniMetric label="Resultado" value={money(dre.result)} to="/financeiro?situacao=CAIXA" />
               </Box>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>Por razão social emissora</Typography>
               <Box sx={{ display: "grid", gap: 1 }}>
@@ -392,9 +392,10 @@ function SummaryCard({ title, value, helper, icon }: { title: string; value: str
   );
 }
 
-function MiniMetric({ label, value }: { label: string; value: string }) {
+function MiniMetric({ label, value, to }: { label: string; value: string; to?: string }) {
+  const go = useNavigate();
   return (
-    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: "action.hover" }}>
+    <Box onClick={to ? () => go(to) : undefined} sx={{ p: 1.5, borderRadius: 2, bgcolor: "action.hover", cursor: to ? "pointer" : "default", border: "1px solid transparent", "&:hover": to ? { borderColor: "primary.main" } : {} }}>
       <Typography variant="caption" color="text.secondary">{label}</Typography>
       <Typography sx={{ fontWeight: 900 }}>{value}</Typography>
     </Box>
