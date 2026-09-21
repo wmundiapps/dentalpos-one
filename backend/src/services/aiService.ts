@@ -51,7 +51,7 @@ export async function runAiTask(input: {
   if (!saldo.allowed) return { ok: false, reason: saldo.reason }
 
   const prompt = String(input.prompt || '').slice(0, LIMITE_ENTRADA)
-  const teto = Math.min(Number(input.maxTokens || 0) || 800, saldo.maxPerTask || 2000)
+  const teto = Math.min(Number(input.maxTokens || 0) || 2000, saldo.maxPerTask || 4000)
 
   let data: any
   try {
@@ -79,6 +79,16 @@ export async function runAiTask(input: {
   }
 
   const text = String(data?.choices?.[0]?.message?.content || '')
+  if (!text.trim()) {
+    // Resposta vazia nao pode custar credito ao cliente.
+    console.error('OpenAI devolveu texto vazio.', JSON.stringify({ finish: data?.choices?.[0]?.finish_reason, usage: data?.usage, model: MODELO_PADRAO }))
+    return { ok: false, reason: 'RESPOSTA_VAZIA' }
+  }
+  if (!text.trim()) {
+    // Resposta vazia nao pode custar credito ao cliente.
+    console.error('OpenAI devolveu texto vazio.', JSON.stringify({ finish: data?.choices?.[0]?.finish_reason, usage: data?.usage, model: MODELO_PADRAO }))
+    return { ok: false, reason: 'RESPOSTA_VAZIA' }
+  }
   const inputTokens = Number(data?.usage?.prompt_tokens || 0)
   const outputTokens = Number(data?.usage?.completion_tokens || 0)
 

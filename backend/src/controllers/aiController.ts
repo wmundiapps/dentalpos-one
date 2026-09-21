@@ -10,6 +10,7 @@ const MOTIVOS: Record<string, string> = {
   IA_NAO_CONFIGURADA: 'A inteligencia artificial ainda nao foi configurada na plataforma.',
   SEM_SALDO: 'A franquia de IA do mes acabou. Compre um pacote de creditos para continuar.',
   CARTEIRA_SUSPENSA: 'O uso de IA esta suspenso nesta clinica.',
+  RESPOSTA_VAZIA: 'A IA nao devolveu resposta. Nenhum credito foi cobrado. Tente de novo.',
   FALHA_PROVEDOR: 'Nao foi possivel falar com a IA agora. Tente de novo em instantes.',
 }
 

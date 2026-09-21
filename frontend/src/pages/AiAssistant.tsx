@@ -84,7 +84,7 @@ export default function AiAssistant() {
 
       <TextField
         fullWidth multiline minRows={3}
-        label="O que voc\u00ea precisa?"
+        label={"O que voc\u00ea precisa?"}
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         sx={{ mb: 2 }}
@@ -93,11 +93,13 @@ export default function AiAssistant() {
         {busy ? "Pensando..." : "Perguntar"}
       </Button>
 
-      {resposta && (
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mt: 3, whiteSpace: "pre-wrap" }}>
-          <Typography variant="body1">{resposta}</Typography>
-        </Paper>
-      )}
+      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mt: 3, minHeight: 140, whiteSpace: "pre-wrap" }}>
+        <Typography variant="overline" color="text.secondary">Resposta</Typography>
+        {busy && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{"Consultando a intelig\u00eancia artificial..."}</Typography>}
+        {!busy && !resposta && !error && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{"A resposta aparece aqui depois que voc\u00ea perguntar."}</Typography>}
+        {!busy && error && <Typography variant="body2" color="error" sx={{ mt: 1 }}>{error}</Typography>}
+        {!busy && resposta && <Typography variant="body1" sx={{ mt: 1 }}>{resposta}</Typography>}
+      </Paper>
     </Box>
   );
 }
