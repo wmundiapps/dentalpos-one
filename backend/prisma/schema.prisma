@@ -8,6 +8,7 @@ datasource db {
 }
 
 model Clinic {
+  recurringBills RecurringBill[]
   id       String @id @default(cuid())
   tenantId String
   name     String
@@ -552,6 +553,10 @@ model FinancialEntry {
   accountingStatus    String             @default("PENDING")
   accountantNotes     String?
   recurrence          String?
+  recurringBillId     String?
+  recurringBill       RecurringBill?     @relation(fields: [recurringBillId], references: [id], onDelete: SetNull)
+  autoDebit           Boolean            @default(false)
+  recurrenceKey       String?            @unique
   issuerEntity        String             @default("INSTITUTO_RAVEL")
   approvedAt          DateTime?
   sourceDocumentHash  String?
@@ -607,6 +612,7 @@ model Supplier {
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
   financialEntries          FinancialEntry[]
+  recurringBills            RecurringBill[]
   financialAlertResolutions FinancialAlertResolution[]
 
   @@unique([clinicId, document])
@@ -2431,4 +2437,38 @@ model FiscalRule {
   issRate                   Decimal? @db.Decimal(5, 2)
   createdAt                 DateTime @default(now()) @db.Timestamp(3)
   updatedAt                 DateTime @default(now()) @db.Timestamp(3)
+}
+
+model RecurringBill {
+  id                  String           @id @default(cuid())
+  clinicId            String
+  clinic              Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId            String
+  type                String           @default("EXPENSE")
+  description         String
+  category            String           @default("GERAL")
+  personName          String
+  supplierId          String?
+  supplier            Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  amount              Float
+  amountIsVariable    Boolean          @default(false)
+  frequency           String           @default("MONTHLY")
+  dueDay              Int
+  startDate           DateTime
+  endDate             DateTime?
+  occurrences         Int?
+  autoDebit           Boolean          @default(false)
+  paymentMethod       String?
+  costCenterId        String?
+  accountingAccountId String?
+  notes               String?
+  isActive            Boolean          @default(true)
+  lastGeneratedAt     DateTime?
+  createdById         String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  entries             FinancialEntry[]
+
+  @@index([clinicId, isActive])
+  @@index([tenantId])
 }

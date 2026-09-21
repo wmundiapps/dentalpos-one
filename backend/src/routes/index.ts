@@ -14,6 +14,7 @@ import * as scheduleController from '../controllers/scheduleController'
 import * as budgetController from '../controllers/budgetController'
 import * as paymentController from '../controllers/paymentController'
 import * as financialController from '../controllers/financialController'
+import * as financialPlanningController from '../controllers/financialPlanningController'
 import * as paymentProviderController from '../controllers/paymentProviderController'
 import * as feedbackController from '../controllers/feedbackController'
 import * as cronController from '../controllers/cronController'
@@ -285,6 +286,13 @@ router.delete('/financial-entries/:id', requirePermission('finance.approve'), fi
 router.get('/financial-dashboard', requirePermission('finance.view'), financialController.dashboard)
 router.get('/financial-import-rules', requirePermission('finance.view'), financialController.importRules)
 router.post('/financial-import-rules', requirePermission('finance.edit'), financialController.createImportRule)
+router.get('/recurring-bills', requirePermission('finance.view'), financialPlanningController.listBills)
+router.post('/recurring-bills', requirePermission('finance.create'), financialPlanningController.createBill)
+router.put('/recurring-bills/:id', requirePermission('finance.edit'), financialPlanningController.updateBill)
+router.post('/recurring-bills/:id/deactivate', requirePermission('finance.approve'), financialPlanningController.deactivateBill)
+router.get('/financial-forecast', requirePermission('finance.view'), financialPlanningController.forecastView)
+router.get('/financial-debtors', requirePermission('finance.view'), financialPlanningController.debtorsView)
+router.get('/financial-reminders', requirePermission('finance.view'), financialPlanningController.remindersView)
 router.get('/bank-connections', requirePermission('finance.view'), financialController.bankConnections)
 
 router.get('/payment-providers', requirePermission('finance.view'), paymentProviderController.index)
