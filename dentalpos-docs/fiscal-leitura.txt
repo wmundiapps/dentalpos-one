@@ -1,0 +1,1020 @@
+﻿
+===== TELA: BOTOES E CHAMADAS =====
+[35] } from "../services/FiscalAutomationService";
+===== ROTAS DO BACKEND =====
+[38] import * as backofficeController from '../controllers/backofficeController'
+[335] router.get('/sales/affiliate-suppliers', requirePermission('sales.view'), salesController.affiliateSuppliers)
+[336] router.post('/sales/affiliate-suppliers', requirePermission('sales.edit'), salesController.createAffiliateSupplier)
+[360] // BACKOFFICE / CONTÁBIL / FISCAL
+[363] router.get('/backoffice/dashboard', requirePermission('accounting.view'), backofficeController.dashboard)
+[364] router.get('/backoffice/dre', requirePermission('accounting.view'), backofficeController.dre)
+[365] router.get('/suppliers', requirePermission('accounting.view'), backofficeController.suppliers)
+[366] router.post('/suppliers', requirePermission('accounting.edit'), backofficeController.createSupplier)
+[367] router.get('/accounting/accounts', requirePermission('accounting.view'), backofficeController.accounts)
+[368] router.post('/accounting/accounts/bootstrap', requirePermission('accounting.edit'), backofficeController.bootstrapAccounts)
+[369] router.get('/accounting/cost-centers', requirePermission('accounting.view'), backofficeController.costCenters)
+[370] router.post('/accounting/cost-centers/bootstrap', requirePermission('accounting.edit'), backofficeController.bootstrapCostCenters)
+[371] router.get('/accounting/tax-obligations', requirePermission('accounting.view'), backofficeController.taxObligations)
+[372] router.post('/accounting/tax-obligations', requirePermission('accounting.edit'), backofficeController.createTaxObligation)
+[373] router.post('/accounting/tax-obligations/:id/approve', requirePermission('accounting.approve'), backofficeController.approveTaxObligation)
+[374] router.get('/accounting/accountant-access', requirePermission('accounting.portal'), backofficeController.accountantAccesses)
+[375] router.post('/accounting/accountant-access', requirePermission('accounting.portal'), backofficeController.createAccountantAccess)
+[376] router.put('/accounting/accountant-access/:id', requirePermission('accounting.portal'), backofficeController.updateAccountantAccess)
+===== SERVICOS DO FRONT USADOS =====
+----- AccountingService.ts -----
+import { DEMO_DATA_ON } from "../utils/demoMode";
+import type {
+  AccountingEntry,
+  AccountingSummary,
+  BankTransaction,
+  ChartOfAccount,
+  TaxObligation,
+  TaxRegimeSimulation,
+} from "../types/accounting";
+
+export const chartOfAccounts: ChartOfAccount[] = [
+  {
+    id: 1,
+    code: "1",
+    name: "Ativo",
+    group: "Ativo",
+    active: true,
+  },
+  {
+    id: 2,
+    code: "1.1",
+    name: "Disponibilidades",
+    group: "Ativo",
+    parentCode: "1",
+    active: true,
+  },
+  {
+    id: 3,
+    code: "1.1.01",
+    name: "Caixa",
+    group: "Ativo",
+    parentCode: "1.1",
+    active: true,
+  },
+  {
+    id: 4,
+    code: "1.1.02",
+    name: "Bancos",
+    group: "Ativo",
+    parentCode: "1.1",
+    active: true,
+  },
+  {
+    id: 5,
+    code: "3.1.01",
+    name: "Receitas de serviços odontológicos",
+    group: "Receita",
+    active: true,
+  },
+  {
+    id: 6,
+    code: "3.1.02",
+    name: "Receitas de cursos",
+    group: "Receita",
+    active: true,
+  },
+  {
+    id: 7,
+    code: "3.1.03",
+    name: "Receitas de componentes",
+    group: "Receita",
+    active: true,
+  },
+  {
+    id: 8,
+    code: "4.1.01",
+    name: "Materiais odontológicos",
+    group: "Custo",
+    active: true,
+  },
+  {
+    id: 9,
+    code: "4.1.02",
+    name: "Laboratório de prótese",
+    group: "Custo",
+    active: true,
+  },
+  {
+    id: 10,
+    code: "4.2.01",
+    name: "Folha de pagamento",
+    group: "Despesa",
+    active: true,
+  },
+  {
+    id: 11,
+    code: "4.2.02",
+    name: "Marketing e publicidade",
+    group: "Despesa",
+    active: true,
+  },
+  {
+    id: 12,
+    code: "4.2.03",
+    name: "Despesas administrativas",
+    group: "Despesa",
+    active: true,
+  },
+  {
+    id: 13,
+    code: "4.3.01",
+    name: "Tributos federais",
+    group: "Despesa",
+    active: true,
+  },
+  {
+    id: 14,
+    code: "4.3.02",
+    name: "Tributos municipais",
+    group: "Despesa",
+    active: true,
+  },
+];
+
+export const accountingEntries: AccountingEntry[] = !DEMO_DATA_ON ? [] : [
+  {
+    id: 1,
+    description: "Tratamento implantodôntico",
+    legalEntity: "Pessoa Jurídica",
+    personName: "Paciente Exemplo 3",
+    documentNumber: "NFS-000145",
+    documentType: "NFS-e",
+    entryType: "Receita",
+    accountCode: "3.1.01",
+    accountName: "Receitas de serviços odontológicos",
+    costCenter: "Clínica",
+    competenceDate: "02/08/2026",
+    dueDate: "02/08/2026",
+    paymentDate: "02/08/2026",
+    grossValue: 8500,
+    taxWithheld: 0,
+    netValue: 8500,
+    status: "Recebido",
+    bankAccount: "Conta Clínica",
+  },
+  {
+    id: 2,
+    description: "Consulta odontológica particular",
+    legalEntity: "Pessoa Física",
+    personName: "Paciente Exemplo 2",
+    documentNumber: "REC-000318",
+    documentType: "Recibo",
+    entryType: "Receita",
+    accountCode: "3.1.01",
+    accountName: "Receitas de serviços odontológicos",
+    costCenter: "Dr. Exemplo 1 PF",
+    competenceDate: "02/08/2026",
+    dueDate: "02/08/2026",
+    paymentDate: "02/08/2026",
+    grossValue: 450,
+    taxWithheld: 0,
+    netValue: 450,
+    status: "Recebido",
+    bankAccount: "Conta Profissional PF",
+    notes:
+      "Receita individual do profissional, sujeita à escrituração e análise tributária própria.",
+  },
+  {
+    id: 3,
+    description: "Compra de componentes protéticos",
+    legalEntity: "Pessoa Jurídica",
+    personName: "Fornecedor Dental",
+    documentNumber: "NF-98751",
+    documentType: "NF-e",
+    entryType: "Despesa",
+    accountCode: "4.1.01",
+    accountName: "Materiais odontológicos",
+    costCenter: "Estoque",
+    competenceDate: "01/08/2026",
+    dueDate: "08/08/2026",
+    grossValue: 4200,
+    taxWithheld: 0,
+    netValue: 4200,
+    status: "Pendente",
+    bankAccount: "Conta Clínica",
+  },
+  {
+    id: 4,
+    description: "Serviços de laboratório de prótese",
+    legalEntity: "Pessoa Jurídica",
+    personName: "Laboratório Parceiro",
+    documentNumber: "NFS-00841",
+    documentType: "NFS-e",
+    entryType: "Despesa",
+    accountCode: "4.1.02",
+    accountName: "Laboratório de prótese",
+    costCenter: "Laboratório",
+    competenceDate: "01/08/2026",
+    dueDate: "10/08/2026",
+    grossValue: 6800,
+    taxWithheld: 102,
+    netValue: 6698,
+    status: "Pendente",
+    bankAccount: "Conta Clínica",
+  },
+  {
+    id: 5,
+    description: "Folha de pagamento",
+    legalEntity: "Pessoa Jurídica",
+    personName: "Colaboradores",
+    documentType: "Folha de pagamento",
+    entryType: "Despesa",
+    accountCode: "4.2.01",
+    accountName: "Folha de pagamento",
+    costCenter: "RH",
+    competenceDate: "31/07/2026",
+    dueDate: "07/08/2026",
+    grossValue: 21860,
+    taxWithheld: 2147,
+    netValue: 19713,
+    status: "Pendente",
+    bankAccount: "Conta Folha",
+  },
+  {
+    id: 6,
+    description: "Pró-labore dos sócios",
+    legalEntity: "Pessoa Jurídica",
+    personName: "Sócios administradores",
+    documentType: "Folha de pagamento",
+    entryType: "Pró-labore",
+    accountCode: "4.2.01",
+    accountName: "Folha de pagamento",
+    costCenter: "Administração",
+    competenceDate: "31/07/2026",
+    dueDate: "07/08/2026",
+    grossValue: 12000,
+    taxWithheld: 1320,
+    netValue: 10680,
+    status: "Pendente",
+    bankAccount: "Conta Clínica",
+  },
+  {
+    id: 7,
+    description: "Distribuição de lucros",
+    legalEntity: "Pessoa Jurídica",
+    personName: "Sócios",
+    documentType: "Comprovante",
+    entryType: "Distribuição de lucros",
+    accountCode: "2.3.01",
+    accountName: "Lucros a distribuir",
+    costCenter: "Administração",
+    competenceDate: "31/07/2026",
+    dueDate: "15/08/2026",
+    grossValue: 30000,
+    taxWithheld: 0,
+    netValue: 30000,
+    status: "Pendente",
+    bankAccount: "Conta Clínica",
+    notes:
+      "Distribuição condicionada à existência de resultado contábil e validação da contabilidade.",
+  },
+];
+
+export const bankTransactions: BankTransaction[] = !DEMO_DATA_ON ? [] : [
+  {
+    id: 1,
+    bankName: "Banco Digital",
+    accountName: "Conta Clínica",
+    transactionDate: "02/08/2026",
+    description: "PIX RECEBIDO MARIA OLIVEIRA",
+    documentNumber: "PIX-88021",
+    value: 8500,
+    transactionType: "Crédito",
+    reconciliationStatus: "Sugestão encontrada",
+    suggestedEntryId: 1,
+  },
+  {
+    id: 2,
+    bankName: "Banco Digital",
+    accountName: "Conta Clínica",
+    transactionDate: "02/08/2026",
+    description: "PAGAMENTO FORNECEDOR LIMPEZA",
+    documentNumber: "PIX-88024",
+    value: 740,
+    transactionType: "Débito",
+    reconciliationStatus: "Não identificado",
+  },
+  {
+    id: 3,
+    bankName: "Banco do Brasil",
+    accountName: "Conta Folha",
+    transactionDate: "01/08/2026",
+    description: "TRANSFERÊNCIA PARA CONTA FOLHA",
+    documentNumber: "TED-20184",
+    value: 20000,
+    transactionType: "Crédito",
+    reconciliationStatus: "Conciliado",
+  },
+  {
+    id: 4,
+    bankName: "Banco Digital",
+    accountName: "Conta Clínica",
+    transactionDate: "01/08/2026",
+    description: "TARIFA BANCÁRIA",
+    value: 89.9,
+    transactionType: "Débito",
+    reconciliationStatus: "Não identificado",
+  },
+];
+
+export const taxObligations: TaxObligation[] = !DEMO_DATA_ON ? [] : [
+  {
+    id: 1,
+    name: "DARF previdenciário",
+    entityName: "DentalPos Clínica",
+    legalEntity: "Pessoa Jurídica",
+    regime: "Lucro Presumido",
+    competence: "07/2026",
+    dueDate: "20/08/2026",
+    estimatedValue: 12680,
+    status: "Em conferência",
+    responsible: "Contabilidade",
+    requiresAccountantApproval: true,
+  },
+  {
+    id: 2,
+    name: "FGTS Digital",
+    entityName: "DentalPos Clínica",
+    legalEntity: "Pessoa Jurídica",
+    regime: "Lucro Presumido",
+    competence: "07/2026",
+    dueDate: "20/08/2026",
+    estimatedValue: 1748.8,
+    status: "A calcular",
+    responsible: "Departamento Pessoal",
+    requiresAccountantApproval: true,
+  },
+  {
+    id: 3,
+    name: "IRRF sobre folha e pró-labore",
+    entityName: "DentalPos Clínica",
+    legalEntity: "Pessoa Jurídica",
+    regime: "Lucro Presumido",
+    competence: "07/2026",
+    dueDate: "20/08/2026",
+    estimatedValue: 2480,
+    status: "Em conferência",
+    responsible: "Contabilidade",
+    requiresAccountantApproval: true,
+  },
+  {
+    id: 4,
+    name: "IRPJ e CSLL",
+    entityName: "DentalPos Clínica",
+    legalEntity: "Pessoa Jurídica",
+    regime: "Lucro Presumido",
+    competence: "3º trimestre/2026",
+    dueDate: "30/10/2026",
+    estimatedValue: 48500,
+    status: "A calcular",
+    responsible: "Contabilidade",
+    requiresAccountantApproval: true,
+  },
+  {
+    id: 5,
+    name: "ISS",
+    entityName: "DentalPos Clínica",
+    legalEntity: "Pessoa Jurídica",
+    regime: "Lucro Presumido",
+    competence: "07/2026",
+    dueDate: "15/08/2026",
+    estimatedValue: 14600,
+    status: "Programada",
+    responsible: "Financeiro",
+    requiresAccountantApproval: true,
+  },
+  {
+    id: 6,
+    name: "Livro-caixa e recolhimento PF",
+    entityName: "Dr. Exemplo 1 — Pessoa Física",
+    legalEntity: "Pessoa Física",
+    regime: "Pessoa Física",
+    competence: "07/2026",
+    dueDate: "29/08/2026",
+    estimatedValue: 3200,
+    status: "A calcular",
+    responsible: "Contabilidade pessoal",
+    requiresAccountantApproval: true,
+  },
+];
+
+export const taxRegimeSimulations: TaxRegimeSimulation[] = !DEMO_DATA_ON ? [] : [
+  {
+    regime: "Simples Nacional",
+    estimatedMonthlyTax: 68200,
+    estimatedAnnualTax: 818400,
+    effectiveRate: 14.2,
+    complianceCost: 2800,
+    projectedNetResult: 98300,
+    advantages: [
+      "Arrecadação concentrada em guia única.",
+      "Operação administrativa simplificada.",
+      "Pode ser vantajoso em cenários específicos de faturamento e folha.",
+    ],
+    attentionPoints: [
+      "Necessidade de verificar limites de faturamento.",
+      "Análise das atividades e anexos aplicáveis.",
+      "Avaliação do fator relacionado à folha, quando cabível.",
+    ],
+    recommended: false,
+  },
+  {
+    regime: "Lucro Presumido",
+    estimatedMonthlyTax: 60400,
+    estimatedAnnualTax: 724800,
+    effectiveRate: 12.58,
+    complianceCost: 4800,
+    projectedNetResult: 108100,
+    advantages: [
+      "Previsibilidade da base presumida.",
+      "Pode favorecer operações com margens elevadas.",
+      "Adequado ao cenário atual usado na simulação.",
+    ],
+    attentionPoints: [
+      "Carga tributária não acompanha necessariamente o lucro real.",
+      "Exige controle rigoroso das atividades de clínica, ensino e comércio.",
+      "ISS, ICMS e tributos federais precisam ser segregados corretamente.",
+    ],
+    recommended: true,
+  },
+  {
+    regime: "Lucro Real",
+    estimatedMonthlyTax: 57300,
+    estimatedAnnualTax: 687600,
+    effectiveRate: 11.94,
+    complianceCost: 9800,
+    projectedNetResult: 106200,
+    advantages: [
+      "Tributação baseada no resultado contábil ajustado.",
+      "Possibilidade de aproveitamento de determinados créditos.",
+      "Pode ser vantajoso em margens reduzidas ou despesas elevadas.",
+    ],
+    attentionPoints: [
+      "Maior custo de conformidade.",
+      "Necessidade de contabilidade integrada e controles detalhados.",
+      "Risco maior de inconsistências sem documentação adequada.",
+    ],
+    recommended: false,
+  },
+];
+
+export function formatAccountingMoney(
+  value: number,
+): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+}
+
+export function getAccountingSummary(): AccountingSummary {
+  const totalRevenue = accountingEntries
+    .filter((entry) => entry.entryType === "Receita")
+    .reduce(
+      (total, entry) => total + entry.netValue,
+      0,
+    );
+
+  const totalExpenses = accountingEntries
+    .filter(
+      (entry) =>
+        entry.entryType === "Despesa" ||
+        entry.entryType === "Pró-labore",
+    )
+    .reduce(
+      (total, entry) => total + entry.netValue,
+      0,
+    );
+
+  const totalTaxes = taxObligations.reduce(
+    (total, obligation) =>
+      total + obligation.estimatedValue,
+    0,
+  );
+
+  const unreconciledTransactions =
+    bankTransactions.filter(
+      (transaction) =>
+        transaction.reconciliationStatus !==
+        "Conciliado",
+    ).length;
+
+  const pendingObligations = taxObligations.filter(
+    (obligation) =>
+      obligation.status !== "Paga" &&
+      obligation.status !== "Transmitida",
+  ).length;
+
+  return {
+    totalRevenue,
+    totalExpenses,
+    totalTaxes,
+    netCashFlow: totalRevenue - totalExpenses,
+    unreconciledTransactions,
+    pendingObligations,
+  };
+}
+
+export function getPFRevenue(): number {
+  return accountingEntries
+    .filter(
+      (entry) =>
+        entry.legalEntity === "Pessoa Física" &&
+        entry.entryType === "Receita",
+    )
+    .reduce(
+      (total, entry) => total + entry.netValue,
+      0,
+    );
+}
+
+export function getPJRevenue(): number {
+  return accountingEntries
+    .filter(
+      (entry) =>
+        entry.legalEntity === "Pessoa Jurídica" &&
+        entry.entryType === "Receita",
+    )
+    .reduce(
+      (total, entry) => total + entry.netValue,
+      0,
+    );
+}
+----- BackofficeApi.ts -----
+const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+function headers() {
+  const token = localStorage.getItem("dentalpos.token") || "";
+  const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+    ...(clinicId ? { "X-Clinic-ID": clinicId } : {}),
+  };
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API}${path}`, {
+    ...init,
+    headers: { ...headers(), ...(init?.headers || {}) },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "Falha na comunicaÃ§Ã£o com o backoffice.");
+  return data as T;
+}
+
+export interface BackofficeDashboard {
+  receivable: number;
+  payable: number;
+  receivedThisMonth: number;
+  paidThisMonth: number;
+  cashResultThisMonth: number;
+  overdueCount: number;
+  overdueValue: number;
+  accountingPending: number;
+  taxPending: number;
+  taxPendingValue: number;
+  suppliers: number;
+  activeAccountants: number;
+  payroll: Array<{
+    id: string;
+    reference: string;
+    netPayroll: number;
+    employerCharges: number;
+    status: string;
+    paymentDate?: string | null;
+  }>;
+}
+
+export interface SupplierRow {
+  id: string;
+  name: string;
+  tradeName?: string | null;
+  document?: string | null;
+  category: string;
+  email?: string | null;
+  phone?: string | null;
+  isActive: boolean;
+}
+
+export interface TaxObligationRow {
+  id: string;
+  name: string;
+  entityName: string;
+  competence: string;
+  dueDate: string;
+  estimatedValue: number;
+  finalValue?: number | null;
+  status: string;
+  responsible?: string | null;
+  requiresAccountantApproval: boolean;
+  approvedAt?: string | null;
+  financialEntry?: { id: string; status: string; amount: number } | null;
+}
+
+export interface AccountantAccessRow {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  canViewFinance: boolean;
+  canViewTax: boolean;
+  canViewPayroll: boolean;
+  canExport: boolean;
+  canApproveTax: boolean;
+}
+
+export interface DreLine {
+  category: string;
+  type: "INCOME" | "EXPENSE";
+  amount: number;
+}
+
+export interface DreByIssuer {
+  issuerEntity: string;
+  revenue: number;
+  expense: number;
+}
+
+export interface DreResponse {
+  revenue: number;
+  expense: number;
+  result: number;
+  lines: DreLine[];
+  byIssuer: DreByIssuer[];
+}
+
+export const BackofficeApi = {
+  dashboard: () => request<BackofficeDashboard>("/backoffice/dashboard"),
+  dre: (from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const query = params.toString();
+    return request<DreResponse>(`/backoffice/dre${query ? `?${query}` : ""}`);
+  },
+  suppliers: () => request<SupplierRow[]>("/suppliers"),
+  createSupplier: (body: Record<string, unknown>) => request<SupplierRow>("/suppliers", { method: "POST", body: JSON.stringify(body) }),
+  taxObligations: () => request<TaxObligationRow[]>("/accounting/tax-obligations"),
+  createTaxObligation: (body: Record<string, unknown>) => request<TaxObligationRow>("/accounting/tax-obligations", { method: "POST", body: JSON.stringify(body) }),
+  approveTaxObligation: (id: string, finalValue?: number) => request<TaxObligationRow>(`/accounting/tax-obligations/${id}/approve`, { method: "POST", body: JSON.stringify({ finalValue }) }),
+  accountantAccesses: () => request<AccountantAccessRow[]>("/accounting/accountant-access"),
+  createAccountantAccess: (body: Record<string, unknown>) => request<AccountantAccessRow>("/accounting/accountant-access", { method: "POST", body: JSON.stringify(body) }),
+  bootstrapAccounts: () => request<{ ok: boolean; count: number }>("/accounting/accounts/bootstrap", { method: "POST", body: "{}" }),
+  bootstrapCostCenters: () => request<{ ok: boolean; count: number }>("/accounting/cost-centers/bootstrap", { method: "POST", body: "{}" }),
+};
+----- FiscalAutomationService.ts -----
+import { DEMO_DATA_ON } from "../utils/demoMode";
+import type {
+  FiscalAlert,
+  FiscalAutomationStatus,
+  FiscalAutomationSummary,
+  FiscalDocumentKind,
+  FiscalPayment,
+  FiscalSendRecord,
+} from "../types/fiscalAutomation";
+
+export const fiscalPayments: FiscalPayment[] = !DEMO_DATA_ON ? [] : [
+  {
+    id: 1,
+    paymentCode: "PAG-000841",
+    treatmentReference:
+      "Reabilitação implantossuportada",
+    issuerType: "Clínica Pessoa Jurídica",
+    issuerName: "DentalPos Clínica",
+    issuerDocument: "12.345.678/0001-90",
+    payer: {
+      name: "Paciente Exemplo 3",
+      document: "123.456.789-00",
+      email: "paciente3@exemplo.invalid",
+      phone: "44999990001",
+      telegramUser: "@mariaoliveira",
+    },
+    patient: {
+      name: "Paciente Exemplo 3",
+      document: "123.456.789-00",
+    },
+    paymentDate: "02/08/2026",
+    competence: "08/2026",
+    grossValue: 8500,
+    discountValue: 0,
+    receivedValue: 8500,
+    paymentMethod: "PIX",
+    installmentNumber: 1,
+    totalInstallments: 1,
+    fiscalDocumentKind: "NFS-e",
+    status: "Nota programada",
+    issueScheduledAt: "02/08/2026, 17:00",
+    accountantApprovalRequired: false,
+    accountantApproved: true,
+    notes:
+      "Emissão programada após confirmação bancária.",
+  },
+  {
+    id: 2,
+    paymentCode: "PAG-000842",
+    treatmentReference: "Consulta particular",
+    issuerType: "Dentista Pessoa Física",
+    issuerName: "Dr. Exemplo 1",
+    issuerDocument: "987.654.321-00",
+    payer: {
+      name: "Paciente Exemplo 2",
+      document: "222.333.444-55",
+      email: "paciente2@exemplo.invalid",
+      phone: "44999990002",
+    },
+    patient: {
+      name: "Paciente Exemplo 2",
+      document: "222.333.444-55",
+    },
+    paymentDate: "02/08/2026",
+    competence: "08/2026",
+    grossValue: 450,
+    discountValue: 0,
+    receivedValue: 450,
+    paymentMethod: "Cartão",
+    installmentNumber: 1,
+    totalInstallments: 1,
+    fiscalDocumentKind: "Receita Saúde",
+    status: "Aguardando Receita Saúde",
+    accountantApprovalRequired: true,
+    accountantApproved: false,
+    notes:
+      "A equipe deve concluir o lançamento e registrar o protocolo.",
+  },
+  {
+    id: 3,
+    paymentCode: "PAG-000843",
+    treatmentReference: "Manutenção ortodôntica",
+    issuerType: "Clínica Pessoa Jurídica",
+    issuerName: "DentalPos Clínica",
+    issuerDocument: "12.345.678/0001-90",
+    payer: {
+      name: "Paciente Exemplo 5",
+      document: "333.444.555-66",
+      email: "paciente5@exemplo.invalid",
+      phone: "44999990003",
+    },
+    patient: {
+      name: "Paciente Exemplo 5",
+      document: "333.444.555-66",
+    },
+    paymentDate: "02/08/2026",
+    competence: "08/2026",
+    grossValue: 780,
+    discountValue: 80,
+    receivedValue: 700,
+    paymentMethod: "PIX",
+    installmentNumber: 2,
+    totalInstallments: 12,
+    fiscalDocumentKind: "NFS-e",
+    status: "Documento emitido",
+    documentNumber: "NFS-2026-000884",
+    protocolNumber: "PROTOCOLO-88421",
+    documentUrl: "/documentos/nfs-2026-000884.pdf",
+    accountantApprovalRequired: false,
+    accountantApproved: true,
+  },
+  {
+    id: 4,
+    paymentCode: "PAG-000844",
+    treatmentReference: "Cirurgia de implante",
+    issuerType: "Clínica Pessoa Jurídica",
+    issuerName: "DentalPos Clínica",
+    issuerDocument: "12.345.678/0001-90",
+    payer: {
+      name: "Empresa Pagadora Ltda.",
+      document: "45.678.901/0001-22",
+      email: "financeiro@exemplo.invalid",
+      phone: "44999990004",
+    },
+    patient: {
+      name: "Paciente Exemplo 6",
+      document: "444.555.666-77",
+    },
+    paymentDate: "01/08/2026",
+    competence: "08/2026",
+    grossValue: 4200,
+    discountValue: 0,
+    receivedValue: 4200,
+    paymentMethod: "Boleto",
+    installmentNumber: 1,
+    totalInstallments: 3,
+    fiscalDocumentKind: "NFS-e",
+    status: "Falha na emissão",
+    accountantApprovalRequired: true,
+    accountantApproved: true,
+    notes:
+      "O tomador é diferente do paciente. Revisar cadastro fiscal.",
+  },
+  {
+    id: 5,
+    paymentCode: "PAG-000845",
+    treatmentReference: "Avaliação clínica",
+    issuerType: "Dentista Pessoa Física",
+    issuerName: "Dra. Exemplo 2",
+    issuerDocument: "111.222.333-44",
+    payer: {
+      name: "Paciente Exemplo 1",
+      document: "",
+      email: "paciente1@exemplo.invalid",
+      phone: "44999990005",
+    },
+    patient: {
+      name: "Paciente Exemplo 1",
+      document: "555.666.777-88",
+    },
+    paymentDate: "01/08/2026",
+    competence: "08/2026",
+    grossValue: 350,
+    discountValue: 0,
+    receivedValue: 350,
+    paymentMethod: "Dinheiro",
+    installmentNumber: 1,
+    totalInstallments: 1,
+    fiscalDocumentKind: "Sem definição",
+    status: "Documento aguardando emissão",
+    accountantApprovalRequired: true,
+    accountantApproved: false,
+    notes:
+      "CPF do pagador não informado.",
+  },
+];
+
+export const fiscalSendRecords: FiscalSendRecord[] = !DEMO_DATA_ON ? [] : [
+  {
+    id: 1,
+    fiscalPaymentId: 3,
+    recipientName: "Paciente Exemplo 5",
+    channel: "E-mail",
+    destination: "paciente5@exemplo.invalid",
+    status: "Entregue",
+    sentAt: "02/08/2026, 13:25",
+    deliveredAt: "02/08/2026, 13:26",
+  },
+  {
+    id: 2,
+    fiscalPaymentId: 3,
+    recipientName: "Paciente Exemplo 5",
+    channel: "WhatsApp",
+    destination: "44999990003",
+    status: "Lido",
+    sentAt: "02/08/2026, 13:25",
+    deliveredAt: "02/08/2026, 13:25",
+    readAt: "02/08/2026, 13:28",
+  },
+  {
+    id: 3,
+    fiscalPaymentId: 1,
+    recipientName: "Paciente Exemplo 3",
+    channel: "Telegram",
+    destination: "@mariaoliveira",
+    status: "Programado",
+    scheduledAt: "02/08/2026, 17:05",
+  },
+  {
+    id: 4,
+    fiscalPaymentId: 4,
+    recipientName: "Empresa Pagadora Ltda.",
+    channel: "E-mail",
+    destination: "financeiro@exemplo.invalid",
+    status: "Não enviado",
+  },
+  {
+    id: 5,
+    fiscalPaymentId: 4,
+    recipientName: "Empresa Pagadora Ltda.",
+    channel: "SMS",
+    destination: "44999990004",
+    status: "Falhou",
+    sentAt: "01/08/2026, 18:00",
+    failureReason:
+      "Documento fiscal ainda não foi emitido.",
+  },
+];
+
+export const fiscalAlerts: FiscalAlert[] = !DEMO_DATA_ON ? [] : [
+  {
+    id: 1,
+    fiscalPaymentId: 2,
+    title: "Receita Saúde pendente",
+    description:
+      "Pagamento de pessoa física confirmado, mas o recibo ainda não possui protocolo registrado.",
+    priority: "Alta",
+    createdAt: "02/08/2026, 14:00",
+    resolved: false,
+  },
+  {
+    id: 2,
+    fiscalPaymentId: 4,
+    title: "Falha na emissão da NFS-e",
+    description:
+      "Revisar dados do tomador e reenviar a solicitação de emissão.",
+    priority: "Crítica",
+    createdAt: "01/08/2026, 18:05",
+    resolved: false,
+  },
+  {
+    id: 3,
+    fiscalPaymentId: 5,
+    title: "CPF do pagador ausente",
+    description:
+      "O documento fiscal não poderá ser concluído até a correção do cadastro.",
+    priority: "Crítica",
+    createdAt: "01/08/2026, 17:40",
+    resolved: false,
+  },
+  {
+    id: 4,
+    fiscalPaymentId: 3,
+    title: "Documento enviado ao pagador",
+    description:
+      "A NFS-e foi enviada por e-mail e WhatsApp.",
+    priority: "Baixa",
+    createdAt: "02/08/2026, 13:28",
+    resolved: true,
+  },
+];
+
+export function formatFiscalMoney(
+  value: number,
+): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+}
+
+export function getFiscalAutomationSummary(): FiscalAutomationSummary {
+  const confirmedPayments = fiscalPayments.filter(
+    (payment) =>
+      payment.status !== "Pagamento pendente",
+  ).length;
+
+  const pendingDocuments = fiscalPayments.filter(
+    (payment) =>
+      payment.status === "Documento aguardando emissão" ||
+      payment.status === "Aguardando Receita Saúde" ||
+      payment.status === "Nota programada" ||
+      payment.status === "Falha na emissão",
+  ).length;
+
+  const issuedDocuments = fiscalPayments.filter(
+    (payment) =>
+      payment.status === "Documento emitido" ||
+      payment.status === "Documento enviado" ||
+      payment.status === "Documento entregue" ||
+      payment.status === "Fiscalmente concluído",
+  ).length;
+
+  const deliveryFailures = fiscalSendRecords.filter(
+    (record) => record.status === "Falhou",
+  ).length;
+
+  const pendingTaxValue = fiscalPayments
+    .filter(
+      (payment) =>
+        payment.status !== "Fiscalmente concluído" &&
+        payment.status !== "Documento entregue",
+    )
+    .reduce(
+      (total, payment) =>
+        total + payment.receivedValue,
+      0,
+    );
+
+  return {
+    confirmedPayments,
+    pendingDocuments,
+    issuedDocuments,
+    deliveryFailures,
+    pendingTaxValue,
+  };
+}
+
+export function getFiscalDocumentLabel(
+  payment: FiscalPayment,
+): FiscalDocumentKind {
+  if (
+    payment.issuerType === "Dentista Pessoa Física"
+  ) {
+    return "Receita Saúde";
+  }
+
+  return "NFS-e";
+}
+
+export function requiresImmediateFiscalAction(
+  status: FiscalAutomationStatus,
+): boolean {
+  return (
+    status === "Documento aguardando emissão" ||
+    status === "Aguardando Receita Saúde" ||
+    status === "Falha na emissão"
+  );
+}

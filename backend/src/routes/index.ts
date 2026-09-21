@@ -36,6 +36,7 @@ import * as revahChatbotController from '../controllers/revahChatbotController'
 import * as leadDiscoveryController from '../controllers/leadDiscoveryController'
 import * as webhookController from '../controllers/webhookController'
 import * as backofficeController from '../controllers/backofficeController'
+import * as fiscalController from '../controllers/fiscalController'
 import * as platformReadinessController from '../controllers/platformReadinessController'
 import * as smartSchedulingController from '../controllers/smartSchedulingController'
 import * as demoController from '../controllers/demoController'
@@ -374,6 +375,18 @@ router.post('/accounting/tax-obligations/:id/approve', requirePermission('accoun
 router.get('/accounting/accountant-access', requirePermission('accounting.portal'), backofficeController.accountantAccesses)
 router.post('/accounting/accountant-access', requirePermission('accounting.portal'), backofficeController.createAccountantAccess)
 router.put('/accounting/accountant-access/:id', requirePermission('accounting.portal'), backofficeController.updateAccountantAccess)
+router.get('/fiscal/summary', requirePermission('accounting.view'), fiscalController.summary)
+router.get('/fiscal/documents', requirePermission('accounting.view'), fiscalController.documents)
+router.get('/fiscal/alerts', requirePermission('accounting.view'), fiscalController.alerts)
+router.get('/fiscal/sends', requirePermission('accounting.view'), fiscalController.sends)
+router.get('/fiscal/rules', requirePermission('accounting.view'), fiscalController.getRules)
+router.put('/fiscal/rules', requirePermission('accounting.edit'), fiscalController.saveRules)
+router.post('/fiscal/sync', requirePermission('accounting.edit'), fiscalController.sync)
+router.post('/fiscal/process', requirePermission('accounting.edit'), fiscalController.processAll)
+router.put('/fiscal/documents/:id', requirePermission('accounting.edit'), fiscalController.update)
+router.post('/fiscal/documents/:id/issue', requirePermission('accounting.edit'), fiscalController.issue)
+router.post('/fiscal/documents/:id/send', requirePermission('accounting.edit'), fiscalController.send)
+router.post('/fiscal/documents/:id/conclude', requirePermission('accounting.edit'), fiscalController.conclude)
 
 // ======================
 // FEEDBACKS
