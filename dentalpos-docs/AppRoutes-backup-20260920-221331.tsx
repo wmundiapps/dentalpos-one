@@ -29,7 +29,6 @@ import ExecutiveDashboard from "../pages/ExecutiveDashboard";
 import Feedback from "../pages/Feedback";
 import ClinicalTeam from "../pages/ClinicalTeam";
 import Channels from "../pages/Channels";
-import AiAssistant from "../pages/AiAssistant";
 import Financial from "../pages/Financial";
 import FinancialScanner from "../pages/FinancialScanner";
 import FiscalAutomation from "../pages/FiscalAutomation";
@@ -257,7 +256,6 @@ export default function AppRoutes() {
 
       <Route path="/corpo-clinico" element={<ClinicalTeam />} />
       <Route path="/canais-envio" element={<Channels />} />
-        <Route path="/assistente-ia" element={<AiAssistant />} />
       <Route path="/recall" element={<Recall />} />
 
       <Route path="/relatorios" element={<Reports />} />

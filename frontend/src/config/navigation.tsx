@@ -89,6 +89,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Orçamentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
       item("Laboratório","/laboratorio",<BiotechIcon/>),
       item("DentalPos AI","/ceo-ia",<AutoAwesomeIcon/>),
+      item("Assistente de IA","/assistente-ia",<AutoAwesomeIcon/>),
       // DPD oculto do menu em 20/09 por decisao do Robson. Rota e dados preservados.
             // item("DentalPos Design","/design",<DesignServicesIcon/>),
     ])
