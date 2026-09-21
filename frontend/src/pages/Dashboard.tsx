@@ -101,6 +101,8 @@ export default function Dashboard() {
 
   const criticalAlerts = alerts.filter((alert) => alert.severity === "error").length;
   const financialAlerts = alerts.filter((alert) => alert.area === "Financeiro" || alert.area === "Pacientes").length;
+  const [alertFilter, setAlertFilter] = useState<"" | "FIN" | "CRIT">("");
+  const shownAlerts = alerts.filter((a) => alertFilter === "CRIT" ? a.severity === "error" : alertFilter === "FIN" ? (a.area === "Financeiro" || a.area === "Pacientes") : true);
 
   async function confirmDismiss() {
     if (!dismissTarget || !dismissReason.trim()) return;
@@ -117,8 +119,8 @@ export default function Dashboard() {
   const cards = [
     { titulo: "Agenda hoje", valor: String(todayAppointments.length), descricao: "Consultas programadas", icone: <EventIcon />, path: "/agenda" },
     { titulo: "Laboratório ativo", valor: String(labCount), descricao: "Trabalhos em andamento", icone: <BiotechIcon />, path: "/laboratorio?filtro=ativos" },
-    { titulo: "Financeiro / cobranças", valor: String(financialAlerts), descricao: "Avisos que exigem ação", icone: <PaymentsIcon />, path: "/financeiro" },
-    { titulo: "Alertas críticos", valor: String(criticalAlerts), descricao: "Atenção imediata", icone: <WarningAmberIcon />, path: "/notificacoes" },
+    { titulo: "Financeiro / cobranças", valor: String(financialAlerts), descricao: "Avisos que exigem ação", icone: <PaymentsIcon />, path: "#FIN" },
+    { titulo: "Alertas críticos", valor: String(criticalAlerts), descricao: "Atenção imediata", icone: <WarningAmberIcon />, path: "#CRIT" },
   ];
 
   return (
@@ -129,23 +131,23 @@ export default function Dashboard() {
       </Typography>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(4, 1fr)" }, gap: 3 }}>
-        {cards.map((card) => <DashboardCard key={card.titulo} {...card} onClick={() => navigate(card.path)} />)}
+        {cards.map((card) => <DashboardCard key={card.titulo} {...card} onClick={() => { if (card.path.startsWith("#")) { setAlertFilter(card.path.slice(1) as "FIN" | "CRIT"); document.getElementById("central-alertas")?.scrollIntoView({ behavior: "smooth" }); } else navigate(card.path); }} />)}
       </Box>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1.4fr 1fr" }, gap: 3, mt: 4 }}>
         <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 800 }}>Central de alertas operacional</Typography>
+              <Typography id="central-alertas" variant="h6" sx={{ fontWeight: 800 }}>Central de alertas operacional</Typography>
               <Typography variant="body2" color="text.secondary">Laboratório, agenda, financeiro, pacientes e RH no mesmo lugar.</Typography>
             </Box>
-            <Chip label={`${alerts.length} avisos`} color={criticalAlerts ? "error" : "primary"} />
+            <Box sx={{ display: "flex", gap: 1 }}>{alertFilter && <Chip label="Mostrar todos" onClick={() => setAlertFilter("")} onDelete={() => setAlertFilter("")} />}<Chip label={`${shownAlerts.length} avisos`} color={criticalAlerts ? "error" : "primary"} /></Box>
           </Box>
           {lastProtocol && <Alert severity="success" sx={{ mb:2 }}>Aviso retirado da equipe. Protocolo {lastProtocol}.</Alert>}
 
-          {alerts.length === 0 ? (
+          {shownAlerts.length === 0 ? (
             <Typography color="text.secondary">Nenhum aviso crítico neste momento.</Typography>
-          ) : alerts.slice(0, 10).map((alert, index) => {
+          ) : shownAlerts.slice(0, 10).map((alert, index) => {
             const palette = severityColor(alert.severity);
             return (
               <Box key={alert.id}>
@@ -165,7 +167,7 @@ export default function Dashboard() {
                     <Button size="small" color="inherit" onClick={() => { setDismissTarget(alert); setDismissReason(""); setDismissNote(""); setDismissError(""); }}>Dispensar</Button>
                   </Box>
                 </Box>
-                {index < Math.min(alerts.length, 10) - 1 && <Divider />}
+                {index < Math.min(shownAlerts.length, 10) - 1 && <Divider />}
               </Box>
             );
           })}
