@@ -104,6 +104,9 @@ model Clinic {
   eduForums               EduForum[]
   eduLibrarySubscriptions EduLibrarySubscription[]
   eduReinforcementPlans   EduReinforcementPlan[]
+  eduDocumentUploads      EduDocumentUpload[]
+  eduDocumentRequests     EduDocumentRequest[]
+  eduCertificates         EduCertificate[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2640,6 +2643,9 @@ model EduStudent {
   flashcardReviews     EduFlashcardReview[]
   librarySubscriptions EduLibrarySubscription[]
   reinforcementPlans   EduReinforcementPlan[]
+  documentUploads      EduDocumentUpload[]
+  documentRequests     EduDocumentRequest[]
+  certificates         EduCertificate[]
 
   @@unique([clinicId, email])
   @@index([clinicId, status])
@@ -3154,4 +3160,84 @@ model EduReinforcementAction {
 
   @@index([planId])
   @@map("edu_reinforcement_actions")
+}
+
+// ============================================================
+// EDUMASTER — PROTOCOLO E CERTIFICADOS (SECRETARIA)
+// Documentos do aluno, protocolo de solicitação (histórico,
+// declaração, certificado, diploma) e emissão de certificados com
+// código público de verificação de autenticidade. Assinatura digital
+// ICP-Brasil do diploma fica fora de escopo aqui (norma do MEC precisa
+// ser confirmada antes de implementar) — o campo signatureStatus
+// existe para plugar essa etapa depois sem quebrar o fluxo.
+// ============================================================
+
+model EduDocumentUpload {
+  id           String     @id @default(cuid())
+  clinicId     String
+  clinic       Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId     String
+  studentId    String
+  student      EduStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  type         String     @default("OUTRO")
+  title        String
+  url          String
+  uploadedById String?
+  createdAt    DateTime   @default(now())
+
+  @@index([studentId])
+  @@index([clinicId])
+  @@map("edu_document_uploads")
+}
+
+model EduDocumentRequest {
+  id             String     @id @default(cuid())
+  clinicId       String
+  clinic         Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId       String
+  studentId      String
+  student        EduStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  protocolNumber String
+  type           String     @default("DECLARACAO_MATRICULA")
+  status         String     @default("SOLICITADO")
+  deliveryMethod String     @default("DIGITAL")
+  notes          String?
+  fileUrl        String?
+  requestedById  String?
+  requestedAt    DateTime   @default(now())
+  deliveredAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([clinicId, protocolNumber])
+  @@index([clinicId, status])
+  @@index([studentId])
+  @@index([tenantId])
+  @@map("edu_document_requests")
+}
+
+model EduCertificate {
+  id               String     @id @default(cuid())
+  clinicId         String
+  clinic           Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId         String
+  studentId        String
+  student          EduStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollmentId     String?
+  type             String     @default("CERTIFICADO_CONCLUSAO")
+  title            String
+  issueDate        DateTime   @default(now())
+  registryCode     String?
+  verificationCode String     @unique
+  signedFileUrl    String?
+  signatureStatus  String     @default("NAO_APLICAVEL")
+  status           String     @default("EMITIDO")
+  issuedById       String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([clinicId, status])
+  @@index([studentId])
+  @@index([tenantId])
+  @@map("edu_certificates")
 }

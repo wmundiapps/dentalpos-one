@@ -52,6 +52,8 @@ import eduRoutes from './eduRoutes'
 import eduExamRoutes from './eduExamRoutes'
 import eduContentRoutes from './eduContentRoutes'
 import eduPerformanceRoutes from './eduPerformanceRoutes'
+import eduDocumentRoutes from './eduDocumentRoutes'
+import * as eduDocumentController from '../controllers/eduDocumentController'
 import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
 import * as clinicalFileController from '../controllers/clinicalFileController'
 import * as treatmentPlanController from '../controllers/treatmentPlanController'
@@ -88,6 +90,9 @@ router.get('/public/booking/:clinicId', publicBookingController.config)
 router.get('/public/booking/:clinicId/availability', publicBookingController.availability)
 router.post('/public/booking/:clinicId', publicBookingController.store)
 
+// PUBLIC — verificação de autenticidade de certificado/diploma do EduMaster
+router.get('/edu/certificates/verify/:code', eduDocumentController.verifyCertificate)
+
 // ======================
 // MIDDLEWARES
 // ======================
@@ -109,6 +114,8 @@ router.use(eduExamRoutes)
 router.use(eduContentRoutes)
 // EduMaster Pro — Desempenho, ENADE/ENAMED e Reforço (módulo isolado, ver src/routes/eduPerformanceRoutes.ts)
 router.use(eduPerformanceRoutes)
+// EduMaster Pro — Protocolo e Certificados (módulo isolado, ver src/routes/eduDocumentRoutes.ts)
+router.use(eduDocumentRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 
