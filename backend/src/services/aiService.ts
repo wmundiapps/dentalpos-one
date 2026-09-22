@@ -10,6 +10,8 @@ export type AiTask =
   | 'RESUMO'
   | 'CLASSIFICACAO'
   | 'ANALISE'
+  | 'EDU_GERACAO_QUESTOES'
+  | 'EDU_CORRECAO_DISSERTATIVA'
 
 // Custo em creditos por tipo de tarefa. Ajustavel sem mexer no resto do sistema.
 const CUSTO: Record<AiTask, number> = {
@@ -18,6 +20,8 @@ const CUSTO: Record<AiTask, number> = {
   RESUMO: 1,
   CLASSIFICACAO: 1,
   ANALISE: 3,
+  EDU_GERACAO_QUESTOES: 3,
+  EDU_CORRECAO_DISSERTATIVA: 2,
 }
 
 const MODELO_PADRAO = process.env.OPENAI_MODEL || 'gpt-5.6-luna'

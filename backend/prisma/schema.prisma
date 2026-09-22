@@ -97,6 +97,8 @@ model Clinic {
   eduClasses     EduClass[]
   eduSessions    EduSession[]
   eduAttendances EduAttendance[]
+  eduQuestions   EduQuestion[]
+  eduExams       EduExam[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2529,6 +2531,7 @@ model EduSubject {
   updatedAt     DateTime @updatedAt
 
   curriculumSubjects EduCurriculumSubject[]
+  questions          EduQuestion[]
 
   @@unique([clinicId, code])
   @@index([clinicId, isActive])
@@ -2622,6 +2625,7 @@ model EduStudent {
   classEnrollments EduClassEnrollment[]
   sessionBookings  EduSessionBooking[]
   attendances      EduAttendance[]
+  examAttempts     EduExamAttempt[]
 
   @@unique([clinicId, email])
   @@index([clinicId, status])
@@ -2677,6 +2681,7 @@ model EduClass {
 
   classEnrollments EduClassEnrollment[]
   sessions         EduSession[]
+  exams            EduExam[]
 
   @@unique([termId, curriculumSubjectId, code])
   @@index([clinicId, isActive])
@@ -2763,4 +2768,134 @@ model EduAttendance {
   @@index([studentId])
   @@index([clinicId])
   @@map("edu_attendances")
+}
+
+// ============================================================
+// EDUMASTER — PROVAS COM IA
+// Banco de questões, montagem de provas, tentativas do aluno,
+// correção instantânea de objetivas e correção de dissertativas
+// por IA (services/aiService.ts compartilhado) com override manual.
+// ============================================================
+
+model EduQuestion {
+  id          String      @id @default(cuid())
+  clinicId    String
+  clinic      Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId    String
+  subjectId   String?
+  subject     EduSubject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  type        String      @default("OBJETIVA_UNICA")
+  statement   String
+  difficulty  String      @default("MEDIA")
+  tags        String[]    @default([])
+  rubric      String?
+  isActive    Boolean     @default(true)
+  createdById String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  options       EduQuestionOption[]
+  examQuestions EduExamQuestion[]
+
+  @@index([clinicId, subjectId, isActive])
+  @@index([tenantId])
+  @@map("edu_questions")
+}
+
+model EduQuestionOption {
+  id         String      @id @default(cuid())
+  questionId String
+  question   EduQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean     @default(false)
+  order      Int         @default(0)
+
+  @@index([questionId])
+  @@map("edu_question_options")
+}
+
+model EduExam {
+  id              String    @id @default(cuid())
+  clinicId        String
+  clinic          Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  classId         String?
+  class           EduClass? @relation(fields: [classId], references: [id], onDelete: SetNull)
+  title           String
+  instructions    String?
+  type            String    @default("AVALIACAO")
+  totalPoints     Float     @default(10)
+  durationMinutes Int       @default(60)
+  startAt         DateTime?
+  endAt           DateTime?
+  status          String    @default("RASCUNHO")
+  createdById     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  examQuestions EduExamQuestion[]
+  attempts      EduExamAttempt[]
+
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_exams")
+}
+
+model EduExamQuestion {
+  id         String      @id @default(cuid())
+  examId     String
+  exam       EduExam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  questionId String
+  question   EduQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  order      Int         @default(0)
+  points     Float       @default(1)
+
+  answers EduExamAnswer[]
+
+  @@unique([examId, questionId])
+  @@index([examId])
+  @@map("edu_exam_questions")
+}
+
+model EduExamAttempt {
+  id             String     @id @default(cuid())
+  examId         String
+  exam           EduExam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        EduStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  startedAt      DateTime   @default(now())
+  submittedAt    DateTime?
+  status         String     @default("EM_ANDAMENTO")
+  objectiveScore Float      @default(0)
+  essayScore     Float?
+  totalScore     Float?
+
+  answers EduExamAnswer[]
+
+  @@unique([examId, studentId])
+  @@index([examId, status])
+  @@index([studentId])
+  @@map("edu_exam_attempts")
+}
+
+model EduExamAnswer {
+  id                String          @id @default(cuid())
+  attemptId         String
+  attempt           EduExamAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  examQuestionId    String
+  examQuestion      EduExamQuestion @relation(fields: [examQuestionId], references: [id], onDelete: Cascade)
+  selectedOptionIds String[]        @default([])
+  essayText         String?
+  isCorrect         Boolean?
+  pointsEarned      Float?
+  aiScore           Float?
+  aiFeedback        String?
+  manualScore       Float?
+  manualFeedback    String?
+  gradedById        String?
+  gradedAt          DateTime?
+
+  @@unique([attemptId, examQuestionId])
+  @@index([attemptId])
+  @@map("edu_exam_answers")
 }
