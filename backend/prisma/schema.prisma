@@ -111,6 +111,10 @@ model Clinic {
   eduMaintenanceOrders    EduMaintenanceOrder[]
   eduParkingSpots         EduParkingSpot[]
   eduExpiringItems        EduExpiringItem[]
+  eduSupplyItems          EduSupplyItem[]
+  eduSupplyMovements      EduSupplyMovement[]
+  eduPurchaseOrders       EduPurchaseOrder[]
+  eduSales                EduSale[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2651,6 +2655,7 @@ model EduStudent {
   documentRequests     EduDocumentRequest[]
   certificates         EduCertificate[]
   parkingSpots         EduParkingSpot[]
+  sales                EduSale[]
 
   @@unique([clinicId, email])
   @@index([clinicId, status])
@@ -3350,4 +3355,130 @@ model EduExpiringItem {
   @@index([clinicId, status, expiresAt])
   @@index([tenantId])
   @@map("edu_expiring_items")
+}
+
+// ============================================================
+// EDUMASTER — SUPRIMENTOS (COMPRAS, ESTOQUE, VENDAS)
+// Recebimento de pedido de compra gera entrada de estoque + conta a
+// pagar (FinancialEntry); venda gera saída de estoque + conta a
+// receber — reaproveitando o Financeiro compartilhado, como no
+// módulo de mensalidade e na biblioteca por assinatura.
+// ============================================================
+
+model EduSupplyItem {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  code            String
+  name            String
+  category        String   @default("OUTRO")
+  unit            String   @default("UN")
+  minQuantity     Float    @default(0)
+  currentQuantity Float    @default(0)
+  salePrice       Float?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  movements     EduSupplyMovement[]
+  purchaseItems EduPurchaseOrderItem[]
+  saleItems     EduSaleItem[]
+
+  @@unique([clinicId, code])
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+  @@map("edu_supply_items")
+}
+
+model EduSupplyMovement {
+  id            String        @id @default(cuid())
+  clinicId      String
+  clinic        Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId      String
+  itemId        String
+  item          EduSupplyItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  type          String        @default("ENTRADA")
+  quantity      Float
+  reason        String?
+  referenceType String?
+  referenceId   String?
+  createdById   String?
+  createdAt     DateTime      @default(now())
+
+  @@index([itemId])
+  @@index([clinicId, type])
+  @@map("edu_supply_movements")
+}
+
+model EduPurchaseOrder {
+  id               String   @id @default(cuid())
+  clinicId         String
+  clinic           Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId         String
+  supplierName     String
+  status           String   @default("RASCUNHO")
+  totalAmount      Float    @default(0)
+  notes            String?
+  requestedById    String?
+  approvedById     String?
+  financialEntryId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  items EduPurchaseOrderItem[]
+
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_purchase_orders")
+}
+
+model EduPurchaseOrderItem {
+  id          String           @id @default(cuid())
+  orderId     String
+  order       EduPurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemId      String?
+  item        EduSupplyItem?   @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  description String
+  quantity    Float
+  unitPrice   Float
+
+  @@index([orderId])
+  @@map("edu_purchase_order_items")
+}
+
+model EduSale {
+  id               String      @id @default(cuid())
+  clinicId         String
+  clinic           Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId         String
+  studentId        String?
+  student          EduStudent? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  buyerName        String
+  totalAmount      Float       @default(0)
+  paymentMethod    String?
+  status           String      @default("CONCLUIDA")
+  financialEntryId String?
+  createdById      String?
+  createdAt        DateTime    @default(now())
+
+  items EduSaleItem[]
+
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_sales")
+}
+
+model EduSaleItem {
+  id          String         @id @default(cuid())
+  saleId      String
+  sale        EduSale        @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  itemId      String?
+  item        EduSupplyItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  description String
+  quantity    Float
+  unitPrice   Float
+
+  @@index([saleId])
+  @@map("edu_sale_items")
 }

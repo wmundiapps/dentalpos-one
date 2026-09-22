@@ -54,6 +54,7 @@ import eduContentRoutes from './eduContentRoutes'
 import eduPerformanceRoutes from './eduPerformanceRoutes'
 import eduDocumentRoutes from './eduDocumentRoutes'
 import eduFacilitiesRoutes from './eduFacilitiesRoutes'
+import eduSupplyRoutes from './eduSupplyRoutes'
 import * as eduDocumentController from '../controllers/eduDocumentController'
 import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
 import * as clinicalFileController from '../controllers/clinicalFileController'
@@ -119,6 +120,8 @@ router.use(eduPerformanceRoutes)
 router.use(eduDocumentRoutes)
 // EduMaster Pro — Facilities (módulo isolado, ver src/routes/eduFacilitiesRoutes.ts)
 router.use(eduFacilitiesRoutes)
+// EduMaster Pro — Suprimentos (módulo isolado, ver src/routes/eduSupplyRoutes.ts)
+router.use(eduSupplyRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 
