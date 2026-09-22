@@ -168,22 +168,6 @@ export const navigationGroups:NavigationGroup[] = [
     ])
   },
   {
-    label:"EduMaster",
-    icon:tile(<SchoolIcon/>,"#0EA5E9"),
-    items:alphabetical([
-      item("Visão geral","/edumaster",<SpaceDashboardIcon/>),
-      item("Programas","/edumaster?secao=programas",<SchoolIcon/>),
-      item("Disciplinas","/edumaster?secao=disciplinas",<DescriptionIcon/>),
-      item("Matriz curricular","/edumaster?secao=matriz",<AssignmentIcon/>),
-      item("Períodos letivos","/edumaster?secao=periodos",<EventIcon/>),
-      item("Turmas","/edumaster?secao=turmas",<GroupsIcon/>),
-      item("Alunos","/edumaster?secao=alunos",<PeopleAltIcon/>),
-      item("Matrículas","/edumaster?secao=matriculas",<AssignmentIcon/>),
-      item("Banco de questões","/edumaster?secao=questoes",<DescriptionIcon/>),
-      item("Provas","/edumaster?secao=provas",<AssignmentIcon/>),
-    ])
-  },
-  {
     label:"Configurações",
     icon:tile(<SettingsIcon/>,"#64748B"),
     items:alphabetical([

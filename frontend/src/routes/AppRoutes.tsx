@@ -2,7 +2,6 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 
 import Academic from "../pages/Academic";
-import EduMaster from "../pages/EduMaster";
 import Accounting from "../pages/Accounting";
 import Agenda from "../pages/Agenda";
 import Backup from "../pages/Backup";
@@ -112,7 +111,6 @@ export default function AppRoutes() {
       <Route path="/" element={<Dashboard />} />
 
       <Route path="/academico" element={<Academic />} />
-      <Route path="/edumaster" element={<EduMaster />} />
 
       <Route path="/agenda" element={<Agenda />} />
 

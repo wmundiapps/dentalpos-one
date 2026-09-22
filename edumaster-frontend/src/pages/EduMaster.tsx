@@ -114,7 +114,7 @@ export default function EduMaster() {
   const secao = SECOES.some((s) => s.value === secaoParam) ? secaoParam : "visao-geral";
   const data = useEduData();
 
-  const setSecao = (value: Secao) => navigate(`/edumaster${value === "visao-geral" ? "" : `?secao=${value}`}`);
+  const setSecao = (value: Secao) => navigate(`/${value === "visao-geral" ? "" : `?secao=${value}`}`);
 
   return (
     <Box>
