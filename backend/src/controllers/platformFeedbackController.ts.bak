@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
 
-const TYPES = ['Bug', 'Bot\u00e3o n\u00e3o funciona', 'Corre\u00e7\u00e3o', 'Sugest\u00e3o', 'Nova funcionalidade', 'D\u00favida', 'Avalia\u00e7\u00e3o']
+const TYPES = ['Bug', 'Bot\u00e3o n\u00e3o funciona', 'Corre\u00e7\u00e3o', 'Sugest\u00e3o', 'Nova funcionalidade', 'D\u00favida']
 const PRIORITIES = ['Baixa', 'M\u00e9dia', 'Alta', 'Cr\u00edtica']
 const STATUSES = ['Enviado', 'Em an\u00e1lise', 'Em desenvolvimento', 'Resolvido', 'Arquivado']
 const txt = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
@@ -18,21 +18,17 @@ export async function create(req: AuthRequest, res: Response) {
     const { id: userId, clinicId, tenantId, email } = req.user
     const b = req.body || {}
     const type = txt(b.type, 40)
-    const ratingRaw = Number(b.rating)
-    const rating = Number.isFinite(ratingRaw) && ratingRaw >= 1 && ratingRaw <= 5 ? Math.round(ratingRaw) : null
     const title = txt(b.title, 160)
     const description = txt(b.description, 5000)
     if (!TYPES.includes(type)) return res.status(400).json({ error: 'Tipo de relato inv\u00e1lido.' })
-    const isEvaluation = type === 'Avalia\u00e7\u00e3o'
-    if (!isEvaluation && title.length < 3) return res.status(400).json({ error: 'Informe um t\u00edtulo.' })
-    if (!isEvaluation && description.length < 5) return res.status(400).json({ error: 'Descreva o relato.' })
-    if (isEvaluation && !rating) return res.status(400).json({ error: 'Informe uma nota.' })
+    if (title.length < 3) return res.status(400).json({ error: 'Informe um t\u00edtulo.' })
+    if (description.length < 5) return res.status(400).json({ error: 'Descreva o relato.' })
     const pr = txt(b.priority, 20)
     const priority = PRIORITIES.includes(pr) ? pr : 'M\u00e9dia'
     const user = await prisma.user.findFirst({ where: { id: userId, clinicId }, select: { firstName: true, lastName: true, email: true } })
     const userName = user ? (`${user.firstName} ${user.lastName}`.trim() || user.email) : email
     const row = await prisma.platformFeedback.create({ data: {
-      clinicId, tenantId, userId, userName, userEmail: user?.email || email, type, title: title || 'Avalia\u00e7\u00e3o do sistema', description: description || '', priority, rating,
+      clinicId, tenantId, userId, userName, userEmail: user?.email || email, type, title, description, priority,
       module: txt(b.module, 80) || null, pagePath: txt(b.pagePath, 300) || null, userAgent: txt(req.get('user-agent'), 300) || null,
     } })
     await audit({ clinicId, tenantId, actorId: userId, module: 'feedback', action: 'PLATFORM_FEEDBACK_CREATE', entityType: 'PlatformFeedback', entityId: row.id, afterData: row, summary: `${type}: ${title}` })

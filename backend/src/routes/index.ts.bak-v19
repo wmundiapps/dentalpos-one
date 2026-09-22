@@ -1,0 +1,405 @@
+import { Router } from 'express'
+
+import { authMiddleware } from '../middleware/auth'
+import tenantMiddleware from '../middleware/tenant'
+
+import * as authController from '../controllers/authController'
+import * as userController from '../controllers/userController'
+import * as clinicController from '../controllers/clinicController'
+import * as doctorController from '../controllers/doctorController'
+import * as patientController from '../controllers/patientController'
+import * as appointmentController from '../controllers/appointmentController'
+import * as publicBookingController from '../controllers/publicBookingController'
+import * as scheduleController from '../controllers/scheduleController'
+import * as budgetController from '../controllers/budgetController'
+import * as paymentController from '../controllers/paymentController'
+import * as financialController from '../controllers/financialController'
+import * as paymentProviderController from '../controllers/paymentProviderController'
+import * as feedbackController from '../controllers/feedbackController'
+import * as cronController from '../controllers/cronController'
+import * as platformFeedbackController from '../controllers/platformFeedbackController'
+import * as accessController from '../controllers/accessController'
+import * as auditController from '../controllers/auditController'
+import * as settingsController from '../controllers/settingsController'
+import * as sessionController from '../controllers/sessionController'
+import * as clinicalController from '../controllers/clinicalController'
+import * as laboratoryController from '../controllers/laboratoryController'
+import * as designController from '../controllers/designController'
+import * as hrController from '../controllers/hrController'
+import * as revahController from '../controllers/revahController'
+import * as salesController from '../controllers/salesController'
+import * as platformController from '../controllers/platformController'
+import * as revahSenderController from '../controllers/revahSenderController'
+import * as aiController from '../controllers/aiController'
+import * as platformBillingController from '../controllers/platformBillingController'
+import * as revahChatbotController from '../controllers/revahChatbotController'
+import * as leadDiscoveryController from '../controllers/leadDiscoveryController'
+import * as webhookController from '../controllers/webhookController'
+import * as backofficeController from '../controllers/backofficeController'
+import * as fiscalController from '../controllers/fiscalController'
+import * as platformReadinessController from '../controllers/platformReadinessController'
+import * as smartSchedulingController from '../controllers/smartSchedulingController'
+import * as demoController from '../controllers/demoController'
+import * as debugDemoController from '../controllers/debugDemoController'
+import * as landingLeadController from '../controllers/landingLeadController'
+import { requirePermission, requireWmundiStaff } from '../middleware/permission'
+import clinicalRecordRoutes from './clinicalRecordRoutes'
+import dentalChartRoutes from './dentalChartRoutes'
+import { specialtyClinicalRoutes } from './specialtyClinicalRoutes'
+import specializedClinicalRoutes from './specializedClinicalRoutes'
+import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
+import * as clinicalFileController from '../controllers/clinicalFileController'
+import * as treatmentPlanController from '../controllers/treatmentPlanController'
+import * as financialAlertResolutionController from '../controllers/financialAlertResolutionController'
+import * as operationalAlertResolutionController from '../controllers/operationalAlertResolutionController'
+import * as reportController5787 from '../controllers/reportController5787'
+
+const router = Router()
+
+// ======================
+// AUTH
+// ======================
+
+router.post('/auth/register', authController.register)
+router.post('/auth/login', authController.login)
+router.post('/auth/password-reset/request', authController.requestPasswordReset)
+router.post('/auth/password-reset/confirm', authController.resetPassword)
+router.get('/demo/config', demoController.config)
+router.post('/demo/register', demoController.register)
+router.get('/debug/demo-clinics', debugDemoController.list)
+router.post('/debug/demo-clinics/modules', debugDemoController.setModules)
+router.post('/landing/lead', landingLeadController.submitLead)
+router.post('/landing/lead-event', landingLeadController.submitEvent)
+router.get('/auth/me', authMiddleware, tenantMiddleware, sessionController.me)
+
+// PUBLIC WEBHOOKS
+router.post('/webhooks/asaas', webhookController.asaas)
+router.post('/webhooks/stripe', webhookController.stripe)
+router.post('/webhooks/platform-asaas', platformBillingController.webhook)
+router.all('/cron/reminders', cronController.reminders)
+
+// PUBLIC BOOKING
+router.get('/public/booking/:clinicId', publicBookingController.config)
+router.get('/public/booking/:clinicId/availability', publicBookingController.availability)
+router.post('/public/booking/:clinicId', publicBookingController.store)
+
+// ======================
+// MIDDLEWARES
+// ======================
+
+router.use(authMiddleware)
+router.use(tenantMiddleware)
+
+// Clinical modules integrated by Chat 8. Authentication and tenant context are already resolved above.
+router.use(clinicalRecordRoutes)
+router.use(dentalChartRoutes)
+router.use('/specialty-clinical', specialtyClinicalRoutes)
+router.use(specializedClinicalRoutes)
+
+router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
+
+// Operational alert resolution / Homologação 5787
+router.get('/operational-alert-resolutions', requirePermission('dashboard.view'), operationalAlertResolutionController.index)
+router.post('/operational-alert-resolutions/dismiss', requirePermission('dashboard.view'), operationalAlertResolutionController.dismiss)
+router.get('/financial-alert-resolutions', requirePermission('finance.view'), financialAlertResolutionController.listResolutionStates)
+router.post('/financial-alert-resolutions/in-progress', requirePermission('finance.edit'), financialAlertResolutionController.markInProgress)
+router.post('/financial-alert-resolutions/resolve', requirePermission('finance.edit'), financialAlertResolutionController.resolveFromOperation)
+
+// ======================
+// CORE / ACCESS / SETTINGS / AUDIT
+// ======================
+
+router.get('/permissions', requirePermission('users.manage'), accessController.catalog)
+router.get('/access-profiles', requirePermission('users.view'), accessController.profiles)
+router.post('/access-profiles/bootstrap', requirePermission('users.manage'), accessController.bootstrapProfiles)
+router.get('/me/permissions', accessController.myPermissions)
+router.post('/users/:userId/access-profiles', requirePermission('users.manage'), accessController.assignProfile)
+router.delete('/users/:userId/access-profiles/:profileId', requirePermission('users.manage'), accessController.removeProfile)
+
+router.get('/settings/clinic', requirePermission('settings.view'), settingsController.show)
+router.put('/settings/clinic', requirePermission('settings.edit'), settingsController.update)
+
+router.get('/audit-logs', requirePermission('audit.view'), auditController.index)
+
+// ======================
+// USERS
+// ======================
+
+router.get('/users', requirePermission('users.view'), userController.index)
+router.get('/user/:id', requirePermission('users.view'), userController.show)
+router.post('/users', requirePermission('users.manage'), userController.store)
+router.put('/user/:id', requirePermission('users.manage'), userController.update)
+router.delete('/user/:id', requirePermission('users.manage'), userController.remove)
+
+// ======================
+// CLINICS
+// ======================
+
+router.get('/clinics', requirePermission('settings.view'), clinicController.index)
+router.get('/clinic/:id', requirePermission('settings.view'), clinicController.show)
+router.post('/clinics', requirePermission('settings.edit'), clinicController.store)
+router.put('/clinic/:id', requirePermission('settings.edit'), clinicController.update)
+router.delete('/clinic/:id', requirePermission('settings.edit'), clinicController.remove)
+
+// ======================
+// DOCTORS
+// ======================
+
+router.get('/doctors', requirePermission('agenda.view'), doctorController.index)
+router.get('/doctor/:id', requirePermission('agenda.view'), doctorController.show)
+router.post('/doctors', requirePermission('settings.edit'), doctorController.store)
+router.put('/doctor/:id', requirePermission('settings.edit'), doctorController.update)
+router.delete('/doctor/:id', requirePermission('settings.edit'), doctorController.remove)
+router.get('/doctor/:id/documents', requirePermission('settings.edit'), doctorController.documents)
+router.post('/doctor/:id/documents', requirePermission('settings.edit'), doctorController.addDocument)
+router.delete('/doctor/:id/documents/:documentId', requirePermission('settings.edit'), doctorController.removeDocument)
+
+// ======================
+// PATIENTS
+// ======================
+
+router.get('/patients', requirePermission('patients.view'), patientController.index)
+router.get('/patient/:id', requirePermission('patients.view'), patientController.show)
+router.post('/patients', requirePermission('patients.create'), patientController.store)
+router.put('/patient/:id', requirePermission('patients.edit'), patientController.update)
+router.delete('/patient/:id', requirePermission('patients.edit'), patientController.remove)
+
+// CLINICAL RECORD / ODONTOGRAM / TREATMENT PLAN
+router.get('/patients/:patientId/clinical', requirePermission('clinical.view'), clinicalController.patientClinical)
+router.post('/patients/:patientId/odontogram', requirePermission('clinical.edit'), clinicalController.upsertOdontogramMark)
+router.post('/patients/:patientId/evolutions', requirePermission('clinical.edit'), clinicalController.createEvolution)
+router.get('/patients/:patientId/treatment-plan', requirePermission('clinical.view'), clinicalController.treatmentPlan)
+
+// TREATMENT PLAN V2 — reconstructed Chat 3
+router.get('/patients/:patientId/treatment-plan-v2', requirePermission('clinical.view'), treatmentPlanController.index)
+router.post('/patients/:patientId/treatment-plan-v2/items', requirePermission('clinical.edit'), treatmentPlanController.createItem)
+router.put('/treatment-plan-v2/items/:id', requirePermission('clinical.edit'), treatmentPlanController.updateItem)
+router.post('/patients/:patientId/treatment-plan-v2/import-odontogram', requirePermission('clinical.edit'), treatmentPlanController.importOdontogram)
+router.get('/patients/:patientId/treatment-plan-v2/revisions', requirePermission('clinical.view'), treatmentPlanController.revisions)
+
+// CLINICAL DOCUMENTS — Chat 4
+router.get('/clinical-document-templates', requirePermission('clinical.view'), clinicalDocumentController.listTemplates)
+router.post('/clinical-document-templates', requirePermission('clinical.edit'), clinicalDocumentController.createTemplate)
+router.put('/clinical-document-templates/:id', requirePermission('clinical.edit'), clinicalDocumentController.updateTemplate)
+router.get('/clinical-documents', requirePermission('clinical.view'), clinicalDocumentController.listDocuments)
+router.post('/clinical-documents', requirePermission('clinical.edit'), clinicalDocumentController.createDocument)
+router.put('/clinical-documents/:id', requirePermission('clinical.edit'), clinicalDocumentController.reviseDocument)
+router.post('/clinical-documents/:id/issue', requirePermission('clinical.edit'), clinicalDocumentController.issueDocument)
+router.post('/clinical-documents/:id/cancel', requirePermission('clinical.edit'), clinicalDocumentController.cancelDocument)
+router.get('/clinical-documents/:id/history', requirePermission('clinical.view'), clinicalDocumentController.documentHistory)
+router.post('/clinical-documents/:id/signature', requirePermission('clinical.edit'), clinicalDocumentController.requestSignature)
+
+// CLINICAL FILES / EXAMS — Chat 5
+router.get('/clinical-files/categories', requirePermission('clinical.view'), clinicalFileController.categories)
+router.post('/clinical-files/categories', requirePermission('clinical.edit'), clinicalFileController.createCategory)
+router.get('/patients/:patientId/clinical-files', requirePermission('clinical.view'), clinicalFileController.index)
+router.post('/patients/:patientId/clinical-files/upload-intent', requirePermission('clinical.edit'), clinicalFileController.uploadIntent)
+router.post('/clinical-files/:id/complete', requirePermission('clinical.edit'), clinicalFileController.completeUpload)
+router.patch('/clinical-files/:id', requirePermission('clinical.edit'), clinicalFileController.update)
+router.get('/clinical-files/:id/access', requirePermission('clinical.view'), clinicalFileController.access)
+router.get('/clinical-files/:id/design-handoff', requirePermission('design.view'), clinicalFileController.designHandoff)
+router.delete('/clinical-files/:id', requirePermission('clinical.edit'), clinicalFileController.remove)
+
+// ======================
+// LABORATORY / DENTALPOS DESIGN
+// ======================
+
+router.get('/laboratory-works', requirePermission('laboratory.view'), laboratoryController.index)
+router.post('/laboratory-works', requirePermission('laboratory.create'), laboratoryController.store)
+router.put('/laboratory-works/:id', requirePermission('laboratory.edit'), laboratoryController.update)
+router.post('/laboratory-works/:id/design', requirePermission('design.edit'), laboratoryController.openDesign)
+router.get('/design-cases', requirePermission('design.view'), designController.index)
+router.put('/design-cases/:id', requirePermission('design.edit'), designController.update)
+
+// ======================
+// APPOINTMENTS
+// ======================
+
+router.get('/public-booking-settings', requirePermission('agenda.view'), publicBookingController.settings)
+router.put('/public-booking-settings', requirePermission('agenda.edit'), publicBookingController.saveSettings)
+router.get('/appointments/availability', requirePermission('agenda.view'), appointmentController.availability)
+router.get('/appointments', requirePermission('agenda.view'), appointmentController.index)
+router.get('/appointment/:id', requirePermission('agenda.view'), appointmentController.show)
+router.post('/appointments', requirePermission('agenda.create'), appointmentController.store)
+router.put('/appointment/:id', requirePermission('agenda.edit'), appointmentController.update)
+router.delete('/appointment/:id', requirePermission('agenda.cancel'), appointmentController.remove)
+
+// ======================
+// SMART SCHEDULING / AGENDA INTELIGENTE
+// ======================
+
+router.get('/smart-scheduling/config', requirePermission('agenda.view'), smartSchedulingController.config)
+router.post('/smart-scheduling/bootstrap', requirePermission('agenda.edit'), smartSchedulingController.bootstrap)
+router.put('/smart-scheduling/policy', requirePermission('agenda.edit'), smartSchedulingController.updatePolicy)
+router.put('/smart-scheduling/procedure-rules/:procedureKey', requirePermission('agenda.edit'), smartSchedulingController.upsertProcedureRule)
+router.put('/smart-scheduling/laboratory-rules', requirePermission('agenda.edit'), smartSchedulingController.upsertLaboratoryRule)
+router.get('/patients/:patientId/scheduling-preference', requirePermission('agenda.view'), smartSchedulingController.patientPreference)
+router.put('/patients/:patientId/scheduling-preference', requirePermission('agenda.edit'), smartSchedulingController.updatePatientPreference)
+router.post('/smart-scheduling/suggest', requirePermission('agenda.create'), smartSchedulingController.suggest)
+router.get('/smart-scheduling/decisions', requirePermission('agenda.view'), smartSchedulingController.decisions)
+router.post('/smart-scheduling/decisions/:id/accept', requirePermission('agenda.edit'), smartSchedulingController.acceptDecision)
+router.post('/smart-scheduling/decisions/:id/override', requirePermission('agenda.edit'), smartSchedulingController.overrideDecision)
+// ======================
+// SCHEDULES
+// ======================
+
+router.get('/schedules', requirePermission('agenda.view'), scheduleController.index)
+router.get('/schedule/:id', requirePermission('agenda.view'), scheduleController.show)
+router.post('/schedules', requirePermission('agenda.edit'), scheduleController.store)
+router.put('/schedule/:id', requirePermission('agenda.edit'), scheduleController.update)
+router.delete('/schedule/:id', requirePermission('agenda.edit'), scheduleController.remove)
+router.get('/agenda-blocks', requirePermission('agenda.view'), scheduleController.blocks)
+router.post('/agenda-blocks', requirePermission('agenda.edit'), scheduleController.createBlock)
+router.delete('/agenda-blocks/:id', requirePermission('agenda.edit'), scheduleController.deleteBlock)
+router.get('/agenda-recurring-breaks', requirePermission('agenda.view'), scheduleController.recurringBreaks)
+router.post('/agenda-recurring-breaks', requirePermission('agenda.edit'), scheduleController.createRecurringBreak)
+router.delete('/agenda-recurring-breaks/:id', requirePermission('agenda.edit'), scheduleController.deleteRecurringBreak)
+
+// ======================
+// BUDGETS
+// ======================
+
+router.get('/budgets', requirePermission('finance.view'), budgetController.index)
+router.get('/budget/:id', requirePermission('finance.view'), budgetController.show)
+router.post('/budgets', requirePermission('finance.create'), budgetController.store)
+router.put('/budget/:id', requirePermission('finance.edit'), budgetController.update)
+router.post('/budget/:id/approve', requirePermission('finance.approve'), budgetController.approve)
+router.delete('/budget/:id', requirePermission('finance.approve'), budgetController.remove)
+
+// ======================
+// PAYMENTS
+// ======================
+
+router.get('/payments', requirePermission('finance.view'), paymentController.index)
+router.get('/payment/:id', requirePermission('finance.view'), paymentController.show)
+router.post('/payments', requirePermission('finance.create'), paymentController.store)
+router.put('/payment/:id', requirePermission('finance.edit'), paymentController.update)
+router.post('/payment/:id/settle', requirePermission('finance.approve'), paymentController.settle)
+router.delete('/payment/:id', requirePermission('finance.approve'), paymentController.remove)
+
+router.get('/financial-entries', requirePermission('finance.view'), financialController.index)
+router.post('/financial-entries', requirePermission('finance.create'), financialController.store)
+router.put('/financial-entries/:id', requirePermission('finance.edit'), financialController.update)
+router.post('/financial-entries/:id/settle', requirePermission('finance.approve'), financialController.settle)
+router.delete('/financial-entries/:id', requirePermission('finance.approve'), financialController.remove)
+router.get('/financial-dashboard', requirePermission('finance.view'), financialController.dashboard)
+router.get('/financial-import-rules', requirePermission('finance.view'), financialController.importRules)
+router.post('/financial-import-rules', requirePermission('finance.edit'), financialController.createImportRule)
+router.get('/bank-connections', requirePermission('finance.view'), financialController.bankConnections)
+
+router.get('/payment-providers', requirePermission('finance.view'), paymentProviderController.index)
+router.put('/payment-providers/:provider', requirePermission('finance.approve'), paymentProviderController.upsert)
+router.post('/payment-intents', requirePermission('finance.create'), paymentProviderController.createIntent)
+
+// ======================
+// HUMAN RESOURCES
+// ======================
+
+router.get('/hr/dashboard', requirePermission('hr.view'), hrController.dashboard)
+router.get('/hr/employees', requirePermission('hr.view'), hrController.employees)
+router.post('/hr/employees', requirePermission('hr.create'), hrController.createEmployee)
+router.put('/hr/employees/:id', requirePermission('hr.edit'), hrController.updateEmployee)
+router.post('/hr/attendance', requirePermission('hr.edit'), hrController.createAttendance)
+router.post('/hr/payroll-entries', requirePermission('hr.sensitive'), hrController.createPayrollEntry)
+router.post('/hr/payroll-close', requirePermission('hr.sensitive'), hrController.closePayroll)
+router.post('/hr/vacations', requirePermission('hr.edit'), hrController.createVacation)
+router.post('/hr/documents', requirePermission('hr.sensitive'), hrController.createDocument)
+router.post('/hr/disciplinary-actions', requirePermission('hr.sensitive'), hrController.createDiscipline)
+
+// ======================
+// REVAH / MARKETING / SALES
+// ======================
+
+router.get('/revah/campaigns', requirePermission('marketing.view'), revahController.campaigns)
+router.post('/revah/campaigns', requirePermission('marketing.send'), revahController.createCampaign)
+router.get('/revah/contacts', requirePermission('marketing.view'), revahController.contacts)
+router.post('/revah/contacts', requirePermission('marketing.send'), revahController.createContact)
+router.post('/revah/contacts/:id/opt-out', requirePermission('marketing.send'), revahController.optOut)
+router.get('/revah/messages', requirePermission('marketing.view'), revahController.messages)
+router.post('/revah/send', requirePermission('marketing.send'), revahController.send)
+router.get('/revah/automations', requirePermission('marketing.view'), revahController.automations)
+router.post('/revah/automations', requirePermission('marketing.send'), revahController.createAutomation)
+router.get('/revah/conversations', requirePermission('marketing.view'), revahChatbotController.conversations)
+router.get('/revah/conversations/:id', requirePermission('marketing.view'), revahChatbotController.conversation)
+router.post('/revah/conversations', requirePermission('marketing.send'), revahChatbotController.createConversation)
+router.post('/revah/conversations/:id/handoff', requirePermission('marketing.send'), revahChatbotController.handoff)
+router.post('/revah/conversations/:id/messages', requirePermission('marketing.send'), revahChatbotController.sendMessage)
+router.get('/sales/leads', requirePermission('sales.view'), salesController.leads)
+router.post('/sales/leads', requirePermission('sales.edit'), salesController.createLead)
+router.put('/sales/leads/:id', requirePermission('sales.edit'), salesController.updateLead)
+router.get('/sales/leads/:id/journey', requirePermission('sales.view'), salesController.journey)
+router.get('/sales/products', requirePermission('sales.view'), salesController.products)
+router.get('/sales/critical-stock', requirePermission('sales.view'), salesController.criticalStock)
+router.put('/sales/products', requirePermission('sales.edit'), salesController.upsertProduct)
+router.get('/sales/store-config', requirePermission('sales.view'), salesController.storeConfig)
+router.put('/sales/store-config', requirePermission('sales.edit'), salesController.updateStoreConfig)
+router.get('/sales/affiliate-suppliers', requirePermission('sales.view'), salesController.affiliateSuppliers)
+router.post('/sales/affiliate-suppliers', requirePermission('sales.edit'), salesController.createAffiliateSupplier)
+
+// ======================
+// SAAS PLATFORM / TENANT OPERATIONS
+// ======================
+router.get('/platform/units', requirePermission('settings.view'), platformController.units)
+router.put('/platform/units', requirePermission('settings.edit'), platformController.upsertUnit)
+router.get('/platform/feature-flags', requirePermission('settings.view'), platformController.featureFlags)
+router.put('/platform/feature-flags/:key', requirePermission('settings.edit'), platformController.setFeatureFlag)
+router.get('/platform/storage', requirePermission('settings.view'), platformController.storage)
+router.get('/platform/readiness', requireWmundiStaff, platformReadinessController.readiness)
+router.put('/platform/storage', requirePermission('settings.edit'), platformController.setStorage)
+router.get('/revah/senders', requirePermission('marketing.view'), revahSenderController.index)
+router.get('/ai/balance', requirePermission('dashboard.view'), aiController.balance)
+router.get('/ai/statement', requirePermission('dashboard.view'), aiController.statement)
+router.post('/ai/run', requirePermission('dashboard.view'), aiController.run)
+router.get('/credits/packages', requirePermission('dashboard.view'), platformBillingController.packages)
+router.get('/credits/purchases', requirePermission('dashboard.view'), platformBillingController.purchases)
+router.post('/credits/purchase', requirePermission('dashboard.view'), platformBillingController.purchase)
+router.put('/revah/senders', requirePermission('marketing.send'), revahSenderController.upsert)
+router.get('/lead-discovery/imports', requirePermission('sales.view'), leadDiscoveryController.imports)
+router.post('/lead-discovery/imports', requirePermission('sales.edit'), leadDiscoveryController.createImport)
+
+// ======================
+// BACKOFFICE / CONTÁBIL / FISCAL
+// ======================
+
+router.get('/backoffice/dashboard', requirePermission('accounting.view'), backofficeController.dashboard)
+router.get('/backoffice/dre', requirePermission('accounting.view'), backofficeController.dre)
+router.get('/suppliers', requirePermission('accounting.view'), backofficeController.suppliers)
+router.post('/suppliers', requirePermission('accounting.edit'), backofficeController.createSupplier)
+router.get('/accounting/accounts', requirePermission('accounting.view'), backofficeController.accounts)
+router.post('/accounting/accounts/bootstrap', requirePermission('accounting.edit'), backofficeController.bootstrapAccounts)
+router.get('/accounting/cost-centers', requirePermission('accounting.view'), backofficeController.costCenters)
+router.post('/accounting/cost-centers/bootstrap', requirePermission('accounting.edit'), backofficeController.bootstrapCostCenters)
+router.get('/accounting/tax-obligations', requirePermission('accounting.view'), backofficeController.taxObligations)
+router.post('/accounting/tax-obligations', requirePermission('accounting.edit'), backofficeController.createTaxObligation)
+router.post('/accounting/tax-obligations/:id/approve', requirePermission('accounting.approve'), backofficeController.approveTaxObligation)
+router.get('/accounting/accountant-access', requirePermission('accounting.portal'), backofficeController.accountantAccesses)
+router.post('/accounting/accountant-access', requirePermission('accounting.portal'), backofficeController.createAccountantAccess)
+router.put('/accounting/accountant-access/:id', requirePermission('accounting.portal'), backofficeController.updateAccountantAccess)
+router.get('/fiscal/summary', requirePermission('accounting.view'), fiscalController.summary)
+router.get('/fiscal/documents', requirePermission('accounting.view'), fiscalController.documents)
+router.get('/fiscal/alerts', requirePermission('accounting.view'), fiscalController.alerts)
+router.get('/fiscal/sends', requirePermission('accounting.view'), fiscalController.sends)
+router.get('/fiscal/rules', requirePermission('accounting.view'), fiscalController.getRules)
+router.put('/fiscal/rules', requirePermission('accounting.edit'), fiscalController.saveRules)
+router.post('/fiscal/sync', requirePermission('accounting.edit'), fiscalController.sync)
+router.post('/fiscal/process', requirePermission('accounting.edit'), fiscalController.processAll)
+router.put('/fiscal/documents/:id', requirePermission('accounting.edit'), fiscalController.update)
+router.post('/fiscal/documents/:id/issue', requirePermission('accounting.edit'), fiscalController.issue)
+router.post('/fiscal/documents/:id/send', requirePermission('accounting.edit'), fiscalController.send)
+router.post('/fiscal/documents/:id/conclude', requirePermission('accounting.edit'), fiscalController.conclude)
+
+// ======================
+// FEEDBACKS
+// ======================
+
+router.get('/feedbacks', requirePermission('patients.view'), feedbackController.index)
+router.get('/feedback/:id', requirePermission('patients.view'), feedbackController.show)
+router.post('/feedbacks', requirePermission('patients.edit'), feedbackController.store)
+router.put('/feedback/:id', requirePermission('patients.edit'), feedbackController.update)
+router.delete('/feedback/:id', requirePermission('patients.edit'), feedbackController.remove)
+router.post('/platform-feedbacks', platformFeedbackController.create)
+router.get('/platform-feedbacks', platformFeedbackController.listMine)
+router.get('/platform-feedbacks/all', requireWmundiStaff, platformFeedbackController.listAll)
+router.put('/platform-feedbacks/:id/status', requireWmundiStaff, platformFeedbackController.updateStatus)
+
+export default router
