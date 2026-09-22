@@ -88,17 +88,21 @@ model Clinic {
   accountantPortalAccesses       AccountantPortalAccess[]
 
   // EduMaster — Núcleo Acadêmico
-  eduPrograms    EduProgram[]
-  eduSubjects    EduSubject[]
-  eduCurriculums EduCurriculum[]
-  eduTerms       EduTerm[]
-  eduStudents    EduStudent[]
-  eduEnrollments EduEnrollment[]
-  eduClasses     EduClass[]
-  eduSessions    EduSession[]
-  eduAttendances EduAttendance[]
-  eduQuestions   EduQuestion[]
-  eduExams       EduExam[]
+  eduPrograms             EduProgram[]
+  eduSubjects             EduSubject[]
+  eduCurriculums          EduCurriculum[]
+  eduTerms                EduTerm[]
+  eduStudents             EduStudent[]
+  eduEnrollments          EduEnrollment[]
+  eduClasses              EduClass[]
+  eduSessions             EduSession[]
+  eduAttendances          EduAttendance[]
+  eduQuestions            EduQuestion[]
+  eduExams                EduExam[]
+  eduContentItems         EduContentItem[]
+  eduFlashcardDecks       EduFlashcardDeck[]
+  eduForums               EduForum[]
+  eduLibrarySubscriptions EduLibrarySubscription[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2532,6 +2536,9 @@ model EduSubject {
 
   curriculumSubjects EduCurriculumSubject[]
   questions          EduQuestion[]
+  contentItems       EduContentItem[]
+  flashcardDecks     EduFlashcardDeck[]
+  forums             EduForum[]
 
   @@unique([clinicId, code])
   @@index([clinicId, isActive])
@@ -2621,11 +2628,14 @@ model EduStudent {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  enrollments      EduEnrollment[]
-  classEnrollments EduClassEnrollment[]
-  sessionBookings  EduSessionBooking[]
-  attendances      EduAttendance[]
-  examAttempts     EduExamAttempt[]
+  enrollments          EduEnrollment[]
+  classEnrollments     EduClassEnrollment[]
+  sessionBookings      EduSessionBooking[]
+  attendances          EduAttendance[]
+  examAttempts         EduExamAttempt[]
+  contentProgress      EduContentProgress[]
+  flashcardReviews     EduFlashcardReview[]
+  librarySubscriptions EduLibrarySubscription[]
 
   @@unique([clinicId, email])
   @@index([clinicId, status])
@@ -2682,6 +2692,8 @@ model EduClass {
   classEnrollments EduClassEnrollment[]
   sessions         EduSession[]
   exams            EduExam[]
+  contentItems     EduContentItem[]
+  forums           EduForum[]
 
   @@unique([termId, curriculumSubjectId, code])
   @@index([clinicId, isActive])
@@ -2898,4 +2910,192 @@ model EduExamAnswer {
   @@unique([attemptId, examQuestionId])
   @@index([attemptId])
   @@map("edu_exam_answers")
+}
+
+// ============================================================
+// EDUMASTER — CONTEÚDO E BIBLIOTECA
+// Ambiente de aprendizagem (videoaulas, PDFs, apostilas, material
+// complementar com progresso por aluno), flashcards com repetição
+// espaçada SM-2, fóruns por turma/disciplina e biblioteca
+// terceirizada por assinatura (institucional ou individual — a
+// individual paga gera conta a receber no Financeiro compartilhado
+// via FinancialEntry, sem alterar esse model).
+// ============================================================
+
+model EduContentItem {
+  id              String      @id @default(cuid())
+  clinicId        String
+  clinic          Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  subjectId       String?
+  subject         EduSubject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  classId         String?
+  class           EduClass?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  type            String      @default("PDF")
+  title           String
+  description     String?
+  url             String
+  durationMinutes Int?
+  order           Int         @default(0)
+  isActive        Boolean     @default(true)
+  createdById     String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  progress EduContentProgress[]
+
+  @@index([clinicId, subjectId, isActive])
+  @@index([clinicId, classId, isActive])
+  @@index([tenantId])
+  @@map("edu_content_items")
+}
+
+model EduContentProgress {
+  id                  String         @id @default(cuid())
+  contentItemId       String
+  contentItem         EduContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  studentId           String
+  student             EduStudent     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status              String         @default("NAO_INICIADO")
+  progressPercent     Int            @default(0)
+  lastPositionSeconds Int?
+  completedAt         DateTime?
+  updatedAt           DateTime       @updatedAt
+
+  @@unique([contentItemId, studentId])
+  @@index([studentId])
+  @@map("edu_content_progress")
+}
+
+model EduFlashcardDeck {
+  id          String      @id @default(cuid())
+  clinicId    String
+  clinic      Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId    String
+  subjectId   String?
+  subject     EduSubject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  title       String
+  description String?
+  isActive    Boolean     @default(true)
+  createdById String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  cards EduFlashcard[]
+
+  @@index([clinicId, subjectId, isActive])
+  @@index([tenantId])
+  @@map("edu_flashcard_decks")
+}
+
+model EduFlashcard {
+  id     String           @id @default(cuid())
+  deckId String
+  deck   EduFlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  front  String
+  back   String
+  order  Int              @default(0)
+
+  reviews EduFlashcardReview[]
+
+  @@index([deckId])
+  @@map("edu_flashcards")
+}
+
+model EduFlashcardReview {
+  id             String       @id @default(cuid())
+  flashcardId    String
+  flashcard      EduFlashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        EduStudent   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  easeFactor     Float        @default(2.5)
+  intervalDays   Int          @default(0)
+  repetitions    Int          @default(0)
+  dueDate        DateTime     @default(now())
+  lastQuality    Int?
+  lastReviewedAt DateTime?
+
+  @@unique([flashcardId, studentId])
+  @@index([studentId, dueDate])
+  @@map("edu_flashcard_reviews")
+}
+
+model EduForum {
+  id          String      @id @default(cuid())
+  clinicId    String
+  clinic      Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId    String
+  classId     String?
+  class       EduClass?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  subjectId   String?
+  subject     EduSubject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  title       String
+  description String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  topics EduForumTopic[]
+
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+  @@map("edu_forums")
+}
+
+model EduForumTopic {
+  id              String   @id @default(cuid())
+  forumId         String
+  forum           EduForum @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  authorStudentId String?
+  authorUserId    String?
+  authorName      String
+  title           String
+  body            String
+  isPinned        Boolean  @default(false)
+  isLocked        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  replies EduForumReply[]
+
+  @@index([forumId, isPinned])
+  @@map("edu_forum_topics")
+}
+
+model EduForumReply {
+  id              String        @id @default(cuid())
+  topicId         String
+  topic           EduForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  authorStudentId String?
+  authorUserId    String?
+  authorName      String
+  body            String
+  createdAt       DateTime      @default(now())
+
+  @@index([topicId])
+  @@map("edu_forum_replies")
+}
+
+model EduLibrarySubscription {
+  id               String      @id @default(cuid())
+  clinicId         String
+  clinic           Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId         String
+  studentId        String?
+  student          EduStudent? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  scope            String      @default("INSTITUCIONAL")
+  provider         String
+  plan             String
+  status           String      @default("ATIVA")
+  amount           Float       @default(0)
+  startDate        DateTime    @default(now())
+  endDate          DateTime?
+  financialEntryId String?
+  createdById      String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([clinicId, scope, status])
+  @@index([tenantId])
+  @@map("edu_library_subscriptions")
 }

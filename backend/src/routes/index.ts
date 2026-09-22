@@ -50,6 +50,7 @@ import { specialtyClinicalRoutes } from './specialtyClinicalRoutes'
 import specializedClinicalRoutes from './specializedClinicalRoutes'
 import eduRoutes from './eduRoutes'
 import eduExamRoutes from './eduExamRoutes'
+import eduContentRoutes from './eduContentRoutes'
 import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
 import * as clinicalFileController from '../controllers/clinicalFileController'
 import * as treatmentPlanController from '../controllers/treatmentPlanController'
@@ -103,6 +104,8 @@ router.use(specializedClinicalRoutes)
 router.use(eduRoutes)
 // EduMaster Pro — Provas com IA (módulo isolado, ver src/routes/eduExamRoutes.ts)
 router.use(eduExamRoutes)
+// EduMaster Pro — Conteúdo e Biblioteca (módulo isolado, ver src/routes/eduContentRoutes.ts)
+router.use(eduContentRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 
