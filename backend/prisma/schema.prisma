@@ -118,6 +118,8 @@ model Clinic {
   eduCommittees           EduCommittee[]
   eduPdiGoals             EduPdiGoal[]
   eduRegulatoryWatches    EduRegulatoryWatch[]
+  eduAdmissionExams       EduAdmissionExam[]
+  eduApplications         EduApplication[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2526,11 +2528,12 @@ model EduProgram {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  curriculums EduCurriculum[]
-  terms       EduTerm[]
-  classes     EduClass[]
-  enrollments EduEnrollment[]
-  exams       EduExam[]
+  curriculums    EduCurriculum[]
+  terms          EduTerm[]
+  classes        EduClass[]
+  enrollments    EduEnrollment[]
+  exams          EduExam[]
+  admissionExams EduAdmissionExam[]
 
   @@unique([clinicId, code])
   @@index([clinicId, isActive])
@@ -3587,4 +3590,61 @@ model EduRegulatoryWatch {
   @@index([clinicId, relevance])
   @@index([tenantId])
   @@map("edu_regulatory_watches")
+}
+
+// ============================================================
+// EDUMASTER — CAPTAÇÃO E INGRESSO
+// Vestibular/processo seletivo, inscrição do candidato (funil
+// integrado ao REVAH via RevahContact, reaproveitado sem alterações)
+// até a efetivação da matrícula.
+// ============================================================
+
+model EduAdmissionExam {
+  id               String     @id @default(cuid())
+  clinicId         String
+  clinic           Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId         String
+  programId        String
+  program          EduProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name             String
+  modality         String     @default("PRESENCIAL")
+  examDate         DateTime?
+  applicationStart DateTime
+  applicationEnd   DateTime
+  vacancies        Int        @default(0)
+  status           String     @default("ABERTO")
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  applications EduApplication[]
+
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_admission_exams")
+}
+
+model EduApplication {
+  id                String           @id @default(cuid())
+  clinicId          String
+  clinic            Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId          String
+  admissionExamId   String
+  admissionExam     EduAdmissionExam @relation(fields: [admissionExamId], references: [id], onDelete: Cascade)
+  candidateName     String
+  candidateEmail    String
+  candidatePhone    String?
+  documentNumber    String?
+  status            String           @default("INSCRITO")
+  score             Float?
+  revahContactId    String?
+  enrolledStudentId String?
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([admissionExamId, candidateEmail])
+  @@index([clinicId, status])
+  @@index([admissionExamId, status])
+  @@index([tenantId])
+  @@map("edu_applications")
 }

@@ -56,6 +56,8 @@ import eduDocumentRoutes from './eduDocumentRoutes'
 import eduFacilitiesRoutes from './eduFacilitiesRoutes'
 import eduSupplyRoutes from './eduSupplyRoutes'
 import eduGovernanceRoutes from './eduGovernanceRoutes'
+import eduAdmissionRoutes from './eduAdmissionRoutes'
+import * as eduAdmissionController from '../controllers/eduAdmissionController'
 import * as eduDocumentController from '../controllers/eduDocumentController'
 import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
 import * as clinicalFileController from '../controllers/clinicalFileController'
@@ -96,6 +98,9 @@ router.post('/public/booking/:clinicId', publicBookingController.store)
 // PUBLIC — verificação de autenticidade de certificado/diploma do EduMaster
 router.get('/edu/certificates/verify/:code', eduDocumentController.verifyCertificate)
 
+// PUBLIC — inscrição de candidato em processo seletivo do EduMaster
+router.post('/edu/admission-exams/:admissionExamId/apply', eduAdmissionController.publicApply)
+
 // ======================
 // MIDDLEWARES
 // ======================
@@ -125,6 +130,8 @@ router.use(eduFacilitiesRoutes)
 router.use(eduSupplyRoutes)
 // EduMaster Pro — Governança e Regulatório (módulo isolado, ver src/routes/eduGovernanceRoutes.ts)
 router.use(eduGovernanceRoutes)
+// EduMaster Pro — Captação e Ingresso (módulo isolado, ver src/routes/eduAdmissionRoutes.ts)
+router.use(eduAdmissionRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 
