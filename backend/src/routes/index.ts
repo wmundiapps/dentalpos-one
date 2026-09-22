@@ -51,6 +51,7 @@ import specializedClinicalRoutes from './specializedClinicalRoutes'
 import eduRoutes from './eduRoutes'
 import eduExamRoutes from './eduExamRoutes'
 import eduContentRoutes from './eduContentRoutes'
+import eduPerformanceRoutes from './eduPerformanceRoutes'
 import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
 import * as clinicalFileController from '../controllers/clinicalFileController'
 import * as treatmentPlanController from '../controllers/treatmentPlanController'
@@ -106,6 +107,8 @@ router.use(eduRoutes)
 router.use(eduExamRoutes)
 // EduMaster Pro — Conteúdo e Biblioteca (módulo isolado, ver src/routes/eduContentRoutes.ts)
 router.use(eduContentRoutes)
+// EduMaster Pro — Desempenho, ENADE/ENAMED e Reforço (módulo isolado, ver src/routes/eduPerformanceRoutes.ts)
+router.use(eduPerformanceRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 

@@ -154,6 +154,10 @@ export async function createExam(req: AuthRequest, res: Response) {
       const eduClass = await prisma.eduClass.findFirst({ where: { id: parsed.data.classId, clinicId, tenantId } })
       if (!eduClass) return res.status(400).json({ error: 'Turma inválida.' })
     }
+    if (parsed.data.programId) {
+      const program = await prisma.eduProgram.findFirst({ where: { id: parsed.data.programId, clinicId, tenantId } })
+      if (!program) return res.status(400).json({ error: 'Programa inválido.' })
+    }
 
     const row = await prisma.eduExam.create({
       data: {
@@ -341,13 +345,19 @@ export async function myAvailableExams(req: AuthRequest, res: Response) {
     const student = await myStudent(req)
     if (!student) return res.status(404).json({ error: 'Cadastro de aluno não encontrado para este usuário.' })
 
-    const classIds = (await prisma.eduClassEnrollment.findMany({ where: { studentId: student.id }, select: { classId: true } })).map(row => row.classId)
+    const [classIds, programIds] = await Promise.all([
+      prisma.eduClassEnrollment.findMany({ where: { studentId: student.id }, select: { classId: true } }).then(rows => rows.map(row => row.classId)),
+      prisma.eduEnrollment.findMany({ where: { studentId: student.id, status: 'ATIVA' }, select: { programId: true } }).then(rows => rows.map(row => row.programId))
+    ])
     const now = new Date()
     const rows = await prisma.eduExam.findMany({
       where: {
-        clinicId, tenantId, status: 'PUBLICADA', classId: { in: classIds },
-        OR: [{ startAt: null }, { startAt: { lte: now } }],
-        AND: [{ OR: [{ endAt: null }, { endAt: { gte: now } }] }]
+        clinicId, tenantId, status: 'PUBLICADA',
+        OR: [{ classId: { in: classIds } }, { programId: { in: programIds } }],
+        AND: [
+          { OR: [{ startAt: null }, { startAt: { lte: now } }] },
+          { OR: [{ endAt: null }, { endAt: { gte: now } }] }
+        ]
       },
       include: { attempts: { where: { studentId: student.id } } },
       orderBy: { createdAt: 'desc' }
@@ -372,6 +382,9 @@ export async function startAttempt(req: AuthRequest, res: Response) {
     if (exam.classId) {
       const enrolled = await prisma.eduClassEnrollment.findFirst({ where: { classId: exam.classId, studentId: student.id } })
       if (!enrolled) return res.status(403).json({ error: 'Aluno não está matriculado na turma desta prova.' })
+    } else if (exam.programId) {
+      const enrolled = await prisma.eduEnrollment.findFirst({ where: { programId: exam.programId, studentId: student.id, status: 'ATIVA' } })
+      if (!enrolled) return res.status(403).json({ error: 'Aluno não está matriculado neste programa.' })
     }
 
     const existing = await prisma.eduExamAttempt.findFirst({ where: { examId, studentId: student.id } })

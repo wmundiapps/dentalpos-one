@@ -103,6 +103,7 @@ model Clinic {
   eduFlashcardDecks       EduFlashcardDeck[]
   eduForums               EduForum[]
   eduLibrarySubscriptions EduLibrarySubscription[]
+  eduReinforcementPlans   EduReinforcementPlan[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2515,6 +2516,7 @@ model EduProgram {
   terms       EduTerm[]
   classes     EduClass[]
   enrollments EduEnrollment[]
+  exams       EduExam[]
 
   @@unique([clinicId, code])
   @@index([clinicId, isActive])
@@ -2539,6 +2541,7 @@ model EduSubject {
   contentItems       EduContentItem[]
   flashcardDecks     EduFlashcardDeck[]
   forums             EduForum[]
+  reinforcementPlans EduReinforcementPlan[]
 
   @@unique([clinicId, code])
   @@index([clinicId, isActive])
@@ -2636,6 +2639,7 @@ model EduStudent {
   contentProgress      EduContentProgress[]
   flashcardReviews     EduFlashcardReview[]
   librarySubscriptions EduLibrarySubscription[]
+  reinforcementPlans   EduReinforcementPlan[]
 
   @@unique([clinicId, email])
   @@index([clinicId, status])
@@ -2802,6 +2806,7 @@ model EduQuestion {
   statement   String
   difficulty  String      @default("MEDIA")
   tags        String[]    @default([])
+  competency  String?
   rubric      String?
   isActive    Boolean     @default(true)
   createdById String?
@@ -2829,23 +2834,25 @@ model EduQuestionOption {
 }
 
 model EduExam {
-  id              String    @id @default(cuid())
+  id              String      @id @default(cuid())
   clinicId        String
-  clinic          Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  clinic          Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   tenantId        String
   classId         String?
-  class           EduClass? @relation(fields: [classId], references: [id], onDelete: SetNull)
+  class           EduClass?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  programId       String?
+  program         EduProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
   title           String
   instructions    String?
-  type            String    @default("AVALIACAO")
-  totalPoints     Float     @default(10)
-  durationMinutes Int       @default(60)
+  type            String      @default("AVALIACAO")
+  totalPoints     Float       @default(10)
+  durationMinutes Int         @default(60)
   startAt         DateTime?
   endAt           DateTime?
-  status          String    @default("RASCUNHO")
+  status          String      @default("RASCUNHO")
   createdById     String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   examQuestions EduExamQuestion[]
   attempts      EduExamAttempt[]
@@ -3100,4 +3107,51 @@ model EduLibrarySubscription {
   @@index([clinicId, scope, status])
   @@index([tenantId])
   @@map("edu_library_subscriptions")
+}
+
+// ============================================================
+// EDUMASTER — DESEMPENHO, ENADE/ENAMED E REFORÇO
+// Simulados usam EduExam (type ENADE_SIMULADO / programId), análise
+// por competência usa EduQuestion.competency. Painel de desempenho
+// é calculado on-demand (attempts + frequência), sem duplicar dados.
+// ============================================================
+
+model EduReinforcementPlan {
+  id          String      @id @default(cuid())
+  clinicId    String
+  clinic      Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId    String
+  studentId   String
+  student     EduStudent  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId   String?
+  subject     EduSubject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  competency  String?
+  title       String
+  description String?
+  status      String      @default("ATIVO")
+  dueDate     DateTime?
+  createdById String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  actions EduReinforcementAction[]
+
+  @@index([clinicId, status])
+  @@index([studentId])
+  @@index([tenantId])
+  @@map("edu_reinforcement_plans")
+}
+
+model EduReinforcementAction {
+  id          String               @id @default(cuid())
+  planId      String
+  plan        EduReinforcementPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  description String
+  status      String               @default("PENDENTE")
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime             @default(now())
+
+  @@index([planId])
+  @@map("edu_reinforcement_actions")
 }

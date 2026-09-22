@@ -39,6 +39,7 @@ export const generateQuestionsSchema = z.object({
 
 export const examSchema = z.object({
   classId: z.string().trim().min(1).optional(),
+  programId: z.string().trim().min(1).optional(),
   title: z.string().trim().min(3).max(300),
   instructions: z.string().trim().max(5000).optional(),
   type: z.enum(['AVALIACAO', 'SIMULADO', 'RECUPERACAO', 'ENADE_SIMULADO']).default('AVALIACAO'),
