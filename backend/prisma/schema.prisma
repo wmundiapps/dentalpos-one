@@ -124,6 +124,8 @@ model Clinic {
   eduFundingCalls         EduFundingCall[]
   eduResearchProjects     EduResearchProject[]
   eduLegalCases           EduLegalCase[]
+  eduFormTemplates        EduFormTemplate[]
+  eduFormSubmissions      EduFormSubmission[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2667,6 +2669,7 @@ model EduStudent {
   certificates               EduCertificate[]
   researchProjectMemberships EduResearchProjectMember[]
   legalCases                 EduLegalCase[]
+  formSubmissions            EduFormSubmission[]
   parkingSpots               EduParkingSpot[]
   sales                      EduSale[]
 
@@ -3817,4 +3820,60 @@ model EduLegalDocument {
 
   @@index([caseId])
   @@map("edu_legal_documents")
+}
+
+// ============================================================
+// EDUMASTER — MOTOR DE FORMULÁRIOS E FLUXOS CONFIGURÁVEIS
+// Último módulo, propositalmente genérico: cobre departamentos extras
+// que não ganharam módulo dedicado. Campos do formulário e etapas do
+// fluxo ficam em JSON, editáveis pela própria instituição sem precisar
+// de deploy novo a cada departamento.
+// ============================================================
+
+model EduFormTemplate {
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId      String
+  name          String
+  description   String?
+  department    String   @default("GERAL")
+  fields        Json
+  workflowSteps Json     @default("[]")
+  isActive      Boolean  @default(true)
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  submissions EduFormSubmission[]
+
+  @@index([clinicId, department, isActive])
+  @@index([tenantId])
+  @@map("edu_form_templates")
+}
+
+model EduFormSubmission {
+  id                   String          @id @default(cuid())
+  clinicId             String
+  clinic               Clinic          @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId             String
+  templateId           String
+  template             EduFormTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  submittedByStudentId String?
+  submittedByStudent   EduStudent?     @relation(fields: [submittedByStudentId], references: [id], onDelete: SetNull)
+  submittedByUserId    String?
+  submitterName        String?
+  data                 Json
+  currentStep          Int             @default(0)
+  stepHistory          Json            @default("[]")
+  status               String          @default("RECEBIDO")
+  reviewedById         String?
+  reviewNotes          String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([clinicId, status])
+  @@index([templateId])
+  @@index([tenantId])
+  @@map("edu_form_submissions")
 }
