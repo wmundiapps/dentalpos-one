@@ -358,10 +358,27 @@ export async function createEnrollment(req: AuthRequest, res: Response) {
     const enrollmentNumber = `${program.code}-${term.name}-${String(sequence).padStart(5, '0')}`
 
     const row = await prisma.eduEnrollment.create({
-      data: { clinicId, tenantId, studentId: student.id, programId: program.id, curriculumId: curriculum.id, termId: term.id, enrollmentNumber }
+      data: {
+        clinicId, tenantId, studentId: student.id, programId: program.id, curriculumId: curriculum.id, termId: term.id,
+        enrollmentNumber, monthlyFee: parsed.data.monthlyFee
+      }
     })
+
+    // Mensalidade gerada automaticamente no Financeiro compartilhado (RecurringBill), sem alterar esse model.
+    let finalRow = row
+    if (parsed.data.monthlyFee && parsed.data.monthlyFee > 0) {
+      const bill = await prisma.recurringBill.create({
+        data: {
+          clinicId, tenantId, type: 'INCOME', description: `Mensalidade — ${program.name} — ${student.fullName}`,
+          category: 'EDUMASTER_MENSALIDADE', personName: student.fullName, amount: parsed.data.monthlyFee,
+          frequency: 'MONTHLY', dueDay: parsed.data.tuitionDueDay, startDate: new Date(), createdById: actorId
+        }
+      })
+      finalRow = await prisma.eduEnrollment.update({ where: { id: row.id }, data: { tuitionBillId: bill.id } })
+    }
+
     await audit({ clinicId, tenantId, actorId, action: 'EDU_ENROLLMENT_CREATE', entityType: 'EduEnrollment', entityId: row.id, summary: `Matrícula ${enrollmentNumber} de ${student.fullName} em ${program.name}.` })
-    return res.status(201).json(row)
+    return res.status(201).json(finalRow)
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao efetivar matrícula.' })

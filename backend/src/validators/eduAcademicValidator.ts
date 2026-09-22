@@ -58,7 +58,9 @@ export const enrollmentSchema = z.object({
   studentId: z.string().trim().min(1),
   programId: z.string().trim().min(1),
   curriculumId: z.string().trim().min(1),
-  termId: z.string().trim().min(1)
+  termId: z.string().trim().min(1),
+  monthlyFee: z.number().min(0).max(1000000).optional(),
+  tuitionDueDay: z.number().int().min(1).max(28).default(10)
 }).strict()
 
 export const classSchema = z.object({
