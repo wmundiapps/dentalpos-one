@@ -57,6 +57,7 @@ import eduFacilitiesRoutes from './eduFacilitiesRoutes'
 import eduSupplyRoutes from './eduSupplyRoutes'
 import eduGovernanceRoutes from './eduGovernanceRoutes'
 import eduAdmissionRoutes from './eduAdmissionRoutes'
+import eduResearchRoutes from './eduResearchRoutes'
 import * as eduAdmissionController from '../controllers/eduAdmissionController'
 import * as eduDocumentController from '../controllers/eduDocumentController'
 import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
@@ -132,6 +133,8 @@ router.use(eduSupplyRoutes)
 router.use(eduGovernanceRoutes)
 // EduMaster Pro — Captação e Ingresso (módulo isolado, ver src/routes/eduAdmissionRoutes.ts)
 router.use(eduAdmissionRoutes)
+// EduMaster Pro — Pesquisa e Extensão (módulo isolado, ver src/routes/eduResearchRoutes.ts)
+router.use(eduResearchRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 
