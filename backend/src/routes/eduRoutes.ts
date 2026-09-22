@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { requirePermission } from '../middleware/permission'
 import * as edu from '../controllers/eduAcademicController'
+import * as eduAccess from '../controllers/eduAccessController'
 
 // Rotas do EduMaster Pro — Núcleo Acadêmico.
 // Montadas em /api/edu/*. Autenticação e contexto de tenant já
@@ -26,6 +27,7 @@ router.get('/edu/students', requirePermission('edu.academic.view'), edu.listStud
 router.get('/edu/students/:id', requirePermission('edu.academic.view'), edu.showStudent)
 router.post('/edu/students', requirePermission('edu.academic.manage'), edu.createStudent)
 router.put('/edu/students/:id', requirePermission('edu.academic.manage'), edu.updateStudent)
+router.post('/edu/students/:id/activate-access', requirePermission('edu.academic.manage'), eduAccess.activateStudentAccess)
 
 router.get('/edu/enrollments', requirePermission('edu.enrollment.view'), edu.listEnrollments)
 router.post('/edu/enrollments', requirePermission('edu.enrollment.manage'), edu.createEnrollment)
