@@ -86,6 +86,34 @@ export interface EduClass {
   term?: EduTerm;
 }
 
+export interface EduQuestionOption {
+  id?: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface EduQuestion {
+  id: string;
+  subjectId: string | null;
+  type: "OBJETIVA_UNICA" | "OBJETIVA_MULTIPLA" | "VERDADEIRO_FALSO" | "DISSERTATIVA";
+  statement: string;
+  difficulty: "FACIL" | "MEDIA" | "DIFICIL";
+  options: EduQuestionOption[];
+  subject?: EduSubject | null;
+}
+
+export interface EduExam {
+  id: string;
+  classId: string | null;
+  programId: string | null;
+  title: string;
+  type: "AVALIACAO" | "SIMULADO" | "RECUPERACAO" | "ENADE_SIMULADO";
+  totalPoints: number;
+  durationMinutes: number;
+  status: "RASCUNHO" | "PUBLICADA" | "ENCERRADA";
+  _count?: { examQuestions: number; attempts: number };
+}
+
 function headers(json = false) {
   const token = localStorage.getItem("dentalpos.token") || "";
   const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
@@ -161,3 +189,19 @@ export const createClass = (input: {
 }) => post<EduClass>("/edu/classes", input);
 export const enrollStudentInClass = (classId: string, input: { studentId: string; enrollmentId: string }) =>
   post(`/edu/classes/${classId}/enrollments`, input);
+
+export const listQuestions = () => get<EduQuestion[]>("/edu/questions");
+export const createQuestion = (input: {
+  subjectId?: string;
+  type: string;
+  statement: string;
+  difficulty?: string;
+  options: EduQuestionOption[];
+}) => post<EduQuestion>("/edu/questions", input);
+
+export const listExams = () => get<EduExam[]>("/edu/exams");
+export const createExam = (input: { classId?: string; programId?: string; title: string; type?: string; durationMinutes?: number }) =>
+  post<EduExam>("/edu/exams", input);
+export const addExamQuestion = (examId: string, input: { questionId: string; points: number }) =>
+  post(`/edu/exams/${examId}/questions`, input);
+export const publishExam = (examId: string) => post<EduExam>(`/edu/exams/${examId}/publish`, {});

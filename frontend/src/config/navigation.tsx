@@ -179,6 +179,8 @@ export const navigationGroups:NavigationGroup[] = [
       item("Turmas","/edumaster?secao=turmas",<GroupsIcon/>),
       item("Alunos","/edumaster?secao=alunos",<PeopleAltIcon/>),
       item("Matrículas","/edumaster?secao=matriculas",<AssignmentIcon/>),
+      item("Banco de questões","/edumaster?secao=questoes",<DescriptionIcon/>),
+      item("Provas","/edumaster?secao=provas",<AssignmentIcon/>),
     ])
   },
   {

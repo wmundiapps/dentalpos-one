@@ -26,11 +26,14 @@ import AddIcon from "@mui/icons-material/Add";
 import PageHeader from "../components/PageHeader";
 import {
   addCurriculumSubject,
+  addExamQuestion,
   activateStudentAccess,
   createClass,
   createCurriculum,
   createEnrollment,
+  createExam,
   createProgram,
+  createQuestion,
   createStudent,
   createSubject,
   createTerm,
@@ -38,20 +41,26 @@ import {
   listClasses,
   listCurriculums,
   listEnrollments,
+  listExams,
   listPrograms,
+  listQuestions,
   listStudents,
   listSubjects,
   listTerms,
+  publishExam,
   type EduClass,
   type EduCurriculum,
   type EduEnrollment,
+  type EduExam,
   type EduProgram,
+  type EduQuestion,
+  type EduQuestionOption,
   type EduStudent,
   type EduSubject,
   type EduTerm,
 } from "../services/EduApi";
 
-type Secao = "visao-geral" | "programas" | "disciplinas" | "matriz" | "periodos" | "turmas" | "alunos" | "matriculas";
+type Secao = "visao-geral" | "programas" | "disciplinas" | "matriz" | "periodos" | "turmas" | "alunos" | "matriculas" | "questoes" | "provas";
 
 const SECOES: { value: Secao; label: string }[] = [
   { value: "visao-geral", label: "Visão geral" },
@@ -62,6 +71,8 @@ const SECOES: { value: Secao; label: string }[] = [
   { value: "turmas", label: "Turmas" },
   { value: "alunos", label: "Alunos" },
   { value: "matriculas", label: "Matrículas" },
+  { value: "questoes", label: "Banco de questões" },
+  { value: "provas", label: "Provas" },
 ];
 
 function useEduData() {
@@ -72,6 +83,8 @@ function useEduData() {
   const [students, setStudents] = useState<EduStudent[]>([]);
   const [enrollments, setEnrollments] = useState<EduEnrollment[]>([]);
   const [classes, setClasses] = useState<EduClass[]>([]);
+  const [questions, setQuestions] = useState<EduQuestion[]>([]);
+  const [exams, setExams] = useState<EduExam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -79,10 +92,10 @@ function useEduData() {
     setLoading(true);
     setError("");
     try {
-      const [p, s, c, t, st, e, cl] = await Promise.all([
-        listPrograms(), listSubjects(), listCurriculums(), listTerms(), listStudents(), listEnrollments(), listClasses(),
+      const [p, s, c, t, st, e, cl, q, ex] = await Promise.all([
+        listPrograms(), listSubjects(), listCurriculums(), listTerms(), listStudents(), listEnrollments(), listClasses(), listQuestions(), listExams(),
       ]);
-      setPrograms(p); setSubjects(s); setCurriculums(c); setTerms(t); setStudents(st); setEnrollments(e); setClasses(cl);
+      setPrograms(p); setSubjects(s); setCurriculums(c); setTerms(t); setStudents(st); setEnrollments(e); setClasses(cl); setQuestions(q); setExams(ex);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao carregar dados do EduMaster.");
     } finally {
@@ -92,7 +105,7 @@ function useEduData() {
 
   useEffect(() => { void reload(); }, []);
 
-  return { programs, subjects, curriculums, terms, students, enrollments, classes, loading, error, reload };
+  return { programs, subjects, curriculums, terms, students, enrollments, classes, questions, exams, loading, error, reload };
 }
 
 export default function EduMaster() {
@@ -123,13 +136,15 @@ export default function EduMaster() {
       {secao === "turmas" && <Turmas {...data} />}
       {secao === "alunos" && <Alunos {...data} />}
       {secao === "matriculas" && <Matriculas {...data} />}
+      {secao === "questoes" && <Questoes {...data} />}
+      {secao === "provas" && <Provas {...data} />}
     </Box>
   );
 }
 
 type DataProps = ReturnType<typeof useEduData>;
 
-function VisaoGeral({ programs, subjects, curriculums, terms, students, enrollments, classes, loading }: DataProps) {
+function VisaoGeral({ programs, subjects, curriculums, terms, students, enrollments, classes, questions, exams, loading }: DataProps) {
   const cards = [
     ["Programas", programs.length],
     ["Disciplinas", subjects.length],
@@ -138,6 +153,8 @@ function VisaoGeral({ programs, subjects, curriculums, terms, students, enrollme
     ["Turmas", classes.length],
     ["Alunos", students.length],
     ["Matrículas ativas", enrollments.filter((e) => e.status === "ATIVA").length],
+    ["Questões no banco", questions.length],
+    ["Provas publicadas", exams.filter((e) => e.status === "PUBLICADA").length],
   ] as const;
   return (
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", md: "repeat(4,1fr)" }, gap: 1.5 }}>
@@ -305,7 +322,7 @@ function Matriz({ programs, subjects, curriculums, reload }: DataProps) {
         <Paper key={c.id} variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Box>
-              <Typography sx={{ fontWeight: 800 }}>{c.name} <Chip size="small" label={`v${c.version}`} sx={{ ml: 1 }} /></Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 800 }}>{c.name} <Chip size="small" label={`v${c.version}`} /></Box>
               <Typography variant="body2" color="text.secondary">{programName(c.programId)}</Typography>
             </Box>
             <Button size="small" startIcon={<AddIcon />} onClick={() => setAddSubjectFor(c)}>Incluir disciplina</Button>
@@ -644,6 +661,209 @@ function Matriculas({ programs, curriculums, terms, students, classes, enrollmen
         <DialogActions>
           <Button onClick={() => setClassDialog(null)}>Cancelar</Button>
           <Button variant="contained" disabled={saving} onClick={saveClassEnrollment}>{saving ? "Salvando..." : "Matricular"}</Button>
+        </DialogActions>
+      </Dialog>
+    </SectionShell>
+  );
+}
+
+const QUESTION_TYPES = [
+  { value: "OBJETIVA_UNICA", label: "Objetiva (1 correta)" },
+  { value: "OBJETIVA_MULTIPLA", label: "Objetiva (múltiplas corretas)" },
+  { value: "VERDADEIRO_FALSO", label: "Verdadeiro/Falso" },
+  { value: "DISSERTATIVA", label: "Dissertativa" },
+];
+
+function Questoes({ subjects, questions, reload }: DataProps) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState<{ subjectId: string; type: string; statement: string; difficulty: string }>({
+    subjectId: "", type: "OBJETIVA_UNICA", statement: "", difficulty: "MEDIA",
+  });
+  const [options, setOptions] = useState<EduQuestionOption[]>([{ text: "", isCorrect: true }, { text: "", isCorrect: false }]);
+
+  const isObjective = form.type !== "DISSERTATIVA";
+
+  const save = async () => {
+    if (!form.statement.trim()) return;
+    setSaving(true); setError("");
+    try {
+      await createQuestion({
+        ...form,
+        subjectId: form.subjectId || undefined,
+        options: isObjective ? options.filter((o) => o.text.trim()) : [],
+      });
+      setOpen(false);
+      setForm({ subjectId: "", type: "OBJETIVA_UNICA", statement: "", difficulty: "MEDIA" });
+      setOptions([{ text: "", isCorrect: true }, { text: "", isCorrect: false }]);
+      await reload();
+    } catch (e) { setError(e instanceof Error ? e.message : "Erro ao salvar questão."); }
+    finally { setSaving(false); }
+  };
+
+  const subjectName = (id: string | null) => subjects.find((s) => s.id === id)?.name || "—";
+
+  return (
+    <SectionShell title="Banco de questões" actionLabel="Nova questão" onAction={() => setOpen(true)}>
+      {questions.map((q) => (
+        <Paper key={q.id} variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 1.5 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+            <Typography sx={{ fontWeight: 700 }}>{q.statement}</Typography>
+            <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0 }}>
+              <Chip size="small" label={q.type} /><Chip size="small" label={q.difficulty} />
+            </Box>
+          </Box>
+          <Typography variant="body2" color="text.secondary">{subjectName(q.subjectId)}</Typography>
+          {q.options.length > 0 && (
+            <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
+              {q.options.map((o, i) => (
+                <Chip key={o.id || i} size="small" color={o.isCorrect ? "success" : "default"} label={o.text} />
+              ))}
+            </Box>
+          )}
+        </Paper>
+      ))}
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Nova questão</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          {error && <Alert severity="error">{error}</Alert>}
+          <TextField select label="Disciplina (opcional)" value={form.subjectId} onChange={(e) => setForm({ ...form, subjectId: e.target.value })}>
+            <MenuItem value="">—</MenuItem>
+            {subjects.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
+          </TextField>
+          <TextField select label="Tipo" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+            {QUESTION_TYPES.map((t) => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
+          </TextField>
+          <TextField select label="Dificuldade" value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: e.target.value })}>
+            {["FACIL", "MEDIA", "DIFICIL"].map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+          </TextField>
+          <TextField required multiline minRows={2} label="Enunciado" value={form.statement} onChange={(e) => setForm({ ...form, statement: e.target.value })} />
+
+          {isObjective && (
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>Alternativas (marque a(s) correta(s))</Typography>
+              {options.map((opt, i) => (
+                <Box key={i} sx={{ display: "flex", gap: 1, alignItems: "center", mb: 1 }}>
+                  <Chip
+                    size="small"
+                    color={opt.isCorrect ? "success" : "default"}
+                    label={opt.isCorrect ? "Correta" : "Marcar correta"}
+                    onClick={() => setOptions(options.map((o, j) => j === i ? { ...o, isCorrect: !o.isCorrect } : o))}
+                    sx={{ cursor: "pointer", flexShrink: 0 }}
+                  />
+                  <TextField
+                    fullWidth size="small" placeholder={`Alternativa ${i + 1}`} value={opt.text}
+                    onChange={(e) => setOptions(options.map((o, j) => j === i ? { ...o, text: e.target.value } : o))}
+                  />
+                </Box>
+              ))}
+              <Button size="small" onClick={() => setOptions([...options, { text: "", isCorrect: false }])}>+ Alternativa</Button>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={save}>{saving ? "Salvando..." : "Salvar"}</Button>
+        </DialogActions>
+      </Dialog>
+    </SectionShell>
+  );
+}
+
+function Provas({ classes, questions, exams, reload }: DataProps) {
+  const [open, setOpen] = useState(false);
+  const [questionDialog, setQuestionDialog] = useState<EduExam | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({ classId: "", title: "", type: "AVALIACAO", durationMinutes: 60 });
+  const [qForm, setQForm] = useState({ questionId: "", points: 1 });
+
+  const save = async () => {
+    if (!form.title.trim()) return;
+    setSaving(true); setError("");
+    try {
+      await createExam({ ...form, classId: form.classId || undefined });
+      setOpen(false);
+      setForm({ classId: "", title: "", type: "AVALIACAO", durationMinutes: 60 });
+      await reload();
+    } catch (e) { setError(e instanceof Error ? e.message : "Erro ao salvar prova."); }
+    finally { setSaving(false); }
+  };
+
+  const saveQuestion = async () => {
+    if (!questionDialog || !qForm.questionId) return;
+    setSaving(true); setError("");
+    try {
+      await addExamQuestion(questionDialog.id, qForm);
+      setQuestionDialog(null);
+      setQForm({ questionId: "", points: 1 });
+      await reload();
+    } catch (e) { setError(e instanceof Error ? e.message : "Erro ao incluir questão."); }
+    finally { setSaving(false); }
+  };
+
+  const publish = async (exam: EduExam) => {
+    setError("");
+    try { await publishExam(exam.id); await reload(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao publicar prova."); }
+  };
+
+  const classLabel = (id: string | null) => classes.find((c) => c.id === id)?.code || "Sem turma (simulado de programa)";
+
+  return (
+    <SectionShell title="Provas" actionLabel="Nova prova" onAction={() => setOpen(true)}>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {exams.map((exam) => (
+        <Paper key={exam.id} variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 1.5 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 800 }}>{exam.title} <Chip size="small" label={exam.type} /></Box>
+              <Typography variant="body2" color="text.secondary">
+                {classLabel(exam.classId)} • {exam._count?.examQuestions ?? 0} questão(ões) • {exam.totalPoints} pts • {exam._count?.attempts ?? 0} tentativa(s)
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+              <Chip size="small" color={exam.status === "PUBLICADA" ? "success" : "default"} label={exam.status} />
+              <Button size="small" onClick={() => setQuestionDialog(exam)} disabled={exam.status !== "RASCUNHO"}>+ Questão</Button>
+              {exam.status === "RASCUNHO" && <Button size="small" variant="contained" onClick={() => publish(exam)}>Publicar</Button>}
+            </Box>
+          </Box>
+        </Paper>
+      ))}
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Nova prova</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          {error && <Alert severity="error">{error}</Alert>}
+          <TextField required label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <TextField select label="Turma (opcional — vazio = simulado de programa)" value={form.classId} onChange={(e) => setForm({ ...form, classId: e.target.value })}>
+            <MenuItem value="">—</MenuItem>
+            {classes.map((c) => <MenuItem key={c.id} value={c.id}>{c.code}</MenuItem>)}
+          </TextField>
+          <TextField select label="Tipo" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+            {["AVALIACAO", "SIMULADO", "RECUPERACAO", "ENADE_SIMULADO"].map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+          </TextField>
+          <TextField type="number" label="Duração (min)" value={form.durationMinutes} onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={save}>{saving ? "Salvando..." : "Salvar"}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(questionDialog)} onClose={() => setQuestionDialog(null)} fullWidth maxWidth="sm">
+        <DialogTitle>Incluir questão em {questionDialog?.title}</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          <TextField select required label="Questão" value={qForm.questionId} onChange={(e) => setQForm({ ...qForm, questionId: e.target.value })}>
+            {questions.map((q) => <MenuItem key={q.id} value={q.id}>{q.statement.slice(0, 60)}</MenuItem>)}
+          </TextField>
+          <TextField type="number" label="Pontos" value={qForm.points} onChange={(e) => setQForm({ ...qForm, points: Number(e.target.value) })} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setQuestionDialog(null)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={saveQuestion}>{saving ? "Salvando..." : "Incluir"}</Button>
         </DialogActions>
       </Dialog>
     </SectionShell>
