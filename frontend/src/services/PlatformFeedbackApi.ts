@@ -1,6 +1,6 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-export const FEEDBACK_TYPES = ["Bug", "Botão não funciona", "Correção", "Sugestão", "Nova funcionalidade", "Dúvida"] as const;
+export const FEEDBACK_TYPES = ["Bug", "Botão não funciona", "Correção", "Sugestão", "Nova funcionalidade", "Dúvida", "Avaliação"] as const;
 export const FEEDBACK_PRIORITIES = ["Baixa", "Média", "Alta", "Crítica"] as const;
 export const FEEDBACK_STATUSES = ["Enviado", "Em análise", "Em desenvolvimento", "Resolvido", "Arquivado"] as const;
 
@@ -16,6 +16,7 @@ export interface PlatformFeedback {
   pagePath?: string | null;
   priority: string;
   status: string;
+  rating?: number | null;
   createdAt: string;
 }
 
@@ -26,6 +27,7 @@ export interface PlatformFeedbackInput {
   description: string;
   module?: string;
   pagePath?: string;
+  rating?: number;
 }
 
 function headers(json = false) {

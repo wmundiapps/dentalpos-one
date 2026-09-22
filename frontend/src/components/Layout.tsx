@@ -2,6 +2,7 @@ import { Box } from "@mui/material";
 import type { ReactNode } from "react";
 
 import DemoBanner from "./DemoBanner";
+import EvaluationWidget from "./EvaluationWidget";
 import Footer from "./Footer";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
@@ -50,6 +51,8 @@ export default function Layout({
 
         <Footer />
       </Box>
+
+      <EvaluationWidget />
     </Box>
   );
 }
