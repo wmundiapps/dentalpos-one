@@ -9,12 +9,12 @@ datasource db {
 
 model Clinic {
   recurringBills RecurringBill[]
-  id       String @id @default(cuid())
-  tenantId String
-  name     String
-  email    String
-  phone    String
-  cnpj     String
+  id             String          @id @default(cuid())
+  tenantId       String
+  name           String
+  email          String
+  phone          String
+  cnpj           String
 
   address String?
   city    String?
@@ -86,6 +86,17 @@ model Clinic {
   costCenters                    CostCenter[]
   taxObligations                 TaxObligation[]
   accountantPortalAccesses       AccountantPortalAccess[]
+
+  // EduMaster — Núcleo Acadêmico
+  eduPrograms    EduProgram[]
+  eduSubjects    EduSubject[]
+  eduCurriculums EduCurriculum[]
+  eduTerms       EduTerm[]
+  eduStudents    EduStudent[]
+  eduEnrollments EduEnrollment[]
+  eduClasses     EduClass[]
+  eduSessions    EduSession[]
+  eduAttendances EduAttendance[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2471,4 +2482,285 @@ model RecurringBill {
 
   @@index([clinicId, isActive])
   @@index([tenantId])
+}
+
+// ============================================================
+// EDUMASTER — NÚCLEO ACADÊMICO
+// Módulo isolado do EduMaster Pro. Tabelas com prefixo "Edu" e
+// mapeadas para "edu_*" no banco para não colidir com o domínio
+// odontológico do DentalPos. Reaproveita Clinic/User/JWT/RBAC.
+// ============================================================
+
+model EduProgram {
+  id         String   @id @default(cuid())
+  clinicId   String
+  clinic     Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId   String
+  name       String
+  code       String
+  level      String   @default("GRADUACAO")
+  modality   String   @default("PRESENCIAL")
+  totalTerms Int      @default(1)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  curriculums EduCurriculum[]
+  terms       EduTerm[]
+  classes     EduClass[]
+  enrollments EduEnrollment[]
+
+  @@unique([clinicId, code])
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+  @@map("edu_programs")
+}
+
+model EduSubject {
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId      String
+  name          String
+  code          String
+  workloadHours Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  curriculumSubjects EduCurriculumSubject[]
+
+  @@unique([clinicId, code])
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+  @@map("edu_subjects")
+}
+
+model EduCurriculum {
+  id            String     @id @default(cuid())
+  clinicId      String
+  clinic        Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId      String
+  programId     String
+  program       EduProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  version       String
+  name          String
+  isActive      Boolean    @default(true)
+  effectiveFrom DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  subjects    EduCurriculumSubject[]
+  enrollments EduEnrollment[]
+
+  @@unique([programId, version])
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+  @@map("edu_curriculums")
+}
+
+model EduCurriculumSubject {
+  id            String        @id @default(cuid())
+  curriculumId  String
+  curriculum    EduCurriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  subjectId     String
+  subject       EduSubject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  termNumber    Int
+  workloadHours Int           @default(0)
+  isMandatory   Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+
+  classes EduClass[]
+
+  @@unique([curriculumId, subjectId])
+  @@index([curriculumId, termNumber])
+  @@map("edu_curriculum_subjects")
+}
+
+model EduTerm {
+  id              String     @id @default(cuid())
+  clinicId        String
+  clinic          Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  programId       String
+  program         EduProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name            String
+  type            String     @default("SEMESTRE")
+  startDate       DateTime
+  endDate         DateTime
+  enrollmentStart DateTime?
+  enrollmentEnd   DateTime?
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  classes     EduClass[]
+  enrollments EduEnrollment[]
+
+  @@unique([programId, name])
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+  @@map("edu_terms")
+}
+
+model EduStudent {
+  id             String    @id @default(cuid())
+  clinicId       String
+  clinic         Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId       String
+  userId         String?   @unique
+  fullName       String
+  email          String
+  phone          String?
+  documentNumber String?
+  birthDate      DateTime?
+  status         String    @default("ATIVO")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  enrollments      EduEnrollment[]
+  classEnrollments EduClassEnrollment[]
+  sessionBookings  EduSessionBooking[]
+  attendances      EduAttendance[]
+
+  @@unique([clinicId, email])
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_students")
+}
+
+model EduEnrollment {
+  id               String        @id @default(cuid())
+  clinicId         String
+  clinic           Clinic        @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId         String
+  studentId        String
+  student          EduStudent    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  programId        String
+  program          EduProgram    @relation(fields: [programId], references: [id], onDelete: Cascade)
+  curriculumId     String
+  curriculum       EduCurriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  termId           String
+  term             EduTerm       @relation(fields: [termId], references: [id], onDelete: Cascade)
+  enrollmentNumber String
+  status           String        @default("ATIVA")
+  enrolledAt       DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  classEnrollments EduClassEnrollment[]
+
+  @@unique([clinicId, enrollmentNumber])
+  @@unique([studentId, programId])
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_enrollments")
+}
+
+model EduClass {
+  id                  String               @id @default(cuid())
+  clinicId            String
+  clinic              Clinic               @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId            String
+  programId           String
+  program             EduProgram           @relation(fields: [programId], references: [id], onDelete: Cascade)
+  curriculumSubjectId String
+  curriculumSubject   EduCurriculumSubject @relation(fields: [curriculumSubjectId], references: [id], onDelete: Cascade)
+  termId              String
+  term                EduTerm              @relation(fields: [termId], references: [id], onDelete: Cascade)
+  code                String
+  modality            String               @default("PRESENCIAL")
+  capacity            Int                  @default(40)
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  classEnrollments EduClassEnrollment[]
+  sessions         EduSession[]
+
+  @@unique([termId, curriculumSubjectId, code])
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+  @@map("edu_classes")
+}
+
+model EduClassEnrollment {
+  id                 String        @id @default(cuid())
+  classId            String
+  class              EduClass      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  studentId          String
+  student            EduStudent    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollmentId       String
+  enrollment         EduEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  status             String        @default("CURSANDO")
+  finalGrade         Float?
+  finalAttendancePct Float?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([classId, studentId])
+  @@index([studentId, status])
+  @@map("edu_class_enrollments")
+}
+
+model EduSession {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  classId         String
+  class           EduClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  type            String   @default("TEORICA")
+  title           String
+  location        String?
+  scheduledAt     DateTime
+  durationMinutes Int      @default(60)
+  capacity        Int?
+  status          String   @default("AGENDADA")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  bookings    EduSessionBooking[]
+  attendances EduAttendance[]
+
+  @@index([classId, scheduledAt])
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_sessions")
+}
+
+model EduSessionBooking {
+  id        String     @id @default(cuid())
+  sessionId String
+  session   EduSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId String
+  student   EduStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status    String     @default("CONFIRMADO")
+  bookedAt  DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([sessionId, studentId])
+  @@index([sessionId, status])
+  @@map("edu_session_bookings")
+}
+
+model EduAttendance {
+  id           String     @id @default(cuid())
+  clinicId     String
+  clinic       Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId     String
+  sessionId    String
+  session      EduSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      EduStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  present      Boolean    @default(true)
+  justified    Boolean    @default(false)
+  notes        String?
+  recordedById String?
+  recordedAt   DateTime   @default(now())
+
+  @@unique([sessionId, studentId])
+  @@index([studentId])
+  @@index([clinicId])
+  @@map("edu_attendances")
 }

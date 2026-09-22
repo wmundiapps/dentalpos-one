@@ -48,6 +48,7 @@ import clinicalRecordRoutes from './clinicalRecordRoutes'
 import dentalChartRoutes from './dentalChartRoutes'
 import { specialtyClinicalRoutes } from './specialtyClinicalRoutes'
 import specializedClinicalRoutes from './specializedClinicalRoutes'
+import eduRoutes from './eduRoutes'
 import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
 import * as clinicalFileController from '../controllers/clinicalFileController'
 import * as treatmentPlanController from '../controllers/treatmentPlanController'
@@ -96,6 +97,9 @@ router.use(clinicalRecordRoutes)
 router.use(dentalChartRoutes)
 router.use('/specialty-clinical', specialtyClinicalRoutes)
 router.use(specializedClinicalRoutes)
+
+// EduMaster Pro — Núcleo Acadêmico (módulo isolado, ver src/routes/eduRoutes.ts)
+router.use(eduRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 
