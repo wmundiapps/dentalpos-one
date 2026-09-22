@@ -123,6 +123,7 @@ model Clinic {
   eduFundingAgencies      EduFundingAgency[]
   eduFundingCalls         EduFundingCall[]
   eduResearchProjects     EduResearchProject[]
+  eduLegalCases           EduLegalCase[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2665,6 +2666,7 @@ model EduStudent {
   documentRequests           EduDocumentRequest[]
   certificates               EduCertificate[]
   researchProjectMemberships EduResearchProjectMember[]
+  legalCases                 EduLegalCase[]
   parkingSpots               EduParkingSpot[]
   sales                      EduSale[]
 
@@ -3748,4 +3750,71 @@ model EduResearchProjectMember {
 
   @@index([projectId])
   @@map("edu_research_project_members")
+}
+
+// ============================================================
+// EDUMASTER — JURÍDICO
+// Conciliação administrativa de demandas com audiências internas.
+// Prazos usam EduExpiringItem (relatedType="EduLegalCase") em vez de
+// duplicar a regra de antecedência já implementada em Facilities.
+// O sistema organiza prazos, documentos e fluxos — não substitui
+// advogado nem dá parecer jurídico.
+// ============================================================
+
+model EduLegalCase {
+  id                String      @id @default(cuid())
+  clinicId          String
+  clinic            Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId          String
+  type              String      @default("ADMINISTRATIVO")
+  title             String
+  description       String?
+  involvedName      String
+  studentId         String?
+  student           EduStudent? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  status            String      @default("ABERTO")
+  responsibleUserId String?
+  openedAt          DateTime    @default(now())
+  closedAt          DateTime?
+  notes             String?
+  createdById       String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  hearings  EduLegalHearing[]
+  documents EduLegalDocument[]
+
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_legal_cases")
+}
+
+model EduLegalHearing {
+  id           String       @id @default(cuid())
+  caseId       String
+  legalCase    EduLegalCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  scheduledAt  DateTime
+  location     String?
+  mediatorName String?
+  status       String       @default("AGENDADA")
+  outcome      String?
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([caseId])
+  @@map("edu_legal_hearings")
+}
+
+model EduLegalDocument {
+  id           String       @id @default(cuid())
+  caseId       String
+  legalCase    EduLegalCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  title        String
+  url          String
+  uploadedById String?
+  createdAt    DateTime     @default(now())
+
+  @@index([caseId])
+  @@map("edu_legal_documents")
 }
