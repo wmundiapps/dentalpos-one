@@ -22,7 +22,8 @@ export const PERMISSIONS = [
   ['edu.exam.view', 'edu', 'exam_view'], ['edu.exam.manage', 'edu', 'exam_manage'], ['edu.exam.grade', 'edu', 'exam_grade'],
   ['edu.content.view', 'edu', 'content_view'], ['edu.content.manage', 'edu', 'content_manage'], ['edu.library.manage', 'edu', 'library_manage'],
   ['edu.performance.view', 'edu', 'performance_view'], ['edu.performance.manage', 'edu', 'performance_manage'],
-  ['edu.secretary.view', 'edu', 'secretary_view'], ['edu.secretary.manage', 'edu', 'secretary_manage']
+  ['edu.secretary.view', 'edu', 'secretary_view'], ['edu.secretary.manage', 'edu', 'secretary_manage'],
+  ['edu.facilities.view', 'edu', 'facilities_view'], ['edu.facilities.manage', 'edu', 'facilities_manage']
 ] as const
 
 export async function seedPermissionCatalog() {

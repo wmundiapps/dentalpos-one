@@ -107,6 +107,10 @@ model Clinic {
   eduDocumentUploads      EduDocumentUpload[]
   eduDocumentRequests     EduDocumentRequest[]
   eduCertificates         EduCertificate[]
+  eduAssets               EduAsset[]
+  eduMaintenanceOrders    EduMaintenanceOrder[]
+  eduParkingSpots         EduParkingSpot[]
+  eduExpiringItems        EduExpiringItem[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2646,6 +2650,7 @@ model EduStudent {
   documentUploads      EduDocumentUpload[]
   documentRequests     EduDocumentRequest[]
   certificates         EduCertificate[]
+  parkingSpots         EduParkingSpot[]
 
   @@unique([clinicId, email])
   @@index([clinicId, status])
@@ -3240,4 +3245,109 @@ model EduCertificate {
   @@index([studentId])
   @@index([tenantId])
   @@map("edu_certificates")
+}
+
+// ============================================================
+// EDUMASTER — FACILITIES (INFRAESTRUTURA)
+// Patrimônio, manutenção (pátio, iluminação e demais locais entram
+// pelo campo "location"), estacionamento e vencimentos com regra de
+// antecedência (vencimento − prazo de preparação − margem de
+// segurança). EduExpiringItem é genérico de propósito: outros módulos
+// (Governança, Jurídico) reaproveitam a mesma tabela para seus próprios
+// vencimentos, filtrando por category/relatedType.
+// ============================================================
+
+model EduAsset {
+  id               String    @id @default(cuid())
+  clinicId         String
+  clinic           Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId         String
+  code             String
+  name             String
+  category         String    @default("OUTRO")
+  location         String?
+  acquisitionDate  DateTime?
+  acquisitionValue Float?
+  status           String    @default("ATIVO")
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  maintenanceOrders EduMaintenanceOrder[]
+
+  @@unique([clinicId, code])
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_assets")
+}
+
+model EduMaintenanceOrder {
+  id            String    @id @default(cuid())
+  clinicId      String
+  clinic        Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId      String
+  assetId       String?
+  asset         EduAsset? @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  location      String?
+  title         String
+  description   String?
+  priority      String    @default("MEDIA")
+  status        String    @default("ABERTA")
+  requestedById String?
+  assignedTo    String?
+  openedAt      DateTime  @default(now())
+  closedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_maintenance_orders")
+}
+
+model EduParkingSpot {
+  id                  String      @id @default(cuid())
+  clinicId            String
+  clinic              Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId            String
+  code                String
+  type                String      @default("ALUNO")
+  isOccupied          Boolean     @default(false)
+  assignedToStudentId String?
+  assignedToStudent   EduStudent? @relation(fields: [assignedToStudentId], references: [id], onDelete: SetNull)
+  assignedToUserId    String?
+  notes               String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@unique([clinicId, code])
+  @@index([clinicId, type])
+  @@index([tenantId])
+  @@map("edu_parking_spots")
+}
+
+model EduExpiringItem {
+  id                String    @id @default(cuid())
+  clinicId          String
+  clinic            Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId          String
+  category          String    @default("OUTRO")
+  title             String
+  relatedAssetId    String?
+  relatedType       String?
+  relatedId         String?
+  expiresAt         DateTime
+  preparationDays   Int       @default(0)
+  safetyMarginDays  Int       @default(0)
+  responsibleUserId String?
+  status            String    @default("ATIVO")
+  notes             String?
+  resolvedAt        DateTime?
+  createdById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([clinicId, status, expiresAt])
+  @@index([tenantId])
+  @@map("edu_expiring_items")
 }

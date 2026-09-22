@@ -53,6 +53,7 @@ import eduExamRoutes from './eduExamRoutes'
 import eduContentRoutes from './eduContentRoutes'
 import eduPerformanceRoutes from './eduPerformanceRoutes'
 import eduDocumentRoutes from './eduDocumentRoutes'
+import eduFacilitiesRoutes from './eduFacilitiesRoutes'
 import * as eduDocumentController from '../controllers/eduDocumentController'
 import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
 import * as clinicalFileController from '../controllers/clinicalFileController'
@@ -116,6 +117,8 @@ router.use(eduContentRoutes)
 router.use(eduPerformanceRoutes)
 // EduMaster Pro — Protocolo e Certificados (módulo isolado, ver src/routes/eduDocumentRoutes.ts)
 router.use(eduDocumentRoutes)
+// EduMaster Pro — Facilities (módulo isolado, ver src/routes/eduFacilitiesRoutes.ts)
+router.use(eduFacilitiesRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 
