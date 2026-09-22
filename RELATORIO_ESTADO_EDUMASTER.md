@@ -1,51 +1,74 @@
 # Relatório de Estado — EduMaster Pro
 
-Data: 2026-09-22
+Última atualização: 2026-09-22
 Branch: `claude/universidade-gerenciador-hxbike`
-Repositório auditado: `wmundiapps/dentalpos-one` (backend Express/TypeScript/Prisma/PostgreSQL)
+Repositório: `wmundiapps/dentalpos-one` (backend Express/TypeScript/Prisma/PostgreSQL)
 
 ## 1. Resultado da auditoria (passo 0)
 
-O briefing lista 4 módulos como "já entregues" (Núcleo Acadêmico, Financeiro/Contábil/Fiscal, Conteúdo e Biblioteca, Provas com IA), cada um supostamente com schema Prisma, validadores Zod, rotas, controllers e regras de negócio.
+O briefing listava 4 módulos como "já entregues" (Núcleo Acadêmico, Financeiro/Contábil/Fiscal, Conteúdo e Biblioteca, Provas com IA). **Nenhum existia no repositório** — só em conversas anteriores. Confirmação, busca e evidências completas ficaram registradas no histórico deste arquivo (commit `55966ed`). Todos os 4 foram então construídos do zero nesta branch, junto com os 9 módulos seguintes da Seção 6 do briefing.
 
-**Nenhum dos 4 existia no repositório antes desta tarefa.** Confirmação:
+## 2. Módulos entregues (13/13 da ordem de construção do briefing)
 
-- `prisma/schema.prisma` (96 models antes desta tarefa) cobre 100% o domínio odontológico do DentalPos One (Patient, Doctor, Appointment, Odontogram, TreatmentPlan, LaboratoryWork, RevahContact, HR, Financeiro clínico, Fiscal clínico, etc.). Não existia nenhuma tabela de programas, disciplinas, matrícula, turma, frequência, flashcard, biblioteca ou prova.
-- Busca por `edumaster`, `aluno`, `matricula`, `disciplina`, `turma`, `flashcard`, `biblioteca`, `enade`, `vestibular` em todo `backend/src` e `frontend/src`: zero ocorrências reais (os poucos matches eram falsos-positivos — variável `cursor`, ação disciplinar de RH, linha contábil "Receitas de cursos").
-- `frontend/src/types/education.ts` e `EducationService.ts` existem, mas são do módulo **DentalPos Sales/Educação** (marketplace de cursos de odontologia para dentistas, item 11 do roadmap em `STATUS.md`) — sem relação com o EduMaster (gestão de instituição de ensino).
-- Nenhuma migration, controller ou rota com prefixo `edu*` existia.
+Todos isolados do domínio odontológico via prefixo `Edu`/`edu_*`, reaproveitando Clinic/User/JWT/RBAC e, onde fazia sentido, os motores já existentes (Financeiro, REVAH) em vez de duplicá-los.
 
-**Conclusão:** os 4 módulos descritos na Seção 3 do briefing foram discutidos em conversas anteriores, mas nunca chegaram a ser commitados neste repositório. O briefing já alertava para essa possibilidade e pedia a confirmação — está confirmada.
+| # | Módulo | Commit | Principais tabelas novas |
+|---|---|---|---|
+| 1 | Núcleo Acadêmico | `55966ed` | EduProgram, EduSubject, EduCurriculum(Subject), EduTerm, EduStudent, EduEnrollment, EduClass(Enrollment), EduSession(Booking), EduAttendance |
+| 2 | Provas com IA | `9c08be9` | EduQuestion(Option), EduExam(Question), EduExamAttempt, EduExamAnswer |
+| 3 | Conteúdo e Biblioteca | `21bdcde` | EduContentItem/Progress, EduFlashcardDeck/Card/Review (SM-2), EduForum/Topic/Reply, EduLibrarySubscription |
+| 4 | Financeiro (mensalidade) | `bd3478b` | campos em EduEnrollment; reaproveita RecurringBill/FinancialEntry |
+| 5 | Desempenho, ENADE/ENAMED e Reforço | `b133a03` | EduReinforcementPlan/Action; extensões em EduExam/EduQuestion |
+| 6 | Protocolo e Certificados (Secretaria) | `d4f2886` | EduDocumentUpload/Request, EduCertificate (verificação pública) |
+| 7 | Facilities (Infraestrutura) | `2529eb1` | EduAsset, EduMaintenanceOrder, EduParkingSpot, EduExpiringItem |
+| 8 | Suprimentos (compras/estoque/vendas) | `1492dde` | EduSupplyItem/Movement, EduPurchaseOrder(Item), EduSale(Item) |
+| 9 | Governança e Regulatório | `93c8545` | EduCommittee(Member), EduPdiGoal/Evidence, EduRegulatoryWatch |
+| 10 | Captação e Ingresso (REVAH) | `28b881c` | EduAdmissionExam, EduApplication |
+| 11 | Pesquisa e Extensão | `3a56864` | EduFundingAgency, EduFundingCall, EduResearchProject(Member) |
+| 12 | Jurídico | `7bba873` | EduLegalCase, EduLegalHearing, EduLegalDocument |
+| 13 | Motor de Formulários e Fluxos | `99c23ee` | EduFormTemplate, EduFormSubmission |
 
-## 2. Decisão sobre a ordem de construção
+**Total:** 13 migrations isoladas e aditivas (`backend/prisma/migrations/202609220*`), ~70 tabelas novas, todas com `clinicId`/`tenantId` (multi-tenant) e índices. Nenhuma tabela existente do DentalPos foi alterada — só 3 edições cirúrgicas em arquivos compartilhados: `services/permissionService.ts` (catálogo RBAC, +26 códigos `edu.*`), `services/aiService.ts` (+3 tarefas de IA), `routes/index.ts` (montagem dos routers + 2 rotas públicas).
 
-A Seção 6 do briefing lista como próximo passo o módulo **"Desempenho, ENADE/ENAMED e Residência"**, por depender de dados do Núcleo Acadêmico e das Provas. Como nenhum dos dois existe, comecei pelo **Núcleo Acadêmico**, que é pré-requisito técnico de todo o resto (matrícula, turma e frequência são a base de Desempenho, Protocolo/Certificados, Captação etc.). Essa é a única ordem que compila e funciona de verdade — os módulos seguintes continuam na mesma sequência do briefing a partir daqui.
+Pós-graduação lato/stricto sensu **não ganhou tabela própria**: reaproveita `EduProgram.level` (`POS_LATO`/`POS_STRICTO`) do Núcleo Acadêmico, com projetos de Pesquisa e Extensão linkáveis a esses programas.
 
-## 3. O que foi entregue nesta tarefa
+## 3. Validação
 
-**Módulo: Núcleo Acadêmico** (extensão isolada do backend do DentalPos One, tabelas com prefixo `Edu`/`edu_*`, reaproveitando Clinic/User/JWT/RBAC compartilhados).
+Todo módulo passou pelo mesmo processo antes do commit:
+1. `npx prisma validate` + `format`.
+2. `npm run build` (`prisma generate && tsc`) — compila sem erros.
+3. Migration gerada por diff real contra Postgres local e aplicada.
+4. **Smoke test funcional ponta a ponta** com o servidor rodando de verdade (login, fluxo completo via HTTP, incluindo regras de negócio críticas: limite de vaga, correção automática, geração de conta a pagar/receber, classificação de vestibular, encerramento automático de audiência, validação de formulário).
 
-- `backend/prisma/schema.prisma`: 12 models novos — `EduProgram`, `EduSubject`, `EduCurriculum`, `EduCurriculumSubject`, `EduTerm`, `EduStudent`, `EduEnrollment`, `EduClass`, `EduClassEnrollment`, `EduSession`, `EduSessionBooking`, `EduAttendance`.
-- `backend/prisma/migrations/20260922030000_edu_nucleo_academico/migration.sql`: migration isolada e aditiva (só `CREATE TABLE`/índices/FKs novos; nada alterado nas tabelas existentes).
-- `backend/src/validators/eduAcademicValidator.ts`: schemas Zod.
-- `backend/src/controllers/eduAcademicController.ts`: CRUD + regras de negócio.
-- `backend/src/routes/eduRoutes.ts`: rotas em `/api/edu/*`, montadas em `routes/index.ts` com uma linha (`router.use(eduRoutes)`).
-- `backend/src/services/permissionService.ts`: 5 códigos de permissão novos adicionados ao catálogo RBAC compartilhado (`edu.academic.view/manage`, `edu.enrollment.view/manage`, `edu.attendance.manage`). ADMIN e GESTOR já os recebem automaticamente pelas regras existentes.
+Dois bugs reais foram encontrados pelos próprios smoke tests (resposta de API desatualizada após update em cascata) e corrigidos antes do commit — descritos nos commits `21bdcde` e `28b881c`.
 
-Cobre da Seção 4.1 do briefing: programas, disciplinas, matriz curricular, períodos letivos, matrícula do aluno no programa, turmas, sessões teóricas e práticas com limite de vagas por horário, agendamento pelo próprio aluno (portal self-service em `/api/edu/me/*`) e frequência com atualização automática do status da sessão (`AGENDADA` → `REALIZADA` ao lançar presença).
+## 4. O que é reaproveitado (não duplicado)
 
-Fora do escopo desta entrega (fica para os próximos módulos, conforme a ordem do briefing): calendário acadêmico visual, convocação via REVAH, equivalência de disciplinas (Equivalia), cadastro de documentos do aluno, ambiente de aprendizagem (vídeos/PDFs/fóruns) e provas online.
+- **Financeiro**: mensalidade, compra, venda e assinatura de biblioteca geram `FinancialEntry`/`RecurringBill` do motor já existente do DentalPos.
+- **REVAH**: candidato de vestibular e aluno egresso viram `RevahContact` automaticamente, para os funis de captação e recall.
+- **IA**: geração de questões, correção de dissertativa e triagem regulatória usam `services/aiService.ts` (créditos/franquia existentes), não um cliente de IA novo.
+- **Vencimentos**: Facilities e Jurídico compartilham a mesma tabela `EduExpiringItem` e a mesma regra de antecedência (vencimento − preparo − margem).
 
-## 4. Validação feita
+## 5. Fora do escopo desta entrega (avisado, não esquecido)
 
-- `npx prisma validate` e `npx prisma format`: OK.
-- `npm run build` (`prisma generate && tsc`): compila sem erros.
-- Banco Postgres local (cluster do próprio ambiente do Code, não Supabase): migration aplicada limpa sobre o schema existente, sem conflito com nenhuma tabela do DentalPos/REVAH.
-- Smoke test funcional ponta a ponta via API real (login → programa → disciplina → matriz → período → turma → aluno → matrícula → matrícula na turma → sessão prática → agendamento de vaga → lançamento de frequência → status da sessão vira `REALIZADA`).
-- Regras de vaga testadas e confirmadas: reserva de sessão lotada devolve 409; matrícula em turma lotada devolve 409.
+- **Diploma digital com assinatura ICP-Brasil**: o briefing pede confirmar a norma do MEC vigente antes de implementar. O modelo `EduCertificate` já tem `signatureStatus` para plugar essa etapa depois, sem quebrar nada.
+- **Leitura automática de diários oficiais**: não há scraping/integração real com DOU/DOE (exigiria credencial/API por estado). O que existe é o cadastro manual do excerto + triagem por IA (classifica relevância e resume). Uma integração de coleta automática é um passo separado, quando houver a fonte de dados definida.
+- **Calendário acadêmico visual, equivalência de disciplinas (Equivalia)**: os dados para isso já existem em `EduTerm`/`EduSession`, mas a tela e a lógica de equivalência específica não foram feitas — não estavam na ordem de construção do briefing.
 
-## 5. Pendências e próximos passos
+## 6. Instruções para colocar em produção
 
-1. Aplicar a migration em produção (Supabase) — não foi tocado nada de produção nesta tarefa, só o repositório.
-2. Seguir a ordem do briefing a partir daqui: Desempenho/ENADE/ENAMED/Residência → Protocolo e Certificados → Facilities → Suprimentos → Governança e Regulatório → Captação (REVAH) → Pesquisa e Extensão → Jurídico → motor de formulários.
-3. Os outros 3 módulos "dados como prontos" em conversa (Financeiro/Contábil/Fiscal educacional, Conteúdo e Biblioteca, Provas com IA) também precisam ser construídos do zero — não existem no código.
+1. **Aplicar as migrations no Supabase de produção.** Elas foram geradas e testadas contra um Postgres local (ambiente da sessão), não contra produção. Rodar, na ordem, os 13 arquivos `.sql` em `backend/prisma/migrations/202609220{3..5}0000_edu_*` — ou, se preferir, `npx prisma migrate deploy` a partir de um ambiente com `DATABASE_URL` apontando para o Supabase (o deploy do Vercel provavelmente já faz isso a cada push, conforme `DEPLOY-WMUNDIAPPS-DENTALPOSONE.md`; só confirme que o passo de migration está no pipeline antes do primeiro deploy desta branch).
+2. **Seed do catálogo de permissões.** Depois da migration, rode `npm run seed:core` (ou o equivalente em produção) para que os ~26 códigos `edu.*` novos entrem na tabela `Permission` e nos perfis ADMIN/GESTOR de cada clínica existente — sem isso, ninguém enxerga os módulos novos mesmo com o código no ar.
+3. **Nenhuma variável de ambiente nova é necessária.** Tudo reaproveita `DATABASE_URL`, `JWT_SECRET` e `OPENAI_API_KEY` já configurados. Se `OPENAI_API_KEY` não estiver setada, os 3 recursos de IA (geração de questões, correção de dissertativa, triagem regulatória) falham de forma graciosa (HTTP 422, `IA_NAO_CONFIGURADA`) sem travar o resto do fluxo — já testado.
+4. **Revisar e abrir o Pull Request.** Não abri PR (a instrução original era trabalhar em branch; me avise se quiser que eu abra agora). A branch está com 13 commits, cada um autocontido e revisável separadamente.
+5. **Cadastro inicial por instituição**, na ordem que o próprio sistema exige: Programa → Matriz Curricular (+ disciplinas) → Período Letivo → Turma → (Aluno ou Vestibular) → Matrícula. Cada módulo depende dos anteriores — é a mesma ordem em que foram construídos.
+6. **Frontend ainda não existe.** Este trabalho foi inteiramente de backend/API (`/api/edu/*`, documentado nas rotas de cada módulo). Todas as telas ficam para uma etapa seguinte — se quiser, posso planejar isso a partir daqui.
+7. **Papel de aluno**: o portal self-service (`/api/edu/me/*`) espera um `User` com `role: "STUDENT"` vinculado ao `EduStudent` via `userId`. Hoje esse vínculo só é feito manualmente (não existe fluxo de "ativar acesso do aluno" ainda) — é a próxima peça óbvia a construir do lado da Secretaria/Captação.
+
+## 7. Pendências conhecidas para revisão futura
+
+- Diploma com assinatura ICP-Brasil (item 5.1 acima).
+- Scraping/integração real de diários oficiais.
+- Fluxo de ativação de acesso do aluno (criar `User` + vincular `EduStudent` automaticamente na efetivação da matrícula).
+- Telas de frontend para todos os 13 módulos.
+- Aplicar as migrations em produção e rodar o seed de permissões (itens 6.1 e 6.2).
