@@ -97,7 +97,7 @@ r.get(
   '/me',
   requireAuth,
   ah(async (req: AuthedRequest, res) => {
-    res.json(sessionPayload(req.user, req.tenant))
+    res.json(sessionPayload(req.user, req.tenant, Boolean(req.embedded)))
   }),
 )
 

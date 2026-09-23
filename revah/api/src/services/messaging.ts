@@ -99,8 +99,10 @@ export async function sendMessage(input: SendMessageInput) {
   if (!input.skipUsageCheck) await assertCanSend(tenant, 1)
 
   const withinWindow = conversation.lastInboundAt ? Date.now() - conversation.lastInboundAt.getTime() < WINDOW_MS : false
+  const creds = decryptJson<Record<string, any>>(account.encryptedCredentials) || {}
   let template = input.template || null
-  if (account.provider === 'META_CLOUD') {
+  // Canal simulado não aplica a janela de 24h (útil no teste grátis).
+  if (account.provider === 'META_CLOUD' && creds.simulated !== true) {
     if (!withinWindow && !template?.name) {
       const def = (account.settings as any)?.defaultTemplate as WaTemplate | undefined
       if (def?.name) template = { ...def, params: def.params?.length ? def.params : [finalText] }
@@ -113,14 +115,13 @@ export async function sendMessage(input: SendMessageInput) {
     }
     if (withinWindow && !input.template) template = null
   }
-  if (['INSTAGRAM', 'MESSENGER'].includes(channel) && !withinWindow) {
+  if (['INSTAGRAM', 'MESSENGER'].includes(channel) && !withinWindow && creds.simulated !== true) {
     const failed = await prisma.message.create({
       data: { ...base, status: 'FAILED', error: 'Instagram/Messenger só permitem responder até 24h após a última mensagem do contato.' },
     })
     return { ok: false as const, message: failed, error: failed.error!, code: 'OUTSIDE_WINDOW' }
   }
 
-  const creds = decryptJson<Record<string, any>>(account.encryptedCredentials) || {}
   const queued = await prisma.message.create({ data: { ...base, status: 'QUEUED' } })
   try {
     let result

@@ -15,8 +15,10 @@ export function stripe() {
 export type PaidPlan = 'START' | 'PRO'
 
 export function priceForPlan(plan: string): string {
-  const p = config.stripe.prices[plan as PaidPlan]
-  if (!p) throw badRequest(plan === 'ENTERPRISE' ? 'O plano ENTERPRISE é contratado com nosso time comercial.' : 'Plano inválido.')
+  if (plan === 'ENTERPRISE') throw badRequest('O plano ENTERPRISE é contratado com nosso time comercial.')
+  if (plan !== 'START' && plan !== 'PRO') throw badRequest('Plano inválido.')
+  const p = config.stripe.prices[plan]
+  if (!p) throw new HttpError(503, 'Pagamentos ainda não configurados para este plano.', 'BILLING_NOT_CONFIGURED')
   return p
 }
 

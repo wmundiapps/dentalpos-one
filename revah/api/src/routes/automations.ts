@@ -74,7 +74,8 @@ r.post('/automations/templates/dentalpos', ah(async (req: AuthedRequest, res) =>
   for (const t of DENTALPOS_AUTOMATION_TEMPLATES) {
     const exists = await prisma.automation.findFirst({ where: { tenantId: req.tenant.id, trigger: t.trigger, name: t.name } })
     if (exists) continue
-    await prisma.automation.create({ data: { tenantId: req.tenant.id, name: t.name, trigger: t.trigger, actions: t.actions as any } })
+    // Instaladas desligadas: a clínica revisa os textos e ativa uma a uma.
+    await prisma.automation.create({ data: { tenantId: req.tenant.id, name: t.name, trigger: t.trigger, actions: t.actions as any, isActive: false } })
     created++
   }
   res.json({ created })

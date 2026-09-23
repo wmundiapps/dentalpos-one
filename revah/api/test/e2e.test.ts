@@ -191,6 +191,8 @@ test('DentalPos One: provisionamento, SSO, eventos e licença', async () => {
     .send({ channel: 'WHATSAPP', provider: 'ZAPI', label: 'Clínica', address: '44930000000', credentials: { simulated: true }, acknowledgeRisk: true })
   const inst = await request(app).post('/automations/templates/dentalpos').set(auth(t))
   assert.equal(inst.body.created, 7)
+  assert.equal(await prisma.automation.count({ where: { tenantId: prov.body.tenantId, isActive: true } }), 0)
+  await prisma.automation.updateMany({ where: { tenantId: prov.body.tenantId }, data: { isActive: true } })
 
   const ev = { id: 'appt-1-created', type: 'appointment.scheduled', patient: { id: 'p1', name: 'João Lima', phone: '44991234567' }, data: { data: '25/09/2026', hora: '14:30', profissional: 'Dra. Ana' } }
   const e1 = await request(app).post('/integrations/dentalpos/events').set('X-Api-Key', prov.body.apiKey).send(ev)

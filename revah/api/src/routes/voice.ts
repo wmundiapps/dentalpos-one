@@ -91,10 +91,13 @@ r.post('/voice/calls/:id/cancel', ah(async (req: AuthedRequest, res) => {
   if (!call) throw notFound('Ligação não encontrada.')
   if (call.status === 'QUEUED') {
     await prisma.call.update({ where: { id: call.id }, data: { status: 'CANCELED' } })
-  } else if (['RINGING', 'IN_PROGRESS'].includes(call.status) && call.providerCallSid && call.channelAccountId) {
-    const acc = await prisma.channelAccount.findUnique({ where: { id: call.channelAccountId } })
-    const creds = decryptJson<any>(acc?.encryptedCredentials)
-    if (creds?.accountSid) await cancelCall(creds, call.providerCallSid).catch(() => null)
+  } else if (['RINGING', 'IN_PROGRESS'].includes(call.status)) {
+    if (call.providerCallSid && call.channelAccountId) {
+      const acc = await prisma.channelAccount.findUnique({ where: { id: call.channelAccountId } })
+      const creds = decryptJson<any>(acc?.encryptedCredentials)
+      if (creds?.accountSid) await cancelCall(creds, call.providerCallSid).catch(() => null)
+    }
+    await prisma.call.update({ where: { id: call.id }, data: { status: 'CANCELED', endedAt: new Date() } })
   } else throw badRequest('Esta ligação já foi finalizada.')
   res.json({ ok: true })
 }))

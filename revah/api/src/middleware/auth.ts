@@ -10,6 +10,7 @@ export interface AuthedRequest extends Request {
   user: User
   tenant: Tenant
   viaApiKey?: boolean
+  embedded?: boolean
   rawBody?: Buffer
 }
 
@@ -46,6 +47,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     const { tenant, ...plainUser } = user
     ;(req as AuthedRequest).user = plainUser as User
     ;(req as AuthedRequest).tenant = tenant
+    ;(req as AuthedRequest).embedded = Boolean(claims.emb)
     next()
   } catch (e) {
     next(e)
