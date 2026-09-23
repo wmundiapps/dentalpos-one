@@ -179,6 +179,11 @@ test('DentalPos One: provisionamento, SSO, eventos e licença', async () => {
   const replay = await request(app).post('/auth/sso/dentalpos').send({ token: ssoToken })
   assert.equal(replay.status, 401)
 
+  // Token gerado pelo próprio adaptador usado no DentalPos One.
+  const { createSsoToken } = await import('../../packages/dentalpos-one-adapter/src/index')
+  const viaAdapter = await request(app).post('/auth/sso/dentalpos').send({ token: createSsoToken(process.env.DENTALPOS_SHARED_SECRET!, { clinicId: 'clin-42', email: 'gestora2@sorriso.test', role: 'ADMIN' }) })
+  assert.equal(viaAdapter.status, 200, JSON.stringify(viaAdapter.body))
+
   const t = sso.body.token
   await request(app)
     .post('/channels')

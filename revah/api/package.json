@@ -16,8 +16,8 @@
     "test": "node --import tsx --test test/*.test.ts",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate deploy",
-    "seed": "tsx src/scripts/seed.ts",
-    "pretest": "prisma db push --force-reset --skip-generate --accept-data-loss"
+    "pretest": "node -e \"if(!/test/.test(process.env.DATABASE_URL||''))throw new Error('Use um DATABASE_URL de TESTE (o nome deve conter test): os testes apagam o banco.')\" && prisma db push --force-reset --skip-generate --accept-data-loss",
+    "vercel-build": "prisma generate && prisma migrate deploy"
   },
   "engines": {
     "node": ">=20"
