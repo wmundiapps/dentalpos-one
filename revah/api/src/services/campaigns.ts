@@ -3,8 +3,7 @@ import { config } from '../config'
 import { prisma } from '../lib/prisma'
 import { badRequest, conflict, notFound, paymentRequired } from '../lib/errors'
 import { contactFieldFor, contactVars, normalizeDestination, renderTemplate, type Channel } from '../lib/normalize'
-import { upsertContact } from './contacts'
-import { enqueueJob, registerJobHandler, type JobOutcome } from './jobs'
+import { registerJobHandler, type JobOutcome } from './jobs'
 import { sendMessage } from './messaging'
 import { assertCanLaunchCampaign } from './plans'
 import { suppressedSet } from './suppression'
@@ -85,11 +84,20 @@ export async function launchCampaign(tenant: Tenant, campaignId: string) {
     isTrial = true
   }
 
-  // Contatos manuais entram no CRM para manter o histórico unificado.
-  for (const t of valid) {
-    if (t.contactId) continue
-    const { contact } = await upsertContact(tenant.id, { [contactFieldFor(channel)]: t.destination, name: t.name, source: 'CAMPAIGN' } as any, { emit: false })
-    t.contactId = contact.id
+  // Contatos manuais entram no CRM (em lote) para manter o histórico unificado.
+  const field = contactFieldFor(channel)
+  const missing = valid.filter((t) => !t.contactId)
+  for (let i = 0; i < missing.length; i += 1000) {
+    const chunk = missing.slice(i, i + 1000)
+    const existing = await prisma.contact.findMany({ where: { tenantId: tenant.id, [field]: { in: chunk.map((t) => t.destination!) } }, select: { id: true, [field]: true } as any })
+    const byDest = new Map(existing.map((c: any) => [c[field], c.id]))
+    const toCreate = chunk.filter((t) => !byDest.has(t.destination!))
+    if (toCreate.length) {
+      await prisma.contact.createMany({ data: toCreate.map((t) => ({ tenantId: tenant.id, name: t.name || t.destination!, [field]: t.destination, source: 'CAMPAIGN' }) as any) })
+      const created = await prisma.contact.findMany({ where: { tenantId: tenant.id, [field]: { in: toCreate.map((t) => t.destination!) } }, select: { id: true, [field]: true } as any })
+      for (const c of created as any[]) if (!byDest.has(c[field])) byDest.set(c[field], c.id)
+    }
+    for (const t of chunk) t.contactId = (byDest.get(t.destination!) as string) || null
   }
 
   const start = campaign.scheduledAt && campaign.scheduledAt.getTime() > Date.now() ? campaign.scheduledAt : new Date()
@@ -131,11 +139,13 @@ export async function launchCampaign(tenant: Tenant, campaignId: string) {
     }
     await refreshCounters(campaign.id)
   } else {
-    let i = 0
-    for (const r of pending) {
-      await enqueueJob(tenant.id, 'CAMPAIGN_SEND', { campaignId: campaign.id, recipientId: r.id }, new Date(start.getTime() + i * config.worker.campaignThrottleMs))
-      i++
-    }
+    const jobs = pending.map((r, i) => ({
+      tenantId: tenant.id,
+      type: 'CAMPAIGN_SEND',
+      payload: { campaignId: campaign.id, recipientId: r.id },
+      runAt: new Date(start.getTime() + i * config.worker.campaignThrottleMs),
+    }))
+    for (let i = 0; i < jobs.length; i += 1000) await prisma.job.createMany({ data: jobs.slice(i, i + 1000) })
   }
   if (!pending.length) await refreshCounters(campaign.id)
   return prisma.campaign.findUniqueOrThrow({ where: { id: campaign.id } })

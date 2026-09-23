@@ -68,7 +68,8 @@ export async function placeCallJob(job: Job): Promise<JobOutcome> {
   if (!next) return block(call, 'Nenhum horário permitido configurado.')
   if (next.getTime() - now.getTime() > 30_000) return { reschedule: next, reason: 'Fora do horário permitido.' }
 
-  const active = await prisma.call.count({ where: { tenantId: tenant.id, status: { in: ['RINGING', 'IN_PROGRESS'] } } })
+  // Ignora chamadas presas sem callback há mais de 30 min para não travar a fila.
+  const active = await prisma.call.count({ where: { tenantId: tenant.id, status: { in: ['RINGING', 'IN_PROGRESS'] }, updatedAt: { gt: new Date(Date.now() - 30 * 60_000) } } })
   if (active >= settings.maxConcurrent) return { reschedule: new Date(Date.now() + 90_000), reason: 'Fila: limite de ligações simultâneas.' }
 
   const account = await pickChannelAccount(tenant.id, 'VOICE')

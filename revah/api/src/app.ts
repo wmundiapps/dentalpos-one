@@ -60,7 +60,7 @@ export function createApp() {
   app.use(publicRoutes)
   app.use(cronRoutes)
   app.use('/webhooks', webhookRoutes)
-  app.use('/auth', authLimiter, authRoutes)
+  app.use('/auth', (req, res, next) => (req.method === 'POST' ? authLimiter(req, res, next) : next()), authRoutes)
   app.use(apiLimiter)
   app.use(billingRoutes)
   app.use(integrationRoutes)

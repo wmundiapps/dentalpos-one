@@ -3,6 +3,7 @@
 // Scraping de LinkedIn/Instagram/Facebook NÃO está implementado (decisão pendente — ver docs).
 import { config } from '../../config'
 import { digits, normalizeEmail, normalizePhone } from '../../lib/normalize'
+import { HttpError } from '../../lib/errors'
 import { httpJson } from '../channels/types'
 
 export interface RawLead {
@@ -46,7 +47,7 @@ export async function lookupCompany(cnpjRaw: string): Promise<RawLead | null> {
 }
 
 export async function searchLocalBusinesses(query: string, city?: string | null, limit = 20): Promise<RawLead[]> {
-  if (!config.leads.googlePlacesKey) throw new Error('Busca local indisponível no momento.')
+  if (!config.leads.googlePlacesKey) throw new HttpError(503, 'Busca de negócios locais indisponível no momento. Fale com o suporte.', 'LEADS_SOURCE_UNAVAILABLE')
   const d = await httpJson('https://places.googleapis.com/v1/places:searchText', {
     method: 'POST',
     headers: {
