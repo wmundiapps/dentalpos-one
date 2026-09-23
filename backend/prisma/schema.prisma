@@ -126,6 +126,7 @@ model Clinic {
   eduLegalCases           EduLegalCase[]
   eduFormTemplates        EduFormTemplate[]
   eduFormSubmissions      EduFormSubmission[]
+  eduEquivalencyRequests  EduEquivalencyRequest[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2541,6 +2542,7 @@ model EduProgram {
   exams            EduExam[]
   admissionExams   EduAdmissionExam[]
   researchProjects EduResearchProject[]
+  equivalencyRequests EduEquivalencyRequest[]
 
   @@unique([clinicId, code])
   @@index([clinicId, isActive])
@@ -2566,6 +2568,7 @@ model EduSubject {
   flashcardDecks     EduFlashcardDeck[]
   forums             EduForum[]
   reinforcementPlans EduReinforcementPlan[]
+  equivalencyItems   EduEquivalencyItem[]
 
   @@unique([clinicId, code])
   @@index([clinicId, isActive])
@@ -2672,6 +2675,7 @@ model EduStudent {
   formSubmissions            EduFormSubmission[]
   parkingSpots               EduParkingSpot[]
   sales                      EduSale[]
+  equivalencyRequests        EduEquivalencyRequest[]
 
   @@unique([clinicId, email])
   @@index([clinicId, status])
@@ -2979,6 +2983,8 @@ model EduContentItem {
   durationMinutes Int?
   order           Int         @default(0)
   isActive        Boolean     @default(true)
+  sourceText      String?
+  summary8020     String?
   createdById     String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -3876,4 +3882,56 @@ model EduFormSubmission {
   @@index([templateId])
   @@index([tenantId])
   @@map("edu_form_submissions")
+}
+
+// ============================================================
+// EDUMASTER — EQUIVALÊNCIA E APROVEITAMENTO DE DISCIPLINAS
+// Análise de disciplinas cursadas em outra instituição (aluno
+// transferido) ou em outro curso/currículo interno, para dispensa
+// de disciplina equivalente na matriz atual.
+// ============================================================
+
+model EduEquivalencyRequest {
+  id                String     @id @default(cuid())
+  clinicId          String
+  clinic            Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId          String
+  studentId         String
+  student           EduStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  programId         String
+  program           EduProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  originInstitution String
+  status            String     @default("PENDENTE")
+  notes             String?
+  decidedById       String?
+  decidedAt         DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  items EduEquivalencyItem[]
+
+  @@index([clinicId, status])
+  @@index([studentId])
+  @@index([tenantId])
+  @@map("edu_equivalency_requests")
+}
+
+model EduEquivalencyItem {
+  id                     String                @id @default(cuid())
+  requestId              String
+  request                EduEquivalencyRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  originSubjectName      String
+  originWorkloadHours    Int
+  originGrade            Float?
+  targetSubjectId        String?
+  targetSubject          EduSubject?           @relation(fields: [targetSubjectId], references: [id], onDelete: SetNull)
+  status                 String                @default("PENDENTE")
+  approvedWorkloadHours  Int?
+  analystNotes           String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+
+  @@index([requestId])
+  @@index([targetSubjectId])
+  @@map("edu_equivalency_items")
 }

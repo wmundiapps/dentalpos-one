@@ -101,3 +101,23 @@ export const attendanceSchema = z.object({
 export const attendanceBulkSchema = z.object({
   records: z.array(attendanceSchema).min(1).max(500)
 }).strict()
+
+export const equivalencyRequestSchema = z.object({
+  studentId: z.string().trim().min(1),
+  programId: z.string().trim().min(1),
+  originInstitution: z.string().trim().min(2).max(300),
+  notes: z.string().trim().max(2000).optional(),
+  items: z.array(z.object({
+    originSubjectName: z.string().trim().min(2).max(300),
+    originWorkloadHours: z.number().int().min(1).max(5000),
+    originGrade: z.number().min(0).max(10).optional(),
+    targetSubjectId: z.string().trim().min(1).optional()
+  })).min(1).max(100)
+}).strict()
+
+export const equivalencyItemDecisionSchema = z.object({
+  status: z.enum(['APROVADO', 'REJEITADO']),
+  targetSubjectId: z.string().trim().min(1).optional(),
+  approvedWorkloadHours: z.number().int().min(0).max(5000).optional(),
+  analystNotes: z.string().trim().max(2000).optional()
+}).strict()

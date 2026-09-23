@@ -29,6 +29,10 @@ router.post('/edu/students', requirePermission('edu.academic.manage'), edu.creat
 router.put('/edu/students/:id', requirePermission('edu.academic.manage'), edu.updateStudent)
 router.post('/edu/students/:id/activate-access', requirePermission('edu.academic.manage'), eduAccess.activateStudentAccess)
 
+router.get('/edu/equivalency-requests', requirePermission('edu.academic.view'), edu.listEquivalencyRequests)
+router.post('/edu/equivalency-requests', requirePermission('edu.academic.manage'), edu.createEquivalencyRequest)
+router.put('/edu/equivalency-items/:itemId/decision', requirePermission('edu.academic.manage'), edu.decideEquivalencyItem)
+
 router.get('/edu/enrollments', requirePermission('edu.enrollment.view'), edu.listEnrollments)
 router.post('/edu/enrollments', requirePermission('edu.enrollment.manage'), edu.createEnrollment)
 

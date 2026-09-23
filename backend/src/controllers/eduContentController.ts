@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { runAiTask } from '../services/aiService'
 import {
   contentItemSchema,
   contentProgressSchema,
@@ -61,6 +62,32 @@ export async function createContentItem(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao criar conteúdo.' })
+  }
+}
+
+// Resumo 80/20: a partir do texto-base do conteúdo (sourceText), pede à IA os
+// ~20% dos conceitos que respondem por ~80% do entendimento do tema.
+export async function generateSummary8020(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const contentItemId = String(req.params.contentItemId)
+    const item = await prisma.eduContentItem.findFirst({ where: { id: contentItemId, clinicId, tenantId } })
+    if (!item) return res.status(404).json({ error: 'Conteúdo não encontrado.' })
+    if (!item.sourceText) return res.status(400).json({ error: 'Este conteúdo não tem texto-base (sourceText) cadastrado para gerar o resumo.' })
+
+    const system = 'Você é um tutor de ensino superior brasileiro. A partir do texto fornecido, identifique os 20% dos conceitos que respondem por 80% do entendimento do tema (princípio de Pareto aplicado a estudo). Responda em markdown com bullets curtos e diretos, sem introdução nem conclusão.'
+    const ai = await runAiTask({
+      clinicId, tenantId, actorId, task: 'RESUMO', system, prompt: item.sourceText,
+      maxTokens: 1200, referenceType: 'EduContentItem', referenceId: item.id
+    })
+    if (!ai.ok) return res.status(422).json({ error: 'Não foi possível gerar o resumo 80/20 com IA.', reason: ai.reason })
+
+    const row = await prisma.eduContentItem.update({ where: { id: item.id }, data: { summary8020: ai.text || null } })
+    await audit({ clinicId, tenantId, actorId, action: 'EDU_CONTENT_SUMMARY_8020', entityType: 'EduContentItem', entityId: row.id, summary: `Resumo 80/20 gerado para "${row.title}".` })
+    return res.json(row)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao gerar resumo 80/20.' })
   }
 }
 

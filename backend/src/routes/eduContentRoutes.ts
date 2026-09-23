@@ -10,6 +10,7 @@ const router = Router()
 
 router.get('/edu/content-items', requirePermission('edu.content.view'), content.listContentItems)
 router.post('/edu/content-items', requirePermission('edu.content.manage'), content.createContentItem)
+router.post('/edu/content-items/:contentItemId/generate-summary-8020', requirePermission('edu.content.manage'), content.generateSummary8020)
 
 router.get('/edu/flashcard-decks', requirePermission('edu.content.view'), content.listFlashcardDecks)
 router.post('/edu/flashcard-decks', requirePermission('edu.content.manage'), content.createFlashcardDeck)

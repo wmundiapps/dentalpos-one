@@ -9,7 +9,8 @@ export const contentItemSchema = z.object({
   url: z.string().trim().url().max(2000),
   durationMinutes: z.number().int().min(1).max(1000).optional(),
   order: z.number().int().min(0).max(10000).default(0),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
+  sourceText: z.string().trim().max(40000).optional()
 }).strict()
 
 export const contentProgressSchema = z.object({

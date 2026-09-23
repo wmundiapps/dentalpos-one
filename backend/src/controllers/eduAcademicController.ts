@@ -9,6 +9,8 @@ import {
   curriculumSchema,
   curriculumSubjectSchema,
   enrollmentSchema,
+  equivalencyItemDecisionSchema,
+  equivalencyRequestSchema,
   programSchema,
   sessionBookingSchema,
   sessionSchema,
@@ -310,6 +312,91 @@ export async function updateStudent(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao atualizar aluno.' })
+  }
+}
+
+// ---------------------------------------------------------------
+// EQUIVALÊNCIA E APROVEITAMENTO DE DISCIPLINAS
+// (aluno transferido de outra instituição/curso pede dispensa de
+// disciplina já cursada; coordenação analisa item a item)
+// ---------------------------------------------------------------
+
+export async function listEquivalencyRequests(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const studentId = typeof req.query.studentId === 'string' ? req.query.studentId : undefined
+    const rows = await prisma.eduEquivalencyRequest.findMany({
+      where: { clinicId, tenantId, ...(studentId ? { studentId } : {}) },
+      include: { student: true, program: true, items: { include: { targetSubject: true } } },
+      orderBy: { createdAt: 'desc' }
+    })
+    return res.json(rows)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao listar solicitações de equivalência.' })
+  }
+}
+
+export async function createEquivalencyRequest(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const parsed = equivalencyRequestSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() })
+
+    const [student, program] = await Promise.all([
+      prisma.eduStudent.findFirst({ where: { id: parsed.data.studentId, clinicId, tenantId } }),
+      prisma.eduProgram.findFirst({ where: { id: parsed.data.programId, clinicId, tenantId } })
+    ])
+    if (!student) return res.status(400).json({ error: 'Aluno inválido.' })
+    if (!program) return res.status(400).json({ error: 'Curso inválido.' })
+
+    const { items, ...data } = parsed.data
+    const row = await prisma.eduEquivalencyRequest.create({
+      data: { clinicId, tenantId, ...data, items: { create: items } },
+      include: { items: true }
+    })
+    await audit({ clinicId, tenantId, actorId, action: 'EDU_EQUIVALENCY_REQUEST_CREATE', entityType: 'EduEquivalencyRequest', entityId: row.id, summary: `Solicitação de equivalência aberta para ${student.fullName} (${row.items.length} disciplina(s)).` })
+    return res.status(201).json(row)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao abrir solicitação de equivalência.' })
+  }
+}
+
+export async function decideEquivalencyItem(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const itemId = String(req.params.itemId)
+    const item = await prisma.eduEquivalencyItem.findFirst({
+      where: { id: itemId, request: { clinicId, tenantId } },
+      include: { request: true }
+    })
+    if (!item) return res.status(404).json({ error: 'Item de equivalência não encontrado.' })
+
+    const parsed = equivalencyItemDecisionSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() })
+
+    if (parsed.data.targetSubjectId) {
+      const subject = await prisma.eduSubject.findFirst({ where: { id: parsed.data.targetSubjectId, clinicId, tenantId } })
+      if (!subject) return res.status(400).json({ error: 'Disciplina de destino inválida.' })
+    }
+
+    const row = await prisma.eduEquivalencyItem.update({ where: { id: itemId }, data: parsed.data })
+
+    const siblings = await prisma.eduEquivalencyItem.findMany({ where: { requestId: item.requestId } })
+    const allDecided = siblings.every(sibling => sibling.status !== 'PENDENTE')
+    if (allDecided) {
+      const anyApproved = siblings.some(sibling => sibling.status === 'APROVADO')
+      const anyRejected = siblings.some(sibling => sibling.status === 'REJEITADO')
+      const finalStatus = anyApproved && anyRejected ? 'PARCIAL' : anyApproved ? 'DEFERIDO' : 'INDEFERIDO'
+      await prisma.eduEquivalencyRequest.update({ where: { id: item.requestId }, data: { status: finalStatus, decidedById: actorId, decidedAt: new Date() } })
+    }
+
+    await audit({ clinicId, tenantId, actorId, action: 'EDU_EQUIVALENCY_ITEM_DECIDE', entityType: 'EduEquivalencyItem', entityId: row.id, summary: `Item de equivalência "${item.originSubjectName}" marcado como ${row.status}.` })
+    return res.json(row)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao decidir item de equivalência.' })
   }
 }
 
