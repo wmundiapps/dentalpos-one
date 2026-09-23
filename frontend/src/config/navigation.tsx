@@ -103,7 +103,8 @@ export const navigationGroups:NavigationGroup[] = [
       item("Chatbot e IA","/revah-chatbot",<ChatIcon/>),
       item("Leads","/revah-leads",<PeopleAltIcon/>),
       item("Recall e Reativação","/recall",<SendIcon/>),
-      item("Central REVAH","/revah",<SendIcon/>),
+      item("Central de Marketing","/marketing/central",<SendIcon/>),
+      item("Disparos locais","/revah",<SendIcon/>),
       item("Canais de Envio","/canais-envio",<SettingsInputAntennaIcon/>),
     ])
   },
