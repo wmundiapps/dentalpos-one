@@ -29,6 +29,7 @@ export interface SessionUser {
   clinic?: {
     name?: string;
     displayName?: string | null;
+    logo?: string | null;
     plan?: string;
   };
 }
@@ -72,6 +73,7 @@ export function writeSessionUser(value: SessionUser | null | undefined) {
 export function clearClientSession() {
   localStorage.removeItem("dentalpos.token");
   localStorage.removeItem("dentalpos.clinicId");
+  localStorage.removeItem("dentalpos.clinicLogo");
   localStorage.removeItem(DEMO_KEY);
   localStorage.removeItem(USER_KEY);
 }

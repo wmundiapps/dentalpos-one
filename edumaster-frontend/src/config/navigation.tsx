@@ -4,6 +4,7 @@ import EventIcon from "@mui/icons-material/Event";
 import GroupsIcon from "@mui/icons-material/Groups";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import SchoolIcon from "@mui/icons-material/School";
+import SettingsIcon from "@mui/icons-material/Settings";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import { Box } from "@mui/material";
 import type { ReactNode } from "react";
@@ -41,6 +42,14 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       item("Banco de questões", "/?secao=questoes", <DescriptionIcon />),
       item("Provas", "/?secao=provas", <AssignmentIcon />),
+    ],
+  },
+  {
+    label: "Configurações",
+    icon: tile(<SettingsIcon />, "#64748B"),
+    items: [
+      item("Identidade e marca", "/configuracoes?secao=identidade", <SettingsIcon />),
+      item("Unidades e polos", "/configuracoes?secao=unidades", <SchoolIcon />),
     ],
   },
 ];

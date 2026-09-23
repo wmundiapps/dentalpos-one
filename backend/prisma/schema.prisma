@@ -127,6 +127,8 @@ model Clinic {
   eduFormTemplates        EduFormTemplate[]
   eduFormSubmissions      EduFormSubmission[]
   eduEquivalencyRequests  EduEquivalencyRequest[]
+  eduInstitutionProfile   EduInstitutionProfile?
+  eduCampuses             EduCampus[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -3934,4 +3936,53 @@ model EduEquivalencyItem {
   @@index([requestId])
   @@index([targetSubjectId])
   @@map("edu_equivalency_items")
+}
+
+// ============================================================
+// EDUMASTER — PERSONALIZAÇÃO INSTITUCIONAL E POLOS/CAMPI
+// Identidade visual (nome, logo, cores) e endereço/contato já
+// existem no model Clinic (reaproveitado via /settings/clinic e
+// /clinics/:id). Aqui ficam só os campos que o Clinic não tem:
+// site, fale conosco, ouvidoria e as unidades/polos adicionais
+// (um tenant pode ter vários campi, o Clinic representa só um).
+// ============================================================
+
+model EduInstitutionProfile {
+  id             String   @id @default(cuid())
+  clinicId       String   @unique
+  clinic         Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId       String
+  site           String?
+  contactUrl     String?
+  ombudsmanEmail String?
+  ombudsmanPhone String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("edu_institution_profiles")
+}
+
+model EduCampus {
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId      String
+  name          String
+  type          String   @default("POLO")
+  addressStreet String?
+  addressCity   String?
+  addressState  String?
+  addressZip    String?
+  phone         String?
+  email         String?
+  mapLat        Float?
+  mapLng        Float?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+  @@map("edu_campuses")
 }

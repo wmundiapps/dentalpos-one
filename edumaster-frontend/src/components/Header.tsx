@@ -44,6 +44,7 @@ export default function Header() {
   const demo = readDemoAccess();
   const sessionUser = readSessionUser();
   const clinicLogo = localStorage.getItem("dentalpos.clinicLogo") || "";
+  const [logoFailed, setLogoFailed] = useState(false);
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -239,9 +240,9 @@ export default function Header() {
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={clinicLogo ? "Logo da instituição" : "Espaço para a logo da sua instituição"}>
-          {clinicLogo ? (
-            <Box component="img" src={clinicLogo} alt="Logo da instituição" sx={{ height: 40, maxWidth: 120, objectFit: "contain", borderRadius: 1 }} />
+        <Tooltip title={clinicLogo && !logoFailed ? "Logo da instituição" : "Espaço para a logo da sua instituição"}>
+          {clinicLogo && !logoFailed ? (
+            <Box component="img" src={clinicLogo} alt="Logo da instituição" onError={() => setLogoFailed(true)} sx={{ height: 40, maxWidth: 120, objectFit: "contain", borderRadius: 1 }} />
           ) : (
             <Box sx={{ height: 40, px: 1.25, display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 0.75, border: "1px dashed", borderColor: "divider", borderRadius: 2, color: "text.secondary" }}>
               <SchoolIcon fontSize="small" />

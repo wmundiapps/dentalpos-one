@@ -70,6 +70,8 @@ export default function App() {
       writeSessionUser(data);
       writeDemoAccess(data.demo);
       if (data.clinicId) localStorage.setItem("dentalpos.clinicId", data.clinicId);
+      if (data.clinic?.logo) localStorage.setItem("dentalpos.clinicLogo", data.clinic.logo);
+      else localStorage.removeItem("dentalpos.clinicLogo");
 
       if (data.demo?.isDemo && data.demo?.phase === "ENDED") {
         setExpiredDemo(data.demo);
