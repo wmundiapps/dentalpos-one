@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, Paper, IconButton, Typography, TextField, Button, Tooltip, Collapse, Alert } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -7,8 +7,8 @@ import ThumbUpAltOutlinedIcon from "@mui/icons-material/ThumbUpAltOutlined";
 import { useLocation } from "react-router-dom";
 import { createPlatformFeedback } from "../services/PlatformFeedbackApi";
 
-const HIDDEN_KEY = "dentalpos.evalWidgetHiddenUntil";
-const HIDE_HOURS = 24;
+// Versão antiga escondia o botão por 24h ("Agora não"). Agora ele fica sempre visível.
+const OLD_HIDDEN_KEY = "dentalpos.evalWidgetHiddenUntil";
 
 export default function EvaluationWidget() {
   const location = useLocation();
@@ -19,16 +19,17 @@ export default function EvaluationWidget() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
-  const [closedForNow, setClosedForNow] = useState(() => {
-    const until = Number(localStorage.getItem(HIDDEN_KEY) || 0);
-    return until > Date.now();
-  });
-
-  if (closedForNow) return null;
+  useEffect(() => {
+    try {
+      localStorage.removeItem(OLD_HIDDEN_KEY);
+    } catch {
+      // ignora
+    }
+  }, []);
 
   const hideForNow = () => {
-    localStorage.setItem(HIDDEN_KEY, String(Date.now() + HIDE_HOURS * 60 * 60 * 1000));
-    setClosedForNow(true);
+    setOpen(false);
+    setError("");
   };
 
   const reset = () => {
