@@ -22,6 +22,10 @@ Configuração em `server/.env` (modelo em `server/.env.example`): `DATABASE_URL
 Contas de demonstração (senha `demo12345`): `locatario@spacehour.demo` (dentista com CRO verificado),
 `anfitriao@spacehour.demo` (clínica em São Paulo), `admin@spacehour.demo` (mediação). Há anúncios em 28 países.
 
+## Lançamento
+
+Operação aberta **só no Brasil** (`LAUNCH_COUNTRY_CODES` em `shared/countries.ts`; no servidor, `LAUNCH_COUNTRIES=BR,PT` ou `all` sobrescreve). Os demais países continuam configurados para a expansão. Pagamentos no Brasil: Mercado Pago (Stripe fica pronto para os mercados internacionais).
+
 ## O que tem
 
 | Área | Funcionalidades |
