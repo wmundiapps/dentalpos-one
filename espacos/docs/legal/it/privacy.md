@@ -4,7 +4,7 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 ## 1. Chi siamo e a chi si applica
 
-1.1. La presente Informativa spiega come **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, con sede in **[ENDEREÇO]** (l'"Operatore"), tratta i dati personali sulla Piattaforma SpaceHour, in qualità di **titolare del trattamento**.
+1.1. La presente Informativa spiega come **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, con sede in **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (l'"Operatore"), tratta i dati personali sulla Piattaforma SpaceHour, in qualità di **titolare del trattamento**.
 
 1.2. Si applica a Host, Locatari, Garanti, Clienti finali che utilizzino lo strumento di recensione, visitatori del sito e rappresentanti di persone giuridiche.
 

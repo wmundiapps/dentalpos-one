@@ -4,7 +4,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 ## 1. Qui nous sommes et à qui cela s'applique
 
-1.1. Cette Politique explique comment **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, dont le siège est situé à **[ENDEREÇO]** (l'« Opérateur »), traite les données personnelles sur la Plateforme SpaceHour, en qualité de **responsable du traitement**.
+1.1. Cette Politique explique comment **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, dont le siège est situé à **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (l'« Opérateur »), traite les données personnelles sur la Plateforme SpaceHour, en qualité de **responsable du traitement**.
 
 1.2. Elle s'applique aux Hôtes, Locataires, Garants, Clients finaux qui utilisent l'outil d'évaluation, visiteurs du site et représentants de personnes morales.
 

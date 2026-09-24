@@ -6,7 +6,7 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 ## 1. Parti e accettazione
 
-1.1. I presenti Termini di Utilizzo ("Termini") disciplinano l'accesso e l'uso del sito, delle applicazioni e degli altri servizi digitali denominati **SpaceHour** (la "Piattaforma"), gestiti da **Instituto Ravel de Ensino Superior Ltda.**, iscritta al CNPJ con il n. **03.162.275/0001-10**, con sede in **[ENDEREÇO]** (l'"Operatore", "noi").
+1.1. I presenti Termini di Utilizzo ("Termini") disciplinano l'accesso e l'uso del sito, delle applicazioni e degli altri servizi digitali denominati **SpaceHour** (la "Piattaforma"), gestiti da **Instituto Ravel de Ensino Superior Ltda.**, iscritta al CNPJ con il n. **03.162.275/0001-10**, con sede in **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (l'"Operatore", "noi").
 
 1.2. Creando un account, pubblicando un annuncio, effettuando una Prenotazione, accettando un invito come Garante o utilizzando la Piattaforma in qualsiasi modo, l'utente dichiara di aver letto, compreso e accettato i presenti Termini e i documenti che ne fanno parte integrante (clausola 1.4). Chi non è d'accordo non deve utilizzare la Piattaforma.
 
@@ -172,7 +172,7 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 16.2. La Prenotazione, quale rapporto tra Host e Locatario, è disciplinata dalla legge del Paese in cui si trova lo Spazio, osservate le norme imperative di protezione del consumatore del Paese di residenza del Locatario, quando applicabili.
 
-16.3. È eletto il foro della circoscrizione di [ENDEREÇO] per dirimere le controversie tra l'Operatore e gli Utenti che non siano consumatori. **L'Utente consumatore può sempre proporre azione presso il foro del proprio domicilio**, ai sensi dell'art. 101, I, del Código de Defesa do Consumidor e delle norme equivalenti del proprio Paese.
+16.3. È eletto il foro della circoscrizione di Maringá/PR per dirimere le controversie tra l'Operatore e gli Utenti che non siano consumatori. **L'Utente consumatore può sempre proporre azione presso il foro del proprio domicilio**, ai sensi dell'art. 101, I, del Código de Defesa do Consumidor e delle norme equivalenti del proprio Paese.
 
 16.4. Prima di qualsiasi azione giudiziaria, le parti sono incoraggiate a utilizzare il Centro di Risoluzione e Controversie e, ove applicabile, i canali ufficiali per i consumatori (ad esempio, consumidor.gov.br). L'arbitrato si applica solo quando liberamente pattuito in un atto separato e quando ammesso dalla legge applicabile, senza mai essere imposto al consumatore.
 
@@ -188,6 +188,6 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 ## 18. Contatti
 
-18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil**.
 18.2. Assistenza e notifiche: **support@space-hour.com**.
 18.3. Responsabile del trattamento dei dati personali (DPO): **Robson Ravel de Oliveira — info@wmundi.com**.

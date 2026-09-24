@@ -6,7 +6,7 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 ## 1. Parties and acceptance
 
-1.1. These Terms of Use ("Terms") govern access to and use of the website, applications and other digital services called **SpaceHour** (the "Platform"), operated by **Instituto Ravel de Ensino Superior Ltda.**, enrolled with CNPJ No. **03.162.275/0001-10**, headquartered at **[ENDEREÇO]** (the "Operator", "we").
+1.1. These Terms of Use ("Terms") govern access to and use of the website, applications and other digital services called **SpaceHour** (the "Platform"), operated by **Instituto Ravel de Ensino Superior Ltda.**, enrolled with CNPJ No. **03.162.275/0001-10**, headquartered at **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (the "Operator", "we").
 
 1.2. By creating an account, publishing a listing, making a Booking, accepting an invitation as Guarantor, or using the Platform in any way, the user declares that they have read, understood and accepted these Terms and the documents that form part of them (clause 1.4). Anyone who does not agree must not use the Platform.
 
@@ -172,7 +172,7 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 16.2. The Booking, as a relationship between Host and Renter, is governed by the law of the country where the Space is located, subject to the mandatory consumer protection rules of the Renter's country of residence, where applicable.
 
-16.3. The courts of the judicial district of [ENDEREÇO] are elected to settle disputes between the Operator and Users who are not consumers. **The consumer User may always bring an action in the courts of their domicile**, pursuant to Article 101, I, of the Código de Defesa do Consumidor (Consumer Protection Code) and the equivalent rules of their country.
+16.3. The courts of the judicial district of Maringá/PR are elected to settle disputes between the Operator and Users who are not consumers. **The consumer User may always bring an action in the courts of their domicile**, pursuant to Article 101, I, of the Código de Defesa do Consumidor (Consumer Protection Code) and the equivalent rules of their country.
 
 16.4. Before resorting to judicial proceedings, the parties are encouraged to use the Resolution and Disputes Center and, where applicable, official consumer channels (for example, consumidor.gov.br). Arbitration applies only when freely agreed upon in a separate instrument and when permitted by applicable law, and is never imposed on the consumer.
 
@@ -188,6 +188,6 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 ## 18. Contact
 
-18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil**.
 18.2. Customer support and notifications: **support@space-hour.com**.
 18.3. Data Protection Officer (DPO): **Robson Ravel de Oliveira — info@wmundi.com**.

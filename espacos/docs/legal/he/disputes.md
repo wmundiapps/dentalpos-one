@@ -124,5 +124,5 @@
 ## 11. יצירת קשר
 
 11.1. מרכז יישוב הסכסוכים: דרך דף ההזמנה בפלטפורמה או בדוא"ל **support@space-hour.com**.
-11.2. **Instituto Ravel de Ensino Superior Ltda.** — מספר CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+11.2. **Instituto Ravel de Ensino Superior Ltda.** — מספר CNPJ **03.162.275/0001-10** — **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil**.
 </content>

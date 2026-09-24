@@ -124,4 +124,4 @@
 ## 11. الاتصال
 
 11.1. مركز التسوية: عبر صفحة الحجز في المنصة أو عبر البريد الإلكتروني **support@space-hour.com**.
-11.2. **Instituto Ravel de Ensino Superior Ltda.** — السجل الضريبي (CNPJ) **03.162.275/0001-10** — **[ENDEREÇO]**.
+11.2. **Instituto Ravel de Ensino Superior Ltda.** — السجل الضريبي (CNPJ) **03.162.275/0001-10** — **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil**.

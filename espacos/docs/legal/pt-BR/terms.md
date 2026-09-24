@@ -6,7 +6,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 1. Partes e aceitação
 
-1.1. Estes Termos de Uso ("Termos") regem o acesso e o uso do site, dos aplicativos e dos demais serviços digitais denominados **SpaceHour** (a "Plataforma"), disponíveis nos domínios **space-hour.com** (global) e **spacehour.com.br** (Brasil), operados por **Instituto Ravel de Ensino Superior Ltda.**, inscrita no CNPJ sob o nº **03.162.275/0001-10**, com sede em **[ENDEREÇO]** (a "Operadora", "nós").
+1.1. Estes Termos de Uso ("Termos") regem o acesso e o uso do site, dos aplicativos e dos demais serviços digitais denominados **SpaceHour** (a "Plataforma"), disponíveis nos domínios **space-hour.com** (global) e **spacehour.com.br** (Brasil), operados por **Instituto Ravel de Ensino Superior Ltda.**, inscrita no CNPJ sob o nº **03.162.275/0001-10**, com sede em **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (a "Operadora", "nós").
 
 1.2. Ao criar uma conta, publicar um anúncio, fazer uma Reserva, aceitar um convite como Avalista ou utilizar a Plataforma de qualquer modo, o usuário declara ter lido, compreendido e aceitado estes Termos e os documentos que os integram (cláusula 1.4). Quem não concordar não deve utilizar a Plataforma.
 
@@ -178,7 +178,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 16.2. A Reserva, enquanto relação entre Anfitrião e Locatário, rege-se pela lei do país onde o Espaço está localizado, observadas as normas imperativas de proteção ao consumidor do país de residência do Locatário, quando aplicáveis.
 
-16.3. Fica eleito o foro da comarca de [ENDEREÇO] para dirimir controvérsias entre a Operadora e Usuários que não sejam consumidores. **O Usuário consumidor pode sempre propor ação no foro de seu domicílio**, nos termos do art. 101, I, do Código de Defesa do Consumidor e das normas equivalentes de seu país.
+16.3. Fica eleito o foro da comarca de Maringá/PR para dirimir controvérsias entre a Operadora e Usuários que não sejam consumidores. **O Usuário consumidor pode sempre propor ação no foro de seu domicílio**, nos termos do art. 101, I, do Código de Defesa do Consumidor e das normas equivalentes de seu país.
 
 16.4. Antes de medida judicial, as partes são incentivadas a utilizar a Central de Resolução e Disputas e, quando cabível, os canais oficiais de consumidor (por exemplo, consumidor.gov.br). A arbitragem somente se aplica quando livremente pactuada em instrumento separado e quando admitida pela lei aplicável, nunca sendo imposta ao consumidor.
 
@@ -194,6 +194,6 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 18. Contato
 
-18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil**.
 18.2. Atendimento e notificações: **support@space-hour.com**.
 18.3. Encarregado pelo tratamento de dados pessoais: **Robson Ravel de Oliveira — info@wmundi.com**.

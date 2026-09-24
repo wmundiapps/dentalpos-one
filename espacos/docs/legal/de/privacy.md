@@ -4,7 +4,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 ## 1. Wer wir sind und für wen dies gilt
 
-1.1. Diese Richtlinie erläutert, wie **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, mit Sitz in **[ENDEREÇO]** (der „Betreiber"), personenbezogene Daten auf der Plattform SpaceHour als **Verantwortlicher** verarbeitet.
+1.1. Diese Richtlinie erläutert, wie **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, mit Sitz in **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (der „Betreiber"), personenbezogene Daten auf der Plattform SpaceHour als **Verantwortlicher** verarbeitet.
 
 1.2. Sie gilt für Gastgeber, Mieter, Bürgen, Endkunden, die das Bewertungswerkzeug nutzen, Website-Besucher und Vertreter juristischer Personen.
 

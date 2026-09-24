@@ -4,7 +4,7 @@
 
 ## 1. 我们是谁及本政策适用于谁
 
-1.1. 本政策说明 **Instituto Ravel de Ensino Superior Ltda.**(税务登记号CNPJ **03.162.275/0001-10**,注册地址 **[ENDEREÇO]**,以下称"运营方")作为**控制者**在SpaceHour平台上如何处理个人数据。
+1.1. 本政策说明 **Instituto Ravel de Ensino Superior Ltda.**(税务登记号CNPJ **03.162.275/0001-10**,注册地址 **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil**,以下称"运营方")作为**控制者**在SpaceHour平台上如何处理个人数据。
 
 1.2. 本政策适用于空间提供方、租用方、担保人、使用评价工具的终端客户、网站访客以及法人代表。
 
