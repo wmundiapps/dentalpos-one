@@ -1,0 +1,19 @@
+{
+  "name": "@revah/dentalpos-one-adapter",
+  "version": "1.0.0",
+  "description": "Adaptador oficial entre o DentalPos One e o REVAH (SSO, licença, eventos e webhooks). Sem dependências.",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test dist/index.test.js"
+  },
+  "engines": { "node": ">=18" },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

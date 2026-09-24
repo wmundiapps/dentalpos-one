@@ -34,6 +34,7 @@ import * as revahSenderController from '../controllers/revahSenderController'
 import * as aiController from '../controllers/aiController'
 import * as platformBillingController from '../controllers/platformBillingController'
 import * as revahChatbotController from '../controllers/revahChatbotController'
+import * as revahBridgeController from '../controllers/revahBridgeController'
 import * as leadDiscoveryController from '../controllers/leadDiscoveryController'
 import * as webhookController from '../controllers/webhookController'
 import * as backofficeController from '../controllers/backofficeController'
@@ -78,6 +79,8 @@ router.post('/webhooks/asaas', webhookController.asaas)
 router.post('/webhooks/stripe', webhookController.stripe)
 router.post('/webhooks/platform-asaas', platformBillingController.webhook)
 router.all('/cron/reminders', cronController.reminders)
+router.all('/cron/revah-sync', revahBridgeController.cronSync)
+router.post('/revah-bridge/webhook/:clinicId', revahBridgeController.webhook)
 
 // PUBLIC BOOKING
 router.get('/public/booking/:clinicId', publicBookingController.config)
@@ -362,6 +365,10 @@ router.get('/credits/packages', requirePermission('dashboard.view'), platformBil
 router.get('/credits/purchases', requirePermission('dashboard.view'), platformBillingController.purchases)
 router.post('/credits/purchase', requirePermission('dashboard.view'), platformBillingController.purchase)
 router.put('/revah/senders', requirePermission('marketing.send'), revahSenderController.upsert)
+router.get('/revah-bridge/status', requirePermission('marketing.view'), revahBridgeController.status)
+router.post('/revah-bridge/sso', requirePermission('marketing.view'), revahBridgeController.sso)
+router.post('/revah-bridge/sync', requirePermission('marketing.send'), revahBridgeController.syncNow)
+router.post('/revah-bridge/license', requireWmundiStaff, revahBridgeController.license)
 router.get('/lead-discovery/imports', requirePermission('sales.view'), leadDiscoveryController.imports)
 router.post('/lead-discovery/imports', requirePermission('sales.edit'), leadDiscoveryController.createImport)
 

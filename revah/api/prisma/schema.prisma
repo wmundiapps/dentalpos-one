@@ -1,0 +1,599 @@
+// REVAH® — banco de dados próprio (independente do DentalPos One).
+// Nada aqui referencia tabelas do DentalPos One: a integração acontece só por API/SSO/eventos.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Empresa (tenant), usuários, assinatura
+// ---------------------------------------------------------------------------
+
+model Tenant {
+  id                   String    @id @default(cuid())
+  name                 String
+  slug                 String    @unique
+  document             String?
+  phone                String?
+  plan                 String    @default("TRIAL") // TRIAL | START | PRO | ENTERPRISE
+  status               String    @default("TRIAL") // TRIAL | ACTIVE | PAST_DUE | CANCELED | SUSPENDED
+  trialCampaignsUsed   Int       @default(0)
+  stripeCustomerId     String?   @unique
+  timezone             String    @default("America/Sao_Paulo")
+  source               String    @default("DIRECT") // DIRECT | DENTALPOS
+  externalRef          String?   @unique // ex.: "dentalpos:<clinicId>"
+  integrationWebhookUrl String?
+  integrationSecret    String?
+  leadsAddonActive     Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  users          User[]
+  subscription   Subscription?
+  channels       ChannelAccount[]
+  contacts       Contact[]
+  tags           Tag[]
+  suppressions   Suppression[]
+  conversations  Conversation[]
+  messages       Message[]
+  campaigns      Campaign[]
+  automations    Automation[]
+  jobs           Job[]
+  calls          Call[]
+  voiceSettings  VoiceSettings?
+  botSettings    BotSettings?
+  leadSearches   LeadSearch[]
+  leads          Lead[]
+  leadsContracts LeadsContract[]
+  apiKeys        ApiKey[]
+  events         IntegrationEvent[]
+  notes          Note[]
+  auditLogs      AuditLog[]
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  tenantId           String
+  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name               String
+  email              String    @unique
+  passwordHash       String?
+  role               String    @default("AGENT") // OWNER | ADMIN | AGENT
+  isActive           Boolean   @default(true)
+  resetTokenHash     String?
+  resetTokenExpires  DateTime?
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+// Impede o mesmo e-mail/telefone/documento de abrir vários testes grátis.
+model TrialRegistry {
+  key       String   @id // hash de email | telefone | documento
+  tenantId  String
+  createdAt DateTime @default(now())
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  tenantId             String    @unique
+  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId String    @unique
+  stripePriceId        String?
+  plan                 String
+  status               String // status do Stripe: active, past_due, canceled, incomplete...
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  hasLeadsAddon        Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model BillingEvent {
+  id            String    @id @default(cuid())
+  stripeEventId String    @unique
+  type          String
+  status        String    @default("RECEIVED") // RECEIVED | PROCESSED | IGNORED | FAILED
+  error         String?
+  payload       Json
+  createdAt     DateTime  @default(now())
+  processedAt   DateTime?
+}
+
+model SalesInquiry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  company   String?
+  message   String?
+  plan      String   @default("ENTERPRISE")
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Canais conectados (número/conta por empresa)
+// ---------------------------------------------------------------------------
+
+model ChannelAccount {
+  id                  String    @id @default(cuid())
+  tenantId            String
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  channel             String // WHATSAPP | SMS | TELEGRAM | EMAIL | INSTAGRAM | MESSENGER | VOICE
+  provider            String // META_CLOUD | ZAPI | ZAPIO | TWILIO | TELEGRAM | RESEND | META_GRAPH
+  label               String
+  address             String // telefone, e-mail, @bot, id da página
+  externalId          String? // phone_number_id / page_id / instance id — roteia webhooks
+  encryptedCredentials String?
+  settings            Json?
+  webhookSecret       String
+  isDefault           Boolean   @default(false)
+  isActive            Boolean   @default(true)
+  riskAcknowledgedAt  DateTime? // obrigatório para provedores não oficiais de WhatsApp
+  riskAcknowledgedBy  String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  conversations Conversation[]
+  calls         Call[]
+
+  @@unique([tenantId, channel, address])
+  @@index([externalId])
+}
+
+// ---------------------------------------------------------------------------
+// CRM
+// ---------------------------------------------------------------------------
+
+model Contact {
+  id                String    @id @default(cuid())
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name              String
+  phone             String? // E.164 sem "+", ex.: 5544999999999
+  email             String?
+  telegramChatId    String?
+  instagramId       String?
+  messengerId       String?
+  document          String?
+  company           String?
+  notes             String?
+  customFields      Json?
+  source            String    @default("MANUAL") // MANUAL | IMPORT | INBOUND | CAMPAIGN | LEADS | DENTALPOS | API
+  externalRef       String? // ex.: "dentalpos:patient:123"
+  lastInteractionAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tags          ContactTag[]
+  conversations Conversation[]
+  messages      Message[]
+  calls         Call[]
+  contactNotes  Note[]
+  consents      Consent[]
+
+  @@unique([tenantId, externalRef])
+  @@index([tenantId, phone])
+  @@index([tenantId, email])
+  @@index([tenantId, telegramChatId])
+  @@index([tenantId, instagramId])
+  @@index([tenantId, messengerId])
+}
+
+model Tag {
+  id        String       @id @default(cuid())
+  tenantId  String
+  tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  color     String       @default("#6366f1")
+  createdAt DateTime     @default(now())
+  contacts  ContactTag[]
+
+  @@unique([tenantId, name])
+}
+
+model ContactTag {
+  contactId String
+  tagId     String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([contactId, tagId])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  userId    String?
+  kind      String   @default("NOTE") // NOTE | CALL_SUMMARY | SYSTEM | APPOINTMENT_REQUEST
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, contactId])
+}
+
+// Histórico de consentimento (evidência LGPD).
+model Consent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  channel   String
+  granted   Boolean
+  source    String // FORM | IMPORT | INBOUND | VERBAL | KEYWORD | MANUAL | DENTALPOS | UNSUBSCRIBE_LINK
+  evidence  String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, contactId])
+}
+
+// Suppression list por canal: quem pediu para não receber não recebe.
+model Suppression {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  channel   String
+  value     String // telefone/e-mail/chat id normalizado
+  contactId String?
+  reason    String // KEYWORD | VERBAL | DTMF | MANUAL | UNSUBSCRIBE_LINK | BOUNCE | IMPORT | INTEGRATION
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, channel, value])
+}
+
+// ---------------------------------------------------------------------------
+// Inbox / mensagens
+// ---------------------------------------------------------------------------
+
+model Conversation {
+  id               String          @id @default(cuid())
+  tenantId         String
+  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contactId        String
+  contact          Contact         @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  channel          String
+  channelAccountId String?
+  channelAccount   ChannelAccount? @relation(fields: [channelAccountId], references: [id], onDelete: SetNull)
+  status           String          @default("BOT") // BOT | HUMAN | CLOSED
+  assignedUserId   String?
+  lastMessageAt    DateTime        @default(now())
+  lastInboundAt    DateTime?
+  unreadCount      Int             @default(0)
+  intent           String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  messages         Message[]
+
+  @@unique([tenantId, contactId, channel])
+  @@index([tenantId, status, lastMessageAt])
+}
+
+model Message {
+  id                  String        @id @default(cuid())
+  tenantId            String
+  tenant              Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contactId           String?
+  contact             Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  conversationId      String?
+  conversation        Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  campaignId          String?
+  channel             String
+  provider            String?
+  direction           String // IN | OUT
+  content             String
+  subject             String?
+  mediaUrl            String?
+  status              String // QUEUED | SENT | DELIVERED | READ | FAILED | RECEIVED | SIMULATED | BLOCKED
+  providerMessageId   String?
+  error               String?
+  aiGenerated         Boolean       @default(false)
+  sentByUserId        String?
+  metadata            Json?
+  createdAt           DateTime      @default(now())
+  sentAt              DateTime?
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, contactId, createdAt])
+  @@index([providerMessageId])
+}
+
+// ---------------------------------------------------------------------------
+// Campanhas
+// ---------------------------------------------------------------------------
+
+model Campaign {
+  id               String    @id @default(cuid())
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name             String
+  channel          String
+  channelAccountId String?
+  template         String
+  subject          String?
+  voiceScript      String?
+  waTemplate       Json? // { name, language, params[] } — obrigatório fora da janela de 24h na API oficial
+  audience         Json // { tagIds?: string[], contactIds?: string[], manual?: {name?, destination}[] }
+  status           String    @default("DRAFT") // DRAFT | SCHEDULED | RUNNING | PAUSED | COMPLETED | CANCELED
+  scheduledAt      DateTime?
+  isTrial          Boolean   @default(false)
+  appendOptOutHint Boolean   @default(true)
+  totalRecipients  Int       @default(0)
+  sentCount        Int       @default(0)
+  failedCount      Int       @default(0)
+  skippedCount     Int       @default(0)
+  createdById      String?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  recipients CampaignRecipient[]
+
+  @@index([tenantId, createdAt])
+}
+
+model CampaignRecipient {
+  id          String    @id @default(cuid())
+  campaignId  String
+  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  tenantId    String
+  contactId   String?
+  name        String?
+  destination String
+  status      String    @default("PENDING") // PENDING | SENT | FAILED | SKIPPED_SUPPRESSED | SKIPPED_INVALID
+  messageId   String?
+  callId      String?
+  error       String?
+  attemptedAt DateTime?
+
+  @@unique([campaignId, destination])
+  @@index([campaignId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Automações + fila de trabalhos
+// ---------------------------------------------------------------------------
+
+model Automation {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name       String
+  trigger    String // ex.: dentalpos.appointment.scheduled | contact.created | message.received | call.completed
+  conditions Json? // { tag?: string, equals?: { campo: valor } }
+  actions    Json // [{ type: 'send_message'|'place_call'|'add_tag'|'remove_tag'|'webhook', delayMinutes?, ... }]
+  isActive   Boolean  @default(true)
+  runCount   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, trigger, isActive])
+}
+
+model Job {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type      String // CAMPAIGN_SEND | AUTOMATION_ACTION | PLACE_CALL | CALL_SUMMARY
+  payload   Json
+  runAt     DateTime  @default(now())
+  status    String    @default("PENDING") // PENDING | RUNNING | DONE | FAILED | CANCELED
+  attempts  Int       @default(0)
+  lastError String?
+  lockedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([status, runAt])
+  @@index([tenantId, type, status])
+}
+
+// ---------------------------------------------------------------------------
+// Chatbot / agente de IA
+// ---------------------------------------------------------------------------
+
+model BotSettings {
+  id                 String   @id @default(cuid())
+  tenantId           String   @unique
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  aiEnabled          Boolean  @default(true)
+  agentName          String   @default("Assistente")
+  businessInfo       String   @default("")
+  instructions       String   @default("")
+  handoffMessage     String   @default("Vou transferir você para um atendente humano. Aguarde um instante, por favor.")
+  optOutConfirmation String   @default("Pronto, você não receberá mais mensagens automáticas por este canal. Se mudar de ideia, é só nos chamar.")
+  schedulingEnabled  Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// REVAH Voice
+// ---------------------------------------------------------------------------
+
+model VoiceSettings {
+  id                String   @id @default(cuid())
+  tenantId          String   @unique
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enabled           Boolean  @default(false)
+  // Janelas permitidas no fuso do tenant: [{ days:[1..6], start:"09:00", end:"21:00" }]
+  allowedWindows    Json
+  skipHolidays      Boolean  @default(true)
+  recordCalls       Boolean  @default(false)
+  recordingNotice   String   @default("Esta ligação pode ser gravada para fins de qualidade. Se não concordar, diga não autorizo ou tecle 8.")
+  greeting          String   @default("Olá, aqui é o assistente virtual.")
+  agentInstructions String   @default("")
+  transferNumber    String?
+  maxAttempts       Int      @default(2)
+  retryDelayMinutes Int      @default(120)
+  maxConcurrent     Int      @default(2)
+  maxTurns          Int      @default(8)
+  voice             String   @default("Polly.Camila")
+  language          String   @default("pt-BR")
+  updatedAt         DateTime @updatedAt
+}
+
+model Call {
+  id               String          @id @default(cuid())
+  tenantId         String
+  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contactId        String?
+  contact          Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  channelAccountId String?
+  channelAccount   ChannelAccount? @relation(fields: [channelAccountId], references: [id], onDelete: SetNull)
+  campaignId       String?
+  direction        String // OUTBOUND | INBOUND
+  from             String?
+  to               String
+  purpose          String? // aviso, cobrança, confirmação de agenda...
+  script           String?
+  status           String          @default("QUEUED") // QUEUED | RINGING | IN_PROGRESS | COMPLETED | NO_ANSWER | BUSY | FAILED | CANCELED | TRANSFERRED | BLOCKED
+  providerCallSid  String?         @unique
+  attempt          Int             @default(1)
+  parentCallId     String? // retorno automático aponta para a ligação original
+  recordingAllowed Boolean         @default(false)
+  recordingUrl     String?
+  startedAt        DateTime?
+  endedAt          DateTime?
+  durationSec      Int?
+  summary          String?
+  outcome          String? // CONFIRMED | RESCHEDULE | NOT_INTERESTED | OPT_OUT | CALLBACK_REQUESTED | PROMISE_TO_PAY | INFORMED | TRANSFERRED | NO_ANSWER | VOICEMAIL | OTHER
+  callbackAt       DateTime?
+  error            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  turns            CallTurn[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, status])
+}
+
+model CallTurn {
+  id         String   @id @default(cuid())
+  callId     String
+  call       Call     @relation(fields: [callId], references: [id], onDelete: Cascade)
+  role       String // AGENT | CONTACT | SYSTEM
+  text       String
+  dtmf       String?
+  confidence Float?
+  createdAt  DateTime @default(now())
+
+  @@index([callId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// REVAH Leads (add-on contratado à parte). Origem dos dados é interna.
+// ---------------------------------------------------------------------------
+
+model LeadsContract {
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId           String
+  signerName       String
+  signerDocument   String
+  termsVersion     String
+  termsHash        String
+  ip               String?
+  userAgent        String?
+  acceptedAt       DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model LeadSearch {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId      String
+  kind        String // COMPANY | LOCAL | ADS
+  query       Json
+  origin      String // interno: nunca exposto na API
+  status      String   @default("DONE")
+  resultCount Int      @default(0)
+  error       String?
+  createdAt   DateTime @default(now())
+  leads       Lead[]
+}
+
+model Lead {
+  id        String      @id @default(cuid())
+  tenantId  String
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  searchId  String?
+  search    LeadSearch? @relation(fields: [searchId], references: [id], onDelete: SetNull)
+  name      String
+  company   String?
+  document  String?
+  phone     String?
+  email     String?
+  website   String?
+  address   String?
+  city      String?
+  state     String?
+  category  String?
+  origin    String // interno
+  originRef String? // interno (dedupe)
+  status    String      @default("NEW") // NEW | IMPORTED | DISCARDED
+  contactId String?
+  createdAt DateTime    @default(now())
+
+  @@unique([tenantId, origin, originRef])
+  @@index([tenantId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Integrações (DentalPos One e API pública)
+// ---------------------------------------------------------------------------
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name       String
+  prefix     String    @unique
+  hash       String
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model IntegrationEvent {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  source     String // DENTALPOS | API
+  externalId String
+  type       String
+  payload    Json
+  status     String   @default("RECEIVED") // RECEIVED | PROCESSED | IGNORED | FAILED
+  error      String?
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, source, externalId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  data      Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
