@@ -73,7 +73,7 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 7.3. The Host sees only the Guarantor's name and the acceptance status. The document and contact details are shared with the Host only when necessary for judicial or extrajudicial collection.
 
-7.4. The data of Guarantors who decline or do not respond is deleted within up to 90 days, except where a legal obligation requires otherwise. The data of Guarantors who accept is retained for the statute-of-limitations period of the guaranteed obligations. The Guarantor exercises their data-subject rights through the Data Protection Officer channel indicated in the Privacy Policy: [ENCARREGADO/DPO].
+7.4. The data of Guarantors who decline or do not respond is deleted within up to 90 days, except where a legal obligation requires otherwise. The data of Guarantors who accept is retained for the statute-of-limitations period of the guaranteed obligations. The Guarantor exercises their data-subject rights through the Data Protection Officer channel indicated in the Privacy Policy: Robson Ravel de Oliveira — info@wmundi.com.
 
 ## 8. Final provisions
 

@@ -16,6 +16,7 @@ import * as repo from './repo';
 import { notify } from './notify';
 import { HttpError } from './auth';
 import { COUNTRY_BY_CODE } from '../../shared/countries';
+import { decryptDocument, encryptDocument, isEncrypted } from './secure';
 import type { LicenseStatus, SpaceCategory, User } from '../../shared/types';
 
 const MODEL = process.env.LICENSE_AI_MODEL ?? 'claude-opus-5';
@@ -103,7 +104,7 @@ export async function submitLicense(user: User, s: LicenseSubmission): Promise<s
     await tx.query(
       `INSERT INTO license_verifications (id, user_id, full_name, country_code, category, body, number, region, document, document_type, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending')`,
-      [verificationId, user.id, s.fullName, user.countryCode, s.category ?? null, s.body, s.number, s.region ?? null, s.document, s.documentType]);
+      [verificationId, user.id, s.fullName, user.countryCode, s.category ?? null, s.body, s.number, s.region ?? null, encryptDocument(s.document), s.documentType]);
     user.professionalLicense = { body: s.body, number: s.number, region: s.region, verified: false };
     user.licenseStatus = 'pending';
     await repo.updateUser(tx, user);
@@ -116,12 +117,14 @@ export async function runVerification(verificationId: string): Promise<LicenseSt
   const v = await one<{ id: string; user_id: string; full_name: string; country_code: string; category: string | null; body: string; number: string;
     region: string | null; document: Buffer; document_type: string; status: string }>(pool, 'SELECT * FROM license_verifications WHERE id = $1', [verificationId]);
   if (!v || v.status !== 'pending') return (v?.status ?? 'none') as LicenseStatus;
+  if (v.document) v.document = decryptDocument(v.document);
 
   const ai = client();
   let result: LicenseAiResult | undefined;
   let error: string | undefined;
   if (ai) {
     try {
+      await logDocumentAccess(verificationId, 'ai_analysis');
       result = await analyze(ai, v);
     } catch (e) {
       error = e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : (e as Error).message;
@@ -237,8 +240,50 @@ export async function pendingVerifications() {
     WHERE v.status IN ('pending','needs_review') ORDER BY v.created_at`);
 }
 
-export async function verificationDocument(verificationId: string) {
-  return one<{ document: Buffer; document_type: string }>(pool, 'SELECT document, document_type FROM license_verifications WHERE id = $1', [verificationId]);
+/** Documento decifrado para a equipe; cada abertura fica registrada. */
+export async function verificationDocument(verificationId: string, viewer: { id: string; ip?: string; userAgent?: string }) {
+  const v = await one<{ document: Buffer | null; document_type: string; document_deleted_at: Date | null }>(pool,
+    'SELECT document, document_type, document_deleted_at FROM license_verifications WHERE id = $1', [verificationId]);
+  if (!v) return undefined;
+  if (!v.document) return { deleted: true as const, deletedAt: v.document_deleted_at?.toISOString() };
+  await logDocumentAccess(verificationId, 'view', viewer);
+  return { deleted: false as const, document: decryptDocument(v.document), documentType: v.document_type };
+}
+
+export async function logDocumentAccess(verificationId: string, action: 'view' | 'ai_analysis' | 'deleted', who?: { id?: string; ip?: string; userAgent?: string }) {
+  await pool.query('INSERT INTO document_access_log (id, verification_id, user_id, action, ip, user_agent) VALUES ($1,$2,$3,$4,$5,$6)',
+    [id('dal'), verificationId, who?.id ?? null, action, who?.ip ?? null, who?.userAgent?.slice(0, 300) ?? null]);
+}
+
+export async function documentAccessLog(verificationId: string) {
+  return rows(pool, `SELECT l.action, l.at, l.ip, u.name AS user_name, u.email FROM document_access_log l
+    LEFT JOIN users u ON u.id = l.user_id WHERE l.verification_id = $1 ORDER BY l.at DESC LIMIT 200`, [verificationId]);
+}
+
+/** Dias que o arquivo fica guardado após a decisão (o resultado da verificação permanece). */
+export const DOCUMENT_RETENTION_DAYS = () => Number(process.env.LICENSE_DOC_RETENTION_DAYS ?? 90);
+
+/** Apaga os arquivos de verificações decididas há mais que o prazo de retenção. */
+export async function purgeExpiredDocuments(now = new Date()) {
+  const cutoff = new Date(now.getTime() - DOCUMENT_RETENTION_DAYS() * 86400000);
+  const purged = await rows<{ id: string }>(pool,
+    `UPDATE license_verifications SET document = NULL, document_deleted_at = $2
+     WHERE document IS NOT NULL AND status IN ('approved','rejected') AND decided_at < $1 RETURNING id`, [cutoff, now]);
+  for (const p of purged) await logDocumentAccess(p.id, 'deleted');
+  return purged.length;
+}
+
+/** Cifra documentos gravados antes da criptografia existir. */
+export async function encryptLegacyDocuments(limit = 50) {
+  const legacy = await rows<{ id: string; document: Buffer }>(pool,
+    'SELECT id, document FROM license_verifications WHERE document IS NOT NULL ORDER BY created_at LIMIT $1', [limit * 10]);
+  let n = 0;
+  for (const v of legacy) {
+    if (isEncrypted(v.document) || n >= limit) continue;
+    await pool.query('UPDATE license_verifications SET document = $2 WHERE id = $1 AND document = $3', [v.id, encryptDocument(v.document), v.document]);
+    n++;
+  }
+  return n;
 }
 
 /** Retoma análises que ficaram pendentes (ex.: servidor reiniciado no meio). */

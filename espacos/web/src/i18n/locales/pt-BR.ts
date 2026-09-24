@@ -536,6 +536,8 @@ const ptBR = {
   'footer.tagline': 'Espaços de trabalho prontos, por hora, nos horários ociosos.',
   'footer.policies': 'Regras e políticas',
   'footer.hosting': 'Para anfitriões',
+  'footer.operator': 'Operado por {company} · CNPJ {cnpj}',
+  'footer.dpo': 'Encarregado de dados (LGPD): {name}',
   'footer.legalNote': 'Valores de tributos são de referência. Regras locais mais protetivas prevalecem.',
 
   // Administração
@@ -608,6 +610,7 @@ const ptBR = {
   'err.deposit_too_high': 'Caução acima do limite permitido ({maxMultiple}× a diária).',
   'err.guarantor_threshold_required': 'Informe o valor a partir do qual o avalista é exigido.',
   'err.availability_outside_platform_hours': 'Horários ociosos devem ficar entre 06:00 e 23:00.',
+  'err.document_deleted': 'O arquivo foi apagado após o prazo de retenção; o resultado da verificação continua registrado.',
   'err.not_found': 'Não encontrado.',
   'err.validation': 'Verifique os campos',
   'err.internal': 'Algo deu errado. Tente novamente.',

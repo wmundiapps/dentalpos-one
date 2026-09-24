@@ -73,7 +73,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 7.3. L'Hôte ne voit que le nom du Garant et le statut de l'acceptation. La pièce d'identité et les coordonnées ne sont partagées avec l'Hôte que lorsque cela est nécessaire au recouvrement judiciaire ou extrajudiciaire.
 
-7.4. Les données des Garants qui refusent ou ne répondent pas sont supprimées dans un délai de 90 jours, sauf obligation légale. Les données des Garants qui acceptent sont conservées pendant le délai de prescription des obligations garanties. Le Garant exerce ses droits de personne concernée par le canal du Délégué indiqué dans la Politique de confidentialité : [ENCARREGADO/DPO].
+7.4. Les données des Garants qui refusent ou ne répondent pas sont supprimées dans un délai de 90 jours, sauf obligation légale. Les données des Garants qui acceptent sont conservées pendant le délai de prescription des obligations garanties. Le Garant exerce ses droits de personne concernée par le canal du Délégué indiqué dans la Politique de confidentialité : Robson Ravel de Oliveira — info@wmundi.com.
 
 ## 8. Dispositions finales
 

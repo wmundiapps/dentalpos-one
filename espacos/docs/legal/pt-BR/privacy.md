@@ -4,11 +4,11 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 1. Quem somos e a quem se aplica
 
-1.1. Esta Política explica como **[RAZÃO SOCIAL DA OPERADORA]**, CNPJ **[CNPJ]**, com sede em **[ENDEREÇO]** (a "Operadora"), trata dados pessoais na Plataforma SpaceHour, na qualidade de **controladora**.
+1.1. Esta Política explica como **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, com sede em **[ENDEREÇO]** (a "Operadora"), trata dados pessoais na Plataforma SpaceHour, na qualidade de **controladora**.
 
 1.2. Aplica-se a Anfitriões, Locatários, Avalistas, Clientes Finais que utilizem a ferramenta de avaliação, visitantes do site e representantes de pessoas jurídicas.
 
-1.3. **Encarregado / DPO:** **Encarregado de Dados (DPO) — privacy@space-hour.com**. Atendimento geral: support@space-hour.com. Quando exigido pela lei local, a Operadora nomeará e divulgará: representante na União Europeia (art. 27 do RGPD) e no Reino Unido (art. 27 do UK GDPR); representante ou entidade na China (art. 53 da PIPL); *grievance officer* residente na Índia; responsável pela proteção de dados pessoais no Québec (Law 25); e os encarregados ou oficiais de dados exigidos em outros países (por exemplo, Peru, Uruguai e Equador).
+1.3. **Encarregado / DPO:** **Robson Ravel de Oliveira — info@wmundi.com**. Atendimento geral: support@space-hour.com. Quando exigido pela lei local, a Operadora nomeará e divulgará: representante na União Europeia (art. 27 do RGPD) e no Reino Unido (art. 27 do UK GDPR); representante ou entidade na China (art. 53 da PIPL); *grievance officer* residente na Índia; responsável pela proteção de dados pessoais no Québec (Law 25); e os encarregados ou oficiais de dados exigidos em outros países (por exemplo, Peru, Uruguai e Equador).
 
 1.4. **Papéis.** Em relação aos dados de seus próprios pacientes, clientes e alunos, o **Locatário** e o **Anfitrião** são controladores independentes, responsáveis pelo tratamento que realizam em sua atividade profissional. A Plataforma não recebe prontuários nem dados clínicos e não deve ser usada para isso.
 
@@ -56,7 +56,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 3.1. Não tomamos decisões exclusivamente automatizadas com efeitos jurídicos significativos sem revisão humana. Sistemas automáticos podem sinalizar mensagens com indícios de pagamento fora da Plataforma ou fraude, mas qualquer suspensão ou exclusão é revisada por pessoa, e o titular pode solicitar revisão (LGPD art. 20; RGPD art. 22).
 
-3.2. **Pré-triagem do registro profissional com inteligência artificial.** Um agente de inteligência artificial analisa o documento e o número de registro enviados, verificando legibilidade, aparente autenticidade e coerência com o nome do titular e com o órgão regulador do país e da atividade. O resultado pode ser: aprovado na pré-triagem, pedido de documentos adicionais ou encaminhamento para revisão humana. A pré-triagem não gera, por si só, recusa definitiva, e o titular pode pedir revisão humana e apresentar esclarecimentos pelo e-mail privacy@space-hour.com. Os documentos são processados por fornecedores de tecnologia contratados como operadores, que não podem usá-los para treinar modelos próprios nem para outras finalidades. A pré-triagem não é garantia de validade do registro (Termos de Uso, cláusula 6.6).
+3.2. **Pré-triagem do registro profissional com inteligência artificial.** Um agente de inteligência artificial analisa o documento e o número de registro enviados, verificando legibilidade, aparente autenticidade e coerência com o nome do titular e com o órgão regulador do país e da atividade. O resultado pode ser: aprovado na pré-triagem, pedido de documentos adicionais ou encaminhamento para revisão humana. A pré-triagem não gera, por si só, recusa definitiva, e o titular pode pedir revisão humana e apresentar esclarecimentos pelo e-mail info@wmundi.com. Os documentos são processados por fornecedores de tecnologia contratados como operadores, que não podem usá-los para treinar modelos próprios nem para outras finalidades. A pré-triagem não é garantia de validade do registro (Termos de Uso, cláusula 6.6).
 
 3.3. **Uso do feedback.** O conteúdo do feedback pode ser usado, de forma agregada ou anonimizada sempre que possível, para melhorar o aplicativo e o serviço. Sugestões podem ser implementadas sem que isso gere direito a remuneração. O feedback não é publicado com identificação do autor sem o seu consentimento.
 
@@ -72,7 +72,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 Os dados de cartão são informados diretamente nos ambientes seguros desses processadores (certificados PCI DSS) e nunca transitam pelos servidores da Plataforma. Os processadores podem atuar como controladores independentes em relação a parte dos dados (por exemplo, para prevenção à fraude, KYC e cumprimento de obrigações regulatórias), conforme suas próprias políticas de privacidade.
 
-4.4. **Prestadores de serviço** (operadores) sob contrato: hospedagem em nuvem, envio de e-mails e notificações, verificação de identidade, tecnologia de inteligência artificial usada na pré-triagem do registro profissional, atendimento, gestão de feedback e relatos de erro, análise de dados, que tratam dados apenas conforme nossas instruções. A lista atualizada de suboperadores pode ser solicitada pelo e-mail privacy@space-hour.com.
+4.4. **Prestadores de serviço** (operadores) sob contrato: hospedagem em nuvem, envio de e-mails e notificações, verificação de identidade, tecnologia de inteligência artificial usada na pré-triagem do registro profissional, atendimento, gestão de feedback e relatos de erro, análise de dados, que tratam dados apenas conforme nossas instruções. A lista atualizada de suboperadores pode ser solicitada pelo e-mail info@wmundi.com.
 
 4.5. **Autoridades** públicas, judiciais, fiscais e conselhos profissionais, quando exigido por lei, ordem ou para exercício de direitos.
 
@@ -98,7 +98,8 @@ Os dados de cartão são informados diretamente nos ambientes seguros desses pro
 | Dados de Avalista que aceitou | Prazo prescricional das obrigações garantidas |
 | Avaliações | Enquanto o Anúncio ou a conta existir; anonimizadas após o encerramento |
 | Dados de contas excluídas por violação grave | O mínimo necessário para impedir novo cadastro, pelo prazo legal permitido |
-| Documentos e resultado da pré-triagem de registro profissional | Enquanto a conta existir e, após o encerramento, pelo prazo prescricional aplicável a eventuais responsabilidades |
+| Arquivo (foto/PDF) do documento de registro profissional | Até 90 dias após a decisão da verificação; depois é eliminado de forma definitiva |
+| Resultado da pré-triagem de registro profissional (dados informados, decisão e fundamentos) e registros de acesso ao documento | Enquanto a conta existir e, após o encerramento, pelo prazo prescricional aplicável a eventuais responsabilidades |
 | Feedback do aplicativo | Até 3 anos, ou prazo menor quando anonimizado |
 
 6.1. Encerrados os prazos, os dados são eliminados ou anonimizados.
@@ -107,7 +108,7 @@ Os dados de cartão são informados diretamente nos ambientes seguros desses pro
 
 7.1. O titular pode, nos termos da lei aplicável: confirmar a existência de tratamento; acessar seus dados; corrigir dados incompletos ou inexatos; solicitar anonimização, bloqueio ou eliminação de dados desnecessários; solicitar portabilidade; obter informação sobre compartilhamentos; revogar consentimento; opor-se a tratamentos baseados em legítimo interesse; solicitar revisão de decisões automatizadas; e apresentar reclamação à autoridade de proteção de dados (no Brasil, a ANPD; na União Europeia, a autoridade de controle do Estado-Membro; no Reino Unido, o ICO; entre outras).
 
-7.2. Solicitações devem ser enviadas ao Encarregado de Dados (DPO) em **privacy@space-hour.com** ou pela área de privacidade da conta. Respondemos no prazo legal (por exemplo, 15 dias na LGPD para a declaração completa; 1 mês no RGPD, prorrogável). Poderemos solicitar confirmação de identidade.
+7.2. Solicitações devem ser enviadas ao Encarregado de Dados (DPO) em **info@wmundi.com** ou pela área de privacidade da conta. Respondemos no prazo legal (por exemplo, 15 dias na LGPD para a declaração completa; 1 mês no RGPD, prorrogável). Poderemos solicitar confirmação de identidade.
 
 7.3. Alguns dados podem ser mantidos mesmo após pedido de eliminação, quando necessários ao cumprimento de obrigação legal, ao exercício de direitos em processos ou à prevenção de fraude.
 
@@ -131,7 +132,7 @@ Os dados de cartão são informados diretamente nos ambientes seguros desses pro
 
 ## 11. Segurança
 
-11.1. Adotamos medidas técnicas e administrativas compatíveis com o risco, incluindo: criptografia em trânsito (TLS); armazenamento de senhas com *hash*; coleta e tokenização dos dados de cartão diretamente pelo Mercado Pago ou pela Stripe, certificados PCI DSS (os dados de cartão nunca transitam pelos servidores da Plataforma, que recebe apenas um *token*); acesso restrito aos documentos de registro profissional; controle de acesso por perfil; registros de auditoria; revelação do endereço completo do Espaço somente após confirmação; e treinamento de equipe.
+11.1. Adotamos medidas técnicas e administrativas compatíveis com o risco, incluindo: criptografia em trânsito (TLS); criptografia em repouso (AES-256) dos documentos de registro profissional, com chave guardada fora do banco de dados; registro de cada acesso a esses documentos (quem, quando e de onde); eliminação automática do arquivo após o prazo de retenção; armazenamento de senhas com *hash*; coleta e tokenização dos dados de cartão diretamente pelo Mercado Pago ou pela Stripe, certificados PCI DSS (os dados de cartão nunca transitam pelos servidores da Plataforma, que recebe apenas um *token*); acesso restrito aos documentos de registro profissional; controle de acesso por perfil; registros de auditoria; revelação do endereço completo do Espaço somente após confirmação; e treinamento de equipe.
 
 11.2. Em caso de incidente de segurança que possa acarretar risco ou dano relevante, comunicaremos a autoridade competente e os titulares nos prazos legais (por exemplo, em até 3 dias úteis à ANPD e aos titulares no Brasil, conforme a Resolução CD/ANPD nº 15/2024, e em até 72 horas à autoridade no RGPD).
 

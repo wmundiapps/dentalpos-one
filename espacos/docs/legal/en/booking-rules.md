@@ -118,4 +118,4 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 12.1. The Space's rules (the Listing's internal rules) and those of the building or condominium accepted at Booking form part of this document.
 
-12.2. Questions about these rules may be directed to [E-MAIL DE CONTATO].
+12.2. Questions about these rules may be directed to support@space-hour.com.

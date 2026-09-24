@@ -5,7 +5,7 @@ import multer from 'multer';
 import { z } from 'zod';
 import { HttpError, requireAuth, toSelf, type AuthedRequest } from '../auth';
 import { IMAGE_MAX_BYTES, readImage, saveImage } from '../storage';
-import { LICENSE_DOC_MAX_BYTES, decide, latestLicenseCheck, pendingVerifications, runVerification, submitLicense, verificationDocument } from '../verification';
+import { LICENSE_DOC_MAX_BYTES, decide, latestLicenseCheck, pendingVerifications, runVerification, submitLicense, verificationDocument, documentAccessLog } from '../verification';
 import { CATEGORIES } from '../../../shared/rules';
 import { pool } from '../db';
 
@@ -74,13 +74,19 @@ filesRouter.get('/admin/verifications', requireAuth, async (req: AuthedRequest, 
 
 filesRouter.get('/admin/verifications/:id/document', requireAuth, async (req: AuthedRequest, res) => {
   requireAdmin(req);
-  const doc = await verificationDocument(req.params.id);
-  if (!doc?.document) throw new HttpError(404, 'not_found');
-  res.set('Content-Type', doc.document_type);
+  const doc = await verificationDocument(req.params.id, { id: req.user!.id, ip: req.ip, userAgent: String(req.headers['user-agent'] ?? '') });
+  if (!doc) throw new HttpError(404, 'not_found');
+  if (doc.deleted) throw new HttpError(410, 'document_deleted', { at: doc.deletedAt ?? '' });
+  res.set('Content-Type', doc.documentType);
   res.set('Cache-Control', 'private, no-store');
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Content-Disposition', 'inline');
   res.send(doc.document);
+});
+
+filesRouter.get('/admin/verifications/:id/access-log', requireAuth, async (req: AuthedRequest, res) => {
+  requireAdmin(req);
+  res.json(await documentAccessLog(req.params.id));
 });
 
 filesRouter.post('/admin/verifications/:id/decision', requireAuth, async (req: AuthedRequest, res) => {

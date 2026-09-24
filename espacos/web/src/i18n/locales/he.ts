@@ -536,6 +536,8 @@ const he: Dict = {
   'footer.tagline': 'חללי עבודה מוכנים לשימוש, לפי שעה, בשעות הפנויות.',
   'footer.policies': 'כללים ומדיניות',
   'footer.hosting': 'למארחים',
+  'footer.operator': 'מופעל על ידי {company} · CNPJ {cnpj}',
+  'footer.dpo': 'הממונה על הגנת המידע (LGPD): {name}',
   'footer.legalNote': 'ערכי המס מובאים לצורך התייחסות בלבד. כללים מקומיים מגנים יותר גוברים עליהם.',
 
   // ניהול
@@ -608,6 +610,7 @@ const he: Dict = {
   'err.deposit_too_high': 'הפיקדון חורג מהמגבלה המותרת (פי {maxMultiple} מהתעריף היומי).',
   'err.guarantor_threshold_required': 'ציינו את הסכום שממנו נדרש ערב.',
   'err.availability_outside_platform_hours': 'שעות פנויות חייבות להיות בין 06:00 ל-23:00.',
+  'err.document_deleted': 'הקובץ נמחק בתום תקופת השמירה; תוצאת האימות נשמרת.',
   'err.not_found': 'לא נמצא.',
   'err.validation': 'בדקו את השדות',
   'err.internal': 'משהו השתבש. נסו שוב.',

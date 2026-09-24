@@ -4,11 +4,11 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 ## 1. Qui nous sommes et à qui cela s'applique
 
-1.1. Cette Politique explique comment **[RAZÃO SOCIAL DA OPERADORA]**, CNPJ **[CNPJ]**, dont le siège est situé à **[ENDEREÇO]** (l'« Opérateur »), traite les données personnelles sur la Plateforme SpaceHour, en qualité de **responsable du traitement**.
+1.1. Cette Politique explique comment **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, dont le siège est situé à **[ENDEREÇO]** (l'« Opérateur »), traite les données personnelles sur la Plateforme SpaceHour, en qualité de **responsable du traitement**.
 
 1.2. Elle s'applique aux Hôtes, Locataires, Garants, Clients finaux qui utilisent l'outil d'évaluation, visiteurs du site et représentants de personnes morales.
 
-1.3. **Délégué / DPO :** **[ENCARREGADO/DPO]** — contact : **[E-MAIL DE CONTATO]**. Lorsque la loi locale l'exige, l'Opérateur nommera un représentant dans le pays ou dans l'Union européenne (art. 27 du RGPD) et un *grievance officer* en Inde.
+1.3. **Délégué / DPO :** **Robson Ravel de Oliveira** — contact : **info@wmundi.com**. Lorsque la loi locale l'exige, l'Opérateur nommera un représentant dans le pays ou dans l'Union européenne (art. 27 du RGPD) et un *grievance officer* en Inde.
 
 1.4. **Rôles.** S'agissant des données de leurs propres patients, clients et élèves, le **Locataire** et l'**Hôte** sont des responsables de traitement indépendants, chacun responsable du traitement qu'il effectue dans le cadre de son activité professionnelle. La Plateforme ne reçoit pas de dossiers ni de données cliniques et ne doit pas être utilisée à cette fin.
 
@@ -88,7 +88,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 7.1. La personne concernée peut, conformément à la loi applicable : confirmer l'existence d'un traitement ; accéder à ses données ; corriger des données incomplètes ou inexactes ; demander l'anonymisation, le blocage ou la suppression de données inutiles ; demander la portabilité ; obtenir des informations sur les partages ; révoquer son consentement ; s'opposer aux traitements fondés sur l'intérêt légitime ; demander la révision de décisions automatisées ; et déposer une réclamation auprès de l'autorité de protection des données (au Brésil, l'ANPD ; dans l'Union européenne, l'autorité de contrôle de l'État membre ; au Royaume-Uni, l'ICO ; entre autres).
 
-7.2. Les demandes doivent être envoyées au Délégué à l'adresse **[E-MAIL DE CONTATO]** ou via l'espace confidentialité du compte. Nous répondons dans le délai légal (par exemple, 15 jours selon la LGPD pour la déclaration complète ; 1 mois selon le RGPD, prorogeable). Nous pourrons demander une confirmation d'identité.
+7.2. Les demandes doivent être envoyées au Délégué à l'adresse **info@wmundi.com** ou via l'espace confidentialité du compte. Nous répondons dans le délai légal (par exemple, 15 jours selon la LGPD pour la déclaration complète ; 1 mois selon le RGPD, prorogeable). Nous pourrons demander une confirmation d'identité.
 
 7.3. Certaines données peuvent être conservées même après une demande de suppression, lorsque cela est nécessaire au respect d'une obligation légale, à l'exercice de droits dans des procédures ou à la prévention de la fraude.
 

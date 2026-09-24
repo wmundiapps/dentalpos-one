@@ -123,5 +123,5 @@
 
 ## 11. お問い合わせ
 
-11.1. 解決センター:本プラットフォームの予約ページ、または電子メール**[E-MAIL DE CONTATO]**。
-11.2. **[RAZÃO SOCIAL DA OPERADORA]** — CNPJ **[CNPJ]** — **[ENDEREÇO]**。
+11.1. 解決センター:本プラットフォームの予約ページ、または電子メール**support@space-hour.com**。
+11.2. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**。

@@ -123,6 +123,6 @@
 
 ## 11. יצירת קשר
 
-11.1. מרכז יישוב הסכסוכים: דרך דף ההזמנה בפלטפורמה או בדוא"ל **[E-MAIL DE CONTATO]**.
-11.2. **[RAZÃO SOCIAL DA OPERADORA]** — מספר CNPJ **[CNPJ]** — **[ENDEREÇO]**.
+11.1. מרכז יישוב הסכסוכים: דרך דף ההזמנה בפלטפורמה או בדוא"ל **support@space-hour.com**.
+11.2. **Instituto Ravel de Ensino Superior Ltda.** — מספר CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
 </content>

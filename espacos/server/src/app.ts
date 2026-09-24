@@ -11,6 +11,9 @@ import { feedbackRouter } from './routes/feedback';
 import { runJobs } from './jobs';
 
 export function createApp() {
+  if (process.env.NODE_ENV === 'production' && !process.env.DOCUMENT_ENCRYPTION_KEY) {
+    console.error('[segurança] DOCUMENT_ENCRYPTION_KEY ausente: envio de documentos de registro ficará indisponível');
+  }
   const app = express();
   app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true }));
   app.set('trust proxy', 1);

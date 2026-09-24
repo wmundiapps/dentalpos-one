@@ -269,7 +269,7 @@ test('cron protegido por segredo', async () => {
   process.env.CRON_SECRET = 's3cret';
   const r = await fetch(`${base}/cron/tick`, { headers: { Authorization: 'Bearer s3cret' } });
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(await r.json()).sort(), ['bookings', 'email', 'verifications']);
+  assert.deepEqual(Object.keys(await r.json()).sort(), ['bookings', 'documents', 'email', 'verifications']);
   delete process.env.CRON_SECRET;
 });
 
@@ -284,5 +284,44 @@ test('lançamento só no Brasil: busca e reservas restritas aos países liberado
     await assert.rejects(B.createBooking(guest, { listingId: de.id, occurrences: [{ date: nextDateWith(de, 2), start: '10:00', end: '11:00' }], guests: 1, purpose: 'x', paymentMethod: 'card', acceptRules: true }), /country_not_supported/);
   } finally {
     process.env.LAUNCH_COUNTRIES = prev;
+  }
+});
+
+test('documentos de registro: cifrados no banco, acesso registrado e apagados após o prazo', async () => {
+  process.env.LICENSE_VERIFY_SYNC = 'true';
+  V.setAnthropicClient(fakeClaude({}));
+  try {
+    const u = await register('medico-seg@example.com');
+    const r = await sendLicense(u.token);
+    const { verificationId } = await r.json() as { verificationId: string };
+    const raw = await one<{ document: Buffer }>(pool, 'SELECT document FROM license_verifications WHERE id = $1', [verificationId]);
+    assert.ok(!raw!.document.includes(PNG.subarray(0, 8)), 'arquivo não fica legível no banco');
+    assert.equal(raw!.document.subarray(0, 4).toString(), 'SHE1');
+
+    const adminTok = signToken(admin);
+    const doc = await fetch(`${base}/admin/verifications/${verificationId}/document`, { headers: { Authorization: `Bearer ${adminTok}` } });
+    assert.deepEqual(Buffer.from(await doc.arrayBuffer()), PNG, 'equipe vê o original');
+    const log = await (await fetch(`${base}/admin/verifications/${verificationId}/access-log`, { headers: { Authorization: `Bearer ${adminTok}` } })).json() as { action: string; email: string | null }[];
+    assert.ok(log.some((l) => l.action === 'view' && l.email === admin.email));
+    assert.ok(log.some((l) => l.action === 'ai_analysis'));
+
+    // antes do prazo nada é apagado; depois, só o arquivo some (o resultado fica)
+    assert.equal(await V.purgeExpiredDocuments(), 0);
+    assert.ok(await V.purgeExpiredDocuments(new Date(Date.now() + (V.DOCUMENT_RETENTION_DAYS() + 1) * 86400000)) >= 1);
+    const gone = await fetch(`${base}/admin/verifications/${verificationId}/document`, { headers: { Authorization: `Bearer ${adminTok}` } });
+    assert.equal(gone.status, 410);
+    assert.equal((await repo.getUser(pool, u.user.id))!.licenseStatus, 'approved');
+    const after = await one<{ n: number }>(pool, "SELECT count(*)::int AS n FROM document_access_log WHERE verification_id = $1 AND action = 'deleted'", [verificationId]);
+    assert.equal(after!.n, 1);
+
+    // documento antigo, gravado sem criptografia, é cifrado pela rotina
+    const legacy = await one<{ id: string }>(pool, "SELECT id FROM license_verifications WHERE document IS NOT NULL LIMIT 1");
+    await pool.query('UPDATE license_verifications SET document = $2 WHERE id = $1', [legacy!.id, PNG]);
+    assert.ok(await V.encryptLegacyDocuments() >= 1);
+    const enc = await one<{ document: Buffer }>(pool, 'SELECT document FROM license_verifications WHERE id = $1', [legacy!.id]);
+    assert.equal(enc!.document.subarray(0, 4).toString(), 'SHE1');
+  } finally {
+    delete process.env.LICENSE_VERIFY_SYNC;
+    V.setAnthropicClient();
   }
 });

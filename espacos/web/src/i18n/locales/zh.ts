@@ -536,6 +536,8 @@ const zh: Dict = {
   'footer.tagline': '即租即用的工作空间，按小时计费，用于空闲时段。',
   'footer.policies': '规则与政策',
   'footer.hosting': '面向房东',
+  'footer.operator': '运营方：{company} · CNPJ {cnpj}',
+  'footer.dpo': '数据保护负责人（LGPD）：{name}',
   'footer.legalNote': '税费数值仅供参考。若当地法规提供更多保护，则以当地法规为准。',
 
   // 管理后台
@@ -608,6 +610,7 @@ const zh: Dict = {
   'err.deposit_too_high': '押金超出允许的上限（日租价的 {maxMultiple} 倍）。',
   'err.guarantor_threshold_required': '请填写需要担保人的起始金额。',
   'err.availability_outside_platform_hours': '空闲时段须介于 06:00 至 23:00 之间。',
+  'err.document_deleted': '文件已在保存期限届满后删除；核验结果仍有记录。',
   'err.not_found': '未找到。',
   'err.validation': '请检查各字段内容',
   'err.internal': '发生错误，请重试。',

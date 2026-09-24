@@ -536,6 +536,8 @@ const de: Dict = {
   'footer.tagline': 'Einsatzbereite Arbeitsräume, stundenweise, in den freien Zeiten.',
   'footer.policies': 'Regeln und Richtlinien',
   'footer.hosting': 'Für Gastgeber',
+  'footer.operator': 'Betrieben von {company} · CNPJ {cnpj}',
+  'footer.dpo': 'Datenschutzbeauftragter (LGPD): {name}',
   'footer.legalNote': 'Steuerangaben dienen nur zur Orientierung. Schützendere lokale Vorschriften haben Vorrang.',
 
   // Verwaltung
@@ -608,6 +610,7 @@ const de: Dict = {
   'err.deposit_too_high': 'Kaution über dem zulässigen Limit ({maxMultiple}× dem Tagessatz).',
   'err.guarantor_threshold_required': 'Geben Sie den Betrag an, ab dem ein Bürge erforderlich ist.',
   'err.availability_outside_platform_hours': 'Freie Stunden müssen zwischen 06:00 und 23:00 Uhr liegen.',
+  'err.document_deleted': 'Die Datei wurde nach Ablauf der Aufbewahrungsfrist gelöscht; das Prüfergebnis bleibt gespeichert.',
   'err.not_found': 'Nicht gefunden.',
   'err.validation': 'Bitte überprüfen Sie die Felder',
   'err.internal': 'Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',

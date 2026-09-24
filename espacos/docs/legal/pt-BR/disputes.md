@@ -133,4 +133,4 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 ## 11. Contato
 
 11.1. Central de Resolução: pela página da Reserva na Plataforma ou pelo e-mail **support@space-hour.com**.
-11.2. **[RAZÃO SOCIAL DA OPERADORA]** — CNPJ **[CNPJ]** — **[ENDEREÇO]**.
+11.2. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.

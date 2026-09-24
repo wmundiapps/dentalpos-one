@@ -536,6 +536,8 @@ const en: Dict = {
   'footer.tagline': 'Ready-to-use workspaces, by the hour, during idle time.',
   'footer.policies': 'Rules and policies',
   'footer.hosting': 'For hosts',
+  'footer.operator': 'Operated by {company} · CNPJ {cnpj}',
+  'footer.dpo': 'Data Protection Officer (LGPD): {name}',
   'footer.legalNote': 'Tax figures are for reference. More protective local rules take precedence.',
 
   // Administration
@@ -608,6 +610,7 @@ const en: Dict = {
   'err.deposit_too_high': 'Deposit above the allowed limit ({maxMultiple}× the day rate).',
   'err.guarantor_threshold_required': 'Enter the amount from which a guarantor is required.',
   'err.availability_outside_platform_hours': 'Idle hours must fall between 06:00 and 23:00.',
+  'err.document_deleted': 'The file was deleted after the retention period; the verification result is still on record.',
   'err.not_found': 'Not found.',
   'err.validation': 'Please check the fields',
   'err.internal': 'Something went wrong. Please try again.',

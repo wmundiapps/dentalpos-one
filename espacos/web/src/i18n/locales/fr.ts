@@ -536,6 +536,8 @@ const fr: Dict = {
   'footer.tagline': "Espaces de travail prêts à l'emploi, à l'heure, pendant les créneaux inoccupés.",
   'footer.policies': 'Règles et politiques',
   'footer.hosting': 'Pour les hôtes',
+  'footer.operator': 'Exploité par {company} · CNPJ {cnpj}',
+  'footer.dpo': 'Délégué à la protection des données (LGPD) : {name}',
   'footer.legalNote': 'Les montants des taxes sont donnés à titre indicatif. Les règles locales plus protectrices prévalent.',
 
   // Administration
@@ -608,6 +610,7 @@ const fr: Dict = {
   'err.deposit_too_high': 'Caution supérieure à la limite autorisée ({maxMultiple}× le tarif journalier).',
   'err.guarantor_threshold_required': "Indiquez le montant à partir duquel un garant est exigé.",
   'err.availability_outside_platform_hours': 'Les créneaux inoccupés doivent être compris entre 06:00 et 23:00.',
+  'err.document_deleted': 'Le fichier a été supprimé après la durée de conservation ; le résultat de la vérification reste enregistré.',
   'err.not_found': 'Introuvable.',
   'err.validation': 'Vérifiez les champs',
   'err.internal': "Une erreur s'est produite. Veuillez réessayer.",

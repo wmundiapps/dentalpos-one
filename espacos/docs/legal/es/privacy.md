@@ -4,11 +4,11 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 ## 1. Quiénes somos y a quién se aplica
 
-1.1. Esta Política explica cómo **[RAZÃO SOCIAL DA OPERADORA]**, CNPJ **[CNPJ]**, con domicilio en **[ENDEREÇO]** (la "Operadora"), trata datos personales en la Plataforma SpaceHour, en calidad de **responsable del tratamiento**.
+1.1. Esta Política explica cómo **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, con domicilio en **[ENDEREÇO]** (la "Operadora"), trata datos personales en la Plataforma SpaceHour, en calidad de **responsable del tratamiento**.
 
 1.2. Se aplica a Anfitriones, Arrendatarios, Garantes, Clientes Finales que utilicen la herramienta de evaluación, visitantes del sitio y representantes de personas jurídicas.
 
-1.3. **Encargado / DPO:** **[ENCARREGADO/DPO]** — contacto: **[E-MAIL DE CONTATO]**. Cuando lo exija la ley local, la Operadora nombrará representante en el país o en la Unión Europea (art. 27 del RGPD) y *grievance officer* en India.
+1.3. **Encargado / DPO:** **Robson Ravel de Oliveira** — contacto: **info@wmundi.com**. Cuando lo exija la ley local, la Operadora nombrará representante en el país o en la Unión Europea (art. 27 del RGPD) y *grievance officer* en India.
 
 1.4. **Roles.** En relación con los datos de sus propios pacientes, clientes y alumnos, el **Arrendatario** y el **Anfitrión** son responsables independientes del tratamiento que realizan en su actividad profesional. La Plataforma no recibe historias clínicas ni datos clínicos y no debe usarse para ello.
 
@@ -88,7 +88,7 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 7.1. El titular puede, en los términos de la ley aplicable: confirmar la existencia del tratamiento; acceder a sus datos; corregir datos incompletos o inexactos; solicitar la anonimización, el bloqueo o la eliminación de datos innecesarios; solicitar la portabilidad; obtener información sobre las comparticiones; revocar el consentimiento; oponerse a tratamientos basados en interés legítimo; solicitar la revisión de decisiones automatizadas; y presentar una reclamación ante la autoridad de protección de datos (en Brasil, la ANPD; en la Unión Europea, la autoridad de control del Estado miembro; en el Reino Unido, la ICO; entre otras).
 
-7.2. Las solicitudes deben enviarse al Encargado a **[E-MAIL DE CONTATO]** o a través del área de privacidad de la cuenta. Respondemos dentro del plazo legal (por ejemplo, 15 días en la LGPD para la declaración completa; 1 mes en el RGPD, prorrogable). Podremos solicitar confirmación de identidad.
+7.2. Las solicitudes deben enviarse al Encargado a **info@wmundi.com** o a través del área de privacidad de la cuenta. Respondemos dentro del plazo legal (por ejemplo, 15 días en la LGPD para la declaración completa; 1 mes en el RGPD, prorrogable). Podremos solicitar confirmación de identidad.
 
 7.3. Algunos datos pueden conservarse aun después de una solicitud de eliminación, cuando sean necesarios para el cumplimiento de una obligación legal, el ejercicio de derechos en procesos o la prevención del fraude.
 

@@ -73,7 +73,7 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 7.3. L'Host visualizza solo il nome del Garante e lo stato dell'accettazione. Il documento e i contatti vengono condivisi con l'Host solo quando necessari per la riscossione giudiziale o stragiudiziale.
 
-7.4. I dati dei Garanti che rifiutino o non rispondano vengono eliminati entro 90 giorni, salvo obbligo legale. I dati dei Garanti che accettino vengono conservati per il termine di prescrizione degli obblighi garantiti. Il Garante esercita i propri diritti di interessato tramite il canale del Responsabile indicato nell'Informativa sulla Privacy: [ENCARREGADO/DPO].
+7.4. I dati dei Garanti che rifiutino o non rispondano vengono eliminati entro 90 giorni, salvo obbligo legale. I dati dei Garanti che accettino vengono conservati per il termine di prescrizione degli obblighi garantiti. Il Garante esercita i propri diritti di interessato tramite il canale del Responsabile indicato nell'Informativa sulla Privacy: Robson Ravel de Oliveira — info@wmundi.com.
 
 ## 8. Disposizioni finali
 
