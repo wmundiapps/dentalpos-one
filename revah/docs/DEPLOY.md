@@ -23,15 +23,20 @@ Ordem recomendada. Cada item é feito uma vez.
 2. Variável `VITE_API_URL=https://api.revah.com.br`.
 3. Domains → `app.revah.com.br`.
 
-## 4. Stripe
-1. Produtos: "REVAH START" (R$ 197/mês) e "REVAH PRO" (R$ 497/mês); opcional "REVAH Leads" (add-on mensal).
-   Copie os `price_...` para `STRIPE_PRICE_START`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_LEADS`.
-2. Settings → Payment methods: habilite cartão e boleto (e Pix, se disponível para assinaturas; então use `STRIPE_PAYMENT_METHODS=card,boleto,pix`).
-3. Developers → Webhooks → endpoint `https://api.revah.com.br/webhooks/stripe` com os eventos:
-   `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.created`,
-   `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`.
-   Copie o `whsec_...` para `STRIPE_WEBHOOK_SECRET` e `sk_live_...` para `STRIPE_SECRET_KEY`.
-4. Settings → Billing → Customer portal: ative troca de plano e cancelamento.
+## 4. Pagamentos (14 dias grátis + mensalidade automática)
+Regra: o cliente escolhe START (R$ 247) ou PRO (R$ 597), cadastra a forma de pagamento e ganha 14 dias.
+Se cancelar no teste, não paga. Depois, cobrança mensal automática; cancelando, o ciclo pago segue até o fim.
+
+**Asaas (Brasil — Pix, boleto, cartão)**
+1. Asaas → Integrações → Chave de API → copie para `ASAAS_API_KEY` (sandbox: `ASAAS_BASE_URL=https://api-sandbox.asaas.com/v3`).
+2. Integrações → Webhooks → novo webhook: URL `https://api.revah.com.br/webhooks/asaas`, token de autenticação = `ASAAS_WEBHOOK_TOKEN`,
+   eventos de cobrança (PAYMENT_CONFIRMED, PAYMENT_RECEIVED, PAYMENT_OVERDUE) e de assinatura (SUBSCRIPTION_DELETED, SUBSCRIPTION_INACTIVATED).
+
+**Stripe (internacional — cartão)**
+1. Produtos "REVAH START" e "REVAH PRO" com preço mensal; copie os `price_...` para `STRIPE_PRICE_START` e `STRIPE_PRICE_PRO`.
+2. Webhook `https://api.revah.com.br/webhooks/stripe` com: `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.trial_will_end`, `invoice.paid`, `invoice.payment_failed`.
+3. `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET`. Portal do cliente ativado (troca de plano e cancelamento no fim do período).
 
 ## 5. Site revah.com.br (Netlify)
 1. Envie `revah/site/revah-site-connector.js` junto com os outros arquivos.

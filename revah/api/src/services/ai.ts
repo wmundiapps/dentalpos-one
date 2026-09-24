@@ -97,9 +97,11 @@ export function ruleBasedDecision(text: string, bot: Pick<BotSettings, 'handoffM
   return { reply: bot.handoffMessage, intent: 'OUTRO', handoff: true, optOut: false, appointment: null }
 }
 
-export async function decideChatReply(opts: { bot: BotSettings; channel: string; tenantId: string; contactId: string; incoming: string }): Promise<ChatDecision> {
+// level: 'basic' (START) responde só com a mensagem atual; 'advanced' (PRO+) usa CRM e histórico multicanal.
+export async function decideChatReply(opts: { bot: BotSettings; channel: string; tenantId: string; contactId: string; incoming: string; level?: 'basic' | 'advanced' }): Promise<ChatDecision> {
   if (!aiAvailable()) return ruleBasedDecision(opts.incoming, opts.bot)
-  const ctx = await buildCustomerContext(opts.tenantId, opts.contactId)
+  const advanced = opts.level !== 'basic'
+  const ctx = advanced ? await buildCustomerContext(opts.tenantId, opts.contactId) : { text: '' }
   try {
     const res = await ai().beta.messages.parse({
       model: config.ai.model,
@@ -107,7 +109,7 @@ export async function decideChatReply(opts: { bot: BotSettings; channel: string;
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       thinking: { type: 'adaptive' },
-      output_config: { effort: 'low', format: betaZodOutputFormat(ChatDecision) },
+      output_config: { effort: advanced ? 'medium' : 'low', format: betaZodOutputFormat(ChatDecision) },
       system: chatSystem(opts.bot, opts.channel),
       messages: [
         {

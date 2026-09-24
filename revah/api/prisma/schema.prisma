@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -15,23 +15,27 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model Tenant {
-  id                   String    @id @default(cuid())
-  name                 String
-  slug                 String    @unique
-  document             String?
-  phone                String?
-  plan                 String    @default("TRIAL") // TRIAL | START | PRO | ENTERPRISE
-  status               String    @default("TRIAL") // TRIAL | ACTIVE | PAST_DUE | CANCELED | SUSPENDED
-  trialCampaignsUsed   Int       @default(0)
-  stripeCustomerId     String?   @unique
-  timezone             String    @default("America/Sao_Paulo")
-  source               String    @default("DIRECT") // DIRECT | DENTALPOS
-  externalRef          String?   @unique // ex.: "dentalpos:<clinicId>"
+  id                    String    @id @default(cuid())
+  name                  String
+  slug                  String    @unique
+  document              String?
+  phone                 String?
+  plan                  String    @default("TRIAL") // TRIAL | START | PRO | ENTERPRISE
+  status                String    @default("PENDING_PAYMENT") // PENDING_PAYMENT | TRIAL | ACTIVE | PAST_DUE | CANCELED | SUSPENDED
+  trialCampaignsUsed    Int       @default(0)
+  trialEndsAt           DateTime? // teste de 14 dias (começa ao cadastrar a forma de pagamento)
+  trialEligible         Boolean   @default(true) // false se e-mail/telefone/documento já usou o teste
+  billingProvider       String? // ASAAS (Brasil) | STRIPE (internacional)
+  stripeCustomerId      String?   @unique
+  asaasCustomerId       String?   @unique
+  timezone              String    @default("America/Sao_Paulo")
+  source                String    @default("DIRECT") // DIRECT | DENTALPOS
+  externalRef           String?   @unique // ex.: "dentalpos:<clinicId>"
   integrationWebhookUrl String?
-  integrationSecret    String?
-  leadsAddonActive     Boolean   @default(false)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  integrationSecret     String?
+  leadsAddonActive      Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   users          User[]
   subscription   Subscription?
@@ -54,22 +58,23 @@ model Tenant {
   events         IntegrationEvent[]
   notes          Note[]
   auditLogs      AuditLog[]
+  templates      MessageTemplate[]
 }
 
 model User {
-  id                 String    @id @default(cuid())
-  tenantId           String
-  tenant             Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  name               String
-  email              String    @unique
-  passwordHash       String?
-  role               String    @default("AGENT") // OWNER | ADMIN | AGENT
-  isActive           Boolean   @default(true)
-  resetTokenHash     String?
-  resetTokenExpires  DateTime?
-  lastLoginAt        DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name              String
+  email             String    @unique
+  passwordHash      String?
+  role              String    @default("AGENT") // OWNER | ADMIN | AGENT
+  isActive          Boolean   @default(true)
+  resetTokenHash    String?
+  resetTokenExpires DateTime?
+  lastLoginAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([tenantId])
 }
@@ -82,23 +87,28 @@ model TrialRegistry {
 }
 
 model Subscription {
-  id                   String    @id @default(cuid())
-  tenantId             String    @unique
-  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  stripeSubscriptionId String    @unique
-  stripePriceId        String?
-  plan                 String
-  status               String // status do Stripe: active, past_due, canceled, incomplete...
-  currentPeriodEnd     DateTime?
-  cancelAtPeriodEnd    Boolean   @default(false)
-  hasLeadsAddon        Boolean   @default(false)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                       String    @id @default(cuid())
+  tenantId                 String    @unique
+  tenant                   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider                 String    @default("STRIPE") // STRIPE | ASAAS
+  stripeSubscriptionId     String?   @unique
+  asaasSubscriptionId      String?   @unique
+  asaasLeadsSubscriptionId String?   @unique
+  stripePriceId            String?
+  plan                     String
+  status                   String // trialing | active | past_due | canceled | incomplete (normalizado para Asaas)
+  trialEndsAt              DateTime?
+  currentPeriodEnd         DateTime?
+  cancelAtPeriodEnd        Boolean   @default(false)
+  hasLeadsAddon            Boolean   @default(false)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 }
 
 model BillingEvent {
   id            String    @id @default(cuid())
-  stripeEventId String    @unique
+  provider      String    @default("STRIPE")
+  stripeEventId String    @unique // id do evento no provedor (Stripe ou Asaas)
   type          String
   status        String    @default("RECEIVED") // RECEIVED | PROCESSED | IGNORED | FAILED
   error         String?
@@ -123,23 +133,23 @@ model SalesInquiry {
 // ---------------------------------------------------------------------------
 
 model ChannelAccount {
-  id                  String    @id @default(cuid())
-  tenantId            String
-  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  channel             String // WHATSAPP | SMS | TELEGRAM | EMAIL | INSTAGRAM | MESSENGER | VOICE
-  provider            String // META_CLOUD | ZAPI | ZAPIO | TWILIO | TELEGRAM | RESEND | META_GRAPH
-  label               String
-  address             String // telefone, e-mail, @bot, id da página
-  externalId          String? // phone_number_id / page_id / instance id — roteia webhooks
+  id                   String    @id @default(cuid())
+  tenantId             String
+  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  channel              String // WHATSAPP | SMS | TELEGRAM | EMAIL | INSTAGRAM | MESSENGER | VOICE
+  provider             String // META_CLOUD | ZAPI | ZAPIO | TWILIO | TELEGRAM | RESEND | META_GRAPH
+  label                String
+  address              String // telefone, e-mail, @bot, id da página
+  externalId           String? // phone_number_id / page_id / instance id — roteia webhooks
   encryptedCredentials String?
-  settings            Json?
-  webhookSecret       String
-  isDefault           Boolean   @default(false)
-  isActive            Boolean   @default(true)
-  riskAcknowledgedAt  DateTime? // obrigatório para provedores não oficiais de WhatsApp
-  riskAcknowledgedBy  String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  settings             Json?
+  webhookSecret        String
+  isDefault            Boolean   @default(false)
+  isActive             Boolean   @default(true)
+  riskAcknowledgedAt   DateTime? // obrigatório para provedores não oficiais de WhatsApp
+  riskAcknowledgedBy   String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   conversations Conversation[]
   calls         Call[]
@@ -281,32 +291,51 @@ model Conversation {
 }
 
 model Message {
-  id                  String        @id @default(cuid())
-  tenantId            String
-  tenant              Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  contactId           String?
-  contact             Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  conversationId      String?
-  conversation        Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
-  campaignId          String?
-  channel             String
-  provider            String?
-  direction           String // IN | OUT
-  content             String
-  subject             String?
-  mediaUrl            String?
-  status              String // QUEUED | SENT | DELIVERED | READ | FAILED | RECEIVED | SIMULATED | BLOCKED
-  providerMessageId   String?
-  error               String?
-  aiGenerated         Boolean       @default(false)
-  sentByUserId        String?
-  metadata            Json?
-  createdAt           DateTime      @default(now())
-  sentAt              DateTime?
+  id                String        @id @default(cuid())
+  tenantId          String
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contactId         String?
+  contact           Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  conversationId    String?
+  conversation      Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  campaignId        String?
+  channel           String
+  provider          String?
+  direction         String // IN | OUT
+  content           String
+  subject           String?
+  mediaUrl          String?
+  status            String // QUEUED | SENT | DELIVERED | READ | FAILED | RECEIVED | SIMULATED | BLOCKED
+  providerMessageId String?
+  error             String?
+  aiGenerated       Boolean       @default(false)
+  sentByUserId      String?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  sentAt            DateTime?
 
   @@index([tenantId, createdAt])
   @@index([tenantId, contactId, createdAt])
   @@index([providerMessageId])
+}
+
+// ---------------------------------------------------------------------------
+// Templates de mensagem (biblioteca REVAH + modelos da empresa)
+// ---------------------------------------------------------------------------
+
+model MessageTemplate {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  segment   String   @default("Geral")
+  channel   String? // null = qualquer canal
+  subject   String?
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 // ---------------------------------------------------------------------------
@@ -497,17 +526,17 @@ model CallTurn {
 // ---------------------------------------------------------------------------
 
 model LeadsContract {
-  id               String   @id @default(cuid())
-  tenantId         String
-  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  userId           String
-  signerName       String
-  signerDocument   String
-  termsVersion     String
-  termsHash        String
-  ip               String?
-  userAgent        String?
-  acceptedAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId         String
+  signerName     String
+  signerDocument String
+  termsVersion   String
+  termsHash      String
+  ip             String?
+  userAgent      String?
+  acceptedAt     DateTime @default(now())
 
   @@index([tenantId])
 }

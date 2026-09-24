@@ -28,8 +28,15 @@ export const config = {
       PRO: process.env.STRIPE_PRICE_PRO || '',
       LEADS: process.env.STRIPE_PRICE_LEADS || '',
     },
-    // Pix recorrente depende da conta Stripe; habilite adicionando "pix" quando disponível.
-    paymentMethods: list(process.env.STRIPE_PAYMENT_METHODS || 'card,boleto'),
+    // Vendas internacionais: cartão. Adicione boleto/pix se a conta Stripe permitir.
+    paymentMethods: list(process.env.STRIPE_PAYMENT_METHODS || 'card'),
+  },
+
+  // Asaas: vendas no Brasil (Pix, boleto e cartão), assinatura mensal.
+  asaas: {
+    apiKey: process.env.ASAAS_API_KEY || '',
+    baseUrl: (process.env.ASAAS_BASE_URL || 'https://api.asaas.com/v3').replace(/\/$/, ''),
+    webhookToken: process.env.ASAAS_WEBHOOK_TOKEN || '',
   },
 
   ai: {
@@ -54,8 +61,11 @@ export const config = {
   },
 
   systemEmail: {
-    resendKey: process.env.REVAH_SYSTEM_RESEND_KEY || '',
-    from: process.env.REVAH_SYSTEM_EMAIL_FROM || 'REVAH <nao-responda@revah.com.br>',
+    // Usa a mesma conta Resend do DentalPos (domínio dentalpos.com.br verificado) se não houver uma própria.
+    resendKey: process.env.REVAH_SYSTEM_RESEND_KEY || process.env.RESEND_API_KEY || '',
+    from: process.env.REVAH_SYSTEM_EMAIL_FROM || 'REVAH <contato@dentalpos.com.br>',
+    // Recebe o aviso de cada conta nova criada.
+    adminNotify: process.env.REVAH_ADMIN_NOTIFY_EMAIL || 'contato@dentalpos.com.br',
   },
 
   worker: {
@@ -72,15 +82,19 @@ export interface PlanLimits {
   channels: number | null
   monthlyMessages: number | null
   voice: boolean
-  ai: boolean
+  ai: 'basic' | 'advanced'
+  templates: number | null
+  integrations: number | null // chaves de API / integrações de CRM
+  csvImport: boolean
 }
 
-// Limites operacionais por plano (ajustáveis por PLAN_LIMITS_JSON sem novo deploy de código).
+// Limites por plano, iguais aos anunciados em revah.com.br (ajustáveis por PLAN_LIMITS_JSON).
+// TRIAL = conta criada que ainda não cadastrou a forma de pagamento.
 const defaultLimits: Record<Plan, PlanLimits> = {
-  TRIAL: { users: 1, channels: 2, monthlyMessages: 100, voice: false, ai: true },
-  START: { users: 3, channels: 3, monthlyMessages: 10000, voice: false, ai: true },
-  PRO: { users: 10, channels: null, monthlyMessages: 50000, voice: true, ai: true },
-  ENTERPRISE: { users: null, channels: null, monthlyMessages: null, voice: true, ai: true },
+  TRIAL: { users: 1, channels: 2, monthlyMessages: 0, voice: false, ai: 'basic', templates: 5, integrations: 0, csvImport: false },
+  START: { users: 3, channels: 3, monthlyMessages: 5000, voice: false, ai: 'basic', templates: 5, integrations: 1, csvImport: false },
+  PRO: { users: 10, channels: null, monthlyMessages: 25000, voice: true, ai: 'advanced', templates: null, integrations: null, csvImport: true },
+  ENTERPRISE: { users: null, channels: null, monthlyMessages: null, voice: true, ai: 'advanced', templates: null, integrations: null, csvImport: true },
 }
 
 function loadLimits(): Record<Plan, PlanLimits> {
@@ -101,10 +115,15 @@ function loadLimits(): Record<Plan, PlanLimits> {
 
 export const planLimits = loadLimits()
 
-// Regra de negócio definida: 2 campanhas grátis, até 20 contatos cada.
-export const TRIAL_RULES = { maxCampaigns: 2, maxRecipientsPerCampaign: 20 }
-
-export const PLAN_PRICES_BRL: Record<Exclude<Plan, 'TRIAL' | 'ENTERPRISE'>, number> = {
-  START: 197,
-  PRO: 497,
+// Teste grátis: 14 dias com a forma de pagamento cadastrada; até 20 contatos por campanha no período.
+export const TRIAL_RULES = {
+  days: Number(process.env.TRIAL_DAYS || 14),
+  maxRecipientsPerCampaign: 20,
+  maxMessages: Number(process.env.TRIAL_MAX_MESSAGES || 1000),
 }
+
+export const PLAN_PRICES_BRL: Record<'START' | 'PRO', number> = {
+  START: Number(process.env.PRICE_START_BRL || 247),
+  PRO: Number(process.env.PRICE_PRO_BRL || 597),
+}
+export const LEADS_PRICE_BRL = Number(process.env.PRICE_LEADS_BRL || 0)

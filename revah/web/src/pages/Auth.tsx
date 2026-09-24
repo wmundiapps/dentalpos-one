@@ -12,6 +12,7 @@ function AuthShell({ title, subtitle, children, footer }: { title: string; subti
     <div className="auth">
       <div className="auth-card">
         <Brand name="REVAH" />
+        <p className="auth-tagline">Plataforma business de mensageria</p>
         <h1>{title}</h1>
         {subtitle && <p className="muted">{subtitle}</p>}
         {children}
@@ -50,11 +51,6 @@ export function Login() {
     <AuthShell
       title="Entrar"
       subtitle="Mensagens, CRM e atendimento automático em um só painel."
-      footer={
-        <>
-          Ainda não tem conta? <Link to="/cadastro">Teste grátis</Link>
-        </>
-      }
     >
       <form onSubmit={submit} className="stack">
         {error && <Alert tone="red">{error}</Alert>}
@@ -69,6 +65,9 @@ export function Login() {
         </Button>
         <Link to="/esqueci-senha" className="center small">
           Esqueci minha senha
+        </Link>
+        <Link to="/cadastro" className="btn btn-secondary btn-block">
+          Criar conta grátis
         </Link>
       </form>
     </AuthShell>
@@ -93,7 +92,7 @@ export function Register() {
     try {
       const s = await post<Session>('/auth/register', { ...form, acceptTerms: true })
       setSession(s)
-      navigate(s.trialAlreadyUsed ? '/assinatura' : '/', { replace: true })
+      navigate('/assinatura', { replace: true })
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -106,7 +105,7 @@ export function Register() {
       title="Teste grátis"
       subtitle={
         <>
-          <strong>2 campanhas com até 20 contatos cada, sem cartão.</strong> Conecte seus canais, importe contatos e veja o resultado antes de assinar.
+          <strong>14 dias grátis em qualquer plano.</strong> Cadastre a forma de pagamento; se cancelar antes do fim do teste, não há cobrança.
         </>
       }
       footer={
@@ -147,7 +146,7 @@ export function Register() {
           </span>
         </label>
         <Button variant="primary" type="submit" loading={loading} className="btn-block">
-          Criar conta de teste
+          Criar conta
         </Button>
         <p className="small muted center">O teste grátis vale uma vez por empresa, e-mail e telefone.</p>
       </form>

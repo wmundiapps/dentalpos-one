@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   Bot,
   CreditCard,
+  FileText,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -16,7 +17,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { PLAN_LABEL } from '../lib/format'
+import { PLAN_LABEL, trialText } from '../lib/format'
 import { useAuthed } from '../lib/session'
 import { Badge } from './ui'
 
@@ -40,7 +41,7 @@ export function Brand({ name, small }: { name: string; small?: boolean }) {
 }
 
 export function Layout() {
-  const { session, embedded, productName, logout } = useAuthed()
+  const { session, embedded, productName, logout, canManage } = useAuthed()
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
@@ -53,6 +54,7 @@ export function Layout() {
     { to: '/inbox', label: 'Inbox', icon: <MessageSquare size={18} /> },
     { to: '/contatos', label: 'Contatos', icon: <Users size={18} /> },
     { to: '/campanhas', label: 'Campanhas', icon: <Send size={18} /> },
+    { to: '/templates', label: 'Templates', icon: <FileText size={18} /> },
     { to: '/automacoes', label: 'Automações', icon: <Bot size={18} /> },
     { to: '/canais', label: 'Canais', icon: <Plug size={18} /> },
     { to: '/voz', label: embedded ? 'Ligações' : 'REVAH Voice', icon: <Phone size={18} /> },
@@ -65,6 +67,7 @@ export function Layout() {
 
   const bottom = items.slice(0, 4)
   const trial = tenant.trial
+  const tt = trialText(trial)
 
   const nav = (
     <nav className="nav">
@@ -112,16 +115,10 @@ export function Layout() {
             {!embedded && <Badge tone={tenant.plan === 'TRIAL' ? 'amber' : 'indigo'}>{PLAN_LABEL[tenant.plan] || tenant.plan}</Badge>}
             {tenant.status === 'PAST_DUE' && <Badge tone="red">Pagamento pendente</Badge>}
           </div>
-          {trial.isTrial && (
-            <NavLink to={embedded ? '/campanhas' : '/assinatura'} className={`trial-chip ${trial.exhausted ? 'exhausted' : ''}`}>
-              {trial.exhausted ? (
-                'Teste grátis encerrado'
-              ) : (
-                <>
-                  <span className="hide-sm">Teste grátis: {trial.campaignsRemaining}/{trial.maxCampaigns} campanhas restantes</span>
-                  <span className="show-sm-inline">Grátis: {trial.campaignsRemaining}/{trial.maxCampaigns}</span>
-                </>
-              )}
+          {tt && (
+            <NavLink to={embedded || !canManage ? '/campanhas' : '/assinatura'} className={`trial-chip ${trial.paymentMethodRequired ? 'exhausted' : ''}`}>
+              <span className="hide-sm">{tt.title}</span>
+              <span className="show-sm-inline">{tt.short}</span>
             </NavLink>
           )}
         </header>

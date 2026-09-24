@@ -13,10 +13,11 @@ export const CHANNEL_LABEL: Record<string, string> = {
 export const CAMPAIGN_CHANNELS: Channel[] = ['WHATSAPP', 'SMS', 'TELEGRAM', 'EMAIL', 'VOICE']
 export const ALL_CHANNELS: Channel[] = ['WHATSAPP', 'SMS', 'TELEGRAM', 'EMAIL', 'INSTAGRAM', 'MESSENGER', 'VOICE']
 
-export const PLAN_LABEL: Record<string, string> = { TRIAL: 'Teste grátis', START: 'Start', PRO: 'Pro', ENTERPRISE: 'Enterprise' }
+export const PLAN_LABEL: Record<string, string> = { TRIAL: 'Sem plano', START: 'Start', PRO: 'Pro', ENTERPRISE: 'Enterprise' }
 
 export const TENANT_STATUS_LABEL: Record<string, string> = {
-  TRIAL: 'Em teste',
+  PENDING_PAYMENT: 'Aguardando forma de pagamento',
+  TRIAL: 'Teste grátis (14 dias)',
   ACTIVE: 'Ativa',
   PAST_DUE: 'Pagamento pendente',
   CANCELED: 'Cancelada',
@@ -203,11 +204,12 @@ export function initials(name?: string | null) {
 }
 
 // Pré-visualização das variáveis {{nome}}, {{primeiro_nome}}, {{empresa}}.
-export function renderPreview(tpl: string, vars: { nome: string; empresa: string }) {
+export function renderPreview(tpl: string, vars: { nome: string; empresa: string; minha_empresa?: string }) {
   const primeiro = vars.nome.split(/\s+/)[0] || ''
   return tpl
     .replace(/\{\{\s*nome\s*\}\}/gi, vars.nome)
     .replace(/\{\{\s*primeiro_nome\s*\}\}/gi, primeiro)
+    .replace(/\{\{\s*minha_empresa\s*\}\}/gi, vars.minha_empresa || '')
     .replace(/\{\{\s*empresa\s*\}\}/gi, vars.empresa)
 }
 
@@ -231,4 +233,21 @@ export function contactAddress(c: { phone: string | null; email: string | null; 
 export function toLocalInput(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+// Textos do teste de 14 dias (banner e chip do topo).
+export function trialText(t: { isTrial: boolean; daysLeft: number | null; maxRecipientsPerCampaign: number; paymentMethodRequired: boolean; trialAvailable: boolean; days: number }) {
+  if (t.paymentMethodRequired) {
+    return t.trialAvailable
+      ? { title: `Cadastre a forma de pagamento e ganhe ${t.days} dias grátis`, short: `${t.days} dias grátis` }
+      : { title: 'Escolha um plano para começar a enviar', short: 'Escolher plano' }
+  }
+  if (t.isTrial) {
+    const d = t.daysLeft ?? t.days
+    return {
+      title: `Teste grátis: ${d} ${d === 1 ? 'dia restante' : 'dias restantes'} · até ${t.maxRecipientsPerCampaign} contatos por campanha`,
+      short: `Teste: ${d} ${d === 1 ? 'dia' : 'dias'}`,
+    }
+  }
+  return null
 }

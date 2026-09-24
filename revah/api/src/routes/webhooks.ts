@@ -6,7 +6,7 @@ import { decryptJson, hmacHex, safeEqual } from '../lib/crypto'
 import { ah } from '../lib/errors'
 import { normalizeEmail, normalizePhone, type Channel } from '../lib/normalize'
 import type { AuthedRequest } from '../middleware/auth'
-import { constructStripeEvent, handleStripeEvent } from '../services/billing'
+import { constructStripeEvent, handleAsaasEvent, handleStripeEvent } from '../services/billing'
 import { upsertContact } from '../services/contacts'
 import { emitEvent } from '../services/automations'
 import { handleInbound } from '../services/inbound'
@@ -37,6 +37,18 @@ r.post(
     const event = constructStripeEvent(req.rawBody || Buffer.from(''), req.headers['stripe-signature'] as string)
     const status = await handleStripeEvent(event)
     res.json({ received: true, status })
+  }),
+)
+
+// ---------------------------------------------------------------------------
+// Asaas (header asaas-access-token definido no painel do Asaas)
+// ---------------------------------------------------------------------------
+r.post(
+  '/asaas',
+  ah(async (req, res) => {
+    const token = String(req.headers['asaas-access-token'] || '')
+    if (!config.asaas.webhookToken || !safeEqual(token, config.asaas.webhookToken)) return res.sendStatus(401)
+    res.json({ received: true, status: await handleAsaasEvent(req.body) })
   }),
 )
 

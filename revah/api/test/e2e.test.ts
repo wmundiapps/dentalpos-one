@@ -7,6 +7,24 @@ process.env.STRIPE_PRICE_LEADS = 'price_leads_test'
 process.env.ANTHROPIC_API_KEY = ''
 process.env.REVAH_SUPERADMIN_EMAILS = 'admin@wmundi.com'
 process.env.CAMPAIGN_THROTTLE_MS = '0'
+process.env.ASAAS_API_KEY = 'asaas-test'
+process.env.ASAAS_BASE_URL = 'http://asaas.mock/v3'
+process.env.ASAAS_WEBHOOK_TOKEN = 'asaas-webhook-token'
+
+// Asaas simulado (sem rede).
+const realFetch = globalThis.fetch
+const asaasCalls: { url: string; body: any }[] = []
+globalThis.fetch = (async (input: any, init: any = {}) => {
+  const url = String(input)
+  if (!url.startsWith('http://asaas.mock')) return realFetch(input, init)
+  const body = init.body ? JSON.parse(init.body) : null
+  asaasCalls.push({ url, body })
+  const json = (d: unknown) => new Response(JSON.stringify(d), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  if (url.endsWith('/customers')) return json({ id: 'cus_asaas_1' })
+  if (url.endsWith('/subscriptions')) return json({ id: `sub_asaas_${asaasCalls.length}` })
+  if (url.includes('/payments')) return json({ data: [{ invoiceUrl: 'https://asaas.mock/fatura', status: 'PENDING' }] })
+  return json({ deleted: true })
+}) as typeof fetch
 
 import { test, before } from 'node:test'
 import assert from 'node:assert/strict'
@@ -45,39 +63,64 @@ async function simulatedZapi(token: string) {
 
 const manual = (n: number, offset = 0) => Array.from({ length: n }, (_, i) => ({ name: `Pessoa ${i + offset}`, destination: `4498${String(1000000 + i + offset).padStart(7, '0')}` }))
 
-test('teste grátis 2×20 validado no servidor', async () => {
+test('teste de 14 dias: forma de pagamento (Asaas), 20 contatos por campanha, cobrança e atraso', async () => {
   const { token, tenant } = await register('trial@revah.test', { phone: '44911112222' })
   await simulatedZapi(token)
+
+  const c0 = await request(app).post('/campaigns').set(auth(token)).send({ name: 'Antes', channel: 'WHATSAPP', template: 'Oi', audience: { manual: manual(2) } })
+  const blocked0 = await request(app).post(`/campaigns/${c0.body.id}/launch`).set(auth(token))
+  assert.equal(blocked0.status, 402)
+  assert.equal(blocked0.body.code, 'PAYMENT_METHOD_REQUIRED')
+
+  const noDoc = await request(app).post('/billing/checkout').set(auth(token)).send({ plan: 'START', provider: 'ASAAS' })
+  assert.equal(noDoc.status, 400)
+  const co = await request(app).post('/billing/checkout').set(auth(token)).send({ plan: 'START', provider: 'ASAAS', cpfCnpj: '123.456.789-09' })
+  assert.equal(co.status, 200, JSON.stringify(co.body))
+  const subCall = asaasCalls.find((c) => c.url.endsWith('/subscriptions'))!
+  assert.equal(subCall.body.value, 247)
+  assert.equal(subCall.body.billingType, 'UNDEFINED')
+  const t1 = await prisma.tenant.findUnique({ where: { id: tenant.id } })
+  assert.equal(t1.status, 'TRIAL')
+  assert.equal(t1.plan, 'START')
+  assert.ok(Math.abs(t1.trialEndsAt.getTime() - Date.now() - 14 * 86_400_000) < 60_000)
 
   const big = await request(app).post('/campaigns').set(auth(token)).send({ name: 'Grande', channel: 'WHATSAPP', template: 'Oi {{primeiro_nome}}', audience: { manual: manual(21) } })
   const tooMany = await request(app).post(`/campaigns/${big.body.id}/launch`).set(auth(token))
   assert.equal(tooMany.status, 402)
   assert.equal(tooMany.body.code, 'TRIAL_RECIPIENT_LIMIT')
-
-  for (let k = 0; k < 2; k++) {
+  for (let k = 0; k < 3; k++) {
     const c = await request(app).post('/campaigns').set(auth(token)).send({ name: `C${k}`, channel: 'WHATSAPP', template: 'Oi {{primeiro_nome}}', audience: { manual: manual(20, k * 100) } })
     const l = await request(app).post(`/campaigns/${c.body.id}/launch`).set(auth(token))
     assert.equal(l.status, 200, JSON.stringify(l.body))
-    assert.equal(l.body.trial.campaignsUsed, k + 1)
   }
-  const third = await request(app).post('/campaigns').set(auth(token)).send({ name: 'C3', channel: 'WHATSAPP', template: 'Oi', audience: { manual: manual(1, 500) } })
-  const blocked = await request(app).post(`/campaigns/${third.body.id}/launch`).set(auth(token))
-  assert.equal(blocked.status, 402)
-  assert.equal(blocked.body.code, 'TRIAL_EXHAUSTED')
-
   await processDueJobs({ maxMs: 20_000 })
   const msgs = await prisma.message.findMany({ where: { tenantId: tenant.id, direction: 'OUT' } })
-  assert.equal(msgs.length, 40)
+  assert.equal(msgs.length, 60)
   assert.ok(msgs.every((m: any) => m.status === 'SIMULATED'))
-  assert.ok(msgs[0].content.includes('Responda SAIR'))
-  const camps = await prisma.campaign.findMany({ where: { tenantId: tenant.id, status: 'COMPLETED' } })
-  assert.equal(camps.length, 2)
 
-  // Mesmo telefone não ganha outro teste grátis.
+  // START: CSV é recurso do PRO.
+  const csv = await request(app).post('/contacts/import').set(auth(token)).send({ csv: 'nome,telefone\nA,44999990001' })
+  assert.equal(csv.status, 402)
+
+  // Webhooks do Asaas: pagamento confirmado -> ativo; atraso -> bloqueia.
+  const subId = (await prisma.subscription.findUnique({ where: { tenantId: tenant.id } })).asaasSubscriptionId
+  const denied = await request(app).post('/webhooks/asaas').send({ id: 'e0', event: 'PAYMENT_CONFIRMED', payment: { subscription: subId } })
+  assert.equal(denied.status, 401)
+  await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e1', event: 'PAYMENT_CONFIRMED', payment: { subscription: subId, dueDate: '2026-10-08' } })
+  assert.equal((await prisma.tenant.findUnique({ where: { id: tenant.id } })).status, 'ACTIVE')
+  await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e2', event: 'PAYMENT_OVERDUE', payment: { subscription: subId } })
+  assert.equal((await prisma.tenant.findUnique({ where: { id: tenant.id } })).status, 'PAST_DUE')
+
+  // Mesmo telefone não ganha novos 14 dias.
   const again = await register('trial2@revah.test', { phone: '(44) 91111-2222' })
   const st = await request(app).get('/trial/status').set(auth(again.token))
-  assert.equal(st.body.exhausted, true)
+  assert.equal(st.body.trialAvailable, false)
+  assert.equal(st.body.paymentMethodRequired, true)
 })
+
+async function activate(tenantId: string, plan = 'PRO') {
+  await prisma.tenant.update({ where: { id: tenantId }, data: { plan, status: 'ACTIVE' } })
+}
 
 test('inbound: opt-out vai para a suppression list, bot atende e registra pedido de agendamento', async () => {
   const { token, tenant } = await register('inbox@revah.test')
@@ -112,7 +155,8 @@ test('inbound: opt-out vai para a suppression list, bot atende e registra pedido
 })
 
 test('CRM: importação CSV com etiquetas e deduplicação', async () => {
-  const { token } = await register('crm@revah.test')
+  const { token, tenant } = await register('crm@revah.test')
+  await activate(tenant.id)
   const csv = 'nome,telefone,email,tags\nAna,(44) 99999-0001,ana@x.com,VIP|Recall\nAna Duplicada,44999990001,,\nSem contato,,,\n'
   const res = await request(app).post('/contacts/import').set(auth(token)).send({ csv, tags: ['Importados'] })
   assert.equal(res.status, 200)

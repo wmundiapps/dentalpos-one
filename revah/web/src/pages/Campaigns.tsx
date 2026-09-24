@@ -16,7 +16,7 @@ import {
 } from '../lib/format'
 import { csvToManualList } from '../lib/csv'
 import { useAuthed } from '../lib/session'
-import type { AudiencePreview, Campaign, CampaignRecipient, Channel, ChannelAccount, Contact, Tag } from '../lib/types'
+import type { AudiencePreview, Campaign, CampaignRecipient, Channel, ChannelAccount, Contact, MessageTemplate, Tag } from '../lib/types'
 import { useFeedback } from '../components/feedback'
 import { Alert, Badge, Button, Card, EmptyState, ErrorBox, Field, Loading, Modal, PageHeader, Progress, Stat, Toggle, readFileText, useDebounced, useLoad, usePolling } from '../components/ui'
 import { TrialBanner } from './Dashboard'
@@ -82,7 +82,7 @@ function CampaignList({ onNew }: { onNew: () => void }) {
                       <div className="strong ellipsis">{c.name}</div>
                       <div className="small muted">
                         {CHANNEL_LABEL[c.channel]} · criada em {fmtDateTime(c.createdAt)}
-                        {c.isTrial ? ' · teste grátis' : ''}
+                        {c.isTrial ? ' · durante o teste' : ''}
                       </div>
                     </div>
                     <Badge tone={CAMPAIGN_STATUS[c.status]?.tone}>{CAMPAIGN_STATUS[c.status]?.label}</Badge>
@@ -242,7 +242,7 @@ function CampaignDetail({ id }: { id: string }) {
             {c.isTrial && (
               <>
                 <dt>Teste grátis</dt>
-                <dd>Sim (consumiu 1 campanha grátis)</dd>
+                <dd>Disparada durante o teste de 14 dias</dd>
               </>
             )}
           </dl>
@@ -418,6 +418,7 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
 
   const tags = useLoad(() => get<Tag[]>('/tags'))
   const accounts = useLoad(() => get<ChannelAccount[]>('/channels'))
+  const templates = useLoad(() => get<{ items: MessageTemplate[] }>('/templates'))
   const channelAccounts = (accounts.data || []).filter((a) => a.channel === channel && a.isActive)
   const manual = useMemo(() => parseManual(manualText, channel), [manualText, channel])
   const manualInvalid = manual.filter((m) => !m.valid)
@@ -552,7 +553,7 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
     fb.success(`${rows.length} linha(s) adicionadas à lista.`)
   }
 
-  const sample = renderPreview(channel === 'VOICE' ? voiceScript : template, { nome: 'Maria Souza', empresa: session.tenant.name })
+  const sample = renderPreview(channel === 'VOICE' ? voiceScript : template, { nome: 'Maria Souza', empresa: 'Souza Odontologia', minha_empresa: session.tenant.name })
 
   return (
     <div className="page">
@@ -651,7 +652,8 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
             )}
             <p className="small muted">Números da lista manual entram no CRM ao disparar, para manter o histórico unificado.</p>
           </Card>
-          {trial.isTrial && <Alert tone="amber">No teste grátis cada campanha pode ter até {trial.maxRecipientsPerCampaign} contatos válidos.</Alert>}
+          {trial.isTrial && <Alert tone="amber">Durante o teste de {trial.days} dias cada campanha pode ter até {trial.maxRecipientsPerCampaign} contatos válidos.</Alert>}
+          {trial.paymentMethodRequired && <Alert tone="amber">Os envios são liberados depois de cadastrar a forma de pagamento em Assinatura. Você já pode montar e salvar a campanha.</Alert>}
         </div>
       )}
 
@@ -659,6 +661,29 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
         <div className="grid-2">
           <Card>
             <div className="stack">
+              {channel !== 'VOICE' && (
+                <Field label="Usar template" hint={templates.data?.items.length ? 'Preenche a mensagem (e o assunto, se houver). Você pode editar depois.' : undefined}>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const t = templates.data?.items.find((x) => x.id === e.target.value)
+                      if (!t) return
+                      setTemplate(t.body)
+                      if (t.subject) setSubject(t.subject)
+                    }}
+                  >
+                    <option value="">{templates.data?.items.length ? 'Escolher um dos meus templates…' : 'Nenhum template salvo (veja Templates)'}</option>
+                    {(templates.data?.items || [])
+                      .filter((t) => !t.channel || t.channel === channel)
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.segment ? `${t.segment} · ` : ''}
+                          {t.name}
+                        </option>
+                      ))}
+                  </select>
+                </Field>
+              )}
               {channel === 'EMAIL' && (
                 <Field label="Assunto">
                   <input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={200} />
@@ -675,7 +700,7 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
               )}
               <div className="row wrap gap-xs">
                 <span className="small muted">Inserir:</span>
-                {['{{nome}}', '{{primeiro_nome}}', '{{empresa}}'].map((v) => (
+                {['{{nome}}', '{{primeiro_nome}}', '{{empresa}}', '{{minha_empresa}}'].map((v) => (
                   <button
                     key={v}
                     className="chip"
@@ -715,9 +740,9 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
             </div>
           </Card>
           <Card title="Prévia">
-            {channel === 'EMAIL' && subject && <div className="strong">{renderPreview(subject, { nome: 'Maria Souza', empresa: session.tenant.name })}</div>}
+            {channel === 'EMAIL' && subject && <div className="strong">{renderPreview(subject, { nome: 'Maria Souza', empresa: 'Souza Odontologia', minha_empresa: session.tenant.name })}</div>}
             <div className="message-preview">{sample || <span className="muted">A mensagem aparece aqui.</span>}</div>
-            <p className="small muted">Exemplo com o contato “Maria Souza”.</p>
+            <p className="small muted">Exemplo com o contato “Maria Souza”, da empresa “Souza Odontologia” ({'{{empresa}}'} é a empresa do contato).</p>
           </Card>
         </div>
       )}
@@ -737,14 +762,14 @@ function CampaignWizard({ initial, onClose }: { initial?: Campaign; onClose: () 
                   <Stat label="Receberão" value={preview.eligible} tone="green" />
                 </div>
                 {preview.trial.isTrial && !preview.fitsTrial && (
-                  <Alert tone="red" title="Não cabe no teste grátis">
-                    {preview.trial.exhausted
-                      ? 'Você já usou as campanhas do teste grátis.'
-                      : `No teste grátis cada campanha pode ter até ${preview.trial.maxRecipientsPerCampaign} contatos válidos. Reduza o público ou escolha um plano.`}
+                  <Alert tone="red" title="Acima do limite do teste">
+                    Durante o teste de {preview.trial.days} dias cada campanha pode ter até {preview.trial.maxRecipientsPerCampaign} contatos válidos. Reduza o público ou aguarde o fim do teste.
                   </Alert>
                 )}
-                {preview.trial.isTrial && preview.fitsTrial && (
-                  <Alert tone="blue">Ao disparar, esta campanha usa 1 das {preview.trial.maxCampaigns} campanhas grátis ({preview.trial.campaignsRemaining} restante(s)).</Alert>
+                {preview.trial.paymentMethodRequired && (
+                  <Alert tone="amber">
+                    {preview.trial.trialAvailable ? `Cadastre a forma de pagamento em Assinatura para liberar os envios e começar seus ${preview.trial.days} dias grátis.` : 'Escolha um plano em Assinatura para liberar os envios.'}
+                  </Alert>
                 )}
                 {preview.eligible === 0 && <Alert tone="amber">Nenhum contato receberá esta campanha. Revise o público.</Alert>}
               </>

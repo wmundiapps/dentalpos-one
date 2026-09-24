@@ -23,14 +23,15 @@ r.patch('/admin/tenants/:id', ah(async (req: AuthedRequest, res) => {
   const b = z
     .object({
       plan: z.enum(['TRIAL', 'START', 'PRO', 'ENTERPRISE']).optional(),
-      status: z.enum(['TRIAL', 'ACTIVE', 'PAST_DUE', 'CANCELED', 'SUSPENDED']).optional(),
+      status: z.enum(['PENDING_PAYMENT', 'TRIAL', 'ACTIVE', 'PAST_DUE', 'CANCELED', 'SUSPENDED']).optional(),
       leadsAddonActive: z.boolean().optional(),
-      trialCampaignsUsed: z.number().int().min(0).max(2).optional(),
+      trialEndsAt: z.string().datetime().nullable().optional(),
+      trialEligible: z.boolean().optional(),
     })
     .parse(req.body)
   const t = await prisma.tenant.findUnique({ where: { id: req.params.id } })
   if (!t) throw notFound()
-  const updated = await prisma.tenant.update({ where: { id: t.id }, data: b })
+  const updated = await prisma.tenant.update({ where: { id: t.id }, data: { ...b, trialEndsAt: b.trialEndsAt === undefined ? undefined : b.trialEndsAt ? new Date(b.trialEndsAt) : null } })
   await audit(t.id, req.user.id, 'ADMIN_TENANT_UPDATE', 'Tenant', t.id, b)
   res.json(updated)
 }))
@@ -40,7 +41,7 @@ r.get('/admin/sales-inquiries', ah(async (_req, res) => {
 }))
 
 r.get('/admin/billing-events', ah(async (_req, res) => {
-  res.json(await prisma.billingEvent.findMany({ orderBy: { createdAt: 'desc' }, take: 200, select: { id: true, stripeEventId: true, type: true, status: true, error: true, createdAt: true } }))
+  res.json(await prisma.billingEvent.findMany({ orderBy: { createdAt: 'desc' }, take: 200, select: { id: true, provider: true, stripeEventId: true, type: true, status: true, error: true, createdAt: true } }))
 }))
 
 export default r

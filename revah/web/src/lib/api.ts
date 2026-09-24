@@ -115,7 +115,8 @@ export const del = <T = any>(path: string) => api<T>(path, { method: 'DELETE' })
 
 // Códigos 402/serviço que pedem upgrade ou ação do cliente.
 export const UPGRADE_CODES = new Set([
-  'TRIAL_EXHAUSTED',
+  'PAYMENT_METHOD_REQUIRED',
+  'TRIAL_MESSAGE_LIMIT',
   'TRIAL_RECIPIENT_LIMIT',
   'MONTHLY_LIMIT',
   'PLAN_FEATURE',

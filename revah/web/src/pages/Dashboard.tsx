@@ -1,38 +1,40 @@
 import { Link } from 'react-router-dom'
 import { CheckCircle2, Circle, Sparkles } from 'lucide-react'
 import { get } from '../lib/api'
-import { CALL_OUTCOME, CAMPAIGN_STATUS, CHANNEL_LABEL, fmtDate, fmtNumber } from '../lib/format'
+import { CALL_OUTCOME, CAMPAIGN_STATUS, CHANNEL_LABEL, fmtDate, fmtNumber, trialText } from '../lib/format'
 import { useAuthed } from '../lib/session'
 import type { DashboardData } from '../lib/types'
 import { Alert, Badge, Card, EmptyState, ErrorBox, Loading, PageHeader, Progress, Stat, useLoad } from '../components/ui'
 
 export function TrialBanner({ trial, compact }: { trial: DashboardData['trial']; compact?: boolean }) {
   const { embedded, canManage } = useAuthed()
-  if (!trial.isTrial) return null
-  const used = trial.campaignsUsed
+  const tt = trialText(trial)
+  if (!tt) return null
+  const pending = trial.paymentMethodRequired
   return (
-    <div className={`trial-banner ${trial.exhausted ? 'exhausted' : ''}`}>
+    <div className={`trial-banner ${pending ? 'exhausted' : ''}`}>
       <div className="trial-banner-text">
         <Sparkles size={20} />
         <div>
-          {trial.exhausted ? (
-            <>
-              <strong>Você usou as {trial.maxCampaigns} campanhas do teste grátis.</strong>
-              <div className="small">Escolha um plano para continuar disparando. Seus contatos, conversas e canais continuam salvos.</div>
-            </>
-          ) : (
-            <>
-              <strong>
-                Teste grátis: {used} de {trial.maxCampaigns} campanhas usadas
-              </strong>
-              {!compact && <div className="small">Cada campanha do teste pode ter até {trial.maxRecipientsPerCampaign} contatos. Envios de teste não consomem campanhas grátis.</div>}
-            </>
-          )}
+          <strong>{tt.title}</strong>
+          {!compact &&
+            (pending ? (
+              <div className="small">
+                {trial.trialAvailable
+                  ? `Você já pode explorar o painel. Os envios são liberados ao cadastrar a forma de pagamento; se cancelar antes do fim dos ${trial.days} dias, não há cobrança.`
+                  : 'Este e-mail, telefone ou documento já usou o teste grátis. Assine um plano para liberar os envios.'}
+              </div>
+            ) : (
+              <div className="small">
+                {trial.endsAt ? `A primeira cobrança acontece em ${fmtDate(trial.endsAt)}, se você não cancelar antes.` : 'Ao fim do teste a assinatura mensal é cobrada automaticamente.'} Cancele quando quiser em Assinatura.
+              </div>
+            ))}
+          {pending && (embedded || !canManage) && <div className="small">Peça ao responsável pela conta para cadastrar a forma de pagamento.</div>}
         </div>
       </div>
       {!embedded && canManage && (
-        <Link to="/assinatura" className={`btn ${trial.exhausted ? 'btn-primary' : 'btn-secondary'} btn-sm`}>
-          {trial.exhausted ? 'Escolher plano' : 'Ver planos'}
+        <Link to="/assinatura" className={`btn ${pending ? 'btn-primary' : 'btn-secondary'} btn-sm`}>
+          {pending ? (trial.trialAvailable ? 'Cadastrar forma de pagamento' : 'Escolher plano') : 'Ver assinatura'}
         </Link>
       )}
     </div>
@@ -81,7 +83,9 @@ export default function Dashboard() {
           label="Mensagens enviadas no mês"
           value={fmtNumber(data.usage.messages)}
           sub={
-            limit !== null ? (
+            limit === 0 ? (
+              'Envios liberados após cadastrar a forma de pagamento'
+            ) : limit !== null ? (
               <>
                 <Progress value={data.usage.messages} max={limit} tone={data.usage.messages / limit > 0.9 ? 'red' : 'indigo'} />
                 de {fmtNumber(limit)} do plano

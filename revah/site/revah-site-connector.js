@@ -5,7 +5,8 @@
  *
  * Substitui as chamadas que antes não tinham backend:
  *   /auth/register, /auth/login, /payments/create-subscription e o teste grátis em localStorage.
- * O teste grátis (2 campanhas × 20 contatos) agora é validado no servidor, por empresa.
+ * Teste grátis de 14 dias: começa quando a empresa cadastra a forma de pagamento (validado no servidor).
+ * Pagamentos: Asaas (Brasil — Pix, boleto ou cartão; exige CPF/CNPJ) ou Stripe (cartão internacional).
  */
 (function () {
   var script = document.currentScript
@@ -49,7 +50,7 @@
     apiUrl: API,
     appUrl: APP,
     session: session,
-    /** { name, email, password, company, phone } -> cria a empresa em teste grátis */
+    /** { name, email, password, company, phone } -> cria a empresa (status PENDING_PAYMENT até cadastrar o pagamento) */
     register: function (data) {
       return request('/auth/register', data).then(save)
     },
@@ -61,14 +62,27 @@
         localStorage.removeItem(KEY)
       } catch (e) {}
     },
-    /** Status real do teste grátis: { campaignsUsed, campaignsRemaining, exhausted, ... } */
+    /** Status do teste: { isTrial, days, endsAt, daysLeft, maxRecipientsPerCampaign, paymentMethodRequired, trialAvailable, exhausted } */
     trialStatus: function () {
       return request('/trial/status')
     },
-    /** plan: 'START' | 'PRO'. Redireciona para o checkout seguro do Stripe (cartão, boleto, Pix quando habilitado). */
-    subscribe: function (plan) {
-      return request('/payments/create-subscription', { plan: plan }).then(function (r) {
-        if (r.url) window.location.href = r.url
+    /** Planos, preços, recursos e provedores disponíveis: { plans, trial, providers: { ASAAS, STRIPE }, note, leadsPriceBRL } */
+    plans: function () {
+      return request('/plans')
+    },
+    /**
+     * plan: 'START' | 'PRO'; opts: { provider: 'ASAAS' | 'STRIPE', cpfCnpj }.
+     * Asaas com teste: os 14 dias começam na hora (sem redirecionar) e abre o painel em /assinatura?status=sucesso.
+     * Stripe (ou Asaas sem teste): redireciona para a página de pagamento.
+     */
+    subscribe: function (plan, opts) {
+      opts = opts || {}
+      var body = { plan: plan }
+      if (opts.provider) body.provider = opts.provider
+      if (opts.cpfCnpj) body.cpfCnpj = String(opts.cpfCnpj).replace(/\D/g, '')
+      return request('/payments/create-subscription', body).then(function (r) {
+        if (r.url && !r.trialEndsAt) window.location.href = r.url
+        else RevahSite.openApp('/assinatura?status=sucesso')
         return r
       })
     },

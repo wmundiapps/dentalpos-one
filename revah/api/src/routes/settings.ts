@@ -11,7 +11,7 @@ import { aiAvailable } from '../services/ai'
 import { createApiKey } from '../services/apiKeys'
 import { audit } from '../services/audit'
 import { getBotSettings } from '../services/inbound'
-import { assertCanAddUser, limitsFor, monthlyUsage, trialStatus } from '../services/plans'
+import { assertCanAddIntegration, assertCanAddUser, limitsFor, monthlyUsage, trialStatus } from '../services/plans'
 import { sendSystemEmail } from '../services/systemEmail'
 
 const r = Router()
@@ -115,6 +115,7 @@ r.get('/settings/api-keys', requireRole('OWNER', 'ADMIN'), ah(async (req: Authed
 
 r.post('/settings/api-keys', requireRole('OWNER', 'ADMIN'), ah(async (req: AuthedRequest, res) => {
   const name = z.object({ name: z.string().trim().min(1).max(60) }).parse(req.body).name
+  await assertCanAddIntegration(req.tenant)
   const key = await createApiKey(req.tenant.id, name)
   await audit(req.tenant.id, req.user.id, 'API_KEY_CREATE', 'ApiKey', key.id)
   res.status(201).json(key)

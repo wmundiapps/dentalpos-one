@@ -45,7 +45,7 @@ export function sessionPayload(user: any, tenant: any, embedded = false) {
   }
 }
 
-// Cadastro = empresa em teste grátis (2 campanhas × 20 contatos, sem cartão).
+// Cadastro = empresa criada; os 14 dias grátis começam ao cadastrar a forma de pagamento.
 r.post(
   '/register',
   ah(async (req, res) => {
@@ -65,8 +65,9 @@ r.post(
         slug: `${slugify(companyName)}-${randomToken(4).toLowerCase().replace(/[^a-z0-9]/g, '')}`,
         phone,
         document,
-        // Quem já usou o teste começa com as campanhas grátis consumidas.
-        trialCampaignsUsed: reused ? 2 : 0,
+        // Quem já usou o teste (e-mail/telefone/documento) não ganha novos 14 dias.
+        status: 'PENDING_PAYMENT',
+        trialEligible: !reused,
       },
     })
     const user = await prisma.user.create({
@@ -74,6 +75,22 @@ r.post(
     })
     if (!reused) await prisma.trialRegistry.createMany({ data: keys.map((key) => ({ key, tenantId: tenant.id })), skipDuplicates: true })
     await audit(tenant.id, user.id, 'REGISTER', 'Tenant', tenant.id, { trialReused: Boolean(reused) })
+    await Promise.all([
+      sendSystemEmail(
+        email,
+        'Bem-vindo ao REVAH',
+        `Olá, ${b.name}!\n\nSua conta ${companyName} foi criada no REVAH.\n\n` +
+          (reused
+            ? 'Este e-mail, telefone ou documento já usou o teste grátis antes; para disparar campanhas, escolha um plano em Assinatura.\n\n'
+            : 'Para começar seus 14 dias grátis, escolha o plano e cadastre a forma de pagamento em Assinatura. Se cancelar antes do fim do teste, não há cobrança.\n\n') +
+          `Acesse: ${config.appUrl}/login\nE-mail de acesso: ${email}\n\nSe não foi você quem criou esta conta, responda este e-mail.`,
+      ),
+      sendSystemEmail(
+        config.systemEmail.adminNotify,
+        `REVAH: nova conta criada — ${companyName}`,
+        `Nova conta no REVAH.\n\nEmpresa: ${companyName}\nNome: ${b.name}\nE-mail: ${email}\nTelefone: ${phone || 'não informado'}\nDocumento: ${document || 'não informado'}\nTeste grátis: ${reused ? 'já usado antes (sem novo teste)' : '14 dias, disponível'}\nData: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
+      ),
+    ]).catch((e) => console.error('[revah] e-mails de cadastro', e))
     res.status(201).json({ ...sessionPayload(user, tenant), trialAlreadyUsed: Boolean(reused) })
   }),
 )

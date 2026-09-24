@@ -8,6 +8,7 @@ import { CHANNELS, isChannel, normalizeDestination } from '../lib/normalize'
 import type { AuthedRequest } from '../middleware/auth'
 import { audit } from '../services/audit'
 import { applyTags, contactTimeline, removeTags, upsertContact } from '../services/contacts'
+import { assertCanImportCsv } from '../services/plans'
 import { suppress, unsuppress } from '../services/suppression'
 
 const r = Router()
@@ -173,6 +174,7 @@ r.post(
 r.post(
   '/contacts/import',
   ah(async (req: AuthedRequest, res) => {
+    assertCanImportCsv(req.tenant)
     const b = z.object({ csv: z.string().min(1).max(5_000_000), tags: z.array(z.string()).optional() }).parse(req.body)
     const rows = parseCsv(b.csv)
     if (!rows.length) throw badRequest('Arquivo vazio ou sem cabeçalho.')

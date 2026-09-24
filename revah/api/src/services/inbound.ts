@@ -6,6 +6,7 @@ import { emitEvent } from './automations'
 import { findOrCreateByChannel } from './contacts'
 import { notifyIntegration } from './integrationOut'
 import { ensureConversation, sendMessage } from './messaging'
+import { limitsFor } from './plans'
 import { detectOptOut, isSuppressed, suppress, unsuppress } from './suppression'
 
 export interface InboundInput {
@@ -80,7 +81,7 @@ export async function handleInbound(input: InboundInput) {
   const botEnabledOnAccount = (account.settings as any)?.botEnabled !== false
   if (conversation.status !== 'BOT' || !bot.aiEnabled || !botEnabledOnAccount || !text) return { message }
 
-  const decision = await decideChatReply({ bot, channel, tenantId: tenant.id, contactId: contact.id, incoming: text })
+  const decision = await decideChatReply({ bot, channel, tenantId: tenant.id, contactId: contact.id, incoming: text, level: limitsFor(tenant).ai })
   if (decision.optOut) {
     await sendMessage({ tenant, channel, contact, text: bot.optOutConfirmation, skipUsageCheck: true }).catch(() => null)
     await suppress(tenant.id, channel, address, 'KEYWORD', { contactId: contact.id, detail: text })

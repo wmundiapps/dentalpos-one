@@ -119,7 +119,7 @@ r.post(
     const b = z.object({ channel: z.enum(CHANNELS as [string, ...string[]]), audience: AudienceSchema }).parse(req.body)
     const p = await previewAudience(req.tenant.id, b.channel as Channel, b.audience as Audience)
     const trial = trialStatus(req.tenant)
-    res.json({ ...p, trial, fitsTrial: !trial.isTrial || (!trial.exhausted && p.valid <= TRIAL_RULES.maxRecipientsPerCampaign) })
+    res.json({ ...p, trial, fitsTrial: !trial.isTrial || p.valid <= TRIAL_RULES.maxRecipientsPerCampaign })
   }),
 )
 
@@ -152,7 +152,7 @@ r.post(
     if (!c) throw notFound('Campanha não encontrada.')
     if (c.channel === 'VOICE') throw badRequest('Para testar voz, use "Ligar agora" em REVAH Voice.')
     const destination = String(req.body?.destination || '')
-    const vars = contactVars({ name: req.body?.name || req.user.name })
+    const vars = contactVars({ name: req.body?.name || req.user.name }, { minha_empresa: req.tenant.name })
     const tpl = c.waTemplate as any
     const out = await sendMessage({
       tenant: req.tenant,

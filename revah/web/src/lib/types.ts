@@ -7,16 +7,40 @@ export interface Limits {
   channels: number | null
   monthlyMessages: number | null
   voice: boolean
-  ai: boolean
+  ai: 'basic' | 'advanced' | boolean
+  templates: number | null
+  integrations: number | null
+  csvImport: boolean
 }
 
+// Teste de 14 dias: começa ao cadastrar a forma de pagamento (checkout).
 export interface TrialStatus {
   isTrial: boolean
-  campaignsUsed: number
-  campaignsRemaining: number | null
-  maxCampaigns: number
+  days: number
+  endsAt: string | null
+  daysLeft: number | null
   maxRecipientsPerCampaign: number
+  paymentMethodRequired: boolean
+  trialAvailable: boolean
   exhausted: boolean
+}
+
+export interface MessageTemplate {
+  id: string
+  name: string
+  segment: string
+  channel: Channel | null
+  subject: string | null
+  body: string
+  createdAt: string
+}
+
+export interface LibraryTemplate {
+  key: string
+  segment: string
+  name: string
+  body: string
+  variables: string[]
 }
 
 export interface Session {
@@ -330,6 +354,16 @@ export interface PlanInfo {
   priceBRL: number | null
   limits: Limits
   contactSales?: boolean
+  highlight?: boolean
+  features: string[]
+}
+
+export interface PlansResponse {
+  plans: PlanInfo[]
+  trial: { days: number; maxRecipientsPerCampaign: number; maxMessages?: number }
+  leadsPriceBRL: number | null
+  providers: { ASAAS: boolean; STRIPE: boolean }
+  note: string
 }
 
 export interface DashboardData {

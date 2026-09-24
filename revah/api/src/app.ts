@@ -23,6 +23,7 @@ import integrationRoutes from './routes/integrations'
 import leadRoutes from './routes/leads'
 import publicRoutes from './routes/public'
 import settingsRoutes from './routes/settings'
+import templateRoutes from './routes/templates'
 import voiceRoutes from './routes/voice'
 import webhookRoutes from './routes/webhooks'
 
@@ -67,7 +68,7 @@ export function createApp() {
 
   const authed = express.Router()
   authed.use(requireAuth)
-  authed.use(crmRoutes, channelRoutes, campaignRoutes, inboxRoutes, automationRoutes, voiceRoutes, leadRoutes, settingsRoutes)
+  authed.use(crmRoutes, channelRoutes, templateRoutes, campaignRoutes, inboxRoutes, automationRoutes, voiceRoutes, leadRoutes, settingsRoutes)
   authed.use('/admin', requireSuperadmin)
   authed.use(adminRoutes)
   app.use(authed)
