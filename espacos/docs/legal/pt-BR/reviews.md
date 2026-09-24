@@ -98,4 +98,6 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 10.1. As notas médias são calculadas a partir das avaliações publicadas e exibidas no perfil e no Anúncio. As avaliações podem ser consideradas na ordenação de resultados de busca e em programas de reconhecimento.
 
-10.2. Em observância a normas de transparência (como o Regulamento de Serviços Digitais da União Europeia e leis de defesa do consumidor), a Plataforma informa que apenas partes de Reservas efetivamente concluídas e Clientes Finais com link de convite válido podem avaliar.
+10.2. Em observância a normas de transparência (como o Regulamento de Serviços Digitais da União Europeia, a Diretiva 2005/29/CE alterada pela Diretiva (UE) 2019/2161, o Digital Markets, Competition and Consumers Act 2024 do Reino Unido, a FTC Rule on Consumer Reviews and Testimonials dos Estados Unidos e leis de defesa do consumidor), a Plataforma informa que apenas partes de Reservas efetivamente concluídas e Clientes Finais com link de convite válido podem avaliar. A Plataforma verifica o vínculo da avaliação com uma Reserva concluída, mas não verifica a identidade dos Clientes Finais, que avaliam de forma anônima.
+
+10.3. É vedado suprimir avaliações negativas legítimas, inclusive por meio de ameaças, incentivos ou cláusulas contratuais que impeçam o Usuário de publicar avaliação honesta.

@@ -63,7 +63,11 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 6.4. O Avalista que pagar tem direito de regresso contra o Locatário pelo valor integral pago.
 
-6.5. No Brasil, a garantia tem natureza de fiança convencional limitada (Código Civil, arts. 818 e seguintes), com solidariedade expressamente pactuada e renúncia ao benefício de ordem (art. 828, I e II), sem prejuízo da ordem operacional de cobrança da cláusula 6.2(c), que a Plataforma se obriga a observar. Quando o Avalista for casado, aplica-se a exigência legal de outorga conjugal, se cabível. Em outros países aplica-se a figura equivalente (*guarantee*, *fianza*, *Bürgschaft*, *cautionnement*), com as formalidades locais.
+6.5. No Brasil, a garantia tem natureza de fiança convencional limitada (Código Civil, arts. 818 e seguintes), com solidariedade expressamente pactuada e renúncia ao benefício de ordem (art. 828, I e II), sem prejuízo da ordem operacional de cobrança da cláusula 6.2(c), que a Plataforma se obriga a observar. Quando o Avalista for casado, aplica-se a exigência legal de outorga conjugal, salvo no regime da separação absoluta de bens (Código Civil, art. 1.647, III); a fiança prestada sem ela pode ser ineficaz (Súmula 332 do STJ). Em outros países aplica-se a figura equivalente (*guarantee*, *fianza*, *Bürgschaft*, *cautionnement*), com as formalidades locais, por exemplo:
+- (a) **Alemanha**: a fiança prestada por pessoa física não comerciante exige forma escrita com assinatura de próprio punho e **não pode ser prestada em forma eletrônica** (BGB, § 766); nesses casos, o aceite pela Plataforma deve ser complementado por documento assinado, sem o qual a garantia pode ser ineficaz;
+- (b) **França**: o fiador pessoa física deve apor menção de próprio punho ou eletrônica do montante e da extensão da garantia (Code civil, art. 2297);
+- (c) **Reino Unido**: a garantia deve ser escrita e assinada pelo garantidor, admitida a assinatura eletrônica;
+- (d) **Japão**: o contrato de fiança deve ser feito por escrito ou registro eletrônico e, quando pessoa física garantir obrigações futuras indeterminadas, com valor máximo expresso (Código Civil, arts. 446 e 465-2), requisito atendido pelo limite da cláusula 6.1.
 
 ## 7. Proteção de dados do Avalista
 

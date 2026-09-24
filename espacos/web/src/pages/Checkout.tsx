@@ -46,20 +46,22 @@ export default function Checkout() {
   const asyncMethod = method && ASYNC_PAYMENT_METHODS.includes(method);
   const needsGuarantor = quote.guarantorRequired || (listing.securityDeposit > 0 && !!asyncMethod);
   const showGuarantor = needsGuarantor || useGuarantor;
-  const licenseMissing = listing.requiresLicense && !me.professionalLicense?.verified;
+  const licenseMissing = listing.requiresLicense && me.licenseStatus !== 'approved';
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setError('');
     try {
-      const b = await api<{ id: string }>('/bookings', {
+      const b = await api<{ id: string; status: string; payment?: { checkoutUrl?: string } }>('/bookings', {
         body: {
           listingId: listing!.id, occurrences, guests, purpose, paymentMethod: method, acceptRules: accept, isConsumer,
           clientReviewsEnabled: clientReviews, message: message || undefined,
           guarantor: showGuarantor ? { ...g, phone: g.phone || undefined, relationship: g.relationship || undefined } : undefined,
         },
       });
-      nav(`/reservas/${b.id}?novo=1`);
+      // Pagamento no checkout do provedor (Stripe / Mercado Pago); volta para a reserva
+      if (b.status === 'pending_payment' && b.payment?.checkoutUrl) window.location.assign(b.payment.checkoutUrl);
+      else nav(`/reservas/${b.id}?novo=1`);
     } catch (err) {
       setError(errorText(err, t));
     } finally {

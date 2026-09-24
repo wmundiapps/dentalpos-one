@@ -23,6 +23,13 @@ export function Footer() {
             <li><Link to="/regras/penalties">{t('legal.penalties')}</Link></li>
           </ul>
         </div>
+        <div>
+          <strong>SpaceHour</strong>
+          <ul>
+            <li><button type="button" className="link-button" onClick={() => window.dispatchEvent(new CustomEvent('open-feedback', { detail: 'rating' }))}>{t('footer.feedback')}</button></li>
+            <li>{t('footer.contact')}: <a href="mailto:support@space-hour.com">support@space-hour.com</a></li>
+          </ul>
+        </div>
       </div>
       <div className="container muted small footer-bottom">© {new Date().getFullYear()} SpaceHour · {t('footer.legalNote')}</div>
     </footer>

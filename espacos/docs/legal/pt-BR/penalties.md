@@ -22,6 +22,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 | **Violação de regras** do Espaço, do edifício ou da Plataforma | 20% do Valor Base | Sim | 72 horas |
 | **Excesso de capacidade** (mais pessoas que o declarado ou que a capacidade) | 25% do Valor Base | Sim | 72 horas |
 | **Atividade não autorizada** (diversa da declarada, proibida pelo Anfitrião ou sem habilitação) | 50% do Valor Base | Sim | 72 horas |
+| **Exercício ilegal de profissão** (atuar sem habilitação válida e ativa, fora de seus limites, com registro de terceiro ou documento falso) | 50% do Valor Base (penalidade de atividade não autorizada), **exclusão imediata e definitiva** da conta e **comunicação às autoridades** e ao órgão profissional competentes (cláusula 6.5) | Sim — falta grave | Pecuniária: 72 horas; exclusão e comunicação: a qualquer tempo |
 | **Sublocação** ou cessão a terceiro | 100% do Valor Base; possível exclusão da conta | Sim — falta grave | 168 horas (7 dias) |
 | **Fumo ou uso de substâncias** proibidas no Espaço | Valor equivalente a 2 horas do preço/hora do Espaço, além do custo de limpeza especializada, se houver | Sim | 24 horas |
 | **Multa de condomínio/edifício** causada pelo Locatário | Repasse do valor da multa efetivamente aplicada, mediante cópia da notificação | Sim | 720 horas (30 dias) |
@@ -87,11 +88,18 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 | **3** | **Suspensão por 90 dias** (não pode fazer novas Reservas nem publicar/receber Reservas, conforme o papel) |
 | **5** | **Exclusão definitiva** da conta |
 
-6.2. **Faltas graves** — sublocação, assédio ou discriminação, pagamento fora da Plataforma e risco à segurança — podem levar à **exclusão imediata**, independentemente do número de Advertências.
+6.2. **Faltas graves** — sublocação, assédio ou discriminação, pagamento fora da Plataforma, risco à segurança e exercício ilegal de profissão (cláusula 6.5) — podem levar à **exclusão imediata**, independentemente do número de Advertências.
 
 6.3. Durante a suspensão, as Reservas futuras já confirmadas podem ser canceladas pela Plataforma, com reembolso integral à contraparte inocente.
 
 6.4. Advertências decorrentes de decisão revertida em recurso são removidas.
+
+6.5. **Exercício ilegal de profissão.** O exercício de profissão regulamentada sem habilitação válida e ativa, fora de seus limites ou mediante registro de terceiro ou documento falso leva, sempre:
+- (a) à **exclusão imediata e definitiva** da conta do Locatário, com cancelamento das Reservas futuras e impedimento de novo cadastro;
+- (b) à **comunicação do fato às autoridades** policiais, sanitárias ou judiciais e ao órgão profissional competente, com as evidências disponíveis, observada a legislação de proteção de dados (no Brasil, por exemplo, Código Penal, art. 282, e Lei das Contravenções Penais, art. 47);
+- (c) à responsabilidade integral do Locatário pelos prejuízos causados ao Anfitrião, à Operadora, a Clientes Finais e a terceiros.
+
+O **Anfitrião que, conscientemente, permitir** esse uso também tem sua conta **excluída definitivamente**, podendo o fato ser comunicado às autoridades. Não se considera conivente o Anfitrião que confirmou a habilitação conforme Obrigações do Anfitrião, cláusula 3.4, e foi induzido a erro por documento falso. A aplicação destas medidas é revisada por pessoa e pode ser objeto de recurso (Central de Resolução e Disputas), sem efeito suspensivo.
 
 ## 7. Penalidades aplicáveis ao Anfitrião
 
@@ -102,6 +110,8 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 | **Segurança** (risco à integridade física, instalações irregulares, equipamento perigoso) | Suspensão imediata do Anúncio; possível exclusão | Sim — falta grave | 72 horas |
 | **Cancelamento pelo Anfitrião** | Multa de 0%, 10% ou 25% do Valor Base, conforme antecedência (Política de Cancelamento) | Sim | — |
 | Assédio, discriminação ou pagamento fora da Plataforma | Exclusão | Sim — falta grave | 30 dias |
+| **Permitir conscientemente** o uso de Espaço regulado por pessoa sem habilitação legal | **Exclusão imediata e definitiva** da conta; possível comunicação às autoridades (cláusula 6.5) | Sim — falta grave | A qualquer tempo |
+| **Fotos enganosas** ou que exponham pessoas, pacientes ou documentos identificáveis | Remoção das fotos; se enganosas, tratamento como Anúncio impreciso | Sim, se enganosas | 24 horas (Anúncio impreciso) |
 
 7.1. **3 cancelamentos pelo Anfitrião em 12 meses** levam à suspensão da conta de Anfitrião, aplicando-se o mesmo sistema de Advertências da cláusula 6.
 
@@ -110,10 +120,13 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 ## 8. Limites de razoabilidade e leis locais
 
 8.1. Nenhuma penalidade será aplicada em valor ou forma que a lei aplicável considere abusiva ou desproporcional. Em especial:
-- (a) no **Brasil**, observa-se o Código de Defesa do Consumidor (arts. 39 e 51), o Código Civil (art. 413 — redução equitativa da cláusula penal) e a vedação à vantagem manifestamente excessiva;
-- (b) na **Austrália**, as penalidades e taxas de cancelamento devem ser razoáveis segundo as regras de cláusulas contratuais injustas do Australian Consumer Law;
-- (c) na **União Europeia** e no **Reino Unido**, observam-se a Diretiva 93/13/CEE e o Consumer Rights Act 2015 sobre cláusulas abusivas;
-- (d) nos demais países, as leis de consumo e de contratos indicadas em Regras por País.
+- (a) no **Brasil**, observam-se o Código de Defesa do Consumidor (art. 39, V, e art. 51, IV e § 1º — vantagem manifestamente excessiva), o Código Civil (arts. 412 e 413 — limite e redução equitativa da cláusula penal) e o art. 424 do Código Civil (contratos de adesão);
+- (b) na **Austrália**, as penalidades e taxas de cancelamento devem ser razoáveis segundo as regras de cláusulas contratuais injustas do Australian Consumer Law, que desde 09/11/2023 são ilegais e sujeitas a multa e protegem também pequenas empresas;
+- (c) na **União Europeia**, observam-se a Diretiva 93/13/CEE (em especial o Anexo, alíneas "d" e "e": retenção de valores sem compensação equivalente e indenização desproporcionalmente elevada) e as leis nacionais de transposição; no **Reino Unido**, a Part 2 do Consumer Rights Act 2015;
+- (d) no **Japão**, a parte da taxa de cancelamento que exceder o dano médio do fornecedor é nula em contratos de consumo (Consumer Contract Act, art. 9);
+- (e) em **Israel**, as tarifas de cancelamento em transações de consumo observam os limites das Consumer Protection (Cancellation of Transaction) Regulations;
+- (f) nos **países latino-americanos**, as regras de cláusulas abusivas das leis de consumo (por exemplo, Argentina, Ley 24.240, art. 37; Chile, Ley 19.496, art. 16; Colômbia, Ley 1480, arts. 42 e 43; México, LFPC, art. 90);
+- (g) nos demais países, as leis de consumo e de contratos indicadas em Regras por País.
 
 8.2. A Plataforma pode, de ofício, reduzir penalidades quando o montante se mostrar excessivo diante da natureza e da finalidade da Reserva, do comportamento das partes e do prejuízo efetivo.
 
@@ -123,4 +136,4 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 9.1. Em caso de indício de falta grave ou de risco à segurança de pessoas, a Plataforma pode, cautelarmente, suspender a conta ou o Anúncio, cancelar Reservas futuras e reter repasses relacionados, pelo tempo necessário à apuração, comunicando a parte afetada.
 
-9.2. A Plataforma pode comunicar autoridades competentes, inclusive conselhos profissionais, quando houver indício de crime, infração ética grave ou risco à saúde pública, observada a legislação de proteção de dados.
+9.2. A Plataforma pode comunicar autoridades competentes, inclusive conselhos profissionais, quando houver indício de crime, infração ética grave ou risco à saúde pública, observada a legislação de proteção de dados. Constatado o exercício ilegal de profissão, a Plataforma sempre faz a comunicação (cláusula 6.5).

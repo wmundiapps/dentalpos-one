@@ -8,6 +8,7 @@ import { COUNTRIES, COUNTRY_BY_CODE } from '../../../shared/countries';
 import type { Listing, TimeRange, Weekday } from '../../../shared/types';
 import { countryName, flag, timeSlots } from '../format';
 import { errorText } from '../errors';
+import { PhotoUploader } from '../components/PhotoUploader';
 
 type Form = Omit<Listing, 'id' | 'hostId' | 'createdAt' | 'currency' | 'timezone'>;
 
@@ -19,7 +20,7 @@ function blank(country: string): Form {
     title: '', description: '', category: 'dental', countryCode: c.code, city: c.cities[0].name, neighborhood: '', address: '',
     capacity: 2, areaM2: undefined, amenities: ['wifi'], equipment: '', photos: [], pricePerHour: 0, pricePerDay: undefined,
     minHours: 1, cleaningFee: 0, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate', guarantorPolicy: 'none',
-    guarantorThreshold: undefined, requiresLicense: true, houseRules: '', buildingRules: '', allowedActivities: '', forbiddenActivities: '',
+    guarantorThreshold: undefined, requiresLicense: true, hostLicenseResponsibility: false, houseRules: '', buildingRules: '', allowedActivities: '', forbiddenActivities: '',
     bufferMinutes: 30, weeklyAvailability: { 1: [{ start: '18:00', end: '22:00' }], 2: [{ start: '18:00', end: '22:00' }], 3: [{ start: '18:00', end: '22:00' }], 4: [{ start: '18:00', end: '22:00' }], 5: [{ start: '18:00', end: '22:00' }], 6: [{ start: '08:00', end: '14:00' }] },
     blockedDates: [], active: true,
   };
@@ -31,7 +32,6 @@ export default function ListingEditor() {
   const { me, country } = useApp();
   const nav = useNavigate();
   const [f, setF] = useState<Form>(() => blank(country || me?.countryCode || 'BR'));
-  const [photosText, setPhotosText] = useState('');
   const [blockedText, setBlockedText] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -43,7 +43,6 @@ export default function ListingEditor() {
       if (!l) return;
       const { id: _i, hostId: _h, createdAt: _c, currency: _cu, timezone: _tz, ...rest } = l;
       setF(rest as Form);
-      setPhotosText(l.photos.join('\n'));
       setBlockedText(l.blockedDates.join('\n'));
     });
   }, [id]);
@@ -72,7 +71,6 @@ export default function ListingEditor() {
     setBusy(true); setError('');
     const body = {
       ...f,
-      photos: photosText.split('\n').map((x) => x.trim()).filter(Boolean),
       blockedDates: blockedText.split(/[\s,]+/).map((x) => x.trim()).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)),
       weeklyAvailability: Object.fromEntries(Object.entries(f.weeklyAvailability).filter(([, r]) => r && r.length)),
       buildingRules: f.buildingRules || undefined, allowedActivities: f.allowedActivities || undefined, forbiddenActivities: f.forbiddenActivities || undefined,
@@ -128,7 +126,7 @@ export default function ListingEditor() {
               return <button type="button" key={a} className={`chip ${on ? 'on' : ''}`} onClick={() => set('amenities', on ? f.amenities.filter((x) => x !== a) : [...f.amenities, a])}>{t(`amen.${a}` as DictKey)}</button>;
             })}
           </div>
-          <label className="span2">{t('form.photos')}<textarea value={photosText} onChange={(e) => setPhotosText(e.target.value)} placeholder="https://..." /></label>
+          <div className="span2"><span className="block-label">{t('form.photos')}</span><PhotoUploader photos={f.photos} onChange={(p) => set('photos', p)} /></div>
         </section>
 
         <section className="section">
@@ -184,6 +182,10 @@ export default function ListingEditor() {
           {f.guarantorPolicy === 'required_over_amount' && <label>{t('form.guarantorThreshold')}<input type="number" min={1} required value={f.guarantorThreshold ?? ''} onChange={(e) => set('guarantorThreshold', num(e.target.value))} /></label>}
           <label className="check"><input type="checkbox" checked={f.instantBook} onChange={(e) => set('instantBook', e.target.checked)} /> ⚡ {t('form.instantBook')}</label>
           <label className="check"><input type="checkbox" checked={f.requiresLicense} onChange={(e) => set('requiresLicense', e.target.checked)} /> 🪪 {t('form.requiresLicense', { body: cfg.licenseBodies[f.category] ?? cfg.licenseBodies.default ?? '' })}</label>
+          {f.requiresLicense && <>
+            <label className="check"><input type="checkbox" checked={f.hostLicenseResponsibility} onChange={(e) => set('hostLicenseResponsibility', e.target.checked)} /> ✅ {t('form.hostLicenseResponsibility')}</label>
+            <p className="muted small span2">{t('editor.licenseResponsibilityHelp')} <Link to="/regras/host-obligations">{t('legal.host-obligations')}</Link></p>
+          </>}
           <Link to="/regras/cancellation-refunds" className="small span2">{t('common.readFullPolicy')}</Link>
         </section>
 

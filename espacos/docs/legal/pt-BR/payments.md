@@ -8,6 +8,17 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 1.2. Os pagamentos são processados por instituições de pagamento e adquirentes parceiros, devidamente autorizados em cada jurisdição. A Operadora atua como agente de cobrança limitado do Anfitrião: o pagamento feito pelo Locatário à Plataforma quita a obrigação do Locatário perante o Anfitrião.
 
+1.3. **Processadores de pagamento.** A Plataforma utiliza dois processadores:
+
+| Processador | Países |
+|---|---|
+| **Mercado Pago** | Brasil, Argentina, Chile, Colômbia, México, Peru e Uruguai |
+| **Stripe** | Demais países atendidos e operações internacionais |
+
+1.4. O processador aplicável é definido pelo país do Espaço e indicado no resumo da Reserva. Anfitriões podem ter de aceitar os termos do processador e fornecer a ele os dados de identificação e bancários exigidos por sua regulação (KYC) para receber repasses.
+
+1.5. **Dados de cartão.** Os dados de cartão são digitados diretamente nos campos seguros ou nos aplicativos do Mercado Pago ou da Stripe, certificados PCI DSS, e **nunca transitam nem são armazenados nos servidores da Plataforma**. A Plataforma recebe apenas um *token*, a bandeira, os últimos dígitos e a validade, para exibição e cobranças autorizadas.
+
 ## 2. Moeda
 
 2.1. Todo Espaço é precificado na **moeda oficial do país onde está localizado** (por exemplo, BRL no Brasil, EUR em Portugal, USD nos Estados Unidos, no Equador, no Panamá e em El Salvador). A Reserva é cobrada nessa moeda.
@@ -39,7 +50,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 3.3. **Exemplo (Brasil).** Reserva de 4 horas a R$ 80/hora, Taxa de Limpeza de R$ 30. Valor Base: R$ 320. Taxa de Serviço do Locatário: 12% × R$ 350 = R$ 42. ISS de referência (5%) sobre a Taxa de Serviço: R$ 2,10. Total pago: R$ 394,10. Taxa do Anfitrião: 3% × R$ 350 = R$ 10,50. Repasse ao Anfitrião: R$ 339,50.
 
-3.4. O detalhamento completo é exibido antes da confirmação. Não há cobranças ocultas.
+3.4. O detalhamento completo é exibido antes da confirmação. Não há cobranças ocultas. Onde a lei exigir que o preço anunciado já inclua todas as taxas obrigatórias (por exemplo, Reino Unido, Austrália, Califórnia e Índia), o preço exibido nas buscas e no Anúncio inclui a Taxa de Serviço e a Taxa de Limpeza.
 
 ## 4. Meios de pagamento por país
 
@@ -79,7 +90,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 | Índia | UPI, cartão, RuPay, net banking, PayPal |
 | Austrália | Cartão, PayID, BPAY, Apple Pay, Google Pay, PayPal |
 
-4.2. "Cartão" abrange Visa, Mastercard e American Express, conforme disponibilidade do processador.
+4.2. "Cartão" abrange Visa, Mastercard e American Express, conforme disponibilidade do processador. A disponibilidade efetiva de cada meio depende do processador responsável no país (cláusula 1.3); meios não suportados por ele não são exibidos no pagamento.
 
 4.3. **Pagamentos assíncronos.** Pix, boleto, OXXO, SPEI, Multibanco, konbini, transferência bancária, BPAY, PSE, net banking, UPI, Bizum, MB WAY, Bit, PayID e Yape são confirmados somente após a compensação. A Reserva só é confirmada após o recebimento, e pagamentos não compensados no prazo indicado expiram. Esses meios não permitem pré-autorização de Caução, aplicando-se o documento Avalista e Caução.
 
@@ -109,7 +120,9 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 7.2. A retenção é comunicada ao Anfitrião com o motivo e perdura somente pelo tempo necessário.
 
-7.3. **Retenções tributárias.** Quando a lei impuser à Plataforma retenção de tributos sobre repasses (por exemplo, IVA/ISR no México, TCS sob o GST na Índia), os valores retidos são recolhidos e informados ao Anfitrião com o respectivo comprovante.
+7.3. **Retenções tributárias.** Quando a lei impuser à Plataforma retenção de tributos sobre repasses (por exemplo, IVA/ISR no México, pela Ley del IVA, Cap. III Bis, e pela LISR, arts. 113-A a 113-D; TCS de 0,5% sob o GST e TDS de 0,1% da s. 194-O do Income-tax Act na Índia; *backup withholding* nos Estados Unidos, se o Anfitrião não fornecer o Form W-9), os valores retidos são recolhidos e informados ao Anfitrião com o respectivo comprovante.
+
+7.4. **Comunicação de rendimentos.** A Plataforma ou o processador de pagamento podem comunicar às autoridades fiscais os rendimentos recebidos pelos Anfitriões, por exemplo pela Diretiva DAC7 (União Europeia), pelo Form 1099-K (Estados Unidos), pelas regras de *platform reporting* do Reino Unido, do Canadá e da Austrália e pelas regras chinesas de comunicação de informações fiscais por plataformas (documento Obrigações do Anfitrião, cláusula 11).
 
 ## 8. Reembolsos
 
@@ -145,4 +158,4 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 13.2. A Plataforma pode recusar, cancelar ou reter pagamentos e repasses com indícios de fraude, uso de cartão de terceiros, operações simuladas ou incompatíveis com o perfil, e comunicar as autoridades competentes conforme a lei.
 
-13.3. Os dados de cartão são tokenizados por processadores certificados PCI DSS; a Plataforma não armazena o número completo do cartão nem o código de segurança.
+13.3. Os dados de cartão são coletados e tokenizados diretamente pelo Mercado Pago ou pela Stripe, certificados PCI DSS; eles nunca transitam pelos servidores da Plataforma, que não recebe nem armazena o número completo do cartão nem o código de segurança. Autenticação reforçada (3-D Secure ou equivalente) pode ser exigida pelo processador ou pela regulação local (por exemplo, SCA na União Europeia e no Reino Unido).

@@ -34,6 +34,11 @@ Contas de demonstração (senha `demo12345`): `locatario@spacehour.demo` (dentis
 | Cancelamento | Flexível / Moderada / Rígida, janela de cortesia, direito de arrependimento por país, cancelamento pelo anfitrião com multa e advertência |
 | Penalidades | Atraso na saída (automático no check-out), danos, limpeza, descumprimento de normas, excesso de pessoas, sublocação etc.; 48 h para contestar; mediação; advertências → suspensão → exclusão |
 | Avaliações | Anfitrião avalia o locatário, locatário avalia espaço/anfitrião (duplo-cego, 14 dias) e, **opcionalmente, o locatário gera links para os próprios clientes avaliarem o espaço** |
+| Pagamento real | **Mercado Pago** (Checkout Pro) na América Latina — BR, AR, CL, CO, MX, PE, UY — e **Stripe** (Checkout) no resto do mundo. O horário fica reservado 30 min enquanto o locatário paga; a confirmação chega por webhook assinado. Stripe: cartão pré-autorizado, caução e cobranças posteriores no meio salvo. Mercado Pago: sem caução (vira avalista) e penalidades por link de pagamento |
+| Registro profissional | Locatário envia número + foto/PDF da carteira; **agente de IA (Claude)** confere documento, nome, número, conselho e busca o cadastro público; só aprova sozinho com alta confiança, o resto vai para a equipe (`/admin`). O **anfitrião é o responsável final**: aprova a reserva declarando que conferiu o registro, ou marca no anúncio que assume essa conferência |
+| Fotos | Upload da galeria/câmera do celular ou do computador (arrastar e soltar), JPG/PNG/WEBP/HEIC até 10 MB, capa; Vercel Blob ou banco |
+| E-mail | Fila no banco enviada por SMTP (GoDaddy): `no-reply@space-hour.com`, respostas para `support@space-hour.com` |
+| Avaliação do app | Botão “Avaliar o app” em todas as telas: nota, sugestões de melhoria e relato de erros; painel na equipe e aviso por e-mail |
 | Regras | 12 documentos legais completos (termos, reserva, cancelamento, penalidades, normas, avalista, avaliações, pagamentos, anfitrião, disputas, privacidade, regras por país) em 11 idiomas — `docs/legal/` |
 
 ## Estrutura
@@ -50,4 +55,16 @@ Contas de demonstração (senha `demo12345`): `locatario@spacehour.demo` (dentis
 ## Antes de produção
 
 - **Revisão jurídica e tributária em cada país** (os textos e alíquotas são base de referência).
-- Trocar os pagamentos simulados por adquirentes reais (roteamento em `server/src/payments.ts`); verificação de identidade/registro profissional por provedor de KYC e consulta aos conselhos; envio real de e-mails (`server/src/notify.ts`); definir `JWT_SECRET`.
+- Preencher as variáveis de `server/.env.example` (tokens Mercado Pago por país, chaves Stripe, `ANTHROPIC_API_KEY`, SMTP, `JWT_SECRET`, `CRON_SECRET`).
+- Webhooks: Stripe → `https://space-hour.com/api/webhooks/stripe` (eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `charge.refunded`); Mercado Pago → `https://space-hour.com/api/webhooks/mercadopago` (tópico *Pagamentos*).
+- Repasse aos anfitriões ainda é manual (próximo passo: Stripe Connect / split do Mercado Pago).
+- Verificação de identidade (KYC com selfie) ainda é declaratória.
+
+## Colocar no ar (Vercel)
+
+1. Criar o projeto na Vercel apontando para a pasta `espacos/` deste repositório (o `vercel.json` já define build, rotas da API e o cron).
+2. Criar um Postgres gerenciado (Neon ou Supabase pela Vercel Marketplace) e definir `DATABASE_URL`, `DATABASE_SSL=true`, `DATABASE_POOL_SIZE=3`. As migrações rodam no build.
+3. Definir as demais variáveis de ambiente (acima) e `APP_URL=https://space-hour.com`, `PUBLIC_API_URL=https://space-hour.com`, `NODE_ENV=production`, `SEED_DEMO=false`.
+4. Blob: criar um Vercel Blob Store (gera `BLOB_READ_WRITE_TOKEN`).
+5. Domínios: adicionar `space-hour.com` (GoDaddy) e `spacehour.com.br` (Registro.br) no projeto e criar os registros DNS indicados pela Vercel (A `76.76.21.21` / CNAME `cname.vercel-dns.com`). **Não alterar os registros MX** do e-mail da GoDaddy.
+6. O cron a cada 5 min exige plano Pro; no Hobby, mude para diário em `vercel.json`.
