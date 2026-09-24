@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Autocomplete,
   Alert,
   Box,
   Button,
@@ -31,6 +30,9 @@ import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
 import SmartSchedulingSettingsDialog from "../components/SmartSchedulingSettingsDialog";
 import AgendaAvailabilitySettingsDialog from "../components/AgendaAvailabilitySettingsDialog";
+import PatientSearchField, { formatPhoneBR, isValidPhoneBR, type PatientChoice } from "../components/PatientSearchField";
+import DurationSelect from "../components/DurationSelect";
+import { suggestDuration } from "../services/ProcedureDurations";
 import { useNavigate } from "react-router-dom";
 import {
   changeAppointmentWithHistory,
@@ -317,13 +319,7 @@ export default function Agenda() {
   });
   const [form, setForm] = useState<AppointmentForm>(() => initialForm(date));
   const [patientMode, setPatientMode] = useState<PatientMode>("registered");
-  const [newPatient, setNewPatient] = useState({
-    firstName: "",
-    lastName: "",
-    birthDate: "",
-    phone: "",
-    city: "",
-  });
+  const [patientChoice, setPatientChoice] = useState<PatientChoice>(null);
   const [backendPatients, setBackendPatients] = useState<BackendPatient[]>([]);
   const [backendDoctors, setBackendDoctors] = useState<BackendDoctor[]>([]);
   const [scheduleBlocks, setScheduleBlocks] = useState<BackendSchedule[]>([]);
@@ -697,7 +693,10 @@ export default function Agenda() {
     setSmartSuggestion(null);
     setReminderSelection({ onBooking: true, oneDayBefore: true, onDay: true });
     setPatientMode("registered");
-    setNewPatient({ firstName: "", lastName: "", birthDate: "", phone: "", city: "" });
+    const prefillPatient = prefill?.patientName
+      ? backendPatients.find((patient) => patient.fullName.trim().toLowerCase() === String(prefill.patientName).trim().toLowerCase())
+      : undefined;
+    setPatientChoice(prefillPatient ? { mode: "registered", patient: prefillPatient } : null);
 
     const cleanPrefill = Object.fromEntries(
       Object.entries(prefill || {}).filter(([, value]) => value !== undefined),
@@ -723,64 +722,48 @@ export default function Agenda() {
     const onlyDigits = (value: string) => value.replace(/\D/g, "");
 
     let backendPatient =
-      patientMode === "registered"
-        ? backendPatients.find(
-            (patient) => normalizeName(patient.fullName) === normalizeName(form.patientName),
-          )
-        : undefined;
+      patientChoice?.mode === "registered"
+        ? patientChoice.patient
+        : patientMode === "registered"
+          ? backendPatients.find(
+              (patient) => normalizeName(patient.fullName) === normalizeName(form.patientName),
+            )
+          : undefined;
 
     let patientNameForAppointment = form.patientName.trim();
     let patientPhoneForAppointment = form.patientPhone.trim();
 
-    if (patientMode === "new") {
-      if (
-        !newPatient.firstName.trim() ||
-        !newPatient.lastName.trim() ||
-        !newPatient.birthDate ||
-        !newPatient.phone.trim() ||
-        !newPatient.city.trim()
-      ) {
-        window.alert("Preencha nome, sobrenome, data de nascimento, telefone/WhatsApp e cidade.");
+    if (patientChoice?.mode === "new") {
+      const newChoice = patientChoice;
+      const fullName = newChoice.fullName.trim();
+      if (fullName.length < 3 || !isValidPhoneBR(newChoice.phone)) {
+        window.alert("Para paciente novo, informe nome e telefone/WhatsApp com DDD.");
         return;
       }
 
       const existingByPhone = backendPatients.find(
-        (patient) => onlyDigits(patient.phone) === onlyDigits(newPatient.phone),
+        (patient) => onlyDigits(patient.phone) === onlyDigits(newChoice.phone),
       );
-      if (existingByPhone) {
-        setPatientMode("registered");
-        setForm((current) => ({
-          ...current,
-          patientName: existingByPhone.fullName,
-          patientPhone: existingByPhone.phone,
-        }));
-        window.alert("Este WhatsApp já pertence a um paciente cadastrado. O cadastro existente foi selecionado.");
-        return;
-      }
-
-      const fullName = `${newPatient.firstName.trim()} ${newPatient.lastName.trim()}`.trim();
-      const birthDate = new Date(`${newPatient.birthDate}T12:00:00-03:00`);
-      if (Number.isNaN(birthDate.getTime()) || birthDate.getTime() > Date.now()) {
-        window.alert("Informe uma data de nascimento válida.");
-        return;
-      }
 
       try {
-        const createdPatient = await createBackendPatient({
-          fullName,
-          phone: newPatient.phone.trim(),
-          birthDate: birthDate.toISOString(),
-          city: newPatient.city.trim(),
-        });
+        const createdPatient =
+          existingByPhone ||
+          (await createBackendPatient({
+            fullName,
+            phone: formatPhoneBR(newChoice.phone),
+          } as Parameters<typeof createBackendPatient>[0]));
         backendPatient = createdPatient;
         patientNameForAppointment = createdPatient.fullName;
         patientPhoneForAppointment = createdPatient.phone;
-        setBackendPatients((current) =>
-          [...current.filter((patient) => patient.id !== createdPatient.id), createdPatient].sort((a, b) =>
-            a.fullName.localeCompare(b.fullName),
-          ),
-        );
+        if (!existingByPhone) {
+          setBackendPatients((current) =>
+            [...current.filter((patient) => patient.id !== createdPatient.id), createdPatient].sort((a, b) =>
+              a.fullName.localeCompare(b.fullName),
+            ),
+          );
+        }
         setPatientMode("registered");
+        setPatientChoice({ mode: "registered", patient: createdPatient });
         setForm((current) => ({
           ...current,
           patientName: createdPatient.fullName,
@@ -791,7 +774,7 @@ export default function Agenda() {
         return;
       }
     } else if (!backendPatient) {
-      window.alert("Selecione um paciente cadastrado ou escolha Novo paciente / 1º atendimento.");
+      window.alert("Digite o nome, CPF ou telefone do paciente. Se não existir, escolha \"Paciente novo\".");
       return;
     }
 
@@ -1128,98 +1111,22 @@ export default function Agenda() {
         <DialogTitle>Novo agendamento</DialogTitle>
         <DialogContent sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2, pt: "12px!important" }}>
           <Box sx={{ gridColumn: { md: "1/-1" } }}>
-            <ToggleButtonGroup
-              exclusive
-              fullWidth
-              size="small"
-              value={patientMode}
-              onChange={(_, value: PatientMode | null) => {
-                if (!value) return;
-                setPatientMode(value);
+            <PatientSearchField
+              patients={backendPatients}
+              value={patientChoice}
+              autoFocus
+              onChange={(value) => {
+                setPatientChoice(value);
                 setSmartSuggestion(null);
-                if (value === "new") {
-                  setForm((current) => ({ ...current, patientName: "", patientPhone: "" }));
-                }
+                setPatientMode(value?.mode === "new" ? "new" : "registered");
+                setForm((current) => ({
+                  ...current,
+                  patientName: value?.mode === "registered" ? value.patient.fullName : value?.mode === "new" ? value.fullName : "",
+                  patientPhone: value?.mode === "registered" ? value.patient.phone : value?.mode === "new" ? value.phone : "",
+                }));
               }}
-            >
-              <ToggleButton value="registered">Paciente cadastrado</ToggleButton>
-              <ToggleButton value="new">Novo paciente / 1º atendimento</ToggleButton>
-            </ToggleButtonGroup>
+            />
           </Box>
-
-          {patientMode === "registered" ? (
-            <>
-              <Autocomplete
-                options={backendPatients.map((patient) => patient.fullName)}
-                value={form.patientName || null}
-                inputValue={form.patientName}
-                onInputChange={(_, name, reason) => {
-                  if (reason !== "input" && reason !== "clear") return;
-                  setForm((current) => ({ ...current, patientName: name }));
-                }}
-                onChange={(_, name) => {
-                  const patientName = typeof name === "string" ? name : "";
-                  const normalized = patientName.trim().toLowerCase();
-                  const patient = backendPatients.find(
-                    (item) => item.fullName.trim().toLowerCase() === normalized,
-                  );
-                  setForm((current) => ({
-                    ...current,
-                    patientName,
-                    patientPhone: patient?.phone || "",
-                  }));
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Paciente cadastrado"
-                    placeholder="Digite ou selecione o paciente"
-                  />
-                )}
-              />
-              <TextField
-                label="Telefone / WhatsApp"
-                value={form.patientPhone}
-                slotProps={{ input: { readOnly: true } }}
-              />
-            </>
-          ) : (
-            <>
-              <TextField
-                required
-                label="Nome"
-                value={newPatient.firstName}
-                onChange={(event) => setNewPatient({ ...newPatient, firstName: event.target.value })}
-              />
-              <TextField
-                required
-                label="Sobrenome"
-                value={newPatient.lastName}
-                onChange={(event) => setNewPatient({ ...newPatient, lastName: event.target.value })}
-              />
-              <TextField
-                required
-                type="date"
-                label="Data de nascimento"
-                value={newPatient.birthDate}
-                onChange={(event) => setNewPatient({ ...newPatient, birthDate: event.target.value })}
-                slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: today() } }}
-              />
-              <TextField
-                required
-                label="Telefone / WhatsApp"
-                value={newPatient.phone}
-                onChange={(event) => setNewPatient({ ...newPatient, phone: event.target.value })}
-              />
-              <TextField
-                required
-                label="Cidade"
-                value={newPatient.city}
-                onChange={(event) => setNewPatient({ ...newPatient, city: event.target.value })}
-                sx={{ gridColumn: { md: "1/-1" } }}
-              />
-            </>
-          )}
           <Box sx={{ gridColumn: { md: "1/-1" }, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
             <Typography sx={{ fontWeight: 900, mb: 1 }}>Confirmações do paciente</Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "220px 1fr" }, gap: 1, alignItems: "start" }}>
@@ -1262,14 +1169,16 @@ export default function Agenda() {
           >
             {["1ª consulta", "Em tratamento", "Retorno", "Pagamento", "Periódico", "Marketing", "Indicação", "Urgência", "Outro"].map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
           </TextField>
-          <TextField
-            type="number"
-            label="Tempo reservado (min)"
+          <DurationSelect
             value={form.durationMinutes}
-            onChange={(event) => setForm({ ...form, durationMinutes: Math.max(10, Number(event.target.value || 30)) })}
+            procedure={form.procedure}
+            onChange={(minutes) => setForm((current) => ({ ...current, durationMinutes: minutes }))}
           />
           <Box sx={{ gridColumn: { md: "1/-1" } }}>
-            <ProcedurePicker value={form.procedure} onChange={(name) => setForm({ ...form, procedure: name })} />
+            <ProcedurePicker
+              value={form.procedure}
+              onChange={(name) => setForm((current) => ({ ...current, procedure: name, durationMinutes: suggestDuration(name, current.durationMinutes) }))}
+            />
           </Box>
           <TextField type="date" label="Data" slotProps={{ inputLabel: { shrink: true } }} value={form.dateISO} onChange={(event) => setForm({ ...form, dateISO: event.target.value })} />
           <TextField
@@ -1313,7 +1222,7 @@ export default function Agenda() {
           <Box sx={{ gridColumn: { md: "1/-1" } }}>
             {patientMode === "new" ? (
               <Alert severity="info">
-                Novo paciente: o cadastro será criado no PostgreSQL junto com o primeiro agendamento. A Agenda Inteligente ainda não possui histórico deste paciente.
+                Paciente novo: o cadastro (nome e telefone) é criado junto com este agendamento. Os demais dados podem ser completados depois na ficha.
               </Alert>
             ) : (
               <SmartSchedulingAssistant
@@ -1352,11 +1261,10 @@ export default function Agenda() {
                 >
                   {["Agendado", "Confirmado", "Aguardando", "Sala em preparação", "Em atendimento", "Finalizado", "Cancelado", "Faltou"].map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
                 </TextField>
-                <TextField
-                  type="number"
-                  label="Tempo reservado (min)"
+                <DurationSelect
                   value={edit.durationMinutes || 30}
-                  onChange={(event) => setEdit({ ...edit, durationMinutes: Math.max(10, Number(event.target.value || 30)) })}
+                  procedure={edit.procedure}
+                  onChange={(minutes) => setEdit((current) => (current ? { ...current, durationMinutes: minutes } : current))}
                 />
                 <TextField
                   type="date"

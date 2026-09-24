@@ -2,6 +2,9 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { dispatchRevah } from '../services/revahProviderService'
+
+const ADMIN_EMAIL = 'contato@dentalpos.com.br'
 
 const TYPES = ['Bug', 'Bot\u00e3o n\u00e3o funciona', 'Corre\u00e7\u00e3o', 'Sugest\u00e3o', 'Nova funcionalidade', 'D\u00favida', 'Avalia\u00e7\u00e3o']
 const PRIORITIES = ['Baixa', 'M\u00e9dia', 'Alta', 'Cr\u00edtica']
@@ -10,6 +13,44 @@ const txt = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice
 
 async function audit(data: Parameters<typeof writeAudit>[0]) {
   try { await writeAudit(data) } catch (e) { console.error(e) }
+}
+
+async function notifyAdmin(row: { id: string; clinicId: string; type: string; title: string; description: string; priority: string; rating: number | null; userName: string | null; userEmail: string | null; pagePath: string | null; module: string | null }) {
+  try {
+    const apiKey = process.env.RESEND_API_KEY || ''
+    if (!apiKey) { console.error('RESEND_API_KEY n\u00e3o configurada \u2014 aviso de feedback n\u00e3o enviado.'); return }
+    const clinic = await prisma.clinic.findFirst({ where: { id: row.clinicId }, select: { name: true, phone: true } }).catch(() => null)
+    const isEvaluation = row.type === 'Avalia\u00e7\u00e3o'
+    const stars = row.rating ? `${'\u2605'.repeat(row.rating)}${'\u2606'.repeat(5 - row.rating)} (${row.rating}/5)` : null
+    const content = [
+      isEvaluation ? 'Nova avalia\u00e7\u00e3o do sistema DentalPos One:' : `Novo relato no DentalPos One (${row.type}):`,
+      '',
+      `Cl\u00ednica: ${clinic?.name || row.clinicId}`,
+      clinic?.phone ? `Telefone da cl\u00ednica: ${clinic.phone}` : null,
+      `Usu\u00e1rio: ${row.userName || '-'}${row.userEmail ? ` <${row.userEmail}>` : ''}`,
+      `Tipo: ${row.type}`,
+      stars ? `Nota: ${stars}` : null,
+      !isEvaluation ? `Prioridade: ${row.priority}` : null,
+      !isEvaluation ? `T\u00edtulo: ${row.title}` : null,
+      row.module ? `M\u00f3dulo: ${row.module}` : null,
+      row.pagePath ? `Tela: ${row.pagePath}` : null,
+      '',
+      isEvaluation ? 'Sugest\u00e3o:' : 'Descri\u00e7\u00e3o:',
+      row.description || '(sem texto)',
+      '',
+      'Ver todos: https://app.dentalpos.com.br/sugestoes-problemas',
+    ].filter((line): line is string => line !== null).join('\n')
+    const subject = isEvaluation
+      ? `Avalia\u00e7\u00e3o ${row.rating}/5 \u2014 ${clinic?.name || 'cl\u00ednica'}`
+      : `${row.type} \u2014 ${row.title} \u2014 ${clinic?.name || 'cl\u00ednica'}`
+    await dispatchRevah('EMAIL', ADMIN_EMAIL, content, {
+      apiKey,
+      from: 'DentalPos One <contato@dentalpos.com.br>',
+      subject,
+    })
+  } catch (error) {
+    console.error('Falha ao enviar aviso de feedback por e-mail:', error)
+  }
 }
 
 export async function create(req: AuthRequest, res: Response) {
@@ -36,6 +77,7 @@ export async function create(req: AuthRequest, res: Response) {
       module: txt(b.module, 80) || null, pagePath: txt(b.pagePath, 300) || null, userAgent: txt(req.get('user-agent'), 300) || null,
     } })
     await audit({ clinicId, tenantId, actorId: userId, module: 'feedback', action: 'PLATFORM_FEEDBACK_CREATE', entityType: 'PlatformFeedback', entityId: row.id, afterData: row, summary: `${type}: ${title}` })
+    await notifyAdmin(row)
     return res.status(201).json(row)
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao enviar relato.' }) }
 }

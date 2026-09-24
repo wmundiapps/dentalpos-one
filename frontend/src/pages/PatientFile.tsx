@@ -10,6 +10,8 @@ import ImageIcon from "@mui/icons-material/Image";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import EventIcon from "@mui/icons-material/Event";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import QuickScheduleDialog from "../components/QuickScheduleDialog";
 import type { ReactNode } from "react";
 import PageHeader from "../components/PageHeader";
 import PatientHeader, { type ClinicalAlerts } from "../components/patient/PatientHeader";
@@ -36,7 +38,7 @@ function dataHora(iso: string) {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 }
 
-function Consultas({ rows, loading }: { rows: BackendAppointment[]; loading: boolean }) {
+function Consultas({ rows, loading, agendar }: { rows: BackendAppointment[]; loading: boolean; agendar: () => void }) {
   if (loading) return <Box sx={{ display: "grid", placeItems: "center", minHeight: 200 }}><CircularProgress /></Box>;
   const agora = new Date().toISOString();
   const futuras = rows.filter((a) => a.scheduledAt >= agora && a.status !== "CANCELLED").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
@@ -56,7 +58,10 @@ function Consultas({ rows, loading }: { rows: BackendAppointment[]; loading: boo
     : <Typography color="text.secondary" sx={{ mb: 3 }}>{vazio}</Typography>;
   return (
     <Box>
-      <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{"Próximos atendimentos"}</Typography>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>{"Próximos atendimentos"}</Typography>
+        <Button variant="contained" color="success" startIcon={<EventAvailableIcon />} onClick={agendar}>Novo agendamento</Button>
+      </Box>
       {lista(futuras, "Nenhum atendimento futuro.")}
       <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>{"Atendimentos anteriores"}</Typography>
       {lista(passadas, "Nenhum atendimento anterior.")}
@@ -64,7 +69,7 @@ function Consultas({ rows, loading }: { rows: BackendAppointment[]; loading: boo
   );
 }
 
-function Resumo({ patient, plan, appts, ir }: { patient: BackendPatient; plan: { progress: number | null; pending: number | null }; appts: BackendAppointment[]; ir: (k: string) => void }) {
+function Resumo({ patient, plan, appts, ir, agendar }: { patient: BackendPatient; plan: { progress: number | null; pending: number | null }; appts: BackendAppointment[]; ir: (k: string) => void; agendar: () => void }) {
   const agora = new Date().toISOString();
   const proxima = appts.filter((a) => a.scheduledAt >= agora && a.status !== "CANCELLED").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))[0];
   const ultima = appts.filter((a) => a.scheduledAt < agora).sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt))[0];
@@ -87,6 +92,7 @@ function Resumo({ patient, plan, appts, ir }: { patient: BackendPatient; plan: {
       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
         <Typography sx={{ fontWeight: 900, mb: 1 }}>Atalhos</Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Button variant="contained" color="success" startIcon={<EventAvailableIcon />} onClick={agendar}>Agendar consulta</Button>
           <Button variant="contained" startIcon={<ImageIcon />} onClick={() => ir("exames")}>Adicionar exame ou imagem</Button>
           <Button variant="outlined" startIcon={<AssignmentIndIcon />} onClick={() => ir("prontuario")}>{"Abrir prontuário"}</Button>
           <Button variant="outlined" startIcon={<GridOnIcon />} onClick={() => ir("odontograma")}>Odontograma</Button>
@@ -119,6 +125,13 @@ export default function PatientFile() {
   const [appts, setAppts] = useState<BackendAppointment[]>([]);
   const [apptsLoading, setApptsLoading] = useState(true);
   const [plan, setPlan] = useState<{ progress: number | null; pending: number | null }>({ progress: null, pending: null });
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const reloadAppts = useCallback(() => {
+    if (!patientId) return;
+    loadBackendAppointments()
+      .then((rows) => setAppts(rows.filter((a) => a.patientId === patientId)))
+      .catch(() => undefined);
+  }, [patientId]);
 
   useEffect(() => {
     let active = true;
@@ -163,6 +176,7 @@ export default function PatientFile() {
   }), [record, patient]);
 
   const ir = useCallback((k: string) => setTab(k), []);
+  const agendar = useCallback(() => setScheduleOpen(true), []);
 
   const abas: Array<{ key: string; label: string; icon: ReactNode }> = [
     { key: "resumo", label: "Resumo", icon: <SummarizeIcon /> },
@@ -189,6 +203,16 @@ export default function PatientFile() {
   return (
     <Box>
       <PatientHeader patient={patient} alerts={alerts} />
+      <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
+        <Typography variant="body2" color="text.secondary">
+          {(() => {
+            const agora = new Date().toISOString();
+            const proxima = appts.filter((a) => a.scheduledAt >= agora && a.status !== "CANCELLED").sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))[0];
+            return proxima ? `Próximo atendimento: ${dataHora(proxima.scheduledAt)} • ${proxima.procedure}` : "Nenhum atendimento futuro agendado.";
+          })()}
+        </Typography>
+        <Button variant="contained" color="success" startIcon={<EventAvailableIcon />} onClick={agendar}>Agendar consulta</Button>
+      </Paper>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(3,1fr)", sm: "repeat(5,1fr)", lg: "repeat(9,1fr)" }, gap: 1, mb: 2 }}>
         {abas.map((a) => {
           const ativo = tab === a.key;
@@ -202,7 +226,7 @@ export default function PatientFile() {
         })}
       </Box>
       <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2, md: 3 } }}>
-        {tab === "resumo" && <Resumo patient={patient} plan={plan} appts={appts} ir={ir} />}
+        {tab === "resumo" && <Resumo patient={patient} plan={plan} appts={appts} ir={ir} agendar={agendar} />}
         {tab === "historico" && <MedicalHistoryTab patient={patient} data={record} loading={recordLoading} />}
         {tab === "prontuario" && <ClinicalRecord />}
         {tab === "odontograma" && <OdontogramPeriodontogram />}
@@ -210,8 +234,9 @@ export default function PatientFile() {
         {tab === "exames" && <ClinicalFiles fixedPatientId={patient.id} />}
         {tab === "documentos" && <ClinicalDocuments fixedPatientId={patient.id} />}
         {tab === "financeiro" && <Financial />}
-        {tab === "atendimentos" && <Consultas rows={appts} loading={apptsLoading} />}
+        {tab === "atendimentos" && <Consultas rows={appts} loading={apptsLoading} agendar={agendar} />}
       </Paper>
+      <QuickScheduleDialog open={scheduleOpen} onClose={() => setScheduleOpen(false)} onSaved={reloadAppts} fixedPatient={patient} />
     </Box>
   );
 }

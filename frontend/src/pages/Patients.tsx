@@ -17,6 +17,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import SearchIcon from "@mui/icons-material/Search";
 import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import QuickScheduleDialog from "../components/QuickScheduleDialog";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
@@ -78,6 +80,12 @@ export default function Patients() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string>();
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [schedulePatient, setSchedulePatient] = useState<BackendPatient | null>(null);
+  const openSchedule = (patient: BackendPatient | null) => {
+    setSchedulePatient(patient);
+    setScheduleOpen(true);
+  };
   const [form, setForm] = useState<PatientForm>({ ...emptyForm });
   const [financeRows, setFinanceRows] = useState<FinancialEntry[]>([]);
 
@@ -222,8 +230,18 @@ export default function Patients() {
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{mb:2}}>Pacientes que compareceram neste mês: <b>{metrics.attendedMonth}</b></Typography>
 
-      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mb: 3 }}>
+      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mb: 3, display: "flex", gap: 1.5, alignItems: "center", flexWrap: { xs: "wrap", md: "nowrap" } }}>
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={<EventAvailableIcon />}
+          onClick={() => openSchedule(null)}
+          sx={{ whiteSpace: "nowrap", flexShrink: 0, order: { xs: 2, md: 2 } }}
+        >
+          Agendar paciente
+        </Button>
         <TextField
+          sx={{ order: 1 }}
           fullWidth
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -289,6 +307,14 @@ export default function Patients() {
                   }
                 >
                   Abrir ficha completa
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="success"
+                  startIcon={<EventAvailableIcon />}
+                  onClick={() => openSchedule(patient)}
+                >
+                  Agendar
                 </Button>
               </Box>
             </Paper>
@@ -421,6 +447,7 @@ export default function Patients() {
           </Button>
         </DialogActions>
       </Dialog>
+      <QuickScheduleDialog open={scheduleOpen} onClose={() => setScheduleOpen(false)} fixedPatient={schedulePatient} onSaved={() => void reload()} />
     </Box>
   );
 }
