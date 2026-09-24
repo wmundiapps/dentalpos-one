@@ -1,6 +1,6 @@
 # Política de Privacidade
 
-Versão 2026-09-24 · Vigência a partir de 24/09/2026
+Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 1. Quem somos e a quem se aplica
 

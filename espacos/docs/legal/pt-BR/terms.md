@@ -1,12 +1,12 @@
 # Termos de Uso da Plataforma SpaceHour
 
-Versão 2026-09-24 · Vigência a partir de 24/09/2026
+Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 > **Nota interna — revisão jurídica obrigatória.** Este conjunto de documentos foi redigido como base única para todos os países atendidos e reflete os parâmetros de negócio implementados no sistema (versão de regras 2026-09-24). Antes do lançamento em cada país, os documentos DEVEM ser revisados e adaptados por advogados habilitados na respectiva jurisdição, inclusive quanto a idioma obrigatório, cláusulas consideradas abusivas, requisitos tributários, de proteção de dados e de registro da operadora. Esta nota deve ser removida da versão publicada.
 
 ## 1. Partes e aceitação
 
-1.1. Estes Termos de Uso ("Termos") regem o acesso e o uso do site, dos aplicativos e dos demais serviços digitais denominados **SpaceHour** (a "Plataforma"), operados por **[RAZÃO SOCIAL DA OPERADORA]**, inscrita no CNPJ sob o nº **[CNPJ]**, com sede em **[ENDEREÇO]** (a "Operadora", "nós").
+1.1. Estes Termos de Uso ("Termos") regem o acesso e o uso do site, dos aplicativos e dos demais serviços digitais denominados **SpaceHour** (a "Plataforma"), disponíveis nos domínios **space-hour.com** (global) e **spacehour.com.br** (Brasil), operados por **[RAZÃO SOCIAL DA OPERADORA]**, inscrita no CNPJ sob o nº **[CNPJ]**, com sede em **[ENDEREÇO]** (a "Operadora", "nós").
 
 1.2. Ao criar uma conta, publicar um anúncio, fazer uma Reserva, aceitar um convite como Avalista ou utilizar a Plataforma de qualquer modo, o usuário declara ter lido, compreendido e aceitado estes Termos e os documentos que os integram (cláusula 1.4). Quem não concordar não deve utilizar a Plataforma.
 
@@ -68,7 +68,7 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 ## 4. Papel da Plataforma
 
-4.1. A Operadora presta serviço de **intermediação digital**: disponibiliza o ambiente tecnológico para que Anfitriões anunciem Espaços e Locatários os reservem, processa pagamentos por meio de instituições de pagamento parceiras, administra a Caução e o convite ao Avalista, mantém a Central de Resolução e aplica as regras destes Termos.
+4.1. A Operadora presta serviço de **intermediação digital**: disponibiliza o ambiente tecnológico para que Anfitriões anunciem Espaços e Locatários os reservem, processa pagamentos por meio de instituições de pagamento parceiras — **Mercado Pago** (principalmente na América Latina: Brasil, Argentina, Chile, Colômbia, México, Peru e Uruguai) e **Stripe** (demais países e operações internacionais) —, sem que os dados de cartão transitem pelos servidores da Plataforma, administra a Caução e o convite ao Avalista, mantém a Central de Resolução e aplica as regras destes Termos.
 
 4.2. A Operadora **não é proprietária, possuidora, administradora nem locadora** dos Espaços, não presta os serviços profissionais realizados nos Espaços e não é empregadora, preposta ou representante de Anfitriões ou Locatários.
 
@@ -82,9 +82,9 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 5.1. Podem utilizar a Plataforma pessoas físicas com a idade mínima legal aplicável e plena capacidade civil, e pessoas jurídicas regularmente constituídas, representadas por quem tenha poderes para tanto.
 
-5.2. A idade mínima é de **18 anos** em todos os países atendidos, exceto nos **Emirados Árabes Unidos**, onde é de **21 anos**. O Avalista deve ter, no mínimo, 18 anos ou a idade mínima do país, se maior.
+5.2. A idade mínima é de **18 anos** em todos os países atendidos, exceto nos **Emirados Árabes Unidos**, onde é de **21 anos**. O Avalista deve ter, no mínimo, 18 anos ou a idade mínima do país, se maior. Quando a maioridade civil do local de domicílio do Usuário for superior à idade mínima da Plataforma (por exemplo, 19 anos em alguns estados dos Estados Unidos e províncias do Canadá), o Usuário declara ter atingido a maioridade aplicável.
 
-5.3. Para reservar Espaços cujo Anúncio exija registro profissional (por exemplo, consultórios odontológicos, médicos ou de psicologia), o Locatário deve possuir registro ativo no órgão de classe competente e tê-lo verificado na Plataforma (documento Regras por País).
+5.3. Para reservar Espaços cujo Anúncio exija registro profissional (por exemplo, consultórios odontológicos, médicos ou de psicologia, ou escritórios de advocacia), o Locatário deve possuir registro ativo no órgão de classe competente, tê-lo submetido à verificação da Plataforma (cláusula 6.5) e observar o documento Regras por País.
 
 5.4. Não podem utilizar a Plataforma pessoas que tenham sido excluídas anteriormente, que estejam em listas de sanções aplicáveis, ou cuja utilização seja vedada pela lei do seu país.
 
@@ -94,13 +94,19 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 6.2. A Operadora pode, a qualquer tempo, exigir verificação de identidade, de registro profissional, de titularidade do Espaço, de licenças e de dados bancários, diretamente ou por meio de prestadores especializados, e condicionar funcionalidades a essa verificação.
 
-6.3. A conta é pessoal e intransferível. O Usuário é responsável por manter a confidencialidade de sua senha e por todas as atividades realizadas com suas credenciais, devendo comunicar imediatamente qualquer uso não autorizado pelo canal [E-MAIL DE CONTATO].
+6.3. A conta é pessoal e intransferível. O Usuário é responsável por manter a confidencialidade de sua senha e por todas as atividades realizadas com suas credenciais, devendo comunicar imediatamente qualquer uso não autorizado pelo canal support@space-hour.com.
 
 6.4. A Plataforma exibe, no perfil público, apenas nome, país, data de cadastro, biografia, indicação de identidade verificada, indicação de registro profissional verificado e reputação (avaliações).
 
+6.5. **Pré-triagem automatizada do registro profissional.** A Plataforma realiza uma pré-triagem automatizada, com apoio de agente de inteligência artificial, do documento e do número de registro profissional enviados pelo Locatário. A pré-triagem verifica a legibilidade e a aparente autenticidade do documento, a coerência do número com o nome do Locatário e com o órgão regulador competente do país e da atividade, podendo a Plataforma solicitar documentos adicionais ou submeter o caso a revisão humana. O resultado da pré-triagem não gera, por si só, recusa definitiva: o Usuário pode pedir revisão humana (Política de Privacidade).
+
+6.6. **A pré-triagem não é garantia.** A indicação "registro profissional verificado" significa apenas que o documento passou pela pré-triagem na data indicada. Ela **não garante** que o registro esteja válido, ativo, sem suspensão ou restrição, nem que abranja a atividade declarada, pois o status pode mudar a qualquer tempo e a Plataforma não tem acesso em tempo real às bases de todos os órgãos reguladores. Por isso, **o Anfitrião deve confirmar, antes de cada Reserva de Espaço regulado** (saúde, advocacia e outras atividades regulamentadas), que o Locatário possui habilitação válida e ativa para a atividade, e deve recusar ou cancelar a Reserva, **sem penalidade**, em caso de dúvida fundada (Obrigações do Anfitrião, cláusula 3).
+
+6.7. **Responsabilidade pelo exercício ilegal de profissão.** O Locatário é **integral e exclusivamente responsável**, civil, administrativa e penalmente, pelo exercício de profissão regulamentada sem habilitação legal ou fora de seus limites (no Brasil, por exemplo, Código Penal, art. 282 — exercício ilegal da medicina ou da arte dentária — e Lei das Contravenções Penais, art. 47 — exercício ilegal de profissão; nos demais países, as normas equivalentes indicadas em Regras por País), e indenizará o Anfitrião, a Operadora e terceiros pelos prejuízos daí decorrentes. Constatado o fato, a Plataforma **exclui definitivamente** a conta do Locatário e **comunica o fato às autoridades** e ao órgão profissional competentes. O Anfitrião que, conscientemente, permitir esse uso também perde sua conta (Penalidades e Medidas).
+
 ## 7. Anúncios e Reservas
 
-7.1. O Anfitrião é o único responsável pelo conteúdo do Anúncio, que deve ser preciso e atualizado (documento Obrigações do Anfitrião).
+7.1. O Anfitrião é o único responsável pelo conteúdo do Anúncio, que deve ser preciso e atualizado (documento Obrigações do Anfitrião). As fotos do Anúncio são enviadas pelo Anfitrião e devem ser reais, fiéis, recentes e do próprio Espaço, de titularidade do Anfitrião ou por ele licenciadas, e não podem mostrar pessoas, pacientes ou documentos identificáveis.
 
 7.2. A Reserva pode ser **instantânea** (confirmada no ato do pagamento) ou **por solicitação** (sujeita à aprovação do Anfitrião em até 24 horas, sob pena de expiração automática), conforme definido no Anúncio.
 
@@ -184,10 +190,10 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 17.3. O Usuário não pode ceder seus direitos e obrigações sem consentimento prévio da Operadora. A Operadora pode ceder sua posição contratual a empresa do mesmo grupo ou sucessora, mediante comunicação.
 
-17.4. A Plataforma pode disponibilizar estes Termos em vários idiomas. Em caso de divergência, prevalece a versão no idioma oficial do país do Usuário quando a lei local assim exigir (por exemplo, francês no Québec); nos demais casos, prevalece esta versão em português.
+17.4. A Plataforma pode disponibilizar estes Termos em vários idiomas. Em caso de divergência, prevalece a versão no idioma oficial do país do Usuário quando a lei local assim exigir (por exemplo, francês no Québec, pela Charte de la langue française, e na França, pela Loi 94-665 — Loi Toubon; espanhol no México e na Espanha; italiano na Itália; hebraico em Israel; e árabe nos Emirados Árabes Unidos, quando exigido); nos demais casos, prevalece esta versão em português.
 
 ## 18. Contato
 
 18.1. **[RAZÃO SOCIAL DA OPERADORA]** — CNPJ **[CNPJ]** — **[ENDEREÇO]**.
-18.2. Atendimento e notificações: **[E-MAIL DE CONTATO]**.
-18.3. Encarregado pelo tratamento de dados pessoais (DPO): **[ENCARREGADO/DPO]**.
+18.2. Atendimento e notificações: **support@space-hour.com**.
+18.3. Encarregado pelo tratamento de dados pessoais: **Encarregado de Dados (DPO) — privacy@space-hour.com**.

@@ -27,7 +27,7 @@ authRouter.post('/auth/register', async (req, res) => {
   const user: User = {
     id: id('usr'), email, passwordHash: await bcrypt.hash(data.password, 10), name: data.name,
     countryCode: data.countryCode, locale: data.locale as User['locale'], roles: ['guest'], createdAt: nowIso(),
-    identityVerified: false, strikes: [], termsAcceptedAt: nowIso(), termsVersion: RULES_VERSION,
+    identityVerified: false, strikes: [], termsAcceptedAt: nowIso(), termsVersion: RULES_VERSION, licenseStatus: 'none',
   };
   await insertUser(pool, user); // índice único em lower(email) cobre cadastros simultâneos
   res.status(201).json({ token: signToken(user), user: toSelf(user) });
@@ -64,15 +64,6 @@ authRouter.put('/me', requireAuth, async (req: AuthedRequest, res) => {
 authRouter.post('/me/verify-identity', requireAuth, async (req: AuthedRequest, res) => {
   const data = z.object({ documentType: z.string().min(2).max(60), documentNumber: z.string().min(4).max(40) }).parse(req.body);
   Object.assign(req.user!, data, { identityVerified: true });
-  await updateUser(pool, req.user!);
-  res.json(toSelf(req.user!));
-});
-
-// Registro profissional (CRO, CRM, OAB, GDC...). Em produção, conferência
-// manual/automática no conselho; aqui marcado como verificado para demonstração.
-authRouter.post('/me/license', requireAuth, async (req: AuthedRequest, res) => {
-  const data = z.object({ body: z.string().min(2).max(120), number: z.string().min(2).max(40), region: z.string().max(40).optional() }).parse(req.body);
-  req.user!.professionalLicense = { ...data, verified: true };
   await updateUser(pool, req.user!);
   res.json(toSelf(req.user!));
 });

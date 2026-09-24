@@ -1,6 +1,6 @@
 # Avalista e Caução
 
-Versão 2026-09-24 · Vigência a partir de 24/09/2026
+Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 1. Objeto
 
@@ -73,7 +73,7 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 7.3. O Anfitrião visualiza apenas o nome do Avalista e o status do aceite. Documento e contatos só são compartilhados com o Anfitrião quando necessários à cobrança judicial ou extrajudicial.
 
-7.4. Os dados de Avalistas que recusarem ou não responderem são eliminados em até 90 dias, salvo obrigação legal. Os dados de Avalistas que aceitarem são mantidos pelo prazo prescricional das obrigações garantidas. O Avalista exerce seus direitos de titular pelo canal do Encarregado indicado na Política de Privacidade: [ENCARREGADO/DPO].
+7.4. Os dados de Avalistas que recusarem ou não responderem são eliminados em até 90 dias, salvo obrigação legal. Os dados de Avalistas que aceitarem são mantidos pelo prazo prescricional das obrigações garantidas. O Avalista exerce seus direitos de titular pelo canal do Encarregado indicado na Política de Privacidade: Encarregado de Dados (DPO) — privacy@space-hour.com.
 
 ## 8. Disposições finais
 

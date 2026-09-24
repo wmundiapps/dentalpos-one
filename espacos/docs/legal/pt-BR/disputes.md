@@ -1,6 +1,6 @@
 # Central de Resolução e Disputas
 
-Versão 2026-09-24 · Vigência a partir de 24/09/2026
+Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 1. Objeto e princípios
 
@@ -123,5 +123,5 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 ## 11. Contato
 
-11.1. Central de Resolução: pela página da Reserva na Plataforma ou pelo e-mail **[E-MAIL DE CONTATO]**.
+11.1. Central de Resolução: pela página da Reserva na Plataforma ou pelo e-mail **support@space-hour.com**.
 11.2. **[RAZÃO SOCIAL DA OPERADORA]** — CNPJ **[CNPJ]** — **[ENDEREÇO]**.
