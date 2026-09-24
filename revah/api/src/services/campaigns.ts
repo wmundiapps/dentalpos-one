@@ -1,14 +1,13 @@
 import type { Campaign, Job, Tenant } from '@prisma/client'
 import { config } from '../config'
 import { prisma } from '../lib/prisma'
-import { badRequest, conflict, notFound, paymentRequired } from '../lib/errors'
+import { badRequest, conflict, notFound } from '../lib/errors'
 import { contactFieldFor, contactVars, normalizeDestination, renderTemplate, type Channel } from '../lib/normalize'
 import { registerJobHandler, type JobOutcome } from './jobs'
 import { sendMessage } from './messaging'
 import { assertCanLaunchCampaign } from './plans'
 import { suppressedSet } from './suppression'
 import { queueCall } from './voice/engine'
-import { TRIAL_RULES } from '../config'
 
 export interface Audience {
   tagIds?: string[]
@@ -73,16 +72,7 @@ export async function launchCampaign(tenant: Tenant, campaignId: string) {
 
   await assertCanLaunchCampaign(tenant, valid.length, channel)
 
-  // Consome 1 das 2 campanhas grátis de forma atômica (sem corrida entre abas/dispositivos).
-  let isTrial = false
-  if (tenant.plan === 'TRIAL') {
-    const r = await prisma.tenant.updateMany({
-      where: { id: tenant.id, plan: 'TRIAL', trialCampaignsUsed: { lt: TRIAL_RULES.maxCampaigns } },
-      data: { trialCampaignsUsed: { increment: 1 } },
-    })
-    if (!r.count) throw paymentRequired('Você já usou as 2 campanhas grátis. Escolha um plano para continuar disparando.', 'TRIAL_EXHAUSTED')
-    isTrial = true
-  }
+  const isTrial = tenant.status === 'TRIAL'
 
   // Contatos manuais entram no CRM (em lote) para manter o histórico unificado.
   const field = contactFieldFor(channel)

@@ -119,7 +119,7 @@ r.post(
     const b = z.object({ channel: z.enum(CHANNELS as [string, ...string[]]), audience: AudienceSchema }).parse(req.body)
     const p = await previewAudience(req.tenant.id, b.channel as Channel, b.audience as Audience)
     const trial = trialStatus(req.tenant)
-    res.json({ ...p, trial, fitsTrial: !trial.isTrial || (!trial.exhausted && p.valid <= TRIAL_RULES.maxRecipientsPerCampaign) })
+    res.json({ ...p, trial, fitsTrial: !trial.isTrial || p.valid <= TRIAL_RULES.maxRecipientsPerCampaign })
   }),
 )
 

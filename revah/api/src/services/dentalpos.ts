@@ -44,7 +44,9 @@ export async function provisionClinic(body: any) {
   const clinicId = String(body.clinicId || '').trim()
   const ownerEmail = normalizeEmail(body.ownerEmail)
   if (!clinicId || !ownerEmail) throw badRequest('Informe clinicId e ownerEmail.')
-  const plan = PLANS.includes(body.plan) ? body.plan : 'PRO'
+  // Pacote DentalPos + REVAH: a cobrança é feita pelo DentalPos. "TRIAL" = 14 dias com recursos do START.
+  const trial = body.plan === 'TRIAL'
+  const plan = trial ? 'START' : PLANS.includes(body.plan) ? body.plan : 'PRO'
   const externalRef = `dentalpos:${clinicId}`
   let tenant = await prisma.tenant.findUnique({ where: { externalRef } })
   let created = false
@@ -57,7 +59,9 @@ export async function provisionClinic(body: any) {
         source: 'DENTALPOS',
         externalRef,
         plan,
-        status: plan === 'TRIAL' ? 'TRIAL' : 'ACTIVE',
+        status: trial ? 'TRIAL' : 'ACTIVE',
+        trialEndsAt: trial ? new Date(Date.now() + 14 * 86_400_000) : null,
+        trialEligible: false,
         integrationWebhookUrl: body.webhookUrl || null,
         integrationSecret: randomToken(32),
       },
@@ -69,7 +73,7 @@ export async function provisionClinic(body: any) {
       data: {
         ...(body.clinicName ? { name: String(body.clinicName) } : {}),
         ...(body.webhookUrl !== undefined ? { integrationWebhookUrl: body.webhookUrl || null } : {}),
-        ...(PLANS.includes(body.plan) ? { plan: body.plan } : {}),
+        ...(PLANS.includes(body.plan) && body.plan !== 'TRIAL' ? { plan: body.plan, status: 'ACTIVE' } : {}),
         ...(tenant.integrationSecret ? {} : { integrationSecret: randomToken(32) }),
       },
     })
@@ -97,7 +101,10 @@ export async function setLicense(body: any) {
   const active = Boolean(body.active)
   const updated = await prisma.tenant.update({
     where: { id: tenant.id },
-    data: { status: active ? (tenant.plan === 'TRIAL' ? 'TRIAL' : 'ACTIVE') : 'SUSPENDED', ...(PLANS.includes(body.plan) ? { plan: body.plan } : {}) },
+    data: {
+      status: active ? (tenant.trialEndsAt && tenant.trialEndsAt > new Date() && body.plan === undefined ? 'TRIAL' : 'ACTIVE') : 'SUSPENDED',
+      ...(PLANS.includes(body.plan) && body.plan !== 'TRIAL' ? { plan: body.plan } : {}),
+    },
   })
   await audit(tenant.id, null, active ? 'LICENSE_ACTIVATED' : 'LICENSE_SUSPENDED', 'Tenant', tenant.id, body)
   return { tenantId: updated.id, status: updated.status, plan: updated.plan }
