@@ -123,5 +123,5 @@
 
 ## 11. 联系方式
 
-11.1. 争议解决中心:通过平台预订页面或电子邮箱 **[E-MAIL DE CONTATO]** 联系。
-11.2. **[RAZÃO SOCIAL DA OPERADORA]** —— 税务登记号(CNPJ)**[CNPJ]** —— 地址 **[ENDEREÇO]**。
+11.1. 争议解决中心:通过平台预订页面或电子邮箱 **support@space-hour.com** 联系。
+11.2. **Instituto Ravel de Ensino Superior Ltda.** —— 税务登记号(CNPJ)**03.162.275/0001-10** —— 地址 **[ENDEREÇO]**。

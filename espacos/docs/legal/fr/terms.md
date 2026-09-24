@@ -6,7 +6,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 ## 1. Parties et acceptation
 
-1.1. Les présentes Conditions d'Utilisation (les « Conditions ») régissent l'accès et l'utilisation du site, des applications et des autres services numériques dénommés **SpaceHour** (la « Plateforme »), exploités par **[RAZÃO SOCIAL DA OPERADORA]**, immatriculée au CNPJ sous le n° **[CNPJ]**, dont le siège est situé à **[ENDEREÇO]** (l'« Opérateur », « nous »).
+1.1. Les présentes Conditions d'Utilisation (les « Conditions ») régissent l'accès et l'utilisation du site, des applications et des autres services numériques dénommés **SpaceHour** (la « Plateforme »), exploités par **Instituto Ravel de Ensino Superior Ltda.**, immatriculée au CNPJ sous le n° **03.162.275/0001-10**, dont le siège est situé à **[ENDEREÇO]** (l'« Opérateur », « nous »).
 
 1.2. En créant un compte, en publiant une annonce, en effectuant une Réservation, en acceptant une invitation en tant que Garant ou en utilisant la Plateforme de quelque manière que ce soit, l'utilisateur déclare avoir lu, compris et accepté les présentes Conditions ainsi que les documents qui en font partie intégrante (clause 1.4). Quiconque n'accepte pas ces Conditions ne doit pas utiliser la Plateforme.
 
@@ -34,7 +34,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 | Terme | Définition |
 |---|---|
 | **Plateforme** | L'environnement numérique SpaceHour (site, applications, API et communications) exploité par l'Opérateur. |
-| **Opérateur** | [RAZÃO SOCIAL DA OPERADORA], responsable de la Plateforme. |
+| **Opérateur** | Instituto Ravel de Ensino Superior Ltda., responsable de la Plateforme. |
 | **Utilisateur** | Toute personne physique ou morale inscrite sur la Plateforme. |
 | **Hôte** | Utilisateur qui annonce un Espace et le met à disposition pendant ses horaires inoccupés. |
 | **Locataire** | Utilisateur qui réserve un Espace pour un usage temporaire, généralement un professionnel ou une entreprise. Le terme est employé par convention de marché et n'implique pas l'existence d'un contrat de bail (clause 3). |
@@ -94,7 +94,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 6.2. L'Opérateur peut, à tout moment, exiger la vérification de l'identité, de l'enregistrement professionnel, de la titularité de l'Espace, des licences et des données bancaires, directement ou par l'intermédiaire de prestataires spécialisés, et conditionner certaines fonctionnalités à cette vérification.
 
-6.3. Le compte est personnel et incessible. L'Utilisateur est responsable de la confidentialité de son mot de passe et de toutes les activités réalisées avec ses identifiants, et doit signaler immédiatement toute utilisation non autorisée via le canal [E-MAIL DE CONTATO].
+6.3. Le compte est personnel et incessible. L'Utilisateur est responsable de la confidentialité de son mot de passe et de toutes les activités réalisées avec ses identifiants, et doit signaler immédiatement toute utilisation non autorisée via le canal support@space-hour.com.
 
 6.4. La Plateforme n'affiche, dans le profil public, que le nom, le pays, la date d'inscription, la biographie, l'indication d'identité vérifiée, l'indication d'enregistrement professionnel vérifié et la réputation (évaluations).
 
@@ -188,6 +188,6 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 ## 18. Contact
 
-18.1. **[RAZÃO SOCIAL DA OPERADORA]** — CNPJ **[CNPJ]** — **[ENDEREÇO]**.
-18.2. Service client et notifications : **[E-MAIL DE CONTATO]**.
-18.3. Délégué à la protection des données personnelles (DPO) : **[ENCARREGADO/DPO]**.
+18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+18.2. Service client et notifications : **support@space-hour.com**.
+18.3. Délégué à la protection des données personnelles (DPO) : **Robson Ravel de Oliveira — info@wmundi.com**.

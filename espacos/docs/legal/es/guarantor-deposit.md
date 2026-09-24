@@ -73,7 +73,7 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 7.3. El Anfitrión visualiza únicamente el nombre del Garante y el estado de la aceptación. El documento y los contactos solo se comparten con el Anfitrión cuando sean necesarios para el cobro judicial o extrajudicial.
 
-7.4. Los datos de los Garantes que rechacen o no respondan se eliminan dentro de los 90 días siguientes, salvo obligación legal. Los datos de los Garantes que acepten se conservan durante el plazo de prescripción de las obligaciones garantizadas. El Garante ejerce sus derechos como titular a través del canal del Encargado indicado en la Política de Privacidad: [ENCARREGADO/DPO].
+7.4. Los datos de los Garantes que rechacen o no respondan se eliminan dentro de los 90 días siguientes, salvo obligación legal. Los datos de los Garantes que acepten se conservan durante el plazo de prescripción de las obligaciones garantizadas. El Garante ejerce sus derechos como titular a través del canal del Encargado indicado en la Política de Privacidad: Robson Ravel de Oliveira — info@wmundi.com.
 
 ## 8. Disposiciones finales
 

@@ -4,11 +4,11 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 ## 1. Wer wir sind und für wen dies gilt
 
-1.1. Diese Richtlinie erläutert, wie **[RAZÃO SOCIAL DA OPERADORA]**, CNPJ **[CNPJ]**, mit Sitz in **[ENDEREÇO]** (der „Betreiber"), personenbezogene Daten auf der Plattform SpaceHour als **Verantwortlicher** verarbeitet.
+1.1. Diese Richtlinie erläutert, wie **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, mit Sitz in **[ENDEREÇO]** (der „Betreiber"), personenbezogene Daten auf der Plattform SpaceHour als **Verantwortlicher** verarbeitet.
 
 1.2. Sie gilt für Gastgeber, Mieter, Bürgen, Endkunden, die das Bewertungswerkzeug nutzen, Website-Besucher und Vertreter juristischer Personen.
 
-1.3. **Beauftragter/DPO:** **[ENCARREGADO/DPO]** — Kontakt: **[E-MAIL DE CONTATO]**. Sofern nach örtlichem Recht erforderlich, benennt der Betreiber einen Vertreter im jeweiligen Land oder in der Europäischen Union (Art. 27 DSGVO) sowie einen *grievance officer* in Indien.
+1.3. **Beauftragter/DPO:** **Robson Ravel de Oliveira** — Kontakt: **info@wmundi.com**. Sofern nach örtlichem Recht erforderlich, benennt der Betreiber einen Vertreter im jeweiligen Land oder in der Europäischen Union (Art. 27 DSGVO) sowie einen *grievance officer* in Indien.
 
 1.4. **Rollen.** Hinsichtlich der Daten ihrer eigenen Patienten, Kunden und Schüler sind der **Mieter** und der **Gastgeber** jeweils eigenständige Verantwortliche für die im Rahmen ihrer beruflichen Tätigkeit vorgenommene Verarbeitung. Die Plattform erhält keine Patientenakten oder klinischen Daten und darf hierfür nicht verwendet werden.
 
@@ -88,7 +88,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 7.1. Die betroffene Person kann gemäß anwendbarem Recht: die Existenz einer Verarbeitung bestätigen lassen; auf ihre Daten zugreifen; unvollständige oder unrichtige Daten berichtigen; die Anonymisierung, Sperrung oder Löschung nicht mehr erforderlicher Daten beantragen; die Übertragbarkeit beantragen; Auskunft über Weitergaben erhalten; die Einwilligung widerrufen; einer auf berechtigtem Interesse beruhenden Verarbeitung widersprechen; eine Überprüfung automatisierter Entscheidungen beantragen; und eine Beschwerde bei der Datenschutzbehörde einreichen (in Brasilien die ANPD; in der Europäischen Union die Aufsichtsbehörde des Mitgliedstaats; im Vereinigten Königreich das ICO; unter anderen).
 
-7.2. Anträge sind an den Beauftragten unter **[E-MAIL DE CONTATO]** oder über den Datenschutzbereich des Kontos zu richten. Wir antworten innerhalb der gesetzlichen Frist (zum Beispiel 15 Tage nach LGPD für die vollständige Erklärung; 1 Monat nach DSGVO, verlängerbar). Wir können eine Identitätsbestätigung verlangen.
+7.2. Anträge sind an den Beauftragten unter **info@wmundi.com** oder über den Datenschutzbereich des Kontos zu richten. Wir antworten innerhalb der gesetzlichen Frist (zum Beispiel 15 Tage nach LGPD für die vollständige Erklärung; 1 Monat nach DSGVO, verlängerbar). Wir können eine Identitätsbestätigung verlangen.
 
 7.3. Manche Daten können auch nach einem Löschantrag aufbewahrt werden, wenn dies zur Erfüllung einer gesetzlichen Verpflichtung, zur Rechtsausübung in Verfahren oder zur Betrugsprävention erforderlich ist.
 

@@ -4,11 +4,11 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 ## 1. Who we are and who this applies to
 
-1.1. This Policy explains how **[RAZÃO SOCIAL DA OPERADORA]**, CNPJ **[CNPJ]**, headquartered at **[ENDEREÇO]** (the "Operator"), processes personal data on the SpaceHour Platform, acting as **data controller**.
+1.1. This Policy explains how **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, headquartered at **[ENDEREÇO]** (the "Operator"), processes personal data on the SpaceHour Platform, acting as **data controller**.
 
 1.2. It applies to Hosts, Renters, Guarantors, End Clients who use the review tool, website visitors, and representatives of legal entities.
 
-1.3. **Data Protection Officer (DPO):** **[ENCARREGADO/DPO]** — contact: **[E-MAIL DE CONTATO]**. Where required by local law, the Operator will appoint a representative in the country or in the European Union (GDPR art. 27) and a grievance officer in India.
+1.3. **Data Protection Officer (DPO):** **Robson Ravel de Oliveira** — contact: **info@wmundi.com**. Where required by local law, the Operator will appoint a representative in the country or in the European Union (GDPR art. 27) and a grievance officer in India.
 
 1.4. **Roles.** With respect to the data of their own patients, clients and students, the **Renter** and the **Host** are independent data controllers, responsible for the processing they carry out in their professional activity. The Platform does not receive medical/clinical records and must not be used for that purpose.
 
@@ -88,7 +88,7 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 7.1. The data subject may, under applicable law: confirm the existence of processing; access their data; correct incomplete or inaccurate data; request anonymization, blocking, or deletion of unnecessary data; request portability; obtain information about sharing; withdraw consent; object to processing based on legitimate interest; request review of automated decisions; and file a complaint with the data protection authority (in Brazil, the ANPD; in the European Union, the supervisory authority of the Member State; in the United Kingdom, the ICO; among others).
 
-7.2. Requests must be sent to the Data Protection Officer at **[E-MAIL DE CONTATO]** or through the account's privacy section. We respond within the legal deadline (for example, 15 days under the LGPD for the full statement; 1 month under the GDPR, extendable). We may request identity confirmation.
+7.2. Requests must be sent to the Data Protection Officer at **info@wmundi.com** or through the account's privacy section. We respond within the legal deadline (for example, 15 days under the LGPD for the full statement; 1 month under the GDPR, extendable). We may request identity confirmation.
 
 7.3. Some data may be retained even after a deletion request, when necessary for compliance with a legal obligation, the exercise of rights in proceedings, or fraud prevention.
 

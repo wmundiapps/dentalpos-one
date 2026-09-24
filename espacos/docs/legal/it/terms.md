@@ -6,7 +6,7 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 ## 1. Parti e accettazione
 
-1.1. I presenti Termini di Utilizzo ("Termini") disciplinano l'accesso e l'uso del sito, delle applicazioni e degli altri servizi digitali denominati **SpaceHour** (la "Piattaforma"), gestiti da **[RAZÃO SOCIAL DA OPERADORA]**, iscritta al CNPJ con il n. **[CNPJ]**, con sede in **[ENDEREÇO]** (l'"Operatore", "noi").
+1.1. I presenti Termini di Utilizzo ("Termini") disciplinano l'accesso e l'uso del sito, delle applicazioni e degli altri servizi digitali denominati **SpaceHour** (la "Piattaforma"), gestiti da **Instituto Ravel de Ensino Superior Ltda.**, iscritta al CNPJ con il n. **03.162.275/0001-10**, con sede in **[ENDEREÇO]** (l'"Operatore", "noi").
 
 1.2. Creando un account, pubblicando un annuncio, effettuando una Prenotazione, accettando un invito come Garante o utilizzando la Piattaforma in qualsiasi modo, l'utente dichiara di aver letto, compreso e accettato i presenti Termini e i documenti che ne fanno parte integrante (clausola 1.4). Chi non è d'accordo non deve utilizzare la Piattaforma.
 
@@ -34,7 +34,7 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 | Termine | Definizione |
 |---|---|
 | **Piattaforma** | L'ambiente digitale SpaceHour (sito, applicazioni, API e comunicazioni) gestito dall'Operatore. |
-| **Operatore** | [RAZÃO SOCIAL DA OPERADORA], responsabile della Piattaforma. |
+| **Operatore** | Instituto Ravel de Ensino Superior Ltda., responsabile della Piattaforma. |
 | **Utente** | Qualsiasi persona fisica o giuridica registrata sulla Piattaforma. |
 | **Host** (Ospitante) | Utente che pubblicizza uno Spazio e lo rende disponibile nei propri orari di inattività. |
 | **Locatario** | Utente che prenota uno Spazio per un uso temporaneo, generalmente un professionista o un'azienda. Il termine è impiegato per convenzione di mercato e non implica l'esistenza di un contratto di locazione (clausola 3). |
@@ -94,7 +94,7 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 6.2. L'Operatore può, in qualsiasi momento, richiedere la verifica dell'identità, della registrazione professionale, della titolarità dello Spazio, delle licenze e dei dati bancari, direttamente o tramite fornitori specializzati, e subordinare determinate funzionalità a tale verifica.
 
-6.3. L'account è personale e non trasferibile. L'Utente è responsabile del mantenimento della riservatezza della propria password e di tutte le attività svolte con le proprie credenziali, dovendo comunicare immediatamente qualsiasi uso non autorizzato tramite il canale [E-MAIL DE CONTATO].
+6.3. L'account è personale e non trasferibile. L'Utente è responsabile del mantenimento della riservatezza della propria password e di tutte le attività svolte con le proprie credenziali, dovendo comunicare immediatamente qualsiasi uso non autorizzato tramite il canale support@space-hour.com.
 
 6.4. La Piattaforma mostra, nel profilo pubblico, solo nome, Paese, data di iscrizione, biografia, indicazione di identità verificata, indicazione di registrazione professionale verificata e reputazione (recensioni).
 
@@ -188,6 +188,6 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 ## 18. Contatti
 
-18.1. **[RAZÃO SOCIAL DA OPERADORA]** — CNPJ **[CNPJ]** — **[ENDEREÇO]**.
-18.2. Assistenza e notifiche: **[E-MAIL DE CONTATO]**.
-18.3. Responsabile del trattamento dei dati personali (DPO): **[ENCARREGADO/DPO]**.
+18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+18.2. Assistenza e notifiche: **support@space-hour.com**.
+18.3. Responsabile del trattamento dei dati personali (DPO): **Robson Ravel de Oliveira — info@wmundi.com**.

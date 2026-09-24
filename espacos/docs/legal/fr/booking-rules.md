@@ -118,4 +118,4 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 12.1. Les normes de l'Espace (normes internes de l'Annonce) et de l'immeuble ou de la copropriété acceptées lors de la Réservation font partie intégrante du présent document.
 
-12.2. Les questions relatives à ces règles peuvent être adressées à [E-MAIL DE CONTATO].
+12.2. Les questions relatives à ces règles peuvent être adressées à support@space-hour.com.

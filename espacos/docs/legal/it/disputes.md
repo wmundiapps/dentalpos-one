@@ -123,5 +123,5 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 ## 11. Contatti
 
-11.1. Centro di Risoluzione: tramite la pagina della Prenotazione sulla Piattaforma o via e-mail **[E-MAIL DE CONTATO]**.
-11.2. **[RAZÃO SOCIAL DA OPERADORA]** — CNPJ **[CNPJ]** — **[ENDEREÇO]**.
+11.1. Centro di Risoluzione: tramite la pagina della Prenotazione sulla Piattaforma o via e-mail **support@space-hour.com**.
+11.2. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.

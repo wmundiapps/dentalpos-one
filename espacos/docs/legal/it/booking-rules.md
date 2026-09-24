@@ -118,4 +118,4 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 12.1. Le norme dello Spazio (norme interne dell'Annuncio) e dell'edificio o condominio accettate nella Prenotazione fanno parte integrante del presente documento.
 
-12.2. Domande su queste regole possono essere inviate a [E-MAIL DE CONTATO].
+12.2. Domande su queste regole possono essere inviate a support@space-hour.com.

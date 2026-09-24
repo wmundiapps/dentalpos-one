@@ -536,6 +536,8 @@ const it: Dict = {
   'footer.tagline': "Spazi di lavoro pronti all'uso, a ore, negli orari liberi.",
   'footer.policies': 'Regole e policy',
   'footer.hosting': 'Per gli host',
+  'footer.operator': 'Gestito da {company} · CNPJ {cnpj}',
+  'footer.dpo': 'Responsabile della protezione dei dati (LGPD): {name}',
   'footer.legalNote': 'I valori delle imposte sono indicativi. Prevalgono le norme locali più protettive.',
 
   // Amministrazione
@@ -608,6 +610,7 @@ const it: Dict = {
   'err.deposit_too_high': 'Cauzione superiore al limite consentito ({maxMultiple}× la tariffa giornaliera).',
   'err.guarantor_threshold_required': 'Indica l\'importo a partire dal quale è richiesto il garante.',
   'err.availability_outside_platform_hours': 'Gli orari liberi devono essere compresi tra le 06:00 e le 23:00.',
+  'err.document_deleted': 'Il file è stato eliminato dopo il periodo di conservazione; l\'esito della verifica resta registrato.',
   'err.not_found': 'Non trovato.',
   'err.validation': 'Controlla i campi',
   'err.internal': 'Qualcosa è andato storto. Riprova.',

@@ -118,4 +118,4 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 12.1. Die bei der Buchung akzeptierten Regeln des Raums (interne Regeln des Inserats) sowie des Gebäudes oder der Eigentümergemeinschaft sind Bestandteil dieses Dokuments.
 
-12.2. Fragen zu diesen Regeln können an [E-MAIL DE CONTATO] gerichtet werden.
+12.2. Fragen zu diesen Regeln können an support@space-hour.com gerichtet werden.

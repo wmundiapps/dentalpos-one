@@ -73,7 +73,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 7.3. Der Gastgeber sieht nur den Namen des Bürgen und den Status der Annahme ein. Dokument und Kontaktdaten werden dem Gastgeber nur mitgeteilt, wenn dies für die gerichtliche oder außergerichtliche Einziehung erforderlich ist.
 
-7.4. Die Daten von Bürgen, die ablehnen oder nicht antworten, werden innerhalb von 90 Tagen gelöscht, sofern keine gesetzliche Pflicht entgegensteht. Die Daten annehmender Bürgen werden für die Verjährungsfrist der garantierten Verpflichtungen aufbewahrt. Der Bürge übt seine Rechte als betroffene Person über den in der Datenschutzrichtlinie angegebenen Kanal des Beauftragten aus: [ENCARREGADO/DPO].
+7.4. Die Daten von Bürgen, die ablehnen oder nicht antworten, werden innerhalb von 90 Tagen gelöscht, sofern keine gesetzliche Pflicht entgegensteht. Die Daten annehmender Bürgen werden für die Verjährungsfrist der garantierten Verpflichtungen aufbewahrt. Der Bürge übt seine Rechte als betroffene Person über den in der Datenschutzrichtlinie angegebenen Kanal des Beauftragten aus: Robson Ravel de Oliveira — info@wmundi.com.
 
 ## 8. Schlussbestimmungen
 

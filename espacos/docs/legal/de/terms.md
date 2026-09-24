@@ -6,7 +6,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 ## 1. Parteien und Annahme
 
-1.1. Diese Nutzungsbedingungen ("Bedingungen") regeln den Zugang zu und die Nutzung der Website, der Anwendungen und der übrigen digitalen Dienste unter der Bezeichnung **SpaceHour** (die "Plattform"), betrieben von **[RAZÃO SOCIAL DA OPERADORA]**, eingetragen unter der CNPJ-Nr. **[CNPJ]**, mit Sitz in **[ENDEREÇO]** (der "Betreiber", "wir").
+1.1. Diese Nutzungsbedingungen ("Bedingungen") regeln den Zugang zu und die Nutzung der Website, der Anwendungen und der übrigen digitalen Dienste unter der Bezeichnung **SpaceHour** (die "Plattform"), betrieben von **Instituto Ravel de Ensino Superior Ltda.**, eingetragen unter der CNPJ-Nr. **03.162.275/0001-10**, mit Sitz in **[ENDEREÇO]** (der "Betreiber", "wir").
 
 1.2. Mit der Erstellung eines Kontos, der Veröffentlichung eines Inserats, der Vornahme einer Buchung, der Annahme einer Einladung als Bürge oder der Nutzung der Plattform in jeglicher Form erklärt der Nutzer, diese Bedingungen und die sie ergänzenden Dokumente (Ziffer 1.4) gelesen, verstanden und akzeptiert zu haben. Wer nicht einverstanden ist, darf die Plattform nicht nutzen.
 
@@ -34,7 +34,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 | Begriff | Definition |
 |---|---|
 | **Plattform** | Die digitale Umgebung SpaceHour (Website, Anwendungen, APIs und Mitteilungen), betrieben vom Betreiber. |
-| **Betreiber** | [RAZÃO SOCIAL DA OPERADORA], verantwortlich für die Plattform. |
+| **Betreiber** | Instituto Ravel de Ensino Superior Ltda., verantwortlich für die Plattform. |
 | **Nutzer** | Jede natürliche oder juristische Person, die auf der Plattform registriert ist. |
 | **Gastgeber** | Nutzer, der einen Raum inseriert und ihn in seinen ungenutzten Zeiten zur Verfügung stellt. |
 | **Mieter** | Nutzer, der einen Raum für die vorübergehende Nutzung bucht, in der Regel ein Berufsangehöriger oder ein Unternehmen. Der Begriff wird aus marktüblicher Konvention verwendet und impliziert kein Mietvertragsverhältnis (Ziffer 3). |
@@ -94,7 +94,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 6.2. Der Betreiber kann jederzeit eine Verifizierung der Identität, der beruflichen Registrierung, der Berechtigung am Raum, der Lizenzen und der Bankdaten verlangen, direkt oder über spezialisierte Dienstleister, und Funktionalitäten von dieser Verifizierung abhängig machen.
 
-6.3. Das Konto ist persönlich und nicht übertragbar. Der Nutzer ist verantwortlich für die Wahrung der Vertraulichkeit seines Passworts und für alle mit seinen Zugangsdaten vorgenommenen Aktivitäten und muss jede nicht autorisierte Nutzung unverzüglich über den Kanal [E-MAIL DE CONTATO] melden.
+6.3. Das Konto ist persönlich und nicht übertragbar. Der Nutzer ist verantwortlich für die Wahrung der Vertraulichkeit seines Passworts und für alle mit seinen Zugangsdaten vorgenommenen Aktivitäten und muss jede nicht autorisierte Nutzung unverzüglich über den Kanal support@space-hour.com melden.
 
 6.4. Die Plattform zeigt im öffentlichen Profil ausschließlich Name, Land, Registrierungsdatum, Biografie, Angabe der verifizierten Identität, Angabe der verifizierten beruflichen Registrierung und Reputation (Bewertungen) an.
 
@@ -188,6 +188,6 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 ## 18. Kontakt
 
-18.1. **[RAZÃO SOCIAL DA OPERADORA]** — CNPJ **[CNPJ]** — **[ENDEREÇO]**.
-18.2. Kundenbetreuung und Mitteilungen: **[E-MAIL DE CONTATO]**.
-18.3. Beauftragter für den Schutz personenbezogener Daten (DPO): **[ENCARREGADO/DPO]**.
+18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+18.2. Kundenbetreuung und Mitteilungen: **support@space-hour.com**.
+18.3. Beauftragter für den Schutz personenbezogener Daten (DPO): **Robson Ravel de Oliveira — info@wmundi.com**.

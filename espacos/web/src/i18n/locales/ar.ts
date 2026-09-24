@@ -536,6 +536,8 @@ const ar: Dict = {
   'footer.tagline': 'مساحات عمل جاهزة للاستخدام، بالساعة، في الأوقات الشاغرة.',
   'footer.policies': 'القواعد والسياسات',
   'footer.hosting': 'للمضيفين',
+  'footer.operator': 'تشغيل: {company} · CNPJ {cnpj}',
+  'footer.dpo': 'مسؤول حماية البيانات (LGPD): {name}',
   'footer.legalNote': 'قيم الضرائب هي للاسترشاد فقط. تُطبَّق القواعد المحلية الأكثر حماية عند وجودها.',
 
   // الإدارة
@@ -608,6 +610,7 @@ const ar: Dict = {
   'err.deposit_too_high': 'التأمين يتجاوز الحد المسموح به ({maxMultiple} أضعاف السعر اليومي).',
   'err.guarantor_threshold_required': 'أدخل المبلغ الذي يُشترط بدءًا منه وجود ضامن.',
   'err.availability_outside_platform_hours': 'يجب أن تكون الأوقات الشاغرة بين الساعة 06:00 و23:00.',
+  'err.document_deleted': 'حُذف الملف بعد انتهاء مدة الاحتفاظ؛ وتبقى نتيجة التحقق مسجلة.',
   'err.not_found': 'غير موجود.',
   'err.validation': 'يرجى مراجعة الحقول',
   'err.internal': 'حدث خطأ ما. يرجى المحاولة مرة أخرى.',

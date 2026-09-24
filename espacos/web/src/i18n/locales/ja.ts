@@ -536,6 +536,8 @@ const ja: Dict = {
   'footer.tagline': 'すぐに使える仕事用スペースを、空いている時間に、時間単位で。',
   'footer.policies': '規則とポリシー',
   'footer.hosting': 'ホストの方へ',
+  'footer.operator': '運営:{company}・CNPJ {cnpj}',
+  'footer.dpo': '個人データ保護責任者(LGPD):{name}',
   'footer.legalNote': '税額は参考値です。より保護的な現地の規則がある場合はそちらが優先されます。',
 
   // 管理
@@ -608,6 +610,7 @@ const ja: Dict = {
   'err.deposit_too_high': '保証金が許容上限（日額料金の {maxMultiple} 倍）を超えています。',
   'err.guarantor_threshold_required': '保証人が必要となる金額を入力してください。',
   'err.availability_outside_platform_hours': '空き時間帯は06:00から23:00の間で設定してください。',
+  'err.document_deleted': '保存期間の経過により書類ファイルは削除されました。確認結果は記録に残っています。',
   'err.not_found': '見つかりません。',
   'err.validation': '入力内容をご確認ください',
   'err.internal': '問題が発生しました。もう一度お試しください。',

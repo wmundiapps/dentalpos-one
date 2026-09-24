@@ -6,7 +6,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 1. Partes e aceitação
 
-1.1. Estes Termos de Uso ("Termos") regem o acesso e o uso do site, dos aplicativos e dos demais serviços digitais denominados **SpaceHour** (a "Plataforma"), disponíveis nos domínios **space-hour.com** (global) e **spacehour.com.br** (Brasil), operados por **[RAZÃO SOCIAL DA OPERADORA]**, inscrita no CNPJ sob o nº **[CNPJ]**, com sede em **[ENDEREÇO]** (a "Operadora", "nós").
+1.1. Estes Termos de Uso ("Termos") regem o acesso e o uso do site, dos aplicativos e dos demais serviços digitais denominados **SpaceHour** (a "Plataforma"), disponíveis nos domínios **space-hour.com** (global) e **spacehour.com.br** (Brasil), operados por **Instituto Ravel de Ensino Superior Ltda.**, inscrita no CNPJ sob o nº **03.162.275/0001-10**, com sede em **[ENDEREÇO]** (a "Operadora", "nós").
 
 1.2. Ao criar uma conta, publicar um anúncio, fazer uma Reserva, aceitar um convite como Avalista ou utilizar a Plataforma de qualquer modo, o usuário declara ter lido, compreendido e aceitado estes Termos e os documentos que os integram (cláusula 1.4). Quem não concordar não deve utilizar a Plataforma.
 
@@ -34,7 +34,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 | Termo | Definição |
 |---|---|
 | **Plataforma** | O ambiente digital SpaceHour (site, aplicativos, APIs e comunicações) operado pela Operadora. |
-| **Operadora** | [RAZÃO SOCIAL DA OPERADORA], responsável pela Plataforma. |
+| **Operadora** | Instituto Ravel de Ensino Superior Ltda., responsável pela Plataforma. |
 | **Usuário** | Qualquer pessoa física ou jurídica cadastrada na Plataforma. |
 | **Anfitrião** | Usuário que anuncia um Espaço e o disponibiliza em seus horários ociosos. |
 | **Locatário** | Usuário que reserva um Espaço para uso temporário, geralmente um profissional ou uma empresa. O termo é empregado por convenção de mercado e não implica existência de contrato de locação (cláusula 3). |
@@ -194,6 +194,6 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 18. Contato
 
-18.1. **[RAZÃO SOCIAL DA OPERADORA]** — CNPJ **[CNPJ]** — **[ENDEREÇO]**.
+18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
 18.2. Atendimento e notificações: **support@space-hour.com**.
-18.3. Encarregado pelo tratamento de dados pessoais: **Encarregado de Dados (DPO) — privacy@space-hour.com**.
+18.3. Encarregado pelo tratamento de dados pessoais: **Robson Ravel de Oliveira — info@wmundi.com**.

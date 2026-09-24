@@ -123,5 +123,5 @@
 
 ## 11. संपर्क
 
-11.1. रिज़ॉल्यूशन केंद्र: प्लेटफ़ॉर्म पर बुकिंग के पृष्ठ के माध्यम से या ईमेल **[E-MAIL DE CONTATO]** द्वारा।
-11.2. **[RAZÃO SOCIAL DA OPERADORA]** — CNPJ **[CNPJ]** — **[ENDEREÇO]**।
+11.1. रिज़ॉल्यूशन केंद्र: प्लेटफ़ॉर्म पर बुकिंग के पृष्ठ के माध्यम से या ईमेल **support@space-hour.com** द्वारा।
+11.2. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**।

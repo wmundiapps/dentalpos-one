@@ -536,6 +536,8 @@ const hi: Dict = {
   'footer.tagline': 'तुरंत उपयोग के लिए तैयार कार्यस्थल, घंटे के हिसाब से, खाली समय में।',
   'footer.policies': 'नियम और नीतियाँ',
   'footer.hosting': 'होस्ट के लिए',
+  'footer.operator': 'संचालक: {company} · CNPJ {cnpj}',
+  'footer.dpo': 'डेटा संरक्षण अधिकारी (LGPD): {name}',
   'footer.legalNote': 'कर मूल्य केवल संदर्भ के लिए हैं। अधिक सुरक्षात्मक स्थानीय नियम प्रभावी होते हैं।',
 
   // प्रशासन
@@ -608,6 +610,7 @@ const hi: Dict = {
   'err.deposit_too_high': 'सुरक्षा जमा राशि अनुमत सीमा (दैनिक दर के {maxMultiple} गुना) से अधिक है।',
   'err.guarantor_threshold_required': 'वह राशि दर्ज करें जिससे ऊपर ज़मानतदार आवश्यक हो।',
   'err.availability_outside_platform_hours': 'खाली घंटे 06:00 और 23:00 के बीच होने चाहिए।',
+  'err.document_deleted': 'संग्रहण अवधि के बाद फ़ाइल हटा दी गई; सत्यापन का परिणाम रिकॉर्ड में है।',
   'err.not_found': 'नहीं मिला।',
   'err.validation': 'कृपया फ़ील्ड जाँचें',
   'err.internal': 'कुछ गड़बड़ हो गई। कृपया फिर से प्रयास करें।',

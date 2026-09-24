@@ -118,4 +118,4 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 12.1. Las normas del Espacio (normas internas del Anuncio) y del edificio o condominio aceptadas en la Reserva integran este documento.
 
-12.2. Las dudas sobre estas reglas pueden dirigirse a [E-MAIL DE CONTATO].
+12.2. Las dudas sobre estas reglas pueden dirigirse a support@space-hour.com.

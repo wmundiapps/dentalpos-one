@@ -64,6 +64,12 @@ Operação aberta **só no Brasil** (`LAUNCH_COUNTRY_CODES` em `shared/countries
 - Repasse aos anfitriões ainda é manual (próximo passo: Stripe Connect / split do Mercado Pago).
 - Verificação de identidade (KYC com selfie) ainda é declaratória.
 
+## Segurança e LGPD
+
+- Controlador: Instituto Ravel de Ensino Superior Ltda. (CNPJ 03.162.275/0001-10). Encarregado: Robson Ravel de Oliveira — info@wmundi.com.
+- Documentos de registro profissional cifrados no banco (AES-256-GCM, chave `DOCUMENT_ENCRYPTION_KEY`), cada acesso registrado (`document_access_log`) e arquivo apagado 90 dias após a decisão.
+- Roteiro de resposta a incidentes: `docs/operacao/RESPOSTA-A-INCIDENTES.md`.
+
 ## Colocar no ar (Vercel)
 
 1. Criar o projeto na Vercel apontando para a pasta `espacos/` deste repositório (o `vercel.json` já define build, rotas da API e o cron).
