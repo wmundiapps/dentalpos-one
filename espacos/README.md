@@ -6,13 +6,18 @@ salas de reunião, estúdios etc. É um app independente, sem ligação com o De
 
 ## Como rodar
 
+Requer Node 22+ e PostgreSQL 14+.
+
 ```bash
 cd espacos
+docker compose up -d   # PostgreSQL local (bancos spacehour e spacehour_test) — ou use um Postgres seu
 npm install            # instala server e web (workspaces)
-npm run dev            # API em :4000 e web em http://localhost:5173
-npm test               # testes das regras e dos fluxos de reserva
-npm run seed           # recria os dados de demonstração
+npm run dev            # aplica as migrações, cria dados demo se o banco estiver vazio; API :4000, web :5173
+npm test               # testes das regras e de integração (banco spacehour_test)
+npm run db:reset --workspace server   # apaga e recria o banco de desenvolvimento com dados demo
 ```
+
+Configuração em `server/.env` (modelo em `server/.env.example`): `DATABASE_URL`, `TEST_DATABASE_URL`, `DATABASE_SSL`, `JWT_SECRET`, `SEED_DEMO`…
 
 Contas de demonstração (senha `demo12345`): `locatario@spacehour.demo` (dentista com CRO verificado),
 `anfitriao@spacehour.demo` (clínica em São Paulo), `admin@spacehour.demo` (mediação). Há anúncios em 28 países.
@@ -34,11 +39,15 @@ Contas de demonstração (senha `demo12345`): `locatario@spacehour.demo` (dentis
 ## Estrutura
 
 - `shared/` — regras de negócio (limites, taxas, cancelamento, penalidades) e catálogo de países. Única fonte usada pela API e pela web.
-- `server/` — API Express + TypeScript. Persistência em arquivo JSON (`server/data/db.json`), suficiente para demonstração.
+- `server/` — API Express 5 + TypeScript sobre **PostgreSQL**:
+  - `migrations/*.sql` — esquema versionado, aplicado automaticamente ao iniciar (`schema_migrations` registra o que já rodou);
+  - `src/db.ts` — pool de conexões, transações e travas; `src/repo.ts` — leitura/gravação de cada entidade;
+  - cada operação (reservar, aprovar, cancelar, check-in/out, incidentes, rotina periódica) roda numa transação; a agenda de cada espaço é travada durante a reserva, então dois pedidos simultâneos para o mesmo horário nunca passam juntos, mesmo com várias instâncias do servidor;
+  - movimentos financeiros ficam numa trilha de auditoria (`payment_events`, `payment_charges`).
 - `web/` — React + Vite. Traduções em `web/src/i18n/locales/` (o português é a fonte).
 - `docs/legal/<idioma>/` — documentos legais exibidos em `/regras`.
 
 ## Antes de produção
 
 - **Revisão jurídica e tributária em cada país** (os textos e alíquotas são base de referência).
-- Trocar o armazenamento JSON por PostgreSQL; pagamentos simulados por adquirentes reais (roteamento em `server/src/payments.ts`); verificação de identidade/registro profissional por provedor de KYC e consulta aos conselhos; envio real de e-mails (`server/src/notify.ts`); definir `JWT_SECRET`.
+- Trocar os pagamentos simulados por adquirentes reais (roteamento em `server/src/payments.ts`); verificação de identidade/registro profissional por provedor de KYC e consulta aos conselhos; envio real de e-mails (`server/src/notify.ts`); definir `JWT_SECRET`.

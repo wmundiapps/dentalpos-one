@@ -1,0 +1,21 @@
+# PostgreSQL para desenvolvimento do SpaceHour: docker compose up -d
+# (usa a porta 5432; se o Postgres do DentalPos já estiver nela, pare-o ou mude a porta e o DATABASE_URL)
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: spacehour
+      POSTGRES_PASSWORD: spacehour
+      POSTGRES_DB: spacehour
+    ports:
+      - "5432:5432"
+    volumes:
+      - spacehour_postgres:/var/lib/postgresql/data
+      - ./server/scripts/create-test-db.sql:/docker-entrypoint-initdb.d/create-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spacehour -d spacehour"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  spacehour_postgres:

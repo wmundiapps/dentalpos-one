@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { db, id, nowIso, save } from '../db';
+import { id, nowIso, pool, rows, withTx, type Db } from '../db';
+import * as repo from '../repo';
 import { HttpError, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth';
-import { ACTIVE_STATUSES, getListing, quote } from '../bookings';
+import { getListing, quote } from '../bookings';
 import { COUNTRY_BY_CODE, getCity } from '../../../shared/countries';
 import { AMENITIES, BOOKING_LIMITS, CATEGORIES, FEES, toMinutes, validateOccurrences, weekdayOf } from '../../../shared/rules';
-import type { Listing, Review, TimeRange, User } from '../../../shared/types';
+import type { Listing, TimeRange, User } from '../../../shared/types';
 
 export const listingsRouter = Router();
 
@@ -65,130 +66,138 @@ function checkListingRules(data: z.infer<typeof listingSchema>) {
   return { currency: country.currency, timezone: city.tz };
 }
 
-function ratingSummary(listingId: string) {
-  const rs = db.reviews.filter((r) => r.listingId === listingId && r.visible && r.kind === 'guest_to_listing');
-  const cs = db.reviews.filter((r) => r.listingId === listingId && r.visible && r.kind === 'client_to_listing');
-  const avg = (xs: Review[]) => (xs.length ? Math.round((xs.reduce((a, r) => a + r.rating, 0) / xs.length) * 100) / 100 : null);
-  return { rating: avg(rs), reviewCount: rs.length, clientRating: avg(cs), clientReviewCount: cs.length };
+/** Endereço completo só para o anfitrião e para quem tem reserva confirmada. */
+async function addressVisibleTo(db: Db, listings: Listing[], viewer?: User) {
+  if (!viewer) return new Set<string>();
+  const booked = await rows<{ listing_id: string }>(db,
+    "SELECT DISTINCT listing_id FROM bookings WHERE guest_id = $1 AND listing_id = ANY($2) AND status IN ('confirmed','checked_in','completed')",
+    [viewer.id, listings.map((l) => l.id)]);
+  return new Set([...listings.filter((l) => l.hostId === viewer.id).map((l) => l.id), ...booked.map((r) => r.listing_id)]);
 }
 
-export function publicListing(l: Listing, viewer?: User) {
-  const canSeeAddress = viewer && (viewer.id === l.hostId || db.bookings.some((b) => b.listingId === l.id && b.guestId === viewer.id && ['confirmed', 'checked_in', 'completed'].includes(b.status)));
-  const { address, ...rest } = l;
-  return { ...rest, address: canSeeAddress ? address : undefined, ...ratingSummary(l.id) };
+export async function publicListings(db: Db, listings: Listing[], viewer?: User) {
+  const ratings = await repo.ratingSummaries(db, listings.map((l) => l.id));
+  const visible = await addressVisibleTo(db, listings, viewer);
+  return listings.map((l) => {
+    const { address, ...rest } = l;
+    return { ...rest, address: visible.has(l.id) ? address : undefined, ...ratings(l.id) };
+  });
 }
 
-listingsRouter.get('/listings', optionalAuth, (req: AuthedRequest, res) => {
+export async function publicListing(db: Db, l: Listing, viewer?: User) {
+  return (await publicListings(db, [l], viewer))[0];
+}
+
+listingsRouter.get('/listings', optionalAuth, async (req: AuthedRequest, res) => {
   const q = req.query as Record<string, string | undefined>;
-  let list = db.listings.filter((l) => l.active);
-  if (q.country) list = list.filter((l) => l.countryCode === q.country);
-  if (q.city) list = list.filter((l) => l.city === q.city);
-  if (q.category) list = list.filter((l) => l.category === q.category);
-  if (q.guests) list = list.filter((l) => l.capacity >= Number(q.guests));
-  if (q.minPrice) list = list.filter((l) => l.pricePerHour >= Number(q.minPrice));
-  if (q.maxPrice) list = list.filter((l) => l.pricePerHour <= Number(q.maxPrice));
-  if (q.instant === '1') list = list.filter((l) => l.instantBook);
-  if (q.noGuarantor === '1') list = list.filter((l) => l.guarantorPolicy === 'none' || l.guarantorPolicy === 'optional');
-  if (q.amenities) {
-    const req_ = q.amenities.split(',');
-    list = list.filter((l) => req_.every((a) => l.amenities.includes(a)));
-  }
-  if (q.q) {
-    const term = q.q.toLowerCase();
-    list = list.filter((l) => `${l.title} ${l.description} ${l.city} ${l.neighborhood ?? ''} ${l.equipment}`.toLowerCase().includes(term));
-  }
-  if (q.date) {
+  let list = await repo.searchListings(pool, {
+    country: q.country, city: q.city, category: q.category, guests: q.guests ? Number(q.guests) : undefined,
+    minPrice: q.minPrice ? Number(q.minPrice) : undefined, maxPrice: q.maxPrice ? Number(q.maxPrice) : undefined,
+    instant: q.instant === '1', noGuarantor: q.noGuarantor === '1', amenities: q.amenities?.split(',').filter(Boolean), q: q.q,
+  });
+  if (q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date)) {
     const date = q.date;
-    list = list.filter((l) => {
-      if (q.start && q.end) {
-        const errs = validateOccurrences(l, [{ date, start: q.start, end: q.end }], {
-          existing: db.bookings.filter((b) => b.listingId === l.id && ACTIVE_STATUSES.includes(b.status)), guestHoursLast30Days: 0, guestActiveSeries: 0,
-        }).filter((e) => ['outside_availability', 'date_blocked', 'conflict'].includes(e.code));
+    if (q.start && q.end) {
+      // ocupação do dia para os candidatos, numa única consulta
+      const busy = await rows<{ listing_id: string; start_time: string; end_time: string }>(pool,
+        `SELECT o.listing_id, o.start_time, o.end_time FROM booking_occurrences o JOIN bookings b ON b.id = o.booking_id
+         WHERE o.date = $1 AND o.listing_id = ANY($2) AND b.status = ANY($3)`, [date, list.map((l) => l.id), repo.ACTIVE_STATUSES]);
+      list = list.filter((l) => {
+        const existing = busy.filter((x) => x.listing_id === l.id).map((x) => ({ occurrences: [{ date, start: x.start_time.slice(0, 5), end: x.end_time.slice(0, 5) }] }));
+        const errs = validateOccurrences(l, [{ date, start: q.start!, end: q.end! }], { existing, guestHoursLast30Days: 0, guestActiveSeries: 0 })
+          .filter((e) => ['outside_availability', 'date_blocked', 'conflict'].includes(e.code));
         return errs.length === 0;
-      }
-      return !l.blockedDates.includes(date) && (l.weeklyAvailability[weekdayOf(date) as 0]?.length ?? 0) > 0;
-    });
+      });
+    } else {
+      list = list.filter((l) => !l.blockedDates.includes(date) && (l.weeklyAvailability[weekdayOf(date) as 0]?.length ?? 0) > 0);
+    }
   }
-  const results = list.map((l) => publicListing(l, req.user));
+  const results = await publicListings(pool, list, req.user);
   if (q.sort === 'price_asc') results.sort((a, b) => a.pricePerHour - b.pricePerHour);
   else if (q.sort === 'price_desc') results.sort((a, b) => b.pricePerHour - a.pricePerHour);
   else results.sort((a, b) => (b.rating ?? 0) * Math.log(2 + b.reviewCount) - (a.rating ?? 0) * Math.log(2 + a.reviewCount));
   res.json(results);
 });
 
-listingsRouter.get('/listings/:id', optionalAuth, (req: AuthedRequest, res) => {
-  const l = getListing(req.params.id);
+listingsRouter.get('/listings/:id', optionalAuth, async (req: AuthedRequest, res) => {
+  const l = await getListing(pool, req.params.id);
   if (!l.active && l.hostId !== req.user?.id) throw new HttpError(404, 'listing_not_found');
-  const host = db.users.find((u) => u.id === l.hostId)!;
-  const reviews = db.reviews
-    .filter((r) => r.listingId === l.id && r.visible && r.kind !== 'host_to_guest')
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const host = (await repo.getUser(pool, l.hostId))!;
+  const reviews = (await repo.findReviews(pool, "listing_id = $1 AND visible AND kind <> 'host_to_guest'", [l.id]))
     .map(({ privateNote: _pn, authorId: _a, ...r }) => r);
-  res.json({ listing: publicListing(l, req.user), host: toPublicUser(host), reviews });
+  res.json({ listing: await publicListing(pool, l, req.user), host: await toPublicUser(pool, host), reviews });
 });
 
 // Horários já ocupados de um dia (sem dados dos locatários)
-listingsRouter.get('/listings/:id/busy', (req, res) => {
-  const l = getListing(req.params.id);
+listingsRouter.get('/listings/:id/busy', async (req, res) => {
+  const l = await getListing(pool, req.params.id);
   const date = String(req.query.date ?? '');
-  const busy = db.bookings
-    .filter((b) => b.listingId === l.id && ACTIVE_STATUSES.includes(b.status))
-    .flatMap((b) => b.occurrences.filter((o) => o.date === date).map((o) => ({ start: o.start, end: o.end })));
+  const valid = /^\d{4}-\d{2}-\d{2}$/.test(date);
+  const busy = valid ? await rows<{ start: string; end: string }>(pool,
+    `SELECT to_char(o.start_time, 'HH24:MI') AS start, to_char(o.end_time, 'HH24:MI') AS "end"
+     FROM booking_occurrences o JOIN bookings b ON b.id = o.booking_id
+     WHERE o.listing_id = $1 AND o.date = $2 AND b.status = ANY($3) ORDER BY o.start_time`, [l.id, date, repo.ACTIVE_STATUSES]) : [];
   res.json({
     date, busy, bufferMinutes: l.bufferMinutes, blocked: l.blockedDates.includes(date),
-    windows: date ? l.weeklyAvailability[weekdayOf(date) as 0] ?? [] : [],
+    windows: valid ? l.weeklyAvailability[weekdayOf(date) as 0] ?? [] : [],
   });
 });
 
-listingsRouter.post('/listings/:id/quote', optionalAuth, (req: AuthedRequest, res) => {
-  const l = getListing(req.params.id);
-  const { occurrences } = z.object({ occurrences: z.array(z.object({ date: z.string(), start: hhmm, end: hhmm })).min(1).max(52) }).parse(req.body);
-  res.json(quote(l, occurrences, req.user));
+listingsRouter.post('/listings/:id/quote', optionalAuth, async (req: AuthedRequest, res) => {
+  const l = await getListing(pool, req.params.id);
+  const { occurrences } = z.object({ occurrences: z.array(z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), start: hhmm, end: hhmm })).min(1).max(52) }).parse(req.body);
+  res.json(await quote(pool, l, occurrences, req.user));
 });
 
-listingsRouter.post('/listings', requireAuth, (req: AuthedRequest, res) => {
+listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) => {
   const data = listingSchema.parse(req.body);
   const derived = checkListingRules(data);
   const user = req.user!;
-  if (!user.roles.includes('host')) user.roles.push('host');
   const listing: Listing = {
     ...(data as unknown as Listing), ...derived, id: id('lst'), hostId: user.id, createdAt: nowIso(),
   };
-  db.listings.push(listing);
-  save();
+  await withTx(async (tx) => {
+    if (!user.roles.includes('host')) {
+      user.roles.push('host');
+      await repo.updateUser(tx, user);
+    }
+    await repo.insertListing(tx, listing);
+  });
   res.status(201).json(listing);
 });
 
-listingsRouter.put('/listings/:id', requireAuth, (req: AuthedRequest, res) => {
-  const l = getListing(req.params.id);
-  if (l.hostId !== req.user!.id) throw new HttpError(403, 'forbidden');
+listingsRouter.put('/listings/:id', requireAuth, async (req: AuthedRequest, res) => {
   const data = listingSchema.parse(req.body);
   const derived = checkListingRules(data);
-  // Política de cancelamento das reservas existentes não muda (fica gravada na reserva)
-  Object.assign(l, data, derived);
-  save();
+  const l = await withTx(async (tx) => {
+    const cur = await getListing(tx, req.params.id, true);
+    if (cur.hostId !== req.user!.id) throw new HttpError(403, 'forbidden');
+    // Política de cancelamento das reservas existentes não muda (fica gravada na reserva)
+    Object.assign(cur, data, derived);
+    await repo.updateListing(tx, cur);
+    return cur;
+  });
   res.json(l);
 });
 
-listingsRouter.get('/host/listings', requireAuth, (req: AuthedRequest, res) => {
-  res.json(db.listings.filter((l) => l.hostId === req.user!.id).map((l) => ({ ...l, ...ratingSummary(l.id) })));
+listingsRouter.get('/host/listings', requireAuth, async (req: AuthedRequest, res) => {
+  const list = await repo.searchListings(pool, { hostId: req.user!.id, activeOnly: false });
+  const ratings = await repo.ratingSummaries(pool, list.map((l) => l.id));
+  res.json(list.map((l) => ({ ...l, ...ratings(l.id) })));
 });
 
 // Favoritos (lista de desejos)
-listingsRouter.get('/favorites', requireAuth, (req: AuthedRequest, res) => {
-  const ids = db.favorites.filter((f) => f.userId === req.user!.id).map((f) => f.listingId);
-  res.json(db.listings.filter((l) => ids.includes(l.id)).map((l) => publicListing(l, req.user)));
+listingsRouter.get('/favorites', requireAuth, async (req: AuthedRequest, res) => {
+  const ids = (await rows<{ listing_id: string }>(pool, 'SELECT listing_id FROM favorites WHERE user_id = $1 ORDER BY created_at', [req.user!.id])).map((r) => r.listing_id);
+  const map = await repo.getListings(pool, ids);
+  res.json(await publicListings(pool, ids.map((i) => map.get(i)!).filter(Boolean), req.user));
 });
-listingsRouter.post('/favorites/:listingId', requireAuth, (req: AuthedRequest, res) => {
-  getListing(req.params.listingId);
-  if (!db.favorites.some((f) => f.userId === req.user!.id && f.listingId === req.params.listingId)) {
-    db.favorites.push({ userId: req.user!.id, listingId: req.params.listingId });
-    save();
-  }
+listingsRouter.post('/favorites/:listingId', requireAuth, async (req: AuthedRequest, res) => {
+  await getListing(pool, req.params.listingId);
+  await pool.query('INSERT INTO favorites (user_id, listing_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [req.user!.id, req.params.listingId]);
   res.status(204).end();
 });
-listingsRouter.delete('/favorites/:listingId', requireAuth, (req: AuthedRequest, res) => {
-  db.favorites = db.favorites.filter((f) => !(f.userId === req.user!.id && f.listingId === req.params.listingId));
-  save();
+listingsRouter.delete('/favorites/:listingId', requireAuth, async (req: AuthedRequest, res) => {
+  await pool.query('DELETE FROM favorites WHERE user_id = $1 AND listing_id = $2', [req.user!.id, req.params.listingId]);
   res.status(204).end();
 });
