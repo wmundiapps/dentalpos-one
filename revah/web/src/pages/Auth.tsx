@@ -12,6 +12,7 @@ function AuthShell({ title, subtitle, children, footer }: { title: string; subti
     <div className="auth">
       <div className="auth-card">
         <Brand name="REVAH" />
+        <p className="auth-tagline">Plataforma business de mensageria</p>
         <h1>{title}</h1>
         {subtitle && <p className="muted">{subtitle}</p>}
         {children}
@@ -50,11 +51,6 @@ export function Login() {
     <AuthShell
       title="Entrar"
       subtitle="Mensagens, CRM e atendimento automático em um só painel."
-      footer={
-        <>
-          Ainda não tem conta? <Link to="/cadastro">Teste grátis</Link>
-        </>
-      }
     >
       <form onSubmit={submit} className="stack">
         {error && <Alert tone="red">{error}</Alert>}
