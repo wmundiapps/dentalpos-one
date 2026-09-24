@@ -1,13 +1,13 @@
 // Envio de e-mails (fila na tabela notifications). SMTP configurável; com a
 // hospedagem de e-mail da GoDaddy (Microsoft 365 / Professional Email):
 //   SMTP_HOST=smtpout.secureserver.net SMTP_PORT=465 SMTP_SECURE=true
-//   SMTP_USER=no-reply@space-hour.com SMTP_PASS=...
+//   SMTP_USER=noreply@space-hour.com SMTP_PASS=...
 // Sem SMTP_HOST (desenvolvimento/testes) o e-mail é só registrado no console.
 import nodemailer, { type Transporter } from 'nodemailer';
 import { one, rows, withTx } from './db';
 
 const APP_URL = () => process.env.APP_URL ?? 'http://localhost:5173';
-export const MAIL_FROM = () => process.env.MAIL_FROM ?? 'SpaceHour <no-reply@space-hour.com>';
+export const MAIL_FROM = () => process.env.MAIL_FROM ?? 'SpaceHour <noreply@space-hour.com>';
 export const SUPPORT_EMAIL = () => process.env.SUPPORT_EMAIL ?? 'support@space-hour.com';
 
 export interface OutgoingMail { to: string; subject: string; text: string; html?: string; replyTo?: string }
