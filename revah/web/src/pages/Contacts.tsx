@@ -6,6 +6,7 @@ import { fmtPhone, fmtRelative } from '../lib/format'
 import { parseCsvRows } from '../lib/csv'
 import type { Contact, ContactDetail, Tag } from '../lib/types'
 import { useFeedback } from '../components/feedback'
+import { useAuthed } from '../lib/session'
 import { Alert, Badge, Button, EmptyState, ErrorBox, Field, Loading, Modal, PageHeader, Pagination, readFileText, useDebounced, useLoad } from '../components/ui'
 import { ContactDrawer } from './ContactDrawer'
 
@@ -23,6 +24,12 @@ const splitTags = (s: string) =>
     .filter(Boolean)
 
 export default function Contacts() {
+  const fb = useFeedback()
+  const { session } = useAuthed()
+  const csvLocked = session.tenant.limits.csvImport === false
+  // CSV é recurso do PRO: no START mostra o aviso de upgrade direto (a API também bloqueia com 402).
+  const openImport = () =>
+    csvLocked ? fb.showUpgrade({ code: 'PLAN_FEATURE', message: 'Importação de listas externas (CSV) está disponível no plano PRO.' }) : setImportOpen(true)
   const [params, setParams] = useSearchParams()
   const [q, setQ] = useState('')
   const [tagId, setTagId] = useState('')
@@ -68,8 +75,8 @@ export default function Contacts() {
         subtitle={list.data ? `${list.data.total.toLocaleString('pt-BR')} contatos no CRM` : 'CRM'}
         actions={
           <>
-            <Button icon={<Upload size={16} />} onClick={() => setImportOpen(true)}>
-              Importar CSV
+            <Button icon={<Upload size={16} />} onClick={openImport}>
+              Importar CSV {csvLocked && <Badge tone="indigo">PRO</Badge>}
             </Button>
             <Button variant="primary" icon={<Plus size={16} />} onClick={() => setEditing({})}>
               Novo contato
@@ -130,8 +137,8 @@ export default function Contacts() {
           action={
             !dq &&
             !tagId && (
-              <Button variant="primary" icon={<Upload size={16} />} onClick={() => setImportOpen(true)}>
-                Importar planilha
+              <Button variant="primary" icon={<Upload size={16} />} onClick={openImport}>
+                Importar planilha {csvLocked && <Badge tone="indigo">PRO</Badge>}
               </Button>
             )
           }

@@ -8,6 +8,7 @@ import Contacts from './pages/Contacts'
 import Inbox from './pages/Inbox'
 import Campaigns from './pages/Campaigns'
 import Automations from './pages/Automations'
+import Templates from './pages/Templates'
 import Channels from './pages/Channels'
 import Voice from './pages/Voice'
 import Leads from './pages/Leads'
@@ -22,9 +23,11 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-function PublicOnly({ children }: { children: ReactNode }) {
+// Já logado: segue para o destino pedido (ou o padrão da página, ex.: /assinatura após o cadastro).
+function PublicOnly({ children, to = '/' }: { children: ReactNode; to?: string }) {
   const { session } = useSession()
-  return session ? <Navigate to="/" replace /> : <>{children}</>
+  const location = useLocation()
+  return session ? <Navigate to={(location.state as any)?.from || to} replace /> : <>{children}</>
 }
 
 function NotEmbedded({ children }: { children: ReactNode }) {
@@ -41,7 +44,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
-      <Route path="/cadastro" element={<PublicOnly><Register /></PublicOnly>} />
+      <Route path="/cadastro" element={<PublicOnly to="/assinatura"><Register /></PublicOnly>} />
       <Route path="/esqueci-senha" element={<ForgotPassword />} />
       <Route path="/redefinir-senha" element={<ResetPassword />} />
       <Route path="/sso" element={<Sso />} />
@@ -57,6 +60,7 @@ export default function App() {
         <Route path="/contatos" element={<Contacts />} />
         <Route path="/campanhas" element={<Campaigns />} />
         <Route path="/campanhas/:id" element={<Campaigns />} />
+        <Route path="/templates" element={<Templates />} />
         <Route path="/automacoes" element={<Automations />} />
         <Route path="/canais" element={<Channels />} />
         <Route path="/voz" element={<Voice />} />

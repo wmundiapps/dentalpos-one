@@ -16,7 +16,7 @@ r.get('/templates/library', (req, res) => {
     unlocked,
     items: TEMPLATE_LIBRARY.map((x) => ({
       ...x,
-      body: unlocked ? x.body : `${x.body.slice(0, 40)}…`,
+      body: unlocked ? x.body : `${x.body.replace(/\{\{\w+\}\}/g, '…').split(' ').slice(0, 6).join(' ')} …`,
       variables: [...new Set(x.body.match(/\{\{\w+\}\}/g) || [])],
     })),
   })

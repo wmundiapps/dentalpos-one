@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { get, patch } from '../lib/api'
 import { PLAN_LABEL, TENANT_STATUS_LABEL, fmtDateTime } from '../lib/format'
 import { useFeedback } from '../components/feedback'
@@ -12,7 +12,9 @@ interface AdminTenant {
   status: string
   source: string
   leadsAddonActive: boolean
-  trialCampaignsUsed: number
+  trialEndsAt: string | null
+  trialEligible: boolean
+  billingProvider?: string | null
   createdAt: string
   subscription: { status: string; currentPeriodEnd: string | null } | null
   _count: { contacts: number; users: number; campaigns: number }
@@ -110,13 +112,10 @@ function Tenants() {
                     <input type="checkbox" checked={t.leadsAddonActive} onChange={(e) => update(t, { leadsAddonActive: e.target.checked })} aria-label="Leads ativo" />
                   </td>
                   <td>
-                    <select value={t.trialCampaignsUsed} onChange={(e) => update(t, { trialCampaignsUsed: Number(e.target.value) })} aria-label="Campanhas grátis usadas">
-                      {[0, 1, 2].map((n) => (
-                        <option key={n} value={n}>
-                          {n}/2
-                        </option>
-                      ))}
-                    </select>
+                    <TrialEndInput value={t.trialEndsAt} onSave={(v) => update(t, { trialEndsAt: v })} />
+                    <label className="check small">
+                      <input type="checkbox" checked={t.trialEligible} onChange={(e) => update(t, { trialEligible: e.target.checked })} /> pode usar teste
+                    </label>
                   </td>
                   <td className="hide-sm small">
                     {t._count.contacts} contatos · {t._count.users} usuários · {t._count.campaigns} campanhas
@@ -129,6 +128,25 @@ function Tenants() {
         </div>
       )}
     </div>
+  )
+}
+
+// Fim do teste: salva ao sair do campo (evita um PATCH por tecla).
+function TrialEndInput({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) {
+  const initial = value ? value.slice(0, 10) : ''
+  const [v, setV] = useState(initial)
+  useEffect(() => setV(initial), [initial])
+  return (
+    <input
+      type="date"
+      value={v}
+      aria-label="Fim do teste"
+      onChange={(e) => setV(e.target.value)}
+      onBlur={() => {
+        if (v === initial) return
+        onSave(v ? new Date(`${v}T23:59:00`).toISOString() : null)
+      }}
+    />
   )
 }
 

@@ -202,8 +202,13 @@ export async function cancelSubscription(tenant: Tenant, userId: string) {
     await asaas(`/subscriptions/${sub.asaasSubscriptionId}`, { method: 'DELETE' })
     if (sub.asaasLeadsSubscriptionId) await asaas(`/subscriptions/${sub.asaasLeadsSubscriptionId}`, { method: 'DELETE' }).catch(() => null)
     const inTrial = sub.status === 'trialing'
-    const periodOver = !sub.currentPeriodEnd || sub.currentPeriodEnd.getTime() <= Date.now()
-    await prisma.subscription.update({ where: { id: sub.id }, data: { cancelAtPeriodEnd: true, ...(inTrial || periodOver ? { status: 'canceled' } : {}) } })
+    // Já houve cobrança e o webhook ainda não informou o fim do ciclo: garante o mês pago.
+    const periodEnd = sub.currentPeriodEnd || (sub.status === 'active' ? addDays(new Date(), 30) : null)
+    const periodOver = !periodEnd || periodEnd.getTime() <= Date.now()
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: { cancelAtPeriodEnd: true, currentPeriodEnd: periodEnd, ...(inTrial || periodOver ? { status: 'canceled' } : {}) },
+    })
     if (inTrial || periodOver) await prisma.tenant.update({ where: { id: tenant.id }, data: { status: 'CANCELED', leadsAddonActive: false } })
   }
   await audit(tenant.id, userId, 'BILLING_CANCEL', 'Subscription', sub.id)

@@ -315,7 +315,7 @@ function AutomationEditor({ initial, triggers, onClose, onSaved }: { initial: Pa
                     <input value={a.subject || ''} onChange={(e) => update(i, { subject: e.target.value })} />
                   </Field>
                 )}
-                <Field label="Mensagem" hint="Variáveis: {{nome}}, {{primeiro_nome}}, {{empresa}} e dados do evento (ex.: {{data}}, {{hora}}).">
+                <Field label="Mensagem" hint="Variáveis: {{nome}}, {{primeiro_nome}}, {{empresa}}, {{minha_empresa}} e dados do evento (ex.: {{data}}, {{hora}}).">
                   <textarea rows={4} value={a.template} onChange={(e) => update(i, { template: e.target.value })} />
                 </Field>
                 {a.channel === 'WHATSAPP' && (

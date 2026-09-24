@@ -342,6 +342,8 @@ interface ApiKeyRow {
 
 function ApiKeysTab() {
   const fb = useFeedback()
+  const { session } = useAuthed()
+  const intLimit = session.tenant.limits.integrations
   const keys = useLoad(() => get<ApiKeyRow[]>('/settings/api-keys'))
   const [name, setName] = useState('')
   const [created, setCreated] = useState<string | null>(null)
@@ -382,6 +384,9 @@ function ApiKeysTab() {
             Criar chave
           </Button>
         </div>
+        {intLimit !== null && intLimit !== undefined && (
+          <p className="small muted">{intLimit === 0 ? 'Integrações ficam disponíveis após ativar o plano.' : `Seu plano permite ${intLimit} chave(s) de integração ativa(s). No PRO não há esse limite.`}</p>
+        )}
         <p className="small muted">Use no cabeçalho <code>Authorization: Bearer &lt;chave&gt;</code> ou <code>X-Api-Key</code> nas rotas /v1 e de integração com o DentalPos One.</p>
       </Card>
       <Card title="Chaves" pad={false}>

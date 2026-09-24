@@ -66,7 +66,7 @@ async function executeAction(job: Job) {
   if (!action) return
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: job.tenantId } })
   const contact = contactId ? await prisma.contact.findFirst({ where: { id: contactId, tenantId: tenant.id } }) : null
-  const vars = contactVars(contact, data || {})
+  const vars = contactVars(contact, { minha_empresa: tenant.name, ...(data || {}) })
 
   if (action.type === 'send_message') {
     if (!contact || !isChannel(action.channel)) return

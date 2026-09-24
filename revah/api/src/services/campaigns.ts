@@ -117,7 +117,7 @@ export async function launchCampaign(tenant: Tenant, campaignId: string) {
     for (const r of pending) {
       const contact = await prisma.contact.findUnique({ where: { id: r.contactId! } })
       if (!contact) continue
-      const vars = contactVars(contact)
+      const vars = contactVars(contact, { minha_empresa: tenant.name })
       const call = await queueCall(tenant, {
         contact,
         purpose: campaign.name,
@@ -173,7 +173,7 @@ async function campaignSendJob(job: Job): Promise<JobOutcome> {
   const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: job.tenantId } })
   if (['SUSPENDED', 'CANCELED', 'PAST_DUE'].includes(tenant.status)) return { reschedule: new Date(Date.now() + 30 * 60_000), reason: 'Conta sem assinatura ativa.' }
   const contact = recipient.contactId ? await prisma.contact.findUnique({ where: { id: recipient.contactId } }) : null
-  const vars = contactVars(contact || { name: recipient.name })
+  const vars = contactVars(contact || { name: recipient.name }, { minha_empresa: tenant.name })
   const tpl = campaign.waTemplate as { name: string; language?: string; params?: string[] } | null
   const r = await sendMessage({
     tenant,

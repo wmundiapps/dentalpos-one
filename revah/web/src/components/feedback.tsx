@@ -28,7 +28,8 @@ interface FeedbackCtx {
 const Ctx = createContext<FeedbackCtx | null>(null)
 
 const UPGRADE_TITLES: Record<string, string> = {
-  TRIAL_EXHAUSTED: 'Campanhas grátis utilizadas',
+  PAYMENT_METHOD_REQUIRED: 'Cadastre a forma de pagamento',
+  TRIAL_MESSAGE_LIMIT: 'Limite de mensagens do teste',
   TRIAL_RECIPIENT_LIMIT: 'Limite do teste grátis',
   MONTHLY_LIMIT: 'Volume mensal atingido',
   PLAN_FEATURE: 'Recurso de outro plano',
@@ -69,6 +70,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
 
   const isLeads = upgrade?.code === 'LEADS_ADDON_REQUIRED' || upgrade?.code === 'LEADS_TERMS_REQUIRED'
   const isPayment = upgrade?.code === 'PAYMENT_PAST_DUE' || upgrade?.code === 'SUBSCRIPTION_CANCELED'
+  const needsMethod = upgrade?.code === 'PAYMENT_METHOD_REQUIRED'
 
   return (
     <Ctx.Provider value={value}>
@@ -116,7 +118,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                     navigate('/assinatura')
                   }}
                 >
-                  {isPayment ? 'Regularizar assinatura' : 'Ver planos'}
+                  {needsMethod ? 'Cadastrar forma de pagamento' : isPayment ? 'Regularizar assinatura' : 'Ver planos'}
                 </Button>
               )
             )}
@@ -124,7 +126,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         }
       >
         <p>{upgrade?.message}</p>
-        {embedded && !isLeads && <p className="muted">Para mudar de plano, fale com o responsável pela conta da clínica no DentalPos One.</p>}
+        {embedded && !isLeads && <p className="muted">Para cadastrar a forma de pagamento ou mudar de plano, fale com o responsável pela conta da clínica no DentalPos One.</p>}
         {!embedded && !canManage && !isLeads && <p className="muted">Peça ao proprietário ou administrador da conta para ajustar o plano.</p>}
       </Modal>
     </Ctx.Provider>

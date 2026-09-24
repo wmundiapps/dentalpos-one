@@ -2243,3 +2243,9 @@ textarea:focus {
 ::selection {
   background: rgba(79, 185, 138, 0.35);
 }
+
+/* Templates: prévia bloqueada até cadastrar a forma de pagamento */
+.message-preview.locked {
+  opacity: 0.6;
+  font-style: italic;
+}

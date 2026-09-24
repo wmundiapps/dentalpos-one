@@ -92,7 +92,7 @@ export function Register() {
     try {
       const s = await post<Session>('/auth/register', { ...form, acceptTerms: true })
       setSession(s)
-      navigate(s.trialAlreadyUsed ? '/assinatura' : '/', { replace: true })
+      navigate('/assinatura', { replace: true })
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -105,7 +105,7 @@ export function Register() {
       title="Teste grátis"
       subtitle={
         <>
-          <strong>2 campanhas com até 20 contatos cada, sem cartão.</strong> Conecte seus canais, importe contatos e veja o resultado antes de assinar.
+          <strong>14 dias grátis em qualquer plano.</strong> Cadastre a forma de pagamento; se cancelar antes do fim do teste, não há cobrança.
         </>
       }
       footer={
@@ -146,7 +146,7 @@ export function Register() {
           </span>
         </label>
         <Button variant="primary" type="submit" loading={loading} className="btn-block">
-          Criar conta de teste
+          Criar conta
         </Button>
         <p className="small muted center">O teste grátis vale uma vez por empresa, e-mail e telefone.</p>
       </form>

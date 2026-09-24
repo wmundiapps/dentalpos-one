@@ -29,6 +29,7 @@ export function trialStatus(tenant: Pick<Tenant, 'plan' | 'status' | 'trialEndsA
     endsAt,
     daysLeft,
     maxRecipientsPerCampaign: TRIAL_RULES.maxRecipientsPerCampaign,
+    maxMessages: TRIAL_RULES.maxMessages,
     // Conta criada sem forma de pagamento: pode explorar o painel, mas ainda não envia.
     paymentMethodRequired: tenant.status === 'PENDING_PAYMENT',
     trialAvailable: tenant.trialEligible,

@@ -152,7 +152,7 @@ r.post(
     if (!c) throw notFound('Campanha não encontrada.')
     if (c.channel === 'VOICE') throw badRequest('Para testar voz, use "Ligar agora" em REVAH Voice.')
     const destination = String(req.body?.destination || '')
-    const vars = contactVars({ name: req.body?.name || req.user.name })
+    const vars = contactVars({ name: req.body?.name || req.user.name }, { minha_empresa: req.tenant.name })
     const tpl = c.waTemplate as any
     const out = await sendMessage({
       tenant: req.tenant,
