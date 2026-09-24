@@ -15,9 +15,9 @@ Ordem recomendada. Cada item é feito uma vez.
 3. Deploy. O build roda `prisma migrate deploy` e cria as tabelas.
 4. Domains → `api.revah.com.br`.
 5. Teste: `https://api.revah.com.br/health` deve responder `"status":"ok"`.
-6. Fila: o `vercel.json` já agenda `/cron/tick` a cada minuto (exige plano Pro na Vercel).
-   No plano Hobby, use um agendador externo (ex.: cron-job.org) chamando a URL com o header `Authorization: Bearer CRON_SECRET`,
-   ou rode `npm run start:worker` em um servidor Node.
+6. Fila: o `vercel.json` agenda `/cron/tick` uma vez por dia (compatível com o plano Hobby).
+   Para envios contínuos, use um agendador externo (ex.: cron-job.org) chamando `https://api.revah.com.br/cron/tick`
+   a cada minuto com o header `Authorization: Bearer CRON_SECRET` (ou, no plano Pro, mude o schedule para `* * * * *`).
 
 ## 3. Painel (Vercel, projeto `revah-web`)
 1. Novo projeto, mesmo repositório, **Root Directory: `revah/web`**.
