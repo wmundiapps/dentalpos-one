@@ -70,6 +70,9 @@ export function Login() {
         <Link to="/esqueci-senha" className="center small">
           Esqueci minha senha
         </Link>
+        <Link to="/cadastro" className="btn btn-secondary btn-block">
+          Criar conta grátis
+        </Link>
       </form>
     </AuthShell>
   )

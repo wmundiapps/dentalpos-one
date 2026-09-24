@@ -74,6 +74,22 @@ r.post(
     })
     if (!reused) await prisma.trialRegistry.createMany({ data: keys.map((key) => ({ key, tenantId: tenant.id })), skipDuplicates: true })
     await audit(tenant.id, user.id, 'REGISTER', 'Tenant', tenant.id, { trialReused: Boolean(reused) })
+    await Promise.all([
+      sendSystemEmail(
+        email,
+        'Bem-vindo ao REVAH',
+        `Olá, ${b.name}!\n\nSua conta ${companyName} foi criada no REVAH.\n\n` +
+          (reused
+            ? 'Este e-mail, telefone ou documento já usou o teste grátis antes; para disparar campanhas, escolha um plano em Assinatura.\n\n'
+            : 'Seu teste grátis inclui 2 campanhas com até 20 contatos cada, sem cartão.\n\n') +
+          `Acesse: ${config.appUrl}/login\nE-mail de acesso: ${email}\n\nSe não foi você quem criou esta conta, responda este e-mail.`,
+      ),
+      sendSystemEmail(
+        config.systemEmail.adminNotify,
+        `REVAH: nova conta criada — ${companyName}`,
+        `Nova conta no REVAH.\n\nEmpresa: ${companyName}\nNome: ${b.name}\nE-mail: ${email}\nTelefone: ${phone || 'não informado'}\nDocumento: ${document || 'não informado'}\nTeste grátis: ${reused ? 'já usado antes (bloqueado)' : '2 campanhas × 20 contatos'}\nData: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
+      ),
+    ]).catch((e) => console.error('[revah] e-mails de cadastro', e))
     res.status(201).json({ ...sessionPayload(user, tenant), trialAlreadyUsed: Boolean(reused) })
   }),
 )

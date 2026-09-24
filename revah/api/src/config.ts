@@ -54,8 +54,11 @@ export const config = {
   },
 
   systemEmail: {
-    resendKey: process.env.REVAH_SYSTEM_RESEND_KEY || '',
-    from: process.env.REVAH_SYSTEM_EMAIL_FROM || 'REVAH <nao-responda@revah.com.br>',
+    // Usa a mesma conta Resend do DentalPos (domínio dentalpos.com.br verificado) se não houver uma própria.
+    resendKey: process.env.REVAH_SYSTEM_RESEND_KEY || process.env.RESEND_API_KEY || '',
+    from: process.env.REVAH_SYSTEM_EMAIL_FROM || 'REVAH <contato@dentalpos.com.br>',
+    // Recebe o aviso de cada conta nova criada.
+    adminNotify: process.env.REVAH_ADMIN_NOTIFY_EMAIL || 'contato@dentalpos.com.br',
   },
 
   worker: {
