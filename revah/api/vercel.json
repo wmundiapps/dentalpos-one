@@ -5,5 +5,5 @@
     "api/index.ts": { "maxDuration": 60 }
   },
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
-  "crons": [{ "path": "/cron/tick", "schedule": "* * * * *" }]
+  "crons": [{ "path": "/cron/tick", "schedule": "0 3 * * *" }]
 }
