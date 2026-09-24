@@ -1,10 +1,14 @@
 // Dados de demonstração. Executado automaticamente com o banco vazio ou via
-// `npm run seed` (recria tudo). Senha de todos os usuários: demo12345
+// `npm run db:reset` (apaga e recria tudo). Senha de todos os usuários: demo12345
 import bcrypt from 'bcryptjs';
-import { db, flush, id, reset, token } from './db';
+import { dropAll, id, migrate, pool, token, withTx } from './db';
+import * as repo from './repo';
 import { getCity, getCountry } from '../../shared/countries';
 import { RULES_VERSION, addDays, computePrice, todayInZone } from '../../shared/rules';
-import type { Booking, Listing, SpaceCategory, User, Weekday, TimeRange } from '../../shared/types';
+import type { Booking, ClientReviewInvite, Listing, Payment, Review, SpaceCategory, User, Weekday, TimeRange } from '../../shared/types';
+
+// Tudo é montado em memória e gravado numa única transação no fim.
+const S = { users: [] as User[], listings: [] as Listing[], bookings: [] as Booking[], payments: [] as Payment[], reviews: [] as Review[], invites: [] as ClientReviewInvite[] };
 
 const PASSWORD = bcrypt.hashSync('demo12345', 8);
 
@@ -13,7 +17,7 @@ function user(name: string, email: string, countryCode: string, locale: User['lo
     id: id('usr'), email, passwordHash: PASSWORD, name, countryCode, locale, roles, createdAt: '2025-03-01T12:00:00.000Z',
     identityVerified: true, strikes: [], termsAcceptedAt: '2025-03-01T12:00:00.000Z', termsVersion: RULES_VERSION, ...extra,
   };
-  db.users.push(u);
+  S.users.push(u);
   return u;
 }
 
@@ -50,12 +54,12 @@ function listing(o: L): Listing {
     houseRules: o.houseRules ?? (['dental', 'medical', 'psychology', 'physio', 'aesthetics', 'nutrition', 'veterinary'].includes(o.category) ? RULES_HEALTH : RULES_ROOM),
     buildingRules: BUILDING, bufferMinutes: 30, weeklyAvailability: o.weekly, blockedDates: [], active: true, createdAt: '2025-04-01T12:00:00.000Z',
   };
-  db.listings.push(l);
+  S.listings.push(l);
   return l;
 }
 
-export function seed() {
-  reset();
+export async function seed() {
+  for (const list of Object.values(S)) list.length = 0;
   user('Equipe SpaceHour', 'admin@spacehour.demo', 'BR', 'pt-BR', ['admin', 'guest']);
   const guest = user('Dra. Camila Rocha', 'locatario@spacehour.demo', 'BR', 'pt-BR', ['guest'], {
     professionalLicense: { body: 'CRO', number: 'SP-123456', region: 'SP', verified: true }, bio: 'Cirurgiã-dentista, atendo pacientes particulares 2x por semana.',
@@ -126,7 +130,15 @@ export function seed() {
   pastBooking(L2, guest, 'Psicoterapia individual', [{ rating: 5, comment: 'Sala silenciosa de verdade, pacientes elogiaram o ambiente acolhedor.', host: 5, hostComment: 'Locatária pontual e cuidadosa.' }], 18, [{ rating: 5, comment: 'Me senti muito à vontade, sala linda e reservada.' }]);
   pastBooking(L3, guest2, 'Curso de capacitação', [{ rating: 4, comment: 'Sala ampla, projetor ótimo. Faltou café no intervalo.', host: 4, hostComment: 'Tudo certo, apenas atrasou 10 minutos para liberar a sala.' }], 30);
   pastBooking(L4, guest2, 'Consulta de ortodoncia', [{ rating: 5, comment: 'Consultorio muy completo y bien ubicado. Recepción amable.', host: 5, hostComment: '¡Excelente huésped!' }], 20);
-  flush();
+  await withTx(async (tx) => {
+    for (const u of S.users) await repo.insertUser(tx, u);
+    for (const l of S.listings) await repo.insertListing(tx, l);
+    for (const b of S.bookings) await repo.saveBooking(tx, b);
+    for (const p of S.payments) await repo.savePayment(tx, p);
+    for (const r of S.reviews) await repo.insertReview(tx, r);
+    for (const i of S.invites) await repo.insertInvite(tx, i);
+  });
+  return { users: S.users.length, listings: S.listings.length };
 }
 
 function pastBooking(l: Listing, guest: User, purpose: string, reviews: Array<{ rating: number; comment: string; host: number; hostComment: string }>, daysAgo: number, clientReviews: Array<{ rating: number; comment: string }> = []) {
@@ -143,22 +155,26 @@ function pastBooking(l: Listing, guest: User, purpose: string, reviews: Array<{ 
     rulesAcceptedAt: new Date().toISOString(), rulesVersion: RULES_VERSION, attendance: [{ date, checkInAt: new Date(Date.now() - daysAgo * 86400000).toISOString(), checkOutAt: new Date(Date.now() - daysAgo * 86400000 + 7200000).toISOString(), overstayMinutes: 0 }],
     completedAt: new Date(Date.now() - daysAgo * 86400000).toISOString(), isConsumer: false,
   };
-  db.bookings.push(b);
-  db.payments.push({ id: id('pay'), bookingId: b.id, provider: 'simulated', method: 'card', currency: price.currency, amount: price.total, refunded: 0, extraCharges: [], depositHold: 0, depositStatus: 'none', status: 'captured', payoutStatus: 'paid', payoutAmount: price.hostPayout, createdAt: b.createdAt, history: [] });
-  b.paymentId = db.payments[db.payments.length - 1].id;
+  S.bookings.push(b);
+  S.payments.push({ id: id('pay'), bookingId: b.id, provider: 'simulated', method: 'card', currency: price.currency, amount: price.total, refunded: 0, extraCharges: [], depositHold: 0, depositStatus: 'none', status: 'captured', payoutStatus: 'paid', payoutAmount: price.hostPayout, createdAt: b.createdAt, history: [] });
+  b.paymentId = S.payments[S.payments.length - 1].id;
   const at = new Date(Date.now() - (daysAgo - 1) * 86400000).toISOString();
   for (const r of reviews) {
-    db.reviews.push({ id: id('rev'), kind: 'guest_to_listing', bookingId: b.id, listingId: l.id, authorId: guest.id, authorName: guest.name.replace('Dra. ', '').split(' ')[0], targetUserId: l.hostId, rating: r.rating, categories: { cleanliness: r.rating, accuracy: r.rating, equipment: r.rating, location: 5, communication: 5, value: r.rating }, comment: r.comment, createdAt: at, visible: true });
-    db.reviews.push({ id: id('rev'), kind: 'host_to_guest', bookingId: b.id, listingId: l.id, authorId: l.hostId, authorName: db.users.find((u) => u.id === l.hostId)!.name, targetUserId: guest.id, rating: r.host, categories: { punctuality: r.host, care: 5, rules: 5, communication: 5 }, comment: r.hostComment, wouldRecommend: true, createdAt: at, visible: true });
+    S.reviews.push({ id: id('rev'), kind: 'guest_to_listing', bookingId: b.id, listingId: l.id, authorId: guest.id, authorName: guest.name.replace('Dra. ', '').split(' ')[0], targetUserId: l.hostId, rating: r.rating, categories: { cleanliness: r.rating, accuracy: r.rating, equipment: r.rating, location: 5, communication: 5, value: r.rating }, comment: r.comment, createdAt: at, visible: true });
+    S.reviews.push({ id: id('rev'), kind: 'host_to_guest', bookingId: b.id, listingId: l.id, authorId: l.hostId, authorName: S.users.find((u) => u.id === l.hostId)!.name, targetUserId: guest.id, rating: r.host, categories: { punctuality: r.host, care: 5, rules: 5, communication: 5 }, comment: r.hostComment, wouldRecommend: true, createdAt: at, visible: true });
   }
   for (const c of clientReviews) {
     const tok = token();
-    db.clientInvites.push({ token: tok, bookingId: b.id, listingId: l.id, createdAt: at, expiresAt: at, usedAt: at });
-    db.reviews.push({ id: id('rev'), kind: 'client_to_listing', bookingId: b.id, listingId: l.id, authorName: 'Cliente', rating: c.rating, categories: { comfort: c.rating, cleanliness: 5, accessibility: 4, location: 5 }, comment: c.comment, createdAt: at, visible: true });
+    S.invites.push({ token: tok, bookingId: b.id, listingId: l.id, createdAt: at, expiresAt: at, usedAt: at });
+    S.reviews.push({ id: id('rev'), kind: 'client_to_listing', bookingId: b.id, listingId: l.id, authorName: 'Cliente', rating: c.rating, categories: { comfort: c.rating, cleanliness: 5, accessibility: 4, location: 5 }, comment: c.comment, createdAt: at, visible: true });
   }
 }
 
+// npm run db:reset — apaga o banco de desenvolvimento e recria com dados demo
 if (process.argv.includes('--reset')) {
-  seed();
-  console.log(`Seed concluído: ${db.users.length} usuários, ${db.listings.length} espaços.`);
+  await dropAll();
+  await migrate();
+  const n = await seed();
+  console.log(`Seed concluído: ${n.users} usuários, ${n.listings} espaços.`);
+  await pool.end();
 }

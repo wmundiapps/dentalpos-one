@@ -1,9 +1,11 @@
-// Camada de pagamentos. Em desenvolvimento usa um provedor simulado; em
+// Camada de pagamentos. As funções só alteram o objeto Payment; quem chama
+// grava com repo.savePayment dentro da transação da operação.
+// Em desenvolvimento usa um provedor simulado; em
 // produção cada método é roteado para um adquirente real (ver PROVIDER_ROUTING).
 // Nenhum dado de cartão trafega por este servidor: a captura acontece nos
 // campos hospedados do provedor (tokenização), e aqui só chegam referências.
 
-import { db, id, nowIso, save } from './db';
+import { id, nowIso } from './db';
 import type { Booking, Payment } from '../../shared/types';
 import { ASYNC_PAYMENT_METHODS, type PaymentMethodId } from '../../shared/countries';
 import { roundMoney } from '../../shared/rules';
@@ -37,8 +39,6 @@ export function authorizePayment(booking: Booking): Payment {
   };
   log(p, 'authorized', p.amount);
   if (hold) log(p, 'deposit_hold', hold);
-  db.payments.push(p);
-  save();
   return p;
 }
 
@@ -46,7 +46,6 @@ export function capturePayment(p: Payment) {
   if (p.status !== 'authorized') return;
   p.status = 'captured';
   log(p, 'captured', p.amount);
-  save();
 }
 
 export function voidPayment(p: Payment) {
@@ -56,7 +55,6 @@ export function voidPayment(p: Payment) {
   }
   releaseDeposit(p);
   p.payoutStatus = 'cancelled';
-  save();
 }
 
 export function refundPayment(p: Payment, amount: number, reason: string) {
@@ -71,7 +69,6 @@ export function refundPayment(p: Payment, amount: number, reason: string) {
   p.refunded = roundMoney(p.refunded + amount, p.currency);
   p.status = p.refunded >= p.amount ? 'refunded' : 'partially_refunded';
   log(p, `refund:${reason}`, amount);
-  save();
   return amount;
 }
 
@@ -83,12 +80,10 @@ export function chargeExtra(p: Payment, amount: number, reason: string): 'deposi
     p.depositStatus = 'captured';
     log(p, `deposit_capture:${reason}`, amount);
     p.extraCharges.push({ at: nowIso(), amount, reason });
-    save();
     return 'deposit';
   }
   p.extraCharges.push({ at: nowIso(), amount, reason });
   log(p, `extra_charge:${reason}`, amount);
-  save();
   return 'payment';
 }
 
@@ -104,5 +99,4 @@ export function payHost(p: Payment, amount?: number) {
   if (amount !== undefined) p.payoutAmount = roundMoney(amount, p.currency);
   p.payoutStatus = 'paid';
   log(p, 'payout', p.payoutAmount);
-  save();
 }
