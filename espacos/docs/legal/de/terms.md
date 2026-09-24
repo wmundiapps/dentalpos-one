@@ -6,7 +6,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 ## 1. Parteien und Annahme
 
-1.1. Diese Nutzungsbedingungen ("Bedingungen") regeln den Zugang zu und die Nutzung der Website, der Anwendungen und der übrigen digitalen Dienste unter der Bezeichnung **SpaceHour** (die "Plattform"), betrieben von **Instituto Ravel de Ensino Superior Ltda.**, eingetragen unter der CNPJ-Nr. **03.162.275/0001-10**, mit Sitz in **[ENDEREÇO]** (der "Betreiber", "wir").
+1.1. Diese Nutzungsbedingungen ("Bedingungen") regeln den Zugang zu und die Nutzung der Website, der Anwendungen und der übrigen digitalen Dienste unter der Bezeichnung **SpaceHour** (die "Plattform"), betrieben von **Instituto Ravel de Ensino Superior Ltda.**, eingetragen unter der CNPJ-Nr. **03.162.275/0001-10**, mit Sitz in **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (der "Betreiber", "wir").
 
 1.2. Mit der Erstellung eines Kontos, der Veröffentlichung eines Inserats, der Vornahme einer Buchung, der Annahme einer Einladung als Bürge oder der Nutzung der Plattform in jeglicher Form erklärt der Nutzer, diese Bedingungen und die sie ergänzenden Dokumente (Ziffer 1.4) gelesen, verstanden und akzeptiert zu haben. Wer nicht einverstanden ist, darf die Plattform nicht nutzen.
 
@@ -172,7 +172,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 16.2. Die Buchung als Verhältnis zwischen Gastgeber und Mieter unterliegt dem Recht des Landes, in dem sich der Raum befindet, unter Beachtung der zwingenden Verbraucherschutzvorschriften des Wohnsitzlandes des Mieters, soweit anwendbar.
 
-16.3. Für Streitigkeiten zwischen dem Betreiber und Nutzern, die keine Verbraucher sind, wird der Gerichtsstand [ENDEREÇO] vereinbart. **Der Verbraucher kann stets an seinem Wohnsitz klagen**, gemäß Art. 101, I, des Código de Defesa do Consumidor und den entsprechenden Vorschriften seines Landes.
+16.3. Für Streitigkeiten zwischen dem Betreiber und Nutzern, die keine Verbraucher sind, wird der Gerichtsstand Maringá/PR vereinbart. **Der Verbraucher kann stets an seinem Wohnsitz klagen**, gemäß Art. 101, I, des Código de Defesa do Consumidor und den entsprechenden Vorschriften seines Landes.
 
 16.4. Vor Einleitung eines gerichtlichen Verfahrens werden die Parteien ermutigt, die Schlichtungs- und Streitbeilegungsstelle sowie, soweit zutreffend, die offiziellen Verbraucherkanäle (zum Beispiel consumidor.gov.br) zu nutzen. Ein Schiedsverfahren findet nur Anwendung, wenn es in einem gesonderten Instrument frei vereinbart wurde und nach anwendbarem Recht zulässig ist; es wird dem Verbraucher niemals auferlegt.
 
@@ -188,6 +188,6 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 ## 18. Kontakt
 
-18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil**.
 18.2. Kundenbetreuung und Mitteilungen: **support@space-hour.com**.
 18.3. Beauftragter für den Schutz personenbezogener Daten (DPO): **Robson Ravel de Oliveira — info@wmundi.com**.

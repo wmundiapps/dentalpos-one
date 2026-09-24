@@ -4,7 +4,7 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 ## 1. Who we are and who this applies to
 
-1.1. This Policy explains how **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, headquartered at **[ENDEREÇO]** (the "Operator"), processes personal data on the SpaceHour Platform, acting as **data controller**.
+1.1. This Policy explains how **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, headquartered at **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (the "Operator"), processes personal data on the SpaceHour Platform, acting as **data controller**.
 
 1.2. It applies to Hosts, Renters, Guarantors, End Clients who use the review tool, website visitors, and representatives of legal entities.
 

@@ -124,4 +124,4 @@ Version 2026-09-24 · Effective from 2026-09-24
 ## 11. Contact
 
 11.1. Resolution Center: through the Booking's page on the Platform or by email at **support@space-hour.com**.
-11.2. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+11.2. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil**.

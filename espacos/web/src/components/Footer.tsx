@@ -3,7 +3,7 @@ import { useI18n } from '../i18n';
 import { LEGAL_DOCS } from '../legal';
 
 // Identificação da operadora (Decreto 7.962/2013) e do encarregado (LGPD, Res. CD/ANPD 18/2024)
-const OPERATOR = { company: 'Instituto Ravel de Ensino Superior Ltda.', cnpj: '03.162.275/0001-10', dpo: 'Robson Ravel de Oliveira', dpoEmail: 'info@wmundi.com' };
+const OPERATOR = { company: 'Instituto Ravel de Ensino Superior Ltda.', cnpj: '03.162.275/0001-10', address: 'Av. XV de Novembro, 255 · Maringá/PR · CEP 87013-230', dpo: 'Robson Ravel de Oliveira', dpoEmail: 'info@wmundi.com' };
 
 export function Footer() {
   const { t } = useI18n();
@@ -35,7 +35,7 @@ export function Footer() {
         </div>
       </div>
       <div className="container muted small footer-bottom">
-        © {new Date().getFullYear()} SpaceHour · {t('footer.operator', { company: OPERATOR.company, cnpj: OPERATOR.cnpj })}
+        © {new Date().getFullYear()} SpaceHour · {t('footer.operator', { company: OPERATOR.company, cnpj: OPERATOR.cnpj })} · {OPERATOR.address}
         {' · '}{t('footer.dpo', { name: OPERATOR.dpo })} (<a href={`mailto:${OPERATOR.dpoEmail}`}>{OPERATOR.dpoEmail}</a>)
         <br />{t('footer.legalNote')}
       </div>

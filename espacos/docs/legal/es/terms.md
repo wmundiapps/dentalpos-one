@@ -6,7 +6,7 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 ## 1. Partes y aceptación
 
-1.1. Estos Términos de Uso ("Términos") rigen el acceso y el uso del sitio, de las aplicaciones y de los demás servicios digitales denominados **SpaceHour** (la "Plataforma"), operados por **Instituto Ravel de Ensino Superior Ltda.**, inscrita en el CNPJ bajo el n.º **03.162.275/0001-10**, con domicilio en **[ENDEREÇO]** (la "Operadora", "nosotros").
+1.1. Estos Términos de Uso ("Términos") rigen el acceso y el uso del sitio, de las aplicaciones y de los demás servicios digitales denominados **SpaceHour** (la "Plataforma"), operados por **Instituto Ravel de Ensino Superior Ltda.**, inscrita en el CNPJ bajo el n.º **03.162.275/0001-10**, con domicilio en **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (la "Operadora", "nosotros").
 
 1.2. Al crear una cuenta, publicar un anuncio, hacer una Reserva, aceptar una invitación como Garante o utilizar la Plataforma de cualquier modo, el usuario declara haber leído, comprendido y aceptado estos Términos y los documentos que los integran (cláusula 1.4). Quien no esté de acuerdo no debe utilizar la Plataforma.
 
@@ -172,7 +172,7 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 16.2. La Reserva, como relación entre Anfitrión y Arrendatario, se rige por la ley del país donde está ubicado el Espacio, observadas las normas imperativas de protección al consumidor del país de residencia del Arrendatario, cuando sean aplicables.
 
-16.3. Queda elegido el fuero de la comarca de [ENDEREÇO] para dirimir controversias entre la Operadora y Usuarios que no sean consumidores. **El Usuario consumidor siempre puede iniciar una acción en el fuero de su domicilio**, en los términos del art. 101, I, del Código de Defesa do Consumidor (Código de Defensa del Consumidor brasileño) y de las normas equivalentes de su país.
+16.3. Queda elegido el fuero de la comarca de Maringá/PR para dirimir controversias entre la Operadora y Usuarios que no sean consumidores. **El Usuario consumidor siempre puede iniciar una acción en el fuero de su domicilio**, en los términos del art. 101, I, del Código de Defesa do Consumidor (Código de Defensa del Consumidor brasileño) y de las normas equivalentes de su país.
 
 16.4. Antes de recurrir a la vía judicial, se incentiva a las partes a utilizar la Central de Resolución y Disputas y, cuando corresponda, los canales oficiales de protección al consumidor (por ejemplo, consumidor.gov.br). El arbitraje solo se aplica cuando se pacte libremente en un instrumento separado y cuando lo admita la ley aplicable, nunca siendo impuesto al consumidor.
 
@@ -188,6 +188,6 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 ## 18. Contacto
 
-18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil**.
 18.2. Atención y notificaciones: **support@space-hour.com**.
 18.3. Encargado del tratamiento de datos personales (DPO): **Robson Ravel de Oliveira — info@wmundi.com**.

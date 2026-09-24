@@ -6,7 +6,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 ## 1. Parties et acceptation
 
-1.1. Les présentes Conditions d'Utilisation (les « Conditions ») régissent l'accès et l'utilisation du site, des applications et des autres services numériques dénommés **SpaceHour** (la « Plateforme »), exploités par **Instituto Ravel de Ensino Superior Ltda.**, immatriculée au CNPJ sous le n° **03.162.275/0001-10**, dont le siège est situé à **[ENDEREÇO]** (l'« Opérateur », « nous »).
+1.1. Les présentes Conditions d'Utilisation (les « Conditions ») régissent l'accès et l'utilisation du site, des applications et des autres services numériques dénommés **SpaceHour** (la « Plateforme »), exploités par **Instituto Ravel de Ensino Superior Ltda.**, immatriculée au CNPJ sous le n° **03.162.275/0001-10**, dont le siège est situé à **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (l'« Opérateur », « nous »).
 
 1.2. En créant un compte, en publiant une annonce, en effectuant une Réservation, en acceptant une invitation en tant que Garant ou en utilisant la Plateforme de quelque manière que ce soit, l'utilisateur déclare avoir lu, compris et accepté les présentes Conditions ainsi que les documents qui en font partie intégrante (clause 1.4). Quiconque n'accepte pas ces Conditions ne doit pas utiliser la Plateforme.
 
@@ -172,7 +172,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 16.2. La Réservation, en tant que relation entre l'Hôte et le Locataire, est régie par la loi du pays où l'Espace est situé, dans le respect des normes impératives de protection du consommateur du pays de résidence du Locataire, lorsqu'elles sont applicables.
 
-16.3. Le for de la comarca de [ENDEREÇO] est élu pour trancher les différends entre l'Opérateur et les Utilisateurs qui ne sont pas des consommateurs. **L'Utilisateur consommateur peut toujours intenter une action devant le tribunal de son domicile**, conformément à l'art. 101, I, du Code de défense du consommateur et aux normes équivalentes de son pays.
+16.3. Le for de la comarca de Maringá/PR est élu pour trancher les différends entre l'Opérateur et les Utilisateurs qui ne sont pas des consommateurs. **L'Utilisateur consommateur peut toujours intenter une action devant le tribunal de son domicile**, conformément à l'art. 101, I, du Code de défense du consommateur et aux normes équivalentes de son pays.
 
 16.4. Avant toute action judiciaire, les parties sont invitées à utiliser le Centre de Résolution et de Litiges et, le cas échéant, les canaux officiels de protection du consommateur (par exemple, consumidor.gov.br). L'arbitrage ne s'applique que lorsqu'il est librement convenu dans un instrument séparé et lorsqu'il est admis par la loi applicable, sans jamais être imposé au consommateur.
 
@@ -188,6 +188,6 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 ## 18. Contact
 
-18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **[ENDEREÇO]**.
+18.1. **Instituto Ravel de Ensino Superior Ltda.** — CNPJ **03.162.275/0001-10** — **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil**.
 18.2. Service client et notifications : **support@space-hour.com**.
 18.3. Délégué à la protection des données personnelles (DPO) : **Robson Ravel de Oliveira — info@wmundi.com**.
