@@ -232,7 +232,7 @@ export type IncidentType =
   | 'overstay' | 'damage' | 'extra_cleaning' | 'rule_violation' | 'over_capacity'
   | 'unauthorized_activity' | 'sublet' | 'smoking_substances' | 'building_fine'
   | 'harassment' | 'off_platform_payment' | 'no_show' | 'listing_inaccurate'
-  | 'host_no_access' | 'safety';
+  | 'host_no_access' | 'safety' | 'illegal_practice';
 
 export interface Incident {
   id: string;

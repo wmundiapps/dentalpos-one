@@ -114,8 +114,8 @@ bookingsRouter.post('/bookings/:id/cancel', requireAuth, async (req: AuthedReque
   res.json(await bookingView(pool, await guestCancel(req.user!, req.params.id, reason), req.user!));
 });
 bookingsRouter.post('/bookings/:id/host-cancel', requireAuth, async (req: AuthedRequest, res) => {
-  const { reason, extenuating } = z.object({ reason: z.string().min(3).max(500), extenuating: z.boolean().optional() }).parse(req.body);
-  res.json(await bookingView(pool, await hostCancel(req.user!, req.params.id, reason, !!extenuating), req.user!));
+  const { reason, extenuating, licenseDoubt } = z.object({ reason: z.string().min(3).max(500), extenuating: z.boolean().optional(), licenseDoubt: z.boolean().optional() }).parse(req.body);
+  res.json(await bookingView(pool, await hostCancel(req.user!, req.params.id, reason, !!extenuating, new Date(), !!licenseDoubt), req.user!));
 });
 bookingsRouter.post('/bookings/:id/check-in', requireAuth, async (req: AuthedRequest, res) => {
   res.json(await bookingView(pool, await checkIn(req.user!, req.params.id), req.user!));

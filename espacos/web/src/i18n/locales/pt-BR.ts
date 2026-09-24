@@ -687,6 +687,9 @@ const ptBR = {
   'err.host_license_check_required': 'Confirme que conferiu o registro profissional do locatário.',
   'err.verification_not_found': 'Verificação não encontrada.',
   'err.unauthorized': 'Faça login para continuar.',
+  'incident.type.illegal_practice': 'Exercício ilegal da profissão (registro falso, de terceiro ou suspenso)',
+  'hostCancel.licenseDoubt': 'Cancelo por dúvida fundada sobre o registro profissional do locatário (sem multa nem advertência; reembolso integral)',
+  'err.license_doubt_not_applicable': 'Este espaço não exige registro profissional.',
 };
 
 export default ptBR;

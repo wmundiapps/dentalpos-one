@@ -25,7 +25,7 @@ type View = Omit<Booking, 'guarantor'> & {
   reviewWindowOpen: boolean; myReview?: Review; reviews: Review[]; incidents: Incident[]; clientInvites?: ClientReviewInvite[];
 };
 
-const HOST_TYPES: IncidentType[] = ['damage', 'extra_cleaning', 'rule_violation', 'over_capacity', 'unauthorized_activity', 'sublet', 'smoking_substances', 'building_fine', 'harassment', 'off_platform_payment', 'no_show', 'overstay'];
+const HOST_TYPES: IncidentType[] = ['damage', 'extra_cleaning', 'rule_violation', 'over_capacity', 'unauthorized_activity', 'sublet', 'smoking_substances', 'building_fine', 'harassment', 'off_platform_payment', 'no_show', 'overstay', 'illegal_practice'];
 const GUEST_TYPES: IncidentType[] = ['listing_inaccurate', 'host_no_access', 'safety'];
 
 export default function BookingPage() {
@@ -127,7 +127,7 @@ export default function BookingPage() {
 
           {panel === 'cancel' && <CancelPanel b={b} onDone={(reason) => act('cancel', { reason })} onClose={() => setPanel(null)} />}
           {panel === 'hostCancel' && (
-            <HostCancelPanel penaltyRate={nextStart ? hostCancellationPenalty((nextStart - Date.now()) / 3600000).feeRate : 0.25} base={m(b.price.baseAmount)} onDone={(reason, ext) => act('host-cancel', { reason, extenuating: ext })} onClose={() => setPanel(null)} />
+            <HostCancelPanel licenseSpace={l.requiresLicense} penaltyRate={nextStart ? hostCancellationPenalty((nextStart - Date.now()) / 3600000).feeRate : 0.25} base={m(b.price.baseAmount)} onDone={(reason, ext, doubt) => act('host-cancel', { reason, extenuating: ext, licenseDoubt: doubt })} onClose={() => setPanel(null)} />
           )}
           {panel === 'review' && <ReviewPanel isHost={isHost} bookingId={b.id} onDone={() => { setPanel(null); load(); }} />}
           {panel === 'incident' && <IncidentPanel b={b} types={isHost ? HOST_TYPES : GUEST_TYPES} onDone={() => { setPanel(null); load(); }} />}
@@ -217,18 +217,20 @@ function CancelPanel({ b, onDone, onClose }: { b: View; onDone: (reason: string)
   );
 }
 
-function HostCancelPanel({ penaltyRate, base, onDone, onClose }: { penaltyRate: number; base: string; onDone: (reason: string, extenuating: boolean) => void; onClose: () => void }) {
+function HostCancelPanel({ licenseSpace, penaltyRate, base, onDone, onClose }: { licenseSpace: boolean; penaltyRate: number; base: string; onDone: (reason: string, extenuating: boolean, licenseDoubt: boolean) => void; onClose: () => void }) {
   const { t } = useI18n();
   const [reason, setReason] = useState('');
   const [ext, setExt] = useState(false);
+  const [doubt, setDoubt] = useState(false);
   return (
     <div className="panel">
       <h3>{t('booking.hostCancel')}</h3>
       <p className="notice warn">{t('hostCancel.warning', { pct: Math.round(penaltyRate * 100), base })}</p>
       <label className="check"><input type="checkbox" checked={ext} onChange={(e) => setExt(e.target.checked)} /> {t('hostCancel.extenuating')}</label>
+      {licenseSpace && <label className="check"><input type="checkbox" checked={doubt} onChange={(e) => setDoubt(e.target.checked)} /> 🪪 {t('hostCancel.licenseDoubt')}</label>}
       <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('cancel.reason')} />
       <div className="row gap">
-        <button className="btn btn-danger" disabled={reason.trim().length < 3} onClick={() => onDone(reason, ext)}>{t('cancel.confirm')}</button>
+        <button className="btn btn-danger" disabled={reason.trim().length < 3} onClick={() => onDone(reason, ext, doubt)}>{t('cancel.confirm')}</button>
         <button className="btn btn-ghost" onClick={onClose}>{t('common.back')}</button>
       </div>
     </div>

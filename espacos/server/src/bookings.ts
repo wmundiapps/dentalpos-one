@@ -364,12 +364,14 @@ export function guestCancel(guest: User, bookingId: string, reason: string, now 
   });
 }
 
-export function hostCancel(host: User, bookingId: string, reason: string, extenuating = false, now = new Date()): Promise<Booking> {
+export function hostCancel(host: User, bookingId: string, reason: string, extenuating = false, now = new Date(), licenseDoubt = false): Promise<Booking> {
   return withTx(async (tx) => {
     const b = await getBooking(tx, bookingId, true);
     if (b.hostId !== host.id) throw new HttpError(403, 'forbidden');
     if (!['pending_guarantor', 'confirmed'].includes(b.status)) throw new HttpError(409, 'invalid_status');
     const l = await getListing(tx, b.listingId, true);
+    // Dúvida fundada sobre o registro profissional do locatário: cancelar é dever do anfitrião, sem multa nem advertência
+    if (licenseDoubt && !l.requiresLicense) throw new HttpError(422, 'license_doubt_not_applicable');
     const p = await paymentOf(tx, b, true);
     if (p) {
       await refundPayment(gw(l, p), p, p.amount - p.refunded, 'host_cancel');
@@ -382,7 +384,8 @@ export function hostCancel(host: User, bookingId: string, reason: string, extenu
     b.cancelledAt = now.toISOString();
     b.cancellationReason = reason;
     const hoursBefore = (firstStart(l, b) - now.getTime()) / 3600000;
-    if (!extenuating && b.confirmedAt) {
+    if (licenseDoubt) b.cancellationReason = `license_doubt: ${reason}`;
+    if (!extenuating && !licenseDoubt && b.confirmedAt) {
       const pen = hostCancellationPenalty(hoursBefore);
       const amount = roundMoney(b.price.baseAmount * pen.feeRate, b.price.currency);
       b.hostPenalty = { amount, reason: 'host_cancellation', at: now.toISOString() };
@@ -548,6 +551,13 @@ async function applyResolution(tx: Db, inc: Incident, decision: { chargedAmount:
   const strike = decision.strike ?? rule.strike;
   const against = await repo.getUser(tx, inc.againstUserId);
   if (strike && against) await addStrike(tx, against, inc.type, inc.id, !!rule.severe);
+  if (inc.type === 'illegal_practice' && against) {
+    // registro profissional revogado; a comunicação às autoridades é feita pela equipe após revisão humana
+    const fresh = (await repo.getUser(tx, against.id))!;
+    fresh.licenseStatus = 'rejected';
+    if (fresh.professionalLicense) fresh.professionalLicense.verified = false;
+    await repo.updateUser(tx, fresh);
+  }
   inc.status = 'resolved';
   inc.resolution = { at: nowIso(), chargedAmount: amount, strike, note: decision.note, chargedFrom };
   await repo.saveIncident(tx, inc);
