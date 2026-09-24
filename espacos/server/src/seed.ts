@@ -15,7 +15,8 @@ const PASSWORD = bcrypt.hashSync('demo12345', 8);
 function user(name: string, email: string, countryCode: string, locale: User['locale'], roles: User['roles'], extra: Partial<User> = {}): User {
   const u: User = {
     id: id('usr'), email, passwordHash: PASSWORD, name, countryCode, locale, roles, createdAt: '2025-03-01T12:00:00.000Z',
-    identityVerified: true, strikes: [], termsAcceptedAt: '2025-03-01T12:00:00.000Z', termsVersion: RULES_VERSION, ...extra,
+    identityVerified: true, strikes: [], termsAcceptedAt: '2025-03-01T12:00:00.000Z', termsVersion: RULES_VERSION,
+    licenseStatus: extra.professionalLicense?.verified ? 'approved' : 'none', ...extra,
   };
   S.users.push(u);
   return u;
@@ -50,7 +51,7 @@ function listing(o: L): Listing {
     capacity: o.capacity, areaM2: o.area, amenities: o.amenities, equipment: o.equipment, photos: [], currency: c.currency,
     pricePerHour: o.price, pricePerDay: o.day, minHours: o.minHours ?? 2, cleaningFee: o.cleaning ?? 0, securityDeposit: o.deposit ?? 0,
     instantBook: o.instant ?? true, cancellationPolicy: o.policy ?? 'moderate', guarantorPolicy: o.guarantor ?? 'none',
-    guarantorThreshold: o.threshold, requiresLicense: o.license ?? false,
+    guarantorThreshold: o.threshold, requiresLicense: o.license ?? false, hostLicenseResponsibility: o.license ?? false,
     houseRules: o.houseRules ?? (['dental', 'medical', 'psychology', 'physio', 'aesthetics', 'nutrition', 'veterinary'].includes(o.category) ? RULES_HEALTH : RULES_ROOM),
     buildingRules: BUILDING, bufferMinutes: 30, weeklyAvailability: o.weekly, blockedDates: [], active: true, createdAt: '2025-04-01T12:00:00.000Z',
   };

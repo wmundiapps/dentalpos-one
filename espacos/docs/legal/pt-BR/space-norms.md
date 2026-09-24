@@ -1,6 +1,6 @@
 # Normas de Conduta e Respeito aos Espaços
 
-Versão 2026-09-24 · Vigência a partir de 24/09/2026
+Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 1. Objeto
 
@@ -38,13 +38,13 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 ## 6. Biossegurança em Espaços de saúde
 
-6.1. Nos Espaços das categorias odontologia, medicina, psicologia, fisioterapia, estética, nutrição e veterinária, o Locatário é o **responsável técnico por seus atos** e pelos procedimentos que realiza, devendo cumprir as normas sanitárias e de seu conselho profissional, em especial:
+6.1. Nos Espaços das categorias odontologia, medicina, psicologia, fisioterapia, estética, nutrição e veterinária, o Locatário deve possuir habilitação válida e ativa para a atividade (cláusula 17), é o **responsável técnico por seus atos** e pelos procedimentos que realiza, e deve cumprir as normas sanitárias e de seu conselho profissional, em especial:
 - (a) **Equipamentos de proteção individual (EPIs)**: utilizar e fornecer aos seus assistentes os EPIs exigidos para cada procedimento;
 - (b) **Esterilização**: utilizar instrumental próprio devidamente esterilizado, ou utilizar a autoclave do Espaço somente se autorizado e conforme o protocolo do Anfitrião, com registro dos ciclos quando exigido;
 - (c) **Desinfecção**: realizar a desinfecção de superfícies, cadeiras, macas e equipamentos após cada atendimento e ao final da Ocorrência, conforme protocolo sanitário;
 - (d) **Resíduos de serviços de saúde**: segregar e descartar resíduos infectantes, perfurocortantes, químicos e comuns nos recipientes próprios disponibilizados pelo Anfitrião, nos termos das normas sanitárias locais (no Brasil, RDC ANVISA nº 222/2018 e normas correlatas), sendo vedado deixar resíduos fora dos coletores ou levá-los para descarte comum;
 - (e) **Medicamentos e materiais controlados**: não armazenar no Espaço e observar a legislação específica;
-- (f) **Radiação**: operar equipamentos de raios X somente com habilitação e observando as normas de proteção radiológica.
+- (f) **Radiação**: operar equipamentos de raios X somente com habilitação e observando as normas de proteção radiológica (no Brasil, RDC ANVISA 611/2022).
 
 6.2. O Anfitrião deve disponibilizar as condições estruturais anunciadas (coletores de resíduos, pia, autoclave, quando anunciada), mas não responde pelos atos técnicos do Locatário.
 
@@ -115,3 +115,13 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 16.1. O Anfitrião deve respeitar a privacidade do Locatário e de seus Clientes Finais durante a Ocorrência, não ingressando no Espaço sem aviso prévio, salvo emergência, e não interferindo nos atendimentos.
 
 16.2. O Anfitrião não pode instalar câmeras em áreas de atendimento, consultórios, salas de terapia, banheiros ou vestiários. Câmeras em áreas comuns devem ser informadas no Anúncio e sinalizadas.
+
+## 17. Exercício legal da profissão
+
+17.1. Em Espaços destinados a atividades regulamentadas (saúde, advocacia e outras), somente pode atuar o profissional com **habilitação válida e ativa** no órgão competente do país do Espaço, dentro dos limites de sua habilitação. Assistentes e auxiliares também devem estar habilitados quando a lei exigir.
+
+17.2. A indicação de registro verificado resulta de **pré-triagem automatizada** pela Plataforma, com apoio de agente de inteligência artificial, e **não é garantia** de validade do registro. O Anfitrião confirma a habilitação antes de cada Reserva de Espaço regulado e pode recusar ou cancelar a Reserva, sem penalidade, em caso de dúvida fundada (Regras de Reserva e Uso, cláusula 8, e Obrigações do Anfitrião, cláusula 3).
+
+17.3. O Locatário deve apresentar ao Anfitrião, pela Plataforma ou no local, documento que comprove sua habilitação sempre que solicitado.
+
+17.4. O exercício de profissão sem habilitação, fora de seus limites ou com registro de terceiro é falta gravíssima. O Locatário responde integralmente, civil, administrativa e penalmente (no Brasil, por exemplo, Código Penal, art. 282, e Lei das Contravenções Penais, art. 47; nos demais países, as normas indicadas em Regras por País). A Plataforma **exclui definitivamente** a conta e **comunica o fato às autoridades** e ao órgão profissional competentes; o Anfitrião que o permitir conscientemente também tem a conta excluída (Penalidades e Medidas).

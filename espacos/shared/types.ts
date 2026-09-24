@@ -11,6 +11,7 @@ export type CancellationPolicyId = 'flexible' | 'moderate' | 'strict';
 export type GuarantorPolicy = 'none' | 'optional' | 'required' | 'required_over_amount';
 
 export type BookingStatus =
+  | 'pending_payment'     // aguardando pagamento no checkout do provedor
   | 'pending_guarantor'   // aguardando aceite do avalista
   | 'pending_host'        // aguardando aprovação do anfitrião (reserva por solicitação)
   | 'confirmed'
@@ -22,7 +23,9 @@ export type BookingStatus =
   | 'expired'
   | 'no_show';
 
-export type PaymentStatus = 'authorized' | 'captured' | 'partially_refunded' | 'refunded' | 'voided' | 'failed';
+export type PaymentStatus = 'pending' | 'authorized' | 'captured' | 'partially_refunded' | 'refunded' | 'voided' | 'failed';
+
+export type LicenseStatus = 'none' | 'pending' | 'approved' | 'rejected' | 'needs_review';
 
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = domingo
 
@@ -43,6 +46,7 @@ export interface User {
   documentType?: string;
   documentNumber?: string;
   professionalLicense?: { body: string; number: string; region?: string; verified: boolean };
+  licenseStatus: LicenseStatus;
   companyTaxId?: string;
   bio?: string;
   // Reputação e penalidades
@@ -88,6 +92,7 @@ export interface Listing {
   guarantorPolicy: GuarantorPolicy;
   guarantorThreshold?: number; // p/ required_over_amount
   requiresLicense: boolean;    // exige registro profissional verificado
+  hostLicenseResponsibility: boolean; // anfitrião assume conferir o registro do locatário
   houseRules: string;          // normas do espaço
   buildingRules?: string;      // normas do condomínio/edifício
   allowedActivities?: string;
@@ -156,6 +161,8 @@ export interface Booking {
   rulesAcceptedAt: string;
   rulesVersion: string;
   hostDecisionDeadline?: string;
+  paymentDeadline?: string;
+  hostLicenseCheckAt?: string;
 }
 
 export interface Payment {
@@ -163,6 +170,12 @@ export interface Payment {
   bookingId: string;
   provider: string;
   method: string;
+  providerRef?: string;
+  checkoutRef?: string;
+  checkoutUrl?: string;
+  customerRef?: string;
+  paymentMethodRef?: string;
+  depositRef?: string;
   currency: string;
   amount: number;
   refunded: number;
@@ -219,7 +232,7 @@ export type IncidentType =
   | 'overstay' | 'damage' | 'extra_cleaning' | 'rule_violation' | 'over_capacity'
   | 'unauthorized_activity' | 'sublet' | 'smoking_substances' | 'building_fine'
   | 'harassment' | 'off_platform_payment' | 'no_show' | 'listing_inaccurate'
-  | 'host_no_access' | 'safety';
+  | 'host_no_access' | 'safety' | 'illegal_practice';
 
 export interface Incident {
   id: string;

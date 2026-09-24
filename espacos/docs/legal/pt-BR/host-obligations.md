@@ -1,6 +1,6 @@
 # Obrigações do Anfitrião
 
-Versão 2026-09-24 · Vigência a partir de 24/09/2026
+Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 1. Objeto
 
@@ -17,20 +17,29 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 ## 3. Licenças e regularidade
 
 3.1. O Anfitrião deve manter válidas todas as licenças exigidas para o Espaço e para as atividades nele permitidas, tais como:
-- (a) **Brasil**: alvará de funcionamento, licença sanitária da Vigilância Sanitária para estabelecimentos de saúde, responsável técnico quando exigido, AVCB/CLCB do Corpo de Bombeiros, licença de radiologia quando houver equipamento de raios X, plano de gerenciamento de resíduos de serviços de saúde (PGRSS);
-- (b) **Portugal**: licenciamento pela ERS — Entidade Reguladora da Saúde;
+- (a) **Brasil**: alvará de funcionamento, licença sanitária da Vigilância Sanitária para estabelecimentos de saúde, responsável técnico quando exigido, cadastro no CNES, AVCB/CLCB do Corpo de Bombeiros, conformidade com a RDC ANVISA 611/2022 quando houver equipamento de raios X, plano de gerenciamento de resíduos de serviços de saúde (PGRSS — RDC ANVISA 222/2018);
+- (b) **Portugal**: registro e licenciamento pela ERS — Entidade Reguladora da Saúde (Decreto-Lei 127/2014);
 - (c) **Espanha**: autorização sanitária autonômica (RD 1277/2003);
 - (d) **Itália**: autorizzazione sanitaria regional;
 - (e) **França**: conformidade ERP e acessibilidade;
-- (f) **Reino Unido**: registro na **CQC** (Inglaterra) para atividades reguladas;
-- (g) **México**: aviso/licença **COFEPRIS** para estabelecimentos de saúde;
+- (f) **Reino Unido**: registro na **CQC** (Inglaterra) para atividades reguladas, ou no órgão equivalente da Escócia, do País de Gales ou da Irlanda do Norte;
+- (g) **México**: aviso de funcionamiento na **COFEPRIS** para estabelecimentos de saúde e licencia sanitaria para raios X;
 - (h) **Japão**: 診療所開設届 para clínicas;
 - (i) **Emirados Árabes Unidos**: *trade licence* e licenças DHA/DoH/MOHAP;
-- (j) demais países: licenças equivalentes indicadas em Regras por País e na legislação local.
+- (j) **Chile, Colômbia e Peru**: autorização da SEREMI de Salud, habilitação no REPS e registro no RENIPRESS, respectivamente;
+- (k) **China**: 医疗机构执业许可证 ou registro (备案) de clínica;
+- (l) **Índia**: registro sob o Clinical Establishments Act, 2010 ou lei estadual equivalente;
+- (m) demais países: licenças equivalentes indicadas em Regras por País e na legislação local.
 
 3.2. Se o Espaço for de saúde e a licença sanitária estiver vinculada a um responsável técnico ou a atividades específicas, o Anfitrião deve restringir as atividades permitidas no Anúncio ao escopo licenciado e informar se o Locatário precisa de cadastro próprio perante a autoridade sanitária.
 
 3.3. O Anfitrião deve informar imediatamente à Plataforma e desativar o Anúncio em caso de interdição, suspensão ou vencimento de licença.
+
+3.4. **Confirmação da habilitação do Locatário.** A Plataforma realiza apenas uma **pré-triagem automatizada**, com apoio de agente de inteligência artificial, do registro profissional enviado pelo Locatário (coerência do documento e do número com o nome do Locatário e com o órgão regulador do país), podendo solicitar documentos adicionais. **A pré-triagem não é garantia** de que o registro esteja válido e ativo. Por isso, antes de cada Reserva de Espaço regulado (saúde, advocacia e outras atividades regulamentadas), **o Anfitrião é responsável por confirmar** que o Locatário possui habilitação válida e ativa para a atividade declarada, por exemplo consultando a base pública do conselho ou da ordem profissional ou solicitando o documento pela Plataforma. Nas Reservas por solicitação, a confirmação deve ocorrer antes do aceite; nas Reservas instantâneas, logo após a confirmação e, em qualquer caso, antes do início da primeira Ocorrência. Em séries, a confirmação vale para toda a série, mas deve ser renovada se houver indício de alteração no status do registro.
+
+3.5. **Dever de recusar em caso de dúvida.** Havendo dúvida fundada sobre a habilitação do Locatário (registro não localizado, suspenso, cancelado, de outra pessoa, de outra região ou incompatível com a atividade declarada), o Anfitrião deve **recusar a solicitação ou cancelar a Reserva, sem multa nem Advertência**, informando o motivo pela Plataforma (Política de Cancelamento e Reembolso, cláusula 7.4).
+
+3.6. **Conivência.** O Anfitrião que, conscientemente, permitir o uso do Espaço por pessoa sem habilitação legal para a atividade regulamentada terá sua conta **excluída definitivamente**, sem prejuízo de sua responsabilidade perante as autoridades sanitárias, os órgãos profissionais e terceiros (Penalidades e Medidas). O Anfitrião deve comunicar à Plataforma e, quando cabível, às autoridades, qualquer indício de exercício ilegal de profissão em seu Espaço.
 
 ## 4. Seguro
 
@@ -42,7 +51,13 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 5.1. O Anúncio deve descrever com exatidão: categoria; endereço e bairro; capacidade máxima; área; equipamentos (marca, modelo e estado, quando relevante); comodidades; acessibilidade; câmeras em áreas comuns; atividades permitidas e proibidas; normas internas; normas do condomínio ou edifício; intervalo de limpeza; política de cancelamento; política de Avalista; valor da Caução; e se exige registro profissional.
 
-5.2. As fotos devem ser atuais e do próprio Espaço. É proibido usar imagens meramente ilustrativas sem indicação, omitir defeitos relevantes ou anunciar equipamentos indisponíveis.
+5.2. **Fotos.** O Anfitrião envia fotos reais do Espaço, que devem ser:
+- (a) **fiéis**, retratando o Espaço, os equipamentos e as condições como efetivamente são, sem edição que altere dimensões, estado de conservação ou itens disponíveis;
+- (b) **recentes**, atualizadas sempre que houver mudança relevante no Espaço ou nos equipamentos;
+- (c) **de titularidade do Anfitrião** ou por ele licenciadas, com direito de uso para publicação na Plataforma (Termos de Uso, cláusula 11);
+- (d) **sem pessoas, pacientes, clientes ou documentos identificáveis**, como rostos, prontuários, receitas, telas de computador, placas de veículos, nomes ou dados pessoais.
+
+É proibido usar imagens meramente ilustrativas, de banco de imagens ou de outro Espaço, omitir defeitos relevantes ou anunciar equipamentos indisponíveis. A Plataforma pode remover fotos que violem esta cláusula, e fotos enganosas caracterizam Anúncio impreciso.
 
 5.3. **Preços** devem ser informados na moeda do país do Espaço. A **Taxa de Limpeza** não pode exceder 30% do Valor Base, e a **Caução** não pode exceder 3 vezes o Valor Base.
 
@@ -83,11 +98,13 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 11.1. O Anfitrião é o único responsável pela **declaração e pelo recolhimento dos tributos** sobre os valores recebidos, pela emissão de documentos fiscais exigidos por sua legislação e pelo cumprimento de obrigações acessórias.
 
 11.2. A Plataforma pode ser obrigada a coletar dados fiscais do Anfitrião, reter tributos ou comunicar rendimentos às autoridades, por exemplo:
-- (a) **União Europeia**: Diretiva **DAC7** — comunicação anual de rendimentos de vendedores às autoridades fiscais;
-- (b) **Estados Unidos**: **Form 1099-K**;
-- (c) **México**: retenções de IVA/ISR por plataformas digitais (Ley del IVA, Cap. III Bis);
-- (d) **Índia**: TCS sob o GST, quando aplicável;
-- (e) **Brasil**: obrigações de informação e retenção aplicáveis, inclusive na transição para CBS/IBS (LC 214/2025).
+- (a) **União Europeia**: Diretiva **DAC7** (Diretiva (UE) 2021/514) — comunicação anual às autoridades fiscais dos rendimentos de Anfitriões por cessão de imóveis e prestação de serviços;
+- (b) **Estados Unidos**: **Form 1099-K** (limite federal de US$ 20.000 e 200 transações por ano; alguns estados adotam limites menores) e coleta de Form W-9/W-8;
+- (c) **México**: retenções de IVA/ISR por plataformas digitais sobre repasses a pessoas físicas (Ley del IVA, Cap. III Bis; LISR, arts. 113-A a 113-D);
+- (d) **Índia**: TCS sob o GST (0,5%) e TDS do imposto de renda (s. 194-O; 0,1%), quando aplicáveis;
+- (e) **Brasil**: obrigações de informação e retenção aplicáveis, inclusive na transição para CBS/IBS (LC 214/2025);
+- (f) **Reino Unido, Canadá e Austrália**: comunicação de rendimentos de usuários pelas regras de *platform reporting* (HMRC, CRA e ATO);
+- (g) **China**: comunicação de identidade e rendimentos dos operadores às autoridades fiscais (Regulamento do Conselho de Estado nº 810/2025).
 
 11.3. O Anfitrião deve manter atualizados seus dados fiscais (por exemplo, CPF/CNPJ, NIF, EIN, RFC) e bancários. A falta desses dados pode levar à retenção de repasses até a regularização.
 
@@ -103,7 +120,7 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 ## 14. Cancelamentos pelo Anfitrião
 
-14.1. O Anfitrião deve honrar as Reservas confirmadas. Cancelamentos geram reembolso integral ao Locatário, multa de 0% (com 168 horas ou mais de antecedência), 10% (de 48 a menos de 168 horas) ou 25% (menos de 48 horas) do Valor Base das Ocorrências canceladas e uma Advertência. **3 cancelamentos em 12 meses** levam à suspensão da conta de Anfitrião, salvo circunstâncias atenuantes comprovadas (Política de Cancelamento e Reembolso).
+14.1. O Anfitrião deve honrar as Reservas confirmadas. Cancelamentos geram reembolso integral ao Locatário, multa de 0% (com 168 horas ou mais de antecedência), 10% (de 48 a menos de 168 horas) ou 25% (menos de 48 horas) do Valor Base das Ocorrências canceladas e uma Advertência. **3 cancelamentos em 12 meses** levam à suspensão da conta de Anfitrião, salvo circunstâncias atenuantes comprovadas ou cancelamento por dúvida fundada sobre a habilitação do Locatário (cláusula 3.5), que não geram multa nem Advertência (Política de Cancelamento e Reembolso).
 
 ## 15. Relação com os Locatários
 

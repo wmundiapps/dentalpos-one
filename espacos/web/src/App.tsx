@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { FeedbackWidget } from './components/FeedbackWidget';
 import { useApp } from './state';
 import Home from './pages/Home';
 
@@ -63,6 +64,7 @@ export default function App() {
         </Suspense>
       </main>
       <Footer />
+      <FeedbackWidget />
     </>
   );
 }

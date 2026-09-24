@@ -1,6 +1,6 @@
 # Política de Cancelamento e Reembolso
 
-Versão 2026-09-24 · Vigência a partir de 24/09/2026
+Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 1. Disposições gerais
 
@@ -38,23 +38,28 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 | País | Prazo | Fundamento de referência |
 |---|---|---|
 | Brasil | 7 dias | CDC, Lei 8.078/1990, art. 49 |
-| Argentina | 10 dias | Ley 24.240, art. 34 |
-| Chile | 10 dias | Ley 19.496 (retracto em compras à distância) |
-| Colômbia | 5 dias | Ley 1480 de 2011 (retracto) |
-| Uruguai | 5 dias | Ley 17.250 |
-| Costa Rica | 8 dias | Ley 7472 |
-| El Salvador | 8 dias | Ley de Protección al Consumidor |
-| México | 5 dias | Ley Federal de Protección al Consumidor |
-| Portugal, Espanha, Itália, França, Alemanha | 14 dias | Direito da União Europeia sobre contratos à distância e leis nacionais de transposição |
+| Argentina | 10 dias corridos | Ley 24.240, art. 34; Código Civil y Comercial, art. 1110 |
+| Chile | 10 dias | Ley 19.496, art. 3º bis, "b" (retracto em contratos a distância, antes da prestação do serviço) |
+| Colômbia | 5 dias (lei: 5 días hábiles) | Ley 1480 de 2011, art. 47 (retracto) |
+| Uruguai | 5 dias (lei: 5 días hábiles) | Ley 17.250, art. 16 |
+| Costa Rica | 8 dias (lei: prazo contado em dias úteis) | Ley 7472 e seu Reglamento |
+| El Salvador | 8 dias (verificar contagem legal) | Ley de Protección al Consumidor (Decreto Legislativo 776/2005) |
+| México | 5 dias (lei: 5 días hábiles) | Ley Federal de Protección al Consumidor, art. 56 |
+| Portugal, Espanha, Itália, França, Alemanha | 14 dias | Diretiva 2011/83/UE e leis nacionais de transposição (DL 24/2014; TRLGDCU; Codice del Consumo; Code de la consommation; BGB) |
 | Reino Unido | 14 dias | Consumer Contracts Regulations 2013 |
-| Israel | 14 dias | Consumer Protection Law 5741-1981 |
+| Israel | 14 dias | Consumer Protection Law 5741-1981, art. 14C |
+| Equador | Não parametrizado (lei: 3 dias) | Ley Orgánica de Defensa del Consumidor, art. 45 — prevalece a lei |
 | Demais países atendidos | Não parametrizado | Aplicam-se a janela de cortesia, a política do Anúncio e eventuais direitos legais locais |
 
-4.3. Na Plataforma, o prazo é computado em dias corridos a partir do momento da Reserva. Quando a lei local previr contagem em dias úteis ou prazo maior (por exemplo, "5 días hábiles" na Colômbia, no Uruguai e no México), prevalece a contagem legal mais favorável ao consumidor, mediante solicitação pela Central de Resolução.
+4.3. Na Plataforma, o prazo é computado em dias corridos a partir do momento da Reserva. Quando a lei local previr contagem em dias úteis, prazo maior ou hipótese não parametrizada (por exemplo, "5 días hábiles" na Colômbia, no Uruguai e no México, contagem em dias úteis na Costa Rica, ou 3 dias no Equador), **prevalece a regra legal mais favorável ao consumidor**, e o Locatário pode exercer o direito pela Central de Resolução ou pelo e-mail support@space-hour.com.
 
 4.4. Em alguns ordenamentos (por exemplo, União Europeia e Reino Unido), a lei permite excluir o direito de desistência em serviços prestados em data determinada. A Plataforma, por liberalidade, concede o direito nos prazos da tabela a consumidores, sempre antes do início da primeira Ocorrência.
 
 4.5. O direito de arrependimento não se aplica a Locatários que contratam para fins profissionais quando a lei local não os equiparar a consumidores; a esses se aplicam a janela de cortesia e a política do Anúncio.
+
+4.6. **Séries já iniciadas.** Quando a lei local não condicionar o direito de arrependimento ao não início do serviço (por exemplo, no Brasil, pelo art. 49 do CDC), o Locatário consumidor pode, dentro do prazo legal, pedir pela Central de Resolução a desistência das Ocorrências futuras de uma série cuja primeira Ocorrência já tenha começado, com reembolso integral dessas Ocorrências.
+
+4.7. **Como exercer.** O direito de arrependimento pode ser exercido pela opção de cancelamento da Reserva, que funciona como função eletrônica de retratação (na União Europeia, nos termos da Diretiva (UE) 2023/2673, aplicável desde 19/06/2026), ou pelos canais de atendimento. Na Argentina, a Plataforma disponibiliza o "Botón de arrepentimiento" (Resolución SCI 424/2020).
 
 ## 5. Políticas de cancelamento pelo Locatário
 
@@ -118,7 +123,7 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 7.3. **3 cancelamentos pelo Anfitrião em 12 meses** levam à **suspensão** da conta de Anfitrião, nos termos de Penalidades e Medidas. O Anfitrião também pode ter as datas canceladas bloqueadas no calendário e perder destaque nas buscas.
 
-7.4. Não incidem multa nem Advertência quando o cancelamento decorrer de circunstância atenuante comprovada (cláusula 8) ou de violação grave do Locatário devidamente reportada.
+7.4. Não incidem multa nem Advertência quando o cancelamento decorrer de circunstância atenuante comprovada (cláusula 8), de violação grave do Locatário devidamente reportada ou de **dúvida fundada sobre a habilitação profissional válida e ativa do Locatário** para Espaço regulado (Regras de Reserva e Uso, cláusula 8.5), registrada pela Plataforma com o respectivo motivo. Na hipótese de dúvida sobre a habilitação, o Locatário recebe o reembolso integral previsto na cláusula 7.1, sem prejuízo das penalidades cabíveis se for apurada informação falsa.
 
 ## 8. Circunstâncias atenuantes e força maior
 

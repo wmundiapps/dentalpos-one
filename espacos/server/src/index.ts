@@ -1,7 +1,7 @@
 import { createApp } from './app';
 import { migrate, one, pool } from './db';
 import { seed } from './seed';
-import { tick } from './bookings';
+import { runJobs } from './jobs';
 
 await migrate();
 const empty = !(await one(pool, 'SELECT 1 FROM users LIMIT 1'));
@@ -19,7 +19,7 @@ let running = false;
 const timer = setInterval(async () => {
   if (running) return;
   running = true;
-  try { await tick(); } catch (e) { console.error('[tick]', e); } finally { running = false; }
+  try { await runJobs(); } catch (e) { console.error('[jobs]', e); } finally { running = false; }
 }, Number(process.env.TICK_INTERVAL_MS ?? 60000));
 
 async function shutdown() {

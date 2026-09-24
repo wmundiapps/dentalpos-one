@@ -17,6 +17,7 @@ function toUser(r: any, strikes: any[]): User {
     locale: r.locale, roles: r.roles, createdAt: iso(r.created_at)!, identityVerified: r.identity_verified,
     documentType: opt(r.document_type), documentNumber: opt(r.document_number),
     professionalLicense: r.license_body ? { body: r.license_body, number: r.license_number, region: opt(r.license_region), verified: r.license_verified } : undefined,
+    licenseStatus: r.license_status,
     companyTaxId: opt(r.company_tax_id), bio: opt(r.bio),
     strikes: strikes.map((s) => ({ at: iso(s.at)!, reason: s.reason, incidentId: opt(s.incident_id) })),
     suspendedUntil: iso(opt(r.suspended_until)), banned: r.banned, termsAcceptedAt: iso(opt(r.terms_accepted_at)), termsVersion: opt(r.terms_version),
@@ -42,8 +43,8 @@ export async function insertUser(db: Db, u: User) {
   await db.query(
     `INSERT INTO users (id, email, password_hash, name, phone, country_code, locale, roles, created_at, identity_verified,
        document_type, document_number, license_body, license_number, license_region, license_verified, company_tax_id, bio,
-       suspended_until, banned, terms_accepted_at, terms_version)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+       suspended_until, banned, terms_accepted_at, terms_version, license_status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
     userParams(u),
   );
 }
@@ -52,7 +53,7 @@ export async function updateUser(db: Db, u: User) {
   await db.query(
     `UPDATE users SET email=$2, password_hash=$3, name=$4, phone=$5, country_code=$6, locale=$7, roles=$8, created_at=$9,
        identity_verified=$10, document_type=$11, document_number=$12, license_body=$13, license_number=$14, license_region=$15,
-       license_verified=$16, company_tax_id=$17, bio=$18, suspended_until=$19, banned=$20, terms_accepted_at=$21, terms_version=$22
+       license_verified=$16, company_tax_id=$17, bio=$18, suspended_until=$19, banned=$20, terms_accepted_at=$21, terms_version=$22, license_status=$23
      WHERE id=$1`,
     userParams(u),
   );
@@ -62,7 +63,8 @@ function userParams(u: User) {
   const l = u.professionalLicense;
   return [u.id, u.email, u.passwordHash, u.name, u.phone ?? null, u.countryCode, u.locale, u.roles, u.createdAt, u.identityVerified,
     u.documentType ?? null, u.documentNumber ?? null, l?.body ?? null, l?.number ?? null, l?.region ?? null, l?.verified ?? false,
-    u.companyTaxId ?? null, u.bio ?? null, u.suspendedUntil ?? null, !!u.banned, u.termsAcceptedAt ?? null, u.termsVersion ?? null];
+    u.companyTaxId ?? null, u.bio ?? null, u.suspendedUntil ?? null, !!u.banned, u.termsAcceptedAt ?? null, u.termsVersion ?? null,
+    u.licenseStatus ?? 'none'];
 }
 
 export async function insertStrike(db: Db, userId: string, s: { at: string; reason: string; incidentId?: string }) {
@@ -90,7 +92,7 @@ function toListing(r: any): Listing {
     areaM2: opt(r.area_m2), amenities: r.amenities, equipment: r.equipment, photos: r.photos, currency: r.currency.trim(),
     pricePerHour: r.price_per_hour, pricePerDay: opt(r.price_per_day), minHours: r.min_hours, cleaningFee: r.cleaning_fee,
     securityDeposit: r.security_deposit, instantBook: r.instant_book, cancellationPolicy: r.cancellation_policy,
-    guarantorPolicy: r.guarantor_policy, guarantorThreshold: opt(r.guarantor_threshold), requiresLicense: r.requires_license,
+    guarantorPolicy: r.guarantor_policy, guarantorThreshold: opt(r.guarantor_threshold), requiresLicense: r.requires_license, hostLicenseResponsibility: r.host_license_responsibility,
     houseRules: r.house_rules, buildingRules: opt(r.building_rules), allowedActivities: opt(r.allowed_activities),
     forbiddenActivities: opt(r.forbidden_activities), bufferMinutes: r.buffer_minutes, weeklyAvailability: r.weekly_availability,
     blockedDates: r.blocked_dates ?? [], active: r.active, createdAt: iso(r.created_at)!,
@@ -136,8 +138,8 @@ export async function insertListing(db: Db, l: Listing) {
     `INSERT INTO listings (id, host_id, title, description, category, country_code, city, timezone, neighborhood, address, capacity,
        area_m2, amenities, equipment, photos, currency, price_per_hour, price_per_day, min_hours, cleaning_fee, security_deposit,
        instant_book, cancellation_policy, guarantor_policy, guarantor_threshold, requires_license, house_rules, building_rules,
-       allowed_activities, forbidden_activities, buffer_minutes, weekly_availability, blocked_dates, active, created_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35)`,
+       allowed_activities, forbidden_activities, buffer_minutes, weekly_availability, blocked_dates, active, created_at, host_license_responsibility)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36)`,
     listingParams(l),
   );
 }
@@ -149,7 +151,7 @@ export async function updateListing(db: Db, l: Listing) {
        price_per_day=$18, min_hours=$19, cleaning_fee=$20, security_deposit=$21, instant_book=$22, cancellation_policy=$23,
        guarantor_policy=$24, guarantor_threshold=$25, requires_license=$26, house_rules=$27, building_rules=$28,
        allowed_activities=$29, forbidden_activities=$30, buffer_minutes=$31, weekly_availability=$32, blocked_dates=$33,
-       active=$34, created_at=$35
+       active=$34, created_at=$35, host_license_responsibility=$36
      WHERE id=$1`,
     listingParams(l),
   );
@@ -160,7 +162,7 @@ function listingParams(l: Listing) {
     l.capacity, l.areaM2 ?? null, l.amenities, l.equipment, l.photos, l.currency, l.pricePerHour, l.pricePerDay ?? null, l.minHours,
     l.cleaningFee, l.securityDeposit, l.instantBook, l.cancellationPolicy, l.guarantorPolicy, l.guarantorThreshold ?? null,
     l.requiresLicense, l.houseRules, l.buildingRules ?? null, l.allowedActivities ?? null, l.forbiddenActivities ?? null,
-    l.bufferMinutes, JSON.stringify(l.weeklyAvailability), l.blockedDates, l.active, l.createdAt];
+    l.bufferMinutes, JSON.stringify(l.weeklyAvailability), l.blockedDates, l.active, l.createdAt, !!l.hostLicenseResponsibility];
 }
 
 export async function ratingSummaries(db: Db, listingIds: string[]) {
@@ -175,7 +177,7 @@ export async function ratingSummaries(db: Db, listingIds: string[]) {
 }
 
 // ───────────── Reservas ─────────────
-export const ACTIVE_STATUSES: Booking['status'][] = ['pending_guarantor', 'pending_host', 'confirmed', 'checked_in'];
+export const ACTIVE_STATUSES: Booking['status'][] = ['pending_payment', 'pending_guarantor', 'pending_host', 'confirmed', 'checked_in'];
 
 async function hydrateBookings(db: Db, list: any[]): Promise<Booking[]> {
   if (!list.length) return [];
@@ -195,6 +197,7 @@ async function hydrateBookings(db: Db, list: any[]): Promise<Booking[]> {
       cancellationReason: opt(r.cancellation_reason), refundAmount: opt(r.refund_amount), completedAt: iso(opt(r.completed_at)),
       hostPenalty: opt(r.host_penalty), isConsumer: r.is_consumer, clientReviewsEnabled: r.client_reviews_enabled,
       rulesAcceptedAt: iso(r.rules_accepted_at)!, rulesVersion: r.rules_version, hostDecisionDeadline: iso(opt(r.host_decision_deadline)),
+      paymentDeadline: iso(opt(r.payment_deadline)), hostLicenseCheckAt: iso(opt(r.host_license_check_at)),
       attendance: os.filter((o) => o.check_in_at || o.check_out_at).map((o) => ({
         date: o.date, checkInAt: iso(opt(o.check_in_at)), checkOutAt: iso(opt(o.check_out_at)), overstayMinutes: opt(o.overstay_minutes),
       })),
@@ -231,16 +234,18 @@ export async function saveBooking(db: Db, b: Booking) {
   await db.query(
     `INSERT INTO bookings (id, listing_id, guest_id, host_id, guests, purpose, status, currency, total, price, payment_method,
        cancellation_policy, created_at, confirmed_at, cancelled_at, cancellation_reason, refund_amount, completed_at, host_penalty,
-       is_consumer, client_reviews_enabled, rules_accepted_at, rules_version, host_decision_deadline)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+       is_consumer, client_reviews_enabled, rules_accepted_at, rules_version, host_decision_deadline, payment_deadline, host_license_check_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
      ON CONFLICT (id) DO UPDATE SET guests=EXCLUDED.guests, purpose=EXCLUDED.purpose, status=EXCLUDED.status,
        confirmed_at=EXCLUDED.confirmed_at, cancelled_at=EXCLUDED.cancelled_at, cancellation_reason=EXCLUDED.cancellation_reason,
        refund_amount=EXCLUDED.refund_amount, completed_at=EXCLUDED.completed_at, host_penalty=EXCLUDED.host_penalty,
-       client_reviews_enabled=EXCLUDED.client_reviews_enabled, host_decision_deadline=EXCLUDED.host_decision_deadline`,
+       client_reviews_enabled=EXCLUDED.client_reviews_enabled, host_decision_deadline=EXCLUDED.host_decision_deadline,
+       payment_deadline=EXCLUDED.payment_deadline, host_license_check_at=EXCLUDED.host_license_check_at`,
     [b.id, b.listingId, b.guestId, b.hostId, b.guests, b.purpose, b.status, b.price.currency, b.price.total, JSON.stringify(b.price),
       b.paymentMethod, b.cancellationPolicy, b.createdAt, b.confirmedAt ?? null, b.cancelledAt ?? null, b.cancellationReason ?? null,
       b.refundAmount ?? null, b.completedAt ?? null, b.hostPenalty ? JSON.stringify(b.hostPenalty) : null, b.isConsumer,
-      b.clientReviewsEnabled, b.rulesAcceptedAt, b.rulesVersion, b.hostDecisionDeadline ?? null],
+      b.clientReviewsEnabled, b.rulesAcceptedAt, b.rulesVersion, b.hostDecisionDeadline ?? null, b.paymentDeadline ?? null,
+      b.hostLicenseCheckAt ?? null],
   );
   for (const o of b.occurrences) {
     const a = b.attendance.find((x) => x.date === o.date);
@@ -274,6 +279,8 @@ export async function getPayment(db: Db, paymentId: string | undefined, forUpdat
     id: r.id, bookingId: r.booking_id, provider: r.provider, method: r.method, currency: r.currency.trim(), amount: r.amount,
     refunded: r.refunded, depositHold: r.deposit_hold, depositStatus: r.deposit_status, status: r.status,
     payoutStatus: r.payout_status, payoutAmount: r.payout_amount, createdAt: iso(r.created_at)!,
+    providerRef: opt(r.provider_ref), checkoutRef: opt(r.checkout_ref), checkoutUrl: opt(r.checkout_url),
+    customerRef: opt(r.customer_ref), paymentMethodRef: opt(r.payment_method_ref), depositRef: opt(r.deposit_ref),
     history: events.map((e) => ({ at: iso(e.at)!, event: e.event, amount: opt(e.amount) })),
     extraCharges: charges.map((c) => ({ at: iso(c.at)!, amount: c.amount, reason: c.reason })),
   };
@@ -287,13 +294,16 @@ const persisted = new WeakMap<Payment, { events: number; charges: number }>();
 export async function savePayment(db: Db, p: Payment) {
   await db.query(
     `INSERT INTO payments (id, booking_id, provider, method, currency, amount, refunded, deposit_hold, deposit_status, status,
-       payout_status, payout_amount, created_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-     ON CONFLICT (id) DO UPDATE SET refunded=EXCLUDED.refunded, deposit_hold=EXCLUDED.deposit_hold,
+       payout_status, payout_amount, created_at, provider_ref, checkout_ref, checkout_url, customer_ref, payment_method_ref, deposit_ref)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+     ON CONFLICT (id) DO UPDATE SET provider=EXCLUDED.provider, refunded=EXCLUDED.refunded, deposit_hold=EXCLUDED.deposit_hold,
        deposit_status=EXCLUDED.deposit_status, status=EXCLUDED.status, payout_status=EXCLUDED.payout_status,
-       payout_amount=EXCLUDED.payout_amount`,
+       payout_amount=EXCLUDED.payout_amount, provider_ref=EXCLUDED.provider_ref, checkout_ref=EXCLUDED.checkout_ref,
+       checkout_url=EXCLUDED.checkout_url, customer_ref=EXCLUDED.customer_ref, payment_method_ref=EXCLUDED.payment_method_ref,
+       deposit_ref=EXCLUDED.deposit_ref`,
     [p.id, p.bookingId, p.provider, p.method, p.currency, p.amount, p.refunded, p.depositHold, p.depositStatus, p.status,
-      p.payoutStatus, p.payoutAmount, p.createdAt],
+      p.payoutStatus, p.payoutAmount, p.createdAt, p.providerRef ?? null, p.checkoutRef ?? null, p.checkoutUrl ?? null,
+      p.customerRef ?? null, p.paymentMethodRef ?? null, p.depositRef ?? null],
   );
   const done = persisted.get(p) ?? { events: 0, charges: 0 };
   for (const e of p.history.slice(done.events)) {
@@ -392,3 +402,15 @@ export const notificationsForUser = async (db: Db, userId: string): Promise<Noti
   (await rows(db, 'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC, id LIMIT 50', [userId])).map((r) => ({
     id: r.id, userId: r.user_id, email: opt(r.email), kind: r.kind, text: r.text, link: opt(r.link), createdAt: iso(r.created_at)!, read: r.read,
   }));
+
+export async function getPaymentByBooking(db: Db, bookingId: string, forUpdate = false) {
+  const r = await one<{ id: string }>(db, 'SELECT id FROM payments WHERE booking_id = $1', [bookingId]);
+  return getPayment(db, r?.id, forUpdate);
+}
+
+export async function findPaymentByRef(db: Db, provider: string, ref: { checkoutRef?: string; providerRef?: string; bookingId?: string }) {
+  const r = await one<{ id: string }>(db,
+    `SELECT id FROM payments WHERE provider = $1 AND (checkout_ref = $2 OR provider_ref = $3 OR booking_id = $4) LIMIT 1`,
+    [provider, ref.checkoutRef ?? '', ref.providerRef ?? '', ref.bookingId ?? '']);
+  return r?.id;
+}

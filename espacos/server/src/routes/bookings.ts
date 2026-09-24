@@ -8,6 +8,7 @@ import {
   refundPreview, reportIncident, resolveIncident, respondGuarantor, respondIncident, revealReviewsIfBoth, reviewWindowOpen,
 } from '../bookings';
 import { publicListing } from './listings';
+import { latestLicenseCheck } from '../verification';
 import { notify } from '../notify';
 import { REVIEW_RULES } from '../../../shared/rules';
 import type { Booking, Review, User } from '../../../shared/types';
@@ -38,10 +39,17 @@ async function bookingView(db: Db, b: Booking, viewer: User) {
     // dados do avalista só para o próprio locatário
     guarantor: b.guarantor && (!isHost ? { ...b.guarantor, token: undefined } : { name: b.guarantor.name, status: b.guarantor.status, liabilityCap: b.guarantor.liabilityCap }),
     listing: await publicListing(db, listing, viewer),
-    guest: { ...(await toPublicUser(db, guest)), professionalLicense: isHost ? guest.professionalLicense : undefined },
+    guest: {
+      ...(await toPublicUser(db, guest)),
+      // o anfitrião confere o registro do locatário em espaços regulados
+      professionalLicense: isHost ? guest.professionalLicense : undefined,
+      licenseStatus: isHost ? guest.licenseStatus : undefined,
+      licenseCheck: isHost && listing.requiresLicense ? await latestLicenseCheck(db, guest.id) : undefined,
+    },
     host: await toPublicUser(db, host),
     payment: payment && {
-      status: payment.status, method: payment.method, amount: payment.amount, refunded: payment.refunded,
+      status: payment.status, method: payment.method, provider: payment.provider, amount: payment.amount, refunded: payment.refunded,
+      checkoutUrl: !isHost && b.status === 'pending_payment' ? payment.checkoutUrl : undefined,
       depositHold: payment.depositHold, depositStatus: payment.depositStatus, extraCharges: payment.extraCharges,
       payoutStatus: isHost ? payment.payoutStatus : undefined, payoutAmount: isHost ? payment.payoutAmount : undefined,
     },
@@ -94,7 +102,8 @@ bookingsRouter.get('/bookings/:id', requireAuth, async (req: AuthedRequest, res)
 });
 
 bookingsRouter.post('/bookings/:id/approve', requireAuth, async (req: AuthedRequest, res) => {
-  res.json(await bookingView(pool, await hostDecision(req.user!, req.params.id, true), req.user!));
+  const { licenseChecked } = z.object({ licenseChecked: z.boolean().optional() }).parse(req.body ?? {});
+  res.json(await bookingView(pool, await hostDecision(req.user!, req.params.id, true, undefined, !!licenseChecked), req.user!));
 });
 bookingsRouter.post('/bookings/:id/decline', requireAuth, async (req: AuthedRequest, res) => {
   const { reason } = z.object({ reason: z.string().max(500).optional() }).parse(req.body ?? {});
@@ -105,8 +114,8 @@ bookingsRouter.post('/bookings/:id/cancel', requireAuth, async (req: AuthedReque
   res.json(await bookingView(pool, await guestCancel(req.user!, req.params.id, reason), req.user!));
 });
 bookingsRouter.post('/bookings/:id/host-cancel', requireAuth, async (req: AuthedRequest, res) => {
-  const { reason, extenuating } = z.object({ reason: z.string().min(3).max(500), extenuating: z.boolean().optional() }).parse(req.body);
-  res.json(await bookingView(pool, await hostCancel(req.user!, req.params.id, reason, !!extenuating), req.user!));
+  const { reason, extenuating, licenseDoubt } = z.object({ reason: z.string().min(3).max(500), extenuating: z.boolean().optional(), licenseDoubt: z.boolean().optional() }).parse(req.body);
+  res.json(await bookingView(pool, await hostCancel(req.user!, req.params.id, reason, !!extenuating, new Date(), !!licenseDoubt), req.user!));
 });
 bookingsRouter.post('/bookings/:id/check-in', requireAuth, async (req: AuthedRequest, res) => {
   res.json(await bookingView(pool, await checkIn(req.user!, req.params.id), req.user!));

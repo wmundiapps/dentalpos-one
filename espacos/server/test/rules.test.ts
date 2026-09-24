@@ -8,7 +8,7 @@ const listing: Listing = {
   id: 'l', hostId: 'h', title: 't', description: 'd', category: 'dental', countryCode: 'BR', city: 'São Paulo', timezone: tz,
   address: 'x', capacity: 3, amenities: [], equipment: '', photos: [], currency: 'BRL', pricePerHour: 100, minHours: 1,
   cleaningFee: 20, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate', guarantorPolicy: 'none',
-  requiresLicense: false, houseRules: 'regras', bufferMinutes: 30,
+  requiresLicense: false, hostLicenseResponsibility: false, houseRules: 'regras', bufferMinutes: 30,
   weeklyAvailability: { 0: [{ start: '06:00', end: '23:00' }], 1: [{ start: '06:00', end: '23:00' }], 2: [{ start: '06:00', end: '23:00' }], 3: [{ start: '06:00', end: '23:00' }], 4: [{ start: '06:00', end: '23:00' }], 5: [{ start: '06:00', end: '23:00' }], 6: [{ start: '06:00', end: '23:00' }] },
   blockedDates: [], active: true, createdAt: '',
 };

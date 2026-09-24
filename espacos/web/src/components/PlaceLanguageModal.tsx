@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useI18n } from '../i18n';
 import { useApp } from '../state';
-import { COUNTRIES, COUNTRY_BY_CODE, LOCALE_NATIVE_NAMES, REGIONS, SUPPORTED_LOCALES } from '../../../shared/countries';
+import { LAUNCH_COUNTRIES, COUNTRY_BY_CODE, LOCALE_NATIVE_NAMES, REGIONS, SUPPORTED_LOCALES } from '../../../shared/countries';
 import { countryName, flag } from '../format';
 
 // Seletor de idioma, país e cidade (botão do globo no cabeçalho).
@@ -9,7 +9,8 @@ export function PlaceLanguageModal({ onClose, initialTab = 'place' }: { onClose:
   const { t, locale, setLocale } = useI18n();
   const { country, city, setPlace } = useApp();
   const [tab, setTab] = useState(initialTab);
-  const [selCountry, setSelCountry] = useState(country);
+  // com um único país aberto, vai direto às cidades
+  const [selCountry, setSelCountry] = useState(country || (LAUNCH_COUNTRIES.length === 1 ? LAUNCH_COUNTRIES[0].code : ''));
   const cfg = selCountry ? COUNTRY_BY_CODE[selCountry] : undefined;
 
   function choose(c: string, ci: string) {
@@ -42,11 +43,11 @@ export function PlaceLanguageModal({ onClose, initialTab = 'place' }: { onClose:
         {tab === 'place' && !selCountry && (
           <div>
             <button className="choice wide" onClick={() => choose('', '')}>🌎 {t('place.allCountries')}</button>
-            {REGIONS.map((r) => (
+            {REGIONS.filter((r) => LAUNCH_COUNTRIES.some((c) => c.region === r)).map((r) => (
               <section key={r}>
                 <h3 className="region-title">{t(`region.${r}` as never)}</h3>
                 <div className="grid-choices">
-                  {COUNTRIES.filter((c) => c.region === r).map((c) => (
+                  {LAUNCH_COUNTRIES.filter((c) => c.region === r).map((c) => (
                     <button key={c.code} className={`choice ${c.code === country ? 'selected' : ''}`} onClick={() => setSelCountry(c.code)}>
                       <strong>{flag(c.code)} {countryName(c.code, locale)}</strong>
                       <span className="muted">{c.currency}{c.code === 'AE' ? ' · Dubai' : ''}</span>
@@ -60,7 +61,7 @@ export function PlaceLanguageModal({ onClose, initialTab = 'place' }: { onClose:
 
         {tab === 'place' && cfg && (
           <div>
-            <button className="link-btn" onClick={() => setSelCountry('')}>← {t('place.back')}</button>
+            {LAUNCH_COUNTRIES.length > 1 && <button className="link-btn" onClick={() => setSelCountry('')}>← {t('place.back')}</button>}
             <h3>{flag(cfg.code)} {countryName(cfg.code, locale)}</h3>
             <p className="muted small">{t('place.currencyInfo', { currency: cfg.currency })} · {t('place.languages')}: {cfg.locales.map((l) => LOCALE_NATIVE_NAMES[l]).join(', ')}</p>
             {!cfg.locales.includes(locale) && (

@@ -93,6 +93,8 @@ export const PENALTIES: PenaltyRule[] = [
   { type: 'harassment', base: 'none', value: 0, strike: true, severe: true, reportWindowHours: 720 },
   { type: 'off_platform_payment', base: 'none', value: 0, strike: true, severe: true, reportWindowHours: 720 },
   { type: 'no_show', base: 'none', value: 0, strike: false, reportWindowHours: 24 },
+  // exercício ilegal da profissão (registro falso, de terceiro, suspenso): exclusão imediata
+  { type: 'illegal_practice', base: 'booking', value: 1.0, strike: true, severe: true, reportWindowHours: 720 },
   // contra o anfitrião
   { type: 'listing_inaccurate', base: 'booking', value: 0, strike: true, reportWindowHours: 24 },
   { type: 'host_no_access', base: 'booking', value: 0, strike: true, reportWindowHours: 24 },

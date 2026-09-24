@@ -5,14 +5,26 @@ import { HttpError } from './auth';
 import { authRouter } from './routes/auth';
 import { listingsRouter } from './routes/listings';
 import { bookingsRouter } from './routes/bookings';
+import { webhooksRouter } from './routes/webhooks';
+import { filesRouter } from './routes/files';
+import { feedbackRouter } from './routes/feedback';
+import { runJobs } from './jobs';
 
 export function createApp() {
   const app = express();
   app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true }));
+  app.set('trust proxy', 1);
+  app.use('/api', webhooksRouter); // corpo bruto (assinatura) — antes do express.json
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
-  app.use('/api', authRouter, listingsRouter, bookingsRouter);
+  // Rotina periódica disparada pelo Vercel Cron (Authorization: Bearer CRON_SECRET)
+  app.get('/api/cron/tick', async (req, res) => {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.headers.authorization !== `Bearer ${secret}`) throw new HttpError(401, 'unauthorized');
+    res.json(await runJobs());
+  });
+  app.use('/api', authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found')));
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

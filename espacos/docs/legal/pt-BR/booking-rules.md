@@ -1,6 +1,6 @@
 # Regras de Reserva e Uso
 
-Versão 2026-09-24 · Vigência a partir de 24/09/2026
+Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 1. Objeto e finalidade
 
@@ -46,7 +46,7 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 - (c) **pernoitar**, residir, dormir ou utilizar o Espaço como moradia, ainda que temporária;
 - (d) **armazenar pertences, materiais, equipamentos, prontuários ou estoque entre Reservas**, salvo guarda-volumes expressamente oferecido pelo Anfitrião no Anúncio e sob as condições deste;
 - (e) **sublocar, ceder, emprestar** ou permitir que terceiro não declarado utilize o Espaço;
-- (f) exercer atividade diferente da declarada, atividade proibida pelo Anfitrião ou atividade para a qual não possua habilitação legal;
+- (f) exercer atividade diferente da declarada, atividade proibida pelo Anfitrião ou atividade para a qual não possua habilitação legal válida e ativa (cláusula 8);
 - (g) receber correspondência, entregas ou visitas fora do horário da Ocorrência;
 - (h) realizar obras, alterações, pinturas, instalações ou mudanças de layout.
 
@@ -84,11 +84,19 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 ## 8. Registro profissional
 
-8.1. Quando o Anfitrião marcar o Anúncio como **"exige registro profissional"**, somente Locatários com registro profissional **verificado** pela Plataforma podem concluir a Reserva. O órgão competente varia conforme a categoria e o país (por exemplo, CRO, CRM, CRP, OAB, CREFITO, CRN ou CRMV no Brasil; GDC, GMC ou HCPC no Reino Unido; cédula profesional/SEP no México; Ahpra na Austrália), conforme o documento Regras por País.
+8.1. Quando o Anfitrião marcar o Anúncio como **"exige registro profissional"**, somente Locatários cujo registro profissional tenha passado pela **pré-triagem** da Plataforma podem concluir a Reserva. O órgão competente varia conforme a categoria e o país (por exemplo, CRO, CRM, CRP, OAB, CREFITO, CRN ou CRMV no Brasil; GDC, GMC ou HCPC no Reino Unido; cédula profesional/SEP no México; Ahpra na Austrália), conforme o documento Regras por País.
 
 8.2. O Locatário declara que o registro está ativo, sem suspensão, e que abrange a atividade declarada. Qualquer suspensão, cassação ou restrição deve ser informada imediatamente, ficando vedada a utilização de Espaços que exijam o registro enquanto perdurar.
 
 8.3. Mesmo quando o Anúncio não exigir registro, o Locatário é o único responsável por possuir as habilitações legais necessárias à atividade que exerce.
+
+8.4. **Pré-triagem automatizada.** A Plataforma realiza uma pré-triagem automatizada, com apoio de agente de inteligência artificial, do documento e do número de registro enviados. A pré-triagem verifica a coerência do documento com o nome do Locatário e com o órgão regulador do país e da atividade, e a Plataforma pode solicitar documentos adicionais (por exemplo, certidão de regularidade, carteira profissional, comprovante de especialidade) ou encaminhar o caso a revisão humana. **A pré-triagem não é garantia** de que o registro esteja válido e ativo na data de cada Ocorrência (Termos de Uso, cláusulas 6.5 e 6.6).
+
+8.5. **Confirmação pelo Anfitrião.** Antes de cada Reserva de Espaço regulado (saúde, advocacia e outras atividades regulamentadas), o Anfitrião deve confirmar que o Locatário possui habilitação válida e ativa para a atividade declarada — por exemplo, consultando a base pública do conselho ou da ordem profissional ou solicitando o documento pela Plataforma. O Locatário deve colaborar e apresentar o documento pedido. Nas Reservas por solicitação, a confirmação deve ocorrer antes do aceite; nas Reservas instantâneas, logo após a confirmação e, em qualquer caso, antes do início da primeira Ocorrência. Em séries, a confirmação vale para toda a série, mas deve ser renovada se houver indício de alteração no status do registro. Em caso de dúvida fundada, o Anfitrião deve **recusar a solicitação ou cancelar a Reserva sem multa nem Advertência**, e o Locatário recebe reembolso integral conforme a Política de Cancelamento e Reembolso, sem prejuízo das penalidades cabíveis se for apurada informação falsa.
+
+8.6. **Exercício ilegal.** O Locatário é integralmente responsável, civil, administrativa e penalmente, pelo exercício de profissão sem habilitação (no Brasil, por exemplo, Código Penal, art. 282, e Lei das Contravenções Penais, art. 47; nos demais países, as normas indicadas em Regras por País). A constatação leva à **exclusão imediata e definitiva** da conta e à **comunicação às autoridades** e ao órgão profissional competentes, sem prejuízo das penalidades pecuniárias (Penalidades e Medidas).
+
+8.7. **Registro de terceiro ou documento falso.** É proibido usar registro, documento ou identidade de outro profissional, ou apresentar documento adulterado. Quando o Locatário for pessoa jurídica, o profissional responsável indicado (cláusula 9.2) deve ter seu próprio registro verificado.
 
 ## 9. Uso pessoal do Espaço
 
@@ -118,4 +126,4 @@ Versão 2026-09-24 · Vigência a partir de 24/09/2026
 
 12.1. As normas do Espaço (normas internas do Anúncio) e do edifício ou condomínio aceitas na Reserva integram este documento.
 
-12.2. Dúvidas sobre estas regras podem ser encaminhadas a [E-MAIL DE CONTATO].
+12.2. Dúvidas sobre estas regras podem ser encaminhadas a support@space-hour.com.

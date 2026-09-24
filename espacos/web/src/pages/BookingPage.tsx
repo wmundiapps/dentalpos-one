@@ -15,13 +15,17 @@ import { formatDate, formatDateTime, money } from '../format';
 
 type View = Omit<Booking, 'guarantor'> & {
   guarantor?: { name: string; status: string; liabilityCap: number; email?: string };
-  listing: ListingSummary; guest: PublicUser & { professionalLicense?: { body: string; number: string } }; host: PublicUser;
-  payment?: { status: string; method: string; amount: number; refunded: number; depositHold: number; depositStatus: string; extraCharges: Array<{ amount: number; reason: string }>; payoutStatus?: string; payoutAmount?: number };
+  listing: ListingSummary; host: PublicUser;
+  guest: PublicUser & {
+    professionalLicense?: { body: string; number: string; region?: string }; licenseStatus?: string;
+    licenseCheck?: { status: string; body: string; number: string; region?: string; checkedAt: string; publicRegistryChecked: boolean; publicRegistryFoundActive: boolean | null; reasons: string[] };
+  };
+  payment?: { status: string; method: string; provider?: string; checkoutUrl?: string; amount: number; refunded: number; depositHold: number; depositStatus: string; extraCharges: Array<{ amount: number; reason: string }>; payoutStatus?: string; payoutAmount?: number };
   refundPreview?: { total: number; rule: string };
   reviewWindowOpen: boolean; myReview?: Review; reviews: Review[]; incidents: Incident[]; clientInvites?: ClientReviewInvite[];
 };
 
-const HOST_TYPES: IncidentType[] = ['damage', 'extra_cleaning', 'rule_violation', 'over_capacity', 'unauthorized_activity', 'sublet', 'smoking_substances', 'building_fine', 'harassment', 'off_platform_payment', 'no_show', 'overstay'];
+const HOST_TYPES: IncidentType[] = ['damage', 'extra_cleaning', 'rule_violation', 'over_capacity', 'unauthorized_activity', 'sublet', 'smoking_substances', 'building_fine', 'harassment', 'off_platform_payment', 'no_show', 'overstay', 'illegal_practice'];
 const GUEST_TYPES: IncidentType[] = ['listing_inaccurate', 'host_no_access', 'safety'];
 
 export default function BookingPage() {
@@ -33,6 +37,7 @@ export default function BookingPage() {
   const [msgs, setMsgs] = useState<Message[]>([]);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
+  const [licenseChecked, setLicenseChecked] = useState(false);
   const [panel, setPanel] = useState<null | 'cancel' | 'hostCancel' | 'review' | 'incident' | 'invites'>(null);
 
   const load = useCallback(() => {
@@ -40,6 +45,13 @@ export default function BookingPage() {
     api<Message[]>(`/bookings/${id}/messages`).then(setMsgs).catch(() => {});
   }, [id, t]);
   useEffect(load, [load]);
+  // Voltando do checkout, a confirmação chega pelo webhook: recarrega por alguns segundos
+  useEffect(() => {
+    if (params.get('pagamento') !== 'ok') return;
+    let n = 0;
+    const timer = setInterval(() => { if (++n > 10) clearInterval(timer); else load(); }, 3000);
+    return () => clearInterval(timer);
+  }, [params, load]);
 
   if (!b || !me) return <div className="container">{error ? <p className="errors">{error}</p> : <div className="skeleton hero-skeleton" />}</div>;
   const isHost = me.id === b.hostId;
@@ -69,6 +81,14 @@ export default function BookingPage() {
         <span className={`status status-${b.status}`}>{t(`status.${b.status}` as DictKey)}</span>
       </div>
       {error && <p className="errors" role="alert">{error}</p>}
+      {params.get('pagamento') === 'ok' && b.status === 'pending_payment' && <div className="notice">⏳ {t('booking.paymentOk')}</div>}
+      {params.get('pagamento') === 'cancelado' && b.status === 'pending_payment' && <div className="notice warn">{t('booking.paymentCancelled')}</div>}
+      {!isHost && b.status === 'pending_payment' && b.payment?.checkoutUrl && (
+        <div className="notice warn row between wrap gap">
+          <span>💳 {b.paymentDeadline ? t('booking.payPending', { at: formatDateTime(b.paymentDeadline, locale) }) : ''}</span>
+          <a className="btn btn-primary" href={b.payment.checkoutUrl}>{t('booking.payNow')}</a>
+        </div>
+      )}
 
       <div className="booking-layout">
         <div>
@@ -91,13 +111,14 @@ export default function BookingPage() {
 
           {/* Ações */}
           <section className="section actions">
+            {isHost && b.status === 'pending_host' && l.requiresLicense && <LicenseCheckBox guest={b.guest} checked={licenseChecked} onChange={setLicenseChecked} />}
             {isHost && b.status === 'pending_host' && <>
-              <button className="btn btn-primary" onClick={() => act('approve')}>{t('booking.approve')}</button>
+              <button className="btn btn-primary" disabled={l.requiresLicense && !licenseChecked} onClick={() => act('approve', { licenseChecked })}>{t('booking.approve')}</button>
               <button className="btn btn-outline" onClick={() => act('decline', { reason: '' })}>{t('booking.decline')}</button>
             </>}
             {!isHost && b.status === 'confirmed' && <button className="btn btn-primary" onClick={() => act('check-in')}>{t('booking.checkIn')}</button>}
             {!isHost && b.status === 'checked_in' && <button className="btn btn-primary" onClick={() => act('check-out')}>{t('booking.checkOut')}</button>}
-            {!isHost && ['pending_guarantor', 'pending_host', 'confirmed'].includes(b.status) && <button className="btn btn-outline" onClick={() => setPanel('cancel')}>{t('booking.cancel')}</button>}
+            {!isHost && ['pending_payment', 'pending_guarantor', 'pending_host', 'confirmed'].includes(b.status) && <button className="btn btn-outline" onClick={() => setPanel('cancel')}>{t('booking.cancel')}</button>}
             {isHost && ['confirmed', 'pending_guarantor'].includes(b.status) && <button className="btn btn-outline" onClick={() => setPanel('hostCancel')}>{t('booking.hostCancel')}</button>}
             {b.reviewWindowOpen && !b.myReview && <button className="btn btn-outline" onClick={() => setPanel('review')}>{isHost ? t('review.rateGuest') : t('review.rateSpace')}</button>}
             {!isHost && b.attendance.some((a) => a.checkInAt) && <button className="btn btn-outline" onClick={() => setPanel('invites')}>{t('invites.button')}</button>}
@@ -106,7 +127,7 @@ export default function BookingPage() {
 
           {panel === 'cancel' && <CancelPanel b={b} onDone={(reason) => act('cancel', { reason })} onClose={() => setPanel(null)} />}
           {panel === 'hostCancel' && (
-            <HostCancelPanel penaltyRate={nextStart ? hostCancellationPenalty((nextStart - Date.now()) / 3600000).feeRate : 0.25} base={m(b.price.baseAmount)} onDone={(reason, ext) => act('host-cancel', { reason, extenuating: ext })} onClose={() => setPanel(null)} />
+            <HostCancelPanel licenseSpace={l.requiresLicense} penaltyRate={nextStart ? hostCancellationPenalty((nextStart - Date.now()) / 3600000).feeRate : 0.25} base={m(b.price.baseAmount)} onDone={(reason, ext, doubt) => act('host-cancel', { reason, extenuating: ext, licenseDoubt: doubt })} onClose={() => setPanel(null)} />
           )}
           {panel === 'review' && <ReviewPanel isHost={isHost} bookingId={b.id} onDone={() => { setPanel(null); load(); }} />}
           {panel === 'incident' && <IncidentPanel b={b} types={isHost ? HOST_TYPES : GUEST_TYPES} onDone={() => { setPanel(null); load(); }} />}
@@ -159,6 +180,7 @@ export default function BookingPage() {
             <PriceLines p={b.price} showHost={isHost} hideDeposit={!!b.payment?.depositHold} />
             {b.payment && <ul className="small plain">
               <li>{PAYMENT_METHOD_LABELS[b.payment.method as PaymentMethodId] ?? b.payment.method} · {t(`payment.${b.payment.status}` as DictKey)}</li>
+              {b.payment.provider && b.payment.provider !== 'simulated' && <li className="muted">🔒 {t('booking.paymentProvider', { provider: b.payment.provider === 'stripe' ? 'Stripe' : 'Mercado Pago' })}</li>}
               {b.payment.refunded > 0 && <li>{t('booking.refunded')}: {m(b.payment.refunded)}</li>}
               {b.payment.depositHold > 0 && <li>{t('price.deposit')}: {m(b.payment.depositHold)} · {t(`deposit.${b.payment.depositStatus}` as DictKey)}</li>}
               {b.payment.extraCharges.map((c, i) => <li key={i}>{t('booking.extraCharge')}: {m(c.amount)} ({t(`incident.type.${c.reason}` as DictKey)})</li>)}
@@ -195,18 +217,20 @@ function CancelPanel({ b, onDone, onClose }: { b: View; onDone: (reason: string)
   );
 }
 
-function HostCancelPanel({ penaltyRate, base, onDone, onClose }: { penaltyRate: number; base: string; onDone: (reason: string, extenuating: boolean) => void; onClose: () => void }) {
+function HostCancelPanel({ licenseSpace, penaltyRate, base, onDone, onClose }: { licenseSpace: boolean; penaltyRate: number; base: string; onDone: (reason: string, extenuating: boolean, licenseDoubt: boolean) => void; onClose: () => void }) {
   const { t } = useI18n();
   const [reason, setReason] = useState('');
   const [ext, setExt] = useState(false);
+  const [doubt, setDoubt] = useState(false);
   return (
     <div className="panel">
       <h3>{t('booking.hostCancel')}</h3>
       <p className="notice warn">{t('hostCancel.warning', { pct: Math.round(penaltyRate * 100), base })}</p>
       <label className="check"><input type="checkbox" checked={ext} onChange={(e) => setExt(e.target.checked)} /> {t('hostCancel.extenuating')}</label>
+      {licenseSpace && <label className="check"><input type="checkbox" checked={doubt} onChange={(e) => setDoubt(e.target.checked)} /> 🪪 {t('hostCancel.licenseDoubt')}</label>}
       <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('cancel.reason')} />
       <div className="row gap">
-        <button className="btn btn-danger" disabled={reason.trim().length < 3} onClick={() => onDone(reason, ext)}>{t('cancel.confirm')}</button>
+        <button className="btn btn-danger" disabled={reason.trim().length < 3} onClick={() => onDone(reason, ext, doubt)}>{t('cancel.confirm')}</button>
         <button className="btn btn-ghost" onClick={onClose}>{t('common.back')}</button>
       </div>
     </div>
@@ -338,6 +362,23 @@ function InvitesPanel({ b, onDone }: { b: View; onDone: () => void }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// Conferência do registro profissional pelo anfitrião antes de aprovar (espaço regulado)
+function LicenseCheckBox({ guest, checked, onChange }: { guest: View['guest']; checked: boolean; onChange: (v: boolean) => void }) {
+  const { t } = useI18n();
+  const lc = guest.licenseCheck;
+  const lic = guest.professionalLicense;
+  return (
+    <div className="panel license-check">
+      <h3>🪪 {t('booking.licenseCheckTitle')}</h3>
+      {lic ? <p><strong>{lic.body}</strong> · {lic.number} {lic.region}</p> : <p className="errors">{t('license.status.none')}</p>}
+      <p className="small">{t('booking.licenseCheckStatus', { status: t(`license.status.${guest.licenseStatus ?? 'none'}` as DictKey) })}</p>
+      {lc && <p className="small muted">{lc.publicRegistryFoundActive ? `✅ ${t('booking.licenseRegistryActive')}` : `⚠ ${t('booking.licenseRegistryNotChecked')}`}</p>}
+      {lc && lc.reasons.length > 0 && <ul className="small muted">{lc.reasons.slice(0, 4).map((r, i) => <li key={i}>{r}</li>)}</ul>}
+      <label className="check"><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /> {t('booking.licenseConfirm')}</label>
     </div>
   );
 }

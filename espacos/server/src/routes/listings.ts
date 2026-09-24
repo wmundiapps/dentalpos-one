@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { id, nowIso, pool, rows, withTx, type Db } from '../db';
 import * as repo from '../repo';
 import { HttpError, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth';
+import { isLaunched } from '../launch';
 import { getListing, quote } from '../bookings';
 import { COUNTRY_BY_CODE, getCity } from '../../../shared/countries';
 import { AMENITIES, BOOKING_LIMITS, CATEGORIES, FEES, toMinutes, validateOccurrences, weekdayOf } from '../../../shared/rules';
@@ -25,7 +26,7 @@ const listingSchema = z.object({
   areaM2: z.number().positive().max(100000).optional(),
   amenities: z.array(z.enum(AMENITIES as unknown as [string, ...string[]])).max(60),
   equipment: z.string().max(3000).default(''),
-  photos: z.array(z.string().url()).max(20).default([]),
+  photos: z.array(z.string().max(1000).refine((u) => /^https:\/\//.test(u) || /^\/api\/uploads\/[\w-]+$/.test(u), 'photo_url')).max(20).default([]),
   pricePerHour: z.number().positive(),
   pricePerDay: z.number().positive().optional(),
   minHours: z.number().int().min(1).max(BOOKING_LIMITS.maxHoursPerOccurrence),
@@ -36,6 +37,7 @@ const listingSchema = z.object({
   guarantorPolicy: z.enum(['none', 'optional', 'required', 'required_over_amount']),
   guarantorThreshold: z.number().positive().optional(),
   requiresLicense: z.boolean(),
+  hostLicenseResponsibility: z.boolean().default(false),
   houseRules: z.string().min(10).max(5000),
   buildingRules: z.string().max(5000).optional(),
   allowedActivities: z.string().max(2000).optional(),
@@ -48,7 +50,7 @@ const listingSchema = z.object({
 
 function checkListingRules(data: z.infer<typeof listingSchema>) {
   const country = COUNTRY_BY_CODE[data.countryCode];
-  if (!country) throw new HttpError(422, 'country_not_supported');
+  if (!country || !isLaunched(data.countryCode)) throw new HttpError(422, 'country_not_supported');
   const city = getCity(data.countryCode, data.city);
   if (!city) throw new HttpError(422, 'city_not_supported');
   const refBase = data.pricePerHour * data.minHours;
@@ -95,6 +97,7 @@ listingsRouter.get('/listings', optionalAuth, async (req: AuthedRequest, res) =>
     minPrice: q.minPrice ? Number(q.minPrice) : undefined, maxPrice: q.maxPrice ? Number(q.maxPrice) : undefined,
     instant: q.instant === '1', noGuarantor: q.noGuarantor === '1', amenities: q.amenities?.split(',').filter(Boolean), q: q.q,
   });
+  list = list.filter((l) => isLaunched(l.countryCode));
   if (q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date)) {
     const date = q.date;
     if (q.start && q.end) {
