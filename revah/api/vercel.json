@@ -1,9 +1,22 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "npm run vercel-build && mkdir -p public && echo REVAH API > public/index.txt",
   "functions": {
-    "api/index.ts": { "maxDuration": 60 }
+    "api/index.ts": {
+      "maxDuration": 60
+    }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
-  "crons": [{ "path": "/cron/tick", "schedule": "0 3 * * *" }]
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/cron/tick",
+      "schedule": "0 3 * * *"
+    }
+  ],
+  "outputDirectory": "public"
 }
