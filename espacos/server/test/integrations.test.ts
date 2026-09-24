@@ -7,6 +7,7 @@ import type { AddressInfo } from 'node:net';
 
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://spacehour:spacehour@localhost:5432/spacehour_test';
 process.env.NODE_ENV = 'test';
+process.env.LAUNCH_COUNTRIES ??= 'all'; // testes cobrem todos os países configurados
 if (!/_test(\?|$)/.test(new URL(process.env.DATABASE_URL).pathname)) throw new Error('Banco de testes precisa terminar em _test');
 
 const { dropAll, migrate, one, pool } = await import('../src/db');
@@ -270,4 +271,18 @@ test('cron protegido por segredo', async () => {
   assert.equal(r.status, 200);
   assert.deepEqual(Object.keys(await r.json()).sort(), ['bookings', 'email', 'verifications']);
   delete process.env.CRON_SECRET;
+});
+
+test('lançamento só no Brasil: busca e reservas restritas aos países liberados', async () => {
+  const prev = process.env.LAUNCH_COUNTRIES;
+  process.env.LAUNCH_COUNTRIES = 'BR';
+  try {
+    const all = await (await fetch(`${base}/listings`)).json() as Listing[];
+    assert.ok(all.length > 0 && all.every((l) => l.countryCode === 'BR'));
+    assert.deepEqual(await (await fetch(`${base}/listings?country=DE`)).json(), []);
+    const de = listings.find((l) => l.countryCode === 'DE')!;
+    await assert.rejects(B.createBooking(guest, { listingId: de.id, occurrences: [{ date: nextDateWith(de, 2), start: '10:00', end: '11:00' }], guests: 1, purpose: 'x', paymentMethod: 'card', acceptRules: true }), /country_not_supported/);
+  } finally {
+    process.env.LAUNCH_COUNTRIES = prev;
+  }
 });

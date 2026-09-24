@@ -385,6 +385,13 @@ export const COUNTRIES: CountryConfig[] = [
   },
 ];
 
+/**
+ * Países com operação aberta. Lançamento: só Brasil. Os demais continuam
+ * configurados (regras, moedas, conselhos) para a expansão — basta incluí-los aqui.
+ */
+export const LAUNCH_COUNTRY_CODES: string[] = ['BR'];
+export const LAUNCH_COUNTRIES = COUNTRIES.filter((c) => LAUNCH_COUNTRY_CODES.includes(c.code));
+
 export const COUNTRY_BY_CODE: Record<string, CountryConfig> = Object.fromEntries(COUNTRIES.map((c) => [c.code, c]));
 
 export function getCountry(code: string): CountryConfig {

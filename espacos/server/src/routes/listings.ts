@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { id, nowIso, pool, rows, withTx, type Db } from '../db';
 import * as repo from '../repo';
 import { HttpError, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth';
+import { isLaunched } from '../launch';
 import { getListing, quote } from '../bookings';
 import { COUNTRY_BY_CODE, getCity } from '../../../shared/countries';
 import { AMENITIES, BOOKING_LIMITS, CATEGORIES, FEES, toMinutes, validateOccurrences, weekdayOf } from '../../../shared/rules';
@@ -49,7 +50,7 @@ const listingSchema = z.object({
 
 function checkListingRules(data: z.infer<typeof listingSchema>) {
   const country = COUNTRY_BY_CODE[data.countryCode];
-  if (!country) throw new HttpError(422, 'country_not_supported');
+  if (!country || !isLaunched(data.countryCode)) throw new HttpError(422, 'country_not_supported');
   const city = getCity(data.countryCode, data.city);
   if (!city) throw new HttpError(422, 'city_not_supported');
   const refBase = data.pricePerHour * data.minHours;
@@ -96,6 +97,7 @@ listingsRouter.get('/listings', optionalAuth, async (req: AuthedRequest, res) =>
     minPrice: q.minPrice ? Number(q.minPrice) : undefined, maxPrice: q.maxPrice ? Number(q.maxPrice) : undefined,
     instant: q.instant === '1', noGuarantor: q.noGuarantor === '1', amenities: q.amenities?.split(',').filter(Boolean), q: q.q,
   });
+  list = list.filter((l) => isLaunched(l.countryCode));
   if (q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date)) {
     const date = q.date;
     if (q.start && q.end) {

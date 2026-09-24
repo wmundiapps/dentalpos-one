@@ -6,6 +6,7 @@ import type { AddressInfo } from 'node:net';
 
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://spacehour:spacehour@localhost:5432/spacehour_test';
 process.env.NODE_ENV = 'test';
+process.env.LAUNCH_COUNTRIES ??= 'all'; // testes cobrem todos os países configurados
 // os testes apagam o banco: só rodam num banco cujo nome termine em _test
 if (!/_test(\?|$)/.test(new URL(process.env.DATABASE_URL).pathname + new URL(process.env.DATABASE_URL).search)) {
   throw new Error(`Banco de testes precisa terminar em _test: ${process.env.DATABASE_URL}`);

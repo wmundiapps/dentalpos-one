@@ -18,6 +18,7 @@ import {
   occurrenceHours, occurrenceStartUtc, roundMoney, suggestedPenalty, validateOccurrences,
 } from '../../shared/rules';
 import { getCountry } from '../../shared/countries';
+import { isLaunched } from './launch';
 
 export { ACTIVE_STATUSES };
 const APP_URL = process.env.APP_URL ?? 'http://localhost:5173';
@@ -120,6 +121,7 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     if (!input.acceptRules) throw new HttpError(422, 'rules_not_accepted');
     if (input.guests < 1 || input.guests > listing.capacity) throw new HttpError(422, 'over_capacity', { max: listing.capacity });
     if (listing.requiresLicense && guest.licenseStatus !== 'approved') throw new HttpError(422, 'license_required');
+    if (!isLaunched(listing.countryCode)) throw new HttpError(422, 'country_not_supported');
     const country = getCountry(listing.countryCode);
     if (!country.paymentMethods.includes(input.paymentMethod as never)) throw new HttpError(422, 'payment_method_unavailable');
 

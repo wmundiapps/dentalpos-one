@@ -4,7 +4,7 @@ import { api } from '../api';
 import { useI18n, type DictKey } from '../i18n';
 import { useApp } from '../state';
 import { AMENITIES, BOOKING_LIMITS, CATEGORIES, CATEGORY_ICONS, FEES, HEALTH_CATEGORIES } from '../../../shared/rules';
-import { COUNTRIES, COUNTRY_BY_CODE } from '../../../shared/countries';
+import { LAUNCH_COUNTRIES, COUNTRY_BY_CODE } from '../../../shared/countries';
 import type { Listing, TimeRange, Weekday } from '../../../shared/types';
 import { countryName, flag, timeSlots } from '../format';
 import { errorText } from '../errors';
@@ -15,7 +15,7 @@ type Form = Omit<Listing, 'id' | 'hostId' | 'createdAt' | 'currency' | 'timezone
 const WEEK: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
 
 function blank(country: string): Form {
-  const c = COUNTRY_BY_CODE[country] ?? COUNTRIES[0];
+  const c = LAUNCH_COUNTRIES.find((x) => x.code === country) ?? LAUNCH_COUNTRIES[0];
   return {
     title: '', description: '', category: 'dental', countryCode: c.code, city: c.cities[0].name, neighborhood: '', address: '',
     capacity: 2, areaM2: undefined, amenities: ['wifi'], equipment: '', photos: [], pricePerHour: 0, pricePerDay: undefined,
@@ -102,7 +102,7 @@ export default function ListingEditor() {
           <h2 className="span2">2. {t('editor.location')}</h2>
           <label>{t('form.country')}
             <select value={f.countryCode} onChange={(e) => { const c = COUNTRY_BY_CODE[e.target.value]; setF((x) => ({ ...x, countryCode: c.code, city: c.cities[0].name })); }}>
-              {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{flag(c.code)} {countryName(c.code, locale)}</option>)}
+              {LAUNCH_COUNTRIES.map((c) => <option key={c.code} value={c.code}>{flag(c.code)} {countryName(c.code, locale)}</option>)}
             </select>
           </label>
           <label>{t('form.city')}

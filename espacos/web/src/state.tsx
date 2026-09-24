@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, hasToken, setToken } from './api';
 import type { User } from '../../shared/types';
+import { LAUNCH_COUNTRY_CODES } from '../../shared/countries';
 
 export type Me = Omit<User, 'passwordHash'> & { activeStrikes: number };
 
@@ -24,8 +25,9 @@ function read(key: string, fallback: string) {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [loadingMe, setLoadingMe] = useState(hasToken());
-  const [country, setCountry] = useState(() => read('sh_country', ''));
-  const [city, setCity] = useState(() => read('sh_city', ''));
+  // país guardado que não esteja aberto (ex.: antes do lançamento restrito) volta ao padrão
+  const [country, setCountry] = useState(() => { const c = read('sh_country', ''); return LAUNCH_COUNTRY_CODES.includes(c) ? c : LAUNCH_COUNTRY_CODES.length === 1 ? LAUNCH_COUNTRY_CODES[0] : ''; });
+  const [city, setCity] = useState(() => (LAUNCH_COUNTRY_CODES.includes(read('sh_country', '')) ? read('sh_city', '') : ''));
 
   const refreshMe = useCallback(async () => {
     if (!hasToken()) { setMe(null); setLoadingMe(false); return; }
