@@ -41,7 +41,7 @@ Operação aberta **só no Brasil** (`LAUNCH_COUNTRY_CODES` em `shared/countries
 | Pagamento real | **Mercado Pago** (Checkout Pro) na América Latina — BR, AR, CL, CO, MX, PE, UY — e **Stripe** (Checkout) no resto do mundo. O horário fica reservado 30 min enquanto o locatário paga; a confirmação chega por webhook assinado. Stripe: cartão pré-autorizado, caução e cobranças posteriores no meio salvo. Mercado Pago: sem caução (vira avalista) e penalidades por link de pagamento |
 | Registro profissional | Locatário envia número + foto/PDF da carteira; **agente de IA (Claude)** confere documento, nome, número, conselho e busca o cadastro público; só aprova sozinho com alta confiança, o resto vai para a equipe (`/admin`). O **anfitrião é o responsável final**: aprova a reserva declarando que conferiu o registro, ou marca no anúncio que assume essa conferência |
 | Fotos | Upload da galeria/câmera do celular ou do computador (arrastar e soltar), JPG/PNG/WEBP/HEIC até 10 MB, capa; Vercel Blob ou banco |
-| E-mail | Fila no banco enviada por SMTP (GoDaddy): `no-reply@space-hour.com`, respostas para `support@space-hour.com` |
+| E-mail | Fila no banco enviada por SMTP (GoDaddy): `noreply@space-hour.com`, respostas para `support@space-hour.com` |
 | Avaliação do app | Botão “Avaliar o app” em todas as telas: nota, sugestões de melhoria e relato de erros; painel na equipe e aviso por e-mail |
 | Regras | 12 documentos legais completos (termos, reserva, cancelamento, penalidades, normas, avalista, avaliações, pagamentos, anfitrião, disputas, privacidade, regras por país) em 11 idiomas — `docs/legal/` |
 
