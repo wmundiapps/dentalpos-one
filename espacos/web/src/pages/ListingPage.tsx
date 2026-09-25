@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useI18n } from '../i18n';
 import { useApp } from '../state';
@@ -28,6 +28,7 @@ export function buildOccurrences(mode: Mode, date: string, start: string, end: s
 
 export default function ListingPage() {
   const { id } = useParams();
+  const [params] = useSearchParams();
   const { t, locale } = useI18n();
   const { me } = useApp();
   const nav = useNavigate();
@@ -89,10 +90,16 @@ export default function ListingPage() {
 
   return (
     <div className="container listing-page">
+      {me?.id === l.hostId && (
+        <div className={`notice ${params.get('publicado') ? 'success' : ''} row between wrap gap`}>
+          <span>{params.get('publicado') ? `🎉 ${t('listing.publishedNotice')}` : t('listing.youAreHost')}</span>
+          <Link className="btn btn-primary small" to={`/anfitriao/espacos/${l.id}`}>✏️ {t('listing.editOwn')}</Link>
+        </div>
+      )}
       <h1>{l.title}</h1>
       <div className="row wrap gap muted">
         <Stars value={l.rating} count={l.reviewCount} />
-        <span>{flag(l.countryCode)} {l.neighborhood ? `${l.neighborhood}, ` : ''}{l.city}, {countryName(l.countryCode, locale)}</span>
+        <span>{flag(l.countryCode)} {l.neighborhood ? `${l.neighborhood}, ` : ''}{l.city}{l.state ? ` - ${l.state}` : ''}, {countryName(l.countryCode, locale)}</span>
         {l.instantBook && <span className="badge">⚡ {t('listing.instant')}</span>}
         {l.requiresLicense && <span className="badge">🪪 {t('listing.licenseRequired')}</span>}
       </div>
@@ -186,7 +193,7 @@ export default function ListingPage() {
 
           <section className="section">
             <h2>{t('listing.location')}</h2>
-            <p>{l.neighborhood}, {l.city} — {countryName(l.countryCode, locale)}</p>
+            <p>{l.neighborhood ? `${l.neighborhood}, ` : ''}{l.city}{l.state ? ` - ${l.state}` : ''} — {countryName(l.countryCode, locale)}</p>
             <p className="muted small">{l.address ?? t('listing.addressAfterConfirm')}</p>
           </section>
         </div>

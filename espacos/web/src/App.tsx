@@ -21,6 +21,7 @@ const GuarantorPage = lazy(() => import('./pages/PublicPages').then((m) => ({ de
 const ClientReviewPage = lazy(() => import('./pages/PublicPages').then((m) => ({ default: m.ClientReviewPage })));
 const Notifications = lazy(() => import('./pages/Misc').then((m) => ({ default: m.Notifications })));
 const IncidentPage = lazy(() => import('./pages/Misc').then((m) => ({ default: m.IncidentPage })));
+const AdsPage = lazy(() => import('./pages/AdsPage'));
 const Admin = lazy(() => import('./pages/Misc').then((m) => ({ default: m.Admin })));
 
 function Private({ children }: { children: ReactNode }) {
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="/reservas/:id" element={<Private><BookingPage /></Private>} />
             <Route path="/anfitriao" element={<Private><HostDashboard /></Private>} />
             <Route path="/anfitriao/novo" element={<ListingEditor />} />
+            <Route path="/anfitriao/ads" element={<AdsPage />} />
             <Route path="/anfitriao/espacos/:id" element={<Private><ListingEditor /></Private>} />
             <Route path="/anfitriao/reservas/:id" element={<Private><BookingPage /></Private>} />
             <Route path="/favoritos" element={<Private><Favorites /></Private>} />

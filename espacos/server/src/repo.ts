@@ -88,7 +88,7 @@ export async function userRatings(db: Db, userId: string) {
 function toListing(r: any): Listing {
   return {
     id: r.id, hostId: r.host_id, title: r.title, description: r.description, category: r.category, countryCode: r.country_code,
-    city: r.city, timezone: r.timezone, neighborhood: opt(r.neighborhood), address: r.address, capacity: r.capacity,
+    state: opt(r.state), city: r.city, timezone: r.timezone, neighborhood: opt(r.neighborhood), address: r.address, capacity: r.capacity,
     areaM2: opt(r.area_m2), amenities: r.amenities, equipment: r.equipment, photos: r.photos, currency: r.currency.trim(),
     pricePerHour: r.price_per_hour, pricePerDay: opt(r.price_per_day), minHours: r.min_hours, cleaningFee: r.cleaning_fee,
     securityDeposit: r.security_deposit, instantBook: r.instant_book, cancellationPolicy: r.cancellation_policy,
@@ -109,7 +109,7 @@ export async function getListings(db: Db, ids: string[]) {
 }
 
 export interface ListingFilters {
-  country?: string; city?: string; category?: string; guests?: number; minPrice?: number; maxPrice?: number;
+  country?: string; state?: string; city?: string; category?: string; guests?: number; minPrice?: number; maxPrice?: number;
   instant?: boolean; noGuarantor?: boolean; amenities?: string[]; q?: string; hostId?: string; activeOnly?: boolean;
 }
 
@@ -120,6 +120,7 @@ export async function searchListings(db: Db, f: ListingFilters): Promise<Listing
   if (f.activeOnly !== false) where.push('active');
   if (f.hostId) add('host_id = ?', f.hostId);
   if (f.country) add('country_code = ?', f.country);
+  if (f.state) add('state = ?', f.state);
   if (f.city) add('city = ?', f.city);
   if (f.category) add('category = ?', f.category);
   if (f.guests) add('capacity >= ?', f.guests);
@@ -138,8 +139,8 @@ export async function insertListing(db: Db, l: Listing) {
     `INSERT INTO listings (id, host_id, title, description, category, country_code, city, timezone, neighborhood, address, capacity,
        area_m2, amenities, equipment, photos, currency, price_per_hour, price_per_day, min_hours, cleaning_fee, security_deposit,
        instant_book, cancellation_policy, guarantor_policy, guarantor_threshold, requires_license, house_rules, building_rules,
-       allowed_activities, forbidden_activities, buffer_minutes, weekly_availability, blocked_dates, active, created_at, host_license_responsibility)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36)`,
+       allowed_activities, forbidden_activities, buffer_minutes, weekly_availability, blocked_dates, active, created_at, host_license_responsibility, state)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37)`,
     listingParams(l),
   );
 }
@@ -151,7 +152,7 @@ export async function updateListing(db: Db, l: Listing) {
        price_per_day=$18, min_hours=$19, cleaning_fee=$20, security_deposit=$21, instant_book=$22, cancellation_policy=$23,
        guarantor_policy=$24, guarantor_threshold=$25, requires_license=$26, house_rules=$27, building_rules=$28,
        allowed_activities=$29, forbidden_activities=$30, buffer_minutes=$31, weekly_availability=$32, blocked_dates=$33,
-       active=$34, created_at=$35, host_license_responsibility=$36
+       active=$34, created_at=$35, host_license_responsibility=$36, state=$37
      WHERE id=$1`,
     listingParams(l),
   );
@@ -162,7 +163,7 @@ function listingParams(l: Listing) {
     l.capacity, l.areaM2 ?? null, l.amenities, l.equipment, l.photos, l.currency, l.pricePerHour, l.pricePerDay ?? null, l.minHours,
     l.cleaningFee, l.securityDeposit, l.instantBook, l.cancellationPolicy, l.guarantorPolicy, l.guarantorThreshold ?? null,
     l.requiresLicense, l.houseRules, l.buildingRules ?? null, l.allowedActivities ?? null, l.forbiddenActivities ?? null,
-    l.bufferMinutes, JSON.stringify(l.weeklyAvailability), l.blockedDates, l.active, l.createdAt, !!l.hostLicenseResponsibility];
+    l.bufferMinutes, JSON.stringify(l.weeklyAvailability), l.blockedDates, l.active, l.createdAt, !!l.hostLicenseResponsibility, l.state ?? null];
 }
 
 export async function ratingSummaries(db: Db, listingIds: string[]) {

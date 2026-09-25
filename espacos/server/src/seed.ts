@@ -42,12 +42,17 @@ interface L {
   deposit?: number; cleaning?: number; minHours?: number; weekly: Listing['weeklyAvailability']; houseRules?: string;
 }
 
+const BR_CAPITAL_UF: Record<string, string> = {
+  'São Paulo': 'SP', 'Rio de Janeiro': 'RJ', 'Belo Horizonte': 'MG', Brasília: 'DF', Curitiba: 'PR', 'Porto Alegre': 'RS',
+  Salvador: 'BA', Recife: 'PE', Fortaleza: 'CE', Goiânia: 'GO', Florianópolis: 'SC', Manaus: 'AM',
+};
+
 function listing(o: L): Listing {
   const c = getCountry(o.country);
   const city = getCity(o.country, o.city)!;
   const l: Listing = {
     id: id('lst'), hostId: o.host.id, title: o.title, description: o.description, category: o.category, countryCode: o.country,
-    city: o.city, timezone: city.tz, neighborhood: o.neighborhood, address: `Endereço de demonstração, 100 — ${o.neighborhood}, ${o.city}`,
+    state: o.country === 'BR' ? BR_CAPITAL_UF[o.city] : undefined, city: o.city, timezone: city.tz, neighborhood: o.neighborhood, address: `Endereço de demonstração, 100 — ${o.neighborhood}, ${o.city}`,
     capacity: o.capacity, areaM2: o.area, amenities: o.amenities, equipment: o.equipment, photos: [], currency: c.currency,
     pricePerHour: o.price, pricePerDay: o.day, minHours: o.minHours ?? 2, cleaningFee: o.cleaning ?? 0, securityDeposit: o.deposit ?? 0,
     instantBook: o.instant ?? true, cancellationPolicy: o.policy ?? 'moderate', guarantorPolicy: o.guarantor ?? 'none',

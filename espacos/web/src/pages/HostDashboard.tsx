@@ -9,7 +9,8 @@ import { errorText } from '../errors';
 
 export default function HostDashboard() {
   const { t, locale } = useI18n();
-  const [tab, setTab] = useState<'requests' | 'upcoming' | 'listings' | 'earnings'>('requests');
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<'requests' | 'upcoming' | 'listings' | 'earnings'>(params.get('aba') === 'anuncios' ? 'listings' : 'requests');
   const [rows, setRows] = useState<BookingRow[]>([]);
   const [listings, setListings] = useState<Array<ListingSummary & { active: boolean }>>([]);
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function HostDashboard() {
             <div key={l.id}>
               <ListingCard l={l} />
               <div className="row gap small">
-                <Link to={`/anfitriao/espacos/${l.id}`}>{t('host.edit')}</Link>
+                <Link className="btn btn-outline small" to={`/anfitriao/espacos/${l.id}`}>✏️ {t('listing.editOwn')}</Link>
                 {!l.active && <span className="badge">{t('host.inactive')}</span>}
               </div>
             </div>

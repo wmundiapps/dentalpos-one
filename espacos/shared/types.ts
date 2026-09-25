@@ -72,6 +72,7 @@ export interface Listing {
   description: string;
   category: SpaceCategory;
   countryCode: string;
+  state?: string;           // UF no Brasil
   city: string;
   timezone: string;
   neighborhood?: string;

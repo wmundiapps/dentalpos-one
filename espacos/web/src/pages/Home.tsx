@@ -10,7 +10,7 @@ import { countryName, flag, timeSlots } from '../format';
 
 export default function Home() {
   const { t, locale } = useI18n();
-  const { me, country, city } = useApp();
+  const { me, country, region, city } = useApp();
   const [params, setParams] = useSearchParams();
   const nav = useNavigate();
   const [list, setList] = useState<ListingSummary[] | null>(null);
@@ -21,9 +21,10 @@ export default function Home() {
   const query = useMemo(() => {
     const q = new URLSearchParams(params);
     if (country) q.set('country', country);
+    if (region) q.set('state', region);
     if (city) q.set('city', city);
     return q.toString();
-  }, [params, country, city]);
+  }, [params, country, region, city]);
 
   useEffect(() => {
     setList(null);
@@ -83,7 +84,7 @@ export default function Home() {
               <input type="number" min={1} value={params.get('guests') ?? ''} onChange={(e) => set('guests', e.target.value)} placeholder="1" />
             </label>
           </form>
-          {cfg && <p className="small hero-place">{flag(cfg.code)} {city || countryName(cfg.code, locale)} · {t('place.currencyInfo', { currency: cfg.currency })}</p>}
+          {cfg && <p className="small hero-place">{flag(cfg.code)} {city ? `${city}${region ? ` - ${region}` : ''}` : region || countryName(cfg.code, locale)} · {t('place.currencyInfo', { currency: cfg.currency })}</p>}
         </div>
       </section>
 

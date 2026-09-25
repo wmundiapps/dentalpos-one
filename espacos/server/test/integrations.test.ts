@@ -390,3 +390,30 @@ test('split Mercado Pago: anfitrião conecta a conta; pagamento criado em nome d
     process.env.LAUNCH_COUNTRIES = 'all';
   }
 });
+
+test('anúncio no Brasil: estado + município do IBGE; e-mail de publicação com convite do SpaceHour ADS', async () => {
+  const host = (await repo.getUserByEmail(pool, 'anfitriao@spacehour.demo'))!;
+  const tok = signToken(host);
+  const base0 = byTitle('Sala de psicologia');
+  const body = {
+    title: 'Consultório em Maringá', description: 'Consultório equipado para atendimentos por hora no centro de Maringá.', category: 'dental',
+    countryCode: 'BR', state: 'PR', city: 'maringa', address: 'Av. XV de Novembro, 100', capacity: 3, amenities: ['wifi'], equipment: '',
+    photos: [], pricePerHour: 80, minHours: 1, cleaningFee: 0, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate',
+    guarantorPolicy: 'none', requiresLicense: false, houseRules: 'Deixar a sala organizada.', bufferMinutes: 30,
+    weeklyAvailability: base0.weeklyAvailability, blockedDates: [], active: true,
+  };
+  const post = (b: unknown) => fetch(`${base}/listings`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify(b) });
+  const r = await post(body);
+  assert.equal(r.status, 201, await r.clone().text());
+  const l = await r.json() as Listing;
+  assert.deepEqual([l.state, l.city, l.timezone], ['PR', 'Maringá', 'America/Sao_Paulo'], 'nome oficial do município');
+  assert.equal((await post({ ...body, state: undefined })).status, 422);
+  assert.equal((await post({ ...body, city: 'Cidade Inventada' })).status, 422);
+  const ac = await (await post({ ...body, state: 'AC', city: 'Rio Branco' })).json() as Listing;
+  assert.equal(ac.timezone, 'America/Rio_Branco', 'fuso do município');
+  const n = await one<{ text: string; link: string }>(pool, "SELECT text, link FROM notifications WHERE user_id = $1 AND kind = 'listing_published' ORDER BY created_at DESC LIMIT 1", [host.id]);
+  assert.match(n!.text, /SpaceHour ADS/);
+  assert.match(n!.link, /^\/anfitriao\/ads\?anuncio=/);
+  const found = await (await fetch(`${base}/listings?country=BR&state=PR&city=${encodeURIComponent('Maringá')}`)).json() as Listing[];
+  assert.ok(found.some((x) => x.id === l.id));
+});
