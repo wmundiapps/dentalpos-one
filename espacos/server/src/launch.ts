@@ -1,4 +1,4 @@
-import { LAUNCH_COUNTRY_CODES } from '../../shared/countries';
+import { LAUNCH_COUNTRY_CODES } from '../../shared/countries.js';
 
 /** País liberado para anúncios e reservas. LAUNCH_COUNTRIES=BR,PT (ou "all") sobrescreve a lista padrão. */
 export function isLaunched(countryCode: string): boolean {

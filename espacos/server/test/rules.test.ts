@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addDays, computeGuestRefund, computePrice, overstayCharge, todayInZone, validateOccurrences, zonedToUtc } from '../../shared/rules';
-import type { Listing } from '../../shared/types';
+import { addDays, computeGuestRefund, computePrice, overstayCharge, todayInZone, validateOccurrences, zonedToUtc } from '../../shared/rules.js';
+import type { Listing } from '../../shared/types.js';
 
 const tz = 'America/Sao_Paulo';
 const listing: Listing = {

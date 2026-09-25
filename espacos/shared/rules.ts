@@ -4,8 +4,8 @@
 
 import type {
   CancellationPolicyId, GuarantorPolicy, IncidentType, Listing, Occurrence, PriceBreakdown, SpaceCategory,
-} from './types';
-import { getCountry } from './countries';
+} from './types.js';
+import { getCountry } from './countries.js';
 
 export const RULES_VERSION = '2026-09-24';
 

@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { id, nowIso, pool } from '../db';
-import { getUserByEmail, insertUser, updateUser } from '../repo';
-import { HttpError, requireAuth, signToken, toSelf, type AuthedRequest } from '../auth';
-import { COUNTRY_BY_CODE, SUPPORTED_LOCALES } from '../../../shared/countries';
-import { RULES_VERSION } from '../../../shared/rules';
-import type { User } from '../../../shared/types';
+import { id, nowIso, pool } from '../db.js';
+import { getUserByEmail, insertUser, updateUser } from '../repo.js';
+import { HttpError, requireAuth, signToken, toSelf, type AuthedRequest } from '../auth.js';
+import { COUNTRY_BY_CODE, SUPPORTED_LOCALES } from '../../../shared/countries.js';
+import { RULES_VERSION } from '../../../shared/rules.js';
+import type { User } from '../../../shared/types.js';
 
 export const authRouter = Router();
 

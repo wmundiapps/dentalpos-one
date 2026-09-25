@@ -3,11 +3,11 @@
 import { Router, type NextFunction, type RequestHandler, type Response } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { HttpError, requireAuth, toSelf, type AuthedRequest } from '../auth';
-import { IMAGE_MAX_BYTES, readImage, saveImage } from '../storage';
-import { LICENSE_DOC_MAX_BYTES, decide, latestLicenseCheck, pendingVerifications, runVerification, submitLicense, verificationDocument, documentAccessLog } from '../verification';
-import { CATEGORIES } from '../../../shared/rules';
-import { pool } from '../db';
+import { HttpError, requireAuth, toSelf, type AuthedRequest } from '../auth.js';
+import { IMAGE_MAX_BYTES, readImage, saveImage } from '../storage.js';
+import { LICENSE_DOC_MAX_BYTES, decide, latestLicenseCheck, pendingVerifications, runVerification, submitLicense, verificationDocument, documentAccessLog } from '../verification.js';
+import { CATEGORIES } from '../../../shared/rules.js';
+import { pool } from '../db.js';
 
 export const filesRouter = Router();
 

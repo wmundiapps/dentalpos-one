@@ -11,13 +11,13 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
-import { id, one, pool, rows, withTx, type Db } from './db';
-import * as repo from './repo';
-import { notify } from './notify';
-import { HttpError } from './auth';
-import { COUNTRY_BY_CODE } from '../../shared/countries';
-import { decryptDocument, encryptDocument, isEncrypted } from './secure';
-import type { LicenseStatus, SpaceCategory, User } from '../../shared/types';
+import { id, one, pool, rows, withTx, type Db } from './db.js';
+import * as repo from './repo.js';
+import { notify } from './notify.js';
+import { HttpError } from './auth.js';
+import { COUNTRY_BY_CODE } from '../../shared/countries.js';
+import { decryptDocument, encryptDocument, isEncrypted } from './secure.js';
+import type { LicenseStatus, SpaceCategory, User } from '../../shared/types.js';
 
 const MODEL = process.env.LICENSE_AI_MODEL ?? 'claude-opus-5';
 export const LICENSE_DOC_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'] as const;

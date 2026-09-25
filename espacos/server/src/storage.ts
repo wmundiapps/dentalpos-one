@@ -1,8 +1,8 @@
 // Armazenamento de fotos dos espaços. Com BLOB_READ_WRITE_TOKEN usa o Vercel
 // Blob (CDN pública); sem ele grava no próprio banco e serve em /api/uploads/:id.
 import { put } from '@vercel/blob';
-import { id, nowIso, one, pool } from './db';
-import { HttpError } from './auth';
+import { id, nowIso, one, pool } from './db.js';
+import { HttpError } from './auth.js';
 
 export const IMAGE_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif',

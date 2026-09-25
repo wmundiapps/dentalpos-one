@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { id, nowIso, pool, rows, withTx, type Db } from '../db';
-import * as repo from '../repo';
-import { HttpError, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth';
-import { isLaunched } from '../launch';
-import { getListing, quote } from '../bookings';
-import { COUNTRY_BY_CODE, getCity } from '../../../shared/countries';
-import { AMENITIES, BOOKING_LIMITS, CATEGORIES, FEES, toMinutes, validateOccurrences, weekdayOf } from '../../../shared/rules';
-import type { Listing, TimeRange, User } from '../../../shared/types';
+import { id, nowIso, pool, rows, withTx, type Db } from '../db.js';
+import * as repo from '../repo.js';
+import { HttpError, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
+import { isLaunched } from '../launch.js';
+import { getListing, quote } from '../bookings.js';
+import { COUNTRY_BY_CODE, getCity } from '../../../shared/countries.js';
+import { AMENITIES, BOOKING_LIMITS, CATEGORIES, FEES, toMinutes, validateOccurrences, weekdayOf } from '../../../shared/rules.js';
+import type { Listing, TimeRange, User } from '../../../shared/types.js';
 
 export const listingsRouter = Router();
 

@@ -6,8 +6,8 @@
 // (penalidades geram link de pagamento).
 
 import crypto from 'node:crypto';
-import type { Booking, Listing, Payment, User } from '../../../shared/types';
-import { type CheckoutUrls, type Gateway, type PaymentUpdate, PaymentProviderError } from './gateway';
+import type { Booking, Listing, Payment, User } from '../../../shared/types.js';
+import { type CheckoutUrls, type Gateway, type PaymentUpdate, PaymentProviderError } from './gateway.js';
 
 const API = 'https://api.mercadopago.com';
 

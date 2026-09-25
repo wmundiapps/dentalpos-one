@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { pool, type Db } from './db';
-import { getUser, insertStrike, updateUser, userRatings } from './repo';
-import type { PublicUser, User } from '../../shared/types';
-import { STRIKE_RULES } from '../../shared/rules';
+import { pool, type Db } from './db.js';
+import { getUser, insertStrike, updateUser, userRatings } from './repo.js';
+import type { PublicUser, User } from '../../shared/types.js';
+import { STRIKE_RULES } from '../../shared/rules.js';
 
 const SECRET = process.env.JWT_SECRET ?? 'dev-only-secret-change-me';
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
