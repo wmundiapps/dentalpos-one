@@ -10,9 +10,10 @@ import { filesRouter } from './routes/files.js';
 import { feedbackRouter } from './routes/feedback.js';
 import { payoutsRouter } from './routes/payouts.js';
 import { runJobs } from './jobs.js';
+import { hasDocumentKey } from './secure.js';
 
 export function createApp() {
-  if (process.env.NODE_ENV === 'production' && !process.env.DOCUMENT_ENCRYPTION_KEY) {
+  if (process.env.NODE_ENV === 'production' && !hasDocumentKey()) {
     console.error('[segurança] DOCUMENT_ENCRYPTION_KEY ausente: envio de documentos de registro ficará indisponível');
   }
   const app = express();
