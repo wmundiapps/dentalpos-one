@@ -723,6 +723,22 @@ const ar: Dict = {
   'ads.b4': 'أنت تحدد الميزانية وتوقفه مؤقتًا متى شئت.',
   'ads.cta': 'أريد أن يتم إعلامي عند الإطلاق',
   'ads.thanks': 'تم! سنُعلمك عبر البريد الإلكتروني فور توفر SpaceHour ADS.',
+  'geo.label.state': 'الولاية',
+  'geo.label.province': 'المقاطعة',
+  'geo.label.department': 'المحافظة',
+  'geo.label.region': 'المنطقة',
+  'geo.label.district': 'المديرية',
+  'geo.label.county': 'المقاطعة / المنطقة',
+  'geo.label.prefecture': 'المحافظة (بريفكتشر)',
+  'geo.label.emirate': 'الإمارة',
+  'form.selectRegion': 'اختر: {label}',
+  'form.chooseRegionFirst': 'اختر أولاً: {label}',
+  'form.selectCity': 'اختر المدينة',
+  'form.cityFilter': 'ابحث بين {n} مدينة…',
+  'form.typeCity': 'اكتب اسم المدينة',
+  'form.cityNotListed': 'مدينتي غير موجودة في القائمة',
+  'form.pickFromList': 'اختر من القائمة',
+  'place.allRegions': 'الكل',
 };
 
 export default ar;

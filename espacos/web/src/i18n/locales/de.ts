@@ -723,6 +723,22 @@ const de: Dict = {
   'ads.b4': 'Sie legen das Budget fest und pausieren, wann Sie möchten.',
   'ads.cta': 'Beim Start benachrichtigen',
   'ads.thanks': 'Fertig! Wir benachrichtigen Sie per E-Mail, sobald SpaceHour ADS verfügbar ist.',
+  'geo.label.state': 'Bundesland',
+  'geo.label.province': 'Provinz',
+  'geo.label.department': 'Departement',
+  'geo.label.region': 'Region',
+  'geo.label.district': 'Bezirk',
+  'geo.label.county': 'County / Region',
+  'geo.label.prefecture': 'Präfektur',
+  'geo.label.emirate': 'Emirat',
+  'form.selectRegion': 'Auswählen: {label}',
+  'form.chooseRegionFirst': 'Zuerst wählen: {label}',
+  'form.selectCity': 'Stadt auswählen',
+  'form.cityFilter': 'Unter {n} Städten suchen…',
+  'form.typeCity': 'Stadtnamen eingeben',
+  'form.cityNotListed': 'Meine Stadt ist nicht aufgeführt',
+  'form.pickFromList': 'Aus Liste wählen',
+  'place.allRegions': 'Alle',
 };
 
 export default de;

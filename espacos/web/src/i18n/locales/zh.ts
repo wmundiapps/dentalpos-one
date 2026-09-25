@@ -723,6 +723,22 @@ const zh: Dict = {
   'ads.b4': '预算由您决定，可随时暂停。',
   'ads.cta': '上线时通知我',
   'ads.thanks': '好的！SpaceHour ADS 上线后我们会立即通过邮件通知您。',
+  'geo.label.state': '州',
+  'geo.label.province': '省',
+  'geo.label.department': '省（大区）',
+  'geo.label.region': '地区',
+  'geo.label.district': '区',
+  'geo.label.county': '郡 / 地区',
+  'geo.label.prefecture': '都道府县',
+  'geo.label.emirate': '酋长国',
+  'form.selectRegion': '请选择：{label}',
+  'form.chooseRegionFirst': '请先选择：{label}',
+  'form.selectCity': '选择城市',
+  'form.cityFilter': '在 {n} 个城市中搜索…',
+  'form.typeCity': '输入城市名称',
+  'form.cityNotListed': '我的城市不在列表中',
+  'form.pickFromList': '从列表中选择',
+  'place.allRegions': '全部',
 };
 
 export default zh;

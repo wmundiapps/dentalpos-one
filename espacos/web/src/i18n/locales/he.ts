@@ -723,6 +723,22 @@ const he: Dict = {
   'ads.b4': 'אתה קובע את התקציב ומשהה מתי שתרצה.',
   'ads.cta': 'עדכנו אותי בהשקה',
   'ads.thanks': 'זהו! נעדכן אותך באימייל ברגע ש-SpaceHour ADS יהיה זמין.',
+  'geo.label.state': 'מדינה',
+  'geo.label.province': 'מחוז',
+  'geo.label.department': 'מחוז (דפרטמנט)',
+  'geo.label.region': 'אזור',
+  'geo.label.district': 'מחוז',
+  'geo.label.county': 'מחוז / אזור',
+  'geo.label.prefecture': 'מחוז (פרפקטורה)',
+  'geo.label.emirate': 'אמירות',
+  'form.selectRegion': 'בחר: {label}',
+  'form.chooseRegionFirst': 'בחר תחילה: {label}',
+  'form.selectCity': 'בחר עיר',
+  'form.cityFilter': 'חיפוש מתוך {n} ערים…',
+  'form.typeCity': 'הקלד את שם העיר',
+  'form.cityNotListed': 'העיר שלי לא ברשימה',
+  'form.pickFromList': 'בחר מהרשימה',
+  'place.allRegions': 'הכל',
 };
 
 export default he;

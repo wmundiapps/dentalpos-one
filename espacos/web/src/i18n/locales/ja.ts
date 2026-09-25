@@ -723,6 +723,22 @@ const ja: Dict = {
   'ads.b4': '予算はあなたが決め、いつでも一時停止できます。',
   'ads.cta': 'リリース時に通知を受け取る',
   'ads.thanks': '完了しました！SpaceHour ADSが利用可能になり次第、メールでお知らせします。',
+  'geo.label.state': '州',
+  'geo.label.province': '省',
+  'geo.label.department': '県（デパルタメント）',
+  'geo.label.region': '地域',
+  'geo.label.district': '地区',
+  'geo.label.county': '郡／地域',
+  'geo.label.prefecture': '都道府県',
+  'geo.label.emirate': '首長国',
+  'form.selectRegion': '選択：{label}',
+  'form.chooseRegionFirst': '先に選択してください：{label}',
+  'form.selectCity': '市区町村を選択',
+  'form.cityFilter': '{n} 件の都市から検索…',
+  'form.typeCity': '都市名を入力',
+  'form.cityNotListed': '都市がリストにありません',
+  'form.pickFromList': 'リストから選択',
+  'place.allRegions': 'すべて',
 };
 
 export default ja;

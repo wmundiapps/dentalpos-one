@@ -9,7 +9,7 @@ import type { Listing, TimeRange, Weekday } from '../../../shared/types';
 import { countryName, flag, timeSlots } from '../format';
 import { errorText } from '../errors';
 import { PhotoUploader } from '../components/PhotoUploader';
-import { BrPlacePicker } from '../components/BrPlacePicker';
+import { PlacePicker } from '../components/PlacePicker';
 
 type Form = Omit<Listing, 'id' | 'hostId' | 'createdAt' | 'currency' | 'timezone'>;
 
@@ -18,7 +18,7 @@ const WEEK: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
 function blank(country: string): Form {
   const c = LAUNCH_COUNTRIES.find((x) => x.code === country) ?? LAUNCH_COUNTRIES[0];
   return {
-    title: '', description: '', category: 'dental', countryCode: c.code, state: '', city: c.code === 'BR' ? '' : c.cities[0].name, neighborhood: '', address: '',
+    title: '', description: '', category: 'dental', countryCode: c.code, state: '', city: '', neighborhood: '', address: '',
     capacity: 2, areaM2: undefined, amenities: ['wifi'], equipment: '', photos: [], pricePerHour: 0, pricePerDay: undefined,
     minHours: 1, cleaningFee: 0, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate', guarantorPolicy: 'none',
     guarantorThreshold: undefined, requiresLicense: true, hostLicenseResponsibility: false, houseRules: '', buildingRules: '', allowedActivities: '', forbiddenActivities: '',
@@ -102,15 +102,11 @@ export default function ListingEditor() {
         <section className="section form-grid">
           <h2 className="span2">2. {t('editor.location')}</h2>
           <label>{t('form.country')}
-            <select value={f.countryCode} onChange={(e) => { const c = COUNTRY_BY_CODE[e.target.value]; setF((x) => ({ ...x, countryCode: c.code, state: '', city: c.code === 'BR' ? '' : c.cities[0].name })); }}>
+            <select value={f.countryCode} onChange={(e) => { const c = COUNTRY_BY_CODE[e.target.value]; setF((x) => ({ ...x, countryCode: c.code, state: '', city: '' })); }}>
               {LAUNCH_COUNTRIES.map((c) => <option key={c.code} value={c.code}>{flag(c.code)} {countryName(c.code, locale)}</option>)}
             </select>
           </label>
-          {f.countryCode === 'BR'
-            ? <BrPlacePicker required state={f.state ?? ''} city={f.city} onChange={(st, ci) => setF((x) => ({ ...x, state: st, city: ci }))} />
-            : <label>{t('form.city')}
-                <select value={f.city} onChange={(e) => set('city', e.target.value)}>{cfg.cities.map((c) => <option key={c.name}>{c.name}</option>)}</select>
-              </label>}
+          <PlacePicker required country={f.countryCode} state={f.state ?? ''} city={f.city} onChange={(st, ci) => setF((x) => ({ ...x, state: st, city: ci }))} />
           <label>{t('form.neighborhood')}<input value={f.neighborhood ?? ''} onChange={(e) => set('neighborhood', e.target.value)} /></label>
           <label>{t('form.address')}<input required minLength={5} value={f.address} onChange={(e) => set('address', e.target.value)} /></label>
           <p className="muted small span2">{t('editor.addressPrivate')} · {t('place.currencyInfo', { currency: cfg.currency })}</p>

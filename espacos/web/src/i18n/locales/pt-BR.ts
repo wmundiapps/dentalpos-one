@@ -724,6 +724,22 @@ const ptBR = {
   'ads.b4': 'Você define o orçamento e pausa quando quiser.',
   'ads.cta': 'Quero ser avisado no lançamento',
   'ads.thanks': 'Pronto! Avisaremos você por e-mail assim que o SpaceHour ADS estiver disponível.',
+  'geo.label.state': 'Estado',
+  'geo.label.province': 'Província',
+  'geo.label.department': 'Departamento',
+  'geo.label.region': 'Região',
+  'geo.label.district': 'Distrito',
+  'geo.label.county': 'Condado / região',
+  'geo.label.prefecture': 'Província (prefeitura)',
+  'geo.label.emirate': 'Emirado',
+  'form.selectRegion': 'Selecione: {label}',
+  'form.chooseRegionFirst': 'Escolha primeiro: {label}',
+  'form.selectCity': 'Selecione a cidade',
+  'form.cityFilter': 'Buscar entre {n} cidades…',
+  'form.typeCity': 'Digite o nome da cidade',
+  'form.cityNotListed': 'Minha cidade não está na lista',
+  'form.pickFromList': 'Escolher da lista',
+  'place.allRegions': 'Todos',
 };
 
 export default ptBR;

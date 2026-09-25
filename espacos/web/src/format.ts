@@ -32,3 +32,9 @@ export function timeSlots(from = '06:00', to = '23:00', step = 30) {
   for (let m = fh * 60 + fm; m <= th * 60 + tm; m += step) out.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`);
   return out;
 }
+
+/** "Cidade - UF" (sigla quando existir; senão o nome do estado/província). */
+export function placeLine(l: { city: string; state?: string; stateName?: string }) {
+  const st = l.state && /^[A-Z]{2,3}$/.test(l.state) ? l.state : l.stateName;
+  return st ? `${l.city} - ${st}` : l.city;
+}

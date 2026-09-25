@@ -723,6 +723,22 @@ const hi: Dict = {
   'ads.b4': 'बजट आप तय करते हैं और जब चाहें रोक सकते हैं।',
   'ads.cta': 'लॉन्च पर मुझे सूचित करें',
   'ads.thanks': 'हो गया! SpaceHour ADS उपलब्ध होते ही हम आपको ईमेल से सूचित करेंगे।',
+  'geo.label.state': 'राज्य',
+  'geo.label.province': 'प्रांत',
+  'geo.label.department': 'विभाग',
+  'geo.label.region': 'क्षेत्र',
+  'geo.label.district': 'ज़िला',
+  'geo.label.county': 'काउंटी / क्षेत्र',
+  'geo.label.prefecture': 'प्रीफ़ेक्चर',
+  'geo.label.emirate': 'अमीरात',
+  'form.selectRegion': 'चुनें: {label}',
+  'form.chooseRegionFirst': 'पहले चुनें: {label}',
+  'form.selectCity': 'शहर चुनें',
+  'form.cityFilter': '{n} शहरों में खोजें…',
+  'form.typeCity': 'शहर का नाम लिखें',
+  'form.cityNotListed': 'मेरा शहर सूची में नहीं है',
+  'form.pickFromList': 'सूची से चुनें',
+  'place.allRegions': 'सभी',
 };
 
 export default hi;
