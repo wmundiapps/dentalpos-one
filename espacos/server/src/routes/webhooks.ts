@@ -1,11 +1,11 @@
 // Webhooks dos provedores de pagamento. Precisam do corpo bruto (assinatura),
 // por isso são montados antes do express.json().
 import express, { Router } from 'express';
-import { pool } from '../db';
-import { applyPaymentUpdate } from '../bookings';
-import { stripeGateway } from '../payments/stripe';
-import { mercadoPagoGateway, mercadoPagoToken, MERCADOPAGO_COUNTRIES } from '../payments/mercadopago';
-import type { Gateway } from '../payments';
+import { pool } from '../db.js';
+import { applyPaymentUpdate } from '../bookings.js';
+import { stripeGateway } from '../payments/stripe.js';
+import { mercadoPagoGateway, mercadoPagoToken, MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
+import type { Gateway } from '../payments/index.js';
 
 export const webhooksRouter = Router();
 const raw = express.raw({ type: '*/*', limit: '1mb' });

@@ -1,5 +1,5 @@
-import { id, nowIso, type Db } from './db';
-import { insertNotification } from './repo';
+import { id, nowIso, type Db } from './db.js';
+import { insertNotification } from './repo.js';
 
 // Notificação interna + e-mail. Gravada na mesma transação da ação que a
 // originou; o e-mail sai depois pela fila (mailer.flushEmailQueue).

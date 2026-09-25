@@ -4,8 +4,8 @@
 // Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET.
 
 import Stripe from 'stripe';
-import type { Booking, Listing, Payment, User } from '../../../shared/types';
-import { type CheckoutUrls, type Gateway, type PaymentUpdate, PaymentProviderError, fromMinorUnits, toMinorUnits } from './gateway';
+import type { Booking, Listing, Payment, User } from '../../../shared/types.js';
+import { type CheckoutUrls, type Gateway, type PaymentUpdate, PaymentProviderError, fromMinorUnits, toMinorUnits } from './gateway.js';
 
 // Nosso método → tipo de meio de pagamento da Stripe (ausente = deixa a Stripe escolher)
 const STRIPE_TYPES: Record<string, string> = {

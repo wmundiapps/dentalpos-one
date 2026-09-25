@@ -2,7 +2,7 @@
 // cartão: o locatário paga no checkout hospedado do provedor e aqui chegam só
 // referências (sessão, pagamento, cliente, meio de pagamento salvo).
 
-import type { Booking, Listing, Payment, User } from '../../../shared/types';
+import type { Booking, Listing, Payment, User } from '../../../shared/types.js';
 
 export type GatewayId = 'stripe' | 'mercadopago' | 'simulated';
 

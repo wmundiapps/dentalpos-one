@@ -10,21 +10,21 @@ process.env.NODE_ENV = 'test';
 process.env.LAUNCH_COUNTRIES ??= 'all'; // testes cobrem todos os países configurados
 if (!/_test(\?|$)/.test(new URL(process.env.DATABASE_URL).pathname)) throw new Error('Banco de testes precisa terminar em _test');
 
-const { dropAll, migrate, one, pool } = await import('../src/db');
-const { seed } = await import('../src/seed');
-const repo = await import('../src/repo');
-const B = await import('../src/bookings');
-const P = await import('../src/payments');
-const V = await import('../src/verification');
-const M = await import('../src/mailer');
-const { mercadoPagoGateway } = await import('../src/payments/mercadopago');
-const { createApp } = await import('../src/app');
-const { signToken } = await import('../src/auth');
-const { addDays, todayInZone, weekdayOf } = await import('../../shared/rules');
-import type { Gateway } from '../src/payments';
-import type { Listing, User } from '../../shared/types';
+const { dropAll, migrate, one, pool } = await import('../src/db.js');
+const { seed } = await import('../src/seed.js');
+const repo = await import('../src/repo.js');
+const B = await import('../src/bookings.js');
+const P = await import('../src/payments/index.js');
+const V = await import('../src/verification.js');
+const M = await import('../src/mailer.js');
+const { mercadoPagoGateway } = await import('../src/payments/mercadopago.js');
+const { createApp } = await import('../src/app.js');
+const { signToken } = await import('../src/auth.js');
+const { addDays, todayInZone, weekdayOf } = await import('../../shared/rules.js');
+import type { Gateway } from '../src/payments/index.js';
+import type { Listing, User } from '../../shared/types.js';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { LicenseAiResult } from '../src/verification';
+import type { LicenseAiResult } from '../src/verification.js';
 
 let guest: User;
 let admin: User;

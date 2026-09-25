@@ -1,9 +1,9 @@
 // Avaliação do app, sugestões de melhoria e relatos de erro.
 import { Router } from 'express';
 import { z } from 'zod';
-import { HttpError, optionalAuth, requireAuth, type AuthedRequest } from '../auth';
-import { id, pool, rows } from '../db';
-import { SUPPORT_EMAIL, sendMail } from '../mailer';
+import { HttpError, optionalAuth, requireAuth, type AuthedRequest } from '../auth.js';
+import { id, pool, rows } from '../db.js';
+import { SUPPORT_EMAIL, sendMail } from '../mailer.js';
 
 export const feedbackRouter = Router();
 

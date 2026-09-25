@@ -1,10 +1,10 @@
 // Repositório: conversão entre linhas do PostgreSQL e os tipos do domínio
 // (shared/types.ts). Toda função recebe o executor (pool ou transação).
 
-import { one, rows, type Db } from './db';
+import { one, rows, type Db } from './db.js';
 import type {
   Booking, ClientReviewInvite, Incident, Listing, Message, Notification, Occurrence, Payment, Review, User,
-} from '../../shared/types';
+} from '../../shared/types.js';
 
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : (v as string | undefined) ?? undefined);
 const opt = <T>(v: T | null | undefined) => (v === null ? undefined : v);

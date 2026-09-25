@@ -1,17 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { id, nowIso, pool, token, withTx, type Db } from '../db';
-import * as repo from '../repo';
-import { HttpError, requireAuth, toPublicUser, type AuthedRequest } from '../auth';
+import { id, nowIso, pool, token, withTx, type Db } from '../db.js';
+import * as repo from '../repo.js';
+import { HttpError, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
 import {
   checkIn, checkOut, createBooking, getBooking, getListing, guestCancel, hostCancel, hostDecision, paymentOf,
   refundPreview, reportIncident, resolveIncident, respondGuarantor, respondIncident, revealReviewsIfBoth, reviewWindowOpen,
-} from '../bookings';
-import { publicListing } from './listings';
-import { latestLicenseCheck } from '../verification';
-import { notify } from '../notify';
-import { REVIEW_RULES } from '../../../shared/rules';
-import type { Booking, Review, User } from '../../../shared/types';
+} from '../bookings.js';
+import { publicListing } from './listings.js';
+import { latestLicenseCheck } from '../verification.js';
+import { notify } from '../notify.js';
+import { REVIEW_RULES } from '../../../shared/rules.js';
+import type { Booking, Review, User } from '../../../shared/types.js';
 
 export const bookingsRouter = Router();
 

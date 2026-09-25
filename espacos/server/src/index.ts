@@ -1,7 +1,7 @@
-import { createApp } from './app';
-import { migrate, one, pool } from './db';
-import { seed } from './seed';
-import { runJobs } from './jobs';
+import { createApp } from './app.js';
+import { migrate, one, pool } from './db.js';
+import { seed } from './seed.js';
+import { runJobs } from './jobs.js';
 
 await migrate();
 const empty = !(await one(pool, 'SELECT 1 FROM users LIMIT 1'));

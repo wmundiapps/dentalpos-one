@@ -1,11 +1,11 @@
 // Dados de demonstração. Executado automaticamente com o banco vazio ou via
 // `npm run db:reset` (apaga e recria tudo). Senha de todos os usuários: demo12345
 import bcrypt from 'bcryptjs';
-import { dropAll, id, migrate, pool, token, withTx } from './db';
-import * as repo from './repo';
-import { getCity, getCountry } from '../../shared/countries';
-import { RULES_VERSION, addDays, computePrice, todayInZone } from '../../shared/rules';
-import type { Booking, ClientReviewInvite, Listing, Payment, Review, SpaceCategory, User, Weekday, TimeRange } from '../../shared/types';
+import { dropAll, id, migrate, pool, token, withTx } from './db.js';
+import * as repo from './repo.js';
+import { getCity, getCountry } from '../../shared/countries.js';
+import { RULES_VERSION, addDays, computePrice, todayInZone } from '../../shared/rules.js';
+import type { Booking, ClientReviewInvite, Listing, Payment, Review, SpaceCategory, User, Weekday, TimeRange } from '../../shared/types.js';
 
 // Tudo é montado em memória e gravado numa única transação no fim.
 const S = { users: [] as User[], listings: [] as Listing[], bookings: [] as Booking[], payments: [] as Payment[], reviews: [] as Review[], invites: [] as ClientReviewInvite[] };

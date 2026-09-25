@@ -5,7 +5,7 @@
 // parametrização do produto. Antes de operar em cada país, validar com
 // contador e advogado locais (ver docs/legal/*/country-rules.md).
 
-import type { LocaleCode, SpaceCategory } from './types';
+import type { LocaleCode, SpaceCategory } from './types.js';
 
 export type RegionId =
   | 'north_america' | 'south_america' | 'central_america' | 'europe' | 'asia' | 'middle_east' | 'oceania';

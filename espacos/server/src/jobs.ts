@@ -1,8 +1,8 @@
 // Rotina periódica: reservas (expirações, repasses, caução, avaliações),
 // fila de e-mails e verificações de registro pendentes.
-import { tick } from './bookings';
-import { flushEmailQueue } from './mailer';
-import { encryptLegacyDocuments, purgeExpiredDocuments, resumePendingVerifications } from './verification';
+import { tick } from './bookings.js';
+import { flushEmailQueue } from './mailer.js';
+import { encryptLegacyDocuments, purgeExpiredDocuments, resumePendingVerifications } from './verification.js';
 
 export async function runJobs() {
   const out: Record<string, string> = {};

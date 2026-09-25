@@ -2,23 +2,23 @@
 // incidentes (penalidades) e rotina periódica (expirações, repasses, caução,
 // liberação de avaliações). Cada operação roda numa transação PostgreSQL.
 
-import { id, lockKey, nowIso, pool, token, withTx, type Db } from './db';
-import * as repo from './repo';
-import { ACTIVE_STATUSES } from './repo';
-import { HttpError, addStrike, assertCanTransact } from './auth';
-import { notify } from './notify';
+import { id, lockKey, nowIso, pool, token, withTx, type Db } from './db.js';
+import * as repo from './repo.js';
+import { ACTIVE_STATUSES } from './repo.js';
+import { HttpError, addStrike, assertCanTransact } from './auth.js';
+import { notify } from './notify.js';
 import {
   type Gateway, type PaymentUpdate, capturePayment, chargeExtra, gatewayFor, gatewayOf, holdDeposit, markFailed, markPaid, newPayment,
   payHost, refundPayment, releaseDeposit, startCheckout, supportsHold, voidPayment,
-} from './payments';
-import type { Booking, Incident, IncidentType, Listing, Occurrence, Payment, User } from '../../shared/types';
+} from './payments/index.js';
+import type { Booking, Incident, IncidentType, Listing, Occurrence, Payment, User } from '../../shared/types.js';
 import {
   BOOKING_LIMITS, FEES, addDays, GUARANTOR_RULES, INCIDENT_RESPONSE_HOURS, OVERSTAY, PENALTIES, REVIEW_RULES, RULES_VERSION,
   computeGuestRefund, computePrice, daysBetween, guarantorRequired, hostCancellationPenalty, occurrenceEndUtc,
   occurrenceHours, occurrenceStartUtc, roundMoney, suggestedPenalty, validateOccurrences,
-} from '../../shared/rules';
-import { getCountry } from '../../shared/countries';
-import { isLaunched } from './launch';
+} from '../../shared/rules.js';
+import { getCountry } from '../../shared/countries.js';
+import { isLaunched } from './launch.js';
 
 export { ACTIVE_STATUSES };
 const APP_URL = process.env.APP_URL ?? 'http://localhost:5173';

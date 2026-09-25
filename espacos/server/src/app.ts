@@ -1,14 +1,14 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
 import { ZodError } from 'zod';
-import { HttpError } from './auth';
-import { authRouter } from './routes/auth';
-import { listingsRouter } from './routes/listings';
-import { bookingsRouter } from './routes/bookings';
-import { webhooksRouter } from './routes/webhooks';
-import { filesRouter } from './routes/files';
-import { feedbackRouter } from './routes/feedback';
-import { runJobs } from './jobs';
+import { HttpError } from './auth.js';
+import { authRouter } from './routes/auth.js';
+import { listingsRouter } from './routes/listings.js';
+import { bookingsRouter } from './routes/bookings.js';
+import { webhooksRouter } from './routes/webhooks.js';
+import { filesRouter } from './routes/files.js';
+import { feedbackRouter } from './routes/feedback.js';
+import { runJobs } from './jobs.js';
 
 export function createApp() {
   if (process.env.NODE_ENV === 'production' && !process.env.DOCUMENT_ENCRYPTION_KEY) {

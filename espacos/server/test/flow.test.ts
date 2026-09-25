@@ -12,13 +12,13 @@ if (!/_test(\?|$)/.test(new URL(process.env.DATABASE_URL).pathname + new URL(pro
   throw new Error(`Banco de testes precisa terminar em _test: ${process.env.DATABASE_URL}`);
 }
 
-const { dropAll, migrate, one, pool } = await import('../src/db');
-const { seed } = await import('../src/seed');
-const repo = await import('../src/repo');
-const B = await import('../src/bookings');
-const { createApp } = await import('../src/app');
-const { addDays, todayInZone, weekdayOf } = await import('../../shared/rules');
-import type { Listing, User } from '../../shared/types';
+const { dropAll, migrate, one, pool } = await import('../src/db.js');
+const { seed } = await import('../src/seed.js');
+const repo = await import('../src/repo.js');
+const B = await import('../src/bookings.js');
+const { createApp } = await import('../src/app.js');
+const { addDays, todayInZone, weekdayOf } = await import('../../shared/rules.js');
+import type { Listing, User } from '../../shared/types.js';
 
 let guest: User;
 let guest2: User;

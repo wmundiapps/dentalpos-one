@@ -4,7 +4,7 @@
 //   SMTP_USER=noreply@space-hour.com SMTP_PASS=...
 // Sem SMTP_HOST (desenvolvimento/testes) o e-mail é só registrado no console.
 import nodemailer, { type Transporter } from 'nodemailer';
-import { one, rows, withTx } from './db';
+import { one, rows, withTx } from './db.js';
 
 const APP_URL = () => process.env.APP_URL ?? 'http://localhost:5173';
 export const MAIL_FROM = () => process.env.MAIL_FROM ?? 'SpaceHour <noreply@space-hour.com>';

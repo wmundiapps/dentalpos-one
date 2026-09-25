@@ -4,15 +4,15 @@
 // Sem chaves configuradas (desenvolvimento/testes) usa um provedor simulado que
 // aprova na hora.
 
-import { id, nowIso } from '../db';
-import type { Booking, Payment, User } from '../../../shared/types';
-import { ASYNC_PAYMENT_METHODS, type PaymentMethodId } from '../../../shared/countries';
-import { roundMoney } from '../../../shared/rules';
-import { type CheckoutUrls, type Gateway, type GatewayId, PaymentProviderError } from './gateway';
-import { stripeGateway } from './stripe';
-import { MERCADOPAGO_COUNTRIES, mercadoPagoGateway, mercadoPagoToken } from './mercadopago';
+import { id, nowIso } from '../db.js';
+import type { Booking, Payment, User } from '../../../shared/types.js';
+import { ASYNC_PAYMENT_METHODS, type PaymentMethodId } from '../../../shared/countries.js';
+import { roundMoney } from '../../../shared/rules.js';
+import { type CheckoutUrls, type Gateway, type GatewayId, PaymentProviderError } from './gateway.js';
+import { stripeGateway } from './stripe.js';
+import { MERCADOPAGO_COUNTRIES, mercadoPagoGateway, mercadoPagoToken } from './mercadopago.js';
 
-export { type Gateway, type PaymentUpdate, PaymentProviderError } from './gateway';
+export { type Gateway, type PaymentUpdate, PaymentProviderError } from './gateway.js';
 
 const simulated: Gateway = {
   id: 'simulated', instant: true, supportsOffSession: true,
