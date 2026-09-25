@@ -72,6 +72,7 @@ export interface Listing {
   description: string;
   category: SpaceCategory;
   countryCode: string;
+  state?: string;           // UF no Brasil
   city: string;
   timezone: string;
   neighborhood?: string;
@@ -187,6 +188,7 @@ export interface Payment {
   payoutAmount: number;
   createdAt: string;
   history: Array<{ at: string; event: string; amount?: number }>;
+  sellerRef?: string;        // conta do anfitrião no provedor (split)
 }
 
 export type ReviewKind = 'guest_to_listing' | 'host_to_guest' | 'client_to_listing';

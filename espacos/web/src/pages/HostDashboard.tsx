@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useI18n } from '../i18n';
 import { BookingList, type BookingRow } from './Trips';
 import { ListingCard, type ListingSummary } from '../components/ListingCard';
 import { money } from '../format';
+import { errorText } from '../errors';
 
 export default function HostDashboard() {
   const { t, locale } = useI18n();
-  const [tab, setTab] = useState<'requests' | 'upcoming' | 'listings' | 'earnings'>('requests');
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<'requests' | 'upcoming' | 'listings' | 'earnings'>(params.get('aba') === 'anuncios' ? 'listings' : 'requests');
   const [rows, setRows] = useState<BookingRow[]>([]);
   const [listings, setListings] = useState<Array<ListingSummary & { active: boolean }>>([]);
   useEffect(() => {
@@ -27,6 +29,7 @@ export default function HostDashboard() {
         <h1>{t('host.title')}</h1>
         <Link to="/anfitriao/novo" className="btn btn-primary">+ {t('nav.newListing')}</Link>
       </div>
+      <PayoutAccount />
       <div className="tabs">
         <button className={tab === 'requests' ? 'active' : ''} onClick={() => setTab('requests')}>{t('host.requests')} {requests.length > 0 && <span className="count">{requests.length}</span>}</button>
         <button className={tab === 'upcoming' ? 'active' : ''} onClick={() => setTab('upcoming')}>{t('host.upcoming')}</button>
@@ -41,7 +44,7 @@ export default function HostDashboard() {
             <div key={l.id}>
               <ListingCard l={l} />
               <div className="row gap small">
-                <Link to={`/anfitriao/espacos/${l.id}`}>{t('host.edit')}</Link>
+                <Link className="btn btn-outline small" to={`/anfitriao/espacos/${l.id}`}>✏️ {t('listing.editOwn')}</Link>
                 {!l.active && <span className="badge">{t('host.inactive')}</span>}
               </div>
             </div>
@@ -58,5 +61,45 @@ export default function HostDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+// Conta de recebimento: o valor de cada reserva cai direto na conta Mercado Pago do anfitrião (split)
+function PayoutAccount() {
+  const { t } = useI18n();
+  const [params] = useSearchParams();
+  const [st, setSt] = useState<{ required: boolean; connected: boolean; mpUserId?: string } | null>(null);
+  const [error, setError] = useState('');
+  const load = () => api<typeof st>('/me/payout-account').then(setSt).catch(() => {});
+  useEffect(() => { load(); }, []);
+  if (!st || !st.required) return null;
+  async function connect() {
+    setError('');
+    try { window.location.assign((await api<{ url: string }>('/me/payout-account/connect', { method: 'POST' })).url); } catch (e) { setError(errorText(e, t)); }
+  }
+  async function disconnect() {
+    if (!window.confirm(t('payout.confirmDisconnect'))) return;
+    try { await api('/me/payout-account', { method: 'DELETE' }); load(); } catch (e) { setError(errorText(e, t)); }
+  }
+  const status = params.get('mp');
+  return (
+    <section className={`panel payout ${st.connected ? '' : 'warn'}`}>
+      {status === 'conectado' && st.connected && <p className="notice success">✅ {t('payout.success')}</p>}
+      {status === 'erro' && <p className="errors">{t('payout.error')}</p>}
+      <h2>💳 {t('payout.title')}</h2>
+      {st.connected ? (
+        <p className="row between wrap gap">
+          <span>✅ {t('payout.connected', { id: st.mpUserId ?? '' })}</span>
+          <button className="btn btn-ghost small" onClick={disconnect}>{t('payout.disconnect')}</button>
+        </p>
+      ) : (
+        <>
+          <p>{t('payout.help')}</p>
+          <p className="notice warn small">{t('payout.required')}</p>
+          <button className="btn btn-primary" onClick={connect}>{t('payout.connect')}</button>
+        </>
+      )}
+      {error && <p className="errors small">{error}</p>}
+    </section>
   );
 }

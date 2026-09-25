@@ -47,12 +47,12 @@ function escapeHtml(s: string) {
 
 export function renderNotification(text: string, link?: string) {
   const url = link ? (link.startsWith('http') ? link : `${APP_URL()}${link}`) : APP_URL();
-  const firstLine = text.split(/[.!?]\s/)[0].slice(0, 90);
+  const firstLine = text.split(/[.!?]\s|\n/)[0].slice(0, 90);
   return {
     subject: `SpaceHour — ${firstLine}`,
     text: `${text}\n\n${url}\n\n— SpaceHour · ${SUPPORT_EMAIL()}`,
     html: `<div style="font-family:system-ui,Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#1f2937">
-<h2 style="color:#0f766e;margin:0 0 16px">SpaceHour</h2><p style="font-size:16px;line-height:1.5">${escapeHtml(text)}</p>
+<h2 style="color:#0f766e;margin:0 0 16px">SpaceHour</h2><p style="font-size:16px;line-height:1.5">${escapeHtml(text).replace(/\n/g, '<br>')}</p>
 <p><a href="${escapeHtml(url)}" style="display:inline-block;background:#0f766e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Abrir / Open</a></p>
 <p style="font-size:12px;color:#6b7280">SpaceHour · <a href="mailto:${SUPPORT_EMAIL()}">${SUPPORT_EMAIL()}</a></p></div>`,
   };

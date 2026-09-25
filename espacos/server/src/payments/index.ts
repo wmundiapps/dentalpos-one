@@ -11,6 +11,8 @@ import { roundMoney } from '../../../shared/rules.js';
 import { type CheckoutUrls, type Gateway, type GatewayId, PaymentProviderError } from './gateway.js';
 import { stripeGateway } from './stripe.js';
 import { MERCADOPAGO_COUNTRIES, mercadoPagoGateway, mercadoPagoToken } from './mercadopago.js';
+import { marketplaceEnabled, sellerToken } from './mpAccounts.js';
+import { HttpError } from '../auth.js';
 
 export { type Gateway, type PaymentUpdate, PaymentProviderError } from './gateway.js';
 
@@ -41,12 +43,31 @@ export function gatewayFor(countryCode: string): Gateway {
   return simulated;
 }
 
+const usesMarketplace = (countryCode: string) =>
+  !override && process.env.PAYMENTS_PROVIDER !== 'simulated' && marketplaceEnabled() && (MERCADOPAGO_COUNTRIES as readonly string[]).includes(countryCode);
+
+/**
+ * Provedor para uma nova reserva. Com o split do Mercado Pago ligado, o
+ * pagamento é criado na conta do anfitrião (sellerRef), que precisa estar conectada.
+ */
+export async function gatewayForBooking(countryCode: string, hostId: string): Promise<{ gateway: Gateway; sellerRef?: string }> {
+  if (!usesMarketplace(countryCode)) return { gateway: gatewayFor(countryCode) };
+  const seller = await sellerToken({ userId: hostId });
+  if (!seller) throw new HttpError(422, 'host_payment_not_connected');
+  return { gateway: mercadoPagoGateway(countryCode, seller.token, process.env.MP_WEBHOOK_SECRET, fetch, { marketplace: true }), sellerRef: seller.mpUserId };
+}
+
 /** Provedor de um pagamento já existente (o registrado nele). */
-export function gatewayOf(p: Pick<Payment, 'provider'>, countryCode: string): Gateway {
+export async function gatewayOf(p: Pick<Payment, 'provider' | 'sellerRef'>, countryCode: string): Promise<Gateway> {
   if (override) return override(countryCode, p.provider);
   switch (p.provider as GatewayId) {
     case 'stripe': return stripeGateway(process.env.STRIPE_SECRET_KEY ?? '', process.env.STRIPE_WEBHOOK_SECRET);
     case 'mercadopago': {
+      if (p.sellerRef) {
+        const seller = await sellerToken({ mpUserId: p.sellerRef });
+        if (!seller) throw new PaymentProviderError('mercadopago', `conta do anfitrião ${p.sellerRef} desconectada`);
+        return mercadoPagoGateway(countryCode, seller.token, process.env.MP_WEBHOOK_SECRET, fetch, { marketplace: true });
+      }
       const token = mercadoPagoToken(countryCode);
       if (!token) throw new PaymentProviderError('mercadopago', `MP_ACCESS_TOKEN_${countryCode} ausente`);
       return mercadoPagoGateway(countryCode, token, process.env.MP_WEBHOOK_SECRET);
@@ -64,8 +85,9 @@ function log(p: Payment, event: string, amount?: number) {
   p.history.push({ at: nowIso(), event, amount });
 }
 
-export function newPayment(b: Booking, gw: Gateway): Payment {
+export function newPayment(b: Booking, gw: Gateway, sellerRef?: string): Payment {
   const p: Payment = {
+    sellerRef,
     id: id('pay'), bookingId: b.id, provider: gw.id, method: b.paymentMethod, currency: b.price.currency, amount: b.price.total,
     refunded: 0, extraCharges: [], depositHold: 0, depositStatus: 'none', status: 'pending',
     payoutStatus: 'scheduled', payoutAmount: b.price.hostPayout, createdAt: nowIso(), history: [],

@@ -108,11 +108,13 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 6. Repasse ao Anfitrião
 
-6.1. O repasse é liberado **24 horas após o início da primeira Ocorrência** da Reserva, para a conta cadastrada pelo Anfitrião, deduzidas a Taxa de Serviço do Anfitrião e eventuais retenções. Em séries, a Plataforma pode liberar o repasse por Ocorrência, 24 horas após o início de cada uma.
+6.1. **Brasil (pagamento dividido).** No Brasil, o pagamento da Reserva é processado pelo Mercado Pago com divisão automática (*split*): no momento da aprovação, o valor devido ao Anfitrião — Valor Base e Taxa de Limpeza, deduzida a Taxa de Serviço do Anfitrião — é creditado diretamente na conta Mercado Pago do próprio Anfitrião, conectada à Plataforma, e a Plataforma recebe apenas as Taxas de Serviço e os tributos sobre elas. A Plataforma não recebe nem custodia o valor do Anfitrião. A disponibilidade do saldo segue os prazos do Mercado Pago para o meio de pagamento utilizado.
 
-6.2. O crédito na conta do Anfitrião depende dos prazos do meio de transferência e do banco de destino. Repasses internacionais podem estar sujeitos a tarifas bancárias e conversão cambial.
+6.2. **Conta de recebimento.** Para anunciar no Brasil, o Anfitrião deve conectar uma conta Mercado Pago de sua titularidade (ou da pessoa jurídica titular do Anúncio) e mantê-la ativa. Enquanto a conta não estiver conectada, o Anúncio não recebe Reservas. Cada Anfitrião é responsável pela emissão do documento fiscal referente ao valor que recebe, e a Plataforma, pelo documento fiscal referente às Taxas de Serviço.
 
-6.3. O Anfitrião deve manter conta bancária de sua titularidade (ou da pessoa jurídica titular do Anúncio) e dados fiscais atualizados.
+6.3. **Reembolsos e ajustes no Brasil.** Reembolsos ao Locatário (cancelamento, Incidente procedente, não prestação) são estornados pelo Mercado Pago e debitados proporcionalmente do saldo de cada parte: a parcela do Anfitrião, do saldo do Anfitrião; as Taxas de Serviço, do saldo da Plataforma, observadas as regras de cancelamento. Multas devidas pelo Anfitrião e valores que o saldo dele não cubra podem ser cobrados à parte ou compensados com Reservas futuras.
+
+6.4. **Demais países.** Onde o pagamento dividido não estiver disponível, o repasse é liberado 24 horas após o início da primeira Ocorrência da Reserva, para a conta cadastrada pelo Anfitrião, deduzidas a Taxa de Serviço do Anfitrião e eventuais retenções; em séries, pode ser liberado por Ocorrência. O crédito depende dos prazos do meio de transferência e do banco de destino, e repasses internacionais podem estar sujeitos a tarifas bancárias e conversão cambial.
 
 ## 7. Retenções
 

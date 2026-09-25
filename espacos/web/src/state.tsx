@@ -9,8 +9,9 @@ interface AppCtx {
   me: Me | null;
   loadingMe: boolean;
   country: string;          // '' = todos os países
+  region: string;           // UF no Brasil ('' = todos os estados)
   city: string;             // '' = todas as cidades
-  setPlace: (country: string, city: string) => void;
+  setPlace: (country: string, city: string, region?: string) => void;
   login: (token: string, me: Me) => void;
   logout: () => void;
   refreshMe: () => Promise<void>;
@@ -28,6 +29,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // país guardado que não esteja aberto (ex.: antes do lançamento restrito) volta ao padrão
   const [country, setCountry] = useState(() => { const c = read('sh_country', ''); return LAUNCH_COUNTRY_CODES.includes(c) ? c : LAUNCH_COUNTRY_CODES.length === 1 ? LAUNCH_COUNTRY_CODES[0] : ''; });
   const [city, setCity] = useState(() => (LAUNCH_COUNTRY_CODES.includes(read('sh_country', '')) ? read('sh_city', '') : ''));
+  const [region, setRegion] = useState(() => (LAUNCH_COUNTRY_CODES.includes(read('sh_country', '')) ? read('sh_region', '') : ''));
 
   const refreshMe = useCallback(async () => {
     if (!hasToken()) { setMe(null); setLoadingMe(false); return; }
@@ -35,15 +37,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => { refreshMe(); }, [refreshMe]);
 
-  const setPlace = useCallback((c: string, ci: string) => {
-    setCountry(c); setCity(ci);
-    try { localStorage.setItem('sh_country', c); localStorage.setItem('sh_city', ci); } catch { /* ignore */ }
+  const setPlace = useCallback((c: string, ci: string, r = '') => {
+    setCountry(c); setCity(ci); setRegion(r);
+    try { localStorage.setItem('sh_country', c); localStorage.setItem('sh_city', ci); localStorage.setItem('sh_region', r); } catch { /* ignore */ }
   }, []);
 
   const login = useCallback((token: string, user: Me) => { setToken(token); setMe(user); }, []);
   const logout = useCallback(() => { setToken(null); setMe(null); }, []);
 
-  return <Ctx.Provider value={{ me, loadingMe, country, city, setPlace, login, logout, refreshMe }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ me, loadingMe, country, region, city, setPlace, login, logout, refreshMe }}>{children}</Ctx.Provider>;
 }
 
 export const useApp = () => useContext(Ctx);

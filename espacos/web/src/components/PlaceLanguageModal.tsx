@@ -3,11 +3,14 @@ import { useI18n } from '../i18n';
 import { useApp } from '../state';
 import { LAUNCH_COUNTRIES, COUNTRY_BY_CODE, LOCALE_NATIVE_NAMES, REGIONS, SUPPORTED_LOCALES } from '../../../shared/countries';
 import { countryName, flag } from '../format';
+import { BrPlacePicker } from './BrPlacePicker';
 
 // Seletor de idioma, país e cidade (botão do globo no cabeçalho).
 export function PlaceLanguageModal({ onClose, initialTab = 'place' }: { onClose: () => void; initialTab?: 'place' | 'language' }) {
   const { t, locale, setLocale } = useI18n();
-  const { country, city, setPlace } = useApp();
+  const { country, region, city, setPlace } = useApp();
+  const [brState, setBrState] = useState(country === 'BR' ? region : '');
+  const [brCity, setBrCity] = useState(country === 'BR' ? city : '');
   const [tab, setTab] = useState(initialTab);
   // com um único país aberto, vai direto às cidades
   const [selCountry, setSelCountry] = useState(country || (LAUNCH_COUNTRIES.length === 1 ? LAUNCH_COUNTRIES[0].code : ''));
@@ -67,6 +70,17 @@ export function PlaceLanguageModal({ onClose, initialTab = 'place' }: { onClose:
             {!cfg.locales.includes(locale) && (
               <button className="btn btn-outline small" onClick={() => setLocale(cfg.defaultLocale)}>{t('place.useCountryLanguage', { lang: LOCALE_NATIVE_NAMES[cfg.defaultLocale] })}</button>
             )}
+            {cfg.code === 'BR' ? (
+              <div className="form-grid">
+                <BrPlacePicker allowAllCities state={brState} city={brCity} onChange={(st, ci) => { setBrState(st); setBrCity(ci); }} />
+                <div className="span2 row gap wrap">
+                  <button className="btn btn-primary" onClick={() => { setPlace('BR', brCity, brState); onClose(); }}>
+                    {brCity ? t('place.showIn', { place: `${brCity} - ${brState}` }) : brState ? t('place.showIn', { place: brState }) : t('place.allCities')}
+                  </button>
+                  {(brState || brCity) && <button className="btn btn-ghost" onClick={() => { setPlace('BR', '', ''); onClose(); }}>{t('place.allCities')}</button>}
+                </div>
+              </div>
+            ) : (
             <div className="grid-choices">
               <button className={`choice ${cfg.code === country && !city ? 'selected' : ''}`} onClick={() => choose(cfg.code, '')}><strong>{t('place.allCities')}</strong></button>
               {cfg.cities.map((c) => (
@@ -76,6 +90,7 @@ export function PlaceLanguageModal({ onClose, initialTab = 'place' }: { onClose:
                 </button>
               ))}
             </div>
+            )}
           </div>
         )}
       </div>

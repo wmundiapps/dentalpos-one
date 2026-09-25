@@ -10,7 +10,7 @@ import type { Notification } from '../../../shared/types';
 
 export function Header() {
   const { t, locale } = useI18n();
-  const { me, country, city, logout } = useApp();
+  const { me, country, region, city, logout } = useApp();
   const [modal, setModal] = useState<null | 'place' | 'language'>(null);
   const [menu, setMenu] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -28,7 +28,7 @@ export function Header() {
     return () => document.removeEventListener('click', close);
   }, []);
 
-  const place = country ? `${flag(country)} ${city || countryName(country, locale)}` : `🌎 ${t('place.anywhere')}`;
+  const place = country ? `${flag(country)} ${city ? `${city}${region ? ` - ${region}` : ''}` : region || countryName(country, locale)}` : `🌎 ${t('place.anywhere')}`;
 
   return (
     <header className="header">
@@ -64,6 +64,7 @@ export function Header() {
                   <Link role="menuitem" to="/notificacoes">{t('nav.notifications')}{unread ? ` (${unread})` : ''}</Link>
                   <hr />
                   <Link role="menuitem" to="/anfitriao">{t('nav.hostDashboard')}</Link>
+                  <Link role="menuitem" to="/anfitriao?aba=anuncios">{t('nav.myListings')}</Link>
                   <Link role="menuitem" to="/anfitriao/novo">{t('nav.newListing')}</Link>
                   <Link role="menuitem" to="/perfil">{t('nav.profile')}</Link>
                   {me.roles.includes('admin') && <Link role="menuitem" to="/admin">{t('nav.admin')}</Link>}

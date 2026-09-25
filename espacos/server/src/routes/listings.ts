@@ -4,6 +4,12 @@ import { id, nowIso, pool, rows, withTx, type Db } from '../db.js';
 import * as repo from '../repo.js';
 import { HttpError, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
 import { isLaunched } from '../launch.js';
+import { notify } from '../notify.js';
+import { brCity, brStateName } from '../../../shared/br-locations.js';
+import { connectedHostIds, marketplaceEnabled } from '../payments/mpAccounts.js';
+import { MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
+
+const MP_COUNTRIES: readonly string[] = MERCADOPAGO_COUNTRIES;
 import { getListing, quote } from '../bookings.js';
 import { COUNTRY_BY_CODE, getCity } from '../../../shared/countries.js';
 import { AMENITIES, BOOKING_LIMITS, CATEGORIES, FEES, toMinutes, validateOccurrences, weekdayOf } from '../../../shared/rules.js';
@@ -19,7 +25,8 @@ const listingSchema = z.object({
   description: z.string().min(20).max(5000),
   category: z.enum(CATEGORIES as [string, ...string[]]),
   countryCode: z.string(),
-  city: z.string(),
+  state: z.string().max(3).optional(),
+  city: z.string().min(2).max(120),
   neighborhood: z.string().max(120).optional(),
   address: z.string().min(5).max(300),
   capacity: z.number().int().min(1).max(2000),
@@ -51,7 +58,14 @@ const listingSchema = z.object({
 function checkListingRules(data: z.infer<typeof listingSchema>) {
   const country = COUNTRY_BY_CODE[data.countryCode];
   if (!country || !isLaunched(data.countryCode)) throw new HttpError(422, 'country_not_supported');
-  const city = getCity(data.countryCode, data.city);
+  // Brasil: Estado → Município da lista oficial do IBGE; demais países: cidades atendidas
+  let city: { name: string; tz: string } | undefined;
+  if (data.countryCode === 'BR') {
+    if (!data.state || !brStateName(data.state)) throw new HttpError(422, 'state_required');
+    city = brCity(data.state, data.city);
+  } else {
+    city = getCity(data.countryCode, data.city);
+  }
   if (!city) throw new HttpError(422, 'city_not_supported');
   const refBase = data.pricePerHour * data.minHours;
   if (data.cleaningFee > refBase * FEES.maxCleaningFeeRate) throw new HttpError(422, 'cleaning_fee_too_high', { maxRate: FEES.maxCleaningFeeRate });
@@ -65,7 +79,7 @@ function checkListingRules(data: z.infer<typeof listingSchema>) {
       }
     }
   }
-  return { currency: country.currency, timezone: city.tz };
+  return { currency: country.currency, timezone: city.tz, city: city.name, state: data.countryCode === 'BR' ? data.state : undefined };
 }
 
 /** Endereço completo só para o anfitrião e para quem tem reserva confirmada. */
@@ -93,11 +107,16 @@ export async function publicListing(db: Db, l: Listing, viewer?: User) {
 listingsRouter.get('/listings', optionalAuth, async (req: AuthedRequest, res) => {
   const q = req.query as Record<string, string | undefined>;
   let list = await repo.searchListings(pool, {
-    country: q.country, city: q.city, category: q.category, guests: q.guests ? Number(q.guests) : undefined,
+    country: q.country, state: q.state, city: q.city, category: q.category, guests: q.guests ? Number(q.guests) : undefined,
     minPrice: q.minPrice ? Number(q.minPrice) : undefined, maxPrice: q.maxPrice ? Number(q.maxPrice) : undefined,
     instant: q.instant === '1', noGuarantor: q.noGuarantor === '1', amenities: q.amenities?.split(',').filter(Boolean), q: q.q,
   });
   list = list.filter((l) => isLaunched(l.countryCode));
+  // Com o split ligado, só aparecem anúncios de anfitriões com conta de recebimento conectada
+  if (marketplaceEnabled() && process.env.PAYMENTS_PROVIDER !== 'simulated') {
+    const connected = await connectedHostIds([...new Set(list.filter((l) => MP_COUNTRIES.includes(l.countryCode)).map((l) => l.hostId))]);
+    list = list.filter((l) => !MP_COUNTRIES.includes(l.countryCode) || connected.has(l.hostId));
+  }
   if (q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date)) {
     const date = q.date;
     if (q.start && q.end) {
@@ -165,6 +184,14 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
       await repo.updateUser(tx, user);
     }
     await repo.insertListing(tx, listing);
+    // Boas-vindas ao anúncio + convite para o SpaceHour ADS (destaque pago, em breve)
+    const needsPayout = marketplaceEnabled() && MP_COUNTRIES.includes(listing.countryCode) && !(await connectedHostIds([user.id])).has(user.id);
+    await notify(tx, { userId: user.id }, 'listing_published', [
+      `Seu anúncio "${listing.title}" foi publicado no SpaceHour! 🎉`,
+      needsPayout ? 'Falta um passo para começar a receber reservas: conecte sua conta Mercado Pago no Painel do anfitrião. O valor de cada reserva cai direto na sua conta.' : '',
+      `Você pode editar o anúncio quando quiser em Painel do anfitrião → Meus anúncios.`,
+      'Quer mais reservas? Com o SpaceHour ADS seu espaço aparece em destaque nas buscas da sua cidade e da sua especialidade. Toque no botão abaixo para conhecer e ser avisado no lançamento.',
+    ].filter(Boolean).join('\n\n'), `/anfitriao/ads?anuncio=${listing.id}`);
   });
   res.status(201).json(listing);
 });

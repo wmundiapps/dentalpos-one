@@ -19,7 +19,8 @@ export function mercadoPagoToken(countryCode: string): string | undefined {
   return process.env[`MP_ACCESS_TOKEN_${countryCode}`] ?? (countryCode === 'BR' ? process.env.MP_ACCESS_TOKEN : undefined);
 }
 
-export function mercadoPagoGateway(countryCode: string, accessToken: string, webhookSecret: string | undefined, http: Fetch = fetch): Gateway {
+/** marketplace: pagamento criado com o token do anfitrião; a comissão da plataforma vai em marketplace_fee. */
+export function mercadoPagoGateway(countryCode: string, accessToken: string, webhookSecret: string | undefined, http: Fetch = fetch, opts: { marketplace?: boolean } = {}): Gateway {
   async function call<T>(method: string, path: string, body?: unknown, idempotencyKey?: string): Promise<T> {
     let res: Response;
     try {
@@ -56,6 +57,7 @@ export function mercadoPagoGateway(countryCode: string, accessToken: string, web
         payer: { email: payer.email, name: payer.name },
         external_reference: p.id,
         metadata: { payment_id: p.id, booking_id: b.id, country: countryCode },
+        ...(opts.marketplace ? { marketplace_fee: Math.max(0, Math.round((b.price.total - b.price.hostPayout) * 100) / 100) } : {}),
         back_urls: { success: urls.successUrl, failure: urls.cancelUrl, pending: urls.successUrl },
         auto_return: 'approved',
         notification_url: urls.notificationUrl,
