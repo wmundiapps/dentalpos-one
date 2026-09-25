@@ -691,6 +691,18 @@ const it: Dict = {
   'incident.type.illegal_practice': 'Esercizio abusivo della professione (abilitazione falsa, di terzi o sospesa)',
   'hostCancel.licenseDoubt': 'Annullo per un fondato dubbio sull\'abilitazione professionale del locatario (senza penale né avvertimento; rimborso integrale)',
   'err.license_doubt_not_applicable': 'Questo spazio non richiede un\'abilitazione professionale.',
+  'payout.title': 'Incassi tramite Mercado Pago',
+  'payout.help': 'Collega il tuo account Mercado Pago per ricevere le prenotazioni. L\'importo di ogni prenotazione arriva direttamente sul tuo account; SpaceHour trattiene solo la sua commissione.',
+  'payout.required': 'I tuoi annunci compaiono nella ricerca solo dopo aver collegato l\'account di incasso.',
+  'payout.connect': 'Collega Mercado Pago',
+  'payout.connected': 'Account Mercado Pago collegato (ID {id})',
+  'payout.disconnect': 'Scollega',
+  'payout.confirmDisconnect': 'Scollegare l\'account? I tuoi annunci non riceveranno nuove prenotazioni finché non lo ricolleghi.',
+  'payout.success': 'Account Mercado Pago collegato correttamente.',
+  'payout.error': 'Impossibile collegare l\'account Mercado Pago. Riprova.',
+  'err.host_payment_not_connected': 'Questo host non può ancora ricevere prenotazioni.',
+  'err.mp_account_in_use': 'Questo account Mercado Pago è già collegato a un altro host.',
+  'err.marketplace_not_configured': 'Gli incassi non sono ancora disponibili.',
 };
 
 export default it;

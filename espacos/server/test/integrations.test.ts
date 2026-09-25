@@ -269,7 +269,7 @@ test('cron protegido por segredo', async () => {
   process.env.CRON_SECRET = 's3cret';
   const r = await fetch(`${base}/cron/tick`, { headers: { Authorization: 'Bearer s3cret' } });
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(await r.json()).sort(), ['bookings', 'documents', 'email', 'verifications']);
+  assert.deepEqual(Object.keys(await r.json()).sort(), ['bookings', 'documents', 'email', 'mp_tokens', 'verifications']);
   delete process.env.CRON_SECRET;
 });
 
@@ -323,5 +323,70 @@ test('documentos de registro: cifrados no banco, acesso registrado e apagados ap
   } finally {
     delete process.env.LICENSE_VERIFY_SYNC;
     V.setAnthropicClient();
+  }
+});
+
+test('split Mercado Pago: anfitrião conecta a conta; pagamento criado em nome dele com a comissão da plataforma', async () => {
+  const M = await import('../src/payments/mpAccounts.js');
+  process.env.MP_CLIENT_ID = 'app123'; process.env.MP_CLIENT_SECRET = 'sec'; process.env.MP_WEBHOOK_SECRET = 'whsec';
+  process.env.LAUNCH_COUNTRIES = 'BR';
+  const prefs: { token: string; body: Record<string, unknown> }[] = [];
+  const realFetch = globalThis.fetch;
+  const fakeMp = (async (url: string | URL | Request, init?: RequestInit) => {
+    const u = String(url);
+    if (!u.startsWith('https://api.mercadopago.com')) return realFetch(url as string, init);
+    const body = init?.body ? JSON.parse(String(init.body)) : {};
+    if (u.endsWith('/oauth/token')) {
+      return new Response(JSON.stringify({ access_token: `SELLER-${body.grant_type}`, refresh_token: 'RT', expires_in: 15552000, user_id: 777, public_key: 'PK' }), { status: 200 });
+    }
+    if (u.endsWith('/checkout/preferences')) {
+      prefs.push({ token: String((init?.headers as Record<string, string>).Authorization), body });
+      return new Response(JSON.stringify({ id: 'pref1', init_point: 'https://mp/checkout', sandbox_init_point: 'https://mp/sandbox' }), { status: 201 });
+    }
+    return new Response('{}', { status: 404 });
+  }) as typeof fetch;
+  globalThis.fetch = fakeMp;
+  M.setMpHttp(fakeMp);
+  try {
+    const l = byTitle('Sala de psicologia');
+    const host = (await repo.getUser(pool, l.hostId))!;
+    const date = nextDateWith(l, 1);
+    const input = { listingId: l.id, occurrences: [{ date, start: '15:00', end: '16:00' }], guests: 1, purpose: 'Sessão', paymentMethod: 'pix', acceptRules: true };
+    process.env.MP_ACCESS_TOKEN_BR = 'PLATFORM';
+    delete process.env.PAYMENTS_PROVIDER;
+    // sem conta conectada: anúncio some da busca e não aceita reserva
+    const before = await (await fetch(`${base}/listings`)).json() as Listing[];
+    assert.ok(!before.some((x) => x.hostId === host.id));
+    await assert.rejects(B.createBooking(guest, input), /host_payment_not_connected/);
+
+    // anfitrião autoriza no Mercado Pago
+    const hostTok = signToken(host);
+    const { url } = await (await fetch(`${base}/me/payout-account/connect`, { method: 'POST', headers: { Authorization: `Bearer ${hostTok}` } })).json() as { url: string };
+    assert.match(url, /^https:\/\/auth\.mercadopago\.com\.br\/authorization\?client_id=app123/);
+    const state = new URL(url).searchParams.get('state')!;
+    const cb = await fetch(`${base}/mp/oauth/callback?code=abc&state=${encodeURIComponent(state)}`, { redirect: 'manual' });
+    assert.equal(cb.status, 302);
+    assert.match(cb.headers.get('location')!, /mp=conectado/);
+    const bad = await fetch(`${base}/mp/oauth/callback?code=abc&state=forjado`, { redirect: 'manual' });
+    assert.match(bad.headers.get('location')!, /mp=erro/);
+    const st = await (await fetch(`${base}/me/payout-account`, { headers: { Authorization: `Bearer ${hostTok}` } })).json() as { connected: boolean; mpUserId: string };
+    assert.deepEqual([st.connected, st.mpUserId], [true, '777']);
+    const stored = await one<{ access_token_enc: Buffer }>(pool, 'SELECT access_token_enc FROM mp_accounts WHERE user_id = $1', [host.id]);
+    assert.ok(!stored!.access_token_enc.toString('latin1').includes('SELLER'), 'token guardado cifrado');
+
+    // reserva: preferência criada com o token do anfitrião e comissão da plataforma
+    const b = await B.createBooking(guest, input);
+    assert.equal(b.status, 'pending_payment');
+    const pref = prefs.at(-1)!;
+    assert.equal(pref.token, 'Bearer SELLER-authorization_code');
+    assert.equal(pref.body.marketplace_fee, Math.round((b.price.total - b.price.hostPayout) * 100) / 100);
+    assert.equal((await repo.getPayment(pool, b.paymentId))!.sellerRef, '777');
+    const after = await (await fetch(`${base}/listings`)).json() as Listing[];
+    assert.ok(after.some((x) => x.hostId === host.id));
+  } finally {
+    globalThis.fetch = realFetch;
+    M.setMpHttp();
+    for (const k of ['MP_CLIENT_ID', 'MP_CLIENT_SECRET', 'MP_WEBHOOK_SECRET', 'MP_ACCESS_TOKEN_BR']) delete process.env[k];
+    process.env.LAUNCH_COUNTRIES = 'all';
   }
 });

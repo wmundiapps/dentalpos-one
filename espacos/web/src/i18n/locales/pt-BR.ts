@@ -692,6 +692,18 @@ const ptBR = {
   'incident.type.illegal_practice': 'Exercício ilegal da profissão (registro falso, de terceiro ou suspenso)',
   'hostCancel.licenseDoubt': 'Cancelo por dúvida fundada sobre o registro profissional do locatário (sem multa nem advertência; reembolso integral)',
   'err.license_doubt_not_applicable': 'Este espaço não exige registro profissional.',
+  'payout.title': 'Recebimento pelo Mercado Pago',
+  'payout.help': 'Conecte sua conta Mercado Pago para receber as reservas. O valor de cada reserva cai direto na sua conta; a SpaceHour fica só com a comissão.',
+  'payout.required': 'Seus anúncios só aparecem na busca depois que você conectar a conta de recebimento.',
+  'payout.connect': 'Conectar Mercado Pago',
+  'payout.connected': 'Conta Mercado Pago conectada (ID {id})',
+  'payout.disconnect': 'Desconectar',
+  'payout.confirmDisconnect': 'Desconectar a conta? Seus anúncios deixam de receber novas reservas até você conectar de novo.',
+  'payout.success': 'Conta Mercado Pago conectada com sucesso.',
+  'payout.error': 'Não foi possível conectar a conta Mercado Pago. Tente novamente.',
+  'err.host_payment_not_connected': 'Este anfitrião ainda não pode receber reservas.',
+  'err.mp_account_in_use': 'Esta conta Mercado Pago já está ligada a outro anfitrião.',
+  'err.marketplace_not_configured': 'O recebimento ainda não está disponível.',
 };
 
 export default ptBR;

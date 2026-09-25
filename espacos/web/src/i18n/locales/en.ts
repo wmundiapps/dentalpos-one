@@ -691,6 +691,18 @@ const en: Dict = {
   'incident.type.illegal_practice': 'Illegal practice of the profession (false, third-party or suspended license)',
   'hostCancel.licenseDoubt': 'I am cancelling due to a well-founded doubt about the renter\'s professional license (no penalty or warning; full refund)',
   'err.license_doubt_not_applicable': 'This space does not require a professional license.',
+  'payout.title': 'Payouts via Mercado Pago',
+  'payout.help': 'Connect your Mercado Pago account to receive bookings. Each booking amount goes straight to your account; SpaceHour keeps only its fee.',
+  'payout.required': 'Your listings only appear in search after you connect your payout account.',
+  'payout.connect': 'Connect Mercado Pago',
+  'payout.connected': 'Mercado Pago account connected (ID {id})',
+  'payout.disconnect': 'Disconnect',
+  'payout.confirmDisconnect': 'Disconnect the account? Your listings will stop receiving new bookings until you connect again.',
+  'payout.success': 'Mercado Pago account connected successfully.',
+  'payout.error': 'Could not connect the Mercado Pago account. Please try again.',
+  'err.host_payment_not_connected': 'This host cannot receive bookings yet.',
+  'err.mp_account_in_use': 'This Mercado Pago account is already linked to another host.',
+  'err.marketplace_not_configured': 'Payouts are not available yet.',
 };
 
 export default en;

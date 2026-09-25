@@ -691,6 +691,18 @@ const zh: Dict = {
   'incident.type.illegal_practice': '非法执业（执业资格虚假、冒用他人或已被暂停）',
   'hostCancel.licenseDoubt': '因对承租人的专业执业资格存在合理怀疑而取消（不收取违约金、不予警告；全额退款）',
   'err.license_doubt_not_applicable': '该空间不要求专业执业资格。',
+  'payout.title': '通过 Mercado Pago 收款',
+  'payout.help': '连接您的 Mercado Pago 账户以接收预订款项。每笔预订金额直接进入您的账户,SpaceHour 仅收取佣金。',
+  'payout.required': '连接收款账户后,您的房源才会出现在搜索结果中。',
+  'payout.connect': '连接 Mercado Pago',
+  'payout.connected': 'Mercado Pago 账户已连接(ID {id})',
+  'payout.disconnect': '断开连接',
+  'payout.confirmDisconnect': '确定断开账户吗?重新连接前,您的房源将无法接收新预订。',
+  'payout.success': 'Mercado Pago 账户连接成功。',
+  'payout.error': '无法连接 Mercado Pago 账户,请重试。',
+  'err.host_payment_not_connected': '该房东暂时无法接收预订。',
+  'err.mp_account_in_use': '此 Mercado Pago 账户已关联其他房东。',
+  'err.marketplace_not_configured': '收款功能尚未开放。',
 };
 
 export default zh;

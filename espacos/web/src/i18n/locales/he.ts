@@ -691,6 +691,18 @@ const he: Dict = {
   'incident.type.illegal_practice': 'עיסוק במקצוע שלא כדין (רישיון כוזב, של אדם אחר או מושעה)',
   'hostCancel.licenseDoubt': 'אני מבטל/ת בשל ספק מבוסס לגבי הרישיון המקצועי של השוכר (ללא קנס או אזהרה; החזר כספי מלא)',
   'err.license_doubt_not_applicable': 'חלל זה אינו דורש רישיון מקצועי.',
+  'payout.title': 'קבלת תשלומים דרך Mercado Pago',
+  'payout.help': 'חברו את חשבון ה-Mercado Pago שלכם כדי לקבל תשלומי הזמנות. סכום כל הזמנה נכנס ישירות לחשבונכם; SpaceHour שומרת רק את העמלה.',
+  'payout.required': 'המודעות שלכם יופיעו בחיפוש רק לאחר חיבור חשבון התשלומים.',
+  'payout.connect': 'חיבור Mercado Pago',
+  'payout.connected': 'חשבון Mercado Pago מחובר (מזהה {id})',
+  'payout.disconnect': 'ניתוק',
+  'payout.confirmDisconnect': 'לנתק את החשבון? המודעות שלכם לא יקבלו הזמנות חדשות עד לחיבור מחדש.',
+  'payout.success': 'חשבון Mercado Pago חובר בהצלחה.',
+  'payout.error': 'לא ניתן לחבר את חשבון Mercado Pago. נסו שוב.',
+  'err.host_payment_not_connected': 'מארח זה עדיין אינו יכול לקבל הזמנות.',
+  'err.mp_account_in_use': 'חשבון Mercado Pago זה כבר מקושר למארח אחר.',
+  'err.marketplace_not_configured': 'קבלת תשלומים עדיין אינה זמינה.',
 };
 
 export default he;

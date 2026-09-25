@@ -691,6 +691,18 @@ const es: Dict = {
   'incident.type.illegal_practice': 'Ejercicio ilegal de la profesión (matrícula falsa, de un tercero o suspendida)',
   'hostCancel.licenseDoubt': 'Cancelo por una duda fundada sobre la matrícula profesional del arrendatario (sin penalización ni advertencia; reembolso íntegro)',
   'err.license_doubt_not_applicable': 'Este espacio no exige matrícula profesional.',
+  'payout.title': 'Cobros por Mercado Pago',
+  'payout.help': 'Conecta tu cuenta de Mercado Pago para recibir las reservas. El importe de cada reserva va directo a tu cuenta; SpaceHour solo retiene su comisión.',
+  'payout.required': 'Tus anuncios solo aparecen en la búsqueda después de conectar tu cuenta de cobro.',
+  'payout.connect': 'Conectar Mercado Pago',
+  'payout.connected': 'Cuenta de Mercado Pago conectada (ID {id})',
+  'payout.disconnect': 'Desconectar',
+  'payout.confirmDisconnect': '¿Desconectar la cuenta? Tus anuncios dejarán de recibir nuevas reservas hasta que la conectes de nuevo.',
+  'payout.success': 'Cuenta de Mercado Pago conectada correctamente.',
+  'payout.error': 'No se pudo conectar la cuenta de Mercado Pago. Inténtalo de nuevo.',
+  'err.host_payment_not_connected': 'Este anfitrión aún no puede recibir reservas.',
+  'err.mp_account_in_use': 'Esta cuenta de Mercado Pago ya está vinculada a otro anfitrión.',
+  'err.marketplace_not_configured': 'Los cobros aún no están disponibles.',
 };
 
 export default es;

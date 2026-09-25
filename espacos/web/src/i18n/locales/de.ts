@@ -691,6 +691,18 @@ const de: Dict = {
   'incident.type.illegal_practice': 'Unerlaubte Berufsausübung (falsche, fremde oder ruhende Zulassung)',
   'hostCancel.licenseDoubt': 'Ich storniere wegen begründeter Zweifel an der beruflichen Zulassung des Mieters (ohne Strafgebühr oder Verwarnung; volle Rückerstattung)',
   'err.license_doubt_not_applicable': 'Für diesen Raum ist keine berufliche Zulassung erforderlich.',
+  'payout.title': 'Auszahlungen über Mercado Pago',
+  'payout.help': 'Verbinden Sie Ihr Mercado-Pago-Konto, um Buchungen zu erhalten. Der Betrag jeder Buchung geht direkt auf Ihr Konto; SpaceHour behält nur seine Gebühr ein.',
+  'payout.required': 'Ihre Inserate erscheinen erst in der Suche, nachdem Sie Ihr Auszahlungskonto verbunden haben.',
+  'payout.connect': 'Mercado Pago verbinden',
+  'payout.connected': 'Mercado-Pago-Konto verbunden (ID {id})',
+  'payout.disconnect': 'Trennen',
+  'payout.confirmDisconnect': 'Konto trennen? Ihre Inserate erhalten keine neuen Buchungen mehr, bis Sie es erneut verbinden.',
+  'payout.success': 'Mercado-Pago-Konto erfolgreich verbunden.',
+  'payout.error': 'Das Mercado-Pago-Konto konnte nicht verbunden werden. Bitte versuchen Sie es erneut.',
+  'err.host_payment_not_connected': 'Dieser Gastgeber kann noch keine Buchungen erhalten.',
+  'err.mp_account_in_use': 'Dieses Mercado-Pago-Konto ist bereits mit einem anderen Gastgeber verknüpft.',
+  'err.marketplace_not_configured': 'Auszahlungen sind noch nicht verfügbar.',
 };
 
 export default de;

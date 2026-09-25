@@ -691,6 +691,18 @@ const hi: Dict = {
   'incident.type.illegal_practice': 'पेशे का अवैध अभ्यास (झूठा, किसी और का या निलंबित पंजीकरण)',
   'hostCancel.licenseDoubt': 'मैं किरायेदार के व्यावसायिक पंजीकरण पर ठोस संदेह के कारण रद्द कर रहा/रही हूँ (बिना जुर्माने या चेतावनी के; पूरा रिफ़ंड)',
   'err.license_doubt_not_applicable': 'इस जगह के लिए व्यावसायिक पंजीकरण आवश्यक नहीं है।',
+  'payout.title': 'Mercado Pago से भुगतान प्राप्ति',
+  'payout.help': 'बुकिंग का भुगतान पाने के लिए अपना Mercado Pago खाता जोड़ें। हर बुकिंग की राशि सीधे आपके खाते में जाती है; SpaceHour केवल अपना शुल्क रखता है।',
+  'payout.required': 'भुगतान खाता जोड़ने के बाद ही आपकी लिस्टिंग खोज में दिखेंगी।',
+  'payout.connect': 'Mercado Pago जोड़ें',
+  'payout.connected': 'Mercado Pago खाता जुड़ा है (ID {id})',
+  'payout.disconnect': 'डिस्कनेक्ट करें',
+  'payout.confirmDisconnect': 'खाता डिस्कनेक्ट करें? दोबारा जोड़ने तक आपकी लिस्टिंग को नई बुकिंग नहीं मिलेंगी।',
+  'payout.success': 'Mercado Pago खाता सफलतापूर्वक जुड़ गया।',
+  'payout.error': 'Mercado Pago खाता नहीं जुड़ सका। कृपया फिर से प्रयास करें।',
+  'err.host_payment_not_connected': 'यह होस्ट अभी बुकिंग प्राप्त नहीं कर सकता।',
+  'err.mp_account_in_use': 'यह Mercado Pago खाता पहले से किसी अन्य होस्ट से जुड़ा है।',
+  'err.marketplace_not_configured': 'भुगतान प्राप्ति अभी उपलब्ध नहीं है।',
 };
 
 export default hi;

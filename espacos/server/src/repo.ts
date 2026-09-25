@@ -280,7 +280,7 @@ export async function getPayment(db: Db, paymentId: string | undefined, forUpdat
     refunded: r.refunded, depositHold: r.deposit_hold, depositStatus: r.deposit_status, status: r.status,
     payoutStatus: r.payout_status, payoutAmount: r.payout_amount, createdAt: iso(r.created_at)!,
     providerRef: opt(r.provider_ref), checkoutRef: opt(r.checkout_ref), checkoutUrl: opt(r.checkout_url),
-    customerRef: opt(r.customer_ref), paymentMethodRef: opt(r.payment_method_ref), depositRef: opt(r.deposit_ref),
+    customerRef: opt(r.customer_ref), paymentMethodRef: opt(r.payment_method_ref), depositRef: opt(r.deposit_ref), sellerRef: opt(r.seller_ref),
     history: events.map((e) => ({ at: iso(e.at)!, event: e.event, amount: opt(e.amount) })),
     extraCharges: charges.map((c) => ({ at: iso(c.at)!, amount: c.amount, reason: c.reason })),
   };
@@ -294,16 +294,16 @@ const persisted = new WeakMap<Payment, { events: number; charges: number }>();
 export async function savePayment(db: Db, p: Payment) {
   await db.query(
     `INSERT INTO payments (id, booking_id, provider, method, currency, amount, refunded, deposit_hold, deposit_status, status,
-       payout_status, payout_amount, created_at, provider_ref, checkout_ref, checkout_url, customer_ref, payment_method_ref, deposit_ref)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+       payout_status, payout_amount, created_at, provider_ref, checkout_ref, checkout_url, customer_ref, payment_method_ref, deposit_ref, seller_ref)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
      ON CONFLICT (id) DO UPDATE SET provider=EXCLUDED.provider, refunded=EXCLUDED.refunded, deposit_hold=EXCLUDED.deposit_hold,
        deposit_status=EXCLUDED.deposit_status, status=EXCLUDED.status, payout_status=EXCLUDED.payout_status,
        payout_amount=EXCLUDED.payout_amount, provider_ref=EXCLUDED.provider_ref, checkout_ref=EXCLUDED.checkout_ref,
        checkout_url=EXCLUDED.checkout_url, customer_ref=EXCLUDED.customer_ref, payment_method_ref=EXCLUDED.payment_method_ref,
-       deposit_ref=EXCLUDED.deposit_ref`,
+       deposit_ref=EXCLUDED.deposit_ref, seller_ref=EXCLUDED.seller_ref`,
     [p.id, p.bookingId, p.provider, p.method, p.currency, p.amount, p.refunded, p.depositHold, p.depositStatus, p.status,
       p.payoutStatus, p.payoutAmount, p.createdAt, p.providerRef ?? null, p.checkoutRef ?? null, p.checkoutUrl ?? null,
-      p.customerRef ?? null, p.paymentMethodRef ?? null, p.depositRef ?? null],
+      p.customerRef ?? null, p.paymentMethodRef ?? null, p.depositRef ?? null, p.sellerRef ?? null],
   );
   const done = persisted.get(p) ?? { events: 0, charges: 0 };
   for (const e of p.history.slice(done.events)) {

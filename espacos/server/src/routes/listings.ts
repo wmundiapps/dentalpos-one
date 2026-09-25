@@ -4,6 +4,10 @@ import { id, nowIso, pool, rows, withTx, type Db } from '../db.js';
 import * as repo from '../repo.js';
 import { HttpError, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
 import { isLaunched } from '../launch.js';
+import { connectedHostIds, marketplaceEnabled } from '../payments/mpAccounts.js';
+import { MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
+
+const MP_COUNTRIES: readonly string[] = MERCADOPAGO_COUNTRIES;
 import { getListing, quote } from '../bookings.js';
 import { COUNTRY_BY_CODE, getCity } from '../../../shared/countries.js';
 import { AMENITIES, BOOKING_LIMITS, CATEGORIES, FEES, toMinutes, validateOccurrences, weekdayOf } from '../../../shared/rules.js';
@@ -98,6 +102,11 @@ listingsRouter.get('/listings', optionalAuth, async (req: AuthedRequest, res) =>
     instant: q.instant === '1', noGuarantor: q.noGuarantor === '1', amenities: q.amenities?.split(',').filter(Boolean), q: q.q,
   });
   list = list.filter((l) => isLaunched(l.countryCode));
+  // Com o split ligado, só aparecem anúncios de anfitriões com conta de recebimento conectada
+  if (marketplaceEnabled() && process.env.PAYMENTS_PROVIDER !== 'simulated') {
+    const connected = await connectedHostIds([...new Set(list.filter((l) => MP_COUNTRIES.includes(l.countryCode)).map((l) => l.hostId))]);
+    list = list.filter((l) => !MP_COUNTRIES.includes(l.countryCode) || connected.has(l.hostId));
+  }
   if (q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date)) {
     const date = q.date;
     if (q.start && q.end) {

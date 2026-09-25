@@ -8,6 +8,7 @@ import { bookingsRouter } from './routes/bookings.js';
 import { webhooksRouter } from './routes/webhooks.js';
 import { filesRouter } from './routes/files.js';
 import { feedbackRouter } from './routes/feedback.js';
+import { payoutsRouter } from './routes/payouts.js';
 import { runJobs } from './jobs.js';
 
 export function createApp() {
@@ -27,7 +28,7 @@ export function createApp() {
     if (!secret || req.headers.authorization !== `Bearer ${secret}`) throw new HttpError(401, 'unauthorized');
     res.json(await runJobs());
   });
-  app.use('/api', authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter);
+  app.use('/api', authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found')));
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

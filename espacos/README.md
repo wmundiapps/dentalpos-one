@@ -61,7 +61,7 @@ Operação aberta **só no Brasil** (`LAUNCH_COUNTRY_CODES` em `shared/countries
 - **Revisão jurídica e tributária em cada país** (os textos e alíquotas são base de referência).
 - Preencher as variáveis de `server/.env.example` (tokens Mercado Pago por país, chaves Stripe, `ANTHROPIC_API_KEY`, SMTP, `JWT_SECRET`, `CRON_SECRET`).
 - Webhooks: Stripe → `https://space-hour.com/api/webhooks/stripe` (eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `charge.refunded`); Mercado Pago → `https://space-hour.com/api/webhooks/mercadopago` (tópico *Pagamentos*).
-- Repasse aos anfitriões ainda é manual (próximo passo: Stripe Connect / split do Mercado Pago).
+- Brasil: split do Mercado Pago — o anfitrião conecta a conta (OAuth) e recebe direto; a plataforma recebe só a comissão (`MP_CLIENT_ID`, `MP_CLIENT_SECRET`; redirecionamento `https://space-hour.com/api/mp/oauth/callback`). Demais países: repasse manual (próximo passo: Stripe Connect).
 - Verificação de identidade (KYC com selfie) ainda é declaratória.
 
 ## Segurança e LGPD

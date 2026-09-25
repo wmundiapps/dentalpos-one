@@ -8,7 +8,7 @@ import { ACTIVE_STATUSES } from './repo.js';
 import { HttpError, addStrike, assertCanTransact } from './auth.js';
 import { notify } from './notify.js';
 import {
-  type Gateway, type PaymentUpdate, capturePayment, chargeExtra, gatewayFor, gatewayOf, holdDeposit, markFailed, markPaid, newPayment,
+  type Gateway, type PaymentUpdate, capturePayment, chargeExtra, gatewayForBooking, gatewayOf, holdDeposit, markFailed, markPaid, newPayment,
   payHost, refundPayment, releaseDeposit, startCheckout, supportsHold, voidPayment,
 } from './payments/index.js';
 import type { Booking, Incident, IncidentType, Listing, Occurrence, Payment, User } from '../../shared/types.js';
@@ -33,7 +33,7 @@ function checkoutUrls(b: Pick<Booking, 'id'>) {
   };
 }
 
-const gw = (l: Pick<Listing, 'countryCode'>, p: Payment) => gatewayOf(p, l.countryCode);
+const gw = (l: Pick<Listing, 'countryCode'>, p: Payment) => gatewayOf(p, l.countryCode);  // assíncrono (token do anfitrião)
 
 export async function getListing(db: Db, listingId: string, forUpdate = false): Promise<Listing> {
   const l = await repo.getListing(db, listingId, forUpdate);
@@ -128,7 +128,7 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     const q = await quote(tx, listing, input.occurrences, guest);
     if (q.errors.length) throw new HttpError(422, 'invalid_occurrences', q.errors);
 
-    const gateway = gatewayFor(listing.countryCode);
+    const { gateway, sellerRef } = await gatewayForBooking(listing.countryCode, listing.hostId);
     const needsGuarantorForDeposit = listing.securityDeposit > 0 && !supportsHold(input.paymentMethod, gateway);
     if ((q.guarantorRequired || needsGuarantorForDeposit) && !input.guarantor) {
       throw new HttpError(422, needsGuarantorForDeposit ? 'deposit_needs_guarantor' : 'guarantor_required');
@@ -147,7 +147,7 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     if (input.guarantor) {
       booking.guarantor = { ...input.guarantor, token: token(), status: 'invited', liabilityCap: q.guarantorLiabilityCap };
     }
-    const payment = newPayment(booking, gateway);
+    const payment = newPayment(booking, gateway, sellerRef);
     booking.paymentId = payment.id;
     if (!gateway.instant) {
       // Segura o horário enquanto o locatário paga no checkout do provedor
@@ -196,7 +196,7 @@ export function applyPaymentUpdate(update: PaymentUpdate): Promise<void> {
     const b = await getBooking(tx, pre.bookingId, true);
     const p = (await repo.getPayment(tx, pre.id, true))!;
     const l = await getListing(tx, b.listingId);
-    const gateway = gw(l, p);
+    const gateway = await gw(l, p);
     if (update.outcome === 'authorized' || update.outcome === 'captured') {
       if (b.status !== 'pending_payment') {
         // Pago depois de expirar/cancelar: devolve na hora
@@ -260,7 +260,7 @@ async function confirm(tx: Db, b: Booking, l: Listing) {
   b.hostDecisionDeadline = undefined;
   const p = await paymentOf(tx, b, true);
   if (p) {
-    await capturePayment(gw(l, p), p);
+    await capturePayment(await gw(l, p), p);
     await repo.savePayment(tx, p);
   }
   await notify(tx, { userId: b.guestId }, 'booking_confirmed', `Reserva confirmada: "${l.title}". O endereço completo já está disponível.`, `/reservas/${b.id}`);
@@ -270,7 +270,7 @@ async function confirm(tx: Db, b: Booking, l: Listing) {
 async function voidBookingPayment(tx: Db, b: Booking, l: Pick<Listing, 'countryCode'>) {
   const p = await paymentOf(tx, b, true);
   if (p) {
-    await voidPayment(gw(l, p), p);
+    await voidPayment(await gw(l, p), p);
     await repo.savePayment(tx, p);
   }
 }
@@ -345,14 +345,14 @@ export function guestCancel(guest: User, bookingId: string, reason: string, now 
     b.cancellationReason = reason;
     if (b.status !== 'confirmed') {
       // ainda não confirmada: devolve tudo (ou só cancela o checkout)
-      if (p) await voidPayment(gw(l, p), p);
+      if (p) await voidPayment(await gw(l, p), p);
       b.refundAmount = b.status === 'pending_payment' ? 0 : b.price.total;
       b.paymentDeadline = undefined;
     } else {
       const r = refundPreview(l, b, now);
-      b.refundAmount = p ? await refundPayment(gw(l, p), p, r.total, `guest_cancel:${r.rule}`) : r.total;
+      b.refundAmount = p ? await refundPayment(await gw(l, p), p, r.total, `guest_cancel:${r.rule}`) : r.total;
       if (p) {
-        await releaseDeposit(gw(l, p), p);
+        await releaseDeposit(await gw(l, p), p);
         const kept = b.price.baseAmount - r.refundBase + (b.price.cleaningFee - r.refundCleaning);
         p.payoutAmount = roundMoney(kept * (1 - FEES.hostServiceFeeRate), p.currency);
         if (p.payoutAmount <= 0) p.payoutStatus = 'cancelled';
@@ -376,8 +376,8 @@ export function hostCancel(host: User, bookingId: string, reason: string, extenu
     if (licenseDoubt && !l.requiresLicense) throw new HttpError(422, 'license_doubt_not_applicable');
     const p = await paymentOf(tx, b, true);
     if (p) {
-      await refundPayment(gw(l, p), p, p.amount - p.refunded, 'host_cancel');
-      await releaseDeposit(gw(l, p), p);
+      await refundPayment(await gw(l, p), p, p.amount - p.refunded, 'host_cancel');
+      await releaseDeposit(await gw(l, p), p);
       p.payoutStatus = 'cancelled';
       await repo.savePayment(tx, p);
     }
@@ -537,14 +537,14 @@ async function applyResolution(tx: Db, inc: Incident, decision: { chargedAmount:
     const l = await getListing(tx, b.listingId);
     if (againstGuest) {
       const guest = (await repo.getUser(tx, b.guestId))!;
-      const r = await chargeExtra(gw(l, p), p, amount, inc.type, guest, checkoutUrls(b));
+      const r = await chargeExtra(await gw(l, p), p, amount, inc.type, guest, checkoutUrls(b));
       chargedFrom = r.from;
       payLink = r.payLink;
       // valor cobrado do locatário é repassado ao anfitrião (reparo, limpeza, atraso)
       if (p.payoutStatus === 'scheduled') p.payoutAmount = roundMoney(p.payoutAmount + amount, p.currency);
     } else {
       // contra o anfitrião: reembolso ao locatário descontado do repasse
-      await refundPayment(gw(l, p), p, amount, `incident:${inc.type}`);
+      await refundPayment(await gw(l, p), p, amount, `incident:${inc.type}`);
       p.payoutAmount = roundMoney(Math.max(0, p.payoutAmount - amount), p.currency);
       chargedFrom = 'payment';
     }
@@ -608,12 +608,12 @@ export async function tick(now = new Date()) {
         // checkout abandonado: libera o horário
         b.status = 'expired';
         b.paymentDeadline = undefined;
-        if (p) await voidPayment(gw(l, p), p).catch((e) => console.error('[tick] cancelar checkout', (e as Error).message));
+        if (p) await gw(l, p).then((g) => voidPayment(g, p)).catch((e) => console.error('[tick] cancelar checkout', (e as Error).message));
         changed = true;
       }
       if ((b.status === 'pending_host' || b.status === 'pending_guarantor') && b.hostDecisionDeadline && new Date(b.hostDecisionDeadline) < now) {
         b.status = 'expired';
-        if (p) await voidPayment(gw(l, p), p);
+        if (p) await voidPayment(await gw(l, p), p);
         await notify(tx, { userId: b.guestId }, 'booking_expired', `Sua solicitação para "${l.title}" expirou sem resposta. Nada foi cobrado.`, `/reservas/${b.id}`);
         changed = true;
       }
@@ -638,7 +638,7 @@ export async function tick(now = new Date()) {
       }
       if (p && p.depositStatus === 'held' && ['completed', 'cancelled_guest', 'cancelled_host'].includes(b.status) && now.getTime() > end + FEES.depositReleaseHours * 3600000) {
         const open = await repo.findIncidents(tx, "booking_id = $1 AND status IN ('open','contested')", [b.id]);
-        if (!open.length) { await releaseDeposit(gw(l, p), p); changed = true; }
+        if (!open.length) { await releaseDeposit(await gw(l, p), p); changed = true; }
       }
       if (now.getTime() > end + REVIEW_RULES.windowDays * 86400000) {
         await tx.query("UPDATE reviews SET visible = true WHERE booking_id = $1 AND NOT visible AND kind <> 'client_to_listing'", [b.id]);

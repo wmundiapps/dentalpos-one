@@ -691,6 +691,18 @@ const ja: Dict = {
   'incident.type.illegal_practice': '無資格での業務（虚偽・他人名義・停止中の資格）',
   'hostCancel.licenseDoubt': '利用者の専門資格に合理的な疑義があるためキャンセルします（違約金・警告なし、全額返金）',
   'err.license_doubt_not_applicable': 'このスペースは専門資格を必要としません。',
+  'payout.title': 'Mercado Pagoでの受け取り',
+  'payout.help': '予約代金を受け取るにはMercado Pagoアカウントを連携してください。各予約の金額はあなたのアカウントに直接入金され、SpaceHourは手数料のみを受け取ります。',
+  'payout.required': '受け取りアカウントを連携するまで、掲載は検索に表示されません。',
+  'payout.connect': 'Mercado Pagoを連携',
+  'payout.connected': 'Mercado Pagoアカウント連携済み(ID {id})',
+  'payout.disconnect': '連携解除',
+  'payout.confirmDisconnect': '連携を解除しますか?再連携するまで新しい予約を受け付けられません。',
+  'payout.success': 'Mercado Pagoアカウントを連携しました。',
+  'payout.error': 'Mercado Pagoアカウントを連携できませんでした。もう一度お試しください。',
+  'err.host_payment_not_connected': 'このホストはまだ予約を受け付けられません。',
+  'err.mp_account_in_use': 'このMercado Pagoアカウントは別のホストに連携済みです。',
+  'err.marketplace_not_configured': '受け取り機能はまだ利用できません。',
 };
 
 export default ja;

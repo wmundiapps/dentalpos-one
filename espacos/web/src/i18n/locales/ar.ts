@@ -691,6 +691,18 @@ const ar: Dict = {
   'incident.type.illegal_practice': 'مزاولة المهنة بشكل غير قانوني (ترخيص مزوّر أو لشخص آخر أو موقوف)',
   'hostCancel.licenseDoubt': 'أُلغي الحجز بسبب شك مبرَّر في الترخيص المهني للمستأجر (دون غرامة أو إنذار؛ مع استرداد كامل المبلغ)',
   'err.license_doubt_not_applicable': 'لا تتطلب هذه المساحة ترخيصًا مهنيًا.',
+  'payout.title': 'الاستلام عبر Mercado Pago',
+  'payout.help': 'اربط حسابك في Mercado Pago لتلقي مبالغ الحجوزات. يصل مبلغ كل حجز مباشرة إلى حسابك، وتحتفظ SpaceHour بعمولتها فقط.',
+  'payout.required': 'لن تظهر إعلاناتك في البحث إلا بعد ربط حساب الاستلام.',
+  'payout.connect': 'ربط Mercado Pago',
+  'payout.connected': 'تم ربط حساب Mercado Pago (المعرّف {id})',
+  'payout.disconnect': 'إلغاء الربط',
+  'payout.confirmDisconnect': 'إلغاء ربط الحساب؟ لن تتلقى إعلاناتك حجوزات جديدة حتى تعيد الربط.',
+  'payout.success': 'تم ربط حساب Mercado Pago بنجاح.',
+  'payout.error': 'تعذّر ربط حساب Mercado Pago. حاول مرة أخرى.',
+  'err.host_payment_not_connected': 'لا يمكن لهذا المضيف تلقي الحجوزات بعد.',
+  'err.mp_account_in_use': 'حساب Mercado Pago هذا مرتبط بمضيف آخر.',
+  'err.marketplace_not_configured': 'الاستلام غير متاح بعد.',
 };
 
 export default ar;

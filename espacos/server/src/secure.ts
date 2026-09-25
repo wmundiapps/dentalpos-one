@@ -33,3 +33,6 @@ export function decryptDocument(data: Buffer): Buffer {
   decipher.setAuthTag(data.subarray(16, 32));
   return Buffer.concat([decipher.update(data.subarray(32)), decipher.final()]);
 }
+
+export const encryptText = (text: string) => encryptDocument(Buffer.from(text, 'utf8'));
+export const decryptText = (data: Buffer) => decryptDocument(data).toString('utf8');

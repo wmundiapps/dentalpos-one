@@ -6,6 +6,7 @@ import { applyPaymentUpdate } from '../bookings.js';
 import { stripeGateway } from '../payments/stripe.js';
 import { mercadoPagoGateway, mercadoPagoToken, MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
 import type { Gateway } from '../payments/index.js';
+import { sellerToken } from '../payments/mpAccounts.js';
 
 export const webhooksRouter = Router();
 const raw = express.raw({ type: '*/*', limit: '1mb' });
@@ -50,6 +51,11 @@ webhooksRouter.post('/webhooks/mercadopago', raw, async (req, res) => {
     .map((c) => ({ c, token: mercadoPagoToken(c) }))
     .filter((x): x is { c: (typeof MERCADOPAGO_COUNTRIES)[number]; token: string } => !!x.token)
     .map(({ c, token }) => mercadoPagoGateway(c, token, process.env.MP_WEBHOOK_SECRET));
+  // Split: o pagamento pertence à conta do anfitrião (user_id do aviso); consulta com o token dele
+  let sellerId = '';
+  try { sellerId = String((JSON.parse((req.body as Buffer).toString('utf8') || '{}') as { user_id?: string | number }).user_id ?? ''); } catch { /* corpo inválido */ }
+  const seller = sellerId ? await sellerToken({ mpUserId: sellerId }).catch(() => undefined) : undefined;
+  if (seller) gateways.unshift(mercadoPagoGateway('BR', seller.token, process.env.MP_WEBHOOK_SECRET, fetch, { marketplace: true }));
   if (!gateways.length) return res.status(404).end();
   await handle('mercadopago', gateways, req, res);
 });
