@@ -13,7 +13,6 @@ import {
   Search,
   Send,
   Settings,
-  Shield,
   Users,
   X,
 } from 'lucide-react'
@@ -63,7 +62,7 @@ export function Layout() {
   if (!embedded || tenant.leadsAddonActive) items.push({ to: '/leads', label: embedded ? 'Leads' : 'REVAH Leads', icon: <Search size={18} /> })
   if (!embedded) items.push({ to: '/assinatura', label: 'Assinatura', icon: <CreditCard size={18} /> })
   items.push({ to: '/configuracoes', label: 'Configurações', icon: <Settings size={18} /> })
-  if (session.superadmin) items.push({ to: '/admin', label: 'Admin WMundi', icon: <Shield size={18} /> })
+  // Backoffice WMundi fica fora do menu: acesso só pelo endereço /admin (e só para superadmins).
 
   const bottom = items.slice(0, 4)
   const trial = tenant.trial
