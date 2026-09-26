@@ -1,9 +1,11 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { FeedbackWidget } from './components/FeedbackWidget';
 import { EmailVerifyBanner } from './components/EmailVerifyBanner';
+import { ConsentBanner } from './components/ConsentBanner';
+import { loadTags, trackPage } from './tracking';
 import { useApp } from './state';
 import Home from './pages/Home';
 
@@ -24,6 +26,8 @@ const Notifications = lazy(() => import('./pages/Misc').then((m) => ({ default: 
 const IncidentPage = lazy(() => import('./pages/Misc').then((m) => ({ default: m.IncidentPage })));
 const AdsPage = lazy(() => import('./pages/AdsPage'));
 const ConfirmEmail = lazy(() => import('./pages/ConfirmEmail'));
+const HostLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.HostLanding })));
+const ProLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.ProLanding })));
 const Admin = lazy(() => import('./pages/Misc').then((m) => ({ default: m.Admin })));
 
 function Private({ children }: { children: ReactNode }) {
@@ -35,6 +39,9 @@ function Private({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  const loc = useLocation();
+  useEffect(() => { loadTags(); }, []);
+  useEffect(() => { trackPage(loc.pathname); }, [loc.pathname]);
   return (
     <>
       <a href="#main" className="skip-link">Skip to content</a>
@@ -61,6 +68,8 @@ export default function App() {
             <Route path="/entrar" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
             <Route path="/confirmar-email" element={<ConfirmEmail />} />
+            <Route path="/anuncie" element={<HostLanding />} />
+            <Route path="/profissionais" element={<ProLanding />} />
             <Route path="/avalista/:token" element={<GuarantorPage />} />
             <Route path="/avaliar/:token" element={<ClientReviewPage />} />
             <Route path="/regras" element={<LegalPage />} />
@@ -71,6 +80,7 @@ export default function App() {
       </main>
       <Footer />
       <FeedbackWidget />
+      <ConsentBanner />
     </>
   );
 }
