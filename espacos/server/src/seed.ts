@@ -1,6 +1,7 @@
 // Dados de demonstração. Executado automaticamente com o banco vazio ou via
 // `npm run db:reset` (apaga e recria tudo). Senha de todos os usuários: demo12345
 import bcrypt from 'bcryptjs';
+import { findStateOfCity } from './geo.js';
 import { dropAll, id, migrate, pool, token, withTx } from './db.js';
 import * as repo from './repo.js';
 import { getCity, getCountry } from '../../shared/countries.js';
@@ -52,7 +53,7 @@ function listing(o: L): Listing {
   const city = getCity(o.country, o.city)!;
   const l: Listing = {
     id: id('lst'), hostId: o.host.id, title: o.title, description: o.description, category: o.category, countryCode: o.country,
-    state: o.country === 'BR' ? BR_CAPITAL_UF[o.city] : undefined, city: o.city, timezone: city.tz, neighborhood: o.neighborhood, address: `Endereço de demonstração, 100 — ${o.neighborhood}, ${o.city}`,
+    state: o.country === 'BR' ? BR_CAPITAL_UF[o.city] : findStateOfCity(o.country, o.city), city: o.city, timezone: city.tz, neighborhood: o.neighborhood, address: `Endereço de demonstração, 100 — ${o.neighborhood}, ${o.city}`,
     capacity: o.capacity, areaM2: o.area, amenities: o.amenities, equipment: o.equipment, photos: [], currency: c.currency,
     pricePerHour: o.price, pricePerDay: o.day, minHours: o.minHours ?? 2, cleaningFee: o.cleaning ?? 0, securityDeposit: o.deposit ?? 0,
     instantBook: o.instant ?? true, cancellationPolicy: o.policy ?? 'moderate', guarantorPolicy: o.guarantor ?? 'none',

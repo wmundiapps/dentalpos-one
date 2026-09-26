@@ -5,7 +5,7 @@ import * as repo from '../repo.js';
 import { HttpError, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
 import { isLaunched } from '../launch.js';
 import { notify } from '../notify.js';
-import { brCity, brStateName } from '../../../shared/br-locations.js';
+import { geoCity, geoState, hasGeo, rawGeo, stateTimezone } from '../geo.js';
 import { connectedHostIds, marketplaceEnabled } from '../payments/mpAccounts.js';
 import { MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
 
@@ -58,11 +58,13 @@ const listingSchema = z.object({
 function checkListingRules(data: z.infer<typeof listingSchema>) {
   const country = COUNTRY_BY_CODE[data.countryCode];
   if (!country || !isLaunched(data.countryCode)) throw new HttpError(422, 'country_not_supported');
-  // Brasil: Estado → Município da lista oficial do IBGE; demais países: cidades atendidas
+  // País → estado/província/região → cidade. Brasil: lista oficial do IBGE (obrigatória);
+  // demais países: cidade da lista ou, se não constar, o nome informado com o fuso do estado.
   let city: { name: string; tz: string } | undefined;
-  if (data.countryCode === 'BR') {
-    if (!data.state || !brStateName(data.state)) throw new HttpError(422, 'state_required');
-    city = brCity(data.state, data.city);
+  if (hasGeo(data.countryCode)) {
+    if (!data.state || !geoState(data.countryCode, data.state)) throw new HttpError(422, 'state_required');
+    city = geoCity(data.countryCode, data.state, data.city);
+    if (!city && data.countryCode !== 'BR') city = { name: data.city.trim(), tz: stateTimezone(data.countryCode, data.state)! };
   } else {
     city = getCity(data.countryCode, data.city);
   }
@@ -79,7 +81,7 @@ function checkListingRules(data: z.infer<typeof listingSchema>) {
       }
     }
   }
-  return { currency: country.currency, timezone: city.tz, city: city.name, state: data.countryCode === 'BR' ? data.state : undefined };
+  return { currency: country.currency, timezone: city.tz, city: city.name, state: hasGeo(data.countryCode) ? data.state : undefined };
 }
 
 /** Endereço completo só para o anfitrião e para quem tem reserva confirmada. */
@@ -96,9 +98,17 @@ export async function publicListings(db: Db, listings: Listing[], viewer?: User)
   const visible = await addressVisibleTo(db, listings, viewer);
   return listings.map((l) => {
     const { address, ...rest } = l;
-    return { ...rest, address: visible.has(l.id) ? address : undefined, ...ratings(l.id) };
+    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, ...ratings(l.id) };
   });
 }
+
+// Estados/províncias e cidades de um país (lista para os formulários)
+listingsRouter.get('/geo/:country', (req, res) => {
+  const raw = rawGeo(String(req.params.country).toUpperCase());
+  if (!raw) throw new HttpError(404, 'not_found');
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.type('application/json').send(raw);
+});
 
 export async function publicListing(db: Db, l: Listing, viewer?: User) {
   return (await publicListings(db, [l], viewer))[0];

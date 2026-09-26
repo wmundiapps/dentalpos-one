@@ -324,3 +324,5 @@ ul.errors { padding-inline-start: 18px; }
 .ads-page h1 { margin-top: 8px; }
 .ads-benefits { list-style: none; padding: 0; display: grid; gap: 10px; margin: 18px 0 22px; font-size: 1.05rem; }
 .ads-benefits li { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; }
+
+.city-filter { margin-bottom: 6px; }

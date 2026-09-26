@@ -417,3 +417,29 @@ test('anúncio no Brasil: estado + município do IBGE; e-mail de publicação co
   const found = await (await fetch(`${base}/listings?country=BR&state=PR&city=${encodeURIComponent('Maringá')}`)).json() as Listing[];
   assert.ok(found.some((x) => x.id === l.id));
 });
+
+test('outros países: estado/província + cidade da base; cidade fora da lista aceita com o fuso do estado', async () => {
+  const host = (await repo.getUserByEmail(pool, 'anfitriao@spacehour.demo'))!;
+  const tok = signToken(host);
+  const base0 = byTitle('Sala de psicologia');
+  const body = {
+    title: 'Therapy office in Los Angeles', description: 'Quiet therapy office available by the hour in Los Angeles.', category: 'psychology',
+    countryCode: 'US', state: 'CA', city: 'los angeles', address: '100 Main St', capacity: 3, amenities: ['wifi'], equipment: '',
+    photos: [], pricePerHour: 50, minHours: 1, cleaningFee: 0, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate',
+    guarantorPolicy: 'none', requiresLicense: false, houseRules: 'Leave the room tidy.', bufferMinutes: 30,
+    weeklyAvailability: base0.weeklyAvailability, blockedDates: [], active: true,
+  };
+  const post = (b: unknown) => fetch(`${base}/listings`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify(b) });
+  const la = await (await post(body)).json() as Listing & { stateName?: string };
+  assert.deepEqual([la.state, la.city, la.timezone], ['CA', 'Los Angeles', 'America/Los_Angeles']);
+  const ny = await (await post({ ...body, state: 'NY', city: 'Pequena Vila Inexistente' })).json() as Listing;
+  assert.deepEqual([ny.city, ny.timezone], ['Pequena Vila Inexistente', 'America/New_York']);
+  assert.equal((await post({ ...body, state: 'XX' })).status, 422);
+  const geo = await fetch(`${base}/geo/US`);
+  assert.equal(geo.status, 200);
+  const g = await geo.json() as { label: string; states: { code: string }[] };
+  assert.equal(g.label, 'state');
+  assert.ok(g.states.some((s) => s.code === 'CA'));
+  const view = await (await fetch(`${base}/listings/${la.id}`)).json() as { listing: { stateName?: string } };
+  assert.equal(view.listing.stateName, 'California');
+});

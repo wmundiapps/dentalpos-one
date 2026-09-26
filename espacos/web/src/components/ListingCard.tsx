@@ -2,10 +2,10 @@ import { Link } from 'react-router-dom';
 import { SpaceArt } from './SpaceArt';
 import { Stars } from './Stars';
 import { useI18n } from '../i18n';
-import { money, countryName } from '../format';
+import { money, countryName, placeLine } from '../format';
 import type { Listing } from '../../../shared/types';
 
-export type ListingSummary = Omit<Listing, 'address'> & { address?: string; rating: number | null; reviewCount: number; clientRating: number | null; clientReviewCount: number };
+export type ListingSummary = Omit<Listing, 'address'> & { address?: string; stateName?: string; rating: number | null; reviewCount: number; clientRating: number | null; clientReviewCount: number };
 
 export function ListingCard({ l, fav, onFav }: { l: ListingSummary; fav?: boolean; onFav?: () => void }) {
   const { t, locale } = useI18n();
@@ -18,7 +18,7 @@ export function ListingCard({ l, fav, onFav }: { l: ListingSummary; fav?: boolea
         </div>
         <div className="card-body">
           <div className="row between">
-            <strong className="ellipsis">{l.neighborhood ? `${l.neighborhood}, ` : ''}{l.city}{l.state ? ` - ${l.state}` : ''}</strong>
+            <strong className="ellipsis">{l.neighborhood ? `${l.neighborhood}, ` : ''}{placeLine(l)}</strong>
             <Stars value={l.rating} compact />
           </div>
           <div className="muted ellipsis">{t(`cat.${l.category}` as never)} · {countryName(l.countryCode, locale)}</div>

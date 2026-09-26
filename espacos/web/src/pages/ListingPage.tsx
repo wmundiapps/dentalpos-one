@@ -12,7 +12,7 @@ import type { ListingSummary } from '../components/ListingCard';
 import { COUNTRY_BY_CODE } from '../../../shared/countries';
 import { BOOKING_LIMITS, CATEGORY_ICONS, addDays, todayInZone } from '../../../shared/rules';
 import type { Occurrence, PriceBreakdown, PublicUser, Review, Weekday } from '../../../shared/types';
-import { countryName, flag, formatDate, money, timeSlots } from '../format';
+import { countryName, flag, formatDate, money, timeSlots, placeLine } from '../format';
 import type { DictKey } from '../i18n';
 
 type Detail = { listing: ListingSummary; host: PublicUser; reviews: Review[] };
@@ -99,7 +99,7 @@ export default function ListingPage() {
       <h1>{l.title}</h1>
       <div className="row wrap gap muted">
         <Stars value={l.rating} count={l.reviewCount} />
-        <span>{flag(l.countryCode)} {l.neighborhood ? `${l.neighborhood}, ` : ''}{l.city}{l.state ? ` - ${l.state}` : ''}, {countryName(l.countryCode, locale)}</span>
+        <span>{flag(l.countryCode)} {l.neighborhood ? `${l.neighborhood}, ` : ''}{placeLine(l)}, {countryName(l.countryCode, locale)}</span>
         {l.instantBook && <span className="badge">⚡ {t('listing.instant')}</span>}
         {l.requiresLicense && <span className="badge">🪪 {t('listing.licenseRequired')}</span>}
       </div>
@@ -193,7 +193,7 @@ export default function ListingPage() {
 
           <section className="section">
             <h2>{t('listing.location')}</h2>
-            <p>{l.neighborhood ? `${l.neighborhood}, ` : ''}{l.city}{l.state ? ` - ${l.state}` : ''} — {countryName(l.countryCode, locale)}</p>
+            <p>{l.neighborhood ? `${l.neighborhood}, ` : ''}{placeLine(l)} — {countryName(l.countryCode, locale)}</p>
             <p className="muted small">{l.address ?? t('listing.addressAfterConfirm')}</p>
           </section>
         </div>
