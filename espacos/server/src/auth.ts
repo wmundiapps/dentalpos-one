@@ -34,6 +34,20 @@ async function loadUser(req: AuthedRequest) {
     return; // token inválido: segue como anônimo
   }
   req.user = await getUser(pool, sub);
+  if (req.user) await promoteConfiguredAdmin(req.user);
+}
+
+/**
+ * Administradores definidos por variável de ambiente (ADMIN_EMAILS, separados por vírgula).
+ * Use só e-mails de contas que já existem: o cadastro não confirma o e-mail.
+ */
+export const adminEmails = () => (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+
+async function promoteConfiguredAdmin(user: User) {
+  if (user.roles.includes('admin') || !adminEmails().includes(user.email.toLowerCase())) return;
+  user.roles.push('admin');
+  await updateUser(pool, user);
+  console.log(`[admin] ${user.email} promovido a administrador (ADMIN_EMAILS)`);
 }
 
 export function optionalAuth(req: AuthedRequest, _res: Response, next: NextFunction) {

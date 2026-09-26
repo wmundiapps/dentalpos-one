@@ -443,3 +443,17 @@ test('outros países: estado/província + cidade da base; cidade fora da lista a
   const view = await (await fetch(`${base}/listings/${la.id}`)).json() as { listing: { stateName?: string } };
   assert.equal(view.listing.stateName, 'California');
 });
+
+test('ADMIN_EMAILS promove a conta a administrador no próximo acesso', async () => {
+  const u = await register('dono@example.com');
+  const tok = u.token;
+  assert.equal((await fetch(`${base}/admin/feedback`, { headers: { Authorization: `Bearer ${tok}` } })).status, 403);
+  process.env.ADMIN_EMAILS = ' outro@example.com , DONO@example.com ';
+  try {
+    const me = await (await fetch(`${base}/me`, { headers: { Authorization: `Bearer ${tok}` } })).json() as { roles: string[] };
+    assert.ok(me.roles.includes('admin'));
+    assert.equal((await fetch(`${base}/admin/feedback`, { headers: { Authorization: `Bearer ${tok}` } })).status, 200);
+  } finally {
+    delete process.env.ADMIN_EMAILS;
+  }
+});
