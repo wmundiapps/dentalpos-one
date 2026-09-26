@@ -17,6 +17,7 @@ const { seed } = await import('../src/seed.js');
 const repo = await import('../src/repo.js');
 const B = await import('../src/bookings.js');
 const { createApp } = await import('../src/app.js');
+const M = await import('../src/mailer.js');
 const { addDays, todayInZone, weekdayOf } = await import('../../shared/rules.js');
 import type { Listing, User } from '../../shared/types.js';
 
@@ -145,6 +146,8 @@ test('API HTTP: cadastro, login, busca, reserva, mensagens e avaliação pelo li
     });
     return { status: r.status, body: r.status === 204 ? null : await r.json() };
   };
+  const mails: { to: string; text: string }[] = [];
+  M.setMailSender(async (m) => { mails.push(m); });
   try {
     const reg = await call('/auth/register', { body: { name: 'Teste API', email: 'Api@Example.com', password: 'senha-forte-1', countryCode: 'PT', locale: 'pt-BR', acceptTerms: true, confirmAge: true } });
     assert.equal(reg.status, 201);
@@ -152,6 +155,19 @@ test('API HTTP: cadastro, login, busca, reserva, mensagens e avaliação pelo li
     const login = await call('/auth/login', { body: { email: 'api@example.com', password: 'senha-forte-1' } });
     assert.equal(login.status, 200);
     const tok = login.body.token as string;
+    assert.equal(login.body.user.emailVerifiedAt, undefined);
+
+    // sem e-mail confirmado não reserva; confirma pelo link recebido
+    const blocked = await call('/bookings', { token: tok, body: { listingId: 'x', occurrences: [{ date: '2030-01-01', start: '10:00', end: '11:00' }], guests: 1, purpose: 'Teste', paymentMethod: 'card', acceptRules: true } });
+    assert.equal(blocked.status, 403);
+    assert.equal(blocked.body.error, 'email_not_verified');
+    assert.equal((await call('/me/resend-verification', { token: tok, body: {} })).status, 429, 'reenvio limitado a 1 por minuto');
+    const mail = mails.find((m) => m.to === 'api@example.com')!;
+    const verifyToken = /token=([\w-]+)/.exec(mail.text)![1];
+    assert.equal((await call('/auth/verify-email', { body: { token: 'x'.repeat(32) } })).status, 400);
+    assert.equal((await call('/auth/verify-email', { body: { token: verifyToken } })).status, 200);
+    assert.equal((await call('/auth/verify-email', { body: { token: verifyToken } })).status, 400, 'link de uso único');
+    assert.ok((await call('/me', { token: tok })).body.emailVerifiedAt);
 
     const search = await call('/listings?country=DE');
     assert.equal(search.status, 200);
@@ -176,6 +192,7 @@ test('API HTTP: cadastro, login, busca, reserva, mensagens e avaliação pelo li
     const used = await call(`/client-review/${tokRow!.token}`, { body: { rating: 5, categories: { comfort: 5, cleanliness: 5, accessibility: 5, location: 5 }, comment: 'Muito bom atendimento', consent: true } });
     assert.equal(used.status, 409);
   } finally {
+    M.setMailSender();
     server.close();
   }
 });

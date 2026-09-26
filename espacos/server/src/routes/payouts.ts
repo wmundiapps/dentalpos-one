@@ -1,6 +1,7 @@
 // Conta de recebimento do anfitrião (Mercado Pago, split de pagamento).
 import { Router } from 'express';
 import { HttpError, requireAuth, type AuthedRequest } from '../auth.js';
+import { assertEmailVerified } from '../emailVerification.js';
 import { accountStatus, authorizeUrl, completeAuthorization, disconnect, marketplaceEnabled } from '../payments/mpAccounts.js';
 
 export const payoutsRouter = Router();
@@ -11,6 +12,7 @@ payoutsRouter.get('/me/payout-account', requireAuth, async (req: AuthedRequest, 
 });
 
 payoutsRouter.post('/me/payout-account/connect', requireAuth, (req: AuthedRequest, res) => {
+  assertEmailVerified(req.user!);
   res.json({ url: authorizeUrl(req.user!.id) });
 });
 

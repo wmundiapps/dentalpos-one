@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { FeedbackWidget } from './components/FeedbackWidget';
+import { EmailVerifyBanner } from './components/EmailVerifyBanner';
 import { useApp } from './state';
 import Home from './pages/Home';
 
@@ -22,6 +23,7 @@ const ClientReviewPage = lazy(() => import('./pages/PublicPages').then((m) => ({
 const Notifications = lazy(() => import('./pages/Misc').then((m) => ({ default: m.Notifications })));
 const IncidentPage = lazy(() => import('./pages/Misc').then((m) => ({ default: m.IncidentPage })));
 const AdsPage = lazy(() => import('./pages/AdsPage'));
+const ConfirmEmail = lazy(() => import('./pages/ConfirmEmail'));
 const Admin = lazy(() => import('./pages/Misc').then((m) => ({ default: m.Admin })));
 
 function Private({ children }: { children: ReactNode }) {
@@ -38,6 +40,7 @@ export default function App() {
       <a href="#main" className="skip-link">Skip to content</a>
       <Header />
       <main id="main">
+        <EmailVerifyBanner />
         <Suspense fallback={<div className="container"><div className="skeleton hero-skeleton" /></div>}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -57,6 +60,7 @@ export default function App() {
             <Route path="/admin" element={<Private><Admin /></Private>} />
             <Route path="/entrar" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
+            <Route path="/confirmar-email" element={<ConfirmEmail />} />
             <Route path="/avalista/:token" element={<GuarantorPage />} />
             <Route path="/avaliar/:token" element={<ClientReviewPage />} />
             <Route path="/regras" element={<LegalPage />} />

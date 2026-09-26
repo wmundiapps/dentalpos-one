@@ -42,6 +42,7 @@ export interface User {
   roles: Array<'guest' | 'host' | 'admin'>;
   createdAt: string;
   // Verificações
+  emailVerifiedAt?: string;
   identityVerified: boolean;
   documentType?: string;
   documentNumber?: string;

@@ -14,7 +14,7 @@ const hhmm = (v: string) => v.slice(0, 5);
 function toUser(r: any, strikes: any[]): User {
   return {
     id: r.id, email: r.email, passwordHash: r.password_hash, name: r.name, phone: opt(r.phone), countryCode: r.country_code,
-    locale: r.locale, roles: r.roles, createdAt: iso(r.created_at)!, identityVerified: r.identity_verified,
+    locale: r.locale, roles: r.roles, createdAt: iso(r.created_at)!, emailVerifiedAt: iso(opt(r.email_verified_at)), identityVerified: r.identity_verified,
     documentType: opt(r.document_type), documentNumber: opt(r.document_number),
     professionalLicense: r.license_body ? { body: r.license_body, number: r.license_number, region: opt(r.license_region), verified: r.license_verified } : undefined,
     licenseStatus: r.license_status,
@@ -43,8 +43,8 @@ export async function insertUser(db: Db, u: User) {
   await db.query(
     `INSERT INTO users (id, email, password_hash, name, phone, country_code, locale, roles, created_at, identity_verified,
        document_type, document_number, license_body, license_number, license_region, license_verified, company_tax_id, bio,
-       suspended_until, banned, terms_accepted_at, terms_version, license_status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+       suspended_until, banned, terms_accepted_at, terms_version, license_status, email_verified_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
     userParams(u),
   );
 }
@@ -53,7 +53,8 @@ export async function updateUser(db: Db, u: User) {
   await db.query(
     `UPDATE users SET email=$2, password_hash=$3, name=$4, phone=$5, country_code=$6, locale=$7, roles=$8, created_at=$9,
        identity_verified=$10, document_type=$11, document_number=$12, license_body=$13, license_number=$14, license_region=$15,
-       license_verified=$16, company_tax_id=$17, bio=$18, suspended_until=$19, banned=$20, terms_accepted_at=$21, terms_version=$22, license_status=$23
+       license_verified=$16, company_tax_id=$17, bio=$18, suspended_until=$19, banned=$20, terms_accepted_at=$21, terms_version=$22, license_status=$23,
+       email_verified_at=$24
      WHERE id=$1`,
     userParams(u),
   );
@@ -64,7 +65,7 @@ function userParams(u: User) {
   return [u.id, u.email, u.passwordHash, u.name, u.phone ?? null, u.countryCode, u.locale, u.roles, u.createdAt, u.identityVerified,
     u.documentType ?? null, u.documentNumber ?? null, l?.body ?? null, l?.number ?? null, l?.region ?? null, l?.verified ?? false,
     u.companyTaxId ?? null, u.bio ?? null, u.suspendedUntil ?? null, !!u.banned, u.termsAcceptedAt ?? null, u.termsVersion ?? null,
-    u.licenseStatus ?? 'none'];
+    u.licenseStatus ?? 'none', u.emailVerifiedAt ?? null];
 }
 
 export async function insertStrike(db: Db, userId: string, s: { at: string; reason: string; incidentId?: string }) {
