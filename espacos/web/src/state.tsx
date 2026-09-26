@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, hasToken, setToken } from './api';
+import { registerPush, unregisterPush } from './native';
 import type { User } from '../../shared/types';
 import { LAUNCH_COUNTRY_CODES } from '../../shared/countries';
 
@@ -33,7 +34,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const refreshMe = useCallback(async () => {
     if (!hasToken()) { setMe(null); setLoadingMe(false); return; }
-    try { setMe(await api<Me>('/me')); } catch { setToken(null); setMe(null); } finally { setLoadingMe(false); }
+    try { setMe(await api<Me>('/me')); registerPush(); } catch { setToken(null); setMe(null); } finally { setLoadingMe(false); }
   }, []);
   useEffect(() => { refreshMe(); }, [refreshMe]);
 
@@ -42,8 +43,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem('sh_country', c); localStorage.setItem('sh_city', ci); localStorage.setItem('sh_region', r); } catch { /* ignore */ }
   }, []);
 
-  const login = useCallback((token: string, user: Me) => { setToken(token); setMe(user); }, []);
-  const logout = useCallback(() => { setToken(null); setMe(null); }, []);
+  const login = useCallback((token: string, user: Me) => { setToken(token); setMe(user); registerPush(); }, []);
+  const logout = useCallback(() => { unregisterPush().finally(() => setToken(null)); setMe(null); }, []);
 
   return <Ctx.Provider value={{ me, loadingMe, country, region, city, setPlace, login, logout, refreshMe }}>{children}</Ctx.Provider>;
 }

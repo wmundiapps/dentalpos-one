@@ -1,0 +1,27 @@
+{
+  "name": "spacehour-mobile",
+  "private": true,
+  "version": "1.0.0",
+  "description": "SpaceHour — aplicativo Android/iOS (Capacitor). Carrega https://space-hour.com com recursos nativos (push).",
+  "type": "module",
+  "scripts": {
+    "sync": "cap sync",
+    "assets": "capacitor-assets generate --android --ios --iconBackgroundColor '#0e7c7b' --iconBackgroundColorDark '#0a5f5e' --splashBackgroundColor '#0e7c7b' --splashBackgroundColorDark '#0a5f5e'",
+    "android": "cap open android",
+    "ios": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "8.5.2",
+    "@capacitor/push-notifications": "8.1.2",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.2",
+    "typescript": "^5.7.2"
+  }
+}

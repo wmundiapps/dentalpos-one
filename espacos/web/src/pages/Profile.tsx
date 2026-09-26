@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { apiUpload } from '../api';
 import type { DictKey } from '../i18n';
 import { CATEGORIES } from '../../../shared/rules';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useI18n } from '../i18n';
 import { useApp, type Me } from '../state';
@@ -52,6 +52,66 @@ export default function Profile() {
       </section>
 
       <LicenseSection onDone={refreshMe} />
+      <DeleteAccountSection />
+    </div>
+  );
+}
+
+// Exclusão da conta pelo próprio usuário (LGPD; exigência da App Store e do Google Play).
+function DeleteAccountSection() {
+  const { t } = useI18n();
+  const { logout } = useApp();
+  const nav = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function remove(e: React.FormEvent) {
+    e.preventDefault();
+    if (!window.confirm(t('account.deleteConfirm'))) return;
+    setBusy(true); setError('');
+    try {
+      await api('/me', { method: 'DELETE', body: { password } });
+      logout();
+      window.alert(t('account.deleted'));
+      nav('/');
+    } catch (err) {
+      setError(errorText(err, t));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="panel" id="excluir-conta">
+      <h2>{t('account.deleteTitle')}</h2>
+      <p className="muted small">{t('account.deleteHelp')}</p>
+      {!open
+        ? <button className="btn btn-outline" onClick={() => setOpen(true)}>{t('account.deleteButton')}</button>
+        : <form onSubmit={remove}>
+            <label>{t('account.deletePassword')}<input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></label>
+            {error && <p className="errors">{error}</p>}
+            <button className="btn btn-danger" disabled={busy || !password}>{busy ? t('common.wait') : t('account.deleteButton')}</button>
+          </form>}
+    </section>
+  );
+}
+
+/** Página pública com as instruções de exclusão (URL exigida pelo Google Play). */
+export function AccountDeletionPage() {
+  const { t } = useI18n();
+  return (
+    <div className="container narrow">
+      <h1>{t('account.deleteTitle')} — SpaceHour</h1>
+      <p>{t('account.pageIntro')}</p>
+      <ol>
+        <li>{t('account.pageStep1')}</li>
+        <li>{t('account.pageStep2')}</li>
+      </ol>
+      <p className="muted">{t('account.pageRetention')}</p>
+      <p>{t('account.pageNoAccess', { email: 'support@space-hour.com' })}</p>
+      <Link className="btn btn-primary" to="/perfil#excluir-conta">{t('account.goProfile')}</Link>
     </div>
   );
 }

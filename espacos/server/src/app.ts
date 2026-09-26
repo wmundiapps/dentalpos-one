@@ -1,5 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
+import { flushPushQueue, pushConfigured } from './push.js';
 import { ZodError } from 'zod';
 import { HttpError } from './auth.js';
 import { authRouter } from './routes/auth.js';
@@ -28,6 +29,11 @@ export function createApp() {
     const secret = process.env.CRON_SECRET;
     if (!secret || req.headers.authorization !== `Bearer ${secret}`) throw new HttpError(401, 'unauthorized');
     res.json(await runJobs());
+  });
+  // Push logo após ações que geram notificação (a rotina periódica cobre o que ficar).
+  app.use('/api', (req, res, next) => {
+    if (req.method !== 'GET' && pushConfigured()) res.on('finish', () => { flushPushQueue().catch((e) => console.error('[push]', (e as Error).message)); });
+    next();
   });
   app.use('/api', authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter);
 

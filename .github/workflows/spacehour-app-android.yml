@@ -1,0 +1,70 @@
+# SpaceHour — gera o aplicativo Android.
+# Rodar: GitHub → Actions → "SpaceHour app Android" → Run workflow.
+# Saídas (em Artifacts): APK para instalar no celular e AAB para enviar ao Google Play.
+#
+# Segredos (Settings → Secrets and variables → Actions):
+#   SPACEHOUR_GOOGLE_SERVICES_JSON   conteúdo do google-services.json (Firebase; push)
+#   SPACEHOUR_ANDROID_KEYSTORE_B64   chave de upload .jks em base64
+#   SPACEHOUR_ANDROID_KEYSTORE_PASSWORD, SPACEHOUR_ANDROID_KEY_ALIAS, SPACEHOUR_ANDROID_KEY_PASSWORD
+# Sem os segredos, o build sai sem push e com o AAB não assinado.
+name: SpaceHour app Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Versão exibida na loja (ex.: 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: espacos/mobile
+    env:
+      APP_VERSION_CODE: ${{ github.run_number }}
+      APP_VERSION_NAME: ${{ inputs.version_name || '1.0.0' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npx cap sync android
+      - name: Firebase (push)
+        env:
+          GSJ: ${{ secrets.SPACEHOUR_GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GSJ" ]; then printf '%s' "$GSJ" > android/app/google-services.json; else echo "::warning::sem google-services.json: app sem notificações push"; fi
+      - name: Chave de upload
+        env:
+          KS: ${{ secrets.SPACEHOUR_ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::sem chave de upload: AAB não assinado (não dá para enviar ao Google Play)"
+          fi
+      - name: Build
+        working-directory: espacos/mobile/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.SPACEHOUR_ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.SPACEHOUR_ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.SPACEHOUR_ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon assembleDebug bundleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spacehour-android-${{ inputs.version_name || '1.0.0' }}-${{ github.run_number }}
+          path: |
+            espacos/mobile/android/app/build/outputs/apk/debug/*.apk
+            espacos/mobile/android/app/build/outputs/bundle/release/*.aab

@@ -1,11 +1,12 @@
 import { lazy, Suspense, useEffect, type ReactNode } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { FeedbackWidget } from './components/FeedbackWidget';
 import { EmailVerifyBanner } from './components/EmailVerifyBanner';
 import { ConsentBanner } from './components/ConsentBanner';
 import { loadTags, trackPage } from './tracking';
+import { startNative } from './native';
 import { useApp } from './state';
 import Home from './pages/Home';
 
@@ -25,6 +26,7 @@ const ClientReviewPage = lazy(() => import('./pages/PublicPages').then((m) => ({
 const Notifications = lazy(() => import('./pages/Misc').then((m) => ({ default: m.Notifications })));
 const IncidentPage = lazy(() => import('./pages/Misc').then((m) => ({ default: m.IncidentPage })));
 const AdsPage = lazy(() => import('./pages/AdsPage'));
+const AccountDeletionPage = lazy(() => import('./pages/Profile').then((m) => ({ default: m.AccountDeletionPage })));
 const ConfirmEmail = lazy(() => import('./pages/ConfirmEmail'));
 const HostLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.HostLanding })));
 const ProLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.ProLanding })));
@@ -40,7 +42,8 @@ function Private({ children }: { children: ReactNode }) {
 
 export default function App() {
   const loc = useLocation();
-  useEffect(() => { loadTags(); }, []);
+  const navigate = useNavigate();
+  useEffect(() => { loadTags(); startNative(navigate); }, [navigate]);
   useEffect(() => { trackPage(loc.pathname); }, [loc.pathname]);
   return (
     <>
@@ -68,6 +71,7 @@ export default function App() {
             <Route path="/entrar" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
             <Route path="/confirmar-email" element={<ConfirmEmail />} />
+            <Route path="/excluir-conta" element={<AccountDeletionPage />} />
             <Route path="/anuncie" element={<HostLanding />} />
             <Route path="/profissionais" element={<ProLanding />} />
             <Route path="/avalista/:token" element={<GuarantorPage />} />
