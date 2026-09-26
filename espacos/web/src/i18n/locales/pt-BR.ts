@@ -416,7 +416,7 @@ const ptBR = {
   'host.inactive': 'Pausado',
   'host.noListings': 'Você ainda não anunciou espaços.',
   'host.noEarnings': 'Sem repasses concluídos ainda.',
-  'host.earningsHelp': 'Os repasses são liberados 24 h após o início de cada reserva, descontada a taxa de serviço de 3%.',
+  'host.earningsHelp': 'Os repasses são liberados 24 h após o início de cada reserva, descontada a taxa de serviço de 5%.',
   'host.loginFirst': 'Entre ou crie sua conta para anunciar seu espaço.',
 
   // Editor de anúncio

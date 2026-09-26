@@ -35,7 +35,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 |---|---|
 | Valor Base | Soma, por Ocorrência, de horas × preço por hora, ou preço de diária para Ocorrências de 6 horas ou mais quando mais vantajoso |
 | Taxa de Limpeza | Valor fixo por Ocorrência, definido pelo Anfitrião, limitado a 30% do Valor Base |
-| Taxa de Serviço do Locatário | **12%** sobre (Valor Base + Taxa de Limpeza) |
+| Taxa de Serviço do Locatário | **15%** sobre (Valor Base + Taxa de Limpeza) |
 | Tributo sobre a Taxa de Serviço | Alíquota de referência do país (ex.: ISS 5% no Brasil, IVA 16% no México, IVA 23% em Portugal) aplicada sobre a Taxa de Serviço |
 | **Total** | Soma dos itens acima |
 
@@ -44,11 +44,11 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 | Componente | Cálculo |
 |---|---|
 | Valor Base + Taxa de Limpeza | Integral |
-| (–) Taxa de Serviço do Anfitrião | **3%** sobre (Valor Base + Taxa de Limpeza) |
+| (–) Taxa de Serviço do Anfitrião | **5%** sobre (Valor Base + Taxa de Limpeza) |
 | (–) Retenções legais, multas e ajustes | Quando aplicáveis |
 | **Repasse** | Resultado |
 
-3.3. **Exemplo (Brasil).** Reserva de 4 horas a R$ 80/hora, Taxa de Limpeza de R$ 30. Valor Base: R$ 320. Taxa de Serviço do Locatário: 12% × R$ 350 = R$ 42. ISS de referência (5%) sobre a Taxa de Serviço: R$ 2,10. Total pago: R$ 394,10. Taxa do Anfitrião: 3% × R$ 350 = R$ 10,50. Repasse ao Anfitrião: R$ 339,50.
+3.3. **Exemplo (Brasil).** Reserva de 4 horas a R$ 80/hora, Taxa de Limpeza de R$ 30. Valor Base: R$ 320. Taxa de Serviço do Locatário: 15% × R$ 350 = R$ 52,50. ISS de referência (5%) sobre a Taxa de Serviço: R$ 2,63. Total pago: R$ 405,13. Taxa do Anfitrião: 5% × R$ 350 = R$ 17,50. Repasse ao Anfitrião: R$ 332,50.
 
 3.4. O detalhamento completo é exibido antes da confirmação. Não há cobranças ocultas. Onde a lei exigir que o preço anunciado já inclua todas as taxas obrigatórias (por exemplo, Reino Unido, Austrália, Califórnia e Índia), o preço exibido nas buscas e no Anúncio inclui a Taxa de Serviço e a Taxa de Limpeza.
 
@@ -108,7 +108,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 6. Repasse ao Anfitrião
 
-6.1. **Brasil (pagamento dividido).** No Brasil, o pagamento da Reserva é processado pelo Mercado Pago com divisão automática (*split*): no momento da aprovação, o valor devido ao Anfitrião — Valor Base e Taxa de Limpeza, deduzida a Taxa de Serviço do Anfitrião — é creditado diretamente na conta Mercado Pago do próprio Anfitrião, conectada à Plataforma, e a Plataforma recebe apenas as Taxas de Serviço e os tributos sobre elas. A Plataforma não recebe nem custodia o valor do Anfitrião. A disponibilidade do saldo segue os prazos do Mercado Pago para o meio de pagamento utilizado.
+6.1. **Brasil (pagamento dividido).** No Brasil, o pagamento da Reserva é processado pelo Mercado Pago com divisão automática (*split*): no momento da aprovação, o valor devido ao Anfitrião — Valor Base e Taxa de Limpeza, deduzida a Taxa de Serviço do Anfitrião — é creditado diretamente na conta Mercado Pago do próprio Anfitrião, conectada à Plataforma, e a Plataforma recebe apenas as Taxas de Serviço e os tributos sobre elas. A Plataforma não recebe nem custodia o valor do Anfitrião. A disponibilidade do saldo segue os prazos do Mercado Pago para o meio de pagamento utilizado. A tarifa de processamento do Mercado Pago é descontada pelo próprio Mercado Pago da parcela creditada ao Anfitrião, conforme as condições da conta dele, e não integra a Taxa de Serviço do Anfitrião.
 
 6.2. **Conta de recebimento.** Para anunciar no Brasil, o Anfitrião deve conectar uma conta Mercado Pago de sua titularidade (ou da pessoa jurídica titular do Anúncio) e mantê-la ativa. Enquanto a conta não estiver conectada, o Anúncio não recebe Reservas. Cada Anfitrião é responsável pela emissão do documento fiscal referente ao valor que recebe, e a Plataforma, pelo documento fiscal referente às Taxas de Serviço.
 

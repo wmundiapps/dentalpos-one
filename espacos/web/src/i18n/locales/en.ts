@@ -416,7 +416,7 @@ const en: Dict = {
   'host.inactive': 'Paused',
   'host.noListings': "You haven't listed any spaces yet.",
   'host.noEarnings': 'No completed payouts yet.',
-  'host.earningsHelp': 'Payouts are released 24 h after each booking begins, minus the 3% service fee.',
+  'host.earningsHelp': 'Payouts are released 24 h after each booking begins, minus the 5% service fee.',
   'host.loginFirst': 'Log in or create an account to list your space.',
 
   // Listing editor

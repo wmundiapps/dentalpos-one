@@ -46,7 +46,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 | **Termin** | Jeder zusammenhängende Nutzungszeitraum eines Raums, an einem bestimmten Datum, mit Anfangs- und Endzeit, innerhalb einer Buchung (zum Beispiel jeder Dienstag einer wöchentlichen Reihe). |
 | **Grundbetrag** | Summe der Stunden- oder Tagespreise der Termine einer Buchung, ohne Gebühren. |
 | **Reinigungsgebühr** | Vom Gastgeber festgelegter Festbetrag pro Termin, begrenzt auf 30 % des Grundbetrags. |
-| **Servicegebühr** | Vergütung des Betreibers für die Vermittlung: 12 % zahlt der Mieter, 3 % werden von der Auszahlung an den Gastgeber abgezogen, berechnet auf den Grundbetrag zuzüglich Reinigungsgebühr. |
+| **Servicegebühr** | Vergütung des Betreibers für die Vermittlung: 15 % zahlt der Mieter, 5 % werden von der Auszahlung an den Gastgeber abgezogen, berechnet auf den Grundbetrag zuzüglich Reinigungsgebühr. |
 | **Kaution** | Vorautorisierung (vorübergehende Blockierung) im Zahlungsmittel des Mieters, begrenzt auf das Dreifache des Grundbetrags, zur Absicherung von Schäden und Vertragsstrafen. |
 | **Vorfall** | Bei der Schlichtungsstelle eröffnete förmliche Meldung eines im Rahmen einer Buchung eingetretenen Ereignisses, das eine Belastung, eine Verwarnung oder eine andere Maßnahme auslösen kann (zum Beispiel verspätetes Verlassen oder Schaden). Nicht zu verwechseln mit dem Termin, der den gebuchten Zeitraum bezeichnet. |
 | **Verwarnung** | Vermerk in der Nutzerhistorie infolge eines Verstoßes, mit den im Dokument Vertragsstrafen und Maßnahmen vorgesehenen Wirkungen. |
@@ -124,7 +124,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 ## 10. Gebühren und Zahlungen
 
-10.1. Die Preise werden vom Gastgeber in der Währung des Landes des Raums festgelegt. Zum Preis kommen die Reinigungsgebühr, die Servicegebühr des Mieters (12 %) und die je nach Land auf die Servicegebühr anfallende Steuer hinzu. Von der Auszahlung an den Gastgeber wird die Servicegebühr des Gastgebers (3 %) abgezogen. Die genaue Aufschlüsselung ist im Dokument Internationale Zahlungen enthalten und wird vor der Bestätigung angezeigt.
+10.1. Die Preise werden vom Gastgeber in der Währung des Landes des Raums festgelegt. Zum Preis kommen die Reinigungsgebühr, die Servicegebühr des Mieters (15 %) und die je nach Land auf die Servicegebühr anfallende Steuer hinzu. Von der Auszahlung an den Gastgeber wird die Servicegebühr des Gastgebers (5 %) abgezogen. Die genaue Aufschlüsselung ist im Dokument Internationale Zahlungen enthalten und wird vor der Bestätigung angezeigt.
 
 10.2. Es werden keine versteckten Kosten berechnet. Devisenwechselgebühren oder gegebenenfalls vom Aussteller des Zahlungsmittels des Mieters erhobene Steuern (z. B. IOF) unterliegen nicht der Kontrolle des Betreibers.
 

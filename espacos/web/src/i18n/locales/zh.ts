@@ -416,7 +416,7 @@ const zh: Dict = {
   'host.inactive': '已暂停',
   'host.noListings': '您还没有发布任何空间。',
   'host.noEarnings': '目前还没有已完成的收款。',
-  'host.earningsHelp': '收款将在每笔预订开始后 24 小时释放，并扣除 3% 的服务费。',
+  'host.earningsHelp': '收款将在每笔预订开始后 24 小时释放，并扣除 5% 的服务费。',
   'host.loginFirst': '请登录或创建账户以发布您的空间。',
 
   // 房源编辑器
