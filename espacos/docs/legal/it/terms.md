@@ -46,7 +46,7 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 | **Fascia prenotata** | Ciascun periodo continuativo di utilizzo di uno Spazio, in una data, con orario di inizio e fine, all'interno di una Prenotazione (ad esempio, ogni martedì di una serie settimanale). |
 | **Valore Base** | Somma dei prezzi orari o giornalieri delle Fasce prenotate di una Prenotazione, senza commissioni. |
 | **Commissione di Pulizia** | Importo fisso per Fascia prenotata definito dall'Host, limitato al 30% del Valore Base. |
-| **Commissione di servizio** | Remunerazione dell'Operatore per l'intermediazione: 12% a carico del Locatario e 3% trattenuto dal versamento all'Host, calcolati sul Valore Base più la Commissione di Pulizia. |
+| **Commissione di servizio** | Remunerazione dell'Operatore per l'intermediazione: 15% a carico del Locatario e 5% trattenuto dal versamento all'Host, calcolati sul Valore Base più la Commissione di Pulizia. |
 | **Deposito cauzionale** | Pre-autorizzazione (blocco temporaneo) sul mezzo di pagamento del Locatario, limitata a 3 volte il Valore Base, destinata a garantire danni e penalità. |
 | **Incidente** | Registrazione formale, aperta presso il Centro di Risoluzione, di un fatto avvenuto durante una Prenotazione che può generare un addebito, un'Ammonizione o altro provvedimento (ad esempio, ritardo nell'uscita o danno). Non va confuso con la Fascia prenotata, che indica il periodo prenotato. |
 | **Ammonizione** | Annotazione nello storico dell'Utente derivante da un'infrazione, con gli effetti previsti nel documento Penalità e Provvedimenti. |
@@ -124,7 +124,7 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 ## 10. Commissioni e pagamenti
 
-10.1. I prezzi sono fissati dall'Host nella valuta del Paese dello Spazio. Al prezzo si sommano la Commissione di Pulizia, la Commissione di servizio del Locatario (12%) e l'imposta applicabile sulla Commissione di servizio in base al Paese. Dal versamento all'Host viene detratta la Commissione di servizio dell'Host (3%). Il dettaglio è riportato nel documento Pagamenti Internazionali ed è mostrato prima della conferma.
+10.1. I prezzi sono fissati dall'Host nella valuta del Paese dello Spazio. Al prezzo si sommano la Commissione di Pulizia, la Commissione di servizio del Locatario (15%) e l'imposta applicabile sulla Commissione di servizio in base al Paese. Dal versamento all'Host viene detratta la Commissione di servizio dell'Host (5%). Il dettaglio è riportato nel documento Pagamenti Internazionali ed è mostrato prima della conferma.
 
 10.2. Non vi sono addebiti occulti. Le commissioni di conversione valutaria o l'IOF eventualmente addebitati dall'emittente del mezzo di pagamento del Locatario non sono controllati dall'Operatore.
 

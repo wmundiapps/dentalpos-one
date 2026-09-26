@@ -113,4 +113,4 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 ## 16. Frais de service et versement
 
-16.1. Du montant payé par le Locataire (Montant de base plus Frais de nettoyage) sont déduits les Frais de service de l'Hôte de **3 %**. Le versement est libéré **24 heures après le début** du premier Créneau, conformément au document Paiements internationaux.
+16.1. Du montant payé par le Locataire (Montant de base plus Frais de nettoyage) sont déduits les Frais de service de l'Hôte de **5 %**. Le versement est libéré **24 heures après le début** du premier Créneau, conformément au document Paiements internationaux.

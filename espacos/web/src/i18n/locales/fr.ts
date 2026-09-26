@@ -416,7 +416,7 @@ const fr: Dict = {
   'host.inactive': 'En pause',
   'host.noListings': "Vous n'avez encore publié aucun espace.",
   'host.noEarnings': 'Aucun versement effectué pour le moment.',
-  'host.earningsHelp': "Les versements sont libérés 24 h après le début de chaque réservation, déduction faite des frais de service de 3 %.",
+  'host.earningsHelp': "Les versements sont libérés 24 h après le début de chaque réservation, déduction faite des frais de service de 5 %.",
   'host.loginFirst': 'Connectez-vous ou créez un compte pour publier votre espace.',
 
   // Éditeur d'annonce

@@ -7,7 +7,7 @@ import type {
 } from './types.js';
 import { getCountry } from './countries.js';
 
-export const RULES_VERSION = '2026-09-24';
+export const RULES_VERSION = '2026-09-27';
 
 // ───────────── Limites anti-locação de longo prazo ─────────────
 export const BOOKING_LIMITS = {
@@ -30,8 +30,8 @@ export const BOOKING_LIMITS = {
 
 // ───────────── Taxas da plataforma ─────────────
 export const FEES = {
-  guestServiceFeeRate: 0.12,  // taxa de serviço paga pelo locatário
-  hostServiceFeeRate: 0.03,   // taxa de serviço descontada do repasse ao anfitrião
+  guestServiceFeeRate: 0.15,  // taxa de serviço paga pelo locatário
+  hostServiceFeeRate: 0.05,   // taxa de serviço descontada do repasse ao anfitrião
   payoutDelayHours: 24,       // repasse ao anfitrião 24 h após o início da (primeira) ocorrência
   depositReleaseHours: 72,    // caução liberada 72 h após o check-out se não houver ocorrência
   maxCleaningFeeRate: 0.30,   // taxa de limpeza limitada a 30% do valor base

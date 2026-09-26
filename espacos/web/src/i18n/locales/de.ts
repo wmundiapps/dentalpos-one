@@ -416,7 +416,7 @@ const de: Dict = {
   'host.inactive': 'Pausiert',
   'host.noListings': 'Sie haben noch keine Räume angeboten.',
   'host.noEarnings': 'Bisher keine abgeschlossenen Auszahlungen.',
-  'host.earningsHelp': 'Auszahlungen werden 24 Std. nach Beginn jeder Buchung freigegeben, abzüglich der 3%igen Servicegebühr.',
+  'host.earningsHelp': 'Auszahlungen werden 24 Std. nach Beginn jeder Buchung freigegeben, abzüglich der 5%igen Servicegebühr.',
   'host.loginFirst': 'Melden Sie sich an oder erstellen Sie ein Konto, um Ihren Raum anzubieten.',
 
   // Angebot bearbeiten

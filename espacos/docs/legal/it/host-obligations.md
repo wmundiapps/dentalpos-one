@@ -113,4 +113,4 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 ## 16. Commissione di servizio e versamento
 
-16.1. Dall'importo pagato dal Locatario (Valore Base più Commissione di Pulizia) viene detratta la Commissione di servizio dell'Host del **3%**. Il versamento viene rilasciato **24 ore dopo l'inizio** della prima Fascia prenotata, secondo il documento Pagamenti Internazionali.
+16.1. Dall'importo pagato dal Locatario (Valore Base più Commissione di Pulizia) viene detratta la Commissione di servizio dell'Host del **5%**. Il versamento viene rilasciato **24 ore dopo l'inizio** della prima Fascia prenotata, secondo il documento Pagamenti Internazionali.

@@ -46,7 +46,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 | **Ocorrência** | Cada período contínuo de uso de um Espaço, em uma data, com horário de início e término, dentro de uma Reserva (por exemplo, cada terça-feira de uma série semanal). |
 | **Valor Base** | Soma dos preços por hora ou por diária das Ocorrências de uma Reserva, sem taxas. |
 | **Taxa de Limpeza** | Valor fixo por Ocorrência definido pelo Anfitrião, limitado a 30% do Valor Base. |
-| **Taxa de Serviço** | Remuneração da Operadora pela intermediação: 12% pagos pelo Locatário e 3% descontados do repasse ao Anfitrião, calculados sobre Valor Base mais Taxa de Limpeza. |
+| **Taxa de Serviço** | Remuneração da Operadora pela intermediação: 15% pagos pelo Locatário e 5% descontados do repasse ao Anfitrião, calculados sobre Valor Base mais Taxa de Limpeza. |
 | **Caução** | Pré-autorização (bloqueio temporário) no meio de pagamento do Locatário, limitada a 3 vezes o Valor Base, destinada a garantir danos e penalidades. |
 | **Incidente** | Registro formal, aberto na Central de Resolução, de um fato ocorrido em uma Reserva que pode gerar cobrança, Advertência ou outra medida (por exemplo, atraso na saída ou dano). Não se confunde com Ocorrência, que designa o período reservado. |
 | **Advertência** | Anotação no histórico do Usuário decorrente de infração, com efeitos previstos no documento Penalidades e Medidas. |
@@ -130,7 +130,7 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 10. Taxas e pagamentos
 
-10.1. Os preços são fixados pelo Anfitrião na moeda do país do Espaço. Ao preço somam-se a Taxa de Limpeza, a Taxa de Serviço do Locatário (12%) e o tributo incidente sobre a Taxa de Serviço conforme o país. Do repasse ao Anfitrião é descontada a Taxa de Serviço do Anfitrião (3%). O detalhamento consta do documento Pagamentos Internacionais e é exibido antes da confirmação.
+10.1. Os preços são fixados pelo Anfitrião na moeda do país do Espaço. Ao preço somam-se a Taxa de Limpeza, a Taxa de Serviço do Locatário (15%) e o tributo incidente sobre a Taxa de Serviço conforme o país. Do repasse ao Anfitrião é descontada a Taxa de Serviço do Anfitrião (5%). O detalhamento consta do documento Pagamentos Internacionais e é exibido antes da confirmação.
 
 10.2. Não há cobrança de valores ocultos. Encargos de conversão cambial ou IOF eventualmente cobrados pelo emissor do meio de pagamento do Locatário não são controlados pela Operadora.
 

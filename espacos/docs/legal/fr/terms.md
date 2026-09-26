@@ -46,7 +46,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 | **Créneau** | Chaque période continue d'utilisation d'un Espace, à une date donnée, avec une heure de début et de fin, au sein d'une Réservation (par exemple, chaque mardi d'une série hebdomadaire). |
 | **Montant de base** | Somme des prix horaires ou journaliers des Créneaux d'une Réservation, hors frais. |
 | **Frais de nettoyage** | Montant fixe par Créneau défini par l'Hôte, limité à 30 % du Montant de base. |
-| **Frais de service** | Rémunération de l'Opérateur pour l'intermédiation : 12 % payés par le Locataire et 3 % déduits du versement à l'Hôte, calculés sur le Montant de base plus les Frais de nettoyage. |
+| **Frais de service** | Rémunération de l'Opérateur pour l'intermédiation : 15 % payés par le Locataire et 5 % déduits du versement à l'Hôte, calculés sur le Montant de base plus les Frais de nettoyage. |
 | **Dépôt de garantie** | Pré-autorisation (blocage temporaire) sur le moyen de paiement du Locataire, limitée à 3 fois le Montant de base, destinée à garantir les dommages et pénalités. |
 | **Incident** | Enregistrement formel, ouvert au Centre de Résolution, d'un fait survenu lors d'une Réservation susceptible de générer une facturation, un Avertissement ou une autre mesure (par exemple, retard au départ ou dommage). À ne pas confondre avec le Créneau, qui désigne la période réservée. |
 | **Avertissement** | Mention dans l'historique de l'Utilisateur résultant d'une infraction, avec les effets prévus dans le document Pénalités et Mesures. |
@@ -124,7 +124,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 ## 10. Frais et paiements
 
-10.1. Les prix sont fixés par l'Hôte dans la devise du pays de l'Espace. S'ajoutent au prix les Frais de nettoyage, les Frais de service du Locataire (12 %) et la taxe applicable aux Frais de service selon le pays. Du versement à l'Hôte sont déduits les Frais de service de l'Hôte (3 %). Le détail figure dans le document Paiements Internationaux et est affiché avant la confirmation.
+10.1. Les prix sont fixés par l'Hôte dans la devise du pays de l'Espace. S'ajoutent au prix les Frais de nettoyage, les Frais de service du Locataire (15 %) et la taxe applicable aux Frais de service selon le pays. Du versement à l'Hôte sont déduits les Frais de service de l'Hôte (5 %). Le détail figure dans le document Paiements Internationaux et est affiché avant la confirmation.
 
 10.2. Il n'y a pas de facturation de montants cachés. Les frais de conversion de change ou l'IOF éventuellement prélevés par l'émetteur du moyen de paiement du Locataire ne sont pas contrôlés par l'Opérateur.
 

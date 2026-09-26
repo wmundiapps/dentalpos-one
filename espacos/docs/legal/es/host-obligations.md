@@ -113,4 +113,4 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 ## 16. Tarifa de Servicio y pago transferido
 
-16.1. Del valor pagado por el Arrendatario (Valor Base más Tarifa de Limpieza) se descuenta la Tarifa de Servicio del Anfitrión del **3%**. El pago se libera **24 horas después del inicio** de la primera Ocurrencia, conforme al documento Pagos Internacionales.
+16.1. Del valor pagado por el Arrendatario (Valor Base más Tarifa de Limpieza) se descuenta la Tarifa de Servicio del Anfitrión del **5%**. El pago se libera **24 horas después del inicio** de la primera Ocurrencia, conforme al documento Pagos Internacionales.

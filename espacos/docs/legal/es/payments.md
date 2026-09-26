@@ -24,7 +24,7 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 |---|---|
 | Valor Base | Suma, por Ocurrencia, de horas × precio por hora, o precio por día para Ocurrencias de 6 horas o más cuando resulte más ventajoso |
 | Tarifa de Limpieza | Valor fijo por Ocurrencia, definido por el Anfitrión, limitado al 30% del Valor Base |
-| Tarifa de Servicio del Arrendatario | **12%** sobre (Valor Base + Tarifa de Limpieza) |
+| Tarifa de Servicio del Arrendatario | **15%** sobre (Valor Base + Tarifa de Limpieza) |
 | Impuesto sobre la Tarifa de Servicio | Tasa de referencia del país (ej.: ISS 5% en Brasil, IVA 16% en México, IVA 23% en Portugal) aplicada sobre la Tarifa de Servicio |
 | **Total** | Suma de los ítems anteriores |
 
@@ -33,11 +33,11 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 | Componente | Cálculo |
 |---|---|
 | Valor Base + Tarifa de Limpieza | Íntegro |
-| (–) Tarifa de Servicio del Anfitrión | **3%** sobre (Valor Base + Tarifa de Limpieza) |
+| (–) Tarifa de Servicio del Anfitrión | **5%** sobre (Valor Base + Tarifa de Limpieza) |
 | (–) Retenciones legales, multas y ajustes | Cuando corresponda |
 | **Pago transferido** | Resultado |
 
-3.3. **Ejemplo (Brasil).** Reserva de 4 horas a R$ 80/hora, Tarifa de Limpieza de R$ 30. Valor Base: R$ 320. Tarifa de Servicio del Arrendatario: 12% × R$ 350 = R$ 42. ISS de referencia (5%) sobre la Tarifa de Servicio: R$ 2,10. Total pagado: R$ 394,10. Tarifa del Anfitrión: 3% × R$ 350 = R$ 10,50. Pago transferido al Anfitrión: R$ 339,50.
+3.3. **Ejemplo (Brasil).** Reserva de 4 horas a R$ 80/hora, Tarifa de Limpieza de R$ 30. Valor Base: R$ 320. Tarifa de Servicio del Arrendatario: 15% × R$ 350 = R$ 52,50. ISS de referencia (5%) sobre la Tarifa de Servicio: R$ 2,63. Total pagado: R$ 405,13. Tarifa del Anfitrión: 5% × R$ 350 = R$ 17,50. Pago transferido al Anfitrión: R$ 332,50.
 
 3.4. El detalle completo se muestra antes de la confirmación. No hay cobros ocultos.
 
