@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REVAH® — Sem conexão</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@900&family=DM+Sans:wght@400;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#060d0a;color:#d8f3dc;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px}
+.logo{font-family:'Cinzel',serif;font-size:56px;font-weight:900;background:linear-gradient(135deg,#52b788,#95d5b2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:6px;margin-bottom:16px}
+.icon{font-size:48px;margin-bottom:16px;display:block}
+h1{font-size:22px;color:#d8f3dc;margin-bottom:8px}
+p{font-size:14px;color:#4a7c5f;line-height:1.6;max-width:320px;margin:0 auto 24px}
+button{padding:12px 32px;border-radius:50px;background:linear-gradient(135deg,#2d6a4f,#52b788);color:white;font-size:14px;font-weight:600;border:none;cursor:pointer}
+</style>
+</head>
+<body>
+<div>
+  <div class="logo">REVAH®</div>
+  <span class="icon">📡</span>
+  <h1>Sem conexão</h1>
+  <p>Parece que você está offline. Verifique sua conexão e tente novamente.</p>
+  <button onclick="window.location.reload()">Tentar novamente</button>
+</div>
+</body>
+</html>
