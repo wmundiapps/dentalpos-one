@@ -468,3 +468,13 @@ test('ADMIN_EMAILS promove a conta a administrador no próximo acesso (só com e
     delete process.env.ADMIN_EMAILS;
   }
 });
+
+test('origem do cadastro (UTM) aparece no relatório de campanha do admin', async () => {
+  const r = await fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'Dra. Campanha', email: 'campanha@example.com', password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true, source: 'meta/paid/lancamento-anfitrioes' }) });
+  assert.equal(r.status, 201);
+  const u = (await r.json()) as { token: string };
+  assert.equal((await fetch(`${base}/admin/signups`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
+  const rep = await (await fetch(`${base}/admin/signups?days=7`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { bySource: { source: string; signups: number }[] };
+  assert.equal(rep.bySource.find((s) => s.source === 'meta/paid/lancamento-anfitrioes')?.signups, 1);
+});

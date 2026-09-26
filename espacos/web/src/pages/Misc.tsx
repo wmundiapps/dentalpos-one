@@ -85,7 +85,7 @@ function Incidents() {
   );
 }
 
-type Tab = 'incidents' | 'verifications' | 'feedback';
+type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign';
 
 export function Admin() {
   const { t } = useI18n();
@@ -94,15 +94,16 @@ export function Admin() {
     <div className="container">
       <h1>{t('admin.title')}</h1>
       <div className="segmented" role="tablist">
-        {(['verifications', 'incidents', 'feedback'] as Tab[]).map((k) => (
+        {(['verifications', 'incidents', 'feedback', 'campaign'] as Tab[]).map((k) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : 'admin.tabFeedback')}
+            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : 'admin.tabFeedback')}
           </button>
         ))}
       </div>
       {tab === 'incidents' && <Incidents />}
       {tab === 'verifications' && <Verifications />}
       {tab === 'feedback' && <FeedbackAdmin />}
+      {tab === 'campaign' && <CampaignAdmin />}
     </div>
   );
 }
@@ -158,6 +159,28 @@ function Verifications() {
 
 type Feedback = { id: string; kind: string; rating: number | null; message: string; email: string | null; page: string | null; locale: string | null; status: string; created_at: string };
 const FB_STATUSES = ['new', 'seen', 'planned', 'done', 'wont_fix'] as const;
+
+// Cadastros dos últimos 14 dias por origem (UTM das campanhas).
+function CampaignAdmin() {
+  const { t } = useI18n();
+  type Report = { bySource: { source: string; signups: number; verified: number; hosts_with_listing: number }[]; byDay: { day: string; signups: number }[] };
+  const [data, setData] = useState<Report | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => { api<Report>('/admin/signups?days=14').then(setData).catch((e) => setError(errorText(e, t))); }, [t]);
+  if (!data) return error ? <p className="errors">{error}</p> : null;
+  return (
+    <div className="campaign-report">
+      <table className="hours">
+        <thead><tr><th>{t('admin.cSource')}</th><th>{t('admin.cSignups')}</th><th>{t('admin.cVerified')}</th><th>{t('admin.cHosts')}</th></tr></thead>
+        <tbody>{data.bySource.map((r) => <tr key={r.source}><td>{r.source}</td><td>{r.signups}</td><td>{r.verified}</td><td>{r.hosts_with_listing}</td></tr>)}</tbody>
+      </table>
+      <h3>{t('admin.cByDay')}</h3>
+      <table className="hours">
+        <tbody>{data.byDay.map((d) => <tr key={d.day}><td>{d.day}</td><td>{d.signups}</td></tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
 
 function FeedbackAdmin() {
   const { t, locale } = useI18n();

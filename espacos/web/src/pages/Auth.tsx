@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { signupSource, track } from '../tracking';
 import { api } from '../api';
 import { useI18n } from '../i18n';
 import { useApp, type Me } from '../state';
@@ -56,7 +57,8 @@ export function Register() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const r = await api<{ token: string; user: Me }>('/auth/register', { body: { ...f, locale } });
+      const r = await api<{ token: string; user: Me }>('/auth/register', { body: { ...f, locale, source: signupSource() } });
+      track('CompleteRegistration');
       login(r.token, r.user);
       nav(params.get('next') ?? '/perfil');
     } catch (err) { setError(errorText(err, t)); }

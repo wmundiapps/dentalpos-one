@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { id, nowIso, pool } from '../db.js';
+import { id, nowIso, pool, rows } from '../db.js';
 import { getUserByEmail, insertUser, updateUser } from '../repo.js';
 import { HttpError, requireAuth, signToken, toSelf, type AuthedRequest } from '../auth.js';
 import { COUNTRY_BY_CODE, SUPPORTED_LOCALES } from '../../../shared/countries.js';
@@ -19,6 +19,7 @@ const registerSchema = z.object({
   locale: z.enum(SUPPORTED_LOCALES as [string, ...string[]]),
   acceptTerms: z.literal(true),
   confirmAge: z.literal(true),
+  source: z.string().max(200).optional(), // utm_source/medium/campaign/content (first touch)
 });
 
 authRouter.post('/auth/register', async (req, res) => {
@@ -31,6 +32,7 @@ authRouter.post('/auth/register', async (req, res) => {
     identityVerified: false, strikes: [], termsAcceptedAt: nowIso(), termsVersion: RULES_VERSION, licenseStatus: 'none',
   };
   await insertUser(pool, user); // índice único em lower(email) cobre cadastros simultâneos
+  if (data.source) await pool.query('UPDATE users SET signup_source = $2 WHERE id = $1', [user.id, data.source]);
   // Falha no envio não impede o cadastro: dá para reenviar pelo aviso no app.
   await sendVerificationEmail(user).catch((e) => console.error('[email] confirmação de cadastro', (e as Error).message));
   res.status(201).json({ token: signToken(user), user: toSelf(user) });
@@ -54,6 +56,23 @@ authRouter.post('/me/resend-verification', requireAuth, async (req: AuthedReques
   if (req.user!.emailVerifiedAt) return res.json({ verified: true });
   await sendVerificationEmail(req.user!, { throttle: true });
   res.json({ sent: true });
+});
+
+// Cadastros por origem nos últimos N dias (medição das campanhas).
+authRouter.get('/admin/signups', requireAuth, async (req: AuthedRequest, res) => {
+  if (!req.user!.roles.includes('admin')) throw new HttpError(403, 'forbidden');
+  const days = Math.min(90, Math.max(1, Number(req.query.days ?? 14) || 14));
+  const bySource = await rows(pool,
+    `SELECT coalesce(u.signup_source, 'direto') AS source, count(*)::int AS signups,
+            count(*) FILTER (WHERE u.email_verified_at IS NOT NULL)::int AS verified,
+            count(DISTINCT l.host_id)::int AS hosts_with_listing
+       FROM users u LEFT JOIN listings l ON l.host_id = u.id
+      WHERE u.created_at > now() - make_interval(days => $1)
+      GROUP BY 1 ORDER BY 2 DESC`, [days]);
+  const byDay = await rows(pool,
+    `SELECT to_char(date_trunc('day', created_at AT TIME ZONE 'America/Sao_Paulo'), 'YYYY-MM-DD') AS day, count(*)::int AS signups
+       FROM users WHERE created_at > now() - make_interval(days => $1) GROUP BY 1 ORDER BY 1`, [days]);
+  res.json({ days, bySource, byDay });
 });
 
 authRouter.get('/me', requireAuth, (req: AuthedRequest, res) => {
