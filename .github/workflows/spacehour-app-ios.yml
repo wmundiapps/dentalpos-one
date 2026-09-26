@@ -1,0 +1,72 @@
+# SpaceHour — gera o aplicativo iOS e envia para o TestFlight (App Store Connect).
+# Rodar: GitHub → Actions → "SpaceHour app iOS" → Run workflow.
+# Usa assinatura automática com uma chave da API do App Store Connect (papel "App Manager").
+#
+# Segredos:
+#   SPACEHOUR_ASC_KEY_ID, SPACEHOUR_ASC_ISSUER_ID   (App Store Connect → Usuários e acesso → Integrações)
+#   SPACEHOUR_ASC_KEY_P8                            conteúdo do arquivo AuthKey_XXXX.p8
+#   SPACEHOUR_APPLE_TEAM_ID                         Team ID da conta de desenvolvedor
+# Observação: runners macOS consomem minutos do GitHub em dobro/10x em repositórios privados.
+name: SpaceHour app iOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Versão exibida na loja (ex.: 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: espacos/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx cap sync ios
+      - name: Chave da API da Apple
+        env:
+          P8: ${{ secrets.SPACEHOUR_ASC_KEY_P8 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/asc"
+          printf '%s' "$P8" > "$RUNNER_TEMP/asc/AuthKey.p8"
+      - name: Arquivar
+        working-directory: espacos/mobile/ios/App
+        run: |
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/SpaceHour.xcarchive" \
+            DEVELOPMENT_TEAM='${{ secrets.SPACEHOUR_APPLE_TEAM_ID }}' CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION='${{ inputs.version_name }}' CURRENT_PROJECT_VERSION='${{ github.run_number }}' \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/asc/AuthKey.p8" \
+            -authenticationKeyID '${{ secrets.SPACEHOUR_ASC_KEY_ID }}' \
+            -authenticationKeyIssuerID '${{ secrets.SPACEHOUR_ASC_ISSUER_ID }}' \
+            archive
+      - name: Enviar para o App Store Connect (TestFlight)
+        working-directory: espacos/mobile/ios/App
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${{ secrets.SPACEHOUR_APPLE_TEAM_ID }}</string>
+            <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/SpaceHour.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/asc/AuthKey.p8" \
+            -authenticationKeyID '${{ secrets.SPACEHOUR_ASC_KEY_ID }}' \
+            -authenticationKeyIssuerID '${{ secrets.SPACEHOUR_ASC_ISSUER_ID }}'

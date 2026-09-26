@@ -1,6 +1,8 @@
 // Medição de campanhas: guarda a origem (UTM) da primeira visita e, só com
 // consentimento, carrega o Meta Pixel e a tag do Google (Ads/Analytics).
 // Env de build: VITE_META_PIXEL_ID, VITE_GOOGLE_TAG_ID (ex.: AW-123 ou G-ABC).
+import { isNativeApp } from './native';
+
 const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID as string | undefined;
 const GOOGLE_TAG_ID = import.meta.env.VITE_GOOGLE_TAG_ID as string | undefined;
 const SRC_KEY = 'sh_src';
@@ -32,7 +34,8 @@ export function signupSource(): string | undefined {
   return Date.now() - at < SRC_TTL_MS ? src : undefined;
 }
 
-export const trackingConfigured = () => !!(META_PIXEL_ID || GOOGLE_TAG_ID);
+// No aplicativo não há pixel de anúncios (evita rastreamento entre apps; regras da App Store).
+export const trackingConfigured = () => !isNativeApp() && !!(META_PIXEL_ID || GOOGLE_TAG_ID);
 export const consent = () => store(CONSENT_KEY) as 'yes' | 'no' | null;
 
 export function setConsent(v: 'yes' | 'no') {
@@ -42,7 +45,7 @@ export function setConsent(v: 'yes' | 'no') {
 
 let loaded = false;
 export function loadTags() {
-  if (loaded || consent() !== 'yes') return;
+  if (loaded || consent() !== 'yes' || !trackingConfigured()) return;
   loaded = true;
   if (META_PIXEL_ID) {
     // stub oficial do Meta Pixel: enfileira as chamadas até o fbevents.js carregar

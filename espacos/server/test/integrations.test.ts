@@ -271,7 +271,7 @@ test('cron protegido por segredo', async () => {
   process.env.CRON_SECRET = 's3cret';
   const r = await fetch(`${base}/cron/tick`, { headers: { Authorization: 'Bearer s3cret' } });
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(await r.json()).sort(), ['bookings', 'documents', 'email', 'mp_tokens', 'verifications']);
+  assert.deepEqual(Object.keys(await r.json()).sort(), ['bookings', 'documents', 'email', 'mp_tokens', 'push', 'verifications']);
   delete process.env.CRON_SECRET;
 });
 
@@ -477,4 +477,64 @@ test('origem do cadastro (UTM) aparece no relatório de campanha do admin', asyn
   assert.equal((await fetch(`${base}/admin/signups`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
   const rep = await (await fetch(`${base}/admin/signups?days=7`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { bySource: { source: string; signups: number }[] };
   assert.equal(rep.bySource.find((s) => s.source === 'meta/paid/lancamento-anfitrioes')?.signups, 1);
+});
+
+test('app: token de push registrado, fila envia pelo FCM e token inválido é removido', async () => {
+  const u = await register('push@example.com');
+  const auth = { Authorization: `Bearer ${u.token}`, 'Content-Type': 'application/json' };
+  const tok = 'fcm-token-'.padEnd(40, 'x');
+  assert.equal((await fetch(`${base}/me/push-token`, { method: 'POST', headers: auth, body: JSON.stringify({ token: tok, platform: 'android' }) })).status, 204);
+  assert.equal((await fetch(`${base}/me/push-token`, { method: 'POST', headers: auth, body: JSON.stringify({ token: 'curto', platform: 'android' }) })).status, 422);
+
+  const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+  process.env.FIREBASE_SERVICE_ACCOUNT = JSON.stringify({ project_id: 'spacehour-test', client_email: 'sa@test.iam', private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }) });
+  const realFetch = globalThis.fetch;
+  const calls: { url: string; body?: string }[] = [];
+  let unregistered = false;
+  globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
+    const s = String(url);
+    if (!s.includes('googleapis.com')) return realFetch(url, init);
+    calls.push({ url: s, body: init?.body as string });
+    if (s.includes('oauth2')) return new Response(JSON.stringify({ access_token: 'at', expires_in: 3600 }));
+    return unregistered ? new Response('{"error":{"status":"NOT_FOUND","details":[{"errorCode":"UNREGISTERED"}]}}', { status: 404 }) : new Response('{}');
+  }) as typeof fetch;
+  try {
+    const P = await import('../src/push.js');
+    const N = await import('../src/notify.js');
+    await pool.query("UPDATE notifications SET push_status = 'skipped'");
+    await N.notify(pool, { userId: u.user.id }, 'test', 'Nova reserva confirmada!\nSala 2, amanhã às 10h.', '/reservas/1');
+    assert.equal(await P.flushPushQueue(), 1);
+    const msg = JSON.parse(calls.find((c) => c.url.includes('messages:send'))!.body!).message;
+    assert.equal(msg.token, tok);
+    assert.equal(msg.notification.title, 'Nova reserva confirmada!');
+    assert.equal(msg.data.link, '/reservas/1');
+    unregistered = true;
+    await N.notify(pool, { userId: u.user.id }, 'test', 'Outra', '/');
+    await P.flushPushQueue();
+    assert.equal((await one(pool, 'SELECT 1 FROM push_tokens WHERE token = $1', [tok])), undefined, 'token inválido removido');
+  } finally {
+    globalThis.fetch = realFetch;
+    delete process.env.FIREBASE_SERVICE_ACCOUNT;
+  }
+});
+
+test('exclusão de conta: exige senha, bloqueia com reserva em aberto e anonimiza', async () => {
+  const u = await register('excluir@example.com');
+  const del = (password: string, token = u.token) => fetch(`${base}/me`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
+  assert.equal((await del('errada')).status, 401);
+  assert.equal((await del('senha-forte-1')).status, 204);
+  const row = await one<{ email: string; name: string; deleted_at: Date | null }>(pool, 'SELECT email, name, deleted_at FROM users WHERE id = $1', [u.user.id]);
+  assert.equal(row!.name, 'Conta excluída');
+  assert.ok(row!.deleted_at && !row!.email.includes('excluir@'));
+  assert.equal((await fetch(`${base}/me`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
+  const login = await fetch(`${base}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'excluir@example.com', password: 'senha-forte-1' }) });
+  assert.equal(login.status, 401);
+  // o e-mail fica livre para um novo cadastro
+  assert.equal((await fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'De Novo', email: 'excluir@example.com', password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true }) })).status, 201);
+
+  const open = await one<{ guest_id: string }>(pool, "SELECT guest_id FROM bookings WHERE status = 'confirmed' LIMIT 1");
+  const guest = (await repo.getUser(pool, open!.guest_id))!;
+  const r = await fetch(`${base}/me`, { method: 'DELETE', headers: { Authorization: `Bearer ${signToken(guest)}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'demo12345' }) });
+  assert.equal(r.status, 409);
 });

@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { id, nowIso, pool, rows } from '../db.js';
+import crypto from 'node:crypto';
+import { id, nowIso, one, pool, rows, withTx } from '../db.js';
 import { getUserByEmail, insertUser, updateUser } from '../repo.js';
 import { HttpError, requireAuth, signToken, toSelf, type AuthedRequest } from '../auth.js';
 import { COUNTRY_BY_CODE, SUPPORTED_LOCALES } from '../../../shared/countries.js';
@@ -73,6 +74,48 @@ authRouter.get('/admin/signups', requireAuth, async (req: AuthedRequest, res) =>
     `SELECT to_char(date_trunc('day', created_at AT TIME ZONE 'America/Sao_Paulo'), 'YYYY-MM-DD') AS day, count(*)::int AS signups
        FROM users WHERE created_at > now() - make_interval(days => $1) GROUP BY 1 ORDER BY 1`, [days]);
   res.json({ days, bySource, byDay });
+});
+
+// Aplicativo: registra o aparelho para notificações push.
+authRouter.post('/me/push-token', requireAuth, async (req: AuthedRequest, res) => {
+  const { token, platform } = z.object({ token: z.string().min(20).max(4096), platform: z.enum(['android', 'ios']) }).parse(req.body);
+  await pool.query(
+    `INSERT INTO push_tokens (token, user_id, platform) VALUES ($1, $2, $3)
+     ON CONFLICT (token) DO UPDATE SET user_id = $2, platform = $3, last_seen = now()`, [token, req.user!.id, platform]);
+  res.status(204).end();
+});
+
+authRouter.delete('/me/push-token', requireAuth, async (req: AuthedRequest, res) => {
+  const { token } = z.object({ token: z.string().max(4096) }).parse(req.body);
+  await pool.query('DELETE FROM push_tokens WHERE token = $1 AND user_id = $2', [token, req.user!.id]);
+  res.status(204).end();
+});
+
+// Exclusão da conta pelo próprio usuário (LGPD art. 18; exigência da App Store e do Google Play).
+// Os dados pessoais são apagados ou anonimizados; reservas, pagamentos e avaliações ficam
+// sem identificação pelo prazo legal (Política de Privacidade, 7.3).
+authRouter.delete('/me', requireAuth, async (req: AuthedRequest, res) => {
+  const { password } = z.object({ password: z.string().max(200) }).parse(req.body);
+  const u = req.user!;
+  if (!(await bcrypt.compare(password, u.passwordHash))) throw new HttpError(401, 'invalid_credentials');
+  const open = await one(pool,
+    `SELECT 1 FROM bookings WHERE (guest_id = $1 OR host_id = $1)
+       AND status IN ('pending_payment','pending_guarantor','pending_host','confirmed','checked_in') LIMIT 1`, [u.id]);
+  if (open) throw new HttpError(409, 'account_has_active_bookings');
+  await withTx(async (tx) => {
+    await tx.query(
+      `UPDATE users SET email = $2, name = 'Conta excluída', phone = NULL, bio = NULL, document_type = NULL, document_number = NULL,
+         license_body = NULL, license_number = NULL, license_region = NULL, license_verified = false, company_tax_id = NULL,
+         password_hash = $3, banned = true, email_verified_at = NULL, email_verify_token_hash = NULL, signup_source = NULL, deleted_at = now()
+       WHERE id = $1`, [u.id, `excluido-${u.id}@deleted.space-hour.com`, crypto.randomBytes(32).toString('hex')]);
+    await tx.query('UPDATE listings SET active = false WHERE host_id = $1', [u.id]);
+    await tx.query('UPDATE license_verifications SET document = NULL WHERE user_id = $1', [u.id]);
+    for (const table of ['push_tokens', 'mp_accounts', 'favorites', 'notifications']) {
+      await tx.query(`DELETE FROM ${table} WHERE user_id = $1`, [u.id]);
+    }
+  });
+  console.log(`[conta] ${u.id} excluída pelo titular`);
+  res.status(204).end();
 });
 
 authRouter.get('/me', requireAuth, (req: AuthedRequest, res) => {
