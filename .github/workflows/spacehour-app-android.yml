@@ -16,9 +16,6 @@ on:
         description: 'Versão exibida na loja (ex.: 1.0.0)'
         required: true
         default: '1.0.0'
-  push:
-    branches: [claude/epic-planck-nkopu0]
-    paths: ['espacos/mobile/**', '.github/workflows/spacehour-app-android.yml']
 
 permissions:
   contents: read
