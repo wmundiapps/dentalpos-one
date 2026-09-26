@@ -86,7 +86,7 @@ Seu consultório fica vazio em alguns horários da semana? 🦷🩺
 No SpaceHour você aluga esses horários por hora para dentistas, médicos, psicólogos e outros profissionais com registro verificado.
 ✅ Você define preço, dias e regras
 ✅ Pix ou cartão, direto na sua conta Mercado Pago
-✅ Sem mensalidade: só 3% por reserva
+✅ Sem mensalidade: 3% por reserva (+ tarifa do Mercado Pago)
 Anuncie grátis 👇
 ```
 ```
@@ -100,7 +100,7 @@ No SpaceHour cada reserva é por hora, paga antecipadamente pelo Mercado Pago, c
 Comece hoje, é grátis.
 ```
 - **Título:** `Anuncie seu consultório grátis` / `Seu horário vago pode virar renda`
-- **Descrição:** `Sem mensalidade. Só 3% por reserva.`
+- **Descrição:** `Anunciar é grátis. Sem mensalidade.`
 
 **Campanha 2: SpaceHour | Profissionais | Maringá**
 - Mesmo objetivo, mesmo público e mesmo evento da Campanha 1.
@@ -194,7 +194,7 @@ Alugue Seu Consultório Vago
 Renda Extra no Seu Consultório
 Anuncie Seu Consultório Grátis
 Horário Vago Vira Renda
-Só 3% por Reserva
+Anuncie Grátis
 Dinheiro Direto na Sua Conta
 Profissionais Verificados
 Você Define Preço e Horário
@@ -206,7 +206,7 @@ SpaceHour
 Descrições:
 ```
 Alugue por hora os horários vagos da sua sala a profissionais com registro verificado.
-Anunciar é grátis. Sem mensalidade: só 3% por reserva. Dinheiro direto no Mercado Pago.
+Anunciar é grátis, sem mensalidade. Taxa de 3% por reserva + tarifa do Mercado Pago.
 Você define preço, dias, horários e regras. Aceite na hora ou aprove cada pedido.
 Caução, avalista e mediação de incidentes para proteger o seu espaço.
 ```
@@ -237,7 +237,7 @@ Anúncio pago demora a aprender. Mensagem pessoal converte no mesmo dia. Meta: *
 ```
 Oi, [nome]! Tudo bem?
 Lancei o SpaceHour, um site em que o dono de consultório aluga por hora os horários em que a sala fica vazia para outros profissionais (dentista, psicólogo, fisio…).
-O pagamento é por Pix ou cartão e cai direto na conta Mercado Pago de quem anuncia. Não tem mensalidade: só 3% por reserva.
+O pagamento é por Pix ou cartão e cai direto na conta Mercado Pago de quem anuncia. Não tem mensalidade: 3% por reserva, mais a tarifa do Mercado Pago.
 Estou montando os primeiros espaços de Maringá. Quer anunciar o seu? É grátis:
 https://space-hour.com/anuncie?utm_source=whatsapp&utm_medium=direto&utm_campaign=lanc
 Se quiser, eu te ajudo a cadastrar por telefone em 10 minutos.
@@ -277,6 +277,7 @@ https://space-hour.com/profissionais?utm_source=whatsapp&utm_medium=direto&utm_c
 
 ## 7. Cuidados
 
+- **Taxas sempre completas:** fale em "3% + tarifa do Mercado Pago", nunca "só 3%". A tarifa do Mercado Pago sai da parte do anfitrião.
 - **Não prometa ganhos:** o valor do card 4 e do simulador é uma simulação ilustrativa e está identificado assim. Mantenha esse aviso em qualquer outro material.
 - Não use fotos de pacientes nem de antes e depois. Use fotos dos espaços, sem pessoas.
 - Não diga "o mais barato" nem "o único" sem prova (Código de Defesa do Consumidor e CONAR).
