@@ -152,10 +152,12 @@ function fakeClaude(result: Partial<LicenseAiResult>): Anthropic {
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
-async function register(email: string) {
+async function register(email: string, verified = true) {
   const r = await fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: 'Dr. Teste', email, password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true }) });
-  return (await r.json()) as { token: string; user: User };
+  const u = (await r.json()) as { token: string; user: User };
+  if (verified) await pool.query('UPDATE users SET email_verified_at = now() WHERE id = $1', [u.user.id]);
+  return u;
 }
 
 async function sendLicense(token: string) {
@@ -444,7 +446,16 @@ test('outros países: estado/província + cidade da base; cidade fora da lista a
   assert.equal(view.listing.stateName, 'California');
 });
 
-test('ADMIN_EMAILS promove a conta a administrador no próximo acesso', async () => {
+test('ADMIN_EMAILS promove a conta a administrador no próximo acesso (só com e-mail confirmado)', async () => {
+  const fake = await register('falso-dono@example.com', false);
+  process.env.ADMIN_EMAILS = 'falso-dono@example.com';
+  try {
+    const me = await (await fetch(`${base}/me`, { headers: { Authorization: `Bearer ${fake.token}` } })).json() as { roles: string[] };
+    assert.ok(!me.roles.includes('admin'), 'e-mail não confirmado não vira admin');
+    assert.equal((await sendLicense(fake.token)).status, 403);
+  } finally {
+    delete process.env.ADMIN_EMAILS;
+  }
   const u = await register('dono@example.com');
   const tok = u.token;
   assert.equal((await fetch(`${base}/admin/feedback`, { headers: { Authorization: `Bearer ${tok}` } })).status, 403);

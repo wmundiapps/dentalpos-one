@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { id, nowIso, pool, token, withTx, type Db } from '../db.js';
 import * as repo from '../repo.js';
 import { HttpError, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
+import { assertEmailVerified } from '../emailVerification.js';
 import {
   checkIn, checkOut, createBooking, getBooking, getListing, guestCancel, hostCancel, hostDecision, paymentOf,
   refundPreview, reportIncident, resolveIncident, respondGuarantor, respondIncident, revealReviewsIfBoth, reviewWindowOpen,
@@ -78,6 +79,7 @@ bookingsRouter.post('/bookings', requireAuth, async (req: AuthedRequest, res) =>
       documentNumber: z.string().min(4).max(40), relationship: z.string().max(80).optional(),
     }).optional(),
   }).parse(req.body);
+  assertEmailVerified(req.user!);
   const b = await createBooking(req.user!, data);
   res.status(201).json(await bookingView(pool, b, req.user!));
 });

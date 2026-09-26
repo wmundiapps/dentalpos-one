@@ -4,6 +4,7 @@ import { Router, type NextFunction, type RequestHandler, type Response } from 'e
 import multer from 'multer';
 import { z } from 'zod';
 import { HttpError, requireAuth, toSelf, type AuthedRequest } from '../auth.js';
+import { assertEmailVerified } from '../emailVerification.js';
 import { IMAGE_MAX_BYTES, readImage, saveImage } from '../storage.js';
 import { LICENSE_DOC_MAX_BYTES, decide, latestLicenseCheck, pendingVerifications, runVerification, submitLicense, verificationDocument, documentAccessLog } from '../verification.js';
 import { CATEGORIES } from '../../../shared/rules.js';
@@ -54,6 +55,7 @@ filesRouter.post('/me/license', requireAuth, upload(licenseDoc.single('document'
     region: z.string().max(40).optional(),
     category: z.enum(CATEGORIES as [string, ...string[]]).optional(),
   }).parse(req.body);
+  assertEmailVerified(req.user!);
   const file = req.file;
   if (!file) throw new HttpError(422, 'no_file');
   const verificationId = await submitLicense(req.user!, { ...data, category: data.category as never, document: file.buffer, documentType: file.mimetype });

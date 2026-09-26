@@ -7,6 +7,7 @@ import { HttpError, requireAuth, signToken, toSelf, type AuthedRequest } from '.
 import { COUNTRY_BY_CODE, SUPPORTED_LOCALES } from '../../../shared/countries.js';
 import { RULES_VERSION } from '../../../shared/rules.js';
 import type { User } from '../../../shared/types.js';
+import { confirmEmail, sendVerificationEmail } from '../emailVerification.js';
 
 export const authRouter = Router();
 
@@ -30,6 +31,8 @@ authRouter.post('/auth/register', async (req, res) => {
     identityVerified: false, strikes: [], termsAcceptedAt: nowIso(), termsVersion: RULES_VERSION, licenseStatus: 'none',
   };
   await insertUser(pool, user); // índice único em lower(email) cobre cadastros simultâneos
+  // Falha no envio não impede o cadastro: dá para reenviar pelo aviso no app.
+  await sendVerificationEmail(user).catch((e) => console.error('[email] confirmação de cadastro', (e as Error).message));
   res.status(201).json({ token: signToken(user), user: toSelf(user) });
 });
 
@@ -39,6 +42,18 @@ authRouter.post('/auth/login', async (req, res) => {
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) throw new HttpError(401, 'invalid_credentials');
   if (user.banned) throw new HttpError(403, 'account_banned');
   res.json({ token: signToken(user), user: toSelf(user) });
+});
+
+authRouter.post('/auth/verify-email', async (req, res) => {
+  const { token } = z.object({ token: z.string().min(10).max(200) }).parse(req.body);
+  await confirmEmail(token);
+  res.json({ verified: true });
+});
+
+authRouter.post('/me/resend-verification', requireAuth, async (req: AuthedRequest, res) => {
+  if (req.user!.emailVerifiedAt) return res.json({ verified: true });
+  await sendVerificationEmail(req.user!, { throttle: true });
+  res.json({ sent: true });
 });
 
 authRouter.get('/me', requireAuth, (req: AuthedRequest, res) => {

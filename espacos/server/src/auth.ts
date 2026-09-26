@@ -39,12 +39,12 @@ async function loadUser(req: AuthedRequest) {
 
 /**
  * Administradores definidos por variável de ambiente (ADMIN_EMAILS, separados por vírgula).
- * Use só e-mails de contas que já existem: o cadastro não confirma o e-mail.
+ * Só vale para contas com o e-mail confirmado (ninguém vira admin cadastrando o e-mail de outra pessoa).
  */
 export const adminEmails = () => (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
 
 async function promoteConfiguredAdmin(user: User) {
-  if (user.roles.includes('admin') || !adminEmails().includes(user.email.toLowerCase())) return;
+  if (user.roles.includes('admin') || !user.emailVerifiedAt || !adminEmails().includes(user.email.toLowerCase())) return;
   user.roles.push('admin');
   await updateUser(pool, user);
   console.log(`[admin] ${user.email} promovido a administrador (ADMIN_EMAILS)`);

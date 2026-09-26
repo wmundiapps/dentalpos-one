@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { id, nowIso, pool, rows, withTx, type Db } from '../db.js';
 import * as repo from '../repo.js';
 import { HttpError, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
+import { assertEmailVerified } from '../emailVerification.js';
 import { isLaunched } from '../launch.js';
 import { notify } from '../notify.js';
 import { geoCity, geoState, hasGeo, rawGeo, stateTimezone } from '../geo.js';
@@ -182,6 +183,7 @@ listingsRouter.post('/listings/:id/quote', optionalAuth, async (req: AuthedReque
 });
 
 listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) => {
+  assertEmailVerified(req.user!);
   const data = listingSchema.parse(req.body);
   const derived = checkListingRules(data);
   const user = req.user!;

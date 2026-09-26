@@ -15,7 +15,7 @@ const PASSWORD = bcrypt.hashSync('demo12345', 8);
 
 function user(name: string, email: string, countryCode: string, locale: User['locale'], roles: User['roles'], extra: Partial<User> = {}): User {
   const u: User = {
-    id: id('usr'), email, passwordHash: PASSWORD, name, countryCode, locale, roles, createdAt: '2025-03-01T12:00:00.000Z',
+    id: id('usr'), email, passwordHash: PASSWORD, name, countryCode, locale, roles, createdAt: '2025-03-01T12:00:00.000Z', emailVerifiedAt: '2025-03-01T12:00:00.000Z',
     identityVerified: true, strikes: [], termsAcceptedAt: '2025-03-01T12:00:00.000Z', termsVersion: RULES_VERSION,
     licenseStatus: extra.professionalLicense?.verified ? 'approved' : 'none', ...extra,
   };

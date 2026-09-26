@@ -187,6 +187,7 @@ label.check input { width: auto; margin-top: 4px; }
 .notice.warn { background: color-mix(in srgb, var(--warn) 15%, transparent); }
 .notice.success { background: color-mix(in srgb, var(--ok) 15%, transparent); }
 .notice ul { margin: 6px 0; padding-inline-start: 20px; }
+.btn-link { background: none; border: 0; padding: 0; color: var(--brand); text-decoration: underline; cursor: pointer; font: inherit; }
 .errors { color: var(--danger); }
 ul.errors { padding-inline-start: 18px; }
 .panel { border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); background: var(--surface); margin-bottom: 18px; }
