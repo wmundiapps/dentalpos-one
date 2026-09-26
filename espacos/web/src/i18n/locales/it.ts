@@ -416,7 +416,7 @@ const it: Dict = {
   'host.inactive': 'In pausa',
   'host.noListings': 'Non hai ancora pubblicato spazi.',
   'host.noEarnings': 'Nessun pagamento completato finora.',
-  'host.earningsHelp': "I pagamenti vengono rilasciati 24 h dopo l'inizio di ogni prenotazione, dedotta la commissione di servizio del 3%.",
+  'host.earningsHelp': "I pagamenti vengono rilasciati 24 h dopo l'inizio di ogni prenotazione, dedotta la commissione di servizio del 5%.",
   'host.loginFirst': 'Accedi o crea il tuo account per pubblicare il tuo spazio.',
 
   // Editor annuncio

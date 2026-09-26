@@ -46,7 +46,7 @@ Version 2026-09-24 · Effective from 2026-09-24
 | **Occurrence** | Each continuous period of use of a Space, on a given date, with a start and end time, within a Booking (for example, each Tuesday of a weekly series). |
 | **Base Amount** | Sum of the hourly or daily prices of the Occurrences of a Booking, excluding fees. |
 | **Cleaning Fee** | Fixed amount per Occurrence set by the Host, capped at 30% of the Base Amount. |
-| **Service Fee** | The Operator's remuneration for intermediation: 12% paid by the Renter and 3% deducted from the payout to the Host, calculated on the Base Amount plus the Cleaning Fee. |
+| **Service Fee** | The Operator's remuneration for intermediation: 15% paid by the Renter and 5% deducted from the payout to the Host, calculated on the Base Amount plus the Cleaning Fee. |
 | **Security Deposit** | Pre-authorization (temporary hold) on the Renter's payment method, capped at 3 times the Base Amount, intended to secure damages and penalties. |
 | **Incident** | Formal record, opened in the Resolution Center, of an event that occurred during a Booking that may give rise to a charge, Warning or other measure (for example, a late departure or damage). Not to be confused with Occurrence, which designates the booked time period. |
 | **Warning** | Entry in the User's history resulting from a violation, with effects set out in the Penalties and Measures document. |
@@ -124,7 +124,7 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 ## 10. Fees and payments
 
-10.1. Prices are set by the Host in the currency of the Space's country. Added to the price are the Cleaning Fee, the Renter's Service Fee (12%), and the tax levied on the Service Fee according to the country. The Host's Service Fee (3%) is deducted from the payout to the Host. The full breakdown is set out in the International Payments document and is displayed before confirmation.
+10.1. Prices are set by the Host in the currency of the Space's country. Added to the price are the Cleaning Fee, the Renter's Service Fee (15%), and the tax levied on the Service Fee according to the country. The Host's Service Fee (5%) is deducted from the payout to the Host. The full breakdown is set out in the International Payments document and is displayed before confirmation.
 
 10.2. There are no hidden charges. Currency-conversion fees or IOF (Brazilian financial transactions tax) that may be charged by the issuer of the Renter's payment method are not controlled by the Operator.
 

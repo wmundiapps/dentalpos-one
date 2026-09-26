@@ -416,7 +416,7 @@ const es: Dict = {
   'host.inactive': 'Pausado',
   'host.noListings': 'Todavía no has publicado espacios.',
   'host.noEarnings': 'Aún no hay pagos completados.',
-  'host.earningsHelp': 'Los pagos se liberan 24 h después del inicio de cada reserva, descontando la tarifa de servicio del 3%.',
+  'host.earningsHelp': 'Los pagos se liberan 24 h después del inicio de cada reserva, descontando la tarifa de servicio del 5%.',
   'host.loginFirst': 'Inicia sesión o crea tu cuenta para publicar tu espacio.',
 
   // Editor de anuncio

@@ -19,14 +19,14 @@ test('fuso horário: São Paulo UTC-3', () => {
   assert.equal(zonedToUtc('2026-03-10', '09:00', tz).toISOString(), '2026-03-10T12:00:00.000Z');
 });
 
-test('preço: base + limpeza + taxa de serviço 12% + ISS 5% sobre a taxa', () => {
+test('preço: base + limpeza + taxa de serviço 15% + ISS 5% sobre a taxa', () => {
   const p = computePrice(listing, [{ date: d(10), start: '09:00', end: '11:00' }]);
   assert.equal(p.baseAmount, 200);
   assert.equal(p.cleaningFee, 20);
-  assert.equal(p.guestServiceFee, 26.4);
-  assert.equal(p.taxOnServiceFee, 1.32);
-  assert.equal(p.total, 247.72);
-  assert.equal(p.hostPayout, 213.4);
+  assert.equal(p.guestServiceFee, 33);
+  assert.equal(p.taxOnServiceFee, 1.65);
+  assert.equal(p.total, 254.65);
+  assert.equal(p.hostPayout, 209);
 });
 
 test('limites: sem pernoite, máx 12 h, granularidade 30 min', () => {

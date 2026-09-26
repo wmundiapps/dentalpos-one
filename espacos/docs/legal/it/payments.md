@@ -24,7 +24,7 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 |---|---|
 | Valore Base | Somma, per Fascia prenotata, di ore × prezzo orario, o prezzo giornaliero per Fasce prenotate di 6 ore o più quando più vantaggioso |
 | Commissione di Pulizia | Importo fisso per Fascia prenotata, definito dall'Host, limitato al 30% del Valore Base |
-| Commissione di servizio del Locatario | **12%** su (Valore Base + Commissione di Pulizia) |
+| Commissione di servizio del Locatario | **15%** su (Valore Base + Commissione di Pulizia) |
 | Imposta sulla Commissione di servizio | Aliquota di riferimento del Paese (es.: ISS 5% in Brasile, IVA 16% in Messico, IVA 23% in Portogallo) applicata sulla Commissione di servizio |
 | **Totale** | Somma delle voci sopra indicate |
 
@@ -33,11 +33,11 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 | Componente | Calcolo |
 |---|---|
 | Valore Base + Commissione di Pulizia | Integrale |
-| (–) Commissione di servizio dell'Host | **3%** su (Valore Base + Commissione di Pulizia) |
+| (–) Commissione di servizio dell'Host | **5%** su (Valore Base + Commissione di Pulizia) |
 | (–) Trattenute legali, penali e rettifiche | Quando applicabili |
 | **Versamento** | Risultato |
 
-3.3. **Esempio (Brasile).** Prenotazione di 4 ore a R$ 80/ora, Commissione di Pulizia di R$ 30. Valore Base: R$ 320. Commissione di servizio del Locatario: 12% × R$ 350 = R$ 42. ISS di riferimento (5%) sulla Commissione di servizio: R$ 2,10. Totale pagato: R$ 394,10. Commissione dell'Host: 3% × R$ 350 = R$ 10,50. Versamento all'Host: R$ 339,50.
+3.3. **Esempio (Brasile).** Prenotazione di 4 ore a R$ 80/ora, Commissione di Pulizia di R$ 30. Valore Base: R$ 320. Commissione di servizio del Locatario: 15% × R$ 350 = R$ 52,50. ISS di riferimento (5%) sulla Commissione di servizio: R$ 2,63. Totale pagato: R$ 405,13. Commissione dell'Host: 5% × R$ 350 = R$ 17,50. Versamento all'Host: R$ 332,50.
 
 3.4. Il dettaglio completo viene mostrato prima della conferma. Non vi sono addebiti nascosti.
 

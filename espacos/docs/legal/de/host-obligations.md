@@ -113,4 +113,4 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 ## 16. Servicegebühr und Auszahlung
 
-16.1. Von dem vom Mieter gezahlten Betrag (Grundbetrag zuzüglich Reinigungsgebühr) wird die Servicegebühr des Gastgebers in Höhe von **3 %** abgezogen. Die Auszahlung wird **24 Stunden nach Beginn** des ersten Termins freigegeben, gemäß dem Dokument Internationale Zahlungen.
+16.1. Von dem vom Mieter gezahlten Betrag (Grundbetrag zuzüglich Reinigungsgebühr) wird die Servicegebühr des Gastgebers in Höhe von **5 %** abgezogen. Die Auszahlung wird **24 Stunden nach Beginn** des ersten Termins freigegeben, gemäß dem Dokument Internationale Zahlungen.

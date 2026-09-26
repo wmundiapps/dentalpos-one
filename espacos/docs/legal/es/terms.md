@@ -46,7 +46,7 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 | **Ocurrencia** | Cada período continuo de uso de un Espacio, en una fecha, con horario de inicio y término, dentro de una Reserva (por ejemplo, cada martes de una serie semanal). |
 | **Valor Base** | Suma de los precios por hora o por día de las Ocurrencias de una Reserva, sin tarifas. |
 | **Tarifa de Limpieza** | Valor fijo por Ocurrencia definido por el Anfitrión, limitado al 30% del Valor Base. |
-| **Tarifa de Servicio** | Remuneración de la Operadora por la intermediación: 12% pagado por el Arrendatario y 3% descontado del pago transferido al Anfitrión, calculados sobre el Valor Base más la Tarifa de Limpieza. |
+| **Tarifa de Servicio** | Remuneración de la Operadora por la intermediación: 15% pagado por el Arrendatario y 5% descontado del pago transferido al Anfitrión, calculados sobre el Valor Base más la Tarifa de Limpieza. |
 | **Depósito de Garantía** | Preautorización (bloqueo temporal) en el medio de pago del Arrendatario, limitada a 3 veces el Valor Base, destinada a garantizar daños y penalidades. |
 | **Incidencia** | Registro formal, abierto en la Central de Resolución, de un hecho ocurrido en una Reserva que puede generar un cobro, Advertencia u otra medida (por ejemplo, retraso en la salida o daño). No debe confundirse con Ocurrencia, que designa el período reservado. |
 | **Advertencia** | Anotación en el historial del Usuario derivada de una infracción, con los efectos previstos en el documento Penalidades y Medidas. |
@@ -124,7 +124,7 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 ## 10. Tarifas y pagos
 
-10.1. Los precios son fijados por el Anfitrión en la moneda del país del Espacio. Al precio se suman la Tarifa de Limpieza, la Tarifa de Servicio del Arrendatario (12%) y el impuesto que recae sobre la Tarifa de Servicio según el país. Del pago transferido al Anfitrión se descuenta la Tarifa de Servicio del Anfitrión (3%). El detalle consta en el documento Pagos Internacionales y se muestra antes de la confirmación.
+10.1. Los precios son fijados por el Anfitrión en la moneda del país del Espacio. Al precio se suman la Tarifa de Limpieza, la Tarifa de Servicio del Arrendatario (15%) y el impuesto que recae sobre la Tarifa de Servicio según el país. Del pago transferido al Anfitrión se descuenta la Tarifa de Servicio del Anfitrión (5%). El detalle consta en el documento Pagos Internacionales y se muestra antes de la confirmación.
 
 10.2. No se cobran valores ocultos. Los cargos por conversión cambiaria o IOF eventualmente cobrados por el emisor del medio de pago del Arrendatario no son controlados por la Operadora.
 

@@ -24,7 +24,7 @@ Version 2026-09-24 · Effective from 2026-09-24
 |---|---|
 | Base Amount | Sum, per Occurrence, of hours × hourly price, or the daily rate for Occurrences of 6 hours or more when more favorable |
 | Cleaning Fee | Fixed amount per Occurrence, set by the Host, capped at 30% of the Base Amount |
-| Renter's Service Fee | **12%** on (Base Amount + Cleaning Fee) |
+| Renter's Service Fee | **15%** on (Base Amount + Cleaning Fee) |
 | Tax on the Service Fee | Reference rate of the country (e.g.: ISS 5% in Brazil, VAT 16% in Mexico, VAT 23% in Portugal) applied to the Service Fee |
 | **Total** | Sum of the items above |
 
@@ -33,11 +33,11 @@ Version 2026-09-24 · Effective from 2026-09-24
 | Component | Calculation |
 |---|---|
 | Base Amount + Cleaning Fee | In full |
-| (–) Host's Service Fee | **3%** on (Base Amount + Cleaning Fee) |
+| (–) Host's Service Fee | **5%** on (Base Amount + Cleaning Fee) |
 | (–) Legal withholdings, penalties and adjustments | Where applicable |
 | **Payout** | Result |
 
-3.3. **Example (Brazil).** A 4-hour Booking at R$80/hour, Cleaning Fee of R$30. Base Amount: R$320. Renter's Service Fee: 12% × R$350 = R$42. Reference ISS (5%) on the Service Fee: R$2.10. Total paid: R$394.10. Host's Fee: 3% × R$350 = R$10.50. Payout to the Host: R$339.50.
+3.3. **Example (Brazil).** A 4-hour Booking at R$80/hour, Cleaning Fee of R$30. Base Amount: R$320. Renter's Service Fee: 15% × R$350 = R$52.50. Reference ISS (5%) on the Service Fee: R$2.63. Total paid: R$405.13. Host's Fee: 5% × R$350 = R$17.50. Payout to the Host: R$332.50.
 
 3.4. The full breakdown is displayed before confirmation. There are no hidden charges.
 

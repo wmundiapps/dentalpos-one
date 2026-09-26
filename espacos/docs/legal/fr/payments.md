@@ -24,7 +24,7 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 |---|---|
 | Montant de base | Somme, par Créneau, des heures × prix horaire, ou prix journalier pour les Créneaux de 6 heures ou plus lorsque plus avantageux |
 | Frais de nettoyage | Montant fixe par Créneau, défini par l'Hôte, limité à 30 % du Montant de base |
-| Frais de service du Locataire | **12 %** sur (Montant de base + Frais de nettoyage) |
+| Frais de service du Locataire | **15 %** sur (Montant de base + Frais de nettoyage) |
 | Taxe sur les Frais de service | Taux de référence du pays (ex. : ISS 5 % au Brésil, TVA 16 % au Mexique, TVA 23 % au Portugal) appliqué sur les Frais de service |
 | **Total** | Somme des postes ci-dessus |
 
@@ -33,11 +33,11 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 | Composant | Calcul |
 |---|---|
 | Montant de base + Frais de nettoyage | Intégral |
-| (–) Frais de service de l'Hôte | **3 %** sur (Montant de base + Frais de nettoyage) |
+| (–) Frais de service de l'Hôte | **5 %** sur (Montant de base + Frais de nettoyage) |
 | (–) Retenues légales, pénalités et ajustements | Le cas échéant |
 | **Versement** | Résultat |
 
-3.3. **Exemple (Brésil).** Réservation de 4 heures à 80 R$/heure, Frais de nettoyage de 30 R$. Montant de base : 320 R$. Frais de service du Locataire : 12 % × 350 R$ = 42 R$. ISS de référence (5 %) sur les Frais de service : 2,10 R$. Total payé : 394,10 R$. Frais de l'Hôte : 3 % × 350 R$ = 10,50 R$. Versement à l'Hôte : 339,50 R$.
+3.3. **Exemple (Brésil).** Réservation de 4 heures à 80 R$/heure, Frais de nettoyage de 30 R$. Montant de base : 320 R$. Frais de service du Locataire : 15 % × 350 R$ = 52,50 R$. ISS de référence (5 %) sur les Frais de service : 2,63 R$. Total payé : 405,13 R$. Frais de l'Hôte : 5 % × 350 R$ = 17,50 R$. Versement à l'Hôte : 332,50 R$.
 
 3.4. Le détail complet est affiché avant la confirmation. Il n'y a pas de frais cachés.
 

@@ -24,7 +24,7 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 |---|---|
 | Grundbetrag | Summe pro Termin aus Stunden × Stundenpreis, oder Tagespreis für Termine von 6 Stunden oder mehr, wenn günstiger |
 | Reinigungsgebühr | Vom Gastgeber festgelegter Festbetrag pro Termin, begrenzt auf 30 % des Grundbetrags |
-| Servicegebühr des Mieters | **12 %** auf (Grundbetrag + Reinigungsgebühr) |
+| Servicegebühr des Mieters | **15 %** auf (Grundbetrag + Reinigungsgebühr) |
 | Steuer auf die Servicegebühr | Referenzsteuersatz des Landes (z. B. ISS 5 % in Brasilien, IVA 16 % in Mexiko, IVA 23 % in Portugal), angewendet auf die Servicegebühr |
 | **Gesamt** | Summe der obigen Posten |
 
@@ -33,11 +33,11 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 | Komponente | Berechnung |
 |---|---|
 | Grundbetrag + Reinigungsgebühr | Vollständig |
-| (–) Servicegebühr des Gastgebers | **3 %** auf (Grundbetrag + Reinigungsgebühr) |
+| (–) Servicegebühr des Gastgebers | **5 %** auf (Grundbetrag + Reinigungsgebühr) |
 | (–) Gesetzliche Einbehalte, Vertragsstrafen und Anpassungen | Sofern anwendbar |
 | **Auszahlung** | Ergebnis |
 
-3.3. **Beispiel (Brasilien).** Buchung von 4 Stunden zu R$ 80/Stunde, Reinigungsgebühr von R$ 30. Grundbetrag: R$ 320. Servicegebühr des Mieters: 12 % × R$ 350 = R$ 42. Referenz-ISS (5 %) auf die Servicegebühr: R$ 2,10. Gesamtzahlung: R$ 394,10. Gebühr des Gastgebers: 3 % × R$ 350 = R$ 10,50. Auszahlung an den Gastgeber: R$ 339,50.
+3.3. **Beispiel (Brasilien).** Buchung von 4 Stunden zu R$ 80/Stunde, Reinigungsgebühr von R$ 30. Grundbetrag: R$ 320. Servicegebühr des Mieters: 15 % × R$ 350 = R$ 52,50. Referenz-ISS (5 %) auf die Servicegebühr: R$ 2,63. Gesamtzahlung: R$ 405,13. Gebühr des Gastgebers: 5 % × R$ 350 = R$ 17,50. Auszahlung an den Gastgeber: R$ 332,50.
 
 3.4. Die vollständige Aufschlüsselung wird vor der Bestätigung angezeigt. Es gibt keine versteckten Kosten.
 

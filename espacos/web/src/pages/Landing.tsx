@@ -75,7 +75,7 @@ function Simulator() {
         <div className="lp-sim-result">
           <span>Você recebe em 4 semanas</span>
           <strong>{brl(net)}</strong>
-          <small>Simulação: {hours} h × {brl(price)} × 4 semanas, já descontada a taxa de {Math.round(FEES.hostServiceFeeRate * 100)}% do SpaceHour. O resultado depende das reservas que você receber.</small>
+          <small>Simulação: {hours} h × {brl(price)} × 4 semanas, já descontada a taxa de {Math.round(FEES.hostServiceFeeRate * 100)}% do SpaceHour e antes da tarifa do Mercado Pago. O resultado depende das reservas que você receber.</small>
         </div>
       </div>
     </section>
@@ -93,12 +93,12 @@ export function HostLanding() {
           <h1>Seu consultório vazio pode ajudar a pagar o aluguel.</h1>
           <p className="lp-lead">Alugue por hora os horários em que a sua sala fica parada para dentistas, médicos, psicólogos, fisioterapeutas e outros profissionais. Você define o preço, os horários e as regras, e o dinheiro cai direto na sua conta Mercado Pago.</p>
           <Cta to="/anfitriao/novo" audience="host">Anunciar meu espaço grátis</Cta>
-          <p className="lp-note">Sem mensalidade. Você só paga {fee} quando recebe uma reserva.</p>
+          <p className="lp-note">Sem mensalidade. Por reserva: {fee} do SpaceHour + a tarifa do Mercado Pago.</p>
         </div>
       </section>
       <div className="container">
         <Benefits items={[
-          ['💸', `Só ${fee} por reserva`, 'Anunciar é grátis. Não tem mensalidade nem fidelidade: a taxa só é cobrada quando uma reserva é paga.'],
+          ['💸', `${fee} por reserva, sem mensalidade`, 'Anunciar é grátis e não tem fidelidade. A taxa do SpaceHour só é cobrada quando uma reserva é paga; a tarifa de processamento do Mercado Pago sai da sua parte, como em qualquer venda.'],
           ['🏦', 'Dinheiro direto na sua conta', 'O pagamento (Pix ou cartão) é feito pelo Mercado Pago e a sua parte vai direto para a sua conta, sem passar pela nossa.'],
           ['🗓️', 'Você decide tudo', 'Escolha os dias e horários disponíveis, o preço por hora, a taxa de limpeza e se aprova cada pedido ou aceita reservas na hora.'],
           ['🩺', 'Profissionais verificados', 'Quem aluga envia o registro no conselho (CRO, CRM, CRP e outros). O documento passa por uma checagem automática e pela nossa equipe, e você pode conferir antes de liberar a sala.'],
@@ -112,7 +112,7 @@ export function HostLanding() {
           ['Conecte o Mercado Pago', 'Com isso o anúncio fica visível e você recebe cada reserva direto na sua conta.'],
         ]} />
         <Faq items={[
-          ['Quanto custa anunciar?', `Nada. O SpaceHour desconta ${fee} de cada reserva paga. Quem aluga paga uma taxa de serviço à parte.`],
+          ['Quanto custa anunciar?', `Nada. Em cada reserva paga, o SpaceHour desconta ${fee} e o Mercado Pago desconta a tarifa de processamento dele (menor no Pix, maior no cartão). Quem aluga paga uma taxa de serviço à parte.`],
           ['Quando recebo o dinheiro?', 'O pagamento é processado pelo Mercado Pago e a sua parte vai direto para a sua conta Mercado Pago, dentro do prazo de liberação dela.'],
           ['E se alguém danificar algo?', 'Você pode exigir caução e avalista no anúncio. Se houver um problema, abra um incidente na reserva: a nossa equipe faz a mediação e o responsável recebe advertência.'],
           ['Posso alugar um consultório de saúde?', 'Pode. Você continua responsável pelo alvará, pela vigilância sanitária e pelas regras do seu conselho. Leia as Obrigações do Anfitrião antes de publicar.'],

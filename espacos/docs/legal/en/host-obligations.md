@@ -113,4 +113,4 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 ## 16. Service Fee and payout
 
-16.1. From the amount paid by the Renter (Base Amount plus Cleaning Fee), the Host's Service Fee of **3%** is deducted. The payout is released **24 hours after the start** of the first Occurrence, as set out in the International Payments document.
+16.1. From the amount paid by the Renter (Base Amount plus Cleaning Fee), the Host's Service Fee of **5%** is deducted. The payout is released **24 hours after the start** of the first Occurrence, as set out in the International Payments document.

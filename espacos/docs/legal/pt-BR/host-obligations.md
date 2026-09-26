@@ -130,4 +130,4 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 ## 16. Taxa de Serviço e repasse
 
-16.1. Do valor pago pelo Locatário (Valor Base mais Taxa de Limpeza) é descontada a Taxa de Serviço do Anfitrião de **3%**. O repasse é liberado **24 horas após o início** da primeira Ocorrência, conforme o documento Pagamentos Internacionais.
+16.1. Do valor pago pelo Locatário (Valor Base mais Taxa de Limpeza) é descontada a Taxa de Serviço do Anfitrião de **5%**. O repasse é liberado **24 horas após o início** da primeira Ocorrência, conforme o documento Pagamentos Internacionais.
