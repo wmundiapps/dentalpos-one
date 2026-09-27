@@ -1,6 +1,6 @@
 # Bürge und Kaution
 
-Version 2026-09-24 · Gültig ab 24.09.2026
+Version 2026-09-27 · Gültig ab 27.09.2026
 
 ## 1. Gegenstand
 
@@ -18,9 +18,13 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 2.4. **Freigabe.** Die Kaution wird **72 Stunden nach dem Check-out** des letzten Termins freigegeben, sofern kein Vorfall eröffnet ist. Ist in diesem Zeitraum ein Vorfall eröffnet, bleibt der dem geltend gemachten Betrag entsprechende Anteil bis zur Entscheidung gesperrt, und der Restbetrag wird freigegeben.
 
-2.5. **Einzug.** Nur vom Mieter anerkannte oder von der Plattform gemäß der Schlichtungs- und Streitbeilegungsstelle entschiedene Beträge können eingezogen werden. Der Mieter erhält die Aufschlüsselung des eingezogenen Betrags.
+2.5. **Einzug.** Es wird kein Betrag automatisch belastet. Nur Beträge, die **vom Mieter anerkannt** oder, wenn die Mediation erfolglos bleibt, gemäß der Schlichtungs- und Streitbeilegungsstelle **von der Plattform entschieden** wurden, wobei die Schadensursache **nachgewiesen** und dem Mieter (oder einer Person, für die er verantwortlich ist) zuzurechnen ist, können eingezogen werden. Der Mieter erhält die Aufschlüsselung des eingezogenen Betrags.
 
 2.6. **Frist des Ausstellers.** Nach der Freigabe durch die Plattform kann die Freigabe des Limits je nach Aussteller einige Tage in Anspruch nehmen.
+
+2.7. **Wann einsetzen.** Die Kaution wird für Räume mit **hochwertiger Ausstattung** (zum Beispiel zahnärztlicher Behandlungsstuhl, bildgebende Geräte, Ästhetik- oder Audio- und Videogeräte) oder **sensibler Infrastruktur** empfohlen. Der Gastgeber gibt im Inserat den Betrag an und was er absichert; der Mieter sieht den Betrag vor der Buchung.
+
+2.8. **Brasilien.** Solange der in Brasilien genutzte Zahlungsabwickler (Mercado Pago) keine Vorautorisierung über die Plattform zulässt, wird die Kaution bei Inseraten in Brasilien gemäß diesem Dokument **durch einen Bürgen ersetzt**: Auf der Karte des Mieters wird als Kaution nichts belastet oder gesperrt, und der Bürge haftet bis zur Grenze seiner Haftung für die gemäß Ziffer 2.5 anerkannten oder entschiedenen Beträge.
 
 ## 3. Zahlungsmittel ohne Vorautorisierung
 

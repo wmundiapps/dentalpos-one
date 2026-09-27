@@ -61,6 +61,8 @@ Version 2026-09-27 · Gültig ab 27.09.2026
 
 4.3. Eine zusätzliche Reinigung ist geschuldet, wenn der Raum eine über die routinemäßige hinausgehende Reinigung erfordert (zum Beispiel biologische Abfälle außerhalb der ordnungsgemäßen Entsorgung, Flecken, übermäßiger Müll).
 
+4.4. **Belastung nur nach Mediation und Nachweis.** Für Schäden am Eigentum oder an der Ausstattung wird kein Betrag automatisch belastet. Eine Belastung erfolgt nur: (a) wenn der Mieter den Schaden und den Betrag anerkennt; oder (b) nach dem Vorfallverfahren gemäß Ziffer 5, wenn der Einigungsversuch (Mediation) erfolglos bleibt und die Plattform auf Grundlage der Nachweise beider Parteien feststellt, dass der Schaden vom Mieter oder von einer Person, für die er verantwortlich ist, **nachweislich verursacht** wurde. Natürliche Abnutzung, vorbestehende Mängel und Schäden ohne nachgewiesene Ursache werden dem Mieter nicht belastet.
+
 ## 5. Verfahren
 
 5.1. **Eröffnung.** Der Vorfall wird innerhalb der Meldefrist über die Schlichtungsstelle mit Beschreibung, Nachweisen und beantragtem Betrag eröffnet.

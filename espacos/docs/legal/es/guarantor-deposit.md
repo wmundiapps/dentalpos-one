@@ -1,6 +1,6 @@
 # Garante y Depósito de Garantía
 
-Versión 2026-09-24 · Vigente desde el 24/09/2026
+Versión 2026-09-27 · Vigente desde el 27/09/2026
 
 ## 1. Objeto
 
@@ -18,9 +18,13 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 2.4. **Liberación.** El Depósito de Garantía se **libera 72 horas después del check-out** de la última Ocurrencia si no hay una Incidencia abierta. Si hay una Incidencia abierta en ese período, la parte correspondiente al valor reclamado permanece bloqueada hasta la decisión, y el saldo se libera.
 
-2.5. **Captura.** Solo pueden capturarse los valores reconocidos por el Arrendatario o decididos por la Plataforma en la forma de la Central de Resolución y Disputas. El Arrendatario recibe el detalle del valor capturado.
+2.5. **Captura.** Ningún valor se cobra automáticamente. Solo pueden capturarse los valores **reconocidos por el Arrendatario** o, cuando la mediación resulte infructuosa, **decididos por la Plataforma** en la forma de la Central de Resolución y Disputas, con la causa del daño **comprobada** y atribuida al Arrendatario (o a quien estaba bajo su responsabilidad). El Arrendatario recibe el detalle del valor capturado.
 
 2.6. **Plazo del emisor.** Después de la liberación por la Plataforma, el desbloqueo del límite puede tardar algunos días, según el emisor.
+
+2.7. **Cuándo usarlo.** El Depósito de Garantía se recomienda para Espacios con **equipos de alto valor** (por ejemplo, sillón odontológico, equipos de imagen, equipos de estética o de audio y video) o **infraestructura sensible**. El Anfitrión informa en el Anuncio el valor y lo que protege; el Arrendatario ve el valor antes de reservar.
+
+2.8. **Brasil.** Mientras el procesador de pagos utilizado en Brasil (Mercado Pago) no permita la preautorización a través de la Plataforma, el Depósito de Garantía de los Anuncios en Brasil se **sustituye por un Garante**, en la forma de este documento: no se cobra ni se bloquea nada en la tarjeta del Arrendatario a título de Depósito de Garantía, y el Garante responde, hasta el límite de su responsabilidad, por los valores reconocidos o decididos en la forma de la cláusula 2.5.
 
 ## 3. Medios de pago sin preautorización
 

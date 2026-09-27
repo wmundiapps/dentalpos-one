@@ -1,6 +1,6 @@
 # Garante e Deposito Cauzionale
 
-Versione 2026-09-24 · In vigore dal 24/09/2026
+Versione 2026-09-27 · In vigore dal 27/09/2026
 
 ## 1. Oggetto
 
@@ -18,9 +18,13 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 2.4. **Rilascio.** Il Deposito cauzionale viene **rilasciato 72 ore dopo il check-out** dell'ultima Fascia prenotata se non vi è alcun Incidente aperto. Se in tale periodo vi è un Incidente aperto, la quota corrispondente all'importo reclamato rimane bloccata fino alla decisione, mentre il saldo viene rilasciato.
 
-2.5. **Addebito.** Possono essere addebitati solo gli importi riconosciuti dal Locatario o decisi dalla Piattaforma secondo le modalità del Centro di Risoluzione e Controversie. Il Locatario riceve il dettaglio dell'importo addebitato.
+2.5. **Addebito.** Nessun importo viene addebitato automaticamente. Possono essere addebitati solo gli importi **riconosciuti dal Locatario** o, qualora la mediazione risulti infruttuosa, **decisi dalla Piattaforma** secondo le modalità del Centro di Risoluzione e Controversie, con la causa del danno **comprovata** e attribuita al Locatario (o a chi si trovava sotto la sua responsabilità). Il Locatario riceve il dettaglio dell'importo addebitato.
 
 2.6. **Termine dell'emittente.** Dopo il rilascio da parte della Piattaforma, lo sblocco del limite può richiedere alcuni giorni, secondo l'emittente.
+
+2.7. **Quando utilizzarlo.** Il Deposito cauzionale è consigliato per Spazi con **attrezzature di alto valore** (ad esempio, poltrona odontoiatrica, apparecchi di diagnostica per immagini, attrezzature estetiche o audiovisive) o **infrastrutture sensibili**. L'Host indica nell'Annuncio l'importo e ciò che esso tutela; il Locatario vede l'importo prima di prenotare.
+
+2.8. **Brasile.** Finché il processore di pagamento utilizzato in Brasile (Mercado Pago) non consentirà la pre-autorizzazione tramite la Piattaforma, il Deposito cauzionale degli Annunci in Brasile è **sostituito da un Garante**, secondo le modalità del presente documento: nulla viene addebitato né bloccato sulla carta del Locatario a titolo di Deposito cauzionale, e il Garante risponde, entro il limite della propria responsabilità, degli importi riconosciuti o decisi ai sensi della clausola 2.5.
 
 ## 3. Mezzi di pagamento senza pre-autorizzazione
 
