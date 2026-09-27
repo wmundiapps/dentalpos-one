@@ -27,6 +27,24 @@ function blank(country: string): Form {
   };
 }
 
+// Campo numérico que guarda o texto digitado: evita o "0" grudado ("020") e aceita vírgula decimal.
+function NumInput({ value, onChange, ...rest }: { value: number | undefined; onChange: (v: number | undefined) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'>) {
+  const [text, setText] = useState(value === undefined ? '' : String(value));
+  useEffect(() => {
+    const parsed = text.trim() === '' ? undefined : Number(text.replace(',', '.'));
+    if (parsed !== value) setText(value === undefined ? '' : String(value));
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <input {...rest} type="text" inputMode="decimal" value={text}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/[^\d.,]/g, '');
+        setText(raw);
+        const n = raw === '' ? undefined : Number(raw.replace(',', '.'));
+        onChange(n === undefined || Number.isNaN(n) ? undefined : n);
+      }} />
+  );
+}
+
 export default function ListingEditor() {
   const { id } = useParams();
   const { t, locale } = useI18n();
@@ -52,7 +70,6 @@ export default function ListingEditor() {
 
   const cfg = COUNTRY_BY_CODE[f.countryCode];
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }));
-  const num = (v: string) => (v === '' ? undefined : Number(v));
   const slots = timeSlots(BOOKING_LIMITS.earliestStart, BOOKING_LIMITS.latestEnd);
 
   function setRange(d: Weekday, i: number, key: keyof TimeRange, v: string) {
@@ -116,8 +133,8 @@ export default function ListingEditor() {
           <h2 className="span2">3. {t('editor.details')}</h2>
           <label className="span2">{t('form.title')}<input required minLength={5} maxLength={120} value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
           <label className="span2">{t('form.description')}<textarea required minLength={20} value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
-          <label>{t('form.capacity')}<input type="number" min={1} required value={f.capacity} onChange={(e) => set('capacity', Number(e.target.value))} /></label>
-          <label>{t('form.area')}<input type="number" min={1} value={f.areaM2 ?? ''} onChange={(e) => set('areaM2', num(e.target.value))} /></label>
+          <label>{t('form.capacity')}<NumInput min={1} required value={f.capacity} onChange={(v) => set('capacity', v ?? 0)} /></label>
+          <label>{t('form.area')}<NumInput min={1} value={f.areaM2} onChange={(v) => set('areaM2', v)} /></label>
           <label className="span2">{t('form.equipment')}<textarea value={f.equipment} onChange={(e) => set('equipment', e.target.value)} placeholder={t('editor.equipmentPlaceholder')} /></label>
           <div className="span2 amenity-filter">
             {AMENITIES.map((a) => {
@@ -151,18 +168,18 @@ export default function ListingEditor() {
             </tbody>
           </table>
           <div className="form-grid">
-            <label>{t('form.buffer')}<input type="number" min={0} max={120} step={15} value={f.bufferMinutes} onChange={(e) => set('bufferMinutes', Number(e.target.value))} /></label>
-            <label>{t('form.minHours')}<input type="number" min={1} max={BOOKING_LIMITS.maxHoursPerOccurrence} value={f.minHours} onChange={(e) => set('minHours', Number(e.target.value))} /></label>
+            <label>{t('form.buffer')}<NumInput min={0} max={120} step={15} value={f.bufferMinutes} onChange={(v) => set('bufferMinutes', v ?? 0)} /></label>
+            <label>{t('form.minHours')}<NumInput min={1} max={BOOKING_LIMITS.maxHoursPerOccurrence} value={f.minHours} onChange={(v) => set('minHours', v ?? 1)} /></label>
             <label className="span2">{t('form.blockedDates')}<textarea value={blockedText} onChange={(e) => setBlockedText(e.target.value)} placeholder="2026-12-24&#10;2026-12-25" /></label>
           </div>
         </section>
 
         <section className="section form-grid">
           <h2 className="span2">5. {t('editor.pricing', { currency: cfg.currency })}</h2>
-          <label>{t('form.pricePerHour')}<input type="number" min={0.01} step="0.01" required value={f.pricePerHour || ''} onChange={(e) => set('pricePerHour', Number(e.target.value))} /></label>
-          <label>{t('form.pricePerDay')}<input type="number" min={0} step="0.01" value={f.pricePerDay ?? ''} onChange={(e) => set('pricePerDay', num(e.target.value))} /></label>
-          <label>{t('form.cleaningFee')}<input type="number" min={0} step="0.01" value={f.cleaningFee} onChange={(e) => set('cleaningFee', Number(e.target.value))} /></label>
-          <label>{t('form.deposit')}<input type="number" min={0} step="0.01" value={f.securityDeposit} onChange={(e) => set('securityDeposit', Number(e.target.value))} /></label>
+          <label>{t('form.pricePerHour')}<NumInput min={0.01} step="0.01" required value={f.pricePerHour || undefined} onChange={(v) => set('pricePerHour', v ?? 0)} /></label>
+          <label>{t('form.pricePerDay')}<NumInput min={0} step="0.01" value={f.pricePerDay} onChange={(v) => set('pricePerDay', v)} /></label>
+          <label>{t('form.cleaningFee')}<NumInput min={0} step="0.01" placeholder="0" value={f.cleaningFee || undefined} onChange={(v) => set('cleaningFee', v ?? 0)} /></label>
+          <label>{t('form.deposit')}<NumInput min={0} step="0.01" placeholder="0" value={f.securityDeposit || undefined} onChange={(v) => set('securityDeposit', v ?? 0)} /></label>
           <p className="muted small span2">{t('editor.feesHelp', { guest: FEES.guestServiceFeeRate * 100, host: FEES.hostServiceFeeRate * 100, clean: FEES.maxCleaningFeeRate * 100, dep: FEES.maxDepositMultiple })}</p>
         </section>
 
@@ -178,7 +195,7 @@ export default function ListingEditor() {
               {(['none', 'optional', 'required', 'required_over_amount'] as const).map((p) => <option key={p} value={p}>{t(`guarantor.option.${p}` as DictKey)}</option>)}
             </select>
           </label>
-          {f.guarantorPolicy === 'required_over_amount' && <label>{t('form.guarantorThreshold')}<input type="number" min={1} required value={f.guarantorThreshold ?? ''} onChange={(e) => set('guarantorThreshold', num(e.target.value))} /></label>}
+          {f.guarantorPolicy === 'required_over_amount' && <label>{t('form.guarantorThreshold')}<NumInput min={1} required value={f.guarantorThreshold} onChange={(v) => set('guarantorThreshold', v)} /></label>}
           <label className="check"><input type="checkbox" checked={f.instantBook} onChange={(e) => set('instantBook', e.target.checked)} /> ⚡ {t('form.instantBook')}</label>
           <label className="check"><input type="checkbox" checked={f.requiresLicense} onChange={(e) => set('requiresLicense', e.target.checked)} /> 🪪 {t('form.requiresLicense', { body: cfg.licenseBodies[f.category] ?? cfg.licenseBodies.default ?? '' })}</label>
           {f.requiresLicense && <>
