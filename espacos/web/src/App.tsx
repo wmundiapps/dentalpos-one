@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { FeedbackWidget } from './components/FeedbackWidget';
 import { EmailVerifyBanner } from './components/EmailVerifyBanner';
+import { MercadoPagoBar } from './components/MercadoPagoBar';
 import { ConsentBanner } from './components/ConsentBanner';
 import { AssistantWidget } from './components/AssistantWidget';
 import { loadTags, trackPage } from './tracking';
@@ -52,6 +53,7 @@ export default function App() {
     <>
       <a href="#main" className="skip-link">Skip to content</a>
       <Header />
+      <MercadoPagoBar />
       <main id="main">
         <EmailVerifyBanner />
         <Suspense fallback={<div className="container"><div className="skeleton hero-skeleton" /></div>}>

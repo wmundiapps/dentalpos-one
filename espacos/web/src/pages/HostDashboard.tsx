@@ -77,7 +77,7 @@ function PayoutAccount() {
   const { connect, busy, error: connectError } = useMpConnect();
   const load = () => api<typeof st>('/me/payout-account').then(setSt).catch(() => {});
   useEffect(() => { load(); }, []);
-  if (!st || !st.required) return null;
+  if (!st || (!st.required && st.connected)) return null;
   async function disconnect() {
     if (!window.confirm(t('payout.confirmDisconnect'))) return;
     try { await api('/me/payout-account', { method: 'DELETE' }); load(); } catch (e) { setError(errorText(e, t)); }
