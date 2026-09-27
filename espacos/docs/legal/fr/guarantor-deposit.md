@@ -1,6 +1,6 @@
 # Garant et Dépôt de garantie
 
-Version 2026-09-24 · En vigueur à compter du 24/09/2026
+Version 2026-09-27 · En vigueur à compter du 27/09/2026
 
 ## 1. Objet
 
@@ -18,9 +18,13 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 2.4. **Libération.** Le Dépôt de garantie est **libéré 72 heures après le check-out** du dernier Créneau, en l'absence d'Incident ouvert. En cas d'Incident ouvert durant cette période, la fraction correspondant au montant réclamé reste bloquée jusqu'à la décision, et le solde est libéré.
 
-2.5. **Capture.** Seuls les montants reconnus par le Locataire ou décidés par la Plateforme selon les modalités du Centre de Résolution et de Litiges peuvent être capturés. Le Locataire reçoit le détail du montant capturé.
+2.5. **Capture.** Aucun montant n'est débité automatiquement. Seuls les montants **reconnus par le Locataire** ou, en cas d'échec de la médiation, **décidés par la Plateforme** selon les modalités du Centre de Résolution et de Litiges, la cause du dommage étant **prouvée** et imputée au Locataire (ou à une personne placée sous sa responsabilité), peuvent être capturés. Le Locataire reçoit le détail du montant capturé.
 
 2.6. **Délai de l'émetteur.** Après la libération par la Plateforme, le déblocage du plafond peut prendre quelques jours, selon l'émetteur.
+
+2.7. **Quand l'utiliser.** Le Dépôt de garantie est recommandé pour les Espaces disposant d'**équipements de grande valeur** (par exemple, fauteuil dentaire, appareils d'imagerie, équipements d'esthétique ou audiovisuels) ou d'une **infrastructure sensible**. L'Hôte indique dans l'Annonce le montant et ce qu'il protège ; le Locataire voit le montant avant de réserver.
+
+2.8. **Brésil.** Tant que le prestataire de paiement utilisé au Brésil (Mercado Pago) ne permet pas la pré-autorisation via la Plateforme, le Dépôt de garantie des Annonces au Brésil est **remplacé par un Garant**, conformément au présent document : rien n'est débité ni bloqué sur la carte du Locataire au titre du Dépôt de garantie, et le Garant répond, dans la limite de sa responsabilité, des montants reconnus ou décidés conformément à la clause 2.5.
 
 ## 3. Moyens de paiement sans pré-autorisation
 

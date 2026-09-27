@@ -75,6 +75,11 @@ RESERVAR (PROFISSIONAL)
 - Pode ser exigido registro profissional verificado (Perfil → Registro profissional: enviar número e foto/PDF do documento; há pré-verificação automática e revisão da equipe).
 - Cancelamento e reembolso seguem a política do anúncio (flexível, moderada ou rígida) e o direito de arrependimento quando aplicável: ver o documento Cancelamento e Reembolso.
 
+CAUÇÃO E DANOS
+- O anfitrião pode definir uma caução (até 3× o valor da reserva), recomendada quando há equipamentos caros ou infraestrutura de valor (cadeira odontológica, aparelhos, equipamentos de imagem ou som).
+- No Brasil, hoje, a caução não é cobrada nem bloqueada no cartão: como o Mercado Pago não permite pré-autorização pela plataforma, ela é garantida por um avalista indicado por quem aluga ao reservar. A garantia se encerra ao final da locação se não houver dano.
+- Danos ao patrimônio ou aos equipamentos nunca são cobrados automaticamente: só se quem alugou reconhecer, ou quando a mediação (Central de Resolução) não resultar em acordo e a causa do dano for comprovada. Desgaste natural e defeitos preexistentes não são cobrados. O anfitrião deve registrar fotos antes e depois e abrir o incidente pela reserva dentro do prazo.
+
 REGRAS DE USO (resumo)
 - Uso só para atividades lícitas, dentro da lei e da habilitação profissional.
 - Proibido portar armas ou munições e manusear explosivos ou produtos químicos perigosos (exceto os de uso regular da profissão, permitidos pela legislação sanitária).

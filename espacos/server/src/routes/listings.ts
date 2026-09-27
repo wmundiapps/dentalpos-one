@@ -10,6 +10,7 @@ import { notify } from '../notify.js';
 import { geoCity, geoState, hasGeo, rawGeo, stateTimezone } from '../geo.js';
 import { connectedHostIds, marketplaceEnabled } from '../payments/mpAccounts.js';
 import { MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
+import { gatewayFor, supportsHold } from '../payments/index.js';
 
 const MP_COUNTRIES: readonly string[] = MERCADOPAGO_COUNTRIES;
 import { getListing, quote } from '../bookings.js';
@@ -100,7 +101,9 @@ export async function publicListings(db: Db, listings: Listing[], viewer?: User)
   const visible = await addressVisibleTo(db, listings, viewer);
   return listings.map((l) => {
     const { address, ...rest } = l;
-    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, ...ratings(l.id) };
+    // Caução: pré-autorização no cartão quando o processador permite; senão, garantida por avalista
+    const depositHold = l.securityDeposit > 0 ? supportsHold('card', gatewayFor(l.countryCode)) : undefined;
+    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, depositHold, ...ratings(l.id) };
   });
 }
 

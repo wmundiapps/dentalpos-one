@@ -62,6 +62,8 @@ Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 4.3. Limpeza extra é devida quando o Espaço exigir limpeza além da rotineira (por exemplo, resíduos biológicos fora do descarte adequado, manchas, lixo em excesso).
 
+4.4. **Cobrança só após mediação e comprovação.** Nenhum valor por dano ao patrimônio ou aos equipamentos é cobrado automaticamente. A cobrança ocorre somente: (a) se o Locatário reconhecer o dano e o valor; ou (b) depois do procedimento de Incidente da cláusula 5, quando a tentativa de acordo (mediação) resultar infrutífera e a Plataforma concluir, com base nas evidências das duas partes, que o dano foi **comprovadamente causado** pelo Locatário ou por pessoa sob sua responsabilidade. Desgaste natural, defeitos preexistentes e danos sem causa comprovada não são cobrados do Locatário.
+
 ## 5. Procedimento
 
 5.1. **Abertura.** O Incidente é aberto pela Central de Resolução, dentro do prazo de reporte, com descrição, evidências e valor solicitado.

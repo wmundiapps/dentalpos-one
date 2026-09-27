@@ -125,7 +125,10 @@ export default function ListingPage() {
             {host.identityVerified && <div>✅ <strong>{t('listing.hostVerified')}</strong></div>}
             <div>🗓️ <strong>{t(`policy.${l.cancellationPolicy}` as DictKey)}</strong></div>
             {l.guarantorPolicy !== 'none' && <div>🤝 <strong>{t(`guarantor.policy.${l.guarantorPolicy}` as DictKey, { amount: money(l.guarantorThreshold ?? 0, l.currency, locale) })}</strong></div>}
-            {l.securityDeposit > 0 && <div>🔒 <strong>{t('listing.deposit', { amount: money(l.securityDeposit, l.currency, locale) })}</strong></div>}
+            {l.securityDeposit > 0 && <div>🔒 <strong>{t('listing.deposit', { amount: money(l.securityDeposit, l.currency, locale) })}</strong>
+              <p className="small">{t(l.depositHold ? 'listing.depositHold' : 'listing.depositGuarantor', { amount: money(l.securityDeposit, l.currency, locale) })}</p>
+              <p className="small muted">{t('listing.damagesRule')} <Link to="/regras/guarantor-deposit">{t('legal.guarantor-deposit')}</Link></p>
+            </div>}
           </section>
 
           <section className="section"><p className="pre">{l.description}</p></section>

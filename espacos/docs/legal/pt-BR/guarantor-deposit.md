@@ -1,6 +1,6 @@
 # Avalista e Caução
 
-Versão 2026-09-25 · Vigência a partir de 25/09/2026
+Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 ## 1. Objeto
 
@@ -18,9 +18,13 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 2.4. **Liberação.** A Caução é **liberada 72 horas após o check-out** da última Ocorrência se não houver Incidente aberto. Havendo Incidente aberto nesse período, a parcela correspondente ao valor reclamado permanece bloqueada até a decisão, e o saldo é liberado.
 
-2.5. **Captura.** Somente valores reconhecidos pelo Locatário ou decididos pela Plataforma na forma da Central de Resolução e Disputas podem ser capturados. O Locatário recebe o detalhamento do valor capturado.
+2.5. **Captura.** Nenhum valor é cobrado automaticamente. Somente valores **reconhecidos pelo Locatário** ou, quando a mediação resultar infrutífera, **decididos pela Plataforma** na forma da Central de Resolução e Disputas, com a causa do dano **comprovada** e atribuída ao Locatário (ou a quem estava sob sua responsabilidade), podem ser capturados. O Locatário recebe o detalhamento do valor capturado.
 
 2.6. **Prazo do emissor.** Após a liberação pela Plataforma, o desbloqueio do limite pode levar alguns dias, conforme o emissor.
+
+2.7. **Quando usar.** A Caução é recomendada para Espaços com **equipamentos de alto valor** (por exemplo, cadeira odontológica, aparelhos de imagem, equipamentos de estética ou de áudio e vídeo) ou **infraestrutura sensível**. O Anfitrião informa no Anúncio o valor e o que ele protege; o Locatário vê o valor antes de reservar.
+
+2.8. **Brasil.** Enquanto o processador de pagamentos usado no Brasil (Mercado Pago) não permitir pré-autorização pela Plataforma, a Caução de Anúncios no Brasil é **substituída por Avalista**, na forma deste documento: nada é cobrado nem bloqueado no cartão do Locatário a título de Caução, e o Avalista responde, até o limite de sua responsabilidade, pelos valores reconhecidos ou decididos na forma da cláusula 2.5.
 
 ## 3. Meios de pagamento sem pré-autorização
 
