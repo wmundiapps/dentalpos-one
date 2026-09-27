@@ -10,7 +10,7 @@ const APP_URL = () => process.env.APP_URL ?? 'http://localhost:5173';
 export const MAIL_FROM = () => process.env.MAIL_FROM ?? 'SpaceHour <noreply@space-hour.com>';
 export const SUPPORT_EMAIL = () => process.env.SUPPORT_EMAIL ?? 'support@space-hour.com';
 
-export interface OutgoingMail { to: string; subject: string; text: string; html?: string; replyTo?: string }
+export interface OutgoingMail { to: string; subject: string; text: string; html?: string; replyTo?: string; headers?: Record<string, string> }
 type Sender = (m: OutgoingMail) => Promise<void>;
 
 let transporter: Transporter | undefined;

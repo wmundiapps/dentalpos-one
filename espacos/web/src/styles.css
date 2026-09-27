@@ -420,3 +420,14 @@ ul.errors { padding-inline-start: 18px; }
   .showcase-caption strong { font-size: 1.1rem; }
   .showcase-nav { display: none; }
 }
+
+/* Janela do Mercado Pago */
+.mp-prompt { width: min(560px, 100%); }
+.mp-steps { padding-inline-start: 20px; line-height: 1.5; }
+.mp-steps li { margin-bottom: 8px; }
+
+/* Admin → Contatos */
+.stat-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin: 12px 0; }
+.stat-row .panel { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; margin: 0; }
+.stat-row strong { font-size: 1.5rem; }
+.table-scroll { overflow-x: auto; }

@@ -22,6 +22,7 @@ const registerSchema = z.object({
   acceptTerms: z.literal(true),
   confirmAge: z.literal(true),
   source: z.string().max(200).optional(), // utm_source/medium/campaign/content (first touch)
+  marketingOptIn: z.boolean().optional(), // consentimento separado para novidades (LGPD)
 });
 
 authRouter.post('/auth/register', async (req, res) => {
@@ -35,6 +36,7 @@ authRouter.post('/auth/register', async (req, res) => {
   };
   await insertUser(pool, user); // índice único em lower(email) cobre cadastros simultâneos
   if (data.source) await pool.query('UPDATE users SET signup_source = $2 WHERE id = $1', [user.id, data.source]);
+  if (data.marketingOptIn) await pool.query('UPDATE users SET marketing_opt_in_at = now() WHERE id = $1', [user.id]);
   // Falha no envio não impede o cadastro: dá para reenviar pelo aviso no app.
   await sendVerificationEmail(user).catch((e) => console.error('[email] confirmação de cadastro', (e as Error).message));
   res.status(201).json({ token: signToken(user), user: toSelf(user) });

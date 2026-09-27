@@ -85,7 +85,7 @@ function Incidents() {
   );
 }
 
-type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant' | 'users';
+type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant' | 'users' | 'contacts';
 
 export function Admin() {
   const { t } = useI18n();
@@ -94,9 +94,9 @@ export function Admin() {
     <div className="container">
       <h1>{t('admin.title')}</h1>
       <div className="segmented" role="tablist">
-        {(['verifications', 'users', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
+        {(['verifications', 'users', 'contacts', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : k === 'users' ? 'admin.tabUsers' : 'admin.tabFeedback')}
+            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : k === 'users' ? 'admin.tabUsers' : k === 'contacts' ? 'admin.tabContacts' : 'admin.tabFeedback')}
           </button>
         ))}
       </div>
@@ -106,6 +106,7 @@ export function Admin() {
       {tab === 'campaign' && <CampaignAdmin />}
       {tab === 'assistant' && <AssistantAdmin />}
       {tab === 'users' && <UsersAdmin />}
+      {tab === 'contacts' && <ContactsAdmin />}
     </div>
   );
 }
@@ -235,6 +236,66 @@ function UsersAdmin() {
           </table>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Base de contatos para marketing: confirmados, não confirmados, quem aceitou novidades; exporta CSV
+function ContactsAdmin() {
+  const { t, locale } = useI18n();
+  type C = { name: string; email: string; phone: string | null; created_at: string; source: string | null; email_verified: boolean; marketing_opt_in: boolean; unsubscribed: boolean; is_host: boolean; bookings: number; abandoned_checkouts: number };
+  type R = { summary: { total: number; verified: number; unverified: number; opt_in: number; hosts: number; abandoned: number }; contacts: C[]; count: number };
+  const [f, setF] = useState({ status: 'all', consent: 'all', role: 'all', days: '0' });
+  const [data, setData] = useState<R | null>(null);
+  const [error, setError] = useState('');
+  const qs = new URLSearchParams(f).toString();
+  useEffect(() => { api<R>(`/admin/contacts?${qs}`).then(setData).catch((e) => setError(errorText(e, t))); }, [qs, t]);
+  async function download() {
+    try {
+      const url = await apiBlobUrl(`/admin/contacts?${qs}&format=csv`);
+      const a = document.createElement('a');
+      a.href = url; a.download = `spacehour-contatos-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) { setError(errorText(e, t)); }
+  }
+  const sel = (k: keyof typeof f, opts: [string, string][]) => (
+    <select value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })}>{opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+  );
+  const s = data?.summary;
+  return (
+    <div className="contacts-admin">
+      {s && (
+        <div className="stat-row">
+          <div className="panel"><strong>{s.total}</strong><span className="muted small">{t('admin.kTotal')}</span></div>
+          <div className="panel"><strong>{s.verified}</strong><span className="muted small">✅ {t('admin.kVerified')}</span></div>
+          <div className="panel"><strong>{s.unverified}</strong><span className="muted small">⏳ {t('admin.kUnverified')}</span></div>
+          <div className="panel"><strong>{s.opt_in}</strong><span className="muted small">📣 {t('admin.kOptIn')}</span></div>
+          <div className="panel"><strong>{s.hosts}</strong><span className="muted small">🏠 {t('admin.kHosts')}</span></div>
+          <div className="panel"><strong>{s.abandoned}</strong><span className="muted small">🛒 {t('admin.kAbandoned')}</span></div>
+        </div>
+      )}
+      <div className="filters panel">
+        <label>{t('admin.kEmail')}{sel('status', [['all', t('admin.kAll')], ['verified', t('admin.kVerified')], ['unverified', t('admin.kUnverified')]])}</label>
+        <label>{t('admin.kConsent')}{sel('consent', [['all', t('admin.kAll')], ['yes', t('admin.kOptIn')]])}</label>
+        <label>{t('admin.kRole')}{sel('role', [['all', t('admin.kAll')], ['host', t('admin.kHosts')], ['guest', t('admin.kGuests')]])}</label>
+        <label>{t('admin.kPeriod')}{sel('days', [['0', t('admin.kAll')], ['7', '7 d'], ['30', '30 d'], ['90', '90 d']])}</label>
+        <button className="btn btn-primary" onClick={download}>⬇ {t('admin.kCsv')}{data ? ` (${data.count})` : ''}</button>
+      </div>
+      <p className="notice small">{t('admin.kLgpd')}</p>
+      {error && <p className="errors">{error}</p>}
+      {data && (
+        <div className="table-scroll">
+          <table className="hours small">
+            <thead><tr><th>{t('form.fullName')}</th><th>E-mail</th><th>{t('form.phone')}</th><th>{t('admin.uCreated')}</th><th>✅</th><th>📣</th><th>🏠</th><th>🛒</th></tr></thead>
+            <tbody>{data.contacts.map((c) => (
+              <tr key={c.email}><td>{c.name}</td><td>{c.email}</td><td>{c.phone ?? ''}</td><td>{formatDateTime(c.created_at, locale)}{c.source ? ` · ${c.source}` : ''}</td>
+                <td>{c.email_verified ? '✅' : '⏳'}</td><td>{c.unsubscribed ? '🚫' : c.marketing_opt_in ? '✅' : '—'}</td><td>{c.is_host ? '✅' : ''}</td><td>{c.abandoned_checkouts || ''}</td></tr>
+            ))}</tbody>
+          </table>
+          {data.count > data.contacts.length && <p className="muted small">{t('admin.kMore', { n: data.count - data.contacts.length })}</p>}
+        </div>
+      )}
     </div>
   );
 }

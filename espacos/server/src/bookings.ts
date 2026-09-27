@@ -2,6 +2,7 @@
 // incidentes (penalidades) e rotina periódica (expirações, repasses, caução,
 // liberação de avaliações). Cada operação roda numa transação PostgreSQL.
 
+import { markConverted, reopenAfterUnpaid } from './cartRecovery.js';
 import { id, lockKey, nowIso, pool, token, withTx, type Db } from './db.js';
 import * as repo from './repo.js';
 import { ACTIVE_STATUSES } from './repo.js';
@@ -167,6 +168,7 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
       await repo.savePayment(tx, payment);
     }
     await repo.saveBooking(tx, booking);
+    await markConverted(tx, guest.id, listing.id);
     return booking;
   });
 }
@@ -609,6 +611,7 @@ export async function tick(now = new Date()) {
         b.status = 'expired';
         b.paymentDeadline = undefined;
         if (p) await gw(l, p).then((g) => voidPayment(g, p)).catch((e) => console.error('[tick] cancelar checkout', (e as Error).message));
+        await reopenAfterUnpaid(tx, b); // lembrete de reserva não paga
         changed = true;
       }
       if ((b.status === 'pending_host' || b.status === 'pending_guarantor') && b.hostDecisionDeadline && new Date(b.hostDecisionDeadline) < now) {

@@ -6,6 +6,7 @@ import { BookingList, type BookingRow } from './Trips';
 import { ListingCard, type ListingSummary } from '../components/ListingCard';
 import { money } from '../format';
 import { errorText } from '../errors';
+import { useMercadoPagoPrompt } from '../components/MercadoPagoPrompt';
 
 export default function HostDashboard() {
   const { t, locale } = useI18n();
@@ -17,6 +18,8 @@ export default function HostDashboard() {
     api<BookingRow[]>('/bookings?role=host').then(setRows).catch(() => {});
     api<Array<ListingSummary & { active: boolean }>>('/host/listings').then(setListings).catch(() => {});
   }, []);
+  const mp = useMercadoPagoPrompt();
+  useEffect(() => { mp.show('dashboard'); }, [mp.show]);
   const requests = rows.filter((b) => b.status === 'pending_host' || b.status === 'pending_guarantor');
   const upcoming = rows.filter((b) => b.status === 'confirmed' || b.status === 'checked_in');
   const done = rows.filter((b) => b.status === 'completed');
@@ -25,6 +28,7 @@ export default function HostDashboard() {
 
   return (
     <div className="container">
+      {mp.modal}
       <div className="row between wrap">
         <h1>{t('host.title')}</h1>
         <Link to="/anfitriao/novo" className="btn btn-primary">+ {t('nav.newListing')}</Link>
@@ -96,7 +100,10 @@ function PayoutAccount() {
         <>
           <p>{t('payout.help')}</p>
           <p className="notice warn small">{t('payout.required')}</p>
-          <button className="btn btn-primary" onClick={connect}>{t('payout.connect')}</button>
+          <div className="row gap wrap">
+            <button className="btn btn-primary" onClick={connect}>{t('payout.connect')}</button>
+            <a className="btn btn-outline" href="https://www.mercadopago.com.br/" target="_blank" rel="noopener noreferrer">{t('mp.create')} ↗</a>
+          </div>
         </>
       )}
       {error && <p className="errors small">{error}</p>}

@@ -38,6 +38,10 @@ export default function Checkout() {
     api<{ listing: ListingSummary }>(`/listings/${id}`).then((d) => setListing(d.listing)).catch(() => setError(t('err.listing_not_found')));
     api<Quote>(`/listings/${id}/quote`, { body: { occurrences } }).then(setQuote).catch((e) => setError(errorText(e, t)));
   }, [id, occurrences, t]);
+  // Registra a intenção de reserva (lembrete por e-mail se não concluir)
+  useEffect(() => {
+    if (me && id) api(`/checkout-intents`, { body: { listingId: id, query: params.toString().slice(0, 2000) } }).catch(() => {});
+  }, [me, id, params]);
 
   if (!me) return <div className="container empty"><Link to="/entrar">{t('auth.login')}</Link></div>;
   if (!listing || !quote) return <div className="container">{error || <div className="skeleton hero-skeleton" />}</div>;

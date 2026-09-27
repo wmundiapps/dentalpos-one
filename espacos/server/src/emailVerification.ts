@@ -13,7 +13,7 @@ const TTL_DAYS = 7;
 const RESEND_SECONDS = 60;
 const hash = (t: string) => crypto.createHash('sha256').update(t).digest('hex');
 
-export async function sendVerificationEmail(user: User, { throttle = false } = {}) {
+export async function sendVerificationEmail(user: User, { throttle = false, reminder = false } = {}) {
   if (user.emailVerifiedAt) return;
   const t = token();
   const updated = await one(pool,
@@ -25,11 +25,11 @@ export async function sendVerificationEmail(user: User, { throttle = false } = {
   const first = user.name.split(' ')[0];
   await sendMail({
     to: user.email,
-    subject: 'SpaceHour — confirme seu e-mail / confirm your email',
-    text: `Olá, ${first}!\n\nConfirme seu e-mail para começar a usar o SpaceHour:\n${url}\n\nO link vale por ${TTL_DAYS} dias. Se você não criou esta conta, ignore este e-mail.\n\nConfirm your email to start using SpaceHour (link valid for ${TTL_DAYS} days).\n\n— SpaceHour · ${SUPPORT_EMAIL()}`,
+    subject: reminder ? `${first}, falta só confirmar seu e-mail no SpaceHour` : 'SpaceHour — confirme seu e-mail / confirm your email',
+    text: `Olá, ${first}!\n\n${reminder ? 'Seu cadastro no SpaceHour está quase pronto: falta só confirmar seu e-mail.' : 'Confirme seu e-mail para começar a usar o SpaceHour:'}\n${url}\n\nO link vale por ${TTL_DAYS} dias. Se você não criou esta conta, ignore este e-mail.\n\nConfirm your email to start using SpaceHour (link valid for ${TTL_DAYS} days).\n\n— SpaceHour · ${SUPPORT_EMAIL()}`,
     html: `<div style="font-family:system-ui,Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#1f2937">
 <h2 style="color:#0f766e;margin:0 0 16px">SpaceHour</h2>
-<p style="font-size:16px;line-height:1.5">Olá, ${escape(first)}!<br><br>Confirme seu e-mail para começar a usar o SpaceHour.</p>
+<p style="font-size:16px;line-height:1.5">Olá, ${escape(first)}!<br><br>${reminder ? 'Seu cadastro no SpaceHour está quase pronto: falta só confirmar seu e-mail. Sem a confirmação não dá para reservar nem anunciar.' : 'Confirme seu e-mail para começar a usar o SpaceHour.'}</p>
 <p><a href="${url}" style="display:inline-block;background:#0f766e;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Confirmar e-mail / Confirm email</a></p>
 <p style="font-size:13px;color:#6b7280">O link vale por ${TTL_DAYS} dias. Se você não criou esta conta, ignore este e-mail.<br>Link valid for ${TTL_DAYS} days. If you didn't sign up, ignore this email.</p>
 <p style="font-size:12px;color:#6b7280">SpaceHour · <a href="mailto:${SUPPORT_EMAIL()}">${SUPPORT_EMAIL()}</a></p></div>`,

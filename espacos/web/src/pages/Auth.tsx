@@ -80,7 +80,7 @@ export function Register() {
   const { login, country } = useApp();
   const nav = useNavigate();
   const [params] = useSearchParams();
-  const [f, setF] = useState({ name: '', email: '', password: '', countryCode: country || 'BR', acceptTerms: false, confirmAge: false });
+  const [f, setF] = useState({ name: '', email: '', password: '', countryCode: country || 'BR', acceptTerms: false, confirmAge: false, marketingOptIn: false });
   const [error, setError] = useState('');
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -109,6 +109,7 @@ export function Register() {
         <label className="check"><input type="checkbox" required checked={f.acceptTerms} onChange={(e) => setF({ ...f, acceptTerms: e.target.checked })} />
           <span>{t('auth.acceptTerms')} <Link to="/regras/terms" target="_blank">{t('legal.terms')}</Link> · <Link to="/regras/privacy" target="_blank">{t('legal.privacy')}</Link></span>
         </label>
+        <label className="check"><input type="checkbox" checked={f.marketingOptIn} onChange={(e) => setF({ ...f, marketingOptIn: e.target.checked })} /> {t('auth.marketingOptIn')}</label>
         {error && <p className="errors" role="alert">{error}</p>}
         <button className="btn btn-primary block">{t('auth.createAccount')}</button>
         <p className="small center">{t('auth.haveAccount')} <Link to="/entrar">{t('auth.login')}</Link></p>
