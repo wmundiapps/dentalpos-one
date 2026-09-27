@@ -22,6 +22,8 @@ Version 2026-09-27 · Gültig ab 27.09.2026
 
 2.6. **Frist des Ausstellers.** Nach der Freigabe durch die Plattform kann die Freigabe des Limits je nach Aussteller einige Tage in Anspruch nehmen.
 
+2.6.1. **Teilweise Sicherheit.** Die Kaution ist eine **teilweise Sicherheit** und begrenzt die Haftung des Mieters nicht. Übersteigt der gemäß Ziffer 2.5 anerkannte oder entschiedene Schadensbetrag **die Kaution**, bleibt der Mieter verpflichtet, **die Differenz zu begleichen**; diese kann über das hinterlegte Zahlungsmittel, beim Bürgen bis zur Grenze seiner Haftung oder mit den gesetzlich zulässigen Mitteln der Beitreibung eingezogen werden (Vertragsstrafen und Maßnahmen, Ziffern 4.4 und 5.4 bis 5.5).
+
 2.7. **Wann einsetzen.** Die Kaution wird für Räume mit **hochwertiger Ausstattung** (zum Beispiel zahnärztlicher Behandlungsstuhl, bildgebende Geräte, Ästhetik- oder Audio- und Videogeräte) oder **sensibler Infrastruktur** empfohlen. Der Gastgeber gibt im Inserat den Betrag an und was er absichert; der Mieter sieht den Betrag vor der Buchung.
 
 2.8. **Brasilien.** Solange der in Brasilien genutzte Zahlungsabwickler (Mercado Pago) keine Vorautorisierung über die Plattform zulässt, wird die Kaution bei Inseraten in Brasilien gemäß diesem Dokument **durch einen Bürgen ersetzt**: Auf der Karte des Mieters wird als Kaution nichts belastet oder gesperrt, und der Bürge haftet bis zur Grenze seiner Haftung für die gemäß Ziffer 2.5 anerkannten oder entschiedenen Beträge.

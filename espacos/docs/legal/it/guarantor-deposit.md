@@ -22,6 +22,8 @@ Versione 2026-09-27 · In vigore dal 27/09/2026
 
 2.6. **Termine dell'emittente.** Dopo il rilascio da parte della Piattaforma, lo sblocco del limite può richiedere alcuni giorni, secondo l'emittente.
 
+2.6.1. **Garanzia parziale.** Il Deposito cauzionale è una **garanzia parziale** e non limita la responsabilità del Locatario. Se l'importo del danno, riconosciuto o deciso ai sensi della clausola 2.5, è **superiore al Deposito cauzionale**, il Locatario resta obbligato a **integrare la differenza**, che può essere addebitata sul mezzo di pagamento registrato, riscossa dal Garante entro il limite della propria responsabilità, o recuperata con i mezzi di riscossione consentiti dalla legge (Penalità e Provvedimenti, clausole 4.4 e da 5.4 a 5.5).
+
 2.7. **Quando utilizzarlo.** Il Deposito cauzionale è consigliato per Spazi con **attrezzature di alto valore** (ad esempio, poltrona odontoiatrica, apparecchi di diagnostica per immagini, attrezzature estetiche o audiovisive) o **infrastrutture sensibili**. L'Host indica nell'Annuncio l'importo e ciò che esso tutela; il Locatario vede l'importo prima di prenotare.
 
 2.8. **Brasile.** Finché il processore di pagamento utilizzato in Brasile (Mercado Pago) non consentirà la pre-autorizzazione tramite la Piattaforma, il Deposito cauzionale degli Annunci in Brasile è **sostituito da un Garante**, secondo le modalità del presente documento: nulla viene addebitato né bloccato sulla carta del Locatario a titolo di Deposito cauzionale, e il Garante risponde, entro il limite della propria responsabilità, degli importi riconosciuti o decisi ai sensi della clausola 2.5.

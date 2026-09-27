@@ -22,6 +22,8 @@ Versión 2026-09-27 · Vigente desde el 27/09/2026
 
 2.6. **Plazo del emisor.** Después de la liberación por la Plataforma, el desbloqueo del límite puede tardar algunos días, según el emisor.
 
+2.6.1. **Garantía parcial.** El Depósito de Garantía es una **garantía parcial** y no limita la responsabilidad del Arrendatario. Si el valor del daño, reconocido o decidido en la forma de la cláusula 2.5, es **mayor que el Depósito de Garantía**, el Arrendatario sigue obligado a **completar la diferencia**, que puede cobrarse en el medio de pago registrado, al Garante hasta el límite de su responsabilidad, o por los medios de cobro admitidos por la ley (Penalidades y Medidas, cláusulas 4.4 y 5.4 a 5.5).
+
 2.7. **Cuándo usarlo.** El Depósito de Garantía se recomienda para Espacios con **equipos de alto valor** (por ejemplo, sillón odontológico, equipos de imagen, equipos de estética o de audio y video) o **infraestructura sensible**. El Anfitrión informa en el Anuncio el valor y lo que protege; el Arrendatario ve el valor antes de reservar.
 
 2.8. **Brasil.** Mientras el procesador de pagos utilizado en Brasil (Mercado Pago) no permita la preautorización a través de la Plataforma, el Depósito de Garantía de los Anuncios en Brasil se **sustituye por un Garante**, en la forma de este documento: no se cobra ni se bloquea nada en la tarjeta del Arrendatario a título de Depósito de Garantía, y el Garante responde, hasta el límite de su responsabilidad, por los valores reconocidos o decididos en la forma de la cláusula 2.5.

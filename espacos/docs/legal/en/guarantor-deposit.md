@@ -22,6 +22,8 @@ Version 2026-09-27 · Effective from 2026-09-27
 
 2.6. **Issuer timeframe.** After release by the Platform, unblocking the credit limit may take a few days, depending on the issuer.
 
+2.6.1. **Partial guarantee.** The Security Deposit is a **partial guarantee** and does not limit the Renter's liability. If the amount of the damage, acknowledged or decided under clause 2.5, is **greater than the Security Deposit**, the Renter remains obliged to **pay the difference**, which may be collected from the registered payment method, from the Guarantor up to the limit of their liability, or by any lawful means of collection (Penalties and Measures, clauses 4.4 and 5.4 to 5.5).
+
 2.7. **When to use.** The Security Deposit is recommended for Spaces with **high-value equipment** (for example, a dental chair, imaging devices, aesthetics equipment or audio and video equipment) or **sensitive infrastructure**. The Host states in the Listing the amount and what it protects; the Renter sees the amount before booking.
 
 2.8. **Brazil.** For as long as the payment processor used in Brazil (Mercado Pago) does not allow pre-authorization through the Platform, the Security Deposit for Listings in Brazil is **replaced by a Guarantor**, under this document: nothing is charged or held on the Renter's card by way of Security Deposit, and the Guarantor is liable, up to the limit of their liability, for the amounts acknowledged or decided under clause 2.5.

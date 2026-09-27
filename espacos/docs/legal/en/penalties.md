@@ -61,7 +61,7 @@ Version 2026-09-27 · Effective from 2026-09-27
 
 4.3. Extra cleaning is owed when the Space requires cleaning beyond the routine level (for example, biological waste not disposed of properly, stains, excess trash).
 
-4.4. **Charges only after mediation and proof.** No amount for damage to property or equipment is charged automatically. A charge is made only: (a) if the Renter acknowledges the damage and the amount; or (b) after the Incident procedure in clause 5, where the attempt to reach an agreement (mediation) proves unsuccessful and the Platform concludes, based on the evidence from both parties, that the damage was **demonstrably caused** by the Renter or by a person under their responsibility. Natural wear and tear, pre-existing defects and damage without a proven cause are not charged to the Renter.
+4.4. **Charges only after mediation and proof.** No amount for damage to property or equipment is charged automatically. A charge is made only: (a) if the Renter acknowledges the damage and the amount; or (b) after the Incident procedure in clause 5, where the attempt to reach an agreement (mediation) proves unsuccessful and the Platform concludes, based on the evidence from both parties, that the damage was **demonstrably caused** by the Renter or by a person under their responsibility. Natural wear and tear, pre-existing defects and damage without a proven cause are not charged to the Renter. The Security Deposit is a partial guarantee: if the proven damage exceeds it, the Renter is liable for the difference.
 
 ## 5. Procedure
 
