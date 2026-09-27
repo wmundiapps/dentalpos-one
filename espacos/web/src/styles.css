@@ -389,3 +389,10 @@ ul.errors { padding-inline-start: 18px; }
 .assistant-admin details { margin-bottom: 8px; }
 .assistant-admin details .assistant-msg { max-width: 100%; margin: 6px 0; }
 .assistant-admin details .assistant-msg.me { align-self: auto; }
+
+/* Login: e-mails usados antes neste aparelho */
+.recent-emails { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 4px; }
+.recent-chip { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.recent-chip.on { border-color: var(--brand); background: var(--brand-soft); }
+.recent-chip button { border: 0; background: none; padding: 5px 10px; cursor: pointer; color: var(--text); font: inherit; font-size: 0.9rem; }
+.recent-chip button + button { padding: 5px 8px 5px 2px; color: var(--muted); }

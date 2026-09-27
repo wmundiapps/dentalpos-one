@@ -701,6 +701,8 @@ const en: Dict = {
   'payout.success': 'Mercado Pago account connected successfully.',
   'payout.error': 'Could not connect the Mercado Pago account. Please try again.',
   'err.host_payment_not_connected': 'This host cannot receive bookings yet.',
+  'auth.recentEmails': 'Sign in as:',
+  'auth.forgetEmail': 'Forget this email on this device',
   'editor.depositHelp': 'Do you have expensive equipment or valuable infrastructure (dental chair, devices, imaging or audio equipment)? Set a security deposit as a guarantee against damage, up to 3× the booking value. In Brazil the deposit is currently backed by a guarantor chosen by the renter, because Mercado Pago does not allow holding an amount on the card. Damage is only charged after mediation and proof of cause. The deposit is a partial guarantee: if the damage exceeds the deposit, the renter must pay the difference.',
   'listing.depositHold': 'This space has a {amount} security deposit, a guarantee against damage to equipment and the premises. The amount is only pre-authorized on the card and is released within 72 h after check-out if no damage is found.',
   'listing.depositGuarantor': 'This space has a {amount} security deposit, a guarantee against damage to equipment and the premises. Nothing is charged or held on your card: the deposit is backed by a guarantor you name when booking, and it ends at the end of the rental if no damage is found.',

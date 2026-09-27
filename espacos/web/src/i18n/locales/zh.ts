@@ -701,6 +701,8 @@ const zh: Dict = {
   'payout.success': 'Mercado Pago 账户连接成功。',
   'payout.error': '无法连接 Mercado Pago 账户,请重试。',
   'err.host_payment_not_connected': '该房东暂时无法接收预订。',
+  'auth.recentEmails': '使用以下账号登录：',
+  'auth.forgetEmail': '在此设备上忘记该邮箱',
   'editor.depositHelp': '您有贵重设备或有价值的设施（牙科椅、仪器、影像或音响设备）吗？可设置押金作为损坏保障，最高为预订金额的 3 倍。目前在巴西，由于 Mercado Pago 不支持在银行卡上冻结金额，押金由租用方指定的担保人提供担保。损坏仅在调解并证实原因后才会收费。押金仅为部分担保：若损失超过押金金额，租用方须补足差额。',
   'listing.depositHold': '该空间押金为 {amount}，用于保障设备和设施免受损坏。该金额仅在银行卡上预授权，若未发现损坏，将在退房后 72 小时内解除。',
   'listing.depositGuarantor': '该空间押金为 {amount}，用于保障设备和设施免受损坏。您的银行卡不会被扣款或冻结：押金由您在预订时指定的担保人担保，若未发现损坏，将在租用结束时解除。',

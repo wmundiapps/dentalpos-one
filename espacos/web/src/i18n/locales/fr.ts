@@ -701,6 +701,8 @@ const fr: Dict = {
   'payout.success': 'Compte Mercado Pago connecté avec succès.',
   'payout.error': 'Impossible de connecter le compte Mercado Pago. Veuillez réessayer.',
   'err.host_payment_not_connected': 'Cet hôte ne peut pas encore recevoir de réservations.',
+  'auth.recentEmails': 'Se connecter avec :',
+  'auth.forgetEmail': 'Oublier cet e-mail sur cet appareil',
   'editor.depositHelp': "Vous avez des équipements coûteux ou une infrastructure de valeur (fauteuil dentaire, appareils, matériel d'imagerie ou de son) ? Fixez une caution comme garantie contre les dommages, jusqu'à 3× le montant de la réservation. Au Brésil, la caution est actuellement garantie par un garant désigné par le locataire, car Mercado Pago ne permet pas de bloquer un montant sur la carte. Les dommages ne sont facturés qu'après médiation et preuve de la cause. La caution est une garantie partielle : si le dommage dépasse son montant, le locataire doit payer la différence.",
   'listing.depositHold': "Cet espace a une caution de {amount}, garantie contre les dommages aux équipements et aux locaux. Le montant est seulement pré-autorisé sur la carte et libéré dans les 72 h suivant le départ si aucun dommage n'est constaté.",
   'listing.depositGuarantor': "Cet espace a une caution de {amount}, garantie contre les dommages aux équipements et aux locaux. Rien n'est débité ni bloqué sur votre carte : la caution est garantie par un garant que vous désignez lors de la réservation et prend fin à la fin de la location si aucun dommage n'est constaté.",
