@@ -701,6 +701,7 @@ const es: Dict = {
   'payout.success': 'Cuenta de Mercado Pago conectada correctamente.',
   'payout.error': 'No se pudo conectar la cuenta de Mercado Pago. Inténtalo de nuevo.',
   'err.host_payment_not_connected': 'Este anfitrión aún no puede recibir reservas.',
+  'header.loggedAs': "Conectado como",
   'admin.resetTitle': "Empezar de cero (fase de pruebas)",
   'admin.resetHelp': "Borra TODAS las cuentas (incluida la tuya), espacios, fotos, reservas, mensajes y documentos. El sitio y la app siguen funcionando. Luego regístrate de nuevo con el correo de admin. No se puede deshacer. Solo funciona con hasta 50 cuentas.",
   'admin.resetOpen': "Borrar todos los datos…",

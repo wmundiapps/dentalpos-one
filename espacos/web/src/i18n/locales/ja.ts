@@ -701,6 +701,7 @@ const ja: Dict = {
   'payout.success': 'Mercado Pagoアカウントを連携しました。',
   'payout.error': 'Mercado Pagoアカウントを連携できませんでした。もう一度お試しください。',
   'err.host_payment_not_connected': 'このホストはまだ予約を受け付けられません。',
+  'header.loggedAs': "ログイン中",
   'admin.resetTitle': "Start from scratch (test phase)",
   'admin.resetHelp': "Deletes ALL accounts (including yours), spaces, photos, bookings, messages and documents. The site and app keep working. Afterwards, sign up again with the admin email. Cannot be undone. Only works while there are up to 50 accounts.",
   'admin.resetOpen': "Delete all data…",

@@ -701,6 +701,7 @@ const it: Dict = {
   'payout.success': 'Account Mercado Pago collegato correttamente.',
   'payout.error': 'Impossibile collegare l\'account Mercado Pago. Riprova.',
   'err.host_payment_not_connected': 'Questo host non può ancora ricevere prenotazioni.',
+  'header.loggedAs': "Connesso come",
   'admin.resetTitle': "Start from scratch (test phase)",
   'admin.resetHelp': "Deletes ALL accounts (including yours), spaces, photos, bookings, messages and documents. The site and app keep working. Afterwards, sign up again with the admin email. Cannot be undone. Only works while there are up to 50 accounts.",
   'admin.resetOpen': "Delete all data…",

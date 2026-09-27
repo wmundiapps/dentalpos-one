@@ -702,6 +702,7 @@ const ptBR = {
   'payout.success': 'Conta Mercado Pago conectada com sucesso.',
   'payout.error': 'Não foi possível conectar a conta Mercado Pago. Tente novamente.',
   'err.host_payment_not_connected': 'Este anfitrião ainda não pode receber reservas.',
+  'header.loggedAs': "Conectado como",
   'admin.resetTitle': "Começar do zero (fase de testes)",
   'admin.resetHelp': "Apaga TODOS os cadastros (inclusive o seu), espaços, fotos, reservas, mensagens e documentos. O site e o aplicativo continuam funcionando. Depois, cadastre-se de novo com o e-mail de admin. Não dá para desfazer. Só funciona enquanto houver até 50 cadastros.",
   'admin.resetOpen': "Apagar todos os dados…",

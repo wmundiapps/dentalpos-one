@@ -48,6 +48,7 @@ export function Header() {
           <div className="menu-wrap" ref={menuRef}>
             <button className="user-btn" onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu}>
               ☰ <span className="avatar">{me ? me.name[0] : '👤'}</span>
+              {me && <span className="user-email" title={me.email}>{me.email}</span>}
               {unread > 0 && <span className="dot" aria-label={t('notifications.unread', { n: unread })} />}
             </button>
             {menu && (
@@ -59,6 +60,12 @@ export function Header() {
                   <Link role="menuitem" to="/anfitriao/novo">{t('header.becomeHost')}</Link>
                 </>}
                 {me && <>
+                  <div className="menu-account">
+                    <span className="muted small">{t('header.loggedAs')}</span>
+                    <strong>{me.name}</strong>
+                    <span className="small">{me.email}</span>
+                  </div>
+                  <hr />
                   <Link role="menuitem" to="/reservas"><strong>{t('nav.trips')}</strong></Link>
                   <Link role="menuitem" to="/favoritos">{t('nav.favorites')}</Link>
                   <Link role="menuitem" to="/notificacoes">{t('nav.notifications')}{unread ? ` (${unread})` : ''}</Link>
