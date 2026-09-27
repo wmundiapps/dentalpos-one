@@ -47,6 +47,9 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 3.1. Nous ne prenons pas de décisions exclusivement automatisées ayant des effets juridiques significatifs sans révision humaine. Des systèmes automatiques peuvent signaler des messages présentant des indices de paiement hors Plateforme ou de fraude, mais toute suspension ou exclusion est révisée par une personne, et la personne concernée peut demander une révision (LGPD art. 20 ; RGPD art. 22).
 
+
+**Vérification d’identité (pièce et selfie).** L’utilisateur peut envoyer son identifiant fiscal, une photo de sa pièce d’identité et un selfie. Les contrôles sont automatiques : chiffres de contrôle du CPF/CNPJ ; situation et associés du CNPJ dans le registre public brésilien ; et un système d’intelligence artificielle lit la pièce (nom, CPF, date de naissance), recherche des falsifications et vérifie que le selfie est une photo réelle. **La Plateforme ne pratique pas de reconnaissance faciale automatisée** et ne compare pas les visages par des moyens techniques ; les cas non concluants sont revus par l’équipe. Les photos sont chiffrées, chaque accès est journalisé et elles sont supprimées 90 jours après le contrôle, sauf litige. Nous conservons aussi l’IP, le navigateur et l’heure de l’inscription et de la confirmation de l’e-mail, et refusons les e-mails jetables, pour prévenir la fraude.
+
 ## 4. Partage
 
 4.1. **Entre Hôte et Locataire.** Après la confirmation d'une Réservation, l'Hôte reçoit le nom, le profil public, l'activité déclarée, le nombre de personnes et, lorsque l'Annonce l'exige, l'indication de l'enregistrement professionnel vérifié du Locataire ; le Locataire reçoit l'adresse complète et les instructions d'accès de l'Espace. Le téléphone et l'e-mail ne sont pas affichés, et les parties communiquent via la Plateforme.

@@ -21,6 +21,18 @@ export async function rotateDocumentKey(limit = 100) {
     done++;
   }
 
+  // Fotos da verificação de identidade (documento e selfie)
+  const ids = await rows<{ id: string }>(pool, 'SELECT id FROM identity_verifications WHERE document IS NOT NULL OR selfie IS NOT NULL ORDER BY created_at');
+  for (const { id } of ids) {
+    const [v] = await rows<{ document: Buffer | null; selfie: Buffer | null }>(pool, 'SELECT document, selfie FROM identity_verifications WHERE id = $1', [id]);
+    const d = v?.document ? reencryptIfPrevious(v.document) : null;
+    const sf = v?.selfie ? reencryptIfPrevious(v.selfie) : null;
+    if (!d && !sf) continue;
+    if (done >= limit) { remaining++; continue; }
+    await pool.query('UPDATE identity_verifications SET document = COALESCE($2, document), selfie = COALESCE($3, selfie) WHERE id = $1', [id, d, sf]);
+    done++;
+  }
+
   const accounts = await rows<{ user_id: string; access_token_enc: Buffer; refresh_token_enc: Buffer }>(pool,
     'SELECT user_id, access_token_enc, refresh_token_enc FROM mp_accounts');
   for (const a of accounts) {

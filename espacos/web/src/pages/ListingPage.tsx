@@ -100,7 +100,9 @@ export default function ListingPage() {
       {me?.id === l.hostId && (
         <div className={`notice ${params.get('publicado') ? 'success' : ''} row between wrap gap`}>
           {params.get('publicado')
-            ? <div className="published-thanks"><strong>{t('listing.publishedThanks')}</strong><span>{t('listing.publishedThanksText', { email: me.email })}</span></div>
+            ? (params.get('pendente') && !me.emailVerifiedAt
+              ? <div className="published-thanks"><strong>{t('listing.savedTitle')}</strong><span>{t('listing.savedPendingEmail', { email: me.email })}</span></div>
+              : <div className="published-thanks"><strong>{t('listing.publishedThanks')}</strong><span>{t('listing.publishedThanksText', { email: me.email })}</span></div>)
             : <span>{t('listing.youAreHost')}</span>}
           <Link className="btn btn-primary small" to={`/anfitriao/espacos/${l.id}`}>✏️ {t('listing.editOwn')}</Link>
         </div>

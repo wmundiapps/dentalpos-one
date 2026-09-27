@@ -46,5 +46,6 @@ export async function resetPassword(t: string, password: string) {
      WHERE password_reset_hash = $1 AND password_reset_sent_at > now() - make_interval(mins => $3) AND NOT banned
      RETURNING id`, [hash(t), passwordHash, TTL_MINUTES]);
   if (!r) throw new HttpError(400, 'invalid_or_expired_token');
+  await pool.query('UPDATE listings SET active = true, pending_email = false WHERE host_id = $1 AND pending_email', [r.id]);
   return (await getUser(pool, r.id))!;
 }

@@ -10,6 +10,7 @@ import { countryName, flag, timeSlots } from '../format';
 import { errorText } from '../errors';
 import { useMercadoPagoPrompt } from '../components/MercadoPagoPrompt';
 import { PhotoUploader } from '../components/PhotoUploader';
+import { AddressMap } from '../components/AddressMap';
 import { PlacePicker } from '../components/PlacePicker';
 
 type Form = Omit<Listing, 'id' | 'hostId' | 'createdAt' | 'currency' | 'timezone'>;
@@ -130,8 +131,8 @@ export default function ListingEditor() {
       state: f.state || undefined, neighborhood: f.neighborhood || undefined, guarantorThreshold: f.guarantorPolicy === 'required_over_amount' ? f.guarantorThreshold : undefined,
     };
     try {
-      const l = await api<Listing>(id ? `/listings/${id}` : '/listings', { method: id ? 'PUT' : 'POST', body });
-      nav(id ? `/espacos/${l.id}` : `/espacos/${l.id}?publicado=1`);
+      const l = await api<Listing & { pendingEmail?: boolean }>(id ? `/listings/${id}` : '/listings', { method: id ? 'PUT' : 'POST', body });
+      nav(id ? `/espacos/${l.id}` : `/espacos/${l.id}?publicado=1${l.pendingEmail ? '&pendente=1' : ''}`);
     } catch (err) {
       const section = sectionOf(err);
       let text = errorText(err, t);
@@ -180,6 +181,12 @@ export default function ListingEditor() {
           <label>{t('form.neighborhood')}<input value={f.neighborhood ?? ''} onChange={(e) => set('neighborhood', e.target.value)} /></label>
           <label>{t('form.address')}<input required minLength={5} value={f.address} onChange={(e) => set('address', e.target.value)} /></label>
           <p className="muted small span2">{t('editor.addressPrivate')} · {t('place.currencyInfo', { currency: cfg.currency })}</p>
+          {f.address.trim().length >= 5 && f.city && (
+            <div className="span2">
+              <p className="small"><strong>{t('map.checkTitle')}</strong> {t('map.checkHelp')}</p>
+              <AddressMap compact delay={900} query={[f.address, f.neighborhood, f.city, f.state, f.countryCode].filter(Boolean).join(', ')} />
+            </div>
+          )}
         </section>
 
         <section id="sec-3" className="section form-grid">

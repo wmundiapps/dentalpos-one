@@ -1,5 +1,6 @@
 // Rotina periódica: reservas (expirações, repasses, caução, avaliações),
 // fila de e-mails e verificações de registro pendentes.
+import { identityJobs } from './identity.js';
 import { sendCartReminders, sendVerifyReminders } from './cartRecovery.js';
 import { tick } from './bookings.js';
 import { flushEmailQueue } from './mailer.js';
@@ -11,7 +12,7 @@ import { encryptLegacyDocuments, purgeExpiredDocuments, resumePendingVerificatio
 
 export async function runJobs() {
   const out: Record<string, string> = {};
-  for (const [name, job] of [['bookings', () => tick()], ['verifications', resumePendingVerifications], ['assistant', () => emailIdleConversations()], ['cart', async () => { await sendCartReminders(); await sendVerifyReminders(); }], ['email', () => flushEmailQueue()], ['push', () => flushPushQueue()],
+  for (const [name, job] of [['bookings', () => tick()], ['verifications', async () => { await resumePendingVerifications(); await identityJobs(); }], ['assistant', () => emailIdleConversations()], ['cart', async () => { await sendCartReminders(); await sendVerifyReminders(); }], ['email', () => flushEmailQueue()], ['push', () => flushPushQueue()],
     ['documents', async () => { await encryptLegacyDocuments(); await purgeExpiredDocuments(); await rotateDocumentKey(); }],
     ['mp_tokens', async () => { if (marketplaceEnabled()) await refreshExpiringTokens(); }]] as const) {
     try { await job(); out[name] = 'ok'; } catch (e) { out[name] = (e as Error).message; console.error(`[job ${name}]`, e); }

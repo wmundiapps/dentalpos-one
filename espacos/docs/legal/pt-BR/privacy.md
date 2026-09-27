@@ -1,6 +1,6 @@
 # Política de Privacidade
 
-Versão 2026-09-25 · Vigência a partir de 25/09/2026
+Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 ## 1. Quem somos e a quem se aplica
 
@@ -19,14 +19,14 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 | Categoria | Exemplos | Origem |
 |---|---|---|
 | Cadastro | Nome, e-mail, telefone, país, idioma, senha (armazenada apenas como *hash*) | Titular |
-| Identificação | Tipo e número de documento (ex.: CPF, DNI, CURP/INE, Passport), identificação fiscal de empresa (ex.: CNPJ, RUC, EIN, NIF), resultado de verificação de identidade | Titular e prestadores de verificação |
+| Identificação | Tipo e número de documento (ex.: CPF, DNI, CURP/INE, Passport), identificação fiscal de empresa (ex.: CNPJ, RUC, EIN, NIF), foto do documento de identidade, selfie, resultado de verificação de identidade, situação cadastral e quadro de sócios do CNPJ | Titular, base pública do CNPJ (Receita Federal, via BrasilAPI) e prestadores de verificação |
 | Profissionais | Órgão de registro, número e região do registro profissional, imagem do documento profissional, documentos adicionais solicitados, resultado e histórico da pré-triagem automatizada, confirmações feitas pelo Anfitrião | Titular, bases públicas dos conselhos, Anfitrião e Plataforma |
 | Anúncios | Endereço do Espaço, fotos enviadas pelo Anfitrião, descrição, equipamentos, preços, calendário | Anfitrião |
 | Reservas | Datas, horários, atividade declarada, número de pessoas, mensagens, check-in/check-out, fotos, histórico de cancelamentos | Usuários e Plataforma |
 | Pagamentos | Token do meio de pagamento, bandeira, últimos dígitos e validade do cartão, status de autorização e Caução, dados bancários para repasse e reembolso, dados fiscais (os dados completos de cartão são coletados diretamente pelo Mercado Pago ou pela Stripe e não são recebidos pela Plataforma) | Titular e processadores de pagamento |
 | Avalista | Nome, e-mail, telefone, documento, relação com o Locatário, aceite, limite de responsabilidade | Locatário e Avalista |
 | Reputação e conformidade | Avaliações, Incidentes, evidências, Advertências, suspensões | Usuários e Plataforma |
-| Técnicos | IP, identificadores de dispositivo, navegador, registros de acesso, cookies | Coleta automática |
+| Técnicos | IP, identificadores de dispositivo, navegador, registros de acesso, cookies; IP e navegador usados no cadastro e na confirmação do e-mail; provedor do e-mail | Coleta automática |
 | Clientes Finais | Notas e comentário da avaliação, apelido opcional, data; sem cadastro | Cliente Final |
 | Feedback do aplicativo | Nota atribuída ao aplicativo, sugestões, relatos de erro (*bugs*), capturas de tela e dados técnicos anexados voluntariamente (versão do app, dispositivo, sistema operacional) | Titular e coleta automática |
 
@@ -61,6 +61,10 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 3.3. **Uso do feedback.** O conteúdo do feedback pode ser usado, de forma agregada ou anonimizada sempre que possível, para melhorar o aplicativo e o serviço. Sugestões podem ser implementadas sem que isso gere direito a remuneração. O feedback não é publicado com identificação do autor sem o seu consentimento.
 
 3.4. **Assistente virtual.** O site oferece um assistente de inteligência artificial para tirar dúvidas. As mensagens enviadas a ele, a página em que a conversa ocorreu e, se houver login, a identificação da conta são registradas e enviadas à equipe da Operadora para responder, corrigir problemas e melhorar o serviço (legítimo interesse e execução de contrato). O processamento é feito por fornecedor de tecnologia contratado como operador, que não pode usar os dados para outras finalidades. Não envie ao assistente senhas, dados de cartão, dados de saúde de pacientes ou outros dados sensíveis. As respostas do assistente são informativas e não substituem os Termos e documentos oficiais.
+
+3.4. **Verificação de identidade (documento e selfie).** Para dar mais segurança a Anfitriões e Locatários, o titular pode enviar o CPF ou CNPJ, uma foto do documento de identidade e uma selfie. A checagem é automática: confere os dígitos do CPF/CNPJ; consulta a situação cadastral e o quadro de sócios do CNPJ na base pública da Receita Federal; e um sistema de inteligência artificial lê o documento (nome, CPF, data de nascimento), procura sinais de adulteração e verifica se a selfie é uma foto real tirada na hora. **A Plataforma não faz reconhecimento facial automatizado** nem compara rostos por meio técnico; quando a checagem automática não é conclusiva, a equipe revê o caso. As fotos são tratadas como dados de alto risco, com base no art. 11, II, "g", da LGPD (prevenção à fraude e segurança do titular em processos de identificação e autenticação de cadastro): ficam cifradas, cada acesso é registrado e são apagadas 90 dias após a conferência, salvo necessidade de guarda para exercício regular de direitos em disputa. O resultado aparece no perfil como selo de identidade verificada. O titular pode pedir revisão humana pelo e-mail info@wmundi.com.
+
+3.5. **Registro de segurança.** Guardamos o IP, o navegador e o horário do cadastro e da confirmação do e-mail, e recusamos e-mails temporários (descartáveis), para prevenir fraude e cumprir a guarda de registros de acesso (Marco Civil da Internet, art. 15).
 
 ## 4. Compartilhamento
 

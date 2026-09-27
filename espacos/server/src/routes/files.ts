@@ -9,10 +9,12 @@ import { IMAGE_MAX_BYTES, readImage, saveImage } from '../storage.js';
 import { LICENSE_DOC_MAX_BYTES, decide, latestLicenseCheck, pendingVerifications, runVerification, submitLicense, verificationDocument, documentAccessLog } from '../verification.js';
 import { CATEGORIES } from '../../../shared/rules.js';
 import { pool } from '../db.js';
+import { IDENTITY_MAX_BYTES, decideIdentity, identityFile, latestIdentity, pendingIdentities, runIdentityCheck, submitIdentity } from '../identity.js';
 
 export const filesRouter = Router();
 
 const photos = multer({ storage: multer.memoryStorage(), limits: { fileSize: IMAGE_MAX_BYTES, files: 20 } });
+const identityFiles = multer({ storage: multer.memoryStorage(), limits: { fileSize: IDENTITY_MAX_BYTES, files: 2 } });
 const licenseDoc = multer({ storage: multer.memoryStorage(), limits: { fileSize: LICENSE_DOC_MAX_BYTES, files: 1 } });
 
 /** Converte erros do multer em respostas da API. */
@@ -95,5 +97,49 @@ filesRouter.post('/admin/verifications/:id/decision', requireAuth, async (req: A
   requireAdmin(req);
   const { status, note } = z.object({ status: z.enum(['approved', 'rejected']), note: z.string().max(1000).optional() }).parse(req.body);
   await decide(req.params.id, status, undefined, req.user!.id, note);
+  res.json({ ok: true });
+});
+
+// Identidade: CPF/CNPJ + foto do documento + selfie. Checagens em segundo plano; não trava o uso do app.
+filesRouter.post('/me/identity', requireAuth, upload(identityFiles.fields([{ name: 'document', maxCount: 1 }, { name: 'selfie', maxCount: 1 }])), async (req: AuthedRequest, res) => {
+  const { taxId } = z.object({ taxId: z.string().min(5).max(30) }).parse(req.body);
+  const files = req.files as Record<string, Express.Multer.File[] | undefined> | undefined;
+  const doc = files?.document?.[0];
+  const selfie = files?.selfie?.[0];
+  if (!doc || !selfie) throw new HttpError(422, 'no_file');
+  const vid = await submitIdentity(req.user!, {
+    taxId, document: doc.buffer, documentType: doc.mimetype, selfie: selfie.buffer, selfieType: selfie.mimetype,
+    ip: req.ip, userAgent: req.get('user-agent'),
+  });
+  const analysis = runIdentityCheck(vid).catch((e) => console.error('[identidade IA]', (e as Error).message));
+  if (process.env.LICENSE_VERIFY_SYNC === 'true') await analysis;
+  res.status(202).json({ id: vid, status: (await latestIdentity(req.user!.id))?.status ?? 'pending' });
+});
+
+filesRouter.get('/me/identity', requireAuth, async (req: AuthedRequest, res) => {
+  const v = await latestIdentity(req.user!.id);
+  res.json({ verified: req.user!.identityVerified, status: v?.status ?? 'none', submittedAt: v?.created_at ?? null });
+});
+
+filesRouter.get('/admin/identities', requireAuth, async (req: AuthedRequest, res) => {
+  requireAdmin(req);
+  res.json(await pendingIdentities());
+});
+
+filesRouter.get('/admin/identities/:id/:which', requireAuth, async (req: AuthedRequest, res) => {
+  requireAdmin(req);
+  const which = z.enum(['document', 'selfie']).parse(req.params.which);
+  const f = await identityFile(req.params.id, which, { id: req.user!.id, ip: req.ip, userAgent: req.get('user-agent') });
+  if (!f) throw new HttpError(404, 'not_found');
+  res.set('Content-Type', f.type);
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.send(f.data);
+});
+
+filesRouter.post('/admin/identities/:id/decision', requireAuth, async (req: AuthedRequest, res) => {
+  requireAdmin(req);
+  const { status, note } = z.object({ status: z.enum(['approved', 'rejected']), note: z.string().max(1000).optional() }).parse(req.body);
+  await decideIdentity(req.params.id, status, undefined, req.user!.id, note);
   res.json({ ok: true });
 });

@@ -11,6 +11,7 @@ import type { Booking, ClientReviewInvite, Incident, IncidentType, Message, Publ
 import { OVERSTAY, PENALTIES, REVIEW_RULES, hostCancellationPenalty, occurrenceStartUtc } from '../../../shared/rules';
 import { PAYMENT_METHOD_LABELS, type PaymentMethodId } from '../../../shared/countries';
 import { errorText } from '../errors';
+import { AddressMap } from '../components/AddressMap';
 import { formatDate, formatDateTime, money } from '../format';
 
 type View = Omit<Booking, 'guarantor'> & {
@@ -106,6 +107,7 @@ export default function BookingPage() {
             </ul>
             <p className="muted small">{t('listing.timezone', { tz: l.timezone })} · {t('checkout.people', { n: b.guests })} · {t('booking.purpose')}: {b.purpose}</p>
             <p><strong>{t('booking.address')}:</strong> {l.address ?? <span className="muted">{t('listing.addressAfterConfirm')}</span>}</p>
+            {l.address && <AddressMap query={[l.address, l.neighborhood, l.city, l.state, l.countryCode].filter(Boolean).join(', ')} />}
             {b.hostDecisionDeadline && ['pending_host', 'pending_guarantor'].includes(b.status) && <p className="notice small">⏳ {t('booking.deadline', { at: formatDateTime(b.hostDecisionDeadline, locale) })}</p>}
           </section>
 
