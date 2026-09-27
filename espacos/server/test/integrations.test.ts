@@ -356,9 +356,12 @@ test('split Mercado Pago: anfitrião conecta a conta; pagamento criado em nome d
     const input = { listingId: l.id, occurrences: [{ date, start: '15:00', end: '16:00' }], guests: 1, purpose: 'Sessão', paymentMethod: 'pix', acceptRules: true };
     process.env.MP_ACCESS_TOKEN_BR = 'PLATFORM';
     delete process.env.PAYMENTS_PROVIDER;
-    // sem conta conectada: anúncio some da busca e não aceita reserva
-    const before = await (await fetch(`${base}/listings`)).json() as Listing[];
-    assert.ok(!before.some((x) => x.hostId === host.id));
+    // sem conta conectada: anúncio aparece como "em breve" (depois dos reserváveis) e não aceita reserva
+    const before = await (await fetch(`${base}/listings`)).json() as (Listing & { bookable: boolean })[];
+    const mine = before.filter((x) => x.hostId === host.id);
+    assert.ok(mine.length > 0 && mine.every((x) => x.bookable === false));
+    assert.ok(before.findIndex((x) => !x.bookable) > before.map((x) => x.bookable).lastIndexOf(true), 'reserváveis primeiro');
+    assert.ok(!(await (await fetch(`${base}/listings?bookable=1`)).json() as Listing[]).some((x) => x.hostId === host.id));
     await assert.rejects(B.createBooking(guest, input), /host_payment_not_connected/);
 
     // anfitrião autoriza no Mercado Pago
@@ -480,6 +483,15 @@ test('origem do cadastro (UTM) aparece no relatório de campanha do admin', asyn
   assert.equal((await fetch(`${base}/admin/signups`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
   const rep = await (await fetch(`${base}/admin/signups?days=7`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { bySource: { source: string; signups: number }[] };
   assert.equal(rep.bySource.find((s) => s.source === 'meta/paid/lancamento-anfitrioes')?.signups, 1);
+
+  // Suporte: consulta de usuário pelo e-mail
+  assert.equal((await fetch(`${base}/admin/users?email=campanha`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
+  const found = await (await fetch(`${base}/admin/users?email=CAMPANHA@`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { email: string; email_verified_at: string | null; mp_connected_at: string | null; listings: unknown[]; emails: { kind: string }[] }[];
+  assert.equal(found.length, 1);
+  assert.equal(found[0].email, 'campanha@example.com');
+  assert.equal(found[0].email_verified_at, null);
+  assert.equal(found[0].mp_connected_at, null);
+  assert.deepEqual(found[0].listings, []);
 });
 
 test('app: token de push registrado, fila envia pelo FCM e token inválido é removido', async () => {

@@ -85,7 +85,7 @@ function Incidents() {
   );
 }
 
-type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant';
+type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant' | 'users';
 
 export function Admin() {
   const { t } = useI18n();
@@ -94,9 +94,9 @@ export function Admin() {
     <div className="container">
       <h1>{t('admin.title')}</h1>
       <div className="segmented" role="tablist">
-        {(['verifications', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
+        {(['verifications', 'users', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : 'admin.tabFeedback')}
+            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : k === 'users' ? 'admin.tabUsers' : 'admin.tabFeedback')}
           </button>
         ))}
       </div>
@@ -105,6 +105,7 @@ export function Admin() {
       {tab === 'feedback' && <FeedbackAdmin />}
       {tab === 'campaign' && <CampaignAdmin />}
       {tab === 'assistant' && <AssistantAdmin />}
+      {tab === 'users' && <UsersAdmin />}
     </div>
   );
 }
@@ -180,6 +181,59 @@ function AssistantAdmin() {
           </summary>
           {c.messages.map((m, i) => <p key={i} className={`assistant-msg ${m.role === 'user' ? 'me' : 'bot'}`}>{m.content}</p>)}
         </details>
+      ))}
+    </div>
+  );
+}
+
+// Suporte: consulta um usuário pelo e-mail (cadastro, anúncios, Mercado Pago, e-mails enviados)
+function UsersAdmin() {
+  const { t, locale } = useI18n();
+  type U = {
+    id: string; email: string; name: string; phone: string | null; roles: string[]; created_at: string; email_verified_at: string | null;
+    signup_source: string | null; mp_connected_at: string | null;
+    listings: { id: string; title: string; city: string; active: boolean; created_at: string }[];
+    emails: { kind: string; created_at: string; email_status: string; email_error: string | null }[];
+  };
+  const [q, setQ] = useState('');
+  const [list, setList] = useState<U[] | null>(null);
+  const [error, setError] = useState('');
+  async function search(e: { preventDefault(): void }) {
+    e.preventDefault();
+    setError('');
+    try { setList(await api<U[]>(`/admin/users?email=${encodeURIComponent(q.trim())}`)); } catch (err) { setError(errorText(err, t)); }
+  }
+  const yes = (v: unknown) => (v ? '✅' : '❌');
+  return (
+    <div className="users-admin">
+      <form className="row gap" onSubmit={search}>
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.uSearch')} minLength={3} required />
+        <button className="btn btn-primary">{t('admin.uFind')}</button>
+      </form>
+      {error && <p className="errors">{error}</p>}
+      {list?.length === 0 && <p className="muted">{t('admin.uNone')}</p>}
+      {list?.map((u) => (
+        <div key={u.id} className="panel">
+          <p><strong>{u.name}</strong> &lt;{u.email}&gt;{u.phone ? ` · ${u.phone}` : ''} · {u.roles.join(', ')}</p>
+          <p className="small">
+            {t('admin.uCreated')}: {formatDateTime(u.created_at, locale)}{u.signup_source ? ` (${u.signup_source})` : ''}<br />
+            {yes(u.email_verified_at)} {t('admin.uEmailVerified')}{u.email_verified_at ? ` — ${formatDateTime(u.email_verified_at, locale)}` : ''}<br />
+            {yes(u.mp_connected_at)} {t('admin.uMpConnected')}{u.mp_connected_at ? ` — ${formatDateTime(u.mp_connected_at, locale)}` : ''}
+          </p>
+          <h3>{t('admin.uListings')} ({u.listings.length})</h3>
+          {u.listings.length === 0 && <p className="muted small">—</p>}
+          <ul className="small">
+            {u.listings.map((l) => (
+              <li key={l.id}><Link to={`/espacos/${l.id}`}>{l.title}</Link> · {l.city} · {l.active ? t('admin.uActive') : t('admin.uInactive')}{l.active && !u.mp_connected_at ? ` · 🕒 ${t('listing.comingSoon')}` : ''} · {formatDateTime(l.created_at, locale)}</li>
+            ))}
+          </ul>
+          <h3>{t('admin.uEmails')}</h3>
+          <table className="hours small">
+            <tbody>{u.emails.map((n, i) => (
+              <tr key={i}><td>{formatDateTime(n.created_at, locale)}</td><td>{n.kind}</td><td>{n.email_status === 'sent' ? '✅' : n.email_status === 'pending' ? '⏳' : n.email_status === 'failed' ? '❌' : '—'} {n.email_status}{n.email_error ? `: ${n.email_error}` : ''}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
       ))}
     </div>
   );

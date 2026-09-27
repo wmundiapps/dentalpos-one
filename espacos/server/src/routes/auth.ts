@@ -89,6 +89,27 @@ authRouter.get('/admin/signups', requireAuth, async (req: AuthedRequest, res) =>
   res.json({ days, bySource, byDay });
 });
 
+// Consulta de um usuário pelo e-mail (suporte): cadastro, anúncios, Mercado Pago e e-mails enviados.
+authRouter.get('/admin/users', requireAuth, async (req: AuthedRequest, res) => {
+  if (!req.user!.roles.includes('admin')) throw new HttpError(403, 'forbidden');
+  const email = z.string().trim().min(3).max(200).parse(req.query.email);
+  const users = await rows<{ id: string; email: string; name: string; phone: string | null; roles: string[]; created_at: Date; email_verified_at: Date | null; signup_source: string | null; mp_connected_at: Date | null }>(pool,
+    `SELECT u.id, u.email, u.name, u.phone, u.roles, u.created_at, u.email_verified_at, u.signup_source, m.connected_at AS mp_connected_at
+       FROM users u LEFT JOIN mp_accounts m ON m.user_id = u.id
+      WHERE u.deleted_at IS NULL AND lower(u.email) LIKE '%' || lower($1) || '%' ORDER BY u.created_at DESC LIMIT 10`, [email]);
+  const ids = users.map((u) => u.id);
+  const listings = ids.length ? await rows<{ id: string; host_id: string; title: string; city: string; active: boolean; created_at: Date }>(pool,
+    'SELECT id, host_id, title, city, active, created_at FROM listings WHERE host_id = ANY($1) ORDER BY created_at DESC', [ids]) : [];
+  const emails = ids.length ? await rows<{ user_id: string; kind: string; created_at: Date; email_status: string; email_error: string | null }>(pool,
+    `SELECT user_id, kind, created_at, email_status, email_error FROM notifications
+      WHERE user_id = ANY($1) ORDER BY created_at DESC LIMIT 60`, [ids]) : [];
+  res.json(users.map((u) => ({
+    ...u,
+    listings: listings.filter((l) => l.host_id === u.id),
+    emails: emails.filter((n) => n.user_id === u.id).slice(0, 15),
+  })));
+});
+
 // Aplicativo: registra o aparelho para notificações push.
 authRouter.post('/me/push-token', requireAuth, async (req: AuthedRequest, res) => {
   const { token, platform } = z.object({ token: z.string().min(20).max(4096), platform: z.enum(['android', 'ios']) }).parse(req.body);

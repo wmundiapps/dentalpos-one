@@ -1,7 +1,9 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
 import { assistantRouter } from './routes/assistant.js';
+import { waitUntil } from '@vercel/functions';
 import { flushPushQueue, pushConfigured } from './push.js';
+import { flushEmailQueue } from './mailer.js';
 import { ZodError } from 'zod';
 import { HttpError } from './auth.js';
 import { authRouter } from './routes/auth.js';
@@ -31,9 +33,18 @@ export function createApp() {
     if (!secret || req.headers.authorization !== `Bearer ${secret}`) throw new HttpError(401, 'unauthorized');
     res.json(await runJobs());
   });
-  // Push logo após ações que geram notificação (a rotina periódica cobre o que ficar).
+  // E-mails e push logo após cada ação (a rotina periódica cobre o que falhar). Na Vercel,
+  // waitUntil mantém a função viva até o envio terminar, mesmo depois da resposta.
   app.use('/api', (req, res, next) => {
-    if (req.method !== 'GET' && pushConfigured()) res.on('finish', () => { flushPushQueue().catch((e) => console.error('[push]', (e as Error).message)); });
+    if (req.method !== 'GET' && (process.env.SMTP_HOST || pushConfigured())) {
+      res.on('finish', () => {
+        const work = Promise.all([
+          process.env.SMTP_HOST ? flushEmailQueue().catch((e) => console.error('[email]', (e as Error).message)) : undefined,
+          pushConfigured() ? flushPushQueue().catch((e) => console.error('[push]', (e as Error).message)) : undefined,
+        ]);
+        try { waitUntil(work); } catch { /* fora da Vercel: segue em segundo plano */ }
+      });
+    }
     next();
   });
   app.use('/api', assistantRouter, authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter);

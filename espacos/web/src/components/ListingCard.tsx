@@ -5,7 +5,7 @@ import { useI18n } from '../i18n';
 import { money, countryName, placeLine } from '../format';
 import type { Listing } from '../../../shared/types';
 
-export type ListingSummary = Omit<Listing, 'address'> & { address?: string; stateName?: string; rating: number | null; reviewCount: number; clientRating: number | null; clientReviewCount: number; depositHold?: boolean };
+export type ListingSummary = Omit<Listing, 'address'> & { address?: string; stateName?: string; rating: number | null; reviewCount: number; clientRating: number | null; clientReviewCount: number; depositHold?: boolean; bookable?: boolean };
 
 export function ListingCard({ l, fav, onFav }: { l: ListingSummary; fav?: boolean; onFav?: () => void }) {
   const { t, locale } = useI18n();
@@ -15,6 +15,7 @@ export function ListingCard({ l, fav, onFav }: { l: ListingSummary; fav?: boolea
         <div className="card-media">
           <SpaceArt id={l.id} category={l.category} photo={l.photos[0]} />
           {l.instantBook && <span className="badge badge-float">⚡ {t('listing.instant')}</span>}
+          {l.bookable === false && <span className="badge badge-soon">🕒 {t('listing.comingSoon')}</span>}
         </div>
         <div className="card-body">
           <div className="row between">

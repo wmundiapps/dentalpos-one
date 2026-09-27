@@ -79,7 +79,7 @@ export default function ListingPage() {
   const guestReviews = reviews.filter((r) => r.kind === 'guest_to_listing');
   const clientReviews = reviews.filter((r) => r.kind === 'client_to_listing');
   const slots = timeSlots();
-  const canBook = quote && quote.errors.length === 0 && guests <= l.capacity;
+  const canBook = l.bookable !== false && quote && quote.errors.length === 0 && guests <= l.capacity;
   const weekdays: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
 
   function reserve() {
@@ -233,6 +233,11 @@ export default function ListingPage() {
               <ul className="errors small">{quote.errors.map((e, i) => <li key={i}>{t(`val.${e.code}` as DictKey, e.params)}</li>)}</ul>
             )}
             {guests > l.capacity && <p className="errors small">{t('err.over_capacity', { max: l.capacity })}</p>}
+            {l.bookable === false && (
+              <p className="small notice">🕒 {me?.id === l.hostId
+                ? <>{t('listing.notBookableOwner')} <Link to="/anfitriao">{t('listing.connectPayout')}</Link></>
+                : t('listing.notBookable')}</p>
+            )}
             <button className="btn btn-primary block" disabled={!canBook} onClick={reserve}>
               {l.instantBook ? t('book.reserve') : t('book.request')}
             </button>
