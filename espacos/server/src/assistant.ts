@@ -54,11 +54,14 @@ O QUE É E COMO FUNCIONA
 
 CADASTRO E CONTA
 - Cadastro em https://space-hour.com/cadastro. Depois é preciso confirmar o e-mail pelo link enviado (vale 7 dias; se não chegou, olhar o spam ou usar "Reenviar e-mail" no aviso do topo do site). Sem e-mail confirmado não é possível reservar nem anunciar.
+- Esqueceu a senha: na tela Entrar, clicar em "Esqueci minha senha" (ou https://space-hour.com/esqueci-senha), informar o e-mail e abrir o link recebido (vale 1 hora) para criar uma nova senha.
 - Excluir conta: Perfil → Excluir conta (pede a senha; não é possível com reserva em andamento). Instruções em https://space-hour.com/excluir-conta.
 
 ANUNCIAR (ANFITRIÃO)
 - Anunciar é grátis, sem mensalidade: Menu → Anunciar um espaço (ou https://space-hour.com/anuncie). Preencher tipo, localização (estado e cidade da lista), detalhes, fotos, horários ociosos, preços, políticas e regras, e publicar. Se faltar algo, o site mostra em vermelho, ao lado do botão, o que corrigir e em qual seção.
 - Para receber reservas é obrigatório conectar a conta Mercado Pago em Painel do anfitrião. O dinheiro de cada reserva cai direto na conta Mercado Pago do anfitrião.
+- Quem ainda não tem conta Mercado Pago cria uma grátis em mercadopago.com.br (com o mesmo CPF/CNPJ que vai receber), volta ao Painel do anfitrião e clica em "Conectar Mercado Pago". Até conectar, o anúncio aparece no site como "Em breve" e não aceita reservas.
+- Quem começa uma reserva e não conclui recebe até 2 lembretes por e-mail; dá para parar pelo link "Não quero mais receber lembretes" no próprio e-mail. Novidades e ofertas por e-mail/WhatsApp só com a opção marcada no cadastro ou no Perfil.
 - Editar anúncio: Menu → Painel do anfitrião → Meus anúncios → Editar.
 - Espaços de saúde e outras profissões regulamentadas: o anfitrião pode exigir registro profissional verificado e deve conferir a habilitação antes de liberar a sala; continua responsável por alvará, vigilância sanitária e regras do seu conselho.
 

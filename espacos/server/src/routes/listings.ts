@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { id, nowIso, pool, rows, withTx, type Db } from '../db.js';
 import * as repo from '../repo.js';
 import { HttpError, adminEmails, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
-import { SUPPORT_EMAIL, flushEmailQueue } from '../mailer.js';
+import { SUPPORT_EMAIL } from '../mailer.js';
 import { assertEmailVerified } from '../emailVerification.js';
 import { isLaunched } from '../launch.js';
 import { notify } from '../notify.js';
@@ -96,14 +96,24 @@ async function addressVisibleTo(db: Db, listings: Listing[], viewer?: User) {
   return new Set([...listings.filter((l) => l.hostId === viewer.id).map((l) => l.id), ...booked.map((r) => r.listing_id)]);
 }
 
+/** Anfitriões que já podem receber reservas (com o split ligado, precisam da conta Mercado Pago conectada). */
+async function bookableHosts(listings: Listing[]) {
+  const needs = listings.filter((l) => MP_COUNTRIES.includes(l.countryCode));
+  if (!needs.length || !marketplaceEnabled() || process.env.PAYMENTS_PROVIDER === 'simulated') return () => true;
+  const connected = await connectedHostIds([...new Set(needs.map((l) => l.hostId))]);
+  return (l: Listing) => !MP_COUNTRIES.includes(l.countryCode) || connected.has(l.hostId);
+}
+
 export async function publicListings(db: Db, listings: Listing[], viewer?: User) {
   const ratings = await repo.ratingSummaries(db, listings.map((l) => l.id));
   const visible = await addressVisibleTo(db, listings, viewer);
+  const canBook = await bookableHosts(listings);
   return listings.map((l) => {
     const { address, ...rest } = l;
     // Caução: pré-autorização no cartão quando o processador permite; senão, garantida por avalista
     const depositHold = l.securityDeposit > 0 ? supportsHold('card', gatewayFor(l.countryCode)) : undefined;
-    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, depositHold, ...ratings(l.id) };
+    // bookable=false: anfitrião ainda não conectou o Mercado Pago — aparece como "em breve", sem reserva
+    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, depositHold, bookable: canBook(l), ...ratings(l.id) };
   });
 }
 
@@ -127,11 +137,6 @@ listingsRouter.get('/listings', optionalAuth, async (req: AuthedRequest, res) =>
     instant: q.instant === '1', noGuarantor: q.noGuarantor === '1', amenities: q.amenities?.split(',').filter(Boolean), q: q.q,
   });
   list = list.filter((l) => isLaunched(l.countryCode));
-  // Com o split ligado, só aparecem anúncios de anfitriões com conta de recebimento conectada
-  if (marketplaceEnabled() && process.env.PAYMENTS_PROVIDER !== 'simulated') {
-    const connected = await connectedHostIds([...new Set(list.filter((l) => MP_COUNTRIES.includes(l.countryCode)).map((l) => l.hostId))]);
-    list = list.filter((l) => !MP_COUNTRIES.includes(l.countryCode) || connected.has(l.hostId));
-  }
   if (q.date && /^\d{4}-\d{2}-\d{2}$/.test(q.date)) {
     const date = q.date;
     if (q.start && q.end) {
@@ -153,7 +158,9 @@ listingsRouter.get('/listings', optionalAuth, async (req: AuthedRequest, res) =>
   if (q.sort === 'price_asc') results.sort((a, b) => a.pricePerHour - b.pricePerHour);
   else if (q.sort === 'price_desc') results.sort((a, b) => b.pricePerHour - a.pricePerHour);
   else results.sort((a, b) => (b.rating ?? 0) * Math.log(2 + b.reviewCount) - (a.rating ?? 0) * Math.log(2 + a.reviewCount));
-  res.json(results);
+  // Anúncios de anfitriões que ainda não recebem reservas ("em breve") vêm depois
+  results.sort((a, b) => Number(b.bookable) - Number(a.bookable));
+  res.json(q.bookable === '1' ? results.filter((r) => r.bookable) : results);
 });
 
 listingsRouter.get('/listings/:id', optionalAuth, async (req: AuthedRequest, res) => {
@@ -220,8 +227,6 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
     }
   });
   res.status(201).json(listing);
-  // Envia os e-mails já (a rotina periódica cobre o que falhar)
-  if (process.env.SMTP_HOST) flushEmailQueue().catch((e) => console.error('[email]', (e as Error).message));
 });
 
 listingsRouter.put('/listings/:id', requireAuth, async (req: AuthedRequest, res) => {

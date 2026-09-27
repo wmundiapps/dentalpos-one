@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiUpload } from '../api';
 import type { DictKey } from '../i18n';
 import { CATEGORIES } from '../../../shared/rules';
@@ -31,6 +31,8 @@ export default function Profile() {
       {me.suspendedUntil && new Date(me.suspendedUntil) > new Date() && <p className="notice warn">{t('profile.suspended', { at: formatDateTime(me.suspendedUntil, locale) })}</p>}
       <p className="muted small">{t('profile.strikes', { n: me.activeStrikes, suspend: STRIKE_RULES.suspendAt, ban: STRIKE_RULES.banAt })} <Link to="/regras/penalties">{t('legal.penalties')}</Link></p>
       {msg && <p className="notice small">{msg}</p>}
+
+      <MarketingPrefs />
 
       <section className="panel">
         <h2>{t('profile.info')}</h2>
@@ -174,6 +176,25 @@ function LicenseSection({ onDone }: { onDone: () => Promise<void> }) {
           <button className="btn btn-primary" disabled={busy || !file}>{busy ? t('common.wait') : t('profile.licenseSubmit')}</button>
         </form>
       )}
+    </section>
+  );
+}
+
+// Novidades e ofertas por e-mail/WhatsApp (consentimento separado, pode mudar a qualquer momento)
+function MarketingPrefs() {
+  const { t } = useI18n();
+  const [optIn, setOptIn] = useState<boolean | null>(null);
+  useEffect(() => { api<{ optIn: boolean }>('/me/marketing').then((r) => setOptIn(r.optIn)).catch(() => {}); }, []);
+  if (optIn === null) return null;
+  async function change(v: boolean) {
+    setOptIn(v);
+    try { await api('/me/marketing', { method: 'PUT', body: { optIn: v } }); } catch { setOptIn(!v); }
+  }
+  return (
+    <section className="panel">
+      <h2>{t('profile.marketingTitle')}</h2>
+      <label className="check"><input type="checkbox" checked={optIn} onChange={(e) => change(e.target.checked)} /> {t('auth.marketingOptIn')}</label>
+      <p className="muted small">{t('profile.marketingHelp')}</p>
     </section>
   );
 }

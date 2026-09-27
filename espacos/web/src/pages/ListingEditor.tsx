@@ -8,6 +8,7 @@ import { LAUNCH_COUNTRIES, COUNTRY_BY_CODE } from '../../../shared/countries';
 import type { Listing, TimeRange, Weekday } from '../../../shared/types';
 import { countryName, flag, timeSlots } from '../format';
 import { errorText } from '../errors';
+import { useMercadoPagoPrompt } from '../components/MercadoPagoPrompt';
 import { PhotoUploader } from '../components/PhotoUploader';
 import { PlacePicker } from '../components/PlacePicker';
 
@@ -84,6 +85,9 @@ export default function ListingEditor() {
   const [error, setError] = useState<{ text: string; section?: number } | null>(null);
   const invalidShown = useRef(false);
   const [busy, setBusy] = useState(false);
+  const mp = useMercadoPagoPrompt();
+  // Novo anúncio: avisa logo no início que o recebimento é pelo Mercado Pago
+  useEffect(() => { if (me && !id) mp.show('editor'); }, [me, id, mp.show]);
 
   useEffect(() => {
     if (!id) return;
@@ -136,11 +140,13 @@ export default function ListingEditor() {
         text = `${t('err.validation')}: ${fields.map((k) => (FIELD_LABEL[k] ? t(FIELD_LABEL[k]) : k)).join(', ')}`;
       }
       setError({ text: section ? t('editor.errorIn', { section: sectionTitle(section), error: text }) : text, section });
+      mp.show('editor-error');
     } finally { setBusy(false); }
   }
 
   return (
     <div className="container editor">
+      {mp.modal}
       <h1>{id ? t('editor.editTitle') : t('editor.newTitle')}</h1>
       <p className="muted">{t('editor.intro')}</p>
       <form onSubmit={save} onInvalidCapture={(e) => {

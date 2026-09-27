@@ -396,3 +396,38 @@ ul.errors { padding-inline-start: 18px; }
 .recent-chip.on { border-color: var(--brand); background: var(--brand-soft); }
 .recent-chip button { border: 0; background: none; padding: 5px 10px; cursor: pointer; color: var(--text); font: inherit; font-size: 0.9rem; }
 .recent-chip button + button { padding: 5px 8px 5px 2px; color: var(--muted); }
+
+/* Banner rotativo de espaços anunciados (Home) */
+.showcase { position: relative; overflow: hidden; border-radius: var(--radius); margin: 18px 0 6px; aspect-ratio: 21 / 8; max-height: 420px; background: var(--surface-2); box-shadow: var(--shadow); }
+.showcase-track { display: flex; height: 100%; transition: transform 0.6s ease; }
+.showcase-slide { position: relative; flex: 0 0 100%; height: 100%; color: #fff; text-decoration: none; }
+.showcase-slide .space-art { width: 100%; height: 100%; object-fit: cover; display: block; }
+.showcase-caption { position: absolute; inset: auto 0 0 0; padding: 40px 22px 34px; display: flex; flex-direction: column; gap: 4px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.72)); }
+.showcase-caption strong { font-size: 1.35rem; line-height: 1.2; }
+.showcase-tag { align-self: flex-start; background: rgba(255, 255, 255, 0.92); color: #222; border-radius: 20px; padding: 2px 10px; font-size: 0.75rem; font-weight: 600; }
+.showcase-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.9); color: #222; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.showcase-nav.prev { inset-inline-start: 12px; }
+.showcase-nav.next { inset-inline-end: 12px; }
+.showcase-dots { position: absolute; bottom: 10px; inset-inline: 0; display: flex; justify-content: center; gap: 6px; }
+.showcase-dots button { width: 8px; height: 8px; padding: 0; border-radius: 50%; border: 0; background: rgba(255, 255, 255, 0.5); cursor: pointer; }
+.showcase-dots button.on { background: #fff; width: 20px; border-radius: 4px; }
+[dir='rtl'] .showcase-track { flex-direction: row-reverse; }
+.showcase-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 22px; }
+.showcase-head h2 { margin: 0; }
+.badge-soon { position: absolute; bottom: 10px; inset-inline-start: 10px; background: #fff4d6; color: #7a5200; border: 0; }
+@media (max-width: 700px) {
+  .showcase { aspect-ratio: 4 / 3; }
+  .showcase-caption strong { font-size: 1.1rem; }
+  .showcase-nav { display: none; }
+}
+
+/* Janela do Mercado Pago */
+.mp-prompt { width: min(560px, 100%); }
+.mp-steps { padding-inline-start: 20px; line-height: 1.5; }
+.mp-steps li { margin-bottom: 8px; }
+
+/* Admin → Contatos */
+.stat-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin: 12px 0; }
+.stat-row .panel { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; margin: 0; }
+.stat-row strong { font-size: 1.5rem; }
+.table-scroll { overflow-x: auto; }

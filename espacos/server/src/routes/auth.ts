@@ -9,6 +9,7 @@ import { COUNTRY_BY_CODE, SUPPORTED_LOCALES } from '../../../shared/countries.js
 import { RULES_VERSION } from '../../../shared/rules.js';
 import type { User } from '../../../shared/types.js';
 import { confirmEmail, sendVerificationEmail } from '../emailVerification.js';
+import { requestPasswordReset, resetPassword } from '../passwordReset.js';
 
 export const authRouter = Router();
 
@@ -21,6 +22,7 @@ const registerSchema = z.object({
   acceptTerms: z.literal(true),
   confirmAge: z.literal(true),
   source: z.string().max(200).optional(), // utm_source/medium/campaign/content (first touch)
+  marketingOptIn: z.boolean().optional(), // consentimento separado para novidades (LGPD)
 });
 
 authRouter.post('/auth/register', async (req, res) => {
@@ -34,6 +36,7 @@ authRouter.post('/auth/register', async (req, res) => {
   };
   await insertUser(pool, user); // índice único em lower(email) cobre cadastros simultâneos
   if (data.source) await pool.query('UPDATE users SET signup_source = $2 WHERE id = $1', [user.id, data.source]);
+  if (data.marketingOptIn) await pool.query('UPDATE users SET marketing_opt_in_at = now() WHERE id = $1', [user.id]);
   // Falha no envio não impede o cadastro: dá para reenviar pelo aviso no app.
   await sendVerificationEmail(user).catch((e) => console.error('[email] confirmação de cadastro', (e as Error).message));
   res.status(201).json({ token: signToken(user), user: toSelf(user) });
@@ -44,6 +47,18 @@ authRouter.post('/auth/login', async (req, res) => {
   const user = await getUserByEmail(pool, email);
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) throw new HttpError(401, 'invalid_credentials');
   if (user.banned) throw new HttpError(403, 'account_banned');
+  res.json({ token: signToken(user), user: toSelf(user) });
+});
+
+authRouter.post('/auth/forgot-password', async (req, res) => {
+  const { email } = z.object({ email: z.string().email().max(200) }).parse(req.body);
+  await requestPasswordReset(email).catch((e) => console.error('[senha]', (e as Error).message));
+  res.json({ sent: true }); // sempre igual: não revela se o e-mail tem conta
+});
+
+authRouter.post('/auth/reset-password', async (req, res) => {
+  const { token, password } = z.object({ token: z.string().min(10).max(200), password: z.string().min(8).max(200) }).parse(req.body);
+  const user = await resetPassword(token, password);
   res.json({ token: signToken(user), user: toSelf(user) });
 });
 
@@ -74,6 +89,27 @@ authRouter.get('/admin/signups', requireAuth, async (req: AuthedRequest, res) =>
     `SELECT to_char(date_trunc('day', created_at AT TIME ZONE 'America/Sao_Paulo'), 'YYYY-MM-DD') AS day, count(*)::int AS signups
        FROM users WHERE created_at > now() - make_interval(days => $1) GROUP BY 1 ORDER BY 1`, [days]);
   res.json({ days, bySource, byDay });
+});
+
+// Consulta de um usuário pelo e-mail (suporte): cadastro, anúncios, Mercado Pago e e-mails enviados.
+authRouter.get('/admin/users', requireAuth, async (req: AuthedRequest, res) => {
+  if (!req.user!.roles.includes('admin')) throw new HttpError(403, 'forbidden');
+  const email = z.string().trim().min(3).max(200).parse(req.query.email);
+  const users = await rows<{ id: string; email: string; name: string; phone: string | null; roles: string[]; created_at: Date; email_verified_at: Date | null; signup_source: string | null; mp_connected_at: Date | null }>(pool,
+    `SELECT u.id, u.email, u.name, u.phone, u.roles, u.created_at, u.email_verified_at, u.signup_source, m.connected_at AS mp_connected_at
+       FROM users u LEFT JOIN mp_accounts m ON m.user_id = u.id
+      WHERE u.deleted_at IS NULL AND lower(u.email) LIKE '%' || lower($1) || '%' ORDER BY u.created_at DESC LIMIT 10`, [email]);
+  const ids = users.map((u) => u.id);
+  const listings = ids.length ? await rows<{ id: string; host_id: string; title: string; city: string; active: boolean; created_at: Date }>(pool,
+    'SELECT id, host_id, title, city, active, created_at FROM listings WHERE host_id = ANY($1) ORDER BY created_at DESC', [ids]) : [];
+  const emails = ids.length ? await rows<{ user_id: string; kind: string; created_at: Date; email_status: string; email_error: string | null }>(pool,
+    `SELECT user_id, kind, created_at, email_status, email_error FROM notifications
+      WHERE user_id = ANY($1) ORDER BY created_at DESC LIMIT 60`, [ids]) : [];
+  res.json(users.map((u) => ({
+    ...u,
+    listings: listings.filter((l) => l.host_id === u.id),
+    emails: emails.filter((n) => n.user_id === u.id).slice(0, 15),
+  })));
 });
 
 // Aplicativo: registra o aparelho para notificações push.

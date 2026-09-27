@@ -271,7 +271,7 @@ test('cron protegido por segredo', async () => {
   process.env.CRON_SECRET = 's3cret';
   const r = await fetch(`${base}/cron/tick`, { headers: { Authorization: 'Bearer s3cret' } });
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'documents', 'email', 'mp_tokens', 'push', 'verifications']);
+  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'cart', 'documents', 'email', 'mp_tokens', 'push', 'verifications']);
   delete process.env.CRON_SECRET;
 });
 
@@ -356,9 +356,12 @@ test('split Mercado Pago: anfitrião conecta a conta; pagamento criado em nome d
     const input = { listingId: l.id, occurrences: [{ date, start: '15:00', end: '16:00' }], guests: 1, purpose: 'Sessão', paymentMethod: 'pix', acceptRules: true };
     process.env.MP_ACCESS_TOKEN_BR = 'PLATFORM';
     delete process.env.PAYMENTS_PROVIDER;
-    // sem conta conectada: anúncio some da busca e não aceita reserva
-    const before = await (await fetch(`${base}/listings`)).json() as Listing[];
-    assert.ok(!before.some((x) => x.hostId === host.id));
+    // sem conta conectada: anúncio aparece como "em breve" (depois dos reserváveis) e não aceita reserva
+    const before = await (await fetch(`${base}/listings`)).json() as (Listing & { bookable: boolean })[];
+    const mine = before.filter((x) => x.hostId === host.id);
+    assert.ok(mine.length > 0 && mine.every((x) => x.bookable === false));
+    assert.ok(before.findIndex((x) => !x.bookable) > before.map((x) => x.bookable).lastIndexOf(true), 'reserváveis primeiro');
+    assert.ok(!(await (await fetch(`${base}/listings?bookable=1`)).json() as Listing[]).some((x) => x.hostId === host.id));
     await assert.rejects(B.createBooking(guest, input), /host_payment_not_connected/);
 
     // anfitrião autoriza no Mercado Pago
@@ -480,6 +483,15 @@ test('origem do cadastro (UTM) aparece no relatório de campanha do admin', asyn
   assert.equal((await fetch(`${base}/admin/signups`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
   const rep = await (await fetch(`${base}/admin/signups?days=7`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { bySource: { source: string; signups: number }[] };
   assert.equal(rep.bySource.find((s) => s.source === 'meta/paid/lancamento-anfitrioes')?.signups, 1);
+
+  // Suporte: consulta de usuário pelo e-mail
+  assert.equal((await fetch(`${base}/admin/users?email=campanha`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
+  const found = await (await fetch(`${base}/admin/users?email=CAMPANHA@`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { email: string; email_verified_at: string | null; mp_connected_at: string | null; listings: unknown[]; emails: { kind: string }[] }[];
+  assert.equal(found.length, 1);
+  assert.equal(found[0].email, 'campanha@example.com');
+  assert.equal(found[0].email_verified_at, null);
+  assert.equal(found[0].mp_connected_at, null);
+  assert.deepEqual(found[0].listings, []);
 });
 
 test('app: token de push registrado, fila envia pelo FCM e token inválido é removido', async () => {
@@ -575,5 +587,131 @@ test('assistente de dúvidas: responde com a IA, grava a conversa e envia a tran
     assert.equal(list.find((c) => c.id === r1.conversationId)?.messages.length, 4);
   } finally {
     A.setAssistantClient();
+  }
+});
+
+test('esqueci minha senha: link por e-mail (1 h, uso único), não revela contas e derruba sessões antigas', async () => {
+  const sent: { to: string; text: string }[] = [];
+  M.setMailSender(async (m) => { sent.push(m); });
+  try {
+    const u = await register('esqueci@example.com', false);
+    const post = (path: string, body: unknown) => fetch(`${base}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    // resposta igual para e-mail com e sem conta
+    const a = await post('/auth/forgot-password', { email: 'ESQUECI@example.com' });
+    const b = await post('/auth/forgot-password', { email: 'ninguem@example.com' });
+    assert.deepEqual([a.status, await a.json()], [b.status, await b.json()]);
+    const mail = sent.find((m) => m.to === 'esqueci@example.com' && m.text.includes('redefinir-senha'))!;
+    assert.ok(mail); assert.ok(sent.every((m) => m.to !== 'ninguem@example.com'));
+    const t = /token=([\w-]+)/.exec(mail.text)![1];
+
+    assert.equal((await post('/auth/reset-password', { token: t, password: 'curta' })).status, 422);
+    const ok = await post('/auth/reset-password', { token: t, password: 'nova-senha-123' });
+    assert.equal(ok.status, 200);
+    const fresh = await ok.json() as { token: string; user: { emailVerifiedAt?: string } };
+    assert.ok(fresh.user.emailVerifiedAt, 'e-mail confirmado ao redefinir');
+    assert.equal((await post('/auth/reset-password', { token: t, password: 'outra-senha-123' })).status, 400, 'uso único');
+    assert.equal((await post('/auth/login', { email: 'esqueci@example.com', password: 'senha-forte-1' })).status, 401);
+    assert.equal((await post('/auth/login', { email: 'esqueci@example.com', password: 'nova-senha-123' })).status, 200);
+    assert.equal((await fetch(`${base}/me`, { headers: { Authorization: `Bearer ${fresh.token}` } })).status, 200);
+    // sessão emitida antes da troca (simula a troca 10 s depois do login antigo)
+    await pool.query("UPDATE users SET password_changed_at = password_changed_at + interval '10 seconds' WHERE lower(email) = 'esqueci@example.com'");
+    assert.equal((await fetch(`${base}/me`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 401, 'sessão antiga derrubada');
+    // link vencido (mais de 1 h)
+    await pool.query("UPDATE users SET password_reset_sent_at = NULL WHERE lower(email) = 'esqueci@example.com'");
+    await post('/auth/forgot-password', { email: 'esqueci@example.com' });
+    const t2 = /token=([\w-]+)/.exec(sent.filter((m) => m.text.includes('redefinir-senha')).at(-1)!.text)![1];
+    await pool.query("UPDATE users SET password_reset_sent_at = now() - interval '2 hours' WHERE lower(email) = 'esqueci@example.com'");
+    assert.equal((await post('/auth/reset-password', { token: t2, password: 'outra-senha-123' })).status, 400);
+  } finally {
+    M.setMailSender();
+  }
+});
+
+test('reserva abandonada: até 2 lembretes por e-mail, para ao reservar ou descadastrar; lembrete de confirmação; base de contatos', async () => {
+  const C = await import('../src/cartRecovery.js');
+  const mails: { to: string; subject: string; text: string; headers?: Record<string, string> }[] = [];
+  M.setMailSender(async (m) => { mails.push(m); });
+  const later = (min: number) => new Date(Date.now() + min * 60000);
+  try {
+    const l = byTitle('Sala de psicologia');
+    const date = nextDateWith(l, 2);
+    const query = new URLSearchParams({ o: JSON.stringify([{ date, start: '09:00', end: '10:00' }]), g: '1' }).toString();
+    const u = await register('carrinho@example.com');
+    const auth = { Authorization: `Bearer ${u.token}`, 'Content-Type': 'application/json' };
+    assert.equal((await fetch(`${base}/checkout-intents`, { method: 'POST', headers: auth, body: JSON.stringify({ listingId: l.id, query }) })).status, 204);
+    const reminders = () => mails.filter((m) => m.headers?.['List-Unsubscribe']);
+    const mine = () => reminders().filter((m) => m.to === 'carrinho@example.com');
+
+    await C.sendCartReminders(later(30));
+    assert.equal(mine().length, 0, 'antes de 1 h não lembra');
+    await C.sendCartReminders(later(61));
+    assert.equal(mine().length, 1);
+    assert.match(mine()[0].subject, /ficou pela metade/);
+    assert.ok(mine()[0].text.includes(`/reservar/${l.id}?`) && mine()[0].text.includes(date.split('-').reverse().join('/')));
+    assert.match(mine()[0].headers?.['List-Unsubscribe'] ?? '', /email\/unsubscribe/);
+    await C.sendCartReminders(later(120));
+    assert.equal(mine().length, 1, 'segundo só depois de 24 h');
+    await C.sendCartReminders(later(61 + 24 * 60 + 1));
+    assert.equal(mine().length, 2);
+    await C.sendCartReminders(later(61 + 72 * 60));
+    assert.equal(mine().length, 2, 'no máximo 2');
+
+    // reservou: não lembra; checkout não pago que expira volta a lembrar com os mesmos horários
+    const fake = fakeGateway();
+    P.setGatewayOverride(() => fake);
+    const gAuth = { Authorization: `Bearer ${signToken(guest)}`, 'Content-Type': 'application/json' };
+    const gDate = nextDateWith(l, 5);
+    await fetch(`${base}/checkout-intents`, { method: 'POST', headers: gAuth, body: JSON.stringify({ listingId: l.id, query: '' }) });
+    const b = await B.createBooking(guest, { listingId: l.id, occurrences: [{ date: gDate, start: '16:00', end: '17:00' }], guests: 1, purpose: 'Sessão', paymentMethod: 'card', acceptRules: true });
+    const toGuest = () => reminders().filter((m) => m.to === guest.email);
+    await C.sendCartReminders(later(61));
+    assert.equal(toGuest().length, 0, 'reservou: sem lembrete');
+    await B.tick(later(B.PAYMENT_WINDOW_MINUTES + 1));
+    assert.equal((await repo.getBooking(pool, b.id))!.status, 'expired');
+    P.setGatewayOverride();
+    await C.sendCartReminders(later(61));
+    assert.equal(toGuest().length, 1, 'não pagou: lembra');
+    assert.ok(toGuest()[0].text.includes(gDate.split('-').reverse().join('/')));
+
+    // descadastro pelo link: não recebe mais
+    const link = mine()[0].text.match(/https?:\/\/\S+email\/unsubscribe\S+/)![0];
+    const unsub = new URL(link);
+    assert.equal((await fetch(`${base}/email/unsubscribe${unsub.search.replace(/t=[^&]+/, 't=errado')}`)).status, 400);
+    assert.equal((await fetch(`${base}/email/unsubscribe${unsub.search}`)).status, 200);
+    const l2 = byTitle('Sala de aula');
+    await fetch(`${base}/checkout-intents`, { method: 'POST', headers: auth, body: JSON.stringify({ listingId: l2.id, query }) });
+    await C.sendCartReminders(later(61));
+    assert.equal(mine().length, 2);
+    assert.deepEqual(await (await fetch(`${base}/me/marketing`, { headers: auth })).json(), { optIn: false, unsubscribed: true });
+
+    // quem não confirmou o e-mail recebe 1 lembrete depois de 24 h
+    const pend = await register('semconfirmar@example.com', false);
+    await C.sendVerifyReminders();
+    assert.equal(mails.filter((m) => m.to === 'semconfirmar@example.com' && /falta só confirmar/.test(m.subject)).length, 0);
+    await pool.query("UPDATE users SET created_at = now() - interval '25 hours' WHERE id = $1", [pend.user.id]);
+    await C.sendVerifyReminders();
+    await C.sendVerifyReminders();
+    assert.equal(mails.filter((m) => m.to === 'semconfirmar@example.com' && /falta só confirmar/.test(m.subject)).length, 1);
+
+    // base de contatos: consentimento no cadastro, filtros e CSV
+    const r = await fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Dra. Novidades', email: 'novidades@example.com', password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true, marketingOptIn: true }) });
+    assert.equal(r.status, 201);
+    const adm = { Authorization: `Bearer ${signToken(admin)}` };
+    assert.equal((await fetch(`${base}/admin/contacts`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
+    type Rep = { summary: { total: number; verified: number; unverified: number; opt_in: number }; contacts: { email: string; email_verified: boolean }[] };
+    const all = await (await fetch(`${base}/admin/contacts`, { headers: adm })).json() as Rep;
+    assert.equal(all.summary.total, all.summary.verified + all.summary.unverified);
+    assert.ok(!all.contacts.some((c) => c.email === admin.email), 'sem a equipe');
+    const unv = await (await fetch(`${base}/admin/contacts?status=unverified`, { headers: adm })).json() as Rep;
+    assert.ok(unv.contacts.some((c) => c.email === 'semconfirmar@example.com') && unv.contacts.every((c) => !c.email_verified));
+    const opt = await (await fetch(`${base}/admin/contacts?consent=yes`, { headers: adm })).json() as Rep;
+    assert.deepEqual(opt.contacts.map((c) => c.email), ['novidades@example.com']);
+    const csv = await (await fetch(`${base}/admin/contacts?format=csv&status=verified`, { headers: adm })).text();
+    assert.match(csv, /^﻿?"?nome"?;/);
+    assert.ok(csv.includes('carrinho@example.com') && !csv.includes('semconfirmar@example.com'));
+  } finally {
+    M.setMailSender();
+    P.setGatewayOverride();
   }
 });

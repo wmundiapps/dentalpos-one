@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useI18n } from '../i18n';
 import { useApp } from '../state';
 import { ListingCard, type ListingSummary } from '../components/ListingCard';
+import { ShowcaseCarousel } from '../components/ShowcaseCarousel';
 import { AMENITIES, CATEGORIES, CATEGORY_ICONS } from '../../../shared/rules';
 import { COUNTRY_BY_CODE } from '../../../shared/countries';
 import { countryName, flag, timeSlots } from '../format';
@@ -15,6 +16,7 @@ export default function Home() {
   const nav = useNavigate();
   const [list, setList] = useState<ListingSummary[] | null>(null);
   const [favs, setFavs] = useState<string[]>([]);
+  const [showcase, setShowcase] = useState<ListingSummary[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const category = params.get('category') ?? '';
 
@@ -30,6 +32,13 @@ export default function Home() {
     setList(null);
     api<ListingSummary[]>(`/listings?${query}`).then(setList).catch(() => setList([]));
   }, [query]);
+  // Vitrine: espaços anunciados no país escolhido, com foto e prontos para reservar primeiro
+  useEffect(() => {
+    api<ListingSummary[]>(`/listings${country ? `?country=${country}` : ''}`).then((all) => {
+      const score = (l: ListingSummary) => (l.photos.length ? 2 : 0) + (l.bookable === false ? 0 : 1);
+      setShowcase([...all].sort((a, b) => score(b) - score(a)).slice(0, 10));
+    }).catch(() => setShowcase([]));
+  }, [country]);
   useEffect(() => {
     if (me) api<ListingSummary[]>('/favorites').then((f) => setFavs(f.map((x) => x.id))).catch(() => {});
   }, [me]);
@@ -89,6 +98,15 @@ export default function Home() {
       </section>
 
       <div className="container">
+        {showcase.length > 0 && (
+          <>
+            <div className="showcase-head">
+              <h2>{t('showcase.title')}</h2>
+              <Link to="/anuncie" className="small">{t('showcase.advertise')}</Link>
+            </div>
+            <ShowcaseCarousel items={showcase} />
+          </>
+        )}
         <div className="category-bar" role="tablist">
           <button role="tab" aria-selected={!category} className={!category ? 'active' : ''} onClick={() => set('category', '')}>
             <span className="cat-icon">✨</span><span>{t('cat.all')}</span>

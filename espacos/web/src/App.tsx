@@ -21,6 +21,8 @@ const Profile = lazy(() => import('./pages/Profile'));
 const Favorites = lazy(() => import('./pages/Favorites'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 const Login = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Login })));
+const ForgotPassword = lazy(() => import('./pages/Auth').then((m) => ({ default: m.ForgotPassword })));
+const ResetPassword = lazy(() => import('./pages/Auth').then((m) => ({ default: m.ResetPassword })));
 const Register = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Register })));
 const GuarantorPage = lazy(() => import('./pages/PublicPages').then((m) => ({ default: m.GuarantorPage })));
 const ClientReviewPage = lazy(() => import('./pages/PublicPages').then((m) => ({ default: m.ClientReviewPage })));
@@ -71,6 +73,8 @@ export default function App() {
             <Route path="/admin" element={<Private><Admin /></Private>} />
             <Route path="/entrar" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
+            <Route path="/esqueci-senha" element={<ForgotPassword />} />
+            <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route path="/confirmar-email" element={<ConfirmEmail />} />
             <Route path="/excluir-conta" element={<AccountDeletionPage />} />
             <Route path="/anuncie" element={<HostLanding />} />

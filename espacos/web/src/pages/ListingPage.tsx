@@ -9,6 +9,7 @@ import { PriceLines } from '../components/PriceLines';
 import { PolicySummary } from '../components/PolicySummary';
 import { DayTimeline } from '../components/DayTimeline';
 import type { ListingSummary } from '../components/ListingCard';
+import { useMercadoPagoPrompt } from '../components/MercadoPagoPrompt';
 import { COUNTRY_BY_CODE } from '../../../shared/countries';
 import { BOOKING_LIMITS, CATEGORY_ICONS, addDays, todayInZone } from '../../../shared/rules';
 import type { Occurrence, PriceBreakdown, PublicUser, Review, Weekday } from '../../../shared/types';
@@ -72,6 +73,11 @@ export default function ListingPage() {
     return () => clearTimeout(h);
   }, [data, id, occurrences]);
 
+  // Anúncio recém-publicado por quem ainda não conectou o Mercado Pago: abre a janela explicando
+  const mp = useMercadoPagoPrompt();
+  const justPublished = !!params.get('publicado') && !!data && me?.id === data.listing.hostId;
+  useEffect(() => { if (justPublished) mp.show(); }, [justPublished, mp.show]);
+
   if (notFound) return <div className="container empty"><p>{t('err.listing_not_found')}</p><Link to="/">{t('common.backHome')}</Link></div>;
   if (!data) return <div className="container"><div className="skeleton hero-skeleton" /></div>;
   const { listing: l, host, reviews } = data;
@@ -79,7 +85,7 @@ export default function ListingPage() {
   const guestReviews = reviews.filter((r) => r.kind === 'guest_to_listing');
   const clientReviews = reviews.filter((r) => r.kind === 'client_to_listing');
   const slots = timeSlots();
-  const canBook = quote && quote.errors.length === 0 && guests <= l.capacity;
+  const canBook = l.bookable !== false && quote && quote.errors.length === 0 && guests <= l.capacity;
   const weekdays: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
 
   function reserve() {
@@ -90,6 +96,7 @@ export default function ListingPage() {
 
   return (
     <div className="container listing-page">
+      {mp.modal}
       {me?.id === l.hostId && (
         <div className={`notice ${params.get('publicado') ? 'success' : ''} row between wrap gap`}>
           {params.get('publicado')
@@ -233,6 +240,11 @@ export default function ListingPage() {
               <ul className="errors small">{quote.errors.map((e, i) => <li key={i}>{t(`val.${e.code}` as DictKey, e.params)}</li>)}</ul>
             )}
             {guests > l.capacity && <p className="errors small">{t('err.over_capacity', { max: l.capacity })}</p>}
+            {l.bookable === false && (
+              <p className="small notice">🕒 {me?.id === l.hostId
+                ? <>{t('listing.notBookableOwner')} <Link to="/anfitriao">{t('listing.connectPayout')}</Link></>
+                : t('listing.notBookable')}</p>
+            )}
             <button className="btn btn-primary block" disabled={!canBook} onClick={reserve}>
               {l.instantBook ? t('book.reserve') : t('book.request')}
             </button>
