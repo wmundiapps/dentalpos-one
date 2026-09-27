@@ -577,3 +577,40 @@ test('assistente de dúvidas: responde com a IA, grava a conversa e envia a tran
     A.setAssistantClient();
   }
 });
+
+test('esqueci minha senha: link por e-mail (1 h, uso único), não revela contas e derruba sessões antigas', async () => {
+  const sent: { to: string; text: string }[] = [];
+  M.setMailSender(async (m) => { sent.push(m); });
+  try {
+    const u = await register('esqueci@example.com', false);
+    const post = (path: string, body: unknown) => fetch(`${base}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    // resposta igual para e-mail com e sem conta
+    const a = await post('/auth/forgot-password', { email: 'ESQUECI@example.com' });
+    const b = await post('/auth/forgot-password', { email: 'ninguem@example.com' });
+    assert.deepEqual([a.status, await a.json()], [b.status, await b.json()]);
+    const mail = sent.find((m) => m.to === 'esqueci@example.com' && m.text.includes('redefinir-senha'))!;
+    assert.ok(mail); assert.ok(sent.every((m) => m.to !== 'ninguem@example.com'));
+    const t = /token=([\w-]+)/.exec(mail.text)![1];
+
+    assert.equal((await post('/auth/reset-password', { token: t, password: 'curta' })).status, 422);
+    const ok = await post('/auth/reset-password', { token: t, password: 'nova-senha-123' });
+    assert.equal(ok.status, 200);
+    const fresh = await ok.json() as { token: string; user: { emailVerifiedAt?: string } };
+    assert.ok(fresh.user.emailVerifiedAt, 'e-mail confirmado ao redefinir');
+    assert.equal((await post('/auth/reset-password', { token: t, password: 'outra-senha-123' })).status, 400, 'uso único');
+    assert.equal((await post('/auth/login', { email: 'esqueci@example.com', password: 'senha-forte-1' })).status, 401);
+    assert.equal((await post('/auth/login', { email: 'esqueci@example.com', password: 'nova-senha-123' })).status, 200);
+    assert.equal((await fetch(`${base}/me`, { headers: { Authorization: `Bearer ${fresh.token}` } })).status, 200);
+    // sessão emitida antes da troca (simula a troca 10 s depois do login antigo)
+    await pool.query("UPDATE users SET password_changed_at = password_changed_at + interval '10 seconds' WHERE lower(email) = 'esqueci@example.com'");
+    assert.equal((await fetch(`${base}/me`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 401, 'sessão antiga derrubada');
+    // link vencido (mais de 1 h)
+    await pool.query("UPDATE users SET password_reset_sent_at = NULL WHERE lower(email) = 'esqueci@example.com'");
+    await post('/auth/forgot-password', { email: 'esqueci@example.com' });
+    const t2 = /token=([\w-]+)/.exec(sent.filter((m) => m.text.includes('redefinir-senha')).at(-1)!.text)![1];
+    await pool.query("UPDATE users SET password_reset_sent_at = now() - interval '2 hours' WHERE lower(email) = 'esqueci@example.com'");
+    assert.equal((await post('/auth/reset-password', { token: t2, password: 'outra-senha-123' })).status, 400);
+  } finally {
+    M.setMailSender();
+  }
+});

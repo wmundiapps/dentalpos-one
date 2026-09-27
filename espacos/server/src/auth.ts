@@ -28,12 +28,15 @@ async function loadUser(req: AuthedRequest) {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) return;
   let sub: string;
+  let iat = 0;
   try {
-    sub = (jwt.verify(header.slice(7), SECRET) as { sub: string }).sub;
+    ({ sub, iat = 0 } = jwt.verify(header.slice(7), SECRET) as { sub: string; iat?: number });
   } catch {
     return; // token inválido: segue como anônimo
   }
   req.user = await getUser(pool, sub);
+  // Senha trocada depois deste login: a sessão antiga deixa de valer
+  if (req.user?.passwordChangedAt && iat * 1000 < Date.parse(req.user.passwordChangedAt) - 5000) req.user = undefined; // margem p/ relógios
   if (req.user) await promoteConfiguredAdmin(req.user);
 }
 
@@ -98,6 +101,6 @@ export async function toPublicUser(db: Db, u: User): Promise<PublicUser> {
 }
 
 export function toSelf(u: User) {
-  const { passwordHash: _ph, ...rest } = u;
+  const { passwordHash: _ph, passwordChangedAt: _pc, ...rest } = u;
   return { ...rest, activeStrikes: activeStrikes(u).length };
 }

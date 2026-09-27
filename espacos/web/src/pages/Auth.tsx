@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { signupSource, track } from '../tracking';
-import { api } from '../api';
+import { api, ApiError } from '../api';
 import { useI18n } from '../i18n';
 import { useApp, type Me } from '../state';
 import { COUNTRIES } from '../../../shared/countries';
@@ -57,6 +57,7 @@ export function Login() {
         <label>{t('form.email')}<input type="email" name="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username email" list="recent-emails" /></label>
         <datalist id="recent-emails">{recent.map((r) => <option key={r} value={r} />)}</datalist>
         <label>{t('form.password')}<input ref={passwordRef} type="password" name="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" autoFocus={!!email} /></label>
+        <p className="small right"><Link to={`/esqueci-senha${email ? `?email=${encodeURIComponent(email)}` : ''}`}>{t('auth.forgot')}</Link></p>
         {error && <p className="errors" role="alert">{error}</p>}
         <button className="btn btn-primary block">{t('auth.login')}</button>
         <p className="small center">{t('auth.noAccount')} <Link to={`/cadastro${params.get('next') ? `?next=${encodeURIComponent(params.get('next')!)}` : ''}`}>{t('auth.register')}</Link></p>
@@ -112,6 +113,75 @@ export function Register() {
         <button className="btn btn-primary block">{t('auth.createAccount')}</button>
         <p className="small center">{t('auth.haveAccount')} <Link to="/entrar">{t('auth.login')}</Link></p>
       </form>
+    </div>
+  );
+}
+
+/** Pede o link de nova senha por e-mail. */
+export function ForgotPassword() {
+  const { t } = useI18n();
+  const [params] = useSearchParams();
+  const [email, setEmail] = useState(params.get('email') ?? recentEmails()[0] ?? '');
+  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [error, setError] = useState('');
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setState('sending'); setError('');
+    try { await api('/auth/forgot-password', { body: { email } }); setState('sent'); } catch (err) { setError(errorText(err, t)); setState('idle'); }
+  }
+  return (
+    <div className="container narrow">
+      <h1>{t('auth.forgotTitle')}</h1>
+      {state === 'sent'
+        ? <p className="notice success">✉️ {t('auth.forgotSent')}</p>
+        : <form className="panel" onSubmit={submit}>
+            <p className="muted">{t('auth.forgotText')}</p>
+            <label>{t('form.email')}<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username email" /></label>
+            {error && <p className="errors" role="alert">{error}</p>}
+            <button className="btn btn-primary block" disabled={state === 'sending'}>{state === 'sending' ? t('common.wait') : t('auth.forgotSend')}</button>
+          </form>}
+      <p className="small center"><Link to="/entrar">{t('auth.login')}</Link></p>
+    </div>
+  );
+}
+
+/** Destino do link do e-mail: /redefinir-senha?token=... */
+export function ResetPassword() {
+  const { t } = useI18n();
+  const { login } = useApp();
+  const nav = useNavigate();
+  const [params] = useSearchParams();
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [failed, setFailed] = useState(false);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password !== confirm) { setError(t('auth.passwordsDiffer')); return; }
+    setBusy(true); setError('');
+    try {
+      const r = await api<{ token: string; user: Me }>('/auth/reset-password', { body: { token: params.get('token') ?? '', password } });
+      rememberEmail(r.user.email);
+      login(r.token, r.user);
+      window.alert(t('auth.resetDone'));
+      nav('/');
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'invalid_or_expired_token') setFailed(true);
+      else setError(errorText(err, t));
+    } finally { setBusy(false); }
+  }
+  return (
+    <div className="container narrow">
+      <h1>{t('auth.resetTitle')}</h1>
+      {failed
+        ? <><p className="notice warn">{t('auth.resetFailed')}</p><Link className="btn btn-primary" to="/esqueci-senha">{t('auth.forgotSend')}</Link></>
+        : <form className="panel" onSubmit={submit}>
+            <label>{t('auth.newPassword')}<input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" /></label>
+            <label>{t('auth.confirmPassword')}<input type="password" required minLength={8} value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" /></label>
+            {error && <p className="errors" role="alert">{error}</p>}
+            <button className="btn btn-primary block" disabled={busy}>{busy ? t('common.wait') : t('auth.resetSave')}</button>
+          </form>}
     </div>
   );
 }

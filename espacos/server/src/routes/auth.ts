@@ -9,6 +9,7 @@ import { COUNTRY_BY_CODE, SUPPORTED_LOCALES } from '../../../shared/countries.js
 import { RULES_VERSION } from '../../../shared/rules.js';
 import type { User } from '../../../shared/types.js';
 import { confirmEmail, sendVerificationEmail } from '../emailVerification.js';
+import { requestPasswordReset, resetPassword } from '../passwordReset.js';
 
 export const authRouter = Router();
 
@@ -44,6 +45,18 @@ authRouter.post('/auth/login', async (req, res) => {
   const user = await getUserByEmail(pool, email);
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) throw new HttpError(401, 'invalid_credentials');
   if (user.banned) throw new HttpError(403, 'account_banned');
+  res.json({ token: signToken(user), user: toSelf(user) });
+});
+
+authRouter.post('/auth/forgot-password', async (req, res) => {
+  const { email } = z.object({ email: z.string().email().max(200) }).parse(req.body);
+  await requestPasswordReset(email).catch((e) => console.error('[senha]', (e as Error).message));
+  res.json({ sent: true }); // sempre igual: não revela se o e-mail tem conta
+});
+
+authRouter.post('/auth/reset-password', async (req, res) => {
+  const { token, password } = z.object({ token: z.string().min(10).max(200), password: z.string().min(8).max(200) }).parse(req.body);
+  const user = await resetPassword(token, password);
   res.json({ token: signToken(user), user: toSelf(user) });
 });
 

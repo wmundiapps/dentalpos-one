@@ -14,7 +14,7 @@ const hhmm = (v: string) => v.slice(0, 5);
 function toUser(r: any, strikes: any[]): User {
   return {
     id: r.id, email: r.email, passwordHash: r.password_hash, name: r.name, phone: opt(r.phone), countryCode: r.country_code,
-    locale: r.locale, roles: r.roles, createdAt: iso(r.created_at)!, emailVerifiedAt: iso(opt(r.email_verified_at)), identityVerified: r.identity_verified,
+    locale: r.locale, roles: r.roles, createdAt: iso(r.created_at)!, emailVerifiedAt: iso(opt(r.email_verified_at)), passwordChangedAt: iso(opt(r.password_changed_at)), identityVerified: r.identity_verified,
     documentType: opt(r.document_type), documentNumber: opt(r.document_number),
     professionalLicense: r.license_body ? { body: r.license_body, number: r.license_number, region: opt(r.license_region), verified: r.license_verified } : undefined,
     licenseStatus: r.license_status,

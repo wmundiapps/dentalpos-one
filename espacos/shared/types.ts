@@ -43,6 +43,7 @@ export interface User {
   createdAt: string;
   // Verificações
   emailVerifiedAt?: string;
+  passwordChangedAt?: string;
   identityVerified: boolean;
   documentType?: string;
   documentNumber?: string;

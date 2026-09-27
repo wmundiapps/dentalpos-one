@@ -54,6 +54,7 @@ O QUE É E COMO FUNCIONA
 
 CADASTRO E CONTA
 - Cadastro em https://space-hour.com/cadastro. Depois é preciso confirmar o e-mail pelo link enviado (vale 7 dias; se não chegou, olhar o spam ou usar "Reenviar e-mail" no aviso do topo do site). Sem e-mail confirmado não é possível reservar nem anunciar.
+- Esqueceu a senha: na tela Entrar, clicar em "Esqueci minha senha" (ou https://space-hour.com/esqueci-senha), informar o e-mail e abrir o link recebido (vale 1 hora) para criar uma nova senha.
 - Excluir conta: Perfil → Excluir conta (pede a senha; não é possível com reserva em andamento). Instruções em https://space-hour.com/excluir-conta.
 
 ANUNCIAR (ANFITRIÃO)
