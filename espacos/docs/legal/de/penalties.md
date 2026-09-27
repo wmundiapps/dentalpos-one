@@ -1,6 +1,6 @@
 # Vertragsstrafen und Maßnahmen
 
-Version 2026-09-24 · Gültig ab 24.09.2026
+Version 2026-09-27 · Gültig ab 27.09.2026
 
 ## 1. Gegenstand und Grundsätze
 
@@ -25,7 +25,8 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 | **Untervermietung** oder Überlassung an Dritte | 100 % des Grundbetrags; möglicher Kontoausschluss | Ja — schwerer Verstoß | 168 Stunden (7 Tage) |
 | **Rauchen oder Konsum untersagter Substanzen** im Raum | Betrag entsprechend 2 Stunden des Stundenpreises des Raums, zuzüglich Kosten der Spezialreinigung, sofern anfallend | Ja | 24 Stunden |
 | **Bußgeld der Eigentümergemeinschaft/des Gebäudes**, verursacht durch den Mieter | Weiterbelastung des Betrags des tatsächlich verhängten Bußgelds, gegen Vorlage der Kopie der Mitteilung | Ja | 720 Stunden (30 Tage) |
-| **Belästigung oder Diskriminierung** | Kontoausschluss; unbeschadet rechtlicher Haftung | Ja — schwerer Verstoß | 720 Stunden (30 Tage) |
+| **Belästigung, Diskriminierung oder körperliche oder verbale Angriffe** (gegen Mitarbeiter, Endkunden oder jede anwesende Person) | Sofortiger Kontoausschluss; unbeschadet zivil- und strafrechtlicher Haftung | Ja — schwerer Verstoß | 720 Stunden (30 Tage) |
+| **Waffen, Munition, Sprengstoffe oder verbotene Chemikalien** im Raum (Verhaltensregeln, Ziffer 10.2) | Sofortige Beendigung des Termins ohne Erstattung, Kontoausschluss und Meldung an die Behörden | Ja — besonders schwerer Verstoß | 720 Stunden (30 Tage) |
 | **Zahlung außerhalb der Plattform** (Verlangen, Anbieten oder Annehmen) | Kontoausschluss der Beteiligten | Ja — schwerer Verstoß | 720 Stunden (30 Tage) |
 | **Nichterscheinen** | Verlust des Grundbetrags des Termins (Stornierungsrichtlinie); keine zusätzliche Vertragsstrafe | Nein | 24 Stunden |
 

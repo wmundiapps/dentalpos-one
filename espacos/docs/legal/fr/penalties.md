@@ -1,6 +1,6 @@
 # Pénalités et Mesures
 
-Version 2026-09-24 · En vigueur à compter du 24/09/2026
+Version 2026-09-27 · En vigueur à compter du 27/09/2026
 
 ## 1. Objet et principes
 
@@ -25,7 +25,8 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 | **Sous-location** ou cession à un tiers | 100 % du Montant de base ; exclusion possible du compte | Oui — faute grave | 168 heures (7 jours) |
 | **Tabac ou usage de substances** interdites dans l'Espace | Montant équivalent à 2 heures du tarif horaire de l'Espace, en plus du coût de nettoyage spécialisé, le cas échéant | Oui | 24 heures |
 | **Amende de copropriété/immeuble** causée par le Locataire | Répercussion du montant de l'amende effectivement appliquée, sur présentation d'une copie de la notification | Oui | 720 heures (30 jours) |
-| **Harcèlement ou discrimination** | Exclusion du compte ; sans préjudice de la responsabilité légale | Oui — faute grave | 720 heures (30 jours) |
+| **Harcèlement, discrimination ou agression physique ou verbale** (contre le personnel, les Clients finaux ou toute personne présente) | Exclusion immédiate du compte ; sans préjudice de la responsabilité civile et pénale | Oui — faute grave | 720 heures (30 jours) |
+| **Armes, munitions, explosifs ou produits chimiques interdits** dans l'Espace (Normes de Conduite, clause 10.2) | Fin immédiate du Créneau sans remboursement, exclusion du compte et signalement aux autorités | Oui — faute très grave | 720 heures (30 jours) |
 | **Paiement hors Plateforme** (demander, offrir ou accepter) | Exclusion du compte des personnes impliquées | Oui — faute grave | 720 heures (30 jours) |
 | **Non-présentation** | Perte du Montant de base du Créneau (Politique d'Annulation) ; sans pénalité supplémentaire | Non | 24 heures |
 

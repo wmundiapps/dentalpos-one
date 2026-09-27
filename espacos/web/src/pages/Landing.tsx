@@ -112,7 +112,8 @@ export function HostLanding() {
           ['Conecte o Mercado Pago', 'Com isso o anúncio fica visível e você recebe cada reserva direto na sua conta.'],
         ]} />
         <Faq items={[
-          ['Quanto custa anunciar?', `Nada. Em cada reserva paga, o SpaceHour desconta ${fee} e o Mercado Pago desconta a tarifa de processamento dele (menor no Pix, maior no cartão). Quem aluga paga uma taxa de serviço à parte.`],
+          ['Quanto custa anunciar?', `Nada. Não há mensalidade: você só paga quando uma locação acontece. Nessa hora, o SpaceHour desconta ${fee} do valor que você definiu e o Mercado Pago desconta a tarifa de pagamento dele (cerca de 1% no Pix e cerca de 5% no cartão; confira no seu painel do Mercado Pago). Exemplo: você cobra R$ 100 e recebe cerca de R$ 94 no Pix ou R$ 89 no cartão.`],
+          ['E quem aluga, paga o quê?', `Quem aluga paga o seu preço mais uma taxa de serviço de ${Math.round(FEES.guestServiceFeeRate * 100)}% ao SpaceHour e o ISS sobre essa taxa. No exemplo de R$ 100, o profissional paga R$ 115,75. Esse valor aparece completo antes de ele confirmar a reserva, e a taxa não sai do seu bolso.`],
           ['Quando recebo o dinheiro?', 'O pagamento é processado pelo Mercado Pago e a sua parte vai direto para a sua conta Mercado Pago, dentro do prazo de liberação dela.'],
           ['E se alguém danificar algo?', 'Você pode exigir caução e avalista no anúncio. Se houver um problema, abra um incidente na reserva: a nossa equipe faz a mediação e o responsável recebe advertência.'],
           ['Posso alugar um consultório de saúde?', 'Pode. Você continua responsável pelo alvará, pela vigilância sanitária e pelas regras do seu conselho. Leia as Obrigações do Anfitrião antes de publicar.'],
@@ -157,7 +158,7 @@ export function ProLanding() {
         ]} />
         <Faq items={[
           ['Preciso assinar contrato?', 'Não. Cada reserva segue os Termos de Uso e as regras do espaço, que você aceita ao reservar.'],
-          ['Quanto custa?', 'O preço por hora é definido pelo anfitrião. Somam-se a taxa de limpeza (se houver) e a taxa de serviço do SpaceHour, e o total aparece antes de você pagar.'],
+          ['Quanto custa?', `O preço por hora é definido pelo anfitrião. Somam-se a taxa de limpeza (se houver), a taxa de serviço do SpaceHour de ${Math.round(FEES.guestServiceFeeRate * 100)}% e o ISS sobre essa taxa. Exemplo: se o espaço custa R$ 100, você paga R$ 115,75. O total aparece antes de você pagar, sem surpresa.`],
           ['Por que pedem meu registro profissional?', 'Salas de saúde e de outras profissões regulamentadas só podem ser usadas por profissionais habilitados. O registro protege você, o anfitrião e os seus pacientes.'],
           ['Posso reservar toda semana no mesmo horário?', 'Pode. Na reserva você escolhe vários dias de uma vez, respeitando os limites do espaço.'],
         ]} />

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api } from '../api';
+import { api, ApiError } from '../api';
 import { useI18n, type DictKey } from '../i18n';
 import { useApp } from '../state';
 import { AMENITIES, BOOKING_LIMITS, CATEGORIES, CATEGORY_ICONS, FEES, HEALTH_CATEGORIES } from '../../../shared/rules';
@@ -27,6 +27,53 @@ function blank(country: string): Form {
   };
 }
 
+// Campo numérico que guarda o texto digitado: evita o "0" grudado ("020") e aceita vírgula decimal.
+function NumInput({ value, onChange, ...rest }: { value: number | undefined; onChange: (v: number | undefined) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'>) {
+  const [text, setText] = useState(value === undefined ? '' : String(value));
+  useEffect(() => {
+    const parsed = text.trim() === '' ? undefined : Number(text.replace(',', '.'));
+    if (parsed !== value) setText(value === undefined ? '' : String(value));
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <input {...rest} type="text" inputMode="decimal" value={text}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/[^\d.,]/g, '');
+        setText(raw);
+        const n = raw === '' ? undefined : Number(raw.replace(',', '.'));
+        onChange(n === undefined || Number.isNaN(n) ? undefined : n);
+      }} />
+  );
+}
+
+// Em que seção do formulário está o problema apontado pelo servidor
+const FIELD_SECTION: Record<string, number> = {
+  category: 1, countryCode: 2, state: 2, city: 2, neighborhood: 2, address: 2,
+  title: 3, description: 3, capacity: 3, areaM2: 3, amenities: 3, equipment: 3, photos: 3,
+  weeklyAvailability: 4, blockedDates: 4, bufferMinutes: 4, minHours: 4,
+  pricePerHour: 5, pricePerDay: 5, cleaningFee: 5, securityDeposit: 5,
+  instantBook: 6, cancellationPolicy: 6, guarantorPolicy: 6, guarantorThreshold: 6, requiresLicense: 6, hostLicenseResponsibility: 6,
+  houseRules: 7, buildingRules: 7, allowedActivities: 7, forbiddenActivities: 7,
+};
+const CODE_SECTION: Record<string, number> = {
+  country_not_supported: 2, state_required: 2, city_not_supported: 2, availability_outside_platform_hours: 4,
+  cleaning_fee_too_high: 5, deposit_too_high: 5, guarantor_threshold_required: 6,
+};
+const FIELD_LABEL: Record<string, DictKey> = {
+  city: 'form.city', state: 'form.state', address: 'form.address', title: 'form.title', description: 'form.description',
+  capacity: 'form.capacity', areaM2: 'form.area', equipment: 'form.equipment', bufferMinutes: 'form.buffer', minHours: 'form.minHours',
+  pricePerHour: 'form.pricePerHour', pricePerDay: 'form.pricePerDay', cleaningFee: 'form.cleaningFee', securityDeposit: 'form.deposit',
+  guarantorThreshold: 'form.guarantorThreshold', houseRules: 'listing.houseRules',
+};
+
+function sectionOf(err: unknown): number | undefined {
+  if (!(err instanceof ApiError)) return undefined;
+  if (err.code === 'validation' && Array.isArray(err.params)) {
+    const first = (err.params as Array<{ path: string }>)[0]?.path.split('.')[0];
+    return first ? FIELD_SECTION[first] : undefined;
+  }
+  return CODE_SECTION[err.code];
+}
+
 export default function ListingEditor() {
   const { id } = useParams();
   const { t, locale } = useI18n();
@@ -34,7 +81,8 @@ export default function ListingEditor() {
   const nav = useNavigate();
   const [f, setF] = useState<Form>(() => blank(country || me?.countryCode || 'BR'));
   const [blockedText, setBlockedText] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<{ text: string; section?: number } | null>(null);
+  const invalidShown = useRef(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -52,7 +100,7 @@ export default function ListingEditor() {
 
   const cfg = COUNTRY_BY_CODE[f.countryCode];
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }));
-  const num = (v: string) => (v === '' ? undefined : Number(v));
+  const sectionTitle = (n: number) => (document.querySelector(`#sec-${n} h2`)?.textContent ?? '').trim();
   const slots = timeSlots(BOOKING_LIMITS.earliestStart, BOOKING_LIMITS.latestEnd);
 
   function setRange(d: Weekday, i: number, key: keyof TimeRange, v: string) {
@@ -69,7 +117,7 @@ export default function ListingEditor() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true); setError('');
+    setBusy(true); setError(null);
     const body = {
       ...f,
       blockedDates: blockedText.split(/[\s,]+/).map((x) => x.trim()).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)),
@@ -80,15 +128,31 @@ export default function ListingEditor() {
     try {
       const l = await api<Listing>(id ? `/listings/${id}` : '/listings', { method: id ? 'PUT' : 'POST', body });
       nav(id ? `/espacos/${l.id}` : `/espacos/${l.id}?publicado=1`);
-    } catch (err) { setError(errorText(err, t)); } finally { setBusy(false); }
+    } catch (err) {
+      const section = sectionOf(err);
+      let text = errorText(err, t);
+      if (err instanceof ApiError && err.code === 'validation' && Array.isArray(err.params)) {
+        const fields = [...new Set((err.params as Array<{ path: string }>).map((p) => p.path.split('.')[0]))];
+        text = `${t('err.validation')}: ${fields.map((k) => (FIELD_LABEL[k] ? t(FIELD_LABEL[k]) : k)).join(', ')}`;
+      }
+      setError({ text: section ? t('editor.errorIn', { section: sectionTitle(section), error: text }) : text, section });
+    } finally { setBusy(false); }
   }
 
   return (
     <div className="container editor">
       <h1>{id ? t('editor.editTitle') : t('editor.newTitle')}</h1>
       <p className="muted">{t('editor.intro')}</p>
-      <form onSubmit={save}>
-        <section className="section">
+      <form onSubmit={save} onInvalidCapture={(e) => {
+        // Campo obrigatório vazio: o navegador bloqueia o envio; mostramos onde está, ao lado do botão
+        if (invalidShown.current) return;
+        invalidShown.current = true;
+        const el = e.target as HTMLElement;
+        const field = (el.closest('label')?.firstChild?.textContent ?? '').trim();
+        const section = Number(el.closest('section')?.id.replace('sec-', '')) || undefined;
+        setError({ text: t('editor.missingField', { field, section: section ? sectionTitle(section) : '' }), section });
+      }}>
+        <section id="sec-1" className="section">
           <h2>1. {t('editor.type')}</h2>
           <div className="grid-choices">
             {CATEGORIES.map((c) => (
@@ -99,7 +163,7 @@ export default function ListingEditor() {
           </div>
         </section>
 
-        <section className="section form-grid">
+        <section id="sec-2" className="section form-grid">
           <h2 className="span2">2. {t('editor.location')}</h2>
           <label>{t('form.country')}
             <select value={f.countryCode} onChange={(e) => { const c = COUNTRY_BY_CODE[e.target.value]; setF((x) => ({ ...x, countryCode: c.code, state: '', city: '' })); }}>
@@ -112,12 +176,12 @@ export default function ListingEditor() {
           <p className="muted small span2">{t('editor.addressPrivate')} · {t('place.currencyInfo', { currency: cfg.currency })}</p>
         </section>
 
-        <section className="section form-grid">
+        <section id="sec-3" className="section form-grid">
           <h2 className="span2">3. {t('editor.details')}</h2>
           <label className="span2">{t('form.title')}<input required minLength={5} maxLength={120} value={f.title} onChange={(e) => set('title', e.target.value)} /></label>
           <label className="span2">{t('form.description')}<textarea required minLength={20} value={f.description} onChange={(e) => set('description', e.target.value)} /></label>
-          <label>{t('form.capacity')}<input type="number" min={1} required value={f.capacity} onChange={(e) => set('capacity', Number(e.target.value))} /></label>
-          <label>{t('form.area')}<input type="number" min={1} value={f.areaM2 ?? ''} onChange={(e) => set('areaM2', num(e.target.value))} /></label>
+          <label>{t('form.capacity')}<NumInput min={1} required value={f.capacity} onChange={(v) => set('capacity', v ?? 0)} /></label>
+          <label>{t('form.area')}<NumInput min={1} value={f.areaM2} onChange={(v) => set('areaM2', v)} /></label>
           <label className="span2">{t('form.equipment')}<textarea value={f.equipment} onChange={(e) => set('equipment', e.target.value)} placeholder={t('editor.equipmentPlaceholder')} /></label>
           <div className="span2 amenity-filter">
             {AMENITIES.map((a) => {
@@ -128,7 +192,7 @@ export default function ListingEditor() {
           <div className="span2"><span className="block-label">{t('form.photos')}</span><PhotoUploader photos={f.photos} onChange={(p) => set('photos', p)} /></div>
         </section>
 
-        <section className="section">
+        <section id="sec-4" className="section">
           <h2>4. {t('editor.idleHours')}</h2>
           <p className="muted small">{t('editor.idleHoursHelp', { from: BOOKING_LIMITS.earliestStart, to: BOOKING_LIMITS.latestEnd })}</p>
           <table className="hours">
@@ -151,22 +215,22 @@ export default function ListingEditor() {
             </tbody>
           </table>
           <div className="form-grid">
-            <label>{t('form.buffer')}<input type="number" min={0} max={120} step={15} value={f.bufferMinutes} onChange={(e) => set('bufferMinutes', Number(e.target.value))} /></label>
-            <label>{t('form.minHours')}<input type="number" min={1} max={BOOKING_LIMITS.maxHoursPerOccurrence} value={f.minHours} onChange={(e) => set('minHours', Number(e.target.value))} /></label>
+            <label>{t('form.buffer')}<NumInput min={0} max={120} step={15} value={f.bufferMinutes} onChange={(v) => set('bufferMinutes', v ?? 0)} /></label>
+            <label>{t('form.minHours')}<NumInput min={1} max={BOOKING_LIMITS.maxHoursPerOccurrence} value={f.minHours} onChange={(v) => set('minHours', v ?? 1)} /></label>
             <label className="span2">{t('form.blockedDates')}<textarea value={blockedText} onChange={(e) => setBlockedText(e.target.value)} placeholder="2026-12-24&#10;2026-12-25" /></label>
           </div>
         </section>
 
-        <section className="section form-grid">
+        <section id="sec-5" className="section form-grid">
           <h2 className="span2">5. {t('editor.pricing', { currency: cfg.currency })}</h2>
-          <label>{t('form.pricePerHour')}<input type="number" min={0.01} step="0.01" required value={f.pricePerHour || ''} onChange={(e) => set('pricePerHour', Number(e.target.value))} /></label>
-          <label>{t('form.pricePerDay')}<input type="number" min={0} step="0.01" value={f.pricePerDay ?? ''} onChange={(e) => set('pricePerDay', num(e.target.value))} /></label>
-          <label>{t('form.cleaningFee')}<input type="number" min={0} step="0.01" value={f.cleaningFee} onChange={(e) => set('cleaningFee', Number(e.target.value))} /></label>
-          <label>{t('form.deposit')}<input type="number" min={0} step="0.01" value={f.securityDeposit} onChange={(e) => set('securityDeposit', Number(e.target.value))} /></label>
+          <label>{t('form.pricePerHour')}<NumInput min={0.01} step="0.01" required value={f.pricePerHour || undefined} onChange={(v) => set('pricePerHour', v ?? 0)} /></label>
+          <label>{t('form.pricePerDay')}<NumInput min={0} step="0.01" value={f.pricePerDay} onChange={(v) => set('pricePerDay', v)} /></label>
+          <label>{t('form.cleaningFee')}<NumInput min={0} step="0.01" placeholder="0" value={f.cleaningFee || undefined} onChange={(v) => set('cleaningFee', v ?? 0)} /></label>
+          <label>{t('form.deposit')}<NumInput min={0} step="0.01" placeholder="0" value={f.securityDeposit || undefined} onChange={(v) => set('securityDeposit', v ?? 0)} /></label>
           <p className="muted small span2">{t('editor.feesHelp', { guest: FEES.guestServiceFeeRate * 100, host: FEES.hostServiceFeeRate * 100, clean: FEES.maxCleaningFeeRate * 100, dep: FEES.maxDepositMultiple })}</p>
         </section>
 
-        <section className="section form-grid">
+        <section id="sec-6" className="section form-grid">
           <h2 className="span2">6. {t('editor.policies')}</h2>
           <label>{t('form.cancellationPolicy')}
             <select value={f.cancellationPolicy} onChange={(e) => set('cancellationPolicy', e.target.value as Form['cancellationPolicy'])}>
@@ -178,7 +242,7 @@ export default function ListingEditor() {
               {(['none', 'optional', 'required', 'required_over_amount'] as const).map((p) => <option key={p} value={p}>{t(`guarantor.option.${p}` as DictKey)}</option>)}
             </select>
           </label>
-          {f.guarantorPolicy === 'required_over_amount' && <label>{t('form.guarantorThreshold')}<input type="number" min={1} required value={f.guarantorThreshold ?? ''} onChange={(e) => set('guarantorThreshold', num(e.target.value))} /></label>}
+          {f.guarantorPolicy === 'required_over_amount' && <label>{t('form.guarantorThreshold')}<NumInput min={1} required value={f.guarantorThreshold} onChange={(v) => set('guarantorThreshold', v)} /></label>}
           <label className="check"><input type="checkbox" checked={f.instantBook} onChange={(e) => set('instantBook', e.target.checked)} /> ⚡ {t('form.instantBook')}</label>
           <label className="check"><input type="checkbox" checked={f.requiresLicense} onChange={(e) => set('requiresLicense', e.target.checked)} /> 🪪 {t('form.requiresLicense', { body: cfg.licenseBodies[f.category] ?? cfg.licenseBodies.default ?? '' })}</label>
           {f.requiresLicense && <>
@@ -188,7 +252,7 @@ export default function ListingEditor() {
           <Link to="/regras/cancellation-refunds" className="small span2">{t('common.readFullPolicy')}</Link>
         </section>
 
-        <section className="section form-grid">
+        <section id="sec-7" className="section form-grid">
           <h2 className="span2">7. {t('editor.rules')}</h2>
           <label className="span2">{t('listing.houseRules')}<textarea required minLength={10} value={f.houseRules} onChange={(e) => set('houseRules', e.target.value)} placeholder={t('editor.houseRulesPlaceholder')} /></label>
           <label className="span2">{t('listing.buildingRules')}<textarea value={f.buildingRules ?? ''} onChange={(e) => set('buildingRules', e.target.value)} /></label>
@@ -198,10 +262,17 @@ export default function ListingEditor() {
           <p className="muted small span2">{t('editor.hostObligations')} <Link to="/regras/host-obligations">{t('legal.host-obligations')}</Link></p>
         </section>
 
-        <section className="section">
+        <section id="sec-8" className="section">
           <label className="check"><input type="checkbox" checked={f.active} onChange={(e) => set('active', e.target.checked)} /> {t('form.active')}</label>
-          {error && <p className="errors" role="alert">{error}</p>}
-          <button className="btn btn-primary" disabled={busy}>{busy ? t('common.wait') : t('editor.publish')}</button>
+          <div className="publish-row">
+            <button className="btn btn-primary" disabled={busy} onClick={() => { invalidShown.current = false; }}>{busy ? t('common.wait') : t('editor.publish')}</button>
+            {error && (
+              <p className="publish-error" role="alert">
+                ⚠️ {error.text}{' '}
+                {error.section && <button type="button" className="btn-link" onClick={() => document.getElementById(`sec-${error.section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{t('editor.goToSection')}</button>}
+              </p>
+            )}
+          </div>
         </section>
       </form>
     </div>

@@ -1,6 +1,6 @@
 # Conduct and Respect for Spaces Rules
 
-Version 2026-09-24 · Effective from 2026-09-24
+Version 2026-09-27 · Effective from 2026-09-27
 
 ## 1. Purpose
 
@@ -15,6 +15,8 @@ Version 2026-09-24 · Effective from 2026-09-24
 2.1. The Space is another person's workplace. The Renter must use it with the same care they would give their own establishment, leaving it **in the condition in which it was received**, ready for the next professional.
 
 2.2. The Booking's times, the capacity, the declared activity, and the Host's instructions must be respected.
+
+2.3. **Lawful use only.** The Space may only be used for lawful activities, carried out within the limits of the law (civil, criminal, health, environmental, labor, zoning and condominium), the rules of the competent professional body, and the activity declared in the Booking. Using the Space, directly or indirectly, for any unlawful act is prohibited.
 
 ## 3. Order, cleanliness and upkeep
 
@@ -76,11 +78,25 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 9.3. Moral or sexual harassment, intimidation, threats or violence are prohibited. Violation is a serious breach and leads to exclusion.
 
+9.4. **Physical or verbal aggression is prohibited** — including shoving, name-calling, insults, humiliation, shouting, threats and intimidation — against staff of the Host or the building, End Clients, other Renters, visitors and any other person present. Violation is a serious breach: the account is excluded immediately, the Platform cooperates with the authorities, and the offender is subject to civil and criminal liability.
+
 ## 10. Safety
 
 10.1. The Renter must know the escape routes, the location of fire extinguishers, and the emergency instructions provided by the Host; must not block exits; must not overload electrical installations; and must not use equipment that creates a fire risk without authorization.
 
-10.2. It is prohibited to carry weapons, except in cases authorized by law and the building's rules; to use or store flammable, explosive or unlawful substances; and to smoke (including electronic cigarettes) anywhere in the Space, except in an expressly designated area.
+10.2. The following are expressly prohibited in the Space and in the building's areas:
+
+(a) **carrying, keeping or handling weapons**, whether firearms, bladed weapons or replicas, **or ammunition**, even if the bearer holds a legal carry permit, except for public security officers on duty;
+
+(b) **manufacturing, keeping, transporting or handling explosives**, fireworks, or flammable gases or materials;
+
+(c) **handling chemicals** that are hazardous, toxic, corrosive, radioactive or controlled, **except** those regularly used in the declared professional activity (for example, dental materials and disinfectants), in the quantities and under the conditions permitted by health legislation, the manufacturer and the Host;
+
+(d) using, keeping or supplying unlawful substances; and
+
+(e) smoking (including electronic cigarettes), except in an expressly designated area.
+
+10.2.1. Violation of items (a), (b) or (c) is a very serious breach: the Host may end the Occurrence immediately, without refund, the account is excluded, and the Platform reports the matter to the authorities.
 
 10.3. The Renter must lock the Space upon leaving, in accordance with the instructions, and must not share access codes.
 

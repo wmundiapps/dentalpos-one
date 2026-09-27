@@ -85,7 +85,7 @@ function Incidents() {
   );
 }
 
-type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign';
+type Tab = 'incidents' | 'verifications' | 'feedback' | 'campaign' | 'assistant';
 
 export function Admin() {
   const { t } = useI18n();
@@ -94,9 +94,9 @@ export function Admin() {
     <div className="container">
       <h1>{t('admin.title')}</h1>
       <div className="segmented" role="tablist">
-        {(['verifications', 'incidents', 'feedback', 'campaign'] as Tab[]).map((k) => (
+        {(['verifications', 'incidents', 'feedback', 'assistant', 'campaign'] as Tab[]).map((k) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : 'admin.tabFeedback')}
+            {t(k === 'incidents' ? 'admin.tabIncidents' : k === 'verifications' ? 'admin.tabVerifications' : k === 'campaign' ? 'admin.tabCampaign' : k === 'assistant' ? 'admin.tabAssistant' : 'admin.tabFeedback')}
           </button>
         ))}
       </div>
@@ -104,6 +104,7 @@ export function Admin() {
       {tab === 'verifications' && <Verifications />}
       {tab === 'feedback' && <FeedbackAdmin />}
       {tab === 'campaign' && <CampaignAdmin />}
+      {tab === 'assistant' && <AssistantAdmin />}
     </div>
   );
 }
@@ -161,6 +162,29 @@ type Feedback = { id: string; kind: string; rating: number | null; message: stri
 const FB_STATUSES = ['new', 'seen', 'planned', 'done', 'wont_fix'] as const;
 
 // Cadastros dos últimos 14 dias por origem (UTM das campanhas).
+// Conversas do assistente virtual (as mesmas que chegam por e-mail)
+function AssistantAdmin() {
+  const { t, locale } = useI18n();
+  type Conv = { id: string; page: string | null; updated_at: string; name: string | null; email: string | null; messages: { role: string; content: string }[] };
+  const [list, setList] = useState<Conv[] | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => { api<Conv[]>('/admin/assistant').then(setList).catch((e) => setError(errorText(e, t))); }, [t]);
+  if (!list) return error ? <p className="errors">{error}</p> : null;
+  return (
+    <div className="assistant-admin">
+      {list.map((c) => (
+        <details key={c.id} className="panel">
+          <summary>
+            <strong>{c.messages.find((m) => m.role === 'user')?.content.slice(0, 90) ?? '—'}</strong>
+            <span className="muted small"> · {c.email ? `${c.name} <${c.email}>` : '—'} · {formatDateTime(c.updated_at, locale)}{c.page ? ` · ${c.page}` : ''}</span>
+          </summary>
+          {c.messages.map((m, i) => <p key={i} className={`assistant-msg ${m.role === 'user' ? 'me' : 'bot'}`}>{m.content}</p>)}
+        </details>
+      ))}
+    </div>
+  );
+}
+
 function CampaignAdmin() {
   const { t } = useI18n();
   type Report = { bySource: { source: string; signups: number; verified: number; hosts_with_listing: number }[]; byDay: { day: string; signups: number }[] };

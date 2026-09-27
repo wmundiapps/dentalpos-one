@@ -106,7 +106,7 @@ authRouter.delete('/me', requireAuth, async (req: AuthedRequest, res) => {
     await tx.query(
       `UPDATE users SET email = $2, name = 'Conta excluída', phone = NULL, bio = NULL, document_type = NULL, document_number = NULL,
          license_body = NULL, license_number = NULL, license_region = NULL, license_verified = false, company_tax_id = NULL,
-         password_hash = $3, banned = true, email_verified_at = NULL, email_verify_token_hash = NULL, signup_source = NULL, deleted_at = now()
+         password_hash = $3, banned = true, email_verified_at = NULL, email_verify_token_hash = NULL, email_verify_prev_hash = NULL, signup_source = NULL, deleted_at = now()
        WHERE id = $1`, [u.id, `excluido-${u.id}@deleted.space-hour.com`, crypto.randomBytes(32).toString('hex')]);
     await tx.query('UPDATE listings SET active = false WHERE host_id = $1', [u.id]);
     await tx.query('UPDATE license_verifications SET document = NULL WHERE user_id = $1', [u.id]);

@@ -1,6 +1,6 @@
 # Penalità e Provvedimenti
 
-Versione 2026-09-24 · In vigore dal 24/09/2026
+Versione 2026-09-27 · In vigore dal 27/09/2026
 
 ## 1. Oggetto e principi
 
@@ -25,7 +25,8 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 | **Sublocazione** o cessione a terzi | 100% del Valore Base; possibile esclusione dell'account | Sì — infrazione grave | 168 ore (7 giorni) |
 | **Fumo o uso di sostanze** vietate nello Spazio | Importo equivalente a 2 ore del prezzo/ora dello Spazio, oltre al costo della pulizia specializzata, se applicabile | Sì | 24 ore |
 | **Multa condominiale/dell'edificio** causata dal Locatario | Riaddebito dell'importo della multa effettivamente applicata, previa copia della notifica | Sì | 720 ore (30 giorni) |
-| **Molestie o discriminazione** | Esclusione dell'account; fatta salva la responsabilità legale | Sì — infrazione grave | 720 ore (30 giorni) |
+| **Molestie, discriminazione o aggressione fisica o verbale** (contro il personale, i Clienti finali o qualsiasi persona presente) | Esclusione immediata dell'account; fatta salva la responsabilità civile e penale | Sì — infrazione grave | 720 ore (30 giorni) |
+| **Armi, munizioni, esplosivi o prodotti chimici vietati** nello Spazio (Norme di Condotta, clausola 10.2) | Interruzione immediata della Fascia prenotata senza rimborso, esclusione dell'account e segnalazione alle autorità | Sì — infrazione gravissima | 720 ore (30 giorni) |
 | **Pagamento al di fuori della Piattaforma** (richiedere, offrire o accettare) | Esclusione dell'account dei soggetti coinvolti | Sì — infrazione grave | 720 ore (30 giorni) |
 | **Mancata presentazione** | Perdita del Valore Base della Fascia prenotata (Politica di Cancellazione); senza penale aggiuntiva | No | 24 ore |
 

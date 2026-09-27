@@ -1,6 +1,6 @@
 # Normas de Conducta y Respeto a los Espacios
 
-Versión 2026-09-24 · Vigente desde el 24/09/2026
+Versión 2026-09-27 · Vigente desde el 27/09/2026
 
 ## 1. Objeto
 
@@ -15,6 +15,8 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 2.1. El Espacio es el lugar de trabajo de otras personas. El Arrendatario debe usarlo con el mismo cuidado que tendría con su propio establecimiento, dejándolo **en el estado en que lo recibió**, listo para el siguiente profesional.
 
 2.2. Deben respetarse los horarios de la Reserva, la capacidad, la actividad declarada y las instrucciones del Anfitrión.
+
+2.3. **Uso dentro de la ley.** El Espacio solo puede utilizarse para actividades lícitas, ejercidas dentro de los límites de la legislación (civil, penal, sanitaria, ambiental, laboral, urbanística y de condominio), de las normas del órgano profesional competente y de la actividad declarada en la Reserva. Está prohibido utilizar el Espacio, directa o indirectamente, para cualquier acto ilícito.
 
 ## 3. Orden, limpieza y conservación
 
@@ -76,11 +78,25 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 9.3. Está prohibido el acoso moral o sexual, la intimidación, las amenazas o la violencia. La infracción constituye falta grave y conlleva la exclusión.
 
+9.4. **Están prohibidas las agresiones físicas o verbales** — incluidos empujones, insultos, ofensas, humillaciones, gritos, amenazas e intimidación — contra empleados del Anfitrión o del edificio, Clientes Finales, otros Arrendatarios, visitantes y cualquier persona que se encuentre en el lugar. La infracción constituye falta grave: la cuenta se excluye de inmediato, la Plataforma colabora con las autoridades y el infractor responde civil y penalmente.
+
 ## 10. Seguridad
 
 10.1. El Arrendatario debe conocer las rutas de evacuación, la ubicación de los extintores y las instrucciones de emergencia informadas por el Anfitrión; no obstruir salidas; no sobrecargar instalaciones eléctricas; y no utilizar equipos que generen riesgo de incendio sin autorización.
 
-10.2. Está prohibido portar armas, excepto en los casos autorizados por la ley y por las normas del edificio; usar o almacenar sustancias inflamables, explosivas o ilícitas; y fumar (incluidos los cigarrillos electrónicos) en cualquier Espacio, salvo en un área expresamente designada.
+10.2. Está expresamente prohibido en el Espacio y en las áreas del edificio:
+
+(a) **portar, guardar o manipular armas** de fuego, armas blancas, réplicas **o municiones**, aunque el portador tenga licencia legal de porte, salvo agentes de seguridad pública en servicio;
+
+(b) **fabricar, guardar, transportar o manipular explosivos**, fuegos artificiales, gases o materiales inflamables;
+
+(c) **manipular productos químicos** peligrosos, tóxicos, corrosivos, radiactivos o controlados, **salvo** los de uso habitual en la actividad profesional declarada (por ejemplo, materiales odontológicos y desinfectantes), en las cantidades y condiciones permitidas por la legislación sanitaria, por el fabricante y por el Anfitrión;
+
+(d) usar, guardar o suministrar sustancias ilícitas; y
+
+(e) fumar (incluidos los cigarrillos electrónicos), salvo en un área expresamente designada.
+
+10.2.1. La infracción de los incisos (a), (b) o (c) constituye falta gravísima: el Anfitrión puede dar por terminada la Ocurrencia de inmediato, sin reembolso, la cuenta se excluye y la Plataforma comunica el hecho a las autoridades.
 
 10.3. El Arrendatario debe cerrar con llave el Espacio al salir, conforme a las instrucciones, y no compartir códigos de acceso.
 

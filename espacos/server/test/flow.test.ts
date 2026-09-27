@@ -165,8 +165,16 @@ test('API HTTP: cadastro, login, busca, reserva, mensagens e avaliação pelo li
     const mail = mails.find((m) => m.to === 'api@example.com')!;
     const verifyToken = /token=([\w-]+)/.exec(mail.text)![1];
     assert.equal((await call('/auth/verify-email', { body: { token: 'x'.repeat(32) } })).status, 400);
+    // reenvio (depois de 1 min): o link do primeiro e-mail continua valendo
+    await pool.query("UPDATE users SET email_verify_sent_at = now() - interval '2 minutes' WHERE lower(email) = 'api@example.com'");
+    assert.equal((await call('/me/resend-verification', { token: tok, body: {} })).status, 200);
+    assert.equal(mails.filter((m) => m.to === 'api@example.com').length, 2);
     assert.equal((await call('/auth/verify-email', { body: { token: verifyToken } })).status, 200);
-    assert.equal((await call('/auth/verify-email', { body: { token: verifyToken } })).status, 400, 'link de uso único');
+    assert.equal((await call('/auth/verify-email', { body: { token: verifyToken } })).status, 200, 'clicar de novo não dá erro');
+    // link vencido (mais de 7 dias) de conta ainda não confirmada é recusado
+    await pool.query("UPDATE users SET email_verified_at = NULL, email_verify_sent_at = now() - interval '8 days' WHERE lower(email) = 'api@example.com'");
+    assert.equal((await call('/auth/verify-email', { body: { token: verifyToken } })).status, 400);
+    await pool.query("UPDATE users SET email_verified_at = now() WHERE lower(email) = 'api@example.com'");
     assert.ok((await call('/me', { token: tok })).body.emailVerifiedAt);
 
     const search = await call('/listings?country=DE');

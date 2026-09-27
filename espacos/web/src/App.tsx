@@ -5,6 +5,7 @@ import { Footer } from './components/Footer';
 import { FeedbackWidget } from './components/FeedbackWidget';
 import { EmailVerifyBanner } from './components/EmailVerifyBanner';
 import { ConsentBanner } from './components/ConsentBanner';
+import { AssistantWidget } from './components/AssistantWidget';
 import { loadTags, trackPage } from './tracking';
 import { startNative } from './native';
 import { useApp } from './state';
@@ -84,6 +85,7 @@ export default function App() {
       </main>
       <Footer />
       <FeedbackWidget />
+      <AssistantWidget />
       <ConsentBanner />
     </>
   );

@@ -92,7 +92,9 @@ export default function ListingPage() {
     <div className="container listing-page">
       {me?.id === l.hostId && (
         <div className={`notice ${params.get('publicado') ? 'success' : ''} row between wrap gap`}>
-          <span>{params.get('publicado') ? `🎉 ${t('listing.publishedNotice')}` : t('listing.youAreHost')}</span>
+          {params.get('publicado')
+            ? <div className="published-thanks"><strong>{t('listing.publishedThanks')}</strong><span>{t('listing.publishedThanksText', { email: me.email })}</span></div>
+            : <span>{t('listing.youAreHost')}</span>}
           <Link className="btn btn-primary small" to={`/anfitriao/espacos/${l.id}`}>✏️ {t('listing.editOwn')}</Link>
         </div>
       )}
@@ -165,7 +167,11 @@ export default function ListingPage() {
                 <li>{t('rules.short.noAddress')}</li>
                 <li>{t('rules.short.overstay')}</li>
                 <li>{t('rules.short.noSublet')}</li>
+                <li>{t('rules.short.lawful')}</li>
+                <li><strong>{t('rules.short.noWeapons')}</strong></li>
+                <li><strong>{t('rules.short.noAggression')}</strong></li>
               </ul>
+              <p className="small">{t('rules.short.consequence')}</p>
               <Link to="/regras/booking-rules" className="small">{t('common.readFullRules')}</Link> · <Link to="/regras/space-norms" className="small">{t('legal.space-norms')}</Link> · <Link to="/regras/penalties" className="small">{t('legal.penalties')}</Link>
             </div>
           </section>

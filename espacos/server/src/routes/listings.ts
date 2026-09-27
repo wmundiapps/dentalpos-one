@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { id, nowIso, pool, rows, withTx, type Db } from '../db.js';
 import * as repo from '../repo.js';
-import { HttpError, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
+import { HttpError, adminEmails, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
+import { SUPPORT_EMAIL, flushEmailQueue } from '../mailer.js';
 import { assertEmailVerified } from '../emailVerification.js';
 import { isLaunched } from '../launch.js';
 import { notify } from '../notify.js';
@@ -204,8 +205,20 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
       `Você pode editar o anúncio quando quiser em Painel do anfitrião → Meus anúncios.`,
       'Quer mais reservas? Com o SpaceHour ADS seu espaço aparece em destaque nas buscas da sua cidade e da sua especialidade. Toque no botão abaixo para conhecer e ser avisado no lançamento.',
     ].filter(Boolean).join('\n\n'), `/anfitriao/ads?anuncio=${listing.id}`);
+    // Aviso à equipe (ADMIN_EMAILS; sem ela, o e-mail de suporte)
+    const team = adminEmails().length ? adminEmails() : [SUPPORT_EMAIL()];
+    const place = [listing.city, listing.state].filter(Boolean).join('/');
+    for (const email of team) {
+      await notify(tx, { email }, 'admin_listing_published', [
+        `Novo anúncio publicado: "${listing.title}" (${place}).`,
+        `Anfitrião: ${user.name} <${user.email}>`,
+        `Preço: ${listing.currency} ${listing.pricePerHour}/h · Capacidade: ${listing.capacity} · Categoria: ${listing.category}`,
+      ].join('\n'), `/espacos/${listing.id}`);
+    }
   });
   res.status(201).json(listing);
+  // Envia os e-mails já (a rotina periódica cobre o que falhar)
+  if (process.env.SMTP_HOST) flushEmailQueue().catch((e) => console.error('[email]', (e as Error).message));
 });
 
 listingsRouter.put('/listings/:id', requireAuth, async (req: AuthedRequest, res) => {

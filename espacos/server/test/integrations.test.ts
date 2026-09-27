@@ -271,7 +271,7 @@ test('cron protegido por segredo', async () => {
   process.env.CRON_SECRET = 's3cret';
   const r = await fetch(`${base}/cron/tick`, { headers: { Authorization: 'Bearer s3cret' } });
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(await r.json()).sort(), ['bookings', 'documents', 'email', 'mp_tokens', 'push', 'verifications']);
+  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'documents', 'email', 'mp_tokens', 'push', 'verifications']);
   delete process.env.CRON_SECRET;
 });
 
@@ -416,6 +416,9 @@ test('anúncio no Brasil: estado + município do IBGE; e-mail de publicação co
   const n = await one<{ text: string; link: string }>(pool, "SELECT text, link FROM notifications WHERE user_id = $1 AND kind = 'listing_published' ORDER BY created_at DESC LIMIT 1", [host.id]);
   assert.match(n!.text, /SpaceHour ADS/);
   assert.match(n!.link, /^\/anfitriao\/ads\?anuncio=/);
+  const team = await one<{ email: string; text: string }>(pool, "SELECT email, text FROM notifications WHERE kind = 'admin_listing_published' AND text LIKE '%Rio Branco%' ORDER BY created_at DESC LIMIT 1");
+  assert.equal(team!.email, 'support@space-hour.com', 'equipe avisada do novo anúncio');
+  assert.match(team!.text, /Anfitrião: .*anfitriao@spacehour\.demo/);
   const found = await (await fetch(`${base}/listings?country=BR&state=PR&city=${encodeURIComponent('Maringá')}`)).json() as Listing[];
   assert.ok(found.some((x) => x.id === l.id));
 });
@@ -537,4 +540,40 @@ test('exclusão de conta: exige senha, bloqueia com reserva em aberto e anonimiz
   const guest = (await repo.getUser(pool, open!.guest_id))!;
   const r = await fetch(`${base}/me`, { method: 'DELETE', headers: { Authorization: `Bearer ${signToken(guest)}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'demo12345' }) });
   assert.equal(r.status, 409);
+});
+
+test('assistente de dúvidas: responde com a IA, grava a conversa e envia a transcrição à equipe', async () => {
+  const A = await import('../src/assistant.js');
+  const seen: { system: string; messages: { role: string; content: unknown }[] }[] = [];
+  A.setAssistantClient({ messages: { create: async (req: { system: { text: string }[]; messages: { role: string; content: unknown }[] }) => {
+    seen.push({ system: req.system[0].text, messages: req.messages });
+    return { stop_reason: 'end_turn', content: [{ type: 'text', text: `Resposta ${seen.length}` }] };
+  } } } as unknown as Anthropic);
+  try {
+    const u = await register('duvidas@example.com');
+    const post = (body: unknown, tok?: string) => fetch(`${base}/assistant`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: `Bearer ${tok}` } : {}) }, body: JSON.stringify(body) });
+    const r1 = await (await post({ message: 'Quanto custa anunciar?', page: '/anuncie' }, u.token)).json() as { conversationId: string; reply: string };
+    assert.equal(r1.reply, 'Resposta 1');
+    assert.match(seen[0].system, /Anunciar não custa nada/);
+    assert.match(seen[0].system, /DOCUMENTO OFICIAL: Normas de Conduta/);
+    const r2 = await (await post({ conversationId: r1.conversationId, message: 'E no cartão?' }, u.token)).json() as { conversationId: string; reply: string };
+    assert.equal(r2.conversationId, r1.conversationId);
+    assert.deepEqual(seen[1].messages.map((m) => m.role), ['user', 'assistant', 'user'], 'histórico vem do banco');
+    assert.equal((await post({ message: '' })).status, 422);
+
+    // transcrição por e-mail depois de 20 min parada
+    await pool.query("UPDATE assistant_conversations SET updated_at = now() - interval '30 minutes' WHERE id = $1", [r1.conversationId]);
+    assert.ok(await A.emailIdleConversations() >= 1);
+    const n = await one<{ email: string; text: string }>(pool, "SELECT email, text FROM notifications WHERE kind = 'assistant_transcript' ORDER BY created_at DESC LIMIT 1");
+    assert.equal(n!.email, 'support@space-hour.com');
+    assert.match(n!.text, /duvidas@example\.com/);
+    assert.match(n!.text, /🧑 Pessoa: Quanto custa anunciar\?\n🤖 Assistente: Resposta 1/);
+
+    // equipe vê as conversas no admin; usuário comum não
+    assert.equal((await fetch(`${base}/admin/assistant`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
+    const list = await (await fetch(`${base}/admin/assistant`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { id: string; messages: unknown[] }[];
+    assert.equal(list.find((c) => c.id === r1.conversationId)?.messages.length, 4);
+  } finally {
+    A.setAssistantClient();
+  }
 });
