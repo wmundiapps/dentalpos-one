@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
-import { useI18n } from '../i18n';
+import { useI18n, type DictKey } from '../i18n';
 import { BookingList, type BookingRow } from './Trips';
 import { ListingCard, type ListingSummary } from '../components/ListingCard';
 import { money } from '../format';
 import { errorText } from '../errors';
-import { useMercadoPagoPrompt } from '../components/MercadoPagoPrompt';
+import { MP_SIGNUP_URL, MpConnectError, useMercadoPagoPrompt, useMpConnect } from '../components/MercadoPagoPrompt';
 
 export default function HostDashboard() {
   const { t, locale } = useI18n();
@@ -74,13 +74,10 @@ function PayoutAccount() {
   const [params] = useSearchParams();
   const [st, setSt] = useState<{ required: boolean; connected: boolean; mpUserId?: string } | null>(null);
   const [error, setError] = useState('');
+  const { connect, busy, error: connectError } = useMpConnect();
   const load = () => api<typeof st>('/me/payout-account').then(setSt).catch(() => {});
   useEffect(() => { load(); }, []);
   if (!st || !st.required) return null;
-  async function connect() {
-    setError('');
-    try { window.location.assign((await api<{ url: string }>('/me/payout-account/connect', { method: 'POST' })).url); } catch (e) { setError(errorText(e, t)); }
-  }
   async function disconnect() {
     if (!window.confirm(t('payout.confirmDisconnect'))) return;
     try { await api('/me/payout-account', { method: 'DELETE' }); load(); } catch (e) { setError(errorText(e, t)); }
@@ -89,7 +86,7 @@ function PayoutAccount() {
   return (
     <section className={`panel payout ${st.connected ? '' : 'warn'}`}>
       {status === 'conectado' && st.connected && <p className="notice success">✅ {t('payout.success')}</p>}
-      {status === 'erro' && <p className="errors">{t('payout.error')}</p>}
+      {status === 'erro' && <p className="notice warn"><strong>{t('payout.error')}</strong> {t(`err.${params.get('motivo') ?? 'mp_connect_failed'}` as DictKey)}</p>}
       <h2>💳 {t('payout.title')}</h2>
       {st.connected ? (
         <p className="row between wrap gap">
@@ -101,9 +98,11 @@ function PayoutAccount() {
           <p>{t('payout.help')}</p>
           <p className="notice warn small">{t('payout.required')}</p>
           <div className="row gap wrap">
-            <button className="btn btn-primary" onClick={connect}>{t('payout.connect')}</button>
-            <a className="btn btn-outline" href="https://www.mercadopago.com.br/" target="_blank" rel="noopener noreferrer">{t('mp.create')} ↗</a>
+            <button className="btn btn-primary" onClick={connect} disabled={busy}>{busy ? t('mp.opening') : t('payout.connect')}</button>
+            <a className="btn btn-outline" href={MP_SIGNUP_URL} target="_blank" rel="noopener noreferrer">{t('mp.create')} ↗</a>
           </div>
+          <p className="muted small">{t('mp.createHint')}</p>
+          <MpConnectError error={connectError} />
         </>
       )}
       {error && <p className="errors small">{error}</p>}

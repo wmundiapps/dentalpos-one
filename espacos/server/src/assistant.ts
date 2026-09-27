@@ -53,7 +53,9 @@ O QUE É E COMO FUNCIONA
 - Lançamento: por enquanto só no Brasil. O aplicativo para Android e iPhone está em preparação; o site funciona no celular.
 
 CADASTRO E CONTA
-- Cadastro em https://space-hour.com/cadastro. Depois é preciso confirmar o e-mail pelo link enviado (vale 7 dias; se não chegou, olhar o spam ou usar "Reenviar e-mail" no aviso do topo do site). Sem e-mail confirmado não é possível reservar nem anunciar.
+- Cadastro em https://space-hour.com/cadastro. Depois é preciso confirmar o e-mail: chega um código de 6 números, que se digita no aviso do topo do site/app (ou toque no link do mesmo e-mail; vale 7 dias). Se não chegou, olhar o spam ou tocar em "Reenviar código". Sem e-mail confirmado não dá para reservar; o anúncio pode ser preenchido e fica salvo, entrando no ar assim que o e-mail for confirmado. E-mails temporários (descartáveis) não são aceitos.
+- Verificação de identidade (opcional, recomendada, 1 minuto) em Perfil → Identidade: CPF ou CNPJ, foto do documento (RG, CNH ou passaporte) e uma selfie. A conferência é automática; se não for conclusiva a equipe revê em até 1 dia útil. O perfil ganha o selo de identidade verificada. Fotos cifradas e apagadas 90 dias após a conferência; não há reconhecimento facial automatizado.
+- Endereço do anúncio: se tiver CEP, conferimos se é da cidade informada. O anfitrião vê o endereço no mapa ao anunciar para conferir; quem aluga vê o mapa com botões do Google Maps e do Waze depois que a reserva é confirmada.
 - Esqueceu a senha: na tela Entrar, clicar em "Esqueci minha senha" (ou https://space-hour.com/esqueci-senha), informar o e-mail e abrir o link recebido (vale 1 hora) para criar uma nova senha.
 - Excluir conta: Perfil → Excluir conta (pede a senha; não é possível com reserva em andamento). Instruções em https://space-hour.com/excluir-conta.
 

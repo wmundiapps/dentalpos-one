@@ -20,13 +20,23 @@ export function setMpHttp(fn?: Fetch) { http = fn ?? ((...a) => fetch(...a)); }
 /** Split ligado quando a aplicação tem credenciais OAuth. */
 export const marketplaceEnabled = () => !!(process.env.MP_CLIENT_ID && process.env.MP_CLIENT_SECRET);
 
-const redirectUri = () => `${process.env.PUBLIC_API_URL ?? process.env.APP_URL ?? 'http://localhost:4000'}/api/mp/oauth/callback`;
+export const redirectUri = () => `${process.env.PUBLIC_API_URL ?? process.env.APP_URL ?? 'http://localhost:4000'}/api/mp/oauth/callback`;
 const stateSecret = () => process.env.JWT_SECRET ?? 'dev-secret-change-me';
+/** PKCE: ligar (MP_PKCE=true) quando a opção estiver ativada na aplicação do painel do Mercado Pago. */
+export const pkceEnabled = () => process.env.MP_PKCE === 'true';
 
 export function authorizeUrl(userId: string) {
   if (!marketplaceEnabled()) throw new HttpError(503, 'marketplace_not_configured');
-  const state = jwt.sign({ sub: userId, n: crypto.randomBytes(8).toString('hex') }, stateSecret(), { expiresIn: '30m' });
-  const q = new URLSearchParams({ client_id: process.env.MP_CLIENT_ID!, response_type: 'code', platform_id: 'mp', state, redirect_uri: redirectUri() });
+  const q = new URLSearchParams({ client_id: process.env.MP_CLIENT_ID!, response_type: 'code', platform_id: 'mp', redirect_uri: redirectUri() });
+  let v: string | undefined;
+  if (pkceEnabled()) {
+    // O verificador vai cifrado dentro do state: passa pelo navegador sem poder ser lido
+    const verifier = crypto.randomBytes(48).toString('base64url');
+    q.set('code_challenge', crypto.createHash('sha256').update(verifier).digest('base64url'));
+    q.set('code_challenge_method', 'S256');
+    v = encryptText(verifier).toString('base64url');
+  }
+  q.set('state', jwt.sign({ sub: userId, n: crypto.randomBytes(8).toString('hex'), ...(v ? { v } : {}) }, stateSecret(), { expiresIn: '30m' }));
   return `${AUTH}?${q}`;
 }
 
@@ -56,8 +66,13 @@ async function save(userId: string, t: TokenResponse) {
 /** Retorno do OAuth: troca o código pelo token do anfitrião. */
 export async function completeAuthorization(code: string, state: string): Promise<string> {
   let userId: string;
-  try { userId = (jwt.verify(state, stateSecret()) as { sub: string }).sub; } catch { throw new HttpError(400, 'invalid_state'); }
-  const t = await tokenRequest({ grant_type: 'authorization_code', code, redirect_uri: redirectUri() });
+  let verifier: string | undefined;
+  try {
+    const st = jwt.verify(state, stateSecret()) as { sub: string; v?: string };
+    userId = st.sub;
+    if (st.v) verifier = decryptText(Buffer.from(st.v, 'base64url'));
+  } catch { throw new HttpError(400, 'invalid_state'); }
+  const t = await tokenRequest({ grant_type: 'authorization_code', code, redirect_uri: redirectUri(), ...(verifier ? { code_verifier: verifier } : {}) });
   // uma conta Mercado Pago não pode ficar ligada a dois anfitriões
   const other = await one<{ user_id: string }>(pool, 'SELECT user_id FROM mp_accounts WHERE mp_user_id = $1 AND user_id <> $2', [String(t.user_id), userId]);
   if (other) throw new HttpError(409, 'mp_account_in_use');

@@ -47,6 +47,9 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 
 3.1. No tomamos decisiones exclusivamente automatizadas con efectos jurídicos significativos sin revisión humana. Los sistemas automáticos pueden señalar mensajes con indicios de pago fuera de la Plataforma o fraude, pero cualquier suspensión o exclusión es revisada por una persona, y el titular puede solicitar la revisión (LGPD art. 20; RGPD art. 22).
 
+
+**Verificación de identidad (documento y selfie).** El titular puede enviar su documento fiscal, una foto de su identificación y una selfie. La verificación es automática: dígitos del CPF/CNPJ; situación y socios del CNPJ en la base pública de la Receita Federal de Brasil; y un sistema de inteligencia artificial lee el documento (nombre, CPF, fecha de nacimiento), busca adulteraciones y comprueba que la selfie sea una foto real. **La Plataforma no realiza reconocimiento facial automatizado** ni compara rostros por medios técnicos; los casos no concluyentes los revisa el equipo. Las fotos se guardan cifradas, cada acceso queda registrado y se borran 90 días después, salvo necesidad en una disputa. También guardamos IP, navegador y hora del registro y de la confirmación del correo, y rechazamos correos temporales, para prevenir fraudes.
+
 ## 4. Compartición de datos
 
 4.1. **Entre Anfitrión y Arrendatario.** Después de la confirmación de una Reserva, el Anfitrión recibe el nombre, el perfil público, la actividad declarada, el número de personas y, cuando el Anuncio lo exija, la indicación de registro profesional verificado del Arrendatario; el Arrendatario recibe la dirección completa y las instrucciones de acceso del Espacio. El teléfono y el correo electrónico no se muestran, y las partes se comunican a través de la Plataforma.

@@ -47,6 +47,9 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 3.1. Wir treffen keine ausschließlich automatisierten Entscheidungen mit erheblichen rechtlichen Wirkungen ohne menschliche Überprüfung. Automatische Systeme können Nachrichten mit Anhaltspunkten für Zahlungen außerhalb der Plattform oder Betrug kennzeichnen, doch jede Aussetzung oder jeder Ausschluss wird von einer Person überprüft, und die betroffene Person kann eine Überprüfung beantragen (LGPD Art. 20; DSGVO Art. 22).
 
+
+**Identitätsprüfung (Ausweis und Selfie).** Nutzer können ihre Steuernummer, ein Ausweisfoto und ein Selfie senden. Die Prüfung erfolgt automatisch: Prüfziffern von CPF/CNPJ; Status und Gesellschafter des CNPJ im öffentlichen brasilianischen Register; ein KI-System liest den Ausweis (Name, CPF, Geburtsdatum), sucht nach Manipulationen und prüft, ob das Selfie ein echtes Foto ist. **Die Plattform führt keine automatisierte Gesichtserkennung durch** und vergleicht Gesichter nicht mit technischen Mitteln; unklare Fälle prüft das Team. Die Fotos werden verschlüsselt, jeder Zugriff wird protokolliert und sie werden 90 Tage nach der Prüfung gelöscht, außer bei Streitfällen. Wir speichern außerdem IP, Browser und Zeitpunkt der Registrierung und der E-Mail-Bestätigung und lehnen Wegwerf-Adressen ab, um Betrug zu verhindern.
+
 ## 4. Weitergabe
 
 4.1. **Zwischen Gastgeber und Mieter.** Nach Bestätigung einer Buchung erhält der Gastgeber den Namen, das öffentliche Profil, die angegebene Tätigkeit, die Personenzahl und, sofern das Inserat dies voraussetzt, die Angabe der verifizierten beruflichen Registrierung des Mieters; der Mieter erhält die vollständige Anschrift und die Zugangsanweisungen des Raums. Telefonnummer und E-Mail werden nicht angezeigt, und die Parteien kommunizieren über die Plattform.

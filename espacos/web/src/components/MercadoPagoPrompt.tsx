@@ -3,17 +3,45 @@ import { api } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../errors';
 
-// Site oficial do Mercado Pago (tem o botão "Criar conta")
-const MP_SIGNUP_URL = 'https://www.mercadopago.com.br/';
+// Cadastro oficial do Mercado Pago (pede CPF ou CNPJ)
+export const MP_SIGNUP_URL = 'https://www.mercadopago.com.br/hub/registration/landing';
+
+/** Botão "Conectar": leva ao Mercado Pago; se não der, explica o motivo e o que fazer. */
+export function useMpConnect() {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<{ code: string; text: string } | null>(null);
+  async function connect() {
+    setError(null); setBusy(true);
+    try {
+      const { url } = await api<{ url: string }>('/me/payout-account/connect', { method: 'POST' });
+      window.location.assign(url);
+    } catch (e) {
+      setBusy(false);
+      setError({ code: (e as { code?: string }).code ?? '', text: errorText(e, t) });
+    }
+  }
+  return { connect, busy, error };
+}
+
+export function MpConnectError({ error }: { error: { code: string; text: string } | null }) {
+  const { t } = useI18n();
+  const [sent, setSent] = useState(false);
+  if (!error) return null;
+  return (
+    <div className="notice warn mp-error" role="alert">
+      <strong>{error.text}</strong>
+      {error.code === 'email_not_verified' && (sent
+        ? <p className="small">{t('verify.resent')}</p>
+        : <p><button className="btn btn-outline small" onClick={() => api('/me/resend-verification', { body: {} }).then(() => setSent(true)).catch(() => setSent(true))}>{t('verify.resend')}</button></p>)}
+    </div>
+  );
+}
 
 // Janela: para receber as reservas o anfitrião precisa de conta no Mercado Pago conectada ao SpaceHour
 export function MercadoPagoPrompt({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
-  const [error, setError] = useState('');
-  async function connect() {
-    setError('');
-    try { window.location.assign((await api<{ url: string }>('/me/payout-account/connect', { method: 'POST' })).url); } catch (e) { setError(errorText(e, t)); }
-  }
+  const { connect, busy, error } = useMpConnect();
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal mp-prompt" role="dialog" aria-modal="true" aria-labelledby="mp-prompt-title" onClick={(e) => e.stopPropagation()}>
@@ -30,10 +58,10 @@ export function MercadoPagoPrompt({ onClose }: { onClose: () => void }) {
         <p className="notice small">{t('mp.noCost')}</p>
         <div className="row gap wrap">
           <a className="btn btn-outline" href={MP_SIGNUP_URL} target="_blank" rel="noopener noreferrer">{t('mp.create')} ↗</a>
-          <button className="btn btn-primary" onClick={connect}>{t('mp.connect')}</button>
+          <button className="btn btn-primary" onClick={connect} disabled={busy}>{busy ? t('mp.opening') : t('mp.connect')}</button>
           <button className="btn btn-ghost" onClick={onClose}>{t('mp.later')}</button>
         </div>
-        {error && <p className="errors small">{error}</p>}
+        <MpConnectError error={error} />
       </div>
     </div>
   );

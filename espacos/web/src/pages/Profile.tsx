@@ -10,11 +10,11 @@ import { COUNTRY_BY_CODE } from '../../../shared/countries';
 import { STRIKE_RULES } from '../../../shared/rules';
 import { errorText } from '../errors';
 import { formatDateTime } from '../format';
+import { IdentityVerify } from '../components/IdentityVerify';
 
 export default function Profile() {
   const { t, locale } = useI18n();
   const { me, refreshMe } = useApp();
-  const [doc, setDoc] = useState({ documentType: '', documentNumber: '' });
   const [info, setInfo] = useState({ name: me?.name ?? '', phone: me?.phone ?? '', bio: me?.bio ?? '', companyTaxId: me?.companyTaxId ?? '' });
   const [msg, setMsg] = useState('');
   if (!me) return <div className="container empty"><Link to="/entrar?next=/perfil">{t('auth.login')}</Link></div>;
@@ -32,7 +32,7 @@ export default function Profile() {
       <p className="muted small">{t('profile.strikes', { n: me.activeStrikes, suspend: STRIKE_RULES.suspendAt, ban: STRIKE_RULES.banAt })} <Link to="/regras/penalties">{t('legal.penalties')}</Link></p>
       {msg && <p className="notice small">{msg}</p>}
 
-      <MarketingPrefs />
+      <IdentityVerify />
 
       <section className="panel">
         <h2>{t('profile.info')}</h2>
@@ -43,17 +43,8 @@ export default function Profile() {
         <button className="btn btn-primary" onClick={() => run('/me', info, 'PUT')}>{t('common.save')}</button>
       </section>
 
-      <section className="panel">
-        <h2>{t('profile.identity')} {me.identityVerified && <span className="badge">✅ {t('profile.verified')}</span>}</h2>
-        <p className="muted small">{t('profile.identityHelp')}</p>
-        {!me.identityVerified && <>
-          <label>{t('form.documentType')}<input value={doc.documentType} onChange={(e) => setDoc({ ...doc, documentType: e.target.value })} placeholder={cfg?.documentLabel} /></label>
-          <label>{t('form.documentNumber')}<input value={doc.documentNumber} onChange={(e) => setDoc({ ...doc, documentNumber: e.target.value })} /></label>
-          <button className="btn btn-primary" onClick={() => run('/me/verify-identity', doc)}>{t('profile.verify')}</button>
-        </>}
-      </section>
-
       <LicenseSection onDone={refreshMe} />
+      <MarketingPrefs />
       <DeleteAccountSection />
     </div>
   );

@@ -47,6 +47,9 @@ Version 2026-09-24 · Effective from 2026-09-24
 
 3.1. We do not make decisions based solely on automated processing with significant legal effects without human review. Automated systems may flag messages showing indications of payment outside the Platform or fraud, but any suspension or exclusion is reviewed by a person, and the data subject may request review (LGPD art. 20; GDPR art. 22).
 
+
+**Identity verification (ID and selfie).** Users may send their tax ID, a photo of their ID and a selfie. Checks are automatic: tax ID check digits; company status and partners in the public Brazilian company registry (CNPJ); and an AI system reads the ID (name, tax ID, date of birth), looks for tampering and checks the selfie is a live photo. **The Platform does not perform automated facial recognition** or compare faces by technical means; inconclusive cases are reviewed by the team. Photos are encrypted, every access is logged and they are deleted 90 days after the check, unless needed for a dispute. We also keep the IP address, browser and time of sign-up and email confirmation, and reject disposable email addresses, to prevent fraud.
+
 ## 4. Sharing
 
 4.1. **Between Host and Renter.** After a Booking is confirmed, the Host receives the Renter's name, public profile, declared activity, number of people, and, when the Listing requires it, the indication of verified professional registration; the Renter receives the Space's full address and access instructions. Phone number and email are not displayed, and the parties communicate through the Platform.

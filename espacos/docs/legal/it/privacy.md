@@ -47,6 +47,9 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 3.1. Non adottiamo decisioni esclusivamente automatizzate con effetti giuridici significativi senza revisione umana. I sistemi automatici possono segnalare messaggi con indizi di pagamento al di fuori della Piattaforma o di frode, ma qualsiasi sospensione o esclusione viene rivista da una persona, e l'interessato può richiedere una revisione (LGPD art. 20; GDPR art. 22).
 
+
+**Verifica dell’identità (documento e selfie).** L’utente può inviare il codice fiscale, una foto del documento e un selfie. I controlli sono automatici: cifre di controllo di CPF/CNPJ; stato e soci del CNPJ nel registro pubblico brasiliano; un sistema di intelligenza artificiale legge il documento (nome, CPF, data di nascita), cerca alterazioni e verifica che il selfie sia una foto reale. **La Piattaforma non effettua riconoscimento facciale automatizzato** né confronta volti con mezzi tecnici; i casi non conclusivi sono rivisti dal team. Le foto sono cifrate, ogni accesso è registrato e vengono cancellate 90 giorni dopo il controllo, salvo controversie. Conserviamo anche IP, browser e ora di registrazione e conferma dell’e-mail e rifiutiamo e-mail temporanee, per prevenire frodi.
+
 ## 4. Condivisione
 
 4.1. **Tra Host e Locatario.** Dopo la conferma di una Prenotazione, l'Host riceve il nome, il profilo pubblico, l'attività dichiarata, il numero di persone e, quando l'Annuncio lo richieda, l'indicazione della registrazione professionale verificata del Locatario; il Locatario riceve l'indirizzo completo e le istruzioni di accesso dello Spazio. Telefono ed e-mail non vengono mostrati, e le parti comunicano tramite la Piattaforma.

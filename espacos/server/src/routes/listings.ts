@@ -4,9 +4,9 @@ import { id, nowIso, pool, rows, withTx, type Db } from '../db.js';
 import * as repo from '../repo.js';
 import { HttpError, adminEmails, optionalAuth, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
 import { SUPPORT_EMAIL } from '../mailer.js';
-import { assertEmailVerified } from '../emailVerification.js';
 import { isLaunched } from '../launch.js';
 import { notify } from '../notify.js';
+import { assertCepMatches } from '../identity.js';
 import { geoCity, geoState, hasGeo, rawGeo, stateTimezone } from '../geo.js';
 import { connectedHostIds, marketplaceEnabled } from '../payments/mpAccounts.js';
 import { MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
@@ -194,12 +194,15 @@ listingsRouter.post('/listings/:id/quote', optionalAuth, async (req: AuthedReque
 });
 
 listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) => {
-  assertEmailVerified(req.user!);
   const data = listingSchema.parse(req.body);
   const derived = checkListingRules(data);
   const user = req.user!;
+  // Sem e-mail confirmado o anúncio fica salvo e entra no ar na confirmação (não perde o que foi preenchido)
+  const pendingEmail = !user.emailVerifiedAt;
+  await assertCepMatches(data as { countryCode: string; address: string; city: string; state?: string });
   const listing: Listing = {
     ...(data as unknown as Listing), ...derived, id: id('lst'), hostId: user.id, createdAt: nowIso(),
+    ...(pendingEmail ? { active: false } : {}),
   };
   await withTx(async (tx) => {
     if (!user.roles.includes('host')) {
@@ -207,10 +210,13 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
       await repo.updateUser(tx, user);
     }
     await repo.insertListing(tx, listing);
+    if (pendingEmail) await tx.query('UPDATE listings SET pending_email = true WHERE id = $1', [listing.id]);
     // Boas-vindas ao anúncio + convite para o SpaceHour ADS (destaque pago, em breve)
     const needsPayout = marketplaceEnabled() && MP_COUNTRIES.includes(listing.countryCode) && !(await connectedHostIds([user.id])).has(user.id);
     await notify(tx, { userId: user.id }, 'listing_published', [
-      `Seu anúncio "${listing.title}" foi publicado no SpaceHour! 🎉`,
+      pendingEmail
+        ? `Seu anúncio "${listing.title}" foi salvo! Ele entra no ar assim que você confirmar seu e-mail: digite o código de 6 números que enviamos ou toque no link do e-mail de confirmação.`
+        : `Seu anúncio "${listing.title}" foi publicado no SpaceHour! 🎉`,
       needsPayout ? 'Falta um passo para começar a receber reservas: conecte sua conta Mercado Pago no Painel do anfitrião. O valor de cada reserva cai direto na sua conta.' : '',
       `Você pode editar o anúncio quando quiser em Painel do anfitrião → Meus anúncios.`,
       'Quer mais reservas? Com o SpaceHour ADS seu espaço aparece em destaque nas buscas da sua cidade e da sua especialidade. Toque no botão abaixo para conhecer e ser avisado no lançamento.',
@@ -220,18 +226,19 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
     const place = [listing.city, listing.state].filter(Boolean).join('/');
     for (const email of team) {
       await notify(tx, { email }, 'admin_listing_published', [
-        `Novo anúncio publicado: "${listing.title}" (${place}).`,
+        `Novo anúncio ${pendingEmail ? 'salvo (entra no ar quando o anfitrião confirmar o e-mail)' : 'publicado'}: "${listing.title}" (${place}).`,
         `Anfitrião: ${user.name} <${user.email}>`,
         `Preço: ${listing.currency} ${listing.pricePerHour}/h · Capacidade: ${listing.capacity} · Categoria: ${listing.category}`,
       ].join('\n'), `/espacos/${listing.id}`);
     }
   });
-  res.status(201).json(listing);
+  res.status(201).json({ ...listing, pendingEmail });
 });
 
 listingsRouter.put('/listings/:id', requireAuth, async (req: AuthedRequest, res) => {
   const data = listingSchema.parse(req.body);
   const derived = checkListingRules(data);
+  await assertCepMatches(data as { countryCode: string; address: string; city: string; state?: string });
   const l = await withTx(async (tx) => {
     const cur = await getListing(tx, req.params.id, true);
     if (cur.hostId !== req.user!.id) throw new HttpError(403, 'forbidden');

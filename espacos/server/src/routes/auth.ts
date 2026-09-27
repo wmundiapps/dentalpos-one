@@ -8,7 +8,7 @@ import { HttpError, requireAuth, signToken, toSelf, type AuthedRequest } from '.
 import { COUNTRY_BY_CODE, SUPPORTED_LOCALES } from '../../../shared/countries.js';
 import { RULES_VERSION } from '../../../shared/rules.js';
 import type { User } from '../../../shared/types.js';
-import { confirmEmail, sendVerificationEmail } from '../emailVerification.js';
+import { confirmEmail, confirmEmailCode, sendVerificationEmail } from '../emailVerification.js';
 import { requestPasswordReset, resetPassword } from '../passwordReset.js';
 
 export const authRouter = Router();
@@ -29,13 +29,15 @@ authRouter.post('/auth/register', async (req, res) => {
   const data = registerSchema.parse(req.body);
   const email = data.email.toLowerCase();
   if (await getUserByEmail(pool, email)) throw new HttpError(409, 'email_in_use');
+  if (emailProvider(email).kind === 'disposable') throw new HttpError(422, 'disposable_email');
   const user: User = {
     id: id('usr'), email, passwordHash: await bcrypt.hash(data.password, 10), name: data.name,
     countryCode: data.countryCode, locale: data.locale as User['locale'], roles: ['guest'], createdAt: nowIso(),
     identityVerified: false, strikes: [], termsAcceptedAt: nowIso(), termsVersion: RULES_VERSION, licenseStatus: 'none',
   };
   await insertUser(pool, user); // índice único em lower(email) cobre cadastros simultâneos
-  if (data.source) await pool.query('UPDATE users SET signup_source = $2 WHERE id = $1', [user.id, data.source]);
+  await pool.query('UPDATE users SET signup_source = $2, signup_ip = $3, signup_user_agent = $4 WHERE id = $1',
+    [user.id, data.source ?? null, req.ip ?? null, req.get('user-agent')?.slice(0, 300) ?? null]);
   if (data.marketingOptIn) await pool.query('UPDATE users SET marketing_opt_in_at = now() WHERE id = $1', [user.id]);
   // Falha no envio não impede o cadastro: dá para reenviar pelo aviso no app.
   await sendVerificationEmail(user).catch((e) => console.error('[email] confirmação de cadastro', (e as Error).message));
@@ -64,7 +66,12 @@ authRouter.post('/auth/reset-password', async (req, res) => {
 
 authRouter.post('/auth/verify-email', async (req, res) => {
   const { token } = z.object({ token: z.string().min(10).max(200) }).parse(req.body);
-  await confirmEmail(token);
+  await confirmEmail(token, { ip: req.ip, userAgent: req.get('user-agent') });
+  res.json({ verified: true });
+});
+authRouter.post('/me/verify-code', requireAuth, async (req: AuthedRequest, res) => {
+  const { code } = z.object({ code: z.string().min(6).max(12) }).parse(req.body);
+  await confirmEmailCode(req.user!.id, code, { ip: req.ip, userAgent: req.get('user-agent') });
   res.json({ verified: true });
 });
 
@@ -91,12 +98,23 @@ authRouter.get('/admin/signups', requireAuth, async (req: AuthedRequest, res) =>
   res.json({ days, bySource, byDay });
 });
 
+// Provedor do e-mail (gmail, hotmail, domínio próprio...) e aviso de e-mail descartável
+const DISPOSABLE = ['mailinator.com', 'guerrillamail.com', '10minutemail.com', 'tempmail.com', 'temp-mail.org', 'yopmail.com', 'trashmail.com', 'getnada.com', 'sharklasers.com', 'dispostable.com', 'maildrop.cc', 'mohmal.com', 'emailondeck.com', 'throwawaymail.com', 'fakeinbox.com'];
+const FREE = ['gmail.com', 'hotmail.com', 'outlook.com', 'live.com', 'yahoo.com', 'yahoo.com.br', 'icloud.com', 'uol.com.br', 'bol.com.br', 'terra.com.br', 'ig.com.br', 'msn.com', 'proton.me', 'protonmail.com'];
+export function emailProvider(email: string) {
+  const domain = email.split('@')[1]?.toLowerCase() ?? '';
+  return { domain, kind: DISPOSABLE.includes(domain) ? 'disposable' : FREE.includes(domain) ? 'free' : 'own_domain' };
+}
+
 // Consulta de um usuário pelo e-mail (suporte): cadastro, anúncios, Mercado Pago e e-mails enviados.
 authRouter.get('/admin/users', requireAuth, async (req: AuthedRequest, res) => {
   if (!req.user!.roles.includes('admin')) throw new HttpError(403, 'forbidden');
   const email = z.string().trim().min(3).max(200).parse(req.query.email);
-  const users = await rows<{ id: string; email: string; name: string; phone: string | null; roles: string[]; created_at: Date; email_verified_at: Date | null; signup_source: string | null; mp_connected_at: Date | null }>(pool,
-    `SELECT u.id, u.email, u.name, u.phone, u.roles, u.created_at, u.email_verified_at, u.signup_source, m.connected_at AS mp_connected_at
+  const users = await rows<{ id: string; email: string; name: string; phone: string | null; roles: string[]; created_at: Date; email_verified_at: Date | null; signup_source: string | null; mp_connected_at: Date | null;
+    signup_ip: string | null; signup_user_agent: string | null; email_verified_ip: string | null; email_verified_user_agent: string | null; identity_verified: boolean; identity_status: string | null; license_status: string | null }>(pool,
+    `SELECT u.id, u.email, u.name, u.phone, u.roles, u.created_at, u.email_verified_at, u.signup_source, m.connected_at AS mp_connected_at,
+            u.signup_ip, u.signup_user_agent, u.email_verified_ip, u.email_verified_user_agent, u.identity_verified, u.license_status,
+            (SELECT status FROM identity_verifications iv WHERE iv.user_id = u.id ORDER BY created_at DESC LIMIT 1) AS identity_status
        FROM users u LEFT JOIN mp_accounts m ON m.user_id = u.id
       WHERE u.deleted_at IS NULL AND lower(u.email) LIKE '%' || lower($1) || '%' ORDER BY u.created_at DESC LIMIT 10`, [email]);
   const ids = users.map((u) => u.id);
@@ -107,6 +125,7 @@ authRouter.get('/admin/users', requireAuth, async (req: AuthedRequest, res) => {
       WHERE user_id = ANY($1) ORDER BY created_at DESC LIMIT 60`, [ids]) : [];
   res.json(users.map((u) => ({
     ...u,
+    emailProvider: emailProvider(u.email),
     listings: listings.filter((l) => l.host_id === u.id),
     emails: emails.filter((n) => n.user_id === u.id).slice(0, 15),
   })));
@@ -172,14 +191,7 @@ authRouter.put('/me', requireAuth, async (req: AuthedRequest, res) => {
   res.json(toSelf(req.user!));
 });
 
-// Verificação de identidade. Em produção, integrar um provedor de KYC
-// (documento + selfie). Aqui a verificação é registrada como concluída.
-authRouter.post('/me/verify-identity', requireAuth, async (req: AuthedRequest, res) => {
-  const data = z.object({ documentType: z.string().min(2).max(60), documentNumber: z.string().min(4).max(40) }).parse(req.body);
-  Object.assign(req.user!, data, { identityVerified: true });
-  await updateUser(pool, req.user!);
-  res.json(toSelf(req.user!));
-});
+// Verificação de identidade: POST /me/identity (routes/files.ts) — CPF/CNPJ + documento + selfie.
 
 authRouter.post('/me/become-host', requireAuth, async (req: AuthedRequest, res) => {
   if (!req.user!.roles.includes('host')) req.user!.roles.push('host');

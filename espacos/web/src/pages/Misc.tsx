@@ -117,6 +117,16 @@ type Verification = {
   ai_result: { ai?: { decision: string; confidence: string; reasons: string[]; public_registry_found_active: boolean | null; extracted: Record<string, string | null> } | null; error?: string | null } | null;
 };
 
+// Consulta pública do conselho profissional (a equipe confere o número no site oficial)
+function registryLookup(body: string, number: string, region: string | null) {
+  const b = body.toUpperCase();
+  if (/CRM|CFM/.test(b)) return 'https://portal.cfm.org.br/busca-medicos/';
+  if (/CRO|CFO/.test(b)) return 'https://website.cfo.org.br/profissionais-cadastrados/';
+  if (/CRP|CFP/.test(b)) return 'https://cadastro.cfp.org.br/';
+  if (/OAB/.test(b)) return 'https://cna.oab.org.br/';
+  return `https://www.google.com/search?q=${encodeURIComponent(`consulta ${body} ${number} ${region ?? ''}`)}`;
+}
+
 function Verifications() {
   const { t, locale } = useI18n();
   const [list, setList] = useState<Verification[]>([]);
@@ -133,6 +143,8 @@ function Verifications() {
   return (
     <div>
       {error && <p className="errors">{error}</p>}
+      <IdentityReview />
+      <h2>{t('admin.licensesTitle')}</h2>
       {list.length === 0 && <p className="muted">{t('admin.verificationsEmpty')}</p>}
       {list.map((v) => {
         const ai = v.ai_result?.ai;
@@ -149,9 +161,57 @@ function Verifications() {
             {v.ai_result?.error && <p className="muted small">{v.ai_result.error}</p>}
             <div className="row gap wrap">
               <button className="btn btn-outline" onClick={() => openDoc(v)}>📄 {t('admin.viewDocument')}</button>
+              <a className="btn btn-outline" href={registryLookup(v.body, v.number, v.region)} target="_blank" rel="noopener noreferrer">🔎 {t('admin.lookupRegistry')}</a>
               <label className="grow">{t('admin.note')}<input value={notes[v.id] ?? ''} onChange={(e) => setNotes({ ...notes, [v.id]: e.target.value })} /></label>
               <button className="btn btn-primary" onClick={() => decide(v, 'approved')}>{t('admin.approve')}</button>
               <button className="btn btn-danger" onClick={() => decide(v, 'rejected')}>{t('admin.rejectLicense')}</button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Identidades (CPF/CNPJ + documento + selfie) que a checagem automática mandou para a equipe
+function IdentityReview() {
+  const { t, locale } = useI18n();
+  type Idv = { id: string; user_name: string; email: string; tax_id: string; tax_id_kind: string; status: string; ip: string | null; created_at: string; has_files: boolean;
+    checks: { taxIdValid?: boolean | null; cnpj?: { found: boolean; active?: boolean; status?: string; companyName?: string; personIsPartner?: boolean }; ai?: { reasons: string[]; confidence: string; extracted_name: string | null; extracted_cpf: string | null; document_kind: string | null; name_matches: boolean; cpf_matches: boolean | null; selfie_is_live_person: boolean; signs_of_tampering: boolean }; aiError?: string } | null };
+  const [list, setList] = useState<Idv[]>([]);
+  const [error, setError] = useState('');
+  const load = () => api<Idv[]>('/admin/identities').then(setList).catch((e) => setError(errorText(e, t)));
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const open = async (v: Idv, which: 'document' | 'selfie') => {
+    try { window.open(await apiBlobUrl(`/admin/identities/${v.id}/${which}`), '_blank', 'noopener'); } catch (e) { setError(errorText(e, t)); }
+  };
+  const decide = async (v: Idv, status: 'approved' | 'rejected') => {
+    try { await api(`/admin/identities/${v.id}/decision`, { body: { status } }); load(); } catch (e) { setError(errorText(e, t)); }
+  };
+  const yn = (b: boolean | null | undefined) => (b === true ? '✅' : b === false ? '❌' : '—');
+  return (
+    <div className="identity-review">
+      <h2>{t('admin.identitiesTitle')}</h2>
+      {error && <p className="errors">{error}</p>}
+      {list.length === 0 && <p className="muted">{t('admin.verificationsEmpty')}</p>}
+      {list.map((v) => {
+        const ai = v.checks?.ai;
+        return (
+          <div key={v.id} className="panel">
+            <div className="row between wrap">
+              <strong>{v.user_name} &lt;{v.email}&gt;</strong>
+              <span className="status">{v.status}</span>
+            </div>
+            <p className="small">{v.tax_id_kind.toUpperCase()} {v.tax_id} {yn(v.checks?.taxIdValid)} · {formatDateTime(v.created_at, locale)}{v.ip ? ` · IP ${v.ip}` : ''}</p>
+            {v.checks?.cnpj && <p className="small">CNPJ: {v.checks.cnpj.found ? `${v.checks.cnpj.companyName ?? ''} · ${v.checks.cnpj.status ?? ''} · ${t('admin.idPartner')} ${yn(v.checks.cnpj.personIsPartner)}` : t('admin.idCnpjNotFound')}</p>}
+            {ai && <p className="small">{ai.document_kind ?? '—'} · {t('admin.idName')} {yn(ai.name_matches)} ({ai.extracted_name ?? '—'}) · CPF {yn(ai.cpf_matches)} ({ai.extracted_cpf ?? '—'}) · Selfie {yn(ai.selfie_is_live_person)} · {t('admin.idTamper')} {yn(!ai.signs_of_tampering)} · {ai.confidence}</p>}
+            {ai?.reasons.length ? <ul className="small">{ai.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul> : null}
+            {v.checks?.aiError && <p className="muted small">{v.checks.aiError}</p>}
+            <div className="row gap wrap">
+              {v.has_files && <button className="btn btn-outline" onClick={() => open(v, 'document')}>🪪 {t('admin.idDocument')}</button>}
+              {v.has_files && <button className="btn btn-outline" onClick={() => open(v, 'selfie')}>🤳 Selfie</button>}
+              <button className="btn btn-primary" onClick={() => decide(v, 'approved')}>{t('admin.approve')}</button>
+              <button className="btn btn-danger" onClick={() => decide(v, 'rejected')}>{t('admin.idReject')}</button>
             </div>
           </div>
         );
@@ -187,12 +247,29 @@ function AssistantAdmin() {
   );
 }
 
+// Configuração do Mercado Pago: o endereço de retorno precisa estar cadastrado igual no painel do Mercado Pago
+function MpConfigCheck() {
+  const { t } = useI18n();
+  const [c, setC] = useState<{ configured: boolean; redirectUri: string; pkce: boolean } | null>(null);
+  useEffect(() => { api<typeof c>('/admin/mp-config').then(setC).catch(() => {}); }, []);
+  if (!c) return null;
+  return (
+    <details className="panel small">
+      <summary>{c.configured ? '✅' : '❌'} {t('admin.mpConfig')}</summary>
+      <p>{t('admin.mpRedirect')}<br /><code>{c.redirectUri}</code></p>
+      <p>PKCE: {c.pkce ? t('admin.mpPkceOn') : t('admin.mpPkceOff')}</p>
+    </details>
+  );
+}
+
 // Suporte: consulta um usuário pelo e-mail (cadastro, anúncios, Mercado Pago, e-mails enviados)
 function UsersAdmin() {
   const { t, locale } = useI18n();
   type U = {
     id: string; email: string; name: string; phone: string | null; roles: string[]; created_at: string; email_verified_at: string | null;
     signup_source: string | null; mp_connected_at: string | null;
+    signup_ip: string | null; signup_user_agent: string | null; email_verified_ip: string | null; email_verified_user_agent: string | null;
+    identity_verified: boolean; identity_status: string | null; license_status: string | null; emailProvider: { domain: string; kind: string };
     listings: { id: string; title: string; city: string; active: boolean; created_at: string }[];
     emails: { kind: string; created_at: string; email_status: string; email_error: string | null }[];
   };
@@ -207,6 +284,7 @@ function UsersAdmin() {
   const yes = (v: unknown) => (v ? '✅' : '❌');
   return (
     <div className="users-admin">
+      <MpConfigCheck />
       <form className="row gap" onSubmit={search}>
         <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.uSearch')} minLength={3} required />
         <button className="btn btn-primary">{t('admin.uFind')}</button>
@@ -219,8 +297,15 @@ function UsersAdmin() {
           <p className="small">
             {t('admin.uCreated')}: {formatDateTime(u.created_at, locale)}{u.signup_source ? ` (${u.signup_source})` : ''}<br />
             {yes(u.email_verified_at)} {t('admin.uEmailVerified')}{u.email_verified_at ? ` — ${formatDateTime(u.email_verified_at, locale)}` : ''}<br />
-            {yes(u.mp_connected_at)} {t('admin.uMpConnected')}{u.mp_connected_at ? ` — ${formatDateTime(u.mp_connected_at, locale)}` : ''}
+            {yes(u.mp_connected_at)} {t('admin.uMpConnected')}{u.mp_connected_at ? ` — ${formatDateTime(u.mp_connected_at, locale)}` : ''}<br />
+            {yes(u.identity_verified)} {t('profile.identity')}{u.identity_status ? ` (${u.identity_status})` : ''} · {t('profile.license')}: {u.license_status ?? '—'}
           </p>
+          <details className="small">
+            <summary>🔐 {t('admin.uSecurity')}</summary>
+            <p>{t('admin.uProvider')}: {u.emailProvider.domain} ({t(`admin.provider.${u.emailProvider.kind}` as DictKey)})<br />
+              {t('admin.uSignupFrom')}: {u.signup_ip ?? '—'} · <span className="muted">{u.signup_user_agent ?? ''}</span><br />
+              {t('admin.uVerifiedFrom')}: {u.email_verified_ip ?? '—'} · <span className="muted">{u.email_verified_user_agent ?? ''}</span></p>
+          </details>
           <h3>{t('admin.uListings')} ({u.listings.length})</h3>
           {u.listings.length === 0 && <p className="muted small">—</p>}
           <ul className="small">

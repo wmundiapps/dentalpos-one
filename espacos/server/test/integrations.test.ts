@@ -715,3 +715,195 @@ test('reserva abandonada: até 2 lembretes por e-mail, para ao reservar ou desca
     P.setGatewayOverride();
   }
 });
+
+test('cadastro fácil e seguro: código de 6 dígitos, anúncio salvo até confirmar, IP/aparelho registrados, e-mail descartável recusado', async () => {
+  const mails: { to: string; subject: string; text: string }[] = [];
+  M.setMailSender(async (m) => { mails.push(m); });
+  try {
+    const reg = (email: string) => fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': 'TesteUA/1.0' },
+      body: JSON.stringify({ name: 'Dra. Código', email, password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true }) });
+    assert.equal((await reg('alguem@mailinator.com')).status, 422);
+    const r = await reg('codigo@example.com');
+    assert.equal(r.status, 201);
+    const u = await r.json() as { token: string; user: User };
+    const auth = { Authorization: `Bearer ${u.token}`, 'Content-Type': 'application/json' };
+    const mail = mails.find((m) => m.to === 'codigo@example.com')!;
+    const code = /Seu código: (\d{6})/.exec(mail.text)![1];
+    assert.match(mail.subject, new RegExp(code));
+
+    // anúncio antes de confirmar: fica salvo e fora do ar
+    const base0 = byTitle('Sala de psicologia');
+    const body = {
+      title: 'Sala salva antes de confirmar', description: 'Sala equipada para atendimentos por hora, anunciada antes de confirmar o e-mail.', category: 'psychology',
+      countryCode: 'BR', state: 'PR', city: 'Maringá', address: 'Av. Brasil, 200', capacity: 2, amenities: ['wifi'], equipment: '',
+      photos: [], pricePerHour: 60, minHours: 1, cleaningFee: 0, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate',
+      guarantorPolicy: 'none', requiresLicense: false, houseRules: 'Deixar a sala organizada.', bufferMinutes: 30,
+      weeklyAvailability: base0.weeklyAvailability, blockedDates: [], active: true,
+    };
+    const lr = await fetch(`${base}/listings`, { method: 'POST', headers: auth, body: JSON.stringify(body) });
+    assert.equal(lr.status, 201, await lr.clone().text());
+    const saved = await lr.json() as Listing & { pendingEmail: boolean };
+    assert.equal(saved.pendingEmail, true);
+    assert.equal(saved.active, false);
+    const search = async () => (await (await fetch(`${base}/listings?country=BR`)).json() as Listing[]).some((x) => x.id === saved.id);
+    assert.equal(await search(), false);
+
+    // código errado conta tentativa; certo confirma e publica o anúncio
+    const wrong = await fetch(`${base}/me/verify-code`, { method: 'POST', headers: auth, body: JSON.stringify({ code: code === '000000' ? '111111' : '000000' }) });
+    assert.equal(wrong.status, 400);
+    assert.equal(((await wrong.json()) as { params: { left: number } }).params.left, 4);
+    assert.equal((await fetch(`${base}/me/verify-code`, { method: 'POST', headers: auth, body: JSON.stringify({ code }) })).status, 200);
+    assert.ok(((await (await fetch(`${base}/me`, { headers: auth })).json()) as User).emailVerifiedAt);
+    assert.equal(await search(), true, 'anúncio entrou no ar na confirmação');
+    const sec = await one<{ signup_ip: string; signup_user_agent: string; email_verified_ip: string }>(pool,
+      'SELECT signup_ip, signup_user_agent, email_verified_ip FROM users WHERE id = $1', [u.user.id]);
+    assert.ok(sec!.signup_ip && sec!.email_verified_ip);
+    assert.equal(sec!.signup_user_agent, 'TesteUA/1.0');
+    const adm = await (await fetch(`${base}/admin/users?email=codigo@`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { emailProvider: { domain: string; kind: string }; signup_ip: string }[];
+    assert.deepEqual(adm[0].emailProvider, { domain: 'example.com', kind: 'own_domain' });
+
+    // 5 erros: precisa pedir um novo código
+    const r2 = await reg('codigo2@example.com');
+    const u2 = await r2.json() as { token: string };
+    const auth2 = { Authorization: `Bearer ${u2.token}`, 'Content-Type': 'application/json' };
+    const code2 = /Seu código: (\d{6})/.exec(mails.find((m) => m.to === 'codigo2@example.com')!.text)![1];
+    const bad = code2 === '000000' ? '111111' : '000000';
+    for (let i = 0; i < 5; i++) await fetch(`${base}/me/verify-code`, { method: 'POST', headers: auth2, body: JSON.stringify({ code: bad }) });
+    assert.equal((await fetch(`${base}/me/verify-code`, { method: 'POST', headers: auth2, body: JSON.stringify({ code: code2 }) })).status, 429);
+  } finally {
+    M.setMailSender();
+  }
+});
+
+test('identidade: CPF/CNPJ + documento + selfie com checagem automática; equipe revê o resto; CEP do anúncio conferido', async () => {
+  const I = await import('../src/identity.js');
+  assert.equal(I.validCpf('529.982.247-25'), true);
+  assert.equal(I.validCpf('111.111.111-11'), false);
+  assert.equal(I.validCpf('529.982.247-24'), false);
+  assert.equal(I.validCnpj('11.222.333/0001-81'), true);
+  assert.equal(I.validCnpj('11.222.333/0001-80'), false);
+  assert.equal(I.sameName('JOSÉ CARLOS DA SILVA', 'Jose da Silva'), true);
+  assert.equal(I.sameName('Maria Souza', 'Mariana Souza'), false);
+
+  const aiResult = (over: Record<string, unknown> = {}) => ({
+    is_identity_document: true, document_kind: 'CNH', legible: true, signs_of_tampering: false, extracted_name: 'Ana Paula Ribeiro',
+    extracted_cpf: '52998224725', extracted_birth_date: '1990-01-01', name_matches: true, cpf_matches: true, selfie_is_live_person: true,
+    confidence: 'high', reasons: [], ...over,
+  });
+  const fakeAi = (over?: Record<string, unknown>) => ({ beta: { messages: { create: async () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(aiResult(over)) }] }) } } }) as unknown as Anthropic;
+  const cnpjApi = (partner: string, status = 'ATIVA') => (async (url: string | URL | Request) => {
+    const u = String(url);
+    if (u.includes('/cnpj/')) return new Response(JSON.stringify({ razao_social: 'CLINICA RIBEIRO LTDA', descricao_situacao_cadastral: status, qsa: [{ nome_socio: partner }] }), { status: 200 });
+    if (u.includes('/cep/v1/01310100')) return new Response(JSON.stringify({ city: 'São Paulo', state: 'SP' }), { status: 200 });
+    return new Response('{}', { status: 404 });
+  }) as typeof fetch;
+  const newUser = async (email: string) => {
+    const r = await fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Ana Paula Ribeiro', email, password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true }) });
+    return r.json() as Promise<{ token: string; user: User }>;
+  };
+  const send = (token: string, taxId: string) => {
+    const form = new FormData();
+    form.set('taxId', taxId);
+    form.set('document', new Blob([PNG], { type: 'image/png' }), 'doc.png');
+    form.set('selfie', new Blob([PNG], { type: 'image/png' }), 'selfie.png');
+    return fetch(`${base}/me/identity`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form });
+  };
+  process.env.LICENSE_VERIFY_SYNC = 'true';
+  try {
+    // CPF inválido é recusado na hora
+    const a = await newUser('id1@example.com');
+    assert.equal((await send(a.token, '111.111.111-11')).status, 422);
+    // tudo batendo: aprovado sozinho
+    V.setAnthropicClient(fakeAi());
+    assert.equal((await send(a.token, '529.982.247-25')).status, 202);
+    const ua = (await repo.getUser(pool, a.user.id))!;
+    assert.equal(ua.identityVerified, true);
+    assert.equal(ua.documentNumber, '52998224725');
+    const me = await (await fetch(`${base}/me/identity`, { headers: { Authorization: `Bearer ${a.token}` } })).json() as { verified: boolean; status: string };
+    assert.deepEqual([me.verified, me.status], [true, 'approved']);
+
+    // CNPJ: pessoa no quadro de sócios e empresa ativa → aprovado; fora do quadro → equipe
+    I.setIdentityHttp(cnpjApi('ANA PAULA RIBEIRO'));
+    const b = await newUser('id2@example.com');
+    await send(b.token, '11.222.333/0001-81');
+    assert.equal((await repo.getUser(pool, b.user.id))!.identityVerified, true);
+    I.setIdentityHttp(cnpjApi('OUTRA PESSOA QUALQUER'));
+    const c = await newUser('id3@example.com');
+    await send(c.token, '11222333000181');
+    assert.equal((await repo.getUser(pool, c.user.id))!.identityVerified, false);
+
+    // selfie que não é foto real → equipe; documento adulterado → recusado
+    V.setAnthropicClient(fakeAi({ selfie_is_live_person: false }));
+    const d = await newUser('id4@example.com');
+    await send(d.token, '52998224725');
+    assert.equal((await I.latestIdentity(d.user.id))!.status, 'needs_review');
+    V.setAnthropicClient(fakeAi({ signs_of_tampering: true }));
+    const e = await newUser('id5@example.com');
+    await send(e.token, '52998224725');
+    assert.equal((await I.latestIdentity(e.user.id))!.status, 'rejected');
+
+    // equipe: lista, abre a selfie (registrado) e aprova
+    const adm = { Authorization: `Bearer ${signToken(admin)}` };
+    assert.equal((await fetch(`${base}/admin/identities`, { headers: { Authorization: `Bearer ${a.token}` } })).status, 403);
+    const open = await (await fetch(`${base}/admin/identities`, { headers: adm })).json() as { id: string; email: string }[];
+    const cv = open.find((x) => x.email === 'id3@example.com')!;
+    assert.ok(cv && open.some((x) => x.email === 'id4@example.com'));
+    const selfie = await fetch(`${base}/admin/identities/${cv.id}/selfie`, { headers: adm });
+    assert.equal(selfie.status, 200);
+    assert.ok(Buffer.from(await selfie.arrayBuffer()).equals(PNG), 'arquivo decifrado para a equipe');
+    const stored = await one<{ selfie: Buffer }>(pool, 'SELECT selfie FROM identity_verifications WHERE id = $1', [cv.id]);
+    assert.ok(!stored!.selfie.equals(PNG), 'guardado cifrado');
+    assert.equal((await one<{ n: number }>(pool, "SELECT count(*)::int AS n FROM identity_access_log WHERE verification_id = $1 AND action = 'view'", [cv.id]))!.n, 1);
+    await fetch(`${base}/admin/identities/${cv.id}/decision`, { method: 'POST', headers: { ...adm, 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'approved' }) });
+    assert.equal((await repo.getUser(pool, c.user.id))!.identityVerified, true);
+
+    // CEP do anúncio precisa ser da cidade informada
+    const host = (await repo.getUserByEmail(pool, 'anfitriao@spacehour.demo'))!;
+    const base0 = byTitle('Sala de psicologia');
+    const body = {
+      title: 'Sala com CEP conferido', description: 'Sala equipada para atendimentos por hora com CEP conferido pela plataforma.', category: 'psychology',
+      countryCode: 'BR', state: 'PR', city: 'Maringá', address: 'Av. Paulista, 1000 - CEP 01310-100', capacity: 2, amenities: ['wifi'], equipment: '',
+      photos: [], pricePerHour: 60, minHours: 1, cleaningFee: 0, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate',
+      guarantorPolicy: 'none', requiresLicense: false, houseRules: 'Deixar a sala organizada.', bufferMinutes: 30,
+      weeklyAvailability: base0.weeklyAvailability, blockedDates: [], active: true,
+    };
+    const post = (b0: unknown) => fetch(`${base}/listings`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${signToken(host)}` }, body: JSON.stringify(b0) });
+    const wrongCity = await post(body);
+    assert.equal(wrongCity.status, 422);
+    assert.equal(((await wrongCity.json()) as { error: string }).error, 'cep_city_mismatch');
+    assert.equal((await post({ ...body, state: 'SP', city: 'São Paulo' })).status, 201);
+    assert.equal(((await (await post({ ...body, address: 'Rua X, 1 - 99999-999' })).json()) as { error: string }).error, 'cep_not_found');
+  } finally {
+    delete process.env.LICENSE_VERIFY_SYNC;
+    V.setAnthropicClient();
+    I.setIdentityHttp();
+  }
+});
+
+test('Mercado Pago: diagnóstico para a equipe e PKCE quando ligado', async () => {
+  const MP = await import('../src/payments/mpAccounts.js');
+  process.env.MP_CLIENT_ID = 'app123'; process.env.MP_CLIENT_SECRET = 'sec';
+  process.env.MP_PKCE = 'true';
+  try {
+    const cfg = await (await fetch(`${base}/admin/mp-config`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { configured: boolean; redirectUri: string; pkce: boolean };
+    assert.deepEqual([cfg.configured, cfg.pkce], [true, true]);
+    assert.match(cfg.redirectUri, /\/api\/mp\/oauth\/callback$/);
+    const url = new URL(MP.authorizeUrl(guest.id));
+    assert.equal(url.searchParams.get('code_challenge_method'), 'S256');
+    const challenge = url.searchParams.get('code_challenge')!;
+    let sent: Record<string, string> = {};
+    MP.setMpHttp((async (_u: unknown, init?: RequestInit) => {
+      sent = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ access_token: 'APP_USR-x', refresh_token: 'r', expires_in: 3600, user_id: 777001 }), { status: 200 });
+    }) as typeof fetch);
+    await MP.completeAuthorization('code-1', url.searchParams.get('state')!);
+    assert.ok(sent.code_verifier, 'envia o verificador na troca do código');
+    assert.equal(crypto.createHash('sha256').update(sent.code_verifier).digest('base64url'), challenge);
+    assert.ok(!url.searchParams.get('state')!.includes(sent.code_verifier), 'verificador não vai legível no state');
+    await MP.disconnect(guest.id);
+  } finally {
+    MP.setMpHttp();
+    delete process.env.MP_CLIENT_ID; delete process.env.MP_CLIENT_SECRET; delete process.env.MP_PKCE;
+  }
+});

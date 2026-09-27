@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { HttpError, requireAuth, type AuthedRequest } from '../auth.js';
 import { assertEmailVerified } from '../emailVerification.js';
-import { accountStatus, authorizeUrl, completeAuthorization, disconnect, marketplaceEnabled } from '../payments/mpAccounts.js';
+import { accountStatus, authorizeUrl, completeAuthorization, disconnect, marketplaceEnabled, pkceEnabled, redirectUri } from '../payments/mpAccounts.js';
 
 export const payoutsRouter = Router();
 const APP_URL = () => process.env.APP_URL ?? 'http://localhost:5173';
@@ -14,6 +14,12 @@ payoutsRouter.get('/me/payout-account', requireAuth, async (req: AuthedRequest, 
 payoutsRouter.post('/me/payout-account/connect', requireAuth, (req: AuthedRequest, res) => {
   assertEmailVerified(req.user!);
   res.json({ url: authorizeUrl(req.user!.id) });
+});
+
+// Diagnóstico para a equipe: o que precisa estar igual no painel do Mercado Pago (Suas integrações → aplicação)
+payoutsRouter.get('/admin/mp-config', requireAuth, (req: AuthedRequest, res) => {
+  if (!req.user!.roles.includes('admin')) throw new HttpError(403, 'forbidden');
+  res.json({ configured: marketplaceEnabled(), redirectUri: redirectUri(), pkce: pkceEnabled(), appUrl: APP_URL() });
 });
 
 payoutsRouter.delete('/me/payout-account', requireAuth, async (req: AuthedRequest, res) => {
@@ -30,7 +36,7 @@ payoutsRouter.get('/mp/oauth/callback', async (req, res) => {
     res.redirect(`${APP_URL()}/anfitriao?mp=conectado`);
   } catch (e) {
     const code = e instanceof HttpError ? e.code : 'mp_connect_failed';
-    console.error('[mp oauth]', (e as Error).message);
+    console.error('[mp oauth]', (e as Error).message, req.query.error ?? '', req.query.error_description ?? '');
     res.redirect(`${APP_URL()}/anfitriao?mp=erro&motivo=${encodeURIComponent(code)}`);
   }
 });
