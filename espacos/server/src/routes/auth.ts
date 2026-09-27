@@ -10,6 +10,7 @@ import { RULES_VERSION } from '../../../shared/rules.js';
 import type { User } from '../../../shared/types.js';
 import { confirmEmail, confirmEmailCode, sendVerificationEmail } from '../emailVerification.js';
 import { requestPasswordReset, resetPassword } from '../passwordReset.js';
+import { RESET_MAX_USERS, RESET_PHRASE, resetAllData } from '../reset.js';
 
 export const authRouter = Router();
 
@@ -129,6 +130,18 @@ authRouter.get('/admin/users', requireAuth, async (req: AuthedRequest, res) => {
     listings: listings.filter((l) => l.host_id === u.id),
     emails: emails.filter((n) => n.user_id === u.id).slice(0, 15),
   })));
+});
+
+// Limpeza total antes do lançamento (Admin → Usuários → Começar do zero)
+authRouter.post('/admin/reset-all-data', requireAuth, async (req: AuthedRequest, res) => {
+  if (!req.user!.roles.includes('admin')) throw new HttpError(403, 'forbidden');
+  const { password, confirm } = z.object({ password: z.string().min(1).max(200), confirm: z.string().max(40) }).parse(req.body);
+  if (confirm.trim().toUpperCase() !== RESET_PHRASE) throw new HttpError(422, 'reset_confirm_phrase');
+  if (!(await bcrypt.compare(password, req.user!.passwordHash))) throw new HttpError(401, 'invalid_credentials');
+  const count = await one<{ n: number }>(pool, 'SELECT count(*)::int AS n FROM users');
+  if (count!.n > RESET_MAX_USERS) throw new HttpError(409, 'reset_too_many_users', { max: RESET_MAX_USERS });
+  console.warn(`[reset] limpeza total pedida por ${req.user!.email} (${req.ip})`);
+  res.json(await resetAllData());
 });
 
 // Aplicativo: registra o aparelho para notificações push.
