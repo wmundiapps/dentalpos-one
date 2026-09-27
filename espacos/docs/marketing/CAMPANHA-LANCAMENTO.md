@@ -243,6 +243,33 @@ https://space-hour.com/anuncie?utm_source=whatsapp&utm_medium=direto&utm_campaig
 Se quiser, eu te ajudo a cadastrar por telefone em 10 minutos.
 ```
 
+**Grupos de WhatsApp (anfitriões), com os custos explicados** (evita surpresa depois):
+```
+🏥 *Tem consultório, clínica ou sala que fica vazia em alguns horários?*
+
+Chegou o *SpaceHour*: você aluga por hora os horários ociosos do seu espaço para dentistas, médicos, psicólogos, fisioterapeutas e outros profissionais.
+
+✅ *Anunciar é grátis*, sem mensalidade e sem fidelidade
+✅ Você define o preço, os dias e os horários
+✅ Você aprova cada reserva ou aceita na hora
+✅ Pagamento por Pix ou cartão, direto na sua conta Mercado Pago
+✅ Profissionais com registro no conselho verificado
+
+💰 *Custos: só existe cobrança depois que a locação acontece*
+• SpaceHour: *5%* descontados do valor que você definiu
+• Mercado Pago: tarifa de pagamento (≈ 1% no Pix, ≈ 5% no cartão)
+• Quem aluga paga à parte *15%* de taxa de serviço + ISS, somados ao seu preço
+
+📌 *Exemplo:* você cobra *R$ 100*
+→ quem aluga paga R$ 115,75
+→ você recebe ≈ *R$ 94 no Pix* (≈ R$ 89 no cartão)
+
+Não alugou, não paga nada. Transforme horário parado em renda extra.
+
+👉 Conheça e cadastre seu espaço:
+https://space-hour.com/anuncie?utm_source=whatsapp&utm_medium=grupo&utm_campaign=lancamento
+```
+
 **WhatsApp para profissionais autônomos:**
 ```
 Oi, [nome]! Você atende em consultório próprio ou alugado?
