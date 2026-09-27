@@ -44,7 +44,9 @@ export default function Checkout() {
 
   const country = COUNTRY_BY_CODE[listing.countryCode];
   const asyncMethod = method && ASYNC_PAYMENT_METHODS.includes(method);
-  const needsGuarantor = quote.guarantorRequired || (listing.securityDeposit > 0 && !!asyncMethod);
+  // Caução sem pré-autorização (Pix/boleto, ou processador que não permite, como o Mercado Pago no Brasil) → avalista
+  const depositByGuarantor = listing.securityDeposit > 0 && (!!asyncMethod || listing.depositHold === false);
+  const needsGuarantor = quote.guarantorRequired || depositByGuarantor;
   const showGuarantor = needsGuarantor || useGuarantor;
   const licenseMissing = listing.requiresLicense && me.licenseStatus !== 'approved';
 
@@ -170,7 +172,8 @@ export default function Checkout() {
             <strong>{listing.title}</strong>
             <p className="muted small">{listing.city} · {t(`cat.${listing.category}` as DictKey)}</p>
             <PriceLines p={quote.price} />
-            {listing.securityDeposit > 0 && <p className="muted small">{asyncMethod ? t('checkout.depositNoHold') : t('checkout.depositHold', { h: 72 })}</p>}
+            {listing.securityDeposit > 0 && <p className="muted small">{listing.depositHold === false ? t('checkout.depositGuarantor') : asyncMethod ? t('checkout.depositNoHold') : t('checkout.depositHold', { h: 72 })}</p>}
+            {listing.securityDeposit > 0 && <p className="muted small">{t('listing.damagesRule')}</p>}
           </div>
         </aside>
       </form>
