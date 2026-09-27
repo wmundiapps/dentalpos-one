@@ -61,7 +61,7 @@ Versión 2026-09-27 · Vigente desde el 27/09/2026
 
 4.3. La limpieza extra se debe cuando el Espacio requiera una limpieza adicional a la rutinaria (por ejemplo, residuos biológicos fuera del desecho adecuado, manchas, exceso de basura).
 
-4.4. **Cobro solo tras mediación y comprobación.** Ningún valor por daños al patrimonio o a los equipos se cobra automáticamente. El cobro se produce solo: (a) si el Arrendatario reconoce el daño y el valor; o (b) después del procedimiento de Incidencia de la cláusula 5, cuando el intento de acuerdo (mediación) resulte infructuoso y la Plataforma concluya, con base en las evidencias de ambas partes, que el daño fue **comprobadamente causado** por el Arrendatario o por una persona bajo su responsabilidad. El desgaste natural, los defectos preexistentes y los daños sin causa comprobada no se cobran al Arrendatario.
+4.4. **Cobro solo tras mediación y comprobación.** Ningún valor por daños al patrimonio o a los equipos se cobra automáticamente. El cobro se produce solo: (a) si el Arrendatario reconoce el daño y el valor; o (b) después del procedimiento de Incidencia de la cláusula 5, cuando el intento de acuerdo (mediación) resulte infructuoso y la Plataforma concluya, con base en las evidencias de ambas partes, que el daño fue **comprobadamente causado** por el Arrendatario o por una persona bajo su responsabilidad. El desgaste natural, los defectos preexistentes y los daños sin causa comprobada no se cobran al Arrendatario. El Depósito de Garantía es una garantía parcial: si el daño comprobado es mayor que este, el Arrendatario responde por la diferencia.
 
 ## 5. Procedimiento
 

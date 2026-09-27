@@ -61,7 +61,7 @@ Versione 2026-09-27 · In vigore dal 27/09/2026
 
 4.3. La pulizia straordinaria è dovuta quando lo Spazio richieda una pulizia superiore a quella ordinaria (ad esempio, rifiuti biologici al di fuori dello smaltimento adeguato, macchie, rifiuti in eccesso).
 
-4.4. **Addebito solo dopo mediazione e prova.** Nessun importo per danni al patrimonio o alle attrezzature viene addebitato automaticamente. L'addebito avviene solo: (a) se il Locatario riconosce il danno e l'importo; oppure (b) dopo la procedura di Incidente di cui alla clausola 5, quando il tentativo di accordo (mediazione) risulti infruttuoso e la Piattaforma concluda, sulla base delle prove di entrambe le parti, che il danno è stato **comprovatamente causato** dal Locatario o da una persona sotto la sua responsabilità. Il normale deterioramento, i difetti preesistenti e i danni senza causa comprovata non sono addebitati al Locatario.
+4.4. **Addebito solo dopo mediazione e prova.** Nessun importo per danni al patrimonio o alle attrezzature viene addebitato automaticamente. L'addebito avviene solo: (a) se il Locatario riconosce il danno e l'importo; oppure (b) dopo la procedura di Incidente di cui alla clausola 5, quando il tentativo di accordo (mediazione) risulti infruttuoso e la Piattaforma concluda, sulla base delle prove di entrambe le parti, che il danno è stato **comprovatamente causato** dal Locatario o da una persona sotto la sua responsabilità. Il normale deterioramento, i difetti preesistenti e i danni senza causa comprovata non sono addebitati al Locatario. Il Deposito cauzionale è una garanzia parziale: se il danno comprovato lo supera, il Locatario risponde della differenza.
 
 ## 5. Procedura
 

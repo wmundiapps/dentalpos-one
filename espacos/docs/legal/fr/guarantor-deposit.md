@@ -22,6 +22,8 @@ Version 2026-09-27 · En vigueur à compter du 27/09/2026
 
 2.6. **Délai de l'émetteur.** Après la libération par la Plateforme, le déblocage du plafond peut prendre quelques jours, selon l'émetteur.
 
+2.6.1. **Garantie partielle.** Le Dépôt de garantie est une **garantie partielle** et ne limite pas la responsabilité du Locataire. Si le montant du dommage, reconnu ou décidé conformément à la clause 2.5, est **supérieur au Dépôt de garantie**, le Locataire reste tenu de **payer la différence**, qui peut être recouvrée sur le moyen de paiement enregistré, auprès du Garant dans la limite de sa responsabilité, ou par les moyens de recouvrement admis par la loi (Pénalités et Mesures, clauses 4.4 et 5.4 à 5.5).
+
 2.7. **Quand l'utiliser.** Le Dépôt de garantie est recommandé pour les Espaces disposant d'**équipements de grande valeur** (par exemple, fauteuil dentaire, appareils d'imagerie, équipements d'esthétique ou audiovisuels) ou d'une **infrastructure sensible**. L'Hôte indique dans l'Annonce le montant et ce qu'il protège ; le Locataire voit le montant avant de réserver.
 
 2.8. **Brésil.** Tant que le prestataire de paiement utilisé au Brésil (Mercado Pago) ne permet pas la pré-autorisation via la Plateforme, le Dépôt de garantie des Annonces au Brésil est **remplacé par un Garant**, conformément au présent document : rien n'est débité ni bloqué sur la carte du Locataire au titre du Dépôt de garantie, et le Garant répond, dans la limite de sa responsabilité, des montants reconnus ou décidés conformément à la clause 2.5.

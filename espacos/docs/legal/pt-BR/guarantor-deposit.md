@@ -22,6 +22,8 @@ Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 2.6. **Prazo do emissor.** Após a liberação pela Plataforma, o desbloqueio do limite pode levar alguns dias, conforme o emissor.
 
+2.6.1. **Garantia parcial.** A Caução é uma **garantia parcial** e não limita a responsabilidade do Locatário. Se o valor do dano, reconhecido ou decidido na forma da cláusula 2.5, for **maior que a Caução**, o Locatário continua obrigado a **complementar a diferença**, que pode ser cobrada no meio de pagamento cadastrado, do Avalista até o limite de sua responsabilidade, ou pelos meios de cobrança admitidos em lei (Penalidades e Medidas, cláusulas 4.4 e 5.4 a 5.5).
+
 2.7. **Quando usar.** A Caução é recomendada para Espaços com **equipamentos de alto valor** (por exemplo, cadeira odontológica, aparelhos de imagem, equipamentos de estética ou de áudio e vídeo) ou **infraestrutura sensível**. O Anfitrião informa no Anúncio o valor e o que ele protege; o Locatário vê o valor antes de reservar.
 
 2.8. **Brasil.** Enquanto o processador de pagamentos usado no Brasil (Mercado Pago) não permitir pré-autorização pela Plataforma, a Caução de Anúncios no Brasil é **substituída por Avalista**, na forma deste documento: nada é cobrado nem bloqueado no cartão do Locatário a título de Caução, e o Avalista responde, até o limite de sua responsabilidade, pelos valores reconhecidos ou decididos na forma da cláusula 2.5.

@@ -61,7 +61,7 @@ Version 2026-09-27 · En vigueur à compter du 27/09/2026
 
 4.3. Le nettoyage supplémentaire est dû lorsque l'Espace nécessite un nettoyage au-delà du nettoyage habituel (par exemple, déchets biologiques hors élimination appropriée, taches, déchets en excès).
 
-4.4. **Facturation uniquement après médiation et preuve.** Aucun montant au titre de dommages aux biens ou aux équipements n'est facturé automatiquement. La facturation n'intervient que : (a) si le Locataire reconnaît le dommage et le montant ; ou (b) après la procédure d'Incident de la clause 5, lorsque la tentative d'accord (médiation) a échoué et que la Plateforme conclut, sur la base des preuves des deux parties, que le dommage a été **causé de manière avérée** par le Locataire ou par une personne placée sous sa responsabilité. L'usure naturelle, les défauts préexistants et les dommages dont la cause n'est pas prouvée ne sont pas facturés au Locataire.
+4.4. **Facturation uniquement après médiation et preuve.** Aucun montant au titre de dommages aux biens ou aux équipements n'est facturé automatiquement. La facturation n'intervient que : (a) si le Locataire reconnaît le dommage et le montant ; ou (b) après la procédure d'Incident de la clause 5, lorsque la tentative d'accord (médiation) a échoué et que la Plateforme conclut, sur la base des preuves des deux parties, que le dommage a été **causé de manière avérée** par le Locataire ou par une personne placée sous sa responsabilité. L'usure naturelle, les défauts préexistants et les dommages dont la cause n'est pas prouvée ne sont pas facturés au Locataire. Le Dépôt de garantie est une garantie partielle : si le dommage prouvé lui est supérieur, le Locataire répond de la différence.
 
 ## 5. Procédure
 
