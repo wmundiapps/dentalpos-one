@@ -2,13 +2,17 @@
 import { Router } from 'express';
 import { HttpError, requireAuth, type AuthedRequest } from '../auth.js';
 import { assertEmailVerified } from '../emailVerification.js';
+import { MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
 import { accountStatus, authorizeUrl, completeAuthorization, disconnect, marketplaceEnabled, pkceEnabled, redirectUri } from '../payments/mpAccounts.js';
 
 export const payoutsRouter = Router();
 const APP_URL = () => process.env.APP_URL ?? 'http://localhost:5173';
 
 payoutsRouter.get('/me/payout-account', requireAuth, async (req: AuthedRequest, res) => {
-  res.json({ required: marketplaceEnabled(), provider: 'mercadopago', ...(await accountStatus(req.user!.id)) });
+  // needed: anfitrião de país atendido pelo Mercado Pago precisa conectar a conta (mostra a barra fixa no site);
+  // configured: a plataforma já tem as credenciais da aplicação (MP_CLIENT_ID/MP_CLIENT_SECRET)
+  const needed = (MERCADOPAGO_COUNTRIES as readonly string[]).includes(req.user!.countryCode);
+  res.json({ required: marketplaceEnabled(), configured: marketplaceEnabled(), needed, provider: 'mercadopago', ...(await accountStatus(req.user!.id)) });
 });
 
 payoutsRouter.post('/me/payout-account/connect', requireAuth, (req: AuthedRequest, res) => {
