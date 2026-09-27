@@ -262,6 +262,50 @@ function MpConfigCheck() {
   );
 }
 
+// Começar do zero (fase de testes): apaga todos os usuários, anúncios, fotos e dados; o app continua
+function ResetAll() {
+  const { t } = useI18n();
+  const { logout } = useApp();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState<{ users: number; listings: number; photos: number } | null>(null);
+  async function run(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (!window.confirm(t('admin.resetLast'))) return;
+    setBusy(true); setError('');
+    try {
+      setDone(await api<{ users: number; listings: number; photos: number }>('/admin/reset-all-data', { body: { password, confirm } }));
+      logout();
+    } catch (err) { setError(errorText(err, t)); } finally { setBusy(false); }
+  }
+  if (done) return (
+    <section className="panel reset-zone">
+      <p className="notice success">✅ {t('admin.resetDone', { users: done.users, listings: done.listings, photos: done.photos })}</p>
+      <Link className="btn btn-primary" to="/cadastro">{t('auth.createAccount')}</Link>
+    </section>
+  );
+  return (
+    <section className="panel reset-zone">
+      <h2>🧹 {t('admin.resetTitle')}</h2>
+      <p className="small">{t('admin.resetHelp')}</p>
+      {!open ? <button className="btn btn-danger" onClick={() => setOpen(true)}>{t('admin.resetOpen')}</button> : (
+        <form onSubmit={run} className="form-grid">
+          <label>{t('admin.resetPassword')}<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
+          <label>{t('admin.resetType')}<input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="APAGAR TUDO" required /></label>
+          <div className="span2 row gap wrap">
+            <button className="btn btn-danger" disabled={busy || confirm.trim().toUpperCase() !== 'APAGAR TUDO' || !password}>{busy ? t('common.wait') : `🗑 ${t('admin.resetGo')}`}</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>{t('mp.later')}</button>
+          </div>
+          {error && <p className="errors span2">{error}</p>}
+        </form>
+      )}
+    </section>
+  );
+}
+
 // Suporte: consulta um usuário pelo e-mail (cadastro, anúncios, Mercado Pago, e-mails enviados)
 function UsersAdmin() {
   const { t, locale } = useI18n();
@@ -321,6 +365,7 @@ function UsersAdmin() {
           </table>
         </div>
       ))}
+      <ResetAll />
     </div>
   );
 }

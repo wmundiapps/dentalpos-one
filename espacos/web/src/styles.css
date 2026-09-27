@@ -463,3 +463,6 @@ ul.errors { padding-inline-start: 18px; }
   .mp-bar { top: 0; position: relative; }
   .mp-bar-actions, .mp-bar-actions .btn { width: 100%; text-align: center; }
 }
+
+/* Admin: começar do zero */
+.reset-zone { border: 2px solid #dc2626; margin-top: 28px; }
