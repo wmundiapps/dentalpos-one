@@ -701,6 +701,7 @@ const hi: Dict = {
   'payout.success': 'Mercado Pago खाता सफलतापूर्वक जुड़ गया।',
   'payout.error': 'Mercado Pago खाता नहीं जुड़ सका। कृपया फिर से प्रयास करें।',
   'err.host_payment_not_connected': 'यह होस्ट अभी बुकिंग प्राप्त नहीं कर सकता।',
+  'header.loggedAs': "इस रूप में लॉग इन",
   'admin.resetTitle': "Start from scratch (test phase)",
   'admin.resetHelp': "Deletes ALL accounts (including yours), spaces, photos, bookings, messages and documents. The site and app keep working. Afterwards, sign up again with the admin email. Cannot be undone. Only works while there are up to 50 accounts.",
   'admin.resetOpen': "Delete all data…",

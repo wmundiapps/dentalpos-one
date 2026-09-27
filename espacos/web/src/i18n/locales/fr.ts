@@ -701,6 +701,7 @@ const fr: Dict = {
   'payout.success': 'Compte Mercado Pago connecté avec succès.',
   'payout.error': 'Impossible de connecter le compte Mercado Pago. Veuillez réessayer.',
   'err.host_payment_not_connected': 'Cet hôte ne peut pas encore recevoir de réservations.',
+  'header.loggedAs': "Connecté en tant que",
   'admin.resetTitle': "Start from scratch (test phase)",
   'admin.resetHelp': "Deletes ALL accounts (including yours), spaces, photos, bookings, messages and documents. The site and app keep working. Afterwards, sign up again with the admin email. Cannot be undone. Only works while there are up to 50 accounts.",
   'admin.resetOpen': "Delete all data…",
