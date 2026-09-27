@@ -1,6 +1,6 @@
 # Verhaltensregeln und Respekt gegenüber den Räumen
 
-Version 2026-09-24 · Gültig ab 24.09.2026
+Version 2026-09-27 · Gültig ab 27.09.2026
 
 ## 1. Gegenstand
 
@@ -15,6 +15,8 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 2.1. Der Raum ist der Arbeitsplatz anderer Personen. Der Mieter muss ihn mit derselben Sorgfalt nutzen, die er der eigenen Betriebsstätte entgegenbringen würde, und ihn **in dem Zustand hinterlassen, in dem er ihn übernommen hat**, bereit für den nächsten Berufsangehörigen.
 
 2.2. Die Zeiten der Buchung, die Kapazität, die angegebene Tätigkeit und die Anweisungen des Gastgebers sind zu beachten.
+
+2.3. **Nutzung im Rahmen des Gesetzes.** Der Raum darf nur für rechtmäßige Tätigkeiten genutzt werden, die innerhalb der Grenzen der Gesetzgebung (Zivil-, Straf-, Gesundheits-, Umwelt-, Arbeits-, Bau- und Wohnungseigentumsrecht), der Vorschriften der zuständigen Berufsorganisation und der in der Buchung angegebenen Tätigkeit ausgeübt werden. Es ist untersagt, den Raum unmittelbar oder mittelbar für rechtswidrige Handlungen zu nutzen.
 
 ## 3. Ordnung, Sauberkeit und Instandhaltung
 
@@ -76,11 +78,25 @@ Version 2026-09-24 · Gültig ab 24.09.2026
 
 9.3. Mobbing oder sexuelle Belästigung, Einschüchterung, Drohungen oder Gewalt sind untersagt. Ein Verstoß gilt als schwerer Verstoß und führt zum Ausschluss.
 
+9.4. **Körperliche oder verbale Angriffe sind untersagt** — einschließlich Stoßen, Beschimpfungen, Beleidigungen, Demütigungen, Anschreien, Drohungen und Einschüchterung — gegenüber Mitarbeitern des Gastgebers oder des Gebäudes, Endkunden, anderen Mietern, Besuchern und allen sonstigen anwesenden Personen. Ein Verstoß gilt als schwerer Verstoß: Das Konto wird sofort ausgeschlossen, die Plattform arbeitet mit den Behörden zusammen, und der Verstoßende haftet zivil- und strafrechtlich.
+
 ## 10. Sicherheit
 
 10.1. Der Mieter muss die Fluchtwege, den Standort der Feuerlöscher und die vom Gastgeber mitgeteilten Notfallanweisungen kennen; Ausgänge nicht versperren; elektrische Anlagen nicht überlasten; und Geräte, die ein Brandrisiko erzeugen, nicht ohne Genehmigung verwenden.
 
-10.2. Untersagt ist das Mitführen von Waffen, außer in gesetzlich und nach den Gebäuderegeln zugelassenen Fällen; die Verwendung oder Lagerung entzündlicher, explosiver oder illegaler Stoffe; sowie das Rauchen (einschließlich elektronischer Zigaretten) in jedem Raum, außer in einem ausdrücklich dafür vorgesehenen Bereich.
+10.2. Im Raum und in den Bereichen des Gebäudes ist ausdrücklich untersagt:
+
+(a) das **Mitführen, Aufbewahren oder Handhaben von Waffen** (Schusswaffen, Hieb- und Stichwaffen, Attrappen) **oder Munition**, auch wenn der Träger eine gesetzliche Waffentrageerlaubnis besitzt, ausgenommen Einsatzkräfte der öffentlichen Sicherheit im Dienst;
+
+(b) das **Herstellen, Aufbewahren, Transportieren oder Handhaben von Sprengstoffen**, Feuerwerkskörpern sowie entzündlichen Gasen oder Materialien;
+
+(c) das **Handhaben von Chemikalien**, die gefährlich, giftig, ätzend, radioaktiv oder kontrolliert sind, **ausgenommen** solche, die in der angegebenen beruflichen Tätigkeit regelmäßig verwendet werden (zum Beispiel zahnmedizinische Materialien und Desinfektionsmittel), in den nach Gesundheitsrecht, vom Hersteller und vom Gastgeber zugelassenen Mengen und Bedingungen;
+
+(d) das Konsumieren, Aufbewahren oder Weitergeben illegaler Substanzen; und
+
+(e) das Rauchen (einschließlich elektronischer Zigaretten), außer in einem ausdrücklich dafür vorgesehenen Bereich.
+
+10.2.1. Ein Verstoß gegen die Buchstaben (a), (b) oder (c) ist ein besonders schwerer Verstoß: Der Gastgeber kann den Termin sofort ohne Erstattung beenden, das Konto wird ausgeschlossen, und die Plattform meldet den Vorfall den Behörden.
 
 10.3. Der Mieter muss den Raum beim Verlassen gemäß den Anweisungen verschließen und Zugangscodes nicht weitergeben.
 

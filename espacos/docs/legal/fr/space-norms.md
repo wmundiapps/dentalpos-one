@@ -1,6 +1,6 @@
 # Normes de Conduite et de Respect des Espaces
 
-Version 2026-09-24 · En vigueur à compter du 24/09/2026
+Version 2026-09-27 · En vigueur à compter du 27/09/2026
 
 ## 1. Objet
 
@@ -15,6 +15,8 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 2.1. L'Espace est le lieu de travail d'autres personnes. Le Locataire doit l'utiliser avec le même soin qu'il apporterait à son propre établissement, en le laissant **dans l'état où il l'a reçu**, prêt pour le professionnel suivant.
 
 2.2. Les horaires de la Réservation, la capacité, l'activité déclarée et les instructions de l'Hôte doivent être respectés.
+
+2.3. **Usage conforme à la loi.** L'Espace ne peut être utilisé que pour des activités licites, exercées dans les limites de la législation (civile, pénale, sanitaire, environnementale, du travail, d'urbanisme et de copropriété), des règles de l'ordre professionnel compétent et de l'activité déclarée dans la Réservation. Il est interdit d'utiliser l'Espace, directement ou indirectement, pour tout acte illicite.
 
 ## 3. Ordre, propreté et entretien
 
@@ -76,11 +78,25 @@ Version 2026-09-24 · En vigueur à compter du 24/09/2026
 
 9.3. Le harcèlement moral ou sexuel, l'intimidation, les menaces ou la violence sont interdits. Cette violation constitue une faute grave et entraîne l'exclusion.
 
+9.4. **Les agressions physiques ou verbales sont interdites** — notamment bousculades, injures, insultes, humiliations, cris, menaces et intimidation — à l'encontre du personnel de l'Hôte ou de l'immeuble, des Clients finaux, des autres Locataires, des visiteurs et de toute personne présente sur les lieux. Cette violation constitue une faute grave : le compte est exclu immédiatement, la Plateforme coopère avec les autorités et le contrevenant engage sa responsabilité civile et pénale.
+
 ## 10. Sécurité
 
 10.1. Le Locataire doit connaître les issues de secours, l'emplacement des extincteurs et les instructions d'urgence communiquées par l'Hôte ; ne pas obstruer les sorties ; ne pas surcharger les installations électriques ; et ne pas utiliser d'équipements présentant un risque d'incendie sans autorisation.
 
-10.2. Il est interdit de porter des armes, sauf dans les cas autorisés par la loi et par les règles de l'immeuble ; d'utiliser ou de stocker des substances inflammables, explosives ou illicites ; et de fumer (y compris les cigarettes électroniques) dans tout Espace, sauf zone expressément désignée.
+10.2. Sont expressément interdits dans l'Espace et dans les parties de l'immeuble :
+
+(a) le fait de **porter, détenir ou manipuler des armes** à feu, armes blanches, répliques **ou munitions**, même si le porteur dispose d'un permis de port légal, sauf agents de la sécurité publique en service ;
+
+(b) le fait de **fabriquer, détenir, transporter ou manipuler des explosifs**, feux d'artifice, gaz ou matériaux inflammables ;
+
+(c) le fait de **manipuler des produits chimiques** dangereux, toxiques, corrosifs, radioactifs ou réglementés, **sauf** ceux d'usage courant dans l'activité professionnelle déclarée (par exemple, matériaux dentaires et désinfectants), dans les quantités et conditions autorisées par la législation sanitaire, par le fabricant et par l'Hôte ;
+
+(d) le fait d'utiliser, détenir ou fournir des substances illicites ; et
+
+(e) le fait de fumer (y compris les cigarettes électroniques), sauf dans une zone expressément désignée.
+
+10.2.1. La violation des points (a), (b) ou (c) constitue une faute très grave : l'Hôte peut mettre fin immédiatement au Créneau, sans remboursement, le compte est exclu et la Plateforme signale les faits aux autorités.
 
 10.3. Le Locataire doit verrouiller l'Espace en partant, conformément aux instructions, et ne pas partager les codes d'accès.
 

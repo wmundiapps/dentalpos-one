@@ -1,5 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
+import { assistantRouter } from './routes/assistant.js';
 import { flushPushQueue, pushConfigured } from './push.js';
 import { ZodError } from 'zod';
 import { HttpError } from './auth.js';
@@ -35,7 +36,7 @@ export function createApp() {
     if (req.method !== 'GET' && pushConfigured()) res.on('finish', () => { flushPushQueue().catch((e) => console.error('[push]', (e as Error).message)); });
     next();
   });
-  app.use('/api', authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter);
+  app.use('/api', assistantRouter, authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found')));
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

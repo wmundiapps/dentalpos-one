@@ -1,6 +1,6 @@
 # Penalidades e Medidas
 
-Versão 2026-09-25 · Vigência a partir de 25/09/2026
+Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 ## 1. Objeto e princípios
 
@@ -26,7 +26,8 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 | **Sublocação** ou cessão a terceiro | 100% do Valor Base; possível exclusão da conta | Sim — falta grave | 168 horas (7 dias) |
 | **Fumo ou uso de substâncias** proibidas no Espaço | Valor equivalente a 2 horas do preço/hora do Espaço, além do custo de limpeza especializada, se houver | Sim | 24 horas |
 | **Multa de condomínio/edifício** causada pelo Locatário | Repasse do valor da multa efetivamente aplicada, mediante cópia da notificação | Sim | 720 horas (30 dias) |
-| **Assédio ou discriminação** | Exclusão da conta; sem prejuízo de responsabilização legal | Sim — falta grave | 720 horas (30 dias) |
+| **Assédio, discriminação ou agressão física ou verbal** (contra funcionários, Clientes Finais ou qualquer pessoa no ambiente) | Exclusão imediata da conta; sem prejuízo de responsabilização civil e penal | Sim — falta grave | 720 horas (30 dias) |
+| **Armas, munições, explosivos ou produtos químicos proibidos** no Espaço (Normas de Conduta, cláusula 10.2) | Encerramento imediato da Ocorrência sem reembolso, exclusão da conta e comunicação às autoridades | Sim — falta gravíssima | 720 horas (30 dias) |
 | **Pagamento fora da Plataforma** (solicitar, oferecer ou aceitar) | Exclusão da conta dos envolvidos | Sim — falta grave | 720 horas (30 dias) |
 | **Não comparecimento** | Perda do Valor Base da Ocorrência (Política de Cancelamento); sem multa adicional | Não | 24 horas |
 

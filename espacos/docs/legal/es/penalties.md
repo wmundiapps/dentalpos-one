@@ -1,6 +1,6 @@
 # Penalidades y Medidas
 
-Versión 2026-09-24 · Vigente desde el 24/09/2026
+Versión 2026-09-27 · Vigente desde el 27/09/2026
 
 ## 1. Objeto y principios
 
@@ -25,7 +25,8 @@ Versión 2026-09-24 · Vigente desde el 24/09/2026
 | **Subarrendamiento** o cesión a un tercero | 100% del Valor Base; posible exclusión de la cuenta | Sí — falta grave | 168 horas (7 días) |
 | **Fumar o usar sustancias** prohibidas en el Espacio | Valor equivalente a 2 horas del precio/hora del Espacio, además del costo de limpieza especializada, si corresponde | Sí | 24 horas |
 | **Multa del condominio/edificio** causada por el Arrendatario | Traslado del valor de la multa efectivamente aplicada, mediante copia de la notificación | Sí | 720 horas (30 días) |
-| **Acoso o discriminación** | Exclusión de la cuenta; sin perjuicio de la responsabilidad legal | Sí — falta grave | 720 horas (30 días) |
+| **Acoso, discriminación o agresión física o verbal** (contra empleados, Clientes Finales o cualquier persona en el lugar) | Exclusión inmediata de la cuenta; sin perjuicio de la responsabilidad civil y penal | Sí — falta grave | 720 horas (30 días) |
+| **Armas, municiones, explosivos o productos químicos prohibidos** en el Espacio (Normas de Conducta, cláusula 10.2) | Terminación inmediata de la Ocurrencia sin reembolso, exclusión de la cuenta y comunicación a las autoridades | Sí — falta gravísima | 720 horas (30 días) |
 | **Pago fuera de la Plataforma** (solicitar, ofrecer o aceptar) | Exclusión de la cuenta de los involucrados | Sí — falta grave | 720 horas (30 días) |
 | **No presentación** | Pérdida del Valor Base de la Ocurrencia (Política de Cancelación); sin multa adicional | No | 24 horas |
 

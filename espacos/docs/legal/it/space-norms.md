@@ -1,6 +1,6 @@
 # Norme di Condotta e Rispetto degli Spazi
 
-Versione 2026-09-24 · In vigore dal 24/09/2026
+Versione 2026-09-27 · In vigore dal 27/09/2026
 
 ## 1. Oggetto
 
@@ -15,6 +15,8 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 2.1. Lo Spazio è il luogo di lavoro di altre persone. Il Locatario deve utilizzarlo con la stessa cura che avrebbe per il proprio esercizio, lasciandolo **nello stato in cui lo ha ricevuto**, pronto per il professionista successivo.
 
 2.2. Devono essere rispettati gli orari della Prenotazione, la capienza, l'attività dichiarata e le istruzioni dell'Host.
+
+2.3. **Uso nel rispetto della legge.** Lo Spazio può essere utilizzato solo per attività lecite, svolte entro i limiti della legislazione (civile, penale, sanitaria, ambientale, del lavoro, urbanistica e condominiale), delle norme dell'ordine professionale competente e dell'attività dichiarata nella Prenotazione. È vietato utilizzare lo Spazio, direttamente o indirettamente, per qualsiasi atto illecito.
 
 ## 3. Ordine, pulizia e conservazione
 
@@ -76,11 +78,25 @@ Versione 2026-09-24 · In vigore dal 24/09/2026
 
 9.3. È vietato il mobbing o le molestie sessuali, l'intimidazione, le minacce o la violenza. La violazione costituisce infrazione grave e comporta l'esclusione.
 
+9.4. **Sono vietate le aggressioni fisiche o verbali** — inclusi spintoni, insulti, offese, umiliazioni, urla, minacce e intimidazioni — nei confronti del personale dell'Host o dell'edificio, dei Clienti finali, di altri Locatari, dei visitatori e di qualsiasi persona presente nell'ambiente. La violazione costituisce infrazione grave: l'account viene escluso immediatamente, la Piattaforma collabora con le autorità e il trasgressore risponde civilmente e penalmente.
+
 ## 10. Sicurezza
 
 10.1. Il Locatario deve conoscere le vie di fuga, la posizione degli estintori e le istruzioni di emergenza fornite dall'Host; non ostruire le uscite; non sovraccaricare gli impianti elettrici; e non utilizzare attrezzature che generino rischio di incendio senza autorizzazione.
 
-10.2. È vietato portare armi, salvo nei casi autorizzati dalla legge e dalle norme dell'edificio; usare o conservare sostanze infiammabili, esplosive o illecite; e fumare (comprese le sigarette elettroniche) in qualsiasi Spazio, salvo un'area espressamente designata.
+10.2. Nello Spazio e nelle aree dell'edificio è espressamente vietato:
+
+(a) **portare, detenere o maneggiare armi** da fuoco, armi bianche, riproduzioni **o munizioni**, anche se il portatore è in possesso di regolare porto d'armi, salvo gli agenti di pubblica sicurezza in servizio;
+
+(b) **fabbricare, detenere, trasportare o maneggiare esplosivi**, fuochi d'artificio, gas o materiali infiammabili;
+
+(c) **maneggiare prodotti chimici** pericolosi, tossici, corrosivi, radioattivi o controllati, **salvo** quelli di uso abituale nell'attività professionale dichiarata (ad esempio, materiali odontoiatrici e disinfettanti), nelle quantità e alle condizioni consentite dalla normativa sanitaria, dal produttore e dall'Host;
+
+(d) usare, detenere o fornire sostanze illecite; e
+
+(e) fumare (comprese le sigarette elettroniche), salvo in un'area espressamente designata.
+
+10.2.1. La violazione delle lettere (a), (b) o (c) costituisce infrazione gravissima: l'Host può terminare immediatamente la Fascia prenotata, senza rimborso, l'account viene escluso e la Piattaforma comunica il fatto alle autorità.
 
 10.3. Il Locatario deve chiudere a chiave lo Spazio all'uscita, secondo le istruzioni, e non condividere i codici di accesso.
 

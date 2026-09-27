@@ -60,6 +60,8 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 3.3. **Uso do feedback.** O conteúdo do feedback pode ser usado, de forma agregada ou anonimizada sempre que possível, para melhorar o aplicativo e o serviço. Sugestões podem ser implementadas sem que isso gere direito a remuneração. O feedback não é publicado com identificação do autor sem o seu consentimento.
 
+3.4. **Assistente virtual.** O site oferece um assistente de inteligência artificial para tirar dúvidas. As mensagens enviadas a ele, a página em que a conversa ocorreu e, se houver login, a identificação da conta são registradas e enviadas à equipe da Operadora para responder, corrigir problemas e melhorar o serviço (legítimo interesse e execução de contrato). O processamento é feito por fornecedor de tecnologia contratado como operador, que não pode usar os dados para outras finalidades. Não envie ao assistente senhas, dados de cartão, dados de saúde de pacientes ou outros dados sensíveis. As respostas do assistente são informativas e não substituem os Termos e documentos oficiais.
+
 ## 4. Compartilhamento
 
 4.1. **Entre Anfitrião e Locatário.** Após a confirmação de uma Reserva, o Anfitrião recebe o nome, o perfil público, a atividade declarada, o número de pessoas e, quando o Anúncio exigir, a indicação de registro profissional verificado do Locatário; o Locatário recebe o endereço completo e as instruções de acesso do Espaço. Telefone e e-mail não são exibidos, e as partes se comunicam pela Plataforma.

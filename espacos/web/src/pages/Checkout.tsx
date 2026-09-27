@@ -142,6 +142,14 @@ export default function Checkout() {
           </section>
 
           <section className="section">
+            <div className="notice warn small conduct-box">
+              <ul>
+                <li>{t('rules.short.lawful')}</li>
+                <li>{t('rules.short.noWeapons')}</li>
+                <li>{t('rules.short.noAggression')}</li>
+              </ul>
+              <strong>{t('rules.short.consequence')}</strong>
+            </div>
             <label className="check accept">
               <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} required />
               <span>

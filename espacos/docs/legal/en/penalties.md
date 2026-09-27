@@ -1,6 +1,6 @@
 # Penalties and Measures
 
-Version 2026-09-24 · Effective from 2026-09-24
+Version 2026-09-27 · Effective from 2026-09-27
 
 ## 1. Purpose and principles
 
@@ -25,7 +25,8 @@ Version 2026-09-24 · Effective from 2026-09-24
 | **Subletting** or assignment to a third party | 100% of the Base Amount; possible account exclusion | Yes — serious breach | 168 hours (7 days) |
 | **Smoking or use of substances** prohibited at the Space | Amount equivalent to 2 hours of the Space's hourly price, plus the cost of specialized cleaning, if any | Yes | 24 hours |
 | **Condominium/building fine** caused by the Renter | Pass-through of the amount of the fine actually applied, upon copy of the notice | Yes | 720 hours (30 days) |
-| **Harassment or discrimination** | Account exclusion; without prejudice to legal liability | Yes — serious breach | 720 hours (30 days) |
+| **Harassment, discrimination or physical or verbal aggression** (against staff, End Clients or any person present) | Immediate account exclusion; without prejudice to civil and criminal liability | Yes — serious breach | 720 hours (30 days) |
+| **Weapons, ammunition, explosives or prohibited chemicals** at the Space (Conduct and Respect for Spaces Rules, clause 10.2) | Immediate termination of the Occurrence without refund, account exclusion and report to the authorities | Yes — very serious breach | 720 hours (30 days) |
 | **Payment outside the Platform** (requesting, offering or accepting) | Exclusion of the accounts of those involved | Yes — serious breach | 720 hours (30 days) |
 | **No-show** | Loss of the Occurrence's Base Amount (Cancellation Policy); no additional penalty | No | 24 hours |
 

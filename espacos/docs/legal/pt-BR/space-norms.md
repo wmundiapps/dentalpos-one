@@ -1,6 +1,6 @@
 # Normas de Conduta e Respeito aos Espaços
 
-Versão 2026-09-25 · Vigência a partir de 25/09/2026
+Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 ## 1. Objeto
 
@@ -15,6 +15,8 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 2.1. O Espaço é local de trabalho de outras pessoas. O Locatário deve usá-lo com o mesmo cuidado que teria com o próprio estabelecimento, deixando-o **no estado em que o recebeu**, pronto para o próximo profissional.
 
 2.2. Devem ser respeitados os horários da Reserva, a capacidade, a atividade declarada e as instruções do Anfitrião.
+
+2.3. **Uso dentro da lei.** O Espaço só pode ser usado para atividades lícitas, exercidas dentro dos limites da legislação (civil, penal, sanitária, ambiental, trabalhista, urbanística e condominial), das normas do órgão profissional competente e da atividade declarada na Reserva. É proibido usar o Espaço, direta ou indiretamente, para qualquer ato ilícito.
 
 ## 3. Ordem, limpeza e conservação
 
@@ -76,11 +78,25 @@ Versão 2026-09-25 · Vigência a partir de 25/09/2026
 
 9.3. É proibido assédio moral ou sexual, intimidação, ameaças ou violência. A violação é falta grave e leva à exclusão.
 
+9.4. **São proibidas agressões físicas ou verbais** — incluindo empurrões, xingamentos, ofensas, humilhações, gritos, ameaças e intimidação — contra funcionários do Anfitrião ou do edifício, Clientes Finais, outros Locatários, visitantes e quaisquer pessoas que estejam no ambiente. A violação é falta grave: a conta é excluída de imediato, a Plataforma colabora com as autoridades e o infrator responde civil e penalmente.
+
 ## 10. Segurança
 
 10.1. O Locatário deve conhecer as rotas de fuga, a localização de extintores e as instruções de emergência informadas pelo Anfitrião; não obstruir saídas; não sobrecarregar instalações elétricas; e não utilizar equipamentos que gerem risco de incêndio sem autorização.
 
-10.2. É proibido portar armas, exceto nos casos autorizados por lei e pelas normas do edifício; usar ou armazenar substâncias inflamáveis, explosivas ou ilícitas; e fumar (inclusive cigarros eletrônicos) em qualquer Espaço, salvo área expressamente designada.
+10.2. É expressamente proibido no Espaço e nas áreas do edifício:
+
+(a) **portar, guardar ou manusear armas** de fogo, armas brancas, simulacros **ou munições**, ainda que o portador tenha porte legal, salvo agentes de segurança pública em serviço;
+
+(b) **fabricar, guardar, transportar ou manusear explosivos**, fogos de artifício, gases ou materiais inflamáveis;
+
+(c) **manusear produtos químicos** perigosos, tóxicos, corrosivos, radioativos ou controlados, **salvo** os de uso regular da atividade profissional declarada (por exemplo, materiais odontológicos e desinfetantes), nas quantidades e condições permitidas pela legislação sanitária, pelo fabricante e pelo Anfitrião;
+
+(d) usar, guardar ou fornecer substâncias ilícitas; e
+
+(e) fumar (inclusive cigarros eletrônicos), salvo em área expressamente designada.
+
+10.2.1. A violação das alíneas (a), (b) ou (c) é falta gravíssima: o Anfitrião pode encerrar a Ocorrência imediatamente, sem reembolso, a conta é excluída e a Plataforma comunica o fato às autoridades.
 
 10.3. O Locatário deve trancar o Espaço ao sair, conforme as instruções, e não compartilhar códigos de acesso.
 
