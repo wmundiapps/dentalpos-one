@@ -441,6 +441,22 @@ r('POST', '/api/auth/set-password', async (req, res) => {
   send(res, 200, { ok: true, role: u.role }, { 'Set-Cookie': sessionCookie(u) });
 });
 
+// Primeiro administrador: só funciona com ADMIN_BOOTSTRAP_TOKEN definido e enquanto não houver admin.
+r('POST', '/api/auth/bootstrap', async (req, res) => {
+  const sql = db();
+  const expected = process.env.ADMIN_BOOTSTRAP_TOKEN;
+  const got = String(req.headers['x-bootstrap-token'] || '');
+  if (!expected || expected.length < 24 || got !== expected) fail(404, 'Rota não encontrada.');
+  const [{ n }] = await sql`select count(*)::int as n from users where role = 'admin'`;
+  if (n > 0) fail(409, 'Já existe administrador.');
+  const b = await readJson(req);
+  const email = clean(b.email, 160).toLowerCase();
+  if (!isEmail(email)) fail(400, 'E-mail inválido.');
+  const [u] = await sql`insert into users (email, name, role) values (${email}, ${clean(b.name, 120) || email}, 'admin') returning id`;
+  const t = await createPasswordToken(sql, u.id, 72);
+  send(res, 201, { setPasswordUrl: `${appUrl()}/definir-senha?t=${t}` });
+});
+
 r('POST', '/api/auth/forgot', async (req, res) => {
   const sql = db();
   const b = await readJson(req);
