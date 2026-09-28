@@ -11,17 +11,19 @@ export async function migrate() {
   await sql.unsafe(`create schema if not exists ${SCHEMA}`);
   const table = `${SCHEMA}.schema_migrations`;
   await sql.unsafe(`create table if not exists ${table} (name text primary key, applied_at timestamptz not null default now())`);
-  const done = new Set((await sql.unsafe(`select name from ${table}`)).map((r) => r.name));
   const files = (await readdir(dir)).filter((f) => f.endsWith('.sql')).sort();
   for (const f of files) {
-    if (done.has(f)) continue;
     const body = await readFile(path.join(dir, f), 'utf8');
     await sql.begin(async (tx) => {
+      // Trava para dois builds simultâneos não aplicarem a mesma migração
+      await tx.unsafe(`select pg_advisory_xact_lock(hashtext('${SCHEMA}.migrations'))`);
+      const [already] = await tx.unsafe(`select 1 from ${table} where name = $1`, [f]);
+      if (already) return;
       await tx.unsafe(`set local search_path to ${SCHEMA}`);
       await tx.unsafe(body);
       await tx.unsafe(`insert into ${table} (name) values ($1)`, [f]);
+      console.log('migração aplicada:', f);
     });
-    console.log('migração aplicada:', f);
   }
 }
 
