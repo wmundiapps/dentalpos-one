@@ -7,6 +7,7 @@ import http from 'node:http';
 const DB = process.env.TEST_DATABASE_URL;
 process.env.DATABASE_URL = DB || '';
 process.env.DATABASE_SCHEMA = 'alignsystem_test';
+process.env.SET_ROLE_SEARCH_PATH = 'false';
 process.env.SESSION_SECRET = 'segredo-de-teste-com-mais-de-24-caracteres';
 process.env.APP_URL = 'http://localhost';
 process.env.ASAAS_API_KEY = 'teste';

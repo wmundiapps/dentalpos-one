@@ -9,6 +9,11 @@ const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'migra
 export async function migrate() {
   const sql = db();
   await sql.unsafe(`create schema if not exists ${SCHEMA}`);
+  // Alguns provedores (ex.: proxy do Neon) ignoram o search_path enviado na conexão;
+  // fixa o schema como padrão do próprio usuário do banco.
+  if (process.env.SET_ROLE_SEARCH_PATH !== 'false') {
+    await sql.unsafe(`alter role current_user set search_path to ${SCHEMA}, public`);
+  }
   const table = `${SCHEMA}.schema_migrations`;
   await sql.unsafe(`create table if not exists ${table} (name text primary key, applied_at timestamptz not null default now())`);
   const files = (await readdir(dir)).filter((f) => f.endsWith('.sql')).sort();
