@@ -2,10 +2,12 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import DescriptionIcon from "@mui/icons-material/Description";
 import EventIcon from "@mui/icons-material/Event";
 import GroupsIcon from "@mui/icons-material/Groups";
+import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import SchoolIcon from "@mui/icons-material/School";
 import SettingsIcon from "@mui/icons-material/Settings";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
+import WorkIcon from "@mui/icons-material/Work";
 import { Box } from "@mui/material";
 import type { ReactNode } from "react";
 
@@ -42,6 +44,14 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       item("Banco de questões", "/?secao=questoes", <DescriptionIcon />),
       item("Provas", "/?secao=provas", <AssignmentIcon />),
+    ],
+  },
+  {
+    label: "Operacional",
+    icon: tile(<MeetingRoomIcon />, "#0EA5E9"),
+    items: [
+      item("Reservas de salas", "/operacional?secao=reservas", <MeetingRoomIcon />),
+      item("Vagas e carreiras", "/operacional?secao=carreiras", <WorkIcon />),
     ],
   },
   {

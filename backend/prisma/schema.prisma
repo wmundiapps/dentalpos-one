@@ -129,6 +129,9 @@ model Clinic {
   eduEquivalencyRequests  EduEquivalencyRequest[]
   eduInstitutionProfile   EduInstitutionProfile?
   eduCampuses             EduCampus[]
+  eduBookableResources    EduBookableResource[]
+  eduResourceBookings     EduResourceBooking[]
+  eduJobPostings          EduJobPosting[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2678,6 +2681,7 @@ model EduStudent {
   parkingSpots               EduParkingSpot[]
   sales                      EduSale[]
   equivalencyRequests        EduEquivalencyRequest[]
+  jobApplications            EduJobApplication[]
 
   @@unique([clinicId, email])
   @@index([clinicId, status])
@@ -3985,4 +3989,100 @@ model EduCampus {
   @@index([clinicId, isActive])
   @@index([tenantId])
   @@map("edu_campuses")
+}
+
+// ============================================================
+// EDUMASTER — RESERVA DE SALAS E EQUIPAMENTOS
+// Distinto do EduAsset (patrimônio/inventário): aqui é o recurso
+// que pode ser agendado (sala, auditório, laboratório, projetor)
+// e a reserva em si, com checagem de conflito de horário.
+// ============================================================
+
+model EduBookableResource {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId  String
+  name      String
+  category  String   @default("SALA")
+  location  String?
+  capacity  Int?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bookings EduResourceBooking[]
+
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+  @@map("edu_bookable_resources")
+}
+
+model EduResourceBooking {
+  id              String              @id @default(cuid())
+  clinicId        String
+  clinic          Clinic              @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  resourceId      String
+  resource        EduBookableResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  requestedById   String
+  purpose         String
+  startAt         DateTime
+  endAt           DateTime
+  status          String              @default("CONFIRMADA")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([resourceId, startAt, endAt])
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@map("edu_resource_bookings")
+}
+
+// ============================================================
+// EDUMASTER — VAGAS E CARREIRAS
+// Mural de estágio/emprego para alunos e egressos, com aplicação
+// pelo próprio portal (sem depender de link externo obrigatório).
+// ============================================================
+
+model EduJobPosting {
+  id           String   @id @default(cuid())
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId     String
+  title        String
+  company      String
+  description  String
+  type         String   @default("ESTAGIO")
+  modality     String   @default("PRESENCIAL")
+  location     String?
+  applicationUrl String?
+  isActive     Boolean  @default(true)
+  postedById   String?
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  applications EduJobApplication[]
+
+  @@index([clinicId, isActive])
+  @@index([tenantId])
+  @@map("edu_job_postings")
+}
+
+model EduJobApplication {
+  id         String        @id @default(cuid())
+  postingId  String
+  posting    EduJobPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    EduStudent    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  message    String?
+  status     String        @default("ENVIADA")
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([postingId, studentId])
+  @@index([postingId])
+  @@index([studentId])
+  @@map("edu_job_applications")
 }

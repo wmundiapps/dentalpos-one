@@ -5,11 +5,13 @@ import { writeAudit } from '../services/auditService'
 import {
   assetSchema,
   assetStatusSchema,
+  bookableResourceSchema,
   expiringItemSchema,
   maintenanceOrderSchema,
   maintenanceStatusSchema,
   parkingAssignSchema,
-  parkingSpotSchema
+  parkingSpotSchema,
+  resourceBookingSchema
 } from '../validators/eduFacilitiesValidator'
 
 function ctx(req: AuthRequest) {
@@ -206,6 +208,102 @@ export async function releaseParkingSpot(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao liberar vaga de estacionamento.' })
+  }
+}
+
+// ---------------------------------------------------------------
+// RESERVA DE SALAS E EQUIPAMENTOS
+// ---------------------------------------------------------------
+
+export async function listBookableResources(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const rows = await prisma.eduBookableResource.findMany({ where: { clinicId, tenantId, isActive: true }, orderBy: { name: 'asc' } })
+    return res.json(rows)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao listar salas e equipamentos.' })
+  }
+}
+
+export async function createBookableResource(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const parsed = bookableResourceSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() })
+
+    const row = await prisma.eduBookableResource.create({ data: { clinicId, tenantId, ...parsed.data } })
+    await audit({ clinicId, tenantId, actorId, action: 'EDU_BOOKABLE_RESOURCE_CREATE', entityType: 'EduBookableResource', entityId: row.id, summary: `Recurso "${row.name}" cadastrado para reserva.` })
+    return res.status(201).json(row)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao cadastrar sala/equipamento.' })
+  }
+}
+
+export async function listResourceBookings(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const resourceId = typeof req.query.resourceId === 'string' ? req.query.resourceId : undefined
+    const rows = await prisma.eduResourceBooking.findMany({
+      where: { clinicId, tenantId, status: { not: 'CANCELADA' }, ...(resourceId ? { resourceId } : {}) },
+      include: { resource: true },
+      orderBy: { startAt: 'asc' }
+    })
+    return res.json(rows)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao listar reservas.' })
+  }
+}
+
+export async function createResourceBooking(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const parsed = resourceBookingSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() })
+
+    const { resourceId, startAt, endAt } = parsed.data
+    const start = new Date(startAt)
+    const end = new Date(endAt)
+    if (end <= start) return res.status(400).json({ error: 'O término da reserva deve ser depois do início.' })
+
+    const resource = await prisma.eduBookableResource.findFirst({ where: { id: resourceId, clinicId, tenantId, isActive: true } })
+    if (!resource) return res.status(400).json({ error: 'Sala/equipamento inválido.' })
+
+    const conflict = await prisma.eduResourceBooking.findFirst({
+      where: { resourceId, status: { not: 'CANCELADA' }, startAt: { lt: end }, endAt: { gt: start } }
+    })
+    if (conflict) return res.status(409).json({ error: 'Já existe uma reserva para este recurso nesse horário.' })
+
+    const row = await prisma.eduResourceBooking.create({
+      data: { clinicId, tenantId, resourceId, requestedById: actorId, purpose: parsed.data.purpose, startAt: start, endAt: end },
+      include: { resource: true }
+    })
+    await audit({ clinicId, tenantId, actorId, action: 'EDU_RESOURCE_BOOKING_CREATE', entityType: 'EduResourceBooking', entityId: row.id, summary: `Reserva de "${resource.name}" confirmada.` })
+    return res.status(201).json(row)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao criar reserva.' })
+  }
+}
+
+export async function cancelResourceBooking(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const id = String(req.params.id)
+    const booking = await prisma.eduResourceBooking.findFirst({ where: { id, clinicId, tenantId } })
+    if (!booking) return res.status(404).json({ error: 'Reserva não encontrada.' })
+    if (booking.requestedById !== actorId && req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Só quem fez a reserva ou um administrador pode cancelá-la.' })
+    }
+
+    const row = await prisma.eduResourceBooking.update({ where: { id }, data: { status: 'CANCELADA' } })
+    await audit({ clinicId, tenantId, actorId, action: 'EDU_RESOURCE_BOOKING_CANCEL', entityType: 'EduResourceBooking', entityId: id, summary: 'Reserva cancelada.' })
+    return res.json(row)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao cancelar reserva.' })
   }
 }
 

@@ -39,6 +39,21 @@ export const parkingAssignSchema = z.object({
   assignedToUserId: z.string().trim().min(1).optional()
 }).strict()
 
+export const bookableResourceSchema = z.object({
+  name: z.string().trim().min(2).max(200),
+  category: z.enum(['SALA', 'AUDITORIO', 'LABORATORIO', 'EQUIPAMENTO']).default('SALA'),
+  location: z.string().trim().max(300).optional(),
+  capacity: z.number().int().min(1).max(100000).optional(),
+  isActive: z.boolean().optional()
+}).strict()
+
+export const resourceBookingSchema = z.object({
+  resourceId: z.string().trim().min(1),
+  purpose: z.string().trim().min(2).max(300),
+  startAt: z.string().datetime(),
+  endAt: z.string().datetime()
+}).strict()
+
 export const expiringItemSchema = z.object({
   category: z.enum(['DOCUMENTO', 'EXTINTOR', 'LICENCA', 'CONTRATO', 'ATO_REGULATORIO', 'MATERIAL', 'OUTRO']).default('OUTRO'),
   title: z.string().trim().min(2).max(300),

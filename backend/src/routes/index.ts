@@ -61,6 +61,7 @@ import eduResearchRoutes from './eduResearchRoutes'
 import eduLegalRoutes from './eduLegalRoutes'
 import eduFormRoutes from './eduFormRoutes'
 import eduInstitutionRoutes from './eduInstitutionRoutes'
+import eduCareerRoutes from './eduCareerRoutes'
 import * as eduAdmissionController from '../controllers/eduAdmissionController'
 import * as eduDocumentController from '../controllers/eduDocumentController'
 import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
@@ -144,6 +145,8 @@ router.use(eduLegalRoutes)
 router.use(eduFormRoutes)
 // EduMaster Pro — Personalização institucional, polos e campi (módulo isolado, ver src/routes/eduInstitutionRoutes.ts)
 router.use(eduInstitutionRoutes)
+// EduMaster Pro — Vagas e Carreiras (módulo isolado, ver src/routes/eduCareerRoutes.ts)
+router.use(eduCareerRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 
