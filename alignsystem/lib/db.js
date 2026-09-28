@@ -6,8 +6,10 @@ if (!/^[a-z_][a-z0-9_]*$/.test(SCHEMA)) throw new Error('DATABASE_SCHEMA inváli
 
 let client;
 
-// DATABASE_URL tem prioridade; NEON_DATABASE_URL é criada pela integração Neon da Vercel.
-export const databaseUrl = () => process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || '';
+// DATABASE_URL tem prioridade. Da integração Neon da Vercel usamos a conexão direta (sem pooler),
+// porque o pooler ignora o search_path enviado na conexão.
+export const databaseUrl = () =>
+  process.env.DATABASE_URL || process.env.NEON_DATABASE_URL_UNPOOLED || process.env.NEON_DATABASE_URL || '';
 
 export function db() {
   if (!client) {
