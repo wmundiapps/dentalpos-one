@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css" />
+<title>Guia das 7 fotos — AlignSystem</title>
+<meta name="description" content="Como tirar as 7 fotos da pré-avaliação AlignSystem." />
+<style>
+  .shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
+  .shot{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;break-inside:avoid;}
+  .shot svg{width:100%;height:auto;background:var(--bg-deep);border-radius:10px;margin-bottom:10px;}
+  .shot .n{font-family:var(--serif);font-size:22px;color:var(--emerald);}
+  .shot b{display:block;font-size:15px;margin:2px 0 4px;}
+  .shot p{font-size:14px;color:var(--ink-60);margin:0;}
+  @media print{.shots{grid-template-columns:repeat(2,1fr);} .shot{border:1px solid #ccc;}}
+</style>
+</head>
+<body>
+<div class="top"><div class="in"><a class="logo" href="/">Align<em>System</em></a><button class="btn btn-line btn-sm no-print" onclick="window.print()">Imprimir / salvar PDF</button></div></div>
+<main class="container wide">
+  <h1>Guia das 7 fotos da pré-avaliação</h1>
+  <p class="muted" style="max-width:62ch">Fotos nítidas e bem iluminadas ajudam o dentista a avaliar seu caso com mais precisão. Use luz natural, sem flash direto, e retire óculos e batom. Se possível, peça ajuda a outra pessoa para as fotos de perfil.</p>
+  <div class="shots" style="margin-top:18px">
+    <div class="shot"><svg viewBox="0 0 120 80" aria-hidden="true"><circle cx="60" cy="32" r="16" fill="none" stroke="#157A6E" stroke-width="2"/><path d="M34 78 Q60 48 86 78" fill="none" stroke="#157A6E" stroke-width="2"/><path d="M53 38 H67" stroke="#12233A" stroke-width="2"/></svg><span class="n">1</span><b>Frente, sério(a)</b><p>Olhe para a câmera, sem sorrir, enquadrando cabeça e ombros.</p></div>
+    <div class="shot"><svg viewBox="0 0 120 80" aria-hidden="true"><circle cx="60" cy="32" r="16" fill="none" stroke="#157A6E" stroke-width="2"/><path d="M34 78 Q60 48 86 78" fill="none" stroke="#157A6E" stroke-width="2"/><path d="M52 36 Q60 44 68 36" fill="none" stroke="#C98A2C" stroke-width="2.5"/></svg><span class="n">2</span><b>Frente, sorrindo</b><p>Mesma posição, agora com um sorriso natural e aberto.</p></div>
+    <div class="shot"><svg viewBox="0 0 120 80" aria-hidden="true"><path d="M52 18 Q72 16 74 32 L78 36 L74 38 Q72 48 60 48 Q50 46 50 32 Z" fill="none" stroke="#157A6E" stroke-width="2"/><path d="M40 78 Q56 52 76 78" fill="none" stroke="#157A6E" stroke-width="2"/></svg><span class="n">3</span><b>Lado direito</b><p>Vire o rosto 90°, perfil direito, enquadrando cabeça e ombros.</p></div>
+    <div class="shot"><svg viewBox="0 0 120 80" aria-hidden="true"><path d="M68 18 Q48 16 46 32 L42 36 L46 38 Q48 48 60 48 Q70 46 70 32 Z" fill="none" stroke="#157A6E" stroke-width="2"/><path d="M80 78 Q64 52 44 78" fill="none" stroke="#157A6E" stroke-width="2"/></svg><span class="n">4</span><b>Lado esquerdo</b><p>Vire para o outro lado, perfil esquerdo, mesmo enquadramento.</p></div>
+    <div class="shot"><svg viewBox="0 0 120 80" aria-hidden="true"><path d="M20 40 Q60 70 100 40 Q60 20 20 40 Z" fill="none" stroke="#157A6E" stroke-width="2"/><path d="M30 42 Q60 58 90 42" fill="none" stroke="#C98A2C" stroke-width="2"/></svg><span class="n">5</span><b>Sorriso de perto</b><p>Aproxime a câmera e fotografe apenas o sorriso, bem de perto.</p></div>
+    <div class="shot"><svg viewBox="0 0 120 80" aria-hidden="true"><path d="M22 60 Q60 4 98 60" fill="none" stroke="#157A6E" stroke-width="2"/><path d="M34 58 Q60 20 86 58" fill="none" stroke="#C98A2C" stroke-width="2" stroke-dasharray="4 4"/></svg><span class="n">6</span><b>Arcada de cima</b><p>Com a boca bem aberta, fotografe só os dentes de cima (pode usar um espelho).</p></div>
+    <div class="shot"><svg viewBox="0 0 120 80" aria-hidden="true"><path d="M22 20 Q60 76 98 20" fill="none" stroke="#157A6E" stroke-width="2"/><path d="M34 22 Q60 60 86 22" fill="none" stroke="#C98A2C" stroke-width="2" stroke-dasharray="4 4"/></svg><span class="n">7</span><b>Arcada de baixo</b><p>Da mesma forma, fotografe só os dentes de baixo.</p></div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <h2>Como enviar</h2>
+    <p>Envie as fotos pelo seu link pessoal da avaliação (o link chega no seu WhatsApp e e-mail logo depois do cadastro). Ainda não se cadastrou? <a href="/#avaliacao">Comece aqui</a>.</p>
+    <p class="small muted">Quer saber o preço? Entre em contato. Aqui não conseguimos passar preços por questões éticas e pelas normas do Conselho Regional de Odontologia.</p>
+  </div>
+</main>
+</body>
+</html>

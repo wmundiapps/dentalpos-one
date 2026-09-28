@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<title>Contrato — AlignSystem</title>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body>
+<div class="top"><div class="in">
+  <a class="logo" href="/">Align<em>System</em></a>
+  <button class="btn btn-line btn-sm" onclick="window.print()">Imprimir / salvar PDF</button>
+</div></div>
+<main class="container" id="app"><div class="card center"><span class="spinner"></span> <span class="muted">Carregando…</span></div></main>
+<script src="/assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+  var esc = AS.esc;
+  var T = new URLSearchParams(location.search).get('t');
+  var app = document.getElementById('app');
+  if (!T) { app.innerHTML = '<div class="card"><h1>Link incompleto</h1></div>'; return; }
+
+  function load() {
+    AS.api('/api/contracts/' + encodeURIComponent(T)).then(render).catch(function (e) {
+      app.innerHTML = '<div class="card"><h1>Contrato indisponível</h1><p class="muted">' + esc(e.message) + '</p></div>';
+    });
+  }
+
+  function render(d) {
+    var html = '';
+    if (d.draft) {
+      html += '<div class="msg warn no-print"><b>Minuta em revisão jurídica.</b> Este modelo ainda está em revisão pela assessoria jurídica da AlignSystem. Se tiver dúvidas sobre qualquer cláusula, fale com a equipe antes de aceitar.</div>';
+    }
+    html += '<article class="card doc">' + d.body + '</article>';
+    html += '<div class="card small muted">Código de integridade (SHA-256): <code style="word-break:break-all">' + esc(d.hash) + '</code></div>';
+    if (d.status === 'aceito') {
+      html += '<div class="card"><h2>Aceito eletronicamente</h2><p>Por <b>' + esc(d.acceptedName) + '</b> (documento ' + esc(d.acceptedDoc) + ') em ' + esc(AS.date(d.acceptedAt, true)) + '.</p>' +
+        '<p class="small muted">O aceite foi registrado com data, hora, endereço IP e o código de integridade acima.</p></div>';
+    } else {
+      html += '<form class="card no-print" id="acc"><h2>Aceite eletrônico</h2>' +
+        '<p class="muted small">Confira os dados e confirme. Seu aceite fica registrado com data, hora, endereço IP e o código de integridade deste documento.</p>' +
+        '<div class="grid2"><div class="field"><label for="nm">Nome completo</label><input id="nm" autocomplete="name" required value="' + esc(d.signer.name || '') + '"></div>' +
+        '<div class="field"><label for="doc">' + esc(d.signer.docLabel) + '</label><input id="doc" inputmode="numeric" required placeholder="Somente números"></div></div>' +
+        '<div class="check field"><input type="checkbox" id="ag" required><label for="ag">Li todo o documento acima, entendi as cláusulas destacadas e concordo com seus termos, reconhecendo a validade da assinatura eletrônica.</label></div>' +
+        '<button class="btn btn-primary" type="submit">Aceitar e assinar eletronicamente</button><div id="m"></div></form>';
+    }
+    app.innerHTML = html;
+    var f = document.getElementById('acc');
+    if (f) f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var b = f.querySelector('button');
+      b.disabled = true;
+      AS.api('/api/contracts/' + encodeURIComponent(T) + '/accept', { method: 'POST', body: {
+        name: document.getElementById('nm').value, doc: document.getElementById('doc').value, agree: document.getElementById('ag').checked, hash: d.hash,
+      } }).then(function () { load(); window.scrollTo(0, document.body.scrollHeight); })
+        .catch(function (err) { b.disabled = false; document.getElementById('m').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
+    });
+  }
+  load();
+})();
+</script>
+</body>
+</html>

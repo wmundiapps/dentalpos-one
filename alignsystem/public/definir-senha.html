@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<title>Criar senha — AlignSystem</title>
+</head>
+<body>
+<div class="top"><div class="in"><a class="logo" href="/">Align<em>System</em></a></div></div>
+<main class="container" style="max-width:480px">
+  <form class="card" id="f">
+    <h1>Criar sua senha</h1>
+    <p class="muted">Use pelo menos 10 caracteres, com letras e números.</p>
+    <div class="field"><label for="p1">Nova senha</label><input id="p1" type="password" autocomplete="new-password" minlength="10" required></div>
+    <div class="field"><label for="p2">Repita a senha</label><input id="p2" type="password" autocomplete="new-password" minlength="10" required></div>
+    <button class="btn btn-primary" type="submit">Salvar e entrar</button>
+    <div id="m"></div>
+  </form>
+</main>
+<script src="/assets/app.js"></script>
+<script>
+(function () {
+  var t = new URLSearchParams(location.search).get('t');
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  var f = document.getElementById('f');
+  f.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var m = document.getElementById('m');
+    var a = document.getElementById('p1').value, b = document.getElementById('p2').value;
+    if (a !== b) { m.innerHTML = '<div class="msg err">As senhas não conferem.</div>'; return; }
+    f.querySelector('button').disabled = true;
+    AS.api('/api/auth/set-password', { method: 'POST', body: { token: t, password: a } })
+      .then(function () { location.href = '/painel'; })
+      .catch(function (err) { f.querySelector('button').disabled = false; m.innerHTML = '<div class="msg err">' + AS.esc(err.message) + '</div>'; });
+  });
+})();
+</script>
+</body>
+</html>

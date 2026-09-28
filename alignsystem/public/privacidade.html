@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css" />
+<title>Política de privacidade — AlignSystem</title>
+</head>
+<body>
+<div class="top"><div class="in"><a class="logo" href="/">Align<em>System</em></a></div></div>
+<main class="container doc">
+  <h1>Política de privacidade</h1>
+  <p class="muted">Última atualização: setembro de 2026.</p>
+  <h3>1. Quem somos</h3>
+  <p>A AlignSystem é uma rede de ortodontia digital com alinhadores transparentes. Esta política explica como tratamos os dados pessoais de pacientes e de dentistas parceiros, conforme a Lei nº 13.709/2018 (LGPD). Contato do encarregado de dados: <a data-mail href="mailto:contato@alignsystem.com.br">contato@alignsystem.com.br</a>.</p>
+  <h3>2. Quais dados coletamos</h3>
+  <ul>
+    <li><b>Pacientes:</b> nome, idade, WhatsApp, e-mail, cidade, motivo do contato, indicação, fotos do sorriso e do rosto, parecer da pré-avaliação, agendamentos, dados do contrato (CPF e endereço) e informações de pagamento processadas pela instituição de pagamento parceira.</li>
+    <li><b>Dentistas parceiros:</b> nome, CRO, contatos, cidade, dados cadastrais e bancários necessários ao credenciamento e aos repasses, registros de atendimento e fotos clínicas.</li>
+    <li><b>Navegação:</b> páginas visitadas e origem da visita (parâmetros de campanha), e, quando ativos, cookies de medição de anúncios.</li>
+  </ul>
+  <h3>3. Para que usamos</h3>
+  <p>Para responder ao seu contato, realizar a pré-avaliação por fotos e a teleorientação, direcionar o caso a um dentista credenciado, elaborar e cumprir o contrato, emitir cobranças, efetuar repasses aos parceiros, cumprir obrigações legais e éticas e melhorar nossos serviços. Fotos e dados de saúde são dados sensíveis e são usados apenas para a finalidade de saúde para a qual você os enviou, com o seu consentimento.</p>
+  <h3>4. Com quem compartilhamos</h3>
+  <p>Com o dentista responsável pelo seu caso, com a instituição de pagamento que processa as cobranças, com provedores de hospedagem, banco de dados e e-mail que operam para nós, e com autoridades quando a lei exigir. Não vendemos dados pessoais. Suas fotos só são usadas em divulgação com autorização específica, por escrito.</p>
+  <h3>5. Por quanto tempo guardamos</h3>
+  <p>Durante o relacionamento e pelo prazo exigido pela legislação e pelas normas odontológicas para guarda de prontuário. Contatos que não seguiram para tratamento podem ser excluídos a pedido a qualquer momento.</p>
+  <h3>6. Segurança</h3>
+  <p>O acesso às fotos e dados é restrito à equipe AlignSystem e ao dentista do caso, com senha, conexões criptografadas e registro de ações. O link pessoal da sua avaliação é secreto: não o compartilhe.</p>
+  <h3>7. Seus direitos</h3>
+  <p>Você pode pedir confirmação, acesso, correção, portabilidade, anonimização ou exclusão dos seus dados, e revogar consentimentos, pelo e-mail <a data-mail href="mailto:contato@alignsystem.com.br">contato@alignsystem.com.br</a>.</p>
+</main>
+<script>
+fetch('/api/config').then(function (r) { return r.json(); }).then(function (c) {
+  if (!c.contactEmail) return;
+  document.querySelectorAll('[data-mail]').forEach(function (a) { a.href = 'mailto:' + c.contactEmail; a.textContent = c.contactEmail; });
+}).catch(function () {});
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /painel
+Disallow: /minha-avaliacao
+Disallow: /contrato
+Disallow: /definir-senha
+Disallow: /api/

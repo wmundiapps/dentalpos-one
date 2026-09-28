@@ -1,0 +1,35 @@
+// Aplica as migrações de migrations/*.sql que ainda não rodaram (registro em schema_migrations).
+import { readdir, readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { db, SCHEMA, databaseUrl } from '../lib/db.js';
+
+const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
+
+export async function migrate() {
+  const sql = db();
+  await sql.unsafe(`create schema if not exists ${SCHEMA}`);
+  await sql`create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())`;
+  const done = new Set((await sql`select name from schema_migrations`).map((r) => r.name));
+  const files = (await readdir(dir)).filter((f) => f.endsWith('.sql')).sort();
+  for (const f of files) {
+    if (done.has(f)) continue;
+    const body = await readFile(path.join(dir, f), 'utf8');
+    await sql.begin(async (tx) => {
+      await tx.unsafe(`set local search_path to ${SCHEMA}`);
+      await tx.unsafe(body);
+      await tx`insert into schema_migrations (name) values (${f})`;
+    });
+    console.log('migração aplicada:', f);
+  }
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  if (!databaseUrl()) {
+    console.log('DATABASE_URL ausente — migrações ignoradas neste build.');
+    process.exit(0);
+  }
+  migrate()
+    .then(() => { console.log('migrações ok'); process.exit(0); })
+    .catch((e) => { console.error(e); process.exit(1); });
+}

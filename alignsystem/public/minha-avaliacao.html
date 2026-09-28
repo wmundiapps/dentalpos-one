@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<title>Minha avaliação — AlignSystem</title>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body>
+<div class="top"><div class="in">
+  <a class="logo" href="/">Align<em>System</em></a>
+  <a class="btn btn-line btn-sm hidden" id="helpWa" target="_blank" rel="noopener">Ajuda no WhatsApp</a>
+</div></div>
+
+<main class="container" id="app">
+  <div class="card center"><span class="spinner"></span> <span class="muted">Carregando sua avaliação…</span></div>
+</main>
+
+<script src="/assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+  var esc = AS.esc;
+  var params = new URLSearchParams(location.search);
+  var T = params.get('t');
+  var app = document.getElementById('app');
+  var state = null;
+  var cfg = {};
+  var busy = {};
+
+  if (!T) {
+    app.innerHTML = '<div class="card"><h1>Link incompleto</h1><p class="muted">Abra o link pessoal que você recebeu por WhatsApp ou e-mail. Se não encontrar, <a href="/#avaliacao">faça seu cadastro</a> ou fale com a equipe.</p></div>';
+    return;
+  }
+  // Mantém o token fora do histórico de referência de terceiros
+  try { history.replaceState(null, '', location.pathname + '?t=' + encodeURIComponent(T)); } catch (e) { /* ignore */ }
+
+  fetch('/api/config').then(function (r) { return r.json(); }).then(function (c) {
+    cfg = c || {};
+    if (cfg.whatsapp) {
+      var h = document.getElementById('helpWa');
+      h.href = AS.waLink(cfg.whatsapp, 'Olá! Estou na minha página de avaliação AlignSystem e preciso de ajuda.');
+      h.classList.remove('hidden');
+    }
+  }).catch(function () {});
+
+  function load() {
+    return AS.api('/api/portal/' + encodeURIComponent(T)).then(function (d) { state = d; render(); })
+      .catch(function (e) {
+        app.innerHTML = '<div class="card"><h1>Não encontramos sua avaliação</h1><p class="muted">' + esc(e.message) + '</p><p><a href="/#avaliacao">Fazer um novo cadastro</a></p></div>';
+      });
+  }
+
+  var STEPS = ['novo', 'fotos_enviadas', 'parecer_enviado', 'documentacao_agendada', 'documentacao_realizada', 'plano_apresentado', 'contrato_enviado', 'contrato_assinado', 'em_tratamento', 'finalizado'];
+
+  function photoFor(slot) {
+    for (var i = 0; i < state.photos.length; i++) if (state.photos[i].slot === slot && state.photos[i].kind === 'avaliacao') return state.photos[i];
+    return null;
+  }
+
+  function render() {
+    var c = state.case;
+    var done = state.slots.filter(function (s) { return photoFor(s.slot); }).length;
+    var locked = Boolean(c.assessment);
+    var idx = Math.max(0, STEPS.indexOf(c.status));
+    var html = '';
+
+    if (params.get('novo')) {
+      html += '<div class="msg ok"><b>Cadastro recebido, ' + esc(c.firstName) + '!</b> Esta é a sua página pessoal da avaliação. ' +
+        'Guarde o link para voltar quando quiser. <button class="btn btn-sm btn-line" id="copyLink" style="margin-left:6px">Copiar meu link</button></div>';
+    }
+
+    html += '<div class="card"><h1>Olá, ' + esc(c.firstName) + '.</h1>' +
+      '<p class="muted">Caso nº ' + esc(c.code) + ' · Situação: <span class="badge ' + (c.status === 'perdido' ? 'red' : 'green') + '">' + esc(c.statusLabel) + '</span></p>' +
+      '<div class="progress" aria-hidden="true">' + STEPS.slice(0, 9).map(function (s, i) { return '<span class="' + (i <= idx && c.status !== 'perdido' ? 'on' : '') + '"></span>'; }).join('') + '</div>' +
+      (state.dentist ? '<p class="small muted" style="margin-top:10px">Dentista responsável: <b>' + esc(state.dentist.name) + '</b> · CRO-' + esc(state.dentist.croUf || '') + ' ' + esc(state.dentist.cro) + '</p>' : '') +
+      '</div>';
+
+    // Parecer
+    if (c.assessment) {
+      html += '<div class="card"><h2>Parecer da pré-avaliação</h2>' +
+        '<p><span class="badge ' + (c.assessment === 'nao_indicado' ? 'red' : c.assessment === 'indicado' ? 'green' : 'honey') + '">' + esc(c.assessmentLabel) + '</span></p>' +
+        (c.assessmentNotes ? '<p style="white-space:pre-line">' + esc(c.assessmentNotes) + '</p>' : '') +
+        '<p class="small muted">A pré-avaliação por fotos é orientativa. A indicação do tratamento é confirmada no exame e na documentação presenciais.</p></div>';
+    }
+
+    // Fotos
+    html += '<div class="card" id="fotos"><h2>' + (locked ? 'Suas fotos' : 'Envie as 7 fotos do seu sorriso') + '</h2>';
+    if (!locked) {
+      html += '<p class="muted">Use luz natural, sem flash direto, e retire óculos e batom. Você pode tirar a foto na hora ou escolher da galeria. ' +
+        '<a href="/guia-fotos" target="_blank">Ver guia com exemplos</a></p>';
+    }
+    html += '<p class="small muted">' + done + ' de 7 fotos enviadas</p><div class="slots">';
+    state.slots.forEach(function (s) {
+      var p = photoFor(s.slot);
+      html += '<div class="slot' + (p ? ' done' : '') + '" data-slot="' + s.slot + '">' +
+        '<div class="thumb">' + (p ? '<img alt="Foto ' + s.slot + '" loading="lazy" src="/api/portal/' + encodeURIComponent(T) + '/photos/' + p.id + '">' : s.slot) + '</div>' +
+        '<div class="info"><b>' + s.slot + '. ' + esc(s.title) + '</b>' + esc(s.hint) + '</div>' +
+        (locked ? '' : '<div class="act"><label class="btn btn-sm ' + (p ? 'btn-line' : 'btn-green') + '" style="margin:0;color:inherit">' +
+          '<input type="file" accept="image/*" data-up="' + s.slot + '">' + (p ? 'Trocar foto' : 'Enviar foto') + '</label></div>') +
+        (busy[s.slot] ? '<div class="busy"><span class="spinner"></span></div>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+    if (!locked) {
+      if (c.photosSubmittedAt) {
+        html += '<div class="msg ok" style="margin-top:14px">Fotos enviadas para a equipe em ' + esc(AS.date(c.photosSubmittedAt, true)) + '. Você recebe o parecer aqui mesmo' + (cfg.whatsapp ? ' e pelo WhatsApp' : '') + '. Se trocar alguma foto, clique em enviar de novo.</div>';
+      }
+      html += '<div class="row" style="margin-top:14px"><button class="btn btn-primary" id="submitPhotos"' + (done < 7 ? ' disabled' : '') + '>' +
+        (c.photosSubmittedAt ? 'Reenviar para avaliação' : 'Enviar fotos para avaliação') + '</button>' +
+        (done < 7 ? '<span class="small muted">Faltam ' + (7 - done) + ' foto(s).</span>' : '') + '</div><div id="photoMsg"></div>';
+    }
+    html += '</div>';
+
+    // Agendamentos
+    html += '<div class="card"><h2>Teleorientação e agendamentos</h2>';
+    if (state.appointments.length) {
+      html += '<div class="list">';
+      state.appointments.forEach(function (a) {
+        var start = new Date(a.starts_at).getTime();
+        var now = Date.now();
+        var open = a.room_url && now > start - 15 * 60000 && now < start + 3 * 3600000;
+        var kind = a.kind === 'teleorientacao' ? 'Teleorientação por vídeo' : a.kind === 'documentacao' ? 'Documentação (presencial)' : 'Consulta (presencial)';
+        html += '<div class="it"><div><b>' + esc(kind) + '</b><div class="small muted">' + esc(AS.date(a.starts_at, true)) +
+          (a.dentist_name ? ' · ' + esc(a.dentist_name) : '') + (a.location ? ' · ' + esc(a.location) : '') + '</div></div>' +
+          (a.room_url ? (open ? '<a class="btn btn-green btn-sm" target="_blank" rel="noopener" href="' + esc(a.room_url) + '">Entrar na chamada</a>'
+            : '<span class="small muted">O botão da chamada aparece 15 min antes</span>') : '') + '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<p class="muted">Quer conversar por vídeo com a equipe para tirar dúvidas? Peça uma teleorientação e confirmaremos o horário com você.</p>';
+    }
+    html += '<details style="margin-top:12px"><summary class="btn btn-line btn-sm">Pedir teleorientação</summary>' +
+      '<form id="teleForm" style="margin-top:12px"><div class="field"><label for="pref">Melhores dias e horários para você</label>' +
+      '<input id="pref" maxlength="300" placeholder="Ex.: terças e quintas depois das 18h" required></div>' +
+      '<button class="btn btn-green btn-sm" type="submit">Enviar pedido</button><div id="teleMsg"></div></form></details>' +
+      '<p class="small muted" style="margin-top:10px">A teleorientação é uma conversa orientativa por vídeo e não substitui o exame clínico presencial. A chamada abre no navegador, sem instalar nada.</p></div>';
+
+    // Contratos
+    if (state.contracts.length) {
+      html += '<div class="card"><h2>Contrato</h2><div class="list">';
+      state.contracts.forEach(function (ct) {
+        html += '<div class="it"><div><b>' + esc(ct.title) + '</b><div class="small muted">' +
+          (ct.status === 'aceito' ? 'Aceito em ' + esc(AS.date(ct.accepted_at, true)) : 'Aguardando sua leitura e aceite') + '</div></div>' +
+          '<a class="btn btn-sm ' + (ct.status === 'aceito' ? 'btn-line' : 'btn-primary') + '" href="' + esc(ct.url) + '">' + (ct.status === 'aceito' ? 'Ver contrato' : 'Ler e aceitar') + '</a></div>';
+      });
+      html += '</div></div>';
+    }
+
+    // Pagamentos
+    if (state.charges.length) {
+      html += '<div class="card"><h2>Pagamentos</h2><div class="list">';
+      state.charges.forEach(function (ch) {
+        var pend = (ch.payments || []).filter(function (p) { return p.status === 'PENDING' || p.status === 'OVERDUE'; });
+        var next = pend[0];
+        html += '<div class="it"><div><b>' + esc(ch.description) + '</b><div class="small muted">' +
+          (ch.kind === 'assinatura' ? 'Mensalidade ' : ch.installment_count > 1 ? ch.installment_count + ' parcelas · ' : '') + esc(AS.money(ch.value)) +
+          (next ? ' · próximo vencimento ' + esc(AS.date(next.due_date)) : '') + '</div></div>' +
+          ((next && next.invoice_url) || ch.invoice_url ? '<a class="btn btn-sm btn-primary" target="_blank" rel="noopener" href="' + esc((next && next.invoice_url) || ch.invoice_url) + '">' + (next || ch.status === 'PENDING' ? 'Pagar' : 'Ver comprovante') + '</a>' : '<span class="badge">' + esc(ch.statusLabel) + '</span>') +
+          '</div>';
+      });
+      html += '</div></div>';
+    }
+
+    html += '<p class="small muted center">Seus dados e fotos são tratados conforme a <a href="/privacidade">política de privacidade</a>. ' +
+      'Dúvidas: <a href="mailto:' + esc(cfg.supportEmail || 'suporte@alignsystem.com.br') + '">' + esc(cfg.supportEmail || 'suporte@alignsystem.com.br') + '</a></p>';
+
+    app.innerHTML = html;
+    bind();
+  }
+
+  function bind() {
+    var copy = document.getElementById('copyLink');
+    if (copy) copy.addEventListener('click', function () { AS.copy(location.origin + '/minha-avaliacao?t=' + T, copy); });
+
+    Array.prototype.forEach.call(app.querySelectorAll('input[data-up]'), function (inp) {
+      inp.addEventListener('change', function () {
+        var file = inp.files && inp.files[0];
+        if (!file) return;
+        var slot = Number(inp.getAttribute('data-up'));
+        busy[slot] = true; render();
+        AS.compress(file).then(function (blob) {
+          return AS.api('/api/portal/' + encodeURIComponent(T) + '/photos?slot=' + slot, { method: 'POST', body: blob });
+        }).then(function () {
+          delete busy[slot];
+          return load();
+        }).catch(function (e) {
+          delete busy[slot];
+          render();
+          document.getElementById('photoMsg').innerHTML = '<div class="msg err">Foto ' + slot + ': ' + esc(e.message) + '</div>';
+        });
+      });
+    });
+
+    Array.prototype.forEach.call(app.querySelectorAll('.slot img'), function (img) {
+      img.addEventListener('click', function () { AS.lightbox(img.src); });
+    });
+
+    var sub = document.getElementById('submitPhotos');
+    if (sub) sub.addEventListener('click', function () {
+      sub.disabled = true;
+      AS.api('/api/portal/' + encodeURIComponent(T) + '/submit', { method: 'POST', body: {} })
+        .then(load)
+        .catch(function (e) { sub.disabled = false; document.getElementById('photoMsg').innerHTML = '<div class="msg err">' + esc(e.message) + '</div>'; });
+    });
+
+    var tf = document.getElementById('teleForm');
+    if (tf) tf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = tf.querySelector('button');
+      btn.disabled = true;
+      AS.api('/api/portal/' + encodeURIComponent(T) + '/teleorientacao', { method: 'POST', body: { preference: document.getElementById('pref').value } })
+        .then(function () { document.getElementById('teleMsg').innerHTML = '<div class="msg ok">Pedido enviado! A equipe confirma o horário com você.</div>'; })
+        .catch(function (err) { btn.disabled = false; document.getElementById('teleMsg').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
+    });
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
