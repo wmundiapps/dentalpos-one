@@ -49,7 +49,7 @@ subconta Asaas dele (botão no painel) ou informa o walletId → repasses caem d
 | `ASAAS_ENV` | ✅ `sandbox` | Mudar para `production` com a conta real aprovada |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` (ou `RESEND_API_KEY`) | ⏳ | Envio de e-mails automáticos |
 | `META_PIXEL_ID`, `GOOGLE_TAG_ID` | ⏳ | Anúncios (carregados automaticamente) |
-| `CONTRACTS_REVIEWED` | ⏳ | `true` depois da revisão jurídica — remove o aviso "minuta em revisão" |
+| `CONTRACTS_REVIEWED` | ✅ `true` (minutas aprovadas pela Dra. Roberta em 29/09/2026) | Remove o aviso "minuta em revisão" |
 
 Depois de alterar variáveis, faça um *Redeploy* na Vercel.
 
@@ -101,4 +101,4 @@ TEST_DATABASE_URL=postgres://... npm test   # fluxo ponta a ponta com Asaas simu
   ou mover as fotos para um storage de objetos.
 - A pré-avaliação por fotos e a teleorientação são orientativas (o texto das páginas e dos contratos diz isso);
   diagnóstico e plano dependem de exame presencial.
-- Contratos são minutas: revisar com a advogada antes de usar com pacientes reais.
+- Contratos aprovados pela assessoria jurídica em 29/09/2026. Qualquer mudança de texto em `lib/contracts.js` precisa de nova revisão.
