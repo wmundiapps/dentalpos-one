@@ -3,8 +3,11 @@ import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
 import { runAiTask } from '../services/aiService'
+import { createDownloadAccess, createUploadAccess, normalizeExtension } from '../services/clinicalStorageService'
 import {
   contentItemSchema,
+  contentUploadCompleteSchema,
+  contentUploadIntentSchema,
   contentProgressSchema,
   flashcardDeckSchema,
   flashcardReviewSchema,
@@ -62,6 +65,84 @@ export async function createContentItem(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao criar conteúdo.' })
+  }
+}
+
+// Upload direto para o storage da instituição (aula gravada, PDF etc.),
+// mesmo fluxo de presigned URL já usado no clinical-files do DentalPos
+// (services/clinicalStorageService.ts), sem depender de link externo.
+export async function contentUploadIntent(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const parsed = contentUploadIntentSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() })
+
+    const { originalName, mimeType, sizeBytes, ...itemData } = parsed.data
+    const row = await prisma.eduContentItem.create({
+      data: {
+        clinicId, tenantId, createdById: actorId, ...itemData,
+        originalName, mimeType, sizeBytes,
+        storageProvider: 'PENDING', storageKey: '', storageStatus: 'PENDING_UPLOAD'
+      }
+    })
+
+    const extension = normalizeExtension(originalName)
+    const storageKey = ['tenants', tenantId, 'clinics', clinicId, 'edu-content', new Date().toISOString().slice(0, 10), `${row.id}-${originalName}`].join('/')
+    const upload = await createUploadAccess({ clinicId, tenantId, storageKey, contentType: mimeType })
+
+    const updated = await prisma.eduContentItem.update({
+      where: { id: row.id },
+      data: { storageProvider: upload.provider, storageKey, storageStatus: upload.configured ? 'PENDING_UPLOAD' : 'AWAITING_STORAGE_CONFIGURATION' }
+    })
+
+    await audit({ clinicId, tenantId, actorId, action: 'EDU_CONTENT_UPLOAD_INTENT', entityType: 'EduContentItem', entityId: row.id, summary: `Upload de "${row.title}" iniciado (${extension}).` })
+    return res.status(201).json({ item: updated, upload })
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao preparar upload do conteúdo.' })
+  }
+}
+
+export async function completeContentUpload(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const id = String(req.params.contentItemId)
+    const existing = await prisma.eduContentItem.findFirst({ where: { id, clinicId, tenantId } })
+    if (!existing) return res.status(404).json({ error: 'Conteúdo não encontrado.' })
+
+    const parsed = contentUploadCompleteSchema.safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() })
+
+    const row = await prisma.eduContentItem.update({ where: { id }, data: { storageStatus: 'AVAILABLE' } })
+    await audit({ clinicId, tenantId, actorId, action: 'EDU_CONTENT_UPLOAD_COMPLETE', entityType: 'EduContentItem', entityId: id, summary: `Upload de "${existing.title}" concluído.` })
+    return res.json(row)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao confirmar upload do conteúdo.' })
+  }
+}
+
+// Gera a URL de reprodução/download: link externo direto, ou uma URL
+// assinada de curta duração quando o conteúdo está no storage próprio.
+export async function contentAccess(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const id = String(req.params.contentItemId)
+    const row = await prisma.eduContentItem.findFirst({ where: { id, clinicId, tenantId } })
+    if (!row) return res.status(404).json({ error: 'Conteúdo não encontrado.' })
+
+    if (row.url) return res.json({ configured: true, provider: 'EXTERNAL', url: row.url, expiresAt: null })
+    if (row.storageStatus !== 'AVAILABLE') return res.status(409).json({ error: 'Conteúdo ainda não está disponível.', storageStatus: row.storageStatus })
+    if (!row.storageKey) return res.status(409).json({ error: 'Conteúdo sem arquivo associado.' })
+
+    const download = await createDownloadAccess({ clinicId, tenantId, storageKey: row.storageKey, fileName: row.originalName || row.title })
+    if (!download.configured) {
+      return res.status(503).json({ error: 'Storage da instituição ainda não possui credenciais/provedor configurados.', code: 'EDU_STORAGE_NOT_CONFIGURED' })
+    }
+    return res.json(download)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao gerar acesso ao conteúdo.' })
   }
 }
 

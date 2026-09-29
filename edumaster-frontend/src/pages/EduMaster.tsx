@@ -59,8 +59,14 @@ import {
   type EduSubject,
   type EduTerm,
 } from "../services/EduApi";
+import {
+  createEquivalencyRequest,
+  decideEquivalencyItem,
+  listEquivalencyRequests,
+  type EquivalencyRequest,
+} from "../services/EquivalencyApi";
 
-type Secao = "visao-geral" | "programas" | "disciplinas" | "matriz" | "periodos" | "turmas" | "alunos" | "matriculas" | "questoes" | "provas";
+type Secao = "visao-geral" | "programas" | "disciplinas" | "matriz" | "periodos" | "turmas" | "alunos" | "matriculas" | "equivalencia" | "questoes" | "provas";
 
 const SECOES: { value: Secao; label: string }[] = [
   { value: "visao-geral", label: "Visão geral" },
@@ -71,6 +77,7 @@ const SECOES: { value: Secao; label: string }[] = [
   { value: "turmas", label: "Turmas" },
   { value: "alunos", label: "Alunos" },
   { value: "matriculas", label: "Matrículas" },
+  { value: "equivalencia", label: "Equivalência de disciplinas" },
   { value: "questoes", label: "Banco de questões" },
   { value: "provas", label: "Provas" },
 ];
@@ -136,6 +143,7 @@ export default function EduMaster() {
       {secao === "turmas" && <Turmas {...data} />}
       {secao === "alunos" && <Alunos {...data} />}
       {secao === "matriculas" && <Matriculas {...data} />}
+      {secao === "equivalencia" && <Equivalencia {...data} />}
       {secao === "questoes" && <Questoes {...data} />}
       {secao === "provas" && <Provas {...data} />}
     </Box>
@@ -864,6 +872,101 @@ function Provas({ classes, questions, exams, reload }: DataProps) {
         <DialogActions>
           <Button onClick={() => setQuestionDialog(null)}>Cancelar</Button>
           <Button variant="contained" disabled={saving} onClick={saveQuestion}>{saving ? "Salvando..." : "Incluir"}</Button>
+        </DialogActions>
+      </Dialog>
+    </SectionShell>
+  );
+}
+
+function Equivalencia({ students, programs, subjects }: DataProps) {
+  const [requests, setRequests] = useState<EquivalencyRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ studentId: "", programId: "", originInstitution: "", originSubjectName: "", originWorkloadHours: 60, targetSubjectId: "" });
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const reload = async () => {
+    setLoading(true); setError("");
+    try { setRequests(await listEquivalencyRequests()); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao carregar solicitações de equivalência."); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { void reload(); }, []);
+
+  const save = async () => {
+    if (!form.studentId || !form.programId || !form.originInstitution.trim() || !form.originSubjectName.trim()) {
+      setFormError("Preencha aluno, curso, instituição de origem e disciplina cursada."); return;
+    }
+    setSaving(true); setFormError("");
+    try {
+      await createEquivalencyRequest({
+        studentId: form.studentId, programId: form.programId, originInstitution: form.originInstitution,
+        items: [{ originSubjectName: form.originSubjectName, originWorkloadHours: form.originWorkloadHours, targetSubjectId: form.targetSubjectId || undefined }],
+      });
+      setOpen(false);
+      setForm({ studentId: "", programId: "", originInstitution: "", originSubjectName: "", originWorkloadHours: 60, targetSubjectId: "" });
+      await reload();
+    } catch (e) { setFormError(e instanceof Error ? e.message : "Erro ao abrir solicitação."); }
+    finally { setSaving(false); }
+  };
+
+  const decide = async (itemId: string, status: "APROVADO" | "REJEITADO") => {
+    try { await decideEquivalencyItem(itemId, { status }); await reload(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao decidir item."); }
+  };
+
+  return (
+    <SectionShell title="Equivalência de disciplinas" actionLabel="Nova solicitação" onAction={() => setOpen(true)}>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Box sx={{ display: "grid", gap: 2 }}>
+        {!loading && requests.length === 0 && <Typography color="text.secondary">Nenhuma solicitação de equivalência ainda.</Typography>}
+        {requests.map((r) => (
+          <Paper key={r.id} variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+              <Typography sx={{ fontWeight: 700 }}>{r.student?.fullName || r.studentId} — {r.originInstitution}</Typography>
+              <Chip size="small" label={r.status} color={r.status === "DEFERIDO" ? "success" : r.status === "INDEFERIDO" ? "error" : "default"} />
+            </Box>
+            {r.items.map((item) => (
+              <Box key={item.id} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
+                <Typography variant="body2">{item.originSubjectName} ({item.originWorkloadHours}h) → {item.targetSubject?.name || "sem correspondência"}</Typography>
+                {item.status === "PENDENTE" ? (
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <Button size="small" color="success" onClick={() => void decide(item.id, "APROVADO")}>Aprovar</Button>
+                    <Button size="small" color="error" onClick={() => void decide(item.id, "REJEITADO")}>Rejeitar</Button>
+                  </Box>
+                ) : (
+                  <Chip size="small" label={item.status} color={item.status === "APROVADO" ? "success" : "error"} />
+                )}
+              </Box>
+            ))}
+          </Paper>
+        ))}
+      </Box>
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Nova solicitação de equivalência</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          {formError && <Alert severity="error">{formError}</Alert>}
+          <TextField select required label="Aluno" value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })}>
+            {students.map((s) => <MenuItem key={s.id} value={s.id}>{s.fullName}</MenuItem>)}
+          </TextField>
+          <TextField select required label="Curso" value={form.programId} onChange={(e) => setForm({ ...form, programId: e.target.value })}>
+            {programs.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
+          </TextField>
+          <TextField required label="Instituição de origem" value={form.originInstitution} onChange={(e) => setForm({ ...form, originInstitution: e.target.value })} />
+          <TextField required label="Disciplina cursada na origem" value={form.originSubjectName} onChange={(e) => setForm({ ...form, originSubjectName: e.target.value })} />
+          <TextField label="Carga horária (h)" type="number" value={form.originWorkloadHours} onChange={(e) => setForm({ ...form, originWorkloadHours: Number(e.target.value) })} />
+          <TextField select label="Disciplina equivalente (opcional)" value={form.targetSubjectId} onChange={(e) => setForm({ ...form, targetSubjectId: e.target.value })}>
+            <MenuItem value="">—</MenuItem>
+            {subjects.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={() => void save()}>{saving ? "Salvando…" : "Abrir solicitação"}</Button>
         </DialogActions>
       </Dialog>
     </SectionShell>

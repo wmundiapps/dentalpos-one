@@ -13,6 +13,25 @@ export const contentItemSchema = z.object({
   sourceText: z.string().trim().max(40000).optional()
 }).strict()
 
+// Upload direto (aula gravada, PDF etc.) para o storage da instituição,
+// em vez de depender de um link externo já hospedado em outro lugar.
+export const contentUploadIntentSchema = z.object({
+  subjectId: z.string().trim().min(1).optional(),
+  classId: z.string().trim().min(1).optional(),
+  type: z.enum(['VIDEO', 'PDF', 'RESUMO', 'MATERIAL_COMPLEMENTAR', 'APOSTILA']).default('VIDEO'),
+  title: z.string().trim().min(2).max(300),
+  description: z.string().trim().max(4000).optional(),
+  originalName: z.string().trim().min(1).max(255),
+  mimeType: z.string().trim().min(3).max(120),
+  sizeBytes: z.number().int().nonnegative().max(20_000_000_000),
+  durationMinutes: z.number().int().min(1).max(1000).optional(),
+  order: z.number().int().min(0).max(10000).default(0)
+}).strict()
+
+export const contentUploadCompleteSchema = z.object({
+  checksum: z.string().trim().max(200).optional()
+}).strict()
+
 export const contentProgressSchema = z.object({
   status: z.enum(['NAO_INICIADO', 'EM_ANDAMENTO', 'CONCLUIDO']),
   progressPercent: z.number().int().min(0).max(100),

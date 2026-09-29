@@ -40,12 +40,36 @@ import {
   type JobPosting,
   type ResourceBooking,
 } from "../services/OperationsApi";
+import {
+  assignParkingSpot,
+  createAsset,
+  createExpiringItem,
+  createMaintenanceOrder,
+  createParkingSpot,
+  listAssets,
+  listExpiringItems,
+  listMaintenanceOrders,
+  listParkingSpots,
+  releaseParkingSpot,
+  resolveExpiringItem,
+  updateAssetStatus,
+  updateMaintenanceStatus,
+  type Asset,
+  type ExpiringItem,
+  type MaintenanceOrder,
+  type ParkingSpot,
+} from "../services/FacilitiesApi";
+import { listStudents, type EduStudent } from "../services/EduApi";
 
-type Secao = "reservas" | "carreiras";
+type Secao = "reservas" | "carreiras" | "patrimonio" | "manutencao" | "estacionamento" | "vencimentos";
 
 const SECOES: { value: Secao; label: string }[] = [
   { value: "reservas", label: "Reservas de salas e equipamentos" },
   { value: "carreiras", label: "Vagas e carreiras" },
+  { value: "patrimonio", label: "Patrimônio" },
+  { value: "manutencao", label: "Manutenção" },
+  { value: "estacionamento", label: "Estacionamento" },
+  { value: "vencimentos", label: "Vencimentos" },
 ];
 
 export default function Operations() {
@@ -61,12 +85,16 @@ export default function Operations() {
         description="Reserva de salas/equipamentos e mural de vagas e carreiras para alunos e egressos."
       />
 
-      <Tabs value={secao} onChange={(_, value) => setSecao(value)} sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}>
+      <Tabs value={secao} onChange={(_, value) => setSecao(value)} variant="scrollable" scrollButtons="auto" sx={{ mb: 3, borderBottom: 1, borderColor: "divider" }}>
         {SECOES.map((s) => <Tab key={s.value} value={s.value} label={s.label} />)}
       </Tabs>
 
       {secao === "reservas" && <Reservas />}
       {secao === "carreiras" && <Carreiras />}
+      {secao === "patrimonio" && <Patrimonio />}
+      {secao === "manutencao" && <Manutencao />}
+      {secao === "estacionamento" && <Estacionamento />}
+      {secao === "vencimentos" && <Vencimentos />}
     </Box>
   );
 }
@@ -375,6 +403,416 @@ function Carreiras() {
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
           <Button variant="contained" disabled={saving} onClick={() => void save()}>{saving ? "Publicando…" : "Publicar vaga"}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={Boolean(toast)} autoHideDuration={3000} onClose={() => setToast("")} message={toast} />
+    </Box>
+  );
+}
+
+function Patrimonio() {
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ code: "", name: "", category: "OUTRO", location: "" });
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const reload = async () => {
+    setLoading(true); setError("");
+    try { setAssets(await listAssets()); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao carregar patrimônio."); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { void reload(); }, []);
+
+  const save = async () => {
+    if (!form.code.trim() || !form.name.trim()) { setFormError("Informe código e nome."); return; }
+    setSaving(true); setFormError("");
+    try {
+      await createAsset(form);
+      setOpen(false);
+      setForm({ code: "", name: "", category: "OUTRO", location: "" });
+      await reload();
+      setToast("Item de patrimônio cadastrado.");
+    } catch (e) { setFormError(e instanceof Error ? e.message : "Erro ao cadastrar item."); }
+    finally { setSaving(false); }
+  };
+
+  const changeStatus = async (asset: Asset, status: string) => {
+    try { await updateAssetStatus(asset.id, status); await reload(); setToast("Status atualizado."); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao atualizar status."); }
+  };
+
+  return (
+    <Box>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>Patrimônio</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>Novo item</Button>
+      </Box>
+
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small">
+          <TableHead><TableRow><TableCell>Código</TableCell><TableCell>Nome</TableCell><TableCell>Categoria</TableCell><TableCell>Local</TableCell><TableCell>Status</TableCell><TableCell align="right">Ações</TableCell></TableRow></TableHead>
+          <TableBody>
+            {!loading && assets.length === 0 && <TableRow><TableCell colSpan={6}><Typography color="text.secondary" sx={{ py: 2 }}>Nenhum item cadastrado ainda.</Typography></TableCell></TableRow>}
+            {assets.map((a) => (
+              <TableRow key={a.id}>
+                <TableCell>{a.code}</TableCell>
+                <TableCell>{a.name}</TableCell>
+                <TableCell>{a.category}</TableCell>
+                <TableCell>{a.location || "—"}</TableCell>
+                <TableCell><Chip size="small" label={a.status} color={a.status === "ATIVO" ? "success" : a.status === "MANUTENCAO" ? "warning" : "default"} /></TableCell>
+                <TableCell align="right">
+                  {a.status !== "MANUTENCAO" && <Button size="small" onClick={() => void changeStatus(a, "MANUTENCAO")}>Enviar p/ manutenção</Button>}
+                  {a.status === "MANUTENCAO" && <Button size="small" color="success" onClick={() => void changeStatus(a, "ATIVO")}>Reativar</Button>}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Novo item de patrimônio</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          {formError && <Alert severity="error">{formError}</Alert>}
+          <TextField required label="Código" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+          <TextField required label="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <TextField select label="Categoria" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            <MenuItem value="MOBILIARIO">Mobiliário</MenuItem>
+            <MenuItem value="EQUIPAMENTO">Equipamento</MenuItem>
+            <MenuItem value="VEICULO">Veículo</MenuItem>
+            <MenuItem value="IMOVEL">Imóvel</MenuItem>
+            <MenuItem value="TI">TI</MenuItem>
+            <MenuItem value="OUTRO">Outro</MenuItem>
+          </TextField>
+          <TextField label="Local" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={() => void save()}>{saving ? "Salvando…" : "Cadastrar"}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={Boolean(toast)} autoHideDuration={3000} onClose={() => setToast("")} message={toast} />
+    </Box>
+  );
+}
+
+function Manutencao() {
+  const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ title: "", location: "", description: "", priority: "MEDIA" });
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const reload = async () => {
+    setLoading(true); setError("");
+    try { setOrders(await listMaintenanceOrders()); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao carregar ordens de manutenção."); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { void reload(); }, []);
+
+  const save = async () => {
+    if (!form.title.trim()) { setFormError("Informe o título."); return; }
+    setSaving(true); setFormError("");
+    try {
+      await createMaintenanceOrder(form);
+      setOpen(false);
+      setForm({ title: "", location: "", description: "", priority: "MEDIA" });
+      await reload();
+      setToast("Ordem de manutenção aberta.");
+    } catch (e) { setFormError(e instanceof Error ? e.message : "Erro ao abrir ordem."); }
+    finally { setSaving(false); }
+  };
+
+  const advance = async (order: MaintenanceOrder, status: string) => {
+    try { await updateMaintenanceStatus(order.id, status); await reload(); setToast("Status atualizado."); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao atualizar status."); }
+  };
+
+  const nextStatus: Record<string, string> = { ABERTA: "EM_ANDAMENTO", EM_ANDAMENTO: "CONCLUIDA" };
+
+  return (
+    <Box>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>Ordens de manutenção</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>Nova ordem</Button>
+      </Box>
+
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small">
+          <TableHead><TableRow><TableCell>Título</TableCell><TableCell>Local</TableCell><TableCell>Prioridade</TableCell><TableCell>Status</TableCell><TableCell align="right">Ações</TableCell></TableRow></TableHead>
+          <TableBody>
+            {!loading && orders.length === 0 && <TableRow><TableCell colSpan={5}><Typography color="text.secondary" sx={{ py: 2 }}>Nenhuma ordem aberta.</Typography></TableCell></TableRow>}
+            {orders.map((o) => (
+              <TableRow key={o.id}>
+                <TableCell>{o.title}</TableCell>
+                <TableCell>{o.location || "—"}</TableCell>
+                <TableCell><Chip size="small" label={o.priority} color={o.priority === "URGENTE" ? "error" : o.priority === "ALTA" ? "warning" : "default"} /></TableCell>
+                <TableCell><Chip size="small" label={o.status} color={o.status === "CONCLUIDA" ? "success" : "default"} /></TableCell>
+                <TableCell align="right">
+                  {nextStatus[o.status] && <Button size="small" onClick={() => void advance(o, nextStatus[o.status])}>Avançar para {nextStatus[o.status]}</Button>}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Nova ordem de manutenção</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          {formError && <Alert severity="error">{formError}</Alert>}
+          <TextField required label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <TextField label="Local" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+          <TextField select label="Prioridade" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
+            <MenuItem value="BAIXA">Baixa</MenuItem>
+            <MenuItem value="MEDIA">Média</MenuItem>
+            <MenuItem value="ALTA">Alta</MenuItem>
+            <MenuItem value="URGENTE">Urgente</MenuItem>
+          </TextField>
+          <TextField label="Descrição" multiline minRows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={() => void save()}>{saving ? "Salvando…" : "Abrir ordem"}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={Boolean(toast)} autoHideDuration={3000} onClose={() => setToast("")} message={toast} />
+    </Box>
+  );
+}
+
+function Estacionamento() {
+  const [spots, setSpots] = useState<ParkingSpot[]>([]);
+  const [students, setStudents] = useState<EduStudent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ code: "", type: "ALUNO" });
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignSpotId, setAssignSpotId] = useState("");
+  const [assignStudentId, setAssignStudentId] = useState("");
+  const [assignError, setAssignError] = useState("");
+  const [saving2, setSaving2] = useState(false);
+
+  const reload = async () => {
+    setLoading(true); setError("");
+    try { setSpots(await listParkingSpots()); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao carregar vagas."); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { void reload(); listStudents().then(setStudents).catch(() => {}); }, []);
+
+  const save = async () => {
+    if (!form.code.trim()) { setFormError("Informe o código da vaga."); return; }
+    setSaving(true); setFormError("");
+    try {
+      await createParkingSpot(form);
+      setOpen(false);
+      setForm({ code: "", type: "ALUNO" });
+      await reload();
+      setToast("Vaga cadastrada.");
+    } catch (e) { setFormError(e instanceof Error ? e.message : "Erro ao cadastrar vaga."); }
+    finally { setSaving(false); }
+  };
+
+  const openAssign = (spotId: string) => { setAssignSpotId(spotId); setAssignStudentId(""); setAssignError(""); setAssignOpen(true); };
+
+  const saveAssign = async () => {
+    if (!assignStudentId) { setAssignError("Selecione o aluno."); return; }
+    setSaving2(true); setAssignError("");
+    try {
+      await assignParkingSpot(assignSpotId, { assignedToStudentId: assignStudentId });
+      setAssignOpen(false);
+      await reload();
+      setToast("Vaga atribuída.");
+    } catch (e) { setAssignError(e instanceof Error ? e.message : "Erro ao atribuir vaga."); }
+    finally { setSaving2(false); }
+  };
+
+  const release = async (spot: ParkingSpot) => {
+    try { await releaseParkingSpot(spot.id); await reload(); setToast("Vaga liberada."); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao liberar vaga."); }
+  };
+
+  return (
+    <Box>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>Estacionamento</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>Nova vaga</Button>
+      </Box>
+
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small">
+          <TableHead><TableRow><TableCell>Código</TableCell><TableCell>Tipo</TableCell><TableCell>Ocupação</TableCell><TableCell>Atribuída a</TableCell><TableCell align="right">Ações</TableCell></TableRow></TableHead>
+          <TableBody>
+            {!loading && spots.length === 0 && <TableRow><TableCell colSpan={5}><Typography color="text.secondary" sx={{ py: 2 }}>Nenhuma vaga cadastrada ainda.</Typography></TableCell></TableRow>}
+            {spots.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell>{s.code}</TableCell>
+                <TableCell>{s.type}</TableCell>
+                <TableCell><Chip size="small" label={s.isOccupied ? "Ocupada" : "Livre"} color={s.isOccupied ? "warning" : "success"} /></TableCell>
+                <TableCell>{s.assignedToStudent?.fullName || "—"}</TableCell>
+                <TableCell align="right">
+                  {!s.isOccupied && <Button size="small" onClick={() => openAssign(s.id)}>Atribuir</Button>}
+                  {s.isOccupied && <Button size="small" color="warning" onClick={() => void release(s)}>Liberar</Button>}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Nova vaga de estacionamento</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          {formError && <Alert severity="error">{formError}</Alert>}
+          <TextField required label="Código" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+          <TextField select label="Tipo" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+            <MenuItem value="ALUNO">Aluno</MenuItem>
+            <MenuItem value="PROFESSOR">Professor</MenuItem>
+            <MenuItem value="VISITANTE">Visitante</MenuItem>
+            <MenuItem value="PCD">PCD</MenuItem>
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={() => void save()}>{saving ? "Salvando…" : "Cadastrar"}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={assignOpen} onClose={() => setAssignOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Atribuir vaga</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          {assignError && <Alert severity="error">{assignError}</Alert>}
+          <TextField select required label="Aluno" value={assignStudentId} onChange={(e) => setAssignStudentId(e.target.value)}>
+            {students.map((s) => <MenuItem key={s.id} value={s.id}>{s.fullName}</MenuItem>)}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAssignOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving2} onClick={() => void saveAssign()}>{saving2 ? "Salvando…" : "Atribuir"}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={Boolean(toast)} autoHideDuration={3000} onClose={() => setToast("")} message={toast} />
+    </Box>
+  );
+}
+
+function Vencimentos() {
+  const [items, setItems] = useState<ExpiringItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ category: "OUTRO", title: "", expiresAt: "", preparationDays: 0, safetyMarginDays: 0 });
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const reload = async () => {
+    setLoading(true); setError("");
+    try { setItems(await listExpiringItems()); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao carregar vencimentos."); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { void reload(); }, []);
+
+  const save = async () => {
+    if (!form.title.trim() || !form.expiresAt) { setFormError("Informe título e data de vencimento."); return; }
+    setSaving(true); setFormError("");
+    try {
+      await createExpiringItem({ ...form, expiresAt: new Date(form.expiresAt).toISOString() });
+      setOpen(false);
+      setForm({ category: "OUTRO", title: "", expiresAt: "", preparationDays: 0, safetyMarginDays: 0 });
+      await reload();
+      setToast("Item de vencimento cadastrado.");
+    } catch (e) { setFormError(e instanceof Error ? e.message : "Erro ao cadastrar item."); }
+    finally { setSaving(false); }
+  };
+
+  const resolve = async (item: ExpiringItem) => {
+    try { await resolveExpiringItem(item.id); await reload(); setToast("Marcado como resolvido."); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao resolver item."); }
+  };
+
+  return (
+    <Box>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>Vencimentos e alertas</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>Novo item</Button>
+      </Box>
+
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small">
+          <TableHead><TableRow><TableCell>Título</TableCell><TableCell>Categoria</TableCell><TableCell>Vencimento</TableCell><TableCell>Status</TableCell><TableCell align="right">Ações</TableCell></TableRow></TableHead>
+          <TableBody>
+            {!loading && items.length === 0 && <TableRow><TableCell colSpan={5}><Typography color="text.secondary" sx={{ py: 2 }}>Nenhum item cadastrado ainda.</Typography></TableCell></TableRow>}
+            {items.map((i) => (
+              <TableRow key={i.id}>
+                <TableCell>{i.title}</TableCell>
+                <TableCell>{i.category}</TableCell>
+                <TableCell>{new Date(i.expiresAt).toLocaleDateString("pt-BR")}</TableCell>
+                <TableCell><Chip size="small" label={i.status} color={i.status === "RESOLVIDO" ? "success" : "warning"} /></TableCell>
+                <TableCell align="right">
+                  {i.status !== "RESOLVIDO" && <Button size="small" onClick={() => void resolve(i)}>Marcar como resolvido</Button>}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Novo item de vencimento</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          {formError && <Alert severity="error">{formError}</Alert>}
+          <TextField required label="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <TextField select label="Categoria" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            <MenuItem value="DOCUMENTO">Documento</MenuItem>
+            <MenuItem value="EXTINTOR">Extintor</MenuItem>
+            <MenuItem value="LICENCA">Licença</MenuItem>
+            <MenuItem value="CONTRATO">Contrato</MenuItem>
+            <MenuItem value="ATO_REGULATORIO">Ato regulatório</MenuItem>
+            <MenuItem value="MATERIAL">Material</MenuItem>
+            <MenuItem value="OUTRO">Outro</MenuItem>
+          </TextField>
+          <TextField required label="Data de vencimento" type="date" slotProps={{ inputLabel: { shrink: true } }} value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} />
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+            <TextField label="Dias de preparo" type="number" value={form.preparationDays} onChange={(e) => setForm({ ...form, preparationDays: Number(e.target.value) })} />
+            <TextField label="Margem de segurança (dias)" type="number" value={form.safetyMarginDays} onChange={(e) => setForm({ ...form, safetyMarginDays: Number(e.target.value) })} />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={() => void save()}>{saving ? "Salvando…" : "Cadastrar"}</Button>
         </DialogActions>
       </Dialog>
 
