@@ -438,7 +438,6 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
     <span class="nav-link" onclick="scrollTo2('#bot')">Bot IA</span>
     <span class="nav-link" onclick="scrollTo2('#pricing')">Planos</span>
     <select class="lang-select" id="languageSelect" onchange="setLanguage(this.value)" aria-label="Idioma"></select>
-    <a class="nav-emeth" href="https://www.emeth.com.br" target="_blank">EMETH<sup style="font-size:8px">®</sup> ↗</a>
     <button class="nav-cta" onclick="openModal('register')">Testar 14 dias grátis</button>
   </div>
 </nav>
@@ -801,18 +800,6 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
     </div>
   </section>
 
-  <!-- BANNER EMETH -->
-  <section class="section">
-    <div class="section-inner">
-      <div class="banner-emeth">
-        <div style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--gold);text-transform:uppercase;margin-bottom:10px">App pessoal gratuito</div>
-        <h2 style="font-family:'Cinzel',serif;font-size:clamp(1.5rem,4vw,2.5rem);font-weight:700;color:white;margin-bottom:10px">Conheça o EMETH<sup style="font-size:.4em;color:var(--gold)">®</sup></h2>
-        <p style="font-size:15px;color:rgba(237,232,216,.5);margin-bottom:28px;max-width:500px;margin-left:auto;margin-right:auto">App gratuito de mensagens pessoais — chat, voz, vídeo e bot com IA. Para conexões que importam.</p>
-        <a style="display:inline-block;padding:14px 36px;border-radius:50px;font-size:14px;font-weight:600;background:linear-gradient(135deg,#c9a84c,#e8cc7a);color:#08070f;text-decoration:none;transition:all .2s;box-shadow:0 6px 24px rgba(201,168,76,.3)" href="https://www.emeth.com.br" target="_blank">Acessar EMETH® →</a>
-      </div>
-    </div>
-  </section>
-
 </div><!-- /page-landing -->
 
 <!-- ══════════════════════════════════════════════════════════
@@ -823,7 +810,7 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
     <div>
       <div class="footer-logo">REVAH<sup style="font-size:10px">®</sup></div>
       <p class="footer-desc">Plataforma de marketing, CRM, mensageria, mídia paga, automação, recuperação comercial e relacionamento. Integrada ao DentalPos One e disponível também para outras empresas.</p>
-      <div class="footer-by">Um produto de <a href="https://www.wmundi.com" target="_blank">wmundi technology & co®</a> · <a href="https://www.emeth.com.br" target="_blank">EMETH®</a></div>
+      <div class="footer-by">Um produto de <a href="https://www.wmundi.com" target="_blank">wmundi technology & co®</a></div>
     </div>
     <div>
       <div class="footer-col-title">Produto</div>
@@ -836,7 +823,6 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
     <div>
       <div class="footer-col-title">Empresa</div>
       <a class="footer-link" href="https://www.wmundi.com" target="_blank">wmundi.com</a>
-      <a class="footer-link" href="https://www.emeth.com.br" target="_blank">EMETH®</a>
       <span class="footer-link" onclick="openModal('privacy')">Privacidade</span>
       <span class="footer-link" onclick="openModal('terms')">Termos de uso</span>
     </div>
@@ -848,7 +834,7 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
     </div>
   </div>
   <div class="footer-bottom">
-    <div class="footer-copy">© 2026 wmundi technology & co®. Todos os direitos reservados. REVAH® e EMETH® são marcas registradas.</div>
+    <div class="footer-copy">© 2026 wmundi technology & co®. Todos os direitos reservados. REVAH® é marca registrada.</div>
     <div class="footer-legal">
       <a onclick="openModal('privacy')">Política de Privacidade</a>
       <a onclick="openModal('terms')">Termos de Uso</a>
@@ -1037,7 +1023,7 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
         <h3>6. SLA e disponibilidade</h3>
         <p>Empenho de 99,5% de disponibilidade mensal. Manutenções programadas comunicadas com 48h de antecedência. Créditos por indisponibilidade conforme política de SLA.</p>
         <h3>7. Propriedade intelectual</h3>
-        <p>REVAH®, EMETH® e wmundi technology & co® são marcas registradas. Todo o código, design e documentação pertencem à wmundi. O cliente retém propriedade sobre seus dados e conteúdo.</p>
+        <p>REVAH® e wmundi technology & co® são marcas registradas. Todo o código, design e documentação pertencem à wmundi. O cliente retém propriedade sobre seus dados e conteúdo.</p>
         <h3>8. Limitação de responsabilidade</h3>
         <p>A wmundi não responde por: (a) conteúdo enviado pelo cliente; (b) danos por uso indevido da plataforma; (c) indisponibilidades por caso fortuito ou força maior.</p>
         <h3>9. Lei e foro</h3>
@@ -1291,7 +1277,7 @@ const COUNTRIES=[
  {code:'BR',flag:'🇧🇷',dial:'+55',name:'Brasil'},{code:'US',flag:'🇺🇸',dial:'+1',name:'Estados Unidos'},{code:'PT',flag:'🇵🇹',dial:'+351',name:'Portugal'},{code:'IT',flag:'🇮🇹',dial:'+39',name:'Itália'},{code:'ES',flag:'🇪🇸',dial:'+34',name:'Espanha'},{code:'FR',flag:'🇫🇷',dial:'+33',name:'França'},{code:'DE',flag:'🇩🇪',dial:'+49',name:'Alemanha'},{code:'IL',flag:'🇮🇱',dial:'+972',name:'Israel'},{code:'GB',flag:'🇬🇧',dial:'+44',name:'Reino Unido'},{code:'JP',flag:'🇯🇵',dial:'+81',name:'Japão'},{code:'CN',flag:'🇨🇳',dial:'+86',name:'China'},{code:'AE',flag:'🇦🇪',dial:'+971',name:'Emirados Árabes'},{code:'RU',flag:'🇷🇺',dial:'+7',name:'Rússia'},{code:'KR',flag:'🇰🇷',dial:'+82',name:'Coreia do Sul'},{code:'NL',flag:'🇳🇱',dial:'+31',name:'Países Baixos'},{code:'PL',flag:'🇵🇱',dial:'+48',name:'Polônia'}
 ];
 const LANGUAGES=[
- ['pt-BR','🇧🇷 Português'],['en','🇺🇸 English'],['es','🇪🇸 Español'],['it','🇮🇹 Italiano'],['fr','🇫🇷 Français'],['de','🇩🇪 Deutsch'],['he','🇮🇱 עברית'],['ja','🇯🇵 日本語'],['zh-CN','🇨🇳 中文'],['ar','🇦🇪 العربية'],['ru','🇷🇺 Русский'],['ko','🇰🇷 한국어'],['nl','🇳🇱 Nederlands'],['pl','🇵🇱 Polski']
+ ['pt-BR','🇧🇷 Português'],['en','🇺🇸 English'],['es','🇪🇸 Español'],['it','🇮🇹 Italiano'],['fr','🇫🇷 Français'],['de','🇩🇪 Deutsch'],['ja','🇯🇵 日本語'],['zh-CN','🇨🇳 中文'],['ar','🇦🇪 العربية'],['ru','🇷🇺 Русский'],['ko','🇰🇷 한국어'],['nl','🇳🇱 Nederlands'],['pl','🇵🇱 Polski']
 ];
 const I18N={
  'pt-BR':{resources:'Recursos',dispatcher:'Disparador',templates:'Templates',plans:'Planos',start:'Testar 14 dias grátis',campaign:'Nova campanha de disparo'},
@@ -1300,7 +1286,6 @@ const I18N={
  it:{resources:'Funzioni',dispatcher:'Campagne',templates:'Modelli',plans:'Piani',start:'Inizia gratis',campaign:'Nuova campagna'},
  fr:{resources:'Fonctions',dispatcher:'Campagnes',templates:'Modèles',plans:'Offres',start:'Commencer gratuitement',campaign:'Nouvelle campagne'},
  de:{resources:'Funktionen',dispatcher:'Kampagnen',templates:'Vorlagen',plans:'Pläne',start:'Kostenlos starten',campaign:'Neue Kampagne'},
- he:{resources:'תכונות',dispatcher:'קמפיינים',templates:'תבניות',plans:'תוכניות',start:'התחל בחינם',campaign:'קמפיין חדש'},
  ja:{resources:'機能',dispatcher:'キャンペーン',templates:'テンプレート',plans:'プラン',start:'無料で開始',campaign:'新しいキャンペーン'},
  'zh-CN':{resources:'功能',dispatcher:'营销活动',templates:'模板',plans:'套餐',start:'免费开始',campaign:'新建活动'},
  ar:{resources:'الميزات',dispatcher:'الحملات',templates:'القوالب',plans:'الخطط',start:'ابدأ مجاناً',campaign:'حملة جديدة'},
@@ -1310,7 +1295,7 @@ const I18N={
  pl:{resources:'Funkcje',dispatcher:'Kampanie',templates:'Szablony',plans:'Plany',start:'Zacznij bezpłatnie',campaign:'Nowa kampania'}
 };
 function initLanguages(){const s=document.getElementById('languageSelect');if(!s)return;s.innerHTML=LANGUAGES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');const saved=localStorage.getItem('revah_lang')||'pt-BR';s.value=LANGUAGES.some(x=>x[0]===saved)?saved:'pt-BR';setLanguage(s.value);}
-function setLanguage(lang){localStorage.setItem('revah_lang',lang);document.documentElement.lang=lang;document.documentElement.dir=['he','ar'].includes(lang)?'rtl':'ltr';const t=I18N[lang]||I18N['pt-BR'];const links=document.querySelectorAll('.nav-link');if(links[0])links[0].textContent=t.resources;if(links[1])links[1].textContent=t.dispatcher;if(links[2])links[2].textContent=t.templates;if(links[4])links[4].textContent=t.plans;document.querySelectorAll('.nav-cta').forEach(x=>x.textContent=t.start);const dt=document.querySelector('.disp-title');if(dt)dt.childNodes[0].nodeValue='✉️ '+t.campaign+' ';}
+function setLanguage(lang){localStorage.setItem('revah_lang',lang);document.documentElement.lang=lang;document.documentElement.dir=['ar'].includes(lang)?'rtl':'ltr';const t=I18N[lang]||I18N['pt-BR'];const links=document.querySelectorAll('.nav-link');if(links[0])links[0].textContent=t.resources;if(links[1])links[1].textContent=t.dispatcher;if(links[2])links[2].textContent=t.templates;if(links[4])links[4].textContent=t.plans;document.querySelectorAll('.nav-cta').forEach(x=>x.textContent=t.start);const dt=document.querySelector('.disp-title');if(dt)dt.childNodes[0].nodeValue='✉️ '+t.campaign+' ';}
 function initCountrySelects(){['phoneCountry','regCountry'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML=COUNTRIES.map(c=>`<option value="${c.code}">${c.flag} ${c.dial}</option>`).join('');el.value='BR';});}
 function updatePhoneCountry(){const c=COUNTRIES.find(x=>x.code===document.getElementById('phoneCountry')?.value);const i=document.getElementById('manualPhonesInfo');if(i&&c)i.textContent=`${c.flag} ${c.name}: o código ${c.dial} será acrescentado automaticamente.`;}
 function normalizePhoneWithDial(v,dial){let d=(v||'').replace(/\D/g,'');let dd=dial.replace(/\D/g,'');if(d.startsWith(dd))return '+'+d; if(d.startsWith('0'))d=d.replace(/^0+/,'');return '+'+dd+d;}
