@@ -3,7 +3,7 @@ import { prisma } from '../../lib/prisma'
 import { badRequest, paymentRequired } from '../../lib/errors'
 import { emitEvent } from '../automations'
 import { upsertContact } from '../contacts'
-import { lookupCompany, searchLocalBusinesses, type RawLead } from './providers'
+import { findSegments, lookupCompany, searchCompanies, searchLocalBusinesses, type RawLead } from './providers'
 import { currentTerms } from './terms'
 
 // Resposta pública: sem origem/fonte.
@@ -44,7 +44,11 @@ async function saveLeads(tenantId: string, searchId: string | null, raws: RawLea
   return out
 }
 
-export async function runSearch(tenant: Tenant, user: User, input: { kind: 'COMPANY' | 'LOCAL'; documents?: string[]; query?: string; city?: string; limit?: number }) {
+export async function runSearch(
+  tenant: Tenant,
+  user: User,
+  input: { kind: 'COMPANY' | 'LOCAL' | 'SEGMENT'; documents?: string[]; query?: string; city?: string; uf?: string; cnaes?: string[]; limit?: number },
+) {
   await assertLeadsAccess(tenant)
   let raws: RawLead[] = []
   let origin = ''
@@ -56,13 +60,22 @@ export async function runSearch(tenant: Tenant, user: User, input: { kind: 'COMP
       const r = await lookupCompany(doc).catch(() => null)
       if (r) raws.push(r)
     }
+  } else if (input.kind === 'SEGMENT') {
+    let cnaes = (input.cnaes || []).map((c) => c.replace(/\D/g, '')).filter((c) => c.length >= 2).slice(0, 20)
+    if (!cnaes.length && input.query?.trim()) cnaes = (await findSegments(input.query.trim(), 20)).map((s) => s.code)
+    if (!cnaes.length) throw badRequest('Nenhum segmento encontrado. Escolha um segmento da lista.')
+    if (!input.uf && !input.city) throw badRequest('Informe o estado ou a cidade.')
+    origin = 'cnpj_public'
+    // Não repete empresas que esta conta já recebeu.
+    const seen = await prisma.lead.findMany({ where: { tenantId: tenant.id, origin: 'cnpj_public' }, select: { originRef: true }, take: 20000 })
+    raws = await searchCompanies({ cnaes, uf: input.uf, city: input.city, limit: input.limit || 50, excludeRefs: seen.map((s) => s.originRef!).filter(Boolean) })
   } else {
     if (!input.query?.trim()) throw badRequest('Informe o segmento ou termo de busca.')
     origin = 'places'
     raws = await searchLocalBusinesses(input.query.trim(), input.city, input.limit || 20)
   }
   const search = await prisma.leadSearch.create({
-    data: { tenantId: tenant.id, userId: user.id, kind: input.kind, query: { documents: input.documents, query: input.query, city: input.city } as any, origin, resultCount: raws.length },
+    data: { tenantId: tenant.id, userId: user.id, kind: input.kind, query: { documents: input.documents, query: input.query, city: input.city, uf: input.uf, cnaes: input.cnaes } as any, origin, resultCount: raws.length },
   })
   const leads = await saveLeads(tenant.id, search.id, raws)
   return { searchId: search.id, leads: leads.map(publicLead) }
@@ -70,6 +83,18 @@ export async function runSearch(tenant: Tenant, user: User, input: { kind: 'COMP
 
 export async function ingestAdLead(tenantId: string, raw: RawLead) {
   const [lead] = await saveLeads(tenantId, null, [raw])
+  return lead
+}
+
+// Lead de formulário de anúncio (Meta, LinkedIn): salva e já envia ao CRM quando tem contato.
+export async function ingestAndImportAdLead(tenantId: string, raw: RawLead, tag: string, origem: string) {
+  const existing = await prisma.lead.findUnique({ where: { tenantId_origin_originRef: { tenantId, origin: raw.origin, originRef: raw.originRef } } })
+  if (existing?.status === 'IMPORTED') return existing
+  const lead = await ingestAdLead(tenantId, raw)
+  if (!raw.phone && !raw.email) return lead
+  const { contact } = await upsertContact(tenantId, { name: raw.name, phone: raw.phone, email: raw.email, company: raw.company, source: 'LEADS', tags: [tag] }, { emit: false })
+  await prisma.lead.update({ where: { id: lead.id }, data: { status: 'IMPORTED', contactId: contact.id } })
+  await emitEvent(tenantId, 'lead.imported', { contactId: contact.id, data: { origem } })
   return lead
 }
 

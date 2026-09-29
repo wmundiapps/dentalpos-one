@@ -10,7 +10,7 @@ import { constructStripeEvent, handleAsaasEvent, handleStripeEvent } from '../se
 import { upsertContact } from '../services/contacts'
 import { emitEvent } from '../services/automations'
 import { handleInbound } from '../services/inbound'
-import { ingestAdLead } from '../services/leads'
+import { ingestAndImportAdLead } from '../services/leads'
 import { fetchAdLead } from '../services/leads/providers'
 import { updateDeliveryStatus } from '../services/messaging'
 import { answerTwiml, handleRecordingCallback, handleStatusCallback, startInboundCall, turnTwiml } from '../services/voice/engine'
@@ -134,12 +134,7 @@ r.post(
             if (change.field !== 'leadgen' || !change.value?.leadgen_id || !c.pageAccessToken) continue
             tasks.push(async () => {
               const raw = await fetchAdLead(String(change.value.leadgen_id), c.pageAccessToken)
-              const lead = await ingestAdLead(account.tenantId, raw)
-              if (raw.phone || raw.email) {
-                const { contact } = await upsertContact(account.tenantId, { name: raw.name, phone: raw.phone, email: raw.email, company: raw.company, source: 'LEADS', tags: ['Anúncio'] }, { emit: false })
-                await prisma.lead.update({ where: { id: lead.id }, data: { status: 'IMPORTED', contactId: contact.id } })
-                await emitEvent(account.tenantId, 'lead.imported', { contactId: contact.id, data: { origem: 'anuncio' } })
-              }
+              await ingestAndImportAdLead(account.tenantId, raw, 'Anúncio', 'anuncio')
             })
           }
         }

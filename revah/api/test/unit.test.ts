@@ -66,3 +66,28 @@ test('criptografia de credenciais e tokens assinados', () => {
   assert.deepEqual(verifyPayload(t), { t: 'x', c: 'EMAIL', v: 'a@b.com' })
   assert.equal(verifyPayload(t.slice(0, -2) + 'aa'), null)
 })
+
+test('base empresarial: leitura das linhas de estabelecimentos', async () => {
+  const { splitRow, establishmentRecord, shareInfo, latestMonth } = await import('../src/scripts/receitaImport')
+  const line = '"12345678";"0001";"90";"1";"CLINICA";"02";"20200101";"00";"";"";"20100101";"8630504";"8630502";"RUA";"FLORES";"100";"";"CENTRO";"87010000";"PR";"7691";"44";"30301010";"";"";"";"";"a@b.com.br";"";""'
+  const opts = { ufs: ['PR'], cnaes: ['863'], requireContact: true, cities: new Map([['7691', 'MARINGÁ']]), month: '2026-09' }
+  const rec = establishmentRecord(splitRow(line), opts)
+  assert.equal(rec?.cnpj, '12345678000190')
+  assert.equal(rec?.cityNorm, 'maringa')
+  assert.equal(rec?.phone, '554430301010')
+  assert.equal(establishmentRecord(splitRow(line.replace('"02"', '"08"')), opts), null)
+  assert.equal(establishmentRecord(splitRow(line), { ...opts, ufs: ['SP'] }), null)
+  assert.equal(shareInfo('https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9').token, 'YggdBLfdninEJX9')
+  assert.equal(latestMonth(['2026-08', '2026-09', 'leiame.pdf']), '2026-09')
+})
+
+test('LinkedIn: respostas do formulário viram lead', async () => {
+  const { linkedinLeadFromResponse } = await import('../src/services/leads/linkedin')
+  const form = { content: { questions: [{ questionId: 1, predefinedField: 'FIRST_NAME' }, { questionId: 2, predefinedField: 'LAST_NAME' }, { questionId: 3, predefinedField: 'EMAIL' }, { questionId: 4, predefinedField: 'PHONE_NUMBER' }] } }
+  const el = { id: 'abc', formResponse: { answers: [1, 2, 3, 4].map((q, i) => ({ questionId: q, answerDetails: { textQuestionAnswer: { answer: ['Ana', 'Lima', 'ANA@X.COM', '(44) 99999-8888'][i] } } })) } }
+  const lead = linkedinLeadFromResponse(el, form)
+  assert.equal(lead.name, 'Ana Lima')
+  assert.equal(lead.email, 'ana@x.com')
+  assert.equal(lead.phone, '5544999998888')
+  assert.equal(lead.originRef, 'abc')
+})

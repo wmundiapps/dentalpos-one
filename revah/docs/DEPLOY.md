@@ -61,3 +61,37 @@ Se cancelar no teste, não paga. Depois, cobrança mensal automática; canceland
 
 ## 8. DentalPos One
 Ver `docs/INTEGRACAO-DENTALPOS.md`.
+
+## REVAH Leads — fontes de dados
+
+### Base de empresas (dados abertos de CNPJ da Receita Federal)
+
+Os arquivos ficam no compartilhamento público da Receita (`RECEITA_CNPJ_URL`, padrão
+`https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9`), em pastas `AAAA-MM`.
+Se a Receita mudar o endereço de novo, basta trocar essa variável.
+
+A carga roda fora da Vercel (arquivos de vários GB). Na pasta `revah/api`, com `DATABASE_URL` do banco do REVAH:
+
+```powershell
+$env:DATABASE_URL = "<URL do banco do REVAH>"
+npm install
+npm run receita:import -- --ufs=PR
+```
+
+- `--ufs=PR,SP` estados; `--cnaes=8630,4781` prefixos de CNAE; `--all` Brasil inteiro (dezenas de GB no banco — exige plano maior no Supabase).
+- `--dir=C:\receita` usa zips já baixados manualmente; `--month=AAAA-MM` escolhe o mês; `--dry-run` só conta.
+- Só empresas **ativas** com telefone ou e-mail. Rode de novo todo mês para atualizar (inativas são removidas).
+
+### Google Maps (negócios locais)
+
+`GOOGLE_PLACES_API_KEY` — chave do Google Cloud com a **Places API (New)** ativada.
+
+### Meta Lead Ads
+
+Chega pela conexão da página em **Canais** (Messenger), com `pageAccessToken` e o campo `leadgen` assinado no webhook do app Meta.
+
+### LinkedIn Lead Sync
+
+App no LinkedIn Developers com o produto **Lead Sync API** aprovado.
+`LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` e, no app, a URL de redirecionamento
+`https://api.revah.com.br/integrations/linkedin/callback`. Os leads são lidos a cada 15 minutos pelo cron.
