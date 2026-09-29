@@ -15,7 +15,7 @@ Erros: `{ error, code, details }`. `402` = precisa de upgrade/ação (`TRIAL_EXH
 | Inbox | `GET/POST /conversations` · `GET /conversations/:id` · `POST /conversations/:id/messages|status|assign` |
 | Automações | `GET /automations/triggers` · `GET/POST /automations` · `PATCH/DELETE /automations/:id` · `POST /automations/templates/dentalpos` · `POST /automations/test-event` |
 | Voz | `GET/PUT /voice/settings` · `GET/POST /voice/calls` · `GET /voice/calls/:id` · `POST /voice/calls/:id/cancel` |
-| Leads | `GET /leads/access` · `POST /leads/terms/accept` · `POST /leads/search` · `GET /leads` · `POST /leads/import|discard` |
+| Leads | `GET /leads/access` · `POST /leads/terms/accept` · `POST /leads/search` (`kind`: `SEGMENT` com `cnaes`+`uf`/`city`, `COMPANY`, `LOCAL`) · `GET /leads/segments?q=` · `GET /leads/base` · `GET /leads` · `POST /leads/import|discard` · `GET /leads/sources` · `POST /leads/sources/linkedin/connect` · `POST /leads/sources/:id/sync` · `DELETE /leads/sources/:id` |
 | Configurações | `GET /dashboard` · `GET/PATCH /settings/company` · `GET/PUT /settings/bot` · `GET/POST/PATCH /users` · `GET/POST/DELETE /settings/api-keys` · `GET/PUT /settings/integration` · `GET /audit` |
 | Backoffice WMundi | `GET /admin/tenants` · `PATCH /admin/tenants/:id` · `GET /admin/sales-inquiries` · `GET /admin/billing-events` |
 | API pública | `POST /v1/contacts` · `POST /v1/messages` · `GET /v1/messages/:id` · `POST /v1/events` |

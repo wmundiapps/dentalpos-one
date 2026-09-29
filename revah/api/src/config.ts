@@ -53,6 +53,15 @@ export const config = {
   leads: {
     googlePlacesKey: process.env.GOOGLE_PLACES_API_KEY || '',
     termsVersion: process.env.LEADS_TERMS_VERSION || '2026-09-v1',
+    // Dados abertos de CNPJ (compartilhamento público no Nextcloud da Receita Federal).
+    cnpjDataUrl: (process.env.RECEITA_CNPJ_URL || 'https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9').replace(/\/$/, ''),
+  },
+
+  // LinkedIn Lead Sync (formulários de anúncios da própria empresa). Exige app aprovado no produto "Lead Sync API".
+  linkedin: {
+    clientId: process.env.LINKEDIN_CLIENT_ID || '',
+    clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
+    apiVersion: process.env.LINKEDIN_API_VERSION || '202509',
   },
 
   dentalpos: {

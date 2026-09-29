@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Building2, FileSignature, MapPin, Search, Sparkles } from 'lucide-react'
-import { ApiError, get, post } from '../lib/api'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Briefcase, Building2, FileSignature, Megaphone, MapPin, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react'
+import { ApiError, del, get, post } from '../lib/api'
 import { fmtPhone } from '../lib/format'
 import { useAuthed } from '../lib/session'
 import type { Lead } from '../lib/types'
@@ -58,8 +58,10 @@ function AddonCta() {
         <h2>Prospecção com dados de empresas</h2>
         <p>O REVAH Leads é um add-on contratado à parte. Ele permite buscar empresas por CNPJ e negócios locais por segmento e cidade, e importar os contatos encontrados para o CRM com etiquetas.</p>
         <ul className="bullets">
+          <li>Empresas ativas por segmento, estado e cidade</li>
           <li>Busca por lista de CNPJs</li>
-          <li>Busca de negócios locais por segmento e cidade</li>
+          <li>Negócios locais por segmento e cidade</li>
+          <li>Leads dos seus formulários de anúncios (Meta e LinkedIn)</li>
           <li>Importação para o CRM, com etiqueta “Leads”</li>
           <li>Uso sujeito a termo de responsabilidade (LGPD)</li>
         </ul>
@@ -141,10 +143,13 @@ function TermsForm({ access, onAccepted }: { access: Access; onAccepted: () => v
 
 function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
   const fb = useFeedback()
-  const [kind, setKind] = useState<'COMPANY' | 'LOCAL'>('LOCAL')
+  const [kind, setKind] = useState<'SEGMENT' | 'COMPANY' | 'LOCAL'>('SEGMENT')
   const [docs, setDocs] = useState('')
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
+  const [uf, setUf] = useState('')
+  const [segments, setSegments] = useState<Segment[]>([])
+  const [limit, setLimit] = useState(50)
   const [searching, setSearching] = useState(false)
   const [results, setResults] = useState<Lead[] | null>(null)
   const [statusFilter, setStatusFilter] = useState<'NEW' | 'IMPORTED' | 'DISCARDED' | ''>('NEW')
@@ -180,7 +185,9 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
       const body =
         kind === 'COMPANY'
           ? { kind, documents: docs.split(/[\s,;]+/).map((d) => d.trim()).filter(Boolean) }
-          : { kind, query: query.trim(), city: city.trim() || undefined, limit: 20 }
+          : kind === 'SEGMENT'
+            ? { kind, cnaes: segments.map((s) => s.code), uf: uf || undefined, city: city.trim() || undefined, limit }
+            : { kind, query: query.trim(), city: city.trim() || undefined, limit: 60 }
       const r = await post<{ leads: Lead[] }>('/leads/search', body)
       setResults(r.leads)
       if (!r.leads.length) fb.toast('Nenhum resultado para esta busca.', 'info')
@@ -233,11 +240,44 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
           value={kind}
           onChange={setKind}
           items={[
+            { value: 'SEGMENT', label: <span className="row gap-xs"><Briefcase size={14} /> Empresas por segmento</span> },
             { value: 'LOCAL', label: <span className="row gap-xs"><MapPin size={14} /> Negócios locais</span> },
             { value: 'COMPANY', label: <span className="row gap-xs"><Building2 size={14} /> Empresas por CNPJ</span> },
           ]}
         />
-        {kind === 'LOCAL' ? (
+        {kind === 'SEGMENT' ? (
+          <div className="stack">
+            <SegmentPicker value={segments} onChange={setSegments} />
+            <div className="grid-search">
+              <Field label="Estado">
+                <select value={uf} onChange={(e) => setUf(e.target.value)}>
+                  <option value="">Selecione</option>
+                  {UFS.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Cidade (opcional)">
+                <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="ex.: Maringá" onKeyDown={(e) => e.key === 'Enter' && search()} />
+              </Field>
+              <Field label="Quantidade">
+                <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+                  {[20, 50, 100, 200].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Button variant="primary" icon={<Search size={16} />} onClick={search} loading={searching} disabled={!segments.length || (!uf && !city.trim())}>
+                Buscar
+              </Button>
+            </div>
+            <p className="small muted">Somente empresas ativas com telefone ou e-mail. Empresas que você já recebeu não aparecem de novo.</p>
+          </div>
+        ) : kind === 'LOCAL' ? (
           <div className="grid-search">
             <Field label="Segmento ou termo">
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ex.: clínica odontológica" onKeyDown={(e) => e.key === 'Enter' && search()} />
@@ -375,7 +415,169 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
           </div>
         )}
       </Card>
+      <AdSources />
       <p className="small muted">Use os dados apenas para abordagens legítimas e respeite pedidos de não contato, conforme o termo aceito.</p>
     </div>
+  )
+}
+
+interface Segment {
+  code: string
+  description: string
+}
+
+const UFS = ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO']
+
+function SegmentPicker({ value, onChange }: { value: Segment[]; onChange: (v: Segment[]) => void }) {
+  const [q, setQ] = useState('')
+  const [options, setOptions] = useState<Segment[]>([])
+
+  useEffect(() => {
+    const term = q.trim()
+    if (term.length < 2) return setOptions([])
+    const timer = setTimeout(() => {
+      get<Segment[]>('/leads/segments', { q: term })
+        .then(setOptions)
+        .catch(() => setOptions([]))
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [q])
+
+  const chosen = new Set(value.map((s) => s.code))
+  return (
+    <div className="stack">
+      <Field label="Segmentos" hint="Digite o ramo (ex.: odontológica, academia, restaurante) e escolha na lista.">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ex.: odontológica" />
+      </Field>
+      {options.length > 0 && (
+        <div className="row wrap gap-xs">
+          {options
+            .filter((o) => !chosen.has(o.code))
+            .slice(0, 12)
+            .map((o) => (
+              <button key={o.code} type="button" className="btn btn-sm btn-ghost" onClick={() => onChange([...value, o].slice(0, 20))}>
+                + {o.description}
+              </button>
+            ))}
+        </div>
+      )}
+      {value.length > 0 && (
+        <div className="row wrap gap-xs">
+          {value.map((s) => (
+            <Badge key={s.code} tone="indigo">
+              <span className="row gap-xs">
+                {s.description}
+                <button type="button" className="link-btn" aria-label={`Remover ${s.description}`} onClick={() => onChange(value.filter((v) => v.code !== s.code))}>
+                  ×
+                </button>
+              </span>
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface SourcesInfo {
+  linkedinAvailable: boolean
+  placesAvailable: boolean
+  sources: { id: string; provider: string; label: string; lastSyncAt: string | null; lastError: string | null; isActive: boolean }[]
+}
+
+function AdSources() {
+  const fb = useFeedback()
+  const { canManage } = useAuthed()
+  const info = useLoad(() => get<SourcesInfo>('/leads/sources'))
+  const [params, setParams] = useSearchParams()
+  const [busy, setBusy] = useState('')
+
+  useEffect(() => {
+    const st = params.get('linkedin')
+    if (!st) return
+    if (st === 'ok') fb.success(`LinkedIn conectado (${params.get('contas') || 1} conta(s) de anúncios).`)
+    else if (st === 'erro') fb.toast(params.get('msg') || 'Não foi possível conectar o LinkedIn.', 'error')
+    params.delete('linkedin')
+    params.delete('contas')
+    params.delete('msg')
+    setParams(params, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function connect() {
+    setBusy('connect')
+    try {
+      const r = await post<{ url: string }>('/leads/sources/linkedin/connect')
+      window.location.href = r.url
+    } catch (e) {
+      fb.fail(e)
+      setBusy('')
+    }
+  }
+
+  async function sync(id: string) {
+    setBusy(id)
+    try {
+      const r = await post<{ imported: number }>(`/leads/sources/${id}/sync`)
+      fb.success(`${r.imported} lead(s) recebido(s).`)
+      info.reload(true)
+    } catch (e) {
+      fb.fail(e)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function remove(id: string) {
+    if (!confirm('Desconectar esta conta de anúncios?')) return
+    try {
+      await del(`/leads/sources/${id}`)
+      info.reload(true)
+    } catch (e) {
+      fb.fail(e)
+    }
+  }
+
+  const d = info.data
+  return (
+    <Card title="Leads dos seus anúncios">
+      <div className="stack">
+        <p className="small muted">
+          Os leads que preencherem os formulários dos seus anúncios entram direto no CRM. Meta (Facebook e Instagram): conecte a página em <Link to="/canais">Canais</Link>. LinkedIn: conecte a conta de anúncios abaixo.
+        </p>
+        {d?.sources.map((s) => (
+          <div key={s.id} className="row wrap gap-sm between">
+            <div>
+              <div className="strong row gap-xs">
+                <Megaphone size={14} /> {s.label}
+              </div>
+              <div className="small muted">
+                {s.lastError ? <span className="text-red">{s.lastError}</span> : s.lastSyncAt ? `Última leitura: ${new Date(s.lastSyncAt).toLocaleString('pt-BR')}` : 'Aguardando a primeira leitura'}
+              </div>
+            </div>
+            {canManage && (
+              <div className="row gap-xs">
+                <Button size="sm" variant="ghost" icon={<RefreshCw size={14} />} onClick={() => sync(s.id)} loading={busy === s.id}>
+                  Buscar agora
+                </Button>
+                <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={() => remove(s.id)}>
+                  Desconectar
+                </Button>
+              </div>
+            )}
+          </div>
+        ))}
+        {canManage &&
+          (d?.linkedinAvailable ? (
+            <div>
+              <Button variant="secondary" icon={<Megaphone size={16} />} onClick={connect} loading={busy === 'connect'}>
+                Conectar LinkedIn
+              </Button>
+            </div>
+          ) : d ? (
+            <p className="small muted">Conexão com o LinkedIn em liberação. Em breve disponível.</p>
+          ) : null)}
+      </div>
+    </Card>
   )
 }

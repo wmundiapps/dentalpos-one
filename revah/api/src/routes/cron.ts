@@ -4,6 +4,7 @@ import { safeEqual } from '../lib/crypto'
 import { ah } from '../lib/errors'
 import { billingMaintenance } from '../services/billing'
 import { processDueJobs } from '../services/jobs'
+import { syncDueLeadSources } from '../services/leads/linkedin'
 
 const r = Router()
 
@@ -15,7 +16,8 @@ r.all(
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : String(req.query.secret || '')
     if (config.cronSecret ? !safeEqual(token, config.cronSecret) : isProduction) return res.sendStatus(401)
     const billing = await billingMaintenance().catch((e) => ({ error: String(e?.message || e) }))
-    res.json({ ...(await processDueJobs({ maxMs: Number(req.query.maxMs || 45_000) })), billing })
+    const leadSources = await syncDueLeadSources().catch((e) => ({ error: String(e?.message || e) }))
+    res.json({ ...(await processDueJobs({ maxMs: Number(req.query.maxMs || 40_000) })), billing, leadSources })
   }),
 )
 

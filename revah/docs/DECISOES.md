@@ -17,7 +17,7 @@
 | Tema em aberto | O que foi feito | Como mudar |
 |---|---|---|
 | Hospedagem do backend | Pronto para Vercel (projeto separado) + Supabase **em projeto separado** do DentalPos. Também roda em qualquer Node (`npm start` + `npm run worker`). | `docs/DEPLOY.md` |
-| Scraping de LinkedIn/Instagram/Facebook | **Não implementado.** Só vias oficiais: CNPJ público, Google Places API e Meta Lead Ads (anúncios da própria empresa). | Nova fonte = novo provedor em `api/src/services/leads/providers.ts`, após decisão explícita. |
+| Scraping de LinkedIn/Instagram/Facebook | **Não implementado.** Só vias oficiais: dados abertos de CNPJ da Receita Federal, Google Places API, Meta Lead Ads e LinkedIn Lead Sync (formulários de anúncios da própria empresa, com OAuth da empresa). | Nova fonte = novo provedor em `api/src/services/leads/providers.ts`, após decisão explícita. |
 | Horários do REVAH Voice | Seg–sex 09h–21h, sáb 10h–16h, sem domingos e feriados nacionais fixos, no fuso da empresa. Cada empresa pode restringir. Voz vem **desligada** por padrão. | Tela Voz ou `voice/windows.ts` (padrão). |
 | Gravação de ligações | Desligada por padrão. Quando ligada: aviso no início, gravação só começa depois da primeira resposta sem recusa ("não autorizo" ou tecla 8). | Tela Voz. |
 | Preço do REVAH Leads | Assinatura adicional no Asaas (`PRICE_LEADS_BRL`) ou item no Stripe (`STRIPE_PRICE_LEADS`); sem preço, ativação manual pelo backoffice. | Definir o valor. |

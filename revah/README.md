@@ -29,7 +29,7 @@ Pode virar um repositório separado a qualquer momento (ver "Separar em reposit�
 - **Inbox unificado** com bot de IA (Claude): intenção, resposta com contexto do CRM, pedido de agendamento, transferência para humano.
 - **REVAH Voice**: fila, horários permitidos por fuso (feriados nacionais), limite de simultâneas, agente de voz com contexto, fala e DTMF, opt-out verbal, transferência, gravação só após aviso e sem recusa, transcrição por turnos, resumo e classificação no CRM, retorno automático, número por empresa, ligações recebidas, campanhas de voz e automações.
 - **Automações** por gatilho (incluindo eventos do DentalPos One) com atrasos e ações (mensagem, ligação, etiqueta, webhook) + modelos prontos para clínicas.
-- **REVAH Leads** (add-on): termo de responsabilidade LGPD com registro de aceite, busca por CNPJ e negócios locais, Lead Ads da própria empresa; origem nunca exposta.
+- **REVAH Leads** (add-on): termo de responsabilidade LGPD com registro de aceite, busca de empresas ativas por segmento (CNAE) + estado/cidade na base de CNPJ carregada dos dados abertos da Receita Federal (`npm run receita:import`), busca por CNPJ, negócios locais (Google Maps/Places) e leads dos formulários de anúncios da própria empresa (Meta Lead Ads e LinkedIn Lead Sync); origem nunca exposta.
 - **Integração DentalPos One**: provisionamento e licença assinados, SSO (aba Marketing embutida), eventos idempotentes, sincronização de pacientes e webhook de retorno.
 
 ## Rodar localmente
