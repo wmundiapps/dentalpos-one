@@ -5,7 +5,7 @@ import { waitUntil } from '@vercel/functions';
 import { flushPushQueue, pushConfigured } from './push.js';
 import { flushEmailQueue, verifySmtp } from './mailer.js';
 import { ZodError } from 'zod';
-import { HttpError, adminEmails } from './auth.js';
+import { HttpError, adminEmails, optionalAuth, type AuthedRequest } from './auth.js';
 import { authRouter } from './routes/auth.js';
 import { listingsRouter } from './routes/listings.js';
 import { bookingsRouter } from './routes/bookings.js';
@@ -31,7 +31,7 @@ export function createApp() {
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
   // Diagnóstico da configuração (sem segredos): o que a Vercel está entregando ao servidor
-  app.get('/api/health/config', async (_req, res) => {
+  app.get('/api/health/config', optionalAuth, async (req: AuthedRequest, res) => {
     const mail = await one<{ sent24: number; failed24: number; pending: number; last_error: string | null; last_sent: Date | null }>(pool,
       `SELECT count(*) FILTER (WHERE email_status = 'sent' AND email_sent_at > now() - interval '24 hours')::int AS sent24,
               count(*) FILTER (WHERE email_status = 'failed' AND created_at > now() - interval '24 hours')::int AS failed24,
@@ -49,6 +49,11 @@ export function createApp() {
       mercadoPago: marketplaceEnabled(),
       appUrl: process.env.APP_URL ?? null,
       version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+      // Só os dados da própria conta logada: por que ela é (ou não é) admin
+      you: req.user ? {
+        email: req.user.email, emailVerified: !!req.user.emailVerifiedAt,
+        inAdminList: adminEmails().includes(req.user.email.toLowerCase()), isAdmin: req.user.roles.includes('admin'),
+      } : null,
     });
   });
   // Rotina periódica disparada pelo Vercel Cron (Authorization: Bearer CRON_SECRET)
