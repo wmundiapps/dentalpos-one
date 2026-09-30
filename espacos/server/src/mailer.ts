@@ -31,6 +31,22 @@ function smtpSender(): Sender | undefined {
   };
 }
 
+/** Testa o login no servidor SMTP sem enviar e-mail (página de diagnóstico). */
+let smtpCheck: { at: number; result: string } | undefined;
+export async function verifySmtp(): Promise<string> {
+  if (!process.env.SMTP_HOST) return 'SMTP_HOST ausente';
+  if (smtpCheck && Date.now() - smtpCheck.at < 60000) return smtpCheck.result; // no máximo 1 teste por minuto
+  smtpSender(); // cria o transporter
+  let result = 'ok';
+  try {
+    await Promise.race([transporter!.verify(), new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), 8000))]);
+  } catch (e) {
+    result = (e as Error).message.slice(0, 160);
+  }
+  smtpCheck = { at: Date.now(), result };
+  return result;
+}
+
 export async function sendMail(m: OutgoingMail): Promise<boolean> {
   const send = override ?? smtpSender();
   if (!send) {
