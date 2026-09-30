@@ -174,38 +174,6 @@ r.post(
 )
 
 // ---------------------------------------------------------------------------
-// WhatsApp não oficial: Z-API e Zapiô
-// ---------------------------------------------------------------------------
-async function unofficialWebhook(req: Request, res: Response, provider: 'ZAPI' | 'ZAPIO') {
-  const account = await loadAccount(req.params.accountId)
-  if (!account || account.provider !== provider || !safeEqual(String(req.params.secret || ''), account.webhookSecret)) return res.sendStatus(404)
-  const b = req.body || {}
-  // Status de entrega (Z-API: MessageStatusCallback)
-  if (b.type === 'MessageStatusCallback' && Array.isArray(b.ids)) {
-    const st = ({ SENT: 'SENT', RECEIVED: 'DELIVERED', READ: 'READ', PLAYED: 'READ' } as Record<string, any>)[String(b.status).toUpperCase()]
-    if (st) for (const id of b.ids) await updateDeliveryStatus(String(id), st)
-    return res.sendStatus(200)
-  }
-  if (b.fromMe || b.isGroup || b.isNewsletter) return res.sendStatus(200)
-  const phone = normalizePhone(b.phone || b.from || b.sender || b.remoteJid?.split('@')[0])
-  const text = typeof b.text === 'object' ? b.text?.message : b.text || b.message || b.body || b.image?.caption || ''
-  if (phone) {
-    await handleInbound({
-      tenant: account.tenant,
-      account,
-      channel: 'WHATSAPP',
-      address: phone,
-      name: b.senderName || b.chatName || b.name || b.pushName,
-      text: typeof text === 'string' ? text : '',
-      providerMessageId: b.messageId || b.id || b.key?.id,
-    })
-  }
-  res.sendStatus(200)
-}
-r.post('/zapi/:accountId/:secret', ah((req, res) => unofficialWebhook(req, res, 'ZAPI')))
-r.post('/zapio/:accountId/:secret', ah((req, res) => unofficialWebhook(req, res, 'ZAPIO')))
-
-// ---------------------------------------------------------------------------
 // E-mail recebido (inbound parse genérico: { from, subject, text })
 // ---------------------------------------------------------------------------
 r.post(

@@ -8,7 +8,7 @@ import { ah, badRequest, notFound } from '../lib/errors'
 import { CHANNELS, normalizeDestination, type Channel } from '../lib/normalize'
 import { requireRole, type AuthedRequest } from '../middleware/auth'
 import { audit } from '../services/audit'
-import { adapterFor, PROVIDERS, UNOFFICIAL_WHATSAPP_WARNING } from '../services/channels/providers'
+import { adapterFor, PROVIDERS } from '../services/channels/providers'
 import { sendMessage } from '../services/messaging'
 import { assertCanAddChannel } from '../services/plans'
 
@@ -21,17 +21,6 @@ const CREDENTIAL_FIELDS: Record<string, { key: string; label: string; secret?: b
     { key: 'accessToken', label: 'Token de acesso permanente', secret: true },
     { key: 'wabaId', label: 'WhatsApp Business Account ID', optional: true },
     { key: 'appSecret', label: 'App secret (validação de webhook)', secret: true, optional: true },
-  ],
-  ZAPI: [
-    { key: 'instanceId', label: 'ID da instância' },
-    { key: 'token', label: 'Token da instância', secret: true },
-    { key: 'clientToken', label: 'Client-Token da conta', secret: true, optional: true },
-  ],
-  ZAPIO: [
-    { key: 'baseUrl', label: 'URL base da API' },
-    { key: 'token', label: 'Token', secret: true },
-    { key: 'instanceId', label: 'ID da instância', optional: true },
-    { key: 'sendPath', label: 'Caminho de envio (padrão /messages/send-text)', optional: true },
   ],
   TWILIO: [
     { key: 'accountSid', label: 'Account SID' },
@@ -56,10 +45,6 @@ export function webhookInfo(a: Pick<ChannelAccount, 'id' | 'provider' | 'channel
     case 'META_CLOUD':
     case 'META_GRAPH':
       return { url: `${base}/webhooks/meta`, verifyToken: config.meta.verifyToken || '(defina META_VERIFY_TOKEN)' }
-    case 'ZAPI':
-      return { url: `${base}/webhooks/zapi/${a.id}/${a.webhookSecret}` }
-    case 'ZAPIO':
-      return { url: `${base}/webhooks/zapio/${a.id}/${a.webhookSecret}` }
     case 'TWILIO':
       return a.channel === 'VOICE' ? { url: `${base}/webhooks/twilio/voice/inbound/${a.id}` } : { url: `${base}/webhooks/twilio/sms/${a.id}` }
     case 'TELEGRAM':
@@ -86,7 +71,6 @@ function publicAccount(a: ChannelAccount) {
 r.get('/channels/providers', (_req, res) => {
   res.json({
     providers: Object.entries(PROVIDERS).map(([key, p]) => ({ key, ...p, adapter: undefined, fields: CREDENTIAL_FIELDS[key] || [] })),
-    unofficialWarning: UNOFFICIAL_WHATSAPP_WARNING,
   })
 })
 
@@ -107,7 +91,6 @@ const ChannelSchema = z.object({
   credentials: z.record(z.any()).optional(),
   settings: z.record(z.any()).optional(),
   isDefault: z.boolean().optional(),
-  acknowledgeRisk: z.boolean().optional(),
 })
 
 r.post(
@@ -117,7 +100,6 @@ r.post(
     const b = ChannelSchema.parse(req.body)
     const meta = PROVIDERS[b.provider]
     if (!meta || !meta.channels.includes(b.channel)) throw badRequest('Provedor não atende este canal.')
-    if (!meta.official && !b.acknowledgeRisk) throw badRequest(UNOFFICIAL_WHATSAPP_WARNING, { code: 'RISK_ACK_REQUIRED' })
     await assertCanAddChannel(req.tenant)
     const address = ['WHATSAPP', 'SMS', 'VOICE'].includes(b.channel) ? normalizeDestination('WHATSAPP', b.address) : b.address.trim()
     if (!address) throw badRequest('Número/endereço inválido.')
@@ -126,7 +108,7 @@ r.post(
       const missing = (CREDENTIAL_FIELDS[b.provider] || []).filter((f) => !f.optional && !creds[f.key]).map((f) => f.label)
       if (missing.length) throw badRequest(`Preencha: ${missing.join(', ')}.`)
     }
-    const externalId = b.externalId || (b.provider === 'META_CLOUD' ? creds.phoneNumberId : b.provider === 'ZAPI' ? creds.instanceId : null) || null
+    const externalId = b.externalId || (b.provider === 'META_CLOUD' ? creds.phoneNumberId : null) || null
     const hasDefault = await prisma.channelAccount.count({ where: { tenantId: req.tenant.id, channel: b.channel, isDefault: true } })
     const isDefault = b.isDefault ?? !hasDefault
     if (isDefault) await prisma.channelAccount.updateMany({ where: { tenantId: req.tenant.id, channel: b.channel }, data: { isDefault: false } })
@@ -142,7 +124,6 @@ r.post(
         settings: (b.settings as any) || undefined,
         webhookSecret: randomToken(18),
         isDefault,
-        ...(!meta.official ? { riskAcknowledgedAt: new Date(), riskAcknowledgedBy: req.user.id } : {}),
       },
     })
     let connection: { ok: boolean; info?: string; error?: string } = { ok: true, info: 'Modo simulado.' }
@@ -153,7 +134,7 @@ r.post(
         connection = { ok: false, error: e?.message || String(e) }
       }
     }
-    await audit(req.tenant.id, req.user.id, 'CHANNEL_CREATE', 'ChannelAccount', account.id, { channel: b.channel, provider: b.provider, unofficial: !meta.official })
+    await audit(req.tenant.id, req.user.id, 'CHANNEL_CREATE', 'ChannelAccount', account.id, { channel: b.channel, provider: b.provider })
     res.status(201).json({ account: publicAccount(account), connection })
   }),
 )

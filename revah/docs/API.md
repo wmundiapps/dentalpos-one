@@ -20,7 +20,7 @@ Erros: `{ error, code, details }`. `402` = precisa de upgrade/ação (`TRIAL_EXH
 | Backoffice WMundi | `GET /admin/tenants` · `PATCH /admin/tenants/:id` · `GET /admin/sales-inquiries` · `GET /admin/billing-events` |
 | API pública | `POST /v1/contacts` · `POST /v1/messages` · `GET /v1/messages/:id` · `POST /v1/events` |
 | DentalPos One | `POST /integrations/dentalpos/provision|license` (assinadas) · `POST /integrations/dentalpos/events` · `POST /integrations/dentalpos/patients/sync` · `GET /integrations/dentalpos/status` |
-| Webhooks | `/webhooks/stripe` · `/webhooks/meta` · `/webhooks/telegram/:id` · `/webhooks/zapi/:id/:segredo` · `/webhooks/zapio/:id/:segredo` · `/webhooks/email/:id/:segredo` · `/webhooks/twilio/sms/:id` · `/webhooks/twilio/voice/...` |
+| Webhooks | `/webhooks/stripe` · `/webhooks/meta` · `/webhooks/telegram/:id` · `/webhooks/email/:id/:segredo` · `/webhooks/twilio/sms/:id` · `/webhooks/twilio/voice/...` |
 | Sistema | `GET /health` · `/cron/tick` · `GET|POST /public/unsubscribe/:token` |
 
 Variáveis de mensagem: `{{nome}}`, `{{primeiro_nome}}`, `{{empresa}}`, campos personalizados do contato e, em eventos do DentalPos,

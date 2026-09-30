@@ -54,7 +54,6 @@ Se cancelar no teste, não paga. Depois, cobrança mensal automática; canceland
 - **Twilio SMS/Voz**: no número, "A message comes in" → URL mostrada na tela do canal SMS;
   "A call comes in" → URL do canal de voz; "Call status changes" → mesma URL + `/status`.
 - **Telegram**: o webhook é registrado automaticamente ao conectar o bot.
-- **Z-API / Zapiô**: cole a URL de webhook exibida no canal no painel do provedor.
 
 ## 7. IA
 `ANTHROPIC_API_KEY` ativa o chatbot, o agente de voz e os resumos de ligação. Sem ela o REVAH funciona com respostas por regras e transferência para humano.

@@ -44,48 +44,6 @@ const metaCloud: ProviderAdapter = {
   },
 }
 
-// WhatsApp — Z-API (não oficial; risco de banimento do número).
-const zapi: ProviderAdapter = {
-  async send({ creds, to, text }) {
-    need(creds, 'instanceId', 'token')
-    const base = creds.baseUrl || 'https://api.z-api.io'
-    const d = await httpJson(`${base}/instances/${creds.instanceId}/token/${creds.token}/send-text`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(creds.clientToken ? { 'Client-Token': String(creds.clientToken) } : {}) },
-      body: JSON.stringify({ phone: to, message: text }),
-    })
-    return { simulated: false, providerMessageId: d?.messageId || d?.zaapId || d?.id, raw: d }
-  },
-  async connect(_a, creds) {
-    need(creds, 'instanceId', 'token')
-    const base = creds.baseUrl || 'https://api.z-api.io'
-    const d = await httpJson(`${base}/instances/${creds.instanceId}/token/${creds.token}/status`, {
-      headers: creds.clientToken ? { 'Client-Token': String(creds.clientToken) } : {},
-    })
-    return { ok: Boolean(d?.connected), info: d?.connected ? 'Instância conectada.' : 'Instância desconectada: leia o QR Code no painel do provedor.' }
-  },
-}
-
-// WhatsApp — Zapiô (não oficial). Endpoint e campos configuráveis porque variam por conta/versão.
-const zapio: ProviderAdapter = {
-  async send({ creds, to, text }) {
-    need(creds, 'baseUrl', 'token')
-    const path = creds.sendPath || '/messages/send-text'
-    const phoneField = creds.phoneField || 'phone'
-    const textField = creds.textField || 'message'
-    const d = await httpJson(`${String(creds.baseUrl).replace(/\/$/, '')}${path}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${creds.token}` },
-      body: JSON.stringify({ [phoneField]: to, [textField]: text, ...(creds.instanceId ? { instanceId: creds.instanceId } : {}) }),
-    })
-    return { simulated: false, providerMessageId: d?.messageId || d?.id || d?.key?.id, raw: d }
-  },
-  async connect(_a, creds) {
-    need(creds, 'baseUrl', 'token')
-    return { ok: true, info: 'Credenciais salvas. Envie um teste para confirmar a conexão.' }
-  },
-}
-
 function twilioAuth(creds: Record<string, any>) {
   return `Basic ${Buffer.from(`${creds.accountSid}:${creds.authToken}`).toString('base64')}`
 }
@@ -205,8 +163,6 @@ const twilioVoice: ProviderAdapter = {
 
 export const PROVIDERS: Record<string, { channels: string[]; adapter: ProviderAdapter; official: boolean; label: string }> = {
   META_CLOUD: { channels: ['WHATSAPP'], adapter: metaCloud, official: true, label: 'WhatsApp — API oficial da Meta' },
-  ZAPI: { channels: ['WHATSAPP'], adapter: zapi, official: false, label: 'WhatsApp — Z-API (não oficial)' },
-  ZAPIO: { channels: ['WHATSAPP'], adapter: zapio, official: false, label: 'WhatsApp — Zapiô (não oficial)' },
   TWILIO: { channels: ['SMS', 'VOICE'], adapter: twilioSms, official: true, label: 'Twilio' },
   TELEGRAM: { channels: ['TELEGRAM'], adapter: telegram, official: true, label: 'Telegram Bot API' },
   RESEND: { channels: ['EMAIL'], adapter: resend, official: true, label: 'Resend (e-mail)' },
@@ -219,7 +175,3 @@ export function adapterFor(provider: string, channel: string): ProviderAdapter {
   if (!p || !p.channels.includes(channel)) throw new ProviderError(`Provedor ${provider} não atende o canal ${channel}.`)
   return p.adapter
 }
-
-export const UNOFFICIAL_WHATSAPP_WARNING =
-  'Z-API e Zapiô não são APIs oficiais do WhatsApp. Eles automatizam um número comum, fora dos Termos de Serviço do WhatsApp/Meta para uso comercial em massa. ' +
-  'Há risco real de o número ser bloqueado ou banido pela Meta, sem aviso. Para volume e confiabilidade, use a API oficial da Meta.'
