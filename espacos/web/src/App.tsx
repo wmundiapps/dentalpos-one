@@ -35,6 +35,7 @@ const ConfirmEmail = lazy(() => import('./pages/ConfirmEmail'));
 const HostLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.HostLanding })));
 const ProLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.ProLanding })));
 const Admin = lazy(() => import('./pages/Misc').then((m) => ({ default: m.Admin })));
+const Diagnostics = lazy(() => import('./pages/Diagnostics'));
 
 function Private({ children }: { children: ReactNode }) {
   const { me, loadingMe } = useApp();
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="/notificacoes" element={<Private><Notifications /></Private>} />
             <Route path="/ocorrencias/:id" element={<Private><IncidentPage /></Private>} />
             <Route path="/admin" element={<Private><Admin /></Private>} />
+            <Route path="/diagnostico" element={<Diagnostics />} />
             <Route path="/entrar" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
             <Route path="/esqueci-senha" element={<ForgotPassword />} />
