@@ -50,13 +50,11 @@ async function register(email: string, extra: Record<string, unknown> = {}) {
 
 const auth = (t: string) => ({ Authorization: `Bearer ${t}` })
 
-async function simulatedZapi(token: string) {
-  const denied = await request(app).post('/channels').set(auth(token)).send({ channel: 'WHATSAPP', provider: 'ZAPI', label: 'Zap', address: '44999990000', credentials: { simulated: true } })
-  assert.equal(denied.status, 400, 'provedor não oficial exige aceite de risco')
+async function simulatedWhatsapp(token: string) {
   const ok = await request(app)
     .post('/channels')
     .set(auth(token))
-    .send({ channel: 'WHATSAPP', provider: 'ZAPI', label: 'Zap', address: '44999990000', credentials: { simulated: true }, acknowledgeRisk: true })
+    .send({ channel: 'WHATSAPP', provider: 'META_CLOUD', label: 'Zap', address: '44999990000', credentials: { simulated: true, phoneNumberId: 'pn-' + token.slice(-12) } })
   assert.equal(ok.status, 201, JSON.stringify(ok.body))
   return ok.body.account
 }
@@ -65,7 +63,7 @@ const manual = (n: number, offset = 0) => Array.from({ length: n }, (_, i) => ({
 
 test('teste de 14 dias: forma de pagamento (Asaas), 20 contatos por campanha, cobrança e atraso', async () => {
   const { token, tenant } = await register('trial@revah.test', { phone: '44911112222' })
-  await simulatedZapi(token)
+  await simulatedWhatsapp(token)
 
   const c0 = await request(app).post('/campaigns').set(auth(token)).send({ name: 'Antes', channel: 'WHATSAPP', template: 'Oi', audience: { manual: manual(2) } })
   const blocked0 = await request(app).post(`/campaigns/${c0.body.id}/launch`).set(auth(token))
@@ -124,11 +122,15 @@ async function activate(tenantId: string, plan = 'PRO') {
 
 test('inbound: opt-out vai para a suppression list, bot atende e registra pedido de agendamento', async () => {
   const { token, tenant } = await register('inbox@revah.test')
-  const account = await simulatedZapi(token)
+  const account = await simulatedWhatsapp(token)
   const full = await prisma.channelAccount.findUnique({ where: { id: account.id } })
-  const url = `/webhooks/zapi/${full.id}/${full.webhookSecret}`
+  const url = '/webhooks/meta'
+  const wa = (text: string, id: string, name?: string) => ({
+    object: 'whatsapp_business_account',
+    entry: [{ changes: [{ value: { metadata: { phone_number_id: full.externalId }, contacts: name ? [{ wa_id: '5544977776666', profile: { name } }] : [], messages: [{ from: '5544977776666', id, type: 'text', text: { body: text } }] } }] }],
+  })
 
-  const r1 = await request(app).post(url).send({ phone: '5544977776666', senderName: 'Carla', text: { message: 'Oi, quero agendar uma consulta' }, messageId: 'm1' })
+  const r1 = await request(app).post(url).send(wa('Oi, quero agendar uma consulta', 'm1', 'Carla'))
   assert.equal(r1.status, 200)
   const note = await prisma.note.findFirst({ where: { tenantId: tenant.id, kind: 'APPOINTMENT_REQUEST' } })
   assert.ok(note, 'pedido de agendamento registrado no CRM')
@@ -136,10 +138,10 @@ test('inbound: opt-out vai para a suppression list, bot atende e registra pedido
   assert.ok(botReply)
 
   // Duplicado é ignorado.
-  await request(app).post(url).send({ phone: '5544977776666', text: { message: 'Oi, quero agendar uma consulta' }, messageId: 'm1' })
+  await request(app).post(url).send(wa('Oi, quero agendar uma consulta', 'm1'))
   assert.equal(await prisma.message.count({ where: { tenantId: tenant.id, direction: 'IN' } }), 1)
 
-  await request(app).post(url).send({ phone: '5544977776666', text: { message: 'SAIR' }, messageId: 'm2' })
+  await request(app).post(url).send(wa('SAIR', 'm2'))
   const sup = await prisma.suppression.findFirst({ where: { tenantId: tenant.id, channel: 'WHATSAPP', value: '5544977776666' } })
   assert.ok(sup)
   const send = await request(app).post('/conversations').set(auth(token)).send({ contactId: sup.contactId, channel: 'WHATSAPP', text: 'Promoção!' })
@@ -232,7 +234,7 @@ test('DentalPos One: provisionamento, SSO, eventos e licença', async () => {
   await request(app)
     .post('/channels')
     .set(auth(t))
-    .send({ channel: 'WHATSAPP', provider: 'ZAPI', label: 'Clínica', address: '44930000000', credentials: { simulated: true }, acknowledgeRisk: true })
+    .send({ channel: 'WHATSAPP', provider: 'META_CLOUD', label: 'Clínica', address: '44930000000', credentials: { simulated: true, phoneNumberId: 'pn-clinica' } })
   const inst = await request(app).post('/automations/templates/dentalpos').set(auth(t))
   assert.equal(inst.body.created, 7)
   assert.equal(await prisma.automation.count({ where: { tenantId: prov.body.tenantId, isActive: true } }), 0)
@@ -290,7 +292,7 @@ test('Stripe: webhook de assinatura ativa plano e add-on de leads; leads esconde
 
   // Falha de pagamento bloqueia disparos.
   await handleStripeEvent({ id: 'evt_2', type: 'customer.subscription.updated', data: { object: { ...sub, status: 'past_due' } } } as any)
-  await simulatedZapi(token)
+  await simulatedWhatsapp(token)
   const c = await request(app).post('/campaigns').set(auth(token)).send({ name: 'X', channel: 'WHATSAPP', template: 'Oi', audience: { manual: manual(1) } })
   const l = await request(app).post(`/campaigns/${c.body.id}/launch`).set(auth(token))
   assert.equal(l.status, 402)

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>REVAH® — Plataforma Business de Mensageria</title>
-<meta name="description" content="REVAH® é a plataforma business de mensageria em massa, automação com IA e dashboards completos. Gerencie disparos, automações com IA e dashboards com limites conforme plano e provedor.">
+<meta name="description" content="REVAH® é a plataforma business de mensageria multicanal oficial (WhatsApp Meta, Telegram, SMS, voz e e-mail), automação com IA, CRM e captação de leads. Limites conforme plano.">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://www.revah.com.br">
 <!-- PWA -->
@@ -380,7 +380,7 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
 .notification.show{transform:translateX(0)}
 
 
-/* REVAH 31-08-2026 — canais, idiomas, cadastro de teste e integrações ocultas */
+/* REVAH 31-08-2026 — canais, idiomas, cadastro de teste e canais oficiais */
 .lang-select{background:var(--s2);border:1px solid var(--border);color:var(--green2);border-radius:999px;padding:9px 12px;font-size:12px;max-width:150px}
 .channel-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .channel-btn{background:var(--s3);border:1px solid var(--border);color:var(--smoke);padding:10px 13px;border-radius:10px;cursor:pointer;font-weight:700}
@@ -499,9 +499,9 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
         </div>
         <div class="feat-card">
           <span class="feat-icon">💬</span>
-          <div class="feat-title">4 integrações WhatsApp</div>
-          <div class="feat-desc">Integração oficial + 3 integrações alternativas. A tecnologia dos provedores fica protegida na infraestrutura do REVAH®.</div>
-          <div class="integration-actions"><button class="mini-btn" onclick="openModal('integrations')">Comparar integrações</button></div>
+          <div class="feat-title">WhatsApp oficial</div>
+          <div class="feat-desc">API oficial da Meta, número verificado e modelos aprovados. Junto com Telegram, SMS, voz e e-mail — só canais oficiais, para sua marca crescer com segurança.</div>
+          <div class="integration-actions"><button class="mini-btn" onclick="openModal('integrations')">Ver canais</button></div>
         </div>
         <div class="feat-card">
           <span class="feat-icon">📝</span>
@@ -675,13 +675,10 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
             <div id="providerBlock">
               <label class="disp-label">Integração WhatsApp</label>
               <select class="disp-select" id="waProvider">
-                <option value="meta" selected>Integração oficial</option>
-                <option value="zapi">Integração alternativa 1</option>
-                <option value="evolution">Integração alternativa 2</option>
-                <option value="wppconnect">Integração alternativa 3</option>
+                <option value="meta" selected>WhatsApp oficial (Meta)</option>
               </select>
-              <div class="integration-actions"><button class="mini-btn" type="button" onclick="openModal('integrations')">Comparar integrações</button></div>
-              <div style="font-size:11px;color:var(--muted);margin:7px 0 14px">Os fornecedores e credenciais são protegidos no servidor do REVAH®.</div>
+              <div class="integration-actions"><button class="mini-btn" type="button" onclick="openModal('integrations')">Ver canais</button></div>
+              <div style="font-size:11px;color:var(--muted);margin:7px 0 14px">Envio pela API oficial da Meta, com número verificado e credenciais protegidas no servidor do REVAH®.</div>
             </div>
 
             <label class="disp-label">Agendamento (opcional)</label>
@@ -692,7 +689,7 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
             <div class="disp-preview-label">Pré-visualização</div>
             <div class="msg-preview" id="msgPreview"><span style="color:var(--smoke);font-style:italic">Sua mensagem aparecerá aqui...</span></div>
             <div class="disp-recipients" id="recipientsBox"><div class="disp-recipients-title">DESTINATÁRIOS</div><div id="recipientsTags"><span class="recipient-tag">⌨️ Adicione os contatos para testar</span></div></div>
-            <div class="disp-recipients" style="margin-top:12px"><div class="disp-recipients-title">INTEGRAÇÕES DISPONÍVEIS</div><div style="font-size:11px;color:var(--smoke);line-height:1.7">✓ Integração oficial &nbsp; ✓ Alternativa 1 &nbsp; ✓ Alternativa 2 &nbsp; ✓ Alternativa 3</div></div>
+            <div class="disp-recipients" style="margin-top:12px"><div class="disp-recipients-title">CANAIS OFICIAIS</div><div style="font-size:11px;color:var(--smoke);line-height:1.7">✓ WhatsApp (Meta) &nbsp; ✓ Telegram &nbsp; ✓ SMS &nbsp; ✓ Voz &nbsp; ✓ E-mail</div></div>
             <div id="dispProgressWrap" style="display:none"><div class="disp-progress-bar"><div class="disp-progress-fill" id="dispProgressFill"></div></div><div class="disp-progress-text" id="dispProgressText">Iniciando...</div></div>
           </div>
         </div>
@@ -796,7 +793,7 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
         </div>
 
       </div>
-      <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:24px">14 dias grátis com forma de pagamento cadastrada · depois cobrança mensal automática · cancele a qualquer momento · *franquias sujeitas ao canal/provedor</p>
+      <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:24px">14 dias grátis com forma de pagamento cadastrada · depois cobrança mensal automática · cancele a qualquer momento · *franquias sujeitas às regras de cada canal</p>
     </div>
   </section>
 
@@ -923,19 +920,20 @@ footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px
   </div>
 </div>
 
-<!-- COMPARAR INTEGRAÇÕES -->
+<!-- CANAIS OFICIAIS -->
 <div class="modal-overlay" id="modal-integrations" onclick="closeOutside(event,'integrations')">
   <div class="modal" style="max-width:820px">
-    <div class="modal-header"><span class="modal-title">Comparar integrações</span><button class="modal-close" onclick="closeModal('integrations')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Canais oficiais do REVAH®</span><button class="modal-close" onclick="closeModal('integrations')">✕</button></div>
     <div class="modal-body">
-      <p class="trial-note">Os nomes dos fornecedores ficam protegidos. O cliente escolhe pelo perfil operacional. Valores abaixo são pacotes REVAH® de referência para 1.000 mensagens. O preço final pode variar por país, categoria, provedor, tributos e meio de pagamento; a margem operacional do REVAH® já está incorporada.</p>
-      <div style="overflow:auto"><table class="compare-table"><thead><tr><th>Opção</th><th>Prós</th><th>Pontos de atenção</th><th>Pacote</th><th></th></tr></thead><tbody>
-        <tr><td><strong>Integração oficial</strong></td><td>Canal oficial, maior previsibilidade, templates aprovados e melhor aderência às políticas do ecossistema.</td><td>Regras, aprovações e custos oficiais por categoria/mercado.</td><td><strong>R$ 189</strong><br><small>pacote de 1.000 mensagens*</small></td><td><button class="mini-btn" onclick="buyIntegration('official')">Contratar</button></td></tr>
-        <tr><td><strong>Alternativa 1</strong></td><td>Implantação rápida e operação simplificada.</td><td>Dependência de sessão/fornecedor e maior risco operacional.</td><td><strong>R$ 149</strong><br><small>pacote de 1.000 mensagens*</small></td><td><button class="mini-btn" onclick="buyIntegration('alt1')">Contratar</button></td></tr>
-        <tr><td><strong>Alternativa 2</strong></td><td>Flexibilidade, múltiplas instâncias e boa automação.</td><td>Exige infraestrutura e monitoramento.</td><td><strong>R$ 139</strong><br><small>pacote de 1.000 mensagens*</small></td><td><button class="mini-btn" onclick="buyIntegration('alt2')">Contratar</button></td></tr>
-        <tr><td><strong>Alternativa 3</strong></td><td>Boa autonomia técnica e customização.</td><td>Exige manutenção técnica e disponibilidade do serviço.</td><td><strong>R$ 129</strong><br><small>pacote de 1.000 mensagens*</small></td><td><button class="mini-btn" onclick="buyIntegration('alt3')">Contratar</button></td></tr>
+      <p class="trial-note">O REVAH® trabalha somente com canais oficiais. Sua marca fala com os clientes com estabilidade, reputação protegida e dentro das regras de cada plataforma.</p>
+      <div style="overflow:auto"><table class="compare-table"><thead><tr><th>Canal</th><th>Para que serve</th><th>Como funciona</th><th></th></tr></thead><tbody>
+        <tr><td><strong>WhatsApp oficial (Meta)</strong></td><td>Campanhas, lembretes, cobrança e atendimento com IA.</td><td>Número verificado e modelos aprovados pela Meta. Custos oficiais por categoria de conversa.</td><td><button class="mini-btn" onclick="buyIntegration('official')">Contratar</button></td></tr>
+        <tr><td><strong>Telegram</strong></td><td>Comunidades, avisos e atendimento automatizado.</td><td>Bot oficial da empresa, sem custo por mensagem.</td><td><button class="mini-btn" onclick="openModal('register')">Testar</button></td></tr>
+        <tr><td><strong>SMS</strong></td><td>Avisos rápidos, códigos e lembretes para qualquer celular.</td><td>Operadora oficial, cobrança conforme uso.</td><td><button class="mini-btn" onclick="openModal('register')">Testar</button></td></tr>
+        <tr><td><strong>Voz com IA</strong></td><td>Confirmações, recuperação e atendimento por ligação.</td><td>Ligações pela operadora oficial, com roteiro e agente de voz.</td><td><button class="mini-btn" onclick="openModal('register')">Testar</button></td></tr>
+        <tr><td><strong>E-mail</strong></td><td>Campanhas, comunicados e relacionamento.</td><td>Domínio autenticado da sua empresa, com descadastro automático.</td><td><button class="mini-btn" onclick="openModal('register')">Testar</button></td></tr>
       </tbody></table></div>
-      <p class="trial-note"><strong>Importante:</strong> a disponibilidade de cada integração depende das regras do canal e do provedor. O REVAH® não promete ausência total de bloqueios e aplica boas práticas de consentimento, opt-out e limites de envio.</p>
+      <p class="trial-note"><strong>Importante:</strong> o REVAH® aplica consentimento, descadastro (opt-out) e limites de envio em todos os canais, seguindo as políticas de cada plataforma.</p>
     </div>
   </div>
 </div>
@@ -1258,7 +1256,7 @@ const FEATURE_DEMOS={
  'Agentes com IA e contexto':{icon:'🤖',desc:'O agente entende intenção, consulta contexto permitido, responde, qualifica e transfere para uma pessoa quando necessário.',plans:['START básico','PRO avançado','ENTERPRISE'],rows:[['Conversas hoje','184'],['Resolvidas por IA','71%'],['Transferidas','29%'],['Tempo médio','00:42']],flow:['Mensagem recebida','Detectar intenção','Responder','Qualificar','Handoff humano']},
  'Dashboards em tempo real':{icon:'📊',desc:'Acompanhe investimento, entregas, abertura, resposta, leads e conversões em um painel único com filtros por origem, canal e campanha.',plans:['START básico','PRO completo','ENTERPRISE'],rows:[['Leads','486'],['CPL','R$ 18,40'],['Conversão','12,8%'],['Receita atribuída','R$ 42.880']],flow:['Mídia','Lead','Contato','Oportunidade','Venda']},
  'CRM integrado':{icon:'🔗',desc:'Leads entram com origem e campanha, seguem por etapas do funil, recebem responsável, tarefas, histórico e automações.',plans:['START','PRO','ENTERPRISE'],rows:[['Novos leads','94'],['Em contato','51'],['Propostas','22'],['Convertidos','13']],flow:['Novo lead','Qualificação','Contato','Proposta','Conversão']},
- '4 integrações WhatsApp':{icon:'💬',desc:'Escolha a integração oficial ou uma das alternativas operacionais sem expor o fornecedor na interface pública. O REVAH seleciona o conector configurado para cada operação.',plans:['START','PRO','ENTERPRISE'],rows:[['Oficial','recomendada'],['Alternativa 1','disponível'],['Alternativa 2','disponível'],['Alternativa 3','disponível']],flow:['Escolher integração','Configurar credencial','Testar canal','Ativar campanha']},
+ 'WhatsApp oficial':{icon:'💬',desc:'Envio pela API oficial da Meta, com número verificado e modelos aprovados. O REVAH também dispara por Telegram, SMS, voz e e-mail — só canais oficiais.',plans:['START','PRO','ENTERPRISE'],rows:[['WhatsApp','API oficial da Meta'],['Telegram','bot oficial'],['SMS e voz','operadora oficial'],['E-mail','domínio autenticado']],flow:['Conectar número oficial','Aprovar modelos','Testar canal','Ativar campanha']},
  'Templates dinâmicos':{icon:'📝',desc:'Biblioteca de modelos por objetivo e segmento com variáveis como nome, data, valor, produto, profissional e link. A prévia pública é protegida.',plans:['START: 5 modelos','PRO: ilimitados','ENTERPRISE'],rows:[['Cobrança','modelo protegido'],['Recall','modelo protegido'],['Confirmação','modelo protegido'],['Carrinho','modelo protegido']],flow:['Escolher modelo','Preencher variáveis','Pré-visualizar','Enviar']},
  'Agendamento inteligente':{icon:'⏰',desc:'Defina data, hora e fuso do destinatário. O motor organiza filas e evita disparos em horários inadequados conforme suas regras.',plans:['START','PRO','ENTERPRISE'],rows:[['Agendadas','12'],['Próxima fila','09:00'],['Fusos ativos','4'],['Regras de horário','ativas']],flow:['Criar','Escolher data','Aplicar fuso','Entrar na fila','Disparar']},
  'Consentimento e opt-out':{icon:'🔒',desc:'Registre consentimento, origem, data, finalidade e opt-out por canal. Bloqueios internos impedem novos contatos quando aplicável.',plans:['START','PRO','ENTERPRISE'],rows:[['Consentimentos','3.611'],['Opt-outs','87'],['Bloqueios internos','87'],['Auditoria','ativa']],flow:['Capturar consentimento','Registrar finalidade','Enviar','Receber opt-out','Bloquear canal']},
@@ -1307,7 +1305,7 @@ let currentChannel='whatsapp';
 function toggleCampaignBuilder(){const b=document.getElementById('campaignBuilder');const c=document.getElementById('builderChevron');if(!b)return;const hidden=b.style.display==='none';b.style.display=hidden?'grid':'none';if(c)c.textContent=hidden?'▲':'▼';}
 function selectChannel(ch,e){if(e)e.stopPropagation();currentChannel=ch;document.querySelectorAll('.channel-btn').forEach(b=>b.classList.toggle('active',b.dataset.channel===ch));document.getElementById('emailFields')?.classList.toggle('active',ch==='email');document.getElementById('voiceFields')?.classList.toggle('active',ch==='voice');const phoneBlock=document.getElementById('manualPhonesBlock');const target=document.getElementById('dispTarget');const provider=document.getElementById('providerBlock');const quick=document.getElementById('phoneQuick');const targetLabel=document.getElementById('targetLabel');if(quick)quick.placeholder=ch==='telegram'?'ID do chat Telegram':'44 99999-9999';if(targetLabel)targetLabel.textContent=ch==='email'?'Destinatários definidos acima':'Destinatários';if(provider)provider.style.display=ch==='whatsapp'?'block':'none';if(phoneBlock)phoneBlock.style.display=(ch==='email'?'none':(target?.value==='manual'?'block':'none'));const msg=document.getElementById('dispMsg');const label=document.getElementById('messageLabel');const presets={whatsapp:['Mensagem','Olá {nome}!\n\nSua mensagem aqui.'],sms:['SMS','Olá {nome}! Sua mensagem curta aqui.'],telegram:['Mensagem Telegram','Olá {nome}!\nSua mensagem no Telegram.'],voice:['Roteiro da chamada / texto para voz','Olá {nome}. Esta é uma mensagem da nossa equipe.'],email:['Corpo do e-mail','Olá {nome},\n\nEscreva o conteúdo do e-mail aqui.']};if(label)label.textContent=presets[ch][0];if(msg){msg.placeholder=presets[ch][1];if(!msg.value.trim())msg.value=presets[ch][1];}updatePreview();}
 async function enableMicrophone(){const st=document.getElementById('micStatus');try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});window.__revahMicStream=stream;if(st){st.textContent='microfone habilitado ✓';st.style.color='var(--green2)';}document.getElementById('micBtn').textContent='Microfone habilitado';}catch{if(st)st.textContent='permissão negada';notify('Permissão do microfone não concedida.');}}
-function buyIntegration(key){const names={official:'Integração oficial',alt1:'Integração alternativa 1',alt2:'Integração alternativa 2',alt3:'Integração alternativa 3'};const prices={official:'R$ 189 / 1.000',alt1:'R$ 149 / 1.000',alt2:'R$ 139 / 1.000',alt3:'R$ 129 / 1.000'};closeModal('integrations');document.getElementById('checkoutSummary').innerHTML=`<div class="checkout-plan-name">${names[key]}</div><div class="checkout-plan-price">${prices[key]}</div><div class="checkout-plan-desc">Pacote de referência de 1.000 mensagens · cobrança no ato da contratação</div>`;selectedPlan='integration_'+key;openModal('checkout');}
+function buyIntegration(key){const names={official:'WhatsApp oficial (Meta)'};const prices={official:'R$ 189 / 1.000'};closeModal('integrations');document.getElementById('checkoutSummary').innerHTML=`<div class="checkout-plan-name">${names[key]}</div><div class="checkout-plan-price">${prices[key]}</div><div class="checkout-plan-desc">Pacote de referência de 1.000 mensagens · cobrança no ato da contratação</div>`;selectedPlan='integration_'+key;openModal('checkout');}
 function trialIsVerified(){return localStorage.getItem('revah_trial_verified')==='1';}
 
 // ── Disparador ───────────────────────────────────────────────

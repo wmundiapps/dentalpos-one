@@ -1,5 +1,5 @@
 // REVAH® Service Worker v3 — atualização segura de conteúdo
-const CACHE_NAME = 'revah-v11-sem-he';
+const CACHE_NAME = 'revah-v12-canais-oficiais';
 const STATIC_ASSETS = ['/manifest.json'];
 
 self.addEventListener('install', event => {

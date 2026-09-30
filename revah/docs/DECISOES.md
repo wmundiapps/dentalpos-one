@@ -25,8 +25,7 @@
 | Limites não anunciados no site | START 3 usuários/3 canais; PRO 10 usuários, canais livres e voz; teste: até 1.000 mensagens. | `PLAN_LIMITS_JSON` / `TRIAL_MAX_MESSAGES`. |
 | Asaas e o "cadastre a forma de pagamento hoje" | No Asaas a assinatura é criada no início do teste e a primeira fatura (Pix, boleto ou cartão) vence no 14º dia; o cartão não fica pré-cadastrado. No Stripe o cartão é exigido no início. | — |
 | Modelo de IA | `claude-opus-5`, esforço baixo para resposta rápida, com fallback de servidor em recusas. Sem `ANTHROPIC_API_KEY` o bot usa regras simples e transfere para humano. | `REVAH_AI_MODEL`. |
-| Zapiô | A API do Zapiô não tem contrato público estável; o adaptador aceita URL, caminho e nomes de campo configuráveis. | Ajustar campos no canal ao contratar. |
 
 ## Avisos que continuam valendo
-- Z-API e Zapiô são não oficiais: o painel exige aceite explícito do risco de banimento antes de conectar.
+- Somente canais oficiais: WhatsApp pela API oficial da Meta, Telegram, SMS, voz e e-mail. Provedores não oficiais de WhatsApp (Z-API, Zapiô e similares) foram removidos; contas antigas desses provedores ficam desativadas.
 - Ligações automáticas (Não Me Perturbe, LGPD): validar com o jurídico antes de ativar para cobrança e prospecção fria.

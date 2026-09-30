@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Plug, Plus, Star, Trash2, XCircle, Zap } from 'lucide-react'
+import { CheckCircle2, Plug, Plus, Star, Trash2, XCircle, Zap } from 'lucide-react'
 import { del, get, patch, post } from '../lib/api'
 import { CHANNEL_LABEL, fmtPhone } from '../lib/format'
 import { useAuthed } from '../lib/session'
@@ -9,7 +9,6 @@ import { Alert, Badge, Button, Card, CopyButton, EmptyState, ErrorBox, Field, Lo
 
 interface ProvidersResponse {
   providers: ProviderInfo[]
-  unofficialWarning: string
 }
 
 export default function Channels() {
@@ -86,11 +85,6 @@ export default function Channels() {
                 <div className="row wrap gap-xs">
                   {a.isDefault && <Badge tone="indigo">Padrão</Badge>}
                   {a.simulated && <Badge tone="blue">Simulado</Badge>}
-                  {!a.official && (
-                    <Badge tone="amber" title="Provedor não oficial do WhatsApp">
-                      Não oficial
-                    </Badge>
-                  )}
                   <Badge tone={a.isActive ? 'green' : 'gray'}>{a.isActive ? 'Ativo' : 'Inativo'}</Badge>
                 </div>
               </div>
@@ -168,14 +162,13 @@ function ConnectModal({ data, onClose, onDone }: { data: ProvidersResponse; onCl
     return [...set]
   }, [data])
   const [channel, setChannel] = useState<Channel>('WHATSAPP')
-  const options = data.providers.filter((p) => p.channels.includes(channel)).sort((a, b) => Number(b.official) - Number(a.official))
+  const options = data.providers.filter((p) => p.channels.includes(channel))
   const [provider, setProvider] = useState(options[0]?.key || '')
   const [label, setLabel] = useState('')
   const [address, setAddress] = useState('')
   const [externalId, setExternalId] = useState('')
   const [creds, setCreds] = useState<Record<string, string>>({})
   const [simulated, setSimulated] = useState(false)
-  const [ack, setAck] = useState(false)
   const [isDefault, setIsDefault] = useState(true)
   const [defTpl, setDefTpl] = useState({ name: '', language: 'pt_BR' })
   const [loading, setLoading] = useState(false)
@@ -183,21 +176,18 @@ function ConnectModal({ data, onClose, onDone }: { data: ProvidersResponse; onCl
   const [result, setResult] = useState<{ account: ChannelAccount; connection: { ok: boolean; info?: string; error?: string } } | null>(null)
 
   const info = data.providers.find((p) => p.key === provider)
-  const unofficial = info && !info.official
   const addr = ADDRESS_HINT[channel]
 
   function pickChannel(c: Channel) {
     setChannel(c)
-    const opts = data.providers.filter((p) => p.channels.includes(c)).sort((a, b) => Number(b.official) - Number(a.official))
+    const opts = data.providers.filter((p) => p.channels.includes(c))
     setProvider(opts[0]?.key || '')
     setCreds({})
-    setAck(false)
   }
 
   async function submit() {
     setError('')
     if (!label.trim() || !address.trim()) return setError('Informe um nome e o número/endereço.')
-    if (unofficial && !ack) return setError('Confirme que entendeu os riscos do provedor não oficial.')
     const credentials: Record<string, unknown> = simulated ? { simulated: true } : Object.fromEntries(Object.entries(creds).filter(([, v]) => v.trim()).map(([k, v]) => [k, v.trim()]))
     if (!simulated) {
       const missing = (info?.fields || []).filter((f) => !f.optional && !creds[f.key]?.trim()).map((f) => f.label)
@@ -214,7 +204,6 @@ function ConnectModal({ data, onClose, onDone }: { data: ProvidersResponse; onCl
         credentials,
         isDefault,
         ...(provider === 'META_CLOUD' && defTpl.name.trim() ? { settings: { defaultTemplate: { name: defTpl.name.trim(), language: defTpl.language.trim() || 'pt_BR' } } } : {}),
-        ...(unofficial ? { acknowledgeRisk: true } : {}),
       })
       setResult(r)
     } catch (e: any) {
@@ -263,7 +252,7 @@ function ConnectModal({ data, onClose, onDone }: { data: ProvidersResponse; onCl
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button variant="primary" onClick={submit} loading={loading} disabled={Boolean(unofficial && !ack)}>
+          <Button variant="primary" onClick={submit} loading={loading}>
             Conectar
           </Button>
         </>
@@ -281,7 +270,7 @@ function ConnectModal({ data, onClose, onDone }: { data: ProvidersResponse; onCl
           </div>
         </Field>
         <Field label="Provedor">
-          <select value={provider} onChange={(e) => { setProvider(e.target.value); setCreds({}); setAck(false) }}>
+          <select value={provider} onChange={(e) => { setProvider(e.target.value); setCreds({}) }}>
             {options.map((p) => (
               <option key={p.key} value={p.key}>
                 {p.label}
@@ -292,18 +281,6 @@ function ConnectModal({ data, onClose, onDone }: { data: ProvidersResponse; onCl
         </Field>
         {channel === 'WHATSAPP' && provider === 'META_CLOUD' && (
           <Alert tone="green">API oficial da Meta: maior estabilidade e menor risco de bloqueio do número. Exige modelos aprovados para iniciar conversas.</Alert>
-        )}
-        {unofficial && (
-          <div className="risk">
-            <div className="row gap-sm strong">
-              <AlertTriangle size={18} /> Atenção: provedor não oficial
-            </div>
-            <p>{data.unofficialWarning}</p>
-            <label className="check">
-              <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />
-              <span>Entendo e assumo o risco de bloqueio ou banimento do número. Sei que a API oficial da Meta é a opção recomendada.</span>
-            </label>
-          </div>
         )}
         <div className="grid-2 gap-sm">
           <Field label="Nome interno">

@@ -138,7 +138,7 @@ model ChannelAccount {
   tenantId             String
   tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   channel              String // WHATSAPP | SMS | TELEGRAM | EMAIL | INSTAGRAM | MESSENGER | VOICE
-  provider             String // META_CLOUD | ZAPI | ZAPIO | TWILIO | TELEGRAM | RESEND | META_GRAPH
+  provider             String // META_CLOUD | TWILIO | TELEGRAM | RESEND | META_GRAPH
   label                String
   address              String // telefone, e-mail, @bot, id da página
   externalId           String? // phone_number_id / page_id / instance id — roteia webhooks
@@ -147,7 +147,7 @@ model ChannelAccount {
   webhookSecret        String
   isDefault            Boolean   @default(false)
   isActive             Boolean   @default(true)
-  riskAcknowledgedAt   DateTime? // obrigatório para provedores não oficiais de WhatsApp
+  riskAcknowledgedAt   DateTime? // legado (provedores não oficiais foram removidos)
   riskAcknowledgedBy   String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt

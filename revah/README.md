@@ -22,7 +22,7 @@ Pode virar um repositório separado a qualquer momento (ver "Separar em reposit�
 - **Teste de 14 dias validado no servidor** (começa ao cadastrar a forma de pagamento; até 20 contatos por campanha), sem reuso por e-mail/telefone/documento.
 - **Pagamentos**: Asaas no Brasil (Pix, boleto, cartão) e Stripe internacional; START R$ 247 e PRO R$ 597, cobrança mensal automática, cancelamento a qualquer momento, webhooks idempotentes, add-on de leads.
 - **Templates**: biblioteca de modelos por segmento + modelos da empresa (limite por plano).
-- **Canais**: WhatsApp (Meta Cloud API oficial, Z-API e Zapiô com aceite de risco obrigatório), SMS (Twilio), Telegram, e-mail (Resend, com descadastro em 1 clique), Instagram Direct e Messenger (Graph API) e voz (Twilio). Modo simulado para testes.
+- **Canais**: WhatsApp (somente API oficial da Meta), SMS (Twilio), Telegram, e-mail (Resend, com descadastro em 1 clique), Instagram Direct e Messenger (Graph API) e voz (Twilio). Modo simulado para testes.
 - **Consentimento**: suppression list por canal (palavras como SAIR/PARAR, pedido verbal ou tecla 9 na ligação, link de e-mail, manual, importação), histórico de consentimento e bloqueio de envio em todos os fluxos.
 - **CRM**: contatos, etiquetas, notas, importação CSV, deduplicação, histórico unificado (todos os canais + ligações + notas).
 - **Campanhas**: público por etiquetas/contatos/lista manual, prévia (válidos, inválidos, bloqueados), variáveis, modelos oficiais do WhatsApp, agendamento, fila com cadência, pausa/retomada/cancelamento, envio de teste.
