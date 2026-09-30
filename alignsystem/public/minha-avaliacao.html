@@ -82,6 +82,20 @@
       (state.dentist ? '<p class="small muted" style="margin-top:10px">Dentista responsável: <b>' + esc(state.dentist.name) + '</b> · CRO-' + esc(state.dentist.croUf || '') + ' ' + esc(state.dentist.cro) + '</p>' : '') +
       '</div>';
 
+    // Termo de consentimento (obrigatório antes do atendimento a distância)
+    if (state.tcle) {
+      html += '<div class="card" id="tcle"><h2>Antes de começar: termo de consentimento</h2>' +
+        '<p class="muted">Parte do seu atendimento é feita a distância. Leia o termo abaixo e confirme para liberar o envio das fotos e a teleorientação.</p>' +
+        '<div class="doc tcle-box" tabindex="0" aria-label="Texto do termo de consentimento">' + state.tcle.body + '</div>' +
+        '<form id="tcleForm">' +
+        (c.isMinor ? '<div class="msg warn">Paciente menor de 18 anos: o termo deve ser aceito pelo pai, pela mãe ou pelo responsável legal.</div>' +
+          '<div class="field"><label for="guardianName">Nome completo do responsável legal</label><input id="guardianName" autocomplete="name" required minlength="5"></div>' : '') +
+        '<div class="check field"><input type="checkbox" id="tcleAgree" required><label for="tcleAgree"><b>Li e aceito</b> o Termo de Consentimento Livre e Esclarecido para atendimento odontológico a distância' + (c.isMinor ? ', como responsável legal do(a) paciente' : '') + '.</label></div>' +
+        '<button class="btn btn-primary" type="submit">Confirmar e continuar</button>' +
+        '<p class="small muted" style="margin-top:10px">Seu aceite fica registrado com nome, data e hora, endereço IP e o código de integridade do texto. <a href="/termo-consentimento" target="_blank">Abrir o termo em outra página</a>.</p>' +
+        '<div id="tcleMsg"></div></form></div>';
+    }
+
     // Parecer
     if (c.assessment) {
       html += '<div class="card"><h2>Parecer da pré-avaliação</h2>' +
@@ -91,6 +105,10 @@
     }
 
     // Fotos
+    if (state.tcle) {
+      html += '<div class="card"><h2>Envio das fotos e teleorientação</h2><p class="muted">Liberados assim que você aceitar o termo de consentimento acima.</p></div>';
+    }
+    if (!state.tcle) {
     html += '<div class="card" id="fotos"><h2>' + (locked ? 'Suas fotos' : 'Envie as 7 fotos do seu sorriso') + '</h2>';
     if (!locked) {
       html += '<p class="muted">Use luz natural, sem flash direto, e retire óculos e batom. Você pode tirar a foto na hora ou escolher da galeria. ' +
@@ -117,8 +135,10 @@
         (done < 7 ? '<span class="small muted">Faltam ' + (7 - done) + ' foto(s).</span>' : '') + '</div><div id="photoMsg"></div>';
     }
     html += '</div>';
+    }
 
     // Agendamentos
+    if (!state.tcle) {
     html += '<div class="card"><h2>Teleorientação e agendamentos</h2>';
     if (state.appointments.length) {
       html += '<div class="list">';
@@ -140,7 +160,9 @@
       '<form id="teleForm" style="margin-top:12px"><div class="field"><label for="pref">Melhores dias e horários para você</label>' +
       '<input id="pref" maxlength="300" placeholder="Ex.: terças e quintas depois das 18h" required></div>' +
       '<button class="btn btn-green btn-sm" type="submit">Enviar pedido</button><div id="teleMsg"></div></form></details>' +
-      '<p class="small muted" style="margin-top:10px">A teleorientação é uma conversa orientativa por vídeo e não substitui o exame clínico presencial. A chamada abre no navegador, sem instalar nada.</p></div>';
+      '<p class="small muted" style="margin-top:10px">A teleorientação é uma conversa orientativa por vídeo e não substitui o exame clínico presencial. A chamada abre no navegador, sem instalar nada.</p>' +
+      (state.consent ? '<p class="small muted">Termo de consentimento aceito em ' + esc(AS.date(state.consent.acceptedAt, true)) + '. <a href="/termo-consentimento?v=' + encodeURIComponent(state.consent.version) + '" target="_blank">Ver termo</a></p>' : '') + '</div>';
+    }
 
     // Contratos
     if (state.contracts.length) {
@@ -208,6 +230,19 @@
       AS.api('/api/portal/' + encodeURIComponent(T) + '/submit', { method: 'POST', body: {} })
         .then(load)
         .catch(function (e) { sub.disabled = false; document.getElementById('photoMsg').innerHTML = '<div class="msg err">' + esc(e.message) + '</div>'; });
+    });
+
+    var cf = document.getElementById('tcleForm');
+    if (cf) cf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = cf.querySelector('button');
+      var g = document.getElementById('guardianName');
+      btn.disabled = true;
+      AS.api('/api/portal/' + encodeURIComponent(T) + '/consent', { method: 'POST', body: {
+        agree: document.getElementById('tcleAgree').checked, hash: state.tcle.hash, guardianName: g ? g.value : '',
+      } }).then(function () { return load(); }).then(function () {
+        var f = document.getElementById('fotos'); if (f) f.scrollIntoView({ behavior: 'smooth' });
+      }).catch(function (err) { btn.disabled = false; document.getElementById('tcleMsg').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
     });
 
     var tf = document.getElementById('teleForm');

@@ -9,6 +9,7 @@ import { token, sha256, clean, digits, isEmail, appUrl, brl, validCpf, validCpfC
 import { sendMail, notifyAddress, layout, button, para, table } from './mail.js';
 import * as asaas from './asaas.js';
 import { patientContract, partnerContract, contractsReviewed, PARTNER_DEFAULTS } from './contracts.js';
+import { ensureTcle, currentConsent, TCLE_KIND, TCLE_VERSION } from './tcle.js';
 import {
   CASE_STATUS, DENTIST_STATUS, ASSESSMENT, MILESTONES, PHOTO_SLOTS, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_CASE,
 } from './constants.js';
@@ -79,6 +80,10 @@ async function sendPhoto(sql, res, where) {
     'Cache-Control': 'private, max-age=600',
     'Content-Disposition': 'inline',
   });
+}
+
+async function requireConsent(sql, c) {
+  if (!(await currentConsent(sql, c.id))) fail(409, 'Antes de continuar, leia e aceite o termo de consentimento do atendimento a distância.');
 }
 
 function publicCase(c) {
@@ -237,8 +242,12 @@ r('GET', '/api/portal/:token', async (req, res, { token: t }) => {
   const payments = await sql`select asaas_payment_id, charge_id, value, due_date, status, invoice_url from payments
     where case_id = ${c.id} order by due_date`;
   const dentist = c.dentist_id ? await dentistById(sql, c.dentist_id) : null;
+  const consent = await currentConsent(sql, c.id);
+  const tcle = consent ? null : await ensureTcle(sql);
   send(res, 200, {
-    case: publicCase(c),
+    case: { ...publicCase(c), isMinor: Number(c.age) < 18 },
+    consent: consent && { acceptedAt: consent.accepted_at, acceptedName: consent.accepted_name, byGuardian: consent.accepted_by_guardian, version: consent.version },
+    tcle: tcle && { version: tcle.version, title: tcle.title, body: tcle.body, hash: tcle.hash },
     dentist: dentist ? { name: dentist.name, cro: dentist.cro, croUf: dentist.cro_uf, city: dentist.city } : null,
     slots: PHOTO_SLOTS,
     photos: photos.map((p) => ({ id: p.id, slot: p.slot, kind: p.kind })),
@@ -252,9 +261,33 @@ r('GET', '/api/portal/:token', async (req, res, { token: t }) => {
   }, { 'Cache-Control': 'no-store' });
 });
 
+// Aceite do termo de consentimento (TCLE) do atendimento a distância
+r('POST', '/api/portal/:token/consent', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  if (await currentConsent(sql, c.id)) return send(res, 200, { ok: true });
+  if (b.agree !== true) fail(400, 'Marque a caixa "Li e aceito" para continuar.');
+  const tcle = await ensureTcle(sql);
+  if (b.hash !== tcle.hash) fail(409, 'O termo foi atualizado. Recarregue a página e leia a versão nova.');
+  const minor = Number(c.age) < 18;
+  const guardianName = clean(b.guardianName, 120);
+  if (minor && guardianName.length < 5) fail(400, 'Paciente menor de 18 anos: informe o nome completo do responsável legal.');
+  await rateLimit(sql, `consent:${c.id}`, 10, 60);
+  const ip = clientIp(req);
+  const [row] = await sql`insert into consents (case_id, case_code, kind, version, body_hash, patient_name, accepted_name,
+      accepted_by_guardian, guardian_name, ip, user_agent)
+    values (${c.id}, ${c.code}, ${TCLE_KIND}, ${tcle.version}, ${tcle.hash}, ${c.name}, ${minor ? guardianName : c.name},
+      ${minor}, ${minor ? guardianName : null}, ${ip}, ${clean(req.headers['user-agent'], 300)})
+    returning id, accepted_at`;
+  await logEvent(sql, { caseId: c.id, actor: minor ? `responsável: ${guardianName}` : 'paciente', type: 'tcle_aceito', data: { version: tcle.version, hash: tcle.hash, ip, consentId: row.id } });
+  send(res, 201, { ok: true });
+});
+
 r('POST', '/api/portal/:token/photos', async (req, res, { token: t }) => {
   const sql = db();
   const c = await caseByToken(sql, t);
+  await requireConsent(sql, c);
   await rateLimit(sql, `upload:${c.id}`, 60, 60);
   const url = new URL(req.url, 'http://x');
   const slot = Number(url.searchParams.get('slot')) || null;
@@ -280,6 +313,7 @@ r('DELETE', '/api/portal/:token/photos/:id', async (req, res, { token: t, id }) 
 r('POST', '/api/portal/:token/submit', async (req, res, { token: t }) => {
   const sql = db();
   const c = await caseByToken(sql, t);
+  await requireConsent(sql, c);
   const [{ n }] = await sql`select count(distinct slot)::int as n from photos where case_id = ${c.id} and kind = 'avaliacao'`;
   if (n < 7) fail(400, `Faltam ${7 - n} foto(s) para completar a pré-avaliação.`);
   const first = !c.photos_submitted_at;
@@ -301,6 +335,7 @@ r('POST', '/api/portal/:token/teleorientacao', async (req, res, { token: t }) =>
   const sql = db();
   const c = await caseByToken(sql, t);
   const b = await readJson(req);
+  await requireConsent(sql, c);
   await rateLimit(sql, `tele:${c.id}`, 3, 60 * 24);
   const pref = clean(b.preference, 300);
   await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'pedido_teleorientacao', data: { pref } });
@@ -310,6 +345,15 @@ r('POST', '/api/portal/:token/teleorientacao', async (req, res, { token: t }) =>
     html: layout('Paciente pediu teleorientação', table([['Paciente', c.name], ['WhatsApp', c.whatsapp], ['Preferência de horário', pref]]) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Agendar no painel')),
   });
   send(res, 200, { ok: true });
+});
+
+r('GET', '/api/consent-text', async (req, res) => {
+  const sql = db();
+  const v = new URL(req.url, 'http://x').searchParams.get('v') || TCLE_VERSION;
+  const cur = await ensureTcle(sql);
+  const [row] = await sql`select version, title, body, body_hash, created_at from consent_texts where version = ${v}`;
+  if (!row) fail(404, 'Versão do termo não encontrada.');
+  send(res, 200, { version: row.version, title: row.title, body: row.body, hash: row.body_hash, publishedAt: row.created_at, current: row.version === cur.version });
 });
 
 // ------------------------------------------------------------------ contratos (link com token)
@@ -536,7 +580,9 @@ async function caseDetail(sql, id) {
     sql`select e.*, d.name as dentist_name from evidences e left join dentists d on d.id = e.dentist_id where case_id = ${id} order by performed_at desc, created_at desc`,
     sql`select actor, type, data, created_at from events where case_id = ${id} order by created_at desc limit 100`,
   ]);
-  return { c, photos, appts, contracts, charges, payments, evidences, events };
+  const consents = await sql`select id, version, body_hash, accepted_name, accepted_by_guardian, guardian_name, ip, accepted_at
+    from consents where case_id = ${id} order by accepted_at desc`;
+  return { c, photos, appts, contracts, charges, payments, evidences, events, consents };
 }
 
 r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
@@ -549,10 +595,41 @@ r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
     contracts: d.contracts.map((x) => ({ ...x, url: contractUrl(x.token) })),
     charges: d.charges.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
     payments: d.payments.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
-    evidences: d.evidences, events: d.events,
+    evidences: d.evidences, events: d.events, consents: d.consents,
     labels: { CASE_STATUS, ASSESSMENT, MILESTONES },
     slots: PHOTO_SLOTS,
   });
+});
+
+// Comprovante do aceite do TCLE: texto exato aceito + registro (para imprimir/salvar em PDF)
+r('GET', '/api/admin/consents/:id/comprovante', async (req, res, { id }) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const [c] = await sql`select k.*, t.title, t.body from consents k join consent_texts t on t.version = k.version where k.id = ${id}`;
+  if (!c) fail(404, 'Registro não encontrado.');
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const when = new Date(c.accepted_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Comprovante de aceite — caso ${esc(c.case_code)}</title>
+<style>body{font:15px/1.6 Georgia,serif;max-width:760px;margin:30px auto;padding:0 18px;color:#111}h2{font-size:20px}h3{font-size:15px;margin:16px 0 4px}
+table{border-collapse:collapse;width:100%;font:14px Arial,sans-serif;margin:18px 0}td{border:1px solid #ccc;padding:6px 8px;vertical-align:top}td:first-child{width:34%;background:#f4f1ea}
+.box{border:2px solid #157A6E;padding:4px 16px;margin-top:10px}</style></head><body>
+<h1 style="font:600 22px Arial,sans-serif">Comprovante de aceite eletrônico</h1>
+<table>
+<tr><td>Documento</td><td>${esc(c.title)}</td></tr>
+<tr><td>Versão do texto</td><td>${esc(c.version)}</td></tr>
+<tr><td>Código de integridade (SHA-256)</td><td style="word-break:break-all">${esc(c.body_hash)}</td></tr>
+<tr><td>Caso nº</td><td>${esc(c.case_code)}</td></tr>
+<tr><td>Paciente</td><td>${esc(c.patient_name)}</td></tr>
+<tr><td>Aceito por</td><td>${esc(c.accepted_name)}${c.accepted_by_guardian ? ' (responsável legal — paciente menor de 18 anos)' : ''}</td></tr>
+<tr><td>Data e hora (Brasília)</td><td>${esc(when)}</td></tr>
+<tr><td>Endereço IP</td><td>${esc(c.ip)}</td></tr>
+<tr><td>Navegador</td><td style="word-break:break-all">${esc(c.user_agent)}</td></tr>
+<tr><td>Forma do aceite</td><td>Caixa "Li e aceito" marcada na página pessoal da avaliação, após exibição do texto integral abaixo.</td></tr>
+</table>
+<div class="box">${c.body}</div>
+<p style="font:12px Arial,sans-serif;color:#555;margin-top:18px">Documento gerado pelo painel AlignSystem em ${esc(new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}. Para salvar, use Imprimir → Salvar como PDF.</p>
+</body></html>`;
+  send(res, 200, Buffer.from(html), { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
 });
 
 r('PATCH', '/api/admin/cases/:id', async (req, res, { id }) => {

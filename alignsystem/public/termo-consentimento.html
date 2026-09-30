@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css" />
+<title>Termo de consentimento — AlignSystem</title>
+<meta name="description" content="Termo de Consentimento Livre e Esclarecido para atendimento odontológico a distância (Teleodontologia)." />
+</head>
+<body>
+<div class="top"><div class="in"><a class="logo" href="/">Align<em>System</em></a><button class="btn btn-line btn-sm no-print" onclick="window.print()">Imprimir / salvar PDF</button></div></div>
+<main class="container" id="app"><div class="card center"><span class="spinner"></span></div></main>
+<script src="/assets/app.js"></script>
+<script>
+(function () {
+  var v = new URLSearchParams(location.search).get('v') || '';
+  var app = document.getElementById('app');
+  AS.api('/api/consent-text' + (v ? '?v=' + encodeURIComponent(v) : '')).then(function (d) {
+    app.innerHTML = (d.current ? '' : '<div class="msg warn">Esta é uma versão anterior do termo, mantida para registro.</div>') +
+      '<article class="card doc">' + d.body + '</article>' +
+      '<p class="small muted">Versão ' + AS.esc(d.version) + ' · publicada em ' + AS.esc(AS.date(d.publishedAt)) + ' · código de integridade (SHA-256): <code style="word-break:break-all">' + AS.esc(d.hash) + '</code></p>';
+  }).catch(function (e) { app.innerHTML = '<div class="card"><h1>Termo indisponível</h1><p class="muted">' + AS.esc(e.message) + '</p></div>'; });
+})();
+</script>
+</body>
+</html>

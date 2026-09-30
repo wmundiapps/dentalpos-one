@@ -88,6 +88,24 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   let portal = await call('GET', `/api/portal/${t}`);
   assert.equal(portal.status, 200);
   assert.equal(portal.data.case.firstName, 'Maria');
+  // termo de consentimento obrigatório antes das fotos
+  assert.ok(portal.data.tcle?.body.includes('Teleodontologia'));
+  assert.equal((await call('POST', `/api/portal/${t}/photos?slot=1`, { raw: JPEG })).status, 409);
+  assert.equal((await call('POST', `/api/portal/${t}/consent`, { body: { agree: false, hash: portal.data.tcle.hash } })).status, 400);
+  assert.equal((await call('POST', `/api/portal/${t}/consent`, { body: { agree: true, hash: 'velho' } })).status, 409);
+  assert.equal((await call('POST', `/api/portal/${t}/consent`, { body: { agree: true, hash: portal.data.tcle.hash } })).status, 201);
+  const [consentRow] = await sql`select * from alignsystem_test.consents where case_code = ${lead.data.code}`;
+  assert.equal(consentRow.accepted_name, 'Maria da Silva');
+  assert.ok(consentRow.ip);
+  assert.equal(consentRow.body_hash, portal.data.tcle.hash);
+  const txt = await call('GET', `/api/consent-text?v=${consentRow.version}`);
+  assert.equal(txt.data.hash, consentRow.body_hash);
+  // menor de idade: exige responsável
+  const kid = await call('POST', '/api/leads/paciente', { body: { name: 'Pedro Menor', age: 15, whatsapp: '44977776666', city: 'Maringá', consent: true } });
+  const kp = await call('GET', `/api/portal/${kid.data.token}`);
+  assert.equal(kp.data.case.isMinor, true);
+  assert.equal((await call('POST', `/api/portal/${kid.data.token}/consent`, { body: { agree: true, hash: kp.data.tcle.hash } })).status, 400);
+  assert.equal((await call('POST', `/api/portal/${kid.data.token}/consent`, { body: { agree: true, hash: kp.data.tcle.hash, guardianName: 'Ana Menor Responsável' } })).status, 201);
   const notImg = await call('POST', `/api/portal/${t}/photos?slot=1`, { raw: Buffer.from('não é imagem, só texto qualquer') });
   assert.equal(notImg.status, 415);
   const early = await call('POST', `/api/portal/${t}/submit`, { body: {} });
@@ -114,6 +132,12 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   await call('POST', '/api/leads/paciente', { body: { name: 'João Souza', age: 40, whatsapp: '44988887777', city: 'Sarandi', consent: true } });
   const search = await call('GET', '/api/admin/cases?q=Maria', { who: 'admin' });
   assert.equal(search.data.cases.length, 1);
+  const det = await call('GET', `/api/admin/cases/${caseId}`, { who: 'admin' });
+  assert.equal(det.data.consents.length, 1);
+  const proof = await call('GET', `/api/admin/consents/${det.data.consents[0].id}/comprovante`, { who: 'admin' });
+  assert.equal(proof.status, 200);
+  assert.match(Buffer.from(proof.data).toString('utf8'), /Comprovante de aceite eletrônico[\s\S]*Maria da Silva/);
+  assert.equal((await call('GET', `/api/admin/consents/${det.data.consents[0].id}/comprovante`)).status, 401);
 
   // parecer ainda não publicado não aparece para o paciente
   await call('PATCH', `/api/admin/cases/${caseId}`, { who: 'admin', body: { assessment: 'indicado', assessment_notes: 'Bom caso.' } });
