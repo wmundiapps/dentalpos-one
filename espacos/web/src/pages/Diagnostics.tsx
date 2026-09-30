@@ -5,6 +5,7 @@ type Cfg = {
   adminEmailsConfigured: number; emailSending: boolean; smtpLogin: string; emailFrom: string;
   emailLast24h: { sent: number; failed: number; pending: number; lastSentAt: string | null; lastError: string | null } | null;
   mercadoPago: boolean; appUrl: string | null; version: string | null;
+  you: { email: string; emailVerified: boolean; inAdminList: boolean; isAdmin: boolean } | null;
 };
 
 // Diagnóstico da configuração na Vercel (sem segredos), para a equipe resolver problemas sem entrar no código
@@ -25,6 +26,12 @@ export default function Diagnostics() {
     <div className="container narrow">
       <h1>Diagnóstico do SpaceHour</h1>
       <p className="muted small">Mostra o que a Vercel está entregando ao servidor agora. Nenhuma senha ou chave aparece aqui.{c.version ? ` Versão ${c.version}.` : ''}</p>
+      {c.you && row(c.you.isAdmin, `Sua conta: ${c.you.email}`,
+        c.you.isAdmin ? 'Você é administrador. Abra o menu ☰ → Admin.'
+          : !c.you.inAdminList ? 'Este e-mail NÃO está na lista ADMIN_EMAILS (confira se foi digitado igualzinho na Vercel).'
+          : !c.you.emailVerified ? 'O e-mail está na lista, mas ainda não foi confirmado.'
+          : 'Está na lista e confirmado: recarregue a página para virar admin.',
+        !c.you.inAdminList ? 'Na Vercel, edite ADMIN_EMAILS e confira a grafia deste e-mail; depois faça Redeploy.' : 'Confirme o e-mail pelo código de 6 números.')}
       {row(c.adminEmailsConfigured > 0, 'Administradores (ADMIN_EMAILS)', `${c.adminEmailsConfigured} e-mail(s) configurado(s).`,
         'Na Vercel (projeto spacehour → Settings → Environment Variables), crie ADMIN_EMAILS marcando o ambiente Production e faça Redeploy.')}
       {row(c.emailSending, 'Envio de e-mail configurado (SMTP_HOST)', c.emailSending ? 'Servidor de e-mail informado.' : 'Sem SMTP_HOST: nenhum e-mail sai (código de confirmação, senha, avisos).',
