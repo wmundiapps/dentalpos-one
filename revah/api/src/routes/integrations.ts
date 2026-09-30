@@ -9,8 +9,22 @@ import { upsertContact } from '../services/contacts'
 import { ingestDentalposEvent, provisionClinic, setLicense, syncPatients, verifyServerSignature } from '../services/dentalpos'
 import { sendMessage } from '../services/messaging'
 import { trialStatus } from '../services/plans'
+import { linkedinCallback } from '../services/leads/linkedin'
+import { config } from '../config'
 
 const r = Router()
+
+// --- LinkedIn Lead Sync: retorno do OAuth (sem login; o state assinado identifica a conta) ---
+r.get('/integrations/linkedin/callback', async (req, res) => {
+  const back = (q: string) => res.redirect(`${config.appUrl}/leads?${q}`)
+  if (req.query.error) return back('linkedin=cancelado')
+  try {
+    const out = await linkedinCallback(String(req.query.code || ''), String(req.query.state || ''))
+    back(`linkedin=ok&contas=${out.accounts}`)
+  } catch (e: any) {
+    back(`linkedin=erro&msg=${encodeURIComponent(String(e?.message || 'Falha ao conectar').slice(0, 200))}`)
+  }
+})
 
 // --- DentalPos One: servidor-a-servidor com segredo compartilhado ---------
 r.post(

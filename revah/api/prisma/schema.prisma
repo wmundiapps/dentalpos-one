@@ -54,6 +54,7 @@ model Tenant {
   leadSearches   LeadSearch[]
   leads          Lead[]
   leadsContracts LeadsContract[]
+  leadSources    LeadSource[]
   apiKeys        ApiKey[]
   events         IntegrationEvent[]
   notes          Note[]
@@ -625,4 +626,71 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([tenantId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Base empresarial (dados abertos de CNPJ). Global, não pertence a um tenant.
+// Carregada pelo script `npm run receita:import`; nunca exposta com o nome da fonte.
+// ---------------------------------------------------------------------------
+
+model CompanyRecord {
+  cnpj          String   @id // 14 dígitos
+  basico        String // 8 primeiros dígitos (liga com a razão social)
+  tradeName     String? // nome fantasia
+  legalName     String? // razão social
+  cnae          String // CNAE principal (7 dígitos)
+  cnaeSecondary String? // CNAEs secundários separados por vírgula
+  uf            String
+  cityCode      String
+  city          String?
+  cityNorm      String? // cidade sem acento, minúscula (busca)
+  district      String?
+  zip           String?
+  address       String?
+  phone         String?
+  phone2        String?
+  email         String?
+  openedAt      String? // AAAAMMDD
+  size          String? // porte: 01 ME, 03 EPP, 05 demais
+  refMonth      String // AAAA-MM da carga
+  updatedAt     DateTime @updatedAt
+
+  @@index([uf, cityNorm, cnae])
+  @@index([cnae, uf])
+  @@index([basico])
+}
+
+model CnaeCode {
+  code        String @id // 7 dígitos
+  description String
+  searchNorm  String // descrição sem acento, minúscula
+}
+
+model CompanyImport {
+  id         String    @id @default(cuid())
+  refMonth   String
+  filters    Json
+  status     String    @default("RUNNING") // RUNNING | DONE | FAILED
+  rows       Int       @default(0)
+  error      String?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+}
+
+// Fontes de leads conectadas pela empresa (ex.: formulários de anúncios do LinkedIn).
+model LeadSource {
+  id                   String    @id @default(cuid())
+  tenantId             String
+  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider             String // LINKEDIN
+  label                String
+  externalId           String // id da conta de anúncios
+  encryptedCredentials String?
+  lastSyncAt           DateTime?
+  lastError            String?
+  isActive             Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([tenantId, provider, externalId])
 }

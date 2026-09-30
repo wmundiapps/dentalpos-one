@@ -83,3 +83,13 @@ export function contactVars(contact: { name?: string | null; company?: string | 
   const custom = (contact?.customFields && typeof contact.customFields === 'object' ? contact.customFields : {}) as Record<string, unknown>
   return { ...custom, nome: name, primeiro_nome: name.split(' ')[0] || '', empresa: contact?.company || '', ...extra }
 }
+
+// Texto para busca: sem acento, minúsculo, espaços simples.
+export function searchText(v: unknown) {
+  return String(v ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+}

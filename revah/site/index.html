@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REVAH® — Plataforma Business de Mensageria</title>
+<meta name="description" content="REVAH® é a plataforma business de mensageria em massa, automação com IA e dashboards completos. Gerencie disparos, automações com IA e dashboards com limites conforme plano e provedor.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://www.revah.com.br">
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#52b788">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="REVAH®">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Space+Mono:wght@400;700&display=swap');
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060d0a;--s1:#080f0b;--s2:#0d1a11;--s3:#112216;--s4:#162a1b;
+  --border:rgba(45,106,79,0.2);--border2:rgba(45,106,79,0.1);
+  --green:#2d6a4f;--green2:#52b788;--green3:#95d5b2;--green4:#d8f3dc;
+  --gold:#c9a84c;--gold2:#e8cc7a;
+  --text:#d8f3dc;--smoke:#4a7c5f;--muted:#2d4f3a;--cream:#b7e4c7;
+  --danger:#e63946;--warn:#f4a261;--white:#fff;
+  --earth:#a0785a;
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:300;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 40px;
+  background:rgba(6,13,10,0.9);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{
+  font-family:'Cinzel',serif;font-size:22px;font-weight:900;
+  background:linear-gradient(135deg,var(--green2),var(--green3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:4px;text-decoration:none;cursor:pointer;
+}
+.nav-logo sup{font-size:10px;-webkit-text-fill-color:var(--green2);top:-8px}
+.nav-links{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.nav-link{font-size:13px;color:var(--smoke);cursor:pointer;transition:color .2s;text-decoration:none}
+.nav-link:hover{color:var(--green2)}
+.nav-emeth{
+  font-size:12px;color:var(--gold);text-decoration:none;
+  border:1px solid rgba(201,168,76,.3);padding:6px 14px;border-radius:20px;transition:all .2s;
+}
+.nav-emeth:hover{background:rgba(201,168,76,.08);border-color:var(--gold)}
+.nav-cta{
+  padding:9px 22px;border-radius:20px;font-size:13px;font-weight:600;
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  color:white;border:none;cursor:pointer;transition:all .2s;
+  box-shadow:0 4px 16px rgba(45,106,79,.3);
+}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(45,106,79,.4)}
+
+/* ── PAGES ── */
+.page{display:none}
+.page.active{display:block}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:120px 20px 80px;position:relative;overflow:hidden;text-align:center;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% -10%,rgba(45,106,79,.15) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 40% at 10% 90%,rgba(82,183,136,.04) 0%,transparent 50%),
+    radial-gradient(ellipse 40% 40% at 90% 10%,rgba(45,106,79,.04) 0%,transparent 50%);
+  pointer-events:none;
+}
+.hero-eyebrow{
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:6px;
+  color:var(--green2);text-transform:uppercase;margin-bottom:16px;opacity:.7;
+  animation:fadeUp .6s ease forwards;
+}
+.hero-title{
+  font-family:'Cinzel',serif;font-size:clamp(4rem,12vw,9rem);
+  font-weight:900;letter-spacing:-2px;line-height:.95;
+  background:linear-gradient(160deg,var(--green3) 0%,var(--green2) 40%,var(--green4) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:8px;animation:fadeUp .6s ease .1s both;
+}
+.hero-title sup{font-size:.25em;-webkit-text-fill-color:var(--green2);top:-.6em;opacity:.7}
+.hero-hebrew{
+  font-family:'Space Mono',monospace;font-size:12px;color:var(--green2);
+  opacity:.5;letter-spacing:4px;margin-bottom:20px;animation:fadeUp .6s ease .15s both;
+}
+.hero-sub{
+  font-size:clamp(16px,2.5vw,22px);color:var(--smoke);
+  max-width:640px;line-height:1.6;margin-bottom:48px;
+  animation:fadeUp .6s ease .2s both;
+}
+.hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation:fadeUp .6s ease .3s both}
+.btn-primary{
+  padding:16px 40px;border-radius:50px;font-size:16px;font-weight:600;
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  color:white;border:none;cursor:pointer;
+  box-shadow:0 8px 30px rgba(45,106,79,.35);transition:all .2s;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(45,106,79,.45)}
+.btn-outline{
+  padding:16px 40px;border-radius:50px;font-size:16px;font-weight:600;
+  background:transparent;color:var(--cream);
+  border:1px solid rgba(149,213,178,.2);cursor:pointer;transition:all .2s;
+}
+.btn-outline:hover{border-color:var(--green2);color:var(--green2)}
+.hero-stats{
+  display:flex;gap:40px;margin-top:64px;flex-wrap:wrap;justify-content:center;
+  animation:fadeUp .6s ease .4s both;
+}
+.hero-stat-val{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--green2)}
+.hero-stat-label{font-size:12px;color:var(--smoke);margin-top:2px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SECTIONS ── */
+.section{padding:80px 20px}
+.section-inner{max-width:1100px;margin:0 auto}
+.eyebrow{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--green2);text-transform:uppercase;margin-bottom:12px;display:block;text-align:center}
+.sec-title{font-family:'Cinzel',serif;font-size:clamp(1.8rem,4vw,3rem);font-weight:700;text-align:center;color:var(--cream);margin-bottom:12px;letter-spacing:-1px}
+.sec-sub{font-size:16px;color:var(--smoke);text-align:center;max-width:600px;margin:0 auto 56px}
+
+/* ── FEATURES ── */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.feat-card{
+  background:var(--s2);border:1px solid var(--border);border-radius:12px;
+  padding:26px;transition:all .3s;position:relative;overflow:hidden;
+}
+.feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--green2),transparent);opacity:0;transition:opacity .3s}
+.feat-card:hover{border-color:rgba(82,183,136,.4);transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.feat-card:hover::before{opacity:1}
+.feat-icon{font-size:30px;margin-bottom:12px;display:block}
+.feat-title{font-size:15px;font-weight:700;color:var(--cream);margin-bottom:7px}
+.feat-desc{font-size:13px;color:var(--smoke);line-height:1.6}
+
+/* ── DASHBOARD PREVIEW ── */
+.dash-preview{
+  background:var(--s1);border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;margin-top:48px;
+  box-shadow:0 24px 60px rgba(0,0,0,.5);
+}
+.dash-topbar{
+  background:var(--s2);padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+.dash-logo{font-family:'Cinzel',serif;font-size:16px;color:var(--green2);letter-spacing:3px}
+.dash-body{display:flex;min-height:500px}
+.dash-sidebar{
+  width:180px;background:var(--s1);border-right:1px solid var(--border);
+  padding:12px 0;flex-shrink:0;
+}
+.dash-nav-item{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  font-size:12px;color:var(--smoke);cursor:pointer;transition:all .2s;
+  border-left:2px solid transparent;
+}
+.dash-nav-item:hover,.dash-nav-item.active{color:var(--green2);background:rgba(82,183,136,.06);border-left-color:var(--green2)}
+.dash-main{flex:1;padding:20px;overflow-y:auto;background:var(--bg)}
+.dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.dash-stat{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:14px}
+.dash-stat-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--smoke);text-transform:uppercase;margin-bottom:6px}
+.dash-stat-val{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--green2)}
+.dash-stat-delta{font-size:10px;color:var(--green2);opacity:.7;margin-top:3px}
+.dash-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+.dash-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.dash-card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.dash-card-title{font-size:12px;font-weight:600;color:var(--cream)}
+.dash-card-action{font-size:10px;color:var(--green2);cursor:pointer;font-family:'Space Mono',monospace}
+.dash-chart{padding:16px;height:160px;display:flex;align-items:flex-end;gap:6px}
+.chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.chart-bar-d{border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--green2),var(--green));width:100%;min-height:4px;cursor:pointer;transition:filter .2s}
+.chart-bar-d:hover{filter:brightness(1.2)}
+.chart-label-d{font-family:'Space Mono',monospace;font-size:8px;color:var(--muted)}
+.camp-row{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border2);gap:10px}
+.camp-row:last-child{border-bottom:none}
+.camp-name-d{font-size:12px;font-weight:600;color:var(--cream);flex:1}
+.progress-mini{height:3px;background:var(--s3);border-radius:2px;overflow:hidden;width:80px}
+.progress-mini-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--green2));border-radius:2px}
+.badge-mini{font-family:'Space Mono',monospace;font-size:8px;padding:2px 7px;border-radius:10px;letter-spacing:1px}
+.badge-running-d{background:rgba(82,183,136,.1);color:var(--green2);border:1px solid rgba(82,183,136,.2)}
+.badge-done-d{background:rgba(45,106,79,.1);color:var(--smoke);border:1px solid rgba(45,106,79,.2)}
+
+/* ── DISPARADOR ── */
+.dispatcher-section{background:var(--s1);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.dispatcher{
+  background:var(--bg);border:1px solid var(--border);border-radius:12px;
+  margin-top:40px;overflow:hidden;
+}
+.disp-header{background:var(--s2);padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.disp-title{font-size:14px;font-weight:600;color:var(--cream)}
+.disp-status{font-family:'Space Mono',monospace;font-size:10px;color:var(--green2);letter-spacing:1px}
+.disp-body{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.disp-left{padding:20px;border-right:1px solid var(--border)}
+.disp-right{padding:20px;background:var(--s1)}
+.disp-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--smoke);text-transform:uppercase;margin-bottom:6px;display:block}
+.disp-input{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:10px 13px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;margin-bottom:14px;outline:none;transition:border-color .2s}
+.disp-input:focus{border-color:rgba(82,183,136,.5)}
+.disp-textarea{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:10px 13px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;resize:vertical;min-height:100px;outline:none;transition:border-color .2s;margin-bottom:14px}
+.disp-textarea:focus{border-color:rgba(82,183,136,.5)}
+.disp-select{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:10px 13px;font-size:13px;color:var(--text);margin-bottom:14px;outline:none}
+.disp-btn{
+  width:100%;padding:12px;border-radius:6px;font-size:13px;font-weight:600;
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  color:white;border:none;cursor:pointer;transition:opacity .2s;letter-spacing:.5px;
+}
+.disp-btn:hover{opacity:.9}
+.disp-preview-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--smoke);text-transform:uppercase;margin-bottom:12px}
+.msg-preview{background:var(--s3);border:1px solid rgba(82,183,136,.15);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text);line-height:1.6;min-height:80px;margin-bottom:14px;border-bottom-left-radius:2px}
+.disp-recipients{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:10px 13px}
+.disp-recipients-title{font-size:11px;color:var(--smoke);margin-bottom:6px;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px}
+.recipient-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(82,183,136,.1);border:1px solid rgba(82,183,136,.2);
+  border-radius:4px;padding:3px 8px;font-size:11px;color:var(--green2);
+  margin:2px;font-family:'Space Mono',monospace;letter-spacing:.5px;
+}
+.disp-progress-bar{height:6px;background:var(--s3);border-radius:3px;overflow:hidden;margin-top:14px}
+.disp-progress-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--green2));border-radius:3px;width:0%;transition:width .5s ease}
+.disp-progress-text{font-family:'Space Mono',monospace;font-size:10px;color:var(--smoke);margin-top:6px;letter-spacing:1px}
+
+/* ── TEMPLATES ── */
+.templates-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.template-card{
+  background:var(--s2);border:1px solid var(--border);border-radius:10px;
+  padding:20px;transition:all .2s;cursor:pointer;
+}
+.template-card:hover{border-color:rgba(82,183,136,.4);transform:translateY(-2px)}
+.template-card.selected{border-color:var(--green2);background:var(--s3)}
+.template-category{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--green2);text-transform:uppercase;margin-bottom:8px}
+.template-name{font-size:14px;font-weight:700;color:var(--cream);margin-bottom:8px}
+.template-preview{font-size:12px;color:var(--smoke);line-height:1.6;border-left:2px solid var(--border);padding-left:10px}
+.template-vars{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.var-chip{font-family:'Space Mono',monospace;font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.15);color:var(--gold);letter-spacing:.5px}
+.template-use-btn{
+  width:100%;margin-top:12px;padding:8px;border-radius:6px;font-size:12px;font-weight:600;
+  background:transparent;border:1px solid var(--border);color:var(--smoke);cursor:pointer;transition:all .2s;
+}
+.template-card:hover .template-use-btn,.template-card.selected .template-use-btn{background:rgba(82,183,136,.1);border-color:var(--green2);color:var(--green2)}
+
+/* ── BOT SECTION ── */
+.bot-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+.bot-config{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:24px}
+.bot-config-title{font-size:15px;font-weight:700;color:var(--cream);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.flow-item-r{
+  display:flex;align-items:center;gap:12px;padding:12px;
+  background:var(--s3);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;transition:border-color .2s;
+}
+.flow-item-r:hover{border-color:rgba(82,183,136,.35)}
+.flow-icon-r{width:36px;height:36px;border-radius:8px;background:rgba(82,183,136,.1);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.flow-info-r{flex:1}
+.flow-name-r{font-size:13px;font-weight:600;color:var(--cream)}
+.flow-meta-r{font-size:11px;color:var(--smoke);margin-top:2px}
+.toggle-r{width:40px;height:22px;border-radius:11px;background:var(--s1);border:1px solid var(--border);cursor:pointer;position:relative;transition:all .3s;flex-shrink:0}
+.toggle-r.on{background:var(--green);border-color:var(--green2)}
+.toggle-knob-r{width:16px;height:16px;border-radius:50%;background:var(--smoke);position:absolute;top:2px;left:2px;transition:all .3s}
+.toggle-r.on .toggle-knob-r{left:20px;background:white}
+.bot-chat-preview{background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.bot-chat-header{background:var(--s2);padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.bot-avatar-r{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--green2));display:flex;align-items:center;justify-content:center;font-size:18px}
+.bot-chat-messages{height:280px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+.bot-chat-messages::-webkit-scrollbar{width:3px}
+.bot-chat-messages::-webkit-scrollbar-thumb{background:var(--border)}
+.bot-bubble{max-width:80%;padding:9px 13px;border-radius:13px;font-size:13px;line-height:1.5}
+.bot-bubble.bot{background:var(--s2);border:1px solid var(--border);border-bottom-left-radius:3px;align-self:flex-start}
+.bot-bubble.user{background:var(--s3);border:1px solid rgba(82,183,136,.15);border-bottom-right-radius:3px;align-self:flex-end}
+.bot-label-r{font-family:'Space Mono',monospace;font-size:9px;color:var(--green2);letter-spacing:1px;margin-bottom:3px}
+.bot-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.bot-sugg{font-size:11px;padding:4px 10px;border-radius:12px;border:1px solid var(--border);color:var(--smoke);cursor:pointer;transition:all .2s;background:transparent}
+.bot-sugg:hover{border-color:var(--green2);color:var(--green2)}
+.bot-input-area{padding:10px 12px;background:var(--s2);border-top:1px solid var(--border);display:flex;gap:8px}
+.bot-input-r{flex:1;background:var(--s3);border:1px solid var(--border);border-radius:16px;padding:8px 13px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+.bot-input-r:focus{border-color:rgba(82,183,136,.4)}
+.bot-send-r{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--green2));border:none;color:white;cursor:pointer;font-size:14px}
+
+/* ── PRICING ── */
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:1000px;margin:0 auto}
+.plan-card{
+  background:var(--s2);border:1px solid var(--border);border-radius:12px;
+  padding:28px;position:relative;transition:all .2s;
+}
+.plan-card.popular{border-color:var(--green2);background:var(--s3);transform:scale(1.03)}
+.plan-card.popular::before{content:'MAIS POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--green);color:white;font-family:'Space Mono',monospace;font-size:9px;padding:4px 14px;border-radius:10px;letter-spacing:2px;white-space:nowrap}
+.plan-name{font-family:'Cinzel',serif;font-size:16px;font-weight:600;color:var(--green2);letter-spacing:2px;margin-bottom:4px}
+.plan-price{font-family:'Space Mono',monospace;font-size:32px;font-weight:700;color:var(--cream);margin:12px 0 4px}
+.plan-period{font-size:12px;color:var(--smoke)}
+.plan-divider{height:1px;background:var(--border);margin:16px 0}
+.plan-feature{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--smoke);margin-bottom:8px}
+.plan-check{color:var(--green2);flex-shrink:0;font-size:13px;margin-top:1px}
+.plan-btn{
+  width:100%;margin-top:20px;padding:12px;border-radius:8px;font-size:13px;font-weight:600;
+  cursor:pointer;transition:all .2s;border:none;
+}
+.plan-btn-outline{background:transparent;border:1px solid var(--border) !important;color:var(--smoke)}
+.plan-btn-outline:hover{border-color:var(--green2) !important;color:var(--green2)}
+.plan-btn-solid{background:linear-gradient(135deg,var(--green),var(--green2));color:white;box-shadow:0 4px 16px rgba(45,106,79,.3)}
+.plan-btn-solid:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(45,106,79,.4)}
+.plan-btn-enterprise{background:var(--s1);border:1px solid var(--border) !important;color:var(--cream)}
+.plan-btn-enterprise:hover{border-color:var(--green2) !important}
+
+/* ── CHECKOUT MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .25s;padding:20px}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:16px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .25s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal::-webkit-scrollbar{width:3px}
+.modal-header{padding:22px 26px 0;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--s1);padding-bottom:14px;border-bottom:1px solid var(--border)}
+.modal-title{font-family:'Cinzel',serif;font-size:17px;font-weight:600;color:var(--green2);letter-spacing:2px}
+.modal-close{background:none;border:none;font-size:20px;color:var(--smoke);cursor:pointer;transition:color .2s}
+.modal-close:hover{color:var(--cream)}
+.modal-body{padding:22px 26px 26px}
+.form-group{margin-bottom:14px}
+.form-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--smoke);margin-bottom:5px;display:block}
+.form-input{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:11px 13px;font-size:13px;color:var(--text);font-family:'DM Sans',sans-serif;transition:border-color .2s}
+.form-input:focus{outline:none;border-color:rgba(82,183,136,.5)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stripe-element{background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:12px 13px}
+.stripe-element.focused{border-color:rgba(82,183,136,.5)}
+.btn-checkout{width:100%;padding:14px;border-radius:8px;font-size:15px;font-weight:600;background:linear-gradient(135deg,var(--green),var(--green2));color:white;border:none;cursor:pointer;margin-top:16px;transition:opacity .2s}
+.btn-checkout:hover{opacity:.9}
+.btn-checkout:disabled{opacity:.5;cursor:not-allowed}
+.checkout-plan-summary{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px}
+.checkout-plan-name{font-family:'Cinzel',serif;font-size:14px;color:var(--green2);letter-spacing:2px}
+.checkout-plan-price{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--cream);margin-top:4px}
+.checkout-plan-desc{font-size:12px;color:var(--smoke);margin-top:4px}
+.secure-badge{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:10px;justify-content:center}
+.terms-check{display:flex;align-items:flex-start;gap:10px;margin-top:12px}
+.terms-check input{margin-top:3px;accent-color:var(--green2);flex-shrink:0}
+.terms-check label{font-size:12px;color:var(--smoke);line-height:1.5}
+.terms-check a{color:var(--green2);cursor:pointer}
+
+/* ── LEGAL ── */
+.legal-content{font-size:13px;color:var(--smoke);line-height:1.8}
+.legal-content h3{color:var(--cream);font-size:14px;font-weight:700;margin:20px 0 8px}
+.legal-content h3:first-child{margin-top:0}
+.legal-content p{margin-bottom:10px}
+.legal-content ul{margin:8px 0 10px 20px}
+.legal-content li{margin-bottom:4px}
+.legal-content a{color:var(--green2)}
+
+/* ── BANNER EMETH ── */
+.banner-emeth{
+  border-radius:14px;
+  background:linear-gradient(135deg,rgba(8,7,15,.9),rgba(30,26,46,.9));
+  border:1px solid rgba(201,168,76,.2);padding:44px 36px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.banner-emeth::before{content:'';position:absolute;font-family:'Cinzel',serif;font-size:180px;font-weight:900;color:rgba(201,168,76,.03);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap}
+
+/* ── FOOTER ── */
+footer{background:var(--s1);border-top:1px solid var(--border);padding:48px 40px 24px}
+.footer-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
+.footer-logo{font-family:'Cinzel',serif;font-size:22px;font-weight:900;color:var(--green2);letter-spacing:4px;margin-bottom:10px}
+.footer-desc{font-size:13px;color:var(--smoke);line-height:1.7;margin-bottom:14px}
+.footer-by{font-size:11px;color:var(--muted)}
+.footer-by a{color:var(--green2);text-decoration:none}
+.footer-col-title{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--green2);margin-bottom:14px}
+.footer-link{display:block;font-size:13px;color:var(--smoke);text-decoration:none;margin-bottom:8px;cursor:pointer;transition:color .2s}
+.footer-link:hover{color:var(--cream)}
+.footer-bottom{max-width:1100px;margin:0 auto;border-top:1px solid var(--border);padding-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.footer-copy{font-size:12px;color:var(--muted)}
+.footer-legal{display:flex;gap:20px}
+.footer-legal a{font-size:12px;color:var(--muted);cursor:pointer;transition:color .2s}
+.footer-legal a:hover{color:var(--smoke)}
+
+/* ── NOTIFICATION ── */
+.notification{position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--green2);border-radius:10px;padding:14px 18px;font-size:12px;color:var(--green2);font-family:'Space Mono',monospace;letter-spacing:1px;z-index:600;transform:translateX(140%);transition:transform .3s;box-shadow:0 8px 30px rgba(0,0,0,.4);max-width:320px}
+.notification.show{transform:translateX(0)}
+
+
+/* REVAH 31-08-2026 — canais, idiomas, cadastro de teste e integrações ocultas */
+.lang-select{background:var(--s2);border:1px solid var(--border);color:var(--green2);border-radius:999px;padding:9px 12px;font-size:12px;max-width:150px}
+.channel-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.channel-btn{background:var(--s3);border:1px solid var(--border);color:var(--smoke);padding:10px 13px;border-radius:10px;cursor:pointer;font-weight:700}
+.channel-btn.active{border-color:var(--green2);color:var(--cream);background:rgba(72,199,142,.12)}
+.channel-panel{display:none}.channel-panel.active{display:block}
+.phone-entry{display:grid;grid-template-columns:145px 1fr;gap:8px;margin-bottom:8px}
+.phone-prefix{display:flex;align-items:center;gap:6px;background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:0 9px}
+.phone-prefix select{width:100%;background:transparent;border:0;color:var(--cream);padding:13px 0;outline:none}
+.microphone-box{padding:14px;border:1px dashed var(--border);border-radius:10px;margin:10px 0 14px;background:rgba(72,199,142,.05)}
+.integration-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.mini-btn{border:1px solid var(--border);background:var(--s3);color:var(--green2);border-radius:8px;padding:9px 12px;cursor:pointer;font-weight:700}
+.compare-table{width:100%;border-collapse:collapse;font-size:12px}.compare-table th,.compare-table td{border-bottom:1px solid var(--border);padding:10px 8px;text-align:left;vertical-align:top}.compare-table th{color:var(--green2)}
+.trial-note{font-size:11px;color:var(--muted);line-height:1.55;margin-top:8px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.hidden{display:none!important}
+@media(max-width:600px){.phone-entry{grid-template-columns:125px 1fr}.form-row-3{grid-template-columns:1fr}.lang-select{max-width:120px}.channel-btn{flex:1 1 42%;font-size:12px}}
+
+@media(max-width:900px){
+  .bot-grid,.disp-body,.dash-grid{grid-template-columns:1fr}
+  .dash-stats{grid-template-columns:repeat(2,1fr)}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:24px}
+}
+@media(max-width:600px){
+  nav{padding:12px 16px}
+  .nav-links{gap:10px}
+  .pricing-grid{grid-template-columns:1fr}
+  .plan-card.popular{transform:none}
+  .footer-grid{grid-template-columns:1fr}
+  .hero-stats{gap:24px}
+}
+
+/* LANDING COMERCIAL / DEMOS */
+.feat-card{cursor:pointer}
+.feat-card:after{content:'Clique para ver demonstração →';display:block;margin-top:16px;font-size:11px;color:var(--green2);font-family:'Space Mono',monospace;letter-spacing:.3px}
+.feature-demo-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+.demo-stage{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:18px;min-height:220px}
+.demo-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:12px}
+.demo-kpi{font-family:'Space Mono',monospace;color:var(--green2);font-weight:700}
+.demo-flow{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.demo-pill{padding:7px 10px;border-radius:18px;background:rgba(82,183,136,.08);border:1px solid rgba(82,183,136,.18);font-size:11px;color:var(--cream)}
+.feature-plan-box{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:18px}.feature-plan-box h4{color:var(--cream);margin-bottom:10px}.included-badge{display:inline-block;padding:5px 9px;border-radius:14px;background:rgba(82,183,136,.1);color:var(--green2);border:1px solid rgba(82,183,136,.2);font-size:10px;margin:3px}.cta-strip{margin-top:16px;padding:14px;border-radius:10px;background:linear-gradient(135deg,rgba(45,106,79,.22),rgba(82,183,136,.08));border:1px solid rgba(82,183,136,.22);text-align:center}.cta-strip strong{display:block;color:var(--cream);margin-bottom:8px}
+.template-preview.locked{filter:blur(5px);user-select:none;pointer-events:none;opacity:.7}.template-lock{margin-top:10px;font-size:10px;color:var(--gold);font-family:'Space Mono',monospace}.template-use-btn.locked{opacity:.55;cursor:not-allowed}
+.trial-banner{margin:0 auto 30px;max-width:760px;padding:18px;border:1px solid rgba(82,183,136,.28);background:linear-gradient(135deg,rgba(45,106,79,.16),rgba(201,168,76,.05));border-radius:14px;text-align:center}.trial-banner strong{font-size:18px;color:var(--cream)}
+@media(max-width:700px){.feature-demo-grid{grid-template-columns:1fr}.modal{max-height:94vh}.feature-plan-box{order:-1}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#" onclick="showPage('landing')">REVAH<sup>®</sup></a>
+  <div class="nav-links">
+    <span class="nav-link" onclick="scrollTo2('#features')">Recursos</span>
+    <span class="nav-link" onclick="scrollTo2('#dispatcher')">Disparador</span>
+    <span class="nav-link" onclick="scrollTo2('#templates')">Templates</span>
+    <span class="nav-link" onclick="scrollTo2('#bot')">Bot IA</span>
+    <span class="nav-link" onclick="scrollTo2('#pricing')">Planos</span>
+    <select class="lang-select" id="languageSelect" onchange="setLanguage(this.value)" aria-label="Idioma"></select>
+    <button class="nav-cta" onclick="openModal('register')">Testar 14 dias grátis</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════
+     LANDING PAGE
+══════════════════════════════════════════════════════════ -->
+<div id="page-landing" class="page active">
+
+  <!-- HERO -->
+  <section class="hero">
+    <p class="hero-eyebrow">Plataforma Business de Mensageria</p>
+    <h1 class="hero-title">REVAH<sup>®</sup></h1>
+    <p class="hero-hebrew">Expansão · Prosperidade</p>
+    <p class="hero-sub">Marketing, captação de leads, CRM, mensageria, anúncios, automações e IA em uma única operação. Conheça cada recurso, teste por 14 dias e escolha o plano ideal para sua empresa.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="openModal('register')">Testar grátis por 14 dias</button>
+      <button class="btn-outline" onclick="scrollTo2('#pricing')">Ver planos</button>
+    </div>
+    <div class="hero-stats">
+      <div style="text-align:center"><div class="hero-stat-val">✓</div><div class="hero-stat-label">Entrega monitorada</div></div>
+      <div style="text-align:center"><div class="hero-stat-val">14 dias</div><div class="hero-stat-label">Teste completo com cobrança somente após o período grátis</div></div>
+      <div style="text-align:center"><div class="hero-stat-val">24/7</div><div class="hero-stat-label">Bot com IA ativo</div></div>
+      <div style="text-align:center"><div class="hero-stat-val">Proteção</div><div class="hero-stat-label">Boas práticas para reduzir bloqueios</div></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="section">
+    <div class="section-inner">
+      <span class="eyebrow">Recursos</span>
+      <h2 class="sec-title">Tudo que sua empresa precisa</h2>
+      <p class="sec-sub">Mensageria, CRM, automações e atendimento integrados em uma única operação.</p>
+      <div class="features-grid">
+        <div class="feat-card">
+          <span class="feat-icon">📣</span>
+          <div class="feat-title">Campanhas multicanal inteligentes</div>
+          <div class="feat-desc">Organize campanhas por WhatsApp, SMS, e-mail, Telegram e voz com filas, controle de entrega e acompanhamento de resultados.</div>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">👥</span>
+          <div class="feat-title">Contatos e listas</div>
+          <div class="feat-desc">Use contatos do CRM, listas importadas ou números digitados manualmente, respeitando as regras e permissões aplicáveis a cada canal.</div>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">🤖</span>
+          <div class="feat-title">Agentes com IA e contexto</div>
+          <div class="feat-desc">Resposta automática contextual. Detecta intenção, atende, informa, qualifica e transfere para humano quando necessário.</div>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">📊</span>
+          <div class="feat-title">Dashboards em tempo real</div>
+          <div class="feat-desc">Taxa de entrega, abertura, resposta e conversão por campanha. Dados ao vivo para decisões rápidas.</div>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">🔗</span>
+          <div class="feat-title">CRM integrado</div>
+          <div class="feat-desc">Leads, origem, etapa do funil, responsável, histórico e próximas ações centralizados no REVAH.</div>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">💬</span>
+          <div class="feat-title">4 integrações WhatsApp</div>
+          <div class="feat-desc">Integração oficial + 3 integrações alternativas. A tecnologia dos provedores fica protegida na infraestrutura do REVAH®.</div>
+          <div class="integration-actions"><button class="mini-btn" onclick="openModal('integrations')">Comparar integrações</button></div>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">📝</span>
+          <div class="feat-title">Templates dinâmicos</div>
+          <div class="feat-desc">Mensagens personalizadas com variáveis por destinatário. Nome, data, valor, produto — cada mensagem única.</div>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">⏰</span>
+          <div class="feat-title">Agendamento inteligente</div>
+          <div class="feat-desc">Programe campanhas para o momento certo. Agendamento por data, hora e fuso horário do destinatário.</div>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">🔒</span>
+          <div class="feat-title">Consentimento e opt-out</div>
+          <div class="feat-desc">Gestão de consentimento, opt-out, histórico e bloqueio interno por canal, com trilha de auditoria.</div>
+        </div>
+        <div class="feat-card">
+          <span class="feat-icon">💳</span>
+          <div class="feat-title">Pagamento internacional</div>
+          <div class="feat-desc">Asaas no Brasil (Pix, boleto e cartão) e Stripe para cartões internacionais. Assinatura mensal com 14 dias grátis.</div>
+        </div>
+        <div class="feat-card"><span class="feat-icon">🎯</span><div class="feat-title">Captação de leads</div><div class="feat-desc">Google Maps/Places, Meta Lead Ads, LinkedIn Lead Gen, bases próprias, Telegram, WhatsApp e fontes empresariais autorizadas/licenciadas.</div></div>
+        <div class="feat-card"><span class="feat-icon">📈</span><div class="feat-title">Gestão de anúncios</div><div class="feat-desc">Meta Ads, Google Ads e TikTok Ads integrados ao funil para acompanhar origem, campanha, investimento e conversão.</div></div>
+        <div class="feat-card"><span class="feat-icon">♻️</span><div class="feat-title">Remarketing inteligente</div><div class="feat-desc">Crie audiências de leads sem conversão, clientes inativos, orçamentos pendentes e outros segmentos para campanhas de retorno.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD PREVIEW -->
+  <section class="section" style="background:var(--s1);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div class="section-inner">
+      <span class="eyebrow">Dashboard</span>
+      <h2 class="sec-title">Controle total em um painel</h2>
+      <p class="sec-sub">Visualize métricas, gerencie campanhas e monitore o bot em tempo real.</p>
+      <div class="dash-preview">
+        <div class="dash-topbar">
+          <span class="dash-logo">REVAH<sup style="font-size:9px">®</sup></span>
+          <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--green2)">● Sistema operacional</span>
+        </div>
+        <div class="dash-body">
+          <div class="dash-sidebar">
+            <div class="dash-nav-item active">📊 Dashboard</div>
+            <div class="dash-nav-item">📣 Campanhas</div>
+            <div class="dash-nav-item">👥 Contatos</div>
+            <div class="dash-nav-item">🤖 Bot & IA</div>
+            <div class="dash-nav-item">🔗 Integrações</div>
+            <div class="dash-nav-item">📝 Templates</div>
+            <div class="dash-nav-item">📈 Relatórios</div>
+            <div class="dash-nav-item">⚙️ Config</div>
+          </div>
+          <div class="dash-main">
+            <div class="dash-stats">
+              <div class="dash-stat">
+                <div class="dash-stat-label">Enviadas hoje</div>
+                <div class="dash-stat-val" id="dashSent">0</div>
+                <div class="dash-stat-delta">↑ 12%</div>
+              </div>
+              <div class="dash-stat">
+                <div class="dash-stat-label">Entrega</div>
+                <div class="dash-stat-val">98.4%</div>
+                <div class="dash-stat-delta">↑ estável</div>
+              </div>
+              <div class="dash-stat">
+                <div class="dash-stat-label">Respostas</div>
+                <div class="dash-stat-val">312</div>
+                <div class="dash-stat-delta">↑ 8%</div>
+              </div>
+              <div class="dash-stat">
+                <div class="dash-stat-label">Campanhas</div>
+                <div class="dash-stat-val">3</div>
+                <div class="dash-stat-delta">1 agendada</div>
+              </div>
+            </div>
+            <div class="dash-grid">
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <span class="dash-card-title">Envios — últimos 7 dias</span>
+                </div>
+                <div class="dash-chart" id="dashChart"></div>
+              </div>
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <span class="dash-card-title">Campanhas recentes</span>
+                  <span class="dash-card-action">Ver todas</span>
+                </div>
+                <div id="dashCamps"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DISPARADOR -->
+  <section id="dispatcher" class="section dispatcher-section">
+    <div class="section-inner">
+      <span class="eyebrow">Disparador</span>
+      <h2 class="sec-title">Campanhas multicanal na prática</h2>
+      <p class="sec-sub">Teste de 14 dias: experimente os recursos com limite de segurança de até 20 contatos por campanha durante o período de avaliação.</p>
+      <p class="sec-sub">Crie sua campanha, defina os destinatários e dispare — para cadastrados ou listas externas.</p>
+      <div class="dispatcher">
+        <div class="disp-header" onclick="toggleCampaignBuilder()" style="cursor:pointer">
+          <span class="disp-title">✉️ Nova campanha de disparo <span id="builderChevron" style="font-size:12px;color:var(--muted)">▼</span></span>
+          <span class="disp-status" id="dispStatus">● Pronto</span>
+        </div>
+        <div class="disp-body" id="campaignBuilder">
+          <div class="disp-left">
+            <label class="disp-label">Canal da campanha</label>
+            <div class="channel-bar" id="channelBar">
+              <button class="channel-btn active" data-channel="whatsapp" onclick="selectChannel('whatsapp',event)">💬 WhatsApp</button>
+              <button class="channel-btn" data-channel="sms" onclick="selectChannel('sms',event)">📱 SMS</button>
+              <button class="channel-btn" data-channel="telegram" onclick="selectChannel('telegram',event)">✈️ Telegram</button>
+              <button class="channel-btn" data-channel="voice" onclick="selectChannel('voice',event)">🎙️ Voz</button>
+              <button class="channel-btn" data-channel="email" onclick="selectChannel('email',event)">✉️ E-mail</button>
+            </div>
+
+            <label class="disp-label">Nome da campanha</label>
+            <input type="text" class="disp-input" id="dispName" placeholder="Ex: Retorno de clientes — Julho" oninput="updatePreview()">
+
+            <div id="emailFields" class="channel-panel">
+              <label class="disp-label">Destinatários de e-mail</label>
+              <input type="text" class="disp-input" id="emailTo" placeholder="cliente@empresa.com, outro@empresa.com">
+              <label class="disp-label">Assunto</label>
+              <input type="text" class="disp-input" id="emailSubject" placeholder="Assunto da mensagem">
+              <div class="form-row">
+                <div><label class="disp-label">CC (opcional)</label><input type="text" class="disp-input" id="emailCc" placeholder="copia@empresa.com"></div>
+                <div><label class="disp-label">CCO/BCC — ocultos</label><input type="text" class="disp-input" id="emailBcc" placeholder="oculto@empresa.com"></div>
+              </div>
+              <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--smoke);margin-bottom:14px"><input type="checkbox" id="emailAllHidden"> Enviar a todos como destinatários ocultos</label>
+            </div>
+
+            <div id="voiceFields" class="channel-panel">
+              <div class="microphone-box">
+                <strong style="color:var(--cream)">🎙️ Campanha de voz</strong>
+                <div class="trial-note">Habilite o microfone para gravar uma mensagem ou use texto para síntese de voz.</div>
+                <button class="mini-btn" type="button" onclick="enableMicrophone()" id="micBtn">Habilitar microfone</button>
+                <span id="micStatus" style="font-size:11px;color:var(--muted);margin-left:8px">não habilitado</span>
+              </div>
+            </div>
+
+            <label class="disp-label" id="messageLabel">Mensagem</label>
+            <textarea class="disp-textarea" id="dispMsg" placeholder="Olá {nome}! &#10;&#10;Sua mensagem aqui. Use {nome}, {data}, {valor} para personalizar." oninput="updatePreview()"></textarea>
+
+            <label class="disp-label" id="targetLabel">Destinatários</label>
+            <select class="disp-select" id="dispTarget" onchange="updateRecipients()">
+              <option value="manual" selected>Digitar telefones manualmente</option>
+              <option value="list">Importar lista CSV</option>
+              <option value="crm">Contatos do CRM</option>
+              <option value="registered">Contatos cadastrados</option>
+              <option value="all">Todos os contatos elegíveis</option>
+            </select>
+
+            <div id="manualPhonesBlock" style="margin-top:12px">
+              <label class="disp-label">Telefones</label>
+              <div class="phone-entry">
+                <div class="phone-prefix"><select id="phoneCountry" onchange="updatePhoneCountry()"></select></div>
+                <input type="tel" inputmode="tel" class="disp-input" id="phoneQuick" placeholder="44 99999-9999" style="margin:0" onkeydown="quickPhoneKey(event)">
+              </div>
+              <button class="mini-btn" type="button" onclick="addQuickPhone()">+ Adicionar telefone</button>
+              <textarea class="disp-textarea" id="manualPhones" rows="5" placeholder="Os telefones adicionados aparecerão aqui." oninput="validateManualPhones()" style="margin-top:8px"></textarea>
+              <div id="manualPhonesInfo" style="font-size:11px;color:var(--muted);margin-top:7px">Selecione o país. No Brasil, o +55 é acrescentado automaticamente.</div>
+            </div>
+
+            <div id="csvImportBlock" style="display:none;margin-top:12px">
+              <label class="disp-label">Importar CSV</label>
+              <input type="file" id="dispCsvFile" accept=".csv,text/csv" class="disp-input" onchange="handleCsvImport(event)">
+              <div id="csvImportInfo" style="font-size:11px;color:var(--muted);margin-top:7px">CSV com uma coluna de telefone. Durante os 14 dias de teste, são aceitos até 20 contatos por campanha como limite de segurança.</div>
+            </div>
+
+            <div id="providerBlock">
+              <label class="disp-label">Integração WhatsApp</label>
+              <select class="disp-select" id="waProvider">
+                <option value="meta" selected>Integração oficial</option>
+                <option value="zapi">Integração alternativa 1</option>
+                <option value="evolution">Integração alternativa 2</option>
+                <option value="wppconnect">Integração alternativa 3</option>
+              </select>
+              <div class="integration-actions"><button class="mini-btn" type="button" onclick="openModal('integrations')">Comparar integrações</button></div>
+              <div style="font-size:11px;color:var(--muted);margin:7px 0 14px">Os fornecedores e credenciais são protegidos no servidor do REVAH®.</div>
+            </div>
+
+            <label class="disp-label">Agendamento (opcional)</label>
+            <input type="datetime-local" class="disp-input" id="dispSchedule">
+            <button class="disp-btn" onclick="startDispatch()">🚀 Disparar campanha</button>
+          </div>
+          <div class="disp-right">
+            <div class="disp-preview-label">Pré-visualização</div>
+            <div class="msg-preview" id="msgPreview"><span style="color:var(--smoke);font-style:italic">Sua mensagem aparecerá aqui...</span></div>
+            <div class="disp-recipients" id="recipientsBox"><div class="disp-recipients-title">DESTINATÁRIOS</div><div id="recipientsTags"><span class="recipient-tag">⌨️ Adicione os contatos para testar</span></div></div>
+            <div class="disp-recipients" style="margin-top:12px"><div class="disp-recipients-title">INTEGRAÇÕES DISPONÍVEIS</div><div style="font-size:11px;color:var(--smoke);line-height:1.7">✓ Integração oficial &nbsp; ✓ Alternativa 1 &nbsp; ✓ Alternativa 2 &nbsp; ✓ Alternativa 3</div></div>
+            <div id="dispProgressWrap" style="display:none"><div class="disp-progress-bar"><div class="disp-progress-fill" id="dispProgressFill"></div></div><div class="disp-progress-text" id="dispProgressText">Iniciando...</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEMPLATES -->
+  <section id="templates" class="section">
+    <div class="section-inner">
+      <span class="eyebrow">Templates</span>
+      <h2 class="sec-title">Modelos prontos para usar</h2>
+      <p class="sec-sub">Veja exemplos de modelos por segmento. O conteúdo completo é desbloqueado durante o teste de 14 dias e nos planos pagos.</p>
+      <div class="templates-grid" id="templatesGrid"></div>
+    </div>
+  </section>
+
+  <!-- BOT IA -->
+  <section id="bot" class="section" style="background:var(--s1);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <div class="section-inner">
+      <span class="eyebrow">Inteligência Artificial</span>
+      <h2 class="sec-title">Bot que atende de verdade</h2>
+      <p class="sec-sub">Resposta automática inteligente. Transfere para humano quando não consegue atender.</p>
+      <div class="bot-grid">
+        <div class="bot-config">
+          <div class="bot-config-title">🤖 Fluxos ativos</div>
+          <div id="botFlows"></div>
+          <div style="margin-top:16px;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
+            <div style="font-size:12px;color:var(--smoke);line-height:1.6">
+              O bot responde automaticamente por padrão. Quando não souber responder ou o usuário solicitar, transfere imediatamente para um atendente humano.
+            </div>
+          </div>
+        </div>
+        <div class="bot-chat-preview">
+          <div class="bot-chat-header">
+            <div class="bot-avatar-r">🤖</div>
+            <div style="margin-left:8px">
+              <div style="font-size:13px;font-weight:600;color:var(--cream)">REVAH Bot</div>
+              <div style="font-size:11px;color:var(--green2)">● Online · com IA</div>
+            </div>
+          </div>
+          <div class="bot-chat-messages" id="botMessages"></div>
+          <div class="bot-input-area">
+            <input type="text" class="bot-input-r" id="botInput" placeholder="Teste o bot..." onkeydown="handleBotKey(event)">
+            <button class="bot-send-r" onclick="sendBotMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing" class="section">
+    <div class="section-inner">
+      <span class="eyebrow">Planos</span>
+      <h2 class="sec-title">Escolha seu plano</h2>
+      <p class="sec-sub">Teste por 14 dias. Se não cancelar, a assinatura mensal começa automaticamente. Cancele a qualquer momento; o ciclo já iniciado permanece ativo até o fim do período pago.</p>
+      <div class="trial-banner"><strong>14 dias grátis em qualquer plano</strong><div style="font-size:12px;color:var(--smoke);margin-top:6px">Cadastre a forma de pagamento hoje. Se cancelar antes do fim do teste, não há cobrança mensal. Se continuar, a assinatura passa a ser cobrada automaticamente.</div></div><div class="pricing-grid">
+
+        <div class="plan-card">
+          <div class="plan-name">START</div>
+          <div class="plan-price">R$ 247</div>
+          <div class="plan-period">/mês · cobrado mensalmente</div>
+          <div class="plan-divider"></div>
+          <div class="plan-feature"><span class="plan-check">✓</span>5.000 mensagens/mês*</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Bot com IA básico</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>1 integração CRM</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>5 templates</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Dashboard básico</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Suporte por e-mail</div>
+          <button class="plan-btn plan-btn-outline" onclick="openCheckout('start')">Testar START por 14 dias</button>
+        </div>
+
+        <div class="plan-card popular">
+          <div class="plan-name">PRO</div>
+          <div class="plan-price">R$ 597</div>
+          <div class="plan-period">/mês · cobrado mensalmente</div>
+          <div class="plan-divider"></div>
+          <div class="plan-feature"><span class="plan-check">✓</span>25.000 mensagens/mês*</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Bot com IA avançado</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Integrações ilimitadas</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Templates ilimitados</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Dashboard completo</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Listas externas (CSV)</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Suporte prioritário</div>
+          <button class="plan-btn plan-btn-solid" onclick="openCheckout('pro')">Testar PRO por 14 dias</button>
+        </div>
+
+        <div class="plan-card">
+          <div class="plan-name">ENTERPRISE</div>
+          <div class="plan-price" style="font-size:22px;margin-top:18px">Sob consulta</div>
+          <div class="plan-period">infraestrutura dedicada</div>
+          <div class="plan-divider"></div>
+          <div class="plan-feature"><span class="plan-check">✓</span>White-label completo</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Infraestrutura dedicada</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>SLA garantido</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Integração customizada</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Gerente de conta</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Suporte 24/7</div>
+          <button class="plan-btn plan-btn-enterprise" onclick="openEnterpriseContact()">Falar com equipe</button>
+        </div>
+
+      </div>
+      <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:24px">14 dias grátis com forma de pagamento cadastrada · depois cobrança mensal automática · cancele a qualquer momento · *franquias sujeitas ao canal/provedor</p>
+    </div>
+  </section>
+
+</div><!-- /page-landing -->
+
+<!-- ══════════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-logo">REVAH<sup style="font-size:10px">®</sup></div>
+      <p class="footer-desc">Plataforma de marketing, CRM, mensageria, mídia paga, automação, recuperação comercial e relacionamento. Integrada ao DentalPos One e disponível também para outras empresas.</p>
+      <div class="footer-by">Um produto de <a href="https://www.wmundi.com" target="_blank">wmundi technology & co®</a></div>
+    </div>
+    <div>
+      <div class="footer-col-title">Produto</div>
+      <span class="footer-link" onclick="scrollTo2('#features')">Recursos</span>
+      <span class="footer-link" onclick="scrollTo2('#dispatcher')">Disparador</span>
+      <span class="footer-link" onclick="scrollTo2('#templates')">Templates</span>
+      <span class="footer-link" onclick="scrollTo2('#bot')">Bot com IA</span>
+      <span class="footer-link" onclick="scrollTo2('#pricing')">Planos</span>
+    </div>
+    <div>
+      <div class="footer-col-title">Empresa</div>
+      <a class="footer-link" href="https://www.wmundi.com" target="_blank">wmundi.com</a>
+      <span class="footer-link" onclick="openModal('privacy')">Privacidade</span>
+      <span class="footer-link" onclick="openModal('terms')">Termos de uso</span>
+    </div>
+    <div>
+      <div class="footer-col-title">Contato</div>
+      <a class="footer-link" href="mailto:info@wmundi.com">info@wmundi.com</a>
+      <a class="footer-link" href="https://www.wmundi.com" target="_blank">www.wmundi.com</a>
+      <a class="footer-link" href="https://www.revah.com.br" target="_blank">www.revah.com.br</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2026 wmundi technology & co®. Todos os direitos reservados. REVAH® é marca registrada.</div>
+    <div class="footer-legal">
+      <a onclick="openModal('privacy')">Política de Privacidade</a>
+      <a onclick="openModal('terms')">Termos de Uso</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAIS
+══════════════════════════════════════════════════════════ -->
+
+<!-- CADASTRO -->
+<div class="modal-overlay" id="modal-register" onclick="closeOutside(event,'register')">
+  <div class="modal" style="max-width:650px">
+    <div class="modal-header"><span class="modal-title">Ativar teste gratuito 🇧🇷</span><button class="modal-close" onclick="closeModal('register')">✕</button></div>
+    <div class="modal-body">
+      <div class="trial-note" style="margin-bottom:16px">Para iniciar os 14 dias grátis, confirme sua identificação. Após a validação, você escolherá o plano e cadastrará a forma de pagamento. Se não cancelar até o final do teste, a cobrança mensal começa automaticamente. Registramos IP, navegador, data/hora, consentimento e histórico de uso para segurança e prevenção a fraude, conforme a Política de Privacidade.</div>
+      <div class="form-row"><div class="form-group"><label class="form-label">Nome completo *</label><input type="text" class="form-input" id="reg-name" placeholder="Nome e sobrenome"></div><div class="form-group"><label class="form-label">CPF *</label><input type="text" inputmode="numeric" class="form-input" id="reg-cpf" placeholder="000.000.000-00" oninput="maskCPF(this)"></div></div>
+      <div class="form-row"><div class="form-group"><label class="form-label">E-mail *</label><input type="email" class="form-input" id="reg-email" placeholder="voce@email.com"></div><div class="form-group"><label class="form-label">WhatsApp *</label><div class="phone-entry" style="grid-template-columns:120px 1fr;margin:0"><div class="phone-prefix"><select id="regCountry"></select></div><input type="tel" inputmode="tel" class="form-input" id="reg-phone" placeholder="44 99999-9999"></div></div></div>
+      <div class="form-group"><label class="form-label">Endereço *</label><input type="text" class="form-input" id="reg-address" placeholder="Rua, número e complemento"></div>
+      <div class="form-row-3"><div class="form-group"><label class="form-label">Cidade *</label><input type="text" class="form-input" id="reg-city" placeholder="Maringá"></div><div class="form-group"><label class="form-label">UF *</label><input type="text" class="form-input" id="reg-state" maxlength="2" placeholder="PR"></div><div class="form-group"><label class="form-label">CEP *</label><input type="text" inputmode="numeric" class="form-input" id="reg-zip" placeholder="00000-000"></div></div>
+      <div class="form-group"><label class="form-label">Senha *</label><input type="password" class="form-input" id="reg-pass" placeholder="Mínimo 8 caracteres"></div>
+      <div class="terms-check"><input type="checkbox" id="reg-terms"><label for="reg-terms">Li e concordo com os <a onclick="openModal('terms')">Termos de Uso</a> e a <a onclick="openModal('privacy')">Política de Privacidade</a>, inclusive com o tratamento de dados para segurança, prevenção a fraude e defesa de direitos.</label></div>
+      <button class="btn-checkout" onclick="handleRegister()">Validar dados e continuar</button>
+      <div id="trialValidationInfo" class="trial-note"></div>
+      <div style="text-align:center;font-size:13px;color:var(--smoke);margin-top:12px">Já tem conta? <span style="color:var(--green2);cursor:pointer" onclick="switchModal('register','login')">Fazer login</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="modal-overlay" id="modal-login" onclick="closeOutside(event,'login')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Entrar no REVAH®</span>
+      <button class="modal-close" onclick="closeModal('login')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" class="form-input" id="login-email" placeholder="seu@empresa.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input type="password" class="form-input" id="login-pass" placeholder="Sua senha">
+      </div>
+      <button class="btn-checkout" onclick="handleLogin()">Entrar</button>
+      <div style="text-align:center;font-size:13px;color:var(--smoke);margin-top:12px">Não tem conta? <span style="color:var(--green2);cursor:pointer" onclick="switchModal('login','register')">Criar conta</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- CHECKOUT -->
+<div class="modal-overlay" id="modal-checkout" onclick="closeOutside(event,'checkout')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Assinar REVAH®</span>
+      <button class="modal-close" onclick="closeModal('checkout')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="checkout-plan-summary" id="checkoutSummary"></div>
+      <div class="form-group">
+        <label class="form-label">Nome no cartão</label>
+        <input type="text" class="form-input" id="card-name" placeholder="Como está no cartão">
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" class="form-input" id="card-email" placeholder="seu@empresa.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dados do cartão</label>
+        <div id="stripe-card-element" class="stripe-element">
+          <!-- Stripe Elements renderiza aqui -->
+          <div style="font-size:12px;color:var(--smoke);font-family:'Space Mono',monospace;letter-spacing:1px">
+            Configure sua chave Stripe pública em <code style="color:var(--green2)">STRIPE_PUBLIC_KEY</code> para ativar o pagamento.
+          </div>
+        </div>
+      </div>
+      <div class="terms-check">
+        <input type="checkbox" id="checkout-terms">
+        <label for="checkout-terms">Concordo com os <a onclick="openModal('terms')">Termos de Uso</a> e autorizo o início do teste gratuito de 14 dias e, caso eu não cancele antes do término, a cobrança recorrente mensal do plano escolhido.</label>
+      </div>
+      <button class="btn-checkout" id="checkoutBtn" onclick="processCheckout()">🔒 Iniciar 14 dias grátis</button>
+      <div class="secure-badge">🔒 Pagamento seguro via Asaas (Brasil) ou Stripe (internacional) · SSL</div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARAR INTEGRAÇÕES -->
+<div class="modal-overlay" id="modal-integrations" onclick="closeOutside(event,'integrations')">
+  <div class="modal" style="max-width:820px">
+    <div class="modal-header"><span class="modal-title">Comparar integrações</span><button class="modal-close" onclick="closeModal('integrations')">✕</button></div>
+    <div class="modal-body">
+      <p class="trial-note">Os nomes dos fornecedores ficam protegidos. O cliente escolhe pelo perfil operacional. Valores abaixo são pacotes REVAH® de referência para 1.000 mensagens. O preço final pode variar por país, categoria, provedor, tributos e meio de pagamento; a margem operacional do REVAH® já está incorporada.</p>
+      <div style="overflow:auto"><table class="compare-table"><thead><tr><th>Opção</th><th>Prós</th><th>Pontos de atenção</th><th>Pacote</th><th></th></tr></thead><tbody>
+        <tr><td><strong>Integração oficial</strong></td><td>Canal oficial, maior previsibilidade, templates aprovados e melhor aderência às políticas do ecossistema.</td><td>Regras, aprovações e custos oficiais por categoria/mercado.</td><td><strong>R$ 189</strong><br><small>pacote de 1.000 mensagens*</small></td><td><button class="mini-btn" onclick="buyIntegration('official')">Contratar</button></td></tr>
+        <tr><td><strong>Alternativa 1</strong></td><td>Implantação rápida e operação simplificada.</td><td>Dependência de sessão/fornecedor e maior risco operacional.</td><td><strong>R$ 149</strong><br><small>pacote de 1.000 mensagens*</small></td><td><button class="mini-btn" onclick="buyIntegration('alt1')">Contratar</button></td></tr>
+        <tr><td><strong>Alternativa 2</strong></td><td>Flexibilidade, múltiplas instâncias e boa automação.</td><td>Exige infraestrutura e monitoramento.</td><td><strong>R$ 139</strong><br><small>pacote de 1.000 mensagens*</small></td><td><button class="mini-btn" onclick="buyIntegration('alt2')">Contratar</button></td></tr>
+        <tr><td><strong>Alternativa 3</strong></td><td>Boa autonomia técnica e customização.</td><td>Exige manutenção técnica e disponibilidade do serviço.</td><td><strong>R$ 129</strong><br><small>pacote de 1.000 mensagens*</small></td><td><button class="mini-btn" onclick="buyIntegration('alt3')">Contratar</button></td></tr>
+      </tbody></table></div>
+      <p class="trial-note"><strong>Importante:</strong> a disponibilidade de cada integração depende das regras do canal e do provedor. O REVAH® não promete ausência total de bloqueios e aplica boas práticas de consentimento, opt-out e limites de envio.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- DEMONSTRAÇÃO DE RECURSO -->
+<div class="modal-overlay" id="modal-feature" onclick="closeOutside(event,'feature')">
+  <div class="modal" style="max-width:920px">
+    <div class="modal-header"><span class="modal-title" id="featureModalTitle">Demonstração</span><button class="modal-close" onclick="closeModal('feature')">✕</button></div>
+    <div class="modal-body" id="featureModalBody"></div>
+  </div>
+</div>
+
+<!-- PRIVACIDADE -->
+<div class="modal-overlay" id="modal-privacy" onclick="closeOutside(event,'privacy')">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <span class="modal-title">Política de Privacidade</span>
+      <button class="modal-close" onclick="closeModal('privacy')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="legal-content">
+        <p><strong style="color:var(--cream)">Última atualização: setembro de 2026</strong></p>
+        <p>Esta Política descreve como a <strong style="color:var(--cream)">wmundi technology & co®</strong> coleta, usa e protege seus dados ao utilizar o <strong style="color:var(--cream)">REVAH®</strong> (www.revah.com.br).</p>
+        <h3>1. Dados coletados</h3>
+        <ul>
+          <li><strong>Cadastro/teste no Brasil:</strong> nome, e-mail, CPF, endereço, cidade/UF/CEP, WhatsApp e senha (hash criptográfico)</li>
+          <li><strong>Uso:</strong> campanhas criadas, destinatários, métricas de entrega e resposta</li>
+          <li><strong>Pagamento:</strong> processado pelo Asaas (Brasil) ou pelo Stripe (internacional) — não armazenamos dados de cartão</li>
+          <li><strong>Técnicos e antifraude:</strong> IP, dispositivo, navegador, user agent, data/hora, tentativas, consentimento e histórico de uso do teste</li>
+        </ul>
+        <h3>2. Uso dos dados</h3>
+        <ul>
+          <li>Prestação e melhoria dos serviços REVAH®</li>
+          <li>Processamento de pagamentos via Asaas e Stripe</li>
+          <li>Comunicações sobre o serviço e atualizações</li>
+          <li>Segurança, prevenção a fraude, prevenção de abuso do teste, defesa de direitos e cumprimento de obrigações legais (LGPD, Marco Civil)</li>
+        </ul>
+        <h3>3. Dados de destinatários de campanhas</h3>
+        <p>Listas de contatos importadas pelo cliente são de responsabilidade exclusiva do cliente. A wmundi atua como operadora de dados. O cliente garante ter consentimento dos destinatários conforme a LGPD.</p>
+        <h3>4. Compartilhamento</h3>
+        <p>Não vendemos dados. Compartilhamos apenas com: Asaas e Stripe (pagamentos), provedores de infraestrutura (AWS) e autoridades quando exigido por lei.</p>
+        <h3>5. Segurança</h3>
+        <p>Criptografia TLS em trânsito, AES-256 em repouso, controles de acesso e monitoramento contínuo. Dados de cartão tratados exclusivamente pelos processadores de pagamento (Asaas e Stripe, certificados PCI DSS).</p>
+        <h3>6. Seus direitos (LGPD)</h3>
+        <p>Acesso, correção, portabilidade, eliminação e revogação de consentimento. Contato: <a href="mailto:info@wmundi.com">info@wmundi.com</a></p>
+        <h3>7. Retenção</h3>
+        <p>Dados de conta são mantidos enquanto necessários à prestação do serviço. Registros de segurança, prevenção a fraude e defesa de direitos podem ser preservados pelo prazo necessário à finalidade e aos prazos legais aplicáveis, com acesso restrito. Solicitações de titulares são analisadas conforme a LGPD.</p>
+        <h3>8. Contato DPO</h3>
+        <p><a href="mailto:info@wmundi.com">info@wmundi.com</a> · <a href="https://www.wmundi.com">www.wmundi.com</a></p>
+        <p>wmundi technology & co® · Todos os direitos reservados.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TERMOS -->
+<div class="modal-overlay" id="modal-terms" onclick="closeOutside(event,'terms')">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <span class="modal-title">Termos de Uso</span>
+      <button class="modal-close" onclick="closeModal('terms')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="legal-content">
+        <p><strong style="color:var(--cream)">Última atualização: setembro de 2026</strong></p>
+        <p>Ao criar conta ou usar o <strong style="color:var(--cream)">REVAH®</strong>, você concorda com estes Termos estabelecidos pela <strong style="color:var(--cream)">wmundi technology & co®</strong>.</p>
+        <h3>1. Aceitação</h3>
+        <p>O uso do REVAH® implica aceitação integral. Termos podem ser atualizados com aviso prévio de 15 dias.</p>
+        <h3>2. Serviço</h3>
+        <p>Plataforma SaaS de mensageria em massa, automação com IA, dashboards e integração CRM. Acesso mediante assinatura dos planos disponíveis.</p>
+        <h3>3. Responsabilidade sobre campanhas</h3>
+        <p>O cliente é integralmente responsável pelo conteúdo das mensagens enviadas e pela base de destinatários utilizada. É obrigatório ter consentimento prévio dos destinatários conforme a LGPD e legislação aplicável.</p>
+        <h3>4. Uso proibido</h3>
+        <ul>
+          <li>Spam ou envio de mensagens sem consentimento</li>
+          <li>Conteúdo ilegal, ofensivo, enganoso ou que viole direitos de terceiros</li>
+          <li>Phishing, fraudes ou engenharia social</li>
+          <li>Violação de propriedade intelectual</li>
+          <li>Tentativas de comprometer a segurança da plataforma</li>
+          <li>Criação de cadastros repetidos ou uso de dados de terceiros para obter testes gratuitos adicionais</li>
+        </ul>
+        <h3>5. Pagamento e cancelamento</h3>
+        <p>Cobranças mensais recorrentes via Asaas (Brasil) ou Stripe (internacional). Cancelamento a qualquer momento sem multa — acesso mantido até o fim do período pago. Reembolso não disponível para períodos já utilizados.</p>
+        <h3>6. SLA e disponibilidade</h3>
+        <p>Empenho de 99,5% de disponibilidade mensal. Manutenções programadas comunicadas com 48h de antecedência. Créditos por indisponibilidade conforme política de SLA.</p>
+        <h3>7. Propriedade intelectual</h3>
+        <p>REVAH® e wmundi technology & co® são marcas registradas. Todo o código, design e documentação pertencem à wmundi. O cliente retém propriedade sobre seus dados e conteúdo.</p>
+        <h3>8. Limitação de responsabilidade</h3>
+        <p>A wmundi não responde por: (a) conteúdo enviado pelo cliente; (b) danos por uso indevido da plataforma; (c) indisponibilidades por caso fortuito ou força maior.</p>
+        <h3>9. Lei e foro</h3>
+        <p>Legislação brasileira. Foro: Comarca de Maringá/PR.</p>
+        <h3>10. Contato</h3>
+        <p><a href="mailto:info@wmundi.com">info@wmundi.com</a> · <a href="https://www.wmundi.com">www.wmundi.com</a></p>
+        <p>wmundi technology & co® · REVAH® · Todos os direitos reservados.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="notification" id="notification"></div>
+
+<script>
+// ── Service Worker (PWA) ─ atualização forçada no final da página
+
+// ── Stripe ──────────────────────────────────────────────────
+const STRIPE_PUBLIC_KEY = 'pk_live_SUA_CHAVE_AQUI'; // substitua pela chave pública da conta Dentalpos
+let stripe, cardElement;
+
+// Preços Stripe (substitua pelos IDs reais dos produtos no dashboard Stripe)
+const PLANS = {
+  start: { name: 'REVAH® START', price: 'R$ 247/mês', priceId: 'price_START_ID_AQUI', amount: 24700 },
+  pro:   { name: 'REVAH® PRO',   price: 'R$ 597/mês', priceId: 'price_PRO_ID_AQUI',   amount: 59700 },
+};
+
+function initStripe() {
+  if (STRIPE_PUBLIC_KEY.includes('SUA_CHAVE')) return;
+  try {
+    stripe = Stripe(STRIPE_PUBLIC_KEY);
+    const elements = stripe.elements();
+    cardElement = elements.create('card', {
+      style: {
+        base: { color: '#d8f3dc', fontFamily: 'DM Sans, sans-serif', fontSize: '14px', '::placeholder': { color: '#4a7c5f' } },
+        invalid: { color: '#e63946' },
+      }
+    });
+    cardElement.mount('#stripe-card-element');
+  } catch(e) { console.warn('Stripe não inicializado:', e.message); }
+}
+
+// ── Navegação ────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name)?.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function scrollTo2(selector) {
+  document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Modais ───────────────────────────────────────────────────
+function openModal(name) {
+  document.getElementById('modal-' + name)?.classList.add('open');
+  if (name === 'checkout') setTimeout(initStripe, 100);
+}
+function closeModal(name) { document.getElementById('modal-' + name)?.classList.remove('open'); }
+function closeOutside(e, name) { if (e.target === document.getElementById('modal-' + name)) closeModal(name); }
+function switchModal(from, to) { closeModal(from); setTimeout(() => openModal(to), 150); }
+
+// ── Auth ─────────────────────────────────────────────────────
+async function handleRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const cpf = document.getElementById('reg-cpf').value.trim();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const phoneRaw = document.getElementById('reg-phone').value.trim();
+  const address = document.getElementById('reg-address').value.trim();
+  const city = document.getElementById('reg-city').value.trim();
+  const state = document.getElementById('reg-state').value.trim().toUpperCase();
+  const zip = document.getElementById('reg-zip').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const terms = document.getElementById('reg-terms').checked;
+  const country = document.getElementById('regCountry')?.value || 'BR';
+  const dial = COUNTRIES.find(c=>c.code===country)?.dial || '+55';
+  const phone = normalizePhoneWithDial(phoneRaw,dial);
+  if (!name || !cpf || !email || !phoneRaw || !address || !city || !state || !zip || !pass) return notify('Preencha todos os campos obrigatórios.');
+  if (!isValidCPF(cpf)) return notify('CPF inválido. Confira os números.');
+  if (!/^\S+@\S+\.\S+$/.test(email)) return notify('Informe um e-mail válido.');
+  if (phone.replace(/\D/g,'').length < 10) return notify('Informe um WhatsApp válido.');
+  if (pass.length < 8) return notify('Senha deve ter mínimo 8 caracteres.');
+  if (!terms) return notify('Aceite os Termos e a Política de Privacidade.');
+  const payload={name,cpf,email,phone,address,city,state,zip,country,consent:true,consentAt:new Date().toISOString(),locale:navigator.language,userAgent:navigator.userAgent};
+  const info=document.getElementById('trialValidationInfo'); if(info) info.textContent='Validando cadastro e elegibilidade do teste...';
+  try {
+    const res=await fetch('/.netlify/functions/register-trial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const data=await res.json();
+    if(!res.ok) { if(info) info.textContent=data.error||'Não foi possível validar o cadastro.'; return notify(data.error||'Não foi possível ativar o teste.'); }
+    localStorage.setItem('revah_trial_profile',JSON.stringify({...payload,cpf:'***.***.***-**',verifiedAt:new Date().toISOString()}));
+    localStorage.setItem('revah_trial_verified','1');
+    localStorage.setItem('revah_trial_id',data.trialId||'local');
+    closeModal('register'); notify('Cadastro validado ✓ Escolha seu plano para iniciar os 14 dias grátis.'); setTimeout(()=>scrollTo2('#pricing'),250);
+  } catch(e) {
+    // Mantém o cadastro local quando a função ainda não foi publicada, mas não libera envio em produção.
+    if(info) info.textContent='A validação segura do servidor ainda não está disponível neste deploy.';
+    notify('Validação do servidor indisponível. Publique as funções Netlify para ativar o teste.');
+  }
+}
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) return notify('Preencha e-mail e senha.');
+  try {
+    const res = await fetch('/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
+    const data = await res.json();
+    if (!res.ok) return notify(data.error || 'Credenciais inválidas.');
+    localStorage.setItem('revah_token', data.accessToken);
+    localStorage.setItem('revah_user', JSON.stringify(data.user));
+    closeModal('login');
+    notify('Login realizado ✓');
+  } catch { notify('Erro de conexão.'); }
+}
+
+// ── Checkout Stripe ──────────────────────────────────────────
+let selectedPlan = null;
+
+function openCheckout(planKey) {
+  selectedPlan = planKey;
+  const plan = PLANS[planKey];
+  document.getElementById('checkoutSummary').innerHTML = `
+    <div class="checkout-plan-name">${plan.name}</div>
+    <div class="checkout-plan-price">${plan.price}</div>
+    <div class="checkout-plan-desc">14 dias grátis · depois assinatura mensal recorrente · cancele quando quiser</div>`;
+  openModal('checkout');
+}
+
+async function processCheckout() {
+  const name  = document.getElementById('card-name').value.trim();
+  const email = document.getElementById('card-email').value.trim();
+  const terms = document.getElementById('checkout-terms').checked;
+
+  if (!name || !email) return notify('Preencha nome e e-mail.');
+  if (!terms) return notify('Aceite os Termos para continuar.');
+
+  if (!stripe || !cardElement) {
+    notify('Configure a chave Stripe pública para ativar pagamentos.');
+    return;
+  }
+
+  const btn = document.getElementById('checkoutBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Processando...';
+
+  try {
+    // 1. Cria PaymentIntent no backend
+    const intentRes = await fetch('/payments/create-subscription', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('revah_token'),
+      },
+      body: JSON.stringify({ planId: PLANS[selectedPlan].priceId, email, name }),
+    });
+    const { clientSecret, error } = await intentRes.json();
+    if (error) throw new Error(error);
+
+    // 2. Confirma com Stripe.js
+    const { error: stripeError } = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: { card: cardElement, billing_details: { name, email } },
+    });
+
+    if (stripeError) throw new Error(stripeError.message);
+
+    closeModal('checkout');
+    notify(`Assinatura ${PLANS[selectedPlan].name} ativada! ✓`);
+  } catch (err) {
+    notify('Erro no pagamento: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔒 Iniciar 14 dias grátis';
+  }
+}
+
+function openEnterpriseContact() {
+  window.location.href = 'mailto:info@wmundi.com?subject=REVAH® Enterprise — Contato';
+}
+
+// ── Dashboard ────────────────────────────────────────────────
+function renderDashChart() {
+  const data   = [2840, 3120, 4200, 3800, 4821, 3950, 4600];
+  const labels = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const max = Math.max(...data);
+  const c = document.getElementById('dashChart');
+  if (!c) return;
+  c.innerHTML = data.map((v, i) => `
+    <div class="chart-col">
+      <div class="chart-bar-d" style="height:${Math.round((v/max)*120)}px" title="${v.toLocaleString('pt-BR')} enviadas"></div>
+      <div class="chart-label-d">${labels[i]}</div>
+    </div>`).join('');
+}
+
+function renderDashCamps() {
+  const camps = [
+    { name:'Retorno clientes Jul', pct:72, status:'running' },
+    { name:'Promoção especial', pct:100, status:'done' },
+    { name:'Lembrete consultas', pct:0, status:'queued' },
+  ];
+  const c = document.getElementById('dashCamps');
+  if (!c) return;
+  c.innerHTML = camps.map(camp => `
+    <div class="camp-row">
+      <div class="camp-name-d">${camp.name}</div>
+      <div class="progress-mini"><div class="progress-mini-fill" style="width:${camp.pct}%"></div></div>
+      <span class="badge-mini ${camp.status==='running'?'badge-running-d':'badge-done-d'}">${camp.status==='running'?'●ATIVO':camp.status==='done'?'FEITO':'AGUARD'}</span>
+    </div>`).join('');
+}
+
+function animCounter(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let cur = 0;
+  const step = target / 50;
+  const iv = setInterval(() => {
+    cur = Math.min(cur + step, target);
+    el.textContent = Math.floor(cur).toLocaleString('pt-BR');
+    if (cur >= target) clearInterval(iv);
+  }, 25);
+}
+
+
+
+// ── Landing comercial: demonstrações clicáveis ──────────────
+const FEATURE_DEMOS={
+ 'Campanhas multicanal inteligentes':{icon:'📣',desc:'Crie uma campanha uma única vez e adapte o envio para WhatsApp, SMS, e-mail, Telegram e voz. A fila acompanha status, entrega e respostas.',plans:['START','PRO','ENTERPRISE'],rows:[['Canal','WhatsApp + SMS + E-mail'],['Fila','1.248 destinatários'],['Entrega','98,4%'],['Respostas','312']],flow:['Criar campanha','Escolher público','Selecionar canais','Agendar','Acompanhar resultado']},
+ 'Contatos e listas':{icon:'👥',desc:'Centralize CRM, listas importadas e contatos digitados manualmente. Deduplicação, tags, consentimento e origem acompanham cada contato.',plans:['START','PRO','ENTERPRISE'],rows:[['Base CRM','3.842 contatos'],['CSV importado','720 contatos'],['Duplicados removidos','46'],['Consentimento','auditado']],flow:['Importar','Validar','Deduplicar','Segmentar','Ativar campanha']},
+ 'Agentes com IA e contexto':{icon:'🤖',desc:'O agente entende intenção, consulta contexto permitido, responde, qualifica e transfere para uma pessoa quando necessário.',plans:['START básico','PRO avançado','ENTERPRISE'],rows:[['Conversas hoje','184'],['Resolvidas por IA','71%'],['Transferidas','29%'],['Tempo médio','00:42']],flow:['Mensagem recebida','Detectar intenção','Responder','Qualificar','Handoff humano']},
+ 'Dashboards em tempo real':{icon:'📊',desc:'Acompanhe investimento, entregas, abertura, resposta, leads e conversões em um painel único com filtros por origem, canal e campanha.',plans:['START básico','PRO completo','ENTERPRISE'],rows:[['Leads','486'],['CPL','R$ 18,40'],['Conversão','12,8%'],['Receita atribuída','R$ 42.880']],flow:['Mídia','Lead','Contato','Oportunidade','Venda']},
+ 'CRM integrado':{icon:'🔗',desc:'Leads entram com origem e campanha, seguem por etapas do funil, recebem responsável, tarefas, histórico e automações.',plans:['START','PRO','ENTERPRISE'],rows:[['Novos leads','94'],['Em contato','51'],['Propostas','22'],['Convertidos','13']],flow:['Novo lead','Qualificação','Contato','Proposta','Conversão']},
+ '4 integrações WhatsApp':{icon:'💬',desc:'Escolha a integração oficial ou uma das alternativas operacionais sem expor o fornecedor na interface pública. O REVAH seleciona o conector configurado para cada operação.',plans:['START','PRO','ENTERPRISE'],rows:[['Oficial','recomendada'],['Alternativa 1','disponível'],['Alternativa 2','disponível'],['Alternativa 3','disponível']],flow:['Escolher integração','Configurar credencial','Testar canal','Ativar campanha']},
+ 'Templates dinâmicos':{icon:'📝',desc:'Biblioteca de modelos por objetivo e segmento com variáveis como nome, data, valor, produto, profissional e link. A prévia pública é protegida.',plans:['START: 5 modelos','PRO: ilimitados','ENTERPRISE'],rows:[['Cobrança','modelo protegido'],['Recall','modelo protegido'],['Confirmação','modelo protegido'],['Carrinho','modelo protegido']],flow:['Escolher modelo','Preencher variáveis','Pré-visualizar','Enviar']},
+ 'Agendamento inteligente':{icon:'⏰',desc:'Defina data, hora e fuso do destinatário. O motor organiza filas e evita disparos em horários inadequados conforme suas regras.',plans:['START','PRO','ENTERPRISE'],rows:[['Agendadas','12'],['Próxima fila','09:00'],['Fusos ativos','4'],['Regras de horário','ativas']],flow:['Criar','Escolher data','Aplicar fuso','Entrar na fila','Disparar']},
+ 'Consentimento e opt-out':{icon:'🔒',desc:'Registre consentimento, origem, data, finalidade e opt-out por canal. Bloqueios internos impedem novos contatos quando aplicável.',plans:['START','PRO','ENTERPRISE'],rows:[['Consentimentos','3.611'],['Opt-outs','87'],['Bloqueios internos','87'],['Auditoria','ativa']],flow:['Capturar consentimento','Registrar finalidade','Enviar','Receber opt-out','Bloquear canal']},
+ 'Pagamento internacional':{icon:'💳',desc:'Checkout recorrente e pagamentos online preparados para integrações financeiras. Disponibilidade de cartão, PIX, boleto e moedas depende do provedor e país.',plans:['PRO','ENTERPRISE'],rows:[['Assinaturas ativas','286'],['Renovações','automáticas'],['Falhas recuperadas','18'],['Moedas','multipaís']],flow:['Escolher plano','Cadastrar pagamento','14 dias grátis','Renovação automática']},
+ 'Captação de leads':{icon:'🎯',desc:'Central de entrada de leads via APIs oficiais, fontes autorizadas/licenciadas e base própria: Google Places, Meta Lead Ads, LinkedIn Lead Gen, canais sociais e CRM.',plans:['PRO','ENTERPRISE'],rows:[['Google/Places','128'],['Meta Lead Ads','246'],['LinkedIn','34'],['Base própria','412']],flow:['Captar','Identificar origem','Deduplicar','Qualificar','Enviar ao CRM']},
+ 'Gestão de anúncios':{icon:'📈',desc:'Conecte Meta Ads, Google Ads e TikTok Ads para visualizar campanhas, investimento, leads, CPL e conversões no mesmo funil.',plans:['PRO','ENTERPRISE'],rows:[['Investimento','R$ 8.420'],['Leads','486'],['CPL','R$ 17,32'],['ROAS','4,1x']],flow:['Conectar conta','Importar campanhas','Atribuir leads','Calcular retorno']},
+ 'Remarketing inteligente':{icon:'♻️',desc:'Monte públicos de pessoas que não converteram, clientes inativos, orçamentos pendentes ou carrinhos abandonados e acione jornadas de retorno.',plans:['PRO','ENTERPRISE'],rows:[['Público sem conversão','642'],['Inativos 90d','318'],['Orçamentos pendentes','74'],['Retornos','39']],flow:['Segmentar','Criar audiência','Escolher canal','Executar campanha','Medir retorno']},
+};
+function escapeHtml(v){return String(v||'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));}
+function openFeatureDemo(title){const d=FEATURE_DEMOS[title];if(!d)return;document.getElementById('featureModalTitle').textContent=d.icon+' '+title;const rows=d.rows.map(r=>`<div class="demo-row"><span>${escapeHtml(r[0])}</span><span class="demo-kpi">${escapeHtml(r[1])}</span></div>`).join('');const flow=d.flow.map(x=>`<span class="demo-pill">${escapeHtml(x)}</span>`).join('');const plans=d.plans.map(x=>`<span class="included-badge">✓ ${escapeHtml(x)}</span>`).join('');document.getElementById('featureModalBody').innerHTML=`<div class="feature-demo-grid"><div><p style="color:var(--smoke);line-height:1.7;margin-bottom:14px">${escapeHtml(d.desc)}</p><div class="demo-stage"><div style="font-family:'Space Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--green2);margin-bottom:10px">DEMONSTRAÇÃO</div>${rows}<div class="demo-flow">${flow}</div></div></div><div class="feature-plan-box"><h4>Disponível nos planos</h4>${plans}<div class="cta-strip"><strong>Use este recurso por 14 dias grátis</strong><button class="btn-primary" style="width:100%;padding:12px 18px" onclick="closeModal('feature');scrollTo2('#pricing')">Ver planos e testar</button><button class="btn-outline" style="width:100%;padding:10px 18px;margin-top:8px" onclick="closeModal('feature');openModal('register')">Criar minha conta</button></div></div></div>`;openModal('feature');}
+function initFeatureDemos(){document.querySelectorAll('.feat-card').forEach(card=>{const t=card.querySelector('.feat-title')?.textContent.trim();if(!t||!FEATURE_DEMOS[t])return;card.setAttribute('role','button');card.setAttribute('tabindex','0');card.addEventListener('click',e=>{if(e.target.closest('button,a'))return;openFeatureDemo(t)});card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openFeatureDemo(t)}})});}
+function lockPublicTemplates(){document.querySelectorAll('.template-card').forEach(card=>{const preview=card.querySelector('.template-preview');const btn=card.querySelector('.template-use-btn');if(preview&&!preview.classList.contains('locked'))preview.classList.add('locked');if(!card.querySelector('.template-lock'))card.insertAdjacentHTML('beforeend','<div class="template-lock">🔒 Conteúdo completo liberado no teste de 14 dias e nos planos pagos</div>');if(btn){btn.textContent='Desbloquear por 14 dias';btn.classList.add('locked');btn.onclick=(e)=>{e.stopPropagation();openModal('register')}}});}
+
+// ── Internacionalização / países / canais ───────────────────
+const COUNTRIES=[
+ {code:'BR',flag:'🇧🇷',dial:'+55',name:'Brasil'},{code:'US',flag:'🇺🇸',dial:'+1',name:'Estados Unidos'},{code:'PT',flag:'🇵🇹',dial:'+351',name:'Portugal'},{code:'IT',flag:'🇮🇹',dial:'+39',name:'Itália'},{code:'ES',flag:'🇪🇸',dial:'+34',name:'Espanha'},{code:'FR',flag:'🇫🇷',dial:'+33',name:'França'},{code:'DE',flag:'🇩🇪',dial:'+49',name:'Alemanha'},{code:'IL',flag:'🇮🇱',dial:'+972',name:'Israel'},{code:'GB',flag:'🇬🇧',dial:'+44',name:'Reino Unido'},{code:'JP',flag:'🇯🇵',dial:'+81',name:'Japão'},{code:'CN',flag:'🇨🇳',dial:'+86',name:'China'},{code:'AE',flag:'🇦🇪',dial:'+971',name:'Emirados Árabes'},{code:'RU',flag:'🇷🇺',dial:'+7',name:'Rússia'},{code:'KR',flag:'🇰🇷',dial:'+82',name:'Coreia do Sul'},{code:'NL',flag:'🇳🇱',dial:'+31',name:'Países Baixos'},{code:'PL',flag:'🇵🇱',dial:'+48',name:'Polônia'}
+];
+const LANGUAGES=[
+ ['pt-BR','🇧🇷 Português'],['en','🇺🇸 English'],['es','🇪🇸 Español'],['it','🇮🇹 Italiano'],['fr','🇫🇷 Français'],['de','🇩🇪 Deutsch'],['ja','🇯🇵 日本語'],['zh-CN','🇨🇳 中文'],['ar','🇦🇪 العربية'],['ru','🇷🇺 Русский'],['ko','🇰🇷 한국어'],['nl','🇳🇱 Nederlands'],['pl','🇵🇱 Polski']
+];
+const I18N={
+ 'pt-BR':{resources:'Recursos',dispatcher:'Disparador',templates:'Templates',plans:'Planos',start:'Testar 14 dias grátis',campaign:'Nova campanha de disparo'},
+ en:{resources:'Features',dispatcher:'Campaigns',templates:'Templates',plans:'Plans',start:'Start free',campaign:'New campaign'},
+ es:{resources:'Recursos',dispatcher:'Campañas',templates:'Plantillas',plans:'Planes',start:'Comenzar gratis',campaign:'Nueva campaña'},
+ it:{resources:'Funzioni',dispatcher:'Campagne',templates:'Modelli',plans:'Piani',start:'Inizia gratis',campaign:'Nuova campagna'},
+ fr:{resources:'Fonctions',dispatcher:'Campagnes',templates:'Modèles',plans:'Offres',start:'Commencer gratuitement',campaign:'Nouvelle campagne'},
+ de:{resources:'Funktionen',dispatcher:'Kampagnen',templates:'Vorlagen',plans:'Pläne',start:'Kostenlos starten',campaign:'Neue Kampagne'},
+ ja:{resources:'機能',dispatcher:'キャンペーン',templates:'テンプレート',plans:'プラン',start:'無料で開始',campaign:'新しいキャンペーン'},
+ 'zh-CN':{resources:'功能',dispatcher:'营销活动',templates:'模板',plans:'套餐',start:'免费开始',campaign:'新建活动'},
+ ar:{resources:'الميزات',dispatcher:'الحملات',templates:'القوالب',plans:'الخطط',start:'ابدأ مجاناً',campaign:'حملة جديدة'},
+ ru:{resources:'Функции',dispatcher:'Кампании',templates:'Шаблоны',plans:'Тарифы',start:'Начать бесплатно',campaign:'Новая кампания'},
+ ko:{resources:'기능',dispatcher:'캠페인',templates:'템플릿',plans:'요금제',start:'무료 시작',campaign:'새 캠페인'},
+ nl:{resources:'Functies',dispatcher:'Campagnes',templates:'Sjablonen',plans:'Abonnementen',start:'Gratis starten',campaign:'Nieuwe campagne'},
+ pl:{resources:'Funkcje',dispatcher:'Kampanie',templates:'Szablony',plans:'Plany',start:'Zacznij bezpłatnie',campaign:'Nowa kampania'}
+};
+function initLanguages(){const s=document.getElementById('languageSelect');if(!s)return;s.innerHTML=LANGUAGES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');const saved=localStorage.getItem('revah_lang')||'pt-BR';s.value=LANGUAGES.some(x=>x[0]===saved)?saved:'pt-BR';setLanguage(s.value);}
+function setLanguage(lang){localStorage.setItem('revah_lang',lang);document.documentElement.lang=lang;document.documentElement.dir=['ar'].includes(lang)?'rtl':'ltr';const t=I18N[lang]||I18N['pt-BR'];const links=document.querySelectorAll('.nav-link');if(links[0])links[0].textContent=t.resources;if(links[1])links[1].textContent=t.dispatcher;if(links[2])links[2].textContent=t.templates;if(links[4])links[4].textContent=t.plans;document.querySelectorAll('.nav-cta').forEach(x=>x.textContent=t.start);const dt=document.querySelector('.disp-title');if(dt)dt.childNodes[0].nodeValue='✉️ '+t.campaign+' ';}
+function initCountrySelects(){['phoneCountry','regCountry'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.innerHTML=COUNTRIES.map(c=>`<option value="${c.code}">${c.flag} ${c.dial}</option>`).join('');el.value='BR';});}
+function updatePhoneCountry(){const c=COUNTRIES.find(x=>x.code===document.getElementById('phoneCountry')?.value);const i=document.getElementById('manualPhonesInfo');if(i&&c)i.textContent=`${c.flag} ${c.name}: o código ${c.dial} será acrescentado automaticamente.`;}
+function normalizePhoneWithDial(v,dial){let d=(v||'').replace(/\D/g,'');let dd=dial.replace(/\D/g,'');if(d.startsWith(dd))return '+'+d; if(d.startsWith('0'))d=d.replace(/^0+/,'');return '+'+dd+d;}
+function addQuickPhone(){const input=document.getElementById('phoneQuick');const country=COUNTRIES.find(x=>x.code===document.getElementById('phoneCountry')?.value)||COUNTRIES[0];if(!input.value.trim())return;const phone=normalizePhoneWithDial(input.value,country.dial);const ta=document.getElementById('manualPhones');const current=ta.value.trim();ta.value=(current?current+'\n':'')+phone;input.value='';validateManualPhones();}
+function quickPhoneKey(e){if(e.key==='Enter'){e.preventDefault();addQuickPhone();}}
+function maskCPF(el){let v=el.value.replace(/\D/g,'').slice(0,11);v=v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');el.value=v;}
+function isValidCPF(cpf){let s=cpf.replace(/\D/g,'');if(s.length!==11||/^(\d)\1{10}$/.test(s))return false;for(let t=9;t<11;t++){let sum=0;for(let i=0;i<t;i++)sum+=parseInt(s[i])*(t+1-i);let d=(sum*10)%11;if(d===10)d=0;if(d!==parseInt(s[t]))return false;}return true;}
+let currentChannel='whatsapp';
+function toggleCampaignBuilder(){const b=document.getElementById('campaignBuilder');const c=document.getElementById('builderChevron');if(!b)return;const hidden=b.style.display==='none';b.style.display=hidden?'grid':'none';if(c)c.textContent=hidden?'▲':'▼';}
+function selectChannel(ch,e){if(e)e.stopPropagation();currentChannel=ch;document.querySelectorAll('.channel-btn').forEach(b=>b.classList.toggle('active',b.dataset.channel===ch));document.getElementById('emailFields')?.classList.toggle('active',ch==='email');document.getElementById('voiceFields')?.classList.toggle('active',ch==='voice');const phoneBlock=document.getElementById('manualPhonesBlock');const target=document.getElementById('dispTarget');const provider=document.getElementById('providerBlock');const quick=document.getElementById('phoneQuick');const targetLabel=document.getElementById('targetLabel');if(quick)quick.placeholder=ch==='telegram'?'ID do chat Telegram':'44 99999-9999';if(targetLabel)targetLabel.textContent=ch==='email'?'Destinatários definidos acima':'Destinatários';if(provider)provider.style.display=ch==='whatsapp'?'block':'none';if(phoneBlock)phoneBlock.style.display=(ch==='email'?'none':(target?.value==='manual'?'block':'none'));const msg=document.getElementById('dispMsg');const label=document.getElementById('messageLabel');const presets={whatsapp:['Mensagem','Olá {nome}!\n\nSua mensagem aqui.'],sms:['SMS','Olá {nome}! Sua mensagem curta aqui.'],telegram:['Mensagem Telegram','Olá {nome}!\nSua mensagem no Telegram.'],voice:['Roteiro da chamada / texto para voz','Olá {nome}. Esta é uma mensagem da nossa equipe.'],email:['Corpo do e-mail','Olá {nome},\n\nEscreva o conteúdo do e-mail aqui.']};if(label)label.textContent=presets[ch][0];if(msg){msg.placeholder=presets[ch][1];if(!msg.value.trim())msg.value=presets[ch][1];}updatePreview();}
+async function enableMicrophone(){const st=document.getElementById('micStatus');try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});window.__revahMicStream=stream;if(st){st.textContent='microfone habilitado ✓';st.style.color='var(--green2)';}document.getElementById('micBtn').textContent='Microfone habilitado';}catch{if(st)st.textContent='permissão negada';notify('Permissão do microfone não concedida.');}}
+function buyIntegration(key){const names={official:'Integração oficial',alt1:'Integração alternativa 1',alt2:'Integração alternativa 2',alt3:'Integração alternativa 3'};const prices={official:'R$ 189 / 1.000',alt1:'R$ 149 / 1.000',alt2:'R$ 139 / 1.000',alt3:'R$ 129 / 1.000'};closeModal('integrations');document.getElementById('checkoutSummary').innerHTML=`<div class="checkout-plan-name">${names[key]}</div><div class="checkout-plan-price">${prices[key]}</div><div class="checkout-plan-desc">Pacote de referência de 1.000 mensagens · cobrança no ato da contratação</div>`;selectedPlan='integration_'+key;openModal('checkout');}
+function trialIsVerified(){return localStorage.getItem('revah_trial_verified')==='1';}
+
+// ── Disparador ───────────────────────────────────────────────
+function updatePreview() {
+  const msg = document.getElementById('dispMsg').value;
+  const preview = document.getElementById('msgPreview');
+  if (!msg.trim()) {
+    preview.innerHTML = '<span style="color:var(--smoke);font-style:italic">Sua mensagem aparecerá aqui...</span>';
+    return;
+  }
+  preview.innerHTML = msg
+    .replace(/{nome}/g,'<strong style="color:var(--green2)">João Silva</strong>')
+    .replace(/{data}/g,'<strong style="color:var(--green2)">15/07/2026</strong>')
+    .replace(/{valor}/g,'<strong style="color:var(--green2)">R$ 150,00</strong>')
+    .replace(/{empresa}/g,'<strong style="color:var(--green2)">Empresa ABC</strong>')
+    .replace(/\n/g,'<br>');
+}
+
+function normalizePhone(raw) {
+  const digits = String(raw || '').replace(/\D/g,'');
+  if (digits.length < 10 || digits.length > 15) return null;
+  return '+' + digits;
+}
+
+function parseManualPhones() {
+  const raw = document.getElementById('manualPhones')?.value || '';
+  const values = raw.split(/[\n,;]+/).map(v => v.trim()).filter(Boolean);
+  const valid = []; const invalid = []; const seen = new Set();
+  values.forEach(v => {
+    const phone = normalizePhone(v);
+    if (!phone) return invalid.push(v);
+    if (!seen.has(phone)) { seen.add(phone); valid.push(phone); }
+  });
+  return { valid, invalid };
+}
+
+function validateManualPhones() {
+  const {valid, invalid} = parseManualPhones();
+  const info = document.getElementById('manualPhonesInfo');
+  if (!info) return;
+  if (valid.length > 20) {
+    info.innerHTML = `⚠️ ${valid.length} números válidos. Durante os 14 dias de teste, o limite de segurança é <strong>20 contatos por campanha</strong>.`;
+    return;
+  }
+  info.innerHTML = `✅ ${valid.length} número(s) válido(s)` + (invalid.length ? ` · ⚠️ ${invalid.length} para revisar` : '') + ' · máximo 20 por campanha durante o teste.';
+}
+
+async function handleCsvImport(event) {
+  const file = event.target.files?.[0];
+  const info = document.getElementById('csvImportInfo');
+  if (!file) return;
+  const text = await file.text();
+  const rows = text.split(/\r?\n/).filter(Boolean);
+  const phones = [];
+  rows.forEach(row => {
+    const cells = row.split(/[;,]/);
+    const candidate = cells.find(c => /\d{8,}/.test(c.replace(/\D/g,'')));
+    const phone = normalizePhone(candidate);
+    if (phone && !phones.includes(phone)) phones.push(phone);
+  });
+  window.__revahCsvPhones = phones.slice(0,20);
+  if (info) info.innerHTML = `✅ ${window.__revahCsvPhones.length} telefone(s) válido(s) carregado(s)` + (phones.length > 20 ? ' · somente os primeiros 20 serão usados no teste.' : '.');
+}
+
+function updateRecipients() {
+  const val = document.getElementById('dispTarget').value;
+  const manual = document.getElementById('manualPhonesBlock');
+  const csv = document.getElementById('csvImportBlock');
+  if (manual) manual.style.display = (currentChannel !== 'email' && val === 'manual') ? 'block' : 'none';
+  if (csv) csv.style.display = val === 'list' ? 'block' : 'none';
+  const tags = {
+    manual:'<span class="recipient-tag">⌨️ Telefones digitados manualmente</span>',
+    registered:'<span class="recipient-tag">👥 Contatos cadastrados</span>',
+    list:'<span class="recipient-tag">📋 Lista CSV</span>',
+    crm:'<span class="recipient-tag">🔗 Contatos do CRM</span>',
+    all:'<span class="recipient-tag">✅ Contatos elegíveis</span>'
+  };
+  document.getElementById('recipientsTags').innerHTML = tags[val] || '';
+}
+
+
+const REVAH_TRIAL_KEY = 'revah_trial_campaigns_used_v2';
+function getTrialUsed(){ return Number(localStorage.getItem(REVAH_TRIAL_KEY) || 0); }
+function markTrialUsed(){ const n=getTrialUsed()+1; localStorage.setItem(REVAH_TRIAL_KEY,String(n)); return n; }
+function trialRemaining(){ return Math.max(0,2-getTrialUsed()); }
+async function startDispatch() {
+  if (!trialIsVerified()) { openModal('register'); return notify('Ative seu teste de 14 dias com cadastro validado para usar o disparador.'); }
+  const name = document.getElementById('dispName').value.trim();
+  const msg  = document.getElementById('dispMsg').value.trim();
+  const provider = document.getElementById('waProvider')?.value || 'meta';
+  if (!name) return notify('Informe o nome da campanha.');
+  if (!msg) return notify('Escreva a mensagem da campanha.');
+  if (currentChannel==='email') {
+    const to=document.getElementById('emailTo').value.trim(), bcc=document.getElementById('emailBcc').value.trim();
+    if(!to && !bcc) return notify('Informe destinatários ou destinatários ocultos para o e-mail.');
+    if(!document.getElementById('emailSubject').value.trim()) return notify('Informe o assunto do e-mail.');
+  }
+  const target = document.getElementById('dispTarget').value;
+  let phones = [];
+  if(currentChannel!=='email'){
+    if (target === 'manual') {
+      if(currentChannel==='telegram'){
+        phones=document.getElementById('manualPhones').value.split(/\n|,|;/).map(x=>x.trim()).filter(Boolean);
+        if(!phones.length) return notify('Digite pelo menos um ID de chat do Telegram.');
+      }else{
+        const {valid, invalid} = parseManualPhones();
+        if (invalid.length) return notify('Revise os telefones inválidos.');
+        if (!valid.length) return notify('Digite pelo menos 1 telefone.');
+        phones = valid;
+      }
+    } else if (target === 'list') {
+      phones = window.__revahCsvPhones || [];
+      if (!phones.length) return notify('Importe um CSV com pelo menos 1 destinatário válido.');
+    } else return notify('Nesta versão de teste, use destinatários manuais ou CSV. CRM será conectado ao backend do REVAH.');
+    if (phones.length > 20) return notify('Durante os 14 dias de teste, o limite de segurança é 20 contatos por campanha.');
+  }
+  
+  const wrap=document.getElementById('dispProgressWrap'), fill=document.getElementById('dispProgressFill'), text=document.getElementById('dispProgressText'), status=document.getElementById('dispStatus');
+  wrap.style.display='block'; fill.style.width='5%'; text.textContent='Conectando ao canal selecionado...'; status.textContent='● Enviando...';
+  try {
+    const response=await fetch('/.netlify/functions/send-campaign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({campaign:name,message:msg,phones,provider,channel:currentChannel,email:{to:document.getElementById('emailTo')?.value||'',subject:document.getElementById('emailSubject')?.value||'',cc:document.getElementById('emailCc')?.value||'',bcc:document.getElementById('emailBcc')?.value||'',allHidden:document.getElementById('emailAllHidden')?.checked||false},schedule:document.getElementById('dispSchedule')?.value||'',trialId:localStorage.getItem('revah_trial_id')||''})});
+    const data=await response.json().catch(()=>({})); if(!response.ok) throw new Error(data.error||'Falha no envio pelo canal selecionado.');
+    fill.style.width='100%'; const used=markTrialUsed(), ok=data.sent??(currentChannel==='email'?1:phones.length), failed=data.failed??0;
+    text.textContent=`✓ ${ok} enviada(s)`+(failed?` · ${failed} falha(s)`:'')+(used>=2?' · teste concluído.':` · resta ${2-used} campanha gratuita.`); status.textContent=failed?'● Concluído com alertas':'● Concluído'; notify(`Campanha "${name}" processada ✓`);
+  } catch(err){ fill.style.width='0%';status.textContent='● Configuração necessária';text.textContent=err.message||'Falha no envio.';notify(err.message||'Não foi possível enviar.'); }
+}
+
+// ── Templates ────────────────────────────────────────────────
+const TEMPLATES = [
+  { cat:'Saúde & Clínicas', name:'Confirmação de consulta', preview:'Olá {nome}! Sua consulta foi confirmada para {data}. Qualquer dúvida, estamos à disposição.', vars:['{nome}','{data}'] },
+  { cat:'Saúde & Clínicas', name:'Lembrete 24h antes', preview:'Olá {nome}! Lembrando sua consulta amanhã, {data}. Confirme sua presença respondendo esta mensagem.', vars:['{nome}','{data}'] },
+  { cat:'Saúde & Clínicas', name:'Retorno de paciente', preview:'Olá {nome}! Já faz um tempo desde sua última visita. Que tal agendar uma consulta de retorno?', vars:['{nome}'] },
+  { cat:'Vendas & Comercial', name:'Follow-up de lead', preview:'Olá {nome}! Vi que você demonstrou interesse em nossos serviços. Posso ajudar com alguma dúvida?', vars:['{nome}'] },
+  { cat:'Vendas & Comercial', name:'Promoção especial', preview:'Olá {nome}! Temos uma oferta especial para você esta semana. Válida até {data}. Aproveite!', vars:['{nome}','{data}'] },
+  { cat:'Cobrança', name:'Lembrete de pagamento', preview:'Olá {nome}! Identificamos uma pendência de {valor}. Regularize até {data} para evitar juros.', vars:['{nome}','{valor}','{data}'] },
+  { cat:'Cobrança', name:'Confirmação de pagamento', preview:'Olá {nome}! Seu pagamento de {valor} foi recebido com sucesso. Obrigado!', vars:['{nome}','{valor}'] },
+  { cat:'E-commerce', name:'Pedido confirmado', preview:'Olá {nome}! Seu pedido foi confirmado. Em breve você receberá o código de rastreamento.', vars:['{nome}'] },
+  { cat:'Educação', name:'Lembrete de aula', preview:'Olá {nome}! Sua aula está programada para {data}. Acesse a plataforma 5 minutos antes.', vars:['{nome}','{data}'] },
+  { cat:'Educação', name:'Rematrícula', preview:'Olá {nome}! Chegou a hora de garantir sua vaga. Rematrículas abertas até {data}.', vars:['{nome}','{data}'] },
+  { cat:'Geral', name:'Boas-vindas', preview:'Olá {nome}! Seja bem-vindo(a) à {empresa}. Estamos felizes em ter você conosco!', vars:['{nome}','{empresa}'] },
+  { cat:'Geral', name:'Pesquisa de satisfação', preview:'Olá {nome}! Como foi sua experiência conosco? Responda com uma nota de 1 a 10.', vars:['{nome}'] },
+];
+
+function renderTemplates() {
+  const grid = document.getElementById('templatesGrid');
+  if (!grid) return;
+  grid.innerHTML = TEMPLATES.map((t, i) => `
+    <div class="template-card" id="tpl-${i}" onclick="selectTemplate(${i})">
+      <div class="template-category">${t.cat}</div>
+      <div class="template-name">${t.name}</div>
+      <div class="template-preview">"${t.preview}"</div>
+      <div class="template-vars">${t.vars.map(v => `<span class="var-chip">${v}</span>`).join('')}</div>
+      <button class="template-use-btn">Usar este template</button>
+    </div>`).join('');
+}
+
+function selectTemplate(i) {
+  document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('tpl-' + i)?.classList.add('selected');
+  document.getElementById('dispMsg').value = TEMPLATES[i].preview;
+  updatePreview();
+  scrollTo2('#dispatcher');
+  notify(`Template "${TEMPLATES[i].name}" selecionado ✓`);
+}
+
+// ── Bot ──────────────────────────────────────────────────────
+const BOT_FLOWS = [
+  { icon:'👋', name:'Boas-vindas automático',  meta:'Acionado ao primeiro contato', on:true  },
+  { icon:'📅', name:'Agendamento de consultas', meta:'Detecta intenção de agendar',  on:true  },
+  { icon:'💰', name:'Consulta de preços',       meta:'Responde sobre valores',       on:true  },
+  { icon:'🔄', name:'Cancelamento/Remarcação', meta:'Gerencia agendamentos',         on:false },
+  { icon:'⚠️', name:'Triagem de urgências',     meta:'Prioriza casos urgentes',       on:true  },
+  { icon:'👤', name:'Transferência para humano','meta':'Sempre disponível ao solicitar',on:true  },
+];
+
+function renderBotFlows() {
+  const el = document.getElementById('botFlows');
+  if (!el) return;
+  el.innerHTML = BOT_FLOWS.map((f, i) => `
+    <div class="flow-item-r">
+      <div class="flow-icon-r">${f.icon}</div>
+      <div class="flow-info-r">
+        <div class="flow-name-r">${f.name}</div>
+        <div class="flow-meta-r">${f.meta}</div>
+      </div>
+      <div class="toggle-r ${f.on?'on':''}" onclick="this.classList.toggle('on')"><div class="toggle-knob-r"></div></div>
+    </div>`).join('');
+}
+
+const BOT_REPLIES = [
+  { match:/ola|olá|oi|bom dia|boa tarde/i, reply:'Olá! 😊 Sou o assistente REVAH®. Como posso ajudar sua empresa hoje?', suggestions:['Quero fazer um disparo','Ver meus planos','Falar com atendente'] },
+  { match:/disparo|campanha|enviar|mass/i, reply:'Ótimo! Vou te ajudar a criar uma campanha. Acesse o disparador acima ou conte mais sobre sua necessidade.', suggestions:['Quantos destinatários?','Ver templates','Como importar lista?'] },
+  { match:/plano|preço|valor|assinar|custo/i, reply:'Temos 3 planos: START (R$197/mês), PRO (R$497/mês) e ENTERPRISE. Qual se encaixa melhor?', suggestions:['Quero o PRO','Quero o START','Enterprise'] },
+  { match:/humano|atendente|pessoa|ajuda/i, reply:'Claro! Vou conectar você com nossa equipe agora. 👥 Contato: info@wmundi.com', suggestions:['Enviar e-mail','Aguardar aqui'] },
+  { match:/template|modelo/i, reply:'Temos 12 templates prontos! Clique em "Templates" no menu para ver todos e selecionar o ideal para sua campanha.', suggestions:['Ver templates','Criar template','Usar template pronto'] },
+];
+
+function addBotBubble(text, isUser, suggestions = []) {
+  const msgs = document.getElementById('botMessages');
+  if (!msgs) return;
+  const div = document.createElement('div');
+  div.className = 'bot-bubble ' + (isUser ? 'user' : 'bot');
+  let html = '';
+  if (!isUser) html += '<div class="bot-label-r">🤖 REVAH BOT</div>';
+  html += `<div>${text}</div>`;
+  if (suggestions.length) {
+    html += '<div class="bot-suggestions">' + suggestions.map(s => `<span class="bot-sugg" onclick="sendBotText('${s}')">${s}</span>`).join('') + '</div>';
+  }
+  div.innerHTML = html;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function sendBotText(text) {
+  document.getElementById('botInput').value = text;
+  sendBotMessage();
+}
+
+function sendBotMessage() {
+  const input = document.getElementById('botInput');
+  const text  = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addBotBubble(text, true);
+
+  setTimeout(() => {
+    const match = BOT_REPLIES.find(r => r.match.test(text));
+    if (match) {
+      addBotBubble(match.reply, false, match.suggestions);
+    } else {
+      addBotBubble('Entendi! Vou verificar isso para você. Se preferir falar com nossa equipe: info@wmundi.com 😊', false, ['Falar com atendente','Ver planos','Fazer disparo']);
+    }
+  }, 600 + Math.random() * 400);
+}
+
+function handleBotKey(e) { if (e.key === 'Enter') sendBotMessage(); }
+
+// ── Notificação ──────────────────────────────────────────────
+function notify(msg) {
+  const el = document.getElementById('notification');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── Init ─────────────────────────────────────────────────────
+renderDashChart();
+renderDashCamps();
+renderTemplates(); setTimeout(lockPublicTemplates,50);
+renderBotFlows();
+setTimeout(() => animCounter('dashSent', 4821), 400);
+setTimeout(() => addBotBubble('Olá! 👋 Sou o assistente do REVAH®. Como posso ajudar sua empresa hoje?', false, ['Quero fazer um disparo','Ver planos','Falar com atendente']), 500);
+document.addEventListener('DOMContentLoaded', () => { updateRecipients(); validateManualPhones(); });
+</script>
+<script>
+// REVAH deploy migration: remove apenas caches antigos da PWA; não apaga login/localStorage.
+if ('caches' in window) {
+  caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('revah-')).map(k => caches.delete(k)))).catch(()=>{});
+}
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+  initLanguages();
+  setTimeout(()=>{initFeatureDemos();lockPublicTemplates();},150);
+  initCountrySelects();
+  selectChannel('whatsapp');
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+      .then(reg => reg.update())
+      .catch(()=>{});
+  });
+}
+</script>
+
+
+<!-- REVAH: o site é a vitrine; cadastro, login, assinatura e disparos acontecem no painel app.revah.com.br -->
+<script>
+(function () {
+  var APP = 'https://app.revah.com.br';
+  function go(path) { window.location.href = APP + path; }
+  var originalOpenModal = window.openModal;
+  window.openModal = function (name) {
+    if (name === 'register') return go('/cadastro');
+    if (name === 'login') return go('/login');
+    if (name === 'checkout') return go('/cadastro');
+    return originalOpenModal(name);
+  };
+  window.switchModal = function (from, to) { closeModal(from); window.openModal(to); };
+  window.openCheckout = function (planKey) { go('/cadastro?plano=' + String(planKey || '').toUpperCase()); };
+  window.handleRegister = function () { go('/cadastro'); };
+  window.handleLogin = function () { go('/login'); };
+  window.processCheckout = function () { go('/cadastro'); };
+  window.startDispatch = function () { go('/cadastro?origem=disparador'); };
+  try {
+    ['revah_trial_profile', 'revah_trial_verified', 'revah_trial_id', 'revah_token', 'revah_user'].forEach(function (k) { localStorage.removeItem(k); });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
