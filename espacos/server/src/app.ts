@@ -3,9 +3,9 @@ import cors from 'cors';
 import { assistantRouter } from './routes/assistant.js';
 import { waitUntil } from '@vercel/functions';
 import { flushPushQueue, pushConfigured } from './push.js';
-import { flushEmailQueue } from './mailer.js';
+import { flushEmailQueue, verifySmtp } from './mailer.js';
 import { ZodError } from 'zod';
-import { HttpError } from './auth.js';
+import { HttpError, adminEmails } from './auth.js';
 import { authRouter } from './routes/auth.js';
 import { listingsRouter } from './routes/listings.js';
 import { bookingsRouter } from './routes/bookings.js';
@@ -15,6 +15,8 @@ import { feedbackRouter } from './routes/feedback.js';
 import { payoutsRouter } from './routes/payouts.js';
 import { marketingRouter } from './routes/marketing.js';
 import { runJobs } from './jobs.js';
+import { one, pool } from './db.js';
+import { marketplaceEnabled } from './payments/mpAccounts.js';
 import { hasDocumentKey } from './secure.js';
 
 export function createApp() {
@@ -28,6 +30,27 @@ export function createApp() {
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
+  // Diagnóstico da configuração (sem segredos): o que a Vercel está entregando ao servidor
+  app.get('/api/health/config', async (_req, res) => {
+    const mail = await one<{ sent24: number; failed24: number; pending: number; last_error: string | null; last_sent: Date | null }>(pool,
+      `SELECT count(*) FILTER (WHERE email_status = 'sent' AND email_sent_at > now() - interval '24 hours')::int AS sent24,
+              count(*) FILTER (WHERE email_status = 'failed' AND created_at > now() - interval '24 hours')::int AS failed24,
+              count(*) FILTER (WHERE email_status = 'pending')::int AS pending,
+              (SELECT email_error FROM notifications WHERE email_error IS NOT NULL ORDER BY created_at DESC LIMIT 1) AS last_error,
+              max(email_sent_at) AS last_sent
+         FROM notifications`).catch(() => undefined);
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      adminEmailsConfigured: adminEmails().length,
+      emailSending: !!process.env.SMTP_HOST,
+      smtpLogin: await verifySmtp(),
+      emailFrom: process.env.MAIL_FROM ? 'configurado' : 'padrão',
+      emailLast24h: mail ? { sent: mail.sent24, failed: mail.failed24, pending: mail.pending, lastSentAt: mail.last_sent, lastError: mail.last_error?.slice(0, 160) ?? null } : null,
+      mercadoPago: marketplaceEnabled(),
+      appUrl: process.env.APP_URL ?? null,
+      version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+    });
+  });
   // Rotina periódica disparada pelo Vercel Cron (Authorization: Bearer CRON_SECRET)
   app.get('/api/cron/tick', async (req, res) => {
     const secret = process.env.CRON_SECRET;

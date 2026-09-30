@@ -907,3 +907,17 @@ test('Mercado Pago: diagnóstico para a equipe e PKCE quando ligado', async () =
     delete process.env.MP_CLIENT_ID; delete process.env.MP_CLIENT_SECRET; delete process.env.MP_PKCE;
   }
 });
+
+test('diagnóstico da configuração: sem segredos, mostra admins, e-mail e Mercado Pago', async () => {
+  process.env.ADMIN_EMAILS = 'a@example.com, b@example.com';
+  try {
+    const r = await (await fetch(`${base}/health/config`)).json() as Record<string, unknown>;
+    assert.equal(r.adminEmailsConfigured, 2);
+    assert.equal(r.emailSending, false);
+    assert.equal(r.smtpLogin, 'SMTP_HOST ausente');
+    assert.equal(r.mercadoPago, false);
+    assert.ok(!JSON.stringify(r).includes('a@example.com'), 'não expõe os e-mails');
+  } finally {
+    delete process.env.ADMIN_EMAILS;
+  }
+});
