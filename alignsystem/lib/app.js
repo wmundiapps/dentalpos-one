@@ -271,16 +271,27 @@ r('POST', '/api/portal/:token/consent', async (req, res, { token: t }) => {
   const tcle = await ensureTcle(sql);
   if (b.hash !== tcle.hash) fail(409, 'O termo foi atualizado. Recarregue a página e leia a versão nova.');
   const minor = Number(c.age) < 18;
-  const guardianName = clean(b.guardianName, 120);
-  if (minor && guardianName.length < 5) fail(400, 'Paciente menor de 18 anos: informe o nome completo do responsável legal.');
+  const acceptedName = clean(b.acceptedName, 120);
+  if (acceptedName.length < 5 || !/\s/.test(acceptedName)) fail(400, minor ? 'Informe o nome completo do responsável legal.' : 'Informe seu nome completo.');
+  const birth = /^\d{4}-\d{2}-\d{2}$/.test(b.birthDate || '') ? new Date(b.birthDate + 'T12:00:00Z') : null;
+  if (!birth || Number.isNaN(birth.getTime())) fail(400, 'Informe a data de nascimento de quem está aceitando o termo.');
+  const now = new Date();
+  let years = now.getUTCFullYear() - birth.getUTCFullYear();
+  if (now.getUTCMonth() < birth.getUTCMonth() || (now.getUTCMonth() === birth.getUTCMonth() && now.getUTCDate() < birth.getUTCDate())) years--;
+  if (years > 120) fail(400, 'Data de nascimento inválida.');
+  if (years < 18) fail(400, minor
+    ? 'O termo precisa ser aceito por um responsável legal maior de 18 anos.'
+    : 'O termo só pode ser aceito por maior de 18 anos. Se o paciente for menor, peça ao responsável legal para aceitar.');
+  if (b.adult !== true) fail(400, 'Confirme que você é maior de 18 anos.');
+  const guardianName = minor ? acceptedName : '';
   await rateLimit(sql, `consent:${c.id}`, 10, 60);
   const ip = clientIp(req);
   const [row] = await sql`insert into consents (case_id, case_code, kind, version, body_hash, patient_name, accepted_name,
-      accepted_by_guardian, guardian_name, ip, user_agent)
-    values (${c.id}, ${c.code}, ${TCLE_KIND}, ${tcle.version}, ${tcle.hash}, ${c.name}, ${minor ? guardianName : c.name},
-      ${minor}, ${minor ? guardianName : null}, ${ip}, ${clean(req.headers['user-agent'], 300)})
+      accepted_by_guardian, guardian_name, accepted_birth_date, ip, user_agent)
+    values (${c.id}, ${c.code}, ${TCLE_KIND}, ${tcle.version}, ${tcle.hash}, ${c.name}, ${acceptedName},
+      ${minor}, ${minor ? guardianName : null}, ${b.birthDate}, ${ip}, ${clean(req.headers['user-agent'], 300)})
     returning id, accepted_at`;
-  await logEvent(sql, { caseId: c.id, actor: minor ? `responsável: ${guardianName}` : 'paciente', type: 'tcle_aceito', data: { version: tcle.version, hash: tcle.hash, ip, consentId: row.id } });
+  await logEvent(sql, { caseId: c.id, actor: minor ? `responsável: ${guardianName}` : `paciente: ${acceptedName}`, type: 'tcle_aceito', data: { version: tcle.version, hash: tcle.hash, ip, consentId: row.id } });
   send(res, 201, { ok: true });
 });
 
@@ -580,7 +591,7 @@ async function caseDetail(sql, id) {
     sql`select e.*, d.name as dentist_name from evidences e left join dentists d on d.id = e.dentist_id where case_id = ${id} order by performed_at desc, created_at desc`,
     sql`select actor, type, data, created_at from events where case_id = ${id} order by created_at desc limit 100`,
   ]);
-  const consents = await sql`select id, version, body_hash, accepted_name, accepted_by_guardian, guardian_name, ip, accepted_at
+  const consents = await sql`select id, version, body_hash, accepted_name, accepted_by_guardian, guardian_name, accepted_birth_date, ip, accepted_at
     from consents where case_id = ${id} order by accepted_at desc`;
   return { c, photos, appts, contracts, charges, payments, evidences, events, consents };
 }
@@ -621,10 +632,12 @@ table{border-collapse:collapse;width:100%;font:14px Arial,sans-serif;margin:18px
 <tr><td>Caso nº</td><td>${esc(c.case_code)}</td></tr>
 <tr><td>Paciente</td><td>${esc(c.patient_name)}</td></tr>
 <tr><td>Aceito por</td><td>${esc(c.accepted_name)}${c.accepted_by_guardian ? ' (responsável legal — paciente menor de 18 anos)' : ''}</td></tr>
+<tr><td>Data de nascimento de quem aceitou</td><td>${c.accepted_birth_date ? esc(new Date(c.accepted_birth_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })) : 'não informada (versão anterior do termo)'}</td></tr>
+<tr><td>Declaração de maioridade</td><td>${c.accepted_birth_date ? 'Declarou ser maior de 18 anos; idade conferida pela data de nascimento no momento do aceite' : '—'}</td></tr>
 <tr><td>Data e hora (Brasília)</td><td>${esc(when)}</td></tr>
 <tr><td>Endereço IP</td><td>${esc(c.ip)}</td></tr>
 <tr><td>Navegador</td><td style="word-break:break-all">${esc(c.user_agent)}</td></tr>
-<tr><td>Forma do aceite</td><td>Caixa "Li e aceito" marcada na página pessoal da avaliação, após exibição do texto integral abaixo.</td></tr>
+<tr><td>Forma do aceite</td><td>Nome completo e data de nascimento digitados, declaração de maioridade e caixa "Li e aceito" marcadas na página pessoal da avaliação, após exibição do texto integral abaixo.</td></tr>
 </table>
 <div class="box">${c.body}</div>
 <p style="font:12px Arial,sans-serif;color:#555;margin-top:18px">Documento gerado pelo painel AlignSystem em ${esc(new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}. Para salvar, use Imprimir → Salvar como PDF.</p>

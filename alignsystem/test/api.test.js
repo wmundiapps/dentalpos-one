@@ -91,11 +91,19 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   // termo de consentimento obrigatório antes das fotos
   assert.ok(portal.data.tcle?.body.includes('Teleodontologia'));
   assert.equal((await call('POST', `/api/portal/${t}/photos?slot=1`, { raw: JPEG })).status, 409);
-  assert.equal((await call('POST', `/api/portal/${t}/consent`, { body: { agree: false, hash: portal.data.tcle.hash } })).status, 400);
-  assert.equal((await call('POST', `/api/portal/${t}/consent`, { body: { agree: true, hash: 'velho' } })).status, 409);
-  assert.equal((await call('POST', `/api/portal/${t}/consent`, { body: { agree: true, hash: portal.data.tcle.hash } })).status, 201);
+  const ok = { agree: true, adult: true, hash: portal.data.tcle.hash, acceptedName: 'Maria da Silva', birthDate: '1995-04-10' };
+  assert.equal((await call('POST', `/api/portal/${t}/consent`, { body: { ...ok, agree: false } })).status, 400);
+  assert.equal((await call('POST', `/api/portal/${t}/consent`, { body: { ...ok, hash: 'velho' } })).status, 409);
+  assert.equal((await call('POST', `/api/portal/${t}/consent`, { body: { ...ok, adult: false } })).status, 400);
+  const teen = new Date(); teen.setFullYear(teen.getFullYear() - 17);
+  const tooYoung = await call('POST', `/api/portal/${t}/consent`, { body: { ...ok, birthDate: teen.toISOString().slice(0, 10) } });
+  assert.equal(tooYoung.status, 400);
+  assert.match(tooYoung.data.error, /maior de 18/);
+  assert.match(portal.data.tcle.body, /não são gravadas[\s\S]*não podem ser recuperadas/);
+  assert.equal((await call('POST', `/api/portal/${t}/consent`, { body: ok })).status, 201);
   const [consentRow] = await sql`select * from alignsystem_test.consents where case_code = ${lead.data.code}`;
   assert.equal(consentRow.accepted_name, 'Maria da Silva');
+  assert.equal(new Date(consentRow.accepted_birth_date).toISOString().slice(0, 10), '1995-04-10');
   assert.ok(consentRow.ip);
   assert.equal(consentRow.body_hash, portal.data.tcle.hash);
   const txt = await call('GET', `/api/consent-text?v=${consentRow.version}`);
@@ -104,8 +112,13 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   const kid = await call('POST', '/api/leads/paciente', { body: { name: 'Pedro Menor', age: 15, whatsapp: '44977776666', city: 'Maringá', consent: true } });
   const kp = await call('GET', `/api/portal/${kid.data.token}`);
   assert.equal(kp.data.case.isMinor, true);
-  assert.equal((await call('POST', `/api/portal/${kid.data.token}/consent`, { body: { agree: true, hash: kp.data.tcle.hash } })).status, 400);
-  assert.equal((await call('POST', `/api/portal/${kid.data.token}/consent`, { body: { agree: true, hash: kp.data.tcle.hash, guardianName: 'Ana Menor Responsável' } })).status, 201);
+  const kidOk = { agree: true, adult: true, hash: kp.data.tcle.hash, acceptedName: 'Ana Menor Responsável', birthDate: '1980-01-20' };
+  assert.equal((await call('POST', `/api/portal/${kid.data.token}/consent`, { body: { ...kidOk, acceptedName: '' } })).status, 400);
+  assert.equal((await call('POST', `/api/portal/${kid.data.token}/consent`, { body: { ...kidOk, birthDate: '2011-03-03' } })).status, 400);
+  assert.equal((await call('POST', `/api/portal/${kid.data.token}/consent`, { body: kidOk })).status, 201);
+  const [kidRow] = await sql`select accepted_by_guardian, guardian_name from alignsystem_test.consents where case_code = ${kid.data.code}`;
+  assert.equal(kidRow.accepted_by_guardian, true);
+  assert.equal(kidRow.guardian_name, 'Ana Menor Responsável');
   const notImg = await call('POST', `/api/portal/${t}/photos?slot=1`, { raw: Buffer.from('não é imagem, só texto qualquer') });
   assert.equal(notImg.status, 415);
   const early = await call('POST', `/api/portal/${t}/submit`, { body: {} });

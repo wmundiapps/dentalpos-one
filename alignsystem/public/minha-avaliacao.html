@@ -88,11 +88,16 @@
         '<p class="muted">Parte do seu atendimento é feita a distância. Leia o termo abaixo e confirme para liberar o envio das fotos e a teleorientação.</p>' +
         '<div class="doc tcle-box" tabindex="0" aria-label="Texto do termo de consentimento">' + state.tcle.body + '</div>' +
         '<form id="tcleForm">' +
-        (c.isMinor ? '<div class="msg warn">Paciente menor de 18 anos: o termo deve ser aceito pelo pai, pela mãe ou pelo responsável legal.</div>' +
-          '<div class="field"><label for="guardianName">Nome completo do responsável legal</label><input id="guardianName" autocomplete="name" required minlength="5"></div>' : '') +
-        '<div class="check field"><input type="checkbox" id="tcleAgree" required><label for="tcleAgree"><b>Li e aceito</b> o Termo de Consentimento Livre e Esclarecido para atendimento odontológico a distância' + (c.isMinor ? ', como responsável legal do(a) paciente' : '') + '.</label></div>' +
+        (c.isMinor ? '<div class="msg warn">Paciente menor de 18 anos: o termo deve ser aceito pelo pai, pela mãe ou pelo responsável legal, maior de 18 anos.</div>' : '') +
+        '<p class="small muted">O termo só pode ser aceito por pessoa maior de 18 anos.</p>' +
+        '<div class="grid2"><div class="field"><label for="acceptedName">' + (c.isMinor ? 'Nome completo do responsável legal' : 'Seu nome completo') + '</label>' +
+        '<input id="acceptedName" autocomplete="name" required minlength="5" value="' + (c.isMinor ? '' : esc(c.name)) + '"></div>' +
+        '<div class="field"><label for="birthDate">' + (c.isMinor ? 'Data de nascimento do responsável' : 'Sua data de nascimento') + '</label>' +
+        '<input id="birthDate" type="date" required max="' + new Date().toISOString().slice(0, 10) + '"></div></div>' +
+        '<div class="check field"><input type="checkbox" id="tcleAdult" required><label for="tcleAdult">Declaro que sou <b>maior de 18 anos</b>' + (c.isMinor ? ' e responsável legal do(a) paciente' : '') + '.</label></div>' +
+        '<div class="check field"><input type="checkbox" id="tcleAgree" required><label for="tcleAgree"><b>Li e aceito</b> o Termo de Consentimento Livre e Esclarecido para atendimento odontológico a distância, inclusive que as teleconferências não são gravadas e não podem ser recuperadas.</label></div>' +
         '<button class="btn btn-primary" type="submit">Confirmar e continuar</button>' +
-        '<p class="small muted" style="margin-top:10px">Seu aceite fica registrado com nome, data e hora, endereço IP e o código de integridade do texto. <a href="/termo-consentimento" target="_blank">Abrir o termo em outra página</a>.</p>' +
+        '<p class="small muted" style="margin-top:10px">Seu aceite fica registrado com nome, data de nascimento, data e hora, endereço IP e o código de integridade do texto. <a href="/termo-consentimento" target="_blank">Abrir o termo em outra página</a>.</p>' +
         '<div id="tcleMsg"></div></form></div>';
     }
 
@@ -236,10 +241,10 @@
     if (cf) cf.addEventListener('submit', function (e) {
       e.preventDefault();
       var btn = cf.querySelector('button');
-      var g = document.getElementById('guardianName');
       btn.disabled = true;
       AS.api('/api/portal/' + encodeURIComponent(T) + '/consent', { method: 'POST', body: {
-        agree: document.getElementById('tcleAgree').checked, hash: state.tcle.hash, guardianName: g ? g.value : '',
+        agree: document.getElementById('tcleAgree').checked, adult: document.getElementById('tcleAdult').checked, hash: state.tcle.hash,
+        acceptedName: document.getElementById('acceptedName').value, birthDate: document.getElementById('birthDate').value,
       } }).then(function () { return load(); }).then(function () {
         var f = document.getElementById('fotos'); if (f) f.scrollIntoView({ behavior: 'smooth' });
       }).catch(function (err) { btn.disabled = false; document.getElementById('tcleMsg').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });

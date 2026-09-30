@@ -5,7 +5,7 @@ import { escapeHtml as e, sha256 } from './util.js';
 import { company } from './contracts.js';
 
 export const TCLE_KIND = 'tcle_teleodontologia';
-export const TCLE_VERSION = 'tcle-2026-09-30';
+export const TCLE_VERSION = 'tcle-2026-09-30-v2';
 
 export function tcleText() {
   const k = company();
@@ -25,12 +25,12 @@ export function tcleText() {
     p('Você pode recusar o atendimento a distância, interrompê-lo a qualquer momento e optar pelo atendimento presencial, sem nenhum prejuízo ao seu atendimento. Você pode pedir cópia deste termo e das informações registradas sobre você.'),
     h('4. Fotos, dados e sigilo'),
     p('As fotos do rosto e do sorriso e as informações de saúde que você envia são dados pessoais sensíveis (art. 11 da Lei nº 13.709/2018 — LGPD). Elas são usadas somente para a sua avaliação e o seu tratamento, ficam guardadas em ambiente protegido, fazem parte do seu prontuário e só são acessadas pela equipe AlignSystem e pelo cirurgião-dentista responsável pelo seu caso, que mantêm sigilo profissional. As fotos não são usadas em divulgação sem uma autorização específica sua, por escrito. Os registros são mantidos pelo prazo exigido pelas normas de guarda de prontuário. Para exercer seus direitos previstos na LGPD, escreva para ' + e(contact) + '.'),
-    h('5. Chamadas de vídeo'),
-    p('As teleorientações são feitas por um serviço de chamada de vídeo aberto pelo navegador, em sala criada só para o seu atendimento. As chamadas não são gravadas. Recomendamos que você participe de um local reservado. Se a conexão falhar, o atendimento pode ser remarcado.'),
-    h('6. Menores de idade'),
-    p('Se o paciente tiver menos de 18 anos, este termo deve ser aceito pelo pai, pela mãe ou pelo responsável legal, que acompanha o atendimento.'),
+    h('5. Chamadas de vídeo (teleconferências)'),
+    p('As teleorientações são feitas por um serviço de chamada de vídeo aberto pelo navegador, em sala criada só para o seu atendimento. <b>As teleconferências não são gravadas, nem em vídeo nem em áudio, pela AlignSystem ou pelo cirurgião-dentista, e por isso não podem ser recuperadas depois de encerradas.</b> O que for relevante para o seu tratamento é anotado pelo profissional no seu prontuário. Recomendamos que você participe de um local reservado. Se a conexão falhar, o atendimento pode ser remarcado.'),
+    h('6. Quem pode aceitar este termo'),
+    p('<b>Este termo só pode ser aceito por pessoa maior de 18 anos.</b> Se o paciente tiver menos de 18 anos, o aceite deve ser feito pelo pai, pela mãe ou pelo responsável legal, que acompanha o atendimento. Quem aceita informa o nome completo e a data de nascimento e declara ser maior de idade.'),
     h('7. Registro do aceite'),
-    p('Ao marcar a caixa "Li e aceito", você declara que leu este termo, entendeu as informações e concorda com o atendimento a distância nas condições descritas. O aceite é registrado com seu nome, data e hora, endereço IP, navegador e o código de integridade deste texto, e pode ser revogado a qualquer momento pelos canais de atendimento, sem afetar o que foi feito antes da revogação.'),
+    p('Ao marcar a caixa "Li e aceito", você declara que é maior de 18 anos, que leu este termo, entendeu as informações e concorda com o atendimento a distância nas condições descritas. O aceite é registrado com seu nome, sua data de nascimento, data e hora, endereço IP, navegador e o código de integridade deste texto, e pode ser revogado a qualquer momento pelos canais de atendimento, sem afetar o que foi feito antes da revogação.'),
   ].join('\n');
   return { version: TCLE_VERSION, kind: TCLE_KIND, title, body, hash: sha256(body) };
 }
@@ -46,7 +46,7 @@ export async function ensureTcle(sql) {
 }
 
 export async function currentConsent(sql, caseId) {
-  const [c] = await sql`select id, version, accepted_name, accepted_by_guardian, guardian_name, accepted_at
+  const [c] = await sql`select id, version, accepted_name, accepted_by_guardian, guardian_name, accepted_birth_date, accepted_at
     from consents where case_id = ${caseId} and kind = ${TCLE_KIND} and version = ${TCLE_VERSION}
     order by accepted_at desc limit 1`;
   return c || null;

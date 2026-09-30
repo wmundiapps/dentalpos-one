@@ -239,7 +239,7 @@
         '<div class="card"><h2>Termo de consentimento (atendimento a distância)</h2>' +
         (d.consents && d.consents.length ? '<div class="list">' + d.consents.map(function (k) {
           return '<div class="it"><div><b>Aceito em ' + esc(AS.date(k.accepted_at, true)) + '</b><div class="small muted">por ' + esc(k.accepted_name) +
-            (k.accepted_by_guardian ? ' (responsável legal)' : '') + ' · IP ' + esc(k.ip) + ' · versão ' + esc(k.version) + '</div></div>' +
+            (k.accepted_by_guardian ? ' (responsável legal)' : '') + (k.accepted_birth_date ? ' · nasc. ' + esc(AS.date(String(k.accepted_birth_date).slice(0, 10))) : '') + ' · IP ' + esc(k.ip) + ' · versão ' + esc(k.version) + '</div></div>' +
             '<a class="btn btn-line btn-sm" target="_blank" href="/api/admin/consents/' + k.id + '/comprovante">Comprovante</a></div>';
         }).join('') + '</div>' : '<div class="msg warn">O paciente ainda não aceitou o termo. O envio de fotos e a teleorientação ficam bloqueados até o aceite.</div>') +
         '</div>' +
