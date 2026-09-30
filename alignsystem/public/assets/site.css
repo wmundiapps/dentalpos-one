@@ -309,3 +309,30 @@ footer{border-top:1px solid var(--line);padding:52px 0 34px;}
   h1,h2{overflow-wrap:break-word;hyphens:auto;}
   .hero-actions .btn{white-space:normal;text-align:center;}
 }
+
+/* ---------- base legal do atendimento híbrido ---------- */
+.legal-badge{
+  display:inline-flex;align-items:center;gap:8px;margin-top:18px;
+  font-size:13.5px;font-weight:600;color:var(--emerald-dark);text-decoration:none;
+  background:var(--emerald-soft);border:1px solid var(--emerald);border-radius:999px;padding:8px 14px;
+}
+.legal-badge::before{content:"§";font-family:var(--serif);font-size:16px;}
+.legal-badge:hover{text-decoration:underline;}
+.legal-band{background:var(--emerald-soft);}
+.legal-eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--emerald-dark);margin-bottom:10px !important;}
+.legal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+@media(max-width:760px){.legal-grid{grid-template-columns:1fr;}}
+.legal-card{
+  display:flex;flex-direction:column;gap:6px;min-width:0;
+  background:var(--white);border:1px solid var(--line);border-radius:14px;padding:20px 22px;
+  color:var(--ink-80);text-decoration:none;font-size:14.5px;
+}
+a.legal-card:hover{border-color:var(--emerald);}
+.legal-card b{font-family:var(--serif);font-size:19px;font-weight:600;color:var(--ink);}
+.legal-ref{font-size:12.5px;font-weight:700;color:var(--emerald-dark);letter-spacing:.02em;}
+a.legal-card .legal-ref::after{content:" ↗";font-weight:400;}
+.legal-note{margin-top:22px;font-size:14.5px;color:var(--ink-80);max-width:70ch;}
+/* formulários não podem alargar a página no celular */
+.cta-shell > *, .f-row > *{min-width:0;}
+form.lead input, form.lead select{width:100%;min-width:0;}
+@media(max-width:480px){form.lead{padding:20px 16px;}.cta-shell{padding:26px 16px;}}
