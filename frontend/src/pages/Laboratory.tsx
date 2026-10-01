@@ -16,10 +16,12 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import PageHeader from "../components/PageHeader";
 import LabNotifyFields from "../components/LabNotifyFields";
 import ExportMenu from "../components/ExportMenu";
+import { labRisk } from "../utils/labRisk";
+import { fetchLabOrders, restoreLabOrder, type LabOrderRow } from "../services/LabOrderApi";
 import { cachedLabNotify, cancelLabNotifications, rememberLabNotify, scheduleLabNotifications, type LabNotifyChoice } from "../services/LabNotifyApi";
 import {
   createLaboratoryWork, getLaboratoryWorks, sendLaboratoryWorkToDesign,
-  subscribeOperations, updateLaboratoryWork,
+  removeLaboratoryWork, subscribeOperations, syncLaboratoryWorksWithServer, updateLaboratoryWork, waitLabOrderSync,
 } from "../services/OperationsHubService";
 import type { IntegratedLaboratoryWork } from "../types/operationsHub";
 import type { LaboratoryPriority, LaboratoryWorkStatus } from "../types/laboratory";
@@ -50,6 +52,12 @@ export default function Laboratory(){
   const [notify,setNotify]=useState<LabNotifyChoice>({labMemberId:"",channels:[]});
   const [filtro,setFiltro]=useState<""|"ativos"|"design"|"atrasados"|"risco"|"entregues">(((new URLSearchParams(window.location.search).get("filtro")) || "") as ""|"ativos"|"design"|"atrasados"|"risco"|"entregues");
   useEffect(()=>subscribeOperations(()=>setWorks(getLaboratoryWorks())),[]);
+  // O banco é a fonte oficial: ao abrir a tela (e a cada minuto) junta com o servidor; ordens antigas do navegador sobem na primeira vez.
+  useEffect(()=>{const run=()=>{void syncLaboratoryWorksWithServer().then(()=>setWorks(getLaboratoryWorks())).catch(()=>undefined)};run();const t=window.setInterval(run,60000);return()=>window.clearInterval(t)},[]);
+  const [archiveOpen,setArchiveOpen]=useState(false);const [archive,setArchive]=useState<LabOrderRow[]>([]);const [archiveSearch,setArchiveSearch]=useState("");const [archiveError,setArchiveError]=useState("");
+  const openArchive=async()=>{setArchiveOpen(true);setArchiveError("");try{setArchive(await fetchLabOrders("archive"))}catch(e){setArchiveError(e instanceof Error?e.message:"Erro ao carregar o arquivo.")}};
+  const restore=async(row:LabOrderRow)=>{try{await restoreLabOrder(row.localId);await syncLaboratoryWorksWithServer();setWorks(getLaboratoryWorks());setArchive(await fetchLabOrders("archive"))}catch(e){setArchiveError(e instanceof Error?e.message:"Erro ao restaurar.")}};
+  const removeWork=(w:IntegratedLaboratoryWork)=>{if(window.confirm(`Excluir a ordem ${w.trackingCode} (${w.patientName})? Ela sai da fila, mas fica guardada para sempre no Arquivo.`))removeLaboratoryWork(w.id)};
 
   const delayedWorks=works.filter(w=>!["Entregue","Liberado"].includes(w.status)&&((w.dueDateISO&&daysUntil(w.dueDateISO)<0)||w.status==="Atrasado")).length;
   const riskWorks=works.filter(w=>!["Entregue","Liberado"].includes(w.status)&&(daysUntil(w.patientReturnDateISO)<=2||daysUntil(w.dueDateISO)<=2)).length;
@@ -72,6 +80,7 @@ export default function Laboratory(){
   const syncNotify=async(workId:number,isNew:boolean,entryISO?:string)=>{
     rememberLabNotify(workId,notify);
     try{
+      await waitLabOrderSync();
       if(notify.labMemberId&&notify.channels.length){
         await scheduleLabNotifications({workRef:String(workId),patientName:form.patientName.trim(),workType:form.workType.trim(),teeth:form.teeth.trim()||undefined,dueDateISO:form.dueDateISO||undefined,dentistName:form.dentistName.trim()||undefined,labMemberId:notify.labMemberId,channels:notify.channels,isNew,createdAtISO:entryISO?`${entryISO}T12:00:00-03:00`:undefined});
       } else if(!isNew){ await cancelLabNotifications(String(workId)); }
@@ -86,19 +95,19 @@ export default function Laboratory(){
       {([["ativos","Trabalhos ativos",works.filter(w=>w.status!=="Entregue").length,<PrecisionManufacturingIcon/>],["design","No Design",works.filter(w=>w.designStatus&&w.designStatus!=="Não enviado").length,<ArchitectureIcon/>],["atrasados","Atrasados",delayedWorks,<AssignmentLateIcon/>],["risco","Em risco",riskWorks,<WarningAmberIcon/>],["entregues","Liberados/entregues",works.filter(w=>["Liberado","Entregue"].includes(w.status)).length,<LocalShippingIcon/>]] as Array<[typeof filtro,string,number,ReactNode]>).map(([chave,titulo,valor,icone])=><Summary key={titulo} title={titulo} value={String(valor)} icon={icone} ativo={filtro===chave} onClick={()=>setFiltro(filtro===chave?"":chave)}/>)}
     </Box>
     <TextField size="small" placeholder="Buscar paciente, trabalho, código, dentes, cor, dentista ou técnico..." value={search} onChange={e=>setSearch(e.target.value)} sx={{mb:2,minWidth:{xs:"100%",md:500}}}/>
-    <Box sx={{display:"inline-block",ml:1,mb:2,verticalAlign:"middle"}}><ExportMenu disabled={!visible.length} build={()=>({title:"Trabalhos de laboratório",fileBase:"laboratorio",headers:["Código","Paciente","Dentista","Trabalho","Dentes","Material","Técnico","Entrada","Prazo","Retorno do paciente","Status","Prioridade"],rows:visible.map(w=>[w.trackingCode,w.patientName,w.dentistName,w.workType,w.teeth||"",w.material,w.responsibleTechnician,formatDate(w.entryDateISO),formatDate(w.dueDateISO),formatDate(w.patientReturnDateISO),w.status,w.priority])})}/></Box>
+    <Box sx={{display:"inline-block",ml:1,mb:2,verticalAlign:"middle"}}><Button size="small" variant="outlined" sx={{mr:1}} onClick={()=>void openArchive()}>Arquivo (entregues e excluídas)</Button><ExportMenu disabled={!visible.length} build={()=>({title:"Trabalhos de laboratório",fileBase:"laboratorio",headers:["Código","Paciente","Dentista","Trabalho","Dentes","Material","Técnico","Entrada","Prazo","Retorno do paciente","Status","Prioridade"],rows:visible.map(w=>[w.trackingCode,w.patientName,w.dentistName,w.workType,w.teeth||"",w.material,w.responsibleTechnician,formatDate(w.entryDateISO),formatDate(w.dueDateISO),formatDate(w.patientReturnDateISO),w.status,w.priority])})}/></Box>
     {filtro&&<Chip sx={{ml:1,mb:2}} color="primary" label={`Filtro: ${({ativos:"Trabalhos ativos",design:"No Design",atrasados:"Atrasados",risco:"Em risco",entregues:"Liberados/entregues"} as Record<string,string>)[filtro]} • ${visible.length}`} onDelete={()=>setFiltro("")}/>}
     <Paper elevation={0} sx={{borderRadius:3,border:"1px solid",borderColor:"divider",overflow:"hidden"}}>
       {visible.length===0&&<Typography sx={{p:3}} color="text.secondary">{filtro?"Nenhum trabalho neste filtro.":"Nenhum trabalho laboratorial cadastrado. Use “Novo trabalho” para começar."}</Typography>}
       {visible.map(w=>{const delayed=!["Entregue","Liberado"].includes(w.status)&&daysUntil(w.dueDateISO)<0;const risk=!delayed&&!["Entregue","Liberado"].includes(w.status)&&(daysUntil(w.patientReturnDateISO)<=2||daysUntil(w.dueDateISO)<=2);return <Box key={w.id} sx={{p:2,borderBottom:"1px solid",borderColor:"divider",bgcolor:delayed?"rgba(239,68,68,.045)":risk?"rgba(245,158,11,.045)":"transparent"}}>
         <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",xl:"1.15fr 1.3fr 1fr 1fr 190px"},gap:2,alignItems:"center"}}>
-          <Box><Typography sx={{fontWeight:900}}>{w.patientName}</Typography><Typography variant="body2" color="text.secondary">{w.trackingCode} • {w.source}</Typography><Box sx={{display:"flex",gap:.6,mt:.6,flexWrap:"wrap"}}><Chip size="small" label={w.priority} color={priorityColor(w.priority)}/>{delayed&&<Chip size="small" label="ATRASADO" color="error"/>}{risk&&<Chip size="small" label="EM RISCO" color="warning"/>}<Chip size="small" label={w.designStatus||"Não enviado"}/></Box></Box>
+          <Box><Typography sx={{fontWeight:900}}>{w.patientName}</Typography><Typography variant="body2" color="text.secondary">{w.trackingCode} • {w.source}</Typography><Box sx={{display:"flex",gap:.6,mt:.6,flexWrap:"wrap"}}><Chip size="small" label={w.priority} color={priorityColor(w.priority)}/>{(()=>{const r=labRisk(w.status,w.dueDateISO,w.patientReturnDateISO);return r.key==="ENTREGUE"||r.key==="SEM_PRAZO"?null:<Chip size="small" label={r.label} color={r.color} variant={r.key==="NO_PRAZO"?"outlined":"filled"}/>})()}<Chip size="small" label={w.designStatus||"Não enviado"}/></Box></Box>
           <Box><Typography sx={{fontWeight:800}}>{w.workType}</Typography><Typography variant="body2" color="text.secondary">Dentes: {w.teeth||"—"} • {w.material}</Typography><Typography variant="body2" sx={{fontWeight:700}}>Cor: {w.toothShade||"NÃO INFORMADA"} {w.shadeSystem?`(${w.shadeSystem})`:""}</Typography><Typography variant="caption" color="text.secondary">{w.impressionType||"—"} • {(w.receivedItems||[]).join(" • ")||"Itens não conferidos"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Dentista / Técnico</Typography><Typography>{w.dentistName}</Typography><Typography variant="body2" color="text.secondary">{w.responsibleTechnician}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Prazo / Retorno</Typography><Typography sx={{fontWeight:700}}>Lab: {formatDate(w.dueDateISO)}</Typography><Typography sx={{fontWeight:700}}>Paciente: {formatDate(w.patientReturnDateISO)}</Typography><Typography variant="caption" color="text.secondary">Próxima ação: {w.nextAction||"Definir"}</Typography></Box>
           <TextField select size="small" label="Status" value={w.status} onChange={e=>{updateLaboratoryWork(w.id,{status:e.target.value as LaboratoryWorkStatus});if(["Entregue","Liberado"].includes(e.target.value))void cancelLabNotifications(String(w.id)).catch(()=>undefined)}}>{statuses.map(s=><MenuItem key={s} value={s}>{s}</MenuItem>)}</TextField>
         </Box>
-        <Box sx={{display:"flex",gap:1,mt:1.4,flexWrap:"wrap"}}><Button size="small" startIcon={<EditIcon/>} onClick={()=>openEdit(w)}>Editar</Button><Button size="small" startIcon={<HistoryIcon/>} onClick={()=>setHistoryWork(w)}>Histórico</Button><Button size="small" variant="contained" startIcon={<ArchitectureIcon/>} disabled={!w.toothShade} onClick={()=>sendDesign(w)}>Abrir no DentalPos Design</Button></Box>
+        <Box sx={{display:"flex",gap:1,mt:1.4,flexWrap:"wrap"}}><Button size="small" startIcon={<EditIcon/>} onClick={()=>openEdit(w)}>Editar</Button><Button size="small" startIcon={<HistoryIcon/>} onClick={()=>setHistoryWork(w)}>Histórico</Button><Button size="small" color="error" onClick={()=>removeWork(w)}>Excluir</Button><Button size="small" variant="contained" startIcon={<ArchitectureIcon/>} disabled={!w.toothShade} onClick={()=>sendDesign(w)}>Abrir no DentalPos Design</Button></Box>
       </Box>})}
     </Paper>
 
@@ -111,6 +120,17 @@ export default function Laboratory(){
       <TextField label="Técnico responsável" value={form.technician} onChange={e=>setForm({...form,technician:e.target.value})}/><TextField select label="Prioridade" value={form.priority} onChange={e=>setForm({...form,priority:e.target.value as LaboratoryPriority})}>{["Normal","Alta","Urgente"].map(v=><MenuItem key={v} value={v}>{v}</MenuItem>)}</TextField><TextField label="Prazo do laboratório" type="date" slotProps={{inputLabel:{shrink:true}}} value={form.dueDateISO} onChange={e=>setForm({...form,dueDateISO:e.target.value})}/><TextField label="Retorno do paciente" type="date" slotProps={{inputLabel:{shrink:true}}} value={form.patientReturnDateISO} onChange={e=>setForm({...form,patientReturnDateISO:e.target.value})}/><TextField label="Próxima ação" value={form.nextAction} onChange={e=>setForm({...form,nextAction:e.target.value})} sx={{gridColumn:{md:"1/-1"}}}/><TextField label="Observações" multiline rows={3} value={form.observations} onChange={e=>setForm({...form,observations:e.target.value})} sx={{gridColumn:{md:"1/-1"}}}/>
       <LabNotifyFields value={notify} onChange={setNotify}/>
     </DialogContent><DialogActions><Button onClick={()=>setOpen(false)}>Cancelar</Button><Button variant="contained" onClick={save}>Salvar trabalho</Button></DialogActions></Dialog>
+
+    <Dialog open={archiveOpen} onClose={()=>setArchiveOpen(false)} fullWidth maxWidth="md"><DialogTitle>Arquivo do laboratório</DialogTitle><DialogContent>
+      <Typography variant="body2" color="text.secondary" sx={{mb:1.5}}>Todas as ordens entregues ou excluídas ficam guardadas aqui para sempre.</Typography>
+      <TextField size="small" fullWidth placeholder="Buscar paciente, trabalho ou código..." value={archiveSearch} onChange={e=>setArchiveSearch(e.target.value)} sx={{mb:1.5}}/>
+      {archiveError&&<Typography color="error" sx={{mb:1}}>{archiveError}</Typography>}
+      {archive.filter(r=>{const d=r.data as Record<string,unknown>;return !archiveSearch.trim()||`${d.patientName} ${d.workType} ${d.trackingCode} ${d.dentistName}`.toLowerCase().includes(archiveSearch.trim().toLowerCase())}).map(r=>{const d=r.data as Record<string,string|undefined>;return <Box key={r.localId} sx={{display:"flex",justifyContent:"space-between",gap:2,flexWrap:"wrap",py:1.2,borderTop:"1px solid",borderColor:"divider"}}>
+        <Box><Typography sx={{fontWeight:800}}>{d.patientName} — {d.workType}</Typography><Typography variant="body2" color="text.secondary">{d.trackingCode} • {d.dentistName} • entrega {formatDate(d.dueDateISO)} • {r.status}</Typography><Typography variant="caption" color="text.secondary">{r.deletedAt?`Excluída em ${new Date(r.deletedAt).toLocaleDateString("pt-BR")}`:r.deliveredAt?`Entregue em ${new Date(r.deliveredAt).toLocaleDateString("pt-BR")}`:""}</Typography></Box>
+        {r.deletedAt&&<Button size="small" onClick={()=>void restore(r)}>Restaurar</Button>}
+      </Box>})}
+      {archive.length===0&&!archiveError&&<Typography color="text.secondary">Nenhuma ordem arquivada ainda.</Typography>}
+    </DialogContent><DialogActions><Button onClick={()=>setArchiveOpen(false)}>Fechar</Button></DialogActions></Dialog>
 
     <Dialog open={Boolean(historyWork)} onClose={()=>setHistoryWork(null)} fullWidth maxWidth="sm"><DialogTitle>Histórico do trabalho</DialogTitle><DialogContent>{historyWork&&<><Typography sx={{fontWeight:900,mb:2}}>{historyWork.patientName} • {historyWork.trackingCode}</Typography>{(historyWork.history||[]).length===0?<Typography color="text.secondary">Sem histórico registrado nesta versão.</Typography>:(historyWork.history||[]).map(h=><Box key={h.id} sx={{pb:1.5,mb:1.5,borderBottom:"1px solid",borderColor:"divider"}}><Typography sx={{fontWeight:800}}>{h.action}</Typography><Typography variant="body2">{h.description}</Typography><Typography variant="caption" color="text.secondary">{new Date(h.atISO).toLocaleString("pt-BR")}</Typography></Box>)}</>}</DialogContent><DialogActions><Button onClick={()=>setHistoryWork(null)}>Fechar</Button></DialogActions></Dialog>
   </Box>

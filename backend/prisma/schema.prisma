@@ -2519,3 +2519,29 @@ model LabNotification {
   @@index([clinicId, workRef])
   @@index([status, scheduledFor])
 }
+
+model LabOrder {
+  id                String    @id @default(cuid())
+  clinicId          String
+  tenantId          String
+  localId           String
+  trackingCode      String?
+  patientName       String
+  dentistName       String?
+  workType          String
+  status            String
+  priority          String?
+  dueDate           DateTime?
+  deliveredAt       DateTime?
+  data              Json
+  notifyLabMemberId String?
+  notifyChannels    String[]  @default([])
+  deletedAt         DateTime?
+  deletedById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([clinicId, localId])
+  @@index([clinicId, deletedAt])
+  @@index([tenantId])
+}

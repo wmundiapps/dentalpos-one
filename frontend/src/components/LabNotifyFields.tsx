@@ -17,7 +17,7 @@ export default function LabNotifyFields({ value, onChange }: { value: LabNotifyC
     <Box sx={{ gridColumn: { md: "1/-1" }, border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2 }}>
       <Typography sx={{ fontWeight: 800 }}>Avisar o laboratório de prótese</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-        Envia os dados do trabalho ao salvar e lembretes automáticos: 2 dias depois, na véspera da entrega e no dia da entrega. Cadastre o laboratório em Equipe → Laboratório de prótese.
+        Envia os dados do trabalho ao salvar e depois um aviso por dia, às 8h, até a entrega. O nível de risco muda conforme a data se aproxima (no prazo, atenção, risco alto, entrega hoje, atrasado). Cadastre o laboratório em Equipe → Laboratório de prótese.
       </Typography>
       {labs.length === 0 ? (
         <Alert severity="info">Nenhum laboratório de prótese cadastrado na Equipe.</Alert>

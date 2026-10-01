@@ -3,44 +3,51 @@ import { decryptSecret } from './secretVault'
 import { dispatchRevah, type RevahChannel } from './revahProviderService'
 
 export const LAB_CHANNELS = ['WHATSAPP', 'SMS', 'TELEGRAM'] as const
-// O texto de "antes da entrega" diz "amanhã": o aviso sai 1 dia antes. Ajuste aqui se a clínica preferir 2 dias.
-export const BEFORE_DUE_DAYS = 1
-export const FOLLOW_UP_DAYS = 2
 const DAY = 86400000
+const DELIVERED = ['Entregue', 'Liberado']
+// Depois de tantos dias de atraso o aviso diário para (a ordem continua no sistema).
+const MAX_OVERDUE_DAYS = 60
 let running = false
+let runningDaily = false
 
-type Snapshot = { patientName: string; workType: string; teeth?: string | null; dueDateISO?: string | null; dentistName: string; clinicName: string }
+type Snapshot = { patientName: string; workType: string; teeth?: string | null; dueDateISO?: string | null; dentistName: string; clinicName: string; status?: string }
 
 const dm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
-export function labMessage(type: string, s: Snapshot) {
-  if (type === 'ON_CREATE') {
-    const head = `Pac ${s.patientName} — ${s.workType}${s.teeth ? ` no ${s.teeth}` : ''}${s.dueDateISO ? ` — para dia ${dm(s.dueDateISO)}` : ''}`
-    return `${head}\nClínica ${s.clinicName} — ${s.dentistName}.`
-  }
-  if (type === 'FOLLOW_UP') return `Este é um lembrete sobre o trabalho do paciente ${s.patientName} para honrarmos o prazo com o paciente.`
-  if (type === 'BEFORE_DUE') return `O trabalho do paciente ${s.patientName} tem entrega prevista para amanhã, confira se o mesmo já está em andamento.`
-  return `Hoje é dia de entregar o trabalho do paciente ${s.patientName} na clínica ${s.clinicName} para o ${s.dentistName}. Agradecemos pelos trabalhos executados.`
+// Dia (AAAA-MM-DD) no horário de Brasília e diferença em dias de calendário.
+export const brtDay = (d: Date) => new Date(d.getTime() - 3 * 3600000).toISOString().slice(0, 10)
+export function daysUntil(dueISO: string, today: string) {
+  return Math.round((new Date(`${dueISO}T12:00:00Z`).getTime() - new Date(`${today}T12:00:00Z`).getTime()) / DAY)
 }
 
-// 08:00 no horário de Brasília (UTC-3) do dia informado (AAAA-MM-DD).
-const at8Brt = (iso: string) => new Date(`${iso}T11:00:00.000Z`)
-const shiftDay = (iso: string, days: number) => new Date(new Date(`${iso}T12:00:00.000Z`).getTime() + days * DAY).toISOString().slice(0, 10)
+// Nível de risco conforme a data de entrega se aproxima. Texto simples (sem emoji) para funcionar também em SMS.
+export function riskLevel(daysLeft: number) {
+  if (daysLeft < 0) return { key: 'ATRASADO', tag: '[ATRASADO]' }
+  if (daysLeft === 0) return { key: 'HOJE', tag: '[ENTREGA HOJE]' }
+  if (daysLeft === 1) return { key: 'ALTO', tag: '[RISCO ALTO]' }
+  if (daysLeft <= 3) return { key: 'ATENCAO', tag: '[ATENÇÃO]' }
+  return { key: 'NO_PRAZO', tag: '[NO PRAZO]' }
+}
 
-export function planNotifications(input: { isNew: boolean; createdAt: Date; dueDateISO?: string | null; now?: Date }) {
-  const now = (input.now || new Date()).getTime()
-  const plan: Array<{ type: string; scheduledFor: Date }> = []
-  if (input.isNew) plan.push({ type: 'ON_CREATE', scheduledFor: new Date(now) })
-  const due = input.dueDateISO && /^\d{4}-\d{2}-\d{2}$/.test(input.dueDateISO) ? input.dueDateISO : null
-  const followUp = new Date(input.createdAt.getTime() + FOLLOW_UP_DAYS * DAY)
-  if (followUp.getTime() > now && (!due || followUp.getTime() < at8Brt(due).getTime())) plan.push({ type: 'FOLLOW_UP', scheduledFor: followUp })
-  if (due) {
-    const before = at8Brt(shiftDay(due, -BEFORE_DUE_DAYS))
-    if (before.getTime() > now) plan.push({ type: 'BEFORE_DUE', scheduledFor: before })
-    const onDay = at8Brt(due)
-    if (onDay.getTime() > now) plan.push({ type: 'ON_DUE_DAY', scheduledFor: onDay })
+const workLine = (s: Snapshot) => `${s.workType}${s.teeth ? ` no ${s.teeth}` : ''}`
+
+export function labMessage(type: string, s: Snapshot, today?: string) {
+  if (type === 'ON_CREATE') {
+    const head = `Pac ${s.patientName} — ${workLine(s)}${s.dueDateISO ? ` — para dia ${dm(s.dueDateISO)}` : ''}`
+    return `${head}\nClínica ${s.clinicName} — ${s.dentistName}.`
   }
-  return plan
+  // Aviso diário: o nível de risco muda conforme chega a data de entrega.
+  if (!s.dueDateISO || !today) {
+    return `[ACOMPANHAMENTO] Lembrete sobre o trabalho do paciente ${s.patientName} (${workLine(s)}) para honrarmos o prazo com o paciente. Status: ${s.status || 'em andamento'}.`
+  }
+  const left = daysUntil(s.dueDateISO, today)
+  const risk = riskLevel(left)
+  const due = dm(s.dueDateISO)
+  if (left < 0) return `${risk.tag} O trabalho do paciente ${s.patientName} (${workLine(s)}) está atrasado há ${plural(-left, 'dia', 'dias')} (entrega era ${due}). Status: ${s.status || '-'}. Informe a nova previsão de entrega com urgência.`
+  if (left === 0) return `${risk.tag} Hoje é dia de entregar o trabalho do paciente ${s.patientName} (${workLine(s)}) na clínica ${s.clinicName} para o ${s.dentistName}. Agradecemos pelos trabalhos executados.`
+  if (left === 1) return `${risk.tag} O trabalho do paciente ${s.patientName} (${workLine(s)}) tem entrega prevista para amanhã (${due}), confira se o mesmo já está em andamento. Status: ${s.status || '-'}.`
+  return `${risk.tag} Trabalho do paciente ${s.patientName} (${workLine(s)}): faltam ${plural(left, 'dia', 'dias')} para a entrega em ${due}. Status: ${s.status || '-'}. Confira se está em andamento para honrarmos o prazo com o paciente.`
 }
 
 async function postpone(id: string, message: string, scheduledFor: Date) {
@@ -87,5 +94,51 @@ export async function processDueLabNotifications(clinicId?: string) {
     }
   } finally {
     running = false
+  }
+}
+
+
+// Uma vez por dia (a partir das 08:00 de Brasília), cada ordem com avisos ligados e ainda não entregue recebe o aviso
+// do dia, com o risco calculado agora. Atrasadas continuam recebendo todo dia até a entrega.
+export async function processDailyLabRisk(clinicId?: string, nowOverride?: Date) {
+  if (runningDaily) return
+  runningDaily = true
+  try {
+    const now = nowOverride || new Date()
+    const brtHour = new Date(now.getTime() - 3 * 3600000).getUTCHours()
+    if (brtHour < 8) return
+    const today = brtDay(now)
+    const startOfToday = new Date(`${today}T00:00:00-03:00`)
+    const orders = await prisma.labOrder.findMany({
+      where: { deletedAt: null, deliveredAt: null, notifyLabMemberId: { not: null }, NOT: { notifyChannels: { isEmpty: true } }, ...(clinicId ? { clinicId } : {}) },
+      take: 500
+    })
+    const clinicNames = new Map<string, string>()
+    for (const order of orders) {
+      if (DELIVERED.includes(order.status)) continue
+      const dueISO = order.dueDate ? brtDay(order.dueDate) : null
+      if (dueISO && daysUntil(dueISO, today) < -MAX_OVERDUE_DAYS) continue
+      if (!clinicNames.has(order.clinicId)) {
+        const clinic = await prisma.clinic.findFirst({ where: { id: order.clinicId }, select: { name: true } })
+        clinicNames.set(order.clinicId, clinic?.name || 'DentalPos')
+      }
+      const data = (order.data || {}) as Record<string, unknown>
+      const snapshot: Snapshot = {
+        patientName: order.patientName, workType: order.workType, teeth: data.teeth ? String(data.teeth) : null, dueDateISO: dueISO,
+        dentistName: order.dentistName || 'o dentista responsável', clinicName: clinicNames.get(order.clinicId) || 'DentalPos', status: order.status
+      }
+      for (const channel of order.notifyChannels) {
+        const already = await prisma.labNotification.findFirst({
+          where: { clinicId: order.clinicId, workRef: order.localId, channel, type: { in: ['ON_CREATE', 'DAILY'] }, status: { not: 'CANCELLED' }, createdAt: { gte: startOfToday } },
+          select: { id: true }
+        })
+        if (already) continue
+        await prisma.labNotification.create({
+          data: { clinicId: order.clinicId, tenantId: order.tenantId, workRef: order.localId, labMemberId: order.notifyLabMemberId as string, type: 'DAILY', channel, message: labMessage('DAILY', snapshot, today), scheduledFor: now }
+        })
+      }
+    }
+  } finally {
+    runningDaily = false
   }
 }

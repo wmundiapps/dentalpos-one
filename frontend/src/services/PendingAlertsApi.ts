@@ -1,14 +1,16 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 export interface PendingAlertItem { key: string; label: string; count: number; path: string }
+export interface LockedUser { id: string; name: string; count: number }
 export interface PendingAlerts {
   enabled: boolean;
   mode: "ALERT" | "BLOCK";
   blocked: boolean;
-  unlocked: boolean;
   canManage: boolean;
   total: number;
   items: PendingAlertItem[];
+  lockedUsers: LockedUser[];
+  settings?: { lockedUserIds: string[]; hasKey: boolean };
 }
 
 export const PENDING_ALERTS_MESSAGE =
@@ -38,14 +40,22 @@ export async function loadPendingAlerts(): Promise<PendingAlerts> {
   return parse(await fetch(`${API}/pending-alerts`, { headers: headers() }));
 }
 
-export async function savePendingAlertsSettings(input: { enabled?: boolean; mode?: "ALERT" | "BLOCK" }) {
+export async function savePendingAlertsSettings(input: { enabled?: boolean; mode?: "ALERT" | "BLOCK"; lockedUserIds?: string[]; unlockKey?: string }) {
   const result = await parse<unknown>(await fetch(`${API}/pending-alerts/settings`, { method: "PUT", headers: headers(true), body: JSON.stringify(input) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
 }
 
-export async function unlockPendingAlerts() {
-  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unlock`, { method: "POST", headers: headers(true), body: "{}" }));
+// Usuário travado digita a chave de desbloqueio e destrava a própria tela (até o fim do dia).
+export async function unlockPendingAlerts(key: string) {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unlock`, { method: "POST", headers: headers(true), body: JSON.stringify({ key }) }));
+  window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
+  return result;
+}
+
+// Admin/gestor destrava a tela de um usuário.
+export async function unlockUserScreen(userId: string) {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unlock-user`, { method: "POST", headers: headers(true), body: JSON.stringify({ userId }) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
 }

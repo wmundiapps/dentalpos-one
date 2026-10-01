@@ -10,6 +10,7 @@ import { isOperationalAlertResolved } from "./OperationalAlertResolutionApi";
 import { inventoryItems } from "./InventoryService";
 import { loadBackendPatients } from "./PatientApi";
 import { getTreatmentPlan } from "./TreatmentPlanApi";
+import { archiveLabOrder, fetchLabOrders, hasSession, pushLabOrders } from "./LabOrderApi";
 
 export const OPERATIONS_EVENT = "dentalpos:operations-updated";
 const LAB_KEY = "dentalpos.operations.labWorks.v1";
@@ -129,8 +130,73 @@ export function getLaboratoryWorks(): IntegratedLaboratoryWork[] {
   return read(LAB_KEY, seedLabWorks);
 }
 
+// As ordens do laboratório vivem no banco (arquivo permanente). O navegador guarda uma cópia, usada pela Agenda e pelo Design;
+// toda gravação local é enviada ao servidor, e excluir uma ordem apenas a arquiva.
+const LAB_CLINIC_KEY = "dentalpos.operations.labWorks.clinic.v1";
+let suppressLabPush = false;
+let labPushChain: Promise<unknown> = Promise.resolve();
+
+function pushLabDiff(prev: IntegratedLaboratoryWork[], next: IntegratedLaboratoryWork[]) {
+  if (!hasSession()) return;
+  const prevById = new Map(prev.map((w) => [w.id, JSON.stringify(w)]));
+  const changed = next.filter((w) => prevById.get(w.id) !== JSON.stringify(w));
+  const nextIds = new Set(next.map((w) => w.id));
+  const removed = prev.filter((w) => !nextIds.has(w.id));
+  if (!changed.length && !removed.length) return;
+  labPushChain = labPushChain
+    .then(async () => {
+      if (changed.length) await pushLabOrders(changed.map((w) => ({ localId: String(w.id), data: w })));
+      for (const w of removed) await archiveLabOrder(String(w.id));
+    })
+    .catch(() => undefined); // se falhar (sem rede), a próxima sincronização reenvia o que estiver mais novo no navegador
+}
+
+// Espera as gravações pendentes chegarem ao servidor (usado antes de programar os avisos do laboratório).
+export const waitLabOrderSync = () => labPushChain;
+
 export function saveLaboratoryWorks(works: IntegratedLaboratoryWork[]) {
+  const prev = getLaboratoryWorks();
   write(LAB_KEY, works);
+  if (!suppressLabPush) pushLabDiff(prev, works);
+}
+
+export function removeLaboratoryWork(id: number) {
+  saveLaboratoryWorks(getLaboratoryWorks().filter((work) => work.id !== id));
+}
+
+// Junta o navegador com o servidor: vale a versão mais recente de cada ordem; o que só existe aqui sobe (migração);
+// o que foi excluído (arquivado) no servidor sai da fila local.
+export async function syncLaboratoryWorksWithServer(): Promise<void> {
+  if (!hasSession()) return;
+  const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
+  const owner = localStorage.getItem(LAB_CLINIC_KEY);
+  // Cópia que pertence a outra clínica (mesmo navegador) nunca sobe para esta.
+  const local = owner && owner !== clinicId ? [] : getLaboratoryWorks();
+  const server = await fetchLabOrders("all");
+  const serverById = new Map(server.map((row) => [row.localId, row]));
+  const merged: IntegratedLaboratoryWork[] = [];
+  const upload: IntegratedLaboratoryWork[] = [];
+  const handled = new Set<string>();
+
+  for (const row of server) {
+    handled.add(row.localId);
+    if (row.deletedAt) continue;
+    const remote = row.data as unknown as IntegratedLaboratoryWork;
+    const mine = local.find((w) => String(w.id) === row.localId);
+    if (mine && String(mine.updatedAtISO || "") > String(remote.updatedAtISO || "")) { merged.push(mine); upload.push(mine); }
+    else merged.push({ ...remote, id: Number(row.localId) });
+  }
+  for (const work of local) {
+    const key = String(work.id);
+    if (handled.has(key) || serverById.has(key)) continue;
+    merged.push(work);
+    upload.push(work);
+  }
+  if (upload.length) await pushLabOrders(upload.map((w) => ({ localId: String(w.id), data: w })));
+  merged.sort((a, b) => String(b.updatedAtISO || "").localeCompare(String(a.updatedAtISO || "")));
+  suppressLabPush = true;
+  try { write(LAB_KEY, merged); } finally { suppressLabPush = false; }
+  localStorage.setItem(LAB_CLINIC_KEY, clinicId);
 }
 
 export function createLaboratoryWork(input: Omit<IntegratedLaboratoryWork, "id" | "trackingCode" | "patientCode" | "updatedAtISO">) {
