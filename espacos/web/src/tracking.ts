@@ -1,15 +1,16 @@
 // Medição de campanhas: guarda a origem (UTM) da primeira visita e, só com
 // consentimento, carrega o Meta Pixel e a tag do Google (Ads/Analytics).
-// Env de build: VITE_META_PIXEL_ID, VITE_GOOGLE_TAG_ID (ex.: AW-123 ou G-ABC).
+// Env de build: VITE_META_PIXEL_ID, VITE_GOOGLE_TAG_ID (ex.: AW-123 ou G-ABC), VITE_TIKTOK_PIXEL_ID.
 import { isNativeApp } from './native';
 
 const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID as string | undefined;
 const GOOGLE_TAG_ID = import.meta.env.VITE_GOOGLE_TAG_ID as string | undefined;
+const TIKTOK_PIXEL_ID = import.meta.env.VITE_TIKTOK_PIXEL_ID as string | undefined;
 const SRC_KEY = 'sh_src';
 const CONSENT_KEY = 'sh_consent';
 const SRC_TTL_MS = 30 * 86400000;
 
-type W = Window & { fbq?: (...a: unknown[]) => void; _fbq?: unknown; gtag?: (...a: unknown[]) => void; dataLayer?: unknown[] };
+type W = Window & { ttq?: any; TiktokAnalyticsObject?: string; fbq?: (...a: unknown[]) => void; _fbq?: unknown; gtag?: (...a: unknown[]) => void; dataLayer?: unknown[] };
 const w = window as W;
 
 function store(key: string, value?: string) {
@@ -35,7 +36,7 @@ export function signupSource(): string | undefined {
 }
 
 // No aplicativo não há pixel de anúncios (evita rastreamento entre apps; regras da App Store).
-export const trackingConfigured = () => !isNativeApp() && !!(META_PIXEL_ID || GOOGLE_TAG_ID);
+export const trackingConfigured = () => !isNativeApp() && !!(META_PIXEL_ID || GOOGLE_TAG_ID || TIKTOK_PIXEL_ID);
 export const consent = () => store(CONSENT_KEY) as 'yes' | 'no' | null;
 
 export function setConsent(v: 'yes' | 'no') {
@@ -55,6 +56,19 @@ export function loadTags() {
     addScript('https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', META_PIXEL_ID);
     fbq('track', 'PageView');
+  }
+  if (TIKTOK_PIXEL_ID) {
+    // stub oficial do TikTok Pixel: enfileira as chamadas até o events.js carregar
+    w.TiktokAnalyticsObject = 'ttq';
+    const ttq: any = (w.ttq = w.ttq || []); // eslint-disable-line @typescript-eslint/no-explicit-any
+    ttq.methods = ['page', 'track', 'identify', 'instances', 'debug', 'on', 'off', 'once', 'ready', 'alias', 'group', 'enableCookie', 'disableCookie', 'holdConsent', 'revokeConsent', 'grantConsent'];
+    ttq.setAndDefer = (t: any, e: string) => { t[e] = (...a: unknown[]) => { t.push([e, ...a]); }; }; // eslint-disable-line @typescript-eslint/no-explicit-any
+    for (const m of ttq.methods) ttq.setAndDefer(ttq, m);
+    ttq._i = ttq._i || {}; ttq._i[TIKTOK_PIXEL_ID] = []; ttq._i[TIKTOK_PIXEL_ID]._u = 'https://analytics.tiktok.com/i18n/pixel/events.js';
+    ttq._t = ttq._t || {}; ttq._t[TIKTOK_PIXEL_ID] = +new Date();
+    ttq._o = ttq._o || {}; ttq._o[TIKTOK_PIXEL_ID] = {};
+    addScript(`https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=${encodeURIComponent(TIKTOK_PIXEL_ID)}&lib=ttq`);
+    ttq.page();
   }
   if (GOOGLE_TAG_ID) {
     w.dataLayer = w.dataLayer ?? [];
@@ -76,6 +90,7 @@ export function trackPage(path: string) {
   if (!loaded) return;
   w.fbq?.('track', 'PageView');
   w.gtag?.('event', 'page_view', { page_path: path });
+  w.ttq?.page?.();
 }
 
 /** Eventos de conversão: Lead (clicou no CTA da landing) e CompleteRegistration (cadastrou). */
@@ -83,6 +98,7 @@ export function track(event: 'Lead' | 'CompleteRegistration', data: Record<strin
   if (!loaded) return;
   w.fbq?.('track', event, data);
   w.gtag?.('event', event === 'Lead' ? 'generate_lead' : 'sign_up', data);
+  w.ttq?.track?.(event === 'Lead' ? 'ClickButton' : 'CompleteRegistration', data);
   const conv = import.meta.env.VITE_GOOGLE_ADS_SIGNUP_LABEL as string | undefined; // ex.: AW-123/AbC-dEf
   if (event === 'CompleteRegistration' && conv) w.gtag?.('event', 'conversion', { send_to: conv });
 }

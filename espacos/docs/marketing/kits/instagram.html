@@ -1,0 +1,1075 @@
+<title>Kit Instagram SpaceHour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: manual de trabalho de uma coluna (~760px), índice no topo, seções numeradas na ordem de execução. */
+:root {
+  --bg: #f3fbfa;
+  --surface: #ffffff;
+  --ink: #0b3534;
+  --muted: #4a6866;
+  --line: #cbe4e1;
+  --accent: #0e7c7b;
+  --accent-strong: #0a5f5e;
+  --accent-soft: #dcf3f0;
+  --code-bg: #eaf6f4;
+  --note-bg: #fff7e6;
+  --note-line: #e7c27a;
+  --note-ink: #5b4310;
+  --on-accent: #ffffff;
+  --font-display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #061c1b; --surface: #0b2827; --ink: #e2f4f2; --muted: #9dbfbc; --line: #1d4745;
+    --accent: #5fd6d0; --accent-strong: #8ff0e9; --accent-soft: #0f3a38; --code-bg: #08201f;
+    --note-bg: #2a2210; --note-line: #7a6223; --note-ink: #f1dca6; --on-accent: #062120;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #061c1b; --surface: #0b2827; --ink: #e2f4f2; --muted: #9dbfbc; --line: #1d4745;
+  --accent: #5fd6d0; --accent-strong: #8ff0e9; --accent-soft: #0f3a38; --code-bg: #08201f;
+  --note-bg: #2a2210; --note-line: #7a6223; --note-ink: #f1dca6; --on-accent: #062120;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; margin: 0; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 780px; margin: 0 auto; }
+h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.25; text-wrap: balance; color: var(--ink); }
+h1 { font-size: 1.9rem; margin: 0; font-weight: 700; }
+h2 { font-size: 1.4rem; margin: 0 0 12px; font-weight: 600; display: flex; gap: 12px; align-items: baseline; }
+h2 .n { font-family: var(--font-mono); font-size: .95rem; color: var(--accent); font-weight: 500; min-width: 2ch; }
+h3 { font-size: 1.1rem; margin: 28px 0 8px; font-weight: 600; }
+h4 { font-size: 1rem; margin: 18px 0 6px; font-weight: 600; }
+p, li { max-width: 68ch; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+strong { font-weight: 700; }
+.top { padding-block: 32px 20px; border-bottom: 1px solid var(--line); display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.logo { width: 52px; height: 52px; border-radius: 14px; background: var(--accent-strong); display: grid; place-items: center; flex: none; }
+.logo span { width: 34px; height: 34px; border-radius: 9px; background: #ffffff; color: #0a5f5e; font: 700 1.25rem/34px var(--font-display); text-align: center; }
+.top .meta { color: var(--muted); font-size: .95rem; margin: 4px 0 0; }
+.eyebrow { font-family: var(--font-mono); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 2px; }
+nav.toc { margin-block: 20px 8px; }
+nav.toc ol { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 16px; counter-reset: t; }
+nav.toc li { counter-increment: t; }
+nav.toc a { display: flex; gap: 10px; padding: 6px 0; text-decoration: none; color: var(--ink); border-bottom: 1px dashed var(--line); }
+nav.toc a::before { content: counter(t, decimal-leading-zero); font-family: var(--font-mono); color: var(--accent); font-size: .85rem; padding-top: 2px; }
+nav.toc a:hover { color: var(--accent); }
+section { padding-block: 36px 8px; border-bottom: 1px solid var(--line); scroll-margin-top: 12px; }
+section:last-of-type { border-bottom: 0; }
+ol.steps { padding-left: 1.4em; display: grid; gap: 6px; }
+ol.steps li::marker { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
+ul { padding-left: 1.2em; }
+.note { background: var(--note-bg); border: 1px solid var(--note-line); color: var(--note-ink); border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.note p { margin: 4px 0; }
+.tip { background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.tip p { margin: 4px 0; }
+.copy { position: relative; margin: 10px 0 16px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; }
+.copy pre { margin: 0; padding: 12px 14px; padding-top: 40px; font-family: var(--font-mono); font-size: .86rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.copy .lbl { position: absolute; top: 9px; left: 14px; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.copy button { position: absolute; top: 6px; right: 6px; font: 600 .82rem var(--font-body); background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.copy button:hover { background: var(--accent-strong); }
+.tbl { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-display); font-weight: 600; font-size: .85rem; background: var(--accent-soft); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: .85rem; white-space: nowrap; }
+.checklist { list-style: none; padding: 0; display: grid; gap: 6px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; padding: 6px 8px; border-radius: 6px; }
+.checklist label:hover { background: var(--accent-soft); }
+.checklist input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--accent); flex: none; }
+.checklist input:checked + span { color: var(--muted); text-decoration: line-through; }
+.progress { font-family: var(--font-mono); font-size: .9rem; color: var(--accent); }
+.cards { display: grid; gap: 22px; }
+.card { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 18px; align-items: start; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.card.wide { grid-template-columns: minmax(0, 1fr); }
+.card img { width: 100%; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); background: var(--code-bg); display: block; }
+.card .body { min-width: 0; }
+.card .file { font-family: var(--font-mono); font-size: .8rem; color: var(--muted); margin: 0 0 4px; overflow-wrap: anywhere; }
+.card h4 { margin-top: 0; }
+@media (max-width: 560px) { .card { grid-template-columns: minmax(0, 1fr); } .card img { max-width: 240px; } .card.wide img { max-width: 100%; } }
+.script { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 14px 16px; margin: 16px 0; }
+.script h4 { margin-top: 0; }
+.script dl { display: grid; grid-template-columns: minmax(0, 120px) minmax(0, 1fr); gap: 4px 12px; margin: 8px 0; }
+.script dt { font-weight: 700; color: var(--accent-strong); font-size: .92rem; }
+.script dd { margin: 0; min-width: 0; }
+@media (max-width: 560px) { .script dl { grid-template-columns: minmax(0, 1fr); } .script dd { margin-bottom: 6px; } }
+.tag { display: inline-block; font-family: var(--font-mono); font-size: .74rem; background: var(--accent-soft); color: var(--accent-strong); padding: 1px 8px; border-radius: 999px; margin-right: 4px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+/* complementos */
+.table { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+td.d { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.muted { color: var(--muted); font-size: .92rem; }
+.top .logo { width: auto; height: auto; padding: 8px 14px 8px 8px; gap: 10px; display: inline-flex; align-items: center; color: #fff; font: 600 1.05rem var(--font-display); }
+.top .logo i { font-style: normal; width: 34px; height: 34px; border-radius: 9px; background: #fff; color: #0a5f5e; display: grid; place-items: center; font-weight: 700; }
+.top .meta { flex: 1 1 260px; min-width: 0; }
+.top .for { margin: 6px 0 0; color: var(--muted); }
+nav.toc > p { font-family: var(--font-mono); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
+.strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 10px 0 20px; }
+.strip figure { margin: 0; min-width: 0; }
+.strip img { width: 100%; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); display: block; }
+.strip figcaption { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+details { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); margin: 12px 0; }
+details summary { cursor: pointer; padding: 12px 16px; font-weight: 700; }
+details .in { padding: 0 16px 12px; }
+dl.script { display: grid; grid-template-columns: minmax(0, 120px) minmax(0, 1fr); gap: 4px 12px; border: 0; padding: 0; margin: 0; background: none; }
+@media (max-width: 560px) { dl.script { grid-template-columns: minmax(0, 1fr); } }
+.copy .cbtn { position: absolute; top: 6px; right: 6px; font: 600 .82rem var(--font-body); background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.copy .cbtn.done { background: var(--accent-strong); }
+footer { color: var(--muted); font-size: .9rem; padding-top: 24px; }
+.grid9 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; max-width: 420px; margin: 12px 0; }
+.grid9 figure { margin: 0; position: relative; }
+.grid9 img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; max-width: 100%; }
+.grid9 figcaption { position: absolute; top: 4px; left: 4px; font: 500 .72rem var(--font-mono); background: var(--surface); color: var(--ink); padding: 0 5px; border-radius: 4px; }
+</style>
+<div class="wrap" data-kit="instagram">
+
+<header class="top">
+  <span class="logo"><i>S</i>SpaceHour</span>
+  <div class="meta">
+    <p class="eyebrow">Kit de implantação · Instagram · outubro 2026</p>
+    <h1>Kit Instagram SpaceHour</h1>
+    <p class="for">Para a pessoa responsável pelo Instagram. Este kit é completo: tudo o que você precisa está aqui.</p>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Índice">
+  <p>Índice</p>
+  <ol>
+    <li><a href="#resumo">Resumo</a></li>
+    <li><a href="#checklist">Checklist de entrega</a></li>
+    <li><a href="#conta">Criação da conta</a></li>
+    <li><a href="#perfil">Preenchimento do perfil</a></li>
+    <li><a href="#cards">Cards: grade, stories e destaques</a></li>
+    <li><a href="#calendario">Calendário de 30 dias</a></li>
+    <li><a href="#videos">Roteiros de Reels</a></li>
+    <li><a href="#anuncios">Anúncios pagos</a></li>
+    <li><a href="#pixel">Pixel e medição</a></li>
+    <li><a href="#crm">CRM e atendimento</a></li>
+    <li><a href="#monetizacao">Monetização e collabs</a></li>
+    <li><a href="#metricas">Métricas e relatório</a></li>
+    <li><a href="#cuidados">Cuidados</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="resumo">
+  <h2><span class="n">1</span>Resumo</h2>
+  <p><strong>O que é o SpaceHour:</strong> um site (space-hour.com) para alugar por hora espaços profissionais prontos: consultórios odontológicos e médicos, salas de psicologia, fisioterapia, estética, salas de aula, auditórios e salas de reunião.</p>
+  <p>Quem tem o espaço vago (o <strong>anfitrião</strong>) anuncia grátis e recebe direto na conta Mercado Pago. Quem precisa de sala (o <strong>profissional</strong>) se cadastra grátis e paga só as horas que usar.</p>
+  <p>Começamos por <strong>Maringá-PR</strong>. Depois vêm Londrina e Curitiba. A empresa é o Instituto Ravel de Ensino Superior Ltda (CNPJ 03.162.275/0001-10).</p>
+  <h3>Objetivo do Instagram</h3>
+  <ul>
+    <li>Ser a vitrine do SpaceHour: perfil bonito, grade de lançamento, stories e Reels que explicam como funciona.</li>
+    <li>Trazer <strong>cadastros de anfitriões</strong> primeiro, depois de <strong>profissionais</strong> de Maringá, pelo link da bio, stories e anúncios.</li>
+    <li>Responder rápido no Direct e transformar conversa em cadastro.</li>
+  </ul>
+  <div class="tip">
+    <p><strong>Quem ajuda você:</strong> Robson Ravel de Oliveira (dono do SpaceHour). E-mail: <code>support@space-hour.com</code>.</p>
+    <p>O Robson cuida do site, da Vercel (onde ficam os códigos de medição) e do DNS. Outra pessoa cuida do Facebook. Vocês dois usam a mesma conta empresarial do Meta e o mesmo Pixel (veja as seções 3 e 9).</p>
+  </div>
+  <div class="note"><p><strong>Importante:</strong> não existe promoção, desconto, cupom ou "taxa zero" para anfitriões. Nunca escreva isso. A taxa do anfitrião é sempre <strong>5% por reserva paga + tarifa do Mercado Pago</strong>.</p></div>
+</section>
+
+<!-- 2 -->
+<section id="checklist">
+  <h2><span class="n">2</span>Checklist de entrega</h2>
+  <p>Marque cada item quando estiver pronto. As marcações ficam salvas neste navegador.</p>
+  <ul class="checklist">
+    <li><label><input type="checkbox" id="ig-ck-01"><span>Conta do Instagram criada com e-mail da empresa e convertida em conta profissional (Empresa)</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-02"><span>Autenticação de dois fatores ativa</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-03"><span>Instagram conectado à Página do Facebook e ao portfólio empresarial do Instituto</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-04"><span>Robson com acesso total ao Instagram pelo portfólio</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-05"><span>Perfil preenchido: foto, nome, @, categoria, bio, link com UTM, botões de contato</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-06"><span>Grade de lançamento (9 posts) publicada na ordem certa</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-07"><span>5 destaques criados com as capas</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-08"><span>6 stories publicados com figurinhas (enquete, link, caixa de perguntas)</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-09"><span>Pelo menos 3 Reels gravados e publicados</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-10"><span>Respostas rápidas, perguntas frequentes e boas-vindas do Direct configuradas</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-11"><span>Pixel confirmado com a pessoa do Facebook (um só Pixel) e eventos testados</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-12"><span>Campanhas de anúncio do Instagram no ar (anfitriões e profissionais)</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-13"><span>Lista de 10 clínicas/professores para collab, com 3 contatos feitos</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-14"><span>Planilha CRM criada e compartilhada com o Robson</span></label></li>
+    <li><label><input type="checkbox" id="ig-ck-15"><span>Primeiro relatório semanal enviado ao Robson</span></label></li>
+  </ul>
+  <p class="progress" id="ck-progress" aria-live="polite"></p>
+</section>
+
+<!-- 3 -->
+<section id="conta">
+  <h2><span class="n">3</span>Criação da conta</h2>
+  <div class="note"><p>O app do Instagram muda de lugar os menus com frequência. Se um nome abaixo não aparecer igual, procure em <strong>Configurações e atividade</strong> (as três linhas no canto do perfil) pelo nome mais parecido, ou use a busca dentro das configurações.</p></div>
+
+  <h3>3.1 Criar a conta</h3>
+  <ol class="steps">
+    <li>Baixe o app do Instagram e toque em <strong>Criar nova conta</strong>.</li>
+    <li>Cadastre com um e-mail da empresa: <code>support@space-hour.com</code> ou outro endereço @space-hour.com que o Robson criar. Nunca com seu e-mail ou telefone pessoal.</li>
+    <li>Nome de usuário: veja as opções na <a href="#perfil">seção 4</a>.</li>
+    <li>Senha forte e única. Guarde num gerenciador de senhas e passe ao Robson por um canal seguro.</li>
+  </ol>
+
+  <h3>3.2 Mudar para conta profissional</h3>
+  <ol class="steps">
+    <li>No perfil, toque nas três linhas → <strong>Configurações e atividade</strong>.</li>
+    <li>Procure <strong>Tipo de conta e ferramentas</strong> (ou "Para profissionais") → <strong>Mudar para conta profissional</strong>.</li>
+    <li>Escolha a categoria (veja a seção 4).</li>
+    <li>Escolha <strong>Empresa</strong> (não "Criador de conteúdo"). A conta Empresa tem botões de contato, endereço e integração com o Meta Business Suite.</li>
+  </ol>
+
+  <h3>3.3 Autenticação de dois fatores</h3>
+  <ol class="steps">
+    <li>Configurações e atividade → <strong>Central de Contas</strong> → <strong>Senha e segurança</strong> → <strong>Autenticação de dois fatores</strong>.</li>
+    <li>Escolha <strong>aplicativo autenticador</strong> (Google Authenticator ou Microsoft Authenticator).</li>
+    <li>Guarde os <strong>códigos de recuperação</strong>.</li>
+  </ol>
+
+  <h3>3.4 Conectar ao Facebook e ao portfólio empresarial</h3>
+  <p>O SpaceHour tem (ou vai ter) um <strong>portfólio empresarial</strong> no Meta, em nome do Instituto Ravel. Esse portfólio é o <strong>dono</strong> da Página do Facebook, da conta de anúncios e do Pixel. O Instagram também precisa ficar lá dentro. Isso permite anúncios, caixa de entrada única e acesso do Robson sem passar senha.</p>
+  <p><strong>Coordene com quem cuida do Facebook.</strong> Pergunte se o portfólio e a Página já existem. Se existirem, peça para ser adicionado(a) ao portfólio. Se ainda não existirem, siga o passo 3.5 primeiro.</p>
+  <ol class="steps">
+    <li>Peça para a pessoa do Facebook (ou o Robson) te adicionar em <code>business.facebook.com</code> → <strong>Configurações</strong> → <strong>Usuários</strong> → <strong>Pessoas</strong>, com acesso à Página e à conta de anúncios.</li>
+    <li>Aceite o convite que chega por e-mail.</li>
+    <li>Em <strong>Configurações</strong> → <strong>Contas</strong> → <strong>Contas do Instagram</strong>, clique em <strong>Adicionar</strong> e entre com o login do Instagram do SpaceHour.</li>
+    <li>Ainda nas configurações da conta do Instagram, adicione o Robson e você com <strong>controle total</strong>, e marque a conta de anúncios <strong>SpaceHour - Anúncios</strong> como conectada.</li>
+    <li>Conecte o Instagram à Página: no app, <strong>Editar perfil</strong> → <strong>Página</strong> (ou "Conectar ou criar Página") → escolha a Página SpaceHour. Pelo computador, também dá em Meta Business Suite → Configurações → Contas vinculadas.</li>
+    <li>Adicione a conta à <strong>Central de Contas</strong> do Meta (Configurações e atividade → Central de Contas → Contas → Adicionar contas) para usar login e segurança em comum com a Página.</li>
+    <li>Confira no Meta Business Suite (<code>business.facebook.com</code>) se aparecem a Página e o Instagram juntos no topo à esquerda.</li>
+  </ol>
+
+  <h3>3.5 Se o portfólio ainda não existir</h3>
+  <p>Só faça isto se a pessoa do Facebook confirmar que ainda não criou. Nunca crie um segundo portfólio.</p>
+  <ol class="steps">
+    <li>Entre no Facebook com seu perfil pessoal real (o Meta exige; ele só serve para acessar, não é dono de nada).</li>
+    <li>Acesse <code>business.facebook.com</code> → <strong>Criar conta</strong> / <strong>Criar portfólio empresarial</strong>.</li>
+    <li>Nome: <code>SpaceHour - Instituto Ravel</code>. E-mail comercial: <code>support@space-hour.com</code>.</li>
+    <li>Em <strong>Configurações</strong> → <strong>Informações do negócio</strong>: razão social <code>Instituto Ravel de Ensino Superior Ltda</code>, CNPJ <code>03.162.275/0001-10</code>, endereço <code>Av. XV de Novembro, 255, Sobreloja, Maringá/PR, CEP 87013-230</code>, site <code>https://space-hour.com</code>.</li>
+    <li>Em <strong>Usuários</strong> → <strong>Pessoas</strong> → <strong>Convidar</strong>, adicione o Robson com <strong>controle total</strong> (administrador). Sempre pelo menos 2 administradores.</li>
+    <li>Na <strong>Central de Segurança</strong>, exija autenticação de dois fatores para todos, se a opção aparecer.</li>
+    <li>Em <strong>Contas</strong> → <strong>Páginas</strong> → <strong>Adicionar</strong> → <strong>Criar nova Página</strong>: nome "SpaceHour". Assim a Página nasce como propriedade do portfólio.</li>
+    <li>Em <strong>Contas</strong> → <strong>Contas de anúncios</strong> → <strong>Adicionar</strong> → <strong>Criar nova</strong>: nome "SpaceHour - Anúncios", fuso <strong>America/Sao_Paulo</strong>, moeda <strong>BRL</strong> (não dá para trocar depois). Em Cobrança e pagamentos, cadastre razão social e CNPJ do Instituto.</li>
+    <li>Avise a pessoa do Facebook e o Robson que você criou, e passe a eles o acesso.</li>
+  </ol>
+</section>
+
+<!-- 4 -->
+<section id="perfil">
+  <h2><span class="n">4</span>Preenchimento do perfil</h2>
+
+  <h3>Nome de usuário (@)</h3>
+  <p>Tente nesta ordem (máx. 30 caracteres; letras, números, ponto e sublinhado):</p>
+  <ol>
+    <li><code>spacehour</code></li>
+    <li><code>spacehour.br</code></li>
+    <li><code>spacehourbr</code></li>
+    <li><code>spacehour.app</code></li>
+    <li><code>spacehourmaringa</code></li>
+  </ol>
+  <p>Combine com a pessoa do Facebook para usarem o mesmo @ nas duas redes, se possível.</p>
+
+  <h3>Nome (aparece na busca)</h3>
+  <div class="copy"><pre>SpaceHour | Consultório por hora</pre></div>
+
+  <h3>Categoria</h3>
+  <p>Em Editar perfil → <strong>Categoria</strong>. Digite <strong>aluguel</strong> ou <strong>imóveis</strong> e escolha a opção mais parecida (por exemplo, "Serviço de aluguel" ou "Imóveis comerciais"). Se não achar, digite <strong>site</strong>. Não escolha categoria de saúde: o SpaceHour aluga espaço, não presta atendimento.</p>
+
+  <h3>Bio (até 150 caracteres)</h3>
+  <p>Opção A (149 caracteres, já contados):</p>
+  <div class="copy"><pre>Consultórios e salas prontas por hora em Maringá-PR.
+Tem horário vago? Anuncie grátis.
+Precisa de sala? Cadastro grátis, sem contrato.
+Como funciona:</pre></div>
+  <p>Opção B (147 caracteres):</p>
+  <div class="copy"><pre>Espaços profissionais por hora em Maringá-PR.
+Anfitrião: anuncie grátis, sem mensalidade.
+Profissional: sem contrato, sem fiador.
+Comece pelo link:</pre></div>
+
+  <h3>Links da bio (com UTM)</h3>
+  <p>Em Editar perfil → <strong>Links</strong> → <strong>Adicionar link externo</strong>. O Instagram aceita até 5 links. Cadastre os 3 abaixo, nesta ordem (o primeiro é o que aparece em destaque):</p>
+  <div class="copy"><span class="lbl">Link 1 · título "Como funciona"</span><pre>https://space-hour.com/conheca?utm_source=instagram&amp;utm_medium=bio&amp;utm_campaign=lanc-geral</pre></div>
+  <div class="copy"><span class="lbl">Link 2 · título "Anuncie seu espaço"</span><pre>https://space-hour.com/anuncie?utm_source=instagram&amp;utm_medium=bio&amp;utm_campaign=lanc-anfitrioes</pre></div>
+  <div class="copy"><span class="lbl">Link 3 · título "Alugue uma sala"</span><pre>https://space-hour.com/profissionais?utm_source=instagram&amp;utm_medium=bio&amp;utm_campaign=lanc-profissionais</pre></div>
+
+  <h3>Botões de contato</h3>
+  <ol class="steps">
+    <li>Editar perfil → <strong>Opções de contato</strong> (ou "Informações de contato").</li>
+    <li>E-mail comercial: <code>support@space-hour.com</code>.</li>
+    <li>Telefone/WhatsApp: só se o Robson indicar um número da empresa.</li>
+    <li>Endereço: o SpaceHour é online. Prefira não mostrar endereço, ou só a cidade "Maringá, PR" se o app permitir. O endereço do Instituto só com autorização do Robson.</li>
+    <li>Em <strong>Botões de ação</strong>, se houver opção de link de site/agendamento, use o Link 1 acima.</li>
+    <li>Horário de atendimento no Direct (sugestão inicial, confirme com o Robson): segunda a sexta, 8h às 18h.</li>
+  </ol>
+
+  <h3>Foto de perfil</h3>
+  <div class="cards">
+    <div class="card">
+      <img src="../cards/instagram/perfil.png" alt="Foto de perfil do Instagram: logo SpaceHour" loading="lazy">
+      <div class="body">
+        <h4>Foto de perfil</h4>
+        <p>1080×1080. Aparece em círculo; o logo já está centralizado. O Instagram não tem capa: o "topo" do perfil é a grade de lançamento (seção 5).</p>
+        <span class="file">cards/instagram/perfil.png</span>
+      </div>
+    </div>
+  </div>
+  <p class="muted">Para salvar uma imagem: no celular, toque e segure → Salvar imagem. No computador, botão direito → Salvar imagem como. Os arquivos também estão no GitHub, em <code>espacos/docs/marketing/cards/</code> (peça o acesso ao Robson).</p>
+</section>
+
+<!-- 5 -->
+<section id="cards">
+  <h2><span class="n">5</span>Cards do Instagram</h2>
+  <p>Para salvar cada imagem: no celular, toque e segure → Salvar imagem; no computador, botão direito → Salvar imagem como. Os arquivos estão também no GitHub em <code>espacos/docs/marketing/cards/instagram/</code>.</p>
+  <div class="note"><p>No Instagram, links na legenda <strong>não são clicáveis</strong>. Por isso as legendas dizem "link na bio". Nos stories, use a figurinha <strong>Link</strong>.</p></div>
+
+  <h3>5.1 Grade de lançamento (9 posts)</h3>
+  <p>Os 9 cards formam um mosaico de 3 linhas no perfil. O Instagram coloca o post <strong>mais novo no canto superior esquerdo</strong>. Por isso você posta <strong>de trás para frente</strong>: primeiro o 09, por último o 01.</p>
+  <div class="grid9" aria-label="Como a grade fica no perfil">
+    <figure><img src="../cards/instagram/feed-01.png" alt="Feed 01" loading="lazy"><figcaption>01</figcaption></figure>
+    <figure><img src="../cards/instagram/feed-02.png" alt="Feed 02" loading="lazy"><figcaption>02</figcaption></figure>
+    <figure><img src="../cards/instagram/feed-03.png" alt="Feed 03" loading="lazy"><figcaption>03</figcaption></figure>
+    <figure><img src="../cards/instagram/feed-04.png" alt="Feed 04" loading="lazy"><figcaption>04</figcaption></figure>
+    <figure><img src="../cards/instagram/feed-05.png" alt="Feed 05" loading="lazy"><figcaption>05</figcaption></figure>
+    <figure><img src="../cards/instagram/feed-06.png" alt="Feed 06" loading="lazy"><figcaption>06</figcaption></figure>
+    <figure><img src="../cards/instagram/feed-07.png" alt="Feed 07" loading="lazy"><figcaption>07</figcaption></figure>
+    <figure><img src="../cards/instagram/feed-08.png" alt="Feed 08" loading="lazy"><figcaption>08</figcaption></figure>
+    <figure><img src="../cards/instagram/feed-09.png" alt="Feed 09" loading="lazy"><figcaption>09</figcaption></figure>
+  </div>
+  <p class="muted">Como a grade fica no perfil depois de pronta. O perfil mostra as miniaturas em formato 3:4, que corta um pouco das bordas dos cards 4:5; os textos dos cards ficam no centro, então nada importante se perde.</p>
+  <ol class="steps">
+    <li><strong>Ordem de postagem:</strong> 09 → 08 → 07 → 06 → 05 → 04 → 03 → 02 → 01.</li>
+    <li>Poste uma linha por dia (dias 1, 2 e 3 do calendário): dia 1 = 09, 08, 07; dia 2 = 06, 05, 04; dia 3 = 03, 02, 01. Deixe pelo menos 1 hora entre os posts do mesmo dia.</li>
+    <li>Se preferir, poste os 9 no mesmo dia antes de divulgar o perfil.</li>
+    <li>Escolha <strong>proporção original (4:5)</strong> ao postar, sem cortar para quadrado.</li>
+    <li><strong>Não fixe</strong> posts no topo e não apague nenhum dos 9 enquanto a grade estiver em destaque, senão o mosaico desalinha.</li>
+    <li>Cada post novo depois disso empurra a grade. Para manter o mosaico alinhado, publique novos posts de feed <strong>em grupos de 3</strong>, ou use Reels (que também entram na grade).</li>
+  </ol>
+
+  <div class="cards">
+    <div class="card">
+      <img src="../cards/instagram/feed-09.png" alt="Feed 09: CTA link na bio" loading="lazy">
+      <div class="body">
+        <h4>Feed 09 · CTA profissional (poste 1º)</h4>
+        <span class="file">cards/instagram/feed-09.png</span>
+        <div class="copy"><pre>Consultório pronto, só nas horas em que você atende.
+
+Cadastro grátis, sem contrato, sem fiador, sem condomínio. Você paga só as horas que usar, com Pix, cartão ou boleto.
+
+Toque no link da bio → "Alugue uma sala".
+
+#ConsultórioPorHora #Maringá #Dentista #Psicólogo #Fisioterapeuta #SpaceHour</pre></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/feed-08.png" alt="Feed 08: tipos de espaço" loading="lazy">
+      <div class="body">
+        <h4>Feed 08 · Tipos de espaço (poste 2º)</h4>
+        <span class="file">cards/instagram/feed-08.png</span>
+        <div class="copy"><pre>Que tipo de espaço você precisa?
+
+Consultório odontológico, consultório médico, sala de psicologia, fisioterapia, estética, sala de aula, auditório e sala de reunião.
+
+Tudo pronto e por hora, em Maringá. Link na bio.
+
+#Maringá #SalaParaAtendimento #Psicologia #Odontologia #Fisioterapia #SpaceHour</pre></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/feed-07.png" alt="Feed 07: gancho profissional" loading="lazy">
+      <div class="body">
+        <h4>Feed 07 · Gancho profissional (poste 3º)</h4>
+        <span class="file">cards/instagram/feed-07.png</span>
+        <div class="copy"><pre>Atende poucas vezes por semana e paga aluguel cheio?
+
+No SpaceHour você reserva consultório ou sala por hora. O registro profissional (CRO, CRM, CRP, CREFITO etc.) é verificado no cadastro, e o endereço completo é liberado quando a reserva é confirmada.
+
+Cadastro grátis pelo link da bio.
+
+#ProfissionalDeSaúde #Maringá #ConsultórioPorHora #SpaceHour</pre></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/feed-06.png" alt="Feed 06: 3 passos do anfitrião" loading="lazy">
+      <div class="body">
+        <h4>Feed 06 · 3 passos do anfitrião (poste 4º)</h4>
+        <span class="file">cards/instagram/feed-06.png</span>
+        <div class="copy"><pre>Como anunciar seu espaço em 3 passos:
+
+1. Cadastre o espaço com fotos, equipamentos, preço por hora e horários livres.
+2. Conecte sua conta Mercado Pago (com chave Pix cadastrada).
+3. Aprove cada pedido ou deixe a reserva instantânea. Se quiser, exija caução e avalista.
+
+Anunciar é grátis e sem mensalidade. Quando alugar: 5% por reserva paga + tarifa do Mercado Pago.
+
+Link na bio → "Anuncie seu espaço".
+
+#Maringá #Consultório #SalaParaAlugar #SpaceHour</pre></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/feed-05.png" alt="Feed 05: simulação de rendimento" loading="lazy">
+      <div class="body">
+        <h4>Feed 05 · Simulação (poste 5º)</h4>
+        <span class="file">cards/instagram/feed-05.png</span>
+        <div class="copy"><pre>Quanto rende um horário vago?
+
+Simulação: R$ 60 por hora × 12 horas por semana × 4 semanas = R$ 2.880 por mês, valor bruto.
+
+É um exemplo para fazer a conta, não uma promessa de ganho. O resultado depende do seu preço, dos horários que você abrir e da procura. Do valor saem 5% do SpaceHour e a tarifa do Mercado Pago.
+
+Faça a sua conta: link na bio.
+
+#RendaExtra #Consultório #Maringá #SpaceHour</pre></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/feed-04.png" alt="Feed 04: gancho anfitrião" loading="lazy">
+      <div class="body">
+        <h4>Feed 04 · Gancho anfitrião (poste 6º)</h4>
+        <span class="file">cards/instagram/feed-04.png</span>
+        <div class="copy"><pre>Seu consultório fica vazio em alguns horários?
+
+Aluguel, condomínio e equipamento continuam custando nessas horas. No SpaceHour você aluga esses horários por hora para profissionais com registro verificado, e recebe direto na sua conta Mercado Pago.
+
+Anuncie grátis pelo link da bio.
+
+#Dentista #Psicólogo #Fisioterapeuta #Maringá #SpaceHour</pre></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/feed-03.png" alt="Feed 03: Anuncie grátis" loading="lazy">
+      <div class="body">
+        <h4>Feed 03 · Anuncie grátis (poste 7º)</h4>
+        <span class="file">cards/instagram/feed-03.png</span>
+        <div class="copy"><pre>Anunciar seu espaço no SpaceHour é grátis e não tem mensalidade.
+
+Você define preço, dias, horários e regras. Só há cobrança quando uma reserva é paga: 5% + a tarifa do Mercado Pago. Não alugou, não paga nada.
+
+Link na bio → "Anuncie seu espaço".
+
+#Maringá #SalaComercial #Consultório #SpaceHour</pre></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/feed-02.png" alt="Feed 02: Espaços prontos, por hora" loading="lazy">
+      <div class="body">
+        <h4>Feed 02 · Espaços prontos, por hora (poste 8º)</h4>
+        <span class="file">cards/instagram/feed-02.png</span>
+        <div class="copy"><pre>Espaços profissionais prontos, por hora.
+
+Para quem tem sala vaga em alguns horários e para quem precisa de sala só algumas horas por semana. Tudo online: reserva, pagamento e avaliação dos dois lados.
+
+Saiba mais pelo link da bio.
+
+#Maringá #Coworking #ConsultórioPorHora #SpaceHour</pre></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/feed-01.png" alt="Feed 01: marca SpaceHour" loading="lazy">
+      <div class="body">
+        <h4>Feed 01 · Marca (poste por último)</h4>
+        <span class="file">cards/instagram/feed-01.png</span>
+        <div class="copy"><pre>Chegou o SpaceHour em Maringá.
+
+Consultórios, salas de atendimento, salas de aula e auditórios para alugar por hora.
+Tem espaço vago? Anuncie grátis.
+Precisa de sala? Cadastro grátis, sem contrato.
+
+Siga para acompanhar os primeiros espaços da cidade. Link na bio.
+
+#SpaceHour #Maringá #ConsultórioPorHora #Odontologia #Psicologia #Fisioterapia</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>5.2 Stories (com figurinhas)</h3>
+  <p>Para adicionar uma figurinha: ao criar o story, toque no ícone de figurinha (carinha quadrada) e escolha o tipo. Posicione a figurinha numa área sem texto do card.</p>
+  <div class="cards">
+    <div class="card">
+      <img src="../cards/instagram/story-01.png" alt="Story 01: enquete Seu consultório fica vazio quando?" loading="lazy">
+      <div class="body">
+        <h4>Story 01 · Figurinha Enquete</h4>
+        <span class="file">cards/instagram/story-01.png</span>
+        <div class="copy"><span class="lbl">Enquete (pergunta e opções)</span><pre>Seu consultório fica vazio quando?
+Manhã
+Tarde</pre></div>
+        <p class="muted">A enquete aceita até 4 opções; se aparecer a opção de adicionar mais, inclua "Noite" e "Sábado". Responda por Direct a quem votar: "Vi que seu consultório fica vazio à [tarde]. Já pensou em alugar esses horários por hora?"</p>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/story-02.png" alt="Story 02: Anuncie grátis, sem mensalidade" loading="lazy">
+      <div class="body">
+        <h4>Story 02 · Figurinha Link</h4>
+        <span class="file">cards/instagram/story-02.png</span>
+        <div class="copy"><span class="lbl">Link</span><pre>https://space-hour.com/anuncie?utm_source=instagram&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes</pre></div>
+        <p class="muted">Texto da figurinha: "Anuncie grátis". Lembre: 5% + tarifa do Mercado Pago só quando alugar (já explicado no destaque "Anuncie").</p>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/story-03.png" alt="Story 03: toque no link, anfitrião" loading="lazy">
+      <div class="body">
+        <h4>Story 03 · Link anfitrião</h4>
+        <span class="file">cards/instagram/story-03.png</span>
+        <div class="copy"><span class="lbl">Link</span><pre>https://space-hour.com/anuncie?utm_source=instagram&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes</pre></div>
+        <p class="muted">Coloque a figurinha Link exatamente onde o card diz "toque no link". Texto da figurinha: "Cadastrar meu espaço".</p>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/story-04.png" alt="Story 04: profissional" loading="lazy">
+      <div class="body">
+        <h4>Story 04 · Link profissional</h4>
+        <span class="file">cards/instagram/story-04.png</span>
+        <div class="copy"><span class="lbl">Link</span><pre>https://space-hour.com/profissionais?utm_source=instagram&amp;utm_medium=post&amp;utm_campaign=lanc-profissionais</pre></div>
+        <p class="muted">Texto da figurinha: "Cadastro grátis".</p>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/story-05.png" alt="Story 05: conheça o SpaceHour" loading="lazy">
+      <div class="body">
+        <h4>Story 05 · Bastidor / conheça</h4>
+        <span class="file">cards/instagram/story-05.png</span>
+        <div class="copy"><span class="lbl">Link</span><pre>https://space-hour.com/conheca?utm_source=instagram&amp;utm_medium=post&amp;utm_campaign=lanc-geral</pre></div>
+        <p class="muted">Depois deste card, poste 2 ou 3 stories curtos gravados no celular: a tela do site, uma sala vazia, quem faz o SpaceHour (sem pacientes).</p>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/instagram/story-06.png" alt="Story 06: caixa de perguntas Tire sua dúvida" loading="lazy">
+      <div class="body">
+        <h4>Story 06 · Figurinha Caixa de perguntas</h4>
+        <span class="file">cards/instagram/story-06.png</span>
+        <div class="copy"><span class="lbl">Texto da caixa</span><pre>Tire sua dúvida sobre o SpaceHour</pre></div>
+        <p class="muted">Responda as perguntas em novos stories (toque na resposta → Compartilhar resposta). Nunca mostre o @ de quem perguntou sem permissão. Salve as melhores no destaque "Dúvidas".</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>5.3 Destaques (capas)</h3>
+  <p>Destaques ficam fixos abaixo da bio. Para criar:</p>
+  <ol class="steps">
+    <li>Publique um story com o conteúdo do tema (por exemplo, story-02 e story-03 para "Anuncie").</li>
+    <li>Abra o story → toque em <strong>Destacar</strong> → <strong>Novo</strong> → dê o nome.</li>
+    <li>No perfil, toque e segure o destaque → <strong>Editar destaque</strong> → <strong>Editar capa</strong> → escolha a imagem da galeria. O app corta em círculo; centralize.</li>
+  </ol>
+  <div class="strip">
+    <figure><img src="../cards/instagram/destaque-como-funciona.png" alt="Capa de destaque Como funciona" loading="lazy"><figcaption>"Como funciona" · stories 05 + Reels explicativos</figcaption></figure>
+    <figure><img src="../cards/instagram/destaque-anfitriao.png" alt="Capa de destaque Anfitrião" loading="lazy"><figcaption>"Anfitrião" · story 03 + passos</figcaption></figure>
+    <figure><img src="../cards/instagram/destaque-profissional.png" alt="Capa de destaque Profissional" loading="lazy"><figcaption>"Profissional" · story 04</figcaption></figure>
+    <figure><img src="../cards/instagram/destaque-anuncie.png" alt="Capa de destaque Anuncie" loading="lazy"><figcaption>"Anuncie" · story 02 com link</figcaption></figure>
+    <figure><img src="../cards/instagram/destaque-duvidas.png" alt="Capa de destaque Dúvidas" loading="lazy"><figcaption>"Dúvidas" · story 06 + respostas</figcaption></figure>
+  </div>
+  <p class="muted">Arquivos: <code>cards/instagram/destaque-como-funciona.png</code>, <code>destaque-anfitriao.png</code>, <code>destaque-profissional.png</code>, <code>destaque-anuncie.png</code>, <code>destaque-duvidas.png</code>. Ordem sugerida no perfil: Como funciona, Anfitrião, Profissional, Anuncie, Dúvidas.</p>
+
+  <h3>5.4 Carrosséis do Meta (para anúncios)</h3>
+  <p>Estes cards quadrados são usados nos anúncios (seção 8). Também podem virar um post carrossel orgânico, mas como são quadrados, poste em grupo de 3 posts para não quebrar a grade.</p>
+  <div class="strip">
+    <figure><img src="../cards/meta-carrossel/anfitrioes-01.png" alt="Carrossel anfitriões 01" loading="lazy"><figcaption>anfitrioes-01 · gancho</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/anfitrioes-02.png" alt="Carrossel anfitriões 02" loading="lazy"><figcaption>anfitrioes-02 · horários vagos</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/anfitrioes-03.png" alt="Carrossel anfitriões 03" loading="lazy"><figcaption>anfitrioes-03 · verificados</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/anfitrioes-04.png" alt="Carrossel anfitriões 04" loading="lazy"><figcaption>anfitrioes-04 · você define</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/anfitrioes-05.png" alt="Carrossel anfitriões 05" loading="lazy"><figcaption>anfitrioes-05 · Mercado Pago</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/anfitrioes-06.png" alt="Carrossel anfitriões 06" loading="lazy"><figcaption>anfitrioes-06 · Anuncie grátis</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/profissionais-01.png" alt="Carrossel profissionais 01" loading="lazy"><figcaption>profissionais-01 · gancho</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/profissionais-02.png" alt="Carrossel profissionais 02" loading="lazy"><figcaption>profissionais-02 · tipos</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/profissionais-03.png" alt="Carrossel profissionais 03" loading="lazy"><figcaption>profissionais-03 · sem contrato</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/profissionais-04.png" alt="Carrossel profissionais 04" loading="lazy"><figcaption>profissionais-04 · só as horas</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/profissionais-05.png" alt="Carrossel profissionais 05" loading="lazy"><figcaption>profissionais-05 · Cadastro grátis</figcaption></figure>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="calendario">
+  <h2><span class="n">6</span>Calendário dos primeiros 30 dias</h2>
+  <p>Dia 1 = dia em que o perfil fica pronto. Stories: <strong>todo dia útil</strong>, de 2 a 5. Horários sugeridos para feed e Reels: 7h30, 12h ou 19h. Ajuste pelo que as estatísticas mostrarem.</p>
+  <div class="table">
+    <table>
+      <thead><tr><th>Dia</th><th>Formato</th><th>Card / vídeo</th><th>Legenda resumida</th></tr></thead>
+      <tbody>
+        <tr><td class="d">1</td><td>Feed ×3</td><td>feed-09, 08, 07</td><td>Linha do profissional (de trás para frente)</td></tr>
+        <tr><td class="d">2</td><td>Feed ×3</td><td>feed-06, 05, 04</td><td>Linha do anfitrião</td></tr>
+        <tr><td class="d">3</td><td>Feed ×3 + Stories</td><td>feed-03, 02, 01 + story-05</td><td>Linha da marca. Grade completa. Divulgar o perfil.</td></tr>
+        <tr><td class="d">4</td><td>Stories</td><td>story-01 (enquete)</td><td>Seu consultório fica vazio quando?</td></tr>
+        <tr><td class="d">5</td><td>Reels</td><td>Roteiro 1</td><td>Quanto custa um consultório vazio?</td></tr>
+        <tr><td class="d">6</td><td>Stories</td><td>story-02, story-03</td><td>Anuncie grátis + link anfitrião</td></tr>
+        <tr><td class="d">8</td><td>Reels</td><td>Roteiro 5</td><td>Como funciona em 30 segundos</td></tr>
+        <tr><td class="d">9</td><td>Stories + Destaques</td><td>destaques</td><td>Montar os 5 destaques com as capas</td></tr>
+        <tr><td class="d">10</td><td>Stories</td><td>story-06 (perguntas)</td><td>Tire sua dúvida</td></tr>
+        <tr><td class="d">11</td><td>Stories</td><td>respostas</td><td>Responder as perguntas recebidas</td></tr>
+        <tr><td class="d">12</td><td>Reels</td><td>Roteiro 2</td><td>Aluguei um consultório por 1 hora</td></tr>
+        <tr><td class="d">14</td><td>Stories</td><td>story-04</td><td>Link profissional</td></tr>
+        <tr><td class="d">15</td><td>Relatório</td><td>—</td><td>Revisar anúncios e o que mais trouxe cadastro</td></tr>
+        <tr><td class="d">16</td><td>Reels</td><td>Roteiro 4</td><td>Recém-formado: como começar sem gastar com sala</td></tr>
+        <tr><td class="d">18</td><td>Collab</td><td>Reels ou post</td><td>Primeira collab com clínica ou professor (seção 11)</td></tr>
+        <tr><td class="d">19</td><td>Stories</td><td>story-01 (enquete de novo)</td><td>Nova pergunta: "Você dividiria sua sala por hora?"</td></tr>
+        <tr><td class="d">20</td><td>Reels</td><td>Roteiro 3</td><td>3 erros de quem aluga sala inteira</td></tr>
+        <tr><td class="d">22</td><td>Live ou Stories</td><td>—</td><td>Robson responde dúvidas de anfitriões (15 min)</td></tr>
+        <tr><td class="d">24</td><td>Reels</td><td>Roteiro 6</td><td>Seu horário vago vira renda (com aviso de simulação)</td></tr>
+        <tr><td class="d">26</td><td>Reels</td><td>Roteiro 7</td><td>Dúvidas de anfitriões respondidas</td></tr>
+        <tr><td class="d">27</td><td>Stories</td><td>story-06</td><td>Nova caixa de perguntas</td></tr>
+        <tr><td class="d">28</td><td>Collab</td><td>—</td><td>Segunda collab</td></tr>
+        <tr><td class="d">30</td><td>Relatório</td><td>—</td><td>Balanço do mês para o Robson (seção 12)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="videos">
+  <h2><span class="n">7</span>Roteiros de Reels</h2>
+  <p>Vídeos verticais de 15 a 40 segundos, gravados no celular. Regras para todos:</p>
+  <ul>
+    <li><strong>Nunca</strong> mostrar paciente, prontuário, agenda com nomes ou atendimento acontecendo.</li>
+    <li>Grave em sala vazia e arrumada, com luz de janela. Peça autorização por escrito ao dono da sala antes de filmar.</li>
+    <li>Celular na vertical, câmera traseira, lente limpa. Para fala, fique a 1 metro e use um microfone de lapela simples se tiver.</li>
+    <li>Legenda na tela sempre (muita gente assiste sem som). Use as legendas automáticas do Instagram ou do CapCut e revise.</li>
+    <li>Use áudio original ou músicas da biblioteca do Instagram liberadas para contas comerciais.</li>
+    <li>Capa do Reels: escolha um quadro do vídeo com o título bem legível.</li>
+    <li>Termine sempre com "link na bio".</li>
+  </ul>
+
+  <details open>
+    <summary>Roteiro 1 · "Quanto custa um consultório vazio?" (anfitrião, 25 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Close na cadeira ou maca vazia, luz apagando. Texto: <strong>"Quanto custa um consultório vazio?"</strong></dd>
+      <dt>Cenas</dt><dd>1) Mão virando a placa da porta. 2) Calendário de parede com horários riscados. 3) Celular abrindo o SpaceHour.</dd>
+      <dt>Texto na tela</dt><dd>"Aluguel, condomínio, energia... continuam custando" → "E se esses horários fossem alugados por hora?" → "Anuncie grátis no SpaceHour"</dd>
+      <dt>Fala</dt><dd>"Aluguel e condomínio custam o mês inteiro, mas o consultório não fica cheio o mês inteiro. No SpaceHour você aluga os horários vagos por hora para profissionais com registro verificado."</dd>
+      <dt>CTA</dt><dd>"Anunciar é grátis. Link na bio."</dd>
+    </dl></div>
+  </details>
+
+  <details>
+    <summary>Roteiro 2 · "Aluguei um consultório por 1 hora" (profissional, 30 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Mão abrindo a porta de um consultório. Texto: <strong>"Aluguei um consultório por 1 hora."</strong></dd>
+      <dt>Cenas</dt><dd>1) Celular mostrando a reserva confirmada (dados borrados). 2) Caminhada pela sala vazia: bancada, cadeira, equipamentos. 3) Relógio. 4) Porta fechando.</dd>
+      <dt>Texto na tela</dt><dd>"Reservei pelo SpaceHour" · "Paguei com Pix" · "Endereço liberado depois da confirmação" · "Sem contrato, sem fiador"</dd>
+      <dt>Fala</dt><dd>"Precisava atender só uma hora. Reservei a sala pelo SpaceHour, paguei com Pix e pronto. Sem contrato e sem fiador."</dd>
+      <dt>CTA</dt><dd>"Cadastro grátis, link na bio."</dd>
+      <dt>Atenção</dt><dd>Grave numa reserva real de teste ou deixe claro que é uma demonstração. Não invente depoimento de cliente.</dd>
+    </dl></div>
+  </details>
+
+  <details>
+    <summary>Roteiro 3 · "3 erros de quem aluga sala inteira" (profissional, 35 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Você falando para a câmera, dedo levantado. Texto: <strong>"3 erros de quem aluga sala inteira."</strong></dd>
+      <dt>Cenas</dt><dd>Três cortes, um por erro, em ambientes diferentes (sala vazia, corredor, mesa com papéis).</dd>
+      <dt>Texto na tela</dt><dd>"1. Pagar o mês todo para atender 2 dias" · "2. Assinar contrato longo antes de ter agenda" · "3. Esquecer condomínio e fiador na conta"</dd>
+      <dt>Fala</dt><dd>"Se você está começando ou atende pouco, existe outro caminho: alugar por hora, só quando tiver atendimento."</dd>
+      <dt>CTA</dt><dd>"Veja os espaços no SpaceHour. Link na bio."</dd>
+    </dl></div>
+  </details>
+
+  <details>
+    <summary>Roteiro 4 · "Recém-formado: como começar sem gastar com sala" (25 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Diploma ou jaleco dobrado sobre a mesa (sem rosto). Texto: <strong>"Formou. E agora, onde atender?"</strong></dd>
+      <dt>Cenas</dt><dd>1) Mão segurando as chaves. 2) Tela do celular com tipos de sala no SpaceHour. 3) Sala pronta, luz acendendo.</dd>
+      <dt>Texto na tela</dt><dd>"Sem contrato" · "Sem fiador" · "Sem condomínio" · "Pague só as horas que usar"</dd>
+      <dt>Fala</dt><dd>"Em vez de alugar uma sala inteira logo no início, reserve consultório pronto por hora, só nos dias em que tiver atendimento."</dd>
+      <dt>CTA</dt><dd>"Cadastro grátis, link na bio."</dd>
+    </dl></div>
+  </details>
+
+  <details>
+    <summary>Roteiro 5 · "Como funciona o SpaceHour em 30 segundos" (geral, 30 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Texto grande sobre fundo teal: <strong>"SpaceHour em 30 segundos."</strong></dd>
+      <dt>Cenas</dt><dd>Gravação de tela do site, dividida em duas metades: "Tem sala?" e "Precisa de sala?". Use conta de teste.</dd>
+      <dt>Texto na tela</dt><dd>Tem sala: "Anuncie grátis → defina preço e horários → receba no Mercado Pago". Precisa de sala: "Cadastro grátis → reserve por hora → pague com Pix, cartão ou boleto".</dd>
+      <dt>Fala</dt><dd>"Quem tem sala vaga anuncia grátis e recebe direto no Mercado Pago. Quem precisa de sala reserva por hora, sem contrato."</dd>
+      <dt>CTA</dt><dd>"Link na bio."</dd>
+    </dl></div>
+  </details>
+
+  <details>
+    <summary>Roteiro 6 · "Seu horário vago vira renda" (anfitrião, 20 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Agenda da semana em papel, com horários vazios marcados com caneta. Texto: <strong>"Seu horário vago pode virar renda."</strong></dd>
+      <dt>Cenas</dt><dd>1) Caneta circulando horários. 2) Calculadora do celular fazendo 60 × 12 × 4. 3) Resultado na tela.</dd>
+      <dt>Texto na tela</dt><dd>"Simulação: R$ 60/h × 12 h/semana × 4 = R$ 2.880/mês brutos" · "Não é promessa de ganho" · "Taxa: 5% + tarifa do Mercado Pago"</dd>
+      <dt>Fala</dt><dd>"Faça a conta com o seu preço e os seus horários. Anunciar é grátis."</dd>
+      <dt>CTA</dt><dd>"Link na bio."</dd>
+    </dl></div>
+  </details>
+
+  <details>
+    <summary>Roteiro 7 · "Dúvidas de anfitriões respondidas" (40 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Você ou o Robson em pé numa sala vazia. Texto: <strong>"Vai alugar meu consultório? 3 respostas."</strong></dd>
+      <dt>Cenas</dt><dd>Três cortes, um por pergunta. Pode usar a figurinha de resposta da caixa de perguntas na tela.</dd>
+      <dt>Texto na tela</dt><dd>"Quanto custa?" · "Quem usa minha sala?" · "Como eu recebo?"</dd>
+      <dt>Fala</dt><dd>"Anunciar é grátis; quando alugar, 5% por reserva mais a tarifa do Mercado Pago. Quem usa são profissionais com registro verificado, e você pode exigir caução e avalista. O dinheiro cai direto na sua conta Mercado Pago."</dd>
+      <dt>CTA</dt><dd>"Outra dúvida? Comente aqui."</dd>
+    </dl></div>
+  </details>
+</section>
+
+<!-- 8 -->
+<section id="anuncios">
+  <h2><span class="n">8</span>Anúncios pagos</h2>
+  <div class="note">
+    <p><strong>Combine com a pessoa do Facebook.</strong> Vocês usam a mesma conta de anúncios e o mesmo Pixel. Para cada um medir o próprio resultado, a sugestão é: suas campanhas com posicionamento <strong>só no Instagram</strong> e links com <code>utm_source=instagram</code>; as dela só no Facebook. Combinem também a verba total com o Robson.</p>
+  </div>
+
+  <h3>Turbinar ou Gerenciador de Anúncios?</h3>
+  <div class="table">
+    <table>
+      <thead><tr><th></th><th>Turbinar (no app)</th><th>Gerenciador de Anúncios</th></tr></thead>
+      <tbody>
+        <tr><td>Onde</td><td>Botão "Turbinar" embaixo do post ou Reels</td><td><code>adsmanager.facebook.com</code> no computador</td></tr>
+        <tr><td>Objetivos</td><td>Mais visitas ao perfil, ao site ou mais mensagens</td><td>Todos, inclusive otimizar para cadastro (CompleteRegistration)</td></tr>
+        <tr><td>Usa o Pixel para otimizar</td><td>Não (só mede)</td><td>Sim</td></tr>
+        <tr><td>Quando usar</td><td>Dar alcance a um post que já foi bem</td><td>Campanha principal de cadastros</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Ao turbinar, o app pode perguntar sobre <strong>categoria especial</strong>: se pedir, marque Habitação/Imóveis. No destino, escolha <strong>Seu site</strong> e cole o link com <code>utm_medium=paid</code> abaixo.</p>
+
+  <h3>Estrutura no Gerenciador de Anúncios</h3>
+  <div class="table">
+    <table>
+      <thead><tr><th>Campanha</th><th>Objetivo</th><th>Verba/dia</th><th>Criativos</th></tr></thead>
+      <tbody>
+        <tr><td>SpaceHour | IG | Anfitriões | Maringá</td><td>Leads → Site → CompleteRegistration</td><td>R$ 30 <small>(sugestão inicial)</small></td><td>Carrossel anfitrioes-01..06 + stories 02 e 03</td></tr>
+        <tr><td>SpaceHour | IG | Profissionais | Maringá</td><td>Leads → Site → CompleteRegistration</td><td>R$ 15 <small>(sugestão inicial)</small></td><td>Carrossel profissionais-01..05 + story 04</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ol class="steps">
+    <li>Em <code>adsmanager.facebook.com</code>, confira a conta <strong>SpaceHour - Anúncios</strong>.</li>
+    <li><strong>+ Criar</strong> → objetivo <strong>Leads</strong> (ou "Cadastros").</li>
+    <li>Se o Meta exigir ou reprovar o anúncio por isso, marque <strong>Categoria especial: Habitação/Imóveis</strong>. Com ela: raio mínimo de cerca de 24 km e sem segmentação por idade ou gênero.</li>
+    <li>Conjunto de anúncios: conversão no <strong>Site</strong>, Pixel <strong>SpaceHour</strong>, evento <strong>CompleteRegistration</strong>. Se houver poucos eventos no começo, use <strong>Tráfego</strong> → "Visualizações da página de destino" e troque depois.</li>
+    <li>Público: <strong>Maringá, PR + 30 km</strong>. Sem categoria especial: idade 25–65; interesses Odontologia, Psicologia, Fisioterapia, Medicina, Clínica, Empreendedorismo.</li>
+    <li>Posicionamentos: <strong>Manuais</strong> → só Instagram (Feed, Stories, Reels, Explorar).</li>
+    <li>Identidade: Página SpaceHour e conta do Instagram <strong>SpaceHour</strong> (para o anúncio sair com o @).</li>
+    <li>Anúncio A: <strong>Carrossel</strong> com os cards na ordem. Anúncio B: <strong>imagem única</strong> 9:16 com o story.</li>
+    <li>Botão: <strong>Cadastre-se</strong>. Crie 3 variações de texto (abaixo).</li>
+  </ol>
+  <div class="copy"><span class="lbl">Link anfitriões (anúncios)</span><pre>https://space-hour.com/anuncie?utm_source=instagram&amp;utm_medium=paid&amp;utm_campaign=lanc-anfitrioes</pre></div>
+  <div class="copy"><span class="lbl">Link profissionais (anúncios)</span><pre>https://space-hour.com/profissionais?utm_source=instagram&amp;utm_medium=paid&amp;utm_campaign=lanc-profissionais</pre></div>
+
+  <h3>Textos: anfitriões</h3>
+  <div class="copy"><span class="lbl">Texto 1</span><pre>Seu consultório fica vazio em alguns horários da semana?
+No SpaceHour você aluga esses horários por hora para dentistas, médicos, psicólogos e outros profissionais com registro verificado.
+✔ Você define preço, dias e regras
+✔ Pix ou cartão, direto na sua conta Mercado Pago
+✔ Sem mensalidade: 5% por reserva (+ tarifa do Mercado Pago)
+Anuncie grátis.</pre></div>
+  <div class="copy"><span class="lbl">Texto 2</span><pre>Horário vago no consultório é aluguel pago sem retorno.
+Com o SpaceHour, profissionais da sua região reservam a sua sala por hora e pagam online. Você escolhe os horários, o preço e se aprova cada pedido.
+Anunciar é grátis, sem mensalidade.</pre></div>
+  <div class="copy"><span class="lbl">Texto 3</span><pre>Já pensou em dividir o custo do seu consultório sem fazer contrato com ninguém?
+No SpaceHour cada reserva é por hora, paga antecipadamente pelo Mercado Pago, com caução opcional e avaliação dos dois lados.
+Comece hoje, é grátis.</pre></div>
+  <div class="copy"><span class="lbl">Título e descrição</span><pre>Anuncie seu consultório grátis
+Anunciar é grátis. Sem mensalidade.</pre></div>
+
+  <h3>Textos: profissionais</h3>
+  <div class="copy"><span class="lbl">Texto 1</span><pre>Atende poucas vezes por semana e paga aluguel cheio?
+No SpaceHour você reserva consultórios e salas prontas por hora: odontológico, psicologia, fisioterapia, sala de aula e mais.
+✔ Sem contrato, sem condomínio, sem fiador
+✔ Pague só pelas horas que usar, com Pix ou cartão
+Cadastro grátis.</pre></div>
+  <div class="copy"><span class="lbl">Texto 2</span><pre>Consultório pronto, na hora que você precisa.
+Escolha o espaço, veja fotos e equipamentos, e reserve online. Pague com Pix, cartão ou boleto.</pre></div>
+  <div class="copy"><span class="lbl">Texto 3</span><pre>Recém-formado(a)? Comece a atender sem alugar uma sala inteira.
+Reserve consultório por hora no SpaceHour, só quando tiver atendimento. Sem contrato e sem fiador.
+Cadastro grátis.</pre></div>
+  <div class="copy"><span class="lbl">Título e descrição</span><pre>Consultório por hora, sem contrato
+Reserve online com Pix ou cartão.</pre></div>
+
+  <h3>Ajustes (sugestão inicial)</h3>
+  <ul>
+    <li>Depois de 1.500 impressões, pause o anúncio com CTR abaixo de 0,8%.</li>
+    <li>A cada 3 dias, passe verba para o anúncio com <strong>menor custo por cadastro</strong>.</li>
+    <li>Enquanto Maringá tiver poucos espaços publicados, mantenha a verba de profissionais baixa. Com 5 a 10 espaços, aumente.</li>
+  </ul>
+
+  <h3>Como pagar</h3>
+  <ol class="steps">
+    <li>Na conta de anúncios → <strong>Cobrança e pagamentos</strong> → <strong>Formas de pagamento</strong>. Se a pessoa do Facebook já cadastrou, não precisa fazer nada.</li>
+    <li>Opções no Brasil costumam ser: <strong>cartão de crédito</strong>, <strong>Pix</strong> ou <strong>boleto</strong> (pré-pagos; boleto leva até 3 dias úteis).</li>
+    <li>Sempre com cartão ou conta <strong>do Instituto</strong>, nunca pessoal. CNPJ e razão social do Instituto nos dados de cobrança, para a nota fiscal sair em nome da empresa.</li>
+    <li>Ao turbinar pelo app, confira se a conta de anúncios escolhida é a <strong>SpaceHour - Anúncios</strong> (o app às vezes cria uma conta separada).</li>
+  </ol>
+</section>
+
+<!-- 9 -->
+<section id="pixel">
+  <h2><span class="n">9</span>Pixel e medição</h2>
+  <p>O site já tem o código do Pixel do Meta. Existe <strong>um Pixel só</strong> para Facebook e Instagram, dentro do mesmo portfólio empresarial.</p>
+  <div class="note"><p><strong>Coordene com quem cuida do Facebook.</strong> Pergunte se o Pixel já foi criado e entregue ao Robson. Se sim, só confira que você tem acesso a ele e pule para 9.3. Se não, combinem quem cria. <strong>Nunca crie um segundo Pixel.</strong></p></div>
+
+  <h3>9.1 Criar o Pixel (só se ninguém criou)</h3>
+  <ol class="steps">
+    <li>Acesse o <strong>Gerenciador de Eventos</strong>: <code>business.facebook.com/events_manager</code>.</li>
+    <li><strong>Conectar fontes de dados</strong> (ou "+") → <strong>Web</strong>.</li>
+    <li>Nome: <code>SpaceHour</code>. O Meta hoje chama o Pixel de <strong>conjunto de dados</strong>; é a mesma coisa.</li>
+    <li>Quando perguntar como instalar, escolha a opção manual ou feche: o código já está no site.</li>
+    <li>Copie o <strong>ID</strong> (só números).</li>
+    <li>Em Configurações do negócio → <strong>Fontes de dados</strong> → <strong>Conjuntos de dados</strong>, conecte o Pixel à conta de anúncios SpaceHour - Anúncios.</li>
+  </ol>
+
+  <h3>9.2 Entregar ao Robson</h3>
+  <div class="copy"><pre>Robson, segue o ID do Meta Pixel para colocar na Vercel:
+Projeto spacehour → Settings → Environment Variables → ambiente Production (não marcar "Sensitive")
+Nome: VITE_META_PIXEL_ID
+Valor: [COLE O NÚMERO AQUI]
+Depois é preciso fazer um Redeploy.</pre></div>
+  <p>O domínio <code>space-hour.com</code> também precisa estar verificado no Meta (registro TXT no DNS da GoDaddy, feito pelo Robson). Normalmente quem cuida do Facebook faz isso; confirme se já foi feito. Se não: Configurações do negócio → <strong>Segurança da marca</strong> → <strong>Domínios</strong> → Adicionar → <code>space-hour.com</code> → método <strong>registro TXT de DNS</strong> → envie o valor <code>facebook-domain-verification=...</code> ao Robson → depois clique em Verificar (pode levar até 72 h).</p>
+
+  <h3>9.3 Eventos do site</h3>
+  <div class="table">
+    <table>
+      <thead><tr><th>Evento</th><th>Quando dispara</th><th>Para que serve</th></tr></thead>
+      <tbody>
+        <tr><td><code>PageView</code></td><td>Toda página aberta</td><td>Públicos de remarketing</td></tr>
+        <tr><td><code>Lead</code></td><td>Clique nos botões das landings</td><td>Interesse; plano B de otimização</td></tr>
+        <tr><td><code>CompleteRegistration</code></td><td>Cadastro concluído</td><td>Evento principal dos anúncios</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Se ainda aparecer a tela <strong>Mensuração de eventos agregados</strong>, deixe <code>CompleteRegistration</code> como prioridade 1 e <code>Lead</code> como 2. Em contas novas essa tela pode não existir mais; nesse caso não há nada a fazer.</p>
+
+  <h3>9.4 Como testar</h3>
+  <ol class="steps">
+    <li>Gerenciador de Eventos → Pixel SpaceHour → aba <strong>Testar eventos</strong>.</li>
+    <li>Digite <code>https://space-hour.com/anuncie</code> → <strong>Abrir site</strong>.</li>
+    <li>No site, clique em <strong>Aceitar</strong> no aviso de cookies. Sem aceite, o Pixel não carrega (LGPD).</li>
+    <li>Confira <code>PageView</code>; clique no botão da página e confira <code>Lead</code>.</li>
+    <li>Para <code>CompleteRegistration</code>, faça um cadastro de teste com seu e-mail e avise o Robson para apagar depois.</li>
+    <li>Opcional: extensão <strong>Meta Pixel Helper</strong> no Chrome do computador.</li>
+  </ol>
+
+  <h3>9.5 UTMs do Instagram</h3>
+  <div class="copy"><pre>Bio (geral):            https://space-hour.com/conheca?utm_source=instagram&amp;utm_medium=bio&amp;utm_campaign=lanc-geral
+Bio (anfitriões):       https://space-hour.com/anuncie?utm_source=instagram&amp;utm_medium=bio&amp;utm_campaign=lanc-anfitrioes
+Bio (profissionais):    https://space-hour.com/profissionais?utm_source=instagram&amp;utm_medium=bio&amp;utm_campaign=lanc-profissionais
+Stories anfitriões:     https://space-hour.com/anuncie?utm_source=instagram&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes
+Stories profissionais:  https://space-hour.com/profissionais?utm_source=instagram&amp;utm_medium=post&amp;utm_campaign=lanc-profissionais
+Stories geral:          https://space-hour.com/conheca?utm_source=instagram&amp;utm_medium=post&amp;utm_campaign=lanc-geral
+Anúncios anfitriões:    https://space-hour.com/anuncie?utm_source=instagram&amp;utm_medium=paid&amp;utm_campaign=lanc-anfitrioes
+Anúncios profissionais: https://space-hour.com/profissionais?utm_source=instagram&amp;utm_medium=paid&amp;utm_campaign=lanc-profissionais</pre></div>
+  <p>Os cadastros aparecem em <strong>Admin → Campanha</strong> no site, por origem e campanha. Peça ao Robson acesso a essa aba.</p>
+</section>
+
+<!-- 10 -->
+<section id="crm">
+  <h2><span class="n">10</span>CRM e atendimento</h2>
+  <h3>Rotina diária</h3>
+  <ol class="steps">
+    <li>9h, 13h e 17h: abra o Direct (pastas <strong>Principal</strong>, <strong>Geral</strong> e <strong>Solicitações</strong>) e os comentários. Pelo computador, use a Caixa de entrada do Meta Business Suite.</li>
+    <li>Responda em até <strong>1 hora</strong> no horário comercial.</li>
+    <li>Cada pessoa nova vira uma linha na planilha CRM.</li>
+    <li>Atualize status e próximo contato de quem já está na planilha.</li>
+    <li>Fim do dia: confira em Admin → Contatos quem já se cadastrou.</li>
+  </ol>
+
+  <h3>Automações do Direct</h3>
+  <ul>
+    <li><strong>Respostas rápidas</strong> (no app): Configurações e atividade → <strong>Ferramentas para empresas</strong> (ou "Ferramentas e controles para empresas") → <strong>Respostas salvas/rápidas</strong>. Crie um atalho para cada mensagem abaixo (ex.: <code>/anfitriao</code>). Na conversa, digite o atalho e toque na sugestão.</li>
+    <li><strong>Perguntas frequentes</strong>: no mesmo menu, procure <strong>Perguntas frequentes</strong>. Até 4 perguntas aparecem como botões quando a pessoa abre o chat.</li>
+    <li><strong>Mensagem de boas-vindas e de ausência</strong>: no Meta Business Suite → Caixa de entrada → <strong>Automações</strong> (vale para Instagram e Messenger).</li>
+    <li><strong>Palavra-chave nos comentários</strong>: quando alguém comenta, por exemplo, "QUERO", recebe a mensagem no Direct. Procure no Meta Business Suite → Automações uma opção de resposta a comentários ou de palavras-chave. Se não existir na sua conta, use uma ferramenta aprovada pelo Meta, como o <strong>ManyChat</strong>. O ManyChat tem plano grátis limitado; o plano pago começa por volta de US$ 15 por mês e sobe conforme o número de contatos (confira o preço atual no site deles e peça aprovação ao Robson antes de assinar).</li>
+  </ul>
+  <div class="copy"><span class="lbl">Boas-vindas</span><pre>Olá! Obrigado por falar com o SpaceHour.
+Você tem um espaço para anunciar ou procura sala para atender? Responda "ANUNCIAR" ou "ALUGAR" que eu te explico.
+Atendemos de segunda a sexta, das 8h às 18h.</pre></div>
+  <div class="copy"><span class="lbl">Perguntas frequentes (4 botões)</span><pre>Quanto custa anunciar meu espaço?
+Como eu alugo uma sala por hora?
+Quem pode alugar meu consultório?
+Como funciona o pagamento?</pre></div>
+  <div class="copy"><span class="lbl">Resposta automática a comentário com "QUERO"</span><pre>Oi! Aqui está o link para conhecer o SpaceHour: https://space-hour.com/conheca?utm_source=instagram&amp;utm_medium=post&amp;utm_campaign=lanc-geral
+Você tem espaço para anunciar ou procura sala? Me conta que eu te ajudo.</pre></div>
+
+  <h3>Mensagens prontas</h3>
+  <div class="copy"><span class="lbl">/anfitriao</span><pre>Que bom que você tem interesse! No SpaceHour você anuncia seu espaço grátis, sem mensalidade.
+Você define preço por hora, dias, horários e regras, e escolhe se aprova cada pedido ou deixa a reserva instantânea. Pode exigir caução e avalista.
+O pagamento cai direto na sua conta Mercado Pago (precisa ter uma chave Pix cadastrada lá).
+Para começar: https://space-hour.com/anuncie?utm_source=instagram&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes
+Se quiser, eu te ajudo a cadastrar por telefone. Qual o melhor horário para você?</pre></div>
+  <div class="copy"><span class="lbl">/profissional</span><pre>Oi! No SpaceHour você reserva consultório ou sala pronta por hora, sem contrato, sem fiador e sem condomínio. Paga só as horas que usar.
+No cadastro você informa seu registro profissional (CRO, CRM, CRP, CREFITO etc.), que é verificado.
+Pagamento com Pix, cartão ou boleto (boleto só para reservas com 3 ou mais dias de antecedência). O endereço completo aparece quando a reserva é confirmada.
+Cadastro grátis: https://space-hour.com/profissionais?utm_source=instagram&amp;utm_medium=post&amp;utm_campaign=lanc-profissionais
+Estamos começando por Maringá. Qual tipo de sala você procura?</pre></div>
+  <div class="copy"><span class="lbl">/preco</span><pre>Para quem anuncia: é grátis e sem mensalidade. Quando uma reserva é paga, o SpaceHour fica com 5% e o Mercado Pago cobra a tarifa dele. Não alugou, não paga nada.
+Para quem aluga: o preço por hora do espaço + 15% de taxa de serviço + ISS sobre essa taxa. Exemplo: espaço de R$ 100 → você paga R$ 115,75. O total aparece antes de confirmar.
+O preço da hora quem define é o dono do espaço.</pre></div>
+  <div class="copy"><span class="lbl">/seguranca</span><pre>Entendo a preocupação. Quem aluga informa o registro profissional (CRO, CRM, CRP, CREFITO etc.) e ele é verificado.
+O dono do espaço pode aprovar cada pedido antes, exigir caução e avalista, e os dois lados se avaliam depois do uso.
+O pagamento é feito antes, pelo Mercado Pago, e o endereço completo só é liberado depois da reserva confirmada.</pre></div>
+  <div class="copy"><span class="lbl">Resposta pública a comentário</span><pre>Oi, [nome]! Te mandei os detalhes no Direct. Qualquer dúvida, é só chamar.</pre></div>
+
+  <h3>Planilha CRM</h3>
+  <p>Crie no Google Sheets a planilha <strong>CRM SpaceHour - Instagram</strong> e compartilhe com o Robson. Colunas:</p>
+  <div class="copy"><span class="lbl">Cabeçalho (cole na linha 1)</span><pre>Data	Nome	Contato	Rede	Tipo	Cidade	Status	Próximo passo	Data do próximo contato</pre></div>
+  <ul>
+    <li><strong>Contato:</strong> o @ do Instagram (e e-mail/telefone, se a pessoa passar).</li>
+    <li><strong>Rede:</strong> Instagram (Direct, comentário, story ou anúncio).</li>
+    <li><strong>Tipo:</strong> anfitrião ou profissional.</li>
+    <li><strong>Status</strong> (use só estes): novo · conversando · cadastrou · publicou espaço · reservou · perdido.</li>
+    <li>Use <strong>Dados → Validação de dados</strong> para lista suspensa em Tipo e Status.</li>
+  </ul>
+  <p><strong>CRM grátis (alternativa):</strong> RD Station CRM (plano grátis) ou HubSpot CRM (grátis), com um funil nas mesmas etapas. Se a conversa for para o WhatsApp Business, use <strong>etiquetas</strong> com os mesmos nomes do Status.</p>
+  <p>No Direct, você também pode usar <strong>rótulos</strong> nas conversas (toque e segure a conversa ou abra os detalhes) para marcar "anfitrião", "profissional" e "seguir".</p>
+  <h4>Cruzar com o site</h4>
+  <ol class="steps">
+    <li>Uma vez por semana, abra (ou peça ao Robson) <strong>Admin → Contatos</strong> no site e exporte o CSV.</li>
+    <li>Procure cada lead da planilha por e-mail ou nome. Se achou, status <strong>cadastrou</strong>.</li>
+    <li>Quem pediu para não receber marketing (aparece no Admin) não recebe mais mensagens de divulgação. Só responda se a pessoa falar com você.</li>
+  </ol>
+</section>
+
+<!-- 11 -->
+<section id="monetizacao">
+  <h2><span class="n">11</span>Monetização e collabs</h2>
+  <h3>a) Como o Instagram gera receita para o SpaceHour</h3>
+  <p>A receita vem das <strong>reservas</strong>: 5% do anfitrião e 15% de taxa de serviço do profissional em cada reserva paga. O caminho é: post/story/anúncio → link → cadastro → espaço publicado → reserva.</p>
+  <ul>
+    <li><strong>Custo por cadastro</strong> = gasto em anúncios ÷ cadastros com <code>utm_source=instagram</code> (Admin → Campanha).</li>
+    <li><strong>Custo por reserva</strong> = gasto ÷ reservas de quem veio do Instagram (peça o número ao Robson no fim do mês).</li>
+    <li>Na primeira fase, o número que importa é <strong>anfitriões com espaço publicado</strong>.</li>
+  </ul>
+
+  <h3>b) Collabs com clínicas e professores de Maringá</h3>
+  <p>O post <strong>Collab</strong> aparece nos dois perfis ao mesmo tempo e soma o público dos dois.</p>
+  <ol class="steps">
+    <li>Monte uma lista de 10 parceiros: clínicas de Maringá com salas ociosas, professores de odontologia, psicologia e fisioterapia (o Instituto Ravel é uma instituição de ensino; pergunte ao Robson por professores próximos), associações e delegacias regionais do CRO, CRP e CREFITO.</li>
+    <li>Proponha conteúdo útil: "como dividir consultório com segurança", "primeiros passos do recém-formado", "tour por uma sala anunciada no SpaceHour" (só com autorização do dono, sem pacientes).</li>
+    <li>Ao criar o post ou Reels: <strong>Marcar pessoas</strong> → <strong>Convidar colaborador</strong> → escolha o @ do parceiro. Ele aceita e o post aparece nos dois perfis.</li>
+    <li>Se houver pagamento ou troca em dinheiro de qualquer lado, ative o rótulo <strong>"Parceria paga"</strong> (veja abaixo).</li>
+  </ol>
+  <div class="copy"><span class="lbl">Convite para collab (Direct)</span><pre>Olá, [nome]! Sou do SpaceHour, de Maringá. Ajudamos quem tem consultório ou sala vaga a alugar por hora para outros profissionais.
+Gostamos muito do seu conteúdo sobre [tema]. Que tal um Reels juntos sobre [ideia], publicado nos dois perfis como collab?
+Nós cuidamos do roteiro e da edição. Sem pacientes e sem promessa de resultado, dentro das regras do seu conselho.
+Podemos conversar?</pre></div>
+
+  <h3>c) Ganhos com o próprio perfil</h3>
+  <p>Para ver o que está liberado, abra o perfil → <strong>Painel profissional</strong> → <strong>Monetização</strong> (ou "Status de monetização"). O app mostra o que falta para cada recurso.</p>
+  <ul>
+    <li><strong>Presentes</strong> (em Reels): o público compra Estrelas e envia ao vídeo. Costuma exigir conta profissional, 18 anos ou mais, país elegível e um número mínimo de seguidores.</li>
+    <li><strong>Assinaturas</strong>: seguidores pagam por mês por conteúdo exclusivo. Já foi exigido algo perto de 10 mil seguidores.</li>
+    <li><strong>Parcerias pagas / conteúdo de marca</strong>: marcas pagam por posts. É o mais realista para o SpaceHour.</li>
+  </ul>
+  <div class="note"><p>Os requisitos mudam com frequência e variam por país e por tipo de conta (alguns recursos aparecem só para "Criador"). Sempre confira no Painel profissional do app. Todos exigem seguir as políticas de monetização do Meta.</p></div>
+
+  <h3>d) Parcerias pagas (publi)</h3>
+  <ul>
+    <li>Fornecedores de equipamento odontológico, cursos, marcas da área de saúde e clínicas podem pagar por posts ou stories.</li>
+    <li>Todo conteúdo pago leva o rótulo <strong>"Parceria paga com [marca]"</strong>: ao criar o post, <strong>Configurações avançadas</strong> → <strong>Adicionar rótulo de parceria paga</strong> → marque a marca. Escreva também "#publi" ou "Publicidade" no começo da legenda (regra do CONAR).</li>
+    <li>Nunca aceite parceria que mostre pacientes, prometa resultado de tratamento ou anuncie preço de procedimento.</li>
+    <li>Toda parceria paga precisa da aprovação do Robson e de nota fiscal no CNPJ do Instituto.</li>
+  </ul>
+</section>
+
+<!-- 12 -->
+<section id="metricas">
+  <h2><span class="n">12</span>Métricas semanais e relatório</h2>
+  <p>Toda <strong>segunda-feira</strong>, anote numa aba "Métricas" da planilha:</p>
+  <div class="table">
+    <table>
+      <thead><tr><th>Métrica</th><th>Onde encontrar</th></tr></thead>
+      <tbody>
+        <tr><td>Seguidores</td><td>Painel profissional → Insights da conta</td></tr>
+        <tr><td>Contas alcançadas na semana</td><td>Painel profissional → Insights</td></tr>
+        <tr><td>Toques nos links da bio e figurinhas de link</td><td>Insights → Atividade do perfil / insights de cada story</td></tr>
+        <tr><td>Conversas no Direct</td><td>Direct e planilha CRM</td></tr>
+        <tr><td>Cadastros por origem (instagram)</td><td>Site → Admin → Campanha</td></tr>
+        <tr><td>Gasto em anúncios</td><td>Gerenciador de Anúncios (filtrado pelas campanhas IG)</td></tr>
+        <tr><td>Custo por cadastro</td><td>Gasto ÷ cadastros com utm_source=instagram</td></tr>
+        <tr><td>Anfitriões com espaço publicado</td><td>Admin → Campanha</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Relatório de 5 linhas para o Robson</h3>
+  <div class="copy"><pre>Instagram – semana [dd/mm a dd/mm]
+1. Seguidores: [n] (+[n]) | Contas alcançadas: [n] | Toques em links: [n]
+2. Cadastros do Instagram: [n] anfitriões / [n] profissionais | Espaços publicados: [n]
+3. Anúncios: gasto R$ [n] | custo por cadastro R$ [n] | melhor criativo: [nome]
+4. Conteúdo: [n] posts, [n] Reels, [n] stories | Melhor Reels: [tema] | Direct: [n] conversas
+5. Próxima semana: [o que vou mudar] | Preciso de: [pedido ao Robson]</pre></div>
+</section>
+
+<!-- 13 -->
+<section id="cuidados">
+  <h2><span class="n">13</span>Cuidados</h2>
+  <ul>
+    <li><strong>Anuncie o espaço, não o atendimento de saúde.</strong> Sem preço de tratamento, sem antes e depois, sem promessa de resultado. Os códigos de ética do CFO, CFM e CRP valem para os profissionais que aparecem em collabs e vídeos.</li>
+    <li><strong>Não prometa renda.</strong> A conta R$ 60 × 12 × 4 é uma simulação e deve sempre ser chamada assim.</li>
+    <li><strong>Taxas sempre completas:</strong> "5% + tarifa do Mercado Pago", nunca só "5%".</li>
+    <li><strong>Nenhuma promoção:</strong> não existe desconto, cupom, taxa zero ou prazo promocional.</li>
+    <li>Não diga "o mais barato" ou "o único" (Código de Defesa do Consumidor e CONAR).</li>
+    <li><strong>LGPD:</strong> não compre listas, não mande mensagem em massa a desconhecidos, respeite quem pediu para não receber marketing, não peça dados de saúde no Direct, não exponha o @ de quem perguntou sem permissão.</li>
+    <li><strong>Direito de imagem:</strong> fotos e vídeos de espaços só com autorização por escrito do dono. Pessoas só com autorização assinada. Nunca pacientes. Músicas só da biblioteca liberada para contas comerciais.</li>
+    <li><strong>Categoria especial de anúncio:</strong> se o Meta exigir Habitação/Imóveis, marque. Raio mínimo de cerca de 24 km, sem idade nem gênero.</li>
+    <li><strong>Parceria paga</strong> sempre com o rótulo do Instagram e "#publi".</li>
+    <li><strong>Acessos:</strong> não passe senha por mensagem. Acesso ao Instagram para outras pessoas é pelo portfólio empresarial do Meta.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>SpaceHour · Instituto Ravel de Ensino Superior Ltda · CNPJ 03.162.275/0001-10 · Maringá/PR · support@space-hour.com</p>
+  <p>O Instagram muda menus com frequência. Se algum caminho deste kit não bater com o que você vê, procure o nome mais parecido em Configurações e atividade ou fale com o Robson.</p>
+</footer>
+</div>
+<script>
+(function () {
+  var root = document.querySelector('[data-kit]');
+  var KEY = 'spacehour-kit-' + (root ? root.getAttribute('data-kit') : 'x') + '-checklist';
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { state = {}; }
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.checklist input[type="checkbox"]'));
+  var out = document.getElementById('ck-progress');
+  function update() {
+    var done = boxes.filter(function (b) { return b.checked; }).length;
+    if (out) out.textContent = done + ' de ' + boxes.length + ' itens prontos' + (done === boxes.length ? '. Entrega completa.' : '.');
+  }
+  boxes.forEach(function (b) {
+    if (state[b.id]) b.checked = true;
+    b.addEventListener('change', function () {
+      state[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      update();
+    });
+  });
+  update();
+
+  document.querySelectorAll('.copy').forEach(function (box) {
+    if (box.querySelector('.cbtn')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'cbtn'; btn.textContent = 'Copiar';
+    box.appendChild(btn);
+  });
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.cbtn') : null;
+    if (!btn) return;
+    var pre = btn.parentElement.querySelector('pre');
+    if (!pre) return;
+    var text = pre.innerText.replace(/\s+$/, '');
+    function selectIt() {
+      try {
+        var r = document.createRange(); r.selectNodeContents(pre);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      } catch (e) {}
+      btn.textContent = 'Texto selecionado: copie';
+    }
+    function ok() {
+      btn.textContent = 'Copiado'; btn.classList.add('done');
+      setTimeout(function () { btn.textContent = 'Copiar'; btn.classList.remove('done'); }, 1800);
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(ok).catch(selectIt);
+      } else { selectIt(); }
+    } catch (e) { selectIt(); }
+  });
+})();
+</script>
