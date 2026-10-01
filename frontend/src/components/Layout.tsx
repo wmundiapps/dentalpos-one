@@ -5,6 +5,7 @@ import DemoBanner from "./DemoBanner";
 import EvaluationWidget from "./EvaluationWidget";
 import Footer from "./Footer";
 import Header from "./Header";
+import PendingAlertsBar from "./PendingAlertsBar";
 import Sidebar from "./Sidebar";
 
 interface LayoutProps {
@@ -35,6 +36,7 @@ export default function Layout({
       >
         <Header />
         <DemoBanner />
+        <PendingAlertsBar />
 
         <Box
           component="main"

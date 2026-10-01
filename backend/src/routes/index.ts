@@ -9,6 +9,7 @@ import * as clinicController from '../controllers/clinicController'
 import * as doctorController from '../controllers/doctorController'
 import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
+import * as pendingAlertController from '../controllers/pendingAlertController'
 import * as publicBookingController from '../controllers/publicBookingController'
 import * as scheduleController from '../controllers/scheduleController'
 import * as budgetController from '../controllers/budgetController'
@@ -117,6 +118,9 @@ router.get('/permissions', requirePermission('users.manage'), accessController.c
 router.get('/access-profiles', requirePermission('users.view'), accessController.profiles)
 router.post('/access-profiles/bootstrap', requirePermission('users.manage'), accessController.bootstrapProfiles)
 router.get('/me/permissions', accessController.myPermissions)
+router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
+router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendingAlertController.updateSettings)
+router.post('/pending-alerts/unlock', requirePermission('settings.edit'), pendingAlertController.unlock)
 router.post('/users/:userId/access-profiles', requirePermission('users.manage'), accessController.assignProfile)
 router.delete('/users/:userId/access-profiles/:profileId', requirePermission('users.manage'), accessController.removeProfile)
 
