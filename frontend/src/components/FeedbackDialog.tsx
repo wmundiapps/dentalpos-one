@@ -53,7 +53,7 @@ export default function FeedbackDialog({ open, onClose, onSent }: { open: boolea
       <DialogTitle sx={{ fontWeight: 800 }}>{"Relatar problema ou sugestão"}</DialogTitle>
       <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
         {sent ? (
-          <Alert severity="success">{"Recebemos seu relato. Obrigado! Você pode acompanhar em Configurações → Sugestões e Problemas."}</Alert>
+          <Alert severity="success">{"Obrigado! Sua sugestão ou elogio será avaliado e, caso seja aprovado, a implementação ou melhoria será aplicada."}</Alert>
         ) : (
           <>
             <Typography variant="body2" color="text.secondary">{`Tela atual: ${modulo}`}</Typography>
