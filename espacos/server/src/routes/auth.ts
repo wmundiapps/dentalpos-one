@@ -4,7 +4,7 @@ import { z } from 'zod';
 import crypto from 'node:crypto';
 import { id, nowIso, one, pool, rows, withTx } from '../db.js';
 import { getUserByEmail, insertUser, updateUser } from '../repo.js';
-import { HttpError, requireAuth, signToken, toSelf, type AuthedRequest } from '../auth.js';
+import { HttpError, promoteConfiguredAdmin, requireAuth, signToken, toSelf, type AuthedRequest } from '../auth.js';
 import { COUNTRY_BY_CODE, SUPPORTED_LOCALES } from '../../../shared/countries.js';
 import { RULES_VERSION } from '../../../shared/rules.js';
 import type { User } from '../../../shared/types.js';
@@ -50,6 +50,7 @@ authRouter.post('/auth/login', async (req, res) => {
   const user = await getUserByEmail(pool, email);
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) throw new HttpError(401, 'invalid_credentials');
   if (user.banned) throw new HttpError(403, 'account_banned');
+  await promoteConfiguredAdmin(user); // o menu Admin já aparece neste login, sem recarregar
   res.json({ token: signToken(user), user: toSelf(user) });
 });
 

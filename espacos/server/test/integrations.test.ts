@@ -475,6 +475,28 @@ test('ADMIN_EMAILS promove a conta a administrador no próximo acesso (só com e
   }
 });
 
+test('ADMIN_EMAILS: conta Gmail vira admin já no login, mesmo com pontos, "+algo" ou aspas na Vercel', async () => {
+  await register('robson.teste+site@gmail.com');
+  process.env.ADMIN_EMAILS = '"RobsonTeste@googlemail.com"; outro@example.com';
+  try {
+    const r = await fetch(`${base}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'robson.teste+site@gmail.com', password: 'senha-forte-1' }) });
+    const { user } = await r.json() as { user: { roles: string[] } };
+    assert.ok(user.roles.includes('admin'), 'login já devolve o papel de admin');
+  } finally {
+    delete process.env.ADMIN_EMAILS;
+  }
+  // Fora do Gmail, pontos continuam fazendo diferença
+  const other = await register('ana.souza@example.com');
+  process.env.ADMIN_EMAILS = 'anasouza@example.com';
+  try {
+    const me = await (await fetch(`${base}/me`, { headers: { Authorization: `Bearer ${other.token}` } })).json() as { roles: string[] };
+    assert.ok(!me.roles.includes('admin'));
+  } finally {
+    delete process.env.ADMIN_EMAILS;
+  }
+});
+
 test('origem do cadastro (UTM) aparece no relatório de campanha do admin', async () => {
   const r = await fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: 'Dra. Campanha', email: 'campanha@example.com', password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true, source: 'meta/paid/lancamento-anfitrioes' }) });

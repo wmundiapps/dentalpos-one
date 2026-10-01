@@ -5,7 +5,7 @@ import { waitUntil } from '@vercel/functions';
 import { flushPushQueue, pushConfigured } from './push.js';
 import { flushEmailQueue, verifySmtp } from './mailer.js';
 import { ZodError } from 'zod';
-import { HttpError, adminEmails, optionalAuth, type AuthedRequest } from './auth.js';
+import { HttpError, adminEmails, isAdminEmail, optionalAuth, type AuthedRequest } from './auth.js';
 import { authRouter } from './routes/auth.js';
 import { listingsRouter } from './routes/listings.js';
 import { bookingsRouter } from './routes/bookings.js';
@@ -52,7 +52,7 @@ export function createApp() {
       // Só os dados da própria conta logada: por que ela é (ou não é) admin
       you: req.user ? {
         email: req.user.email, emailVerified: !!req.user.emailVerifiedAt,
-        inAdminList: adminEmails().includes(req.user.email.toLowerCase()), isAdmin: req.user.roles.includes('admin'),
+        inAdminList: isAdminEmail(req.user.email), isAdmin: req.user.roles.includes('admin'),
       } : null,
     });
   });
