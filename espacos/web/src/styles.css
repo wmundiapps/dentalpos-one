@@ -473,3 +473,15 @@ ul.errors { padding-inline-start: 18px; }
 @media (max-width: 900px) { .user-email { max-width: 120px; font-size: 0.75rem; } }
 @media (max-width: 560px) { .user-email { display: none; } }
 .diag { margin-bottom: 10px; } .diag p { margin: 4px 0 0; }
+
+/* Janela "próximo passo" da jornada */
+.next-step { width: min(460px, 100%); text-align: center; position: relative; padding: 28px 24px 24px; }
+.next-step h2 { margin: 6px 0 10px; font-size: 1.35rem; }
+.next-step-icon { font-size: 2.6rem; line-height: 1; }
+.next-step-close { position: absolute; top: 10px; right: 10px; }
+.next-step-body { color: var(--muted, #555); margin-bottom: 10px; }
+.next-step-list { text-align: left; margin: 10px auto 16px; padding-left: 22px; display: grid; gap: 6px; max-width: 360px; }
+.next-step-actions { display: grid; gap: 10px; margin-top: 12px; }
+.next-step-actions .btn { width: 100%; justify-content: center; text-align: center; }
+.btn-big { padding: 14px 18px; font-size: 1.05rem; font-weight: 600; border-radius: 12px; }
+.next-step-actions .btn-ghost { border: 1px solid var(--border, #ddd); }
