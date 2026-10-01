@@ -1,0 +1,947 @@
+<title>Kit Google SpaceHour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: manual de trabalho em uma coluna (~860px), índice no topo, seções numeradas na ordem de execução, blocos de cópia em mono. */
+:root {
+  --bg: #f3fbfa;
+  --surface: #ffffff;
+  --surface-2: #e6f4f2;
+  --fg: #0b3534;
+  --muted: #4b6866;
+  --line: #cfe3e0;
+  --accent: #0e7c7b;
+  --accent-strong: #0a5f5e;
+  --accent-soft: #d5f3ef;
+  --on-accent: #ffffff;
+  --code-bg: #0b3534;
+  --code-fg: #e8fbf8;
+  --warn-bg: #fff4dc;
+  --warn-fg: #6b4a00;
+  --warn-line: #f0d48a;
+  --ok: #17a8a5;
+  --font-display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #071d1d; --surface: #0c2928; --surface-2: #10322f; --fg: #e4f6f3; --muted: #9fbfbb;
+    --line: #1f4a47; --accent: #17a8a5; --accent-strong: #8ff0e9; --accent-soft: #123f3c; --on-accent: #04201f;
+    --code-bg: #031212; --code-fg: #d6f7f2; --warn-bg: #3a2f12; --warn-fg: #f6dc9a; --warn-line: #6a5520; --ok: #8ff0e9;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #071d1d; --surface: #0c2928; --surface-2: #10322f; --fg: #e4f6f3; --muted: #9fbfbb;
+  --line: #1f4a47; --accent: #17a8a5; --accent-strong: #8ff0e9; --accent-soft: #123f3c; --on-accent: #04201f;
+  --code-bg: #031212; --code-fg: #d6f7f2; --warn-bg: #3a2f12; --warn-fg: #f6dc9a; --warn-line: #6a5520; --ok: #8ff0e9;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 17px; line-height: 1.6; margin: 0; }
+.wrap { max-width: 880px; margin: 0 auto; padding-inline: 18px; padding-block: 28px 80px; }
+h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.25; text-wrap: balance; color: var(--fg); }
+h1 { font-size: 2rem; margin: 0 0 .3rem; font-weight: 700; }
+h2 { font-size: 1.45rem; margin: 0 0 .8rem; font-weight: 600; display: flex; gap: .6rem; align-items: baseline; }
+h2 .n { font-size: .85rem; color: var(--on-accent); background: var(--accent); border-radius: 6px; padding: 1px 8px; font-weight: 600; flex: none; }
+h3 { font-size: 1.12rem; margin: 1.6rem 0 .5rem; font-weight: 600; }
+h4 { font-size: 1rem; margin: 1.1rem 0 .3rem; font-weight: 600; }
+p, li { max-width: 68ch; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+code { font-family: var(--font-mono); font-size: .86em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.logo { width: 42px; height: 42px; border-radius: 11px; background: var(--surface); border: 2px solid var(--accent); display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; color: var(--accent); font-size: 1.3rem; }
+.brand span { font-family: var(--font-display); font-weight: 600; color: var(--accent-strong); letter-spacing: .02em; }
+.eyebrow { font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+.lead { font-size: 1.08rem; color: var(--muted); margin-top: .2rem; }
+nav.toc { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin: 22px 0 34px; }
+nav.toc ol { margin: .3rem 0 0; padding-left: 1.4rem; columns: 2 220px; column-gap: 28px; }
+nav.toc li { margin: 2px 0; break-inside: avoid; }
+section { padding-top: 30px; margin-top: 30px; border-top: 1px solid var(--line); }
+ol.steps > li, ul.plain > li { margin: .35rem 0; }
+.note { background: var(--accent-soft); border-radius: 10px; padding: 12px 16px; margin: 14px 0; }
+.warn { background: var(--warn-bg); color: var(--warn-fg); border: 1px solid var(--warn-line); border-radius: 10px; padding: 12px 16px; margin: 14px 0; }
+.warn strong, .warn a { color: var(--warn-fg); }
+.tag { display: inline-block; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; background: var(--surface-2); color: var(--accent-strong); border-radius: 999px; padding: 1px 9px; vertical-align: middle; }
+.copy { background: var(--code-bg); color: var(--code-fg); border-radius: 10px; margin: 10px 0 16px; overflow: hidden; }
+.copy-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 10px 7px 14px; border-bottom: 1px solid rgba(143,240,233,.18); flex-wrap: wrap; }
+.copy-h span { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; opacity: .85; }
+.copy-h small { font-family: var(--font-mono); font-size: .72rem; opacity: .75; text-transform: none; letter-spacing: 0; }
+.copy button { font: 600 .82rem var(--font-body); background: #17a8a5; color: #04201f; border: 0; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.copy button.done { background: #8ff0e9; }
+.copy pre { margin: 0; padding: 12px 14px; font-family: var(--font-mono); font-size: .84rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; overflow-x: auto; }
+.tbl { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--surface-2); font-family: var(--font-display); font-weight: 600; font-size: .85rem; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num, .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.checklist li { max-width: none; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.checklist input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--accent); flex: none; }
+.checklist input:checked + span { color: var(--muted); text-decoration: line-through; }
+.progress { font-weight: 700; color: var(--accent-strong); margin: 6px 0 10px; font-variant-numeric: tabular-nums; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; margin: 14px 0; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+figure img { width: 100%; max-width: 100%; height: auto; border-radius: 8px; background: var(--surface-2); display: block; }
+figcaption { font-size: .9rem; }
+figcaption b { font-family: var(--font-mono); font-size: .8rem; color: var(--accent-strong); word-break: break-all; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.grid2 > * { min-width: 0; }
+.who { display: inline-block; font-size: .75rem; font-weight: 700; border: 1px solid var(--accent); color: var(--accent-strong); border-radius: 6px; padding: 0 6px; margin-right: 4px; }
+footer { margin-top: 50px; color: var(--muted); font-size: .9rem; }
+@media (max-width: 520px) { body { font-size: 16px; } h1 { font-size: 1.6rem; } h2 { font-size: 1.25rem; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="brand"><div class="logo">S</div><span>SpaceHour</span></div>
+  <div class="eyebrow">Kit de implementação · Google</div>
+  <h1>Google Ads, Perfil da Empresa e Analytics</h1>
+  <p class="lead">Manual passo a passo para quem vai montar e cuidar da presença do SpaceHour no Google. Este kit é tudo de que você precisa. Siga na ordem.</p>
+</header>
+
+<nav class="toc" aria-label="Índice">
+  <div class="eyebrow">Índice</div>
+  <ol>
+    <li><a href="#resumo">Resumo</a></li>
+    <li><a href="#checklist">Checklist de entrega</a></li>
+    <li><a href="#conta">Criação das contas</a></li>
+    <li><a href="#perfil">Perfil da Empresa no Google</a></li>
+    <li><a href="#cards">Imagens (cards) do Google</a></li>
+    <li><a href="#calendario">Calendário de 30 dias</a></li>
+    <li><a href="#videos">Vídeos</a></li>
+    <li><a href="#anuncios">Anúncios (Google Ads)</a></li>
+    <li><a href="#medicao">Tag, conversão e medição</a></li>
+    <li><a href="#crm">CRM e atendimento</a></li>
+    <li><a href="#monetizacao">Monetização</a></li>
+    <li><a href="#metricas">Métricas e relatório semanal</a></li>
+    <li><a href="#cuidados">Cuidados</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="resumo">
+  <h2><span class="n">1</span> Resumo</h2>
+  <p><strong>O que é o SpaceHour:</strong> site de aluguel por hora de espaços profissionais prontos (consultórios odontológicos e médicos, salas de psicologia, fisioterapia e estética, salas de aula, auditórios, salas de reunião). Quem tem o espaço com horários vagos (o <strong>anfitrião</strong>) anuncia grátis; quem precisa atender (o <strong>profissional</strong>) se cadastra grátis e paga só as horas que usar. Começamos por <strong>Maringá-PR</strong> (depois Londrina e Curitiba). Site: <a href="https://space-hour.com" target="_blank" rel="noopener">space-hour.com</a>.</p>
+  <p><strong>Objetivo no Google:</strong> aparecer para quem <em>já está procurando</em> sala ou consultório por hora em Maringá, e para quem procura como alugar o próprio consultório. Cada clique pago deve virar <strong>cadastro</strong> no site, e cada cadastro deve virar <strong>espaço anunciado</strong> ou <strong>reserva</strong>. Prioridade da primeira fase: anfitriões, porque sem espaços anunciados o profissional chega e não encontra nada.</p>
+  <p><strong>Ajuda:</strong> Robson Ravel de Oliveira (dono), e-mail <code>support@space-hour.com</code>. Ele cuida de tudo que é técnico: variáveis na Vercel, DNS na GoDaddy, dados fiscais.</p>
+  <div class="note"><strong>Empresa dona de todas as contas:</strong> Instituto Ravel de Ensino Superior Ltda, CNPJ 03.162.275/0001-10, Av. XV de Novembro, 255, Sobreloja, Maringá/PR, CEP 87013-230.</div>
+  <div class="warn"><strong>Não existe promoção.</strong> Não há desconto, cupom, taxa zero nem prazo promocional para anfitriões ou profissionais. Nunca escreva isso em anúncio, post ou resposta.</div>
+</section>
+
+<!-- 2 -->
+<section id="checklist">
+  <h2><span class="n">2</span> Checklist de entrega</h2>
+  <p>Marque conforme for terminando. As marcações ficam salvas neste navegador.</p>
+  <div class="progress" id="progress">0 de 0 concluídos</div>
+  <ul class="checklist" id="checklist-list">
+    <li><label><input type="checkbox" id="ck-conta"><span>Conta Google da empresa criada com <code>support@space-hour.com</code>, com verificação em 2 etapas ligada.</span></label></li>
+    <li><label><input type="checkbox" id="ck-mcc"><span>Conta de administrador (MCC) "SpaceHour – Instituto Ravel" criada, separada de qualquer conta da DentalPOS.</span></label></li>
+    <li><label><input type="checkbox" id="ck-ads"><span>Conta Google Ads criada no modo especialista, em BRL e fuso de Brasília/São Paulo, dentro da MCC do SpaceHour.</span></label></li>
+    <li><label><input type="checkbox" id="ck-pag"><span>Pagamento configurado no CNPJ do Instituto (Pix, boleto ou cartão).</span></label></li>
+    <li><label><input type="checkbox" id="ck-robson"><span>Robson com acesso de administrador no Google Ads, na MCC, no GA4 e no Perfil da Empresa.</span></label></li>
+    <li><label><input type="checkbox" id="ck-conv"><span>Conversão "Inscrição" criada; <code>VITE_GOOGLE_TAG_ID</code> e <code>VITE_GOOGLE_ADS_SIGNUP_LABEL</code> entregues ao Robson.</span></label></li>
+    <li><label><input type="checkbox" id="ck-teste"><span>Robson confirmou o Redeploy e o teste com Tag Assistant mostrou a tag e a conversão funcionando.</span></label></li>
+    <li><label><input type="checkbox" id="ck-ga4"><span>(Opcional) Propriedade GA4 criada, ID <code>G-...</code> entregue ao Robson e GA4 vinculado ao Google Ads.</span></label></li>
+    <li><label><input type="checkbox" id="ck-neg"><span>Lista de palavras-chave negativas criada e aplicada às duas campanhas.</span></label></li>
+    <li><label><input type="checkbox" id="ck-campA"><span>Campanha A (profissionais) publicada: palavras-chave, 15 títulos, 4 descrições, sitelinks, frases de destaque, snippets.</span></label></li>
+    <li><label><input type="checkbox" id="ck-campB"><span>Campanha B (anfitriões) publicada com o mesmo conjunto de recursos.</span></label></li>
+    <li><label><input type="checkbox" id="ck-auto"><span>Recomendações aplicadas automaticamente desligadas.</span></label></li>
+    <li><label><input type="checkbox" id="ck-gbp"><span>Perfil da Empresa no Google criado, verificado, com descrição, link com UTM, logo, capa e fotos.</span></label></li>
+    <li><label><input type="checkbox" id="ck-gsc"><span>Search Console: domínio <code>space-hour.com</code> verificado (TXT na GoDaddy feito pelo Robson).</span></label></li>
+    <li><label><input type="checkbox" id="ck-crm"><span>Planilha CRM criada com as colunas da seção 10.</span></label></li>
+    <li><label><input type="checkbox" id="ck-post"><span>Primeiro post publicado no Perfil da Empresa e link de avaliação salvo.</span></label></li>
+    <li><label><input type="checkbox" id="ck-rel"><span>Primeiro relatório de segunda-feira enviado ao Robson.</span></label></li>
+  </ul>
+</section>
+
+<!-- 3 -->
+<section id="conta">
+  <h2><span class="n">3</span> Criação das contas</h2>
+  <div class="warn"><strong>Regra de ouro:</strong> todas as contas pertencem à empresa. Nunca use seu Gmail pessoal como dono. Use sempre <code>support@space-hour.com</code> e dê acesso de administrador ao Robson em cada uma.</div>
+
+  <h3>3.1 Conta Google da empresa</h3>
+  <ol class="steps">
+    <li>Abra <a href="https://accounts.google.com/signup" target="_blank" rel="noopener">accounts.google.com/signup</a> numa janela anônima.</li>
+    <li>Escolha <strong>Para trabalho ou meu negócio</strong> (o nome pode variar um pouco).</li>
+    <li>Quando pedir o e-mail, escolha <strong>Usar meu endereço de e-mail atual</strong> (não crie um Gmail novo) e digite <code>support@space-hour.com</code>.</li>
+    <li>Confirme com o código que chega nesse e-mail. Se você não tiver acesso à caixa, peça o código ao Robson.</li>
+    <li>Senha forte e única. Guarde-a no gerenciador de senhas da empresa, combinado com o Robson.</li>
+    <li>Ligue a verificação em 2 etapas: <a href="https://myaccount.google.com/security" target="_blank" rel="noopener">myaccount.google.com/security</a> → <strong>Verificação em duas etapas</strong>. Cadastre o celular da empresa e gere os <strong>códigos de backup</strong>; entregue-os ao Robson.</li>
+  </ol>
+  <p>Se essa conta já existir (por exemplo, criada pelo Robson), não crie outra: peça para ele te adicionar como usuário em cada ferramenta.</p>
+
+  <h3>3.2 Conta de administrador (MCC), separada da DentalPOS</h3>
+  <p>A conta de administrador é uma "pasta" que guarda contas do Google Ads. Ela mantém o SpaceHour totalmente separado da DentalPOS: outra cobrança, outro CNPJ, outros acessos.</p>
+  <ol class="steps">
+    <li>Entre em <a href="https://ads.google.com/home/tools/manager-accounts/" target="_blank" rel="noopener">ads.google.com/home/tools/manager-accounts</a> logado como <code>support@space-hour.com</code>.</li>
+    <li>Clique em <strong>Criar uma conta de administrador</strong>.</li>
+    <li>Nome: <code>SpaceHour – Instituto Ravel</code>. Uso: <strong>Gerenciar minhas próprias contas</strong>. País: Brasil. Fuso: <strong>(GMT-03:00) Horário de Brasília / São Paulo</strong>. Moeda: <strong>Real brasileiro (BRL)</strong>.</li>
+    <li>Não vincule essa MCC a nenhuma conta ou MCC da DentalPOS, e não aceite convites delas.</li>
+  </ol>
+
+  <h3>3.3 Conta Google Ads (modo especialista)</h3>
+  <p><strong>Jeito mais simples:</strong> crie a conta de anúncios <em>de dentro da MCC</em>. Contas criadas assim já nascem no modo especialista, sem o assistente de "campanha inteligente".</p>
+  <ol class="steps">
+    <li>Na MCC, abra a lista de contas (ícone ou menu <strong>Contas</strong>) → botão <strong>+</strong> → <strong>Criar nova conta</strong>.</li>
+    <li>Nome: <code>SpaceHour Ads</code>. Moeda: <strong>BRL</strong>. Fuso: <strong>Brasília / São Paulo</strong>. <strong>Moeda e fuso não podem ser alterados depois.</strong></li>
+    <li>Quando perguntar sobre campanha, escolha criar a conta <strong>sem campanha</strong> por enquanto. As campanhas serão feitas na seção 8.</li>
+  </ol>
+  <div class="note"><strong>Se você começou por ads.google.com e caiu no assistente</strong> ("Qual é sua principal meta de publicidade?"), procure no rodapé o link <strong>Mudar para o Modo especialista</strong> (em inglês, "Switch to Expert Mode"). Depois procure <strong>Criar uma conta sem uma campanha</strong>. Nunca termine o fluxo de "campanha inteligente". Em seguida, vincule essa conta à MCC: na MCC → Contas → + → <strong>Vincular conta existente</strong>, e aceite o convite dentro da conta de anúncios (Administrador → Acesso e segurança → Administradores).</div>
+
+  <h3>3.4 Pagamento no CNPJ do Instituto</h3>
+  <ol class="steps">
+    <li>Na conta <code>SpaceHour Ads</code>: menu <strong>Faturamento</strong> (ícone de cartão) → <strong>Configurações</strong>. O menu pode aparecer como "Faturamento e pagamentos".</li>
+    <li>Tipo de perfil: <strong>Organização / Empresa</strong> (não "Individual").</li>
+    <li>Razão social: <code>Instituto Ravel de Ensino Superior Ltda</code>. CNPJ: <code>03.162.275/0001-10</code>. Endereço: <code>Av. XV de Novembro, 255, Sobreloja, Maringá/PR, CEP 87013-230</code>. Contato principal: Robson Ravel de Oliveira, <code>support@space-hour.com</code>.</li>
+    <li>Forma de pagamento (escolha uma com o Robson):
+      <ul>
+        <li><strong>Pix ou boleto (pagamento manual, pré-pago):</strong> você coloca saldo antes; quando o saldo acaba, os anúncios param. Pix cai em minutos; boleto pode levar até alguns dias úteis.</li>
+        <li><strong>Cartão (pagamento automático):</strong> o Google cobra depois. Os anúncios não param por falta de saldo.</li>
+      </ul>
+    </li>
+    <li>A nota fiscal sai no nome e CNPJ informados. Confira os dados antes de salvar: trocar de CNPJ depois exige um novo perfil de pagamento.</li>
+    <li>Se o Google pedir <strong>dados fiscais extras</strong> ou a <strong>verificação do anunciante</strong> (documentos da empresa), avise o Robson; ele envia os documentos.</li>
+  </ol>
+  <p><strong>Não use</strong> o perfil de pagamento da DentalPOS, mesmo que ele apareça como opção.</p>
+
+  <h3>3.5 Dar acesso ao Robson</h3>
+  <ol class="steps">
+    <li>Google Ads: <strong>Administrador</strong> (ícone de engrenagem) → <strong>Acesso e segurança</strong> → <strong>+</strong> → e-mail do Robson → nível <strong>Administrador</strong>. Repita na MCC.</li>
+    <li>GA4 (se criar): Administrador → <strong>Gerenciamento de acesso da conta</strong> → + → papel <strong>Administrador</strong>.</li>
+    <li>Perfil da Empresa: dentro do perfil → menu de três pontos → <strong>Configurações do perfil</strong> → <strong>Pessoas e acesso</strong> → adicionar como <strong>Proprietário</strong>.</li>
+    <li>Search Console: o Robson já vira dono ao verificar o DNS (seção 9.5).</li>
+  </ol>
+</section>
+
+<!-- 4 -->
+<section id="perfil">
+  <h2><span class="n">4</span> Perfil da Empresa no Google</h2>
+  <p>O Perfil da Empresa (antigo "Google Meu Negócio") faz o SpaceHour aparecer no Google Maps e na lateral da Pesquisa quando alguém procura o nome. É grátis.</p>
+
+  <h3>4.1 Criar</h3>
+  <ol class="steps">
+    <li>Entre em <a href="https://business.google.com" target="_blank" rel="noopener">business.google.com</a> como <code>support@space-hour.com</code> → <strong>Adicionar empresa</strong> (ou "Gerenciar agora").</li>
+    <li>Nome da empresa: <code>SpaceHour</code>. Só isso: o Google proíbe colocar palavras-chave no nome (nada de "SpaceHour Aluguel de Consultório Maringá").</li>
+    <li>Categoria: veja 4.2.</li>
+    <li>Local: o endereço só deve aparecer se o público for atendido nele. Se as pessoas <strong>não</strong> vão ao escritório (o atendimento é pelo site), responda que <strong>não</strong> tem local para clientes e configure como <strong>empresa de área de atendimento</strong>: o endereço fica oculto e você informa a região atendida (Maringá, Sarandi, Paiçandu, Marialva e cidades vizinhas). Combine com o Robson qual opção é verdadeira.</li>
+    <li>Telefone: use o número comercial que o Robson indicar (não há um definido neste kit). Pode deixar em branco.</li>
+    <li>Site: cole o link abaixo.</li>
+    <li>Verificação: o Google escolhe o método (vídeo do local, ligação, SMS, e-mail ou carta). Para vídeo, ele pede imagens contínuas do endereço, da fachada e de algo que comprove a empresa. Peça ajuda ao Robson. A verificação pode levar alguns dias.</li>
+  </ol>
+  <div class="copy"><div class="copy-h"><span>Site do perfil (com UTM)</span><button type="button">Copiar</button></div><pre>https://space-hour.com/conheca?utm_source=google&amp;utm_medium=bio&amp;utm_campaign=lanc-geral</pre></div>
+  <div class="note">O Google aceita perfis só de empresas que têm contato real com clientes. Se o perfil for recusado por ser "apenas on-line", não insista com dados falsos; fale com o Robson. Os anúncios do Google Ads funcionam sem o perfil.</div>
+
+  <h3>4.2 Categoria</h3>
+  <p>Os nomes das categorias mudam. Digite as palavras abaixo no campo e escolha a sugestão mais próxima.</p>
+  <ul class="plain">
+    <li><strong>Principal:</strong> digite "coworking" e escolha algo como <em>Espaço de coworking</em>, ou digite "centro empresarial" e escolha <em>Centro empresarial</em>.</li>
+    <li><strong>Adicionais (até 9):</strong> digite "aluguel de salas", "sala de reunião", "imóveis comerciais", "centro de conferências". Escolha só o que descreve o serviço de verdade.</li>
+    <li>Não escolha categorias de saúde (dentista, psicólogo, clínica). O SpaceHour aluga espaços, não presta atendimento de saúde.</li>
+  </ul>
+
+  <h3>4.3 Descrição (até 750 caracteres, sem links)</h3>
+  <div class="copy"><div class="copy-h"><span>Descrição do perfil</span><small data-count></small><button type="button">Copiar</button></div><pre data-max-total="750">O SpaceHour é uma plataforma de aluguel por hora de espaços profissionais prontos em Maringá: consultórios odontológicos e médicos, salas de psicologia, fisioterapia e estética, salas de aula, auditórios e salas de reunião. Quem tem um espaço com horários vagos anuncia grátis, sem mensalidade, define preço, horários e regras e recebe direto na conta Mercado Pago (taxa de 5% por reserva paga + tarifa do Mercado Pago). Profissionais com registro verificado (CRO, CRM, CRP, CREFITO e outros) se cadastram grátis, sem contrato, sem fiador e sem condomínio, e pagam só as horas que usarem, com Pix, cartão ou boleto. Dá para reservar avulso ou toda semana no mesmo horário.</pre></div>
+
+  <h3>4.4 Contato, horário e botões</h3>
+  <ul class="plain">
+    <li><strong>E-mail de contato:</strong> <code>support@space-hour.com</code> (se o campo existir).</li>
+    <li><strong>Horário de atendimento</strong> <span class="tag">sugestão inicial</span>: seg a sex, 8h às 18h. Confirme com o Robson; só coloque horário que alguém realmente atende.</li>
+    <li><strong>Data de abertura:</strong> a data do lançamento em Maringá (pergunte ao Robson).</li>
+    <li><strong>Botões:</strong> o perfil mostra "Site" automaticamente. Se aparecer opção de link de reserva ou agendamento, use o link de profissionais com UTM: <code>https://space-hour.com/profissionais?utm_source=google&amp;utm_medium=bio&amp;utm_campaign=lanc-profissionais</code>.</li>
+    <li><strong>Chat:</strong> o Google desativou o chat do Perfil da Empresa em 2024. Os contatos chegam por ligação, clique no site e e-mail.</li>
+  </ul>
+
+  <h3>4.5 Logo, capa e fotos</h3>
+  <div class="cards">
+    <figure><img src="../cards/google-ads/logo-quadrado.png" alt="Logo do SpaceHour em formato quadrado" loading="lazy"><figcaption><b>google-ads/logo-quadrado.png</b><br>Use como <strong>logotipo</strong> do perfil.</figcaption></figure>
+    <figure><img src="../cards/google-ads/paisagem-03.png" alt="Espaços profissionais por hora em Maringá" loading="lazy"><figcaption><b>google-ads/paisagem-03.png</b><br>Use como <strong>foto de capa</strong> ("Espaços profissionais por hora em Maringá").</figcaption></figure>
+  </div>
+  <ul class="plain">
+    <li>Fotos extras: espaços reais anunciados, <strong>sem pessoas</strong> e com autorização por escrito do anfitrião. Nunca fotos de pacientes.</li>
+    <li>Meta: 10 fotos no primeiro mês, 2 novas por semana depois.</li>
+  </ul>
+
+  <h3>4.6 Rotina do perfil</h3>
+  <ul class="plain">
+    <li><strong>1 post por semana</strong> (botão <strong>Adicionar atualização</strong> ou "Novidade"). Textos prontos na seção 5. Não coloque telefone no texto do post; o Google recusa.</li>
+    <li><strong>Peça avaliações:</strong> no perfil, procure <strong>Pedir avaliações</strong> (ou "Receber mais avaliações") e copie o link curto. Envie a anfitriões e profissionais <em>depois</em> da primeira reserva concluída (mensagem pronta na seção 10).</li>
+    <li><strong>Responda toda avaliação</strong> em até 48 h, boas ou ruins (modelos na seção 10).</li>
+    <li>Nunca ofereça brinde, desconto ou pagamento em troca de avaliação, e não peça avaliação a funcionários ou familiares. Isso viola as regras do Google e pode derrubar o perfil.</li>
+  </ul>
+</section>
+
+<!-- 5 -->
+<section id="cards">
+  <h2><span class="n">5</span> Imagens (cards) do Google</h2>
+  <p>Estas imagens servem para os posts do Perfil da Empresa e, mais tarde, para as campanhas Performance Max ou Demand Gen (seção 8.9). Anúncios de Pesquisa (seções 8.4 e 8.5) são só texto.</p>
+  <p><strong>Para salvar:</strong> no celular, toque e segure a imagem → Salvar imagem. No computador, clique com o botão direito → Salvar imagem como. Os arquivos também estão no GitHub em <code>espacos/docs/marketing/cards/google-ads/</code>.</p>
+
+  <h3>5.1 Paisagem 1200×628</h3>
+  <div class="cards">
+    <figure><img src="../cards/google-ads/paisagem-01.png" alt="Card anfitrião: Seu consultório vago vira renda" loading="lazy"><figcaption><b>google-ads/paisagem-01.png</b><br>Anfitrião: "Seu consultório vago vira renda".</figcaption></figure>
+    <figure><img src="../cards/google-ads/paisagem-02.png" alt="Card profissional: Consultório pronto por hora" loading="lazy"><figcaption><b>google-ads/paisagem-02.png</b><br>Profissional: "Consultório pronto por hora".</figcaption></figure>
+    <figure><img src="../cards/google-ads/paisagem-03.png" alt="Card geral: Espaços profissionais por hora em Maringá" loading="lazy"><figcaption><b>google-ads/paisagem-03.png</b><br>Geral: "Espaços profissionais por hora em Maringá".</figcaption></figure>
+  </div>
+
+  <h3>5.2 Quadrado 1200×1200</h3>
+  <div class="cards">
+    <figure><img src="../cards/google-ads/quadrado-01.png" alt="Card quadrado anfitrião: Seu consultório vago vira renda" loading="lazy"><figcaption><b>google-ads/quadrado-01.png</b><br>Anfitrião.</figcaption></figure>
+    <figure><img src="../cards/google-ads/quadrado-02.png" alt="Card quadrado profissional: Consultório pronto por hora" loading="lazy"><figcaption><b>google-ads/quadrado-02.png</b><br>Profissional.</figcaption></figure>
+    <figure><img src="../cards/google-ads/quadrado-03.png" alt="Card quadrado geral: Espaços profissionais por hora em Maringá" loading="lazy"><figcaption><b>google-ads/quadrado-03.png</b><br>Geral.</figcaption></figure>
+  </div>
+
+  <h3>5.3 Logos</h3>
+  <div class="cards">
+    <figure><img src="../cards/google-ads/logo-quadrado.png" alt="Logo SpaceHour quadrado 1200 por 1200" loading="lazy"><figcaption><b>google-ads/logo-quadrado.png</b><br>1200×1200. Logo do perfil e logo quadrado dos anúncios.</figcaption></figure>
+    <figure><img src="../cards/google-ads/logo-paisagem.png" alt="Logo SpaceHour horizontal 1200 por 300" loading="lazy"><figcaption><b>google-ads/logo-paisagem.png</b><br>1200×300. Logo horizontal (4:1) dos anúncios.</figcaption></figure>
+  </div>
+
+  <h3>5.4 Textos prontos para posts do Perfil da Empresa</h3>
+  <p>Em cada post: escolha a imagem indicada, cole o texto, adicione o botão <strong>Saiba mais</strong> e cole o link. Hashtags quase não têm efeito no Google; use no máximo duas.</p>
+
+  <h4>Post 1 · imagem quadrado-03</h4>
+  <div class="copy"><div class="copy-h"><span>Texto</span><button type="button">Copiar</button></div><pre>Chegou o SpaceHour em Maringá: espaços profissionais prontos para alugar por hora. Consultórios odontológicos e médicos, salas de psicologia, fisioterapia e estética, salas de aula, auditórios e salas de reunião. Quem tem horário vago anuncia grátis. Quem precisa atender paga só as horas que usar.
+#Maringá #SpaceHour</pre></div>
+  <div class="copy"><div class="copy-h"><span>Link do botão</span><button type="button">Copiar</button></div><pre>https://space-hour.com/conheca?utm_source=google&amp;utm_medium=post&amp;utm_campaign=lanc-geral</pre></div>
+
+  <h4>Post 2 · imagem quadrado-01</h4>
+  <div class="copy"><div class="copy-h"><span>Texto</span><button type="button">Copiar</button></div><pre>Seu consultório fica vazio em alguns horários? No SpaceHour você anuncia grátis, sem mensalidade, e aluga esses horários por hora para profissionais com registro verificado. Você define preço, horários e regras, aprova cada pedido (ou libera reserva instantânea) e recebe direto na sua conta Mercado Pago. Taxa de 5% por reserva paga + tarifa do Mercado Pago.
+#Maringá #SpaceHour</pre></div>
+  <div class="copy"><div class="copy-h"><span>Link do botão</span><button type="button">Copiar</button></div><pre>https://space-hour.com/anuncie?utm_source=google&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes</pre></div>
+
+  <h4>Post 3 · imagem quadrado-02</h4>
+  <div class="copy"><div class="copy-h"><span>Texto</span><button type="button">Copiar</button></div><pre>Atende poucas vezes por semana e paga aluguel cheio? No SpaceHour você reserva um consultório ou sala pronta por hora em Maringá. Cadastro grátis, sem contrato, sem fiador e sem condomínio. Pague com Pix, cartão ou boleto e reserve avulso ou toda semana no mesmo horário.
+#Maringá #SpaceHour</pre></div>
+  <div class="copy"><div class="copy-h"><span>Link do botão</span><button type="button">Copiar</button></div><pre>https://space-hour.com/profissionais?utm_source=google&amp;utm_medium=post&amp;utm_campaign=lanc-profissionais</pre></div>
+
+  <h4>Post 4 · imagem paisagem-01</h4>
+  <div class="copy"><div class="copy-h"><span>Texto</span><button type="button">Copiar</button></div><pre>Como funciona para quem tem o espaço: 1) Crie seu anúncio grátis com fotos, equipamentos, preço e horários. 2) Receba pedidos de profissionais com registro verificado e aprove (ou ative a reserva instantânea). Se quiser, exija caução e avalista. 3) Receba o pagamento direto na sua conta Mercado Pago.
+#Maringá #SpaceHour</pre></div>
+  <div class="copy"><div class="copy-h"><span>Link do botão</span><button type="button">Copiar</button></div><pre>https://space-hour.com/anuncie?utm_source=google&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes</pre></div>
+
+  <h4>Post 5 · imagem paisagem-02</h4>
+  <div class="copy"><div class="copy-h"><span>Texto</span><button type="button">Copiar</button></div><pre>Recém-formado? Comece a atender sem alugar uma sala inteira. No SpaceHour você reserva consultório ou sala por hora em Maringá, informa seu registro profissional (CRO, CRM, CRP, CREFITO e outros) e o endereço completo é liberado quando a reserva é confirmada.
+#Maringá #SpaceHour</pre></div>
+  <div class="copy"><div class="copy-h"><span>Link do botão</span><button type="button">Copiar</button></div><pre>https://space-hour.com/profissionais?utm_source=google&amp;utm_medium=post&amp;utm_campaign=lanc-profissionais</pre></div>
+</section>
+
+<!-- 6 -->
+<section id="calendario">
+  <h2><span class="n">6</span> Calendário dos primeiros 30 dias</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Dia</th><th>Formato</th><th>Card / ação</th><th>Resumo</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Contas</td><td>Seção 3</td><td>Conta Google, MCC, Google Ads, pagamento, acessos.</td></tr>
+      <tr><td class="num">1</td><td>Medição</td><td>Seção 9</td><td>Conversão "Inscrição", IDs ao Robson, pedido do TXT do Search Console.</td></tr>
+      <tr><td class="num">2</td><td>Anúncios</td><td>Campanhas A e B</td><td>Publicar as duas campanhas de Pesquisa (aprovação leva cerca de 1 dia útil).</td></tr>
+      <tr><td class="num">2</td><td>Perfil</td><td>logo-quadrado, paisagem-03</td><td>Criar o Perfil da Empresa e pedir verificação.</td></tr>
+      <tr><td class="num">3</td><td>Teste</td><td>Tag Assistant</td><td>Conferir tag e conversão depois do Redeploy do Robson.</td></tr>
+      <tr><td class="num">4</td><td>Otimização</td><td>Termos de pesquisa</td><td>Primeira revisão: negativar buscas erradas.</td></tr>
+      <tr><td class="num">5</td><td>Post</td><td>quadrado-03</td><td>Post 1: lançamento em Maringá.</td></tr>
+      <tr><td class="num">7</td><td>Relatório</td><td>Seção 12</td><td>Primeiro relatório de 5 linhas ao Robson.</td></tr>
+      <tr><td class="num">8</td><td>Otimização</td><td>Rotina semanal</td><td>Negativas, pausar palavras ruins, ajustar verba A/B.</td></tr>
+      <tr><td class="num">9</td><td>Post</td><td>quadrado-01</td><td>Post 2: anfitrião anuncia grátis.</td></tr>
+      <tr><td class="num">10</td><td>Fotos</td><td>Espaços reais</td><td>Subir 3 fotos de espaços (com autorização).</td></tr>
+      <tr><td class="num">14</td><td>Relatório</td><td>Seção 12</td><td>Relatório 2. Ver se já há 15+ conversões por campanha.</td></tr>
+      <tr><td class="num">15</td><td>Otimização</td><td>Rotina semanal</td><td>Trocar títulos com desempenho "Baixo".</td></tr>
+      <tr><td class="num">16</td><td>Post</td><td>quadrado-02</td><td>Post 3: profissional paga só as horas.</td></tr>
+      <tr><td class="num">17</td><td>Avaliações</td><td>Link de avaliação</td><td>Pedir avaliação a quem já concluiu reserva.</td></tr>
+      <tr><td class="num">21</td><td>Relatório</td><td>Seção 12</td><td>Relatório 3.</td></tr>
+      <tr><td class="num">22</td><td>Lances</td><td>Seção 8.7</td><td>Se a campanha tiver 15 a 30 conversões, mudar para Maximizar conversões.</td></tr>
+      <tr><td class="num">23</td><td>Post</td><td>paisagem-01</td><td>Post 4: como funciona para anfitriões.</td></tr>
+      <tr><td class="num">28</td><td>Relatório</td><td>Seção 12</td><td>Relatório 4 + balanço do mês (custo por cadastro e por reserva).</td></tr>
+      <tr><td class="num">29</td><td>Planejar</td><td>Seção 8.9</td><td>Decidir com o Robson se liga Performance Max ou Demand Gen.</td></tr>
+      <tr><td class="num">30</td><td>Post</td><td>paisagem-02</td><td>Post 5: recém-formado.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 7 -->
+<section id="videos">
+  <h2><span class="n">7</span> Vídeos</h2>
+  <p>Os anúncios de Pesquisa não usam vídeo. Vídeo só entra na etapa de Performance Max ou Demand Gen (seção 8.9). Os roteiros completos e o canal ficam no <strong>kit do YouTube</strong>.</p>
+  <p>Na hora de criar Performance Max ou Demand Gen, use um vídeo já publicado no canal do SpaceHour no YouTube (cole o link). Se você não colocar nenhum vídeo, o Google pode montar um automaticamente com as imagens, e o resultado costuma ser fraco. Se ainda não houver vídeo, grave este com o celular:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Tempo</th><th>Cena</th><th>Texto na tela</th><th>Fala</th></tr></thead>
+    <tbody>
+      <tr><td class="num">0–3 s</td><td>Consultório vazio, luz acesa, cadeira parada (sem pessoas)</td><td>Seu consultório fica vazio em alguns horários?</td><td>"Seu consultório fica vazio em alguns horários?"</td></tr>
+      <tr><td class="num">3–8 s</td><td>Tela do celular mostrando o site space-hour.com/anuncie</td><td>Anuncie grátis, sem mensalidade</td><td>"No SpaceHour você anuncia grátis e aluga por hora."</td></tr>
+      <tr><td class="num">8–12 s</td><td>Mão rolando a agenda no celular</td><td>Você define preço, horários e regras</td><td>"Você define preço, horários e regras."</td></tr>
+      <tr><td class="num">12–15 s</td><td>Logo SpaceHour (logo-paisagem)</td><td>space-hour.com/anuncie</td><td>"Anuncie grátis no SpaceHour."</td></tr>
+    </tbody>
+  </table></div>
+  <p>Grave na horizontal e na vertical. Nunca mostre paciente nem tela com dados de pessoas.</p>
+</section>
+
+<!-- 8 -->
+<section id="anuncios">
+  <h2><span class="n">8</span> Anúncios (Google Ads)</h2>
+  <p>Estrutura: duas campanhas de <strong>Pesquisa</strong> (texto que aparece quando alguém busca). Mais tarde, uma campanha de imagem (Performance Max ou Demand Gen).</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Campanha</th><th>Público</th><th>URL final</th><th class="num">Verba/dia</th></tr></thead>
+    <tbody>
+      <tr><td>A · Profissionais</td><td>Quem procura sala ou consultório por hora</td><td><code>/profissionais</code></td><td class="num">R$ 15</td></tr>
+      <tr><td>B · Anfitriões</td><td>Quem tem sala e quer alugar horários</td><td><code>/anuncie</code></td><td class="num">R$ 25</td></tr>
+      <tr><td colspan="3"><strong>Total</strong> <span class="tag">sugestão inicial</span></td><td class="num"><strong>R$ 40</strong> (≈ R$ 1.220/mês)</td></tr>
+    </tbody>
+  </table></div>
+  <p>A campanha B recebe mais verba no começo porque precisamos de espaços anunciados primeiro. O Google pode gastar até o dobro da verba diária num dia, mas no mês não passa de cerca de 30,4 × a verba diária.</p>
+
+  <h3>8.1 Antes de começar: lista de negativas compartilhada</h3>
+  <ol class="steps">
+    <li>Menu <strong>Ferramentas</strong> → <strong>Biblioteca compartilhada</strong> → <strong>Listas de palavras-chave negativas</strong> (procure por "negativas" se o menu estiver diferente).</li>
+    <li>+ → Nome: <code>Negativas SpaceHour</code> → cole a lista abaixo → Salvar.</li>
+    <li>Depois de criar as campanhas, aplique a lista às duas (na lista → <strong>Aplicar a campanhas</strong>).</li>
+  </ol>
+  <div class="copy"><div class="copy-h"><span>Palavras-chave negativas (uma por linha)</span><button type="button">Copiar</button></div><pre>emprego
+vaga
+vagas
+estágio
+salário
+concurso
+curso
+faculdade
+comprar
+compra
+venda
+à venda
+vende-se
+usada
+usado
+móveis
+planta
+planta baixa
+projeto
+arquitetura
+decoração
+medidas
+modelo
+pdf
+contrato de locação modelo
+apartamento
+casa
+kitnet
+quitinete
+quarto
+república
+residencial
+consulta
+online
+gratuito
+sus
+convênio
+plano de saúde</pre></div>
+  <p class="note">"curso" está nas negativas. Por isso não existe palavra-chave com "curso" na campanha A. Se um dia anunciar "sala para curso", tire "curso" da lista antes.</p>
+
+  <h3>8.2 Criar cada campanha (passo a passo)</h3>
+  <ol class="steps">
+    <li><strong>+ Nova campanha</strong>. No objetivo, escolha <strong>Leads</strong> (ou "Criar uma campanha sem a orientação de uma meta"). Tipo: <strong>Pesquisa</strong>.</li>
+    <li>Meta de conversão: deixe só <strong>Inscrição</strong> (seção 9.1). Se a conversão ainda não existir, crie-a antes.</li>
+    <li>Nome: <code>A · Profissionais · Maringá</code> ou <code>B · Anfitriões · Maringá</code>.</li>
+    <li>Redes: <strong>desmarque Rede de Display</strong>. Desmarque também <strong>Parceiros de pesquisa</strong> no começo.</li>
+    <li>Locais: <strong>Inserir outro local</strong> → <strong>Pesquisa avançada</strong> → <strong>Raio</strong> → "Maringá, PR" → <strong>30 km</strong> → Salvar.</li>
+    <li>Opções de local: escolha <strong>Presença: pessoas que estão ou costumam estar nos locais segmentados</strong> (não "interesse").</li>
+    <li>Idioma: <strong>Português</strong>.</li>
+    <li>Se aparecer <strong>AI Max</strong>, <strong>correspondência ampla</strong> em toda a campanha, <strong>expansão do URL final</strong> ou <strong>recursos criados automaticamente</strong>: deixe <strong>desligado</strong> no começo, para o Google mostrar só os textos aprovados aqui.</li>
+    <li>Lances e orçamento: seção 8.7.</li>
+    <li>Grupo de anúncios: um por campanha, nome <code>Geral</code>. Cole as palavras-chave da 8.4 ou 8.5 <strong>com as aspas</strong> (aspas = correspondência de frase).</li>
+    <li>Anúncio: <strong>Anúncio responsivo de pesquisa</strong>. URL final com UTM (abaixo), caminhos de exibição, 15 títulos e 4 descrições.</li>
+    <li>Recursos (sitelinks, frases de destaque, snippets): seção 8.6.</li>
+    <li>Publicar. A aprovação costuma levar cerca de 1 dia útil.</li>
+  </ol>
+
+  <h3>8.3 URLs finais com UTM</h3>
+  <div class="copy"><div class="copy-h"><span>Campanha A · Profissionais</span><button type="button">Copiar</button></div><pre>https://space-hour.com/profissionais?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lanc-profissionais</pre></div>
+  <div class="copy"><div class="copy-h"><span>Campanha B · Anfitriões</span><button type="button">Copiar</button></div><pre>https://space-hour.com/anuncie?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lanc-anfitrioes</pre></div>
+  <p>Caminhos de exibição (até 15 caracteres cada): campanha A <code>consultorio</code> / <code>por-hora</code>; campanha B <code>anuncie</code> / <code>gratis</code>.</p>
+
+  <h3>8.4 Campanha A · Profissionais</h3>
+  <div class="copy"><div class="copy-h"><span>Palavras-chave (correspondência de frase)</span><button type="button">Copiar</button></div><pre>"aluguel de consultório por hora"
+"alugar consultório por hora"
+"consultório por hora"
+"consultório por hora maringá"
+"consultório para alugar maringá"
+"aluguel de consultório maringá"
+"sala por hora para psicólogo"
+"sala para psicólogo maringá"
+"sala para atendimento por hora"
+"sala de atendimento por hora"
+"aluguel de sala para atendimento"
+"sublocação de consultório"
+"consultório compartilhado"
+"consultório compartilhado maringá"
+"coworking para psicólogos"
+"coworking médico"
+"coworking saúde"
+"alugar sala odontológica"
+"aluguel de consultório odontológico"
+"cadeira odontológica aluguel por hora"
+"sala para fisioterapia aluguel"
+"sala de estética para alugar"
+"aluguel de sala para estética"
+"sala de aula para alugar por hora"
+"auditório para alugar"
+"alugar auditório maringá"
+"sala de reunião por hora"
+"aluguel de sala de reunião"</pre></div>
+
+  <div class="copy"><div class="copy-h"><span>15 títulos (até 30 caracteres)</span><small data-count></small><button type="button">Copiar</button></div><pre data-max="30">Alugue Consultório por Hora
+Consultório Pronto por Hora
+Sala para Psicólogo por Hora
+Sala Odontológica por Hora
+Sala de Fisioterapia por Hora
+Salas de Aula e Auditórios
+Sem Contrato e Sem Fiador
+Sem Condomínio para Pagar
+Pague Só as Horas que Usar
+Reserve com Pix ou Cartão
+Avulso ou Toda Semana
+Espaços Prontos em Maringá
+Veja Fotos e Avaliações
+Cadastro Grátis no SpaceHour
+SpaceHour Maringá</pre></div>
+
+  <div class="copy"><div class="copy-h"><span>4 descrições (até 90 caracteres)</span><small data-count></small><button type="button">Copiar</button></div><pre data-max="90">Consultórios, salas de psicologia, fisioterapia e aula por hora. Reserve online com Pix.
+Sem contrato, sem condomínio e sem fiador. Pague só pelas horas que usar. Cadastro grátis.
+Veja fotos, equipamentos e avaliações. Endereço liberado quando a reserva é confirmada.
+Espaços prontos para atender seus pacientes e clientes, avulso ou toda semana.</pre></div>
+
+  <h3>8.5 Campanha B · Anfitriões</h3>
+  <div class="copy"><div class="copy-h"><span>Palavras-chave (correspondência de frase)</span><button type="button">Copiar</button></div><pre>"alugar meu consultório"
+"alugar meu consultório por hora"
+"alugar horário do consultório"
+"alugar consultório ocioso"
+"sublocar consultório"
+"sublocar consultório odontológico"
+"como sublocar consultório"
+"sublocar sala"
+"sublocação de sala comercial"
+"como alugar meu consultório"
+"anunciar consultório para aluguel"
+"anunciar sala para alugar"
+"alugar minha sala"
+"renda extra consultório"
+"consultório vazio"
+"dividir consultório"
+"compartilhar consultório"
+"alugar sala comercial por hora"</pre></div>
+  <p>"dividir consultório" e "compartilhar consultório" também atraem quem procura sala (público A). Acompanhe nos termos de pesquisa (8.8) e negative o que for de profissional procurando sala.</p>
+
+  <div class="copy"><div class="copy-h"><span>15 títulos (até 30 caracteres)</span><small data-count></small><button type="button">Copiar</button></div><pre data-max="30">Alugue Seu Consultório Vago
+Alugue Sua Sala por Hora
+Anuncie Seu Consultório Grátis
+Horário Vago Pode Virar Renda
+Renda Extra no Seu Consultório
+Anuncie Grátis
+Sem Mensalidade
+Você Define Preço e Horário
+Aprove Cada Pedido de Reserva
+Profissionais Verificados
+Exija Caução e Avalista
+Receba via Mercado Pago
+Dinheiro Direto na Sua Conta
+Tem Sala Ociosa em Maringá?
+SpaceHour Maringá</pre></div>
+
+  <div class="copy"><div class="copy-h"><span>4 descrições (até 90 caracteres)</span><small data-count></small><button type="button">Copiar</button></div><pre data-max="90">Alugue por hora os horários vagos da sua sala a profissionais com registro verificado.
+Anunciar é grátis, sem mensalidade. Taxa de 5% por reserva + tarifa do Mercado Pago.
+Você define preço, dias, horários e regras. Aceite na hora ou aprove cada pedido.
+Exija caução e avalista se quiser. Receba direto na sua conta Mercado Pago.</pre></div>
+  <p>Fixar títulos: não fixe nada no começo. O Google combina os 15 títulos sozinho e mostra quais funcionam melhor.</p>
+
+  <h3>8.6 Recursos: sitelinks, frases de destaque, snippets</h3>
+  <p>Adicione no nível da <strong>campanha</strong> (menu <strong>Recursos</strong> ou "Anúncios e recursos" → <strong>+</strong>). Cada sitelink tem texto (até 25), duas linhas de descrição (até 35 cada) e um URL diferente.</p>
+
+  <h4>Sitelinks · Campanha A</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>Texto</th><th>Descrição 1</th><th>Descrição 2</th><th>URL final</th></tr></thead>
+    <tbody>
+      <tr><td>Cadastro Grátis</td><td>Cadastre-se sem pagar nada</td><td>Sem contrato e sem fiador</td><td><code>https://space-hour.com/profissionais?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lanc-profissionais</code></td></tr>
+      <tr><td>Conheça o SpaceHour</td><td>Espaços prontos por hora</td><td>Consultórios, salas e auditórios</td><td><code>https://space-hour.com/conheca?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lanc-profissionais</code></td></tr>
+      <tr><td>Tem Sala? Anuncie Grátis</td><td>Alugue seus horários vagos</td><td>Sem mensalidade</td><td><code>https://space-hour.com/anuncie?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lanc-profissionais</code></td></tr>
+      <tr><td>Visite o SpaceHour</td><td>Reserve com Pix ou cartão</td><td>Avulso ou toda semana</td><td><code>https://space-hour.com/?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lanc-profissionais</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Sitelinks · Campanha B</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>Texto</th><th>Descrição 1</th><th>Descrição 2</th><th>URL final</th></tr></thead>
+    <tbody>
+      <tr><td>Anuncie Grátis</td><td>Sem mensalidade</td><td>Você define preço e horários</td><td><code>https://space-hour.com/anuncie?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lanc-anfitrioes</code></td></tr>
+      <tr><td>Como Funciona</td><td>Anuncie, aprove e receba</td><td>Profissionais verificados</td><td><code>https://space-hour.com/conheca?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lanc-anfitrioes</code></td></tr>
+      <tr><td>Para Profissionais</td><td>Alugue sala por hora</td><td>Cadastro grátis</td><td><code>https://space-hour.com/profissionais?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lanc-anfitrioes</code></td></tr>
+      <tr><td>Visite o SpaceHour</td><td>Receba via Mercado Pago</td><td>Caução e avalista opcionais</td><td><code>https://space-hour.com/?utm_source=google&amp;utm_medium=cpc&amp;utm_campaign=lanc-anfitrioes</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>Se o Google recusar um sitelink por "destino repetido", apague só esse; dois ou três sitelinks já bastam para aparecer.</p>
+
+  <div class="grid2">
+    <div class="copy"><div class="copy-h"><span>Frases de destaque · A (até 25)</span><small data-count></small><button type="button">Copiar</button></div><pre data-max="25">Cadastro grátis
+Sem contrato
+Sem fiador
+Sem condomínio
+Pix, cartão ou boleto
+Registro verificado
+Avulso ou toda semana</pre></div>
+    <div class="copy"><div class="copy-h"><span>Frases de destaque · B (até 25)</span><small data-count></small><button type="button">Copiar</button></div><pre data-max="25">Anunciar é grátis
+Sem mensalidade
+Você define o preço
+Reserva instantânea
+Caução opcional
+Receba no Mercado Pago
+Profissionais verificados</pre></div>
+  </div>
+  <div class="copy"><div class="copy-h"><span>Snippet estruturado · cabeçalho "Tipos" (A e B, até 25 cada)</span><small data-count></small><button type="button">Copiar</button></div><pre data-max="25">Consultório odontológico
+Consultório médico
+Sala de psicologia
+Sala de fisioterapia
+Sala de estética
+Sala de aula
+Auditório
+Sala de reunião</pre></div>
+  <p>No snippet, escolha o cabeçalho <strong>Tipos</strong> e cole um valor por campo (mínimo 3).</p>
+
+  <h3>8.7 Lances e orçamento</h3>
+  <ol class="steps">
+    <li><strong>Começo:</strong> estratégia <strong>Maximizar cliques</strong>, com <strong>Limite de lance de CPC máximo</strong> de <strong>R$ 3,00</strong> <span class="tag">sugestão inicial</span>. O limite evita pagar caro por clique enquanto a conta não tem dados.</li>
+    <li>Orçamento diário: A = R$ 15, B = R$ 25 <span class="tag">sugestão inicial</span>.</li>
+    <li><strong>Quando a campanha tiver de 15 a 30 conversões "Inscrição" nos últimos 30 dias</strong>, mude para <strong>Maximizar conversões</strong> (Configurações → Lances → Alterar estratégia). Não defina CPA desejado no início.</li>
+    <li>Depois da troca, o Google fica em "aprendizado" por 1 a 2 semanas. Nesse período, não mexa em lance, verba ou palavras-chave, exceto para negativar buscas erradas.</li>
+    <li>Só pense em <strong>CPA desejado</strong> depois de 30+ conversões por mês e com o Robson.</li>
+  </ol>
+
+  <h3>8.8 Rotina semanal de otimização (toda segunda, 30 min)</h3>
+  <ol class="steps">
+    <li><strong>Termos de pesquisa:</strong> em cada campanha, abra <strong>Palavras-chave → Termos de pesquisa</strong> (pode estar em "Insights e relatórios"). Ordene por custo.</li>
+    <li>Para cada busca que não tem a ver (emprego, compra de móvel, consulta médica, imóvel residencial, outra cidade): marque a caixa → <strong>Adicionar como palavra-chave negativa</strong> → escolha a lista <code>Negativas SpaceHour</code>.</li>
+    <li>Busca boa que ainda não é palavra-chave e trouxe clique ou conversão: adicione como palavra-chave entre aspas.</li>
+    <li><strong>Pausar palavra-chave</strong> <span class="tag">sugestão inicial</span>: gastou R$ 60 ou mais sem nenhuma conversão, ou CTR abaixo de 1% depois de 500 impressões.</li>
+    <li>Títulos e descrições: no anúncio, veja <strong>Detalhes do recurso</strong>. Troque os marcados como "Baixo" por outra frase do kit (sempre dentro do limite e dos fatos).</li>
+    <li>Verba: compare o custo por cadastro de A e B em Admin → Campanha. Enquanto houver poucos espaços anunciados em Maringá, mantenha B com mais verba.</li>
+    <li><strong>Recomendações:</strong> não clique em "Aplicar tudo". Desligue <strong>Aplicar automaticamente</strong> (procure em Recomendações → "Aplicar automaticamente").</li>
+    <li><strong>Políticas:</strong> veja se algum anúncio ou recurso ficou "Reprovado" ou "Qualificado (limitado)" e corrija.</li>
+  </ol>
+
+  <h3>8.9 Etapa 2: Performance Max ou Demand Gen</h3>
+  <p><strong>Quando:</strong> depois que as campanhas de Pesquisa já trazem conversões (ideal: 30+ inscrições por mês na conta) e o Robson aprovar verba extra de R$ 20 a R$ 30 por dia <span class="tag">sugestão inicial</span>.</p>
+  <ul class="plain">
+    <li><strong>Performance Max:</strong> aparece em Pesquisa, YouTube, Display, Discover, Gmail e Maps. Precisa de dados de conversão para funcionar bem.</li>
+    <li><strong>Demand Gen:</strong> aparece no YouTube, Discover e Gmail. Bom para mostrar a ideia a anfitriões que ainda não procuram por isso.</li>
+  </ul>
+  <p><strong>Recomendação:</strong> comece por <strong>Demand Gen para anfitriões</strong> se o objetivo for ganhar espaços; use <strong>Performance Max</strong> quando a conta tiver muitas conversões.</p>
+  <ol class="steps">
+    <li>Nova campanha → Leads → tipo <strong>Performance Max</strong> ou <strong>Demand Gen</strong>. Conversão: <strong>Inscrição</strong>.</li>
+    <li>Local Maringá + 30 km (Presença), idioma português, mesma lista de negativas (quando o tipo permitir).</li>
+    <li>Performance Max: desligue <strong>Expansão do URL final</strong> para o Google não mandar gente a páginas aleatórias.</li>
+    <li>URL final: link da campanha B (anfitriões). Se fizer uma para profissionais, link da campanha A.</li>
+    <li>Imagens: <code>google-ads/paisagem-01..03.png</code> (1200×628), <code>google-ads/quadrado-01..03.png</code> (1200×1200). Para a de anfitriões, coloque primeiro paisagem-01 e quadrado-01.</li>
+    <li>Logos: <code>google-ads/logo-quadrado.png</code> e <code>google-ads/logo-paisagem.png</code>. Nome da empresa: <code>SpaceHour</code>.</li>
+    <li>Vídeo: link de um vídeo do canal do SpaceHour no YouTube (seção 7).</li>
+    <li>Títulos curtos: os 15 da campanha correspondente. Títulos longos e descrição curta: abaixo.</li>
+    <li>Sinal de público (Performance Max): crie um <strong>segmento personalizado</strong> com as palavras-chave da 8.5 (ou 8.4).</li>
+    <li>Lances: Maximizar conversões.</li>
+  </ol>
+  <div class="copy"><div class="copy-h"><span>Títulos longos · anfitriões (até 90)</span><small data-count></small><button type="button">Copiar</button></div><pre data-max="90">Seu consultório vago vira renda: anuncie grátis no SpaceHour, sem mensalidade
+Alugue por hora os horários vagos da sua sala para profissionais com registro verificado
+Você define preço, horários e regras. Receba direto na sua conta Mercado Pago</pre></div>
+  <div class="copy"><div class="copy-h"><span>Títulos longos · profissionais (até 90)</span><small data-count></small><button type="button">Copiar</button></div><pre data-max="90">Consultório pronto por hora em Maringá. Cadastro grátis, sem contrato e sem fiador
+Salas de psicologia, fisioterapia, estética e consultórios por hora. Pague só o que usar
+Espaços profissionais por hora em Maringá: avulso ou toda semana no mesmo horário</pre></div>
+  <div class="copy"><div class="copy-h"><span>Descrição curta (até 60) · anfitriões / profissionais</span><small data-count></small><button type="button">Copiar</button></div><pre data-max="60">Anuncie grátis, sem mensalidade. Você define o preço.
+Consultório pronto por hora. Cadastro grátis.</pre></div>
+  <p>Descrições longas (até 90): use as 4 da campanha correspondente (8.4 ou 8.5).</p>
+
+  <h3>8.10 Como pagar os anúncios</h3>
+  <p>Pelo perfil de pagamento do Instituto Ravel (seção 3.4). Com Pix ou boleto, confira o saldo toda segunda; se ficar abaixo de 7 dias de verba, avise o Robson. A nota fiscal vem no CNPJ do Instituto; baixe em Faturamento → Documentos e envie ao Robson todo mês.</p>
+</section>
+
+<!-- 9 -->
+<section id="medicao">
+  <h2><span class="n">9</span> Tag, conversão e medição</h2>
+  <p>O site já tem o código pronto. Ele só precisa receber os IDs. Você cria as coisas no Google e entrega os IDs ao Robson, que os coloca na Vercel e faz o Redeploy.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Evento do site</th><th>Quando acontece</th><th>Nome que chega no Google</th></tr></thead>
+    <tbody>
+      <tr><td>PageView</td><td>Cada página aberta</td><td><code>page_view</code></td></tr>
+      <tr><td>Lead</td><td>Clique nos botões das landings</td><td><code>generate_lead</code></td></tr>
+      <tr><td>CompleteRegistration</td><td>Cadastro concluído</td><td><code>sign_up</code> + conversão do Google Ads "Inscrição"</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">Tudo isso só carrega <strong>depois que a pessoa aceita os cookies</strong> no aviso do site (LGPD). Quem recusa não é contado. Por isso os números do Google Ads sempre ficam um pouco abaixo dos de Admin → Campanha.</div>
+
+  <h3>9.1 Conversão "Inscrição" e Google tag</h3>
+  <ol class="steps">
+    <li>Google Ads → <strong>Metas</strong> → <strong>Conversões</strong> → <strong>Resumo</strong> → <strong>+ Criar ação de conversão</strong>.</li>
+    <li>Escolha <strong>Site</strong> e digite <code>space-hour.com</code> → Verificar.</li>
+    <li>O Google pode sugerir eventos automáticos. Ignore e procure <strong>Adicionar uma ação de conversão manualmente</strong>.</li>
+    <li>Categoria: <strong>Inscrição</strong> (em inglês, "Sign-up"). Nome: <code>Inscrição</code>.</li>
+    <li>Valor: <strong>Não usar um valor</strong>. Contagem: <strong>Uma</strong> (uma inscrição por clique). Janela: deixe o padrão.</li>
+    <li>Ação <strong>principal</strong> (usada para lances). Concluir.</li>
+    <li>Na tela de instalação, escolha <strong>Usar o Google tag</strong> → <strong>Instalar manualmente</strong> (não escolha Gerenciador de Tags).</li>
+    <li>Copie dois valores da tela:
+      <ul>
+        <li>o <strong>ID da tag</strong>, que começa com <code>AW-</code> (ex.: <code>AW-123456789</code>);</li>
+        <li>no "snippet de evento", o valor de <code>send_to</code>, no formato <code>AW-123456789/AbCdEfGh...</code>. Isso é o rótulo completo.</li>
+      </ul>
+    </li>
+  </ol>
+  <h4>Entregar ao Robson</h4>
+  <div class="copy"><div class="copy-h"><span>Mensagem para o Robson</span><button type="button">Copiar</button></div><pre>Robson, IDs do Google Ads para a Vercel (projeto spacehour → Settings → Environment Variables, ambiente Production, sem marcar "Sensitive"):
+
+VITE_GOOGLE_TAG_ID = AW-XXXXXXXXX
+VITE_GOOGLE_ADS_SIGNUP_LABEL = AW-XXXXXXXXX/XXXXXXXXXXXX
+
+Depois, por favor, faça um Redeploy e me avise para eu testar.</pre></div>
+  <p>Troque os X pelos valores reais. Quem mexe na Vercel é só o Robson.</p>
+
+  <h3>9.2 Testar</h3>
+  <ol class="steps">
+    <li>Depois do aviso do Robson, abra <a href="https://tagassistant.google.com" target="_blank" rel="noopener">tagassistant.google.com</a> → <strong>Adicionar domínio</strong> → <code>https://space-hour.com/profissionais</code> → Conectar.</li>
+    <li>Na aba do site que abrir, <strong>aceite os cookies</strong>. Sem isso, nada aparece.</li>
+    <li>No Tag Assistant deve aparecer a tag <code>AW-...</code> com o evento de página.</li>
+    <li>Clique no botão de cadastro: deve aparecer <code>generate_lead</code>.</li>
+    <li>Para ver a conversão, faça um cadastro de teste até o fim (com um e-mail seu de teste, avise o Robson para excluir depois). Deve aparecer <code>sign_up</code> e <code>conversion</code>.</li>
+    <li>No Google Ads, em Metas → Conversões, o status da "Inscrição" muda em até 24 h de "Não verificada" para "Nenhuma conversão recente" ou "Registrando conversões". Os nomes do status podem variar.</li>
+  </ol>
+
+  <h3>9.3 GA4 (opcional)</h3>
+  <p>O Google Analytics 4 mostra o caminho das pessoas no site. Não é obrigatório para os anúncios funcionarem. O site tem <strong>uma</strong> variável de tag (<code>VITE_GOOGLE_TAG_ID</code>), que fica com o <code>AW-</code>. Para o GA4 receber os dados também, ligamos os dois pela Google tag.</p>
+  <ol class="steps">
+    <li><a href="https://analytics.google.com" target="_blank" rel="noopener">analytics.google.com</a> → Administrador → <strong>Criar</strong> → <strong>Conta</strong>: <code>SpaceHour</code>. Propriedade: <code>space-hour.com</code>, fuso Brasil (São Paulo), moeda Real.</li>
+    <li>Plataforma <strong>Web</strong> → URL <code>space-hour.com</code> → nome do fluxo <code>Site SpaceHour</code>. Copie o <strong>ID da métrica</strong> <code>G-XXXXXXX</code>.</li>
+    <li>Para o GA4 receber os eventos usando a mesma tag do site: abra as configurações da Google tag <code>AW-...</code> (no Google Ads, Ferramentas → <strong>Gerenciador de dados</strong> ou "Google tag"; procure <strong>Gerenciar Google tag</strong>) e procure a opção de <strong>adicionar destino</strong> ou <strong>combinar</strong> com o <code>G-</code>. Se não achar, entregue o <code>G-</code> ao Robson e ele decide como ligar.</li>
+    <li>No GA4: Administrador → <strong>Eventos</strong> → marque <code>sign_up</code> e <code>generate_lead</code> como <strong>evento principal</strong> (antes chamado "conversão").</li>
+    <li>Dê acesso de Administrador ao Robson (seção 3.5).</li>
+  </ol>
+
+  <h3>9.4 Vincular GA4 e Google Ads</h3>
+  <ol class="steps">
+    <li>No GA4: Administrador → <strong>Vinculações de produtos</strong> → <strong>Vinculações do Google Ads</strong> → Vincular → escolha a conta <code>SpaceHour Ads</code> (não a da DentalPOS) → ative publicidade personalizada → Enviar.</li>
+    <li>No Google Ads, se aparecer a sugestão de importar eventos do GA4 como conversões, importe <code>sign_up</code> como <strong>secundária</strong>. A principal continua sendo a "Inscrição" do Google Ads. Duas principais contariam o mesmo cadastro em dobro.</li>
+  </ol>
+
+  <h3>9.5 Google Search Console (busca orgânica)</h3>
+  <p>Mostra por quais buscas gratuitas as pessoas chegam ao site e avisa sobre erros.</p>
+  <ol class="steps">
+    <li><a href="https://search.google.com/search-console" target="_blank" rel="noopener">search.google.com/search-console</a> → <strong>Adicionar propriedade</strong> → tipo <strong>Domínio</strong> → <code>space-hour.com</code>.</li>
+    <li>O Google mostra um registro TXT (<code>google-site-verification=...</code>). Copie e envie ao Robson com a mensagem abaixo.</li>
+    <li>Depois que o Robson confirmar, clique <strong>Verificar</strong>. Se falhar, espere algumas horas (o DNS demora) e tente de novo.</li>
+    <li>Em <strong>Sitemaps</strong>, pergunte ao Robson se existe <code>space-hour.com/sitemap.xml</code>; se existir, envie.</li>
+    <li>Em Configurações → Associações, ligue ao GA4 (se criou) e ao Google Ads.</li>
+  </ol>
+  <div class="copy"><div class="copy-h"><span>Mensagem para o Robson (DNS)</span><button type="button">Copiar</button></div><pre>Robson, para verificar o space-hour.com no Google Search Console, crie no DNS da GoDaddy (Domínio → DNS → Adicionar registro):
+
+Tipo: TXT
+Nome/Host: @
+Valor: google-site-verification=COLE_AQUI
+TTL: padrão
+
+Não apague outros TXT que já existem (Meta, e-mail etc.). Me avise quando salvar.</pre></div>
+
+  <h3>9.6 UTMs</h3>
+  <p>Toda URL deste kit já tem UTM. Em Admin → Campanha os cadastros aparecem por <code>utm_source</code>/<code>utm_campaign</code>:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Origem</th><th>utm_source</th><th>utm_medium</th><th>utm_campaign</th></tr></thead>
+    <tbody>
+      <tr><td>Anúncio A</td><td>google</td><td>cpc</td><td>lanc-profissionais</td></tr>
+      <tr><td>Anúncio B</td><td>google</td><td>cpc</td><td>lanc-anfitrioes</td></tr>
+      <tr><td>Site do Perfil da Empresa</td><td>google</td><td>bio</td><td>lanc-geral</td></tr>
+      <tr><td>Posts do Perfil</td><td>google</td><td>post</td><td>conforme o post</td></tr>
+    </tbody>
+  </table></div>
+  <p>Deixe a <strong>marcação automática</strong> do Google Ads ligada (Administrador → Configurações da conta). Ela funciona junto com as UTMs.</p>
+</section>
+
+<!-- 10 -->
+<section id="crm">
+  <h2><span class="n">10</span> CRM e atendimento</h2>
+  <h3>10.1 De onde chegam contatos pelo Google</h3>
+  <ul class="plain">
+    <li><strong>Ligações</strong> do Perfil da Empresa (se houver telefone) e de anúncios com recurso de ligação.</li>
+    <li><strong>E-mails</strong> em <code>support@space-hour.com</code> vindos do perfil ou do site.</li>
+    <li><strong>Formulário de lead</strong> do Google Ads (opcional, só se o Robson aprovar): recurso "Formulário de lead" na campanha, exige o link da política de privacidade do site (peça ao Robson). Baixe os leads todo dia em Recursos → Formulário de lead → baixar; o Google guarda por pouco tempo.</li>
+    <li><strong>Avaliações</strong> e, se o perfil mostrar, <strong>perguntas e respostas</strong>. O chat do perfil foi desativado pelo Google em 2024.</li>
+  </ul>
+
+  <h3>10.2 Rotina diária</h3>
+  <ol class="steps">
+    <li>9h, 13h e 17h: veja e-mail, chamadas perdidas, avaliações e leads de formulário.</li>
+    <li>Responda em até <strong>1 hora</strong> no horário comercial.</li>
+    <li>Registre todo contato na planilha (10.4) no mesmo momento.</li>
+    <li>Fim do dia: confira em <strong>Admin → Contatos</strong> (no site) quem da planilha já se cadastrou e atualize o status.</li>
+  </ol>
+
+  <h3>10.3 Mensagens prontas</h3>
+  <p>Salve como <strong>modelos no Gmail</strong> (Configurações → Ver todas → Avançado → ativar Modelos; depois, ao escrever, menu de três pontos → Modelos → Salvar rascunho como modelo).</p>
+  <div class="copy"><div class="copy-h"><span>Anfitrião interessado</span><button type="button">Copiar</button></div><pre>Olá! Obrigado pelo contato. No SpaceHour você anuncia seu espaço grátis, sem mensalidade, e aluga por hora os horários vagos para profissionais com registro verificado. Você define preço, horários e regras e escolhe se aprova cada pedido ou libera reserva instantânea. O pagamento cai direto na sua conta Mercado Pago. A taxa é de 5% por reserva paga + tarifa do Mercado Pago.
+Para começar: https://space-hour.com/anuncie?utm_source=google&amp;utm_medium=bio&amp;utm_campaign=lanc-anfitrioes
+Posso te ajudar a montar o anúncio?</pre></div>
+  <div class="copy"><div class="copy-h"><span>Profissional procurando sala</span><button type="button">Copiar</button></div><pre>Olá! Obrigado pelo contato. No SpaceHour você reserva consultórios e salas prontas por hora em Maringá. O cadastro é grátis, sem contrato, sem fiador e sem condomínio: você paga só as horas que usar, com Pix, cartão ou boleto. Pode reservar avulso ou toda semana no mesmo horário.
+Cadastre-se aqui: https://space-hour.com/profissionais?utm_source=google&amp;utm_medium=bio&amp;utm_campaign=lanc-profissionais
+Que tipo de espaço você procura?</pre></div>
+  <div class="copy"><div class="copy-h"><span>Dúvida de preço</span><button type="button">Copiar</button></div><pre>Ótima pergunta! O preço da hora é definido por cada anfitrião e aparece no anúncio do espaço.
+Para quem aluga: há uma taxa de serviço de 15% + ISS sobre a taxa. O pagamento é por Pix (até 30 min), cartão (até 24 h) ou boleto (só para reservas com 3 ou mais dias de antecedência).
+Para quem anuncia: anunciar é grátis, sem mensalidade. A taxa é de 5% por reserva paga + tarifa do Mercado Pago.</pre></div>
+  <div class="copy"><div class="copy-h"><span>Dúvida de segurança</span><button type="button">Copiar</button></div><pre>Segurança é prioridade. O profissional informa o registro do conselho (CRO, CRM, CRP, CREFITO etc.), que é verificado. O endereço completo só é liberado depois da reserva confirmada. O anfitrião pode aprovar cada pedido, exigir caução e avalista, e há avaliações depois de cada uso. O pagamento passa pelo Mercado Pago.</pre></div>
+  <div class="copy"><div class="copy-h"><span>Pedido de avaliação (após a primeira reserva concluída)</span><button type="button">Copiar</button></div><pre>Olá! Que bom ter você no SpaceHour. Se puder, conte em poucas palavras como foi sua experiência no nosso perfil do Google. Sua opinião ajuda outros profissionais de Maringá: COLE_AQUI_O_LINK_DE_AVALIAÇÃO
+Obrigado!</pre></div>
+  <div class="copy"><div class="copy-h"><span>Resposta a avaliação positiva</span><button type="button">Copiar</button></div><pre>Muito obrigado pela avaliação! Ficamos felizes que o SpaceHour ajudou. Conte com a gente nas próximas reservas.</pre></div>
+  <div class="copy"><div class="copy-h"><span>Resposta a avaliação negativa</span><button type="button">Copiar</button></div><pre>Sentimos muito pela experiência. Queremos entender o que aconteceu e resolver. Por favor, escreva para support@space-hour.com com o nome usado no cadastro para darmos retorno o quanto antes.</pre></div>
+  <p>Nunca escreva dados de reserva, nome de paciente ou valores pessoais na resposta pública.</p>
+
+  <h3>10.4 Planilha CRM</h3>
+  <p>Crie uma planilha Google (no Drive de <code>support@space-hour.com</code>) com estas colunas na linha 1:</p>
+  <div class="copy"><div class="copy-h"><span>Cabeçalho (cole na célula A1)</span><button type="button">Copiar</button></div><pre>Data	Nome	Contato	Rede	Tipo	Cidade	Status	Próximo passo	Data do próximo contato</pre></div>
+  <ul class="plain">
+    <li><strong>Rede:</strong> <code>Google Ads</code>, <code>Google Perfil</code>, <code>Google orgânico</code>.</li>
+    <li><strong>Tipo:</strong> <code>anfitrião</code> ou <code>profissional</code>.</li>
+    <li><strong>Status</strong> (use lista suspensa: Dados → Validação de dados): <code>novo</code>, <code>conversando</code>, <code>cadastrou</code>, <code>publicou espaço</code>, <code>reservou</code>, <code>perdido</code>.</li>
+    <li>Filtre todo dia por "Data do próximo contato" = hoje.</li>
+    <li>Prefere um CRM? Use o <strong>RD Station CRM</strong> grátis ou o <strong>HubSpot CRM</strong> grátis com as mesmas etapas. Se o contato for para o WhatsApp Business, use etiquetas com os mesmos nomes de status.</li>
+    <li><strong>Cruzar com o site:</strong> em Admin → Contatos, busque pelo e-mail. Se o contato aparece, mude para "cadastrou". Respeite quem pediu para não receber marketing: não mande mensagens de divulgação a essas pessoas.</li>
+  </ul>
+
+  <h3>10.5 Automação</h3>
+  <ul class="plain">
+    <li>O site já envia sozinho: confirmação de cadastro (código de 6 dígitos), lembrete de confirmar e-mail, lembrete de reserva abandonada (1 h e 24 h), pagamento recebido e reserva confirmada. Não repita essas mensagens à mão.</li>
+    <li>Gmail: modelos (10.3) e um filtro que marca com o rótulo "Lead Google" os e-mails que chegam do site ou do perfil.</li>
+    <li>Perfil da Empresa: não há resposta automática; responda em até 1 h.</li>
+  </ul>
+</section>
+
+<!-- 11 -->
+<section id="monetizacao">
+  <h2><span class="n">11</span> Monetização</h2>
+  <h3>11.1 Como o Google vira receita para o SpaceHour</h3>
+  <p>O SpaceHour ganha quando uma reserva é paga (5% do anfitrião e taxa de serviço do profissional). O Google Ads é a torneira: cada real gasto deve trazer cadastros, que viram espaços anunciados e reservas.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Etapa</th><th>Onde ver</th><th>Conta</th></tr></thead>
+    <tbody>
+      <tr><td>Clique</td><td>Google Ads</td><td>Custo por clique (CPC)</td></tr>
+      <tr><td>Cadastro</td><td>Google Ads (Inscrição) e Admin → Campanha</td><td><strong>Custo por cadastro</strong> = gasto ÷ cadastros com utm_source=google</td></tr>
+      <tr><td>Anfitrião publicou espaço</td><td>Admin → Campanha</td><td>Custo por espaço publicado = gasto da campanha B ÷ espaços publicados</td></tr>
+      <tr><td>Reserva paga</td><td>Admin (reservas) + planilha CRM</td><td><strong>Custo por reserva</strong> = gasto ÷ reservas de quem veio do Google</td></tr>
+    </tbody>
+  </table></div>
+  <p>Use o número do <strong>Admin → Campanha</strong> como verdade; o Google Ads perde quem recusou cookies. Se o custo por reserva ficar maior do que o SpaceHour recebe nas primeiras reservas desse cliente, avise o Robson antes de aumentar a verba.</p>
+
+  <h3>11.2 Ganhos com o próprio perfil</h3>
+  <ul class="plain">
+    <li><strong>Perfil da Empresa:</strong> não tem programa de monetização.</li>
+    <li><strong>Google AdSense no site: não recomendado.</strong> Ele colocaria anúncios de terceiros no space-hour.com, inclusive de concorrentes (coworkings, imobiliárias), tirando a atenção do cadastro. Com o tráfego atual pagaria centavos, deixaria o site mais lento e exigiria outro consentimento de cookies (LGPD). Um único cadastro vale mais do que meses de AdSense.</li>
+    <li><strong>YouTube:</strong> a monetização do canal (Programa de Parcerias do YouTube) está no <strong>kit do YouTube</strong>.</li>
+  </ul>
+
+  <h3>11.3 Parcerias pagas</h3>
+  <p>Parcerias com clínicas, dentais e marcas de saúde (conteúdo patrocinado, publi) acontecem nas redes sociais e no YouTube, sempre marcadas como "parceria paga" ou "publicidade". No Perfil da Empresa do Google <strong>não</strong> publique conteúdo pago de terceiros e nunca aceite ou ofereça pagamento por avaliações.</p>
+</section>
+
+<!-- 12 -->
+<section id="metricas">
+  <h2><span class="n">12</span> Métricas e relatório semanal</h2>
+  <p>Toda segunda, anote numa aba "Semanal" da planilha:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Onde</th><th>O que anotar</th></tr></thead>
+    <tbody>
+      <tr><td>Google Ads (por campanha, últimos 7 dias)</td><td>Gasto, impressões, cliques, CTR, CPC médio, conversões "Inscrição", custo por conversão</td></tr>
+      <tr><td>Admin → Campanha</td><td>Cadastros com utm_source=google por campanha (lanc-anfitrioes, lanc-profissionais, lanc-geral), e-mails confirmados, anfitriões com anúncio</td></tr>
+      <tr><td>Perfil da Empresa → Desempenho</td><td>Visualizações, buscas, cliques no site, ligações, nº de avaliações e nota média</td></tr>
+      <tr><td>Search Console</td><td>Cliques e impressões orgânicas da semana</td></tr>
+      <tr><td>Planilha CRM</td><td>Leads novos, quantos cadastraram, publicaram espaço, reservaram</td></tr>
+    </tbody>
+  </table></div>
+  <div class="copy"><div class="copy-h"><span>Relatório de 5 linhas para o Robson</span><button type="button">Copiar</button></div><pre>Google – semana de __/__ a __/__
+1. Gasto: R$ ___ (A profissionais R$ ___ | B anfitriões R$ ___)
+2. Cadastros Google (Admin → Campanha): ___ anfitriões, ___ profissionais | custo por cadastro R$ ___
+3. Espaços publicados vindos do Google: ___ | reservas: ___ | custo por reserva R$ ___
+4. Perfil da Empresa: ___ visualizações, ___ cliques no site, ___ ligações, ___ avaliações (nota ___)
+5. O que mudei e próximo passo: ___</pre></div>
+</section>
+
+<!-- 13 -->
+<section id="cuidados">
+  <h2><span class="n">13</span> Cuidados</h2>
+  <ul class="plain">
+    <li><strong>Sem promoção:</strong> nunca fale em desconto, cupom, taxa zero ou prazo promocional.</li>
+    <li><strong>Taxas sempre completas:</strong> "5% + tarifa do Mercado Pago", nunca só "5%". Para profissionais: "taxa de serviço de 15% + ISS sobre a taxa".</li>
+    <li><strong>Não prometa renda:</strong> "horário vago pode virar renda" é ok; valores de ganho só como simulação identificada.</li>
+    <li><strong>Ética dos conselhos (CFO, CFM, CRP):</strong> anuncie o espaço, não o atendimento de saúde. Sem preço de tratamento, sem antes e depois, sem promessa de resultado, sem fotos de pacientes.</li>
+    <li><strong>Sem superlativos sem prova:</strong> nada de "o mais barato" ou "o único" (CDC e CONAR).</li>
+    <li><strong>Marcas de terceiros:</strong> não use nome de concorrentes em palavras-chave ou anúncios.</li>
+    <li><strong>LGPD:</strong> a tag só carrega após o aceite de cookies; não mude isso. Planilha CRM só no Drive da empresa, sem CPF, sem dados de saúde. Respeite quem pediu para não receber marketing.</li>
+    <li><strong>Direitos de imagem:</strong> fotos de espaços só com autorização escrita do anfitrião; sem pessoas reconhecíveis sem autorização.</li>
+    <li><strong>Categoria especial:</strong> a regra de "Habitação/Imóveis" com raio mínimo é do Meta. No Google, no Brasil, não há essa exigência hoje, mas mantenha o mesmo cuidado: não segmente nem exclua público por idade ou gênero.</li>
+    <li><strong>Avaliações:</strong> nunca compre, troque por benefício ou escreva avaliações falsas.</li>
+    <li><strong>Contas:</strong> tudo no e-mail da empresa e no CNPJ do Instituto, nada misturado com a DentalPOS.</li>
+  </ul>
+</section>
+
+<footer>
+  SpaceHour · Instituto Ravel de Ensino Superior Ltda · CNPJ 03.162.275/0001-10 · support@space-hour.com<br>
+  Menus do Google mudam de nome com frequência. Quando um caminho deste kit não bater, procure pela palavra em negrito no campo de busca do próprio Google Ads ou peça ajuda ao Robson.
+</footer>
+</div>
+
+<script>
+(function () {
+  // Copiar
+  document.querySelectorAll('.copy').forEach(function (box) {
+    var btn = box.querySelector('button');
+    var pre = box.querySelector('pre');
+    if (!btn || !pre) return;
+    btn.addEventListener('click', function () {
+      var text = pre.innerText;
+      function ok() { btn.textContent = 'Copiado'; btn.classList.add('done'); setTimeout(function () { btn.textContent = 'Copiar'; btn.classList.remove('done'); }, 1600); }
+      function fallback() {
+        try { var r = document.createRange(); r.selectNodeContents(pre); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Selecionado: Ctrl+C'; } catch (e) {}
+      }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(ok, fallback); }
+        else { fallback(); }
+      } catch (e) { fallback(); }
+    });
+    // Contador de caracteres
+    var small = box.querySelector('[data-count]');
+    if (!small) return;
+    var max = parseInt(pre.getAttribute('data-max') || '0', 10);
+    var maxTotal = parseInt(pre.getAttribute('data-max-total') || '0', 10);
+    var raw = pre.textContent;
+    if (max) {
+      var lines = raw.split('\n').filter(function (l) { return l.trim() !== ''; });
+      var longest = Math.max.apply(null, lines.map(function (l) { return Array.from(l).length; }));
+      small.textContent = lines.length + ' itens · maior: ' + longest + '/' + max;
+    } else if (maxTotal) {
+      small.textContent = Array.from(raw).length + '/' + maxTotal + ' caracteres';
+    }
+  });
+
+  // Checklist com localStorage
+  var KEY = 'spacehour-kit-google-checklist';
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { saved = {}; }
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('#checklist-list input[type=checkbox]'));
+  var progress = document.getElementById('progress');
+  function update() {
+    var n = boxes.filter(function (b) { return b.checked; }).length;
+    progress.textContent = n + ' de ' + boxes.length + ' concluídos';
+  }
+  boxes.forEach(function (b) {
+    if (saved[b.id]) b.checked = true;
+    b.addEventListener('change', function () {
+      saved[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      update();
+    });
+  });
+  update();
+})();
+</script>
