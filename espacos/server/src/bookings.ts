@@ -20,6 +20,7 @@ import {
 } from '../../shared/rules.js';
 import { getCountry } from '../../shared/countries.js';
 import { isLaunched } from './launch.js';
+import { validCnpj, validCpf } from './identity.js';
 
 export { ACTIVE_STATUSES };
 const APP_URL = process.env.APP_URL ?? 'http://localhost:5173';
@@ -103,6 +104,12 @@ export interface CreateBookingInput {
   guests: number;
   purpose: string;
   paymentMethod: string;
+  /** Onde pagar quando o anfitrião recebe por mais de um (asaas | mercadopago). */
+  provider?: string;
+  /** CPF/CNPJ de quem paga (o Asaas exige). */
+  payerTaxId?: string;
+  /** Registro profissional informado no próprio checkout (verificado depois, sem travar a reserva). */
+  license?: { body: string; number: string; region?: string };
   acceptRules: boolean;
   isConsumer?: boolean;
   clientReviewsEnabled?: boolean;
@@ -121,7 +128,17 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     if (listing.hostId === guest.id) throw new HttpError(409, 'cannot_book_own_listing');
     if (!input.acceptRules) throw new HttpError(422, 'rules_not_accepted');
     if (input.guests < 1 || input.guests > listing.capacity) throw new HttpError(422, 'over_capacity', { max: listing.capacity });
-    if (listing.requiresLicense && guest.licenseStatus !== 'approved') throw new HttpError(422, 'license_required');
+    // Registro profissional: aprovado, em análise ou informado agora (fica "em verificação" e o anfitrião confere na chegada)
+    const licensePending = listing.requiresLicense && guest.licenseStatus !== 'approved';
+    if (licensePending) {
+      if (input.license) {
+        guest.professionalLicense = { body: input.license.body, number: input.license.number, region: input.license.region, verified: false };
+        if (guest.licenseStatus !== 'pending') guest.licenseStatus = 'needs_review';
+        await repo.updateUser(tx, guest);
+      } else if (!['pending', 'needs_review'].includes(guest.licenseStatus)) {
+        throw new HttpError(422, 'license_required');
+      }
+    }
     if (!isLaunched(listing.countryCode)) throw new HttpError(422, 'country_not_supported');
     const country = getCountry(listing.countryCode);
     if (!country.paymentMethods.includes(input.paymentMethod as never)) throw new HttpError(422, 'payment_method_unavailable');
@@ -129,7 +146,13 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     const q = await quote(tx, listing, input.occurrences, guest);
     if (q.errors.length) throw new HttpError(422, 'invalid_occurrences', q.errors);
 
-    const { gateway, sellerRef } = await gatewayForBooking(listing.countryCode, listing.hostId);
+    const { gateway, sellerRef } = await gatewayForBooking(listing.countryCode, listing.hostId, input.provider);
+    let payer = guest;
+    if (gateway.id === 'asaas') {
+      const taxId = (input.payerTaxId ?? guest.documentNumber ?? '').replace(/\D/g, '');
+      if (!(taxId.length === 11 ? validCpf(taxId) : validCnpj(taxId))) throw new HttpError(422, 'payer_tax_id_required');
+      payer = { ...guest, documentNumber: taxId };
+    }
     const needsGuarantorForDeposit = listing.securityDeposit > 0 && !supportsHold(input.paymentMethod, gateway);
     if ((q.guarantorRequired || needsGuarantorForDeposit) && !input.guarantor) {
       throw new HttpError(422, needsGuarantorForDeposit ? 'deposit_needs_guarantor' : 'guarantor_required');
@@ -164,10 +187,16 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
       await repo.savePayment(tx, payment);
       await afterPaid(tx, gateway, booking, listing, payment, now);
     } else {
-      await startCheckout(gateway, payment, booking, listing, guest, checkoutUrls(booking));
+      await startCheckout(gateway, payment, booking, listing, payer, checkoutUrls(booking));
       await repo.savePayment(tx, payment);
     }
     await repo.saveBooking(tx, booking);
+    if (licensePending) {
+      const lic = guest.professionalLicense;
+      await notify(tx, { userId: listing.hostId }, 'license_pending',
+        `O registro profissional de ${guest.name}${lic ? ` (${lic.body} ${lic.number}${lic.region ? `/${lic.region}` : ''})` : ''} ainda está em verificação. Confira o documento na chegada.`,
+        `/anfitriao/reservas/${booking.id}`);
+    }
     await markConverted(tx, guest.id, listing.id);
     return booking;
   });

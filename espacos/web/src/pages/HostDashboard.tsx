@@ -7,6 +7,8 @@ import { ListingCard, type ListingSummary } from '../components/ListingCard';
 import { money } from '../format';
 import { errorText } from '../errors';
 import { MP_SIGNUP_URL, MpConnectError, useMercadoPagoPrompt, useMpConnect } from '../components/MercadoPagoPrompt';
+import { AsaasConnect } from '../components/AsaasConnect';
+import { NextStep } from '../components/NextStep';
 
 export default function HostDashboard() {
   const { t, locale } = useI18n();
@@ -68,44 +70,80 @@ export default function HostDashboard() {
   );
 }
 
-// Conta de recebimento: o valor de cada reserva cai direto na conta Mercado Pago do anfitrião (split)
+// Onde o anfitrião recebe: carteira Asaas (o cliente paga com Pix/cartão sem precisar de conta) e/ou Mercado Pago (split)
+type PayoutStatus = {
+  required: boolean; connected: boolean; mpUserId?: string; anyConnected?: boolean;
+  mercadopago?: { enabled: boolean; connected: boolean; mpUserId?: string };
+  asaas?: { enabled: boolean; connected: boolean; origin?: string; walletId?: string };
+};
+
 function PayoutAccount() {
   const { t } = useI18n();
   const [params] = useSearchParams();
-  const [st, setSt] = useState<{ required: boolean; connected: boolean; mpUserId?: string } | null>(null);
+  const [st, setSt] = useState<PayoutStatus | null>(null);
   const [error, setError] = useState('');
+  const [asaasDone, setAsaasDone] = useState(false);
   const { connect, busy, error: connectError } = useMpConnect();
-  const load = () => api<typeof st>('/me/payout-account').then(setSt).catch(() => {});
+  const load = () => api<PayoutStatus>('/me/payout-account').then(setSt).catch(() => {});
   useEffect(() => { load(); }, []);
-  if (!st || (!st.required && st.connected)) return null;
-  async function disconnect() {
+  useEffect(() => { if (st && window.location.hash === '#receber') document.getElementById('receber')?.scrollIntoView({ behavior: 'smooth' }); }, [st]);
+  if (!st) return null;
+  const mpOn = st.mercadopago ? st.mercadopago.enabled : st.required;
+  const mpConnected = st.mercadopago ? st.mercadopago.connected : st.connected;
+  const asaasOn = !!st.asaas?.enabled;
+  const any = st.anyConnected ?? st.connected;
+  if (!st.required && any) return null;
+  async function disconnect(path: string) {
     if (!window.confirm(t('payout.confirmDisconnect'))) return;
-    try { await api('/me/payout-account', { method: 'DELETE' }); load(); } catch (e) { setError(errorText(e, t)); }
+    try { await api(path, { method: 'DELETE' }); load(); } catch (e) { setError(errorText(e, t)); }
   }
   const status = params.get('mp');
   return (
-    <section className={`panel payout ${st.connected ? '' : 'warn'}`}>
-      {status === 'conectado' && st.connected && <p className="notice success">✅ {t('payout.success')}</p>}
+    <section id="receber" className={`panel payout ${any ? '' : 'warn'}`}>
+      {status === 'conectado' && mpConnected && <p className="notice success">✅ {t('payout.success')}</p>}
       {status === 'erro' && <p className="notice warn"><strong>{t('payout.error')}</strong> {t(`err.${params.get('motivo') ?? 'mp_connect_failed'}` as DictKey)}</p>}
       <h2>💳 {t('payout.title')}</h2>
-      {st.connected ? (
-        <p className="row between wrap gap">
-          <span>✅ {t('payout.connected', { id: st.mpUserId ?? '' })}</span>
-          <button className="btn btn-ghost small" onClick={disconnect}>{t('payout.disconnect')}</button>
-        </p>
-      ) : (
-        <>
-          <p>{t('payout.help')}</p>
-          <p className="notice warn small">{t('payout.required')}</p>
-          <div className="row gap wrap">
-            <button className="btn btn-primary" onClick={connect} disabled={busy}>{busy ? t('mp.opening') : t('payout.connect')}</button>
-            <a className="btn btn-outline" href={MP_SIGNUP_URL} target="_blank" rel="noopener noreferrer">{t('mp.create')} ↗</a>
-          </div>
-          <p className="muted small">{t('mp.createHint')}</p>
-          <MpConnectError error={connectError} />
-        </>
+      {!any && <p className="notice warn small">{t('payout.requiredChoose')}</p>}
+
+      {asaasOn && (
+        <div className="payout-option">
+          <h3>⚡ Asaas <span className="badge">{t('payout.recommended')}</span></h3>
+          <p className="muted small">{t('payout.asaasWhy')}</p>
+          {st.asaas!.connected ? (
+            <p className="row between wrap gap">
+              <span>✅ {t('payout.asaasConnected', { id: st.asaas!.walletId ?? '' })}</span>
+              <button className="btn btn-ghost small" onClick={() => disconnect('/me/asaas-account')}>{t('payout.disconnect')}</button>
+            </p>
+          ) : <AsaasConnect onDone={() => { setAsaasDone(true); load(); }} />}
+        </div>
+      )}
+
+      {mpOn && (
+        <div className="payout-option">
+          <h3>🤝 Mercado Pago</h3>
+          {mpConnected ? (
+            <p className="row between wrap gap">
+              <span>✅ {t('payout.connected', { id: (st.mercadopago?.mpUserId ?? st.mpUserId) ?? '' })}</span>
+              <button className="btn btn-ghost small" onClick={() => disconnect('/me/payout-account')}>{t('payout.disconnect')}</button>
+            </p>
+          ) : (
+            <>
+              <p className="muted small">{t('payout.help')}</p>
+              <div className="row gap wrap">
+                <button className="btn btn-primary" onClick={connect} disabled={busy}>{busy ? t('mp.opening') : t('payout.connect')}</button>
+                <a className="btn btn-outline" href={MP_SIGNUP_URL} target="_blank" rel="noopener noreferrer">{t('mp.create')} ↗</a>
+              </div>
+              <p className="muted small">{t('mp.createHint')}</p>
+              <MpConnectError error={connectError} />
+            </>
+          )}
+        </div>
       )}
       {error && <p className="errors small">{error}</p>}
+      {asaasDone && (
+        <NextStep icon="🎉" title={t('next.asaasTitle')} steps={[t('next.asaasStep1'), t('next.asaasStep2'), t('next.asaasStep3')]}
+          actions={[{ label: t('next.seeMyListings'), to: '/anfitriao?aba=anuncios', onClick: () => setAsaasDone(false) }]} onClose={() => setAsaasDone(false)} />
+      )}
     </section>
   );
 }

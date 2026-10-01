@@ -1,55 +1,27 @@
 import { useState } from 'react';
-import { api } from '../api';
-import { errorText } from '../errors';
+import { useLocation } from 'react-router-dom';
 import { useI18n } from '../i18n';
+import { takeAfterVerify } from '../journey';
 import { useApp } from '../state';
+import { AccountReady, EmailCodeForm } from './EmailCode';
 
 // Aviso no topo enquanto o e-mail do cadastro não for confirmado: digitar o código de 6 números
-// (mais fácil no celular) ou tocar no link do e-mail.
+// (mais fácil no celular) ou tocar no link do e-mail. No cadastro e na página do link o código
+// já aparece no próprio lugar, então o aviso do topo some.
 export function EmailVerifyBanner() {
   const { t } = useI18n();
-  const { me, refreshMe } = useApp();
-  const [code, setCode] = useState('');
-  const [msg, setMsg] = useState('');
-  const [busy, setBusy] = useState(false);
-  if (!me || me.emailVerifiedAt) return null;
-
-  async function resend() {
-    setBusy(true);
-    try {
-      await api('/me/resend-verification', { body: {} });
-      setMsg(t('verify.resent'));
-    } catch (e) {
-      setMsg(errorText(e, t));
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function confirm(e: { preventDefault(): void }) {
-    e.preventDefault();
-    setBusy(true); setMsg('');
-    try {
-      await api('/me/verify-code', { body: { code } });
-      await refreshMe();
-    } catch (err) {
-      setMsg(errorText(err, t));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { me } = useApp();
+  const { pathname } = useLocation();
+  const [ready, setReady] = useState<{ next: string | null } | null>(null);
+  if (ready) return <AccountReady next={ready.next} onClose={() => setReady(null)} />;
+  if (!me || me.emailVerifiedAt || pathname === '/cadastro' || pathname === '/confirmar-email') return null;
 
   return (
     <div className="container">
-      <form className="notice warn verify-banner" role="status" onSubmit={confirm}>
+      <div className="notice warn verify-banner" role="status">
         <span>✉️ {t('verify.codeBanner', { email: me.email })}</span>
-        <span className="row gap wrap">
-          <input className="code-input" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} placeholder="000000"
-            value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} aria-label={t('verify.codeLabel')} />
-          <button className="btn btn-primary small" disabled={busy || code.length !== 6}>{t('verify.confirm')}</button>
-          <button type="button" className="btn btn-link" disabled={busy} onClick={resend}>{t('verify.resendCode')}</button>
-        </span>
-        {msg && <strong className="small">{msg}</strong>}
-      </form>
+        <EmailCodeForm onVerified={() => setReady({ next: takeAfterVerify() })} />
+      </div>
     </div>
   );
 }

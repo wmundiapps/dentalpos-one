@@ -11,7 +11,9 @@ import { roundMoney } from '../../../shared/rules.js';
 import { type CheckoutUrls, type Gateway, type GatewayId, PaymentProviderError } from './gateway.js';
 import { stripeGateway } from './stripe.js';
 import { MERCADOPAGO_COUNTRIES, mercadoPagoGateway, mercadoPagoToken } from './mercadopago.js';
-import { marketplaceEnabled, sellerToken } from './mpAccounts.js';
+import { connectedHostIds, marketplaceEnabled, sellerToken } from './mpAccounts.js';
+import { asaasEnabled, asaasGateway } from './asaas.js';
+import { asaasHostIds, asaasWallet } from './asaasAccounts.js';
 import { HttpError } from '../auth.js';
 
 export { type Gateway, type PaymentUpdate, PaymentProviderError } from './gateway.js';
@@ -46,12 +48,28 @@ export function gatewayFor(countryCode: string): Gateway {
 const usesMarketplace = (countryCode: string) =>
   !override && process.env.PAYMENTS_PROVIDER !== 'simulated' && marketplaceEnabled() && (MERCADOPAGO_COUNTRIES as readonly string[]).includes(countryCode);
 
+export type HostProvider = 'asaas' | 'mercadopago';
+
+/** Com algum split ligado (Mercado Pago ou Asaas), o anfitrião brasileiro precisa conectar onde recebe. */
+export const payoutRequired = (countryCode: string) =>
+  !override && process.env.PAYMENTS_PROVIDER !== 'simulated' && countryCode === 'BR' && (marketplaceEnabled() || asaasEnabled());
+
+/** Por quais provedores cada anfitrião pode receber (Asaas primeiro: o locatário paga sem precisar de conta). */
+export async function hostProviders(hostIds: string[]): Promise<Map<string, HostProvider[]>> {
+  const [asaas, mp] = await Promise.all([asaasHostIds(hostIds), marketplaceEnabled() ? connectedHostIds(hostIds) : Promise.resolve(new Set<string>())]);
+  return new Map(hostIds.map((h) => [h, [...(asaas.has(h) ? ['asaas' as const] : []), ...(mp.has(h) ? ['mercadopago' as const] : [])]]));
+}
+
 /**
- * Provedor para uma nova reserva. Com o split do Mercado Pago ligado, o
- * pagamento é criado na conta do anfitrião (sellerRef), que precisa estar conectada.
+ * Provedor para uma nova reserva. Com split ligado, o pagamento vai para a conta
+ * do anfitrião (sellerRef): carteira Asaas ou conta Mercado Pago, à escolha do locatário.
  */
-export async function gatewayForBooking(countryCode: string, hostId: string): Promise<{ gateway: Gateway; sellerRef?: string }> {
-  if (!usesMarketplace(countryCode)) return { gateway: gatewayFor(countryCode) };
+export async function gatewayForBooking(countryCode: string, hostId: string, provider?: string): Promise<{ gateway: Gateway; sellerRef?: string }> {
+  if (!payoutRequired(countryCode) && !usesMarketplace(countryCode)) return { gateway: gatewayFor(countryCode) };
+  const available = (await hostProviders([hostId])).get(hostId) ?? [];
+  if (!available.length) throw new HttpError(422, 'host_payment_not_connected');
+  const chosen = provider && available.includes(provider as HostProvider) ? provider as HostProvider : available[0];
+  if (chosen === 'asaas') return { gateway: asaasGateway(), sellerRef: await asaasWallet(hostId) };
   const seller = await sellerToken({ userId: hostId });
   if (!seller) throw new HttpError(422, 'host_payment_not_connected');
   return { gateway: mercadoPagoGateway(countryCode, seller.token, process.env.MP_WEBHOOK_SECRET, fetch, { marketplace: true }), sellerRef: seller.mpUserId };
@@ -61,6 +79,7 @@ export async function gatewayForBooking(countryCode: string, hostId: string): Pr
 export async function gatewayOf(p: Pick<Payment, 'provider' | 'sellerRef'>, countryCode: string): Promise<Gateway> {
   if (override) return override(countryCode, p.provider);
   switch (p.provider as GatewayId) {
+    case 'asaas': return asaasGateway();
     case 'stripe': return stripeGateway(process.env.STRIPE_SECRET_KEY ?? '', process.env.STRIPE_WEBHOOK_SECRET);
     case 'mercadopago': {
       if (p.sellerRef) {

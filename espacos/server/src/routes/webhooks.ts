@@ -7,6 +7,7 @@ import { stripeGateway } from '../payments/stripe.js';
 import { mercadoPagoGateway, mercadoPagoToken, MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
 import type { Gateway } from '../payments/index.js';
 import { sellerToken } from '../payments/mpAccounts.js';
+import { asaasEnabled, asaasGateway } from '../payments/asaas.js';
 
 export const webhooksRouter = Router();
 const raw = express.raw({ type: '*/*', limit: '1mb' });
@@ -58,4 +59,9 @@ webhooksRouter.post('/webhooks/mercadopago', raw, async (req, res) => {
   if (seller) gateways.unshift(mercadoPagoGateway('BR', seller.token, process.env.MP_WEBHOOK_SECRET, fetch, { marketplace: true }));
   if (!gateways.length) return res.status(404).end();
   await handle('mercadopago', gateways, req, res);
+});
+
+webhooksRouter.post('/webhooks/asaas', raw, async (req, res) => {
+  if (!asaasEnabled()) return res.status(404).end();
+  await handle('asaas', [asaasGateway()], req, res);
 });

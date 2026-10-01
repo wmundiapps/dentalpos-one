@@ -64,7 +64,7 @@ function PhotoStep({ n, title, help, capture, file, onFile }: { n: number; title
 }
 
 // Verificação de identidade em 1 minuto: CPF/CNPJ + foto do documento + selfie. Checagem em segundo plano.
-export function IdentityVerify() {
+export function IdentityVerify({ onDone }: { onDone?: () => void } = {}) {
   const { t } = useI18n();
   const { me, refreshMe } = useApp();
   const [st, setSt] = useState<{ verified: boolean; status: string } | null>(null);
@@ -91,6 +91,7 @@ export function IdentityVerify() {
       form.set('selfie', await shrink(selfie, 1200), 'selfie.jpg');
       await apiUpload('/me/identity', form);
       await Promise.all([load(), refreshMe()]);
+      onDone?.();
     } catch (err) {
       setError(errorText(err, t));
     } finally {
@@ -114,8 +115,8 @@ export function IdentityVerify() {
             <PhotoStep n={1} title={t('identity.docTitle')} help={t('identity.docHelp')} capture="environment" file={doc} onFile={setDoc} />
             <PhotoStep n={2} title={t('identity.selfieTitle')} help={t('identity.selfieHelp')} capture="user" file={selfie} onFile={setSelfie} />
             <button className="btn btn-primary" disabled={busy || !doc || !selfie || !taxOk}>{busy ? t('common.wait') : t('identity.send')}</button>
+            {error && <p className="errors small inline-msg" role="alert">{error}</p>}
             <p className="muted small">🔒 {t('identity.privacy')}</p>
-            {error && <p className="errors small" role="alert">{error}</p>}
           </form>
         )}
     </section>

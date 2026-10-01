@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiUpload } from '../api';
 import type { DictKey } from '../i18n';
 import { CATEGORIES } from '../../../shared/rules';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useI18n } from '../i18n';
 import { useApp, type Me } from '../state';
@@ -11,12 +11,18 @@ import { STRIKE_RULES } from '../../../shared/rules';
 import { errorText } from '../errors';
 import { formatDateTime } from '../format';
 import { IdentityVerify } from '../components/IdentityVerify';
+import { NextStep } from '../components/NextStep';
+import { safePath } from '../journey';
 
 export default function Profile() {
   const { t, locale } = useI18n();
   const { me, refreshMe } = useApp();
   const [info, setInfo] = useState({ name: me?.name ?? '', phone: me?.phone ?? '', bio: me?.bio ?? '', companyTaxId: me?.companyTaxId ?? '' });
   const [msg, setMsg] = useState('');
+  // Veio de uma reserva (/perfil?voltar=/reservar/...): depois de enviar os dados, mostra o caminho de volta
+  const [params] = useSearchParams();
+  const back = safePath(params.get('voltar'));
+  const [showBack, setShowBack] = useState(false);
   if (!me) return <div className="container empty"><Link to="/entrar?next=/perfil">{t('auth.login')}</Link></div>;
   const cfg = COUNTRY_BY_CODE[me.countryCode];
 
@@ -30,9 +36,9 @@ export default function Profile() {
       <h1>{t('nav.profile')}</h1>
       {me.suspendedUntil && new Date(me.suspendedUntil) > new Date() && <p className="notice warn">{t('profile.suspended', { at: formatDateTime(me.suspendedUntil, locale) })}</p>}
       <p className="muted small">{t('profile.strikes', { n: me.activeStrikes, suspend: STRIKE_RULES.suspendAt, ban: STRIKE_RULES.banAt })} <Link to="/regras/penalties">{t('legal.penalties')}</Link></p>
-      {msg && <p className="notice small">{msg}</p>}
+      {back && <p><Link className="btn btn-outline small" to={back}>← {t('journey.backToBooking')}</Link></p>}
 
-      <IdentityVerify />
+      <IdentityVerify onDone={() => back && setShowBack(true)} />
 
       <section className="panel">
         <h2>{t('profile.info')}</h2>
@@ -41,11 +47,18 @@ export default function Profile() {
         <label>{t('form.companyId', { id: cfg?.companyIdLabel ?? '' })}<input value={info.companyTaxId} onChange={(e) => setInfo({ ...info, companyTaxId: e.target.value })} /></label>
         <label>{t('form.bio')}<textarea value={info.bio} onChange={(e) => setInfo({ ...info, bio: e.target.value })} /></label>
         <button className="btn btn-primary" onClick={() => run('/me', info, 'PUT')}>{t('common.save')}</button>
+        {msg && <p className={`small inline-msg ${msg === t('common.saved') ? 'ok' : 'errors'}`} role="status">{msg}</p>}
       </section>
 
-      <LicenseSection onDone={refreshMe} />
+      <LicenseSection onDone={refreshMe} onSent={() => back && setShowBack(true)} />
       <MarketingPrefs />
       <DeleteAccountSection />
+      {showBack && back && (
+        <NextStep icon="🎉" title={t('journey.sentTitle')} onClose={() => setShowBack(false)}
+          actions={[{ label: t('journey.backToBooking'), to: back }, { label: t('journey.stayHere'), primary: false, onClick: () => setShowBack(false) }]}>
+          {t('journey.sentBody')}
+        </NextStep>
+      )}
     </div>
   );
 }
@@ -111,29 +124,30 @@ export function AccountDeletionPage() {
 
 // Registro profissional: dados + foto/PDF do documento → pré-verificação por IA
 // (e equipe). O anfitrião ainda confere antes de liberar o espaço.
-function LicenseSection({ onDone }: { onDone: () => Promise<void> }) {
+function LicenseSection({ onDone, onSent }: { onDone: () => Promise<void>; onSent?: () => void }) {
   const { t } = useI18n();
   const { me } = useApp();
   const cfg = COUNTRY_BY_CODE[me!.countryCode];
   const [lic, setLic] = useState({ fullName: me!.name, body: '', number: '', region: '', category: '' });
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const status = me!.licenseStatus ?? 'none';
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
-    setBusy(true); setMsg('');
+    setBusy(true); setMsg(null);
     try {
       const form = new FormData();
       Object.entries(lic).forEach(([k, v]) => v && form.set(k, v));
       form.set('document', file, file.name);
       await apiUpload('/me/license', form);
       await onDone();
-      setMsg(t('common.saved'));
+      setMsg({ ok: true, text: t('common.saved') });
+      onSent?.();
     } catch (err) {
-      setMsg(errorText(err, t));
+      setMsg({ ok: false, text: errorText(err, t) });
     } finally {
       setBusy(false);
     }
@@ -146,7 +160,6 @@ function LicenseSection({ onDone }: { onDone: () => Promise<void> }) {
       <p className={`small ${status === 'rejected' ? 'errors' : ''}`}>{t('profile.licenseStatus', { status: t(`license.status.${status}` as DictKey) })}</p>
       <p className="muted small">{t('profile.licenseHelp')}</p>
       {cfg && <p className="muted small">{Object.values(cfg.licenseBodies).join(' · ')}</p>}
-      {msg && <p className="notice small">{msg}</p>}
       {status !== 'approved' && status !== 'pending' && (
         <form onSubmit={submit}>
           <label>{t('profile.licenseFullName')}<input required minLength={3} value={lic.fullName} onChange={(e) => setLic({ ...lic, fullName: e.target.value })} /></label>
@@ -167,6 +180,7 @@ function LicenseSection({ onDone }: { onDone: () => Promise<void> }) {
           <button className="btn btn-primary" disabled={busy || !file}>{busy ? t('common.wait') : t('profile.licenseSubmit')}</button>
         </form>
       )}
+      {msg && <p className={`small inline-msg ${msg.ok ? 'ok' : 'errors'}`} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p>}
     </section>
   );
 }

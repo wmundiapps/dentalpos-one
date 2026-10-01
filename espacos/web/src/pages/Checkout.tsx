@@ -10,6 +10,7 @@ import { ASYNC_PAYMENT_METHODS, COUNTRY_BY_CODE, PAYMENT_METHOD_LABELS, type Pay
 import type { Occurrence, PriceBreakdown } from '../../../shared/types';
 import { errorText } from '../errors';
 import { formatDate, money } from '../format';
+import { NextStep } from '../components/NextStep';
 
 type Quote = { price: PriceBreakdown; errors: Array<{ code: string; params?: Record<string, string | number> }>; guarantorRequired: boolean; guarantorLiabilityCap: number };
 
@@ -33,6 +34,10 @@ export default function Checkout() {
   const [accept, setAccept] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [provider, setProvider] = useState<'asaas' | 'mercadopago' | ''>('');
+  const [taxId, setTaxId] = useState('');
+  const [lic, setLic] = useState({ body: '', number: '', region: '' });
+  const [pay, setPay] = useState<{ url: string; id: string } | null>(null);
 
   useEffect(() => {
     api<{ listing: ListingSummary }>(`/listings/${id}`).then((d) => setListing(d.listing)).catch(() => setError(t('err.listing_not_found')));
@@ -43,6 +48,9 @@ export default function Checkout() {
     if (me && id) api(`/checkout-intents`, { body: { listingId: id, query: params.toString().slice(0, 2000) } }).catch(() => {});
   }, [me, id, params]);
 
+  useEffect(() => { if (me?.documentNumber && !taxId) setTaxId(me.documentNumber); }, [me]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (listing?.payProviders?.length && !provider) setProvider(listing.payProviders[0]); }, [listing]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!me) return <div className="container empty"><Link to="/entrar">{t('auth.login')}</Link></div>;
   if (!listing || !quote) return <div className="container">{error || <div className="skeleton hero-skeleton" />}</div>;
 
@@ -52,7 +60,12 @@ export default function Checkout() {
   const depositByGuarantor = listing.securityDeposit > 0 && (!!asyncMethod || listing.depositHold === false);
   const needsGuarantor = quote.guarantorRequired || depositByGuarantor;
   const showGuarantor = needsGuarantor || useGuarantor;
-  const licenseMissing = listing.requiresLicense && me.licenseStatus !== 'approved';
+  // Registro profissional: sem nenhum enviado, informa aqui mesmo (fica em verificação, a reserva segue)
+  const licenseMissing = listing.requiresLicense && !['approved', 'pending', 'needs_review'].includes(me.licenseStatus);
+  const providers = listing.payProviders ?? [];
+  const useAsaas = provider === 'asaas';
+  // No Asaas: Pix, cartão e boleto, sem o cliente precisar de conta
+  const methods = useAsaas ? country.paymentMethods.filter((m) => ['pix', 'card', 'boleto'].includes(m)) : country.paymentMethods;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,12 +74,15 @@ export default function Checkout() {
       const b = await api<{ id: string; status: string; payment?: { checkoutUrl?: string } }>('/bookings', {
         body: {
           listingId: listing!.id, occurrences, guests, purpose, paymentMethod: method, acceptRules: accept, isConsumer,
+          provider: provider || undefined, payerTaxId: useAsaas ? taxId : undefined,
+          license: licenseMissing ? { body: lic.body, number: lic.number, region: lic.region || undefined } : undefined,
           clientReviewsEnabled: clientReviews, message: message || undefined,
           guarantor: showGuarantor ? { ...g, phone: g.phone || undefined, relationship: g.relationship || undefined } : undefined,
         },
       });
       // Pagamento no checkout do provedor (Stripe / Mercado Pago); volta para a reserva
-      if (b.status === 'pending_payment' && b.payment?.checkoutUrl) window.location.assign(b.payment.checkoutUrl);
+      // Antes de ir ao pagamento, a janela explica o que fazer lá
+      if (b.status === 'pending_payment' && b.payment?.checkoutUrl) setPay({ url: b.payment.checkoutUrl, id: b.id });
       else nav(`/reservas/${b.id}?novo=1`);
     } catch (err) {
       setError(errorText(err, t));
@@ -90,7 +106,18 @@ export default function Checkout() {
           </section>
 
           {licenseMissing && (
-            <div className="notice warn">🪪 {t('checkout.licenseMissing')} <Link to="/perfil">{t('nav.profile')}</Link></div>
+            <div className="notice warn">🪪 {t('checkout.licenseMissing')} <Link to={`/perfil?voltar=${encodeURIComponent(window.location.pathname + window.location.search)}`}>{t('nav.profile')}</Link></div>
+          )}
+          {licenseMissing && (
+            <section className="section">
+              <h2>🪪 {t('checkout.licenseTitle')}</h2>
+              <p className="muted small">{t('checkout.licenseInlineHelp')}</p>
+              <div className="form-grid">
+                <label>{t('checkout.licenseBody')}<input required value={lic.body} onChange={(e) => setLic({ ...lic, body: e.target.value })} placeholder="CRO, CRM, CRP, CREFITO…" /></label>
+                <label>{t('checkout.licenseNumber')}<input required value={lic.number} onChange={(e) => setLic({ ...lic, number: e.target.value })} /></label>
+                <label>{t('checkout.licenseRegion')}<input maxLength={2} value={lic.region} onChange={(e) => setLic({ ...lic, region: e.target.value.toUpperCase() })} placeholder="PR" /></label>
+              </div>
+            </section>
           )}
 
           <section className="section">
@@ -105,8 +132,20 @@ export default function Checkout() {
           <section className="section">
             <h2>{t('checkout.payment')}</h2>
             <p className="muted small">{t('checkout.paymentCurrency', { currency: listing.currency })}</p>
+            {providers.length > 1 && (
+              <div className="pay-providers" role="radiogroup" aria-label={t('checkout.whereToPay')}>
+                <p className="small"><strong>{t('checkout.whereToPay')}</strong></p>
+                {providers.map((p) => (
+                  <label key={p} className={`pay-method ${provider === p ? 'selected' : ''}`}>
+                    <input type="radio" name="provider" value={p} checked={provider === p} onChange={() => { setProvider(p); setMethod(''); }} />
+                    <span><strong>{p === 'asaas' ? t('checkout.providerAsaas') : 'Mercado Pago'}</strong></span>
+                    <span className="muted small">{p === 'asaas' ? t('checkout.providerAsaasHint') : t('checkout.providerMpHint')}</span>
+                  </label>
+                ))}
+              </div>
+            )}
             <div className="pay-methods" role="radiogroup">
-              {country.paymentMethods.map((m) => (
+              {methods.map((m) => (
                 <label key={m} className={`pay-method ${method === m ? 'selected' : ''}`}>
                   <input type="radio" name="pm" value={m} checked={method === m} onChange={() => setMethod(m)} required />
                   <span>{PAYMENT_METHOD_LABELS[m]}</span>
@@ -114,10 +153,16 @@ export default function Checkout() {
                 </label>
               ))}
             </div>
+            {useAsaas && (
+              <label className="block-label">{t('checkout.payerTaxId')}
+                <input required inputMode="numeric" value={taxId} onChange={(e) => setTaxId(e.target.value)} placeholder="000.000.000-00" />
+                <span className="muted small">{t('checkout.payerTaxIdHelp')}</span>
+              </label>
+            )}
             <p className="muted small">🔒 {t('checkout.securePayment')}</p>
           </section>
 
-          <section className="section">
+          {(needsGuarantor || listing.guarantorPolicy === 'optional') && <section className="section">
             <h2>{t('checkout.guarantor')}</h2>
             {needsGuarantor
               ? <p className="notice">{quote.guarantorRequired ? t('checkout.guarantorRequired') : t('checkout.guarantorForDeposit')}</p>
@@ -133,19 +178,19 @@ export default function Checkout() {
                 <p className="muted small span2">{t('checkout.guarantorExplain', { cap: money(quote.guarantorLiabilityCap, listing.currency, locale) })} <Link to="/regras/guarantor-deposit">{t('legal.guarantor-deposit')}</Link></p>
               </div>
             )}
-          </section>
+          </section>}
 
-          <section className="section">
-            <h2>{t('checkout.options')}</h2>
+          <details className="section">
+            <summary><h2 className="inline">{t('checkout.options')}</h2></summary>
             <label className="check"><input type="checkbox" checked={clientReviews} onChange={(e) => setClientReviews(e.target.checked)} /> {t('checkout.enableClientReviews')}</label>
             <label className="check"><input type="checkbox" checked={isConsumer} onChange={(e) => setIsConsumer(e.target.checked)} /> {t('checkout.isConsumer')}</label>
             {country.withdrawalDays > 0 && <p className="muted small">{t('policy.withdrawal', { days: country.withdrawalDays })}</p>}
-          </section>
+          </details>
 
-          <section className="section">
-            <h2>{t('listing.cancellation')}</h2>
+          <details className="section">
+            <summary><h2 className="inline">{t('listing.cancellation')}</h2></summary>
             <PolicySummary policy={listing.cancellationPolicy} withdrawalDays={isConsumer ? country.withdrawalDays : 0} />
-          </section>
+          </details>
 
           <section className="section">
             <div className="notice warn small conduct-box">
@@ -164,7 +209,7 @@ export default function Checkout() {
               </span>
             </label>
             {error && <p className="errors" role="alert">{error}</p>}
-            <button className="btn btn-primary" disabled={busy || !accept || !method || quote.errors.length > 0 || licenseMissing}>
+            <button className="btn btn-primary" disabled={busy || !accept || !method || quote.errors.length > 0}>
               {busy ? t('common.wait') : listing.instantBook ? t('checkout.confirmPay') : t('checkout.sendRequest')}
             </button>
             {!listing.instantBook && <p className="muted small">{t('checkout.requestExplain')}</p>}
@@ -181,6 +226,13 @@ export default function Checkout() {
           </div>
         </aside>
       </form>
+      {pay && (
+        <NextStep icon="💳" title={t('next.payTitle')}
+          steps={method === 'pix' ? [t('next.payPix1'), t('next.payPix2'), t('next.payBack')] : method === 'boleto' ? [t('next.payBoleto1'), t('next.payBoleto2'), t('next.payBack')] : [t('next.payCard1'), t('next.payBack')]}
+          actions={[{ label: t('booking.payNow'), onClick: () => window.location.assign(pay.url) }, { label: t('next.payLater'), to: `/reservas/${pay.id}` }]}>
+          <p>{t('next.payHold')}</p>
+        </NextStep>
+      )}
     </div>
   );
 }
