@@ -13,6 +13,7 @@ import { PAYMENT_METHOD_LABELS, type PaymentMethodId } from '../../../shared/cou
 import { errorText } from '../errors';
 import { AddressMap } from '../components/AddressMap';
 import { formatDate, formatDateTime, money } from '../format';
+import { NextStep } from '../components/NextStep';
 
 type View = Omit<Booking, 'guarantor'> & {
   guarantor?: { name: string; status: string; liabilityCap: number; email?: string };
@@ -46,6 +47,22 @@ export default function BookingPage() {
     api<Message[]>(`/bookings/${id}/messages`).then(setMsgs).catch(() => {});
   }, [id, t]);
   useEffect(load, [load]);
+  // Voltou do pagamento e o aviso do provedor ainda não chegou: confere de novo por alguns minutos
+  useEffect(() => {
+    if (!b || b.status !== 'pending_payment' || params.get('pagamento') !== 'ok') return;
+    let n = 0;
+    const timer = setInterval(() => { if (++n > 40) clearInterval(timer); else load(); }, 4000);
+    return () => clearInterval(timer);
+  }, [b?.status, params, load]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Janela "próximo passo" depois de reservar/pagar (uma vez por reserva e situação)
+  const [guide, setGuide] = useState(false);
+  useEffect(() => {
+    if (!b || b.guestId !== me?.id || (!params.get('novo') && !params.get('pagamento'))) return;
+    if (!['confirmed', 'pending_host', 'pending_guarantor'].includes(b.status)) return;
+    const key = `guide_${b.id}_${b.status}`;
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch { /* sem armazenamento */ }
+    setGuide(true);
+  }, [b?.id, b?.status]); // eslint-disable-line react-hooks/exhaustive-deps
   // Voltando do checkout, a confirmação chega pelo webhook: recarrega por alguns segundos
   useEffect(() => {
     if (params.get('pagamento') !== 'ok') return;
@@ -74,6 +91,15 @@ export default function BookingPage() {
   return (
     <div className="container booking-page">
       {params.get('novo') && <div className="notice success">🎉 {b.status === 'confirmed' ? t('booking.createdConfirmed') : b.status === 'pending_guarantor' ? t('booking.createdGuarantor') : t('booking.createdRequest')}</div>}
+      {guide && (
+        <NextStep icon="🎉"
+          title={b.status === 'confirmed' ? t('next.bookedTitle') : b.status === 'pending_guarantor' ? t('next.guarantorTitle') : t('next.requestTitle')}
+          steps={b.status === 'confirmed' ? [t('next.booked1'), t('next.booked2'), t('next.booked3')]
+            : b.status === 'pending_guarantor' ? [t('next.guarantor1'), t('next.guarantor2')]
+              : [t('next.request1'), t('next.request2'), t('next.request3')]}
+          actions={[{ label: t('next.seeBooking'), onClick: () => setGuide(false) }, { label: t('next.findMore'), to: '/' }]}
+          onClose={() => setGuide(false)} />
+      )}
       <div className="row between wrap">
         <div>
           <p className="muted small">{isHost ? t('booking.asHost') : t('booking.asGuest')} · #{b.id.slice(-8)}</p>

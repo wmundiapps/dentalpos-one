@@ -4,7 +4,7 @@ import { api } from '../api';
 type Cfg = {
   adminEmailsConfigured: number; emailSending: boolean; smtpLogin: string; emailFrom: string;
   emailLast24h: { sent: number; failed: number; pending: number; lastSentAt: string | null; lastError: string | null } | null;
-  mercadoPago: boolean; appUrl: string | null; version: string | null;
+  mercadoPago: boolean; asaas?: false | 'sandbox' | 'production'; appUrl: string | null; version: string | null;
   you: { email: string; emailVerified: boolean; inAdminList: boolean; isAdmin: boolean } | null;
 };
 
@@ -12,6 +12,12 @@ type Cfg = {
 export default function Diagnostics() {
   const [c, setC] = useState<Cfg | null>(null);
   const [error, setError] = useState('');
+  const [hook, setHook] = useState('');
+  async function setupAsaas() {
+    setHook('Ligando…');
+    try { const r = await api<{ webhookUrl: string }>('/admin/asaas/setup', { method: 'POST' }); setHook(`✅ Aviso de pagamentos ligado: ${r.webhookUrl}`); }
+    catch (e) { setHook(`❌ ${(e as { params?: { reason?: string } }).params?.reason ?? (e as Error).message}`); }
+  }
   useEffect(() => { api<Cfg>('/health/config').then(setC).catch(() => setError('Não foi possível consultar o servidor.')); }, []);
   if (!c) return <div className="container narrow"><h1>Diagnóstico</h1><p>{error || 'Consultando…'}</p></div>;
   const row = (ok: boolean, title: string, detail: string, fix?: string) => (
@@ -41,6 +47,16 @@ export default function Diagnostics() {
       {m && row(m.failed === 0, 'E-mails nas últimas 24 h', `Enviados: ${m.sent} · com falha: ${m.failed} · na fila: ${m.pending}${m.lastSentAt ? ` · último envio: ${new Date(m.lastSentAt).toLocaleString('pt-BR')}` : ''}${m.lastError ? ` · último erro: ${m.lastError}` : ''}`)}
       {row(c.mercadoPago, 'Mercado Pago (MP_CLIENT_ID / MP_CLIENT_SECRET)', c.mercadoPago ? 'Credenciais da aplicação configuradas.' : 'Sem credenciais: anfitriões não conseguem conectar a conta.',
         'Cadastre MP_CLIENT_ID e MP_CLIENT_SECRET (Credenciais de produção) na Vercel e faça Redeploy.')}
+      {row(!!c.asaas, `Asaas (ASAAS_API_KEY)${c.asaas === 'sandbox' ? ' — modo de TESTE' : ''}`, c.asaas ? 'Chave configurada: clientes podem pagar com Pix/cartão sem conta.' : 'Sem chave: só o Mercado Pago aparece.',
+        'No Asaas da empresa: Integrações → Chaves de API → Gerar chave. Na Vercel crie ASAAS_API_KEY com ela e faça Redeploy.')}
+      {c.asaas && c.you?.isAdmin && (
+        <div className="panel diag">
+          <strong>Aviso de pagamentos do Asaas</strong>
+          <p className="small">Um clique: o Asaas passa a avisar o SpaceHour quando um cliente paga (a reserva confirma sozinha).</p>
+          <button className="btn btn-primary" onClick={setupAsaas}>Ligar aviso de pagamentos</button>
+          {hook && <p className="small">{hook}</p>}
+        </div>
+      )}
       {row(!!c.appUrl, 'Endereço do site (APP_URL)', c.appUrl ?? 'Não configurado: links dos e-mails podem apontar para o lugar errado.', 'Cadastre APP_URL = https://space-hour.com na Vercel.')}
     </div>
   );

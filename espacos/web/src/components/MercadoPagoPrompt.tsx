@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { api } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../errors';
+import { NextStep } from './NextStep';
 
 // Cadastro oficial do Mercado Pago (pede CPF ou CNPJ)
 export const MP_SIGNUP_URL = 'https://www.mercadopago.com.br/hub/registration/landing';
@@ -69,7 +70,7 @@ export function MercadoPagoPrompt({ onClose }: { onClose: () => void }) {
 
 /** Abre a janela se a conta Mercado Pago ainda não estiver conectada. Com `once`, no máximo uma vez por sessão para essa chave. */
 export function useMercadoPagoPrompt() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<false | 'mp' | 'choose'>(false);
   const show = useCallback(async (once?: string) => {
     if (once) {
       try {
@@ -77,8 +78,17 @@ export function useMercadoPagoPrompt() {
         sessionStorage.setItem(`mp_prompt_${once}`, '1');
       } catch { /* sem armazenamento: mostra mesmo assim */ }
     }
-    const st = await api<{ required: boolean; connected: boolean }>('/me/payout-account').catch(() => null);
-    if (st?.required && !st.connected) setOpen(true);
+    const st = await api<{ required: boolean; connected: boolean; anyConnected?: boolean; asaas?: { enabled: boolean } }>('/me/payout-account').catch(() => null);
+    if (st?.required && !(st.anyConnected ?? st.connected)) setOpen(st.asaas?.enabled ? 'choose' : 'mp');
   }, []);
-  return { show, modal: open ? <MercadoPagoPrompt onClose={() => setOpen(false)} /> : null };
+  return { show, modal: open === 'mp' ? <MercadoPagoPrompt onClose={() => setOpen(false)} /> : open === 'choose' ? <PayoutChoosePrompt onClose={() => setOpen(false)} /> : null };
+}
+
+// Janela com Asaas ligado: leva ao painel para escolher onde receber
+function PayoutChoosePrompt({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
+  return (
+    <NextStep icon="💳" title={t('payout.promptTitle')} steps={[t('payout.promptStep1'), t('payout.promptStep2'), t('payout.promptStep3')]}
+      actions={[{ label: t('payout.choose'), to: '/anfitriao#receber', onClick: onClose }, { label: t('mp.later'), onClick: onClose, primary: false }]} onClose={onClose} />
+  );
 }
