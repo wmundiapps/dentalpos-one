@@ -55,6 +55,7 @@ export function MercadoPagoPrompt({ onClose }: { onClose: () => void }) {
           <li><strong>{t('mp.step1')}</strong> {t('mp.step1Text')}</li>
           <li><strong>{t('mp.step2')}</strong> {t('mp.step2Text')}</li>
           <li><strong>{t('mp.step3')}</strong> {t('mp.step3Text')}</li>
+          <li><strong>{t('pix.step')}</strong> {t('pix.stepText')}</li>
         </ol>
         <p className="notice small">{t('mp.noCost')}</p>
         <div className="row gap wrap">

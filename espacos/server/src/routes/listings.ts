@@ -221,7 +221,7 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
       pendingEmail
         ? `Seu anúncio "${listing.title}" foi salvo! Ele entra no ar assim que você confirmar seu e-mail: digite o código de 6 números que enviamos ou toque no link do e-mail de confirmação.`
         : `Seu anúncio "${listing.title}" foi publicado no SpaceHour! 🎉`,
-      needsPayout ? 'Falta um passo para começar a receber reservas: escolha onde receber no Painel do anfitrião (Asaas ou Mercado Pago). O valor de cada reserva cai direto na sua conta.' : '',
+      needsPayout ? 'Falta um passo para começar a receber reservas: escolha onde receber no Painel do anfitrião (Asaas ou Mercado Pago). O valor de cada reserva cai direto na sua conta. Se escolher o Mercado Pago, cadastre também uma chave Pix lá (app do Mercado Pago → Pix → Minhas chaves), senão seus clientes não conseguem pagar com Pix.' : '',
       `Você pode editar o anúncio quando quiser em Painel do anfitrião → Meus anúncios.`,
       'Quer mais reservas? Com o SpaceHour ADS seu espaço aparece em destaque nas buscas da sua cidade e da sua especialidade. Toque no botão abaixo para conhecer e ser avisado no lançamento.',
     ].filter(Boolean).join('\n\n'), `/anfitriao/ads?anuncio=${listing.id}`);
