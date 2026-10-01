@@ -23,3 +23,9 @@ Continuação do v21. Tudo abaixo está na branch `claude/friendly-carson-vvmpo4
 - 9: pedir ao Robson o comando de diagnóstico do `DEMO_DATA_ON` (handoff v19) e decidir por tela.
 - 10 a 16 do v21 (resumos clicáveis, assinatura recorrente Asaas, CPF/CNPJ na compra, **RLS em Patient/Doctor/FinancialEntry antes de clínicas reais**, preços/Asaas, WABA, limpeza dos `.bak`, widget de avaliação).
 - Testar em produção: e-mail de avaliação; avisos do laboratório com remetente real; importação com um CSV pequeno antes da base inteira.
+
+## Financeiro (pedido de 01/10, tarde)
+- **Data errada (30/09 em vez de 01/10)**: o formulário enviava só `AAAA-MM-DD`; o servidor gravava meia-noite UTC e o Brasil mostrava o dia anterior (recorrentes eram gravados ao meio-dia, por isso saíam certos). Agora `parseDay` grava meio-dia de Brasília e a tela trata os lançamentos antigos como data pura. SQL opcional para corrigir o banco: `backend/prisma/manual-migrations/20261001_financeiro_datas.sql` (idempotente).
+- **Editar lançamento**: botão Editar nas linhas pendentes/vencidas (usa o `PUT /financial-entries/:id` que já existia).
+- **Cancelados**: ocultos da lista; chip "Cancelado" mostra e permite "Excluir cancelados definitivamente" (`POST /financial-entries/purge-cancelled`, auditado). Recorrentes cancelados e lançamentos com nota fiscal são mantidos.
+- **Exportar com período**: menu Baixar pergunta De/Até (por vencimento) respeitando o filtro da tela.

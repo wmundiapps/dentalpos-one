@@ -304,6 +304,7 @@ router.delete('/payment/:id', requirePermission('finance.approve'), paymentContr
 router.get('/financial-entries', requirePermission('finance.view'), financialController.index)
 router.post('/financial-entries', requirePermission('finance.create'), financialController.store)
 router.put('/financial-entries/:id', requirePermission('finance.edit'), financialController.update)
+router.post('/financial-entries/purge-cancelled', requirePermission('finance.approve'), financialController.purgeCancelled)
 router.post('/financial-entries/:id/settle', requirePermission('finance.approve'), financialController.settle)
 router.delete('/financial-entries/:id', requirePermission('finance.approve'), financialController.remove)
 router.get('/financial-dashboard', requirePermission('finance.view'), financialController.dashboard)
