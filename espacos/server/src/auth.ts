@@ -41,13 +41,25 @@ async function loadUser(req: AuthedRequest) {
 }
 
 /**
- * Administradores definidos por variável de ambiente (ADMIN_EMAILS, separados por vírgula).
+ * Administradores definidos por variável de ambiente (ADMIN_EMAILS, separados por vírgula, ponto e vírgula ou espaço).
  * Só vale para contas com o e-mail confirmado (ninguém vira admin cadastrando o e-mail de outra pessoa).
  */
-export const adminEmails = () => (process.env.ADMIN_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+export const adminEmails = () => (process.env.ADMIN_EMAILS ?? '').split(/[,;\s]+/).map(normalizeEmail).filter(Boolean);
 
-async function promoteConfiguredAdmin(user: User) {
-  if (user.roles.includes('admin') || !user.emailVerifiedAt || !adminEmails().includes(user.email.toLowerCase())) return;
+/** Forma canônica para comparar e-mails: no Gmail, pontos e "+algo" não mudam a caixa de entrada. */
+export function normalizeEmail(email: string) {
+  const e = email.trim().replace(/^["'<]+|["'>]+$/g, '').toLowerCase();
+  const at = e.lastIndexOf('@');
+  if (at < 1) return e;
+  const domain = e.slice(at + 1);
+  if (domain !== 'gmail.com' && domain !== 'googlemail.com') return e;
+  return `${e.slice(0, at).split('+')[0].replaceAll('.', '')}@gmail.com`;
+}
+
+export const isAdminEmail = (email: string) => adminEmails().includes(normalizeEmail(email));
+
+export async function promoteConfiguredAdmin(user: User) {
+  if (user.roles.includes('admin') || !user.emailVerifiedAt || !isAdminEmail(user.email)) return;
   user.roles.push('admin');
   await updateUser(pool, user);
   console.log(`[admin] ${user.email} promovido a administrador (ADMIN_EMAILS)`);
