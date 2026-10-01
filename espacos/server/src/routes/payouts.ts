@@ -1,5 +1,7 @@
 // Conta de recebimento do anfitrião (Mercado Pago, split de pagamento).
 import { Router } from 'express';
+import { pool } from '../db.js';
+import { notify } from '../notify.js';
 import { HttpError, requireAuth, type AuthedRequest } from '../auth.js';
 import { assertEmailVerified } from '../emailVerification.js';
 import { MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
@@ -47,7 +49,10 @@ payoutsRouter.get('/mp/oauth/callback', async (req, res) => {
   const { code, state, error } = req.query as Record<string, string | undefined>;
   try {
     if (error || !code || !state) throw new HttpError(400, 'mp_authorization_denied');
-    await completeAuthorization(code, state);
+    const userId = await completeAuthorization(code, state);
+    await notify(pool, { userId }, 'mp_pix_key',
+      'Mercado Pago conectado! Falta um detalhe para seus clientes pagarem com Pix: cadastre uma chave Pix na sua conta Mercado Pago.\n\nNo app do Mercado Pago: toque em Pix → Minhas chaves → Cadastrar chave (pode ser CPF, CNPJ, celular ou e-mail). Leva 1 minuto.\n\nSem a chave Pix, o cliente só consegue pagar com cartão.',
+      '/anfitriao#receber').catch(() => {});
     res.redirect(`${APP_URL()}/anfitriao?mp=conectado`);
   } catch (e) {
     const code = e instanceof HttpError ? e.code : 'mp_connect_failed';

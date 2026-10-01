@@ -1022,6 +1022,16 @@ const zh: Dict = {
   'err.invalid_wallet_id': "Invalid Wallet ID. Copy it again in Asaas (My account → Integrations).",
   'err.asaas_wallet_in_use': "This Asaas account is already linked to another user.",
   'err.asaas_not_configured': "Asaas is not enabled on SpaceHour yet.",
+  'pix.step': "Register a Pix key",
+  'pix.stepText': "in the Mercado Pago app (Pix → My keys). Without it, clients cannot pay by Pix.",
+  'pix.title': "Last step: register your Pix key in Mercado Pago",
+  'pix.why': "Without a Pix key in your Mercado Pago account, clients can only pay by card. Takes 1 minute.",
+  'pix.s1': "Open the Mercado Pago app (the account you connected).",
+  'pix.s2': "Tap Pix.",
+  'pix.s3': "Tap My keys → Register key.",
+  'pix.s4': "Choose CPF, CNPJ, phone or email and confirm.",
+  'pix.done': "I registered my Pix key",
+  'pix.later': "Later",
 };
 
 export default zh;

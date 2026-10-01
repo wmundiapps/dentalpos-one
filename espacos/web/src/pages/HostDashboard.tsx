@@ -83,6 +83,7 @@ function PayoutAccount() {
   const [st, setSt] = useState<PayoutStatus | null>(null);
   const [error, setError] = useState('');
   const [asaasDone, setAsaasDone] = useState(false);
+  const [pixGuide, setPixGuide] = useState(true);
   const { connect, busy, error: connectError } = useMpConnect();
   const load = () => api<PayoutStatus>('/me/payout-account').then(setSt).catch(() => {});
   useEffect(() => { load(); }, []);
@@ -139,11 +140,37 @@ function PayoutAccount() {
           )}
         </div>
       )}
+      {mpConnected && <PixKeyReminder />}
       {error && <p className="errors small">{error}</p>}
+      {status === 'conectado' && mpConnected && pixGuide && (
+        <NextStep icon="🔑" title={t('pix.title')} steps={[t('pix.s1'), t('pix.s2'), t('pix.s3'), t('pix.s4')]}
+          actions={[{ label: t('pix.done'), onClick: () => { markPixDone(); setPixGuide(false); } }, { label: t('pix.later'), onClick: () => setPixGuide(false) }]}
+          onClose={() => setPixGuide(false)}>
+          <p>{t('pix.why')}</p>
+        </NextStep>
+      )}
       {asaasDone && (
         <NextStep icon="🎉" title={t('next.asaasTitle')} steps={[t('next.asaasStep1'), t('next.asaasStep2'), t('next.asaasStep3')]}
           actions={[{ label: t('next.seeMyListings'), to: '/anfitriao?aba=anuncios', onClick: () => setAsaasDone(false) }]} onClose={() => setAsaasDone(false)} />
       )}
     </section>
+  );
+}
+
+const PIX_KEY = 'sh_pix_key_done';
+function markPixDone() { try { localStorage.setItem(PIX_KEY, '1'); } catch { /* sem armazenamento */ } }
+
+// Lembrete fixo no painel: sem chave Pix na conta Mercado Pago, o cliente não vê a opção Pix
+function PixKeyReminder() {
+  const { t } = useI18n();
+  const [done, setDone] = useState(() => { try { return !!localStorage.getItem(PIX_KEY); } catch { return false; } });
+  if (done) return null;
+  return (
+    <div className="notice warn pix-reminder">
+      <strong>🔑 {t('pix.title')}</strong>
+      <p className="small">{t('pix.why')}</p>
+      <ol className="small"><li>{t('pix.s1')}</li><li>{t('pix.s2')}</li><li>{t('pix.s3')}</li><li>{t('pix.s4')}</li></ol>
+      <button className="btn btn-primary" onClick={() => { markPixDone(); setDone(true); }}>✅ {t('pix.done')}</button>
+    </div>
   );
 }

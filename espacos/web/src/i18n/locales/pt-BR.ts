@@ -1024,6 +1024,16 @@ const ptBR = {
   'err.invalid_wallet_id': "Wallet ID inválido. Copie de novo no Asaas (Minha conta → Integrações).",
   'err.asaas_wallet_in_use': "Esta conta Asaas já está ligada a outro usuário.",
   'err.asaas_not_configured': "O Asaas ainda não foi ligado no SpaceHour.",
+  'pix.step': "Cadastre uma chave Pix",
+  'pix.stepText': "no app do Mercado Pago (Pix → Minhas chaves). Sem ela, seus clientes não conseguem pagar com Pix.",
+  'pix.title': "Último passo: cadastre sua chave Pix no Mercado Pago",
+  'pix.why': "Sem chave Pix na sua conta Mercado Pago, o cliente só consegue pagar com cartão. Leva 1 minuto.",
+  'pix.s1': "Abra o app do Mercado Pago (na conta que você conectou).",
+  'pix.s2': "Toque em Pix.",
+  'pix.s3': "Toque em Minhas chaves → Cadastrar chave.",
+  'pix.s4': "Escolha CPF, CNPJ, celular ou e-mail e confirme.",
+  'pix.done': "Já cadastrei a chave Pix",
+  'pix.later': "Faço depois",
 };
 
 export default ptBR;
