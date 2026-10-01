@@ -227,6 +227,7 @@ router.get('/appointments', requirePermission('agenda.view'), appointmentControl
 router.get('/appointment/:id', requirePermission('agenda.view'), appointmentController.show)
 router.post('/appointments', requirePermission('agenda.create'), appointmentController.store)
 router.put('/appointment/:id', requirePermission('agenda.edit'), appointmentController.update)
+router.put('/appointment/:id/flow', requirePermission('agenda.edit'), appointmentController.flowAction)
 router.delete('/appointment/:id', requirePermission('agenda.cancel'), appointmentController.remove)
 
 // ======================

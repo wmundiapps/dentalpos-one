@@ -629,3 +629,58 @@ export async function remove(req: AuthRequest, res: Response) {
     return res.status(500).json({ error: 'Erro ao cancelar agendamento.' })
   }
 }
+
+
+// Painel de atendimentos: recepção confirma chegada; sala/atendimento/fim. Cada ação altera só este agendamento
+// (portanto só a fila do consultório dele), sem revalidar horário nem exigir motivo.
+const FLOW_ACTIONS: Record<string, { to: string; from: string[] }> = {
+  ARRIVED: { to: 'WAITING', from: ['SCHEDULED', 'CONFIRMED'] },
+  PREPARE_ROOM: { to: 'ROOM_PREPARATION', from: ['WAITING'] },
+  START: { to: 'IN_PROGRESS', from: ['WAITING', 'ROOM_PREPARATION'] },
+  FINISH: { to: 'COMPLETED', from: ['IN_PROGRESS'] }
+}
+
+export async function flowAction(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
+    const id = String(req.params.id)
+    const action = FLOW_ACTIONS[String(req.body?.action || '')]
+    if (!action) return res.status(400).json({ error: 'Ação inválida.' })
+    const existing = await prisma.appointment.findFirst({ where: { id, clinicId: req.user.clinicId, tenantId: req.user.tenantId } })
+    if (!existing) return res.status(404).json({ error: 'Agendamento não encontrado.' })
+    if (existing.status === action.to) return res.status(200).json(existing)
+    if (!action.from.includes(existing.status)) {
+      return res.status(409).json({ error: 'Este paciente não está na etapa anterior a esta ação. Atualize o painel.' })
+    }
+    const now = new Date()
+    const appointment = await prisma.$transaction(async tx => {
+      const updated = await tx.appointment.update({
+        where: { id },
+        data: {
+          status: action.to,
+          ...(action.to === 'IN_PROGRESS' ? { startedAt: now } : {}),
+          ...(action.to === 'COMPLETED' ? { endedAt: now, ...(existing.startedAt ? {} : { startedAt: now }) } : {})
+        }
+      })
+      await tx.appointmentHistory.create({
+        data: {
+          clinicId: req.user!.clinicId,
+          tenantId: req.user!.tenantId,
+          appointmentId: id,
+          actorId: req.user!.id,
+          action: 'UPDATED',
+          reason: `Painel de atendimentos: ${action.to}`,
+          previousScheduledAt: existing.scheduledAt,
+          newScheduledAt: existing.scheduledAt,
+          previousStatus: existing.status,
+          newStatus: action.to
+        }
+      })
+      return updated
+    })
+    return res.status(200).json(appointment)
+  } catch (error) {
+    console.error('Erro na ação do painel de atendimentos:', error)
+    return res.status(500).json({ error: 'Erro ao atualizar o atendimento.' })
+  }
+}
