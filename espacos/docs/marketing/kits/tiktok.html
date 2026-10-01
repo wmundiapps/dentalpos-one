@@ -1,0 +1,837 @@
+<title>Kit TikTok SpaceHour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: manual de trabalho de uma coluna (~760px), índice no topo, seções numeradas na ordem de execução. */
+:root {
+  --bg: #f3fbfa;
+  --surface: #ffffff;
+  --ink: #0b3534;
+  --muted: #4a6866;
+  --line: #cbe4e1;
+  --accent: #0e7c7b;
+  --accent-strong: #0a5f5e;
+  --accent-soft: #dcf3f0;
+  --code-bg: #eaf6f4;
+  --note-bg: #fff7e6;
+  --note-line: #e7c27a;
+  --note-ink: #5b4310;
+  --on-accent: #ffffff;
+  --font-display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #061c1b; --surface: #0b2827; --ink: #e2f4f2; --muted: #9dbfbc; --line: #1d4745;
+    --accent: #5fd6d0; --accent-strong: #8ff0e9; --accent-soft: #0f3a38; --code-bg: #08201f;
+    --note-bg: #2a2210; --note-line: #7a6223; --note-ink: #f1dca6; --on-accent: #062120;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #061c1b; --surface: #0b2827; --ink: #e2f4f2; --muted: #9dbfbc; --line: #1d4745;
+  --accent: #5fd6d0; --accent-strong: #8ff0e9; --accent-soft: #0f3a38; --code-bg: #08201f;
+  --note-bg: #2a2210; --note-line: #7a6223; --note-ink: #f1dca6; --on-accent: #062120;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; margin: 0; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 780px; margin: 0 auto; }
+h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.25; text-wrap: balance; color: var(--ink); }
+h1 { font-size: 1.9rem; margin: 0; font-weight: 700; }
+h2 { font-size: 1.4rem; margin: 0 0 12px; font-weight: 600; display: flex; gap: 12px; align-items: baseline; }
+h2 .n { font-family: var(--font-mono); font-size: .95rem; color: var(--accent); font-weight: 500; min-width: 2ch; }
+h3 { font-size: 1.1rem; margin: 28px 0 8px; font-weight: 600; }
+h4 { font-size: 1rem; margin: 18px 0 6px; font-weight: 600; }
+p, li { max-width: 68ch; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+strong { font-weight: 700; }
+.top { padding-block: 32px 20px; border-bottom: 1px solid var(--line); display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.logo { width: 52px; height: 52px; border-radius: 14px; background: var(--accent-strong); display: grid; place-items: center; flex: none; }
+.logo span { width: 34px; height: 34px; border-radius: 9px; background: #ffffff; color: #0a5f5e; font: 700 1.25rem/34px var(--font-display); text-align: center; }
+.top .meta { color: var(--muted); font-size: .95rem; margin: 4px 0 0; }
+.eyebrow { font-family: var(--font-mono); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 2px; }
+nav.toc { margin-block: 20px 8px; }
+nav.toc ol { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 16px; counter-reset: t; }
+nav.toc li { counter-increment: t; }
+nav.toc a { display: flex; gap: 10px; padding: 6px 0; text-decoration: none; color: var(--ink); border-bottom: 1px dashed var(--line); }
+nav.toc a::before { content: counter(t, decimal-leading-zero); font-family: var(--font-mono); color: var(--accent); font-size: .85rem; padding-top: 2px; }
+nav.toc a:hover { color: var(--accent); }
+section { padding-block: 36px 8px; border-bottom: 1px solid var(--line); scroll-margin-top: 12px; }
+section:last-of-type { border-bottom: 0; }
+ol.steps { padding-left: 1.4em; display: grid; gap: 6px; }
+ol.steps li::marker { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
+ul { padding-left: 1.2em; }
+.note { background: var(--note-bg); border: 1px solid var(--note-line); color: var(--note-ink); border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.note p { margin: 4px 0; }
+.tip { background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.tip p { margin: 4px 0; }
+.copy { position: relative; margin: 10px 0 16px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; }
+.copy pre { margin: 0; padding: 12px 14px; padding-top: 40px; font-family: var(--font-mono); font-size: .86rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.copy .lbl { position: absolute; top: 9px; left: 14px; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.copy button { position: absolute; top: 6px; right: 6px; font: 600 .82rem var(--font-body); background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.copy button:hover { background: var(--accent-strong); }
+.tbl { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-display); font-weight: 600; font-size: .85rem; background: var(--accent-soft); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: .85rem; white-space: nowrap; }
+.checklist { list-style: none; padding: 0; display: grid; gap: 6px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; padding: 6px 8px; border-radius: 6px; }
+.checklist label:hover { background: var(--accent-soft); }
+.checklist input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--accent); flex: none; }
+.checklist input:checked + span { color: var(--muted); text-decoration: line-through; }
+.progress { font-family: var(--font-mono); font-size: .9rem; color: var(--accent); }
+.cards { display: grid; gap: 22px; }
+.card { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 18px; align-items: start; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.card.wide { grid-template-columns: minmax(0, 1fr); }
+.card img { width: 100%; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); background: var(--code-bg); display: block; }
+.card .body { min-width: 0; }
+.card .file { font-family: var(--font-mono); font-size: .8rem; color: var(--muted); margin: 0 0 4px; overflow-wrap: anywhere; }
+.card h4 { margin-top: 0; }
+@media (max-width: 560px) { .card { grid-template-columns: minmax(0, 1fr); } .card img { max-width: 240px; } .card.wide img { max-width: 100%; } }
+.script { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 14px 16px; margin: 16px 0; }
+.script h4 { margin-top: 0; }
+.script dl { display: grid; grid-template-columns: minmax(0, 120px) minmax(0, 1fr); gap: 4px 12px; margin: 8px 0; }
+.script dt { font-weight: 700; color: var(--accent-strong); font-size: .92rem; }
+.script dd { margin: 0; min-width: 0; }
+@media (max-width: 560px) { .script dl { grid-template-columns: minmax(0, 1fr); } .script dd { margin-bottom: 6px; } }
+.tag { display: inline-block; font-family: var(--font-mono); font-size: .74rem; background: var(--accent-soft); color: var(--accent-strong); padding: 1px 8px; border-radius: 999px; margin-right: 4px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="logo" aria-hidden="true"><span>S</span></div>
+  <div>
+    <p class="eyebrow">Kit de implementação · TikTok</p>
+    <h1>SpaceHour no TikTok</h1>
+    <p class="meta">Manual completo para criar, operar, anunciar e medir o perfil do SpaceHour no TikTok. Versão de outubro de 2026.</p>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Índice">
+  <ol>
+    <li><a href="#resumo">Resumo</a></li>
+    <li><a href="#checklist">Checklist de entrega</a></li>
+    <li><a href="#conta">Criação da conta</a></li>
+    <li><a href="#perfil">Perfil</a></li>
+    <li><a href="#cards">Capas e legendas</a></li>
+    <li><a href="#calendario">Calendário de 30 dias</a></li>
+    <li><a href="#roteiros">Roteiros de vídeo</a></li>
+    <li><a href="#anuncios">Anúncios (TikTok Ads)</a></li>
+    <li><a href="#pixel">Pixel e medição</a></li>
+    <li><a href="#crm">Atendimento e CRM</a></li>
+    <li><a href="#monetizacao">Monetização</a></li>
+    <li><a href="#metricas">Métricas e relatório</a></li>
+    <li><a href="#cuidados">Cuidados</a></li>
+  </ol>
+</nav>
+
+<section id="resumo">
+  <h2><span class="n">01</span>Resumo</h2>
+  <p><strong>O que é o SpaceHour:</strong> um site (space-hour.com) para alugar por hora espaços profissionais prontos: consultórios odontológicos e médicos, salas de psicologia, fisioterapia e estética, salas de aula, auditórios e salas de reunião.<br>
+  Quem tem espaço ocioso (o <strong>anfitrião</strong>) anuncia grátis, sem mensalidade, e paga 5% por reserva paga, mais a tarifa do Mercado Pago.<br>
+  Quem precisa de sala (o <strong>profissional</strong>) se cadastra grátis e paga só as horas que usar. Estamos começando por Maringá-PR.</p>
+  <p><strong>Objetivo do TikTok:</strong> fazer o SpaceHour ser conhecido em Maringá com vídeos curtos gravados no celular e levar pessoas ao site para se cadastrar. Prioridade nas primeiras semanas: <strong>anfitriões</strong> (sem espaços anunciados, o profissional não encontra nada para reservar).</p>
+  <p><strong>A quem pedir ajuda:</strong> Robson Ravel de Oliveira, responsável pelo SpaceHour. E-mail: <code>support@space-hour.com</code>.</p>
+  <div class="note"><p><strong>Importante:</strong> não existe promoção, desconto, cupom nem taxa zero para anfitriões. Nunca prometa nada disso em vídeo, legenda, comentário ou mensagem.</p></div>
+</section>
+
+<section id="checklist">
+  <h2><span class="n">02</span>Checklist de entrega</h2>
+  <p>Marque cada item quando estiver pronto. As marcações ficam salvas neste navegador. <span class="progress" id="ck-progress"></span></p>
+  <ul class="checklist" data-store="kit-tiktok-spacehour">
+    <li><label><input type="checkbox" id="tt-c01"><span>Conta TikTok criada com e-mail da empresa e convertida em <strong>conta comercial</strong></span></label></li>
+    <li><label><input type="checkbox" id="tt-c02"><span>Verificação em 2 etapas ligada; senha guardada em local combinado com o Robson</span></label></li>
+    <li><label><input type="checkbox" id="tt-c03"><span>TikTok Business Center criado no CNPJ do Instituto, com o Robson como administrador</span></label></li>
+    <li><label><input type="checkbox" id="tt-c04"><span>Perfil completo: nome, @, categoria, bio, foto (tiktok/perfil.png), e-mail de contato e link da bio com UTM</span></label></li>
+    <li><label><input type="checkbox" id="tt-c05"><span>Primeiros 3 vídeos publicados e 1 vídeo fixado no perfil</span></label></li>
+    <li><label><input type="checkbox" id="tt-c06"><span>Mensagem automática de boas-vindas e respostas salvas configuradas</span></label></li>
+    <li><label><input type="checkbox" id="tt-c07"><span>Planilha CRM (ou CRM grátis) criada com as colunas da seção 10</span></label></li>
+    <li><label><input type="checkbox" id="tt-c08"><span>TikTok Ads Manager criado dentro do Business Center, com dados de faturamento do CNPJ</span></label></li>
+    <li><label><input type="checkbox" id="tt-c09"><span>TikTok Pixel criado e ID entregue ao Robson (variável VITE_TIKTOK_PIXEL_ID)</span></label></li>
+    <li><label><input type="checkbox" id="tt-c10"><span>Pixel testado: PageView, ClickButton e CompleteRegistration aparecendo no Gerenciador de Eventos</span></label></li>
+    <li><label><input type="checkbox" id="tt-c11"><span>Conta do TikTok vinculada ao Ads Manager para Spark Ads</span></label></li>
+    <li><label><input type="checkbox" id="tt-c12"><span>Campanha "Anfitriões | Maringá" no ar (e a de profissionais, quando houver espaços publicados)</span></label></li>
+    <li><label><input type="checkbox" id="tt-c13"><span>Primeiro relatório semanal enviado ao Robson</span></label></li>
+  </ul>
+</section>
+
+<section id="conta">
+  <h2><span class="n">03</span>Criação da conta</h2>
+  <p>O perfil é um ativo da empresa. Ele nunca pode ficar preso a uma conta pessoal. Os nomes dos menus mudam com frequência no app; quando um caminho abaixo não bater exatamente, procure pela palavra indicada entre aspas.</p>
+
+  <h3>3.1 Conta no app</h3>
+  <ol class="steps">
+    <li>Instale o app TikTok no celular da empresa (ou no seu, saindo da sua conta pessoal antes).</li>
+    <li>Toque em <strong>Perfil</strong> → <strong>Cadastrar-se</strong> → <strong>Usar telefone ou e-mail</strong> → aba <strong>E-mail</strong>.</li>
+    <li>Use o e-mail da empresa: <code>support@space-hour.com</code> (ou outro e-mail da empresa que o Robson indicar). Nunca use e-mail pessoal.</li>
+    <li>Na data de nascimento, use a do responsável legal (maior de 18 anos). Contas de menores não acessam recursos comerciais.</li>
+    <li>Crie uma senha forte e guarde-a no gerenciador de senhas combinado com o Robson.</li>
+    <li>Confirme o código que chega no e-mail.</li>
+  </ol>
+
+  <h3>3.2 Mudar para conta comercial</h3>
+  <ol class="steps">
+    <li>Perfil → menu <strong>☰</strong> (três linhas, canto superior direito) → <strong>Configurações e privacidade</strong> → <strong>Conta</strong>.</li>
+    <li>Toque em <strong>"Mudar para conta comercial"</strong> (pode aparecer como "Conta empresarial" ou "Business account").</li>
+    <li>Escolha a categoria (veja a seção 4) e conclua.</li>
+  </ol>
+  <div class="tip"><p><strong>Por que conta comercial:</strong> ela libera estatísticas, e-mail de contato, link de site na bio, mensagem automática e integração com anúncios. Em troca, só é permitido usar músicas da <strong>Biblioteca de Músicas Comerciais</strong> (Commercial Music Library). Músicas comuns em alta não podem ser usadas por empresa.</p></div>
+
+  <h3>3.3 Segurança: verificação em 2 etapas</h3>
+  <ol class="steps">
+    <li>Configurações e privacidade → <strong>Segurança</strong> (ou "Segurança e permissões") → <strong>Verificação em 2 etapas</strong>.</li>
+    <li>Ative pelo menos dois métodos: e-mail e SMS (celular da empresa). Se houver opção de aplicativo autenticador, ative também.</li>
+    <li>Na mesma tela, confira <strong>"Gerenciar dispositivos"</strong> e remova aparelhos desconhecidos.</li>
+  </ol>
+
+  <h3>3.4 Acesso de administrador para o Robson (Business Center)</h3>
+  <p>O app do TikTok não tem "vários administradores" no perfil. O acesso compartilhado é feito pelo <strong>TikTok Business Center</strong>, que também é onde ficam os anúncios e o pixel.</p>
+  <ol class="steps">
+    <li>No computador, acesse <code>business.tiktok.com</code> e entre com a mesma conta da empresa.</li>
+    <li>Crie o Business Center com os dados da empresa: <strong>Instituto Ravel de Ensino Superior Ltda</strong>, CNPJ <strong>03.162.275/0001-10</strong>, Av. XV de Novembro, 255, Sobreloja, Maringá/PR, CEP 87013-230. Fuso horário: <strong>Brasília (GMT-3)</strong>. Moeda: <strong>Real (BRL)</strong>.</li>
+    <li>Em <strong>Usuários / Membros</strong> → <strong>Convidar membro</strong>, convide o e-mail do Robson com permissão de <strong>Administrador</strong>.</li>
+    <li>Em <strong>Ativos</strong> → <strong>Contas do TikTok</strong> → <strong>Adicionar / Vincular</strong>, vincule o perfil @ do SpaceHour. O app pede uma confirmação: aceite no celular.</li>
+    <li>Você fica como membro com acesso operacional. O Robson é dono e administrador.</li>
+  </ol>
+  <div class="note"><p>Fuso horário e moeda da conta de anúncios normalmente <strong>não podem ser alterados</strong> depois. Confira antes de salvar.</p></div>
+</section>
+
+<section id="perfil">
+  <h2><span class="n">04</span>Preenchimento do perfil</h2>
+  <p>Perfil → <strong>Editar perfil</strong>. Preencha cada campo abaixo.</p>
+
+  <h3>Nome</h3>
+  <pre class="cp" data-label="Nome">SpaceHour</pre>
+
+  <h3>Nome de usuário (@)</h3>
+  <p>Tente nesta ordem e use o primeiro que estiver livre (só letras, números, ponto e sublinhado):</p>
+  <pre class="cp" data-label="@ sugerido e alternativas">spacehour
+spacehour.br
+spacehourbr
+spacehour_oficial
+spacehour.maringa</pre>
+  <p>Avise o Robson de qual @ ficou, para ele usar o mesmo nas outras redes.</p>
+
+  <h3>Categoria</h3>
+  <p>Ao virar conta comercial, o TikTok mostra uma lista. Escolha a mais próxima de <strong>"Serviços profissionais"</strong> ou <strong>"Serviços empresariais"</strong>. Se houver "Imóveis/Aluguel", também serve. A lista muda com o tempo; o que importa é não escolher "Saúde", porque o SpaceHour aluga espaço e não presta atendimento de saúde.</p>
+
+  <h3>Bio (limite de 80 caracteres)</h3>
+  <pre class="cp" data-label="Bio principal · 74 caracteres">Consultórios e salas por hora em Maringá. Anuncie grátis seu horário vago.</pre>
+  <pre class="cp" data-label="Bio alternativa · 69 caracteres">Espaços profissionais por hora em Maringá. Anuncie grátis ou reserve.</pre>
+
+  <h3>Link da bio (campo "Site")</h3>
+  <pre class="cp" data-label="Link da bio com UTM">https://space-hour.com/conheca?utm_source=tiktok&utm_medium=bio&utm_campaign=lanc-geral</pre>
+  <ol class="steps">
+    <li>Em <strong>Editar perfil</strong>, procure o campo <strong>"Site"</strong> (Website) e cole o link acima.</li>
+    <li>Em contas comerciais esse campo costuma estar liberado, mas o TikTok pode exigir um mínimo de seguidores ou liberar aos poucos, conforme país e conta.</li>
+    <li><strong>Se o campo "Site" não aparecer:</strong>
+      <ul>
+        <li>confira em Configurações → Conta se o perfil está mesmo como <strong>conta comercial</strong>;</li>
+        <li>abra Perfil → ☰ → <strong>"Business Suite"</strong> ou <strong>"Ferramentas para empresas"</strong> e procure opções com o nome <strong>"Link na bio"</strong>, <strong>"Site"</strong> ou <strong>"Geração de leads"</strong>. Use a que existir;</li>
+        <li>enquanto isso, escreva o endereço em texto no fim da bio, no vídeo fixado e no texto na tela dos vídeos: <code>space-hour.com/conheca</code>. Não é preciso criar página de links (tipo Linktree): o link vai direto para a página do SpaceHour.</li>
+      </ul>
+    </li>
+    <li>Toque no link publicado no seu próprio perfil e confirme que abre a página "Conheça" do SpaceHour.</li>
+  </ol>
+
+  <h3>Botão de contato</h3>
+  <p>Editar perfil → <strong>E-mail</strong> (ou Business Suite → "Informações de contato"): <code>support@space-hour.com</code>. Isso cria o botão de e-mail no perfil. Não coloque telefone pessoal.</p>
+
+  <h3>Endereço e horário</h3>
+  <p>O TikTok não exibe endereço no perfil na maioria das contas. Se o Business Suite mostrar um campo de <strong>"Endereço comercial"</strong>, use o endereço da empresa: Av. XV de Novembro, 255, Sobreloja, Maringá/PR, CEP 87013-230. Horário de atendimento: segunda a sexta, horário comercial (confirme com o Robson). Lembre que os espaços anunciados ficam em endereços dos anfitriões, que só são liberados após a reserva confirmada.</p>
+
+  <h3>Foto de perfil</h3>
+  <div class="card">
+    <img src="../cards/tiktok/perfil.png" alt="Foto de perfil do SpaceHour: logo S branco em fundo teal" loading="lazy">
+    <div class="body">
+      <p class="file">cards/tiktok/perfil.png · 1080×1080</p>
+      <p>Editar perfil → <strong>Alterar foto</strong> → escolha este arquivo. O TikTok recorta em círculo; o logo já está centralizado.</p>
+    </div>
+  </div>
+  <p>O TikTok não tem imagem de capa de perfil. As "capas" deste kit são as capas dos vídeos (seção 5).</p>
+</section>
+
+<section id="cards">
+  <h2><span class="n">05</span>Capas dos vídeos e legendas</h2>
+  <p>As seis capas abaixo (1080×1920) são a primeira imagem de cada vídeo. Para salvar no celular: <strong>toque e segure a imagem → Salvar imagem</strong>. No computador: <strong>clique com o botão direito → Salvar imagem como</strong>. Os arquivos também estão no GitHub, em <code>espacos/docs/marketing/cards/tiktok/</code>.</p>
+  <div class="tip">
+    <p><strong>Como usar a capa:</strong> na tela de publicação, toque em <strong>"Editar capa"</strong> / "Selecionar capa". Se aparecer a opção de carregar imagem da galeria, escolha o PNG. Se não aparecer, coloque o PNG como o primeiro segundo do vídeo (no editor do TikTok ou no CapCut) e selecione esse quadro como capa.</p>
+    <p><strong>Links na legenda:</strong> no TikTok, link escrito na legenda ou em comentário não vira clicável. Por isso a legenda sempre manda para o <strong>link do perfil</strong>. O "link UTM do vídeo" abaixo serve para quando você compartilhar o vídeo fora do TikTok (WhatsApp, e-mail).</p>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <img src="../cards/tiktok/capa-01.png" alt="Capa: Quanto custa um consultório vazio?" loading="lazy">
+      <div class="body">
+        <p class="file">cards/tiktok/capa-01.png · Roteiro V1</p>
+        <h4>"Quanto custa um consultório vazio?"</h4>
+        <pre class="cp" data-label="Legenda">Faça a conta: aluguel + condomínio + luz, dividido pelas horas em que a sala fica aberta. Cada hora vazia custa esse valor. 🧮
+No SpaceHour você aluga esses horários por hora para profissionais com registro verificado. Anunciar é grátis, sem mensalidade.
+Link no perfil 👆
+#maringa #consultorio #dentista #psicologia #fisioterapia #consultoriocompartilhado #spacehour</pre>
+        <pre class="cp" data-label="Link UTM do vídeo">https://space-hour.com/anuncie?utm_source=tiktok&utm_medium=post&utm_campaign=lanc-anfitrioes</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/tiktok/capa-02.png" alt="Capa: Aluguei um consultório por 1 hora" loading="lazy">
+      <div class="body">
+        <p class="file">cards/tiktok/capa-02.png · Roteiro V2</p>
+        <h4>"Aluguei um consultório por 1 hora"</h4>
+        <pre class="cp" data-label="Legenda">Consultório pronto, só pela hora que eu precisei. Sem contrato, sem fiador, sem condomínio. Pix ou cartão.
+O endereço completo é liberado quando a reserva é confirmada.
+Cadastro grátis: link no perfil 👆
+#maringa #consultorioporhora #psicologa #dentista #fisioterapeuta #autonomo #spacehour</pre>
+        <pre class="cp" data-label="Link UTM do vídeo">https://space-hour.com/profissionais?utm_source=tiktok&utm_medium=post&utm_campaign=lanc-profissionais</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/tiktok/capa-03.png" alt="Capa: 3 erros de quem aluga sala inteira" loading="lazy">
+      <div class="body">
+        <p class="file">cards/tiktok/capa-03.png · Roteiro V3</p>
+        <h4>"3 erros de quem aluga sala inteira"</h4>
+        <pre class="cp" data-label="Legenda">Atende poucas vezes por semana e paga aluguel cheio? Veja os 3 erros mais comuns e uma alternativa: alugar por hora, só quando tiver atendimento.
+Link no perfil 👆
+#consultorio #psicologia #nutricionista #fisioterapia #empreendedorismo #maringa #spacehour</pre>
+        <pre class="cp" data-label="Link UTM do vídeo">https://space-hour.com/profissionais?utm_source=tiktok&utm_medium=post&utm_campaign=lanc-profissionais</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/tiktok/capa-04.png" alt="Capa: Recém-formado: como começar sem gastar com sala" loading="lazy">
+      <div class="body">
+        <p class="file">cards/tiktok/capa-04.png · Roteiro V4</p>
+        <h4>"Recém-formado: como começar sem gastar com sala"</h4>
+        <pre class="cp" data-label="Legenda">Acabou de se formar e ainda não tem agenda cheia? Comece reservando consultório por hora, avulso ou toda semana no mesmo horário. Cadastro grátis, com registro profissional verificado.
+Link no perfil 👆
+#recemformado #odontologia #psicologia #fisioterapia #primeiroconsultorio #maringa #spacehour</pre>
+        <pre class="cp" data-label="Link UTM do vídeo">https://space-hour.com/profissionais?utm_source=tiktok&utm_medium=post&utm_campaign=lanc-profissionais</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/tiktok/capa-05.png" alt="Capa: Como funciona o SpaceHour em 30s" loading="lazy">
+      <div class="body">
+        <p class="file">cards/tiktok/capa-05.png · Roteiro V5</p>
+        <h4>"Como funciona o SpaceHour em 30s"</h4>
+        <pre class="cp" data-label="Legenda">Quem tem sala anuncia grátis e define preço, horários e regras. Quem precisa de sala reserva por hora e paga com Pix, cartão ou boleto. Simples assim.
+Conheça: link no perfil 👆
+#spacehour #maringa #consultorio #salaporhora #coworking #empreendedorismo</pre>
+        <pre class="cp" data-label="Link UTM do vídeo">https://space-hour.com/conheca?utm_source=tiktok&utm_medium=post&utm_campaign=lanc-geral</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/tiktok/capa-06.png" alt="Capa: Seu horário vago vira renda" loading="lazy">
+      <div class="body">
+        <p class="file">cards/tiktok/capa-06.png · Roteiro V6</p>
+        <h4>"Seu horário vago vira renda"</h4>
+        <pre class="cp" data-label="Legenda">Seu consultório fica parado em alguns horários? Anuncie esses horários no SpaceHour. Você define preço e regras, aprova cada pedido (ou deixa a reserva instantânea) e recebe direto na sua conta Mercado Pago.
+Sem mensalidade: 5% por reserva paga + tarifa do Mercado Pago.
+Link no perfil 👆
+#maringa #dentista #clinica #consultorio #rendaextra #spacehour</pre>
+        <pre class="cp" data-label="Link UTM do vídeo">https://space-hour.com/anuncie?utm_source=tiktok&utm_medium=post&utm_campaign=lanc-anfitrioes</pre>
+      </div>
+    </div>
+  </div>
+  <p>Os vídeos V7 a V12 não têm capa pronta: use como capa um quadro do vídeo com o texto do gancho na tela.</p>
+</section>
+
+<section id="calendario">
+  <h2><span class="n">06</span>Calendário dos primeiros 30 dias</h2>
+  <p><strong>Ritmo (sugestão inicial):</strong> 4 a 5 vídeos por semana, de preferência entre 11h e 13h ou entre 18h e 21h. Depois de 2 semanas, use o horário que aparecer em <strong>Estatísticas → Seguidores</strong> (no TikTok Studio / Business Suite). Grave em lote: 1 tarde por semana rende 4 a 5 vídeos. Nos dias sem post, responda comentários e mensagens.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Dia</th><th>Formato</th><th>Vídeo / capa</th><th>Legenda resumida</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Vídeo 30 s</td><td>V5 · capa-05</td><td>Como funciona em 30 s. Fixar no perfil.</td></tr>
+        <tr><td class="num">2</td><td>Vídeo 25 s</td><td>V1 · capa-01</td><td>Quanto custa um consultório vazio? Faça a conta.</td></tr>
+        <tr><td class="num">3</td><td>Vídeo 20 s</td><td>V6 · capa-06</td><td>Seu horário vago vira renda. Anuncie grátis.</td></tr>
+        <tr><td class="num">4</td><td>Sem post</td><td>—</td><td>Responder comentários e mensagens.</td></tr>
+        <tr><td class="num">5</td><td>Vídeo 40 s</td><td>V7</td><td>Um dia com o SpaceHour (anfitrião).</td></tr>
+        <tr><td class="num">6</td><td>Vídeo 15 s</td><td>V9</td><td>Você dividiria seu consultório por hora? (pergunta)</td></tr>
+        <tr><td class="num">7</td><td>Sem post</td><td>—</td><td>Gravar o lote da semana 2.</td></tr>
+        <tr><td class="num">8</td><td>Vídeo 30 s</td><td>V2 · capa-02</td><td>Aluguei um consultório por 1 hora. Ligar Spark Ads (seção 8).</td></tr>
+        <tr><td class="num">9</td><td>Vídeo 35 s</td><td>V10</td><td>E se o profissional estragar algo? Caução e avaliações.</td></tr>
+        <tr><td class="num">10</td><td>Vídeo resposta</td><td>V12</td><td>Responder a um comentário real com vídeo.</td></tr>
+        <tr><td class="num">11</td><td>Sem post</td><td>—</td><td>Responder comentários e mensagens.</td></tr>
+        <tr><td class="num">12</td><td>Vídeo 40 s</td><td>V3 · capa-03</td><td>3 erros de quem aluga sala inteira.</td></tr>
+        <tr><td class="num">13</td><td>Vídeo 20 s</td><td>V11</td><td>POV: segunda de manhã, sala vazia.</td></tr>
+        <tr><td class="num">14</td><td>Sem post</td><td>—</td><td>Gravar o lote da semana 3. Relatório semanal.</td></tr>
+        <tr><td class="num">15</td><td>Vídeo 35 s</td><td>V4 · capa-04</td><td>Recém-formado: comece sem gastar com sala.</td></tr>
+        <tr><td class="num">16</td><td>Vídeo 40 s</td><td>V8</td><td>Um dia com o SpaceHour (profissional).</td></tr>
+        <tr><td class="num">17</td><td>Vídeo 25 s</td><td>V1 (versão 2)</td><td>Mesmo tema, outro gancho e outro espaço.</td></tr>
+        <tr><td class="num">18</td><td>Sem post</td><td>—</td><td>Responder comentários e mensagens.</td></tr>
+        <tr><td class="num">19</td><td>Vídeo 20 s</td><td>V13</td><td>Tipos de espaço em 20 s.</td></tr>
+        <tr><td class="num">20</td><td>Vídeo resposta</td><td>V12</td><td>Responder dúvida de preço vinda de comentário.</td></tr>
+        <tr><td class="num">21</td><td>Sem post</td><td>—</td><td>Gravar o lote da semana 4. Relatório semanal.</td></tr>
+        <tr><td class="num">22</td><td>Vídeo 20 s</td><td>V6 (versão 2)</td><td>Horário vago vira renda, gravado em outro espaço.</td></tr>
+        <tr><td class="num">23</td><td>Vídeo 30 s</td><td>V5 (versão 2)</td><td>Como funciona, versão do profissional.</td></tr>
+        <tr><td class="num">24</td><td>Vídeo 35 s</td><td>V10 (versão 2)</td><td>Segurança: registro verificado e endereço após reserva.</td></tr>
+        <tr><td class="num">25</td><td>Sem post</td><td>—</td><td>Responder comentários e mensagens.</td></tr>
+        <tr><td class="num">26</td><td>Vídeo 40 s</td><td>V7 (outro anfitrião)</td><td>Um dia com o SpaceHour, com anfitrião real (com autorização).</td></tr>
+        <tr><td class="num">27</td><td>Vídeo 15 s</td><td>V9 (versão 2)</td><td>Pergunta: qual espaço falta em Maringá?</td></tr>
+        <tr><td class="num">28</td><td>Sem post</td><td>—</td><td>Relatório semanal. Ver quais vídeos viram anúncio.</td></tr>
+        <tr><td class="num">29</td><td>Vídeo 30 s</td><td>V2 (versão 2)</td><td>Reservei por hora, outro tipo de sala.</td></tr>
+        <tr><td class="num">30</td><td>Vídeo resposta</td><td>V12</td><td>Responder a dúvida mais frequente do mês.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="roteiros">
+  <h2><span class="n">07</span>Roteiros de vídeo</h2>
+  <p>Regras para todos os vídeos:</p>
+  <ul>
+    <li>Grave no celular, na vertical (9:16), com luz de janela ou luz do próprio consultório. Duração de 15 a 45 segundos.</li>
+    <li><strong>Gancho nos 3 primeiros segundos:</strong> texto grande na tela + primeira frase falada.</li>
+    <li>Sempre com legenda automática ligada (no editor: <strong>"Legendas"</strong>) e texto na tela, porque muita gente assiste sem som.</li>
+    <li><strong>Nunca mostre pacientes</strong>, prontuários, telas com dados de pessoas ou procedimentos. Mostre o espaço vazio, as mãos, o celular, a porta, a agenda.</li>
+    <li>Só grave espaços com autorização escrita do dono e pessoas com autorização de uso de imagem (seção 13).</li>
+    <li><strong>Música:</strong> conta comercial só usa a Biblioteca de Músicas Comerciais. No editor, toque em <strong>Sons</strong> e use os sons sugeridos com selo comercial. Para ver o que está em alta, abra o <strong>TikTok Creative Center</strong> (procure "TikTok Creative Center" no Google) → <strong>Tendências</strong> → <strong>Músicas</strong>, filtre Brasil e a opção "Aprovado para uso comercial" (ou nome parecido). Trends de formato (POV, "um dia com", pergunta e resposta) podem ser usadas com qualquer som comercial.</li>
+  </ul>
+
+  <div class="script">
+    <h4>V1 · Quanto custa um consultório vazio? <span class="tag">anfitrião</span><span class="tag">25 s</span><span class="tag">capa-01</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Plano da cadeira ou maca vazia, luz apagada. Texto: <strong>"Quanto custa um consultório vazio?"</strong></dd>
+      <dt>Cenas</dt><dd>1) Sala vazia. 2) Mão escrevendo numa folha: aluguel + condomínio + luz. 3) Seta dividindo por "horas abertas". 4) Relógio de parede. 5) Celular abrindo space-hour.com/anuncie.</dd>
+      <dt>Texto na tela</dt><dd>"Aluguel + condomínio + luz" → "÷ horas que a sala fica aberta" → "= quanto custa cada hora" → "Hora vazia = esse valor parado" → "Alugue por hora no SpaceHour".</dd>
+      <dt>Fala</dt><dd>"Sabe quanto custa uma hora do seu consultório? Soma aluguel, condomínio e luz e divide pelas horas que ele fica aberto. Cada hora vazia custa isso. No SpaceHour você aluga esses horários por hora para profissionais com registro verificado. Anunciar é grátis."</dd>
+      <dt>CTA</dt><dd>"Link no perfil."</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V2 · Aluguei um consultório por 1 hora <span class="tag">profissional</span><span class="tag">30 s</span><span class="tag">capa-02</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Mão abrindo a porta da sala. Texto: <strong>"Aluguei um consultório por 1 hora"</strong>.</dd>
+      <dt>Cenas</dt><dd>1) Celular com a busca do SpaceHour. 2) Escolha do horário. 3) Pagamento por Pix (tela sem dados pessoais). 4) Chegada, sala pronta. 5) Profissional organizando a mesa (sem paciente).</dd>
+      <dt>Texto na tela</dt><dd>"Escolhi a sala" → "Paguei com Pix" → "Endereço liberado após a confirmação" → "Sem contrato, sem fiador, sem condomínio".</dd>
+      <dt>Fala</dt><dd>"Eu precisava de um consultório só por uma hora. Achei no SpaceHour, vi fotos e equipamentos, paguei com Pix e o endereço foi liberado quando a reserva foi confirmada. Sem contrato e sem fiador."</dd>
+      <dt>CTA</dt><dd>"Cadastro grátis. Link no perfil."</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V3 · 3 erros de quem aluga sala inteira <span class="tag">profissional</span><span class="tag">40 s</span><span class="tag">capa-03</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Pessoa contando nos dedos, olhando para a câmera. Texto: <strong>"3 erros de quem aluga sala inteira"</strong>.</dd>
+      <dt>Cenas</dt><dd>Um corte por erro, com a sala vazia ao fundo; no fim, celular no site.</dd>
+      <dt>Texto na tela</dt><dd>"1. Pagar o mês todo para atender poucos dias" → "2. Assinar contrato longo e ter fiador" → "3. Pagar condomínio de sala parada" → "Alternativa: alugar por hora".</dd>
+      <dt>Fala</dt><dd>"Erro 1: pagar o mês inteiro para atender dois dias por semana. Erro 2: entrar num contrato longo, com fiador. Erro 3: pagar condomínio de sala parada. Se você atende poucas vezes, dá para reservar consultório por hora e pagar só as horas que usar."</dd>
+      <dt>CTA</dt><dd>"Veja os espaços: link no perfil."</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V4 · Recém-formado: como começar sem gastar com sala <span class="tag">profissional</span><span class="tag">35 s</span><span class="tag">capa-04</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Jaleco no cabide ou diploma na mesa. Texto: <strong>"Recém-formado? Comece sem alugar sala"</strong>.</dd>
+      <dt>Cenas</dt><dd>1) Agenda com poucos horários. 2) Celular reservando. 3) Sala pronta. 4) Opção "toda semana no mesmo horário".</dd>
+      <dt>Texto na tela</dt><dd>"Agenda ainda pequena?" → "Reserve por hora" → "Avulso ou toda semana" → "Registro profissional verificado".</dd>
+      <dt>Fala</dt><dd>"Se você acabou de se formar, não precisa começar com aluguel de sala inteira. No SpaceHour você reserva consultório por hora, avulso ou toda semana no mesmo horário. O cadastro é grátis e o seu registro no conselho é verificado."</dd>
+      <dt>CTA</dt><dd>"Link no perfil."</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V5 · Como funciona o SpaceHour em 30 s <span class="tag">geral</span><span class="tag">30 s</span><span class="tag">capa-05</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Tela do celular com o site. Texto: <strong>"Como funciona o SpaceHour em 30s"</strong>.</dd>
+      <dt>Cenas</dt><dd>Gravação de tela do celular (sem dados de usuários reais): página inicial, um anúncio, calendário, pagamento.</dd>
+      <dt>Texto na tela</dt><dd>"Tem sala? Anuncie grátis" → "Você define preço e horário" → "Precisa de sala? Reserve por hora" → "Pix, cartão ou boleto".</dd>
+      <dt>Fala</dt><dd>"Quem tem consultório ou sala anuncia grátis e define preço, horários e regras. Quem precisa de espaço reserva por hora e paga online. O dinheiro cai direto na conta Mercado Pago de quem anunciou."</dd>
+      <dt>CTA</dt><dd>"Conheça no link do perfil."</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V6 · Seu horário vago vira renda <span class="tag">anfitrião</span><span class="tag">20 s</span><span class="tag">capa-06</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Agenda de papel ou tela com buracos na semana. Texto: <strong>"Seu horário vago vira renda"</strong>.</dd>
+      <dt>Cenas</dt><dd>1) Agenda com horários vagos marcados. 2) Sala vazia. 3) Celular cadastrando o espaço.</dd>
+      <dt>Texto na tela</dt><dd>"Terça à tarde vazia?" → "Anuncie esse horário" → "Você aprova cada pedido" → "Sem mensalidade: 5% por reserva + tarifa Mercado Pago".</dd>
+      <dt>Fala</dt><dd>"Aquele horário em que sua sala fica parada pode ser alugado por hora. Você define o preço, aprova cada pedido ou deixa a reserva instantânea, e recebe na sua conta Mercado Pago."</dd>
+      <dt>CTA</dt><dd>"Anuncie grátis. Link no perfil."</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V7 · Um dia com o SpaceHour (anfitrião) <span class="tag">anfitrião</span><span class="tag">40 s</span><span class="tag">trend "um dia com"</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Chave abrindo a porta às 7h. Texto: <strong>"Um dia com o SpaceHour: a sala que não fica parada"</strong>.</dd>
+      <dt>Cenas</dt><dd>Cortes rápidos com horário na tela: 7h dono abre a sala · 8h–12h dono atende (mostrar só a porta fechada) · 13h celular avisa de nova reserva · 14h profissional chega (de costas, com autorização) · 18h sala arrumada · 19h notificação de pagamento recebido (sem valores reais).</dd>
+      <dt>Texto na tela</dt><dd>Hora + legenda curta em cada corte. Final: "A sala trabalhou o dia todo".</dd>
+      <dt>Fala</dt><dd>Narração curta ou só som da Biblioteca Comercial com texto na tela.</dd>
+      <dt>CTA</dt><dd>"Quer fazer o mesmo? Link no perfil."</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V8 · Um dia com o SpaceHour (profissional) <span class="tag">profissional</span><span class="tag">40 s</span><span class="tag">trend "um dia com"</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Café e celular na mesa. Texto: <strong>"Um dia de atendimento sem ter consultório próprio"</strong>.</dd>
+      <dt>Cenas</dt><dd>8h reserva confirmada no celular · 9h chegada na sala pronta · 9h–11h porta fechada ("atendendo") · 12h almoço · 15h outra sala, outro bairro · 18h volta para casa.</dd>
+      <dt>Texto na tela</dt><dd>"Paguei só as horas que usei" · "Sem contrato" · "Pix ou cartão".</dd>
+      <dt>Fala</dt><dd>Narração em primeira pessoa, curta. Usar um profissional real só com autorização de imagem e sem prometer resultado de tratamento.</dd>
+      <dt>CTA</dt><dd>"Cadastro grátis. Link no perfil."</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V9 · Você dividiria seu consultório por hora? <span class="tag">engajamento</span><span class="tag">15 s</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Pessoa olhando para a câmera, sala ao fundo. Texto: <strong>"Você dividiria seu consultório por hora?"</strong></dd>
+      <dt>Cenas</dt><dd>Um plano só. Ao final, texto "Responde aqui embaixo: sim, não ou depende".</dd>
+      <dt>Fala</dt><dd>"Pergunta sincera: você alugaria seu consultório por hora nos horários em que ele fica vazio? Sim, não ou depende? Me conta nos comentários."</dd>
+      <dt>CTA</dt><dd>Comentar. Responda os comentários com vídeo (V12).</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V10 · E se o profissional estragar alguma coisa? <span class="tag">anfitrião</span><span class="tag">35 s</span><span class="tag">segurança</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Close em equipamento do consultório. Texto: <strong>"E se estragarem algo na minha sala?"</strong></dd>
+      <dt>Cenas</dt><dd>Gravação de tela das configurações do anúncio: caução, avalista, aprovação de pedidos, avaliações.</dd>
+      <dt>Texto na tela</dt><dd>"Registro profissional verificado" → "Você pode exigir caução e avalista" → "Você aprova cada pedido" → "Avaliações dos dois lados".</dd>
+      <dt>Fala</dt><dd>"Essa é a dúvida número um de quem tem consultório. No SpaceHour quem aluga tem o registro profissional verificado, você pode exigir caução e avalista, pode aprovar cada pedido antes, e os dois lados se avaliam."</dd>
+      <dt>CTA</dt><dd>"Mais dúvidas? Comenta aqui."</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V11 · POV: segunda de manhã, sala vazia <span class="tag">anfitrião</span><span class="tag">20 s</span><span class="tag">trend POV</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Câmera em primeira pessoa entrando na sala vazia. Texto: <strong>"POV: é segunda de manhã e sua sala está vazia de novo"</strong>.</dd>
+      <dt>Cenas</dt><dd>Olhar pela sala, suspiro, pega o celular, abre o SpaceHour, cadastra o horário.</dd>
+      <dt>Texto na tela</dt><dd>"...de novo" → "Anunciei os horários vagos" → "Agora alguém reserva por hora".</dd>
+      <dt>Fala</dt><dd>Sem fala. Use um som em alta com selo comercial.</dd>
+      <dt>CTA</dt><dd>Texto final: "Anuncie grátis: link no perfil".</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V12 · Responder comentário com vídeo <span class="tag">geral</span><span class="tag">20–40 s</span><span class="tag">recorrente</span></h4>
+    <dl>
+      <dt>Como gravar</dt><dd>No comentário, toque em <strong>Responder</strong> → ícone de câmera (resposta em vídeo). O comentário aparece como figurinha no vídeo.</dd>
+      <dt>Gancho (0–3 s)</dt><dd>Ler a pergunta em voz alta.</dd>
+      <dt>Exemplo (preço)</dt><dd>"Quanto custa? Quem anuncia define o preço da hora. Para o anfitrião não tem mensalidade: é 5% por reserva paga, mais a tarifa do Mercado Pago. Quem aluga paga a hora mais 15% de taxa de serviço e ISS sobre essa taxa."</dd>
+      <dt>CTA</dt><dd>"Mais detalhes no link do perfil."</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>V13 · Tipos de espaço em 20 s <span class="tag">profissional</span><span class="tag">20 s</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Texto: <strong>"Que tipo de sala dá para alugar por hora?"</strong></dd>
+      <dt>Cenas</dt><dd>Cortes de 2 s em espaços diferentes (só com autorização dos donos): consultório odontológico, sala de psicologia, fisioterapia, estética, sala de aula, auditório, sala de reunião.</dd>
+      <dt>Texto na tela</dt><dd>O nome de cada tipo de espaço sobre a imagem.</dd>
+      <dt>CTA</dt><dd>"Qual você precisa? Link no perfil."</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="anuncios">
+  <h2><span class="n">08</span>Anúncios pagos: TikTok Ads Manager</h2>
+  <p>Comece os anúncios <strong>depois</strong> que o pixel estiver funcionando (seção 9) e houver pelo menos 5 vídeos orgânicos publicados (sugestão: dia 8).</p>
+
+  <h3>8.1 Conta de anúncios no CNPJ</h3>
+  <ol class="steps">
+    <li>Em <code>business.tiktok.com</code>, dentro do Business Center do SpaceHour → <strong>Ativos</strong> → <strong>Contas de anúncios</strong> → <strong>Criar</strong>.</li>
+    <li>País: Brasil. Moeda: BRL. Fuso: Brasília (GMT-3). Nome: <code>SpaceHour | Ads</code>.</li>
+    <li>Em <strong>Faturamento / Informações de cobrança</strong>, cadastre como empresa: razão social Instituto Ravel de Ensino Superior Ltda, CNPJ 03.162.275/0001-10 e o endereço da empresa. É isso que garante faturas no nome do CNPJ.</li>
+    <li>Adicione o Robson como administrador da conta de anúncios.</li>
+  </ol>
+
+  <h3>8.2 Como pagar</h3>
+  <ul>
+    <li>Em <strong>Pagamento</strong>, o TikTok mostra as formas disponíveis para a conta. As mais comuns: <strong>pagamento automático</strong> com cartão de crédito da empresa (cobra conforme gasta) e <strong>pagamento manual</strong> (você adiciona saldo antes). No Brasil, o pagamento manual costuma aceitar <strong>Pix</strong> e <strong>boleto</strong>. Use o que aparecer.</li>
+    <li>Use cartão ou conta da empresa, nunca cartão pessoal.</li>
+    <li>Todo mês, baixe as faturas em <strong>Faturamento</strong> e envie ao Robson para a contabilidade.</li>
+  </ul>
+
+  <h3>8.3 Spark Ads (anunciar os vídeos orgânicos)</h3>
+  <p>Spark Ads usa os vídeos já postados no perfil como anúncio. Curtidas e comentários ficam no vídeo original e o perfil ganha seguidores.</p>
+  <ol class="steps">
+    <li><strong>Jeito 1 (recomendado):</strong> com a conta do TikTok vinculada ao Business Center (seção 3.4), ela aparece como <strong>identidade</strong> no Ads Manager. Na criação do anúncio, escolha essa identidade e selecione o vídeo.</li>
+    <li><strong>Jeito 2 (código de autorização):</strong> no app, abra o vídeo → <strong>…</strong> (Mais) → <strong>"Configurações de anúncio"</strong> → ative <strong>"Autorização de anúncio"</strong> → gere um código (escolha 365 dias) → copie. No Ads Manager, em <strong>Ferramentas → Criativos → Publicações do TikTok</strong> (ou na tela do anúncio, "Usar publicação do TikTok"), cole o código.</li>
+  </ol>
+
+  <h3>8.4 Estrutura das campanhas</h3>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Item</th><th>Campanha 1: Anfitriões</th><th>Campanha 2: Profissionais</th></tr></thead>
+      <tbody>
+        <tr><td>Nome</td><td><code>SpaceHour | Anfitrioes | Maringa</code></td><td><code>SpaceHour | Profissionais | Maringa</code></td></tr>
+        <tr><td>Objetivo</td><td colspan="2">Conversão no site. No menu atual pode aparecer como <strong>"Conversões no site"</strong>, <strong>"Geração de leads"</strong> (com destino <strong>Site</strong>) ou dentro de <strong>"Vendas"</strong> com destino Site. Escolha a opção que permite otimizar por evento do pixel. Não use formulário instantâneo: a pessoa precisa se cadastrar no site.</td></tr>
+        <tr><td>Evento de otimização</td><td colspan="2"><strong>CompleteRegistration</strong> ("Registro completo"). Se o Ads Manager avisar que há poucos eventos, use <strong>ClickButton</strong> nos primeiros 5 a 7 dias e troque depois.</td></tr>
+        <tr><td>Local</td><td colspan="2">Digite <strong>Maringá</strong>. Se a cidade não aparecer (o TikTok nem sempre oferece cidade ou raio no Brasil), escolha <strong>Paraná</strong> e deixe "Maringá" bem claro no vídeo e no texto. Raio de 30 km quando houver essa opção.</td></tr>
+        <tr><td>Idade</td><td>25 a 55+</td><td>18 a 55+ (inclui recém-formados)</td></tr>
+        <tr><td>Interesses (opcional)</td><td colspan="2">Negócios e empreendedorismo; saúde e bem-estar; educação. Se o público ficar pequeno demais, deixe aberto (segmentação automática).</td></tr>
+        <tr><td>Posicionamento</td><td colspan="2">Somente TikTok (desmarque Pangle e outros apps).</td></tr>
+        <tr><td>Orçamento diário (sugestão inicial)</td><td>R$ 40/dia</td><td>R$ 20/dia, só depois de 5 a 10 espaços publicados em Maringá</td></tr>
+        <tr><td>Criativos</td><td>Spark Ads de V1, V6, V10, V11 (capas 01 e 06)</td><td>Spark Ads de V2, V3, V4 (capas 02, 03, 04)</td></tr>
+        <tr><td>Botão (CTA)</td><td>"Cadastre-se" ou "Saiba mais"</td><td>"Cadastre-se"</td></tr>
+        <tr><td>URL de destino</td><td>link "TikTok Ads · anfitriões" abaixo</td><td>link "TikTok Ads · profissionais" abaixo</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note"><p>O TikTok exige um orçamento mínimo diário por campanha e por grupo de anúncios. Se o painel disser que R$ 20 ou R$ 40 está abaixo do mínimo, use o mínimo exibido, ou junte os dois públicos numa campanha só até a verba crescer. Os valores acima são sugestões iniciais: depois de 7 dias, passe a verba para o anúncio com menor custo por cadastro.</p></div>
+  <p><strong>Categoria especial:</strong> se o Ads Manager perguntar se o anúncio é de categoria especial (habitação, emprego, crédito), responda conforme a pergunta. Hoje essa exigência vale principalmente para os EUA e o Canadá; se aparecer para o Brasil, marque "Habitação/Imóveis" e aceite as restrições de idade e local.</p>
+
+  <pre class="cp" data-label="URL TikTok Ads · anfitriões">https://space-hour.com/anuncie?utm_source=tiktok&utm_medium=paid&utm_campaign=lanc-anfitrioes</pre>
+  <pre class="cp" data-label="URL TikTok Ads · profissionais">https://space-hour.com/profissionais?utm_source=tiktok&utm_medium=paid&utm_campaign=lanc-profissionais</pre>
+
+  <h3>8.5 Textos prontos do anúncio (até 100 caracteres)</h3>
+  <p>Nos Spark Ads o texto do anúncio é a própria legenda do vídeo. Use os textos abaixo quando o anúncio permitir texto próprio (vídeo enviado direto ao Ads Manager).</p>
+  <pre class="cp" data-label="Anfitriões · 3 opções">Seu consultório fica vazio em alguns horários? Anuncie grátis no SpaceHour.
+Horário vago vira renda: alugue sua sala por hora em Maringá. Sem mensalidade.
+Você define preço, horários e regras. Receba direto no Mercado Pago.</pre>
+  <pre class="cp" data-label="Profissionais · 3 opções">Consultório pronto por hora em Maringá. Sem contrato, sem fiador.
+Atende poucas vezes por semana? Pague só as horas que usar.
+Reserve sala por hora com Pix ou cartão. Cadastro grátis.</pre>
+  <p>Nome de exibição do anúncio (quando não for Spark Ads): <code>SpaceHour</code>. Imagem de perfil: <code>cards/tiktok/perfil.png</code>.</p>
+</section>
+
+<section id="pixel">
+  <h2><span class="n">09</span>TikTok Pixel e medição</h2>
+  <p>O site já tem o código do TikTok Pixel pronto. Falta só criar o pixel e entregar o ID ao Robson. Você não precisa mexer em código.</p>
+
+  <h3>9.1 Criar o pixel</h3>
+  <ol class="steps">
+    <li>No TikTok Ads Manager → <strong>Ferramentas</strong> → <strong>Gerenciador de eventos</strong> (Events Manager).</li>
+    <li><strong>Conectar fonte de dados</strong> → <strong>Web</strong>. Se pedir o site, digite <code>space-hour.com</code>.</li>
+    <li>Escolha <strong>TikTok Pixel</strong> e a forma de instalação <strong>manual</strong> ("Instalar o código do pixel manualmente"). Não escolha parceiros (Shopify, GTM etc.).</li>
+    <li>Nome do pixel: <code>SpaceHour Site</code>.</li>
+    <li>Se o assistente oferecer a configuração de eventos por "Criador de eventos" (Event Builder), <strong>pule</strong>. Os eventos já são enviados pelo código do site; criar no Event Builder duplicaria as contagens.</li>
+    <li>Copie o <strong>ID do pixel</strong>: uma sequência de letras maiúsculas e números (cerca de 20 caracteres), que aparece ao lado do nome do pixel.</li>
+  </ol>
+
+  <h3>9.2 Entregar ao Robson</h3>
+  <pre class="cp" data-label="Mensagem para o Robson">Robson, o TikTok Pixel está criado.
+Variável na Vercel (projeto spacehour → Settings → Environment Variables, ambiente Production, sem marcar "Sensitive"):
+VITE_TIKTOK_PIXEL_ID = [COLE AQUI O ID DO PIXEL]
+Depois é preciso fazer Redeploy. Me avise quando estiver no ar para eu testar.</pre>
+
+  <h3>9.3 Eventos que o site envia</h3>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>No site</th><th>Nome no TikTok</th><th>Quando acontece</th></tr></thead>
+      <tbody>
+        <tr><td>PageView</td><td>Pageview (visualização de página)</td><td>Cada página aberta</td></tr>
+        <tr><td>Lead</td><td><strong>ClickButton</strong> (clicar no botão)</td><td>Clique nos botões de cadastro das landings</td></tr>
+        <tr><td>CompleteRegistration</td><td><strong>CompleteRegistration</strong> (registro completo)</td><td>Cadastro concluído</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>O site manda o "Lead" como <strong>ClickButton</strong>. Ele não envia SubmitForm. Se o Gerenciador de Eventos pedir para mapear "Lead", use ClickButton.</p>
+  <div class="note"><p><strong>LGPD:</strong> o pixel só carrega depois que a pessoa clica em <strong>Aceitar</strong> no aviso de cookies. Quem recusa não aparece no TikTok, mas o cadastro dela aparece em Admin → Campanha pela UTM. Por isso o TikTok sempre mostra menos conversões do que o site. É normal.</p></div>
+
+  <h3>9.4 Como testar</h3>
+  <ol class="steps">
+    <li>No Chrome do computador, instale a extensão <strong>TikTok Pixel Helper</strong> (Chrome Web Store).</li>
+    <li>Abra uma janela anônima e acesse <code>https://space-hour.com/anuncie?utm_source=tiktok&amp;utm_medium=paid&amp;utm_campaign=teste</code>.</li>
+    <li>Clique em <strong>Aceitar</strong> no aviso de cookies. O Pixel Helper deve mostrar o pixel com o evento de página.</li>
+    <li>Clique no botão de cadastro da página: deve aparecer <strong>ClickButton</strong>.</li>
+    <li>No Gerenciador de eventos → seu pixel → aba <strong>"Testar eventos"</strong> (Test events), siga as instruções (QR code ou URL) e repita o teste pelo celular. Os eventos aparecem ao vivo.</li>
+    <li>Para testar <strong>CompleteRegistration</strong>, combine com o Robson um cadastro de teste (e-mail de teste) e avise quando terminar, para ele apagar o usuário depois.</li>
+    <li>Na aba <strong>Visão geral</strong> do pixel, o status deve mudar para ativo em algumas horas.</li>
+  </ol>
+
+  <h3>9.5 UTMs do TikTok</h3>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Uso</th><th>Link</th></tr></thead>
+      <tbody>
+        <tr><td>Bio</td><td><code>https://space-hour.com/conheca?utm_source=tiktok&amp;utm_medium=bio&amp;utm_campaign=lanc-geral</code></td></tr>
+        <tr><td>Vídeo compartilhado fora (anfitrião)</td><td><code>https://space-hour.com/anuncie?utm_source=tiktok&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes</code></td></tr>
+        <tr><td>Vídeo compartilhado fora (profissional)</td><td><code>https://space-hour.com/profissionais?utm_source=tiktok&amp;utm_medium=post&amp;utm_campaign=lanc-profissionais</code></td></tr>
+        <tr><td>Anúncio anfitriões</td><td><code>https://space-hour.com/anuncie?utm_source=tiktok&amp;utm_medium=paid&amp;utm_campaign=lanc-anfitrioes</code></td></tr>
+        <tr><td>Anúncio profissionais</td><td><code>https://space-hour.com/profissionais?utm_source=tiktok&amp;utm_medium=paid&amp;utm_campaign=lanc-profissionais</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Não invente outros valores de UTM sem combinar com o Robson: o relatório Admin → Campanha agrupa exatamente por esses nomes.</p>
+</section>
+
+<section id="crm">
+  <h2><span class="n">10</span>Atendimento e CRM</h2>
+
+  <h3>10.1 Rotina diária</h3>
+  <ol class="steps">
+    <li>Às 9h, 13h e 17h (dias úteis): abra a <strong>Caixa de entrada</strong> (mensagens) e as <strong>notificações de comentários</strong>.</li>
+    <li>Responda tudo em até <strong>1 hora</strong> no horário comercial.</li>
+    <li>Cada pessoa interessada vira uma linha no CRM (10.4) no mesmo dia.</li>
+    <li>Comentário com dúvida boa vira vídeo-resposta (roteiro V12).</li>
+    <li>Ofensas, spam e golpes: oculte ou apague e bloqueie. Não discuta em público.</li>
+  </ol>
+
+  <h3>10.2 Automação no TikTok</h3>
+  <ul>
+    <li><strong>Mensagens diretas abertas:</strong> Configurações e privacidade → Privacidade → <strong>Mensagens diretas</strong> → permitir de <strong>Todos</strong> (ou a opção mais aberta disponível).</li>
+    <li><strong>Mensagem automática de boas-vindas</strong> e <strong>respostas automáticas/perguntas frequentes:</strong> Perfil → ☰ → <strong>Business Suite</strong> (ou "Ferramentas para empresas") → procure <strong>"Mensagens diretas"</strong>, <strong>"Mensagem de boas-vindas"</strong> e <strong>"Respostas automáticas"</strong>. Use os textos abaixo.</li>
+    <li><strong>Respostas salvas:</strong> dentro de uma conversa, procure o ícone de respostas rápidas/salvas, se existir na sua versão do app.</li>
+    <li><strong>Palavra-chave nos comentários:</strong> o TikTok não tem resposta automática por palavra-chave nos comentários. O que existe é <strong>filtro de palavras</strong> (Privacidade → Comentários → Filtrar palavras-chave) para esconder ofensas. Responda os comentários à mão.</li>
+  </ul>
+
+  <h3>10.3 Mensagens prontas</h3>
+  <pre class="cp" data-label="Boas-vindas automática">Oi! Aqui é o SpaceHour 👋 Alugamos consultórios e salas por hora em Maringá.
+Você tem um espaço para anunciar ou procura uma sala por hora? Responda aqui que a gente te ajuda.
+Site: space-hour.com/conheca</pre>
+  <pre class="cp" data-label="Para anfitrião (tem sala)">Que bom! Anunciar no SpaceHour é grátis e sem mensalidade. Você define preço, dias, horários e regras, aprova cada pedido (ou deixa a reserva instantânea) e recebe direto na sua conta Mercado Pago.
+Só há cobrança quando alguém aluga: 5% por reserva paga + tarifa do Mercado Pago.
+Para anunciar você vai precisar de uma conta Mercado Pago com chave Pix cadastrada.
+Comece pelo link do nosso perfil (space-hour.com/anuncie). Se quiser, eu te ajudo a cadastrar por chamada de vídeo. Qual o melhor horário?</pre>
+  <pre class="cp" data-label="Para profissional (procura sala)">Oi! No SpaceHour você reserva consultório ou sala pronta por hora, sem contrato, sem fiador e sem condomínio. Pode ser avulso ou toda semana no mesmo horário.
+O cadastro é grátis e pedimos o seu registro profissional (CRO, CRM, CRP, CREFITO etc.) para verificação.
+Comece pelo link do nosso perfil (space-hour.com/profissionais). Que tipo de espaço você procura e em que região de Maringá?</pre>
+  <pre class="cp" data-label="Dúvida de preço">Quem anuncia define o preço da hora, então varia de espaço para espaço.
+Para quem anuncia: grátis, sem mensalidade; 5% por reserva paga + tarifa do Mercado Pago.
+Para quem aluga: o valor da hora + taxa de serviço de 15% e ISS sobre essa taxa. Pagamento por Pix, cartão ou boleto (boleto só para reservas com 3 dias ou mais de antecedência).</pre>
+  <pre class="cp" data-label="Dúvida de segurança">Boa pergunta! Quem aluga informa o registro profissional, que é verificado. O anfitrião pode exigir caução e avalista e pode aprovar cada pedido antes de confirmar. O pagamento é feito antes, pelo Mercado Pago, e os dois lados se avaliam depois. O endereço completo só é liberado depois da reserva confirmada.</pre>
+  <pre class="cp" data-label="Resposta curta para comentário">Oi! Te mandei os detalhes por mensagem 😉 O link está no nosso perfil.</pre>
+
+  <h3>10.4 Planilha CRM</h3>
+  <p>Crie uma planilha (Google Planilhas) chamada <code>CRM SpaceHour - TikTok</code> com estas colunas, nesta ordem:</p>
+  <pre class="cp" data-label="Cabeçalho da planilha (cole na linha 1)">Data	Nome	Contato	Rede	Tipo	Cidade	Status	Próximo passo	Data do próximo contato</pre>
+  <ul>
+    <li><strong>Rede:</strong> sempre "TikTok" neste kit.</li>
+    <li><strong>Tipo:</strong> anfitrião ou profissional.</li>
+    <li><strong>Status</strong> (use só estes): novo · conversando · cadastrou · publicou espaço · reservou · perdido.</li>
+    <li><strong>Contato:</strong> @ do TikTok, e o WhatsApp ou e-mail se a pessoa passar por vontade própria.</li>
+  </ul>
+  <p>Prefere um CRM? Use o <strong>RD Station CRM</strong> (plano grátis) ou o <strong>HubSpot CRM</strong> (grátis) com as mesmas colunas como campos. Se a conversa for para o WhatsApp Business, crie <strong>etiquetas</strong> com os mesmos status (novo, conversando, cadastrou...).</p>
+  <p><strong>Cruzar com o site:</strong> toda sexta, peça ao Robson (ou abra, se tiver acesso) <strong>Admin → Contatos</strong> no site, filtre pelos cadastros da semana e atualize o status de quem cadastrou, publicou espaço ou reservou. A lista respeita quem pediu para não receber marketing: não mande mensagem de divulgação para essas pessoas.</p>
+</section>
+
+<section id="monetizacao">
+  <h2><span class="n">11</span>Monetização</h2>
+
+  <h3>11.1 Como o TikTok gera receita para o SpaceHour</h3>
+  <p>A receita vem das reservas: o SpaceHour recebe 5% de cada reserva paga ao anfitrião e a taxa de serviço paga pelo profissional. O caminho é: vídeo → clique no link → cadastro → anúncio publicado (anfitrião) ou reserva (profissional).</p>
+  <ul>
+    <li><strong>Custo por cadastro (TikTok)</strong> = gasto no TikTok Ads na semana ÷ cadastros com utm_source=tiktok em Admin → Campanha.</li>
+    <li><strong>Custo por reserva</strong> = gasto no TikTok Ads ÷ reservas feitas por quem veio do TikTok (o Robson ajuda a puxar esse número).</li>
+    <li>Para anfitriões, conte também <strong>quantos publicaram espaço</strong>: é o número que mais importa no início.</li>
+  </ul>
+
+  <h3>11.2 Ganhos com o próprio perfil</h3>
+  <p>Os programas do TikTok mudam de nome e de requisitos com frequência e variam por país. Os números abaixo são aproximados. Para conferir o que vale hoje: Perfil → ☰ → <strong>TikTok Studio</strong> → <strong>"Monetização"</strong> (ou "Ferramentas de criador"/"Ganhar dinheiro"). Se um programa não aparecer, ele não está disponível para a conta.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Programa</th><th>Requisitos aproximados</th><th>Vale para o SpaceHour?</th></tr></thead>
+      <tbody>
+        <tr><td>Creator Rewards Program (pagamento por vídeos com mais de 1 minuto)</td><td>18+ anos, cerca de 10 mil seguidores, cerca de 100 mil visualizações em 30 dias, vídeos originais com mais de 1 minuto; disponível só em alguns países</td><td>Em geral <strong>não</strong>: costuma exigir conta pessoal (não comercial) e nossos vídeos são curtos.</td></tr>
+        <tr><td>Presentes em LIVE</td><td>18+ anos; para fazer LIVE o TikTok costuma pedir cerca de 1 mil seguidores</td><td>Possível, mas não é foco. LIVE serve mais para tirar dúvidas de anfitriões.</td></tr>
+        <tr><td>Assinaturas (Subscriptions)</td><td>18+ anos, cerca de 1 mil seguidores, histórico de LIVEs ou vídeos; depende de convite/país</td><td>Não recomendado para uma marca.</td></tr>
+        <tr><td>TikTok Shop · afiliados</td><td>18+ anos e um mínimo de seguidores que muda por país (de algumas centenas a alguns milhares)</td><td>Não é o foco. Só se fizer sentido indicar produtos de equipamento, sempre marcado como publicidade.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Resumo: para o SpaceHour, o dinheiro do TikTok vem dos <strong>cadastros e reservas</strong> (11.1) e das <strong>parcerias</strong> (11.3), não dos programas de criador.</p>
+
+  <h3>11.3 Parcerias pagas e publicidade</h3>
+  <ul>
+    <li><strong>SpaceHour contratando criadores:</strong> no <strong>TikTok One</strong> (antigo Creator Marketplace; acesse pelo Business Center ou procure "TikTok One") dá para encontrar criadores de Maringá e região (dentistas, psicólogos, fisioterapeutas que produzem conteúdo) e propor um vídeo patrocinado sobre alugar ou anunciar sala. Combine valor, roteiro e prazo antes, por escrito, e aprove o vídeo antes da publicação. O criador também precisa respeitar o código de ética do conselho dele.</li>
+    <li><strong>Marcas contratando o SpaceHour:</strong> quando o perfil crescer, clínicas, fornecedores de equipamentos odontológicos, marcas de saúde e cursos podem pagar por vídeos. Toda proposta passa pelo Robson.</li>
+    <li><strong>Marcação obrigatória:</strong> em todo conteúdo pago, na tela de publicação → <strong>"Mais opções"</strong> → ative <strong>"Divulgar conteúdo do post"</strong> (ou "Configuração de divulgação de conteúdo") e escolha <strong>"Conteúdo de marca"</strong> (quando promove outra marca, aparece "Parceria paga") ou <strong>"Sua marca"</strong> (quando promove o próprio negócio, aparece "Conteúdo promocional"). Escreva também <strong>#publi</strong> na legenda, como pede o CONAR.</li>
+  </ul>
+</section>
+
+<section id="metricas">
+  <h2><span class="n">12</span>Métricas semanais e relatório</h2>
+  <p>Toda <strong>segunda-feira</strong>, anote numa aba "Métricas" da planilha:</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Métrica</th><th>Onde ver</th></tr></thead>
+      <tbody>
+        <tr><td>Seguidores (total e novos na semana)</td><td>TikTok Studio / Business Suite → Estatísticas → Visão geral</td></tr>
+        <tr><td>Visualizações dos vídeos e alcance</td><td>Estatísticas → Conteúdo</td></tr>
+        <tr><td>Cliques no link do perfil</td><td>Estatísticas → Visão geral (procure "Cliques no site" ou "Cliques no link do perfil")</td></tr>
+        <tr><td>Cadastros com origem TikTok</td><td>Site → Admin → Campanha (utm_source = tiktok, por campanha)</td></tr>
+        <tr><td>Gasto em anúncios e CompleteRegistration</td><td>TikTok Ads Manager → Campanhas (período: últimos 7 dias)</td></tr>
+        <tr><td>Custo por cadastro</td><td>Gasto ÷ cadastros tiktok em Admin → Campanha</td></tr>
+        <tr><td>Leads no CRM por status</td><td>Sua planilha CRM</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <pre class="cp" data-label="Relatório semanal para o Robson (5 linhas)">TikTok · semana de [dd/mm] a [dd/mm]
+1. Seguidores: [total] (+[novos]) · visualizações: [n] · cliques no link: [n]
+2. Cadastros TikTok (Admin → Campanha): [anfitriões] anfitriões, [profissionais] profissionais · espaços publicados: [n]
+3. Anúncios: gasto R$ [valor] · custo por cadastro R$ [valor] · melhor vídeo: [nome]
+4. CRM: [n] novos contatos · [n] conversando · [n] cadastraram
+5. Próxima semana: [o que vou mudar ou testar]</pre>
+</section>
+
+<section id="cuidados">
+  <h2><span class="n">13</span>Cuidados</h2>
+  <ul>
+    <li><strong>Ética dos conselhos (CFO, CFM, CRP e outros):</strong> anuncie o <strong>espaço</strong>, nunca o atendimento de saúde. Sem preço de tratamento, sem antes e depois, sem promessa de resultado, sem mostrar procedimento.</li>
+    <li><strong>Sem pacientes:</strong> nenhum paciente, prontuário, tela de agenda com nomes ou qualquer dado de saúde em vídeo.</li>
+    <li><strong>LGPD:</strong> não use listas compradas, não mande mensagem em massa para quem não conhece, não peça dados sensíveis por mensagem. Respeite quem pediu para não receber marketing (Admin → Contatos).</li>
+    <li><strong>Direito de imagem:</strong> autorização por escrito de toda pessoa que aparecer e do dono de cada espaço filmado. Guarde as autorizações numa pasta compartilhada com o Robson.</li>
+    <li><strong>Música:</strong> só sons da Biblioteca de Músicas Comerciais. Som fora dela pode ser silenciado ou derrubar o vídeo, e anúncio com som não liberado é reprovado.</li>
+    <li><strong>Não prometa renda:</strong> fale em "pode virar renda", nunca em valores garantidos. Qualquer conta de ganho deve vir marcada como <strong>simulação</strong>.</li>
+    <li><strong>Taxas sempre completas:</strong> diga "5% por reserva + tarifa do Mercado Pago", nunca só "5%". Não existe desconto ou promoção.</li>
+    <li><strong>Sem superlativos sem prova:</strong> nada de "o mais barato" ou "o único" (CONAR e Código de Defesa do Consumidor).</li>
+    <li><strong>Categoria especial de anúncio:</strong> se o Ads Manager pedir "Habitação/Imóveis", aceite e siga as restrições.</li>
+    <li><strong>Publicidade marcada:</strong> todo conteúdo pago com a opção de divulgação ativada e #publi.</li>
+  </ul>
+  <p>Dúvidas: Robson, <code>support@space-hour.com</code>.</p>
+</section>
+</div>
+<script>
+(function () {
+  // Blocos "Copiar": envolve cada <pre class="cp"> com botão.
+  document.querySelectorAll('pre.cp').forEach(function (pre, i) {
+    var box = document.createElement('div');
+    box.className = 'copy';
+    pre.parentNode.insertBefore(box, pre);
+    var lbl = document.createElement('span');
+    lbl.className = 'lbl';
+    lbl.textContent = pre.getAttribute('data-label') || 'Texto pronto';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Copiar';
+    btn.setAttribute('aria-label', 'Copiar: ' + lbl.textContent);
+    box.appendChild(lbl); box.appendChild(btn); box.appendChild(pre);
+    btn.addEventListener('click', function () {
+      var text = pre.innerText.replace(/\n$/, '');
+      var ok = function () { btn.textContent = 'Copiado'; setTimeout(function () { btn.textContent = 'Copiar'; }, 1800); };
+      var fallback = function () {
+        try { var r = document.createRange(); r.selectNodeContents(pre); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+        btn.textContent = 'Texto selecionado: copie';
+        setTimeout(function () { btn.textContent = 'Copiar'; }, 3000);
+      };
+      try { navigator.clipboard.writeText(text).then(ok, fallback); } catch (e) { fallback(); }
+    });
+  });
+  // Checklist com estado salvo no navegador.
+  var list = document.querySelector('[data-store]');
+  if (!list) return;
+  var key = list.getAttribute('data-store');
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { state = {}; }
+  var boxes = list.querySelectorAll('input[type=checkbox]');
+  var out = document.getElementById('ck-progress');
+  function paint() { var n = 0; boxes.forEach(function (b) { if (b.checked) n++; }); if (out) out.textContent = n + ' de ' + boxes.length + ' itens prontos'; }
+  boxes.forEach(function (b) {
+    if (state[b.id]) b.checked = true;
+    b.addEventListener('change', function () {
+      state[b.id] = b.checked;
+      try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {}
+      paint();
+    });
+  });
+  paint();
+})();
+</script>

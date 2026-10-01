@@ -1,0 +1,1010 @@
+<title>Kit Facebook SpaceHour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: manual de trabalho de uma coluna (~760px), índice no topo, seções numeradas na ordem de execução. */
+:root {
+  --bg: #f3fbfa;
+  --surface: #ffffff;
+  --ink: #0b3534;
+  --muted: #4a6866;
+  --line: #cbe4e1;
+  --accent: #0e7c7b;
+  --accent-strong: #0a5f5e;
+  --accent-soft: #dcf3f0;
+  --code-bg: #eaf6f4;
+  --note-bg: #fff7e6;
+  --note-line: #e7c27a;
+  --note-ink: #5b4310;
+  --on-accent: #ffffff;
+  --font-display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #061c1b; --surface: #0b2827; --ink: #e2f4f2; --muted: #9dbfbc; --line: #1d4745;
+    --accent: #5fd6d0; --accent-strong: #8ff0e9; --accent-soft: #0f3a38; --code-bg: #08201f;
+    --note-bg: #2a2210; --note-line: #7a6223; --note-ink: #f1dca6; --on-accent: #062120;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #061c1b; --surface: #0b2827; --ink: #e2f4f2; --muted: #9dbfbc; --line: #1d4745;
+  --accent: #5fd6d0; --accent-strong: #8ff0e9; --accent-soft: #0f3a38; --code-bg: #08201f;
+  --note-bg: #2a2210; --note-line: #7a6223; --note-ink: #f1dca6; --on-accent: #062120;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; margin: 0; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 780px; margin: 0 auto; }
+h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.25; text-wrap: balance; color: var(--ink); }
+h1 { font-size: 1.9rem; margin: 0; font-weight: 700; }
+h2 { font-size: 1.4rem; margin: 0 0 12px; font-weight: 600; display: flex; gap: 12px; align-items: baseline; }
+h2 .n { font-family: var(--font-mono); font-size: .95rem; color: var(--accent); font-weight: 500; min-width: 2ch; }
+h3 { font-size: 1.1rem; margin: 28px 0 8px; font-weight: 600; }
+h4 { font-size: 1rem; margin: 18px 0 6px; font-weight: 600; }
+p, li { max-width: 68ch; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+strong { font-weight: 700; }
+.top { padding-block: 32px 20px; border-bottom: 1px solid var(--line); display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.logo { width: 52px; height: 52px; border-radius: 14px; background: var(--accent-strong); display: grid; place-items: center; flex: none; }
+.logo span { width: 34px; height: 34px; border-radius: 9px; background: #ffffff; color: #0a5f5e; font: 700 1.25rem/34px var(--font-display); text-align: center; }
+.top .meta { color: var(--muted); font-size: .95rem; margin: 4px 0 0; }
+.eyebrow { font-family: var(--font-mono); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 2px; }
+nav.toc { margin-block: 20px 8px; }
+nav.toc ol { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 16px; counter-reset: t; }
+nav.toc li { counter-increment: t; }
+nav.toc a { display: flex; gap: 10px; padding: 6px 0; text-decoration: none; color: var(--ink); border-bottom: 1px dashed var(--line); }
+nav.toc a::before { content: counter(t, decimal-leading-zero); font-family: var(--font-mono); color: var(--accent); font-size: .85rem; padding-top: 2px; }
+nav.toc a:hover { color: var(--accent); }
+section { padding-block: 36px 8px; border-bottom: 1px solid var(--line); scroll-margin-top: 12px; }
+section:last-of-type { border-bottom: 0; }
+ol.steps { padding-left: 1.4em; display: grid; gap: 6px; }
+ol.steps li::marker { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
+ul { padding-left: 1.2em; }
+.note { background: var(--note-bg); border: 1px solid var(--note-line); color: var(--note-ink); border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.note p { margin: 4px 0; }
+.tip { background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.tip p { margin: 4px 0; }
+.copy { position: relative; margin: 10px 0 16px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; }
+.copy pre { margin: 0; padding: 12px 14px; padding-top: 40px; font-family: var(--font-mono); font-size: .86rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.copy .lbl { position: absolute; top: 9px; left: 14px; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.copy button { position: absolute; top: 6px; right: 6px; font: 600 .82rem var(--font-body); background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.copy button:hover { background: var(--accent-strong); }
+.tbl { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-display); font-weight: 600; font-size: .85rem; background: var(--accent-soft); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: .85rem; white-space: nowrap; }
+.checklist { list-style: none; padding: 0; display: grid; gap: 6px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; padding: 6px 8px; border-radius: 6px; }
+.checklist label:hover { background: var(--accent-soft); }
+.checklist input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--accent); flex: none; }
+.checklist input:checked + span { color: var(--muted); text-decoration: line-through; }
+.progress { font-family: var(--font-mono); font-size: .9rem; color: var(--accent); }
+.cards { display: grid; gap: 22px; }
+.card { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 18px; align-items: start; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.card.wide { grid-template-columns: minmax(0, 1fr); }
+.card img { width: 100%; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); background: var(--code-bg); display: block; }
+.card .body { min-width: 0; }
+.card .file { font-family: var(--font-mono); font-size: .8rem; color: var(--muted); margin: 0 0 4px; overflow-wrap: anywhere; }
+.card h4 { margin-top: 0; }
+@media (max-width: 560px) { .card { grid-template-columns: minmax(0, 1fr); } .card img { max-width: 240px; } .card.wide img { max-width: 100%; } }
+.script { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 14px 16px; margin: 16px 0; }
+.script h4 { margin-top: 0; }
+.script dl { display: grid; grid-template-columns: minmax(0, 120px) minmax(0, 1fr); gap: 4px 12px; margin: 8px 0; }
+.script dt { font-weight: 700; color: var(--accent-strong); font-size: .92rem; }
+.script dd { margin: 0; min-width: 0; }
+@media (max-width: 560px) { .script dl { grid-template-columns: minmax(0, 1fr); } .script dd { margin-bottom: 6px; } }
+.tag { display: inline-block; font-family: var(--font-mono); font-size: .74rem; background: var(--accent-soft); color: var(--accent-strong); padding: 1px 8px; border-radius: 999px; margin-right: 4px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+/* complementos */
+.table { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+td.d { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.muted { color: var(--muted); font-size: .92rem; }
+.top .logo { width: auto; height: auto; padding: 8px 14px 8px 8px; gap: 10px; display: inline-flex; align-items: center; color: #fff; font: 600 1.05rem var(--font-display); }
+.top .logo i { font-style: normal; width: 34px; height: 34px; border-radius: 9px; background: #fff; color: #0a5f5e; display: grid; place-items: center; font-weight: 700; }
+.top .meta { flex: 1 1 260px; min-width: 0; }
+.top .for { margin: 6px 0 0; color: var(--muted); }
+nav.toc > p { font-family: var(--font-mono); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
+.strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 10px 0 20px; }
+.strip figure { margin: 0; min-width: 0; }
+.strip img { width: 100%; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); display: block; }
+.strip figcaption { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+details { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); margin: 12px 0; }
+details summary { cursor: pointer; padding: 12px 16px; font-weight: 700; }
+details .in { padding: 0 16px 12px; }
+dl.script { display: grid; grid-template-columns: minmax(0, 120px) minmax(0, 1fr); gap: 4px 12px; border: 0; padding: 0; margin: 0; background: none; }
+@media (max-width: 560px) { dl.script { grid-template-columns: minmax(0, 1fr); } }
+.copy .cbtn { position: absolute; top: 6px; right: 6px; font: 600 .82rem var(--font-body); background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.copy .cbtn.done { background: var(--accent-strong); }
+footer { color: var(--muted); font-size: .9rem; padding-top: 24px; }
+</style>
+<div class="wrap" data-kit="facebook">
+
+<header class="top">
+  <span class="logo"><i>S</i>SpaceHour</span>
+  <div class="meta">
+    <p class="eyebrow">Kit de implantação · Facebook · outubro 2026</p>
+    <h1>Kit Facebook SpaceHour</h1>
+    <p class="for">Para a pessoa responsável pelo Facebook. Este kit é completo: tudo o que você precisa está aqui.</p>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Índice">
+  <p>Índice</p>
+  <ol>
+    <li><a href="#resumo">Resumo</a></li>
+    <li><a href="#checklist">Checklist de entrega</a></li>
+    <li><a href="#conta">Criação da conta</a></li>
+    <li><a href="#perfil">Preenchimento da Página</a></li>
+    <li><a href="#cards">Cards e grupos locais</a></li>
+    <li><a href="#calendario">Calendário de 30 dias</a></li>
+    <li><a href="#videos">Roteiros de Reels</a></li>
+    <li><a href="#anuncios">Anúncios pagos</a></li>
+    <li><a href="#pixel">Pixel e medição</a></li>
+    <li><a href="#crm">CRM e atendimento</a></li>
+    <li><a href="#monetizacao">Monetização</a></li>
+    <li><a href="#metricas">Métricas e relatório</a></li>
+    <li><a href="#cuidados">Cuidados</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="resumo">
+  <h2><span class="n">1</span>Resumo</h2>
+  <p><strong>O que é o SpaceHour:</strong> um site (space-hour.com) para alugar por hora espaços profissionais prontos: consultórios odontológicos e médicos, salas de psicologia, fisioterapia, estética, salas de aula, auditórios e salas de reunião.</p>
+  <p>Quem tem o espaço vago (o <strong>anfitrião</strong>) anuncia grátis e recebe direto na conta Mercado Pago. Quem precisa de sala (o <strong>profissional</strong>) se cadastra grátis e paga só as horas que usar.</p>
+  <p>Começamos por <strong>Maringá-PR</strong>. Depois vêm Londrina e Curitiba. A empresa é o Instituto Ravel de Ensino Superior Ltda (CNPJ 03.162.275/0001-10).</p>
+  <h3>Objetivo do Facebook</h3>
+  <ul>
+    <li>Trazer <strong>cadastros de anfitriões</strong> primeiro (sem espaços anunciados, o profissional não encontra nada).</li>
+    <li>Depois, trazer <strong>cadastros de profissionais</strong> de Maringá.</li>
+    <li>Usar a Página como vitrine confiável, rodar anúncios do Meta e conversar com dentistas, psicólogos e fisioterapeutas nos grupos locais.</li>
+  </ul>
+  <div class="tip">
+    <p><strong>Quem ajuda você:</strong> Robson Ravel de Oliveira (dono do SpaceHour). E-mail: <code>support@space-hour.com</code>.</p>
+    <p>O Robson cuida do site, da Vercel (onde ficam os códigos de medição) e do DNS na GoDaddy. Você entrega a ele os códigos; ele instala.</p>
+  </div>
+  <div class="note"><p><strong>Importante:</strong> não existe promoção, desconto, cupom ou "taxa zero" para anfitriões. Nunca escreva isso. A taxa do anfitrião é sempre <strong>5% por reserva paga + tarifa do Mercado Pago</strong>.</p></div>
+</section>
+
+<!-- 2 -->
+<section id="checklist">
+  <h2><span class="n">2</span>Checklist de entrega</h2>
+  <p>Marque cada item quando estiver pronto. As marcações ficam salvas neste navegador.</p>
+  <ul class="checklist">
+    <li><label><input type="checkbox" id="fb-ck-01"><span>Portfólio empresarial do Meta criado em nome do Instituto Ravel, com CNPJ</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-02"><span>Robson adicionado como administrador (controle total) do portfólio</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-03"><span>Autenticação de dois fatores ativa em quem acessa o portfólio</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-04"><span>Página do Facebook criada dentro do portfólio (dono = portfólio, não perfil pessoal)</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-05"><span>Página preenchida: nome, @, categoria, apresentação, foto de perfil, capa, botão com link UTM</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-06"><span>Conta de anúncios criada no portfólio, moeda BRL, fuso de São Paulo, forma de pagamento e CNPJ cadastrados</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-07"><span>Pixel (conjunto de dados) criado e ID entregue ao Robson</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-08"><span>Eventos testados: PageView, Lead e CompleteRegistration aparecendo</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-09"><span>Domínio space-hour.com verificado (TXT entregue ao Robson e confirmado)</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-10"><span>Respostas automáticas do Messenger e respostas salvas configuradas</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-11"><span>8 posts do lançamento publicados ou agendados</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-12"><span>Campanha "Anfitriões" (carrossel) no ar</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-13"><span>Campanha "Profissionais" (carrossel) no ar</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-14"><span>Lista de grupos locais de Maringá montada, com as regras de cada um anotadas</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-15"><span>Planilha CRM criada e compartilhada com o Robson</span></label></li>
+    <li><label><input type="checkbox" id="fb-ck-16"><span>Primeiro relatório semanal enviado ao Robson</span></label></li>
+  </ul>
+  <p class="progress" id="ck-progress" aria-live="polite"></p>
+</section>
+
+<!-- 3 -->
+<section id="conta">
+  <h2><span class="n">3</span>Criação da conta</h2>
+  <p>O Facebook exige um perfil pessoal para entrar. Esse perfil serve só para <strong>acessar</strong>. Quem é <strong>dono</strong> da Página, da conta de anúncios e do Pixel é o <strong>portfólio empresarial</strong> do Instituto. Assim, se alguém sair da equipe, nada se perde.</p>
+  <div class="note"><p>As telas do Meta mudam de nome com frequência. Se um botão não estiver exatamente com o nome abaixo, procure pelo nome mais parecido no menu <strong>Configurações</strong> (ícone de engrenagem) do Meta Business Suite.</p></div>
+
+  <h3>3.1 Proteger o seu acesso</h3>
+  <ol class="steps">
+    <li>Entre no Facebook com o seu perfil pessoal (o perfil real; o Meta proíbe perfis falsos).</li>
+    <li>Abra a <strong>Central de Contas</strong> (Menu → Configurações e privacidade → Configurações → Central de Contas).</li>
+    <li>Vá em <strong>Senha e segurança</strong> → <strong>Autenticação de dois fatores</strong>.</li>
+    <li>Escolha um <strong>aplicativo autenticador</strong> (Google Authenticator ou Microsoft Authenticator). É mais seguro que SMS.</li>
+    <li>Guarde os <strong>códigos de recuperação</strong> num lugar seguro.</li>
+  </ol>
+
+  <h3>3.2 Criar o portfólio empresarial</h3>
+  <ol class="steps">
+    <li>Acesse <code>business.facebook.com</code>.</li>
+    <li>Clique em <strong>Criar conta</strong> ou <strong>Criar portfólio empresarial</strong> (o nome antigo era "Gerenciador de Negócios").</li>
+    <li>Nome do portfólio: <code>SpaceHour - Instituto Ravel</code>.</li>
+    <li>E-mail comercial: use um e-mail da empresa (<code>support@space-hour.com</code> ou outro endereço @space-hour.com que o Robson criar). Nunca um Gmail pessoal.</li>
+    <li>Confirme o e-mail pelo link que o Meta envia.</li>
+    <li>Em <strong>Configurações</strong> → <strong>Informações do negócio</strong> (ou "Informações da empresa"), preencha:
+      <ul>
+        <li>Razão social: <code>Instituto Ravel de Ensino Superior Ltda</code></li>
+        <li>CNPJ: <code>03.162.275/0001-10</code></li>
+        <li>Endereço: <code>Av. XV de Novembro, 255, Sobreloja, Maringá/PR, CEP 87013-230</code></li>
+        <li>Site: <code>https://space-hour.com</code></li>
+      </ul>
+    </li>
+    <li>Se aparecer a opção <strong>Verificação da empresa</strong> (fica na Central de Segurança), peça ao Robson os documentos do CNPJ e faça a verificação. Ela libera mais recursos e dá mais segurança.</li>
+  </ol>
+
+  <h3>3.3 Dar acesso de administrador ao Robson</h3>
+  <ol class="steps">
+    <li>Em <strong>Configurações</strong> → <strong>Usuários</strong> → <strong>Pessoas</strong>, clique em <strong>Convidar pessoas</strong> (ou "Adicionar").</li>
+    <li>Digite o e-mail do Robson (pergunte a ele qual usar no Facebook).</li>
+    <li>Escolha <strong>Acesso total / Controle total</strong> (administrador).</li>
+    <li>Envie. Peça para ele aceitar o convite no mesmo dia.</li>
+    <li>Depois, em <strong>Central de Segurança</strong>, ative a exigência de <strong>autenticação de dois fatores para todos</strong> do portfólio, se a opção aparecer.</li>
+  </ol>
+  <div class="tip"><p>Regra de ouro: sempre <strong>pelo menos 2 administradores</strong> (você e o Robson). Se um perder o acesso, o outro recupera.</p></div>
+
+  <h3>3.4 Criar a Página dentro do portfólio</h3>
+  <ol class="steps">
+    <li>Em <strong>Configurações</strong> → <strong>Contas</strong> → <strong>Páginas</strong>, clique em <strong>Adicionar</strong> → <strong>Criar uma nova Página</strong>.</li>
+    <li>Criar por aqui faz a Página nascer como propriedade do portfólio.</li>
+    <li>Se você já criou a Página pelo perfil pessoal, use <strong>Adicionar</strong> → <strong>Adicionar uma Página</strong> e informe o nome dela, para transferir para o portfólio.</li>
+    <li>Na Página, confira em <strong>Configurações</strong> → <strong>Acesso à Página</strong> que o Robson tem acesso total.</li>
+  </ol>
+
+  <h3>3.5 Criar a conta de anúncios (no CNPJ do Instituto)</h3>
+  <ol class="steps">
+    <li>Em <strong>Configurações</strong> → <strong>Contas</strong> → <strong>Contas de anúncios</strong> → <strong>Adicionar</strong> → <strong>Criar uma nova conta de anúncios</strong>.</li>
+    <li>Nome: <code>SpaceHour - Anúncios</code>.</li>
+    <li>Fuso horário: <strong>America/Sao_Paulo</strong>. Moeda: <strong>Real brasileiro (BRL)</strong>. Atenção: moeda e fuso <strong>não podem ser trocados depois</strong>.</li>
+    <li>Quando perguntar "para quem são os anúncios", escolha <strong>Meu portfólio empresarial</strong>.</li>
+    <li>Adicione você e o Robson à conta de anúncios com <strong>controle total</strong>.</li>
+    <li>Abra <strong>Cobrança e pagamentos</strong> (em Configurações da conta de anúncios). Preencha os dados fiscais com a razão social e o CNPJ do Instituto, para as notas fiscais saírem no nome da empresa.</li>
+    <li>Adicione a forma de pagamento (veja <a href="#anuncios">seção 8</a>).</li>
+  </ol>
+
+  <h3>3.6 Instagram</h3>
+  <p>Outra pessoa cuida do Instagram. Ela vai precisar conectar o Instagram a este mesmo portfólio. Quando ela pedir, adicione-a em <strong>Usuários</strong> → <strong>Pessoas</strong> com acesso parcial (Página e conta de anúncios) e combine quem gasta quanto da verba (veja a seção 8).</p>
+</section>
+
+<!-- 4 -->
+<section id="perfil">
+  <h2><span class="n">4</span>Preenchimento da Página</h2>
+
+  <h3>Nome da Página</h3>
+  <div class="copy"><pre>SpaceHour</pre></div>
+
+  <h3>Nome de usuário (@)</h3>
+  <p>Em <strong>Configurações</strong> da Página → <strong>Nome de usuário</strong>. Tente nesta ordem e use o primeiro disponível:</p>
+  <ol>
+    <li><code>spacehour</code></li>
+    <li><code>spacehourbr</code></li>
+    <li><code>spacehour.oficial</code></li>
+    <li><code>spacehourmaringa</code></li>
+  </ol>
+  <p>Se possível, use o mesmo @ que o Instagram (pergunte à pessoa do Instagram).</p>
+
+  <h3>Categoria</h3>
+  <p>O Facebook permite até 3 categorias e a lista muda. Digite as palavras abaixo no campo e escolha a opção mais parecida:</p>
+  <ul>
+    <li>1ª: digite <strong>aluguel</strong> ou <strong>imóveis comerciais</strong> (algo como "Serviço de aluguel" ou "Imóveis").</li>
+    <li>2ª: digite <strong>site</strong> (algo como "Site de internet").</li>
+    <li>3ª (opcional): digite <strong>coworking</strong>, se existir.</li>
+  </ul>
+  <p>Não escolha categorias de saúde (Dentista, Clínica). O SpaceHour aluga espaço; não presta atendimento de saúde.</p>
+
+  <h3>Apresentação (bio, até 101 caracteres)</h3>
+  <div class="copy"><pre>Consultórios e salas prontas para alugar por hora em Maringá. Anuncie grátis ou reserve sua sala.</pre></div>
+
+  <h3>Detalhes / Sobre (texto mais longo)</h3>
+  <div class="copy"><pre>O SpaceHour aluga por hora espaços profissionais prontos: consultórios odontológicos e médicos, salas de psicologia, fisioterapia e estética, salas de aula, auditórios e salas de reunião.
+
+Tem espaço vago em alguns horários? Anuncie grátis, sem mensalidade. Você define preço, horários e regras, e recebe direto na sua conta Mercado Pago. A taxa é de 5% por reserva paga + tarifa do Mercado Pago.
+
+Precisa de sala? Cadastro grátis, sem contrato, sem fiador e sem condomínio. Pague só as horas que usar, com Pix, cartão ou boleto (boleto para reservas com 3+ dias de antecedência).
+
+Começando por Maringá-PR.
+SpaceHour é um serviço do Instituto Ravel de Ensino Superior Ltda.
+Dúvidas: support@space-hour.com</pre></div>
+
+  <h3>Site (link com UTM)</h3>
+  <div class="copy"><pre>https://space-hour.com/conheca?utm_source=facebook&amp;utm_medium=bio&amp;utm_campaign=lanc-geral</pre></div>
+
+  <h3>Botão de ação</h3>
+  <ol class="steps">
+    <li>Na Página, clique em <strong>Adicionar botão</strong> (ou no botão existente → <strong>Editar botão</strong>).</li>
+    <li>Escolha <strong>Cadastre-se</strong> e cole o link do site acima.</li>
+    <li>Alternativa: <strong>Enviar mensagem</strong> (abre o Messenger). Use esta se você conseguir responder rápido (veja a seção 10).</li>
+    <li>Teste clicando no botão pelo celular.</li>
+  </ol>
+
+  <h3>Contato, endereço e horário</h3>
+  <ul>
+    <li><strong>E-mail:</strong> <code>support@space-hour.com</code></li>
+    <li><strong>Endereço:</strong> o SpaceHour é online. Prefira informar só a <strong>área de atendimento: Maringá, PR</strong>. Só coloque o endereço do Instituto (Av. XV de Novembro, 255, Sobreloja) se o Robson autorizar.</li>
+    <li><strong>Horário:</strong> sugestão inicial "Segunda a sexta, 8h às 18h" (para mensagens). Confirme com o Robson.</li>
+    <li><strong>Telefone/WhatsApp:</strong> só se o Robson indicar um número da empresa.</li>
+  </ul>
+
+  <h3>Foto de perfil e capa</h3>
+  <div class="cards">
+    <div class="card">
+      <img src="../cards/facebook/perfil.png" alt="Foto de perfil: logo SpaceHour" loading="lazy">
+      <div class="body">
+        <h4>Foto de perfil</h4>
+        <p>720×720. Aparece em círculo; o logo já está centralizado.</p>
+        <span class="file">cards/facebook/perfil.png</span>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/facebook/capa.png" alt="Capa da Página do Facebook" loading="lazy">
+      <div class="body">
+        <h4>Capa</h4>
+        <p>1640×624. No celular as laterais são cortadas. Depois de subir, confira no celular e no computador.</p>
+        <span class="file">cards/facebook/capa.png</span>
+      </div>
+    </div>
+  </div>
+  <p class="muted">Para salvar uma imagem: no celular, toque e segure → Salvar imagem. No computador, clique com o botão direito → Salvar imagem como. Os arquivos também estão no GitHub, na pasta <code>espacos/docs/marketing/cards/</code> (peça o acesso ao Robson).</p>
+</section>
+
+<!-- 5 -->
+<section id="cards">
+  <h2><span class="n">5</span>Cards do Facebook</h2>
+  <p>São 8 posts no formato 1080×1350 (vertical). Cada um tem legenda pronta. Poste na ordem do <a href="#calendario">calendário</a>. Para salvar: no celular, toque e segure → Salvar imagem; no computador, botão direito → Salvar imagem como. Os arquivos também estão no GitHub em <code>espacos/docs/marketing/cards/facebook/</code>.</p>
+  <p>Para postar: no Meta Business Suite, <strong>Criar publicação</strong> → selecione a Página → cole a legenda → adicione a foto → <strong>Publicar</strong> ou <strong>Programar</strong>.</p>
+
+  <div class="cards">
+    <div class="card">
+      <img src="../cards/facebook/post-01.png" alt="Post 01: Chegou o SpaceHour em Maringá" loading="lazy">
+      <div class="body">
+        <h4>Post 01 · Lançamento</h4>
+        <span class="file">cards/facebook/post-01.png</span>
+        <div class="copy"><pre>Chegou o SpaceHour em Maringá.
+
+Consultórios e salas prontas para alugar por hora: odontológico, médico, psicologia, fisioterapia, estética, sala de aula, auditório e sala de reunião.
+
+Tem espaço vago em alguns horários? Anuncie grátis.
+Precisa de sala para atender? Cadastro grátis, sem contrato.
+
+Conheça: https://space-hour.com/conheca?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-geral
+
+#Maringá #SpaceHour #ConsultórioPorHora #Odontologia #Psicologia #Fisioterapia</pre></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/facebook/post-02.png" alt="Post 02: Anuncie grátis, sem mensalidade" loading="lazy">
+      <div class="body">
+        <h4>Post 02 · Anuncie grátis</h4>
+        <span class="file">cards/facebook/post-02.png</span>
+        <div class="copy"><pre>Anunciar seu consultório no SpaceHour é grátis e não tem mensalidade.
+
+Você só paga quando alugar: 5% por reserva paga + a tarifa do Mercado Pago. Não alugou, não paga nada.
+
+✔ Você define preço, dias, horários e regras
+✔ Aprova cada pedido ou deixa a reserva instantânea
+✔ Recebe direto na sua conta Mercado Pago
+
+Anuncie seu espaço: https://space-hour.com/anuncie?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes
+
+#Maringá #ConsultórioOdontológico #SalaComercial #RendaExtra #SpaceHour</pre></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/facebook/post-03.png" alt="Post 03: Quanto rende um horário vago, simulação" loading="lazy">
+      <div class="body">
+        <h4>Post 03 · Quanto rende um horário vago (simulação)</h4>
+        <span class="file">cards/facebook/post-03.png</span>
+        <div class="copy"><pre>Quanto rende um horário vago no seu consultório?
+
+Simulação: R$ 60 por hora × 12 horas por semana × 4 semanas = R$ 2.880 por mês, valor bruto.
+
+É só um exemplo para fazer a conta. Não é promessa de ganho: o resultado depende do seu preço, dos horários que você abrir e da procura. Do valor recebido saem 5% do SpaceHour e a tarifa do Mercado Pago.
+
+Faça a sua conta e anuncie grátis: https://space-hour.com/anuncie?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes
+
+#Maringá #Consultório #RendaExtra #SpaceHour</pre></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/facebook/post-04.png" alt="Post 04: como funciona para anfitrião em 3 passos" loading="lazy">
+      <div class="body">
+        <h4>Post 04 · Como funciona (anfitrião)</h4>
+        <span class="file">cards/facebook/post-04.png</span>
+        <div class="copy"><pre>Como anunciar seu espaço no SpaceHour, em 3 passos:
+
+1. Cadastre o espaço com fotos, equipamentos, preço por hora e horários livres.
+2. Conecte sua conta Mercado Pago (com uma chave Pix cadastrada nela).
+3. Receba pedidos: aprove um a um ou deixe a reserva instantânea. Se quiser, exija caução e avalista.
+
+O pagamento cai direto na sua conta Mercado Pago. Taxa: 5% por reserva paga + tarifa do Mercado Pago.
+
+Comece aqui: https://space-hour.com/anuncie?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes
+
+#Maringá #Consultório #SalaParaAlugar #SpaceHour</pre></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/facebook/post-05.png" alt="Post 05: como funciona para profissional em 3 passos" loading="lazy">
+      <div class="body">
+        <h4>Post 05 · Como funciona (profissional)</h4>
+        <span class="file">cards/facebook/post-05.png</span>
+        <div class="copy"><pre>Precisa de consultório ou sala só por algumas horas? No SpaceHour é assim:
+
+1. Faça seu cadastro grátis e informe seu registro profissional (CRO, CRM, CRP, CREFITO etc.).
+2. Escolha o espaço, veja fotos e equipamentos, e reserve as horas que precisa.
+3. Pague com Pix, cartão ou boleto (boleto para reservas com 3 ou mais dias de antecedência). O endereço completo é liberado quando a reserva é confirmada.
+
+Sem contrato, sem fiador, sem condomínio.
+
+Cadastro grátis: https://space-hour.com/profissionais?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-profissionais
+
+#Maringá #Dentista #Psicólogo #Fisioterapeuta #ConsultórioPorHora #SpaceHour</pre></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/facebook/post-06.png" alt="Post 06: segurança, registro verificado, caução, avaliações" loading="lazy">
+      <div class="body">
+        <h4>Post 06 · Segurança</h4>
+        <span class="file">cards/facebook/post-06.png</span>
+        <div class="copy"><pre>"E se alguém estragar meu consultório?"
+
+No SpaceHour, quem aluga informa o registro profissional (CRO, CRM, CRP, CREFITO etc.) e ele é verificado.
+O anfitrião pode exigir caução e avalista.
+E os dois lados se avaliam depois de cada uso.
+
+Você também escolhe se aprova cada pedido antes de confirmar.
+
+Saiba mais: https://space-hour.com/anuncie?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes
+
+#Maringá #Consultório #SpaceHour</pre></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/facebook/post-07.png" alt="Post 07: Você dividiria seu consultório por hora?" loading="lazy">
+      <div class="body">
+        <h4>Post 07 · Pergunta para engajar</h4>
+        <span class="file">cards/facebook/post-07.png</span>
+        <div class="copy"><pre>Pergunta sincera para quem tem consultório ou sala:
+
+Você dividiria seu espaço por hora com outro profissional?
+
+Responda nos comentários:
+SIM, já faço isso
+TALVEZ, depende das regras
+NÃO, de jeito nenhum
+
+Queremos entender o que faz você ficar tranquilo(a). Toda resposta ajuda.
+
+#Maringá #Odontologia #Psicologia #Fisioterapia #SpaceHour</pre></div>
+        <p class="muted">Este post não tem link de propósito: posts sem link costumam ter mais alcance. Responda cada comentário (veja a seção 10).</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/facebook/post-08.png" alt="Post 08: Recém-formado? Comece a atender sem alugar sala" loading="lazy">
+      <div class="body">
+        <h4>Post 08 · Recém-formado</h4>
+        <span class="file">cards/facebook/post-08.png</span>
+        <div class="copy"><pre>Recém-formado(a)? Comece a atender sem alugar uma sala inteira.
+
+No SpaceHour você reserva consultório ou sala pronta por hora, só quando tiver atendimento marcado.
+Sem contrato, sem fiador, sem condomínio. Pague só as horas que usar.
+
+Cadastro grátis: https://space-hour.com/profissionais?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-profissionais
+
+#RecémFormado #Odontologia #Psicologia #Fisioterapia #Maringá #SpaceHour</pre></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Carrosséis do Meta (usados nos anúncios e também como post orgânico)</h3>
+  <p>Anfitriões, na ordem 01 → 06:</p>
+  <div class="strip">
+    <figure><img src="../cards/meta-carrossel/anfitrioes-01.png" alt="Carrossel anfitriões 01" loading="lazy"><figcaption>01 · gancho "Seu consultório fica vazio em alguns horários?"</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/anfitrioes-02.png" alt="Carrossel anfitriões 02" loading="lazy"><figcaption>02 · horários vagos = dinheiro parado</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/anfitrioes-03.png" alt="Carrossel anfitriões 03" loading="lazy"><figcaption>03 · profissionais verificados</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/anfitrioes-04.png" alt="Carrossel anfitriões 04" loading="lazy"><figcaption>04 · você define preço, horários e regras</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/anfitrioes-05.png" alt="Carrossel anfitriões 05" loading="lazy"><figcaption>05 · direto no Mercado Pago</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/anfitrioes-06.png" alt="Carrossel anfitriões 06" loading="lazy"><figcaption>06 · CTA "Anuncie grátis"</figcaption></figure>
+  </div>
+  <p>Profissionais, na ordem 01 → 05:</p>
+  <div class="strip">
+    <figure><img src="../cards/meta-carrossel/profissionais-01.png" alt="Carrossel profissionais 01" loading="lazy"><figcaption>01 · "Atende poucas vezes por semana e paga aluguel cheio?"</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/profissionais-02.png" alt="Carrossel profissionais 02" loading="lazy"><figcaption>02 · tipos de espaço</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/profissionais-03.png" alt="Carrossel profissionais 03" loading="lazy"><figcaption>03 · sem contrato, fiador ou condomínio</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/profissionais-04.png" alt="Carrossel profissionais 04" loading="lazy"><figcaption>04 · pague só as horas que usar</figcaption></figure>
+    <figure><img src="../cards/meta-carrossel/profissionais-05.png" alt="Carrossel profissionais 05" loading="lazy"><figcaption>05 · CTA "Cadastro grátis"</figcaption></figure>
+  </div>
+
+  <h3 id="grupos">5.1 Grupos locais de Maringá</h3>
+  <p>Grupos de Facebook de dentistas, psicólogos, fisioterapeutas e profissionais da saúde de Maringá são onde estão os anfitriões e os profissionais. A regra aqui é <strong>participar com valor</strong>, não fazer propaganda.</p>
+  <ol class="steps">
+    <li>Busque no Facebook: <em>dentistas Maringá</em>, <em>odontologia Maringá</em>, <em>psicólogos Maringá</em>, <em>fisioterapia Maringá</em>, <em>sala comercial Maringá</em>, <em>consultório para alugar Maringá</em>, <em>recém-formados odontologia PR</em>.</li>
+    <li>Monte uma lista (planilha): nome do grupo, link, número de membros, regras sobre divulgação, nome do administrador.</li>
+    <li>Peça para entrar. Algumas perguntas de entrada pedem o registro profissional; responda com a verdade (você entra como equipe do SpaceHour). Quando o grupo aceitar Páginas, entre como Página SpaceHour.</li>
+    <li><strong>Leia as regras antes de postar qualquer coisa.</strong> Se o grupo proíbe divulgação, não divulgue.</li>
+    <li>Nas 2 primeiras semanas, só participe: responda dúvidas sobre aluguel de sala, contratos, custos fixos de consultório.</li>
+    <li>Depois, mande mensagem ao administrador pedindo autorização para um post de apresentação (texto abaixo).</li>
+    <li>No máximo <strong>1 post por grupo a cada 15 dias</strong>. Nunca o mesmo texto em vários grupos no mesmo dia (o Facebook marca como spam).</li>
+    <li>Use o link com <code>utm_medium=post</code>. Responda todos os comentários.</li>
+  </ol>
+  <h4>Mensagem para o administrador do grupo</h4>
+  <div class="copy"><pre>Olá, [nome]! Tudo bem?
+Sou da equipe do SpaceHour, um site de Maringá onde quem tem consultório ou sala vaga aluga por hora para outros profissionais com registro verificado.
+Posso fazer um post de apresentação no grupo? Se preferir que não, sem problema, respeito a regra.
+Obrigado(a)!</pre></div>
+  <h4>Post de valor (sem link)</h4>
+  <div class="copy"><pre>Uma conta que pouca gente faz: quantas horas por semana o seu consultório fica fechado ou vazio?
+
+Aluguel, condomínio, energia e equipamento continuam custando nessas horas. Alguns colegas dividem a sala por turno, outros alugam por hora.
+
+Quem aqui já dividiu consultório? O que deu certo e o que não deu? Quero aprender com a experiência de vocês.</pre></div>
+  <h4>Post de apresentação (só com autorização)</h4>
+  <div class="copy"><pre>Com autorização da administração do grupo:
+
+Tem consultório ou sala que fica vazia em alguns horários? O SpaceHour começou em Maringá para alugar esses horários por hora a outros profissionais com registro verificado (CRO, CRM, CRP, CREFITO etc.).
+
+Anunciar é grátis e não tem mensalidade. Só há cobrança quando a reserva é paga: 5% + tarifa do Mercado Pago. Você define preço, horários e regras.
+
+E se você precisa de sala por algumas horas: cadastro grátis, sem contrato e sem fiador.
+
+https://space-hour.com/conheca?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-geral
+
+Fico à disposição para dúvidas aqui nos comentários.</pre></div>
+</section>
+
+<!-- 6 -->
+<section id="calendario">
+  <h2><span class="n">6</span>Calendário dos primeiros 30 dias</h2>
+  <p>Dia 1 = dia em que a Página fica pronta. Horários sugeridos: 7h30, 12h ou 19h (horários em que profissionais de saúde olham o celular). Ajuste pelo que as estatísticas mostrarem.</p>
+  <div class="table">
+    <table>
+      <thead><tr><th>Dia</th><th>Formato</th><th>Card / vídeo</th><th>Legenda resumida</th></tr></thead>
+      <tbody>
+        <tr><td class="d">1</td><td>Foto + Anúncios</td><td>post-01</td><td>Lançamento em Maringá. Ligar as 2 campanhas.</td></tr>
+        <tr><td class="d">2</td><td>Foto</td><td>post-02</td><td>Anuncie grátis, 5% + tarifa MP só quando alugar</td></tr>
+        <tr><td class="d">3</td><td>Grupos</td><td>—</td><td>Entrar em 10 grupos, ler regras, montar lista</td></tr>
+        <tr><td class="d">4</td><td>Foto</td><td>post-04</td><td>Como funciona para o anfitrião</td></tr>
+        <tr><td class="d">5</td><td>Reels</td><td>Roteiro A</td><td>Horário vago no consultório</td></tr>
+        <tr><td class="d">7</td><td>Foto</td><td>post-06</td><td>Segurança: registro, caução, avaliações</td></tr>
+        <tr><td class="d">8</td><td>Foto</td><td>post-03</td><td>Quanto rende um horário vago (simulação)</td></tr>
+        <tr><td class="d">10</td><td>Foto (sem link)</td><td>post-07</td><td>Você dividiria seu consultório por hora?</td></tr>
+        <tr><td class="d">11</td><td>Grupos</td><td>post de valor</td><td>Post de valor em 3 grupos diferentes, em dias diferentes</td></tr>
+        <tr><td class="d">12</td><td>Reels</td><td>Roteiro B</td><td>Como anunciar em 30 segundos</td></tr>
+        <tr><td class="d">14</td><td>Carrossel</td><td>anfitrioes-01..06</td><td>Repostar o carrossel de anfitriões como post orgânico</td></tr>
+        <tr><td class="d">15</td><td>Relatório</td><td>—</td><td>Revisar anúncios: pausar o que tem custo por cadastro alto</td></tr>
+        <tr><td class="d">16</td><td>Foto</td><td>post-05</td><td>Como funciona para o profissional</td></tr>
+        <tr><td class="d">18</td><td>Foto</td><td>post-08</td><td>Recém-formado: atenda sem alugar sala</td></tr>
+        <tr><td class="d">19</td><td>Reels</td><td>Roteiro C</td><td>Recém-formado: comece sem sala</td></tr>
+        <tr><td class="d">21</td><td>Carrossel</td><td>profissionais-01..05</td><td>Carrossel de profissionais como post orgânico</td></tr>
+        <tr><td class="d">22</td><td>Grupos</td><td>post de apresentação</td><td>Só nos grupos em que o admin autorizou</td></tr>
+        <tr><td class="d">24</td><td>Texto</td><td>—</td><td>Pergunta: "Qual equipamento não pode faltar num consultório para alugar?"</td></tr>
+        <tr><td class="d">26</td><td>Reels</td><td>Roteiro D</td><td>Respondendo dúvidas de anfitrião</td></tr>
+        <tr><td class="d">28</td><td>Foto</td><td>post-02 (repost com novo texto)</td><td>Resumo das dúvidas mais comuns do mês</td></tr>
+        <tr><td class="d">30</td><td>Relatório</td><td>—</td><td>Balanço do mês para o Robson (seção 12)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="videos">
+  <h2><span class="n">7</span>Roteiros de Reels (Facebook)</h2>
+  <p>Vídeos verticais de 15 a 40 segundos, gravados no celular. Regras para todos:</p>
+  <ul>
+    <li><strong>Nunca</strong> mostrar paciente, prontuário ou tela de agenda com nomes.</li>
+    <li>Grave em sala vazia e arrumada, com luz de janela. Peça autorização do dono do espaço antes de filmar.</li>
+    <li>Coloque legenda na tela (muita gente assiste sem som). O próprio editor do Facebook/Instagram ou o CapCut gera legendas automáticas; revise os erros.</li>
+    <li>Termine com o texto do link e a frase "link na descrição".</li>
+  </ul>
+
+  <details open>
+    <summary>Roteiro A · "Horário vago no consultório" (anfitrião, 25 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Close na cadeira ou maca vazia. Texto na tela: <strong>"Seu consultório às 14h de uma terça."</strong></dd>
+      <dt>Cenas</dt><dd>1) Relógio de parede ou celular marcando 14h. 2) Luz da sala apagando. 3) Mão abrindo o site SpaceHour no celular (tela do anúncio de espaço, sem dados de ninguém).</dd>
+      <dt>Texto na tela</dt><dd>"Horário vago = aluguel pago sem retorno" → "Alugue por hora para profissionais verificados" → "Anuncie grátis. 5% + tarifa Mercado Pago só quando alugar."</dd>
+      <dt>Fala</dt><dd>"Se o seu consultório fica vazio em alguns horários, dá para alugar esses horários por hora no SpaceHour. Você define o preço e as regras, e o dinheiro cai na sua conta Mercado Pago."</dd>
+      <dt>CTA</dt><dd>"Anuncie grátis. Link na descrição." Link: anuncie com <code>utm_medium=post</code>, campanha <code>lanc-anfitrioes</code>.</dd>
+    </dl></div>
+  </details>
+
+  <details>
+    <summary>Roteiro B · "Como anunciar em 30 segundos" (anfitrião, 30 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Texto grande: <strong>"Anunciar seu consultório leva menos tempo que um café."</strong></dd>
+      <dt>Cenas</dt><dd>Gravação da tela do celular (recurso de gravar tela) mostrando: criar conta → cadastrar espaço → fotos → preço por hora → horários → conectar Mercado Pago. Use uma conta de teste, sem dados reais.</dd>
+      <dt>Texto na tela</dt><dd>"1. Fotos e equipamentos" · "2. Preço e horários" · "3. Conecte o Mercado Pago" · "Pronto."</dd>
+      <dt>Fala</dt><dd>"Você cadastra o espaço, escolhe preço e horários, conecta a sua conta Mercado Pago com chave Pix, e pronto. Você pode aprovar cada pedido ou deixar a reserva instantânea."</dd>
+      <dt>CTA</dt><dd>"Comece grátis pelo link."</dd>
+    </dl></div>
+  </details>
+
+  <details>
+    <summary>Roteiro C · "Recém-formado: comece sem sala" (profissional, 25 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Pessoa de jaleco (só do pescoço para baixo, ou de costas) segurando chaves. Texto: <strong>"Formou e não tem sala ainda?"</strong></dd>
+      <dt>Cenas</dt><dd>1) Mão riscando num papel "contrato 12 meses", "fiador", "condomínio". 2) Celular mostrando lista de espaços no SpaceHour. 3) Porta de consultório abrindo.</dd>
+      <dt>Texto na tela</dt><dd>"Sem contrato" · "Sem fiador" · "Sem condomínio" · "Pague só as horas que usar".</dd>
+      <dt>Fala</dt><dd>"No SpaceHour você reserva consultório ou sala pronta por hora, só quando tiver atendimento. Paga com Pix, cartão ou boleto."</dd>
+      <dt>CTA</dt><dd>"Cadastro grátis, link na descrição." Link: profissionais, campanha <code>lanc-profissionais</code>.</dd>
+    </dl></div>
+  </details>
+
+  <details>
+    <summary>Roteiro D · "Respondendo dúvidas de anfitrião" (30–40 s)</summary>
+    <div class="in"><dl class="script">
+      <dt>Gancho 0–3 s</dt><dd>Texto: <strong>"3 perguntas que todo dono de consultório faz."</strong></dd>
+      <dt>Cenas</dt><dd>Você (ou o Robson) falando para a câmera, em pé numa sala vazia. Uma pergunta por corte.</dd>
+      <dt>Texto na tela</dt><dd>"Quanto custa?" · "Quem vai usar minha sala?" · "Como eu recebo?"</dd>
+      <dt>Fala</dt><dd>"Quanto custa? Anunciar é grátis; quando alugar, 5% por reserva mais a tarifa do Mercado Pago. Quem usa? Profissionais com registro verificado, e você pode exigir caução e avalista. Como recebe? Direto na sua conta Mercado Pago."</dd>
+      <dt>CTA</dt><dd>"Outra dúvida? Manda nos comentários."</dd>
+    </dl></div>
+  </details>
+</section>
+
+<!-- 8 -->
+<section id="anuncios">
+  <h2><span class="n">8</span>Anúncios pagos (Meta Ads)</h2>
+  <div class="note">
+    <p><strong>Combine com a pessoa do Instagram.</strong> Os anúncios do Meta podem aparecer no Facebook e no Instagram. Para cada um medir o próprio resultado, a sugestão é: você cria campanhas com posicionamento <strong>só no Facebook</strong> e link com <code>utm_source=facebook</code>; ela cria as dela só no Instagram com <code>utm_source=instagram</code>. Se preferirem uma campanha única com posicionamentos automáticos (Advantage+, costuma sair mais barato), combinem quem cria e usem <code>utm_source=facebook</code> nela.</p>
+  </div>
+
+  <h3>Estrutura</h3>
+  <div class="table">
+    <table>
+      <thead><tr><th>Campanha</th><th>Objetivo</th><th>Verba/dia</th><th>Criativos</th></tr></thead>
+      <tbody>
+        <tr><td>SpaceHour | FB | Anfitriões | Maringá</td><td>Leads → Site → evento CompleteRegistration</td><td>R$ 30 <small>(sugestão inicial)</small></td><td>Carrossel anfitrioes-01..06</td></tr>
+        <tr><td>SpaceHour | FB | Profissionais | Maringá</td><td>Leads → Site → evento CompleteRegistration</td><td>R$ 15 <small>(sugestão inicial)</small></td><td>Carrossel profissionais-01..05</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Anfitriões ganham mais verba porque sem espaços anunciados o profissional não encontra nada. Quando Maringá tiver 5 a 10 espaços publicados, aumente a verba de profissionais.</p>
+
+  <h3>Passo a passo no Gerenciador de Anúncios</h3>
+  <ol class="steps">
+    <li>Acesse <code>adsmanager.facebook.com</code> e confira se está na conta <strong>SpaceHour - Anúncios</strong>.</li>
+    <li><strong>+ Criar</strong> → objetivo <strong>Leads</strong> (ou "Cadastros", se o nome mudar).</li>
+    <li>Se aparecer <strong>Categorias especiais de anúncio</strong>, e o Meta pedir ou reprovar o anúncio por isso, marque <strong>Habitação/Imóveis</strong>. Com ela: raio mínimo de cerca de 24 km e sem segmentar idade ou gênero. Nosso raio de 30 km já atende.</li>
+    <li>No conjunto de anúncios: local da conversão <strong>Site</strong>, conjunto de dados (Pixel) <strong>SpaceHour</strong>, evento <strong>CompleteRegistration</strong>.</li>
+    <li>Se o Meta avisar que há poucos eventos no começo, use o objetivo <strong>Tráfego</strong> → "Visualizações da página de destino" nos primeiros dias e troque depois.</li>
+    <li>Público: <strong>Maringá, PR + 30 km</strong>. Sem categoria especial, idade 25–65. Interesses sugeridos: Odontologia, Psicologia, Fisioterapia, Medicina, Clínica, Empreendedorismo. Se o Meta oferecer público Advantage+, pode deixar ligado.</li>
+    <li>Posicionamentos: <strong>Manuais</strong> → só Facebook (Feed, Stories, Reels, Marketplace). Veja a nota acima.</li>
+    <li>Orçamento diário: conforme a tabela. Duração: contínua.</li>
+    <li>Anúncio: formato <strong>Carrossel</strong>. Suba os cards na ordem. Em todos os cards, o mesmo link.</li>
+    <li>Botão (chamada para ação): <strong>Cadastre-se</strong>.</li>
+    <li>Crie <strong>3 anúncios</strong> no mesmo conjunto, um com cada texto principal abaixo. O Meta entrega mais o que funcionar melhor.</li>
+    <li>Publique. A aprovação leva de algumas horas a 24 h.</li>
+  </ol>
+
+  <h3>Links dos anúncios</h3>
+  <div class="copy"><span class="lbl">Anfitriões</span><pre>https://space-hour.com/anuncie?utm_source=facebook&amp;utm_medium=paid&amp;utm_campaign=lanc-anfitrioes</pre></div>
+  <div class="copy"><span class="lbl">Profissionais</span><pre>https://space-hour.com/profissionais?utm_source=facebook&amp;utm_medium=paid&amp;utm_campaign=lanc-profissionais</pre></div>
+
+  <h3>Textos: campanha Anfitriões</h3>
+  <div class="copy"><span class="lbl">Texto principal 1</span><pre>Seu consultório fica vazio em alguns horários da semana?
+No SpaceHour você aluga esses horários por hora para dentistas, médicos, psicólogos e outros profissionais com registro verificado.
+✔ Você define preço, dias e regras
+✔ Pix ou cartão, direto na sua conta Mercado Pago
+✔ Sem mensalidade: 5% por reserva (+ tarifa do Mercado Pago)
+Anuncie grátis.</pre></div>
+  <div class="copy"><span class="lbl">Texto principal 2</span><pre>Horário vago no consultório é aluguel pago sem retorno.
+Com o SpaceHour, profissionais da sua região reservam a sua sala por hora e pagam online. Você escolhe os horários, o preço e se aprova cada pedido.
+Anunciar é grátis, sem mensalidade.</pre></div>
+  <div class="copy"><span class="lbl">Texto principal 3</span><pre>Já pensou em dividir o custo do seu consultório sem fazer contrato com ninguém?
+No SpaceHour cada reserva é por hora, paga antecipadamente pelo Mercado Pago, com caução opcional e avaliação dos dois lados.
+Comece hoje, é grátis.</pre></div>
+  <div class="copy"><span class="lbl">Títulos</span><pre>Anuncie seu consultório grátis
+Seu horário vago pode virar renda</pre></div>
+  <div class="copy"><span class="lbl">Descrição</span><pre>Anunciar é grátis. Sem mensalidade.</pre></div>
+
+  <h3>Textos: campanha Profissionais</h3>
+  <div class="copy"><span class="lbl">Texto principal 1</span><pre>Atende poucas vezes por semana e paga aluguel cheio?
+No SpaceHour você reserva consultórios e salas prontas por hora: odontológico, psicologia, fisioterapia, sala de aula e mais.
+✔ Sem contrato, sem condomínio, sem fiador
+✔ Pague só pelas horas que usar, com Pix ou cartão
+Cadastro grátis.</pre></div>
+  <div class="copy"><span class="lbl">Texto principal 2</span><pre>Consultório pronto, na hora que você precisa.
+Escolha o espaço, veja fotos e equipamentos, e reserve online. Pague com Pix, cartão ou boleto.</pre></div>
+  <div class="copy"><span class="lbl">Texto principal 3</span><pre>Recém-formado(a)? Comece a atender sem alugar uma sala inteira.
+No SpaceHour você reserva consultório por hora, só quando tiver atendimento. Sem contrato e sem fiador.
+Cadastro grátis.</pre></div>
+  <div class="copy"><span class="lbl">Título e descrição</span><pre>Consultório por hora, sem contrato
+Reserve online com Pix ou cartão.</pre></div>
+
+  <h3>Regras para ajustar (sugestão inicial)</h3>
+  <ul>
+    <li>Depois de 1.500 impressões, pause o anúncio com CTR (taxa de cliques) abaixo de 0,8%.</li>
+    <li>A cada 3 dias, passe verba para o anúncio com <strong>menor custo por cadastro</strong>.</li>
+    <li>Não mexa no anúncio todo dia: cada edição grande reinicia o aprendizado do Meta.</li>
+  </ul>
+
+  <h3>Como pagar os anúncios</h3>
+  <ol class="steps">
+    <li>Na conta de anúncios, abra <strong>Cobrança e pagamentos</strong> → <strong>Formas de pagamento</strong> → <strong>Adicionar</strong>.</li>
+    <li>No Brasil as opções costumam ser: <strong>cartão de crédito</strong> (cobrança automática), <strong>Pix</strong> ou <strong>boleto</strong> (pré-pago: você adiciona saldo antes). Boleto leva até 3 dias úteis para compensar.</li>
+    <li>Use cartão ou conta <strong>do Instituto</strong> (peça ao Robson). Nunca o seu cartão pessoal.</li>
+    <li>Confira que o CNPJ e a razão social estão nos dados de cobrança, para a nota fiscal sair no nome do Instituto.</li>
+    <li>Defina um <strong>limite de gastos da conta</strong> combinado com o Robson.</li>
+  </ol>
+</section>
+
+<!-- 9 -->
+<section id="pixel">
+  <h2><span class="n">9</span>Pixel e medição</h2>
+  <p>O site já tem o código do Pixel pronto. Falta só criar o Pixel e entregar o número dele ao Robson. O Pixel é <strong>um só</strong> para Facebook e Instagram.</p>
+  <div class="note"><p>Antes de criar, pergunte à pessoa do Instagram se ela já criou um Pixel. Se sim, use o mesmo. <strong>Não crie dois.</strong></p></div>
+
+  <h3>9.1 Criar o Pixel</h3>
+  <ol class="steps">
+    <li>Acesse o <strong>Gerenciador de Eventos</strong>: <code>business.facebook.com/events_manager</code>.</li>
+    <li>Clique em <strong>Conectar fontes de dados</strong> (ou "+") → <strong>Web</strong>.</li>
+    <li>Nome: <code>SpaceHour</code>. O Meta hoje chama o Pixel de <strong>conjunto de dados</strong>; é a mesma coisa.</li>
+    <li>Quando perguntar como instalar, escolha a opção manual ou feche: o código já está no site.</li>
+    <li>Copie o <strong>ID</strong> (só números, cerca de 15 a 16 dígitos).</li>
+    <li>Em <strong>Configurações do negócio</strong> → <strong>Fontes de dados</strong> → <strong>Conjuntos de dados</strong>, conecte o Pixel à conta de anúncios <strong>SpaceHour - Anúncios</strong>.</li>
+  </ol>
+
+  <h3>9.2 Entregar ao Robson</h3>
+  <p>Mande este texto ao Robson com o número no lugar:</p>
+  <div class="copy"><pre>Robson, segue o ID do Meta Pixel para colocar na Vercel:
+Projeto spacehour → Settings → Environment Variables → ambiente Production (não marcar "Sensitive")
+Nome: VITE_META_PIXEL_ID
+Valor: [COLE O NÚMERO AQUI]
+Depois é preciso fazer um Redeploy.</pre></div>
+
+  <h3>9.3 Verificar o domínio (TXT no DNS)</h3>
+  <ol class="steps">
+    <li>Em <strong>Configurações do negócio</strong> → <strong>Segurança da marca</strong> → <strong>Domínios</strong> → <strong>Adicionar</strong>.</li>
+    <li>Digite <code>space-hour.com</code> (sem https e sem www).</li>
+    <li>Escolha o método <strong>Atualizar registro TXT de DNS</strong>.</li>
+    <li>Copie o valor que começa com <code>facebook-domain-verification=</code>.</li>
+    <li>Envie ao Robson (texto abaixo). O DNS fica na GoDaddy e é ele quem cria o registro.</li>
+    <li>Depois que ele avisar, volte nessa tela e clique em <strong>Verificar</strong>. Pode levar de minutos até 72 h.</li>
+    <li>Com o domínio verificado, em <strong>Ativos vinculados</strong> do domínio, conecte a Página SpaceHour e o Pixel.</li>
+  </ol>
+  <div class="copy"><pre>Robson, para verificar o domínio no Meta, crie este registro no DNS da GoDaddy (space-hour.com → DNS → Adicionar registro):
+Tipo: TXT
+Nome/Host: @
+Valor: [COLE AQUI O facebook-domain-verification=...]
+TTL: padrão (1 hora)
+Me avise quando salvar, que eu clico em Verificar.</pre></div>
+
+  <h3>9.4 Eventos do site</h3>
+  <div class="table">
+    <table>
+      <thead><tr><th>Evento</th><th>Quando dispara</th><th>Para que serve</th></tr></thead>
+      <tbody>
+        <tr><td><code>PageView</code></td><td>Toda página aberta</td><td>Públicos de remarketing</td></tr>
+        <tr><td><code>Lead</code></td><td>Clique nos botões das landings (/anuncie, /profissionais, /conheca)</td><td>Interesse; plano B de otimização</td></tr>
+        <tr><td><code>CompleteRegistration</code></td><td>Cadastro concluído</td><td>Evento principal das campanhas</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Se ainda aparecer na sua conta a tela <strong>Mensuração de eventos agregados</strong> (configuração de prioridade de eventos), coloque <code>CompleteRegistration</code> como prioridade 1 e <code>Lead</code> como 2. Em contas novas essa tela pode não existir mais; nesse caso não há nada a fazer.</p>
+
+  <h3>9.5 Como testar</h3>
+  <ol class="steps">
+    <li>Depois que o Robson fizer o Redeploy, abra o Gerenciador de Eventos → seu Pixel → aba <strong>Testar eventos</strong>.</li>
+    <li>Digite <code>https://space-hour.com/anuncie</code> e clique em <strong>Abrir site</strong>.</li>
+    <li>No site, clique em <strong>Aceitar</strong> no aviso de cookies. Sem aceite, o Pixel não carrega (é a LGPD).</li>
+    <li>Confira se aparece <code>PageView</code>. Clique no botão da landing: deve aparecer <code>Lead</code>.</li>
+    <li>Para ver <code>CompleteRegistration</code>, faça um cadastro de teste com um e-mail seu e avise o Robson para apagar depois.</li>
+    <li>Opcional: no Chrome do computador, instale a extensão <strong>Meta Pixel Helper</strong>; ela mostra os eventos de cada página.</li>
+  </ol>
+
+  <h3>9.6 UTMs (use sempre estes links)</h3>
+  <div class="copy"><pre>Página (site e botão):  https://space-hour.com/conheca?utm_source=facebook&amp;utm_medium=bio&amp;utm_campaign=lanc-geral
+Posts gerais:           https://space-hour.com/conheca?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-geral
+Posts anfitriões:       https://space-hour.com/anuncie?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes
+Posts profissionais:    https://space-hour.com/profissionais?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-profissionais
+Anúncios anfitriões:    https://space-hour.com/anuncie?utm_source=facebook&amp;utm_medium=paid&amp;utm_campaign=lanc-anfitrioes
+Anúncios profissionais: https://space-hour.com/profissionais?utm_source=facebook&amp;utm_medium=paid&amp;utm_campaign=lanc-profissionais</pre></div>
+  <p>Os cadastros aparecem no site em <strong>Admin → Campanha</strong>, separados por origem (utm_source) e campanha. Peça ao Robson acesso a essa aba.</p>
+</section>
+
+<!-- 10 -->
+<section id="crm">
+  <h2><span class="n">10</span>CRM e atendimento</h2>
+  <h3>Rotina diária</h3>
+  <ol class="steps">
+    <li>9h, 13h e 17h: abra o Meta Business Suite → <strong>Caixa de entrada</strong> (Messenger e comentários) e as notificações dos grupos.</li>
+    <li>Responda em até <strong>1 hora</strong> no horário comercial.</li>
+    <li>Cada pessoa nova vira uma linha na planilha CRM.</li>
+    <li>Atualize o status de quem já está na planilha e marque o próximo contato.</li>
+    <li>Fim do dia: confira em Admin → Contatos quem da planilha já se cadastrou.</li>
+  </ol>
+
+  <h3>Automações do Messenger</h3>
+  <p>No Meta Business Suite → <strong>Caixa de entrada</strong> → <strong>Automações</strong> (pode aparecer como ícone de raio ou dentro de "…"). Os nomes variam; procure estes:</p>
+  <ul>
+    <li><strong>Resposta instantânea</strong> (boas-vindas): enviada na primeira mensagem.</li>
+    <li><strong>Mensagem de ausência</strong>: fora do horário comercial.</li>
+    <li><strong>Perguntas frequentes</strong>: botões que aparecem quando a pessoa abre a conversa.</li>
+    <li><strong>Respostas salvas</strong>: na caixa de entrada, ao escrever, clique no ícone de respostas salvas para inserir textos prontos.</li>
+    <li><strong>Resposta automática a comentários</strong>: se existir na sua conta, responda em privado a quem comentar uma palavra-chave (ex.: "QUERO"). Se não existir, responda manualmente.</li>
+  </ul>
+  <div class="copy"><span class="lbl">Resposta instantânea</span><pre>Olá! Obrigado por falar com o SpaceHour.
+Você tem um espaço para anunciar ou procura sala para atender? Responda "ANUNCIAR" ou "ALUGAR" que eu te explico.
+Atendemos de segunda a sexta, das 8h às 18h.</pre></div>
+  <div class="copy"><span class="lbl">Mensagem de ausência</span><pre>Olá! Agora estamos fora do horário de atendimento, mas sua mensagem chegou.
+Respondemos no próximo horário comercial. Enquanto isso, veja como funciona: https://space-hour.com/conheca?utm_source=facebook&amp;utm_medium=bio&amp;utm_campaign=lanc-geral</pre></div>
+  <div class="copy"><span class="lbl">Perguntas frequentes (4 botões)</span><pre>Quanto custa anunciar meu espaço?
+Como eu alugo uma sala por hora?
+Quem pode alugar meu consultório?
+Como funciona o pagamento?</pre></div>
+
+  <h3>Mensagens prontas (respostas salvas)</h3>
+  <div class="copy"><span class="lbl">Anfitrião</span><pre>Que bom que você tem interesse! No SpaceHour você anuncia seu espaço grátis, sem mensalidade.
+Você define preço por hora, dias, horários e regras, e escolhe se aprova cada pedido ou deixa a reserva instantânea. Pode exigir caução e avalista.
+O pagamento cai direto na sua conta Mercado Pago (precisa ter uma chave Pix cadastrada lá).
+Para começar: https://space-hour.com/anuncie?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-anfitrioes
+Se quiser, eu te ajudo a cadastrar por telefone. Qual o melhor horário para você?</pre></div>
+  <div class="copy"><span class="lbl">Profissional</span><pre>Oi! No SpaceHour você reserva consultório ou sala pronta por hora, sem contrato, sem fiador e sem condomínio. Paga só as horas que usar.
+No cadastro você informa seu registro profissional (CRO, CRM, CRP, CREFITO etc.), que é verificado.
+Pagamento com Pix, cartão ou boleto (boleto só para reservas com 3 ou mais dias de antecedência). O endereço completo aparece quando a reserva é confirmada.
+Cadastro grátis: https://space-hour.com/profissionais?utm_source=facebook&amp;utm_medium=post&amp;utm_campaign=lanc-profissionais
+Estamos começando por Maringá. Qual tipo de sala você procura?</pre></div>
+  <div class="copy"><span class="lbl">Dúvida de preço</span><pre>Para quem anuncia: é grátis e sem mensalidade. Quando uma reserva é paga, o SpaceHour fica com 5% e o Mercado Pago cobra a tarifa dele. Não alugou, não paga nada.
+Para quem aluga: o preço por hora do espaço + 15% de taxa de serviço + ISS sobre essa taxa. Exemplo: espaço de R$ 100 → você paga R$ 115,75. O total aparece antes de confirmar.
+O preço da hora quem define é o dono do espaço.</pre></div>
+  <div class="copy"><span class="lbl">Dúvida de segurança</span><pre>Entendo a preocupação. Quem aluga informa o registro profissional (CRO, CRM, CRP, CREFITO etc.) e ele é verificado.
+O dono do espaço pode aprovar cada pedido antes, exigir caução e avalista, e os dois lados se avaliam depois do uso.
+O pagamento é feito antes, pelo Mercado Pago, e o endereço completo só é liberado depois da reserva confirmada.</pre></div>
+  <div class="copy"><span class="lbl">Resposta pública a comentário</span><pre>Oi, [nome]! Te mandei os detalhes no Messenger. Qualquer dúvida, é só chamar.</pre></div>
+
+  <h3>Planilha CRM</h3>
+  <p>Crie uma planilha no Google Sheets chamada <strong>CRM SpaceHour - Facebook</strong> e compartilhe com o Robson. Colunas:</p>
+  <div class="copy"><span class="lbl">Cabeçalho (cole na linha 1)</span><pre>Data	Nome	Contato	Rede	Tipo	Cidade	Status	Próximo passo	Data do próximo contato</pre></div>
+  <ul>
+    <li><strong>Rede:</strong> Facebook (Messenger, comentário ou grupo).</li>
+    <li><strong>Tipo:</strong> anfitrião ou profissional.</li>
+    <li><strong>Status</strong> (use só estes): novo · conversando · cadastrou · publicou espaço · reservou · perdido.</li>
+    <li>Use <strong>Dados → Validação de dados</strong> para criar uma lista suspensa nas colunas Tipo e Status.</li>
+  </ul>
+  <p><strong>CRM grátis (alternativa):</strong> RD Station CRM (plano grátis) ou HubSpot CRM (grátis). Crie um funil com as mesmas etapas do Status. Se o atendimento passar para o WhatsApp Business, use <strong>etiquetas</strong> com os mesmos nomes (novo, conversando, cadastrou...).</p>
+  <h4>Cruzar com o site</h4>
+  <ol class="steps">
+    <li>Uma vez por semana, peça ao Robson (ou abra, se tiver acesso) <strong>Admin → Contatos</strong> no site e exporte o CSV.</li>
+    <li>Procure pelo e-mail ou nome de cada lead da planilha. Se achou, mude o status para <strong>cadastrou</strong>.</li>
+    <li>Quem pediu para não receber marketing (o Admin mostra) não recebe mais mensagens de divulgação. Só responda se a pessoa falar com você.</li>
+  </ol>
+</section>
+
+<!-- 11 -->
+<section id="monetizacao">
+  <h2><span class="n">11</span>Monetização</h2>
+  <h3>a) Como o Facebook gera receita para o SpaceHour</h3>
+  <p>A receita vem das <strong>reservas</strong>: 5% do anfitrião e 15% de taxa de serviço do profissional, em cada reserva paga. O caminho é: anúncio/post → cadastro → espaço publicado → reserva.</p>
+  <ul>
+    <li><strong>Custo por cadastro</strong> = gasto em anúncios ÷ cadastros com <code>utm_source=facebook</code> (Admin → Campanha).</li>
+    <li><strong>Custo por reserva</strong> = gasto ÷ reservas de pessoas que vieram do Facebook (peça esse número ao Robson no fim do mês).</li>
+    <li>Na primeira fase, o número mais importante é <strong>anfitriões com espaço publicado</strong>.</li>
+  </ul>
+  <h3>b) Ganhos com a própria Página</h3>
+  <p>O Facebook paga criadores por conteúdo. Para uma Página de empresa nova isso é secundário, mas vale saber. Abra <strong>Painel profissional</strong> → <strong>Monetização</strong> (ou "Ferramentas de monetização") para ver o que está liberado e o que falta.</p>
+  <ul>
+    <li><strong>Monetização de conteúdo do Facebook</strong>: paga por desempenho de Reels, vídeos, fotos e textos. Hoje funciona por convite ou inscrição, conforme o país.</li>
+    <li><strong>Estrelas</strong>: o público compra Estrelas e envia em vídeos e lives. Já foi exigido algo como 500 seguidores por 30 dias seguidos.</li>
+    <li><strong>Assinaturas</strong>: seguidores pagam por mês por conteúdo exclusivo. Costuma exigir milhares de seguidores e engajamento alto.</li>
+  </ul>
+  <div class="note"><p>Os requisitos mudam com frequência e variam por país. Sempre confira em Painel profissional → Monetização. Todos exigem seguir as <strong>Políticas de monetização de parceiros e de conteúdo</strong> do Meta.</p></div>
+  <h3>c) Parcerias pagas</h3>
+  <ul>
+    <li>Clínicas, fornecedores de equipamentos odontológicos, cursos e marcas da área de saúde podem pagar por posts na Página.</li>
+    <li>Todo post pago usa a ferramenta de <strong>conteúdo de marca</strong> do Meta, que mostra o rótulo <strong>"Parceria paga com [marca]"</strong>. Escreva também "#publi" ou "Publicidade" no texto.</li>
+    <li>Nunca aceite parceria que prometa resultado de tratamento ou mostre pacientes.</li>
+    <li>Qualquer parceria paga precisa da aprovação do Robson e de nota fiscal no CNPJ do Instituto.</li>
+  </ul>
+</section>
+
+<!-- 12 -->
+<section id="metricas">
+  <h2><span class="n">12</span>Métricas semanais e relatório</h2>
+  <p>Toda <strong>segunda-feira</strong>, anote numa aba "Métricas" da planilha:</p>
+  <div class="table">
+    <table>
+      <thead><tr><th>Métrica</th><th>Onde encontrar</th></tr></thead>
+      <tbody>
+        <tr><td>Seguidores da Página</td><td>Meta Business Suite → Insights</td></tr>
+        <tr><td>Alcance da semana (orgânico e pago)</td><td>Insights → Visão geral; Gerenciador de Anúncios</td></tr>
+        <tr><td>Cliques no link</td><td>Gerenciador de Anúncios (cliques no link); Insights do post</td></tr>
+        <tr><td>Mensagens recebidas</td><td>Caixa de entrada</td></tr>
+        <tr><td>Cadastros por origem (facebook)</td><td>Site → Admin → Campanha</td></tr>
+        <tr><td>Gasto em anúncios</td><td>Gerenciador de Anúncios</td></tr>
+        <tr><td>Custo por cadastro</td><td>Gasto ÷ cadastros com utm_source=facebook</td></tr>
+        <tr><td>Anfitriões com espaço publicado</td><td>Admin → Campanha</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Relatório de 5 linhas para o Robson</h3>
+  <div class="copy"><pre>Facebook – semana [dd/mm a dd/mm]
+1. Seguidores: [n] (+[n]) | Alcance: [n] | Cliques no link: [n]
+2. Cadastros do Facebook: [n] anfitriões / [n] profissionais | Espaços publicados: [n]
+3. Anúncios: gasto R$ [n] | custo por cadastro R$ [n] | melhor anúncio: [nome]
+4. Atendimento: [n] conversas, [n] cadastraram | Grupos: [n] posts, [n] respostas
+5. Próxima semana: [o que vou mudar] | Preciso de: [pedido ao Robson]</pre></div>
+</section>
+
+<!-- 13 -->
+<section id="cuidados">
+  <h2><span class="n">13</span>Cuidados</h2>
+  <ul>
+    <li><strong>Anuncie o espaço, não o atendimento de saúde.</strong> Sem preço de tratamento, sem antes e depois, sem promessa de resultado. Os códigos de ética do CFO, CFM e CRP valem para os profissionais que aparecem no conteúdo.</li>
+    <li><strong>Não prometa renda.</strong> O valor do post 03 é uma simulação e deve sempre ser chamado assim.</li>
+    <li><strong>Taxas sempre completas:</strong> "5% + tarifa do Mercado Pago", nunca só "5%".</li>
+    <li><strong>Nenhuma promoção:</strong> não existe desconto, cupom, taxa zero ou prazo promocional.</li>
+    <li>Não diga "o mais barato" ou "o único" (Código de Defesa do Consumidor e CONAR).</li>
+    <li><strong>LGPD:</strong> não compre listas de contatos, não mande mensagem em massa a desconhecidos, respeite quem pediu para não receber marketing. Não peça dados de saúde nas conversas.</li>
+    <li><strong>Direito de imagem:</strong> só use fotos de espaços com autorização por escrito do dono. Pessoas só com autorização assinada. Nunca pacientes.</li>
+    <li><strong>Categoria especial de anúncio:</strong> se o Meta exigir Habitação/Imóveis, marque. Raio mínimo de cerca de 24 km, sem idade nem gênero.</li>
+    <li><strong>Grupos:</strong> respeite as regras de cada grupo. Spam derruba o alcance da Página e pode bloquear a conta.</li>
+    <li><strong>Acessos:</strong> nunca passe sua senha a ninguém. Para dar acesso, use Configurações → Usuários.</li>
+  </ul>
+</section>
+
+<footer>
+  <p>SpaceHour · Instituto Ravel de Ensino Superior Ltda · CNPJ 03.162.275/0001-10 · Maringá/PR · support@space-hour.com</p>
+  <p>As telas do Meta mudam com frequência. Se algum caminho deste kit não bater com o que você vê, procure o nome mais parecido ou fale com o Robson.</p>
+</footer>
+</div>
+<script>
+(function () {
+  var root = document.querySelector('[data-kit]');
+  var KEY = 'spacehour-kit-' + (root ? root.getAttribute('data-kit') : 'x') + '-checklist';
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { state = {}; }
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.checklist input[type="checkbox"]'));
+  var out = document.getElementById('ck-progress');
+  function update() {
+    var done = boxes.filter(function (b) { return b.checked; }).length;
+    if (out) out.textContent = done + ' de ' + boxes.length + ' itens prontos' + (done === boxes.length ? '. Entrega completa.' : '.');
+  }
+  boxes.forEach(function (b) {
+    if (state[b.id]) b.checked = true;
+    b.addEventListener('change', function () {
+      state[b.id] = b.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      update();
+    });
+  });
+  update();
+
+  document.querySelectorAll('.copy').forEach(function (box) {
+    if (box.querySelector('.cbtn')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'cbtn'; btn.textContent = 'Copiar';
+    box.appendChild(btn);
+  });
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.cbtn') : null;
+    if (!btn) return;
+    var pre = btn.parentElement.querySelector('pre');
+    if (!pre) return;
+    var text = pre.innerText.replace(/\s+$/, '');
+    function selectIt() {
+      try {
+        var r = document.createRange(); r.selectNodeContents(pre);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      } catch (e) {}
+      btn.textContent = 'Texto selecionado: copie';
+    }
+    function ok() {
+      btn.textContent = 'Copiado'; btn.classList.add('done');
+      setTimeout(function () { btn.textContent = 'Copiar'; btn.classList.remove('done'); }, 1800);
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(ok).catch(selectIt);
+      } else { selectIt(); }
+    } catch (e) { selectIt(); }
+  });
+})();
+</script>

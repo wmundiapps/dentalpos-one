@@ -1,0 +1,1010 @@
+<title>Kit YouTube SpaceHour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: manual de trabalho de uma coluna (~760px), índice no topo, seções numeradas na ordem de execução. */
+:root {
+  --bg: #f3fbfa;
+  --surface: #ffffff;
+  --ink: #0b3534;
+  --muted: #4a6866;
+  --line: #cbe4e1;
+  --accent: #0e7c7b;
+  --accent-strong: #0a5f5e;
+  --accent-soft: #dcf3f0;
+  --code-bg: #eaf6f4;
+  --note-bg: #fff7e6;
+  --note-line: #e7c27a;
+  --note-ink: #5b4310;
+  --on-accent: #ffffff;
+  --font-display: "Poppins", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #061c1b; --surface: #0b2827; --ink: #e2f4f2; --muted: #9dbfbc; --line: #1d4745;
+    --accent: #5fd6d0; --accent-strong: #8ff0e9; --accent-soft: #0f3a38; --code-bg: #08201f;
+    --note-bg: #2a2210; --note-line: #7a6223; --note-ink: #f1dca6; --on-accent: #062120;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #061c1b; --surface: #0b2827; --ink: #e2f4f2; --muted: #9dbfbc; --line: #1d4745;
+  --accent: #5fd6d0; --accent-strong: #8ff0e9; --accent-soft: #0f3a38; --code-bg: #08201f;
+  --note-bg: #2a2210; --note-line: #7a6223; --note-ink: #f1dca6; --on-accent: #062120;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; margin: 0; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 780px; margin: 0 auto; }
+h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.25; text-wrap: balance; color: var(--ink); }
+h1 { font-size: 1.9rem; margin: 0; font-weight: 700; }
+h2 { font-size: 1.4rem; margin: 0 0 12px; font-weight: 600; display: flex; gap: 12px; align-items: baseline; }
+h2 .n { font-family: var(--font-mono); font-size: .95rem; color: var(--accent); font-weight: 500; min-width: 2ch; }
+h3 { font-size: 1.1rem; margin: 28px 0 8px; font-weight: 600; }
+h4 { font-size: 1rem; margin: 18px 0 6px; font-weight: 600; }
+p, li { max-width: 68ch; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--font-mono); font-size: .88em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+strong { font-weight: 700; }
+.top { padding-block: 32px 20px; border-bottom: 1px solid var(--line); display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.logo { width: 52px; height: 52px; border-radius: 14px; background: var(--accent-strong); display: grid; place-items: center; flex: none; }
+.logo span { width: 34px; height: 34px; border-radius: 9px; background: #ffffff; color: #0a5f5e; font: 700 1.25rem/34px var(--font-display); text-align: center; }
+.top .meta { color: var(--muted); font-size: .95rem; margin: 4px 0 0; }
+.eyebrow { font-family: var(--font-mono); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 2px; }
+nav.toc { margin-block: 20px 8px; }
+nav.toc ol { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 16px; counter-reset: t; }
+nav.toc li { counter-increment: t; }
+nav.toc a { display: flex; gap: 10px; padding: 6px 0; text-decoration: none; color: var(--ink); border-bottom: 1px dashed var(--line); }
+nav.toc a::before { content: counter(t, decimal-leading-zero); font-family: var(--font-mono); color: var(--accent); font-size: .85rem; padding-top: 2px; }
+nav.toc a:hover { color: var(--accent); }
+section { padding-block: 36px 8px; border-bottom: 1px solid var(--line); scroll-margin-top: 12px; }
+section:last-of-type { border-bottom: 0; }
+ol.steps { padding-left: 1.4em; display: grid; gap: 6px; }
+ol.steps li::marker { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
+ul { padding-left: 1.2em; }
+.note { background: var(--note-bg); border: 1px solid var(--note-line); color: var(--note-ink); border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.note p { margin: 4px 0; }
+.tip { background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; margin: 14px 0; }
+.tip p { margin: 4px 0; }
+.copy { position: relative; margin: 10px 0 16px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; }
+.copy pre { margin: 0; padding: 12px 14px; padding-top: 40px; font-family: var(--font-mono); font-size: .86rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.copy .lbl { position: absolute; top: 9px; left: 14px; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.copy button { position: absolute; top: 6px; right: 6px; font: 600 .82rem var(--font-body); background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.copy button:hover { background: var(--accent-strong); }
+.tbl { overflow-x: auto; margin: 12px 0 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-display); font-weight: 600; font-size: .85rem; background: var(--accent-soft); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: .85rem; white-space: nowrap; }
+.checklist { list-style: none; padding: 0; display: grid; gap: 6px; }
+.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; padding: 6px 8px; border-radius: 6px; }
+.checklist label:hover { background: var(--accent-soft); }
+.checklist input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--accent); flex: none; }
+.checklist input:checked + span { color: var(--muted); text-decoration: line-through; }
+.progress { font-family: var(--font-mono); font-size: .9rem; color: var(--accent); }
+.cards { display: grid; gap: 22px; }
+.card { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 18px; align-items: start; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.card.wide { grid-template-columns: minmax(0, 1fr); }
+.card img { width: 100%; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); background: var(--code-bg); display: block; }
+.card .body { min-width: 0; }
+.card .file { font-family: var(--font-mono); font-size: .8rem; color: var(--muted); margin: 0 0 4px; overflow-wrap: anywhere; }
+.card h4 { margin-top: 0; }
+@media (max-width: 560px) { .card { grid-template-columns: minmax(0, 1fr); } .card img { max-width: 240px; } .card.wide img { max-width: 100%; } }
+.script { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 14px 16px; margin: 16px 0; }
+.script h4 { margin-top: 0; }
+.script dl { display: grid; grid-template-columns: minmax(0, 120px) minmax(0, 1fr); gap: 4px 12px; margin: 8px 0; }
+.script dt { font-weight: 700; color: var(--accent-strong); font-size: .92rem; }
+.script dd { margin: 0; min-width: 0; }
+@media (max-width: 560px) { .script dl { grid-template-columns: minmax(0, 1fr); } .script dd { margin-bottom: 6px; } }
+.tag { display: inline-block; font-family: var(--font-mono); font-size: .74rem; background: var(--accent-soft); color: var(--accent-strong); padding: 1px 8px; border-radius: 999px; margin-right: 4px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+<div class="wrap">
+<header class="top">
+  <div class="logo" aria-hidden="true"><span>S</span></div>
+  <div>
+    <p class="eyebrow">Kit de implementação · YouTube</p>
+    <h1>SpaceHour no YouTube</h1>
+    <p class="meta">Manual completo para criar, operar, anunciar e medir o canal do SpaceHour no YouTube. Versão de outubro de 2026.</p>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Índice">
+  <ol>
+    <li><a href="#resumo">Resumo</a></li>
+    <li><a href="#checklist">Checklist de entrega</a></li>
+    <li><a href="#conta">Criação do canal</a></li>
+    <li><a href="#perfil">Perfil do canal</a></li>
+    <li><a href="#cards">Imagens e pacotes de vídeo</a></li>
+    <li><a href="#calendario">Calendário de 30 dias</a></li>
+    <li><a href="#roteiros">Roteiros, playlists e SEO</a></li>
+    <li><a href="#anuncios">Anúncios (Google Ads)</a></li>
+    <li><a href="#pixel">Tag e medição</a></li>
+    <li><a href="#crm">Comentários e CRM</a></li>
+    <li><a href="#monetizacao">Monetização</a></li>
+    <li><a href="#metricas">Métricas e relatório</a></li>
+    <li><a href="#cuidados">Cuidados</a></li>
+  </ol>
+</nav>
+
+<section id="resumo">
+  <h2><span class="n">01</span>Resumo</h2>
+  <p><strong>O que é o SpaceHour:</strong> um site (space-hour.com) para alugar por hora espaços profissionais prontos: consultórios odontológicos e médicos, salas de psicologia, fisioterapia e estética, salas de aula, auditórios e salas de reunião.<br>
+  Quem tem espaço ocioso (o <strong>anfitrião</strong>) anuncia grátis, sem mensalidade, e paga 5% por reserva paga, mais a tarifa do Mercado Pago.<br>
+  Quem precisa de sala (o <strong>profissional</strong>) se cadastra grátis e paga só as horas que usar. Estamos começando por Maringá-PR.</p>
+  <p><strong>Objetivo do YouTube:</strong> ser encontrado por quem pesquisa "aluguel de consultório por hora", "consultório compartilhado" e temas parecidos, explicar o SpaceHour com calma em vídeos longos, alcançar gente nova com Shorts e levar essas pessoas ao cadastro no site. Prioridade inicial: <strong>anfitriões</strong>.</p>
+  <p><strong>A quem pedir ajuda:</strong> Robson Ravel de Oliveira, responsável pelo SpaceHour. E-mail: <code>support@space-hour.com</code>.</p>
+  <div class="note"><p><strong>Importante:</strong> não existe promoção, desconto, cupom nem taxa zero para anfitriões. Nunca prometa nada disso em vídeo, título, descrição, comentário ou anúncio.</p></div>
+</section>
+
+<section id="checklist">
+  <h2><span class="n">02</span>Checklist de entrega</h2>
+  <p>Marque cada item quando estiver pronto. As marcações ficam salvas neste navegador. <span class="progress" id="ck-progress"></span></p>
+  <ul class="checklist" data-store="kit-youtube-spacehour">
+    <li><label><input type="checkbox" id="yt-c01"><span>Canal criado como <strong>Conta de marca</strong> dentro da conta Google da empresa</span></label></li>
+    <li><label><input type="checkbox" id="yt-c02"><span>Verificação em 2 etapas ligada na conta Google da empresa</span></label></li>
+    <li><label><input type="checkbox" id="yt-c03"><span>Robson como <strong>Proprietário</strong> do canal; você como Gerente ou Editor</span></label></li>
+    <li><label><input type="checkbox" id="yt-c04"><span>Canal verificado por telefone (libera miniaturas personalizadas e links)</span></label></li>
+    <li><label><input type="checkbox" id="yt-c05"><span>Identificador (@), nome, descrição, links com UTM e e-mail de contato preenchidos</span></label></li>
+    <li><label><input type="checkbox" id="yt-c06"><span>Banner, foto e marca-d'água enviados (youtube/banner.png, perfil.png, marca-dagua.png)</span></label></li>
+    <li><label><input type="checkbox" id="yt-c07"><span>4 playlists criadas</span></label></li>
+    <li><label><input type="checkbox" id="yt-c08"><span>Primeiro vídeo longo e primeiros 3 Shorts publicados</span></label></li>
+    <li><label><input type="checkbox" id="yt-c09"><span>Canal vinculado à conta Google Ads do SpaceHour</span></label></li>
+    <li><label><input type="checkbox" id="yt-c10"><span>Conversão "Inscrição" confirmada como ativa no Google Ads (tag já está no site)</span></label></li>
+    <li><label><input type="checkbox" id="yt-c11"><span>Campanha de vídeo "Anfitriões | Maringá" no ar</span></label></li>
+    <li><label><input type="checkbox" id="yt-c12"><span>Planilha CRM (ou CRM grátis) criada e respostas salvas prontas</span></label></li>
+    <li><label><input type="checkbox" id="yt-c13"><span>Primeiro relatório semanal enviado ao Robson</span></label></li>
+  </ul>
+</section>
+
+<section id="conta">
+  <h2><span class="n">03</span>Criação do canal</h2>
+  <p>O canal é um ativo da empresa. Ele deve ser uma <strong>Conta de marca</strong> (Brand Account) criada dentro da <strong>conta Google da empresa</strong>, nunca num Gmail pessoal. Os nomes dos menus do YouTube mudam com frequência; quando um caminho não bater exatamente, procure pela palavra indicada entre aspas.</p>
+
+  <h3>3.1 Conta Google da empresa</h3>
+  <ol class="steps">
+    <li>Use a conta Google da empresa. Se ainda não houver, crie em <code>accounts.google.com</code> → <strong>Criar conta</strong> → <strong>"Para trabalho ou meu negócio"</strong> usando o e-mail <code>support@space-hour.com</code> (opção "Usar meu endereço de e-mail atual"), ou use outra conta da empresa que o Robson indicar.</li>
+    <li>Ligue a verificação em 2 etapas: <code>myaccount.google.com</code> → <strong>Segurança</strong> → <strong>Verificação em duas etapas</strong>. Cadastre o celular da empresa e, se possível, uma chave de acesso (passkey). A verificação em 2 etapas também é exigida para monetização e para transmissões ao vivo.</li>
+    <li>Guarde a senha no gerenciador de senhas combinado com o Robson.</li>
+  </ol>
+
+  <h3>3.2 Criar o canal como Conta de marca</h3>
+  <ol class="steps">
+    <li>Entre em <code>youtube.com</code> com a conta Google da empresa.</li>
+    <li>Clique na foto do perfil (canto superior direito) → <strong>Configurações</strong>.</li>
+    <li>Clique em <strong>"Adicionar ou gerenciar seus canais"</strong> (ou "Criar um novo canal").</li>
+    <li>Clique em <strong>"Criar um canal"</strong>, digite o nome <code>SpaceHour</code>, aceite e crie. Esse caminho cria o canal como Conta de marca, separado do nome pessoal.</li>
+    <li>Não use a opção que cria o canal com o seu nome pessoal.</li>
+  </ol>
+
+  <h3>3.3 Permissões</h3>
+  <ol class="steps">
+    <li>No canal, abra o <strong>YouTube Studio</strong> (<code>studio.youtube.com</code>) → <strong>Configurações</strong> (engrenagem, canto inferior esquerdo) → <strong>Permissões</strong>.</li>
+    <li><strong>Convidar</strong> → e-mail do Robson → função <strong>Proprietário</strong>.</li>
+    <li>Convide o seu e-mail de trabalho como <strong>Gerente</strong> (ou <strong>Editor</strong>, se o Robson preferir).</li>
+    <li>Se o Studio disser que as permissões são gerenciadas pela Conta de marca, faça o mesmo em <code>myaccount.google.com/brandaccounts</code> → selecione SpaceHour → <strong>Gerenciar permissões</strong>.</li>
+  </ol>
+
+  <h3>3.4 Verificar o canal</h3>
+  <ol class="steps">
+    <li>Studio → Configurações → <strong>Canal</strong> → <strong>"Qualificação para recursos"</strong> (Feature eligibility).</li>
+    <li>Em <strong>Recursos intermediários</strong>, verifique por telefone. Isso libera miniaturas personalizadas, vídeos com mais de 15 minutos e transmissões ao vivo.</li>
+    <li>Em <strong>Recursos avançados</strong>, siga o que o YouTube pedir (histórico do canal, vídeo de verificação ou documento). Eles liberam links clicáveis na descrição e outras funções.</li>
+  </ol>
+  <div class="note"><p>Sem a verificação por telefone, não é possível enviar as miniaturas deste kit.</p></div>
+</section>
+
+<section id="perfil">
+  <h2><span class="n">04</span>Perfil do canal</h2>
+  <p>No YouTube Studio → <strong>Personalização</strong> (em algumas contas aparece como "Perfil" ou "Personalizar canal"). As abas costumam ser <strong>Layout</strong>, <strong>Marca</strong> (imagens) e <strong>Informações básicas</strong>.</p>
+
+  <h3>Nome do canal</h3>
+  <pre class="cp" data-label="Nome">SpaceHour</pre>
+
+  <h3>Identificador (@)</h3>
+  <p>Informações básicas → <strong>Identificador</strong>. Tente nesta ordem (3 a 30 caracteres; letras, números, ponto, hífen e sublinhado):</p>
+  <pre class="cp" data-label="@ sugerido e alternativas">spacehour
+spacehourbr
+spacehour.br
+spacehour-oficial
+spacehourmaringa</pre>
+  <p>Avise o Robson de qual @ ficou. O endereço do canal será <code>youtube.com/@</code> + o identificador.</p>
+
+  <h3>Descrição do canal</h3>
+  <pre class="cp" data-label="Descrição do canal">O SpaceHour é a plataforma para alugar por hora espaços profissionais prontos: consultórios odontológicos e médicos, salas de psicologia, fisioterapia e estética, salas de aula, auditórios e salas de reunião. Começamos por Maringá-PR.
+
+Tem consultório ou sala que fica vazia em alguns horários? Anuncie grátis, sem mensalidade. Você define preço, horários e regras e recebe direto na sua conta Mercado Pago. Só há cobrança quando alguém aluga: 5% por reserva paga + tarifa do Mercado Pago.
+
+É profissional e precisa de sala? Cadastro grátis, sem contrato, sem fiador e sem condomínio. Pague só as horas que usar, com Pix, cartão ou boleto.
+
+No canal: aluguel de consultório por hora, consultório compartilhado, dicas para quem está começando e respostas às dúvidas de quem anuncia.
+
+Conheça: https://space-hour.com/conheca?utm_source=youtube&utm_medium=bio&utm_campaign=lanc-geral
+Contato: support@space-hour.com</pre>
+
+  <h3>Links do canal</h3>
+  <p>Informações básicas → <strong>Links</strong> → Adicionar link. O primeiro aparece em destaque embaixo do nome do canal.</p>
+  <pre class="cp" data-label="Link 1 · título: Conheça o SpaceHour">https://space-hour.com/conheca?utm_source=youtube&utm_medium=bio&utm_campaign=lanc-geral</pre>
+  <pre class="cp" data-label="Link 2 · título: Anuncie seu espaço grátis">https://space-hour.com/anuncie?utm_source=youtube&utm_medium=bio&utm_campaign=lanc-anfitrioes</pre>
+  <pre class="cp" data-label="Link 3 · título: Sou profissional: quero reservar">https://space-hour.com/profissionais?utm_source=youtube&utm_medium=bio&utm_campaign=lanc-profissionais</pre>
+
+  <h3>Contato, endereço e horário</h3>
+  <ul>
+    <li>Informações básicas → <strong>Informações de contato</strong> → e-mail: <code>support@space-hour.com</code>. Ele aparece como "Ver endereço de e-mail" na página "Sobre" do canal.</li>
+    <li>O YouTube não tem campo de endereço nem de horário. Se quiser, acrescente no fim da descrição: "Instituto Ravel de Ensino Superior Ltda · Av. XV de Novembro, 255, Sobreloja, Maringá/PR · atendimento de segunda a sexta, em horário comercial" (confirme o horário com o Robson).</li>
+    <li>Configurações → Canal → <strong>Informações básicas</strong>: país <strong>Brasil</strong>. Em <strong>Palavras-chave</strong>, cole:</li>
+  </ul>
+  <pre class="cp" data-label="Palavras-chave do canal">SpaceHour, aluguel de consultório por hora, consultório compartilhado, alugar consultório, sala por hora, consultório por hora Maringá, sublocação de consultório, sala para psicólogo, consultório odontológico, coworking saúde, anunciar consultório</pre>
+
+  <h3>Foto, banner e marca-d'água</h3>
+  <p>Personalização → <strong>Marca</strong>. Para salvar as imagens: <strong>toque e segure → Salvar imagem</strong> (celular) ou <strong>botão direito → Salvar imagem como</strong> (computador). Também estão no GitHub, em <code>espacos/docs/marketing/cards/youtube/</code>.</p>
+  <div class="cards">
+    <div class="card wide">
+      <img src="../cards/youtube/banner.png" alt="Banner do canal SpaceHour" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/banner.png · 2560×1440 · área segura central 1546×423</p>
+        <p><strong>Imagem do banner</strong> → Enviar → confira as três visualizações (TV, computador, celular). O texto já está dentro da área segura; não reposicione.</p>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/youtube/perfil.png" alt="Foto de perfil do SpaceHour: logo S branco em fundo teal" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/perfil.png · 800×800</p>
+        <p><strong>Imagem</strong> (foto do perfil) → Enviar. O YouTube recorta em círculo.</p>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/youtube/marca-dagua.png" alt="Marca-d'água do SpaceHour" loading="lazy" style="max-width:150px">
+      <div class="body">
+        <p class="file">cards/youtube/marca-dagua.png · 150×150</p>
+        <p><strong>Marca-d'água do vídeo</strong> → Enviar → tempo de exibição: <strong>"Vídeo inteiro"</strong>. No computador, ela vira um botão de inscrição no canto do vídeo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cards">
+  <h2><span class="n">05</span>Pacotes de vídeo: miniaturas e capas de Shorts</h2>
+  <p>Cada miniatura abaixo vem com título, descrição, tags e capítulos prontos para o upload do vídeo longo correspondente (roteiros na seção 7). Os tempos dos capítulos são estimativas: ajuste depois de editar o vídeo. Regras dos capítulos: o primeiro sempre em <code>0:00</code>, pelo menos 3 capítulos, cada um com no mínimo 10 segundos.</p>
+  <div class="tip"><p><strong>No upload:</strong> Studio → <strong>Criar</strong> → <strong>Enviar vídeos</strong> → Detalhes: cole título e descrição, envie a miniatura, escolha a playlist, "Não é conteúdo para crianças". Em <strong>Mostrar mais</strong>: tags, idioma Português, categoria <strong>"Educação"</strong> ou <strong>"Pessoas e blogs"</strong>, e marque "Promoção paga" só se houver patrocínio (seção 11.3). Na etapa <strong>Elementos do vídeo</strong>, adicione uma tela final com "Inscrever-se" e o próximo vídeo.</p></div>
+
+  <div class="cards">
+    <div class="card">
+      <img src="../cards/youtube/thumb-01.png" alt="Miniatura: Como alugar seu consultório por hora (passo a passo)" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/thumb-01.png · 1280×720 · Vídeo L1 · playlist Anfitriões</p>
+        <pre class="cp" data-label="Título (até 100 caracteres)">Aluguel de consultório por hora: como anunciar o seu (passo a passo) | SpaceHour</pre>
+        <pre class="cp" data-label="Descrição">Seu consultório fica vazio em alguns horários? Neste passo a passo você vê como anunciar esses horários no SpaceHour e alugar por hora para profissionais com registro verificado.
+
+Anuncie grátis, sem mensalidade: https://space-hour.com/anuncie?utm_source=youtube&utm_medium=video&utm_campaign=lanc-anfitrioes
+
+Você define preço, horários e regras, aprova cada pedido ou deixa a reserva instantânea, pode exigir caução e avalista, e recebe direto na sua conta Mercado Pago. Só há cobrança quando alguém aluga: 5% por reserva paga + tarifa do Mercado Pago.
+
+Capítulos
+0:00 O problema do horário vazio
+0:45 Criando a conta no SpaceHour
+1:50 Conectando o Mercado Pago e a chave Pix
+3:00 Fotos, equipamentos e descrição do espaço
+4:20 Preço, horários e regras
+5:30 Reserva instantânea ou aprovação de pedidos
+6:20 Caução e avalista
+7:10 Publicando o anúncio
+
+#aluguelporhora #consultorio #spacehour</pre>
+        <pre class="cp" data-label="Tags">aluguel de consultório por hora, alugar consultório por hora, anunciar consultório, alugar meu consultório, sublocar consultório, renda extra consultório, consultório Maringá, SpaceHour</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/youtube/thumb-02.png" alt="Miniatura: Consultório compartilhado vale a pena?" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/thumb-02.png · 1280×720 · Vídeo L2 · playlists Anfitriões e Profissionais</p>
+        <pre class="cp" data-label="Título">Consultório compartilhado vale a pena? Prós e contras para quem tem e para quem aluga</pre>
+        <pre class="cp" data-label="Descrição">Consultório compartilhado (ou aluguel de consultório por hora) vale a pena? Neste vídeo comparamos os dois lados: o dono da sala, que tem horários vagos, e o profissional, que atende poucas vezes por semana.
+
+Tenho sala: https://space-hour.com/anuncie?utm_source=youtube&utm_medium=video&utm_campaign=lanc-anfitrioes
+Preciso de sala: https://space-hour.com/profissionais?utm_source=youtube&utm_medium=video&utm_campaign=lanc-profissionais
+
+Capítulos
+0:00 O que é consultório compartilhado
+0:50 Para quem tem a sala: vantagens
+2:10 Para quem tem a sala: cuidados
+3:20 Para quem aluga: vantagens
+4:30 Para quem aluga: cuidados
+5:40 Como o SpaceHour organiza isso
+6:40 Resumo
+
+#consultoriocompartilhado #consultorio #spacehour</pre>
+        <pre class="cp" data-label="Tags">consultório compartilhado, consultório compartilhado vale a pena, aluguel de consultório por hora, sublocação de consultório, coworking saúde, sala por hora, dividir consultório, SpaceHour</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/youtube/thumb-03.png" alt="Miniatura: Quanto rende alugar horários vagos" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/thumb-03.png · 1280×720 · Vídeo L3 · playlist Anfitriões</p>
+        <pre class="cp" data-label="Título">Quanto rende alugar os horários vagos do consultório? (simulação)</pre>
+        <pre class="cp" data-label="Descrição">Fizemos uma simulação de quanto um horário vago pode render quando é alugado por hora. Os números são ilustrativos e não são promessa de ganho: o resultado depende do preço, da procura e da sua agenda.
+
+Simulação usada no vídeo: R$ 60 por hora × 12 horas por semana × 4 semanas = R$ 2.880 por mês, valor bruto. Desse valor saem 5% do SpaceHour por reserva paga e a tarifa do Mercado Pago.
+
+Anuncie grátis, sem mensalidade: https://space-hour.com/anuncie?utm_source=youtube&utm_medium=video&utm_campaign=lanc-anfitrioes
+
+Capítulos
+0:00 Quanto custa uma hora vazia
+1:00 Como calcular o custo da sua hora
+2:20 A simulação: R$ 60/h × 12 h × 4 semanas
+3:40 As taxas: 5% + tarifa do Mercado Pago
+4:40 Como definir um preço justo
+5:50 Próximos passos
+
+#rendaextra #consultorio #spacehour</pre>
+        <pre class="cp" data-label="Tags">quanto rende alugar consultório, alugar horário do consultório, renda extra consultório, aluguel de consultório por hora, custo do consultório, consultório vazio, SpaceHour</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/youtube/thumb-04.png" alt="Miniatura: Recém-formado: atenda sem alugar sala" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/thumb-04.png · 1280×720 · Vídeo L4 · playlist Profissionais</p>
+        <pre class="cp" data-label="Título">Recém-formado: como atender sem alugar sala (consultório por hora)</pre>
+        <pre class="cp" data-label="Descrição">Acabou de se formar em odontologia, psicologia, fisioterapia ou outra área da saúde e ainda não tem agenda para pagar uma sala inteira? Veja como começar reservando consultório por hora, sem contrato, sem fiador e sem condomínio.
+
+Cadastro grátis: https://space-hour.com/profissionais?utm_source=youtube&utm_medium=video&utm_campaign=lanc-profissionais
+
+Capítulos
+0:00 O dilema do recém-formado
+1:00 Os custos fixos de uma sala inteira
+2:10 Alternativa: consultório por hora
+3:20 Cadastro e verificação do registro profissional
+4:30 Reserva avulsa ou toda semana no mesmo horário
+5:30 Pagamento: Pix, cartão ou boleto
+6:20 Resumo
+
+#recemformado #consultorioporhora #spacehour</pre>
+        <pre class="cp" data-label="Tags">recém-formado consultório, primeiro consultório, consultório por hora, sala por hora para psicólogo, alugar sala odontológica, aluguel de consultório por hora, começar a atender, SpaceHour</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/youtube/thumb-05.png" alt="Miniatura: Tour pelo SpaceHour" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/thumb-05.png · 1280×720 · Vídeo L5 · playlists Anfitriões e Profissionais</p>
+        <pre class="cp" data-label="Título">Tour pelo SpaceHour: como reservar consultório e sala por hora em Maringá</pre>
+        <pre class="cp" data-label="Descrição">Um tour completo pelo SpaceHour: como encontrar um espaço, ver fotos, equipamentos e avaliações, reservar e pagar. E, do outro lado, como o anfitrião recebe e aprova os pedidos.
+
+Conheça: https://space-hour.com/conheca?utm_source=youtube&utm_medium=video&utm_campaign=lanc-geral
+
+Capítulos
+0:00 O que é o SpaceHour
+0:40 Tipos de espaço
+1:30 Buscando um espaço
+2:40 Página do anúncio: fotos, equipamentos e avaliações
+3:50 Reservando e pagando (Pix, cartão ou boleto)
+5:00 Endereço liberado após a confirmação
+5:40 O lado do anfitrião
+6:50 Como começar
+
+#spacehour #consultorioporhora #maringa</pre>
+        <pre class="cp" data-label="Tags">SpaceHour, como funciona SpaceHour, reservar consultório por hora, aluguel de consultório por hora, sala por hora Maringá, consultório compartilhado, sala de reunião por hora, auditório para alugar</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="../cards/youtube/thumb-06.png" alt="Miniatura: Dúvidas de anfitriões respondidas" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/thumb-06.png · 1280×720 · Vídeo L6 · playlists Anfitriões e Dúvidas</p>
+        <pre class="cp" data-label="Título">Alugar meu consultório por hora é seguro? Dúvidas de anfitriões respondidas</pre>
+        <pre class="cp" data-label="Descrição">As perguntas mais comuns de quem quer alugar o consultório por hora: quem pode reservar, como funciona o pagamento, quais são as taxas, o que fazer se algo der errado.
+
+Anuncie grátis: https://space-hour.com/anuncie?utm_source=youtube&utm_medium=video&utm_campaign=lanc-anfitrioes
+Ficou alguma dúvida? Deixe nos comentários.
+
+Capítulos
+0:00 As dúvidas mais comuns
+0:40 Quem pode reservar meu espaço?
+1:40 Como e quando eu recebo?
+2:50 Quais são as taxas?
+3:50 Caução, avalista e aprovação de pedidos
+5:00 Avaliações dos dois lados
+5:50 Preciso de mensalidade ou contrato?
+6:30 Como começar
+
+#consultorio #anfitriao #spacehour</pre>
+        <pre class="cp" data-label="Tags">alugar meu consultório, alugar consultório é seguro, sublocar consultório, aluguel de consultório por hora, caução aluguel por hora, taxas SpaceHour, consultório compartilhado, SpaceHour</pre>
+      </div>
+    </div>
+  </div>
+
+  <h3>Capas dos Shorts</h3>
+  <p>O YouTube não deixa enviar uma imagem própria como capa de Short pelo computador. Por isso: coloque a capa como o <strong>primeiro segundo</strong> do vídeo (no editor do celular ou no CapCut) e, no app do YouTube, na tela de envio, toque no lápis da capa e escolha esse quadro. Links escritos na descrição dos Shorts <strong>não são clicáveis</strong>: use o recurso <strong>"Vídeo relacionado"</strong> (no upload ou no Studio → Detalhes do Short) apontando para o vídeo longo do tema.</p>
+  <div class="cards">
+    <div class="card">
+      <img src="../cards/youtube/shorts-capa-01.png" alt="Capa de Short: Quanto custa um consultório vazio?" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/shorts-capa-01.png · 1080×1920 · Short S1 · vídeo relacionado: L3</p>
+        <pre class="cp" data-label="Título e descrição do Short">Quanto custa um consultório vazio? #shorts
+Some aluguel, condomínio e luz e divida pelas horas em que a sala fica aberta: esse é o custo de cada hora vazia. No SpaceHour você aluga esses horários por hora. Anunciar é grátis, sem mensalidade. Link no canal.
+#consultorio #dentista #maringa #spacehour</pre>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/youtube/shorts-capa-02.png" alt="Capa de Short: Aluguei um consultório por 1 hora" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/shorts-capa-02.png · 1080×1920 · Short S2 · vídeo relacionado: L5</p>
+        <pre class="cp" data-label="Título e descrição do Short">Aluguei um consultório por 1 hora #shorts
+Consultório pronto, só pela hora que precisei. Sem contrato, sem fiador, sem condomínio. Pix ou cartão. Cadastro grátis no link do canal.
+#consultorioporhora #psicologia #fisioterapia #spacehour</pre>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/youtube/shorts-capa-03.png" alt="Capa de Short: 3 erros de quem aluga sala inteira" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/shorts-capa-03.png · 1080×1920 · Short S3 · vídeo relacionado: L2</p>
+        <pre class="cp" data-label="Título e descrição do Short">3 erros de quem aluga sala inteira #shorts
+Pagar o mês todo para atender poucos dias, contrato longo com fiador e condomínio de sala parada. A alternativa: consultório por hora. Link no canal.
+#consultoriocompartilhado #autonomo #spacehour</pre>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../cards/youtube/shorts-capa-04.png" alt="Capa de Short: Recém-formado: como começar sem gastar com sala" loading="lazy">
+      <div class="body">
+        <p class="file">cards/youtube/shorts-capa-04.png · 1080×1920 · Short S4 · vídeo relacionado: L4</p>
+        <pre class="cp" data-label="Título e descrição do Short">Recém-formado: comece sem gastar com sala #shorts
+Reserve consultório por hora, avulso ou toda semana no mesmo horário. Cadastro grátis, com registro profissional verificado. Link no canal.
+#recemformado #odontologia #psicologia #spacehour</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="calendario">
+  <h2><span class="n">06</span>Calendário dos primeiros 30 dias</h2>
+  <p><strong>Ritmo (sugestão inicial):</strong> 1 a 2 vídeos longos por semana, 3 Shorts por semana e 2 postagens na aba Comunidade (Postagens) por semana. Publique vídeos longos às terças ou quintas, entre 18h e 20h. Depois de 3 semanas, use Studio → Análises → Público → <strong>"Quando seus espectadores estão no YouTube"</strong>.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Dia</th><th>Formato</th><th>Vídeo / imagem</th><th>Legenda resumida</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Vídeo longo</td><td>L5 · thumb-05</td><td>Tour pelo SpaceHour. Vídeo de destaque do canal.</td></tr>
+        <tr><td class="num">2</td><td>Short</td><td>S5</td><td>Como funciona em 30 s.</td></tr>
+        <tr><td class="num">3</td><td>Postagem (enquete)</td><td>—</td><td>"Você dividiria seu consultório por hora?"</td></tr>
+        <tr><td class="num">4</td><td>Short</td><td>S1 · shorts-capa-01</td><td>Quanto custa um consultório vazio?</td></tr>
+        <tr><td class="num">5</td><td>Vídeo longo</td><td>L1 · thumb-01</td><td>Como anunciar seu consultório por hora.</td></tr>
+        <tr><td class="num">6</td><td>Short</td><td>S6</td><td>Seu horário vago vira renda.</td></tr>
+        <tr><td class="num">7</td><td>Sem post</td><td>—</td><td>Responder comentários. Gravar lote da semana 2.</td></tr>
+        <tr><td class="num">8</td><td>Postagem (imagem)</td><td>thumb-01</td><td>"Passo a passo para anunciar: assista."</td></tr>
+        <tr><td class="num">9</td><td>Short</td><td>S7</td><td>E se estragarem algo na minha sala?</td></tr>
+        <tr><td class="num">10</td><td>Vídeo longo</td><td>L6 · thumb-06</td><td>Dúvidas de anfitriões respondidas. Ligar anúncios (seção 8).</td></tr>
+        <tr><td class="num">11</td><td>Short</td><td>S2 · shorts-capa-02</td><td>Aluguei um consultório por 1 hora.</td></tr>
+        <tr><td class="num">12</td><td>Postagem (pergunta)</td><td>—</td><td>"Qual sua maior dúvida sobre alugar sua sala?"</td></tr>
+        <tr><td class="num">13</td><td>Short</td><td>S8</td><td>Um dia com o SpaceHour.</td></tr>
+        <tr><td class="num">14</td><td>Sem post</td><td>—</td><td>Relatório semanal. Gravar lote.</td></tr>
+        <tr><td class="num">15</td><td>Vídeo longo</td><td>L3 · thumb-03</td><td>Quanto rende alugar horários vagos (simulação).</td></tr>
+        <tr><td class="num">16</td><td>Short</td><td>S3 · shorts-capa-03</td><td>3 erros de quem aluga sala inteira.</td></tr>
+        <tr><td class="num">17</td><td>Postagem (enquete)</td><td>—</td><td>"Que tipo de espaço falta em Maringá?"</td></tr>
+        <tr><td class="num">18</td><td>Short</td><td>S9</td><td>Tipos de espaço em 20 s.</td></tr>
+        <tr><td class="num">19</td><td>Sem post</td><td>—</td><td>Responder comentários.</td></tr>
+        <tr><td class="num">20</td><td>Short</td><td>S4 · shorts-capa-04</td><td>Recém-formado: comece sem gastar com sala.</td></tr>
+        <tr><td class="num">21</td><td>Postagem (imagem)</td><td>thumb-03</td><td>"Fizemos a conta (simulação)."</td></tr>
+        <tr><td class="num">22</td><td>Vídeo longo</td><td>L2 · thumb-02</td><td>Consultório compartilhado vale a pena?</td></tr>
+        <tr><td class="num">23</td><td>Short</td><td>S1 (versão 2)</td><td>Mesmo tema, outro espaço e outro gancho.</td></tr>
+        <tr><td class="num">24</td><td>Postagem (pergunta)</td><td>—</td><td>"Você atende quantos dias por semana?"</td></tr>
+        <tr><td class="num">25</td><td>Short</td><td>S7 (versão 2)</td><td>Segurança: registro verificado e endereço após reserva.</td></tr>
+        <tr><td class="num">26</td><td>Sem post</td><td>—</td><td>Relatório semanal. Gravar lote.</td></tr>
+        <tr><td class="num">27</td><td>Short</td><td>S2 (versão 2)</td><td>Reservei por hora, outro tipo de sala.</td></tr>
+        <tr><td class="num">28</td><td>Postagem (imagem)</td><td>thumb-04</td><td>"Recém-formado? Novo vídeo na quinta."</td></tr>
+        <tr><td class="num">29</td><td>Vídeo longo</td><td>L4 · thumb-04</td><td>Recém-formado: atenda sem alugar sala.</td></tr>
+        <tr><td class="num">30</td><td>Short</td><td>S6 (versão 2)</td><td>Horário vago vira renda, outro espaço.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Aba Comunidade (Postagens)</h3>
+  <p>Hoje ela aparece como <strong>"Postagens"</strong> no canal. Para criar: Studio ou youtube.com → <strong>Criar</strong> → <strong>"Criar postagem"</strong>. Tipos: texto, imagem, enquete e teste. Se a opção não aparecer, o canal ainda não tem acesso (depende da qualificação de recursos e pode depender de um mínimo de inscritos); pule essas datas e foque nos Shorts. Nas postagens, link escrito é clicável:</p>
+  <pre class="cp" data-label="Link para postagens">https://space-hour.com/conheca?utm_source=youtube&utm_medium=post&utm_campaign=lanc-geral</pre>
+  <pre class="cp" data-label="Enquete do dia 3">Você dividiria seu consultório por hora, nos horários em que ele fica vazio?
+( ) Sim
+( ) Não
+( ) Depende de quem for usar
+( ) Já faço isso</pre>
+</section>
+
+<section id="roteiros">
+  <h2><span class="n">07</span>Roteiros, playlists e SEO</h2>
+  <p>Regras para todos os vídeos:</p>
+  <ul>
+    <li>Pode ser gravado no celular. Vídeo longo na horizontal (16:9); Short na vertical (9:16), de 15 a 45 segundos.</li>
+    <li>Use microfone de lapela barato: áudio ruim derruba a retenção mais do que imagem simples.</li>
+    <li><strong>Nunca mostre pacientes</strong>, prontuários, telas com dados de pessoas ou procedimentos. Mostre espaços vazios, telas do site (com dados de teste) e quem apresenta.</li>
+    <li>Gancho nos primeiros 3 segundos (Shorts) ou primeiros 20 segundos (vídeo longo): diga o problema e o que a pessoa vai aprender.</li>
+    <li>Música: use a <strong>Biblioteca de áudio</strong> do YouTube Studio (menu lateral), que é livre para uso.</li>
+    <li>Legendas: Studio → <strong>Legendas</strong> → revise as legendas automáticas em português.</li>
+  </ul>
+
+  <h3>7.1 Vídeos longos (5 a 10 minutos)</h3>
+
+  <div class="script">
+    <h4>L1 · Como alugar seu consultório por hora (passo a passo) <span class="tag">anfitrião</span><span class="tag">~8 min</span><span class="tag">thumb-01</span></h4>
+    <dl>
+      <dt>Abertura (0:00)</dt><dd>Sala vazia. "Se o seu consultório fica vazio em alguns horários, em 8 minutos você vai ver como anunciar esses horários e alugar por hora para profissionais verificados."</dd>
+      <dt>Conta (0:45)</dt><dd>Tela: cadastro no site, confirmação por código de 6 dígitos enviado por e-mail.</dd>
+      <dt>Mercado Pago (1:50)</dt><dd>Por que conectar: o dinheiro cai direto na conta Mercado Pago do anfitrião. Mostrar onde conectar e lembrar de cadastrar uma chave Pix no Mercado Pago.</dd>
+      <dt>Anúncio (3:00)</dt><dd>Fotos sem pessoas, equipamentos, descrição. Dicas de foto com luz natural.</dd>
+      <dt>Preço e regras (4:20)</dt><dd>Preço por hora, dias e horários disponíveis, regras de uso.</dd>
+      <dt>Pedidos (5:30)</dt><dd>Diferença entre reserva instantânea e aprovação de cada pedido.</dd>
+      <dt>Proteção (6:20)</dt><dd>Caução e avalista opcionais; registro profissional verificado.</dd>
+      <dt>Fechamento (7:10)</dt><dd>Publicar. Custos completos: "anunciar é grátis, sem mensalidade; 5% por reserva paga + tarifa do Mercado Pago". CTA: link na descrição.</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>L2 · Consultório compartilhado vale a pena? <span class="tag">os dois públicos</span><span class="tag">~7 min</span><span class="tag">thumb-02</span></h4>
+    <dl>
+      <dt>Abertura (0:00)</dt><dd>"Consultório compartilhado: economia ou dor de cabeça? Vamos ver dos dois lados."</dd>
+      <dt>Dono: vantagens (0:50)</dt><dd>Horário vago gera receita; ele escolhe quando e por quanto.</dd>
+      <dt>Dono: cuidados (2:10)</dt><dd>Regras claras, limpeza, equipamento, quem entra. Como caução, avalista e aprovação ajudam.</dd>
+      <dt>Profissional: vantagens (3:20)</dt><dd>Sem contrato, sem fiador, sem condomínio; paga só as horas.</dd>
+      <dt>Profissional: cuidados (4:30)</dt><dd>Planejar horários, checar equipamentos e avaliações antes de reservar.</dd>
+      <dt>SpaceHour (5:40)</dt><dd>Como a plataforma organiza: pagamento antecipado pelo Mercado Pago, avaliações dos dois lados, endereço liberado após confirmação.</dd>
+      <dt>Resumo (6:40)</dt><dd>Quando vale a pena para cada lado. CTA com os dois links.</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>L3 · Quanto rende alugar horários vagos <span class="tag">anfitrião</span><span class="tag">~6 min</span><span class="tag">thumb-03</span></h4>
+    <dl>
+      <dt>Abertura (0:00)</dt><dd>"Quanto custa uma hora vazia do seu consultório? E quanto ela pode render?"</dd>
+      <dt>Custo da hora (1:00)</dt><dd>Quadro branco: aluguel + condomínio + luz ÷ horas abertas. Peça para a pessoa fazer a conta dela (não use números de terceiros).</dd>
+      <dt>Simulação (2:20)</dt><dd>Na tela, com a palavra <strong>SIMULAÇÃO</strong> fixa: R$ 60/h × 12 h/semana × 4 semanas = R$ 2.880/mês brutos.</dd>
+      <dt>Taxas (3:40)</dt><dd>5% do SpaceHour por reserva paga + tarifa do Mercado Pago. Não estimar valores líquidos exatos.</dd>
+      <dt>Preço (4:40)</dt><dd>Dicas: pesquisar espaços parecidos, considerar equipamentos e localização.</dd>
+      <dt>Fechamento (5:50)</dt><dd>"Isso é uma simulação, não é promessa de ganho." CTA.</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>L4 · Recém-formado: atenda sem alugar sala <span class="tag">profissional</span><span class="tag">~7 min</span><span class="tag">thumb-04</span></h4>
+    <dl>
+      <dt>Abertura (0:00)</dt><dd>"Acabou de se formar e já estão te cobrando aluguel, condomínio e fiador? Existe outro jeito de começar."</dd>
+      <dt>Custos fixos (1:00)</dt><dd>O que pesa numa sala inteira quando a agenda ainda é pequena.</dd>
+      <dt>Por hora (2:10)</dt><dd>Reservar só os horários de atendimento.</dd>
+      <dt>Cadastro (3:20)</dt><dd>Cadastro grátis; registro (CRO, CRM, CRP, CREFITO etc.) informado e verificado.</dd>
+      <dt>Reserva (4:30)</dt><dd>Avulsa ou toda semana no mesmo horário.</dd>
+      <dt>Pagamento (5:30)</dt><dd>Taxa de serviço de 15% + ISS sobre a taxa. Pix (até 30 min para pagar), cartão (até 24 h) ou boleto (só para reservas com 3+ dias de antecedência).</dd>
+      <dt>Fechamento (6:20)</dt><dd>Sem prometer clientela. CTA para profissionais.</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>L5 · Tour pelo SpaceHour <span class="tag">geral</span><span class="tag">~7 min</span><span class="tag">thumb-05</span></h4>
+    <dl>
+      <dt>Abertura (0:00)</dt><dd>"Em 7 minutos, tudo o que dá para fazer no SpaceHour."</dd>
+      <dt>Tipos de espaço (0:40)</dt><dd>Odontológico, médico, psicologia, fisioterapia, estética, sala de aula, auditório, sala de reunião.</dd>
+      <dt>Busca (1:30)</dt><dd>Gravação de tela da busca e filtros.</dd>
+      <dt>Anúncio (2:40)</dt><dd>Fotos, equipamentos, regras, avaliações.</dd>
+      <dt>Reserva (3:50)</dt><dd>Escolher horário, pagar (Pix, cartão ou boleto, com os prazos). Usar conta de teste.</dd>
+      <dt>Endereço (5:00)</dt><dd>Endereço completo só depois da reserva confirmada (proteção do anfitrião).</dd>
+      <dt>Anfitrião (5:40)</dt><dd>Painel de pedidos, aprovação, recebimento no Mercado Pago.</dd>
+      <dt>Fechamento (6:50)</dt><dd>CTA geral (link /conheca).</dd>
+    </dl>
+  </div>
+
+  <div class="script">
+    <h4>L6 · Dúvidas de anfitriões respondidas <span class="tag">anfitrião</span><span class="tag">~7 min</span><span class="tag">thumb-06</span></h4>
+    <dl>
+      <dt>Abertura (0:00)</dt><dd>"Separei as perguntas que mais recebemos de quem tem consultório."</dd>
+      <dt>Quem reserva (0:40)</dt><dd>Profissionais com registro informado e verificado.</dd>
+      <dt>Recebimento (1:40)</dt><dd>Pagamento antecipado, direto na conta Mercado Pago do anfitrião (split). Precisa de chave Pix no Mercado Pago.</dd>
+      <dt>Taxas (2:50)</dt><dd>Grátis para anunciar, sem mensalidade; 5% por reserva paga + tarifa do Mercado Pago. Quem aluga paga 15% de taxa de serviço + ISS à parte.</dd>
+      <dt>Proteção (3:50)</dt><dd>Caução, avalista, aprovação de pedidos.</dd>
+      <dt>Avaliações (5:00)</dt><dd>Os dois lados se avaliam.</dd>
+      <dt>Contrato (5:50)</dt><dd>Sem mensalidade e sem fidelidade; o anfitrião escolhe os horários que quer abrir.</dd>
+      <dt>Fechamento (6:30)</dt><dd>"Ficou dúvida? Comenta que respondo em vídeo." CTA.</dd>
+    </dl>
+  </div>
+
+  <h3>7.2 Shorts (15 a 45 segundos)</h3>
+  <p>S1 a S4 usam as capas <code>shorts-capa-01..04</code>. S5 a S9 usam como capa um quadro do vídeo com o texto do gancho.</p>
+
+  <div class="script">
+    <h4>S1 · Quanto custa um consultório vazio? <span class="tag">anfitrião</span><span class="tag">25 s</span><span class="tag">shorts-capa-01</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Cadeira ou maca vazia, luz apagada. Texto: "Quanto custa um consultório vazio?"</dd>
+      <dt>Cenas / texto</dt><dd>Mão escrevendo "aluguel + condomínio + luz" → "÷ horas abertas" → "= custo de cada hora" → "Hora vazia = dinheiro parado".</dd>
+      <dt>Fala</dt><dd>"Soma aluguel, condomínio e luz e divide pelas horas que a sala fica aberta. Cada hora vazia custa isso. No SpaceHour você aluga esses horários por hora. Anunciar é grátis."</dd>
+      <dt>CTA</dt><dd>"Vídeo completo aqui embaixo" (vídeo relacionado L3).</dd>
+    </dl>
+  </div>
+  <div class="script">
+    <h4>S2 · Aluguei um consultório por 1 hora <span class="tag">profissional</span><span class="tag">30 s</span><span class="tag">shorts-capa-02</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Mão abrindo a porta. Texto: "Aluguei um consultório por 1 hora".</dd>
+      <dt>Cenas / texto</dt><dd>Busca no celular → "Paguei com Pix" → "Endereço liberado após a confirmação" → sala pronta, sem paciente.</dd>
+      <dt>Fala</dt><dd>"Precisava de consultório só por uma hora. Reservei no SpaceHour, paguei com Pix, sem contrato e sem fiador."</dd>
+      <dt>CTA</dt><dd>"Cadastro grátis, link no canal."</dd>
+    </dl>
+  </div>
+  <div class="script">
+    <h4>S3 · 3 erros de quem aluga sala inteira <span class="tag">profissional</span><span class="tag">40 s</span><span class="tag">shorts-capa-03</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Contando nos dedos. Texto: "3 erros de quem aluga sala inteira".</dd>
+      <dt>Cenas / texto</dt><dd>"1. Pagar o mês para atender poucos dias" → "2. Contrato longo com fiador" → "3. Condomínio de sala parada" → "Alternativa: por hora".</dd>
+      <dt>Fala</dt><dd>Um erro por corte, frase curta cada.</dd>
+      <dt>CTA</dt><dd>Vídeo relacionado L2.</dd>
+    </dl>
+  </div>
+  <div class="script">
+    <h4>S4 · Recém-formado: comece sem gastar com sala <span class="tag">profissional</span><span class="tag">35 s</span><span class="tag">shorts-capa-04</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Jaleco no cabide. Texto: "Recém-formado? Comece sem alugar sala".</dd>
+      <dt>Cenas / texto</dt><dd>Agenda com poucos horários → reserva no celular → "Avulso ou toda semana" → "Registro verificado".</dd>
+      <dt>Fala</dt><dd>"Não precisa começar com sala inteira. Reserve consultório por hora, avulso ou toda semana no mesmo horário. Cadastro grátis."</dd>
+      <dt>CTA</dt><dd>Vídeo relacionado L4.</dd>
+    </dl>
+  </div>
+  <div class="script">
+    <h4>S5 · Como funciona o SpaceHour em 30 s <span class="tag">geral</span><span class="tag">30 s</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Celular com o site. Texto: "Como funciona o SpaceHour em 30s".</dd>
+      <dt>Cenas / texto</dt><dd>"Tem sala? Anuncie grátis" → "Você define preço e horário" → "Precisa de sala? Reserve por hora" → "Pix, cartão ou boleto".</dd>
+      <dt>Fala</dt><dd>"Quem tem sala anuncia grátis. Quem precisa reserva por hora e paga online. O dinheiro cai direto no Mercado Pago de quem anunciou."</dd>
+      <dt>CTA</dt><dd>Vídeo relacionado L5.</dd>
+    </dl>
+  </div>
+  <div class="script">
+    <h4>S6 · Seu horário vago vira renda <span class="tag">anfitrião</span><span class="tag">20 s</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Agenda com buracos. Texto: "Seu horário vago vira renda".</dd>
+      <dt>Cenas / texto</dt><dd>"Terça à tarde vazia?" → "Anuncie esse horário" → "Você aprova cada pedido" → "Sem mensalidade: 5% por reserva + tarifa Mercado Pago".</dd>
+      <dt>Fala</dt><dd>"O horário em que sua sala fica parada pode ser alugado por hora. Você define o preço e recebe na sua conta Mercado Pago."</dd>
+      <dt>CTA</dt><dd>Vídeo relacionado L1.</dd>
+    </dl>
+  </div>
+  <div class="script">
+    <h4>S7 · E se estragarem algo na minha sala? <span class="tag">anfitrião</span><span class="tag">35 s</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Close em equipamento. Texto: "E se estragarem algo na minha sala?"</dd>
+      <dt>Cenas / texto</dt><dd>Tela das configurações: "Registro profissional verificado" → "Caução e avalista" → "Você aprova cada pedido" → "Avaliações dos dois lados".</dd>
+      <dt>Fala</dt><dd>"É a dúvida número um. Quem aluga tem registro verificado, você pode exigir caução e avalista e aprovar cada pedido."</dd>
+      <dt>CTA</dt><dd>Vídeo relacionado L6.</dd>
+    </dl>
+  </div>
+  <div class="script">
+    <h4>S8 · Um dia com o SpaceHour <span class="tag">anfitrião</span><span class="tag">40 s</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Chave na porta às 7h. Texto: "Um dia com o SpaceHour: a sala que não fica parada".</dd>
+      <dt>Cenas / texto</dt><dd>Horário na tela em cada corte: 7h abre · 8h–12h dono atende (porta fechada) · 13h nova reserva no celular · 14h profissional chega (de costas, com autorização) · 19h aviso de pagamento recebido (sem valor).</dd>
+      <dt>Fala</dt><dd>Só música da Biblioteca de áudio e texto na tela.</dd>
+      <dt>CTA</dt><dd>Vídeo relacionado L1.</dd>
+    </dl>
+  </div>
+  <div class="script">
+    <h4>S9 · Tipos de espaço em 20 s <span class="tag">profissional</span><span class="tag">20 s</span></h4>
+    <dl>
+      <dt>Gancho (0–3 s)</dt><dd>Texto: "Que tipo de sala dá para alugar por hora?"</dd>
+      <dt>Cenas / texto</dt><dd>Cortes de 2 s com autorização dos donos: odontológico, psicologia, fisioterapia, estética, médico, sala de aula, auditório, sala de reunião.</dd>
+      <dt>CTA</dt><dd>"Qual você precisa? Link no canal." Vídeo relacionado L5.</dd>
+    </dl>
+  </div>
+
+  <h3>7.3 Playlists</h3>
+  <p>Studio → <strong>Conteúdo</strong> → aba <strong>Playlists</strong> → <strong>Nova playlist</strong> (ou "Criar" → "Nova playlist"). Visibilidade: Pública.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Playlist</th><th>Vídeos</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td>Tem consultório? Alugue por hora</td><td>L1, L3, L6, L2, L5</td><td>Como anunciar seu consultório ou sala por hora no SpaceHour.</td></tr>
+        <tr><td>Profissional: consultório por hora</td><td>L4, L5, L2</td><td>Como reservar consultório e sala por hora, sem contrato.</td></tr>
+        <tr><td>Dúvidas frequentes</td><td>L6 e futuros vídeos-resposta</td><td>Respostas às perguntas mais comuns sobre o SpaceHour.</td></tr>
+        <tr><td>Shorts SpaceHour</td><td>S1 a S9</td><td>Aluguel de consultório por hora em menos de 1 minuto.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Na página do canal (Personalização → Layout), coloque L5 como <strong>vídeo em destaque</strong> para quem não é inscrito e as playlists "Tem consultório?" e "Profissional" como seções.</p>
+
+  <h3>7.4 SEO (ser encontrado na busca)</h3>
+  <ul>
+    <li><strong>Título:</strong> comece com o termo que as pessoas pesquisam. Use os termos: "aluguel de consultório por hora", "consultório compartilhado", "alugar consultório por hora", "sala por hora para psicólogo", "sublocação de consultório", "alugar meu consultório".</li>
+    <li><strong>Descrição:</strong> repita o termo principal nas 2 primeiras linhas, que aparecem na busca. Coloque o link com UTM logo depois.</li>
+    <li><strong>Capítulos:</strong> sempre. Eles aparecem no Google como "momentos importantes".</li>
+    <li><strong>Tags:</strong> ajudam pouco, mas use as deste kit (até 500 caracteres).</li>
+    <li><strong>Legendas revisadas</strong> e <strong>fala clara</strong> do termo principal nos primeiros 30 segundos: o YouTube "ouve" o vídeo.</li>
+    <li><strong>Miniatura:</strong> use os arquivos do kit; não mude o texto.</li>
+    <li>Para descobrir novos termos: digite "aluguel de consultório" na busca do YouTube e anote as sugestões automáticas; use também Studio → <strong>Análises</strong> → <strong>Pesquisa</strong> (Research), quando disponível.</li>
+  </ul>
+</section>
+
+<section id="anuncios">
+  <h2><span class="n">08</span>Anúncios pagos: YouTube pelo Google Ads</h2>
+  <p>Os anúncios do YouTube são feitos no <strong>Google Ads</strong>. Use a <strong>mesma conta Google Ads</strong> que o SpaceHour já usa (ou vai usar) nas campanhas de pesquisa do Google: assim a conversão de cadastro, que já está no site, vale para o YouTube também. Peça ao Robson acesso a essa conta (Google Ads → <strong>Administrador</strong> → <strong>Acesso e segurança</strong>). Não crie uma conta nova sem falar com ele.</p>
+
+  <h3>8.1 Vincular o canal ao Google Ads</h3>
+  <ol class="steps">
+    <li>No Google Ads, copie o ID da conta (formato <code>123-456-7890</code>, canto superior direito).</li>
+    <li>No YouTube Studio → Configurações → <strong>Canal</strong> → <strong>Configurações avançadas</strong> → <strong>"Vincular conta"</strong> (Google Ads) → cole o ID, dê um nome ("SpaceHour Ads") e marque as permissões.</li>
+    <li>No Google Ads, aprove o pedido: <strong>Ferramentas</strong> → procure <strong>"Contas vinculadas"</strong> (pode estar em "Gerenciador de dados") → <strong>YouTube</strong> → aprovar.</li>
+    <li>Com o vínculo, o Google Ads mostra visualizações e inscrições vindas dos anúncios e permite criar públicos com quem viu os vídeos do canal (Gerenciador de públicos → Segmentos → YouTube).</li>
+  </ol>
+
+  <h3>8.2 Campanhas</h3>
+  <p>O Google muda os tipos de campanha com frequência. Hoje, para gerar cadastros com vídeo, o tipo indicado é <strong>Demand Gen</strong> (Geração de demanda), que substituiu as antigas campanhas de "ação em vídeo". Se a tela mostrar outro nome, escolha a opção de <strong>vídeo com meta de conversão</strong>.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Item</th><th>Campanha 1: Anfitriões (cadastros)</th><th>Campanha 2: Alcance (opcional)</th></tr></thead>
+      <tbody>
+        <tr><td>Nome</td><td><code>YouTube | Anfitrioes | Maringa</code></td><td><code>YouTube | Alcance | Maringa</code></td></tr>
+        <tr><td>Objetivo</td><td><strong>Leads</strong> → tipo <strong>Demand Gen</strong></td><td><strong>Reconhecimento e consideração</strong> → <strong>Vídeo</strong> → visualizações de vídeo</td></tr>
+        <tr><td>Meta de conversão</td><td><strong>Inscrição</strong> (a mesma conversão do site)</td><td>—</td></tr>
+        <tr><td>Canais</td><td>Somente YouTube (desmarque Discover e Gmail se houver controle de canais)</td><td>YouTube (incluindo Shorts)</td></tr>
+        <tr><td>Lances</td><td>Maximizar conversões</td><td>Padrão sugerido pelo Google (CPV)</td></tr>
+        <tr><td>Local</td><td colspan="2">Maringá, raio de <strong>30 km</strong> (Local → Pesquisa avançada → Raio). Idioma: português.</td></tr>
+        <tr><td>Público</td><td>Idade 25–65+. Sinais de público: interesses em negócios e saúde; palavras pesquisadas: "alugar meu consultório", "sublocar consultório", "renda extra consultório"</td><td>Idade 18–65+. Interesses em saúde, educação e empreendedorismo</td></tr>
+        <tr><td>Orçamento diário (sugestão inicial)</td><td>R$ 30/dia</td><td>R$ 15/dia</td></tr>
+        <tr><td>Criativos</td><td>Shorts S1, S6, S7 e o vídeo L1 (os vídeos precisam estar no canal, públicos ou não listados)</td><td>S5 e L5</td></tr>
+        <tr><td>URL final</td><td>link "YouTube Ads · anfitriões" abaixo</td><td>link "YouTube Ads · geral" abaixo</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Quando houver de 5 a 10 espaços publicados em Maringá, duplique a Campanha 1 como <code>YouTube | Profissionais | Maringa</code>, com S2, S3, S4 e L4, link de profissionais e R$ 15–20/dia (sugestão inicial). O Google pode recomendar orçamento maior para Demand Gen; comece com o sugerido e reavalie em 7 dias pelo custo por cadastro.</p>
+  <p><strong>Categoria especial:</strong> as restrições de "Habitação" do Google Ads valem hoje para os EUA e o Canadá. Se o Google Ads indicar alguma restrição para o Brasil, siga o aviso da tela.</p>
+
+  <pre class="cp" data-label="URL YouTube Ads · anfitriões">https://space-hour.com/anuncie?utm_source=youtube&utm_medium=paid&utm_campaign=lanc-anfitrioes</pre>
+  <pre class="cp" data-label="URL YouTube Ads · profissionais">https://space-hour.com/profissionais?utm_source=youtube&utm_medium=paid&utm_campaign=lanc-profissionais</pre>
+  <pre class="cp" data-label="URL YouTube Ads · geral">https://space-hour.com/conheca?utm_source=youtube&utm_medium=paid&utm_campaign=lanc-geral</pre>
+
+  <h3>8.3 Textos prontos (Demand Gen)</h3>
+  <pre class="cp" data-label="Títulos (até 40 caracteres)">Anuncie seu consultório grátis
+Seu horário vago pode virar renda
+Alugue sua sala por hora em Maringá
+Sem mensalidade para anunciar
+Profissionais com registro verificado</pre>
+  <pre class="cp" data-label="Títulos longos e descrições (até 90 caracteres)">Alugue por hora os horários vagos do seu consultório para profissionais verificados.
+Você define preço, horários e regras. Receba direto na sua conta Mercado Pago.
+Anunciar é grátis, sem mensalidade: 5% por reserva paga + tarifa do Mercado Pago.
+Caução, avalista e aprovação de pedidos para proteger o seu espaço.</pre>
+  <pre class="cp" data-label="Profissionais: títulos e descrições">Consultório pronto por hora
+Sem contrato, sem fiador
+Pague só as horas que usar
+Reserve consultórios e salas por hora em Maringá. Pix, cartão ou boleto.
+Sem contrato, sem condomínio e sem fiador. Cadastro grátis.</pre>
+  <p>Nome da empresa: <code>SpaceHour</code>. Logo: <code>cards/youtube/perfil.png</code>. Botão: <strong>"Cadastre-se"</strong> ou <strong>"Saiba mais"</strong>.</p>
+
+  <h3>8.4 Como pagar</h3>
+  <ul>
+    <li>Google Ads → <strong>Faturamento</strong> → <strong>Configurações</strong>. O perfil de pagamento deve estar como <strong>empresa</strong>, com razão social Instituto Ravel de Ensino Superior Ltda e CNPJ 03.162.275/0001-10, para os documentos fiscais saírem no nome do CNPJ.</li>
+    <li>Formas comuns no Brasil: <strong>pagamento automático</strong> com cartão da empresa, ou <strong>pagamento manual</strong> (pré-pago) por <strong>boleto</strong> ou <strong>Pix</strong>. Use o que aparecer para a conta.</li>
+    <li>Todo mês, baixe os documentos em Faturamento → <strong>Documentos</strong> e envie ao Robson.</li>
+  </ul>
+</section>
+
+<section id="pixel">
+  <h2><span class="n">09</span>Tag do Google e medição</h2>
+  <p>O YouTube não tem pixel próprio. A medição dos anúncios do YouTube é feita pela <strong>tag do Google</strong>, que já está no código do site. Você só precisa conferir se está funcionando.</p>
+
+  <h3>9.1 O que o site já envia</h3>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Evento do site</th><th>No Google</th><th>Quando</th></tr></thead>
+      <tbody>
+        <tr><td>PageView</td><td>page_view</td><td>Cada página aberta</td></tr>
+        <tr><td>Lead</td><td>generate_lead</td><td>Clique nos botões de cadastro das landings</td></tr>
+        <tr><td>CompleteRegistration</td><td>sign_up + <strong>conversão "Inscrição"</strong> do Google Ads</td><td>Cadastro concluído</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>As variáveis usadas no site são <code>VITE_GOOGLE_TAG_ID</code> (ID da tag, formato <code>AW-...</code> ou <code>G-...</code>) e <code>VITE_GOOGLE_ADS_SIGNUP_LABEL</code> (rótulo da conversão de cadastro, formato <code>AW-xxx/yyy</code>). Quem coloca isso na Vercel é o Robson.</p>
+
+  <h3>9.2 Se a conversão ainda não existir</h3>
+  <p>Pergunte ao Robson se essas duas variáveis já estão na Vercel. Se ainda não estiverem, crie a conversão na conta Google Ads do SpaceHour:</p>
+  <ol class="steps">
+    <li>Google Ads → <strong>Metas</strong> → <strong>Conversões</strong> → <strong>Resumo</strong> → <strong>Criar ação de conversão</strong> (ou "+ Nova ação de conversão").</li>
+    <li>Escolha <strong>Site</strong> → digite <code>space-hour.com</code> → <strong>Verificar</strong>.</li>
+    <li>Escolha <strong>"Adicionar uma ação de conversão manualmente"</strong> → categoria <strong>Inscrição</strong> → nome <code>Cadastro SpaceHour</code> → valor: sem valor → contagem: <strong>Uma</strong>.</li>
+    <li>Na instalação, escolha <strong>"Usar a tag do Google"</strong> / instalar manualmente e copie: o <strong>ID da tag</strong> (<code>AW-</code> + números) e o <strong>rótulo de conversão</strong> que aparece no trecho <code>send_to</code> (formato <code>AW-123456789/AbCdEf...</code>).</li>
+    <li>Entregue ao Robson:</li>
+  </ol>
+  <pre class="cp" data-label="Mensagem para o Robson">Robson, a conversão de cadastro do Google Ads está criada (vale para Pesquisa e YouTube).
+Variáveis na Vercel (projeto spacehour → Settings → Environment Variables, ambiente Production, sem marcar "Sensitive"):
+VITE_GOOGLE_TAG_ID = [AW-...]
+VITE_GOOGLE_ADS_SIGNUP_LABEL = [AW-.../...]
+Depois é preciso fazer Redeploy. Me avise para eu testar.</pre>
+  <div class="note"><p>Se essas variáveis <strong>já existem</strong>, não crie outra conversão nem outra tag: as campanhas do YouTube usam a mesma conversão "Inscrição". Criar outra duplicaria a contagem.</p></div>
+
+  <h3>9.3 Como testar</h3>
+  <ol class="steps">
+    <li>Abra <code>tagassistant.google.com</code> → <strong>Adicionar domínio</strong> → <code>https://space-hour.com/anuncie?utm_source=youtube&amp;utm_medium=paid&amp;utm_campaign=teste</code> → Conectar.</li>
+    <li>Na janela do site que abrir, clique em <strong>Aceitar</strong> no aviso de cookies (a tag só carrega depois do aceite, por causa da LGPD).</li>
+    <li>No Tag Assistant devem aparecer a tag <code>AW-...</code> e o evento <strong>page_view</strong>. Clique no botão de cadastro: aparece <strong>generate_lead</strong>.</li>
+    <li>Para testar a conversão, combine com o Robson um cadastro de teste. Devem aparecer <strong>sign_up</strong> e <strong>conversion</strong>.</li>
+    <li>No Google Ads → Metas → Conversões, o status de "Inscrição" deve ficar <strong>ativo / registrando conversões</strong> em até 1 ou 2 dias.</li>
+  </ol>
+  <p>Quem recusa cookies não aparece no Google Ads, mas aparece em Admin → Campanha pela UTM. Por isso o Google Ads sempre mostra menos cadastros que o site. É normal.</p>
+
+  <h3>9.4 UTMs do YouTube</h3>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Uso</th><th>Link</th></tr></thead>
+      <tbody>
+        <tr><td>Links do canal (geral)</td><td><code>https://space-hour.com/conheca?utm_source=youtube&amp;utm_medium=bio&amp;utm_campaign=lanc-geral</code></td></tr>
+        <tr><td>Descrição de vídeo (anfitrião)</td><td><code>https://space-hour.com/anuncie?utm_source=youtube&amp;utm_medium=video&amp;utm_campaign=lanc-anfitrioes</code></td></tr>
+        <tr><td>Descrição de vídeo (profissional)</td><td><code>https://space-hour.com/profissionais?utm_source=youtube&amp;utm_medium=video&amp;utm_campaign=lanc-profissionais</code></td></tr>
+        <tr><td>Postagens (Comunidade)</td><td><code>https://space-hour.com/conheca?utm_source=youtube&amp;utm_medium=post&amp;utm_campaign=lanc-geral</code></td></tr>
+        <tr><td>Anúncios</td><td><code>...utm_source=youtube&amp;utm_medium=paid&amp;utm_campaign=lanc-anfitrioes</code> (ou lanc-profissionais, lanc-geral)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Não invente outros valores de UTM sem combinar com o Robson: o relatório Admin → Campanha agrupa exatamente por esses nomes.</p>
+</section>
+
+<section id="crm">
+  <h2><span class="n">10</span>Comentários e CRM</h2>
+
+  <h3>10.1 Rotina diária</h3>
+  <ol class="steps">
+    <li>Às 9h, 13h e 17h (dias úteis): Studio → <strong>Comentários</strong> (ou o app <strong>YouTube Studio</strong> no celular).</li>
+    <li>Responda tudo em até <strong>1 hora</strong> no horário comercial. Marque com coração os comentários bons.</li>
+    <li>Fixe no topo de cada vídeo um comentário com o link (comentários de vídeos longos podem ter link; o YouTube pode ocultar links em comentários de Shorts).</li>
+    <li>Quem demonstrar interesse vira uma linha no CRM (10.4) no mesmo dia. O YouTube não tem mensagem privada: convide a pessoa a escrever para <code>support@space-hour.com</code> ou a se cadastrar pelo link.</li>
+    <li>Pergunta boa vira Short de resposta: no comentário, toque em <strong>"Criar"</strong> / ícone de Short para responder em vídeo (quando disponível).</li>
+    <li>Revise a aba <strong>"Retidos para revisão"</strong> e apague spam e golpes.</li>
+  </ol>
+
+  <h3>10.2 Automação no YouTube</h3>
+  <ul>
+    <li><strong>Moderação:</strong> Configurações → <strong>Comunidade</strong> → <strong>Palavras bloqueadas</strong> (ofensas, golpes) e "Reter comentários potencialmente impróprios para revisão".</li>
+    <li><strong>Resposta automática por palavra-chave:</strong> o YouTube não oferece. Use os textos prontos abaixo e responda à mão.</li>
+    <li><strong>Boas-vindas:</strong> não há mensagem automática. O vídeo em destaque (L5) e o comentário fixado fazem esse papel.</li>
+  </ul>
+
+  <h3>10.3 Respostas prontas</h3>
+  <pre class="cp" data-label="Para anfitrião (tem sala)">Que bom! Anunciar é grátis e sem mensalidade. Você define preço, horários e regras e recebe direto na sua conta Mercado Pago. Só há cobrança quando alguém aluga: 5% por reserva paga + tarifa do Mercado Pago. O link para anunciar está na descrição. Se quiser ajuda para cadastrar, escreva para support@space-hour.com.</pre>
+  <pre class="cp" data-label="Para profissional (procura sala)">Oi! Você reserva consultório ou sala pronta por hora, sem contrato, sem fiador e sem condomínio, avulso ou toda semana no mesmo horário. Cadastro grátis, com verificação do registro profissional. O link está na descrição.</pre>
+  <pre class="cp" data-label="Dúvida de preço">Quem anuncia define o preço da hora. Para quem anuncia: grátis, sem mensalidade, 5% por reserva paga + tarifa do Mercado Pago. Para quem aluga: valor da hora + taxa de serviço de 15% e ISS sobre essa taxa. Pix, cartão ou boleto (boleto só para reservas com 3+ dias de antecedência).</pre>
+  <pre class="cp" data-label="Dúvida de segurança">Boa pergunta! Quem aluga informa o registro profissional, que é verificado. O anfitrião pode exigir caução e avalista e aprovar cada pedido. O pagamento é antecipado pelo Mercado Pago, os dois lados se avaliam e o endereço completo só é liberado depois da reserva confirmada.</pre>
+  <pre class="cp" data-label="Comentário fixado (vídeos de anfitrião)">Quer anunciar seu consultório ou sala? É grátis, sem mensalidade: https://space-hour.com/anuncie?utm_source=youtube&utm_medium=video&utm_campaign=lanc-anfitrioes
+Dúvidas? Comente aqui que a gente responde.</pre>
+
+  <h3>10.4 Planilha CRM</h3>
+  <p>Crie uma planilha (Google Planilhas) chamada <code>CRM SpaceHour - YouTube</code> com estas colunas, nesta ordem:</p>
+  <pre class="cp" data-label="Cabeçalho da planilha (cole na linha 1)">Data	Nome	Contato	Rede	Tipo	Cidade	Status	Próximo passo	Data do próximo contato</pre>
+  <ul>
+    <li><strong>Rede:</strong> sempre "YouTube" neste kit.</li>
+    <li><strong>Tipo:</strong> anfitrião ou profissional.</li>
+    <li><strong>Status</strong> (use só estes): novo · conversando · cadastrou · publicou espaço · reservou · perdido.</li>
+    <li><strong>Contato:</strong> @ do YouTube, e o e-mail ou WhatsApp se a pessoa passar por vontade própria.</li>
+  </ul>
+  <p>Prefere um CRM? Use o <strong>RD Station CRM</strong> (plano grátis) ou o <strong>HubSpot CRM</strong> (grátis) com as mesmas colunas como campos. Se a conversa for para o WhatsApp Business, crie <strong>etiquetas</strong> com os mesmos status.</p>
+  <p><strong>Cruzar com o site:</strong> toda sexta, peça ao Robson (ou abra, se tiver acesso) <strong>Admin → Contatos</strong>, filtre os cadastros da semana e atualize o status de quem cadastrou, publicou espaço ou reservou. A lista respeita quem pediu para não receber marketing: não mande divulgação para essas pessoas.</p>
+</section>
+
+<section id="monetizacao">
+  <h2><span class="n">11</span>Monetização</h2>
+
+  <h3>11.1 Como o YouTube gera receita para o SpaceHour</h3>
+  <p>A receita vem das reservas: o SpaceHour recebe 5% de cada reserva paga ao anfitrião e a taxa de serviço paga pelo profissional. O caminho é: vídeo → link da descrição ou anúncio → cadastro → anúncio publicado (anfitrião) ou reserva (profissional).</p>
+  <ul>
+    <li><strong>Custo por cadastro (YouTube)</strong> = gasto das campanhas de YouTube na semana ÷ cadastros com utm_source=youtube em Admin → Campanha.</li>
+    <li><strong>Custo por reserva</strong> = gasto ÷ reservas de quem veio do YouTube (o Robson ajuda a puxar esse número).</li>
+    <li>Vídeos longos trazem cadastros por meses pela busca. Acompanhe também os cadastros com utm_medium=video, que não custam nada.</li>
+  </ul>
+
+  <h3>11.2 Programa de Parcerias do YouTube (YPP)</h3>
+  <p>Os requisitos mudam e variam por país. Valores aproximados abaixo. Para conferir os atuais: YouTube Studio → <strong>"Ganhar dinheiro"</strong> (Earn). Lá aparece o progresso do canal e o botão para se inscrever quando ele se qualificar.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Nível</th><th>Requisitos aproximados</th><th>O que libera</th></tr></thead>
+      <tbody>
+        <tr><td>Nível de apoio dos fãs (inicial)</td><td>500 inscritos + 3 vídeos públicos nos últimos 90 dias + (3.000 horas de exibição públicas em 12 meses <strong>ou</strong> 3 milhões de visualizações de Shorts em 90 dias)</td><td>Clube dos canais (assinaturas mensais), Super Thanks, Super Chat e Super Stickers em lives, YouTube Shopping</td></tr>
+        <tr><td>Nível completo</td><td>1.000 inscritos + (4.000 horas de exibição públicas em 12 meses <strong>ou</strong> 10 milhões de visualizações de Shorts em 90 dias)</td><td>Tudo acima + receita de anúncios exibidos nos vídeos e parte da receita do YouTube Premium</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul>
+    <li>Outros requisitos comuns: verificação em 2 etapas, sem avisos ativos de diretrizes, morar num país onde o programa existe, uma conta <strong>AdSense</strong> vinculada (no nome do CNPJ; peça ao Robson) e algumas funções só para maiores de 18 anos.</li>
+    <li><strong>Afiliados do YouTube Shopping:</strong> permite marcar produtos de lojas parceiras e ganhar comissão. Veja em Ganhar dinheiro → <strong>Shopping</strong> se o programa está disponível para o canal no Brasil e quais lojas participam. Só faz sentido para itens ligados a consultório (equipamentos, mobiliário), sempre como publicidade.</li>
+    <li>Para o SpaceHour, a receita do YPP é bônus. O principal são os cadastros e as reservas (11.1).</li>
+  </ul>
+
+  <h3>11.3 Parcerias pagas e conteúdo patrocinado</h3>
+  <ul>
+    <li><strong>SpaceHour contratando criadores:</strong> convide criadores de Maringá e região (dentistas, psicólogos, fisioterapeutas que fazem conteúdo) para um vídeo sobre alugar ou anunciar sala. Contrato por escrito com valor, roteiro, prazo e aprovação antes de publicar. O criador deve respeitar o código de ética do conselho dele e marcar a promoção paga.</li>
+    <li><strong>Marcas patrocinando o canal:</strong> clínicas, fornecedores de equipamentos odontológicos, marcas de saúde e cursos podem pagar por menção ou vídeo. Toda proposta passa pelo Robson. Se o Studio mostrar <strong>BrandConnect</strong> em Ganhar dinheiro, ele também pode trazer propostas.</li>
+    <li><strong>Marcação obrigatória:</strong> no upload → Detalhes → <strong>Mostrar mais</strong> → <strong>Promoção paga</strong> → marque <strong>"Meu vídeo contém promoção paga, como colocação de produto, patrocínio ou endosso"</strong>. O YouTube mostra o aviso <strong>"Contém promoção paga"</strong> no início do vídeo. Além disso, diga no vídeo que é publicidade e escreva <strong>#publi</strong> na descrição, como pede o CONAR.</li>
+  </ul>
+</section>
+
+<section id="metricas">
+  <h2><span class="n">12</span>Métricas semanais e relatório</h2>
+  <p>Toda <strong>segunda-feira</strong>, anote numa aba "Métricas" da planilha:</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Métrica</th><th>Onde ver</th></tr></thead>
+      <tbody>
+        <tr><td>Inscritos (total e novos na semana)</td><td>Studio → Análises → Visão geral</td></tr>
+        <tr><td>Visualizações, horas de exibição e impressões</td><td>Studio → Análises → Visão geral e Alcance</td></tr>
+        <tr><td>Taxa de cliques da miniatura (CTR)</td><td>Studio → Análises → Alcance</td></tr>
+        <tr><td>Visitas ao site vindas do YouTube</td><td>O Studio não mostra cliques em links: use os cadastros por UTM abaixo</td></tr>
+        <tr><td>Cadastros com origem YouTube</td><td>Site → Admin → Campanha (utm_source = youtube, por campanha)</td></tr>
+        <tr><td>Gasto e conversões dos anúncios</td><td>Google Ads → Campanhas (filtro: campanhas "YouTube |", últimos 7 dias)</td></tr>
+        <tr><td>Custo por cadastro</td><td>Gasto ÷ cadastros youtube com utm_medium=paid em Admin → Campanha</td></tr>
+        <tr><td>Leads no CRM por status</td><td>Sua planilha CRM</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <pre class="cp" data-label="Relatório semanal para o Robson (5 linhas)">YouTube · semana de [dd/mm] a [dd/mm]
+1. Inscritos: [total] (+[novos]) · visualizações: [n] · horas de exibição: [n]
+2. Cadastros YouTube (Admin → Campanha): [anfitriões] anfitriões, [profissionais] profissionais · espaços publicados: [n]
+3. Anúncios: gasto R$ [valor] · custo por cadastro R$ [valor] · melhor vídeo: [nome]
+4. CRM: [n] novos contatos · [n] conversando · [n] cadastraram
+5. Próxima semana: [o que vou mudar ou testar]</pre>
+</section>
+
+<section id="cuidados">
+  <h2><span class="n">13</span>Cuidados</h2>
+  <ul>
+    <li><strong>Ética dos conselhos (CFO, CFM, CRP e outros):</strong> anuncie o <strong>espaço</strong>, nunca o atendimento de saúde. Sem preço de tratamento, sem antes e depois, sem promessa de resultado, sem mostrar procedimento.</li>
+    <li><strong>Sem pacientes:</strong> nenhum paciente, prontuário, tela de agenda com nomes ou qualquer dado de saúde em vídeo ou miniatura.</li>
+    <li><strong>LGPD:</strong> não use listas compradas, não peça dados sensíveis em comentário, use contas de teste nas gravações de tela. Respeite quem pediu para não receber marketing (Admin → Contatos).</li>
+    <li><strong>Direito de imagem:</strong> autorização por escrito de toda pessoa que aparecer e do dono de cada espaço filmado. Guarde as autorizações numa pasta compartilhada com o Robson.</li>
+    <li><strong>Música:</strong> só da Biblioteca de áudio do YouTube Studio, para evitar reivindicações de direitos autorais.</li>
+    <li><strong>Não prometa renda:</strong> a conta de R$ 60/h × 12 h × 4 semanas é uma <strong>simulação</strong> e deve aparecer sempre com essa palavra.</li>
+    <li><strong>Taxas sempre completas:</strong> "5% por reserva + tarifa do Mercado Pago", nunca só "5%". Não existe desconto ou promoção.</li>
+    <li><strong>Sem superlativos sem prova:</strong> nada de "o mais barato" ou "o único" (CONAR e Código de Defesa do Consumidor).</li>
+    <li><strong>Categoria especial de anúncio:</strong> se o Google Ads pedir restrição de "Habitação", siga o aviso.</li>
+    <li><strong>Público infantil:</strong> marque todos os vídeos como "Não é conteúdo para crianças".</li>
+    <li><strong>Publicidade marcada:</strong> todo conteúdo pago com "Contém promoção paga" e #publi.</li>
+  </ul>
+  <p>Dúvidas: Robson, <code>support@space-hour.com</code>.</p>
+</section>
+</div>
+<script>
+(function () {
+  // Blocos "Copiar": envolve cada <pre class="cp"> com botão.
+  document.querySelectorAll('pre.cp').forEach(function (pre, i) {
+    var box = document.createElement('div');
+    box.className = 'copy';
+    pre.parentNode.insertBefore(box, pre);
+    var lbl = document.createElement('span');
+    lbl.className = 'lbl';
+    lbl.textContent = pre.getAttribute('data-label') || 'Texto pronto';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Copiar';
+    btn.setAttribute('aria-label', 'Copiar: ' + lbl.textContent);
+    box.appendChild(lbl); box.appendChild(btn); box.appendChild(pre);
+    btn.addEventListener('click', function () {
+      var text = pre.innerText.replace(/\n$/, '');
+      var ok = function () { btn.textContent = 'Copiado'; setTimeout(function () { btn.textContent = 'Copiar'; }, 1800); };
+      var fallback = function () {
+        try { var r = document.createRange(); r.selectNodeContents(pre); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+        btn.textContent = 'Texto selecionado: copie';
+        setTimeout(function () { btn.textContent = 'Copiar'; }, 3000);
+      };
+      try { navigator.clipboard.writeText(text).then(ok, fallback); } catch (e) { fallback(); }
+    });
+  });
+  // Checklist com estado salvo no navegador.
+  var list = document.querySelector('[data-store]');
+  if (!list) return;
+  var key = list.getAttribute('data-store');
+  var state = {};
+  try { state = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { state = {}; }
+  var boxes = list.querySelectorAll('input[type=checkbox]');
+  var out = document.getElementById('ck-progress');
+  function paint() { var n = 0; boxes.forEach(function (b) { if (b.checked) n++; }); if (out) out.textContent = n + ' de ' + boxes.length + ' itens prontos'; }
+  boxes.forEach(function (b) {
+    if (state[b.id]) b.checked = true;
+    b.addEventListener('change', function () {
+      state[b.id] = b.checked;
+      try { localStorage.setItem(key, JSON.stringify(state)); } catch (e) {}
+      paint();
+    });
+  });
+  paint();
+})();
+</script>
