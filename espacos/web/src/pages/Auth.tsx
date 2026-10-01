@@ -7,6 +7,9 @@ import { useApp, type Me } from '../state';
 import { COUNTRIES } from '../../../shared/countries';
 import { countryName, flag } from '../format';
 import { errorText } from '../errors';
+import { NextStep } from '../components/NextStep';
+import { AccountReady, EmailCodeForm } from '../components/EmailCode';
+import { rememberAfterVerify, safePath } from '../journey';
 
 // Últimos e-mails usados neste aparelho (só no navegador; nunca a senha)
 const RECENT_KEY = 'sh_recent_emails';
@@ -77,9 +80,13 @@ export function Login() {
 
 export function Register() {
   const { t, locale } = useI18n();
-  const { login, country } = useApp();
+  const { me, login, country } = useApp();
   const nav = useNavigate();
   const [params] = useSearchParams();
+  const next = safePath(params.get('next'));
+  // Depois de criar a conta, o código de 6 números é pedido aqui mesmo (janela + caixa na página)
+  const [stage, setStage] = useState<'form' | 'verify' | 'done'>('form');
+  const [showSteps, setShowSteps] = useState(true);
   const [f, setF] = useState({ name: '', email: '', password: '', countryCode: country || 'BR', acceptTerms: false, confirmAge: false, marketingOptIn: false });
   const [error, setError] = useState('');
   async function submit(e: React.FormEvent) {
@@ -89,10 +96,45 @@ export function Register() {
       track('CompleteRegistration');
       rememberEmail(r.user.email);
       login(r.token, r.user);
-      nav(params.get('next') ?? '/perfil');
+      rememberAfterVerify(next);
+      if (r.user.emailVerifiedAt) nav(next ?? '/perfil');
+      else { setStage('verify'); setShowSteps(true); }
     } catch (err) { setError(errorText(err, t)); }
   }
   const minAge = COUNTRIES.find((c) => c.code === f.countryCode)?.minAge ?? 18;
+  if (stage !== 'form') {
+    const email = me?.email ?? f.email;
+    const verifyBody = (
+      <>
+        <p>{t('verify.stepsBody', { email })}</p>
+        <ol className="next-step-list">
+          <li>{t('verify.step1')}</li>
+          <li>{t('verify.step2')}</li>
+          <li>{t('verify.step3')}</li>
+        </ol>
+      </>
+    );
+    const verified = () => { rememberAfterVerify(null); setStage('done'); };
+    return (
+      <div className="container narrow">
+        <h1>{t('verify.stepsTitle')}</h1>
+        {stage === 'verify' && showSteps && (
+          <NextStep icon="✉️" title={t('verify.stepsTitle')} onClose={() => setShowSteps(false)}
+            actions={[{ label: t('verify.later'), primary: false, onClick: () => nav(next ?? '/perfil') }]}>
+            {verifyBody}
+            <EmailCodeForm autoFocus className="center" onVerified={verified} />
+          </NextStep>
+        )}
+        {stage === 'verify' && !showSteps && (
+          <div className="panel">
+            {verifyBody}
+            <EmailCodeForm autoFocus onVerified={verified} />
+          </div>
+        )}
+        {stage === 'done' && <AccountReady next={next} onClose={() => nav(next ?? '/')} onLeave={() => {}} />}
+      </div>
+    );
+  }
   return (
     <div className="container narrow">
       <h1>{t('auth.register')}</h1>
@@ -112,7 +154,7 @@ export function Register() {
         <label className="check"><input type="checkbox" checked={f.marketingOptIn} onChange={(e) => setF({ ...f, marketingOptIn: e.target.checked })} /> {t('auth.marketingOptIn')}</label>
         {error && <p className="errors" role="alert">{error}</p>}
         <button className="btn btn-primary block">{t('auth.createAccount')}</button>
-        <p className="small center">{t('auth.haveAccount')} <Link to="/entrar">{t('auth.login')}</Link></p>
+        <p className="small center">{t('auth.haveAccount')} <Link to={`/entrar${next ? `?next=${encodeURIComponent(next)}` : ''}`}>{t('auth.login')}</Link></p>
       </form>
     </div>
   );
