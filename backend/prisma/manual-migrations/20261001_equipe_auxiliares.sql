@@ -45,3 +45,19 @@ CREATE TABLE IF NOT EXISTS "LabNotification" (
 );
 CREATE INDEX IF NOT EXISTS "LabNotification_clinicId_workRef_idx" ON "LabNotification"("clinicId", "workRef");
 CREATE INDEX IF NOT EXISTS "LabNotification_status_scheduledFor_idx" ON "LabNotification"("status", "scheduledFor");
+
+-- Número de cadastro (prontuário) automático do paciente, por clínica
+ALTER TABLE "Patient" ADD COLUMN IF NOT EXISTS "recordNumber" INTEGER;
+
+-- Numera os pacientes que ainda não têm número, na ordem de cadastro, continuando depois do maior já usado
+WITH numbered AS (
+  SELECT id, "clinicId", ROW_NUMBER() OVER (PARTITION BY "clinicId" ORDER BY "createdAt", id) AS rn
+  FROM "Patient"
+  WHERE "recordNumber" IS NULL
+)
+UPDATE "Patient" p
+SET "recordNumber" = n.rn + COALESCE((SELECT MAX(x."recordNumber") FROM "Patient" x WHERE x."clinicId" = p."clinicId"), 0)
+FROM numbered n
+WHERE p.id = n.id;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Patient_clinicId_recordNumber_key" ON "Patient"("clinicId", "recordNumber");

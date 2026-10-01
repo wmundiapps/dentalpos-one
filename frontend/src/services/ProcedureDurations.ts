@@ -1,5 +1,5 @@
 // Tempo sugerido de agendamento por procedimento.
-// Regras padrão + personalização da clínica (guardada no navegador por clínica).
+// Regras padrão + personalização da clínica (salva no servidor, vale para todos os usuários; o navegador guarda uma cópia).
 
 export const DURATION_STEP = 15;
 export const DURATION_OPTIONS: number[] = Array.from({ length: 16 }, (_, index) => (index + 1) * DURATION_STEP); // 15 .. 240
@@ -52,12 +52,48 @@ export function loadCustomDurations(): Record<string, number> {
   }
 }
 
+const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+function authHeaders(json = false) {
+  const token = localStorage.getItem("dentalpos.token") || "";
+  const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
+  return {
+    Authorization: `Bearer ${token}`,
+    ...(clinicId ? { "X-Clinic-ID": clinicId } : {}),
+    ...(json ? { "Content-Type": "application/json" } : {}),
+  };
+}
+
+// Os tempos valem para toda a clínica: o navegador guarda uma cópia e o servidor é a fonte oficial.
+function pushToServer(durations: Record<string, number>) {
+  if (!localStorage.getItem("dentalpos.token")) return;
+  void fetch(`${API}/procedure-durations`, { method: "PUT", headers: authHeaders(true), body: JSON.stringify({ durations }) }).catch(() => undefined);
+}
+
+export async function syncProcedureDurations(): Promise<void> {
+  if (!localStorage.getItem("dentalpos.token")) return;
+  try {
+    const response = await fetch(`${API}/procedure-durations`, { headers: authHeaders() });
+    if (!response.ok) return;
+    const server = ((await response.json()) as { durations?: Record<string, number> }).durations || {};
+    const local = loadCustomDurations();
+    if (Object.keys(server).length === 0 && Object.keys(local).length > 0) {
+      pushToServer(local); // primeira vez: sobe o que já estava salvo neste navegador
+      return;
+    }
+    localStorage.setItem(storageKey(), JSON.stringify(server));
+  } catch {
+    // sem rede: continua com a cópia local
+  }
+}
+
 export function saveCustomDuration(procedure: string, minutes: number) {
   const key = normalize(procedure);
   if (!key) return;
   const current = loadCustomDurations();
   current[key] = roundToStep(minutes);
   localStorage.setItem(storageKey(), JSON.stringify(current));
+  pushToServer(current);
 }
 
 export function removeCustomDuration(procedure: string) {
@@ -65,6 +101,7 @@ export function removeCustomDuration(procedure: string) {
   const current = loadCustomDurations();
   delete current[key];
   localStorage.setItem(storageKey(), JSON.stringify(current));
+  pushToServer(current);
 }
 
 export function hasCustomDuration(procedure: string) {

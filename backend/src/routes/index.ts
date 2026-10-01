@@ -10,6 +10,7 @@ import * as doctorController from '../controllers/doctorController'
 import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
 import * as labNotificationController from '../controllers/labNotificationController'
+import * as procedureDurationController from '../controllers/procedureDurationController'
 import * as teamController from '../controllers/teamController'
 import * as pendingAlertController from '../controllers/pendingAlertController'
 import * as publicBookingController from '../controllers/publicBookingController'
@@ -122,6 +123,8 @@ router.put('/access-profiles/:id/permissions', requirePermission('users.manage')
 router.get('/users-access', requirePermission('users.view'), accessController.usersAccess)
 router.post('/access-profiles/bootstrap', requirePermission('users.manage'), accessController.bootstrapProfiles)
 router.get('/me/permissions', accessController.myPermissions)
+router.get('/procedure-durations', requirePermission('agenda.view'), procedureDurationController.show)
+router.put('/procedure-durations', requirePermission('agenda.edit'), procedureDurationController.save)
 router.get('/team-members', requirePermission('agenda.view'), teamController.index)
 router.post('/team-members', requirePermission('agenda.edit'), teamController.store)
 router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.update)

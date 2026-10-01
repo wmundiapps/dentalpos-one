@@ -57,6 +57,25 @@ function buildPatientData(body: Record<string, unknown>, partial: boolean) {
   return { data }
 }
 
+// Número de cadastro (prontuário) automático: próximo número da clínica. Tenta de novo se dois cadastros colidirem.
+export async function nextRecordNumber(clinicId: string) {
+  const last = await prisma.patient.aggregate({ where: { clinicId }, _max: { recordNumber: true } })
+  return (last._max.recordNumber || 0) + 1
+}
+
+async function createWithRecordNumber(clinicId: string, tenantId: string, data: { fullName: string; phone: string }) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await prisma.patient.create({ data: { ...data, clinicId, tenantId, recordNumber: await nextRecordNumber(clinicId) } as Parameters<typeof prisma.patient.create>[0]['data'] })
+    } catch (error) {
+      const err = error as { code?: string; meta?: { target?: unknown } }
+      const target = String(err?.meta?.target || '')
+      // Colisão do número de cadastro (cadastros simultâneos): tenta o próximo. CPF repetido é erro do usuário.
+      if (err?.code !== 'P2002' || !target.includes('recordNumber') || attempt >= 4) throw error
+    }
+  }
+}
+
 export async function index(req: AuthRequest, res: Response) {
   try { const {clinicId,tenantId}=ctx(req); const patients=await prisma.patient.findMany({where:{clinicId,tenantId},orderBy:{fullName:'asc'}}); return res.status(200).json(patients) }
   catch(error){console.error('Erro ao listar pacientes:',error);return res.status(500).json({error:'Erro ao listar pacientes.'})}
@@ -68,10 +87,11 @@ export async function store(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = ctx(req)
     const built = buildPatientData(req.body || {}, false)
     if ('error' in built) return res.status(400).json({ error: built.error })
-    const patient = await prisma.patient.create({ data: { ...(built.data as { fullName: string; phone: string }), clinicId, tenantId } as Parameters<typeof prisma.patient.create>[0]['data'] })
+    const patient = await createWithRecordNumber(clinicId, tenantId, built.data as { fullName: string; phone: string })
     await writeAudit({ clinicId, tenantId, actorId, module: 'patients', action: 'PATIENT_CREATE', entityType: 'Patient', entityId: patient.id, summary: `Paciente ${patient.fullName} cadastrado.` }).catch((e: unknown) => console.error(e))
     return res.status(201).json(patient)
   } catch (error) {
+    if ((error as { code?: string })?.code === 'P2002') return res.status(409).json({ error: 'Já existe um paciente com este CPF.' })
     console.error('Erro ao cadastrar paciente:', error)
     return res.status(500).json({ error: 'Erro ao cadastrar paciente.' })
   }
@@ -125,6 +145,8 @@ export async function bulkImport(req: AuthRequest, res: Response) {
     }
 
     let createdCount = 0
+    let recordNumber = await nextRecordNumber(clinicId)
+    for (const item of toCreate) item.recordNumber = recordNumber++
     for (let i = 0; i < toCreate.length; i += 500) {
       const chunk = toCreate.slice(i, i + 500)
       const result = await prisma.patient.createMany({ data: chunk as Prisma.PatientCreateManyInput[] })

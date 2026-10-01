@@ -153,7 +153,8 @@ export default function Patients() {
   };
   const filtered = useMemo(() => patients.filter((patient) => {
     const text=`${patient.fullName} ${patient.phone} ${patient.cpf || ""}`.toLowerCase();
-    if(!text.includes(search.toLowerCase().trim())) return false;
+    const term=search.toLowerCase().trim().replace(/^#/,"");
+    if(!text.includes(term) && !(patient.recordNumber!=null && /^\d+$/.test(term) && patient.recordNumber===Number(term))) return false;
     if(quickFilter==="Ativos") return patient.status!=="Inativo";
     if(quickFilter==="Em tratamento") return hasTreatment(patient.id);
     if(quickFilter==="Inadimplentes") return isOverdue(patient.fullName);
@@ -282,7 +283,7 @@ export default function Patients() {
                   </Typography>
                   <Typography color="text.secondary">
                     {patient.phone}
-                    {patient.cpf ? ` • CPF ${patient.cpf}` : ""}
+                    {patient.cpf ? ` • CPF ${patient.cpf}` : ""}{patient.recordNumber!=null ? ` • Nº ${patient.recordNumber}` : ""}
                   </Typography>
                 </Box>
                 <Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(patient)}>

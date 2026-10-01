@@ -242,6 +242,8 @@ model Patient {
   mainComplaint String?
   medications   String?
 
+  recordNumber Int?
+
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -265,6 +267,7 @@ model Patient {
   specializedClinicalAttachments SpecializedClinicalAttachment[]
   financialAlertResolutions      FinancialAlertResolution[]
 
+  @@unique([clinicId, recordNumber])
   @@unique([clinicId, cpf])
   @@index([clinicId])
   @@index([tenantId])

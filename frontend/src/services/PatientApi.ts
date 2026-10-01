@@ -5,6 +5,7 @@ export type PatientStatus = "Ativo" | "Em acompanhamento" | "Inativo";
 
 export interface BackendPatient {
   id: string;
+  recordNumber?: number | null;
   fullName: string;
   phone: string;
   email?: string | null;
