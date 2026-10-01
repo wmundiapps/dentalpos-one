@@ -162,7 +162,7 @@ export default function Checkout() {
             <p className="muted small">🔒 {t('checkout.securePayment')}</p>
           </section>
 
-          <section className="section">
+          {(needsGuarantor || listing.guarantorPolicy === 'optional') && <section className="section">
             <h2>{t('checkout.guarantor')}</h2>
             {needsGuarantor
               ? <p className="notice">{quote.guarantorRequired ? t('checkout.guarantorRequired') : t('checkout.guarantorForDeposit')}</p>
@@ -178,7 +178,7 @@ export default function Checkout() {
                 <p className="muted small span2">{t('checkout.guarantorExplain', { cap: money(quote.guarantorLiabilityCap, listing.currency, locale) })} <Link to="/regras/guarantor-deposit">{t('legal.guarantor-deposit')}</Link></p>
               </div>
             )}
-          </section>
+          </section>}
 
           <details className="section">
             <summary><h2 className="inline">{t('checkout.options')}</h2></summary>
