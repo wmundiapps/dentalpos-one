@@ -165,6 +165,7 @@ router.delete('/doctor/:id/documents/:documentId', requirePermission('settings.e
 router.get('/patients', requirePermission('patients.view'), patientController.index)
 router.get('/patient/:id', requirePermission('patients.view'), patientController.show)
 router.post('/patients', requirePermission('patients.create'), patientController.store)
+router.post('/patients/bulk-import', requirePermission('settings.edit'), patientController.bulkImport)
 router.put('/patient/:id', requirePermission('patients.edit'), patientController.update)
 router.delete('/patient/:id', requirePermission('patients.edit'), patientController.remove)
 
