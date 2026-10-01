@@ -64,8 +64,12 @@ export default function Checkout() {
   const licenseMissing = listing.requiresLicense && !['approved', 'pending', 'needs_review'].includes(me.licenseStatus);
   const providers = listing.payProviders ?? [];
   const useAsaas = provider === 'asaas';
-  // No Asaas: Pix e cartão, sem o cliente precisar de conta
-  const methods = useAsaas ? country.paymentMethods.filter((m) => ['pix', 'card'].includes(m)) : country.paymentMethods;
+  // No Asaas: Pix, cartão e boleto, sem o cliente precisar de conta
+  // Boleto compensa em até 3 dias: só para reservas que começam daqui a 3 dias ou mais
+  const soonest = Math.min(...occurrences.map((o) => Date.parse(`${o.date}T${o.start}:00-03:00`)));
+  const boletoOk = soonest - Date.now() >= 3 * 86400000;
+  const holdText = (m: string) => m === 'pix' ? t('pay.holdPix') : m === 'boleto' ? t('pay.holdBoleto') : t('pay.holdCard');
+  const methods = useAsaas ? country.paymentMethods.filter((m) => ['pix', 'card', 'boleto'].includes(m)) : country.paymentMethods;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -146,10 +150,10 @@ export default function Checkout() {
             )}
             <div className="pay-methods" role="radiogroup">
               {methods.map((m) => (
-                <label key={m} className={`pay-method ${method === m ? 'selected' : ''}`}>
-                  <input type="radio" name="pm" value={m} checked={method === m} onChange={() => setMethod(m)} required />
+                <label key={m} className={`pay-method ${method === m ? 'selected' : ''} ${m === 'boleto' && !boletoOk ? 'disabled' : ''}`}>
+                  <input type="radio" name="pm" value={m} checked={method === m} onChange={() => setMethod(m)} required disabled={m === 'boleto' && !boletoOk} />
                   <span>{PAYMENT_METHOD_LABELS[m]}</span>
-                  {ASYNC_PAYMENT_METHODS.includes(m) && <span className="muted small">{t('checkout.noHold')}</span>}
+                  <span className="muted small">{m === 'boleto' && !boletoOk ? t('pay.boletoTooSoon') : holdText(m)}</span>
                 </label>
               ))}
             </div>
@@ -230,7 +234,7 @@ export default function Checkout() {
         <NextStep icon="💳" title={t('next.payTitle')}
           steps={method === 'pix' ? [t('next.payPix1'), t('next.payPix2'), t('next.payBack')] : method === 'boleto' ? [t('next.payBoleto1'), t('next.payBoleto2'), t('next.payBack')] : [t('next.payCard1'), t('next.payBack')]}
           actions={[{ label: t('booking.payNow'), onClick: () => window.location.assign(pay.url) }, { label: t('next.payLater'), to: `/reservas/${pay.id}` }]}>
-          <p>{t('next.payHold')}</p>
+          <p>{holdText(method)}</p>
         </NextStep>
       )}
     </div>

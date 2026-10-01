@@ -26,6 +26,13 @@ export { ACTIVE_STATUSES };
 const APP_URL = process.env.APP_URL ?? 'http://localhost:5173';
 const API_URL = process.env.PUBLIC_API_URL ?? APP_URL;
 export const PAYMENT_WINDOW_MINUTES = 30;
+/** Quanto tempo o horário fica guardado esperando o pagamento: Pix 30 min, cartão 24 h, boleto 3 dias. */
+export const BOLETO_WINDOW_DAYS = 3;
+export function paymentWindowMinutes(method: string) {
+  if (method === 'pix') return PAYMENT_WINDOW_MINUTES;
+  if (method === 'boleto') return BOLETO_WINDOW_DAYS * 24 * 60;
+  return 24 * 60;
+}
 
 function checkoutUrls(b: Pick<Booking, 'id'>) {
   return {
@@ -146,6 +153,11 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     const q = await quote(tx, listing, input.occurrences, guest);
     if (q.errors.length) throw new HttpError(422, 'invalid_occurrences', q.errors);
 
+    // Boleto compensa em até 3 dias úteis: só para reservas que começam daqui a pelo menos 3 dias
+    if (input.paymentMethod === 'boleto') {
+      const soonest = Math.min(...input.occurrences.map((o) => occurrenceStartUtc(listing, o).getTime()));
+      if (soonest - Date.now() < BOLETO_WINDOW_DAYS * 86400000) throw new HttpError(422, 'boleto_needs_3_days', { days: BOLETO_WINDOW_DAYS });
+    }
     const { gateway, sellerRef } = await gatewayForBooking(listing.countryCode, listing.hostId, input.provider);
     let payer = guest;
     if (gateway.id === 'asaas') {
@@ -176,7 +188,8 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     if (!gateway.instant) {
       // Segura o horário enquanto o locatário paga no checkout do provedor
       booking.status = 'pending_payment';
-      booking.paymentDeadline = new Date(now.getTime() + PAYMENT_WINDOW_MINUTES * 60000).toISOString();
+      // nunca depois do início da reserva
+      booking.paymentDeadline = new Date(Math.min(now.getTime() + paymentWindowMinutes(input.paymentMethod) * 60000, firstStart(listing, booking))).toISOString();
     }
     await repo.saveBooking(tx, booking);
     if (input.message?.trim()) {
@@ -189,6 +202,9 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     } else {
       await startCheckout(gateway, payment, booking, listing, payer, checkoutUrls(booking));
       await repo.savePayment(tx, payment);
+      await notify(tx, { userId: guest.id }, 'payment_pending',
+        `Seu horário em "${listing.title}" (${whenText(booking)}) está guardado até ${deadlineText(booking.paymentDeadline!)}. ${PAY_HOW[input.paymentMethod] ?? 'Conclua o pagamento para confirmar a reserva.'}`,
+        `/reservas/${booking.id}`);
     }
     await repo.saveBooking(tx, booking);
     if (licensePending) {
@@ -240,6 +256,9 @@ export function applyPaymentUpdate(update: PaymentUpdate): Promise<void> {
       }
       if (!markPaid(p, update.outcome === 'captured', update)) return;
       await repo.savePayment(tx, p);
+      const value = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: p.currency }).format(p.amount);
+      await notify(tx, { userId: b.guestId }, 'payment_confirmed', `Pagamento recebido: ${value} pela reserva em "${l.title}" (${whenText(b)}). Obrigado!`, `/reservas/${b.id}`);
+      await notify(tx, { userId: b.hostId }, 'payment_received', `Pagamento confirmado da reserva em "${l.title}" (${whenText(b)}).`, `/anfitriao/reservas/${b.id}`);
       await afterPaid(tx, gateway, b, l, p);
       await repo.saveBooking(tx, b);
     } else if (update.outcome === 'failed' || update.outcome === 'expired') {
@@ -294,8 +313,8 @@ async function confirm(tx: Db, b: Booking, l: Listing) {
     await capturePayment(await gw(l, p), p);
     await repo.savePayment(tx, p);
   }
-  await notify(tx, { userId: b.guestId }, 'booking_confirmed', `Reserva confirmada: "${l.title}". O endereço completo já está disponível.`, `/reservas/${b.id}`);
-  await notify(tx, { userId: b.hostId }, 'booking_confirmed', `Reserva confirmada em "${l.title}".`, `/anfitriao/reservas/${b.id}`);
+  await notify(tx, { userId: b.guestId }, 'booking_confirmed', `Reserva confirmada: "${l.title}" — ${whenText(b)}. O endereço completo e o mapa já estão disponíveis na reserva.`, `/reservas/${b.id}`);
+  await notify(tx, { userId: b.hostId }, 'booking_confirmed', `Reserva confirmada em "${l.title}" — ${whenText(b)}.`, `/anfitriao/reservas/${b.id}`);
 }
 
 async function voidBookingPayment(tx: Db, b: Booking, l: Pick<Listing, 'countryCode'>) {
@@ -685,4 +704,17 @@ export async function tick(now = new Date()) {
   for (const inc of expired) {
     await resolveIncident(inc.id, { chargedAmount: inc.requestedAmount, note: 'no_response_within_deadline' }).catch(() => {});
   }
+}
+
+// Textos dos e-mails de pagamento
+const PAY_HOW: Record<string, string> = {
+  pix: 'Pague o Pix em até 30 minutos para confirmar a reserva.',
+  card: 'Conclua o pagamento com cartão em até 24 horas para confirmar a reserva.',
+  boleto: 'Pague o boleto em até 3 dias. A reserva confirma quando o banco compensar o pagamento.',
+};
+function whenText(b: Pick<Booking, 'occurrences'>) {
+  return b.occurrences.map((o) => `${o.date.split('-').reverse().join('/')} ${o.start}–${o.end}`).join(', ');
+}
+function deadlineText(iso: string) {
+  return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }

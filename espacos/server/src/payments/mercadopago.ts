@@ -49,6 +49,7 @@ export function mercadoPagoGateway(countryCode: string, accessToken: string, web
     supportsOffSession: false,
 
     async createCheckout(p: Payment, b: Booking, l: Listing, payer: User, urls: CheckoutUrls) {
+      const deadline = b.paymentDeadline ?? new Date(Date.now() + 30 * 60000).toISOString();
       const pref = await call<{ id: string; init_point: string; sandbox_init_point: string }>('POST', '/checkout/preferences', {
         items: [{
           id: b.id, title: `SpaceHour — ${l.title}`.slice(0, 250), quantity: 1, currency_id: p.currency, unit_price: p.amount,
@@ -62,10 +63,15 @@ export function mercadoPagoGateway(countryCode: string, accessToken: string, web
         auto_return: 'approved',
         notification_url: urls.notificationUrl,
         statement_descriptor: 'SPACEHOUR',
+        // O link vale até o prazo de pagamento da reserva (Pix 30 min, cartão 24 h, boleto 3 dias)
         expires: true,
-        expiration_date_to: new Date(Date.now() + 30 * 60000).toISOString(),
-        // Boleto fica de fora: compensa em dias e o horário só fica guardado 30 min (o pagamento chegaria depois e seria devolvido)
-        payment_methods: { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }], ...(p.method === 'pix' ? { default_payment_method_id: 'pix' } : {}) },
+        expiration_date_to: deadline,
+        ...(p.method === 'boleto' ? { date_of_expiration: deadline } : {}),
+        // Boleto só quando escolhido (exige 3 dias de antecedência); no Pix, abre direto no Pix
+        payment_methods: {
+          ...(p.method === 'boleto' ? {} : { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }] }),
+          ...(p.method === 'pix' ? { default_payment_method_id: 'pix' } : {}),
+        },
       }, `pref-${p.id}`);
       return { checkoutRef: pref.id, checkoutUrl: sandbox ? pref.sandbox_init_point : pref.init_point };
     },

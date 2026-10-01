@@ -509,3 +509,4 @@ details.section > summary::after { content: ' ▾'; color: var(--muted); }
 .payout-option { border: 1px solid var(--border, #ddd); border-radius: 12px; padding: 14px 16px; margin-top: 12px; }
 .payout-option h3 { margin: 0 0 6px; }
 .asaas-connect { display: grid; gap: 12px; margin-top: 8px; }
+.pay-method.disabled { opacity: 0.55; cursor: not-allowed; }

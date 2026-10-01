@@ -65,10 +65,10 @@ async function customerFor(payer: User): Promise<string> {
 }
 
 export function asaasGateway(): Gateway {
-  async function charge(p: Payment, payer: User, value: number, description: string, ref: string, urls: CheckoutUrls, split?: { walletId: string; percent: number }) {
+  async function charge(p: Payment, payer: User, value: number, description: string, ref: string, urls: CheckoutUrls, split?: { walletId: string; percent: number }, dueDate?: string) {
     const customer = await customerFor(payer);
     return asaasCall<{ id: string; invoiceUrl: string }>('POST', '/payments', {
-      customer, billingType: BILLING[p.method] ?? 'UNDEFINED', value, dueDate: today(1), description: description.slice(0, 500),
+      customer, billingType: BILLING[p.method] ?? 'UNDEFINED', value, dueDate: dueDate && dueDate >= today() ? dueDate : today(1), description: description.slice(0, 500),
       externalReference: ref,
       ...(split && split.percent > 0 ? { split: [{ walletId: split.walletId, percentualValue: split.percent }] } : {}),
       callback: { successUrl: urls.successUrl, autoRedirect: true },
@@ -84,7 +84,9 @@ export function asaasGateway(): Gateway {
       if (!p.sellerRef) throw new PaymentProviderError('asaas', 'carteira do anfitrião ausente');
       const percent = Math.floor((b.price.hostPayout / b.price.total) * 10000) / 100; // 2 casas, arredondado para baixo
       const desc = `SpaceHour — ${l.title} — ${b.occurrences.map((o) => `${o.date} ${o.start}-${o.end}`).join(', ')}`;
-      const pay = await charge(p, payer, p.amount, desc, p.id, urls, { walletId: p.sellerRef, percent });
+      // vencimento: o dia do prazo de pagamento da reserva (boleto: até 3 dias)
+      const due = b.paymentDeadline ? new Date(Date.parse(b.paymentDeadline) - 3 * 3600000).toISOString().slice(0, 10) : undefined;
+      const pay = await charge(p, payer, p.amount, desc, p.id, urls, { walletId: p.sellerRef, percent }, due);
       return { checkoutRef: pay.id, checkoutUrl: pay.invoiceUrl };
     },
 

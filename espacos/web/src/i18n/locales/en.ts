@@ -1033,6 +1033,11 @@ const en: Dict = {
   'pix.s4': "Choose CPF, CNPJ, phone or email and confirm.",
   'pix.done': "I registered my Pix key",
   'pix.later': "Later",
+  'pay.holdPix': "Pay within 30 minutes. The booking confirms right away.",
+  'pay.holdCard': "Pay within 24 hours. The booking confirms once the card is approved.",
+  'pay.holdBoleto': "Pay within 3 days. The booking confirms when the bank clears it.",
+  'pay.boletoTooSoon': "Only for bookings 3 or more days ahead.",
+  'err.boleto_needs_3_days': "Boleto only for bookings starting {days} or more days from now. Use Pix or card.",
 };
 
 export default en;
