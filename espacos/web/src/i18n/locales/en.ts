@@ -692,7 +692,7 @@ const en: Dict = {
   'hostCancel.licenseDoubt': 'I am cancelling due to a well-founded doubt about the renter\'s professional license (no penalty or warning; full refund)',
   'err.license_doubt_not_applicable': 'This space does not require a professional license.',
   'payout.title': 'Payouts via Mercado Pago',
-  'payout.help': 'Connect your Mercado Pago account to receive bookings. Each booking amount goes straight to your account; SpaceHour keeps only its fee.',
+  'payout.help': 'Connect your Mercado Pago account to receive bookings. Each booking amount goes straight to your account; SpaceHour keeps only its fee. Important: register a Pix key in Mercado Pago, otherwise clients cannot pay by Pix.',
   'payout.required': "Your listings only take bookings after you connect your payout account.",
   'payout.connect': 'Connect Mercado Pago',
   'payout.connected': 'Mercado Pago account connected (ID {id})',

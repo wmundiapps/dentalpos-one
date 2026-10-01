@@ -693,7 +693,7 @@ const ptBR = {
   'hostCancel.licenseDoubt': 'Cancelo por dúvida fundada sobre o registro profissional do locatário (sem multa nem advertência; reembolso integral)',
   'err.license_doubt_not_applicable': 'Este espaço não exige registro profissional.',
   'payout.title': 'Recebimento pelo Mercado Pago',
-  'payout.help': 'Conecte sua conta Mercado Pago para receber as reservas. O valor de cada reserva cai direto na sua conta; a SpaceHour fica só com a comissão.',
+  'payout.help': 'Conecte sua conta Mercado Pago para receber as reservas. O valor de cada reserva cai direto na sua conta; a SpaceHour fica só com a comissão. Importante: cadastre uma chave Pix no Mercado Pago, senão seus clientes não conseguem pagar com Pix.',
   'payout.required': "Seus anúncios só recebem reservas depois que você conectar a conta de recebimento.",
   'payout.connect': 'Conectar Mercado Pago',
   'payout.connected': 'Conta Mercado Pago conectada (ID {id})',
