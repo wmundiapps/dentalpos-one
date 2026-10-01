@@ -9,6 +9,7 @@ import { approveBudget, cancelBudget, createBudget, listBudgets, type BudgetRow 
 import { createClinicalDocument } from "../services/ClinicalDocumentService";
 import { readSessionUser } from "../services/DemoAccess";
 import { formatBRL, money, parseBRL } from "../utils/money";
+import { buildBudgetPdf, downloadBlob, printPdf, sharePdf } from "../utils/budgetPdf";
 
 type BudgetExtra = BudgetRow & { entryAmount?: number; paymentMethod?: string; discountPercent?: number; validUntil?: string; optionsJson?: { treatmentItemIds?: unknown } | null };
 type Planning = Record<string, unknown>;
@@ -186,6 +187,33 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
     return "Contrato gerado como rascunho na aba Documentos e Contratos. Revise o texto com a assessoria jurídica da clínica antes de emitir.";
   });
 
+  const budgetItems = (b: BudgetExtra) => {
+    const ids = Array.isArray(b.optionsJson?.treatmentItemIds) ? (b.optionsJson?.treatmentItemIds as string[]) : [];
+    return ids.length ? items.filter((i) => ids.includes(i.id)) : activeItems;
+  };
+
+  // PDF do orçamento: "download" baixa o arquivo, "share" abre o compartilhamento (WhatsApp) no celular, "print" abre para imprimir.
+  async function budgetPdf(b: BudgetExtra, mode: "download" | "share" | "print") {
+    const preOpened = mode === "print" ? window.open("", "_blank") : null;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const identity = (() => { try { return JSON.parse(localStorage.getItem("dentalpos.clinic.identity.v1") || "null") as { name?: string } | null; } catch { return null; } })();
+      const clinicName = user?.clinic?.displayName || user?.clinic?.name || identity?.name || "Clínica odontológica";
+      const { blob, fileName } = await buildBudgetPdf({ budget: b, patient, items: budgetItems(b), clinicName, professionalName: sessionName });
+      if (mode === "print") printPdf(blob, preOpened);
+      else if (mode === "download") { downloadBlob(blob, fileName); setNotice("PDF do orçamento baixado. Você pode anexá-lo no WhatsApp ou e-mail do paciente."); }
+      else {
+        const result = await sharePdf(blob, fileName, `Orçamento • ${patient?.fullName || "Paciente"}`);
+        setNotice(result === "shared" ? "Orçamento compartilhado." : "PDF baixado. Anexe o arquivo na conversa do paciente (WhatsApp ou e-mail).");
+      }
+    } catch (e) {
+      preOpened?.close();
+      setError(e instanceof Error ? e.message : "Não foi possível gerar o PDF do orçamento.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <Box>
       <PageHeader title={"Plano de Tratamento e Orçamento"} description={"Procedimentos por dente e região, orçamento com condições de pagamento e contrato do paciente."} actionLabel="Novo procedimento" actionIcon={<AddIcon />} onAction={() => { if (patientId) openItem(); }} />
@@ -252,6 +280,9 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
                   <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                     <Chip size="small" label={BUDGET_STATUS[b.status] || b.status} color={b.status === "APPROVED" ? "success" : b.status === "CANCELLED" ? "default" : "warning"} />
                     {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => void run(() => approveBudget(b.id), "Orçamento aprovado.")}>Aprovar</Button>}
+                    {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "share")}>Enviar PDF</Button>}
+                    {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "download")}>Baixar PDF</Button>}
+                    {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "print")}>Imprimir</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" disabled={busy} onClick={() => void generateContract(b)}>Gerar contrato</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" color="error" disabled={busy} onClick={() => { if (window.confirm("Cancelar este orçamento?")) void run(() => cancelBudget(b.id), "Orçamento cancelado."); }}>Cancelar</Button>}
                   </Box>
