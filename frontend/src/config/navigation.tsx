@@ -36,6 +36,7 @@ import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import WorkIcon from "@mui/icons-material/Work";
 import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
 import { Box } from "@mui/material";
@@ -179,6 +180,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Clínicas e unidades","/clinicas",<LocalHospitalIcon/>),
       item("Integrações","/integracoes",<HubIcon/>),
       item("Importar Pacientes","/importar-pacientes",<UploadFileIcon/>),
+      item("Permissões","/permissoes",<AdminPanelSettingsIcon/>),
       item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),
     ])
   }

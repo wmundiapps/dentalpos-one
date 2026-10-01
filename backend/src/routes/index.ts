@@ -117,6 +117,8 @@ router.post('/financial-alert-resolutions/resolve', requirePermission('finance.e
 
 router.get('/permissions', requirePermission('users.manage'), accessController.catalog)
 router.get('/access-profiles', requirePermission('users.view'), accessController.profiles)
+router.put('/access-profiles/:id/permissions', requirePermission('users.manage'), accessController.setProfilePermissions)
+router.get('/users-access', requirePermission('users.view'), accessController.usersAccess)
 router.post('/access-profiles/bootstrap', requirePermission('users.manage'), accessController.bootstrapProfiles)
 router.get('/me/permissions', accessController.myPermissions)
 router.get('/team-members', requirePermission('agenda.view'), teamController.index)

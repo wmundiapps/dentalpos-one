@@ -49,16 +49,20 @@ export async function createDefaultProfiles(clinicId: string, tenantId: string) 
     LABORATORIO: ['dashboard.view','laboratory.view','laboratory.create','laboratory.edit','design.view','design.edit'],
     FINANCEIRO: ['dashboard.view','patients.view','finance.view','finance.create','finance.edit','finance.approve','finance.values','accounting.view','accounting.edit'],
     RH: ['dashboard.view','hr.view','hr.create','hr.edit','hr.sensitive','documents.view','documents.edit','finance.view'],
-    CONTADOR: ['dashboard.view','finance.view','finance.values','accounting.view','accounting.edit','accounting.approve','accounting.portal','documents.view']
+    CONTADOR: ['dashboard.view','finance.view','finance.values','accounting.view','accounting.edit','accounting.approve','accounting.portal','documents.view'],
+    AUXILIAR: ['dashboard.view','agenda.view','patients.view','clinical.view','laboratory.view'],
+    ADMINISTRACAO: ['dashboard.view','agenda.view','patients.view','patients.create','patients.edit','finance.view','documents.view','documents.edit','hr.view','settings.view','users.view'],
+    JURIDICO: ['dashboard.view','patients.view','documents.view','documents.edit','hr.view','accounting.view','audit.view']
   }
 
   for (const [code, codes] of Object.entries(definitions)) {
-    const profile = await prisma.accessProfile.upsert({
-      where: { clinicId_code: { clinicId, code } },
-      update: { name: code, isSystem: true, isActive: true },
-      create: { clinicId, tenantId, code, name: code, isSystem: true }
-    })
-    await prisma.accessProfilePermission.deleteMany({ where: { profileId: profile.id } })
+    // Perfil que já existe é preservado: o gestor pode ter personalizado as permissões na tela de Permissões.
+    const existing = await prisma.accessProfile.findUnique({ where: { clinicId_code: { clinicId, code } }, include: { _count: { select: { permissions: true } } } })
+    if (existing) {
+      if (!existing.isActive) await prisma.accessProfile.update({ where: { id: existing.id }, data: { isActive: true } })
+      if (existing._count.permissions > 0) continue
+    }
+    const profile = existing || await prisma.accessProfile.create({ data: { clinicId, tenantId, code, name: code, isSystem: true } })
     const data = codes.map(permissionCode => byCode.get(permissionCode)).filter(Boolean).map(permissionId => ({ profileId: profile.id, permissionId: permissionId! }))
     if (data.length) await prisma.accessProfilePermission.createMany({ data, skipDuplicates: true })
   }
