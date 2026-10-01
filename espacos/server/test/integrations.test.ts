@@ -99,7 +99,9 @@ test('checkout externo: reserva aguarda pagamento, webhook confirma (idempotente
 
     // checkout abandonado: a rotina expira depois do prazo
     const b3 = await B.createBooking(guest, { listingId: l.id, occurrences: [{ date, start: '14:00', end: '15:00' }], guests: 1, purpose: 'Sessão', paymentMethod: 'card', acceptRules: true });
-    await B.tick(new Date(Date.now() + (B.PAYMENT_WINDOW_MINUTES + 1) * 60000));
+    await B.tick(new Date(Date.now() + 23 * 3600000));
+    assert.equal((await repo.getBooking(pool, b3.id))!.status, 'pending_payment', 'cartão: horário guardado por 24 h');
+    await B.tick(new Date(Date.now() + (B.paymentWindowMinutes('card') + 1) * 60000));
     assert.equal((await repo.getBooking(pool, b3.id))!.status, 'expired');
 
     // pagamento que chega depois de expirar é devolvido
@@ -688,7 +690,7 @@ test('reserva abandonada: até 2 lembretes por e-mail, para ao reservar ou desca
     const toGuest = () => reminders().filter((m) => m.to === guest.email);
     await C.sendCartReminders(later(61));
     assert.equal(toGuest().length, 0, 'reservou: sem lembrete');
-    await B.tick(later(B.PAYMENT_WINDOW_MINUTES + 1));
+    await B.tick(later(B.paymentWindowMinutes('card') + 1));
     assert.equal((await repo.getBooking(pool, b.id))!.status, 'expired');
     P.setGatewayOverride();
     await C.sendCartReminders(later(61));
@@ -1021,5 +1023,30 @@ test('Asaas: anfitrião cria a carteira; locatário escolhe onde pagar (Pix sem 
     A.setAsaasHttp();
     for (const k of ['ASAAS_API_KEY', 'ASAAS_ENV']) delete process.env[k];
     process.env.LAUNCH_COUNTRIES = 'all';
+  }
+});
+
+test('prazos de pagamento: Pix 30 min, cartão 24 h, boleto 3 dias (só com 3 dias de antecedência); e-mails de pagamento e confirmação', async () => {
+  const fake = fakeGateway();
+  P.setGatewayOverride(() => fake);
+  try {
+    const l = byTitle('Sala de psicologia');
+    const base = { guests: 1, purpose: 'Sessão', acceptRules: true, listingId: l.id };
+    const soon = { ...base, occurrences: [{ date: addDays(todayInZone(l.timezone), 1), start: '19:00', end: '20:00' }] };
+    await assert.rejects(B.createBooking(guest, { ...soon, paymentMethod: 'boleto' }), /boleto_needs_3_days/);
+    const far = { ...base, occurrences: [{ date: nextDateWith(l, 4, 5), start: '19:00', end: '20:00' }] };
+    const bol = await B.createBooking(guest, { ...far, paymentMethod: 'boleto' });
+    const mins = (b: { createdAt: string; paymentDeadline?: string }) => Math.round((Date.parse(b.paymentDeadline!) - Date.parse(b.createdAt)) / 60000);
+    assert.equal(mins(bol), 3 * 24 * 60);
+    const pix = await B.createBooking(guest, { ...base, occurrences: [{ date: nextDateWith(l, 4, 5), start: '17:00', end: '18:00' }], paymentMethod: 'pix' });
+    assert.equal(mins(pix), 30);
+    const pending = await one<{ text: string }>(pool, "SELECT text FROM notifications WHERE user_id = $1 AND kind = 'payment_pending' ORDER BY created_at DESC LIMIT 1", [guest.id]);
+    assert.match(pending!.text, /Pix em até 30 minutos/);
+
+    await B.applyPaymentUpdate({ paymentId: pix.paymentId!, outcome: 'captured', providerRef: 'x1' });
+    const kinds = (await pool.query("SELECT kind FROM notifications WHERE link = $1", [`/reservas/${pix.id}`])).rows.map((r) => r.kind);
+    assert.ok(kinds.includes('payment_confirmed') && kinds.includes('booking_confirmed'), kinds.join());
+  } finally {
+    P.setGatewayOverride();
   }
 });

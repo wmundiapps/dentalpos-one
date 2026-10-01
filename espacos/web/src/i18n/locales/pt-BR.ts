@@ -1034,6 +1034,11 @@ const ptBR = {
   'pix.s4': "Escolha CPF, CNPJ, celular ou e-mail e confirme.",
   'pix.done': "Já cadastrei a chave Pix",
   'pix.later': "Faço depois",
+  'pay.holdPix': "Pague em até 30 minutos. A reserva confirma na hora.",
+  'pay.holdCard': "Pague em até 24 horas. A reserva confirma assim que o cartão for aprovado.",
+  'pay.holdBoleto': "Pague em até 3 dias. A reserva confirma quando o banco compensar.",
+  'pay.boletoTooSoon': "Só para reservas com 3 dias de antecedência.",
+  'err.boleto_needs_3_days': "Boleto só para reservas que começam daqui a {days} dias ou mais. Use Pix ou cartão.",
 };
 
 export default ptBR;
