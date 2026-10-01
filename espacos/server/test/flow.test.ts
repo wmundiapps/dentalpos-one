@@ -108,7 +108,15 @@ test('solicitação com avalista: avalista aceita → anfitrião aprova → anfi
 test('exige registro profissional quando o anúncio pede', async () => {
   const l = listings.find((x) => x.requiresLicense && x.countryCode === 'BR')!;
   const noLicense = (await repo.getUserByEmail(pool, 'mente@spacehour.demo'))!;
-  await assert.rejects(B.createBooking(noLicense, { listingId: l.id, occurrences: [{ date: nextDateWith(l, 6), start: '09:00', end: '11:00' }], guests: 1, purpose: 'x', paymentMethod: 'card', acceptRules: true }), /license_required/);
+  const input = { listingId: l.id, occurrences: [{ date: nextDateWith(l, 6), start: '09:00', end: '11:00' }], guests: 1, purpose: 'x', paymentMethod: 'card', acceptRules: true };
+  await assert.rejects(B.createBooking(noLicense, input), /license_required/);
+  // informado no checkout: a reserva segue, o registro fica em verificação e o anfitrião é avisado
+  const b = await B.createBooking(noLicense, { ...input, license: { body: 'CRP', number: '06/12345', region: 'SP' } });
+  assert.ok(b.id);
+  const u = (await repo.getUser(pool, noLicense.id))!;
+  assert.deepEqual([u.licenseStatus, u.professionalLicense?.number], ['needs_review', '06/12345']);
+  const n = await one<{ n: string }>(pool, "SELECT count(*) AS n FROM notifications WHERE user_id = $1 AND kind = 'license_pending'", [l.hostId]);
+  assert.equal(Number(n!.n), 1);
 });
 
 test('incidente: anfitrião relata, locatário aceita → cobrança e advertência', async () => {

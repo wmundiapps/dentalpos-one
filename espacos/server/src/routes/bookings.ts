@@ -72,6 +72,7 @@ bookingsRouter.post('/bookings', requireAuth, async (req: AuthedRequest, res) =>
     paymentMethod: z.string(),
     provider: z.enum(['asaas', 'mercadopago']).optional(),
     payerTaxId: z.string().max(20).optional(),
+    license: z.object({ body: z.string().min(2).max(120), number: z.string().min(2).max(40), region: z.string().max(40).optional() }).optional(),
     acceptRules: z.boolean(),
     isConsumer: z.boolean().optional(),
     clientReviewsEnabled: z.boolean().optional(),
