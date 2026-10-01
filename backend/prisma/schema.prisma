@@ -242,6 +242,8 @@ model Patient {
   mainComplaint String?
   medications   String?
 
+  recordNumber Int?
+
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -265,6 +267,7 @@ model Patient {
   specializedClinicalAttachments SpecializedClinicalAttachment[]
   financialAlertResolutions      FinancialAlertResolution[]
 
+  @@unique([clinicId, recordNumber])
   @@unique([clinicId, cpf])
   @@index([clinicId])
   @@index([tenantId])
@@ -335,6 +338,8 @@ model Appointment {
 
   confirmation   String?
   confirmChannel String?
+
+  assistantId String?
 
   budgetId String?
   budget   Budget? @relation("AppointmentBudget", fields: [budgetId], references: [id], onDelete: SetNull)
@@ -2472,4 +2477,45 @@ model RecurringBill {
 
   @@index([clinicId, isActive])
   @@index([tenantId])
+}
+
+model TeamMember {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  role           String
+  fullName       String
+  phone          String?
+  email          String?
+  registryNumber String?
+  companyName    String?
+  telegramChatId String?
+  notes          String?
+  showInAgenda   Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([clinicId])
+  @@index([tenantId])
+}
+
+model LabNotification {
+  id           String    @id @default(cuid())
+  clinicId     String
+  tenantId     String
+  workRef      String
+  labMemberId  String
+  type         String
+  channel      String
+  message      String
+  scheduledFor DateTime
+  status       String    @default("PENDING")
+  sentAt       DateTime?
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([clinicId, workRef])
+  @@index([status, scheduledFor])
 }

@@ -33,11 +33,8 @@ export default function PublicBooking() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    birthDate: "",
+    fullName: "",
     patientPhone: "",
-    city: "",
     doctorId: "",
     procedure: "Consulta inicial / avaliação",
     dateISO: today(),
@@ -86,15 +83,12 @@ export default function PublicBooking() {
 
   const save = async () => {
     if (
-      !form.firstName.trim() ||
-      !form.lastName.trim() ||
-      !form.birthDate ||
-      !form.patientPhone.trim() ||
-      !form.city.trim() ||
+      !form.fullName.trim() ||
+      form.patientPhone.replace(/\D/g, "").length < 10 ||
       !form.doctorId ||
       !form.time
     ) {
-      setError("Preencha nome, sobrenome, data de nascimento, WhatsApp, cidade, profissional e horário.");
+      setError("Preencha o nome, o WhatsApp com DDD, o profissional e o horário.");
       return;
     }
 
@@ -141,35 +135,16 @@ export default function PublicBooking() {
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
             <TextField
               required
-              label="Nome"
-              value={form.firstName}
-              onChange={(event) => setForm({ ...form, firstName: event.target.value })}
+              label="Nome completo"
+              value={form.fullName}
+              onChange={(event) => setForm({ ...form, fullName: event.target.value })}
             />
             <TextField
               required
-              label="Sobrenome"
-              value={form.lastName}
-              onChange={(event) => setForm({ ...form, lastName: event.target.value })}
-            />
-            <TextField
-              required
-              type="date"
-              label="Data de nascimento"
-              value={form.birthDate}
-              onChange={(event) => setForm({ ...form, birthDate: event.target.value })}
-              slotProps={{ inputLabel: { shrink: true }, htmlInput: { max: today() } }}
-            />
-            <TextField
-              required
-              label="Telefone / WhatsApp"
+              label="WhatsApp com DDD"
+              placeholder="(11) 91234-5678"
               value={form.patientPhone}
               onChange={(event) => setForm({ ...form, patientPhone: event.target.value })}
-            />
-            <TextField
-              required
-              label="Cidade"
-              value={form.city}
-              onChange={(event) => setForm({ ...form, city: event.target.value })}
             />
             <TextField
               select

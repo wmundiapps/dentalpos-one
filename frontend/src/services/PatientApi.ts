@@ -5,6 +5,7 @@ export type PatientStatus = "Ativo" | "Em acompanhamento" | "Inativo";
 
 export interface BackendPatient {
   id: string;
+  recordNumber?: number | null;
   fullName: string;
   phone: string;
   email?: string | null;
@@ -68,6 +69,21 @@ export async function createBackendPatient(input: PatientInput): Promise<Backend
     method: "POST",
     headers: headers(true),
     body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || `Erro HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function bulkImportPatients(
+  rows: Array<Record<string, string>>,
+): Promise<{ createdCount: number; skipped: Array<{ row: number; reason: string }> }> {
+  const response = await fetch(`${API}/patients/bulk-import`, {
+    method: "POST",
+    headers: headers(true),
+    body: JSON.stringify({ rows }),
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null);

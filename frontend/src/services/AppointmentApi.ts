@@ -48,6 +48,7 @@ export interface BackendAppointment {
   procedure: string;
   nextProcedure?: string | null;
   room?: string | null;
+  assistantId?: string | null;
   scheduledAt: string;
   durationMinutes: number;
   status: string;
@@ -131,6 +132,7 @@ export async function createBackendAppointment(input: {
   procedure: string;
   nextProcedure?: string;
   room?: string;
+  assistantId?: string;
   scheduledAt: string;
   durationMinutes?: number;
   reminderChannel?: ReminderChannel;
@@ -172,5 +174,20 @@ export async function updateBackendAppointment(id: string, input: {
     throw new Error(body?.error || `Erro HTTP ${response.status}`);
   }
 
+  return response.json() as Promise<BackendAppointment>;
+}
+
+export type FlowAction = "ARRIVED" | "PREPARE_ROOM" | "START" | "FINISH";
+
+export async function appointmentFlowAction(id: string, action: FlowAction) {
+  const response = await fetch(`${API}/appointment/${id}/flow`, {
+    method: "PUT",
+    headers: headers(true),
+    body: JSON.stringify({ action }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || `Erro HTTP ${response.status}`);
+  }
   return response.json() as Promise<BackendAppointment>;
 }

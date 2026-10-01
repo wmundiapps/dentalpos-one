@@ -1,10 +1,13 @@
 import { Box } from "@mui/material";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { syncProcedureDurations } from "../services/ProcedureDurations";
 
 import DemoBanner from "./DemoBanner";
 import EvaluationWidget from "./EvaluationWidget";
 import Footer from "./Footer";
 import Header from "./Header";
+import PendingAlertsBar from "./PendingAlertsBar";
+import PrintHeader from "./PrintHeader";
 import Sidebar from "./Sidebar";
 
 interface LayoutProps {
@@ -14,6 +17,8 @@ interface LayoutProps {
 export default function Layout({
   children,
 }: LayoutProps) {
+  useEffect(() => { void syncProcedureDurations(); }, []);
+
   return (
     <Box
       sx={{
@@ -34,7 +39,8 @@ export default function Layout({
         }}
       >
         <Header />
-        <DemoBanner />
+        <Box className="no-print"><DemoBanner /></Box>
+        <Box className="no-print"><PendingAlertsBar /></Box>
 
         <Box
           component="main"
@@ -46,13 +52,14 @@ export default function Layout({
             },
           }}
         >
+          <PrintHeader />
           {children}
         </Box>
 
         <Footer />
       </Box>
 
-      <EvaluationWidget />
+      <Box className="no-print"><EvaluationWidget /></Box>
     </Box>
   );
 }

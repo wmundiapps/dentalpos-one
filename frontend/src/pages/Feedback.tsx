@@ -19,6 +19,7 @@ export default function Feedback() {
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
+    if (!staff) { setLoading(false); return; }
     setLoading(true);
     setError("");
     try { setRows(await listPlatformFeedbacks(staff && all)); }
@@ -39,21 +40,26 @@ export default function Feedback() {
 
   return (
     <Box>
-      <PageHeader title={"Sugestões e Problemas"} description={"Relate bugs, botões que não funcionam, correções e ideias de novas funcionalidades. Cada relato chega direto à equipe DentalPos One."} />
+      <PageHeader title={"Sugestões e Problemas"} description={"Relate bugs, botões que não funcionam, correções, elogios e ideias de novas funcionalidades. Cada relato chega direto à equipe DentalPos One."} />
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
         <Button variant="contained" startIcon={<AddCommentIcon />} onClick={() => setOpen(true)}>Novo relato</Button>
         {staff && <FormControlLabel control={<Switch checked={all} onChange={(_, v) => setAll(v)} />} label={"Todas as clínicas (equipe WMundi)"} />}
       </Box>
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3,1fr)" }, gap: 2, mb: 2 }}>
+      {!staff && (
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+          <Typography color="text.secondary">{"Sua sugestão ou elogio será avaliado e, caso seja aprovado, a implementação ou melhoria será aplicada. Obrigado por ajudar a melhorar o DentalPos One!"}</Typography>
+        </Paper>
+      )}
+      {staff && <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3,1fr)" }, gap: 2, mb: 2 }}>
         {cards.map(([t, v]) => (
           <Paper key={t} variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
             <Typography color="text.secondary">{t}</Typography>
             <Typography variant="h4" sx={{ fontWeight: 900 }}>{v}</Typography>
           </Paper>
         ))}
-      </Box>
+      </Box>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+      {staff && <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
         {loading ? (
           <Typography color="text.secondary">Carregando...</Typography>
         ) : rows.length === 0 ? (
@@ -82,7 +88,7 @@ export default function Feedback() {
             </Typography>
           </Paper>
         ))}
-      </Paper>
+      </Paper>}
       <FeedbackDialog open={open} onClose={() => setOpen(false)} onSent={() => void load()} />
     </Box>
   );

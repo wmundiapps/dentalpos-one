@@ -1,4 +1,5 @@
 import { Response } from 'express'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
@@ -56,6 +57,25 @@ function buildPatientData(body: Record<string, unknown>, partial: boolean) {
   return { data }
 }
 
+// Número de cadastro (prontuário) automático: próximo número da clínica. Tenta de novo se dois cadastros colidirem.
+export async function nextRecordNumber(clinicId: string) {
+  const last = await prisma.patient.aggregate({ where: { clinicId }, _max: { recordNumber: true } })
+  return (last._max.recordNumber || 0) + 1
+}
+
+async function createWithRecordNumber(clinicId: string, tenantId: string, data: { fullName: string; phone: string }) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await prisma.patient.create({ data: { ...data, clinicId, tenantId, recordNumber: await nextRecordNumber(clinicId) } as Parameters<typeof prisma.patient.create>[0]['data'] })
+    } catch (error) {
+      const err = error as { code?: string; meta?: { target?: unknown } }
+      const target = String(err?.meta?.target || '')
+      // Colisão do número de cadastro (cadastros simultâneos): tenta o próximo. CPF repetido é erro do usuário.
+      if (err?.code !== 'P2002' || !target.includes('recordNumber') || attempt >= 4) throw error
+    }
+  }
+}
+
 export async function index(req: AuthRequest, res: Response) {
   try { const {clinicId,tenantId}=ctx(req); const patients=await prisma.patient.findMany({where:{clinicId,tenantId},orderBy:{fullName:'asc'}}); return res.status(200).json(patients) }
   catch(error){console.error('Erro ao listar pacientes:',error);return res.status(500).json({error:'Erro ao listar pacientes.'})}
@@ -67,10 +87,11 @@ export async function store(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = ctx(req)
     const built = buildPatientData(req.body || {}, false)
     if ('error' in built) return res.status(400).json({ error: built.error })
-    const patient = await prisma.patient.create({ data: { ...(built.data as { fullName: string; phone: string }), clinicId, tenantId } as Parameters<typeof prisma.patient.create>[0]['data'] })
+    const patient = await createWithRecordNumber(clinicId, tenantId, built.data as { fullName: string; phone: string })
     await writeAudit({ clinicId, tenantId, actorId, module: 'patients', action: 'PATIENT_CREATE', entityType: 'Patient', entityId: patient.id, summary: `Paciente ${patient.fullName} cadastrado.` }).catch((e: unknown) => console.error(e))
     return res.status(201).json(patient)
   } catch (error) {
+    if ((error as { code?: string })?.code === 'P2002') return res.status(409).json({ error: 'Já existe um paciente com este CPF.' })
     console.error('Erro ao cadastrar paciente:', error)
     return res.status(500).json({ error: 'Erro ao cadastrar paciente.' })
   }
@@ -90,6 +111,55 @@ export async function update(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error('Erro ao atualizar paciente:', error)
     return res.status(500).json({ error: 'Erro ao atualizar paciente.' })
+  }
+}
+
+// Importação em lote (migração de outro sistema, ex.: Clinicorp). Só dados cadastrais — nunca financeiro.
+export async function bulkImport(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = ctx(req)
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : []
+    if (!rows.length) return res.status(400).json({ error: 'Nenhuma linha para importar.' })
+    if (rows.length > 5000) return res.status(400).json({ error: 'Máximo de 5000 linhas por importação.' })
+
+    const norm = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
+    const existing = await prisma.patient.findMany({ where: { clinicId, tenantId }, select: { fullName: true, phone: true, cpf: true } })
+    // Familiares costumam dividir o mesmo telefone: a duplicidade é telefone + nome, ou CPF.
+    const existingKeys = new Set(existing.map((p) => `${p.phone.replace(/\D/g, '')}|${norm(p.fullName)}`))
+    const existingCpfs = new Set(existing.map((p) => (p.cpf || '').replace(/\D/g, '')).filter(Boolean))
+
+    const toCreate: Array<Record<string, unknown>> = []
+    const skipped: Array<{ row: number; reason: string }> = []
+
+    for (let i = 0; i < rows.length; i++) {
+      const built = buildPatientData(rows[i] || {}, false)
+      if ('error' in built) { skipped.push({ row: i + 1, reason: built.error as string }); continue }
+      const data = built.data as { fullName: string; phone: string; cpf?: string | null }
+      const key = `${String(data.phone || '').replace(/\D/g, '')}|${norm(data.fullName)}`
+      const cpfDigits = String(data.cpf || '').replace(/\D/g, '')
+      if (existingKeys.has(key)) { skipped.push({ row: i + 1, reason: 'Paciente já cadastrado (mesmo nome e telefone).' }); continue }
+      if (cpfDigits && existingCpfs.has(cpfDigits)) { skipped.push({ row: i + 1, reason: 'CPF já cadastrado.' }); continue }
+      existingKeys.add(key)
+      if (cpfDigits) existingCpfs.add(cpfDigits)
+      toCreate.push({ ...data, status: 'Ativo', clinicId, tenantId })
+    }
+
+    let createdCount = 0
+    let recordNumber = await nextRecordNumber(clinicId)
+    for (const item of toCreate) item.recordNumber = recordNumber++
+    for (let i = 0; i < toCreate.length; i += 500) {
+      const chunk = toCreate.slice(i, i + 500)
+      const result = await prisma.patient.createMany({ data: chunk as Prisma.PatientCreateManyInput[] })
+      createdCount += result.count
+    }
+    const created = { length: createdCount }
+
+    await writeAudit({ clinicId, tenantId, actorId, module: 'patients', action: 'PATIENT_BULK_IMPORT', entityType: 'Patient', entityId: 'bulk', summary: `Importação em lote: ${created.length} paciente(s) criado(s), ${skipped.length} ignorado(s).` }).catch((e: unknown) => console.error(e))
+
+    return res.status(201).json({ createdCount, skipped })
+  } catch (error) {
+    console.error('Erro na importação em lote de pacientes:', error)
+    return res.status(500).json({ error: 'Erro ao importar pacientes.' })
   }
 }
 

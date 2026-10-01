@@ -1,3 +1,4 @@
+import { nextRecordNumber } from './patientController'
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import type { AuthRequest } from '../middleware/auth'
@@ -289,6 +290,7 @@ export async function store(req: Request, res: Response) {
   try {
     const clinicId = String(req.params.clinicId || '')
     const {
+      fullName,
       firstName,
       lastName,
       birthDate,
@@ -302,27 +304,25 @@ export async function store(req: Request, res: Response) {
       reminderChannel: rawChannel,
     } = req.body || {}
 
-    if (
-      !firstName?.trim() ||
-      !lastName?.trim() ||
-      !birthDate ||
-      !patientPhone?.trim() ||
-      !city?.trim() ||
-      !doctorId ||
-      !procedure?.trim() ||
-      !dateISO ||
-      !time
-    ) {
+    // Agendamento simplificado: só nome completo e telefone com DDD são obrigatórios.
+    const patientName = String(fullName || `${String(firstName || '').trim()} ${String(lastName || '').trim()}`).replace(/\s+/g, ' ').trim()
+    if (patientName.length < 2 || !patientPhone?.trim() || !doctorId || !procedure?.trim() || !dateISO || !time) {
       return res.status(400).json({
-        error: 'Nome, sobrenome, data de nascimento, WhatsApp, cidade, profissional, procedimento, data e horário são obrigatórios.'
+        error: 'Nome, telefone com DDD, profissional, procedimento, data e horário são obrigatórios.'
       })
     }
-
-    const patientName = `${String(firstName).trim()} ${String(lastName).trim()}`.trim()
-    const parsedBirthDate = new Date(`${String(birthDate)}T12:00:00-03:00`)
-    if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate.getTime() > Date.now()) {
-      return res.status(400).json({ error: 'Data de nascimento inválida.' })
+    if (String(patientPhone).replace(/\D/g, '').length < 10) {
+      return res.status(400).json({ error: 'Informe o telefone/WhatsApp com DDD.' })
     }
+
+    let parsedBirthDate: Date | null = null
+    if (birthDate) {
+      parsedBirthDate = new Date(`${String(birthDate)}T12:00:00-03:00`)
+      if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate.getTime() > Date.now()) {
+        return res.status(400).json({ error: 'Data de nascimento inválida.' })
+      }
+    }
+    const cityValue = String(city || '').trim()
 
     const clinic = await prisma.clinic.findFirst({ where: { id: clinicId, isActive: true } })
     if (!clinic) return res.status(404).json({ error: 'Clínica não encontrada.' })
@@ -403,26 +403,37 @@ export async function store(req: Request, res: Response) {
       where: { clinicId, tenantId: clinic.tenantId, isActive: true },
       select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
     })
-    let patient = patients.find(row => row.phone.replace(/\D/g, '') === incomingDigits)
+    // Familiares dividem o telefone: só reaproveita o cadastro se o nome também for o mesmo.
+    const normName = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
+    let patient = patients.find(row => row.phone.replace(/\D/g, '') === incomingDigits && normName(row.fullName) === normName(patientName))
 
     if (!patient) {
-      patient = await prisma.patient.create({
-        data: {
-          clinicId,
-          tenantId: clinic.tenantId,
-          fullName: patientName,
-          phone: String(patientPhone).trim(),
-          birthDate: parsedBirthDate,
-          city: String(city).trim(),
-        },
-        select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
-      })
-    } else if (!patient.birthDate || !patient.city) {
+      for (let attempt = 0; !patient; attempt++) {
+        try {
+          patient = await prisma.patient.create({
+            data: {
+              clinicId,
+              tenantId: clinic.tenantId,
+              fullName: patientName,
+              phone: String(patientPhone).trim(),
+              recordNumber: await nextRecordNumber(clinicId),
+              ...(parsedBirthDate ? { birthDate: parsedBirthDate } : {}),
+              ...(cityValue ? { city: cityValue } : {}),
+            },
+            select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
+          })
+        } catch (error) {
+          // Cadastros simultâneos podem disputar o mesmo número: tenta o próximo.
+          const code = (error as { code?: string })?.code
+          if (code !== 'P2002' || attempt >= 4) throw error
+        }
+      }
+    } else if ((!patient.birthDate && parsedBirthDate) || (!patient.city && cityValue)) {
       patient = await prisma.patient.update({
         where: { id: patient.id },
         data: {
-          ...(!patient.birthDate ? { birthDate: parsedBirthDate } : {}),
-          ...(!patient.city ? { city: String(city).trim() } : {}),
+          ...(!patient.birthDate && parsedBirthDate ? { birthDate: parsedBirthDate } : {}),
+          ...(!patient.city && cityValue ? { city: cityValue } : {}),
         },
         select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
       })

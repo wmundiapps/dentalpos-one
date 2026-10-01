@@ -9,6 +9,10 @@ import * as clinicController from '../controllers/clinicController'
 import * as doctorController from '../controllers/doctorController'
 import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
+import * as labNotificationController from '../controllers/labNotificationController'
+import * as procedureDurationController from '../controllers/procedureDurationController'
+import * as teamController from '../controllers/teamController'
+import * as pendingAlertController from '../controllers/pendingAlertController'
 import * as publicBookingController from '../controllers/publicBookingController'
 import * as scheduleController from '../controllers/scheduleController'
 import * as budgetController from '../controllers/budgetController'
@@ -115,8 +119,19 @@ router.post('/financial-alert-resolutions/resolve', requirePermission('finance.e
 
 router.get('/permissions', requirePermission('users.manage'), accessController.catalog)
 router.get('/access-profiles', requirePermission('users.view'), accessController.profiles)
+router.put('/access-profiles/:id/permissions', requirePermission('users.manage'), accessController.setProfilePermissions)
+router.get('/users-access', requirePermission('users.view'), accessController.usersAccess)
 router.post('/access-profiles/bootstrap', requirePermission('users.manage'), accessController.bootstrapProfiles)
 router.get('/me/permissions', accessController.myPermissions)
+router.get('/procedure-durations', requirePermission('agenda.view'), procedureDurationController.show)
+router.put('/procedure-durations', requirePermission('agenda.edit'), procedureDurationController.save)
+router.get('/team-members', requirePermission('agenda.view'), teamController.index)
+router.post('/team-members', requirePermission('agenda.edit'), teamController.store)
+router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.update)
+router.delete('/team-member/:id', requirePermission('agenda.edit'), teamController.remove)
+router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
+router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendingAlertController.updateSettings)
+router.post('/pending-alerts/unlock', requirePermission('settings.edit'), pendingAlertController.unlock)
 router.post('/users/:userId/access-profiles', requirePermission('users.manage'), accessController.assignProfile)
 router.delete('/users/:userId/access-profiles/:profileId', requirePermission('users.manage'), accessController.removeProfile)
 
@@ -165,6 +180,7 @@ router.delete('/doctor/:id/documents/:documentId', requirePermission('settings.e
 router.get('/patients', requirePermission('patients.view'), patientController.index)
 router.get('/patient/:id', requirePermission('patients.view'), patientController.show)
 router.post('/patients', requirePermission('patients.create'), patientController.store)
+router.post('/patients/bulk-import', requirePermission('settings.edit'), patientController.bulkImport)
 router.put('/patient/:id', requirePermission('patients.edit'), patientController.update)
 router.delete('/patient/:id', requirePermission('patients.edit'), patientController.remove)
 
@@ -208,6 +224,9 @@ router.delete('/clinical-files/:id', requirePermission('clinical.edit'), clinica
 // LABORATORY / DENTALPOS DESIGN
 // ======================
 
+router.get('/lab-notifications', requirePermission('laboratory.view'), labNotificationController.list)
+router.post('/lab-notifications/schedule', requirePermission('laboratory.create'), labNotificationController.schedule)
+router.post('/lab-notifications/cancel', requirePermission('laboratory.edit'), labNotificationController.cancel)
 router.get('/laboratory-works', requirePermission('laboratory.view'), laboratoryController.index)
 router.post('/laboratory-works', requirePermission('laboratory.create'), laboratoryController.store)
 router.put('/laboratory-works/:id', requirePermission('laboratory.edit'), laboratoryController.update)
@@ -226,6 +245,7 @@ router.get('/appointments', requirePermission('agenda.view'), appointmentControl
 router.get('/appointment/:id', requirePermission('agenda.view'), appointmentController.show)
 router.post('/appointments', requirePermission('agenda.create'), appointmentController.store)
 router.put('/appointment/:id', requirePermission('agenda.edit'), appointmentController.update)
+router.put('/appointment/:id/flow', requirePermission('agenda.edit'), appointmentController.flowAction)
 router.delete('/appointment/:id', requirePermission('agenda.cancel'), appointmentController.remove)
 
 // ======================
@@ -284,6 +304,7 @@ router.delete('/payment/:id', requirePermission('finance.approve'), paymentContr
 router.get('/financial-entries', requirePermission('finance.view'), financialController.index)
 router.post('/financial-entries', requirePermission('finance.create'), financialController.store)
 router.put('/financial-entries/:id', requirePermission('finance.edit'), financialController.update)
+router.post('/financial-entries/purge-cancelled', requirePermission('finance.approve'), financialController.purgeCancelled)
 router.post('/financial-entries/:id/settle', requirePermission('finance.approve'), financialController.settle)
 router.delete('/financial-entries/:id', requirePermission('finance.approve'), financialController.remove)
 router.get('/financial-dashboard', requirePermission('finance.view'), financialController.dashboard)

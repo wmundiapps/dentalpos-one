@@ -35,6 +35,8 @@ export function matchesPatient(patient: BackendPatient, query: string) {
   if (!q) return true;
   const qDigits = onlyDigits(query);
   if (normalizeText(patient.fullName).includes(q)) return true;
+  const asNumber = q.replace(/^(#|n[º°o]?\s*)/, "");
+  if (patient.recordNumber != null && /^\d+$/.test(asNumber) && patient.recordNumber === Number(asNumber)) return true;
   if (qDigits.length >= 3) {
     if (onlyDigits(patient.phone).includes(qDigits)) return true;
     if (onlyDigits(patient.cpf || "").includes(qDigits)) return true;
@@ -131,7 +133,7 @@ export default function PatientSearchField({ patients, value, onChange, autoFocu
         return (
           <li key={key} {...rest}>
             <Box>
-              <Typography sx={{ fontWeight: 700 }}>{option.fullName}</Typography>
+              <Typography sx={{ fontWeight: 700 }}>{option.recordNumber != null ? `#${option.recordNumber} · ` : ""}{option.fullName}</Typography>
               <Typography variant="caption" color="text.secondary">
                 {formatPhoneBR(option.phone) || option.phone}
                 {option.cpf ? ` • CPF ${option.cpf}` : ""}

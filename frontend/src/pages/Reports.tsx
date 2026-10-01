@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Box, Button, Card, CardContent, Chip, Grid, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import DownloadIcon from "@mui/icons-material/Download";
+import { downloadTablePdf, parseCsvText } from "../utils/exportTable";
 import PageHeader from "../components/PageHeader";
 
 type ReportDef={key:string;title:string;description:string;group:string};
@@ -34,6 +35,15 @@ export default function Reports(){
       .then(blob=>{const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`${key}-${from}-${to}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)})
       .catch((e)=>alert(`Não foi possível gerar o relatório: ${e instanceof Error?e.message:"erro desconhecido"}`));
   };
+  const exportPdf=(key:string,title:string)=>{
+    const base=import.meta.env.VITE_API_URL||"http://localhost:3000/api";
+    const token=localStorage.getItem("dentalpos.token")||localStorage.getItem("token")||"";
+    const clinicId=localStorage.getItem("dentalpos.clinicId")||localStorage.getItem("clinicId")||"";
+    fetch(`${base}/reports/${key}?from=${from}&to=${to}&format=csv`,{headers:{Authorization:`Bearer ${token}`,"X-Clinic-ID":clinicId}})
+      .then(async r=>{if(!r.ok)throw new Error(await r.text());return r.text()})
+      .then(text=>{const t=parseCsvText(text);if(!t.headers.length)throw new Error("Relatório sem dados no período.");return downloadTablePdf({title:`${title} (${from} a ${to})`,fileBase:`${key}-${from}-${to}`,headers:t.headers,rows:t.rows})})
+      .catch((e)=>alert(`Não foi possível gerar o relatório: ${e instanceof Error?e.message:"erro desconhecido"}`));
+  };
 
   return <Box>
     <PageHeader title="Relatórios" description="Escolha o relatório, defina o período e gere o arquivo. Todas as opções ficam visíveis nesta tela."/>
@@ -50,7 +60,8 @@ export default function Reports(){
           <Stack direction="row" spacing={1} sx={{ alignItems:"center" }}><AssessmentIcon color="primary"/><Typography variant="h6" sx={{fontWeight:850}}>{r.title}</Typography></Stack>
           <Chip size="small" label={r.group} sx={{my:1}}/>
           <Typography variant="body2" color="text.secondary" sx={{minHeight:64}}>{r.description}</Typography>
-          <Button variant="contained" startIcon={<DownloadIcon/>} onClick={()=>exportCsv(r.key)} sx={{mt:2}}>Gerar relatório CSV</Button>
+          <Button variant="contained" startIcon={<DownloadIcon/>} onClick={()=>exportCsv(r.key)} sx={{mt:2}}>Baixar planilha (CSV)</Button>
+          <Button variant="outlined" startIcon={<DownloadIcon/>} onClick={()=>exportPdf(r.key,r.title)} sx={{mt:2,ml:1}}>Baixar PDF</Button>
         </CardContent></Card>
       </Grid>)}
     </Grid>

@@ -151,3 +151,13 @@ export async function loadFinancialDashboard(): Promise<FinancialDashboard> {
   const response = await fetch(`${API}/financial-dashboard`, { headers: headers() });
   return parse<FinancialDashboard>(response);
 }
+
+
+export async function purgeCancelledEntries(ids?: string[]): Promise<{ deleted: number; keptFiscal: number }> {
+  const response = await fetch(`${API}/financial-entries/purge-cancelled`, {
+    method: "POST",
+    headers: headers(true),
+    body: JSON.stringify(ids ? { ids } : {}),
+  });
+  return parse<{ deleted: number; keptFiscal: number }>(response);
+}
