@@ -20,6 +20,7 @@ import {
 } from '../../shared/rules.js';
 import { getCountry } from '../../shared/countries.js';
 import { isLaunched } from './launch.js';
+import { validCnpj, validCpf } from './identity.js';
 
 export { ACTIVE_STATUSES };
 const APP_URL = process.env.APP_URL ?? 'http://localhost:5173';
@@ -103,6 +104,10 @@ export interface CreateBookingInput {
   guests: number;
   purpose: string;
   paymentMethod: string;
+  /** Onde pagar quando o anfitrião recebe por mais de um (asaas | mercadopago). */
+  provider?: string;
+  /** CPF/CNPJ de quem paga (o Asaas exige). */
+  payerTaxId?: string;
   acceptRules: boolean;
   isConsumer?: boolean;
   clientReviewsEnabled?: boolean;
@@ -129,7 +134,13 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
     const q = await quote(tx, listing, input.occurrences, guest);
     if (q.errors.length) throw new HttpError(422, 'invalid_occurrences', q.errors);
 
-    const { gateway, sellerRef } = await gatewayForBooking(listing.countryCode, listing.hostId);
+    const { gateway, sellerRef } = await gatewayForBooking(listing.countryCode, listing.hostId, input.provider);
+    let payer = guest;
+    if (gateway.id === 'asaas') {
+      const taxId = (input.payerTaxId ?? guest.documentNumber ?? '').replace(/\D/g, '');
+      if (!(taxId.length === 11 ? validCpf(taxId) : validCnpj(taxId))) throw new HttpError(422, 'payer_tax_id_required');
+      payer = { ...guest, documentNumber: taxId };
+    }
     const needsGuarantorForDeposit = listing.securityDeposit > 0 && !supportsHold(input.paymentMethod, gateway);
     if ((q.guarantorRequired || needsGuarantorForDeposit) && !input.guarantor) {
       throw new HttpError(422, needsGuarantorForDeposit ? 'deposit_needs_guarantor' : 'guarantor_required');
@@ -164,7 +175,7 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
       await repo.savePayment(tx, payment);
       await afterPaid(tx, gateway, booking, listing, payment, now);
     } else {
-      await startCheckout(gateway, payment, booking, listing, guest, checkoutUrls(booking));
+      await startCheckout(gateway, payment, booking, listing, payer, checkoutUrls(booking));
       await repo.savePayment(tx, payment);
     }
     await repo.saveBooking(tx, booking);

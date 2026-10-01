@@ -8,9 +8,9 @@ import { isLaunched } from '../launch.js';
 import { notify } from '../notify.js';
 import { assertCepMatches } from '../identity.js';
 import { geoCity, geoState, hasGeo, rawGeo, stateTimezone } from '../geo.js';
-import { connectedHostIds, marketplaceEnabled } from '../payments/mpAccounts.js';
+import { marketplaceEnabled } from '../payments/mpAccounts.js';
 import { MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
-import { gatewayFor, supportsHold } from '../payments/index.js';
+import { type HostProvider, gatewayFor, hostProviders, payoutRequired, supportsHold } from '../payments/index.js';
 
 const MP_COUNTRIES: readonly string[] = MERCADOPAGO_COUNTRIES;
 import { getListing, quote } from '../bookings.js';
@@ -96,12 +96,16 @@ async function addressVisibleTo(db: Db, listings: Listing[], viewer?: User) {
   return new Set([...listings.filter((l) => l.hostId === viewer.id).map((l) => l.id), ...booked.map((r) => r.listing_id)]);
 }
 
-/** Anfitriões que já podem receber reservas (com o split ligado, precisam da conta Mercado Pago conectada). */
+/** Anfitriões que já podem receber reservas: com split ligado, precisam de carteira Asaas ou conta Mercado Pago conectada. */
 async function bookableHosts(listings: Listing[]) {
-  const needs = listings.filter((l) => MP_COUNTRIES.includes(l.countryCode));
-  if (!needs.length || !marketplaceEnabled() || process.env.PAYMENTS_PROVIDER === 'simulated') return () => true;
-  const connected = await connectedHostIds([...new Set(needs.map((l) => l.hostId))]);
-  return (l: Listing) => !MP_COUNTRIES.includes(l.countryCode) || connected.has(l.hostId);
+  const needs = listings.filter((l) => payoutRequired(l.countryCode) || (MP_COUNTRIES.includes(l.countryCode) && marketplaceEnabled() && process.env.PAYMENTS_PROVIDER !== 'simulated'));
+  if (!needs.length) return () => ({ bookable: true, payProviders: undefined as HostProvider[] | undefined });
+  const providers = await hostProviders([...new Set(needs.map((l) => l.hostId))]);
+  return (l: Listing) => {
+    if (!needs.includes(l)) return { bookable: true, payProviders: undefined };
+    const p = providers.get(l.hostId) ?? [];
+    return { bookable: p.length > 0, payProviders: p };
+  };
 }
 
 export async function publicListings(db: Db, listings: Listing[], viewer?: User) {
@@ -113,7 +117,7 @@ export async function publicListings(db: Db, listings: Listing[], viewer?: User)
     // Caução: pré-autorização no cartão quando o processador permite; senão, garantida por avalista
     const depositHold = l.securityDeposit > 0 ? supportsHold('card', gatewayFor(l.countryCode)) : undefined;
     // bookable=false: anfitrião ainda não conectou o Mercado Pago — aparece como "em breve", sem reserva
-    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, depositHold, bookable: canBook(l), ...ratings(l.id) };
+    return { ...rest, stateName: l.state ? geoState(l.countryCode, l.state)?.name : undefined, address: visible.has(l.id) ? address : undefined, depositHold, ...canBook(l), ...ratings(l.id) };
   });
 }
 
@@ -212,12 +216,12 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
     await repo.insertListing(tx, listing);
     if (pendingEmail) await tx.query('UPDATE listings SET pending_email = true WHERE id = $1', [listing.id]);
     // Boas-vindas ao anúncio + convite para o SpaceHour ADS (destaque pago, em breve)
-    const needsPayout = marketplaceEnabled() && MP_COUNTRIES.includes(listing.countryCode) && !(await connectedHostIds([user.id])).has(user.id);
+    const needsPayout = (payoutRequired(listing.countryCode) || (marketplaceEnabled() && MP_COUNTRIES.includes(listing.countryCode))) && !(await hostProviders([user.id])).get(user.id)?.length;
     await notify(tx, { userId: user.id }, 'listing_published', [
       pendingEmail
         ? `Seu anúncio "${listing.title}" foi salvo! Ele entra no ar assim que você confirmar seu e-mail: digite o código de 6 números que enviamos ou toque no link do e-mail de confirmação.`
         : `Seu anúncio "${listing.title}" foi publicado no SpaceHour! 🎉`,
-      needsPayout ? 'Falta um passo para começar a receber reservas: conecte sua conta Mercado Pago no Painel do anfitrião. O valor de cada reserva cai direto na sua conta.' : '',
+      needsPayout ? 'Falta um passo para começar a receber reservas: escolha onde receber no Painel do anfitrião (Asaas ou Mercado Pago). O valor de cada reserva cai direto na sua conta.' : '',
       `Você pode editar o anúncio quando quiser em Painel do anfitrião → Meus anúncios.`,
       'Quer mais reservas? Com o SpaceHour ADS seu espaço aparece em destaque nas buscas da sua cidade e da sua especialidade. Toque no botão abaixo para conhecer e ser avisado no lançamento.',
     ].filter(Boolean).join('\n\n'), `/anfitriao/ads?anuncio=${listing.id}`);

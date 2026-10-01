@@ -17,6 +17,7 @@ import { marketingRouter } from './routes/marketing.js';
 import { runJobs } from './jobs.js';
 import { one, pool } from './db.js';
 import { marketplaceEnabled } from './payments/mpAccounts.js';
+import { asaasEnabled } from './payments/asaas.js';
 import { hasDocumentKey } from './secure.js';
 
 export function createApp() {
@@ -47,6 +48,7 @@ export function createApp() {
       emailFrom: process.env.MAIL_FROM ? 'configurado' : 'padrão',
       emailLast24h: mail ? { sent: mail.sent24, failed: mail.failed24, pending: mail.pending, lastSentAt: mail.last_sent, lastError: mail.last_error?.slice(0, 160) ?? null } : null,
       mercadoPago: marketplaceEnabled(),
+      asaas: asaasEnabled() ? (process.env.ASAAS_ENV === 'sandbox' ? 'sandbox' : 'production') : false,
       appUrl: process.env.APP_URL ?? null,
       version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
       // Só os dados da própria conta logada: por que ela é (ou não é) admin

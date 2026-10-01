@@ -943,3 +943,83 @@ test('diagnóstico da configuração: sem segredos, mostra admins, e-mail e Merc
     delete process.env.ADMIN_EMAILS;
   }
 });
+
+test('Asaas: anfitrião cria a carteira; locatário escolhe onde pagar (Pix sem conta), split para o anfitrião e aviso confirma', async () => {
+  const A = await import('../src/payments/asaas.js');
+  process.env.ASAAS_API_KEY = 'PLATFORM_KEY'; process.env.ASAAS_ENV = 'sandbox';
+  process.env.LAUNCH_COUNTRIES = 'BR';
+  delete process.env.PAYMENTS_PROVIDER;
+  const calls: { method: string; path: string; key: string; body: Record<string, unknown> }[] = [];
+  A.setAsaasHttp((async (url: string | URL | Request, init?: RequestInit) => {
+    const path = String(url).replace('https://api-sandbox.asaas.com/v3', '');
+    const body = init?.body ? JSON.parse(String(init.body)) : {};
+    calls.push({ method: init?.method ?? 'GET', path, key: String((init?.headers as Record<string, string>).access_token), body });
+    if (path === '/accounts') return new Response(JSON.stringify({ id: 'acc_1', walletId: '0b6a5e2c-1111-4222-8333-944455556666', apiKey: 'SUBKEY' }), { status: 200 });
+    if (path.startsWith('/customers?')) return new Response(JSON.stringify({ data: [] }), { status: 200 });
+    if (path === '/customers') return new Response(JSON.stringify({ id: 'cus_1' }), { status: 200 });
+    if (path === '/payments') return new Response(JSON.stringify({ id: 'pay_asaas_1', invoiceUrl: 'https://sandbox.asaas.com/i/abc' }), { status: 200 });
+    if (path.startsWith('/webhooks')) return new Response(JSON.stringify({ data: [], id: 'wh1' }), { status: 200 });
+    return new Response('{}', { status: 404 });
+  }) as typeof fetch);
+  try {
+    const l = byTitle('Sala de advocacia');
+    const host = (await repo.getUser(pool, l.hostId))!;
+    const hostTok = signToken(host);
+    const listed = async () => ((await (await fetch(`${base}/listings`)).json()) as (Listing & { bookable: boolean; payProviders?: string[] })[]).find((x) => x.id === l.id)!;
+    assert.equal((await listed()).bookable, false, 'sem carteira: em breve');
+
+    // CPF inválido é recusado; com dados certos a subconta é criada na conta da plataforma
+    const form = { taxId: '111.111.111-11', birthDate: '1980-05-10', phone: '(44) 99999-0000', incomeValue: 5000, postalCode: '87013-230', address: 'Av. XV de Novembro', addressNumber: '255', province: 'Centro' };
+    const bad = await fetch(`${base}/me/asaas-account`, { method: 'POST', headers: { Authorization: `Bearer ${hostTok}`, 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    assert.equal(bad.status, 422);
+    const ok = await fetch(`${base}/me/asaas-account`, { method: 'POST', headers: { Authorization: `Bearer ${hostTok}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, taxId: '529.982.247-25' }) });
+    assert.equal(ok.status, 200, await ok.clone().text());
+    const acc = calls.find((c) => c.path === '/accounts')!;
+    assert.equal(acc.key, 'PLATFORM_KEY');
+    assert.equal(acc.body.cpfCnpj, '52998224725');
+    const stored = await one<{ api_key_enc: Buffer }>(pool, 'SELECT api_key_enc FROM asaas_accounts WHERE user_id = $1', [host.id]);
+    assert.ok(!stored!.api_key_enc.toString('latin1').includes('SUBKEY'), 'chave da subconta cifrada');
+    const st = await (await fetch(`${base}/me/payout-account`, { headers: { Authorization: `Bearer ${hostTok}` } })).json() as { anyConnected: boolean; asaas: { connected: boolean } };
+    assert.deepEqual([st.anyConnected, st.asaas.connected], [true, true]);
+    const now = await listed();
+    assert.deepEqual([now.bookable, now.payProviders], [true, ['asaas']]);
+
+    // reserva: sem CPF de quem paga não dá; com CPF vai para a fatura do Asaas com split percentual
+    const date = nextDateWith(l, 2);
+    const input = { listingId: l.id, occurrences: [{ date, start: '10:00', end: '11:00' }], guests: 1, purpose: 'Reunião', paymentMethod: 'pix', acceptRules: true, provider: 'asaas' };
+    await assert.rejects(B.createBooking({ ...guest, documentNumber: undefined }, input), /payer_tax_id_required/);
+    const b = await B.createBooking({ ...guest, documentNumber: undefined }, { ...input, payerTaxId: '529.982.247-25' });
+    assert.equal(b.status, 'pending_payment');
+    const pay = calls.filter((c) => c.path === '/payments').at(-1)!;
+    assert.equal(pay.body.billingType, 'PIX');
+    assert.equal(pay.body.value, b.price.total);
+    const split = (pay.body.split as { walletId: string; percentualValue: number }[])[0];
+    assert.equal(split.walletId, '0b6a5e2c-1111-4222-8333-944455556666');
+    assert.ok(split.percentualValue > 0 && split.percentualValue < 100);
+    assert.equal(calls.find((c) => c.path === '/customers')!.body.cpfCnpj, '52998224725');
+    const p = (await repo.getPayment(pool, b.paymentId))!;
+    assert.deepEqual([p.provider, p.checkoutUrl], ['asaas', 'https://sandbox.asaas.com/i/abc']);
+
+    // aviso do Asaas: token errado recusado; certo confirma a reserva (uma vez só)
+    const hook = (token: string) => fetch(`${base}/webhooks/asaas`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'asaas-access-token': token },
+      body: JSON.stringify({ id: 'evt_1', event: 'PAYMENT_RECEIVED', payment: { id: 'pay_asaas_1', status: 'RECEIVED', externalReference: p.id, value: p.amount } }),
+    });
+    assert.equal((await hook('errado')).status, 400);
+    assert.equal((await hook(A.asaasWebhookToken())).status, 200);
+    assert.equal((await hook(A.asaasWebhookToken())).status, 200);
+    const paid = (await repo.getPayment(pool, b.paymentId))!;
+    assert.equal(paid.status, 'captured');
+    assert.notEqual((await repo.getBooking(pool, b.id))!.status, 'pending_payment');
+
+    // equipe liga o aviso de pagamentos com um clique
+    const setup = await fetch(`${base}/admin/asaas/setup`, { method: 'POST', headers: { Authorization: `Bearer ${signToken(admin)}` } });
+    assert.equal(setup.status, 200);
+    const wh = calls.find((c) => c.path === '/webhooks' && c.method === 'POST')!;
+    assert.equal(wh.body.authToken, A.asaasWebhookToken());
+  } finally {
+    A.setAsaasHttp();
+    for (const k of ['ASAAS_API_KEY', 'ASAAS_ENV']) delete process.env[k];
+    process.env.LAUNCH_COUNTRIES = 'all';
+  }
+});
