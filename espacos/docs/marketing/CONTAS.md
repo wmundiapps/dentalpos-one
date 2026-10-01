@@ -10,6 +10,8 @@ Só identificação (sem senhas). Senhas e códigos ficam com o Robson, nunca ne
 - **Perfil de pagamento:** Instituto Ravel de Ensino Superior Ltda, CNPJ 03.162.275/0001-10, ID do perfil 7513-4815-5583 (pós-pago, cartão)
 - **Plano:** outubro R$ 900 (Maringá + Londrina, R$ 30/dia) e novembro R$ 2.600 (~R$ 85/dia; + Cascavel, Ponta Grossa, Curitiba)
 - **1ª campanha (Pesquisa):** anfitriões → `https://space-hour.com/anuncie`; lance Cliques com teto R$ 3; só Rede de Pesquisa; presença em Maringá e Londrina; português
+- **Google tag:** `AW-18488231124` (Vercel: `VITE_GOOGLE_TAG_ID`, tipo Config)
+- **Conversão "Cadastro SpaceHour" (Sign-up, primária):** `AW-18488231124/YrRvCPHMqo0dENSJ8O9E` (Vercel: `VITE_GOOGLE_ADS_SIGNUP_LABEL`, tipo Config); disparada quando o cadastro é concluído
 - **Link final dos anúncios:** sempre `https://space-hour.com/...` (o Google recusa link que redireciona para outro domínio)
 
 ## Contas do Google Ads que NÃO são do SpaceHour (não usar)
