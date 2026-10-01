@@ -34,6 +34,7 @@ const AccountDeletionPage = lazy(() => import('./pages/Profile').then((m) => ({ 
 const ConfirmEmail = lazy(() => import('./pages/ConfirmEmail'));
 const HostLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.HostLanding })));
 const ProLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.ProLanding })));
+const GeneralLanding = lazy(() => import('./pages/Landing').then((m) => ({ default: m.GeneralLanding })));
 const Admin = lazy(() => import('./pages/Misc').then((m) => ({ default: m.Admin })));
 const Diagnostics = lazy(() => import('./pages/Diagnostics'));
 
@@ -83,6 +84,7 @@ export default function App() {
             <Route path="/excluir-conta" element={<AccountDeletionPage />} />
             <Route path="/anuncie" element={<HostLanding />} />
             <Route path="/profissionais" element={<ProLanding />} />
+            <Route path="/conheca" element={<GeneralLanding />} />
             <Route path="/avalista/:token" element={<GuarantorPage />} />
             <Route path="/avaliar/:token" element={<ClientReviewPage />} />
             <Route path="/regras" element={<LegalPage />} />
