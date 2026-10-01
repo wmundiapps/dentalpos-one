@@ -67,7 +67,7 @@ export const COUNTRIES: CountryConfig[] = [
       { name: 'Florianópolis', tz: 'America/Sao_Paulo' }, { name: 'Manaus', tz: 'America/Manaus' },
     ],
     // boleto só para reservas com 3 dias de antecedência (o horário fica guardado 3 dias)
-    paymentMethods: ['pix', 'card', 'boleto', 'apple_pay', 'google_pay', 'mercado_pago'],
+    paymentMethods: ['pix', 'card', 'boleto', 'mercado_pago'],
     taxName: 'ISS', taxRate: 0.05,
     taxNote: 'ISS municipal (2% a 5%). Na transição da Reforma Tributária (LC 214/2025) observar CBS/IBS.',
     withdrawalDays: 7, minAge: 18,
