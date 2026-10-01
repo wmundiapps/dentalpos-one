@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS "TeamMember" (
   "showInAgenda"   BOOLEAN NOT NULL DEFAULT TRUE,
   "isActive"       BOOLEAN NOT NULL DEFAULT TRUE,
   "createdAt"      TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt"      TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "updatedAt"      TIMESTAMP(3) NOT NULL
 );
 CREATE INDEX IF NOT EXISTS "TeamMember_clinicId_idx" ON "TeamMember"("clinicId");
 CREATE INDEX IF NOT EXISTS "TeamMember_tenantId_idx" ON "TeamMember"("tenantId");
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS "LabNotification" (
   "sentAt"       TIMESTAMP(3),
   "errorMessage" TEXT,
   "createdAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "updatedAt"    TIMESTAMP(3) NOT NULL
 );
 CREATE INDEX IF NOT EXISTS "LabNotification_clinicId_workRef_idx" ON "LabNotification"("clinicId", "workRef");
 CREATE INDEX IF NOT EXISTS "LabNotification_status_scheduledFor_idx" ON "LabNotification"("status", "scheduledFor");
