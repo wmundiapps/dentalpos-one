@@ -171,3 +171,82 @@ export function ProLanding() {
     </div>
   );
 }
+
+// Landing geral (bio do Instagram/TikTok/YouTube, posts e anúncios): apresenta o SpaceHour e
+// separa os dois caminhos logo no topo — quem tem espaço e quem precisa de um.
+export function GeneralLanding() {
+  useTitle('SpaceHour | Consultórios e salas por hora');
+  const fee = `${Math.round(FEES.hostServiceFeeRate * 100)}%`;
+  return (
+    <div className="lp">
+      <section className="lp-hero">
+        <div className="container">
+          <p className="lp-kicker">Consultórios, salas e auditórios por hora · Maringá e região</p>
+          <h1>O espaço certo, na hora que você precisa.</h1>
+          <p className="lp-lead">O SpaceHour conecta quem tem um consultório ou sala com horários vagos a profissionais que precisam atender por algumas horas. Sem contrato, com pagamento online e registro profissional verificado.</p>
+          <div className="lp-paths">
+            <Link className="lp-path" to="/anuncie" onClick={() => track('Lead', { content_category: 'host' })}>
+              <span className="lp-path-kicker">Tenho um espaço</span>
+              <strong>Quero alugar meus horários vagos</strong>
+              <span>Anuncie grátis, sem mensalidade →</span>
+            </Link>
+            <Link className="lp-path" to="/profissionais" onClick={() => track('Lead', { content_category: 'pro' })}>
+              <span className="lp-path-kicker">Preciso de um espaço</span>
+              <strong>Quero atender num consultório pronto</strong>
+              <span>Pague só as horas que usar →</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+      <div className="container">
+        <section className="lp-section">
+          <h2>Espaços para quem atende com hora marcada</h2>
+          <div className="lp-chips">
+            {['Consultório odontológico', 'Consultório médico', 'Sala de psicologia', 'Fisioterapia', 'Estética', 'Nutrição', 'Sala de reunião', 'Sala de aula', 'Auditório'].map((c) => <span key={c}>{c}</span>)}
+          </div>
+        </section>
+        <section className="lp-section">
+          <div className="lp-two">
+            <div className="lp-card">
+              <h3>Para quem tem o espaço</h3>
+              <ol className="lp-mini-steps">
+                <li>Anuncie com fotos, equipamentos, horários livres e preço por hora.</li>
+                <li>Aprove cada pedido ou aceite reservas na hora.</li>
+                <li>Receba direto na sua conta Mercado Pago. Só {fee} por reserva, sem mensalidade.</li>
+              </ol>
+              <Cta to="/anfitriao/novo" audience="host">Anunciar meu espaço grátis</Cta>
+            </div>
+            <div className="lp-card">
+              <h3>Para quem precisa de um espaço</h3>
+              <ol className="lp-mini-steps">
+                <li>Escolha a sala pela cidade, pelo tipo e pelos equipamentos.</li>
+                <li>Reserve uma vez ou toda semana no mesmo horário.</li>
+                <li>Pague com Pix ou cartão e receba o endereço na confirmação.</li>
+              </ol>
+              <Cta to="/" audience="pro">Encontrar um espaço</Cta>
+            </div>
+          </div>
+        </section>
+        <Benefits items={[
+          ['🩺', 'Registro verificado', 'Quem aluga informa o registro no conselho (CRO, CRM, CRP e outros), conferido pela nossa equipe e pelo anfitrião.'],
+          ['💳', 'Pagamento seguro', 'Pix, cartão ou boleto pelo Mercado Pago. O valor completo aparece antes de confirmar.'],
+          ['⭐', 'Avaliações dos dois lados', 'Espaço e profissional se avaliam depois de cada reserva. Regras claras de cancelamento e mediação em caso de problema.'],
+        ]} />
+        <Faq items={[
+          ['Quanto custa usar o SpaceHour?', `Anunciar e se cadastrar é grátis. Quem tem o espaço paga ${fee} por reserva, mais a tarifa do Mercado Pago. Quem aluga paga o preço do anfitrião mais uma taxa de serviço de ${Math.round(FEES.guestServiceFeeRate * 100)}% e o ISS sobre essa taxa.`],
+          ['Preciso assinar contrato?', 'Não. Cada reserva segue os Termos de Uso e as regras do espaço, aceitos no momento da reserva.'],
+          ['Em quais cidades funciona?', 'Começamos por Maringá e região. Londrina e Curitiba vêm em seguida. Você já pode anunciar o seu espaço em qualquer cidade do Brasil.'],
+          ['Quem está por trás do SpaceHour?', 'O SpaceHour é operado pelo Instituto Ravel de Ensino Superior Ltda (CNPJ 03.162.275/0001-10), de Maringá/PR.'],
+        ]} />
+        <section className="lp-final">
+          <h2>Horário vago de um lado, profissional precisando do outro. O SpaceHour junta os dois.</h2>
+          <div className="lp-final-ctas">
+            <Cta to="/anfitriao/novo" audience="host">Anunciar meu espaço</Cta>
+            <Cta to="/" audience="pro">Encontrar um espaço</Cta>
+          </div>
+          <p className="lp-note">Dúvidas? Escreva para <a href="mailto:support@space-hour.com">support@space-hour.com</a></p>
+        </section>
+      </div>
+    </div>
+  );
+}
