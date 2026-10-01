@@ -59,6 +59,7 @@ import PlatformAdministration from "../pages/PlatformAdministration";
 import LeadDiscovery from "../pages/LeadDiscovery";
 import Integrations from "../pages/Integrations";
 import ImportPatients from "../pages/ImportPatients";
+import Team from "../pages/Team";
 import Homologation from "../pages/Homologation";
 
 import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
@@ -278,6 +279,7 @@ export default function AppRoutes() {
       <Route path="/revah-leads" element={<LeadDiscovery />} />
       <Route path="/integracoes" element={<Integrations />} />
       <Route path="/importar-pacientes" element={<ImportPatients />} />
+      <Route path="/equipe" element={<Team />} />
       <Route path="/homologacao" element={<WmundiStaffOnly><Homologation /></WmundiStaffOnly>} />
 
       <Route

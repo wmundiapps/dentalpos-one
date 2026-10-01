@@ -48,6 +48,7 @@ export interface BackendAppointment {
   procedure: string;
   nextProcedure?: string | null;
   room?: string | null;
+  assistantId?: string | null;
   scheduledAt: string;
   durationMinutes: number;
   status: string;
@@ -131,6 +132,7 @@ export async function createBackendAppointment(input: {
   procedure: string;
   nextProcedure?: string;
   room?: string;
+  assistantId?: string;
   scheduledAt: string;
   durationMinutes?: number;
   reminderChannel?: ReminderChannel;

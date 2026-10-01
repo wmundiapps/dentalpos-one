@@ -249,6 +249,11 @@ export async function store(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Não é permitido criar agendamento em data ou horário retroativo.' })
     }
 
+    const assistantId = req.body.assistantId ? String(req.body.assistantId) : null
+    if (assistantId && !(await isValidAssistant(req.user.clinicId, req.user.tenantId, assistantId))) {
+      return res.status(404).json({ error: 'Auxiliar não pertence à clínica atual.' })
+    }
+
     const withinJourney = await fitsWorkSchedule(
       req.user.clinicId,
       req.user.tenantId,
@@ -321,6 +326,7 @@ export async function store(req: AuthRequest, res: Response) {
           status: 'SCHEDULED',
           confirmation: 'PENDING',
           confirmChannel: normalizedReminderChannel,
+          assistantId,
           budgetId: budgetId ? String(budgetId) : null
         }
       })
@@ -399,6 +405,13 @@ export async function update(req: AuthRequest, res: Response) {
     const changedSchedule = newScheduledAt.getTime() !== existing.scheduledAt.getTime()
     const changedDuration = newDurationMinutes !== existing.durationMinutes
     const changedStatus = newStatus !== existing.status
+    let newAssistantId = existing.assistantId
+    if (req.body.assistantId !== undefined) {
+      newAssistantId = req.body.assistantId ? String(req.body.assistantId) : null
+      if (newAssistantId && newAssistantId !== existing.assistantId && !(await isValidAssistant(req.user.clinicId, req.user.tenantId, newAssistantId))) {
+        return res.status(404).json({ error: 'Auxiliar não pertence à clínica atual.' })
+      }
+    }
     if ((changedSchedule || changedDuration || changedStatus) && !String(req.body.reason || '').trim()) {
       return res.status(400).json({ error: 'Informe o motivo da remarcação, cancelamento, falta ou alteração.' })
     }
@@ -482,6 +495,7 @@ export async function update(req: AuthRequest, res: Response) {
           procedure: req.body.procedure !== undefined ? String(req.body.procedure) : existing.procedure,
           nextProcedure: req.body.nextProcedure !== undefined ? String(req.body.nextProcedure || '') || null : existing.nextProcedure,
           room: req.body.room !== undefined ? String(req.body.room || '') || null : existing.room,
+          assistantId: newAssistantId,
           notes: req.body.notes !== undefined ? String(req.body.notes || '') || null : existing.notes
         }
       })
@@ -683,4 +697,11 @@ export async function flowAction(req: AuthRequest, res: Response) {
     console.error('Erro na ação do painel de atendimentos:', error)
     return res.status(500).json({ error: 'Erro ao atualizar o atendimento.' })
   }
+}
+
+
+// Auxiliar (ASB/TSB) cadastrado na Equipe da clínica.
+async function isValidAssistant(clinicId: string, tenantId: string, id: string) {
+  const member = await prisma.teamMember.findFirst({ where: { id, clinicId, tenantId, isActive: true, role: { in: ['ASB', 'TSB'] } }, select: { id: true } })
+  return Boolean(member)
 }

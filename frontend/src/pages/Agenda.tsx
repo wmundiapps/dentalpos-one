@@ -48,6 +48,7 @@ import { createBackendPatient, loadBackendPatients, type BackendPatient } from "
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadFinancialEntries } from "../services/FinancialApi";
 import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
+import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import {
   loadAgendaBlocks,
@@ -318,6 +319,8 @@ export default function Agenda() {
     onDay: true,
   });
   const [form, setForm] = useState<AppointmentForm>(() => initialForm(date));
+  const [assistants, setAssistants] = useState<TeamMember[]>([]);
+  const [assistantId, setAssistantId] = useState("");
   const [patientMode, setPatientMode] = useState<PatientMode>("registered");
   const [patientChoice, setPatientChoice] = useState<PatientChoice>(null);
   const [backendPatients, setBackendPatients] = useState<BackendPatient[]>([]);
@@ -415,6 +418,7 @@ export default function Agenda() {
   }, []);
   useEffect(() => {
     loadBackendDoctors().then(setBackendDoctors).catch(() => setBackendDoctors([]));
+    loadTeamMembers().then((rows) => setAssistants(rows.filter((m) => (m.role === "ASB" || m.role === "TSB") && m.showInAgenda))).catch(() => setAssistants([]));
   }, []);
 
   const refreshAgendaConfiguration = async () => {
@@ -804,6 +808,7 @@ export default function Agenda() {
         procedure: form.procedure,
         nextProcedure: form.nextProcedure || undefined,
         room: form.room || undefined,
+        assistantId: assistantId || undefined,
         scheduledAt: scheduledAt.toISOString(),
         durationMinutes: Number(form.durationMinutes || 30),
         reminderChannel: backendChannel(channel),
@@ -825,6 +830,7 @@ export default function Agenda() {
       source: "Interno",
       reminders: reminderSelection,
     });
+    setAssistantId("");
     setOpen(false);
     setItems(getAppointments());
   };
@@ -1161,6 +1167,12 @@ export default function Agenda() {
             })}
           </TextField>
           <TextField label="Sala" value={form.room} onChange={(event) => setForm({ ...form, room: event.target.value })} />
+          {assistants.length > 0 && (
+            <TextField select label="Auxiliar (opcional)" value={assistantId} onChange={(event) => setAssistantId(event.target.value)}>
+              <MenuItem value="">Nenhum</MenuItem>
+              {assistants.map((m) => <MenuItem key={m.id} value={m.id}>{`${m.fullName} (${m.role})`}</MenuItem>)}
+            </TextField>
+          )}
           <TextField
             select
             label="Categoria"

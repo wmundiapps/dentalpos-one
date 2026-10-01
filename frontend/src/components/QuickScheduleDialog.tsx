@@ -18,6 +18,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import ProcedurePicker from "./ProcedurePicker";
 import DurationSelect from "./DurationSelect";
+import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
 import PatientSearchField, { formatPhoneBR, isValidPhoneBR, onlyDigits, type PatientChoice } from "./PatientSearchField";
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import {
@@ -78,6 +79,8 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
   const [procedure, setProcedure] = useState(DEFAULT_PROCEDURE);
   const [duration, setDuration] = useState(30);
   const [doctorId, setDoctorId] = useState("");
+  const [assistants, setAssistants] = useState<TeamMember[]>([]);
+  const [assistantId, setAssistantId] = useState("");
   const [dateISO, setDateISO] = useState(isoDay(new Date()));
   const [time, setTime] = useState("");
   const [slots, setSlots] = useState<string[]>([]);
@@ -107,6 +110,8 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
       })
       .catch(() => setDoctors([]));
     loadRecurringBreaks().then(setBreaks).catch(() => setBreaks([]));
+    setAssistantId("");
+    loadTeamMembers().then((rows) => setAssistants(rows.filter((m) => (m.role === "ASB" || m.role === "TSB") && m.showInAgenda))).catch(() => setAssistants([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -176,6 +181,7 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
         nextProcedure: "Definir após atendimento",
         scheduledAt: scheduledAt.toISOString(),
         durationMinutes: duration,
+        assistantId: assistantId || undefined,
         reminderChannel: "WHATSAPP",
         reminders,
       });
@@ -221,6 +227,12 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
                   <MenuItem key={doctor.id} value={doctor.id}>{doctorLabel(doctor)}</MenuItem>
                 ))}
               </TextField>
+              {assistants.length > 0 && (
+                <TextField select label="Auxiliar (opcional)" value={assistantId} onChange={(e) => setAssistantId(e.target.value)}>
+                  <MenuItem value="">Nenhum</MenuItem>
+                  {assistants.map((m) => <MenuItem key={m.id} value={m.id}>{`${m.fullName} (${m.role})`}</MenuItem>)}
+                </TextField>
+              )}
               <TextField type="date" label="Data" value={dateISO} onChange={(e) => setDateISO(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }} />
               <TextField select label="Horário" value={slots.includes(time) ? time : ""} onChange={(e) => setTime(e.target.value)}

@@ -336,6 +336,8 @@ model Appointment {
   confirmation   String?
   confirmChannel String?
 
+  assistantId String?
+
   budgetId String?
   budget   Budget? @relation("AppointmentBudget", fields: [budgetId], references: [id], onDelete: SetNull)
 
@@ -2471,5 +2473,25 @@ model RecurringBill {
   entries             FinancialEntry[]
 
   @@index([clinicId, isActive])
+  @@index([tenantId])
+}
+
+model TeamMember {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  role           String
+  fullName       String
+  phone          String?
+  email          String?
+  registryNumber String?
+  companyName    String?
+  notes          String?
+  showInAgenda   Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([clinicId])
   @@index([tenantId])
 }

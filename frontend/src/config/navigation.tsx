@@ -75,6 +75,7 @@ export const navigationGroups:NavigationGroup[] = [
     items:alphabetical([
       item("Agenda","/agenda",<EventIcon/>),
       item("Agendamento online","/agendamento-online",<EventIcon/>),
+      item("Equipe","/equipe",<GroupsIcon/>),
       item("Avaliação do Atendimento","/avaliacoes-atendimento",<RateReviewIcon/>),
       item("Painel de Atendimentos","/painel-atendimentos",<GroupsIcon/>),
       item("Pacientes","/pacientes",<PeopleAltIcon/>),
@@ -89,6 +90,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Documentos Clínicos","/documentos-clinicos",<DescriptionIcon/>),
       item("Orçamentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
       item("Laboratório","/laboratorio",<BiotechIcon/>),
+      item("Equipe","/equipe",<GroupsIcon/>),
       item("DentalPos AI","/ceo-ia",<AutoAwesomeIcon/>),
       item("Assistente de IA","/assistente-ia",<AutoAwesomeIcon/>),
       // DPD oculto do menu em 20/09 por decisao do Robson. Rota e dados preservados.

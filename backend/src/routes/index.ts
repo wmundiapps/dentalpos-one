@@ -9,6 +9,7 @@ import * as clinicController from '../controllers/clinicController'
 import * as doctorController from '../controllers/doctorController'
 import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
+import * as teamController from '../controllers/teamController'
 import * as pendingAlertController from '../controllers/pendingAlertController'
 import * as publicBookingController from '../controllers/publicBookingController'
 import * as scheduleController from '../controllers/scheduleController'
@@ -118,6 +119,10 @@ router.get('/permissions', requirePermission('users.manage'), accessController.c
 router.get('/access-profiles', requirePermission('users.view'), accessController.profiles)
 router.post('/access-profiles/bootstrap', requirePermission('users.manage'), accessController.bootstrapProfiles)
 router.get('/me/permissions', accessController.myPermissions)
+router.get('/team-members', requirePermission('agenda.view'), teamController.index)
+router.post('/team-members', requirePermission('agenda.edit'), teamController.store)
+router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.update)
+router.delete('/team-member/:id', requirePermission('agenda.edit'), teamController.remove)
 router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
 router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendingAlertController.updateSettings)
 router.post('/pending-alerts/unlock', requirePermission('settings.edit'), pendingAlertController.unlock)
