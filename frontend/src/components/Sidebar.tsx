@@ -150,6 +150,20 @@ export default function Sidebar(){
           </Tooltip>
         }
 
+        // Grupo com um único item (ex.: Laboratório) vira um botão direto, sem submenu.
+        if(group.items.length===1){
+          const only=group.items[0];
+          return <Box key={group.label} sx={{mb:.25}}>
+            <ListItemButton onClick={()=>handleItemClick(only.path)} selected={selected} sx={{
+              borderRadius:2,minHeight:39,color:selected?"#fff":"#CBD5E1",
+              "&.Mui-selected":{bgcolor:"#1976D2",color:"#fff"},"&:hover":{bgcolor:"#1E293B",color:"#fff"}
+            }}>
+              <ListItemIcon sx={{color:"inherit",minWidth:34}}>{group.icon}</ListItemIcon>
+              <ListItemText primary={<Typography component="span" sx={{fontWeight:selected?800:700,fontSize:13}}>{group.label}</Typography>}/>
+            </ListItemButton>
+          </Box>
+        }
+
         return <Box key={group.label} sx={{mb:.25}}>
           <ListItemButton onClick={()=>setOpenGroups(open?{}:{[group.label]:true})} sx={{
             borderRadius:2,minHeight:39,color:selected?"#fff":"#CBD5E1",

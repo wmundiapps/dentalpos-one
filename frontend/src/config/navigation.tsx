@@ -66,7 +66,7 @@ const tile = (icon: ReactNode, color: string): ReactNode => (
  * - cada funcionalidade aparece UMA vez no menu;
  * - Marketing/REVAH concentra CRM e relacionamento;
  * - Financeiro e Administrativo sao grupos separados (relatorios cruzados ficam em Gestao);
- * - Laboratorio e Design ficam so em Clinico;
+ * - Laboratorio e um botao proprio no menu (visivel, sem submenu); Design fica so em Clinico;
  * - Relatorios ficam so em Gestao.
  */
 export const navigationGroups:NavigationGroup[] = [
@@ -90,13 +90,19 @@ export const navigationGroups:NavigationGroup[] = [
       item("Prontuário","/prontuario",<FolderSharedIcon/>),
       item("Documentos Clínicos","/documentos-clinicos",<DescriptionIcon/>),
       item("Orçamentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
-      item("Laboratório","/laboratorio",<BiotechIcon/>),
       item("Equipe","/equipe",<GroupsIcon/>),
       item("DentalPos AI","/ceo-ia",<AutoAwesomeIcon/>),
       item("Assistente de IA","/assistente-ia",<AutoAwesomeIcon/>),
       // DPD oculto do menu em 20/09 por decisao do Robson. Rota e dados preservados.
             // item("DentalPos Design","/design",<DesignServicesIcon/>),
     ])
+  },
+  {
+    label:"Laboratório",
+    icon:tile(<BiotechIcon/>,"#8B5CF6"),
+    items:[
+      item("Laboratório","/laboratorio",<BiotechIcon/>),
+    ]
   },
   {
     label:"Marketing",

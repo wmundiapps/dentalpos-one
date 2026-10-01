@@ -9,6 +9,7 @@ import * as clinicController from '../controllers/clinicController'
 import * as doctorController from '../controllers/doctorController'
 import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
+import * as labOrderController from '../controllers/labOrderController'
 import * as labNotificationController from '../controllers/labNotificationController'
 import * as procedureDurationController from '../controllers/procedureDurationController'
 import * as teamController from '../controllers/teamController'
@@ -131,7 +132,8 @@ router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.
 router.delete('/team-member/:id', requirePermission('agenda.edit'), teamController.remove)
 router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
 router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendingAlertController.updateSettings)
-router.post('/pending-alerts/unlock', requirePermission('settings.edit'), pendingAlertController.unlock)
+router.post('/pending-alerts/unlock', requirePermission('dashboard.view'), pendingAlertController.unlock)
+router.post('/pending-alerts/unlock-user', requirePermission('settings.edit'), pendingAlertController.unlockUser)
 router.post('/users/:userId/access-profiles', requirePermission('users.manage'), accessController.assignProfile)
 router.delete('/users/:userId/access-profiles/:profileId', requirePermission('users.manage'), accessController.removeProfile)
 
@@ -224,6 +226,11 @@ router.delete('/clinical-files/:id', requirePermission('clinical.edit'), clinica
 // LABORATORY / DENTALPOS DESIGN
 // ======================
 
+router.get('/lab-orders', requirePermission('laboratory.view'), labOrderController.list)
+router.post('/lab-orders/upsert', requirePermission('laboratory.create'), labOrderController.upsert)
+router.post('/lab-orders/bulk', requirePermission('laboratory.create'), labOrderController.bulk)
+router.delete('/lab-orders/:localId', requirePermission('laboratory.edit'), labOrderController.remove)
+router.post('/lab-orders/:localId/restore', requirePermission('laboratory.edit'), labOrderController.restore)
 router.get('/lab-notifications', requirePermission('laboratory.view'), labNotificationController.list)
 router.post('/lab-notifications/schedule', requirePermission('laboratory.create'), labNotificationController.schedule)
 router.post('/lab-notifications/cancel', requirePermission('laboratory.edit'), labNotificationController.cancel)
