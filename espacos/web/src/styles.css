@@ -326,7 +326,16 @@ ul.errors { padding-inline-start: 18px; }
 .ads-benefits { list-style: none; padding: 0; display: grid; gap: 10px; margin: 18px 0 22px; font-size: 1.05rem; }
 .ads-benefits li { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; }
 
-.city-filter { margin-bottom: 6px; }
+/* Escolha da cidade: busca com lista que fecha ao escolher */
+.place-city { display: block; font-size: 0.85rem; font-weight: 600; margin: 6px 0; position: relative; }
+.place-city > input, .place-city > select, .city-combo, .city-chosen { margin-top: 4px; font-weight: 400; font-size: 0.95rem; }
+.city-combo { position: relative; }
+.city-list { position: absolute; z-index: 30; inset-inline: 0; top: calc(100% + 4px); max-height: 260px; overflow: auto; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+.city-list li { padding: 9px 10px; border-radius: 8px; cursor: pointer; }
+.city-list li.on, .city-list li:hover { background: var(--surface-2); }
+.city-list li.city-none { cursor: default; }
+.city-chosen { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 8px 7px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.city-chosen-name { font-weight: 600; }
 
 /* Consentimento de cookies de medição */
 .consent-banner { position: fixed; inset-inline: 16px; bottom: 16px; z-index: 60; max-width: 720px; margin: 0 auto; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -440,6 +449,13 @@ ul.errors { padding-inline-start: 18px; }
 /* Código de confirmação do e-mail */
 .verify-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
 .code-input { width: 8.5em; font-size: 1.2rem; letter-spacing: 0.3em; text-align: center; padding: 6px 8px; }
+.email-code { margin: 6px 0; }
+.email-code.center .email-code-row { justify-content: center; }
+.email-code-msg { margin: 8px 0 0; font-weight: 600; }
+.email-code-msg.ok { color: var(--ok); }
+.inline-msg { margin: 8px 0 0; font-weight: 600; }
+.inline-msg.ok { color: var(--ok); }
+.verify-banner .email-code { margin: 0; }
 
 /* Verificação de identidade */
 .id-step { display: flex; gap: 12px; align-items: flex-start; margin: 14px 0; }

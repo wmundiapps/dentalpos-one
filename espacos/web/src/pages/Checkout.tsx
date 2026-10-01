@@ -106,7 +106,7 @@ export default function Checkout() {
           </section>
 
           {licenseMissing && (
-            <div className="notice warn">🪪 {t('checkout.licenseMissing')} <Link to="/perfil">{t('nav.profile')}</Link></div>
+            <div className="notice warn">🪪 {t('checkout.licenseMissing')} <Link to={`/perfil?voltar=${encodeURIComponent(window.location.pathname + window.location.search)}`}>{t('nav.profile')}</Link></div>
           )}
           {licenseMissing && (
             <section className="section">
