@@ -22,6 +22,7 @@ import QuickScheduleDialog from "../components/QuickScheduleDialog";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
+import ExportMenu from "../components/ExportMenu";
 import {
   loadBackendPatients,
   createBackendPatient,
@@ -241,6 +242,17 @@ export default function Patients() {
         >
           Agendar paciente
         </Button>
+        <Box sx={{ order: 3, flexShrink: 0 }}>
+          <ExportMenu
+            disabled={!filtered.length}
+            build={() => ({
+              title: `Lista de pacientes${search.trim() ? ` (busca: ${search.trim()})` : ""}`,
+              fileBase: "pacientes",
+              headers: ["Nº", "Nome", "Telefone", "CPF", "E-mail", "Nascimento", "Cidade", "Situação"],
+              rows: filtered.map((p) => [p.recordNumber ?? "", p.fullName, p.phone, p.cpf || "", p.email || "", p.birthDate ? new Date(p.birthDate).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "", p.city || "", p.status || ""]),
+            })}
+          />
+        </Box>
         <TextField
           sx={{ order: 1 }}
           fullWidth

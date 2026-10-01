@@ -15,6 +15,7 @@ import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturi
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import PageHeader from "../components/PageHeader";
 import LabNotifyFields from "../components/LabNotifyFields";
+import ExportMenu from "../components/ExportMenu";
 import { cachedLabNotify, cancelLabNotifications, rememberLabNotify, scheduleLabNotifications, type LabNotifyChoice } from "../services/LabNotifyApi";
 import {
   createLaboratoryWork, getLaboratoryWorks, sendLaboratoryWorkToDesign,
@@ -85,6 +86,7 @@ export default function Laboratory(){
       {([["ativos","Trabalhos ativos",works.filter(w=>w.status!=="Entregue").length,<PrecisionManufacturingIcon/>],["design","No Design",works.filter(w=>w.designStatus&&w.designStatus!=="Não enviado").length,<ArchitectureIcon/>],["atrasados","Atrasados",delayedWorks,<AssignmentLateIcon/>],["risco","Em risco",riskWorks,<WarningAmberIcon/>],["entregues","Liberados/entregues",works.filter(w=>["Liberado","Entregue"].includes(w.status)).length,<LocalShippingIcon/>]] as Array<[typeof filtro,string,number,ReactNode]>).map(([chave,titulo,valor,icone])=><Summary key={titulo} title={titulo} value={String(valor)} icon={icone} ativo={filtro===chave} onClick={()=>setFiltro(filtro===chave?"":chave)}/>)}
     </Box>
     <TextField size="small" placeholder="Buscar paciente, trabalho, código, dentes, cor, dentista ou técnico..." value={search} onChange={e=>setSearch(e.target.value)} sx={{mb:2,minWidth:{xs:"100%",md:500}}}/>
+    <Box sx={{display:"inline-block",ml:1,mb:2,verticalAlign:"middle"}}><ExportMenu disabled={!visible.length} build={()=>({title:"Trabalhos de laboratório",fileBase:"laboratorio",headers:["Código","Paciente","Dentista","Trabalho","Dentes","Material","Técnico","Entrada","Prazo","Retorno do paciente","Status","Prioridade"],rows:visible.map(w=>[w.trackingCode,w.patientName,w.dentistName,w.workType,w.teeth||"",w.material,w.responsibleTechnician,formatDate(w.entryDateISO),formatDate(w.dueDateISO),formatDate(w.patientReturnDateISO),w.status,w.priority])})}/></Box>
     {filtro&&<Chip sx={{ml:1,mb:2}} color="primary" label={`Filtro: ${({ativos:"Trabalhos ativos",design:"No Design",atrasados:"Atrasados",risco:"Em risco",entregues:"Liberados/entregues"} as Record<string,string>)[filtro]} • ${visible.length}`} onDelete={()=>setFiltro("")}/>}
     <Paper elevation={0} sx={{borderRadius:3,border:"1px solid",borderColor:"divider",overflow:"hidden"}}>
       {visible.length===0&&<Typography sx={{p:3}} color="text.secondary">{filtro?"Nenhum trabalho neste filtro.":"Nenhum trabalho laboratorial cadastrado. Use “Novo trabalho” para começar."}</Typography>}

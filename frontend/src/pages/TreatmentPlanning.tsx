@@ -9,6 +9,7 @@ import { approveBudget, cancelBudget, createBudget, listBudgets, type BudgetRow 
 import { createClinicalDocument } from "../services/ClinicalDocumentService";
 import { readSessionUser } from "../services/DemoAccess";
 import { formatBRL, money, parseBRL } from "../utils/money";
+import ExportMenu from "../components/ExportMenu";
 import { buildBudgetPdf, downloadBlob, printPdf, sharePdf } from "../utils/budgetPdf";
 
 type BudgetExtra = BudgetRow & { entryAmount?: number; paymentMethod?: string; discountPercent?: number; validUntil?: string; optionsJson?: { treatmentItemIds?: unknown } | null };
@@ -240,6 +241,19 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
                 <Button variant="outlined" startIcon={<AddIcon />} disabled={busy} onClick={openItem}>Novo procedimento</Button>
                 <Button disabled={busy} onClick={() => void importFromOdontogram()}>Importar odontograma</Button>
                 <Button variant="contained" disabled={busy || !activeItems.length} onClick={() => setBudgetOpen(true)}>{"Gerar orçamento"}</Button>
+                <ExportMenu
+                  label="Baixar plano"
+                  disabled={!items.length}
+                  build={() => ({
+                    title: `Plano de tratamento - ${patient?.fullName || "Paciente"}`,
+                    fileBase: `plano-${(patient?.fullName || "paciente").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w]+/g, "-").toLowerCase()}`,
+                    headers: ["Procedimento", "Dente", "Região", "Fase", "Prioridade", "Profissional", "Situação", "Valor (R$)"],
+                    rows: items.map((i) => {
+                      const pd = (i.planningData || {}) as Planning;
+                      return [i.procedure, i.tooth || "", txt(pd.region), txt(pd.phase), PRIORITY[txt(pd.priority) || "NORMAL"] || txt(pd.priority), txt(pd.professionalName), ITEM_STATUS[i.status] || i.status, money(Number(pd.unitValue || 0))];
+                    }),
+                  })}
+                />
               </Box>
             </Box>
             <LinearProgress variant="determinate" value={progress} sx={{ mt: 1 }} />

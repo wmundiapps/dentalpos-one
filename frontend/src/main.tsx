@@ -7,6 +7,7 @@ import { AppThemeProvider } from "./contexts/AppThemeContext";
 import { repairLocalStorageText } from "./utils/textEncoding";
 
 import "./index.css";
+import "./print.css";
 
 repairLocalStorageText();
 

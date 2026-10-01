@@ -7,6 +7,7 @@ import EvaluationWidget from "./EvaluationWidget";
 import Footer from "./Footer";
 import Header from "./Header";
 import PendingAlertsBar from "./PendingAlertsBar";
+import PrintHeader from "./PrintHeader";
 import Sidebar from "./Sidebar";
 
 interface LayoutProps {
@@ -38,8 +39,8 @@ export default function Layout({
         }}
       >
         <Header />
-        <DemoBanner />
-        <PendingAlertsBar />
+        <Box className="no-print"><DemoBanner /></Box>
+        <Box className="no-print"><PendingAlertsBar /></Box>
 
         <Box
           component="main"
@@ -51,13 +52,14 @@ export default function Layout({
             },
           }}
         >
+          <PrintHeader />
           {children}
         </Box>
 
         <Footer />
       </Box>
 
-      <EvaluationWidget />
+      <Box className="no-print"><EvaluationWidget /></Box>
     </Box>
   );
 }

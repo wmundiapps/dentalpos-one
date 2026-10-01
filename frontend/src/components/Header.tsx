@@ -19,6 +19,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import LogoutIcon from "@mui/icons-material/Logout";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
+import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import FeedbackDialog from "./FeedbackDialog";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -204,6 +205,11 @@ export default function Header() {
 
         <Box sx={{ flexGrow: 1 }} />
 
+        <Tooltip title={"Imprimir esta tela (ou salvar como PDF)"}>
+          <IconButton onClick={() => window.print()}>
+            <PrintOutlinedIcon />
+          </IconButton>
+        </Tooltip>
         <Tooltip title={"Relatar problema ou sugestão"}>
           <IconButton onClick={() => setFeedbackOpen(true)} sx={{ color: "warning.main" }}>
             <FeedbackOutlinedIcon />

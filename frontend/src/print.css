@@ -1,0 +1,35 @@
+/* Impressão de qualquer tela do sistema (botão Imprimir no topo ou Ctrl+P) */
+.print-only { display: none !important; }
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+
+  html, body, #root { background: #fff !important; color: #000 !important; height: auto !important; overflow: visible !important; }
+  body { font-size: 12px !important; }
+
+  /* Esconde navegação, avisos, botões e janelas flutuantes */
+  aside, header.MuiAppBar-root, footer, .no-print,
+  .MuiDrawer-root, .MuiSnackbar-root, .MuiBackdrop-root, .MuiSpeedDial-root, .MuiFab-root,
+  main .MuiButton-root, main .MuiIconButton-root, main .MuiButtonBase-root.MuiTab-root,
+  main .MuiPagination-root, main .MuiTablePagination-root {
+    display: none !important;
+  }
+
+  .print-only { display: block !important; }
+
+  /* Conteúdo ocupa a folha inteira */
+  #root > div:not(.no-print), #root > div > div:not(.no-print) { display: block !important; min-height: 0 !important; background: #fff !important; background-image: none !important; }
+  main { padding: 0 !important; overflow: visible !important; }
+
+  /* Cartões sem sombra, sem quebrar no meio da folha */
+  .MuiPaper-root { box-shadow: none !important; background: #fff !important; color: #000 !important; border: 1px solid #cbd5e1 !important; break-inside: avoid; page-break-inside: avoid; }
+  .MuiTypography-root, .MuiTableCell-root, .MuiFormLabel-root, .MuiInputBase-root { color: #000 !important; }
+  .MuiChip-root { border: 1px solid #94a3b8 !important; background: #fff !important; color: #000 !important; }
+  .MuiAlert-root { background: #fff !important; color: #000 !important; border: 1px solid #94a3b8 !important; }
+  .MuiTableRow-root { break-inside: avoid; page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: #000 !important; text-decoration: none !important; }
+
+  /* Mantém cores de status importantes (barras de progresso, linhas coloridas) */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

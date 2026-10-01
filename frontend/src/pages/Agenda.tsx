@@ -25,6 +25,7 @@ import LinkIcon from "@mui/icons-material/Link";
 import TuneIcon from "@mui/icons-material/Tune";
 
 import PageHeader from "../components/PageHeader";
+import ExportMenu from "../components/ExportMenu";
 import AgendaCalendarBoard from "../components/AgendaCalendarBoard";
 import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
@@ -976,6 +977,20 @@ export default function Agenda() {
             />
             <Button variant="outlined" onClick={() => move(1)} aria-label="Próximo período" sx={{ minWidth: 44, fontSize: 24, lineHeight: 1 }}>›</Button>
             <Button variant="contained" onClick={() => setDate(today())}>Hoje</Button>
+            <ExportMenu
+              label="Baixar / imprimir agenda"
+              build={() => {
+                const inRange = items
+                  .filter((a) => range.includes(a.dateISO))
+                  .sort((a, b) => `${a.dateISO} ${a.time}`.localeCompare(`${b.dateISO} ${b.time}`));
+                return {
+                  title: `Agenda de ${range[0].split("-").reverse().join("/")}${range.length > 1 ? ` a ${range[range.length - 1].split("-").reverse().join("/")}` : ""}`,
+                  fileBase: "agenda",
+                  headers: ["Data", "Hora", "Paciente", "Telefone", "Profissional", "Procedimento", "Sala", "Situação"],
+                  rows: inRange.map((a) => [a.dateISO.split("-").reverse().join("/"), a.time, a.patientName, a.patientPhone || "", a.professionalName, a.procedure, a.room, a.status]),
+                };
+              }}
+            />
           </Box>
 
           <ToggleButtonGroup
