@@ -66,7 +66,8 @@ export const COUNTRIES: CountryConfig[] = [
       { name: 'Fortaleza', tz: 'America/Fortaleza' }, { name: 'Goiânia', tz: 'America/Sao_Paulo' },
       { name: 'Florianópolis', tz: 'America/Sao_Paulo' }, { name: 'Manaus', tz: 'America/Manaus' },
     ],
-    paymentMethods: ['pix', 'card', 'boleto', 'apple_pay', 'google_pay', 'mercado_pago'],
+    // sem boleto: compensa em até 3 dias úteis e o horário só fica guardado 30 min
+    paymentMethods: ['pix', 'card', 'apple_pay', 'google_pay', 'mercado_pago'],
     taxName: 'ISS', taxRate: 0.05,
     taxNote: 'ISS municipal (2% a 5%). Na transição da Reforma Tributária (LC 214/2025) observar CBS/IBS.',
     withdrawalDays: 7, minAge: 18,

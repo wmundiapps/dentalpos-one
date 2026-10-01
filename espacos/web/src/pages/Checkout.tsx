@@ -64,8 +64,8 @@ export default function Checkout() {
   const licenseMissing = listing.requiresLicense && !['approved', 'pending', 'needs_review'].includes(me.licenseStatus);
   const providers = listing.payProviders ?? [];
   const useAsaas = provider === 'asaas';
-  // No Asaas: Pix, cartão e boleto, sem o cliente precisar de conta
-  const methods = useAsaas ? country.paymentMethods.filter((m) => ['pix', 'card', 'boleto'].includes(m)) : country.paymentMethods;
+  // No Asaas: Pix e cartão, sem o cliente precisar de conta
+  const methods = useAsaas ? country.paymentMethods.filter((m) => ['pix', 'card'].includes(m)) : country.paymentMethods;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
