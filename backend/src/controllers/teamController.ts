@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
 
 const ROLES = ['ASB', 'TSB', 'LAB_PROTESE']
-const TEXT = ['phone', 'email', 'registryNumber', 'companyName', 'notes'] as const
+const TEXT = ['phone', 'email', 'registryNumber', 'companyName', 'telegramChatId', 'notes'] as const
 
 function ctx(req: AuthRequest) {
   if (!req.user) throw new Error('Usuário não autenticado')

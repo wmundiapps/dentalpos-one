@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma'
 import { decryptSecret } from './secretVault'
 import { dispatchRevah, type RevahChannel } from './revahProviderService'
+import { processDueLabNotifications } from './labNotificationService'
 
 const AUTOMATIC_CHANNELS = ['WHATSAPP', 'SMS', 'TELEGRAM'] as const
 let running = false
@@ -220,6 +221,10 @@ export async function processDueAppointmentReminders() {
 }
 
 export function startAppointmentReminderWorker() {
-  void processDueAppointmentReminders()
-  return setInterval(() => void processDueAppointmentReminders(), 60_000)
+  const tick = () => {
+    void processDueAppointmentReminders()
+    void processDueLabNotifications().catch((e) => console.error('Avisos do laboratório:', e))
+  }
+  tick()
+  return setInterval(tick, 60_000)
 }

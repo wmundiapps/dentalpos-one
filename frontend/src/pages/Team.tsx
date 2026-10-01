@@ -8,7 +8,7 @@ import { createTeamMember, loadTeamMembers, removeTeamMember, TEAM_ROLE_LABELS, 
 
 const TABS: Array<TeamRole | "DENTISTA"> = ["DENTISTA", "ASB", "TSB", "LAB_PROTESE"];
 const TAB_LABELS: Record<string, string> = { DENTISTA: "Dentistas", ASB: "ASB", TSB: "TSB", LAB_PROTESE: "Laboratório de prótese" };
-const EMPTY = { fullName: "", phone: "", email: "", registryNumber: "", companyName: "", notes: "", showInAgenda: true };
+const EMPTY = { fullName: "", phone: "", email: "", registryNumber: "", companyName: "", telegramChatId: "", notes: "", showInAgenda: true };
 
 export default function Team() {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ export default function Team() {
   const openNew = () => { setEditId(null); setForm(EMPTY); setError(""); setOpen(true); };
   const openEdit = (m: TeamMember) => {
     setEditId(m.id);
-    setForm({ fullName: m.fullName, phone: m.phone || "", email: m.email || "", registryNumber: m.registryNumber || "", companyName: m.companyName || "", notes: m.notes || "", showInAgenda: m.showInAgenda });
+    setForm({ fullName: m.fullName, phone: m.phone || "", email: m.email || "", registryNumber: m.registryNumber || "", companyName: m.companyName || "", telegramChatId: m.telegramChatId || "", notes: m.notes || "", showInAgenda: m.showInAgenda });
     setError("");
     setOpen(true);
   };
@@ -117,6 +117,7 @@ export default function Team() {
           <TextField required label={isLab ? "Nome do responsável / técnico" : "Nome completo"} value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
           {isLab && <TextField label="Nome do laboratório" value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} />}
           <TextField label={isLab ? "WhatsApp (com DDD) — recebe os avisos das ordens de serviço" : "Telefone / WhatsApp (com DDD)"} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          {isLab && <TextField label="Telegram (chat ID) — opcional" value={form.telegramChatId} onChange={(e) => setForm({ ...form, telegramChatId: e.target.value })} />}
           <TextField label="E-mail" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           {!isLab && <TextField label="Número do CRO / registro" value={form.registryNumber} onChange={(e) => setForm({ ...form, registryNumber: e.target.value })} />}
           <TextField multiline minRows={2} label="Observações" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />

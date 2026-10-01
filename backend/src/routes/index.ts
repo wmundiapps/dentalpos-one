@@ -9,6 +9,7 @@ import * as clinicController from '../controllers/clinicController'
 import * as doctorController from '../controllers/doctorController'
 import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
+import * as labNotificationController from '../controllers/labNotificationController'
 import * as teamController from '../controllers/teamController'
 import * as pendingAlertController from '../controllers/pendingAlertController'
 import * as publicBookingController from '../controllers/publicBookingController'
@@ -220,6 +221,9 @@ router.delete('/clinical-files/:id', requirePermission('clinical.edit'), clinica
 // LABORATORY / DENTALPOS DESIGN
 // ======================
 
+router.get('/lab-notifications', requirePermission('laboratory.view'), labNotificationController.list)
+router.post('/lab-notifications/schedule', requirePermission('laboratory.create'), labNotificationController.schedule)
+router.post('/lab-notifications/cancel', requirePermission('laboratory.edit'), labNotificationController.cancel)
 router.get('/laboratory-works', requirePermission('laboratory.view'), laboratoryController.index)
 router.post('/laboratory-works', requirePermission('laboratory.create'), laboratoryController.store)
 router.put('/laboratory-works/:id', requirePermission('laboratory.edit'), laboratoryController.update)

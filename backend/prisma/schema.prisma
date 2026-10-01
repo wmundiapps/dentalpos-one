@@ -2486,6 +2486,7 @@ model TeamMember {
   email          String?
   registryNumber String?
   companyName    String?
+  telegramChatId String?
   notes          String?
   showInAgenda   Boolean  @default(true)
   isActive       Boolean  @default(true)
@@ -2494,4 +2495,24 @@ model TeamMember {
 
   @@index([clinicId])
   @@index([tenantId])
+}
+
+model LabNotification {
+  id           String    @id @default(cuid())
+  clinicId     String
+  tenantId     String
+  workRef      String
+  labMemberId  String
+  type         String
+  channel      String
+  message      String
+  scheduledFor DateTime
+  status       String    @default("PENDING")
+  sentAt       DateTime?
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([clinicId, workRef])
+  @@index([status, scheduledFor])
 }

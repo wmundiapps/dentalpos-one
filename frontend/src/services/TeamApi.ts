@@ -16,6 +16,7 @@ export interface TeamMember {
   email?: string | null;
   registryNumber?: string | null;
   companyName?: string | null;
+  telegramChatId?: string | null;
   notes?: string | null;
   showInAgenda: boolean;
   isActive: boolean;
