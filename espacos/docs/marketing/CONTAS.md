@@ -6,8 +6,10 @@ Só identificação (sem senhas). Senhas e códigos ficam com o Robson, nunca ne
 - **Conta:** 693-640-6250
 - **Login:** robsonraveloliveira@gmail.com
 - **Endereço:** https://ads.google.com (entrar com o login acima e escolher a conta 693-640-6250)
-- **Oferta:** gastar R$ 3.500 em 60 dias para ganhar R$ 4.500 de crédito (confirmar na etapa de pagamento; só para novo anunciante)
-- **Plano:** R$ 900 no 1º mês (Maringá + Londrina, ~R$ 30/dia) e R$ 2.600 no 2º mês (+ Cascavel, Ponta Grossa, Curitiba)
+- **Oferta (confirmada em 01/10/2026):** gastar R$ 3.500 **até 30/11/2026** e ganhar R$ 4.500 em créditos (só para novo anunciante)
+- **Perfil de pagamento:** Instituto Ravel de Ensino Superior Ltda, CNPJ 03.162.275/0001-10, ID do perfil 7513-4815-5583 (pós-pago, cartão)
+- **Plano:** outubro R$ 900 (Maringá + Londrina, R$ 30/dia) e novembro R$ 2.600 (~R$ 85/dia; + Cascavel, Ponta Grossa, Curitiba)
+- **1ª campanha (Pesquisa):** anfitriões → `https://space-hour.com/anuncie`; lance Cliques com teto R$ 3; só Rede de Pesquisa; presença em Maringá e Londrina; português
 - **Link final dos anúncios:** sempre `https://space-hour.com/...` (o Google recusa link que redireciona para outro domínio)
 
 ## Contas do Google Ads que NÃO são do SpaceHour (não usar)
