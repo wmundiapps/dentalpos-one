@@ -24,8 +24,8 @@ body{font-family:P,'Noto Color Emoji',sans-serif;}
 .light .blob{background:#0e7c7b;opacity:.08}
 .top{display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:30px;position:relative}
 .logo{display:flex;align-items:center;gap:16px;font-weight:700;font-size:36px}
-.mark{flex:none;width:58px;height:58px;border-radius:15px;background:#fff;color:#0a5f5e;display:grid;place-items:center;font-weight:800;font-size:36px;line-height:1}
-.light .mark,.mark.inv{background:#0e7c7b;color:#fff}
+.mark{flex:none;width:58px;height:58px;border-radius:15px;background:#fff;color:#0e7c7b;--face:#fff;display:grid;place-items:center;line-height:1}
+.light .mark,.mark.inv{background:#0e7c7b;color:#fff;--face:#0e7c7b}
 .count{opacity:.75}
 .body{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative}
 .kicker{font-size:30px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.8;margin-bottom:22px}
@@ -88,7 +88,10 @@ p.sub{font-size:38px;line-height:1.35;margin-top:30px;opacity:.92;font-weight:40
 
 const ck = '<svg viewBox="0 0 24 24" width="38" height="38"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const xx = '<svg viewBox="0 0 24 24" width="34" height="34"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg>';
-const mark = (s, cls = '') => `<div class="mark ${cls}" style="width:${s}px;height:${s}px;border-radius:${Math.round(s * .26)}px;font-size:${Math.round(s * .62)}px">S</div>`;
+// Símbolo SpaceHour: pino de localização com relógio (docs/marca/simbolo.svg)
+// cores pelo CSS: pino = currentColor, mostrador = --face (fundo branco ou teal conforme o card)
+const pinClock = `<svg viewBox="0 0 100 100" style="width:100%;height:100%;display:block"><path d="M50 86 C50 86 25 60 25 43 A25 25 0 0 1 75 43 C75 60 50 86 50 86 Z" fill="currentColor"/><circle cx="50" cy="43" r="14" style="fill:var(--face)"/><path d="M50 43 V34 M50 43 L57 47" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" fill="none"/></svg>`;
+const mark = (s, cls = '') => `<div class="mark ${cls}" style="width:${s}px;height:${s}px;border-radius:${Math.round(s * .26)}px">${pinClock}</div>`;
 const logo = (s = 58, cls = '') => `<div class="logo" style="font-size:${Math.round(s * .62)}px;gap:${Math.round(s * .28)}px">${mark(s, cls)}SpaceHour</div>`;
 const top = (n, t) => `<div class="top">${logo()}<div class="count">${n ? `${n}/${t}` : ''}</div></div>`;
 const foot = (url, swipe) => `<div class="foot"><span>${url}</span>${swipe ? '<span class="swipe">arraste →</span>' : ''}</div>`;
@@ -104,7 +107,7 @@ const week = (legend = true, slotH = 64, labels = true) => `<div class="week">${
 const SPACES = ['🦷 Odontológico', '🧠 Psicologia', '💪 Fisioterapia', '🩺 Consultório médico', '✨ Estética', '🎓 Sala de aula', '🎤 Auditório'];
 const SIM = (big = '96px') => `<div class="money"><span class="tag">simulação</span><small style="margin-top:18px">R$ 60/h × 12 h por semana × 4 semanas</small><strong style="font-size:${big}">R$ 2.880<span style="font-size:.4em;font-weight:700">/mês</span></strong><em>Valor bruto de exemplo, antes da taxa de 5% e da tarifa do Mercado Pago. O resultado depende da procura e do preço que você definir.</em></div>`;
 
-const H = 'space-hour.com/anuncie', PRO = 'space-hour.com/profissionais', GER = 'space-hour.com/conheca';
+const H = 'spacehour.com.br/anuncie', PRO = 'spacehour.com.br/profissionais', GER = 'spacehour.com.br/conheca';
 const card = (cls, w, h, inner, style = '') => `<div class="c ${cls}" style="${style}">${blobs(w, h)}${inner}</div>`;
 
 // ---------- render ----------

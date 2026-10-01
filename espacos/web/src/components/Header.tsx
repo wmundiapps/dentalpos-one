@@ -34,7 +34,7 @@ export function Header() {
     <header className="header">
       <div className="container header-inner">
         <Link to="/" className="logo" aria-label="SpaceHour">
-          <span className="logo-mark">S</span><span className="logo-text">SpaceHour</span>
+          <span className="logo-mark" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M50 86 C50 86 25 60 25 43 A25 25 0 0 1 75 43 C75 60 50 86 50 86 Z" fill="currentColor" /><circle cx="50" cy="43" r="14" fill="var(--brand)" /><path d="M50 43 V34 M50 43 L57 47" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" fill="none" /></svg></span><span className="logo-text">SpaceHour</span>
         </Link>
         <button className="search-pill" onClick={() => setModal('place')}>
           <span>{place}</span>
