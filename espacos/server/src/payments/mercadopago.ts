@@ -64,7 +64,8 @@ export function mercadoPagoGateway(countryCode: string, accessToken: string, web
         statement_descriptor: 'SPACEHOUR',
         expires: true,
         expiration_date_to: new Date(Date.now() + 30 * 60000).toISOString(),
-        ...(p.method === 'pix' ? { payment_methods: { default_payment_method_id: 'pix' } } : {}),
+        // Boleto fica de fora: compensa em dias e o horário só fica guardado 30 min (o pagamento chegaria depois e seria devolvido)
+        payment_methods: { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }], ...(p.method === 'pix' ? { default_payment_method_id: 'pix' } : {}) },
       }, `pref-${p.id}`);
       return { checkoutRef: pref.id, checkoutUrl: sandbox ? pref.sandbox_init_point : pref.init_point };
     },
