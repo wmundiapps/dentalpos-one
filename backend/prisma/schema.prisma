@@ -2602,3 +2602,670 @@ model PaymentSplitLine {
   @@index([chargeId])
   @@index([tenantId])
 }
+
+// ==== EDUMASTER:BEGIN (gerado por scripts/merge-edu-schema.js - edite prisma/edu/*.prisma) ====
+
+// ---- edu/academico.prisma ----
+// ============================================================
+// EDUMASTER PRO — NÚCLEO ACADÊMICO
+// Extensão do schema.prisma existente em wmundiapps/dentalpos-one/backend
+// Pressupõe que já existam os models: Tenant (ou Institution), User, Role
+// Ajuste os nomes de relação (@relation) para bater com seu schema atual.
+// ============================================================
+
+// ---------- INSTITUIÇÃO / CAMPUS ----------
+
+model Campus {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  endereco      String?
+  cidade        String?
+  uf            String?
+  createdAt     DateTime @default(now())
+
+  turmas        ClassSection[]
+
+  @@index([tenantId])
+}
+
+// ---------- ESTRUTURA CURRICULAR ----------
+
+model AcademicProgram {
+  id              String   @id @default(uuid())
+  tenantId        String
+  nome            String        // ex: "Farmácia", "Odontologia"
+  modalidade      Modalidade
+  cargaHorariaTotal Int
+  createdAt       DateTime @default(now())
+
+  disciplinas     CurriculumDiscipline[]
+  matriculas      Enrollment[]
+
+  @@index([tenantId])
+}
+
+enum Modalidade {
+  EAD
+  PRESENCIAL
+  SEMIPRESENCIAL
+}
+
+model Discipline {
+  id              String   @id @default(uuid())
+  tenantId        String
+  nome            String
+  cargaHoraria    Int
+  ementa          String?
+
+  curriculos      CurriculumDiscipline[]
+  turmas          ClassSection[]
+  conteudos       ContentItem[]
+  avaliacoes      Assessment[]
+
+  @@index([tenantId])
+}
+
+model CurriculumDiscipline {
+  id                String   @id @default(uuid())
+  programId         String
+  disciplineId      String
+  periodo           Int              // 1º, 2º... período do curso
+  obrigatoria       Boolean  @default(true)
+
+  program           AcademicProgram @relation(fields: [programId], references: [id])
+  discipline        Discipline      @relation(fields: [disciplineId], references: [id])
+
+  @@unique([programId, disciplineId])
+}
+
+// ---------- PERÍODO LETIVO ----------
+
+model AcademicTerm {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String        // ex: "2026/2"
+  dataInicio    DateTime
+  dataFim       DateTime
+
+  turmas        ClassSection[]
+  matriculas    Enrollment[]
+
+  @@index([tenantId])
+}
+
+// ---------- ALUNO E MATRÍCULA ----------
+
+model Student {
+  id              String   @id @default(uuid())
+  tenantId        String
+  userId          String   @unique     // FK para o model User já existente (login)
+  ra              String   @unique     // registro acadêmico
+  nomeCompleto    String
+  cpf             String?
+  dataNascimento  DateTime?
+  status          StudentStatus @default(ATIVO)
+  createdAt       DateTime @default(now())
+
+  matriculas      Enrollment[]
+  frequencias     Attendance[]
+  tentativas      AssessmentAttempt[]
+  certificados    Certificate[]
+  agendamentos    ClassSessionBooking[]
+
+  @@index([tenantId])
+}
+
+enum StudentStatus {
+  ATIVO
+  TRANCADO
+  CANCELADO
+  DESISTENTE
+  CONCLUIDO
+  FORMADO
+}
+
+model Enrollment {
+  id              String   @id @default(uuid())
+  studentId       String
+  programId       String
+  termId          String
+  status          EnrollmentStatus @default(ATIVA)
+  dataMatricula   DateTime @default(now())
+
+  student         Student         @relation(fields: [studentId], references: [id])
+  program         AcademicProgram @relation(fields: [programId], references: [id])
+  term            AcademicTerm    @relation(fields: [termId], references: [id])
+  turmas          ClassSectionEnrollment[]
+
+  @@index([studentId])
+  @@index([programId])
+}
+
+enum EnrollmentStatus {
+  ATIVA
+  TRANCADA
+  CANCELADA
+  CONCLUIDA
+}
+
+// ---------- TURMA E ALOCAÇÃO DE AULAS ----------
+
+model ClassSection {
+  id              String   @id @default(uuid())
+  tenantId        String
+  campusId        String?
+  disciplineId    String
+  termId          String
+  professorUserId String        // FK para User (professor)
+  nome            String        // ex: "FARM2025 S4 M16"
+  vagas           Int?
+  createdAt       DateTime @default(now())
+
+  campus          Campus?       @relation(fields: [campusId], references: [id])
+  discipline      Discipline    @relation(fields: [disciplineId], references: [id])
+  term            AcademicTerm  @relation(fields: [termId], references: [id])
+
+  matriculados    ClassSectionEnrollment[]
+  sessoes         ClassSession[]
+  avaliacoes      Assessment[]
+
+  @@index([tenantId])
+}
+
+model ClassSectionEnrollment {
+  id              String   @id @default(uuid())
+  enrollmentId    String
+  classSectionId  String
+
+  enrollment      Enrollment    @relation(fields: [enrollmentId], references: [id])
+  classSection    ClassSection  @relation(fields: [classSectionId], references: [id])
+
+  @@unique([enrollmentId, classSectionId])
+}
+
+// Uma "aula" concreta — o aluno agenda dia/horário, teórico ou prático
+model ClassSession {
+  id              String       @id @default(uuid())
+  classSectionId  String
+  tipo            SessionType
+  titulo          String
+  dataHoraInicio  DateTime
+  dataHoraFim     DateTime
+  local           String?          // sala física, laboratório, ou "online"
+  vagasPratica    Int?             // limite de alunos por horário, quando prática
+  status          SessionStatus @default(AGENDADA)
+
+  classSection    ClassSection  @relation(fields: [classSectionId], references: [id])
+  agendamentos    ClassSessionBooking[]
+  frequencias     Attendance[]
+
+  @@index([classSectionId])
+  @@index([dataHoraInicio])
+}
+
+enum SessionType {
+  TEORICA
+  PRATICA
+}
+
+enum SessionStatus {
+  AGENDADA
+  REALIZADA
+  CANCELADA
+}
+
+// Aluno escolhe/confirma um horário de aula prática ou teórica
+model ClassSessionBooking {
+  id              String   @id @default(uuid())
+  classSessionId  String
+  studentId       String
+  status          BookingStatus @default(CONFIRMADO)
+  createdAt       DateTime @default(now())
+
+  classSession    ClassSession  @relation(fields: [classSessionId], references: [id])
+  student         Student       @relation(fields: [studentId], references: [id])
+
+  @@unique([classSessionId, studentId])
+}
+
+enum BookingStatus {
+  CONFIRMADO
+  CANCELADO
+  PRESENTE
+  FALTOU
+}
+
+model Attendance {
+  id              String   @id @default(uuid())
+  classSessionId  String
+  studentId       String
+  presente        Boolean
+  justificativa   String?
+  registradoEm    DateTime @default(now())
+
+  classSession    ClassSession  @relation(fields: [classSessionId], references: [id])
+  student         Student       @relation(fields: [studentId], references: [id])
+
+  @@unique([classSessionId, studentId])
+}
+
+// ---------- CONTEÚDO ----------
+
+model ContentItem {
+  id              String   @id @default(uuid())
+  disciplineId    String
+  tipo            ContentType
+  titulo          String
+  urlArquivo      String?       // PDF/vídeo hospedado
+  resumoTexto     String?       // resumo de aula
+  createdAt       DateTime @default(now())
+
+  discipline      Discipline @relation(fields: [disciplineId], references: [id])
+  flashcards      Flashcard[]
+
+  @@index([disciplineId])
+}
+
+enum ContentType {
+  PDF
+  VIDEO
+  RESUMO
+  MATERIAL_COMPLEMENTAR
+  BIBLIOTECA
+}
+
+model Flashcard {
+  id              String   @id @default(uuid())
+  contentItemId   String
+  pergunta        String
+  resposta        String
+  // campos de repetição espaçada (SM-2), reaproveitando lógica do AllCollege
+  intervalo        Int      @default(1)
+  fatorFacilidade  Float    @default(2.5)
+  proximaRevisao   DateTime @default(now())
+
+  contentItem     ContentItem @relation(fields: [contentItemId], references: [id])
+}
+
+// ---------- AVALIAÇÃO / PROVAS COM IA ----------
+
+model Assessment {
+  id              String   @id @default(uuid())
+  disciplineId    String
+  classSectionId  String?
+  titulo          String
+  tipo            AssessmentType
+  dataAbertura    DateTime?
+  dataFechamento  DateTime?
+  correcaoPorIA   Boolean  @default(false)
+  focoEnade       Boolean  @default(false)
+
+  discipline      Discipline    @relation(fields: [disciplineId], references: [id])
+  classSection    ClassSection? @relation(fields: [classSectionId], references: [id])
+  questoes        Question[]
+  tentativas      AssessmentAttempt[]
+
+  @@index([disciplineId])
+}
+
+enum AssessmentType {
+  PROVA
+  ATIVIDADE
+  AUTOAVALIACAO
+  SIMULADO_ENADE
+  SIMULADO_RESIDENCIA
+}
+
+model Question {
+  id              String   @id @default(uuid())
+  assessmentId    String
+  enunciado       String
+  tipo            QuestionType
+  alternativas    Json?         // para múltipla escolha
+  respostaCorreta String?
+  peso            Float    @default(1)
+
+  assessment      Assessment @relation(fields: [assessmentId], references: [id])
+  respostas       AnswerSubmission[]
+}
+
+enum QuestionType {
+  MULTIPLA_ESCOLHA
+  DISSERTATIVA
+  VERDADEIRO_FALSO
+}
+
+model AssessmentAttempt {
+  id              String   @id @default(uuid())
+  assessmentId    String
+  studentId       String
+  iniciadoEm      DateTime @default(now())
+  finalizadoEm    DateTime?
+  notaFinal       Float?
+  corrigidoPorIA  Boolean  @default(false)
+
+  assessment      Assessment @relation(fields: [assessmentId], references: [id])
+  student         Student    @relation(fields: [studentId], references: [id])
+  respostas       AnswerSubmission[]
+
+  @@index([studentId])
+}
+
+model AnswerSubmission {
+  id              String   @id @default(uuid())
+  attemptId       String
+  questionId      String
+  respostaTexto   String?
+  notaObtida      Float?
+  feedbackIA      String?       // justificativa gerada pela IA na correção dissertativa
+
+  attempt         AssessmentAttempt @relation(fields: [attemptId], references: [id])
+  question        Question          @relation(fields: [questionId], references: [id])
+
+  @@unique([attemptId, questionId])
+}
+
+// ---------- CERTIFICADOS ----------
+
+model Certificate {
+  id              String   @id @default(uuid())
+  studentId       String
+  tipo            CertificateType
+  descricao       String
+  emitidoEm       DateTime @default(now())
+  urlPdf          String?
+
+  student         Student @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+}
+
+enum CertificateType {
+  CONCLUSAO_CURSO
+  NIVELAMENTO
+  EXTENSAO
+  PARTICIPACAO
+}
+
+// ---- edu/financeiro.prisma ----
+// ============================================================
+// EDUMASTER PRO — FINANCEIRO / CONTÁBIL / FISCAL
+// Extensão de schema-academico.prisma no mesmo schema.prisma.
+// Referencia Student (do Núcleo Acadêmico) via studentId.
+// Reaproveita o gateway Asaas/Stripe que já existe no DentalPos One:
+// os campos gatewayId/gatewayStatus abaixo são para plugar nesse
+// gateway já implementado, não para reimplementá-lo.
+// ============================================================
+
+model EduCostCenter {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String        // ex: "Coordenação de Farmácia", "Manutenção"
+  descricao   String?
+
+  contasPagar AccountPayable[]
+
+  @@index([tenantId])
+}
+
+model ChartOfAccount {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String        // ex: "1.1.1", "3.1.1", "4.1.1"
+  nome          String        // ex: "Caixa", "Receita de Mensalidades"
+  tipo          AccountType
+
+  lancamentosDebito   AccountingEntry[] @relation("Debito")
+  lancamentosCredito  AccountingEntry[] @relation("Credito")
+
+  @@unique([tenantId, codigo])
+}
+
+enum AccountType {
+  ATIVO
+  PASSIVO
+  PATRIMONIO_LIQUIDO
+  RECEITA
+  DESPESA
+}
+
+model AccountPayable {
+  id              String   @id @default(uuid())
+  tenantId        String
+  costCenterId    String?
+  descricao       String
+  fornecedor      String?
+  categoria       String?       // ex: "aluguel", "folha", "manutenção"
+  valor           Float
+  dataVencimento  DateTime
+  dataPagamento   DateTime?
+  status          FinancialStatus @default(PENDENTE)
+  createdAt       DateTime @default(now())
+
+  costCenter      EduCostCenter? @relation(fields: [costCenterId], references: [id])
+  transacoes      PaymentTransaction[]
+
+  @@index([tenantId, status])
+}
+
+model AccountReceivable {
+  id              String   @id @default(uuid())
+  tenantId        String
+  studentId       String        // referencia Student do Núcleo Acadêmico
+  enrollmentId    String?       // referencia Enrollment do Núcleo Acadêmico
+  descricao       String        // ex: "Mensalidade 05/12 — Farmácia"
+  numeroParcela   Int?
+  valor           Float
+  dataVencimento  DateTime
+  dataPagamento   DateTime?
+  status          FinancialStatus @default(PENDENTE)
+  gatewayId       String?       // id da cobrança no Asaas/Stripe já existente
+  gatewayStatus   String?
+  createdAt       DateTime @default(now())
+
+  transacoes      PaymentTransaction[]
+  notasFiscais    FiscalInvoice[]
+
+  @@index([tenantId, status])
+  @@index([studentId])
+}
+
+enum FinancialStatus {
+  PENDENTE
+  PAGO
+  ATRASADO
+  CANCELADO
+}
+
+model PaymentTransaction {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  tipo                  TransactionType
+  valor                 Float
+  dataTransacao         DateTime @default(now())
+  formaPagamento        FormaPagamento
+  accountPayableId      String?
+  accountReceivableId   String?
+
+  accountPayable        AccountPayable?    @relation(fields: [accountPayableId], references: [id])
+  accountReceivable     AccountReceivable? @relation(fields: [accountReceivableId], references: [id])
+  lancamentoContabil    AccountingEntry?
+
+  @@index([tenantId])
+}
+
+enum TransactionType {
+  RECEITA
+  DESPESA
+}
+
+enum FormaPagamento {
+  PIX
+  BOLETO
+  CARTAO
+  DINHEIRO
+  TRANSFERENCIA
+}
+
+model AccountingEntry {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  data                  DateTime @default(now())
+  contaDebitoId         String
+  contaCreditoId        String
+  valor                 Float
+  historico             String
+  paymentTransactionId  String?  @unique
+
+  contaDebito           ChartOfAccount     @relation("Debito", fields: [contaDebitoId], references: [id])
+  contaCredito          ChartOfAccount     @relation("Credito", fields: [contaCreditoId], references: [id])
+  paymentTransaction    PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id])
+
+  @@index([tenantId, data])
+}
+
+model FiscalInvoice {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  accountReceivableId   String?
+  tipo                  FiscalInvoiceType
+  numero                String?
+  valor                 Float
+  status                FiscalInvoiceStatus @default(PENDENTE)
+  urlPdf                String?
+  urlXml                String?
+  emitidoEm             DateTime?
+  createdAt             DateTime @default(now())
+
+  accountReceivable     AccountReceivable? @relation(fields: [accountReceivableId], references: [id])
+
+  @@index([tenantId, status])
+}
+
+enum FiscalInvoiceType {
+  NFSE
+  NFE
+  RECIBO
+}
+
+enum FiscalInvoiceStatus {
+  PENDENTE
+  EMITIDA
+  CANCELADA
+  ERRO
+}
+
+// ---- edu/conteudo.prisma ----
+// ============================================================
+// EDUMASTER PRO — CONTEÚDO + BIBLIOTECA
+// Extensão do schema.prisma (depois de schema-academico.prisma
+// e schema-financeiro.prisma). Usa ContentItem e Flashcard que já
+// existem no schema-academico.prisma.
+//
+// CORREÇÃO IMPORTANTE em relação ao módulo anterior:
+// os campos intervalo/fatorFacilidade/proximaRevisao que ficaram
+// no model Flashcard (schema-academico.prisma) guardam progresso
+// GLOBAL do cartão, o que está errado — cada aluno revisa no seu
+// próprio ritmo. A partir daqui, IGNORE esses 3 campos em Flashcard
+// (deixe como estavam, sem uso) e use StudentFlashcardState abaixo,
+// que é por aluno. Se quiser, remova os 3 campos de Flashcard numa
+// migração futura; não é urgente, eles só ficam sem uso.
+// ============================================================
+
+model StudentFlashcardState {
+  id              String   @id @default(uuid())
+  studentId       String
+  flashcardId     String
+  intervalo       Int      @default(1)
+  fatorFacilidade Float    @default(2.5)
+  repeticoes      Int      @default(0)
+  proximaRevisao  DateTime @default(now())
+  ultimaRevisao   DateTime?
+
+  @@unique([studentId, flashcardId])
+  @@index([studentId, proximaRevisao])
+}
+
+model ContentProgress {
+  id                    String   @id @default(uuid())
+  studentId             String
+  contentItemId         String
+  concluido             Boolean  @default(false)
+  percentualAssistido   Float    @default(0)   // 0 a 100, relevante para vídeo
+  ultimaVisualizacao    DateTime @default(now())
+
+  @@unique([studentId, contentItemId])
+}
+
+model LibraryProvider {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String        // ex: "Minha Biblioteca", "Pearson", "Biblioteca própria"
+  tipoAcesso    LibraryAccessType
+  urlAcesso     String?
+  custoMensal   Float?        // preenchido quando tipoAcesso = ADESAO_INDIVIDUAL
+  ativo         Boolean  @default(true)
+
+  assinaturas   StudentLibraryAccess[]
+
+  @@index([tenantId])
+}
+
+enum LibraryAccessType {
+  ASSINATURA_INSTITUCIONAL   // toda a instituição já paga; aluno tem acesso automático
+  ADESAO_INDIVIDUAL          // aluno opta por aderir, pode gerar cobrança
+}
+
+model StudentLibraryAccess {
+  id                  String   @id @default(uuid())
+  studentId           String
+  libraryProviderId   String
+  status              LibraryAccessStatus @default(PENDENTE)
+  dataAdesao          DateTime @default(now())
+  dataCancelamento    DateTime?
+
+  libraryProvider     LibraryProvider @relation(fields: [libraryProviderId], references: [id])
+
+  @@unique([studentId, libraryProviderId])
+}
+
+enum LibraryAccessStatus {
+  ATIVA
+  PENDENTE
+  CANCELADA
+}
+
+// ---- edu/provas-ia.prisma ----
+// ============================================================
+// EDUMASTER PRO — PROVAS COM CORREÇÃO POR IA
+// Extensão do schema.prisma (depois de academico, financeiro, conteudo).
+// Usa Assessment, Question, AssessmentAttempt, AnswerSubmission que já
+// existem em schema-academico.prisma — aqui só adicionamos o que faltava
+// para a correção por IA funcionar de verdade: rubrica de correção e
+// log de geração de questões por IA a partir do conteúdo.
+// ============================================================
+
+model GradingRubric {
+  id              String   @id @default(uuid())
+  questionId      String   @unique   // 1 rubrica por questão dissertativa
+  criterios       String        // texto livre: o que a IA deve considerar pontos/erros
+  notaMaxima      Float    @default(10)
+
+  @@index([questionId])
+}
+
+model AIGenerationLog {
+  id              String   @id @default(uuid())
+  tenantId        String
+  contentItemId   String?       // conteúdo usado como base, quando aplicável
+  assessmentId    String?
+  prompt          String
+  respostaBruta   String        // resposta crua da IA, para auditoria
+  criadoEm        DateTime @default(now())
+  criadoPorUserId String
+
+  @@index([tenantId])
+}
+
+// ==== EDUMASTER:END ====

@@ -63,6 +63,7 @@ import * as treatmentPlanController from '../controllers/treatmentPlanController
 import * as financialAlertResolutionController from '../controllers/financialAlertResolutionController'
 import * as operationalAlertResolutionController from '../controllers/operationalAlertResolutionController'
 import * as reportController5787 from '../controllers/reportController5787'
+import eduRoutes from '../modules/edu.routes'
 
 const router = Router()
 
@@ -107,6 +108,9 @@ router.use(clinicalRecordRoutes)
 router.use(dentalChartRoutes)
 router.use('/specialty-clinical', specialtyClinicalRoutes)
 router.use(specializedClinicalRoutes)
+
+// EduMaster Pro — gerenciador educacional (autenticação e tenant já resolvidos acima)
+router.use('/edu', eduRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 
