@@ -95,16 +95,21 @@ async function sendNotice(notice: { id: string; clinicId: string; tenantId: stri
     else await prisma.dunningNotice.update({ where: { id: notice.id }, data: { errorMessage: message, scheduledFor: new Date(Date.now() + 30 * 60 * 1000) } })
   }
   const sender = await prisma.revahSender.findFirst({ where: { clinicId: notice.clinicId, tenantId: notice.tenantId, channel, isDefault: true, isActive: true } })
-  if (!sender) return fail(`Configure um remetente ativo para ${channel}.`)
+  // E-mail não depende de a clínica ter configurado canal: sem remetente próprio, sai pela conta da plataforma (mesmo caminho da recuperação de senha).
+  const platformKey = channel === 'EMAIL' && !sender ? String(process.env.RESEND_API_KEY || '').trim() : ''
+  if (!sender && !platformKey) return fail(`Configure um remetente ativo para ${channel}.`)
   let credentials: Record<string, unknown> = {}
-  try { credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {} } catch { return fail(`Credenciais de ${channel} não puderam ser abertas.`) }
+  if (sender) {
+    try { credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {} } catch { return fail(`Credenciais de ${channel} não puderam ser abertas.`) }
+  } else credentials = { apiKey: platformKey }
   if (!Object.keys(credentials).length || credentials.simulated === true) return fail(`Credenciais reais de ${channel} ainda não configuradas.`)
+  const address = sender ? sender.address : 'DentalPos One <contato@dentalpos.com.br>'
   try {
-    const result = await dispatchRevah(channel, destination, notice.message, credentials, sender.address)
+    const result = await dispatchRevah(channel, destination, notice.message, channel === 'EMAIL' ? { ...credentials, subject: 'Aviso de pagamento em atraso' } : credentials, address)
     if (result.simulated) return fail(`O provedor ${result.provider} está em modo simulado.`)
     await prisma.$transaction([
       prisma.dunningNotice.update({ where: { id: notice.id }, data: { status: 'SENT', sentAt: new Date(), errorMessage: null } }),
-      prisma.revahMessage.create({ data: { clinicId: notice.clinicId, tenantId: notice.tenantId, senderId: sender.id, channel, destination, content: notice.message, contactName, provider: result.provider, providerMessageId: result.providerMessageId, status: 'SENT', sentAt: new Date() } })
+      prisma.revahMessage.create({ data: { clinicId: notice.clinicId, tenantId: notice.tenantId, senderId: sender?.id ?? null, channel, destination, content: notice.message, contactName, provider: result.provider, providerMessageId: result.providerMessageId, status: 'SENT', sentAt: new Date() } })
     ])
   } catch (error) {
     await fail(error instanceof Error ? error.message : 'Falha no envio.')

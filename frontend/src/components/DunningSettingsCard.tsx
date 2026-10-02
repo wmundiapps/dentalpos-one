@@ -48,7 +48,7 @@ export default function DunningSettingsCard() {
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Só entram cobranças com vencimento a partir de {data.since.split("-").reverse().join("/")}. Dívidas anteriores não recebem aviso.</Typography>
       )}
       <Alert severity="info" sx={{ mt: 2 }}>
-        O envio usa o remetente padrão do canal escolhido (Revah). Sem remetente real configurado, os avisos ficam aguardando e tentam de novo por 24 horas. Mensagens saem a partir das 9h (Brasília).
+        O envio usa o remetente padrão do canal escolhido (Revah). Por e-mail não precisa configurar nada: sem remetente próprio, sai pela conta da DentalPos One. Nos outros canais, sem remetente real os avisos ficam aguardando e tentam de novo por 24 horas. Mensagens saem a partir das 9h (Brasília).
       </Alert>
 
       <Typography sx={{ fontWeight: 800, mt: 2 }}>Como a mensagem aparece</Typography>
