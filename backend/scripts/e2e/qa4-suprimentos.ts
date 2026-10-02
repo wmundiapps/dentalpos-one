@@ -327,7 +327,8 @@ async function main() {
   console.log('# jobs')
   const { runEduJobs } = await import('../../src/modules/core/jobs')
   const jr: any = await runEduJobs()
-  console.log('  jobs:', JSON.stringify(jr).slice(0, 400))
+  for (const k of Object.keys(jr)) if (jr[k].ok === false) { console.log('  JOB FALHOU', k, jr[k].error); check(false, 'job ' + k, jr[k]) }
+  console.log('  jobs sup:', Object.keys(jr).filter((k) => k.startsWith('suprimentos')).map((k) => k + '=' + JSON.stringify(jr[k].result)).join(' | '))
 
   summary()
   await c.close()

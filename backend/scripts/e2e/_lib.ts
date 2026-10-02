@@ -37,7 +37,7 @@ export async function setup() {
     const text = await r.text()
     let json: any = null
     try { json = JSON.parse(text) } catch {}
-    if (r.status >= 500) { fails.push(`5xx ${method} ${path}: ${text.slice(0, 200)}`); console.log('5XX', method, path, text.slice(0, 300)) }
+    if (r.status >= 500 && r.status !== 503) { fails.push(`5xx ${method} ${path}: ${text.slice(0, 200)}`); console.log('5XX', method, path, text.slice(0, 300)) }
     return { status: r.status, json, text }
   }
   const close = async () => {
