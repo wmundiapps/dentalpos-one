@@ -113,7 +113,8 @@ export default function App({ initialProject, onProjectChange, persist = true, a
   }, [sel, s]);
 
   const smileUi = { activeKey, setActiveKey, showDesign, setShowDesign, split, setSplit, showGrid, setShowGrid, zoom, setZoom };
-  const ctx: Ctx = { s, sel, setSel, extras, setExtra, setLines, busy, setBusy, toast, photoUrl, setPhotoUrl, hideTeeth, setHideTeeth, colorMode, setColorMode, dragMode, setDragMode, setHighlight, pickHandler, smileUi };
+  const fitView = () => setView((v) => ({ name: "fit", nonce: v.nonce + 1 }));
+  const ctx: Ctx = { fitView, s, sel, setSel, extras, setExtra, setLines, busy, setBusy, toast, photoUrl, setPhotoUrl, hideTeeth, setHideTeeth, colorMode, setColorMode, dragMode, setDragMode, setHighlight, pickHandler, smileUi };
 
   const setLandmark = (key: LmKey | "mouth", pt: [number, number]) => {
     s.set((q) => (q.photo ? { ...q, photo: { ...q.photo, landmarks: { ...q.photo.landmarks, [key]: pt } } } : q));
@@ -156,8 +157,8 @@ export default function App({ initialProject, onProjectChange, persist = true, a
               <Viewer3D ev={s.ev} shade={s.project.shade} selected={sel} onSelect={(f) => { setSel(f); setHighlight([]); if (f && tab === "case") setTab("teeth"); }} onDrag={(f, dx, dy) => { const a = s.project.adjust[f] ?? {}; s.adjust(f, { dx: (a.dx ?? 0) + dx, dy: (a.dy ?? 0) + dy }, `drag${f}`); }}
                 showUpper={showUpper} showLower={showLower} colorMode={colorMode} severity={severity} vertexColors={vertexColors} extras={[...Object.values(extras), ...gumMeshes]} lines={lines} view={view} dragMode={dragMode} hideTeeth={hideTeeth} highlightTeeth={highlight}
                 onPickPoint={(p, id) => pickHandler.current?.(p, id)} />
-              <div className="hud">
-                {[["front", "Frontal"], ["left", "Esquerda"], ["right", "Direita"], ["upper", "Oclusal sup."], ["lower", "Oclusal inf."], ["iso", "3/4"]].map(([k, l]) => <button key={k} className="chip" onClick={() => resetView(k)} data-testid={`view-${k}`}>{l}</button>)}
+              <div className="hudbar"><div className="hud">
+                {[["fit", "Enquadrar"], ["front", "Frontal"], ["left", "Esquerda"], ["right", "Direita"], ["upper", "Oclusal sup."], ["lower", "Oclusal inf."], ["iso", "3/4"]].map(([k, l]) => <button key={k} className="chip" onClick={() => resetView(k)} data-testid={`view-${k}`}>{l}</button>)}
               </div>
               <div className="hud r">
                 <button className={`chip ${showUpper ? "on" : ""}`} onClick={() => setShowUpper(!showUpper)}>Superior</button>
@@ -166,7 +167,7 @@ export default function App({ initialProject, onProjectChange, persist = true, a
                 <button className={`chip ${colorMode === "ghost" ? "on" : ""}`} onClick={() => setColorMode(colorMode === "ghost" ? "shade" : "ghost")}>Transparência</button>
                 <button className={`chip ${guides ? "on" : ""}`} onClick={() => setGuides(!guides)}>Linhas-guia</button>
                 <button className={`chip ${gumLite ? "on" : ""}`} onClick={() => setGumLite(!gumLite)}>Gengiva</button>
-              </div>
+              </div></div>
             </>)}
             {busy && <div className="busy"><div><span className="spin" />{busy}</div></div>}
           </div>

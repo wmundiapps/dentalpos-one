@@ -21,8 +21,9 @@ button, select, input { font: inherit; color: inherit; }
 .viewer { position: absolute; inset: 0; }
 .smile-wrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #0a0f17; padding: 10px; }
 .smile-canvas { max-width: 100%; max-height: 100%; width: auto; height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 8px 30px #0008; }
-.hud { position: absolute; left: 10px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2; }
-.hud.r { left: auto; right: 10px; }
+.hudbar { position: absolute; left: 10px; right: 10px; top: 10px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; z-index: 2; pointer-events: none; }
+.hud { display: flex; gap: 6px; flex-wrap: wrap; pointer-events: auto; }
+.hud.r { justify-content: flex-end; }
 .chip { background: #0d1622cc; border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: 4px 10px; cursor: pointer; backdrop-filter: blur(6px); }
 .chip:hover { border-color: var(--accent); }
 .chip.on { background: #17304d; border-color: var(--accent); }

@@ -176,6 +176,15 @@ export function Viewer3D(props: ViewerProps) {
       front: [[0, 120, 4], [0, -10, 0]], left: [[130, -22, 6], [0, -22, 0]], right: [[-130, -22, 6], [0, -22, 0]],
       upper: [[0, -18, -120], [0, -18, 0]], lower: [[0, -18, 120], [0, -18, 0]], iso: [[78, 100, 62], [0, -18, 0]], back: [[0, -150, 30], [0, -20, 0]],
     };
+    if (props.view.name === "fit") {
+      const box = new THREE.Box3().setFromObject(s.extras.children.length ? s.extras : s.teeth);
+      if (!box.isEmpty()) {
+        const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()).length();
+        const dir = s.camera.position.clone().sub(s.controls.target).normalize();
+        s.controls.target.copy(c); s.camera.position.copy(c.clone().add(dir.multiplyScalar(Math.max(60, size * 1.35)))); s.controls.update();
+      }
+      return;
+    }
     const v = V[props.view.name] ?? V.iso;
     s.camera.position.set(...(v[0] as [number, number, number])); s.controls.target.set(...(v[1] as [number, number, number]));
     const occl = props.view.name === "upper" || props.view.name === "lower";

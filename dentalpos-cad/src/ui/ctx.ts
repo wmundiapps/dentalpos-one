@@ -2,6 +2,7 @@ import type { Store } from "./store";
 import type { ExtraMesh, LineSet, ColorMode } from "./Viewer3D";
 
 export interface Ctx {
+  fitView: () => void;
   s: Store;
   sel: number | null; setSel: (f: number | null) => void;
   extras: Record<string, ExtraMesh>; setExtra: (id: string, e: ExtraMesh | null) => void;

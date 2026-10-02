@@ -60,7 +60,7 @@ export function ScanPanel({ c }: { c: Ctx }) {
       const l = await loadSTLFile(new File([fixStlHeader(await file.arrayBuffer())], file.name));
       const geometry = l.geometry; geometry.computeVertexNormals();
       store[k] = { geometry, fileName: file.name, diag: null };
-      show(k); c.setHideTeeth(false); c.toast(`${LABEL[k]}: ${l.triangles.toLocaleString("pt-BR")} triângulos (${fmt(l.width)}×${fmt(l.height)}×${fmt(l.depth)} mm).`);
+      show(k); c.setHideTeeth(true); setTimeout(() => c.fitView(), 150); c.toast(`${LABEL[k]}: ${l.triangles.toLocaleString("pt-BR")} triângulos (${fmt(l.width)}×${fmt(l.height)}×${fmt(l.depth)} mm).`);
     } catch (e) { c.toast(e instanceof Error ? e.message : String(e)); }
     c.setBusy(null); refresh();
   };
@@ -95,6 +95,7 @@ export function ScanPanel({ c }: { c: Ctx }) {
       if (flip) { geo.applyMatrix4(new THREE.Matrix4().makeScale(1, -1, 1)); const idx = geo.index; if (idx) { const a = idx.array as Uint32Array; for (let i = 0; i < a.length; i += 3) { const t = a[i + 1]; a[i + 1] = a[i + 2]; a[i + 2] = t; } idx.needsUpdate = true; } else { const pa = geo.getAttribute("position"); for (let i = 0; i + 2 < pa.count; i += 3) { const x = pa.getX(i + 1), y = pa.getY(i + 1), z = pa.getZ(i + 1); pa.setXYZ(i + 1, pa.getX(i + 2), pa.getY(i + 2), pa.getZ(i + 2)); pa.setXYZ(i + 2, x, y, z); } } }
       geo.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, ty, 0)); geo.computeVertexNormals(); show(k);
     }
+    setTimeout(() => c.fitView(), 150);
     c.toast(`Escaneamento centralizado (x ${fmt(tx)} mm, y ${fmt(ty)} mm); anterior em +Y.`);
   };
   const kindJaw = (): "upper" | "lower" => (c.sel && c.sel >= 30 ? "lower" : "upper");
