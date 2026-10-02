@@ -183,7 +183,7 @@ assert.equal(anon.autores, null)
 assert.equal(anon.submissorUserId, undefined)
 assert.equal(anon.financiamento, undefined)
 assert.equal(anon.titulo, 't')
-assert.equal(citarArtigo({ autores: ['João da Silva', 'Maria Souza'], titulo: 'Título', periodico: 'Rev', volume: 2, numero: '1', paginas: '1-10', ano: 2026, doi: '10.1234/x' }), 'SILVA, J. da; SOUZA, M.. Título. Rev, v. 2, n. 1, p. 1-10, 2026. DOI: 10.1234/x.'.replace('J. da', 'J. D.').replace('M..', 'M.'))
+assert.equal(citarArtigo({ autores: ['João da Silva', 'Maria Souza'], titulo: 'Título', periodico: 'Rev', volume: 2, numero: '1', paginas: '1-10', ano: 2026, doi: '10.1234/x' }), 'SILVA, J. D.; SOUZA, M. Título. Rev, v. 2, n. 1, p. 1-10, 2026. DOI: 10.1234/x.')
 
 // eventos
 assert.deepEqual(decidirTrabalhoEvento([8, 9], 6, 2), { media: 8.5, decisao: 'APROVADO' })

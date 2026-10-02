@@ -720,10 +720,10 @@ export function anonimizarSubmissao<T extends { autores?: any; submissorUserId?:
 export function citarArtigo(a: { autores: string[]; titulo: string; periodico: string; volume?: number | null; numero?: string | null; paginas?: string | null; ano: number; doi?: string | null }): string {
   const aut = a.autores.map((n) => {
     const p = n.trim().split(/\s+/)
-    return p.length > 1 ? `${p[p.length - 1].toUpperCase()}, ${p.slice(0, -1).map((x) => x[0] + '.').join(' ')}` : n.toUpperCase()
+    return p.length > 1 ? `${p[p.length - 1].toUpperCase()}, ${p.slice(0, -1).map((x) => x[0].toUpperCase() + '.').join(' ')}` : n.toUpperCase()
   })
   const autStr = aut.length > 3 ? `${aut[0]} et al.` : aut.join('; ')
-  return `${autStr}. ${a.titulo}. ${a.periodico}, ${a.volume ? 'v. ' + a.volume + ', ' : ''}${a.numero ? 'n. ' + a.numero + ', ' : ''}${a.paginas ? 'p. ' + a.paginas + ', ' : ''}${a.ano}.${a.doi ? ' DOI: ' + a.doi + '.' : ''}`
+  return `${autStr}${autStr.endsWith('.') ? '' : '.'} ${a.titulo}. ${a.periodico}, ${a.volume ? 'v. ' + a.volume + ', ' : ''}${a.numero ? 'n. ' + a.numero + ', ' : ''}${a.paginas ? 'p. ' + a.paginas + ', ' : ''}${a.ano}.${a.doi ? ' DOI: ' + a.doi + '.' : ''}`
 }
 
 // ---------- eventos ----------
