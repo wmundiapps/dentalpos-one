@@ -9,7 +9,7 @@ describe("motor portado do DentalPos One", () => {
     const g = new THREE.SphereGeometry(5, 24, 16).toNonIndexed();
     const pos = Array.from(g.getAttribute("position").array);
     const dup = new THREE.BufferGeometry();
-    dup.setAttribute("position", new THREE.Float32BufferAttribute([...pos, ...pos.slice(0, 9 * 20)], 3));
+    dup.setAttribute("position", new THREE.Float32BufferAttribute([...pos, ...pos.slice(900, 900 + 9 * 20)], 3));
     const d = diagnoseMesh(dup);
     expect(d.duplicateTriangles).toBeGreaterThan(0);
     const r = repairMesh(dup);
