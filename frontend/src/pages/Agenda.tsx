@@ -48,6 +48,7 @@ import {
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadFinancialEntries } from "../services/FinancialApi";
+import { usePendingVisibility } from "../hooks/usePendingVisibility";
 import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
@@ -682,7 +683,8 @@ export default function Agenda() {
       ),
     [items, backendDoctors],
   );
-  const alerts = getOperationalAlerts().filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
+  const filterVisible = usePendingVisibility();
+  const alerts = filterVisible(getOperationalAlerts()).filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
   const normalizeProfessionalName = (value: unknown) =>
     String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim();
   const selectedBackendDoctorId =
