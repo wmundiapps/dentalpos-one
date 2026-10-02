@@ -412,7 +412,9 @@ export async function sincronizarTaxa(proto: { id: string; tenantId: string; rec
 }
 
 export function viewProtocolo<T extends { prazoEm: Date; status: string }>(p: T) {
-  return { ...p, sla: slaSituacao(p.prazoEm, new Date(), isTerminal(p.status as ProtocoloStatus) || p.status === 'DEFERIDO' || p.status === 'INDEFERIDO' ? true : p.status === 'PENDENTE_DOCUMENTO') }
+  // Relógio do SLA parado em decisões finais e enquanto aguarda documento do aluno.
+  const parado = ['CONCLUIDO', 'CANCELADO', 'DEFERIDO', 'INDEFERIDO', 'PENDENTE_DOCUMENTO'].includes(p.status)
+  return { ...p, sla: slaSituacao(p.prazoEm, new Date(), parado) }
 }
 
 // ---------- rotas ----------

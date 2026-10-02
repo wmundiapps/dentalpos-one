@@ -1,0 +1,496 @@
+// ============================================================
+// EDUMASTER PRO — COMUNICAÇÃO OMNICHANNEL (prefixo Com)
+// Canais, contatos/consentimento, inbox, templates, campanhas, régua de
+// cobrança, chatbot, redes sociais e voz. A caixa de saída é a EduNotification
+// do núcleo; este módulo a despacha.
+// ============================================================
+
+enum ComCanalTipo {
+  WHATSAPP
+  TELEGRAM
+  EMAIL
+  SMS
+  VOZ
+  INSTAGRAM
+  FACEBOOK
+  SITE_CHAT
+}
+
+// Canal configurado do tenant. As credenciais ficam CIFRADAS (secretVault) em configCifrada.
+model ComCanal {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tipo            ComCanalTipo
+  nome            String
+  provedor        String        // META_CLOUD | TWILIO | TELEGRAM_BOT | RESEND | META_GRAPH | PROPRIO
+  ativo           Boolean  @default(true)
+  configCifrada   String?       // JSON cifrado com credenciais
+  configurado     Boolean  @default(false)
+  delegarRevah    Boolean  @default(false)   // despacho fica a cargo do REVAH
+  limiteHora      Int      @default(300)
+  limiteDia       Int      @default(2000)
+  restringirHorario Boolean @default(false)  // respeita janela comercial
+  ultimoTesteEm   DateTime?
+  ultimoTesteOk   Boolean?
+  ultimoTesteMsg  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, tipo, nome])
+  @@index([tenantId, tipo, ativo])
+}
+
+// Configuração geral da comunicação do tenant (uma linha por tenant).
+model ComConfig {
+  id                    String   @id @default(uuid())
+  tenantId              String   @unique
+  horarioInicio         String   @default("08:00")
+  horarioFim            String   @default("20:00")
+  diasUteis             Int[]    @default([1, 2, 3, 4, 5, 6])  // 0=dom ... 6=sáb
+  maxTentativas         Int      @default(4)
+  backoffMinutos        Int[]    @default([5, 15, 60])
+  slaPrimeiraRespostaMin Int     @default(30)
+  slaResolucaoMin       Int      @default(1440)
+  botAtivo              Boolean  @default(true)
+  iaFallback            Boolean  @default(true)
+  iaLimiteDiarioConversa Int     @default(5)
+  mensagemHandoff       String   @default("Vou transferir você para um de nossos atendentes. Aguarde um instante, por favor.")
+  mensagemForaHorario   String   @default("Nosso atendimento humano funciona em horário comercial. Deixe sua mensagem que responderemos assim que possível.")
+  mensagemBoasVindas    String   @default("Olá! Sou o assistente virtual da instituição. Como posso ajudar?")
+  uraMenu               Json?    // URA de voz: { saudacao, opcoes:[{digito,rotulo,acao,destino,mensagem}] }
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+enum ComContatoTipo {
+  ALUNO
+  CANDIDATO
+  EGRESSO
+  RESPONSAVEL
+  FUNCIONARIO
+  OUTRO
+}
+
+// Contato unificado (aluno, candidato, egresso, responsável, funcionário).
+model ComContato {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tipo            ComContatoTipo @default(OUTRO)
+  nome            String
+  email           String?
+  telefone        String?       // normalizado E.164 (+55...)
+  telegramChatId  String?
+  instagramId     String?
+  facebookId      String?
+  documento       String?       // CPF (somente dígitos)
+  studentId       String?
+  candidatoId     String?
+  userId          String?
+  tags            String[]      @default([])
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  preferencias    ComPreferencia[]
+  conversas       ComConversa[]
+
+  @@index([tenantId, tipo])
+  @@index([tenantId, telefone])
+  @@index([tenantId, email])
+  @@index([tenantId, studentId])
+  @@index([tenantId, telegramChatId])
+}
+
+// Consentimento/opt-out LGPD por contato x canal x finalidade.
+// finalidade: MARKETING | COBRANCA | ACADEMICO | TODAS. canal "*" = todos os canais.
+model ComPreferencia {
+  id              String   @id @default(uuid())
+  tenantId        String
+  contatoId       String
+  canal           String   @default("*")
+  finalidade      String   @default("MARKETING")
+  consentimento   Boolean  @default(true)
+  origem          String?       // FORMULARIO | MENSAGEM_SAIR | ATENDENTE | IMPORTACAO
+  motivo          String?
+  registradoEm    DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  contato         ComContato @relation(fields: [contatoId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, contatoId, canal, finalidade])
+  @@index([tenantId, contatoId])
+}
+
+model ComTemplate {
+  id          String   @id @default(uuid())
+  tenantId    String
+  chave       String
+  nome        String
+  categoria   String   @default("GERAL")   // COBRANCA | ACADEMICO | MARKETING | ADMISSOES | GERAL
+  canal       String?                      // nulo = serve a qualquer canal
+  assunto     String?
+  corpo       String
+  variaveis   String[] @default([])
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+  @@index([tenantId, categoria])
+}
+
+enum ComConversaStatus {
+  ABERTA
+  PENDENTE
+  EM_ATENDIMENTO
+  AGUARDANDO_CONTATO
+  RESOLVIDA
+  ARQUIVADA
+}
+
+model ComConversa {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  contatoId             String
+  canalTipo             ComCanalTipo
+  canalId               String?
+  chaveExterna          String?       // chat id / telefone / e-mail no provedor
+  assunto               String?
+  status                ComConversaStatus @default(ABERTA)
+  prioridade            Int      @default(0)
+  atribuidoAId          String?
+  etiquetas             String[] @default([])
+  botAtivo              Boolean  @default(true)
+  botEstado             Json?
+  naoLidas              Int      @default(0)
+  slaPrimeiraRespostaEm DateTime?
+  slaResolucaoEm        DateTime?
+  primeiraRespostaEm    DateTime?
+  ultimaMensagemEm      DateTime @default(now())
+  ultimaDirecao         String?
+  resolvidaEm           DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  contato               ComContato @relation(fields: [contatoId], references: [id], onDelete: Cascade)
+  mensagens             ComMensagem[]
+
+  @@index([tenantId, status, ultimaMensagemEm])
+  @@index([tenantId, atribuidoAId, status])
+  @@index([tenantId, contatoId])
+  @@index([tenantId, canalTipo, chaveExterna])
+}
+
+model ComMensagem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  conversaId      String
+  direcao         String        // ENTRADA | SAIDA | NOTA_INTERNA
+  autorTipo       String        // CONTATO | ATENDENTE | BOT | BOT_IA | SISTEMA
+  autorId         String?
+  conteudo        String
+  midiaUrl        String?
+  externalId      String?
+  notificationId  String?
+  status          String   @default("REGISTRADA")  // REGISTRADA | PENDENTE | ENVIADA | ENTREGUE | LIDA | FALHA
+  erro            String?
+  createdAt       DateTime @default(now())
+
+  conversa        ComConversa @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, conversaId, externalId])
+  @@index([tenantId, conversaId, createdAt])
+  @@index([tenantId, notificationId])
+}
+
+enum ComCampanhaStatus {
+  RASCUNHO
+  AGENDADA
+  EXECUTANDO
+  CONCLUIDA
+  CANCELADA
+}
+
+model ComCampanha {
+  id              String   @id @default(uuid())
+  tenantId        String
+  nome            String
+  segmento        String        // INADIMPLENTES | A_VENCER | REMATRICULA_PENDENTE | CANDIDATOS_ETAPA | EGRESSOS | ALUNOS_ATIVOS | CONTATOS | LISTA
+  filtros         Json?
+  canal           String        // EMAIL | WHATSAPP | SMS | TELEGRAM | VOZ
+  templateId      String
+  finalidade      String   @default("MARKETING")
+  status          ComCampanhaStatus @default(RASCUNHO)
+  agendadaPara    DateTime?
+  iniciadaEm      DateTime?
+  concluidaEm     DateTime?
+  totalAlvo       Int      @default(0)
+  totalEnfileirado Int     @default(0)
+  totalBloqueado  Int      @default(0)
+  totalSemDestino Int      @default(0)
+  criadoPorId     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  destinatarios   ComCampanhaDestinatario[]
+
+  @@index([tenantId, status, agendadaPara])
+}
+
+model ComCampanhaDestinatario {
+  id              String   @id @default(uuid())
+  tenantId        String
+  campanhaId      String
+  chave           String        // dedupe: studentId|candidatoId|contatoId|destino
+  nome            String?
+  contatoId       String?
+  studentId       String?
+  destino         String?
+  resultado       String        // ENFILEIRADO | BLOQUEADO_OPTOUT | SEM_DESTINO
+  notificationId  String?
+  createdAt       DateTime @default(now())
+
+  campanha        ComCampanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+
+  @@unique([campanhaId, chave])
+  @@index([tenantId, campanhaId, resultado])
+  @@index([tenantId, notificationId])
+}
+
+model ComRegua {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  ativa       Boolean  @default(true)
+  toleranciaDias Int   @default(2)    // recupera etapas perdidas até N dias depois do gatilho
+  descricao   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  etapas      ComReguaEtapa[]
+
+  @@index([tenantId, ativa])
+}
+
+// offsetDias relativo ao vencimento: -3 = 3 dias antes; 0 = no dia; 3 = 3 dias depois.
+model ComReguaEtapa {
+  id          String   @id @default(uuid())
+  tenantId    String
+  reguaId     String
+  nome        String
+  offsetDias  Int
+  canal       String   @default("WHATSAPP")
+  canalFallback String?                 // usado se o contato não tiver destino no canal principal
+  templateId  String
+  ativa       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  regua       ComRegua @relation(fields: [reguaId], references: [id], onDelete: Cascade)
+  execucoes   ComReguaExecucao[]
+
+  @@index([tenantId, reguaId])
+}
+
+// Registro de cada disparo da régua: o unique garante "sem duplicar".
+model ComReguaExecucao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  reguaId         String
+  etapaId         String
+  receivableId    String
+  studentId       String?
+  notificationId  String?
+  resultado       String   @default("ENFILEIRADO")  // ENFILEIRADO | SEM_DESTINO | BLOQUEADO_OPTOUT
+  createdAt       DateTime @default(now())
+
+  etapa           ComReguaEtapa @relation(fields: [etapaId], references: [id], onDelete: Cascade)
+
+  @@unique([etapaId, receivableId])
+  @@index([tenantId, receivableId])
+  @@index([tenantId, reguaId, createdAt])
+}
+
+// Fluxo do chatbot (árvore de menu). definicao: { inicio, nos:{id:{texto,opcoes:[{rotulo,gatilhos,proximo,acao}] ,acao}} }
+model ComBotFluxo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  intencao    String        // ex.: SEGUNDA_VIA_BOLETO, NOTAS, MENU_PRINCIPAL
+  gatilhos    String[] @default([])
+  definicao   Json
+  prioridade  Int      @default(0)
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, ativo])
+  @@index([tenantId, intencao])
+}
+
+model ComFaq {
+  id            String   @id @default(uuid())
+  tenantId      String
+  categoria     String   @default("GERAL")
+  pergunta      String
+  resposta      String
+  palavrasChave String[] @default([])
+  usos          Int      @default(0)
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, ativo, categoria])
+}
+
+enum ComRedeSocial {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  TIKTOK
+  YOUTUBE
+  X
+}
+
+model ComSocialConta {
+  id              String   @id @default(uuid())
+  tenantId        String
+  rede            ComRedeSocial
+  nome            String
+  handle          String?
+  externalId      String?       // page id (Facebook) / ig user id (Instagram)
+  tokenCifrado    String?       // { accessToken } cifrado
+  ativa           Boolean  @default(true)
+  seguidores      Int?
+  ultimaSincEm    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  posts           ComSocialPost[]
+
+  @@index([tenantId, rede])
+}
+
+enum ComPostStatus {
+  RASCUNHO
+  EM_APROVACAO
+  APROVADO
+  REJEITADO
+  PUBLICADO
+  MANUAL
+  FALHA
+  CANCELADO
+}
+
+model ComSocialPost {
+  id              String   @id @default(uuid())
+  tenantId        String
+  contaId         String
+  titulo          String
+  texto           String
+  midiaUrls       String[] @default([])
+  tema            String?
+  agendadoPara    DateTime?
+  status          ComPostStatus @default(RASCUNHO)
+  criadoPorId     String?
+  aprovadoPorId   String?
+  aprovadoEm      DateTime?
+  motivoRejeicao  String?
+  publicadoEm     DateTime?
+  externalId      String?
+  urlPublicado    String?
+  tentativas      Int      @default(0)
+  erro            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  conta           ComSocialConta @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  metricas        ComSocialMetrica[]
+  interacoes      ComSocialInteracao[]
+
+  @@index([tenantId, status, agendadoPara])
+  @@index([tenantId, contaId])
+}
+
+model ComSocialMetrica {
+  id              String   @id @default(uuid())
+  tenantId        String
+  contaId         String
+  postId          String?
+  data            DateTime @default(now())
+  alcance         Int      @default(0)
+  impressoes      Int      @default(0)
+  curtidas        Int      @default(0)
+  comentarios     Int      @default(0)
+  compartilhamentos Int    @default(0)
+  cliques         Int      @default(0)
+  seguidores      Int?
+  origem          String   @default("MANUAL")   // MANUAL | GRAPH_API
+  createdAt       DateTime @default(now())
+
+  post            ComSocialPost? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, contaId, data])
+  @@index([tenantId, postId])
+}
+
+// Comentários, menções e DMs das redes para moderação.
+model ComSocialInteracao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  contaId         String
+  postId          String?
+  tipo            String        // COMENTARIO | DM | MENCAO
+  autor           String?
+  texto           String
+  externalId      String?
+  status          String   @default("PENDENTE")  // PENDENTE | APROVADO | OCULTO | RESPONDIDO | SPAM
+  resposta        String?
+  respondidoEm    DateTime?
+  moderadoPorId   String?
+  alerta          String?       // palavra/motivo que acionou a triagem automática
+  createdAt       DateTime @default(now())
+
+  post            ComSocialPost? @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, contaId, externalId])
+  @@index([tenantId, status, createdAt])
+}
+
+model ComChamada {
+  id              String   @id @default(uuid())
+  tenantId        String
+  canalId         String?
+  direcao         String        // SAIDA | ENTRADA
+  de              String?
+  para            String?
+  contatoId       String?
+  status          String   @default("INICIADA")   // INICIADA | TOCANDO | EM_ANDAMENTO | CONCLUIDA | NAO_ATENDIDA | OCUPADO | FALHA
+  duracaoSeg      Int?
+  provedorSid     String?
+  mensagem        String?
+  digitos         String?
+  atendenteId     String?
+  notas           String?
+  erro            String?
+  inicioEm        DateTime @default(now())
+  fimEm           DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([tenantId, inicioEm])
+  @@index([tenantId, provedorSid])
+}
+
+// Log de webhooks recebidos (diagnóstico; rejeições de assinatura também aparecem).
+model ComWebhookLog {
+  id          String   @id @default(uuid())
+  tenantId    String?
+  canalId     String?
+  tipo        String
+  ok          Boolean
+  motivo      String?
+  createdAt   DateTime @default(now())
+
+  @@index([canalId, createdAt])
+}

@@ -94,3 +94,12 @@ export type SituacaoAcao = 'PLANEJADA' | 'EM_ANDAMENTO' | 'CONCLUIDA' | 'CANCELA
 export function acaoAtrasada(a: { status: SituacaoAcao; prazo: Date }, now = new Date()) {
   return (a.status === 'PLANEJADA' || a.status === 'EM_ANDAMENTO') && a.prazo.getTime() < now.getTime()
 }
+
+// Diff simples por linha entre duas versões de texto/HTML.
+export function diffLinhas(a: string, b: string) {
+  const la = a.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  const lb = b.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  const sa = new Set(la)
+  const sb = new Set(lb)
+  return { removidas: la.filter((l) => !sb.has(l)), adicionadas: lb.filter((l) => !sa.has(l)), inalteradas: la.filter((l) => sb.has(l)).length }
+}

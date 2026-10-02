@@ -76,3 +76,21 @@ assert.equal(fimGestao(new Date('2026-01-01T00:00:00Z')).toISOString().slice(0, 
 assert.deepEqual(reunioesMensaisFaltantes(new Date('2026-01-01T00:00:00Z'), new Date('2026-12-31T00:00:00Z'), ['2026-01', '2026-03'], new Date('2026-04-15T00:00:00Z')), ['2026-02'])
 
 console.log('governanca selftest: OK')
+
+import { validarComposicaoCpa } from './cpaLogic'
+import { validarComposicaoCipa } from './cipaLogic'
+import { diffLinhas } from './pdiLogic'
+{
+  const mk = (segmento: string) => ({ segmento, inicioMandato: new Date('2026-01-01'), fimMandato: new Date('2027-12-31') })
+  const now = new Date('2026-06-01')
+  assert.equal(validarComposicaoCpa([mk('DOCENTE'), mk('DISCENTE'), mk('TECNICO_ADMINISTRATIVO'), mk('SOCIEDADE_CIVIL')], now).conforme, true)
+  const c = validarComposicaoCpa([mk('DOCENTE'), mk('DOCENTE'), mk('DOCENTE'), mk('DISCENTE')], now)
+  assert.equal(c.conforme, false); assert.equal(c.problemas.length, 3)
+  const ok = validarComposicaoCipa([
+    { representacao: 'EMPREGADOR', tipo: 'TITULAR', cargo: 'PRESIDENTE' }, { representacao: 'EMPREGADOS', tipo: 'TITULAR', cargo: 'VICE_PRESIDENTE' }])
+  assert.equal(ok.conforme, true)
+  assert.equal(validarComposicaoCipa([{ representacao: 'EMPREGADOR', tipo: 'TITULAR', cargo: 'MEMBRO' }]).conforme, false)
+  const d = diffLinhas('a\nb\nc', 'a\nc\nd')
+  assert.deepEqual(d.removidas, ['b']); assert.deepEqual(d.adicionadas, ['d'])
+  console.log('governanca selftest (2): OK')
+}

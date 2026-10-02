@@ -118,3 +118,16 @@ export const EIXOS_SINAES: Record<number, { nome: string; dimensoes: Array<{ n: 
 export function normalizarToken(t: string) {
   return t.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
 }
+
+// Composição da CPA (Lei 10.861/2004, art. 11): todos os segmentos representados e
+// nenhum segmento com maioria absoluta.
+export function validarComposicaoCpa(membros: Array<{ segmento: string; ativo?: boolean; inicioMandato: Date; fimMandato: Date }>, now = new Date()) {
+  const vigentes = membros.filter((m) => m.ativo !== false && m.inicioMandato <= now && m.fimMandato >= now)
+  const contagem: Record<string, number> = { DOCENTE: 0, DISCENTE: 0, TECNICO_ADMINISTRATIVO: 0, SOCIEDADE_CIVIL: 0 }
+  for (const m of vigentes) contagem[m.segmento] = (contagem[m.segmento] ?? 0) + 1
+  const problemas: string[] = []
+  for (const [seg, n] of Object.entries(contagem)) if (n === 0) problemas.push(`Segmento sem representante: ${seg}.`)
+  const total = vigentes.length
+  for (const [seg, n] of Object.entries(contagem)) if (total > 0 && n / total > 0.5) problemas.push(`Segmento ${seg} detém maioria absoluta (${n}/${total}); a lei veda composição que privilegie um segmento.`)
+  return { conforme: problemas.length === 0, total, contagem, problemas }
+}

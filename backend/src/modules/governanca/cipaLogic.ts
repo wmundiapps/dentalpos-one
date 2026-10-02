@@ -47,3 +47,17 @@ export function reunioesMensaisFaltantes(inicio: Date, fim: Date, realizadas: st
   }
   return out
 }
+
+// NR-5: representação paritária de titulares; presidente indicado pelo empregador e
+// vice-presidente eleito pelos empregados.
+export function validarComposicaoCipa(membros: Array<{ representacao: string; tipo: string; cargo: string; ativo?: boolean }>) {
+  const at = membros.filter((m) => m.ativo !== false)
+  const titEmpregador = at.filter((m) => m.tipo === 'TITULAR' && m.representacao === 'EMPREGADOR').length
+  const titEmpregados = at.filter((m) => m.tipo === 'TITULAR' && m.representacao === 'EMPREGADOS').length
+  const problemas: string[] = []
+  if (titEmpregador === 0 || titEmpregados === 0) problemas.push('É necessário ao menos um titular de cada representação (empregador e empregados).')
+  if (titEmpregador !== titEmpregados) problemas.push(`Representação não paritária entre titulares (empregador ${titEmpregador} x empregados ${titEmpregados}).`)
+  if (!at.some((m) => m.cargo === 'PRESIDENTE' && m.representacao === 'EMPREGADOR')) problemas.push('Presidente (indicado pelo empregador) não designado.')
+  if (!at.some((m) => m.cargo === 'VICE_PRESIDENTE' && m.representacao === 'EMPREGADOS')) problemas.push('Vice-presidente (eleito pelos empregados) não designado.')
+  return { conforme: problemas.length === 0, titEmpregador, titEmpregados, problemas }
+}

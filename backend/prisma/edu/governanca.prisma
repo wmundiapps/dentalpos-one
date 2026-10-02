@@ -627,8 +627,8 @@ model GovDeliberacao {
   reuniaoId   String?
   pautaId     String?
   ano         Int
-  numero      Int
-  numeracao   String               // 003/2026
+  numero      Int?                 // atribuído na aprovação
+  numeracao   String?              // 003/2026
   titulo      String
   texto       String?
   status      GovDeliberacaoStatus @default(PROPOSTA)

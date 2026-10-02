@@ -20,7 +20,7 @@ export function statusDocumento(validade?: Date | null, hoje = new Date()): 'VAL
   return d < 0 ? 'VENCIDO' : d <= 30 ? 'A_VENCER' : 'VALIDO'
 }
 
-async function lembreteDocumento(doc: any) {
+export async function lembreteDocumento(doc: any) {
   if (!doc.validade) return cancelReminders({ tenantId: doc.tenantId, refType: 'SupFornecedorDocumento', refId: doc.id })
   const forn = await prisma.supFornecedor.findFirst({ where: { id: doc.fornecedorId, tenantId: doc.tenantId }, select: { razaoSocial: true } })
   await scheduleReminder({
@@ -31,7 +31,7 @@ async function lembreteDocumento(doc: any) {
   })
 }
 
-async function lembretesContrato(c: any) {
+export async function lembretesContrato(c: any) {
   const base = { tenantId: c.tenantId, modulo: 'suprimentos', refType: 'SupContrato', refId: c.id, assigneeRole: 'SUPPLIES' }
   if (['ENCERRADO', 'RENOVADO', 'RASCUNHO'].includes(c.status)) return cancelReminders({ tenantId: c.tenantId, refType: 'SupContrato', refId: c.id })
   await scheduleReminder({ ...base, dedupeKey: `sup-contrato-fim-${c.id}`, titulo: `Contrato ${c.numero} vence em ${new Date(c.vigenciaFim).toLocaleDateString('pt-BR')}`,

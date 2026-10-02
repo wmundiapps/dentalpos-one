@@ -42,24 +42,25 @@ export async function getOrCreateDiario(tenantId: string, classSectionId: string
   return prisma.ntDiario.upsert({ where: { classSectionId }, create: { tenantId, classSectionId }, update: {} })
 }
 
-// Prazo de lançamento: o mais cedo entre o do diário e o do calendário (tabela opcional, tolerante).
-export async function getPrazoLancamento(tenantId: string, classSectionId: string, termId?: string | null): Promise<{ prazo: Date | null; origem: string | null }> {
-  const cand: Array<{ d: Date; o: string }> = []
+// Prazo de lançamento: o do diário (específico da turma) tem precedência; senão, o do calendário
+// (CalPrazoNotas do período, com prorrogação e exceção por professor). Consulta tolerante a ausência do módulo.
+export async function getPrazoLancamento(tenantId: string, classSectionId: string, termId?: string | null, userId?: string): Promise<{ prazo: Date | null; origem: string | null }> {
   const diario = await prisma.ntDiario.findUnique({ where: { classSectionId } })
-  if (diario?.prazoLancamento) cand.push({ d: diario.prazoLancamento, o: 'DIARIO' })
+  if (diario?.prazoLancamento) return { prazo: diario.prazoLancamento, origem: 'DIARIO' }
   try {
-    const d = (prisma as any).calPrazoNota
-    if (d?.findFirst) {
-      const or: any[] = [{ classSectionId }]
-      if (termId) or.push({ termId })
-      const row = await d.findFirst({ where: { tenantId, OR: or }, orderBy: { createdAt: 'desc' } })
-      const dt = row && (row.dataLimite ?? row.prazo ?? row.prazoEm ?? row.dataFim ?? row.limite)
-      if (dt) cand.push({ d: new Date(dt), o: 'CALENDARIO' })
+    const d = (prisma as any).calPrazoNotas
+    if (d?.findMany && termId) {
+      const rows = await d.findMany({ where: { tenantId, termId, ativo: true, tipo: { in: ['LANCAMENTO_NOTAS', 'FECHAMENTO_FINAL'] } }, include: { excecoes: userId ? { where: { userId } } : false } })
+      const ends: number[] = []
+      for (const r of rows) {
+        let fim = new Date(r.prorrogadoAte ?? r.prazo).getTime()
+        for (const ex of r.excecoes ?? []) fim = Math.max(fim, new Date(ex.ate).getTime())
+        ends.push(fim)
+      }
+      if (ends.length) return { prazo: new Date(Math.max(...ends)), origem: 'CALENDARIO' }
     }
-  } catch { /* módulo calendário ausente ou campos diferentes */ }
-  if (!cand.length) return { prazo: null, origem: null }
-  cand.sort((a, b) => a.d.getTime() - b.d.getTime())
-  return { prazo: cand[0].d, origem: cand[0].o }
+  } catch { /* módulo calendário ausente */ }
+  return { prazo: null, origem: null }
 }
 
 export interface AlunoRoster { studentId: string; enrollmentId: string; ra: string; nome: string; statusMatricula: string; programId: string }

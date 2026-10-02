@@ -2,7 +2,7 @@ import { prisma } from '../../lib/prisma'
 import { scheduleReminder, cancelReminders } from '../core/reminders'
 import { registerEduJob } from '../core/jobs'
 import { audit } from '../core/notify'
-import { marcosParaAgendar, statusAto, PARAMS_ATO, MARCOS_PADRAO, addDays } from './rules'
+import { marcosParaAgendar, statusAto, PARAMS_ATO, MARCOS_PADRAO } from './rules'
 
 const MODULO = 'regulatorio'
 
@@ -85,7 +85,7 @@ export async function reavaliarAto(ato: any, agora = new Date()) {
           st.situacao === 'VENCIDO'
             ? 'ATO VENCIDO sem processo de renovação em andamento — risco regulatório crítico.'
             : `Vence em ${st.diasRestantes} dia(s) e não há processo de renovação em andamento.`,
-        dueAt: addDays(new Date(ato.vencimento), st.situacao === 'VENCIDO' ? 0 : 0),
+        dueAt: new Date(ato.vencimento),
         remindAt: agora,
         severity: st.situacao === 'RENOVACAO_ABERTA' ? 'ATENCAO' : 'CRITICO',
         refType: 'RegAto',

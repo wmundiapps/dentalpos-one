@@ -253,6 +253,7 @@ model AdmCandidato {
   proximoContatoEm  DateTime?
   notaFinal         Float?
   classificacao     Int?
+  ofertaAlocadaId   String?                          // oferta em que foi classificado
   situacaoClassificacao String?                      // CLASSIFICADO | LISTA_ESPERA | DESCLASSIFICADO
   taxaReceivableId  String?                          // AccountReceivable da taxa
   taxaPaga          Boolean  @default(false)

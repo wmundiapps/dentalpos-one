@@ -177,7 +177,7 @@ model DesEdicao {
   tenantId         String
   exameId          String
   ano              Int
-  titulo           String?
+  titulo           String          @default("")
   dataProva        DateTime?
   inscricaoInicio  DateTime?
   inscricaoFim     DateTime?
