@@ -120,13 +120,13 @@ export async function validarExame(tenantId: string, c: Cand, term: { dataInicio
   return { duros, avisos, choques }
 }
 
-async function agendarLembretesExame(tenantId: string, e: { id: string; titulo: string; inicio: Date; professorUserId: string | null; spaceId: string | null }, fiscais: string[]) {
+async function agendarLembretesExame(tenantId: string, e: { id: string; updatedAt: Date; titulo: string; inicio: Date; professorUserId: string | null; spaceId: string | null }, fiscais: string[]) {
   const quando = fmt(e.inicio)
   if (e.professorUserId) {
-    await scheduleReminder({ tenantId, modulo: MODULO, refType: 'CalExame', refId: e.id, titulo: `Avaliação em 3 dias: ${e.titulo}`, descricao: `Data: ${quando}. Confirme sala, fiscais e o material da prova.`, dueAt: e.inicio, remindAt: new Date(e.inicio.getTime() - 3 * DAY_MS), assigneeUserId: e.professorUserId, severity: 'ATENCAO', dedupeKey: `cal:prova:${e.id}:prof:${e.inicio.getTime()}` })
+    await scheduleReminder({ tenantId, modulo: MODULO, refType: 'CalExame', refId: e.id, titulo: `Avaliação em 3 dias: ${e.titulo}`, descricao: `Data: ${quando}. Confirme sala, fiscais e o material da prova.`, dueAt: e.inicio, remindAt: new Date(e.inicio.getTime() - 3 * DAY_MS), assigneeUserId: e.professorUserId, severity: 'ATENCAO', dedupeKey: `cal:prova:${e.id}:prof:${e.updatedAt.getTime()}` })
   }
   for (const f of fiscais) {
-    await scheduleReminder({ tenantId, modulo: MODULO, refType: 'CalExame', refId: e.id, titulo: `Você é fiscal de prova amanhã: ${e.titulo}`, descricao: `Data: ${quando}.`, dueAt: e.inicio, remindAt: new Date(e.inicio.getTime() - DAY_MS), assigneeUserId: f, severity: 'ATENCAO', dedupeKey: `cal:prova:${e.id}:fiscal:${f}:${e.inicio.getTime()}` })
+    await scheduleReminder({ tenantId, modulo: MODULO, refType: 'CalExame', refId: e.id, titulo: `Você é fiscal de prova amanhã: ${e.titulo}`, descricao: `Data: ${quando}.`, dueAt: e.inicio, remindAt: new Date(e.inicio.getTime() - DAY_MS), assigneeUserId: f, severity: 'ATENCAO', dedupeKey: `cal:prova:${e.id}:fiscal:${f}:${e.updatedAt.getTime()}` })
   }
 }
 

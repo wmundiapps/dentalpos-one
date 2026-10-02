@@ -292,9 +292,14 @@ export function registerPrazos(router: Router) {
       if (!atual) return res.status(404).json({ error: 'Prazo não encontrado.' })
       const d: any = parseBody(prazoBase.partial().omit({ termId: true }), req.body)
       const row = await prisma.calPrazoNotas.update({ where: { id: atual.id }, data: { ...d, ...(d.prazo && d.prazo.getTime() !== atual.prazo.getTime() ? { escalonadoCoordEm: null, escalonadoDirecaoEm: null } : {}) } })
-      await cancelReminders({ tenantId, refType: 'CalPrazoNotas', refId: row.id })
-      if (row.ativo) await agendarLembretesPrazo(tenantId, row)
-      else await cancelReminders({ tenantId, refType: 'CalPrazoEscalonamento', refId: row.id })
+      if (!row.ativo) {
+        await cancelReminders({ tenantId, refType: 'CalPrazoNotas', refId: row.id })
+        await cancelReminders({ tenantId, refType: 'CalPrazoEscalonamento', refId: row.id })
+      } else {
+        // chaves dos lembretes incluem a data efetiva: só cancela os antigos se o prazo mudou
+        if (d.prazo && d.prazo.getTime() !== atual.prazo.getTime()) await cancelReminders({ tenantId, refType: 'CalPrazoNotas', refId: row.id })
+        await agendarLembretesPrazo(tenantId, row)
+      }
       await audit({ tenantId, userId: getUserId(req), modulo: MODULO, acao: 'ATUALIZAR_PRAZO', refType: 'CalPrazoNotas', refId: row.id, detalhes: { antes: atual.prazo, depois: row.prazo } })
       res.json(row)
     }),

@@ -90,7 +90,7 @@ function normalizar(d: any) {
 }
 
 /** Agenda lembretes (D-n) da próxima ocorrência futura do evento para o público-alvo. Idempotente. */
-export async function agendarLembretesEvento(e: { id: string; tenantId: string; titulo: string; inicio: Date; fim: Date; recorrencia: any; recorrenciaIntervalo: number; recorrenciaAte: Date | null; lembreteDias: number[]; publico: string; ativo: boolean }) {
+export async function agendarLembretesEvento(e: { id: string; updatedAt: Date; tenantId: string; titulo: string; inicio: Date; fim: Date; recorrencia: any; recorrenciaIntervalo: number; recorrenciaAte: Date | null; lembreteDias: number[]; publico: string; ativo: boolean }) {
   if (!e.ativo || !e.lembreteDias?.length) return 0
   const now = new Date()
   const occ = expandRecorrencia({ inicio: e.inicio, fim: e.fim, recorrencia: e.recorrencia, intervalo: e.recorrenciaIntervalo, ate: e.recorrenciaAte, janelaDe: now, janelaAte: new Date(now.getTime() + 400 * DAY_MS), max: 800 })
@@ -111,7 +111,7 @@ export async function agendarLembretesEvento(e: { id: string; tenantId: string; 
         refType: 'CalEvento',
         refId: e.id,
         assigneeRole: role,
-        dedupeKey: `cal:evt:${e.id}:${localDateKey(prox.inicio)}:${role}:D${d}`,
+        dedupeKey: `cal:evt:${e.id}:${e.updatedAt.getTime()}:${localDateKey(prox.inicio)}:${role}:D${d}`,
       })
       n++
     }
