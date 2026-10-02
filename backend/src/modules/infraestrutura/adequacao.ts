@@ -2,7 +2,7 @@ import { Router, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, asyncHandler, getTenantId, getUserId, requireRole } from '../academico/middleware'
-import { mountCrud, qs } from '../core/crud'
+import { mountCrud, parseBody, qs } from '../core/crud'
 import { audit } from '../core/notify'
 import { getBranding, brandHeaderHtml, escapeHtml as esc } from '../core/branding'
 import { avaliarRequisito, conceitoAdequacao, quantidadeExigida } from './calc'
@@ -101,7 +101,7 @@ export function mountAdequacao(router: Router) {
     requireRole(...GESTAO, 'COORDINATOR'),
     asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
       const tenantId = getTenantId(req)
-      const { origemProgramId, destinoProgramId } = z.object({ origemProgramId: z.string(), destinoProgramId: z.string() }).parse(req.body)
+      const { origemProgramId, destinoProgramId } = parseBody(z.object({ origemProgramId: z.string().min(1), destinoProgramId: z.string().min(1) }), req.body)
       const dest = await prisma.academicProgram.findFirst({ where: { id: destinoProgramId, tenantId } })
       if (!dest) fail(400, 'Curso de destino não encontrado.')
       const orig = await prisma.infRequisitoCurso.findMany({ where: { tenantId, programId: origemProgramId, ativo: true } })
