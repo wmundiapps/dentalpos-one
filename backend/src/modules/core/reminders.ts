@@ -70,9 +70,9 @@ export async function cancelReminders(params: { tenantId: string; refType: strin
 
 // Processa lembretes vencidos: gera notificação na caixa de saída, repete os
 // recorrentes e escala os atrasados para CRITICO. Chamado pelo cron.
-export async function processDueReminders(now = new Date(), limit = 500) {
+export async function processDueReminders(now = new Date(), limit = 500, tenantId?: string) {
   const due = await prisma.eduReminder.findMany({
-    where: { status: { in: ['PENDENTE', 'NOTIFICADO'] }, remindAt: { lte: now } },
+    where: { ...(tenantId ? { tenantId } : {}), status: { in: ['PENDENTE', 'NOTIFICADO', 'ADIADO'] }, remindAt: { lte: now } },
     orderBy: { remindAt: 'asc' },
     take: limit,
   })

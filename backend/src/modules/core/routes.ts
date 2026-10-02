@@ -75,7 +75,7 @@ const assetSchema = z
     campusId: z.string().optional().nullable(),
     titulo: z.string().optional().nullable(),
     dataUrl: z.string().regex(/^data:image\/(png|jpeg|jpg|svg\+xml|webp);base64,/i, 'Envie PNG, JPG, SVG ou WEBP em base64.').optional(),
-    url: z.string().url().optional(),
+    url: z.string().url().regex(/^https?:\/\//i, 'URL deve ser http(s).').optional(),
     largura: z.number().int().optional(),
     altura: z.number().int().optional(),
   })
@@ -227,6 +227,7 @@ router.post(
     const { dias } = parseBody(z.object({ dias: z.number().int().min(1).max(90).default(1) }), req.body)
     const cur = await prisma.eduReminder.findFirst({ where: { id: String(req.params.id), tenantId } })
     if (!cur) return res.status(404).json({ error: 'Lembrete não encontrado.' })
+    if (!['PENDENTE', 'NOTIFICADO', 'ADIADO'].includes(cur.status)) return res.status(409).json({ error: 'Lembrete já encerrado não pode ser adiado.' })
     const row = await prisma.eduReminder.update({ where: { id: cur.id }, data: { status: 'ADIADO', remindAt: new Date(Date.now() + dias * 86_400_000) } })
     res.json(row)
   }),
@@ -281,8 +282,8 @@ router.get(
 router.post(
   '/lembretes/processar',
   requireRole('ADMIN', 'OWNER', 'RECTOR'),
-  asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
-    res.json(await processDueReminders())
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    res.json(await processDueReminders(new Date(), 500, getTenantId(req)))
   }),
 )
 

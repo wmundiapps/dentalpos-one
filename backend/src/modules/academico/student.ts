@@ -30,6 +30,11 @@ router.post(
     if (existing) {
       return res.status(409).json({ error: 'Já existe um aluno com este RA.' });
     }
+    // o usuário de login precisa pertencer ao mesmo tenant
+    const loginUser = await prisma.user.findFirst({ where: { id: req.body.userId, tenantId }, select: { id: true } });
+    if (!loginUser) return res.status(404).json({ error: 'Usuário não encontrado neste tenant.' });
+    const userTaken = await prisma.student.findUnique({ where: { userId: req.body.userId } });
+    if (userTaken) return res.status(409).json({ error: 'Este usuário já está vinculado a outro aluno.' });
 
     const student = await prisma.student.create({ data: { tenantId, ...req.body } });
     res.status(201).json(student);
@@ -113,6 +118,14 @@ router.post(
       return res.status(404).json({ error: 'Aluno, curso ou período não encontrado.' });
     }
 
+    if (student.status !== 'ATIVO') {
+      return res.status(409).json({ error: 'Aluno não está ativo; não é possível matricular.' });
+    }
+    const dup = await prisma.enrollment.findFirst({
+      where: { studentId, programId, termId, status: { in: ['ATIVA', 'TRANCADA'] } },
+    });
+    if (dup) return res.status(409).json({ error: 'Aluno já matriculado neste curso/período.' });
+
     const enrollment = await prisma.enrollment.create({
       data: { studentId, programId, termId },
     });
@@ -129,27 +142,36 @@ router.post(
   validate(enrollInClassSectionSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { enrollmentId, classSectionId } = req.body;
+    const tenantId = getTenantId(req);
 
-    const classSection = await prisma.classSection.findUnique({
-      where: { id: classSectionId },
-      include: { _count: { select: { matriculados: true } } },
-    });
+    const classSection = await prisma.classSection.findFirst({ where: { id: classSectionId, tenantId } });
     if (!classSection) return res.status(404).json({ error: 'Turma não encontrada.' });
-
-    if (classSection.vagas != null && classSection._count.matriculados >= classSection.vagas) {
-      return res.status(409).json({ error: 'Turma sem vagas disponíveis.' });
+    const enrollment = await prisma.enrollment.findFirst({
+      where: { id: enrollmentId, student: { tenantId } },
+    });
+    if (!enrollment) return res.status(404).json({ error: 'Matrícula não encontrada.' });
+    if (enrollment.status !== 'ATIVA') {
+      return res.status(409).json({ error: 'Matrícula não está ativa.' });
+    }
+    if (enrollment.termId !== classSection.termId) {
+      return res.status(409).json({ error: 'Turma pertence a outro período letivo.' });
     }
 
-    const already = await prisma.classSectionEnrollment.findUnique({
-      where: { enrollmentId_classSectionId: { enrollmentId, classSectionId } },
+    // checagem de vagas + inserção sob lock da turma (evita estourar vagas em concorrência)
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "ClassSection" WHERE id = ${classSectionId} FOR UPDATE`;
+      const already = await tx.classSectionEnrollment.findUnique({
+        where: { enrollmentId_classSectionId: { enrollmentId, classSectionId } },
+      });
+      if (already) return { error: 'Aluno já matriculado nesta turma.' };
+      const count = await tx.classSectionEnrollment.count({ where: { classSectionId } });
+      if (classSection.vagas != null && count >= classSection.vagas) {
+        return { error: 'Turma sem vagas disponíveis.' };
+      }
+      return { link: await tx.classSectionEnrollment.create({ data: { enrollmentId, classSectionId } }) };
     });
-    if (already) {
-      return res.status(409).json({ error: 'Aluno já matriculado nesta turma.' });
-    }
-
-    const link = await prisma.classSectionEnrollment.create({
-      data: { enrollmentId, classSectionId },
-    });
+    if ('error' in result) return res.status(409).json({ error: result.error });
+    const link = result.link;
     res.status(201).json(link);
   }),
 );

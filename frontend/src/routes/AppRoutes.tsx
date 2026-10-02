@@ -1,26 +1,27 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 
 import Academic from "../pages/Academic";
-import EduReitoria from "../pages/edu/EduReitoria";
-import EduMinhaMesa from "../pages/edu/EduMinhaMesa";
-import EduJornadas from "../pages/edu/EduJornadas";
-import EduAdmissoes from "../pages/edu/EduAdmissoes";
-import EduSecretaria from "../pages/edu/EduSecretaria";
-import EduCalendario from "../pages/edu/EduCalendario";
-import EduNotas from "../pages/edu/EduNotas";
-import EduModalidades from "../pages/edu/EduModalidades";
-import EduDesempenho from "../pages/edu/EduDesempenho";
-import EduBiblioteca from "../pages/edu/EduBiblioteca";
-import EduRegulatorio from "../pages/edu/EduRegulatorio";
-import EduGovernanca from "../pages/edu/EduGovernanca";
-import EduInfraestrutura from "../pages/edu/EduInfraestrutura";
-import EduSuprimentos from "../pages/edu/EduSuprimentos";
-import EduPesquisa from "../pages/edu/EduPesquisa";
-import EduApoio from "../pages/edu/EduApoio";
-import EduComunicacao from "../pages/edu/EduComunicacao";
-import EduPortalAluno from "../pages/edu/EduPortalAluno";
-import EduIdentity from "../pages/EduIdentity";
+const EduReitoria = lazy(() => import("../pages/edu/EduReitoria"));
+const EduMinhaMesa = lazy(() => import("../pages/edu/EduMinhaMesa"));
+const EduJornadas = lazy(() => import("../pages/edu/EduJornadas"));
+const EduAdmissoes = lazy(() => import("../pages/edu/EduAdmissoes"));
+const EduSecretaria = lazy(() => import("../pages/edu/EduSecretaria"));
+const EduCalendario = lazy(() => import("../pages/edu/EduCalendario"));
+const EduNotas = lazy(() => import("../pages/edu/EduNotas"));
+const EduModalidades = lazy(() => import("../pages/edu/EduModalidades"));
+const EduDesempenho = lazy(() => import("../pages/edu/EduDesempenho"));
+const EduBiblioteca = lazy(() => import("../pages/edu/EduBiblioteca"));
+const EduRegulatorio = lazy(() => import("../pages/edu/EduRegulatorio"));
+const EduGovernanca = lazy(() => import("../pages/edu/EduGovernanca"));
+const EduInfraestrutura = lazy(() => import("../pages/edu/EduInfraestrutura"));
+const EduSuprimentos = lazy(() => import("../pages/edu/EduSuprimentos"));
+const EduPesquisa = lazy(() => import("../pages/edu/EduPesquisa"));
+const EduApoio = lazy(() => import("../pages/edu/EduApoio"));
+const EduComunicacao = lazy(() => import("../pages/edu/EduComunicacao"));
+const EduPortalAluno = lazy(() => import("../pages/edu/EduPortalAluno"));
+const EduIdentity = lazy(() => import("../pages/EduIdentity"));
 
 import Accounting from "../pages/Accounting";
 import Agenda from "../pages/Agenda";
@@ -132,6 +133,7 @@ export default function AppRoutes() {
   }
 
   return (
+    <Suspense fallback={<Box sx={{ p: 4 }}><Typography color="text.secondary">Carregando…</Typography></Box>}>
     <Routes>
       <Route path="/" element={<Dashboard />} />
 
@@ -336,5 +338,6 @@ export default function AppRoutes() {
         element={<Navigate to="/" replace />}
       />
     </Routes>
+    </Suspense>
   );
 }

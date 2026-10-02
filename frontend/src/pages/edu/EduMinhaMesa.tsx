@@ -11,13 +11,11 @@ interface Resumo { total: number; atrasados: number; criticos: number; aprovacoe
 export default function EduMinhaMesa() {
   const [tab, setTab] = useState(0);
   const [resumo, setResumo] = useState<Resumo | null>(null);
-  const [v, setV] = useState(0);
 
   const carregarResumo = useCallback(() => {
     eduApi.get<Resumo>("/reitoria/mesa/resumo").then(setResumo).catch(() => setResumo(null));
   }, []);
   useEffect(() => { carregarResumo(); }, [carregarResumo]);
-  const mudou = () => { carregarResumo(); setV((n) => n + 1); };
 
   return (
     <EduShell title="Minha mesa" subtitle="Suas pendências, aprovações, lembretes e avisos em um só lugar.">
@@ -34,9 +32,9 @@ export default function EduMinhaMesa() {
         <Tab label="Lembretes" />
         <Tab label={<Badge color="error" badgeContent={resumo?.notificacoesNaoLidas || 0} sx={{ "& .MuiBadge-badge": { right: -12 } }}>Notificações</Badge>} />
       </Tabs>
-      {tab === 0 && <PendenciasTab key={`p${v}`} onChanged={carregarResumo} />}
-      {tab === 1 && <LembretesTab key={`l${v}`} onChanged={carregarResumo} />}
-      {tab === 2 && <NotificacoesTab key={`n${v}`} onChanged={carregarResumo} />}
+      {tab === 0 && <PendenciasTab onChanged={carregarResumo} />}
+      {tab === 1 && <LembretesTab onChanged={carregarResumo} />}
+      {tab === 2 && <NotificacoesTab onChanged={carregarResumo} />}
     </EduShell>
   );
 }

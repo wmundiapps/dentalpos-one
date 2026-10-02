@@ -138,9 +138,10 @@ app.use(
     const contextReq = req as ContextRequest
     console.error(`[${contextReq.requestId || 'sem-request-id'}]`, err)
 
-    const status = err?.message === 'Origem não autorizada pelo CORS.' ? 403 : 500
+    const clientStatus = Number(err?.status || err?.statusCode)
+    const status = err?.message === 'Origem não autorizada pelo CORS.' ? 403 : clientStatus >= 400 && clientStatus < 500 ? clientStatus : 500
     return res.status(status).json({
-      error: status === 403 ? err.message : 'Erro interno do servidor.',
+      error: status === 403 ? err.message : status === 413 ? 'Corpo da requisição acima do limite permitido.' : status < 500 ? 'Requisição inválida.' : 'Erro interno do servidor.',
       requestId: contextReq.requestId
     })
   }

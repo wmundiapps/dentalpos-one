@@ -27,6 +27,12 @@ router.post(
     if (!discipline || !term) {
       return res.status(404).json({ error: 'Disciplina ou período não encontrado.' });
     }
+    const [prof, campus] = await Promise.all([
+      prisma.user.findFirst({ where: { id: req.body.professorUserId, tenantId }, select: { id: true } }),
+      req.body.campusId ? prisma.campus.findFirst({ where: { id: req.body.campusId, tenantId } }) : Promise.resolve(true),
+    ]);
+    if (!prof) return res.status(404).json({ error: 'Professor não encontrado neste tenant.' });
+    if (!campus) return res.status(404).json({ error: 'Campus não encontrado.' });
 
     const classSection = await prisma.classSection.create({
       data: { tenantId, ...req.body },

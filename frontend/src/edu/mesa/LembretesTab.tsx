@@ -26,7 +26,7 @@ function NovoLembrete({ aberto, onClose, onDone }: { aberto: boolean; onClose: (
         {erro && <Alert severity="error">{erro}</Alert>}
         <TextField label="Título" value={f.titulo} onChange={(e) => setF({ ...f, titulo: e.target.value })} fullWidth autoFocus />
         <TextField label="Descrição" value={f.descricao} onChange={(e) => setF({ ...f, descricao: e.target.value })} multiline minRows={2} fullWidth />
-        <TextField label="Data" type="date" value={f.dueAt} onChange={(e) => setF({ ...f, dueAt: e.target.value })} InputLabelProps={{ shrink: true }} fullWidth />
+        <TextField label="Data" type="date" value={f.dueAt} onChange={(e) => setF({ ...f, dueAt: e.target.value })} slotProps={{ inputLabel: { shrink: true } }} fullWidth />
         <TextField select label="Severidade" value={f.severity} onChange={(e) => setF({ ...f, severity: e.target.value })} fullWidth>
           <MenuItem value="INFO">Normal</MenuItem><MenuItem value="ATENCAO">Atenção</MenuItem><MenuItem value="CRITICO">Crítico</MenuItem>
         </TextField>

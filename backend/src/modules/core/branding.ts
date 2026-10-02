@@ -25,12 +25,14 @@ export async function getBranding(tenantId: string, campusId?: string | null): P
     prisma.eduInstitution.findUnique({ where: { tenantId } }),
     prisma.eduBrandAsset.findMany({
       where: { tenantId, ativo: true, OR: [{ campusId: null }, ...(campusId ? [{ campusId }] : [])] },
-      orderBy: [{ campusId: 'asc' }, { updatedAt: 'asc' }],
+      orderBy: [{ updatedAt: 'asc' }],
     }),
     prisma.clinic.findFirst({ where: { tenantId }, orderBy: { createdAt: 'asc' } }),
   ])
   const logos: Record<string, string> = {}
-  for (const a of assets) {
+  // marca geral (campusId nulo) primeiro; a do campus, por último, a sobrescreve
+  const ordered = [...assets].sort((a, b) => Number(a.campusId != null) - Number(b.campusId != null))
+  for (const a of ordered) {
     const src = a.dataUrl || a.url
     if (src) logos[a.kind] = src // campus (ordenado depois) sobrescreve a marca geral
   }

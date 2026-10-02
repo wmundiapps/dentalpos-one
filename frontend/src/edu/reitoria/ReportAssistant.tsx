@@ -57,7 +57,7 @@ export function AssistantBox({ perfil, programId }: { perfil: string; programId?
       </Box>
       <Box sx={{ display: "flex", gap: 1 }}>
         <TextField fullWidth size="small" placeholder="Pergunte sobre os indicadores da instituição…" value={q} onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !busy) perguntar(q); }} inputProps={{ maxLength: 1000 }} />
+          onKeyDown={(e) => { if (e.key === "Enter" && !busy) perguntar(q); }} slotProps={{ htmlInput: { maxLength: 1000 } }} />
         <Button variant="contained" onClick={() => perguntar(q)} disabled={busy} endIcon={busy ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}>Perguntar</Button>
       </Box>
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>

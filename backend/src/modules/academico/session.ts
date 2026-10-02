@@ -27,8 +27,9 @@ router.post(
   validate(createClassSessionSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { classSectionId } = req.body;
+    const tenantId = getTenantId(req);
 
-    const classSection = await prisma.classSection.findUnique({ where: { id: classSectionId } });
+    const classSection = await prisma.classSection.findFirst({ where: { id: classSectionId, tenantId } });
     if (!classSection) return res.status(404).json({ error: 'Turma não encontrada.' });
 
     // professor só cria aula na própria turma
@@ -48,15 +49,17 @@ router.get(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { classSectionId } = req.params as Record<string, string>;
     const { apenasDisponiveis } = req.query as Record<string, string>;
+    const tenantId = getTenantId(req);
 
     const sessions = await prisma.classSession.findMany({
       where: {
         classSectionId,
+        classSection: { tenantId },
         ...(apenasDisponiveis === 'true'
           ? { status: 'AGENDADA', dataHoraInicio: { gt: new Date() } }
           : {}),
       },
-      include: { _count: { select: { agendamentos: true } } },
+      include: { _count: { select: { agendamentos: { where: { status: { not: 'CANCELADO' } } } } } },
       orderBy: { dataHoraInicio: 'asc' },
     });
 
@@ -74,8 +77,8 @@ router.get(
   '/class-sessions/:id',
   requireAuth,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const session = await prisma.classSession.findUnique({
-      where: { id: String(req.params.id) },
+    const session = await prisma.classSession.findFirst({
+      where: { id: String(req.params.id), classSection: { tenantId: getTenantId(req) } },
       include: {
         classSection: { include: { discipline: true } },
         agendamentos: { include: { student: true } },
@@ -108,9 +111,9 @@ router.post(
       return res.status(403).json({ error: 'Você só pode agendar para si mesmo.' });
     }
 
-    const session = await prisma.classSession.findUnique({
-      where: { id: sessionId },
-      include: { _count: { select: { agendamentos: true } } },
+    const tenantId = getTenantId(req);
+    const session = await prisma.classSession.findFirst({
+      where: { id: sessionId, classSection: { tenantId } },
     });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada.' });
     if (session.status !== 'AGENDADA') {
@@ -120,32 +123,42 @@ router.post(
       return res.status(409).json({ error: 'Não é possível agendar uma aula que já começou.' });
     }
 
-    // aluno precisa estar matriculado na turma da sessão
+    const student = await prisma.student.findFirst({ where: { id: studentId, tenantId }, select: { id: true } });
+    if (!student) return res.status(404).json({ error: 'Aluno não encontrado.' });
+
+    // aluno precisa estar matriculado (matrícula ativa) na turma da sessão
     const matriculado = await prisma.classSectionEnrollment.findFirst({
       where: {
         classSectionId: session.classSectionId,
-        enrollment: { studentId },
+        enrollment: { studentId, status: 'ATIVA' },
       },
     });
     if (!matriculado) {
       return res.status(403).json({ error: 'Aluno não está matriculado na turma desta aula.' });
     }
 
-    if (session.vagasPratica != null && session._count.agendamentos >= session.vagasPratica) {
-      return res.status(409).json({ error: 'Não há mais vagas neste horário.' });
-    }
-
-    try {
-      const booking = await prisma.classSessionBooking.create({
-        data: { classSessionId: sessionId, studentId },
+    // vagas + criação sob lock da sessão (evita overbooking em concorrência)
+    const out = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "ClassSession" WHERE id = ${sessionId} FOR UPDATE`;
+      const existing = await tx.classSessionBooking.findUnique({
+        where: { classSessionId_studentId: { classSessionId: sessionId, studentId } },
       });
-      res.status(201).json(booking);
-    } catch (err: any) {
-      if (err.code === 'P2002') {
-        return res.status(409).json({ error: 'Você já tem um agendamento para esta aula.' });
+      if (existing && existing.status !== 'CANCELADO') {
+        return { error: 'Você já tem um agendamento para esta aula.' };
       }
-      throw err;
-    }
+      if (session.vagasPratica != null) {
+        const ocupadas = await tx.classSessionBooking.count({
+          where: { classSessionId: sessionId, status: { not: 'CANCELADO' } },
+        });
+        if (ocupadas >= session.vagasPratica) return { error: 'Não há mais vagas neste horário.' };
+      }
+      const booking = existing
+        ? await tx.classSessionBooking.update({ where: { id: existing.id }, data: { status: 'CONFIRMADO' } })
+        : await tx.classSessionBooking.create({ data: { classSessionId: sessionId, studentId } });
+      return { booking };
+    });
+    if ('error' in out) return res.status(409).json({ error: out.error });
+    res.status(201).json(out.booking);
   }),
 );
 
@@ -160,7 +173,9 @@ router.delete(
       return res.status(403).json({ error: 'Você só pode cancelar o próprio agendamento.' });
     }
 
-    const session = await prisma.classSession.findUnique({ where: { id: sessionId } });
+    const session = await prisma.classSession.findFirst({
+      where: { id: sessionId, classSection: { tenantId: getTenantId(req) } },
+    });
     if (!session) return res.status(404).json({ error: 'Sessão não encontrada.' });
     if (session.status === 'REALIZADA') {
       return res.status(409).json({ error: 'Não é possível cancelar: a aula já foi realizada.' });
@@ -189,12 +204,27 @@ router.post(
       registros: { studentId: string; presente: boolean; justificativa?: string }[];
     };
 
-    const session = await prisma.classSection.findFirst({
-      where: { sessoes: { some: { id: sessionId } } },
+    const tenantId = getTenantId(req);
+    const section = await prisma.classSection.findFirst({
+      where: { tenantId, sessoes: { some: { id: sessionId } } },
+      include: { sessoes: { where: { id: sessionId }, select: { status: true } } },
     });
-    if (!session) return res.status(404).json({ error: 'Sessão não encontrada.' });
-    if (req.user!.role === 'TEACHER' && session.professorUserId !== req.user!.id) {
+    if (!section) return res.status(404).json({ error: 'Sessão não encontrada.' });
+    if (req.user!.role === 'TEACHER' && section.professorUserId !== req.user!.id) {
       return res.status(403).json({ error: 'Você não leciona esta turma.' });
+    }
+    if (section.sessoes[0]?.status === 'CANCELADA') {
+      return res.status(409).json({ error: 'Sessão cancelada: não é possível lançar frequência.' });
+    }
+    const ids = [...new Set(registros.map((r) => r.studentId))];
+    const validos = await prisma.classSectionEnrollment.findMany({
+      where: { classSectionId: section.id, enrollment: { studentId: { in: ids } } },
+      select: { enrollment: { select: { studentId: true } } },
+    });
+    const okSet = new Set(validos.map((v) => v.enrollment.studentId));
+    const invalidos = ids.filter((i) => !okSet.has(i));
+    if (invalidos.length) {
+      return res.status(400).json({ error: 'Alunos não matriculados nesta turma.', studentIds: invalidos });
     }
 
     const results = await prisma.$transaction(

@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { eduContext } from './academico/middleware'
+import { eduContext, academicErrorHandler } from './academico/middleware'
 import academicoRouter from './academico/routes'
 import financeiroRouter from './financeiro/routes'
 import conteudoRouter from './conteudo/routes'
@@ -47,6 +47,8 @@ router.use('/biblioteca', bibliotecaRouter)
 router.use('/jornadas', jornadasRouter)
 router.use('/modalidades', modalidadesRouter)
 router.use('/reitoria', reitoriaRouter)
+// Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.
+router.use(academicErrorHandler)
 
 export default router
 
@@ -69,3 +71,4 @@ eduPublicRouter.use('/biblioteca', bibliotecaPublic)
 eduPublicRouter.use('/jornadas', jornadasPublic)
 eduPublicRouter.use('/modalidades', modalidadesPublic)
 eduPublicRouter.use('/reitoria', reitoriaPublic)
+eduPublicRouter.use(academicErrorHandler)

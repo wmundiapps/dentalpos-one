@@ -28,6 +28,7 @@ import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
 import { useAppTheme } from "../contexts/AppThemeContext";
+import InstitutionLogo from "../edu/InstitutionLogo";
 import { notifications } from "../services/NotificationService";
 import {
   appRootUrl,
@@ -45,6 +46,7 @@ export default function Header() {
   const demo = readDemoAccess();
   const sessionUser = readSessionUser();
   const clinicLogo = localStorage.getItem("dentalpos.clinicLogo") || "";
+  const eduPath = location.pathname === "/edu" || location.pathname.startsWith("/edu/");
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -243,8 +245,12 @@ export default function Header() {
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={clinicLogo ? "Logo da clínica" : "Espaço para a logo da sua clínica"}>
-          {clinicLogo ? (
+        <Tooltip title={eduPath ? "Logomarca da instituição (altere em Identidade e logomarcas)" : clinicLogo ? "Logo da clínica" : "Espaço para a logo da sua clínica"}>
+          {eduPath ? (
+            <Box sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center", px: 1.5, py: 0.5, borderLeft: "1px solid", borderRight: "1px solid", borderColor: "divider", minWidth: 150 }}>
+              <InstitutionLogo variant="header" onPlaceholderClick={() => navigate("/edu/identidade")} />
+            </Box>
+          ) : clinicLogo ? (
             <Box component="img" src={clinicLogo} alt="Logo da clinica" sx={{ height: 40, maxWidth: 120, objectFit: "contain", borderRadius: 1 }} />
           ) : (
             <Box sx={{ height: 40, px: 1.25, display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 0.75, border: "1px dashed", borderColor: "divider", borderRadius: 2, color: "text.secondary" }}>

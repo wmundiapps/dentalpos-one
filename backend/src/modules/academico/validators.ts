@@ -45,7 +45,7 @@ export const createTermSchema = z.object({
 // ---------- Aluno / Matrícula ----------
 
 export const createStudentSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().min(1),
   ra: z.string().min(3),
   nomeCompleto: z.string().min(3),
   cpf: z.string().optional(),
@@ -69,7 +69,7 @@ export const createClassSectionSchema = z.object({
   campusId: z.string().uuid().optional(),
   disciplineId: z.string().uuid(),
   termId: z.string().uuid(),
-  professorUserId: z.string().uuid(),
+  professorUserId: z.string().min(1),
   nome: z.string().min(2),
   vagas: z.number().int().positive().optional(),
 });
