@@ -126,7 +126,10 @@ export function mountEgressos(router: Router) {
     const tenantId = tid(req)
     const lista = await listarEgressosParaCampanha(tenantId, { semAtualizacaoDias: Number(req.body?.semAtualizacaoDias) || 365, programId: req.body?.programId, limite: 2000 })
     let enviados = 0
+    // não repete o pedido a quem já recebeu nos últimos 30 dias (evita spam em cliques repetidos)
+    const recentes = new Set((await prisma.eduNotification.findMany({ where: { tenantId, templateKey: 'apoio.egresso.atualizacao', refType: 'ApoEgresso', createdAt: { gte: addDays(new Date(), -30) } }, select: { refId: true } })).map((n) => n.refId))
     for (const e of lista) {
+      if (recentes.has(e.id)) continue
       const canal = e.email ? 'EMAIL' : 'WHATSAPP'
       await notify({ tenantId, canal, destino: e.email ?? e.telefone ?? undefined, assunto: 'Conte como está sua carreira!', mensagem: `Olá, ${e.nome}! Queremos acompanhar sua trajetória profissional e convidá-lo(a) para nossas ações com egressos. Atualize seu cadastro no portal.`, templateKey: 'apoio.egresso.atualizacao', refType: 'ApoEgresso', refId: e.id })
       enviados++
@@ -156,6 +159,8 @@ export function mountEgressos(router: Router) {
     const e = await prisma.apoEgresso.findFirst({ where: { id: String(req.params.id), tenantId } })
     if (!e) throw httpError(404, 'Egresso não encontrado.')
     await prisma.apoEgresso.update({ where: { id: e.id }, data: { nome: 'ANONIMIZADO', email: null, telefone: null, cpf: null, linkedin: null, empregadorAtual: null, cargoAtual: null, consenteContato: false, studentId: null } })
+    // a trajetória profissional também identifica a pessoa: remove empregador/cargo (mantém tipo/datas para estatística)
+    await prisma.apoEgressoTrajetoria.updateMany({ where: { tenantId, egressoId: e.id }, data: { organizacao: 'ANONIMIZADO', cargo: null } })
     await audit({ tenantId, userId: getUserId(req), modulo: MODULO, acao: 'EGRESSO_ANONIMIZADO', refType: 'ApoEgresso', refId: e.id })
     res.json({ ok: true })
   }))
