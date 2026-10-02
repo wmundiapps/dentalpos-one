@@ -61,6 +61,7 @@ import Integrations from "../pages/Integrations";
 import ImportPatients from "../pages/ImportPatients";
 import Team from "../pages/Team";
 import Permissions from "../pages/Permissions";
+import OnlineReceipts from "../pages/OnlineReceipts";
 import Homologation from "../pages/Homologation";
 
 import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
@@ -282,6 +283,7 @@ export default function AppRoutes() {
       <Route path="/importar-pacientes" element={<ImportPatients />} />
       <Route path="/equipe" element={<Team />} />
       <Route path="/permissoes" element={<Permissions />} />
+      <Route path="/recebimentos-online" element={<OnlineReceipts />} />
       <Route path="/homologacao" element={<WmundiStaffOnly><Homologation /></WmundiStaffOnly>} />
 
       <Route

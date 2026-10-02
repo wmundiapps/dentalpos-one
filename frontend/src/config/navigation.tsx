@@ -126,6 +126,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Contas a Receber","/financeiro?tipo=Receita",<PaymentsIcon/>),
       item("Contas a Pagar","/financeiro?tipo=Despesa",<ReceiptLongIcon/>),
       item("Cobranças","/pagamentos",<CreditCardIcon/>),
+      item("Recebimentos online","/recebimentos-online",<PaymentsIcon/>),
       item("Digitalizar Financeiro","/financeiro/digitalizar",<ReceiptLongIcon/>),
     ]
   },
