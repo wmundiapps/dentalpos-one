@@ -29,6 +29,9 @@ Aba **Sorriso / foto** → *Usar foto de exemplo* (ou carregue uma foto e marque
 Ajuste *Exibição incisal*, *Inclinação do plano incisal*, *Zoom*, ative **Comparador antes/depois**. Mude cor (aba Caso) e forma e veja a projeção mudar.
 A análise facial mostra o formato do rosto detectado e o dente recomendado; **Salvar imagem (PNG)** exporta.
 
+## 5b. Escaneamento (STL)
+Aba **Escaneamento (STL)**: importe um STL (arcada de trabalho/antagonista), use **Diagnosticar/Reparar**, **Marcar 3 pontos** (molar D, molar E, incisal) para orientar o escaneamento e ajustar o arco, **Marcar término** clicando no modelo, **Calcular melhor eixo** e, com um dente do projeto selecionado, **Espessura**, **Contato c/ antagonista** e **Ajuste ao preparo**.
+
 ## 6. Enceramento e mockup
 Aba **Enceramento / mockup** → *Gerar modelo + gengiva* (arcada superior), *Iniciar escultura* e clique sobre a cera com ＋/－/≈ (raio ajustável),
 *Gerar bandeja de mockup* (espessura, folga, respiros) e **Exportar STL**. Processamentos pesados rodam em Web Worker (aparece “Gerando…”).

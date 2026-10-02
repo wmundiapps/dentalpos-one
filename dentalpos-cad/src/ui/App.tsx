@@ -10,6 +10,7 @@ import { SmilePanel } from "./SmilePanel";
 import { WaxPanel } from "./WaxPanel";
 import { GuidePanel, implantMeshes } from "./GuidePanel";
 import { CamPanel } from "./CamPanel";
+import { ScanPanel } from "./ScanPanel";
 import { ReportPanel } from "./ReportPanel";
 import { AiPanel } from "./AiPanel";
 import { download } from "./atoms";
@@ -20,8 +21,8 @@ import { parseProject, serializeProject } from "../core/io";
 import { cylinderMesh } from "../core/primitives";
 import { mergeMeshes } from "../core/mesh";
 
-type Tab = "case" | "teeth" | "occlusion" | "smile" | "wax" | "guide" | "cam" | "ai" | "report";
-const TABS: Array<[Tab, string, string]> = [["case", "◎", "Caso e biblioteca"], ["teeth", "🦷", "Dentes"], ["occlusion", "⚖", "Oclusão (Andrews)"], ["smile", "☺", "Sorriso / foto"], ["wax", "✎", "Enceramento / mockup"], ["guide", "⌖", "Guia cirúrgico"], ["cam", "⚙", "Materiais / CAM"], ["ai", "✨", "IA e alertas"], ["report", "▤", "Relatório"]];
+type Tab = "case" | "teeth" | "occlusion" | "smile" | "scan" | "wax" | "guide" | "cam" | "ai" | "report";
+const TABS: Array<[Tab, string, string]> = [["case", "◎", "Caso e biblioteca"], ["teeth", "🦷", "Dentes"], ["occlusion", "⚖", "Oclusão (Andrews)"], ["smile", "☺", "Sorriso / foto"], ["scan", "▦", "Escaneamento (STL)"], ["wax", "✎", "Enceramento / mockup"], ["guide", "⌖", "Guia cirúrgico"], ["cam", "⚙", "Materiais / CAM"], ["ai", "✨", "IA e alertas"], ["report", "▤", "Relatório"]];
 const UPPER = [17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27], LOWER = [47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37];
 
 export interface AppProps { initialProject?: CadProject; onProjectChange?: (p: CadProject) => void; persist?: boolean; apiRef?: React.MutableRefObject<{ getProject: () => CadProject; setProject: (p: CadProject) => void } | null> }
@@ -142,7 +143,7 @@ export default function App({ initialProject, onProjectChange, persist = true, a
       </div>
       <div className="main">
         <div className="nav" data-testid="nav">
-          {TABS.map(([k, ico, label], i) => (<Fragment key={k}><button className={tab === k ? "on" : ""} onClick={() => setTab(k)} data-testid={`tab-${k}`}><span className="ico">{ico}</span><span>{label}</span></button>{i === 6 || i === 7 ? <hr /> : null}</Fragment>))}
+          {TABS.map(([k, ico, label], i) => (<Fragment key={k}><button className={tab === k ? "on" : ""} onClick={() => setTab(k)} data-testid={`tab-${k}`}><span className="ico">{ico}</span><span>{label}</span></button>{i === 7 || i === 8 ? <hr /> : null}</Fragment>))}
         </div>
         <div className="center">
           <div className="stage">
@@ -190,6 +191,7 @@ export default function App({ initialProject, onProjectChange, persist = true, a
           {tab === "teeth" && <TeethPanel c={ctx} />}
           {tab === "occlusion" && <OcclusionPanel c={ctx} />}
           {tab === "smile" && <SmilePanel c={ctx} />}
+          {tab === "scan" && <ScanPanel c={ctx} />}
           {tab === "wax" && <WaxPanel c={ctx} />}
           {tab === "guide" && <GuidePanel c={ctx} />}
           {tab === "cam" && <CamPanel c={ctx} />}

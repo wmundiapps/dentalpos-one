@@ -29,6 +29,7 @@ Roteiro de teste passo a passo: [`docs/MANUAL-DE-TESTE.md`](docs/MANUAL-DE-TESTE
 | **Dentes** | Edição por dente: posição (sliders, setas do teclado ou arrastar no 3D), tip/torque/rotação sobre a norma de Andrews, largura/altura, espelhamento, tipo de restauração e material, redução do preparo, **mapa de espessura 3D**, importação de STL/OBJ/PLY de dente (biblioteca própria). |
 | **Oclusão (Andrews)** | As **6 chaves de Andrews** (relação molar/canina, angulação, inclinação, rotações, contatos, plano oclusal), overjet/overbite (mm e %), curva de Spee, raio de Wilson, linha média, Bolton, mordida cruzada, **mapa de contatos oclusais**. |
 | **Sorriso / foto** | Calibração pela distância interpupilar, marcos faciais, contorno da boca, projeto dos dentes sobre a foto (cor, brilho, corredor bucal), grade (linha interpupilar, média, plano incisal, proporções), antes/depois, zoom, PNG. **Classifica o formato do rosto** pelos pontos e recomenda a forma dental. |
+| **Escaneamento (STL)** | Motor **portado do DentalPos One** (`src/scan/`): importa arcada de trabalho, antagonista e registro de mordida; diagnóstico e reparo de malha; orientação ao projeto por 3 pontos (ajusta largura/profundidade do arco); linha de término; eixo de inserção e áreas em sombra; espessura, contato com antagonista e ajuste ao preparo do dente do projeto; exportação STL. |
 | **Enceramento / mockup** | Modelo + gengiva por campo de distância (SDF), **escultura de cera** (adicionar/remover/alisar), **bandeja de mockup** com espessura/folga/respiros, exportação STL. |
 | **Guia cirúrgico** | Planejamento de implantes (kits configuráveis), dados de CBCT opcionais, regras de segurança (≥ 3 mm entre implantes, ≥ 1,5 mm de dente, osso V-L, canal 2 mm, seio, forame mentual, ≤ 15° do eixo protético, suporte do guia), **geração da guia** (casca, colar, furos, mangas) em STL. |
 | **Materiais / CAM** | Biblioteca de materiais (zircônia, e.max, PMMA…) com espessuras/conectores mínimos, compensação de sinterização, pinos de fresagem, **nesting em disco**, checagem de alcance da fresa, **pacote ZIP** (STL + projeto + relatório). |
@@ -46,6 +47,7 @@ src/core/   núcleo sem dependência de UI (roda em Node e no navegador)
   measure · rules · ai · smile                      → medições, regras clínicas, autocorreção, análise facial/foto
   voxel · wax · crown · guide · cam · scan          → SDF/surface-nets, enceramento/mockup, coroa/espessura, guia, CAM, ICP/Kabsch
   materials · library · io · primitives · worker    → materiais, STL próprio, E/S (STL/OBJ/PLY/ZIP/JSON), jobs em Web Worker
+src/scan/   motor de escaneamento portado do DentalPos One (STL, diagnóstico/reparo, preparo, contato, espessura…)
 src/ui/     interface React + three.js
 src/index.ts  API pública do núcleo      src/embed.tsx  montagem embutida
 ```
@@ -67,7 +69,8 @@ dente local x = distal, y = vestibular, z = oclusal; numeração FDI.
 * A morfologia dentária é **paramétrica** (gerada por código), não escaneada: serve para planejar, simular e prototipar;
   para acabamento final use a importação de STL de dente (sua biblioteca licenciada).
 * Não lê DICOM nem faz segmentação óssea: os dados de CBCT (largura/altura óssea, distâncias a canal/seio) são digitados.
-  O escaneamento do paciente (STL/PLY/OBJ) tem utilitários de alinhamento (Kabsch/ICP), eixo de inserção e margem no núcleo (`scan.ts`), ainda sem tela dedicada.
+* O repositório do DentalPos One traz o **catálogo** de dentes por FDI (`tooth-library`), mas nenhum arquivo STL de dente; por isso a biblioteca em uso aqui é a paramétrica. Coloque seus STLs e importe por dente na aba Dentes.
+* Ainda não portado do DentalPos One: a Fila de Design ↔ Laboratório e o painel de caso (dependem do `OperationsHubService`); entram na integração.
 * Os marcos faciais da foto são marcados manualmente (sem detecção automática por visão computacional).
 * Parâmetros de kits de implante e de materiais são **genéricos**; confira a IFU do fabricante/lote.
 * O formato `dentalProject` do exocad não é reproduzido (esquema proprietário não documentado).
