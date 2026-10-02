@@ -114,7 +114,7 @@ export function mountBolsas(router: Router) {
     if (['DEFERIDA', 'CANCELADA'].includes(insc.status)) throw httpError(409, `Inscrição já ${insc.status}.`)
     const prog = await prisma.apoProgramaBolsa.findFirst({ where: { id: insc.programaId, tenantId } })
     if (!prog) throw httpError(404, 'Programa não encontrado.')
-    let concessao = null
+    let concessao: any = null
     if (b.decisao === 'DEFERIDA') {
       if (!insc.elegivel && !b.forcar) throw httpError(422, 'Inscrição não elegível pelos critérios; use forcar=true com parecer justificado.')
       const ativas = await prisma.apoConcessaoBolsa.count({ where: { tenantId, programaId: prog.id, status: { in: ['ATIVA', 'RENOVACAO_PENDENTE'] } } })

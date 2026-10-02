@@ -58,7 +58,7 @@ export function registerNde(router: Router) {
   router.get('/ndes-conformidade', requireRole(...READ, ...WRITE), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req)
     const ndes = await prisma.govNde.findMany({ where: { tenantId, ativo: true }, select: { id: true } })
-    const items = []
+    const items: any[] = []
     for (const n of ndes) { const r = await verificarNde(tenantId, n.id); if (r) items.push(r) }
     res.json({ items, total: items.length, naoConformes: items.filter((i) => !i.conforme).length })
   }))

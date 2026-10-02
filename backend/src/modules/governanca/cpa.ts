@@ -239,7 +239,7 @@ export function registerCpa(router: Router) {
     const body = parseBody(z.object({ limiar: z.number().min(1).max(99).default(60), prazoDias: z.number().int().min(7).max(730).default(180) }), req.body ?? {})
     const { ciclo, ag } = await carregarAgregado(tenantId, String(req.params.id))
     const frag = fragilidades(ag, body.limiar)
-    const criadas = []
+    const criadas: any[] = []
     for (const f of frag) {
       const eixo = f.nivel === 'EIXO' ? Number(f.chave) : undefined
       const dimensao = f.nivel === 'DIMENSAO' ? Number(f.chave) : undefined

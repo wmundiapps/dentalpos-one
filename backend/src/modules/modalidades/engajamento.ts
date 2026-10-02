@@ -80,7 +80,7 @@ router.get('/turmas/:classSectionId', requireRole(...TEACH), asyncHandler(async 
   const matr = await prisma.classSectionEnrollment.findMany({ where: { classSectionId, classSection: { tenantId } }, include: { enrollment: { select: { studentId: true } } } })
   const studentIds = [...new Set(matr.map((m) => m.enrollment.studentId))]
   const cfg = await getConfig(tenantId)
-  const alunos = []
+  const alunos: any[] = []
   for (const studentId of studentIds.slice(0, 500)) {
     const m = await calcularMetricasAluno(tenantId, studentId, new Date(), classSectionId)
     alunos.push({ studentId, ...m, risco: calcularRiscoEngajamento(m, cfg) })

@@ -17,7 +17,7 @@ export const DAY = 86_400_000
 export const optDate = () => dateISO().optional()
 export const optDateNull = () => z.preprocess((v) => (v === '' ? undefined : v), dateISO().optional())
 
-export const fail = (status: number, msg: string): never => {
+export function fail(status: number, msg: string): never {
   throw Object.assign(new Error(msg), { status })
 }
 

@@ -35,7 +35,7 @@ mountCrud(router, {
     }
     return d
   },
-  afterCreate: async (row, req) => scheduleReminder({ tenantId: getTenantId(req), modulo: 'modalidades', titulo: `${row.tipo.replace(/_/g, ' ').toLowerCase()}: ${row.titulo}`, dueAt: row.inicio, antecedenciaDias: 3, assigneeRole: 'COORDINATOR', refType: 'ModAgendaPratica', refId: row.id, dedupeKey: `mod-prat-${row.id}` }),
+  afterCreate: async (row, req) => { await scheduleReminder({ tenantId: getTenantId(req), modulo: 'modalidades', titulo: `${row.tipo.replace(/_/g, ' ').toLowerCase()}: ${row.titulo}`, dueAt: row.inicio, antecedenciaDias: 3, assigneeRole: 'COORDINATOR', refType: 'ModAgendaPratica', refId: row.id, dedupeKey: `mod-prat-${row.id}` }) },
 })
 
 router.post('/agendas-praticas/:id/inscrever', requireRole('STUDENT', ...MANAGE), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

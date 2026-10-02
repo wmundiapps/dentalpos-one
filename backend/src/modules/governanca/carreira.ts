@@ -61,7 +61,7 @@ export function registerCarreira(router: Router) {
   router.get('/carreira/planos/:id/elegiveis', requireRole(...RR), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req)
     const enqs = await prisma.govCarreiraEnquadramento.findMany({ where: { tenantId, planoId: String(req.params.id), ativo: true } })
-    const items = []
+    const items: any[] = []
     let impactoMensal = 0
     for (const e of enqs) {
       const { sim } = await simularEnq(tenantId, e.id)
