@@ -8,7 +8,7 @@ import { Choque, conflictsForCandidate, detectSlotConflicts } from './conflicts'
 import { IcsEvento, buildIcs, rruleSemanal } from './ical'
 import { DIAS_SEMANA, endOfLocalDay, minToHHMM, nextWeekdayOnOrAfter, parseDateKey, slotInstant, startOfLocalDay } from './time'
 import {
-  GESTAO, MODULO, SlotRow, TODOS_PAPEIS, carregarEspacos, datasBloqueadas, enriquecerSlots, erro, registrarConflitoManual, requireSpace, requireTerm,
+  GESTAO, MODULO, comTravaDeEspaco, SlotRow, TODOS_PAPEIS, carregarEspacos, datasBloqueadas, enriquecerSlots, erro, registrarConflitoManual, requireSpace, requireTerm,
   resolverConflitosDoRegistro, slotLike, sincronizarConflitos, temPapel, toStrArray, nomesUsuarios,
 } from './service'
 import { configDisciplina, resolverTurmas } from './turmas'
@@ -303,11 +303,16 @@ export function registerGrade(router: Router) {
       if (b.professorUserId && !(await prisma.user.findFirst({ where: { id: b.professorUserId, tenantId }, select: { id: true } }))) throw erro(404, 'Professor não encontrado.')
       const spaceId = b.tipoAula === 'ONLINE' ? null : b.spaceId ?? null
       if (spaceId) await requireSpace(tenantId, spaceId)
+      const travado = await comTravaDeEspaco(tenantId, [`grade:${b.termId}`], async () => {
       const v = await validarSlot(tenantId, { termId: b.termId, classSectionId: sec.id, disciplineId: sec.disciplineId, grupo: info.grupo, professorUserId, spaceId, diaSemana: b.diaSemana, inicioMin: b.inicioMin, fimMin: b.fimMin, tipoAula: b.tipoAula, alunos: info.alunos })
-      if (v.duros.length && !b.forcar) return res.status(409).json({ error: 'A alocação gera choques ou viola regras do espaço.', choques: v.duros, avisos: v.avisos, dica: 'Gestores podem repetir com "forcar": true; o choque ficará registrado como aberto.' })
+      if (v.duros.length && !b.forcar) return { conflito: { error: 'A alocação gera choques ou viola regras do espaço.', choques: v.duros, avisos: v.avisos, dica: 'Gestores podem repetir com "forcar": true; o choque ficará registrado como aberto.' } }
       const row = await prisma.calSlot.create({
         data: { tenantId, termId: b.termId, classSectionId: sec.id, disciplineId: sec.disciplineId, grupo: info.grupo, programId: info.programId, periodo: info.periodo, professorUserId, spaceId, diaSemana: b.diaSemana, inicioMin: b.inicioMin, fimMin: b.fimMin, tipoAula: b.tipoAula as any, fixo: b.fixo, observacao: b.observacao ?? null, origem: 'MANUAL' },
       })
+      return { v, row }
+      })
+      if ('conflito' in travado) return res.status(409).json(travado.conflito)
+      const { v, row } = travado
       if (v.duros.length) {
         for (const ch of v.choques) {
           await registrarConflitoManual(tenantId, b.termId, { tipo: ch.tipo, chave: `slot:${ch.tipo}:${[row.id, ch.slotIds.find((x) => x !== 'novo') ?? ''].sort().join(':')}`, descricao: ch.descricao, detalhes: { forcadoPor: getUserId(req) } })

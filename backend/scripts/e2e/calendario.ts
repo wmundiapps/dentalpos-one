@@ -186,6 +186,14 @@ async function main() {
   r = await teacher('POST', `/edu/calendario/provas/${pv.id}/status`, { status: 'CANCELADA', motivo: 'Greve' }); check('cancelar', r.status === 200, r)
   r = await coord('GET', `/edu/calendario/provas/conflitos?termId=${term.id}`); check('provas conflitos', r.status === 200, r)
 
+  // concorrência: duas provas no mesmo grupo/horário
+  const cp = await Promise.all([coord('POST', '/edu/calendario/provas', { classSectionId: secA.id, tipo: 'PROVA_UNICA', ...futuro('2026-11-24', '14:00', '16:00'), spaceId: s102.id }), coord('POST', '/edu/calendario/provas', { classSectionId: secB.id, tipo: 'PROVA_UNICA', ...futuro('2026-11-24', '14:30', '16:30'), spaceId: s102.id })])
+  check('prova concorrente: só uma', cp.filter((x) => x.status === 201).length === 1, cp.map((x) => x.status))
+  // concorrência: dois slots em choque
+  const cs = await Promise.all([coord('POST', '/edu/calendario/grade/slots', { termId: term.id, classSectionId: secA.id, diaSemana: 6, inicioMin: 480, fimMin: 570, spaceId: s102.id }), coord('POST', '/edu/calendario/grade/slots', { termId: term.id, classSectionId: secB.id, diaSemana: 6, inicioMin: 500, fimMin: 560, spaceId: s102.id })])
+  check('slot concorrente: só um', cs.filter((x) => x.status === 201).length === 1, cs.map((x) => x.status))
+  await prisma.calSlot.deleteMany({ where: { tenantId: A.tenantId, diaSemana: 6 } })
+
   // ---- prazos
   r = await coord('GET', `/edu/calendario/prazos?termId=${term.id}`); const prazos = r.json.items; check('prazos list', r.status === 200 && prazos.length === 3, prazos?.length)
   const pr = prazos.find((p: any) => p.etapa === 'N1')

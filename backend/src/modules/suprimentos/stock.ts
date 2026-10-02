@@ -42,11 +42,15 @@ export async function proximoNumero(tx: Tx, tenantId: string, prefixo: string) {
 // Aplica (+/-) ao saldo de um almoxarifado com bloqueio PESSIMISTA da linha do saldo
 // (SELECT ... FOR UPDATE): movimentações concorrentes no mesmo item/almoxarifado são serializadas
 // e cada uma enxerga o saldo já confirmado pela anterior (sem 409 espúrio nem saldo negativo).
-async function mexerSaldo(tx: Tx, p: { tenantId: string; almoxarifadoId: string; itemId: string; sentido: 1 | -1; quantidade: number; custoEntrada?: number }) {
+async function travarSaldo(tx: Tx, p: { tenantId: string; almoxarifadoId: string; itemId: string }) {
   // INSERT ... ON CONFLICT DO NOTHING (o upsert do Prisma pode disputar a criação e abortar a transação).
   await tx.$executeRaw`INSERT INTO "SupSaldo" ("id", "tenantId", "almoxarifadoId", "itemId", "quantidade", "custoMedio", "updatedAt") VALUES (${randomUUID()}, ${p.tenantId}, ${p.almoxarifadoId}, ${p.itemId}, 0, 0, NOW()) ON CONFLICT ("almoxarifadoId", "itemId") DO NOTHING`
   const locked = await tx.$queryRaw<Array<{ id: string; quantidade: number; custoMedio: number }>>`SELECT "id", "quantidade", "custoMedio" FROM "SupSaldo" WHERE "almoxarifadoId" = ${p.almoxarifadoId} AND "itemId" = ${p.itemId} FOR UPDATE`
-  const atual = locked[0]
+  return locked[0]
+}
+
+async function mexerSaldo(tx: Tx, p: { tenantId: string; almoxarifadoId: string; itemId: string; sentido: 1 | -1; quantidade: number; custoEntrada?: number }) {
+  const atual = await travarSaldo(tx, p)
   const r = aplicarMovimento(atual.quantidade, atual.custoMedio, p.sentido, p.quantidade, p.custoEntrada)
   await tx.supSaldo.update({ where: { id: atual.id }, data: { quantidade: r.saldo, custoMedio: r.custoMedio, ultimaMovimentacao: new Date() } })
   return r
@@ -107,12 +111,21 @@ export async function movimentarTx(tx: Tx, p: MovParams) {
   }
 
   // Saída (SAIDA, PERDA, AJUSTE -, TRANSFERENCIA origem)
+  // Trava o saldo antes de escolher os lotes: saídas concorrentes não disputam o mesmo lote.
+  const saldoTravado = await travarSaldo(tx, { tenantId: p.tenantId, almoxarifadoId: p.almoxarifadoId, itemId: p.itemId })
   let partes: Array<{ numero?: string; loteId?: string; quantidade: number }> = [{ numero: p.loteNumero, quantidade: p.quantidade }]
   if (item.controlaLote && !p.loteNumero) {
     const lotes = await tx.supLote.findMany({ where: { tenantId: p.tenantId, almoxarifadoId: p.almoxarifadoId, itemId: p.itemId, quantidade: { gt: 0 } } })
     const { selecao, faltante } = selecionarLotesFEFO(lotes, p.quantidade)
     partes = selecao.map((s) => ({ numero: s.numero, loteId: s.loteId, quantidade: s.quantidade }))
-    if (faltante > 0) partes.push({ quantidade: faltante }) // saldo legado sem lote (ainda protegido pela checagem de saldo)
+    if (faltante > 1e-9) {
+      // Só pode sair sem lote o que de fato está sem lote (legado/devolução/ajuste). Lotes vencidos nunca são consumidos
+      // automaticamente: o que sobrar neles exige baixa por PERDA.
+      const somaLotes = lotes.reduce((t, l) => t + l.quantidade, 0)
+      const semLote = Math.max(0, round3(saldoTravado.quantidade - somaLotes))
+      if (faltante > semLote + 1e-9) throw Object.assign(new Error(`Saldo utilizável insuficiente em lotes válidos (faltam ${round3(faltante - semLote)}); lotes vencidos exigem baixa por PERDA informando o lote.`), { status: 409 })
+      partes.push({ quantidade: faltante })
+    }
   }
   const saldoOrigem = await tx.supSaldo.findUnique({ where: { almoxarifadoId_itemId: { almoxarifadoId: p.almoxarifadoId, itemId: p.itemId } } })
   const custoSaida = saldoOrigem?.custoMedio ?? 0

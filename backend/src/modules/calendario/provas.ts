@@ -8,7 +8,7 @@ import { cancelReminders, scheduleReminder } from '../core/reminders'
 import { ChoqueExame, ExameLike, conflitosExame } from './rules'
 import { DAY_MS, addDays, endOfLocalDay, localDateKey, startOfLocalDay, toLocal } from './time'
 import {
-  GESTAO, MODULO, carregarEspacos, carregarOcupacaoEspaco, datasBloqueadas, erro, nomesUsuarios, requireSpace, requireTerm, sincronizarConflitos, temPapel,
+  GESTAO, MODULO, comTravaDeEspaco, carregarEspacos, carregarOcupacaoEspaco, datasBloqueadas, erro, nomesUsuarios, requireSpace, requireTerm, sincronizarConflitos, temPapel,
 } from './service'
 import { resolverTurmas } from './turmas'
 
@@ -249,8 +249,10 @@ export function registerProvas(router: Router) {
         if (ok !== fiscais.length) throw erro(404, 'Algum fiscal informado não existe.')
       }
       const alunosPrevistos = b.alunosPrevistos ?? info.alunos
+      // valida e grava sob trava do período: duas requisições concorrentes não podem ocupar a mesma sala/professor/grupo
+      const travado = await comTravaDeEspaco(tenantId, [`exames:${sec.termId}`], async () => {
       const v = await validarExame(tenantId, { termId: sec.termId, classSectionId: sec.id, grupo: info.grupo, spaceId: b.spaceId ?? null, professorUserId, fiscais: fiscais.map((f) => f.userId), inicio: b.inicio, fim: b.fim, alunos: alunosPrevistos, tipo: b.tipo }, term)
-      if (v.duros.length) return res.status(409).json({ error: 'Não é possível agendar a avaliação.', motivos: v.duros, avisos: v.avisos })
+      if (v.duros.length) return { conflito: { error: 'Não é possível agendar a avaliação.', motivos: v.duros, avisos: v.avisos } }
       const titulo = b.titulo ?? `${b.tipo.replace('_', ' ').toLowerCase()} — ${disc?.nome ?? sec.nome}`
       const janela = b.tipo !== 'SEGUNDA_CHAMADA' && b.segundaChamadaDias > 0 ? { segundaChamadaInicio: addDays(startOfLocalDay(b.fim), 1), segundaChamadaFim: endOfLocalDay(addDays(startOfLocalDay(b.fim), b.segundaChamadaDias)) } : {}
       const row = await prisma.calExame.create({
@@ -260,6 +262,10 @@ export function registerProvas(router: Router) {
         },
         include: { fiscais: true },
       })
+      return { v, row, titulo }
+      })
+      if ('conflito' in travado) return res.status(409).json(travado.conflito)
+      const { v, row, titulo } = travado
       await agendarLembretesExame(tenantId, row, fiscais.map((f) => f.userId))
       for (const f of fiscais) await notify({ tenantId, userId: f.userId, assunto: 'Escala de fiscalização', mensagem: `Você foi escalado(a) como ${f.papel.toLowerCase().replace('_', ' ')} na avaliação "${titulo}" em ${fmt(row.inicio)}.`, refType: 'CalExame', refId: row.id })
       await audit({ tenantId, userId, modulo: MODULO, acao: 'AGENDAR_PROVA', refType: 'CalExame', refId: row.id, detalhes: { tipo: b.tipo, inicio: b.inicio } })
