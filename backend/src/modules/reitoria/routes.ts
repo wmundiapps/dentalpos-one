@@ -27,13 +27,13 @@ const GESTAO: AcademicRole[] = ['COORDINATOR']
 
 const role = (req: AuthenticatedRequest) => String(req.user?.role || '').toUpperCase()
 
-async function resolverEscopo(req: AuthenticatedRequest, perfilReq?: string) {
+async function resolverEscopo(req: AuthenticatedRequest, perfilReq?: string, programIdBody?: string) {
   const tenantId = getTenantId(req)
   const r = role(req)
   const perfil = (perfilReq as Perfil | undefined) ?? perfilDoPapel(r)
   if (!PERFIS.includes(perfil)) fail(400, `Perfil inválido. Use: ${PERFIS.join(', ')}.`)
   if (!podeVerPerfil(r, perfil)) fail(403, 'Sem permissão para este painel.')
-  const programId = qs(req.query.programId)
+  const programId = programIdBody ?? qs(req.query.programId)
   if (programId) {
     if (!(await prisma.academicProgram.findFirst({ where: { id: programId, tenantId }, select: { id: true } }))) fail(404, 'Curso não encontrado.')
   }
@@ -208,8 +208,7 @@ router.post('/assistente/perguntar', requireRole(...PAINEL_ROLES), asyncHandler(
   const b = parseBody(perguntaSchema, req.body)
   const uid = getUserId(req)
   if (!limitarTaxa(`${getTenantId(req)}|${uid}`)) fail(429, 'Muitas perguntas em sequência. Aguarde um minuto.')
-  ;(req.query as any).programId = b.programId
-  const e = await resolverEscopo(req, b.perfil)
+  const e = await resolverEscopo(req, b.perfil, b.programId)
   res.json(await perguntar({ ...e, userId: uid, clinicId: req.user?.clinicId, pergunta: b.pergunta }))
 }))
 

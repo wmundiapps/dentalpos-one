@@ -59,7 +59,7 @@ export function useToast() {
     if (confirmText && !window.confirm(confirmText)) return;
     try {
       const r = await fn();
-      setMsg({ type: "success", text: ok });
+      if (ok) setMsg({ type: "success", text: ok });
       after?.(r);
       return r;
     } catch (e: any) { setMsg({ type: "error", text: e?.message || "Falha na operação." }); }

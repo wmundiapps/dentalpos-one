@@ -1,4 +1,4 @@
-import { Box, Button, Checkbox, FormControlLabel } from "@mui/material";
+import { Box, Checkbox, FormControlLabel } from "@mui/material";
 import { useState } from "react";
 import EduResourcePage from "../EduResourcePage";
 import ListTable from "../infraestrutura/ListTable";

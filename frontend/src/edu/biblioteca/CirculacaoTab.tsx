@@ -10,12 +10,11 @@ import LeitoresPanel from "./LeitoresPanel";
 import { LeitorPicker, ObraPicker } from "./pickers";
 
 function Emprestimos({ rk }: { rk: number }) {
-  const [key, setKey] = useState(0);
   const [atr, setAtr] = useState(false);
   const toast = useToast();
   return (
     <Box>
-      <ListTable path="/biblioteca/emprestimos" refreshKey={key + rk} searchable={false} extraQuery={atr ? { atrasados: "true" } : {}}
+      <ListTable path="/biblioteca/emprestimos" refreshKey={rk} searchable={false} extraQuery={atr ? { atrasados: "true" } : {}}
         filters={[{ key: "status", label: "Situação", options: ["ATIVO", "DEVOLVIDO", "PERDIDO"] }]}
         toolbar={<FormControlLabel control={<Checkbox checked={atr} onChange={(e) => setAtr(e.target.checked)} />} label="Somente atrasados" />}
         columns={[
