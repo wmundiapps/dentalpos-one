@@ -2545,3 +2545,60 @@ model LabOrder {
   @@index([clinicId, deletedAt])
   @@index([tenantId])
 }
+
+// Cobrança real (Asaas) gerada a partir de um lançamento a receber.
+model ReceivableCharge {
+  id                String    @id @default(cuid())
+  clinicId          String
+  tenantId          String
+  financialEntryId  String
+  provider          String    @default("ASAAS")
+  externalId        String
+  installmentId     String?
+  billingType       String
+  installmentCount  Int       @default(1)
+  value             Decimal   @db.Decimal(12, 2)
+  dueDate           DateTime  @db.Date
+  status            String    @default("PENDENTE")
+  invoiceUrl        String?
+  pixCopyPaste      String?
+  barcode           String?
+  digitableLine     String?
+  paidPaymentIds    String[]  @default([])
+  paidAt            DateTime?
+  netValue          Decimal?  @db.Decimal(12, 2)
+  createdById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  splits PaymentSplitLine[]
+
+  @@unique([clinicId, externalId])
+  @@index([financialEntryId])
+  @@index([clinicId, status])
+  @@index([tenantId])
+}
+
+// Parte da cobrança que o Asaas repassa automaticamente (split) à carteira de um dentista.
+model PaymentSplitLine {
+  id            String    @id @default(cuid())
+  clinicId      String
+  tenantId      String
+  chargeId      String
+  doctorId      String
+  walletId      String
+  mode          String
+  percent       Decimal?  @db.Decimal(7, 4)
+  plannedAmount Decimal   @db.Decimal(12, 2)
+  finalAmount   Decimal?  @db.Decimal(12, 2)
+  status        String    @default("PENDENTE")
+  confirmedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  charge ReceivableCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId, doctorId])
+  @@index([chargeId])
+  @@index([tenantId])
+}

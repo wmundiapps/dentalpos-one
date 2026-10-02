@@ -9,6 +9,9 @@ import * as clinicController from '../controllers/clinicController'
 import * as doctorController from '../controllers/doctorController'
 import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
+import * as chargeController from '../controllers/chargeController'
+import * as asaasSetupController from '../controllers/asaasSetupController'
+import * as payoutController from '../controllers/payoutController'
 import * as labOrderController from '../controllers/labOrderController'
 import * as labNotificationController from '../controllers/labNotificationController'
 import * as procedureDurationController from '../controllers/procedureDurationController'
@@ -311,6 +314,15 @@ router.delete('/payment/:id', requirePermission('finance.approve'), paymentContr
 router.get('/financial-entries', requirePermission('finance.view'), financialController.index)
 router.post('/financial-entries', requirePermission('finance.create'), financialController.store)
 router.put('/financial-entries/:id', requirePermission('finance.edit'), financialController.update)
+router.get('/receivable-charges/readiness', requirePermission('finance.view'), chargeController.readiness)
+router.get('/receivable-charges', requirePermission('finance.view'), chargeController.listCharges)
+router.post('/receivable-charges/:id/cancel', requirePermission('finance.approve'), chargeController.cancelCharge)
+router.post('/financial-entries/:id/charge', requirePermission('finance.create'), chargeController.createForEntry)
+router.get('/asaas/status', requirePermission('finance.approve'), asaasSetupController.status)
+router.post('/asaas/connect', requirePermission('finance.approve'), asaasSetupController.connect)
+router.get('/payout-accounts', requirePermission('finance.view'), payoutController.accounts)
+router.put('/payout-accounts/:doctorId', requirePermission('finance.approve'), payoutController.saveAccount)
+router.get('/payouts', requirePermission('finance.view'), payoutController.statement)
 router.post('/financial-entries/purge-cancelled', requirePermission('finance.approve'), financialController.purgeCancelled)
 router.post('/financial-entries/:id/settle', requirePermission('finance.approve'), financialController.settle)
 router.delete('/financial-entries/:id', requirePermission('finance.approve'), financialController.remove)

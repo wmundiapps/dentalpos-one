@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'crypto'
 import { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { ContextRequest } from '../middleware/requestContext'
+import { applyChargeEvent } from '../services/asaasChargeWebhookService'
 
 function eventId(body: any, fallback: string) {
   return String(body?.id || body?.event?.id || body?.data?.object?.id || fallback)
@@ -37,12 +38,19 @@ function verifyStripeSignature(req: ContextRequest, secret: string) {
 }
 
 export async function asaas(req: Request, res: Response) {
-  const expected = String(process.env.ASAAS_WEBHOOK_TOKEN || '')
-  if (!expected) return res.status(503).json({ error: 'Webhook Asaas ainda não configurado.' })
-
   const received = String(req.headers['asaas-access-token'] || req.headers['access-token'] || '')
-  if (!received || !secureEqual(received, expected)) {
-    return res.status(401).json({ error: 'Webhook não autorizado.' })
+  if (!received) return res.status(401).json({ error: 'Webhook não autorizado.' })
+
+  // Token global da plataforma (cobranças de orçamento e da WMundi) OU token próprio de uma clínica conectada.
+  const globalToken = String(process.env.ASAAS_WEBHOOK_TOKEN || '')
+  let clinicScope: string | null = null
+  if (!(globalToken && secureEqual(received, globalToken))) {
+    const owner = await prisma.paymentProviderConfig.findFirst({
+      where: { provider: 'ASAAS', settings: { path: ['webhookToken'], equals: received } },
+      select: { clinicId: true }
+    })
+    if (!owner) return res.status(401).json({ error: 'Webhook não autorizado.' })
+    clinicScope = owner.clinicId
   }
 
   const body = req.body || {}
@@ -58,8 +66,11 @@ export async function asaas(req: Request, res: Response) {
     throw error
   }
 
+  // Cobranças geradas pelo sistema a partir do Financeiro (com divisão para dentistas).
+  const handledCharge = await applyChargeEvent(clinicScope, type, body?.payment).catch((error) => { console.error('Erro ao aplicar evento do Asaas:', error); return false })
+
   const paymentId = body?.payment?.id
-  if (paymentId) {
+  if (paymentId && !handledCharge && !clinicScope) {
     const statusMap: Record<string, string> = {
       PAYMENT_RECEIVED: 'PAID',
       PAYMENT_CONFIRMED: 'PAID',
