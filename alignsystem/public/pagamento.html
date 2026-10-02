@@ -21,6 +21,7 @@
 .opt:has(input:checked){border-color:var(--emerald);background:var(--emerald-soft);}
 .total{font-family:var(--serif);font-size:30px;font-weight:600;margin:4px 0 2px;}
 select{margin-top:8px;}
+.opt span{display:block;}
 </style>
 </head>
 <body>
@@ -43,42 +44,66 @@ select{margin-top:8px;}
     });
   }
 
+  function money(v) { return AS.money(v); }
+
   function render(d) {
+    var q = d.quote;
     var head = '<div class="card"><p class="muted small">Caso nº ' + esc(d.caseCode) + '</p><h1>Olá, ' + esc(d.firstName) + '!</h1>' +
-      '<p>' + esc(d.description) + '</p><div class="total">' + esc(AS.money(d.value)) + '</div><p class="small muted">Valor total do tratamento</p></div>';
-    if (d.status === 'pago') {
-      app.innerHTML = head + '<div class="card"><h2>Pagamento confirmado ✓</h2><p>Obrigado! Seu pagamento foi recebido.</p>' +
-        (d.invoiceUrl ? '<a class="btn btn-line" target="_blank" rel="noopener" href="' + esc(d.invoiceUrl) + '">Ver comprovante</a>' : '') + '</div>';
-      return;
-    }
+      '<p>' + esc(d.description) + '</p><div class="total">' + esc(money(q.total)) + '</div><p class="small muted">Valor total do tratamento</p></div>';
     if (d.status === 'cancelado') {
       app.innerHTML = head + '<div class="card"><h2>Cobrança cancelada</h2><p class="muted">Fale com a equipe AlignSystem para receber um novo link.</p></div>';
       return;
     }
-    var cards = d.options.filter(function (o) { return o.method === 'CREDIT_CARD'; });
-    var curCard = d.method === 'CREDIT_CARD' ? d.installments : cards.length;
-    var html = head + '<form class="card" id="pf"><h2>Como você prefere pagar?</h2>' +
-      '<p class="small muted">O pagamento é sempre do valor total: à vista no Pix ou no cartão de crédito, com o valor total no limite do cartão.</p>' +
-      '<div class="opts">' +
-      '<label class="opt"><input type="radio" name="m" value="PIX"' + (d.method !== 'CREDIT_CARD' ? ' checked' : '') + '><div><b>Pix à vista</b><span>' + esc(AS.money(d.value)) + ' · aprovação na hora</span></div></label>' +
-      '<label class="opt"><input type="radio" name="m" value="CREDIT_CARD"' + (d.method === 'CREDIT_CARD' ? ' checked' : '') + '><div style="flex:1"><b>Cartão de crédito</b><span>Parcelado no seu cartão</span>' +
-      '<select id="inst" aria-label="Número de parcelas">' + cards.map(function (o) {
-        return '<option value="' + o.installments + '"' + (o.installments === curCard ? ' selected' : '') + '>' + o.installments + 'x de ' + esc(AS.money(o.each)) + '</option>';
-      }).join('') + '</select></div></label></div>' +
-      '<button class="btn btn-primary" type="submit">Continuar para o pagamento</button>' +
-      '<p class="small muted" style="margin-top:12px">Você será levado(a) ao ambiente seguro da nossa plataforma de pagamentos. Juros do parcelamento, se houver, são informados pelo seu cartão antes da confirmação.</p>' +
+    if (d.status === 'pago') {
+      app.innerHTML = head + '<div class="card"><h2>Pagamento confirmado ✓</h2><p>Obrigado! Seu pagamento foi recebido.</p>' +
+        (d.receiptUrl ? '<a class="btn btn-line" target="_blank" rel="noopener" href="' + esc(d.receiptUrl) + '">Ver comprovante</a>' : '') + '</div>';
+      return;
+    }
+    if (d.status === 'entrada_paga') {
+      var list = d.boletos.length ? '<div class="list">' + d.boletos.map(function (b, i) {
+        return '<div class="it"><div><b>Boleto ' + (i + 1) + ' de ' + d.boletos.length + '</b><div class="small muted">' + esc(money(b.value)) + ' · vence em ' + esc(AS.date(b.dueDate)) + ' · ' + esc(b.status) + '</div></div>' +
+          (b.url ? '<a class="btn btn-sm ' + (b.paid ? 'btn-line' : 'btn-primary') + '" target="_blank" rel="noopener" href="' + esc(b.url) + '">' + (b.paid ? 'Comprovante' : 'Abrir boleto') + '</a>' : '') + '</div>';
+      }).join('') + '</div>' : '<p class="muted">Seus boletos estão sendo gerados. Você também vai recebê-los por e-mail.</p>';
+      app.innerHTML = head + '<div class="card"><h2>Entrada confirmada ✓</h2><p>Obrigado! Abaixo estão os boletos do saldo.</p>' + list + '</div>';
+      return;
+    }
+    function sel(id, opts, cur) {
+      return '<select id="' + id + '">' + opts.map(function (o) {
+        return '<option value="' + o.installments + '"' + (o.installments === cur ? ' selected' : '') + '>' + o.installments + 'x de ' + esc(money(o.each)) + '</option>';
+      }).join('') + '</select>';
+    }
+    var curCard = d.option === 'CREDIT_CARD' ? d.installments : q.card.length;
+    var html = head + '<form class="card" id="pf"><h2>Como você prefere pagar?</h2><div class="opts">' +
+      '<label class="opt"><input type="radio" name="m" value="PIX"' + (!d.option || d.option === 'PIX' ? ' checked' : '') + '><div style="flex:1"><b>Pix à vista · ' + esc(d.pixDiscountPct) + '% de desconto</b>' +
+      '<span>' + esc(money(q.pix)) + ' · aprovação na hora</span></div></label>' +
+      '<label class="opt"><input type="radio" name="m" value="CREDIT_CARD"' + (d.option === 'CREDIT_CARD' ? ' checked' : '') + '><div style="flex:1"><b>Cartão de crédito sem juros</b>' +
+      '<span>Valor total no limite do cartão</span>' + sel('cardN', q.card, curCard) + '</div></label>';
+    if (q.boleto) {
+      var curBol = d.option === 'BOLETO' ? d.installments : q.boleto.options.length;
+      html += '<label class="opt"><input type="radio" name="m" value="BOLETO"' + (d.option === 'BOLETO' ? ' checked' : '') + '><div style="flex:1"><b>Entrada + boletos</b>' +
+        '<span>Entrada de ' + esc(money(q.boleto.entry)) + ' agora, por Pix ou cartão, e o saldo em boletos mensais</span>' +
+        '<select id="entryM"><option value="PIX"' + (d.entryMethod !== 'CREDIT_CARD' ? ' selected' : '') + '>Entrada no Pix</option><option value="CREDIT_CARD"' + (d.entryMethod === 'CREDIT_CARD' ? ' selected' : '') + '>Entrada no cartão</option></select>' +
+        sel('bolN', q.boleto.options, curBol) + '</div></label>';
+    }
+    html += '</div><button class="btn btn-primary" type="submit">Continuar para o pagamento</button>' +
+      '<p class="small muted" style="margin-top:12px">Você será levado(a) ao ambiente seguro da nossa plataforma de pagamentos.' + (q.boleto ? ' No boleto, os boletos do saldo são enviados depois que a entrada é confirmada.' : '') + '</p>' +
       '<div id="m"></div></form>';
     app.innerHTML = html;
     var f = document.getElementById('pf');
-    var inst = document.getElementById('inst');
-    inst.addEventListener('focus', function () { f.querySelector('input[value=CREDIT_CARD]').checked = true; });
+    ['cardN', 'entryM', 'bolN'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('focus', function () { el.closest('.opt').querySelector('input').checked = true; });
+    });
     f.addEventListener('submit', function (e) {
       e.preventDefault();
       var b = f.querySelector('button');
       var m = f.querySelector('input[name=m]:checked').value;
+      var body = { option: m };
+      if (m === 'CREDIT_CARD') body.installments = Number(document.getElementById('cardN').value);
+      if (m === 'BOLETO') { body.installments = Number(document.getElementById('bolN').value); body.entryMethod = document.getElementById('entryM').value; }
       b.disabled = true;
       b.textContent = 'Gerando…';
-      AS.api('/api/pay/' + encodeURIComponent(T), { method: 'POST', body: { method: m, installments: m === 'PIX' ? 1 : Number(inst.value) } })
+      AS.api('/api/pay/' + encodeURIComponent(T), { method: 'POST', body: body })
         .then(function (r) { location.href = r.invoiceUrl; })
         .catch(function (err) { b.disabled = false; b.textContent = 'Continuar para o pagamento'; document.getElementById('m').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
     });

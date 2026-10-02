@@ -185,14 +185,14 @@
     if (state.charges.length) {
       html += '<div class="card"><h2>Pagamentos</h2><div class="list">';
       state.charges.forEach(function (ch) {
-        var pend = (ch.payments || []).filter(function (p) { return p.status === 'PENDING' || p.status === 'OVERDUE'; });
-        var paid = (ch.payments || []).some(function (p) { return /RECEIVED|CONFIRMED/.test(p.status); });
-        var next = pend[0];
-        var link = ch.payUrl && !paid ? ch.payUrl : (next && next.invoice_url) || ch.invoice_url;
-        html += '<div class="it"><div><b>' + esc(ch.description) + '</b><div class="small muted">' +
-          (ch.installment_count > 1 ? ch.installment_count + 'x no cartão · ' : '') + esc(AS.money(ch.value)) +
-          (paid ? ' · pago' : '') + '</div></div>' +
-          (link ? '<a class="btn btn-sm ' + (paid ? 'btn-line' : 'btn-primary') + '"' + (ch.payUrl && !paid ? '' : ' target="_blank" rel="noopener"') + ' href="' + esc(link) + '">' + (paid ? 'Ver comprovante' : 'Pagar') + '</a>' : '<span class="badge">' + esc(ch.statusLabel) + '</span>') +
+        var pays = (ch.payments || []).filter(function (p) { return p.status !== 'DELETED'; });
+        var paid = pays.some(function (p) { return /RECEIVED|CONFIRMED/.test(p.status); });
+        var next = pays.filter(function (p) { return p.status === 'PENDING' || p.status === 'OVERDUE'; })[0];
+        var how = ch.pay_option === 'PIX' ? 'Pix à vista · ' : ch.pay_option === 'CREDIT_CARD' ? 'Cartão ' + ch.installment_count + 'x · ' : ch.pay_option === 'BOLETO' ? 'Entrada + ' + ch.installment_count + ' boletos · ' : '';
+        var link = ch.payUrl || (next && next.invoice_url) || ch.invoice_url;
+        html += '<div class="it"><div><b>' + esc(ch.description) + '</b><div class="small muted">' + esc(how) + esc(AS.money(ch.value)) +
+          (paid ? ' · pagamento confirmado' : '') + '</div></div>' +
+          (link ? '<a class="btn btn-sm ' + (paid ? 'btn-line' : 'btn-primary') + '"' + (ch.payUrl ? '' : ' target="_blank" rel="noopener"') + ' href="' + esc(link) + '">' + (paid ? 'Ver pagamento' : 'Pagar') + '</a>' : '<span class="badge">' + esc(ch.statusLabel) + '</span>') +
           '</div>';
       });
       html += '</div></div>';

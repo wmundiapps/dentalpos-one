@@ -94,6 +94,7 @@ export const getPayment = (id) => call('GET', `/payments/${encodeURIComponent(id
 export const listInstallmentPayments = (id) => call('GET', `/installments/${encodeURIComponent(id)}/payments`);
 export const listSubscriptionPayments = (id) => call('GET', `/subscriptions/${encodeURIComponent(id)}/payments`);
 export const cancelPayment = (id) => call('DELETE', `/payments/${encodeURIComponent(id)}`);
+export const cancelInstallment = (id) => call('DELETE', `/installments/${encodeURIComponent(id)}`);
 export const cancelSubscription = (id) => call('DELETE', `/subscriptions/${encodeURIComponent(id)}`);
 
 // Subconta do dentista parceiro (recebe o repasse via split). Retorna { id, walletId }.

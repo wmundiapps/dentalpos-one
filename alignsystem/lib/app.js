@@ -8,6 +8,7 @@ import {
 import { token, sha256, clean, digits, isEmail, appUrl, brl, validCpf, validCpfCnpj } from './util.js';
 import { sendMail, notifyAddress, layout, button, para, table } from './mail.js';
 import * as asaas from './asaas.js';
+import { MODEL, quote, dentistSplitPct } from './pricing.js';
 import { patientContract, partnerContract, contractsReviewed, PARTNER_DEFAULTS } from './contracts.js';
 import { ensureTcle, currentConsent, TCLE_KIND, TCLE_VERSION } from './tcle.js';
 import {
@@ -42,7 +43,6 @@ function imageMime(buf) {
 const portalUrl = (t) => `${appUrl()}/minha-avaliacao?t=${t}`;
 const contractUrl = (t) => `${appUrl()}/contrato?t=${t}`;
 const payUrl = (t) => `${appUrl()}/pagamento?t=${t}`;
-const MAX_CARD_INSTALLMENTS = 18;
 const money = (v) => (v === '' || v == null ? null : Math.round(Number(String(v).replace(',', '.')) * 100) / 100);
 
 async function caseByToken(sql, t) {
@@ -239,7 +239,7 @@ r('GET', '/api/portal/:token', async (req, res, { token: t }) => {
     where a.case_id = ${c.id} and a.status <> 'cancelado' order by a.starts_at`;
   const contracts = await sql`select token, title, status, accepted_at from contracts
     where case_id = ${c.id} and kind = 'paciente' and status <> 'cancelado' order by created_at desc`;
-  const charges = await sql`select id, kind, description, value, installment_count, invoice_url, status, due_date, pay_token
+  const charges = await sql`select id, kind, description, value, installment_count, invoice_url, status, due_date, pay_token, pay_option
     from charges where case_id = ${c.id} and status <> 'cancelado' order by created_at`;
   const payments = await sql`select asaas_payment_id, charge_id, value, due_date, status, invoice_url from payments
     where case_id = ${c.id} order by due_date`;
@@ -671,8 +671,7 @@ r('PATCH', '/api/admin/cases/:id', async (req, res, { id }) => {
   if (b.plan !== undefined) {
     const p = b.plan || {};
     up.plan = sql.json({
-      brand: clean(p.brand, 60), months: Number(p.months) || null, total: money(p.total),
-      maxInstallments: Math.min(Math.max(Number(p.maxInstallments) || 12, 1), MAX_CARD_INSTALLMENTS), replacementValue: money(p.replacementValue),
+      brand: clean(p.brand, 60), months: Number(p.months) || null, total: money(p.total), replacementValue: money(p.replacementValue),
       treatmentNotes: clean(p.treatmentNotes, 4000),
     });
   }
@@ -804,9 +803,9 @@ r('POST', '/api/admin/cases/:id/contract', async (req, res, { id }) => {
   send(res, 201, { url: contractUrl(t) });
 });
 
-// Cobrança pelo Asaas, com split opcional para o dentista do caso.
-// Só pagamento integral: o paciente escolhe Pix à vista ou cartão de crédito (o valor total
-// fica comprometido no limite do cartão). Não há boleto nem mensalidades.
+// Cobrança do tratamento (modelo único). O paciente recebe um link e escolhe:
+//  Pix à vista com desconto · cartão de crédito em até 18x sem juros · boleto (entrada de 50% por Pix/cartão + saldo em boletos).
+// Com dentista parceiro, o repasse dele (30% do tratamento) sai por split percentual sobre o valor líquido.
 r('POST', '/api/admin/cases/:id/charges', async (req, res, { id }) => {
   const sql = db();
   const u = await requireUser(sql, req, 'admin');
@@ -815,33 +814,31 @@ r('POST', '/api/admin/cases/:id/charges', async (req, res, { id }) => {
   if (!c) fail(404, 'Caso não encontrado.');
   if (!c.cpf) fail(400, 'Cadastre o CPF do paciente antes de cobrar.');
   const value = money(b.value);
-  if (!(value > 0)) fail(400, 'Informe o valor.');
-  const maxInstallments = Math.min(Math.max(Number(b.maxInstallments) || 12, 1), MAX_CARD_INSTALLMENTS);
+  if (!(value > 0)) fail(400, 'Informe o valor total do tratamento.');
+  const boletoMax = Math.min(Math.max(Number(b.boletoMax) || MODEL.boletoMaxInstallments, 1), MODEL.boletoMaxInstallments);
   const description = clean(b.description, 200) || `AlignSystem — tratamento (caso #${c.code})`;
   let split = null;
-  if (b.split?.value && Number(b.split.value) > 0) {
+  if (b.dentistShare) {
     const d = await dentistById(sql, c.dentist_id);
     if (!d) fail(400, 'Defina o dentista do caso para dividir o pagamento.');
     if (!d.asaas_wallet_id) fail(400, `${d.name} ainda não tem conta de recebimento (walletId) cadastrada.`);
-    const type = b.split.type === 'percent' ? 'percent' : 'fixed';
-    const sv = money(b.split.value);
-    if (type === 'percent' && sv >= 100) fail(400, 'Percentual de repasse inválido.');
-    if (type === 'fixed' && sv >= value) fail(400, 'O repasse precisa ser menor que o valor cobrado.');
-    split = { walletId: d.asaas_wallet_id, type, value: sv, dentistId: d.id };
+    split = { walletId: d.asaas_wallet_id, dentistId: d.id, type: 'percent', value: MODEL.dentistPct, model: '50/30/20' };
   }
   const t = token(24);
-  const [out] = await sql`insert into charges (case_id, dentist_id, kind, description, billing_type, value, installment_count, max_installments, due_date, split, pay_token, status, created_by)
-    values (${id}, ${split?.dentistId || null}, 'integral', ${description}, 'UNDEFINED', ${value}, null, ${maxInstallments},
+  const [out] = await sql`insert into charges (case_id, dentist_id, kind, description, billing_type, value, max_installments, boleto_enabled, boleto_max,
+      due_date, split, pay_token, status, created_by)
+    values (${id}, ${split?.dentistId || null}, 'integral', ${description}, 'UNDEFINED', ${value}, ${MODEL.cardMaxInstallments}, ${b.boleto !== false}, ${boletoMax},
             ${dueIn(3)}, ${split ? sql.json(split) : null}, ${t}, 'aguardando_escolha', ${u.id}) returning *`;
-  await logEvent(sql, { caseId: id, actor: u.email, type: 'cobranca_criada', data: { value, maxInstallments, split: split && { type: split.type, value: split.value } } });
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'cobranca_criada', data: { value, boleto: b.boleto !== false, repasseDentista: Boolean(split) } });
   if (c.email) await sendMail({
     to: c.email, subject: `Pagamento AlignSystem — ${description}`,
-    html: layout('Seu pagamento está disponível', table([['Descrição', description], ['Valor total', brl(value)], ['Formas', `Pix à vista ou cartão de crédito em até ${maxInstallments}x`]]) + button(payUrl(t), 'Escolher forma de pagamento')),
+    html: layout('Seu pagamento está disponível', table([['Descrição', description], ['Valor do tratamento', brl(value)]]) +
+      para('Abra o link para escolher a forma de pagamento.') + button(payUrl(t), 'Escolher forma de pagamento')),
   });
   send(res, 201, { ...out, pay_url: payUrl(t) });
 });
 
-const dueIn = (days) => new Date(Date.now() + days * 86400_000).toISOString().slice(0, 10);
+const dueIn = (days, from = Date.now()) => new Date(new Date(from).getTime() + days * 86400_000).toISOString().slice(0, 10);
 
 async function chargeByPayToken(sql, t) {
   const [ch] = t && t.length >= 16 ? await sql`select ch.*, c.name as patient_name, c.code as case_code, c.cpf, c.email, c.whatsapp, c.asaas_customer_id
@@ -850,27 +847,53 @@ async function chargeByPayToken(sql, t) {
   return ch;
 }
 
-const chargePaid = async (sql, ch) => {
-  const [p] = await sql`select 1 from payments where charge_id = ${ch.id} and status = any(${[...asaas.PAID]})
-    and (asaas_payment_id = ${ch.asaas_payment_id || ''} or ${ch.asaas_installment_id || ''} <> '') limit 1`;
-  return Boolean(p);
+const anyPaid = async (sql, chargeId) =>
+  (await sql`select 1 from payments where charge_id = ${chargeId} and status = any(${[...asaas.PAID]}) limit 1`).length > 0;
+
+const splitFor = (ch, part) => {
+  if (!ch.split?.walletId) return null;
+  const pct = ch.split.model ? dentistSplitPct(part) : Number(ch.split.value);
+  return pct > 0 ? { walletId: ch.split.walletId, type: ch.split.model ? 'percent' : ch.split.type, value: pct } : null;
 };
+
+const chargeQuote = (ch) => quote(ch.value, { cardMax: ch.max_installments || MODEL.cardMaxInstallments, boletoMax: ch.boleto_max || MODEL.boletoMaxInstallments, boleto: ch.boleto_enabled });
+
+// Boleto: depois da entrada confirmada, gera o saldo em boletos mensais (idempotente)
+async function ensureBoletos(sql, chargeId) {
+  await sql.begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(hashtext(${'boletos:' + chargeId}))`;
+    const [ch] = await tx`select ch.*, c.asaas_customer_id from charges ch join cases c on c.id = ch.case_id where ch.id = ${chargeId}`;
+    if (!ch || ch.pay_option !== 'BOLETO' || ch.rest_payment_id || !ch.asaas_customer_id) return;
+    const [entry] = await tx`select paid_at from payments where asaas_payment_id = ${ch.asaas_payment_id} and status = any(${[...asaas.PAID]})`;
+    if (!entry) return;
+    const q = chargeQuote(ch);
+    const p = await asaas.createPayment({
+      customer: ch.asaas_customer_id, billingType: 'BOLETO', value: q.boleto.rest, dueDate: dueIn(30, entry.paid_at || Date.now()),
+      description: `${ch.description} — saldo em boletos`, installmentCount: ch.installment_count || 1, split: splitFor(ch, 'boleto_rest'), externalReference: ch.id,
+    });
+    await tx`update charges set rest_payment_id = ${p.id}, rest_installment_id = ${p.installment || null}, updated_at = now() where id = ${ch.id}`;
+    await logEvent(tx, { caseId: ch.case_id, actor: 'sistema', type: 'boletos_gerados', data: { parcelas: ch.installment_count, valor: q.boleto.rest } });
+  });
+  await syncCharge(sql, chargeId).catch(() => {});
+}
 
 // Página de pagamento do paciente
 r('GET', '/api/pay/:token', async (req, res, { token: t }) => {
   const sql = db();
   const ch = await chargeByPayToken(sql, t);
-  const paid = await chargePaid(sql, ch);
-  const n = ch.max_installments || 1;
+  const paid = await anyPaid(sql, ch.id);
+  const boletos = ch.pay_option === 'BOLETO' && ch.rest_payment_id
+    ? await sql`select due_date, value, status, invoice_url from payments
+        where charge_id = ${ch.id} and (asaas_payment_id = ${ch.rest_payment_id} or installment_id = ${ch.rest_installment_id || ''}) order by due_date`
+    : [];
+  const [entryPay] = ch.asaas_payment_id ? await sql`select invoice_url from payments where asaas_payment_id = ${ch.asaas_payment_id}` : [];
   send(res, 200, {
-    description: ch.description, value: Number(ch.value), caseCode: ch.case_code, firstName: ch.patient_name.split(' ')[0],
-    status: paid ? 'pago' : ch.status === 'cancelado' ? 'cancelado' : 'aberto',
-    method: ch.billing_type === 'UNDEFINED' ? null : ch.billing_type, installments: ch.installment_count || 1,
-    invoiceUrl: paid ? ch.invoice_url : null,
-    options: [
-      { method: 'PIX', installments: 1, label: 'Pix à vista', each: Number(ch.value) },
-      ...Array.from({ length: n }, (_, i) => ({ method: 'CREDIT_CARD', installments: i + 1, label: `Cartão de crédito em ${i + 1}x`, each: Math.round((Number(ch.value) / (i + 1)) * 100) / 100 })),
-    ],
+    description: ch.description, caseCode: ch.case_code, firstName: ch.patient_name.split(' ')[0],
+    status: ch.status === 'cancelado' ? 'cancelado' : paid ? (ch.pay_option === 'BOLETO' ? 'entrada_paga' : 'pago') : 'aberto',
+    option: ch.pay_option, installments: ch.installment_count || 1, entryMethod: ch.entry_method,
+    receiptUrl: paid ? entryPay?.invoice_url || ch.invoice_url : null,
+    quote: chargeQuote(ch), pixDiscountPct: MODEL.pixDiscountPct,
+    boletos: boletos.map((p) => ({ dueDate: p.due_date, value: Number(p.value), status: asaas.STATUS_PT[p.status] || p.status, paid: asaas.PAID.has(p.status), url: p.invoice_url })),
   }, { 'Cache-Control': 'no-store' });
 });
 
@@ -878,31 +901,38 @@ r('GET', '/api/pay/:token', async (req, res, { token: t }) => {
 r('POST', '/api/pay/:token', async (req, res, { token: t }) => {
   const sql = db();
   const b = await readJson(req);
-  const method = b.method === 'PIX' ? 'PIX' : b.method === 'CREDIT_CARD' ? 'CREDIT_CARD' : fail(400, 'Escolha Pix ou cartão de crédito.');
+  const option = ['PIX', 'CREDIT_CARD', 'BOLETO'].includes(b.option) ? b.option : fail(400, 'Escolha Pix, cartão de crédito ou boleto.');
   const out = await sql.begin(async (tx) => {
     await tx`select pg_advisory_xact_lock(hashtext(${'pay:' + t}))`;
     const ch = await chargeByPayToken(tx, t);
     if (ch.status === 'cancelado' || ch.status === 'erro') fail(409, 'Esta cobrança foi cancelada. Fale com a equipe AlignSystem.');
-    if (await chargePaid(tx, ch)) fail(409, 'Este pagamento já foi confirmado.');
-    const n = method === 'PIX' ? 1 : Math.min(Math.max(Number(b.installments) || 1, 1), ch.max_installments || 1);
-    if (ch.billing_type === method && (ch.installment_count || 1) === n && ch.invoice_url && ch.status === 'PENDING') return { invoiceUrl: ch.invoice_url };
-    // troca de forma: cancela a cobrança anterior ainda em aberto
-    if (ch.asaas_installment_id) {
-      const pend = await tx`select asaas_payment_id from payments where charge_id = ${ch.id} and status in ('PENDING','OVERDUE')`;
-      for (const p of pend) await asaas.cancelPayment(p.asaas_payment_id);
-    } else if (ch.asaas_payment_id) await asaas.cancelPayment(ch.asaas_payment_id);
+    if (await anyPaid(tx, ch.id)) fail(409, 'Este pagamento já foi confirmado.');
+    const q = chargeQuote(ch);
+    if (option === 'BOLETO' && !q.boleto) fail(400, 'Boleto não disponível para esta cobrança.');
+    const maxN = option === 'CREDIT_CARD' ? q.card.length : option === 'BOLETO' ? q.boleto.options.length : 1;
+    const n = Math.min(Math.max(Number(b.installments) || 1, 1), maxN);
+    const entryMethod = option === 'BOLETO' ? (b.entryMethod === 'CREDIT_CARD' ? 'CREDIT_CARD' : 'PIX') : null;
+    if (ch.pay_option === option && (ch.installment_count || 1) === n && (ch.entry_method || null) === entryMethod && ch.invoice_url && ch.status === 'PENDING') {
+      return { invoiceUrl: ch.invoice_url };
+    }
+    // troca de forma: cancela o que estava em aberto
+    if (ch.asaas_installment_id) await asaas.cancelInstallment(ch.asaas_installment_id);
+    else if (ch.asaas_payment_id) await asaas.cancelPayment(ch.asaas_payment_id);
+    await tx`update payments set status = 'DELETED', updated_at = now() where charge_id = ${ch.id} and status in ('PENDING','OVERDUE')`;
     const customer = ch.asaas_customer_id || (await asaas.ensureCustomer({
       name: ch.patient_name, cpfCnpj: digits(ch.cpf), email: ch.email, mobilePhone: (ch.whatsapp || '').replace(/^55/, ''), externalReference: ch.case_id,
     }));
     if (!ch.asaas_customer_id) await tx`update cases set asaas_customer_id = ${customer} where id = ${ch.case_id}`;
-    const p = await asaas.createPayment({
-      customer, billingType: method, value: Number(ch.value), dueDate: dueIn(method === 'PIX' ? 1 : 3),
-      description: ch.description, installmentCount: n, split: ch.split, externalReference: ch.id,
-    });
-    await tx`update charges set billing_type = ${method}, installment_count = ${n}, asaas_payment_id = ${p.id},
-             asaas_installment_id = ${p.installment || null}, invoice_url = ${p.invoiceUrl}, status = ${p.status || 'PENDING'},
-             due_date = ${p.dueDate || dueIn(3)}, updated_at = now() where id = ${ch.id}`;
-    await logEvent(tx, { caseId: ch.case_id, actor: 'paciente', type: 'forma_pagamento_escolhida', data: { method, installments: n } });
+    const base = { customer, description: ch.description, externalReference: ch.id };
+    const p = option === 'PIX'
+      ? await asaas.createPayment({ ...base, billingType: 'PIX', value: q.pix, dueDate: dueIn(1), installmentCount: 1, split: splitFor(ch, 'pix') })
+      : option === 'CREDIT_CARD'
+        ? await asaas.createPayment({ ...base, billingType: 'CREDIT_CARD', value: q.total, dueDate: dueIn(3), installmentCount: n, split: splitFor(ch, 'card') })
+        : await asaas.createPayment({ ...base, description: `${ch.description} — entrada (alinhadores)`, billingType: entryMethod, value: q.boleto.entry, dueDate: dueIn(3), installmentCount: 1, split: splitFor(ch, 'boleto_entry') });
+    await tx`update charges set pay_option = ${option}, billing_type = ${option === 'BOLETO' ? entryMethod : option}, entry_method = ${entryMethod},
+             installment_count = ${n}, asaas_payment_id = ${p.id}, asaas_installment_id = ${p.installment || null}, invoice_url = ${p.invoiceUrl},
+             status = ${p.status || 'PENDING'}, due_date = ${p.dueDate || dueIn(3)}, updated_at = now() where id = ${ch.id}`;
+    await logEvent(tx, { caseId: ch.case_id, actor: 'paciente', type: 'forma_pagamento_escolhida', data: { option, installments: n, entryMethod } });
     return { invoiceUrl: p.invoiceUrl, chargeId: ch.id };
   });
   if (out.chargeId) await syncCharge(sql, out.chargeId).catch(() => {});
@@ -913,19 +943,23 @@ r('POST', '/api/pay/:token', async (req, res, { token: t }) => {
 async function syncCharge(sql, chargeId) {
   const [ch] = await sql`select * from charges where id = ${chargeId}`;
   if (!ch || !asaas.asaasConfigured()) return;
-  let list = [];
-  if (ch.asaas_subscription_id) list = (await asaas.listSubscriptionPayments(ch.asaas_subscription_id)).data || [];
-  else if (ch.asaas_installment_id) list = (await asaas.listInstallmentPayments(ch.asaas_installment_id)).data || [];
-  else if (ch.asaas_payment_id) list = [await asaas.getPayment(ch.asaas_payment_id)];
-  for (const p of list) await upsertPayment(sql, p, ch);
+  const list = [];
+  const fetchGroup = async (installmentId, paymentId) => {
+    if (installmentId) list.push(...((await asaas.listInstallmentPayments(installmentId)).data || []));
+    else if (paymentId) list.push(await asaas.getPayment(paymentId));
+  };
+  if (ch.asaas_subscription_id) list.push(...((await asaas.listSubscriptionPayments(ch.asaas_subscription_id)).data || []));
+  else await fetchGroup(ch.asaas_installment_id, ch.asaas_payment_id);
+  await fetchGroup(ch.rest_installment_id, ch.rest_payment_id);
+  for (const p of list) if (p?.id) await upsertPayment(sql, p, ch);
   if (list.length && !ch.invoice_url) await sql`update charges set invoice_url = ${list[0].invoiceUrl} where id = ${ch.id}`;
 }
 
 async function upsertPayment(sql, p, ch) {
   const paidAt = asaas.PAID.has(p.status) ? (p.clientPaymentDate || p.paymentDate || p.confirmedDate || new Date().toISOString()) : null;
-  await sql`insert into payments (asaas_payment_id, charge_id, case_id, value, net_value, due_date, status, billing_type, invoice_url, paid_at, updated_at)
-    values (${p.id}, ${ch?.id || null}, ${ch?.case_id || null}, ${p.value}, ${p.netValue ?? null}, ${p.dueDate}, ${p.status}, ${p.billingType}, ${p.invoiceUrl}, ${paidAt}, now())
-    on conflict (asaas_payment_id) do update set status = excluded.status, value = excluded.value, net_value = excluded.net_value,
+  await sql`insert into payments (asaas_payment_id, charge_id, case_id, installment_id, value, net_value, due_date, status, billing_type, invoice_url, paid_at, updated_at)
+    values (${p.id}, ${ch?.id || null}, ${ch?.case_id || null}, ${p.installment || null}, ${p.value}, ${p.netValue ?? null}, ${p.dueDate}, ${p.status}, ${p.billingType}, ${p.invoiceUrl}, ${paidAt}, now())
+    on conflict (asaas_payment_id) do update set status = excluded.status, installment_id = coalesce(excluded.installment_id, payments.installment_id), value = excluded.value, net_value = excluded.net_value,
       due_date = excluded.due_date, billing_type = excluded.billing_type, invoice_url = excluded.invoice_url,
       paid_at = coalesce(excluded.paid_at, payments.paid_at), updated_at = now(),
       charge_id = coalesce(payments.charge_id, excluded.charge_id), case_id = coalesce(payments.case_id, excluded.case_id)`;
@@ -945,11 +979,9 @@ r('POST', '/api/admin/charges/:id/cancel', async (req, res, { id }) => {
   const [ch] = await sql`select * from charges where id = ${id}`;
   if (!ch) fail(404, 'Cobrança não encontrada.');
   if (ch.asaas_subscription_id) await asaas.cancelSubscription(ch.asaas_subscription_id);
-  else if (ch.asaas_payment_id && !ch.asaas_installment_id) await asaas.cancelPayment(ch.asaas_payment_id);
-  else if (ch.asaas_installment_id) {
-    const pend = await sql`select asaas_payment_id from payments where charge_id = ${id} and status in ('PENDING','OVERDUE')`;
-    for (const p of pend) await asaas.cancelPayment(p.asaas_payment_id);
-  }
+  await syncCharge(sql, id).catch(() => {});
+  const pend = await sql`select asaas_payment_id from payments where charge_id = ${id} and status in ('PENDING','OVERDUE')`;
+  for (const p of pend) await asaas.cancelPayment(p.asaas_payment_id);
   await sql`update charges set status = 'cancelado', updated_at = now() where id = ${id}`;
   await logEvent(sql, { caseId: ch.case_id, actor: u.email, type: 'cobranca_cancelada', data: { id } });
   send(res, 200, { ok: true });
@@ -1037,9 +1069,6 @@ r('POST', '/api/admin/dentists/:id/approve', async (req, res, { id }) => {
   if (!d.email) fail(400, 'Cadastre o e-mail do dentista.');
   const terms = {};
   for (const k of Object.keys(PARTNER_DEFAULTS)) if (b.terms?.[k] !== undefined && b.terms[k] !== '') terms[k] = money(b.terms[k]);
-  if ((terms.pctInstall ?? PARTNER_DEFAULTS.pctInstall) + (terms.pctStart ?? PARTNER_DEFAULTS.pctStart) + (terms.pctFinish ?? PARTNER_DEFAULTS.pctFinish) !== 100) {
-    fail(400, 'Os percentuais dos marcos precisam somar 100%.');
-  }
   let [user] = await sql`select * from users where dentist_id = ${id} or email = ${d.email}`;
   if (user && user.role === 'admin') fail(409, 'Este e-mail já pertence a um administrador.');
   if (!user) [user] = await sql`insert into users (email, name, role, dentist_id) values (${d.email}, ${d.name}, 'dentist', ${id}) returning *`;
@@ -1232,12 +1261,14 @@ r('POST', '/api/webhooks/asaas', async (req, res) => {
     const ref = p.externalReference;
     [ch] = ref && /^[0-9a-f-]{36}$/i.test(ref) ? await sql`select * from charges where id = ${ref}` : [];
     if (!ch) [ch] = await sql`select * from charges where asaas_payment_id = ${p.id}
-      or (${p.installment || ''} <> '' and asaas_installment_id = ${p.installment || ''})
+      or rest_payment_id = ${p.id}
+      or (${p.installment || ''} <> '' and (asaas_installment_id = ${p.installment || ''} or rest_installment_id = ${p.installment || ''}))
       or (${p.subscription || ''} <> '' and asaas_subscription_id = ${p.subscription || ''}) limit 1`;
   }
   if (!ch) return send(res, 200, { received: true, ignored: true });
   await sql`insert into webhook_events (provider, event, payload) values ('asaas', ${clean(b.event, 80)}, ${sql.json(b)})`;
   await upsertPayment(sql, p, ch);
+  if (asaas.PAID.has(p.status) && ch.pay_option === 'BOLETO' && p.id === ch.asaas_payment_id) await ensureBoletos(sql, ch.id);
   if (asaas.PAID.has(p.status)) {
     const [c] = await sql`select id, code, name from cases where id = ${ch.case_id}`;
     await logEvent(sql, { caseId: ch.case_id, actor: 'asaas', type: 'pagamento_confirmado', data: { value: p.value, id: p.id } });

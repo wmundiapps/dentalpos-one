@@ -2,6 +2,7 @@
 // O texto final é gerado com os dados do caso, salvo como "retrato" imutável e
 // aceito eletronicamente (nome, CPF, IP, data/hora e hash SHA-256 do texto).
 import { escapeHtml as e, brl } from './util.js';
+import { MODEL, quote } from './pricing.js';
 
 const blank = (v, label = 'a preencher') =>
   v === undefined || v === null || v === '' ? `<mark>[${e(label)}]</mark>` : e(v);
@@ -18,6 +19,7 @@ export function company() {
 
 const today = () => new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 
+const pctWords = (n) => ({ 12: 'doze', 20: 'vinte', 30: 'trinta', 50: 'cinquenta' }[n] || String(n));
 const sec = (n, title, html) => `<section><h3>${n}. ${e(title)}</h3>${html}</section>`;
 const p = (html) => `<p>${html}</p>`;
 const ul = (items) => `<ul>${items.map((i) => `<li>${i}</li>`).join('')}</ul>`;
@@ -28,23 +30,26 @@ const ELECTRONIC = p('As partes reconhecem a validade da contratação e da assi
 export function patientContract(c, dentist) {
   const k = company();
   const plan = c.plan || {};
+  const q = plan.total ? quote(plan.total) : null;
   const title = 'Contrato de prestação de serviços odontológicos — tratamento com alinhadores transparentes';
   const body = [
     `<h2>Contrato de prestação de serviços odontológicos</h2>`,
     `<p class="sub">Tratamento ortodôntico com alinhadores transparentes — AlignSystem · Caso nº ${e(c.code)}</p>`,
     p(`<b>CONTRATANTE:</b> ${blank(c.name, 'nome do paciente')}, portador(a) do CPF nº ${blank(c.cpf, 'CPF')}, residente em ${blank(c.address, 'endereço')} ("Paciente").`),
-    p(`<b>CONTRATADA:</b> ${blank(k.name, 'razão social AlignSystem')}, CNPJ nº ${blank(k.cnpj, 'CNPJ')}, com sede em ${blank(k.address, 'endereço')}, tendo como responsável técnico pelo caso ${blank(dentist?.name, 'dentista responsável')}, CRO-${blank(dentist?.cro_uf, 'UF')} nº ${blank(dentist?.cro, 'CRO')} ("Contratada").`),
+    p(`<b>CONTRATADA:</b> ${blank(k.name, 'razão social AlignSystem')}, CNPJ nº ${blank(k.cnpj, 'CNPJ')}, com sede em ${blank(k.address, 'endereço')}, ("Contratada").`),
+    p(`<b>DENTISTA PARCEIRO(A), interveniente:</b> ${blank(dentist?.name, 'dentista responsável')}, CRO-${blank(dentist?.cro_uf, 'UF')} nº ${blank(dentist?.cro, 'CRO')}, credenciado(a) na rede AlignSystem por Termo de Adesão, responsável pelos atendimentos clínicos presenciais do(a) Paciente.`),
     p('As partes acima identificadas têm, entre si, justo e acordado o presente contrato, que se rege pelas cláusulas seguintes.'),
     sec(1, 'Objeto', p(`O presente contrato tem por objeto a prestação, pela Contratada, de serviço odontológico de tratamento ortodôntico por meio de alinhadores transparentes da marca ${blank(plan.brand, 'marca do alinhador')}, conforme plano de tratamento elaborado após avaliação e documentação digital do(a) Paciente, que passa a integrar este contrato como Anexo I.`)),
     sec(2, 'Documentação e planejamento', p('A Contratada realizará escaneamento intraoral, fotografias clínicas e radiografia panorâmica do(a) Paciente, com base nas quais será elaborado o plano de tratamento individualizado, apresentado e aprovado pelo(a) Paciente antes do início da confecção dos alinhadores. A pré-avaliação por fotos realizada pela internet tem caráter apenas orientativo e não substitui o exame clínico presencial.')),
     sec(3, 'Prazo do tratamento',
       p(`3.1. O tratamento tem duração estimada de ${blank(plan.months, 'nº de')} meses, respeitado o limite máximo de 36 (trinta e seis) meses previsto neste contrato, podendo variar conforme a resposta biológica individual do(a) Paciente.`) +
       p('3.2. Havendo necessidade clínica de prorrogação além do prazo inicialmente estimado, dentro do limite de 36 meses, esta poderá ocorrer sem custo adicional de planejamento, desde que decorrente de evolução normal do tratamento e não de descumprimento das orientações pelo(a) Paciente.')),
-    sec(4, 'Valor e condições de pagamento',
+    sec(4, 'Valor, composição e condições de pagamento',
       p(`4.1. O valor total do tratamento, referente ao protocolo descrito no Anexo I, é de ${plan.total ? e(brl(plan.total)) : blank('', 'valor total')} ("Contrato Fechado"), cobrindo a documentação inicial, os alinhadores previstos no planejamento aprovado e o acompanhamento clínico durante o tratamento, ressalvadas as hipóteses da Cláusula 5.`) +
-      p(`4.2. Forma de pagamento: o valor total é pago de forma integral, à vista por Pix ou por cartão de crédito em até ${blank(plan.maxInstallments || 12, 'nº')} parcelas. No cartão de crédito, o valor total é lançado de uma só vez no limite do cartão, e o parcelamento é feito pela operadora/banco emissor. Não há pagamento por boleto nem por mensalidades.`) +
-      p('4.3. A confecção dos alinhadores e o início do tratamento ocorrem somente após a confirmação do pagamento integral.') +
-      p('4.4. O link de pagamento é emitido pela plataforma de pagamentos utilizada pela Contratada e enviado ao(à) Paciente por e-mail e/ou WhatsApp. Eventuais juros ou encargos de parcelamento no cartão de crédito são de responsabilidade da respectiva operadora/banco emissor e serão informados ao(à) Paciente antes da confirmação do pagamento, conforme exige o Código de Defesa do Consumidor.')),
+      p(`<b>4.2. Composição do valor.</b> O valor total é composto por: (a) <b>${MODEL.alignerPct}% (${e(pctWords(MODEL.alignerPct))} por cento) referentes ao fornecimento dos alinhadores</b> confeccionados sob medida para o(a) Paciente${q ? ` (${e(brl(q.boleto?.entry ?? plan.total * MODEL.alignerPct / 100))})` : ''}; e (b) ${100 - MODEL.alignerPct}% (${e(pctWords(100 - MODEL.alignerPct))} por cento) referentes ao planejamento, às despesas operacionais e aos atendimentos${dentist ? `, dos quais ${MODEL.dentistPct}% do valor total correspondem aos atendimentos clínicos presenciais realizados pelo(a) dentista parceiro(a) indicado(a) no preâmbulo e ${MODEL.supervisionPct}% à supervisão clínica remota e ao teleatendimento prestados pela Contratada` : ''}.`) +
+      p(`4.3. Formas de pagamento, à escolha do(a) Paciente no link de pagamento: (a) <b>Pix à vista, com desconto de ${MODEL.pixDiscountPct}% (${e(pctWords(MODEL.pixDiscountPct))} por cento)</b> sobre o valor total${q ? ` (${e(brl(q.pix))})` : ''}; (b) <b>cartão de crédito em até ${MODEL.cardMaxInstallments} parcelas sem juros</b>, com o valor total lançado no limite do cartão; ou (c) <b>boleto bancário</b>, com entrada de ${MODEL.boletoEntryPct}% do valor total paga por Pix ou cartão de crédito, e o saldo em até ${MODEL.boletoMaxInstallments} boletos mensais, sujeito a análise de crédito.`) +
+      p('4.4. O pedido de fabricação dos alinhadores somente é feito após (i) a confirmação do pagamento integral, no Pix ou no cartão, ou da entrada, no boleto; e (ii) o término do prazo de arrependimento previsto na Cláusula 9.1.') +
+      p('4.5. O link de pagamento é emitido pela plataforma de pagamentos utilizada pela Contratada e enviado ao(à) Paciente por e-mail e/ou WhatsApp. Na modalidade boleto, os boletos do saldo são emitidos após a confirmação da entrada.')),
     sec(5, 'Alinhadores extraviados ou danificados',
       p('5.1. Os alinhadores fornecidos são de uso individual e de responsabilidade do(a) Paciente quanto à sua guarda e conservação.') +
       p(`<b>5.2. Em caso de perda, quebra ou dano ao alinhador por mau uso, será cobrado o valor adicional de reposição de ${plan.replacementValue ? e(brl(plan.replacementValue)) : blank('', 'valor de reposição')} por unidade, não incluído no valor do Contrato Fechado descrito na Cláusula 4.</b>`) +
@@ -53,7 +58,7 @@ export function patientContract(c, dentist) {
       'comparecer às consultas agendadas e seguir as orientações de uso dos alinhadores;',
       'usar os alinhadores pelo tempo diário recomendado pelo profissional responsável;',
       'comunicar imediatamente qualquer perda, quebra ou desconforto significativo;',
-      'efetuar o pagamento integral, conforme a Cláusula 4.',
+      'efetuar os pagamentos na forma escolhida, conforme a Cláusula 4.',
     ])),
     sec(7, 'Obrigações da Contratada', ul([
       'prestar o serviço com a técnica e o cuidado exigidos pela boa prática odontológica;',
@@ -61,11 +66,12 @@ export function patientContract(c, dentist) {
       'informar o(a) Paciente sobre a evolução do tratamento e eventuais ajustes necessários;',
       'manter sigilo sobre os dados e prontuário do(a) Paciente, nos termos da LGPD.',
     ])),
-    sec(8, 'Contestação do pagamento', p('<b>A contestação indevida da compra junto à operadora do cartão (chargeback), em desacordo com este contrato, torna o valor contestado devido pelo(a) Paciente, com multa de 2% (dois por cento), acrescida de juros de mora de 1% (um por cento) ao mês, calculados pro rata die, sem prejuízo da correção monetária, nos limites da legislação aplicável.</b>')),
+    sec(8, 'Atraso e contestação', p('<b>Na modalidade boleto, o atraso no pagamento de qualquer parcela sujeitará o(a) Paciente à multa de 2% (dois por cento) sobre o valor em atraso, acrescida de juros de mora de 1% (um por cento) ao mês, calculados pro rata die, e de correção monetária, podendo o débito ser levado a protesto ou aos cadastros de proteção ao crédito após comunicação prévia. A contestação indevida da compra junto à operadora do cartão (chargeback) torna o valor contestado devido nas mesmas condições.</b>')),
     sec(9, 'Rescisão e desistência',
       p('9.1. Caso a contratação tenha ocorrido fora do estabelecimento comercial (ex.: internet, telefone, domicílio), o(a) Paciente poderá exercer o direito de arrependimento em até 7 (sete) dias corridos a contar da assinatura, nos termos do art. 49 do Código de Defesa do Consumidor, com devolução integral dos valores eventualmente pagos.') +
-      p('<b>9.2. Após esse prazo, a rescisão a pedido do(a) Paciente implicará o pagamento proporcional dos serviços já prestados e dos alinhadores já confeccionados ou em confecção até a data da rescisão, sendo restituído o saldo remanescente, se houver, em até 30 (trinta) dias.</b>') +
-      p('9.3. A Contratada poderá rescindir o contrato em caso de descumprimento reiterado das orientações clínicas pelo(a) Paciente que inviabilize a continuidade segura do tratamento, mediante comunicação prévia por escrito.')),
+      p(`<b>9.2. Após esse prazo e depois do pedido de fabricação dos alinhadores, a desistência pelo(a) Paciente implicará o pagamento integral da parcela referente aos alinhadores (${MODEL.alignerPct}% do valor total), por se tratar de produto confeccionado sob medida e sem possibilidade de reaproveitamento, acrescido de multa compensatória de ${MODEL.withdrawalPenaltyPct}% (${e(pctWords(MODEL.withdrawalPenaltyPct))} por cento) sobre o valor restante (${100 - MODEL.alignerPct}% do valor total), deduzidos os valores já pagos. Havendo saldo a favor do(a) Paciente, será restituído em até 30 (trinta) dias; havendo saldo devedor, deverá ser pago em até 30 (trinta) dias.</b>`) +
+      p(`9.3. Se a desistência ocorrer após o prazo de arrependimento, mas antes do pedido de fabricação dos alinhadores, o(a) Paciente pagará apenas a multa compensatória de ${MODEL.withdrawalPenaltyPct}% sobre o valor restante (${100 - MODEL.alignerPct}% do valor total), que cobre a documentação e o planejamento já realizados, sendo restituído o saldo em até 30 (trinta) dias.`) +
+      p('9.4. A Contratada poderá rescindir o contrato em caso de descumprimento reiterado das orientações clínicas pelo(a) Paciente que inviabilize a continuidade segura do tratamento, mediante comunicação prévia por escrito.')),
     sec(10, 'Uso de imagem', p('O uso de fotografias do(a) Paciente para fins de divulgação da Contratada é facultativo e depende de consentimento específico e destacado, a ser formalizado em termo apartado, podendo ser revogado a qualquer tempo pelo(a) Paciente. As fotos enviadas pela plataforma são usadas exclusivamente para avaliação e acompanhamento clínico.')),
     sec(11, 'Proteção de dados (LGPD)', p('Os dados pessoais e de saúde do(a) Paciente serão tratados exclusivamente para as finalidades relacionadas à execução deste contrato, com as salvaguardas exigidas pela Lei nº 13.709/2018, podendo o(a) Paciente exercer os direitos previstos na referida lei mediante solicitação pelo e-mail ' + e(process.env.PUBLIC_CONTACT_EMAIL || 'contato@alignsystem.com.br') + '.')),
     sec(12, 'Assinatura eletrônica', ELECTRONIC),
@@ -79,10 +85,6 @@ export function patientContract(c, dentist) {
 
 // ---------------------------------------------------------------- parceiro
 export const PARTNER_DEFAULTS = {
-  caseValue: 2000,
-  pctInstall: 30,
-  pctStart: 40,
-  pctFinish: 30,
   avulsaValue: 120,
   payoutDays: 10,
   noticeDays: 30,
@@ -131,11 +133,13 @@ export function partnerContract(d, terms = {}) {
       'efetuar os repasses devidos nos prazos e condições descritos na Cláusula 6.',
     ])),
     sec(6, 'Remuneração e repasses',
-      p(`6.1. <b>Coparticipação por caso completo.</b> Pela condução clínica integral de um caso, do início ao fim do tratamento, a AlignSystem pagará ao(à) Parceiro(a) o valor de ${e(brl(t.caseValue))}, dividido em parcelas vinculadas a marcos clínicos: ${e(t.pctInstall)}% na instalação/documentação, ${e(t.pctStart)}% no início do uso dos alinhadores e ${e(t.pctFinish)}% na finalização do tratamento, mediante validação das respectivas evidências.`) +
-      p(`6.2. <b>Consulta avulsa.</b> Para atendimentos pontuais não vinculados à condução integral do caso pelo(a) Parceiro(a) — como ajustes, manutenções ou consultas de acompanhamento realizadas por profissional diverso do responsável original — a AlignSystem pagará o valor de ${e(brl(t.avulsaValue))} por atendimento validado.`) +
-      p(`6.3. <b>Fluxo de validação.</b> O repasse depende do registro de evidências do atendimento na plataforma, da confirmação do paciente quando aplicável, e da validação administrativa da AlignSystem, sendo efetuado em até ${e(t.payoutDays)} dias úteis após a validação.`) +
-      p('6.4. <b>Forma de repasse.</b> Os repasses podem ser feitos por divisão automática de pagamento (split) na plataforma de pagamentos utilizada pela AlignSystem, creditados em conta de pagamento de titularidade do(a) Parceiro(a), ou por transferência bancária/Pix para conta de mesma titularidade. O(A) Parceiro(a) autoriza a abertura dessa conta de pagamento em seu nome, com os dados fornecidos no credenciamento, e é responsável pelos tributos incidentes sobre os valores que receber.') +
-      p('6.5. Os valores desta cláusula poderão ser revistos mediante aditivo escrito, não se aplicando reajuste automático.')),
+      p(`6.1. <b>Composição do valor de cada caso.</b> O valor do tratamento pago pelo paciente é composto por ${MODEL.alignerPct}% referentes aos alinhadores, fornecidos pela AlignSystem; ${MODEL.dentistPct}% referentes aos atendimentos clínicos presenciais realizados pelo(a) Parceiro(a); e ${MODEL.supervisionPct}% referentes à supervisão clínica remota e ao teleatendimento prestados pela AlignSystem.`) +
+      p(`6.2. <b>Remuneração do(a) Parceiro(a).</b> Pela condução clínica integral de cada caso, o(a) Parceiro(a) faz jus a ${MODEL.dentistPct}% (trinta por cento) do valor efetivamente pago pelo paciente, calculado sobre o valor líquido recebido, de modo que descontos concedidos (como o desconto para pagamento à vista) e taxas da plataforma de pagamentos são suportados proporcionalmente pelas Partes. Na modalidade boleto, a entrada corresponde aos alinhadores e pertence integralmente à AlignSystem, e o(a) Parceiro(a) recebe ${(MODEL.dentistPct / (100 - MODEL.alignerPct) * 100).toFixed(0)}% de cada boleto do saldo efetivamente pago.`) +
+      p(`6.3. <b>Desistência do paciente.</b> Em caso de desistência, a multa compensatória cobrada do paciente pertence integralmente à AlignSystem, e o(a) Parceiro(a) faz jus apenas aos valores já recebidos referentes a atendimentos efetivamente realizados e registrados na plataforma.`) +
+      p(`6.4. <b>Consulta avulsa.</b> Para atendimentos pontuais não vinculados à condução integral do caso pelo(a) Parceiro(a) — como ajustes, manutenções ou consultas de acompanhamento realizadas por profissional diverso do responsável original — a AlignSystem pagará o valor de ${e(brl(t.avulsaValue))} por atendimento validado, em até ${e(t.payoutDays)} dias úteis após a validação.`) +
+      p('6.5. <b>Registro dos atendimentos.</b> O(A) Parceiro(a) deve registrar cada atendimento na plataforma, com fotos e anotações. Valores recebidos por atendimentos não realizados ou não registrados serão compensados nos repasses seguintes ou restituídos à AlignSystem.') +
+      p('6.6. <b>Forma de repasse.</b> Os repasses são feitos por divisão automática de pagamento (split) na plataforma de pagamentos utilizada pela AlignSystem, creditados em conta de pagamento de titularidade do(a) Parceiro(a), ou por transferência bancária/Pix para conta de mesma titularidade. O(A) Parceiro(a) autoriza a abertura dessa conta de pagamento em seu nome, com os dados fornecidos no credenciamento, e é responsável pelos tributos incidentes sobre os valores que receber.') +
+      p('6.7. Os percentuais e valores desta cláusula poderão ser revistos mediante aditivo escrito, não se aplicando reajuste automático.')),
     sec(7, 'Marca e materiais', p('O uso do nome, marca, materiais de comunicação e identidade visual AlignSystem pelo(a) Parceiro(a) está condicionado à prévia autorização da AlignSystem e restrito à vigência deste Termo, devendo cessar imediatamente após seu término, sem geração de direito a indenização por essa cessação.')),
     sec(8, 'Confidencialidade e não desvio', p('As Partes comprometem-se a manter sigilo sobre informações comerciais, técnicas e operacionais da rede, bem como sobre dados de pacientes, aplicando-se a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 — LGPD) a todo tratamento de dados pessoais realizado no âmbito desta parceria.')),
     sec(9, 'Vigência', p('O presente Termo vigora por prazo indeterminado a partir de seu aceite, podendo ser rescindido pelas Partes na forma da Cláusula 10.')),

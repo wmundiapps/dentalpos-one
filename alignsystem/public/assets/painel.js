@@ -270,7 +270,6 @@
         '<div class="field"><label for="brand">Marca do alinhador</label><input id="brand" name="brand" list="brands" value="' + esc(plan.brand || '') + '"><datalist id="brands"><option>ClearCorrect</option><option>Invisalign</option><option>Marca nacional</option></datalist></div>' +
         field('months', 'Duração estimada (meses)', plan.months, 'type="number" min="1" max="36"') +
         field('total', 'Valor total (R$)', plan.total, 'inputmode="decimal"') +
-        field('maxInstallments', 'Cartão em até (x)', plan.maxInstallments || 12, 'type="number" min="1" max="18"') +
         field('replacementValue', 'Reposição de alinhador (R$/un.)', plan.replacementValue, 'inputmode="decimal"') + '</div>' +
         area('treatmentNotes', 'Anexo I — resumo do plano de tratamento', plan.treatmentNotes) +
         '<div class="row"><button class="btn btn-primary" type="submit">Salvar plano</button><button class="btn btn-green" type="button" id="genContract">Gerar contrato para aceite</button></div><div class="fmsg"></div>' +
@@ -283,19 +282,18 @@
 
         // cobranças
         '<form class="card" id="chf"><h2>Cobrança (Asaas)</h2>' +
-        '<p class="small muted">Só pagamento integral: o paciente recebe um link e escolhe <b>Pix à vista</b> ou <b>cartão de crédito</b> (valor total no limite do cartão). Sem boleto e sem mensalidades.</p>' +
+        '<p class="small muted">O paciente recebe um link e escolhe: <b>Pix à vista com 12% de desconto</b>, <b>cartão em até 18x sem juros</b> ou <b>boleto</b> (entrada de 50% por Pix/cartão + saldo em até 18 boletos).</p>' +
         '<div class="grid2">' +
         field('description', 'Descrição', 'AlignSystem — tratamento (caso ' + c.code + ')') +
-        field('value', 'Valor total (R$)', plan.total || '', 'inputmode="decimal" required') +
-        field('maxInstallments', 'Cartão em até (x)', plan.maxInstallments || 12, 'type="number" min="1" max="18"') +
-        '<div class="field"><label for="splitType">Repasse ao dentista (split)</label><select id="splitType" name="splitType">' + opt('none', 'Sem repasse nesta cobrança', 'none') + opt('fixed', 'Valor fixo (R$, total)', '') + opt('percent', 'Percentual (%)', '') + '</select></div>' +
-        field('splitValue', 'Valor do repasse', '', 'inputmode="decimal"') + '</div>' +
-        '<p class="small muted">Repasse vai para a conta de recebimento de ' + esc(dentistName || 'o dentista do caso') + '. Taxas do Asaas são descontadas da AlignSystem.</p>' +
+        field('value', 'Valor total do tratamento (R$)', plan.total || '', 'inputmode="decimal" required') +
+        field('boletoMax', 'Boletos do saldo em até (x)', Math.min(18, plan.months || 18), 'type="number" min="1" max="18"') + '</div>' +
+        '<div class="check field"><input type="checkbox" id="boleto" name="boleto" checked><label for="boleto">Permitir boleto (só depois de analisar o crédito do paciente)</label></div>' +
+        '<div class="check field"><input type="checkbox" id="dentistShare" name="dentistShare"' + (c.dentist_id ? ' checked' : '') + '><label for="dentistShare">Repassar 30% ao dentista do caso (' + esc(dentistName || 'sem dentista') + ') por split — modelo 50/30/20</label></div>' +
         '<button class="btn btn-primary" type="submit">Criar link de pagamento e enviar ao paciente</button><div class="fmsg"></div>' +
         (d.charges.length ? '<div class="list" style="margin-top:14px">' + d.charges.map(function (ch) {
-          var pays = d.payments.filter(function (p) { return p.charge_id === ch.id; });
+          var pays = d.payments.filter(function (p) { return p.charge_id === ch.id && p.status !== 'DELETED'; });
           var paid = pays.filter(function (p) { return /RECEIVED|CONFIRMED/.test(p.status); }).length;
-          return '<div class="it"><div><b>' + esc(ch.description) + '</b><div class="small muted">' + esc(AS.money(ch.value)) + ' · ' + (ch.billing_type === 'PIX' ? 'Pix' : ch.billing_type === 'CREDIT_CARD' ? 'cartão ' + (ch.installment_count || 1) + 'x' : ch.kind === 'integral' ? 'aguardando escolha' : esc(ch.kind)) +
+          return '<div class="it"><div><b>' + esc(ch.description) + '</b><div class="small muted">' + esc(AS.money(ch.value)) + ' · ' + (ch.pay_option === 'PIX' ? 'Pix à vista' : ch.pay_option === 'CREDIT_CARD' ? 'cartão ' + (ch.installment_count || 1) + 'x' : ch.pay_option === 'BOLETO' ? 'boleto: entrada + ' + (ch.installment_count || 1) + 'x' : ch.kind === 'integral' ? 'aguardando escolha' : esc(ch.kind)) +
             (pays.length ? ' · ' + paid + '/' + pays.length + ' pagas' : '') + (ch.split ? ' · repasse ' + (ch.split.type === 'percent' ? ch.split.value + '%' : AS.money(ch.split.value)) : '') + ' · ' + statusBadge(ch.statusLabel, ch.status === 'cancelado' || ch.status === 'erro' ? 'red' : '') + '</div></div>' +
             '<div class="row">' + (ch.pay_token ? '<button type="button" class="btn btn-line btn-sm" data-copy="' + esc(location.origin + '/pagamento?t=' + ch.pay_token) + '">Copiar link</button>' +
               '<a class="btn btn-green btn-sm" target="_blank" rel="noopener" href="' + esc(AS.waLink(c.whatsapp, 'Olá, ' + c.name.split(' ')[0] + '! Seu link de pagamento AlignSystem: ' + location.origin + '/pagamento?t=' + ch.pay_token)) + '">WhatsApp</a>' : '') +
@@ -355,8 +353,8 @@
       });
       onSubmit($('#chf', m), function (f) {
         var body = {
-          description: f.description, value: f.value, maxInstallments: f.maxInstallments,
-          split: f.splitType !== 'none' && f.splitValue ? { type: f.splitType, value: f.splitValue } : null,
+          description: f.description, value: f.value, boletoMax: f.boletoMax,
+          boleto: $('#boleto', m).checked, dentistShare: $('#dentistShare', m).checked,
         };
         if (!confirm('Criar o link de pagamento de ' + AS.money(String(f.value).replace(',', '.')) + ' e enviar ao paciente?')) return false;
         return api('/api/admin/cases/' + id + '/charges', { method: 'POST', body: body }).then(function () { reload(); return false; });
@@ -415,9 +413,7 @@
 
         '<div>' +
         '<form class="card" id="apf"><h2>Credenciamento e Termo de Adesão</h2><p class="small muted">Ao aprovar, o sistema cria o acesso ao painel e o Termo de Adesão com os valores abaixo (o dentista recebe por e-mail; você também pode enviar pelo WhatsApp).</p><div class="grid2">' +
-        field('caseValue', 'Coparticipação por caso completo (R$)', T.caseValue, 'inputmode="decimal"') + field('avulsaValue', 'Consulta avulsa (R$)', T.avulsaValue, 'inputmode="decimal"') +
-        field('pctInstall', '% na instalação/documentação', T.pctInstall, 'type="number"') + field('pctStart', '% no início dos alinhadores', T.pctStart, 'type="number"') +
-        field('pctFinish', '% na finalização', T.pctFinish, 'type="number"') + field('payoutDays', 'Prazo de repasse (dias úteis)', T.payoutDays, 'type="number"') +
+        field('avulsaValue', 'Consulta avulsa (R$)', T.avulsaValue, 'inputmode="decimal"') + field('payoutDays', 'Prazo de repasse avulso (dias úteis)', T.payoutDays, 'type="number"') +
         field('noticeDays', 'Aviso prévio (dias)', T.noticeDays, 'type="number"') + field('lockMonths', 'Multa se sair antes de (meses)', T.lockMonths, 'type="number"') +
         field('penaltyRepasses', 'Multa: nº de repasses médios', T.penaltyRepasses, 'type="number"') + field('penaltyFixed', 'Multa mínima (R$)', T.penaltyFixed, 'inputmode="decimal"') +
         field('nonSolicitMonths', 'Não desvio após saída (meses)', T.nonSolicitMonths, 'type="number"') + '</div>' +
