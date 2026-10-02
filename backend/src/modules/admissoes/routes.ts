@@ -8,6 +8,7 @@ import processos from './processos'
 import relatorios from './relatorios'
 import rematricula from './rematricula'
 import './jobs'
+import { publicRouter as publicRouterImpl } from './publico'
 
 // Módulo "admissoes" — captação, vestibular, matrícula e rematrícula (/api/edu/admissoes).
 const router = Router()
@@ -30,4 +31,4 @@ router.use(academicErrorHandler)
 export default router
 
 // Rotas PÚBLICAS (sem login; montadas em /api/public/edu/admissoes).
-export { publicRouter } from './publico'
+export const publicRouter = publicRouterImpl
