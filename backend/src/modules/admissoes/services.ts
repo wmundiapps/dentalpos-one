@@ -323,6 +323,8 @@ export async function efetivarMatricula(params: { tenantId: string; matriculaId:
   const email = c.email.trim().toLowerCase()
   const existente = await prisma.user.findFirst({ where: { clinicId: clinic.id, email } })
   if (existente) {
+    // Nunca reaproveitar conta de equipe: evita sobrescrever senha/papel de um funcionário.
+    if (String(existente.role).toUpperCase() !== 'STUDENT') throw httpErr(409, 'Este e-mail pertence a um usuário da equipe. Use outro e-mail para o aluno.')
     const jaAluno = await prisma.student.findFirst({ where: { userId: existente.id } })
     if (jaAluno) throw httpErr(409, 'Já existe aluno cadastrado com este e-mail.')
   }
@@ -339,7 +341,7 @@ export async function efetivarMatricula(params: { tenantId: string; matriculaId:
     try {
       result = await prisma.$transaction(async (tx) => {
         const user = existente
-          ? await tx.user.update({ where: { id: existente.id }, data: { password: hash, role: 'STUDENT', isActive: true } })
+          ? existente
           : await tx.user.create({ data: { clinicId: clinic.id, tenantId, email, password: hash, firstName: partes[0], lastName: partes.slice(1).join(' ') || '-', role: 'STUDENT', phone: c.telefone ?? undefined } })
         const student = await tx.student.create({ data: { tenantId, userId: user.id, ra, nomeCompleto: c.nome, cpf: c.cpf, dataNascimento: c.dataNascimento } })
         const enr = await tx.enrollment.create({ data: { studentId: student.id, programId: program.id, termId: term.id } })
@@ -376,7 +378,7 @@ export async function efetivarMatricula(params: { tenantId: string; matriculaId:
   }
   await notify({
     tenantId, canal: 'EMAIL', destino: email, userId: result.userId, assunto: 'Matrícula concluída — seu acesso',
-    mensagem: `Bem-vindo(a), ${c.nome}! Seu RA é ${result.ra}. Acesse com o e-mail ${email} e a senha provisória ${senha} (troque no primeiro acesso).`,
+    mensagem: `Bem-vindo(a), ${c.nome}! Seu RA é ${result.ra}. Acesse com o e-mail ${email}; no primeiro acesso use "Esqueci minha senha" para definir a sua senha (a senha provisória foi entregue apenas à secretaria).`,
     templateKey: 'adm.matricula.concluida', refType: 'AdmMatricula', refId: m.id,
   })
   await audit({ tenantId, userId: params.userId, modulo: 'admissoes', acao: 'EFETIVAR_MATRICULA', refType: 'AdmMatricula', refId: m.id, detalhes: { ra: result.ra, studentId: result.studentId } })

@@ -63,7 +63,7 @@ function Fluxo({ periodicoId, periodicos }: { periodicoId: string; periodicos: a
   );
 }
 
-function Cadastros({ periodicoId, periodicos, onChanged }: { periodicoId: string; periodicos: any[]; onChanged: () => void }) {
+function Cadastros({ periodicos }: { periodicos: any[] }) {
   const [sub, setSub] = useState("periodicos");
   const opts = periodicos.map((p) => ({ value: p.id, label: p.nome }));
   return (
@@ -86,7 +86,7 @@ function Cadastros({ periodicoId, periodicos, onChanged }: { periodicoId: string
           description="Ao publicar, o sistema gera DOI, ordena os artigos e registra cada um na produção científica."
           rowActions={[{ label: "Publicar", path: "/edicoes/:id/publicar", color: "success", confirm: "Publicar esta edição? A ação gera DOIs e não pode ser desfeita.", hidden: (r) => r.status === "PUBLICADA" }]}
           columns={[{ key: "periodicoId", label: "Periódico", render: (r) => opts.find((o) => o.value === r.periodicoId)?.label ?? "—" }, { key: "volume", label: "Vol." }, { key: "numero", label: "Nº" }, { key: "ano", label: "Ano" }, { key: "titulo", label: "Título" }, { key: "_count", label: "Artigos", render: (r) => r._count?.submissoes ?? 0 }, { key: "status", label: "Status", render: (r) => <StatusChip value={r.status} /> }]}
-          fields={[{ key: "periodicoId", label: "Periódico", type: "select", options: opts, required: true, createOnly: true, helper: periodicoId ? undefined : undefined }, { key: "volume", label: "Volume", type: "number", required: true, createOnly: true }, { key: "numero", label: "Número", required: true, createOnly: true },
+          fields={[{ key: "periodicoId", label: "Periódico", type: "select", options: opts, required: true, createOnly: true }, { key: "volume", label: "Volume", type: "number", required: true, createOnly: true }, { key: "numero", label: "Número", required: true, createOnly: true },
             { key: "ano", label: "Ano", type: "number", required: true, createOnly: true }, { key: "titulo", label: "Título (edição temática)" }, { key: "tipo", label: "Tipo", type: "select", options: ["REGULAR", "ESPECIAL", "SUPLEMENTO"] }, { key: "editorial", label: "Editorial", type: "textarea" }]} />
       )}
       {sub === "equipe" && (
@@ -100,7 +100,6 @@ function Cadastros({ periodicoId, periodicos, onChanged }: { periodicoId: string
           columns={[{ key: "nome", label: "Seção" }, { key: "periodicoId", label: "Periódico", render: (r) => opts.find((o) => o.value === r.periodicoId)?.label ?? "—" }, { key: "ordem", label: "Ordem" }, { key: "revisadaPorPares", label: "Revisada por pares", render: (r) => (r.revisadaPorPares ? "Sim" : "Não") }]}
           fields={[{ key: "periodicoId", label: "Periódico", type: "select", options: opts, required: true, createOnly: true }, { key: "nome", label: "Nome", required: true }, { key: "ordem", label: "Ordem", type: "number" }, { key: "revisadaPorPares", label: "Revisada por pares", type: "bool" }, { key: "ativa", label: "Ativa", type: "bool" }]} />
       )}
-      <Box sx={{ display: "none" }} onClick={onChanged} />
     </Box>
   );
 }
@@ -108,8 +107,7 @@ function Cadastros({ periodicoId, periodicos, onChanged }: { periodicoId: string
 export default function PeriodicoTab() {
   const [sub, setSub] = useState("fluxo");
   const [per, setPer] = useState("");
-  const [rev, setRev] = useState(0);
-  const pers = useApi<any>("/pesquisa/periodicos?pageSize=100", [rev]);
+  const pers = useApi<any>("/pesquisa/periodicos?pageSize=100", [sub]);
   const list = itemsOf(pers.data);
   const cur = per || list[0]?.id || "";
   return (
@@ -121,7 +119,7 @@ export default function PeriodicoTab() {
         {sub === "fluxo" && list.length > 0 && <Pick label="Periódico" value={cur} onChange={setPer} options={list.map((p) => ({ value: p.id, label: p.nome }))} minWidth={260} />}
       </Box>
       {sub === "revisoes" && <MinhasRevisoes />}
-      {sub === "cad" && <Cadastros periodicoId={cur} periodicos={list} onChanged={() => setRev((x) => x + 1)} />}
+      {sub === "cad" && <Cadastros periodicos={list} />}
       {sub === "fluxo" && (
         <LoadBox loading={pers.loading} error={pers.error} onRetry={pers.reload} empty={!list.length}
           emptyText="Nenhum periódico cadastrado. Use a aba Cadastros para criar o periódico institucional e a equipe editorial.">

@@ -137,7 +137,7 @@ export function FormDialog({ open, title, fields, initial, submitLabel = "Salvar
     setForm(f);
     setErr(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initial]);
+  }, [open, JSON.stringify(initial ?? null)]);
 
   async function submit() {
     const faltando = fields.filter((f) => f.required && f.type !== "bool" && (form[f.key] === "" || form[f.key] === undefined || form[f.key] === null));

@@ -19,6 +19,8 @@ export interface FieldDef {
   /** Mostrar só na criação */
   createOnly?: boolean;
   helper?: string;
+  /** Valor inicial na criação (ex.: true para flags com padrão ligado no banco) */
+  defaultValue?: any;
 }
 export interface ColumnDef {
   key: string;
@@ -114,7 +116,12 @@ export default function EduResourcePage(p: Props) {
 
   const visibleFields = useMemo(() => p.fields.filter((f) => !(f.createOnly && editing?.id)), [p.fields, editing]);
 
-  function openNew() { setForm({}); setEditing({}); }
+  function openNew() {
+    const f: Record<string, any> = {};
+    p.fields.forEach((fd) => { if (fd.defaultValue !== undefined) f[fd.key] = fd.defaultValue; });
+    setForm(f);
+    setEditing({});
+  }
   function openEdit(row: any) {
     const f: Record<string, any> = {};
     p.fields.forEach((fd) => { f[fd.key] = toInput(row[fd.key], fd.type); });
@@ -126,7 +133,7 @@ export default function EduResourcePage(p: Props) {
     try {
       const body: Record<string, any> = {};
       visibleFields.forEach((fd) => {
-        const v = fd.type === "bool" ? Boolean(form[fd.key]) : fromInput(form[fd.key], fd.type);
+        const v = fd.type === "bool" ? (form[fd.key] === undefined || form[fd.key] === "" ? undefined : Boolean(form[fd.key])) : fromInput(form[fd.key], fd.type);
         if (v !== undefined) body[fd.key] = v;
       });
       if (editing?.id) await eduApi.put(`${url}/${editing.id}`, body);

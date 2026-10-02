@@ -1,12 +1,8 @@
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Table, TableBody, TableCell, TableRow, Typography } from "@mui/material";
 import { useState } from "react";
 import { Bar, COLORS, FormDialog, Kanban, Kpi, KpiRow, LoadBox, Pick, Section, Status, call, fmtDate, fmtDateTime, fmtNum, itemsOf, openHtml, useApi, useCursos, useRunner, useToast } from "../desempenho/kit";
 
 const COLS = ["TEMA", "ORIENTACAO", "PROJETO", "QUALIFICACAO", "BANCA_AGENDADA", "DEFESA", "VERSAO_FINAL", "DEPOSITADO", "REPROVADO", "CANCELADO"];
-const NEXT: Record<string, string[]> = {
-  TEMA: ["ORIENTACAO", "CANCELADO"], ORIENTACAO: ["PROJETO", "TEMA", "CANCELADO"], PROJETO: ["QUALIFICACAO", "BANCA_AGENDADA", "CANCELADO"], QUALIFICACAO: ["PROJETO", "BANCA_AGENDADA", "CANCELADO"],
-  BANCA_AGENDADA: ["DEFESA", "PROJETO", "CANCELADO"], DEFESA: ["VERSAO_FINAL", "REPROVADO", "BANCA_AGENDADA"], VERSAO_FINAL: ["DEPOSITADO", "DEFESA"], DEPOSITADO: [], REPROVADO: ["TEMA"], CANCELADO: [],
-};
 const COLOR: Record<string, string> = { TEMA: COLORS.mute, ORIENTACAO: COLORS.info, PROJETO: COLORS.info, QUALIFICACAO: "#7a5cff", BANCA_AGENDADA: COLORS.warn, DEFESA: "#e07a00", VERSAO_FINAL: "#5aa86b", DEPOSITADO: COLORS.ok, REPROVADO: COLORS.bad, CANCELADO: COLORS.bad };
 const TIPOS = ["TCC", "MONOGRAFIA", "DISSERTACAO", "TESE"];
 const CONVITE_COR: Record<string, "success" | "warning" | "error"> = { CONFIRMADO: "success", PENDENTE: "warning", RECUSADO: "error" };
