@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Chip, Paper, Typography } from "@mui/material";
 import type { ReactNode } from "react";
-import { Empty, Progress, Status, fmtDate, fmtDateTime, fmtMoney, fmtNum, label } from "../secretaria/util";
+import { Empty, Progress, Status, fmtDate, fmtDateTime, fmtMoney, fmtNum } from "../secretaria/util";
 import { Semaforo, SituacaoChip } from "../notas/GradeNotas";
 
 export function Card({ title, icon, children, action, accent }: { title: string; icon?: ReactNode; children: ReactNode; action?: ReactNode; accent?: string }) {
@@ -26,7 +26,7 @@ export function Kpi({ title, value, hint, color }: { title: string; value: React
   );
 }
 
-export function NotasCard({ notas, onRevisao, podeAgir }: { notas: any; onRevisao: (a: { classSectionId: string; componenteId: string; titulo: string }) => void; podeAgir: boolean }) {
+export function NotasCard({ notas, onRevisao, podeAgir }: { notas: any; onRevisao: (a: { classSectionId: string; codigo: string; titulo: string }) => void; podeAgir: boolean }) {
   const ds: any[] = notas?.disciplinas || [];
   if (!ds.length) return <Empty>Sem disciplinas no período atual.</Empty>;
   return (
@@ -46,7 +46,7 @@ export function NotasCard({ notas, onRevisao, podeAgir }: { notas: any; onRevisa
                 {(d.componentes || []).map((c: any) => {
                   const ok = c.valor != null;
                   return podeAgir && ok ? (
-                    <Chip key={c.codigo} size="small" clickable variant="outlined" label={`${c.codigo}: ${fmtNum(c.valor)}`} title="Clique para solicitar revisão" onClick={() => onRevisao({ classSectionId: d.classSectionId, componenteId: c.id ?? c.codigo, titulo: `${d.disciplina} — ${c.nome} (${fmtNum(c.valor)})` })} />
+                    <Chip key={c.codigo} size="small" clickable variant="outlined" label={`${c.codigo}: ${fmtNum(c.valor)}`} title="Clique para solicitar revisão" onClick={() => onRevisao({ classSectionId: d.classSectionId, codigo: c.codigo, titulo: `${d.disciplina} — ${c.nome} (${fmtNum(c.valor)})` })} />
                   ) : <Chip key={c.codigo} size="small" variant="outlined" label={`${c.codigo}: ${c.ausente ? "Aus." : ok ? fmtNum(c.valor) : "—"}`} />;
                 })}
               </Box>
@@ -131,7 +131,6 @@ export function RequerimentosCard({ lista, revisoes, onNovo, podeAgir }: { lista
       ))}
       {(revisoes || []).length > 0 && <Typography variant="subtitle2" sx={{ fontWeight: 800, mt: 1 }}>Revisões de nota</Typography>}
       {(revisoes || []).map((r) => <Box key={r.id} sx={{ display: "flex", justifyContent: "space-between" }}><Typography variant="body2">Aberta em {fmtDate(r.criadoEm)}</Typography><Status value={r.status} /></Box>)}
-      <Typography variant="caption" color="text.secondary">{label("")}</Typography>
     </Box>
   );
 }
