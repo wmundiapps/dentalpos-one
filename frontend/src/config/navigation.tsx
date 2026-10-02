@@ -88,6 +88,7 @@ export const navigationGroups:NavigationGroup[] = [
     icon:tile(<ToothIcon/>,"#38A8E8"),
     items:alphabetical([
       item("Prontuário","/prontuario",<FolderSharedIcon/>),
+      item("DentalPod Design","/smile-design",<ToothIcon/>),
       item("Documentos Clínicos","/documentos-clinicos",<DescriptionIcon/>),
       item("Orçamentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
       item("Equipe","/equipe",<GroupsIcon/>),

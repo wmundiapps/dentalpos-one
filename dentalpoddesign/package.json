@@ -1,0 +1,34 @@
+{
+  "name": "dentalpoddesign",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DentalPod Design — simulação digital de sorriso (DSD) com CAD 3D para facetas, coroas, próteses parciais e totais.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173",
+    "typecheck": "tsc --noEmit",
+    "verify": "tsx scripts/verify-geometry.ts",
+    "test:e2e": "node scripts/e2e.mjs",
+    "build:integrado": "npm run build && node scripts/copy-to-dentalpos.mjs"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1",
+    "manifold-3d": "^3.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.185.4",
+    "@vitejs/plugin-react": "^6.0.4",
+    "playwright-core": "^1.50.0",
+    "tsx": "^4.19.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0"
+  }
+}

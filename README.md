@@ -9,3 +9,6 @@ Versão-mãe incremental do projeto. Bloco 1: Núcleo.
 
 ## Bloco 8 — arquitetura comercial SaaS
 A versão-mãe agora inclui contratos de dados para storage e credenciais por clínica, unidades, feature flags, remetentes REVAH por clínica/unidade, REVAH Leads e biblioteca FDI 32 slots. Veja `docs/BLOCO-8-SAAS-INTEGRACAO-FINAL.md`.
+
+## DentalPod Design
+Simulação digital de sorriso (DSD) + CAD 3D para facetas, coroas, pontes e próteses: veja `dentalpoddesign/README.md` e `CHECKPOINT-DENTALPODDESIGN.txt`.

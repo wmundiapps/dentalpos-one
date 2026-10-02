@@ -1,0 +1,27 @@
+# CHECKPOINT — DENTALPOD DESIGN (simulação digital de sorriso + CAD 3D)
+
+Objetivo:
+Produto próprio (e módulo do Dentalpos One) para planejar facetas, coroas, pontes, próteses parciais e totais a partir
+de fotos (fluxo DSD de Christian Coachman), com enceramento 3D paramétrico exportável para impressão 3D e fresagem.
+
+Local: dentalpoddesign/  (app independente: React + three.js + manifold-3d, sem back-end, dados no navegador)
+Integração: frontend/src/pages/SmileDesign.tsx (rota /smile-design, menu Clínico → DentalPod Design) embute
+frontend/public/dentalpoddesign/ (build copiado por `npm run build:integrado`) e conversa por postMessage.
+
+Entregue:
+- Fotos, análise facial guiada, calibração em mm, índice estético (20 critérios), biometria facial.
+- Desenho sobre a foto com dentes 3D realistas: 5 tamanhos, 6 formas, 5 sistemas de proporção, 8 estilos, SPA, 20 cores,
+  arco/arco do sorriso, edição por dente, propostas A/B/C, antes/depois, relatório PDF.
+- CAD 3D: oclusão, bases/selas, placa/barra palatina, ferradura/barra lingual, grampos, importação STL/OBJ/PLY, medição.
+- Exportação STL/OBJ/PLY/3MF (casca de faceta, coroa oca, sólido, monobloco, encaixes) com verificação watertight.
+
+Testes:
+  cd dentalpoddesign && npm ci && npm run typecheck && npm run verify
+  npx tsx scripts/test-boolean.ts && npx tsx scripts/test-production.ts
+  npm run build && npm run preview &  →  npm run test:e2e  ·  node scripts/e2e-wizard.mjs
+
+Pendências conhecidas (próximas versões):
+- Persistência dos casos no servidor do Dentalpos One (hoje: IndexedDB + arquivo .dpd).
+- Detecção automática de pontos faciais (hoje: marcação guiada).
+- Delineamento de estrutura metálica de PPR (hoje: selas, conectores e grampos diagnósticos).
+- Alinhamento automático de escaneamentos (hoje: manual).

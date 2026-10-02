@@ -1,0 +1,32 @@
+# DentalPod Design — verificação automática: tipos, geometria (malhas fechadas), exportadores e build.
+name: DentalPod Design CI
+
+on:
+  pull_request:
+    paths: ['dentalpoddesign/**']
+  push:
+    paths: ['dentalpoddesign/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dentalpoddesign
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dentalpoddesign/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run verify
+      - run: npx tsx scripts/test-boolean.ts
+      - run: npx tsx scripts/test-production.ts
+      - run: npm run build

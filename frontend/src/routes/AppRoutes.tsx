@@ -65,6 +65,7 @@ import OnlineReceipts from "../pages/OnlineReceipts";
 import Homologation from "../pages/Homologation";
 
 import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
+import SmileDesign from "../pages/SmileDesign";
 import {
   getDemoModuleStatus,
   moduleForPath,
@@ -290,6 +291,7 @@ export default function AppRoutes() {
         path="/design"
         element={<DentalPosDesign />}
       />
+      <Route path="/smile-design" element={<SmileDesign />} />
 
       <Route
         path="*"

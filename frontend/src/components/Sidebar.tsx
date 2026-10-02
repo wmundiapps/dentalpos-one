@@ -37,7 +37,7 @@ export default function Sidebar(){
   const location=useLocation();
   const demo=readDemoAccess();
   const sessionUser=readSessionUser();
-  const isDesign=location.pathname==="/design"||location.pathname.startsWith("/design/");
+  const isDesign=location.pathname==="/design"||location.pathname.startsWith("/design/")||location.pathname==="/smile-design";
   const [collapsed,setCollapsed]=useState(()=>{
     if(isDesign)return true;
     const saved=localStorage.getItem(COLLAPSED_KEY);
