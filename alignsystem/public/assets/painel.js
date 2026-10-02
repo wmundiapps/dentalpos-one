@@ -89,8 +89,8 @@
     var nav = me.role === 'admin'
       ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/equipe', 'Equipe', 'equipe'], ['#/conta', 'Minha conta', 'conta']]
       : [['#/', 'Meus casos', 'inicio'], ['#/conta', 'Minha conta', 'conta']];
-    return '<div class="mobile-top"><span class="logo">Align<em>System</em></span><button class="btn btn-sm btn-line" style="color:#fff;border-color:rgba(255,255,255,.4)" id="menuBtn">Menu</button></div>' +
-      '<div class="shell"><aside class="side" id="side"><span class="logo">Align<em>System</em></span>' +
+    return '<div class="mobile-top"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="28"></span><button class="btn btn-sm btn-line" style="color:#fff;border-color:rgba(255,255,255,.4)" id="menuBtn">Menu</button></div>' +
+      '<div class="shell"><aside class="side" id="side"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="30"></span>' +
       nav.map(function (n) { return '<a class="nav' + (n[2] === active ? ' on' : '') + '" href="' + n[0] + '">' + esc(n[1]) + '</a>'; }).join('') +
       '<div class="who">' + esc(me.name) + '<br>' + esc(me.email) + '<br><a href="#" id="logout" style="color:#6FD1C2">Sair</a></div></aside>' +
       '<main class="main" id="main">' + content + '</main></div>';
@@ -109,7 +109,7 @@
 
   // ------------------------------------------------------------ login
   function loginView() {
-    root.innerHTML = '<div class="top"><div class="in"><a class="logo" href="/">Align<em>System</em></a></div></div>' +
+    root.innerHTML = '<div class="top"><div class="in"><a class="logo" href="/" aria-label="AlignSystem — página inicial"><picture><source srcset="/assets/logo-branca.svg" media="(prefers-color-scheme: dark)"><img src="/assets/logo-cor.svg" alt="AlignSystem" width="210" height="36"></picture></a></div></div>' +
       '<main class="container" style="max-width:440px"><form class="card" id="lf"><h1>Entrar no painel</h1>' +
       '<p class="muted small">Equipe AlignSystem e dentistas parceiros.</p>' +
       field('email', 'E-mail', '', 'type="email" autocomplete="username" required') +

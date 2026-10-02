@@ -149,3 +149,7 @@ table.t tr.click:hover td{background:var(--bg-deep);}
 .tcle-box{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:14px 18px;background:var(--bg);margin:12px 0 16px;font-size:14px;}
 .tcle-box h2{font-size:17px;text-align:left;}
 .tcle-box h3{margin-top:12px;}
+/* logomarca */
+.logo img{height:32px;width:auto;display:block;}
+.side .logo img{height:30px;margin-bottom:8px;}
+.mobile-top .logo img{height:26px;}

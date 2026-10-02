@@ -13,7 +13,7 @@ export const notifyAddress = () => process.env.NOTIFY_EMAIL || process.env.PUBLI
 export function layout(title, bodyHtml) {
   return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#FAF6EF;font-family:Inter,Arial,sans-serif;color:#12233A">
 <div style="max-width:560px;margin:0 auto;padding:28px 20px">
-<div style="font-family:Georgia,serif;font-size:22px;font-weight:600;margin-bottom:18px">Align<span style="color:#157A6E">System</span></div>
+<div style="margin-bottom:18px"><img src="${escapeHtml(appUrl())}/assets/logo-email.png" alt="AlignSystem" width="210" style="display:block;height:auto;border:0"></div>
 <div style="background:#fff;border:1px solid #E1D8C5;border-radius:14px;padding:24px">
 <h1 style="font-family:Georgia,serif;font-size:20px;margin:0 0 14px">${escapeHtml(title)}</h1>
 ${bodyHtml}

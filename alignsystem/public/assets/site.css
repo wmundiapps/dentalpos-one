@@ -336,3 +336,14 @@ a.legal-card .legal-ref::after{content:" ↗";font-weight:400;}
 .cta-shell > *, .f-row > *{min-width:0;}
 form.lead input, form.lead select{width:100%;min-width:0;}
 @media(max-width:480px){form.lead{padding:20px 16px;}.cta-shell{padding:26px 16px;}}
+/* logomarca */
+.logo img{height:36px;width:auto;display:block;}
+footer .logo img{height:32px;}
+@media(max-width:480px){.logo img{height:30px;}}
+/* menu do topo cabe numa linha com a logo */
+nav.primary{gap:22px;}
+nav.primary a{font-size:14.5px;}
+.nav-cta{gap:10px;}
+@media(max-width:1240px){.nav-cta .btn-ghost{display:none;}}
+@media(max-width:1180px){nav.primary{gap:16px;}}
+@media(max-width:1060px){nav.primary{display:none;}.burger{display:block;}}
