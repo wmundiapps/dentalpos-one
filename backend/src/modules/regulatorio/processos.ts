@@ -227,6 +227,7 @@ export function mountProcessos(router: Router) {
       if (!d) return res.status(404).json({ error: 'Diligência não encontrada.' })
       if (status === 'RESPONDIDA' && !['ABERTA', 'VENCIDA'].includes(d.status)) throw bad(`Diligência já está ${d.status}.`, 409)
       if (status === 'RESPONDIDA' && !b.resposta) throw bad('Informe o texto da resposta.')
+      if (status === 'CANCELADA' && ['CUMPRIDA', 'CANCELADA'].includes(d.status)) throw bad(`Diligência já está ${d.status}.`, 409)
       if (status === 'CUMPRIDA' && d.status !== 'RESPONDIDA') throw bad('Só se marca como cumprida uma diligência já respondida.', 409)
       const novo = await prisma.regDiligencia.update({
         where: { id: d.id },

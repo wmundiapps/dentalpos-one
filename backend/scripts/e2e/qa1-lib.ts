@@ -5,6 +5,7 @@ import { prisma } from '../../src/lib/prisma'
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'qa1-secret'
 process.env.NODE_ENV = 'test'
+process.env.TRUST_PROXY = 'true'
 process.env.PUBLIC_APP_URL = process.env.PUBLIC_APP_URL || 'http://localhost:3000'
 
 export const SUF = Math.random().toString(36).slice(2, 8)

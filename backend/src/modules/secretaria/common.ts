@@ -75,3 +75,11 @@ export function escolherMatricula<T extends { id: string; status: string }>(matr
   if (enrollmentId) return matriculas.find((m) => m.id === enrollmentId)
   return matriculas.find((m) => m.status === 'ATIVA') ?? matriculas[0]
 }
+
+// Erros de entrada do Prisma (valor de enum inválido em filtro de query, FK) não devem virar 500.
+export function prismaErrorMapper(err: any, _req: any, res: any, next: any) {
+  if (res.headersSent) return next(err)
+  if (err?.name === 'PrismaClientValidationError') return res.status(400).json({ error: 'Parâmetro inválido na requisição.' })
+  if (err?.code === 'P2003') return res.status(409).json({ error: 'Operação bloqueada: o registro possui vínculos com outros dados.' })
+  return next(err)
+}

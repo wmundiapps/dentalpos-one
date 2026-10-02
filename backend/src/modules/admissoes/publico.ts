@@ -21,7 +21,8 @@ function limitar(chave: string, max: number, janelaMs: number) {
   hits.set(chave, lista)
   if (hits.size > 5000) for (const [k, v] of hits) if (!v.some((t) => agora - t < janelaMs)) hits.delete(k)
 }
-const ip = (req: Request) => String(req.headers['x-forwarded-for'] ?? req.ip ?? 'ip').split(',')[0].trim()
+// req.ip respeita 'trust proxy' (TRUST_PROXY=true); ler x-forwarded-for direto permitiria burlar o rate limit forjando o cabeçalho.
+const ip = (req: Request) => String(req.ip ?? req.socket?.remoteAddress ?? 'ip')
 
 async function tenantDe(req: Request): Promise<string> {
   const t = String(req.headers['x-tenant-id'] ?? qs(req.query.tenant) ?? (req.body as any)?.tenant ?? '').trim()
@@ -83,18 +84,23 @@ publicRouter.post('/inscricoes', asyncHandler(async (req: Request, res: Response
   if (!p || p.status !== 'ABERTO' || p.inscricaoInicio > agora || p.inscricaoFim < agora) throw httpErr(409, 'Inscrições não estão abertas para este processo.')
   const ofertas = await prisma.admOferta.findMany({ where: { tenantId, processoId: p.id, ativo: true, id: { in: [b.ofertaId, ...(b.ofertaId2 ? [b.ofertaId2] : [])] } } })
   if (!ofertas.some((o) => o.id === b.ofertaId) || (b.ofertaId2 && !ofertas.some((o) => o.id === b.ofertaId2))) throw httpErr(400, 'Curso/oferta inválido para este processo.')
-  if (await prisma.admCandidato.findFirst({ where: { tenantId, processoId: p.id, cpf }, select: { id: true } })) throw httpErr(409, 'Já existe inscrição para este CPF neste processo. Use a consulta por protocolo.')
   const camp = b.utmCampaign ? await prisma.admCampanha.findFirst({ where: { tenantId, utmCampaign: b.utmCampaign } }) : null
   const base = {
     processoId: p.id, ofertaId: b.ofertaId, ofertaId2: b.ofertaId2 ?? null, nome: b.nome.trim(), cpf, email: b.email.toLowerCase(), telefone: b.telefone,
     dataNascimento: b.dataNascimento, cota: b.cota, status: 'INSCRITO' as const, etapaMaxima: 1, consentimentoLgpd: true, consentimentoEm: agora, ipOrigem: ip(req),
     utmSource: b.utmSource, utmMedium: b.utmMedium, utmCampaign: b.utmCampaign, campanhaId: camp?.id, origem: b.utmSource ? String(b.utmSource).toUpperCase() : 'SITE', dados: b.dados as any,
   }
-  // Promove lead existente (mesmo CPF/e-mail) em vez de duplicar
-  const lead = await prisma.admCandidato.findFirst({ where: { tenantId, processoId: null, OR: [{ cpf }, { email: base.email }] } })
-  const cand = lead
-    ? await prisma.admCandidato.update({ where: { id: lead.id }, data: { ...base, campanhaId: lead.campanhaId ?? base.campanhaId, origem: lead.origem ?? base.origem } })
-    : await prisma.admCandidato.create({ data: { tenantId, protocolo: gerarProtocolo(), ...base } })
+  // Verificação de duplicidade + criação sob trava (advisory lock por processo+CPF): o schema não tem unique (processo, cpf),
+  // então envios simultâneos criariam candidatos duplicados.
+  const cand = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`adm-insc:${tenantId}:${p.id}:${cpf}`}))`
+    if (await tx.admCandidato.findFirst({ where: { tenantId, processoId: p.id, cpf }, select: { id: true } })) throw httpErr(409, 'Já existe inscrição para este CPF neste processo. Use a consulta por protocolo.')
+    // Promove lead existente (mesmo CPF/e-mail) em vez de duplicar
+    const lead = await tx.admCandidato.findFirst({ where: { tenantId, processoId: null, OR: [{ cpf }, { email: base.email }] } })
+    return lead
+      ? tx.admCandidato.update({ where: { id: lead.id }, data: { ...base, campanhaId: lead.campanhaId ?? base.campanhaId, origem: lead.origem ?? base.origem } })
+      : tx.admCandidato.create({ data: { tenantId, protocolo: gerarProtocolo(), ...base } })
+  }, { timeout: 15_000 })
   await prisma.admInteracao.create({ data: { tenantId, candidatoId: cand.id, tipo: 'SISTEMA', descricao: `Inscrição online no processo ${p.nome}` } })
   const cobranca = await gerarCobrancaInscricao({ tenantId, candidatoId: cand.id })
   await audit({ tenantId, modulo: 'admissoes', acao: 'INSCRICAO_PUBLICA', refType: 'AdmCandidato', refId: cand.id })

@@ -44,10 +44,18 @@ export async function scheduleReminder(input: ReminderInput) {
     dedupeKey: input.dedupeKey,
   }
   if (input.dedupeKey) {
-    return prisma.eduReminder.upsert({
-      where: { tenantId_dedupeKey: { tenantId: input.tenantId, dedupeKey: input.dedupeKey } },
-      create: data,
-      update: { titulo: data.titulo, descricao: data.descricao, dueAt: data.dueAt, remindAt: data.remindAt, severity: data.severity },
+    const existente = await prisma.eduReminder.findUnique({ where: { tenantId_dedupeKey: { tenantId: input.tenantId, dedupeKey: input.dedupeKey } } })
+    if (!existente) return prisma.eduReminder.create({ data })
+    // Reavaliações periódicas (jobs) chamam isto todo dia: só reagenda o aviso se não está
+    // notificado/adiado (senão a recorrência viraria diária e o adiamento do usuário seria desfeito).
+    // O escalonamento (CRITICO) é preservado.
+    return prisma.eduReminder.update({
+      where: { id: existente.id },
+      data: {
+        titulo: data.titulo, descricao: data.descricao, dueAt: data.dueAt,
+        ...(['NOTIFICADO', 'ADIADO'].includes(existente.status) ? {} : { remindAt: data.remindAt }),
+        ...(existente.escalonadoEm ? {} : { severity: data.severity }),
+      },
     })
   }
   return prisma.eduReminder.create({ data })

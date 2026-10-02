@@ -258,13 +258,18 @@ export function registerColegiados(router: Router) {
     if (ap.resultado === 'EM_ABERTO') fail(409, 'Ainda há votos pendentes (use encerrar=true para computar ausência de voto como abstenção).')
     const agora = new Date()
     const aprovada = ap.resultado === 'APROVADA'
-    const upd: any = { status: aprovada ? 'APROVADA' : 'REJEITADA', decididaEm: agora, resultado: { ...ap, votoQualidade } }
+    // "claim" atômico: só uma apuração concorrente consegue encerrar a votação (evita número duplicado/queimado)
+    const claim = await prisma.govDeliberacao.updateMany({
+      where: { id: delib.id, tenantId, status: 'EM_VOTACAO' },
+      data: { status: aprovada ? 'APROVADA' : 'REJEITADA', decididaEm: agora, resultado: { ...ap, votoQualidade } as any },
+    })
+    if (claim.count !== 1) fail(409, 'A deliberação não está em votação.')
+    let row = await prisma.govDeliberacao.findFirstOrThrow({ where: { id: delib.id, tenantId } })
     if (aprovada) {
       const ano = agora.getFullYear()
       const numero = await proximoNumero(tenantId, 'DELIBERACAO', ano)
-      upd.ano = ano; upd.numero = numero; upd.numeracao = formatarNumeracao(numero, ano)
+      row = await prisma.govDeliberacao.update({ where: { id: delib.id }, data: { ano, numero, numeracao: formatarNumeracao(numero, ano) } })
     }
-    const row = await prisma.govDeliberacao.update({ where: { id: delib.id }, data: upd })
     await audit({ tenantId, userId: getUserId(req), modulo: 'governanca.colegiados', acao: aprovada ? 'APROVAR' : 'REJEITAR', refType: 'GovDeliberacao', refId: delib.id, detalhes: { ...ap, numeracao: row.numeracao } })
     res.json(row)
   }))

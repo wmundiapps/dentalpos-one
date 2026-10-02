@@ -173,6 +173,9 @@ export async function emprestar(p: { tenantId: string; leitorId: string; exempla
   if (ex.status === 'DISPONIVEL') {
     await atribuirReservas(tenantId, ex.obraId)
     ex = await localizarExemplar(tenantId, { exemplarId: ex.id })
+    // a fila pode ter acabado de separar este exemplar justamente para o leitor que está retirando
+    if (!reservaDoLeitor && ex.status === 'RESERVADO')
+      reservaDoLeitor = await prisma.bibReserva.findFirst({ where: { tenantId, leitorId: leitor.id, obraId: ex.obraId, status: 'DISPONIVEL', exemplarId: ex.id } })
   }
   if (ex.status === 'RESERVADO' && !reservaDoLeitor) {
     // exemplar separado para outro leitor — mas se este leitor tem reserva DISPONIVEL de outro exemplar da mesma obra, não troca
@@ -257,6 +260,9 @@ export async function devolver(p: { tenantId: string; exemplarId?: string; tombo
   const calc = calcularMulta(emp.dataPrevista, quando, pol, { tolerancia: cfg.diasTolerancia, somenteUteis: cfg.considerarDiasUteis, feriados: (cfg.feriados as string[] | null) ?? [] })
 
   const resultado = await prisma.$transaction(async (tx) => {
+    // Reivindica a devolução: duas devoluções simultâneas do mesmo exemplar não geram multa em duplicidade.
+    const claim = await tx.bibEmprestimo.updateMany({ where: { id: emp.id, status: 'ATIVO' }, data: { status: 'DEVOLVIDO' } })
+    if (claim.count === 0) throw httpErr(409, 'Este exemplar não possui empréstimo ativo.')
     await tx.bibEmprestimo.update({
       where: { id: emp.id },
       data: { status: 'DEVOLVIDO', dataDevolucao: quando, diasAtraso: calc.diasAtraso, multaPrevista: calc.valor, devolvidoPorId: p.operadorId, observacoes: p.observacoes ?? emp.observacoes },

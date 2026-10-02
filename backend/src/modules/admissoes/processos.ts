@@ -54,6 +54,20 @@ async function validarTermo(tenantId: string, termId?: string | null) {
   if (termId && !(await prisma.academicTerm.findFirst({ where: { id: termId, tenantId }, select: { id: true } }))) throw httpErr(404, 'Período letivo não encontrado.')
 }
 
+// Exclusão só de processo sem movimento (rascunho/cancelado e sem candidatos): apagar com candidatos os deixaria órfãos.
+router.delete('/processos/:id', requireRole(...GESTAO), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = getTenantId(req)
+  const id = String(req.params.id)
+  const p = await prisma.admProcessoSeletivo.findFirst({ where: { id, tenantId } })
+  if (!p) return res.status(404).json({ error: 'Registro não encontrado.' })
+  if (!['RASCUNHO', 'CANCELADO'].includes(p.status)) return res.status(409).json({ error: `Processo ${p.status} não pode ser excluído; cancele-o antes.` })
+  if (await prisma.admCandidato.count({ where: { tenantId, processoId: id } })) return res.status(409).json({ error: 'Processo possui candidatos e não pode ser excluído.' })
+  await prisma.$transaction([prisma.admOferta.deleteMany({ where: { tenantId, processoId: id } }), prisma.admProcessoSeletivo.delete({ where: { id } })])
+  await cancelReminders({ tenantId, refType: 'AdmProcessoSeletivo', refId: id })
+  await audit({ tenantId, userId: getUserId(req), modulo: 'admissoes', acao: 'REMOVER', refType: 'AdmProcessoSeletivo', refId: id })
+  res.status(204).end()
+}))
+
 mountCrud(router, {
   model: 'admProcessoSeletivo',
   path: '/processos',
@@ -95,6 +109,23 @@ const ofertaSchema = z.object({
   parcelas: z.number().int().min(1).max(60).optional(),
   ativo: z.boolean().optional(),
 })
+
+// Oferta com candidatos/convocações/matrículas não pode ser apagada (use ativo=false).
+router.delete('/ofertas/:id', requireRole(...GESTAO), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = getTenantId(req)
+  const id = String(req.params.id)
+  const o = await prisma.admOferta.findFirst({ where: { id, tenantId } })
+  if (!o) return res.status(404).json({ error: 'Registro não encontrado.' })
+  const [cands, convs, mats] = await Promise.all([
+    prisma.admCandidato.count({ where: { tenantId, OR: [{ ofertaId: id }, { ofertaId2: id }, { ofertaAlocadaId: id }] } }),
+    prisma.admConvocacao.count({ where: { tenantId, ofertaId: id } }),
+    prisma.admMatricula.count({ where: { tenantId, ofertaId: id } }),
+  ])
+  if (cands + convs + mats > 0) return res.status(409).json({ error: 'Oferta possui candidatos/convocações/matrículas; desative-a (ativo=false) em vez de excluir.' })
+  await prisma.admOferta.delete({ where: { id } })
+  await audit({ tenantId, userId: getUserId(req), modulo: 'admissoes', acao: 'REMOVER', refType: 'AdmOferta', refId: id })
+  res.status(204).end()
+}))
 
 mountCrud(router, {
   model: 'admOferta',

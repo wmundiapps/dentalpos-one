@@ -26,7 +26,7 @@ export async function setup() {
     const clinic = await prisma.clinic.create({ data: { tenantId, name: 'Instituto ' + tag, email: `${tag}${S}@q.com`, phone: '1', cnpj: '00.000.000/0001-' + Math.floor(10 + Math.random() * 89) } })
     const mk = async (role: string, withStudent = false): Promise<Actor> => {
       const email = `${role.toLowerCase()}.${tag}.${Math.random().toString(36).slice(2, 6)}@q.com`
-      const u = await prisma.user.create({ data: { clinicId: clinic.id, tenantId, email, password: 'x', firstName: role, lastName: 'Teste ' + tag, role: role as any } })
+      const u = await prisma.user.create({ data: { clinicId: clinic.id, tenantId, email, password: 'x', firstName: role, lastName: 'Teste ' + tag + ' ' + Math.random().toString(36).slice(2, 6), role: role as any } })
       let studentId: string | undefined
       if (withStudent) {
         const st = await prisma.student.create({ data: { tenantId, userId: u.id, ra: `RA${Math.random().toString(36).slice(2, 9)}`, nomeCompleto: 'Aluno ' + tag + ' ' + email } })

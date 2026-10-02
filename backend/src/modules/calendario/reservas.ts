@@ -9,7 +9,7 @@ import { completeReminders, scheduleReminder } from '../core/reminders'
 import { janelasLivres } from './conflicts'
 import { DAY_MS, addDays, expandRecorrencia, hhmmToMin, localDateKey, localMinutes, minToHHMM, slotInstant, startOfLocalDay, toLocal } from './time'
 import {
-  APROVADORES_ESPACO, MODULO, SOLICITANTES, OcupacaoDoEspaco, carregarOcupacaoEspaco, erro, nomesUsuarios, registrarConflitoManual,
+  APROVADORES_ESPACO, MODULO, comTravaDeEspaco, SOLICITANTES, OcupacaoDoEspaco, carregarOcupacaoEspaco, erro, nomesUsuarios, registrarConflitoManual,
   requireSpace, resolverConflitosDoRegistro, sobrepoe, temPapel, toStrArray,
 } from './service'
 
@@ -78,13 +78,14 @@ export function registerReservas(router: Router) {
 
       const occ = expandRecorrencia({ inicio: b.inicio, fim: b.fim, recorrencia: b.recorrencia, intervalo: b.recorrenciaIntervalo, ate: b.recorrenciaAte, diasSemana: b.diasSemana, max: MAX_OCORRENCIAS })
       if (b.recorrencia !== 'NENHUMA' && occ.length >= MAX_OCORRENCIAS) throw erro(400, `Séries limitadas a ${MAX_OCORRENCIAS} ocorrências; reduza o período.`)
+      const travado = await comTravaDeEspaco(tenantId, [b.spaceId], async () => {
       const ocup = await carregarOcupacaoEspaco(tenantId, b.spaceId, occ[0].inicio, occ[occ.length - 1].fim)
       const conflitos = conflitosDe(occ, ocup)
       if (conflitos.length && !b.pularConflitos) {
-        return res.status(409).json({
+        return { conflitoResp: {
           error: `Conflito de agenda em ${conflitos.length} ocorrência(s).`,
           conflitos: conflitos.map((c) => ({ ocorrencia: c.ocorrencia, com: c.com.map((x) => ({ ...x, descricao: `${rotuloTipo[x.tipo] ?? x.tipo}: ${x.titulo} (${fmt(x.inicio)}–${fmt(x.fim)})` })) })),
-        })
+        } }
       }
       const bad = new Set(conflitos.map((c) => c.ocorrencia.inicio.getTime()))
       const livres = occ.filter((o) => !bad.has(o.inicio.getTime()))
@@ -98,6 +99,10 @@ export function registerReservas(router: Router) {
         decididoPorId: status === 'APROVADA' ? userId : null, decididoEm: status === 'APROVADA' ? new Date() : null,
       }
       const criadas = await prisma.$transaction(livres.map((o) => prisma.calReserva.create({ data: { ...base, inicio: o.inicio, fim: o.fim } })))
+      return { criadas, livres, conflitos, status, serieId }
+      })
+      if ('conflitoResp' in travado) return res.status(409).json(travado.conflitoResp)
+      const { criadas, livres, conflitos, status, serieId } = travado
       const refId = serieId ?? criadas[0].id
       if (status === 'PENDENTE') {
         await scheduleReminder({
@@ -205,6 +210,9 @@ export function registerReservas(router: Router) {
       const tenantId = getTenantId(req)
       const userId = getUserId(req)
       const b = parseBody(z.object({ escopo: z.enum(['ocorrencia', 'serie']).default('serie'), rejeitarConcorrentes: z.boolean().default(false), observacao: z.string().max(500).optional() }), req.body ?? {})
+      const pre = await prisma.calReserva.findFirst({ where: { id: String(req.params.id), tenantId }, select: { spaceId: true } })
+      if (!pre) throw erro(404, 'Reserva não encontrada.')
+      await comTravaDeEspaco(tenantId, [pre.spaceId], async () => {
       const { ref, lista } = await alvos(tenantId, String(req.params.id), b.escopo)
       if (!lista.length) throw erro(409, 'Não há solicitações pendentes para aprovar.')
       const ocup = await carregarOcupacaoEspaco(tenantId, ref.spaceId, lista[0].inicio, lista[lista.length - 1].fim)
@@ -235,6 +243,7 @@ export function registerReservas(router: Router) {
       await notify({ tenantId, userId: ref.solicitanteId, assunto: 'Reserva de espaço aprovada', mensagem: `Sua reserva "${ref.titulo}" foi aprovada (${aprovadas.length} ocorrência(s)), a partir de ${fmt(lista[0].inicio)}.`, refType: 'CalReserva', refId: ref.id })
       await audit({ tenantId, userId, modulo: MODULO, acao: 'APROVAR_RESERVA', refType: 'CalReserva', refId: ref.id, detalhes: { aprovadas: aprovadas.length, conflitos: recusadasPorConflito.length, rejeitadasConcorrentes: rejeitadas } })
       res.json({ aprovadas: aprovadas.length, pendentesPorConflito: recusadasPorConflito, concorrentesRejeitadas: rejeitadas })
+      })
     }),
   )
 
@@ -304,8 +313,9 @@ export function registerReservas(router: Router) {
       if (b.recorrencia !== 'NENHUMA' && !b.recorrenciaAte) throw erro(400, 'Informe "recorrenciaAte".')
       const occ = expandRecorrencia({ inicio: b.inicio, fim: b.fim, recorrencia: b.recorrencia, intervalo: b.recorrenciaIntervalo, ate: b.recorrenciaAte, diasSemana: b.diasSemana, max: MAX_OCORRENCIAS })
       const resultado: any[] = []
+      for (const spaceId of b.spaceIds) await requireSpace(tenantId, spaceId)
+      const respondeu = await comTravaDeEspaco(tenantId, b.spaceIds, async () => {
       for (const spaceId of b.spaceIds) {
-        await requireSpace(tenantId, spaceId)
         const de = occ[0].inicio
         const ate = occ[occ.length - 1].fim
         const ocup = await carregarOcupacaoEspaco(tenantId, spaceId, de, ate)
@@ -314,7 +324,8 @@ export function registerReservas(router: Router) {
         const provas = ocup.filter((o) => o.tipo === 'PROVA' && occ.some((x) => sobrepoe(x, o)))
         const onlyReservas = reservasConf.filter((r) => r.tipo === 'RESERVA')
         if (onlyReservas.length && !b.cancelarConflitantes) {
-          return res.status(409).json({ error: `Há ${onlyReservas.length} reserva(s) aprovada(s) em conflito. Reenvie com "cancelarConflitantes": true para cancelá-las e notificar os solicitantes.`, espaco: spaceId, reservas: onlyReservas })
+          res.status(409).json({ error: `Há ${onlyReservas.length} reserva(s) aprovada(s) em conflito. Reenvie com "cancelarConflitantes": true para cancelá-las e notificar os solicitantes.`, espaco: spaceId, reservas: onlyReservas })
+          return true
         }
         const serieId = occ.length > 1 ? randomUUID() : null
         const criados = await prisma.$transaction(
@@ -348,6 +359,9 @@ export function registerReservas(router: Router) {
         }
         resultado.push({ spaceId, bloqueios: criados.length, serieId, reservasCanceladas: canceladas, aulasEProvasAfetadas: afetadas })
       }
+      return false
+      })
+      if (respondeu) return
       await audit({ tenantId, userId, modulo: MODULO, acao: 'BLOQUEAR_ESPACO', detalhes: { espacos: b.spaceIds, titulo: b.titulo } })
       res.status(201).json({ resultado })
     }),

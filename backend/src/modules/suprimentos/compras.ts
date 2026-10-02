@@ -230,10 +230,14 @@ export function registerCompras(router: Router) {
     const d = parseBody(z.object({ almoxarifadoId: z.string().optional(), parcial: z.boolean().optional() }), req.body ?? {})
     const almox = d.almoxarifadoId ?? r.almoxarifadoId
     if (!almox) throw httpErr(400, 'Informe o almoxarifado.')
-    const pendentes = r.itens.filter((i) => i.itemId && i.quantidade - i.quantidadeAtendida > 1e-9)
-    if (pendentes.length === 0) throw httpErr(409, 'Nada a atender.')
     const faltas: Array<{ itemId: string; descricao: string; faltante: number }> = []
     const resultado = await prisma.$transaction(async (tx) => {
+      // Trava a requisição e recarrega o que ainda está pendente (evita atendimento em duplicidade).
+      await tx.$queryRaw`SELECT "id" FROM "SupRequisicao" WHERE "id" = ${r.id} FOR UPDATE`
+      const atual = await tx.supRequisicao.findFirst({ where: { id: r.id, tenantId }, include: { itens: true } })
+      if (!atual || atual.status !== 'APROVADA') throw httpErr(409, 'Somente requisições APROVADAS podem ser atendidas.')
+      const pendentes = atual.itens.filter((i) => i.itemId && i.quantidade - i.quantidadeAtendida > 1e-9)
+      if (pendentes.length === 0) throw httpErr(409, 'Nada a atender.')
       const afetados: string[] = []
       for (const i of pendentes) {
         const falta = round3(i.quantidade - i.quantidadeAtendida)
@@ -470,6 +474,8 @@ export function registerCompras(router: Router) {
     }), req.body)
     const userId = getUserId(req)
     const out = await prisma.$transaction(async (tx) => {
+      // Trava a linha do pedido: dois recebimentos simultâneos não podem ultrapassar a quantidade pendente.
+      await tx.$queryRaw`SELECT "id" FROM "SupPedido" WHERE "id" = ${String(req.params.id)} AND "tenantId" = ${tenantId} FOR UPDATE`
       const p = await tx.supPedido.findFirst({ where: { id: String(req.params.id), tenantId }, include: { itens: true, fornecedor: true } })
       if (!p) throw httpErr(404, 'Pedido não encontrado.')
       if (!['EMITIDO', 'PARCIALMENTE_RECEBIDO'].includes(p.status)) throw httpErr(409, `Pedido em ${p.status} não aceita recebimento.`)

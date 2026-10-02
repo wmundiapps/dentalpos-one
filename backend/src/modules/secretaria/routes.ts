@@ -3,7 +3,7 @@ import { AuthenticatedRequest, academicErrorHandler, asyncHandler, getTenantId, 
 import { mountArquivo } from './arquivo'
 import { bootstrapSecretaria } from './bootstrap'
 import { mountCertificados } from './certificados'
-import { SEC_GESTAO } from './common'
+import { SEC_GESTAO, prismaErrorMapper } from './common'
 import { mountConferencia } from './conferencia'
 import { mountDiplomas } from './diplomas'
 import { mountDocumentos } from './documentos'
@@ -34,6 +34,7 @@ mountSituacao(router)
 
 registrarJobsSecretaria()
 
+router.use(prismaErrorMapper)
 router.use(academicErrorHandler)
 
 export default router

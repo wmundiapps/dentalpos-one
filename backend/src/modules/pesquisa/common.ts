@@ -55,7 +55,7 @@ export async function proximoCodigo(model: 'pesProjeto' | 'pesSubmissao' | 'pesE
   return `${pref}${String(n + 1).padStart(4, '0')}`
 }
 
-export async function comRetentativa<T>(fn: () => Promise<T>, tentativas = 3): Promise<T> {
+export async function comRetentativa<T>(fn: () => Promise<T>, tentativas = 12): Promise<T> {
   let ultimo: any
   for (let i = 0; i < tentativas; i++) {
     try {
@@ -63,6 +63,8 @@ export async function comRetentativa<T>(fn: () => Promise<T>, tentativas = 3): P
     } catch (e: any) {
       if (e?.code !== 'P2002') throw e
       ultimo = e
+      // numeração concorrente: espera um tempo aleatório crescente antes de recalcular o próximo código
+      await new Promise((r) => setTimeout(r, Math.random() * 15 * (i + 1)))
     }
   }
   throw ultimo

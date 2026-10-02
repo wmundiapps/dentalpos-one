@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client'
+import { randomUUID } from 'crypto'
 import { prisma } from '../../lib/prisma'
 import { scheduleReminder, cancelReminders } from '../core/reminders'
 import { aplicarMovimento, formatarNumero, selecionarLotesFEFO, round2, round3 } from './logic'
@@ -38,17 +39,16 @@ export async function proximoNumero(tx: Tx, tenantId: string, prefixo: string) {
   return formatarNumero(prefixo, ano, seq.ultimo)
 }
 
-// Aplica (+/-) ao saldo de um almoxarifado com bloqueio otimista: se outra transação mexeu
-// no mesmo saldo, falha com 409 e o chamador pode repetir.
+// Aplica (+/-) ao saldo de um almoxarifado com bloqueio PESSIMISTA da linha do saldo
+// (SELECT ... FOR UPDATE): movimentações concorrentes no mesmo item/almoxarifado são serializadas
+// e cada uma enxerga o saldo já confirmado pela anterior (sem 409 espúrio nem saldo negativo).
 async function mexerSaldo(tx: Tx, p: { tenantId: string; almoxarifadoId: string; itemId: string; sentido: 1 | -1; quantidade: number; custoEntrada?: number }) {
-  const existente = await tx.supSaldo.findUnique({ where: { almoxarifadoId_itemId: { almoxarifadoId: p.almoxarifadoId, itemId: p.itemId } } })
-  const atual = existente ?? (await tx.supSaldo.create({ data: { tenantId: p.tenantId, almoxarifadoId: p.almoxarifadoId, itemId: p.itemId, quantidade: 0, custoMedio: 0 } }))
+  // INSERT ... ON CONFLICT DO NOTHING (o upsert do Prisma pode disputar a criação e abortar a transação).
+  await tx.$executeRaw`INSERT INTO "SupSaldo" ("id", "tenantId", "almoxarifadoId", "itemId", "quantidade", "custoMedio", "updatedAt") VALUES (${randomUUID()}, ${p.tenantId}, ${p.almoxarifadoId}, ${p.itemId}, 0, 0, NOW()) ON CONFLICT ("almoxarifadoId", "itemId") DO NOTHING`
+  const locked = await tx.$queryRaw<Array<{ id: string; quantidade: number; custoMedio: number }>>`SELECT "id", "quantidade", "custoMedio" FROM "SupSaldo" WHERE "almoxarifadoId" = ${p.almoxarifadoId} AND "itemId" = ${p.itemId} FOR UPDATE`
+  const atual = locked[0]
   const r = aplicarMovimento(atual.quantidade, atual.custoMedio, p.sentido, p.quantidade, p.custoEntrada)
-  const up = await tx.supSaldo.updateMany({
-    where: { id: atual.id, quantidade: atual.quantidade },
-    data: { quantidade: r.saldo, custoMedio: r.custoMedio, ultimaMovimentacao: new Date() },
-  })
-  if (up.count === 0) throw Object.assign(new Error('Conflito de concorrência no saldo do estoque; tente novamente.'), { status: 409 })
+  await tx.supSaldo.update({ where: { id: atual.id }, data: { quantidade: r.saldo, custoMedio: r.custoMedio, ultimaMovimentacao: new Date() } })
   return r
 }
 
@@ -94,7 +94,8 @@ export async function movimentarTx(tx: Tx, p: MovParams) {
   const criadas: any[] = []
 
   if (sentido === 1) {
-    if (item.controlaLote && !p.loteNumero) throw Object.assign(new Error(`O item ${item.codigo} controla lote: informe o número do lote.`), { status: 400 })
+    // Lote obrigatório só na ENTRADA de compra/manual; devoluções e ajustes positivos entram como saldo sem lote.
+    if (item.controlaLote && !p.loteNumero && p.tipo === 'ENTRADA') throw Object.assign(new Error(`O item ${item.codigo} controla lote: informe o número do lote.`), { status: 400 })
     if (item.controlaValidade && !p.validade && p.tipo === 'ENTRADA') throw Object.assign(new Error(`O item ${item.codigo} controla validade: informe a data de validade.`), { status: 400 })
     const cu = p.custoUnitario ?? item.precoReferencia ?? item.custoMedio
     const r = await mexerSaldo(tx, { tenantId: p.tenantId, almoxarifadoId: p.almoxarifadoId, itemId: p.itemId, sentido: 1, quantidade: p.quantidade, custoEntrada: cu })
@@ -156,6 +157,9 @@ export async function checarEstoqueMinimo(tenantId: string, itemIds: string[]) {
       })
     } else {
       await cancelReminders({ tenantId, refType, refId: item.id })
+      // Remove o lembrete encerrado (CANCELADO/CONCLUIDO): o upsert por dedupeKey não reabre lembretes finalizados,
+      // então sem isto uma nova queda abaixo do mínimo nunca voltaria a alertar.
+      await prisma.eduReminder.deleteMany({ where: { tenantId, dedupeKey: `sup-minimo-${item.id}`, status: { in: ['CANCELADO', 'CONCLUIDO'] } } })
     }
   }
 }

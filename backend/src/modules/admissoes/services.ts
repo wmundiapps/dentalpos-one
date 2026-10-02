@@ -18,6 +18,14 @@ const DAY = 86_400_000
 const httpErr = (status: number, msg: string) => Object.assign(new Error(msg), { status })
 export { httpErr }
 
+// Erros de entrada do Prisma (valor de enum inválido em filtro de query, FK) não devem virar 500.
+export function prismaErrorMapper(err: any, _req: any, res: any, next: any) {
+  if (res.headersSent) return next(err)
+  if (err?.name === 'PrismaClientValidationError') return res.status(400).json({ error: 'Parâmetro inválido na requisição.' })
+  if (err?.code === 'P2003') return res.status(409).json({ error: 'Operação bloqueada: o registro possui vínculos com outros dados.' })
+  return next(err)
+}
+
 export const STUDENT_REF_PREFIX = 'ADM:' // AccountReceivable.studentId provisório (candidato ainda sem Student)
 
 // ---------- Funil: mudança de status com histórico ----------
@@ -42,6 +50,14 @@ export async function mudarStatusCandidato(params: {
   await prisma.admInteracao.create({
     data: { tenantId: params.tenantId, candidatoId: c.id, tipo: 'SISTEMA', descricao: `Status: ${de} → ${params.para}${params.motivo ? ` (${params.motivo})` : ''}`, userId: params.userId },
   })
+  // Saiu de CONVOCADO sem matricular: libera a vaga (convocação não pode continuar ocupando a oferta).
+  if (de === 'CONVOCADO' && params.para !== 'MATRICULADO') {
+    const conv = await prisma.admConvocacao.findMany({ where: { tenantId: params.tenantId, candidatoId: c.id, status: 'CONVOCADO' }, select: { id: true } })
+    if (conv.length) {
+      await prisma.admConvocacao.updateMany({ where: { id: { in: conv.map((v) => v.id) } }, data: { status: params.para === 'DESISTENTE' ? 'RENUNCIOU' : 'EXPIRADO' } })
+      for (const v of conv) await completeReminders({ tenantId: params.tenantId, refType: 'AdmConvocacao', refId: v.id, userId: params.userId })
+    }
+  }
   if (params.para === 'DESISTENTE' || params.para === 'REPROVADO' || params.para === 'MATRICULADO') {
     await completeReminders({ tenantId: params.tenantId, refType: 'AdmCandidato', refId: c.id, userId: params.userId })
   }
@@ -50,7 +66,9 @@ export async function mudarStatusCandidato(params: {
 
 // Agenda follow-up (lembrete) para o consultor/papel ADMISSIONS.
 export async function agendarFollowUp(params: { tenantId: string; candidatoId: string; nome: string; quando: Date; responsavelId?: string | null; descricao?: string }) {
+  // Candidato sem consultor passa a ser do responsável pelo follow-up (senão ele não aparece em GET /follow-ups de ninguém).
   await prisma.admCandidato.update({ where: { id: params.candidatoId }, data: { proximoContatoEm: params.quando } })
+  if (params.responsavelId) await prisma.admCandidato.updateMany({ where: { id: params.candidatoId, tenantId: params.tenantId, responsavelId: null }, data: { responsavelId: params.responsavelId } })
   return scheduleReminder({
     tenantId: params.tenantId,
     modulo: 'admissoes',
@@ -335,41 +353,46 @@ export async function efetivarMatricula(params: { tenantId: string; matriculaId:
   const last = await prisma.student.findFirst({ where: { ra: { startsWith: String(ano) } }, orderBy: { ra: 'desc' }, select: { ra: true } })
   let seq = last ? parseInt(last.ra.slice(4), 10) || 0 : 0
 
-  let result: { userId: string; studentId: string; enrollmentId: string; ra: string } | null = null
+  // Mensalidades (replica o gerador do financeiro: parcelas com descrição "Mensalidade n/N — Curso")
+  const dia = params.diaVencimento ?? 10
+  const primeiro = params.primeiroVencimento ?? somarMeses(new Date(), 1, dia)
+
+  // Tudo o que cria aluno/matrícula/financeiro roda numa única transação: se algo falhar nada fica pela metade
+  // (antes, uma falha após criar o Student deixava a matrícula "presa": novo POST dava "já existe aluno").
+  // A "reivindicação" da matrícula (updateMany condicional) serializa efetivações concorrentes da mesma matrícula.
+  let result: { userId: string; studentId: string; enrollmentId: string; ra: string; parcelas: any[] } | null = null
   for (let tentativa = 0; tentativa < 5 && !result; tentativa++) {
     const ra = proximoRA(ano, seq)
     try {
       result = await prisma.$transaction(async (tx) => {
+        const claim = await tx.admMatricula.updateMany({ where: { id: m.id, tenantId, status: { in: ['PENDENTE_DOCUMENTOS', 'DOCUMENTOS_OK'] } }, data: { status: 'CONCLUIDA', concluidaEm: new Date() } })
+        if (claim.count === 0) throw httpErr(409, 'Matrícula já concluída, cancelada ou em efetivação.')
         const user = existente
           ? existente
           : await tx.user.create({ data: { clinicId: clinic.id, tenantId, email, password: hash, firstName: partes[0], lastName: partes.slice(1).join(' ') || '-', role: 'STUDENT', phone: c.telefone ?? undefined } })
         const student = await tx.student.create({ data: { tenantId, userId: user.id, ra, nomeCompleto: c.nome, cpf: c.cpf, dataNascimento: c.dataNascimento } })
         const enr = await tx.enrollment.create({ data: { studentId: student.id, programId: program.id, termId: term.id } })
-        return { userId: user.id, studentId: student.id, enrollmentId: enr.id, ra }
-      })
+        const parcelas: any[] = []
+        for (let i = 0; i < m.parcelas; i++) {
+          parcelas.push(await tx.accountReceivable.create({
+            data: { tenantId, studentId: student.id, enrollmentId: enr.id, descricao: `Mensalidade ${i + 1}/${m.parcelas} — ${oferta.nomeCurso}`, numeroParcela: i + 1, valor: m.valorComDesconto, dataVencimento: somarMeses(primeiro, i, dia) },
+          }))
+        }
+        // Taxa de inscrição paga passa a pertencer ao aluno
+        if (c.taxaReceivableId) await tx.accountReceivable.updateMany({ where: { id: c.taxaReceivableId, tenantId }, data: { studentId: student.id, enrollmentId: enr.id } })
+        await tx.admMatricula.update({ where: { id: m.id }, data: { userId: user.id, studentId: student.id, enrollmentId: enr.id, ra, primeiraMensalidadeId: parcelas[0]?.id } })
+        return { userId: user.id, studentId: student.id, enrollmentId: enr.id, ra, parcelas }
+      }, { timeout: 30_000, maxWait: 10_000 })
     } catch (e: any) {
       if (e?.code === 'P2002' && String(e?.meta?.target ?? '').includes('ra')) { seq++; continue }
+      if (e?.code === 'P2002') throw httpErr(409, 'Conflito ao efetivar a matrícula (e-mail/aluno já cadastrado ou efetivação simultânea).')
       throw e
     }
   }
   if (!result) throw httpErr(500, 'Não foi possível gerar um RA único.')
+  const parcelas = result.parcelas
+  const mat = (await prisma.admMatricula.findUnique({ where: { id: m.id } }))!
 
-  // Mensalidades (replica o gerador do financeiro: parcelas com descrição "Mensalidade n/N — Curso")
-  const dia = params.diaVencimento ?? 10
-  const primeiro = params.primeiroVencimento ?? somarMeses(new Date(), 1, dia)
-  const parcelas: any[] = []
-  for (let i = 0; i < m.parcelas; i++) {
-    parcelas.push(await prisma.accountReceivable.create({
-      data: { tenantId, studentId: result.studentId, enrollmentId: result.enrollmentId, descricao: `Mensalidade ${i + 1}/${m.parcelas} — ${oferta.nomeCurso}`, numeroParcela: i + 1, valor: m.valorComDesconto, dataVencimento: somarMeses(primeiro, i, dia) },
-    }))
-  }
-  // Taxa de inscrição paga passa a pertencer ao aluno
-  if (c.taxaReceivableId) await prisma.accountReceivable.updateMany({ where: { id: c.taxaReceivableId, tenantId }, data: { studentId: result.studentId, enrollmentId: result.enrollmentId } })
-
-  const mat = await prisma.admMatricula.update({
-    where: { id: m.id },
-    data: { status: 'CONCLUIDA', userId: result.userId, studentId: result.studentId, enrollmentId: result.enrollmentId, ra: result.ra, primeiraMensalidadeId: parcelas[0]?.id, concluidaEm: new Date() },
-  })
   if (m.convocacaoId) await prisma.admConvocacao.updateMany({ where: { id: m.convocacaoId, tenantId }, data: { status: 'MATRICULADO' } })
   if (m.convocacaoId) await completeReminders({ tenantId, refType: 'AdmConvocacao', refId: m.convocacaoId, userId: params.userId })
   await mudarStatusCandidato({ tenantId, candidatoId: c.id, para: 'MATRICULADO', userId: params.userId, forcar: true })

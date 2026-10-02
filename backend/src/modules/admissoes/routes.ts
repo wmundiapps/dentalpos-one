@@ -9,6 +9,7 @@ import relatorios from './relatorios'
 import rematricula from './rematricula'
 import './jobs'
 import { publicRouter as publicRouterImpl } from './publico'
+import { prismaErrorMapper } from './services'
 
 // Módulo "admissoes" — captação, vestibular, matrícula e rematrícula (/api/edu/admissoes).
 const router = Router()
@@ -26,6 +27,7 @@ router.use(matricula)
 router.use(rematricula)
 router.use(relatorios)
 
+router.use(prismaErrorMapper)
 router.use(academicErrorHandler)
 
 export default router

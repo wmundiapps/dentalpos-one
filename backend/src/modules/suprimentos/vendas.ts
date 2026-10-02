@@ -174,6 +174,8 @@ export function registerVendas(router: Router) {
     const d = parseBody(z.object({ motivo: z.string().min(3), itens: z.array(z.object({ vendaItemId: z.string(), quantidade: z.coerce.number().positive() })).min(1) }), req.body)
     const userId = getUserId(req)
     const out = await prisma.$transaction(async (tx) => {
+      // Trava a venda: duas devoluções simultâneas não podem devolver além do vendido.
+      await tx.$queryRaw`SELECT "id" FROM "SupVenda" WHERE "id" = ${String(req.params.id)} AND "tenantId" = ${tenantId} FOR UPDATE`
       const v = await tx.supVenda.findFirst({ where: { id: String(req.params.id), tenantId }, include: { itens: true } })
       if (!v) throw httpErr(404, 'Venda não encontrada.')
       if (['DEVOLVIDA', 'CANCELADA'].includes(v.status)) throw httpErr(409, 'Venda já devolvida/cancelada.')
@@ -197,7 +199,7 @@ export function registerVendas(router: Router) {
         const ars = await tx.accountReceivable.findMany({ where: { id: { in: v.receivableIds } }, orderBy: { dataVencimento: 'desc' } })
         for (const ar of ars) {
           if (aEstornar <= 0) break
-          if (ar.status === 'PAGO') continue
+          if (ar.status === 'PAGO' || ar.status === 'CANCELADO') continue
           const abate = Math.min(ar.valor, aEstornar)
           const resto = round2(ar.valor - abate)
           await tx.accountReceivable.update({ where: { id: ar.id }, data: resto <= 0 ? { status: 'CANCELADO', valor: ar.valor } : { valor: resto } })

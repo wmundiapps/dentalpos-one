@@ -131,7 +131,7 @@ export async function abrirProtocolo(input: AbrirProtocoloInput) {
     if (!student) throw Object.assign(new Error('Aluno não encontrado.'), { status: 404 })
   }
   if (input.enrollmentId) {
-    const m = await prisma.enrollment.findFirst({ where: { id: input.enrollmentId, ...(student ? { studentId: student.id } : {}) }, select: { id: true } })
+    const m = await prisma.enrollment.findFirst({ where: { id: input.enrollmentId, ...(student ? { studentId: student.id } : { student: { tenantId } }) }, select: { id: true } })
     if (!m) throw Object.assign(new Error('Matrícula não encontrada para o aluno.'), { status: 404 })
   }
   if (!student && !input.solicitanteNome) throw Object.assign(new Error('Informe o aluno ou o nome do solicitante.'), { status: 400 })
@@ -306,6 +306,20 @@ export async function mudarStatusProtocolo(p: {
     data.decididoEm = null
   }
   if (p.para === 'CONCLUIDO' || p.para === 'CANCELADO') data.concluidoEm = agora
+
+  // Recurso/reanálise de indeferido: a cobrança foi cancelada no indeferimento, então é reemitida (senão o serviço sairia de graça).
+  if (de === 'INDEFERIDO' && p.para === 'EM_ANALISE' && proto.taxaStatus === 'CANCELADA' && proto.taxaValor > 0) {
+    data.taxaStatus = 'PENDENTE'
+    if (proto.studentId) {
+      try {
+        const feriados = await feriadosDoTenant(tenantId)
+        const ar = await prisma.accountReceivable.create({ data: { tenantId, studentId: proto.studentId, enrollmentId: proto.enrollmentId ?? undefined, descricao: `Taxa de requerimento — ${proto.tipo.nome} (protocolo ${proto.numero}, reanálise)`, valor: proto.taxaValor, dataVencimento: addBusinessDays(agora, 5, feriados) } })
+        data.receivableId = ar.id
+      } catch (e) {
+        console.error('[secretaria] falha ao reemitir cobrança da taxa', e)
+      }
+    }
+  }
 
   const atualizado = await prisma.secProtocolo.update({
     where: { id: proto.id },

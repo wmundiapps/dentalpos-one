@@ -116,7 +116,11 @@ export function registerCipa(router: Router) {
     afterUpdate: async (row) => { if (row.realizada) await afterReuniao(row) },
   })
   async function afterReuniao(row: any) {
-    await completeReminders({ tenantId: row.tenantId, refType: 'GovCipaGestao', refId: row.gestaoId }) // limpa pendências do mês
+    // limpa só as pendências de reunião (não as de eleição/fim de mandato da gestão)
+    await prisma.eduReminder.updateMany({
+      where: { tenantId: row.tenantId, refType: 'GovCipaGestao', refId: row.gestaoId, status: { in: ['PENDENTE', 'NOTIFICADO', 'ADIADO'] }, OR: [{ dedupeKey: { startsWith: `gov:cipa:reuniao:${row.gestaoId}:` } }, { dedupeKey: { startsWith: `gov:cipa:atraso:${row.gestaoId}:${row.competencia}` } }] },
+      data: { status: 'CONCLUIDO', concluidoEm: new Date() },
+    })
     const g = await prisma.govCipaGestao.findFirst({ where: { id: row.gestaoId, tenantId: row.tenantId } })
     if (g && g.status === 'VIGENTE') await garantirReunioesCipa(g)
   }

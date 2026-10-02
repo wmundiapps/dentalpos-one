@@ -267,9 +267,11 @@ export async function buscarCatalogo(tenantId: string, query: any, opts: { publi
   if (qs(query.isbn)) and.push({ isbn: normalizarIsbn(qs(query.isbn)) })
   if (qs(query.tipo)) and.push({ tipo: qs(query.tipo) })
   if (qs(query.idioma)) and.push({ idioma: qs(query.idioma) })
-  if (qs(query.ano)) and.push({ ano: Number(qs(query.ano)) })
-  if (qs(query.anoDe)) and.push({ ano: { gte: Number(qs(query.anoDe)) } })
-  if (qs(query.anoAte)) and.push({ ano: { lte: Number(qs(query.anoAte)) } })
+  // anos inválidos (NaN) são ignorados: Prisma rejeitaria NaN com 500.
+  const anoNum = (k: string) => { const n = parseInt(qs(query[k]) ?? '', 10); return Number.isFinite(n) ? n : undefined }
+  if (anoNum('ano') !== undefined) and.push({ ano: anoNum('ano') })
+  if (anoNum('anoDe') !== undefined) and.push({ ano: { gte: anoNum('anoDe') } })
+  if (anoNum('anoAte') !== undefined) and.push({ ano: { lte: anoNum('anoAte') } })
   if (qs(query.disponivel) === 'true') and.push({ exemplares: { some: { status: 'DISPONIVEL', apenasConsulta: false } } })
   if (and.length) where.AND = and
   const [obras, total] = await Promise.all([

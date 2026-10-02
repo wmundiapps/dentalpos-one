@@ -176,14 +176,20 @@ router.post('/candidatos', requireRole(...GESTAO), asyncHandler(async (req: Auth
     if (p!.status !== 'ABERTO') throw httpErr(409, 'O processo seletivo não está aberto para inscrições.')
     if (!d.cpf) throw httpErr(400, 'CPF obrigatório para inscrição.')
     if (!d.ofertaId) throw httpErr(400, 'Informe a oferta (curso) pretendida.')
-    if (await prisma.admCandidato.findFirst({ where: { tenantId, processoId: d.processoId, cpf: d.cpf } })) throw httpErr(409, 'Já existe inscrição deste CPF neste processo.')
   }
-  const c = await prisma.admCandidato.create({
-    data: {
-      ...d, tenantId, protocolo: gerarProtocolo(), status: d.processoId ? 'INSCRITO' : 'LEAD', etapaMaxima: d.processoId ? 1 : 0,
-      origem: d.origem ?? 'BALCAO', consentimentoEm: d.consentimentoLgpd ? new Date() : null, responsavelId: d.responsavelId ?? getUserId(req),
-    },
-  })
+  const c = await prisma.$transaction(async (tx) => {
+    // trava por processo+CPF: o schema não tem unique e envios simultâneos duplicariam a inscrição
+    if (d.processoId) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`adm-insc:${tenantId}:${d.processoId}:${d.cpf}`}))`
+      if (await tx.admCandidato.findFirst({ where: { tenantId, processoId: d.processoId, cpf: d.cpf } })) throw httpErr(409, 'Já existe inscrição deste CPF neste processo.')
+    }
+    return tx.admCandidato.create({
+      data: {
+        ...d, tenantId, protocolo: gerarProtocolo(), status: d.processoId ? 'INSCRITO' : 'LEAD', etapaMaxima: d.processoId ? 1 : 0,
+        origem: d.origem ?? 'BALCAO', consentimentoEm: d.consentimentoLgpd ? new Date() : null, responsavelId: d.responsavelId ?? getUserId(req),
+      },
+    })
+  }, { timeout: 15_000 })
   if (d.processoId) await gerarCobrancaInscricao({ tenantId, candidatoId: c.id })
   await prisma.admInteracao.create({ data: { tenantId, candidatoId: c.id, tipo: 'SISTEMA', descricao: `Cadastro interno (${c.status})`, userId: getUserId(req) } })
   await audit({ tenantId, userId: getUserId(req), modulo: 'admissoes', acao: 'CRIAR', refType: 'AdmCandidato', refId: c.id })

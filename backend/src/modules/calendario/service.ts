@@ -4,6 +4,23 @@ import { Bloqueio, calcularDiasLetivos } from './diasLetivos'
 import { DAY_MS, addDays, expandRecorrencia, isoWeekday, localDateKey, slotInstant, startOfLocalDay, hhmmToMin } from './time'
 import type { SlotLike } from './conflicts'
 
+/**
+ * Serializa operações que verificam e gravam a agenda de um espaço (reservas, aprovações, bloqueios)
+ * com um advisory lock transacional do Postgres, evitando dupla reserva em requisições concorrentes.
+ * O lock é mantido numa transação própria; as leituras/gravações de `fn` usam o client normal e já
+ * estão confirmadas quando o lock é liberado.
+ */
+export async function comTravaDeEspaco<T>(tenantId: string, spaceIds: string[], fn: () => Promise<T>): Promise<T> {
+  const keys = [...new Set(spaceIds)].sort()
+  return prisma.$transaction(
+    async (tx) => {
+      for (const k of keys) await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'calspace:' + tenantId + ':' + k}))`
+      return fn()
+    },
+    { timeout: 60_000, maxWait: 30_000 },
+  )
+}
+
 export const MODULO = 'calendario'
 
 export const GESTAO: AcademicRole[] = ['COORDINATOR', 'SECRETARY']

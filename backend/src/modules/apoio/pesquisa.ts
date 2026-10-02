@@ -98,7 +98,7 @@ export function mountPesquisa(router: Router) {
     if (a.alvoTipo === 'EGRESSOS') {
       const eg = await prisma.apoEgresso.findMany({ where: { tenantId, consenteContato: true, ...(a.alvoRef ? { programId: a.alvoRef } : {}) }, select: { id: true, email: true, telefone: true, nome: true }, take: 20000 })
       publico = { egressoIds: eg.map((e) => e.id) }; convidados = eg.length
-      for (const e of eg) if (e.email || e.telefone) await notify({ tenantId, canal: e.email ? 'EMAIL' : 'WHATSAPP', destino: e.email ?? e.telefone ?? undefined, assunto: `Pesquisa: ${a.titulo}`, mensagem: `Olá, ${e.nome}! Sua opinião é muito importante. Responda em: /api/public/edu/apoio/pesquisa-egresso/${a.id}?egressoId=${e.id}&codigo=${conviteEgressoCodigo(tenantId, a.id, e.id)}`, templateKey: 'apoio.pesquisa.egresso', refType: REF.aplicacao, refId: a.id, agendadoPara: a.abertura })
+      for (const e of eg) if (e.email || e.telefone) await notify({ tenantId, canal: e.email ? 'EMAIL' : 'WHATSAPP', destino: e.email ?? e.telefone ?? undefined, assunto: `Pesquisa: ${a.titulo}`, mensagem: `Olá, ${e.nome}! Sua opinião é muito importante. Responda em: /api/public/edu/apoio/pesquisa-egresso/${tenantId}/${a.id}?egressoId=${e.id}&codigo=${conviteEgressoCodigo(tenantId, a.id, e.id)}`, templateKey: 'apoio.pesquisa.egresso', refType: REF.aplicacao, refId: a.id, agendadoPara: a.abertura })
     } else {
       const ids = await alunosDoAlvo(tenantId, a)
       publico = { studentIds: ids }; convidados = ids.length

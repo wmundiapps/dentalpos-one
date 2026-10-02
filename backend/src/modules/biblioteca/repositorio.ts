@@ -84,6 +84,8 @@ export function mountRepositorio(router: Router) {
   router.post('/repositorio', roleGuard, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req)
     const d: any = derivarRepo(parseBody(base, req.body))
+    // Somente a gestão define embargo, acesso restrito e licença (igual à edição).
+    if (!ehGestor(req)) { delete d.embargoAte; delete d.restrito; delete d.licenca }
     if (req.user?.role === 'STUDENT') {
       if (!req.user.studentId) throw httpErr(403, 'Aluno não identificado.')
       d.autorStudentId = req.user.studentId

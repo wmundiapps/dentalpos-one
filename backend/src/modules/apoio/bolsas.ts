@@ -37,10 +37,20 @@ async function agendarRenovacao(tenantId: string, c: { id: string; studentId: st
   await scheduleReminder({ tenantId, modulo: MODULO, titulo: 'Bolsa vencendo: acompanhar renovação do aluno', dueAt: c.fim, antecedenciaDias: Math.max(7, Math.floor(antecedencia / 3)), assigneeRole: 'SUPPORT', refType: REF.concessao, refId: c.id, dedupeKey: `apo-bolsa-renov-eq-${c.id}` })
 }
 
-async function criarConcessao(tenantId: string, prog: any, studentId: string, inscricaoId: string | null, userId: string) {
+// Cria a concessão de forma atômica: o lock por programa serializa a checagem de vagas + criação,
+// evitando que deferimentos simultâneos ultrapassem o limite de vagas.
+async function criarConcessao(tenantId: string, prog: any, studentId: string, inscricaoId: string | null, userId: string, opts: { validarVagas?: boolean } = {}) {
   const inicio = new Date()
   const fim = new Date(inicio); fim.setMonth(fim.getMonth() + prog.vigenciaMeses)
-  const c = await prisma.apoConcessaoBolsa.create({ data: { tenantId, programaId: prog.id, studentId, inscricaoId, percentual: prog.percentualDesconto, valorMensal: prog.valorMensal, inicio, fim, status: 'ATIVA', renovacaoLimiteEm: addDays(fim, 0) } })
+  const c = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'apo-bolsa-vagas:' + prog.id}))`
+    if (await tx.apoConcessaoBolsa.findFirst({ where: { tenantId, programaId: prog.id, studentId, status: { in: ['ATIVA', 'RENOVACAO_PENDENTE'] } }, select: { id: true } })) throw httpError(409, 'O aluno já possui concessão ativa neste programa.')
+    if (opts.validarVagas && prog.vagas > 0) {
+      const ativas = await tx.apoConcessaoBolsa.count({ where: { tenantId, programaId: prog.id, status: { in: ['ATIVA', 'RENOVACAO_PENDENTE'] } } })
+      if (ativas >= prog.vagas) throw httpError(409, 'Sem vagas disponíveis no programa (use lista de espera ou forcar=true).')
+    }
+    return tx.apoConcessaoBolsa.create({ data: { tenantId, programaId: prog.id, studentId, inscricaoId, percentual: prog.percentualDesconto, valorMensal: prog.valorMensal, inicio, fim, status: 'ATIVA', renovacaoLimiteEm: addDays(fim, 0) } })
+  })
   await agendarRenovacao(tenantId, c, prog.renovacaoAntecedenciaDias)
   await notify({ tenantId, studentId, assunto: `Bolsa concedida: ${prog.nome}`, mensagem: `Parabéns! Você foi contemplado(a) com ${prog.percentualDesconto ? prog.percentualDesconto + '% de desconto' : 'o auxílio'} do programa ${prog.nome}, válido até ${fim.toLocaleDateString('pt-BR')}.`, refType: REF.concessao, refId: c.id, templateKey: 'apoio.bolsa.concedida' })
   await audit({ tenantId, userId, modulo: MODULO, acao: 'BOLSA_CONCEDIDA', refType: REF.concessao, refId: c.id })
@@ -117,9 +127,7 @@ export function mountBolsas(router: Router) {
     let concessao: any = null
     if (b.decisao === 'DEFERIDA') {
       if (!insc.elegivel && !b.forcar) throw httpError(422, 'Inscrição não elegível pelos critérios; use forcar=true com parecer justificado.')
-      const ativas = await prisma.apoConcessaoBolsa.count({ where: { tenantId, programaId: prog.id, status: { in: ['ATIVA', 'RENOVACAO_PENDENTE'] } } })
-      if (prog.vagas > 0 && ativas >= prog.vagas && !b.forcar) throw httpError(409, 'Sem vagas disponíveis no programa (use lista de espera ou forcar=true).')
-      concessao = await criarConcessao(tenantId, prog, insc.studentId, insc.id, getUserId(req))
+      concessao = await criarConcessao(tenantId, prog, insc.studentId, insc.id, getUserId(req), { validarVagas: !b.forcar })
     } else {
       await notify({ tenantId, studentId: insc.studentId, assunto: `Resultado da bolsa: ${prog.nome}`, mensagem: `Sua inscrição foi ${b.decisao === 'INDEFERIDA' ? 'indeferida' : b.decisao === 'LISTA_ESPERA' ? 'colocada em lista de espera' : 'colocada em análise'}. Parecer: ${b.parecer}`, refType: 'ApoInscricaoBolsa', refId: insc.id })
     }

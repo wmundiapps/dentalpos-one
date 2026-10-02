@@ -91,6 +91,17 @@ export function registerCarreira(router: Router) {
     res.status(201).json(row)
   }))
 
+  // processo de progressão é trilha de auditoria: só pode ser removido enquanto não decidido/efetivado
+  router.delete('/carreira/progressoes/:id', requireRole(...WRITE_RH), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = getTenantId(req)
+    const p = await prisma.govCarreiraProgressao.findFirst({ where: { id: String(req.params.id), tenantId } })
+    if (!p) return res.status(404).json({ error: 'Registro não encontrado.' })
+    if (!['SOLICITADA', 'CANCELADA'].includes(p.status)) fail(409, 'Processo em análise/decidido não pode ser removido (use a transição CANCELADA, se cabível).')
+    await cancelReminders({ tenantId, refType: 'GovCarreiraProgressao', refId: p.id })
+    await prisma.govCarreiraProgressao.delete({ where: { id: p.id } })
+    await audit({ tenantId, userId: getUserId(req), modulo: 'governanca.carreira', acao: 'REMOVER', refType: 'GovCarreiraProgressao', refId: p.id })
+    res.status(204).end()
+  }))
   mountCrud(router, {
     model: 'govCarreiraProgressao', path: '/carreira/progressoes', read: RR, write: WRITE_RH, modulo: 'governanca.carreira', filters: ['status', 'enquadramentoId'], orderBy: { createdAt: 'desc' },
     create: z.object({ enquadramentoId: z.string().uuid(), nivelDestinoId: z.string().uuid().optional(), justificativa: z.string().optional() }),
