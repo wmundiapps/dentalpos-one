@@ -32,7 +32,7 @@ const toMesh = (g: THREE.BufferGeometry): Mesh => {
 const asThree = (m: Mesh) => {
   const g = new THREE.BufferGeometry();
   g.setAttribute("position", new THREE.BufferAttribute(m.positions, 3)); g.setIndex(new THREE.BufferAttribute(m.indices, 1)); g.computeVertexNormals();
-  return new THREE.Mesh(g, new THREE.MeshBasicMaterial());
+  return new THREE.Mesh(g, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
 };
 
 export function ScanPanel({ c }: { c: Ctx }) {
@@ -97,8 +97,8 @@ export function ScanPanel({ c }: { c: Ctx }) {
     setTimeout(() => {
       try {
         if (what === "thick") setThick(analyzeToothThickness(tm, { minimumThickness: 0.5, warningThickness: 0.8 }));
-        if (what === "contact") { const a = store.antagonist; if (!a) throw new Error("Importe o antagonista."); setContact(analyzeContactMap(tm, new THREE.Mesh(a.geometry, new THREE.MeshBasicMaterial()))); }
-        if (what === "fit") { const w = store.work; if (!w) throw new Error("Importe a arcada de trabalho."); setFit(analyzePreparationFit(tm, new THREE.Mesh(w.geometry, new THREE.MeshBasicMaterial()))); }
+        if (what === "contact") { const a = store.antagonist; if (!a) throw new Error("Importe o antagonista."); setContact(analyzeContactMap(tm, new THREE.Mesh(a.geometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })))); }
+        if (what === "fit") { const w = store.work; if (!w) throw new Error("Importe a arcada de trabalho."); setFit(analyzePreparationFit(tm, new THREE.Mesh(w.geometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })))); }
       } catch (e) { c.toast(e instanceof Error ? e.message : String(e)); }
       c.setBusy(null);
     }, 30);
@@ -146,7 +146,7 @@ export function ScanPanel({ c }: { c: Ctx }) {
       <Section title={`Análises do dente ${c.sel ?? "…"} do projeto`}>
         {!t && <div className="hint">Selecione um dente no odontograma.</div>}
         <div className="btns">
-          <button className="btn" disabled={!t} onClick={() => run("thick")}>Espessura</button>
+          <button className="btn" disabled={!t} title="Mede a distância entre faces opostas da malha: útil para cascas/coroas ocas importadas" onClick={() => run("thick")}>Espessura da malha</button>
           <button className="btn" disabled={!t || !store.antagonist} onClick={() => run("contact")}>Contato c/ antagonista</button>
           <button className="btn" disabled={!t || !store.work} onClick={() => run("fit")}>Ajuste ao preparo</button>
         </div>

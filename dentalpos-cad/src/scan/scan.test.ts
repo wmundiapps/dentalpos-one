@@ -15,7 +15,7 @@ describe("motor portado do DentalPos One", () => {
     const r = repairMesh(dup);
     expect(r.removedDuplicateTriangles).toBeGreaterThan(0);
     expect(diagnoseMesh(r.geometry).duplicateTriangles).toBe(0);
-    const t = analyzeToothThickness(new THREE.Mesh(new THREE.SphereGeometry(5, 24, 16), new THREE.MeshBasicMaterial()));
+    const t = analyzeToothThickness(new THREE.Mesh(new THREE.SphereGeometry(5, 24, 16), new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })));
     expect(t.maximumThickness).toBeGreaterThan(0);
   });
 });

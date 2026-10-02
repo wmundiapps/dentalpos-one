@@ -14,7 +14,7 @@ integrado a qualquer sistema (iframe, componente React ou biblioteca ES) e comer
 cd dentalpos-cad
 npm install
 npm run dev          # http://localhost:5199
-npm test             # 16 testes do núcleo clínico/geométrico (vitest)
+npm test             # 17 testes do núcleo clínico/geométrico e do motor portado (vitest)
 npm run build        # app (dist/) — inclui /gallery.html (biblioteca de dentes em 3D)
 npm run build:lib    # biblioteca embutível (dist-lib/dentalpos-cad.js + cad.css)
 ```
