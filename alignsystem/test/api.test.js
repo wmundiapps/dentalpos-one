@@ -183,6 +183,7 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   const term = await call('GET', `/api/contracts/${termToken}`);
   assert.match(term.data.body, /R\$\s?150,00/);
   assert.match(term.data.body, /30% \(trinta por cento\) do valor efetivamente pago/);
+  assert.match(term.data.body, /limitado a 8 \(oito\) consultas nos casos simples, 12 \(doze\) nos casos de média complexidade e 15 \(quinze\) nos casos complexos/);
   assert.equal((await call('POST', `/api/contracts/${termToken}/accept`, { body: { name: 'Ana Lima', doc: '52998224725', agree: true, hash: 'x' } })).status, 409);
   assert.equal((await call('POST', `/api/contracts/${termToken}/accept`, { body: { name: 'Ana Lima', doc: '11111111111', agree: true, hash: term.data.hash } })).status, 400);
   assert.equal((await call('POST', `/api/contracts/${termToken}/accept`, { body: { name: 'Ana Lima', doc: '52998224725', agree: true, hash: term.data.hash } })).status, 200);

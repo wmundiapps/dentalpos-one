@@ -235,6 +235,11 @@ r('POST', '/api/leads/parceiro', async (req, res) => {
 
 // ------------------------------------------------------------------ cobertura da rede e atendimento presencial
 
+// Limite de consultas pagas ao dentista no modelo rede, conforme a complexidade do caso
+const consultLimit = (plan) => (plan?.model === 'rede' && plan?.complexity
+  ? { simples: PARTNER_DEFAULTS.limitSimple, mediano: PARTNER_DEFAULTS.limitMedium, complexo: PARTNER_DEFAULTS.limitComplex }[plan.complexity]
+  : null);
+
 const networkDentists = (sql) => sql`select id, name, city, coalesce(state, cro_uf) as cro_uf from dentists where status = 'ativo'`;
 
 // Cidades atendidas pela rede (sem nomes de dentistas), para a página e o marketing
@@ -728,7 +733,7 @@ r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
   await requireUser(sql, req, 'admin');
   const d = await caseDetail(sql, id);
   send(res, 200, {
-    case: { ...d.c, portalUrl: portalUrl(d.c.token), attendance: d.c.attendance && { ...publicAttendance(d.c.attendance), ip: d.c.attendance.ip } },
+    case: { ...d.c, portalUrl: portalUrl(d.c.token), consultLimit: consultLimit(d.c.plan), consultValue: PARTNER_DEFAULTS.redeValue, attendance: d.c.attendance && { ...publicAttendance(d.c.attendance), ip: d.c.attendance.ip } },
     photos: d.photos, appointments: d.appts,
     contracts: d.contracts.map((x) => ({ ...x, url: contractUrl(x.token) })),
     charges: d.charges.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
@@ -792,6 +797,7 @@ r('PATCH', '/api/admin/cases/:id', async (req, res, { id }) => {
     const p = b.plan || {};
     up.plan = sql.json({
       brand: clean(p.brand, 60), months: Number(p.months) || null, total: money(p.total), replacementValue: money(p.replacementValue),
+      complexity: ['simples', 'mediano', 'complexo'].includes(p.complexity) ? p.complexity : null,
       model: p.model === 'rede' ? 'rede' : 'parceiro', travel: p.travel === '' || p.travel == null ? null : money(p.travel),
       treatmentNotes: clean(p.treatmentNotes, 4000),
     });
@@ -905,6 +911,7 @@ r('POST', '/api/admin/cases/:id/contract', async (req, res, { id }) => {
   if (!c.cpf) missing.push('CPF do paciente');
   if (!c.address) missing.push('endereço do paciente');
   if (plan.model !== 'rede' && !c.dentist_id) missing.push('dentista responsável');
+  if (plan.model === 'rede' && !plan.complexity) missing.push('complexidade do caso (simples, mediano ou complexo)');
   if (plan.model === 'rede' && !c.attendance) missing.push('questionário de atendimento presencial respondido pelo paciente');
   if (plan.model === 'rede' && c.attendance?.choice === 'sem_cobertura') missing.push('dentista credenciado na região do paciente');
   if (!plan.brand) missing.push('marca do alinhador');
@@ -1314,7 +1321,7 @@ r('GET', '/api/dentist/cases/:id', async (req, res, { id }) => {
   send(res, 200, {
     case: {
       id: c.id, code: c.code, name: c.name, age: c.age, city: c.city, whatsapp: c.whatsapp, reason: c.reason, status: c.status,
-      assessment: c.assessment, assessment_notes: c.assessment_notes, plan: { brand: c.plan?.brand, months: c.plan?.months, treatmentNotes: c.plan?.treatmentNotes },
+      assessment: c.assessment, assessment_notes: c.assessment_notes, plan: { brand: c.plan?.brand, months: c.plan?.months, treatmentNotes: c.plan?.treatmentNotes, model: c.plan?.model || 'parceiro', complexity: c.plan?.complexity || null, consultLimit: consultLimit(c.plan) },
     },
     photos, appointments: appts, evidences,
     labels: { CASE_STATUS, ASSESSMENT, MILESTONES },
