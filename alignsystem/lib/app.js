@@ -1179,24 +1179,27 @@ r('POST', '/api/webhooks/asaas', async (req, res) => {
   const expected = process.env.ASAAS_WEBHOOK_TOKEN;
   if (!expected || req.headers['asaas-access-token'] !== expected) fail(401, 'token inválido');
   const b = await readJson(req);
-  await sql`insert into webhook_events (provider, event, payload) values ('asaas', ${clean(b.event, 80)}, ${sql.json(b)})`;
   const p = b.payment;
+  // A conta Asaas é compartilhada com outros negócios: só tratamos (e guardamos) pagamentos de cobranças da AlignSystem.
+  let ch = null;
   if (p?.id) {
     const ref = p.externalReference;
-    let [ch] = ref && /^[0-9a-f-]{36}$/i.test(ref) ? await sql`select * from charges where id = ${ref}` : [];
+    [ch] = ref && /^[0-9a-f-]{36}$/i.test(ref) ? await sql`select * from charges where id = ${ref}` : [];
     if (!ch) [ch] = await sql`select * from charges where asaas_payment_id = ${p.id}
       or (${p.installment || ''} <> '' and asaas_installment_id = ${p.installment || ''})
       or (${p.subscription || ''} <> '' and asaas_subscription_id = ${p.subscription || ''}) limit 1`;
-    await upsertPayment(sql, p, ch);
-    if (ch && asaas.PAID.has(p.status)) {
-      const [c] = await sql`select id, code, name from cases where id = ${ch.case_id}`;
-      await logEvent(sql, { caseId: ch.case_id, actor: 'asaas', type: 'pagamento_confirmado', data: { value: p.value, id: p.id } });
-      if (b.event === 'PAYMENT_RECEIVED' || b.event === 'PAYMENT_CONFIRMED') {
-        await sendMail({
-          to: notifyAddress(), subject: `Pagamento confirmado — caso #${c?.code} (${brl(p.value)})`,
-          html: layout('Pagamento confirmado', table([['Paciente', c?.name], ['Valor', brl(p.value)], ['Descrição', p.description], ['Forma', p.billingType]])),
-        });
-      }
+  }
+  if (!ch) return send(res, 200, { received: true, ignored: true });
+  await sql`insert into webhook_events (provider, event, payload) values ('asaas', ${clean(b.event, 80)}, ${sql.json(b)})`;
+  await upsertPayment(sql, p, ch);
+  if (asaas.PAID.has(p.status)) {
+    const [c] = await sql`select id, code, name from cases where id = ${ch.case_id}`;
+    await logEvent(sql, { caseId: ch.case_id, actor: 'asaas', type: 'pagamento_confirmado', data: { value: p.value, id: p.id } });
+    if (b.event === 'PAYMENT_RECEIVED' || b.event === 'PAYMENT_CONFIRMED') {
+      await sendMail({
+        to: notifyAddress(), subject: `Pagamento confirmado — caso #${c?.code} (${brl(p.value)})`,
+        html: layout('Pagamento confirmado', table([['Paciente', c?.name], ['Valor', brl(p.value)], ['Descrição', p.description], ['Forma', p.billingType]])),
+      });
     }
   }
   send(res, 200, { received: true });

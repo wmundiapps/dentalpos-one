@@ -222,6 +222,14 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   const [paid] = await sql`select status, paid_at from alignsystem_test.payments where asaas_payment_id = 'pay_1'`;
   assert.equal(paid.status, 'RECEIVED');
   assert.ok(paid.paid_at);
+  // pagamento de outro negócio na mesma conta Asaas: ignorado e não armazenado
+  const other = await call('POST', '/api/webhooks/asaas', {
+    headers: { 'asaas-access-token': 'wh-token' },
+    body: { event: 'PAYMENT_RECEIVED', payment: { id: 'pay_outro', value: 50, dueDate: '2026-10-01', status: 'RECEIVED', billingType: 'PIX' } },
+  });
+  assert.equal(other.status, 200);
+  assert.equal(other.data.ignored, true);
+  assert.equal((await sql`select 1 from alignsystem_test.payments where asaas_payment_id = 'pay_outro'`).length, 0);
 
   // dentista registra atendimento com foto; admin valida
   const dc = await call('GET', `/api/dentist/cases/${caseId}`, { who: 'dent' });
