@@ -54,3 +54,14 @@ describe("E/S, scan, CAM, coroa", () => {
     expect(volume(r.shell)).toBeGreaterThan(100);
   });
 });
+
+import { fixStlHeader } from "./io";
+describe("STL com cabeçalho zerado", () => {
+  it("lê pelo tamanho do arquivo", () => {
+    const m = tooth(11).mesh;
+    const buf = exportSTL(m).slice(0);
+    new DataView(buf).setUint32(80, 0, true);
+    expect(triCount(importSTL(buf))).toBe(triCount(m));
+    expect(new DataView(fixStlHeader(buf)).getUint32(80, true)).toBe(triCount(m));
+  });
+});

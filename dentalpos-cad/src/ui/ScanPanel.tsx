@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { Check, Section, fmt } from "./atoms";
 import type { Ctx } from "./ctx";
 import { loadSTLFile } from "../scan/engine/meshLoader";
+import { fixStlHeader } from "../core/io";
 import { diagnoseMesh, type MeshDiagnosticResult } from "../scan/engine/meshDiagnostics";
 import { repairMesh } from "../scan/engine/meshRepair";
 import { exportGeometryToSTL } from "../scan/engine/stlExporter";
@@ -13,10 +14,10 @@ import { bestInsertionAxis, marginCurve, orientFromLandmarks } from "../core/sca
 import type { Mesh } from "../core/mesh";
 import type { Vec3 } from "../core/math";
 
-type Kind = "work" | "antagonist" | "bite";
-const LABEL: Record<Kind, string> = { work: "Arcada de trabalho (preparo)", antagonist: "Antagonista", bite: "Registro de mordida" };
-const COLOR: Record<Kind, string> = { work: "#c9b48a", antagonist: "#8fb4d9", bite: "#d98f8f" };
-interface Scan { geometry: THREE.BufferGeometry; fileName: string; diag: MeshDiagnosticResult | null }
+type Kind = "work" | "antagonist" | "bite" | "crown";
+const LABEL: Record<Kind, string> = { work: "Arcada de trabalho (preparo)", antagonist: "Antagonista", bite: "Registro de mordida", crown: "Coroa de CAD externo (ex.: exocad)" };
+const COLOR: Record<Kind, string> = { work: "#c9b48a", antagonist: "#8fb4d9", bite: "#d98f8f", crown: "#f4ead2" };
+interface Scan { geometry: THREE.BufferGeometry; fileName: string; diag: MeshDiagnosticResult | null; visible?: boolean }
 // os escaneamentos ficam fora do estado do projeto (são grandes) e vivem enquanto a página estiver aberta
 const store: Partial<Record<Kind, Scan>> = {};
 let margin: Vec3[] = [];
@@ -47,7 +48,7 @@ export function ScanPanel({ c }: { c: Ctx }) {
   const { project: p, ev } = c.s;
   const t = c.sel ? ev.teeth.get(c.sel) : null;
 
-  const show = (k: Kind) => { const s = store[k]; c.setExtra(`scan-${k}`, s ? { id: `scan-${k}`, mesh: toMesh(s.geometry), color: COLOR[k], opacity: k === "work" ? 1 : 0.85 } : null); };
+  const show = (k: Kind) => { const s = store[k]; c.setExtra(`scan-${k}`, s && s.visible !== false ? { id: `scan-${k}`, mesh: toMesh(s.geometry), color: COLOR[k], opacity: k === "bite" ? 0.7 : 1 } : null); };
   const drawLines = () => {
     const ls = [];
     if (margin.length > 1) ls.push({ id: "margin", pts: marginCurve(margin, 8).polyline, color: "#ff5d5d", closed: true });
@@ -56,7 +57,7 @@ export function ScanPanel({ c }: { c: Ctx }) {
   const load = async (k: Kind, file: File) => {
     try {
       c.setBusy(`Carregando ${file.name}…`);
-      const l = await loadSTLFile(file);
+      const l = await loadSTLFile(new File([fixStlHeader(await file.arrayBuffer())], file.name));
       const geometry = l.geometry; geometry.computeVertexNormals();
       store[k] = { geometry, fileName: file.name, diag: null };
       show(k); c.setHideTeeth(false); c.toast(`${LABEL[k]}: ${l.triangles.toLocaleString("pt-BR")} triângulos (${fmt(l.width)}×${fmt(l.height)}×${fmt(l.depth)} mm).`);
@@ -81,6 +82,20 @@ export function ScanPanel({ c }: { c: Ctx }) {
         c.toast(`Escaneamento orientado ao projeto. Arco ${kindJaw() === "upper" ? "superior" : "inferior"} ajustado: largura ${fmt(o.width)} mm, profundidade ${fmt(o.depth)} mm.`);
       }
     };
+  };
+  const autoCenter = () => {
+    const ref = store.work ?? store.antagonist; if (!ref) return c.toast("Importe uma arcada.");
+    const g = ref.geometry; g.computeBoundingBox(); const bb = g.boundingBox!;
+    const pos = g.getAttribute("position"); let cy = 0; for (let i = 0; i < pos.count; i++) cy += pos.getY(i); cy /= pos.count;
+    const anteriorPlus = cy > (bb.min.y + bb.max.y) / 2; // o centroide do arco fica do lado anterior (fechado)
+    const flip = !anteriorPlus;
+    const tx = -(bb.min.x + bb.max.x) / 2, ty = flip ? bb.min.y : -bb.max.y;
+    for (const k of Object.keys(store) as Kind[]) {
+      const geo = store[k]!.geometry;
+      if (flip) { geo.applyMatrix4(new THREE.Matrix4().makeScale(1, -1, 1)); const idx = geo.index; if (idx) { const a = idx.array as Uint32Array; for (let i = 0; i < a.length; i += 3) { const t = a[i + 1]; a[i + 1] = a[i + 2]; a[i + 2] = t; } idx.needsUpdate = true; } else { const pa = geo.getAttribute("position"); for (let i = 0; i + 2 < pa.count; i += 3) { const x = pa.getX(i + 1), y = pa.getY(i + 1), z = pa.getZ(i + 1); pa.setXYZ(i + 1, pa.getX(i + 2), pa.getY(i + 2), pa.getZ(i + 2)); pa.setXYZ(i + 2, x, y, z); } } }
+      geo.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, ty, 0)); geo.computeVertexNormals(); show(k);
+    }
+    c.toast(`Escaneamento centralizado (x ${fmt(tx)} mm, y ${fmt(ty)} mm); anterior em +Y.`);
   };
   const kindJaw = (): "upper" | "lower" => (c.sel && c.sel >= 30 ? "lower" : "upper");
   const stop = () => { c.pickHandler.current = null; setMode("none"); };
@@ -108,7 +123,7 @@ export function ScanPanel({ c }: { c: Ctx }) {
     c.setBusy("Procurando o melhor eixo de inserção…");
     setTimeout(() => { const m = toMesh(w.geometry); const r = bestInsertionAxis(m, [0, 0, 1], 30); setInsertion({ undercut: r.undercut, vertical: r.undercutAtVertical, axis: r.axis }); c.setBusy(null); }, 30);
   };
-  const kinds: Kind[] = ["work", "antagonist", "bite"];
+  const kinds: Kind[] = ["work", "antagonist", "bite", "crown"];
   return (
     <div data-testid="panel-scan">
       <h3>Escaneamento e restauração</h3>
@@ -120,13 +135,14 @@ export function ScanPanel({ c }: { c: Ctx }) {
             <input ref={(el) => { inputs.current[k] = el; }} type="file" accept=".stl" hidden data-testid={`file-scan-${k}`} onChange={(e) => { const f = e.target.files?.[0]; if (f) load(k, f); e.target.value = ""; }} />
             <div className="btns">
               <button className="btn" onClick={() => inputs.current[k]?.click()}>{store[k] ? "Trocar…" : "Importar STL…"}</button>
-              {store[k] && <><button className="btn" onClick={() => diagnose(k)}>Diagnosticar</button><button className="btn" onClick={() => repair(k)}>Reparar</button><button className="btn" onClick={() => exportGeometryToSTL(store[k]!.geometry, `${k}-reparado.stl`)}>Exportar</button><button className="btn d" onClick={() => { delete store[k]; show(k); refresh(); }}>Remover</button></>}
+              {store[k] && <><button className="btn" data-testid={`vis-${k}`} onClick={() => { store[k]!.visible = store[k]!.visible === false; show(k); refresh(); }}>{store[k]!.visible === false ? "Mostrar" : "Ocultar"}</button><button className="btn" onClick={() => diagnose(k)}>Diagnosticar</button><button className="btn" onClick={() => repair(k)}>Reparar</button><button className="btn" onClick={() => exportGeometryToSTL(store[k]!.geometry, `${k}-reparado.stl`)}>Exportar</button><button className="btn d" onClick={() => { delete store[k]; show(k); refresh(); }}>Remover</button></>}
             </div>
             {store[k]?.diag && (() => { const d = store[k]!.diag!; return (<div className={`card ${d.healthy ? "o" : "w"}`}><div className="m">{d.triangles.toLocaleString("pt-BR")} triângulos · {d.shells} parte(s) · {d.openEdges} arestas abertas · {d.nonManifoldEdges} não-manifold · {d.duplicateTriangles} duplicados · {d.degenerateTriangles} degenerados</div>{d.warnings.map((w, i) => <div key={i} className="tip">⚠ {w}</div>)}{d.healthy && <div className="tip">Malha íntegra.</div>}</div>); })()}
           </div>
         ))}
       </Section>
       <Section title="Orientação ao projeto">
+        <div className="btns"><button className="btn g" data-testid="btn-autocenter" disabled={!store.work && !store.antagonist} onClick={autoCenter}>Centralizar automaticamente</button></div>
         <div className="hint">Marque no escaneamento: 1) molar direito, 2) molar esquerdo, 3) borda do incisivo central. O escaneamento é levado ao referencial do projeto e o arco ({kindJaw() === "upper" ? "superior" : "inferior"}) assume a largura/profundidade medidas.</div>
         <div className="btns">{mode === "orient" ? <button className="btn d" onClick={stop}>Cancelar marcação</button> : <button className="btn p" data-testid="btn-orient" disabled={!store.work && !store.antagonist} onClick={() => startPick("orient")}>Marcar 3 pontos</button>}</div>
       </Section>

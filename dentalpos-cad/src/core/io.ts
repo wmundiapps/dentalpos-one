@@ -23,7 +23,9 @@ export function exportSTL(m: Mesh, name = "dentalpos-cad"): ArrayBuffer {
 export function importSTL(data: ArrayBuffer): Mesh {
   const text = new TextDecoder().decode(data.slice(0, 200));
   const dv = new DataView(data);
-  const nTri = data.byteLength >= 84 ? dv.getUint32(80, true) : 0;
+  let nTri = data.byteLength >= 84 ? dv.getUint32(80, true) : 0;
+  // alguns exportadores gravam 0 no cabeçalho de STL binário: deduz pelo tamanho do arquivo
+  if (nTri === 0 && data.byteLength > 84 && (data.byteLength - 84) % 50 === 0) nTri = (data.byteLength - 84) / 50;
   const isBinary = data.byteLength === 84 + nTri * 50;
   const pos: number[] = [];
   if (isBinary || !/^\s*solid/.test(text)) {
@@ -120,4 +122,13 @@ export function makeZip(files: Array<{ name: string; data: Uint8Array | string |
   const out = new Uint8Array(all.reduce((s, c) => s + c.length, 0));
   let o = 0; for (const c of all) { out.set(c, o); o += c.length; }
   return out;
+}
+
+/** devolve uma cópia do STL binário com a contagem de triângulos do cabeçalho corrigida (quando vem zerada) */
+export function fixStlHeader(data: ArrayBuffer): ArrayBuffer {
+  const dv = new DataView(data);
+  if (data.byteLength > 84 && dv.getUint32(80, true) === 0 && (data.byteLength - 84) % 50 === 0) {
+    const c = data.slice(0); new DataView(c).setUint32(80, (data.byteLength - 84) / 50, true); return c;
+  }
+  return data;
 }
