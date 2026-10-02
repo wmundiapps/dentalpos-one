@@ -228,7 +228,7 @@ export function registerPrazos(router: Router) {
       const userId = qs(req.query.professorUserId) && temPapel(req.user?.role, ...GESTAO) ? qs(req.query.professorUserId)! : getUserId(req)
       const termIds = (await prisma.classSection.findMany({ where: { tenantId, professorUserId: userId }, select: { termId: true }, distinct: ['termId'] })).map((s) => s.termId)
       const prazos = await prisma.calPrazoNotas.findMany({ where: { tenantId, termId: { in: termIds }, ativo: true }, include: { excecoes: { where: { userId } }, conclusoes: { where: { userId } } }, orderBy: { prazo: 'asc' } })
-      const items = []
+      const items: any[] = []
       for (const p of prazos) {
         if (p.programId || p.campusId) {
           const prof = await professoresDoPrazo(tenantId, p)
@@ -337,7 +337,9 @@ export function registerPrazos(router: Router) {
         await cancelReminders({ tenantId, refType: 'CalPrazoEscalonamento', refId: p.id })
       }
       const atual = await prisma.calPrazoNotas.findUniqueOrThrow({ where: { id: p.id } })
-      await cancelReminders({ tenantId, refType: 'CalPrazoNotas', refId: p.id }) // chaves incluem a data efetiva: recria com o novo prazo
+      // as chaves dos lembretes incluem a data efetiva: cancela os antigos e recria com o novo prazo
+      if (b.professorUserId) await prisma.eduReminder.updateMany({ where: { tenantId, dedupeKey: { startsWith: `cal:prazo:${p.id}:${b.professorUserId}:` }, status: { in: ['PENDENTE', 'NOTIFICADO', 'ADIADO'] } }, data: { status: 'CANCELADO' } })
+      else await cancelReminders({ tenantId, refType: 'CalPrazoNotas', refId: p.id })
       const n = await agendarLembretesPrazo(tenantId, atual)
       await audit({ tenantId, userId, modulo: MODULO, acao: 'PRORROGAR_PRAZO', refType: 'CalPrazoNotas', refId: p.id, detalhes: { de: prazoEfetivo(p), para: b.novoPrazo, motivo: b.motivo, professorUserId: b.professorUserId } })
       res.json({ prazoEfetivo: b.professorUserId ? undefined : b.novoPrazo, lembretesReagendados: n })
