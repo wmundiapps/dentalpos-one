@@ -44,7 +44,7 @@ export function alcadasNecessarias(valor: number, alcadas: Alcada[], papelPadrao
 }
 
 // Próximo nível pendente (menor nível ainda não aprovado) ou null se todos aprovados.
-export function proximoNivelPendente(aprovs: Array<{ nivel: number; status: string }>) {
+export function proximoNivelPendente<T extends { nivel: number; status: string }>(aprovs: T[]) {
   const pend = aprovs.filter((a) => a.status === 'PENDENTE').sort((a, b) => a.nivel - b.nivel)
   return pend[0] ?? null
 }

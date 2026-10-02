@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
 import { aiConfigured, AiUnavailableError, callAIForText } from '../../services-ai/client'
 import { completeReminders, scheduleReminder } from '../core/reminders'
@@ -103,7 +104,7 @@ export async function processarInbound(p: { tenantId: string; canalTipo: string;
 // ---------------------------------------------------------------- bot
 async function transferirParaHumano(tenantId: string, conv: any, contato: any, motivo: string): Promise<string> {
   const cfg = await getConfig(tenantId)
-  await prisma.comConversa.update({ where: { id: conv.id }, data: { botAtivo: false, botEstado: undefined, status: conv.atribuidoAId ? 'EM_ATENDIMENTO' : 'PENDENTE', etiquetas: Array.from(new Set([...(conv.etiquetas ?? []), 'handoff'])), prioridade: Math.max(conv.prioridade, 1) } })
+  await prisma.comConversa.update({ where: { id: conv.id }, data: { botAtivo: false, botEstado: Prisma.DbNull, status: conv.atribuidoAId ? 'EM_ATENDIMENTO' : 'PENDENTE', etiquetas: Array.from(new Set([...(conv.etiquetas ?? []), 'handoff'])), prioridade: Math.max(conv.prioridade, 1) } })
   await prisma.comMensagem.create({ data: { tenantId, conversaId: conv.id, direcao: 'NOTA_INTERNA', autorTipo: 'SISTEMA', conteudo: `Handoff do chatbot: ${motivo}` } })
   let texto = cfg.mensagemHandoff
   if (!dentroDaJanela(new Date(), cfg)) texto += '\n\n' + cfg.mensagemForaHorario

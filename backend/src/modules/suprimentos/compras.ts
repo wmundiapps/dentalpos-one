@@ -181,7 +181,7 @@ export function registerCompras(router: Router) {
     const pend = proximoNivelPendente(r.aprovacoes)
     if (!pend) throw httpErr(409, 'Não há aprovação pendente.')
     const role = roleOf(req)
-    if (!SUPER.includes(role) && role !== pend.papel) throw httpErr(403, `Esta etapa (nível ${pend.nivel}) deve ser decidida por ${(pend as any).papel}.`)
+    if (!SUPER.includes(role) && role !== pend.papel) throw httpErr(403, `Esta etapa (nível ${pend.nivel}) deve ser decidida por ${pend.papel}.`)
     if (d.decisao === 'REPROVADO' && !d.parecer) throw httpErr(400, 'Informe o parecer para reprovar.')
     await prisma.supAprovacao.updateMany({ where: { requisicaoId: r.id, nivel: pend.nivel, status: 'PENDENTE' }, data: { status: d.decisao, decididoPorId: getUserId(req), decididoEm: new Date(), parecer: d.parecer } })
     await completeReminders({ tenantId, refType: 'SupRequisicao', refId: r.id, userId: getUserId(req) })
