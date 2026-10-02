@@ -4,8 +4,8 @@ import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, asyncHandler, getUserId, requireRole } from '../academico/middleware'
 import { dateISO, pageParams, parseBody, qs } from '../core/crud'
 import { audit, notify } from '../core/notify'
-import { completeReminders, scheduleReminder } from '../core/reminders'
-import { APOIO, APOIO_COORD, MODULO, REF, ALUNO, carregarAluno, exigirAluno, hasRole, httpError, isSuper, nomesAlunos, nomesUsuarios, tid } from './common'
+import { completeReminders } from '../core/reminders'
+import { APOIO, APOIO_COORD, MODULO, REF, ALUNO, carregarAluno, exigirAluno, hasRole, httpError, isSuper, nomesAlunos, nomesUsuarios, tid, scheduleReminder } from './common'
 import { addDays } from './logic'
 
 // Quem pode ler o relato de um atendimento:

@@ -4,8 +4,8 @@ import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, asyncHandler, getUserId, requireRole } from '../academico/middleware'
 import { dateISO, mountCrud, pageParams, parseBody, qs } from '../core/crud'
 import { audit, notify } from '../core/notify'
-import { cancelReminders, completeReminders, scheduleReminder } from '../core/reminders'
-import { ALUNO, MODULO, REF, alunoAlvo, carregarAluno, hasRole, httpError, nomesAlunos, numeroAnual, tid } from './common'
+import { cancelReminders, completeReminders } from '../core/reminders'
+import { ALUNO, MODULO, REF, alunoAlvo, carregarAluno, hasRole, httpError, nomesAlunos, numeroAnual, tid, scheduleReminder } from './common'
 import { addDays, prazosRelatoriosEstagio, validarTermoEstagio } from './logic'
 
 const GEST: any[] = ['SUPPORT', 'COORDINATOR']

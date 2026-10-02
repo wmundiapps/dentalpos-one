@@ -38,7 +38,7 @@ router.get('/relatorios/vagas', requireRole(...LEITURA), asyncHandler(async (req
   const tenantId = getTenantId(req)
   const processoId = qs(req.query.processoId)
   const processos = await prisma.admProcessoSeletivo.findMany({ where: { tenantId, ...(processoId ? { id: processoId } : { status: { not: 'CANCELADO' } }) }, select: { id: true, nome: true, status: true }, orderBy: { inscricaoInicio: 'desc' }, take: 50 })
-  const out = []
+  const out: any[] = []
   for (const p of processos) {
     const ofertas = await calcularOcupacao(tenantId, p.id)
     const vagas = ofertas.reduce((s, o) => s + o.vagas, 0)

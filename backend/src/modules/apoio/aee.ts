@@ -4,8 +4,8 @@ import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, asyncHandler, getUserId, requireRole } from '../academico/middleware'
 import { dateISO, parseBody, qs } from '../core/crud'
 import { audit, notify } from '../core/notify'
-import { cancelReminders, scheduleReminder } from '../core/reminders'
-import { APOIO, APOIO_COORD, DOCENTE, MODULO, REF, carregarAluno, hasRole, httpError, nomesAlunos, nomesUsuarios, tid } from './common'
+import { cancelReminders } from '../core/reminders'
+import { APOIO, APOIO_COORD, DOCENTE, MODULO, REF, carregarAluno, hasRole, httpError, nomesAlunos, nomesUsuarios, tid, scheduleReminder } from './common'
 import { addDays, estadoPlanoAee } from './logic'
 
 const TIPOS_ADAPT = ['TEMPO_ADICIONAL', 'MATERIAL_AMPLIADO', 'INTERPRETE_LIBRAS', 'LEDOR', 'SALA_SEPARADA', 'PROVA_ADAPTADA', 'PAUSAS', 'TECNOLOGIA_ASSISTIVA', 'OUTRO'] as const

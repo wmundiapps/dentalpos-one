@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { AcademicRole, AuthenticatedRequest, getTenantId } from '../academico/middleware'
+import { ReminderInput, scheduleReminder as baseSchedule } from '../core/reminders'
 
 export const MODULO = 'apoio'
 export const REF = {
@@ -97,4 +98,14 @@ export function limitar(chave: string, max: number, janelaMs: number): boolean {
   hits.set(chave, arr)
   if (hits.size > 5000) for (const [k, v] of hits) if (!v.some((t) => now - t < janelaMs)) hits.delete(k)
   return true
+}
+
+// Igual a core/reminders.scheduleReminder, mas "revive" lembretes (mesmo dedupeKey) que já foram
+// concluídos/cancelados: ao reagendar um prazo o lembrete volta a PENDENTE.
+export async function scheduleReminder(input: ReminderInput) {
+  const r = await baseSchedule(input)
+  if (input.dedupeKey && (r.status === 'CONCLUIDO' || r.status === 'CANCELADO')) {
+    return prisma.eduReminder.update({ where: { id: r.id }, data: { status: 'PENDENTE', concluidoEm: null, concluidoPorId: null, escalonadoEm: null } })
+  }
+  return r
 }

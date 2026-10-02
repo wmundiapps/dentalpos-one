@@ -4,8 +4,8 @@ import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, asyncHandler, getUserId, requireRole } from '../academico/middleware'
 import { dateISO, mountCrud, parseBody, qs } from '../core/crud'
 import { audit, notify } from '../core/notify'
-import { completeReminders, scheduleReminder } from '../core/reminders'
-import { ALUNO, MODULO, REF, alunoAlvo, andamento, carregarAluno, hasRole, httpError, nomesAlunos, nomesUsuarios, tid } from './common'
+import { completeReminders } from '../core/reminders'
+import { ALUNO, MODULO, REF, alunoAlvo, andamento, carregarAluno, hasRole, httpError, nomesAlunos, nomesUsuarios, tid, scheduleReminder } from './common'
 import { addDays } from './logic'
 
 // Nivelamento / tutoria / reforço + mentoria (discente e docente)

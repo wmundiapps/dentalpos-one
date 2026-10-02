@@ -5,8 +5,8 @@ import { AuthenticatedRequest, AcademicRole, asyncHandler, getUserId, requireRol
 import { dateISO, mountCrud, pageParams, parseBody, qs } from '../core/crud'
 import { Branding, brandHeaderHtml, escapeHtml as esc, getBranding } from '../core/branding'
 import { audit, notify } from '../core/notify'
-import { cancelReminders, completeReminders, scheduleReminder } from '../core/reminders'
-import { MODULO, REF, andamento, hasRole, httpError, isSuper, nomesUsuarios, numeroAnual, tid } from './common'
+import { cancelReminders, completeReminders } from '../core/reminders'
+import { MODULO, REF, andamento, hasRole, httpError, isSuper, nomesUsuarios, numeroAnual, tid, scheduleReminder } from './common'
 import { addDays } from './logic'
 import { createHmac } from 'crypto'
 

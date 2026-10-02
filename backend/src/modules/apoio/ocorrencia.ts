@@ -4,8 +4,8 @@ import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, asyncHandler, getUserId, requireRole } from '../academico/middleware'
 import { dateISO, pageParams, parseBody, qs } from '../core/crud'
 import { audit, notify } from '../core/notify'
-import { completeReminders, scheduleReminder } from '../core/reminders'
-import { ALUNO, MODULO, REF, andamento, carregarAluno, hasRole, httpError, nomesAlunos, numeroAnual, tid } from './common'
+import { completeReminders } from '../core/reminders'
+import { ALUNO, MODULO, REF, andamento, carregarAluno, hasRole, httpError, nomesAlunos, numeroAnual, tid, scheduleReminder } from './common'
 import { StatusOcorrencia, addBusinessDays, validarSancao, validarTransicaoOcorrencia } from './logic'
 
 const PRAZO_DEFESA_DIAS_UTEIS = 5

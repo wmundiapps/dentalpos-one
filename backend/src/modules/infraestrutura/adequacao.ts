@@ -141,7 +141,7 @@ ${r.linhas.map((l) => `<tr style="border-bottom:1px solid #e2e8f0"><td>${esc(l.d
     asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
       const tenantId = getTenantId(req)
       const ids = await prisma.infRequisitoCurso.groupBy({ by: ['programId'], where: { tenantId, ativo: true } })
-      const out = []
+      const out: any[] = []
       for (const i of ids.slice(0, 100)) {
         const r = await calcularAdequacao(tenantId, i.programId)
         if (r) out.push({ programa: r.programa, vagasConsideradas: r.vagasConsideradas, totais: r.totais, conceitoSugerido: r.conceitoSugerido, investimentoEstimadoLacunas: r.investimentoEstimadoLacunas })

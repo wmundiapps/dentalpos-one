@@ -5,8 +5,8 @@ import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, AcademicRole, asyncHandler, getUserId, requireRole } from '../academico/middleware'
 import { dateISO, mountCrud, parseBody, qs } from '../core/crud'
 import { audit, notify } from '../core/notify'
-import { completeReminders, scheduleReminder } from '../core/reminders'
-import { ALUNO, MODULO, REF, hasRole, httpError, isSuper, nomesUsuarios, tid } from './common'
+import { completeReminders } from '../core/reminders'
+import { ALUNO, MODULO, REF, hasRole, httpError, isSuper, nomesUsuarios, tid, scheduleReminder } from './common'
 import { PerguntaInst, addDays, agregarRespostas, calcularNps, validarRespostas } from './logic'
 
 // Instrumentos (avaliação docente, satisfação, NPS, egressos) + aplicações anônimas com agregação mínima.

@@ -251,7 +251,7 @@ export type NivelRisco = 'NENHUM' | 'ATENCAO' | 'ALTO'
 
 export function avaliarRisco(params: { componentes: ComponenteCalc[]; notas: NotaCalc[]; regra: RegraCalc; frequenciaPct: number | null; situacao: Situacao }) {
   const motivos: string[] = []
-  let nivel: NivelRisco = 'NENHUM'
+  let nivel = 'NENHUM' as NivelRisco
   const up = (n: NivelRisco) => { if (n === 'ALTO' || (n === 'ATENCAO' && nivel === 'NENHUM')) nivel = n }
   const { regra } = params
   if (params.frequenciaPct != null) {
