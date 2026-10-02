@@ -58,6 +58,7 @@ export function ScanPanel({ c }: { c: Ctx }) {
     try {
       c.setBusy(`Carregando ${file.name}…`);
       const l = await loadSTLFile(new File([fixStlHeader(await file.arrayBuffer())], file.name));
+      if (l.width < 1e-3 && l.height < 1e-3 && l.depth < 1e-3) throw new Error(`${file.name}: arquivo vazio ou corrompido (${l.triangles.toLocaleString("pt-BR")} triângulos, mas todos os vértices valem zero). Exporte o STL novamente do scanner/CAD.`);
       const geometry = l.geometry; geometry.computeVertexNormals();
       store[k] = { geometry, fileName: file.name, diag: null };
       show(k); c.setHideTeeth(true); setTimeout(() => c.fitView(), 150); c.toast(`${LABEL[k]}: ${l.triangles.toLocaleString("pt-BR")} triângulos (${fmt(l.width)}×${fmt(l.height)}×${fmt(l.depth)} mm).`);

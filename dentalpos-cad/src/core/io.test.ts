@@ -65,3 +65,12 @@ describe("STL com cabeçalho zerado", () => {
     expect(new DataView(fixStlHeader(buf)).getUint32(80, true)).toBe(triCount(m));
   });
 });
+
+describe("STL corrompido", () => {
+  it("STL só com zeros resulta em malha degenerada (detectável pelo bounds)", () => {
+    const buf = new ArrayBuffer(84 + 50 * 10);
+    const m = importSTL(buf);
+    expect(Math.max(...bounds(m).size)).toBe(0);
+  });
+});
+import { bounds } from "./mesh";
