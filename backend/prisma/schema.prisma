@@ -3479,4 +3479,5251 @@ model AIGenerationLog {
   @@index([tenantId])
 }
 
+// ---- edu/admissoes.prisma ----
+// ============================================================
+// EDUMASTER PRO — ADMISSÕES (prefixo Adm): captação, vestibular,
+// matrícula e rematrícula.
+// ============================================================
+
+enum AdmTipoProcesso {
+  VESTIBULAR_TRADICIONAL
+  VESTIBULAR_AGENDADO
+  ENEM
+  TRANSFERENCIA_EXTERNA
+  PORTADOR_DIPLOMA
+  POS_LATO_SENSU
+  POS_STRICTO_SENSU
+}
+
+enum AdmStatusProcesso {
+  RASCUNHO
+  ABERTO
+  ENCERRADO
+  CLASSIFICADO
+  EM_CONVOCACAO
+  FINALIZADO
+  CANCELADO
+}
+
+enum AdmModalidadeOferta {
+  PRESENCIAL
+  SEMIPRESENCIAL
+  EAD
+}
+
+enum AdmTurno {
+  MATUTINO
+  VESPERTINO
+  NOTURNO
+  INTEGRAL
+  FLEXIVEL
+}
+
+enum AdmStatusCandidato {
+  LEAD
+  INSCRITO
+  PROVA
+  APROVADO
+  CONVOCADO
+  MATRICULADO
+  DESISTENTE
+  REPROVADO
+}
+
+enum AdmTipoInteracao {
+  LIGACAO
+  WHATSAPP
+  EMAIL
+  VISITA
+  NOTA
+  SISTEMA
+}
+
+enum AdmComponenteNota {
+  PROVA
+  REDACAO
+  ENEM
+  ENTREVISTA
+  HISTORICO
+  ANALISE_CURRICULAR
+  PROJETO
+}
+
+enum AdmStatusChamada {
+  ABERTA
+  ENCERRADA
+}
+
+enum AdmStatusConvocacao {
+  CONVOCADO
+  MATRICULADO
+  RENUNCIOU
+  EXPIRADO
+}
+
+enum AdmStatusDocumento {
+  PENDENTE
+  ENVIADO
+  APROVADO
+  REJEITADO
+}
+
+enum AdmStatusMatricula {
+  PENDENTE_DOCUMENTOS
+  DOCUMENTOS_OK
+  CONCLUIDA
+  CANCELADA
+}
+
+enum AdmTipoBeneficio {
+  BOLSA
+  DESCONTO
+  CONVENIO
+}
+
+enum AdmStatusCampanha {
+  PLANEJADA
+  ATIVA
+  PAUSADA
+  ENCERRADA
+}
+
+enum AdmStatusRematriculaCampanha {
+  RASCUNHO
+  ABERTA
+  ENCERRADA
+}
+
+enum AdmStatusRematricula {
+  ELEGIVEL
+  PENDENTE_FINANCEIRO
+  PENDENTE_ACADEMICO
+  CONFIRMADA
+  NAO_RENOVOU
+  TRANCADA
+}
+
+// ---------- Processo seletivo e ofertas ----------
+
+model AdmProcessoSeletivo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  codigo           String
+  nome             String
+  tipo             AdmTipoProcesso
+  nivel            String   @default("GRADUACAO")   // GRADUACAO | POS_LATO | POS_STRICTO
+  status           AdmStatusProcesso @default(RASCUNHO)
+  termId           String?                           // AcademicTerm de ingresso
+  edital           String?
+  editalUrl        String?
+  inscricaoInicio  DateTime
+  inscricaoFim     DateTime
+  provaData        DateTime?
+  resultadoData    DateTime?
+  matriculaInicio  DateTime?
+  matriculaFim     DateTime?
+  taxaInscricao    Float    @default(0)
+  notaMinima       Float    @default(0)
+  pesos            Json?                             // {"PROVA":3,"REDACAO":2,...}
+  criteriosDesempate Json?                           // ["REDACAO","PROVA","IDADE"]
+  listaEspera      Boolean  @default(true)
+  diasPrazoMatricula Int    @default(5)
+  observacoes      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  ofertas          AdmOferta[]
+  candidatos       AdmCandidato[]
+  chamadas         AdmChamada[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status])
+}
+
+model AdmOferta {
+  id               String   @id @default(uuid())
+  tenantId         String
+  processoId       String
+  programId        String?                           // AcademicProgram
+  nomeCurso        String
+  turno            AdmTurno @default(NOTURNO)
+  modalidade       AdmModalidadeOferta @default(PRESENCIAL)
+  campusId         String?
+  poloNome         String?
+  vagas            Int
+  valorMensalidade Float    @default(0)
+  parcelas         Int      @default(6)
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  processo         AdmProcessoSeletivo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, processoId])
+}
+
+// ---------- Captação / marketing ----------
+
+model AdmCampanha {
+  id               String   @id @default(uuid())
+  tenantId         String
+  nome             String
+  nivel            String   @default("GRADUACAO")
+  canal            String                            // GOOGLE_ADS, META_ADS, INDICACAO, EVENTO, ORGANICO...
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  processoId       String?
+  status           AdmStatusCampanha @default(PLANEJADA)
+  orcamento        Float    @default(0)
+  metaInscritos    Int      @default(0)
+  metaMatriculas   Int      @default(0)
+  inicio           DateTime
+  fim              DateTime
+  observacoes      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  gastos           AdmCampanhaGasto[]
+  candidatos       AdmCandidato[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, utmCampaign])
+}
+
+model AdmCampanhaGasto {
+  id          String   @id @default(uuid())
+  tenantId    String
+  campanhaId  String
+  data        DateTime @default(now())
+  valor       Float
+  descricao   String?
+  createdAt   DateTime @default(now())
+
+  campanha    AdmCampanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, campanhaId])
+}
+
+// ---------- Candidatos / funil ----------
+
+model AdmCandidato {
+  id                String   @id @default(uuid())
+  tenantId          String
+  processoId        String?
+  ofertaId          String?
+  ofertaId2         String?                          // segunda opção
+  campanhaId        String?
+  protocolo         String
+  nome              String
+  cpf               String?
+  email             String?
+  telefone          String?
+  dataNascimento    DateTime?
+  status            AdmStatusCandidato @default(LEAD)
+  etapaMaxima       Int      @default(0)             // maior etapa do funil já atingida (0=LEAD..5=MATRICULADO)
+  origem            String?
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  consentimentoLgpd Boolean  @default(false)
+  consentimentoEm   DateTime?
+  ipOrigem          String?
+  dados             Json?                            // endereço, escolaridade, cota etc.
+  cota              String?
+  responsavelId     String?                          // User (consultor)
+  proximoContatoEm  DateTime?
+  notaFinal         Float?
+  classificacao     Int?
+  situacaoClassificacao String?                      // CLASSIFICADO | LISTA_ESPERA | DESCLASSIFICADO
+  taxaReceivableId  String?                          // AccountReceivable da taxa
+  taxaPaga          Boolean  @default(false)
+  bolsaId           String?
+  motivoDesistencia String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  processo          AdmProcessoSeletivo? @relation(fields: [processoId], references: [id])
+  campanha          AdmCampanha? @relation(fields: [campanhaId], references: [id])
+  interacoes        AdmInteracao[]
+  notas             AdmResultadoProva[]
+  documentos        AdmDocumentoCandidato[]
+  convocacoes       AdmConvocacao[]
+  matricula         AdmMatricula?
+
+  @@unique([tenantId, protocolo])
+  @@index([tenantId, status])
+  @@index([tenantId, processoId, status])
+  @@index([tenantId, cpf])
+  @@index([tenantId, proximoContatoEm])
+}
+
+model AdmInteracao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  candidatoId   String
+  tipo          AdmTipoInteracao @default(NOTA)
+  descricao     String
+  userId        String?
+  proximoContatoEm DateTime?
+  createdAt     DateTime @default(now())
+
+  candidato     AdmCandidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, candidatoId])
+}
+
+model AdmResultadoProva {
+  id            String   @id @default(uuid())
+  tenantId      String
+  candidatoId   String
+  componente    AdmComponenteNota
+  nota          Float
+  notaMaxima    Float    @default(100)
+  observacao    String?
+  lancadoPorId  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  candidato     AdmCandidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+
+  @@unique([candidatoId, componente])
+  @@index([tenantId, candidatoId])
+}
+
+// ---------- Convocação ----------
+
+model AdmChamada {
+  id            String   @id @default(uuid())
+  tenantId      String
+  processoId    String
+  numero        Int
+  status        AdmStatusChamada @default(ABERTA)
+  prazoMatricula DateTime
+  geradaPorId   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  processo      AdmProcessoSeletivo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  convocacoes   AdmConvocacao[]
+
+  @@unique([processoId, numero])
+  @@index([tenantId, processoId])
+}
+
+model AdmConvocacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  chamadaId     String
+  candidatoId   String
+  ofertaId      String
+  status        AdmStatusConvocacao @default(CONVOCADO)
+  prazo         DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  chamada       AdmChamada @relation(fields: [chamadaId], references: [id], onDelete: Cascade)
+  candidato     AdmCandidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, chamadaId])
+  @@index([tenantId, candidatoId])
+}
+
+// ---------- Documentos e matrícula ----------
+
+model AdmDocumentoTipo {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String
+  nome          String
+  obrigatorio   Boolean  @default(true)
+  niveis        String[]                             // GRADUACAO, POS_LATO, POS_STRICTO
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+}
+
+model AdmDocumentoCandidato {
+  id            String   @id @default(uuid())
+  tenantId      String
+  candidatoId   String
+  codigo        String
+  nome          String
+  obrigatorio   Boolean  @default(true)
+  status        AdmStatusDocumento @default(PENDENTE)
+  url           String?
+  observacao    String?
+  revisadoPorId String?
+  revisadoEm    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  candidato     AdmCandidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+
+  @@unique([candidatoId, codigo])
+  @@index([tenantId, candidatoId])
+}
+
+model AdmMatricula {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  candidatoId           String   @unique
+  convocacaoId          String?
+  ofertaId              String
+  userId                String?
+  studentId             String?
+  enrollmentId          String?
+  ra                    String?
+  status                AdmStatusMatricula @default(PENDENTE_DOCUMENTOS)
+  bolsaId               String?
+  percentualDesconto    Float    @default(0)
+  valorMensalidade      Float    @default(0)
+  valorComDesconto      Float    @default(0)
+  parcelas              Int      @default(6)
+  contratoHtml          String?
+  contratoAceitoEm      DateTime?
+  primeiraMensalidadeId String?
+  concluidaEm           DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  candidato             AdmCandidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+}
+
+// ---------- Bolsas, descontos e convênios ----------
+
+model AdmBolsa {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  tipo          AdmTipoBeneficio @default(BOLSA)
+  percentual    Float    @default(0)
+  valorFixo     Float?
+  regras        Json?                                // {notaMinima, cotas[], niveis[], programIds[], tiposProcesso[], convenioEmpresa}
+  convenioEmpresa String?
+  vigenciaInicio DateTime?
+  vigenciaFim   DateTime?
+  limiteConcessoes Int?
+  cumulativa    Boolean  @default(false)
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  concessoes    AdmBolsaConcessao[]
+
+  @@index([tenantId, ativo])
+}
+
+model AdmBolsaConcessao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  bolsaId       String
+  candidatoId   String?
+  studentId     String?
+  percentualAplicado Float
+  motivo        String?
+  concedidaPorId String?
+  createdAt     DateTime @default(now())
+
+  bolsa         AdmBolsa @relation(fields: [bolsaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, bolsaId])
+  @@index([tenantId, candidatoId])
+}
+
+// ---------- Rematrícula ----------
+
+model AdmRematriculaCampanha {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  nome                String
+  termOrigemId        String?
+  termDestinoId       String
+  janelaInicio        DateTime
+  janelaFim           DateTime
+  descontoAntecipacaoPct Float @default(0)
+  dataLimiteDesconto  DateTime?
+  valorTaxa           Float    @default(0)
+  bloqueiaInadimplente Boolean @default(true)
+  status              AdmStatusRematriculaCampanha @default(RASCUNHO)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  itens               AdmRematricula[]
+
+  @@index([tenantId, status])
+}
+
+model AdmRematricula {
+  id            String   @id @default(uuid())
+  tenantId      String
+  campanhaId    String
+  studentId     String
+  programId     String?
+  status        AdmStatusRematricula @default(ELEGIVEL)
+  pendencias    Json?
+  valorBase     Float    @default(0)
+  desconto      Float    @default(0)
+  valorFinal    Float    @default(0)
+  receivableId  String?
+  confirmadaEm  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  campanha      AdmRematriculaCampanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+
+  @@unique([campanhaId, studentId])
+  @@index([tenantId, campanhaId, status])
+}
+
+// ---- edu/calendario.prisma ----
+// ============================================================
+// EDUMASTER PRO — CALENDÁRIO ACADÊMICO, RESERVAS, GRADE HORÁRIA, PROVAS E PRAZOS
+// Prefixo: Cal. Referências a models de outros módulos (AcademicTerm, Campus,
+// AcademicProgram, Discipline, ClassSection, EduSpace, User, Student) são ids simples.
+// Horários da grade em minutos desde 00:00 (ex.: 19:00 = 1140). Dia da semana: 1=seg ... 7=dom.
+// ============================================================
+
+enum CalEventoTipo {
+  INICIO_PERIODO
+  FIM_PERIODO
+  MATRICULA
+  REMATRICULA
+  TRANCAMENTO
+  AULA_INAUGURAL
+  PROVA
+  SEGUNDA_CHAMADA
+  EXAME_FINAL
+  FERIADO
+  PONTO_FACULTATIVO
+  RECESSO
+  FERIAS
+  REUNIAO
+  CONSELHO_CLASSE
+  COLACAO
+  FORMATURA
+  PRAZO_NOTAS
+  PRAZO_DIARIO
+  SEMANA_ACADEMICA
+  VESTIBULAR
+  ENADE
+  DIA_LETIVO_EXTRA
+  EVENTO_INSTITUCIONAL
+  OUTRO
+}
+
+enum CalPublico {
+  TODOS
+  ALUNOS
+  PROFESSORES
+  COORDENACAO
+  ADMINISTRATIVO
+}
+
+enum CalRecorrencia {
+  NENHUMA
+  DIARIA
+  SEMANAL
+  QUINZENAL
+  MENSAL
+  ANUAL
+}
+
+enum CalTurno {
+  MANHA
+  TARDE
+  NOITE
+}
+
+enum CalTipoAula {
+  TEORICA
+  PRATICA
+  ONLINE
+}
+
+enum CalOrigemSlot {
+  MANUAL
+  GERADOR
+}
+
+enum CalDisponibilidadeTipo {
+  DISPONIVEL
+  INDISPONIVEL
+  PREFERENCIA
+}
+
+enum CalReservaTipo {
+  EVENTO
+  AULA_EXTRA
+  REUNIAO
+  PROVA
+  MANUTENCAO
+  LIMPEZA
+  OUTRO
+}
+
+enum CalReservaStatus {
+  PENDENTE
+  APROVADA
+  REJEITADA
+  CANCELADA
+  EXPIRADA
+}
+
+enum CalExameTipo {
+  PROVA_1
+  PROVA_2
+  SUBSTITUTIVA
+  EXAME_FINAL
+  SEGUNDA_CHAMADA
+  REAVALIACAO
+  PROVA_UNICA
+  PRATICA
+  TRABALHO
+  SIMULADO
+}
+
+enum CalExameStatus {
+  AGENDADA
+  CONFIRMADA
+  REALIZADA
+  CANCELADA
+  REMARCADA
+}
+
+enum CalPrazoTipo {
+  LANCAMENTO_NOTAS
+  DIARIO_CLASSE
+  FECHAMENTO_FINAL
+  REVISAO_NOTAS
+  RECUPERACAO
+}
+
+enum CalConflitoTipo {
+  PROFESSOR
+  TURMA
+  ESPACO
+  ALUNO
+  CAPACIDADE
+  TIPO_ESPACO
+  RESERVA
+  PROVA
+}
+
+enum CalConflitoStatus {
+  ABERTO
+  RESOLVIDO
+  IGNORADO
+}
+
+enum CalGeracaoStatus {
+  SIMULADA
+  APLICADA
+  DESCARTADA
+}
+
+enum CalFeedEscopo {
+  TURMA
+  PROFESSOR
+  ESPACO
+  ALUNO
+  INSTITUCIONAL
+}
+
+// Categoria de evento (nome + cor) do calendário acadêmico.
+model CalCategoria {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  cor         String   @default("#0F5FDB")
+  icone       String?
+  tipoPadrao  CalEventoTipo?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, nome])
+  @@index([tenantId])
+}
+
+// Evento do calendário acadêmico (por período letivo, campus e/ou curso).
+model CalEvento {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  termId              String?
+  campusId            String?
+  programId           String?
+  categoriaId         String?
+  tipo                CalEventoTipo @default(OUTRO)
+  titulo              String
+  descricao           String?
+  local               String?
+  inicio              DateTime
+  fim                 DateTime
+  diaInteiro          Boolean  @default(true)
+  publico             CalPublico @default(TODOS)
+  recorrencia         CalRecorrencia @default(NENHUMA)
+  recorrenciaIntervalo Int     @default(1)
+  recorrenciaAte      DateTime?
+  bloqueiaAulas       Boolean  @default(false)   // feriado/recesso: não há aula nesses dias
+  lembreteDias        Int[]    @default([])      // avisar N dias antes (ex.: [7,1])
+  origemKey           String?                    // idempotência de importações (ex.: "feriado:2026-04-21")
+  ativo               Boolean  @default(true)
+  criadoPorId         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([tenantId, origemKey])
+  @@index([tenantId, inicio])
+  @@index([tenantId, termId])
+  @@index([tenantId, tipo])
+}
+
+// Faixas de horário de aula (1ª aula, 2ª aula...) que formam a malha da grade.
+model CalHorario {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  turno       CalTurno
+  ordem       Int
+  inicioMin   Int
+  fimMin      Int
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, turno, ordem])
+  @@index([tenantId])
+}
+
+// Disponibilidade/indisponibilidade/preferência de professor por dia e faixa.
+// Regra: havendo linhas DISPONIVEL, o professor só leciona dentro delas;
+// INDISPONIVEL sempre exclui; PREFERENCIA só dá bônus de pontuação.
+model CalDisponibilidade {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String
+  termId      String?
+  diaSemana   Int
+  inicioMin   Int
+  fimMin      Int
+  tipo        CalDisponibilidadeTipo @default(DISPONIVEL)
+  observacao  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, userId])
+  @@index([tenantId, termId])
+}
+
+// Limites por professor para o gerador de grade.
+model CalProfessorPerfil {
+  id              String   @id @default(uuid())
+  tenantId        String
+  userId          String
+  maxAulasDia     Int?
+  maxAulasSemana  Int?
+  observacao      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, userId])
+}
+
+// Parâmetros de alocação por disciplina (carga semanal, prática -> laboratório, recursos).
+model CalDisciplinaConfig {
+  id              String   @id @default(uuid())
+  tenantId        String
+  disciplineId    String
+  aulasSemana     Int?              // se nulo, deriva da carga horária / semanas letivas
+  blocoMax        Int      @default(2)
+  pratica         Boolean  @default(false)
+  tiposEspaco     Json?             // ["LABORATORIO"]; padrão: prática=LABORATORIO, teórica=SALA_AULA/AUDITORIO
+  recursos        Json?             // ["projetor","bancadas"]
+  capacidadeMinima Int?
+  espacoFixoId    String?
+  online          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, disciplineId])
+}
+
+// Parâmetros de alocação por turma (ClassSection): série/período, turno e "grupo"
+// (coorte). Turmas de disciplinas distintas do mesmo grupo compartilham os mesmos alunos
+// e portanto não podem ter aulas simultâneas.
+model CalTurmaConfig {
+  id              String   @id @default(uuid())
+  tenantId        String
+  classSectionId  String
+  programId       String?
+  periodo         Int?              // série/período do curso
+  turno           CalTurno?
+  grupo           String?
+  alunosEstimados Int?
+  diasPermitidos  Int[]    @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, classSectionId])
+  @@index([tenantId, grupo])
+}
+
+// Slot semanal da grade horária.
+model CalSlot {
+  id              String   @id @default(uuid())
+  tenantId        String
+  termId          String
+  classSectionId  String
+  disciplineId    String
+  grupo           String?
+  programId       String?
+  periodo         Int?
+  professorUserId String?
+  spaceId         String?
+  diaSemana       Int
+  inicioMin       Int
+  fimMin          Int
+  tipoAula        CalTipoAula @default(TEORICA)
+  origem          CalOrigemSlot @default(MANUAL)
+  geracaoId       String?
+  fixo            Boolean  @default(false)   // o gerador nunca remove slots fixos
+  ativo           Boolean  @default(true)
+  observacao      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, termId, diaSemana])
+  @@index([tenantId, professorUserId])
+  @@index([tenantId, spaceId])
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, geracaoId])
+}
+
+// Execução do gerador automático de grade (simulação ou aplicação).
+model CalGeracao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  termId          String
+  status          CalGeracaoStatus @default(SIMULADA)
+  parametros      Json
+  resumo          Json?
+  pendencias      Json?
+  totalAulas      Int      @default(0)
+  alocadas        Int      @default(0)
+  pendentes       Int      @default(0)
+  pontuacao       Float?
+  nos             Int      @default(0)
+  duracaoMs       Int      @default(0)
+  criadoPorId     String?
+  aplicadoEm      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, termId])
+}
+
+// Reserva de espaço (pontual ou de série) e bloqueios (manutenção/limpeza).
+model CalReserva {
+  id              String   @id @default(uuid())
+  tenantId        String
+  spaceId         String
+  titulo          String
+  finalidade      String?
+  tipo            CalReservaTipo @default(EVENTO)
+  status          CalReservaStatus @default(PENDENTE)
+  bloqueio        Boolean  @default(false)
+  inicio          DateTime
+  fim             DateTime
+  solicitanteId   String
+  classSectionId  String?
+  professorUserId String?
+  participantes   Int?
+  recursosSolicitados Json?
+  serieId         String?
+  recorrencia     CalRecorrencia @default(NENHUMA)
+  recorrenciaAte  DateTime?
+  decididoPorId   String?
+  decididoEm      DateTime?
+  motivoDecisao   String?
+  observacoes     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, spaceId, inicio])
+  @@index([tenantId, status])
+  @@index([tenantId, serieId])
+  @@index([tenantId, solicitanteId])
+}
+
+// Avaliação agendada (prova, 2ª chamada, exame...).
+model CalExame {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  termId                String
+  classSectionId        String
+  disciplineId          String?
+  assessmentId          String?
+  grupo                 String?
+  titulo                String
+  tipo                  CalExameTipo @default(PROVA_1)
+  inicio                DateTime
+  fim                   DateTime
+  spaceId               String?
+  professorUserId       String?
+  alunosPrevistos       Int?
+  status                CalExameStatus @default(AGENDADA)
+  originalId            String?               // 2ª chamada aponta para a prova original
+  segundaChamadaInicio  DateTime?
+  segundaChamadaFim     DateTime?
+  observacoes           String?
+  lembreteAlunosEm      DateTime?
+  criadoPorId           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  fiscais               CalExameFiscal[]
+
+  @@index([tenantId, termId, inicio])
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, spaceId, inicio])
+}
+
+model CalExameFiscal {
+  id          String   @id @default(uuid())
+  tenantId    String
+  exameId     String
+  userId      String
+  papel       String   @default("FISCAL")   // FISCAL | COORDENADOR_SALA | APOIO
+  confirmado  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  exame       CalExame @relation(fields: [exameId], references: [id], onDelete: Cascade)
+
+  @@unique([exameId, userId])
+  @@index([tenantId, userId])
+}
+
+// Prazo de lançamento de notas/diário por período letivo (consumido por `notas`).
+model CalPrazoNotas {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  termId              String
+  programId           String?
+  campusId            String?
+  tipo                CalPrazoTipo @default(LANCAMENTO_NOTAS)
+  etapa               String?               // "N1", "N2", "FINAL"...
+  titulo              String
+  abertura            DateTime?
+  prazo               DateTime
+  prorrogadoAte       DateTime?
+  ativo               Boolean  @default(true)
+  escalonadoCoordEm   DateTime?
+  escalonadoDirecaoEm DateTime?
+  observacoes         String?
+  criadoPorId         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  excecoes            CalPrazoExcecao[]
+  conclusoes          CalPrazoConclusao[]
+
+  @@index([tenantId, termId])
+  @@index([tenantId, prazo])
+}
+
+// Prorrogação individual para um professor.
+model CalPrazoExcecao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  prazoId       String
+  userId        String
+  ate           DateTime
+  motivo        String?
+  concedidoPorId String?
+  createdAt     DateTime @default(now())
+
+  prazo         CalPrazoNotas @relation(fields: [prazoId], references: [id], onDelete: Cascade)
+
+  @@unique([prazoId, userId])
+}
+
+// Professor que já concluiu o lançamento daquele prazo.
+model CalPrazoConclusao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  prazoId       String
+  userId        String
+  concluidoEm   DateTime @default(now())
+  origem        String?
+
+  prazo         CalPrazoNotas @relation(fields: [prazoId], references: [id], onDelete: Cascade)
+
+  @@unique([prazoId, userId])
+}
+
+// Choques detectados (e resolvidos) — alimenta o relatório de choques resolvidos.
+model CalConflito {
+  id            String   @id @default(uuid())
+  tenantId      String
+  termId        String?
+  tipo          CalConflitoTipo
+  status        CalConflitoStatus @default(ABERTO)
+  chave         String
+  descricao     String
+  detalhes      Json?
+  detectadoEm   DateTime @default(now())
+  resolvidoEm   DateTime?
+  resolvidoPorId String?
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+  @@index([tenantId, status])
+  @@index([tenantId, termId])
+}
+
+// Token de assinatura (webcal/iCal) para Google Calendar/Outlook/Apple.
+model CalFeed {
+  id            String   @id @default(uuid())
+  tenantId      String
+  token         String   @unique
+  escopo        CalFeedEscopo
+  refId         String?
+  termId        String?
+  titulo        String?
+  ativo         Boolean  @default(true)
+  criadoPorId   String?
+  ultimoAcesso  DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, escopo])
+}
+
+// ---- edu/desempenho.prisma ----
+// ============================================================
+// EDUMASTER PRO — DESEMPENHO (ENADE, OAB, ENAMED/Residência) — prefixo Des
+// ============================================================
+
+enum DesTipoExame {
+  ENADE
+  OAB_1FASE
+  OAB_2FASE
+  ENAMED
+  RESIDENCIA
+  REVALIDA
+  CONCURSO
+  OUTRO
+}
+
+enum DesTipoEixo {
+  AREA
+  EIXO
+  COMPETENCIA
+}
+
+enum DesStatusEdicao {
+  PLANEJADA
+  INSCRICOES_ABERTAS
+  INSCRICOES_ENCERRADAS
+  REALIZADA
+  RESULTADO_PUBLICADO
+  CANCELADA
+}
+
+enum DesCategoriaInscrito {
+  INGRESSANTE
+  CONCLUINTE
+  CANDIDATO
+}
+
+enum DesSituacaoInscricao {
+  PENDENTE
+  INSCRITO
+  REGULAR
+  DISPENSADO
+  IRREGULAR
+  AUSENTE
+}
+
+enum DesTipoQuestao {
+  OBJETIVA
+  DISCURSIVA
+  PECA_PRATICA
+  CASO_CLINICO
+}
+
+enum DesNivel {
+  FACIL
+  MEDIO
+  DIFICIL
+}
+
+enum DesStatusQuestao {
+  RASCUNHO
+  REVISADO
+  PUBLICADO
+  ARQUIVADO
+}
+
+enum DesOrigemQuestao {
+  MANUAL
+  IA
+  IMPORTADA
+}
+
+enum DesStatusSimulado {
+  RASCUNHO
+  PUBLICADO
+  ENCERRADO
+}
+
+enum DesStatusTentativa {
+  EM_ANDAMENTO
+  ENVIADA
+  EXPIRADA
+}
+
+enum DesTipoKit {
+  QUESTOES_CONTEXTUALIZADAS
+  ESTUDO_CASO
+  PECA_PRATICA_OAB
+  CASO_CLINICO
+  LISTA_EXERCICIOS
+  REVISAO_TEORICA
+}
+
+enum DesVisibilidadeKit {
+  PRIVADA
+  COMPARTILHADA
+}
+
+enum DesStatusAtribuicao {
+  ABERTA
+  ENCERRADA
+  CANCELADA
+}
+
+enum DesStatusEntrega {
+  PENDENTE
+  ENTREGUE
+  CORRIGIDA
+  ATRASADA
+}
+
+enum DesStatusTrilha {
+  ATIVA
+  CONCLUIDA
+  PAUSADA
+  CANCELADA
+}
+
+enum DesTipoItemTrilha {
+  ESTUDO
+  QUESTOES
+  REVISAO
+  SIMULADO
+  ATIVIDADE
+}
+
+enum DesStatusItemTrilha {
+  PENDENTE
+  CONCLUIDO
+  ADIADO
+}
+
+model DesExame {
+  id           String       @id @default(uuid())
+  tenantId     String
+  codigo       String
+  nome         String
+  tipo         DesTipoExame
+  descricao    String?
+  numQuestoes  Int?
+  duracaoMin   Int?
+  notaCorte    Float?       // % mínimo de acertos para aprovação/regularidade (ex.: OAB 50)
+  ativo        Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  eixos        DesEixo[]
+  edicoes      DesEdicao[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, tipo])
+}
+
+model DesEixo {
+  id          String      @id @default(uuid())
+  tenantId    String
+  exameId     String
+  parentId    String?
+  codigo      String
+  nome        String
+  tipo        DesTipoEixo @default(AREA)
+  peso        Float       @default(1)     // peso relativo na prova (ex.: nº típico de questões)
+  metaAcerto  Float       @default(60)    // % de acerto desejado
+  ordem       Int         @default(0)
+  descricao   String?
+  ativo       Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  exame       DesExame    @relation(fields: [exameId], references: [id], onDelete: Cascade)
+
+  @@unique([exameId, codigo])
+  @@index([tenantId, exameId])
+}
+
+model DesEdicao {
+  id               String          @id @default(uuid())
+  tenantId         String
+  exameId          String
+  ano              Int
+  titulo           String?
+  dataProva        DateTime?
+  inscricaoInicio  DateTime?
+  inscricaoFim     DateTime?
+  dataResultado    DateTime?
+  status           DesStatusEdicao @default(PLANEJADA)
+  observacoes      String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  exame            DesExame        @relation(fields: [exameId], references: [id], onDelete: Cascade)
+  inscricoes       DesInscricao[]
+
+  @@unique([exameId, ano, titulo])
+  @@index([tenantId, exameId])
+  @@index([tenantId, dataProva])
+}
+
+model DesInscricao {
+  id             String               @id @default(uuid())
+  tenantId       String
+  edicaoId       String
+  studentId      String
+  programId      String?
+  categoria      DesCategoriaInscrito @default(CONCLUINTE)
+  situacao       DesSituacaoInscricao @default(PENDENTE)
+  protocolo      String?
+  nota           Float?
+  conceito       Int?
+  observacao     String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  edicao         DesEdicao            @relation(fields: [edicaoId], references: [id], onDelete: Cascade)
+
+  @@unique([edicaoId, studentId])
+  @@index([tenantId, edicaoId, situacao])
+  @@index([tenantId, studentId])
+}
+
+model DesMetaCurso {
+  id             String   @id @default(uuid())
+  tenantId       String
+  programId      String
+  exameId        String
+  ano            Int
+  metaAcerto     Float    // % global
+  conceitoAlvo   Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, programId, exameId, ano])
+  @@index([tenantId, exameId])
+}
+
+model DesQuestao {
+  id                  String           @id @default(uuid())
+  tenantId            String
+  exameId             String
+  eixoId              String?
+  disciplineId        String?
+  tipo                DesTipoQuestao   @default(OBJETIVA)
+  enunciado           String
+  alternativas        Json?            // [{letra:'A',texto:'...'}]
+  gabarito            String?          // letra (objetiva) ou padrão de resposta (discursiva)
+  comentario          String?
+  nivel               DesNivel         @default(MEDIO)
+  anoFonte            Int?
+  fonte               String?
+  status              DesStatusQuestao @default(RASCUNHO)
+  origem              DesOrigemQuestao @default(MANUAL)
+  totalRespostas      Int              @default(0)
+  totalAcertos        Int              @default(0)
+  indiceDiscriminacao Float?
+  criadoPorId         String?
+  revisadoPorId       String?
+  revisadoEm          DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([tenantId, exameId, status])
+  @@index([tenantId, eixoId])
+  @@index([tenantId, disciplineId])
+}
+
+model DesSimulado {
+  id            String            @id @default(uuid())
+  tenantId      String
+  exameId       String
+  titulo        String
+  descricao     String?
+  status        DesStatusSimulado @default(RASCUNHO)
+  abreEm        DateTime?
+  fechaEm       DateTime?
+  duracaoMin    Int               @default(180)
+  matriz        Json?             // distribuição usada na montagem [{eixoId,quantidade,niveis?}]
+  criadoPorId   String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  questoes      DesSimuladoQuestao[]
+  alvos         DesSimuladoAlvo[]
+  tentativas    DesTentativa[]
+
+  @@index([tenantId, exameId, status])
+}
+
+model DesSimuladoQuestao {
+  id          String      @id @default(uuid())
+  tenantId    String
+  simuladoId  String
+  questaoId   String
+  eixoId      String?
+  ordem       Int
+  createdAt   DateTime    @default(now())
+
+  simulado    DesSimulado @relation(fields: [simuladoId], references: [id], onDelete: Cascade)
+
+  @@unique([simuladoId, questaoId])
+  @@index([tenantId, simuladoId])
+}
+
+model DesSimuladoAlvo {
+  id             String      @id @default(uuid())
+  tenantId       String
+  simuladoId     String
+  classSectionId String?
+  programId      String?
+  studentId      String?
+  createdAt      DateTime    @default(now())
+
+  simulado       DesSimulado @relation(fields: [simuladoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, simuladoId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, classSectionId])
+}
+
+model DesTentativa {
+  id            String             @id @default(uuid())
+  tenantId      String
+  simuladoId    String
+  studentId     String
+  status        DesStatusTentativa @default(EM_ANDAMENTO)
+  iniciadaEm    DateTime           @default(now())
+  expiraEm      DateTime?
+  enviadaEm     DateTime?
+  acertos       Int                @default(0)
+  total         Int                @default(0)
+  percentual    Float?
+  porEixo       Json?              // [{eixoId,acertos,total,percentual}]
+  tempoSegundos Int?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  simulado      DesSimulado        @relation(fields: [simuladoId], references: [id], onDelete: Cascade)
+  respostas     DesResposta[]
+
+  @@unique([simuladoId, studentId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, simuladoId, status])
+}
+
+model DesResposta {
+  id           String       @id @default(uuid())
+  tenantId     String
+  tentativaId  String
+  questaoId    String
+  eixoId       String?
+  alternativa  String?
+  correta      Boolean?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  tentativa    DesTentativa @relation(fields: [tentativaId], references: [id], onDelete: Cascade)
+
+  @@unique([tentativaId, questaoId])
+  @@index([tenantId, questaoId])
+}
+
+model DesKit {
+  id            String             @id @default(uuid())
+  tenantId      String
+  titulo        String
+  tipo          DesTipoKit         @default(QUESTOES_CONTEXTUALIZADAS)
+  exameId       String?
+  eixoId        String?
+  disciplineId  String?
+  descricao     String?
+  conteudo      String?            // texto/caso/enunciado da peça (HTML ou markdown)
+  questaoIds    Json?              // string[]
+  gabaritoComentado String?
+  tempoEstimadoMin Int?
+  visibilidade  DesVisibilidadeKit @default(PRIVADA)
+  autorUserId   String
+  usos          Int                @default(0)
+  ativo         Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  atribuicoes   DesAtribuicao[]
+
+  @@index([tenantId, disciplineId])
+  @@index([tenantId, visibilidade])
+  @@index([tenantId, autorUserId])
+}
+
+model DesAtribuicao {
+  id              String              @id @default(uuid())
+  tenantId        String
+  kitId           String
+  classSectionId  String
+  professorUserId String
+  prazo           DateTime
+  instrucoes      String?
+  status          DesStatusAtribuicao @default(ABERTA)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  kit             DesKit              @relation(fields: [kitId], references: [id])
+  entregas        DesEntrega[]
+
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, professorUserId, status])
+  @@index([tenantId, prazo])
+}
+
+model DesEntrega {
+  id             String           @id @default(uuid())
+  tenantId       String
+  atribuicaoId   String
+  studentId      String
+  status         DesStatusEntrega @default(PENDENTE)
+  respostas      Json?            // {questaoId: letra} ou texto livre
+  texto          String?
+  acertos        Int?
+  total          Int?
+  nota           Float?           // 0-100
+  feedback       String?
+  entregueEm     DateTime?
+  corrigidaEm    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  atribuicao     DesAtribuicao    @relation(fields: [atribuicaoId], references: [id], onDelete: Cascade)
+
+  @@unique([atribuicaoId, studentId])
+  @@index([tenantId, studentId])
+}
+
+model DesTrilha {
+  id            String          @id @default(uuid())
+  tenantId      String
+  studentId     String
+  exameId       String
+  status        DesStatusTrilha @default(ATIVA)
+  metaPercentual Float          @default(60)
+  metaData      DateTime?
+  horasSemana   Float           @default(6)
+  lacunas       Json?           // [{eixoId,atual,meta,gap,prioridade}]
+  progresso     Float           @default(0)
+  geradaEm      DateTime        @default(now())
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  itens         DesTrilhaItem[]
+
+  @@index([tenantId, studentId, status])
+  @@index([tenantId, exameId])
+}
+
+model DesTrilhaItem {
+  id           String              @id @default(uuid())
+  tenantId     String
+  trilhaId     String
+  eixoId       String?
+  semana       Int
+  tipo         DesTipoItemTrilha
+  titulo       String
+  descricao    String?
+  minutos      Int                 @default(60)
+  dataPrevista DateTime
+  status       DesStatusItemTrilha @default(PENDENTE)
+  revisaoN     Int                 @default(0)   // 0 = estudo original; n = n-ésima revisão espaçada
+  concluidoEm  DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  trilha       DesTrilha           @relation(fields: [trilhaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, trilhaId])
+  @@index([tenantId, dataPrevista, status])
+}
+
+// ---- edu/governanca.prisma ----
+// ============================================================
+// EDUMASTER PRO — GOVERNANÇA (prefixo Gov)
+// PDI, documentos institucionais/PPC, CPA, NDE, colegiados, CIPA, carreira.
+// Referências a outros módulos (curso, docente, usuário) = String sem @relation.
+// ============================================================
+
+// ---------- Numeração anual por tenant (resoluções etc.) ----------
+model GovSequencia {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String        // ex.: DELIBERACAO
+  ano       Int
+  ultimo    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave, ano])
+}
+
+// ================= PDI =================
+enum GovPdiStatus {
+  RASCUNHO
+  VIGENTE
+  ENCERRADO
+}
+
+enum GovPeriodicidade {
+  MENSAL
+  BIMESTRAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
+}
+
+enum GovSentidoIndicador {
+  MAIOR_MELHOR
+  MENOR_MELHOR
+}
+
+enum GovStatusAcao {
+  PLANEJADA
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+model GovPdi {
+  id         String       @id @default(uuid())
+  tenantId   String
+  titulo     String
+  anoInicio  Int
+  anoFim     Int
+  missao     String?
+  visao      String?
+  valores    String?
+  status     GovPdiStatus @default(RASCUNHO)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  eixos      GovPdiEixo[]
+
+  @@index([tenantId, status])
+}
+
+model GovPdiEixo {
+  id             String   @id @default(uuid())
+  tenantId       String
+  pdiId          String
+  nome           String
+  descricao      String?
+  eixoSinaes     Int?          // 1..5
+  dimensaoSinaes Int?          // 1..10
+  peso           Float    @default(1)
+  ordem          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  pdi       GovPdi         @relation(fields: [pdiId], references: [id], onDelete: Cascade)
+  objetivos GovPdiObjetivo[]
+
+  @@index([tenantId, pdiId])
+}
+
+model GovPdiObjetivo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  eixoId      String
+  titulo      String
+  descricao   String?
+  peso        Float    @default(1)
+  ordem       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  eixo  GovPdiEixo   @relation(fields: [eixoId], references: [id], onDelete: Cascade)
+  metas GovPdiMeta[]
+
+  @@index([tenantId, eixoId])
+}
+
+model GovPdiMeta {
+  id               String              @id @default(uuid())
+  tenantId         String
+  objetivoId       String
+  titulo           String
+  indicador        String
+  unidade          String?
+  sentido          GovSentidoIndicador @default(MAIOR_MELHOR)
+  linhaBase        Float
+  valorMeta        Float
+  valorAtual       Float?
+  periodicidade    GovPeriodicidade    @default(SEMESTRAL)
+  responsavelId    String?             // userId
+  prazo            DateTime?
+  proximaColetaEm  DateTime?
+  ultimaColetaEm   DateTime?
+  peso             Float               @default(1)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  objetivo  GovPdiObjetivo  @relation(fields: [objetivoId], references: [id], onDelete: Cascade)
+  medicoes  GovPdiMedicao[]
+  acoes     GovPdiAcao[]
+
+  @@index([tenantId, objetivoId])
+  @@index([tenantId, proximaColetaEm])
+}
+
+model GovPdiMedicao {
+  id             String   @id @default(uuid())
+  tenantId       String
+  metaId         String
+  dataReferencia DateTime
+  valor          Float
+  observacao     String?
+  registradoPorId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  meta GovPdiMeta @relation(fields: [metaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, metaId, dataReferencia])
+}
+
+model GovPdiAcao {
+  id            String        @id @default(uuid())
+  tenantId      String
+  metaId        String
+  titulo        String
+  descricao     String?
+  responsavelId String?
+  prazo         DateTime
+  orcamento     Decimal       @default(0) @db.Decimal(12, 2)
+  gasto         Decimal       @default(0) @db.Decimal(12, 2)
+  percentual    Int           @default(0)
+  status        GovStatusAcao @default(PLANEJADA)
+  concluidaEm   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  meta GovPdiMeta @relation(fields: [metaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, metaId])
+  @@index([tenantId, status, prazo])
+}
+
+// ================= DOCUMENTOS INSTITUCIONAIS / PPC =================
+enum GovDocumentoTipo {
+  REGIMENTO
+  ESTATUTO
+  PPI
+  PPC
+  POLITICA
+  MANUAL
+  OUTRO
+}
+
+enum GovVersaoStatus {
+  RASCUNHO
+  VIGENTE
+  SUBSTITUIDA
+  REVOGADA
+}
+
+model GovDocumento {
+  id        String           @id @default(uuid())
+  tenantId  String
+  tipo      GovDocumentoTipo
+  titulo    String
+  codigo    String?
+  programId String?          // PPC: curso (AcademicProgram)
+  descricao String?
+  ativo     Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  versoes GovDocumentoVersao[]
+
+  @@index([tenantId, tipo])
+  @@index([tenantId, programId])
+}
+
+model GovDocumentoVersao {
+  id              String          @id @default(uuid())
+  tenantId        String
+  documentoId     String
+  versao          Int
+  conteudoHtml    String?
+  resumoAlteracoes String?
+  arquivoUrl      String?
+  status          GovVersaoStatus @default(RASCUNHO)
+  vigenciaInicio  DateTime?
+  vigenciaFim     DateTime?
+  aprovadoPorId   String?
+  deliberacaoId   String?         // GovDeliberacao que aprovou
+  criadoPorId     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  documento GovDocumento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+
+  @@unique([documentoId, versao])
+  @@index([tenantId, status])
+}
+
+// ================= CPA =================
+enum GovSegmento {
+  DOCENTE
+  DISCENTE
+  TECNICO_ADMINISTRATIVO
+  SOCIEDADE_CIVIL
+}
+
+enum GovCpaCicloStatus {
+  PLANEJAMENTO
+  COLETA
+  ANALISE
+  RELATORIO
+  CONCLUIDO
+}
+
+enum GovCpaTipoPergunta {
+  LIKERT5
+  SIM_NAO
+  TEXTO
+}
+
+model GovCpa {
+  id        String   @id @default(uuid())
+  tenantId  String
+  nome      String
+  portaria  String?
+  ativa     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  membros GovCpaMembro[]
+
+  @@index([tenantId])
+}
+
+model GovCpaMembro {
+  id            String      @id @default(uuid())
+  tenantId      String
+  cpaId         String
+  nome          String
+  segmento      GovSegmento
+  userId        String?
+  cargo         String?     // Coordenador, Secretário, Membro
+  inicioMandato DateTime
+  fimMandato    DateTime
+  ativo         Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  cpa GovCpa @relation(fields: [cpaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, cpaId])
+  @@index([tenantId, fimMandato])
+}
+
+model GovCpaCiclo {
+  id           String            @id @default(uuid())
+  tenantId     String
+  cpaId        String?
+  titulo       String
+  anoBase      Int
+  inicio       DateTime
+  fim          DateTime
+  minRespostas Int               @default(5)
+  status       GovCpaCicloStatus @default(PLANEJAMENTO)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  questionarios GovCpaQuestionario[]
+  relatorios    GovCpaRelatorio[]
+  planos        GovCpaPlanoAcao[]
+
+  @@index([tenantId, status])
+}
+
+model GovCpaQuestionario {
+  id        String      @id @default(uuid())
+  tenantId  String
+  cicloId   String
+  titulo    String
+  segmento  GovSegmento
+  modeloKey String?
+  ativo     Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  ciclo     GovCpaCiclo    @relation(fields: [cicloId], references: [id], onDelete: Cascade)
+  perguntas GovCpaPergunta[]
+  convites  GovCpaConvite[]
+  respostas GovCpaResposta[]
+
+  @@index([tenantId, cicloId])
+}
+
+model GovCpaModeloQuestionario {
+  id        String      @id @default(uuid())
+  tenantId  String
+  chave     String
+  titulo    String
+  segmento  GovSegmento
+  perguntas Json        // [{eixo,dimensao,texto,tipo}]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+model GovCpaPergunta {
+  id             String             @id @default(uuid())
+  tenantId       String
+  questionarioId String
+  eixo           Int                // 1..5 SINAES
+  dimensao       Int?               // 1..10
+  texto          String
+  tipo           GovCpaTipoPergunta @default(LIKERT5)
+  obrigatoria    Boolean            @default(true)
+  ordem          Int                @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  questionario GovCpaQuestionario @relation(fields: [questionarioId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, questionarioId])
+}
+
+// Convite anônimo: guarda só o HASH do token. Nenhuma coluna liga o convite
+// a uma pessoa nem a uma resposta.
+model GovCpaConvite {
+  id             String   @id @default(uuid())
+  tenantId       String
+  questionarioId String
+  tokenHash      String   @unique
+  programId      String?  // escopo de curso (opcional) — não é identidade
+  usado          Boolean  @default(false)
+  expiraEm       DateTime?
+  createdAt      DateTime @default(now())
+
+  questionario GovCpaQuestionario @relation(fields: [questionarioId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, questionarioId, usado])
+}
+
+// Resposta anônima: sem token, sem usuário. createdAt é truncado ao dia.
+model GovCpaResposta {
+  id             String      @id @default(uuid())
+  tenantId       String
+  cicloId        String
+  questionarioId String
+  segmento       GovSegmento
+  programId      String?
+  createdAt      DateTime    @default(now())
+
+  questionario GovCpaQuestionario @relation(fields: [questionarioId], references: [id], onDelete: Cascade)
+  itens        GovCpaRespostaItem[]
+
+  @@index([tenantId, cicloId, segmento])
+}
+
+model GovCpaRespostaItem {
+  id          String  @id @default(uuid())
+  tenantId    String
+  respostaId  String
+  perguntaId  String
+  valor       Float?
+  texto       String?
+
+  resposta GovCpaResposta @relation(fields: [respostaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, respostaId])
+  @@index([tenantId, perguntaId])
+}
+
+model GovCpaRelatorio {
+  id          String   @id @default(uuid())
+  tenantId    String
+  cicloId     String
+  tipo        String   // PARCIAL | ANUAL
+  html        String
+  dados       Json?
+  geradoPorId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ciclo GovCpaCiclo @relation(fields: [cicloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, cicloId])
+}
+
+model GovCpaPlanoAcao {
+  id            String        @id @default(uuid())
+  tenantId      String
+  cicloId       String
+  eixo          Int?
+  dimensao      Int?
+  problema      String
+  acao          String
+  responsavelId String?
+  prazo         DateTime?
+  status        GovStatusAcao @default(PLANEJADA)
+  origemScore   Float?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  ciclo GovCpaCiclo @relation(fields: [cicloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, cicloId, status])
+}
+
+// ================= NDE =================
+enum GovTitulacao {
+  GRADUADO
+  ESPECIALISTA
+  MESTRE
+  DOUTOR
+}
+
+enum GovRegime {
+  INTEGRAL
+  PARCIAL
+  HORISTA
+}
+
+model GovNde {
+  id        String   @id @default(uuid())
+  tenantId  String
+  programId String          // AcademicProgram
+  nome      String
+  portaria  String?
+  ativo     Boolean  @default(true)
+  conforme  Boolean?
+  verificadoEm DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  membros  GovNdeMembro[]
+  reunioes GovNdeReuniao[]
+
+  @@index([tenantId, programId])
+}
+
+model GovNdeMembro {
+  id          String       @id @default(uuid())
+  tenantId    String
+  ndeId       String
+  docenteId   String
+  nome        String
+  titulacao   GovTitulacao
+  regime      GovRegime
+  inicio      DateTime
+  fim         DateTime?
+  presidente  Boolean      @default(false)
+  ativo       Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  nde GovNde @relation(fields: [ndeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, ndeId])
+  @@index([tenantId, docenteId])
+}
+
+model GovNdeReuniao {
+  id        String   @id @default(uuid())
+  tenantId  String
+  ndeId     String
+  data      DateTime
+  pauta     String?
+  ata       String?
+  presentes Json?
+  realizada Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nde GovNde @relation(fields: [ndeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, ndeId, data])
+}
+
+// ================= COLEGIADOS =================
+enum GovOrgaoTipo {
+  CONSUP
+  CONSEPE
+  COLEGIADO_CURSO
+  CONGREGACAO
+  OUTRO
+}
+
+enum GovReuniaoStatus {
+  AGENDADA
+  REALIZADA
+  CANCELADA
+}
+
+enum GovDeliberacaoStatus {
+  PROPOSTA
+  EM_VOTACAO
+  APROVADA
+  REJEITADA
+  ARQUIVADA
+}
+
+enum GovVoto {
+  FAVOR
+  CONTRA
+  ABSTENCAO
+}
+
+model GovOrgao {
+  id             String       @id @default(uuid())
+  tenantId       String
+  tipo           GovOrgaoTipo
+  nome           String
+  sigla          String?
+  programId      String?
+  quorumPercent  Int          @default(50)   // mínimo de presentes (do total com voto) p/ instalar
+  maioria        String       @default("SIMPLES") // SIMPLES (dos presentes) | ABSOLUTA (do total)
+  ativo          Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  membros  GovOrgaoMembro[]
+  reunioes GovReuniao[]
+
+  @@index([tenantId, tipo])
+}
+
+model GovOrgaoMembro {
+  id            String   @id @default(uuid())
+  tenantId      String
+  orgaoId       String
+  nome          String
+  userId        String?
+  cargo         String   @default("MEMBRO")
+  representacao String?
+  temVoto       Boolean  @default(true)
+  inicioMandato DateTime
+  fimMandato    DateTime
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  orgao GovOrgao @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, orgaoId])
+  @@index([tenantId, fimMandato])
+}
+
+model GovReuniao {
+  id             String           @id @default(uuid())
+  tenantId       String
+  orgaoId        String
+  tipo           String           @default("ORDINARIA")
+  data           DateTime
+  local          String?
+  status         GovReuniaoStatus @default(AGENDADA)
+  presentes      Json?            // [membroId]
+  quorumAtingido Boolean?
+  ata            String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  orgao        GovOrgao          @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  pautas       GovPauta[]
+  deliberacoes GovDeliberacao[]
+
+  @@index([tenantId, orgaoId, data])
+}
+
+model GovPauta {
+  id         String   @id @default(uuid())
+  tenantId   String
+  reuniaoId  String
+  ordem      Int      @default(0)
+  titulo     String
+  descricao  String?
+  tipo       String   @default("DELIBERACAO") // INFORME | DELIBERACAO
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  reuniao GovReuniao @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, reuniaoId])
+}
+
+model GovPautaModelo {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  titulo    String
+  itens     Json     // [{titulo,tipo}]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+model GovDeliberacao {
+  id          String               @id @default(uuid())
+  tenantId    String
+  orgaoId     String
+  reuniaoId   String?
+  pautaId     String?
+  ano         Int
+  numero      Int
+  numeracao   String               // 003/2026
+  titulo      String
+  texto       String?
+  status      GovDeliberacaoStatus @default(PROPOSTA)
+  resultado   Json?                // apuração
+  decididaEm  DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  reuniao GovReuniao? @relation(fields: [reuniaoId], references: [id], onDelete: SetNull)
+  votos   GovVotoRegistro[]
+
+  @@unique([tenantId, ano, numero])
+  @@index([tenantId, orgaoId, status])
+}
+
+model GovVotoRegistro {
+  id            String   @id @default(uuid())
+  tenantId      String
+  deliberacaoId String
+  membroId      String
+  voto          GovVoto
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  deliberacao GovDeliberacao @relation(fields: [deliberacaoId], references: [id], onDelete: Cascade)
+
+  @@unique([deliberacaoId, membroId])
+  @@index([tenantId, deliberacaoId])
+}
+
+// ================= CIPA / SST =================
+enum GovCipaGestaoStatus {
+  ELEICAO
+  VIGENTE
+  ENCERRADA
+}
+
+enum GovAgenteRisco {
+  FISICO
+  QUIMICO
+  BIOLOGICO
+  ERGONOMICO
+  ACIDENTE
+}
+
+model GovCipaGestao {
+  id        String              @id @default(uuid())
+  tenantId  String
+  nome      String
+  inicio    DateTime
+  fim       DateTime
+  status    GovCipaGestaoStatus @default(ELEICAO)
+  eleicaoEm DateTime?
+  ataEleicao String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  membros  GovCipaMembro[]
+  reunioes GovCipaReuniao[]
+
+  @@index([tenantId, status])
+}
+
+model GovCipaMembro {
+  id            String   @id @default(uuid())
+  tenantId      String
+  gestaoId      String
+  nome          String
+  userId        String?
+  representacao String   // EMPREGADOR | EMPREGADOS
+  tipo          String   @default("TITULAR") // TITULAR | SUPLENTE
+  cargo         String   @default("MEMBRO")  // PRESIDENTE | VICE_PRESIDENTE | SECRETARIO | MEMBRO
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  gestao GovCipaGestao @relation(fields: [gestaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, gestaoId])
+}
+
+model GovCipaReuniao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  gestaoId    String
+  competencia String   // YYYY-MM
+  tipo        String   @default("ORDINARIA")
+  data        DateTime
+  pauta       String?
+  ata         String?
+  realizada   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  gestao GovCipaGestao @relation(fields: [gestaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, gestaoId, competencia])
+}
+
+model GovCipaRisco {
+  id            String         @id @default(uuid())
+  tenantId      String
+  local         String
+  spaceId       String?        // EduSpace
+  setor         String?
+  agente        GovAgenteRisco
+  descricao     String
+  gravidade     Int            @default(1)  // 1..5
+  probabilidade Int            @default(1)  // 1..5
+  pontuacao     Int            @default(1)
+  nivel         String         @default("BAIXO")
+  medidaControle String?
+  status        String         @default("ABERTO") // ABERTO | EM_CONTROLE | CONTROLADO
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([tenantId, nivel, status])
+}
+
+model GovCipaInspecao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  data          DateTime
+  local         String
+  responsavelId String?
+  achados       String?
+  conclusao     String?
+  realizada     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, data])
+}
+
+model GovCipaAcidente {
+  id            String   @id @default(uuid())
+  tenantId      String
+  data          DateTime
+  pessoaNome    String
+  vinculo       String   @default("EMPREGADO") // EMPREGADO | ALUNO | TERCEIRO
+  tipo          String   @default("TIPICO")    // TIPICO | TRAJETO | DOENCA_OCUPACIONAL | SEM_AFASTAMENTO
+  gravidade     String   @default("LEVE")      // LEVE | MODERADO | GRAVE | FATAL
+  local         String?
+  descricao     String
+  diasAfastamento Int    @default(0)
+  catObrigatoria Boolean @default(false)
+  catPrazo      DateTime?
+  catEmitida    Boolean  @default(false)
+  catNumero     String?
+  catEmitidaEm  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, data])
+  @@index([tenantId, catObrigatoria, catEmitida])
+}
+
+model GovCipaSipat {
+  id           String   @id @default(uuid())
+  tenantId     String
+  ano          Int
+  tema         String
+  inicio       DateTime
+  fim          DateTime
+  programacao  Json?
+  participantes Int     @default(0)
+  status       String   @default("PLANEJADA") // PLANEJADA | REALIZADA | CANCELADA
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId, ano])
+}
+
+model GovCipaPlanoAcao {
+  id            String        @id @default(uuid())
+  tenantId      String
+  origem        String?       // risco, inspeção, acidente...
+  origemId      String?
+  acao          String
+  responsavelId String?
+  prazo         DateTime
+  status        GovStatusAcao @default(PLANEJADA)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([tenantId, status, prazo])
+}
+
+// ================= PLANO DE CARREIRA =================
+enum GovCarreiraTipo {
+  DOCENTE
+  TECNICO_ADMINISTRATIVO
+}
+
+enum GovProgressaoStatus {
+  SOLICITADA
+  EM_ANALISE
+  DEFERIDA
+  INDEFERIDA
+  EFETIVADA
+  CANCELADA
+}
+
+model GovCarreiraPlano {
+  id             String          @id @default(uuid())
+  tenantId       String
+  tipo           GovCarreiraTipo
+  nome           String
+  vigenciaInicio DateTime?
+  ativo          Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  niveis GovCarreiraNivel[]
+
+  @@index([tenantId, tipo])
+}
+
+model GovCarreiraNivel {
+  id               String        @id @default(uuid())
+  tenantId         String
+  planoId          String
+  codigo           String
+  nome             String
+  classe           String?
+  ordem            Int
+  titulacaoMinima  GovTitulacao?
+  intersticioMeses Int           @default(24)
+  pontuacaoMinima  Float         @default(0)   // produção/pontos de mérito
+  avaliacaoMinima  Float         @default(0)   // 0..10
+  salarioBase      Decimal       @default(0) @db.Decimal(12, 2)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  plano GovCarreiraPlano @relation(fields: [planoId], references: [id], onDelete: Cascade)
+
+  @@unique([planoId, ordem])
+  @@index([tenantId, planoId])
+}
+
+model GovCarreiraEnquadramento {
+  id            String        @id @default(uuid())
+  tenantId      String
+  planoId       String
+  nivelId       String
+  docenteId     String        // docente ou servidor (String id externo)
+  nome          String
+  titulacao     GovTitulacao?
+  inicioNivel   DateTime
+  pontuacao     Float         @default(0)
+  avaliacao     Float         @default(0)
+  ativo         Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  progressoes GovCarreiraProgressao[]
+
+  @@index([tenantId, planoId])
+  @@index([tenantId, docenteId])
+}
+
+model GovCarreiraProgressao {
+  id               String              @id @default(uuid())
+  tenantId         String
+  enquadramentoId  String
+  nivelOrigemId    String
+  nivelDestinoId   String
+  status           GovProgressaoStatus @default(SOLICITADA)
+  simulacao        Json?
+  impactoSalarial  Decimal             @default(0) @db.Decimal(12, 2)
+  justificativa    String?
+  parecer          String?
+  historico        Json?
+  solicitadaPorId  String?
+  decididaPorId    String?
+  decididaEm       DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  enquadramento GovCarreiraEnquadramento @relation(fields: [enquadramentoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([tenantId, enquadramentoId])
+}
+
+// ---- edu/infraestrutura.prisma ----
+// ============================================================
+// EDUMASTER PRO — INFRAESTRUTURA (prefixo Inf)
+// Patrimônio, manutenção, melhorias, estacionamento, pátio,
+// iluminação/energia/água e adequação de infraestrutura por curso.
+// Referências a EduSpace/AcademicProgram/User/fornecedor = String ids sem @relation.
+// ============================================================
+
+// Sequência atômica para numeração (OS, chamados, tombamento).
+model InfSequencia {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  valor     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+// ---------- PATRIMÔNIO ----------
+
+model InfCategoriaBem {
+  id               String   @id @default(uuid())
+  tenantId         String
+  codigo           String
+  nome             String
+  vidaUtilMeses    Int      @default(120)
+  valorResidualPct Float    @default(10)
+  grupo            String?       // MOVEL, EQUIPAMENTO, TI, LABORATORIO, VEICULO, IMOVEL...
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  bens             InfBem[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId])
+}
+
+enum InfEstadoBem {
+  NOVO
+  BOM
+  REGULAR
+  RUIM
+  INSERVIVEL
+}
+
+enum InfStatusBem {
+  ATIVO
+  EM_MANUTENCAO
+  EMPRESTADO
+  BAIXADO
+}
+
+model InfBem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tombamento      String
+  descricao       String
+  categoriaId     String
+  marca           String?
+  modelo          String?
+  numeroSerie     String?
+  notaFiscal      String?
+  fornecedorId    String?
+  valorAquisicao  Float    @default(0)
+  dataAquisicao   DateTime
+  vidaUtilMeses   Int?          // sobrescreve a da categoria
+  valorResidual   Float?        // sobrescreve (valor absoluto)
+  spaceId         String?
+  responsavelUserId String?
+  estado          InfEstadoBem @default(BOM)
+  status          InfStatusBem @default(ATIVO)
+  criticidade     String   @default("NORMAL")   // BAIXA | NORMAL | ALTA | CRITICA
+  fotoUrl         String?
+  garantiaAte     DateTime?
+  observacoes     String?
+  baixadoEm       DateTime?
+  motivoBaixa     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  categoria       InfCategoriaBem @relation(fields: [categoriaId], references: [id])
+  movimentacoes   InfMovimentacaoBem[]
+
+  @@unique([tenantId, tombamento])
+  @@index([tenantId, categoriaId])
+  @@index([tenantId, spaceId])
+  @@index([tenantId, status])
+}
+
+enum InfTipoMovimentacao {
+  CADASTRO
+  TRANSFERENCIA
+  MUDANCA_RESPONSAVEL
+  MUDANCA_ESTADO
+  BAIXA
+  REATIVACAO
+}
+
+model InfMovimentacaoBem {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  bemId              String
+  tipo               InfTipoMovimentacao
+  origemSpaceId      String?
+  destinoSpaceId     String?
+  origemResponsavelId String?
+  destinoResponsavelId String?
+  estadoAnterior     String?
+  estadoNovo         String?
+  motivo             String?
+  documento          String?
+  userId             String?
+  createdAt          DateTime @default(now())
+
+  bem                InfBem   @relation(fields: [bemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, bemId, createdAt])
+}
+
+enum InfStatusInventario {
+  ABERTO
+  FECHADO
+  CANCELADO
+}
+
+model InfInventario {
+  id          String   @id @default(uuid())
+  tenantId    String
+  titulo      String
+  spaceId     String?       // nulo = todos os espaços
+  categoriaId String?
+  status      InfStatusInventario @default(ABERTO)
+  responsavelUserId String?
+  prazoEm     DateTime?
+  fechadoEm   DateTime?
+  resumo      Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  itens       InfInventarioItem[]
+
+  @@index([tenantId, status])
+}
+
+enum InfDivergencia {
+  NENHUMA
+  NAO_ENCONTRADO
+  LOCAL_DIVERGENTE
+  ESTADO_DIVERGENTE
+  SOBRA          // encontrado mas não esperado (bem fora da lista)
+}
+
+model InfInventarioItem {
+  id               String   @id @default(uuid())
+  tenantId         String
+  inventarioId     String
+  bemId            String?
+  tombamentoLido   String?
+  spaceEsperadoId  String?
+  spaceEncontradoId String?
+  estadoEncontrado InfEstadoBem?
+  contado          Boolean  @default(false)
+  divergencia      InfDivergencia @default(NENHUMA)
+  observacao       String?
+  contadoPorId     String?
+  contadoEm        DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  inventario       InfInventario @relation(fields: [inventarioId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, inventarioId])
+  @@index([tenantId, bemId])
+}
+
+// ---------- MANUTENÇÃO ----------
+
+enum InfTipoOS {
+  CORRETIVA
+  PREVENTIVA
+  PREDITIVA
+  MELHORIA
+}
+
+enum InfPrioridade {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum InfStatusOS {
+  ABERTA
+  AGENDADA
+  EM_EXECUCAO
+  AGUARDANDO_PECA
+  CONCLUIDA
+  CANCELADA
+}
+
+model InfPlanoPreventivo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  titulo           String
+  descricao        String?
+  bemId            String?
+  spaceId          String?
+  categoriaId      String?       // aplica-se a todos os bens da categoria (opcional)
+  periodicidadeDias Int
+  antecedenciaDias Int      @default(7)
+  proximaExecucao  DateTime
+  ultimaGeracao    DateTime?
+  prioridade       InfPrioridade @default(MEDIA)
+  checklist        Json?         // [{item:"...", obrigatorio:true}]
+  fornecedorId     String?
+  responsavelUserId String?
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId, ativo, proximaExecucao])
+}
+
+model InfOrdemServico {
+  id               String   @id @default(uuid())
+  tenantId         String
+  numero           String
+  tipo             InfTipoOS @default(CORRETIVA)
+  prioridade       InfPrioridade @default(MEDIA)
+  status           InfStatusOS @default(ABERTA)
+  titulo           String
+  descricao        String?
+  bemId            String?
+  spaceId          String?
+  chamadoId        String?
+  planoId          String?
+  fornecedorId     String?
+  responsavelUserId String?
+  abertaEm         DateTime @default(now())
+  prazoSla         DateTime
+  agendadaPara     DateTime?
+  iniciadaEm       DateTime?
+  concluidaEm      DateTime?
+  custoMaoObra     Float    @default(0)
+  custoPecas       Float    @default(0)
+  checklist        Json?         // [{item, obrigatorio, feito, obs}]
+  solucao          String?
+  bemParado        Boolean  @default(false)   // bem indisponível durante a OS (p/ disponibilidade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  pecas            InfOsPeca[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status, prazoSla])
+  @@index([tenantId, bemId])
+  @@index([tenantId, spaceId])
+  @@index([tenantId, planoId])
+}
+
+model InfOsPeca {
+  id            String   @id @default(uuid())
+  tenantId      String
+  osId          String
+  descricao     String
+  quantidade    Float    @default(1)
+  valorUnitario Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  os            InfOrdemServico @relation(fields: [osId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, osId])
+}
+
+enum InfCategoriaChamado {
+  PREDIAL
+  ELETRICA
+  HIDRAULICA
+  TI
+  AR_CONDICIONADO
+  LIMPEZA
+  SEGURANCA
+  ILUMINACAO
+  MOBILIARIO
+  OUTRO
+}
+
+enum InfStatusChamado {
+  ABERTO
+  EM_ATENDIMENTO
+  RESOLVIDO
+  FECHADO
+  CANCELADO
+}
+
+model InfChamado {
+  id               String   @id @default(uuid())
+  tenantId         String
+  numero           String
+  categoria        InfCategoriaChamado @default(PREDIAL)
+  prioridade       InfPrioridade @default(MEDIA)
+  status           InfStatusChamado @default(ABERTO)
+  titulo           String
+  descricao        String?
+  spaceId          String?
+  bemId            String?
+  solicitanteUserId String
+  atendenteUserId  String?
+  osId             String?
+  origem           String   @default("USUARIO")  // USUARIO | ILUMINACAO | MEDIDOR | SISTEMA
+  fotoUrl          String?
+  resolvidoEm      DateTime?
+  fechadoEm        DateTime?
+  avaliacaoNota    Int?
+  avaliacaoComentario String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  comentarios      InfChamadoComentario[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, solicitanteUserId])
+}
+
+model InfChamadoComentario {
+  id         String   @id @default(uuid())
+  tenantId   String
+  chamadoId  String
+  userId     String
+  texto      String
+  interno    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  chamado    InfChamado @relation(fields: [chamadoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, chamadoId])
+}
+
+// ---------- MELHORIAS E IMPLANTAÇÃO ----------
+
+enum InfStatusProjeto {
+  PROPOSTO
+  APROVADO
+  EM_EXECUCAO
+  CONCLUIDO
+  SUSPENSO
+  CANCELADO
+}
+
+model InfProjeto {
+  id             String   @id @default(uuid())
+  tenantId       String
+  titulo         String
+  status         InfStatusProjeto @default(PROPOSTO)
+  // 5W2H
+  oQue           String
+  porQue         String
+  onde           String?
+  spaceId        String?
+  quando         String?
+  quem           String?
+  como           String?
+  quantoCusta    Float    @default(0)   // orçamento aprovado/estimado
+  gastoReal      Float    @default(0)
+  justificativa  String?
+  inicioPrevisto DateTime?
+  fimPrevisto    DateTime?
+  responsavelUserId String?
+  pdiMetaId      String?       // vínculo opcional com meta do PDI
+  recomendacaoMec String?      // referência a recomendação MEC/avaliação
+  evidencias     Json?         // [{url, legenda, data}]
+  percentual     Float    @default(0)
+  aprovadoPorId  String?
+  aprovadoEm     DateTime?
+  concluidoEm    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  etapas         InfProjetoEtapa[]
+
+  @@index([tenantId, status])
+}
+
+enum InfStatusEtapa {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+  BLOQUEADA
+}
+
+model InfProjetoEtapa {
+  id              String   @id @default(uuid())
+  tenantId        String
+  projetoId       String
+  ordem           Int      @default(1)
+  titulo          String
+  descricao       String?
+  inicio          DateTime?
+  fim             DateTime
+  responsavelUserId String?
+  peso            Float    @default(1)
+  percentual      Float    @default(0)
+  status          InfStatusEtapa @default(PENDENTE)
+  custoPrevisto   Float    @default(0)
+  custoReal       Float    @default(0)
+  concluidaEm     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  projeto         InfProjeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projetoId])
+}
+
+// ---------- ESTACIONAMENTO ----------
+
+model InfAreaEstacionamento {
+  id         String   @id @default(uuid())
+  tenantId   String
+  nome       String
+  spaceId    String?
+  campusId   String?
+  descricao  String?
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  vagas      InfVaga[]
+
+  @@index([tenantId])
+}
+
+enum InfTipoVaga {
+  COMUM
+  PCD
+  IDOSO
+  MOTO
+  DOCENTE
+  VISITANTE
+  ADMINISTRATIVO
+}
+
+model InfVaga {
+  id         String   @id @default(uuid())
+  tenantId   String
+  areaId     String
+  codigo     String
+  tipo       InfTipoVaga @default(COMUM)
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  area       InfAreaEstacionamento @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, areaId, codigo])
+  @@index([tenantId, areaId])
+}
+
+enum InfTipoVeiculo {
+  CARRO
+  MOTO
+  BICICLETA
+  OUTRO
+}
+
+enum InfVinculoProprietario {
+  ALUNO
+  DOCENTE
+  FUNCIONARIO
+  VISITANTE
+  TERCEIRIZADO
+}
+
+enum InfStatusCredencial {
+  ATIVA
+  SUSPENSA
+  VENCIDA
+  REVOGADA
+}
+
+model InfVeiculo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  placa            String
+  tipo             InfTipoVeiculo @default(CARRO)
+  modelo           String?
+  cor              String?
+  vinculo          InfVinculoProprietario @default(ALUNO)
+  proprietarioNome String
+  proprietarioUserId String?
+  studentId        String?
+  contato          String?
+  credencial       String?       // código da credencial/adesivo
+  credencialStatus InfStatusCredencial @default(ATIVA)
+  validade         DateTime?
+  vagaEspecial     InfTipoVaga?  // direito a vaga PCD/IDOSO/DOCENTE
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, placa])
+  @@index([tenantId, credencialStatus])
+}
+
+model InfAcessoEstacionamento {
+  id         String   @id @default(uuid())
+  tenantId   String
+  areaId     String
+  vagaId     String?
+  veiculoId  String?
+  placa      String
+  entradaEm  DateTime @default(now())
+  saidaEm    DateTime?
+  autorizado Boolean  @default(true)
+  motivoNegado String?
+  registradoPorId String?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, areaId, saidaEm])
+  @@index([tenantId, placa])
+  @@index([tenantId, entradaEm])
+}
+
+enum InfStatusOcorrencia {
+  ABERTA
+  EM_ANALISE
+  RESOLVIDA
+  ARQUIVADA
+}
+
+model InfOcorrenciaEstacionamento {
+  id         String   @id @default(uuid())
+  tenantId   String
+  areaId     String?
+  vagaId     String?
+  veiculoId  String?
+  placa      String?
+  tipo       String        // MAU_ESTACIONAMENTO, VAGA_INDEVIDA, DANO, FURTO, ACIDENTE, CREDENCIAL_VENCIDA, OUTRO
+  descricao  String
+  gravidade  String   @default("LEVE")
+  status     InfStatusOcorrencia @default(ABERTA)
+  fotoUrl    String?
+  registradoPorId String?
+  resolucao  String?
+  resolvidaEm DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, placa])
+}
+
+// ---------- PÁTIO E ÁREAS COMUNS ----------
+
+enum InfStatusReserva {
+  SOLICITADA
+  APROVADA
+  RECUSADA
+  CANCELADA
+  REALIZADA
+}
+
+model InfReservaArea {
+  id             String   @id @default(uuid())
+  tenantId       String
+  spaceId        String
+  titulo         String
+  finalidade     String?
+  solicitanteUserId String
+  inicio         DateTime
+  fim            DateTime
+  publicoEstimado Int?
+  status         InfStatusReserva @default(SOLICITADA)
+  necessidades   Json?         // ["som","tenda","energia"...]
+  decididoPorId  String?
+  decididoEm     DateTime?
+  motivoDecisao  String?
+  aceiteRegras   Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, spaceId, inicio, fim])
+  @@index([tenantId, status])
+}
+
+model InfRegraUso {
+  id        String   @id @default(uuid())
+  tenantId  String
+  spaceId   String?       // nulo = regra geral das áreas comuns
+  titulo    String
+  texto     String
+  ordem     Int      @default(1)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, spaceId])
+}
+
+// ---------- ILUMINAÇÃO, ENERGIA E ÁGUA ----------
+
+enum InfStatusPontoLuz {
+  OK
+  QUEIMADA
+  INTERMITENTE
+  DESATIVADA
+}
+
+model InfPontoLuz {
+  id          String   @id @default(uuid())
+  tenantId    String
+  spaceId     String?
+  codigo      String
+  descricao   String?
+  tipo        String   @default("LED")     // LED, FLUORESCENTE, VAPOR_METALICO, REFLETOR, POSTE...
+  potenciaW   Float?
+  quantidade  Int      @default(1)
+  status      InfStatusPontoLuz @default(OK)
+  chamadoId   String?
+  ultimaTroca DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status])
+}
+
+enum InfTipoMedidor {
+  ENERGIA
+  AGUA
+  GAS
+}
+
+model InfMedidor {
+  id             String   @id @default(uuid())
+  tenantId       String
+  codigo         String
+  tipo           InfTipoMedidor
+  spaceId        String?
+  campusId       String?
+  unidade        String   @default("kWh")
+  limiarDesvioPct Float   @default(25)
+  janelaLeituras Int      @default(6)
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  leituras       InfLeitura[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, tipo])
+}
+
+model InfLeitura {
+  id          String   @id @default(uuid())
+  tenantId    String
+  medidorId   String
+  dataLeitura DateTime
+  valor       Float         // leitura acumulada do medidor
+  consumo     Float?        // consumo desde a leitura anterior
+  dias        Int?
+  mediaDiaria Float?
+  desvioPct   Float?
+  alerta      Boolean  @default(false)
+  registradoPorId String?
+  createdAt   DateTime @default(now())
+
+  medidor     InfMedidor @relation(fields: [medidorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, medidorId, dataLeitura])
+}
+
+model InfAcaoEficiencia {
+  id              String   @id @default(uuid())
+  tenantId        String
+  titulo          String
+  tipo            String   @default("ENERGIA")   // ENERGIA | AGUA | RESIDUOS | OUTRO
+  descricao       String?
+  medidorId       String?
+  economiaEstimadaPct Float?
+  custo           Float    @default(0)
+  status          String   @default("PLANEJADA") // PLANEJADA | EM_EXECUCAO | CONCLUIDA | CANCELADA
+  prazo           DateTime?
+  responsavelUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, status])
+}
+
+// ---------- ADEQUAÇÃO DE INFRAESTRUTURA POR CURSO ----------
+
+enum InfTipoRequisito {
+  EQUIPAMENTO   // contado em InfBem por categoria (e opcionalmente tipo de espaço)
+  ESPACO        // contado em EduSpace por tipo
+}
+
+model InfRequisitoCurso {
+  id            String   @id @default(uuid())
+  tenantId      String
+  programId     String        // AcademicProgram
+  descricao     String
+  tipo          InfTipoRequisito @default(EQUIPAMENTO)
+  categoriaCodigo String?     // InfCategoriaBem.codigo (EQUIPAMENTO)
+  spaceTipo     String?       // EduSpaceType (ESPACO, ou filtra o local do equipamento)
+  quantidadeMinima Int        @default(1)
+  porVagas      Int?          // +1 unidade a cada N vagas (ex.: 1 microscópio / 2 alunos => porVagas=2)
+  capacidadeMinima Int?       // p/ ESPACO: capacidade mínima por espaço
+  obrigatorio   Boolean  @default(true)
+  referenciaMec String?       // indicador do instrumento de avaliação
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, programId])
+}
+
+// ---- edu/jornadas.prisma ----
+// ============================================================
+// EDUMASTER PRO — JORNADAS (fluxogramas por persona + motor de lembretes)
+// Prefixo: Jor
+// ============================================================
+
+enum JorPersona {
+  CANDIDATO
+  ALUNO
+  EGRESSO
+  PROFESSOR
+  COORDENADOR
+  FUNCIONARIO
+  DIRETORIA
+  REITORIA
+}
+
+enum JorTemplateStatus {
+  RASCUNHO
+  PUBLICADO
+  ARQUIVADO
+}
+
+enum JorNoTipo {
+  INICIO
+  TAREFA
+  APROVACAO
+  ESPERA_EVENTO
+  GATEWAY
+  MARCO
+  FIM
+}
+
+enum JorInstanciaStatus {
+  ATIVA
+  PAUSADA
+  CONCLUIDA
+  CANCELADA
+}
+
+enum JorEtapaStatus {
+  ABERTA
+  AGUARDANDO_EVENTO
+  ATRASADA
+  CONCLUIDA
+  PULADA
+  CANCELADA
+}
+
+// Modelo de jornada (grafo versionado). chave+versao únicos por tenant.
+model JorTemplate {
+  id          String   @id @default(uuid())
+  tenantId    String
+  chave       String
+  versao      Int      @default(1)
+  nome        String
+  persona     JorPersona
+  descricao   String?
+  status      JorTemplateStatus @default(RASCUNHO)
+  padrao      Boolean  @default(false)      // veio do bootstrap
+  publicadoEm DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  nos         JorNo[]
+  transicoes  JorTransicao[]
+  instancias  JorInstancia[]
+
+  @@unique([tenantId, chave, versao])
+  @@index([tenantId, persona, status])
+}
+
+// Nó do grafo: etapa/tarefa, aprovação, espera por evento, gateway, marco...
+model JorNo {
+  id            String   @id @default(uuid())
+  tenantId      String
+  templateId    String
+  template      JorTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  chave         String
+  titulo        String
+  descricao     String?
+  tipo          JorNoTipo @default(TAREFA)
+  papel         String?              // role responsável (raia): COORDINATOR, SECRETARY...
+  slaDias       Int?
+  checklist     Json?                // [{chave,titulo,obrigatorio}]
+  documentos    Json?                // [{chave,titulo,obrigatorio}]
+  modulo        String?              // módulo EduMaster de destino (admissoes, secretaria...)
+  rota          String?              // rota do frontend para abrir a tela certa
+  evento        String?              // ESPERA_EVENTO: chave do evento aguardado
+  lembrete      Json?                // {antecedenciaDias, recorrenciaDias, escalarPara, escalarAposDias, severity}
+  ordem         Int      @default(0)
+  fase          String?              // agrupamento visual (ex.: "Ingresso")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([templateId, chave])
+  @@index([tenantId, templateId])
+}
+
+// Aresta com condição simples avaliada sobre o contexto da instância.
+model JorTransicao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  templateId  String
+  template    JorTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  deChave     String
+  paraChave   String
+  rotulo      String?
+  condicao    Json?                  // {campo,op,valor} | {and:[...]} | {or:[...]}
+  prioridade  Int      @default(0)   // menor avalia primeiro (gateways)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, templateId])
+  @@index([templateId, deChave])
+}
+
+// Jornada de uma pessoa (tipo+id: aluno, candidato, professor, user...).
+model JorInstancia {
+  id             String   @id @default(uuid())
+  tenantId       String
+  templateId     String
+  template       JorTemplate @relation(fields: [templateId], references: [id])
+  templateChave  String
+  templateVersao Int
+  personType     String
+  personId       String
+  personNome     String?
+  status         JorInstanciaStatus @default(ATIVA)
+  contexto       Json?
+  iniciadaPorId  String?
+  iniciadaEm     DateTime @default(now())
+  concluidaEm    DateTime?
+  canceladaEm    DateTime?
+  motivoCancelamento String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  etapas         JorEtapa[]
+  historico      JorHistorico[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, personType, personId])
+  @@index([tenantId, templateId, status])
+}
+
+// Etapa concreta de uma instância (um nó visitado).
+model JorEtapa {
+  id              String   @id @default(uuid())
+  tenantId        String
+  instanciaId     String
+  instancia       JorInstancia @relation(fields: [instanciaId], references: [id], onDelete: Cascade)
+  noChave         String
+  titulo          String
+  tipo            JorNoTipo
+  papel           String?
+  fase            String?
+  modulo          String?
+  rota            String?
+  evento          String?
+  status          JorEtapaStatus @default(ABERTA)
+  ciclo           Int      @default(1)
+  responsavelUserId String?
+  checklistEstado Json?                // {chave: {feito,porId,em}}
+  checklistDef    Json?
+  documentosDef   Json?
+  decisao         String?              // APROVADO | REJEITADO (aprovações)
+  justificativa   String?
+  observacao      String?
+  iniciadaEm      DateTime @default(now())
+  prazoEm         DateTime?
+  concluidaEm     DateTime?
+  concluidaPorId  String?
+  diasAtraso      Int      @default(0)
+  escalonadoNivel Int      @default(0)
+  escalonadoEm    DateTime?
+  lembreteConfig  Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, status, prazoEm])
+  @@index([instanciaId, status])
+  @@index([tenantId, papel, status])
+  @@index([tenantId, noChave])
+}
+
+// Histórico completo (linha do tempo) da jornada.
+model JorHistorico {
+  id          String   @id @default(uuid())
+  tenantId    String
+  instanciaId String
+  instancia   JorInstancia @relation(fields: [instanciaId], references: [id], onDelete: Cascade)
+  etapaId     String?
+  acao        String               // INICIADA, ETAPA_ABERTA, ETAPA_CONCLUIDA, ATRASO, ESCALONADA, PULADA, CANCELADA...
+  userId      String?
+  detalhes    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, instanciaId, createdAt])
+}
+
+// ---- edu/notas.prisma ----
+// ============================================================
+// EDUMASTER PRO — NOTAS (diário de classe, boletim, histórico, revisão)
+// Prefixo Nt. Referências a outros módulos = String sem @relation.
+// ============================================================
+
+enum NtEscopoRegra {
+  TENANT
+  CURSO
+  TURMA
+}
+
+enum NtRegraMedia {
+  ARITMETICA
+  PONDERADA
+}
+
+enum NtRegraRecuperacao {
+  NENHUMA
+  SUBSTITUI_MENOR      // nota da recuperação substitui a menor nota de componente (se maior)
+  SUBSTITUI_MEDIA      // substitui a média parcial (se maior)
+  MEDIA_COM_PARCIAL    // (parcial*pesoParcial + rec*pesoExame)
+}
+
+enum NtRegraExame {
+  NENHUM
+  MEDIA_PONDERADA      // parcial*pesoParcial + exame*pesoExame
+  SUBSTITUI            // exame substitui a média parcial
+}
+
+enum NtTipoComponente {
+  AVALIACAO
+  RECUPERACAO
+  EXAME
+}
+
+enum NtStatusDiario {
+  ABERTO
+  FECHADO
+}
+
+enum NtOrigemNota {
+  MANUAL
+  IMPORTACAO
+  PROVA
+  CORRECAO
+  REVISAO
+}
+
+enum NtSituacao {
+  EM_CURSO
+  APROVADO
+  REPROVADO_NOTA
+  REPROVADO_FREQ
+  RECUPERACAO
+  EXAME
+}
+
+enum NtStatusRevisao {
+  SOLICITADA
+  PARECER_EMITIDO
+  DEFERIDA
+  INDEFERIDA
+  CANCELADA
+}
+
+// Regra de avaliação configurável por tenant, curso ou turma.
+// componentes = modelo [{codigo,nome,peso,notaMaxima,tipo,obrigatorio}] aplicável às turmas.
+model NtRegraAvaliacao {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  nome                  String
+  escopo                NtEscopoRegra @default(TENANT)
+  programId             String?
+  classSectionId        String?
+  padrao                Boolean  @default(false)
+  regraMedia            NtRegraMedia @default(PONDERADA)
+  notaMaxima            Float    @default(10)
+  mediaAprovacao        Float    @default(7)
+  mediaMinimaRecuperacao Float   @default(4)   // abaixo disso reprova direto (sem rec/exame)
+  recuperacao           NtRegraRecuperacao @default(SUBSTITUI_MENOR)
+  exame                 NtRegraExame @default(MEDIA_PONDERADA)
+  pesoParcial           Float    @default(0.6)
+  pesoExame             Float    @default(0.4)
+  mediaAprovacaoExame   Float    @default(5)
+  frequenciaMinima      Float    @default(75)
+  abonaJustificadas     Boolean  @default(true)
+  arredondamento        String   @default("UM_DECIMAL")   // NENHUM | UM_DECIMAL | MEIO_PONTO | INTEIRO
+  diasRevisao           Int      @default(7)     // prazo p/ aluno pedir revisão após fechamento
+  componentes           Json?
+  ativo                 Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([tenantId, escopo])
+  @@index([tenantId, programId])
+  @@index([tenantId, classSectionId])
+}
+
+// Componente de avaliação de uma turma (P1, P2, Trabalho, Recuperação, Exame...).
+model NtComponente {
+  id              String   @id @default(uuid())
+  tenantId        String
+  classSectionId  String
+  codigo          String
+  nome            String
+  tipo            NtTipoComponente @default(AVALIACAO)
+  peso            Float    @default(1)
+  notaMaxima      Float    @default(10)
+  obrigatorio     Boolean  @default(true)
+  dataPrevista    DateTime?
+  assessmentId    String?          // prova do módulo provas-ia vinculada
+  ordem           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  lancamentos     NtLancamento[]
+
+  @@unique([classSectionId, codigo])
+  @@index([tenantId, classSectionId])
+}
+
+model NtLancamento {
+  id              String   @id @default(uuid())
+  tenantId        String
+  classSectionId  String
+  componenteId    String
+  studentId       String
+  valor           Float?
+  ausente         Boolean  @default(false)   // faltou à avaliação (conta zero se componente obrigatório)
+  observacao      String?
+  origem          NtOrigemNota @default(MANUAL)
+  attemptId       String?
+  lancadoPorId    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  componente      NtComponente @relation(fields: [componenteId], references: [id], onDelete: Cascade)
+  historico       NtLancamentoHistorico[]
+
+  @@unique([componenteId, studentId])
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, studentId])
+}
+
+// Trilha de auditoria de TODA alteração de nota.
+model NtLancamentoHistorico {
+  id              String   @id @default(uuid())
+  tenantId        String
+  lancamentoId    String
+  classSectionId  String
+  studentId       String
+  componenteId    String
+  valorAnterior   Float?
+  valorNovo       Float?
+  ausenteAnterior Boolean?
+  ausenteNovo     Boolean?
+  origem          NtOrigemNota
+  motivo          String?
+  usuarioId       String?
+  createdAt       DateTime @default(now())
+
+  lancamento      NtLancamento @relation(fields: [lancamentoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, lancamentoId])
+  @@index([tenantId, classSectionId])
+}
+
+// Diário da turma: estado (aberto/fechado), regra congelada e prazo de lançamento.
+model NtDiario {
+  id              String   @id @default(uuid())
+  tenantId        String
+  classSectionId  String
+  status          NtStatusDiario @default(ABERTO)
+  regraId         String?
+  regraSnapshot   Json?          // regra vigente congelada no fechamento
+  prazoLancamento DateTime?
+  fechadoEm       DateTime?
+  fechadoPorId    String?
+  fechamentoObs   String?
+  reabertoEm      DateTime?
+  reabertoPorId   String?
+  reaberturaMotivo String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([classSectionId])
+  @@index([tenantId, status])
+}
+
+// Resultado consolidado do aluno na turma (cache recalculável).
+model NtResultado {
+  id              String   @id @default(uuid())
+  tenantId        String
+  classSectionId  String
+  studentId       String
+  enrollmentId    String?
+  disciplineId    String?
+  termId          String?
+  mediaParcial    Float?
+  notaRecuperacao Float?
+  notaExame       Float?
+  mediaFinal      Float?
+  frequenciaPct   Float?
+  aulasTotal      Int      @default(0)
+  faltas          Int      @default(0)
+  situacao        NtSituacao @default(EM_CURSO)
+  pendencias      Int      @default(0)
+  encerrado       Boolean  @default(false)
+  calculadoEm     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([classSectionId, studentId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, termId])
+  @@index([tenantId, situacao])
+}
+
+// Pedido de revisão de nota: aluno -> parecer do professor -> decisão da coordenação.
+model NtRevisao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  studentId       String
+  classSectionId  String
+  componenteId    String
+  lancamentoId    String?
+  notaOriginal    Float?
+  justificativa   String
+  status          NtStatusRevisao @default(SOLICITADA)
+  parecer         String?
+  parecerNotaSugerida Float?
+  parecerPorId    String?
+  parecerEm       DateTime?
+  decisao         String?
+  notaNova        Float?
+  decididoPorId   String?
+  decididoEm      DateTime?
+  prazoParecer    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, classSectionId])
+}
+
+// ---- edu/regulatorio.prisma ----
+// ============================================================
+// EDUMASTER PRO — REGULATÓRIO (MEC/INEP) — prefixo Reg
+// ============================================================
+
+enum RegTipoProcesso {
+  CREDENCIAMENTO
+  RECREDENCIAMENTO
+  AUTORIZACAO_CURSO
+  RECONHECIMENTO_CURSO
+  RENOVACAO_RECONHECIMENTO
+  ADITAMENTO_VAGAS
+  ADITAMENTO_ENDERECO
+  ADITAMENTO_POLO_EAD
+  TRANSFERENCIA_MANTENCA
+  OUTRO
+}
+
+enum RegEtapa {
+  PREPARACAO
+  PROTOCOLADO
+  EM_ANALISE
+  DILIGENCIA
+  AVALIACAO_IN_LOCO
+  DECISAO
+  PUBLICADO
+  ARQUIVADO
+}
+
+enum RegResultado {
+  PENDENTE
+  DEFERIDO
+  INDEFERIDO
+  ARQUIVADO
+}
+
+model RegProcesso {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tipo            RegTipoProcesso
+  etapa           RegEtapa @default(PREPARACAO)
+  resultado       RegResultado @default(PENDENTE)
+  titulo          String
+  programId       String?       // AcademicProgram (sem relation)
+  cursoNome       String?
+  protocoloEmec   String?
+  numeroProcesso  String?
+  responsavelId   String?
+  vagasSolicitadas Int?
+  enderecoNovo    String?
+  conceitoObtido  Int?
+  protocoladoEm   DateTime?
+  prazoProtocolo  DateTime?     // prazo interno/legal para protocolar
+  avaliacaoPrevistaEm DateTime?
+  decisaoPrevistaEm DateTime?
+  publicadoEm     DateTime?
+  observacoes     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  historico       RegProcessoHistorico[]
+  diligencias     RegDiligencia[]
+  checklists      RegChecklist[]
+
+  @@index([tenantId, etapa])
+  @@index([tenantId, tipo])
+  @@index([tenantId, programId])
+}
+
+model RegProcessoHistorico {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String
+  etapaDe     RegEtapa?
+  etapaPara   RegEtapa
+  userId      String?
+  observacao  String?
+  createdAt   DateTime @default(now())
+
+  processo    RegProcesso @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, processoId])
+}
+
+enum RegDiligenciaStatus {
+  ABERTA
+  RESPONDIDA
+  CUMPRIDA
+  VENCIDA
+  CANCELADA
+}
+
+model RegDiligencia {
+  id            String   @id @default(uuid())
+  tenantId      String
+  processoId    String
+  descricao     String
+  exigencias    Json?          // [{texto, atendida}]
+  recebidaEm    DateTime @default(now())
+  prazoResposta DateTime
+  status        RegDiligenciaStatus @default(ABERTA)
+  responsavelId String?
+  resposta      String?
+  respondidaEm  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  processo      RegProcesso @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, prazoResposta])
+  @@index([tenantId, processoId])
+}
+
+enum RegTipoAto {
+  PORTARIA_CREDENCIAMENTO
+  PORTARIA_RECREDENCIAMENTO
+  PORTARIA_AUTORIZACAO
+  PORTARIA_RECONHECIMENTO
+  PORTARIA_RENOVACAO
+  PORTARIA_ADITAMENTO
+  RESOLUCAO
+  PARECER
+  OUTRO
+}
+
+// Repositório de atos regulatórios (portarias/DOU)
+model RegAto {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tipo            RegTipoAto
+  numero          String
+  orgao           String   @default("MEC")
+  dataPublicacao  DateTime
+  referenciaDou   String?
+  programId       String?
+  cursoNome       String?
+  escopo          String   @default("CURSO")   // CURSO | INSTITUICAO
+  processoId      String?
+  vigenciaInicio  DateTime?
+  vencimento      DateTime?       // fim da vigência (nulo = sem prazo)
+  vagasAutorizadas Int?
+  cicloAvaliativoAnos Int?
+  conceito        Int?
+  revogado        Boolean  @default(false)
+  anexos          Json?            // [{nome,url,dataUrl,mime}]
+  observacoes     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, tipo, numero])
+  @@index([tenantId, vencimento])
+  @@index([tenantId, programId])
+}
+
+enum RegInstrumento {
+  INSTITUCIONAL
+  CURSO_AUTORIZACAO
+  CURSO_RECONHECIMENTO
+  CURSO_RENOVACAO
+  DOCUMENTAL
+}
+
+enum RegDimensao {
+  ORGANIZACAO_DIDATICO_PEDAGOGICA
+  CORPO_DOCENTE_TUTORIAL
+  INFRAESTRUTURA
+  DOCUMENTAL
+  GESTAO_INSTITUCIONAL
+}
+
+model RegChecklistModelo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  chave       String
+  nome        String
+  tipoProcesso RegTipoProcesso?
+  instrumento RegInstrumento @default(DOCUMENTAL)
+  descricao   String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  itens       RegChecklistModeloItem[]
+
+  @@unique([tenantId, chave])
+  @@index([tenantId, tipoProcesso])
+}
+
+model RegChecklistModeloItem {
+  id          String   @id @default(uuid())
+  tenantId    String
+  modeloId    String
+  ordem       Int      @default(0)
+  dimensao    RegDimensao @default(DOCUMENTAL)
+  titulo      String
+  descricao   String?
+  obrigatorio Boolean  @default(true)
+  peso        Int      @default(1)
+  prazoDias   Int?             // prazo relativo (dias após criação do checklist)
+  responsavelRole String?
+
+  modelo      RegChecklistModelo @relation(fields: [modeloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, modeloId])
+}
+
+model RegChecklist {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  modeloId    String?
+  instrumento RegInstrumento @default(DOCUMENTAL)
+  processoId  String?
+  programId   String?
+  prontidao   Float    @default(0)      // 0..100 (cache)
+  prazo       DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  processo    RegProcesso? @relation(fields: [processoId], references: [id], onDelete: SetNull)
+  itens       RegChecklistItem[]
+
+  @@index([tenantId, processoId])
+  @@index([tenantId, programId])
+}
+
+enum RegItemStatus {
+  PENDENTE
+  EM_ANDAMENTO
+  ATENDIDO
+  NAO_APLICAVEL
+}
+
+model RegChecklistItem {
+  id            String   @id @default(uuid())
+  tenantId      String
+  checklistId   String
+  ordem         Int      @default(0)
+  dimensao      RegDimensao @default(DOCUMENTAL)
+  titulo        String
+  descricao     String?
+  obrigatorio   Boolean  @default(true)
+  peso          Int      @default(1)
+  status        RegItemStatus @default(PENDENTE)
+  responsavelId String?
+  prazo         DateTime?
+  evidenciaUrl  String?
+  evidenciaTexto String?
+  evidencias    Json?            // [{nome,url,dataUrl}]
+  conferenciaIA Json?            // última conferência por IA/manual
+  concluidoEm   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  checklist     RegChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, checklistId])
+  @@index([tenantId, status, prazo])
+}
+
+// Autoavaliação por indicador (conceito 1-5)
+model RegIndicador {
+  id            String   @id @default(uuid())
+  tenantId      String
+  instrumento   RegInstrumento
+  dimensao      RegDimensao
+  codigo        String           // ex.: 1.1
+  nome          String
+  programId     String?
+  conceito      Int?             // 1..5
+  justificativa String?
+  planoMelhoria String?
+  responsavelId String?
+  prazoMelhoria DateTime?
+  avaliadoEm    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, instrumento, dimensao])
+  @@index([tenantId, programId])
+}
+
+model RegSimulacao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tipo        String           // CPC | CC
+  programId   String?
+  rotulo      String?
+  entrada     Json
+  resultado   Json
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, tipo, createdAt])
+}
+
+model RegAnaliseDocumento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tipoDocumento String           // PORTARIA | RELATORIO_AVALIACAO | DILIGENCIA | OUTRO
+  titulo      String?
+  processoId  String?
+  texto       String
+  modo        String   @default("MANUAL")   // IA | HEURISTICO | MANUAL
+  resumo      String?
+  prazos      Json?
+  exigencias  Json?
+  tarefasCriadas Json?
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, processoId])
+  @@index([tenantId, createdAt])
+}
+
+// ---- edu/secretaria.prisma ----
+// ============================================================
+// EDUMASTER PRO — SECRETARIA ACADÊMICA (prefixo Sec)
+// Protocolo/requerimentos, documentos, conferência, certificados,
+// diplomas/colação/livros, arquivo e temporalidade.
+// ============================================================
+
+enum SecProtocoloStatus {
+  ABERTO
+  EM_ANALISE
+  PENDENTE_DOCUMENTO
+  DEFERIDO
+  INDEFERIDO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum SecTaxaStatus {
+  ISENTA
+  PENDENTE
+  PAGA
+  CANCELADA
+}
+
+enum SecConferenciaStatus {
+  EM_ANDAMENTO
+  PENDENTE
+  APROVADA
+  REPROVADA
+}
+
+enum SecItemStatus {
+  PENDENTE
+  APROVADO
+  REJEITADO
+}
+
+enum SecCertificadoStatus {
+  EMITIDO
+  REVOGADO
+  SUBSTITUIDO
+}
+
+enum SecDiplomaStatus {
+  SOLICITADO
+  CONFERENCIA
+  PENDENCIA
+  REGISTRO
+  REGISTRADO
+  ENTREGUE
+  CANCELADO
+}
+
+enum SecColacaoStatus {
+  PLANEJADA
+  CONVOCADA
+  REALIZADA
+  ENCERRADA
+  CANCELADA
+}
+
+enum SecFormandoStatus {
+  INSCRITO
+  APTO
+  PENDENTE
+  COLOU
+  AUSENTE
+  EXCLUIDO
+}
+
+enum SecArquivoStatus {
+  ATIVO
+  ELEGIVEL_DESCARTE
+  DESCARTE_SOLICITADO
+  DESCARTADO
+  GUARDA_PERMANENTE
+  SUSPENSO
+}
+
+enum SecDescarteStatus {
+  RASCUNHO
+  AGUARDANDO_APROVACAO
+  APROVADO
+  REJEITADO
+  EXECUTADO
+}
+
+// Contador atômico por tenant/chave (protocolo ANO/SEQ, nº de certificado, registro de diploma...).
+model SecContador {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  valor     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+// ---------- REQUERIMENTOS / PROTOCOLO ----------
+
+model SecTipoRequerimento {
+  id                String   @id @default(uuid())
+  tenantId          String
+  codigo            String
+  nome              String
+  descricao         String?
+  categoria         String   @default("GERAL")   // ACADEMICO, DOCUMENTO, FINANCEIRO, DIPLOMA, GERAL
+  slaDias           Int      @default(5)          // dias úteis
+  taxa              Float    @default(0)
+  geraDocumento     String?                       // tipo de documento emitido automaticamente ao concluir (DECLARACAO_MATRICULA...)
+  abertoPeloAluno   Boolean  @default(true)
+  exigeAnexo        Boolean  @default(false)
+  checklistModeloId String?
+  prazoReenvioDias  Int      @default(15)
+  responsavelRole   String   @default("SECRETARY")
+  camposExtras      Json?                         // [{chave,rotulo,obrigatorio}]
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  protocolos        SecProtocolo[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, ativo])
+}
+
+model SecProtocolo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  numero           String                         // ANO/SEQ  ex.: 2026/000123
+  ano              Int
+  seq              Int
+  tipoId           String
+  studentId        String?
+  enrollmentId     String?
+  solicitanteNome  String?
+  assunto          String
+  descricao        String?
+  status           SecProtocoloStatus @default(ABERTO)
+  prioridade       String   @default("NORMAL")    // BAIXA, NORMAL, ALTA, URGENTE
+  canal            String   @default("PORTAL")    // PORTAL, BALCAO, EMAIL, TELEFONE
+  abertoPorId      String?
+  responsavelId    String?
+  slaDias          Int      @default(5)
+  prazoEm          DateTime
+  pendenteDesde    DateTime?
+  taxaValor        Float    @default(0)
+  taxaStatus       SecTaxaStatus @default(ISENTA)
+  receivableId     String?
+  decisao          String?
+  decisaoMotivo    String?
+  decididoEm       DateTime?
+  concluidoEm      DateTime?
+  escalonadoEm     DateTime?
+  dados            Json?
+  documentoCodigo  String?                        // documento gerado na conclusão
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tipo             SecTipoRequerimento @relation(fields: [tipoId], references: [id])
+  tramites         SecTramite[]
+  anexos           SecAnexo[]
+
+  @@unique([tenantId, ano, seq])
+  @@index([tenantId, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, prazoEm])
+}
+
+model SecTramite {
+  id            String   @id @default(uuid())
+  tenantId      String
+  protocoloId   String
+  acao          String                            // ABERTURA, STATUS, COMENTARIO, ANEXO, ATRIBUICAO, ESCALONAMENTO, TAXA...
+  deStatus      String?
+  paraStatus    String?
+  usuarioId     String?
+  usuarioNome   String?
+  origem        String   @default("SECRETARIA")   // SECRETARIA, ALUNO, SISTEMA
+  parecer       String?
+  visivelAluno  Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  protocolo     SecProtocolo @relation(fields: [protocoloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, protocoloId, createdAt])
+}
+
+model SecAnexo {
+  id              String   @id @default(uuid())
+  tenantId        String
+  protocoloId     String
+  nome            String
+  mime            String?
+  tamanho         Int?
+  url             String?
+  dataUrl         String?
+  descricao       String?
+  enviadoPorId    String?
+  enviadoPorAluno Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  protocolo       SecProtocolo @relation(fields: [protocoloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, protocoloId])
+}
+
+// ---------- CHECKLISTS E CONFERÊNCIA DE DOCUMENTOS ----------
+
+model SecChecklistModelo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  codigo      String
+  nome        String
+  processo    String                              // MATRICULA, TRANSFERENCIA, APROVEITAMENTO, ESTAGIO, DIPLOMA, COLACAO...
+  descricao   String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  itens       SecChecklistItemModelo[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, processo])
+}
+
+model SecChecklistItemModelo {
+  id           String   @id @default(uuid())
+  tenantId     String
+  modeloId     String
+  ordem        Int      @default(0)
+  titulo       String
+  descricao    String?
+  obrigatorio  Boolean  @default(true)
+  validadeDias Int?                               // documento não pode ser mais antigo que N dias
+  requisitos   String?                            // o que a IA/analista deve verificar
+  createdAt    DateTime @default(now())
+
+  modelo       SecChecklistModelo @relation(fields: [modeloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, modeloId])
+}
+
+model SecConferencia {
+  id            String   @id @default(uuid())
+  tenantId      String
+  modeloId      String?
+  processo      String
+  titulo        String
+  protocoloId   String?
+  studentId     String?
+  refType       String?
+  refId         String?
+  status        SecConferenciaStatus @default(EM_ANDAMENTO)
+  concluidaEm   DateTime?
+  criadoPorId   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  itens         SecConferenciaItem[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, protocoloId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, refType, refId])
+}
+
+model SecConferenciaItem {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  conferenciaId      String
+  itemModeloId       String?
+  ordem              Int      @default(0)
+  titulo             String
+  obrigatorio        Boolean  @default(true)
+  validadeDias       Int?
+  requisitos         String?
+  status             SecItemStatus @default(PENDENTE)
+  motivo             String?
+  anexoId            String?
+  documentoTexto     String?                      // texto/descrição do documento (OCR, digitação)
+  dataDocumento      DateTime?
+  analiseIa          Json?
+  analisadoPorId     String?
+  analisadoEm        DateTime?
+  reenvioSolicitadoEm DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  conferencia        SecConferencia @relation(fields: [conferenciaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, conferenciaId])
+}
+
+// ---------- DOCUMENTOS EMITIDOS (declarações, histórico) ----------
+
+model SecDocumentoEmitido {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tipo          String                            // DECLARACAO_MATRICULA, DECLARACAO_VINCULO, HISTORICO_ESCOLAR...
+  studentId     String?
+  protocoloId   String?
+  codigo        String   @unique                  // código de verificação
+  hash          String                            // SHA-256 do HTML
+  html          String
+  validoAte     DateTime?
+  emitidoPorId  String?
+  cancelado     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, tipo])
+  @@index([tenantId, studentId])
+}
+
+// ---------- CERTIFICADOS ----------
+
+model SecCertModelo {
+  id           String   @id @default(uuid())
+  tenantId     String
+  codigo       String
+  nome         String
+  tipo         String                             // CURSO, EXTENSAO, EVENTO, POS_GRADUACAO, MONITORIA, PARTICIPACAO
+  titulo       String   @default("CERTIFICADO")
+  texto        String                             // com {{variaveis}}
+  htmlCustom   String?                            // HTML completo opcional (com {{variaveis}} e {{CABECALHO}})
+  orientacao   String   @default("landscape")
+  assinaturas  Json?                              // [{nome,cargo,assetKind?}]
+  ativo        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  certificados SecCertificado[]
+  lotes        SecCertLote[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, tipo])
+}
+
+model SecCertLote {
+  id          String   @id @default(uuid())
+  tenantId    String
+  modeloId    String
+  nome        String
+  total       Int      @default(0)
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+
+  modelo      SecCertModelo @relation(fields: [modeloId], references: [id])
+  certificados SecCertificado[]
+
+  @@index([tenantId, modeloId])
+}
+
+model SecCertificado {
+  id               String   @id @default(uuid())
+  tenantId         String
+  modeloId         String
+  loteId           String?
+  numero           String                         // ANO/SEQ
+  codigo           String   @unique               // verificação pública
+  hash             String
+  status           SecCertificadoStatus @default(EMITIDO)
+  destinatarioNome String
+  destinatarioDoc  String?
+  studentId        String?
+  tituloEvento     String
+  cargaHoraria     Int?
+  periodo          String?
+  dados            Json?
+  html             String
+  emitidoEm        DateTime @default(now())
+  emitidoPorId     String?
+  revogadoEm       DateTime?
+  revogadoPorId    String?
+  motivoRevogacao  String?
+  substituidoPorId String?
+  certificateId    String?                        // Certificate do núcleo (opcional)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  modelo           SecCertModelo @relation(fields: [modeloId], references: [id])
+  lote             SecCertLote? @relation(fields: [loteId], references: [id])
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, modeloId])
+}
+
+// ---------- LIVROS, ATAS, DIPLOMAS E COLAÇÃO ----------
+
+model SecLivro {
+  id             String   @id @default(uuid())
+  tenantId       String
+  tipo           String                           // REGISTRO_DIPLOMA, ATAS_COLACAO, ATAS_GERAIS, REGISTRO_CERTIFICADO
+  numero         Int
+  titulo         String
+  folhaAtual     Int      @default(1)
+  registrosPorFolha Int   @default(2)
+  proximoRegistro Int     @default(1)
+  aberto         Boolean  @default(true)
+  abertoEm       DateTime @default(now())
+  encerradoEm    DateTime?
+  termoAbertura  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  diplomas       SecDiploma[]
+  atas           SecAta[]
+
+  @@unique([tenantId, tipo, numero])
+  @@index([tenantId, tipo, aberto])
+}
+
+model SecAta {
+  id          String   @id @default(uuid())
+  tenantId    String
+  livroId     String?
+  numero      Int?
+  tipo        String   @default("GERAL")          // COLACAO, COLEGIADO, BANCA, REUNIAO, GERAL
+  titulo      String
+  data        DateTime
+  conteudo    String                              // HTML/texto
+  participantes Json?
+  colacaoId   String?
+  assinadaEm  DateTime?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  livro       SecLivro? @relation(fields: [livroId], references: [id])
+
+  @@index([tenantId, tipo])
+  @@index([tenantId, colacaoId])
+}
+
+model SecDiploma {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  studentId          String
+  programId          String?
+  enrollmentId       String?
+  tipo               String   @default("DIPLOMA") // DIPLOMA, SEGUNDA_VIA
+  status             SecDiplomaStatus @default(SOLICITADO)
+  solicitadoEm       DateTime @default(now())
+  conferenciaId      String?
+  colacaoId          String?
+  livroId            String?
+  numeroRegistro     Int?
+  folha              Int?
+  dataRegistro       DateTime?
+  dataConclusao      DateTime?
+  dataColacao        DateTime?
+  entregueEm         DateTime?
+  retiradoPor        String?
+  retiradoDoc        String?
+  pendencias         Json?
+  observacoes        String?
+  protocoloId        String?
+  codigoVerificacao  String?  @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  livro              SecLivro? @relation(fields: [livroId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, colacaoId])
+}
+
+model SecColacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  data          DateTime
+  local         String?
+  programId     String?
+  termId        String?
+  status        SecColacaoStatus @default(PLANEJADA)
+  prazoInscricaoEm DateTime?
+  observacoes   String?
+  ataId         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  formandos     SecColacaoFormando[]
+
+  @@index([tenantId, status, data])
+}
+
+model SecColacaoFormando {
+  id           String   @id @default(uuid())
+  tenantId     String
+  colacaoId    String
+  studentId    String
+  nome         String
+  status       SecFormandoStatus @default(INSCRITO)
+  pendencias   Json?
+  juramento    Boolean  @default(true)
+  diplomaId    String?
+  observacoes  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  colacao      SecColacao @relation(fields: [colacaoId], references: [id], onDelete: Cascade)
+
+  @@unique([colacaoId, studentId])
+  @@index([tenantId, studentId])
+}
+
+// ---------- ARQUIVO / TEMPORALIDADE ----------
+
+model SecTemporalidade {
+  id                   String   @id @default(uuid())
+  tenantId             String
+  codigo               String
+  tipoDocumento        String
+  descricao            String?
+  prazoCorrenteAnos    Int      @default(5)       // arquivo corrente
+  prazoIntermediarioAnos Int    @default(0)       // arquivo intermediário
+  destinacao           String   @default("ELIMINACAO")   // ELIMINACAO | GUARDA_PERMANENTE
+  fundamento           String?
+  ativo                Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+}
+
+model SecArquivoItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  temporalidadeId String
+  titulo          String
+  descricao       String?
+  studentId       String?
+  refType         String?
+  refId           String?
+  predio          String?
+  sala            String?
+  estante         String?
+  caixa           String?
+  pasta           String?
+  urlDigital      String?
+  dataDocumento   DateTime?
+  dataEncerramento DateTime                         // marco inicial dos prazos de guarda
+  eliminarApos    DateTime?                        // calculado
+  status          SecArquivoStatus @default(ATIVO)
+  suspensoMotivo  String?
+  descarteId      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, eliminarApos])
+  @@index([tenantId, studentId])
+}
+
+model SecDescarte {
+  id            String   @id @default(uuid())
+  tenantId      String
+  numero        String
+  justificativa String?
+  status        SecDescarteStatus @default(RASCUNHO)
+  itemIds       Json                                // string[]
+  solicitadoPorId String?
+  aprovadoPorId String?
+  aprovadoEm    DateTime?
+  motivoRejeicao String?
+  executadoEm   DateTime?
+  termoHtml     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+}
+
+// ---- edu/suprimentos.prisma ----
+// ============================================================
+// EDUMASTER PRO — SUPRIMENTOS (prefixo Sup): compras, estoque,
+// insumos de cursos, contratos e vendas (loja/papelaria/cantina).
+// Referências a outros módulos (curso, laboratório, turma, aluno,
+// centro de custo, campus) são String ids SEM @relation.
+// ============================================================
+
+enum SupFornecedorStatus {
+  ATIVO
+  EM_ANALISE
+  BLOQUEADO
+  INATIVO
+}
+
+enum SupDocumentoStatus {
+  VALIDO
+  A_VENCER
+  VENCIDO
+}
+
+enum SupRequisicaoTipo {
+  COMPRA
+  INSUMO
+}
+
+enum SupRequisicaoStatus {
+  RASCUNHO
+  AGUARDANDO_APROVACAO
+  APROVADA
+  REPROVADA
+  EM_COTACAO
+  COTADA
+  PEDIDO_EMITIDO
+  ATENDIDA
+  CANCELADA
+}
+
+enum SupAprovacaoStatus {
+  PENDENTE
+  APROVADO
+  REPROVADO
+}
+
+enum SupCotacaoStatus {
+  ABERTA
+  ENCERRADA
+  CANCELADA
+}
+
+enum SupPedidoStatus {
+  RASCUNHO
+  EMITIDO
+  PARCIALMENTE_RECEBIDO
+  RECEBIDO
+  CANCELADO
+}
+
+enum SupMovTipo {
+  ENTRADA
+  SAIDA
+  TRANSFERENCIA
+  AJUSTE
+  PERDA
+  DEVOLUCAO
+}
+
+enum SupContratoStatus {
+  RASCUNHO
+  VIGENTE
+  A_VENCER
+  VENCIDO
+  RENOVADO
+  ENCERRADO
+}
+
+enum SupInventarioStatus {
+  ABERTO
+  CONTAGEM_FINALIZADA
+  AJUSTADO
+  CANCELADO
+}
+
+enum SupCaixaStatus {
+  ABERTO
+  FECHADO
+}
+
+enum SupVendaTipo {
+  A_VISTA
+  LANCADA_ALUNO
+}
+
+enum SupVendaStatus {
+  CONCLUIDA
+  PARCIALMENTE_DEVOLVIDA
+  DEVOLVIDA
+  CANCELADA
+}
+
+// ---------- Fornecedores ----------
+
+model SupFornecedor {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  razaoSocial        String
+  nomeFantasia       String?
+  cnpj               String?
+  inscricaoEstadual  String?
+  email              String?
+  telefone           String?
+  contato            String?
+  endereco           String?
+  cidade             String?
+  uf                 String?
+  categorias         String[] // categorias de fornecimento
+  prazoPagamentoDias Int      @default(30)
+  banco              String?
+  chavePix           String?
+  status             SupFornecedorStatus @default(ATIVO)
+  ativo              Boolean  @default(true)
+  avaliacaoMedia     Float?
+  totalAvaliacoes    Int      @default(0)
+  observacoes        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  documentos  SupFornecedorDocumento[]
+  avaliacoes  SupFornecedorAvaliacao[]
+  contratos   SupContrato[]
+  pedidos     SupPedido[]
+
+  @@unique([tenantId, cnpj])
+  @@index([tenantId, status])
+}
+
+model SupFornecedorDocumento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  fornecedorId  String
+  tipo          String        // CND Federal, CND Estadual, FGTS, Trabalhista, Alvará, Contrato Social...
+  numero        String?
+  emissao       DateTime?
+  validade      DateTime?
+  status        SupDocumentoStatus @default(VALIDO)
+  arquivoUrl    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  fornecedor    SupFornecedor @relation(fields: [fornecedorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, validade])
+  @@index([fornecedorId])
+}
+
+model SupFornecedorAvaliacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  fornecedorId  String
+  pedidoId      String?
+  notaPrazo     Int           // 1..5
+  notaQualidade Int
+  notaPreco     Int
+  notaAtendimento Int         @default(3)
+  nota          Float         // média calculada
+  comentario    String?
+  avaliadorUserId String?
+  createdAt     DateTime @default(now())
+
+  fornecedor    SupFornecedor @relation(fields: [fornecedorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, fornecedorId])
+}
+
+// ---------- Catálogo ----------
+
+model SupCategoria {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  descricao   String?
+  contaContabilId String?   // ChartOfAccount (financeiro) opcional
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  itens       SupItem[]
+
+  @@unique([tenantId, nome])
+  @@index([tenantId])
+}
+
+model SupItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  codigo          String
+  nome            String
+  descricao       String?
+  categoriaId     String?
+  unidade         String   @default("UN")   // UN, CX, KG, L, PCT...
+  estoqueMinimo   Float    @default(0)
+  estoqueMaximo   Float?
+  pontoPedido     Float?
+  leadTimeDias    Int      @default(7)
+  controlaLote    Boolean  @default(false)
+  controlaValidade Boolean @default(false)
+  precoReferencia Float?
+  custoMedio      Float    @default(0)     // custo médio global (todos os almoxarifados)
+  contaContabilId String?
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  categoria       SupCategoria? @relation(fields: [categoriaId], references: [id])
+  saldos          SupSaldo[]
+  lotes           SupLote[]
+  movimentacoes   SupMovimentacao[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, categoriaId])
+}
+
+// ---------- Estoque ----------
+
+model SupAlmoxarifado {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String
+  nome          String
+  campusId      String?
+  localizacao   String?
+  responsavelUserId String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  saldos        SupSaldo[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId])
+}
+
+model SupSaldo {
+  id              String   @id @default(uuid())
+  tenantId        String
+  almoxarifadoId  String
+  itemId          String
+  quantidade      Float    @default(0)
+  custoMedio      Float    @default(0)
+  ultimaMovimentacao DateTime?
+  updatedAt       DateTime @updatedAt
+
+  almoxarifado    SupAlmoxarifado @relation(fields: [almoxarifadoId], references: [id])
+  item            SupItem         @relation(fields: [itemId], references: [id])
+
+  @@unique([almoxarifadoId, itemId])
+  @@index([tenantId, itemId])
+}
+
+model SupLote {
+  id              String   @id @default(uuid())
+  tenantId        String
+  almoxarifadoId  String
+  itemId          String
+  numero          String
+  validade        DateTime?
+  quantidade      Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  item            SupItem  @relation(fields: [itemId], references: [id])
+
+  @@unique([almoxarifadoId, itemId, numero])
+  @@index([tenantId, validade])
+}
+
+model SupMovimentacao {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  tipo                  SupMovTipo
+  itemId                String
+  almoxarifadoId        String        // origem (saída/transferência) ou destino (entrada)
+  almoxarifadoDestinoId String?       // só transferência
+  quantidade            Float         // sempre positiva; para AJUSTE use `sentido`
+  sentido               Int           @default(1)   // +1 aumenta saldo do almoxarifadoId, -1 reduz
+  custoUnitario         Float         @default(0)
+  valorTotal            Float         @default(0)
+  saldoApos             Float         @default(0)
+  custoMedioApos        Float         @default(0)
+  loteId                String?
+  loteNumero            String?
+  origemTipo            String?       // PEDIDO, RECEBIMENTO, VENDA, KIT_AULA, INVENTARIO, REQUISICAO, MANUAL
+  origemId              String?
+  cursoId               String?
+  laboratorioId         String?
+  centroCustoId         String?
+  classSectionId        String?
+  motivo                String?
+  userId                String?
+  createdAt             DateTime @default(now())
+
+  item                  SupItem  @relation(fields: [itemId], references: [id])
+
+  @@index([tenantId, itemId, createdAt])
+  @@index([tenantId, cursoId])
+  @@index([tenantId, origemTipo, origemId])
+}
+
+model SupInventario {
+  id              String   @id @default(uuid())
+  tenantId        String
+  almoxarifadoId  String
+  tipo            String   @default("ROTATIVO")   // ROTATIVO | GERAL
+  status          SupInventarioStatus @default(ABERTO)
+  observacao      String?
+  abertoPorId     String?
+  finalizadoEm    DateTime?
+  ajustadoEm      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  itens           SupInventarioItem[]
+
+  @@index([tenantId, status])
+}
+
+model SupInventarioItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  inventarioId    String
+  itemId          String
+  quantidadeSistema Float
+  quantidadeContada Float?
+  diferenca       Float?
+  ajustado        Boolean  @default(false)
+  observacao      String?
+
+  inventario      SupInventario @relation(fields: [inventarioId], references: [id], onDelete: Cascade)
+
+  @@unique([inventarioId, itemId])
+  @@index([tenantId])
+}
+
+// ---------- Compras ----------
+
+// Alçadas de aprovação: faixa de valor -> papel aprovador (em ordem de nível).
+model SupAlcada {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nivel       Int           // 1, 2, 3...
+  valorMinimo Float         // aplica-se quando valorEstimado >= valorMinimo
+  papel       String        // COORDINATOR, FINANCE, RECTOR...
+  descricao   String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, nivel])
+  @@index([tenantId])
+}
+
+model SupRequisicao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  tipo            SupRequisicaoTipo @default(COMPRA)
+  status          SupRequisicaoStatus @default(RASCUNHO)
+  solicitanteUserId String
+  cursoId         String?
+  laboratorioId   String?       // EduSpace
+  centroCustoId   String?       // EduCostCenter
+  classSectionId  String?
+  almoxarifadoId  String?       // destino/origem
+  justificativa   String?
+  urgencia        String   @default("NORMAL")   // BAIXA | NORMAL | ALTA | URGENTE
+  necessarioEm    DateTime?
+  valorEstimado   Float    @default(0)
+  motivoReprovacao String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  itens           SupRequisicaoItem[]
+  aprovacoes      SupAprovacao[]
+  cotacoes        SupCotacao[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+}
+
+model SupRequisicaoItem {
+  id            String   @id @default(uuid())
+  tenantId      String
+  requisicaoId  String
+  itemId        String?       // item do catálogo (ou descrição livre)
+  descricao     String
+  unidade       String   @default("UN")
+  quantidade    Float
+  quantidadeAtendida Float @default(0)
+  precoEstimado Float?
+
+  requisicao    SupRequisicao @relation(fields: [requisicaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, requisicaoId])
+}
+
+model SupAprovacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  requisicaoId  String
+  nivel         Int
+  papel         String
+  status        SupAprovacaoStatus @default(PENDENTE)
+  decididoPorId String?
+  decididoEm    DateTime?
+  parecer       String?
+
+  requisicao    SupRequisicao @relation(fields: [requisicaoId], references: [id], onDelete: Cascade)
+
+  @@unique([requisicaoId, nivel])
+  @@index([tenantId, status, papel])
+}
+
+model SupCotacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  numero        String
+  requisicaoId  String
+  status        SupCotacaoStatus @default(ABERTA)
+  criterio      String   @default("MENOR_PRECO")  // MENOR_PRECO | MELHOR_PRAZO | CUSTO_BENEFICIO
+  prazoResposta DateTime?
+  fornecedorVencedorId String?
+  justificativaEscolha String?
+  valorEscolhido Float?
+  economia      Float?
+  encerradaEm   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  requisicao    SupRequisicao @relation(fields: [requisicaoId], references: [id], onDelete: Cascade)
+  propostas     SupCotacaoProposta[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+}
+
+model SupCotacaoProposta {
+  id            String   @id @default(uuid())
+  tenantId      String
+  cotacaoId     String
+  fornecedorId  String
+  respondeu     Boolean  @default(false)
+  frete         Float    @default(0)
+  prazoEntregaDias Int?
+  parcelas      Int      @default(1)
+  validadeProposta DateTime?
+  observacao    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  cotacao       SupCotacao @relation(fields: [cotacaoId], references: [id], onDelete: Cascade)
+  precos        SupCotacaoPreco[]
+
+  @@unique([cotacaoId, fornecedorId])
+  @@index([tenantId])
+}
+
+model SupCotacaoPreco {
+  id            String   @id @default(uuid())
+  tenantId      String
+  propostaId    String
+  requisicaoItemId String
+  precoUnitario Float
+
+  proposta      SupCotacaoProposta @relation(fields: [propostaId], references: [id], onDelete: Cascade)
+
+  @@unique([propostaId, requisicaoItemId])
+  @@index([tenantId])
+}
+
+model SupPedido {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  fornecedorId    String
+  requisicaoId    String?
+  cotacaoId       String?
+  almoxarifadoId  String
+  centroCustoId   String?
+  cursoId         String?
+  laboratorioId   String?
+  status          SupPedidoStatus @default(RASCUNHO)
+  valorItens      Float    @default(0)
+  frete           Float    @default(0)
+  valorTotal      Float    @default(0)
+  parcelas        Int      @default(1)
+  intervaloParcelasDias Int @default(30)
+  primeiroVencimentoEm DateTime?
+  previsaoEntrega DateTime?
+  emitidoEm       DateTime?
+  recebidoEm      DateTime?
+  observacao      String?
+  criadoPorId     String?
+  payableIds      String[]      // AccountPayable gerados no recebimento
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  fornecedor      SupFornecedor @relation(fields: [fornecedorId], references: [id])
+  itens           SupPedidoItem[]
+  recebimentos    SupRecebimento[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, fornecedorId])
+}
+
+model SupPedidoItem {
+  id            String   @id @default(uuid())
+  tenantId      String
+  pedidoId      String
+  itemId        String
+  requisicaoItemId String?
+  quantidade    Float
+  precoUnitario Float
+  quantidadeRecebida Float @default(0)
+
+  pedido        SupPedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, pedidoId])
+}
+
+model SupRecebimento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  pedidoId      String
+  notaFiscal    String?
+  dataRecebimento DateTime @default(now())
+  valor         Float    @default(0)
+  observacao    String?
+  recebidoPorId String?
+  createdAt     DateTime @default(now())
+
+  pedido        SupPedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  itens         SupRecebimentoItem[]
+
+  @@index([tenantId, pedidoId])
+}
+
+model SupRecebimentoItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  recebimentoId   String
+  pedidoItemId    String
+  itemId          String
+  quantidadeRecebida Float
+  quantidadeRejeitada Float @default(0)
+  motivoRejeicao  String?
+  loteNumero      String?
+  validade        DateTime?
+
+  recebimento     SupRecebimento @relation(fields: [recebimentoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, recebimentoId])
+}
+
+// ---------- Contratos ----------
+
+model SupContrato {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  fornecedorId    String
+  objeto          String
+  vigenciaInicio  DateTime
+  vigenciaFim     DateTime
+  valorMensal     Float?
+  valorTotal      Float?
+  indiceReajuste  String?       // IPCA, IGP-M, INPC, fixo
+  percentualReajuste Float?     // percentual aplicado no último reajuste/previsto
+  proximoReajusteEm DateTime?
+  renovacaoAutomatica Boolean @default(false)
+  avisoDias       Int      @default(60)
+  status          SupContratoStatus @default(VIGENTE)
+  centroCustoId   String?
+  arquivoUrl      String?
+  observacoes     String?
+  contratoAnteriorId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  fornecedor      SupFornecedor @relation(fields: [fornecedorId], references: [id])
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status, vigenciaFim])
+}
+
+// ---------- Kits de aula prática ----------
+
+model SupKit {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  disciplineId  String?
+  laboratorioId String?
+  descricao     String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  itens         SupKitItem[]
+  consumos      SupKitConsumo[]
+
+  @@index([tenantId, disciplineId])
+}
+
+model SupKitItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  kitId           String
+  itemId          String
+  quantidadeFixa  Float    @default(0)   // por turma/aula
+  quantidadePorAluno Float @default(0)   // por aluno presente
+  
+  kit             SupKit   @relation(fields: [kitId], references: [id], onDelete: Cascade)
+
+  @@unique([kitId, itemId])
+  @@index([tenantId])
+}
+
+model SupKitConsumo {
+  id              String   @id @default(uuid())
+  tenantId        String
+  kitId           String
+  classSectionId  String?
+  classSessionId  String?
+  cursoId         String?
+  laboratorioId   String?
+  almoxarifadoId  String
+  numeroAlunos    Int
+  valorTotal      Float    @default(0)
+  userId          String?
+  createdAt       DateTime @default(now())
+
+  kit             SupKit   @relation(fields: [kitId], references: [id])
+
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, kitId])
+}
+
+// ---------- Vendas (loja, papelaria, uniformes, livraria, cantina...) ----------
+
+model SupProduto {
+  id              String   @id @default(uuid())
+  tenantId        String
+  itemId          String        // SupItem que controla o estoque
+  almoxarifadoId  String        // almoxarifado/estoque da loja
+  canal           String   @default("LOJA")   // LOJA | PAPELARIA | UNIFORMES | LIVRARIA | CURSOS_LIVRES | CANTINA
+  nome            String
+  preco           Float
+  permiteLancarAluno Boolean @default(true)
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, itemId, almoxarifadoId])
+  @@index([tenantId, canal])
+}
+
+model SupCaixa {
+  id              String   @id @default(uuid())
+  tenantId        String
+  operadorUserId  String
+  canal           String   @default("LOJA")
+  status          SupCaixaStatus @default(ABERTO)
+  valorAbertura   Float    @default(0)
+  abertoEm        DateTime @default(now())
+  fechadoEm       DateTime?
+  valorContado    Float?
+  valorEsperado   Float?
+  diferenca       Float?
+  observacao      String?
+
+  movimentos      SupCaixaMov[]
+  vendas          SupVenda[]
+
+  @@index([tenantId, status])
+}
+
+model SupCaixaMov {
+  id          String   @id @default(uuid())
+  tenantId    String
+  caixaId     String
+  tipo        String        // SANGRIA | SUPRIMENTO
+  valor       Float
+  motivo      String?
+  createdAt   DateTime @default(now())
+
+  caixa       SupCaixa @relation(fields: [caixaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, caixaId])
+}
+
+model SupVenda {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  caixaId         String
+  tipo            SupVendaTipo @default(A_VISTA)
+  status          SupVendaStatus @default(CONCLUIDA)
+  studentId       String?
+  clienteNome     String?
+  formaPagamento  String?       // DINHEIRO | PIX | CARTAO
+  subtotal        Float    @default(0)
+  desconto        Float    @default(0)
+  total           Float    @default(0)
+  totalDevolvido  Float    @default(0)
+  parcelas        Int      @default(1)
+  receivableIds   String[]
+  vendedorUserId  String?
+  createdAt       DateTime @default(now())
+
+  caixa           SupCaixa @relation(fields: [caixaId], references: [id])
+  itens           SupVendaItem[]
+  devolucoes      SupDevolucao[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, studentId])
+}
+
+model SupVendaItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  vendaId         String
+  produtoId       String
+  itemId          String
+  almoxarifadoId  String
+  descricao       String
+  quantidade      Float
+  precoUnitario   Float
+  custoUnitario   Float    @default(0)
+  quantidadeDevolvida Float @default(0)
+
+  venda           SupVenda @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, vendaId])
+}
+
+model SupDevolucao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  vendaId     String
+  valor       Float
+  motivo      String?
+  itens       Json
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  venda       SupVenda @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, vendaId])
+}
+
+// Sequenciais de numeração por tipo/ano (REQ-2026-0001...)
+model SupSequencia {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  ultimo    Int      @default(0)
+
+  @@unique([tenantId, chave])
+}
+
 // ==== EDUMASTER:END ====

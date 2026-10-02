@@ -2,6 +2,26 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 
 import Academic from "../pages/Academic";
+import EduReitoria from "../pages/edu/EduReitoria";
+import EduMinhaMesa from "../pages/edu/EduMinhaMesa";
+import EduJornadas from "../pages/edu/EduJornadas";
+import EduAdmissoes from "../pages/edu/EduAdmissoes";
+import EduSecretaria from "../pages/edu/EduSecretaria";
+import EduCalendario from "../pages/edu/EduCalendario";
+import EduNotas from "../pages/edu/EduNotas";
+import EduModalidades from "../pages/edu/EduModalidades";
+import EduDesempenho from "../pages/edu/EduDesempenho";
+import EduBiblioteca from "../pages/edu/EduBiblioteca";
+import EduRegulatorio from "../pages/edu/EduRegulatorio";
+import EduGovernanca from "../pages/edu/EduGovernanca";
+import EduInfraestrutura from "../pages/edu/EduInfraestrutura";
+import EduSuprimentos from "../pages/edu/EduSuprimentos";
+import EduPesquisa from "../pages/edu/EduPesquisa";
+import EduApoio from "../pages/edu/EduApoio";
+import EduComunicacao from "../pages/edu/EduComunicacao";
+import EduPortalAluno from "../pages/edu/EduPortalAluno";
+import EduIdentity from "../pages/EduIdentity";
+
 import Accounting from "../pages/Accounting";
 import Agenda from "../pages/Agenda";
 import Backup from "../pages/Backup";
@@ -116,6 +136,26 @@ export default function AppRoutes() {
       <Route path="/" element={<Dashboard />} />
 
       <Route path="/academico" element={<Academic />} />
+      <Route path="/edu" element={<EduReitoria />} />
+      <Route path="/edu/minha-mesa" element={<EduMinhaMesa />} />
+      <Route path="/edu/jornadas" element={<EduJornadas />} />
+      <Route path="/edu/admissoes" element={<EduAdmissoes />} />
+      <Route path="/edu/secretaria" element={<EduSecretaria />} />
+      <Route path="/edu/calendario" element={<EduCalendario />} />
+      <Route path="/edu/notas" element={<EduNotas />} />
+      <Route path="/edu/modalidades" element={<EduModalidades />} />
+      <Route path="/edu/desempenho" element={<EduDesempenho />} />
+      <Route path="/edu/biblioteca" element={<EduBiblioteca />} />
+      <Route path="/edu/regulatorio" element={<EduRegulatorio />} />
+      <Route path="/edu/governanca" element={<EduGovernanca />} />
+      <Route path="/edu/infraestrutura" element={<EduInfraestrutura />} />
+      <Route path="/edu/suprimentos" element={<EduSuprimentos />} />
+      <Route path="/edu/pesquisa" element={<EduPesquisa />} />
+      <Route path="/edu/apoio" element={<EduApoio />} />
+      <Route path="/edu/comunicacao" element={<EduComunicacao />} />
+      <Route path="/edu/portal-aluno" element={<EduPortalAluno />} />
+      <Route path="/edu/identidade" element={<EduIdentity />} />
+
 
       <Route path="/agenda" element={<Agenda />} />
 

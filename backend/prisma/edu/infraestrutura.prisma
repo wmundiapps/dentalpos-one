@@ -1,0 +1,718 @@
+// ============================================================
+// EDUMASTER PRO — INFRAESTRUTURA (prefixo Inf)
+// Patrimônio, manutenção, melhorias, estacionamento, pátio,
+// iluminação/energia/água e adequação de infraestrutura por curso.
+// Referências a EduSpace/AcademicProgram/User/fornecedor = String ids sem @relation.
+// ============================================================
+
+// Sequência atômica para numeração (OS, chamados, tombamento).
+model InfSequencia {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  valor     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+// ---------- PATRIMÔNIO ----------
+
+model InfCategoriaBem {
+  id               String   @id @default(uuid())
+  tenantId         String
+  codigo           String
+  nome             String
+  vidaUtilMeses    Int      @default(120)
+  valorResidualPct Float    @default(10)
+  grupo            String?       // MOVEL, EQUIPAMENTO, TI, LABORATORIO, VEICULO, IMOVEL...
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  bens             InfBem[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId])
+}
+
+enum InfEstadoBem {
+  NOVO
+  BOM
+  REGULAR
+  RUIM
+  INSERVIVEL
+}
+
+enum InfStatusBem {
+  ATIVO
+  EM_MANUTENCAO
+  EMPRESTADO
+  BAIXADO
+}
+
+model InfBem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tombamento      String
+  descricao       String
+  categoriaId     String
+  marca           String?
+  modelo          String?
+  numeroSerie     String?
+  notaFiscal      String?
+  fornecedorId    String?
+  valorAquisicao  Float    @default(0)
+  dataAquisicao   DateTime
+  vidaUtilMeses   Int?          // sobrescreve a da categoria
+  valorResidual   Float?        // sobrescreve (valor absoluto)
+  spaceId         String?
+  responsavelUserId String?
+  estado          InfEstadoBem @default(BOM)
+  status          InfStatusBem @default(ATIVO)
+  criticidade     String   @default("NORMAL")   // BAIXA | NORMAL | ALTA | CRITICA
+  fotoUrl         String?
+  garantiaAte     DateTime?
+  observacoes     String?
+  baixadoEm       DateTime?
+  motivoBaixa     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  categoria       InfCategoriaBem @relation(fields: [categoriaId], references: [id])
+  movimentacoes   InfMovimentacaoBem[]
+
+  @@unique([tenantId, tombamento])
+  @@index([tenantId, categoriaId])
+  @@index([tenantId, spaceId])
+  @@index([tenantId, status])
+}
+
+enum InfTipoMovimentacao {
+  CADASTRO
+  TRANSFERENCIA
+  MUDANCA_RESPONSAVEL
+  MUDANCA_ESTADO
+  BAIXA
+  REATIVACAO
+}
+
+model InfMovimentacaoBem {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  bemId              String
+  tipo               InfTipoMovimentacao
+  origemSpaceId      String?
+  destinoSpaceId     String?
+  origemResponsavelId String?
+  destinoResponsavelId String?
+  estadoAnterior     String?
+  estadoNovo         String?
+  motivo             String?
+  documento          String?
+  userId             String?
+  createdAt          DateTime @default(now())
+
+  bem                InfBem   @relation(fields: [bemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, bemId, createdAt])
+}
+
+enum InfStatusInventario {
+  ABERTO
+  FECHADO
+  CANCELADO
+}
+
+model InfInventario {
+  id          String   @id @default(uuid())
+  tenantId    String
+  titulo      String
+  spaceId     String?       // nulo = todos os espaços
+  categoriaId String?
+  status      InfStatusInventario @default(ABERTO)
+  responsavelUserId String?
+  prazoEm     DateTime?
+  fechadoEm   DateTime?
+  resumo      Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  itens       InfInventarioItem[]
+
+  @@index([tenantId, status])
+}
+
+enum InfDivergencia {
+  NENHUMA
+  NAO_ENCONTRADO
+  LOCAL_DIVERGENTE
+  ESTADO_DIVERGENTE
+  SOBRA          // encontrado mas não esperado (bem fora da lista)
+}
+
+model InfInventarioItem {
+  id               String   @id @default(uuid())
+  tenantId         String
+  inventarioId     String
+  bemId            String?
+  tombamentoLido   String?
+  spaceEsperadoId  String?
+  spaceEncontradoId String?
+  estadoEncontrado InfEstadoBem?
+  contado          Boolean  @default(false)
+  divergencia      InfDivergencia @default(NENHUMA)
+  observacao       String?
+  contadoPorId     String?
+  contadoEm        DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  inventario       InfInventario @relation(fields: [inventarioId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, inventarioId])
+  @@index([tenantId, bemId])
+}
+
+// ---------- MANUTENÇÃO ----------
+
+enum InfTipoOS {
+  CORRETIVA
+  PREVENTIVA
+  PREDITIVA
+  MELHORIA
+}
+
+enum InfPrioridade {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum InfStatusOS {
+  ABERTA
+  AGENDADA
+  EM_EXECUCAO
+  AGUARDANDO_PECA
+  CONCLUIDA
+  CANCELADA
+}
+
+model InfPlanoPreventivo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  titulo           String
+  descricao        String?
+  bemId            String?
+  spaceId          String?
+  categoriaId      String?       // aplica-se a todos os bens da categoria (opcional)
+  periodicidadeDias Int
+  antecedenciaDias Int      @default(7)
+  proximaExecucao  DateTime
+  ultimaGeracao    DateTime?
+  prioridade       InfPrioridade @default(MEDIA)
+  checklist        Json?         // [{item:"...", obrigatorio:true}]
+  fornecedorId     String?
+  responsavelUserId String?
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId, ativo, proximaExecucao])
+}
+
+model InfOrdemServico {
+  id               String   @id @default(uuid())
+  tenantId         String
+  numero           String
+  tipo             InfTipoOS @default(CORRETIVA)
+  prioridade       InfPrioridade @default(MEDIA)
+  status           InfStatusOS @default(ABERTA)
+  titulo           String
+  descricao        String?
+  bemId            String?
+  spaceId          String?
+  chamadoId        String?
+  planoId          String?
+  fornecedorId     String?
+  responsavelUserId String?
+  abertaEm         DateTime @default(now())
+  prazoSla         DateTime
+  agendadaPara     DateTime?
+  iniciadaEm       DateTime?
+  concluidaEm      DateTime?
+  custoMaoObra     Float    @default(0)
+  custoPecas       Float    @default(0)
+  checklist        Json?         // [{item, obrigatorio, feito, obs}]
+  solucao          String?
+  bemParado        Boolean  @default(false)   // bem indisponível durante a OS (p/ disponibilidade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  pecas            InfOsPeca[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status, prazoSla])
+  @@index([tenantId, bemId])
+  @@index([tenantId, spaceId])
+  @@index([tenantId, planoId])
+}
+
+model InfOsPeca {
+  id            String   @id @default(uuid())
+  tenantId      String
+  osId          String
+  descricao     String
+  quantidade    Float    @default(1)
+  valorUnitario Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  os            InfOrdemServico @relation(fields: [osId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, osId])
+}
+
+enum InfCategoriaChamado {
+  PREDIAL
+  ELETRICA
+  HIDRAULICA
+  TI
+  AR_CONDICIONADO
+  LIMPEZA
+  SEGURANCA
+  ILUMINACAO
+  MOBILIARIO
+  OUTRO
+}
+
+enum InfStatusChamado {
+  ABERTO
+  EM_ATENDIMENTO
+  RESOLVIDO
+  FECHADO
+  CANCELADO
+}
+
+model InfChamado {
+  id               String   @id @default(uuid())
+  tenantId         String
+  numero           String
+  categoria        InfCategoriaChamado @default(PREDIAL)
+  prioridade       InfPrioridade @default(MEDIA)
+  status           InfStatusChamado @default(ABERTO)
+  titulo           String
+  descricao        String?
+  spaceId          String?
+  bemId            String?
+  solicitanteUserId String
+  atendenteUserId  String?
+  osId             String?
+  origem           String   @default("USUARIO")  // USUARIO | ILUMINACAO | MEDIDOR | SISTEMA
+  fotoUrl          String?
+  resolvidoEm      DateTime?
+  fechadoEm        DateTime?
+  avaliacaoNota    Int?
+  avaliacaoComentario String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  comentarios      InfChamadoComentario[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, solicitanteUserId])
+}
+
+model InfChamadoComentario {
+  id         String   @id @default(uuid())
+  tenantId   String
+  chamadoId  String
+  userId     String
+  texto      String
+  interno    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  chamado    InfChamado @relation(fields: [chamadoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, chamadoId])
+}
+
+// ---------- MELHORIAS E IMPLANTAÇÃO ----------
+
+enum InfStatusProjeto {
+  PROPOSTO
+  APROVADO
+  EM_EXECUCAO
+  CONCLUIDO
+  SUSPENSO
+  CANCELADO
+}
+
+model InfProjeto {
+  id             String   @id @default(uuid())
+  tenantId       String
+  titulo         String
+  status         InfStatusProjeto @default(PROPOSTO)
+  // 5W2H
+  oQue           String
+  porQue         String
+  onde           String?
+  spaceId        String?
+  quando         String?
+  quem           String?
+  como           String?
+  quantoCusta    Float    @default(0)   // orçamento aprovado/estimado
+  gastoReal      Float    @default(0)
+  justificativa  String?
+  inicioPrevisto DateTime?
+  fimPrevisto    DateTime?
+  responsavelUserId String?
+  pdiMetaId      String?       // vínculo opcional com meta do PDI
+  recomendacaoMec String?      // referência a recomendação MEC/avaliação
+  evidencias     Json?         // [{url, legenda, data}]
+  percentual     Float    @default(0)
+  aprovadoPorId  String?
+  aprovadoEm     DateTime?
+  concluidoEm    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  etapas         InfProjetoEtapa[]
+
+  @@index([tenantId, status])
+}
+
+enum InfStatusEtapa {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+  BLOQUEADA
+}
+
+model InfProjetoEtapa {
+  id              String   @id @default(uuid())
+  tenantId        String
+  projetoId       String
+  ordem           Int      @default(1)
+  titulo          String
+  descricao       String?
+  inicio          DateTime?
+  fim             DateTime
+  responsavelUserId String?
+  peso            Float    @default(1)
+  percentual      Float    @default(0)
+  status          InfStatusEtapa @default(PENDENTE)
+  custoPrevisto   Float    @default(0)
+  custoReal       Float    @default(0)
+  concluidaEm     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  projeto         InfProjeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projetoId])
+}
+
+// ---------- ESTACIONAMENTO ----------
+
+model InfAreaEstacionamento {
+  id         String   @id @default(uuid())
+  tenantId   String
+  nome       String
+  spaceId    String?
+  campusId   String?
+  descricao  String?
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  vagas      InfVaga[]
+
+  @@index([tenantId])
+}
+
+enum InfTipoVaga {
+  COMUM
+  PCD
+  IDOSO
+  MOTO
+  DOCENTE
+  VISITANTE
+  ADMINISTRATIVO
+}
+
+model InfVaga {
+  id         String   @id @default(uuid())
+  tenantId   String
+  areaId     String
+  codigo     String
+  tipo       InfTipoVaga @default(COMUM)
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  area       InfAreaEstacionamento @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, areaId, codigo])
+  @@index([tenantId, areaId])
+}
+
+enum InfTipoVeiculo {
+  CARRO
+  MOTO
+  BICICLETA
+  OUTRO
+}
+
+enum InfVinculoProprietario {
+  ALUNO
+  DOCENTE
+  FUNCIONARIO
+  VISITANTE
+  TERCEIRIZADO
+}
+
+enum InfStatusCredencial {
+  ATIVA
+  SUSPENSA
+  VENCIDA
+  REVOGADA
+}
+
+model InfVeiculo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  placa            String
+  tipo             InfTipoVeiculo @default(CARRO)
+  modelo           String?
+  cor              String?
+  vinculo          InfVinculoProprietario @default(ALUNO)
+  proprietarioNome String
+  proprietarioUserId String?
+  studentId        String?
+  contato          String?
+  credencial       String?       // código da credencial/adesivo
+  credencialStatus InfStatusCredencial @default(ATIVA)
+  validade         DateTime?
+  vagaEspecial     InfTipoVaga?  // direito a vaga PCD/IDOSO/DOCENTE
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, placa])
+  @@index([tenantId, credencialStatus])
+}
+
+model InfAcessoEstacionamento {
+  id         String   @id @default(uuid())
+  tenantId   String
+  areaId     String
+  vagaId     String?
+  veiculoId  String?
+  placa      String
+  entradaEm  DateTime @default(now())
+  saidaEm    DateTime?
+  autorizado Boolean  @default(true)
+  motivoNegado String?
+  registradoPorId String?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, areaId, saidaEm])
+  @@index([tenantId, placa])
+  @@index([tenantId, entradaEm])
+}
+
+enum InfStatusOcorrencia {
+  ABERTA
+  EM_ANALISE
+  RESOLVIDA
+  ARQUIVADA
+}
+
+model InfOcorrenciaEstacionamento {
+  id         String   @id @default(uuid())
+  tenantId   String
+  areaId     String?
+  vagaId     String?
+  veiculoId  String?
+  placa      String?
+  tipo       String        // MAU_ESTACIONAMENTO, VAGA_INDEVIDA, DANO, FURTO, ACIDENTE, CREDENCIAL_VENCIDA, OUTRO
+  descricao  String
+  gravidade  String   @default("LEVE")
+  status     InfStatusOcorrencia @default(ABERTA)
+  fotoUrl    String?
+  registradoPorId String?
+  resolucao  String?
+  resolvidaEm DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, placa])
+}
+
+// ---------- PÁTIO E ÁREAS COMUNS ----------
+
+enum InfStatusReserva {
+  SOLICITADA
+  APROVADA
+  RECUSADA
+  CANCELADA
+  REALIZADA
+}
+
+model InfReservaArea {
+  id             String   @id @default(uuid())
+  tenantId       String
+  spaceId        String
+  titulo         String
+  finalidade     String?
+  solicitanteUserId String
+  inicio         DateTime
+  fim            DateTime
+  publicoEstimado Int?
+  status         InfStatusReserva @default(SOLICITADA)
+  necessidades   Json?         // ["som","tenda","energia"...]
+  decididoPorId  String?
+  decididoEm     DateTime?
+  motivoDecisao  String?
+  aceiteRegras   Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, spaceId, inicio, fim])
+  @@index([tenantId, status])
+}
+
+model InfRegraUso {
+  id        String   @id @default(uuid())
+  tenantId  String
+  spaceId   String?       // nulo = regra geral das áreas comuns
+  titulo    String
+  texto     String
+  ordem     Int      @default(1)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, spaceId])
+}
+
+// ---------- ILUMINAÇÃO, ENERGIA E ÁGUA ----------
+
+enum InfStatusPontoLuz {
+  OK
+  QUEIMADA
+  INTERMITENTE
+  DESATIVADA
+}
+
+model InfPontoLuz {
+  id          String   @id @default(uuid())
+  tenantId    String
+  spaceId     String?
+  codigo      String
+  descricao   String?
+  tipo        String   @default("LED")     // LED, FLUORESCENTE, VAPOR_METALICO, REFLETOR, POSTE...
+  potenciaW   Float?
+  quantidade  Int      @default(1)
+  status      InfStatusPontoLuz @default(OK)
+  chamadoId   String?
+  ultimaTroca DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status])
+}
+
+enum InfTipoMedidor {
+  ENERGIA
+  AGUA
+  GAS
+}
+
+model InfMedidor {
+  id             String   @id @default(uuid())
+  tenantId       String
+  codigo         String
+  tipo           InfTipoMedidor
+  spaceId        String?
+  campusId       String?
+  unidade        String   @default("kWh")
+  limiarDesvioPct Float   @default(25)
+  janelaLeituras Int      @default(6)
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  leituras       InfLeitura[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, tipo])
+}
+
+model InfLeitura {
+  id          String   @id @default(uuid())
+  tenantId    String
+  medidorId   String
+  dataLeitura DateTime
+  valor       Float         // leitura acumulada do medidor
+  consumo     Float?        // consumo desde a leitura anterior
+  dias        Int?
+  mediaDiaria Float?
+  desvioPct   Float?
+  alerta      Boolean  @default(false)
+  registradoPorId String?
+  createdAt   DateTime @default(now())
+
+  medidor     InfMedidor @relation(fields: [medidorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, medidorId, dataLeitura])
+}
+
+model InfAcaoEficiencia {
+  id              String   @id @default(uuid())
+  tenantId        String
+  titulo          String
+  tipo            String   @default("ENERGIA")   // ENERGIA | AGUA | RESIDUOS | OUTRO
+  descricao       String?
+  medidorId       String?
+  economiaEstimadaPct Float?
+  custo           Float    @default(0)
+  status          String   @default("PLANEJADA") // PLANEJADA | EM_EXECUCAO | CONCLUIDA | CANCELADA
+  prazo           DateTime?
+  responsavelUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, status])
+}
+
+// ---------- ADEQUAÇÃO DE INFRAESTRUTURA POR CURSO ----------
+
+enum InfTipoRequisito {
+  EQUIPAMENTO   // contado em InfBem por categoria (e opcionalmente tipo de espaço)
+  ESPACO        // contado em EduSpace por tipo
+}
+
+model InfRequisitoCurso {
+  id            String   @id @default(uuid())
+  tenantId      String
+  programId     String        // AcademicProgram
+  descricao     String
+  tipo          InfTipoRequisito @default(EQUIPAMENTO)
+  categoriaCodigo String?     // InfCategoriaBem.codigo (EQUIPAMENTO)
+  spaceTipo     String?       // EduSpaceType (ESPACO, ou filtra o local do equipamento)
+  quantidadeMinima Int        @default(1)
+  porVagas      Int?          // +1 unidade a cada N vagas (ex.: 1 microscópio / 2 alunos => porVagas=2)
+  capacidadeMinima Int?       // p/ ESPACO: capacidade mínima por espaço
+  obrigatorio   Boolean  @default(true)
+  referenciaMec String?       // indicador do instrumento de avaliação
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, programId])
+}

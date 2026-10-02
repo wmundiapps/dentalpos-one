@@ -1,0 +1,472 @@
+// ============================================================
+// EDUMASTER PRO — DESEMPENHO (ENADE, OAB, ENAMED/Residência) — prefixo Des
+// ============================================================
+
+enum DesTipoExame {
+  ENADE
+  OAB_1FASE
+  OAB_2FASE
+  ENAMED
+  RESIDENCIA
+  REVALIDA
+  CONCURSO
+  OUTRO
+}
+
+enum DesTipoEixo {
+  AREA
+  EIXO
+  COMPETENCIA
+}
+
+enum DesStatusEdicao {
+  PLANEJADA
+  INSCRICOES_ABERTAS
+  INSCRICOES_ENCERRADAS
+  REALIZADA
+  RESULTADO_PUBLICADO
+  CANCELADA
+}
+
+enum DesCategoriaInscrito {
+  INGRESSANTE
+  CONCLUINTE
+  CANDIDATO
+}
+
+enum DesSituacaoInscricao {
+  PENDENTE
+  INSCRITO
+  REGULAR
+  DISPENSADO
+  IRREGULAR
+  AUSENTE
+}
+
+enum DesTipoQuestao {
+  OBJETIVA
+  DISCURSIVA
+  PECA_PRATICA
+  CASO_CLINICO
+}
+
+enum DesNivel {
+  FACIL
+  MEDIO
+  DIFICIL
+}
+
+enum DesStatusQuestao {
+  RASCUNHO
+  REVISADO
+  PUBLICADO
+  ARQUIVADO
+}
+
+enum DesOrigemQuestao {
+  MANUAL
+  IA
+  IMPORTADA
+}
+
+enum DesStatusSimulado {
+  RASCUNHO
+  PUBLICADO
+  ENCERRADO
+}
+
+enum DesStatusTentativa {
+  EM_ANDAMENTO
+  ENVIADA
+  EXPIRADA
+}
+
+enum DesTipoKit {
+  QUESTOES_CONTEXTUALIZADAS
+  ESTUDO_CASO
+  PECA_PRATICA_OAB
+  CASO_CLINICO
+  LISTA_EXERCICIOS
+  REVISAO_TEORICA
+}
+
+enum DesVisibilidadeKit {
+  PRIVADA
+  COMPARTILHADA
+}
+
+enum DesStatusAtribuicao {
+  ABERTA
+  ENCERRADA
+  CANCELADA
+}
+
+enum DesStatusEntrega {
+  PENDENTE
+  ENTREGUE
+  CORRIGIDA
+  ATRASADA
+}
+
+enum DesStatusTrilha {
+  ATIVA
+  CONCLUIDA
+  PAUSADA
+  CANCELADA
+}
+
+enum DesTipoItemTrilha {
+  ESTUDO
+  QUESTOES
+  REVISAO
+  SIMULADO
+  ATIVIDADE
+}
+
+enum DesStatusItemTrilha {
+  PENDENTE
+  CONCLUIDO
+  ADIADO
+}
+
+model DesExame {
+  id           String       @id @default(uuid())
+  tenantId     String
+  codigo       String
+  nome         String
+  tipo         DesTipoExame
+  descricao    String?
+  numQuestoes  Int?
+  duracaoMin   Int?
+  notaCorte    Float?       // % mínimo de acertos para aprovação/regularidade (ex.: OAB 50)
+  ativo        Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  eixos        DesEixo[]
+  edicoes      DesEdicao[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, tipo])
+}
+
+model DesEixo {
+  id          String      @id @default(uuid())
+  tenantId    String
+  exameId     String
+  parentId    String?
+  codigo      String
+  nome        String
+  tipo        DesTipoEixo @default(AREA)
+  peso        Float       @default(1)     // peso relativo na prova (ex.: nº típico de questões)
+  metaAcerto  Float       @default(60)    // % de acerto desejado
+  ordem       Int         @default(0)
+  descricao   String?
+  ativo       Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  exame       DesExame    @relation(fields: [exameId], references: [id], onDelete: Cascade)
+
+  @@unique([exameId, codigo])
+  @@index([tenantId, exameId])
+}
+
+model DesEdicao {
+  id               String          @id @default(uuid())
+  tenantId         String
+  exameId          String
+  ano              Int
+  titulo           String?
+  dataProva        DateTime?
+  inscricaoInicio  DateTime?
+  inscricaoFim     DateTime?
+  dataResultado    DateTime?
+  status           DesStatusEdicao @default(PLANEJADA)
+  observacoes      String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  exame            DesExame        @relation(fields: [exameId], references: [id], onDelete: Cascade)
+  inscricoes       DesInscricao[]
+
+  @@unique([exameId, ano, titulo])
+  @@index([tenantId, exameId])
+  @@index([tenantId, dataProva])
+}
+
+model DesInscricao {
+  id             String               @id @default(uuid())
+  tenantId       String
+  edicaoId       String
+  studentId      String
+  programId      String?
+  categoria      DesCategoriaInscrito @default(CONCLUINTE)
+  situacao       DesSituacaoInscricao @default(PENDENTE)
+  protocolo      String?
+  nota           Float?
+  conceito       Int?
+  observacao     String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  edicao         DesEdicao            @relation(fields: [edicaoId], references: [id], onDelete: Cascade)
+
+  @@unique([edicaoId, studentId])
+  @@index([tenantId, edicaoId, situacao])
+  @@index([tenantId, studentId])
+}
+
+model DesMetaCurso {
+  id             String   @id @default(uuid())
+  tenantId       String
+  programId      String
+  exameId        String
+  ano            Int
+  metaAcerto     Float    // % global
+  conceitoAlvo   Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, programId, exameId, ano])
+  @@index([tenantId, exameId])
+}
+
+model DesQuestao {
+  id                  String           @id @default(uuid())
+  tenantId            String
+  exameId             String
+  eixoId              String?
+  disciplineId        String?
+  tipo                DesTipoQuestao   @default(OBJETIVA)
+  enunciado           String
+  alternativas        Json?            // [{letra:'A',texto:'...'}]
+  gabarito            String?          // letra (objetiva) ou padrão de resposta (discursiva)
+  comentario          String?
+  nivel               DesNivel         @default(MEDIO)
+  anoFonte            Int?
+  fonte               String?
+  status              DesStatusQuestao @default(RASCUNHO)
+  origem              DesOrigemQuestao @default(MANUAL)
+  totalRespostas      Int              @default(0)
+  totalAcertos        Int              @default(0)
+  indiceDiscriminacao Float?
+  criadoPorId         String?
+  revisadoPorId       String?
+  revisadoEm          DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([tenantId, exameId, status])
+  @@index([tenantId, eixoId])
+  @@index([tenantId, disciplineId])
+}
+
+model DesSimulado {
+  id            String            @id @default(uuid())
+  tenantId      String
+  exameId       String
+  titulo        String
+  descricao     String?
+  status        DesStatusSimulado @default(RASCUNHO)
+  abreEm        DateTime?
+  fechaEm       DateTime?
+  duracaoMin    Int               @default(180)
+  matriz        Json?             // distribuição usada na montagem [{eixoId,quantidade,niveis?}]
+  criadoPorId   String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  questoes      DesSimuladoQuestao[]
+  alvos         DesSimuladoAlvo[]
+  tentativas    DesTentativa[]
+
+  @@index([tenantId, exameId, status])
+}
+
+model DesSimuladoQuestao {
+  id          String      @id @default(uuid())
+  tenantId    String
+  simuladoId  String
+  questaoId   String
+  eixoId      String?
+  ordem       Int
+  createdAt   DateTime    @default(now())
+
+  simulado    DesSimulado @relation(fields: [simuladoId], references: [id], onDelete: Cascade)
+
+  @@unique([simuladoId, questaoId])
+  @@index([tenantId, simuladoId])
+}
+
+model DesSimuladoAlvo {
+  id             String      @id @default(uuid())
+  tenantId       String
+  simuladoId     String
+  classSectionId String?
+  programId      String?
+  studentId      String?
+  createdAt      DateTime    @default(now())
+
+  simulado       DesSimulado @relation(fields: [simuladoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, simuladoId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, classSectionId])
+}
+
+model DesTentativa {
+  id            String             @id @default(uuid())
+  tenantId      String
+  simuladoId    String
+  studentId     String
+  status        DesStatusTentativa @default(EM_ANDAMENTO)
+  iniciadaEm    DateTime           @default(now())
+  expiraEm      DateTime?
+  enviadaEm     DateTime?
+  acertos       Int                @default(0)
+  total         Int                @default(0)
+  percentual    Float?
+  porEixo       Json?              // [{eixoId,acertos,total,percentual}]
+  tempoSegundos Int?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  simulado      DesSimulado        @relation(fields: [simuladoId], references: [id], onDelete: Cascade)
+  respostas     DesResposta[]
+
+  @@unique([simuladoId, studentId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, simuladoId, status])
+}
+
+model DesResposta {
+  id           String       @id @default(uuid())
+  tenantId     String
+  tentativaId  String
+  questaoId    String
+  eixoId       String?
+  alternativa  String?
+  correta      Boolean?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  tentativa    DesTentativa @relation(fields: [tentativaId], references: [id], onDelete: Cascade)
+
+  @@unique([tentativaId, questaoId])
+  @@index([tenantId, questaoId])
+}
+
+model DesKit {
+  id            String             @id @default(uuid())
+  tenantId      String
+  titulo        String
+  tipo          DesTipoKit         @default(QUESTOES_CONTEXTUALIZADAS)
+  exameId       String?
+  eixoId        String?
+  disciplineId  String?
+  descricao     String?
+  conteudo      String?            // texto/caso/enunciado da peça (HTML ou markdown)
+  questaoIds    Json?              // string[]
+  gabaritoComentado String?
+  tempoEstimadoMin Int?
+  visibilidade  DesVisibilidadeKit @default(PRIVADA)
+  autorUserId   String
+  usos          Int                @default(0)
+  ativo         Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  atribuicoes   DesAtribuicao[]
+
+  @@index([tenantId, disciplineId])
+  @@index([tenantId, visibilidade])
+  @@index([tenantId, autorUserId])
+}
+
+model DesAtribuicao {
+  id              String              @id @default(uuid())
+  tenantId        String
+  kitId           String
+  classSectionId  String
+  professorUserId String
+  prazo           DateTime
+  instrucoes      String?
+  status          DesStatusAtribuicao @default(ABERTA)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  kit             DesKit              @relation(fields: [kitId], references: [id])
+  entregas        DesEntrega[]
+
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, professorUserId, status])
+  @@index([tenantId, prazo])
+}
+
+model DesEntrega {
+  id             String           @id @default(uuid())
+  tenantId       String
+  atribuicaoId   String
+  studentId      String
+  status         DesStatusEntrega @default(PENDENTE)
+  respostas      Json?            // {questaoId: letra} ou texto livre
+  texto          String?
+  acertos        Int?
+  total          Int?
+  nota           Float?           // 0-100
+  feedback       String?
+  entregueEm     DateTime?
+  corrigidaEm    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  atribuicao     DesAtribuicao    @relation(fields: [atribuicaoId], references: [id], onDelete: Cascade)
+
+  @@unique([atribuicaoId, studentId])
+  @@index([tenantId, studentId])
+}
+
+model DesTrilha {
+  id            String          @id @default(uuid())
+  tenantId      String
+  studentId     String
+  exameId       String
+  status        DesStatusTrilha @default(ATIVA)
+  metaPercentual Float          @default(60)
+  metaData      DateTime?
+  horasSemana   Float           @default(6)
+  lacunas       Json?           // [{eixoId,atual,meta,gap,prioridade}]
+  progresso     Float           @default(0)
+  geradaEm      DateTime        @default(now())
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  itens         DesTrilhaItem[]
+
+  @@index([tenantId, studentId, status])
+  @@index([tenantId, exameId])
+}
+
+model DesTrilhaItem {
+  id           String              @id @default(uuid())
+  tenantId     String
+  trilhaId     String
+  eixoId       String?
+  semana       Int
+  tipo         DesTipoItemTrilha
+  titulo       String
+  descricao    String?
+  minutos      Int                 @default(60)
+  dataPrevista DateTime
+  status       DesStatusItemTrilha @default(PENDENTE)
+  revisaoN     Int                 @default(0)   // 0 = estudo original; n = n-ésima revisão espaçada
+  concluidoEm  DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  trilha       DesTrilha           @relation(fields: [trilhaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, trilhaId])
+  @@index([tenantId, dataPrevista, status])
+}
