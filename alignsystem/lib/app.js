@@ -235,10 +235,8 @@ r('POST', '/api/leads/parceiro', async (req, res) => {
 
 // ------------------------------------------------------------------ cobertura da rede e atendimento presencial
 
-// Limite de consultas pagas ao dentista no modelo rede, conforme a complexidade do caso
-const consultLimit = (plan) => (plan?.model === 'rede' && plan?.complexity
-  ? { simples: PARTNER_DEFAULTS.limitSimple, mediano: PARTNER_DEFAULTS.limitMedium, complexo: PARTNER_DEFAULTS.limitComplex }[plan.complexity]
-  : null);
+// Consultas presenciais incluídas no contrato do paciente, conforme a complexidade do caso (vale para os dois modelos)
+const consultLimit = (plan) => (plan?.complexity ? MODEL.consultLimits[plan.complexity] || null : null);
 
 const networkDentists = (sql) => sql`select id, name, city, coalesce(state, cro_uf) as cro_uf from dentists where status = 'ativo'`;
 
@@ -911,7 +909,7 @@ r('POST', '/api/admin/cases/:id/contract', async (req, res, { id }) => {
   if (!c.cpf) missing.push('CPF do paciente');
   if (!c.address) missing.push('endereço do paciente');
   if (plan.model !== 'rede' && !c.dentist_id) missing.push('dentista responsável');
-  if (plan.model === 'rede' && !plan.complexity) missing.push('complexidade do caso (simples, mediano ou complexo)');
+  if (!plan.complexity) missing.push('complexidade do caso (simples, mediano ou complexo)');
   if (plan.model === 'rede' && !c.attendance) missing.push('questionário de atendimento presencial respondido pelo paciente');
   if (plan.model === 'rede' && c.attendance?.choice === 'sem_cobertura') missing.push('dentista credenciado na região do paciente');
   if (!plan.brand) missing.push('marca do alinhador');

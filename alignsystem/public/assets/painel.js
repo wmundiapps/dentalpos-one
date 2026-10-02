@@ -294,7 +294,7 @@
         field('months', 'Duração estimada (meses)', plan.months, 'type="number" min="1" max="36"') +
         field('total', 'Valor total (R$)', plan.total, 'inputmode="decimal"') +
         field('replacementValue', 'Reposição de alinhador (R$/un.)', plan.replacementValue, 'inputmode="decimal"') +
-        '<div class="field"><label for="pcx">Complexidade</label><select id="pcx" name="complexity">' + opt('', '—', plan.complexity || '') + opt('simples', 'Simples (até 8 consultas)', plan.complexity || '') + opt('mediano', 'Média (até 12 consultas)', plan.complexity || '') + opt('complexo', 'Complexo (até 15 consultas)', plan.complexity || '') + '</select></div>' +
+        '<div class="field"><label for="pcx">Complexidade</label><select id="pcx" name="complexity">' + opt('', '—', plan.complexity || '') + opt('simples', 'Simples (até 8 consultas)', plan.complexity || '') + opt('mediano', 'Média (até 10 consultas)', plan.complexity || '') + opt('complexo', 'Complexo (até 15 consultas)', plan.complexity || '') + '</select></div>' +
         '<div class="field"><label for="pmodel">Modelo</label><select id="pmodel" name="model">' + opt('parceiro', 'Dentista parceiro (50/30/20, split)', plan.model || 'parceiro') + opt('rede', 'AlignSystem 100% (rede credenciada, raio 300 km)', plan.model || 'parceiro') + '</select></div>' +
         field('travel', 'Deslocamentos incluídos (R$)', plan.travel != null ? plan.travel : (att && att.choice === 'mais_proximo_viagem' ? att.travelTotal : ''), 'inputmode="decimal"') + '</div>' +
         (att ? '<div class="msg ' + (att.choice === 'sem_cobertura' ? 'warn' : 'ok') + '"><b>Questionário de atendimento:</b> ' + esc(att.label) + ' · ' + esc(att.city + '/' + att.uf) +
@@ -335,8 +335,9 @@
         '<div class="card"><h2>Atendimentos registrados pelo dentista</h2>' +
         (c.consultLimit ? (function () {
           var v = d.evidences.filter(function (e) { return e.validated_at; }).length;
-          return '<div class="msg ' + (v >= c.consultLimit ? 'warn' : 'ok') + '">Modelo rede · consultas validadas: <b>' + v + ' de ' + c.consultLimit + '</b> (' + esc(AS.money(c.consultValue)) + ' cada ao dentista)' +
-            (v >= c.consultLimit ? '. Limite atingido: novas consultas só são pagas com autorização por escrito.' : '') + '</div>';
+          return '<div class="msg ' + (v >= c.consultLimit ? 'warn' : 'ok') + '">Consultas incluídas no contrato: <b>' + v + ' de ' + c.consultLimit + '</b> validadas' +
+            ((c.plan || {}).model === 'rede' ? ' (' + esc(AS.money(c.consultValue)) + ' cada ao dentista)' : '') +
+            (v >= c.consultLimit ? '. Limite atingido: novas consultas e alinhadores adicionais exigem termo aditivo pago pelo paciente.' : '') + '</div>';
         })() : '') + (d.evidences.length ? '<div class="list">' + d.evidences.map(function (e) {
           var ph = d.photos.filter(function (p) { return p.evidence_id === e.id; });
           return '<div class="it" style="display:block"><div class="row" style="justify-content:space-between"><div><b>' + esc(L.MILESTONES[e.milestone]) + '</b> · ' + esc(AS.date(e.performed_at)) + ' · ' + esc(e.dentist_name || '') + '</div>' +
@@ -403,7 +404,7 @@
       });
       $all('[data-validate]', m).forEach(function (b) { b.addEventListener('click', function () {
         if (c.consultLimit && d.evidences.filter(function (e) { return e.validated_at; }).length >= c.consultLimit &&
-          !confirm('Este caso já atingiu o limite de ' + c.consultLimit + ' consultas pagas. Validar mesmo assim (consulta extra autorizada)?')) return;
+          !confirm('Este caso já atingiu o limite de ' + c.consultLimit + ' consultas incluídas no contrato. Validar mesmo assim (consulta extra contratada por aditivo ou autorizada)?')) return;
         busyBtn(b, api('/api/admin/evidences/' + b.getAttribute('data-validate') + '/validate', { method: 'POST', body: {} })).then(reload).catch(function (e) { alert(e.message); }); }); });
       $('#delCase', m).addEventListener('click', function () {
         if (prompt('Isto apaga o caso, fotos e histórico. Digite EXCLUIR para confirmar.') !== 'EXCLUIR') return;
@@ -565,7 +566,7 @@
         '<div class="grid2"><div class="card"><h2>Pré-avaliação</h2><dl class="kv"><dt>Motivo</dt><dd>' + esc(c.reason || '—') + '</dd><dt>Parecer</dt><dd>' + esc(c.assessment ? L.ASSESSMENT[c.assessment] : '—') + '</dd>' +
         '<dt>Observações</dt><dd style="white-space:pre-line">' + esc(c.assessment_notes || '—') + '</dd><dt>Alinhador</dt><dd>' + esc(c.plan.brand || '—') + (c.plan.months ? ' · ' + esc(c.plan.months) + ' meses' : '') + '</dd>' +
         '<dt>Plano</dt><dd style="white-space:pre-line">' + esc(c.plan.treatmentNotes || '—') + '</dd>' +
-        (c.plan.consultLimit ? '<dt>Modelo</dt><dd>Rede: pagamento por consulta validada, até ' + c.plan.consultLimit + ' consultas (caso ' + esc(c.plan.complexity) + ')</dd>' : '') + '</dl></div>' +
+        (c.plan.consultLimit ? '<dt>Consultas incluídas</dt><dd>Até ' + c.plan.consultLimit + ' (caso ' + esc(c.plan.complexity) + ')' + (c.plan.model === 'rede' ? ' · modelo rede: pagamento por consulta validada' : '') + '. Acima disso, só com aditivo do paciente.</dd>' : '') + '</dl></div>' +
         '<form class="card" id="apf"><h2>Agendar</h2><div class="grid2"><div class="field"><label for="kind">Tipo</label><select id="kind" name="kind">' + options(KIND_APPT, 'consulta') + '</select></div>' +
         field('starts_at', 'Data e hora', toLocalInput(new Date(Date.now() + 86400000)), 'type="datetime-local" required') + '</div>' +
         field('location', 'Local / observação', '') + '<button class="btn btn-green btn-sm" type="submit">Agendar e avisar paciente</button><div class="fmsg"></div>' +

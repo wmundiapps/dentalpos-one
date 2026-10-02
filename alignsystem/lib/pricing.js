@@ -13,7 +13,11 @@ export const MODEL = {
   dentistPct: 30,
   supervisionPct: 20,
   withdrawalPenaltyPct: 20,
+  // consultas presenciais incluídas no contrato, por complexidade; acima disso, aditivo pago pelo paciente
+  consultLimits: { simples: 8, mediano: 10, complexo: 15 },
 };
+
+export const COMPLEXITY_LABEL = { simples: 'simples', mediano: 'de média complexidade', complexo: 'complexo' };
 
 const round2 = (n) => Math.round(n * 100) / 100;
 

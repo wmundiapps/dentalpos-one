@@ -183,7 +183,7 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   const term = await call('GET', `/api/contracts/${termToken}`);
   assert.match(term.data.body, /R\$\s?150,00/);
   assert.match(term.data.body, /30% \(trinta por cento\) do valor efetivamente pago/);
-  assert.match(term.data.body, /limitado a 8 \(oito\) consultas nos casos simples, 12 \(doze\) nos casos de média complexidade e 15 \(quinze\) nos casos complexos/);
+  assert.match(term.data.body, /limitado a 8 \(oito\) consultas nos casos simples, 10 \(dez\) nos casos de média complexidade e 15 \(quinze\) nos casos complexos/);
   assert.equal((await call('POST', `/api/contracts/${termToken}/accept`, { body: { name: 'Ana Lima', doc: '52998224725', agree: true, hash: 'x' } })).status, 409);
   assert.equal((await call('POST', `/api/contracts/${termToken}/accept`, { body: { name: 'Ana Lima', doc: '11111111111', agree: true, hash: term.data.hash } })).status, 400);
   assert.equal((await call('POST', `/api/contracts/${termToken}/accept`, { body: { name: 'Ana Lima', doc: '52998224725', agree: true, hash: term.data.hash } })).status, 200);
@@ -230,7 +230,7 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   await call('PATCH', `/api/admin/cases/${caseId}`, { who: 'admin', body: { dentist_id: dentistId, cpf: '529.982.247-25', address: 'Rua B, 20, Maringá/PR', email: 'maria@x.com' } });
   const noPlan = await call('POST', `/api/admin/cases/${caseId}/contract`, { who: 'admin', body: {} });
   assert.equal(noPlan.status, 400);
-  await call('PATCH', `/api/admin/cases/${caseId}`, { who: 'admin', body: { plan: { brand: 'ClearCorrect', months: 18, total: '11570', maxInstallments: 12, replacementValue: '200' } } });
+  await call('PATCH', `/api/admin/cases/${caseId}`, { who: 'admin', body: { plan: { brand: 'ClearCorrect', months: 18, complexity: 'mediano', total: '11570', maxInstallments: 12, replacementValue: '200' } } });
   const ct = await call('POST', `/api/admin/cases/${caseId}/contract`, { who: 'admin', body: {} });
   assert.equal(ct.status, 201);
   const ctToken = new URL(ct.data.url).searchParams.get('t');
@@ -242,6 +242,8 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
 
   // cobrança no modelo único: Pix −12%, cartão até 18x, boleto (entrada 50% + saldo)
   assert.match(doc.data.body, /50% \(cinquenta por cento\) referentes ao fornecimento dos alinhadores/);
+  assert.match(doc.data.body.replace(/<[^>]+>/g, ''), /até 10 \(dez\) consultas presenciais incluídas/);
+  assert.match(doc.data.body, /termo aditivo/);
   const posts = () => asaasCalls.filter((c) => c.url.endsWith('/payments') && c.method === 'POST');
   const ch = await call('POST', `/api/admin/cases/${caseId}/charges`, { who: 'admin', body: { value: '10000', boletoMax: 12, dentistShare: true } });
   assert.equal(ch.status, 201, JSON.stringify(ch.data));
