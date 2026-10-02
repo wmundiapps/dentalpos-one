@@ -5,6 +5,7 @@ import receivableRoutes from './receivable';
 import invoiceRoutes from './invoice';
 import reportsRoutes from './reports';
 import { academicErrorHandler } from '../academico/middleware';
+import './jobs';
 
 // ============================================================
 // Em src/app.ts:

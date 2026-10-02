@@ -13,7 +13,13 @@ const router = Router();
 function parsePeriodo(req: AuthenticatedRequest) {
   const { de, ate } = req.query as Record<string, string>;
   const dataInicio = de ? new Date(de) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const dataFim = ate ? new Date(ate) : new Date();
+  let dataFim = ate ? new Date(ate) : new Date();
+  if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) {
+    throw Object.assign(new Error('Datas inválidas (use AAAA-MM-DD ou ISO 8601).'), { status: 400 });
+  }
+  // "ate" só com a data (AAAA-MM-DD) inclui o dia inteiro
+  if (ate && /^\d{4}-\d{2}-\d{2}$/.test(ate)) dataFim = new Date(dataFim.getTime() + 86_400_000 - 1);
+  if (dataFim < dataInicio) throw Object.assign(new Error('"ate" deve ser posterior a "de".'), { status: 400 });
   return { dataInicio, dataFim };
 }
 

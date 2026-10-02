@@ -360,6 +360,7 @@ export function mountManutencao(router: Router) {
           const ch = await prisma.infChamado.findFirst({ where: { id: os.chamadoId, tenantId } })
           if (ch && d.status === 'CONCLUIDA' && ['ABERTO', 'EM_ATENDIMENTO'].includes(ch.status)) {
             await prisma.infChamado.update({ where: { id: ch.id }, data: { status: 'RESOLVIDO', resolvidoEm: new Date() } })
+            await completeReminders({ tenantId, refType: 'InfChamado', refId: ch.id, userId })
             await notify({ tenantId, userId: ch.solicitanteUserId, assunto: `Chamado ${ch.numero} resolvido`, mensagem: `Seu chamado "${ch.titulo}" foi resolvido (OS ${os.numero}). Confirme o encerramento e avalie o atendimento.`, refType: 'InfChamado', refId: ch.id })
           }
         }

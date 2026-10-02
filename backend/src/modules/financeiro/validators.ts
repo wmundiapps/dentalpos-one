@@ -79,3 +79,9 @@ export const emitInvoiceSchema = z.object({
   tipo: z.enum(['NFSE', 'NFE', 'RECIBO']),
   valor: z.number().positive(),
 });
+
+export const webhookSchema = z.object({
+  gatewayId: z.string().min(1),
+  formaPagamento: z.enum(['PIX', 'BOLETO', 'CARTAO', 'DINHEIRO', 'TRANSFERENCIA']),
+  gatewayStatus: z.string().min(1),
+});

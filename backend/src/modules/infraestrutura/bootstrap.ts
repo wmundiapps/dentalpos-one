@@ -74,8 +74,10 @@ export function mountBootstrap(router: Router) {
       const tenantId = getTenantId(req)
       let categorias = 0, regras = 0, acoes = 0
       for (const c of CATEGORIAS_PADRAO) {
-        const r = await prisma.infCategoriaBem.upsert({ where: { tenantId_codigo: { tenantId, codigo: c.codigo } }, create: { tenantId, ...c }, update: {} })
-        if (r.createdAt.getTime() > Date.now() - 5000) categorias++
+        const existia = await prisma.infCategoriaBem.findUnique({ where: { tenantId_codigo: { tenantId, codigo: c.codigo } }, select: { id: true } })
+        if (existia) continue
+        await prisma.infCategoriaBem.upsert({ where: { tenantId_codigo: { tenantId, codigo: c.codigo } }, create: { tenantId, ...c }, update: {} })
+        categorias++
       }
       for (const [i, r] of REGRAS_PADRAO.entries()) {
         if (!(await prisma.infRegraUso.findFirst({ where: { tenantId, spaceId: null, titulo: r.titulo } }))) { await prisma.infRegraUso.create({ data: { tenantId, ...r, ordem: i + 1 } }); regras++ }

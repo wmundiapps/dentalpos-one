@@ -12,10 +12,22 @@ import {
   createReceivableSchema,
   generateMensalidadesSchema,
   receivePayableSchema,
+  webhookSchema,
 } from './validators';
 import { registrarBaixaComLancamento } from './accounting.helpers';
 
 const router = Router();
+
+// Aluno e matrícula precisam pertencer ao tenant (e a matrícula, ao aluno informado).
+async function validarAlunoMatricula(tenantId: string, studentId: string, enrollmentId?: string): Promise<string | null> {
+  const student = await prisma.student.findFirst({ where: { id: studentId, tenantId }, select: { id: true } });
+  if (!student) return 'Aluno não encontrado.';
+  if (enrollmentId) {
+    const enrollment = await prisma.enrollment.findFirst({ where: { id: enrollmentId, studentId }, select: { id: true } });
+    if (!enrollment) return 'Matrícula não encontrada para este aluno.';
+  }
+  return null;
+}
 
 router.post(
   '/receivables',
@@ -24,6 +36,8 @@ router.post(
   validate(createReceivableSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req);
+    const erro = await validarAlunoMatricula(tenantId, req.body.studentId, req.body.enrollmentId);
+    if (erro) return res.status(404).json({ error: erro });
     const receivable = await prisma.accountReceivable.create({ data: { tenantId, ...req.body } });
     res.status(201).json(receivable);
   }),
@@ -47,10 +61,25 @@ router.post(
       descricaoBase,
     } = req.body;
 
+    const erro = await validarAlunoMatricula(tenantId, studentId, enrollmentId);
+    if (erro) return res.status(404).json({ error: erro });
+
+    // evita gerar o carnê duas vezes para a mesma matrícula/descrição
+    const jaGeradas = await prisma.accountReceivable.count({
+      where: { tenantId, enrollmentId, status: { not: 'CANCELADO' }, descricao: { startsWith: `${descricaoBase} ` }, numeroParcela: { not: null } },
+    });
+    if (jaGeradas > 0) {
+      return res.status(409).json({ error: `Já existem ${jaGeradas} parcela(s) "${descricaoBase}" para esta matrícula.` });
+    }
+
+    // vencimento = dia fixo de cada mês (sem estouro de mês: 31/01 + 1 mês não pode virar março)
+    const base = new Date(primeiroVencimento);
     const parcelas = Array.from({ length: quantidadeParcelas }).map((_, index) => {
-      const vencimento = new Date(primeiroVencimento);
-      vencimento.setMonth(vencimento.getMonth() + index);
-      vencimento.setDate(diaVencimento);
+      const vencimento = new Date(base);
+      vencimento.setUTCDate(1);
+      vencimento.setUTCMonth(base.getUTCMonth() + index);
+      vencimento.setUTCDate(diaVencimento);
+      vencimento.setUTCHours(12, 0, 0, 0); // meio-dia UTC: o dia não muda ao exibir no fuso do Brasil
 
       return {
         tenantId,
@@ -108,7 +137,7 @@ router.get(
       return res.status(400).json({ error: 'Usuário logado não está vinculado a um aluno.' });
     }
     const receivables = await prisma.accountReceivable.findMany({
-      where: { studentId: req.user!.studentId },
+      where: { tenantId: getTenantId(req), studentId: req.user!.studentId },
       orderBy: { dataVencimento: 'asc' },
     });
     res.json(receivables);
@@ -130,26 +159,34 @@ router.post(
     if (receivable.status === 'PAGO') {
       return res.status(409).json({ error: 'Esta conta já está paga.' });
     }
+    if (receivable.status === 'CANCELADO') {
+      return res.status(409).json({ error: 'Esta conta está cancelada.' });
+    }
 
-    const { transacao, lancamento } = await registrarBaixaComLancamento({
-      tenantId,
-      tipo: 'RECEITA',
-      valor: receivable.valor,
-      formaPagamento,
-      historico: `Recebimento — ${receivable.descricao}`,
-      accountReceivableId: receivable.id,
-      dataTransacao: dataPagamento,
+    // "claim" atômico: só uma requisição consegue passar de pendente para pago (evita baixa em dobro)
+    const claim = await prisma.accountReceivable.updateMany({
+      where: { id, tenantId, status: { in: ['PENDENTE', 'ATRASADO'] } },
+      data: { status: 'PAGO', dataPagamento: dataPagamento ?? new Date(), gatewayId: gatewayId ?? undefined, gatewayStatus: gatewayStatus ?? undefined },
     });
+    if (claim.count === 0) return res.status(409).json({ error: 'Esta conta já foi baixada.' });
 
-    const updated = await prisma.accountReceivable.update({
-      where: { id },
-      data: {
-        status: 'PAGO',
-        dataPagamento: dataPagamento ?? new Date(),
-        gatewayId,
-        gatewayStatus,
-      },
-    });
+    let baixa;
+    try {
+      baixa = await registrarBaixaComLancamento({
+        tenantId,
+        tipo: 'RECEITA',
+        valor: receivable.valor,
+        formaPagamento,
+        historico: `Recebimento — ${receivable.descricao}`,
+        accountReceivableId: receivable.id,
+        dataTransacao: dataPagamento,
+      });
+    } catch (e) {
+      await prisma.accountReceivable.update({ where: { id }, data: { status: receivable.status, dataPagamento: null } });
+      throw e;
+    }
+    const { transacao, lancamento } = baixa;
+    const updated = await prisma.accountReceivable.findUniqueOrThrow({ where: { id } });
 
     res.json({ receivable: updated, transacao, lancamento });
   }),
@@ -161,32 +198,44 @@ router.post(
 // à baixa da conta a receber correspondente.
 router.post(
   '/receivables/webhook-gateway-confirmacao',
+  requireAuth,
+  requireRole('ADMIN', 'FINANCE'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const { gatewayId, formaPagamento, gatewayStatus } = req.body as {
-      gatewayId: string;
-      formaPagamento: 'PIX' | 'BOLETO' | 'CARTAO' | 'DINHEIRO' | 'TRANSFERENCIA';
-      gatewayStatus: string;
-    };
+    const tenantId = getTenantId(req);
+    const parsed = webhookSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten().fieldErrors });
+    }
+    const { gatewayId, formaPagamento, gatewayStatus } = parsed.data;
 
-    const receivable = await prisma.accountReceivable.findFirst({ where: { gatewayId } });
+    const receivable = await prisma.accountReceivable.findFirst({ where: { gatewayId, tenantId } });
     if (!receivable) return res.status(404).json({ error: 'Cobrança não vinculada a nenhuma conta a receber.' });
     if (receivable.status === 'PAGO') return res.status(200).json({ ok: true, jaProcessado: true });
+    if (receivable.status === 'CANCELADO') return res.status(409).json({ error: 'Esta conta está cancelada.' });
 
-    const { transacao, lancamento } = await registrarBaixaComLancamento({
-      tenantId: receivable.tenantId,
-      tipo: 'RECEITA',
-      valor: receivable.valor,
-      formaPagamento,
-      historico: `Recebimento via gateway — ${receivable.descricao}`,
-      accountReceivableId: receivable.id,
-    });
-
-    const updated = await prisma.accountReceivable.update({
-      where: { id: receivable.id },
+    const claim = await prisma.accountReceivable.updateMany({
+      where: { id: receivable.id, status: { in: ['PENDENTE', 'ATRASADO'] } },
       data: { status: 'PAGO', dataPagamento: new Date(), gatewayStatus },
     });
+    if (claim.count === 0) return res.status(200).json({ ok: true, jaProcessado: true });
 
-    res.json({ receivable: updated, transacao, lancamento });
+    let baixa;
+    try {
+      baixa = await registrarBaixaComLancamento({
+        tenantId: receivable.tenantId,
+        tipo: 'RECEITA',
+        valor: receivable.valor,
+        formaPagamento,
+        historico: `Recebimento via gateway — ${receivable.descricao}`,
+        accountReceivableId: receivable.id,
+      });
+    } catch (e) {
+      await prisma.accountReceivable.update({ where: { id: receivable.id }, data: { status: receivable.status, dataPagamento: null } });
+      throw e;
+    }
+    const updated = await prisma.accountReceivable.findUniqueOrThrow({ where: { id: receivable.id } });
+
+    res.json({ receivable: updated, transacao: baixa.transacao, lancamento: baixa.lancamento });
   }),
 );
 

@@ -222,10 +222,10 @@ export function mountPatrimonio(router: Router) {
       await registrarMov(tenantId, id, userId, { tipo: 'BAIXA', origemSpaceId: cur.spaceId, estadoAnterior: cur.estado, motivo: d.motivo, documento: d.documento })
       // planos preventivos do bem deixam de gerar OS; OS abertas são canceladas
       await prisma.infPlanoPreventivo.updateMany({ where: { tenantId, bemId: id, ativo: true }, data: { ativo: false } })
-      if (abertas > 0) await prisma.infOrdemServico.updateMany({ where: { tenantId, bemId: id, status: { in: ['ABERTA', 'AGENDADA'] } }, data: { status: 'CANCELADA' } })
+      const canceladas = abertas > 0 ? (await prisma.infOrdemServico.updateMany({ where: { tenantId, bemId: id, status: { in: ['ABERTA', 'AGENDADA'] } }, data: { status: 'CANCELADA' } })).count : 0
       await completeReminders({ tenantId, refType: 'InfBem', refId: id, userId })
       await audit({ tenantId, userId, modulo: MODULO, acao: 'BEM_BAIXADO', refType: 'InfBem', refId: id, detalhes: { motivo: d.motivo, valorContabil: depreciacaoDoBem(cur, cur.categoria, quando).valorContabil } })
-      res.json({ ...bem, depreciacao: depreciacaoDoBem(bem, cur.categoria), osAbertasRestantes: Math.max(0, abertas) })
+      res.json({ ...bem, depreciacao: depreciacaoDoBem(bem, cur.categoria), osAbertasRestantes: Math.max(0, abertas - canceladas) })
     }),
   )
 

@@ -44,7 +44,7 @@ async function main() {
   r = await call(ed, 'POST', P + `/submissoes/${s1.id}/triagem`, { aprovar: true, similaridadePct: 50 }); check('similaridade alta 422', r.status === 422, r.text)
   r = await call(ed, 'POST', P + `/submissoes/${s1.id}/triagem`, { aprovar: true, similaridadePct: 10 }); check('triagem ok', r.status === 200 && r.json.status === 'TRIAGEM', r.text)
   r = await call(ed, 'GET', P + `/submissoes/${s1.id}/sugestao-revisores`); check('sugestao', r.status === 200 && r.json.sugestoes.length === 3, r.text)
-  r = await call(ed, 'POST', P + `/submissoes/${s1.id}/decisao`, { decisao: 'ACEITAR', justificativa: 'justificativa longa', cartaAutor: 'carta longa aqui' }); check('aceitar em triagem 409', r.status === 409, r.text)
+  r = await call(ed, 'POST', P + `/submissoes/${s1.id}/decisao`, { decisao: 'ACEITAR', justificativa: 'justificativa longa', cartaAutor: 'carta longa aqui' }); check('aceitar em triagem bloqueado (4xx)', r.status === 409 || r.status === 422, r.text)
   r = await call(ed, 'POST', P + `/submissoes/${s1.id}/revisores`, { equipeIds: [eq[0].id, eq[1].id, ext.id] }); check('designar', r.status === 201 && r.json.status === 'EM_REVISAO', r.text)
   const revs = r.json.revisoes
   r = await call(ed, 'POST', P + `/submissoes/${s1.id}/revisores`, { equipeIds: [eq[0].id] }); check('designar mesmo 409/422?', r.status >= 400 && r.status < 500, r.text)

@@ -183,7 +183,9 @@ export function registerCompras(router: Router) {
     const role = roleOf(req)
     if (!SUPER.includes(role) && role !== pend.papel) throw httpErr(403, `Esta etapa (nível ${pend.nivel}) deve ser decidida por ${pend.papel}.`)
     if (d.decisao === 'REPROVADO' && !d.parecer) throw httpErr(400, 'Informe o parecer para reprovar.')
-    await prisma.supAprovacao.updateMany({ where: { requisicaoId: r.id, nivel: pend.nivel, status: 'PENDENTE' }, data: { status: d.decisao, decididoPorId: getUserId(req), decididoEm: new Date(), parecer: d.parecer } })
+    // Reivindica o nível de forma atômica: decisões simultâneas do mesmo nível (duplo clique/duas abas) só valem uma vez.
+    const claim = await prisma.supAprovacao.updateMany({ where: { requisicaoId: r.id, nivel: pend.nivel, status: 'PENDENTE' }, data: { status: d.decisao, decididoPorId: getUserId(req), decididoEm: new Date(), parecer: d.parecer } })
+    if (claim.count === 0) throw httpErr(409, 'Esta etapa já foi decidida.')
     await completeReminders({ tenantId, refType: 'SupRequisicao', refId: r.id, userId: getUserId(req) })
     let status = 'AGUARDANDO_APROVACAO'
     if (d.decisao === 'REPROVADO') {

@@ -126,37 +126,42 @@ export function mountEstacionamento(router: Router) {
       const tenantId = getTenantId(req)
       const userId = getUserId(req)
       const d = parseBody(z.object({ placa: placaSchema, areaId: z.string().min(1), vagaId: z.string().optional().nullable(), visitante: z.boolean().default(false) }), req.body)
-      const area = await prisma.infAreaEstacionamento.findFirst({ where: { id: d.areaId, tenantId, ativo: true } })
-      if (!area) fail(400, 'Área não encontrada ou inativa.')
-      const veic = await prisma.infVeiculo.findFirst({ where: { tenantId, placa: d.placa } })
-      const dentro = await prisma.infAcessoEstacionamento.findFirst({ where: { tenantId, placa: d.placa, saidaEm: null, autorizado: true } })
-      let negado: string | null = null
-      let criarOcorrencia: string | null = null
-      if (dentro) negado = 'Veículo já consta como dentro do estacionamento (registre a saída antes).'
-      else if (!veic && !d.visitante) negado = 'Placa não cadastrada. Cadastre o veículo ou registre como visitante.'
-      else if (veic) {
-        const c = credencialVigente(veic.credencialStatus, veic.validade)
-        if (!c.ok) { negado = c.motivo!; criarOcorrencia = 'CREDENCIAL_VENCIDA' }
-      }
-      let vaga: any = null
-      if (!negado && d.vagaId) {
-        vaga = await prisma.infVaga.findFirst({ where: { id: d.vagaId, tenantId, areaId: d.areaId, ativo: true } })
-        if (!vaga) negado = 'Vaga inexistente nesta área.'
-        else {
-          const ocup = await prisma.infAcessoEstacionamento.findFirst({ where: { tenantId, vagaId: vaga.id, saidaEm: null, autorizado: true } })
-          if (ocup) negado = `Vaga ${vaga.codigo} já ocupada.`
+      // Serializa as entradas do tenant: evita dupla ocupação de vaga, mesma placa duas vezes ou lotação estourada.
+      const { negado, reg } = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'inf-estac:' + tenantId}))`
+        const area = await tx.infAreaEstacionamento.findFirst({ where: { id: d.areaId, tenantId, ativo: true } })
+        if (!area) fail(400, 'Área não encontrada ou inativa.')
+        const veic = await tx.infVeiculo.findFirst({ where: { tenantId, placa: d.placa } })
+        const dentro = await tx.infAcessoEstacionamento.findFirst({ where: { tenantId, placa: d.placa, saidaEm: null, autorizado: true } })
+        let negado: string | null = null
+        let criarOcorrencia: string | null = null
+        if (dentro) negado = 'Veículo já consta como dentro do estacionamento (registre a saída antes).'
+        else if (!veic && !d.visitante) negado = 'Placa não cadastrada. Cadastre o veículo ou registre como visitante.'
+        else if (veic) {
+          const c = credencialVigente(veic.credencialStatus, veic.validade)
+          if (!c.ok) { negado = c.motivo!; criarOcorrencia = 'CREDENCIAL_VENCIDA' }
+        }
+        let vaga: any = null
+        if (!negado && d.vagaId) {
+          vaga = await tx.infVaga.findFirst({ where: { id: d.vagaId, tenantId, areaId: d.areaId, ativo: true } })
+          if (!vaga) negado = 'Vaga inexistente nesta área.'
           else {
-            const r = restricaoVaga(vaga.tipo, veic ? { tipo: veic.tipo, vinculo: veic.vinculo, vagaEspecial: veic.vagaEspecial } : { tipo: 'CARRO', vinculo: 'VISITANTE', vagaEspecial: null })
-            if (r) { negado = r; criarOcorrencia = 'VAGA_INDEVIDA' }
+            const ocup = await tx.infAcessoEstacionamento.findFirst({ where: { tenantId, vagaId: vaga.id, saidaEm: null, autorizado: true } })
+            if (ocup) negado = `Vaga ${vaga.codigo} já ocupada.`
+            else {
+              const r = restricaoVaga(vaga.tipo, veic ? { tipo: veic.tipo, vinculo: veic.vinculo, vagaEspecial: veic.vagaEspecial } : { tipo: 'CARRO', vinculo: 'VISITANTE', vagaEspecial: null })
+              if (r) { negado = r; criarOcorrencia = 'VAGA_INDEVIDA' }
+            }
           }
         }
-      }
-      if (!negado) {
-        const [vagas, ocupadas] = await Promise.all([prisma.infVaga.count({ where: { tenantId, areaId: d.areaId, ativo: true } }), prisma.infAcessoEstacionamento.count({ where: { tenantId, areaId: d.areaId, saidaEm: null, autorizado: true } })])
-        if (vagas > 0 && ocupadas >= vagas) negado = 'Estacionamento lotado.'
-      }
-      const reg = await prisma.infAcessoEstacionamento.create({ data: { tenantId, areaId: d.areaId, vagaId: negado ? null : vaga?.id ?? null, veiculoId: veic?.id, placa: d.placa, autorizado: !negado, motivoNegado: negado, registradoPorId: userId } })
-      if (criarOcorrencia) await prisma.infOcorrenciaEstacionamento.create({ data: { tenantId, areaId: d.areaId, vagaId: d.vagaId ?? null, veiculoId: veic?.id, placa: d.placa, tipo: criarOcorrencia, descricao: negado!, registradoPorId: userId } })
+        if (!negado) {
+          const [vagas, ocupadas] = await Promise.all([tx.infVaga.count({ where: { tenantId, areaId: d.areaId, ativo: true } }), tx.infAcessoEstacionamento.count({ where: { tenantId, areaId: d.areaId, saidaEm: null, autorizado: true } })])
+          if (vagas > 0 && ocupadas >= vagas) negado = 'Estacionamento lotado.'
+        }
+        const reg = await tx.infAcessoEstacionamento.create({ data: { tenantId, areaId: d.areaId, vagaId: negado ? null : vaga?.id ?? null, veiculoId: veic?.id, placa: d.placa, autorizado: !negado, motivoNegado: negado, registradoPorId: userId } })
+        if (criarOcorrencia) await tx.infOcorrenciaEstacionamento.create({ data: { tenantId, areaId: d.areaId, vagaId: d.vagaId ?? null, veiculoId: veic?.id, placa: d.placa, tipo: criarOcorrencia, descricao: negado!, registradoPorId: userId } })
+        return { negado, reg }
+      })
       if (negado) return res.status(403).json({ error: negado, registro: reg })
       res.status(201).json(reg)
     }),

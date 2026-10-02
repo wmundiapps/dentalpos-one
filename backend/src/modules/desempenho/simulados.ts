@@ -30,12 +30,22 @@ const montarSchema = z.object({
   dryRun: z.boolean().optional(),
 })
 
+// Alvos (turma/curso/aluno) precisam existir no tenant — evita vínculo com ids de outra instituição.
+async function validarAlvos(tenantId: string, alvos: Array<{ classSectionId?: string | null; programId?: string | null; studentId?: string | null }>) {
+  for (const a of alvos) {
+    if (a.classSectionId && !(await prisma.classSection.findFirst({ where: { id: a.classSectionId, tenantId }, select: { id: true } }))) throw httpErr(404, 'Turma não encontrada.')
+    if (a.programId && !(await prisma.academicProgram.findFirst({ where: { id: a.programId, tenantId }, select: { id: true } }))) throw httpErr(404, 'Curso não encontrado.')
+    if (a.studentId && !(await prisma.student.findFirst({ where: { id: a.studentId, tenantId }, select: { id: true } }))) throw httpErr(404, 'Aluno não encontrado.')
+  }
+}
+
 router.post('/simulados/montar', requireRole(...DOCENTE), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
   const b = parseBody(montarSchema, req.body)
   const ex = await prisma.desExame.findFirst({ where: { id: b.exameId, tenantId }, include: { eixos: { where: { ativo: true } } } })
   if (!ex) throw httpErr(404, 'Exame não encontrado.')
   if (b.abreEm && b.fechaEm && b.fechaEm <= b.abreEm) throw httpErr(400, 'Fechamento deve ser posterior à abertura.')
+  if (b.alvos?.length) await validarAlvos(tenantId, b.alvos)
   const eixoIds = new Set(ex.eixos.map((e) => e.id))
   let matriz = b.matriz
   if (matriz) { for (const l of matriz) if (!eixoIds.has(l.eixoId)) throw httpErr(400, `Eixo ${l.eixoId} não pertence ao exame.`) }
@@ -132,11 +142,7 @@ router.put('/simulados/:id/alvos', requireRole(...DOCENTE), asyncHandler(async (
   const s = await getSimulado(tenantId, String(req.params.id))
   if (s.status === 'ENCERRADO') throw httpErr(409, 'Simulado encerrado.')
   const b = parseBody(z.object({ alvos: z.array(z.object({ classSectionId: opt(z.string()), programId: opt(z.string()), studentId: opt(z.string()) }).refine((a) => a.classSectionId || a.programId || a.studentId, 'Informe turma, curso ou aluno')).min(1) }), req.body)
-  for (const a of b.alvos) {
-    if (a.classSectionId && !(await prisma.classSection.findFirst({ where: { id: a.classSectionId, tenantId }, select: { id: true } }))) throw httpErr(404, 'Turma não encontrada.')
-    if (a.programId && !(await prisma.academicProgram.findFirst({ where: { id: a.programId, tenantId }, select: { id: true } }))) throw httpErr(404, 'Curso não encontrado.')
-    if (a.studentId && !(await prisma.student.findFirst({ where: { id: a.studentId, tenantId }, select: { id: true } }))) throw httpErr(404, 'Aluno não encontrado.')
-  }
+  await validarAlvos(tenantId, b.alvos)
   await prisma.$transaction([
     prisma.desSimuladoAlvo.deleteMany({ where: { simuladoId: s.id, tenantId } }),
     prisma.desSimuladoAlvo.createMany({ data: b.alvos.map((a) => ({ tenantId, simuladoId: s.id, classSectionId: a.classSectionId ?? undefined, programId: a.programId ?? undefined, studentId: a.studentId ?? undefined })) }),

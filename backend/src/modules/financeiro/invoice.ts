@@ -27,6 +27,10 @@ router.post(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req);
 
+    if (req.body.accountReceivableId) {
+      const ar = await prisma.accountReceivable.findFirst({ where: { id: req.body.accountReceivableId, tenantId }, select: { id: true } });
+      if (!ar) return res.status(404).json({ error: 'Conta a receber não encontrada.' });
+    }
     const invoice = await prisma.fiscalInvoice.create({
       data: { tenantId, ...req.body, status: 'PENDENTE' },
     });

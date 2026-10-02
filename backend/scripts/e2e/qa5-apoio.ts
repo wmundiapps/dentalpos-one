@@ -103,7 +103,7 @@ async function main() {
   await prisma.apoConcessaoBolsa.update({ where: { id: conc!.id }, data: { fim: new Date(Date.now() + 10 * 864e5) } })
   r = await call(studs[2], 'POST', A + `/bolsas/concessoes/${conc!.id}/renovar`, {}); check('renovar alheia 404', r.status === 404, r.text)
   r = await call(s1, 'POST', A + `/bolsas/concessoes/${conc!.id}/renovar`, {}); console.log('  renovar:', r.status, r.text.slice(0, 200)); check('renovar sem media 422 (ou ok)', [200, 422].includes(r.status), r.text)
-  r = await call(sup, 'POST', A + `/bolsas/concessoes/${conc!.id}/renovar`, { forcar: true, justificativa: 'Situação excepcional justificada' }); check('renovar forcada', r.status === 200 || (r.status === 409), r.text)
+  r = await call(sup, 'POST', A + `/bolsas/concessoes/${conc!.id}/renovar`, { forcar: true, justificativa: 'Situação excepcional justificada' }); check('renovar forcada apos renovar: fora da janela 422', r.status === 422, r.text)
   r = await call(sup, 'POST', A + `/bolsas/concessoes/${conc!.id}/encerrar`, { motivo: 'Abandono do curso', suspender: true }); check('suspender', r.status === 200, r.text)
   r = await call(sup, 'POST', A + `/bolsas/concessoes/${conc!.id}/reativar`, {}); check('reativar', r.status === 200, r.text)
   r = await call(sup, 'POST', A + `/bolsas/concessoes/${conc!.id}/encerrar`, { motivo: 'Abandono do curso' }); check('cancelar', r.status === 200, r.text)
@@ -120,7 +120,7 @@ async function main() {
   const resC = await Promise.all([1, 2, 3, 4].map((i) => call(null, 'POST', OP + '/manifestacoes', { ...man, assunto: 'Assunto concorrente ' + i })))
   check('protocolos concorrentes unicos', resC.every((x) => x.status === 201) && new Set(resC.map((x) => x.json?.protocolo)).size === 4, resC.map((x) => x.status + ' ' + (x.json?.protocolo ?? x.text.slice(0, 80))))
   r = await call(null, 'POST', OP + '/manifestacoes', { ...man, anonima: true, nome: undefined, email: undefined, tipo: 'DENUNCIA', assunto: 'Denuncia de assedio' }); check('denuncia anonima', r.status === 201, r.text); const den = r.json
-  const dm = await prisma.apoManifestacao.findFirst({ where: { protocolo: den.protocolo } }); check('anonima sem identificacao', !dm?.nome && !dm?.email && !dm?.userId && dm?.prioridade === 'ALTA', dm)
+  const dm = await prisma.apoManifestacao.findFirst({ where: { tenantId: t1.tenantId, protocolo: den.protocolo } }); check('anonima sem identificacao', !dm?.nome && !dm?.email && !dm?.userId && dm?.prioridade === 'ALTA', dm)
   const prot = resC[0].json
   r = await call(null, 'POST', OP + '/consulta', { protocolo: prot.protocolo, senha: 'ERRADA' }); check('senha errada 404', r.status === 404, r.text)
   r = await call(null, 'POST', OP + '/consulta', { protocolo: 'OUV-2026-000001-0', senha: 'XXXXXXXX' }); check('protocolo inexistente 404', r.status === 404, r.text)
@@ -130,7 +130,7 @@ async function main() {
   const p5 = resC[1].json
   for (let i = 0; i < 5; i++) await call(null, 'POST', OP + '/consulta', { protocolo: p5.protocolo, senha: 'ERRADA1' })
   r = await call(null, 'POST', OP + '/consulta', { protocolo: p5.protocolo, senha: p5.senhaAcompanhamento }); check('bloqueio apos 5 falhas 429', r.status === 429, r.text)
-  const mid = (await prisma.apoManifestacao.findFirst({ where: { protocolo: prot.protocolo } }))!.id
+  const mid = (await prisma.apoManifestacao.findFirst({ where: { tenantId: t1.tenantId, protocolo: prot.protocolo } }))!.id
   r = await call(coord, 'GET', A + '/ouvidoria/manifestacoes/' + mid); check('coord nao ve identificacao', r.status === 200 && r.json.identificacaoOculta === true && !JSON.stringify(r.json).includes('cid@x.com'), r.text)
   r = await call(sup, 'GET', A + '/ouvidoria/manifestacoes/' + mid); check('ouvidor ve identificacao', r.status === 200 && r.json.email === 'cid@x.com', r.text)
   r = await call(s1, 'GET', A + '/ouvidoria/manifestacoes'); check('aluno lista 403', r.status === 403)
@@ -143,7 +143,7 @@ async function main() {
   // fluxo com encaminhamento + SLA
   const setor = await prisma.apoSetorOuvidoria.findFirst({ where: { tenantId: t1.tenantId, codigo: 'INFRA' } })
   await prisma.apoSetorOuvidoria.update({ where: { id: setor!.id }, data: { responsavelUserId: tch.id } })
-  const m2 = resC[2].json; const m2id = (await prisma.apoManifestacao.findFirst({ where: { protocolo: m2.protocolo } }))!.id
+  const m2 = resC[2].json; const m2id = (await prisma.apoManifestacao.findFirst({ where: { tenantId: t1.tenantId, protocolo: m2.protocolo } }))!.id
   r = await call(sup, 'POST', A + `/ouvidoria/manifestacoes/${m2id}/triar`, { prioridade: 'ALTA' }); check('triar', r.status === 200 && r.json.status === 'EM_ANALISE', r.text)
   r = await call(sup, 'POST', A + `/ouvidoria/manifestacoes/${m2id}/encaminhar`, { setorId: setor!.id, solicitacao: 'Verificar o ar condicionado da sala 12' }); check('encaminhar', r.status === 201, r.text); const enc = r.json
   r = await call(sup, 'POST', A + `/ouvidoria/manifestacoes/${m2id}/responder`, { resposta: 'Resposta final com mais de vinte caracteres' }); check('responder com enc pendente 422', r.status === 422, r.text)
@@ -159,7 +159,7 @@ async function main() {
   r = await call(sup, 'GET', A + '/ouvidoria/manifestacoes?vencidas=true'); check('lista vencidas', r.status === 200 && r.json.items.some((x: any) => x.id === m2id), r.text)
   r = await call(sup, 'GET', A + '/ouvidoria/relatorio'); check('relatorio', r.status === 200, r.text)
   r = await call(sup, 'GET', A + '/ouvidoria/relatorio-anual'); check('relatorio anual html', r.status === 200 && r.text.includes('<html'), r.status)
-  r = await call(sup, 'POST', A + `/ouvidoria/manifestacoes/${(await prisma.apoManifestacao.findFirst({ where: { protocolo: den.protocolo } }))!.id}/arquivar`, { motivo: 'Sem elementos suficientes para apuração' }); check('arquivar', r.status === 200, r.text)
+  r = await call(sup, 'POST', A + `/ouvidoria/manifestacoes/${(await prisma.apoManifestacao.findFirst({ where: { tenantId: t1.tenantId, protocolo: den.protocolo } }))!.id}/arquivar`, { motivo: 'Sem elementos suficientes para apuração' }); check('arquivar', r.status === 200, r.text)
   // interno
   r = await call(s1, 'POST', A + '/ouvidoria/manifestacoes', { ...man, nome: undefined, email: undefined }); check('manifestacao interna aluno', r.status === 201, r.text); const mi = r.json
   r = await call(s1, 'GET', A + '/ouvidoria/minhas'); check('minhas', r.status === 200 && r.json.length === 1, r.text)

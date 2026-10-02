@@ -15,7 +15,7 @@ export function check(cond: any, msg: string, extra?: any) {
 }
 export const summary = () => { console.log(`\n${passed} ok, ${failures.length} falhas`); failures.forEach((f) => console.log(' -', f)) }
 
-export const ROLES = ['ADMIN', 'COORDINATOR', 'TEACHER', 'STUDENT', 'FINANCE', 'SECRETARY', 'LIBRARIAN', 'FACILITIES', 'SUPPLIES', 'STAFF'] as const
+export const ROLES = ['ADMIN', 'COORDINATOR', 'TEACHER', 'STUDENT', 'FINANCE', 'SECRETARY', 'LIBRARIAN', 'FACILITIES', 'SUPPLIES', 'STAFF', 'SUPPORT'] as const
 export type Role = (typeof ROLES)[number]
 
 export interface Ctx {

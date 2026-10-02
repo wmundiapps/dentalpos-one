@@ -19,6 +19,10 @@ router.post(
   validate(createPayableSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req);
+    if (req.body.costCenterId) {
+      const cc = await prisma.eduCostCenter.findFirst({ where: { id: req.body.costCenterId, tenantId }, select: { id: true } });
+      if (!cc) return res.status(404).json({ error: 'Centro de custo não encontrado.' });
+    }
     const payable = await prisma.accountPayable.create({ data: { tenantId, ...req.body } });
     res.status(201).json(payable);
   }),
@@ -68,21 +72,34 @@ router.post(
     if (payable.status === 'PAGO') {
       return res.status(409).json({ error: 'Esta conta já está paga.' });
     }
+    if (payable.status === 'CANCELADO') {
+      return res.status(409).json({ error: 'Esta conta está cancelada.' });
+    }
 
-    const { transacao, lancamento } = await registrarBaixaComLancamento({
-      tenantId,
-      tipo: 'DESPESA',
-      valor: payable.valor,
-      formaPagamento,
-      historico: `Pagamento — ${payable.descricao}`,
-      accountPayableId: payable.id,
-      dataTransacao: dataPagamento,
-    });
-
-    const updated = await prisma.accountPayable.update({
-      where: { id },
+    // "claim" atômico: evita pagamento em dobro em requisições concorrentes
+    const claim = await prisma.accountPayable.updateMany({
+      where: { id, tenantId, status: { in: ['PENDENTE', 'ATRASADO'] } },
       data: { status: 'PAGO', dataPagamento: dataPagamento ?? new Date() },
     });
+    if (claim.count === 0) return res.status(409).json({ error: 'Esta conta já foi baixada.' });
+
+    let baixa;
+    try {
+      baixa = await registrarBaixaComLancamento({
+        tenantId,
+        tipo: 'DESPESA',
+        valor: payable.valor,
+        formaPagamento,
+        historico: `Pagamento — ${payable.descricao}`,
+        accountPayableId: payable.id,
+        dataTransacao: dataPagamento,
+      });
+    } catch (e) {
+      await prisma.accountPayable.update({ where: { id }, data: { status: payable.status, dataPagamento: null } });
+      throw e;
+    }
+    const { transacao, lancamento } = baixa;
+    const updated = await prisma.accountPayable.findUniqueOrThrow({ where: { id } });
 
     res.json({ payable: updated, transacao, lancamento });
   }),

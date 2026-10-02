@@ -12,8 +12,8 @@ const TIPOS_RESERVAVEIS = ['PATIO', 'QUADRA', 'ESTACIONAMENTO', 'AUDITORIO', 'OU
 const MAX_HORAS = 14
 
 // Reservas aprovadas que conflitam com o intervalo.
-export async function conflitosReserva(tenantId: string, spaceId: string, inicio: Date, fim: Date, ignorarId?: string) {
-  const cand = await prisma.infReservaArea.findMany({
+export async function conflitosReserva(tenantId: string, spaceId: string, inicio: Date, fim: Date, ignorarId?: string, db: Pick<typeof prisma, 'infReservaArea'> = prisma) {
+  const cand = await db.infReservaArea.findMany({
     where: { tenantId, spaceId, status: 'APROVADA', inicio: { lt: fim }, fim: { gt: inicio }, ...(ignorarId ? { id: { not: ignorarId } } : {}) },
   })
   return cand.filter((c) => conflitoHorario({ inicio, fim }, c))
@@ -121,12 +121,18 @@ export function mountPatio(router: Router) {
       if (!r) return res.status(404).json({ error: 'Reserva não encontrada.' })
       if (r.status !== 'SOLICITADA') fail(409, 'Reserva já decidida.')
       if (!d.aprovar && !d.motivo) fail(400, 'Informe o motivo da recusa.')
-      if (d.aprovar) {
-        if (r.inicio.getTime() < Date.now()) fail(409, 'Reserva já passou do início.')
-        const conf = await conflitosReserva(tenantId, r.spaceId, r.inicio, r.fim, r.id)
-        if (conf.length) fail(409, `Conflito com reserva aprovada "${conf[0].titulo}".`)
-      }
-      const novo = await prisma.infReservaArea.update({ where: { id: r.id }, data: { status: d.aprovar ? 'APROVADA' : 'RECUSADA', decididoPorId: userId, decididoEm: new Date(), motivoDecisao: d.motivo } })
+      // Serializa as decisões por espaço: duas aprovações simultâneas de reservas sobrepostas não podem passar juntas.
+      const novo = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'inf-reserva:' + tenantId + ':' + r.spaceId}))`
+        const atual = await tx.infReservaArea.findFirst({ where: { id: r.id, tenantId } })
+        if (!atual || atual.status !== 'SOLICITADA') fail(409, 'Reserva já decidida.')
+        if (d.aprovar) {
+          if (r.inicio.getTime() < Date.now()) fail(409, 'Reserva já passou do início.')
+          const conf = await conflitosReserva(tenantId, r.spaceId, r.inicio, r.fim, r.id, tx)
+          if (conf.length) fail(409, `Conflito com reserva aprovada "${conf[0].titulo}".`)
+        }
+        return tx.infReservaArea.update({ where: { id: r.id }, data: { status: d.aprovar ? 'APROVADA' : 'RECUSADA', decididoPorId: userId, decididoEm: new Date(), motivoDecisao: d.motivo } })
+      })
       await completeReminders({ tenantId, refType: 'InfReservaArea', refId: r.id, userId })
       if (d.aprovar) {
         await scheduleReminder({ tenantId, modulo: MODULO, titulo: `Preparar área para evento: ${r.titulo}`, dueAt: r.inicio, antecedenciaDias: 1, refType: 'InfReservaArea', refId: r.id, assigneeRole: 'FACILITIES', dedupeKey: `inf-res-prep-${r.id}` })
