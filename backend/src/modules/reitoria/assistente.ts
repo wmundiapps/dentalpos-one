@@ -77,7 +77,7 @@ export async function perguntar(o: PerguntaOpts) {
 
 // Briefing diário: "o que merece minha atenção hoje?" (cache de 10 min por tenant/perfil)
 export async function briefing(o: Omit<PerguntaOpts, 'pergunta'>) {
-  const k = `${o.tenantId}|${o.perfil}|${o.programId ?? '-'}`
+  const k = `${o.tenantId}|${o.perfil}|${o.programId ?? '-'}|${o.perfil === 'professor' ? o.userId : '-'}`
   const hit = briefingCache.get(k)
   if (hit) return hit
   const r = await perguntar({ ...o, pergunta: 'Faça o briefing executivo de hoje: o que está crítico, o que melhorou e quais as três prioridades?' })

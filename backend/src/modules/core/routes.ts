@@ -116,6 +116,23 @@ router.delete(
   }),
 )
 
+// ---------------- Seleção de pessoas (docentes, orientadores, responsáveis) ----------------
+
+router.get(
+  '/pessoas',
+  requireAuth,
+  asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = getTenantId(req)
+    const role = qs(req.query.role)
+    const q = qs(req.query.q)
+    const where: any = { tenantId, isActive: true }
+    if (role) where.role = role.toUpperCase()
+    if (q) where.OR = [{ firstName: { contains: q, mode: 'insensitive' } }, { lastName: { contains: q, mode: 'insensitive' } }, { email: { contains: q, mode: 'insensitive' } }]
+    const users = await prisma.user.findMany({ where, select: { id: true, firstName: true, lastName: true, email: true, role: true }, orderBy: { firstName: 'asc' }, take: 50 })
+    res.json(users.map((u) => ({ id: u.id, nome: `${u.firstName} ${u.lastName}`.trim(), email: u.email, role: u.role })))
+  }),
+)
+
 // ---------------- Espaços físicos ----------------
 
 const spaceSchema = z.object({
