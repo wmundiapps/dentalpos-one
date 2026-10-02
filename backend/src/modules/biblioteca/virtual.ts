@@ -43,7 +43,7 @@ export function mountVirtual(router: Router) {
     const q = qs(req.query.q)
     if (q) where.OR = ['titulo', 'autores', 'provedor', 'assuntos', 'descricao'].map((f) => ({ [f]: { contains: q, mode: 'insensitive' } }))
     const recs = await prisma.bibRecursoVirtual.findMany({ where, orderBy: { titulo: 'asc' }, take: 200 })
-    const items = []
+    const items: any[] = []
     for (const r of recs) {
       const a = await verificarAcessoVirtual(tenantId, r, req.user as any)
       items.push({ id: r.id, tipo: r.tipo, titulo: r.titulo, autores: r.autores, provedor: r.provedor, tipoAcesso: r.tipoAcesso, descricao: r.descricao, permitido: a.permitido, motivo: a.motivo })

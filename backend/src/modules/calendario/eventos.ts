@@ -6,7 +6,7 @@ import { dateISO, mountCrud, parseBody, qs } from '../core/crud'
 import { audit } from '../core/notify'
 import { cancelReminders, scheduleReminder } from '../core/reminders'
 import { feriadosNacionais } from './holidays'
-import { DAY_MS, addDays, endOfLocalDay, expandRecorrencia, fromLocal, isoWeekday, localDateKey, parseDateKey, startOfLocalDay, toLocal } from './time'
+import { DAY_MS, addDays, endOfLocalDay, expandRecorrencia, isoWeekday, localDateKey, parseDateKey, startOfLocalDay, toLocal } from './time'
 import { GESTAO, MODULO, PUBLICO_ROLES, TODOS_PAPEIS, diasLetivosDoPeriodo, erro, requireTerm, temPapel } from './service'
 
 export const CATEGORIAS_PADRAO: Array<{ nome: string; cor: string; tipoPadrao: string }> = [
@@ -473,4 +473,3 @@ export function registerEventos(router: Router) {
   )
 }
 
-export { fromLocal }

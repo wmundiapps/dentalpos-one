@@ -82,7 +82,7 @@ export function mountCirculacao(router: Router) {
       if (d.userId && (await prisma.bibLeitor.count({ where: { tenantId, userId: d.userId } }))) throw httpErr(409, 'Já existe leitor para este usuário.')
       return d
     },
-  }))
+  })
 
   // ---- empréstimos (balcão) ----
   router.post('/emprestimos', requireRole(...BIB), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

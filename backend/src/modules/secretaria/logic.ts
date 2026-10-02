@@ -230,7 +230,7 @@ export function analisarDocumentoHeuristica(params: {
     const ausentes = termos.filter((t) => !n.includes(t))
     if (ausentes.length) inconsistencias.push(`Termos/requisitos não localizados: ${ausentes.join(', ')}.`)
   }
-  const graves = inconsistencias.filter((i) => /vencida|futuro|não confere|ilegível/i.test(i)).length
+  const graves = inconsistencias.filter((i) => /excedida|futuro|não confere|ilegível/i.test(i)).length
   const parecer: AnaliseDocumento['parecer'] = graves > 0 ? 'REJEITADO' : inconsistencias.length > 0 ? 'PENDENTE' : 'APROVADO'
   return { modo: 'HEURISTICA', parecer, legivel, validade, inconsistencias, confianca: texto ? 0.5 : 0.1, observacoes: 'Análise heurística — confirmar manualmente.' }
 }
@@ -289,6 +289,19 @@ export function situacaoDisciplina(nota: number | null | undefined, frequencia: 
   if (nota == null) return 'EM CURSO'
   if (frequencia != null && frequencia < freqMin) return 'REPROVADO POR FALTAS'
   return nota >= mediaMin ? 'APROVADO' : 'REPROVADO'
+}
+
+// Normaliza a situação vinda do módulo de notas (ex.: REPROVADO_FREQ, RECUPERACAO) para o vocabulário do histórico.
+export function normalizarSituacao(raw: string | null | undefined): string | null {
+  const s = String(raw ?? '').toUpperCase().replace(/_/g, ' ').trim()
+  if (!s) return null
+  if (/FREQ|FALTA/.test(s) && /REPROV/.test(s)) return 'REPROVADO POR FALTAS'
+  if (/REPROV/.test(s)) return 'REPROVADO'
+  if (/^APROVEIT/.test(s)) return 'APROVEITADO'
+  if (/DISPENS/.test(s)) return 'DISPENSADO'
+  if (/APROV/.test(s)) return 'APROVADO'
+  if (/CURSO|RECUPERA|EXAME|PENDENTE/.test(s)) return 'EM CURSO'
+  return null
 }
 
 export function resumoHistorico(linhas: LinhaHistorico[]) {

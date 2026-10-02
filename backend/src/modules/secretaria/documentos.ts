@@ -7,7 +7,7 @@ import { pageParams, parseBody, qs } from '../core/crud'
 import { Branding, brandHeaderHtml, escapeHtml as esc, getBranding } from '../core/branding'
 import { audit } from '../core/notify'
 import { MODULO, SEC, SEC_GESTAO, SEC_LEITURA, carregarAluno, escolherMatricula, exigirAluno, urlVerificacao } from './common'
-import { LinhaHistorico, dataExtenso, gerarCodigoVerificacao, resumoHistorico, sha256, situacaoDisciplina } from './logic'
+import { LinhaHistorico, dataExtenso, gerarCodigoVerificacao, normalizarSituacao, resumoHistorico, sha256, situacaoDisciplina } from './logic'
 
 // ============================================================
 // DOCUMENTOS ACADÊMICOS EM HTML IMPRIMÍVEL
@@ -51,7 +51,7 @@ function descobrirModeloNotas() {
             nota,
             ligacao,
             situacao: ['situacao', 'resultado', 'status'].find((x) => f.includes(x)),
-            frequencia: ['frequencia', 'percentualFrequencia', 'freq'].find((x) => f.includes(x)),
+            frequencia: ['frequencia', 'frequenciaPct', 'percentualFrequencia', 'freq'].find((x) => f.includes(x)),
           },
         }
     }
@@ -116,7 +116,7 @@ export async function montarHistorico(tenantId: string, studentId: string, enrol
     const nota = nt?.nota ?? notaCore ?? null
     const ss = sessoes.filter((s) => s.classSectionId === cs.id)
     const freq = nt?.freq ?? (ss.length ? Math.round((ss.filter((s) => presMap.get(s.id) === true).length / ss.length) * 100) : null)
-    const sit = nt?.situacao && /APROV|REPROV|DISPENS|APROVEIT|CURSO/i.test(nt.situacao) ? nt.situacao.toUpperCase().replace(/_/g, ' ') : situacaoDisciplina(nota, freq)
+    const sit = normalizarSituacao(nt?.situacao) ?? situacaoDisciplina(nota, freq)
     return { disciplina: cs.discipline.nome, periodo: cs.term.codigo, cargaHoraria: cs.discipline.cargaHoraria, nota, frequencia: freq, situacao: sit }
   })
   linhas.sort((a, b) => String(a.periodo).localeCompare(String(b.periodo)) || a.disciplina.localeCompare(b.disciplina))

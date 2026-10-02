@@ -312,7 +312,7 @@ export async function analisarComIa(p: {
       parecer: heur.parecer === 'REJEITADO' && parecer === 'APROVADO' ? 'PENDENTE' : parecer,
       legivel: r.legivel ?? heur.legivel,
       validade: heur.validade !== 'INDETERMINADA' ? heur.validade : (r.validade as any) ?? 'INDETERMINADA',
-      inconsistencias: [...new Set([...(Array.isArray(r.inconsistencias) ? r.inconsistencias.map(String) : []), ...heur.inconsistencias.filter((i) => /vencida|futuro|não confere/i.test(i))])],
+      inconsistencias: [...new Set([...(Array.isArray(r.inconsistencias) ? r.inconsistencias.map(String) : []), ...heur.inconsistencias.filter((i) => /excedida|futuro|não confere/i.test(i))])],
       observacoes: r.observacoes ? String(r.observacoes) : undefined,
       confianca: typeof r.confianca === 'number' ? Math.max(0, Math.min(1, r.confianca)) : 0.6,
     }

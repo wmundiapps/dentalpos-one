@@ -181,7 +181,7 @@ export function mountDiplomas(router: Router) {
     const b = parseBody(z.object({ studentId: z.string().min(1), enrollmentId: z.string().optional(), tipo: z.enum(['DIPLOMA', 'SEGUNDA_VIA']).default('DIPLOMA'), observacoes: z.string().max(1000).optional(), protocoloId: z.string().optional(), forcar: z.boolean().default(false) }), req.body)
     const s = await prisma.student.findFirst({ where: { id: b.studentId, tenantId } })
     if (!s) return res.status(404).json({ error: 'Aluno não encontrado.' })
-    const matr = await prisma.enrollment.findMany({ where: { studentId: s.id, ...(b.enrollmentId ? { id: b.enrollmentId } : {}) }, orderBy: { dataMatricula: 'desc' } })
+    const matr = await prisma.enrollment.findMany({ where: { studentId: s.id, ...(b.enrollmentId ? { id: b.enrollmentId } : {}) }, include: { term: true }, orderBy: { dataMatricula: 'desc' } })
     const m = matr.find((x) => x.status === 'CONCLUIDA') ?? matr[0]
     const concluiu = ['CONCLUIDO', 'FORMADO'].includes(s.status) || m?.status === 'CONCLUIDA'
     if (!concluiu && !b.forcar) return res.status(409).json({ error: 'O aluno ainda não consta como concluinte (use forcar=true para exceção autorizada).' })

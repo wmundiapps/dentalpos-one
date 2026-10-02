@@ -125,7 +125,7 @@ export async function bootstrapSecretaria(tenantId: string) {
     let m = await prisma.secChecklistModelo.findUnique({ where: { tenantId_codigo: { tenantId, codigo: c.codigo } } })
     if (!m) {
       m = await prisma.secChecklistModelo.create({
-        data: { tenantId, codigo: c.codigo, nome: c.nome, processo: c.processo, itens: { create: c.itens.map(([titulo, obrigatorio, validadeDias, requisitos], i) => ({ tenantId, ordem: i + 1, titulo, obrigatorio, validadeDias, requisitos })) } },
+        data: { tenantId, codigo: c.codigo, nome: c.nome, processo: c.processo, itens: { create: (c.itens as readonly (readonly [string, boolean, number | null, string])[]).map(([titulo, obrigatorio, validadeDias, requisitos], i) => ({ tenantId, ordem: i + 1, titulo, obrigatorio, validadeDias, requisitos })) } },
       })
       criado.checklists++
     }

@@ -137,7 +137,7 @@ export function mountAcervo(router: Router) {
     await checarEspaco(tenantId, b.spaceId)
     const { quantidade, ...resto } = b
     const tombos = await gerarTombos(tenantId, quantidade)
-    const criados = []
+    const criados: any[] = []
     for (const tombo of tombos) criados.push(await prisma.bibExemplar.create({ data: { ...resto, tenantId, obraId: obra.id, tombo, dataAquisicao: resto.dataAquisicao ?? new Date() } }))
     await atribuirReservas(tenantId, obra.id)
     await audit({ tenantId, userId: getUserId(req), modulo: MOD, acao: 'CRIAR_EXEMPLARES', refType: 'BibObra', refId: obra.id, detalhes: { quantidade } })

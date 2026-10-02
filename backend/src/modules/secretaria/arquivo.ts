@@ -139,7 +139,7 @@ export function mountArquivo(router: Router) {
 
   router.post('/arquivo/:id/retomar', requireRole(...SEC_GESTAO), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req)
-    const i = await prisma.secArquivoItem.findFirst({ where: { id: String(req.params.id), tenantId, status: 'SUSPENSO' }, include: {} })
+    const i = await prisma.secArquivoItem.findFirst({ where: { id: String(req.params.id), tenantId, status: 'SUSPENSO' } })
     if (!i) return res.status(404).json({ error: 'Item suspenso não encontrado.' })
     const t = await prisma.secTemporalidade.findFirst({ where: { id: i.temporalidadeId, tenantId } })
     const st = statusArquivoCalculado('ATIVO', t?.destinacao ?? 'ELIMINACAO', i.eliminarApos)

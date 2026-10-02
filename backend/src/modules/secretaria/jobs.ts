@@ -1,7 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { registerEduJob } from '../core/jobs'
-import { notify, audit } from '../core/notify'
-import { MODULO } from './common'
+import { notify } from '../core/notify'
 import { reclassificarArquivo } from './arquivo'
 import { reavaliarFormandos } from './diplomas'
 import { DAY } from './logic'
@@ -76,5 +75,3 @@ export function registrarJobsSecretaria() {
   registerEduJob('secretaria.colacoes', () => jobColacoes())
   registerEduJob('secretaria.diplomas', () => jobDiplomas())
 }
-void audit
-void MODULO
