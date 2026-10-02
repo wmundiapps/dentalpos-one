@@ -48,7 +48,7 @@ import {
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadFinancialEntries } from "../services/FinancialApi";
-import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
+import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import {
@@ -299,6 +299,12 @@ export default function Agenda() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(((new URLSearchParams(window.location.search).get("status")) || "Todos") as StatusFilter);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<IntegratedAppointment | null>(null);
+  const refreshAfterQuickAction = async () => {
+    const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
+    saveAppointments(refreshed);
+    setItems(refreshed);
+    setEdit(null);
+  };
   const [editReason, setEditReason] = useState("");
   const [editRequestedBy, setEditRequestedBy] = useState<"Paciente" | "Clínica" | "Dentista" | "Outro">("Paciente");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1393,6 +1399,57 @@ export default function Agenda() {
           })() : null}
           {edit ? (
             <>
+              {edit.backendId && ["Agendado", "Confirmado", "Faltou"].includes(edit.status) ? (
+                <Button
+                  color="success"
+                  variant="outlined"
+                  onClick={async () => {
+                    try {
+                      // Compareceu = chegada: o paciente entra na fila do Painel de Atendimento (sala de espera).
+                      await appointmentFlowAction(edit.backendId!, "ARRIVED");
+                      await refreshAfterQuickAction();
+                    } catch (error) {
+                      window.alert(error instanceof Error ? error.message : "Não foi possível confirmar o comparecimento.");
+                    }
+                  }}
+                >
+                  Compareceu
+                </Button>
+              ) : null}
+              {edit.backendId && ["Aguardando", "Sala em preparação", "Em atendimento"].includes(edit.status) ? (
+                <Button
+                  color="success"
+                  variant="outlined"
+                  onClick={async () => {
+                    try {
+                      // Saiu = atendimento finalizado: sai da fila do Painel de Atendimento.
+                      await appointmentFlowAction(edit.backendId!, "ATTENDED");
+                      await refreshAfterQuickAction();
+                    } catch (error) {
+                      window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o atendimento.");
+                    }
+                  }}
+                >
+                  Saiu / finalizar
+                </Button>
+              ) : null}
+              {edit.backendId && edit.status !== "Cancelado" ? (
+                <Button
+                  color="error"
+                  variant="outlined"
+                  onClick={async () => {
+                    if (!window.confirm(`Confirmar que ${edit.patientName} desmarcou a consulta?`)) return;
+                    try {
+                      await cancelBackendAppointment(edit.backendId!, editReason.trim() || "Paciente desmarcou", "PATIENT");
+                      await refreshAfterQuickAction();
+                    } catch (error) {
+                      window.alert(error instanceof Error ? error.message : "Não foi possível desmarcar a consulta.");
+                    }
+                  }}
+                >
+                  Desmarcou
+                </Button>
+              ) : null}
               <Button color="warning" onClick={() => setEdit({ ...edit, status: "Faltou" })}>Marcar falta</Button>
               <Button color="error" onClick={() => setEdit({ ...edit, status: "Cancelado" })}>Cancelar consulta</Button>
             </>
