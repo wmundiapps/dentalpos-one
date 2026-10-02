@@ -11241,6 +11241,158 @@ model RegAnaliseDocumento {
   @@index([tenantId, createdAt])
 }
 
+// ---- edu/reitoria.prisma ----
+// ============================================================
+// EDUMASTER PRO — REITORIA (prefixo Rei)
+// Metas/OKRs institucionais, histórico de indicadores (snapshots),
+// relatórios executivos salvos e log do assistente executivo.
+// ============================================================
+
+enum ReiStatusObjetivo {
+  RASCUNHO
+  ATIVO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum ReiFonteResultado {
+  MANUAL
+  INDICADOR
+}
+
+enum ReiSentido {
+  MAIOR_MELHOR
+  MENOR_MELHOR
+}
+
+enum ReiConfianca {
+  VERDE
+  AMARELO
+  VERMELHO
+}
+
+// Objetivo (O de OKR): qualitativo, com ciclo, dono e nível (instituição, curso, área).
+model ReiObjetivo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  codigo           String
+  titulo           String
+  descricao        String?
+  ciclo            String        // ex.: "2026", "2026-S2", "2026-T4"
+  nivel            String   @default("INSTITUCIONAL")   // INSTITUCIONAL | CURSO | AREA
+  programId        String?       // curso (sem @relation: módulo acadêmico)
+  area             String?       // financeiro, secretaria, biblioteca...
+  responsavelUserId String?
+  responsavelNome  String?
+  inicio           DateTime
+  fim              DateTime
+  status           ReiStatusObjetivo @default(RASCUNHO)
+  progresso        Float    @default(0)      // cache 0..100 (média ponderada dos KRs)
+  ativadoEm        DateTime?
+  concluidoEm      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  resultados       ReiResultadoChave[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, ciclo, status])
+  @@index([tenantId, programId])
+}
+
+// Resultado-chave (KR): mensurável; alimentado manualmente (check-ins) ou
+// automaticamente por um indicador do painel (indicadorChave).
+model ReiResultadoChave {
+  id               String   @id @default(uuid())
+  tenantId         String
+  objetivoId       String
+  titulo           String
+  unidade          String?
+  sentido          ReiSentido @default(MAIOR_MELHOR)
+  valorInicial     Float
+  valorMeta        Float
+  valorAtual       Float
+  fonte            ReiFonteResultado @default(MANUAL)
+  indicadorChave   String?       // chave do indicador do painel (ver GET /reitoria/indicadores/catalogo)
+  responsavelUserId String?
+  peso             Float    @default(1)
+  progresso        Float    @default(0)      // 0..100
+  confianca        ReiConfianca @default(VERDE)
+  checkinFrequenciaDias Int @default(14)
+  proximoCheckinEm DateTime?
+  ultimoCheckinEm  DateTime?
+  concluidoEm      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  objetivo         ReiObjetivo @relation(fields: [objetivoId], references: [id], onDelete: Cascade)
+  checkins         ReiCheckin[]
+
+  @@index([tenantId, objetivoId])
+  @@index([tenantId, indicadorChave])
+}
+
+model ReiCheckin {
+  id               String   @id @default(uuid())
+  tenantId         String
+  resultadoId      String
+  valor            Float
+  valorAnterior    Float?
+  confianca        ReiConfianca @default(VERDE)
+  comentario       String?
+  origem           String   @default("MANUAL")   // MANUAL | AUTO (sincronização com indicador)
+  autorId          String?
+  createdAt        DateTime @default(now())
+
+  resultado        ReiResultadoChave @relation(fields: [resultadoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, resultadoId, createdAt])
+}
+
+// Valor diário de cada indicador institucional: base da variação vs. período anterior.
+model ReiSnapshot {
+  id         String   @id @default(uuid())
+  tenantId   String
+  chave      String
+  dia        String        // YYYY-MM-DD
+  valor      Float
+  semaforo   String?
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, chave, dia])
+  @@index([tenantId, dia])
+}
+
+// Relatório executivo salvo (foto do período, imprimível depois).
+model ReiRelatorio {
+  id          String   @id @default(uuid())
+  tenantId    String
+  titulo      String
+  periodo     String?
+  perfil      String   @default("reitoria")
+  geradoPorId String?
+  dados       Json
+  html        String
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+// Auditoria das perguntas feitas ao assistente executivo.
+model ReiConsultaIA {
+  id         String   @id @default(uuid())
+  tenantId   String
+  userId     String?
+  perfil     String?
+  pergunta   String
+  resposta   String
+  modo       String        // IA | HEURISTICO
+  indicadoresCitados Json?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
 // ---- edu/secretaria.prisma ----
 // ============================================================
 // EDUMASTER PRO — SECRETARIA ACADÊMICA (prefixo Sec)

@@ -6,7 +6,7 @@ import { AuthenticatedRequest, asyncHandler, getTenantId, getUserId, requireRole
 import { parseBody, qs } from '../core/crud'
 import { audit } from '../core/notify'
 import { IcsEvento, buildIcs } from './ical'
-import { DAY_MS, addDays, isoWeekday, localDateKey, minToHHMM, slotInstant, startOfLocalDay } from './time'
+import { DAY_MS, addDays, isoWeekday, localDateKey, localMinutes, minToHHMM, slotInstant, startOfLocalDay } from './time'
 import { GESTAO, MODULO, SlotRow, SOLICITANTES, TODOS_PAPEIS, carregarEspacos, datasBloqueadas, enriquecerSlots, erro, nomesUsuarios, temPapel } from './service'
 import { listarOcorrencias } from './eventos'
 import { eventosIcsDeSlots } from './grade'
@@ -186,8 +186,8 @@ export function registerAgenda(router: Router, publicRouter: Router) {
       else if (gestao && qs(req.query.professorId)) perfil = { role: 'TEACHER', userId: qs(req.query.professorId)! }
       const itens = await montarAgenda(tenantId, perfil, de, ate, qs(req.query.termId))
       const resumo = { aulas: 0, provas: 0, eventos: 0, prazos: 0, reservas: 0 }
-      for (const i of itens) resumo[(i.tipo.toLowerCase() + (i.tipo === 'AULA' || i.tipo === 'PROVA' || i.tipo === 'PRAZO' ? 's' : i.tipo === 'EVENTO' ? 's' : 's')) as keyof typeof resumo]++
-      res.json({ perfil: perfil.role === 'STUDENT' ? 'ALUNO' : perfil.role === 'TEACHER' ? 'PROFESSOR' : 'GERAL', de, ate, resumo, itens: itens.map((i) => ({ ...i, horario: i.diaInteiro ? 'Dia inteiro' : `${minToHHMM(Math.round(((i.inicio.getTime() - 3 * 3600_000) % DAY_MS + DAY_MS) % DAY_MS / 60000))}` })), porDia: agrupar(itens) })
+      for (const i of itens) resumo[(i.tipo.toLowerCase() + 's') as keyof typeof resumo]++
+      res.json({ perfil: perfil.role === 'STUDENT' ? 'ALUNO' : perfil.role === 'TEACHER' ? 'PROFESSOR' : 'GERAL', de, ate, resumo, itens: itens.map((i) => ({ ...i, horario: i.diaInteiro ? 'Dia inteiro' : minToHHMM(localMinutes(i.inicio)) })), porDia: agrupar(itens) })
     }),
   )
 

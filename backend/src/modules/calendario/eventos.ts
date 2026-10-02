@@ -231,6 +231,50 @@ export const MODELO_PERIODO: ItemModelo[] = [
   { chave: 'fim', tipo: 'FIM_PERIODO', titulo: 'Encerramento do período letivo', ref: 'fim', offset: 0, duracao: 1, publico: 'TODOS' },
 ]
 
+/** Importa feriados nacionais (idempotente por origemKey). */
+export async function importarFeriadosNacionais(
+  tenantId: string,
+  anos: number[],
+  opts: { campusId?: string | null; bloquearFacultativos?: boolean; incluirPascoa?: boolean },
+  userId?: string,
+) {
+  const b = { campusId: opts.campusId ?? null, bloquearFacultativos: opts.bloquearFacultativos ?? true, incluirPascoa: opts.incluirPascoa ?? false }
+  const cats = await garantirCategorias(tenantId)
+  const catId = cats.get('Feriados') ?? null
+  let criados = 0
+  let existentes = 0
+  for (const ano of anos) {
+    for (const f of feriadosNacionais(ano)) {
+      if (f.nome === 'Páscoa' && !b.incluirPascoa) continue
+      const origemKey = `feriado:${f.data}${b.campusId ? ':' + b.campusId : ''}`
+      const ex = await prisma.calEvento.findUnique({ where: { tenantId_origemKey: { tenantId, origemKey } } })
+      if (ex) {
+        existentes++
+        continue
+      }
+      const inicio = parseDateKey(f.data)
+      await prisma.calEvento.create({
+        data: {
+          tenantId,
+          campusId: b.campusId ?? null,
+          categoriaId: catId,
+          tipo: f.tipo,
+          titulo: f.nome,
+          inicio,
+          fim: endOfLocalDay(inicio),
+          diaInteiro: true,
+          publico: 'TODOS',
+          bloqueiaAulas: f.tipo === 'FERIADO' || b.bloquearFacultativos,
+          origemKey,
+          criadoPorId: userId,
+        },
+      })
+      criados++
+    }
+  }
+  return { criados, existentes }
+}
+
 export function registerEventos(router: Router) {
   mountCrud(router, {
     model: 'calCategoria',
@@ -358,39 +402,7 @@ export function registerEventos(router: Router) {
       )
       const anos = b.anos ?? [b.ano ?? new Date().getFullYear()]
       if (b.campusId) await validarRefs(tenantId, { campusId: b.campusId })
-      const cats = await garantirCategorias(tenantId)
-      const catId = cats.get('Feriados') ?? null
-      let criados = 0
-      let existentes = 0
-      for (const ano of anos) {
-        for (const f of feriadosNacionais(ano)) {
-          if (f.nome === 'Páscoa' && !b.incluirPascoa) continue
-          const origemKey = `feriado:${f.data}${b.campusId ? ':' + b.campusId : ''}`
-          const ex = await prisma.calEvento.findUnique({ where: { tenantId_origemKey: { tenantId, origemKey } } })
-          if (ex) {
-            existentes++
-            continue
-          }
-          const inicio = parseDateKey(f.data)
-          await prisma.calEvento.create({
-            data: {
-              tenantId,
-              campusId: b.campusId ?? null,
-              categoriaId: catId,
-              tipo: f.tipo,
-              titulo: f.nome,
-              inicio,
-              fim: endOfLocalDay(inicio),
-              diaInteiro: true,
-              publico: 'TODOS',
-              bloqueiaAulas: f.tipo === 'FERIADO' || b.bloquearFacultativos,
-              origemKey,
-              criadoPorId: getUserId(req),
-            },
-          })
-          criados++
-        }
-      }
+      const { criados, existentes } = await importarFeriadosNacionais(tenantId, anos, { campusId: b.campusId ?? null, bloquearFacultativos: b.bloquearFacultativos, incluirPascoa: b.incluirPascoa }, getUserId(req))
       await audit({ tenantId, userId: getUserId(req), modulo: MODULO, acao: 'IMPORTAR_FERIADOS', detalhes: { anos, criados, existentes } })
       res.status(201).json({ anos, criados, existentes })
     }),
