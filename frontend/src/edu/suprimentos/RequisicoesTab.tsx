@@ -5,6 +5,7 @@ import { StatusChip } from "../EduResourcePage";
 import { eduApi } from "../../services/EduApi";
 import ListTable from "../infraestrutura/ListTable";
 import { Async, FormDialog, Light, Tag, brl, fmtDate, fmtDateTime, label, num, useApi, useSupplierOptions, useToast } from "../infraestrutura/kit";
+import CotarDialog from "./CotarDialog";
 import NovaRequisicao from "./NovaRequisicao";
 import { useAlmoxarifados } from "./lookups";
 
@@ -95,10 +96,7 @@ export default function RequisicoesTab() {
       <FormDialog open={dlg?.kind === "decidir"} onClose={() => setDlg(null)} title={`${dlg?.aprovar ? "Aprovar" : "Reprovar"} ${dlg?.row?.numero || ""}`} submitLabel={dlg?.aprovar ? "Aprovar" : "Reprovar"}
         fields={[{ key: "parecer", label: dlg?.aprovar ? "Parecer (opcional)" : "Motivo da reprovação", type: "textarea", required: !dlg?.aprovar }]}
         onSubmit={async (b) => { await eduApi.post(`/suprimentos/requisicoes/${dlg!.row.id}/decidir`, { decisao: dlg!.aprovar ? "APROVADO" : "REPROVADO", parecer: b.parecer }); toast.ok("Decisão registrada."); reload(); }} />
-      <FormDialog open={dlg?.kind === "cotar"} onClose={() => setDlg(null)} title={`Abrir cotação — ${dlg?.row?.numero || ""}`} submitLabel="Abrir cotação"
-        intro={<Typography variant="body2" sx={{ mb: 2 }}>Informe os IDs de ao menos 3 fornecedores para compras acima de R$ 1.000. Selecione um por vez: use o campo e repita para adicionar.</Typography>}
-        fields={[{ key: "fornecedorIds", label: "Fornecedores (selecione pelo nome; separe vários por vírgula usando o ID)", type: "select", options: forn, required: true }, { key: "criterio", label: "Critério de escolha", type: "select", options: ["MENOR_PRECO", "MELHOR_PRAZO", "CUSTO_BENEFICIO"], def: "MENOR_PRECO" }, { key: "prazoResposta", label: "Prazo para resposta", type: "date" }]}
-        onSubmit={async (b) => { const r = await eduApi.post(`/suprimentos/requisicoes/${dlg!.row.id}/cotacoes`, { ...b, fornecedorIds: [b.fornecedorIds] }); toast.ok(r?.aviso || "Cotação aberta."); reload(); }} />
+      <CotarDialog req={dlg?.kind === "cotar" ? dlg.row : null} fornecedores={forn} onClose={() => setDlg(null)} onDone={(m) => { toast.ok(m); reload(); }} />
       <FormDialog open={dlg?.kind === "estoque"} onClose={() => setDlg(null)} title={`Atender do estoque — ${dlg?.row?.numero || ""}`} submitLabel="Atender"
         fields={[{ key: "almoxarifadoId", label: "Almoxarifado", type: "select", options: almox }, { key: "parcial", label: "Permitir atendimento parcial", type: "bool" }]}
         onSubmit={async (b) => { const r = await eduApi.post(`/suprimentos/requisicoes/${dlg!.row.id}/atender-estoque`, b); toast.ok(r?.atendida ? "Requisição atendida pelo estoque." : `Atendimento parcial: ${(r?.faltas || []).length} item(ns) em falta.`); reload(); }} />
