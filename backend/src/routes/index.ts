@@ -63,7 +63,9 @@ import * as treatmentPlanController from '../controllers/treatmentPlanController
 import * as financialAlertResolutionController from '../controllers/financialAlertResolutionController'
 import * as operationalAlertResolutionController from '../controllers/operationalAlertResolutionController'
 import * as reportController5787 from '../controllers/reportController5787'
-import eduRoutes from '../modules/edu.routes'
+import eduRoutes, { eduPublicRouter } from '../modules/edu.routes'
+import { runEduJobs } from '../modules/core/jobs'
+import { processDueReminders } from '../modules/core/reminders'
 
 const router = Router()
 
@@ -90,6 +92,23 @@ router.post('/webhooks/platform-asaas', platformBillingController.webhook)
 router.all('/cron/reminders', cronController.reminders)
 router.all('/cron/revah-sync', revahBridgeController.cronSync)
 router.post('/revah-bridge/webhook/:clinicId', revahBridgeController.webhook)
+
+// EDUMASTER PRO — rotas públicas e cron
+router.use('/public/edu', eduPublicRouter)
+router.all('/cron/edu', async (req, res) => {
+  const expected = process.env.CRON_SECRET || ''
+  const header = req.header('authorization') || ''
+  const provided = header.startsWith('Bearer ') ? header.slice(7) : ''
+  if (!expected || provided !== expected) return res.status(401).json({ error: 'Não autorizado.' })
+  try {
+    const reminders = await processDueReminders()
+    const jobs = await runEduJobs()
+    return res.json({ ok: true, reminders, jobs })
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Falha ao processar rotinas educacionais.' })
+  }
+})
 
 // PUBLIC BOOKING
 router.get('/public/booking/:clinicId', publicBookingController.config)

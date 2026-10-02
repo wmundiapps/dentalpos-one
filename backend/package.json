@@ -17,7 +17,9 @@
     "seed:core": "tsx src/scripts/seedCore.ts",
     "bootstrap:admin": "tsx src/scripts/bootstrapAdmin.ts",
     "preflight:release": "tsx src/scripts/releasePreflight.ts",
-    "demo:admin": "tsx src/scripts/demoAdmin.ts"
+    "demo:admin": "tsx src/scripts/demoAdmin.ts",
+    "edu:schema": "node scripts/merge-edu-schema.js && prisma generate",
+    "edu:check": "bash scripts/edu-check.sh"
   },
   "engines": {
     "node": ">=20"
