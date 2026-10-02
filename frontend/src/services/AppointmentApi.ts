@@ -177,7 +177,7 @@ export async function updateBackendAppointment(id: string, input: {
   return response.json() as Promise<BackendAppointment>;
 }
 
-export type FlowAction = "ARRIVED" | "PREPARE_ROOM" | "START" | "FINISH";
+export type FlowAction = "ARRIVED" | "PREPARE_ROOM" | "START" | "FINISH" | "ATTENDED";
 
 export async function appointmentFlowAction(id: string, action: FlowAction) {
   const response = await fetch(`${API}/appointment/${id}/flow`, {
@@ -190,4 +190,16 @@ export async function appointmentFlowAction(id: string, action: FlowAction) {
     throw new Error(body?.error || `Erro HTTP ${response.status}`);
   }
   return response.json() as Promise<BackendAppointment>;
+}
+
+export async function cancelBackendAppointment(id: string, reason: string, requestedBy = "PATIENT") {
+  const response = await fetch(`${API}/appointment/${id}`, {
+    method: "DELETE",
+    headers: headers(true),
+    body: JSON.stringify({ reason, requestedBy }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || `Erro HTTP ${response.status}`);
+  }
 }

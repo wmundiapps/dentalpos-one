@@ -648,10 +648,12 @@ export async function remove(req: AuthRequest, res: Response) {
 // Painel de atendimentos: recepção confirma chegada; sala/atendimento/fim. Cada ação altera só este agendamento
 // (portanto só a fila do consultório dele), sem revalidar horário nem exigir motivo.
 const FLOW_ACTIONS: Record<string, { to: string; from: string[] }> = {
-  ARRIVED: { to: 'WAITING', from: ['SCHEDULED', 'CONFIRMED'] },
+  ARRIVED: { to: 'WAITING', from: ['SCHEDULED', 'CONFIRMED', 'NO_SHOW'] },
   PREPARE_ROOM: { to: 'ROOM_PREPARATION', from: ['WAITING'] },
   START: { to: 'IN_PROGRESS', from: ['WAITING', 'ROOM_PREPARATION'] },
-  FINISH: { to: 'COMPLETED', from: ['IN_PROGRESS'] }
+  FINISH: { to: 'COMPLETED', from: ['IN_PROGRESS'] },
+  // Agenda: recepção confirma que o paciente compareceu (também corrige uma falta marcada por engano).
+  ATTENDED: { to: 'COMPLETED', from: ['SCHEDULED', 'CONFIRMED', 'WAITING', 'ROOM_PREPARATION', 'IN_PROGRESS', 'NO_SHOW'] }
 }
 
 export async function flowAction(req: AuthRequest, res: Response) {
