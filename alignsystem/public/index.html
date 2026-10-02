@@ -278,6 +278,18 @@
   </section>
 
   <!-- ================= CTA / FORM ================= -->
+  <!-- ================= COBERTURA (cidades com dentista credenciado; preenchida pela API) ================= -->
+  <section id="onde-atendemos" hidden>
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Onde já atendemos.</h2>
+        <p>A pré-avaliação é online, de qualquer lugar. As consultas presenciais são feitas por dentistas credenciados da rede AlignSystem, em até 300 km da sua cidade.</p>
+      </div>
+      <ul class="cities" id="cities"></ul>
+      <p class="cities-note">Mora mais longe? Faça a pré-avaliação mesmo assim: nossa equipe explica as alternativas.</p>
+    </div>
+  </section>
+
   <section id="avaliacao">
     <div class="wrap">
       <div class="cta-shell">
@@ -295,6 +307,9 @@
           <div class="f-row">
             <div class="f-field"><label for="whats">WhatsApp</label><input id="whats" name="whats" type="tel" autocomplete="tel" placeholder="(44) 9 9999-9999" required /></div>
             <div class="f-field"><label for="cidade">Cidade</label><input id="cidade" name="cidade" autocomplete="address-level2" placeholder="Maringá, Sarandi, Marialva..." required /></div>
+          </div>
+          <div class="f-row">
+            <div class="f-field"><label for="uf">Estado</label><select id="uf" name="uf" required><option value="">Selecione</option><option>AC</option><option>AL</option><option>AM</option><option>AP</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MG</option><option>MS</option><option>MT</option><option>PA</option><option>PB</option><option>PE</option><option>PI</option><option selected>PR</option><option>RJ</option><option>RN</option><option>RO</option><option>RR</option><option>RS</option><option>SC</option><option>SE</option><option>SP</option><option>TO</option></select></div>
           </div>
           <div class="f-row">
             <div class="f-field"><label for="email">E-mail <span class="optional">(opcional)</span></label><input id="email" name="email" type="email" autocomplete="email" placeholder="para receber seu link" /></div>

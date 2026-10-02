@@ -104,7 +104,7 @@
       btn.disabled = true;
       btn.textContent = 'Enviando…';
       var body = {
-        name: val(form, 'nome'), whatsapp: val(form, 'whats'), city: val(form, 'cidade'), email: val(form, 'email'),
+        name: val(form, 'nome'), whatsapp: val(form, 'whats'), city: val(form, 'cidade'), uf: val(form, 'uf'), email: val(form, 'email'),
         consent: form.elements.consent.checked, website: val(form, 'website'), source: source,
       };
       if (kind === 'paciente') {
@@ -140,4 +140,16 @@
         });
     });
   });
+  // Cidades com dentista credenciado (seção "Onde já atendemos")
+  var covSec = document.getElementById('onde-atendemos');
+  if (covSec) {
+    fetch('/api/public/cobertura').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d || !d.cities.length) return;
+      document.getElementById('cities').innerHTML = d.cities.map(function (c) {
+        return '<li>' + c.city.replace(/[<>&"]/g, '') + '<span>' + c.uf + '</span></li>';
+      }).join('');
+      covSec.hidden = false;
+    }).catch(function () {});
+  }
 })();
+

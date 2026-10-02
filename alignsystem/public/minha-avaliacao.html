@@ -32,6 +32,8 @@
   var T = params.get('t');
   var app = document.getElementById('app');
   var state = null;
+  var attSim = null; // simulação do atendimento presencial
+  var attEdit = false;
   var cfg = {};
   var busy = {};
 
@@ -170,6 +172,42 @@
       (state.consent ? '<p class="small muted">Termo de consentimento aceito em ' + esc(AS.date(state.consent.acceptedAt, true)) + '. <a href="/termo-consentimento?v=' + encodeURIComponent(state.consent.version) + '" target="_blank">Ver termo</a></p>' : '') + '</div>';
     }
 
+    // Atendimento presencial (questionário)
+    if (state.consent) {
+      var A = state.attendance;
+      var locked = state.case.status === 'contrato_assinado' || state.case.status === 'em_tratamento';
+      html += '<div class="card" id="atendimento"><h2>Atendimento presencial</h2>';
+      if (A && !attEdit) {
+        html += '<p><b>' + esc(A.label) + '</b></p><p class="small muted">Sua cidade: ' + esc(A.city + '/' + A.uf) +
+          (A.km != null ? ' · dentista credenciado mais próximo em ' + esc(A.nearestCity + '/' + A.nearestUf) + ' (cerca de ' + A.km + ' km)' : '') + '</p>' +
+          (A.travelTotal ? '<p class="small">Os ' + A.trips + ' deslocamentos de ida e volta (ônibus convencional, cerca de ' + esc(AS.money(A.travelPerTrip)) + ' cada) entram no valor do tratamento: ' + esc(AS.money(A.travelTotal)) + '.</p>' : '') +
+          (locked ? '' : '<button class="btn btn-line btn-sm" id="attChange">Alterar</button>');
+      } else {
+        html += '<p class="muted small">As consultas presenciais são feitas por dentistas credenciados da rede AlignSystem. Informe onde você mora para ver as opções.</p>' +
+          '<form id="attSim"><div class="grid2"><div class="field"><label for="attUf">Estado</label><select id="attUf" required><option value="">UF</option>' +
+          state.ufs.map(function (u) { return '<option' + ((attSim ? attSim.uf : state.case.uf) === u ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select></div>' +
+          '<div class="field"><label for="attCity">Cidade onde você mora</label><input id="attCity" list="attCities" required autocomplete="address-level2" value="' + esc(attSim ? attSim.city : state.case.city || '') + '"><datalist id="attCities"></datalist></div></div>' +
+          '<button class="btn btn-line btn-sm" type="submit">Ver opções de atendimento</button><div id="attSimMsg"></div></form>';
+        if (attSim) {
+          html += '<form id="attForm" style="margin-top:16px">';
+          if (!attSim.nearest) {
+            html += '<div class="msg warn">Ainda não temos dentista credenciado perto de você. Envie mesmo assim: nossa equipe vai entrar em contato com as alternativas.</div>';
+          } else if (attSim.withinRadius) {
+            html += '<p class="small">O dentista credenciado mais próximo fica em <b>' + esc(attSim.nearest.city + '/' + attSim.nearest.uf) + '</b>, a cerca de ' + attSim.nearest.km + ' km.</p>' +
+              '<div class="check field"><input type="radio" name="attChoice" id="ch1" value="rede_300" checked><label for="ch1">Aceito ser atendido(a) por <b>qualquer dentista credenciado</b> da rede num raio de até 300 km da minha cidade. As despesas de deslocamento são por minha conta.</label></div>' +
+              '<div class="check field"><input type="radio" name="attChoice" id="ch2" value="mais_proximo"><label for="ch2">Prefiro o <b>dentista credenciado mais próximo</b> (' + esc(attSim.nearest.city + '/' + attSim.nearest.uf) + '). As despesas de deslocamento são por minha conta.</label></div>';
+          } else {
+            html += '<div class="msg warn">O dentista credenciado mais próximo fica em <b>' + esc(attSim.nearest.city + '/' + attSim.nearest.uf) + '</b>, a cerca de ' + attSim.nearest.km + ' km (mais de 300 km). ' +
+              'Por isso, o valor de ' + attSim.trips + ' deslocamentos de ida e volta em ônibus convencional (cerca de ' + esc(AS.money(attSim.travelPerTrip)) + ' cada, total ' + esc(AS.money(attSim.travelTotal)) + ') entra no valor do tratamento.</div>' +
+              '<input type="hidden" name="attChoice" value="mais_proximo_viagem">';
+          }
+          html += '<div class="check field"><input type="checkbox" id="attAgree" required><label for="attAgree">Li e concordo com a forma de atendimento presencial escolhida.</label></div>' +
+            '<button class="btn btn-primary btn-sm" type="submit">Confirmar</button><div id="attMsg"></div></form>';
+        }
+      }
+      html += '</div>';
+    }
+
     // Contratos
     if (state.contracts.length) {
       html += '<div class="card"><h2>Contrato</h2><div class="list">';
@@ -206,6 +244,34 @@
   }
 
   function bind() {
+    var attCh = document.getElementById('attChange');
+    if (attCh) attCh.addEventListener('click', function () { attEdit = true; attSim = null; render(); });
+    var ufSel = document.getElementById('attUf');
+    function loadCities() {
+      if (!ufSel || !ufSel.value) return;
+      AS.api('/api/geo/cidades?uf=' + ufSel.value).then(function (r) {
+        document.getElementById('attCities').innerHTML = r.cities.map(function (c) { return '<option value="' + esc(c) + '">'; }).join('');
+      }).catch(function () {});
+    }
+    if (ufSel) { ufSel.addEventListener('change', loadCities); loadCities(); }
+    var simF = document.getElementById('attSim');
+    if (simF) simF.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var body = { uf: ufSel.value, city: document.getElementById('attCity').value };
+      AS.api('/api/portal/' + encodeURIComponent(T) + '/atendimento/simular', { method: 'POST', body: body })
+        .then(function (r) { attSim = r; render(); var f = document.getElementById('attForm'); if (f) f.scrollIntoView({ block: 'center' }); })
+        .catch(function (err) { document.getElementById('attSimMsg').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
+    });
+    var attF = document.getElementById('attForm');
+    if (attF) attF.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var ch = attF.querySelector('[name=attChoice]:checked') || attF.querySelector('[name=attChoice]');
+      var btn = attF.querySelector('button');
+      btn.disabled = true;
+      AS.api('/api/portal/' + encodeURIComponent(T) + '/atendimento', { method: 'POST', body: { uf: attSim.uf, city: attSim.city, choice: ch ? ch.value : null, agree: document.getElementById('attAgree').checked } })
+        .then(function () { attSim = null; attEdit = false; return load(); })
+        .catch(function (err) { btn.disabled = false; document.getElementById('attMsg').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
+    });
     var copy = document.getElementById('copyLink');
     if (copy) copy.addEventListener('click', function () { AS.copy(location.origin + '/minha-avaliacao?t=' + T, copy); });
 

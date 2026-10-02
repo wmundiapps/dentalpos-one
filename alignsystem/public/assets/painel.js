@@ -82,12 +82,34 @@
     return x.toISOString().slice(0, 16);
   }
   var KIND_APPT = { teleorientacao: 'Teleorientação (vídeo)', documentacao: 'Documentação (presencial)', consulta: 'Consulta (presencial)' };
+  function coverageBadge(km) {
+    if (km == null) return '<span class="badge">?</span>';
+    return km <= 300 ? '<span class="badge green">' + km + ' km</span>' : '<span class="badge honey">' + km + ' km</span>';
+  }
+
+  function adminCoverage() {
+    loading('cobertura');
+    api('/api/admin/cobertura').then(function (d) {
+      var html = '<h1>Cobertura e marketing</h1>' +
+        '<p class="muted">Priorize anúncios para pacientes num raio de até ' + d.radiusKm + ' km das cidades com dentista credenciado ativo. Pacientes fora desse raio pagam os deslocamentos no preço.</p>' +
+        '<div class="card"><h2>Onde anunciar (cidades com dentista credenciado)</h2>' + (d.hubs.length ? '<div class="table-wrap"><table class="t"><thead><tr><th>Cidade</th><th>Dentistas</th><th>Pacientes no raio (12 meses)</th><th>Últimos 30 dias</th></tr></thead><tbody>' +
+          d.hubs.map(function (h) { return '<tr><td><b>' + esc(h.city + '/' + h.uf) + '</b></td><td>' + h.dentists + '</td><td>' + h.leads + '</td><td>' + h.leads30 + '</td></tr>'; }).join('') +
+          '</tbody></table></div>' : '<p class="muted">Nenhum dentista ativo com cidade reconhecida. Confira a cidade e a UF do CRO no cadastro dos parceiros.</p>') +
+        '<p class="small muted" style="margin-top:10px">No Meta Ads e no Google Ads, use segmentação por raio em volta de cada cidade (ex.: 50 a 100 km para começar) e marque os links com utm_campaign=nome-da-cidade para medir aqui.</p></div>' +
+        '<div class="card"><h2>Onde recrutar dentistas (pacientes fora do raio)</h2>' + (d.outside.length ? '<div class="table-wrap"><table class="t"><thead><tr><th>Cidade</th><th>Pacientes</th><th>Credenciado mais próximo</th></tr></thead><tbody>' +
+          d.outside.map(function (o) { return '<tr><td>' + esc(o.city + '/' + o.uf) + '</td><td>' + o.leads + '</td><td>' + (o.nearestKm != null ? o.nearestKm + ' km' : 'nenhum') + '</td></tr>'; }).join('') +
+          '</tbody></table></div>' : '<p class="muted">Nenhum paciente fora do raio.</p>') +
+        '<p class="small muted" style="margin-top:10px">' + d.totalCases + ' pacientes nos últimos 12 meses · ' + d.unknown + ' sem cidade reconhecida.</p></div>';
+      mount(html, 'cobertura');
+    }).catch(function (e) { errorView(e, 'cobertura'); });
+  }
+
   var APPT_STATUS = { agendado: 'Agendado', realizado: 'Realizado', cancelado: 'Cancelado', faltou: 'Faltou' };
 
   // ------------------------------------------------------------ layout
   function shell(content, active) {
     var nav = me.role === 'admin'
-      ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/equipe', 'Equipe', 'equipe'], ['#/conta', 'Minha conta', 'conta']]
+      ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/cobertura', 'Cobertura e marketing', 'cobertura'], ['#/equipe', 'Equipe', 'equipe'], ['#/conta', 'Minha conta', 'conta']]
       : [['#/', 'Meus casos', 'inicio'], ['#/conta', 'Minha conta', 'conta']];
     return '<div class="mobile-top"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="28"></span><button class="btn btn-sm btn-line" style="color:#fff;border-color:rgba(255,255,255,.4)" id="menuBtn">Menu</button></div>' +
       '<div class="shell"><aside class="side" id="side"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="30"></span>' +
@@ -178,9 +200,9 @@
       var html = '<h1>Pacientes</h1><form class="row" id="sf" style="margin-bottom:12px"><input name="q" value="' + esc(q) + '" placeholder="Buscar por nome, cidade, WhatsApp ou nº do caso" style="max-width:380px"><button class="btn btn-line btn-sm" type="submit">Buscar</button></form>' +
         '<div class="tabs"><button data-st=""' + (status ? '' : ' class="on"') + '>Todos</button>' +
         Object.keys(L).map(function (k) { return '<button data-st="' + k + '"' + (status === k ? ' class="on"' : '') + '>' + esc(L[k]) + '</button>'; }).join('') + '</div>' +
-        '<div class="card table-wrap" style="padding:8px 12px">' + (d.cases.length ? '<table class="t"><thead><tr><th>#</th><th>Paciente</th><th>Cidade</th><th>Situação</th><th>Fotos</th><th>Dentista</th><th>Entrada</th></tr></thead><tbody>' +
+        '<div class="card table-wrap" style="padding:8px 12px">' + (d.cases.length ? '<table class="t"><thead><tr><th>#</th><th>Paciente</th><th>Cidade</th><th>Cobertura</th><th>Situação</th><th>Fotos</th><th>Dentista</th><th>Entrada</th></tr></thead><tbody>' +
         d.cases.map(function (c) {
-          return '<tr class="click" data-go="#/caso/' + c.id + '"><td>' + c.code + '</td><td><b>' + esc(c.name) + '</b><div class="small muted">' + esc(AS.phone(c.whatsapp)) + '</div></td><td>' + esc(c.city) + '</td><td>' +
+          return '<tr class="click" data-go="#/caso/' + c.id + '"><td>' + c.code + '</td><td><b>' + esc(c.name) + '</b><div class="small muted">' + esc(AS.phone(c.whatsapp)) + '</div></td><td>' + esc(c.city + (c.uf ? '/' + c.uf : '')) + '</td><td>' + coverageBadge(c.coverage_km) + '</td><td>' +
             statusBadge(L[c.status], c.status === 'fotos_enviadas' ? 'honey' : c.status === 'perdido' ? 'red' : '') + '</td><td>' + c.photo_count + '/7</td><td>' + esc(c.dentist_name || '—') + '</td><td class="small">' + esc(AS.date(c.created_at)) + '</td></tr>';
         }).join('') + '</tbody></table>' : '<p class="muted" style="padding:14px">Nenhum paciente encontrado.</p>') + '</div>';
       var m = mount(html, 'casos');
@@ -199,6 +221,7 @@
       var c = d.case;
       var L = d.labels;
       var plan = c.plan || {};
+      var att = c.attendance;
       var dentistName = (dentists.filter(function (x) { return x.id === c.dentist_id; })[0] || {}).name;
       var evalPhotos = d.photos.filter(function (p) { return p.kind === 'avaliacao'; });
       var otherPhotos = d.photos.filter(function (p) { return p.kind === 'extra' || p.kind === 'documento'; });
@@ -270,7 +293,13 @@
         '<div class="field"><label for="brand">Marca do alinhador</label><input id="brand" name="brand" list="brands" value="' + esc(plan.brand || '') + '"><datalist id="brands"><option>ClearCorrect</option><option>Invisalign</option><option>Marca nacional</option></datalist></div>' +
         field('months', 'Duração estimada (meses)', plan.months, 'type="number" min="1" max="36"') +
         field('total', 'Valor total (R$)', plan.total, 'inputmode="decimal"') +
-        field('replacementValue', 'Reposição de alinhador (R$/un.)', plan.replacementValue, 'inputmode="decimal"') + '</div>' +
+        field('replacementValue', 'Reposição de alinhador (R$/un.)', plan.replacementValue, 'inputmode="decimal"') +
+        '<div class="field"><label for="pmodel">Modelo</label><select id="pmodel" name="model">' + opt('parceiro', 'Dentista parceiro (50/30/20, split)', plan.model || 'parceiro') + opt('rede', 'AlignSystem 100% (rede credenciada, raio 300 km)', plan.model || 'parceiro') + '</select></div>' +
+        field('travel', 'Deslocamentos incluídos (R$)', plan.travel != null ? plan.travel : (att && att.choice === 'mais_proximo_viagem' ? att.travelTotal : ''), 'inputmode="decimal"') + '</div>' +
+        (att ? '<div class="msg ' + (att.choice === 'sem_cobertura' ? 'warn' : 'ok') + '"><b>Questionário de atendimento:</b> ' + esc(att.label) + ' · ' + esc(att.city + '/' + att.uf) +
+          (att.km != null ? ' · credenciado mais próximo: ' + esc(att.nearestCity + '/' + att.nearestUf) + ' (~' + att.km + ' km)' : '') +
+          (att.travelTotal ? ' · 4 deslocamentos estimados: ' + esc(AS.money(att.travelTotal)) + ' (' + esc(AS.money(att.travelPerTrip)) + ' cada)' : '') + '</div>'
+          : '<p class="small muted">O paciente ainda não respondeu o questionário de atendimento presencial (obrigatório no modelo AlignSystem 100%).</p>') +
         area('treatmentNotes', 'Anexo I — resumo do plano de tratamento', plan.treatmentNotes) +
         '<div class="row"><button class="btn btn-primary" type="submit">Salvar plano</button><button class="btn btn-green" type="button" id="genContract">Gerar contrato para aceite</button></div><div class="fmsg"></div>' +
         (d.contracts.length ? '<div class="list" style="margin-top:14px">' + d.contracts.map(function (ct) {
@@ -285,10 +314,10 @@
         '<p class="small muted">O paciente recebe um link e escolhe: <b>Pix à vista com 12% de desconto</b>, <b>cartão em até 18x sem juros</b> ou <b>boleto</b> (entrada de 50% por Pix/cartão + saldo em até 18 boletos).</p>' +
         '<div class="grid2">' +
         field('description', 'Descrição', 'AlignSystem — tratamento (caso ' + c.code + ')') +
-        field('value', 'Valor total do tratamento (R$)', plan.total || '', 'inputmode="decimal" required') +
+        field('value', 'Valor total (tratamento + deslocamentos) (R$)', plan.total ? Math.round((Number(plan.total) + Number(plan.model === 'rede' ? plan.travel || 0 : 0)) * 100) / 100 : '', 'inputmode="decimal" required') +
         field('boletoMax', 'Boletos do saldo em até (x)', Math.min(18, plan.months || 18), 'type="number" min="1" max="18"') + '</div>' +
         '<div class="check field"><input type="checkbox" id="boleto" name="boleto" checked><label for="boleto">Permitir boleto (só depois de analisar o crédito do paciente)</label></div>' +
-        '<div class="check field"><input type="checkbox" id="dentistShare" name="dentistShare"' + (c.dentist_id ? ' checked' : '') + '><label for="dentistShare">Repassar 30% ao dentista do caso (' + esc(dentistName || 'sem dentista') + ') por split — modelo 50/30/20</label></div>' +
+        '<div class="check field"><input type="checkbox" id="dentistShare" name="dentistShare"' + (c.dentist_id && plan.model !== 'rede' ? ' checked' : '') + '><label for="dentistShare">Repassar 30% ao dentista do caso (' + esc(dentistName || 'sem dentista') + ') por split — modelo 50/30/20</label></div>' +
         '<button class="btn btn-primary" type="submit">Criar link de pagamento e enviar ao paciente</button><div class="fmsg"></div>' +
         (d.charges.length ? '<div class="list" style="margin-top:14px">' + d.charges.map(function (ch) {
           var pays = d.payments.filter(function (p) { return p.charge_id === ch.id && p.status !== 'DELETED'; });
@@ -380,7 +409,7 @@
     api('/api/admin/dentists').then(function (d) {
       var L = d.labels;
       var html = '<h1>Dentistas parceiros</h1><p class="muted">Cadastros chegam pela página <a href="/parceiros" target="_blank">/parceiros</a>.</p>' +
-        '<div class="card table-wrap" style="padding:8px 12px">' + (d.dentists.length ? '<table class="t"><thead><tr><th>Dentista</th><th>CRO</th><th>Cidade</th><th>Situação</th><th>Termo</th><th>Recebimento</th><th>Casos</th></tr></thead><tbody>' +
+        '<div class="card table-wrap" style="padding:8px 12px">' + (d.dentists.length ? '<table class="t"><thead><tr><th>Dentista</th><th>CRO</th><th>Cidade</th><th>Cobertura</th><th>Situação</th><th>Termo</th><th>Recebimento</th><th>Casos</th></tr></thead><tbody>' +
         d.dentists.map(function (x) {
           return '<tr class="click" data-go="#/parceiro/' + x.id + '"><td><b>' + esc(x.name) + '</b><div class="small muted">' + esc(AS.phone(x.phone)) + '</div></td><td>' + esc(x.cro) + '/' + esc(x.cro_uf || '') + '</td><td>' + esc(x.city) + '</td><td>' +
             statusBadge(L[x.status], x.status === 'ativo' ? 'green' : x.status === 'lead' ? 'honey' : '') + '</td><td>' + esc(x.term_status || '—') + '</td><td>' + (x.has_wallet ? statusBadge('ok', 'green') : '—') + '</td><td>' + x.case_count + '</td></tr>';
@@ -585,6 +614,7 @@
       if (r.path === '/parceiros') return adminDentists();
       if ((m = r.path.match(/^\/parceiro\/([0-9a-f-]{36})$/))) return adminDentist(m[1]);
       if (r.path === '/equipe') return adminTeam();
+      if (r.path === '/cobertura') return adminCoverage();
       return adminHome();
     }
     if ((m = r.path.match(/^\/caso\/([0-9a-f-]{36})$/))) return dentistCase(m[1]);

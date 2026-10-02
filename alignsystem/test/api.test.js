@@ -197,6 +197,34 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   assert.equal((await call('GET', `/api/dentist/cases/${caseId}`, { who: 'dent' })).status, 404); // ainda não é dele
   assert.equal((await call('GET', '/api/admin/cases', { who: 'dent' })).status, 403);
 
+  // cobertura da rede e questionário de atendimento presencial (dentista ativo em Maringá/PR)
+  const cov = await call('GET', '/api/public/cobertura');
+  assert.deepEqual(cov.data.cities, [{ city: 'Maringá', uf: 'PR' }]);
+  assert.ok(!JSON.stringify(cov.data).includes('Ana')); // sem nome de dentista
+  assert.ok((await call('GET', '/api/geo/cidades?uf=PR')).data.cities.includes('Sarandi'));
+  const near = await call('POST', `/api/portal/${t}/atendimento/simular`, { body: { uf: 'PR', city: 'Sarandi' } });
+  assert.equal(near.data.withinRadius, true);
+  assert.equal(near.data.travelTotal, 0);
+  const far = await call('POST', `/api/portal/${t}/atendimento/simular`, { body: { uf: 'MT', city: 'Cuiabá' } });
+  assert.equal(far.data.withinRadius, false);
+  assert.ok(far.data.nearest.km > 300);
+  assert.equal(far.data.travelTotal, Math.round(far.data.travelPerTrip * 4 * 100) / 100);
+  assert.equal((await call('POST', `/api/portal/${t}/atendimento/simular`, { body: { uf: 'PR', city: 'Cidade Inventada' } })).status, 400);
+  assert.equal((await call('POST', `/api/portal/${t}/atendimento`, { body: { uf: 'MT', city: 'Cuiabá' } })).status, 400); // sem concordância
+  const att = await call('POST', `/api/portal/${t}/atendimento`, { body: { uf: 'MT', city: 'Cuiabá', agree: true } });
+  assert.equal(att.data.attendance.choice, 'mais_proximo_viagem');
+  const att2 = await call('POST', `/api/portal/${t}/atendimento`, { body: { uf: 'PR', city: 'Sarandi', choice: 'mais_proximo', agree: true } });
+  assert.equal(att2.data.attendance.choice, 'mais_proximo');
+  const covAdm = await call('GET', '/api/admin/cobertura', { who: 'admin' });
+  assert.equal(covAdm.data.hubs[0].city, 'Maringá');
+  assert.ok(covAdm.data.hubs[0].leads >= 2);
+  // modelo AlignSystem 100%: contrato traz a cláusula de atendimento pela rede em até 300 km
+  const { patientContract } = await import('../lib/contracts.js');
+  const redeBody = patientContract({ code: 1, name: 'X', plan: { model: 'rede', total: 10000 }, attendance: att.data.attendance && { ...att.data.attendance, choice: 'mais_proximo_viagem', km: 1216, nearestCity: 'Maringá', nearestUf: 'PR', travelTotal: 2918.4, trips: 4 } }, null).body;
+  assert.match(redeBody, /qualquer dentista credenciado|dentista credenciado mais próximo/);
+  assert.match(redeBody, /R\$\s?12\.918,40/);
+  assert.doesNotMatch(redeBody, /interveniente/);
+
   // direciona o caso, plano, contrato
   await call('PATCH', `/api/admin/cases/${caseId}`, { who: 'admin', body: { dentist_id: dentistId, cpf: '529.982.247-25', address: 'Rua B, 20, Maringá/PR', email: 'maria@x.com' } });
   const noPlan = await call('POST', `/api/admin/cases/${caseId}/contract`, { who: 'admin', body: {} });

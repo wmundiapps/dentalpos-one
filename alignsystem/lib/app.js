@@ -9,6 +9,7 @@ import { token, sha256, clean, digits, isEmail, appUrl, brl, validCpf, validCpfC
 import { sendMail, notifyAddress, layout, button, para, table } from './mail.js';
 import * as asaas from './asaas.js';
 import { MODEL, quote, dentistSplitPct } from './pricing.js';
+import * as geo from './geo.js';
 import { patientContract, partnerContract, contractsReviewed, PARTNER_DEFAULTS } from './contracts.js';
 import { ensureTcle, currentConsent, TCLE_KIND, TCLE_VERSION } from './tcle.js';
 import {
@@ -147,6 +148,7 @@ r('POST', '/api/leads/paciente', async (req, res) => {
   const name = clean(b.name, 120);
   const whatsapp = digits(b.whatsapp);
   const city = clean(b.city, 80);
+  const uf = geo.UFS.includes(String(b.uf || '').toUpperCase()) ? String(b.uf).toUpperCase() : null;
   const email = clean(b.email, 160).toLowerCase();
   const age = Number(b.age);
   if (name.length < 3) fail(400, 'Informe seu nome completo.');
@@ -162,16 +164,19 @@ r('POST', '/api/leads/paciente', async (req, res) => {
   for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'fbclid', 'page']) {
     if (b.source?.[k]) source[k] = clean(b.source[k], 200);
   }
-  const [c] = await sql`insert into cases (token, name, age, whatsapp, email, city, reason, referred_by, consent_at, consent_ip, source)
-    values (${t}, ${name}, ${age}, ${whatsapp}, ${email || null}, ${city}, ${clean(b.reason, 200)}, ${clean(b.referredBy, 120) || null},
-            now(), ${ip}, ${sql.json(source)})
+  const loc = geo.findCity(city, uf);
+  const near = loc ? geo.nearestDentist(loc, await networkDentists(sql)) : null;
+  const [c] = await sql`insert into cases (token, name, age, whatsapp, email, city, uf, coverage_km, reason, referred_by, consent_at, consent_ip, source)
+    values (${t}, ${name}, ${age}, ${whatsapp}, ${email || null}, ${loc ? loc.name : city}, ${loc?.uf || uf}, ${near ? near.km : null},
+            ${clean(b.reason, 200)}, ${clean(b.referredBy, 120) || null}, now(), ${ip}, ${sql.json(source)})
     returning id, code, token`;
   await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'lead_criado', data: { city } });
   await sendMail({
     to: notifyAddress(),
     subject: `Novo paciente #${c.code}: ${name} (${city})`,
     html: layout('Novo contato de paciente', table([
-      ['Nome', name], ['Idade', age], ['WhatsApp', whatsapp], ['E-mail', email], ['Cidade', city],
+      ['Nome', name], ['Idade', age], ['WhatsApp', whatsapp], ['E-mail', email], ['Cidade', uf ? `${city}/${uf}` : city],
+      ['Cobertura', near ? `dentista credenciado a ~${near.km} km (${near.city}/${near.uf})` : 'sem dentista credenciado identificado'],
       ['Motivo', clean(b.reason, 200)], ['Indicado por', clean(b.referredBy, 120)], ['Origem', source.utm_source],
     ]) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Abrir no painel')),
   });
@@ -228,6 +233,119 @@ r('POST', '/api/leads/parceiro', async (req, res) => {
   send(res, 201, { ok: true });
 });
 
+// ------------------------------------------------------------------ cobertura da rede e atendimento presencial
+
+const networkDentists = (sql) => sql`select id, name, city, coalesce(state, cro_uf) as cro_uf from dentists where status = 'ativo'`;
+
+// Cidades atendidas pela rede (sem nomes de dentistas), para a página e o marketing
+r('GET', '/api/public/cobertura', async (req, res) => {
+  const sql = db();
+  const seen = new Map();
+  for (const d of await networkDentists(sql)) {
+    const loc = geo.findCity(d.city, d.cro_uf);
+    if (loc) seen.set(`${loc.name}/${loc.uf}`, { city: loc.name, uf: loc.uf });
+  }
+  send(res, 200, { radiusKm: geo.RADIUS_KM, cities: [...seen.values()].sort((a, b) => a.uf.localeCompare(b.uf) || a.city.localeCompare(b.city)) },
+    { 'Cache-Control': 'public, max-age=300' });
+});
+
+r('GET', '/api/geo/cidades', async (req, res) => {
+  const uf = String(new URL(req.url, 'http://x').searchParams.get('uf') || '').toUpperCase();
+  if (!geo.UFS.includes(uf)) fail(400, 'UF inválida.');
+  send(res, 200, { cities: geo.citiesOf(uf) }, { 'Cache-Control': 'public, max-age=86400' });
+});
+
+// Simula o atendimento presencial a partir da cidade do paciente
+async function attendanceQuote(sql, cityName, uf) {
+  const loc = geo.findCity(cityName, uf);
+  if (!loc) fail(400, 'Não encontramos essa cidade. Confira o nome e o estado.');
+  const near = geo.nearestDentist(loc, await networkDentists(sql));
+  if (!near) return { city: loc.name, uf: loc.uf, nearest: null, withinRadius: false, travelPerTrip: null, travelTotal: null };
+  const within = near.km <= geo.RADIUS_KM;
+  const perTrip = within ? 0 : geo.roundTripFare(near.km);
+  return {
+    city: loc.name, uf: loc.uf, nearest: { city: near.city, uf: near.uf, km: near.km, dentistId: near.id }, withinRadius: within,
+    radiusKm: geo.RADIUS_KM, trips: geo.TRIPS, travelPerTrip: perTrip, travelTotal: Math.round(perTrip * geo.TRIPS * 100) / 100,
+  };
+}
+
+r('POST', '/api/portal/:token/atendimento/simular', async (req, res, { token: t }) => {
+  const sql = db();
+  await caseByToken(sql, t);
+  const b = await readJson(req);
+  const q = await attendanceQuote(sql, b.city, b.uf);
+  send(res, 200, { ...q, nearest: q.nearest && { city: q.nearest.city, uf: q.nearest.uf, km: q.nearest.km } });
+});
+
+r('POST', '/api/portal/:token/atendimento', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  if (c.status === 'contrato_assinado' || c.status === 'em_tratamento') fail(409, 'O contrato já foi assinado. Fale com a equipe para alterar o atendimento.');
+  if (!b.agree) fail(400, 'Marque a caixa de concordância para continuar.');
+  const q = await attendanceQuote(sql, b.city, b.uf);
+  let choice;
+  if (!q.nearest) choice = 'sem_cobertura';
+  else if (q.withinRadius) choice = b.choice === 'mais_proximo' ? 'mais_proximo' : 'rede_300';
+  else choice = 'mais_proximo_viagem';
+  const attendance = {
+    choice, city: q.city, uf: q.uf, nearestCity: q.nearest?.city || null, nearestUf: q.nearest?.uf || null, nearestDentistId: q.nearest?.dentistId || null,
+    km: q.nearest?.km ?? null, trips: geo.TRIPS, travelPerTrip: q.travelPerTrip, travelTotal: q.travelTotal,
+    answeredAt: new Date().toISOString(), ip: clientIp(req), userAgent: clean(req.headers['user-agent'], 300),
+  };
+  await sql`update cases set attendance = ${sql.json(attendance)}, city = ${q.city}, uf = ${q.uf}, coverage_km = ${q.nearest?.km ?? null}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'atendimento_escolhido', data: { choice, km: attendance.km, travelTotal: attendance.travelTotal } });
+  send(res, 200, { ok: true, attendance: publicAttendance(attendance) });
+});
+
+const ATTENDANCE_LABEL = {
+  rede_300: 'Qualquer dentista credenciado em até 300 km (deslocamento por conta do paciente)',
+  mais_proximo: 'Dentista credenciado mais próximo, em até 300 km (deslocamento por conta do paciente)',
+  mais_proximo_viagem: 'Dentista credenciado mais próximo, a mais de 300 km (4 deslocamentos incluídos no preço)',
+  sem_cobertura: 'Sem dentista credenciado na região (aguardando contato da equipe)',
+};
+const publicAttendance = (a) => a && {
+  choice: a.choice, label: ATTENDANCE_LABEL[a.choice], city: a.city, uf: a.uf, nearestCity: a.nearestCity, nearestUf: a.nearestUf,
+  km: a.km, trips: a.trips, travelPerTrip: a.travelPerTrip, travelTotal: a.travelTotal, answeredAt: a.answeredAt,
+};
+
+// Painel: cobertura da rede × pacientes, para direcionar o marketing
+r('GET', '/api/admin/cobertura', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const dentists = await networkDentists(sql);
+  const cases = await sql`select id, city, uf, coverage_km, status, created_at, source from cases where created_at > now() - interval '365 days'`;
+  const hubs = new Map();
+  for (const d of dentists) {
+    const loc = geo.findCity(d.city, d.cro_uf);
+    if (!loc) continue;
+    const k = `${loc.name}/${loc.uf}`;
+    if (!hubs.has(k)) hubs.set(k, { city: loc.name, uf: loc.uf, lat: loc.lat, lon: loc.lon, dentists: 0, leads: 0, leads30: 0 });
+    hubs.get(k).dentists++;
+  }
+  const outside = new Map();
+  let unknown = 0;
+  for (const c of cases) {
+    const loc = geo.findCity(c.city, c.uf);
+    if (!loc) { unknown++; continue; }
+    let best = null;
+    for (const h of hubs.values()) { const km = geo.roadKm(loc, h); if (!best || km < best.km) best = { h, km }; }
+    if (best && best.km <= geo.RADIUS_KM) {
+      best.h.leads++;
+      if (Date.now() - new Date(c.created_at).getTime() < 30 * 86400_000) best.h.leads30++;
+    } else {
+      const k = `${loc.name}/${loc.uf}`;
+      outside.set(k, { city: loc.name, uf: loc.uf, leads: (outside.get(k)?.leads || 0) + 1, nearestKm: best?.km ?? null });
+    }
+  }
+  send(res, 200, {
+    radiusKm: geo.RADIUS_KM,
+    hubs: [...hubs.values()].map(({ lat, lon, ...h }) => h).sort((a, b) => b.leads - a.leads),
+    outside: [...outside.values()].sort((a, b) => b.leads - a.leads).slice(0, 30),
+    unknown, totalCases: cases.length,
+  });
+});
+
 // ------------------------------------------------------------------ portal do paciente (link com token)
 
 r('GET', '/api/portal/:token', async (req, res, { token: t }) => {
@@ -247,7 +365,9 @@ r('GET', '/api/portal/:token', async (req, res, { token: t }) => {
   const consent = await currentConsent(sql, c.id);
   const tcle = consent ? null : await ensureTcle(sql);
   send(res, 200, {
-    case: { ...publicCase(c), isMinor: Number(c.age) < 18 },
+    case: { ...publicCase(c), isMinor: Number(c.age) < 18, uf: c.uf },
+    attendance: publicAttendance(c.attendance),
+    ufs: geo.UFS,
     consent: consent && { acceptedAt: consent.accepted_at, acceptedName: consent.accepted_name, byGuardian: consent.accepted_by_guardian, version: consent.version },
     tcle: tcle && { version: tcle.version, title: tcle.title, body: tcle.body, hash: tcle.hash },
     dentist: dentist ? { name: dentist.name, cro: dentist.cro, croUf: dentist.cro_uf, city: dentist.city } : null,
@@ -576,7 +696,7 @@ r('GET', '/api/admin/cases', async (req, res) => {
   const status = url.searchParams.get('status') || '';
   const q = clean(url.searchParams.get('q'), 80);
   const qDigits = digits(q) || '__nenhum__';
-  const rows = await sql`select c.id, c.code, c.name, c.city, c.whatsapp, c.status, c.assessment, c.created_at, c.photos_submitted_at,
+  const rows = await sql`select c.id, c.code, c.name, c.city, c.uf, c.coverage_km, c.whatsapp, c.status, c.assessment, c.created_at, c.photos_submitted_at,
       d.name as dentist_name,
       (select count(*)::int from photos p where p.case_id = c.id and p.kind = 'avaliacao') as photo_count
     from cases c left join dentists d on d.id = c.dentist_id
@@ -608,7 +728,7 @@ r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
   await requireUser(sql, req, 'admin');
   const d = await caseDetail(sql, id);
   send(res, 200, {
-    case: { ...d.c, portalUrl: portalUrl(d.c.token) },
+    case: { ...d.c, portalUrl: portalUrl(d.c.token), attendance: d.c.attendance && { ...publicAttendance(d.c.attendance), ip: d.c.attendance.ip } },
     photos: d.photos, appointments: d.appts,
     contracts: d.contracts.map((x) => ({ ...x, url: contractUrl(x.token) })),
     charges: d.charges.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
@@ -672,6 +792,7 @@ r('PATCH', '/api/admin/cases/:id', async (req, res, { id }) => {
     const p = b.plan || {};
     up.plan = sql.json({
       brand: clean(p.brand, 60), months: Number(p.months) || null, total: money(p.total), replacementValue: money(p.replacementValue),
+      model: p.model === 'rede' ? 'rede' : 'parceiro', travel: p.travel === '' || p.travel == null ? null : money(p.travel),
       treatmentNotes: clean(p.treatmentNotes, 4000),
     });
   }
@@ -783,7 +904,9 @@ r('POST', '/api/admin/cases/:id/contract', async (req, res, { id }) => {
   const missing = [];
   if (!c.cpf) missing.push('CPF do paciente');
   if (!c.address) missing.push('endereço do paciente');
-  if (!c.dentist_id) missing.push('dentista responsável');
+  if (plan.model !== 'rede' && !c.dentist_id) missing.push('dentista responsável');
+  if (plan.model === 'rede' && !c.attendance) missing.push('questionário de atendimento presencial respondido pelo paciente');
+  if (plan.model === 'rede' && c.attendance?.choice === 'sem_cobertura') missing.push('dentista credenciado na região do paciente');
   if (!plan.brand) missing.push('marca do alinhador');
   if (!plan.total) missing.push('valor total');
   if (missing.length) fail(400, `Preencha antes de gerar o contrato: ${missing.join(', ')}.`);
