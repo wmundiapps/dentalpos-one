@@ -155,7 +155,7 @@ export function registerReservas(router: Router) {
       const nomes = await nomesUsuarios(tenantId, pend.map((p) => p.solicitanteId))
       const espacos = await prisma.eduSpace.findMany({ where: { tenantId, id: { in: [...new Set(pend.map((p) => p.spaceId))] } }, select: { id: true, codigo: true, nome: true, capacidade: true } })
       const em = new Map(espacos.map((e) => [e.id, e]))
-      const itens = []
+      const itens: any[] = []
       for (const p of pend) {
         const concorrentes = pend.filter((o) => o.id !== p.id && o.spaceId === p.spaceId && sobrepoe(p, o)).map((o) => o.id)
         const ocup = await carregarOcupacaoEspaco(tenantId, p.spaceId, p.inicio, p.fim)
@@ -303,7 +303,7 @@ export function registerReservas(router: Router) {
       if (b.fim.getTime() <= b.inicio.getTime()) throw erro(400, 'O fim deve ser posterior ao início.')
       if (b.recorrencia !== 'NENHUMA' && !b.recorrenciaAte) throw erro(400, 'Informe "recorrenciaAte".')
       const occ = expandRecorrencia({ inicio: b.inicio, fim: b.fim, recorrencia: b.recorrencia, intervalo: b.recorrenciaIntervalo, ate: b.recorrenciaAte, diasSemana: b.diasSemana, max: MAX_OCORRENCIAS })
-      const resultado = []
+      const resultado: any[] = []
       for (const spaceId of b.spaceIds) {
         await requireSpace(tenantId, spaceId)
         const de = occ[0].inicio
@@ -418,7 +418,7 @@ export function registerReservas(router: Router) {
       const min = Math.max(15, parseInt(qs(req.query.min) ?? '60', 10) || 60)
       const d0 = startOfLocalDay(dataIni)
       const ocup = await agendaDoEspaco(tenantId, spaceId, d0, addDays(d0, dias))
-      const out = []
+      const out: any[] = []
       for (let k = 0; k < dias; k++) {
         const dia = addDays(d0, k)
         const key = localDateKey(dia)

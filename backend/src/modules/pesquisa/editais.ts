@@ -232,7 +232,7 @@ export default function mountEditais(router: Router) {
       if (!i) return res.status(404).json({ error: 'Inscrição não encontrada.' })
       if (!['HOMOLOGADA', 'AVALIADA'].includes(i.status)) throw httpErr(409, 'Inscrição precisa estar homologada.')
       const prazo = addDays(new Date(), d.prazoDias)
-      const criadas = []
+      const criadas: any[] = []
       for (const uid of [...new Set(d.avaliadores)]) {
         if (uid === i.proponenteUserId) throw httpErr(422, 'Proponente não pode avaliar a própria inscrição (conflito de interesse).')
         const nome = await nomeUsuario(tenantId, uid)

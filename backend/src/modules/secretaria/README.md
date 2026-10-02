@@ -3,7 +3,7 @@
 Secretaria acadêmica: protocolo/requerimentos, documentos HTML, conferência documental (IA + fallback), certificados, diplomas/livros/colação, arquivo e temporalidade.
 Montado em `/api/edu/secretaria` (autenticado) e `/api/public/edu/secretaria` (verificação pública).
 
-## Modelos (27)
+## Modelos (21)
 SecContador, SecTipoRequerimento, SecProtocolo, SecTramite, SecAnexo, SecChecklistModelo, SecChecklistItemModelo, SecConferencia, SecConferenciaItem,
 SecDocumentoEmitido, SecCertModelo, SecCertLote, SecCertificado, SecLivro, SecAta, SecDiploma, SecColacao, SecColacaoFormando, SecTemporalidade, SecArquivoItem, SecDescarte.
 
