@@ -98,12 +98,19 @@ router.post(
   requireRole('STUDENT', 'ADMIN', 'FINANCE'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const libraryProviderId = String(req.params.id);
+    const tenantId = getTenantId(req);
     const studentId =
       req.user!.role === 'STUDENT' ? req.user!.studentId : (req.query.studentId as string);
 
     if (!studentId) {
       return res.status(400).json({ error: 'studentId é obrigatório.' });
     }
+    const alunoDoTenant = await prisma.student.findFirst({ where: { id: studentId, tenantId }, select: { id: true } });
+    const existente = alunoDoTenant
+      ? await prisma.studentLibraryAccess.findFirst({ where: { studentId, libraryProviderId, libraryProvider: { tenantId } } })
+      : null;
+    if (!existente) return res.status(404).json({ error: 'Assinatura não encontrada.' });
+    if (existente.status === 'CANCELADA') return res.status(409).json({ error: 'Assinatura já cancelada.' });
 
     const access = await prisma.studentLibraryAccess.update({
       where: { studentId_libraryProviderId: { studentId, libraryProviderId } },

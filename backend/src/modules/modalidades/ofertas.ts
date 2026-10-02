@@ -146,6 +146,7 @@ router.post('/encontros/:id/cancelar', requireRole(...MANAGE), asyncHandler(asyn
   const id = String(req.params.id)
   const e = await prisma.modEncontro.findFirst({ where: { id, tenantId } })
   if (!e) return res.status(404).json({ error: 'Encontro não encontrado.' })
+  if (e.status !== 'AGENDADO') return res.status(409).json({ error: `Encontro já está ${e.status}.` })
   const row = await prisma.modEncontro.update({ where: { id }, data: { status: 'CANCELADO' } })
   await cancelReminders({ tenantId, refType: 'ModEncontro', refId: id })
   await audit({ tenantId, userId: getUserId(req), modulo: 'modalidades', acao: 'CANCELAR_ENCONTRO', refType: 'ModEncontro', refId: id })
@@ -156,6 +157,7 @@ router.post('/encontros/:id/realizar', requireRole(...MANAGE, 'TEACHER'), asyncH
   const id = String(req.params.id)
   const e = await prisma.modEncontro.findFirst({ where: { id, tenantId } })
   if (!e) return res.status(404).json({ error: 'Encontro não encontrado.' })
+  if (e.status !== 'AGENDADO') return res.status(409).json({ error: `Encontro já está ${e.status}.` })
   const row = await prisma.modEncontro.update({ where: { id }, data: { status: 'REALIZADO' } })
   await cancelReminders({ tenantId, refType: 'ModEncontro', refId: id })
   res.json(row)
@@ -199,7 +201,11 @@ router.post('/lives/:id/eventos', asyncHandler(async (req: AuthenticatedRequest,
   const live = await prisma.modAulaLive.findFirst({ where: { id: String(req.params.id), tenantId } })
   if (!live) return res.status(404).json({ error: 'Aula ao vivo não encontrada.' })
   if (live.status === 'CANCELADA') return res.status(409).json({ error: 'Aula cancelada.' })
-  const ev = await prisma.modLiveEvento.create({ data: { tenantId, liveId: live.id, studentId, tipo: body.tipo, em: body.em ?? new Date() } })
+  // aluno não informa o horário (evita forjar presença); equipe/webhook pode informar, mas nunca no futuro
+  const agora = new Date()
+  const em = role === 'STUDENT' ? agora : body.em && body.em.getTime() <= agora.getTime() + 60_000 ? body.em : agora
+  if (role === 'STUDENT' && live.status === 'ENCERRADA') return res.status(409).json({ error: 'Aula encerrada: a presença já foi consolidada.' })
+  const ev = await prisma.modLiveEvento.create({ data: { tenantId, liveId: live.id, studentId, tipo: body.tipo, em } })
   if (body.tipo === 'ENTRADA') {
     await prisma.modEngajamentoEvento.create({ data: { tenantId, studentId, classSectionId: live.classSectionId, tipo: 'LIVE', refType: 'ModAulaLive', refId: live.id } }).catch(() => null)
   }

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
 import { REGRAS_PADRAO, avaliarConformidade, Modalidade, DisciplinaCarga } from './rules'
 
@@ -49,4 +50,16 @@ export async function conformidadeCurso(tenantId: string, programId: string, mod
 
 export function horasEntre(a: Date, b: Date) {
   return Math.max(0, (b.getTime() - a.getTime()) / 3_600_000)
+}
+
+// Serializa seções críticas (checagem de vagas/capacidade + gravação) por chave, evitando que
+// requisições simultâneas ultrapassem o limite. O lock é de transação (pg_advisory_xact_lock).
+export async function comTrava<T>(chave: string, fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  return prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${chave}))`
+      return fn(tx)
+    },
+    { timeout: 20_000, maxWait: 10_000 },
+  )
 }

@@ -321,6 +321,7 @@ export function registerGerador(router: Router) {
         const ex = await prisma.calGeracao.findFirst({ where: { id: String(body.execucaoId), tenantId } })
         if (!ex) return res.status(404).json({ error: 'Execução não encontrada.' })
         if (ex.status === 'APLICADA') throw erro(409, 'Esta simulação já foi aplicada.')
+        if (ex.status !== 'SIMULADA') throw erro(409, `Esta execução está ${ex.status.toLowerCase()} e não pode ser aplicada; faça uma nova simulação.`)
         p = parseBody(paramsGerador, ex.parametros)
         execId = ex.id
       } else p = parseBody(paramsGerador, body)
@@ -333,7 +334,9 @@ export function registerGerador(router: Router) {
       const geracao = execId
         ? await prisma.calGeracao.update({ where: { id: execId }, data: { status: 'APLICADA', aplicadoEm: new Date(), totalAulas: m.totalAulas, alocadas: m.alocadas, pendentes: m.pendentes, pontuacao: m.pontuacao, nos: m.nos, duracaoMs: m.ms, pendencias: r.pendencias as any, resumo: { metricas: m, avisos: r.ctx.avisos, calendario: r.ctx.calendario } as any } })
         : await prisma.calGeracao.create({ data: { tenantId, termId: p.termId, status: 'APLICADA', aplicadoEm: new Date(), parametros: p as any, resumo: { metricas: m, avisos: r.ctx.avisos, calendario: r.ctx.calendario } as any, pendencias: r.pendencias as any, totalAulas: m.totalAulas, alocadas: m.alocadas, pendentes: m.pendentes, pontuacao: m.pontuacao, nos: m.nos, duracaoMs: m.ms, criadoPorId: userId } })
-      const antesSlots = r.ctx.removiveis.length ? await prisma.calSlot.findMany({ where: { id: { in: r.ctx.removiveis } }, select: { professorUserId: true } }) : []
+      const antesSlots = r.ctx.removiveis.length ? await prisma.calSlot.findMany({ where: { tenantId, id: { in: r.ctx.removiveis } } }) : []
+      // guarda os slots substituídos para que "desfazer" possa restaurá-los
+      await prisma.calGeracao.update({ where: { id: geracao.id }, data: { resumo: { ...((geracao.resumo as any) ?? {}), removidosSnapshot: antesSlots } as any } })
       await prisma.$transaction([
         prisma.calSlot.deleteMany({ where: { tenantId, id: { in: r.ctx.removiveis } } }),
         prisma.calSlot.createMany({
@@ -403,11 +406,18 @@ export function registerGerador(router: Router) {
       const ex = await prisma.calGeracao.findFirst({ where: { id: String(req.params.id), tenantId } })
       if (!ex) return res.status(404).json({ error: 'Execução não encontrada.' })
       if (ex.status !== 'APLICADA') throw erro(409, 'Só execuções aplicadas podem ser desfeitas.')
-      const del = await prisma.calSlot.deleteMany({ where: { tenantId, geracaoId: ex.id, fixo: false } })
-      await prisma.calGeracao.update({ where: { id: ex.id }, data: { status: 'DESCARTADA' } })
+      const snapshot: any[] = Array.isArray((ex.resumo as any)?.removidosSnapshot) ? (ex.resumo as any).removidosSnapshot : []
+      const [del, restaurados] = await prisma.$transaction([
+        prisma.calSlot.deleteMany({ where: { tenantId, geracaoId: ex.id, fixo: false } }),
+        prisma.calSlot.createMany({
+          data: snapshot.map((s) => ({ ...s, tenantId, createdAt: s.createdAt ? new Date(s.createdAt) : undefined, updatedAt: s.updatedAt ? new Date(s.updatedAt) : undefined })),
+          skipDuplicates: true,
+        }),
+        prisma.calGeracao.update({ where: { id: ex.id }, data: { status: 'DESCARTADA' } }),
+      ] as any) as any
       const v = await varrerGrade(tenantId, ex.termId, getUserId(req))
-      await audit({ tenantId, userId: getUserId(req), modulo: MODULO, acao: 'DESFAZER_GERADOR', refType: 'CalGeracao', refId: ex.id, detalhes: { removidos: del.count } })
-      res.json({ removidos: del.count, observacao: 'Os slots substituídos na aplicação NÃO são restaurados; rode o gerador novamente se necessário.', varredura: v.choques })
+      await audit({ tenantId, userId: getUserId(req), modulo: MODULO, acao: 'DESFAZER_GERADOR', refType: 'CalGeracao', refId: ex.id, detalhes: { removidos: del.count, restaurados: restaurados.count } })
+      res.json({ removidos: del.count, restaurados: restaurados.count, observacao: 'Os slots que a aplicação havia substituído foram restaurados.', varredura: v.choques })
     }),
   )
 }

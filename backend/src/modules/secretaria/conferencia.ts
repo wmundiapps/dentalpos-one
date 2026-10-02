@@ -145,6 +145,11 @@ export function mountConferencia(router: Router) {
       const m = await prisma.secChecklistModelo.findFirst({ where: { id: data.modeloId, tenantId: getTenantId(req) } })
       if (!m) throw Object.assign(new Error('Modelo de checklist não encontrado.'), { status: 404 })
     },
+    beforeUpdate: async (data, req) => {
+      // impede mover o item para o modelo de outra instituição (update aceitava modeloId sem validar o tenant)
+      if (data.modeloId && !(await prisma.secChecklistModelo.findFirst({ where: { id: data.modeloId, tenantId: getTenantId(req) }, select: { id: true } })))
+        throw Object.assign(new Error('Modelo de checklist não encontrado.'), { status: 404 })
+    },
   })
 
   router.post(

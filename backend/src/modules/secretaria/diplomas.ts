@@ -82,6 +82,11 @@ async function agendarLembretesColacao(c: { id: string; tenantId: string; nome: 
   if (c.prazoInscricaoEm) await scheduleReminder({ tenantId: c.tenantId, modulo: MODULO, titulo: `Colação "${c.nome}": encerra a inscrição`, dueAt: c.prazoInscricaoEm, antecedenciaDias: 3, refType: 'SecColacao', refId: c.id, assigneeRole: 'SECRETARY', dedupeKey: `sec:colacao:${c.id}:insc` })
 }
 
+async function validarRefsColacao(tenantId: string, d: any) {
+  if (d.programId && !(await prisma.academicProgram.findFirst({ where: { id: d.programId, tenantId }, select: { id: true } }))) throw Object.assign(new Error('Curso não encontrado.'), { status: 404 })
+  if (d.termId && !(await prisma.academicTerm.findFirst({ where: { id: d.termId, tenantId }, select: { id: true } }))) throw Object.assign(new Error('Período letivo não encontrado.'), { status: 404 })
+}
+
 export function mountDiplomas(router: Router) {
   // ---------- livros e atas ----------
   mountCrud(router, {
@@ -148,6 +153,10 @@ export function mountDiplomas(router: Router) {
         if (!l.tipo.startsWith('ATAS')) throw Object.assign(new Error('O livro informado não é de atas.'), { status: 409 })
         d.numero = await proximoNumero(tenantId, `ATA:${l.id}`)
       }
+    },
+    beforeUpdate: async (d, req) => {
+      // livro/numeração de uma ata não mudam por edição (evita lacuna/duplicidade no livro e referência a livro de outro tenant)
+      delete d.livroId
     },
   })
 
@@ -243,25 +252,23 @@ export function mountDiplomas(router: Router) {
     const d = await prisma.secDiploma.findFirst({ where: { id: String(req.params.id), tenantId } })
     if (!d) return res.status(404).json({ error: 'Diploma não encontrado.' })
     if (d.status !== 'REGISTRO') return res.status(409).json({ error: 'O diploma precisa estar na etapa REGISTRO.' })
-    let reg: { numero: number; folha: number } | null = null
-    for (let t = 0; t < 6 && !reg; t++) {
-      const livro = await prisma.secLivro.findFirst({ where: { id: b.livroId, tenantId } })
-      if (!livro) return res.status(404).json({ error: 'Livro não encontrado.' })
-      if (!livro.aberto || livro.tipo !== 'REGISTRO_DIPLOMA') return res.status(409).json({ error: 'Informe um livro de registro de diplomas aberto.' })
+    // Tudo em uma transação: o diploma é "reivindicado" (REGISTRO -> REGISTRADO) e o livro é travado (FOR UPDATE), assim
+    // registros simultâneos não consomem dois números para o mesmo diploma nem geram lacunas/duplicidade na numeração.
+    const httpErr = (status: number, msg: string, extra: object = {}) => Object.assign(new Error(msg), { status, ...extra })
+    const { r, reg } = await prisma.$transaction(async (tx) => {
+      const claim = await tx.secDiploma.updateMany({ where: { id: d.id, tenantId, status: 'REGISTRO' }, data: { status: 'REGISTRADO' } })
+      if (claim.count === 0) throw httpErr(409, 'O diploma precisa estar na etapa REGISTRO.')
+      await tx.$queryRaw`SELECT id FROM "SecLivro" WHERE id = ${b.livroId} AND "tenantId" = ${tenantId} FOR UPDATE`
+      const livro = await tx.secLivro.findFirst({ where: { id: b.livroId, tenantId } })
+      if (!livro) throw httpErr(404, 'Livro não encontrado.')
+      if (!livro.aberto || livro.tipo !== 'REGISTRO_DIPLOMA') throw httpErr(409, 'Informe um livro de registro de diplomas aberto.')
       const a = alocarRegistro(livro)
-      const ok = await prisma.secLivro.updateMany({ where: { id: livro.id, proximoRegistro: livro.proximoRegistro }, data: { proximoRegistro: a.proximoRegistro, folhaAtual: a.folha } })
-      if (ok.count === 1) reg = { numero: a.numero, folha: a.folha }
-    }
-    if (!reg) return res.status(503).json({ error: 'Concorrência ao numerar o registro; tente novamente.' })
-    let r: any
-    for (let i = 0; i < 4 && !r; i++) {
-      try {
-        r = await prisma.secDiploma.update({ where: { id: d.id }, data: { status: 'REGISTRADO', livroId: b.livroId, numeroRegistro: reg.numero, folha: reg.folha, dataRegistro: b.dataRegistro ?? new Date(), codigoVerificacao: gerarCodigoVerificacao() } })
-      } catch (e: any) {
-        if (e?.code !== 'P2002') throw e
-      }
-    }
-    if (!r) return res.status(503).json({ error: 'Falha ao gerar código do diploma.' })
+      await tx.secLivro.update({ where: { id: livro.id }, data: { proximoRegistro: a.proximoRegistro, folhaAtual: a.folha } })
+      let codigo = gerarCodigoVerificacao()
+      for (let i = 0; i < 5 && (await tx.secDiploma.findUnique({ where: { codigoVerificacao: codigo }, select: { id: true } })); i++) codigo = gerarCodigoVerificacao()
+      const r = await tx.secDiploma.update({ where: { id: d.id }, data: { status: 'REGISTRADO', livroId: livro.id, numeroRegistro: a.numero, folha: a.folha, dataRegistro: b.dataRegistro ?? new Date(), codigoVerificacao: codigo } })
+      return { r, reg: { numero: a.numero, folha: a.folha } }
+    })
     await scheduleReminder({ tenantId, modulo: MODULO, titulo: `Diploma registrado nº ${reg.numero}: entregar ao aluno`, dueAt: new Date(Date.now() + 30 * DAY), antecedenciaDias: 20, refType: REF, refId: d.id, assigneeRole: 'SECRETARY', recorrenciaDias: 15, dedupeKey: `sec:dip:entrega:${d.id}` })
     await prisma.eduReminder.updateMany({ where: { tenantId, dedupeKey: `sec:dip:${d.id}` }, data: { status: 'CONCLUIDO', concluidoEm: new Date() } })
     await notify({ tenantId, studentId: d.studentId, assunto: 'Diploma registrado', mensagem: `Seu diploma foi registrado (registro nº ${reg.numero}, folha ${reg.folha}). Agende a retirada na secretaria.`, refType: REF, refId: d.id })
@@ -307,6 +314,8 @@ export function mountDiplomas(router: Router) {
     include: { _count: { select: { formandos: true } } },
     orderBy: { data: 'desc' },
     modulo: MODULO,
+    beforeCreate: (d, req) => validarRefsColacao(getTenantId(req), d),
+    beforeUpdate: (d, req) => validarRefsColacao(getTenantId(req), d),
     afterCreate: (row) => agendarLembretesColacao(row),
     afterUpdate: (row) => agendarLembretesColacao(row),
   })
@@ -417,10 +426,17 @@ export function mountDiplomas(router: Router) {
     const ausentes = formandos.filter((f) => f.status === 'AUSENTE')
     if (!colaram.length) return res.status(409).json({ error: 'Nenhum formando marcado como COLOU.' })
     const b0 = await getBranding(tenantId)
-    const numero = livro ? await proximoNumero(tenantId, `ATA:${livro.id}`) : null
     const conteudo = `<p>Aos ${esc(dataExtenso(c.data))}${c.local ? `, no(a) ${esc(c.local)}` : ''}, realizou-se a sessão solene de <b>colação de grau</b> "${esc(c.nome)}" da ${esc(b0.nome)}, presidida pela autoridade institucional, com a presença dos formandos abaixo relacionados, que prestaram o compromisso legal e receberam o grau:</p><ol>${colaram.map((f) => `<li>${esc(f.nome)}${f.juramento ? '' : ' (sem juramento)'}</li>`).join('')}</ol>${ausentes.length ? `<p>Ausentes: ${ausentes.map((f) => esc(f.nome)).join(', ')}.</p>` : ''}${b.observacoes ? `<p>${esc(b.observacoes)}</p>` : ''}<p>Nada mais havendo a tratar, lavrou-se a presente ata, assinada pelas autoridades presentes.</p>`
-    const ata = await prisma.secAta.create({ data: { tenantId, livroId: livro?.id, numero: numero ?? undefined, tipo: 'COLACAO', titulo: `Ata de colação de grau — ${c.nome}`, data: c.data, conteudo, participantes: colaram.map((f) => ({ nome: f.nome, papel: 'Formando' })) as any, colacaoId: c.id, createdById: getUserId(req) } })
-    await prisma.secColacao.update({ where: { id: c.id }, data: { ataId: ata.id } })
+    // Transação com trava na colação: duas gerações simultâneas não podem lavrar duas atas (nem consumir dois números do livro).
+    const ata = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "SecColacao" WHERE id = ${c.id} AND "tenantId" = ${tenantId} FOR UPDATE`
+      const atual = await tx.secColacao.findFirst({ where: { id: c.id, tenantId }, select: { ataId: true } })
+      if (atual?.ataId) throw Object.assign(new Error('A ata desta colação já foi gerada.'), { status: 409 })
+      const numero = livro ? await proximoNumero(tenantId, `ATA:${livro.id}`, tx) : null
+      const criada = await tx.secAta.create({ data: { tenantId, livroId: livro?.id, numero: numero ?? undefined, tipo: 'COLACAO', titulo: `Ata de colação de grau — ${c.nome}`, data: c.data, conteudo, participantes: colaram.map((f) => ({ nome: f.nome, papel: 'Formando' })) as any, colacaoId: c.id, createdById: getUserId(req) } })
+      await tx.secColacao.update({ where: { id: c.id }, data: { ataId: criada.id } })
+      return criada
+    })
     let diplomasCriados = 0
     if (b.gerarDiplomas) {
       for (const f of colaram) {

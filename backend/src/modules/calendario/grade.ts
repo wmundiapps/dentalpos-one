@@ -300,6 +300,7 @@ export function registerGrade(router: Router) {
       if (sec.termId !== b.termId) throw erro(400, 'A turma pertence a outro período letivo.')
       const info = (await resolverTurmas(tenantId, [sec])).get(sec.id)!
       const professorUserId = b.professorUserId ?? sec.professorUserId
+      if (b.professorUserId && !(await prisma.user.findFirst({ where: { id: b.professorUserId, tenantId }, select: { id: true } }))) throw erro(404, 'Professor não encontrado.')
       const spaceId = b.tipoAula === 'ONLINE' ? null : b.spaceId ?? null
       if (spaceId) await requireSpace(tenantId, spaceId)
       const v = await validarSlot(tenantId, { termId: b.termId, classSectionId: sec.id, disciplineId: sec.disciplineId, grupo: info.grupo, professorUserId, spaceId, diaSemana: b.diaSemana, inicioMin: b.inicioMin, fimMin: b.fimMin, tipoAula: b.tipoAula, alunos: info.alunos })

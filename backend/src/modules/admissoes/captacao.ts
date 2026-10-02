@@ -40,8 +40,9 @@ mountCrud(router, {
     if (d.processoId && !(await prisma.admProcessoSeletivo.findFirst({ where: { id: d.processoId, tenantId: getTenantId(req) }, select: { id: true } }))) throw httpErr(404, 'Processo não encontrado.')
     return d
   },
-  beforeUpdate: (d, _req, cur) => {
+  beforeUpdate: async (d, req, cur) => {
     if ((d.fim ?? cur.fim) < (d.inicio ?? cur.inicio)) throw httpErr(400, 'Fim da campanha anterior ao início.')
+    if (d.processoId && !(await prisma.admProcessoSeletivo.findFirst({ where: { id: d.processoId, tenantId: getTenantId(req) }, select: { id: true } }))) throw httpErr(404, 'Processo não encontrado.')
     return d
   },
 })
@@ -52,6 +53,10 @@ mountCrud(router, {
   filters: ['campanhaId'], orderBy: { data: 'desc' }, modulo: 'admissoes',
   beforeCreate: async (d, req) => {
     if (!(await prisma.admCampanha.findFirst({ where: { id: d.campanhaId, tenantId: getTenantId(req) }, select: { id: true } }))) throw httpErr(404, 'Campanha não encontrada.')
+    return d
+  },
+  beforeUpdate: async (d, req) => {
+    if (d.campanhaId && !(await prisma.admCampanha.findFirst({ where: { id: d.campanhaId, tenantId: getTenantId(req) }, select: { id: true } }))) throw httpErr(404, 'Campanha não encontrada.')
     return d
   },
 })

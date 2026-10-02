@@ -78,6 +78,11 @@ mountCrud(router, {
     if (!ex) throw httpErr(404, 'Exame não encontrado.')
     if (d.inscricaoInicio && d.inscricaoFim && d.inscricaoFim < d.inscricaoInicio) throw httpErr(400, 'Fim das inscrições anterior ao início.')
   },
+  beforeUpdate: async (d, req, cur) => {
+    if (d.exameId && !(await prisma.desExame.findFirst({ where: { id: d.exameId, tenantId: getTenantId(req) } }))) throw httpErr(404, 'Exame não encontrado.')
+    const ini = d.inscricaoInicio === undefined ? cur.inscricaoInicio : d.inscricaoInicio, fim = d.inscricaoFim === undefined ? cur.inscricaoFim : d.inscricaoFim
+    if (ini && fim && fim < ini) throw httpErr(400, 'Fim das inscrições anterior ao início.')
+  },
   afterCreate: async (row, req) => agendarMarcos(getTenantId(req), row, await nomeExame(getTenantId(req), row.exameId)),
   afterUpdate: async (row, req) => agendarMarcos(getTenantId(req), row, await nomeExame(getTenantId(req), row.exameId)),
 })

@@ -1,7 +1,7 @@
 import { setup, check, seedAcademic } from './_lib'
 const iso = (s: string) => s + ':00-03:00'
 async function main() {
-  const { A, B, api, close, prisma } = await setup()
+  const { A, B, api, close, prisma, base } = await setup()
   const U = A.users
   const adm = api(U.ADMIN.token), coord = api(U.COORDINATOR.token), teacher = api(U.TEACHER.token), teacher2 = api(U.TEACHER2.token), st = api(U.STUDENT.token), sec = api(U.SECRETARY.token), fin = api(U.FINANCE.token)
   const admB = api(B.users.ADMIN.token), coordB = api(B.users.COORDINATOR.token)
@@ -23,14 +23,14 @@ async function main() {
   r = await coord('POST', '/edu/calendario/eventos', { titulo: 'Rec sem ate', inicio: iso('2026-11-10T14:00'), recorrencia: 'SEMANAL' }); check('evento rec sem ate 400', r.status === 400, r)
   r = await coord('POST', '/edu/calendario/eventos', { titulo: 'Ref outro tenant', inicio: iso('2026-11-10T14:00'), termId: '00000000-0000-0000-0000-000000000000' }); check('evento term inexistente 404', r.status === 404, r)
   r = await coord('POST', '/edu/calendario/eventos', { titulo: 'Semanal', tipo: 'REUNIAO', inicio: iso('2026-11-02T10:00'), fim: iso('2026-11-02T11:00'), diaInteiro: false, recorrencia: 'SEMANAL', recorrenciaAte: iso('2026-11-30T00:00') }); check('evento semanal 201', r.status === 201, r); const evRec = r.json
-  r = await coord('GET', '/edu/calendario/eventos?de=2026-11-01&ate=2026-11-30'); check('eventos list', r.status === 200 && r.json.itens.filter((i: any) => i.eventoId === evRec.id).length === 5, r.json?.itens?.map((i: any) => i.titulo + i.inicio))
+  r = await coord('GET', '/edu/calendario/eventos?de=2026-11-01&ate=2026-11-30'); check('eventos list', r.status === 200 && r.json.itens.filter((i: any) => i.eventoId === evRec.id).length === 4, r.json?.itens?.map((i: any) => i.titulo + i.inicio))
   r = await st('GET', '/edu/calendario/eventos?de=2026-11-01&ate=2026-11-30'); check('student does not see PROFESSORES events', r.status === 200 && !r.json.itens.some((i: any) => i.eventoId === ev.id), r.json?.itens?.length)
   r = await teacher('GET', '/edu/calendario/eventos?de=2026-11-01&ate=2026-11-30'); check('teacher sees PROFESSORES events', r.json.itens.some((i: any) => i.eventoId === ev.id))
   r = await st('GET', `/edu/calendario/eventos/${ev.id}`); check('student get evento hidden 404', r.status === 404)
   r = await admB('GET', `/edu/calendario/eventos/${ev.id}`); check('evento xtenant 404', r.status === 404)
   r = await coordB('PATCH', `/edu/calendario/eventos/${ev.id}`, { titulo: 'hack' }); check('evento patch xtenant 404', r.status === 404)
   r = await coord('PATCH', `/edu/calendario/eventos/${ev.id}`, { titulo: 'Reunião pedagógica 2', inicio: iso('2026-11-11T14:00'), fim: iso('2026-11-11T16:00') }); check('evento patch', r.status === 200 && r.json.titulo.endsWith('2'), r)
-  r = await coord('PATCH', `/edu/calendario/eventos/${ev.id}`, { inicio: iso('2026-11-11T20:00') }); check('evento patch inicio>fim 400', r.status === 400, r)
+  r = await coord('PATCH', `/edu/calendario/eventos/${ev.id}`, { inicio: iso('2026-11-11T20:00') }); check('evento patch só inicio preserva duração', r.status === 200 && (+new Date(r.json.fim) - +new Date(r.json.inicio)) === 7200000, r.json)
   let rem = await prisma.eduReminder.count({ where: { tenantId: A.tenantId, refType: 'CalEvento', refId: ev.id, status: 'PENDENTE' } })
   check('evento lembretes criados', rem > 0, rem)
   r = await coord('DELETE', `/edu/calendario/eventos/${ev.id}`); check('evento delete 204', r.status === 204, r)
@@ -72,16 +72,16 @@ async function main() {
   r = await coord('POST', `/edu/calendario/reservas/${res1.reservas[0].id}/aprovar`, {}); check('aprovar rejeitada 409', r.status === 409, r)
   let nt = await prisma.eduNotification.count({ where: { tenantId: A.tenantId, userId: U.TEACHER.id, refType: 'CalReserva' } }); check('notificação ao rejeitar', nt >= 1, nt)
   // série
-  r = await teacher('POST', '/edu/calendario/reservas', { spaceId: lab1.id, titulo: 'Série lab', recorrencia: 'SEMANAL', recorrenciaAte: iso('2026-12-10T00:00'), ...futuro('2026-11-05', '08:00', '10:00') }); check('serie 201', r.status === 201 && r.json.criadas === 6, r.json?.criadas ?? r); const serie = r.json
-  r = await coord('GET', '/edu/calendario/reservas/fila'); check('fila', r.status === 200 && r.json.total >= 6, r.json?.total)
+  r = await teacher('POST', '/edu/calendario/reservas', { spaceId: lab1.id, titulo: 'Série lab', recorrencia: 'SEMANAL', recorrenciaAte: iso('2026-12-10T00:00'), ...futuro('2026-11-05', '08:00', '10:00') }); check('serie 201', r.status === 201 && r.json.criadas === 5, r.json?.criadas ?? r); const serie = r.json
+  r = await coord('GET', '/edu/calendario/reservas/fila'); check('fila', r.status === 200 && r.json.total >= 5, r.json?.total)
   r = await teacher('GET', '/edu/calendario/reservas/fila'); check('fila teacher 403', r.status === 403)
-  r = await coord('POST', `/edu/calendario/reservas/${serie.reservas[0].id}/aprovar`, { escopo: 'serie' }); check('aprovar serie', r.status === 200 && r.json.aprovadas === 6, r)
+  r = await coord('POST', `/edu/calendario/reservas/${serie.reservas[0].id}/aprovar`, { escopo: 'serie' }); check('aprovar serie', r.status === 200 && r.json.aprovadas === 5, r)
   r = await teacher('GET', '/edu/calendario/reservas'); check('teacher só vê as suas', r.status === 200 && r.json.items.every((x: any) => x.solicitanteId === U.TEACHER.id), r.json?.total)
   r = await teacher2('POST', `/edu/calendario/reservas/${serie.reservas[0].id}/cancelar`, {}); check('cancelar de terceiro 403', r.status === 403)
-  r = await teacher('POST', `/edu/calendario/reservas/${serie.reservas[2].id}/cancelar`, { escopo: 'serie' }); check('cancelar serie a partir', r.status === 200 && r.json.canceladas === 4, r)
+  r = await teacher('POST', `/edu/calendario/reservas/${serie.reservas[2].id}/cancelar`, { escopo: 'serie' }); check('cancelar serie a partir', r.status === 200 && r.json.canceladas === 3, r)
   r = await teacher('POST', `/edu/calendario/reservas/${serie.reservas[2].id}/cancelar`, {}); check('cancelar 2x 409', r.status === 409, r)
   // concorrência: duas reservas no mesmo horário
-  const rs = await Promise.all([coord('POST', '/edu/calendario/reservas', { spaceId: s102.id, titulo: 'Corrida A', ...futuro('2026-11-20', '09:00', '10:00') }), api(U.SECRETARY.token)('POST', '/edu/calendario/reservas', { spaceId: s102.id, titulo: 'Corrida B', ...futuro('2026-11-20', '09:30', '10:30') })])
+  const rs = await Promise.all([coord('POST', '/edu/calendario/reservas', { spaceId: s102.id, titulo: 'Corrida A', ...futuro('2026-11-20', '09:00', '10:00') }), sec('POST', '/edu/calendario/reservas', { spaceId: s102.id, titulo: 'Corrida B', ...futuro('2026-11-20', '09:30', '10:30') })])
   check('reserva concorrente: só uma', rs.filter((x) => x.status === 201).length === 1, rs.map((x) => x.status))
   // bloqueio
   r = await teacher('POST', '/edu/calendario/bloqueios', { spaceIds: [s101.id], titulo: 'Manutenção', ...futuro('2026-11-12', '10:00', '12:00') }); check('bloqueio teacher 403', r.status === 403)
@@ -137,7 +137,7 @@ async function main() {
   check('aplicar grava slots', (await prisma.calSlot.count({ where: { tenantId: A.tenantId, geracaoId: ap.execucaoId } })) === ap.slotsCriados)
   nt = await prisma.eduNotification.count({ where: { tenantId: A.tenantId, refType: 'CalGeracao' } }); check('aplicar notifica professores', nt >= 1, nt)
   r = await coord('POST', '/edu/calendario/gerador/aplicar', { execucaoId: sim.execucaoId }); check('aplicar 2x 409', r.status === 409, r)
-  r = await coord('POST', '/edu/calendario/grade/validar', { termId: term.id }); check('grade gerada sem choque', r.status === 200 && r.json.choques === 0, r.json)
+  r = await coord('POST', '/edu/calendario/grade/validar', { termId: term.id }); check('grade gerada sem choque', r.status === 200 && r.json.choques.total === 0, r.json)
   // slot manual antes de reaplicar
   r = await coord('POST', '/edu/calendario/gerador/simular', { termId: term.id }); check('simular 2 (já alocado)', r.status === 200, r)
   const sim2 = r.json
@@ -161,7 +161,7 @@ async function main() {
   // ---- provas
   r = await teacher('POST', '/edu/calendario/provas', { classSectionId: secA.id, tipo: 'PROVA_1', ...futuro('2026-10-20', '08:00', '10:00'), spaceId: s101.id, fiscais: [{ userId: U.TEACHER2.id }] }); check('prova 201', r.status === 201, r); const pv = r.json.avaliacao
   r = await teacher2('POST', '/edu/calendario/provas', { classSectionId: secA.id, tipo: 'PROVA_1', ...futuro('2026-10-21', '08:00', '10:00') }); check('prova outra turma 403', r.status === 403, r)
-  r = await teacher('POST', '/edu/calendario/provas', { classSectionId: secB.id, ...futuro('2026-10-20', '08:30', '09:30') }); check('prova mesmo grupo 409', r.status === 409, r)
+  r = await coord('POST', '/edu/calendario/provas', { classSectionId: secB.id, ...futuro('2026-10-20', '08:30', '09:30') }); check('prova mesmo grupo 409', r.status === 409, r)
   r = await teacher('POST', '/edu/calendario/provas', { classSectionId: secA.id, ...futuro('2026-10-20', '09:00', '11:00'), spaceId: s101.id }); check('prova mesma sala 409', r.status === 409, r)
   r = await teacher('POST', '/edu/calendario/provas', { classSectionId: secA.id, ...futuro('2027-10-20', '09:00', '11:00') }); check('prova fora período 409', r.status === 409, r)
   r = await teacher('POST', '/edu/calendario/provas', { classSectionId: secA.id, ...futuro('2026-11-15', '09:00', '11:00') }); check('prova domingo/feriado 409?', [201, 409].includes(r.status), r.status)
@@ -208,11 +208,11 @@ async function main() {
   // agenda
   r = await st('GET', '/edu/calendario/meu-calendario'); check('meu-calendario aluno', r.status === 200, r)
   r = await teacher('GET', '/edu/calendario/meu-calendario'); check('meu-calendario prof', r.status === 200, r)
-  r = await st('POST', '/edu/calendario/feeds', {}); check('feed criar', [200, 201].includes(r.status), r)
+  r = await st('POST', '/edu/calendario/feeds', { escopo: 'ALUNO' }); check('feed criar', [200, 201].includes(r.status), r)
   const tok = r.json?.token ?? r.json?.feed?.token
-  if (tok) { const rr = await fetch(`${(await import('./_lib')).default ?? ''}`).catch(() => null) }
-  r = await coord('GET', '/edu/calendario/relatorios/resumo'); check('relatorio resumo', r.status === 200, r)
-  r = await coord('GET', '/edu/calendario/relatorios/ocupacao'); check('relatorio ocupacao', r.status === 200, r)
+  if (tok) { const rr = await fetch(`${base}/public/edu/calendario/feeds/${tok}.ics`); check('feed publico ics', rr.status === 200 && (await rr.text()).includes('BEGIN:VCALENDAR'), rr.status); const bad = await fetch(`${base}/public/edu/calendario/feeds/${'0'.repeat(48)}.ics`); check('feed token invalido 404', bad.status === 404, bad.status) }
+  r = await coord('GET', '/edu/calendario/relatorios/resumo?termId=' + term.id); check('relatorio resumo', r.status === 200, r)
+  r = await coord('GET', '/edu/calendario/relatorios/ocupacao?termId=' + term.id); check('relatorio ocupacao', r.status === 200, r)
   r = await coord('GET', `/edu/calendario/relatorios/grade.html?termId=${term.id}`); check('relatorio grade html', r.status === 200, r.text.slice(0, 100))
 
   // jobs

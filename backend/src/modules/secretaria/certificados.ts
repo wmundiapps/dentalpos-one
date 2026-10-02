@@ -206,7 +206,7 @@ export function mountCertificados(router: Router) {
     modulo: MODULO,
     removeMode: 'soft',
     beforeCreate: (d) => validarTexto(d),
-    beforeUpdate: (d) => (d.texto ? validarTexto(d) : d),
+    beforeUpdate: (d) => validarTexto(d),
   })
 
   router.get('/cert-modelos/:id/variaveis', requireRole(...SEC_LEITURA), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -343,7 +343,7 @@ export function mountCertificados(router: Router) {
 function validarTexto(d: any) {
   // Impede script injetado no texto/HTML do modelo (o HTML é servido ao usuário).
   for (const k of ['texto', 'htmlCustom']) {
-    if (typeof d[k] === 'string' && /<\s*script|on\w+\s*=|javascript:/i.test(d[k])) throw Object.assign(new Error(`O campo ${k} não pode conter scripts ou manipuladores de evento.`), { status: 400 })
+    if (typeof d[k] === 'string' && /<\s*script|<[^>]*[\s"'\/]on\w+\s*=|javascript:/i.test(d[k])) throw Object.assign(new Error(`O campo ${k} não pode conter scripts ou manipuladores de evento.`), { status: 400 })
   }
   return d
 }

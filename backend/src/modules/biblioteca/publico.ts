@@ -35,7 +35,7 @@ publicRouter.get('/:tenantId/catalogo/:obraId', asyncHandler(async (req, res) =>
 publicRouter.get('/:tenantId/virtual', asyncHandler(async (req, res) => {
   const tenantId = tid(req)
   const where: any = { tenantId, ativo: true }
-  if (qs(req.query.tipo)) where.tipo = qs(req.query.tipo)
+  if (qs(req.query.tipo)) { if (!['EBOOK', 'PERIODICO', 'BASE_DADOS', 'VIDEO', 'OUTRO'].includes(String(qs(req.query.tipo)))) return res.status(400).json({ error: 'Tipo inválido.' }); where.tipo = qs(req.query.tipo) }
   const q = qs(req.query.q)
   if (q) where.OR = ['titulo', 'autores', 'provedor', 'assuntos'].map((f) => ({ [f]: { contains: q, mode: 'insensitive' } }))
   // somente recursos de acesso livre expõem a URL publicamente
@@ -51,10 +51,10 @@ publicRouter.get('/:tenantId/repositorio', asyncHandler(async (req, res) => {
   const where: any = pubWhere(tenantId)
   const q = qs(req.query.q)
   if (q) where.AND = normalizarBusca(q).split(/\s+/).filter(Boolean).slice(0, 8).map((t) => ({ buscaTexto: { contains: t } }))
-  if (qs(req.query.tipo)) where.tipo = qs(req.query.tipo)
+  if (qs(req.query.tipo)) { if (!['TCC', 'DISSERTACAO', 'TESE', 'ARTIGO', 'NORMA', 'MATERIAL_DIDATICO', 'RELATORIO', 'OUTRO'].includes(String(qs(req.query.tipo)))) return res.status(400).json({ error: 'Tipo inválido.' }); where.tipo = qs(req.query.tipo) }
   if (qs(req.query.programId)) where.programId = qs(req.query.programId)
   const ano = Number(qs(req.query.ano))
-  if (ano) where.dataPublicacao = { gte: new Date(Date.UTC(ano, 0, 1)), lt: new Date(Date.UTC(ano + 1, 0, 1)) }
+  if (Number.isInteger(ano) && ano >= 1000 && ano <= 2200) where.dataPublicacao = { gte: new Date(Date.UTC(ano, 0, 1)), lt: new Date(Date.UTC(ano + 1, 0, 1)) }
   const [rows, total] = await Promise.all([
     prisma.bibRepositorioItem.findMany({ where, orderBy: { dataPublicacao: 'desc' }, skip, take, select: { id: true, handle: true, tipo: true, status: true, titulo: true, criadores: true, orientador: true, assuntos: true, descricao: true, dataPublicacao: true, embargoAte: true, restrito: true, licenca: true, programId: true, idioma: true, arquivoUrl: true } }),
     prisma.bibRepositorioItem.count({ where }),

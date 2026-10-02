@@ -5,6 +5,7 @@ import {
   asyncHandler,
   requireAuth,
   requireRole,
+  getTenantId,
 } from '../academico/middleware';
 import { validate, createContentItemSchema, updateProgressSchema } from './validators';
 
@@ -16,6 +17,9 @@ router.post(
   requireRole('ADMIN', 'COORDINATOR', 'TEACHER'),
   validate(createContentItemSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = getTenantId(req);
+    const disc = await prisma.discipline.findFirst({ where: { id: req.body.disciplineId, tenantId }, select: { id: true } });
+    if (!disc) return res.status(404).json({ error: 'Disciplina não encontrada.' });
     const contentItem = await prisma.contentItem.create({ data: req.body });
     res.status(201).json(contentItem);
   }),
@@ -28,9 +32,13 @@ router.get(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { disciplineId } = req.params as Record<string, string>;
     const { tipo } = req.query as Record<string, string>;
+    const tenantId = getTenantId(req);
+    if (tipo && !['PDF', 'VIDEO', 'RESUMO', 'MATERIAL_COMPLEMENTAR', 'BIBLIOTECA'].includes(tipo)) {
+      return res.status(400).json({ error: 'Tipo de conteúdo inválido.' });
+    }
 
     const items = await prisma.contentItem.findMany({
-      where: { disciplineId, ...(tipo ? { tipo: tipo as any } : {}) },
+      where: { disciplineId, discipline: { tenantId }, ...(tipo ? { tipo: tipo as any } : {}) },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -54,7 +62,19 @@ router.delete(
   requireAuth,
   requireRole('ADMIN', 'COORDINATOR', 'TEACHER'),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    await prisma.contentItem.delete({ where: { id: String(req.params.id) } });
+    const item = await prisma.contentItem.findFirst({
+      where: { id: String(req.params.id), discipline: { tenantId: getTenantId(req) } },
+      select: { id: true },
+    });
+    if (!item) return res.status(404).json({ error: 'Conteúdo não encontrado.' });
+    // remove dependentes (flashcards, estados de revisão, progresso) para não violar FKs
+    const cardIds = (await prisma.flashcard.findMany({ where: { contentItemId: item.id }, select: { id: true } })).map((f) => f.id);
+    await prisma.$transaction([
+      prisma.studentFlashcardState.deleteMany({ where: { flashcardId: { in: cardIds } } }),
+      prisma.flashcard.deleteMany({ where: { contentItemId: item.id } }),
+      prisma.contentProgress.deleteMany({ where: { contentItemId: item.id } }),
+      prisma.contentItem.delete({ where: { id: item.id } }),
+    ]);
     res.status(204).send();
   }),
 );
@@ -70,6 +90,11 @@ router.post(
       return res.status(400).json({ error: 'Usuário logado não está vinculado a um aluno.' });
     }
     const contentItemId = String(req.params.id);
+    const item = await prisma.contentItem.findFirst({
+      where: { id: contentItemId, discipline: { tenantId: getTenantId(req) } },
+      select: { id: true },
+    });
+    if (!item) return res.status(404).json({ error: 'Conteúdo não encontrado.' });
 
     const progress = await prisma.contentProgress.upsert({
       where: { studentId_contentItemId: { studentId: req.user!.studentId, contentItemId } },
@@ -97,7 +122,10 @@ router.get(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const { disciplineId } = req.params as Record<string, string>;
 
-    const items = await prisma.contentItem.findMany({ where: { disciplineId }, select: { id: true, titulo: true } });
+    const items = await prisma.contentItem.findMany({
+      where: { disciplineId, discipline: { tenantId: getTenantId(req) } },
+      select: { id: true, titulo: true },
+    });
     const resumo = await Promise.all(
       items.map(async (item) => {
         const [total, concluidos] = await Promise.all([

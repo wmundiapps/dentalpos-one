@@ -30,6 +30,8 @@ const obraBase = z.object({
   ativo: z.boolean().optional(),
 })
 
+const TIPOS_OBRA = ['LIVRO', 'PERIODICO', 'TESE', 'DVD', 'NORMA', 'MAPA', 'OUTRO']
+
 const exemplarBase = z.object({
   obraId: z.string().min(1),
   tombo: z.string().trim().min(1).optional(),
@@ -265,10 +267,13 @@ export async function buscarCatalogo(tenantId: string, query: any, opts: { publi
   const f = (k: string, campo: string) => { const v = qs(query[k]); if (v) and.push({ [campo]: { contains: v, mode: 'insensitive' } }) }
   f('autor', 'autoresTexto'); f('assunto', 'assuntosTexto'); f('editora', 'editora'); f('titulo', 'titulo'); f('cdd', 'cdd')
   if (qs(query.isbn)) and.push({ isbn: normalizarIsbn(qs(query.isbn)) })
-  if (qs(query.tipo)) and.push({ tipo: qs(query.tipo) })
+  if (qs(query.tipo)) {
+    if (!TIPOS_OBRA.includes(String(qs(query.tipo))))  throw httpErr(400, 'Tipo de obra inválido.')
+    and.push({ tipo: qs(query.tipo) })
+  }
   if (qs(query.idioma)) and.push({ idioma: qs(query.idioma) })
   // anos inválidos (NaN) são ignorados: Prisma rejeitaria NaN com 500.
-  const anoNum = (k: string) => { const n = parseInt(qs(query[k]) ?? '', 10); return Number.isFinite(n) ? n : undefined }
+  const anoNum = (k: string) => { const n = parseInt(qs(query[k]) ?? '', 10); return Number.isFinite(n) && n >= 1000 && n <= 2200 ? n : undefined }
   if (anoNum('ano') !== undefined) and.push({ ano: anoNum('ano') })
   if (anoNum('anoDe') !== undefined) and.push({ ano: { gte: anoNum('anoDe') } })
   if (anoNum('anoAte') !== undefined) and.push({ ano: { lte: anoNum('anoAte') } })

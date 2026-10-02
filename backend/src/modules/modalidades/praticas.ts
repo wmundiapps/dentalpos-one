@@ -5,7 +5,7 @@ import { AuthenticatedRequest, asyncHandler, getTenantId, getUserId, requireRole
 import { mountCrud, parseBody, dateISO } from '../core/crud'
 import { audit, notify } from '../core/notify'
 import { scheduleReminder } from '../core/reminders'
-import { MANAGE, TEACH, horasEntre } from './common'
+import { MANAGE, TEACH, horasEntre, comTrava } from './common'
 import { resumoHorasPraticas } from './rules'
 
 const router = Router()
@@ -46,16 +46,19 @@ router.post('/agendas-praticas/:id/inscrever', requireRole('STUDENT', ...MANAGE)
   const ag = await prisma.modAgendaPratica.findFirst({ where: { id: String(req.params.id), tenantId } })
   if (!ag) return res.status(404).json({ error: 'Agenda não encontrada.' })
   if (ag.status !== 'AGENDADA') return res.status(409).json({ error: 'Agenda não está aberta.' })
-  const existente = await prisma.modPraticaInscricao.findUnique({ where: { agendaId_studentId: { agendaId: ag.id, studentId } } })
-  if (existente && existente.status !== 'CANCELADO') return res.status(409).json({ error: 'Aluno já inscrito.' })
-  if (ag.vagas > 0) {
-    const n = await prisma.modPraticaInscricao.count({ where: { agendaId: ag.id, status: { not: 'CANCELADO' } } })
-    if (n >= ag.vagas) return res.status(422).json({ error: 'Vagas esgotadas.' })
-  }
-  // conflito de horário do aluno
-  const conf = await prisma.modPraticaInscricao.findFirst({ where: { tenantId, studentId, status: { not: 'CANCELADO' }, agenda: { status: 'AGENDADA', inicio: { lt: ag.fim }, fim: { gt: ag.inicio } } } })
-  if (conf) return res.status(409).json({ error: 'Conflito com outra atividade prática do aluno.' })
-  const row = await prisma.modPraticaInscricao.upsert({ where: { agendaId_studentId: { agendaId: ag.id, studentId } }, create: { tenantId, agendaId: ag.id, studentId }, update: { status: 'INSCRITO' } })
+  const resultado = await comTrava(`mod-pratica:${ag.id}`, async (tx) => {
+    const existente = await tx.modPraticaInscricao.findUnique({ where: { agendaId_studentId: { agendaId: ag.id, studentId } } })
+    if (existente && existente.status !== 'CANCELADO') throw Object.assign(new Error('Aluno já inscrito.'), { status: 409 })
+    if (ag.vagas > 0) {
+      const n = await tx.modPraticaInscricao.count({ where: { agendaId: ag.id, status: { not: 'CANCELADO' } } })
+      if (n >= ag.vagas) throw Object.assign(new Error('Vagas esgotadas.'), { status: 422 })
+    }
+    // conflito de horário do aluno
+    const conf = await tx.modPraticaInscricao.findFirst({ where: { tenantId, studentId, status: { not: 'CANCELADO' }, agenda: { status: 'AGENDADA', inicio: { lt: ag.fim }, fim: { gt: ag.inicio } } } })
+    if (conf) throw Object.assign(new Error('Conflito com outra atividade prática do aluno.'), { status: 409 })
+    return tx.modPraticaInscricao.upsert({ where: { agendaId_studentId: { agendaId: ag.id, studentId } }, create: { tenantId, agendaId: ag.id, studentId }, update: { status: 'INSCRITO' } })
+  })
+  const row = resultado
   await notify({ tenantId, studentId, assunto: `Inscrição confirmada: ${ag.titulo}`, mensagem: `Sua inscrição em "${ag.titulo}" em ${ag.inicio.toLocaleString('pt-BR')} foi confirmada.`, refType: 'ModAgendaPratica', refId: ag.id })
   res.status(201).json(row)
 }))
@@ -73,7 +76,9 @@ router.post('/agendas-praticas/:id/fechar', requireRole(...MANAGE, 'TEACHER'), a
   const b = parseBody(z.object({ presentes: z.array(z.string()), horasPorAluno: z.number().min(0).max(24).optional() }), req.body)
   const ag = await prisma.modAgendaPratica.findFirst({ where: { id: String(req.params.id), tenantId }, include: { inscricoes: true } })
   if (!ag) return res.status(404).json({ error: 'Agenda não encontrada.' })
-  if (ag.status === 'REALIZADA') return res.status(409).json({ error: 'Agenda já fechada.' })
+  // claim atômico: só uma requisição fecha a agenda (evita horas duplicadas em cliques simultâneos)
+  const claim = await prisma.modAgendaPratica.updateMany({ where: { id: ag.id, tenantId, status: { not: 'REALIZADA' } }, data: { status: 'REALIZADA' } })
+  if (claim.count === 0) return res.status(409).json({ error: 'Agenda já fechada.' })
   const horas = b.horasPorAluno ?? Math.round(horasEntre(ag.inicio, ag.fim) * 100) / 100
   const pres = new Set(b.presentes)
   for (const i of ag.inscricoes.filter((x) => x.status !== 'CANCELADO')) {

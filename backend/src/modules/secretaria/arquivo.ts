@@ -1,4 +1,4 @@
-import { Router, Response } from 'express'
+import { Router, Response, NextFunction } from 'express'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, asyncHandler, getTenantId, getUserId, requireRole } from '../academico/middleware'
@@ -76,7 +76,18 @@ export async function reclassificarArquivo(tenantId?: string) {
   return { elegiveisNovos: elegiveis.length }
 }
 
+async function validarAluno(tenantId: string, studentId?: string | null) {
+  if (studentId && !(await prisma.student.findFirst({ where: { id: studentId, tenantId }, select: { id: true } }))) throw Object.assign(new Error('Aluno não encontrado.'), { status: 404 })
+}
+
 export function mountArquivo(router: Router) {
+  // Item em termo de descarte (ou já descartado) não pode ser apagado: o termo e a auditoria dependem do registro.
+  router.delete('/arquivo/:id', requireRole(...SEC), asyncHandler(async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const i = await prisma.secArquivoItem.findFirst({ where: { id: String(req.params.id), tenantId: getTenantId(req) }, select: { status: true } })
+    if (i && ['DESCARTE_SOLICITADO', 'DESCARTADO'].includes(i.status)) return res.status(409).json({ error: 'Item em processo de descarte/descartado não pode ser excluído.' })
+    next()
+  }))
+
   mountCrud(router, {
     model: 'secTemporalidade',
     path: '/temporalidade',
@@ -102,9 +113,13 @@ export function mountArquivo(router: Router) {
     orderBy: { createdAt: 'desc' },
     modulo: MODULO,
     removeMode: 'hard',
-    beforeCreate: (d, req) => aplicarTemporalidade(getTenantId(req), d),
-    beforeUpdate: (d, req, cur) => {
+    beforeCreate: async (d, req) => {
+      await validarAluno(getTenantId(req), d.studentId)
+      return aplicarTemporalidade(getTenantId(req), d)
+    },
+    beforeUpdate: async (d, req, cur) => {
       if (['DESCARTADO', 'DESCARTE_SOLICITADO'].includes(cur.status)) throw Object.assign(new Error('Item em processo de descarte/descartado não pode ser alterado.'), { status: 409 })
+      await validarAluno(getTenantId(req), d.studentId)
       return d.temporalidadeId || d.dataEncerramento ? aplicarTemporalidade(getTenantId(req), d, cur) : d
     },
   })

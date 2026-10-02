@@ -44,9 +44,13 @@ mountCrud(router, {
     if (d.termOrigemId && !(await prisma.academicTerm.findFirst({ where: { id: d.termOrigemId, tenantId }, select: { id: true } }))) throw httpErr(404, 'Período letivo de origem não encontrado.')
     return d
   },
-  beforeUpdate: (d, _req, cur) => {
+  beforeUpdate: async (d, req, cur) => {
     if (cur.status === 'ENCERRADA') throw httpErr(409, 'Campanha encerrada não pode ser alterada.')
     validar(d, cur)
+    const tenantId = getTenantId(req)
+    for (const k of ['termDestinoId', 'termOrigemId']) {
+      if (d[k] && !(await prisma.academicTerm.findFirst({ where: { id: d[k], tenantId }, select: { id: true } }))) throw httpErr(404, 'Período letivo não encontrado.')
+    }
     return d
   },
 })

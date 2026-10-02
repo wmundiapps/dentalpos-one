@@ -37,7 +37,9 @@ export async function setup() {
     return { tenantId, clinic, mk }
   }
   const call = async (a: Actor | null, method: string, path: string, body?: any, headers: Record<string, string> = {}) => {
-    const r = await fetch(base + path, { method, headers: { ...(a ? { Authorization: `Bearer ${a.token}` } : {}), 'Content-Type': 'application/json', ...headers }, body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined })
+    const hd: Record<string, string> = { ...(a ? { authorization: `Bearer ${a.token}` } : {}), 'content-type': 'application/json' }
+    for (const [k, v] of Object.entries(headers)) hd[k.toLowerCase()] = v
+    const r = await fetch(base + path, { method, headers: hd, body: body !== undefined ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined })
     const text = await r.text()
     let json: any = null
     try { json = JSON.parse(text) } catch {}

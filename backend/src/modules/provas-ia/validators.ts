@@ -17,16 +17,21 @@ export function validate(schema: z.ZodSchema) {
 
 // ---------- Avaliação ----------
 
-export const createAssessmentSchema = z.object({
-  disciplineId: z.string().uuid(),
-  classSectionId: z.string().uuid().optional(),
-  titulo: z.string().min(2),
-  tipo: z.enum(['PROVA', 'ATIVIDADE', 'AUTOAVALIACAO', 'SIMULADO_ENADE', 'SIMULADO_RESIDENCIA']),
-  dataAbertura: z.coerce.date().optional(),
-  dataFechamento: z.coerce.date().optional(),
-  correcaoPorIA: z.boolean().optional().default(false),
-  focoEnade: z.boolean().optional().default(false),
-});
+export const createAssessmentSchema = z
+  .object({
+    disciplineId: z.string().uuid(),
+    classSectionId: z.string().uuid().optional(),
+    titulo: z.string().min(2),
+    tipo: z.enum(['PROVA', 'ATIVIDADE', 'AUTOAVALIACAO', 'SIMULADO_ENADE', 'SIMULADO_RESIDENCIA']),
+    dataAbertura: z.coerce.date().optional(),
+    dataFechamento: z.coerce.date().optional(),
+    correcaoPorIA: z.boolean().optional().default(false),
+    focoEnade: z.boolean().optional().default(false),
+  })
+  .refine((d) => !d.dataAbertura || !d.dataFechamento || d.dataFechamento > d.dataAbertura, {
+    message: 'dataFechamento deve ser posterior a dataAbertura.',
+    path: ['dataFechamento'],
+  });
 
 export const createQuestionSchema = z
   .object({
@@ -44,7 +49,19 @@ export const createQuestionSchema = z
     (data) =>
       data.tipo !== 'MULTIPLA_ESCOLHA' || (data.alternativas && data.alternativas.length >= 2),
     { message: 'Questão de múltipla escolha precisa de ao menos 2 alternativas.', path: ['alternativas'] },
-  );
+  )
+  .refine(
+    (data) =>
+      data.tipo !== 'MULTIPLA_ESCOLHA' ||
+      !data.alternativas ||
+      data.alternativas.filter((a) => a.correta).length === 1 ||
+      (!!data.respostaCorreta && data.alternativas.some((a) => a.texto === data.respostaCorreta)),
+    { message: 'Marque exatamente uma alternativa como correta (ou informe respostaCorreta igual ao texto de uma alternativa).', path: ['alternativas'] },
+  )
+  .refine((data) => data.tipo !== 'VERDADEIRO_FALSO' || data.respostaCorreta === 'true' || data.respostaCorreta === 'false', {
+    message: 'Questão verdadeiro/falso exige respostaCorreta "true" ou "false".',
+    path: ['respostaCorreta'],
+  });
 
 // ---------- Geração por IA ----------
 
@@ -55,9 +72,17 @@ export const generateQuestionsSchema = z.object({
   focoEnade: z.boolean().optional().default(false),
   focoResidencia: z.boolean().optional().default(false),
   nivelDificuldade: z.enum(['BASICO', 'INTERMEDIARIO', 'AVANCADO']).optional(),
+}).refine((d) => d.quantidadeMultiplaEscolha + d.quantidadeDissertativas > 0, {
+  message: 'Informe ao menos uma questão a gerar.',
+  path: ['quantidadeMultiplaEscolha'],
 });
 
 // ---------- Tentativa do aluno ----------
+
+export const gradeAnswerSchema = z.object({
+  nota: z.number().min(0).max(10), // escala 0-10, a mesma de AnswerSubmission.notaObtida
+  feedback: z.string().max(4000).optional(),
+});
 
 export const submitAnswerSchema = z.object({
   respostas: z

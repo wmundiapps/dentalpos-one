@@ -100,6 +100,8 @@ router.patch('/questoes/:id', requireRole(...DOCENTE), asyncHandler(async (req: 
   const cur = await prisma.desQuestao.findFirst({ where: { id: String(req.params.id), tenantId } })
   if (!cur) throw httpErr(404, 'Questão não encontrada.')
   const d = normalizar(parseBody(questaoBase.partial(), req.body))
+  // em PATCH parcial o tipo pode não vir no corpo: normaliza o gabarito pelo tipo atual da questão
+  if (d.gabarito && d.tipo === undefined && cur.tipo === 'OBJETIVA') d.gabarito = String(d.gabarito).trim().toUpperCase()
   await checarVinculos(tenantId, { exameId: d.exameId ?? cur.exameId, eixoId: d.eixoId === undefined ? cur.eixoId : d.eixoId, disciplineId: d.disciplineId })
   validarQuestao({ tipo: d.tipo ?? cur.tipo, alternativas: d.alternativas ?? cur.alternativas, gabarito: d.gabarito ?? cur.gabarito })
   const mudouConteudo = ['enunciado', 'alternativas', 'gabarito'].some((k) => d[k] !== undefined && JSON.stringify(d[k]) !== JSON.stringify((cur as any)[k]))

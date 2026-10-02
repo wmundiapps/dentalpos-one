@@ -201,7 +201,14 @@ router.post('/simulados/:id/iniciar', requireRole('STUDENT'), asyncHandler(async
   if (!t) {
     const expira = new Date(Math.min(agora.getTime() + s.duracaoMin * 60_000, s.fechaEm?.getTime() ?? Infinity))
     const total = await prisma.desSimuladoQuestao.count({ where: { simuladoId: s.id } })
-    t = await prisma.desTentativa.create({ data: { tenantId, simuladoId: s.id, studentId, expiraEm: expira, total } })
+    try {
+      t = await prisma.desTentativa.create({ data: { tenantId, simuladoId: s.id, studentId, expiraEm: expira, total } })
+    } catch (e: any) {
+      // duplo clique / duas abas: a outra requisição já criou a tentativa — retoma em vez de falhar com 409
+      if (e?.code !== 'P2002') throw e
+      t = await prisma.desTentativa.findUnique({ where: { simuladoId_studentId: { simuladoId: s.id, studentId } } })
+      if (!t) throw e
+    }
   }
   const salvas = await prisma.desResposta.findMany({ where: { tentativaId: t.id }, select: { questaoId: true, alternativa: true } })
   res.status(201).json({ tentativaId: t.id, expiraEm: t.expiraEm, questoes: await questoesSemGabarito(tenantId, s.id), respostasSalvas: Object.fromEntries(salvas.map((r) => [r.questaoId, r.alternativa])) })

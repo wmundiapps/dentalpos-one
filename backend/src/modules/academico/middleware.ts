@@ -92,9 +92,17 @@ export async function eduContext(req: AuthenticatedRequest, _res: Response, next
 
 export function academicErrorHandler(err: any, _req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) return next(err)
-  const status = err?.status || (err?.code === 'P2002' ? 409 : err?.code === 'P2025' ? 404 : 500)
+  const name = String(err?.name || '')
+  let status: number = err?.status || 0
+  let message: string = err?.message || ''
+  if (!status) {
+    if (err?.code === 'P2002') { status = 409; message = 'Registro duplicado.' }
+    else if (err?.code === 'P2025') { status = 404; message = 'Registro não encontrado.' }
+    else if (err?.code === 'P2003') { status = 409; message = 'Operação bloqueada: há registros vinculados ou a referência informada não existe.' }
+    else if (err?.code === 'P2000' || err?.code === 'P2006' || err?.code === 'P2007' || name === 'PrismaClientValidationError') { status = 400; message = 'Dados inválidos para esta operação.' }
+    else if (err?.type === 'entity.parse.failed') { status = 400; message = 'JSON inválido.' }
+  }
+  status = status || 500
   if (status >= 500) console.error('[edu]', err)
-  const message =
-    err?.code === 'P2002' ? 'Registro duplicado.' : err?.code === 'P2025' ? 'Registro não encontrado.' : err?.message || 'Erro interno no módulo acadêmico.'
-  res.status(status).json({ error: status >= 500 && !err?.status ? 'Erro interno do servidor.' : message })
+  res.status(status).json({ error: status >= 500 && !err?.status ? 'Erro interno do servidor.' : message || 'Erro.' })
 }

@@ -1,5 +1,6 @@
 import { Router, Response } from 'express'
 import { z, ZodTypeAny } from 'zod'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
 import {
   AcademicRole,
@@ -37,7 +38,7 @@ export interface CrudOptions {
 }
 
 export function pageParams(query: any) {
-  const page = Math.max(1, parseInt(String(query.page || '1'), 10) || 1)
+  const page = Math.min(100_000, Math.max(1, parseInt(String(query.page || '1'), 10) || 1))
   const pageSize = Math.min(200, Math.max(1, parseInt(String(query.pageSize || '50'), 10) || 50))
   return { page, pageSize, skip: (page - 1) * pageSize, take: pageSize }
 }
@@ -60,6 +61,25 @@ export function dateISO() {
   return z.preprocess((v) => (typeof v === 'string' || v instanceof Date ? new Date(v as any) : v), z.date())
 }
 
+// Converte o valor de ?campo=valor para o tipo real do campo no schema (Int, Float, Boolean, DateTime, enum).
+// Valor inválido => 400 (antes virava PrismaClientValidationError => 500).
+function coerceFilter(model: string, field: string, v: string): unknown {
+  const m = Prisma.dmmf.datamodel.models.find((x) => x.name.toLowerCase() === model.toLowerCase())
+  const f = m?.fields.find((x) => x.name === field)
+  const bad = () => Object.assign(new Error(`Filtro inválido: ${field}.`), { status: 400 })
+  if (!f) return v === 'true' ? true : v === 'false' ? false : v
+  if (f.kind === 'enum') {
+    const en = Prisma.dmmf.datamodel.enums.find((e) => e.name === f.type)
+    if (en && !en.values.some((x) => x.name === v)) throw bad()
+    return v
+  }
+  if (f.type === 'Int' || f.type === 'BigInt') { if (!/^-?\d+$/.test(v)) throw bad(); return parseInt(v, 10) }
+  if (f.type === 'Float' || f.type === 'Decimal') { const n = Number(v); if (!Number.isFinite(n)) throw bad(); return n }
+  if (f.type === 'Boolean') { if (v !== 'true' && v !== 'false') throw bad(); return v === 'true' }
+  if (f.type === 'DateTime') { const d = new Date(v); if (isNaN(d.getTime())) throw bad(); return d }
+  return v
+}
+
 export function mountCrud(router: Router, o: CrudOptions) {
   const delegate = () => (prisma as any)[o.model]
   const readGuard = o.readAll ? (_q: any, _s: any, n: any) => n() : requireRole(...o.read, ...o.write)
@@ -75,7 +95,7 @@ export function mountCrud(router: Router, o: CrudOptions) {
       const where: any = { tenantId, ...(o.scope ? o.scope(req) : {}) }
       for (const f of o.filters ?? []) {
         const v = qs((req.query as any)[f])
-        if (v !== undefined) where[f] = v === 'true' ? true : v === 'false' ? false : v
+        if (v !== undefined) where[f] = coerceFilter(o.model, f, v)
       }
       const q = qs(req.query.q)
       if (q && o.search?.length) where.OR = o.search.map((f) => ({ [f]: { contains: q, mode: 'insensitive' } }))

@@ -321,6 +321,10 @@ export async function mudarStatusProtocolo(p: {
     }
   }
 
+  // "Reivindica" a transição (compare-and-set no status atual): duas ações simultâneas (ex.: deferir e indeferir) não passam ambas.
+  const claim = await prisma.secProtocolo.updateMany({ where: { id: proto.id, tenantId, status: de }, data: { status: p.para } })
+  if (claim.count === 0) throw Object.assign(new Error('O protocolo foi alterado por outra ação; recarregue e tente novamente.'), { status: 409 })
+
   const atualizado = await prisma.secProtocolo.update({
     where: { id: proto.id },
     data: { ...data, tramites: { create: { tenantId, acao: 'STATUS', deStatus: de, paraStatus: p.para, usuarioId: p.usuarioId, usuarioNome: p.usuarioNome, origem: p.origem ?? 'SECRETARIA', parecer: p.parecer, visivelAluno: p.visivelAluno ?? true } } },
@@ -431,6 +435,11 @@ export function viewProtocolo<T extends { prazoEm: Date; status: string }>(p: T)
   return { ...p, sla: slaSituacao(p.prazoEm, new Date(), parado) }
 }
 
+async function validarChecklistDoTipo(tenantId: string, d: any) {
+  if (d.checklistModeloId && !(await prisma.secChecklistModelo.findFirst({ where: { id: d.checklistModeloId, tenantId }, select: { id: true } })))
+    throw Object.assign(new Error('Modelo de checklist não encontrado.'), { status: 404 })
+}
+
 // ---------- rotas ----------
 export function mountProtocolos(router: Router) {
   mountCrud(router, {
@@ -444,6 +453,8 @@ export function mountProtocolos(router: Router) {
     orderBy: { nome: 'asc' },
     modulo: MODULO,
     removeMode: 'soft',
+    beforeCreate: (d, req) => validarChecklistDoTipo(getTenantId(req), d),
+    beforeUpdate: (d, req) => validarChecklistDoTipo(getTenantId(req), d),
   })
 
   // Dashboard

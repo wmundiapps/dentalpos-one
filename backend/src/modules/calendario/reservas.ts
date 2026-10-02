@@ -65,6 +65,8 @@ export function registerReservas(router: Router) {
       const userId = getUserId(req)
       const b = parseBody(reservaCreate, req.body)
       const espaco = await requireSpace(tenantId, b.spaceId)
+      if (b.classSectionId && !(await prisma.classSection.findFirst({ where: { id: b.classSectionId, tenantId }, select: { id: true } }))) throw erro(404, 'Turma não encontrada.')
+      if (b.professorUserId && !(await prisma.user.findFirst({ where: { id: b.professorUserId, tenantId }, select: { id: true } }))) throw erro(404, 'Professor não encontrado.')
       if (b.fim.getTime() <= b.inicio.getTime()) throw erro(400, 'O fim deve ser posterior ao início.')
       if (b.fim.getTime() - b.inicio.getTime() > 16 * 3_600_000) throw erro(400, 'Uma ocorrência não pode passar de 16 horas.')
       if (b.recorrencia !== 'NENHUMA' && !b.recorrenciaAte) throw erro(400, 'Informe "recorrenciaAte" para reservas recorrentes.')

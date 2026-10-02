@@ -19,6 +19,7 @@ export interface ReminderInput {
   canal?: string
   recorrenciaDias?: number
   dedupeKey?: string       // evita duplicar o mesmo lembrete
+  reabrir?: boolean        // com dedupeKey existente: volta a PENDENTE e reagenda o aviso (ex.: prazo prorrogado, jornada retomada)
 }
 
 const DAY = 86_400_000
@@ -53,8 +54,9 @@ export async function scheduleReminder(input: ReminderInput) {
       where: { id: existente.id },
       data: {
         titulo: data.titulo, descricao: data.descricao, dueAt: data.dueAt,
-        ...(['NOTIFICADO', 'ADIADO'].includes(existente.status) ? {} : { remindAt: data.remindAt }),
-        ...(existente.escalonadoEm ? {} : { severity: data.severity }),
+        ...(['NOTIFICADO', 'ADIADO'].includes(existente.status) && !input.reabrir ? {} : { remindAt: data.remindAt }),
+        ...(existente.escalonadoEm && !input.reabrir ? {} : { severity: data.severity }),
+        ...(input.reabrir ? { status: 'PENDENTE', concluidoEm: null, concluidoPorId: null, escalonadoEm: null } : {}),
       },
     })
   }

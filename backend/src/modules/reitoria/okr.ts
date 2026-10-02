@@ -68,12 +68,14 @@ export async function recalcularObjetivo(tenantId: string, objetivoId: string) {
 async function agendarCheckin(kr: { id: string; tenantId: string; titulo: string; proximoCheckinEm: Date | null; responsavelUserId: string | null; checkinFrequenciaDias: number }, obj: { responsavelUserId: string | null; titulo: string }) {
   if (!kr.proximoCheckinEm) return
   const dia = kr.proximoCheckinEm.toISOString().slice(0, 10)
-  await scheduleReminder({
+  // se já existe lembrete com a mesma chave (mesmo dia) encerrado por um check-in anterior, reabre-o
+  const r = await scheduleReminder({
     tenantId: kr.tenantId, modulo: 'reitoria', titulo: `Check-in do resultado-chave: ${kr.titulo}`, descricao: `Objetivo: ${obj.titulo}`,
     dueAt: kr.proximoCheckinEm, antecedenciaDias: 1, refType: 'ReiResultadoChave', refId: kr.id, severity: 'ATENCAO',
     assigneeUserId: kr.responsavelUserId ?? obj.responsavelUserId ?? undefined, assigneeRole: kr.responsavelUserId || obj.responsavelUserId ? undefined : 'RECTOR',
     dedupeKey: `rei-kr:${kr.id}:${dia}`,
   })
+  if (r.status === 'CONCLUIDO' || r.status === 'CANCELADO') await prisma.eduReminder.update({ where: { id: r.id }, data: { status: 'PENDENTE', concluidoEm: null, concluidoPorId: null } })
 }
 
 async function agendarFimCiclo(o: { id: string; tenantId: string; titulo: string; fim: Date; responsavelUserId: string | null }) {

@@ -148,6 +148,7 @@ mountCrud(router, {
   },
   beforeUpdate: async (d, req, cur) => {
     const tenantId = getTenantId(req)
+    if (d.programId && !(await prisma.academicProgram.findFirst({ where: { id: d.programId, tenantId }, select: { id: true } }))) throw httpErr(404, 'Curso (AcademicProgram) não encontrado.')
     if (d.vagas != null && d.vagas < cur.vagas) {
       const ocupadas = await prisma.admConvocacao.count({ where: { tenantId, ofertaId: cur.id, status: { in: ['CONVOCADO', 'MATRICULADO'] } } })
       if (d.vagas < ocupadas) throw httpErr(409, `Não é possível reduzir para ${d.vagas} vagas: ${ocupadas} já convocadas/matriculadas.`)

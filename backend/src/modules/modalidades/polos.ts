@@ -5,7 +5,7 @@ import { AuthenticatedRequest, asyncHandler, getTenantId, getUserId, requireRole
 import { mountCrud, parseBody, dateISO } from '../core/crud'
 import { audit } from '../core/notify'
 import { scheduleReminder } from '../core/reminders'
-import { MANAGE, TEACH } from './common'
+import { MANAGE, TEACH, comTrava } from './common'
 import { CHECKLIST_POLO_PADRAO, ocupacaoPolo, resumoChecklist, relacaoAlunoTutor } from './rules'
 import { getConfig } from './common'
 
@@ -34,7 +34,13 @@ async function lembreteAto(tenantId: string, polo: any) {
 mountCrud(router, {
   model: 'modPolo', path: '/polos', read: [...TEACH, 'STUDENT'], write: [...MANAGE], create: poloSchema, search: ['nome', 'codigo', 'cidade'],
   filters: ['statusCredenciamento', 'ativo', 'uf', 'cidade'], orderBy: { nome: 'asc' }, modulo: 'modalidades',
+  beforeUpdate: (d, _req, cur) => {
+    // credenciamento só muda pelas rotas /credenciar e /suspender (exigem checklist e ato)
+    if (d.statusCredenciamento !== undefined && d.statusCredenciamento !== cur.statusCredenciamento) throw Object.assign(new Error('Use /polos/:id/credenciar ou /polos/:id/suspender para alterar o credenciamento.'), { status: 422 })
+    return d
+  },
   beforeCreate: async (d, req) => {
+    if (d.statusCredenciamento && d.statusCredenciamento !== 'EM_CREDENCIAMENTO') throw Object.assign(new Error('Todo polo nasce EM_CREDENCIAMENTO; use /polos/:id/credenciar.'), { status: 422 })
     if (d.spaceId) {
       const sp = await prisma.eduSpace.findFirst({ where: { id: d.spaceId, tenantId: getTenantId(req) } })
       if (!sp) throw Object.assign(new Error('Espaço (EduSpace) não encontrado.'), { status: 404 })
@@ -57,7 +63,7 @@ router.post('/polos/:id/credenciar', requireRole(...MANAGE), asyncHandler(async 
   if (!polo) return res.status(404).json({ error: 'Polo não encontrado.' })
   const ck = resumoChecklist(polo.checklist)
   if (!ck.apto) return res.status(422).json({ error: 'Checklist de estrutura mínima incompleto.', checklist: ck })
-  const row = await prisma.modPolo.update({ where: { id: polo.id }, data: { statusCredenciamento: 'CREDENCIADO', ...b } })
+  const row = await prisma.modPolo.update({ where: { id: polo.id }, data: { statusCredenciamento: 'CREDENCIADO', ativo: true, ...b } })
   await lembreteAto(tenantId, row)
   await audit({ tenantId, userId: getUserId(req), modulo: 'modalidades', acao: 'CREDENCIAR_POLO', refType: 'ModPolo', refId: polo.id, detalhes: b })
   res.json(row)
@@ -118,18 +124,22 @@ router.post('/polos/:id/alunos', requireRole(...MANAGE), asyncHandler(async (req
   if (!polo.ativo || polo.statusCredenciamento !== 'CREDENCIADO') return res.status(422).json({ error: 'Polo inativo ou não credenciado.' })
   const st = await prisma.student.findFirst({ where: { id: b.studentId, tenantId } })
   if (!st) return res.status(404).json({ error: 'Aluno não encontrado.' })
-  const ocupados = await prisma.modPoloAluno.count({ where: { tenantId, poloId: polo.id, ativo: true } })
-  const ja = await prisma.modPoloAluno.findUnique({ where: { poloId_studentId: { poloId: polo.id, studentId: b.studentId } } })
-  if (!ja && polo.capacidade > 0 && ocupados >= polo.capacidade) return res.status(422).json({ error: 'Polo sem capacidade disponível.', ocupacao: ocupacaoPolo(polo.capacidade, ocupados) })
-  if (b.programId && !ja) {
-    const of = await prisma.modPoloOferta.findFirst({ where: { tenantId, poloId: polo.id, programId: b.programId, ativo: true } })
-    if (of) {
-      const n = await prisma.modPoloAluno.count({ where: { tenantId, poloId: polo.id, programId: b.programId, ativo: true } })
-      if (of.vagas > 0 && n >= of.vagas) return res.status(422).json({ error: 'Vagas do curso neste polo esgotadas.' })
+  const resultado = await comTrava(`mod-polo:${polo.id}`, async (tx) => {
+    const ocupados = await tx.modPoloAluno.count({ where: { tenantId, poloId: polo.id, ativo: true } })
+    const ja = await tx.modPoloAluno.findUnique({ where: { poloId_studentId: { poloId: polo.id, studentId: b.studentId } } })
+    if (!(ja && ja.ativo) && polo.capacidade > 0 && ocupados >= polo.capacidade) return { erro: 'Polo sem capacidade disponível.', extra: { ocupacao: ocupacaoPolo(polo.capacidade, ocupados) } }
+    if (b.programId && !(ja && ja.ativo)) {
+      const of = await tx.modPoloOferta.findFirst({ where: { tenantId, poloId: polo.id, programId: b.programId, ativo: true } })
+      if (of) {
+        const n = await tx.modPoloAluno.count({ where: { tenantId, poloId: polo.id, programId: b.programId, ativo: true } })
+        if (of.vagas > 0 && n >= of.vagas) return { erro: 'Vagas do curso neste polo esgotadas.', extra: {} }
+      }
     }
-  }
-  const row = await prisma.modPoloAluno.upsert({ where: { poloId_studentId: { poloId: polo.id, studentId: b.studentId } }, create: { tenantId, poloId: polo.id, studentId: b.studentId, programId: b.programId }, update: { ativo: true, programId: b.programId } })
-  res.status(201).json(row)
+    const row = await tx.modPoloAluno.upsert({ where: { poloId_studentId: { poloId: polo.id, studentId: b.studentId } }, create: { tenantId, poloId: polo.id, studentId: b.studentId, programId: b.programId }, update: { ativo: true, programId: b.programId } })
+    return { row }
+  })
+  if ('erro' in resultado) return res.status(422).json({ error: resultado.erro, ...resultado.extra })
+  res.status(201).json(resultado.row)
 }))
 router.delete('/polos/:id/alunos/:studentId', requireRole(...MANAGE), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const r = await prisma.modPoloAluno.updateMany({ where: { tenantId: getTenantId(req), poloId: String(req.params.id), studentId: String(req.params.studentId) }, data: { ativo: false } })

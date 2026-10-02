@@ -97,6 +97,11 @@ async function main() {
   r = await call(null, 'GET', `/public/edu/secretaria/verificar/${codDoc}`, undefined, { Accept: 'text/html' }); check('verificacao html', r.status === 200 && r.text.includes('autêntico'), r.text.slice(0, 100))
   r = await call(null, 'GET', `/public/edu/secretaria/verificar/AAAA-BBBB-CCCC`); check('codigo inexistente 404', r.status === 404, r)
   r = await call(null, 'GET', `/public/edu/secretaria/verificar/x`); check('codigo curto 404', r.status === 404, r)
+  // transições concorrentes: só uma vence
+  r = await call(sec, 'POST', `${R}/protocolos`, { tipoId: tp('OUTROS').id, solicitanteNome: 'Corrida Status' }); const pc = r.json
+  await call(sec, 'POST', `${R}/protocolos/${pc.id}/status`, { para: 'EM_ANALISE' })
+  const cs2 = await Promise.all([call(sec, 'POST', `${R}/protocolos/${pc.id}/status`, { para: 'DEFERIDO' }), call(sec, 'POST', `${R}/protocolos/${pc.id}/status`, { para: 'INDEFERIDO', parecer: 'Não atende' })])
+  check('status concorrente: 1 sucesso e 1 409', cs2.filter((x) => x.status === 200).length === 1 && cs2.filter((x) => x.status === 409).length === 1, cs2.map((x) => x.status))
   // indeferimento cancela cobrança
   r = await call(sec, 'POST', `${R}/protocolos`, { tipoId: tipoTaxa.id, studentId: st2.id, dados: { finalidade: 'y' } }); const p4 = r.json
   r = await call(sec, 'POST', `${R}/protocolos/${p4.id}/status`, { para: 'INDEFERIDO', parecer: 'Fora do regimento' }); check('indeferir', r.status === 200, r)
@@ -107,7 +112,7 @@ async function main() {
   r = await call(sec, 'POST', `${R}/protocolos/${p4.id}/status`, { para: 'CONCLUIDO' })
   check('p4 reanalise: taxa reemitida e conclusao bloqueada ate pagar', r.status === 409, r)
   // isenção
-  r = await call(sec, 'POST', `${R}/protocolos`, { tipoId: tp('SEGUNDA_CHAMADA').id, studentId: st.id, dados: { disciplina: 'Anatomia', avaliacao: 'P1', data: '2026-01-01' }, anexos: [{ nome: 'a.pdf', url: 'https://x.com/a.pdf' }] }); check('2a chamada com taxa', r.status === 201 && r.json.taxaStatus === 'PENDENTE', r)
+  r = await call(sec, 'POST', `${R}/protocolos`, { tipoId: tp('SEGUNDA_CHAMADA').id, studentId: st.id, dados: { disciplina: 'Anatomia', dataAvaliacao: '2026-01-01' }, anexos: [{ nome: 'a.pdf', url: 'https://x.com/a.pdf' }] }); check('2a chamada com taxa', r.status === 201 && r.json.taxaStatus === 'PENDENTE', r)
   const p5 = r.json
   r = await call(sec, 'POST', `${R}/protocolos/${p5.id}/taxa/isentar`, { motivo: 'curto' }); check('isentar motivo curto', r.status === 200 || r.status === 400, r.status)
   r = await call(sec, 'POST', `${R}/protocolos/${p5.id}/taxa/isentar`, { motivo: 'Aluno bolsista integral' }); console.log('isentar', r.status)

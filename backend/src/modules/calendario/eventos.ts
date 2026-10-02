@@ -350,7 +350,9 @@ export function registerEventos(router: Router) {
     const d: any = parseBody(eventoUpdate, req.body)
     await validarRefs(tenantId, d)
     const merged = { ...atual, ...d }
-    const { inicio, fim } = normalizar({ ...merged, fim: d.fim ?? (d.inicio ? undefined : atual.fim) })
+    // mudou só o início: preserva a duração original do evento
+    const fimPadrao = d.fim ?? (d.inicio ? new Date(d.inicio.getTime() + (atual.fim.getTime() - atual.inicio.getTime())) : atual.fim)
+    const { inicio, fim } = normalizar({ ...merged, fim: fimPadrao })
     const row = await prisma.calEvento.update({ where: { id }, data: { ...d, inicio, fim } })
     await cancelReminders({ tenantId, refType: 'CalEvento', refId: id })
     await agendarLembretesEvento(row)

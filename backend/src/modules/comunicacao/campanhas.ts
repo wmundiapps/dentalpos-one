@@ -200,13 +200,33 @@ export async function executarCampanha(tenantId: string, campanhaId: string, use
     novas.push({ id: nId, tenantId, canal: camp.canal, studentId: a.studentId, destino, assunto, mensagem: renderTemplate(tpl.corpo, vars).texto, templateKey: tpl.chave, refType: 'ComCampanha', refId: camp.id, agendadoPara: new Date() })
     dest.push({ ...base, resultado: 'ENFILEIRADO', notificationId: nId })
   }
-  for (let i = 0; i < novas.length; i += 1000) await prisma.eduNotification.createMany({ data: novas.slice(i, i + 1000) })
-  for (let i = 0; i < dest.length; i += 1000) await prisma.comCampanhaDestinatario.createMany({ data: dest.slice(i, i + 1000), skipDuplicates: true })
+  // Gravação atômica: o lock por campanha serializa execuções simultâneas (disparo manual + job) e a
+  // checagem de destinatários já existentes é refeita DENTRO do lock, evitando mensagens duplicadas.
+  const gravados = await prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'com-campanha:' + camp.id}))`
+      const ja = new Set((await tx.comCampanhaDestinatario.findMany({ where: { campanhaId: camp.id }, select: { chave: true } })).map((x) => x.chave))
+      const destFinal = dest.filter((d) => !ja.has(d.chave))
+      const manter = new Set(destFinal.filter((d) => d.notificationId).map((d) => d.notificationId))
+      const novasFinal = novas.filter((n) => manter.has(n.id))
+      for (let i = 0; i < novasFinal.length; i += 1000) await tx.eduNotification.createMany({ data: novasFinal.slice(i, i + 1000) })
+      for (let i = 0; i < destFinal.length; i += 1000) await tx.comCampanhaDestinatario.createMany({ data: destFinal.slice(i, i + 1000) })
+      return {
+        alvos: destFinal.length,
+        enfileirados: novasFinal.length,
+        bloqueados: destFinal.filter((d) => d.resultado === 'BLOQUEADO_OPTOUT').length,
+        semDestino: destFinal.filter((d) => d.resultado === 'SEM_DESTINO').length,
+      }
+    },
+    { timeout: 120_000, maxWait: 30_000 },
+  )
+  bloqueados = gravados.bloqueados
+  semDestino = gravados.semDestino
   const upd = await prisma.comCampanha.update({
     where: { id: camp.id },
-    data: { status: 'CONCLUIDA', concluidaEm: new Date(), totalAlvo: { increment: alvos.length - 0 }, totalEnfileirado: { increment: novas.length }, totalBloqueado: { increment: bloqueados }, totalSemDestino: { increment: semDestino } },
+    data: { status: 'CONCLUIDA', concluidaEm: new Date(), totalAlvo: { increment: gravados.alvos }, totalEnfileirado: { increment: gravados.enfileirados }, totalBloqueado: { increment: gravados.bloqueados }, totalSemDestino: { increment: gravados.semDestino } },
   })
-  await audit({ tenantId, userId, modulo: 'comunicacao', acao: 'CAMPANHA_EXECUTADA', refType: 'ComCampanha', refId: camp.id, detalhes: { alvos: alvos.length, enfileirados: novas.length, bloqueados, semDestino } })
+  await audit({ tenantId, userId, modulo: 'comunicacao', acao: 'CAMPANHA_EXECUTADA', refType: 'ComCampanha', refId: camp.id, detalhes: { alvos: alvos.length, enfileirados: gravados.enfileirados, bloqueados, semDestino } })
   return upd
 }
 

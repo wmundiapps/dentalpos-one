@@ -5,6 +5,7 @@ import {
   asyncHandler,
   requireAuth,
   requireRole,
+  getTenantId,
 } from '../academico/middleware';
 import { validate, createFlashcardSchema, reviewFlashcardSchema } from './validators';
 
@@ -46,6 +47,11 @@ router.post(
   requireRole('ADMIN', 'COORDINATOR', 'TEACHER'),
   validate(createFlashcardSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const item = await prisma.contentItem.findFirst({
+      where: { id: req.body.contentItemId, discipline: { tenantId: getTenantId(req) } },
+      select: { id: true },
+    });
+    if (!item) return res.status(404).json({ error: 'Conteúdo não encontrado.' });
     const flashcard = await prisma.flashcard.create({ data: req.body });
     res.status(201).json(flashcard);
   }),
@@ -56,7 +62,7 @@ router.get(
   requireAuth,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const flashcards = await prisma.flashcard.findMany({
-      where: { contentItemId: String(req.params.contentItemId) },
+      where: { contentItemId: String(req.params.contentItemId), contentItem: { discipline: { tenantId: getTenantId(req) } } },
     });
     res.json(flashcards);
   }),
@@ -75,7 +81,7 @@ router.get(
     const studentId = req.user!.studentId;
 
     const flashcards = await prisma.flashcard.findMany({
-      where: disciplineId ? { contentItem: { disciplineId } } : {},
+      where: { contentItem: { discipline: { tenantId: getTenantId(req) }, ...(disciplineId ? { disciplineId } : {}) } },
       include: { contentItem: true },
     });
 
@@ -108,7 +114,9 @@ router.post(
     const flashcardId = String(req.params.id);
     const { qualidade } = req.body;
 
-    const flashcard = await prisma.flashcard.findUnique({ where: { id: flashcardId } });
+    const flashcard = await prisma.flashcard.findFirst({
+      where: { id: flashcardId, contentItem: { discipline: { tenantId: getTenantId(req) } } },
+    });
     if (!flashcard) return res.status(404).json({ error: 'Flashcard não encontrado.' });
 
     const estadoAtual = await prisma.studentFlashcardState.findUnique({

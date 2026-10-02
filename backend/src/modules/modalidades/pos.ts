@@ -7,7 +7,7 @@ import { mountCrud, parseBody, qs, dateISO } from '../core/crud'
 import { audit, notify } from '../core/notify'
 import { scheduleReminder, cancelReminders, completeReminders } from '../core/reminders'
 import { getBranding, brandHeaderHtml, escapeHtml as esc } from '../core/branding'
-import { MANAGE, TEACH, getConfig } from './common'
+import { MANAGE, TEACH, getConfig, comTrava } from './common'
 import { validarLato, capacidadeOrientador, calcularPrazosStricto, marcosLembrete, progressoStricto, ehStricto, addMeses } from './rules'
 
 const router = Router()
@@ -116,20 +116,11 @@ router.post('/pos/alunos', requireRole(...POS), asyncHandler(async (req: Authent
   if (p.status === 'ENCERRADO' || p.status === 'SUSPENSO') return res.status(422).json({ error: `Programa ${p.status}: não aceita novos alunos.` })
   const st = await prisma.student.findFirst({ where: { id: b.studentId, tenantId } })
   if (!st) return res.status(404).json({ error: 'Aluno não encontrado.' })
-  if (b.turmaId) {
-    const t = await prisma.modPosTurma.findFirst({ where: { id: b.turmaId, tenantId, posId: p.id } })
-    if (!t) return res.status(404).json({ error: 'Turma não encontrada neste programa.' })
-    const n = await prisma.modPosAluno.count({ where: { tenantId, turmaId: t.id, status: { notIn: ['DESLIGADO', 'TRANCADO'] } } })
-    if (n >= t.vagas) return res.status(422).json({ error: 'Turma sem vagas.' })
-  }
   const cfg = await getConfig(tenantId)
-  if (b.orientadorId) {
-    const d = await prisma.modPosDocente.findFirst({ where: { id: b.orientadorId, tenantId, posId: p.id } })
-    if (!d) return res.status(404).json({ error: 'Orientador não encontrado neste programa.' })
-    const atuais = await prisma.modPosAluno.count({ where: { tenantId, orientadorId: d.id, status: { in: ['MATRICULADO', 'QUALIFICADO'] } } })
-    const cap = capacidadeOrientador(d, atuais, cfg.maxOrientandosPorDocente)
-    if (!cap.podeOrientar) return res.status(422).json({ error: 'Orientador indisponível (não é orientador ativo ou sem vagas).', capacidade: cap })
-  }
+  const turma = b.turmaId ? await prisma.modPosTurma.findFirst({ where: { id: b.turmaId, tenantId, posId: p.id } }) : null
+  if (b.turmaId && !turma) return res.status(404).json({ error: 'Turma não encontrada neste programa.' })
+  const orient = b.orientadorId ? await prisma.modPosDocente.findFirst({ where: { id: b.orientadorId, tenantId, posId: p.id } }) : null
+  if (b.orientadorId && !orient) return res.status(404).json({ error: 'Orientador não encontrado neste programa.' })
   const ingressoEm = b.ingressoEm ?? new Date()
   const data: any = { tenantId, posId: p.id, studentId: b.studentId, turmaId: b.turmaId, orientadorId: b.orientadorId, coorientadorId: b.coorientadorId, linhaId: b.linhaId, ingressoEm }
   if (ehStricto(p.nivel)) {
@@ -137,7 +128,22 @@ router.post('/pos/alunos', requireRole(...POS), asyncHandler(async (req: Authent
   } else {
     data.prazoDeposito = addMeses(ingressoEm, p.prazoMaxMeses ?? cfg.prazoMaxMesesLato)
   }
-  const row = await prisma.modPosAluno.create({ data })
+  // vagas da turma, capacidade do orientador e duplicidade são checadas sob lock (requisições simultâneas)
+  const resultado = await comTrava(`mod-pos:${p.id}`, async (tx) => {
+    const dup = await tx.modPosAluno.findFirst({ where: { tenantId, posId: p.id, studentId: b.studentId, status: { notIn: ['DESLIGADO', 'TITULADO'] } }, select: { id: true } })
+    if (dup) throw Object.assign(new Error('Aluno já possui matrícula ativa neste programa.'), { status: 409 })
+    if (turma) {
+      const n = await tx.modPosAluno.count({ where: { tenantId, turmaId: turma.id, status: { notIn: ['DESLIGADO', 'TRANCADO'] } } })
+      if (n >= turma.vagas) throw Object.assign(new Error('Turma sem vagas.'), { status: 422 })
+    }
+    if (orient) {
+      const atuais = await tx.modPosAluno.count({ where: { tenantId, orientadorId: orient.id, status: { in: ['MATRICULADO', 'QUALIFICADO'] } } })
+      const cap = capacidadeOrientador(orient, atuais, cfg.maxOrientandosPorDocente)
+      if (!cap.podeOrientar) throw Object.assign(new Error('Orientador indisponível (não é orientador ativo ou sem vagas).'), { status: 422, capacidade: cap })
+    }
+    return tx.modPosAluno.create({ data })
+  })
+  const row = resultado
   await agendarLembretesPrazos(tenantId, row, st.nomeCompleto)
   await audit({ tenantId, userId: getUserId(req), modulo: 'modalidades', acao: 'MATRICULAR_POS', refType: 'ModPosAluno', refId: row.id })
   res.status(201).json(row)
@@ -257,6 +263,7 @@ router.post('/pos/bancas/:id/resultado', requireRole(...POS), asyncHandler(async
   const banca = await prisma.modPosBanca.findFirst({ where: { id: String(req.params.id), tenantId }, include: { aluno: { include: { pos: true } } } })
   if (!banca) return res.status(404).json({ error: 'Banca não encontrada.' })
   if (banca.realizada) return res.status(409).json({ error: 'Resultado já registrado.' })
+  if (['TRANCADO', 'DESLIGADO', 'TITULADO'].includes(banca.aluno.status)) return res.status(422).json({ error: `Aluno ${banca.aluno.status}: não é possível registrar resultado de banca.` })
   const a = banca.aluno
   const aprovado = b.resultado !== 'REPROVADO'
   const patch: any = {}

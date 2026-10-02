@@ -9,6 +9,7 @@ import {
 } from '../academico/middleware';
 import { validate, generateQuestionsSchema } from './validators';
 import { generateQuestions } from '../../services-ai/generateQuestions';
+import { aiConfigured, AiUnavailableError } from '../../services-ai/client';
 
 const router = Router();
 
@@ -30,8 +31,8 @@ router.post(
     } = req.body;
 
     const [assessment, contentItem] = await Promise.all([
-      prisma.assessment.findUnique({ where: { id: assessmentId } }),
-      prisma.contentItem.findUnique({ where: { id: contentItemId } }),
+      prisma.assessment.findFirst({ where: { id: assessmentId, discipline: { tenantId } } }),
+      prisma.contentItem.findFirst({ where: { id: contentItemId, discipline: { tenantId } } }),
     ]);
     if (!assessment) return res.status(404).json({ error: 'Avaliação não encontrada.' });
     if (!contentItem) return res.status(404).json({ error: 'Conteúdo não encontrado.' });
@@ -44,15 +45,45 @@ router.post(
       });
     }
 
-    const geradas = await generateQuestions({
-      textoBase,
-      quantidadeMultiplaEscolha,
-      quantidadeDissertativas,
-      focoEnade,
-      focoResidencia,
-      nivelDificuldade,
-      ctx: { clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, actorId: req.user!.id, referenceType: 'ASSESSMENT', referenceId: assessmentId },
-    });
+    if (!aiConfigured()) {
+      // fallback: sem IA configurada o professor monta a prova manualmente
+      return res.status(503).json({
+        error: 'IA não configurada neste ambiente. Adicione as questões manualmente em POST /assessments/:id/questions.',
+        fallback: 'MANUAL',
+      });
+    }
+
+    let geradasBrutas: Awaited<ReturnType<typeof generateQuestions>>;
+    try {
+      geradasBrutas = await generateQuestions({
+        textoBase,
+        quantidadeMultiplaEscolha,
+        quantidadeDissertativas,
+        focoEnade,
+        focoResidencia,
+        nivelDificuldade,
+        ctx: { clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, actorId: req.user!.id, referenceType: 'ASSESSMENT', referenceId: assessmentId },
+      });
+    } catch (e: any) {
+      return res.status(e instanceof AiUnavailableError ? 503 : 502).json({
+        error: `Não foi possível gerar as questões por IA: ${e?.message || 'erro desconhecido'}. Adicione-as manualmente em POST /assessments/:id/questions.`,
+        fallback: 'MANUAL',
+      });
+    }
+    // descarta itens malformados devolvidos pela IA (nunca confiar cegamente no JSON)
+    const geradas = (Array.isArray(geradasBrutas) ? geradasBrutas : [])
+      .filter((q) => q && typeof q.enunciado === 'string' && q.enunciado.trim().length >= 3)
+      .filter((q) => {
+        if (q.tipo === 'DISSERTATIVA') return true;
+        if (q.tipo === 'MULTIPLA_ESCOLHA') {
+          return Array.isArray(q.alternativas) && q.alternativas.length >= 2 && q.alternativas.filter((a) => a?.correta).length === 1 && q.alternativas.every((a) => typeof a?.texto === 'string');
+        }
+        return false;
+      })
+      .map((q) => ({ ...q, peso: Number.isFinite(Number(q.peso)) && Number(q.peso) > 0 ? Number(q.peso) : 1 }));
+    if (!geradas.length) {
+      return res.status(502).json({ error: 'A IA não retornou questões válidas. Tente novamente ou adicione-as manualmente.', fallback: 'MANUAL' });
+    }
 
     const questoesCriadas = await prisma.$transaction(
       geradas.map((q) =>

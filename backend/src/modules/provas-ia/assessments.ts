@@ -5,10 +5,12 @@ import {
   asyncHandler,
   requireAuth,
   requireRole,
+  getTenantId,
 } from '../academico/middleware';
 import { validate, createAssessmentSchema, createQuestionSchema } from './validators';
 
 const router = Router();
+export const STAFF = ['ADMIN', 'OWNER', 'RECTOR', 'BOARD', 'COORDINATOR', 'TEACHER'];
 
 router.post(
   '/assessments',
@@ -16,6 +18,19 @@ router.post(
   requireRole('ADMIN', 'COORDINATOR', 'TEACHER'),
   validate(createAssessmentSchema),
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = getTenantId(req);
+    const discipline = await prisma.discipline.findFirst({ where: { id: req.body.disciplineId, tenantId }, select: { id: true } });
+    if (!discipline) return res.status(404).json({ error: 'Disciplina não encontrada.' });
+    if (req.body.classSectionId) {
+      const section = await prisma.classSection.findFirst({
+        where: { id: req.body.classSectionId, tenantId, disciplineId: req.body.disciplineId },
+        select: { id: true, professorUserId: true },
+      });
+      if (!section) return res.status(404).json({ error: 'Turma não encontrada para esta disciplina.' });
+      if (req.user!.role === 'TEACHER' && section.professorUserId !== req.user!.id) {
+        return res.status(403).json({ error: 'Você não leciona esta turma.' });
+      }
+    }
     const assessment = await prisma.assessment.create({ data: req.body });
     res.status(201).json(assessment);
   }),
@@ -25,10 +40,10 @@ router.get(
   '/assessments/:id',
   requireAuth,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const isStaff = ['ADMIN', 'COORDINATOR', 'TEACHER'].includes(req.user!.role);
+    const isStaff = STAFF.includes(req.user!.role);
 
-    const assessment = await prisma.assessment.findUnique({
-      where: { id: String(req.params.id) },
+    const assessment = await prisma.assessment.findFirst({
+      where: { id: String(req.params.id), discipline: { tenantId: getTenantId(req) } },
       include: {
         questoes: {
           select: {
@@ -36,13 +51,28 @@ router.get(
             enunciado: true,
             tipo: true,
             peso: true,
-            // aluno não recebe a resposta correta nem a rubrica junto da prova
-            ...(isStaff && { alternativas: true, respostaCorreta: true }),
+            alternativas: true,
+            ...(isStaff && { respostaCorreta: true }),
           },
         },
       },
     });
     if (!assessment) return res.status(404).json({ error: 'Avaliação não encontrada.' });
+    if (!isStaff) {
+      // aluno: não vê questões antes da abertura e nunca recebe o gabarito (flag "correta" das alternativas)
+      if (assessment.dataAbertura && assessment.dataAbertura > new Date()) {
+        return res.json({ ...assessment, questoes: [] });
+      }
+      return res.json({
+        ...assessment,
+        questoes: assessment.questoes.map((q) => ({
+          ...q,
+          alternativas: Array.isArray(q.alternativas)
+            ? (q.alternativas as any[]).map((a) => ({ texto: a?.texto }))
+            : q.alternativas,
+        })),
+      });
+    }
     res.json(assessment);
   }),
 );
@@ -52,7 +82,7 @@ router.get(
   requireAuth,
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const assessments = await prisma.assessment.findMany({
-      where: { disciplineId: String(req.params.disciplineId) },
+      where: { disciplineId: String(req.params.disciplineId), discipline: { tenantId: getTenantId(req) } },
       orderBy: { dataAbertura: 'desc' },
     });
     res.json(assessments);
@@ -69,6 +99,16 @@ router.post(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const assessmentId = String(req.params.id);
     const { criteriosRubrica, notaMaximaRubrica, ...questionData } = req.body;
+
+    const assessment = await prisma.assessment.findFirst({
+      where: { id: assessmentId, discipline: { tenantId: getTenantId(req) } },
+      select: { id: true },
+    });
+    if (!assessment) return res.status(404).json({ error: 'Avaliação não encontrada.' });
+    // gabarito derivado das alternativas quando não informado explicitamente
+    if (questionData.tipo === 'MULTIPLA_ESCOLHA' && !questionData.respostaCorreta) {
+      questionData.respostaCorreta = questionData.alternativas?.find((a: any) => a.correta)?.texto;
+    }
 
     const question = await prisma.question.create({
       data: { assessmentId, ...questionData },

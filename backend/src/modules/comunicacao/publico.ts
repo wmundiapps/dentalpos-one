@@ -224,7 +224,7 @@ publicRouter.post(
     if (!limitar(`${c.canal.id}:${sessionId}`)) return void res.status(429).json({ error: 'Muitas mensagens. Aguarde um instante.' })
     const antes = new Date()
     const r = await processarInbound({ tenantId: c.canal.tenantId, canalTipo: 'SITE_CHAT', canalId: c.canal.id, msg: { chaveExterna: sessionId, nome: req.body?.nome ? String(req.body.nome).slice(0, 80) : undefined, email: undefined, texto } })
-    const respostas = r.conversaId ? await prisma.comMensagem.findMany({ where: { conversaId: r.conversaId, direcao: 'SAIDA', createdAt: { gte: new Date(antes.getTime() - 1000) } }, orderBy: { createdAt: 'asc' }, select: { id: true, conteudo: true, autorTipo: true, createdAt: true } }) : []
+    const respostas = r.conversaId ? await prisma.comMensagem.findMany({ where: { conversaId: r.conversaId, direcao: 'SAIDA', createdAt: { gte: antes } }, orderBy: { createdAt: 'asc' }, select: { id: true, conteudo: true, autorTipo: true, createdAt: true } }) : []
     res.json({ conversaId: r.conversaId, respostas })
   }),
 )

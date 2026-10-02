@@ -59,6 +59,7 @@ async function criarLembrete(inst: any, etapa: any) {
     assigneeRole: etapa.responsavelUserId || paraPessoa ? undefined : etapa.papel ?? undefined,
     assigneeStudentId: paraPessoa ? inst.personId : undefined,
     dedupeKey: `jor:etapa:${etapa.id}`,
+    reabrir: true,
   })
 }
 
@@ -172,7 +173,12 @@ export const defCompleta = (etapa: any): ItemChecklist[] => [
 async function encerrarEtapa(etapa: any, status: 'CONCLUIDA' | 'PULADA', userId: string | null, patch: Record<string, unknown>, ctx: Record<string, any>) {
   const agora = new Date()
   const inst = etapa.instancia
-  await prisma.jorEtapa.update({ where: { id: etapa.id }, data: { status, concluidaEm: agora, concluidaPorId: userId, ...patch } as any })
+  // "claim" atômico: duas requisições simultâneas na mesma etapa não podem ambas avançar o fluxo
+  const claim = await prisma.jorEtapa.updateMany({
+    where: { id: etapa.id, status: { in: ['ABERTA', 'AGUARDANDO_EVENTO', 'ATRASADA'] } },
+    data: { status, concluidaEm: agora, concluidaPorId: userId, ...patch } as any,
+  })
+  if (claim.count !== 1) throw err(409, 'Etapa já encerrada.')
   await completeReminders({ tenantId: inst.tenantId, refType: REF, refId: etapa.id, userId: userId ?? undefined })
   await prisma.jorInstancia.update({ where: { id: inst.id }, data: { contexto: ctx as any } })
   const { grafo } = await carregarGrafo(inst.tenantId, inst.templateId)
@@ -235,7 +241,11 @@ export async function registrarAtraso(tenantId: string, input: { etapaId: string
     where: { id: etapa.id },
     data: input.novoPrazo ? { prazoEm: input.novoPrazo, status: etapa.tipo === 'ESPERA_EVENTO' ? 'AGUARDANDO_EVENTO' : 'ABERTA', observacao: input.motivo, escalonadoNivel: 0, diasAtraso: 0 } : { status: 'ATRASADA', diasAtraso: dias, observacao: input.motivo },
   })
-  if (input.novoPrazo && prazo) await criarLembrete(etapa.instancia, upd)
+  if (input.novoPrazo && prazo) {
+    // prazo prorrogado: encerra o escalonamento anterior e reagenda o lembrete normal
+    await prisma.eduReminder.updateMany({ where: { tenantId, refType: REF, refId: etapa.id, dedupeKey: { startsWith: 'jor:escala:' }, status: { in: ['PENDENTE', 'NOTIFICADO', 'ADIADO'] } }, data: { status: 'CANCELADO' } })
+    await criarLembrete(etapa.instancia, upd)
+  }
   await historico(tenantId, etapa.instanciaId, 'ATRASO_REGISTRADO', input.userId, etapa.id, { motivo: input.motivo, diasAtraso: dias, novoPrazo: input.novoPrazo ?? null })
   await audit({ tenantId, userId: input.userId, modulo: MODULO, acao: 'ATRASO', refType: REF, refId: etapa.id, detalhes: { motivo: input.motivo } })
   return upd
