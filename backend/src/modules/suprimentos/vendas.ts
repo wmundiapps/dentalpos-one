@@ -52,6 +52,7 @@ export function registerVendas(router: Router) {
     if (!c) throw httpErr(404, 'Caixa não encontrado.')
     const vendas = await prisma.supVenda.findMany({ where: { tenantId, caixaId, status: { not: 'CANCELADA' } }, include: { devolucoes: true } })
     const porForma: Record<string, number> = {}
+    let aLancar = 0
     for (const v of vendas) {
       if (v.tipo === 'LANCADA_ALUNO') aLancar += v.total - v.totalDevolvido
       else {

@@ -174,7 +174,7 @@ router.get('/polos/:id/indicadores', requireRole(...TEACH), asyncHandler(async (
 router.get('/polos-indicadores', requireRole(...TEACH), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
   const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true }, select: { id: true } })
-  const out = []
+  const out: any[] = []
   for (const p of polos) { const r = await indicadoresPolo(tenantId, p.id); if (r) out.push(r) }
   res.json(out)
 }))

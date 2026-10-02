@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma'
-import { audit, notify } from '../core/notify'
+import { audit } from '../core/notify'
 import { cancelReminders, completeReminders, scheduleReminder } from '../core/reminders'
 import { registerEduJob } from '../core/jobs'
 import {
@@ -343,11 +343,7 @@ export async function processarAtrasos(now = new Date()) {
         dedupeKey: `jor:escala:${e.id}:${plano.nivel}`,
       })
       await prisma.eduReminder.updateMany({ where: { tenantId: e.tenantId, dedupeKey: `jor:etapa:${e.id}`, status: { in: ['PENDENTE', 'NOTIFICADO', 'ADIADO'] } }, data: { severity: 'CRITICO' } })
-      // aviso direto ao gestor (usuários do papel de escalonamento)
-      const gestores = await prisma.user.findMany({ where: { tenantId: e.tenantId, role: plano.destinoPapel, isActive: true }, select: { id: true }, take: 20 })
-      for (const g of gestores) {
-        await notify({ tenantId: e.tenantId, userId: g.id, assunto: `Etapa atrasada: ${e.titulo}`, mensagem: `${quem} — "${e.titulo}" (${e.papel ?? '-'}) está atrasada há ${dias} dia(s). Escalonamento nível ${plano.nivel}.`, templateKey: 'jornadas.escalonamento', refType: REF, refId: e.id })
-      }
+      // o aviso ao gestor é entregue pelo lembrete CRITICO (assigneeRole) via processDueReminders
       data.escalonadoNivel = plano.nivel
       data.escalonadoEm = now
       escalonadas++

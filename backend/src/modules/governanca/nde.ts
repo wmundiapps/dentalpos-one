@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, asyncHandler, getTenantId, requireRole } from '../academico/middleware'
 import { mountCrud, dateISO } from '../core/crud'
+import { completeReminders } from '../core/reminders'
 import { READ, WRITE, MOD, DAY, TITULACOES, ensureReminder, cancelStaleReminders, assertProgram, fail, optDate, ymd } from './common'
 import { validarNde, fimMandato } from './ndeLogic'
 
@@ -62,6 +63,16 @@ export function registerNde(router: Router) {
     res.json({ items, total: items.length, naoConformes: items.filter((i) => !i.conforme).length })
   }))
 
+  // remoção: revalida após apagar (registrada ANTES do CRUD genérico para prevalecer)
+  router.delete('/nde-membros/:id', requireRole(...WRITE), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const tenantId = getTenantId(req)
+    const m = await prisma.govNdeMembro.findFirst({ where: { id: String(req.params.id), tenantId } })
+    if (!m) return res.status(404).json({ error: 'Registro não encontrado.' })
+    await prisma.govNdeMembro.delete({ where: { id: m.id } })
+    await verificarNde(tenantId, m.ndeId)
+    res.status(204).end()
+  }))
+
   const after = async (row: any) => { await verificarNde(row.tenantId, row.ndeId) }
   mountCrud(router, {
     model: 'govNdeMembro', path: '/nde-membros', read: READ, write: WRITE, modulo: 'governanca.nde', filters: ['ndeId', 'docenteId', 'ativo'], orderBy: { nome: 'asc' },
@@ -82,17 +93,6 @@ export function registerNde(router: Router) {
     },
     afterCreate: after, afterUpdate: after,
   })
-  // remoção: revalida após apagar (rota anterior à do CRUD genérico)
-  router.delete('/nde-membros/:id', requireRole(...WRITE), asyncHandler(async (req: AuthenticatedRequest, res: Response, next) => {
-    res.on('finish', () => { /* revalidação feita abaixo */ })
-    const tenantId = getTenantId(req)
-    const m = await prisma.govNdeMembro.findFirst({ where: { id: String(req.params.id), tenantId } })
-    if (!m) return res.status(404).json({ error: 'Registro não encontrado.' })
-    await prisma.govNdeMembro.delete({ where: { id: m.id } })
-    await verificarNde(tenantId, m.ndeId)
-    res.status(204).end()
-  }))
-
   mountCrud(router, {
     model: 'govNdeReuniao', path: '/nde-reunioes', read: READ, write: WRITE, modulo: 'governanca.nde', filters: ['ndeId', 'realizada'], orderBy: { data: 'desc' },
     create: z.object({ ndeId: z.string().uuid(), data: dateISO(), pauta: z.string().optional(), ata: z.string().optional(), presentes: z.array(z.string()).optional(), realizada: z.boolean().default(false) }),
@@ -102,7 +102,10 @@ export function registerNde(router: Router) {
       if (!row.realizada) await ensureReminder({ tenantId: row.tenantId, modulo: MOD, titulo: 'Reunião do NDE', descricao: row.pauta ?? undefined, dueAt: row.data, antecedenciaDias: 2, refType: 'GovNdeReuniao', refId: row.id, assigneeRole: 'COORDINATOR', dedupeKey: `gov:nde:reuniao:${row.id}` })
       await after(row)
     },
-    afterUpdate: after,
+    afterUpdate: async (row) => {
+      if (row.realizada) await completeReminders({ tenantId: row.tenantId, refType: 'GovNdeReuniao', refId: row.id })
+      await after(row)
+    },
   })
 }
 

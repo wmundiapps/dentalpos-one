@@ -6,6 +6,7 @@ import { expandRecorrencia, fromLocal, isoWeekday, localDateKey, hhmmToMin, minT
 import { buildIcs, icsFold, rruleSemanal } from './ical'
 import { prazoEfetivo, situacaoPrazo, agendaLembretes, nivelEscalonamento } from './deadlines'
 import { conflitosExame, conflitosReserva } from './rules'
+import { calcularDiasLetivos } from './diasLetivos'
 
 let n = 0
 const t = (nome: string, fn: () => void) => {
@@ -309,6 +310,21 @@ t('regras de prova e reserva', () => {
   assert.equal(conflitosExame(sala, [{ ...base, status: 'CANCELADA' }]).length, 0)
   const r = { id: 'r', spaceId: 'S1', inicio: base.inicio, fim: base.fim }
   assert.equal(conflitosReserva(r, [{ id: 'x', spaceId: 'S1', inicio: fromLocal(2026, 5, 10, 9 * 60), fim: fromLocal(2026, 5, 10, 9 * 60 + 30), status: 'APROVADA' }, { id: 'y', spaceId: 'S1', inicio: base.inicio, fim: base.fim, status: 'PENDENTE' }]).length, 1)
+})
+
+t('dias letivos', () => {
+  const r = calcularDiasLetivos({
+    inicio: fromLocal(2026, 1, 2, 0), // seg 02/02
+    fim: fromLocal(2026, 1, 15, 0),   // dom 15/02
+    bloqueios: [{ inicio: fromLocal(2026, 1, 4, 0), fim: fromLocal(2026, 1, 6, 0), titulo: 'Recesso' }],
+    extras: [{ inicio: fromLocal(2026, 1, 7, 0), fim: fromLocal(2026, 1, 8, 0), titulo: 'Sábado letivo' }],
+  })
+  // 10 dias úteis - 2 (qua 04 e qui 05) + 1 sábado extra
+  assert.equal(r.totalDias, 9)
+  assert.equal(r.naoLetivos.length, 2)
+  assert.deepEqual(r.extras, ['2026-02-07'])
+  assert.equal(r.semanasLetivas, 2)
+  assert.equal(r.porDiaSemana[6], 1)
 })
 
 console.log(`\n${n} grupos de testes passaram`)

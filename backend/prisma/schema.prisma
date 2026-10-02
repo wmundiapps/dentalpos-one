@@ -11709,6 +11709,7 @@ model SecDiploma {
 
   livro              SecLivro? @relation(fields: [livroId], references: [id])
 
+  @@unique([livroId, numeroRegistro])
   @@index([tenantId, status])
   @@index([tenantId, studentId])
   @@index([tenantId, colacaoId])
