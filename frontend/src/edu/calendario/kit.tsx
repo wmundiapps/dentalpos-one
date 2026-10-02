@@ -81,3 +81,18 @@ export const heat = (t: number) => {
   const hue = 120 - 120 * x;
   return `hsl(${hue}, 70%, ${x === 0 ? 92 : 62}%)`;
 };
+
+/** Baixa um arquivo autenticado (ex.: .ics) e dispara o download no navegador. */
+export async function baixarArquivo(path: string, nome: string) {
+  const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  const token = localStorage.getItem("dentalpos.token") || "";
+  const res = await fetch(`${API}/edu${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d?.error || `Erro ${res.status}`);
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url; a.download = nome; a.click();
+  URL.revokeObjectURL(url);
+}

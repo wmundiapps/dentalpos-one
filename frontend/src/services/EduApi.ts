@@ -3,9 +3,12 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 export class EduApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** Corpo completo da resposta de erro (ex.: lista de conflitos em 409). */
+  data?: any;
+  constructor(message: string, status: number, data?: any) {
     super(message);
     this.status = status;
+    this.data = data;
   }
 }
 
@@ -18,7 +21,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const res = await fetch(`${API}/edu${path}`, { method, headers: headers(), body: body === undefined ? undefined : JSON.stringify(body) });
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new EduApiError(data?.error || `Erro ${res.status}`, res.status);
+  if (!res.ok) throw new EduApiError(data?.error || `Erro ${res.status}`, res.status, data);
   return data as T;
 }
 

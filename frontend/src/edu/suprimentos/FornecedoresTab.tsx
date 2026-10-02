@@ -4,7 +4,7 @@ import { useState } from "react";
 import EduResourcePage, { StatusChip } from "../EduResourcePage";
 import { eduApi } from "../../services/EduApi";
 import ListTable from "../infraestrutura/ListTable";
-import { Async, FormDialog, SubNav, Tag, brl, fmtDate, itemsOf, label, num, useApi, useSupplierOptions, useToast, type Field } from "../infraestrutura/kit";
+import { Async, FormDialog, SubNav, Tag, brl, fmtDate, itemsOf, num, useApi, useSupplierOptions, useToast, type Field } from "../infraestrutura/kit";
 
 const FORN_STATUS = ["ATIVO", "EM_ANALISE", "BLOQUEADO", "INATIVO"];
 const FORN_FIELDS: Field[] = [

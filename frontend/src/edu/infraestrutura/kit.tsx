@@ -327,3 +327,22 @@ export async function openHtml(path: string) {
   w.document.write(html);
   w.document.close();
 }
+
+/** Baixa um arquivo autenticado e o abre em nova aba (PDF, imagem etc.). */
+export async function openBlob(path: string) {
+  const API = (import.meta as any).env?.VITE_API_URL || "http://localhost:3000/api";
+  const token = localStorage.getItem("dentalpos.token") || "";
+  const res = await fetch(`${API}/edu${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`Erro ${res.status} ao abrir o arquivo.`);
+  const url = URL.createObjectURL(await res.blob());
+  if (!window.open(url, "_blank")) throw new Error("O navegador bloqueou a nova aba.");
+}
+
+/** Lê um endpoint que devolve texto (ex.: XML Dublin Core). */
+export async function fetchText(path: string) {
+  const API = (import.meta as any).env?.VITE_API_URL || "http://localhost:3000/api";
+  const token = localStorage.getItem("dentalpos.token") || "";
+  const res = await fetch(`${API}/edu${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`Erro ${res.status} ao consultar.`);
+  return res.text();
+}
