@@ -51,7 +51,7 @@ function splitArray(split, installments) {
   return [{ walletId: split.walletId, fixedValue: Number(split.value) }];
 }
 
-// Cobrança avulsa ou parcelada (cartão em até 18x, Pix, boleto ou "o paciente escolhe")
+// Cobrança à vista (Pix) ou parcelada no cartão de crédito (valor total comprometido no limite do cartão)
 export async function createPayment({ customer, billingType, value, dueDate, description, installmentCount, split, externalReference }) {
   const n = Number(installmentCount || 1);
   const body = {
@@ -132,6 +132,7 @@ export const STATUS_PT = {
   DUNNING_RECEIVED: 'recebido (negativação)',
   AWAITING_RISK_ANALYSIS: 'em análise',
   DELETED: 'cancelado',
+  aguardando_escolha: 'aguardando o paciente escolher Pix ou cartão',
 };
 
 export const PAID = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH', 'DUNNING_RECEIVED']);

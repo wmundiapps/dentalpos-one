@@ -42,9 +42,9 @@ export function patientContract(c, dentist) {
       p('3.2. Havendo necessidade clínica de prorrogação além do prazo inicialmente estimado, dentro do limite de 36 meses, esta poderá ocorrer sem custo adicional de planejamento, desde que decorrente de evolução normal do tratamento e não de descumprimento das orientações pelo(a) Paciente.')),
     sec(4, 'Valor e condições de pagamento',
       p(`4.1. O valor total do tratamento, referente ao protocolo descrito no Anexo I, é de ${plan.total ? e(brl(plan.total)) : blank('', 'valor total')} ("Contrato Fechado"), cobrindo a documentação inicial, os alinhadores previstos no planejamento aprovado e o acompanhamento clínico durante o tratamento, ressalvadas as hipóteses da Cláusula 5.`) +
-      p(`4.2. Entrada: o valor de entrada de ${plan.entry ? e(brl(plan.entry)) : blank('', 'valor da entrada')} será pago exclusivamente por meio de cartão de crédito, em até ${blank(plan.entryInstallments || 18, 'nº')} parcelas.`) +
-      p(`4.3. Parcelas do tratamento: o saldo remanescente será pago em ${blank(plan.monthlyCount, 'nº de')} parcelas mensais de ${plan.monthlyValue ? e(brl(plan.monthlyValue)) : blank('', 'valor')}, com vencimento todo dia ${blank(plan.dueDay, 'dia')}, limitadas a 36 (trinta e seis) parcelas.`) +
-      p('4.4. As cobranças são emitidas pela plataforma de pagamentos utilizada pela Contratada e enviadas ao(à) Paciente por e-mail e/ou WhatsApp. Eventuais juros ou encargos de parcelamento no cartão de crédito são de responsabilidade da respectiva operadora/banco emissor e serão informados ao(à) Paciente antes da confirmação do pagamento, conforme exige o Código de Defesa do Consumidor.')),
+      p(`4.2. Forma de pagamento: o valor total é pago de forma integral, à vista por Pix ou por cartão de crédito em até ${blank(plan.maxInstallments || 12, 'nº')} parcelas. No cartão de crédito, o valor total é lançado de uma só vez no limite do cartão, e o parcelamento é feito pela operadora/banco emissor. Não há pagamento por boleto nem por mensalidades.`) +
+      p('4.3. A confecção dos alinhadores e o início do tratamento ocorrem somente após a confirmação do pagamento integral.') +
+      p('4.4. O link de pagamento é emitido pela plataforma de pagamentos utilizada pela Contratada e enviado ao(à) Paciente por e-mail e/ou WhatsApp. Eventuais juros ou encargos de parcelamento no cartão de crédito são de responsabilidade da respectiva operadora/banco emissor e serão informados ao(à) Paciente antes da confirmação do pagamento, conforme exige o Código de Defesa do Consumidor.')),
     sec(5, 'Alinhadores extraviados ou danificados',
       p('5.1. Os alinhadores fornecidos são de uso individual e de responsabilidade do(a) Paciente quanto à sua guarda e conservação.') +
       p(`<b>5.2. Em caso de perda, quebra ou dano ao alinhador por mau uso, será cobrado o valor adicional de reposição de ${plan.replacementValue ? e(brl(plan.replacementValue)) : blank('', 'valor de reposição')} por unidade, não incluído no valor do Contrato Fechado descrito na Cláusula 4.</b>`) +
@@ -53,7 +53,7 @@ export function patientContract(c, dentist) {
       'comparecer às consultas agendadas e seguir as orientações de uso dos alinhadores;',
       'usar os alinhadores pelo tempo diário recomendado pelo profissional responsável;',
       'comunicar imediatamente qualquer perda, quebra ou desconforto significativo;',
-      'manter os pagamentos em dia, conforme a Cláusula 4.',
+      'efetuar o pagamento integral, conforme a Cláusula 4.',
     ])),
     sec(7, 'Obrigações da Contratada', ul([
       'prestar o serviço com a técnica e o cuidado exigidos pela boa prática odontológica;',
@@ -61,7 +61,7 @@ export function patientContract(c, dentist) {
       'informar o(a) Paciente sobre a evolução do tratamento e eventuais ajustes necessários;',
       'manter sigilo sobre os dados e prontuário do(a) Paciente, nos termos da LGPD.',
     ])),
-    sec(8, 'Atraso e inadimplência', p('<b>O atraso no pagamento de qualquer parcela sujeitará o(a) Paciente à multa de 2% (dois por cento) sobre o valor em atraso, acrescida de juros de mora de 1% (um por cento) ao mês, calculados pro rata die, sem prejuízo da correção monetária, nos limites da legislação aplicável.</b>')),
+    sec(8, 'Contestação do pagamento', p('<b>A contestação indevida da compra junto à operadora do cartão (chargeback), em desacordo com este contrato, torna o valor contestado devido pelo(a) Paciente, com multa de 2% (dois por cento), acrescida de juros de mora de 1% (um por cento) ao mês, calculados pro rata die, sem prejuízo da correção monetária, nos limites da legislação aplicável.</b>')),
     sec(9, 'Rescisão e desistência',
       p('9.1. Caso a contratação tenha ocorrido fora do estabelecimento comercial (ex.: internet, telefone, domicílio), o(a) Paciente poderá exercer o direito de arrependimento em até 7 (sete) dias corridos a contar da assinatura, nos termos do art. 49 do Código de Defesa do Consumidor, com devolução integral dos valores eventualmente pagos.') +
       p('<b>9.2. Após esse prazo, a rescisão a pedido do(a) Paciente implicará o pagamento proporcional dos serviços já prestados e dos alinhadores já confeccionados ou em confecção até a data da rescisão, sendo restituído o saldo remanescente, se houver, em até 30 (trinta) dias.</b>') +

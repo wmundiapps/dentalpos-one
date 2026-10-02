@@ -29,8 +29,9 @@ globalThis.fetch = async (url, init = {}) => {
   if (u.includes('/customers?')) return json({ data: [] });
   if (u.endsWith('/customers')) return json({ id: 'cus_1' });
   if (u.endsWith('/accounts')) return json({ id: 'acc_1', walletId: 'wal_1' });
-  if (u.endsWith('/payments') && init.method === 'POST') return json({ id: 'pay_1', installment: body.installmentCount ? 'ins_1' : null, invoiceUrl: 'https://asaas/i/1', status: 'PENDING' });
+  if (u.endsWith('/payments') && init.method === 'POST') return json(body.installmentCount ? { id: 'pay_1', installment: 'ins_1', invoiceUrl: 'https://asaas/i/1', status: 'PENDING' } : { id: 'pay_pix', invoiceUrl: 'https://asaas/i/pix', status: 'PENDING', dueDate: '2026-10-02' });
   if (u.includes('/installments/ins_1/payments')) return json({ data: [1, 2].map((n) => ({ id: 'pay_' + n, value: 100, dueDate: '2026-10-0' + n, status: 'PENDING', billingType: 'CREDIT_CARD', invoiceUrl: 'https://asaas/i/' + n })) });
+  if (u.includes('/payments/pay_pix')) return json({ id: 'pay_pix', value: 2000, dueDate: '2026-10-02', status: 'PENDING', billingType: 'PIX', invoiceUrl: 'https://asaas/i/pix' });
   if (u.includes('/payments/pay_1')) return json({ id: 'pay_1', value: 250, dueDate: '2026-10-01', status: 'PENDING', billingType: 'PIX', invoiceUrl: 'https://asaas/i/1' });
   return json({});
 };
@@ -192,7 +193,7 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   await call('PATCH', `/api/admin/cases/${caseId}`, { who: 'admin', body: { dentist_id: dentistId, cpf: '529.982.247-25', address: 'Rua B, 20, Maringá/PR', email: 'maria@x.com' } });
   const noPlan = await call('POST', `/api/admin/cases/${caseId}/contract`, { who: 'admin', body: {} });
   assert.equal(noPlan.status, 400);
-  await call('PATCH', `/api/admin/cases/${caseId}`, { who: 'admin', body: { plan: { brand: 'ClearCorrect', months: 18, total: '11570', entry: '2000', entryInstallments: 18, monthlyCount: 30, monthlyValue: '319', dueDay: 10, replacementValue: '200' } } });
+  await call('PATCH', `/api/admin/cases/${caseId}`, { who: 'admin', body: { plan: { brand: 'ClearCorrect', months: 18, total: '11570', maxInstallments: 12, replacementValue: '200' } } });
   const ct = await call('POST', `/api/admin/cases/${caseId}/contract`, { who: 'admin', body: {} });
   assert.equal(ct.status, 201);
   const ctToken = new URL(ct.data.url).searchParams.get('t');
@@ -202,14 +203,32 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   portal = await call('GET', `/api/portal/${t}`);
   assert.equal(portal.data.case.status, 'contrato_assinado');
 
-  // cobrança parcelada com split fixo
-  const ch = await call('POST', `/api/admin/cases/${caseId}/charges`, { who: 'admin', body: { kind: 'parcelada', billingType: 'CREDIT_CARD', value: '2000', installmentCount: 18, split: { type: 'fixed', value: '600' } } });
+  // cobrança integral: paciente escolhe Pix ou cartão
+  const ch = await call('POST', `/api/admin/cases/${caseId}/charges`, { who: 'admin', body: { value: '2000', maxInstallments: 12, split: { type: 'fixed', value: '600' } } });
   assert.equal(ch.status, 201, JSON.stringify(ch.data));
-  const payCall = asaasCalls.find((c) => c.url.endsWith('/payments') && c.method === 'POST');
-  assert.equal(payCall.body.installmentCount, 18);
+  assert.equal(ch.data.status, 'aguardando_escolha');
+  assert.ok(!asaasCalls.some((c) => c.url.endsWith('/payments') && c.method === 'POST')); // nada no Asaas até o paciente escolher
+  const payTok = new URL(ch.data.pay_url).searchParams.get('t');
+  const pg = await call('GET', `/api/pay/${payTok}`);
+  assert.equal(pg.status, 200);
+  assert.equal(pg.data.options.length, 13); // Pix + cartão 1x..12x
+  assert.ok(!pg.data.options.some((o) => !['PIX', 'CREDIT_CARD'].includes(o.method)));
+  assert.equal((await call('POST', `/api/pay/${payTok}`, { body: { method: 'BOLETO' } })).status, 400);
+  // escolhe Pix, depois troca para cartão em 18x (limitado a 12x)
+  assert.equal((await call('POST', `/api/pay/${payTok}`, { body: { method: 'PIX' } })).status, 200);
+  const pixCall = asaasCalls.filter((c) => c.url.endsWith('/payments') && c.method === 'POST').at(-1);
+  assert.equal(pixCall.body.billingType, 'PIX');
+  assert.equal(pixCall.body.value, 2000);
+  assert.deepEqual(pixCall.body.split, [{ walletId: 'wal_1', fixedValue: 600 }]);
+  const card = await call('POST', `/api/pay/${payTok}`, { body: { method: 'CREDIT_CARD', installments: 18 } });
+  assert.equal(card.status, 200, JSON.stringify(card.data));
+  assert.ok(asaasCalls.some((c) => c.method === 'DELETE' && c.url.includes('/payments/'))); // Pix anterior cancelado
+  const payCall = asaasCalls.filter((c) => c.url.endsWith('/payments') && c.method === 'POST').at(-1);
+  assert.equal(payCall.body.billingType, 'CREDIT_CARD');
+  assert.equal(payCall.body.installmentCount, 12);
   assert.equal(payCall.body.totalValue, 2000);
   assert.deepEqual(payCall.body.split, [{ walletId: 'wal_1', totalFixedValue: 600 }]);
-  const tooBig = await call('POST', `/api/admin/cases/${caseId}/charges`, { who: 'admin', body: { kind: 'avulsa', billingType: 'PIX', value: '100', split: { type: 'fixed', value: '150' } } });
+  const tooBig = await call('POST', `/api/admin/cases/${caseId}/charges`, { who: 'admin', body: { value: '100', split: { type: 'fixed', value: '150' } } });
   assert.equal(tooBig.status, 400);
 
   // webhook

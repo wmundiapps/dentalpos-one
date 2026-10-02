@@ -270,11 +270,7 @@
         '<div class="field"><label for="brand">Marca do alinhador</label><input id="brand" name="brand" list="brands" value="' + esc(plan.brand || '') + '"><datalist id="brands"><option>ClearCorrect</option><option>Invisalign</option><option>Marca nacional</option></datalist></div>' +
         field('months', 'Duração estimada (meses)', plan.months, 'type="number" min="1" max="36"') +
         field('total', 'Valor total (R$)', plan.total, 'inputmode="decimal"') +
-        field('entry', 'Entrada (R$)', plan.entry, 'inputmode="decimal"') +
-        field('entryInstallments', 'Entrada em até (x no cartão)', plan.entryInstallments || 18, 'type="number" min="1" max="18"') +
-        field('monthlyCount', 'Nº de mensalidades', plan.monthlyCount, 'type="number" min="1" max="36"') +
-        field('monthlyValue', 'Valor da mensalidade (R$)', plan.monthlyValue, 'inputmode="decimal"') +
-        field('dueDay', 'Dia do vencimento', plan.dueDay, 'type="number" min="1" max="28"') +
+        field('maxInstallments', 'Cartão em até (x)', plan.maxInstallments || 12, 'type="number" min="1" max="18"') +
         field('replacementValue', 'Reposição de alinhador (R$/un.)', plan.replacementValue, 'inputmode="decimal"') + '</div>' +
         area('treatmentNotes', 'Anexo I — resumo do plano de tratamento', plan.treatmentNotes) +
         '<div class="row"><button class="btn btn-primary" type="submit">Salvar plano</button><button class="btn btn-green" type="button" id="genContract">Gerar contrato para aceite</button></div><div class="fmsg"></div>' +
@@ -286,26 +282,24 @@
         }).join('') + '</div>' : '') + '</form>' +
 
         // cobranças
-        '<form class="card" id="chf"><h2>Cobranças (Asaas)</h2>' +
-        '<div class="grid2"><div class="field"><label for="ckind">Tipo</label><select id="ckind" name="kind">' +
-        opt('parcelada', 'Entrada parcelada no cartão', 'parcelada') + opt('avulsa', 'Cobrança única (ex.: documentação)', '') + opt('assinatura', 'Mensalidades (recorrente)', '') + '</select></div>' +
-        '<div class="field"><label for="billingType">Forma</label><select id="billingType" name="billingType">' +
-        opt('CREDIT_CARD', 'Cartão de crédito', 'CREDIT_CARD') + opt('UNDEFINED', 'Paciente escolhe (Pix, boleto ou cartão)', '') + opt('PIX', 'Pix', '') + opt('BOLETO', 'Boleto', '') + '</select></div>' +
-        field('description', 'Descrição', 'AlignSystem — entrada do tratamento (caso ' + c.code + ')') +
-        field('value', 'Valor total (R$) — na recorrente, valor de cada mensalidade', plan.entry || '', 'inputmode="decimal" required') +
-        field('installmentCount', 'Parcelas (cartão até 18x)', plan.entryInstallments || 18, 'type="number" min="2" max="36"') +
-        field('maxPayments', 'Nº de mensalidades (recorrente)', plan.monthlyCount || '', 'type="number" min="1" max="36"') +
-        field('dueDate', 'Primeiro vencimento', new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), 'type="date"') +
+        '<form class="card" id="chf"><h2>Cobrança (Asaas)</h2>' +
+        '<p class="small muted">Só pagamento integral: o paciente recebe um link e escolhe <b>Pix à vista</b> ou <b>cartão de crédito</b> (valor total no limite do cartão). Sem boleto e sem mensalidades.</p>' +
+        '<div class="grid2">' +
+        field('description', 'Descrição', 'AlignSystem — tratamento (caso ' + c.code + ')') +
+        field('value', 'Valor total (R$)', plan.total || '', 'inputmode="decimal" required') +
+        field('maxInstallments', 'Cartão em até (x)', plan.maxInstallments || 12, 'type="number" min="1" max="18"') +
         '<div class="field"><label for="splitType">Repasse ao dentista (split)</label><select id="splitType" name="splitType">' + opt('none', 'Sem repasse nesta cobrança', 'none') + opt('fixed', 'Valor fixo (R$, total)', '') + opt('percent', 'Percentual (%)', '') + '</select></div>' +
         field('splitValue', 'Valor do repasse', '', 'inputmode="decimal"') + '</div>' +
         '<p class="small muted">Repasse vai para a conta de recebimento de ' + esc(dentistName || 'o dentista do caso') + '. Taxas do Asaas são descontadas da AlignSystem.</p>' +
-        '<button class="btn btn-primary" type="submit">Criar cobrança e enviar ao paciente</button><div class="fmsg"></div>' +
+        '<button class="btn btn-primary" type="submit">Criar link de pagamento e enviar ao paciente</button><div class="fmsg"></div>' +
         (d.charges.length ? '<div class="list" style="margin-top:14px">' + d.charges.map(function (ch) {
           var pays = d.payments.filter(function (p) { return p.charge_id === ch.id; });
           var paid = pays.filter(function (p) { return /RECEIVED|CONFIRMED/.test(p.status); }).length;
-          return '<div class="it"><div><b>' + esc(ch.description) + '</b><div class="small muted">' + esc(AS.money(ch.value)) + ' · ' + esc(ch.kind) +
+          return '<div class="it"><div><b>' + esc(ch.description) + '</b><div class="small muted">' + esc(AS.money(ch.value)) + ' · ' + (ch.billing_type === 'PIX' ? 'Pix' : ch.billing_type === 'CREDIT_CARD' ? 'cartão ' + (ch.installment_count || 1) + 'x' : ch.kind === 'integral' ? 'aguardando escolha' : esc(ch.kind)) +
             (pays.length ? ' · ' + paid + '/' + pays.length + ' pagas' : '') + (ch.split ? ' · repasse ' + (ch.split.type === 'percent' ? ch.split.value + '%' : AS.money(ch.split.value)) : '') + ' · ' + statusBadge(ch.statusLabel, ch.status === 'cancelado' || ch.status === 'erro' ? 'red' : '') + '</div></div>' +
-            '<div class="row">' + (ch.invoice_url ? '<a class="btn btn-line btn-sm" target="_blank" rel="noopener" href="' + esc(ch.invoice_url) + '">Fatura</a><button type="button" class="btn btn-line btn-sm" data-copy="' + esc(ch.invoice_url) + '">Copiar</button>' : '') +
+            '<div class="row">' + (ch.pay_token ? '<button type="button" class="btn btn-line btn-sm" data-copy="' + esc(location.origin + '/pagamento?t=' + ch.pay_token) + '">Copiar link</button>' +
+              '<a class="btn btn-green btn-sm" target="_blank" rel="noopener" href="' + esc(AS.waLink(c.whatsapp, 'Olá, ' + c.name.split(' ')[0] + '! Seu link de pagamento AlignSystem: ' + location.origin + '/pagamento?t=' + ch.pay_token)) + '">WhatsApp</a>' : '') +
+            (ch.invoice_url ? '<a class="btn btn-line btn-sm" target="_blank" rel="noopener" href="' + esc(ch.invoice_url) + '">Fatura</a>' : '') +
             (ch.status !== 'cancelado' && ch.status !== 'erro' ? '<button type="button" class="btn btn-line btn-sm" data-sync="' + ch.id + '">Atualizar</button><button type="button" class="btn btn-danger btn-sm" data-cancel="' + ch.id + '">Cancelar</button>' : '') + '</div></div>';
         }).join('') + '</div>' : '') + '</form></div>' +
 
@@ -361,11 +355,10 @@
       });
       onSubmit($('#chf', m), function (f) {
         var body = {
-          kind: f.kind, billingType: f.billingType, description: f.description, value: f.value, dueDate: f.dueDate,
-          installmentCount: f.installmentCount, maxPayments: f.maxPayments,
+          description: f.description, value: f.value, maxInstallments: f.maxInstallments,
           split: f.splitType !== 'none' && f.splitValue ? { type: f.splitType, value: f.splitValue } : null,
         };
-        if (!confirm('Criar a cobrança de ' + AS.money(String(f.value).replace(',', '.')) + ' no Asaas e enviar ao paciente?')) return false;
+        if (!confirm('Criar o link de pagamento de ' + AS.money(String(f.value).replace(',', '.')) + ' e enviar ao paciente?')) return false;
         return api('/api/admin/cases/' + id + '/charges', { method: 'POST', body: body }).then(function () { reload(); return false; });
       });
       $all('[data-sync]', m).forEach(function (b) { b.addEventListener('click', function () { busyBtn(b, api('/api/admin/charges/' + b.getAttribute('data-sync') + '/sync', { method: 'POST', body: {} })).then(reload).catch(function (e) { alert(e.message); }); }); });

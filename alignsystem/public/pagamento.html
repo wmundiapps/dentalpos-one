@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<title>Pagamento — AlignSystem</title>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css" />
+<style>
+.opts{display:grid;gap:10px;margin:14px 0 18px;}
+.opt{margin:0;font-weight:400;color:var(--ink);display:flex;gap:12px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;background:var(--bg);}
+.opt input{width:18px;height:18px;flex:none;margin:0;}
+.opt b{display:block;font-size:15px;color:var(--ink);}
+.opt span{font-size:13px;font-weight:400;color:var(--ink-60);}
+.opt:has(input:checked){border-color:var(--emerald);background:var(--emerald-soft);}
+.total{font-family:var(--serif);font-size:30px;font-weight:600;margin:4px 0 2px;}
+select{margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="top"><div class="in">
+  <a class="logo" href="/" aria-label="AlignSystem — página inicial"><picture><source srcset="/assets/logo-branca.svg" media="(prefers-color-scheme: dark)"><img src="/assets/logo-cor.svg" alt="AlignSystem" width="210" height="36"></picture></a>
+</div></div>
+<main class="container" id="app"><div class="card center"><span class="spinner"></span> <span class="muted">Carregando…</span></div></main>
+<script src="/assets/app.js"></script>
+<script>
+(function () {
+  'use strict';
+  var esc = AS.esc;
+  var T = new URLSearchParams(location.search).get('t');
+  var app = document.getElementById('app');
+  if (!T) { app.innerHTML = '<div class="card"><h1>Link incompleto</h1><p class="muted">Abra o link de pagamento que você recebeu por e-mail ou WhatsApp.</p></div>'; return; }
+
+  function load() {
+    AS.api('/api/pay/' + encodeURIComponent(T)).then(render).catch(function (e) {
+      app.innerHTML = '<div class="card"><h1>Pagamento indisponível</h1><p class="muted">' + esc(e.message) + '</p></div>';
+    });
+  }
+
+  function render(d) {
+    var head = '<div class="card"><p class="muted small">Caso nº ' + esc(d.caseCode) + '</p><h1>Olá, ' + esc(d.firstName) + '!</h1>' +
+      '<p>' + esc(d.description) + '</p><div class="total">' + esc(AS.money(d.value)) + '</div><p class="small muted">Valor total do tratamento</p></div>';
+    if (d.status === 'pago') {
+      app.innerHTML = head + '<div class="card"><h2>Pagamento confirmado ✓</h2><p>Obrigado! Seu pagamento foi recebido.</p>' +
+        (d.invoiceUrl ? '<a class="btn btn-line" target="_blank" rel="noopener" href="' + esc(d.invoiceUrl) + '">Ver comprovante</a>' : '') + '</div>';
+      return;
+    }
+    if (d.status === 'cancelado') {
+      app.innerHTML = head + '<div class="card"><h2>Cobrança cancelada</h2><p class="muted">Fale com a equipe AlignSystem para receber um novo link.</p></div>';
+      return;
+    }
+    var cards = d.options.filter(function (o) { return o.method === 'CREDIT_CARD'; });
+    var curCard = d.method === 'CREDIT_CARD' ? d.installments : cards.length;
+    var html = head + '<form class="card" id="pf"><h2>Como você prefere pagar?</h2>' +
+      '<p class="small muted">O pagamento é sempre do valor total: à vista no Pix ou no cartão de crédito, com o valor total no limite do cartão.</p>' +
+      '<div class="opts">' +
+      '<label class="opt"><input type="radio" name="m" value="PIX"' + (d.method !== 'CREDIT_CARD' ? ' checked' : '') + '><div><b>Pix à vista</b><span>' + esc(AS.money(d.value)) + ' · aprovação na hora</span></div></label>' +
+      '<label class="opt"><input type="radio" name="m" value="CREDIT_CARD"' + (d.method === 'CREDIT_CARD' ? ' checked' : '') + '><div style="flex:1"><b>Cartão de crédito</b><span>Parcelado no seu cartão</span>' +
+      '<select id="inst" aria-label="Número de parcelas">' + cards.map(function (o) {
+        return '<option value="' + o.installments + '"' + (o.installments === curCard ? ' selected' : '') + '>' + o.installments + 'x de ' + esc(AS.money(o.each)) + '</option>';
+      }).join('') + '</select></div></label></div>' +
+      '<button class="btn btn-primary" type="submit">Continuar para o pagamento</button>' +
+      '<p class="small muted" style="margin-top:12px">Você será levado(a) ao ambiente seguro da nossa plataforma de pagamentos. Juros do parcelamento, se houver, são informados pelo seu cartão antes da confirmação.</p>' +
+      '<div id="m"></div></form>';
+    app.innerHTML = html;
+    var f = document.getElementById('pf');
+    var inst = document.getElementById('inst');
+    inst.addEventListener('focus', function () { f.querySelector('input[value=CREDIT_CARD]').checked = true; });
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var b = f.querySelector('button');
+      var m = f.querySelector('input[name=m]:checked').value;
+      b.disabled = true;
+      b.textContent = 'Gerando…';
+      AS.api('/api/pay/' + encodeURIComponent(T), { method: 'POST', body: { method: m, installments: m === 'PIX' ? 1 : Number(inst.value) } })
+        .then(function (r) { location.href = r.invoiceUrl; })
+        .catch(function (err) { b.disabled = false; b.textContent = 'Continuar para o pagamento'; document.getElementById('m').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
+    });
+  }
+  load();
+})();
+</script>
+</body>
+</html>

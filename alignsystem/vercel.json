@@ -25,7 +25,7 @@
       ]
     },
     {
-      "source": "/(painel|minha-avaliacao|contrato|definir-senha)(.*)",
+      "source": "/(painel|minha-avaliacao|contrato|definir-senha|pagamento)(.*)",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     }
   ]

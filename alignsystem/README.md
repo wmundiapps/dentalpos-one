@@ -28,8 +28,8 @@ Script de WhatsApp revisado: `docs/Script_Atendimento_WhatsApp.md`. Minutas orig
 ## Fluxos
 
 **Paciente:** formulário → link pessoal → 7 fotos → equipe publica parecer no painel → teleorientação (vídeo) e/ou
-documentação → plano (marca, valores) → "Gerar contrato" → paciente aceita online → cobranças no Asaas (entrada
-parcelada no cartão até 18x, mensalidades recorrentes, Pix/boleto) → dentista registra atendimentos com fotos → equipe valida.
+documentação → plano (marca, valores) → "Gerar contrato" → paciente aceita online → link de pagamento integral
+(paciente escolhe Pix à vista ou cartão de crédito parcelado; sem boleto nem mensalidades) → dentista registra atendimentos com fotos → equipe valida.
 
 **Dentista:** formulário → equipe confere CRO e clica "Aprovar" (define coparticipação, % por marco, multa etc.) →
 dentista recebe o Termo de Adesão e o link para criar senha → aceita o termo (status vira *ativo*) → equipe cria a
