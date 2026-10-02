@@ -71,13 +71,13 @@ router.post(
         }
       }
     } else if (fonte === 'CANDIDATOS') {
-      const cands = await db.admCandidato.findMany({ where: { tenantId }, select: { id: true, nome: true, email: true, telefone: true, cpf: true, consentimentoLgpd: true }, take: 20000 })
+      const cands = await db.admCandidato.findMany({ where: { tenantId }, select: { id: true, nome: true, email: true, telefone: true, cpf: true, consentimentoLgpd: true, consentimentoMarketing: true }, take: 20000 })
       const ex = new Set((await prisma.comContato.findMany({ where: { tenantId, candidatoId: { in: cands.map((c: any) => c.id) } }, select: { candidatoId: true } })).map((c) => c.candidatoId))
       for (const c of cands) {
         if (ex.has(c.id)) continue
         const novo = await prisma.comContato.create({ data: { tenantId, tipo: 'CANDIDATO', nome: c.nome, email: c.email?.toLowerCase(), telefone: normalizePhone(c.telefone), documento: c.cpf ? onlyDigits(c.cpf) : null, candidatoId: c.id } })
-        // sem consentimento LGPD registrado no cadastro do candidato => bloqueia marketing
-        if (!c.consentimentoLgpd) await registrarPreferencia({ tenantId, contatoId: novo.id, canal: '*', finalidade: 'MARKETING', consentimento: false, origem: 'IMPORTACAO', motivo: 'Candidato sem consentimento LGPD no cadastro.' })
+        // Marketing exige opt-in explícito: só registra consentimento se o candidato marcou o aceite separado no formulário.
+        if (c.consentimentoMarketing) await registrarPreferencia({ tenantId, contatoId: novo.id, canal: '*', finalidade: 'MARKETING', consentimento: true, origem: 'FORMULARIO', motivo: 'Aceite de comunicações no formulário de inscrição/lead.' })
         criados++
       }
     } else return res.status(400).json({ error: 'fonte deve ser ALUNOS, EGRESSOS ou CANDIDATOS.' })

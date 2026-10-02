@@ -135,7 +135,7 @@ export interface PrefLinha {
 }
 // Regra: a preferência mais específica (canal exato > "*", finalidade exata > TODAS) vence.
 // Sem registro: permitido para ACADEMICO/COBRANCA (base legal: execução de contrato) e
-// para MARKETING exige consentimento explícito (opt-in) quando `exigirOptInMarketing`.
+// para MARKETING exige consentimento explícito (opt-in) — LGPD: padrão é EXIGIR (`exigirOptInMarketing: false` só para testes).
 export function podeEnviar(prefs: PrefLinha[], canal: string, finalidade: string, opts: { exigirOptInMarketing?: boolean } = {}): { ok: boolean; motivo?: string } {
   const score = (p: PrefLinha) => (p.canal === canal ? 2 : p.canal === '*' ? 1 : -1) * 10 + (p.finalidade === finalidade ? 2 : p.finalidade === 'TODAS' ? 1 : -1)
   const aplicaveis = prefs.filter((p) => (p.canal === canal || p.canal === '*') && (p.finalidade === finalidade || p.finalidade === 'TODAS'))
@@ -143,7 +143,7 @@ export function podeEnviar(prefs: PrefLinha[], canal: string, finalidade: string
     const melhor = aplicaveis.sort((a, b) => score(b) - score(a))[0]
     return melhor.consentimento ? { ok: true } : { ok: false, motivo: `Contato optou por não receber (${melhor.finalidade}/${melhor.canal}).` }
   }
-  if (finalidade === 'MARKETING' && opts.exigirOptInMarketing) return { ok: false, motivo: 'Sem consentimento de marketing registrado.' }
+  if (finalidade === 'MARKETING' && opts.exigirOptInMarketing !== false) return { ok: false, motivo: 'Sem consentimento de marketing registrado.' }
   return { ok: true }
 }
 

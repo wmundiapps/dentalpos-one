@@ -246,6 +246,8 @@ model AdmCandidato {
   utmCampaign       String?
   consentimentoLgpd Boolean  @default(false)
   consentimentoEm   DateTime?
+  consentimentoMarketing   Boolean  @default(false)   // aceite SEPARADO e opcional para receber divulgação (LGPD)
+  consentimentoMarketingEm DateTime?
   ipOrigem          String?
   dados             Json?                            // endereço, escolaridade, cota etc.
   cota              String?

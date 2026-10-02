@@ -56,7 +56,9 @@ t('retentativas com backoff', () => {
 
 t('consentimento LGPD', () => {
   assert.equal(podeEnviar([], 'WHATSAPP', 'COBRANCA').ok, true)
-  assert.equal(podeEnviar([], 'WHATSAPP', 'MARKETING', { exigirOptInMarketing: true }).ok, false)
+  assert.equal(podeEnviar([], 'WHATSAPP', 'MARKETING').ok, false) // LGPD: marketing exige opt-in por padrão
+  assert.equal(podeEnviar([{ canal: '*', finalidade: 'MARKETING', consentimento: true }], 'WHATSAPP', 'MARKETING').ok, true)
+  assert.equal(podeEnviar([], 'WHATSAPP', 'ACADEMICO').ok, true)
   // opt-out de marketing não bloqueia cobrança
   const p = [{ canal: '*', finalidade: 'MARKETING', consentimento: false }]
   assert.equal(podeEnviar(p, 'EMAIL', 'MARKETING').ok, false)

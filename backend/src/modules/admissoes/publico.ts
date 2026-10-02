@@ -64,6 +64,7 @@ const inscricaoSchema = z.object({
   dataNascimento: dateISO().optional(),
   cota: z.string().max(60).optional(),
   consentimentoLgpd: z.literal(true, { errorMap: () => ({ message: 'É necessário aceitar o termo de consentimento (LGPD).' }) } as any),
+  aceitaComunicacoes: z.boolean().optional(),   // opt-in de marketing: opcional, nunca pré-marcado
   utmSource: z.string().max(100).optional(), utmMedium: z.string().max(100).optional(), utmCampaign: z.string().max(150).optional(),
   website: z.string().optional(),                 // honeypot: humanos não preenchem
   tempoPreenchimentoMs: z.number().optional(),    // opcional: tempo entre abrir e enviar o formulário
@@ -87,7 +88,7 @@ publicRouter.post('/inscricoes', asyncHandler(async (req: Request, res: Response
   const camp = b.utmCampaign ? await prisma.admCampanha.findFirst({ where: { tenantId, utmCampaign: b.utmCampaign } }) : null
   const base = {
     processoId: p.id, ofertaId: b.ofertaId, ofertaId2: b.ofertaId2 ?? null, nome: b.nome.trim(), cpf, email: b.email.toLowerCase(), telefone: b.telefone,
-    dataNascimento: b.dataNascimento, cota: b.cota, status: 'INSCRITO' as const, etapaMaxima: 1, consentimentoLgpd: true, consentimentoEm: agora, ipOrigem: ip(req),
+    dataNascimento: b.dataNascimento, cota: b.cota, status: 'INSCRITO' as const, etapaMaxima: 1, consentimentoLgpd: true, consentimentoEm: agora, consentimentoMarketing: b.aceitaComunicacoes === true, consentimentoMarketingEm: b.aceitaComunicacoes === true ? agora : null, ipOrigem: ip(req),
     utmSource: b.utmSource, utmMedium: b.utmMedium, utmCampaign: b.utmCampaign, campanhaId: camp?.id, origem: b.utmSource ? String(b.utmSource).toUpperCase() : 'SITE', dados: b.dados as any,
   }
   // Verificação de duplicidade + criação sob trava (advisory lock por processo+CPF): o schema não tem unique (processo, cpf),
@@ -117,7 +118,7 @@ publicRouter.post('/leads', asyncHandler(async (req: Request, res: Response) => 
   const tenantId = await tenantDe(req)
   const b = parseBody(z.object({
     nome: z.string().min(3).max(150), email: z.string().email().optional(), telefone: z.string().min(8).max(20).optional(),
-    consentimentoLgpd: z.literal(true), interesse: z.string().max(150).optional(),
+    consentimentoLgpd: z.literal(true), aceitaComunicacoes: z.boolean().optional(), interesse: z.string().max(150).optional(),
     utmSource: z.string().max(100).optional(), utmMedium: z.string().max(100).optional(), utmCampaign: z.string().max(150).optional(), website: z.string().optional(),
   }), req.body)
   if (b.website) return res.status(201).json({ ok: true })
@@ -126,7 +127,7 @@ publicRouter.post('/leads', asyncHandler(async (req: Request, res: Response) => 
   const dup = await prisma.admCandidato.findFirst({ where: { tenantId, OR: [...(email ? [{ email }] : []), ...(b.telefone ? [{ telefone: b.telefone }] : [])] }, select: { id: true } })
   if (dup) return res.status(201).json({ ok: true })
   const camp = b.utmCampaign ? await prisma.admCampanha.findFirst({ where: { tenantId, utmCampaign: b.utmCampaign } }) : null
-  const c = await prisma.admCandidato.create({ data: { tenantId, protocolo: gerarProtocolo(), nome: b.nome.trim(), email, telefone: b.telefone, status: 'LEAD', consentimentoLgpd: true, consentimentoEm: new Date(), ipOrigem: ip(req), origem: b.utmSource?.toUpperCase() ?? 'SITE', utmSource: b.utmSource, utmMedium: b.utmMedium, utmCampaign: b.utmCampaign, campanhaId: camp?.id, dados: b.interesse ? { interesse: b.interesse } : undefined } })
+  const c = await prisma.admCandidato.create({ data: { tenantId, protocolo: gerarProtocolo(), nome: b.nome.trim(), email, telefone: b.telefone, status: 'LEAD', consentimentoLgpd: true, consentimentoEm: new Date(), consentimentoMarketing: b.aceitaComunicacoes === true, consentimentoMarketingEm: b.aceitaComunicacoes === true ? new Date() : null, ipOrigem: ip(req), origem: b.utmSource?.toUpperCase() ?? 'SITE', utmSource: b.utmSource, utmMedium: b.utmMedium, utmCampaign: b.utmCampaign, campanhaId: camp?.id, dados: b.interesse ? { interesse: b.interesse } : undefined } })
   await prisma.admInteracao.create({ data: { tenantId, candidatoId: c.id, tipo: 'SISTEMA', descricao: `Lead capturado${b.interesse ? ` (interesse: ${b.interesse})` : ''}` } })
   res.status(201).json({ ok: true })
 }))

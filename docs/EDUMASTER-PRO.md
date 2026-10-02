@@ -57,13 +57,23 @@ FACILITIES, SUPPLIES, MARKETING, ADMISSIONS, SUPPORT, STAFF`. O papel vem de `Us
    checklists MEC, modelos, jornadas, catálogos ENADE/OAB, etc.; idempotente) e enviar as logomarcas.
 6. **Teste**: `DATABASE_URL=... npx tsx scripts/edu-smoke.ts` (fumaça) e `scripts/e2e/*.ts` (fluxos de negócio).
 
+## LGPD e comunicação (decisão: fazer sempre o que for legal)
+- **Marketing/divulgação exige opt-in explícito** (padrão do sistema). Sem consentimento registrado, a mensagem é
+  bloqueada (`BLOQUEADO_OPTOUT`), inclusive para contatos não identificados.
+- O consentimento nasce de um **aceite separado e opcional** (nunca pré-marcado) nos formulários públicos
+  (`aceitaComunicacoes`), do cadastro interno (`consentimentoMarketing`), do atendente ou da resposta "QUERO/VOLTAR".
+  O aceite do termo LGPD (tratamento de dados) é obrigatório e **não** vale como consentimento de marketing.
+- **Opt-out sempre respeitado**, por qualquer canal (resposta "SAIR/PARAR/STOP", atendente ou formulário).
+- Mensagens **operacionais, acadêmicas e de cobrança** (execução de contrato/obrigação) seguem sem opt-in, mas
+  respeitam um opt-out "TODAS" explícito. Consentimentos e opt-outs ficam registrados com origem e data (auditoria).
+- Teste: `scripts/e2e/lgpd-optin.ts`.
+
 ## Limitações conhecidas (transparência)
 - Os adaptadores de canais (WhatsApp, SMS, Telegram, e-mail, voz, Graph API) foram testados com respostas simuladas,
   **nunca contra as APIs reais**; sem credenciais o envio falha de forma explícita (não finge envio).
 - Fórmulas de CPC/CC, janelas de reconhecimento e prazos de guarda documental são **parametrizáveis e devem ser
   conferidos com a norma vigente** antes de uso oficial. Não há integração automática com o e-MEC (entrada manual).
 - Funcionalidades de IA exigem chave configurada; sem ela há fallback manual/heurístico.
-- Marketing por canais: hoje bloqueia quem fez opt-out; para LGPD estrita, considerar exigir opt-in explícito.
 - Uploads são por URL ou data URL (sem storage de arquivos dedicado); QR Code de certificados é gerado no navegador.
 - Docentes são identificados por `User` (não há model de professor separado).
 - Telas validadas por compilação/build; não houve teste visual em navegador nesta entrega.

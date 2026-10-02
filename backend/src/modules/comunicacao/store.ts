@@ -129,7 +129,8 @@ export async function contatoDaNotificacao(n: { tenantId: string; studentId: str
 
 // ---------------------------------------------------------------- consentimento
 export async function checarConsentimento(tenantId: string, contatoId: string | null | undefined, canal: string, finalidade: string) {
-  if (!contatoId) return { ok: true }
+  // Marketing sem contato identificado = sem como provar consentimento: bloqueia. Demais finalidades (contrato/obrigação) seguem.
+  if (!contatoId) return finalidade === 'MARKETING' ? { ok: false, motivo: 'Contato não identificado: sem consentimento de marketing registrado.' } : { ok: true }
   const prefs = (await prisma.comPreferencia.findMany({ where: { tenantId, contatoId } })) as PrefLinha[]
   return podeEnviar(prefs, canal, finalidade)
 }

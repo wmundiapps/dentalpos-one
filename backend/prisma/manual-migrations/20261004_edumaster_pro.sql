@@ -1334,6 +1334,8 @@ CREATE TABLE "AdmCandidato" (
     "utmCampaign" TEXT,
     "consentimentoLgpd" BOOLEAN NOT NULL DEFAULT false,
     "consentimentoEm" TIMESTAMP(3),
+    "consentimentoMarketing" BOOLEAN NOT NULL DEFAULT false,
+    "consentimentoMarketingEm" TIMESTAMP(3),
     "ipOrigem" TEXT,
     "dados" JSONB,
     "cota" TEXT,

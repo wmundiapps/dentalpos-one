@@ -122,6 +122,7 @@ const candidatoSchema = z.object({
   utmMedium: z.string().optional().nullable(),
   utmCampaign: z.string().optional().nullable(),
   consentimentoLgpd: z.boolean().optional(),
+  consentimentoMarketing: z.boolean().optional(),
   cota: z.string().optional().nullable(),
   responsavelId: z.string().optional().nullable(),
   bolsaId: z.string().optional().nullable(),
@@ -191,7 +192,7 @@ router.post('/candidatos', requireRole(...GESTAO), asyncHandler(async (req: Auth
     return tx.admCandidato.create({
       data: {
         ...d, tenantId, protocolo: gerarProtocolo(), status: d.processoId ? 'INSCRITO' : 'LEAD', etapaMaxima: d.processoId ? 1 : 0,
-        origem: d.origem ?? 'BALCAO', consentimentoEm: d.consentimentoLgpd ? new Date() : null, responsavelId: d.responsavelId ?? getUserId(req),
+        origem: d.origem ?? 'BALCAO', consentimentoEm: d.consentimentoLgpd ? new Date() : null, consentimentoMarketingEm: d.consentimentoMarketing ? new Date() : null, responsavelId: d.responsavelId ?? getUserId(req),
       },
     })
   }, { timeout: 15_000 })
@@ -209,6 +210,7 @@ router.patch('/candidatos/:id', requireRole(...GESTAO), asyncHandler(async (req:
   await validarRefs(tenantId, { processoId: cur.processoId, ...d })
   delete d.processoId // processo não muda por aqui
   if (d.consentimentoLgpd && !cur.consentimentoLgpd) d.consentimentoEm = new Date()
+  if (d.consentimentoMarketing !== undefined && d.consentimentoMarketing !== cur.consentimentoMarketing) d.consentimentoMarketingEm = new Date()
   const upd = await prisma.admCandidato.update({ where: { id: cur.id }, data: d })
   await audit({ tenantId, userId: getUserId(req), modulo: 'admissoes', acao: 'ATUALIZAR', refType: 'AdmCandidato', refId: cur.id })
   res.json(upd)
