@@ -49,13 +49,14 @@ const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)
 const sum = (v: number | null | undefined) => v ?? 0
 
 // ratio atual/anterior -> semáforo (MAIOR_MELHOR)
-export function semaforoPorRazao(valor: number | null, anterior: number | null | undefined, sentido: Sentido = 'MAIOR_MELHOR', tol = { verde: 0.95, amarelo: 0.8 }): Semaforo {
+export function semaforoPorRazao(valor: number | null, anterior: number | null | undefined, sentido: Sentido = 'MAIOR_MELHOR', tol?: { verde: number; amarelo: number }): Semaforo {
   if (valor == null || anterior == null || sentido === 'NEUTRO') return 'CINZA'
   if (anterior === 0) return valor === 0 ? 'CINZA' : sentido === 'MAIOR_MELHOR' ? 'VERDE' : 'VERMELHO'
   const r = valor / anterior
-  if (sentido === 'MAIOR_MELHOR') return r >= tol.verde ? 'VERDE' : r >= tol.amarelo ? 'AMARELO' : 'VERMELHO'
-  const inv = { verde: 2 - tol.verde, amarelo: 2 - tol.amarelo }
-  return r <= inv.verde ? 'VERDE' : r <= inv.amarelo ? 'AMARELO' : 'VERMELHO'
+  // MAIOR_MELHOR: razão mínima aceitável (padrão 0,95 / 0,80); MENOR_MELHOR: razão máxima aceitável (padrão 1,05 / 1,20)
+  if (sentido === 'MAIOR_MELHOR') { const t = tol ?? { verde: 0.95, amarelo: 0.8 }; return r >= t.verde ? 'VERDE' : r >= t.amarelo ? 'AMARELO' : 'VERMELHO' }
+  const t = tol ?? { verde: 1.05, amarelo: 1.2 }
+  return r <= t.verde ? 'VERDE' : r <= t.amarelo ? 'AMARELO' : 'VERMELHO'
 }
 
 // ---------------- escopos compartilhados ----------------
