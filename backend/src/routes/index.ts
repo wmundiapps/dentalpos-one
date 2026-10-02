@@ -11,6 +11,7 @@ import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
 import * as chargeController from '../controllers/chargeController'
 import * as asaasSetupController from '../controllers/asaasSetupController'
+import * as dunningController from '../controllers/dunningController'
 import * as payoutController from '../controllers/payoutController'
 import * as labOrderController from '../controllers/labOrderController'
 import * as labNotificationController from '../controllers/labNotificationController'
@@ -318,6 +319,8 @@ router.get('/receivable-charges/readiness', requirePermission('finance.view'), c
 router.get('/receivable-charges', requirePermission('finance.view'), chargeController.listCharges)
 router.post('/receivable-charges/:id/cancel', requirePermission('finance.approve'), chargeController.cancelCharge)
 router.post('/financial-entries/:id/charge', requirePermission('finance.create'), chargeController.createForEntry)
+router.get('/dunning', requirePermission('finance.approve'), dunningController.show)
+router.put('/dunning/settings', requirePermission('finance.approve'), dunningController.updateSettings)
 router.get('/asaas/status', requirePermission('finance.approve'), asaasSetupController.status)
 router.post('/asaas/connect', requirePermission('finance.approve'), asaasSetupController.connect)
 router.get('/payout-accounts', requirePermission('finance.view'), payoutController.accounts)

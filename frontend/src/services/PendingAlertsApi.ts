@@ -10,7 +10,21 @@ export interface PendingAlerts {
   total: number;
   items: PendingAlertItem[];
   lockedUsers: LockedUser[];
-  settings?: { lockedUserIds: string[]; hasKey: boolean };
+  visibleKeys: string[];
+  settings?: {
+    lockedUserIds: string[]; hasKey: boolean;
+    visibility: Record<string, string[]>;
+    categories: Array<{ key: string; label: string }>;
+    profiles: Array<{ code: string; name: string }>;
+  };
+}
+
+// Tipos de pendência que o usuário pode ver (o admin vê todos). Usado para esconder os avisos locais de agenda/financeiro/laboratório.
+export function alertCategoryOf(alert: { id: string; area: string }): string | null {
+  if (alert.area === "Laboratório") return "laboratory";
+  if (alert.id.startsWith("financial-") || alert.id.startsWith("agenda-unbilled") || alert.area === "Financeiro") return "receivables";
+  if (alert.area === "Agenda" || alert.area === "Pacientes") return "appointments";
+  return null;
 }
 
 export const PENDING_ALERTS_MESSAGE =
@@ -40,7 +54,7 @@ export async function loadPendingAlerts(): Promise<PendingAlerts> {
   return parse(await fetch(`${API}/pending-alerts`, { headers: headers() }));
 }
 
-export async function savePendingAlertsSettings(input: { enabled?: boolean; mode?: "ALERT" | "BLOCK"; lockedUserIds?: string[]; unlockKey?: string }) {
+export async function savePendingAlertsSettings(input: { enabled?: boolean; mode?: "ALERT" | "BLOCK"; lockedUserIds?: string[]; unlockKey?: string; visibility?: Record<string, string[]> }) {
   const result = await parse<unknown>(await fetch(`${API}/pending-alerts/settings`, { method: "PUT", headers: headers(true), body: JSON.stringify(input) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;

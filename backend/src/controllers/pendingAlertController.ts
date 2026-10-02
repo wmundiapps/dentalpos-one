@@ -12,8 +12,22 @@ const MAX_KEY_FAILURES = 5
 const KEY_LOCK_MS = 15 * 60 * 1000
 
 type Mode = 'ALERT' | 'BLOCK'
-type Settings = { enabled: boolean; mode: Mode; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string> }
+type Visibility = Record<string, string[]>
+type Settings = { enabled: boolean; mode: Mode; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility }
 type Item = { key: string; label: string; count: number; path: string }
+
+// Quem enxerga cada tipo de pendência, por departamento (código do perfil de acesso). Admin vê tudo sempre.
+// Se o gestor não configurou nada, vale este padrão: cobrança vai para recepção, financeiro e clínico; laboratório não vê cobrança.
+export const ALERT_CATEGORIES: Array<{ key: string; label: string }> = [
+  { key: 'appointments', label: 'Agendamentos sem desfecho' },
+  { key: 'receivables', label: 'Recebimentos vencidos / pacientes em atraso' },
+  { key: 'laboratory', label: 'Trabalhos de laboratório atrasados' }
+]
+const DEFAULT_VISIBILITY: Visibility = {
+  appointments: ['GESTOR', 'RECEPCAO', 'DENTISTA', 'AUXILIAR', 'ADMINISTRACAO'],
+  receivables: ['GESTOR', 'RECEPCAO', 'FINANCEIRO', 'DENTISTA', 'ADMINISTRACAO'],
+  laboratory: ['GESTOR', 'LABORATORIO', 'DENTISTA']
+}
 
 // Tentativas erradas de chave (em memória, por usuário): 5 erros trava novas tentativas por 15 minutos.
 const keyFailures = new Map<string, { count: number; until: number }>()
@@ -25,21 +39,25 @@ function ctx(req: AuthRequest) {
 
 async function loadSettings(clinicId: string): Promise<Settings> {
   const row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: FLAG_KEY } } })
-  const meta = (row?.metadata || {}) as { mode?: string; lockedUserIds?: unknown; keyHash?: string; unlocks?: Record<string, string> }
+  const meta = (row?.metadata || {}) as { mode?: string; lockedUserIds?: unknown; keyHash?: string; unlocks?: Record<string, string>; visibility?: Record<string, unknown> }
   return {
     // Sem configuração gravada o aviso fica ligado no modo "só alerta".
     enabled: row ? row.enabled : true,
     mode: meta.mode === 'BLOCK' ? 'BLOCK' : 'ALERT',
     lockedUserIds: Array.isArray(meta.lockedUserIds) ? meta.lockedUserIds.map(String) : [],
     keyHash: meta.keyHash || null,
-    unlocks: meta.unlocks && typeof meta.unlocks === 'object' ? meta.unlocks : {}
+    unlocks: meta.unlocks && typeof meta.unlocks === 'object' ? meta.unlocks : {},
+    visibility: Object.fromEntries(ALERT_CATEGORIES.map(c => {
+      const configured = meta.visibility && Array.isArray(meta.visibility[c.key]) ? (meta.visibility[c.key] as unknown[]).map(String) : null
+      return [c.key, configured ?? DEFAULT_VISIBILITY[c.key]]
+    }))
   }
 }
 
 async function saveSettings(clinicId: string, tenantId: string, s: Settings) {
   // Limpa liberações vencidas para o registro não crescer.
   const unlocks = Object.fromEntries(Object.entries(s.unlocks).filter(([, until]) => new Date(until).getTime() > Date.now()))
-  const metadata = { mode: s.mode, lockedUserIds: s.lockedUserIds, keyHash: s.keyHash, unlocks }
+  const metadata = { mode: s.mode, lockedUserIds: s.lockedUserIds, keyHash: s.keyHash, unlocks, visibility: s.visibility }
   await prisma.tenantFeatureFlag.upsert({
     where: { clinicId_key: { clinicId, key: FLAG_KEY } },
     update: { enabled: s.enabled, metadata },
@@ -54,24 +72,33 @@ function endOfTodayBrt() {
 }
 const startOfTodayBrt = () => new Date(endOfTodayBrt().getTime() - DAY + 1)
 
+async function getUserProfileCodes(userId: string): Promise<string[]> {
+  const rows = await prisma.userAccessProfile.findMany({ where: { userId, profile: { isActive: true } }, select: { profile: { select: { code: true } } } })
+  return [...new Set(rows.map(r => r.profile.code))]
+}
+
+// Categorias que o usuário pode ver (null = admin: todas).
+const visibleCategories = (settings: Settings, profileCodes: string[] | null) =>
+  ALERT_CATEGORIES.map(c => c.key).filter(key => profileCodes === null || profileCodes.some(code => settings.visibility[key]?.includes(code)))
+
 // Pendências visíveis para quem tem estas permissões (null = todas, caso do ADMIN).
-async function computeItems(clinicId: string, tenantId: string, codes: string[] | null): Promise<Item[]> {
-  const can = (code: string) => codes === null || codes.includes(code)
+async function computeItems(clinicId: string, tenantId: string, codes: string[] | null, visible: string[]): Promise<Item[]> {
+  const can = (code: string, category: string) => visible.includes(category) && (codes === null || codes.includes(code))
   const today = startOfTodayBrt()
   const items: Item[] = []
-  if (can('agenda.view')) {
+  if (can('agenda.view', 'appointments')) {
     const count = await prisma.appointment.count({
       where: { clinicId, tenantId, status: { in: OPEN_APPOINTMENT_STATUSES }, scheduledAt: { lt: today, gte: new Date(today.getTime() - 30 * DAY) } }
     })
     if (count) items.push({ key: 'appointments', label: `${count} agendamento(s) de dias anteriores sem desfecho (finalizar, remarcar ou marcar falta)`, count, path: '/agenda' })
   }
-  if (can('finance.view')) {
+  if (can('finance.view', 'receivables')) {
     const count = await prisma.financialEntry.count({
-      where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: new Date(today.getTime() - 3 * DAY) } }
+      where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: today } }
     })
-    if (count) items.push({ key: 'receivables', label: `${count} recebimento(s) vencido(s) há mais de 3 dias`, count, path: '/financeiro' })
+    if (count) items.push({ key: 'receivables', label: `${count} recebimento(s) vencido(s) (paciente em atraso: a régua de cobrança acompanha)`, count, path: '/financeiro' })
   }
-  if (can('laboratory.view')) {
+  if (can('laboratory.view', 'laboratory')) {
     // Ordens do laboratório (banco): não excluídas, não entregues e com prazo vencido.
     // Tolerante: se a tabela ainda não foi criada no banco, o contador de laboratório fica zerado em vez de derrubar os avisos.
     const count = await prisma.labOrder.count({ where: { clinicId, tenantId, deletedAt: null, deliveredAt: null, dueDate: { lt: today } } }).catch(() => 0)
@@ -91,8 +118,10 @@ export async function show(req: AuthRequest, res: Response) {
     const settings = await loadSettings(clinicId)
     const codes = role === 'ADMIN' ? null : await getUserPermissionCodes(userId)
     const canManage = codes === null || codes.includes('settings.edit')
+    const profileCodes = role === 'ADMIN' ? null : await getUserProfileCodes(userId)
+    const visibleKeys = visibleCategories(settings, profileCodes)
 
-    const items = settings.enabled ? await computeItems(clinicId, tenantId, codes) : []
+    const items = settings.enabled ? await computeItems(clinicId, tenantId, codes, visibleKeys) : []
     const total = items.reduce((sum, item) => sum + item.count, 0)
     // Quem gerencia nunca é travado (precisa conseguir destravar os outros e mexer na configuração).
     const configured = settings.lockedUserIds.includes(userId) && !canManage
@@ -109,7 +138,7 @@ export async function show(req: AuthRequest, res: Response) {
         if (user.role === 'ADMIN' || isUnlocked(settings, user.id)) continue
         const userCodes = await getUserPermissionCodes(user.id)
         if (userCodes.includes('settings.edit')) continue
-        const userItems = await computeItems(clinicId, tenantId, userCodes)
+        const userItems = await computeItems(clinicId, tenantId, userCodes, visibleCategories(settings, await getUserProfileCodes(user.id)))
         const count = userItems.reduce((sum, item) => sum + item.count, 0)
         if (count > 0) lockedUsers.push({ id: user.id, name: `${user.firstName} ${user.lastName}`.trim() || user.email, count })
       }
@@ -117,8 +146,8 @@ export async function show(req: AuthRequest, res: Response) {
     if (!canManage) lockedUsers = []
 
     return res.json({
-      enabled: settings.enabled, mode: settings.mode, blocked, canManage, total, items, lockedUsers,
-      settings: canManage ? { lockedUserIds: settings.lockedUserIds, hasKey: Boolean(settings.keyHash) } : undefined
+      enabled: settings.enabled, mode: settings.mode, blocked, canManage, total, items, lockedUsers, visibleKeys,
+      settings: canManage ? { lockedUserIds: settings.lockedUserIds, hasKey: Boolean(settings.keyHash), visibility: settings.visibility, categories: ALERT_CATEGORIES, profiles: await prisma.accessProfile.findMany({ where: { clinicId, isActive: true, code: { not: 'ADMIN' } }, select: { code: true, name: true }, orderBy: { code: 'asc' } }) } : undefined
     })
   } catch (error) {
     console.error('Erro ao carregar pendências:', error)
@@ -131,13 +160,19 @@ export async function updateSettings(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, userId } = ctx(req)
     const current = await loadSettings(clinicId)
     const b = req.body || {}
-    const next: Settings = { ...current }
+    const next: Settings = { ...current, visibility: { ...current.visibility } }
     if (typeof b.enabled === 'boolean') next.enabled = b.enabled
     if (b.mode === 'BLOCK' || b.mode === 'ALERT') next.mode = b.mode
     if (Array.isArray(b.lockedUserIds)) {
       const ids = [...new Set((b.lockedUserIds as unknown[]).map(String))]
       const valid = await prisma.user.findMany({ where: { id: { in: ids }, clinicId, tenantId, isActive: true, role: { not: 'ADMIN' } }, select: { id: true } })
       next.lockedUserIds = valid.map(u => u.id)
+    }
+    if (b.visibility && typeof b.visibility === 'object') {
+      const incoming = b.visibility as Record<string, unknown>
+      for (const c of ALERT_CATEGORIES) {
+        if (Array.isArray(incoming[c.key])) next.visibility[c.key] = [...new Set((incoming[c.key] as unknown[]).map(v => String(v).toUpperCase().slice(0, 40)))]
+      }
     }
     if (typeof b.unlockKey === 'string' && b.unlockKey.length) {
       const key = b.unlockKey.trim()
@@ -147,7 +182,7 @@ export async function updateSettings(req: AuthRequest, res: Response) {
     }
     if (next.mode === 'BLOCK' && !next.keyHash) return res.status(400).json({ error: 'Defina uma chave de desbloqueio antes de ativar o bloqueio.' })
     await saveSettings(clinicId, tenantId, next)
-    return res.json({ enabled: next.enabled, mode: next.mode, lockedUserIds: next.lockedUserIds, hasKey: Boolean(next.keyHash) })
+    return res.json({ enabled: next.enabled, mode: next.mode, lockedUserIds: next.lockedUserIds, hasKey: Boolean(next.keyHash), visibility: next.visibility })
   } catch (error) {
     console.error('Erro ao salvar configuração de pendências:', error)
     return res.status(500).json({ error: 'Erro ao salvar configuração.' })

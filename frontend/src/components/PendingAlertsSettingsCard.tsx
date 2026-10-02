@@ -8,6 +8,7 @@ export default function PendingAlertsSettingsCard() {
   const [data, setData] = useState<PendingAlerts | null>(null);
   const [users, setUsers] = useState<AccessUser[]>([]);
   const [locked, setLocked] = useState<string[]>([]);
+  const [visibility, setVisibility] = useState<Record<string, string[]>>({});
   const [key, setKey] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -17,6 +18,7 @@ export default function PendingAlertsSettingsCard() {
       const d = await loadPendingAlerts();
       setData(d);
       setLocked(d.settings?.lockedUserIds || []);
+      setVisibility(d.settings?.visibility || {});
       if (d.canManage) setUsers(await AccessApi.users().catch(() => []));
     } catch { setData(null); }
   }, []);
@@ -50,6 +52,31 @@ export default function PendingAlertsSettingsCard() {
             <FormControlLabel value="ALERT" control={<Radio />} label="Só alerta: mostra o aviso, mas não impede o uso" />
             <FormControlLabel value="BLOCK" control={<Radio />} label="Bloqueio: trava a tela dos usuários escolhidos enquanto houver pendência" />
           </RadioGroup>
+
+          <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+            <Typography sx={{ fontWeight: 800 }}>Quem vê cada pendência</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              O administrador vê tudo. Cada departamento vê só as pendências marcadas para ele (ex.: o laboratório não precisa ver paciente devendo).
+            </Typography>
+            {(data.settings?.categories || []).map((cat) => (
+              <Box key={cat.key} sx={{ mb: 1.5 }}>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>{cat.label}</Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", columnGap: 2 }}>
+                  {(data.settings?.profiles || []).map((p) => (
+                    <FormControlLabel
+                      key={p.code}
+                      control={<Checkbox size="small" checked={(visibility[cat.key] || []).includes(p.code)} onChange={() => setVisibility((cur) => {
+                        const list = cur[cat.key] || [];
+                        return { ...cur, [cat.key]: list.includes(p.code) ? list.filter((x) => x !== p.code) : [...list, p.code] };
+                      })} />}
+                      label={p.name || p.code}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            ))}
+            <Button variant="contained" onClick={() => void save({ visibility }, "Quem vê cada pendência foi salvo.")}>Salvar quem vê cada pendência</Button>
+          </Box>
 
           <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
             <Typography sx={{ fontWeight: 800 }}>Chave de desbloqueio</Typography>

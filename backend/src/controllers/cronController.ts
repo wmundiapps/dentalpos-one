@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import crypto from 'crypto'
 import { processDueAppointmentReminders } from '../services/appointmentReminderService'
+import { processDunning } from '../services/dunningService'
 import { processDailyLabRisk, processDueLabNotifications } from '../services/labNotificationService'
 
 function authorized(req: Request) {
@@ -17,6 +18,7 @@ export async function reminders(req: Request, res: Response) {
   try {
     await processDueAppointmentReminders()
     await processDailyLabRisk().then(() => processDueLabNotifications()).catch((e) => console.error('Avisos do laboratório:', e))
+    await processDunning().catch((e) => console.error('Régua de cobrança:', e))
     return res.json({ ok: true, ms: Date.now() - started })
   } catch (error) {
     console.error(error)
