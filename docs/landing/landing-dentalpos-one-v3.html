@@ -541,7 +541,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
 <section class="banda banda--papel acesso" id="acesso">
   <div class="wrap">
     <h2 class="pergunta">Receba o seu acesso agora.</h2>
-    <p class="acesso__lede">Deixe seus dados e escolha: receber o acesso só por e-mail ou acessar agora. São 30 dias grátis, sem cartão de crédito.</p>
+    <p class="acesso__lede">Deixe seus dados e vá direto para a página de login. São 30 dias grátis, sem cartão de crédito.</p>
     <div class="acesso__card" id="acesso-form">
       <div class="acesso__linha">
         <div><label for="a-nome">Nome</label><input id="a-nome" type="text" autocomplete="name"></div>
@@ -551,13 +551,9 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
         <div><label for="a-email">E-mail</label><input id="a-email" type="email" autocomplete="email"></div>
         <div><label for="a-zap">WhatsApp</label><input id="a-zap" type="tel" placeholder="(44) 90000-0000" autocomplete="tel"></div>
       </div>
-      <fieldset class="acesso__canal">
-        <legend>Como quer acessar</legend>
-        <label class="acesso__op"><input type="radio" name="a-canal" value="email"> Receber o acesso só por e-mail</label>
-        <label class="acesso__op"><input type="radio" name="a-canal" value="agora" checked> Acessar agora</label>
-      </fieldset>
+      
       <p class="acesso__erro" id="a-erro" hidden></p>
-      <button type="button" class="btn btn--ouro" id="a-enviar">Quero receber meu acesso</button>
+      <button type="button" class="btn btn--ouro" id="a-enviar">Enviar e ir para o login</button>
       <p class="acesso__nota">Ao enviar, você concorda em receber o acesso e contato sobre o DentalPos One. Você pode pedir para parar quando quiser.</p>
     </div>
     <div class="acesso__ok" id="a-ok" hidden>
@@ -606,7 +602,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
   function canal(){var r=document.querySelector('input[name="a-canal"]:checked');return r?r.value:"email"}
   function mostra(t){er.textContent=t;er.hidden=false}
   btn.addEventListener("click",function(){
-    var d={perfil:"Landing /landingpage",nome:v("a-nome"),clinica:v("a-clinica"),email:v("a-email"),zap:v("a-zap"),canal:canal(),mensagem:"Quero receber meu acesso ao DentalPos One."};
+    var d={perfil:"Landing /landingpage",nome:v("a-nome"),clinica:v("a-clinica"),email:v("a-email"),zap:v("a-zap"),canal:"agora",mensagem:"Quero receber meu acesso ao DentalPos One."};
     er.hidden=true;
     if(!d.nome){mostra("Por favor, informe seu nome.");return}
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)){mostra("Por favor, informe um e-mail válido.");return}
@@ -616,9 +612,9 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
       .then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.erro||"Não foi possível enviar agora.");return j})})
       .then(function(){
         f.hidden=true;ok.hidden=false;
-        document.getElementById("a-ok-texto").textContent=d.canal==="agora"?"Abrindo a página de login...":"Enviamos o seu acesso por e-mail. Se não encontrar, olhe a caixa de spam.";if(d.canal==="agora"){setTimeout(function(){window.location.href="https://app.dentalpos.com.br"},900)}
+        document.getElementById("a-ok-texto").textContent="Cadastro recebido! Também enviamos o link de acesso para o seu e-mail. Abrindo a página de login...";setTimeout(function(){window.location.href="https://app.dentalpos.com.br"},1200);
       })
-      .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo ou fale pelo WhatsApp (44) 98453-5069.");btn.disabled=false;btn.textContent="Quero receber meu acesso"});
+      .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo ou fale pelo WhatsApp (44) 98453-5069.");btn.disabled=false;btn.textContent="Enviar e ir para o login"});
   });
 })();
 </script>
@@ -657,7 +653,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
     <button type="button" class="cad-x" id="cad-x" aria-label="Fechar">&times;</button>
     <div id="cad-form">
       <h2 id="cad-titulo">Comece seus 30 dias grátis</h2>
-      <p class="cad-sub">Preencha seus dados e escolha: receber o acesso por e-mail ou acessar agora, direto na página de login. Sem cartão de crédito.</p>
+      <p class="cad-sub">Preencha seus dados. Assim que enviar, você já é levado à página de login para entrar. Sem cartão de crédito.</p>
       <div class="cad-grid">
         <div class="cad-full"><label>Eu sou</label>
           <div class="cad-perfis" id="cad-perfis">
@@ -671,13 +667,10 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
         <div id="cad-bloco-fac" hidden><label for="cad-fac">Faculdade que cursa *</label><input id="cad-fac" type="text" placeholder="Nome da faculdade"></div>
         <div id="cad-bloco-ano" hidden><label for="cad-ano">Ano de formatura *</label><select id="cad-ano"></select></div>
         <div class="cad-full"><label for="cad-clinica">Clínica ou instituição</label><input id="cad-clinica" type="text" autocomplete="organization"></div>
-        <fieldset class="cad-canal cad-full"><legend>Como quer acessar</legend>
-          <label><input type="radio" name="cad-canal" value="email"> Receber o acesso só por e-mail</label>
-          <label><input type="radio" name="cad-canal" value="agora" checked> Acessar agora</label>
-        </fieldset>
+        
       </div>
       <p class="cad-erro" id="cad-erro" hidden></p>
-      <button type="button" class="cad-enviar" id="cad-enviar">Continuar</button>
+      <button type="button" class="cad-enviar" id="cad-enviar">Enviar e ir para o login</button>
       <p class="cad-nota">Ao continuar, você concorda em receber o acesso e contato sobre o DentalPos One. Você pode pedir para parar quando quiser.</p>
     </div>
     <div class="cad-ok" id="cad-ok" hidden>
@@ -691,7 +684,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
 (function(){
   var APP="https://app.dentalpos.com.br",ov=document.getElementById("cad-ov"),box=ov.querySelector(".cad-box"),f=document.getElementById("cad-form"),ok=document.getElementById("cad-ok"),er=document.getElementById("cad-erro"),btn=document.getElementById("cad-enviar"),perfil="Profissional",ultimo=null,timer=null;
   function v(id){var e=document.getElementById(id);return e?e.value.trim():""}
-  function abre(e){if(e)e.preventDefault();ultimo=document.activeElement;f.hidden=false;ok.hidden=true;er.hidden=true;btn.disabled=false;btn.textContent="Continuar";ov.hidden=false;setTimeout(function(){document.getElementById("cad-nome").focus()},30)}
+  function abre(e){if(e)e.preventDefault();ultimo=document.activeElement;f.hidden=false;ok.hidden=true;er.hidden=true;btn.disabled=false;btn.textContent="Enviar e ir para o login";ov.hidden=false;setTimeout(function(){document.getElementById("cad-nome").focus()},30)}
   function fecha(){if(timer){clearTimeout(timer);timer=null}ov.hidden=true;if(ultimo&&ultimo.focus)ultimo.focus()}
   [].slice.call(document.querySelectorAll('a[href]')).forEach(function(a){
     var h=a.getAttribute("href")||"";
@@ -705,7 +698,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
   (function(){var s=document.getElementById("cad-ano"),y=new Date().getFullYear(),o='<option value="">Selecione</option>';for(var i=0;i<=8;i++)o+='<option value="'+(y+i)+'">'+(y+i)+'</option>';s.innerHTML=o})();
   function perfilAtual(p){perfil=p;var ac=(p==="Acadêmico");document.getElementById("cad-bloco-fac").hidden=!ac;document.getElementById("cad-bloco-ano").hidden=!ac;document.getElementById("cad-bloco-cro").hidden=ac}
   btn.addEventListener("click",function(){
-    var canal=(document.querySelector('input[name="cad-canal"]:checked')||{}).value||"email";
+    var canal="agora";
     var d={perfil:perfil,nome:v("cad-nome"),email:v("cad-email"),zap:v("cad-zap"),cidade:v("cad-cidade"),cro:perfil==="Acadêmico"?"":v("cad-cro"),clinica:v("cad-clinica"),faculdade:perfil==="Acadêmico"?v("cad-fac"):"",anoFormatura:perfil==="Acadêmico"?v("cad-ano"):"",canal:canal,mensagem:"Cadastro para os 30 dias grátis (landing)."};
     er.hidden=true;
     if(!d.nome){mostra("Informe seu nome completo.");return}
@@ -718,11 +711,11 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
       .then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.erro||"Não foi possível enviar agora.");return j})})
       .then(function(){
         f.hidden=true;ok.hidden=false;
-        var t=document.getElementById("cad-ok-texto"),lk=document.getElementById("cad-login");
-        if(canal==="agora"){t.textContent="Abrindo a página de login...";timer=setTimeout(function(){window.location.href=APP},900)}
-        else{t.textContent="Enviamos o seu acesso para o e-mail "+d.email+". Se não encontrar, olhe a caixa de spam.";lk.textContent="Já quero acessar agora"}
+        var t=document.getElementById("cad-ok-texto");
+        t.textContent="Cadastro recebido! Também enviamos o link de acesso para "+d.email+". Abrindo a página de login...";
+        timer=setTimeout(function(){window.location.href=APP},1200);
       })
-      .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo.");btn.disabled=false;btn.textContent="Continuar"});
+      .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo.");btn.disabled=false;btn.textContent="Enviar e ir para o login"});
   });
 })();
 </script>
