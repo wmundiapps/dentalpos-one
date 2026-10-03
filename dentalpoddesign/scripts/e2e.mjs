@@ -13,7 +13,7 @@ const ctx = await browser.newContext({ viewport: { width: 1500, height: 900 }, a
 const page = await ctx.newPage()
 const errors = []
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
-page.on('console', (m) => { if (m.type() === 'error' && !/favicon|404/.test(m.text())) errors.push('console: ' + m.text()) })
+page.on('console', (m) => { if (m.type() === 'error' && !/favicon|404|TensorFlow|XNNPACK|inference_feedback/.test(m.text())) errors.push('console: ' + m.text()) })
 let fail = 0
 const ok = (c, msg) => { console.log((c ? '  ✓ ' : '  ✗ ') + msg); if (!c) fail++ }
 const shot = async (n) => page.screenshot({ path: path.join(out, n + '.png') })

@@ -10,10 +10,12 @@
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit",
     "verify": "tsx scripts/verify-geometry.ts",
+    "test:auto": "tsx scripts/test-auto.ts",
     "test:e2e": "node scripts/e2e.mjs",
     "build:integrado": "npm run build && node scripts/copy-to-dentalpos.mjs"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
     "jspdf": "^4.2.1",
     "manifold-3d": "^3.0.0",
     "react": "^19.2.8",

@@ -103,7 +103,7 @@ export class OverlayEngine {
     const p = variant.params
     const layout = computeLayout(p, variant.teeth, { cervFade: 0.17 })
     this.layout = layout
-    this.ts.setLayout(layout, p, { ghost: false })
+    this.ts.setLayout(layout, p, { ghost: false, papillae: variant.look.papillae === false ? null : variant.look.gumColor || '#c9626f' })
     const marks = project.marks
     const roll = pupilRoll(marks) + p.rollOffset
     this.ts.setPose(p, roll)

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { ArchFormId, DesignParams, ProportionId, RestorationMode, ShapeId, ToothStatus } from '../core/types'
-import { activeVariant, teethForMode } from '../core/project'
+import { activeVariant, syncStatuses } from '../core/project'
 import { PRESETS } from '../core/presets'
 import { PROPORTIONS, SHAPES, SHAPE_ADJ, SIZE_SETS, archFdiList, defaultWL, moldCatalog, toothLabel } from '../core/toothSpecs'
 import { SHADES } from '../core/shades'
@@ -194,7 +194,7 @@ export function DesignPanel() {
         <Seg value={p.mode} options={MODES} onChange={(m) => setMode(m)} />
         <div className="row">
           <label>Dentes (por lado)</label>
-          <input type="range" min={3} max={7} step={1} value={p.upperTo} onChange={(e) => mutateVariant((vv) => { vv.params.upperTo = +e.target.value; if (vv.params.mode !== 'custom' && vv.params.mode !== 'veneers') syncStatuses(vv); else if (vv.params.mode === 'veneers') syncStatuses(vv) }, 'upTo')} />
+          <input type="range" min={3} max={7} step={1} value={p.upperTo} onChange={(e) => mutateVariant((vv) => { vv.params.upperTo = +e.target.value; syncStatuses(vv) }, 'upTo')} />
           <span className="val">{p.upperTo}</span>
         </div>
         <p className="hint">3 = até o canino · 5 = até o 2º pré-molar · 7 = até o 2º molar.</p>
@@ -278,6 +278,18 @@ export function DesignPanel() {
         <Slider label="Torque ×" value={p.torqueScale} min={0} max={1.8} step={0.05} digits={2} onChange={(x) => set({ torqueScale: x })} />
       </Section>
 
+      <Section title="Oclusão e anatomia (regras clínicas)">
+        <Slider label="Curva de Spee" value={p.spee} min={0} max={3} step={0.1} unit=" mm" onChange={(x) => set({ spee: x })} title="Andrews: plana a 1,5 mm" />
+        <Slider label="Curva de Wilson" value={p.wilson} min={0} max={1.5} step={0.05} digits={2} onChange={(x) => set({ wilson: x })} title="Inclinação palatina/lingual progressiva dos posteriores" />
+        <Slider label="Pos. artísticas" value={p.artistic} min={0} max={1.5} step={0.05} digits={2} onChange={(x) => set({ artistic: x })} title="In-set dos laterais, off-set dos caninos e molares" />
+        <Slider label="Equador post." value={p.fullness} min={0} max={1} step={0.05} digits={2} onChange={(x) => set({ fullness: x })} title="Volume vestibular dos posteriores superiores (afasta a bochecha)" />
+        <Slider label="Altura dos zênites" value={p.zenithShift} min={-2} max={2} step={0.05} digits={2} unit=" mm" onChange={(x) => set({ zenithShift: x })} title="Alonga/encurta todas as coroas pela cervical" />
+        <Slider label="Altura geral ×" value={p.heightScale} min={0.85} max={1.15} step={0.005} digits={3} onChange={(x) => set({ heightScale: x })} />
+        <Slider label="Largura geral ×" value={p.widthScale} min={0.9} max={1.1} step={0.005} digits={3} onChange={(x) => set({ widthScale: x })} />
+        <Check label="Alinhar classe I (molar e canino)" value={p.classI} onChange={(x) => set({ classI: x })} />
+        <p className="hint">Zênites: central = canino (X+0,5); lateral = pré-molar (X); molares X−0,5 / X−1. Inferiores: incisivos = pré-molares (X), canino X+0,5, molares X−0,5.</p>
+      </Section>
+
       <Section title="Personalidade (SPA)">
         <Slider label="Sexo" value={p.sex} min={-1} max={1} step={0.05} digits={2} onChange={(x) => set({ sex: x })} title="−1 feminino · +1 masculino" />
         <Slider label="Idade" value={p.age} min={0} max={1} step={0.01} digits={2} onChange={(x) => set({ age: x })} title="0 jovem · 1 idoso (desgaste incisal)" />
@@ -342,6 +354,7 @@ export function DesignPanel() {
               ['zenith', 'Zênites'],
               ['outline', 'Contornos'],
               ['numbers', 'Numeração FDI'],
+              ['axes', 'Eixo canino → pupila'],
               ['mask', 'Máscara labial'],
             ] as const
           ).map(([k, l]) => (
@@ -356,11 +369,6 @@ export function DesignPanel() {
   )
 }
 
-function syncStatuses(vv: ReturnType<typeof activeVariant>) {
-  const fresh = teethForMode(vv.params)
-  for (const k of Object.keys(fresh)) vv.teeth[+k].status = fresh[+k].status
-}
-
 export function LookControls() {
   const v = activeVariant(useApp((s) => s.project))
   const l = v.look
@@ -372,6 +380,8 @@ export function LookControls() {
       <Slider label="Suavização" value={l.feather} min={0} max={6} step={0.1} unit=" px" onChange={(x) => set({ feather: x })} />
       <Slider label="Opacidade" value={l.opacity} min={0.2} max={1} step={0.01} digits={2} onChange={(x) => set({ opacity: x })} />
       <Check label="Escurecer dentes originais ao redor" value={l.eraseOld} onChange={(x) => set({ eraseOld: x })} />
+      <Check label="Papilas gengivais virtuais (sem fundo escuro)" value={l.papillae !== false} onChange={(x) => set({ papillae: x })} />
+      <Field label="Cor da gengiva"><input type="color" value={l.gumColor || '#c9626f'} onChange={(e) => set({ gumColor: e.target.value })} style={{ height: 26 }} /></Field>
       <Check label="Somente contorno (sem preenchimento)" value={l.outline} onChange={(x) => set({ outline: x, showTeeth: !x })} />
     </>
   )

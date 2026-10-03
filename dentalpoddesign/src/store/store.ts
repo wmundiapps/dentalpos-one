@@ -25,6 +25,8 @@ export type MarkTool =
   | 'zygL'
   | 'calibA'
   | 'calibB'
+  | 'profComm'
+  | 'profTragus'
 
 export interface HostInfo {
   embedded: boolean
@@ -41,7 +43,7 @@ export interface AppState {
   symmetric: boolean
   tool: MarkTool
   wizardIndex: number // >=0 = análise guiada em curso
-  guides: { midline: boolean; pupil: boolean; incisal: boolean; grid: boolean; golden: boolean; arc: boolean; zenith: boolean; outline: boolean; mask: boolean; ruler: boolean; numbers: boolean }
+  guides: { midline: boolean; pupil: boolean; incisal: boolean; grid: boolean; golden: boolean; arc: boolean; zenith: boolean; outline: boolean; mask: boolean; ruler: boolean; numbers: boolean; axes: boolean }
   compare: 'after' | 'before' | 'split'
   split: number
   zoomReset: number
@@ -69,7 +71,7 @@ let state: AppState = {
   symmetric: true,
   tool: null,
   wizardIndex: -1,
-  guides: { midline: true, pupil: true, incisal: true, grid: false, golden: false, arc: true, zenith: false, outline: false, mask: false, ruler: false, numbers: false },
+  guides: { midline: true, pupil: true, incisal: true, grid: false, golden: false, arc: true, zenith: false, outline: false, mask: false, ruler: false, numbers: false, axes: true },
   compare: 'after',
   split: 0.5,
   zoomReset: 0,
@@ -273,6 +275,7 @@ export async function createDemo() {
     const dm = demoMarks()
     p.marks = dm.marks
     p.calib = dm.calib
+    p.face = { source: 'manual', shape: 'oval', label: 'Oval', lengthWidth: 1.3, jawCheek: 0.8, smile: 0.9 }
     const v = p.variants[0]
     Object.assign(v.params, PRESETS[0].params)
     v.params.upperTo = 5

@@ -184,6 +184,43 @@ export function PhotoStage({ mode, photoId }: { mode: StageMode; photoId?: strin
       g.fillText('DEPOIS', x - 62, v.oy + 20)
       g.fillText('ANTES', x + 12, v.oy + 20)
     }
+    if (!isBase && mode === 'analysis') {
+      const pc = marks.profComm
+      const pt = marks.profTragus
+      for (const [pp, col, lab] of [[pc, '#fbbf24', 'C'], [pt, '#fbbf24', 'T']] as const) {
+        if (!pp) continue
+        const q = toScreen(pp)
+        g.strokeStyle = col
+        g.lineWidth = 1.8
+        g.beginPath()
+        g.arc(q.x, q.y, 7, 0, Math.PI * 2)
+        g.moveTo(q.x - 13, q.y)
+        g.lineTo(q.x + 13, q.y)
+        g.moveTo(q.x, q.y - 13)
+        g.lineTo(q.x, q.y + 13)
+        g.stroke()
+        g.fillStyle = col
+        g.font = '700 11px system-ui'
+        g.fillText(lab, q.x + 10, q.y - 9)
+      }
+      if (pc && pt) {
+        const a = toScreen(pc)
+        const b2 = toScreen(pt)
+        g.strokeStyle = 'rgba(251,191,36,.9)'
+        g.lineWidth = 1.6
+        g.setLineDash([6, 4])
+        g.beginPath()
+        g.moveTo(a.x, a.y)
+        g.lineTo(b2.x, b2.y)
+        g.stroke()
+        g.setLineDash([])
+        const ang = (Math.atan2(pc.y - pt.y, Math.abs(pt.x - pc.x)) * 180) / Math.PI
+        g.fillStyle = '#fff'
+        g.font = '700 13px system-ui'
+        g.fillText(`plano oclusal: ${ang.toFixed(1)}°`, (a.x + b2.x) / 2 + 8, (a.y + b2.y) / 2 - 8)
+      }
+      return
+    }
     if (!isBase || mode === 'photos' || mode === 'present') {
       if (mode === 'present') drawLabel(g, v, compare)
       return
@@ -274,6 +311,29 @@ export function PhotoStage({ mode, photoId }: { mode: StageMode; photoId?: strin
     }
     // arco do sorriso + zênites
     const eng = getEngine()
+    // eixo dos caninos apontando para a pupila (referência de localização do canino)
+    if (guides.axes && eng.layout && (mode === 'design' || mode === 'analysis') && marks.pupilR && marks.pupilL) {
+      const left = marks.pupilR.x <= marks.pupilL.x ? marks.pupilR : marks.pupilL
+      const right = left === marks.pupilR ? marks.pupilL : marks.pupilR
+      for (const fdi of [13, 23]) {
+        const t = eng.layout.byFdi.get(fdi)
+        if (!t?.designed) continue
+        const e = T.toImg(t.position.x, t.position.y)
+        const M = t.matrix.elements
+        const c = T.toImg(M[4] * -t.spec.H + M[12], M[5] * -t.spec.H + M[13])
+        const dx = c.x - e.x
+        const dy = c.y - e.y
+        const pup = fdi === 23 ? right : left
+        if (Math.abs(dy) < 1e-6) continue
+        const k = (pup.y - e.y) / dy
+        line(e, { x: e.x + dx * k, y: pup.y }, 'rgba(251,191,36,.9)', 1.3, [6, 4])
+        const sp = S(pup)
+        g.strokeStyle = 'rgba(251,191,36,.9)'
+        g.beginPath()
+        g.arc(sp.x, sp.y, 5, 0, Math.PI * 2)
+        g.stroke()
+      }
+    }
     if (eng.layout && (mode === 'design' || mode === 'analysis')) {
       const up = eng.layout.upper.filter((t) => t.designed && t.n <= 5).sort((a, b) => a.position.x - b.position.x)
       if (guides.arc && up.length > 2) {

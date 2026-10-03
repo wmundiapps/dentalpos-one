@@ -11,6 +11,9 @@ Câmera na altura dos olhos, cabeça nivelada, pupilas visíveis, luz frontal di
 Marque uma foto como **base** (a que receberá o desenho).
 
 ## 3. Análise facial
+**Automático (IA):** ao abrir *Análise* num caso sem pontos, a IA marca sozinha pupilas, linha média, comissuras, contorno dos lábios, asas nasais e zigomas e informa a forma do rosto. Use **Detectar pontos com IA** para repetir. Confira e arraste qualquer ponto que precise de ajuste.
+
+**Manual:**
 1. **Iniciar análise guiada**: clique, na ordem, em pupila direita, pupila esquerda, glabela, mento, comissura direita, comissura esquerda,
    borda inferior do lábio superior e borda superior do lábio inferior (linha média). O contorno interno dos lábios é gerado e
    pode ser ajustado arrastando os pontos brancos.
@@ -21,7 +24,8 @@ Marque uma foto como **base** (a que receberá o desenho).
 
 ## 4. Desenho
 * **Tipo**: Facetas, Coroas, PPR (parcial removível), Total, Livre. Define a situação inicial dos dentes.
-* **Desenho automático**: alinha linha média, plano incisal à linha bipupilar, tamanho pela biometria e arco do sorriso ao lábio.
+* **Desenho automático**: (usa a IA se faltarem pontos) forma do dente pela forma do rosto, proporção áurea ajustada, largura do central pela biometria, linha média, plano incisal paralelo à bipupilar, gengiva levemente visível, bordos tocando o lábio inferior, arco do sorriso, Spee/Wilson, in-set/off-set, corredor bucal e eixo do canino → pupila.
+* **Oclusão e anatomia (regras clínicas)**: curva de Spee, curva de Wilson, posições artísticas, equador dos posteriores, altura dos zênites, altura/largura geral e *Alinhar classe I*. Tudo editável; cada dente também pode ser ajustado individualmente.
 * **Estilos**: 8 combinações prontas. **Tamanho**: PP a GG, largura do central e relação L/A; **Proporção**: Natural, Áurea,
   RED, Preston, Chu. **Forma**: natural, ovoide, quadrado, triangular, retangular, arredondado. **Catálogo de moldes** lista 30 combinações.
 * **SPA**: sexo, idade e personalidade modulam ângulos incisais, desgaste e agudez do canino.

@@ -7,7 +7,7 @@ export interface MarkDef {
   hint: string
   color: string
   short: string
-  group: 'facial' | 'labial' | 'extra' | 'calib'
+  group: 'facial' | 'labial' | 'extra' | 'calib' | 'profile'
 }
 
 export const MARK_DEFS: MarkDef[] = [
@@ -25,6 +25,8 @@ export const MARK_DEFS: MarkDef[] = [
   { key: 'zygL', label: 'Zigoma esquerdo', hint: 'Opcional — ponto mais lateral da face (arco zigomático) à direita da foto.', color: '#a78bfa', short: 'ZE', group: 'extra' },
   { key: 'calibA', label: 'Calibração — ponto A', hint: 'Clique no 1º extremo de uma medida conhecida (régua, largura do central…).', color: '#34d399', short: 'A', group: 'calib' },
   { key: 'calibB', label: 'Calibração — ponto B', hint: 'Clique no 2º extremo da medida conhecida.', color: '#34d399', short: 'B', group: 'calib' },
+  { key: 'profComm', label: 'Perfil — comissura', hint: 'Foto de PERFIL: clique na comissura labial (canto da boca).', color: '#fbbf24', short: 'C', group: 'profile' },
+  { key: 'profTragus', label: 'Perfil — trágus', hint: 'Foto de PERFIL: clique no trágus (cartilagem na frente do ouvido).', color: '#fbbf24', short: 'T', group: 'profile' },
 ]
 
 export const WIZARD_ORDER: Exclude<MarkTool, null>[] = ['pupilR', 'pupilL', 'midTop', 'midBottom', 'commR', 'commL', 'upMid', 'lowMid']

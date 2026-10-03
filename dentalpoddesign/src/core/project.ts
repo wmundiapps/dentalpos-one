@@ -120,3 +120,10 @@ export function createProject(name = 'Novo caso'): Project {
 export function activeVariant(p: Project): Variant {
   return p.variants.find((v) => v.id === p.activeVariant) ?? p.variants[0]
 }
+
+/** Atualiza a situação dos dentes conforme o modo (sem apagar ajustes individuais). */
+export function syncStatuses(v: Variant) {
+  if (v.params.mode === 'custom') return
+  const fresh = teethForMode(v.params)
+  for (const k of Object.keys(fresh)) if (v.teeth[+k]) v.teeth[+k].status = fresh[+k].status
+}

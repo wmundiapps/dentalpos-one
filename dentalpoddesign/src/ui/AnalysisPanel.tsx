@@ -1,14 +1,14 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { activeVariant } from '../core/project'
 import { computeLayout } from '../core/designEngine'
 import { analyze, biometricSuggestion, type AnalysisResult } from '../core/analysis'
 import { silhouetteOf } from '../render/silhouettes'
 import { MARK_DEFS, WIZARD_ORDER } from '../core/marks'
-import { mutate, setState, toast, useApp, getPhotoBitmap } from '../store/store'
+import { mutate, mutateVariant, setState, toast, useApp, getPhotoBitmap } from '../store/store'
 import { pxPerMm } from '../render/overlay'
 import { Field, Section, Seg, fmt } from './common'
 import { finalizeMarks } from './PhotoStage'
-import { autoDesign, fitArcToLip } from './actions'
+import { autoDesign, detectAndApply, fitArcToLip } from './actions'
 
 export function useAnalysis(): AnalysisResult | null {
   const project = useApp((s) => s.project)
@@ -33,6 +33,7 @@ const GROUPS: { id: string; label: string }[] = [
   { id: 'dentolabial', label: 'Dento-labial' },
   { id: 'dental', label: 'Dental' },
   { id: 'gengival', label: 'Gengival' },
+  { id: 'chaves', label: 'Seis chaves de Andrews' },
   { id: 'oclusao', label: 'Oclusão' },
 ]
 
@@ -90,9 +91,36 @@ export function AnalysisPanel() {
   const sug = biometricSuggestion(project)
   const setGuide = (k: keyof typeof guides, v: boolean) => setState((st) => ({ guides: { ...st.guides, [k]: v } }))
   const startWizard = () => setState({ wizardIndex: 0, tool: WIZARD_ORDER[0] })
+  const tried = useRef<string>('')
+  const viewPhoto = useApp((st) => st.viewPhoto)
+  // IA: ao entrar na análise de um caso sem pontos, detecta automaticamente (uma vez por foto)
+  useEffect(() => {
+    const key = project.id + ':' + project.basePhotoId
+    if (tried.current === key) return
+    tried.current = key
+    if (project.basePhotoId && !project.marks.pupilR && !project.marks.mouth) void detectAndApply(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id, project.basePhotoId])
+  const profile = project.photos.find((x) => x.kind === 'profile')
+  const camper = m.profComm && m.profTragus ? (Math.atan2(m.profComm.y - m.profTragus.y, Math.abs(m.profTragus.x - m.profComm.x)) * 180) / Math.PI : null
+  const face = project.face
   return (
     <>
-      <Section title="Análise facial guiada">
+      <Section title="IA — detecção automática" tag={face?.source === 'ia' ? 'detectado' : ''}>
+        <p className="hint">A inteligência artificial (executada no seu navegador; a foto não é enviada) localiza pupilas, linha média, comissuras, contorno interno dos lábios, asas nasais e zigomas, e classifica a forma do rosto.</p>
+        <div className="btns">
+          <button className="btn primary" onClick={() => void detectAndApply(false)}>Detectar pontos com IA</button>
+          <button className="btn" onClick={() => void autoDesign()}>IA + desenho automático</button>
+        </div>
+        {face && (
+          <p className="hint" style={{ marginTop: 8 }}>
+            Rosto <b style={{ color: 'var(--text)' }}>{face.label}</b> (altura/largura {fmt(face.lengthWidth, 2)} · mandíbula/zigoma {fmt(face.jawCheek, 2)}). Sorriso detectado: {Math.round(face.smile * 100)}%.
+            {face.smile < 0.35 && <span style={{ color: 'var(--warn)' }}> A foto parece sem sorriso aberto — use a foto de sorriso para a máscara dos lábios.</span>}
+          </p>
+        )}
+      </Section>
+
+      <Section title="Análise facial guiada (manual)">
         <p className="hint">Marque os pontos de referência na foto. Cada ponto pode ser arrastado depois. O desenho usa estas marcas para alinhar o plano incisal, a linha média e a máscara dos lábios.</p>
         <div className="btns">
           <button className="btn primary" onClick={startWizard}>{wizardIndex >= 0 ? 'Reiniciar guia' : 'Iniciar análise guiada'}</button>
@@ -100,7 +128,7 @@ export function AnalysisPanel() {
           <button className="btn" onClick={() => { mutate((p) => { p.marks = {} }); setState({ tool: null, wizardIndex: -1 }) }}>Limpar marcas</button>
         </div>
         <div style={{ marginTop: 10 }}>
-          {MARK_DEFS.filter((d) => d.group !== 'calib').map((d) => {
+          {MARK_DEFS.filter((d) => d.group !== 'calib' && d.group !== 'profile').map((d) => {
             const has = Boolean(m[d.key])
             return (
               <div className="row" key={d.key} style={{ margin: '3px 0' }}>
@@ -151,6 +179,25 @@ export function AnalysisPanel() {
         <div className="btns">
           <button className="btn sm" onClick={() => setState({ tool: 'zygR', wizardIndex: -1 })}>Zigomas e asas…</button>
         </div>
+      </Section>
+
+      <Section title="Plano oclusal (foto de perfil)" tag={camper !== null ? `${fmt(camper)}°` : ''}>
+        {!profile ? (
+          <p className="hint">Adicione uma foto de <b>perfil</b> (Fotos → tipo “Perfil”) para marcar a linha comissura → trágus. A altura oclusal dos dentes posteriores deve seguir essa linha.</p>
+        ) : (
+          <>
+            <div className="btns">
+              <button className={'btn sm ' + (tool === 'profComm' ? 'primary' : '')} onClick={() => setState({ viewPhoto: profile.id, tool: 'profComm', wizardIndex: -1 })}>Marcar comissura</button>
+              <button className={'btn sm ' + (tool === 'profTragus' ? 'primary' : '')} onClick={() => setState({ viewPhoto: profile.id, tool: 'profTragus', wizardIndex: -1 })}>Marcar trágus</button>
+              <button className="btn sm" disabled={!viewPhoto} onClick={() => setState({ viewPhoto: null, tool: null })}>Voltar à foto base</button>
+            </div>
+            {camper !== null && (
+              <div className="btns" style={{ marginTop: 6 }}>
+                <button className="btn sm" onClick={() => { mutateVariant((vv) => { vv.params.occlusalPitch = +camper.toFixed(1) }); toast('Plano oclusal aplicado ao CAD 3D.', 'ok') }}>Aplicar ao plano oclusal ({fmt(camper)}°)</button>
+              </div>
+            )}
+          </>
+        )}
       </Section>
 
       <Section title="Linhas de referência">

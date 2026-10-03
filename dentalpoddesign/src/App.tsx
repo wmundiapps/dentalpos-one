@@ -161,7 +161,7 @@ export default function App() {
 
 function PhotoStageHolder({ mode }: { mode: 'photos' | 'analysis' | 'design' | 'present' }) {
   const viewPhoto = useApp((s) => s.viewPhoto)
-  return <PhotoStage mode={mode} photoId={mode === 'photos' ? viewPhoto : null} />
+  return <PhotoStage mode={mode} photoId={mode === 'photos' || mode === 'analysis' ? viewPhoto : null} />
 }
 
 export { newProject, select, subscribe }

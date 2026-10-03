@@ -24,3 +24,9 @@ exposição incisal 75–100%, exposição gengival ≤ 2 mm (3 mm limite estét
 **Prótese removível** — selas em arco dos dentes de prótese, placa/barra palatina, barra/ferradura lingual, grampos circunferenciais: geometria diagnóstica parametrizada, não substitui o delineamento de estrutura metálica no CAD de PPR.
 
 Os valores acima são referências de uso corrente na literatura; confira as fontes originais antes de adotá-los como protocolo institucional.
+
+**IA de pontos faciais** — MediaPipe Face Landmarker (Google, licença Apache-2.0): 468 pontos de malha facial + 10 de íris; executado localmente via WebAssembly.
+Pontos usados: íris 468/473 (pupilas), 61/291 (comissuras), 13/14 (lábios), contorno interno 78…308, 129/358 (asas), 234/454 (zigomas), 168/152 (linha média).
+
+**Regras de zênite/altura** — contorno gengival: centrais = caninos; laterais = pré-molares (≈0,5 mm mais coronais); molares seguem os pré-molares. Seis chaves da oclusão (Andrews, 1972) e curvas de Spee (≤1,5 mm) e de Wilson.
+**Forma do rosto × forma do dente** — Frush & Fisher (1956), Lombardi (1973), Williams (1914, teoria de harmonia).

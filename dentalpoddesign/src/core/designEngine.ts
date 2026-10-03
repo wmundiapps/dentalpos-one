@@ -3,17 +3,7 @@ import type { ArchId, DesignParams, ShapeId, ToothCfg, ToothStatus } from './typ
 import { DESIGNED_STATUS } from './types'
 import { DEG, clamp } from './math'
 import { makeArch, type ArchCurve } from './archForm'
-import {
-  PROPORTIONS,
-  SHAPE_ADJ,
-  archFdiList,
-  baseDim,
-  fdiArch,
-  fdiIndex,
-  fdiSide,
-  makeFdi,
-  toothClass,
-} from './toothSpecs'
+import { PROPORTIONS, SHAPE_ADJ, archFdiList, baseDim, fdiArch, fdiIndex, fdiSide, makeFdi, toothClass } from './toothSpecs'
 import { crownColors } from './shades'
 import type { CrownSpec } from '../geometry/toothMesh'
 
@@ -32,13 +22,37 @@ export const defaultToothCfg = (status: ToothStatus = 'natural'): ToothCfg => ({
 
 export const isDesigned = (s: ToothStatus) => DESIGNED_STATUS.includes(s)
 
-/** Deslocamento incisal/oclusal (mm, + = cranial) relativo ao plano dos incisivos centrais (arco do sorriso). */
-const EDGE_OFFSET = [0, 0.6, 0.4, 1.3, 2.3, 3.5, 4.8, 6.2]
+// ---------------------------------------------------------------------------------------------------------------
+// Regras clínicas (Andrews — seis chaves; DSD; estética dental)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Arco do sorriso (mm, + = cranial) relativo aos incisivos centrais; × smileArc. Laterais ligeiramente mais curtos. */
+export const SMILE_ARC = [0, 0.6, 0.4, 0.7, 1.1, 1.6, 2.1, 2.6]
+/** Curva de Spee — perfil sagital (fração da profundidade); × spee (mm). */
+export const SPEE_PROFILE = [0, 0, 0, 0.18, 0.5, 0.85, 1.1, 1.2]
+/**
+ * Linha dos zênites superiores (mm, em relação ao zênite do central): centrais = caninos (X+0,5),
+ * laterais = pré-molares (X), 1º molar X−0,5, 2º molar X−1.
+ */
+export const ZENITH_UP = [0, -0.5, 0, -0.5, -0.5, -1.0, -1.5, -1.5]
+/** Inferiores (altura da coroa): incisivos = pré-molares = X; caninos X+0,5; molares X−0,5. */
+export const ZENITH_LO = [0, 0, 0.5, 0, 0, -0.5, -0.5, -0.5]
 const OVERBITE_FADE = [1, 1, 0.85, 0.45, 0.15, 0, 0, 0]
-const TIP_UP = [2.5, 5, 8, 2, 2, 4, 4, 4]
-const TIP_LO = [2, 2, 5, 2, 2, 2, 2, 2]
-const TORQUE_UP = [9, 6, 2, -4, -5, -8, -9, -9]
-const TORQUE_LO = [-1, -2, -5, -8, -10, -12, -14, -14]
+/** Angulação mesio-distal (graus). */
+export const TIP_UP = [2.5, 5, 8, 2, 2, 4, 4, 4]
+export const TIP_LO = [2, 2, 5, 2, 2, 2, 2, 2]
+/** Inclinação vestíbulo-lingual: anteriores superiores levemente para vestibular; PM/molares para palatina, progressivo. */
+export const TORQUE_UP = [9, 6, 2, -3, -5, -8, -10, -10]
+/** Inferiores: anteriores paralelos à base; PM e molares com inclinação lingual progressiva. */
+export const TORQUE_LO = [-1, -1, -3, -8, -11, -15, -18, -18]
+/** Posições artísticas (mm vestibular): in-set lateral, off-set canino e molares. */
+const ARTISTIC_Z_UP = [0, -0.45, 0.35, 0, 0, 0.3, 0.3, 0.2]
+const ARTISTIC_Z_LO = [0, 0, 0.25, 0, 0, 0.2, 0.2, 0.15]
+/** Rotação artística (graus, "toe-in" dos molares). */
+const ARTISTIC_ROT_UP = [0, 0, 0, 0, 0, 5, 5, 4]
+const ARTISTIC_ROT_LO = [0, 0, 0, 0, 0, 3, 3, 2]
+/** Queda nominal das cristas marginais (mm abaixo das cúspides). */
+const RIDGE_NOMINAL = [0, 0, 0, 1.15, 1.15, 0.8, 0.7, 0.6]
 
 export interface ToothPlacement {
   fdi: number
@@ -55,6 +69,8 @@ export interface ToothPlacement {
   edgeY: number
   /** arco (mm) do centro do dente sobre a curva do arco, lado positivo */
   sMid: number
+  /** altura do zênite (cervical) em Y do arco (mm) */
+  zenithY: number
 }
 
 export interface Layout {
@@ -64,6 +80,26 @@ export interface Layout {
   archLower: ArchCurve
   all: ToothPlacement[]
   byFdi: Map<number, ToothPlacement>
+  /** resíduos da classe I (mm): posição do canino superior vs. embrasura e do sulco molar (por lado) */
+  classI: { canine: number; molar: number; applied: boolean } | null
+}
+
+interface SideWidths {
+  widthArc: number[]
+  s0: number[]
+  s1: number[]
+}
+
+function cumulate(widths: number[]): SideWidths {
+  const s0: number[] = []
+  const s1: number[] = []
+  let s = 0
+  for (const w of widths) {
+    s0.push(s)
+    s += w
+    s1.push(s)
+  }
+  return { widthArc: widths, s0, s1 }
 }
 
 function archWidths(
@@ -73,13 +109,11 @@ function archWidths(
   cfgOf: (n: number, side: -1 | 1) => ToothCfg,
   side: -1 | 1,
   curve: ArchCurve,
-): { widthArc: number[]; s0: number[]; s1: number[] } {
-  const s = p.centralWidth / baseDim('upper', 1).W
-  const widths: number[] = []
-  const s0: number[] = []
-  const s1: number[] = []
+): SideWidths {
+  const s = (p.centralWidth * p.widthScale) / baseDim('upper', 1).W
   const prop = PROPORTIONS.find((x) => x.id === p.proportion) ?? PROPORTIONS[0]
   const proportion = p.proportion === 'red' ? ([p.redPct, p.redPct * p.redPct] as [number, number]) : prop.ratios
+  const widths: number[] = []
   let sPrev = 0
   let xPrev = 0
   for (let n = 1; n <= upTo; n++) {
@@ -87,38 +121,43 @@ function archWidths(
     const bd = baseDim(arch, n)
     const scale = n <= 3 ? s : 1 + (s - 1) * 0.5
     let w = bd.W * scale
-    // masculino: laterais e caninos mais largos; feminino: mais estreitos
     if (n === 2) w *= 1 + 0.05 * p.sex
     if (n === 3) w *= 1 + 0.04 * p.sex
     let next: number
     if (arch === 'upper' && proportion && n <= 3) {
+      // proporções em largura APARENTE (vista frontal): procura o ponto do arco onde a projeção frontal atinge o alvo
       const ratio = n === 1 ? 1 : n === 2 ? proportion[0] : proportion[1]
-      const apparent = p.centralWidth * ratio * c.w
+      const apparent = p.centralWidth * p.widthScale * ratio * c.w
       const targetX = xPrev + apparent
       next = curve.sForX(targetX)
       xPrev = targetX
     } else {
       w *= c.w
       next = sPrev + w
-      const pos = curve.at(next)
-      xPrev = pos.x
+      xPrev = curve.at(next).x
     }
     widths.push(next - sPrev)
-    s0.push(sPrev)
-    s1.push(next)
     sPrev = next
   }
-  return { widthArc: widths, s0, s1 }
+  return cumulate(widths)
 }
 
-/** Parâmetros anatômicos de uma coroa a partir da biblioteca + forma + personalidade + ajustes individuais. */
+const smileArcOf = (n: number, p: DesignParams) => {
+  const lat = clamp(0.6 - 0.25 * p.sex, 0.1, 1.1)
+  const base = n === 2 ? lat : SMILE_ARC[n - 1]
+  return base * p.smileArc
+}
+
+/** Parâmetros anatômicos de uma coroa a partir da biblioteca + forma + regras clínicas + ajustes individuais. */
 export function buildSpec(
   fdi: number,
   widthArc: number,
+  H: number,
   p: DesignParams,
   cfg: ToothCfg,
   status: ToothStatus,
   cervFade: number,
+  ridge: { m: number; d: number },
 ): CrownSpec {
   const arch = fdiArch(fdi)
   const n = fdiIndex(fdi)
@@ -127,21 +166,15 @@ export function buildSpec(
   const shape: ShapeId = cfg.shape ?? p.shape
   const adj = SHAPE_ADJ[shape]
   const anterior = n <= 3
-  const lengthScaleAnt = p.centralWidth / p.wl / baseDim('upper', 1).H
-  const lengthScale = anterior ? lengthScaleAnt : 1 + (lengthScaleAnt - 1) * 0.35
-  const archFactor = arch === 'lower' ? 1 : 1
-  const ageWearMm = anterior ? (n === 2 ? 0.9 : 1.1) * p.age : 0.3 * p.age
-  let H = bd.H * lengthScale * archFactor * cfg.h - ageWearMm
-  H = Math.max(5, H)
-  const BL = bd.BL * Math.pow(p.centralWidth / 8.6, 0.5) * cfg.bl
+  const BL = bd.BL * Math.pow((p.centralWidth * p.widthScale) / 8.6, 0.5) * cfg.bl
   const sex = p.sex
   const pers = p.personality
-  const cornerBase =
-    n === 1 ? [0.09, 0.14] : n === 2 ? [0.13, 0.22] : n === 3 ? [0.1, 0.1] : [0.09, 0.09]
+  // ângulos incisais: MESIAIS mais retos, DISTAIS mais arredondados
+  const cornerBase = n === 1 ? [0.06, 0.15] : n === 2 ? [0.1, 0.23] : n === 3 ? [0.1, 0.1] : [0.09, 0.09]
   const cornerAdj = anterior ? adj.corner * (1 - 0.32 * sex) * (1 - 0.55 * p.age) * (1 - 0.22 * pers) : 1
   const cornerM = clamp(cornerBase[0] * cornerAdj, 0.02, 0.4)
   const cornerD = clamp(cornerBase[1] * cornerAdj, 0.02, 0.42)
-  const dropBase = n === 1 ? [0.35, 0.65] : n === 2 ? [0.5, 1.0] : [0.2, 0.3]
+  const dropBase = n === 1 ? [0.25, 0.7] : n === 2 ? [0.4, 1.05] : [0.2, 0.3]
   const dropM = Math.min(0.2 * H, dropBase[0] * (anterior ? adj.corner * (1 - 0.3 * sex) : 1))
   const dropD = Math.min(0.22 * H, dropBase[1] * (anterior ? adj.corner * (1 - 0.3 * sex) : 1))
   const slope = n === 1 ? 0.25 : n === 2 ? 0.5 : 0
@@ -175,6 +208,9 @@ export function buildSpec(
     lingualN: 2.2,
     fossa: n === 1 ? 1.1 * adj.fossa : n === 2 ? 0.95 * adj.fossa : n === 3 ? 0.8 * adj.fossa : 0,
     ridge: n === 3 ? 0.7 : n === 1 ? 0.12 : n === 2 ? 0.1 : 0,
+    ridgeM: ridge.m,
+    ridgeD: ridge.d,
+    fullness: arch === 'upper' && n >= 4 ? p.fullness : arch === 'lower' && n >= 4 ? p.fullness * 0.35 : 0,
     mamelon: anterior ? 0.26 * p.mamelons * (1 - p.age) : 0,
     wear,
     seed: fdi * 7 + 3,
@@ -192,46 +228,111 @@ export interface LayoutOptions {
 export function computeLayout(p: DesignParams, teeth: Record<number, ToothCfg>, opt: LayoutOptions = {}): Layout {
   const cervFade = opt.cervFade ?? 0.16
   const archUpper = makeArch('upper', p.archForm, p.archScale, p.archDepth)
-  const archLower = makeArch('lower', p.archForm, p.archScale * 0.93, p.archDepth * 0.92)
+  const archLower = makeArch('lower', p.archForm, p.archScale, p.archDepth * 0.92)
   const cfgOf = (fdi: number) => teeth[fdi] ?? defaultToothCfg()
+  const sides = [-1, 1] as const
 
-  const place = (arch: ArchId, upTo: number, curve: ArchCurve): ToothPlacement[] => {
+  // ---- 1) larguras (arco) ---------------------------------------------------------------------------------------
+  const wUp: Record<number, SideWidths> = {}
+  for (const sd of sides) wUp[sd] = archWidths('upper', p.upperTo, p, (n, s) => cfgOf(makeFdi('upper', s, n)), sd, archUpper)
+  const wLo: Record<number, SideWidths> = {}
+  let classI: Layout['classI'] = null
+  if (p.lowerEnabled) {
+    for (const sd of sides) wLo[sd] = archWidths('lower', p.lowerTo, p, (n, s) => cfgOf(makeFdi('lower', s, n)), sd, archLower)
+    if (p.classI && p.upperTo >= 6 && p.lowerTo >= 6) {
+      // relação de CHAVE 1 (Andrews): canino superior na embrasura inferior; cúspide MV do 1º molar superior no sulco do inferior
+      let resC = 0
+      let resM = 0
+      for (const sd of sides) {
+        const u = wUp[sd]
+        const l = wLo[sd]
+        const w = l.widthArc.slice()
+        const uCanineTip = (u.s0[2] + u.s1[2]) / 2
+        const lAnt = w[0] + w[1] + w[2]
+        const f1 = clamp((uCanineTip - 0.2) / lAnt, 0.93, 1.1)
+        w[0] *= f1
+        w[1] *= f1
+        w[2] *= f1
+        const lCanineEnd = w[0] + w[1] + w[2]
+        const uMB = u.s0[5] + 0.28 * (u.s1[5] - u.s0[5])
+        const lPM = w[3] + w[4]
+        const lM1 = w[5]
+        const f2 = clamp((uMB - 0.36 * lM1 - lCanineEnd) / lPM, 0.9, 1.1)
+        w[3] *= f2
+        w[4] *= f2
+        wLo[sd] = cumulate(w)
+        resC += Math.abs(uCanineTip - wLo[sd].s1[2])
+        resM += Math.abs(uMB - (wLo[sd].s0[5] + 0.36 * w[5]))
+      }
+      classI = { canine: resC / 2, molar: resM / 2, applied: true }
+    }
+  }
+
+  // ---- 2) alturas: zênites e cúspides ----------------------------------------------------------------------------
+  const wearMm = (n: number) => (n <= 3 ? (n === 2 ? 0.9 : 1.1) * p.age : 0.3 * p.age)
+  const Hc = ((p.centralWidth * p.widthScale) / p.wl) * p.heightScale - wearMm(1)
+  const Zc = Hc + p.zenithShift
+  const lowerScale = Hc / baseDim('upper', 1).H
+  const Xl = baseDim('lower', 1).H * lowerScale
+
+  const edgeUp = (n: number) => p.incisalOffset + smileArcOf(n, p) + SPEE_PROFILE[n - 1] * p.spee
+  const edgeLo = (n: number) => edgeUp(n) + p.overbite * OVERBITE_FADE[n - 1]
+  const heightUp = (n: number) => Math.max(5, Zc + ZENITH_UP[n - 1] - smileArcOf(n, p) - SPEE_PROFILE[n - 1] * p.spee - (n > 1 ? wearMm(n) - wearMm(1) : 0))
+  const heightLo = (n: number) => Math.max(5, Xl + ZENITH_LO[n - 1] - (n <= 3 ? wearMm(n) * 0.5 : 0))
+
+  // ---- 3) cristas marginais: seguem a altura do dente vizinho -----------------------------------------------------
+  const ridgesFor = (arch: ArchId, upTo: number) => {
+    const out: Record<number, { m: number; d: number }> = {}
+    const dirSign = arch === 'upper' ? 1 : -1 // queda em direção ao cervical
+    const edge = (n: number) => (arch === 'upper' ? edgeUp(n) : edgeLo(n))
+    const yR = (n: number) => edge(n) + dirSign * RIDGE_NOMINAL[n - 1]
+    for (let n = 4; n <= upTo; n++) out[n] = { m: RIDGE_NOMINAL[n - 1], d: RIDGE_NOMINAL[n - 1] }
+    for (let n = 4; n < upTo; n++) {
+      const R = (yR(n) + yR(n + 1)) / 2
+      out[n].d = clamp(Math.abs(R - edge(n)), 0.3, 2.2)
+      out[n + 1].m = clamp(Math.abs(R - edge(n + 1)), 0.3, 2.2)
+    }
+    return out
+  }
+  const ridgeUp = ridgesFor('upper', p.upperTo)
+  const ridgeLo = ridgesFor('lower', p.lowerTo)
+
+  // ---- 4) colocação ----------------------------------------------------------------------------------------------
+  const place = (arch: ArchId, upTo: number, curve: ArchCurve, widths: Record<number, SideWidths>): ToothPlacement[] => {
     const out: ToothPlacement[] = []
-    for (const side of [-1, 1] as const) {
-      const widths = archWidths(arch, upTo, p, (n, sd) => cfgOf(makeFdi(arch, sd, n)), side, curve)
+    const upper = arch === 'upper'
+    for (const side of sides) {
       for (let n = 1; n <= upTo; n++) {
         const fdi = makeFdi(arch, side, n)
         const cfg = cfgOf(fdi)
-        const wArc = widths.widthArc[n - 1]
-        const sMid = (widths.s0[n - 1] + widths.s1[n - 1]) / 2
+        const wArc = widths[side].widthArc[n - 1]
+        const sMid = (widths[side].s0[n - 1] + widths[side].s1[n - 1]) / 2
         const c = curve.at(sMid)
-        const spec = buildSpec(fdi, wArc, p, cfg, cfg.status, cervFade)
+        const baseEdge = upper ? edgeUp(n) : edgeLo(n)
+        const Hbase = upper ? heightUp(n) : heightLo(n)
+        const H = Math.max(5, Hbase * cfg.h)
+        const rd = (upper ? ridgeUp : ridgeLo)[n] ?? { m: 0, d: 0 }
+        const spec = buildSpec(fdi, wArc, H, p, cfg, cfg.status, cervFade, rd)
 
-        // altura do ponto de origem (borda incisal / centro da mesa oclusal)
-        const tipBase = (arch === 'upper' ? TIP_UP : TIP_LO)[n - 1] * p.tipScale
-        const torqueBase = (arch === 'upper' ? TORQUE_UP : TORQUE_LO)[n - 1] * p.torqueScale
-        let edgeY = 0
-        const arcK = p.smileArc
-        const latOff = n === 2 ? clamp(0.6 - 0.25 * p.sex + 0.2 * (1 - p.age) * 0, 0.1, 1.1) : EDGE_OFFSET[n - 1]
-        const upperEdge = p.incisalOffset + latOff * arcK
-        if (arch === 'upper') edgeY = upperEdge
-        else {
-          const f = OVERBITE_FADE[n - 1]
-          edgeY = p.incisalOffset + EDGE_OFFSET[n - 1] * arcK * 0.9 + p.overbite * f
-        }
-        edgeY += cfg.dy
-        const zShift = arch === 'lower' ? -p.overjet * OVERBITE_FADE[n - 1] : 0
+        const tipBase = (upper ? TIP_UP : TIP_LO)[n - 1] * p.tipScale
+        // Wilson: torque posterior progressivo (anteriores seguem torqueScale)
+        const tq = (upper ? TORQUE_UP : TORQUE_LO)[n - 1]
+        const torqueBase = n >= 4 ? tq * p.wilson * p.torqueScale : tq * p.torqueScale
+        const artZ = (upper ? ARTISTIC_Z_UP : ARTISTIC_Z_LO)[n - 1] * p.artistic
+        const artRot = (upper ? ARTISTIC_ROT_UP : ARTISTIC_ROT_LO)[n - 1] * p.artistic * side
 
-        const ys = arch === 'upper' ? -1 : 1
+        const edgeY = baseEdge + cfg.dy
+        const zShift = arch === 'lower' ? -(p.overjet + 1.0) * OVERBITE_FADE[n - 1] : 0
+        const ys = upper ? -1 : 1
         const xAxis = new THREE.Vector3(side === 1 ? c.tx : -c.tx, 0, c.tz)
         const zAxis = side === 1 ? new THREE.Vector3(-c.tz, 0, c.tx) : new THREE.Vector3(c.tz, 0, c.tx)
         const yAxis = new THREE.Vector3(0, ys, 0)
         const pos = new THREE.Vector3(side * c.x, edgeY, c.z + zShift)
         pos.addScaledVector(xAxis, cfg.dx)
-        pos.addScaledVector(zAxis, cfg.dz)
+        pos.addScaledVector(zAxis, cfg.dz + artZ)
         const frame = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis).setPosition(pos)
         const local = new THREE.Matrix4()
-          .multiply(new THREE.Matrix4().makeRotationY(cfg.rot * DEG))
+          .multiply(new THREE.Matrix4().makeRotationY((cfg.rot + artRot) * DEG))
           .multiply(new THREE.Matrix4().makeRotationX((torqueBase + cfg.torque) * DEG))
           .multiply(new THREE.Matrix4().makeRotationZ((tipBase + cfg.tip) * DEG))
         const matrix = frame.multiply(local)
@@ -248,18 +349,19 @@ export function computeLayout(p: DesignParams, teeth: Record<number, ToothCfg>, 
           position: pos,
           edgeY,
           sMid,
+          zenithY: upper ? edgeY + H : edgeY - H,
         })
       }
     }
     return out
   }
 
-  const upper = place('upper', p.upperTo, archUpper)
-  const lower = p.lowerEnabled ? place('lower', p.lowerTo, archLower) : []
+  const upper = place('upper', p.upperTo, archUpper, wUp)
+  const lower = p.lowerEnabled ? place('lower', p.lowerTo, archLower, wLo) : []
   const all = [...upper, ...lower]
   const byFdi = new Map<number, ToothPlacement>()
   for (const t of all) byFdi.set(t.fdi, t)
-  return { upper, lower, archUpper, archLower, all, byFdi }
+  return { upper, lower, archUpper, archLower, all, byFdi, classI }
 }
 
 /** Ordem esquerda→direita da imagem para listas de UI. */

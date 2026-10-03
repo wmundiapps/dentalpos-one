@@ -12,6 +12,7 @@ src/
     analysis.ts     índice estético, biometria, ajuste do arco ao lábio, altura incisal
     shades.ts       escala BL/A/B/C/D → cores do esmalte (corpo, cervical, incisal)
     presets.ts      parâmetros padrão e 8 estilos
+  ai/          faceLandmarks.ts — MediaPipe Face Landmarker (478 pontos + íris) → Marks + forma do rosto
   geometry/    malhas (puro, sem DOM)
     toothMesh.ts    gerador paramétrico de coroas; cascas de faceta; coroa oca; silhueta
     denture.ts      bases/selas (laje fechada), placa palatina, barras, grampos (tubo), conectores de ponte
@@ -35,6 +36,12 @@ cemento-esmalte, ângulos incisais, cúspide do canino (braços mesial/distal) e
 Calotas cervical e superior fecham a malha, que é **idêntica em topologia** para todos os dentes ⇒ facetas (casca), coroas ocas e booleanas
 são derivadas sem remalhar. Cada vértice recebe cor (corpo→cervical→incisal translúcido, mamelões, ruído orgânico), UV e alfa (fade cervical para
 fundir com a gengiva da foto).
+
+## Regras clínicas (designEngine.ts)
+`SMILE_ARC`, `SPEE_PROFILE`, `ZENITH_UP/LO`, `TORQUE_UP/LO`, `TIP_UP/LO`, `ARTISTIC_Z/ROT`, `RIDGE_NOMINAL` concentram as regras. Alturas de coroa = zênite − bordo
+(superiores: linha de zênites absoluta; inferiores: X por dente). Classe I: larguras dos inferiores ajustadas (±10%) para o canino superior cair na embrasura e a cúspide MV do
+1º molar superior no sulco do inferior. Cristas marginais: queda calculada para igualar a altura entre dentes vizinhos. Arcos: `archForm.ts` (superelipse + arredondamento posterior; inferior elipse + reta).
+`autoDesign.ts` encadeia as regras a partir dos pontos (forma do rosto → forma/arco; biometria; zênite × lábio; arco × lábio; corredor; eixo do canino).
 
 ## Layout no arco
 Largura de cada dente = arco sobre a curva. Para Áurea/RED/Preston/Chu os 3 anteriores usam **larguras aparentes** (vista frontal): o motor

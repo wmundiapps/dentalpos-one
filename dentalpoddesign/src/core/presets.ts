@@ -31,8 +31,8 @@ export const defaultParams = (): DesignParams => ({
   upperTo: 5,
   lowerEnabled: false,
   lowerTo: 5,
-  overbite: 2,
-  overjet: 2.5,
+  overbite: 1.5,
+  overjet: 1.5,
   rollOffset: 0,
   yaw: 0,
   pitch: 0,
@@ -42,6 +42,15 @@ export const defaultParams = (): DesignParams => ({
   tipScale: 1,
   torqueScale: 1,
   contactTightness: 0,
+  spee: 1,
+  wilson: 1,
+  artistic: 1,
+  fullness: 0.6,
+  zenithShift: 0,
+  heightScale: 1,
+  widthScale: 1,
+  classI: true,
+  occlusalPitch: 0,
 })
 
 export const defaultLook = (): LookParams => ({
@@ -52,6 +61,8 @@ export const defaultLook = (): LookParams => ({
   outline: false,
   showTeeth: true,
   eraseOld: true,
+  papillae: true,
+  gumColor: '#c9626f',
 })
 
 export const PRESETS: Preset[] = [

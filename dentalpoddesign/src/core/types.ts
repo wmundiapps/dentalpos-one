@@ -18,7 +18,7 @@ export const DESIGNED_STATUS: ToothStatus[] = ['veneer', 'crown', 'pontic', 'imp
 
 export type ShapeId = 'ovoid' | 'square' | 'triangular' | 'rectangular' | 'round' | 'natural'
 export type SizeSetId = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'custom'
-export type ProportionId = 'natural' | 'golden' | 'red' | 'preston' | 'chu'
+export type ProportionId = 'natural' | 'golden' | 'goldenNat' | 'red' | 'preston' | 'chu'
 export type ArchFormId = 'tapered' | 'ovoid' | 'square'
 export type RestorationMode = 'veneers' | 'crowns' | 'partial' | 'complete' | 'custom'
 
@@ -79,6 +79,15 @@ export interface DesignParams {
   tipScale: number // intensidade da angulação (0–1.5)
   torqueScale: number
   contactTightness: number // mm (negativo = sobreposição)
+  spee: number // mm — curva de Spee (profundidade sagital); Andrews: ≤ 1,5 mm
+  wilson: number // 0–1,5 — intensidade da curva de Wilson (torque posterior progressivo)
+  artistic: number // 0–1,5 — posições artísticas (in-set lateral, off-set canino e molares)
+  fullness: number // 0–1 — equador vestibular dos posteriores superiores ("gordinho")
+  zenithShift: number // mm — desloca toda a linha dos zênites (alonga/encurta as coroas cervicalmente)
+  heightScale: number // multiplicador global de altura de coroa
+  widthScale: number // multiplicador global de largura
+  classI: boolean // alinha o arco inferior à relação molar/canino classe I de Angle
+  occlusalPitch: number // graus — plano oclusal (comissura→trágus) em relação à horizontal
 }
 
 /** Parâmetros de renderização / aparência, independentes da geometria. */
@@ -90,6 +99,8 @@ export interface LookParams {
   outline: boolean
   showTeeth: boolean
   eraseOld: boolean // escurece o espaço dos dentes originais ao redor do desenho
+  papillae: boolean // papilas gengivais virtuais preenchendo as embrasuras cervicais
+  gumColor: string
 }
 
 export interface Variant {
@@ -131,6 +142,18 @@ export interface Marks {
   calibB?: Pt
   gumLine?: Pt[] // linha gengival real (opcional)
   lowerLipCurve?: Pt[] // borda superior do lábio inferior (opcional, p/ arco do sorriso)
+  /** Foto de perfil: comissura e trágus (plano oclusal de Camper) */
+  profComm?: Pt
+  profTragus?: Pt
+}
+
+export interface FaceInfo {
+  source: 'ia' | 'manual'
+  shape: 'square' | 'round' | 'oval' | 'triangular'
+  label: string
+  lengthWidth: number
+  jawCheek: number
+  smile: number
 }
 
 export type CalibMethod = 'ipd' | 'twoPoints' | 'manual'
@@ -195,6 +218,7 @@ export interface Project {
   basePhotoId: string | null
   marks: Marks
   calib: Calibration
+  face?: FaceInfo
   variants: Variant[]
   activeVariant: string
   models: ImportedModel[]

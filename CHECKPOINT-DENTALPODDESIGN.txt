@@ -15,6 +15,11 @@ Entregue:
 - CAD 3D: oclusão, bases/selas, placa/barra palatina, ferradura/barra lingual, grampos, importação STL/OBJ/PLY, medição.
 - Exportação STL/OBJ/PLY/3MF (casca de faceta, coroa oca, sólido, monobloco, encaixes) com verificação watertight.
 
+Atualização — IA + regras clínicas:
+- IA de pontos faciais (MediaPipe) local: pupilas, linha média, comissuras, lábios, asas, zigomas, forma do rosto.
+- Motor com seis chaves de Andrews, zênites X, Spee/Wilson, in-set/off-set, arcos superior/inferior, classe I, cristas marginais,
+  overbite/overjet 1–2 mm, eixo do canino→pupila, plano oclusal comissura→trágus (perfil), desenho automático natural.
+
 Testes:
   cd dentalpoddesign && npm ci && npm run typecheck && npm run verify
   npx tsx scripts/test-boolean.ts && npx tsx scripts/test-production.ts

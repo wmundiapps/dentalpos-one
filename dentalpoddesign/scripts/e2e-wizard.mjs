@@ -32,7 +32,7 @@ await gen.close()
 const page = await ctx.newPage()
 const errors = []
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message))
-page.on('console', (m) => { if (m.type() === 'error' && !/favicon|404/.test(m.text())) errors.push('console: ' + m.text()) })
+page.on('console', (m) => { if (m.type() === 'error' && !/favicon|404|TensorFlow|XNNPACK|inference_feedback/.test(m.text())) errors.push('console: ' + m.text()) })
 await page.goto(url)
 await page.getByPlaceholder(/Nome do paciente/).fill('Maria Teste')
 await page.getByRole('button', { name: 'Novo caso' }).click()

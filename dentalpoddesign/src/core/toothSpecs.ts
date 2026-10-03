@@ -119,6 +119,7 @@ export interface ProportionSystem {
 export const PROPORTIONS: ProportionSystem[] = [
   { id: 'natural', label: 'Natural (Wheeler)', ratios: null, desc: 'Larguras anatômicas reais; recomendação padrão.' },
   { id: 'golden', label: 'Proporção áurea (1 : 0,618 : 0,382)', ratios: [0.618, 0.382], desc: 'Levin — larguras aparentes em vista frontal.' },
+  { id: 'goldenNat', label: 'Áurea ajustada (1 : 0,618 : 0,52)', ratios: [0.618, 0.52], desc: 'Lateral na razão áurea; canino com largura aparente natural (a áurea pura deixa o canino estreito).' },
   { id: 'red', label: 'Proporção RED (recorrente)', ratios: [0.7, 0.49], desc: 'Ward — cada dente mantém a mesma razão (≈70%) do vizinho anterior.' },
   { id: 'preston', label: 'Preston', ratios: [0.66, 0.55], desc: 'Preston — lateral ≈66% do central; canino ≈84% do lateral.' },
   { id: 'chu', label: 'Porcentagem áurea (Chu)', ratios: [0.6, 0.4], desc: 'Chu — 25% / 15% / 10% da largura intercaninos.' },

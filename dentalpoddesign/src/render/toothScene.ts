@@ -41,6 +41,7 @@ export class ToothScene {
   readonly scene = new THREE.Scene()
   readonly root = new THREE.Group()
   readonly extras = new THREE.Group()
+  readonly papillae = new THREE.Group()
   readonly teeth = new Map<number, THREE.Mesh>()
   readonly silhouettes = new Map<number, Array<[number, number]>>()
   private cache = new Map<string, Cached>()
@@ -56,6 +57,7 @@ export class ToothScene {
   constructor(renderer: THREE.WebGLRenderer) {
     this.scene.add(this.root)
     this.root.add(this.extras)
+    this.root.add(this.papillae)
     this.material = enamelMaterial({ gloss: 0.55, texture: 0.5 })
     this.amb = new THREE.AmbientLight(0xffffff, 0.55)
     this.key = new THREE.DirectionalLight(0xfff6ee, 1.45)
@@ -105,7 +107,7 @@ export class ToothScene {
   }
 
   /** Atualiza as malhas dos dentes conforme o layout. */
-  setLayout(layout: Layout, p: DesignParams, opts: { ghost?: boolean; quality?: keyof typeof QUALITY } = {}) {
+  setLayout(layout: Layout, p: DesignParams, opts: { ghost?: boolean; quality?: keyof typeof QUALITY; papillae?: string | null } = {}) {
     const quality = opts.quality ?? 'standard'
     this.setMaterial(p)
     for (const [fdi, mesh] of this.teeth) {
@@ -142,7 +144,79 @@ export class ToothScene {
       mesh.renderOrder = t.designed ? 1 : 0
       this.silhouettes.set(t.fdi, c.silhouette)
     }
+    this.buildPapillae(layout, opts.papillae ?? null)
     this.root.updateMatrixWorld(true)
+  }
+
+  /** Papilas gengivais virtuais: preenchem a embrasura cervical entre dentes vizinhos (sem fundo escuro). */
+  private buildPapillae(layout: Layout, color: string | null) {
+    for (const c of [...this.papillae.children]) {
+      this.papillae.remove(c)
+      ;(c as THREE.Mesh).geometry.dispose()
+    }
+    if (!color) return
+    const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), roughness: 0.55, metalness: 0, vertexColors: true, transparent: true, side: THREE.DoubleSide })
+    for (const list of [layout.upper, layout.lower]) {
+      for (const side of [-1, 1] as const) {
+        const row = list.filter((t) => t.side === side && t.designed && t.n <= 6).sort((a, b) => a.n - b.n)
+        const pairs: Array<[ToothPlacement, ToothPlacement]> = []
+        for (let i = 1; i < row.length; i++) if (row[i].n === row[i - 1].n + 1) pairs.push([row[i - 1], row[i]])
+        // papila entre os centrais (linha média)
+        const mid1 = list.find((t) => t.side === -1 && t.n === 1 && t.designed)
+        const mid2 = list.find((t) => t.side === 1 && t.n === 1 && t.designed)
+        if (side === 1 && mid1 && mid2) pairs.push([mid1, mid2])
+        for (const [A, B] of pairs) {
+          const up = A.arch === 'upper'
+          const dir = up ? 1 : -1
+          const pos = A.position.clone().add(B.position).multiplyScalar(0.5)
+          const xa = new THREE.Vector3(A.matrix.elements[0], 0, A.matrix.elements[2])
+          const xb = new THREE.Vector3(B.matrix.elements[0], 0, B.matrix.elements[2])
+          if (A.side !== B.side) xb.negate()
+          const xAxis = xa.clone().multiplyScalar(A.side).add(xb.multiplyScalar(B.side)).normalize()
+          const zAxis = new THREE.Vector3(-xAxis.z, 0, xAxis.x)
+          const frame = new THREE.Matrix4().makeBasis(xAxis, new THREE.Vector3(0, 1, 0), zAxis)
+          const tc = (A.spec.tcD + B.spec.tcM) / 2
+          const H = (A.spec.H + B.spec.H) / 2
+          const yContact = pos.y + dir * (1 - tc) * H
+          const yZ = (A.zenithY + B.zenithY) / 2 + dir * 0.9
+          const wTop = 3.2
+          const zc = -1.1
+          const verts: number[] = []
+          const cols: number[] = []
+          const c0 = new THREE.Color(color)
+          const push = (x: number, y: number, z: number, a: number) => {
+            const v = new THREE.Vector3(x, 0, zc + z)
+            v.applyMatrix4(frame)
+            verts.push(v.x + pos.x, y, v.z + pos.z)
+            cols.push(c0.r, c0.g, c0.b, a)
+          }
+          const zf = 0.55
+          const zb = -0.55
+          const yMid = yZ + 0.32 * (yContact - yZ)
+          for (const z of [zf, zb]) {
+            push(-wTop / 2, yZ, z, 0) // 0,5
+            push(wTop / 2, yZ, z, 0) // 1,6
+            push(-wTop * 0.42, yMid, z, 1) // 2,7
+            push(wTop * 0.42, yMid, z, 1) // 3,8
+            push(0, yContact, z, 1) // 4,9
+          }
+          const idx = [
+            0, 1, 3, 0, 3, 2, 2, 3, 4, // frente
+            5, 8, 6, 5, 7, 8, 7, 9, 8, // trás
+            0, 2, 7, 0, 7, 5, 2, 4, 9, 2, 9, 7, // lado esquerdo
+            1, 6, 8, 1, 8, 3, 3, 8, 9, 3, 9, 4, // lado direito
+          ]
+          const g = new THREE.BufferGeometry()
+          g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3))
+          g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 4))
+          g.setIndex(idx)
+          g.computeVertexNormals()
+          const m = new THREE.Mesh(g, mat)
+          m.renderOrder = 0
+          this.papillae.add(m)
+        }
+      }
+    }
   }
 
   placementOf(layout: Layout, fdi: number): ToothPlacement | undefined {

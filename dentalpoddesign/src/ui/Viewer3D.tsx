@@ -101,7 +101,7 @@ export function Viewer3D() {
       const layout = computeLayout(v.params, v.teeth, { cervFade: 0 })
       ts.setLayout(layout, v.params, { ghost: o.ghost, quality: 'standard' })
       ts.setPose(v.params, 0)
-      ts.root.rotation.set(0, 0, 0)
+      ts.root.rotation.set((v.params.occlusalPitch * Math.PI) / 180, 0, 0)
       ts.root.position.set(0, 0, 0)
       ts.root.updateMatrixWorld(true)
       clearGroup(ts.extras)

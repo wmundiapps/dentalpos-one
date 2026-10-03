@@ -49,6 +49,9 @@ export interface CrownSpec {
   lingualN: number
   fossa: number
   ridge: number // crista vestibular (canino)
+  ridgeM: number // queda da crista marginal mesial (mm abaixo das cúspides)
+  ridgeD: number // queda da crista marginal distal
+  fullness: number // 0–1: equador vestibular mais volumoso (posteriores superiores)
   mamelon: number // mm
   wear: number // 0–1
   seed: number
@@ -140,26 +143,28 @@ function topDrop(s: CrownSpec, xn: number, zr: number): number {
   const ax = Math.abs(xn)
   const zr2 = clamp(zr, -1.2, 1.2)
   if (s.cls === 'premolar') {
-    const lingDrop = s.arch === 'upper' ? 0.55 : s.n === 4 ? 1.8 : 1.0
-    const groove = 1.7 * gauss(zr2 - 0.02, 0.2) * (1 - 0.35 * ax * ax)
-    const marginal = 1.15 * Math.pow(smooth01(clamp((ax - 0.5) / 0.5, 0, 1)), 1.2)
-    const ling = lingDrop * smooth01(clamp((-zr2 + 0.05) / 0.65, 0, 1))
+    // cúspide vestibular MAIOR e mais alta; lingual menor e mais baixa
+    const lingDrop = s.arch === 'upper' ? 0.7 : s.n === 4 ? 1.9 : 1.1
+    const groove = 1.7 * gauss(zr2 - 0.12, 0.2) * (1 - 0.35 * ax * ax)
+    const rM = xn < 0 ? s.ridgeM : s.ridgeD
+    const marginal = (rM || 1.15) * Math.pow(smooth01(clamp((ax - 0.5) / 0.5, 0, 1)), 1.2)
+    const ling = lingDrop * smooth01(clamp((-zr2 + 0.02) / 0.6, 0, 1))
     const rim = 0.7 * Math.pow(smooth01(clamp((Math.abs(zr2) - 0.7) / 0.3, 0, 1)), 2)
     return (groove + marginal + ling + rim) * (1 - 0.5 * w)
   }
-  // molares: 4 cúspides + fossa central
-  const sx = 0.42
-  const sz = 0.42
-  const cusps: Array<[number, number, number]> = [
-    [-0.46, 0.5, 1.0], // mésio-vestibular
-    [0.46, 0.5, 0.92], // disto-vestibular
-    [-0.46, -0.5, 0.95], // mésio-lingual
-    [0.46, -0.5, s.arch === 'upper' ? 0.55 : 0.85], // disto-lingual
+  // molares: 4 cúspides + fossa central; vestibulares maiores (σ maior) e mais altas que as linguais/palatinas
+  const cusps: Array<[number, number, number, number, number]> = [
+    // [x, z, altura, σx, σz]
+    [-0.46, 0.52, 1.0, 0.5, 0.48], // mésio-vestibular
+    [0.46, 0.52, 0.94, 0.48, 0.46], // disto-vestibular
+    [-0.46, -0.5, 0.82, 0.38, 0.36], // mésio-lingual/palatina
+    [0.46, -0.5, s.arch === 'upper' ? 0.5 : 0.7, 0.34, 0.32], // disto-lingual/palatina
   ]
   let sum = 0
-  for (const [cx, cz, h] of cusps) sum += h * Math.exp(-(((xn - cx) / sx) ** 2 + ((zr2 - cz) / sz) ** 2))
+  for (const [cx, cz, h, sx, sz] of cusps) sum += h * Math.exp(-(((xn - cx) / sx) ** 2 + ((zr2 - cz) / sz) ** 2))
   const bump = 1 - Math.exp(-1.7 * sum)
-  const marginal = 0.7 * smooth01(clamp((ax - 0.65) / 0.35, 0, 1))
+  const rMol = xn < 0 ? s.ridgeM : s.ridgeD
+  const marginal = (rMol || 0.7) * smooth01(clamp((ax - 0.65) / 0.35, 0, 1))
   const rim = 0.8 * Math.pow(smooth01(clamp((Math.abs(zr2) - 0.72) / 0.28, 0, 1)), 2)
   return (2.6 * (1 - bump) + marginal + rim) * (1 - 0.5 * w)
 }
@@ -308,6 +313,8 @@ export function crownGrid(spec: CrownSpec, opts: BuildOpts = QUALITY.standard): 
       if (zn < 0 && (spec.cls === 'incisor' || spec.cls === 'canine')) {
         z += spec.fossa * fossaWin(t) * (1 - xn * xn) * -zn
       }
+      // equador vestibular mais volumoso nos posteriores (afasta a bochecha na mastigação)
+      if (zn > 0 && spec.fullness > 0) z += spec.fullness * 0.95 * zn * smoothstep(0.08, 0.38, t) * (1 - smoothstep(0.55, 0.95, t))
       // crista vestibular (canino) e convexidade
       if (zn > 0 && spec.ridge > 0) z += spec.ridge * Math.pow(Math.max(0, 1 - xn * xn), 2) * zn * smoothstep(0, 0.35, t) * (1 - smoothstep(0.8, 1, t))
       const zr = (z - zcRow(1)) / (BL / 2)
