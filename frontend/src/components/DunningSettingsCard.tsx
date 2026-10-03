@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Box, Button, Chip, FormControlLabel, MenuItem, Paper, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, Chip, FormControlLabel, Paper, Switch, Typography } from "@mui/material";
 import GavelIcon from "@mui/icons-material/Gavel";
-import { DunningApi, STAGE_LABEL, type DunningState } from "../services/DunningApi";
+import { CHANNEL_LABEL, DunningApi, STAGE_LABEL, type DunningState } from "../services/DunningApi";
 
 const STATUS: Record<string, string> = { SENT: "Enviado", PENDING: "Aguardando envio", FAILED: "Falhou", CANCELLED: "Cancelado" };
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -39,9 +39,27 @@ export default function DunningSettingsCard() {
       {!data.ready && <Alert severity="warning" sx={{ mb: 2 }}>A tabela da régua ainda não foi criada no banco. Rode o SQL da régua de cobrança (20261004) no Supabase antes de ligar.</Alert>}
       <FormControlLabel control={<Switch checked={data.enabled} disabled={!data.ready} onChange={(_, v) => void save({ enabled: v })} />} label={data.enabled ? "Régua ligada" : "Régua desligada (nenhuma mensagem é enviada)"} />
       <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", mt: 1 }}>
-        <TextField select size="small" label="Canal de envio" value={data.channel} onChange={(e) => void save({ channel: e.target.value })} sx={{ minWidth: 180 }}>
-          {data.channels.map((c) => <MenuItem key={c} value={c}>{c === "WHATSAPP" ? "WhatsApp" : c === "SMS" ? "SMS" : "E-mail"}</MenuItem>)}
-        </TextField>
+        <Box sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 800 }}>Canais de envio (marque um ou mais)</Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", columnGap: 2, alignItems: "center" }}>
+            {data.channelOptions.map((c) => (
+              <FormControlLabel
+                key={c}
+                control={<Checkbox size="small" checked={data.channels.includes(c)} onChange={() => {
+                  const next = data.channels.includes(c) ? data.channels.filter((x) => x !== c) : [...data.channels, c];
+                  if (next.length) void save({ channels: next });
+                }} />}
+                label={CHANNEL_LABEL[c] || c}
+              />
+            ))}
+            <Button size="small" onClick={() => void save({ channels: data.channelOptions })}>Marcar todos</Button>
+          </Box>
+          {data.channels.length > 1 && !data.multiReady && (
+            <Alert severity="warning" sx={{ mt: 1 }}>
+              Vários canais ao mesmo tempo precisam de uma atualização no banco (SQL 20261005). Enquanto ela não for feita, só o primeiro canal ({CHANNEL_LABEL[data.activeChannels[0]] || data.activeChannels[0]}) envia.
+            </Alert>
+          )}
+        </Box>
         <FormControlLabel control={<Switch checked={data.includeOlder} onChange={(_, v) => void save({ includeOlder: v })} />} label="Incluir também dívidas que já estavam vencidas antes de ligar" />
       </Box>
       {data.enabled && !data.includeOlder && data.since && (
@@ -67,7 +85,7 @@ export default function DunningSettingsCard() {
               <Typography variant="body2" sx={{ minWidth: 180, fontWeight: 700 }}>{p.patientName}</Typography>
               <Chip size="small" label={STAGE_LABEL(p.stage)} color={p.stage === "LEGAL" ? "error" : "default"} />
               <Typography variant="body2">{brl(p.amount)}</Typography>
-              {!p.hasContact && <Chip size="small" color="warning" label="sem contato cadastrado" />}
+              {p.channels.map((c) => <Chip key={c} size="small" variant="outlined" color={p.missingContact.includes(c) ? "warning" : "default"} label={`${CHANNEL_LABEL[c] || c}${p.missingContact.includes(c) ? ": sem contato" : ""}`} />)}
             </Box>
           ))}
           {data.preview.length > 15 && <Typography variant="body2" color="text.secondary">e mais {data.preview.length - 15}…</Typography>}

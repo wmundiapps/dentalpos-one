@@ -2620,7 +2620,7 @@ model DunningNotice {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  @@unique([financialEntryId, stage])
+  @@unique([financialEntryId, stage, channel])
   @@index([clinicId, status, scheduledFor])
   @@index([clinicId, createdAt])
 }

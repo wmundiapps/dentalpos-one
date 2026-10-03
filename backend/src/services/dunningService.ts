@@ -12,7 +12,22 @@ const LEGAL_UNTIL = 60
 const START_HOUR_BRT = 9
 let running = false
 
-export type DunningSettings = { enabled: boolean; since: string | null; includeOlder: boolean; channel: RevahChannel }
+export type DunningSettings = { enabled: boolean; since: string | null; includeOlder: boolean; channels: RevahChannel[] }
+
+// Vários canais por aviso exigem o índice único (lançamento, etapa, canal). Sem ele, só o primeiro canal é usado (não perde nem duplica aviso).
+const MULTI_INDEX = 'DunningNotice_financialEntryId_stage_channel_key'
+let multiReadyUntil = 0
+export async function multiChannelReady(): Promise<boolean> {
+  if (multiReadyUntil === Infinity) return true
+  if (multiReadyUntil > Date.now()) return false
+  try {
+    const rows = await prisma.$queryRaw<Array<{ ok: number }>>`SELECT 1 AS ok FROM pg_indexes WHERE indexname = ${MULTI_INDEX} LIMIT 1`
+    if (rows.length) { multiReadyUntil = Infinity; return true }
+  } catch { /* sem acesso ao catálogo: trata como não pronto */ }
+  multiReadyUntil = Date.now() + 5 * 60 * 1000
+  return false
+}
+export const effectiveChannels = (s: DunningSettings, multiReady: boolean) => (multiReady ? s.channels : s.channels.slice(0, 1))
 
 export const brtDay = (d: Date) => new Date(d.getTime() - 3 * 3600000).toISOString().slice(0, 10)
 const daysBetween = (fromISO: string, toISO: string) => Math.round((new Date(`${toISO}T12:00:00Z`).getTime() - new Date(`${fromISO}T12:00:00Z`).getTime()) / DAY)
@@ -44,14 +59,18 @@ export function dunningMessage(stage: string, c: DunningCtx) {
 
 export async function loadDunningSettings(clinicId: string): Promise<DunningSettings> {
   const row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: FLAG_KEY } } })
-  const meta = (row?.metadata || {}) as { since?: string; includeOlder?: boolean; channel?: string }
-  const channel = (DUNNING_CHANNELS as readonly string[]).includes(String(meta.channel)) ? (meta.channel as RevahChannel) : 'WHATSAPP'
+  const meta = (row?.metadata || {}) as { since?: string; includeOlder?: boolean; channel?: string; channels?: unknown }
+  const valid = (c: unknown): c is RevahChannel => (DUNNING_CHANNELS as readonly string[]).includes(String(c))
+  let channels = Array.isArray(meta.channels) ? [...new Set(meta.channels.filter(valid))] : []
+  if (!channels.length && valid(meta.channel)) channels = [meta.channel]
+  // Padrão e-mail: é o único canal que funciona sem configurar nada.
+  if (!channels.length) channels = ['EMAIL']
   // Padrão desligado: a régua só começa a enviar quando o gestor liga.
-  return { enabled: row ? row.enabled : false, since: meta.since || null, includeOlder: Boolean(meta.includeOlder), channel }
+  return { enabled: row ? row.enabled : false, since: meta.since || null, includeOlder: Boolean(meta.includeOlder), channels }
 }
 
 export async function saveDunningSettings(clinicId: string, tenantId: string, s: DunningSettings) {
-  const metadata = { since: s.since, includeOlder: s.includeOlder, channel: s.channel }
+  const metadata = { since: s.since, includeOlder: s.includeOlder, channels: s.channels, channel: s.channels[0] }
   await prisma.tenantFeatureFlag.upsert({
     where: { clinicId_key: { clinicId, key: FLAG_KEY } },
     update: { enabled: s.enabled, metadata },
@@ -59,10 +78,10 @@ export async function saveDunningSettings(clinicId: string, tenantId: string, s:
   })
 }
 
-type Candidate = { entryId: string; patientId: string; patientName: string; phone: string; email: string | null; amount: number; dueISO: string; daysOverdue: number; stage: string }
+type Candidate = { entryId: string; patientId: string; patientName: string; phone: string; email: string | null; amount: number; dueISO: string; daysOverdue: number; stage: string; channels: RevahChannel[] }
 
 // Lançamentos a receber em atraso que têm aviso a enviar hoje (sem duplicar o que já foi enviado).
-export async function dunningCandidates(clinicId: string, tenantId: string, settings: DunningSettings, now = new Date()): Promise<Candidate[]> {
+export async function dunningCandidates(clinicId: string, tenantId: string, settings: DunningSettings, now = new Date(), channels: RevahChannel[] = settings.channels, multi = true): Promise<Candidate[]> {
   const today = brtDay(now)
   const from = new Date(now.getTime() - (LEGAL_UNTIL + 3) * DAY)
   const entries = await prisma.financialEntry.findMany({
@@ -79,12 +98,16 @@ export async function dunningCandidates(clinicId: string, tenantId: string, sett
     const daysOverdue = daysBetween(dueISO, today)
     const stage = stageFor(daysOverdue)
     if (!stage) continue
-    out.push({ entryId: e.id, patientId: e.patientId, patientName: e.patient.fullName, phone: e.patient.phone || '', email: e.patient.email, amount: Number(e.amount), dueISO, daysOverdue, stage })
+    out.push({ entryId: e.id, patientId: e.patientId, patientName: e.patient.fullName, phone: e.patient.phone || '', email: e.patient.email, amount: Number(e.amount), dueISO, daysOverdue, stage, channels: [] })
   }
   if (!out.length) return out
-  const done = await prisma.dunningNotice.findMany({ where: { financialEntryId: { in: out.map(c => c.entryId) } }, select: { financialEntryId: true, stage: true } })
-  const sent = new Set(done.map(d => `${d.financialEntryId}:${d.stage}`))
-  return out.filter(c => !sent.has(`${c.entryId}:${c.stage}`))
+  const done = await prisma.dunningNotice.findMany({ where: { financialEntryId: { in: out.map(c => c.entryId) } }, select: { financialEntryId: true, stage: true, channel: true } })
+  // Sem o índice novo (multi = false), o banco só aceita um aviso por lançamento e etapa, qualquer que seja o canal.
+  const sent = new Set(done.map(d => `${d.financialEntryId}:${d.stage}:${multi ? d.channel : ''}`))
+  // Cada candidato volta só com os canais que ainda não receberam este aviso.
+  return out
+    .map(c => ({ ...c, channels: channels.filter(ch => !sent.has(`${c.entryId}:${c.stage}:${multi ? ch : ''}`)) }))
+    .filter(c => c.channels.length > 0)
 }
 
 async function sendNotice(notice: { id: string; clinicId: string; tenantId: string; channel: string; message: string; scheduledFor: Date; financialEntryId: string }, destination: string, contactName: string) {
@@ -129,16 +152,20 @@ export async function processDunning(clinicId?: string, nowOverride?: Date) {
       const clinic = await prisma.clinic.findFirst({ where: { id: flag.clinicId }, select: { name: true } })
       const clinicName = clinic?.name || 'Clínica'
       // 1) cria os avisos de hoje
-      for (const c of await dunningCandidates(flag.clinicId, flag.tenantId, settings, now)) {
+      const multi = await multiChannelReady()
+      const channels = effectiveChannels(settings, multi)
+      for (const c of await dunningCandidates(flag.clinicId, flag.tenantId, settings, now, channels, multi)) {
         const charge = await prisma.receivableCharge.findFirst({ where: { clinicId: flag.clinicId, financialEntryId: c.entryId, status: { notIn: ['PAGO', 'CANCELADO'] } }, select: { invoiceUrl: true }, orderBy: { createdAt: 'desc' } }).catch(() => null)
-        const destination = settings.channel === 'EMAIL' ? c.email || '' : c.phone
-        const message = dunningMessage(c.stage, { patientName: c.patientName, clinicName, amount: c.amount, dueISO: c.dueISO, daysOverdue: c.daysOverdue, link: charge?.invoiceUrl })
-        await prisma.dunningNotice.create({
-          data: {
-            clinicId: flag.clinicId, tenantId: flag.tenantId, financialEntryId: c.entryId, patientId: c.patientId, stage: c.stage, channel: settings.channel, message, scheduledFor: now,
-            ...(destination ? {} : { status: 'FAILED', errorMessage: settings.channel === 'EMAIL' ? 'Paciente sem e-mail cadastrado.' : 'Paciente sem telefone cadastrado.' })
-          }
-        }).catch(() => null) // índice único: outro processo já criou este aviso
+        for (const channel of c.channels) {
+          const destination = channel === 'EMAIL' ? c.email || '' : c.phone
+          const message = dunningMessage(c.stage, { patientName: c.patientName, clinicName, amount: c.amount, dueISO: c.dueISO, daysOverdue: c.daysOverdue, link: charge?.invoiceUrl })
+          await prisma.dunningNotice.create({
+            data: {
+              clinicId: flag.clinicId, tenantId: flag.tenantId, financialEntryId: c.entryId, patientId: c.patientId, stage: c.stage, channel, message, scheduledFor: now,
+              ...(destination ? {} : { status: 'FAILED', errorMessage: channel === 'EMAIL' ? 'Paciente sem e-mail cadastrado.' : 'Paciente sem telefone cadastrado.' })
+            }
+          }).catch(() => null) // índice único: outro processo já criou este aviso
+        }
       }
       // 2) envia os pendentes (inclui tentativas anteriores que falharam)
       const pending = await prisma.dunningNotice.findMany({ where: { clinicId: flag.clinicId, status: 'PENDING', scheduledFor: { lte: now } }, orderBy: { scheduledFor: 'asc' }, take: 100 })
