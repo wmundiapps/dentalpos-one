@@ -7,19 +7,28 @@ import { planCamJob, type CamJobUnit, type Disc } from "./cam";
 import { designOf } from "./project";
 import type { Mesh } from "./mesh";
 import type { Jaw } from "./anatomy";
+import { designRestoration, type RestorationParams } from "./restoration";
+import type { ToothModel } from "./toothMesh";
+import type { Vec3 } from "./math";
+import type { MaterialId } from "./materials";
 
 export type JobRequest =
   | { id: number; kind: "wax"; project: CadProject; jaw: Jaw; h?: number }
   | { id: number; kind: "tray"; project: CadProject; jaw: Jaw; opts: Partial<TrayOptions>; h?: number }
   | { id: number; kind: "guide"; project: CadProject; jaw: Jaw; opts: Partial<GuideOptions> }
   | { id: number; kind: "crown"; project: CadProject; fdi: number; spec: PrepSpec }
-  | { id: number; kind: "cam"; project: CadProject; disc?: Disc; bur?: number };
-export interface JobResponse { id: number; ok: boolean; error?: string; meshes?: Record<string, Mesh>; data?: unknown }
+  | { id: number; kind: "cam"; project: CadProject; disc?: Disc; bur?: number; extra?: Array<{ id: string; mesh: Mesh; material: MaterialId }> }
+  | { id: number; kind: "restore"; scan: Mesh; antagonist?: Mesh; pick: Vec3; tooth: ToothModel; params?: Partial<RestorationParams>; axis?: Vec3; margin?: Vec3[] };
+export interface JobResponse { id: number; ok: boolean; error?: string; meshes?: Record<string, Mesh>; data?: unknown; progress?: { stage: string; p: number } }
 
 const transfer = (r: JobResponse) => (r.meshes ? Object.values(r.meshes).flatMap((m) => [m.positions.buffer, m.indices.buffer]) : []);
 
-export function runJob(req: JobRequest): JobResponse {
+export function runJob(req: JobRequest, onProgress?: (stage: string, p: number) => void): JobResponse {
   try {
+    if (req.kind === "restore") {
+      const r = designRestoration({ scan: req.scan, antagonist: req.antagonist, pick: req.pick, tooth: req.tooth, params: req.params, axis: req.axis, margin: req.margin, onProgress });
+      return { id: req.id, ok: true, meshes: { crown: r.crown, ...(r.cavity ? { cavity: r.cavity } : {}) }, data: { report: r.report, margin: r.margin, axis: r.axis, params: r.params } };
+    }
     const ev = evaluate(req.project);
     if (req.kind === "wax") {
       const v = buildJawVolume(ev, req.jaw, req.h ?? 0.4);
@@ -42,7 +51,8 @@ export function runJob(req: JobRequest): JobResponse {
       return { id: req.id, ok: true, meshes: { shell: r.shell, prep: r.prep }, data: { stats: r.stats, marginZ: r.marginZ } };
     }
     const units: CamJobUnit[] = [...ev.teeth.values()].filter((t) => designOf(req.project, t.fdi).kind !== "natural").map((t) => ({ id: String(t.fdi), mesh: t.mesh, material: designOf(req.project, t.fdi).material }));
-    if (!units.length) return { id: req.id, ok: false, error: "Nenhum dente com restauração definida (altere o tipo na aba Dentes)." };
+    for (const x of req.extra ?? []) units.push({ id: x.id, mesh: x.mesh, material: x.material });
+    if (!units.length) return { id: req.id, ok: false, error: "Nenhum dente com restauração definida (altere o tipo na aba Dentes ou gere uma restauração a partir do escaneamento)." };
     const plan = planCamJob(units, { disc: req.disc, burRadius: req.bur });
     const meshes: Record<string, Mesh> = {};
     for (const it of plan.items) { meshes[`u${it.id}`] = it.scaled; meshes[`s${it.id}`] = it.sprue.mesh; }
@@ -53,5 +63,5 @@ export function runJob(req: JobRequest): JobResponse {
 }
 
 if (typeof self !== "undefined" && typeof (self as unknown as { document?: unknown }).document === "undefined" && typeof postMessage === "function") {
-  self.onmessage = (ev: MessageEvent<JobRequest>) => { const r = runJob(ev.data); (self as unknown as Worker).postMessage(r, transfer(r)); };
+  self.onmessage = (ev: MessageEvent<JobRequest>) => { const r = runJob(ev.data, (stage, p) => (self as unknown as Worker).postMessage({ id: ev.data.id, progress: { stage, p } })); (self as unknown as Worker).postMessage(r, transfer(r)); };
 }

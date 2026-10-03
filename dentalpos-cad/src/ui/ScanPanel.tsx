@@ -20,6 +20,9 @@ const COLOR: Record<Kind, string> = { work: "#c9b48a", antagonist: "#8fb4d9", bi
 interface Scan { geometry: THREE.BufferGeometry; fileName: string; diag: MeshDiagnosticResult | null; visible?: boolean }
 // os escaneamentos ficam fora do estado do projeto (são grandes) e vivem enquanto a página estiver aberta
 const store: Partial<Record<Kind, Scan>> = {};
+export const getScans = () => store;
+export const getManualMargin = () => margin;
+export const meshOfScan = (k: Kind): Mesh | null => { const s = store[k]; return s ? toMesh(s.geometry) : null; };
 let margin: Vec3[] = [];
 let landmarks: Vec3[] = [];
 

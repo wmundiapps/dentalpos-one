@@ -28,9 +28,13 @@ Aba **Oclusão**: cartões das 6 chaves (OK/atenção/corrigir), tabela de medid
 Aba **Sorriso / foto** → *Usar foto de exemplo* (ou carregue uma foto e marque os pontos indicados; no contorno da boca, clique vários pontos e dê duplo clique).
 Ajuste *Exibição incisal*, *Inclinação do plano incisal*, *Zoom*, ative **Comparador antes/depois**. Mude cor (aba Caso) e forma e veja a projeção mudar.
 A análise facial mostra o formato do rosto detectado e o dente recomendado; **Salvar imagem (PNG)** exporta.
+**Foto real:** *Carregar foto…* → a IA detecta os pontos sozinha (ou clique em ✨ *Detectar pontos com IA*). Depois clique em 🪄 **Ajustar sorriso à foto (IA)**: ela calcula alturas (X), posição, corredor bucal e forma. Em seguida edite **direto na foto**: escolha a ferramenta (Mover / Tamanho / Inclinar / Girar / Sorriso), clique no dente e arraste; a roda do mouse altera a altura (Shift = largura). *Editar simetricamente* espelha no dente oposto.
 
 ## 5b. Escaneamento (STL)
 Aba **Escaneamento (STL)**: importe um STL (arcada de trabalho/antagonista), use **Diagnosticar/Reparar**, **Marcar 3 pontos** (molar D, molar E, incisal) para orientar o escaneamento e ajustar o arco, **Marcar término** clicando no modelo, **Calcular melhor eixo** e, com um dente do projeto selecionado, **Espessura**, **Contato c/ antagonista** e **Ajuste ao preparo**.
+
+## 5c. Restauração a partir do escaneamento
+Aba **Escaneamento**: importe a arcada com o preparo (e o antagonista). Aba **Restauração (coroa)**: escolha o dente e o material, **Marcar o preparo** (clique no dente preparado), ajuste os parâmetros e **Gerar restauração**. Confira o relatório (término, espessura, contatos, oclusão), exporte o STL da coroa e inclua na fresagem (aba Materiais / CAM).
 
 ## 6. Enceramento e mockup
 Aba **Enceramento / mockup** → *Gerar modelo + gengiva* (arcada superior), *Iniciar escultura* e clique sobre a cera com ＋/－/≈ (raio ajustável),
