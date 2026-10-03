@@ -169,6 +169,22 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
 .instalacao__gratis h3{font-family:'Fraunces',serif;font-size:clamp(1.3rem,3vw,1.9rem);margin:14px 0 8px}
 .instalacao__gratis p{margin:0 auto 18px;max-width:56ch}
 .instalacao__extras{margin:14px auto 0;max-width:70ch;font-size:13px;color:var(--texto-suave)}
+
+.acesso__lede{max-width:60ch;margin:0 0 24px;color:var(--texto-suave)}
+.acesso__card{background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:22px;padding:28px;max-width:760px;display:grid;gap:16px}
+.acesso__linha{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.acesso__card label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+.acesso__card input[type=text],.acesso__card input[type=email],.acesso__card input[type=tel]{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid rgba(0,0,0,.25);border-radius:12px;font:inherit;background:#fff;color:#1D1D1F}
+.acesso__card input:focus-visible{outline:3px solid #E0A83E;outline-offset:1px}
+.acesso__canal{border:0;padding:0;margin:0;display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+.acesso__canal legend{font-weight:700;font-size:14px;margin-bottom:8px;padding:0}
+.acesso__op{display:inline-flex!important;align-items:center;gap:8px;font-weight:600!important;margin:0!important}
+.acesso__erro{color:#B3261E;font-weight:700;margin:0}
+.acesso__nota{font-size:12.5px;color:var(--texto-suave);margin:0}
+.acesso__ok{background:#fff;border:2px solid #E0A83E;border-radius:22px;padding:28px;max-width:760px}
+@media(max-width:700px){.acesso__linha{grid-template-columns:1fr}}
+.acesso__card[hidden],.acesso__ok[hidden]{display:none!important}
+.acesso .pergunta{margin-bottom:14px}
 </style>
 </head>
 <body>
@@ -522,6 +538,36 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
   </div>
 </section>
 
+<section class="banda banda--papel acesso" id="acesso">
+  <div class="wrap">
+    <h2 class="pergunta">Receba o seu acesso agora.</h2>
+    <p class="acesso__lede">Deixe seus dados e escolha como quer receber o acesso: por e-mail ou por WhatsApp. São 30 dias grátis, sem cartão de crédito.</p>
+    <div class="acesso__card" id="acesso-form">
+      <div class="acesso__linha">
+        <div><label for="a-nome">Nome</label><input id="a-nome" type="text" autocomplete="name"></div>
+        <div><label for="a-clinica">Clínica ou instituição</label><input id="a-clinica" type="text" autocomplete="organization"></div>
+      </div>
+      <div class="acesso__linha">
+        <div><label for="a-email">E-mail</label><input id="a-email" type="email" autocomplete="email"></div>
+        <div><label for="a-zap">WhatsApp</label><input id="a-zap" type="tel" placeholder="(44) 90000-0000" autocomplete="tel"></div>
+      </div>
+      <fieldset class="acesso__canal">
+        <legend>Quero receber o acesso por</legend>
+        <label class="acesso__op"><input type="radio" name="a-canal" value="email" checked> E-mail</label>
+        <label class="acesso__op"><input type="radio" name="a-canal" value="whatsapp"> WhatsApp</label>
+      </fieldset>
+      <p class="acesso__erro" id="a-erro" hidden></p>
+      <button type="button" class="btn btn--ouro" id="a-enviar">Quero receber meu acesso</button>
+      <p class="acesso__nota">Ao enviar, você concorda em receber o acesso e contato sobre o DentalPos One. Você pode pedir para parar quando quiser.</p>
+    </div>
+    <div class="acesso__ok" id="a-ok" hidden>
+      <h3>Pronto! Recebemos seus dados.</h3>
+      <p id="a-ok-texto"></p>
+      <a class="btn btn--ouro" href="https://app.dentalpos.com.br">Criar meu acesso agora</a>
+    </div>
+  </div>
+</section>
+
 <section class="banda banda--escura" id="comecar">
   <div class="wrap exp">
     <div class="exp__leao" role="img" aria-label="Mascote do DentalPos One"></div>
@@ -552,5 +598,31 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
   <div class="wrap">Desenvolvido por WMundi Technologies &amp; Co · <a href="#topo">voltar ao topo</a></div>
 </footer>
 
+<script>
+(function(){
+  var f=document.getElementById("acesso-form"),ok=document.getElementById("a-ok"),er=document.getElementById("a-erro"),btn=document.getElementById("a-enviar");
+  if(!f||!btn)return;
+  function v(id){var e=document.getElementById(id);return e?e.value.trim():""}
+  function canal(){var r=document.querySelector('input[name="a-canal"]:checked');return r?r.value:"email"}
+  function mostra(t){er.textContent=t;er.hidden=false}
+  btn.addEventListener("click",function(){
+    var d={perfil:"Landing /landingpage",nome:v("a-nome"),clinica:v("a-clinica"),email:v("a-email"),zap:v("a-zap"),canal:canal(),mensagem:"Quero receber meu acesso ao DentalPos One."};
+    er.hidden=true;
+    if(!d.nome){mostra("Por favor, informe seu nome.");return}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)){mostra("Por favor, informe um e-mail válido.");return}
+    if(d.canal==="whatsapp"&&d.zap.replace(/\D/g,"").length<10){mostra("Informe seu WhatsApp com DDD para receber o acesso por lá.");return}
+    btn.disabled=true;btn.textContent="Enviando...";
+    fetch("/api/contato",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)})
+      .then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.erro||"Não foi possível enviar agora.");return j})})
+      .then(function(){
+        f.hidden=true;ok.hidden=false;
+        document.getElementById("a-ok-texto").textContent=d.canal==="whatsapp"
+          ?"Nossa equipe vai enviar o seu acesso pelo WhatsApp. Enviamos também uma confirmação para o seu e-mail."
+          :"Enviamos o seu acesso para o seu e-mail. Se não encontrar, olhe a caixa de spam.";
+      })
+      .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo ou fale pelo WhatsApp (44) 98453-5069.");btn.disabled=false;btn.textContent="Quero receber meu acesso"});
+  });
+})();
+</script>
 </body>
 </html>
