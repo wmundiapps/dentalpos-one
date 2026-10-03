@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Check, Section, Sel, Slider } from "./atoms";
 import type { Ctx } from "./ctx";
 import { AGE_LABEL, buildPresetLibrary, ETHNICITY_LABEL, FACE_LABEL, FORM_LABEL, SEX_LABEL, styleModifiers, type AgeBand, type Ethnicity, type FaceShape, type LibraryPreset, type Personality, type Sex, type Style, type ToothForm } from "../core/profiles";
@@ -11,6 +11,10 @@ import { DEFAULT_HEIGHTS } from "../core/anatomy";
 import { PROPORTION_LABEL } from "../core/rules";
 import { autoDesign, recommendDesign } from "../core/ai";
 import type { ProportionRule } from "../core/project";
+import { importMesh } from "../core/io";
+import { meshToCustom, customToMesh } from "../core/library";
+import { mirrorFdi } from "../core/anatomy";
+import { flipWinding } from "../core/project";
 
 const svgCache = new Map<string, string>();
 function presetPath(p: LibraryPreset): string {
@@ -34,6 +38,7 @@ function presetPath(p: LibraryPreset): string {
 export function CasePanel({ c }: { c: Ctx }) {
   const { project: p } = c.s;
   const presets = useMemo(() => buildPresetLibrary(), []);
+  const [mirrorMissing, setMirrorMissing] = useState(true);
   const rec = recommendDesign(p.patient, p.photo);
   const shown = presets.filter((x) => (x.face.includes(p.patient.face) && (x.sex === p.patient.sex || x.sex === "neutral")) || x.id.startsWith("special"));
   const setPat = (patch: Partial<typeof p.patient>) => c.s.set((q) => ({ ...q, patient: { ...q.patient, ...patch } }));
@@ -64,6 +69,26 @@ export function CasePanel({ c }: { c: Ctx }) {
         </div>
       </div>
       <Sel label="Forma dos dentes (anteriores)" value={p.form} options={o(FORM_LABEL) as Array<[ToothForm, string]>} onChange={(v) => c.s.set((q) => ({ ...q, form: v, presetId: undefined }))} testid="sel-form" />
+      <Section title="Biblioteca própria (vários STL/OBJ/PLY)">
+        <p className="hint">Selecione de uma vez os arquivos de dentes da sua biblioteca (licenciada ou escaneada). O número FDI é lido do nome do arquivo (ex.: <code>11.stl</code>, <code>dente_26.stl</code>). Convenção: x mésio→distal (+distal), y vestibular (+), z cervical→oclusal (+). Os dentes são ajustados às dimensões do projeto.</p>
+        <label className="btn p" style={{ cursor: "pointer" }}>Importar biblioteca…<input type="file" multiple accept=".stl,.obj,.ply" hidden data-testid="file-lib" onChange={async (e) => {
+          const files = [...(e.target.files ?? [])]; e.target.value = "";
+          const found: Record<number, ReturnType<typeof meshToCustom>> = {}; const skipped: string[] = [];
+          for (const f of files) {
+            const m = /(?<!\d)([1-4][1-8])(?!\d)/.exec(f.name);
+            if (!m) { skipped.push(f.name); continue; }
+            try { found[parseInt(m[1])] = meshToCustom(importMesh(f.name, await f.arrayBuffer()), f.name); } catch { skipped.push(f.name); }
+          }
+          const mirrored: number[] = [];
+          if (mirrorMissing) for (const k of Object.keys(found)) { const f = parseInt(k), mf = mirrorFdi(f); if (!found[mf]) { const src = customToMesh(found[f]); const pos = new Float32Array(src.positions); for (let i = 0; i < pos.length; i += 3) pos[i] = -pos[i]; found[mf] = meshToCustom(flipWinding({ positions: pos, indices: src.indices }), `${found[f].name} (espelhado)`); mirrored.push(mf); }
+          }
+          const n = Object.keys(found).length;
+          if (n) c.s.set((q) => ({ ...q, customTeeth: { ...(q.customTeeth ?? {}), ...found } }));
+          c.toast(`${n} dente(s) importado(s)${mirrored.length ? ` (${mirrored.length} espelhado(s))` : ""}${skipped.length ? `; ignorados: ${skipped.join(", ")}` : ""}.`);
+        }} /></label>
+        <Check label="Espelhar para o dente do lado oposto quando faltar" checked={mirrorMissing} onChange={setMirrorMissing} />
+        {Object.keys(p.customTeeth ?? {}).length > 0 && <div className="btns"><span className="hint">{Object.keys(p.customTeeth ?? {}).length} dente(s) da biblioteca própria em uso.</span><button className="btn d" onClick={() => c.s.set((q) => ({ ...q, customTeeth: {} }))}>Voltar tudo ao paramétrico</button></div>}
+      </Section>
       <Section title={`Biblioteca de formas (${shown.length})`}>
         <div className="presets" data-testid="presets">
           {shown.map((pr) => (

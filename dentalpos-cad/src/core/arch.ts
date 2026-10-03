@@ -15,7 +15,7 @@ export interface ArchParams {
   depth: number;
 }
 export const DEFAULT_ARCH: Record<Jaw, ArchParams> = {
-  upper: { form: "ovoid", width: 49, depth: 27.5 },
+  upper: { form: "ovoid", width: 49, depth: 25.6 },
   lower: { form: "ovoid", width: 44, depth: 27.6 },
 };
 
