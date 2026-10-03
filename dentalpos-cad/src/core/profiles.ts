@@ -87,10 +87,10 @@ export function styleModifiers(p: PatientProfile, form?: ToothForm): StyleModifi
   };
   const m: StyleModifiers = {
     widthScale: 1, heightScale: 1, cervicalRatio: 0.8, squareness: 3, cornerRounding: 0.3, mamelon: 0.25, wear: 0,
-    labialConvexity: 0.5, lateralStep: 1.0, cuspDrop: 2.2, cuspRelief: 0.8, notes, ...base[f],
+    labialConvexity: 0.5, lateralStep: 0.5, cuspDrop: 2.2, cuspRelief: 0.8, notes, ...base[f],
   };
   // Sexo (Frush & Fisher): feminino = arredondado/delicado; masculino = angular/vigoroso. Homens: dentes ~3–5% maiores.
-  if (p.sex === "female") { m.cornerRounding += 0.15; m.widthScale *= 0.98; m.lateralStep += 0.3; m.cuspDrop -= 0.2; notes.push("Feminino: ângulos arredondados, lateral ~1,3 mm mais curto."); }
+  if (p.sex === "female") { m.cornerRounding += 0.15; m.widthScale *= 0.98; m.lateralStep += 0.3; m.cuspDrop -= 0.2; notes.push("Feminino: ângulos arredondados, lateral ~0,8 mm mais curto."); }
   if (p.sex === "male") { m.cornerRounding -= 0.12; m.widthScale *= 1.035; m.heightScale *= 1.01; m.lateralStep -= 0.3; m.cuspDrop += 0.3; notes.push("Masculino: coroas ~3% maiores, ângulos mais vivos, canino mais pontiagudo."); }
   // Personalidade
   if (p.personality === "delicate") { m.cornerRounding += 0.12; m.widthScale *= 0.97; m.cuspDrop -= 0.2; m.labialConvexity -= 0.1; }

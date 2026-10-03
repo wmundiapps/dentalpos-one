@@ -171,7 +171,7 @@ export function evaluate(p: CadProject): Evaluated {
     const lm: Landmarks = {
       incisalMid: W(lm0.incisalMid), facialEdge: W(lm0.facialEdge), lingualEdge: W(lm0.lingualEdge), mesialContact: W(lm0.mesialContact),
       distalContact: W(lm0.distalContact), cervicalFacial: W(lm0.cervicalFacial), cervicalCenter: W(lm0.cervicalCenter),
-      cusps: lm0.cusps.map(W), mesialAngle: W(lm0.mesialAngle), distalAngle: W(lm0.distalAngle), anchor: pose.anchorW,
+      cusps: lm0.cusps.map(W), mesialRidge: lm0.mesialRidge && W(lm0.mesialRidge), distalRidge: lm0.distalRidge && W(lm0.distalRidge), mesialAngle: W(lm0.mesialAngle), distalAngle: W(lm0.distalAngle), anchor: pose.anchorW,
     };
     const dir = (v: Vec3) => mApply(pose.R, v);
     teeth.set(f, { fdi: f, ref: toothRef(f), dims: res.dims.get(f)!, model, pose, mirror, mesh, lm, distal: dir([1, 0, 0]), facial: dir([0, 1, 0]), occlusal: dir([0, 0, 1]) });

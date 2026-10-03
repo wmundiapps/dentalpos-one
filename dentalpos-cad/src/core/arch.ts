@@ -143,6 +143,7 @@ export interface OcclusionParams {
   occlusalPlaneDeg?: number;
   molarOffset: number; // Classe II (+) / Classe III (−): deslocamento ântero-posterior do inferior posterior, mm
 }
+const SPEE_PITCH_SIGN = -1;
 export const DEFAULT_OCCLUSION: OcclusionParams = { overjet: 1.5, overbite: 1.5, speeRadius: 135, wilsonRadius: 220, molarOffset: 0 };
 
 /** Posicionamento artístico (mm, + = vestibular) aplicado à posição vestíbulo-lingual de cada tipo de dente */
@@ -227,11 +228,13 @@ export function buildPoses(o: PoseInputs): PoseResult {
         const adj = o.adjust[fdi] ?? {};
         const norm = ANDREWS_NORMS[jaw][r.type];
         const useA = o.applyAndrews !== false;
+        const apI = Math.max(0, -p.y), spSlope = isFinite(oc.speeRadius) && r.index >= 4 ? (apI - (archLen + 4) / 2) / oc.speeRadius : 0;
+        const pitch = (jaw === "upper" ? 1.7 * SPEE_PITCH_SIGN : -SPEE_PITCH_SIGN) * (Math.atan(spSlope) * 180) / Math.PI; // a coroa acompanha a curvatura (cristas marginais niveladas)
         const tip = (useA ? norm.tip : 0) + (adj.tip ?? 0);
         const torque = (useA ? norm.torque : 0) + (adj.torque ?? 0);
         const rotation = adj.rotation ?? 0;
         const { B, mirror: mir } = baseFrame(r, p.tangent);
-        const R = mMul(B, mMul(mirrorM(mir), localRot(tip, torque, rotation)));
+        const R = mMul(B, mMul(mirrorM(mir), localRot(tip + pitch, torque, rotation)));
         const ap = Math.max(0, -p.y);
         const ap0 = speeLen / 2;
         const spee = isFinite(oc.speeRadius) ? ((ap - ap0) ** 2 - ap0 ** 2) / (2 * oc.speeRadius) : 0;

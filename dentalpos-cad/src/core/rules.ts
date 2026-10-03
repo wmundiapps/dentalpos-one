@@ -1,6 +1,6 @@
 // Motor de regras clínicas: Andrews (6 chaves), overjet/overbite, Spee/Wilson, proporções (áurea/RED/Preston),
 // simetria, estética, materiais. Cada achado traz mensagem, dica e (quando possível) correção automática.
-import { ANDREWS_NORMS, ANTERIOR, isAnterior, toothRef } from "./anatomy";
+import { ANDREWS_NORMS, ANTERIOR, DEFAULT_HEIGHTS, isAnterior, schemeHeight, toothRef } from "./anatomy";
 import { type CadProject, type Evaluated, type ProportionRule, designOf, evaluate } from "./project";
 import { type Measurements, measure } from "./measure";
 import { MATERIALS } from "./materials";
@@ -41,8 +41,8 @@ export function proportionTargets(rule: ProportionRule): { lat: number; can: num
 }
 
 export const THRESHOLDS = {
-  overjet: { ideal: [1, 3], warn: [0.5, 4], err: [0, 6] },
-  overbite: { ideal: [1, 3], warn: [0.3, 4], err: [-0.3, 6] },
+  overjet: { ideal: [1, 2], warn: [0.5, 3], err: [0, 5] },
+  overbite: { ideal: [1, 2], warn: [0.5, 3], err: [-0.3, 5] },
   tipWarn: 3, tipErr: 6, torqueWarn: 3, torqueErr: 7, rotWarn: 3, rotErr: 8,
   gapWarn: 0.3, gapErr: 0.8, overlapWarn: -0.4, overlapErr: -1.0,
   speeWarn: 2.0, speeErr: 3.0,
@@ -55,6 +55,7 @@ export const THRESHOLDS = {
   bolton: { anterior: [75.5, 79.0], overall: [89.4, 93.2] },
   proportionTol: 0.07,
   zenithLat: [-1.6, 0.2],
+  zenithTol: 0.7, ridgeTol: 0.5,
 };
 
 let uid = 0;
@@ -76,18 +77,18 @@ export function analyze(p: CadProject, evIn?: Evaluated): Report {
   // ---------- Overjet / Overbite ----------
   if (m.overjet !== null) {
     const v = m.overjet;
-    const fix: AutoFix = { label: "Ajustar overjet para 2,5 mm", apply: (q) => ({ ...q, occlusion: { ...q.occlusion, overjet: 2.5 } }) };
-    if (v < T.overjet.err[0]) issues.push(mk("OJ_NEG", "error", "oclusao", [11, 21, 31, 41], "Mordida cruzada anterior", `Overjet negativo (${f(v)} mm): incisivos superiores atrás dos inferiores.`, "Avance os incisivos superiores/ajuste torque (+) ou revise a relação esquelética; confirme se é uma Classe III real.", { value: v, target: "1–3 mm", fix }));
-    else if (v > T.overjet.err[1]) issues.push(mk("OJ_HIGH", "error", "oclusao", [11, 21], "Overjet excessivo", `Overjet de ${f(v)} mm (ideal 1–3 mm).`, "Retroinclinar os incisivos superiores ou reduzir o volume vestibular da restauração.", { value: v, target: "1–3 mm", fix }));
-    else if (v < T.overjet.warn[0] || v > T.overjet.warn[1]) issues.push(mk("OJ_WARN", "warning", "oclusao", [11, 21], v < 1 ? "Overjet reduzido" : "Overjet aumentado", `Overjet de ${f(v)} mm; faixa ideal 1–3 mm.`, v < 1 ? "Risco de contato de topo e interferência na protrusiva." : "Pode comprometer fonética (sons F/V) e guia anterior.", { value: v, target: "1–3 mm", fix }));
-    else issues.push(mk("OJ_OK", "ok", "oclusao", [11, 21], "Overjet adequado", `${f(v)} mm (ideal 1–3 mm).`, "Mantenha o guia anterior suave para desoclusão posterior na protrusiva.", { value: v }));
+    const fix: AutoFix = { label: "Ajustar overjet para 1,5 mm", apply: (q) => ({ ...q, occlusion: { ...q.occlusion, overjet: 1.5 } }) };
+    if (v < T.overjet.err[0]) issues.push(mk("OJ_NEG", "error", "oclusao", [11, 21, 31, 41], "Mordida cruzada anterior", `Overjet negativo (${f(v)} mm): incisivos superiores atrás dos inferiores.`, "Avance os incisivos superiores/ajuste torque (+) ou revise a relação esquelética; confirme se é uma Classe III real.", { value: v, target: "1–2 mm", fix }));
+    else if (v > T.overjet.err[1]) issues.push(mk("OJ_HIGH", "error", "oclusao", [11, 21], "Overjet excessivo", `Overjet de ${f(v)} mm (ideal 1–2 mm).`, "Retroinclinar os incisivos superiores ou reduzir o volume vestibular da restauração.", { value: v, target: "1–2 mm", fix }));
+    else if (v < T.overjet.warn[0] || v > T.overjet.warn[1]) issues.push(mk("OJ_WARN", "warning", "oclusao", [11, 21], v < 1 ? "Overjet reduzido" : "Overjet aumentado", `Overjet de ${f(v)} mm; faixa ideal 1–2 mm.`, v < 1 ? "Risco de contato de topo e interferência na protrusiva." : "Pode comprometer fonética (sons F/V) e guia anterior.", { value: v, target: "1–2 mm", fix }));
+    else issues.push(mk("OJ_OK", "ok", "oclusao", [11, 21], "Overjet adequado", `${f(v)} mm (ideal 1–2 mm).`, "Mantenha o guia anterior suave para desoclusão posterior na protrusiva.", { value: v }));
   }
   if (m.overbite !== null) {
     const v = m.overbite;
-    const fix: AutoFix = { label: "Ajustar overbite para 2,5 mm", apply: (q) => ({ ...q, occlusion: { ...q.occlusion, overbite: 2.5 } }) };
-    if (v < T.overbite.err[0]) issues.push(mk("OB_OPEN", "error", "oclusao", [11, 21, 31, 41], "Mordida aberta anterior", `Overbite de ${f(v)} mm (sem trespasse vertical).`, "Estenda as bordas incisais superiores ou verticalize a oclusão; sem contato anterior há sobrecarga posterior.", { value: v, target: "1–3 mm", fix }));
-    else if (v > T.overbite.err[1]) issues.push(mk("OB_DEEP", "error", "oclusao", [11, 21], "Mordida profunda", `Overbite de ${f(v)} mm (${f(m.overbitePct, 0)}% da coroa inferior).`, "Encurte as bordas incisais superiores ou nivele a curva de Spee.", { value: v, target: "1–3 mm", fix }));
-    else if (v < T.overbite.warn[0] || v > T.overbite.warn[1]) issues.push(mk("OB_WARN", "warning", "oclusao", [11, 21], v < 1 ? "Overbite reduzido / topo a topo" : "Overbite aumentado", `Overbite de ${f(v)} mm (${f(m.overbitePct, 0)}% da coroa inferior); ideal 1–3 mm (20–30%).`, "Revise o comprimento incisal superior e o plano oclusal.", { value: v, target: "1–3 mm", fix }));
+    const fix: AutoFix = { label: "Ajustar overbite para 1,5 mm", apply: (q) => ({ ...q, occlusion: { ...q.occlusion, overbite: 1.5 } }) };
+    if (v < T.overbite.err[0]) issues.push(mk("OB_OPEN", "error", "oclusao", [11, 21, 31, 41], "Mordida aberta anterior", `Overbite de ${f(v)} mm (sem trespasse vertical).`, "Estenda as bordas incisais superiores ou verticalize a oclusão; sem contato anterior há sobrecarga posterior.", { value: v, target: "1–2 mm", fix }));
+    else if (v > T.overbite.err[1]) issues.push(mk("OB_DEEP", "error", "oclusao", [11, 21], "Mordida profunda", `Overbite de ${f(v)} mm (${f(m.overbitePct, 0)}% da coroa inferior).`, "Encurte as bordas incisais superiores ou nivele a curva de Spee.", { value: v, target: "1–2 mm", fix }));
+    else if (v < T.overbite.warn[0] || v > T.overbite.warn[1]) issues.push(mk("OB_WARN", "warning", "oclusao", [11, 21], v < 1 ? "Overbite reduzido / topo a topo" : "Overbite aumentado", `Overbite de ${f(v)} mm (${f(m.overbitePct, 0)}% da coroa inferior); ideal 1–2 mm.`, "Revise o comprimento incisal superior e o plano oclusal.", { value: v, target: "1–2 mm", fix }));
     else issues.push(mk("OB_OK", "ok", "oclusao", [11, 21], "Overbite adequado", `${f(v)} mm — ${f(m.overbitePct, 0)}% da coroa inferior.`, "Trespasse vertical favorece a guia anterior.", { value: v }));
   }
 
@@ -185,14 +186,52 @@ export function analyze(p: CadProject, evIn?: Evaluated): Report {
     if (c && l) {
       const d = c.lm.incisalMid[2] - l.lm.incisalMid[2]; // superior: borda lateral mais cervical = z maior
       const step = -d;
-      if (step < T.lateralShorter[0] || step > T.lateralShorter[1]) issues.push(mk("LAT_STEP", "warning", "estetica", [c.fdi, l.fdi], "Degrau incisal lateral/central", `Lateral ${step >= 0 ? "mais curto" : "mais longo"} em ${f(Math.abs(step))} mm (ideal 0,5–1,5 mm mais curto).`, "Lateral ligeiramente mais curto cria o sorriso em 'asa de gaivota'.", { value: step }));
+      if (step < T.lateralShorter[0] || step > T.lateralShorter[1]) issues.push(mk("LAT_STEP", "warning", "estetica", [c.fdi, l.fdi], "Degrau incisal lateral/central", `Lateral ${step >= 0 ? "mais curto" : "mais longo"} em ${f(Math.abs(step))} mm (ideal 0,3–1,5 mm mais curto).`, "Lateral ligeiramente mais curto cria o sorriso em 'asa de gaivota'.", { value: step, fix: { label: `Ajustar degrau incisal do ${l.fdi} (0,8 mm)`, apply: (q) => setAdj(q, l.fdi, { dz: (q.adjust[l.fdi]?.dz ?? 0) + (0.8 - step) }) } }));
     }
-    const zc = ev.teeth.get(11) && ev.teeth.get(13) && ev.teeth.get(12);
-    if (zc) {
-      const z = (n: number) => m.zenith[n];
-      const dz = z(12) - (z(11) + z(13)) / 2;
-      if (dz < T.zenithLat[0] || dz > T.zenithLat[1]) issues.push(mk("ZENITH", "info", "estetica", [11, 12, 13], "Zênite gengival do lateral", `Zênite do 12 ${f(dz)} mm em relação à linha 11–13 (ideal 0,5–1 mm abaixo).`, "Centrais e caninos com zênite no mesmo nível; laterais ~1 mm incisal à linha."));
+  }
+
+  // ---------- Esquema de alturas (X) ----------
+  {
+    const hs = p.heights ?? DEFAULT_HEIGHTS;
+    if (hs.enabled) {
+      const off: number[] = [];
+      for (const t of ev.teeth.values()) {
+        const want = schemeHeight(t.ref.jaw, t.ref.type, hs) * ev.mods.heightScale;
+        if (Math.abs(t.dims.h - want) > 0.45) off.push(t.fdi);
+      }
+      if (off.length) issues.push(mk("H_SCHEME", "info", "proporcao", off, "Alturas fora do esquema X", `Dentes ${off.join(", ")} diferem do esquema (sup.: central X+0,5 · lateral X · canino X+0,5 · PM X · 1º M X−0,5 · 2º M X−1 · inf.: incisivos/PM X · canino X+0,5 · molares X−0,5).`, "Restabeleça as alturas padrão para manter a harmonia do plano oclusal.", { fix: { label: "Restaurar alturas do esquema", apply: (q) => ({ ...q, adjust: Object.fromEntries(Object.entries(q.adjust).map(([k, v]) => [k, { ...v, scaleH: undefined }])) }) } }));
     }
+  }
+
+  // ---------- Contorno gengival (zênites) ----------
+  // central ≈ canino; lateral ≈ 1º pré-molar; molares seguem a cervical do 2º pré-molar
+  const alignZenith = (fdi: number, target: number): ((q: CadProject) => CadProject) => (q) => {
+    const t = ev.teeth.get(fdi); if (!t) return q;
+    const cur = m.zenith[fdi], dz = target - cur; // superior: cervical mais alta = z maior
+    const sgn = t.ref.jaw === "upper" ? 1 : -1;
+    return setAdj(q, fdi, { scaleH: clamp((q.adjust[fdi]?.scaleH ?? 1) * ((t.dims.h + sgn * dz) / t.dims.h), 0.8, 1.2) });
+  };
+  for (const side of [1, 2]) {
+    const c = side * 10 + 1, l = side * 10 + 2, k = side * 10 + 3, p1 = side * 10 + 4, p2 = side * 10 + 5, m1 = side * 10 + 6;
+    const z = (n: number) => m.zenith[n];
+    if (ev.teeth.has(c) && ev.teeth.has(k) && Math.abs(z(c) - z(k)) > T.zenithTol) {
+      issues.push(mk("ZENITH_CK", "warning", "estetica", [c, k], `Contorno gengival ${c}/${k}`, `Zênites do central e do canino diferem ${f(Math.abs(z(c) - z(k)))} mm (devem ser semelhantes).`, "Nivele a margem gengival do canino com a do incisivo central.", { value: z(c) - z(k), fix: { label: `Alinhar zênite do ${k} ao do ${c}`, apply: alignZenith(k, z(c)) } }));
+    }
+    if (ev.teeth.has(l) && ev.teeth.has(p1) && Math.abs(z(l) - z(p1)) > T.zenithTol + 0.3) {
+      issues.push(mk("ZENITH_LP", "info", "estetica", [l, p1], `Contorno gengival ${l}/${p1}`, `Zênites do lateral e do 1º pré-molar diferem ${f(Math.abs(z(l) - z(p1)))} mm (devem ser semelhantes).`, "Laterais e pré-molares compartilham o mesmo nível cervical, ligeiramente incisal ao de central/canino.", { value: z(l) - z(p1), fix: { label: `Alinhar zênite do ${p1} ao do ${l}`, apply: alignZenith(p1, z(l)) } }));
+    }
+    if (ev.teeth.has(m1) && ev.teeth.has(p2) && Math.abs(z(m1) - z(p2)) > T.zenithTol + 0.6) {
+      issues.push(mk("ZENITH_M", "info", "estetica", [p2, m1], `Cervical do ${m1}`, `A cervical do 1º molar difere ${f(Math.abs(z(m1) - z(p2)))} mm da do 2º pré-molar (molares seguem a cervical dos pré-molares).`, "Acompanhe a linha cervical dos pré-molares.", { value: z(m1) - z(p2), fix: { label: `Alinhar cervical do ${m1} ao ${p2}`, apply: alignZenith(m1, z(p2)) } }));
+    }
+  }
+
+  // ---------- Cristas marginais: seguem a altura do dente vizinho ----------
+  for (const [a, b] of [[14, 15], [15, 16], [16, 17], [24, 25], [25, 26], [26, 27], [34, 35], [35, 36], [36, 37], [44, 45], [45, 46], [46, 47]]) {
+    const A = ev.teeth.get(a), B = ev.teeth.get(b);
+    if (!A?.lm.distalRidge || !B?.lm.mesialRidge) continue;
+    // a crista distal de A (lado distal do arco) toca a mesial de B
+    const d = A.lm.distalRidge[2] - B.lm.mesialRidge[2];
+    if (Math.abs(d) > T.ridgeTol) issues.push(mk("RIDGE", Math.abs(d) > T.ridgeTol * 2 ? "warning" : "info", "contatos", [a, b], `Cristas marginais ${a}/${b}`, `Degrau de ${f(Math.abs(d))} mm entre as cristas marginais (devem seguir a altura do vizinho).`, "Nivele as cristas marginais para evitar retenção alimentar e interferência oclusal.", { value: d, fix: { label: `Nivelar crista do ${b} à do ${a}`, apply: (q) => setAdj(q, b, { dz: (q.adjust[b]?.dz ?? 0) + d }) } }));
   }
 
   // ---------- Material / espessura / conectores ----------

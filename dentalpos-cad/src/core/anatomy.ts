@@ -101,6 +101,8 @@ export interface Landmarks {
   cervicalFacial: Vec3; // zênite gengival (vestibular)
   cervicalCenter: Vec3;
   cusps: Vec3[]; // pontas de cúspides (posteriores) ou [incisalMid]
+  /** cristas marginais (topo): mesial e distal */
+  mesialRidge?: Vec3; distalRidge?: Vec3;
   mesialAngle: Vec3; // ângulo incisal mesial
   distalAngle: Vec3;
   /** ponto de ancoragem no arco: centro da borda incisal / mesa oclusal */

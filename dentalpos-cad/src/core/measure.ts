@@ -124,7 +124,7 @@ export function measure(ev: Evaluated): Measurements {
     trueDims[t.fdi] = { md: t.dims.md, h: t.dims.h };
     const n = ANDREWS_NORMS[t.ref.jaw][t.ref.type];
     tipErr[t.fdi] = round(t.pose.tip - n.tip, 1); torqueErr[t.fdi] = round(t.pose.torque - n.torque, 1); rotation[t.fdi] = t.pose.rotation;
-    zenith[t.fdi] = t.lm.cervicalFacial[2]; edgeZ[t.fdi] = t.lm.incisalMid[2];
+    zenith[t.fdi] = t.lm.cervicalCenter[2]; edgeZ[t.fdi] = t.lm.incisalMid[2];
   }
   const dxw = (a: number, b: number) => { const x = T(a), y = T(b); return x && y ? len([x.lm.incisalMid[0] - y.lm.incisalMid[0], x.lm.incisalMid[1] - y.lm.incisalMid[1], 0]) : null; };
   return {

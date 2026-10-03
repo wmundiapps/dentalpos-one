@@ -238,6 +238,7 @@ export function generateTooth(inp: ToothShapeInput): ToothModel {
     cervicalFacial: [ant && (ref.type === "central" || ref.type === "canine") ? a0 * 0.08 : 0, cz[1], cz[2]],
     cervicalCenter: [0, yfOf(0) - tOf(0) / 2, 0],
     cusps: cuspPts,
+    mesialRidge: P(1, Math.PI), distalRidge: P(1, 0),
     mesialAngle: top(Math.PI * 0.88),
     distalAngle: top(Math.PI * 0.12),
     anchor: [0, 0, 0],
