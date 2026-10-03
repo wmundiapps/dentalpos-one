@@ -11,6 +11,7 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "build:lib": "vite build -c vite.lib.config.ts",
+    "build:single": "node scripts/build-single.mjs",
     "test": "vitest run"
   },
   "dependencies": {

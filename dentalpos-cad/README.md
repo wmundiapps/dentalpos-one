@@ -74,3 +74,7 @@ dente local x = distal, y = vestibular, z = oclusal; numeração FDI.
 * Os marcos faciais da foto são marcados manualmente (sem detecção automática por visão computacional).
 * Parâmetros de kits de implante e de materiais são **genéricos**; confira a IFU do fabricante/lote.
 * O formato `dentalProject` do exocad não é reproduzido (esquema proprietário não documentado).
+
+## Arquivo único (sem instalar nada)
+`npm run build:single` gera `dist-single/dentalpos-cad.html`: um único HTML que abre com duplo clique no Chrome/Edge/Firefox
+(sem servidor e sem Web Worker; os cálculos pesados rodam na tela principal).

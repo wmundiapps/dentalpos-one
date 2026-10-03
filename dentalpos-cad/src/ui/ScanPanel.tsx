@@ -10,7 +10,7 @@ import { exportGeometryToSTL } from "../scan/engine/stlExporter";
 import { analyzeToothThickness, type ThicknessAnalysisResult } from "../scan/engine/toothThicknessAnalysis";
 import { analyzeContactMap, type ContactMapResult } from "../scan/engine/toothContactMap";
 import { analyzePreparationFit, type PreparationFitResult } from "../scan/engine/toothPreparationFit";
-import { bestInsertionAxis, marginCurve, orientFromLandmarks, type MultiIcpResult } from "../core/scan";
+import { alignCrownToArch, bestInsertionAxis, marginCurve, orientFromLandmarks, type MultiIcpResult } from "../core/scan";
 import type { Mesh } from "../core/mesh";
 import type { Vec3 } from "../core/math";
 
@@ -131,19 +131,30 @@ export function ScanPanel({ c }: { c: Ctx }) {
     const w = store.work, cr = store.crown; if (!w || !cr) return c.toast("Importe a arcada de trabalho e a coroa.");
     crownBackup.current = cr.geometry.clone();
     c.setBusy("Alinhando a coroa ao arco (ICP com várias partidas)… 0%");
-    const worker = new Worker(new URL("./icpWorker.ts", import.meta.url), { type: "module" });
     const a = toMesh(w.geometry), m = toMesh(cr.geometry);
+    let worker: Worker | null = null;
+    if (location.protocol !== "file:") { try { worker = new Worker(new URL("./icpWorker.ts", import.meta.url), { type: "module" }); } catch { worker = null; } }
+    if (!worker) { // sem Web Worker (ex.: HTML aberto do disco): executa na thread principal
+      setTimeout(() => {
+        const r = alignCrownToArch(m, a, {});
+        setIcp(r);
+        const M = new THREE.Matrix4().set(r.T.R[0], r.T.R[1], r.T.R[2], r.T.t[0], r.T.R[3], r.T.R[4], r.T.R[5], r.T.t[1], r.T.R[6], r.T.R[7], r.T.R[8], r.T.t[2], 0, 0, 0, 1);
+        cr.geometry.applyMatrix4(M); cr.geometry.computeVertexNormals(); show("crown"); setTimeout(() => c.fitView(), 100);
+        c.setBusy(null); refresh(); c.toast(r.confident ? `Coroa alinhada (erro médio ${fmt(r.rms, 2)} mm).` : `Alinhamento aproximado (erro médio ${fmt(r.rms, 2)} mm). Confira visualmente.`);
+      }, 50);
+      return;
+    }
     worker.onmessage = (e: MessageEvent<{ progress?: number; done?: MultiIcpResult }>) => {
       if (e.data.progress !== undefined) c.setBusy(`Alinhando a coroa ao arco (ICP com várias partidas)… ${Math.round(e.data.progress * 100)}%`);
       if (e.data.done) {
-        const r = e.data.done; worker.terminate(); setIcp(r);
+        const r = e.data.done; worker!.terminate(); setIcp(r);
         const M = new THREE.Matrix4().set(r.T.R[0], r.T.R[1], r.T.R[2], r.T.t[0], r.T.R[3], r.T.R[4], r.T.R[5], r.T.t[1], r.T.R[6], r.T.R[7], r.T.R[8], r.T.t[2], 0, 0, 0, 1);
         cr.geometry.applyMatrix4(M); cr.geometry.computeVertexNormals(); show("crown"); setTimeout(() => c.fitView(), 100);
         c.setBusy(null); refresh();
         c.toast(r.confident ? `Coroa alinhada (erro médio ${fmt(r.rms, 2)} mm).` : `Alinhamento aproximado (erro médio ${fmt(r.rms, 2)} mm, ${fmt(r.coverage * 100, 0)} % da face interna encostada). Confira visualmente.`);
       }
     };
-    worker.onerror = () => { worker.terminate(); c.setBusy(null); c.toast("Falha ao executar o alinhamento."); };
+    worker.onerror = () => { worker!.terminate(); c.setBusy(null); c.toast("Falha ao executar o alinhamento."); };
     worker.postMessage({ crown: m, arch: a }, [m.positions.buffer, m.indices.buffer, a.positions.buffer, a.indices.buffer]);
   };
   const kinds: Kind[] = ["work", "antagonist", "bite", "crown"];

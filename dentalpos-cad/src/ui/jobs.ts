@@ -6,6 +6,7 @@ let seq = 1;
 const pending = new Map<number, (r: JobResponse) => void>();
 function getWorker(): Worker | null {
   if (worker) return worker;
+  if (location.protocol === "file:") return null; // abrindo o HTML direto do disco: sem Web Worker, roda na thread principal
   try {
     worker = new Worker(new URL("../core/worker.ts", import.meta.url), { type: "module" });
     worker.onmessage = (e: MessageEvent<JobResponse>) => { pending.get(e.data.id)?.(e.data); pending.delete(e.data.id); };
