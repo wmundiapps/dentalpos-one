@@ -1,6 +1,6 @@
 # Landing page do DentalPos One
 
-**Versão atual:** `landing-dentalpos-one-v3.html`, publicada em `https://www.dentalpos.com.br/landingpage` (projeto Vercel `dentalpos-landing`, que também serve `one.dentalpos.com.br`). A página principal (`/`) e o formulário de contato (`api/contato.js`) ficam como estavam.
+**Versão atual:** `landing-dentalpos-one-v3.html`, publicada em `https://www.dentalpos.com.br/landingpage` (projeto Vercel `dentalpos-landing`, que também serve `one.dentalpos.com.br`). A página principal (`/`) foi atualizada com a mesma política (cópia em `pagina-principal-www-dentalpos.html`); o formulário de contato (`api/contato.js`) não mudou.
 `landing-dentalpos-one-v1.html` é o rascunho original (artefato https://claude.ai/artifact/MqEQR3z6hwDpRX6j9Q3nyo), mantido só como histórico.
 
 ## Política de atratividade e lançamento (definida em 03/10/2026)
@@ -12,3 +12,6 @@
 
 ## Como publicar uma nova versão
 O projeto `dentalpos-landing` não está ligado ao GitHub (deploy manual). Publicar novo deployment mantendo `index.html` e `api/contato.js` e trocando `landingpage/index.html`.
+
+## Reverter
+A versão anterior da página principal (50% só nos 3 primeiros meses) é o deployment `dpl_3YsvqnfLRR3tiFTBwUNgNkECZbv5` do projeto `dentalpos-landing` na Vercel (Promote to Production).
