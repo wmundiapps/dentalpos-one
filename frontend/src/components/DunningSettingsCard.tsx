@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Checkbox, Chip, FormControlLabel, Paper, Switch, Typography } from "@mui/material";
 import GavelIcon from "@mui/icons-material/Gavel";
+import { errorMessage, toast } from "../utils/toast";
 import { CHANNEL_LABEL, DunningApi, STAGE_LABEL, type DunningState } from "../services/DunningApi";
 
 const STATUS: Record<string, string> = { SENT: "Enviado", PENDING: "Aguardando envio", FAILED: "Falhou", CANCELLED: "Cancelado" };
@@ -20,8 +21,15 @@ export default function DunningSettingsCard() {
 
   const save = async (input: Parameters<typeof DunningApi.save>[0]) => {
     setError("");
-    try { await DunningApi.save(input); await load(); }
-    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar."); }
+    try {
+      await DunningApi.save(input);
+      await load();
+      toast.success(input.enabled === true ? "Régua de cobrança ligada." : input.enabled === false ? "Régua de cobrança desligada." : "Configuração da régua salva.");
+    } catch (e) {
+      const message = errorMessage(e, "Não foi possível salvar.");
+      setError(message);
+      toast.error(message);
+    }
   };
   const failed = data.recent.filter((n) => n.status === "FAILED" || (n.status === "PENDING" && n.errorMessage));
 

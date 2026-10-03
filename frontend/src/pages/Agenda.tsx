@@ -48,6 +48,7 @@ import {
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadFinancialEntries } from "../services/FinancialApi";
+import { toast } from "../utils/toast";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
 import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
@@ -305,6 +306,7 @@ export default function Agenda() {
     saveAppointments(refreshed);
     setItems(refreshed);
     setEdit(null);
+    toast.success("Agenda atualizada.");
   };
   const [editReason, setEditReason] = useState("");
   const [editRequestedBy, setEditRequestedBy] = useState<"Paciente" | "Clínica" | "Dentista" | "Outro">("Paciente");
@@ -1410,6 +1412,7 @@ export default function Agenda() {
                       // Compareceu = chegada: o paciente entra na fila do Painel de Atendimento (sala de espera).
                       await appointmentFlowAction(edit.backendId!, "ARRIVED");
                       await refreshAfterQuickAction();
+                      toast.success("Chegada confirmada: o paciente entrou na sala de espera.");
                     } catch (error) {
                       window.alert(error instanceof Error ? error.message : "Não foi possível confirmar o comparecimento.");
                     }
@@ -1427,6 +1430,7 @@ export default function Agenda() {
                       // Saiu = atendimento finalizado: sai da fila do Painel de Atendimento.
                       await appointmentFlowAction(edit.backendId!, "ATTENDED");
                       await refreshAfterQuickAction();
+                      toast.success("Atendimento finalizado.");
                     } catch (error) {
                       window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o atendimento.");
                     }
@@ -1444,6 +1448,7 @@ export default function Agenda() {
                     try {
                       await cancelBackendAppointment(edit.backendId!, editReason.trim() || "Paciente desmarcou", "PATIENT");
                       await refreshAfterQuickAction();
+                      toast.success("Consulta desmarcada e registrada no histórico.");
                     } catch (error) {
                       window.alert(error instanceof Error ? error.message : "Não foi possível desmarcar a consulta.");
                     }
@@ -1488,6 +1493,7 @@ export default function Agenda() {
                     saveAppointments(refreshed);
                     setItems(refreshed);
                     setEdit(null);
+                    toast.success("Alterações do agendamento salvas.");
                   } catch (error) {
                     window.alert(error instanceof Error ? error.message : "Não foi possível salvar as alterações.");
                   }
