@@ -49,7 +49,7 @@ export default async function handler(req, res) {
   const faculdade = limpo(corpo.faculdade, 120)
   const anoFormatura = limpo(corpo.anoFormatura, 6)
   const canalBruto = limpo(corpo.canal, 20).toLowerCase()
-  const canal = canalBruto === 'whatsapp' ? 'whatsapp' : (canalBruto === 'email' ? 'email' : '')
+  const canal = ['whatsapp', 'email', 'agora'].indexOf(canalBruto) >= 0 ? canalBruto : ''
 
   if (!nome) return res.status(400).json({ erro: 'Informe seu nome.' })
   if (!emailValido(email)) return res.status(400).json({ erro: 'Informe um e-mail válido.' })
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     cro ? ['CRO', cro] : null,
     faculdade ? ['Faculdade que cursa', faculdade] : null,
     anoFormatura ? ['Ano de formatura', anoFormatura] : null,
-    canal ? ['Quer receber o acesso por', canal === 'whatsapp' ? 'WhatsApp (enviar manualmente)' : 'E-mail'] : null,
+    canal ? ['Acesso', canal === 'whatsapp' ? 'Receber por WhatsApp (enviar manualmente)' : (canal === 'agora' ? 'Acessar agora (foi redirecionado ao login)' : 'Receber só por e-mail')] : null,
     mensagem ? ['Mensagem', mensagem] : null
   ].filter(Boolean)
 

@@ -883,7 +883,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
     <button type="button" class="cad-x" id="cad-x" aria-label="Fechar">&times;</button>
     <div id="cad-form">
       <h2 id="cad-titulo">Comece seus 30 dias grátis</h2>
-      <p class="cad-sub">Preencha seus dados. Em seguida você vai para a página de login para criar o seu acesso. Sem cartão de crédito.</p>
+      <p class="cad-sub">Preencha seus dados e escolha: receber o acesso por e-mail ou acessar agora, direto na página de login. Sem cartão de crédito.</p>
       <div class="cad-grid">
         <div class="cad-full"><label>Eu sou</label>
           <div class="cad-perfis" id="cad-perfis">
@@ -897,13 +897,13 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
         <div id="cad-bloco-fac" hidden><label for="cad-fac">Faculdade que cursa *</label><input id="cad-fac" type="text" placeholder="Nome da faculdade"></div>
         <div id="cad-bloco-ano" hidden><label for="cad-ano">Ano de formatura *</label><select id="cad-ano"></select></div>
         <div class="cad-full"><label for="cad-clinica">Clínica ou instituição</label><input id="cad-clinica" type="text" autocomplete="organization"></div>
-        <fieldset class="cad-canal cad-full"><legend>Quero receber o acesso por</legend>
-          <label><input type="radio" name="cad-canal" value="email" checked> E-mail</label>
-          <label><input type="radio" name="cad-canal" value="whatsapp"> WhatsApp</label>
+        <fieldset class="cad-canal cad-full"><legend>Como quer acessar</legend>
+          <label><input type="radio" name="cad-canal" value="email"> Receber o acesso só por e-mail</label>
+          <label><input type="radio" name="cad-canal" value="agora" checked> Acessar agora</label>
         </fieldset>
       </div>
       <p class="cad-erro" id="cad-erro" hidden></p>
-      <button type="button" class="cad-enviar" id="cad-enviar">Continuar para o login</button>
+      <button type="button" class="cad-enviar" id="cad-enviar">Continuar</button>
       <p class="cad-nota">Ao continuar, você concorda em receber o acesso e contato sobre o DentalPos One. Você pode pedir para parar quando quiser.</p>
     </div>
     <div class="cad-ok" id="cad-ok" hidden>
@@ -917,7 +917,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
 (function(){
   var APP="https://app.dentalpos.com.br",ov=document.getElementById("cad-ov"),box=ov.querySelector(".cad-box"),f=document.getElementById("cad-form"),ok=document.getElementById("cad-ok"),er=document.getElementById("cad-erro"),btn=document.getElementById("cad-enviar"),perfil="Profissional",ultimo=null,timer=null;
   function v(id){var e=document.getElementById(id);return e?e.value.trim():""}
-  function abre(e){if(e)e.preventDefault();ultimo=document.activeElement;f.hidden=false;ok.hidden=true;er.hidden=true;btn.disabled=false;btn.textContent="Continuar para o login";ov.hidden=false;setTimeout(function(){document.getElementById("cad-nome").focus()},30)}
+  function abre(e){if(e)e.preventDefault();ultimo=document.activeElement;f.hidden=false;ok.hidden=true;er.hidden=true;btn.disabled=false;btn.textContent="Continuar";ov.hidden=false;setTimeout(function(){document.getElementById("cad-nome").focus()},30)}
   function fecha(){if(timer){clearTimeout(timer);timer=null}ov.hidden=true;if(ultimo&&ultimo.focus)ultimo.focus()}
   [].slice.call(document.querySelectorAll('a[href]')).forEach(function(a){
     var h=a.getAttribute("href")||"";
@@ -944,10 +944,11 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
       .then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.erro||"Não foi possível enviar agora.");return j})})
       .then(function(){
         f.hidden=true;ok.hidden=false;
-        document.getElementById("cad-ok-texto").textContent=(canal==="whatsapp"?"Nossa equipe vai enviar o seu acesso pelo WhatsApp e você recebe uma confirmação por e-mail. ":"Enviamos uma confirmação para o seu e-mail. ")+"Abrindo a página de login...";
-        timer=setTimeout(function(){window.location.href=APP},2500);
+        var t=document.getElementById("cad-ok-texto"),lk=document.getElementById("cad-login");
+        if(canal==="agora"){t.textContent="Abrindo a página de login...";timer=setTimeout(function(){window.location.href=APP},900)}
+        else{t.textContent="Enviamos o seu acesso para o e-mail "+d.email+". Se não encontrar, olhe a caixa de spam.";lk.textContent="Já quero acessar agora"}
       })
-      .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo.");btn.disabled=false;btn.textContent="Continuar para o login"});
+      .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo.");btn.disabled=false;btn.textContent="Continuar"});
   });
 })();
 </script>

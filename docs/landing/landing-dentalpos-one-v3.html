@@ -541,7 +541,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
 <section class="banda banda--papel acesso" id="acesso">
   <div class="wrap">
     <h2 class="pergunta">Receba o seu acesso agora.</h2>
-    <p class="acesso__lede">Deixe seus dados e escolha como quer receber o acesso: por e-mail ou por WhatsApp. São 30 dias grátis, sem cartão de crédito.</p>
+    <p class="acesso__lede">Deixe seus dados e escolha: receber o acesso só por e-mail ou acessar agora. São 30 dias grátis, sem cartão de crédito.</p>
     <div class="acesso__card" id="acesso-form">
       <div class="acesso__linha">
         <div><label for="a-nome">Nome</label><input id="a-nome" type="text" autocomplete="name"></div>
@@ -552,9 +552,9 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
         <div><label for="a-zap">WhatsApp</label><input id="a-zap" type="tel" placeholder="(44) 90000-0000" autocomplete="tel"></div>
       </div>
       <fieldset class="acesso__canal">
-        <legend>Quero receber o acesso por</legend>
-        <label class="acesso__op"><input type="radio" name="a-canal" value="email" checked> E-mail</label>
-        <label class="acesso__op"><input type="radio" name="a-canal" value="whatsapp"> WhatsApp</label>
+        <legend>Como quer acessar</legend>
+        <label class="acesso__op"><input type="radio" name="a-canal" value="email"> Receber o acesso só por e-mail</label>
+        <label class="acesso__op"><input type="radio" name="a-canal" value="agora" checked> Acessar agora</label>
       </fieldset>
       <p class="acesso__erro" id="a-erro" hidden></p>
       <button type="button" class="btn btn--ouro" id="a-enviar">Quero receber meu acesso</button>
@@ -610,15 +610,13 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
     er.hidden=true;
     if(!d.nome){mostra("Por favor, informe seu nome.");return}
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)){mostra("Por favor, informe um e-mail válido.");return}
-    if(d.canal==="whatsapp"&&d.zap.replace(/\D/g,"").length<10){mostra("Informe seu WhatsApp com DDD para receber o acesso por lá.");return}
+    
     btn.disabled=true;btn.textContent="Enviando...";
     fetch("/api/contato",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)})
       .then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.erro||"Não foi possível enviar agora.");return j})})
       .then(function(){
         f.hidden=true;ok.hidden=false;
-        document.getElementById("a-ok-texto").textContent=d.canal==="whatsapp"
-          ?"Nossa equipe vai enviar o seu acesso pelo WhatsApp. Enviamos também uma confirmação para o seu e-mail."
-          :"Enviamos o seu acesso para o seu e-mail. Se não encontrar, olhe a caixa de spam.";
+        document.getElementById("a-ok-texto").textContent=d.canal==="agora"?"Abrindo a página de login...":"Enviamos o seu acesso por e-mail. Se não encontrar, olhe a caixa de spam.";if(d.canal==="agora"){setTimeout(function(){window.location.href="https://app.dentalpos.com.br"},900)}
       })
       .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo ou fale pelo WhatsApp (44) 98453-5069.");btn.disabled=false;btn.textContent="Quero receber meu acesso"});
   });
@@ -659,7 +657,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
     <button type="button" class="cad-x" id="cad-x" aria-label="Fechar">&times;</button>
     <div id="cad-form">
       <h2 id="cad-titulo">Comece seus 30 dias grátis</h2>
-      <p class="cad-sub">Preencha seus dados. Em seguida você vai para a página de login para criar o seu acesso. Sem cartão de crédito.</p>
+      <p class="cad-sub">Preencha seus dados e escolha: receber o acesso por e-mail ou acessar agora, direto na página de login. Sem cartão de crédito.</p>
       <div class="cad-grid">
         <div class="cad-full"><label>Eu sou</label>
           <div class="cad-perfis" id="cad-perfis">
@@ -673,13 +671,13 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
         <div id="cad-bloco-fac" hidden><label for="cad-fac">Faculdade que cursa *</label><input id="cad-fac" type="text" placeholder="Nome da faculdade"></div>
         <div id="cad-bloco-ano" hidden><label for="cad-ano">Ano de formatura *</label><select id="cad-ano"></select></div>
         <div class="cad-full"><label for="cad-clinica">Clínica ou instituição</label><input id="cad-clinica" type="text" autocomplete="organization"></div>
-        <fieldset class="cad-canal cad-full"><legend>Quero receber o acesso por</legend>
-          <label><input type="radio" name="cad-canal" value="email" checked> E-mail</label>
-          <label><input type="radio" name="cad-canal" value="whatsapp"> WhatsApp</label>
+        <fieldset class="cad-canal cad-full"><legend>Como quer acessar</legend>
+          <label><input type="radio" name="cad-canal" value="email"> Receber o acesso só por e-mail</label>
+          <label><input type="radio" name="cad-canal" value="agora" checked> Acessar agora</label>
         </fieldset>
       </div>
       <p class="cad-erro" id="cad-erro" hidden></p>
-      <button type="button" class="cad-enviar" id="cad-enviar">Continuar para o login</button>
+      <button type="button" class="cad-enviar" id="cad-enviar">Continuar</button>
       <p class="cad-nota">Ao continuar, você concorda em receber o acesso e contato sobre o DentalPos One. Você pode pedir para parar quando quiser.</p>
     </div>
     <div class="cad-ok" id="cad-ok" hidden>
@@ -693,7 +691,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
 (function(){
   var APP="https://app.dentalpos.com.br",ov=document.getElementById("cad-ov"),box=ov.querySelector(".cad-box"),f=document.getElementById("cad-form"),ok=document.getElementById("cad-ok"),er=document.getElementById("cad-erro"),btn=document.getElementById("cad-enviar"),perfil="Profissional",ultimo=null,timer=null;
   function v(id){var e=document.getElementById(id);return e?e.value.trim():""}
-  function abre(e){if(e)e.preventDefault();ultimo=document.activeElement;f.hidden=false;ok.hidden=true;er.hidden=true;btn.disabled=false;btn.textContent="Continuar para o login";ov.hidden=false;setTimeout(function(){document.getElementById("cad-nome").focus()},30)}
+  function abre(e){if(e)e.preventDefault();ultimo=document.activeElement;f.hidden=false;ok.hidden=true;er.hidden=true;btn.disabled=false;btn.textContent="Continuar";ov.hidden=false;setTimeout(function(){document.getElementById("cad-nome").focus()},30)}
   function fecha(){if(timer){clearTimeout(timer);timer=null}ov.hidden=true;if(ultimo&&ultimo.focus)ultimo.focus()}
   [].slice.call(document.querySelectorAll('a[href]')).forEach(function(a){
     var h=a.getAttribute("href")||"";
@@ -720,10 +718,11 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
       .then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.erro||"Não foi possível enviar agora.");return j})})
       .then(function(){
         f.hidden=true;ok.hidden=false;
-        document.getElementById("cad-ok-texto").textContent=(canal==="whatsapp"?"Nossa equipe vai enviar o seu acesso pelo WhatsApp e você recebe uma confirmação por e-mail. ":"Enviamos uma confirmação para o seu e-mail. ")+"Abrindo a página de login...";
-        timer=setTimeout(function(){window.location.href=APP},2500);
+        var t=document.getElementById("cad-ok-texto"),lk=document.getElementById("cad-login");
+        if(canal==="agora"){t.textContent="Abrindo a página de login...";timer=setTimeout(function(){window.location.href=APP},900)}
+        else{t.textContent="Enviamos o seu acesso para o e-mail "+d.email+". Se não encontrar, olhe a caixa de spam.";lk.textContent="Já quero acessar agora"}
       })
-      .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo.");btn.disabled=false;btn.textContent="Continuar para o login"});
+      .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo.");btn.disabled=false;btn.textContent="Continuar"});
   });
 })();
 </script>
