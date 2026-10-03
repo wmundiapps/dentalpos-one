@@ -110,9 +110,13 @@ export interface MultiIcpResult { T: Rigid; rms: number; coverage: number; ranki
 
 /** ICP rígido com várias partidas (posição × giro × orientação) usando só a face interna da coroa. */
 export function alignCrownToArch(crown: Mesh, arch: Mesh, opts: MultiIcpOptions = {}): MultiIcpResult {
-  const { starts = 400, refine = 12, iterations = 30, maxDist = 1.0 } = opts;
-  const idx = new PointIndex(arch, 1.2);
-  const inner = innerPoints(crown, 1200);
+  const { starts = 200, refine = 10, iterations = 25, maxDist = 1.0 } = opts;
+  // índice sobre o arco decimado (≈ 20 mil pontos): suficiente p/ distâncias de ~0,1 mm em escaneamentos de 0,05–0,1 mm
+  const step = Math.max(1, Math.floor(vertexCount(arch) / 25000));
+  const dec = { positions: new Float32Array(Math.ceil(vertexCount(arch) / step) * 3), indices: new Uint32Array(0) } as Mesh;
+  for (let i = 0, j = 0; i < vertexCount(arch); i += step, j++) { dec.positions[j * 3] = arch.positions[i * 3]; dec.positions[j * 3 + 1] = arch.positions[i * 3 + 1]; dec.positions[j * 3 + 2] = arch.positions[i * 3 + 2]; }
+  const idx = new PointIndex(dec, 1.5);
+  const inner = innerPoints(crown, 700);
   const cc = bounds(crown).center;
   const local = inner.map((p) => sub(p, cc));
   const rand = rng(opts.seed ?? 7);
@@ -125,7 +129,7 @@ export function alignCrownToArch(crown: Mesh, arch: Mesh, opts: MultiIcpOptions 
   const coarseLocal = local.filter((_, i) => i % 10 === 0);
   const score = (T: Rigid, pts: Vec3[] = local) => {
     let s = 0, hit = 0;
-    for (const q of pts) { const w = rigidApply(T, q); const nn = idx.nearest(w, maxDist * 3); const d = nn ? Math.min(nn.dist, maxDist * 3) : maxDist * 3; s += d; if (d < 0.25) hit++; }
+    for (const q of pts) { const w = rigidApply(T, q); const nn = idx.nearest(w, 2.2); const d = nn ? Math.min(nn.dist, maxDist * 3) : maxDist * 3; s += d; if (d < 0.25) hit++; }
     return { mean: s / pts.length, cov: hit / pts.length };
   };
   const coarse: Array<{ T: Rigid; mean: number }> = [];
@@ -143,7 +147,7 @@ export function alignCrownToArch(crown: Mesh, arch: Mesh, opts: MultiIcpOptions 
     for (let it = 0; it < iterations; it++) {
       const A: Vec3[] = [], B: Vec3[] = [];
       let se = 0;
-      for (const q of local) { const w = rigidApply(T, q); const nn = idx.nearest(w, 4); if (!nn || nn.dist > maxDist * 2.5) continue; A.push(q); B.push(getV(arch, nn.index)); se += nn.dist ** 2; }
+      for (const q of local) { const w = rigidApply(T, q); const nn = idx.nearest(w, 3); if (!nn || nn.dist > maxDist * 2.5) continue; A.push(q); B.push(getV(dec, nn.index)); se += nn.dist ** 2; }
       if (A.length < 20) break;
       const rms = Math.sqrt(se / A.length);
       T = kabsch(A, B);
@@ -158,5 +162,5 @@ export function alignCrownToArch(crown: Mesh, arch: Mesh, opts: MultiIcpOptions 
   const best = results[0];
   // converte T (centro da coroa → mundo) em transformação da malha original: p' = R (p − cc) + t
   const R = best.T.R, t = add(best.T.t, mApply(R, scale(cc, -1)));
-  return { T: { R, t }, rms: best.rms, coverage: best.coverage, ranking: results.map((r) => ({ rms: r.rms, coverage: r.coverage })), confident: best.coverage > 0.5 && best.rms < 0.3 };
+  return { T: { R, t }, rms: best.rms, coverage: best.coverage, ranking: results.map((r) => ({ rms: r.rms, coverage: r.coverage })), confident: best.coverage > 0.8 && best.rms < 0.15 };
 }

@@ -10,7 +10,7 @@ import { exportGeometryToSTL } from "../scan/engine/stlExporter";
 import { analyzeToothThickness, type ThicknessAnalysisResult } from "../scan/engine/toothThicknessAnalysis";
 import { analyzeContactMap, type ContactMapResult } from "../scan/engine/toothContactMap";
 import { analyzePreparationFit, type PreparationFitResult } from "../scan/engine/toothPreparationFit";
-import { bestInsertionAxis, marginCurve, orientFromLandmarks } from "../core/scan";
+import { bestInsertionAxis, marginCurve, orientFromLandmarks, type MultiIcpResult } from "../core/scan";
 import type { Mesh } from "../core/mesh";
 import type { Vec3 } from "../core/math";
 
@@ -125,6 +125,27 @@ export function ScanPanel({ c }: { c: Ctx }) {
     c.setBusy("Procurando o melhor eixo de inserção…");
     setTimeout(() => { const m = toMesh(w.geometry); const r = bestInsertionAxis(m, [0, 0, 1], 30); setInsertion({ undercut: r.undercut, vertical: r.undercutAtVertical, axis: r.axis }); c.setBusy(null); }, 30);
   };
+  const [icp, setIcp] = useState<MultiIcpResult | null>(null);
+  const crownBackup = useRef<THREE.BufferGeometry | null>(null);
+  const alignCrown = () => {
+    const w = store.work, cr = store.crown; if (!w || !cr) return c.toast("Importe a arcada de trabalho e a coroa.");
+    crownBackup.current = cr.geometry.clone();
+    c.setBusy("Alinhando a coroa ao arco (ICP com várias partidas)… 0%");
+    const worker = new Worker(new URL("./icpWorker.ts", import.meta.url), { type: "module" });
+    const a = toMesh(w.geometry), m = toMesh(cr.geometry);
+    worker.onmessage = (e: MessageEvent<{ progress?: number; done?: MultiIcpResult }>) => {
+      if (e.data.progress !== undefined) c.setBusy(`Alinhando a coroa ao arco (ICP com várias partidas)… ${Math.round(e.data.progress * 100)}%`);
+      if (e.data.done) {
+        const r = e.data.done; worker.terminate(); setIcp(r);
+        const M = new THREE.Matrix4().set(r.T.R[0], r.T.R[1], r.T.R[2], r.T.t[0], r.T.R[3], r.T.R[4], r.T.R[5], r.T.t[1], r.T.R[6], r.T.R[7], r.T.R[8], r.T.t[2], 0, 0, 0, 1);
+        cr.geometry.applyMatrix4(M); cr.geometry.computeVertexNormals(); show("crown"); setTimeout(() => c.fitView(), 100);
+        c.setBusy(null); refresh();
+        c.toast(r.confident ? `Coroa alinhada (erro médio ${fmt(r.rms, 2)} mm).` : `Alinhamento aproximado (erro médio ${fmt(r.rms, 2)} mm, ${fmt(r.coverage * 100, 0)} % da face interna encostada). Confira visualmente.`);
+      }
+    };
+    worker.onerror = () => { worker.terminate(); c.setBusy(null); c.toast("Falha ao executar o alinhamento."); };
+    worker.postMessage({ crown: m, arch: a }, [m.positions.buffer, m.indices.buffer, a.positions.buffer, a.indices.buffer]);
+  };
   const kinds: Kind[] = ["work", "antagonist", "bite", "crown"];
   return (
     <div data-testid="panel-scan">
@@ -147,6 +168,14 @@ export function ScanPanel({ c }: { c: Ctx }) {
         <div className="btns"><button className="btn g" data-testid="btn-autocenter" disabled={!store.work && !store.antagonist} onClick={autoCenter}>Centralizar automaticamente</button></div>
         <div className="hint">Marque no escaneamento: 1) molar direito, 2) molar esquerdo, 3) borda do incisivo central. O escaneamento é levado ao referencial do projeto e o arco ({kindJaw() === "upper" ? "superior" : "inferior"}) assume a largura/profundidade medidas.</div>
         <div className="btns">{mode === "orient" ? <button className="btn d" onClick={stop}>Cancelar marcação</button> : <button className="btn p" data-testid="btn-orient" disabled={!store.work && !store.antagonist} onClick={() => startPick("orient")}>Marcar 3 pontos</button>}</div>
+      </Section>
+      <Section title="Alinhar coroa externa ao arco (ICP)">
+        <div className="hint">Procura em várias posições onde a face interna da coroa encosta no escaneamento e refina por ICP. Pode levar alguns minutos em arcadas de ~300 mil triângulos.</div>
+        <div className="btns">
+          <button className="btn p" data-testid="btn-icp" disabled={!store.work || !store.crown} onClick={alignCrown}>Alinhar coroa (ICP)</button>
+          <button className="btn" disabled={!crownBackup.current} onClick={() => { if (store.crown && crownBackup.current) { store.crown.geometry = crownBackup.current; crownBackup.current = null; show("crown"); setIcp(null); refresh(); } }}>Desfazer</button>
+        </div>
+        {icp && <div className={`card ${icp.confident ? "o" : "w"}`}><div className="t">{icp.confident ? "Alinhamento bom" : "Alinhamento aproximado — confira"}</div><div className="m">Erro médio {fmt(icp.rms, 2)} mm · {fmt(icp.coverage * 100, 0)} % dos pontos internos a menos de 0,25 mm</div>{!icp.confident && <div className="tip">A coroa de CAD tem folga de cimento e espaçador, então não encosta 100 %. Abaixo de ~80 % de contato, valide visualmente; se o arco não tiver o preparo desta coroa, o resultado não é confiável.</div>}</div>}
       </Section>
       <Section title="Linha de término">
         <div className="hint">Clique pontos ao longo do término no preparo ({margin.length} pontos). A curva é suavizada e fechada.</div>
