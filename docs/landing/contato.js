@@ -44,6 +44,10 @@ export default async function handler(req, res) {
   const email = limpo(corpo.email, 160)
   const zap = limpo(corpo.zap, 40)
   const mensagem = limpo(corpo.mensagem, 1200)
+  const cidade = limpo(corpo.cidade, 80)
+  const cro = limpo(corpo.cro, 40)
+  const faculdade = limpo(corpo.faculdade, 120)
+  const anoFormatura = limpo(corpo.anoFormatura, 6)
   const canalBruto = limpo(corpo.canal, 20).toLowerCase()
   const canal = canalBruto === 'whatsapp' ? 'whatsapp' : (canalBruto === 'email' ? 'email' : '')
 
@@ -57,6 +61,10 @@ export default async function handler(req, res) {
     clinica ? ['Clínica ou instituição', clinica] : null,
     ['E-mail', email],
     zap ? ['WhatsApp', zap] : null,
+    cidade ? ['Cidade', cidade] : null,
+    cro ? ['CRO', cro] : null,
+    faculdade ? ['Faculdade que cursa', faculdade] : null,
+    anoFormatura ? ['Ano de formatura', anoFormatura] : null,
     canal ? ['Quer receber o acesso por', canal === 'whatsapp' ? 'WhatsApp (enviar manualmente)' : 'E-mail'] : null,
     mensagem ? ['Mensagem', mensagem] : null
   ].filter(Boolean)

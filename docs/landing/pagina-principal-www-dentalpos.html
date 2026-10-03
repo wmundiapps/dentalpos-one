@@ -848,5 +848,109 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{
   });
 })();
 </script>
+<style>
+.cad-ov{position:fixed;inset:0;background:rgba(10,10,10,.65);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;z-index:9999}
+.cad-ov[hidden]{display:none!important}
+.cad-box{background:#fff;color:#1D1D1F;border-radius:22px;max-width:560px;width:100%;margin:auto;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.4);font-family:"Nunito Sans",system-ui,sans-serif;position:relative}
+.cad-box h2{font-family:"Fraunces",Georgia,serif;font-size:1.6rem;margin:0 0 6px}
+.cad-box p.cad-sub{margin:0 0 16px;color:#625C53;font-size:15px}
+.cad-x{position:absolute;top:12px;right:14px;border:0;background:none;font-size:28px;line-height:1;cursor:pointer;color:#625C53}
+.cad-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cad-box label{display:block;font-weight:700;font-size:13.5px;margin:0 0 5px}
+.cad-box select{width:100%;box-sizing:border-box;padding:11px 13px;border:1px solid rgba(0,0,0,.28);border-radius:12px;font:inherit;background:#fff;color:#1D1D1F}
+.cad-box [hidden]{display:none!important}
+.cad-box input[type=text],.cad-box input[type=email],.cad-box input[type=tel]{width:100%;box-sizing:border-box;padding:11px 13px;border:1px solid rgba(0,0,0,.28);border-radius:12px;font:inherit;background:#fff;color:#1D1D1F}
+.cad-box input:focus-visible,.cad-x:focus-visible,.cad-perfis button:focus-visible{outline:3px solid #E0A83E;outline-offset:1px}
+.cad-full{grid-column:1/-1}
+.cad-perfis{display:flex;gap:8px;flex-wrap:wrap}
+.cad-perfis button{font:inherit;font-weight:700;font-size:14px;border:1px solid rgba(0,0,0,.25);background:#fff;color:#1D1D1F;border-radius:999px;padding:8px 14px;cursor:pointer}
+.cad-perfis button[aria-pressed=true]{background:#E0A83E;border-color:#E0A83E}
+.cad-canal{display:flex;gap:18px;flex-wrap:wrap;border:0;padding:0;margin:0}
+.cad-canal legend{font-weight:700;font-size:13.5px;margin-bottom:6px;padding:0}
+.cad-canal label{display:inline-flex;align-items:center;gap:7px;font-weight:600;margin:0}
+.cad-erro{color:#B3261E;font-weight:700;margin:8px 0 0;font-size:14px}
+.cad-erro[hidden]{display:none}
+.cad-enviar{margin-top:16px;width:100%;border:0;border-radius:999px;background:#E0A83E;color:#1D1D1F;font:inherit;font-weight:800;font-size:16px;padding:14px;cursor:pointer;box-shadow:0 4px 0 #B9821F}
+.cad-enviar:disabled{opacity:.6;cursor:wait}
+.cad-nota{font-size:12px;color:#625C53;margin:10px 0 0}
+.cad-ok{text-align:center;padding:10px 0}
+.cad-ok[hidden]{display:none}
+.cad-ok a{display:inline-block;margin-top:12px;background:#E0A83E;color:#1D1D1F;font-weight:800;text-decoration:none;border-radius:999px;padding:12px 22px}
+@media(max-width:560px){.cad-grid{grid-template-columns:1fr}}
+</style>
+<div class="cad-ov" id="cad-ov" hidden>
+  <div class="cad-box" role="dialog" aria-modal="true" aria-labelledby="cad-titulo">
+    <button type="button" class="cad-x" id="cad-x" aria-label="Fechar">&times;</button>
+    <div id="cad-form">
+      <h2 id="cad-titulo">Comece seus 30 dias grátis</h2>
+      <p class="cad-sub">Preencha seus dados. Em seguida você vai para a página de login para criar o seu acesso. Sem cartão de crédito.</p>
+      <div class="cad-grid">
+        <div class="cad-full"><label>Eu sou</label>
+          <div class="cad-perfis" id="cad-perfis">
+            <button type="button" aria-pressed="true">Profissional</button><button type="button" aria-pressed="false">Acadêmico</button><button type="button" aria-pressed="false">Professor</button><button type="button" aria-pressed="false">Clínica</button>
+          </div></div>
+        <div class="cad-full"><label for="cad-nome">Nome completo *</label><input id="cad-nome" type="text" autocomplete="name"></div>
+        <div><label for="cad-email">E-mail *</label><input id="cad-email" type="email" autocomplete="email"></div>
+        <div><label for="cad-zap">WhatsApp *</label><input id="cad-zap" type="tel" placeholder="(44) 90000-0000" autocomplete="tel"></div>
+        <div><label for="cad-cidade">Cidade *</label><input id="cad-cidade" type="text" autocomplete="address-level2"></div>
+        <div id="cad-bloco-cro"><label for="cad-cro">CRO (se tiver)</label><input id="cad-cro" type="text" placeholder="Ex.: PR-12345"></div>
+        <div id="cad-bloco-fac" hidden><label for="cad-fac">Faculdade que cursa *</label><input id="cad-fac" type="text" placeholder="Nome da faculdade"></div>
+        <div id="cad-bloco-ano" hidden><label for="cad-ano">Ano de formatura *</label><select id="cad-ano"></select></div>
+        <div class="cad-full"><label for="cad-clinica">Clínica ou instituição</label><input id="cad-clinica" type="text" autocomplete="organization"></div>
+        <fieldset class="cad-canal cad-full"><legend>Quero receber o acesso por</legend>
+          <label><input type="radio" name="cad-canal" value="email" checked> E-mail</label>
+          <label><input type="radio" name="cad-canal" value="whatsapp"> WhatsApp</label>
+        </fieldset>
+      </div>
+      <p class="cad-erro" id="cad-erro" hidden></p>
+      <button type="button" class="cad-enviar" id="cad-enviar">Continuar para o login</button>
+      <p class="cad-nota">Ao continuar, você concorda em receber o acesso e contato sobre o DentalPos One. Você pode pedir para parar quando quiser.</p>
+    </div>
+    <div class="cad-ok" id="cad-ok" hidden>
+      <h2>Tudo certo!</h2>
+      <p class="cad-sub" id="cad-ok-texto"></p>
+      <a href="https://app.dentalpos.com.br" id="cad-login">Ir para a página de login</a>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var APP="https://app.dentalpos.com.br",ov=document.getElementById("cad-ov"),box=ov.querySelector(".cad-box"),f=document.getElementById("cad-form"),ok=document.getElementById("cad-ok"),er=document.getElementById("cad-erro"),btn=document.getElementById("cad-enviar"),perfil="Profissional",ultimo=null,timer=null;
+  function v(id){var e=document.getElementById(id);return e?e.value.trim():""}
+  function abre(e){if(e)e.preventDefault();ultimo=document.activeElement;f.hidden=false;ok.hidden=true;er.hidden=true;btn.disabled=false;btn.textContent="Continuar para o login";ov.hidden=false;setTimeout(function(){document.getElementById("cad-nome").focus()},30)}
+  function fecha(){if(timer){clearTimeout(timer);timer=null}ov.hidden=true;if(ultimo&&ultimo.focus)ultimo.focus()}
+  [].slice.call(document.querySelectorAll('a[href]')).forEach(function(a){
+    var h=a.getAttribute("href")||"";
+    if(h.replace(/\/$/,"")===APP)a.addEventListener("click",abre);
+  });
+  document.getElementById("cad-x").addEventListener("click",fecha);
+  ov.addEventListener("click",function(e){if(e.target===ov)fecha()});
+  document.addEventListener("keydown",function(e){if(!ov.hidden&&e.key==="Escape")fecha()});
+  [].slice.call(document.querySelectorAll("#cad-perfis button")).forEach(function(b){b.addEventListener("click",function(){[].slice.call(document.querySelectorAll("#cad-perfis button")).forEach(function(o){o.setAttribute("aria-pressed","false")});b.setAttribute("aria-pressed","true");perfilAtual(b.textContent.trim())})});
+  function mostra(t){er.textContent=t;er.hidden=false}
+  (function(){var s=document.getElementById("cad-ano"),y=new Date().getFullYear(),o='<option value="">Selecione</option>';for(var i=0;i<=8;i++)o+='<option value="'+(y+i)+'">'+(y+i)+'</option>';s.innerHTML=o})();
+  function perfilAtual(p){perfil=p;var ac=(p==="Acadêmico");document.getElementById("cad-bloco-fac").hidden=!ac;document.getElementById("cad-bloco-ano").hidden=!ac;document.getElementById("cad-bloco-cro").hidden=ac}
+  btn.addEventListener("click",function(){
+    var canal=(document.querySelector('input[name="cad-canal"]:checked')||{}).value||"email";
+    var d={perfil:perfil,nome:v("cad-nome"),email:v("cad-email"),zap:v("cad-zap"),cidade:v("cad-cidade"),cro:perfil==="Acadêmico"?"":v("cad-cro"),clinica:v("cad-clinica"),faculdade:perfil==="Acadêmico"?v("cad-fac"):"",anoFormatura:perfil==="Acadêmico"?v("cad-ano"):"",canal:canal,mensagem:"Cadastro para os 30 dias grátis (landing)."};
+    er.hidden=true;
+    if(!d.nome){mostra("Informe seu nome completo.");return}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)){mostra("Informe um e-mail válido.");return}
+    if(d.zap.replace(/\D/g,"").length<10){mostra("Informe seu WhatsApp com DDD.");return}
+    if(!d.cidade){mostra("Informe sua cidade.");return}
+    if(perfil==="Acadêmico"){if(!d.faculdade){mostra("Informe a faculdade que você cursa.");return}if(!d.anoFormatura){mostra("Informe o ano de formatura.");return}}
+    btn.disabled=true;btn.textContent="Enviando...";
+    fetch("/api/contato",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)})
+      .then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok)throw new Error(j.erro||"Não foi possível enviar agora.");return j})})
+      .then(function(){
+        f.hidden=true;ok.hidden=false;
+        document.getElementById("cad-ok-texto").textContent=(canal==="whatsapp"?"Nossa equipe vai enviar o seu acesso pelo WhatsApp e você recebe uma confirmação por e-mail. ":"Enviamos uma confirmação para o seu e-mail. ")+"Abrindo a página de login...";
+        timer=setTimeout(function(){window.location.href=APP},2500);
+      })
+      .catch(function(e){mostra(e.message||"Não foi possível enviar agora. Tente de novo.");btn.disabled=false;btn.textContent="Continuar para o login"});
+  });
+})();
+</script>
+
 </body>
 </html>
