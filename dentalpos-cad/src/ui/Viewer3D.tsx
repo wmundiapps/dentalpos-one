@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { Evaluated } from "../core/project";
 import type { Mesh } from "../core/mesh";
 import { shadeRgb } from "../core/materials";
@@ -37,6 +38,21 @@ const toGeo = (m: Mesh) => {
   if (!m.normals) g.computeVertexNormals();
   return g;
 };
+/** esmalte: cervical mais saturado/escuro, terço incisal mais claro e translúcido (azulado) */
+function enamel(t: Evaluated["teeth"] extends Map<number, infer W> ? W : never, rgb: [number, number, number]): Float32Array {
+  const pos = t.mesh.positions, out = new Float32Array(pos.length);
+  const o = t.occlusal, c = t.lm.cervicalCenter, h = t.dims.h;
+  for (let i = 0; i < pos.length; i += 3) {
+    const d = ((pos[i] - c[0]) * o[0] + (pos[i + 1] - c[1]) * o[1] + (pos[i + 2] - c[2]) * o[2]) / h;
+    const v = Math.min(1, Math.max(0, d));
+    const cerv = 1 - Math.min(1, v / 0.35), inc = Math.max(0, (v - 0.72) / 0.28);
+    const ant = t.ref.index <= 3 ? 1 : 0.45;
+    let r = (rgb[0] / 255) * 0.82, g = (rgb[1] / 255) * 0.82, b = (rgb[2] / 255) * 0.82;
+    r = r * (1 - 0.1 * cerv) + 0.04 * inc * ant; g = g * (1 - 0.14 * cerv) + 0.05 * inc * ant; b = b * (1 - 0.3 * cerv) + 0.1 * inc * ant;
+    out[i] = r; out[i + 1] = g; out[i + 2] = b;
+  }
+  return out;
+}
 const SEV_COLOR: Record<Severity, string> = { error: "#ff5d5d", warning: "#ffb454", info: "#6cb6ff", ok: "#7bd88f" };
 
 export function Viewer3D(props: ViewerProps) {
@@ -59,8 +75,9 @@ export function Viewer3D(props: ViewerProps) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.target.set(0, -18, 0);
     controls.enableDamping = true;
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 0.85));
-    const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(60, 140, 120); scene.add(key);
+    const pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.28;
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 0.3));
+    const key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(60, 140, 120); scene.add(key);
     const fill = new THREE.DirectionalLight(0xbcd4ff, 0.5); fill.position.set(-90, 40, -60); scene.add(fill);
     const grid = new THREE.GridHelper(160, 16, 0x2a3a50, 0x1c2838); grid.rotation.x = Math.PI / 2; grid.position.z = -22; scene.add(grid);
     const teeth = new THREE.Group(), extras = new THREE.Group(), lines = new THREE.Group();
@@ -133,14 +150,15 @@ export function Viewer3D(props: ViewerProps) {
     for (const t of props.ev.teeth.values()) {
       if ((t.ref.jaw === "upper" && !props.showUpper) || (t.ref.jaw === "lower" && !props.showLower)) continue;
       const geo = toGeo(t.mesh);
-      const vc = props.colorMode === "contact" ? props.vertexColors?.get(t.fdi) : undefined;
+      let vc = props.colorMode === "contact" ? props.vertexColors?.get(t.fdi) : undefined;
+      if (!vc && props.colorMode === "shade") vc = enamel(t, [r, g, b]);
       if (vc) geo.setAttribute("color", new THREE.BufferAttribute(vc, 3));
       const sel = props.selected === t.fdi;
       let color = new THREE.Color(`rgb(${r},${g},${b})`);
       if (props.colorMode === "severity") { const sv = props.severity.get(t.fdi); if (sv) color = new THREE.Color(SEV_COLOR[sv]); }
       if (hi.has(t.fdi)) color = new THREE.Color("#ffb454");
       if (sel) color = color.clone().lerp(new THREE.Color("#4da3ff"), 0.55);
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.38, metalness: 0.02, vertexColors: !!vc, transparent: props.colorMode === "ghost", opacity: props.colorMode === "ghost" ? 0.45 : 1, emissive: sel ? new THREE.Color("#10304f") : new THREE.Color(0x000000) });
+      const mat = new THREE.MeshPhysicalMaterial({ color: vc && props.colorMode === "shade" && !sel ? new THREE.Color(1, 1, 1) : color, roughness: 0.3, metalness: 0, clearcoat: 0.35, clearcoatRoughness: 0.35, vertexColors: !!vc, transparent: props.colorMode === "ghost", opacity: props.colorMode === "ghost" ? 0.45 : 1, emissive: sel ? new THREE.Color("#10304f") : new THREE.Color(0x000000) });
       const m = new THREE.Mesh(geo, mat); m.userData.fdi = t.fdi; s.teeth.add(m);
     }
   }, [props.ev, props.shade, props.selected, props.showUpper, props.showLower, props.colorMode, props.severity, props.vertexColors, props.hideTeeth, props.highlightTeeth]);
