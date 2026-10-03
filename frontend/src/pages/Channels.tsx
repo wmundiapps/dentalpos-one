@@ -10,6 +10,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import type { ReactNode } from "react";
 import PageHeader from "../components/PageHeader";
 import { listSenders, saveSender, sendTest, type RevahSender } from "../services/RevahSenderApi";
+import { errorMessage, toast } from "../utils/toast";
 
 type Field = { key: string; label: string; help?: string; secret?: boolean; optional?: boolean };
 type ChannelDef = { key: string; name: string; icon: ReactNode; addressLabel: string; addressHelp: string; fields: Field[]; note: string };
@@ -121,9 +122,12 @@ export default function Channels() {
       });
       setEdit(null);
       setNotice(`${edit.name} configurado. Envie um teste para confirmar.`);
+      toast.success(`${edit.name} salvo com sucesso. Agora envie um teste para confirmar.`);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao salvar o canal.");
+      const message = errorMessage(e, "Erro ao salvar o canal.");
+      setError(message);
+      toast.error(`Não foi possível salvar: ${message}`);
     } finally { setBusy(false); }
   };
 
@@ -134,8 +138,11 @@ export default function Channels() {
       await sendTest({ channel: test.key, destination: testTo.trim(), contactName: "Teste", content: "Mensagem de teste do DentalPos One. Se você recebeu, o canal está funcionando." });
       setTest(null);
       setNotice("Teste enviado. Confira o aparelho de destino.");
+      toast.success("Teste enviado. Confira o aparelho de destino.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível enviar o teste.");
+      const message = errorMessage(e, "Não foi possível enviar o teste.");
+      setError(message);
+      toast.error(`Teste não enviado: ${message}`);
     } finally { setBusy(false); }
   };
 
@@ -185,6 +192,7 @@ export default function Channels() {
             <TextField key={f.key} type="password" label={f.label + (f.optional ? " (opcional)" : "")} helperText={rowFor(edit.key) ? "Deixe em branco para manter a chave atual." : f.help} value={form[f.key] || ""} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
           ))}
           <Alert severity="warning">{"Peça essas chaves a quem cuida da tecnologia da clínica. Nunca compartilhe por mensagem ou e-mail."}</Alert>
+          {error && <Alert severity="error">{error}</Alert>}
         </DialogContent>
         <DialogActions>
           <Button disabled={busy} onClick={() => setEdit(null)}>Cancelar</Button>
@@ -196,6 +204,7 @@ export default function Channels() {
         <DialogTitle>{test ? `Testar ${test.name}` : ""}</DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
           <TextField required label={test?.key === "EMAIL" ? "E-mail de destino" : "Número de destino"} helperText={test?.key === "EMAIL" ? "Use um e-mail seu." : "Use o seu próprio número, com DDD."} value={testTo} onChange={(e) => setTestTo(e.target.value)} />
+          {error && <Alert severity="error">{error}</Alert>}
         </DialogContent>
         <DialogActions>
           <Button disabled={busy} onClick={() => setTest(null)}>Cancelar</Button>

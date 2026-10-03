@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Checkbox, FormControlLabel, Paper, Radio, RadioGroup, Switch, TextField, Typography } from "@mui/material";
 import NotificationImportantIcon from "@mui/icons-material/NotificationImportant";
 import { loadPendingAlerts, savePendingAlertsSettings, type PendingAlerts } from "../services/PendingAlertsApi";
+import { errorMessage, toast } from "../utils/toast";
 import { AccessApi, type AccessUser } from "../services/AccessApi";
 
 export default function PendingAlertsSettingsCard() {
@@ -28,8 +29,16 @@ export default function PendingAlertsSettingsCard() {
 
   const save = async (input: Parameters<typeof savePendingAlertsSettings>[0], message?: string) => {
     setError(""); setNotice("");
-    try { await savePendingAlertsSettings(input); await load(); if (message) setNotice(message); }
-    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar."); }
+    try {
+      await savePendingAlertsSettings(input);
+      await load();
+      if (message) setNotice(message);
+      toast.success(message || "Configuração salva.");
+    } catch (e) {
+      const text = errorMessage(e, "Não foi possível salvar.");
+      setError(text);
+      toast.error(text);
+    }
   };
 
   const hasKey = Boolean(data.settings?.hasKey);
