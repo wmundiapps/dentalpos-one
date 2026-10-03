@@ -15,5 +15,6 @@ export interface Ctx {
   dragMode: boolean; setDragMode: (b: boolean) => void;
   setHighlight: (t: number[]) => void;
   pickHandler: React.MutableRefObject<((p: [number, number, number], id: string) => void) | null>;
-  smileUi: { activeKey: string | null; setActiveKey: (k: string | null) => void; showDesign: boolean; setShowDesign: (b: boolean) => void; split: number | null; setSplit: (n: number | null) => void; showGrid: boolean; setShowGrid: (b: boolean) => void; zoom: number; setZoom: (n: number) => void };
+  smileUi: { activeKey: string | null; setActiveKey: (k: string | null) => void; showDesign: boolean; setShowDesign: (b: boolean) => void; split: number | null; setSplit: (n: number | null) => void; showGrid: boolean; setShowGrid: (b: boolean) => void; zoom: number; setZoom: (n: number) => void; tool: SmileTool; setTool: (t: SmileTool) => void; sym: boolean; setSym: (b: boolean) => void };
 }
+export type SmileTool = "move" | "size" | "tilt" | "rotate" | "smile";

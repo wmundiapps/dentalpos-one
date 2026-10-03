@@ -1,4 +1,8 @@
+import { useState } from "react";
 import { Check, Slider, fmt } from "./atoms";
+import { fitSmileToPhoto, smileMetrics, DEFAULT_FIT, type SmileFitOptions } from "../core/smileFit";
+import { toothRef } from "../core/anatomy";
+import type { SmileTool } from "./ctx";
 import type { Ctx } from "./ctx";
 import { LM_STEPS } from "./SmileView";
 import { makeSampleFace } from "./sampleFace";
@@ -11,6 +15,21 @@ export function SmilePanel({ c }: { c: Ctx }) {
   const lm = p.photo?.landmarks ?? {};
   const face = analyzeFace(lm);
   const ui = c.smileUi;
+  const [fit, setFit] = useState<SmileFitOptions>(DEFAULT_FIT);
+  const [notes, setNotes] = useState<string[]>([]);
+  const metrics = p.photo ? smileMetrics(p, c.s.ev, fit) : null;
+  const runFit = () => {
+    const r = fitSmileToPhoto(p, fit);
+    setNotes(r.notes);
+    if (r.ok) { c.s.set(() => r.project); c.toast("Sorriso ajustado à foto pela IA. Refine na foto arrastando os dentes."); } else c.toast(r.notes[0]);
+  };
+  const selF = c.sel && p.fdis.includes(c.sel) ? c.sel : null;
+  const adj = selF ? p.adjust[selF] ?? {} : {};
+  const setAdj = (patch: Record<string, number>, key: string) => selF && c.s.set((q) => {
+    const a = { ...q.adjust, [selF]: { ...(q.adjust[selF] ?? {}), ...patch } };
+    return { ...q, adjust: a };
+  }, `${key}${selF}`);
+  const TOOLS: Array<[SmileTool, string, string]> = [["move", "✥ Mover", "Arraste o dente: posição horizontal e altura"], ["size", "⇕ Tamanho", "Arraste: ↕ altura, ↔ largura (ou use a roda do mouse; Shift = largura)"], ["tilt", "∠ Inclinar", "Arraste ↔ para inclinar (angulação)"], ["rotate", "⟳ Girar", "Arraste ↔ para girar o dente"], ["smile", "◫ Sorriso", "Arraste para mover todo o sorriso; Shift+arrastar inclina o plano"]];
   const load = (file: File) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -45,6 +64,26 @@ export function SmilePanel({ c }: { c: Ctx }) {
         <label>Distância interpupilar (mm)</label>
         <input type="number" value={p.patient.ipdMm ?? 63} min={50} max={80} onChange={(e) => c.s.set((q) => ({ ...q, patient: { ...q.patient, ipdMm: parseFloat(e.target.value) || 63 } }))} />
         <div className="btns"><button className="btn p" data-testid="btn-detect" onClick={() => detect()}>✨ Detectar pontos com IA</button></div>
+        <h4>IA: ajustar o sorriso à foto</h4>
+        <p className="hint">Usa pupilas, lábios e comissuras para definir: altura das coroas (esquema X), bordas tocando levemente o lábio inferior, leve exposição gengival, corredor bucal, linha média e forma dos dentes pelo rosto.</p>
+        <Slider label="Gengiva exposta no sorriso (alvo)" value={fit.gumShowMm} min={-1} max={2.5} step={0.1} unit=" mm" onChange={(v) => setFit({ ...fit, gumShowMm: v })} />
+        <Slider label="Distância borda incisal ↔ lábio inferior" value={fit.lipTouchMm} min={-1} max={2} step={0.1} unit=" mm" onChange={(v) => setFit({ ...fit, lipTouchMm: v })} />
+        <Slider label="Corredor bucal (alvo)" value={fit.corridorPct} min={0} max={20} step={1} unit=" %" onChange={(v) => setFit({ ...fit, corridorPct: v })} />
+        <div className="btns"><button className="btn p" data-testid="btn-fit" onClick={runFit}>🪄 Ajustar sorriso à foto (IA)</button></div>
+        {metrics && <div className="hint" data-testid="smile-metrics">Gengiva exposta {fmt(metrics.gumShowMm)} mm · bordas ↔ lábio inferior {fmt(metrics.lipGapMm)} mm · corredor bucal {fmt(metrics.corridorPct, 0)} % · intercaninos {fmt(metrics.intercanineMm)} mm (ref. pupilas {fmt(metrics.intercanineTarget)} mm)</div>}
+        {notes.length > 0 && <div className="card o"><div className="t">O que a IA ajustou</div>{notes.map((n, i) => <div className="m" key={i}>• {n}</div>)}</div>}
+        <h4>Editar dentes e sorriso na foto</h4>
+        <div className="btns">{TOOLS.map(([k, l, t]) => <button key={k} className={`btn ${ui.tool === k ? "p" : ""}`} title={t} data-testid={`tool-${k}`} onClick={() => ui.setTool(k)}>{l}</button>)}</div>
+        <div className="hint">{TOOLS.find((t) => t[0] === ui.tool)?.[2]}. Clique num dente para selecioná-lo.</div>
+        <Check label="Editar simetricamente (espelha no dente do lado oposto)" checked={ui.sym} onChange={ui.setSym} />
+        {selF ? (<div className="card o" data-testid="sel-tooth"><div className="t">Dente {selF} — {toothRef(selF).name}</div>
+          <Slider label="Posição horizontal" value={adj.dx ?? 0} min={-4} max={4} step={0.05} unit=" mm" digits={2} onChange={(v) => setAdj({ dx: v }, "fx")} />
+          <Slider label="Altura no plano (cranial +)" value={adj.dz ?? 0} min={-3} max={3} step={0.05} unit=" mm" digits={2} onChange={(v) => setAdj({ dz: v }, "fz")} />
+          <Slider label="Altura da coroa" value={adj.scaleH ?? 1} min={0.7} max={1.3} step={0.01} unit="×" digits={2} onChange={(v) => setAdj({ scaleH: v }, "fh")} />
+          <Slider label="Largura" value={adj.scaleMd ?? 1} min={0.7} max={1.3} step={0.01} unit="×" digits={2} onChange={(v) => setAdj({ scaleMd: v }, "fw")} />
+          <Slider label="Inclinação (angulação)" value={adj.tip ?? 0} min={-15} max={15} step={0.5} unit="°" onChange={(v) => setAdj({ tip: v }, "ft")} />
+          <Slider label="Rotação" value={adj.rotation ?? 0} min={-30} max={30} step={0.5} unit="°" onChange={(v) => setAdj({ rotation: v }, "fr")} />
+          <div className="btns"><button className="btn" onClick={() => c.s.set((q) => ({ ...q, adjust: { ...q.adjust, [selF]: {} } }))}>Restaurar dente</button></div></div>) : <div className="hint">Nenhum dente selecionado.</div>}
         <h4>Marcos faciais (ajuste manual, se necessário)</h4>
         <div className="steps" data-testid="steps">
           {LM_STEPS.map((s) => (
@@ -61,7 +100,7 @@ export function SmilePanel({ c }: { c: Ctx }) {
         <Check label="Comparador antes/depois" checked={ui.split !== null} onChange={(v) => ui.setSplit(v ? 0.5 : null)} />
         {ui.split !== null && <Slider label="Divisão antes | depois" value={ui.split} min={0} max={1} step={0.01} digits={2} onChange={ui.setSplit} />}
         <Slider label="Opacidade dos dentes" value={p.smile.opacity} min={0.2} max={1} step={0.05} digits={2} onChange={(v) => c.s.set((q) => ({ ...q, smile: { ...q.smile, opacity: v } }), "op")} />
-        <Slider label="Exibição incisal em repouso" value={p.smile.incisalDisplayMm} min={-2} max={6} step={0.1} unit=" mm" onChange={(v) => c.s.set((q) => ({ ...q, smile: { ...q.smile, incisalDisplayMm: v } }), "disp")} testid="sl-display" />
+        <Slider label="Borda incisal abaixo do lábio superior" value={p.smile.incisalDisplayMm} min={-2} max={6} step={0.1} unit=" mm" onChange={(v) => c.s.set((q) => ({ ...q, smile: { ...q.smile, incisalDisplayMm: v } }), "disp")} testid="sl-display" />
         <Slider label="Deslocamento horizontal" value={p.smile.offsetXmm} min={-6} max={6} step={0.1} unit=" mm" onChange={(v) => c.s.set((q) => ({ ...q, smile: { ...q.smile, offsetXmm: v } }), "ox")} />
         <Slider label="Deslocamento vertical" value={p.smile.offsetZmm} min={-4} max={4} step={0.1} unit=" mm" onChange={(v) => c.s.set((q) => ({ ...q, smile: { ...q.smile, offsetZmm: v } }), "oz")} />
         <Slider label="Inclinação do plano incisal (cant)" value={p.smile.cantDeg} min={-6} max={6} step={0.1} unit="°" onChange={(v) => c.s.set((q) => ({ ...q, smile: { ...q.smile, cantDeg: v } }), "cant")} />

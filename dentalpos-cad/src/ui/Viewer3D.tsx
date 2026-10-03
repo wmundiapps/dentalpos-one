@@ -39,7 +39,7 @@ const toGeo = (m: Mesh) => {
   return g;
 };
 /** esmalte: cervical mais saturado/escuro, terço incisal mais claro e translúcido (azulado) */
-function enamel(t: Evaluated["teeth"] extends Map<number, infer W> ? W : never, rgb: [number, number, number]): Float32Array {
+export function enamel(t: Evaluated["teeth"] extends Map<number, infer W> ? W : never, rgb: [number, number, number]): Float32Array {
   const pos = t.mesh.positions, out = new Float32Array(pos.length);
   const o = t.occlusal, c = t.lm.cervicalCenter, h = t.dims.h;
   for (let i = 0; i < pos.length; i += 3) {

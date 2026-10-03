@@ -14,7 +14,8 @@ import { ScanPanel } from "./ScanPanel";
 import { ReportPanel } from "./ReportPanel";
 import { AiPanel } from "./AiPanel";
 import { download } from "./atoms";
-import type { Ctx } from "./ctx";
+import type { Ctx, SmileTool } from "./ctx";
+import { mirrorFdi } from "../core/anatomy";
 import type { Severity } from "../core/rules";
 import { createProject, type CadProject } from "../core/project";
 import { parseProject, serializeProject } from "../core/io";
@@ -46,6 +47,8 @@ export default function App({ initialProject, onProjectChange, persist = true, a
   const [view, setView] = useState({ name: "iso", nonce: 0 });
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [tool, setTool] = useState<SmileTool>("move");
+  const [sym, setSym] = useState(true);
   const [showDesign, setShowDesign] = useState(true), [split, setSplit] = useState<number | null>(null), [showGrid, setShowGrid] = useState(true);
   const pickHandler = useRef<((p: [number, number, number], id: string) => void) | null>(null);
   const toastTimer = useRef<number | null>(null);
@@ -112,7 +115,22 @@ export default function App({ initialProject, onProjectChange, persist = true, a
     window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h);
   }, [sel, s]);
 
-  const smileUi = { activeKey, setActiveKey, showDesign, setShowDesign, split, setSplit, showGrid, setShowGrid, zoom, setZoom };
+  /** edição direta do sorriso na foto: deltas em mm/graus/fatores; espelha no dente contralateral se "simétrico" */
+  const editTooth = (fdi: number, d: { dx?: number; dz?: number; dy?: number; sh?: number; smd?: number; tip?: number; rot?: number; torque?: number }, key: string) => {
+    const apply = (adj: NonNullable<typeof s.project.adjust[number]>, sgn: number) => ({
+      ...adj, dx: (adj.dx ?? 0) + (d.dx ?? 0) * sgn, dy: (adj.dy ?? 0) + (d.dy ?? 0), dz: (adj.dz ?? 0) + (d.dz ?? 0),
+      scaleH: Math.min(1.4, Math.max(0.6, (adj.scaleH ?? 1) * (1 + (d.sh ?? 0)))), scaleMd: Math.min(1.4, Math.max(0.6, (adj.scaleMd ?? 1) * (1 + (d.smd ?? 0)))),
+      tip: (adj.tip ?? 0) + (d.tip ?? 0), rotation: (adj.rotation ?? 0) + (d.rot ?? 0) * sgn, torque: (adj.torque ?? 0) + (d.torque ?? 0),
+    });
+    s.set((q) => {
+      const adjust = { ...q.adjust, [fdi]: apply(q.adjust[fdi] ?? {}, 1) };
+      const mf = mirrorFdi(fdi);
+      if (sym && q.fdis.includes(mf) && mf !== fdi) adjust[mf] = apply(q.adjust[mf] ?? {}, -1);
+      return { ...q, adjust };
+    }, key);
+  };
+  const moveSmile = (dxMm: number, dzMm: number, dCant: number) => s.set((q) => ({ ...q, smile: { ...q.smile, offsetXmm: q.smile.offsetXmm + dxMm, offsetZmm: q.smile.offsetZmm + dzMm, cantDeg: q.smile.cantDeg + dCant } }), "smv");
+  const smileUi = { activeKey, setActiveKey, showDesign, setShowDesign, split, setSplit, showGrid, setShowGrid, zoom, setZoom, tool, setTool, sym, setSym };
   const fitView = () => setView((v) => ({ name: "fit", nonce: v.nonce + 1 }));
   const ctx: Ctx = { fitView, s, sel, setSel, extras, setExtra, setLines, busy, setBusy, toast, photoUrl, setPhotoUrl, hideTeeth, setHideTeeth, colorMode, setColorMode, dragMode, setDragMode, setHighlight, pickHandler, smileUi };
 
@@ -149,7 +167,7 @@ export default function App({ initialProject, onProjectChange, persist = true, a
         <div className="center">
           <div className="stage">
             {smileTab ? (
-              <div className="smile-wrap"><SmileView project={s.project} ev={s.ev} photoUrl={photoUrl} showDesign={showDesign} split={split} showGrid={showGrid} zoom={zoom} activeKey={activeKey as LmKey | "mouth" | null}
+              <div className="smile-wrap"><SmileView project={s.project} ev={s.ev} photoUrl={photoUrl} showDesign={showDesign} split={split} showGrid={showGrid} zoom={zoom} activeKey={activeKey as LmKey | "mouth" | null} tool={tool} sym={sym} selected={sel} onSelectTooth={(f) => setSel(f)} onEditTooth={editTooth} onMoveSmile={moveSmile}
                 onLandmark={setLandmark} onMouthFinish={(poly) => { s.set((q) => (q.photo ? { ...q, photo: { ...q.photo, landmarks: { ...q.photo.landmarks, mouth: poly } } } : q)); setActiveKey(null); toast("Contorno da boca definido."); }} />
                 {!s.project.photo && <div style={{ position: "absolute", color: "var(--muted)", textAlign: "center" }}>Carregue uma foto frontal do sorriso ou use a foto de exemplo →</div>}
               </div>

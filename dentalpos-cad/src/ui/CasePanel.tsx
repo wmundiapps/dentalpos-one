@@ -6,7 +6,8 @@ import { generateTooth } from "../core/toothMesh";
 import { MEAN_DIMS, toothRef } from "../core/anatomy";
 import { convexHull } from "../core/smile";
 import { SHADES } from "../core/materials";
-import { ARCH_FORM_LABEL, type ArchForm } from "../core/arch";
+import { ARCH_FORM_LABEL, DEFAULT_ARTISTIC, type ArchForm } from "../core/arch";
+import { DEFAULT_HEIGHTS } from "../core/anatomy";
 import { PROPORTION_LABEL } from "../core/rules";
 import { autoDesign, recommendDesign } from "../core/ai";
 import type { ProportionRule } from "../core/project";
@@ -83,12 +84,26 @@ export function CasePanel({ c }: { c: Ctx }) {
         <Slider label="Profundidade do arco superior" value={p.arches.upper.depth} min={26} max={42} step={0.5} unit=" mm" onChange={(v) => c.s.set((q) => ({ ...q, arches: { ...q.arches, upper: { ...q.arches.upper, depth: v } } }), "ad")} />
       </Section>
       <Section title="Oclusão (regras clássicas)">
-        <Slider testid="sl-overjet" label="Overjet (trespasse horizontal)" value={p.occlusion.overjet} min={-1} max={7} step={0.1} unit=" mm" onChange={(v) => c.s.set((q) => ({ ...q, occlusion: { ...q.occlusion, overjet: v } }), "oj")} />
-        <Slider testid="sl-overbite" label="Overbite (trespasse vertical)" value={p.occlusion.overbite} min={-2} max={8} step={0.1} unit=" mm" onChange={(v) => c.s.set((q) => ({ ...q, occlusion: { ...q.occlusion, overbite: v } }), "ob")} />
+        <Slider testid="sl-overjet" label="Overjet (trespasse horizontal)" value={p.occlusion.overjet} min={-1} max={7} step={0.1} unit=" mm (ideal 1–2)" onChange={(v) => c.s.set((q) => ({ ...q, occlusion: { ...q.occlusion, overjet: v } }), "oj")} />
+        <Slider testid="sl-overbite" label="Overbite (trespasse vertical)" value={p.occlusion.overbite} min={-2} max={8} step={0.1} unit=" mm (ideal 1–2)" onChange={(v) => c.s.set((q) => ({ ...q, occlusion: { ...q.occlusion, overbite: v } }), "ob")} />
         <Slider label={`Raio da curva de Spee (profundidade ≈ ${speeDepth.toFixed(1).replace(".", ",")} mm)`} value={Math.min(p.occlusion.speeRadius, 400)} min={60} max={400} step={5} unit=" mm" onChange={(v) => c.s.set((q) => ({ ...q, occlusion: { ...q.occlusion, speeRadius: v } }), "sp")} />
         <Slider label="Raio da curva de Wilson" value={Math.min(p.occlusion.wilsonRadius, 400)} min={80} max={400} step={5} unit=" mm" onChange={(v) => c.s.set((q) => ({ ...q, occlusion: { ...q.occlusion, wilsonRadius: v } }), "wl")} />
         <Slider label="Relação molar (− Classe II · + Classe III)" value={p.occlusion.molarOffset} min={-5} max={5} step={0.1} unit=" mm" onChange={(v) => c.s.set((q) => ({ ...q, occlusion: { ...q.occlusion, molarOffset: v } }), "mo")} />
+        <Slider label="Plano oclusal (linha rima/comissura → tragus)" value={p.occlusion.occlusalPlaneDeg ?? 0} min={-6} max={10} step={0.5} unit="°" onChange={(v) => c.s.set((q) => ({ ...q, occlusion: { ...q.occlusion, occlusalPlaneDeg: v } }), "opl")} />
         <Check label="Aplicar valores de Andrews (tip/torque)" checked={p.andrews} onChange={(v) => c.s.set((q) => ({ ...q, andrews: v }))} />
+      </Section>
+      <Section title="Alturas das coroas (esquema X)">
+        <p className="hint">Superiores: central X+0,5 · lateral X · canino X+0,5 · pré-molares X · 1º molar X−0,5 · 2º molar X−1. Inferiores: incisivos e pré-molares X · canino X+0,5 · molares X−0,5.</p>
+        <Check label="Usar esquema de alturas" checked={(p.heights ?? DEFAULT_HEIGHTS).enabled} onChange={(v) => c.s.set((q) => ({ ...q, heights: { ...(q.heights ?? DEFAULT_HEIGHTS), enabled: v } }))} />
+        <Slider label="X superior" value={(p.heights ?? DEFAULT_HEIGHTS).xUpper} min={7.5} max={12} step={0.1} unit=" mm" digits={1} onChange={(v) => c.s.set((q) => ({ ...q, heights: { ...(q.heights ?? DEFAULT_HEIGHTS), xUpper: v } }), "xu")} testid="sl-xu" />
+        <Slider label="X inferior" value={(p.heights ?? DEFAULT_HEIGHTS).xLower} min={7.5} max={12} step={0.1} unit=" mm" digits={1} onChange={(v) => c.s.set((q) => ({ ...q, heights: { ...(q.heights ?? DEFAULT_HEIGHTS), xLower: v } }), "xl")} />
+      </Section>
+      <Section title="Posicionamento artístico (inset / off-set)">
+        <Slider label="Incisivo lateral superior (− = inset palatino)" value={(p.artistic ?? DEFAULT_ARTISTIC).upperLateral} min={-1.5} max={1} step={0.05} unit=" mm" digits={2} onChange={(v) => c.s.set((q) => ({ ...q, artistic: { ...(q.artistic ?? DEFAULT_ARTISTIC), upperLateral: v } }), "ia1")} />
+        <Slider label="Canino superior (off-set vestibular)" value={(p.artistic ?? DEFAULT_ARTISTIC).upperCanine} min={-1} max={1.5} step={0.05} unit=" mm" digits={2} onChange={(v) => c.s.set((q) => ({ ...q, artistic: { ...(q.artistic ?? DEFAULT_ARTISTIC), upperCanine: v } }), "ia2")} />
+        <Slider label="Molares superiores (off-set)" value={(p.artistic ?? DEFAULT_ARTISTIC).upperMolar} min={-1} max={1.5} step={0.05} unit=" mm" digits={2} onChange={(v) => c.s.set((q) => ({ ...q, artistic: { ...(q.artistic ?? DEFAULT_ARTISTIC), upperMolar: v } }), "ia3")} />
+        <Slider label="Canino inferior (leve off-set)" value={(p.artistic ?? DEFAULT_ARTISTIC).lowerCanine} min={-1} max={1} step={0.05} unit=" mm" digits={2} onChange={(v) => c.s.set((q) => ({ ...q, artistic: { ...(q.artistic ?? DEFAULT_ARTISTIC), lowerCanine: v } }), "ia4")} />
+        <Slider label="Molares inferiores (leve off-set)" value={(p.artistic ?? DEFAULT_ARTISTIC).lowerMolar} min={-1} max={1} step={0.05} unit=" mm" digits={2} onChange={(v) => c.s.set((q) => ({ ...q, artistic: { ...(q.artistic ?? DEFAULT_ARTISTIC), lowerMolar: v } }), "ia5")} />
       </Section>
       <Section title="Proporções e cor">
         <Sel label="Regra de proporção anterior" value={p.proportion} options={o(PROPORTION_LABEL) as Array<[ProportionRule, string]>} onChange={(v) => c.s.set((q) => ({ ...q, proportion: v }))} testid="sel-prop" />

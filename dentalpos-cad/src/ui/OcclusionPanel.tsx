@@ -62,8 +62,8 @@ export function OcclusionPanel({ c }: { c: Ctx }) {
       })}
       <h4>Medidas</h4>
       <table><tbody>
-        <tr><td>Overjet</td><td>{fmt(m.overjet)} mm</td><td className="hint">1–3</td></tr>
-        <tr><td>Overbite</td><td>{fmt(m.overbite)} mm ({fmt(m.overbitePct, 0)}%)</td><td className="hint">1–3 (20–30%)</td></tr>
+        <tr><td>Overjet</td><td>{fmt(m.overjet)} mm</td><td className="hint">1–2</td></tr>
+        <tr><td>Overbite</td><td>{fmt(m.overbite)} mm ({fmt(m.overbitePct, 0)}%)</td><td className="hint">1–2</td></tr>
         <tr><td>Curva de Spee (profundidade)</td><td>{fmt(m.speeDepth.max)} mm</td><td className="hint">0–1,5</td></tr>
         <tr><td>Curva de Wilson (raio)</td><td>{fmt(m.wilsonRadius, 0)} mm</td><td className="hint">60–250</td></tr>
         <tr><td>Linha média sup × inf</td><td>{fmt(m.midlineDev)} mm</td><td className="hint">≤ 1</td></tr>
