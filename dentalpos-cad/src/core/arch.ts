@@ -6,7 +6,6 @@ import { ANDREWS_NORMS, OVERBITE_TAPER, type Jaw, type ToothRef, type Landmarks,
 
 export type ArchForm = "ovoid" | "square" | "tapered";
 export const ARCH_FORM_LABEL: Record<ArchForm, string> = { ovoid: "Ovoide", square: "Quadrada", tapered: "Triangular" };
-const FORM_K: Record<ArchForm, number> = { ovoid: 3.3, square: 4.3, tapered: 2.4 };
 
 export interface ArchParams {
   form: ArchForm;
@@ -20,54 +19,72 @@ export const DEFAULT_ARCH: Record<Jaw, ArchParams> = {
   lower: { form: "ovoid", width: 47, depth: 31 },
 };
 
-const sgn = (v: number, p: number) => Math.sign(v) * Math.abs(v) ** p;
+// O arco é definido pela curvatura ao longo do comprimento de arco: arredondado na região anterior e quase reto nos segmentos
+// posteriores. Inferior: posterior retilíneo (sem lingualizar os molares). Superior: posterior levemente arredondado.
+//   κ(s) = κ0·exp(−(s/L1)^p) + κpost·passo(s)   ;   ψ(s) = ∫κ ds   (ψ = rotação da tangente, 90° = segmento posterior paralelo)
+const FORM_PROFILE: Record<Jaw, Record<ArchForm, { p: number; kPost: number }>> = {
+  upper: { ovoid: { p: 2, kPost: 0.011 }, square: { p: 3.6, kPost: 0.006 }, tapered: { p: 1.5, kPost: 0.014 } },
+  lower: { ovoid: { p: 2, kPost: 0 }, square: { p: 3.6, kPost: 0 }, tapered: { p: 1.5, kPost: 0 } },
+};
 type Pt = [number, number];
-/** superelipse frontal: φ=0 anterior (0,0); φ=π/2 = ponto lateral extremo (A,-B). */
-const superPoint = (A: number, B: number, k: number, phi: number): Pt => [A * sgn(Math.sin(phi), 2 / k), B * (sgn(Math.cos(phi), 2 / k) - 1)];
-
-interface ArcTable { phis: Float64Array; xs: Float64Array; ys: Float64Array; cum: Float64Array }
-function makeTable(A: number, B: number, k: number, n: number): ArcTable {
-  const phis = new Float64Array(n + 1), xs = new Float64Array(n + 1), ys = new Float64Array(n + 1), cum = new Float64Array(n + 1);
-  for (let i = 0; i <= n; i++) {
-    // amostragem mais densa perto do ponto lateral extremo, onde a curvatura muda rápido
-    const phi = (Math.PI / 2) * (i / n);
-    const p = superPoint(A, B, k, phi);
-    phis[i] = phi; xs[i] = p[0]; ys[i] = p[1];
-    if (i) cum[i] = cum[i - 1] + Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
-  }
-  return { phis, xs, ys, cum };
+const gammaCache = new Map<number, number>();
+/** ∫0^∞ exp(−t^p) dt */
+function gammaInt(p: number): number {
+  let g = gammaCache.get(p);
+  if (g === undefined) { g = 0; for (let t = 0.0025; t < 8; t += 0.005) g += Math.exp(-(t ** p)) * 0.005; gammaCache.set(p, g); }
+  return g;
 }
-function tableAt(t: ArcTable, s: number): { phi: number; pt: Pt; dir: Pt } {
+interface ArcTable { xs: Float64Array; ys: Float64Array; cum: Float64Array }
+interface ArchFit { L1: number; psi: number; p: number; kPost: number }
+const DS = 0.2;
+function curveTable(f: ArchFit, S: number): ArcTable {
+  const n = Math.ceil(S / DS);
+  const xs = new Float64Array(n + 1), ys = new Float64Array(n + 1), cum = new Float64Array(n + 1);
+  const k0 = f.psi / (f.L1 * gammaInt(f.p));
+  let psi = 0, x = 0, y = 0;
+  for (let i = 1; i <= n; i++) {
+    const s = (i - 0.5) * DS;
+    const k = k0 * Math.exp(-((s / f.L1) ** f.p)) + f.kPost * smooth(35, 55, s);
+    const psiMid = psi + (k * DS) / 2;
+    x += Math.cos(psiMid) * DS; y -= Math.sin(psiMid) * DS; psi += k * DS;
+    xs[i] = x; ys[i] = y; cum[i] = i * DS;
+  }
+  return { xs, ys, cum };
+}
+const smooth = (a: number, b: number, v: number) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function tableAt(t: ArcTable, s: number): { pt: Pt; dir: Pt } {
   const n = t.cum.length - 1;
   const ss = Math.min(Math.max(s, 0), t.cum[n]);
-  let lo = 0, hi = n;
-  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (t.cum[m] <= ss) lo = m; else hi = m; }
-  const seg = t.cum[hi] - t.cum[lo] || 1, f = (ss - t.cum[lo]) / seg;
+  const lo = Math.min(n - 1, Math.floor(ss / DS)), hi = lo + 1;
+  const f = (ss - t.cum[lo]) / DS;
   const dx = t.xs[hi] - t.xs[lo], dy = t.ys[hi] - t.ys[lo], l = Math.hypot(dx, dy) || 1;
-  return { phi: t.phis[lo] + (t.phis[hi] - t.phis[lo]) * f, pt: [t.xs[lo] + dx * f, t.ys[lo] + dy * f], dir: [dx / l, dy / l] };
+  return { pt: [t.xs[lo] + dx * f, t.ys[lo] + dy * f], dir: [dx / l, dy / l] };
 }
-function arcTo(A: number, B: number, k: number, target: number) { const r = tableAt(makeTable(A, B, k, 200), target); return { phi: r.phi, pt: r.pt }; }
 
-/** Ajusta (A,B) para que o ponto a `arcM1` mm da linha média caia em (width/2, -depth). */
-export function fitArch(p: ArchParams, arcM1: number): { A: number; B: number; k: number } {
-  const k = FORM_K[p.form];
-  let best = { A: p.width / 2 + 2, B: p.depth + 8, e: Infinity };
-  const search = (A0: number, A1: number, B0: number, B1: number, n: number) => {
+/** Ajusta (L1, ψ) para que o ponto a `arcM1` mm da linha média caia em (width/2, −depth). */
+export function fitArch(p: ArchParams, jaw: Jaw, arcM1: number): ArchFit {
+  const prof = FORM_PROFILE[jaw][p.form];
+  const err = (L1: number, psi: number) => {
+    const t = curveTable({ L1, psi, p: prof.p, kPost: prof.kPost }, arcM1 + 1);
+    const q = tableAt(t, arcM1).pt;
+    return (q[0] - p.width / 2) ** 2 + (q[1] + p.depth) ** 2;
+  };
+  let best = { L1: 20, psi: Math.PI / 2, e: Infinity };
+  const search = (l0: number, l1: number, p0: number, p1: number, n: number) => {
     for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
-      const A = A0 + ((A1 - A0) * i) / n, B = B0 + ((B1 - B0) * j) / n;
-      const { pt } = arcTo(A, B, k, arcM1);
-      const e = (pt[0] - p.width / 2) ** 2 + (pt[1] + p.depth) ** 2;
-      if (e < best.e) best = { A, B, e };
+      const L1 = l0 + ((l1 - l0) * i) / n, psi = p0 + ((p1 - p0) * j) / n;
+      const e = err(L1, psi);
+      if (e < best.e) best = { L1, psi, e };
     }
   };
-  search(p.width / 2, p.width / 2 + 14, p.depth, p.depth + 30, 24);
-  const a = best.A, b = best.B;
-  search(a - 1, a + 1, b - 1.2, b + 1.2, 16);
-  return { A: best.A, B: best.B, k };
+  search(5, 55, 1.15, 2.0, 26);
+  search(Math.max(3, best.L1 - 4), best.L1 + 4, best.psi - 0.1, best.psi + 0.1, 12);
+  search(Math.max(3, best.L1 - 0.8), best.L1 + 0.8, best.psi - 0.02, best.psi + 0.02, 8);
+  return { L1: best.L1, psi: best.psi, p: prof.p, kPost: prof.kPost };
 }
 
 export interface ArchSlot { x: number; y: number; tangent: number; arcPos: number }
-const fitCache = new Map<string, { A: number; B: number; k: number }>();
+const fitCache = new Map<string, ArchFit>();
 /** Posição (x,y) e tangente de cada dente ao longo do arco, empacotando os dentes em contato (ponto de contato distal = mesial do vizinho). */
 export function layoutArch(jaw: Jaw, widths: Map<number, number>, arch: ArchParams): Map<number, ArchSlot> {
   const out = new Map<number, ArchSlot>();
@@ -76,10 +93,10 @@ export function layoutArch(jaw: Jaw, widths: Map<number, number>, arch: ArchPara
   const nominal = (r: ToothRef) => { let s = 0; for (const t of side(r.side)) if (t.index < r.index) s += widths.get(t.fdi)!; return s + widths.get(r.fdi)! / 2; };
   const m1 = ["R", "L"].flatMap((sd) => side(sd as "R" | "L").filter((t) => t.index === 6)).map(nominal);
   const m1Arc = m1.length ? m1.reduce((a, b) => a + b) / m1.length : [...widths.values()].reduce((a, b) => a + b, 0) / 2 * 0.95;
-  const key = `${arch.form}|${arch.width}|${arch.depth}|${m1Arc.toFixed(2)}`;
+  const key = `${jaw}|${arch.form}|${arch.width}|${arch.depth}|${m1Arc.toFixed(2)}`;
   let fit = fitCache.get(key);
-  if (!fit) { fit = fitArch(arch, m1Arc); if (fitCache.size > 200) fitCache.clear(); fitCache.set(key, fit); }
-  const tab = makeTable(fit.A, fit.B, fit.k, 1200);
+  if (!fit) { fit = fitArch(arch, jaw, m1Arc); if (fitCache.size > 200) fitCache.clear(); fitCache.set(key, fit); }
+  const tab = curveTable(fit, 125);
   const frame = (s: number) => { const r = tableAt(tab, s); return { pt: r.pt, dir: r.dir }; }; // dir = sentido posterior (lado esquerdo, x>0)
   for (const sd of ["R", "L"] as const) {
     const sign = sd === "L" ? 1 : -1;

@@ -3,6 +3,7 @@ import type { Ctx } from "./ctx";
 import { LM_STEPS } from "./SmileView";
 import { makeSampleFace } from "./sampleFace";
 import { analyzeFace } from "../core/smile";
+import { detectFace } from "../ai/faceAi";
 import { FACE_LABEL, FORM_LABEL } from "../core/profiles";
 
 export function SmilePanel({ c }: { c: Ctx }) {
@@ -13,8 +14,23 @@ export function SmilePanel({ c }: { c: Ctx }) {
   const load = (file: File) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => { c.setPhotoUrl(url); c.s.set((q) => ({ ...q, photo: { name: file.name, width: img.naturalWidth, height: img.naturalHeight, landmarks: {} } })); ui.setActiveKey("pupilR"); c.toast("Foto carregada. Marque os pontos na ordem indicada."); };
+    img.onload = () => { c.setPhotoUrl(url); c.s.set((q) => ({ ...q, photo: { name: file.name, width: img.naturalWidth, height: img.naturalHeight, landmarks: {} } })); setTimeout(() => detect(url), 50); };
     img.src = url;
+  };
+  const detect = async (url?: string | null) => {
+    const src = url ?? c.photoUrl; if (!src) return c.toast("Carregue uma foto primeiro.");
+    c.setBusy("IA: localizando rosto, pupilas, lábios e linha média (processamento local)…");
+    try {
+      const img = new Image(); img.src = src; await img.decode();
+      const r = await detectFace(img);
+      if (!r) { c.toast("Rosto não encontrado. Use foto frontal com o rosto inteiro, bem iluminada, ou marque os pontos manualmente."); }
+      else {
+        c.s.set((q) => ({ ...q, photo: q.photo ? { ...q.photo, landmarks: { ...q.photo.landmarks, ...r.landmarks } } : q.photo }));
+        ui.setActiveKey(null);
+        c.toast(`IA: ${Object.keys(r.landmarks).length} marcos definidos (confiança ${(r.score * 100).toFixed(0)} %). Confira e ajuste se necessário.`);
+      }
+    } catch (e) { c.toast(`Falha na IA: ${e instanceof Error ? e.message : e}`); }
+    c.setBusy(null);
   };
   const done = (k: string) => (k === "mouth" ? !!lm.mouth?.length : !!(lm as Record<string, unknown>)[k]);
   return (
@@ -28,7 +44,8 @@ export function SmilePanel({ c }: { c: Ctx }) {
       {p.photo && (<>
         <label>Distância interpupilar (mm)</label>
         <input type="number" value={p.patient.ipdMm ?? 63} min={50} max={80} onChange={(e) => c.s.set((q) => ({ ...q, patient: { ...q.patient, ipdMm: parseFloat(e.target.value) || 63 } }))} />
-        <h4>Marcos faciais (clique na foto)</h4>
+        <div className="btns"><button className="btn p" data-testid="btn-detect" onClick={() => detect()}>✨ Detectar pontos com IA</button></div>
+        <h4>Marcos faciais (ajuste manual, se necessário)</h4>
         <div className="steps" data-testid="steps">
           {LM_STEPS.map((s) => (
             <div key={s.key} className={`step ${ui.activeKey === s.key ? "on" : ""} ${done(s.key) ? "done" : ""}`} title={s.hint} onClick={() => ui.setActiveKey(ui.activeKey === s.key ? null : s.key)}>
