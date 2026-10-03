@@ -156,15 +156,19 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
 .rodape{background:var(--preto);color:#9A958D;font-size:14.5px;padding:34px 0 44px}
 .rodape a{color:inherit}
 
-.instalacao{margin:40px auto 0;max-width:1080px;text-align:center}
-.instalacao h3{font-family:'Fraunces',serif;font-size:clamp(1.4rem,3vw,2rem);margin:0 0 20px}
-.instalacao__grade{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left}
-.instalacao__item{background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:18px;padding:22px}
-.instalacao__item--destaque{border:2px solid #E0A83E;box-shadow:0 8px 24px rgba(224,168,62,.18)}
-.instalacao__item h4{margin:0 0 8px;font-size:1.05rem}
-.instalacao__preco{font-family:'Fraunces',serif;font-size:1.6rem;font-weight:700;margin:0 0 10px}
-.instalacao__preco span{font-family:'Nunito Sans',sans-serif;font-size:.85rem;font-weight:600;opacity:.7}
-@media(max-width:820px){.instalacao__grade{grid-template-columns:1fr}}
+
+.lancamento{background:linear-gradient(135deg,#1D1D1F,#2b2417);color:#fff;border-radius:24px;padding:34px 30px;text-align:center;margin:0 0 28px;border:2px solid #E0A83E;box-shadow:0 12px 36px rgba(224,168,62,.25)}
+.lancamento__selo{display:inline-block;background:#E0A83E;color:#1D1D1F;font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:6px 14px}
+.lancamento__titulo{font-family:'Fraunces',serif;font-size:clamp(1.5rem,4vw,2.4rem);line-height:1.2;margin:16px 0 8px}
+.lancamento__titulo strong{color:#E0A83E}
+.lancamento__sub{margin:0 auto 20px;max-width:60ch;color:#D9D4CB}
+.academico__nota{font-size:14px;color:#B9B4AC}
+.instalacao{margin:36px auto 0;max-width:900px;text-align:center}
+.instalacao__gratis{background:#fff;border:2px solid #E0A83E;border-radius:22px;padding:28px;box-shadow:0 8px 24px rgba(224,168,62,.18)}
+.instalacao__selo{display:inline-block;background:#E0A83E;color:#1D1D1F;font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:5px 12px}
+.instalacao__gratis h3{font-family:'Fraunces',serif;font-size:clamp(1.3rem,3vw,1.9rem);margin:14px 0 8px}
+.instalacao__gratis p{margin:0 auto 18px;max-width:56ch}
+.instalacao__extras{margin:14px auto 0;max-width:70ch;font-size:13px;color:var(--texto-suave)}
 </style>
 </head>
 <body>
@@ -445,20 +449,19 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
   <div class="wrap">
     <h2 class="pergunta">Escolha pelo tamanho da operação.</h2>
 
-    <div class="oferta">
-      <div>
-        <h3>Teste gratuitamente por 30 dias, sem cartão.</h3>
-        <p>Sem cartão de crédito no teste. Condição de lançamento: 50% de desconto nos três primeiros meses de qualquer plano pago.</p>
-      </div>
+    <div class="lancamento">
+      <span class="lancamento__selo">Promoção de lançamento</span>
+      <p class="lancamento__titulo"><strong>30 dias grátis</strong> e <strong>50% de desconto nos 12 meses seguintes</strong></p>
+      <p class="lancamento__sub">Teste o sistema inteiro por 30 dias, sem cartão de crédito. Se continuar, você paga metade do valor do plano durante o primeiro ano de assinatura.</p>
       <a class="btn btn--ouro" href="https://app.dentalpos.com.br">Começar gratuito agora</a>
     </div>
 
     <div class="planos">
       <div class="plano">
         <h3>Basic</h3>
-        <span class="plano__oferta">50% nos 3 primeiros meses</span>
+        <span class="plano__oferta">50% nos primeiros 12 meses</span>
         <p class="plano__preco">R$ 98,50 <span>/mês</span></p>
-        <p class="plano__cheio">Depois de 3 meses, R$ 197/mês</p>
+        <p class="plano__cheio">Depois de 12 meses, R$ 197/mês</p>
         <p class="plano__quem">Para iniciantes e clínicas pequenas.</p>
         <p class="plano__itens">Agenda e pacientes, prontuário, documentos e tratamento, configurações e integrações.</p>
         <a class="btn btn--preto" href="https://app.dentalpos.com.br">Começar gratuito agora</a>
@@ -467,9 +470,9 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
       <div class="plano plano--destaque">
         <span class="plano__selo">Mais escolhido</span>
         <h3>Intermedium</h3>
-        <span class="plano__oferta">50% nos 3 primeiros meses</span>
+        <span class="plano__oferta">50% nos primeiros 12 meses</span>
         <p class="plano__preco">R$ 198,50 <span>/mês</span></p>
-        <p class="plano__cheio">Depois de 3 meses, R$ 397/mês</p>
+        <p class="plano__cheio">Depois de 12 meses, R$ 397/mês</p>
         <p class="plano__quem">Para médio porte ou mais funcionalidades.</p>
         <p class="plano__itens">Tudo do Basic, mais financeiro e fiscal, laboratório e estoque e painel executivo.</p>
         <a class="btn btn--ouro" href="https://app.dentalpos.com.br">Começar gratuito agora</a>
@@ -477,9 +480,9 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
 
       <div class="plano">
         <h3>Plenum</h3>
-        <span class="plano__oferta">50% nos 3 primeiros meses</span>
+        <span class="plano__oferta">50% nos primeiros 12 meses</span>
         <p class="plano__preco">R$ 298,50 <span>/mês</span></p>
-        <p class="plano__cheio">Depois de 3 meses, R$ 597/mês</p>
+        <p class="plano__cheio">Depois de 12 meses, R$ 597/mês</p>
         <p class="plano__quem">Todas as funcionalidades, para clínicas maiores.</p>
         <p class="plano__itens">Tudo do Intermedium, mais equipe e recursos humanos, marketing e relacionamento, comercial e vendas e acadêmico.</p>
         <a class="btn btn--preto" href="https://app.dentalpos.com.br">Começar gratuito agora</a>
@@ -499,32 +502,22 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
         </div>
       </div>
       <div class="academico__texto">
-        <h3>My Students</h3>
-        <p class="academico__preco">R$ 23 <span>/mês</span></p>
-        <p>Exclusivo para estudantes de odontologia. <b>Gratuito para acadêmicos do último ano</b>, com mais 6 meses de carência depois da colação de grau. Inclui o agendamento dos pacientes das clínicas integradas, prontuário com supervisão e o conteúdo de educação especializada.</p>
+        <h3>Para acadêmicos de odontologia</h3>
+        <p class="academico__preco">Gratuito <span>durante a graduação</span></p>
+        <p>Acesso gratuito durante o <b>penúltimo e o último ano</b> da graduação. Depois da colação de grau, <b>6 meses de carência</b> e mais <b>6 meses com 50% de desconto</b>. Inclui o agendamento dos pacientes das clínicas integradas, prontuário com supervisão e o conteúdo de educação especializada.</p>
+        <p class="academico__nota">Estudantes de outros períodos podem assinar o My Students por R$ 23/mês.</p>
       </div>
       <a class="btn btn--ouro" href="https://app.dentalpos.com.br">Começar gratuito agora</a>
     </div>
 
     <div class="instalacao">
-      <h3>Como você quer instalar?</h3>
-      <div class="instalacao__grade">
-        <div class="instalacao__item">
-          <h4>1. Instalação gratuita</h4>
-          <p class="instalacao__preco">R$ 0</p>
-          <p>Você mesmo faz a instalação, seguindo o nosso passo a passo e com o auxílio da nossa IA integrada.</p>
-        </div>
-        <div class="instalacao__item instalacao__item--destaque">
-          <h4>2. Instalação assistida remota</h4>
-          <p class="instalacao__preco">R$ 499,00 <span>em 5x no cartão</span></p>
-          <p>Você chama a nossa equipe e fazemos o auxílio durante a instalação.</p>
-        </div>
-        <div class="instalacao__item">
-          <h4>3. Instalação direta pela DentalPos One</h4>
-          <p class="instalacao__preco">R$ 2.000,00 <span>em 10x no cartão</span></p>
-          <p>Fazemos toda a instalação, diretamente, através da nossa equipe.</p>
-        </div>
+      <div class="instalacao__gratis">
+        <span class="instalacao__selo">Instalação gratuita</span>
+        <h3>Você mesmo instala, sem pagar nada.</h3>
+        <p>Siga o nosso passo a passo, com o auxílio da nossa IA integrada. Em pouco tempo a sua clínica está funcionando.</p>
+        <a class="btn btn--ouro" href="https://app.dentalpos.com.br">Começar gratuito agora</a>
       </div>
+      <p class="instalacao__extras">Prefere ajuda? <b>Instalação assistida remota:</b> R$ 499 em 5x no cartão (nossa equipe acompanha você durante a instalação). <b>Instalação feita pela nossa equipe:</b> R$ 2.000 em 10x no cartão.</p>
     </div>
   </div>
 </section>
