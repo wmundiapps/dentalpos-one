@@ -5,18 +5,21 @@ import type { ToothAdjust } from "../core/arch";
 
 export interface HistoryState { past: CadProject[]; present: CadProject; future: CadProject[] }
 type Action =
-  | { type: "set"; project: CadProject; coalesce?: string }
+  | { type: "set"; fn: (p: CadProject) => CadProject; coalesce?: string }
   | { type: "replace"; project: CadProject }
   | { type: "undo" } | { type: "redo" };
 
 let lastKey = "", lastTime = 0;
+let persist = true;
 function reducer(s: HistoryState, a: Action): HistoryState {
   switch (a.type) {
     case "set": {
       const now = Date.now();
       const merge = a.coalesce && a.coalesce === lastKey && now - lastTime < 800;
       lastKey = a.coalesce ?? ""; lastTime = now;
-      return { past: merge ? s.past : [...s.past.slice(-59), s.present], present: a.project, future: [] };
+      const next = a.fn(s.present);
+      if (persist) try { localStorage.setItem(AUTOSAVE, JSON.stringify({ ...next, photo: undefined })); } catch { /* cota */ }
+      return { past: merge ? s.past : [...s.past.slice(-59), s.present], present: next, future: [] };
     }
     case "replace": return { past: [], present: a.project, future: [] };
     case "undo": return s.past.length ? { past: s.past.slice(0, -1), present: s.past[s.past.length - 1], future: [s.present, ...s.future] } : s;
@@ -30,16 +33,15 @@ function load(): CadProject {
   return createProject({}, "Caso demonstração");
 }
 
-export function useCadStore(initial?: CadProject, persist = true) {
+export function useCadStore(initial?: CadProject, pers = true) {
+  persist = pers;
   const [h, dispatch] = useReducer(reducer, undefined, () => ({ past: [], present: initial ?? load(), future: [] }) as HistoryState);
   const project = h.present;
   const ev: Evaluated = useMemo(() => evaluate(project), [project]);
   const report: Report = useMemo(() => analyze(project, ev), [project, ev]);
   const set = useCallback((fn: (p: CadProject) => CadProject, coalesce?: string) => {
-    dispatch({ type: "set", project: fn(project), coalesce });
-    // autosave leve (sem foto para não estourar a cota)
-    if (persist) try { const p = fn(project); localStorage.setItem(AUTOSAVE, JSON.stringify({ ...p, photo: undefined })); } catch { /* cota */ }
-  }, [project, persist]);
+    dispatch({ type: "set", fn, coalesce });
+  }, []);
   const adjust = useCallback((fdi: number, patch: ToothAdjust, coalesce = `adj-${fdi}`) => set((p) => ({ ...p, adjust: { ...p.adjust, [fdi]: { ...(p.adjust[fdi] ?? {}), ...patch } } }), coalesce), [set]);
   return {
     project, ev, report, set, adjust,

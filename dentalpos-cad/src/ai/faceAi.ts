@@ -13,7 +13,9 @@ function bytes(b64: string): ArrayBuffer { const bin = atob(b64), u = new Uint8A
 async function load(): Promise<FaceApi> {
   const faceapi = await import("@vladmandic/face-api");
   const tf = faceapi.tf as unknown as { setBackend(n: string): Promise<boolean>; ready(): Promise<void>; io: { decodeWeights(b: ArrayBuffer, w: unknown): unknown } };
-  try { await tf.setBackend("webgl"); await tf.ready(); } catch { await tf.setBackend("cpu"); await tf.ready(); }
+  let ok = false;
+  for (const be of ["webgl", "cpu"]) { try { ok = await tf.setBackend(be); if (ok) { await tf.ready(); break; } } catch { ok = false; } }
+  if (!ok) throw new Error("Nenhum backend de IA disponível neste navegador.");
   const dec = async (bin: string, manifest: Array<{ weights: unknown[] }>) => tf.io.decodeWeights(bytes(bin), manifest[0].weights);
   await faceapi.nets.tinyFaceDetector.loadFromWeightMap(await dec(tinyBin, tinyManifest) as never);
   await faceapi.nets.faceLandmark68Net.loadFromWeightMap(await dec(landmarkBin, landmarkManifest) as never);
