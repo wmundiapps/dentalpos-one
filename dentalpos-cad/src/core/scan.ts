@@ -1,6 +1,6 @@
 // Escaneamentos: alinhamento por marcos (Kabsch) + ICP, orientação do arco, eixo de inserção/área em sombra e linha de margem.
-import { type Vec3, type Rigid, add, cross, dist, dot, kabsch, len, mApply, mIdentity, norm, rigidApply, scale, sub, rotZ, mMul, round } from "./math";
-import { type Mesh, PointIndex, getV, transformMesh, vertexCount } from "./mesh";
+import { type Vec3, type Rigid, add, cross, dist, dot, kabsch, len, mApply, mIdentity, norm, rigidApply, scale, sub, rotZ, rotX, mMul, round, rng } from "./math";
+import { type Mesh, PointIndex, bounds, computeNormals, getV, transformMesh, vertexCount } from "./mesh";
 
 export const alignByLandmarks = (source: Vec3[], target: Vec3[]): Rigid => kabsch(source, target);
 
@@ -88,3 +88,75 @@ export function marginCurve(points: Vec3[], samples = 16): { polyline: Vec3[]; l
   return { polyline: out, length: round(L, 2) };
 }
 export { transformMesh, rotZ, mMul, add };
+
+/** pontos da face interna (cavidade) de uma coroa/casca: normais apontando para o centro da peça */
+export function innerPoints(m: Mesh, maxPoints = 1500): Vec3[] {
+  const nm = m.normals ?? computeNormals(m).normals!;
+  const b = bounds(m);
+  const c = b.center;
+  const pts: Vec3[] = [];
+  for (let i = 0; i < vertexCount(m); i++) {
+    const p = getV(m, i);
+    const n: Vec3 = [nm[i * 3], nm[i * 3 + 1], nm[i * 3 + 2]];
+    const toC = norm(sub(c, p));
+    if (dot(n, toC) > 0.35) pts.push(p);
+  }
+  const step = Math.max(1, Math.floor(pts.length / maxPoints));
+  return pts.filter((_, i) => i % step === 0);
+}
+
+export interface MultiIcpOptions { starts?: number; refine?: number; iterations?: number; maxDist?: number; seed?: number; onProgress?: (p: number) => void }
+export interface MultiIcpResult { T: Rigid; rms: number; coverage: number; ranking: Array<{ rms: number; coverage: number }>; confident: boolean }
+
+/** ICP rígido com várias partidas (posição × giro × orientação) usando só a face interna da coroa. */
+export function alignCrownToArch(crown: Mesh, arch: Mesh, opts: MultiIcpOptions = {}): MultiIcpResult {
+  const { starts = 400, refine = 12, iterations = 30, maxDist = 1.0 } = opts;
+  const idx = new PointIndex(arch, 1.2);
+  const inner = innerPoints(crown, 1200);
+  const cc = bounds(crown).center;
+  const local = inner.map((p) => sub(p, cc));
+  const rand = rng(opts.seed ?? 7);
+  // candidatos de posição: vértices do arco amostrados
+  const na = vertexCount(arch);
+  const cands: Vec3[] = [];
+  for (let i = 0; i < starts; i++) cands.push(getV(arch, Math.floor(rand() * na)));
+  const orient: Rigid["R"][] = [];
+  for (const flip of [0, 180]) for (let yaw = 0; yaw < 360; yaw += 45) orient.push(mMul(rotZ(yaw), rotX(flip)));
+  const coarseLocal = local.filter((_, i) => i % 10 === 0);
+  const score = (T: Rigid, pts: Vec3[] = local) => {
+    let s = 0, hit = 0;
+    for (const q of pts) { const w = rigidApply(T, q); const nn = idx.nearest(w, maxDist * 3); const d = nn ? Math.min(nn.dist, maxDist * 3) : maxDist * 3; s += d; if (d < 0.25) hit++; }
+    return { mean: s / pts.length, cov: hit / pts.length };
+  };
+  const coarse: Array<{ T: Rigid; mean: number }> = [];
+  let k = 0;
+  for (const c of cands) {
+    for (const R of orient) { const T: Rigid = { R, t: c }; coarse.push({ T, mean: score(T, coarseLocal).mean }); }
+    if (opts.onProgress && ++k % 20 === 0) opts.onProgress(k / cands.length * 0.5);
+  }
+  coarse.sort((a, b) => a.mean - b.mean);
+  const results: Array<{ T: Rigid; rms: number; coverage: number }> = [];
+  for (let i = 0; i < Math.min(refine, coarse.length); i++) {
+    // ICP ponto-a-ponto das amostras internas (em coordenadas do centro da coroa)
+    let T = coarse[i].T;
+    let prev = Infinity;
+    for (let it = 0; it < iterations; it++) {
+      const A: Vec3[] = [], B: Vec3[] = [];
+      let se = 0;
+      for (const q of local) { const w = rigidApply(T, q); const nn = idx.nearest(w, 4); if (!nn || nn.dist > maxDist * 2.5) continue; A.push(q); B.push(getV(arch, nn.index)); se += nn.dist ** 2; }
+      if (A.length < 20) break;
+      const rms = Math.sqrt(se / A.length);
+      T = kabsch(A, B);
+      if (Math.abs(prev - rms) < 1e-4) break;
+      prev = rms;
+    }
+    const sc = score(T);
+    results.push({ T, rms: sc.mean, coverage: sc.cov });
+    opts.onProgress?.(0.5 + ((i + 1) / refine) * 0.5);
+  }
+  results.sort((a, b) => b.coverage - a.coverage || a.rms - b.rms);
+  const best = results[0];
+  // converte T (centro da coroa → mundo) em transformação da malha original: p' = R (p − cc) + t
+  const R = best.T.R, t = add(best.T.t, mApply(R, scale(cc, -1)));
+  return { T: { R, t }, rms: best.rms, coverage: best.coverage, ranking: results.map((r) => ({ rms: r.rms, coverage: r.coverage })), confident: best.coverage > 0.5 && best.rms < 0.3 };
+}
