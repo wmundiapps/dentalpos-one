@@ -65,13 +65,26 @@ export const MEAN_DIMS: Record<Jaw, Record<ToothType, ToothDims>> = {
 export const ANDREWS_NORMS: Record<Jaw, Record<ToothType, { tip: number; torque: number }>> = {
   upper: {
     central: { tip: 5, torque: 7 }, lateral: { tip: 9, torque: 3 }, canine: { tip: 11, torque: -7 },
-    premolar1: { tip: 2, torque: -7 }, premolar2: { tip: 2, torque: -7 }, molar1: { tip: 5, torque: -9 }, molar2: { tip: 5, torque: -9 }, molar3: { tip: 5, torque: -9 },
+    premolar1: { tip: 2, torque: -7 }, premolar2: { tip: 2, torque: -8 }, molar1: { tip: 5, torque: -10 }, molar2: { tip: 5, torque: -12 }, molar3: { tip: 5, torque: -14 },
   },
   lower: {
     central: { tip: 2, torque: -1 }, lateral: { tip: 2, torque: -1 }, canine: { tip: 5, torque: -11 },
     premolar1: { tip: 2, torque: -17 }, premolar2: { tip: 2, torque: -22 }, molar1: { tip: 2, torque: -30 }, molar2: { tip: 2, torque: -35 }, molar3: { tip: 2, torque: -35 },
   },
 };
+
+/**
+ * Esquema de alturas de coroa em função de X (mm), conforme o protocolo clínico:
+ * superiores: pré-molar = X · 1º molar = X−0,5 · 2º molar = X−1 · canino = X+0,5 · lateral = X · central = X+0,5;
+ * inferiores: incisivos e pré-molares = X · molares = X−0,5 · canino = X+0,5.
+ */
+export const HEIGHT_OFFSETS: Record<Jaw, Record<ToothType, number>> = {
+  upper: { central: 0.5, lateral: 0, canine: 0.5, premolar1: 0, premolar2: 0, molar1: -0.5, molar2: -1, molar3: -1.5 },
+  lower: { central: 0, lateral: 0, canine: 0.5, premolar1: 0, premolar2: 0, molar1: -0.5, molar2: -0.5, molar3: -1 },
+};
+export interface HeightScheme { enabled: boolean; xUpper: number; xLower: number }
+export const DEFAULT_HEIGHTS: HeightScheme = { enabled: true, xUpper: 9.5, xLower: 9.0 };
+export const schemeHeight = (jaw: Jaw, t: ToothType, h: HeightScheme) => (jaw === "upper" ? h.xUpper : h.xLower) + HEIGHT_OFFSETS[jaw][t];
 
 /** Fração do overbite (trespasse vertical) aplicada a cada tipo ao nivelar o plano oclusal superior. */
 export const OVERBITE_TAPER: Record<ToothType, number> = {

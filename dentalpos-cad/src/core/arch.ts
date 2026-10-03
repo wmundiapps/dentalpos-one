@@ -15,36 +15,36 @@ export interface ArchParams {
   depth: number;
 }
 export const DEFAULT_ARCH: Record<Jaw, ArchParams> = {
-  upper: { form: "ovoid", width: 52, depth: 34 },
-  lower: { form: "ovoid", width: 47, depth: 31 },
+  upper: { form: "ovoid", width: 49, depth: 27.5 },
+  lower: { form: "ovoid", width: 44, depth: 27.6 },
 };
 
 // O arco é definido pela curvatura ao longo do comprimento de arco: arredondado na região anterior e quase reto nos segmentos
 // posteriores. Inferior: posterior retilíneo (sem lingualizar os molares). Superior: posterior levemente arredondado.
-//   κ(s) = κ0·exp(−(s/L1)^p) + κpost·passo(s)   ;   ψ(s) = ∫κ ds   (ψ = rotação da tangente, 90° = segmento posterior paralelo)
+// Os incisivos ficam num segmento pouco curvo e a curvatura máxima ocorre na região do canino (centro sc = p, largura L1):
+//   κ(s) = κ0·exp(−((s−p)/L1)²) + κpost·passo(s)   ;   ψ(s) = ∫κ ds   (ψ = rotação da tangente, 90° = segmento posterior paralelo)
 const FORM_PROFILE: Record<Jaw, Record<ArchForm, { p: number; kPost: number }>> = {
-  upper: { ovoid: { p: 2, kPost: 0.011 }, square: { p: 3.6, kPost: 0.006 }, tapered: { p: 1.5, kPost: 0.014 } },
-  lower: { ovoid: { p: 2, kPost: 0 }, square: { p: 3.6, kPost: 0 }, tapered: { p: 1.5, kPost: 0 } },
+  upper: { ovoid: { p: 14, kPost: 0.011 }, square: { p: 15, kPost: 0.006 }, tapered: { p: 8, kPost: 0.014 } },
+  lower: { ovoid: { p: 14, kPost: 0 }, square: { p: 15, kPost: 0 }, tapered: { p: 8, kPost: 0 } },
 };
 type Pt = [number, number];
-const gammaCache = new Map<number, number>();
-/** ∫0^∞ exp(−t^p) dt */
-function gammaInt(p: number): number {
-  let g = gammaCache.get(p);
-  if (g === undefined) { g = 0; for (let t = 0.0025; t < 8; t += 0.005) g += Math.exp(-(t ** p)) * 0.005; gammaCache.set(p, g); }
+/** ∫0^∞ exp(−((s−sc)/w)²) ds */
+function gaussInt(sc: number, w: number): number {
+  let g = 0; const ds = 0.1;
+  for (let s = ds / 2; s < sc + 6 * w; s += ds) g += Math.exp(-(((s - sc) / w) ** 2)) * ds;
   return g;
 }
 interface ArcTable { xs: Float64Array; ys: Float64Array; cum: Float64Array }
 interface ArchFit { L1: number; psi: number; p: number; kPost: number }
 const DS = 0.2;
-function curveTable(f: ArchFit, S: number): ArcTable {
+export function curveTable(f: ArchFit, S: number): ArcTable {
   const n = Math.ceil(S / DS);
   const xs = new Float64Array(n + 1), ys = new Float64Array(n + 1), cum = new Float64Array(n + 1);
-  const k0 = f.psi / (f.L1 * gammaInt(f.p));
+  const k0 = f.psi / gaussInt(f.p, f.L1);
   let psi = 0, x = 0, y = 0;
   for (let i = 1; i <= n; i++) {
     const s = (i - 0.5) * DS;
-    const k = k0 * Math.exp(-((s / f.L1) ** f.p)) + f.kPost * smooth(35, 55, s);
+    const k = k0 * Math.exp(-(((s - f.p) / f.L1) ** 2)) + f.kPost * smooth(35, 55, s);
     const psiMid = psi + (k * DS) / 2;
     x += Math.cos(psiMid) * DS; y -= Math.sin(psiMid) * DS; psi += k * DS;
     xs[i] = x; ys[i] = y; cum[i] = i * DS;
@@ -61,26 +61,27 @@ function tableAt(t: ArcTable, s: number): { pt: Pt; dir: Pt } {
   return { pt: [t.xs[lo] + dx * f, t.ys[lo] + dy * f], dir: [dx / l, dy / l] };
 }
 
-/** Ajusta (L1, ψ) para que o ponto a `arcM1` mm da linha média caia em (width/2, −depth). */
+/** Ajusta (centro, largura, ψ) para que o ponto a `arcM1` mm da linha média caia em (width/2, −depth), sem lingualizar o posterior (ψ ≤ ~80°). */
 export function fitArch(p: ArchParams, jaw: Jaw, arcM1: number): ArchFit {
   const prof = FORM_PROFILE[jaw][p.form];
-  const err = (L1: number, psi: number) => {
-    const t = curveTable({ L1, psi, p: prof.p, kPost: prof.kPost }, arcM1 + 1);
-    const q = tableAt(t, arcM1).pt;
-    return (q[0] - p.width / 2) ** 2 + (q[1] + p.depth) ** 2;
+  const err = (sc: number, L1: number, psi: number) => {
+    const t = curveTable({ L1, psi, p: sc, kPost: prof.kPost }, arcM1 + 1);
+    const q = tableAt(t, arcM1);
+    const ang = Math.atan2(-q.dir[1], q.dir[0]);
+    return (q.pt[0] - p.width / 2) ** 2 + (q.pt[1] + p.depth) ** 2 + 40 * Math.max(0, ang - 1.38) ** 2 * 100 + 0.01 * (sc - prof.p) ** 2;
   };
-  let best = { L1: 20, psi: Math.PI / 2, e: Infinity };
-  const search = (l0: number, l1: number, p0: number, p1: number, n: number) => {
-    for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
-      const L1 = l0 + ((l1 - l0) * i) / n, psi = p0 + ((p1 - p0) * j) / n;
-      const e = err(L1, psi);
-      if (e < best.e) best = { L1, psi, e };
+  let best = { sc: prof.p, L1: 10, psi: 1.4, e: Infinity };
+  const search = (sc0: number, sc1: number, l0: number, l1: number, p0: number, p1: number, n: number, ns: number) => {
+    for (let k = 0; k <= ns; k++) for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
+      const sc = ns ? sc0 + ((sc1 - sc0) * k) / ns : sc0, L1 = l0 + ((l1 - l0) * i) / n, psi = p0 + ((p1 - p0) * j) / n;
+      const e = err(sc, L1, psi);
+      if (e < best.e) best = { sc, L1, psi, e };
     }
   };
-  search(5, 55, 1.15, 2.0, 26);
-  search(Math.max(3, best.L1 - 4), best.L1 + 4, best.psi - 0.1, best.psi + 0.1, 12);
-  search(Math.max(3, best.L1 - 0.8), best.L1 + 0.8, best.psi - 0.02, best.psi + 0.02, 8);
-  return { L1: best.L1, psi: best.psi, p: prof.p, kPost: prof.kPost };
+  search(prof.p - 6, prof.p + 3, 2, 24, 0.9, 2.2, 22, 6);
+  search(best.sc - 1, best.sc + 1, Math.max(1.5, best.L1 - 1.5), best.L1 + 1.5, best.psi - 0.1, best.psi + 0.1, 10, 2);
+  search(best.sc, best.sc, Math.max(1.2, best.L1 - 0.3), best.L1 + 0.3, best.psi - 0.02, best.psi + 0.02, 8, 0);
+  return { L1: best.L1, psi: best.psi, p: best.sc, kPost: prof.kPost };
 }
 
 export interface ArchSlot { x: number; y: number; tangent: number; arcPos: number }
@@ -138,9 +139,19 @@ export interface OcclusionParams {
   overbite: number;
   speeRadius: number; // mm; Infinity = plano
   wilsonRadius: number;
+  /** inclinação do plano oclusal (° — comissura/rima → tragus; + = posterior mais alto) */
+  occlusalPlaneDeg?: number;
   molarOffset: number; // Classe II (+) / Classe III (−): deslocamento ântero-posterior do inferior posterior, mm
 }
-export const DEFAULT_OCCLUSION: OcclusionParams = { overjet: 2.5, overbite: 2.5, speeRadius: 135, wilsonRadius: 220, molarOffset: 0 };
+export const DEFAULT_OCCLUSION: OcclusionParams = { overjet: 1.5, overbite: 1.5, speeRadius: 135, wilsonRadius: 220, molarOffset: 0 };
+
+/** Posicionamento artístico (mm, + = vestibular) aplicado à posição vestíbulo-lingual de cada tipo de dente */
+export interface ArtisticParams { upperLateral: number; upperCanine: number; upperMolar: number; lowerCanine: number; lowerMolar: number }
+export const DEFAULT_ARTISTIC: ArtisticParams = { upperLateral: -0.45, upperCanine: 0.25, upperMolar: 0.35, lowerCanine: 0.15, lowerMolar: 0.15 };
+export function artisticOffset(r: ToothRef, a: ArtisticParams): number {
+  if (r.jaw === "upper") return r.type === "lateral" ? a.upperLateral : r.type === "canine" ? a.upperCanine : r.index >= 6 ? a.upperMolar : 0;
+  return r.type === "canine" ? a.lowerCanine : r.index >= 6 ? a.lowerMolar : 0;
+}
 
 export interface Pose {
   /** posição mundial do ponto de ancoragem */
@@ -178,6 +189,8 @@ export interface PoseInputs {
   applyAndrews?: boolean;
   /** deslocamento vertical extra de borda (mm, + = mais cervical) por tipo de dente (degrau lateral/canino) */
   edgeOffset?: (r: ToothRef) => number;
+  /** deslocamento vestibular artístico (mm) por dente (inset/off-set) */
+  facialOffset?: (r: ToothRef) => number;
 }
 export interface PoseResult {
   poses: Map<number, Pose>;
@@ -225,12 +238,14 @@ export function buildPoses(o: PoseInputs): PoseResult {
         const wilson = isFinite(oc.wilsonRadius) && r.index >= 4 ? (p.x * p.x) / (2 * oc.wilsonRadius) : 0;
         const taper = OVERBITE_TAPER[r.type];
         const eo = o.edgeOffset ? o.edgeOffset(r) : 0;
-        const z = spee + wilson + (jaw === "upper" ? -oc.overbite * taper + eo : eo);
+        const tilt = oc.occlusalPlaneDeg ? Math.tan((oc.occlusalPlaneDeg * Math.PI) / 180) * Math.max(0, -p.y - 10) : 0;
+        const z = tilt + spee + wilson + (jaw === "upper" ? -oc.overbite * taper + eo : eo);
         const lowerWeight = jaw === "lower" ? 1 : 0;
         const molarShift = jaw === "lower" ? -oc.molarOffset * clamp((r.index - 3) / 3, 0, 1) : 0;
-        const y = p.y + lowerWeight * lowerShiftY + molarShift;
+        const fo = o.facialOffset ? o.facialOffset(r) : 0;
+        const y = p.y + lowerWeight * lowerShiftY + molarShift + fo * Math.cos(p.tangent);
         const sh = arcShift.get(fdi) ?? 0, dH: Vec3 = [Math.cos(p.tangent) * (r.side === "L" ? 1 : -1), Math.sin(p.tangent) * (r.side === "L" ? 1 : -1), 0];
-        poses.set(fdi, { anchorW: [p.x + sh * dH[0] + (userShift ? adj.dx ?? 0 : 0), y + sh * dH[1] + (userShift ? adj.dy ?? 0 : 0), z + (userShift ? adj.dz ?? 0 : 0)], R, tip, torque, rotation, arcPos: p.arcPos, archTangent: p.tangent, jaw });
+        poses.set(fdi, { anchorW: [p.x - fo * Math.sin(p.tangent) + sh * dH[0] + (userShift ? adj.dx ?? 0 : 0), y + sh * dH[1] + (userShift ? adj.dy ?? 0 : 0), z + (userShift ? adj.dz ?? 0 : 0)], R, tip, torque, rotation, arcPos: p.arcPos, archTangent: p.tangent, jaw });
         mirror.set(fdi, mir);
       }
     }

@@ -1,9 +1,9 @@
 // Modelo de projeto (caso) + avaliação: gera dentes, poses, malhas e marcos no mundo.
 import { type Vec3, mApply, add, sub, round } from "./math";
-import { ANDREWS_NORMS, MEAN_DIMS, allFdi, toothRef, type Jaw, type Landmarks, type ToothRef } from "./anatomy";
+import { ANDREWS_NORMS, MEAN_DIMS, DEFAULT_HEIGHTS, schemeHeight, type HeightScheme, allFdi, toothRef, type Jaw, type Landmarks, type ToothRef } from "./anatomy";
 import { type Mesh, computeNormals, transformMesh } from "./mesh";
 import { DEFAULT_PROFILE, FACE_TO_FORM, styleModifiers, type PatientProfile, type StyleModifiers, type ToothForm } from "./profiles";
-import { buildPoses, DEFAULT_ARCH, DEFAULT_OCCLUSION, type ArchParams, type OcclusionParams, type Pose, type ToothAdjust, worldPoint } from "./arch";
+import { buildPoses, DEFAULT_ARTISTIC, artisticOffset, type ArtisticParams, DEFAULT_ARCH, DEFAULT_OCCLUSION, type ArchParams, type OcclusionParams, type Pose, type ToothAdjust, worldPoint } from "./arch";
 import { generateTooth, type ToothModel } from "./toothMesh";
 import { customToMesh, modelFromMesh, type CustomTooth } from "./library";
 import type { MaterialId } from "./materials";
@@ -52,6 +52,10 @@ export interface CadProject {
   implants: ImplantPlan[];
   /** modelos de dente importados (STL/OBJ/PLY) que substituem o dente paramétrico */
   customTeeth?: Record<number, CustomTooth>;
+  /** esquema de alturas de coroa (X) */
+  heights?: HeightScheme;
+  /** inset/off-set artístico */
+  artistic?: ArtisticParams;
 }
 
 export interface SmilePlacement {
@@ -126,15 +130,17 @@ function customModel(ref: ToothRef, cu: CustomTooth, d: { md: number; bl: number
   return m;
 }
 
-export function baseDims(ref: ToothRef, mods: StyleModifiers) {
+export function baseDims(ref: ToothRef, mods: StyleModifiers, hs?: HeightScheme) {
   const d = MEAN_DIMS[ref.jaw][ref.type];
-  return { md: d.md * mods.widthScale, bl: d.bl, h: d.h * mods.heightScale };
+  const h = hs?.enabled ? schemeHeight(ref.jaw, ref.type, hs) : d.h;
+  return { md: d.md * mods.widthScale, bl: d.bl, h: h * mods.heightScale };
 }
 
 export function evaluate(p: CadProject): Evaluated {
   const mods = styleModifiers(p.patient, p.form);
   const models = new Map<number, ToothModel>();
-  const dimsOfFn = (r: ToothRef) => baseDims(r, mods);
+  const hs = p.heights ?? DEFAULT_HEIGHTS, art = p.artistic ?? DEFAULT_ARTISTIC;
+  const dimsOfFn = (r: ToothRef) => baseDims(r, mods, hs);
   const adjustedDims = (f: number) => {
     const r = toothRef(f), d = dimsOfFn(r), a = p.adjust[f] ?? {};
     const sc = a.scale ?? 1;
@@ -153,7 +159,8 @@ export function evaluate(p: CadProject): Evaluated {
   const res = buildPoses({
     fdis: p.fdis, dimsOf: dimsOfFn, landmarksOf: (f) => modelOf(f).landmarks,
     arches: p.arches, occlusion: p.occlusion, adjust: p.adjust, applyAndrews: p.andrews,
-    edgeOffset: (r) => (r.jaw === "upper" ? (r.type === "lateral" ? mods.lateralStep : r.type === "canine" ? 0.3 : 0) : r.type === "lateral" ? 0.2 : 0),
+    edgeOffset: (r) => (r.jaw === "upper" ? (r.type === "lateral" ? mods.lateralStep : r.type === "canine" ? 0 : 0) : r.type === "lateral" ? 0.2 : 0),
+    facialOffset: (r) => artisticOffset(r, art),
   });
   const teeth = new Map<number, WorldTooth>();
   for (const f of p.fdis) {

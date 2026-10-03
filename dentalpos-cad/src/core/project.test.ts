@@ -15,8 +15,8 @@ describe("projeto padrão", () => {
       const t = ev.teeth.get(f)!;
       console.log(f, t.lm.anchor.map((v) => v.toFixed(1)).join(","), "dist", t.distal.map((v) => v.toFixed(2)).join(","), "fac", t.facial.map((v) => v.toFixed(2)).join(","), "occ", t.occlusal.map((v) => v.toFixed(2)).join(","));
     }
-    expect(Math.abs(oj - 2.5)).toBeLessThan(0.3);
-    expect(Math.abs(ob - 2.5)).toBeLessThan(0.8);
+    expect(Math.abs(oj - 1.5)).toBeLessThan(0.3);
+    expect(Math.abs(ob - 1.5)).toBeLessThan(0.8);
     // contatos
     for (const [a, b] of [[11, 12], [12, 13], [13, 14], [14, 15], [15, 16], [16, 17], [31, 32], [45, 46]]) {
       const A = ev.teeth.get(a)!, Bt = ev.teeth.get(b)!; const dd = [A.distal[0] + Bt.distal[0], A.distal[1] + Bt.distal[1]]; const dl = Math.hypot(dd[0], dd[1]); const g = ((Bt.lm.mesialContact[0] - A.lm.distalContact[0]) * dd[0] + (Bt.lm.mesialContact[1] - A.lm.distalContact[1]) * dd[1]) / dl; void dist;
