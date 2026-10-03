@@ -70,7 +70,9 @@ export function generateTooth(inp: ToothShapeInput): ToothModel {
   const n = mods.squareness;
   const conv = mods.labialConvexity;
   const wearMM = mods.wear * (ant ? 1.2 : 0.5);
-  const morph = morphFor(ref);
+  const morph0 = morphFor(ref);
+  // cúspides vestibulares maiores que as linguais/palatinas
+  const morph = morph0 && { ...morph0, cusps: morph0.cusps.map((c) => ({ ...c, r: c.r * (c.w > 0 ? 1.12 : c.w < 0 ? 0.88 : 1) })) };
   const cuspH = morph ? morph.cuspH * (0.55 + mods.cuspRelief * 0.6) * (1 - mods.wear * 0.5) : 0;
   const hWall = ant ? h - wearMM : h - cuspH;
   const edgeT = clamp(1.1 + mods.wear * 0.9, 1, 2.2);
@@ -94,7 +96,7 @@ export function generateTooth(inp: ToothShapeInput): ToothModel {
   const yfOf = (v: number) => {
     const bulge = Math.sin(Math.PI * clamp(v / 0.55, 0, 1)) * 0.07 * conv * bl;
     if (ant) return bl * 0.5 - 0.12 * v * bl * (1 - conv * 0.6) + bulge;
-    return bl * 0.5 * (1 - 0.1 * smoothstep(0.6, 1, v)) + bulge * 0.7;
+    return bl * 0.5 * (1 - 0.1 * smoothstep(0.6, 1, v)) + bulge * (ref.jaw === "upper" ? 1.7 : 0.7); // superiores: equador vestibular mais cheio (afasta a bochecha)
   };
   const dMax = clamp((ant ? 0.35 : 0) + mods.cornerRounding * 1.4, 0, 2.2);
   const dropAt = (x: number) => {

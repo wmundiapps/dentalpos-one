@@ -159,7 +159,7 @@ export function evaluate(p: CadProject): Evaluated {
   const res = buildPoses({
     fdis: p.fdis, dimsOf: dimsOfFn, landmarksOf: (f) => modelOf(f).landmarks,
     arches: p.arches, occlusion: p.occlusion, adjust: p.adjust, applyAndrews: p.andrews,
-    edgeOffset: (r) => (r.jaw === "upper" ? (r.type === "lateral" ? mods.lateralStep : r.type === "canine" ? 0 : 0) : r.type === "lateral" ? 0.2 : 0),
+    edgeOffset: (r) => (r.jaw === "upper" ? (r.type === "lateral" ? mods.lateralStep : r.type === "canine" ? 0.6 : 0) : r.type === "lateral" ? 0.2 : 0),
     facialOffset: (r) => artisticOffset(r, art),
   });
   const teeth = new Map<number, WorldTooth>();

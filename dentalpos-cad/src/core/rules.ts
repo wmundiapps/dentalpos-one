@@ -6,6 +6,7 @@ import { type Measurements, measure } from "./measure";
 import { MATERIALS } from "./materials";
 import { clamp, round } from "./math";
 import { analyzePhoto } from "./smile";
+import { analyzeSmileLine } from "./smileFit";
 import { analyzeGuide } from "./guide";
 
 export type Severity = "error" | "warning" | "info" | "ok";
@@ -239,6 +240,7 @@ export function analyze(p: CadProject, evIn?: Evaluated): Report {
 
   // ---------- Foto ----------
   for (const i of analyzePhoto(p, ev)) issues.push(i);
+  for (const i of analyzeSmileLine(p, ev)) issues.push(i);
 
   // ---------- Implantes ----------
   for (const i of analyzeGuide(p, ev)) issues.push(i);

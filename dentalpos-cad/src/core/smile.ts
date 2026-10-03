@@ -111,10 +111,6 @@ export function analyzePhoto(p: CadProject, ev: Evaluated): Issue[] {
   const pxmm = map.pxPerMm;
   // plano incisal vs linha interpupilar
   if (Math.abs(p.smile.cantDeg) > 1.5) out.push(mk("PH_CANT", Math.abs(p.smile.cantDeg) > 3 ? "error" : "warning", [11, 21], "Plano incisal inclinado", `Plano incisal inclinado ${round(p.smile.cantDeg, 1)}° em relação à linha interpupilar.`, "O plano incisal deve ser paralelo à linha interpupilar (≤1,5°).", { value: p.smile.cantDeg, fix: { label: "Alinhar plano incisal à linha interpupilar", apply: (q) => ({ ...q, smile: { ...q.smile, cantDeg: 0 } }) } }));
-  // exibição incisal
-  const disp = p.smile.incisalDisplayMm;
-  const [lo, hi] = p.patient.sex === "male" ? [0.5, 2.5] : [1.5, 4];
-  if (disp < lo || disp > hi) out.push(mk("PH_DISPLAY", "warning", [11, 21], "Exibição incisal em repouso", `Exibição de ${round(disp, 1)} mm (típico ${lo}–${hi} mm para ${p.patient.sex === "male" ? "homens" : "mulheres"}).`, disp < lo ? "Considere aumentar o comprimento dos incisivos centrais." : "Exibição excessiva: avalie encurtar as bordas ou corrigir o lábio.", { value: disp, fix: { label: `Exibição ${(lo + hi) / 2} mm`, apply: (q) => ({ ...q, smile: { ...q.smile, incisalDisplayMm: (lo + hi) / 2 } }) } }));
   // linha média dentária vs facial
   const c11 = ev.teeth.get(11), c21 = ev.teeth.get(21);
   if (c11 && c21 && lm.facialMidTop && lm.facialMidBottom) {
@@ -131,14 +127,14 @@ export function analyzePhoto(p: CadProject, ev: Evaluated): Issue[] {
       else if (arc > 1.5) out.push(mk("PH_ARC", "info", [13, 23], "Arco do sorriso muito acentuado", `Caninos ${round(arc, 1)} mm mais cervicais que centrais.`, "Arco levemente curvo (0,5–1,0 mm) é considerado ideal."));
     }
     // corredor bucal
-    const cr = ev.teeth.get(14), cl = ev.teeth.get(24);
+    const cr = ev.teeth.get(15), cl = ev.teeth.get(25);
     if (cr && cl) {
       const spanPx = Math.abs(lm.commissureL[0] - lm.commissureR[0]);
       const spanMm = spanPx / pxmm;
-      const teethSpan = Math.abs(cl.lm.facialEdge[0] - cr.lm.facialEdge[0]) + 2 * 1.5;
+      const teethSpan = Math.abs(cl.lm.facialEdge[0] - cr.lm.facialEdge[0]) + 6;
       const corr = clamp((spanMm - teethSpan) / spanMm, 0, 1) * 100;
-      if (corr > 18) out.push(mk("PH_CORRIDOR", "warning", [14, 24], "Corredor bucal amplo", `Corredor bucal ≈ ${round(corr, 0)}% (ideal 2–15%).`, "Alargue o arco superior ou amplie pré-molares (ou use sorrisos mais largos)."));
-      else out.push(mk("PH_CORRIDOR_OK", "ok", [14, 24], "Corredor bucal", `≈ ${round(corr, 0)}% (ideal 2–15%).`, ""));
+      if (corr > 18) out.push(mk("PH_CORRIDOR", "warning", [15, 25], "Corredor bucal amplo", `Corredor bucal ≈ ${round(corr, 0)}% (ideal 2–15%).`, "Alargue o arco superior ou amplie pré-molares (ou use sorrisos mais largos)."));
+      else out.push(mk("PH_CORRIDOR_OK", "ok", [15, 25], "Corredor bucal", `≈ ${round(corr, 0)}% (ideal 2–15%).`, ""));
     }
   }
   return out;
