@@ -53,7 +53,7 @@ async function main() {
   check('item status invalido 400', (await coord('PATCH', `${R}/checklists/itens/${obr.id}`, { status: 'FEITO' })).status === 400)
   check('item B 404', (await adminB('PATCH', `${R}/checklists/itens/${obr.id}`, { status: 'EM_ANDAMENTO' })).status === 404)
   check('item teacher 403', (await teacher('PATCH', `${R}/checklists/itens/${obr.id}`, { status: 'EM_ANDAMENTO' })).status === 403)
-  const ev = await coord('POST', `${R}/checklists/itens/${obr.id}/evidencias`, { nome: 'doc.pdf', dataUrl: 'data:application/pdf;base64,AAAA' })
+  const ev = await coord('POST', `${R}/checklists/itens/${obr.id}/evidencias`, { nome: 'doc.pdf', dataUrl: 'data:application/pdf;base64,' + Buffer.from('%PDF-1.4\n%%EOF\n').toString('base64') })
   check('evidencia ok', ev.status === 201 && ev.body.status === 'EM_ANDAMENTO', ev.body)
   check('evidencia sem url 400', (await coord('POST', `${R}/checklists/itens/${obr.id}/evidencias`, { nome: 'x' })).status === 400)
   const at = await coord('PATCH', `${R}/checklists/itens/${obr.id}`, { status: 'ATENDIDO' })

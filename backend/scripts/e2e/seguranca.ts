@@ -222,6 +222,8 @@ async function main() {
   bloqueia('SVG com onload=', v(SVG_ONLOAD, 'a.svg'), /evento/)
   bloqueia('SVG com foreignObject', v(SVG_FO, 'a.svg'), /foreignObject/)
   bloqueia('SVG com javascript: em href', v(SVG_JSHREF, 'a.svg'))
+  bloqueia('SVG com entidade externa (XXE)', v(Buffer.from('<?xml version="1.0"?><!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]><svg xmlns="http://www.w3.org/2000/svg"><text>&x;</text></svg>'), 'a.svg'), /XXE/)
+  check('SVG do Illustrator (DOCTYPE com entidade interna) passa', v(Buffer.from('<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [<!ENTITY ns_extend "http://ns.adobe.com/Extensibility/1.0/">]><svg xmlns="http://www.w3.org/2000/svg" xmlns:x="&ns_extend;"><rect width="1" height="1"/></svg>'), 'a.svg').ok)
   bloqueia('HTML disfarçado de .txt', v(Buffer.from('<!DOCTYPE html><html><body>oi</body></html>'), 'a.txt'), /HTML/)
   bloqueia('HTML com <script> disfarçado de .png (conteúdo texto)', v(Buffer.from('<html><script>alert(1)</script></html>'), 'a.png'))
   bloqueia('EICAR (.txt)', v(EICAR, 'teste.txt'), /EICAR/)

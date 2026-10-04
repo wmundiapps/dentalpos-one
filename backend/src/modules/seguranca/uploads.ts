@@ -135,7 +135,8 @@ function analisarSvg(texto: string, ac: Acumulador) {
   if (/javascript\s*:/i.test(t)) ac.bloquear('SVG com javascript:')
   if (/<\s*foreignObject\b/i.test(t)) ac.bloquear('SVG com foreignObject')
   if (/<\s*(iframe|embed|object|audio|video|link|meta|base|animate|set)\b/i.test(t)) ac.bloquear('SVG com elemento ativo/externo (iframe/object/animate...)')
-  if (/<!ENTITY/i.test(t) || /<!DOCTYPE[^>]*\[/i.test(t)) ac.bloquear('SVG com declaração de entidade (XXE)')
+  // Entidades internas simples são comuns (Adobe Illustrator); bloqueia só as externas (XXE) e o excesso ("billion laughs").
+  if (/<!ENTITY\s+\S+\s+(?:SYSTEM|PUBLIC)\b/i.test(t) || (t.match(/<!ENTITY/gi) || []).length > 20) ac.bloquear('SVG com entidade externa/excessiva (XXE)')
   if (/(?:xlink:)?href\s*=\s*["']\s*(?!#|data:image\/(?:png|jpe?g|gif|webp);base64,)[^"']/i.test(t)) ac.bloquear('SVG com referência externa (href)')
   if (/@import|url\(\s*["']?\s*(?:https?:|\/\/|javascript:|data:text)/i.test(t)) ac.bloquear('SVG com CSS que carrega recurso externo')
 }
@@ -204,7 +205,7 @@ function analisarTexto(texto: string, ext: string, ac: Acumulador) {
     if (/(^|[\r\n,;\t"])\s*[=+\-@]\s*(?:cmd|powershell|mshta|msexcel|calc|regsvr32)[^\r\n]{0,40}\|/i.test(texto)) ac.bloquear('planilha com injeção de fórmula/DDE (=cmd|...)')
     else if (/(^|[\r\n,;\t"])\s*=\s*(?:HYPERLINK|WEBSERVICE|IMPORTXML|IMPORTDATA)\s*\(/i.test(texto)) ac.suspeitar('planilha com fórmula que acessa recurso externo')
   }
-  if (ext === 'xml' && /<!ENTITY/i.test(texto)) ac.bloquear('XML com declaração de entidade (XXE)')
+  if (ext === 'xml' && (/<!ENTITY\s+\S+\s+(?:SYSTEM|PUBLIC)\b/i.test(texto) || (texto.match(/<!ENTITY/gi) || []).length > 20)) ac.bloquear('XML com entidade externa/excessiva (XXE)')
 }
 
 /** Inspeciona um ZIP/OOXML/ODF. Retorna o subtipo detectado (docx, xlsx, pptx, odt..., zip). */
@@ -374,8 +375,9 @@ export function analisarLocal(buf: Buffer, opt: { filename?: string; declaredMim
 export async function scanUpload(input: ScanInput): Promise<ScanResult> {
   const ctx = input.contexto || {}
   const registrar = ctx.registrar !== false
+  let repetidoLimpo = false // mesmo hash já registrado como LIMPO neste tenant: não duplica a linha
   const finalizar = async (r: ScanResult, nome?: string) => {
-    if (registrar) await registrarVeredito(r, { nome, mime: input.declaredMime, ctx })
+    if (registrar && !(repetidoLimpo && r.veredito === 'LIMPO')) await registrarVeredito(r, { nome, mime: input.declaredMime, ctx })
     return r
   }
 
@@ -429,11 +431,13 @@ export async function scanUpload(input: ScanInput): Promise<ScanResult> {
   if (registrar && ctx.tenantId) {
     try {
       const antes = await prisma.segArquivoVerificado.findFirst({ where: { tenantId: ctx.tenantId, sha256, veredito: { in: ['BLOQUEADO', 'LIMPO'] } }, orderBy: { createdAt: 'desc' } })
-      if (antes?.veredito === 'BLOQUEADO' && antes.motivo && !antes.motivo.startsWith('moderação indisponível')) {
+      // Só reaproveita bloqueios decididos por camadas externas (o resto é recalculado: o nome do arquivo pode ter mudado).
+      if (antes?.veredito === 'BLOQUEADO' && antes.motivo && /^(antivírus ClamAV|VirusTotal|imagem recusada pela moderação)/.test(antes.motivo)) {
         ac.bloquear(antes.motivo)
         return finalizar(montar(ac, { sha256, tamanho: buf.length, tipo: local.tipo, mime: local.mime, categoria: local.categoria }), input.filename)
       }
       jaLimpo = antes?.veredito === 'LIMPO'
+      repetidoLimpo = jaLimpo
     } catch { /* tabela ausente: segue sem cache */ }
   }
 

@@ -5,7 +5,16 @@ import { runEduJobs } from '../../src/modules/core/jobs'
 async function main() {
   const c = await setup()
   const admin = c.as('ADMIN'), teacher = c.as('TEACHER'), coord = c.as('COORDINATOR'), adminB = c.asB('ADMIN')
-  const png = 'data:image/png;base64,' + Buffer.from('x'.repeat(100)).toString('base64')
+  // PNG REAL (a varredura de uploads recusa "imagens" falsas). Chunk auxiliar tEXt ajusta o tamanho; múltiplo de 3 => base64 sem "=".
+  const png1x1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+  const pngDe = (alvo: number) => {
+    const n = Math.max(1, alvo - png1x1.length - 12)
+    const len = Buffer.alloc(4); len.writeUInt32BE(n)
+    const corpo = Buffer.concat([png1x1.subarray(0, png1x1.length - 12), len, Buffer.from('tEXt'), Buffer.alloc(n, 0x61), Buffer.alloc(4), png1x1.subarray(png1x1.length - 12)])
+    const falta = (3 - (corpo.length % 3)) % 3
+    return falta ? Buffer.concat([corpo, Buffer.alloc(falta)]) : corpo
+  }
+  const png = 'data:image/png;base64,' + pngDe(300).toString('base64')
   console.log('# marca')
   check('branding default', (await admin('GET', '/edu/core/branding')).status === 200)
   check('inst PUT teacher 403', (await teacher('PUT', '/edu/core/instituicao', { nome: 'X1' })).status === 403)
@@ -13,10 +22,10 @@ async function main() {
   check('inst PUT ok', (await admin('PUT', '/edu/core/instituicao', { nome: 'Faculdade QA', sigla: 'FQA', corPrimaria: '#112233' })).status === 200)
   check('inst PUT cor invalida 400', (await admin('PUT', '/edu/core/instituicao', { nome: 'Faculdade QA', corPrimaria: 'red' })).status === 400)
   check('marca sem imagem 400', (await admin('POST', '/edu/core/marca', { kind: 'LOGO_PRINCIPAL' })).status === 400)
-  check('marca mime ruim 400', (await admin('POST', '/edu/core/marca', { kind: 'LOGO_PRINCIPAL', dataUrl: 'data:text/html;base64,AAA' })).status === 400)
+  check('marca mime ruim 400', (await admin('POST', '/edu/core/marca', { kind: 'LOGO_PRINCIPAL', dataUrl: 'data:text/html;base64,AAA' })).status === 422) // varredura de uploads: 422 (antes 400 do zod)
   check('marca kind ruim 400', (await admin('POST', '/edu/core/marca', { kind: 'X', dataUrl: png })).status === 400)
-  check('marca url js 400', (await admin('POST', '/edu/core/marca', { kind: 'LOGO_PRINCIPAL', url: 'javascript:alert(1)' })).status === 400)
-  const big = 'data:image/png;base64,' + 'A'.repeat(1_900_000); // ok
+  check('marca url js 400', (await admin('POST', '/edu/core/marca', { kind: 'LOGO_PRINCIPAL', url: 'javascript:alert(1)' })).status === 422)
+  const big = 'data:image/png;base64,' + pngDe(1_400_000).toString('base64'); // ok
   const rb = await admin('POST', '/edu/core/marca', { kind: 'LOGO_PRINCIPAL', dataUrl: big })
   check('marca ~1.4MB aceita', rb.status === 201)
   const huge = 'data:image/png;base64,' + 'A'.repeat(2_500_000)
