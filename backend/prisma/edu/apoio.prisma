@@ -1,0 +1,1024 @@
+// ============================================================
+// EDUMASTER PRO — APOIO (discente, docente, ouvidoria, egressos)
+// Prefixo Apo. Referências a outros módulos = String ids sem @relation.
+// ============================================================
+
+// ---------- infraestrutura comum ----------
+
+model ApoContador {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  valor     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+// Linha do tempo genérica (andamentos, respostas, comentários) de qualquer registro do módulo.
+model ApoAndamento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  refType     String        // ApoManifestacao, ApoOcorrencia, ApoChamado, ApoPlanoAcao...
+  refId       String
+  tipo        String        // NOTA, RESPOSTA, STATUS, ENCAMINHAMENTO, ESCALONAMENTO, DEFESA, DECISAO...
+  texto       String
+  publico     Boolean  @default(false)   // visível a quem acompanha (ouvidoria pública/solicitante)
+  userId      String?
+  dados       Json?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, refType, refId])
+}
+
+// ---------- apoio discente: atendimentos ----------
+
+enum ApoTipoAtendimento {
+  PSICOPEDAGOGICO
+  PSICOLOGICO
+  SOCIAL
+  SAUDE
+  ACESSIBILIDADE
+  ORIENTACAO_ACADEMICA
+  OUTRO
+}
+
+enum ApoSigilo {
+  NORMAL        // equipe de apoio e coordenação veem o relato
+  RESTRITO      // somente equipe de apoio
+  SIGILOSO      // somente o profissional que atendeu (e a administração)
+}
+
+enum ApoStatusAtendimento {
+  AGENDADO
+  REALIZADO
+  FALTOU
+  CANCELADO
+}
+
+model ApoAtendimento {
+  id             String   @id @default(uuid())
+  tenantId       String
+  studentId      String
+  tipo           ApoTipoAtendimento
+  sigilo         ApoSigilo @default(RESTRITO)
+  status         ApoStatusAtendimento @default(AGENDADO)
+  dataHora       DateTime
+  duracaoMin     Int      @default(50)
+  profissionalId String          // User que atende
+  origem         String   @default("PROCURA_ESPONTANEA")  // PROCURA_ESPONTANEA, ENCAMINHAMENTO_PROFESSOR, BUSCA_ATIVA, RISCO_EVASAO
+  motivo         String?
+  relato         String?         // sob sigilo conforme `sigilo`
+  encaminhamentos String?
+  retornoEm      DateTime?
+  planoAcaoId    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, studentId])
+  @@index([tenantId, profissionalId, dataHora])
+  @@index([tenantId, status, dataHora])
+}
+
+// ---------- AEE / NAPNE ----------
+
+enum ApoStatusPlanoAee {
+  RASCUNHO
+  VIGENTE
+  VENCIDO
+  ENCERRADO
+}
+
+model ApoPlanoAee {
+  id               String   @id @default(uuid())
+  tenantId         String
+  studentId        String
+  necessidade      String          // ex.: Deficiência visual, TEA, TDAH, Dislexia, Surdez...
+  categoria        String   @default("DEFICIENCIA")  // DEFICIENCIA, TEA, ALTAS_HABILIDADES, TRANSTORNO_APRENDIZAGEM, OUTRO
+  laudoReferencia  String?         // referência ao laudo (sigiloso; sem CID em claro nas listagens)
+  vigenciaInicio   DateTime
+  vigenciaFim      DateTime
+  status           ApoStatusPlanoAee @default(RASCUNHO)
+  responsavelId    String?
+  recursos         Json?           // tecnologias assistivas, intérprete, ledor, ...
+  observacoes      String?
+  encerradoMotivo  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  adaptacoes       ApoAdaptacao[]
+
+  @@index([tenantId, studentId])
+  @@index([tenantId, status, vigenciaFim])
+}
+
+model ApoAdaptacao {
+  id               String   @id @default(uuid())
+  tenantId         String
+  planoId          String
+  disciplineId     String?
+  classSectionId   String?
+  professorUserId  String?
+  tipo             String          // TEMPO_ADICIONAL, MATERIAL_AMPLIADO, INTERPRETE_LIBRAS, LEDOR, SALA_SEPARADA, PROVA_ADAPTADA, PAUSAS, TECNOLOGIA_ASSISTIVA, OUTRO
+  descricao        String
+  tempoExtraPercent Int?
+  notificadoEm     DateTime?
+  cienteEm         DateTime?       // ciência do professor
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  plano            ApoPlanoAee @relation(fields: [planoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, planoId])
+  @@index([tenantId, professorUserId])
+}
+
+// ---------- bolsas e assistência estudantil ----------
+
+model ApoProgramaBolsa {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  nome                String
+  tipo                String   @default("INSTITUCIONAL")   // INSTITUCIONAL, PROUNI, FIES, MERITO, SOCIOECONOMICA, MONITORIA, ESPORTE, CULTURA, PERMANENCIA, OUTRO
+  descricao           String?
+  percentualDesconto  Float    @default(0)         // 0-100
+  valorMensal         Float?                      // auxílio (alimentação/transporte), alternativa ao %
+  vagas               Int      @default(0)
+  rendaPerCapitaMaxSM Float?                      // em salários mínimos (ex.: 1.5)
+  mediaMinima         Float?
+  frequenciaMinima    Float?                      // %
+  inscricaoInicio     DateTime?
+  inscricaoFim        DateTime?
+  vigenciaMeses       Int      @default(6)
+  renovavel           Boolean  @default(true)
+  renovacaoAntecedenciaDias Int @default(30)
+  maxRenovacoes       Int?
+  criterios           Json?                       // pesos/documentos exigidos
+  ativo               Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([tenantId, ativo])
+}
+
+enum ApoStatusInscricaoBolsa {
+  INSCRITA
+  EM_ANALISE
+  DEFERIDA
+  LISTA_ESPERA
+  INDEFERIDA
+  CANCELADA
+}
+
+model ApoInscricaoBolsa {
+  id              String   @id @default(uuid())
+  tenantId        String
+  programaId      String
+  studentId       String
+  rendaFamiliar   Float
+  numeroMembros   Int
+  rendaPerCapita  Float
+  condicoes       Json?          // { moraSozinho, beneficiarioCadUnico, escolaPublica, deficiencia, ...}
+  documentos      Json?
+  mediaAtual      Float?
+  frequenciaAtual Float?
+  pontuacao       Float    @default(0)
+  elegivel        Boolean  @default(true)
+  pendencias      Json?
+  status          ApoStatusInscricaoBolsa @default(INSCRITA)
+  parecer         String?
+  analisadoPorId  String?
+  analisadoEm     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, programaId, studentId])
+  @@index([tenantId, programaId, status])
+  @@index([tenantId, studentId])
+}
+
+enum ApoStatusConcessao {
+  ATIVA
+  RENOVACAO_PENDENTE
+  SUSPENSA
+  ENCERRADA
+  CANCELADA
+}
+
+model ApoConcessaoBolsa {
+  id               String   @id @default(uuid())
+  tenantId         String
+  programaId       String
+  studentId        String
+  inscricaoId      String?
+  percentual       Float    @default(0)
+  valorMensal      Float?
+  inicio           DateTime
+  fim              DateTime
+  status           ApoStatusConcessao @default(ATIVA)
+  renovacoes       Int      @default(0)
+  renovacaoLimiteEm DateTime?
+  motivoEncerramento String?
+  observacoes      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId, studentId])
+  @@index([tenantId, programaId, status])
+  @@index([tenantId, status, fim])
+}
+
+// ---------- monitoria ----------
+
+enum ApoStatusVagaMonitoria {
+  RASCUNHO
+  ABERTA
+  EM_SELECAO
+  PREENCHIDA
+  ENCERRADA
+}
+
+model ApoMonitoriaVaga {
+  id                String   @id @default(uuid())
+  tenantId          String
+  disciplineId      String
+  termId            String?
+  professorUserId   String
+  vagas             Int      @default(1)
+  cargaHorariaSemanal Int    @default(8)
+  programaBolsaId   String?
+  mediaMinima       Float    @default(7)
+  requisitos        String?
+  inscricaoInicio   DateTime?
+  inscricaoFim      DateTime?
+  status            ApoStatusVagaMonitoria @default(RASCUNHO)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  candidaturas      ApoMonitoriaCandidatura[]
+  monitores         ApoMonitor[]
+
+  @@index([tenantId, status])
+}
+
+model ApoMonitoriaCandidatura {
+  id             String   @id @default(uuid())
+  tenantId       String
+  vagaId         String
+  studentId      String
+  notaDisciplina Float?
+  notaEntrevista Float?
+  pontuacao      Float    @default(0)
+  status         String   @default("INSCRITA")   // INSCRITA, SELECIONADA, SUPLENTE, NAO_SELECIONADA, DESISTENTE
+  createdAt      DateTime @default(now())
+
+  vaga           ApoMonitoriaVaga @relation(fields: [vagaId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, vagaId, studentId])
+  @@index([tenantId, studentId])
+}
+
+model ApoMonitor {
+  id           String   @id @default(uuid())
+  tenantId     String
+  vagaId       String
+  studentId    String
+  inicio       DateTime
+  fim          DateTime?
+  status       String   @default("ATIVO")   // ATIVO, CONCLUIDO, DESLIGADO
+  horasMeta    Int?
+  createdAt    DateTime @default(now())
+
+  vaga         ApoMonitoriaVaga @relation(fields: [vagaId], references: [id], onDelete: Cascade)
+  frequencias  ApoMonitoriaFrequencia[]
+
+  @@unique([tenantId, vagaId, studentId])
+  @@index([tenantId, studentId])
+}
+
+model ApoMonitoriaFrequencia {
+  id          String   @id @default(uuid())
+  tenantId    String
+  monitorId   String
+  data        DateTime
+  horas       Float
+  atividade   String
+  validado    Boolean  @default(false)
+  validadoPorId String?
+  validadoEm  DateTime?
+  createdAt   DateTime @default(now())
+
+  monitor     ApoMonitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, monitorId, data])
+}
+
+// ---------- nivelamento / tutoria / mentoria ----------
+
+model ApoTurmaApoio {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tipo            String   @default("NIVELAMENTO")   // NIVELAMENTO, TUTORIA, REFORCO
+  titulo          String
+  disciplineId    String?
+  programId       String?
+  responsavelUserId String?
+  vagas           Int      @default(30)
+  cargaHoraria    Int      @default(20)
+  inicio          DateTime?
+  fim             DateTime?
+  status          String   @default("PLANEJADA")   // PLANEJADA, INSCRICOES, EM_ANDAMENTO, CONCLUIDA, CANCELADA
+  frequenciaMinima Float   @default(75)
+  descricao       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  participantes   ApoTurmaApoioParticipante[]
+
+  @@index([tenantId, tipo, status])
+}
+
+model ApoTurmaApoioParticipante {
+  id             String   @id @default(uuid())
+  tenantId       String
+  turmaId        String
+  studentId      String
+  status         String   @default("INSCRITO")   // INSCRITO, LISTA_ESPERA, CONCLUIDO, REPROVADO, DESISTENTE
+  frequenciaPercent Float?
+  notaDiagnostica Float?
+  notaFinal      Float?
+  origem         String   @default("ESPONTANEA")   // ESPONTANEA, INDICACAO, RISCO_EVASAO, DIAGNOSTICO
+  createdAt      DateTime @default(now())
+
+  turma          ApoTurmaApoio @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, turmaId, studentId])
+  @@index([tenantId, studentId])
+}
+
+model ApoMentoria {
+  id               String   @id @default(uuid())
+  tenantId         String
+  categoria        String   @default("DISCENTE")   // DISCENTE, DOCENTE
+  modalidade       String   @default("MENTORIA")   // MENTORIA, TUTORIA_PARES, MENTORIA_PEDAGOGICA
+  mentorUserId     String?
+  mentorStudentId  String?
+  menteeStudentId  String?
+  menteeUserId     String?
+  objetivos        String?
+  inicio           DateTime @default(now())
+  fim              DateTime?
+  status           String   @default("ATIVA")   // ATIVA, CONCLUIDA, CANCELADA
+  frequenciaEncontrosDias Int @default(15)
+  proximoEncontroEm DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  encontros        ApoMentoriaEncontro[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, menteeStudentId])
+  @@index([tenantId, menteeUserId])
+}
+
+model ApoMentoriaEncontro {
+  id           String   @id @default(uuid())
+  tenantId     String
+  mentoriaId   String
+  data         DateTime
+  duracaoMin   Int      @default(60)
+  resumo       String?
+  proximosPassos String?
+  createdAt    DateTime @default(now())
+
+  mentoria     ApoMentoria @relation(fields: [mentoriaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, mentoriaId])
+}
+
+// ---------- empregabilidade / estágio ----------
+
+model ApoEmpresa {
+  id             String   @id @default(uuid())
+  tenantId       String
+  razaoSocial    String
+  nomeFantasia   String?
+  cnpj           String?
+  segmento       String?
+  contatoNome    String?
+  contatoEmail   String?
+  contatoTelefone String?
+  cidade         String?
+  uf             String?
+  convenioNumero String?
+  convenioInicio DateTime?
+  convenioFim    DateTime?
+  status         String   @default("ATIVA")   // PROSPECTO, ATIVA, SUSPENSA, ENCERRADA
+  observacoes    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  vagas          ApoVaga[]
+  termos         ApoTermoEstagio[]
+
+  @@unique([tenantId, cnpj])
+  @@index([tenantId, status])
+}
+
+model ApoVaga {
+  id            String   @id @default(uuid())
+  tenantId      String
+  empresaId     String
+  tipo          String   @default("ESTAGIO")   // ESTAGIO, EMPREGO, TRAINEE, JOVEM_APRENDIZ, VOLUNTARIADO, PESQUISA
+  publicoAlvo   String   @default("ESTUDANTES")   // ESTUDANTES, EGRESSOS, AMBOS
+  titulo        String
+  descricao     String?
+  area          String?
+  programId     String?
+  cidade        String?
+  modalidade    String   @default("PRESENCIAL")   // PRESENCIAL, REMOTO, HIBRIDO
+  remuneracao   Float?
+  cargaSemanal  Int?
+  requisitos    String?
+  periodoMinimo Int?
+  vagas         Int      @default(1)
+  validade      DateTime?
+  status        String   @default("ABERTA")   // RASCUNHO, ABERTA, PREENCHIDA, ENCERRADA, EXPIRADA
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  empresa       ApoEmpresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  candidaturas  ApoCandidaturaVaga[]
+
+  @@index([tenantId, status, tipo])
+}
+
+model ApoCandidaturaVaga {
+  id          String   @id @default(uuid())
+  tenantId    String
+  vagaId      String
+  studentId   String?
+  egressoId   String?
+  mensagem    String?
+  status      String   @default("INSCRITA")   // INSCRITA, ENCAMINHADA, ENTREVISTA, CONTRATADA, NAO_SELECIONADA, DESISTENTE
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vaga        ApoVaga @relation(fields: [vagaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, vagaId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, egressoId])
+}
+
+enum ApoStatusTermo {
+  RASCUNHO
+  AGUARDANDO_ASSINATURA
+  VIGENTE
+  ENCERRADO
+  RESCINDIDO
+  VENCIDO
+}
+
+model ApoTermoEstagio {
+  id                String   @id @default(uuid())
+  tenantId          String
+  numero            String
+  studentId         String
+  empresaId         String
+  vagaId            String?
+  tipo              String   @default("NAO_OBRIGATORIO")   // OBRIGATORIO, NAO_OBRIGATORIO
+  orientadorUserId  String?
+  supervisorNome    String?
+  supervisorCargo   String?
+  area              String?
+  inicio            DateTime
+  fim               DateTime
+  jornadaDiariaHoras Float
+  cargaSemanalHoras Float
+  bolsaValor        Float?
+  auxilioTransporte Float?
+  apoliceSeguro     String?
+  alunoPcd          Boolean  @default(false)
+  atividades        String?
+  status            ApoStatusTermo @default(RASCUNHO)
+  assinadoEm        DateTime?
+  rescisaoMotivo    String?
+  rescindidoEm      DateTime?
+  aditivos          Json?
+  alertas           Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  empresa           ApoEmpresa @relation(fields: [empresaId], references: [id])
+  relatorios        ApoRelatorioEstagio[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, studentId])
+  @@index([tenantId, status, fim])
+}
+
+model ApoRelatorioEstagio {
+  id          String   @id @default(uuid())
+  tenantId    String
+  termoId     String
+  tipo        String   @default("PARCIAL")   // PARCIAL, FINAL
+  prazoEm     DateTime
+  entregueEm  DateTime?
+  avaliacaoOrientador Float?
+  parecer     String?
+  status      String   @default("PENDENTE")   // PENDENTE, ENTREGUE, APROVADO, REPROVADO
+  createdAt   DateTime @default(now())
+
+  termo       ApoTermoEstagio @relation(fields: [termoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, termoId])
+  @@index([tenantId, status, prazoEm])
+}
+
+// ---------- ocorrências disciplinares ----------
+
+enum ApoStatusOcorrencia {
+  REGISTRADA
+  NOTIFICADA
+  DEFESA_RECEBIDA
+  EM_JULGAMENTO
+  DECIDIDA
+  EM_RECURSO
+  CONCLUIDA
+  ARQUIVADA
+}
+
+model ApoOcorrencia {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  studentId       String
+  gravidade       String   @default("LEVE")   // LEVE, MEDIA, GRAVE, GRAVISSIMA
+  categoria       String   @default("CONDUTA")   // CONDUTA, FRAUDE_ACADEMICA, VIOLENCIA, DANO_PATRIMONIO, ASSEDIO, OUTRO
+  descricao       String
+  dataFato        DateTime
+  local           String?
+  relatorId       String?
+  testemunhas     Json?
+  status          ApoStatusOcorrencia @default(REGISTRADA)
+  notificadaEm    DateTime?
+  prazoDefesaEm   DateTime?
+  defesa          String?
+  defesaEm        DateTime?
+  comissao        Json?          // membros do julgamento
+  sancao          String?        // ADVERTENCIA_VERBAL, ADVERTENCIA_ESCRITA, SUSPENSAO, DESLIGAMENTO, ARQUIVAMENTO
+  sancaoDias      Int?
+  fundamentacao   String?
+  decididaEm      DateTime?
+  decididaPorId   String?
+  prazoRecursoEm  DateTime?
+  recurso         String?
+  recursoEm       DateTime?
+  recursoDecisao  String?        // MANTIDA, REFORMADA, ANULADA
+  recursoFundamentacao String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, studentId])
+  @@index([tenantId, status])
+}
+
+// ---------- risco de evasão ----------
+
+model ApoRiscoSnapshot {
+  id           String   @id @default(uuid())
+  tenantId     String
+  studentId    String
+  score        Float
+  nivel        String        // BAIXO, MEDIO, ALTO, CRITICO
+  fatores      Json
+  metricas     Json?
+  calculadoEm  DateTime @default(now())
+
+  @@index([tenantId, studentId, calculadoEm])
+  @@index([tenantId, nivel, calculadoEm])
+}
+
+model ApoPlanoAcao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  studentId       String
+  snapshotId      String?
+  nivelInicial    String
+  scoreInicial    Float
+  status          String   @default("ABERTO")   // ABERTO, EM_ACOMPANHAMENTO, RESOLVIDO, EVADIU, SEM_CONTATO, CANCELADO
+  responsavelUserId String?
+  acoesSugeridas  Json?
+  proximoContatoEm DateTime?
+  resultado       String?
+  scoreFinal      Float?
+  encerradoEm     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  contatos        ApoContatoEvasao[]
+
+  @@index([tenantId, studentId])
+  @@index([tenantId, status, proximoContatoEm])
+}
+
+model ApoContatoEvasao {
+  id           String   @id @default(uuid())
+  tenantId     String
+  planoId      String
+  canal        String   @default("TELEFONE")   // TELEFONE, WHATSAPP, EMAIL, PRESENCIAL, VISITA
+  dataHora     DateTime @default(now())
+  resumo       String
+  resultado    String   @default("CONTATO_REALIZADO")   // CONTATO_REALIZADO, SEM_RESPOSTA, COMPROMISSO, RECUSOU
+  proximoPasso String?
+  userId       String?
+  createdAt    DateTime @default(now())
+
+  plano        ApoPlanoAcao @relation(fields: [planoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, planoId])
+}
+
+// ---------- apoio docente ----------
+
+model ApoFormacao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  titulo          String
+  tipo            String   @default("OFICINA")   // OFICINA, CURSO, PALESTRA, WORKSHOP, SEMINARIO
+  ementa          String?
+  cargaHoraria    Int      @default(4)
+  vagas           Int      @default(30)
+  inicio          DateTime
+  fim             DateTime
+  modalidade      String   @default("PRESENCIAL")
+  local           String?
+  instrutor       String?
+  status          String   @default("PLANEJADA")   // PLANEJADA, INSCRICOES, EM_ANDAMENTO, CONCLUIDA, CANCELADA
+  emiteCertificado Boolean @default(true)
+  frequenciaMinima Float   @default(75)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  inscricoes      ApoFormacaoInscricao[]
+
+  @@index([tenantId, status, inicio])
+}
+
+model ApoFormacaoInscricao {
+  id             String   @id @default(uuid())
+  tenantId       String
+  formacaoId     String
+  userId         String
+  status         String   @default("INSCRITO")   // INSCRITO, LISTA_ESPERA, CONCLUIDO, REPROVADO, CANCELADO
+  frequenciaPercent Float?
+  certificadoEmitidoEm DateTime?
+  certificadoCodigo String?
+  secProtocoloId String?
+  createdAt      DateTime @default(now())
+
+  formacao       ApoFormacao @relation(fields: [formacaoId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, formacaoId, userId])
+  @@index([tenantId, userId])
+}
+
+model ApoMaterial {
+  id            String   @id @default(uuid())
+  tenantId      String
+  titulo        String
+  tipo          String   @default("DOCUMENTO")   // DOCUMENTO, SLIDES, VIDEO, ROTEIRO, MODELO_AVALIACAO, LINK, OUTRO
+  descricao     String?
+  url           String?
+  disciplineId  String?
+  programId     String?
+  tags          Json?
+  autorUserId   String
+  status        String   @default("PENDENTE")   // PENDENTE, APROVADO, REJEITADO
+  downloads     Int      @default(0)
+  avaliacaoSoma Int      @default(0)
+  avaliacaoQtd  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, disciplineId])
+}
+
+model ApoChamado {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  solicitanteUserId String
+  categoria       String   @default("OUTRO")   // TECNOLOGIA, SALA_AULA, MATERIAL, SISTEMA_ACADEMICO, RH, BIBLIOTECA, OUTRO
+  prioridade      String   @default("NORMAL")   // BAIXA, NORMAL, ALTA, URGENTE
+  titulo          String
+  descricao       String
+  status          String   @default("ABERTO")   // ABERTO, EM_ATENDIMENTO, AGUARDANDO_SOLICITANTE, RESOLVIDO, FECHADO
+  responsavelUserId String?
+  responsavelRole String?
+  slaHoras        Int
+  prazoEm         DateTime
+  primeiraRespostaEm DateTime?
+  resolvidoEm     DateTime?
+  avaliacaoNota   Int?
+  avaliacaoComentario String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status, prazoEm])
+  @@index([tenantId, solicitanteUserId])
+}
+
+// ---------- instrumentos de avaliação / satisfação / NPS / egressos ----------
+
+model ApoInstrumento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  finalidade  String   @default("AVALIACAO_DOCENTE")   // AVALIACAO_DOCENTE, SATISFACAO_DISCIPLINA, SATISFACAO_SERVICO, NPS, ATENDIMENTO, EGRESSOS, CLIMA
+  descricao   String?
+  perguntas   Json          // [{id,texto,tipo:ESCALA|NPS|SIM_NAO|TEXTO|MULTIPLA,opcoes?,obrigatoria?}]
+  anonimo     Boolean  @default(true)
+  minRespostas Int     @default(5)
+  escalaMax   Int      @default(5)
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  aplicacoes  ApoAplicacao[]
+
+  @@index([tenantId, finalidade])
+}
+
+enum ApoStatusAplicacao {
+  RASCUNHO
+  ABERTA
+  ENCERRADA
+  PUBLICADA
+}
+
+model ApoAplicacao {
+  id               String   @id @default(uuid())
+  tenantId         String
+  instrumentoId    String
+  titulo           String
+  alvoTipo         String   @default("DISCIPLINA")   // DISCIPLINA, DOCENTE, SERVICO, ATENDIMENTO, CURSO, EGRESSOS, INSTITUICAO
+  alvoRef          String?        // id da disciplina/turma/curso ou chave do serviço
+  alvoRotulo       String?
+  termId           String?
+  classSectionId   String?
+  professorUserId  String?
+  disciplineId     String?
+  abertura         DateTime
+  fechamento       DateTime
+  status           ApoStatusAplicacao @default(RASCUNHO)
+  publicoAlvo      Json?          // { studentIds: [...], egressoIds: [...] }  convidados
+  convidados       Int      @default(0)
+  minRespostas     Int?
+  publicadaEm      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  instrumento      ApoInstrumento @relation(fields: [instrumentoId], references: [id])
+  respostas        ApoResposta[]
+  participacoes    ApoParticipacao[]
+  devolutivas      ApoDevolutiva[]
+
+  @@index([tenantId, status, fechamento])
+  @@index([tenantId, professorUserId])
+}
+
+// Controle de "quem já respondeu" SEPARADO da resposta (anonimato real).
+model ApoParticipacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  aplicacaoId   String
+  respondenteId String
+  respondidoEm  DateTime @default(now())
+
+  aplicacao     ApoAplicacao @relation(fields: [aplicacaoId], references: [id], onDelete: Cascade)
+
+  @@unique([aplicacaoId, respondenteId])
+  @@index([tenantId, respondenteId])
+}
+
+model ApoResposta {
+  id            String   @id @default(uuid())
+  tenantId      String
+  aplicacaoId   String
+  respostas     Json          // { perguntaId: valor }
+  nps           Int?
+  comentario    String?
+  respondenteId String?       // somente se o instrumento NÃO for anônimo
+  createdAt     DateTime @default(now())
+
+  aplicacao     ApoAplicacao @relation(fields: [aplicacaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, aplicacaoId])
+}
+
+model ApoDevolutiva {
+  id             String   @id @default(uuid())
+  tenantId       String
+  aplicacaoId    String
+  professorUserId String
+  mensagem       String
+  planoMelhoria  String?
+  autorId        String?
+  visualizadaEm  DateTime?
+  createdAt      DateTime @default(now())
+
+  aplicacao      ApoAplicacao @relation(fields: [aplicacaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, professorUserId])
+}
+
+// ---------- ouvidoria ----------
+
+enum ApoTipoManifestacao {
+  RECLAMACAO
+  SUGESTAO
+  ELOGIO
+  DENUNCIA
+  SOLICITACAO
+}
+
+enum ApoStatusManifestacao {
+  RECEBIDA
+  EM_ANALISE
+  ENCAMINHADA
+  RESPONDIDA
+  ENCERRADA
+  ARQUIVADA
+}
+
+model ApoSetorOuvidoria {
+  id               String   @id @default(uuid())
+  tenantId         String
+  codigo           String
+  nome             String
+  email            String?
+  responsavelUserId String?
+  slaDias          Int      @default(10)
+  escalaParaUserId String?
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+}
+
+model ApoManifestacao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  protocolo       String
+  senhaHash       String
+  senhaSalt       String
+  tipo            ApoTipoManifestacao
+  categoria       String?
+  assunto         String
+  descricao       String
+  anonima         Boolean  @default(false)
+  nome            String?
+  email           String?
+  telefone        String?
+  vinculo         String?        // ALUNO, PROFESSOR, FUNCIONARIO, EGRESSO, COMUNIDADE
+  studentId       String?
+  userId          String?
+  canal           String   @default("PORTAL")   // PORTAL, PUBLICO, PRESENCIAL, TELEFONE, EMAIL
+  prioridade      String   @default("NORMAL")
+  status          ApoStatusManifestacao @default(RECEBIDA)
+  setorId         String?
+  responsavelUserId String?
+  prazoEm         DateTime
+  prorrogadoEm    DateTime?
+  escalonamentos  Int      @default(0)
+  respondidaEm    DateTime?
+  encerradaEm     DateTime?
+  respostaFinal   String?
+  avaliacaoNota   Int?
+  avaliacaoComentario String?
+  consultaFalhas  Int      @default(0)
+  consultaBloqueadaAte DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  encaminhamentos ApoEncaminhamento[]
+
+  @@unique([tenantId, protocolo])
+  @@index([tenantId, status, prazoEm])
+  @@index([tenantId, tipo])
+}
+
+model ApoEncaminhamento {
+  id              String   @id @default(uuid())
+  tenantId        String
+  manifestacaoId  String
+  setorId         String
+  solicitacao     String?
+  prazoEm         DateTime
+  status          String   @default("PENDENTE")   // PENDENTE, RESPONDIDO, ATRASADO
+  resposta        String?
+  respondidoEm    DateTime?
+  respondidoPorId String?
+  escalonadoEm    DateTime?
+  createdAt       DateTime @default(now())
+
+  manifestacao    ApoManifestacao @relation(fields: [manifestacaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, manifestacaoId])
+  @@index([tenantId, status, prazoEm])
+}
+
+// ---------- egressos ----------
+
+model ApoEgresso {
+  id               String   @id @default(uuid())
+  tenantId         String
+  studentId        String?
+  nome             String
+  email            String?
+  telefone         String?
+  cpf              String?
+  programId        String?
+  programaNome     String?
+  anoIngresso      Int?
+  anoConclusao     Int?
+  cidade           String?
+  uf               String?
+  consenteContato  Boolean  @default(true)   // LGPD
+  situacaoProfissional String @default("NAO_INFORMADO")   // EMPREGADO, AUTONOMO, EMPREENDEDOR, DESEMPREGADO, ESTUDANDO, CONCURSO, NAO_INFORMADO
+  empregadorAtual  String?
+  cargoAtual       String?
+  atuaNaArea       Boolean?
+  cursandoPos      Boolean  @default(false)
+  faixaSalarial    String?        // ate_2sm, 2_5sm, 5_10sm, acima_10sm
+  linkedin         String?
+  primeiroEmpregoEm DateTime?
+  ultimaAtualizacaoEm DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  trajetoria       ApoEgressoTrajetoria[]
+  participacoes    ApoEventoParticipante[]
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId, programId, anoConclusao])
+}
+
+model ApoEgressoTrajetoria {
+  id           String   @id @default(uuid())
+  tenantId     String
+  egressoId    String
+  tipo         String   @default("EMPREGO")   // EMPREGO, POS_GRADUACAO, EMPREENDEDORISMO, CONCURSO, OUTRO
+  organizacao  String
+  cargo        String?
+  inicio       DateTime
+  fim          DateTime?
+  atuaNaArea   Boolean?
+  faixaSalarial String?
+  createdAt    DateTime @default(now())
+
+  egresso      ApoEgresso @relation(fields: [egressoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, egressoId])
+}
+
+model ApoEventoEgresso {
+  id          String   @id @default(uuid())
+  tenantId    String
+  titulo      String
+  tipo        String   @default("ENCONTRO")   // ENCONTRO, PALESTRA, NETWORKING, CURSO, HOMECOMING, FEIRA_CARREIRAS
+  descricao   String?
+  dataHora    DateTime
+  local       String?
+  vagas       Int?
+  programId   String?
+  status      String   @default("PLANEJADO")   // PLANEJADO, ABERTO, REALIZADO, CANCELADO
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  participantes ApoEventoParticipante[]
+
+  @@index([tenantId, status, dataHora])
+}
+
+model ApoEventoParticipante {
+  id          String   @id @default(uuid())
+  tenantId    String
+  eventoId    String
+  egressoId   String
+  status      String   @default("CONFIRMADO")   // CONFIRMADO, PRESENTE, FALTOU, CANCELADO
+  createdAt   DateTime @default(now())
+
+  evento      ApoEventoEgresso @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  egresso     ApoEgresso @relation(fields: [egressoId], references: [id], onDelete: Cascade)
+
+  @@unique([eventoId, egressoId])
+  @@index([tenantId, egressoId])
+}

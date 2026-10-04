@@ -1,7 +1,30 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 
 import Academic from "../pages/Academic";
+const EduReitoria = lazy(() => import("../pages/edu/EduReitoria"));
+const EduMinhaMesa = lazy(() => import("../pages/edu/EduMinhaMesa"));
+const EduJornadas = lazy(() => import("../pages/edu/EduJornadas"));
+const EduAdmissoes = lazy(() => import("../pages/edu/EduAdmissoes"));
+const EduSecretaria = lazy(() => import("../pages/edu/EduSecretaria"));
+const EduCalendario = lazy(() => import("../pages/edu/EduCalendario"));
+const EduNotas = lazy(() => import("../pages/edu/EduNotas"));
+const EduModalidades = lazy(() => import("../pages/edu/EduModalidades"));
+const EduDesempenho = lazy(() => import("../pages/edu/EduDesempenho"));
+const EduBiblioteca = lazy(() => import("../pages/edu/EduBiblioteca"));
+const EduRegulatorio = lazy(() => import("../pages/edu/EduRegulatorio"));
+const EduGovernanca = lazy(() => import("../pages/edu/EduGovernanca"));
+const EduInfraestrutura = lazy(() => import("../pages/edu/EduInfraestrutura"));
+const EduSuprimentos = lazy(() => import("../pages/edu/EduSuprimentos"));
+const EduPesquisa = lazy(() => import("../pages/edu/EduPesquisa"));
+const EduApoio = lazy(() => import("../pages/edu/EduApoio"));
+const EduComunicacao = lazy(() => import("../pages/edu/EduComunicacao"));
+const EduPortalAluno = lazy(() => import("../pages/edu/EduPortalAluno"));
+const AccountSecurity = lazy(() => import("../pages/AccountSecurity"));
+const SecurityEvents = lazy(() => import("../pages/SecurityEvents"));
+const EduIdentity = lazy(() => import("../pages/EduIdentity"));
+
 import Accounting from "../pages/Accounting";
 import Agenda from "../pages/Agenda";
 import Backup from "../pages/Backup";
@@ -112,10 +135,33 @@ export default function AppRoutes() {
   }
 
   return (
+    <Suspense fallback={<Box sx={{ p: 4 }}><Typography color="text.secondary">Carregando…</Typography></Box>}>
     <Routes>
       <Route path="/" element={<Dashboard />} />
 
       <Route path="/academico" element={<Academic />} />
+      <Route path="/edu" element={<EduReitoria />} />
+      <Route path="/edu/minha-mesa" element={<EduMinhaMesa />} />
+      <Route path="/edu/jornadas" element={<EduJornadas />} />
+      <Route path="/edu/admissoes" element={<EduAdmissoes />} />
+      <Route path="/edu/secretaria" element={<EduSecretaria />} />
+      <Route path="/edu/calendario" element={<EduCalendario />} />
+      <Route path="/edu/notas" element={<EduNotas />} />
+      <Route path="/edu/modalidades" element={<EduModalidades />} />
+      <Route path="/edu/desempenho" element={<EduDesempenho />} />
+      <Route path="/edu/biblioteca" element={<EduBiblioteca />} />
+      <Route path="/edu/regulatorio" element={<EduRegulatorio />} />
+      <Route path="/edu/governanca" element={<EduGovernanca />} />
+      <Route path="/edu/infraestrutura" element={<EduInfraestrutura />} />
+      <Route path="/edu/suprimentos" element={<EduSuprimentos />} />
+      <Route path="/edu/pesquisa" element={<EduPesquisa />} />
+      <Route path="/edu/apoio" element={<EduApoio />} />
+      <Route path="/edu/comunicacao" element={<EduComunicacao />} />
+      <Route path="/edu/portal-aluno" element={<EduPortalAluno />} />
+      <Route path="/edu/identidade" element={<EduIdentity />} />
+      <Route path="/seguranca" element={<AccountSecurity />} />
+      <Route path="/seguranca/eventos" element={<SecurityEvents />} />
+
 
       <Route path="/agenda" element={<Agenda />} />
 
@@ -296,5 +342,6 @@ export default function AppRoutes() {
         element={<Navigate to="/" replace />}
       />
     </Routes>
+    </Suspense>
   );
 }

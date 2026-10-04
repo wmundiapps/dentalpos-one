@@ -39,6 +39,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import WorkIcon from "@mui/icons-material/Work";
 import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
+import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
 import { Box } from "@mui/material";
 import { createSvgIcon } from "@mui/material/utils";
 import type { ReactNode } from "react";
@@ -180,6 +181,43 @@ export const navigationGroups:NavigationGroup[] = [
     ])
   },
   {
+    label:"EduMaster · Reitoria",
+    icon:tile(<AccountBalanceOutlinedIcon/>,"#0F766E"),
+    items:[
+      item("Painel executivo","/edu",<SpaceDashboardIcon/>),
+      item("Minha mesa e lembretes","/edu/minha-mesa",<AssignmentIcon/>),
+      item("Jornadas e fluxogramas","/edu/jornadas",<HubIcon/>),
+      item("Regulatório MEC","/edu/regulatorio",<HealthAndSafetyIcon/>),
+      item("Governança e PDI","/edu/governanca",<AdminPanelSettingsIcon/>),
+      item("Identidade e logomarcas","/edu/identidade",<SettingsIcon/>),
+    ]
+  },
+  {
+    label:"EduMaster · Acadêmico",
+    icon:tile(<SchoolIcon/>,"#4F46E5"),
+    items:[
+      item("Admissões e vestibular","/edu/admissoes",<PeopleAltIcon/>),
+      item("Secretaria e certificados","/edu/secretaria",<DescriptionIcon/>),
+      item("Calendário e salas","/edu/calendario",<EventIcon/>),
+      item("Notas e diário","/edu/notas",<AssessmentIcon/>),
+      item("Modalidades, EAD e pós","/edu/modalidades",<GroupsIcon/>),
+      item("ENADE, OAB e desempenho","/edu/desempenho",<InsightsIcon/>),
+      item("Biblioteca","/edu/biblioteca",<FolderSharedIcon/>),
+      item("Pesquisa e revista","/edu/pesquisa",<BiotechIcon/>),
+      item("Portal do aluno","/edu/portal-aluno",<SchoolIcon/>),
+    ]
+  },
+  {
+    label:"EduMaster · Operação",
+    icon:tile(<WorkIcon/>,"#B45309"),
+    items:[
+      item("Apoio, ouvidoria e egressos","/edu/apoio",<SupportAgentIcon/>),
+      item("Comunicação omnichannel","/edu/comunicacao",<ChatIcon/>),
+      item("Infraestrutura e patrimônio","/edu/infraestrutura",<CleaningServicesIcon/>),
+      item("Compras, estoque e vendas","/edu/suprimentos",<Inventory2Icon/>),
+    ]
+  },
+  {
     label:"Configurações",
     icon:tile(<SettingsIcon/>,"#64748B"),
     items:alphabetical([
@@ -188,6 +226,8 @@ export const navigationGroups:NavigationGroup[] = [
       item("Integrações","/integracoes",<HubIcon/>),
       item("Importar Pacientes","/importar-pacientes",<UploadFileIcon/>),
       item("Permissões","/permissoes",<AdminPanelSettingsIcon/>),
+      item("Segurança da conta","/seguranca",<AdminPanelSettingsIcon/>),
+      item("Eventos de segurança","/seguranca/eventos",<AdminPanelSettingsIcon/>),
       item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),
     ])
   }

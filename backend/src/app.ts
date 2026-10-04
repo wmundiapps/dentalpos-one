@@ -7,28 +7,17 @@ import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 
 import routes from './routes'
-import { allowedCorsOrigins } from './config/runtime'
 import { ContextRequest, requestContext } from './middleware/requestContext'
 import { prisma } from './lib/prisma'
+import { apiSecurityHeaders, origemPermitida, originGuard } from './modules/seguranca/origem'
 
 dotenv.config()
 
 const app = express()
 const isProduction = process.env.NODE_ENV === 'production'
 const bodyLimit = process.env.API_BODY_LIMIT || '2mb'
-const allowedOrigins = allowedCorsOrigins()
 
-const trustedDentalPosVercelOrigins = new Set([
-  'https://dentalpos-one.vercel.app',
-  'https://dentalpos-one-git-chat8-5787-in-e16b45-robsonraveloliveira-7222.vercel.app',
-  'https://dentalpos-landing.vercel.app',
-  'https://one.dentalpos.com.br',
-  'http://one.dentalpos.com.br',
-])
-
-function isTrustedDentalPosVercelOrigin(origin: string) {
-  return trustedDentalPosVercelOrigins.has(origin)
-}
+// Origens confiáveis do DentalPos e allowlist de origem: ver modules/seguranca/origem.ts (mesma regra do CORS e do originGuard).
 
 if (process.env.TRUST_PROXY === 'true') {
   app.set('trust proxy', 1)
@@ -37,13 +26,14 @@ if (process.env.TRUST_PROXY === 'true') {
 app.disable('x-powered-by')
 app.use(requestContext)
 
+// Barreira de origem (POST/PUT/PATCH/DELETE vindos de outro site => 403 + SegEvento). Sem Origin (webhooks/cron) passa.
+app.use('/api', originGuard)
+
 app.use(
   cors({
     origin(origin, callback) {
       if (!origin) return callback(null, true)
-      if (allowedOrigins.includes(origin)) return callback(null, true)
-      if (isTrustedDentalPosVercelOrigin(origin)) return callback(null, true)
-      if (!isProduction && allowedOrigins.length === 0) return callback(null, true)
+      if (origemPermitida(origin)) return callback(null, true)
       return callback(new Error('Origem não autorizada pelo CORS.'))
     },
     credentials: true,
@@ -57,6 +47,8 @@ app.use(
     hsts: isProduction ? { maxAge: 15552000, includeSubDomains: true, preload: false } : false
   })
 )
+// Cabeçalhos extras da API (depois do helmet para prevalecerem sobre os padrões dele).
+app.use('/api', apiSecurityHeaders)
 app.use(compression())
 app.use(morgan(isProduction ? 'combined' : 'dev'))
 
@@ -96,6 +88,7 @@ app.use('/api/auth/login', authLimiter)
 app.use('/api/auth/password-reset/request', authLimiter)
 app.use('/api/auth/password-reset/confirm', authLimiter)
 app.use('/api/auth/register', authLimiter)
+app.use('/api/auth/2fa/verify', authLimiter)
 app.use('/api/demo/register', authLimiter)
 app.use('/api', apiLimiter)
 
@@ -138,9 +131,10 @@ app.use(
     const contextReq = req as ContextRequest
     console.error(`[${contextReq.requestId || 'sem-request-id'}]`, err)
 
-    const status = err?.message === 'Origem não autorizada pelo CORS.' ? 403 : 500
+    const clientStatus = Number(err?.status || err?.statusCode)
+    const status = err?.message === 'Origem não autorizada pelo CORS.' ? 403 : clientStatus >= 400 && clientStatus < 500 ? clientStatus : 500
     return res.status(status).json({
-      error: status === 403 ? err.message : 'Erro interno do servidor.',
+      error: status === 403 ? err.message : status === 413 ? 'Corpo da requisição acima do limite permitido.' : status < 500 ? 'Requisição inválida.' : 'Erro interno do servidor.',
       requestId: contextReq.requestId
     })
   }

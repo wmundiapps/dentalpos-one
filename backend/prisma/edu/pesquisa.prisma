@@ -1,0 +1,992 @@
+// ============================================================
+// EDUMASTER PRO — PESQUISA (prefixo Pes)
+// Produção científica, grupos, projetos, editais/bolsas, TCC/dissertação/tese,
+// periódico institucional (estilo OJS) e eventos científicos.
+// ============================================================
+
+// ---------- ENUMS ----------
+enum PesTipoPublicacao {
+  ARTIGO
+  LIVRO
+  CAPITULO
+  TRABALHO_EVENTO
+  PATENTE
+  SOFTWARE
+  OUTRO
+}
+
+enum PesTipoPessoa {
+  DOCENTE
+  ALUNO
+  EXTERNO
+}
+
+enum PesTipoProjeto {
+  IC
+  PIBIC
+  PIBITI
+  EXTENSAO
+  INOVACAO
+  PESQUISA
+  OUTRO
+}
+
+enum PesStatusProjeto {
+  RASCUNHO
+  SUBMETIDO
+  EM_AVALIACAO
+  APROVADO
+  EM_EXECUCAO
+  SUSPENSO
+  CONCLUIDO
+  CANCELADO
+  REPROVADO
+}
+
+enum PesStatusRelatorio {
+  PENDENTE
+  ENTREGUE
+  APROVADO
+  AJUSTES_SOLICITADOS
+  ATRASADO
+}
+
+enum PesStatusEdital {
+  RASCUNHO
+  ABERTO
+  EM_AVALIACAO
+  RESULTADO_PUBLICADO
+  ENCERRADO
+}
+
+enum PesStatusInscricao {
+  INSCRITA
+  HOMOLOGADA
+  INDEFERIDA
+  AVALIADA
+  CONTEMPLADA
+  SUPLENTE
+  NAO_CONTEMPLADA
+}
+
+enum PesStatusBolsa {
+  ATIVA
+  SUSPENSA
+  ENCERRADA
+  CANCELADA
+}
+
+enum PesTipoTrabalho {
+  TCC
+  MONOGRAFIA
+  DISSERTACAO
+  TESE
+}
+
+enum PesStatusTrabalho {
+  TEMA
+  ORIENTACAO
+  PROJETO
+  QUALIFICACAO
+  BANCA_AGENDADA
+  DEFESA
+  VERSAO_FINAL
+  DEPOSITADO
+  REPROVADO
+  CANCELADO
+}
+
+enum PesStatusSubmissao {
+  SUBMETIDO
+  TRIAGEM
+  EM_REVISAO
+  REVISOES_SOLICITADAS
+  ACEITO
+  REJEITADO
+  EDITORACAO
+  PUBLICADO
+  RETIRADO
+}
+
+enum PesStatusRevisao {
+  CONVIDADO
+  ACEITO
+  RECUSADO
+  CONCLUIDO
+  EXPIRADO
+  CANCELADO
+}
+
+enum PesRecomendacao {
+  ACEITAR
+  REVISOES_MENORES
+  REVISOES_MAIORES
+  REJEITAR
+}
+
+enum PesStatusEvento {
+  RASCUNHO
+  SUBMISSOES_ABERTAS
+  EM_AVALIACAO
+  RESULTADO_DIVULGADO
+  REALIZADO
+  ENCERRADO
+}
+
+enum PesStatusEventoTrabalho {
+  SUBMETIDO
+  EM_AVALIACAO
+  APROVADO
+  APROVADO_COM_AJUSTES
+  REPROVADO
+  CAMERA_READY
+  PUBLICADO_ANAIS
+  RETIRADO
+}
+
+// ---------- PRODUÇÃO CIENTÍFICA ----------
+model PesPublicacao {
+  id                String   @id @default(uuid())
+  tenantId          String
+  tipo              PesTipoPublicacao
+  titulo            String
+  resumo            String?
+  palavrasChave     String[]
+  ano               Int
+  dataPublicacao    DateTime?
+  veiculo           String?        // periódico, editora ou evento
+  issn              String?
+  isbn              String?
+  volume            String?
+  numero            String?
+  paginas           String?
+  doi               String?
+  url               String?
+  idioma            String?
+  qualis            String?        // A1..A4, B1..B4, C
+  jcr               Float?         // fator de impacto JCR
+  citeScore         Float?
+  numeroRegistro    String?        // patente (INPI) / registro de software
+  citacoes          Int      @default(0)
+  programId         String?        // curso (AcademicProgram) — sem @relation
+  grupoId           String?
+  projetoId         String?
+  origem            String   @default("MANUAL")   // MANUAL | BIBTEX | JSON | PERIODICO | ANAIS
+  hashDedupe        String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  autores           PesPublicacaoAutor[]
+
+  @@unique([tenantId, hashDedupe])
+  @@index([tenantId, tipo, ano])
+  @@index([tenantId, programId])
+  @@index([tenantId, grupoId])
+  @@index([tenantId, doi])
+}
+
+model PesPublicacaoAutor {
+  id             String   @id @default(uuid())
+  tenantId       String
+  publicacaoId   String
+  ordem          Int      @default(1)
+  tipo           PesTipoPessoa @default(EXTERNO)
+  nome           String
+  userId         String?        // docente (User)
+  studentId      String?
+  orcid          String?
+  lattes         String?
+  instituicao    String?
+  correspondente Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  publicacao     PesPublicacao @relation(fields: [publicacaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@index([tenantId, studentId])
+  @@index([publicacaoId])
+}
+
+// ---------- GRUPOS DE PESQUISA ----------
+model PesGrupo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  nome             String
+  sigla            String?
+  areaConhecimento String?
+  descricao        String?
+  liderUserId      String?
+  liderNome        String?
+  viceLiderUserId  String?
+  viceLiderNome    String?
+  programId        String?
+  diretorioCnpqId  String?
+  dataCriacao      DateTime?
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  linhas           PesGrupoLinha[]
+  membros          PesGrupoMembro[]
+
+  @@index([tenantId, ativo])
+  @@index([tenantId, liderUserId])
+}
+
+model PesGrupoLinha {
+  id          String   @id @default(uuid())
+  tenantId    String
+  grupoId     String
+  nome        String
+  descricao   String?
+  ativa       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  grupo       PesGrupo @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, grupoId])
+}
+
+model PesGrupoMembro {
+  id          String   @id @default(uuid())
+  tenantId    String
+  grupoId     String
+  tipo        PesTipoPessoa @default(DOCENTE)
+  userId      String?
+  studentId   String?
+  nome        String
+  papel       String   @default("PESQUISADOR")   // LIDER | VICE_LIDER | PESQUISADOR | ESTUDANTE | COLABORADOR
+  lattes      String?
+  orcid       String?
+  dataEntrada DateTime @default(now())
+  dataSaida   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  grupo       PesGrupo @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, grupoId])
+  @@index([tenantId, userId])
+  @@index([tenantId, studentId])
+}
+
+// ---------- PROJETOS ----------
+model PesProjeto {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  codigo             String
+  titulo             String
+  tipo               PesTipoProjeto @default(PESQUISA)
+  status             PesStatusProjeto @default(RASCUNHO)
+  resumo             String?
+  justificativa      String?
+  objetivos          String?
+  metodologia        String?
+  areaConhecimento   String?
+  palavrasChave      String[]
+  grupoId            String?
+  linhaId            String?
+  programId          String?
+  editalId           String?
+  coordenadorUserId  String?
+  coordenadorNome    String?
+  fomento            String?
+  orcamentoTotal     Decimal  @default(0) @db.Decimal(12, 2)
+  dataInicio         DateTime?
+  dataFim            DateTime?
+  eticaNecessaria    Boolean  @default(false)
+  cepProtocolo       String?
+  cepStatus          String   @default("NAO_APLICAVEL")  // NAO_APLICAVEL | PENDENTE | APROVADO | REPROVADO
+  motivoStatus       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  membros            PesProjetoMembro[]
+  etapas             PesProjetoEtapa[]
+  rubricas           PesProjetoRubrica[]
+  lancamentos        PesProjetoLancamento[]
+  entregaveis        PesProjetoEntregavel[]
+  relatorios         PesProjetoRelatorio[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status])
+  @@index([tenantId, coordenadorUserId])
+  @@index([tenantId, grupoId])
+  @@index([tenantId, programId])
+}
+
+model PesProjetoMembro {
+  id                String   @id @default(uuid())
+  tenantId          String
+  projetoId         String
+  tipo              PesTipoPessoa @default(ALUNO)
+  userId            String?
+  studentId         String?
+  nome              String
+  papel             String   @default("BOLSISTA")  // COORDENADOR | ORIENTADOR | BOLSISTA | VOLUNTARIO | COLABORADOR
+  cargaHorariaSemanal Int?
+  dataInicio        DateTime @default(now())
+  dataFim           DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  projeto           PesProjeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projetoId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, userId])
+}
+
+model PesProjetoEtapa {
+  id             String   @id @default(uuid())
+  tenantId       String
+  projetoId      String
+  ordem          Int      @default(1)
+  titulo         String
+  descricao      String?
+  inicioPrevisto DateTime
+  fimPrevisto    DateTime
+  inicioReal     DateTime?
+  fimReal        DateTime?
+  percentual     Int      @default(0)
+  status         String   @default("PLANEJADA")  // PLANEJADA | EM_ANDAMENTO | CONCLUIDA | ATRASADA
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  projeto        PesProjeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projetoId])
+}
+
+model PesProjetoRubrica {
+  id             String   @id @default(uuid())
+  tenantId       String
+  projetoId      String
+  categoria      String   // CUSTEIO | CAPITAL | BOLSA | SERVICO_TERCEIROS | VIAGEM | OUTRO
+  descricao      String
+  valorPrevisto  Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  projeto        PesProjeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  lancamentos    PesProjetoLancamento[]
+
+  @@index([tenantId, projetoId])
+}
+
+model PesProjetoLancamento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  projetoId   String
+  rubricaId   String
+  data        DateTime @default(now())
+  descricao   String
+  valor       Decimal  @db.Decimal(12, 2)
+  documento   String?
+  createdAt   DateTime @default(now())
+
+  projeto     PesProjeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  rubrica     PesProjetoRubrica @relation(fields: [rubricaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projetoId])
+  @@index([rubricaId])
+}
+
+model PesProjetoEntregavel {
+  id            String   @id @default(uuid())
+  tenantId      String
+  projetoId     String
+  titulo        String
+  tipo          String   @default("RELATORIO")  // ARTIGO | PROTOTIPO | RELATORIO | EVENTO | SOFTWARE | OUTRO
+  prazo         DateTime
+  status        String   @default("PENDENTE")   // PENDENTE | ENTREGUE | ACEITO | ATRASADO
+  entregueEm    DateTime?
+  url           String?
+  publicacaoId  String?
+  observacoes   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  projeto       PesProjeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projetoId])
+  @@index([tenantId, status, prazo])
+}
+
+model PesProjetoRelatorio {
+  id             String   @id @default(uuid())
+  tenantId       String
+  projetoId      String
+  tipo           String   @default("PARCIAL")   // PARCIAL | FINAL
+  referencia     String?                         // ex.: "1º semestre"
+  prazo          DateTime
+  status         PesStatusRelatorio @default(PENDENTE)
+  conteudo       String?
+  entregueEm     DateTime?
+  avaliadorUserId String?
+  parecer        String?
+  nota           Float?
+  avaliadoEm     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  projeto        PesProjeto @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, projetoId])
+  @@index([tenantId, status, prazo])
+}
+
+// ---------- EDITAIS E BOLSAS ----------
+model PesEdital {
+  id               String   @id @default(uuid())
+  tenantId         String
+  numero           String
+  titulo           String
+  tipo             PesTipoProjeto @default(PIBIC)
+  descricao        String?
+  requisitos       String?
+  status           PesStatusEdital @default(RASCUNHO)
+  dataAbertura     DateTime
+  dataFechamento   DateTime
+  dataResultado    DateTime?
+  vagas            Int      @default(0)
+  vagasSuplentes   Int      @default(0)
+  valorBolsa       Decimal  @default(0) @db.Decimal(12, 2)
+  duracaoMeses     Int      @default(12)
+  notaMinima       Float    @default(0)
+  criterios        Json?    // [{ "nome": "Mérito científico", "peso": 3, "notaMax": 10 }]
+  publicadoEm      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  inscricoes       PesEditalInscricao[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+}
+
+model PesEditalInscricao {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  editalId           String
+  projetoId          String?
+  proponenteUserId   String?
+  proponenteNome     String
+  bolsistaStudentId  String?
+  bolsistaNome       String?
+  titulo             String
+  resumo             String?
+  status             PesStatusInscricao @default(INSCRITA)
+  notaFinal          Float?
+  classificacao      Int?
+  justificativa      String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  edital             PesEdital @relation(fields: [editalId], references: [id], onDelete: Cascade)
+  avaliacoes         PesEditalAvaliacao[]
+
+  @@index([tenantId, editalId, status])
+  @@index([tenantId, proponenteUserId])
+}
+
+model PesEditalAvaliacao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  inscricaoId     String
+  avaliadorUserId String
+  avaliadorNome   String?
+  prazo           DateTime?
+  concluida       Boolean  @default(false)
+  notas           Json?    // { "Mérito científico": 8.5, ... }
+  notaTotal       Float?
+  parecer         String?
+  concluidaEm     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  inscricao       PesEditalInscricao @relation(fields: [inscricaoId], references: [id], onDelete: Cascade)
+
+  @@unique([inscricaoId, avaliadorUserId])
+  @@index([tenantId, avaliadorUserId, concluida])
+}
+
+model PesBolsa {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  projetoId          String?
+  editalId           String?
+  inscricaoId        String?
+  studentId          String?
+  userId             String?
+  bolsistaNome       String
+  orientadorUserId   String?
+  modalidade         String   @default("PIBIC")
+  agencia            String   @default("INSTITUCIONAL")   // INSTITUCIONAL | CNPQ | CAPES | FAPESP | OUTRA
+  valorMensal        Decimal  @db.Decimal(12, 2)
+  dataInicio         DateTime
+  dataFim            DateTime
+  status             PesStatusBolsa @default(ATIVA)
+  motivoStatus       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  pagamentos         PesBolsaPagamento[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, projetoId])
+}
+
+model PesBolsaPagamento {
+  id           String   @id @default(uuid())
+  tenantId     String
+  bolsaId      String
+  competencia  String           // AAAA-MM
+  valor        Decimal  @db.Decimal(12, 2)
+  status       String   @default("PREVISTO")   // PREVISTO | LIBERADO | PAGO | SUSPENSO
+  pagoEm       DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  bolsa        PesBolsa @relation(fields: [bolsaId], references: [id], onDelete: Cascade)
+
+  @@unique([bolsaId, competencia])
+  @@index([tenantId, status, competencia])
+}
+
+// ---------- TCC / DISSERTAÇÃO / TESE ----------
+model PesTrabalho {
+  id                     String   @id @default(uuid())
+  tenantId               String
+  tipo                   PesTipoTrabalho @default(TCC)
+  titulo                 String
+  tema                   String?
+  resumo                 String?
+  abstract               String?
+  palavrasChave          String[]
+  studentId              String
+  alunoNome              String
+  programId              String?
+  orientadorUserId       String?
+  orientadorNome         String?
+  coorientadorNome       String?
+  projetoId              String?
+  grupoId                String?
+  status                 PesStatusTrabalho @default(TEMA)
+  prazoQualificacao      DateTime?
+  dataQualificacao       DateTime?
+  prazoDefesa            DateTime?
+  dataDefesa             DateTime?
+  localDefesa            String?
+  modoDefesa             String   @default("PRESENCIAL")  // PRESENCIAL | REMOTA | HIBRIDA
+  linkSala               String?
+  notaFinal              Float?
+  resultado              String?  // APROVADO | APROVADO_COM_RESSALVAS | REPROVADO
+  ressalvas              String?
+  prazoVersaoFinal       DateTime?
+  prazoDeposito          DateTime?
+  similaridadePct        Float?
+  similaridadeLimite     Float    @default(20)
+  similaridadeStatus     String   @default("NAO_VERIFICADA")  // NAO_VERIFICADA | APROVADA | REPROVADA | JUSTIFICADA
+  similaridadeFonte      String?
+  similaridadeObs        String?
+  repositorioUrl         String?
+  repositorioHandle      String?
+  autorizaPublicacao     Boolean  @default(false)
+  embargoAte             DateTime?
+  ataNumero              String?
+  depositadoEm           DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  banca                  PesTrabalhoBanca[]
+  versoes                PesTrabalhoVersao[]
+  eventos                PesTrabalhoEvento[]
+  orientacoes            PesTrabalhoOrientacao[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, orientadorUserId])
+  @@index([tenantId, programId])
+}
+
+model PesTrabalhoBanca {
+  id           String   @id @default(uuid())
+  tenantId     String
+  trabalhoId   String
+  fase         String   @default("DEFESA")   // QUALIFICACAO | DEFESA
+  userId       String?
+  nome         String
+  instituicao  String?
+  titulacao    String?
+  papel        String   @default("EXAMINADOR_INTERNO")  // PRESIDENTE | EXAMINADOR_INTERNO | EXAMINADOR_EXTERNO | SUPLENTE
+  email        String?
+  convite      String   @default("PENDENTE")  // PENDENTE | CONFIRMADO | RECUSADO
+  nota         Float?
+  parecer      String?
+  assinouEm    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  trabalho     PesTrabalho @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, trabalhoId])
+  @@index([tenantId, userId])
+}
+
+model PesTrabalhoVersao {
+  id               String   @id @default(uuid())
+  tenantId         String
+  trabalhoId       String
+  numero           Int
+  tipo             String   @default("PROJETO")   // PROJETO | QUALIFICACAO | DEFESA | FINAL
+  arquivoUrl       String?
+  texto            String?
+  hashTexto        String?
+  similaridadePct  Float?
+  observacoes      String?
+  enviadoPorId     String?
+  createdAt        DateTime @default(now())
+
+  trabalho         PesTrabalho @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+
+  @@unique([trabalhoId, numero])
+  @@index([tenantId, trabalhoId])
+}
+
+model PesTrabalhoEvento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  trabalhoId  String
+  de          String?
+  para        String
+  userId      String?
+  observacao  String?
+  createdAt   DateTime @default(now())
+
+  trabalho    PesTrabalho @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, trabalhoId])
+}
+
+model PesTrabalhoOrientacao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  trabalhoId  String
+  data        DateTime
+  duracaoMin  Int?
+  resumo      String
+  encaminhamentos String?
+  registradoPorId String?
+  createdAt   DateTime @default(now())
+
+  trabalho    PesTrabalho @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, trabalhoId])
+}
+
+// ---------- PERIÓDICO INSTITUCIONAL (estilo OJS) ----------
+model PesPeriodico {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  slug               String
+  nome               String
+  sigla              String?
+  issn               String?
+  eissn              String?
+  area               String?
+  linhaEditorial     String?
+  escopo             String?
+  normas             String?
+  politicaAcessoAberto Boolean @default(true)
+  licenca            String   @default("CC BY 4.0")
+  doiPrefixo         String?
+  editorChefeUserId  String?
+  editorChefeNome    String?
+  emailContato       String?
+  duploCego          Boolean  @default(true)
+  revisoresPorSubmissao Int   @default(2)
+  prazoRevisaoDias   Int      @default(30)
+  prazoAutorDias     Int      @default(30)
+  periodicidade      String?
+  ativo              Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  equipe             PesPeriodicoEquipe[]
+  edicoes            PesEdicao[]
+  secoes             PesSecao[]
+  submissoes         PesSubmissao[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, ativo])
+}
+
+model PesPeriodicoEquipe {
+  id            String   @id @default(uuid())
+  tenantId      String
+  periodicoId   String
+  userId        String?
+  nome          String
+  email         String?
+  papel         String   @default("PARECERISTA")  // EDITOR_CHEFE | EDITOR_ASSOCIADO | EDITOR_SECAO | EDITOR_LAYOUT | PARECERISTA
+  areas         String[]
+  instituicao   String?
+  orcid         String?
+  lattes        String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  periodico     PesPeriodico @relation(fields: [periodicoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, periodicoId, papel])
+  @@index([tenantId, userId])
+}
+
+model PesEdicao {
+  id             String   @id @default(uuid())
+  tenantId       String
+  periodicoId    String
+  volume         Int
+  numero         String
+  ano            Int
+  titulo         String?
+  tipo           String   @default("REGULAR")   // REGULAR | ESPECIAL | SUPLEMENTO
+  status         String   @default("PLANEJADA") // PLANEJADA | EM_EDICAO | PUBLICADA
+  editorial      String?
+  capaUrl        String?
+  doi            String?
+  dataPublicacao DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  periodico      PesPeriodico @relation(fields: [periodicoId], references: [id], onDelete: Cascade)
+  submissoes     PesSubmissao[]
+
+  @@unique([periodicoId, volume, numero, ano])
+  @@index([tenantId, periodicoId, status])
+}
+
+model PesSecao {
+  id               String   @id @default(uuid())
+  tenantId         String
+  periodicoId      String
+  nome             String
+  ordem            Int      @default(1)
+  revisadaPorPares Boolean  @default(true)
+  ativa            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  periodico        PesPeriodico @relation(fields: [periodicoId], references: [id], onDelete: Cascade)
+  submissoes       PesSubmissao[]
+
+  @@index([tenantId, periodicoId])
+}
+
+model PesSubmissao {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  periodicoId        String
+  edicaoId           String?
+  secaoId            String?
+  codigo             String
+  titulo             String
+  resumo             String?
+  abstract           String?
+  palavrasChave      String[]
+  idioma             String   @default("pt-BR")
+  autores            Json?    // [{ nome, email, orcid, afiliacao, correspondente }]
+  submissorUserId    String?
+  submissorStudentId String?
+  status             PesStatusSubmissao @default(SUBMETIDO)
+  rodada             Int      @default(1)
+  versaoAtual        Int      @default(1)
+  editorUserId       String?
+  declaracaoOriginalidade Boolean @default(false)
+  conflitoInteresse  String?
+  financiamento      String?
+  dataSubmissao      DateTime @default(now())
+  dataTriagem        DateTime?
+  dataDecisao        DateTime?
+  prazoAutorAte      DateTime?
+  motivoRejeicao     String?
+  triagemObs         String?
+  similaridadePct    Float?
+  doi                String?
+  paginaInicial      Int?
+  paginaFinal        Int?
+  ordemNaEdicao      Int?
+  dataPublicacao     DateTime?
+  publicacaoId       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  periodico          PesPeriodico @relation(fields: [periodicoId], references: [id], onDelete: Cascade)
+  edicao             PesEdicao? @relation(fields: [edicaoId], references: [id], onDelete: SetNull)
+  secao              PesSecao? @relation(fields: [secaoId], references: [id], onDelete: SetNull)
+  versoes            PesSubmissaoVersao[]
+  revisoes           PesRevisao[]
+  decisoes           PesDecisao[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, periodicoId, status])
+  @@index([tenantId, edicaoId])
+  @@index([tenantId, submissorUserId])
+}
+
+model PesSubmissaoVersao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  submissaoId     String
+  numero          Int
+  rodada          Int      @default(1)
+  tipo            String   @default("ORIGINAL")   // ORIGINAL | REVISAO | FINAL | EDITORACAO
+  arquivoUrl      String?
+  resumoAlteracoes String?
+  cartaResposta   String?
+  enviadoPorId    String?
+  createdAt       DateTime @default(now())
+
+  submissao       PesSubmissao @relation(fields: [submissaoId], references: [id], onDelete: Cascade)
+
+  @@unique([submissaoId, numero])
+  @@index([tenantId, submissaoId])
+}
+
+model PesRevisao {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  submissaoId        String
+  rodada             Int      @default(1)
+  equipeId           String?
+  revisorUserId      String?
+  revisorNome        String
+  revisorEmail       String?
+  token              String   @unique
+  status             PesStatusRevisao @default(CONVIDADO)
+  convidadoEm        DateTime @default(now())
+  respondidoEm       DateTime?
+  prazo              DateTime
+  concluidoEm        DateTime?
+  recomendacao       PesRecomendacao?
+  notas              Json?    // { originalidade, metodologia, relevancia, clareza, referencias } 1..5
+  notaMedia          Float?
+  comentarioAutor    String?
+  comentarioEditor   String?
+  semConflito        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  submissao          PesSubmissao @relation(fields: [submissaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, submissaoId, rodada])
+  @@index([tenantId, revisorUserId, status])
+  @@index([tenantId, status, prazo])
+}
+
+model PesDecisao {
+  id             String   @id @default(uuid())
+  tenantId       String
+  submissaoId    String
+  rodada         Int
+  decisao        String   // ACEITAR | REVISOES_MENORES | REVISOES_MAIORES | REJEITAR | REJEITAR_TRIAGEM
+  editorUserId   String?
+  justificativa  String?
+  cartaAutor     String?
+  createdAt      DateTime @default(now())
+
+  submissao      PesSubmissao @relation(fields: [submissaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, submissaoId])
+}
+
+// ---------- EVENTOS CIENTÍFICOS ----------
+model PesEvento {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  slug                  String
+  nome                  String
+  tipo                  String   @default("SEMANA_ACADEMICA")  // SEMANA_ACADEMICA | CONGRESSO | SIMPOSIO | JORNADA | WORKSHOP
+  descricao             String?
+  local                 String?
+  modalidade            String   @default("PRESENCIAL")
+  dataInicio            DateTime
+  dataFim               DateTime
+  status                PesStatusEvento @default(RASCUNHO)
+  prazoSubmissao        DateTime?
+  prazoAvaliacao        DateTime?
+  prazoResultado        DateTime?
+  prazoCameraReady      DateTime?
+  trilhas               Json?    // ["Saúde", "Educação"]
+  avaliadoresPorTrabalho Int     @default(2)
+  notaMinimaAprovacao   Float    @default(6)
+  anaisIsbn             String?
+  anaisUrl              String?
+  anaisPublicadoEm      DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  trabalhos             PesEventoTrabalho[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+}
+
+model PesEventoTrabalho {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  eventoId            String
+  codigo              String
+  titulo              String
+  resumo              String?
+  palavrasChave       String[]
+  trilha              String?
+  formatoApresentacao String   @default("ORAL")   // ORAL | POSTER
+  autores             Json?
+  apresentadorNome    String?
+  submissorUserId     String?
+  submissorStudentId  String?
+  status              PesStatusEventoTrabalho @default(SUBMETIDO)
+  notaMedia           Float?
+  arquivoUrl          String?
+  cameraReadyUrl      String?
+  sessao              String?
+  dataApresentacao    DateTime?
+  ordemAnais          Int?
+  paginasAnais        String?
+  publicacaoId        String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  evento              PesEvento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  avaliacoes          PesEventoAvaliacao[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, eventoId, status])
+  @@index([tenantId, submissorUserId])
+}
+
+model PesEventoAvaliacao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  trabalhoId      String
+  avaliadorUserId String
+  avaliadorNome   String?
+  prazo           DateTime?
+  concluida       Boolean  @default(false)
+  nota            Float?
+  recomendacao    String?   // APROVAR | APROVAR_COM_AJUSTES | REPROVAR
+  parecer         String?
+  concluidaEm     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  trabalho        PesEventoTrabalho @relation(fields: [trabalhoId], references: [id], onDelete: Cascade)
+
+  @@unique([trabalhoId, avaliadorUserId])
+  @@index([tenantId, avaliadorUserId, concluida])
+}

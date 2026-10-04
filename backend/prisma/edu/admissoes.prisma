@@ -1,0 +1,502 @@
+// ============================================================
+// EDUMASTER PRO — ADMISSÕES (prefixo Adm): captação, vestibular,
+// matrícula e rematrícula.
+// ============================================================
+
+enum AdmTipoProcesso {
+  VESTIBULAR_TRADICIONAL
+  VESTIBULAR_AGENDADO
+  ENEM
+  TRANSFERENCIA_EXTERNA
+  PORTADOR_DIPLOMA
+  POS_LATO_SENSU
+  POS_STRICTO_SENSU
+}
+
+enum AdmStatusProcesso {
+  RASCUNHO
+  ABERTO
+  ENCERRADO
+  CLASSIFICADO
+  EM_CONVOCACAO
+  FINALIZADO
+  CANCELADO
+}
+
+enum AdmModalidadeOferta {
+  PRESENCIAL
+  SEMIPRESENCIAL
+  EAD
+}
+
+enum AdmTurno {
+  MATUTINO
+  VESPERTINO
+  NOTURNO
+  INTEGRAL
+  FLEXIVEL
+}
+
+enum AdmStatusCandidato {
+  LEAD
+  INSCRITO
+  PROVA
+  APROVADO
+  CONVOCADO
+  MATRICULADO
+  DESISTENTE
+  REPROVADO
+}
+
+enum AdmTipoInteracao {
+  LIGACAO
+  WHATSAPP
+  EMAIL
+  VISITA
+  NOTA
+  SISTEMA
+}
+
+enum AdmComponenteNota {
+  PROVA
+  REDACAO
+  ENEM
+  ENTREVISTA
+  HISTORICO
+  ANALISE_CURRICULAR
+  PROJETO
+}
+
+enum AdmStatusChamada {
+  ABERTA
+  ENCERRADA
+}
+
+enum AdmStatusConvocacao {
+  CONVOCADO
+  MATRICULADO
+  RENUNCIOU
+  EXPIRADO
+}
+
+enum AdmStatusDocumento {
+  PENDENTE
+  ENVIADO
+  APROVADO
+  REJEITADO
+}
+
+enum AdmStatusMatricula {
+  PENDENTE_DOCUMENTOS
+  DOCUMENTOS_OK
+  CONCLUIDA
+  CANCELADA
+}
+
+enum AdmTipoBeneficio {
+  BOLSA
+  DESCONTO
+  CONVENIO
+}
+
+enum AdmStatusCampanha {
+  PLANEJADA
+  ATIVA
+  PAUSADA
+  ENCERRADA
+}
+
+enum AdmStatusRematriculaCampanha {
+  RASCUNHO
+  ABERTA
+  ENCERRADA
+}
+
+enum AdmStatusRematricula {
+  ELEGIVEL
+  PENDENTE_FINANCEIRO
+  PENDENTE_ACADEMICO
+  CONFIRMADA
+  NAO_RENOVOU
+  TRANCADA
+}
+
+// ---------- Processo seletivo e ofertas ----------
+
+model AdmProcessoSeletivo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  codigo           String
+  nome             String
+  tipo             AdmTipoProcesso
+  nivel            String   @default("GRADUACAO")   // GRADUACAO | POS_LATO | POS_STRICTO
+  status           AdmStatusProcesso @default(RASCUNHO)
+  termId           String?                           // AcademicTerm de ingresso
+  edital           String?
+  editalUrl        String?
+  inscricaoInicio  DateTime
+  inscricaoFim     DateTime
+  provaData        DateTime?
+  resultadoData    DateTime?
+  matriculaInicio  DateTime?
+  matriculaFim     DateTime?
+  taxaInscricao    Float    @default(0)
+  notaMinima       Float    @default(0)
+  pesos            Json?                             // {"PROVA":3,"REDACAO":2,...}
+  criteriosDesempate Json?                           // ["REDACAO","PROVA","IDADE"]
+  listaEspera      Boolean  @default(true)
+  diasPrazoMatricula Int    @default(5)
+  observacoes      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  ofertas          AdmOferta[]
+  candidatos       AdmCandidato[]
+  chamadas         AdmChamada[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status])
+}
+
+model AdmOferta {
+  id               String   @id @default(uuid())
+  tenantId         String
+  processoId       String
+  programId        String?                           // AcademicProgram
+  nomeCurso        String
+  turno            AdmTurno @default(NOTURNO)
+  modalidade       AdmModalidadeOferta @default(PRESENCIAL)
+  campusId         String?
+  poloNome         String?
+  vagas            Int
+  valorMensalidade Float    @default(0)
+  parcelas         Int      @default(6)
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  processo         AdmProcessoSeletivo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, processoId])
+}
+
+// ---------- Captação / marketing ----------
+
+model AdmCampanha {
+  id               String   @id @default(uuid())
+  tenantId         String
+  nome             String
+  nivel            String   @default("GRADUACAO")
+  canal            String                            // GOOGLE_ADS, META_ADS, INDICACAO, EVENTO, ORGANICO...
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  processoId       String?
+  status           AdmStatusCampanha @default(PLANEJADA)
+  orcamento        Float    @default(0)
+  metaInscritos    Int      @default(0)
+  metaMatriculas   Int      @default(0)
+  inicio           DateTime
+  fim              DateTime
+  observacoes      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  gastos           AdmCampanhaGasto[]
+  candidatos       AdmCandidato[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, utmCampaign])
+}
+
+model AdmCampanhaGasto {
+  id          String   @id @default(uuid())
+  tenantId    String
+  campanhaId  String
+  data        DateTime @default(now())
+  valor       Float
+  descricao   String?
+  createdAt   DateTime @default(now())
+
+  campanha    AdmCampanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, campanhaId])
+}
+
+// ---------- Candidatos / funil ----------
+
+model AdmCandidato {
+  id                String   @id @default(uuid())
+  tenantId          String
+  processoId        String?
+  ofertaId          String?
+  ofertaId2         String?                          // segunda opção
+  campanhaId        String?
+  protocolo         String
+  nome              String
+  cpf               String?
+  email             String?
+  telefone          String?
+  dataNascimento    DateTime?
+  status            AdmStatusCandidato @default(LEAD)
+  etapaMaxima       Int      @default(0)             // maior etapa do funil já atingida (0=LEAD..5=MATRICULADO)
+  origem            String?
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  consentimentoLgpd Boolean  @default(false)
+  consentimentoEm   DateTime?
+  consentimentoMarketing   Boolean  @default(false)   // aceite SEPARADO e opcional para receber divulgação (LGPD)
+  consentimentoMarketingEm DateTime?
+  ipOrigem          String?
+  dados             Json?                            // endereço, escolaridade, cota etc.
+  cota              String?
+  responsavelId     String?                          // User (consultor)
+  proximoContatoEm  DateTime?
+  notaFinal         Float?
+  classificacao     Int?
+  ofertaAlocadaId   String?                          // oferta em que foi classificado
+  situacaoClassificacao String?                      // CLASSIFICADO | LISTA_ESPERA | DESCLASSIFICADO
+  taxaReceivableId  String?                          // AccountReceivable da taxa
+  taxaPaga          Boolean  @default(false)
+  bolsaId           String?
+  motivoDesistencia String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  processo          AdmProcessoSeletivo? @relation(fields: [processoId], references: [id])
+  campanha          AdmCampanha? @relation(fields: [campanhaId], references: [id])
+  interacoes        AdmInteracao[]
+  notas             AdmResultadoProva[]
+  documentos        AdmDocumentoCandidato[]
+  convocacoes       AdmConvocacao[]
+  matricula         AdmMatricula?
+
+  @@unique([tenantId, protocolo])
+  @@index([tenantId, status])
+  @@index([tenantId, processoId, status])
+  @@index([tenantId, cpf])
+  @@index([tenantId, proximoContatoEm])
+}
+
+model AdmInteracao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  candidatoId   String
+  tipo          AdmTipoInteracao @default(NOTA)
+  descricao     String
+  userId        String?
+  proximoContatoEm DateTime?
+  createdAt     DateTime @default(now())
+
+  candidato     AdmCandidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, candidatoId])
+}
+
+model AdmResultadoProva {
+  id            String   @id @default(uuid())
+  tenantId      String
+  candidatoId   String
+  componente    AdmComponenteNota
+  nota          Float
+  notaMaxima    Float    @default(100)
+  observacao    String?
+  lancadoPorId  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  candidato     AdmCandidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+
+  @@unique([candidatoId, componente])
+  @@index([tenantId, candidatoId])
+}
+
+// ---------- Convocação ----------
+
+model AdmChamada {
+  id            String   @id @default(uuid())
+  tenantId      String
+  processoId    String
+  numero        Int
+  status        AdmStatusChamada @default(ABERTA)
+  prazoMatricula DateTime
+  geradaPorId   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  processo      AdmProcessoSeletivo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  convocacoes   AdmConvocacao[]
+
+  @@unique([processoId, numero])
+  @@index([tenantId, processoId])
+}
+
+model AdmConvocacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  chamadaId     String
+  candidatoId   String
+  ofertaId      String
+  status        AdmStatusConvocacao @default(CONVOCADO)
+  prazo         DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  chamada       AdmChamada @relation(fields: [chamadaId], references: [id], onDelete: Cascade)
+  candidato     AdmCandidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, chamadaId])
+  @@index([tenantId, candidatoId])
+}
+
+// ---------- Documentos e matrícula ----------
+
+model AdmDocumentoTipo {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String
+  nome          String
+  obrigatorio   Boolean  @default(true)
+  niveis        String[]                             // GRADUACAO, POS_LATO, POS_STRICTO
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+}
+
+model AdmDocumentoCandidato {
+  id            String   @id @default(uuid())
+  tenantId      String
+  candidatoId   String
+  codigo        String
+  nome          String
+  obrigatorio   Boolean  @default(true)
+  status        AdmStatusDocumento @default(PENDENTE)
+  url           String?
+  observacao    String?
+  revisadoPorId String?
+  revisadoEm    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  candidato     AdmCandidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+
+  @@unique([candidatoId, codigo])
+  @@index([tenantId, candidatoId])
+}
+
+model AdmMatricula {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  candidatoId           String   @unique
+  convocacaoId          String?
+  ofertaId              String
+  userId                String?
+  studentId             String?
+  enrollmentId          String?
+  ra                    String?
+  status                AdmStatusMatricula @default(PENDENTE_DOCUMENTOS)
+  bolsaId               String?
+  percentualDesconto    Float    @default(0)
+  valorMensalidade      Float    @default(0)
+  valorComDesconto      Float    @default(0)
+  parcelas              Int      @default(6)
+  contratoHtml          String?
+  contratoAceitoEm      DateTime?
+  primeiraMensalidadeId String?
+  concluidaEm           DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  candidato             AdmCandidato @relation(fields: [candidatoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+}
+
+// ---------- Bolsas, descontos e convênios ----------
+
+model AdmBolsa {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  tipo          AdmTipoBeneficio @default(BOLSA)
+  percentual    Float    @default(0)
+  valorFixo     Float?
+  regras        Json?                                // {notaMinima, cotas[], niveis[], programIds[], tiposProcesso[], convenioEmpresa}
+  convenioEmpresa String?
+  vigenciaInicio DateTime?
+  vigenciaFim   DateTime?
+  limiteConcessoes Int?
+  cumulativa    Boolean  @default(false)
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  concessoes    AdmBolsaConcessao[]
+
+  @@index([tenantId, ativo])
+}
+
+model AdmBolsaConcessao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  bolsaId       String
+  candidatoId   String?
+  studentId     String?
+  percentualAplicado Float
+  motivo        String?
+  concedidaPorId String?
+  createdAt     DateTime @default(now())
+
+  bolsa         AdmBolsa @relation(fields: [bolsaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, bolsaId])
+  @@index([tenantId, candidatoId])
+}
+
+// ---------- Rematrícula ----------
+
+model AdmRematriculaCampanha {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  nome                String
+  termOrigemId        String?
+  termDestinoId       String
+  janelaInicio        DateTime
+  janelaFim           DateTime
+  descontoAntecipacaoPct Float @default(0)
+  dataLimiteDesconto  DateTime?
+  valorTaxa           Float    @default(0)
+  bloqueiaInadimplente Boolean @default(true)
+  status              AdmStatusRematriculaCampanha @default(RASCUNHO)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  itens               AdmRematricula[]
+
+  @@index([tenantId, status])
+}
+
+model AdmRematricula {
+  id            String   @id @default(uuid())
+  tenantId      String
+  campanhaId    String
+  studentId     String
+  programId     String?
+  status        AdmStatusRematricula @default(ELEGIVEL)
+  pendencias    Json?
+  valorBase     Float    @default(0)
+  desconto      Float    @default(0)
+  valorFinal    Float    @default(0)
+  receivableId  String?
+  confirmadaEm  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  campanha      AdmRematriculaCampanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+
+  @@unique([campanhaId, studentId])
+  @@index([tenantId, campanhaId, status])
+}

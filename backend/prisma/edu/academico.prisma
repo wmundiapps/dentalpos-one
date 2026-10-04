@@ -1,0 +1,381 @@
+// ============================================================
+// EDUMASTER PRO — NÚCLEO ACADÊMICO
+// Extensão do schema.prisma existente em wmundiapps/dentalpos-one/backend
+// Pressupõe que já existam os models: Tenant (ou Institution), User, Role
+// Ajuste os nomes de relação (@relation) para bater com seu schema atual.
+// ============================================================
+
+// ---------- INSTITUIÇÃO / CAMPUS ----------
+
+model Campus {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  endereco      String?
+  cidade        String?
+  uf            String?
+  createdAt     DateTime @default(now())
+
+  turmas        ClassSection[]
+
+  @@index([tenantId])
+}
+
+// ---------- ESTRUTURA CURRICULAR ----------
+
+model AcademicProgram {
+  id              String   @id @default(uuid())
+  tenantId        String
+  nome            String        // ex: "Farmácia", "Odontologia"
+  modalidade      Modalidade
+  cargaHorariaTotal Int
+  createdAt       DateTime @default(now())
+
+  disciplinas     CurriculumDiscipline[]
+  matriculas      Enrollment[]
+
+  @@index([tenantId])
+}
+
+enum Modalidade {
+  EAD
+  PRESENCIAL
+  SEMIPRESENCIAL
+}
+
+model Discipline {
+  id              String   @id @default(uuid())
+  tenantId        String
+  nome            String
+  cargaHoraria    Int
+  ementa          String?
+
+  curriculos      CurriculumDiscipline[]
+  turmas          ClassSection[]
+  conteudos       ContentItem[]
+  avaliacoes      Assessment[]
+
+  @@index([tenantId])
+}
+
+model CurriculumDiscipline {
+  id                String   @id @default(uuid())
+  programId         String
+  disciplineId      String
+  periodo           Int              // 1º, 2º... período do curso
+  obrigatoria       Boolean  @default(true)
+
+  program           AcademicProgram @relation(fields: [programId], references: [id])
+  discipline        Discipline      @relation(fields: [disciplineId], references: [id])
+
+  @@unique([programId, disciplineId])
+}
+
+// ---------- PERÍODO LETIVO ----------
+
+model AcademicTerm {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String        // ex: "2026/2"
+  dataInicio    DateTime
+  dataFim       DateTime
+
+  turmas        ClassSection[]
+  matriculas    Enrollment[]
+
+  @@index([tenantId])
+}
+
+// ---------- ALUNO E MATRÍCULA ----------
+
+model Student {
+  id              String   @id @default(uuid())
+  tenantId        String
+  userId          String   @unique     // FK para o model User já existente (login)
+  ra              String   @unique     // registro acadêmico
+  nomeCompleto    String
+  cpf             String?
+  dataNascimento  DateTime?
+  status          StudentStatus @default(ATIVO)
+  createdAt       DateTime @default(now())
+
+  matriculas      Enrollment[]
+  frequencias     Attendance[]
+  tentativas      AssessmentAttempt[]
+  certificados    Certificate[]
+  agendamentos    ClassSessionBooking[]
+
+  @@index([tenantId])
+}
+
+enum StudentStatus {
+  ATIVO
+  TRANCADO
+  CANCELADO
+  DESISTENTE
+  CONCLUIDO
+  FORMADO
+}
+
+model Enrollment {
+  id              String   @id @default(uuid())
+  studentId       String
+  programId       String
+  termId          String
+  status          EnrollmentStatus @default(ATIVA)
+  dataMatricula   DateTime @default(now())
+
+  student         Student         @relation(fields: [studentId], references: [id])
+  program         AcademicProgram @relation(fields: [programId], references: [id])
+  term            AcademicTerm    @relation(fields: [termId], references: [id])
+  turmas          ClassSectionEnrollment[]
+
+  @@index([studentId])
+  @@index([programId])
+}
+
+enum EnrollmentStatus {
+  ATIVA
+  TRANCADA
+  CANCELADA
+  CONCLUIDA
+}
+
+// ---------- TURMA E ALOCAÇÃO DE AULAS ----------
+
+model ClassSection {
+  id              String   @id @default(uuid())
+  tenantId        String
+  campusId        String?
+  disciplineId    String
+  termId          String
+  professorUserId String        // FK para User (professor)
+  nome            String        // ex: "FARM2025 S4 M16"
+  vagas           Int?
+  createdAt       DateTime @default(now())
+
+  campus          Campus?       @relation(fields: [campusId], references: [id])
+  discipline      Discipline    @relation(fields: [disciplineId], references: [id])
+  term            AcademicTerm  @relation(fields: [termId], references: [id])
+
+  matriculados    ClassSectionEnrollment[]
+  sessoes         ClassSession[]
+  avaliacoes      Assessment[]
+
+  @@index([tenantId])
+}
+
+model ClassSectionEnrollment {
+  id              String   @id @default(uuid())
+  enrollmentId    String
+  classSectionId  String
+
+  enrollment      Enrollment    @relation(fields: [enrollmentId], references: [id])
+  classSection    ClassSection  @relation(fields: [classSectionId], references: [id])
+
+  @@unique([enrollmentId, classSectionId])
+}
+
+// Uma "aula" concreta — o aluno agenda dia/horário, teórico ou prático
+model ClassSession {
+  id              String       @id @default(uuid())
+  classSectionId  String
+  tipo            SessionType
+  titulo          String
+  dataHoraInicio  DateTime
+  dataHoraFim     DateTime
+  local           String?          // sala física, laboratório, ou "online"
+  vagasPratica    Int?             // limite de alunos por horário, quando prática
+  status          SessionStatus @default(AGENDADA)
+
+  classSection    ClassSection  @relation(fields: [classSectionId], references: [id])
+  agendamentos    ClassSessionBooking[]
+  frequencias     Attendance[]
+
+  @@index([classSectionId])
+  @@index([dataHoraInicio])
+}
+
+enum SessionType {
+  TEORICA
+  PRATICA
+}
+
+enum SessionStatus {
+  AGENDADA
+  REALIZADA
+  CANCELADA
+}
+
+// Aluno escolhe/confirma um horário de aula prática ou teórica
+model ClassSessionBooking {
+  id              String   @id @default(uuid())
+  classSessionId  String
+  studentId       String
+  status          BookingStatus @default(CONFIRMADO)
+  createdAt       DateTime @default(now())
+
+  classSession    ClassSession  @relation(fields: [classSessionId], references: [id])
+  student         Student       @relation(fields: [studentId], references: [id])
+
+  @@unique([classSessionId, studentId])
+}
+
+enum BookingStatus {
+  CONFIRMADO
+  CANCELADO
+  PRESENTE
+  FALTOU
+}
+
+model Attendance {
+  id              String   @id @default(uuid())
+  classSessionId  String
+  studentId       String
+  presente        Boolean
+  justificativa   String?
+  registradoEm    DateTime @default(now())
+
+  classSession    ClassSession  @relation(fields: [classSessionId], references: [id])
+  student         Student       @relation(fields: [studentId], references: [id])
+
+  @@unique([classSessionId, studentId])
+}
+
+// ---------- CONTEÚDO ----------
+
+model ContentItem {
+  id              String   @id @default(uuid())
+  disciplineId    String
+  tipo            ContentType
+  titulo          String
+  urlArquivo      String?       // PDF/vídeo hospedado
+  resumoTexto     String?       // resumo de aula
+  createdAt       DateTime @default(now())
+
+  discipline      Discipline @relation(fields: [disciplineId], references: [id])
+  flashcards      Flashcard[]
+
+  @@index([disciplineId])
+}
+
+enum ContentType {
+  PDF
+  VIDEO
+  RESUMO
+  MATERIAL_COMPLEMENTAR
+  BIBLIOTECA
+}
+
+model Flashcard {
+  id              String   @id @default(uuid())
+  contentItemId   String
+  pergunta        String
+  resposta        String
+  // campos de repetição espaçada (SM-2), reaproveitando lógica do AllCollege
+  intervalo        Int      @default(1)
+  fatorFacilidade  Float    @default(2.5)
+  proximaRevisao   DateTime @default(now())
+
+  contentItem     ContentItem @relation(fields: [contentItemId], references: [id])
+}
+
+// ---------- AVALIAÇÃO / PROVAS COM IA ----------
+
+model Assessment {
+  id              String   @id @default(uuid())
+  disciplineId    String
+  classSectionId  String?
+  titulo          String
+  tipo            AssessmentType
+  dataAbertura    DateTime?
+  dataFechamento  DateTime?
+  correcaoPorIA   Boolean  @default(false)
+  focoEnade       Boolean  @default(false)
+
+  discipline      Discipline    @relation(fields: [disciplineId], references: [id])
+  classSection    ClassSection? @relation(fields: [classSectionId], references: [id])
+  questoes        Question[]
+  tentativas      AssessmentAttempt[]
+
+  @@index([disciplineId])
+}
+
+enum AssessmentType {
+  PROVA
+  ATIVIDADE
+  AUTOAVALIACAO
+  SIMULADO_ENADE
+  SIMULADO_RESIDENCIA
+}
+
+model Question {
+  id              String   @id @default(uuid())
+  assessmentId    String
+  enunciado       String
+  tipo            QuestionType
+  alternativas    Json?         // para múltipla escolha
+  respostaCorreta String?
+  peso            Float    @default(1)
+
+  assessment      Assessment @relation(fields: [assessmentId], references: [id])
+  respostas       AnswerSubmission[]
+}
+
+enum QuestionType {
+  MULTIPLA_ESCOLHA
+  DISSERTATIVA
+  VERDADEIRO_FALSO
+}
+
+model AssessmentAttempt {
+  id              String   @id @default(uuid())
+  assessmentId    String
+  studentId       String
+  iniciadoEm      DateTime @default(now())
+  finalizadoEm    DateTime?
+  notaFinal       Float?
+  corrigidoPorIA  Boolean  @default(false)
+
+  assessment      Assessment @relation(fields: [assessmentId], references: [id])
+  student         Student    @relation(fields: [studentId], references: [id])
+  respostas       AnswerSubmission[]
+
+  @@index([studentId])
+}
+
+model AnswerSubmission {
+  id              String   @id @default(uuid())
+  attemptId       String
+  questionId      String
+  respostaTexto   String?
+  notaObtida      Float?
+  feedbackIA      String?       // justificativa gerada pela IA na correção dissertativa
+
+  attempt         AssessmentAttempt @relation(fields: [attemptId], references: [id])
+  question        Question          @relation(fields: [questionId], references: [id])
+
+  @@unique([attemptId, questionId])
+}
+
+// ---------- CERTIFICADOS ----------
+
+model Certificate {
+  id              String   @id @default(uuid())
+  studentId       String
+  tipo            CertificateType
+  descricao       String
+  emitidoEm       DateTime @default(now())
+  urlPdf          String?
+
+  student         Student @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+}
+
+enum CertificateType {
+  CONCLUSAO_CURSO
+  NIVELAMENTO
+  EXTENSAO
+  PARTICIPACAO
+}

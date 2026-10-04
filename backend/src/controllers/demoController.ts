@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { hashPassword } from '../services/userService'
+import { validarSenhaForte } from '../modules/seguranca/senha'
 import { dispatchRevah } from '../services/revahProviderService'
 import {
   createDemoMetadata,
@@ -85,8 +86,9 @@ export async function register(req: Request, res: Response) {
       return res.status(400).json({ error: 'Informe um e-mail válido.' })
     }
 
-    if (password.length < 10) {
-      return res.status(400).json({ error: 'A senha deve possuir pelo menos 10 caracteres.' })
+    const senhaOk = validarSenhaForte(password, { email })
+    if (!senhaOk.ok) {
+      return res.status(400).json({ error: senhaOk.erro })
     }
 
     if (!acceptTerms) {

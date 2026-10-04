@@ -1,0 +1,78 @@
+// ============================================================
+// EDUMASTER PRO — CONTEÚDO + BIBLIOTECA
+// Extensão do schema.prisma (depois de schema-academico.prisma
+// e schema-financeiro.prisma). Usa ContentItem e Flashcard que já
+// existem no schema-academico.prisma.
+//
+// CORREÇÃO IMPORTANTE em relação ao módulo anterior:
+// os campos intervalo/fatorFacilidade/proximaRevisao que ficaram
+// no model Flashcard (schema-academico.prisma) guardam progresso
+// GLOBAL do cartão, o que está errado — cada aluno revisa no seu
+// próprio ritmo. A partir daqui, IGNORE esses 3 campos em Flashcard
+// (deixe como estavam, sem uso) e use StudentFlashcardState abaixo,
+// que é por aluno. Se quiser, remova os 3 campos de Flashcard numa
+// migração futura; não é urgente, eles só ficam sem uso.
+// ============================================================
+
+model StudentFlashcardState {
+  id              String   @id @default(uuid())
+  studentId       String
+  flashcardId     String
+  intervalo       Int      @default(1)
+  fatorFacilidade Float    @default(2.5)
+  repeticoes      Int      @default(0)
+  proximaRevisao  DateTime @default(now())
+  ultimaRevisao   DateTime?
+
+  @@unique([studentId, flashcardId])
+  @@index([studentId, proximaRevisao])
+}
+
+model ContentProgress {
+  id                    String   @id @default(uuid())
+  studentId             String
+  contentItemId         String
+  concluido             Boolean  @default(false)
+  percentualAssistido   Float    @default(0)   // 0 a 100, relevante para vídeo
+  ultimaVisualizacao    DateTime @default(now())
+
+  @@unique([studentId, contentItemId])
+}
+
+model LibraryProvider {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String        // ex: "Minha Biblioteca", "Pearson", "Biblioteca própria"
+  tipoAcesso    LibraryAccessType
+  urlAcesso     String?
+  custoMensal   Float?        // preenchido quando tipoAcesso = ADESAO_INDIVIDUAL
+  ativo         Boolean  @default(true)
+
+  assinaturas   StudentLibraryAccess[]
+
+  @@index([tenantId])
+}
+
+enum LibraryAccessType {
+  ASSINATURA_INSTITUCIONAL   // toda a instituição já paga; aluno tem acesso automático
+  ADESAO_INDIVIDUAL          // aluno opta por aderir, pode gerar cobrança
+}
+
+model StudentLibraryAccess {
+  id                  String   @id @default(uuid())
+  studentId           String
+  libraryProviderId   String
+  status              LibraryAccessStatus @default(PENDENTE)
+  dataAdesao          DateTime @default(now())
+  dataCancelamento    DateTime?
+
+  libraryProvider     LibraryProvider @relation(fields: [libraryProviderId], references: [id])
+
+  @@unique([studentId, libraryProviderId])
+}
+
+enum LibraryAccessStatus {
+  ATIVA
+  PENDENTE
+  CANCELADA
+}

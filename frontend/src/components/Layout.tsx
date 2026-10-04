@@ -48,6 +48,8 @@ export default function Layout({
           component="main"
           sx={{
             flex: 1,
+            minWidth: 0,
+            maxWidth: "100%",
             p: {
               xs: 2,
               md: 4,

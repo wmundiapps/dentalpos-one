@@ -1,0 +1,90 @@
+// ============================================================
+// EDUMASTER PRO — SEGURANÇA (2FA, log de segurança, bloqueio de login, varredura de uploads)
+// Prefixo Seg. Somente tabelas NOVAS (nenhuma tabela existente, como User, é alterada).
+// Referências a User/tenant = String ids sem @relation.
+// ============================================================
+
+enum SegSeveridade {
+  INFO
+  ATENCAO
+  CRITICO
+}
+
+enum SegVeredito {
+  LIMPO
+  SUSPEITO
+  BLOQUEADO
+}
+
+// Segundo fator (TOTP) por usuário. Segredo cifrado (AES-256-GCM); códigos de recuperação só com hash.
+model SegDoisFatores {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  userId              String    @unique
+  segredoCifrado      String
+  ativadoEm           DateTime?          // null = configuração iniciada, ainda não confirmada
+  ultimoPasso         Int?               // último passo TOTP aceito (impede reutilização do mesmo código)
+  codigosRecuperacao  Json      @default("[]")   // [{ h: "<hash>", usadoEm: "<iso>" | null }]
+  versaoCodigos       Int       @default(0)      // controle otimista (uso único de código de recuperação)
+  ultimoUsoEm         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+// Log de segurança: login falho, bloqueio, 2FA, upload bloqueado, origem negada...
+model SegEvento {
+  id         String         @id @default(uuid())
+  tenantId   String         @default("global")   // "global" quando o tenant não é conhecido (e-mail inexistente, origem negada)
+  userId     String?
+  tipo       String
+  severidade SegSeveridade  @default(INFO)
+  ip         String?
+  userAgent  String?
+  detalhe    Json?
+  createdAt  DateTime       @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, tipo, createdAt])
+  @@index([userId])
+}
+
+// Contagem de falhas por (escopo, chave, IP) para bloqueio temporário progressivo.
+// escopo "login": chave = e-mail; escopo "2fa": chave = id do usuário.
+model SegTentativaLogin {
+  id                String    @id @default(uuid())
+  tenantId          String    @default("global")
+  escopo            String    @default("login")
+  chave             String
+  ip                String
+  falhas            Int       @default(0)
+  nivel             Int       @default(0)       // quantos bloqueios já ocorreram (define a duração do próximo)
+  bloqueadoAte      DateTime?
+  ultimaTentativaEm DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([escopo, chave, ip])
+  @@index([ultimaTentativaEm])
+  @@index([tenantId])
+}
+
+// Veredito da varredura de cada arquivo enviado (hash sha256 do conteúdo; o arquivo em si não é guardado aqui).
+model SegArquivoVerificado {
+  id            String       @id @default(uuid())
+  tenantId      String
+  sha256        String
+  veredito      SegVeredito
+  motivo        String?
+  tamanho       Int
+  tipoDetectado String?
+  nomeOriginal  String?
+  mimeDeclarado String?
+  origem        String?              // rota/módulo que recebeu o arquivo
+  userId        String?
+  createdAt     DateTime     @default(now())
+
+  @@index([tenantId, sha256])
+  @@index([tenantId, createdAt])
+}

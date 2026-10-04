@@ -12,6 +12,9 @@ import { writeAudit } from '../services/auditService'
 import { getDemoAccess } from '../services/demoAccessService'
 import { decryptSecret } from '../services/secretVault'
 import { dispatchRevah } from '../services/revahProviderService'
+import { validarSenhaForte } from '../modules/seguranca/senha'
+import { registrarEvento, ipDaRequisicao } from '../modules/seguranca/eventos'
+import { bloqueioLogin, falhaLogin, sucessoLogin, desafioSegundoFator } from '../modules/seguranca/login'
 
 function jwtSecret() {
   const secret = process.env.JWT_SECRET
@@ -24,7 +27,7 @@ function safeUser<T extends { password?: unknown }>(user: T) {
   return safe
 }
 
-function generateToken(user: {
+export function generateToken(user: {
   id: string
   email: string
   clinicId: string
@@ -65,8 +68,10 @@ export async function register(req: Request, res: Response) {
       return res.status(400).json({ error: 'Dados obrigatórios não informados.' })
     }
 
-    if (String(password).length < 10) {
-      return res.status(400).json({ error: 'A senha deve possuir pelo menos 10 caracteres.' })
+    const senhaOk = validarSenhaForte(password, { email: String(email), nome: `${firstName} ${lastName}` })
+    if (!senhaOk.ok) {
+      void registrarEvento({ tenantId: String(tenantId), tipo: 'senha_fraca', ip: ipDaRequisicao(req), detalhe: { rota: 'register' } })
+      return res.status(400).json({ error: senhaOk.erro })
     }
 
     const normalizedEmail = String(email).trim().toLowerCase()
@@ -116,6 +121,14 @@ export async function login(req: Request, res: Response) {
     }
 
     const normalizedEmail = String(email).trim().toLowerCase()
+
+    // Bloqueio temporário progressivo por e-mail+IP (mensagem genérica; não revela se o e-mail existe).
+    const lock = await bloqueioLogin(req, normalizedEmail)
+    if (lock.bloqueado) {
+      res.setHeader('Retry-After', String(lock.segundos))
+      return res.status(429).json({ error: 'Muitas tentativas de acesso. Aguarde alguns minutos antes de tentar novamente.' })
+    }
+
     let user
 
     if (clinicId) {
@@ -139,12 +152,14 @@ export async function login(req: Request, res: Response) {
     }
 
     if (!user || !user.isActive) {
+      await falhaLogin(req, normalizedEmail, null)
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
     }
 
     const validPassword = await comparePassword(String(password), user.password)
 
     if (!validPassword) {
+      await falhaLogin(req, normalizedEmail, user)
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
     }
 
@@ -158,36 +173,51 @@ export async function login(req: Request, res: Response) {
       })
     }
 
-    const token = generateToken({
-      id: user.id,
-      email: user.email,
-      clinicId: user.clinicId,
-      tenantId: user.tenantId,
-      role: user.role
-    })
+    // 2FA ativo (ou exigido pelo papel): o token normal só sai depois do segundo fator.
+    const desafio = await desafioSegundoFator(req, user)
+    if (desafio) return res.json(desafio)
 
-    try {
-      await writeAudit({
-        clinicId: user.clinicId,
-        tenantId: user.tenantId,
-        actorId: user.id,
-        module: 'auth',
-        action: 'LOGIN',
-        entityType: 'User',
-        entityId: user.id,
-        summary: 'Login realizado com sucesso.',
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent') || undefined
-      })
-    } catch (auditError) {
-      console.warn('Falha ao registrar auditoria de login:', auditError)
-    }
-
-    return res.json({ token, user: safeUser(user), demo })
+    await sucessoLogin(req, normalizedEmail)
+    return res.json(await concluirLogin(req, user, demo))
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro interno do servidor.' })
   }
+}
+
+/** Emite o token de sessão normal + auditoria. Usado pelo login sem 2FA e por POST /auth/2fa/verify. */
+export async function concluirLogin(
+  req: Request,
+  user: { id: string; email: string; clinicId: string; tenantId: string; role: string; password?: unknown },
+  demo: unknown,
+  resumo = 'Login realizado com sucesso.'
+) {
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    clinicId: user.clinicId,
+    tenantId: user.tenantId,
+    role: user.role
+  })
+
+  try {
+    await writeAudit({
+      clinicId: user.clinicId,
+      tenantId: user.tenantId,
+      actorId: user.id,
+      module: 'auth',
+      action: 'LOGIN',
+      entityType: 'User',
+      entityId: user.id,
+      summary: resumo,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined
+    })
+  } catch (auditError) {
+    console.warn('Falha ao registrar auditoria de login:', auditError)
+  }
+
+  return { token, user: safeUser(user), demo }
 }
 
 export async function me(_req: Request, res: Response) {
@@ -342,6 +372,11 @@ export async function resetPassword(req: Request, res: Response) {
       return res.status(400).json({
         error: 'Token válido e senha com pelo menos 10 caracteres são obrigatórios.',
       })
+    }
+    const senhaOk = validarSenhaForte(password)
+    if (!senhaOk.ok) {
+      void registrarEvento({ tipo: 'senha_fraca', ip: ipDaRequisicao(req), detalhe: { rota: 'password-reset' } })
+      return res.status(400).json({ error: senhaOk.erro })
     }
 
     const tokenHash = hashResetToken(token)

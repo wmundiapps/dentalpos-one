@@ -1,28 +1,10 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+// Ponto de entrada: as guardas de segurança rodam ANTES de carregar e montar o app.
+import { runHostGuard } from "./security/hostGuard";
+import { startDevtoolsGuard } from "./security/devtoolsGuard";
+import { startSessionGuard } from "./security/sessionGuard";
 
-import App from "./App";
-import { AppThemeProvider } from "./contexts/AppThemeContext";
-import { repairLocalStorageText } from "./utils/textEncoding";
-
-import "./index.css";
-import "./print.css";
-
-repairLocalStorageText();
-
-const rootElement = document.getElementById("root");
-
-if (!rootElement) {
-  throw new Error("Elemento root nÃ£o encontrado.");
+if (runHostGuard()) {
+  startDevtoolsGuard();
+  startSessionGuard();
+  void import("./bootstrap");
 }
-
-createRoot(rootElement).render(
-  <StrictMode>
-    <BrowserRouter>
-      <AppThemeProvider>
-        <App />
-      </AppThemeProvider>
-    </BrowserRouter>
-  </StrictMode>,
-);

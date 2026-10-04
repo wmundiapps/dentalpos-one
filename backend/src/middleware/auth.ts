@@ -45,6 +45,13 @@ export const authMiddleware = (
 
     const decoded = jwt.verify(token, secret) as TokenPayload
 
+    // Tokens de escopo restrito (desafio 2FA / configuração de 2FA) não dão acesso à API.
+    if ((decoded as JwtPayload).scope) {
+      return res.status(401).json({
+        error: 'Token inválido ou expirado'
+      })
+    }
+
     req.user = {
       id: decoded.id,
       email: decoded.email,

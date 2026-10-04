@@ -1,0 +1,521 @@
+// ============================================================
+// EDUMASTER PRO — CALENDÁRIO ACADÊMICO, RESERVAS, GRADE HORÁRIA, PROVAS E PRAZOS
+// Prefixo: Cal. Referências a models de outros módulos (AcademicTerm, Campus,
+// AcademicProgram, Discipline, ClassSection, EduSpace, User, Student) são ids simples.
+// Horários da grade em minutos desde 00:00 (ex.: 19:00 = 1140). Dia da semana: 1=seg ... 7=dom.
+// ============================================================
+
+enum CalEventoTipo {
+  INICIO_PERIODO
+  FIM_PERIODO
+  MATRICULA
+  REMATRICULA
+  TRANCAMENTO
+  AULA_INAUGURAL
+  PROVA
+  SEGUNDA_CHAMADA
+  EXAME_FINAL
+  FERIADO
+  PONTO_FACULTATIVO
+  RECESSO
+  FERIAS
+  REUNIAO
+  CONSELHO_CLASSE
+  COLACAO
+  FORMATURA
+  PRAZO_NOTAS
+  PRAZO_DIARIO
+  SEMANA_ACADEMICA
+  VESTIBULAR
+  ENADE
+  DIA_LETIVO_EXTRA
+  EVENTO_INSTITUCIONAL
+  OUTRO
+}
+
+enum CalPublico {
+  TODOS
+  ALUNOS
+  PROFESSORES
+  COORDENACAO
+  ADMINISTRATIVO
+}
+
+enum CalRecorrencia {
+  NENHUMA
+  DIARIA
+  SEMANAL
+  QUINZENAL
+  MENSAL
+  ANUAL
+}
+
+enum CalTurno {
+  MANHA
+  TARDE
+  NOITE
+}
+
+enum CalTipoAula {
+  TEORICA
+  PRATICA
+  ONLINE
+}
+
+enum CalOrigemSlot {
+  MANUAL
+  GERADOR
+}
+
+enum CalDisponibilidadeTipo {
+  DISPONIVEL
+  INDISPONIVEL
+  PREFERENCIA
+}
+
+enum CalReservaTipo {
+  EVENTO
+  AULA_EXTRA
+  REUNIAO
+  PROVA
+  MANUTENCAO
+  LIMPEZA
+  OUTRO
+}
+
+enum CalReservaStatus {
+  PENDENTE
+  APROVADA
+  REJEITADA
+  CANCELADA
+  EXPIRADA
+}
+
+enum CalExameTipo {
+  PROVA_1
+  PROVA_2
+  SUBSTITUTIVA
+  EXAME_FINAL
+  SEGUNDA_CHAMADA
+  REAVALIACAO
+  PROVA_UNICA
+  PRATICA
+  TRABALHO
+  SIMULADO
+}
+
+enum CalExameStatus {
+  AGENDADA
+  CONFIRMADA
+  REALIZADA
+  CANCELADA
+  REMARCADA
+}
+
+enum CalPrazoTipo {
+  LANCAMENTO_NOTAS
+  DIARIO_CLASSE
+  FECHAMENTO_FINAL
+  REVISAO_NOTAS
+  RECUPERACAO
+}
+
+enum CalConflitoTipo {
+  PROFESSOR
+  TURMA
+  ESPACO
+  ALUNO
+  CAPACIDADE
+  TIPO_ESPACO
+  RESERVA
+  PROVA
+}
+
+enum CalConflitoStatus {
+  ABERTO
+  RESOLVIDO
+  IGNORADO
+}
+
+enum CalGeracaoStatus {
+  SIMULADA
+  APLICADA
+  DESCARTADA
+}
+
+enum CalFeedEscopo {
+  TURMA
+  PROFESSOR
+  ESPACO
+  ALUNO
+  INSTITUCIONAL
+}
+
+// Categoria de evento (nome + cor) do calendário acadêmico.
+model CalCategoria {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  cor         String   @default("#0F5FDB")
+  icone       String?
+  tipoPadrao  CalEventoTipo?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, nome])
+  @@index([tenantId])
+}
+
+// Evento do calendário acadêmico (por período letivo, campus e/ou curso).
+model CalEvento {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  termId              String?
+  campusId            String?
+  programId           String?
+  categoriaId         String?
+  tipo                CalEventoTipo @default(OUTRO)
+  titulo              String
+  descricao           String?
+  local               String?
+  inicio              DateTime
+  fim                 DateTime
+  diaInteiro          Boolean  @default(true)
+  publico             CalPublico @default(TODOS)
+  recorrencia         CalRecorrencia @default(NENHUMA)
+  recorrenciaIntervalo Int     @default(1)
+  recorrenciaAte      DateTime?
+  bloqueiaAulas       Boolean  @default(false)   // feriado/recesso: não há aula nesses dias
+  lembreteDias        Int[]    @default([])      // avisar N dias antes (ex.: [7,1])
+  origemKey           String?                    // idempotência de importações (ex.: "feriado:2026-04-21")
+  ativo               Boolean  @default(true)
+  criadoPorId         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([tenantId, origemKey])
+  @@index([tenantId, inicio])
+  @@index([tenantId, termId])
+  @@index([tenantId, tipo])
+}
+
+// Faixas de horário de aula (1ª aula, 2ª aula...) que formam a malha da grade.
+model CalHorario {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  turno       CalTurno
+  ordem       Int
+  inicioMin   Int
+  fimMin      Int
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, turno, ordem])
+  @@index([tenantId])
+}
+
+// Disponibilidade/indisponibilidade/preferência de professor por dia e faixa.
+// Regra: havendo linhas DISPONIVEL, o professor só leciona dentro delas;
+// INDISPONIVEL sempre exclui; PREFERENCIA só dá bônus de pontuação.
+model CalDisponibilidade {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String
+  termId      String?
+  diaSemana   Int
+  inicioMin   Int
+  fimMin      Int
+  tipo        CalDisponibilidadeTipo @default(DISPONIVEL)
+  observacao  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, userId])
+  @@index([tenantId, termId])
+}
+
+// Limites por professor para o gerador de grade.
+model CalProfessorPerfil {
+  id              String   @id @default(uuid())
+  tenantId        String
+  userId          String
+  maxAulasDia     Int?
+  maxAulasSemana  Int?
+  observacao      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, userId])
+}
+
+// Parâmetros de alocação por disciplina (carga semanal, prática -> laboratório, recursos).
+model CalDisciplinaConfig {
+  id              String   @id @default(uuid())
+  tenantId        String
+  disciplineId    String
+  aulasSemana     Int?              // se nulo, deriva da carga horária / semanas letivas
+  blocoMax        Int      @default(2)
+  pratica         Boolean  @default(false)
+  tiposEspaco     Json?             // ["LABORATORIO"]; padrão: prática=LABORATORIO, teórica=SALA_AULA/AUDITORIO
+  recursos        Json?             // ["projetor","bancadas"]
+  capacidadeMinima Int?
+  espacoFixoId    String?
+  online          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, disciplineId])
+}
+
+// Parâmetros de alocação por turma (ClassSection): série/período, turno e "grupo"
+// (coorte). Turmas de disciplinas distintas do mesmo grupo compartilham os mesmos alunos
+// e portanto não podem ter aulas simultâneas.
+model CalTurmaConfig {
+  id              String   @id @default(uuid())
+  tenantId        String
+  classSectionId  String
+  programId       String?
+  periodo         Int?              // série/período do curso
+  turno           CalTurno?
+  grupo           String?
+  alunosEstimados Int?
+  diasPermitidos  Int[]    @default([])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, classSectionId])
+  @@index([tenantId, grupo])
+}
+
+// Slot semanal da grade horária.
+model CalSlot {
+  id              String   @id @default(uuid())
+  tenantId        String
+  termId          String
+  classSectionId  String
+  disciplineId    String
+  grupo           String?
+  programId       String?
+  periodo         Int?
+  professorUserId String?
+  spaceId         String?
+  diaSemana       Int
+  inicioMin       Int
+  fimMin          Int
+  tipoAula        CalTipoAula @default(TEORICA)
+  origem          CalOrigemSlot @default(MANUAL)
+  geracaoId       String?
+  fixo            Boolean  @default(false)   // o gerador nunca remove slots fixos
+  ativo           Boolean  @default(true)
+  observacao      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, termId, diaSemana])
+  @@index([tenantId, professorUserId])
+  @@index([tenantId, spaceId])
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, geracaoId])
+}
+
+// Execução do gerador automático de grade (simulação ou aplicação).
+model CalGeracao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  termId          String
+  status          CalGeracaoStatus @default(SIMULADA)
+  parametros      Json
+  resumo          Json?
+  pendencias      Json?
+  totalAulas      Int      @default(0)
+  alocadas        Int      @default(0)
+  pendentes       Int      @default(0)
+  pontuacao       Float?
+  nos             Int      @default(0)
+  duracaoMs       Int      @default(0)
+  criadoPorId     String?
+  aplicadoEm      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, termId])
+}
+
+// Reserva de espaço (pontual ou de série) e bloqueios (manutenção/limpeza).
+model CalReserva {
+  id              String   @id @default(uuid())
+  tenantId        String
+  spaceId         String
+  titulo          String
+  finalidade      String?
+  tipo            CalReservaTipo @default(EVENTO)
+  status          CalReservaStatus @default(PENDENTE)
+  bloqueio        Boolean  @default(false)
+  inicio          DateTime
+  fim             DateTime
+  solicitanteId   String
+  classSectionId  String?
+  professorUserId String?
+  participantes   Int?
+  recursosSolicitados Json?
+  serieId         String?
+  recorrencia     CalRecorrencia @default(NENHUMA)
+  recorrenciaAte  DateTime?
+  decididoPorId   String?
+  decididoEm      DateTime?
+  motivoDecisao   String?
+  observacoes     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, spaceId, inicio])
+  @@index([tenantId, status])
+  @@index([tenantId, serieId])
+  @@index([tenantId, solicitanteId])
+}
+
+// Avaliação agendada (prova, 2ª chamada, exame...).
+model CalExame {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  termId                String
+  classSectionId        String
+  disciplineId          String?
+  assessmentId          String?
+  grupo                 String?
+  titulo                String
+  tipo                  CalExameTipo @default(PROVA_1)
+  inicio                DateTime
+  fim                   DateTime
+  spaceId               String?
+  professorUserId       String?
+  alunosPrevistos       Int?
+  status                CalExameStatus @default(AGENDADA)
+  originalId            String?               // 2ª chamada aponta para a prova original
+  segundaChamadaInicio  DateTime?
+  segundaChamadaFim     DateTime?
+  observacoes           String?
+  lembreteAlunosEm      DateTime?
+  criadoPorId           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  fiscais               CalExameFiscal[]
+
+  @@index([tenantId, termId, inicio])
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, spaceId, inicio])
+}
+
+model CalExameFiscal {
+  id          String   @id @default(uuid())
+  tenantId    String
+  exameId     String
+  userId      String
+  papel       String   @default("FISCAL")   // FISCAL | COORDENADOR_SALA | APOIO
+  confirmado  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  exame       CalExame @relation(fields: [exameId], references: [id], onDelete: Cascade)
+
+  @@unique([exameId, userId])
+  @@index([tenantId, userId])
+}
+
+// Prazo de lançamento de notas/diário por período letivo (consumido por `notas`).
+model CalPrazoNotas {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  termId              String
+  programId           String?
+  campusId            String?
+  tipo                CalPrazoTipo @default(LANCAMENTO_NOTAS)
+  etapa               String?               // "N1", "N2", "FINAL"...
+  titulo              String
+  abertura            DateTime?
+  prazo               DateTime
+  prorrogadoAte       DateTime?
+  ativo               Boolean  @default(true)
+  escalonadoCoordEm   DateTime?
+  escalonadoDirecaoEm DateTime?
+  observacoes         String?
+  criadoPorId         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  excecoes            CalPrazoExcecao[]
+  conclusoes          CalPrazoConclusao[]
+
+  @@index([tenantId, termId])
+  @@index([tenantId, prazo])
+}
+
+// Prorrogação individual para um professor.
+model CalPrazoExcecao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  prazoId       String
+  userId        String
+  ate           DateTime
+  motivo        String?
+  concedidoPorId String?
+  createdAt     DateTime @default(now())
+
+  prazo         CalPrazoNotas @relation(fields: [prazoId], references: [id], onDelete: Cascade)
+
+  @@unique([prazoId, userId])
+}
+
+// Professor que já concluiu o lançamento daquele prazo.
+model CalPrazoConclusao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  prazoId       String
+  userId        String
+  concluidoEm   DateTime @default(now())
+  origem        String?
+
+  prazo         CalPrazoNotas @relation(fields: [prazoId], references: [id], onDelete: Cascade)
+
+  @@unique([prazoId, userId])
+}
+
+// Choques detectados (e resolvidos) — alimenta o relatório de choques resolvidos.
+model CalConflito {
+  id            String   @id @default(uuid())
+  tenantId      String
+  termId        String?
+  tipo          CalConflitoTipo
+  status        CalConflitoStatus @default(ABERTO)
+  chave         String
+  descricao     String
+  detalhes      Json?
+  detectadoEm   DateTime @default(now())
+  resolvidoEm   DateTime?
+  resolvidoPorId String?
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+  @@index([tenantId, status])
+  @@index([tenantId, termId])
+}
+
+// Token de assinatura (webcal/iCal) para Google Calendar/Outlook/Apple.
+model CalFeed {
+  id            String   @id @default(uuid())
+  tenantId      String
+  token         String   @unique
+  escopo        CalFeedEscopo
+  refId         String?
+  termId        String?
+  titulo        String?
+  ativo         Boolean  @default(true)
+  criadoPorId   String?
+  ultimoAcesso  DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, escopo])
+}

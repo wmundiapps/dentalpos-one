@@ -6,6 +6,9 @@ import {
   ButtonBase,
   IconButton,
   InputAdornment,
+  ListItemIcon,
+  Menu,
+  MenuItem,
   Paper,
   TextField,
   Toolbar,
@@ -17,6 +20,7 @@ import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchIcon from "@mui/icons-material/Search";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
@@ -28,10 +32,10 @@ import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
 import { useAppTheme } from "../contexts/AppThemeContext";
+import InstitutionLogo from "../edu/InstitutionLogo";
 import { notifications } from "../services/NotificationService";
+import { endSession } from "../security/sessionGuard";
 import {
-  appRootUrl,
-  clearClientSession,
   pathAllowedForDemo,
   readDemoAccess,
   readSessionUser,
@@ -45,9 +49,11 @@ export default function Header() {
   const demo = readDemoAccess();
   const sessionUser = readSessionUser();
   const clinicLogo = localStorage.getItem("dentalpos.clinicLogo") || "";
+  const eduPath = location.pathname === "/edu" || location.pathname.startsWith("/edu/");
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   const unreadCount = notifications.filter((notification) => !notification.lida).length;
 
@@ -206,12 +212,12 @@ export default function Header() {
         <Box sx={{ flexGrow: 1 }} />
 
         <Tooltip title={"Imprimir esta tela (ou salvar como PDF)"}>
-          <IconButton onClick={() => window.print()}>
+          <IconButton onClick={() => window.print()} sx={{ display: { xs: "none", sm: "inline-flex" } }}>
             <PrintOutlinedIcon />
           </IconButton>
         </Tooltip>
         <Tooltip title={"Relatar problema ou sugestão"}>
-          <IconButton onClick={() => setFeedbackOpen(true)} sx={{ color: "warning.main" }}>
+          <IconButton onClick={() => setFeedbackOpen(true)} sx={{ color: "warning.main", display: { xs: "none", sm: "inline-flex" } }}>
             <FeedbackOutlinedIcon />
           </IconButton>
         </Tooltip>
@@ -234,17 +240,18 @@ export default function Header() {
 
         <Tooltip title="Sair com segurança">
           <IconButton
-            onClick={() => {
-              clearClientSession();
-              window.location.href = appRootUrl();
-            }}
+            onClick={() => endSession()}
           >
             <LogoutIcon />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={clinicLogo ? "Logo da clínica" : "Espaço para a logo da sua clínica"}>
-          {clinicLogo ? (
+        <Tooltip title={eduPath ? "Logomarca da instituição (altere em Identidade e logomarcas)" : clinicLogo ? "Logo da clínica" : "Espaço para a logo da sua clínica"}>
+          {eduPath ? (
+            <Box sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center", px: 1.5, py: 0.5, borderLeft: "1px solid", borderRight: "1px solid", borderColor: "divider", minWidth: 150 }}>
+              <InstitutionLogo variant="header" onPlaceholderClick={() => navigate("/edu/identidade")} />
+            </Box>
+          ) : clinicLogo ? (
             <Box component="img" src={clinicLogo} alt="Logo da clinica" sx={{ height: 40, maxWidth: 120, objectFit: "contain", borderRadius: 1 }} />
           ) : (
             <Box sx={{ height: 40, px: 1.25, display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 0.75, border: "1px dashed", borderColor: "divider", borderRadius: 2, color: "text.secondary" }}>
@@ -254,8 +261,30 @@ export default function Header() {
           )}
         </Tooltip>
         <Tooltip title={sessionUser ? `${sessionUser.firstName} ${sessionUser.lastName}` : "Perfil do usuário"}>
-          <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>{initials}</Avatar>
+          <ButtonBase
+            aria-label="Menu do usuário"
+            aria-haspopup="menu"
+            onClick={(event) => setMenuAnchor(event.currentTarget)}
+            sx={{ borderRadius: "50%" }}
+          >
+            <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>{initials}</Avatar>
+          </ButtonBase>
         </Tooltip>
+        <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+          <MenuItem
+            onClick={() => {
+              setMenuAnchor(null);
+              navigate("/seguranca");
+            }}
+          >
+            <ListItemIcon><SecurityOutlinedIcon fontSize="small" /></ListItemIcon>
+            Segurança da conta
+          </MenuItem>
+          <MenuItem onClick={() => endSession()}>
+            <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+            Sair
+          </MenuItem>
+        </Menu>
       </Toolbar>
     </AppBar>
   );

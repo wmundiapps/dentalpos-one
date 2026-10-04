@@ -1,0 +1,198 @@
+// ============================================================
+// EDUMASTER PRO — JORNADAS (fluxogramas por persona + motor de lembretes)
+// Prefixo: Jor
+// ============================================================
+
+enum JorPersona {
+  CANDIDATO
+  ALUNO
+  EGRESSO
+  PROFESSOR
+  COORDENADOR
+  FUNCIONARIO
+  DIRETORIA
+  REITORIA
+}
+
+enum JorTemplateStatus {
+  RASCUNHO
+  PUBLICADO
+  ARQUIVADO
+}
+
+enum JorNoTipo {
+  INICIO
+  TAREFA
+  APROVACAO
+  ESPERA_EVENTO
+  GATEWAY
+  MARCO
+  FIM
+}
+
+enum JorInstanciaStatus {
+  ATIVA
+  PAUSADA
+  CONCLUIDA
+  CANCELADA
+}
+
+enum JorEtapaStatus {
+  ABERTA
+  AGUARDANDO_EVENTO
+  ATRASADA
+  CONCLUIDA
+  PULADA
+  CANCELADA
+}
+
+// Modelo de jornada (grafo versionado). chave+versao únicos por tenant.
+model JorTemplate {
+  id          String   @id @default(uuid())
+  tenantId    String
+  chave       String
+  versao      Int      @default(1)
+  nome        String
+  persona     JorPersona
+  descricao   String?
+  status      JorTemplateStatus @default(RASCUNHO)
+  padrao      Boolean  @default(false)      // veio do bootstrap
+  publicadoEm DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  nos         JorNo[]
+  transicoes  JorTransicao[]
+  instancias  JorInstancia[]
+
+  @@unique([tenantId, chave, versao])
+  @@index([tenantId, persona, status])
+}
+
+// Nó do grafo: etapa/tarefa, aprovação, espera por evento, gateway, marco...
+model JorNo {
+  id            String   @id @default(uuid())
+  tenantId      String
+  templateId    String
+  template      JorTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  chave         String
+  titulo        String
+  descricao     String?
+  tipo          JorNoTipo @default(TAREFA)
+  papel         String?              // role responsável (raia): COORDINATOR, SECRETARY...
+  slaDias       Int?
+  checklist     Json?                // [{chave,titulo,obrigatorio}]
+  documentos    Json?                // [{chave,titulo,obrigatorio}]
+  modulo        String?              // módulo EduMaster de destino (admissoes, secretaria...)
+  rota          String?              // rota do frontend para abrir a tela certa
+  evento        String?              // ESPERA_EVENTO: chave do evento aguardado
+  lembrete      Json?                // {antecedenciaDias, recorrenciaDias, escalarPara, escalarAposDias, severity}
+  ordem         Int      @default(0)
+  fase          String?              // agrupamento visual (ex.: "Ingresso")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([templateId, chave])
+  @@index([tenantId, templateId])
+}
+
+// Aresta com condição simples avaliada sobre o contexto da instância.
+model JorTransicao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  templateId  String
+  template    JorTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  deChave     String
+  paraChave   String
+  rotulo      String?
+  condicao    Json?                  // {campo,op,valor} | {and:[...]} | {or:[...]}
+  prioridade  Int      @default(0)   // menor avalia primeiro (gateways)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, templateId])
+  @@index([templateId, deChave])
+}
+
+// Jornada de uma pessoa (tipo+id: aluno, candidato, professor, user...).
+model JorInstancia {
+  id             String   @id @default(uuid())
+  tenantId       String
+  templateId     String
+  template       JorTemplate @relation(fields: [templateId], references: [id])
+  templateChave  String
+  templateVersao Int
+  personType     String
+  personId       String
+  personNome     String?
+  status         JorInstanciaStatus @default(ATIVA)
+  contexto       Json?
+  iniciadaPorId  String?
+  iniciadaEm     DateTime @default(now())
+  concluidaEm    DateTime?
+  canceladaEm    DateTime?
+  motivoCancelamento String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  etapas         JorEtapa[]
+  historico      JorHistorico[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, personType, personId])
+  @@index([tenantId, templateId, status])
+}
+
+// Etapa concreta de uma instância (um nó visitado).
+model JorEtapa {
+  id              String   @id @default(uuid())
+  tenantId        String
+  instanciaId     String
+  instancia       JorInstancia @relation(fields: [instanciaId], references: [id], onDelete: Cascade)
+  noChave         String
+  titulo          String
+  tipo            JorNoTipo
+  papel           String?
+  fase            String?
+  modulo          String?
+  rota            String?
+  evento          String?
+  status          JorEtapaStatus @default(ABERTA)
+  ciclo           Int      @default(1)
+  responsavelUserId String?
+  checklistEstado Json?                // {chave: {feito,porId,em}}
+  checklistDef    Json?
+  documentosDef   Json?
+  decisao         String?              // APROVADO | REJEITADO (aprovações)
+  justificativa   String?
+  observacao      String?
+  iniciadaEm      DateTime @default(now())
+  prazoEm         DateTime?
+  concluidaEm     DateTime?
+  concluidaPorId  String?
+  diasAtraso      Int      @default(0)
+  escalonadoNivel Int      @default(0)
+  escalonadoEm    DateTime?
+  lembreteConfig  Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, status, prazoEm])
+  @@index([instanciaId, status])
+  @@index([tenantId, papel, status])
+  @@index([tenantId, noChave])
+}
+
+// Histórico completo (linha do tempo) da jornada.
+model JorHistorico {
+  id          String   @id @default(uuid())
+  tenantId    String
+  instanciaId String
+  instancia   JorInstancia @relation(fields: [instanciaId], references: [id], onDelete: Cascade)
+  etapaId     String?
+  acao        String               // INICIADA, ETAPA_ABERTA, ETAPA_CONCLUIDA, ATRASO, ESCALONADA, PULADA, CANCELADA...
+  userId      String?
+  detalhes    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, instanciaId, createdAt])
+}

@@ -1,0 +1,915 @@
+// ============================================================
+// EDUMASTER PRO — GOVERNANÇA (prefixo Gov)
+// PDI, documentos institucionais/PPC, CPA, NDE, colegiados, CIPA, carreira.
+// Referências a outros módulos (curso, docente, usuário) = String sem @relation.
+// ============================================================
+
+// ---------- Numeração anual por tenant (resoluções etc.) ----------
+model GovSequencia {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String        // ex.: DELIBERACAO
+  ano       Int
+  ultimo    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave, ano])
+}
+
+// ================= PDI =================
+enum GovPdiStatus {
+  RASCUNHO
+  VIGENTE
+  ENCERRADO
+}
+
+enum GovPeriodicidade {
+  MENSAL
+  BIMESTRAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
+}
+
+enum GovSentidoIndicador {
+  MAIOR_MELHOR
+  MENOR_MELHOR
+}
+
+enum GovStatusAcao {
+  PLANEJADA
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+model GovPdi {
+  id         String       @id @default(uuid())
+  tenantId   String
+  titulo     String
+  anoInicio  Int
+  anoFim     Int
+  missao     String?
+  visao      String?
+  valores    String?
+  status     GovPdiStatus @default(RASCUNHO)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  eixos      GovPdiEixo[]
+
+  @@index([tenantId, status])
+}
+
+model GovPdiEixo {
+  id             String   @id @default(uuid())
+  tenantId       String
+  pdiId          String
+  nome           String
+  descricao      String?
+  eixoSinaes     Int?          // 1..5
+  dimensaoSinaes Int?          // 1..10
+  peso           Float    @default(1)
+  ordem          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  pdi       GovPdi         @relation(fields: [pdiId], references: [id], onDelete: Cascade)
+  objetivos GovPdiObjetivo[]
+
+  @@index([tenantId, pdiId])
+}
+
+model GovPdiObjetivo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  eixoId      String
+  titulo      String
+  descricao   String?
+  peso        Float    @default(1)
+  ordem       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  eixo  GovPdiEixo   @relation(fields: [eixoId], references: [id], onDelete: Cascade)
+  metas GovPdiMeta[]
+
+  @@index([tenantId, eixoId])
+}
+
+model GovPdiMeta {
+  id               String              @id @default(uuid())
+  tenantId         String
+  objetivoId       String
+  titulo           String
+  indicador        String
+  unidade          String?
+  sentido          GovSentidoIndicador @default(MAIOR_MELHOR)
+  linhaBase        Float
+  valorMeta        Float
+  valorAtual       Float?
+  periodicidade    GovPeriodicidade    @default(SEMESTRAL)
+  responsavelId    String?             // userId
+  prazo            DateTime?
+  proximaColetaEm  DateTime?
+  ultimaColetaEm   DateTime?
+  peso             Float               @default(1)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  objetivo  GovPdiObjetivo  @relation(fields: [objetivoId], references: [id], onDelete: Cascade)
+  medicoes  GovPdiMedicao[]
+  acoes     GovPdiAcao[]
+
+  @@index([tenantId, objetivoId])
+  @@index([tenantId, proximaColetaEm])
+}
+
+model GovPdiMedicao {
+  id             String   @id @default(uuid())
+  tenantId       String
+  metaId         String
+  dataReferencia DateTime
+  valor          Float
+  observacao     String?
+  registradoPorId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  meta GovPdiMeta @relation(fields: [metaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, metaId, dataReferencia])
+}
+
+model GovPdiAcao {
+  id            String        @id @default(uuid())
+  tenantId      String
+  metaId        String
+  titulo        String
+  descricao     String?
+  responsavelId String?
+  prazo         DateTime
+  orcamento     Decimal       @default(0) @db.Decimal(12, 2)
+  gasto         Decimal       @default(0) @db.Decimal(12, 2)
+  percentual    Int           @default(0)
+  status        GovStatusAcao @default(PLANEJADA)
+  concluidaEm   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  meta GovPdiMeta @relation(fields: [metaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, metaId])
+  @@index([tenantId, status, prazo])
+}
+
+// ================= DOCUMENTOS INSTITUCIONAIS / PPC =================
+enum GovDocumentoTipo {
+  REGIMENTO
+  ESTATUTO
+  PPI
+  PPC
+  POLITICA
+  MANUAL
+  OUTRO
+}
+
+enum GovVersaoStatus {
+  RASCUNHO
+  VIGENTE
+  SUBSTITUIDA
+  REVOGADA
+}
+
+model GovDocumento {
+  id        String           @id @default(uuid())
+  tenantId  String
+  tipo      GovDocumentoTipo
+  titulo    String
+  codigo    String?
+  programId String?          // PPC: curso (AcademicProgram)
+  descricao String?
+  ativo     Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  versoes GovDocumentoVersao[]
+
+  @@index([tenantId, tipo])
+  @@index([tenantId, programId])
+}
+
+model GovDocumentoVersao {
+  id              String          @id @default(uuid())
+  tenantId        String
+  documentoId     String
+  versao          Int
+  conteudoHtml    String?
+  resumoAlteracoes String?
+  arquivoUrl      String?
+  status          GovVersaoStatus @default(RASCUNHO)
+  vigenciaInicio  DateTime?
+  vigenciaFim     DateTime?
+  aprovadoPorId   String?
+  deliberacaoId   String?         // GovDeliberacao que aprovou
+  criadoPorId     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  documento GovDocumento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+
+  @@unique([documentoId, versao])
+  @@index([tenantId, status])
+}
+
+// ================= CPA =================
+enum GovSegmento {
+  DOCENTE
+  DISCENTE
+  TECNICO_ADMINISTRATIVO
+  SOCIEDADE_CIVIL
+}
+
+enum GovCpaCicloStatus {
+  PLANEJAMENTO
+  COLETA
+  ANALISE
+  RELATORIO
+  CONCLUIDO
+}
+
+enum GovCpaTipoPergunta {
+  LIKERT5
+  SIM_NAO
+  TEXTO
+}
+
+model GovCpa {
+  id        String   @id @default(uuid())
+  tenantId  String
+  nome      String
+  portaria  String?
+  ativa     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  membros GovCpaMembro[]
+
+  @@index([tenantId])
+}
+
+model GovCpaMembro {
+  id            String      @id @default(uuid())
+  tenantId      String
+  cpaId         String
+  nome          String
+  segmento      GovSegmento
+  userId        String?
+  cargo         String?     // Coordenador, Secretário, Membro
+  inicioMandato DateTime
+  fimMandato    DateTime
+  ativo         Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  cpa GovCpa @relation(fields: [cpaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, cpaId])
+  @@index([tenantId, fimMandato])
+}
+
+model GovCpaCiclo {
+  id           String            @id @default(uuid())
+  tenantId     String
+  cpaId        String?
+  titulo       String
+  anoBase      Int
+  inicio       DateTime
+  fim          DateTime
+  minRespostas Int               @default(5)
+  status       GovCpaCicloStatus @default(PLANEJAMENTO)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  questionarios GovCpaQuestionario[]
+  relatorios    GovCpaRelatorio[]
+  planos        GovCpaPlanoAcao[]
+
+  @@index([tenantId, status])
+}
+
+model GovCpaQuestionario {
+  id        String      @id @default(uuid())
+  tenantId  String
+  cicloId   String
+  titulo    String
+  segmento  GovSegmento
+  modeloKey String?
+  ativo     Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  ciclo     GovCpaCiclo    @relation(fields: [cicloId], references: [id], onDelete: Cascade)
+  perguntas GovCpaPergunta[]
+  convites  GovCpaConvite[]
+  respostas GovCpaResposta[]
+
+  @@index([tenantId, cicloId])
+}
+
+model GovCpaModeloQuestionario {
+  id        String      @id @default(uuid())
+  tenantId  String
+  chave     String
+  titulo    String
+  segmento  GovSegmento
+  perguntas Json        // [{eixo,dimensao,texto,tipo}]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+model GovCpaPergunta {
+  id             String             @id @default(uuid())
+  tenantId       String
+  questionarioId String
+  eixo           Int                // 1..5 SINAES
+  dimensao       Int?               // 1..10
+  texto          String
+  tipo           GovCpaTipoPergunta @default(LIKERT5)
+  obrigatoria    Boolean            @default(true)
+  ordem          Int                @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  questionario GovCpaQuestionario @relation(fields: [questionarioId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, questionarioId])
+}
+
+// Convite anônimo: guarda só o HASH do token. Nenhuma coluna liga o convite
+// a uma pessoa nem a uma resposta.
+model GovCpaConvite {
+  id             String   @id @default(uuid())
+  tenantId       String
+  questionarioId String
+  tokenHash      String   @unique
+  programId      String?  // escopo de curso (opcional) — não é identidade
+  usado          Boolean  @default(false)
+  expiraEm       DateTime?
+  createdAt      DateTime @default(now())
+
+  questionario GovCpaQuestionario @relation(fields: [questionarioId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, questionarioId, usado])
+}
+
+// Resposta anônima: sem token, sem usuário. createdAt é truncado ao dia.
+model GovCpaResposta {
+  id             String      @id @default(uuid())
+  tenantId       String
+  cicloId        String
+  questionarioId String
+  segmento       GovSegmento
+  programId      String?
+  createdAt      DateTime    @default(now())
+
+  questionario GovCpaQuestionario @relation(fields: [questionarioId], references: [id], onDelete: Cascade)
+  itens        GovCpaRespostaItem[]
+
+  @@index([tenantId, cicloId, segmento])
+}
+
+model GovCpaRespostaItem {
+  id          String  @id @default(uuid())
+  tenantId    String
+  respostaId  String
+  perguntaId  String
+  valor       Float?
+  texto       String?
+
+  resposta GovCpaResposta @relation(fields: [respostaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, respostaId])
+  @@index([tenantId, perguntaId])
+}
+
+model GovCpaRelatorio {
+  id          String   @id @default(uuid())
+  tenantId    String
+  cicloId     String
+  tipo        String   // PARCIAL | ANUAL
+  html        String
+  dados       Json?
+  geradoPorId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ciclo GovCpaCiclo @relation(fields: [cicloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, cicloId])
+}
+
+model GovCpaPlanoAcao {
+  id            String        @id @default(uuid())
+  tenantId      String
+  cicloId       String
+  eixo          Int?
+  dimensao      Int?
+  problema      String
+  acao          String
+  responsavelId String?
+  prazo         DateTime?
+  status        GovStatusAcao @default(PLANEJADA)
+  origemScore   Float?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  ciclo GovCpaCiclo @relation(fields: [cicloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, cicloId, status])
+}
+
+// ================= NDE =================
+enum GovTitulacao {
+  GRADUADO
+  ESPECIALISTA
+  MESTRE
+  DOUTOR
+}
+
+enum GovRegime {
+  INTEGRAL
+  PARCIAL
+  HORISTA
+}
+
+model GovNde {
+  id        String   @id @default(uuid())
+  tenantId  String
+  programId String          // AcademicProgram
+  nome      String
+  portaria  String?
+  ativo     Boolean  @default(true)
+  conforme  Boolean?
+  verificadoEm DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  membros  GovNdeMembro[]
+  reunioes GovNdeReuniao[]
+
+  @@index([tenantId, programId])
+}
+
+model GovNdeMembro {
+  id          String       @id @default(uuid())
+  tenantId    String
+  ndeId       String
+  docenteId   String
+  nome        String
+  titulacao   GovTitulacao
+  regime      GovRegime
+  inicio      DateTime
+  fim         DateTime?
+  presidente  Boolean      @default(false)
+  ativo       Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  nde GovNde @relation(fields: [ndeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, ndeId])
+  @@index([tenantId, docenteId])
+}
+
+model GovNdeReuniao {
+  id        String   @id @default(uuid())
+  tenantId  String
+  ndeId     String
+  data      DateTime
+  pauta     String?
+  ata       String?
+  presentes Json?
+  realizada Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nde GovNde @relation(fields: [ndeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, ndeId, data])
+}
+
+// ================= COLEGIADOS =================
+enum GovOrgaoTipo {
+  CONSUP
+  CONSEPE
+  COLEGIADO_CURSO
+  CONGREGACAO
+  OUTRO
+}
+
+enum GovReuniaoStatus {
+  AGENDADA
+  REALIZADA
+  CANCELADA
+}
+
+enum GovDeliberacaoStatus {
+  PROPOSTA
+  EM_VOTACAO
+  APROVADA
+  REJEITADA
+  ARQUIVADA
+}
+
+enum GovVoto {
+  FAVOR
+  CONTRA
+  ABSTENCAO
+}
+
+model GovOrgao {
+  id             String       @id @default(uuid())
+  tenantId       String
+  tipo           GovOrgaoTipo
+  nome           String
+  sigla          String?
+  programId      String?
+  quorumPercent  Int          @default(50)   // mínimo de presentes (do total com voto) p/ instalar
+  maioria        String       @default("SIMPLES") // SIMPLES (dos presentes) | ABSOLUTA (do total)
+  ativo          Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  membros  GovOrgaoMembro[]
+  reunioes GovReuniao[]
+
+  @@index([tenantId, tipo])
+}
+
+model GovOrgaoMembro {
+  id            String   @id @default(uuid())
+  tenantId      String
+  orgaoId       String
+  nome          String
+  userId        String?
+  cargo         String   @default("MEMBRO")
+  representacao String?
+  temVoto       Boolean  @default(true)
+  inicioMandato DateTime
+  fimMandato    DateTime
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  orgao GovOrgao @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, orgaoId])
+  @@index([tenantId, fimMandato])
+}
+
+model GovReuniao {
+  id             String           @id @default(uuid())
+  tenantId       String
+  orgaoId        String
+  tipo           String           @default("ORDINARIA")
+  data           DateTime
+  local          String?
+  status         GovReuniaoStatus @default(AGENDADA)
+  presentes      Json?            // [membroId]
+  quorumAtingido Boolean?
+  ata            String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  orgao        GovOrgao          @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  pautas       GovPauta[]
+  deliberacoes GovDeliberacao[]
+
+  @@index([tenantId, orgaoId, data])
+}
+
+model GovPauta {
+  id         String   @id @default(uuid())
+  tenantId   String
+  reuniaoId  String
+  ordem      Int      @default(0)
+  titulo     String
+  descricao  String?
+  tipo       String   @default("DELIBERACAO") // INFORME | DELIBERACAO
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  reuniao GovReuniao @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, reuniaoId])
+}
+
+model GovPautaModelo {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  titulo    String
+  itens     Json     // [{titulo,tipo}]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+model GovDeliberacao {
+  id          String               @id @default(uuid())
+  tenantId    String
+  orgaoId     String
+  reuniaoId   String?
+  pautaId     String?
+  ano         Int
+  numero      Int?                 // atribuído na aprovação
+  numeracao   String?              // 003/2026
+  titulo      String
+  texto       String?
+  status      GovDeliberacaoStatus @default(PROPOSTA)
+  resultado   Json?                // apuração
+  decididaEm  DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  reuniao GovReuniao? @relation(fields: [reuniaoId], references: [id], onDelete: SetNull)
+  votos   GovVotoRegistro[]
+
+  @@unique([tenantId, ano, numero])
+  @@index([tenantId, orgaoId, status])
+}
+
+model GovVotoRegistro {
+  id            String   @id @default(uuid())
+  tenantId      String
+  deliberacaoId String
+  membroId      String
+  voto          GovVoto
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  deliberacao GovDeliberacao @relation(fields: [deliberacaoId], references: [id], onDelete: Cascade)
+
+  @@unique([deliberacaoId, membroId])
+  @@index([tenantId, deliberacaoId])
+}
+
+// ================= CIPA / SST =================
+enum GovCipaGestaoStatus {
+  ELEICAO
+  VIGENTE
+  ENCERRADA
+}
+
+enum GovAgenteRisco {
+  FISICO
+  QUIMICO
+  BIOLOGICO
+  ERGONOMICO
+  ACIDENTE
+}
+
+model GovCipaGestao {
+  id        String              @id @default(uuid())
+  tenantId  String
+  nome      String
+  inicio    DateTime
+  fim       DateTime
+  status    GovCipaGestaoStatus @default(ELEICAO)
+  eleicaoEm DateTime?
+  ataEleicao String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  membros  GovCipaMembro[]
+  reunioes GovCipaReuniao[]
+
+  @@index([tenantId, status])
+}
+
+model GovCipaMembro {
+  id            String   @id @default(uuid())
+  tenantId      String
+  gestaoId      String
+  nome          String
+  userId        String?
+  representacao String   // EMPREGADOR | EMPREGADOS
+  tipo          String   @default("TITULAR") // TITULAR | SUPLENTE
+  cargo         String   @default("MEMBRO")  // PRESIDENTE | VICE_PRESIDENTE | SECRETARIO | MEMBRO
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  gestao GovCipaGestao @relation(fields: [gestaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, gestaoId])
+}
+
+model GovCipaReuniao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  gestaoId    String
+  competencia String   // YYYY-MM
+  tipo        String   @default("ORDINARIA")
+  data        DateTime
+  pauta       String?
+  ata         String?
+  realizada   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  gestao GovCipaGestao @relation(fields: [gestaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, gestaoId, competencia])
+}
+
+model GovCipaRisco {
+  id            String         @id @default(uuid())
+  tenantId      String
+  local         String
+  spaceId       String?        // EduSpace
+  setor         String?
+  agente        GovAgenteRisco
+  descricao     String
+  gravidade     Int            @default(1)  // 1..5
+  probabilidade Int            @default(1)  // 1..5
+  pontuacao     Int            @default(1)
+  nivel         String         @default("BAIXO")
+  medidaControle String?
+  status        String         @default("ABERTO") // ABERTO | EM_CONTROLE | CONTROLADO
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([tenantId, nivel, status])
+}
+
+model GovCipaInspecao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  data          DateTime
+  local         String
+  responsavelId String?
+  achados       String?
+  conclusao     String?
+  realizada     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, data])
+}
+
+model GovCipaAcidente {
+  id            String   @id @default(uuid())
+  tenantId      String
+  data          DateTime
+  pessoaNome    String
+  vinculo       String   @default("EMPREGADO") // EMPREGADO | ALUNO | TERCEIRO
+  tipo          String   @default("TIPICO")    // TIPICO | TRAJETO | DOENCA_OCUPACIONAL | INCIDENTE
+  gravidade     String   @default("LEVE")      // LEVE | MODERADO | GRAVE | FATAL
+  local         String?
+  descricao     String
+  diasAfastamento Int    @default(0)
+  catObrigatoria Boolean @default(false)
+  catPrazo      DateTime?
+  catEmitida    Boolean  @default(false)
+  catNumero     String?
+  catEmitidaEm  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, data])
+  @@index([tenantId, catObrigatoria, catEmitida])
+}
+
+model GovCipaSipat {
+  id           String   @id @default(uuid())
+  tenantId     String
+  ano          Int
+  tema         String
+  inicio       DateTime
+  fim          DateTime
+  programacao  Json?
+  participantes Int     @default(0)
+  status       String   @default("PLANEJADA") // PLANEJADA | REALIZADA | CANCELADA
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId, ano])
+}
+
+model GovCipaPlanoAcao {
+  id            String        @id @default(uuid())
+  tenantId      String
+  origem        String?       // risco, inspeção, acidente...
+  origemId      String?
+  acao          String
+  responsavelId String?
+  prazo         DateTime
+  status        GovStatusAcao @default(PLANEJADA)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([tenantId, status, prazo])
+}
+
+// ================= PLANO DE CARREIRA =================
+enum GovCarreiraTipo {
+  DOCENTE
+  TECNICO_ADMINISTRATIVO
+}
+
+enum GovProgressaoStatus {
+  SOLICITADA
+  EM_ANALISE
+  DEFERIDA
+  INDEFERIDA
+  EFETIVADA
+  CANCELADA
+}
+
+model GovCarreiraPlano {
+  id             String          @id @default(uuid())
+  tenantId       String
+  tipo           GovCarreiraTipo
+  nome           String
+  vigenciaInicio DateTime?
+  ativo          Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  niveis GovCarreiraNivel[]
+
+  @@index([tenantId, tipo])
+}
+
+model GovCarreiraNivel {
+  id               String        @id @default(uuid())
+  tenantId         String
+  planoId          String
+  codigo           String
+  nome             String
+  classe           String?
+  ordem            Int
+  titulacaoMinima  GovTitulacao?
+  intersticioMeses Int           @default(24)
+  pontuacaoMinima  Float         @default(0)   // produção/pontos de mérito
+  avaliacaoMinima  Float         @default(0)   // 0..10
+  salarioBase      Decimal       @default(0) @db.Decimal(12, 2)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  plano GovCarreiraPlano @relation(fields: [planoId], references: [id], onDelete: Cascade)
+
+  @@unique([planoId, ordem])
+  @@index([tenantId, planoId])
+}
+
+model GovCarreiraEnquadramento {
+  id            String        @id @default(uuid())
+  tenantId      String
+  planoId       String
+  nivelId       String
+  docenteId     String        // docente ou servidor (String id externo)
+  nome          String
+  titulacao     GovTitulacao?
+  inicioNivel   DateTime
+  pontuacao     Float         @default(0)
+  avaliacao     Float         @default(0)
+  ativo         Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  progressoes GovCarreiraProgressao[]
+
+  @@index([tenantId, planoId])
+  @@index([tenantId, docenteId])
+}
+
+model GovCarreiraProgressao {
+  id               String              @id @default(uuid())
+  tenantId         String
+  enquadramentoId  String
+  nivelOrigemId    String
+  nivelDestinoId   String
+  status           GovProgressaoStatus @default(SOLICITADA)
+  simulacao        Json?
+  impactoSalarial  Decimal             @default(0) @db.Decimal(12, 2)
+  justificativa    String?
+  parecer          String?
+  historico        Json?
+  solicitadaPorId  String?
+  decididaPorId    String?
+  decididaEm       DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  enquadramento GovCarreiraEnquadramento @relation(fields: [enquadramentoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([tenantId, enquadramentoId])
+}

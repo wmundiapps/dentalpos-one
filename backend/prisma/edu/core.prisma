@@ -1,0 +1,209 @@
+// ============================================================
+// EDUMASTER PRO — NÚCLEO TRANSVERSAL (instituição/marca, espaços,
+// lembretes e caixa de saída de notificações). Usado por todos os módulos.
+// ============================================================
+
+// Identidade institucional: nome, dados legais e CORES. As logomarcas ficam
+// em EduBrandAsset (várias variações por instituição e por campus).
+model EduInstitution {
+  id              String   @id @default(uuid())
+  tenantId        String   @unique
+  nome            String
+  nomeFantasia    String?
+  sigla           String?
+  mantenedora     String?
+  cnpj            String?
+  codigoEmec      String?       // código da IES no e-MEC
+  categoria       String?       // Universidade, Centro Universitário, Faculdade, Instituto Federal...
+  organizacao     String?       // privada com fins lucrativos, comunitária, pública...
+  email           String?
+  telefone        String?
+  site            String?
+  endereco        String?
+  cidade          String?
+  uf              String?
+  corPrimaria     String   @default("#0F5FDB")
+  corSecundaria   String   @default("#0B1F3A")
+  corDestaque     String   @default("#21C7A8")
+  reitorNome      String?
+  reitorCargo     String?  @default("Reitor(a)")
+  lema            String?
+  portariaCredenciamento String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum EduBrandAssetKind {
+  LOGO_PRINCIPAL
+  LOGO_HORIZONTAL
+  LOGO_ESCURA
+  LOGO_MONOCROMATICA
+  BRASAO
+  SELO_CERTIFICADO
+  MARCA_DAGUA
+  FAVICON
+  ASSINATURA
+  CABECALHO_DOCUMENTO
+  RODAPE_DOCUMENTO
+}
+
+// Cada ativo de marca: logomarcas, brasão, selo, assinaturas (imagem em data URL
+// ou URL pública). campusId nulo = marca da instituição inteira.
+model EduBrandAsset {
+  id          String   @id @default(uuid())
+  tenantId    String
+  campusId    String?
+  kind        EduBrandAssetKind
+  titulo      String?
+  dataUrl     String?       // data:image/png;base64,... (até ~1,5 MB)
+  url         String?       // alternativa: imagem hospedada
+  mime        String?
+  largura     Int?
+  altura      Int?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, kind])
+  @@index([tenantId, campusId])
+}
+
+enum EduSpaceType {
+  SALA_AULA
+  LABORATORIO
+  AUDITORIO
+  BIBLIOTECA
+  CLINICA_ESCOLA
+  QUADRA
+  PATIO
+  ESTACIONAMENTO
+  SALA_REUNIAO
+  SALA_PROFESSORES
+  ADMINISTRATIVO
+  POLO_EAD
+  OUTRO
+}
+
+// Catálogo de espaços físicos (salas, laboratórios, auditórios...). Base do
+// cronograma de alocação, da infraestrutura e do estacionamento.
+model EduSpace {
+  id           String   @id @default(uuid())
+  tenantId     String
+  campusId     String?
+  codigo       String
+  nome         String
+  tipo         EduSpaceType
+  bloco        String?
+  andar        String?
+  capacidade   Int      @default(0)
+  areaM2       Float?
+  recursos     Json?         // ["projetor","ar-condicionado","bancadas","autoclave"...]
+  acessivel    Boolean  @default(true)
+  ativo        Boolean  @default(true)
+  observacoes  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, tipo])
+  @@index([tenantId, campusId])
+}
+
+enum EduReminderStatus {
+  PENDENTE
+  NOTIFICADO
+  CONCLUIDO
+  CANCELADO
+  ADIADO
+}
+
+enum EduSeverity {
+  INFO
+  ATENCAO
+  CRITICO
+}
+
+// Lembrete/tarefa com prazo. Nenhum prazo "cai no esquecimento": todo módulo
+// cria lembretes aqui e o cron (/api/cron/edu) dispara e escala os atrasados.
+model EduReminder {
+  id              String   @id @default(uuid())
+  tenantId        String
+  modulo          String        // admissoes, regulatorio, secretaria...
+  refType         String?       // tipo do registro de origem (ex: "RegProcesso")
+  refId           String?
+  titulo          String
+  descricao       String?
+  dueAt           DateTime      // prazo
+  remindAt        DateTime      // quando avisar (<= dueAt)
+  severity        EduSeverity @default(INFO)
+  status          EduReminderStatus @default(PENDENTE)
+  assigneeUserId  String?
+  assigneeRole    String?       // alternativa: avisar todo um papel (COORDINATOR...)
+  assigneeStudentId String?
+  canal           String   @default("IN_APP")
+  recorrenciaDias Int?          // repete a cada N dias até concluir
+  escalonadoEm    DateTime?
+  concluidoEm     DateTime?
+  concluidoPorId  String?
+  dedupeKey       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, dedupeKey])
+  @@index([tenantId, status, remindAt])
+  @@index([tenantId, refType, refId])
+  @@index([tenantId, assigneeUserId, status])
+}
+
+enum EduNotificationStatus {
+  PENDENTE
+  ENVIADA
+  ENTREGUE
+  LIDA
+  FALHA
+  CANCELADA
+}
+
+// Caixa de saída única de comunicação (WhatsApp, e-mail, SMS, voz, Telegram,
+// notificação no sistema). O módulo de comunicação despacha pelos canais.
+model EduNotification {
+  id              String   @id @default(uuid())
+  tenantId        String
+  canal           String        // IN_APP | EMAIL | WHATSAPP | SMS | VOZ | TELEGRAM
+  userId          String?
+  studentId       String?
+  destino         String?       // telefone / e-mail / chat id
+  assunto         String?
+  mensagem        String
+  templateKey     String?
+  refType         String?
+  refId           String?
+  status          EduNotificationStatus @default(PENDENTE)
+  tentativas      Int      @default(0)
+  erro            String?
+  agendadoPara    DateTime @default(now())
+  enviadoEm       DateTime?
+  lidaEm          DateTime?
+  provedorId      String?
+  createdAt       DateTime @default(now())
+
+  @@index([tenantId, status, agendadoPara])
+  @@index([tenantId, userId, status])
+  @@index([tenantId, studentId])
+}
+
+// Trilha de auditoria transversal dos módulos EduMaster.
+model EduAuditEvent {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String?
+  modulo      String
+  acao        String
+  refType     String?
+  refId       String?
+  detalhes    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, modulo, createdAt])
+  @@index([tenantId, refType, refId])
+}

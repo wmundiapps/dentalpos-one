@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { atributoAccept, erroDeUpload, validarArquivo } from "../../security/uploadGuard";
 import { Alert, Avatar, Box, Chip, CircularProgress, IconButton, Paper, Tooltip, Typography } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -42,7 +43,10 @@ export default function PatientHeader({ patient, alerts }: { patient: BackendPat
 
   const pick = async (file: File | null) => {
     if (!file) return;
-    setBusy(true); setError("");
+    setError("");
+    const invalido = await validarArquivo(file, { tipos: ["imagem"], maxBytes: 10 * 1024 * 1024 });
+    if (invalido) { setError(invalido); return; }
+    setBusy(true);
     try {
       await uploadClinicalFile({ patientId: patient.id, file, kind: "PHOTO", title: `Foto de ${patient.fullName}`, tags: [PHOTO_TAG], description: "Foto de identificação do paciente" });
       const rows = await listClinicalFiles(patient.id, { kind: "PHOTO" });
@@ -52,7 +56,7 @@ export default function PatientHeader({ patient, alerts }: { patient: BackendPat
         if (access?.url) setPhoto(access.url);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível enviar a foto.");
+      setError(erroDeUpload(e, "Não foi possível enviar a foto."));
     } finally { setBusy(false); }
   };
 
@@ -76,7 +80,7 @@ export default function PatientHeader({ patient, alerts }: { patient: BackendPat
               {busy ? <CircularProgress size={16} /> : <PhotoCameraIcon fontSize="small" />}
             </IconButton>
           </Tooltip>
-          <input ref={input} hidden type="file" accept="image/*" onChange={(e) => { void pick(e.target.files?.[0] || null); e.target.value = ""; }} />
+          <input ref={input} hidden type="file" accept={atributoAccept(["imagem"])} onChange={(e) => { void pick(e.target.files?.[0] || null); e.target.value = ""; }} />
         </Box>
         <Box sx={{ flexGrow: 1, minWidth: 220 }}>
           <Typography variant="h5" sx={{ fontWeight: 900, lineHeight: 1.2 }}>{patient.fullName}</Typography>

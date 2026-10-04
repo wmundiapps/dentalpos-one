@@ -1,0 +1,770 @@
+// ============================================================
+// EDUMASTER PRO — SUPRIMENTOS (prefixo Sup): compras, estoque,
+// insumos de cursos, contratos e vendas (loja/papelaria/cantina).
+// Referências a outros módulos (curso, laboratório, turma, aluno,
+// centro de custo, campus) são String ids SEM @relation.
+// ============================================================
+
+enum SupFornecedorStatus {
+  ATIVO
+  EM_ANALISE
+  BLOQUEADO
+  INATIVO
+}
+
+enum SupDocumentoStatus {
+  VALIDO
+  A_VENCER
+  VENCIDO
+}
+
+enum SupRequisicaoTipo {
+  COMPRA
+  INSUMO
+}
+
+enum SupRequisicaoStatus {
+  RASCUNHO
+  AGUARDANDO_APROVACAO
+  APROVADA
+  REPROVADA
+  EM_COTACAO
+  COTADA
+  PEDIDO_EMITIDO
+  ATENDIDA
+  CANCELADA
+}
+
+enum SupAprovacaoStatus {
+  PENDENTE
+  APROVADO
+  REPROVADO
+}
+
+enum SupCotacaoStatus {
+  ABERTA
+  ENCERRADA
+  CANCELADA
+}
+
+enum SupPedidoStatus {
+  RASCUNHO
+  EMITIDO
+  PARCIALMENTE_RECEBIDO
+  RECEBIDO
+  CANCELADO
+}
+
+enum SupMovTipo {
+  ENTRADA
+  SAIDA
+  TRANSFERENCIA
+  AJUSTE
+  PERDA
+  DEVOLUCAO
+}
+
+enum SupContratoStatus {
+  RASCUNHO
+  VIGENTE
+  A_VENCER
+  VENCIDO
+  RENOVADO
+  ENCERRADO
+}
+
+enum SupInventarioStatus {
+  ABERTO
+  CONTAGEM_FINALIZADA
+  AJUSTADO
+  CANCELADO
+}
+
+enum SupCaixaStatus {
+  ABERTO
+  FECHADO
+}
+
+enum SupVendaTipo {
+  A_VISTA
+  LANCADA_ALUNO
+}
+
+enum SupVendaStatus {
+  CONCLUIDA
+  PARCIALMENTE_DEVOLVIDA
+  DEVOLVIDA
+  CANCELADA
+}
+
+// ---------- Fornecedores ----------
+
+model SupFornecedor {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  razaoSocial        String
+  nomeFantasia       String?
+  cnpj               String?
+  inscricaoEstadual  String?
+  email              String?
+  telefone           String?
+  contato            String?
+  endereco           String?
+  cidade             String?
+  uf                 String?
+  categorias         String[] // categorias de fornecimento
+  prazoPagamentoDias Int      @default(30)
+  banco              String?
+  chavePix           String?
+  status             SupFornecedorStatus @default(ATIVO)
+  ativo              Boolean  @default(true)
+  avaliacaoMedia     Float?
+  totalAvaliacoes    Int      @default(0)
+  observacoes        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  documentos  SupFornecedorDocumento[]
+  avaliacoes  SupFornecedorAvaliacao[]
+  contratos   SupContrato[]
+  pedidos     SupPedido[]
+
+  @@unique([tenantId, cnpj])
+  @@index([tenantId, status])
+}
+
+model SupFornecedorDocumento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  fornecedorId  String
+  tipo          String        // CND Federal, CND Estadual, FGTS, Trabalhista, Alvará, Contrato Social...
+  numero        String?
+  emissao       DateTime?
+  validade      DateTime?
+  status        SupDocumentoStatus @default(VALIDO)
+  arquivoUrl    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  fornecedor    SupFornecedor @relation(fields: [fornecedorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, validade])
+  @@index([fornecedorId])
+}
+
+model SupFornecedorAvaliacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  fornecedorId  String
+  pedidoId      String?
+  notaPrazo     Int           // 1..5
+  notaQualidade Int
+  notaPreco     Int
+  notaAtendimento Int         @default(3)
+  nota          Float         // média calculada
+  comentario    String?
+  avaliadorUserId String?
+  createdAt     DateTime @default(now())
+
+  fornecedor    SupFornecedor @relation(fields: [fornecedorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, fornecedorId])
+}
+
+// ---------- Catálogo ----------
+
+model SupCategoria {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  descricao   String?
+  contaContabilId String?   // ChartOfAccount (financeiro) opcional
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  itens       SupItem[]
+
+  @@unique([tenantId, nome])
+  @@index([tenantId])
+}
+
+model SupItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  codigo          String
+  nome            String
+  descricao       String?
+  categoriaId     String?
+  unidade         String   @default("UN")   // UN, CX, KG, L, PCT...
+  estoqueMinimo   Float    @default(0)
+  estoqueMaximo   Float?
+  pontoPedido     Float?
+  leadTimeDias    Int      @default(7)
+  controlaLote    Boolean  @default(false)
+  controlaValidade Boolean @default(false)
+  precoReferencia Float?
+  custoMedio      Float    @default(0)     // custo médio global (todos os almoxarifados)
+  contaContabilId String?
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  categoria       SupCategoria? @relation(fields: [categoriaId], references: [id])
+  saldos          SupSaldo[]
+  lotes           SupLote[]
+  movimentacoes   SupMovimentacao[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, categoriaId])
+}
+
+// ---------- Estoque ----------
+
+model SupAlmoxarifado {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String
+  nome          String
+  campusId      String?
+  localizacao   String?
+  responsavelUserId String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  saldos        SupSaldo[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId])
+}
+
+model SupSaldo {
+  id              String   @id @default(uuid())
+  tenantId        String
+  almoxarifadoId  String
+  itemId          String
+  quantidade      Float    @default(0)
+  custoMedio      Float    @default(0)
+  ultimaMovimentacao DateTime?
+  updatedAt       DateTime @updatedAt
+
+  almoxarifado    SupAlmoxarifado @relation(fields: [almoxarifadoId], references: [id])
+  item            SupItem         @relation(fields: [itemId], references: [id])
+
+  @@unique([almoxarifadoId, itemId])
+  @@index([tenantId, itemId])
+}
+
+model SupLote {
+  id              String   @id @default(uuid())
+  tenantId        String
+  almoxarifadoId  String
+  itemId          String
+  numero          String
+  validade        DateTime?
+  quantidade      Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  item            SupItem  @relation(fields: [itemId], references: [id])
+
+  @@unique([almoxarifadoId, itemId, numero])
+  @@index([tenantId, validade])
+}
+
+model SupMovimentacao {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  tipo                  SupMovTipo
+  itemId                String
+  almoxarifadoId        String        // origem (saída/transferência) ou destino (entrada)
+  almoxarifadoDestinoId String?       // só transferência
+  quantidade            Float         // sempre positiva; para AJUSTE use `sentido`
+  sentido               Int           @default(1)   // +1 aumenta saldo do almoxarifadoId, -1 reduz
+  custoUnitario         Float         @default(0)
+  valorTotal            Float         @default(0)
+  saldoApos             Float         @default(0)
+  custoMedioApos        Float         @default(0)
+  loteId                String?
+  loteNumero            String?
+  origemTipo            String?       // PEDIDO, RECEBIMENTO, VENDA, KIT_AULA, INVENTARIO, REQUISICAO, MANUAL
+  origemId              String?
+  cursoId               String?
+  laboratorioId         String?
+  centroCustoId         String?
+  classSectionId        String?
+  motivo                String?
+  userId                String?
+  createdAt             DateTime @default(now())
+
+  item                  SupItem  @relation(fields: [itemId], references: [id])
+
+  @@index([tenantId, itemId, createdAt])
+  @@index([tenantId, cursoId])
+  @@index([tenantId, origemTipo, origemId])
+}
+
+model SupInventario {
+  id              String   @id @default(uuid())
+  tenantId        String
+  almoxarifadoId  String
+  tipo            String   @default("ROTATIVO")   // ROTATIVO | GERAL
+  status          SupInventarioStatus @default(ABERTO)
+  observacao      String?
+  abertoPorId     String?
+  finalizadoEm    DateTime?
+  ajustadoEm      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  itens           SupInventarioItem[]
+
+  @@index([tenantId, status])
+}
+
+model SupInventarioItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  inventarioId    String
+  itemId          String
+  quantidadeSistema Float
+  quantidadeContada Float?
+  diferenca       Float?
+  ajustado        Boolean  @default(false)
+  observacao      String?
+
+  inventario      SupInventario @relation(fields: [inventarioId], references: [id], onDelete: Cascade)
+
+  @@unique([inventarioId, itemId])
+  @@index([tenantId])
+}
+
+// ---------- Compras ----------
+
+// Alçadas de aprovação: faixa de valor -> papel aprovador (em ordem de nível).
+model SupAlcada {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nivel       Int           // 1, 2, 3...
+  valorMinimo Float         // aplica-se quando valorEstimado >= valorMinimo
+  papel       String        // COORDINATOR, FINANCE, RECTOR...
+  descricao   String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, nivel])
+  @@index([tenantId])
+}
+
+model SupRequisicao {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  tipo            SupRequisicaoTipo @default(COMPRA)
+  status          SupRequisicaoStatus @default(RASCUNHO)
+  solicitanteUserId String
+  cursoId         String?
+  laboratorioId   String?       // EduSpace
+  centroCustoId   String?       // EduCostCenter
+  classSectionId  String?
+  almoxarifadoId  String?       // destino/origem
+  justificativa   String?
+  urgencia        String   @default("NORMAL")   // BAIXA | NORMAL | ALTA | URGENTE
+  necessarioEm    DateTime?
+  valorEstimado   Float    @default(0)
+  motivoReprovacao String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  itens           SupRequisicaoItem[]
+  aprovacoes      SupAprovacao[]
+  cotacoes        SupCotacao[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+}
+
+model SupRequisicaoItem {
+  id            String   @id @default(uuid())
+  tenantId      String
+  requisicaoId  String
+  itemId        String?       // item do catálogo (ou descrição livre)
+  descricao     String
+  unidade       String   @default("UN")
+  quantidade    Float
+  quantidadeAtendida Float @default(0)
+  precoEstimado Float?
+
+  requisicao    SupRequisicao @relation(fields: [requisicaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, requisicaoId])
+}
+
+model SupAprovacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  requisicaoId  String
+  nivel         Int
+  papel         String
+  status        SupAprovacaoStatus @default(PENDENTE)
+  decididoPorId String?
+  decididoEm    DateTime?
+  parecer       String?
+
+  requisicao    SupRequisicao @relation(fields: [requisicaoId], references: [id], onDelete: Cascade)
+
+  @@unique([requisicaoId, nivel])
+  @@index([tenantId, status, papel])
+}
+
+model SupCotacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  numero        String
+  requisicaoId  String
+  status        SupCotacaoStatus @default(ABERTA)
+  criterio      String   @default("MENOR_PRECO")  // MENOR_PRECO | MELHOR_PRAZO | CUSTO_BENEFICIO
+  prazoResposta DateTime?
+  fornecedorVencedorId String?
+  justificativaEscolha String?
+  valorEscolhido Float?
+  economia      Float?
+  encerradaEm   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  requisicao    SupRequisicao @relation(fields: [requisicaoId], references: [id], onDelete: Cascade)
+  propostas     SupCotacaoProposta[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+}
+
+model SupCotacaoProposta {
+  id            String   @id @default(uuid())
+  tenantId      String
+  cotacaoId     String
+  fornecedorId  String
+  respondeu     Boolean  @default(false)
+  frete         Float    @default(0)
+  prazoEntregaDias Int?
+  parcelas      Int      @default(1)
+  validadeProposta DateTime?
+  observacao    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  cotacao       SupCotacao @relation(fields: [cotacaoId], references: [id], onDelete: Cascade)
+  precos        SupCotacaoPreco[]
+
+  @@unique([cotacaoId, fornecedorId])
+  @@index([tenantId])
+}
+
+model SupCotacaoPreco {
+  id            String   @id @default(uuid())
+  tenantId      String
+  propostaId    String
+  requisicaoItemId String
+  precoUnitario Float
+
+  proposta      SupCotacaoProposta @relation(fields: [propostaId], references: [id], onDelete: Cascade)
+
+  @@unique([propostaId, requisicaoItemId])
+  @@index([tenantId])
+}
+
+model SupPedido {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  fornecedorId    String
+  requisicaoId    String?
+  cotacaoId       String?
+  almoxarifadoId  String
+  centroCustoId   String?
+  cursoId         String?
+  laboratorioId   String?
+  status          SupPedidoStatus @default(RASCUNHO)
+  valorItens      Float    @default(0)
+  frete           Float    @default(0)
+  valorTotal      Float    @default(0)
+  parcelas        Int      @default(1)
+  intervaloParcelasDias Int @default(30)
+  primeiroVencimentoEm DateTime?
+  previsaoEntrega DateTime?
+  emitidoEm       DateTime?
+  recebidoEm      DateTime?
+  observacao      String?
+  criadoPorId     String?
+  payableIds      String[]      // AccountPayable gerados no recebimento
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  fornecedor      SupFornecedor @relation(fields: [fornecedorId], references: [id])
+  itens           SupPedidoItem[]
+  recebimentos    SupRecebimento[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, fornecedorId])
+}
+
+model SupPedidoItem {
+  id            String   @id @default(uuid())
+  tenantId      String
+  pedidoId      String
+  itemId        String
+  requisicaoItemId String?
+  quantidade    Float
+  precoUnitario Float
+  quantidadeRecebida Float @default(0)
+
+  pedido        SupPedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, pedidoId])
+}
+
+model SupRecebimento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  pedidoId      String
+  notaFiscal    String?
+  dataRecebimento DateTime @default(now())
+  valor         Float    @default(0)
+  observacao    String?
+  recebidoPorId String?
+  createdAt     DateTime @default(now())
+
+  pedido        SupPedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  itens         SupRecebimentoItem[]
+
+  @@index([tenantId, pedidoId])
+}
+
+model SupRecebimentoItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  recebimentoId   String
+  pedidoItemId    String
+  itemId          String
+  quantidadeRecebida Float
+  quantidadeRejeitada Float @default(0)
+  motivoRejeicao  String?
+  loteNumero      String?
+  validade        DateTime?
+
+  recebimento     SupRecebimento @relation(fields: [recebimentoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, recebimentoId])
+}
+
+// ---------- Contratos ----------
+
+model SupContrato {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  fornecedorId    String
+  objeto          String
+  vigenciaInicio  DateTime
+  vigenciaFim     DateTime
+  valorMensal     Float?
+  valorTotal      Float?
+  indiceReajuste  String?       // IPCA, IGP-M, INPC, fixo
+  percentualReajuste Float?     // percentual aplicado no último reajuste/previsto
+  proximoReajusteEm DateTime?
+  renovacaoAutomatica Boolean @default(false)
+  avisoDias       Int      @default(60)
+  status          SupContratoStatus @default(VIGENTE)
+  centroCustoId   String?
+  arquivoUrl      String?
+  observacoes     String?
+  contratoAnteriorId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  fornecedor      SupFornecedor @relation(fields: [fornecedorId], references: [id])
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status, vigenciaFim])
+}
+
+// ---------- Kits de aula prática ----------
+
+model SupKit {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  disciplineId  String?
+  laboratorioId String?
+  descricao     String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  itens         SupKitItem[]
+  consumos      SupKitConsumo[]
+
+  @@index([tenantId, disciplineId])
+}
+
+model SupKitItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  kitId           String
+  itemId          String
+  quantidadeFixa  Float    @default(0)   // por turma/aula
+  quantidadePorAluno Float @default(0)   // por aluno presente
+  
+  kit             SupKit   @relation(fields: [kitId], references: [id], onDelete: Cascade)
+
+  @@unique([kitId, itemId])
+  @@index([tenantId])
+}
+
+model SupKitConsumo {
+  id              String   @id @default(uuid())
+  tenantId        String
+  kitId           String
+  classSectionId  String?
+  classSessionId  String?
+  cursoId         String?
+  laboratorioId   String?
+  almoxarifadoId  String
+  numeroAlunos    Int
+  valorTotal      Float    @default(0)
+  userId          String?
+  createdAt       DateTime @default(now())
+
+  kit             SupKit   @relation(fields: [kitId], references: [id])
+
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, kitId])
+}
+
+// ---------- Vendas (loja, papelaria, uniformes, livraria, cantina...) ----------
+
+model SupProduto {
+  id              String   @id @default(uuid())
+  tenantId        String
+  itemId          String        // SupItem que controla o estoque
+  almoxarifadoId  String        // almoxarifado/estoque da loja
+  canal           String   @default("LOJA")   // LOJA | PAPELARIA | UNIFORMES | LIVRARIA | CURSOS_LIVRES | CANTINA
+  nome            String
+  preco           Float
+  permiteLancarAluno Boolean @default(true)
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, itemId, almoxarifadoId])
+  @@index([tenantId, canal])
+}
+
+model SupCaixa {
+  id              String   @id @default(uuid())
+  tenantId        String
+  operadorUserId  String
+  canal           String   @default("LOJA")
+  status          SupCaixaStatus @default(ABERTO)
+  valorAbertura   Float    @default(0)
+  abertoEm        DateTime @default(now())
+  fechadoEm       DateTime?
+  valorContado    Float?
+  valorEsperado   Float?
+  diferenca       Float?
+  observacao      String?
+
+  movimentos      SupCaixaMov[]
+  vendas          SupVenda[]
+
+  @@index([tenantId, status])
+}
+
+model SupCaixaMov {
+  id          String   @id @default(uuid())
+  tenantId    String
+  caixaId     String
+  tipo        String        // SANGRIA | SUPRIMENTO
+  valor       Float
+  motivo      String?
+  createdAt   DateTime @default(now())
+
+  caixa       SupCaixa @relation(fields: [caixaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, caixaId])
+}
+
+model SupVenda {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  caixaId         String
+  tipo            SupVendaTipo @default(A_VISTA)
+  status          SupVendaStatus @default(CONCLUIDA)
+  studentId       String?
+  clienteNome     String?
+  formaPagamento  String?       // DINHEIRO | PIX | CARTAO
+  subtotal        Float    @default(0)
+  desconto        Float    @default(0)
+  total           Float    @default(0)
+  totalDevolvido  Float    @default(0)
+  parcelas        Int      @default(1)
+  receivableIds   String[]
+  vendedorUserId  String?
+  createdAt       DateTime @default(now())
+
+  caixa           SupCaixa @relation(fields: [caixaId], references: [id])
+  itens           SupVendaItem[]
+  devolucoes      SupDevolucao[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, studentId])
+}
+
+model SupVendaItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  vendaId         String
+  produtoId       String
+  itemId          String
+  almoxarifadoId  String
+  descricao       String
+  quantidade      Float
+  precoUnitario   Float
+  custoUnitario   Float    @default(0)
+  quantidadeDevolvida Float @default(0)
+
+  venda           SupVenda @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, vendaId])
+}
+
+model SupDevolucao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  vendaId     String
+  valor       Float
+  motivo      String?
+  itens       Json
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  venda       SupVenda @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, vendaId])
+}
+
+// Sequenciais de numeração por tipo/ano (REQ-2026-0001...)
+model SupSequencia {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  ultimo    Int      @default(0)
+
+  @@unique([tenantId, chave])
+}

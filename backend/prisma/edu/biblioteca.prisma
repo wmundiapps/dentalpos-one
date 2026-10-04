@@ -1,0 +1,526 @@
+// ============================================================================
+// MÓDULO BIBLIOTECA (prefixo Bib) — acervo físico, circulação, adequação à
+// matriz curricular, biblioteca virtual e repositório institucional.
+// Referências a models de outros módulos (Student, Discipline, EduSpace,
+// AcademicProgram, User, AccountReceivable, LibraryProvider) são String ids.
+// ============================================================================
+
+enum BibPerfil {
+  ALUNO
+  PROFESSOR
+  FUNCIONARIO
+  EXTERNO
+}
+
+enum BibTipoObra {
+  LIVRO
+  PERIODICO
+  TESE
+  DVD
+  NORMA
+  MAPA
+  OUTRO
+}
+
+enum BibEstadoConservacao {
+  OTIMO
+  BOM
+  REGULAR
+  RUIM
+  PESSIMO
+}
+
+enum BibStatusExemplar {
+  DISPONIVEL
+  EMPRESTADO
+  RESERVADO
+  EM_REPARO
+  EXTRAVIADO
+  BAIXADO
+}
+
+enum BibTipoAquisicao {
+  COMPRA
+  DOACAO
+  PERMUTA
+  PRODUCAO_INSTITUCIONAL
+}
+
+enum BibStatusEmprestimo {
+  ATIVO
+  DEVOLVIDO
+  PERDIDO
+}
+
+enum BibStatusReserva {
+  AGUARDANDO
+  DISPONIVEL
+  ATENDIDA
+  CANCELADA
+  EXPIRADA
+}
+
+enum BibTipoMulta {
+  ATRASO
+  DANO
+  EXTRAVIO
+}
+
+enum BibStatusMulta {
+  ABERTA
+  EM_COBRANCA
+  PAGA
+  ISENTA
+  CANCELADA
+}
+
+enum BibStatusInventario {
+  ABERTO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum BibSituacaoItemInventario {
+  PENDENTE
+  CONFERIDO
+  NAO_ENCONTRADO
+  EMPRESTADO
+  LOCAL_DIVERGENTE
+}
+
+enum BibTipoBibliografia {
+  BASICA
+  COMPLEMENTAR
+}
+
+enum BibStatusSugestao {
+  PENDENTE
+  APROVADA
+  REJEITADA
+  COMPRADA
+  RECEBIDA
+}
+
+enum BibTipoRecurso {
+  EBOOK
+  PERIODICO
+  BASE_DADOS
+  VIDEO
+  OUTRO
+}
+
+enum BibTipoAcessoVirtual {
+  ASSINATURA_INSTITUCIONAL
+  URL_PESSOAL
+  ACESSO_LIVRE
+}
+
+enum BibTipoItemRepositorio {
+  TCC
+  DISSERTACAO
+  TESE
+  ARTIGO
+  NORMA
+  MATERIAL_DIDATICO
+  RELATORIO
+  OUTRO
+}
+
+enum BibStatusRepositorio {
+  RASCUNHO
+  EM_REVISAO
+  PUBLICADO
+  RETIRADO
+}
+
+// ---------- Configuração e políticas ----------
+
+model BibConfig {
+  id                       String   @id @default(uuid())
+  tenantId                 String   @unique
+  proximoTombo             Int      @default(1)
+  prefixoTombo             String   @default("")
+  valorMultaDiaPadrao      Float    @default(1.0)
+  valorMaxMultaAberta      Float    @default(0)      // acima disso o leitor é bloqueado
+  diasTolerancia           Int      @default(0)      // dias de graça antes de multar
+  considerarDiasUteis      Boolean  @default(false)  // prazo/multa só contam dias úteis
+  feriados                 Json?                     // ["2026-12-25", ...]
+  minTitulosBasicos        Int      @default(3)
+  minTitulosComplementares Int      @default(5)
+  vagasPorExemplar         Float    @default(5)      // 1 exemplar a cada N vagas (bibliografia básica)
+  bibliotecarioNome        String?
+  bibliotecarioCrb         String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+model BibPolitica {
+  id                    String    @id @default(uuid())
+  tenantId              String
+  perfil                BibPerfil
+  prazoDias             Int       @default(7)
+  limiteEmprestimos     Int       @default(3)
+  maxRenovacoes         Int       @default(2)
+  diasRenovacao         Int?                       // padrão = prazoDias
+  multaDia              Float     @default(1.0)
+  multaMaxima           Float?                     // teto por empréstimo
+  limiteReservas        Int       @default(2)
+  diasRetiradaReserva   Int       @default(3)
+  bloqueioDiasPorAtraso Int       @default(0)      // suspensão = dias de atraso x este fator
+  ativo                 Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([tenantId, perfil])
+}
+
+// ---------- Acervo físico ----------
+
+model BibObra {
+  id              String      @id @default(uuid())
+  tenantId        String
+  titulo          String
+  subtitulo       String?
+  tipo            BibTipoObra @default(LIVRO)
+  autores         Json?                // string[]
+  autoresTexto    String?              // denormalizado p/ busca
+  editora         String?
+  edicao          String?
+  ano             Int?
+  isbn            String?              // somente dígitos
+  issn            String?
+  cdd             String?
+  cdu             String?
+  cutter          String?
+  assuntos        Json?                // string[]
+  assuntosTexto   String?
+  idioma          String?     @default("pt-BR")
+  paginas         Int?
+  resumo          String?
+  capaUrl         String?
+  ativo           Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  exemplares      BibExemplar[]
+  reservas        BibReserva[]
+
+  @@index([tenantId, titulo])
+  @@index([tenantId, isbn])
+  @@index([tenantId, tipo])
+}
+
+model BibExemplar {
+  id               String               @id @default(uuid())
+  tenantId         String
+  obraId           String
+  tombo            String
+  codigoBarras     String?
+  spaceId          String?              // EduSpace (biblioteca/sala)
+  estante          String?
+  prateleira       String?
+  estado           BibEstadoConservacao @default(BOM)
+  status           BibStatusExemplar    @default(DISPONIVEL)
+  apenasConsulta   Boolean              @default(false)
+  aquisicaoTipo    BibTipoAquisicao     @default(COMPRA)
+  dataAquisicao    DateTime?
+  valor            Float?
+  fornecedor       String?
+  notaFiscal       String?
+  observacoes      String?
+  baixaMotivo      String?
+  baixaEm          DateTime?
+  baixaPorId       String?
+  baixaObs         String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  obra             BibObra              @relation(fields: [obraId], references: [id])
+  emprestimos      BibEmprestimo[]
+
+  @@unique([tenantId, tombo])
+  @@index([tenantId, obraId, status])
+  @@index([tenantId, codigoBarras])
+  @@index([tenantId, spaceId, estante])
+}
+
+// ---------- Circulação ----------
+
+model BibLeitor {
+  id           String    @id @default(uuid())
+  tenantId     String
+  perfil       BibPerfil
+  studentId    String?
+  userId       String?
+  nome         String
+  documento    String?
+  email        String?
+  telefone     String?
+  bloqueadoAte DateTime?
+  motivoBloqueio String?
+  validadeAte  DateTime?
+  ativo        Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  emprestimos  BibEmprestimo[]
+  reservas     BibReserva[]
+  multas       BibMulta[]
+
+  @@index([tenantId, perfil])
+  @@index([tenantId, studentId])
+  @@index([tenantId, userId])
+  @@index([tenantId, documento])
+}
+
+model BibEmprestimo {
+  id              String              @id @default(uuid())
+  tenantId        String
+  leitorId        String
+  exemplarId      String
+  obraId          String
+  status          BibStatusEmprestimo @default(ATIVO)
+  dataEmprestimo  DateTime            @default(now())
+  dataPrevista    DateTime
+  dataDevolucao   DateTime?
+  renovacoes      Int                 @default(0)
+  diasAtraso      Int                 @default(0)
+  multaPrevista   Float               @default(0)
+  observacoes     String?
+  emprestadoPorId String?
+  devolvidoPorId  String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  leitor          BibLeitor           @relation(fields: [leitorId], references: [id])
+  exemplar        BibExemplar         @relation(fields: [exemplarId], references: [id])
+
+  @@index([tenantId, status, dataPrevista])
+  @@index([tenantId, leitorId, status])
+  @@index([tenantId, obraId])
+  @@index([tenantId, exemplarId])
+}
+
+model BibReserva {
+  id            String           @id @default(uuid())
+  tenantId      String
+  leitorId      String
+  obraId        String
+  exemplarId    String?          // exemplar separado quando fica DISPONIVEL
+  status        BibStatusReserva @default(AGUARDANDO)
+  disponivelEm  DateTime?
+  expiraEm      DateTime?
+  concluidaEm   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  leitor        BibLeitor        @relation(fields: [leitorId], references: [id])
+  obra          BibObra          @relation(fields: [obraId], references: [id])
+
+  @@index([tenantId, obraId, status, createdAt])
+  @@index([tenantId, leitorId, status])
+  @@index([tenantId, status, expiraEm])
+}
+
+model BibMulta {
+  id             String         @id @default(uuid())
+  tenantId       String
+  leitorId       String
+  emprestimoId   String?
+  tipo           BibTipoMulta   @default(ATRASO)
+  valor          Float
+  diasAtraso     Int            @default(0)
+  status         BibStatusMulta @default(ABERTA)
+  descricao      String?
+  receivableId   String?        // AccountReceivable (financeiro) quando enviada para cobrança
+  pagaEm         DateTime?
+  formaPagamento String?
+  justificativa  String?
+  baixaPorId     String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  leitor         BibLeitor      @relation(fields: [leitorId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([tenantId, leitorId, status])
+  @@index([tenantId, emprestimoId])
+}
+
+// ---------- Inventário ----------
+
+model BibInventario {
+  id            String              @id @default(uuid())
+  tenantId      String
+  nome          String
+  spaceId       String?
+  estante       String?
+  status        BibStatusInventario @default(ABERTO)
+  iniciadoEm    DateTime            @default(now())
+  concluidoEm   DateTime?
+  responsavelId String?
+  totalEsperado Int                 @default(0)
+  resumo        Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  itens         BibInventarioItem[]
+
+  @@index([tenantId, status])
+}
+
+model BibInventarioItem {
+  id            String                    @id @default(uuid())
+  tenantId      String
+  inventarioId  String
+  exemplarId    String?
+  tombo         String
+  situacao      BibSituacaoItemInventario @default(PENDENTE)
+  localLido     String?
+  conferidoEm   DateTime?
+  observacao    String?
+
+  inventario    BibInventario             @relation(fields: [inventarioId], references: [id], onDelete: Cascade)
+
+  @@unique([inventarioId, tombo])
+  @@index([tenantId, inventarioId, situacao])
+}
+
+// ---------- Adequação à matriz curricular ----------
+
+model BibBibliografia {
+  id           String              @id @default(uuid())
+  tenantId     String
+  disciplineId String
+  obraId       String
+  tipo         BibTipoBibliografia @default(BASICA)
+  observacao   String?
+  createdAt    DateTime            @default(now())
+
+  @@unique([tenantId, disciplineId, obraId])
+  @@index([tenantId, disciplineId, tipo])
+  @@index([tenantId, obraId])
+}
+
+model BibSugestaoAquisicao {
+  id              String            @id @default(uuid())
+  tenantId        String
+  titulo          String
+  autores         String?
+  editora         String?
+  isbn            String?
+  obraId          String?
+  disciplineId    String?
+  tipoBibliografia BibTipoBibliografia?
+  quantidade      Int               @default(1)
+  valorEstimado   Float?
+  justificativa   String?
+  origem          String            @default("PROFESSOR")   // PROFESSOR | ALUNO | BIBLIOTECA | ADEQUACAO
+  solicitanteId   String?
+  status          BibStatusSugestao @default(PENDENTE)
+  decididoPorId   String?
+  decididoEm      DateTime?
+  motivoDecisao   String?
+  recebidoEm      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, disciplineId])
+}
+
+// ---------- Biblioteca virtual ----------
+
+model BibRecursoVirtual {
+  id                String               @id @default(uuid())
+  tenantId          String
+  tipo              BibTipoRecurso       @default(EBOOK)
+  titulo            String
+  autores           String?
+  provedor          String?
+  url               String
+  tipoAcesso        BibTipoAcessoVirtual @default(ASSINATURA_INSTITUCIONAL)
+  libraryProviderId String?              // LibraryProvider (módulo conteudo)
+  obraId            String?              // versão física equivalente
+  isbn              String?
+  issn              String?
+  assuntos          String?
+  descricao         String?
+  vigenciaFim       DateTime?
+  ativo             Boolean              @default(true)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  acessos           BibAcessoVirtual[]
+
+  @@index([tenantId, tipo])
+  @@index([tenantId, obraId])
+}
+
+model BibAcessoVirtual {
+  id         String   @id @default(uuid())
+  tenantId   String
+  recursoId  String
+  studentId  String?
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  recurso    BibRecursoVirtual @relation(fields: [recursoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, recursoId, createdAt])
+  @@index([tenantId, createdAt])
+}
+
+// ---------- Repositório institucional (Dublin Core) ----------
+
+model BibRepositorioItem {
+  id              String                 @id @default(uuid())
+  tenantId        String
+  handle          String                 // identificador local persistente (dc:identifier)
+  tipo            BibTipoItemRepositorio @default(TCC)
+  status          BibStatusRepositorio   @default(RASCUNHO)
+  titulo          String                 // dc:title
+  tituloAlternativo String?
+  criadores       Json?                  // dc:creator  string[]
+  orientador      String?
+  coorientador    String?
+  banca           Json?                  // string[]
+  assuntos        Json?                  // dc:subject  string[]
+  descricao       String?                // dc:description (resumo)
+  abstractEn      String?
+  editor          String?                // dc:publisher
+  colaboradores   Json?                  // dc:contributor
+  dataPublicacao  DateTime?              // dc:date
+  formato         String?                // dc:format (application/pdf)
+  fonte           String?                // dc:source
+  idioma          String?  @default("pt-BR")
+  relacao         String?                // dc:relation
+  cobertura       String?                // dc:coverage
+  direitos        String?                // dc:rights
+  licenca         String?                // CC-BY-4.0 ...
+  embargoAte      DateTime?
+  restrito        Boolean  @default(false)  // acesso só à comunidade
+  arquivoUrl      String?
+  arquivoDataUrl  String?
+  arquivoNome     String?
+  paginas         Int?
+  ilustrado       Boolean  @default(false)
+  cdd             String?
+  cutter          String?
+  programId       String?
+  disciplineId    String?
+  autorStudentId  String?
+  autorUserId     String?
+  buscaTexto      String?                // denormalizado: título + criadores + assuntos + resumo
+  visualizacoes   Int      @default(0)
+  downloads       Int      @default(0)
+  publicadoEm     DateTime?
+  revisadoPorId   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, handle])
+  @@index([tenantId, status, tipo])
+  @@index([tenantId, programId])
+  @@index([tenantId, autorStudentId])
+}

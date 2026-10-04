@@ -21,9 +21,34 @@ export default defineConfig(({ mode }) => {
     ? (isPilotPreview ? PILOT_API : PRODUCTION_API)
     : 'http://localhost:3000/api'
 
+  const isProd = mode === 'production'
+
   return {
     base: '/',
     plugins: [react()],
+    build: {
+      // Produção: sem sourcemaps (não publicamos o código-fonte original) e sem comentários.
+      sourcemap: false,
+      ...(isProd
+        ? {
+            rolldownOptions: {
+              output: {
+                // Nomes de arquivo sem informação útil (apenas hash).
+                entryFileNames: 'assets/[hash].js',
+                chunkFileNames: 'assets/[hash].js',
+                assetFileNames: 'assets/[hash][extname]',
+                comments: false,
+                // Minificação máxima; remove console.* e debugger do bundle.
+                minify: {
+                  compress: { dropConsole: true, dropDebugger: true },
+                  mangle: true,
+                  codegen: { removeWhitespace: true },
+                },
+              },
+            },
+          }
+        : {}),
+    },
     define: {
       'import.meta.env.VITE_API_URL': JSON.stringify(
         configuredApi && !configuredApi.includes('localhost') && !configuredApi.includes('127.0.0.1') ? configuredApi : fallbackApi,
