@@ -48,6 +48,9 @@ jobs:
           cache: npm
           cache-dependency-path: revah/api/package-lock.json
       - run: npm ci
+      - name: Testar acesso ao site da Receita
+        continue-on-error: true
+        run: curl -sS -o /dev/null -w "Receita respondeu HTTP %{http_code} em %{time_total}s\n" --max-time 60 "https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9" || true
       - name: Importar base de empresas
         env:
           DATABASE_URL: ${{ secrets.REVAH_DATABASE_URL }}

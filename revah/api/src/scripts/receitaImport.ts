@@ -309,7 +309,9 @@ async function main() {
 
 if (require.main === module) {
   main().catch((e) => {
-    console.error(e?.message || e)
+    // "fetch failed" esconde o motivo real (DNS, TLS, conexão recusada): mostra a causa.
+    const cause = e?.cause ? ` — causa: ${e.cause.code || ''} ${e.cause.message || e.cause}`.trimEnd() : ''
+    console.error(`${e?.message || e}${cause}`)
     process.exit(1)
   })
 }
