@@ -318,7 +318,7 @@ async function infraestrutura(c: Ctx) {
     await c.api('POST', `${I}/ordens-servico/${o.id}/status`, { status: 'EM_EXECUCAO' })
     if (fim === 'CONCLUIDA') await c.api('POST', `${I}/ordens-servico/${o.id}/status`, { status: 'CONCLUIDA', solucao: 'Lâmpadas LED instaladas e testadas.', custoMaoObra: 180 })
   }
-  for (const [t, cat2, pr] of [['Ar-condicionado pingando na Sala 102', 'AR_CONDICIONADO', 'ALTA'], ['Projetor sem imagem no Auditório', 'EQUIPAMENTO', 'MEDIA'], ['Torneira vazando no banheiro do bloco B', 'HIDRAULICA', 'BAIXA']]) {
+  for (const [t, cat2, pr] of [['Ar-condicionado pingando na Sala 102', 'AR_CONDICIONADO', 'ALTA'], ['Projetor sem imagem no Auditório', 'TI', 'MEDIA'], ['Torneira vazando no banheiro do bloco B', 'HIDRAULICA', 'BAIXA']]) {
     await c.api('POST', `${I}/chamados`, { titulo: t, categoria: cat2, prioridade: pr, spaceId: sp(1).id, descricao: 'Reportado pela comunidade acadêmica.' })
   }
   await c.api('POST', `${I}/planos-preventivos`, { titulo: 'Preventiva dos notebooks', categoriaId: cat('COMPUTADOR').id, periodicidadeDias: 90, antecedenciaDias: 10, proximaExecucao: day(5), checklist: [{ item: 'Limpeza interna', obrigatorio: true }] })
