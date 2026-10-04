@@ -630,6 +630,12 @@ CREATE TYPE "SecArquivoStatus" AS ENUM ('ATIVO', 'ELEGIVEL_DESCARTE', 'DESCARTE_
 CREATE TYPE "SecDescarteStatus" AS ENUM ('RASCUNHO', 'AGUARDANDO_APROVACAO', 'APROVADO', 'REJEITADO', 'EXECUTADO');
 
 -- CreateEnum
+CREATE TYPE "SegSeveridade" AS ENUM ('INFO', 'ATENCAO', 'CRITICO');
+
+-- CreateEnum
+CREATE TYPE "SegVeredito" AS ENUM ('LIMPO', 'SUSPEITO', 'BLOQUEADO');
+
+-- CreateEnum
 CREATE TYPE "SupFornecedorStatus" AS ENUM ('ATIVO', 'EM_ANALISE', 'BLOQUEADO', 'INATIVO');
 
 -- CreateEnum
@@ -7434,6 +7440,73 @@ CREATE TABLE "SecDescarte" (
 );
 
 -- CreateTable
+CREATE TABLE "SegDoisFatores" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "segredoCifrado" TEXT NOT NULL,
+    "ativadoEm" TIMESTAMP(3),
+    "ultimoPasso" INTEGER,
+    "codigosRecuperacao" JSONB NOT NULL DEFAULT '[]',
+    "versaoCodigos" INTEGER NOT NULL DEFAULT 0,
+    "ultimoUsoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SegDoisFatores_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SegEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL DEFAULT 'global',
+    "userId" TEXT,
+    "tipo" TEXT NOT NULL,
+    "severidade" "SegSeveridade" NOT NULL DEFAULT 'INFO',
+    "ip" TEXT,
+    "userAgent" TEXT,
+    "detalhe" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SegEvento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SegTentativaLogin" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL DEFAULT 'global',
+    "escopo" TEXT NOT NULL DEFAULT 'login',
+    "chave" TEXT NOT NULL,
+    "ip" TEXT NOT NULL,
+    "falhas" INTEGER NOT NULL DEFAULT 0,
+    "nivel" INTEGER NOT NULL DEFAULT 0,
+    "bloqueadoAte" TIMESTAMP(3),
+    "ultimaTentativaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SegTentativaLogin_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SegArquivoVerificado" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "sha256" TEXT NOT NULL,
+    "veredito" "SegVeredito" NOT NULL,
+    "motivo" TEXT,
+    "tamanho" INTEGER NOT NULL,
+    "tipoDetectado" TEXT,
+    "nomeOriginal" TEXT,
+    "mimeDeclarado" TEXT,
+    "origem" TEXT,
+    "userId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SegArquivoVerificado_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "SupFornecedor" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
@@ -9987,6 +10060,36 @@ CREATE INDEX "SecDescarte_tenantId_status_idx" ON "SecDescarte"("tenantId", "sta
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SecDescarte_tenantId_numero_key" ON "SecDescarte"("tenantId", "numero");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SegDoisFatores_userId_key" ON "SegDoisFatores"("userId");
+
+-- CreateIndex
+CREATE INDEX "SegDoisFatores_tenantId_idx" ON "SegDoisFatores"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "SegEvento_tenantId_createdAt_idx" ON "SegEvento"("tenantId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "SegEvento_tenantId_tipo_createdAt_idx" ON "SegEvento"("tenantId", "tipo", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "SegEvento_userId_idx" ON "SegEvento"("userId");
+
+-- CreateIndex
+CREATE INDEX "SegTentativaLogin_ultimaTentativaEm_idx" ON "SegTentativaLogin"("ultimaTentativaEm");
+
+-- CreateIndex
+CREATE INDEX "SegTentativaLogin_tenantId_idx" ON "SegTentativaLogin"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SegTentativaLogin_escopo_chave_ip_key" ON "SegTentativaLogin"("escopo", "chave", "ip");
+
+-- CreateIndex
+CREATE INDEX "SegArquivoVerificado_tenantId_sha256_idx" ON "SegArquivoVerificado"("tenantId", "sha256");
+
+-- CreateIndex
+CREATE INDEX "SegArquivoVerificado_tenantId_createdAt_idx" ON "SegArquivoVerificado"("tenantId", "createdAt");
 
 -- CreateIndex
 CREATE INDEX "SupFornecedor_tenantId_status_idx" ON "SupFornecedor"("tenantId", "status");

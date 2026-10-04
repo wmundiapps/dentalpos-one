@@ -91,3 +91,59 @@ export async function callAIForJSON<T>(params: { system: string; user: string; m
 export async function callAIForText(params: { system: string; user: string; maxTokens?: number; ctx?: AiContext }): Promise<string> {
   return callText({ system: params.system, user: params.user, maxTokens: params.maxTokens ?? 2000, ctx: params.ctx })
 }
+
+// ------------------------------------------------------------
+// VISÃO (imagens) — API Messages da Anthropic com bloco de imagem.
+// Usada pela moderação de uploads (modules/seguranca). Só funciona com ANTHROPIC_API_KEY
+// (o adaptador OpenAI legado é somente texto); sem a chave lança AiUnavailableError.
+// ------------------------------------------------------------
+export type VisionMediaType = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp'
+
+export function aiVisionConfigured() {
+  return Boolean(String(process.env.ANTHROPIC_API_KEY || '').trim())
+}
+
+export async function callAIVisionForText(params: {
+  system: string
+  user: string
+  images: Array<{ mediaType: VisionMediaType; base64: string }>
+  maxTokens?: number
+  timeoutMs?: number
+}): Promise<string> {
+  const key = String(process.env.ANTHROPIC_API_KEY || '').trim()
+  if (!key) throw new AiUnavailableError('Visão computacional indisponível: ANTHROPIC_API_KEY não configurada.')
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    signal: AbortSignal.timeout(params.timeoutMs ?? 20000),
+    body: JSON.stringify({
+      model: AI_MODEL,
+      max_tokens: params.maxTokens ?? 400,
+      system: params.system,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            ...params.images.map((i) => ({ type: 'image', source: { type: 'base64', media_type: i.mediaType, data: i.base64 } })),
+            { type: 'text', text: params.user },
+          ],
+        },
+      ],
+    }),
+  })
+  const data: any = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error(`Falha na IA (visão): ${data?.error?.message || r.status}`)
+  const block = (data.content || []).find((b: any) => b.type === 'text')
+  if (!block?.text) throw new Error('Resposta da IA (visão) não retornou texto.')
+  return String(block.text)
+}
+
+export async function callAIVisionForJSON<T>(params: Parameters<typeof callAIVisionForText>[0]): Promise<T> {
+  const raw = await callAIVisionForText(params)
+  const cleaned = extractJson(raw)
+  try {
+    return JSON.parse(cleaned) as T
+  } catch {
+    throw new Error('IA (visão) retornou um JSON inválido.')
+  }
+}
