@@ -52,7 +52,7 @@ const ALUNO_SENHA = 'Aluno@2026'
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [
   ['equipe', equipe],
   ['bootstrap', async (c) => { for (const m of MODULOS) await c.api('POST', `/edu/${m}/bootstrap`, {}) }],
-  ['academico', academico], ['espacos', espacos], ['admissoes', admissoes], ['financeiro', financeiro], ['secretaria', secretaria], ['calendario', calendario], ['notas', notas],
+  ['academico', academico], ['espacos', espacos], ['admissoes', admissoes], ['financeiro', financeiro], ['secretaria', secretaria], ['calendario', calendario], ['notas', notas], ['infraestrutura', infraestrutura], ['suprimentos', suprimentos],
 ]
 
 
@@ -288,6 +288,85 @@ async function notas(c: Ctx) {
       if (!r) await c.api('POST', `/edu/notas/turmas/${sec.id}/notas/corrigir`, { correcoes: lote, motivo: 'Lançamento inicial da demonstração' })
     }
     await c.api('POST', `/edu/notas/turmas/${sec.id}/recalcular`, {})
+  }
+}
+
+const lst = (r: any): any[] => (Array.isArray(r) ? r : r?.items ?? [])
+
+async function infraestrutura(c: Ctx) {
+  const I = '/edu/infraestrutura'
+  const cats = lst(await c.api('GET', `${I}/categorias-bem?pageSize=100`))
+  const cat = (cod: string) => cats.find((x) => x.codigo === cod) ?? cats[0]
+  const sp = (i: number) => S.spaces[i % S.spaces.length]
+  const bens: [string, string, number, number, number, string?][] = [
+    ['Notebook Dell Latitude (laboratório de informática)', 'COMPUTADOR', 6200, -500, 1], ['Projetor Epson PowerLite', 'COMPUTADOR', 3400, -900, 2], ['Ar-condicionado Split 24.000 BTU', 'AR-COND', 5800, -1200, 0],
+    ['Microscópio binocular Olympus', 'COMPUTADOR', 8900, -700, 5], ['Cadeira odontológica Dabi Atlante', 'COMPUTADOR', 26500, -300, 6], ['Ar-condicionado Split 18.000 BTU', 'AR-COND', 4200, -1500, 3],
+    ['Autoclave 75 L', 'COMPUTADOR', 14500, -800, 6], ['Notebook Lenovo ThinkPad (secretaria)', 'COMPUTADOR', 5400, -200, 8],
+  ]
+  S.bens = []
+  for (const [descricao, c1, valor, dias, sala] of bens) {
+    const b = await c.api('POST', `${I}/bens`, { descricao, categoriaId: cat(c1).id, valorAquisicao: valor, dataAquisicao: day(dias), spaceId: sp(sala).id, garantiaAte: day(dias + 730) })
+    if (b) S.bens.push(b)
+  }
+  if (S.bens[2]) await c.api('POST', `${I}/bens/${S.bens[2].id}/estado`, { estado: 'RUIM', motivo: 'Compressor com ruído excessivo' })
+  if (S.bens[1]) await c.api('POST', `${I}/bens/${S.bens[1].id}/transferir`, { spaceId: sp(7).id, motivo: 'Uso no auditório' })
+  // ordens de serviço em estágios diferentes
+  const os: [string, string, string | null][] = [['Conserto do compressor — Sala 101', 'ALTA', null], ['Preventiva anual de ar-condicionado', 'MEDIA', 'EM_EXECUCAO'], ['Troca de lâmpadas — corredor bloco A', 'BAIXA', 'CONCLUIDA'], ['Calibração dos microscópios', 'MEDIA', 'EM_EXECUCAO']]
+  for (const [titulo, prioridade, fim] of os) {
+    const o = await c.api('POST', `${I}/ordens-servico`, { titulo, prioridade, bemId: S.bens[2]?.id, spaceId: sp(0).id })
+    if (!o || !fim) continue
+    await c.api('POST', `${I}/ordens-servico/${o.id}/status`, { status: 'EM_EXECUCAO' })
+    if (fim === 'CONCLUIDA') await c.api('POST', `${I}/ordens-servico/${o.id}/status`, { status: 'CONCLUIDA', solucao: 'Lâmpadas LED instaladas e testadas.', custoMaoObra: 180 })
+  }
+  for (const [t, cat2, pr] of [['Ar-condicionado pingando na Sala 102', 'AR_CONDICIONADO', 'ALTA'], ['Projetor sem imagem no Auditório', 'EQUIPAMENTO', 'MEDIA'], ['Torneira vazando no banheiro do bloco B', 'HIDRAULICA', 'BAIXA']]) {
+    await c.api('POST', `${I}/chamados`, { titulo: t, categoria: cat2, prioridade: pr, spaceId: sp(1).id, descricao: 'Reportado pela comunidade acadêmica.' })
+  }
+  await c.api('POST', `${I}/planos-preventivos`, { titulo: 'Preventiva dos notebooks', categoriaId: cat('COMPUTADOR').id, periodicidadeDias: 90, antecedenciaDias: 10, proximaExecucao: day(5), checklist: [{ item: 'Limpeza interna', obrigatorio: true }] })
+  await c.api('POST', `${I}/planos-preventivos`, { titulo: 'Preventiva de ar-condicionado', categoriaId: cat('AR-COND').id, periodicidadeDias: 60, antecedenciaDias: 7, proximaExecucao: day(-3), checklist: [{ item: 'Limpar filtros', obrigatorio: true }] })
+  await c.api('POST', `${I}/projetos`, { titulo: 'Troca da iluminação por LED', oQue: 'Substituir 480 lâmpadas fluorescentes por LED', porQue: 'Reduzir 38% do consumo de energia', quantoCusta: 48000, fimPrevisto: day(75), onde: 'Blocos A, B e C' })
+  await c.api('POST', `${I}/projetos`, { titulo: 'Novo laboratório de Anatomia Virtual', oQue: 'Implantar mesa de anatomia 3D', porQue: 'Requisito de adequação do curso de Odontologia', quantoCusta: 180000, fimPrevisto: day(150) })
+  const area = await c.api('POST', `${I}/estacionamento/areas`, { nome: 'Estacionamento Principal' })
+  if (area) {
+    await c.api('POST', `${I}/estacionamento/areas/${area.id}/vagas-lote`, { prefixo: 'A', quantidade: 12 })
+    await c.api('POST', `${I}/estacionamento/vagas`, { areaId: area.id, codigo: 'PCD1', tipo: 'PCD' })
+  }
+  for (const [i, nome] of ['Quadra 1', 'Corredor A', 'Pátio'].entries()) {
+    const pt = await c.api('POST', `${I}/iluminacao/pontos`, { codigo: `L-00${i + 1}`, spaceId: sp(9).id, potenciaW: 18, quantidade: 6 + i * 4, descricao: nome })
+    void pt
+  }
+  const med = await c.api('POST', `${I}/medidores`, { codigo: 'M-ENERGIA', tipo: 'ENERGIA', spaceId: sp(0).id })
+  if (med) for (let m = 6; m >= 0; m--) await c.api('POST', `${I}/medidores/${med.id}/leituras`, { dataLeitura: day(-30 * m), valor: 12000 + (6 - m) * 950 + (m % 2) * 300 })
+}
+
+async function suprimentos(c: Ctx) {
+  const prisma = (await import('../src/lib/prisma')).prisma
+  const R = '/edu/suprimentos'
+  const itens = lst(await c.api('GET', `${R}/itens?pageSize=100`))
+  const alms = lst(await c.api('GET', `${R}/almoxarifados`))
+  const alm = alms.find((a) => a.codigo === 'CENTRAL') ?? alms[0]
+  const cc = (await prisma.eduCostCenter.findFirst({ where: { tenantId: c.tenantId } })) ?? (await prisma.eduCostCenter.create({ data: { tenantId: c.tenantId, nome: 'Curso de Odontologia' } }))
+  const forn: any[] = []
+  for (const [i, n] of ['DentalSupply Ltda', 'PapelaMax Papelaria', 'TonerTech Informática', 'LabQuímica Reagentes'].entries()) {
+    const f = await c.api('POST', `${R}/fornecedores`, { razaoSocial: n, cnpj: ['11.222.333/0001-81', '45.997.418/0001-53', '33.000.167/0001-01', '60.746.948/0001-12'][i], prazoPagamentoDias: 30 })
+    if (f) forn.push(f)
+  }
+  if (forn[0]) await c.api('POST', `${R}/fornecedores/avaliacoes`, { fornecedorId: forn[0].id, notaPrazo: 5, notaQualidade: 4, notaPreco: 4 })
+  // estoque: alguns itens fartos, outros no limite
+  itens.slice(0, 8).forEach(() => {})
+  let n = 0
+  for (const it of itens) {
+    n++
+    if (!alm || n > 9) break
+    const qtd = n % 3 === 0 ? 2 : 40 + n * 10
+    const body: any = { tipo: 'ENTRADA', itemId: it.id, almoxarifadoId: alm.id, quantidade: qtd, custoUnitario: 12 + n }
+    if (it.controlaLote) { body.loteNumero = `L${n}`; body.validade = day(60 + n * 20) }
+    await c.api('POST', `${R}/estoque/movimentacoes`, body)
+  }
+  const reqItens = itens.slice(0, 3).map((it, i) => ({ itemId: it.id, quantidade: 10 + i * 5 }))
+  for (let i = 0; i < 3; i++) {
+    const rq = await c.api('POST', `${R}/requisicoes`, { centroCustoId: cc.id, justificativa: ['Reposição mensal do laboratório', 'Material para a semana acadêmica', 'Insumos da clínica-escola'][i], itens: reqItens })
+    if (rq && i < 2) await c.api('POST', `${R}/requisicoes/${rq.id}/enviar`, {})
+    if (rq && i === 1) await c.api('POST', `${R}/requisicoes/${rq.id}/decidir`, { decisao: 'APROVADO' })
   }
 }
 
