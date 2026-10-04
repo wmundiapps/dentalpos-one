@@ -29,4 +29,5 @@ jobs:
       - run: npm run verify
       - run: npx tsx scripts/test-boolean.ts
       - run: npx tsx scripts/test-production.ts
+      - run: npm run test:security
       - run: npm run build

@@ -66,6 +66,7 @@ import Homologation from "../pages/Homologation";
 
 import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
 import SmileDesign from "../pages/SmileDesign";
+import Security from "../pages/Security";
 import {
   getDemoModuleStatus,
   moduleForPath,
@@ -161,6 +162,8 @@ export default function AppRoutes() {
         path="/comunicacoes"
         element={<Communications />}
       />
+
+      <Route path="/seguranca" element={<Security />} />
 
       <Route
         path="/configuracoes"

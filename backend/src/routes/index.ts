@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/auth'
 import tenantMiddleware from '../middleware/tenant'
 
 import * as authController from '../controllers/authController'
+import * as securityController from '../controllers/securityController'
 import * as userController from '../controllers/userController'
 import * as clinicController from '../controllers/clinicController'
 import * as doctorController from '../controllers/doctorController'
@@ -72,6 +73,8 @@ const router = Router()
 
 router.post('/auth/register', authController.register)
 router.post('/auth/login', authController.login)
+router.post('/auth/login/2fa', authController.loginTwoFactor)
+router.post('/dpd/verify', securityController.dpdVerify)
 router.post('/auth/password-reset/request', authController.requestPasswordReset)
 router.post('/auth/password-reset/confirm', authController.resetPassword)
 router.get('/demo/config', demoController.config)
@@ -100,6 +103,11 @@ router.post('/public/booking/:clinicId', publicBookingController.store)
 // ======================
 
 router.use(authMiddleware)
+router.get('/auth/2fa/status', securityController.twoFactorStatus)
+router.post('/auth/2fa/setup', securityController.twoFactorSetup)
+router.post('/auth/2fa/enable', securityController.twoFactorEnable)
+router.post('/auth/2fa/disable', securityController.twoFactorDisable)
+router.post('/dpd/token', securityController.dpdToken)
 router.use(tenantMiddleware)
 
 // Clinical modules integrated by Chat 8. Authentication and tenant context are already resolved above.

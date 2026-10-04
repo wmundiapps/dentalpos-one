@@ -5,6 +5,10 @@ import { deepClone, uid } from '../core/math'
 import { demoMarks, makeDemoPhoto, DEMO_H, DEMO_W } from '../render/demoFace'
 import { PRESETS } from '../core/presets'
 import { applyMode } from '../core/project'
+import { getSecurityConfig } from '../security/config'
+import { SecurityError, sanitizePhoto } from '../security/files'
+import { assertSafeImage } from '../security/nsfw'
+import { safeJsonParse, sanitizeProject, imageFromDataUrl } from '../security/sanitize'
 import { deleteBlob, deleteProject, getBlob, listProjects, loadProject, putBlob, saveProject, type ProjectSummary } from './db'
 
 export type Step = 'cases' | 'photos' | 'analysis' | 'design' | 'cad' | 'plan' | 'present' | 'export'
@@ -301,33 +305,28 @@ export async function createDemo() {
 const MAX_SIDE = 3000
 
 export async function addPhotoFile(file: File, kind: PhotoKind = 'smile') {
-  setState({ busy: 'Importando foto…' })
+  setState({ busy: 'Verificando e importando foto…' })
   try {
-    let bmp = await createImageBitmap(file)
-    let blob: Blob = file
-    const side = Math.max(bmp.width, bmp.height)
-    if (side > MAX_SIDE || !/jpe?g|png|webp/i.test(file.type)) {
-      const k = Math.min(1, MAX_SIDE / side)
-      const c = document.createElement('canvas')
-      c.width = Math.round(bmp.width * k)
-      c.height = Math.round(bmp.height * k)
-      c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height)
-      blob = await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('falha ao converter'))), 'image/jpeg', 0.93))
+    const cfg = getSecurityConfig()
+    const { blob, bitmap: bmp } = await sanitizePhoto(file, cfg)
+    try {
+      await assertSafeImage(bmp, cfg)
+    } catch (e) {
       bmp.close?.()
-      bmp = await createImageBitmap(blob)
+      throw e
     }
     const id = uid('ph')
     await putBlob(`${state.project.id}/photo/${id}`, blob)
     photoCache.set(id, bmp)
     mutate((p) => {
-      p.photos.push({ id, kind, name: file.name, width: bmp.width, height: bmp.height })
+      p.photos.push({ id, kind, name: file.name.replace(/[^\w .\-()À-ÿ]/g, '_').slice(0, 80), width: bmp.width, height: bmp.height })
       if (!p.basePhotoId && (kind === 'smile' || kind === 'face')) p.basePhotoId = id
     })
     setState((s) => ({ photoRev: s.photoRev + 1 }))
     toast('Foto adicionada.', 'ok')
   } catch (e) {
     console.error(e)
-    toast('Não foi possível ler a imagem. Use JPG, PNG ou WebP.', 'err')
+    toast(e instanceof SecurityError ? e.message : 'Não foi possível ler a imagem. Use JPG, PNG ou WebP.', 'err')
   } finally {
     setState({ busy: null })
   }
@@ -396,17 +395,27 @@ export async function exportProjectFile(): Promise<Blob> {
 
 export async function importProjectFile(file: File) {
   try {
-    const data = JSON.parse(await file.text())
-    if (data.format !== 'dentalpoddesign' || !data.project) throw new Error('arquivo inválido')
-    const p = data.project as Project
+    const cfg = getSecurityConfig()
+    if (file.size > cfg.maxProjectFileMB * 1024 * 1024) throw new SecurityError('Arquivo .dpd grande demais.', 'size')
+    const data = safeJsonParse(await file.text()) as { format?: string; project?: unknown; photos?: Record<string, unknown>; models?: Record<string, unknown> }
+    if (!data || data.format !== 'dentalpoddesign' || !data.project) throw new SecurityError('Arquivo .dpd inválido.', 'schema')
+    const p = sanitizeProject(data.project)
     p.id = uid('prj')
     for (const ph of p.photos) {
-      const url = data.photos?.[ph.id] as string | undefined
-      if (url) await putBlob(`${p.id}/photo/${ph.id}`, await (await fetch(url)).blob())
+      const raw = data.photos?.[ph.id]
+      const blob = imageFromDataUrl(raw, cfg)
+      if (!blob) continue
+      const bmp = await createImageBitmap(blob)
+      try {
+        await assertSafeImage(bmp, cfg)
+      } finally {
+        bmp.close?.()
+      }
+      await putBlob(`${p.id}/photo/${ph.id}`, blob)
     }
     for (const m of p.models) {
-      const b64 = data.models?.[m.id] as string | undefined
-      if (b64) {
+      const b64 = data.models?.[m.id]
+      if (typeof b64 === 'string' && /^[A-Za-z0-9+/=]+$/.test(b64) && b64.length < cfg.maxModelMB * 1.4 * 1024 * 1024) {
         const bin = atob(b64)
         const u = new Uint8Array(bin.length)
         for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i)
@@ -419,7 +428,7 @@ export async function importProjectFile(file: File) {
     toast('Caso importado.', 'ok')
   } catch (e) {
     console.error(e)
-    toast('Arquivo .dpd inválido.', 'err')
+    toast(e instanceof SecurityError ? e.message : 'Arquivo .dpd inválido.', 'err')
   }
 }
 

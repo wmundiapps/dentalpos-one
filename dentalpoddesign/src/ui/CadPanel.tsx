@@ -1,3 +1,5 @@
+import { getSecurityConfig } from '../security/config'
+import { SecurityError, validateModelFile } from '../security/files'
 import { useRef } from 'react'
 import { Check, Field, Section, Seg, Slider, fmt } from './common'
 import { ToothEditor } from './DesignPanel'
@@ -25,7 +27,7 @@ export function CadPanel() {
 
   const importModel = async (file: File, arch: ImportedModel['arch']) => {
     try {
-      const buf = await file.arrayBuffer()
+      const buf = await validateModelFile(file, getSecurityConfig())
       const mesh = parseMesh(file.name, buf)
       const st = meshStats(mesh)
       const id = uid('mdl')
@@ -46,7 +48,7 @@ export function CadPanel() {
       toast(`Modelo importado: ${st.triangles.toLocaleString('pt-BR')} triângulos. Ajuste a posição com os controles.`, 'ok')
     } catch (e) {
       console.error(e)
-      toast('Não foi possível ler o modelo (use STL, OBJ ou PLY).', 'err')
+      toast(e instanceof SecurityError ? e.message : 'Não foi possível ler o modelo (use STL, OBJ ou PLY).', 'err')
     }
   }
   return (

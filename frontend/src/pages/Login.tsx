@@ -19,6 +19,8 @@ export default function Login() {
   const [error, setError] = useState("");
   const [expired, setExpired] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [challenge, setChallenge] = useState("");
+  const [code, setCode] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetClinicId, setResetClinicId] = useState("");
@@ -33,20 +35,38 @@ export default function Login() {
     setExpired(false);
 
     try {
-      const response = await fetch(`${API}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...(clinicId.trim() ? { clinicId: clinicId.trim() } : {}),
-          email,
-          password,
-        }),
-      });
+      const response = await fetch(
+        challenge ? `${API}/auth/login/2fa` : `${API}/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            challenge
+              ? { challenge, code: code.trim() }
+              : {
+                  ...(clinicId.trim() ? { clinicId: clinicId.trim() } : {}),
+                  email,
+                  password,
+                },
+          ),
+        },
+      );
 
       const data = await response.json();
       if (!response.ok) {
         if (data?.code === "DEMO_ENDED") setExpired(true);
+        if (data?.code === "CHALLENGE_INVALID") {
+          setChallenge("");
+          setCode("");
+        }
         throw new Error(data.error || "Falha no login");
+      }
+
+      if (data.twoFactorRequired && data.challenge) {
+        setChallenge(data.challenge);
+        setCode("");
+        setPassword("");
+        return;
       }
 
       const token = data.token || data.accessToken;
@@ -129,35 +149,70 @@ export default function Login() {
           </Alert>
         ) : null}
 
-        <TextField
-          fullWidth
-          label="ID da clínica (opcional)"
-          value={clinicId}
-          onChange={(event) => setClinicId(event.target.value)}
-          helperText="Só é necessário quando o mesmo e-mail pertence a mais de uma clínica."
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="E-mail"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          sx={{ mb: 2 }}
-          required
-        />
-        <TextField
-          fullWidth
-          label="Senha"
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          sx={{ mb: 2 }}
-          required
-        />
-        <Button fullWidth size="large" variant="contained" type="submit" disabled={busy}>
-          {busy ? "Entrando..." : "Entrar"}
-        </Button>
+        {challenge ? (
+          <>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Verificação em 2 etapas: digite o código de 6 dígitos do seu aplicativo autenticador
+              (ou um código de recuperação).
+            </Alert>
+            <TextField
+              fullWidth
+              autoFocus
+              label="Código de verificação"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              slotProps={{ htmlInput: { inputMode: "text", autoComplete: "one-time-code", maxLength: 20 } }}
+              sx={{ mb: 2 }}
+              required
+            />
+            <Button fullWidth size="large" variant="contained" type="submit" disabled={busy || !code.trim()}>
+              {busy ? "Verificando..." : "Verificar e entrar"}
+            </Button>
+            <Button
+              fullWidth
+              sx={{ mt: 1 }}
+              onClick={() => {
+                setChallenge("");
+                setCode("");
+                setError("");
+              }}
+            >
+              Voltar
+            </Button>
+          </>
+        ) : (
+          <>
+            <TextField
+              fullWidth
+              label="ID da clínica (opcional)"
+              value={clinicId}
+              onChange={(event) => setClinicId(event.target.value)}
+              helperText="Só é necessário quando o mesmo e-mail pertence a mais de uma clínica."
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="E-mail"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              sx={{ mb: 2 }}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Senha"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              sx={{ mb: 2 }}
+              required
+            />
+            <Button fullWidth size="large" variant="contained" type="submit" disabled={busy}>
+              {busy ? "Entrando..." : "Entrar"}
+            </Button>
+          </>
+        )}
 
         {expired ? (
           <Button

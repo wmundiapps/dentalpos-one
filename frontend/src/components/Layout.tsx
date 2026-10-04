@@ -1,5 +1,6 @@
 import { Box } from "@mui/material";
 import { useEffect, type ReactNode } from "react";
+import { useIdleLogout } from "../hooks/useIdleLogout";
 import { syncProcedureDurations } from "../services/ProcedureDurations";
 
 import DemoBanner from "./DemoBanner";
@@ -17,6 +18,7 @@ interface LayoutProps {
 export default function Layout({
   children,
 }: LayoutProps) {
+  useIdleLogout();
   useEffect(() => { void syncProcedureDurations(); }, []);
 
   return (

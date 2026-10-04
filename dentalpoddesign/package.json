@@ -6,18 +6,23 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/protect.mjs",
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit",
     "verify": "tsx scripts/verify-geometry.ts",
     "test:auto": "tsx scripts/test-auto.ts",
     "test:e2e": "node scripts/e2e.mjs",
-    "build:integrado": "npm run build && node scripts/copy-to-dentalpos.mjs"
+    "build:integrado": "npm run build && node scripts/copy-to-dentalpos.mjs",
+    "build:dev": "tsc --noEmit && vite build",
+    "test:security": "tsx scripts/test-security.ts",
+    "test:e2e-security": "node scripts/e2e-security.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",
+    "@tensorflow/tfjs": "^4.22.0",
     "jspdf": "^4.2.1",
     "manifold-3d": "^3.0.0",
+    "nsfwjs": "^4.3.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "three": "^0.185.1"
@@ -28,6 +33,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^6.0.4",
+    "javascript-obfuscator": "^5.9.0",
     "playwright-core": "^1.50.0",
     "tsx": "^4.19.0",
     "typescript": "~6.0.2",

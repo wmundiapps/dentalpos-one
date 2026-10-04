@@ -1,0 +1,12 @@
+{
+  "allowedHosts": ["localhost", "127.0.0.1", "[::1]", "dentalpos.com.br", "*.dentalpos.com.br", "dentalpos-one.vercel.app", "dentalpos-landing.vercel.app", "dentalpos-one-*-robsonraveloliveira-7222.vercel.app"],
+  "allowedParents": ["https://dentalpos.com.br", "https://*.dentalpos.com.br", "https://dentalpos-one.vercel.app", "https://dentalpos-landing.vercel.app", "https://dentalpos-one-*-robsonraveloliveira-7222.vercel.app", "http://localhost:*", "http://127.0.0.1:*"],
+  "requireHostToken": false,
+  "apiUrl": "",
+  "nsfw": { "enabled": true, "blockPorn": 0.7, "blockHentai": 0.8, "blockCombined": 0.85 },
+  "idleLockMinutes": 30,
+  "maxPhotoMB": 25,
+  "maxModelMB": 120,
+  "maxProjectFileMB": 400,
+  "maxBlockedUploads": 3
+}

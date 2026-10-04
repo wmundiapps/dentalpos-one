@@ -1,3 +1,4 @@
+import { checkUploadMeta } from '../utils/uploadPolicy'
 import { Response } from 'express'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
@@ -168,6 +169,8 @@ export async function uploadIntent(req: AuthRequest, res: Response) {
 
     const parsed = clinicalFileCreateSchema.safeParse(req.body)
     if (!parsed.success) return res.status(400).json({ error: 'Dados do arquivo inválidos.', details: parsed.error.flatten() })
+    const uploadProblem = checkUploadMeta(parsed.data.originalName, normalizeExtension(parsed.data.originalName, parsed.data.extension), parsed.data.mimeType, parsed.data.externalUrl)
+    if (uploadProblem) return res.status(400).json({ error: uploadProblem })
     await assertLinkedEntities({ ...parsed.data, patientId, clinicId, tenantId })
 
     if (parsed.data.categoryId) {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Autocomplete, Box, Chip, TextField, Typography } from "@mui/material";
+import { dentalPodToken } from "../services/SecurityApi";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 
 /**
@@ -33,10 +34,17 @@ export default function SmileDesign() {
 
   useEffect(() => {
     if (!ready || !patient) return;
-    frame.current?.contentWindow?.postMessage(
-      { type: "dpd:init", patient: { id: patient.id, name: patient.fullName }, caseName: `Sorriso — ${patient.fullName}` },
-      "*",
-    );
+    let cancelled = false;
+    void (async () => {
+      // token curto assinado pelo servidor: o DentalPod só libera quando o servidor o confirma
+      const token = await dentalPodToken().then((t) => t.token).catch(() => undefined);
+      if (cancelled) return;
+      frame.current?.contentWindow?.postMessage(
+        { type: "dpd:init", token, patient: { id: patient.id, name: patient.fullName }, caseName: `Sorriso — ${patient.fullName}` },
+        window.location.origin,
+      );
+    })();
+    return () => { cancelled = true; };
   }, [ready, patient]);
 
   return (

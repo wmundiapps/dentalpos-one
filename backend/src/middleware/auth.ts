@@ -43,7 +43,7 @@ export const authMiddleware = (
       })
     }
 
-    const decoded = jwt.verify(token, secret) as TokenPayload
+    const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] }) as TokenPayload
 
     req.user = {
       id: decoded.id,

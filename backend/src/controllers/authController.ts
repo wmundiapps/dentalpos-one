@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'crypto'
+import { createHash, createHmac, randomBytes } from 'crypto'
 import { Request, Response } from 'express'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import { prisma } from '../lib/prisma'
@@ -11,12 +11,28 @@ import {
 import { writeAudit } from '../services/auditService'
 import { getDemoAccess } from '../services/demoAccessService'
 import { decryptSecret } from '../services/secretVault'
+import { validatePassword } from '../utils/passwordPolicy'
+import { checkSecondFactor, getSecurity, isLocked, recordFailure, recordSuccess } from '../services/userSecurityService'
 import { dispatchRevah } from '../services/revahProviderService'
 
 function jwtSecret() {
   const secret = process.env.JWT_SECRET
   if (!secret) throw new Error('JWT_SECRET não configurado')
   return secret
+}
+
+// Desafio da 2ª etapa: JWT curto (5 min) assinado com chave DERIVADA — nunca é aceito como token de sessão.
+const challengeKey = () => createHmac('sha256', jwtSecret()).update('login-2fa-challenge').digest('hex')
+function signChallenge(userId: string) {
+  return jwt.sign({ uid: userId, purpose: '2fa' }, challengeKey(), { expiresIn: '5m', algorithm: 'HS256' })
+}
+function readChallenge(token: string): string | null {
+  try {
+    const d = jwt.verify(token, challengeKey(), { algorithms: ['HS256'] }) as { uid?: string; purpose?: string }
+    return d.purpose === '2fa' && typeof d.uid === 'string' ? d.uid : null
+  } catch {
+    return null
+  }
 }
 
 function safeUser<T extends { password?: unknown }>(user: T) {
@@ -41,7 +57,7 @@ function generateToken(user: {
       role: user.role
     },
     jwtSecret(),
-    { expiresIn }
+    { expiresIn, algorithm: 'HS256' }
   )
 }
 
@@ -65,8 +81,9 @@ export async function register(req: Request, res: Response) {
       return res.status(400).json({ error: 'Dados obrigatórios não informados.' })
     }
 
-    if (String(password).length < 10) {
-      return res.status(400).json({ error: 'A senha deve possuir pelo menos 10 caracteres.' })
+    const pwProblem = validatePassword(String(password), [String(email), String(firstName), String(lastName)])
+    if (pwProblem) {
+      return res.status(400).json({ error: pwProblem })
     }
 
     const normalizedEmail = String(email).trim().toLowerCase()
@@ -142,52 +159,106 @@ export async function login(req: Request, res: Response) {
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
     }
 
+    // bloqueio progressivo por conta (5 falhas → 5 min, dobrando até 60 min)
+    let sec: Awaited<ReturnType<typeof getSecurity>> | null = null
+    try {
+      sec = await getSecurity(user.id)
+    } catch (e) {
+      console.warn('UserSecurity indisponível (aplique a migração 20261004_seguranca_2fa.sql):', e)
+    }
+    if (sec && isLocked(sec)) {
+      const min = Math.max(1, Math.ceil((sec.lockedUntil!.getTime() - Date.now()) / 60000))
+      return res.status(423).json({ code: 'ACCOUNT_LOCKED', error: `Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em ${min} min.` })
+    }
+
     const validPassword = await comparePassword(String(password), user.password)
 
     if (!validPassword) {
+      if (sec) await recordFailure(user.id).catch(() => undefined)
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
     }
 
-    const demo = await getDemoAccess(user.clinicId)
-    if (demo.isDemo && demo.phase === 'ENDED') {
-      return res.status(403).json({
-        code: 'DEMO_ENDED',
-        error:
-          'A demonstração gratuita foi encerrada. Seus dados permanecem preservados. Solicite uma proposta para reativar o acesso.',
-        demo,
-      })
+    if (sec?.totpEnabled) {
+      return res.json({ twoFactorRequired: true, challenge: signChallenge(user.id) })
     }
+    if (sec) await recordSuccess(user.id).catch(() => undefined)
 
-    const token = generateToken({
-      id: user.id,
-      email: user.email,
-      clinicId: user.clinicId,
-      tenantId: user.tenantId,
-      role: user.role
-    })
-
-    try {
-      await writeAudit({
-        clinicId: user.clinicId,
-        tenantId: user.tenantId,
-        actorId: user.id,
-        module: 'auth',
-        action: 'LOGIN',
-        entityType: 'User',
-        entityId: user.id,
-        summary: 'Login realizado com sucesso.',
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent') || undefined
-      })
-    } catch (auditError) {
-      console.warn('Falha ao registrar auditoria de login:', auditError)
-    }
-
-    return res.json({ token, user: safeUser(user), demo })
+    return finishLogin(req, res, user)
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro interno do servidor.' })
   }
+}
+
+/** Segunda etapa do login: confirma o código do app autenticador (ou de recuperação) e emite o token. */
+export async function loginTwoFactor(req: Request, res: Response) {
+  try {
+    const challenge = String(req.body?.challenge || '')
+    const code = String(req.body?.code || '')
+    const userId = readChallenge(challenge)
+    if (!userId || !code) return res.status(401).json({ code: 'CHALLENGE_INVALID', error: 'Sessão de verificação expirada. Entre novamente.' })
+
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user || !user.isActive) return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
+
+    const sec = await getSecurity(user.id)
+    if (isLocked(sec)) return res.status(423).json({ code: 'ACCOUNT_LOCKED', error: 'Conta temporariamente bloqueada por excesso de tentativas.' })
+
+    const how = await checkSecondFactor(user.id, code)
+    if (!how) {
+      await recordFailure(user.id).catch(() => undefined)
+      return res.status(401).json({ error: 'Código inválido.' })
+    }
+    await recordSuccess(user.id).catch(() => undefined)
+    return finishLogin(req, res, user, how === 'backup' ? 'Login com 2FA (código de recuperação).' : 'Login com 2FA realizado.')
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro interno do servidor.' })
+  }
+}
+
+async function finishLogin(
+  req: Request,
+  res: Response,
+  user: { id: string; email: string; clinicId: string; tenantId: string; role: string; password: string },
+  summary = 'Login realizado com sucesso.',
+) {
+  const demo = await getDemoAccess(user.clinicId)
+  if (demo.isDemo && demo.phase === 'ENDED') {
+    return res.status(403).json({
+      code: 'DEMO_ENDED',
+      error:
+        'A demonstração gratuita foi encerrada. Seus dados permanecem preservados. Solicite uma proposta para reativar o acesso.',
+      demo,
+    })
+  }
+
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    clinicId: user.clinicId,
+    tenantId: user.tenantId,
+    role: user.role,
+  })
+
+  try {
+    await writeAudit({
+      clinicId: user.clinicId,
+      tenantId: user.tenantId,
+      actorId: user.id,
+      module: 'auth',
+      action: 'LOGIN',
+      entityType: 'User',
+      entityId: user.id,
+      summary,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined,
+    })
+  } catch (auditError) {
+    console.warn('Falha ao registrar auditoria de login:', auditError)
+  }
+
+  return res.json({ token, user: safeUser(user), demo })
 }
 
 export async function me(_req: Request, res: Response) {
@@ -338,9 +409,10 @@ export async function resetPassword(req: Request, res: Response) {
     const token = String(req.body?.token || '').trim()
     const password = String(req.body?.password || '')
 
-    if (!token || password.length < 10) {
+    const resetProblem = validatePassword(password)
+    if (!token || resetProblem) {
       return res.status(400).json({
-        error: 'Token válido e senha com pelo menos 10 caracteres são obrigatórios.',
+        error: resetProblem || 'Token válido e senha são obrigatórios.',
       })
     }
 

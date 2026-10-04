@@ -33,13 +33,10 @@ Nova trava (`requireWmundiStaff`) que nem o papel ADMIN da clínica ultrapassa �
 ### 11. Resto do roadmap original do plano mestre — status: PENDENTE
 Design/CAD-CAM, Administrativo (permissões + biometria), Gestão (hora clínica/precificação), DentalPos Sales, Acadêmico, Configurações, reorganização do menu em 4 grupos.
 
-### 12. Etapa final de segurança — status: PENDENTE
-- Verificação em duas etapas: GitHub, Vercel, Supabase, Resend e Claude.
-- Limite de tentativas de login; regra de senha forte; expiração de sessão por inatividade.
-- Restringir conexões ao banco Supabase; conferir e testar backup automático.
-- Auditoria de acesso/alteração de dados de pacientes (LGPD).
-- Unificar a lista de e-mails da equipe WMundi (hoje duplicada em `permission.ts` e `WmundiStaffOnly.tsx`).
-- Revisar 1 vulnerabilidade alta do `npm audit` no frontend (não rodar `npm audit fix` sem revisão).
+### 12. Etapa final de segurança — status: EM ANDAMENTO (parte de código feita em 04/10/2026; ver `SECURITY.md`)
+- **FEITO (código):** 2FA TOTP + tela Segurança da conta; limite de tentativas por conta; senha forte; expiração por inatividade; JWT HS256 fixo; upload clínico endurecido; DentalPod com trava de domínio, filtro de malware/NSFW, ofuscação e CSP.
+- **PENDENTE (você):** ativar verificação em duas etapas no GitHub, Vercel, Supabase, Resend e Claude; restringir conexões ao banco Supabase; conferir e testar backup automático; aplicar a migração `20261004_seguranca_2fa.sql`; ligar `requireHostToken` após o deploy do backend.
+- **PENDENTE (código):** auditoria de acesso/alteração de dados de pacientes (LGPD); unificar a lista de e-mails da equipe WMundi (hoje duplicada em `permission.ts` e `WmundiStaffOnly.tsx`); revisar 1 vulnerabilidade alta do `npm audit` no frontend (não rodar `npm audit fix` sem revisão); moderação de imagem e antivírus no servidor.
 
 ### 13. Pesquisa de satisfação pós-atendimento — status: PENDENTE (planejado em 16/09/2026; fazer depois do pacote visual)
 - Envio automático algumas horas após o atendimento "Finalizado", pelo canal preferido (WhatsApp/SMS/e-mail); link público de uso único; no máximo 1 pesquisa por semana por paciente; opção de não receber mais.

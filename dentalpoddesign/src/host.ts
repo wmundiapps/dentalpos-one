@@ -1,3 +1,6 @@
+import { getSecurityConfig } from './security/config'
+import { originAllowed, parentOrigin } from './security/guard'
+import { denyToken, verifyHostToken } from './security/session'
 import { getState, newProject, openProject, setState, subscribe, toast } from './store/store'
 
 /**
@@ -10,10 +13,18 @@ export function setupHost(): () => void {
   const embedded = window.parent !== window || new URLSearchParams(location.search).get('embedded') === '1'
   if (!embedded) return () => undefined
   setState({ host: { embedded: true } })
+  const target = parentOrigin() ?? location.origin
   const onMsg = async (e: MessageEvent) => {
+    // só aceita mensagens do documento que nos embute e de origem autorizada
+    if (e.source !== window.parent) return
+    if (e.origin !== location.origin && !originAllowed(e.origin, getSecurityConfig())) return
     const d = e.data
     if (!d || typeof d !== 'object' || d.source === 'react-devtools-bridge') return
     if (d.type === 'dpd:init') {
+      if (!(await verifyHostToken(d.token))) {
+        if (getSecurityConfig().requireHostToken) denyToken()
+        return
+      }
       const patient = d.patient ?? {}
       setState({ host: { embedded: true, patientName: patient.name, patientId: patient.id, clinic: d.clinic } })
       // reabre o caso existente do paciente, se houver
@@ -26,7 +37,7 @@ export function setupHost(): () => void {
     }
   }
   window.addEventListener('message', onMsg)
-  window.parent.postMessage({ type: 'dpd:ready' }, '*')
+  window.parent.postMessage({ type: 'dpd:ready' }, target)
   let last = 0
   const unsub = subscribe(() => {
     const s = getState()
@@ -34,7 +45,7 @@ export function setupHost(): () => void {
       last = s.project.updatedAt
       window.parent.postMessage(
         { type: 'dpd:saved', project: { id: s.project.id, name: s.project.name, patient: s.project.patient, variants: s.project.variants.length, updatedAt: s.project.updatedAt } },
-        '*',
+        target,
       )
     }
   })

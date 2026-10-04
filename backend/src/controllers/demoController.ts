@@ -1,3 +1,4 @@
+import { validatePassword } from '../utils/passwordPolicy'
 import { randomUUID } from 'crypto'
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
@@ -85,8 +86,9 @@ export async function register(req: Request, res: Response) {
       return res.status(400).json({ error: 'Informe um e-mail válido.' })
     }
 
-    if (password.length < 10) {
-      return res.status(400).json({ error: 'A senha deve possuir pelo menos 10 caracteres.' })
+    const pwProblem = validatePassword(password, [email])
+    if (pwProblem) {
+      return res.status(400).json({ error: pwProblem })
     }
 
     if (!acceptTerms) {
