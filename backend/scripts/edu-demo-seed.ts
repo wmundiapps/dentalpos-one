@@ -52,7 +52,7 @@ const ALUNO_SENHA = 'Aluno@2026'
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [
   ['equipe', equipe],
   ['bootstrap', async (c) => { for (const m of MODULOS) await c.api('POST', `/edu/${m}/bootstrap`, {}) }],
-  ['academico', academico], ['espacos', espacos], ['admissoes', admissoes], ['financeiro', financeiro], ['secretaria', secretaria], ['calendario', calendario], ['notas', notas], ['infraestrutura', infraestrutura], ['suprimentos', suprimentos],
+  ['academico', academico], ['espacos', espacos], ['admissoes', admissoes], ['financeiro', financeiro], ['secretaria', secretaria], ['calendario', calendario], ['notas', notas], ['infraestrutura', infraestrutura], ['suprimentos', suprimentos], ['regulatorio', regulatorio], ['governanca', governanca],
 ]
 
 
@@ -366,8 +366,88 @@ async function suprimentos(c: Ctx) {
   for (let i = 0; i < 3; i++) {
     const rq = await c.api('POST', `${R}/requisicoes`, { centroCustoId: cc.id, justificativa: ['Reposição mensal do laboratório', 'Material para a semana acadêmica', 'Insumos da clínica-escola'][i], itens: reqItens })
     if (rq && i < 2) await c.api('POST', `${R}/requisicoes/${rq.id}/enviar`, {})
-    if (rq && i === 1) await c.api('POST', `${R}/requisicoes/${rq.id}/decidir`, { decisao: 'APROVADO' })
   }
+}
+
+async function regulatorio(c: Ctx) {
+  const R = '/edu/regulatorio'
+  const atos: [string, string, string, string | null, number | null, string, number][] = [
+    ['PORTARIA_RECREDENCIAMENTO', 'Portaria MEC nº 412/2023', 'INSTITUICAO', null, 3, 'Recredenciamento da IES (EaD e presencial)', 4],
+    ['PORTARIA_RECONHECIMENTO', 'Portaria MEC nº 188/2022', 'CURSO', 'Odontologia', 4, 'Reconhecimento do curso de Odontologia', 4],
+    ['PORTARIA_AUTORIZACAO', 'Portaria SERES nº 77/2021', 'CURSO', 'Direito (EaD)', 5, 'Autorização do curso de Direito EaD', 3],
+    ['PORTARIA_RENOVACAO', 'Portaria SERES nº 301/2020', 'CURSO', 'Administração', 3, 'Renovação de reconhecimento — Administração', 4],
+  ]
+  const venc = [1180, 150, 24, -12]
+  for (const [i, [tipo, numero, escopo, curso, conceito, obs, ciclo]] of atos.entries()) {
+    await c.api('POST', `${R}/atos`, { tipo, numero, orgao: 'MEC', dataPublicacao: day(venc[i] - ciclo * 365), vigenciaInicio: day(venc[i] - ciclo * 365), vencimento: day(venc[i]), escopo, cursoNome: curso, conceito, cicloAvaliativoAnos: ciclo, observacoes: obs })
+  }
+  const pRec = await c.api('POST', `${R}/processos`, { tipo: 'RECONHECIMENTO_CURSO', titulo: 'Reconhecimento — Direito EaD', programId: S.direito.id, prazoProtocolo: day(18), vagasSolicitadas: 200 })
+  const pRen = await c.api('POST', `${R}/processos`, { tipo: 'RENOVACAO_RECONHECIMENTO', titulo: 'Renovação de reconhecimento — Odontologia', programId: S.odonto.id, prazoProtocolo: day(60) })
+  const pAdit = await c.api('POST', `${R}/processos`, { tipo: 'ADITAMENTO_VAGAS', titulo: 'Aditamento de vagas — Odontologia (60 → 80)', programId: S.odonto.id, vagasSolicitadas: 80, prazoProtocolo: day(-4) })
+  const pAut = await c.api('POST', `${R}/processos`, { tipo: 'AUTORIZACAO_CURSO', titulo: 'Autorização — Medicina Veterinária', cursoNome: 'Medicina Veterinária', prazoProtocolo: day(120) })
+  if (pAdit) {
+    await c.api('POST', `${R}/processos/${pAdit.id}/avancar`, { etapa: 'PROTOCOLADO', protocoloEmec: '202609018812' }) // pode exigir checklist
+  }
+  if (pAdit) await c.api('POST', `${R}/processos/${pAdit.id}/avancar`, { etapa: 'EM_ANALISE' })
+  if (pAdit) await c.api('POST', `${R}/processos/${pAdit.id}/diligencias`, { descricao: 'Apresentar PPC revisado e comprovar acervo bibliográfico', prazoResposta: day(9), exigencias: [{ texto: 'PPC revisado' }, { texto: 'Comprovante de acervo' }] })
+  const mods = lst(await c.api('GET', `${R}/checklist-modelos?pageSize=50`))
+  const mRec = mods.find((m) => /RECONHEC/i.test(m.chave ?? m.tipo ?? m.nome)) ?? mods[0]
+  if (mRec && pRec) {
+    const cl = await c.api('POST', `${R}/checklists`, { modeloId: mRec.id, processoId: pRec.id, programId: S.direito.id, prazo: day(25) })
+    const full = cl ? await c.api('GET', `${R}/checklists/${cl.id}`) : null
+    const itens: any[] = full?.itens ?? []
+    for (const [i, it] of itens.entries()) {
+      if (i % 3 === 0) {
+        await c.api('POST', `${R}/checklists/itens/${it.id}/evidencias`, { nome: 'evidencia.pdf', dataUrl: 'data:application/pdf;base64,JVBERi0xLjQK' })
+        await c.api('PATCH', `${R}/checklists/itens/${it.id}`, { status: 'ATENDIDO' })
+      } else if (i % 3 === 1) await c.api('PATCH', `${R}/checklists/itens/${it.id}`, { status: 'EM_ANDAMENTO' })
+    }
+  }
+  await c.api('POST', `${R}/indicadores/gerar`, {})
+}
+
+async function governanca(c: Ctx) {
+  const G = '/edu/governanca'
+  const pdi = await c.api('POST', `${G}/pdis`, { titulo: 'PDI 2026–2030 — Ravel 2030', anoInicio: 2026, anoFim: 2030 })
+  if (pdi) {
+    const eixos = ['Ensino e Aprendizagem', 'Pesquisa e Extensão', 'Gestão e Sustentabilidade', 'Infraestrutura']
+    const metas: any[] = []
+    for (const [i, nome] of eixos.entries()) {
+      const eixo = await c.api('POST', `${G}/pdi-eixos`, { pdiId: pdi.id, nome, peso: 1 + (i % 2) })
+      if (!eixo) continue
+      const obj = await c.api('POST', `${G}/pdi-objetivos`, { eixoId: eixo.id, titulo: ['Reduzir a evasão', 'Ampliar a produção científica', 'Equilíbrio financeiro', 'Modernizar laboratórios'][i] })
+      if (!obj) continue
+      const def: [string, string, string, number, number][] = [
+        ['Taxa de evasão', 'MENOR_MELHOR', 'Reduzir evasão para 8%', 18, 8], ['Publicações indexadas por ano', 'MAIOR_MELHOR', 'Alcançar 60 publicações/ano', 22, 60],
+        ['Margem operacional (%)', 'MAIOR_MELHOR', 'Margem operacional de 15%', 6, 15], ['Laboratórios modernizados', 'MAIOR_MELHOR', 'Modernizar 12 laboratórios', 2, 12],
+      ]
+      const [indicador, sentido, titulo, linhaBase, valorMeta] = def[i]
+      const m = await c.api('POST', `${G}/pdi-metas`, { objetivoId: obj.id, titulo, indicador, sentido, linhaBase, valorMeta, periodicidade: 'TRIMESTRAL', prazo: day(500) })
+      if (m) metas.push({ m, i })
+    }
+    const medicoes = [[16, 14], [30, 38], [8, 4], [5, 3]]
+    for (const { m, i } of metas) {
+      const vals = i === 0 ? [16, 13.5] : i === 1 ? [30, 41] : i === 2 ? [8, 5.5] : [4, 6]
+      for (const v of vals) await c.api('POST', `${G}/pdi-metas/${m.id}/medicoes`, { valor: v })
+      void medicoes
+      await c.api('POST', `${G}/pdi-acoes`, { metaId: m.id, titulo: ['Programa de tutoria entre pares', 'Edital interno de iniciação científica', 'Revisão de contratos e custos', 'Plano de modernização dos laboratórios'][i], prazo: day(i === 2 ? -10 : 40 + i * 25), orcamento: 20000 + i * 15000, gasto: 4000 * i })
+      const acaoDone = await c.api('POST', `${G}/pdi-acoes`, { metaId: m.id, titulo: 'Diagnóstico inicial concluído', prazo: day(-30), orcamento: 5000, gasto: 4800 })
+      if (acaoDone) await c.api('PUT', `${G}/pdi-acoes/${acaoDone.id}`, { status: 'CONCLUIDA' })
+    }
+    await c.api('POST', `${G}/pdis/${pdi.id}/ativar`, {})
+  }
+  const cpa = await c.api('POST', `${G}/cpa/comissoes`, { nome: 'CPA — Comissão Própria de Avaliação' })
+  if (cpa) await c.api('POST', `${G}/cpa/ciclos`, { cpaId: cpa.id, titulo: 'Autoavaliação Institucional 2026', anoBase: 2026, inicio: day(-10), fim: day(35), minRespostas: 30 })
+  const nde = await c.api('POST', `${G}/ndes`, { programId: S.odonto.id, nome: 'NDE — Odontologia' })
+  if (nde) for (const [n, t, r] of [['Marcos Albuquerque', 'DOUTOR', 'INTEGRAL'], ['Ricardo Menezes', 'DOUTOR', 'PARCIAL'], ['Luciana Prado', 'MESTRE', 'PARCIAL'], ['Silvia Aranha', 'DOUTOR', 'INTEGRAL'], ['Tiago Mendes', 'ESPECIALISTA', 'HORISTA']]) await c.api('POST', `${G}/nde-membros`, { ndeId: nde.id, docenteId: 'd-' + n, nome: n, titulacao: t, regime: r, inicio: day(-400) })
+  const org = await c.api('POST', `${G}/orgaos`, { tipo: 'CONSUP', nome: 'Conselho Superior (CONSUP)', quorumPercent: 50 })
+  if (org) {
+    for (let i = 1; i <= 5; i++) await c.api('POST', `${G}/orgao-membros`, { orgaoId: org.id, nome: ['Helena Ravel', 'Marcos Albuquerque', 'Patrícia Moreira', 'Fernando Castro', 'Representante discente'][i - 1], cargo: i === 1 ? 'presidente' : 'membro', inicioMandato: day(-100), fimMandato: day(500), temVoto: true })
+    const reu = await c.api('POST', `${G}/reunioes`, { orgaoId: org.id, data: day(6), tipo: 'ORDINARIA' })
+    if (reu) await c.api('POST', `${G}/deliberacoes`, { orgaoId: org.id, reuniaoId: reu.id, titulo: 'Aprovar orçamento 2027', texto: 'Aprovação do orçamento anual da instituição.' })
+  }
+  const cipa = await c.api('POST', `${G}/cipa/gestoes`, { nome: 'CIPA 2026/2027', inicio: day(-120), fim: day(240) })
+  void cipa
 }
 
 async function main() {
