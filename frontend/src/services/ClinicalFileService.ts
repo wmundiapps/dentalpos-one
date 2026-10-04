@@ -22,7 +22,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body.error || "Falha ao comunicar com o servidor.");
+    // Mantém o status HTTP no erro (ex.: 422 = arquivo bloqueado por segurança).
+    throw Object.assign(new Error(body.error || "Falha ao comunicar com o servidor."), { status: response.status });
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;

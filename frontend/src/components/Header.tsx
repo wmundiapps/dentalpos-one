@@ -6,6 +6,9 @@ import {
   ButtonBase,
   IconButton,
   InputAdornment,
+  ListItemIcon,
+  Menu,
+  MenuItem,
   Paper,
   TextField,
   Toolbar,
@@ -17,6 +20,7 @@ import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchIcon from "@mui/icons-material/Search";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
@@ -30,9 +34,8 @@ import { navigationGroups } from "../config/navigation";
 import { useAppTheme } from "../contexts/AppThemeContext";
 import InstitutionLogo from "../edu/InstitutionLogo";
 import { notifications } from "../services/NotificationService";
+import { endSession } from "../security/sessionGuard";
 import {
-  appRootUrl,
-  clearClientSession,
   pathAllowedForDemo,
   readDemoAccess,
   readSessionUser,
@@ -50,6 +53,7 @@ export default function Header() {
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   const unreadCount = notifications.filter((notification) => !notification.lida).length;
 
@@ -236,10 +240,7 @@ export default function Header() {
 
         <Tooltip title="Sair com segurança">
           <IconButton
-            onClick={() => {
-              clearClientSession();
-              window.location.href = appRootUrl();
-            }}
+            onClick={() => endSession()}
           >
             <LogoutIcon />
           </IconButton>
@@ -260,8 +261,30 @@ export default function Header() {
           )}
         </Tooltip>
         <Tooltip title={sessionUser ? `${sessionUser.firstName} ${sessionUser.lastName}` : "Perfil do usuário"}>
-          <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>{initials}</Avatar>
+          <ButtonBase
+            aria-label="Menu do usuário"
+            aria-haspopup="menu"
+            onClick={(event) => setMenuAnchor(event.currentTarget)}
+            sx={{ borderRadius: "50%" }}
+          >
+            <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>{initials}</Avatar>
+          </ButtonBase>
         </Tooltip>
+        <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+          <MenuItem
+            onClick={() => {
+              setMenuAnchor(null);
+              navigate("/seguranca");
+            }}
+          >
+            <ListItemIcon><SecurityOutlinedIcon fontSize="small" /></ListItemIcon>
+            Segurança da conta
+          </MenuItem>
+          <MenuItem onClick={() => endSession()}>
+            <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+            Sair
+          </MenuItem>
+        </Menu>
       </Toolbar>
     </AppBar>
   );

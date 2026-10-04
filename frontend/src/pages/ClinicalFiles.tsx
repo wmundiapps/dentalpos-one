@@ -14,7 +14,11 @@ import {
   archiveClinicalFile, clinicalFileAccess, clinicalFileDesignHandoff,
   listClinicalFileCategories, listClinicalFiles, listClinicalPatients, uploadClinicalFile
 } from "../services/ClinicalFileService";
+import { atributoAccept, erroDeUpload, validarArquivo } from "../security/uploadGuard";
+import type { TipoArquivo } from "../security/uploadGuard";
 import type { ClinicalFile, ClinicalFileCategory, ClinicalFileKind } from "../types/clinicalFile";
+
+const TIPOS_CLINICOS: TipoArquivo[] = ["imagem", "documento", "modelo3d", "dicom"];
 
 const KINDS: Array<{ value: ClinicalFileKind; label: string }> = [
   { value: "PHOTO", label: "Fotografia" },
@@ -197,7 +201,7 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
             }
             await load();
           } catch (e) {
-            setError(e instanceof Error ? e.message : "Falha no upload.");
+            setError(erroDeUpload(e, "Falha no upload."));
           } finally { setBusy(false); }
         }}
       />
@@ -217,6 +221,7 @@ function UploadDialog(props: {
   }) => Promise<void>;
 }) {
   const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState("");
   const [kind, setKind] = useState<ClinicalFileKind>("PHOTO");
   const [categoryId, setCategoryId] = useState("");
   const [title, setTitle] = useState("");
@@ -235,8 +240,14 @@ function UploadDialog(props: {
         <Stack spacing={2} sx={{ pt: 1 }}>
           <Button component="label" variant="outlined" startIcon={<CloudUploadIcon />}>
             {file ? file.name : "Selecionar arquivo"}
-            <input hidden type="file" onChange={(e) => {
+            <input hidden type="file" accept={atributoAccept(TIPOS_CLINICOS)} onChange={async (e) => {
               const selected = e.target.files?.[0] || null;
+              e.target.value = "";
+              setFileError("");
+              if (selected) {
+                const invalido = await validarArquivo(selected, { tipos: TIPOS_CLINICOS, maxBytes: 50 * 1024 * 1024 });
+                if (invalido) { setFile(null); setFileError(invalido); return; }
+              }
               setFile(selected);
               if (selected && !title) setTitle(selected.name.replace(/\.[^.]+$/, ""));
               const ext = selected?.name.split(".").pop()?.toLowerCase();
@@ -247,6 +258,7 @@ function UploadDialog(props: {
               if (ext === "pdf") setKind("PDF");
             }} />
           </Button>
+          {fileError ? <Alert severity="error">{fileError}</Alert> : null}
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <FormControl fullWidth><InputLabel>Tipo</InputLabel><Select label="Tipo" value={kind} onChange={(e) => setKind(e.target.value as ClinicalFileKind)}>
               {KINDS.map((k) => <MenuItem key={k.value} value={k.value}>{k.label}</MenuItem>)}

@@ -4,6 +4,7 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import SaveIcon from "@mui/icons-material/Save";
 import { useCallback, useEffect, useRef, useState } from "react";
 import EduShell from "../edu/EduShell";
+import { atributoAccept, erroDeUpload, validarArquivo } from "../security/uploadGuard";
 import { eduApi, loadBranding } from "../services/EduApi";
 
 const KINDS: Array<{ kind: string; label: string; help: string }> = [
@@ -58,9 +59,10 @@ export default function EduIdentity() {
 
   function pick(kind: string) { setPending(kind); fileRef.current?.click(); }
 
-  function onFile(file?: File | null) {
+  async function onFile(file?: File | null) {
     if (!file) return;
-    if (file.size > 1_400_000) { setMsg({ type: "error", text: "Imagem acima de 1,4 MB. Reduza e tente novamente." }); return; }
+    const invalido = await validarArquivo(file, { tipos: ["imagem"], permitirSvg: true, maxBytes: 1_400_000 });
+    if (invalido) { setMsg({ type: "error", text: invalido }); return; }
     const r = new FileReader();
     r.onload = async () => {
       try {
@@ -68,7 +70,7 @@ export default function EduIdentity() {
         await loadBranding(true);
         await load();
         setMsg({ type: "success", text: "Logomarca enviada." });
-      } catch (e: any) { setMsg({ type: "error", text: e.message }); }
+      } catch (e: any) { setMsg({ type: "error", text: erroDeUpload(e, "Não foi possível enviar a logomarca.") }); }
     };
     r.readAsDataURL(file);
   }
@@ -82,7 +84,7 @@ export default function EduIdentity() {
   return (
     <EduShell title="Identidade e logomarcas" subtitle="Nome, cores e todas as variações da logomarca usadas no portal, certificados e documentos." onLogoClick={() => pick("LOGO_PRINCIPAL")}
       actions={<Button variant="contained" color="inherit" startIcon={<SaveIcon />} onClick={save} sx={{ bgcolor: "#fff", color: "#0B1F3A" }}>Salvar identidade</Button>}>
-      <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
+      <input ref={fileRef} type="file" accept={atributoAccept(["imagem"], true)} hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, mb: 3 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>Dados da instituição</Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 2 }}>

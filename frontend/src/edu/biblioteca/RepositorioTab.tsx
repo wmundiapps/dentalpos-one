@@ -5,6 +5,7 @@ import { useState } from "react";
 import { StatusChip } from "../EduResourcePage";
 import { eduApi } from "../../services/EduApi";
 import ListTable from "../infraestrutura/ListTable";
+import { atributoAccept, mensagemErroUpload, validarArquivo } from "../../security/uploadGuard";
 import { Async, Bars, FormDialog, Panel, Stat, StatGrid, Tag, fetchText, fmtDate, label, num, openBlob, openHtml, useApi, usePrograms, useToast, type Field } from "../infraestrutura/kit";
 
 const TIPOS = ["TCC", "DISSERTACAO", "TESE", "ARTIGO", "NORMA", "MATERIAL_DIDATICO", "RELATORIO", "OUTRO"];
@@ -63,9 +64,10 @@ export default function RepositorioTab() {
   async function editar(r: any) {
     await toast.run(async () => { const full = await eduApi.get(`/biblioteca/repositorio/${r.id}`); setArq(null); setDlg({ kind: "editar", row: full }); }, "");
   }
-  function lerArquivo(f: File | undefined) {
+  async function lerArquivo(f: File | undefined) {
     if (!f) return;
-    if (f.size > 9 * 1024 * 1024) { toast.err("O arquivo deve ter no máximo ~9 MB (limite de 12 MB após codificação)."); return; }
+    const invalido = await validarArquivo(f, { tipos: ["documento"], maxBytes: 9 * 1024 * 1024 });
+    if (invalido) { toast.err(invalido); return; }
     const rd = new FileReader();
     rd.onload = () => setArq({ dataUrl: String(rd.result), nome: f.name });
     rd.readAsDataURL(f);
@@ -109,7 +111,7 @@ export default function RepositorioTab() {
         fields={dlg && ["devolver", "retirar"].includes(dlg.kind) ? [{ key: "motivo", label: "Motivo (mín. 5 caracteres)", type: "textarea", required: true }] : campos}
         intro={dlg && ["novo", "editar"].includes(dlg.kind) ? (
           <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: "action.hover" }}>
-            <Button component="label" size="small" variant="outlined">Anexar arquivo (PDF)<input hidden type="file" accept=".pdf,application/pdf,.doc,.docx" onChange={(e) => lerArquivo(e.target.files?.[0])} /></Button>
+            <Button component="label" size="small" variant="outlined">Anexar arquivo (PDF)<input hidden type="file" accept={atributoAccept(["documento"])} onChange={(e) => lerArquivo(e.target.files?.[0])} /></Button>
             <Typography variant="caption" sx={{ ml: 1 }}>{arq ? arq.nome : "Nenhum arquivo selecionado"}</Typography>
           </Box>
         ) : undefined}
@@ -117,7 +119,13 @@ export default function RepositorioTab() {
           const k = dlg!.kind, r = dlg!.row;
           if (k === "novo" || k === "editar") {
             const body = { ...b, ...(arq ? { arquivoDataUrl: arq.dataUrl, arquivoNome: arq.nome } : {}) };
-            if (k === "novo") await eduApi.post("/biblioteca/repositorio", body); else await eduApi.put(`/biblioteca/repositorio/${r.id}`, body);
+            try {
+              if (k === "novo") await eduApi.post("/biblioteca/repositorio", body); else await eduApi.put(`/biblioteca/repositorio/${r.id}`, body);
+            } catch (e) {
+              // 422 com arquivo anexado = bloqueio de segurança no servidor: mensagem amigável.
+              if (arq && (e as { status?: number }).status === 422) throw new Error(mensagemErroUpload(422, (e as Error).message));
+              throw e;
+            }
           } else await eduApi.post(`/biblioteca/repositorio/${r.id}/${k === "devolver" ? "devolver" : "retirar"}`, b);
           toast.ok("Operação concluída."); reload();
         }} />
