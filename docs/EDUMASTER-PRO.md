@@ -33,6 +33,7 @@ construída dentro do backend/frontend do DentalPos One (mesmo login, multi-tena
 | Biblioteca física e virtual, repositório institucional | `biblioteca` (+ `conteudo`) |
 | Fluxogramas de jornadas + lembretes para nada cair no esquecimento | `jornadas` + `core` (EduReminder/cron) |
 | Logomarcas e identidade visual | `core` + tela **Identidade e logomarcas** (`/edu/identidade`) |
+| 2FA, bloqueio de login, varredura de uploads (anti-malware/pornografia), barreira de origem, log de segurança | `seguranca` (`/api/security`) — ver `docs/SEGURANCA.md` |
 
 ## Logomarcas
 11 tipos de ativo (principal, horizontal, fundo escuro, monocromática, brasão, selo de certificado, marca d'água,

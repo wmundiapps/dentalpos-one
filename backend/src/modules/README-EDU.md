@@ -17,7 +17,7 @@ src/modules/<modulo>/*.ts         <- rotas/serviços/validators
   e com outros módulos): admissoes=`Adm`, secretaria=`Sec`, calendario=`Cal`, notas=`Nt`,
   infraestrutura=`Inf`, suprimentos=`Sup`, regulatorio=`Reg`, governanca=`Gov`, desempenho=`Des`,
   pesquisa=`Pes`, apoio=`Apo`, comunicacao=`Com`, biblioteca=`Bib`, jornadas=`Jor`,
-  modalidades=`Mod`, reitoria=`Rei`. (O delegate do Prisma vira camelCase: `AdmCandidato` -> `prisma.admCandidato`.)
+  modalidades=`Mod`, reitoria=`Rei`, seguranca=`Seg`. (O delegate do Prisma vira camelCase: `AdmCandidato` -> `prisma.admCandidato`.)
 - Todo model tem `tenantId String` + `@@index([tenantId...])`, `id String @id @default(uuid())`, `createdAt`/`updatedAt`.
 - Referências a models de OUTROS módulos (Student, Enrollment, AcademicProgram, Discipline, ClassSection,
   AcademicTerm, Campus, EduSpace, User...) são **String ids simples, SEM `@relation`** (para não exigir
