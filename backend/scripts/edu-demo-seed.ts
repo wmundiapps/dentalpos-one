@@ -52,7 +52,7 @@ const ALUNO_SENHA = 'Aluno@2026'
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [
   ['equipe', equipe],
   ['bootstrap', async (c) => { for (const m of MODULOS) await c.api('POST', `/edu/${m}/bootstrap`, {}) }],
-  ['academico', academico], ['espacos', espacos], ['admissoes', admissoes],
+  ['academico', academico], ['espacos', espacos], ['admissoes', admissoes], ['financeiro', financeiro], ['secretaria', secretaria], ['calendario', calendario], ['notas', notas],
 ]
 
 
@@ -191,6 +191,104 @@ async function admissoes(c: Ctx) {
     if (st === 'CONVOCADO' || st === 'MATRICULADO') await prisma.admCandidato.update({ where: { id: cand.id }, data: { status: st as any, etapaMaxima: st === 'CONVOCADO' ? 4 : 5 } })
   }
   void plano
+}
+
+async function financeiro(c: Ctx) {
+  // mensalidades: 1ª parcela já paga, algumas vencidas, outras a vencer
+  let k = 0
+  for (const st of S.students) {
+    if (!st.enrollmentId) continue
+    k++
+    const valor = st.odo ? 3890 : 689
+    const gerou = await c.api('POST', '/edu/financeiro/receivables/generate-mensalidades', { studentId: st.id, enrollmentId: st.enrollmentId, valorParcela: valor, quantidadeParcelas: 5, diaVencimento: 10, primeiroVencimento: ymd(-55), descricaoBase: 'Mensalidade 2026/2' })
+    const lista = await c.api('GET', `/edu/financeiro/receivables?studentId=${st.id}&pageSize=50`)
+    const itens: any[] = Array.isArray(lista) ? lista : lista?.items ?? []
+    // a maioria paga as 2 primeiras; alguns inadimplentes (nenhuma paga)
+    const pagar = k % 4 === 0 ? 0 : k % 3 === 0 ? 1 : 2
+    itens.sort((a, b) => +new Date(a.dataVencimento) - +new Date(b.dataVencimento))
+    for (const r of itens.slice(0, pagar)) await c.api('POST', `/edu/financeiro/receivables/${r.id}/receive`, { formaPagamento: pick(['PIX', 'BOLETO', 'CARTAO'], k) })
+    void gerou
+  }
+  const pagar: [string, string, number, number][] = [
+    ['Folha de pagamento — docentes', 'Recursos Humanos', 184000, 5], ['Energia elétrica — Campus Central', 'Concessionária', 21800, 8], ['Material de laboratório (resinas e brocas)', 'DentalSupply Ltda', 12750, -6],
+    ['Licenças de software acadêmico', 'EduTech S.A.', 9400, 12], ['Manutenção do ar-condicionado', 'ClimaFrio', 4300, -2], ['Serviço de limpeza', 'LimpaMais', 16200, 3],
+  ]
+  for (const [descricao, fornecedor, valor, venc] of pagar) await c.api('POST', '/edu/financeiro/payables', { descricao, fornecedor, categoria: 'Operacional', valor, dataVencimento: day(venc) })
+}
+
+async function secretaria(c: Ctx) {
+  const tipos = await c.api('GET', '/edu/secretaria/tipos?pageSize=100')
+  const lista: any[] = Array.isArray(tipos) ? tipos : tipos?.items ?? []
+  const tp = (cod: string) => lista.find((t) => t.codigo === cod) ?? lista[0]
+  const cods = ['DECLARACAO_MATRICULA', 'HISTORICO_ESCOLAR', 'TRANCAMENTO', 'SEGUNDA_VIA_CARTEIRINHA', 'ATUALIZACAO_CADASTRAL', 'OUTROS']
+  const alvo: [number, string, string | null, string?][] = [
+    [0, 'DECLARACAO_MATRICULA', null], [1, 'HISTORICO_ESCOLAR', 'EM_ANALISE'], [2, 'TRANCAMENTO', 'PENDENTE_DOCUMENTO', 'Falta comprovante de residência'], [3, 'DECLARACAO_MATRICULA', 'DEFERIDO'],
+    [4, 'SEGUNDA_VIA_CARTEIRINHA', 'EM_ANALISE'], [5, 'ATUALIZACAO_CADASTRAL', null], [6, 'HISTORICO_ESCOLAR', 'INDEFERIDO', 'Documentação incompleta no prazo'], [7, 'OUTROS', 'EM_ANALISE'], [8, 'DECLARACAO_MATRICULA', null], [9, 'TRANCAMENTO', 'EM_ANALISE'],
+  ]
+  void cods
+  for (const [i, cod, para, parecer] of alvo) {
+    const st = S.students[i + 1]
+    if (!st) continue
+    const dados: any = {}
+    const t = tp(cod)
+    for (const e of t?.camposExtras ?? []) if (e.obrigatorio) dados[e.chave] = 'Estágio / comprovação'
+    const pr = await c.api('POST', '/edu/secretaria/protocolos', { tipoId: t.id, studentId: st.id, dados, anexos: t?.exigeAnexo ? [{ nome: 'comprovante.pdf', url: 'https://exemplo.com/comprovante.pdf' }] : undefined })
+    if (pr && para) {
+      await c.api('POST', `/edu/secretaria/protocolos/${pr.id}/status`, { para: 'EM_ANALISE' })
+      if (para !== 'EM_ANALISE') await c.api('POST', `/edu/secretaria/protocolos/${pr.id}/status`, { para, parecer })
+    }
+  }
+  // certificados
+  const modelos = await c.api('GET', '/edu/secretaria/cert-modelos?pageSize=50')
+  const ml: any[] = Array.isArray(modelos) ? modelos : modelos?.items ?? []
+  if (ml[0]) {
+    for (let i = 0; i < 4; i++) await c.api('POST', '/edu/secretaria/certificados', { modeloId: ml[0].id, studentId: S.students[i]?.id, tituloEvento: 'Semana Acadêmica de Odontologia 2026', cargaHoraria: 20, periodo: '15 a 19/09/2026' })
+    await c.api('POST', '/edu/secretaria/certificados/lote', { modeloId: ml[Math.min(1, ml.length - 1)].id, nomeLote: 'Palestrantes — Congresso Ravel', tituloEvento: 'Congresso Ravel de Saúde e Direito', cargaHoraria: 12, destinatarios: [{ nome: 'Dra. Cecília Fontes', cpf: cpfValido(901) }, { nome: 'Prof. Armando Vilela', cpf: cpfValido(902) }, { nome: 'Dr. Túlio Brandão', cpf: cpfValido(903) }] })
+  }
+}
+
+async function calendario(c: Ctx) {
+  const T = S.term.id
+  await c.api('POST', `/edu/calendario/periodos/${T}/gerar-calendario`, {})
+  await c.api('POST', '/edu/calendario/eventos', { tipo: 'REUNIAO', titulo: 'Reunião do Colegiado de Odontologia', inicio: day(3).slice(0, 10) + 'T14:00:00-03:00', fim: day(3).slice(0, 10) + 'T16:00:00-03:00', diaInteiro: false, publico: 'PROFESSORES' })
+  await c.api('POST', '/edu/calendario/eventos', { tipo: 'EVENTO', titulo: 'Aula inaugural — calouros 2027/1', inicio: day(40).slice(0, 10) + 'T19:00:00-03:00', fim: day(40).slice(0, 10) + 'T21:00:00-03:00', diaInteiro: false })
+  await c.api('POST', '/edu/calendario/eventos', { tipo: 'REUNIAO', titulo: 'Plantão pedagógico semanal', inicio: day(1).slice(0, 10) + 'T10:00:00-03:00', fim: day(1).slice(0, 10) + 'T11:00:00-03:00', diaInteiro: false, recorrencia: 'SEMANAL', recorrenciaAte: day(70) })
+  // configuração para o gerador
+  const grupos: [any[], any, number, string, string][] = [[S.secs.odonto, S.odonto, 1, 'MANHA', 'ODO-1-M'], [S.secs.direito, S.direito, 1, 'NOITE', 'DIR-1-N']]
+  for (const [secs, prog, per, turno, grupo] of grupos) {
+    for (const sec of secs) {
+      await c.api('PUT', `/edu/calendario/config/turmas/${sec.id}`, { programId: prog.id, periodo: per, turno, grupo, alunosEstimados: 15 })
+      const pratica = /Anatomia|Histologia/.test(sec.disciplina.nome)
+      await c.api('PUT', `/edu/calendario/config/disciplinas/${sec.disciplina.id}`, { aulasSemana: 2, pratica, ...(pratica ? { tiposEspaco: ['LABORATORIO'] } : {}) })
+    }
+  }
+  for (const u of ['prof.anatomia', 'prof.histologia', 'prof.direito', 'prof.civil']) {
+    await c.api('PUT', `/edu/calendario/professores/${S.users[u].id}/disponibilidade`, { itens: [1, 2, 3, 4, 5].map((d) => ({ diaSemana: d, inicioMin: 420, fimMin: 1320, tipo: 'DISPONIVEL' })), perfil: { maxAulasDia: 4 } })
+  }
+  const sim = await c.api('POST', '/edu/calendario/gerador/simular', { termId: T })
+  if (sim?.execucaoId) await c.api('POST', '/edu/calendario/gerador/aplicar', { execucaoId: sim.execucaoId })
+  // provas
+  const prova = (sec: any, dias: number, h: string, h2: string, tipo = 'PROVA_1') => c.api('POST', '/edu/calendario/provas', { classSectionId: sec.id, tipo, inicio: `${ymd(dias)}T${h}:00-03:00`, fim: `${ymd(dias)}T${h2}:00-03:00`, spaceId: S.spaces[2]?.id })
+  await prova(S.secs.odonto[0], 9, '08:00', '10:00')
+  await prova(S.secs.odonto[1], 10, '08:00', '10:00')
+  await prova(S.secs.direito[0], 11, '19:30', '21:30')
+}
+
+async function notas(c: Ctx) {
+  const all = [...S.secs.odonto.map((x: any) => ({ ...x, g: 'odo' })), ...S.secs.direito.map((x: any) => ({ ...x, g: 'dir' }))]
+  let seed = 3
+  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280 }
+  for (const sec of all) {
+    const ap = await c.api('POST', `/edu/notas/turmas/${sec.id}/componentes/aplicar-regra`, {})
+    const comps: any[] = ap?.componentes ?? []
+    const alunos = S.students.filter((x: any) => x.odo === (sec.g === 'odo') && x.enrollmentId)
+    for (const comp of comps.slice(0, 3)) {
+      const lote = alunos.map((a: any, i: number) => ({ studentId: a.id, codigo: comp.codigo, valor: Math.round((3.5 + rnd() * 6.5 + (i % 5 === 0 ? -1.5 : 0)) * 10) / 10 })).map((n: any) => ({ ...n, valor: Math.max(0, Math.min(10, n.valor)) }))
+      const r = await c.api('PUT', `/edu/notas/turmas/${sec.id}/notas`, { notas: lote })
+      if (!r) await c.api('POST', `/edu/notas/turmas/${sec.id}/notas/corrigir`, { correcoes: lote, motivo: 'Lançamento inicial da demonstração' })
+    }
+    await c.api('POST', `/edu/notas/turmas/${sec.id}/recalcular`, {})
+  }
 }
 
 async function main() {
