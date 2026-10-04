@@ -1,0 +1,12 @@
+{
+  "name": "revah-receita-import",
+  "private": true,
+  "description": "Carga da base de empresas do REVAH Leads a partir dos dados abertos de CNPJ da Receita Federal. Gerado por `npm run receita:bundle` em revah/api.",
+  "scripts": {
+    "importar": "node importar.cjs"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}
