@@ -387,7 +387,7 @@ async function main() {
   for (const [name, fn] of STEPS) {
     if (steps.length && !steps.includes(name)) continue
     console.log('>> etapa', name)
-    await fn(ctx)
+    try { await fn(ctx) } catch (e: any) { failures.push(`ETAPA ${name}: ${e?.stack?.split('\n').slice(0, 3).join(' | ')}`) }
   }
   console.log(`\nclinicId=${clinic.id}\nadmin=${ADMIN.email} / ${ADMIN.password}\naluno=${ALUNO.email} / ${ALUNO.password}`)
   if (failures.length) { console.log(`\n${failures.length} chamadas falharam:`); failures.forEach((f) => console.log(' -', f)) }
