@@ -52,7 +52,7 @@ const ALUNO_SENHA = 'Aluno@2026'
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [
   ['equipe', equipe],
   ['bootstrap', async (c) => { for (const m of MODULOS) await c.api('POST', `/edu/${m}/bootstrap`, {}) }],
-  ['academico', academico], ['espacos', espacos], ['admissoes', admissoes], ['financeiro', financeiro], ['secretaria', secretaria], ['calendario', calendario], ['notas', notas], ['infraestrutura', infraestrutura], ['suprimentos', suprimentos], ['regulatorio', regulatorio], ['governanca', governanca],
+  ['academico', academico], ['espacos', espacos], ['admissoes', admissoes], ['financeiro', financeiro], ['secretaria', secretaria], ['calendario', calendario], ['notas', notas], ['infraestrutura', infraestrutura], ['suprimentos', suprimentos], ['regulatorio', regulatorio], ['governanca', governanca], ['biblioteca', biblioteca], ['apoio', apoio], ['comunicacao', comunicacao], ['modalidades', modalidades], ['pesquisa', pesquisa], ['desempenho', desempenho], ['jornadas', jornadas], ['reitoria', reitoria], ['mesa', mesa], ['marca', marca],
 ]
 
 
@@ -448,6 +448,215 @@ async function governanca(c: Ctx) {
   }
   const cipa = await c.api('POST', `${G}/cipa/gestoes`, { nome: 'CIPA 2026/2027', inicio: day(-120), fim: day(240) })
   void cipa
+}
+
+async function biblioteca(c: Ctx) {
+  const B = '/edu/biblioteca'
+  const obras: [string, string[], string, string, number, string][] = [
+    ['Anatomia Humana — Atlas', ['Netter, Frank H.'], '978-85-352-3412-1', '611', 2019, 'Elsevier'], ['Histologia Básica', ['Junqueira, L. C.', 'Carneiro, J.'], '978-85-277-2301-4', '611.018', 2017, 'Guanabara Koogan'],
+    ['Dentística — Procedimentos Pré-clínicos', ['Baratieri, L. N.'], '978-85-7288-410-0', '617.6', 2018, 'Santos'], ['Curso de Direito Civil — Parte Geral', ['Gagliano, Pablo S.'], '978-85-536-1203-9', '347', 2022, 'Saraiva'],
+    ['Teoria Geral do Estado', ['Dallari, Dalmo de A.'], '978-85-472-3290-5', '320.1', 2021, 'Saraiva'], ['Introdução ao Estudo do Direito', ['Nader, Paulo'], '978-85-309-9103-7', '340', 2020, 'Forense'],
+    ['Bioquímica Ilustrada', ['Harvey, R. A.'], '978-85-8271-471-3', '572', 2017, 'Artmed'], ['Metodologia do Trabalho Científico', ['Marconi, M. A.', 'Lakatos, E. M.'], '978-85-97-01565-3', '001.42', 2021, 'Atlas'],
+  ]
+  S.obras = []
+  for (const [titulo, autores, isbn, cdd, ano, editora] of obras) {
+    const o = await c.api('POST', `${B}/obras`, { titulo, autores, isbn, cdd, ano, editora, assuntos: 'ensino superior' })
+    if (!o) continue
+    S.obras.push(o)
+    await c.api('POST', `${B}/obras/${o.id}/exemplares-lote`, { quantidade: 3 })
+  }
+  const leitores: any[] = []
+  for (const st of S.students.slice(0, 8)) {
+    const l = await c.api('POST', `${B}/leitores/de-aluno/${st.id}`, {})
+    if (l) leitores.push(l)
+  }
+  const ex = lst(await c.api('GET', `${B}/exemplares?pageSize=40`))
+  for (const [i, l] of leitores.entries()) {
+    const e = ex[i * 2]
+    if (!e) continue
+    const emp = await c.api('POST', `${B}/emprestimos`, { leitorId: l.id, tombo: e.tombo })
+    // alguns atrasados: força a data de devolução prevista para o passado
+    if (emp && i % 3 === 0) {
+      const prisma = (await import('../src/lib/prisma')).prisma
+      await prisma.bibEmprestimo.update({ where: { id: emp.id }, data: { dataPrevista: new Date(Date.now() - (4 + i) * 86_400_000) } as any }).catch(() => undefined)
+    }
+  }
+  await c.api('POST', `${B}/jobs/executar`, {})
+}
+
+async function apoio(c: Ctx) {
+  const A = '/edu/apoio'
+  const tipos = ['PSICOLOGICO', 'PSICOPEDAGOGICO', 'SOCIAL']
+  for (let i = 0; i < 4; i++) await c.api('POST', `${A}/atendimentos`, { studentId: S.students[i + 2].id, tipo: pick(tipos, i), dataHora: day(1 + i), motivo: ['Ansiedade nas provas', 'Dificuldade de organização', 'Apoio socioeconômico', 'Adaptação ao curso'][i] })
+  const man: [string, string, string][] = [['RECLAMACAO', 'Ar-condicionado da Sala 102 quebrado', 'O ar-condicionado da sala está sem funcionar há duas semanas, prejudicando as aulas.'], ['ELOGIO', 'Atendimento da secretaria', 'Gostaria de elogiar o atendimento rápido e cordial da secretaria acadêmica.'], ['SUGESTAO', 'Mais tomadas na biblioteca', 'Sugiro a instalação de mais tomadas nas mesas de estudo da biblioteca.'], ['DENUNCIA', 'Comportamento inadequado em estágio', 'Relato de situação inadequada ocorrida no campo de estágio.']]
+  for (const [tipo, assunto, descricao] of man) await c.api('POST', `${A}/ouvidoria/manifestacoes`, { tipo, assunto, descricao })
+  for (const [tipo, assunto, descricao] of man.slice(0, 2)) {
+    await fetch(`${process.env.API_URL || 'http://localhost:3000/api'}/public/edu/apoio/ouvidoria/${c.tenantId}/manifestacoes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo, assunto: assunto + ' (anônima)', descricao }) }).catch(() => undefined)
+  }
+  const mans = lst(await c.api('GET', `${A}/ouvidoria/manifestacoes?pageSize=20`))
+  if (mans[0]) await c.api('POST', `${A}/ouvidoria/manifestacoes/${mans[0].id}/triar`, {})
+  await c.api('POST', `${A}/risco/recalcular`, {})
+  for (const [n, ano, sit] of [['Paulo Henrique Duarte', 2021, 'EMPREGADO'], ['Clara Magalhães', 2022, 'EMPREGADO'], ['Rodolfo Nascimento', 2020, 'EMPREENDEDOR'], ['Vera Lúcia Pinto', 2023, 'DESEMPREGADO']]) await c.api('POST', `${A}/egressos`, { nome: n, email: n.split(' ')[0].toLowerCase() + '@egresso.com', anoConclusao: ano, situacaoProfissional: sit, atuaNaArea: sit !== 'DESEMPREGADO' })
+  const emp = await c.api('POST', `${A}/empregabilidade/empresas`, { razaoSocial: 'Clínica Sorriso Total Ltda', nomeFantasia: 'Clínica Sorriso Total', cnpj: '11.222.333/0001-81' })
+  if (emp) await c.api('POST', `${A}/empregabilidade/vagas`, { empresaId: emp.id, titulo: 'Estágio em Odontologia', tipo: 'ESTAGIO', descricao: 'Estágio em clínica odontológica geral.' })
+  await c.api('POST', `${A}/monitoria/vagas`, { disciplineId: S.secs.odonto[0].disciplina.id, professorUserId: S.users['prof.anatomia'].id, termId: S.term.id, vagas: 2, requisitos: 'Média mínima 7,0 em Anatomia.' })
+}
+
+async function comunicacao(c: Ctx) {
+  const C = '/edu/comunicacao'
+  await c.api('POST', `${C}/canais`, { tipo: 'WHATSAPP', nome: 'WhatsApp Secretaria', provedor: 'META_CLOUD', config: { accessToken: 'demo', phoneNumberId: '100', appSecret: 'demo' } })
+  await c.api('POST', `${C}/canais`, { tipo: 'EMAIL', nome: 'E-mail institucional', provedor: 'RESEND', config: { apiKey: 're_demo', from: 'no-reply@ravel.edu.br', webhookSecret: 'whsec_ZGVtbw==' } })
+  await c.api('POST', `${C}/canais`, { tipo: 'SITE_CHAT', nome: 'Chat do site', provedor: 'PROPRIO' })
+  await c.api('POST', `${C}/contatos/sincronizar`, { origem: 'ALUNOS' })
+  const tpls = lst(await c.api('GET', `${C}/templates?pageSize=50`))
+  const tp = tpls[0]
+  if (tp) {
+    await c.api('POST', `${C}/campanhas`, { nome: 'Rematrícula 2027/1 — lembrete', segmento: 'ALUNOS_ATIVOS', canal: 'EMAIL', templateId: tp.id, finalidade: 'ACADEMICO' })
+    await c.api('POST', `${C}/campanhas`, { nome: 'Vestibular 2027/1 — últimas vagas', segmento: 'CONTATOS', canal: 'EMAIL', templateId: tp.id, finalidade: 'MARKETING' })
+  }
+  await c.api('POST', `${C}/reguas/simular`, {})
+  const ct = lst(await c.api('GET', `${C}/contatos?pageSize=5`))
+  for (const [i, x] of ct.slice(0, 3).entries()) await c.api('POST', `${C}/conversas`, { contatoId: x.id, canal: 'WHATSAPP', texto: ['Olá! Gostaria de informações sobre a rematrícula.', 'Bom dia, preciso da segunda via do boleto.', 'Qual o prazo para trancamento?'][i] })
+}
+
+async function modalidades(c: Ctx) {
+  const M = '/edu/modalidades'
+  for (const [cod, nome, cid, uf] of [['P01', 'Polo Centro — São Paulo', 'São Paulo', 'SP'], ['P02', 'Polo Campinas', 'Campinas', 'SP'], ['P03', 'Polo Recife', 'Recife', 'PE']]) await c.api('POST', `${M}/polos`, { codigo: cod, nome, cidade: cid, uf, capacidade: 120 })
+  const polos = lst(await c.api('GET', `${M}/polos`))
+  if (polos[0]) await c.api('POST', `${M}/polos/${polos[0].id}/credenciar`, { atoNumero: 'Portaria SERES nº 912/2025', atoData: day(-200) })
+  for (const [n, t] of [['Tutor Henrique Alves', 'DISTANCIA'], ['Tutora Beatriz Rocha', 'DISTANCIA'], ['Tutor Presencial Marcelo', 'PRESENCIAL']]) await c.api('POST', `${M}/tutores`, { nome: n, tipo: t, capacidadeAlunos: 40 })
+  const discs = S.secs.direito.map((s: any) => s.disciplina)
+  for (const d of discs) await c.api('POST', `${M}/ofertas`, { disciplineId: d.id, programId: S.direito.id, modalidade: 'EAD', cargaPresencial: Math.round(d.cargaHoraria * 0.1), cargaOnline: d.cargaHoraria - Math.round(d.cargaHoraria * 0.1), minEncontros: 1, avaliacoesPresenciais: 1 })
+  await c.api('POST', `${M}/pos/programas`, { codigo: 'ESP-IMP', nome: 'Especialização em Implantodontia', nivel: 'ESPECIALIZACAO', cargaHoraria: 420, modalidade: 'PRESENCIAL' })
+  await c.api('POST', `${M}/pos/programas`, { codigo: 'MP-DD', nome: 'Mestrado Profissional em Direito Digital', nivel: 'MESTRADO_PROFISSIONAL', cargaHoraria: 360, creditosMinimos: 24, conceitoCapes: 3 })
+  await c.api('POST', `${M}/bootstrap`, {})
+}
+
+async function pesquisa(c: Ctx) {
+  const P = '/edu/pesquisa'
+  const prof = S.users['prof.anatomia']
+  const pubs: [string, string, number, string, string][] = [
+    ['Avaliação de resinas bulk-fill em restaurações posteriores', 'ARTIGO', 2025, 'a2', '10.1000/ravel.2025.001'], ['Responsabilidade civil do cirurgião-dentista: panorama jurisprudencial', 'ARTIGO', 2025, 'b1', '10.1000/ravel.2025.002'],
+    ['Realidade aumentada no ensino de anatomia', 'ARTIGO', 2024, 'a1', '10.1000/ravel.2024.003'], ['Evasão no ensino superior privado: um estudo de caso', 'ARTIGO', 2024, 'b2', '10.1000/ravel.2024.004'],
+    ['Manual de Semiologia Odontológica', 'LIVRO', 2023, 'b3', '10.1000/ravel.2023.005'],
+  ]
+  for (const [titulo, tipo, ano, qualis, doi] of pubs) await c.api('POST', `${P}/publicacoes`, { tipo, titulo, ano, qualis, doi, autores: [{ tipo: 'EXTERNO', nome: 'Dra. Cecília Fontes', orcid: '0000-0002-1825-0097' }] })
+  const g = await c.api('POST', `${P}/grupos`, { nome: 'Grupo de Pesquisa em Biomateriais e Dentística', liderUserId: prof.id })
+  void g
+  const pj1 = await c.api('POST', `${P}/projetos`, { titulo: 'Resinas bulk-fill: desempenho clínico em 24 meses', tipo: 'PIBIC', coordenadorUserId: prof.id, orcamentoTotal: 18000, dataInicio: ymd(-90), dataFim: ymd(275), resumo: 'Estudo clínico controlado.', objetivos: 'Avaliar longevidade.', metodologia: 'Ensaio clínico randomizado.' })
+  const pj2 = await c.api('POST', `${P}/projetos`, { titulo: 'IA generativa na prática jurídica', tipo: 'PIBIC', orcamentoTotal: 12000, dataInicio: ymd(10), dataFim: ymd(375), resumo: 'Mapeamento de usos.', objetivos: 'Mapear riscos.', metodologia: 'Revisão sistemática.' })
+  if (pj1) {
+    await c.api('POST', `${P}/projetos-etapas`, { projetoId: pj1.id, titulo: 'Recrutamento de pacientes', inicioPrevisto: ymd(-80), fimPrevisto: ymd(-20) })
+    await c.api('POST', `${P}/projetos-etapas`, { projetoId: pj1.id, titulo: 'Acompanhamento clínico (6 meses)', inicioPrevisto: ymd(-19), fimPrevisto: ymd(120) })
+    await c.api('POST', `${P}/projetos-rubricas`, { projetoId: pj1.id, categoria: 'BOLSA', descricao: 'Bolsas de IC', valorPrevisto: 12000 })
+    await c.api('POST', `${P}/projetos/${pj1.id}/transicao`, { para: 'SUBMETIDO' })
+    await c.api('POST', `${P}/projetos/${pj1.id}/transicao`, { para: 'EM_AVALIACAO' })
+    await c.api('POST', `${P}/projetos/${pj1.id}/transicao`, { para: 'APROVADO' })
+    await c.api('POST', `${P}/projetos/${pj1.id}/transicao`, { para: 'EM_EXECUCAO' })
+  }
+  if (pj2) await c.api('POST', `${P}/projetos-etapas`, { projetoId: pj2.id, titulo: 'Revisão da literatura', inicioPrevisto: ymd(11), fimPrevisto: ymd(100) })
+  for (const [i, tipo] of ['TCC', 'TCC', 'DISSERTACAO'].entries()) await c.api('POST', `${P}/trabalhos`, { tipo, titulo: ['Percepção de estudantes sobre a clínica-escola', 'Contratos eletrônicos e proteção de dados', 'Educação a distância e permanência estudantil'][i], studentId: S.students[i + 3].id, orientadorUserId: prof.id })
+  const per = await c.api('POST', `${P}/periodicos`, { nome: 'Revista Ravel de Ciências da Saúde e do Direito', issn: '0378-5955', editorChefeUserId: prof.id, doiPrefixo: '10.1234', ativo: true })
+  void per
+}
+
+async function desempenho(c: Ctx) {
+  const D = '/edu/desempenho'
+  const exames = lst(await c.api('GET', `${D}/exames?pageSize=50`))
+  const oab = exames.find((e) => e.tipo === 'OAB_1FASE')
+  const enade = exames.find((e) => e.tipo === 'ENADE')
+  if (oab) await c.api('POST', `${D}/edicoes`, { exameId: oab.id, ano: 2026, titulo: 'XLIII Exame de Ordem', inscricaoInicio: day(-20), inscricaoFim: day(15), dataProva: day(45), status: 'INSCRICOES_ABERTAS' })
+  if (enade) await c.api('POST', `${D}/edicoes`, { exameId: enade.id, ano: 2026, titulo: 'ENADE 2026', dataProva: day(120), status: 'PLANEJADA' })
+  if (oab) await c.api('POST', `${D}/metas`, { programId: S.direito.id, exameId: oab.id, ano: 2026, metaAcerto: 70 })
+  const alvo = oab ?? enade
+  if (!alvo) return
+  const eixos = lst(await c.api('GET', `${D}/eixos?exameId=${alvo.id}&pageSize=20`))
+  const qs: string[] = []
+  for (let i = 0; i < 12; i++) {
+    const eixo = eixos[i % Math.max(1, Math.min(2, eixos.length))]
+    const q = await c.api('POST', `${D}/questoes`, { exameId: alvo.id, eixoId: eixo?.id, tipo: 'OBJETIVA', nivel: pick(['FACIL', 'MEDIO', 'DIFICIL'], i), enunciado: `Questão ${i + 1}: assinale a alternativa correta sobre ${eixo?.nome ?? 'o tema'} no contexto profissional.`, alternativas: ['A', 'B', 'C', 'D'].map((l) => ({ letra: l, texto: `Alternativa ${l} da questão ${i + 1}` })), gabarito: pick(['A', 'B', 'C', 'D'], i), comentario: 'Comentário do gabarito.' })
+    if (q) { await c.api('POST', `${D}/questoes/${q.id}/revisar`, {}); await c.api('POST', `${D}/questoes/${q.id}/publicar`, {}); qs.push(q.id) }
+  }
+  if (eixos.length >= 1) await c.api('POST', `${D}/simulados/montar`, { exameId: alvo.id, titulo: 'Simulado Diagnóstico', matriz: eixos.slice(0, 2).map((e) => ({ eixoId: e.id, quantidade: 4 })), abreEm: day(-1), fechaEm: day(7), duracaoMin: 60 })
+}
+
+async function jornadas(c: Ctx) {
+  const J = '/edu/jornadas'
+  const tpls = lst(await c.api('GET', `${J}/templates?pageSize=20`))
+  const tAluno = tpls.find((t) => t.persona === 'ALUNO')
+  const tCand = tpls.find((t) => t.persona === 'CANDIDATO')
+  S.tAluno = tAluno
+  const drive = async (instId: string, passos: number) => {
+    for (let n = 0; n < passos; n++) {
+      const inst = await c.api('GET', `${J}/instancias/${instId}`)
+      if (!inst || inst.status !== 'ATIVA') return
+      const abertas = (inst.etapas ?? []).filter((e: any) => ['ABERTA', 'AGUARDANDO_EVENTO', 'ATRASADA'].includes(e.status))
+      const e = abertas[0]
+      if (!e) return
+      if (e.tipo === 'ESPERA_EVENTO') { await c.api('POST', `${J}/eventos`, { evento: e.evento, instanciaId: instId }); continue }
+      const chk: Record<string, boolean> = {}
+      for (const i of e.checklistDef ?? []) chk[i.chave] = true
+      for (const i of e.documentosDef ?? []) chk['doc:' + i.chave] = true
+      const body: any = { checklist: chk }
+      if (e.tipo === 'APROVACAO') body.decisao = 'APROVADO'
+      await c.api('POST', `${J}/instancias/${instId}/etapas/${e.id}/avancar`, body)
+    }
+  }
+  S.instancias = []
+  if (tAluno) {
+    const alvo = [[0, 3], [1, 6], [2, 9], [3, 2], [4, 12], [5, 5]]
+    for (const [i, passos] of alvo) {
+      const st = S.students[i]
+      const r = await c.api('POST', `${J}/instancias`, { personType: 'aluno', personId: st.userId, templateId: tAluno.id, personNome: st.nomeCompleto, contexto: { possuiFies: i % 2 === 0, ultimoPeriodo: false } })
+      const inst = r?.instancia ?? r
+      if (inst?.id) { S.instancias.push(inst); await drive(inst.id, passos) }
+    }
+  }
+  if (tCand) for (const [i, cand] of S.cands.slice(6, 10).entries()) {
+    const r = await c.api('POST', `${J}/instancias`, { personType: 'candidato', personId: cand.id, templateId: tCand.id, personNome: cand.nome })
+    const inst = r?.instancia ?? r
+    if (inst?.id) await drive(inst.id, 1 + i)
+  }
+  await c.api('POST', `${J}/processar-atrasos`, {})
+}
+
+async function reitoria(c: Ctx) {
+  const R = '/edu/reitoria'
+  const objs = lst(await c.api('GET', `${R}/objetivos?pageSize=20`))
+  for (const o of objs.slice(0, 3)) await c.api('POST', `${R}/objetivos/${o.id}/ativar`, {})
+  await c.api('POST', `${R}/painel/snapshot`, {})
+  await c.api('POST', `${R}/okr/sincronizar`, {})
+}
+
+async function mesa(c: Ctx) {
+  const L = '/edu/core/lembretes'
+  const itens: [string, string, number, string][] = [
+    ['Enviar relatório de autoavaliação (CPA) à CONAES', 'CRITICO', 4, 'regulatorio'], ['Conferir CND da empresa de limpeza', 'ATENCAO', 7, 'suprimentos'], ['Revisar PPC do curso de Direito', 'INFO', 15, 'academico'],
+    ['Responder diligência MEC — aditamento de vagas', 'CRITICO', -2, 'regulatorio'], ['Aprovar calendário acadêmico 2027/1', 'ATENCAO', 12, 'calendario'], ['Renovar contrato de licenças acadêmicas', 'ATENCAO', -1, 'financeiro'],
+  ]
+  for (const [titulo, severity, d, modulo] of itens) await c.api('POST', L, { titulo, descricao: 'Lembrete criado pela demonstração.', dueAt: day(d), severity, modulo, antecedenciaDias: 3 })
+  await c.api('POST', `${L}/processar`, {})
+}
+
+async function marca(c: Ctx) {
+  await c.api('PUT', '/edu/core/instituicao', {
+    nome: 'Instituto Ravel de Ensino Superior', nomeFantasia: 'Instituto Ravel', sigla: 'IRES', mantenedora: 'Ravel Educacional Ltda.', cnpj: '12.345.678/0001-90', codigoEmec: '24819',
+    categoria: 'Centro Universitário', organizacao: 'Privada com fins lucrativos', email: 'contato@ravel.edu.br', telefone: '(11) 4002-8922', site: 'https://www.ravel.edu.br',
+    endereco: 'Av. das Acácias, 1200 — Jardim Universitário', cidade: 'São Paulo', uf: 'SP', corPrimaria: '#1F3A8A', corSecundaria: '#0B1F4D', corDestaque: '#D4A017',
+    reitorNome: 'Profa. Dra. Helena Ravel', reitorCargo: 'Reitora', lema: 'Ciência, ética e cuidado', portariaCredenciamento: 'Portaria MEC nº 412/2023',
+  })
+  const svg = (fundo: string, tipo: 'principal' | 'brasao' | 'escura') => {
+    const cor = tipo === 'escura' ? '#FFFFFF' : '#1F3A8A'
+    const ouro = '#D4A017'
+    if (tipo === 'brasao') return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="200" height="240"><path d="M20 20h160v110c0 52-40 84-80 98-40-14-80-46-80-98z" fill="#1F3A8A" stroke="${ouro}" stroke-width="8"/><path d="M36 36h128v94c0 42-32 68-64 80-32-12-64-38-64-80z" fill="#0B1F4D"/><text x="100" y="118" text-anchor="middle" font-family="Georgia,serif" font-size="64" font-weight="700" fill="${ouro}">IR</text><path d="M60 148h80M70 166h60" stroke="${ouro}" stroke-width="4" stroke-linecap="round"/><path d="M100 44l8 16h-16z" fill="${ouro}"/></svg>`
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="520" height="160"><circle cx="80" cy="80" r="66" fill="${tipo === 'escura' ? 'none' : '#1F3A8A'}" stroke="${ouro}" stroke-width="6"/><text x="80" y="102" text-anchor="middle" font-family="Georgia,serif" font-size="62" font-weight="700" fill="${tipo === 'escura' ? '#FFFFFF' : ouro}">IR</text><text x="170" y="74" font-family="Georgia,serif" font-size="46" font-weight="700" fill="${cor}">Instituto Ravel</text><text x="172" y="108" font-family="Arial,sans-serif" font-size="19" letter-spacing="3" fill="${tipo === 'escura' ? '#E5E7EB' : '#4B5563'}">ENSINO SUPERIOR</text><rect x="172" y="120" width="120" height="4" fill="${ouro}"/></svg>`
+  }
+  void svg
+  const du = (x: string) => 'data:image/svg+xml;base64,' + Buffer.from(x).toString('base64')
+  await c.api('POST', '/edu/core/marca', { kind: 'LOGO_PRINCIPAL', titulo: 'Logomarca principal', dataUrl: du(svg('', 'principal')), largura: 520, altura: 160 })
+  await c.api('POST', '/edu/core/marca', { kind: 'LOGO_ESCURA', titulo: 'Logomarca para fundo escuro', dataUrl: du(svg('', 'escura')), largura: 520, altura: 160 })
+  await c.api('POST', '/edu/core/marca', { kind: 'BRASAO', titulo: 'Brasão', dataUrl: du(svg('', 'brasao')), largura: 200, altura: 240 })
+  await c.api('POST', '/edu/core/marca', { kind: 'FAVICON', titulo: 'Favicon', dataUrl: du(svg('', 'brasao')), largura: 200, altura: 240 })
 }
 
 async function main() {
