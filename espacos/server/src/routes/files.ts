@@ -5,7 +5,8 @@ import multer from 'multer';
 import { z } from 'zod';
 import { HttpError, requireAuth, toSelf, type AuthedRequest } from '../auth.js';
 import { assertEmailVerified } from '../emailVerification.js';
-import { IMAGE_MAX_BYTES, readImage, saveImage } from '../storage.js';
+import { IMAGE_MAX_BYTES, readImage, saveImage, sniffImage } from '../storage.js';
+import { assertCleanImage, limit } from '../security.js';
 import { LICENSE_DOC_MAX_BYTES, decide, latestLicenseCheck, pendingVerifications, runVerification, submitLicense, verificationDocument, documentAccessLog } from '../verification.js';
 import { CATEGORIES } from '../../../shared/rules.js';
 import { pool } from '../db.js';
@@ -34,6 +35,9 @@ function requireAdmin(req: AuthedRequest) {
 filesRouter.post('/uploads', requireAuth, upload(photos.array('files', 20)), async (req: AuthedRequest, res) => {
   const files = (req.files as Express.Multer.File[] | undefined) ?? [];
   if (!files.length) throw new HttpError(422, 'no_file');
+  if (req.ip) await limit(`upload:ip:${req.ip}`, 200, 60 * 60); // no máximo 200 fotos por hora
+  // Formato conferido pela assinatura do arquivo (saveImage) e conteúdo impróprio barrado pela IA
+  await Promise.all(files.map((f) => assertCleanImage(f.buffer, sniffImage(f.buffer) ?? '', { userId: req.user!.id, ip: req.ip })));
   const saved = [];
   for (const f of files) saved.push(await saveImage(req.user!.id, f.buffer));
   res.status(201).json({ files: saved });
@@ -45,6 +49,7 @@ filesRouter.get('/uploads/:id', async (req, res) => {
   res.set('Content-Type', img.mime);
   res.set('Cache-Control', 'public, max-age=31536000, immutable');
   res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Content-Security-Policy', "default-src 'none'; sandbox"); // a imagem nunca roda como página
   res.send(img.data);
 });
 

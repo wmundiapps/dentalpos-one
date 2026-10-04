@@ -1037,6 +1037,21 @@ const zh: Dict = {
   'pay.holdBoleto': "Pay within 3 days. The booking confirms when the bank clears it.",
   'pay.boletoTooSoon': "Only for bookings 3 or more days ahead.",
   'err.boleto_needs_3_days': "Boleto only for bookings starting {days} or more days from now. Use Pix or card.",
+  // Segurança
+  'auth.twoFactorTitle': 'Confirm it\'s you',
+  'auth.twoFactorText': 'We sent a 6-digit code to {email}. Enter it below to sign in. Check your spam folder too.',
+  'auth.twoFactorCode': 'Access code',
+  'auth.twoFactorConfirm': 'Sign in',
+  'auth.twoFactorResend': 'Resend code',
+  'auth.twoFactorResent': 'New code sent. Check your spam folder too.',
+  'profile.twoFactorTitle': 'Two-step verification',
+  'profile.twoFactorOn': 'Ask for an email code at every sign-in',
+  'profile.twoFactorText': 'Even if someone learns your password, they can\'t sign in without the code sent to your email.',
+  'profile.twoFactorForced': 'Always on for administrators: every sign-in sends a code to your email.',
+  'err.too_many_attempts': 'Too many attempts. For your security, try again in {minutes} minutes.',
+  'err.content_not_allowed': 'This text has content or a link that isn\'t allowed on SpaceHour. Please review it and try again.',
+  'err.image_not_allowed': 'One of the photos was rejected for inappropriate content.',
+  'err.login_code_expired': 'The code expired or was already used. Sign in again with your password.',
 };
 
 export default zh;

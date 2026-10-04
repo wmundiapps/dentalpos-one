@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net';
 
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://spacehour:spacehour@localhost:5432/spacehour_test';
 process.env.NODE_ENV = 'test';
+process.env.RATE_LIMIT_DISABLED ??= 'true'; // limites de tentativas têm teste próprio
 if (!/_test(\?|$)/.test(new URL(process.env.DATABASE_URL).pathname)) throw new Error('Banco de testes precisa terminar em _test');
 
 const { dropAll, migrate, one, pool } = await import('../src/db.js');

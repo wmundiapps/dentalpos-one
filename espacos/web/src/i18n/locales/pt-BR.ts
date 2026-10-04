@@ -1039,6 +1039,21 @@ const ptBR = {
   'pay.holdBoleto': "Pague em até 3 dias. A reserva confirma quando o banco compensar.",
   'pay.boletoTooSoon': "Só para reservas com 3 dias de antecedência.",
   'err.boleto_needs_3_days': "Boleto só para reservas que começam daqui a {days} dias ou mais. Use Pix ou cartão.",
+  // Segurança
+  'auth.twoFactorTitle': 'Confirme que é você',
+  'auth.twoFactorText': 'Enviamos um código de 6 números para {email}. Digite abaixo para entrar. Veja também o spam.',
+  'auth.twoFactorCode': 'Código de acesso',
+  'auth.twoFactorConfirm': 'Entrar',
+  'auth.twoFactorResend': 'Reenviar código',
+  'auth.twoFactorResent': 'Código novo enviado. Veja também o spam.',
+  'profile.twoFactorTitle': 'Verificação em duas etapas',
+  'profile.twoFactorOn': 'Pedir um código por e-mail a cada login',
+  'profile.twoFactorText': 'Mesmo que alguém descubra sua senha, não consegue entrar sem o código que chega no seu e-mail.',
+  'profile.twoFactorForced': 'Ativada sempre para administradores: a cada login chega um código no seu e-mail.',
+  'err.too_many_attempts': 'Muitas tentativas. Por segurança, tente de novo em {minutes} minutos.',
+  'err.content_not_allowed': 'Este texto tem conteúdo ou link não permitido no SpaceHour. Revise e tente de novo.',
+  'err.image_not_allowed': 'Uma das fotos não foi aceita por conter conteúdo impróprio.',
+  'err.login_code_expired': 'O código venceu ou foi usado. Entre de novo com sua senha.',
 };
 
 export default ptBR;

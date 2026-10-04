@@ -7,6 +7,7 @@ import type { AddressInfo } from 'node:net';
 
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://spacehour:spacehour@localhost:5432/spacehour_test';
 process.env.NODE_ENV = 'test';
+process.env.RATE_LIMIT_DISABLED ??= 'true'; // limites de tentativas têm teste próprio
 process.env.LAUNCH_COUNTRIES ??= 'all'; // testes cobrem todos os países configurados
 if (!/_test(\?|$)/.test(new URL(process.env.DATABASE_URL).pathname)) throw new Error('Banco de testes precisa terminar em _test');
 
@@ -273,7 +274,7 @@ test('cron protegido por segredo', async () => {
   process.env.CRON_SECRET = 's3cret';
   const r = await fetch(`${base}/cron/tick`, { headers: { Authorization: 'Bearer s3cret' } });
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'cart', 'documents', 'email', 'mp_tokens', 'push', 'verifications']);
+  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'cart', 'documents', 'email', 'mp_tokens', 'push', 'security', 'verifications']);
   delete process.env.CRON_SECRET;
 });
 
@@ -480,13 +481,22 @@ test('ADMIN_EMAILS promove a conta a administrador no próximo acesso (só com e
 test('ADMIN_EMAILS: conta Gmail vira admin já no login, mesmo com pontos, "+algo" ou aspas na Vercel', async () => {
   await register('robson.teste+site@gmail.com');
   process.env.ADMIN_EMAILS = '"RobsonTeste@googlemail.com"; outro@example.com';
+  const sent: Array<{ to: string; subject: string; text: string }> = [];
+  M.setMailSender(async (m) => { sent.push(m); });
   try {
     const r = await fetch(`${base}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'robson.teste+site@gmail.com', password: 'senha-forte-1' }) });
-    const { user } = await r.json() as { user: { roles: string[] } };
+    // Administrador entra com código no e-mail (verificação em duas etapas)
+    const ch = await r.json() as { twoFactor: boolean; challengeId: string };
+    assert.equal(ch.twoFactor, true);
+    const code = sent.at(-1)!.text.match(/código de acesso: (\d{6})/)![1];
+    const v = await fetch(`${base}/auth/login/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ challengeId: ch.challengeId, code }) });
+    const { user } = await v.json() as { user: { roles: string[] } };
     assert.ok(user.roles.includes('admin'), 'login já devolve o papel de admin');
   } finally {
     delete process.env.ADMIN_EMAILS;
+    M.setMailSender();
   }
   // Fora do Gmail, pontos continuam fazendo diferença
   const other = await register('ana.souza@example.com');
@@ -1049,4 +1059,61 @@ test('prazos de pagamento: Pix 30 min, cartão 24 h, boleto 3 dias (só com 3 di
   } finally {
     P.setGatewayOverride();
   }
+});
+
+test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo impróprio barrado e cabeçalhos de proteção', async () => {
+  const S = await import('../src/security.js');
+  const post = (path: string, body: unknown, token?: string) => fetch(`${base}${path}`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
+  const u = await register('seguranca@example.com');
+
+  // Filtro de texto: palavras e links de conteúdo adulto, encurtadores, arquivos executáveis e código
+  assert.equal(S.textProblem('Consultório odontológico com raio-x e cadeira nova'), null);
+  assert.equal(S.textProblem('Sala com parede cor nude e boa iluminação'), null);
+  assert.equal(S.textProblem('veja meus nudes'), 'adult');
+  assert.equal(S.textProblem('acesse https://www.xvideos.com/abc'), 'link');
+  assert.equal(S.textProblem('clique em bit.ly/abc123'), 'link');
+  assert.equal(S.textProblem('baixe https://site.com/programa.exe'), 'file');
+  assert.equal(S.textProblem('<script>alert(1)</script>'), 'code');
+  const bad = await fetch(`${base}/me`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${u.token}` },
+    body: JSON.stringify({ bio: 'conteúdo pornografia aqui' }) });
+  assert.equal(bad.status, 422);
+  assert.equal(((await bad.json()) as { error: string }).error, 'content_not_allowed');
+
+  // Duas etapas opcional para qualquer conta
+  assert.deepEqual(await (await fetch(`${base}/me/two-factor`, { headers: { Authorization: `Bearer ${u.token}` } })).json(), { enabled: false, forced: false });
+  assert.equal((await post('/me/two-factor', { enabled: true }, u.token)).status, 200);
+  const sent: Array<{ text: string }> = [];
+  M.setMailSender(async (m) => { sent.push(m); });
+  try {
+    const ch = await (await post('/auth/login', { email: 'seguranca@example.com', password: 'senha-forte-1' })).json() as { twoFactor: boolean; challengeId: string; token?: string };
+    assert.equal(ch.twoFactor, true);
+    assert.equal(ch.token, undefined, 'sem token antes do código');
+    const code = sent.at(-1)!.text.match(/código de acesso: (\d{6})/)![1];
+    const wrong = await post('/auth/login/verify', { challengeId: ch.challengeId, code: code === '000000' ? '111111' : '000000' });
+    assert.equal(wrong.status, 400);
+    const ok = await post('/auth/login/verify', { challengeId: ch.challengeId, code });
+    assert.equal(ok.status, 200);
+    assert.ok(((await ok.json()) as { token: string }).token);
+    assert.equal((await post('/auth/login/verify', { challengeId: ch.challengeId, code })).status, 400, 'código de uso único');
+  } finally {
+    M.setMailSender();
+  }
+
+  // Limite de senhas erradas: depois de 8 erros a conta fica bloqueada por 15 minutos (mesmo com a senha certa)
+  process.env.RATE_LIMIT_DISABLED = 'false';
+  try {
+    for (let i = 0; i < 8; i++) assert.equal((await post('/auth/login', { email: 'seguranca@example.com', password: `errada-${i}` })).status, 401);
+    const blocked = await post('/auth/login', { email: 'seguranca@example.com', password: 'senha-forte-1' });
+    assert.equal(blocked.status, 429);
+    assert.equal(((await blocked.json()) as { error: string }).error, 'too_many_attempts');
+  } finally {
+    process.env.RATE_LIMIT_DISABLED = 'true';
+  }
+
+  // Cabeçalhos de proteção na API
+  const h = await fetch(`${base}/health`);
+  assert.equal(h.headers.get('x-frame-options'), 'DENY');
+  assert.equal(h.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(h.headers.get('x-powered-by'), null);
 });

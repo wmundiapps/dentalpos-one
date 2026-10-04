@@ -20,13 +20,33 @@ import { marketplaceEnabled } from './payments/mpAccounts.js';
 import { asaasEnabled } from './payments/asaas.js';
 import { hasDocumentKey } from './secure.js';
 
+const SITE_ORIGINS = ['https://space-hour.com', 'https://www.space-hour.com', 'https://spacehour.com.br', 'https://www.spacehour.com.br', 'capacitor://localhost', 'https://localhost'];
+/** Origens que podem chamar a API pelo navegador (CORS_ORIGIN substitui a lista; em desenvolvimento, qualquer uma). */
+function allowedOrigins(): string[] | boolean {
+  if (process.env.CORS_ORIGIN) return process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
+  if (process.env.NODE_ENV !== 'production') return true;
+  return [...SITE_ORIGINS, ...(process.env.APP_URL ? [process.env.APP_URL.replace(/\/$/, '')] : [])];
+}
+
 export function createApp() {
   if (process.env.NODE_ENV === 'production' && !hasDocumentKey()) {
     console.error('[segurança] DOCUMENT_ENCRYPTION_KEY ausente: envio de documentos de registro ficará indisponível');
   }
   const app = express();
-  app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true }));
+  // Só o próprio site (e o app) chamam a API a partir do navegador: outro site não consegue usar a API logado como o usuário
+  app.use(cors({ origin: allowedOrigins() }));
   app.set('trust proxy', 1);
+  app.disable('x-powered-by');
+  app.use('/api', (_req, res, next) => {
+    res.set({
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+      'Cross-Origin-Resource-Policy': 'same-site',
+    });
+    next();
+  });
   app.use('/api', webhooksRouter); // corpo bruto (assinatura) — antes do express.json
   app.use(express.json({ limit: '1mb' }));
 

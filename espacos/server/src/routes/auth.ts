@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import crypto from 'node:crypto';
 import { id, nowIso, one, pool, rows, withTx } from '../db.js';
-import { getUserByEmail, insertUser, updateUser } from '../repo.js';
+import { getUser, getUserByEmail, insertUser, updateUser } from '../repo.js';
 import { HttpError, promoteConfiguredAdmin, requireAuth, signToken, toSelf, type AuthedRequest } from '../auth.js';
 import { COUNTRY_BY_CODE, SUPPORTED_LOCALES } from '../../../shared/countries.js';
 import { RULES_VERSION } from '../../../shared/rules.js';
@@ -11,6 +11,7 @@ import type { User } from '../../../shared/types.js';
 import { confirmEmail, confirmEmailCode, sendVerificationEmail } from '../emailVerification.js';
 import { requestPasswordReset, resetPassword } from '../passwordReset.js';
 import { RESET_MAX_USERS, RESET_PHRASE, resetAllData } from '../reset.js';
+import { assertCleanText, assertLoginAllowed, limit, loginFailed, resendLoginChallenge, securityEvent, setTwoFactor, startLoginChallenge, twoFactorRequired, twoFactorStatus, verifyLoginChallenge } from '../security.js';
 
 export const authRouter = Router();
 
@@ -28,6 +29,8 @@ const registerSchema = z.object({
 
 authRouter.post('/auth/register', async (req, res) => {
   const data = registerSchema.parse(req.body);
+  if (req.ip) await limit(`register:ip:${req.ip}`, 10, 60 * 60); // no máximo 10 contas por hora por IP
+  await assertCleanText([data.name], { ip: req.ip, where: 'register' });
   const email = data.email.toLowerCase();
   if (await getUserByEmail(pool, email)) throw new HttpError(409, 'email_in_use');
   if (emailProvider(email).kind === 'disposable') throw new HttpError(422, 'disposable_email');
@@ -46,16 +49,50 @@ authRouter.post('/auth/register', async (req, res) => {
 });
 
 authRouter.post('/auth/login', async (req, res) => {
-  const { email, password } = z.object({ email: z.string(), password: z.string() }).parse(req.body);
+  const { email, password } = z.object({ email: z.string().max(200), password: z.string().max(200) }).parse(req.body);
+  await assertLoginAllowed(email, req.ip); // senha errada demais: bloqueio de 15 minutos
   const user = await getUserByEmail(pool, email);
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) throw new HttpError(401, 'invalid_credentials');
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    await loginFailed(email, req.ip);
+    throw new HttpError(401, 'invalid_credentials');
+  }
   if (user.banned) throw new HttpError(403, 'account_banned');
+  // Verificação em duas etapas: código no e-mail antes de liberar o acesso
+  if (await twoFactorRequired(user)) return res.json(await startLoginChallenge(user, { ip: req.ip, userAgent: req.get('user-agent') }));
   await promoteConfiguredAdmin(user); // o menu Admin já aparece neste login, sem recarregar
   res.json({ token: signToken(user), user: toSelf(user) });
 });
 
+authRouter.post('/auth/login/verify', async (req, res) => {
+  const { challengeId, code } = z.object({ challengeId: z.string().min(4).max(60), code: z.string().min(4).max(12) }).parse(req.body);
+  if (req.ip) await limit(`login2fa:ip:${req.ip}`, 30, 15 * 60);
+  const user = await getUser(pool, await verifyLoginChallenge(challengeId, code, req.ip));
+  if (!user || user.banned) throw new HttpError(403, 'account_banned');
+  await securityEvent('login_2fa_ok', { userId: user.id, ip: req.ip });
+  await promoteConfiguredAdmin(user);
+  res.json({ token: signToken(user), user: toSelf(user) });
+});
+
+authRouter.post('/auth/login/resend', async (req, res) => {
+  const { challengeId } = z.object({ challengeId: z.string().min(4).max(60) }).parse(req.body);
+  await resendLoginChallenge(challengeId, (uid) => getUser(pool, uid), { ip: req.ip, userAgent: req.get('user-agent') });
+  res.json({ sent: true });
+});
+
+authRouter.get('/me/two-factor', requireAuth, async (req: AuthedRequest, res) => {
+  res.json(await twoFactorStatus(req.user!));
+});
+
+authRouter.post('/me/two-factor', requireAuth, async (req: AuthedRequest, res) => {
+  const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
+  await setTwoFactor(req.user!, enabled);
+  res.json(await twoFactorStatus(req.user!));
+});
+
 authRouter.post('/auth/forgot-password', async (req, res) => {
   const { email } = z.object({ email: z.string().email().max(200) }).parse(req.body);
+  if (req.ip) await limit(`forgot:ip:${req.ip}`, 10, 60 * 60);
+  await limit(`forgot:email:${email.toLowerCase()}`, 5, 60 * 60);
   await requestPasswordReset(email).catch((e) => console.error('[senha]', (e as Error).message));
   res.json({ sent: true }); // sempre igual: não revela se o e-mail tem conta
 });
@@ -200,6 +237,7 @@ authRouter.put('/me', requireAuth, async (req: AuthedRequest, res) => {
     locale: z.enum(SUPPORTED_LOCALES as [string, ...string[]]).optional(),
     companyTaxId: z.string().max(40).optional(),
   }).parse(req.body);
+  await assertCleanText([data.name, data.bio], { userId: req.user!.id, ip: req.ip, where: 'profile' });
   Object.assign(req.user!, data);
   await updateUser(pool, req.user!);
   res.json(toSelf(req.user!));
