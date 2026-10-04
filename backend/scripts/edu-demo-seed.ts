@@ -515,15 +515,17 @@ async function comunicacao(c: Ctx) {
     await c.api('POST', `${C}/campanhas`, { nome: 'Vestibular 2027/1 — últimas vagas', segmento: 'CONTATOS', canal: 'EMAIL', templateId: tp.id, finalidade: 'MARKETING' })
   }
   await c.api('POST', `${C}/reguas/simular`, {})
-  const ct = lst(await c.api('GET', `${C}/contatos?pageSize=5`))
-  for (const [i, x] of ct.slice(0, 3).entries()) await c.api('POST', `${C}/conversas`, { contatoId: x.id, canal: 'WHATSAPP', texto: ['Olá! Gostaria de informações sobre a rematrícula.', 'Bom dia, preciso da segunda via do boleto.', 'Qual o prazo para trancamento?'][i] })
+  const ct: any[] = []
+  for (const [i, st] of S.students.slice(0, 3).entries()) {
+    const x = await c.api('POST', `${C}/contatos`, { nome: st.nomeCompleto, telefone: `(11) 9${8700 + i}-${1200 + i * 11}`, studentId: st.id, email: `contato${i}@exemplo.com` })
+    if (x) ct.push(x)
+  }
+  for (const [i, x] of ct.entries()) await c.api('POST', `${C}/conversas`, { contatoId: x.id, canal: 'WHATSAPP', texto: ['Olá! Gostaria de informações sobre a rematrícula.', 'Bom dia, preciso da segunda via do boleto.', 'Qual o prazo para trancamento?'][i] })
 }
 
 async function modalidades(c: Ctx) {
   const M = '/edu/modalidades'
   for (const [cod, nome, cid, uf] of [['P01', 'Polo Centro — São Paulo', 'São Paulo', 'SP'], ['P02', 'Polo Campinas', 'Campinas', 'SP'], ['P03', 'Polo Recife', 'Recife', 'PE']]) await c.api('POST', `${M}/polos`, { codigo: cod, nome, cidade: cid, uf, capacidade: 120 })
-  const polos = lst(await c.api('GET', `${M}/polos`))
-  if (polos[0]) await c.api('POST', `${M}/polos/${polos[0].id}/credenciar`, { atoNumero: 'Portaria SERES nº 912/2025', atoData: day(-200) })
   for (const [n, t] of [['Tutor Henrique Alves', 'DISTANCIA'], ['Tutora Beatriz Rocha', 'DISTANCIA'], ['Tutor Presencial Marcelo', 'PRESENCIAL']]) await c.api('POST', `${M}/tutores`, { nome: n, tipo: t, capacidadeAlunos: 40 })
   const discs = S.secs.direito.map((s: any) => s.disciplina)
   for (const d of discs) await c.api('POST', `${M}/ofertas`, { disciplineId: d.id, programId: S.direito.id, modalidade: 'EAD', cargaPresencial: Math.round(d.cargaHoraria * 0.1), cargaOnline: d.cargaHoraria - Math.round(d.cargaHoraria * 0.1), minEncontros: 1, avaliacoesPresenciais: 1 })
