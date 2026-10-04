@@ -1,3 +1,4 @@
+import { usePendingVisibility } from "../hooks/usePendingVisibility";
 import { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
@@ -61,7 +62,9 @@ function severityColor(severity: OperationalAlert["severity"]) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState<IntegratedAppointment[]>(getAppointments);
-  const [alerts, setAlerts] = useState<OperationalAlert[]>(getOperationalAlerts);
+  const [allAlerts, setAlerts] = useState<OperationalAlert[]>(getOperationalAlerts);
+  const filterVisible = usePendingVisibility();
+  const alerts = filterVisible(allAlerts);
   const [labCount, setLabCount] = useState(getLaboratoryWorks().filter((work) => !["Entregue", "Liberado"].includes(work.status)).length);
   const [dismissTarget, setDismissTarget] = useState<OperationalAlert | null>(null);
   const [dismissReason, setDismissReason] = useState("");

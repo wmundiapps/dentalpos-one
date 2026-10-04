@@ -48,7 +48,9 @@ import {
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadFinancialEntries } from "../services/FinancialApi";
-import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
+import { toast } from "../utils/toast";
+import { usePendingVisibility } from "../hooks/usePendingVisibility";
+import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import {
@@ -299,6 +301,13 @@ export default function Agenda() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(((new URLSearchParams(window.location.search).get("status")) || "Todos") as StatusFilter);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<IntegratedAppointment | null>(null);
+  const refreshAfterQuickAction = async () => {
+    const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
+    saveAppointments(refreshed);
+    setItems(refreshed);
+    setEdit(null);
+    toast.success("Agenda atualizada.");
+  };
   const [editReason, setEditReason] = useState("");
   const [editRequestedBy, setEditRequestedBy] = useState<"Paciente" | "Clínica" | "Dentista" | "Outro">("Paciente");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -676,7 +685,8 @@ export default function Agenda() {
       ),
     [items, backendDoctors],
   );
-  const alerts = getOperationalAlerts().filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
+  const filterVisible = usePendingVisibility();
+  const alerts = filterVisible(getOperationalAlerts()).filter((alert) => ["Agenda", "Pacientes", "Laboratório", "Financeiro"].includes(alert.area)).slice(0, 12);
   const normalizeProfessionalName = (value: unknown) =>
     String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(dra?|dr)\.?\s*/g, "").trim();
   const selectedBackendDoctorId =
@@ -1393,6 +1403,60 @@ export default function Agenda() {
           })() : null}
           {edit ? (
             <>
+              {edit.backendId && ["Agendado", "Confirmado", "Faltou"].includes(edit.status) ? (
+                <Button
+                  color="success"
+                  variant="outlined"
+                  onClick={async () => {
+                    try {
+                      // Compareceu = chegada: o paciente entra na fila do Painel de Atendimento (sala de espera).
+                      await appointmentFlowAction(edit.backendId!, "ARRIVED");
+                      await refreshAfterQuickAction();
+                      toast.success("Chegada confirmada: o paciente entrou na sala de espera.");
+                    } catch (error) {
+                      window.alert(error instanceof Error ? error.message : "Não foi possível confirmar o comparecimento.");
+                    }
+                  }}
+                >
+                  Compareceu
+                </Button>
+              ) : null}
+              {edit.backendId && ["Aguardando", "Sala em preparação", "Em atendimento"].includes(edit.status) ? (
+                <Button
+                  color="success"
+                  variant="outlined"
+                  onClick={async () => {
+                    try {
+                      // Saiu = atendimento finalizado: sai da fila do Painel de Atendimento.
+                      await appointmentFlowAction(edit.backendId!, "ATTENDED");
+                      await refreshAfterQuickAction();
+                      toast.success("Atendimento finalizado.");
+                    } catch (error) {
+                      window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o atendimento.");
+                    }
+                  }}
+                >
+                  Saiu / finalizar
+                </Button>
+              ) : null}
+              {edit.backendId && edit.status !== "Cancelado" ? (
+                <Button
+                  color="error"
+                  variant="outlined"
+                  onClick={async () => {
+                    if (!window.confirm(`Confirmar que ${edit.patientName} desmarcou a consulta?`)) return;
+                    try {
+                      await cancelBackendAppointment(edit.backendId!, editReason.trim() || "Paciente desmarcou", "PATIENT");
+                      await refreshAfterQuickAction();
+                      toast.success("Consulta desmarcada e registrada no histórico.");
+                    } catch (error) {
+                      window.alert(error instanceof Error ? error.message : "Não foi possível desmarcar a consulta.");
+                    }
+                  }}
+                >
+                  Desmarcou
+                </Button>
+              ) : null}
               <Button color="warning" onClick={() => setEdit({ ...edit, status: "Faltou" })}>Marcar falta</Button>
               <Button color="error" onClick={() => setEdit({ ...edit, status: "Cancelado" })}>Cancelar consulta</Button>
             </>
@@ -1429,6 +1493,7 @@ export default function Agenda() {
                     saveAppointments(refreshed);
                     setItems(refreshed);
                     setEdit(null);
+                    toast.success("Alterações do agendamento salvas.");
                   } catch (error) {
                     window.alert(error instanceof Error ? error.message : "Não foi possível salvar as alterações.");
                   }

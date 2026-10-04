@@ -7,6 +7,7 @@ import EvaluationWidget from "./EvaluationWidget";
 import Footer from "./Footer";
 import Header from "./Header";
 import PendingAlertsBar from "./PendingAlertsBar";
+import ToastHost from "./ToastHost";
 import PrintHeader from "./PrintHeader";
 import Sidebar from "./Sidebar";
 
@@ -41,6 +42,7 @@ export default function Layout({
         <Header />
         <Box className="no-print"><DemoBanner /></Box>
         <Box className="no-print"><PendingAlertsBar /></Box>
+        <ToastHost />
 
         <Box
           component="main"

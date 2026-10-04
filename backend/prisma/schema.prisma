@@ -2603,6 +2603,28 @@ model PaymentSplitLine {
   @@index([tenantId])
 }
 
+// Régua de cobrança: cada aviso enviado (ou tentado) ao paciente por lançamento em atraso. (financialEntryId, stage) é único: nunca repete.
+model DunningNotice {
+  id               String    @id @default(cuid())
+  clinicId         String
+  tenantId         String
+  financialEntryId String
+  patientId        String?
+  stage            String
+  channel          String
+  message          String
+  status           String    @default("PENDING")
+  scheduledFor     DateTime
+  sentAt           DateTime?
+  errorMessage     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([financialEntryId, stage, channel])
+  @@index([clinicId, status, scheduledFor])
+  @@index([clinicId, createdAt])
+}
+
 // ==== EDUMASTER:BEGIN (gerado por scripts/merge-edu-schema.js - edite prisma/edu/*.prisma) ====
 
 // ---- edu/core.prisma ----
