@@ -18,7 +18,7 @@ const CHAVES_MIME = ['mime', 'mimeType', 'contentType', 'tipoMime']
 const CHAVES_URL_ANEXO = new Set([
   'arquivourl', 'urlarquivo', 'fileurl', 'externalurl', 'camerareadyurl', 'capaurl', 'repositoriourl', 'anaisurl', 'urlacesso', 'attachmenturl', 'anexourl', 'documentourl', 'imageurl', 'logourl',
 ])
-const PAI_ANEXO = /(anexo|arquivo|documento|attachment|file|upload|logo|imagem|midia)/i
+const PAI_ANEXO = /(anexo|arquivo|documento|attachment|file|upload|logo|imagem|midia|camera|evidencia|foto|capa)/i
 
 interface Item {
   tipo: 'data' | 'base64' | 'url' | 'meta'
@@ -33,7 +33,8 @@ function primeiraString(o: Record<string, any>, chaves: string[]): string | unde
   return undefined
 }
 
-export function coletarItens(corpo: unknown, limite = 25): Item[] {
+/** `rota` (caminho da requisição) ajuda a reconhecer um `url` de primeiro nível como anexo (ex.: /documentos/:codigo/enviar). */
+export function coletarItens(corpo: unknown, limite = 25, rota = ''): Item[] {
   const itens: Item[] = []
   const visita = (v: any, caminho: string, chavePai: string, prof: number) => {
     if (itens.length >= limite || prof > 6 || v == null) return
@@ -57,7 +58,7 @@ export function coletarItens(corpo: unknown, limite = 25): Item[] {
     // Objeto com nome de arquivo (e/ou MIME) e sem conteúdo (ex.: intenção de upload pré-assinado): confere só os metadados.
     if (!temConteudo && (forte || (fraco && mime))) itens.push({ tipo: 'meta', nome: forte || fraco, mime, caminho: caminho || 'corpo' })
   }
-  visita(corpo, '', '', 0)
+  visita(corpo, '', rota, 0)
   return itens
 }
 
@@ -89,7 +90,7 @@ export const uploadGuard: RequestHandler = async (req: Request, res: Response, n
     const contexto = { tenantId: user?.tenantId, userId: user?.id, ip: ipDaRequisicao(req), origem: `${req.method} ${url}`.slice(0, 120) }
     const bloquear = (msg: string) => res.status(422).json({ error: msg })
 
-    for (const it of coletarItens(corpo)) {
+    for (const it of coletarItens(corpo, 25, url)) {
       if (it.tipo === 'data' || it.tipo === 'base64') {
         const dado = it.tipo === 'data' ? it.valor! : `data:${it.mime || 'application/octet-stream'};base64,${it.valor}`
         const r = await scanUpload({ filename: it.nome, declaredMime: it.tipo === 'data' ? undefined : it.mime, data: dado, contexto })

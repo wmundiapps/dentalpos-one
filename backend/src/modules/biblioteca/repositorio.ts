@@ -1,3 +1,4 @@
+import { validarUrlExterna } from '../seguranca/url'
 import { Router, Response } from 'express'
 import { randomBytes } from 'crypto'
 import { z } from 'zod'
@@ -216,15 +217,27 @@ export function mountRepositorio(router: Router) {
   }))
 }
 
+// Tipos que podem ser exibidos no navegador (inline). Qualquer outro vira download forçado (octet-stream),
+// para que um arquivo antigo/malicioso nunca execute como HTML/SVG/JS a partir da origem da API.
+const MIMES_INLINE_SEGUROS = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'text/plain', 'video/mp4', 'video/webm', 'audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/wav'])
+
 export function enviarArquivo(res: Response, i: any) {
   if (i.arquivoDataUrl) {
     const m = /^data:([\w/+.-]+);base64,(.*)$/s.exec(i.arquivoDataUrl)
     if (!m) throw httpErr(500, 'Arquivo corrompido.')
-    res.setHeader('Content-Type', m[1])
-    res.setHeader('Content-Disposition', `inline; filename="${String(i.arquivoNome || i.handle).replace(/[^\w.\- ]/g, '_')}"`)
+    const mime = m[1].toLowerCase()
+    const seguro = MIMES_INLINE_SEGUROS.has(mime)
+    res.setHeader('Content-Type', seguro ? mime : 'application/octet-stream')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox")
+    res.setHeader('Content-Disposition', `${seguro ? 'inline' : 'attachment'}; filename="${String(i.arquivoNome || i.handle).replace(/[^\w.\- ]/g, '_')}"`)
     return res.send(Buffer.from(m[2], 'base64'))
   }
-  if (i.arquivoUrl) return res.redirect(i.arquivoUrl)
+  if (i.arquivoUrl) {
+    // Só redireciona para https público (evita open redirect para esquemas perigosos/rede interna).
+    if (!validarUrlExterna(String(i.arquivoUrl)).ok) throw httpErr(422, 'Link do arquivo não é permitido.')
+    return res.redirect(i.arquivoUrl)
+  }
   throw httpErr(404, 'Item sem arquivo anexado.')
 }
 

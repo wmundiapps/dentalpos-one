@@ -3,6 +3,8 @@ import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { createUser, updateUser, deleteUser } from '../services/userService'
 import { writeAudit } from '../services/auditService'
+import { validarSenhaForte } from '../modules/seguranca/senha'
+import { eventoDeRequisicao } from '../modules/seguranca/eventos'
 
 const publicUserSelect = {
   id: true, clinicId: true, tenantId: true, email: true, firstName: true, lastName: true,
@@ -29,6 +31,12 @@ export async function show(req: AuthRequest, res: Response) {
 
 export async function store(req: AuthRequest, res: Response) {
   const payload = { ...req.body, clinicId: req.user!.clinicId, tenantId: req.user!.tenantId }
+  // Política de senha forte só para NOVAS senhas (senhas existentes continuam válidas no login).
+  const senhaOk = validarSenhaForte(payload.password, { email: payload.email, nome: `${payload.firstName || ''} ${payload.lastName || ''}` })
+  if (!senhaOk.ok) {
+    void eventoDeRequisicao(req, { tenantId: req.user!.tenantId, userId: req.user!.id, tipo: 'senha_fraca', detalhe: { rota: 'users.store' } })
+    return res.status(400).json({ error: senhaOk.erro })
+  }
   const user = await createUser(payload)
   await writeAudit({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, actorId: req.user!.id, module: 'users', action: 'create', entityType: 'User', entityId: user.id, afterData: { ...user, password: undefined } })
   const { password, ...safe } = user
@@ -41,6 +49,13 @@ export async function update(req: AuthRequest, res: Response) {
   if (!before) return res.status(404).json({ error: 'Usuário não encontrado.' })
   const allowed = ['firstName','lastName','email','phone','avatar','role','isActive','password']
   const data = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)))
+  if (data.password !== undefined && data.password !== null && data.password !== '') {
+    const senhaOk = validarSenhaForte(data.password, { email: String(data.email || before.email), nome: `${before.firstName} ${before.lastName}` })
+    if (!senhaOk.ok) {
+      void eventoDeRequisicao(req, { tenantId: req.user!.tenantId, userId: req.user!.id, tipo: 'senha_fraca', detalhe: { rota: 'users.update' } })
+      return res.status(400).json({ error: senhaOk.erro })
+    }
+  }
   const user = await updateUser(id, data)
   await writeAudit({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, actorId: req.user!.id, module: 'users', action: 'update', entityType: 'User', entityId: id, beforeData: { ...before, password: undefined }, afterData: { ...user, password: undefined } })
   const { password, ...safe } = user
