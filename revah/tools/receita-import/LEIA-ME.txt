@@ -1,0 +1,13 @@
+REVAH — carga da base de empresas (Receita Federal)
+
+O site da Receita só aceita conexões do Brasil, por isso esta carga roda no seu computador.
+
+1. Instale o Node.js 20 ou mais novo (https://nodejs.org).
+2. Nesta pasta, no PowerShell:
+     npm install
+     $env:DATABASE_URL = "<endereço do banco do REVAH>"
+     node importar.cjs --ufs=PR
+3. Opções: --ufs=PR,SP  --cnaes=8630,4781  --month=AAAA-MM  --dry-run  --dir=C:\pasta\com\zips
+
+A carga baixa uns 6 GB (um arquivo por vez, apagado depois de lido) e leva de 30 a 90 minutos.
+Repita todo mês para atualizar a base.

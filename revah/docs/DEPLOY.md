@@ -69,14 +69,14 @@ Os arquivos ficam no compartilhamento público da Receita (`RECEITA_CNPJ_URL`, p
 `https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9`), em pastas `AAAA-MM`.
 Se a Receita mudar o endereço de novo, basta trocar essa variável.
 
-A carga roda fora da Vercel (arquivos de vários GB). Jeito mais simples: GitHub → Actions →
-**REVAH base da Receita** → Run workflow (segredo `REVAH_DATABASE_URL`; roda sozinho todo dia 20 com os
-estados da variável `REVAH_RECEITA_UFS`). Ou, no próprio PC, na pasta `revah/api`, com `DATABASE_URL` do banco do REVAH:
+A carga roda fora da Vercel (arquivos de vários GB) e **precisa de um computador no Brasil**: o site da
+Receita derruba conexões de fora do país (por isso não roda no GitHub Actions). Pacote pronto em
+`revah/tools/receita-import` (gerado por `npm run receita:bundle` em `revah/api`). No PowerShell, nessa pasta:
 
 ```powershell
-$env:DATABASE_URL = "<URL do banco do REVAH>"
 npm install
-npm run receita:import -- --ufs=PR
+$env:DATABASE_URL = "<URL do banco do REVAH — Session pooler do Supabase>"
+node importar.cjs --ufs=PR
 ```
 
 - `--ufs=PR,SP` estados; `--cnaes=8630,4781` prefixos de CNAE; `--all` Brasil inteiro (dezenas de GB no banco — exige plano maior no Supabase).
