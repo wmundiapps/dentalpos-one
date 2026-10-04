@@ -50,8 +50,9 @@ const ALUNO_EMAIL = 'aluno@ravel.edu.br'
 const ALUNO_SENHA = 'Aluno@2026'
 
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [
-  ['equipe', equipe], ['academico', academico], ['espacos', espacos],
+  ['equipe', equipe],
   ['bootstrap', async (c) => { for (const m of MODULOS) await c.api('POST', `/edu/${m}/bootstrap`, {}) }],
+  ['academico', academico], ['espacos', espacos], ['admissoes', admissoes],
 ]
 
 
@@ -130,6 +131,66 @@ async function espacos(c: Ctx) {
     const r = await c.api('POST', '/edu/core/espacos', { campusId: S.campus.id, codigo, nome, tipo, capacidade, bloco, acessivel: true, recursos: tipo === 'LABORATORIO' ? ['Microscópios', 'Bancadas'] : ['Projetor', 'Ar-condicionado'] })
     if (r) S.spaces.push(r)
   }
+}
+
+function cpfValido(seed: number): string {
+  const d: number[] = []
+  let x = seed * 7919 + 123456789
+  for (let i = 0; i < 9; i++) { d.push(x % 10); x = Math.floor(x / 10) + (i + 3) * 13 }
+  const dv = (arr: number[]) => { const f = arr.length + 1; const sm = arr.reduce((a, n, i) => a + n * (f - i), 0); const r = (sm * 10) % 11; return r === 10 ? 0 : r }
+  d.push(dv(d)); d.push(dv(d))
+  return d.join('')
+}
+
+async function admissoes(c: Ctx) {
+  const prisma = (await import('../src/lib/prisma')).prisma
+  const proc = await c.api('POST', '/edu/admissoes/processos', {
+    codigo: 'VEST-2027-1', nome: 'Vestibular 2027/1 — Graduação', tipo: 'VESTIBULAR_TRADICIONAL', termId: S.term.id,
+    edital: 'Edital 01/2026', inscricaoInicio: day(-30), inscricaoFim: day(20), provaData: day(26), resultadoData: day(34), matriculaInicio: day(35), matriculaFim: day(50),
+    taxaInscricao: 90, notaMinima: 40, listaEspera: true,
+  })
+  S.proc = proc
+  const oOdo = await c.api('POST', '/edu/admissoes/ofertas', { processoId: proc.id, programId: S.odonto.id, nomeCurso: 'Odontologia', turno: 'INTEGRAL', modalidade: 'PRESENCIAL', campusId: S.campus.id, vagas: 60, valorMensalidade: 3890, parcelas: 12 })
+  const oDir = await c.api('POST', '/edu/admissoes/ofertas', { processoId: proc.id, programId: S.direito.id, nomeCurso: 'Direito (EaD)', turno: 'FLEXIVEL', modalidade: 'EAD', poloNome: 'Polo Digital', vagas: 200, valorMensalidade: 689, parcelas: 12 })
+  const oDirN = await c.api('POST', '/edu/admissoes/ofertas', { processoId: proc.id, nomeCurso: 'Direito', turno: 'NOTURNO', modalidade: 'PRESENCIAL', campusId: S.campus.id, vagas: 80, valorMensalidade: 1890, parcelas: 12 })
+  await c.api('POST', `/edu/admissoes/processos/${proc.id}/abrir`, {})
+  const camps = [
+    ['Instagram Ads — Odonto', 'INSTAGRAM', 'ATIVA', 12000, [3500, 4200, 3100]], ['Google Search — Graduação', 'GOOGLE', 'ATIVA', 9000, [2800, 3300]],
+    ['Feira de Profissões', 'EVENTO', 'ENCERRADA', 5000, [4800]], ['Indicação de Alunos', 'INDICACAO', 'ATIVA', 2000, [600]],
+  ] as const
+  S.camps = []
+  for (const [nome, canal, status, orc, gastos] of camps) {
+    const cp = await c.api('POST', '/edu/admissoes/campanhas', { nome, canal, status, nivel: 'GRADUACAO', processoId: proc.id, orcamento: orc, metaInscritos: 60, metaMatriculas: 20, inicio: day(-60), fim: day(30), utmSource: canal.toLowerCase() })
+    if (!cp) continue
+    S.camps.push(cp)
+    for (const g of gastos) await c.api('POST', '/edu/admissoes/campanhas-gastos', { campanhaId: cp.id, valor: g, descricao: 'Investimento mensal', data: day(-20) })
+  }
+  const plano: [string, number][] = [] // [status, qtd]
+  const dist = ['LEAD', 'LEAD', 'LEAD', 'LEAD', 'LEAD', 'LEAD', 'INSCRITO', 'INSCRITO', 'INSCRITO', 'INSCRITO', 'INSCRITO', 'INSCRITO', 'INSCRITO', 'PROVA', 'PROVA', 'PROVA', 'PROVA', 'PROVA', 'APROVADO', 'APROVADO', 'APROVADO', 'APROVADO', 'APROVADO', 'CONVOCADO', 'CONVOCADO', 'CONVOCADO', 'MATRICULADO', 'MATRICULADO', 'REPROVADO', 'DESISTENTE']
+  const sobren = ['Almeida', 'Barros', 'Cavalcanti', 'Dantas', 'Esteves', 'Figueiredo', 'Guimarães', 'Holanda', 'Ibrahim', 'Junqueira', 'Krause', 'Leal']
+  const nomes = ['Lucas', 'Julia', 'Pedro', 'Larissa', 'Mateus', 'Letícia', 'Gustavo', 'Amanda', 'Rodrigo', 'Natália', 'Vitor', 'Bianca', 'Caio', 'Fernanda', 'Henrique']
+  const origens = ['INSTAGRAM', 'GOOGLE', 'INDICACAO', 'EVENTO', 'SITE', 'WHATSAPP']
+  S.cands = []
+  for (let i = 0; i < dist.length; i++) {
+    const st = dist[i]
+    const ofertaId = [oOdo, oDir, oDirN][i % 3]?.id
+    const body: any = { nome: `${nomes[i % nomes.length]} ${sobren[(i * 5) % sobren.length]}`, email: `cand${i}@exemplo.com`, telefone: `(11) 9${String(8000 + i * 37).padStart(4, '0')}-${String(1000 + i * 13).slice(-4)}`, origem: pick(origens, i), campanhaId: S.camps[i % S.camps.length]?.id, consentimentoLgpd: true, consentimentoMarketing: i % 2 === 0 }
+    if (st !== 'LEAD') { body.processoId = proc.id; body.ofertaId = ofertaId; body.cpf = cpfValido(i + 1) }
+    const cand = await c.api('POST', '/edu/admissoes/candidatos', body)
+    if (!cand) continue
+    S.cands.push(cand)
+    if (st === 'LEAD' && i % 2 === 0) await c.api('POST', `/edu/admissoes/candidatos/${cand.id}/interacoes`, { tipo: 'WHATSAPP', descricao: 'Primeiro contato: interessado em bolsa.', proximoContatoEm: day(1 + (i % 4)) })
+    if (st === 'INSCRITO') continue
+    if (['PROVA', 'APROVADO', 'CONVOCADO', 'MATRICULADO', 'REPROVADO'].includes(st)) {
+      const nota = st === 'REPROVADO' ? 22 : 55 + ((i * 7) % 40)
+      await c.api('POST', `/edu/admissoes/candidatos/${cand.id}/notas`, { notas: [{ componente: 'PROVA', nota }, { componente: 'REDACAO', nota: Math.min(100, nota + 5) }] })
+    }
+    if (['APROVADO', 'CONVOCADO', 'MATRICULADO'].includes(st)) await c.api('POST', `/edu/admissoes/candidatos/${cand.id}/status`, { status: 'APROVADO' })
+    if (st === 'REPROVADO') await c.api('POST', `/edu/admissoes/candidatos/${cand.id}/status`, { status: 'REPROVADO' })
+    if (st === 'DESISTENTE') await c.api('POST', `/edu/admissoes/candidatos/${cand.id}/status`, { status: 'DESISTENTE', motivo: 'Optou por outra instituição' })
+    if (st === 'CONVOCADO' || st === 'MATRICULADO') await prisma.admCandidato.update({ where: { id: cand.id }, data: { status: st as any, etapaMaxima: st === 'CONVOCADO' ? 4 : 5 } })
+  }
+  void plano
 }
 
 async function main() {
