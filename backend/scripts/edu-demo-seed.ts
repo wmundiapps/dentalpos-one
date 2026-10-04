@@ -251,7 +251,7 @@ async function calendario(c: Ctx) {
   const T = S.term.id
   await c.api('POST', `/edu/calendario/periodos/${T}/gerar-calendario`, {})
   await c.api('POST', '/edu/calendario/eventos', { tipo: 'REUNIAO', titulo: 'Reunião do Colegiado de Odontologia', inicio: day(3).slice(0, 10) + 'T14:00:00-03:00', fim: day(3).slice(0, 10) + 'T16:00:00-03:00', diaInteiro: false, publico: 'PROFESSORES' })
-  await c.api('POST', '/edu/calendario/eventos', { tipo: 'EVENTO', titulo: 'Aula inaugural — calouros 2027/1', inicio: day(40).slice(0, 10) + 'T19:00:00-03:00', fim: day(40).slice(0, 10) + 'T21:00:00-03:00', diaInteiro: false })
+  await c.api('POST', '/edu/calendario/eventos', { tipo: 'AULA_INAUGURAL', titulo: 'Aula inaugural — calouros 2027/1', inicio: day(40).slice(0, 10) + 'T19:00:00-03:00', fim: day(40).slice(0, 10) + 'T21:00:00-03:00', diaInteiro: false })
   await c.api('POST', '/edu/calendario/eventos', { tipo: 'REUNIAO', titulo: 'Plantão pedagógico semanal', inicio: day(1).slice(0, 10) + 'T10:00:00-03:00', fim: day(1).slice(0, 10) + 'T11:00:00-03:00', diaInteiro: false, recorrencia: 'SEMANAL', recorrenciaAte: day(70) })
   // configuração para o gerador
   const grupos: [any[], any, number, string, string][] = [[S.secs.odonto, S.odonto, 1, 'MANHA', 'ODO-1-M'], [S.secs.direito, S.direito, 1, 'NOITE', 'DIR-1-N']]
