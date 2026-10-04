@@ -122,7 +122,7 @@ export default function FunilTab({ toast }: { toast: (t: Toast) => void }) {
               <Paper key={col.status} variant="outlined"
                 onDragOver={(e) => { e.preventDefault(); setOver(col.status); }} onDragLeave={() => setOver(null)}
                 onDrop={() => { setOver(null); if (drag) mover(drag, col.status); setDrag(null); }}
-                sx={{ minWidth: 230, width: 230, flex: "0 0 230px", p: 1, borderRadius: 3, bgcolor: over === col.status ? "action.selected" : "action.hover", borderTop: `4px solid ${col.cor}` }}>
+                sx={{ minWidth: 185, flex: "1 1 0", p: 1, borderRadius: 3, bgcolor: over === col.status ? "action.selected" : "action.hover", borderTop: `4px solid ${col.cor}` }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                   <Typography sx={{ fontWeight: 800 }}>{col.label}</Typography><Chip size="small" label={d.total} />
                 </Box>

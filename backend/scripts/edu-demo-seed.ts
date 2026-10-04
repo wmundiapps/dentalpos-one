@@ -1,7 +1,7 @@
 /**
  * Seed de demonstração do EduMaster Pro (usa a API REAL com token ADMIN; contas via Prisma).
  * Uso:  DATABASE_URL=... npx tsx scripts/edu-demo-seed.ts   (backend rodando em API_URL, padrão http://localhost:3000/api)
- * Etapas: SEED_STEPS=contas,bootstrap,marca,... (padrão: todas; "marca" envia a logomarca e deve ser a última se quiser ver o estado sem logo).
+ * Etapas: SEED_STEPS=a,b (só essas) ou SEED_SKIP=marca (pula; use para ver a tela tracejada sem logo e depois rode SEED_STEPS=marca). Rodar em banco limpo.
  * Login: admin@ravel.edu.br / Ravel@2026  ·  aluno: aluno@ravel.edu.br / Aluno@2026 (clinicId impresso ao final).
  */
 import bcrypt from 'bcryptjs'
@@ -487,7 +487,7 @@ async function biblioteca(c: Ctx) {
 async function apoio(c: Ctx) {
   const A = '/edu/apoio'
   const tipos = ['PSICOLOGICO', 'PSICOPEDAGOGICO', 'SOCIAL']
-  for (let i = 0; i < 4; i++) await c.api('POST', `${A}/atendimentos`, { studentId: S.students[i + 2].id, tipo: pick(tipos, i), dataHora: day(1 + i), motivo: ['Ansiedade nas provas', 'Dificuldade de organização', 'Apoio socioeconômico', 'Adaptação ao curso'][i] })
+  for (let i = 0; i < 4; i++) await c.api('POST', `${A}/atendimentos`, { studentId: S.students[i + 2].id, tipo: pick(tipos, i), dataHora: ymd(1 + i) + `T1${i}:00:00-03:00`, motivo: ['Ansiedade nas provas', 'Dificuldade de organização', 'Apoio socioeconômico', 'Adaptação ao curso'][i] })
   const man: [string, string, string][] = [['RECLAMACAO', 'Ar-condicionado da Sala 102 quebrado', 'O ar-condicionado da sala está sem funcionar há duas semanas, prejudicando as aulas.'], ['ELOGIO', 'Atendimento da secretaria', 'Gostaria de elogiar o atendimento rápido e cordial da secretaria acadêmica.'], ['SUGESTAO', 'Mais tomadas na biblioteca', 'Sugiro a instalação de mais tomadas nas mesas de estudo da biblioteca.'], ['DENUNCIA', 'Comportamento inadequado em estágio', 'Relato de situação inadequada ocorrida no campo de estágio.']]
   for (const [tipo, assunto, descricao] of man) await c.api('POST', `${A}/ouvidoria/manifestacoes`, { tipo, assunto, descricao })
   for (const [tipo, assunto, descricao] of man.slice(0, 2)) {
@@ -538,7 +538,7 @@ async function pesquisa(c: Ctx) {
   const P = '/edu/pesquisa'
   const prof = S.users['prof.anatomia']
   const pubs: [string, string, number, string, string][] = [
-    ['Avaliação de resinas bulk-fill em restaurações posteriores', 'ARTIGO', 2025, 'a2', '10.1000/ravel.2025.001'], ['Responsabilidade civil do cirurgião-dentista: panorama jurisprudencial', 'ARTIGO', 2025, 'b1', '10.1000/ravel.2025.002'],
+    ['Avaliação de resinas bulk-fill em restaurações posteriores', 'ARTIGO', 2026, 'a2', '10.1000/ravel.2025.001'], ['Responsabilidade civil do cirurgião-dentista: panorama jurisprudencial', 'ARTIGO', 2026, 'b1', '10.1000/ravel.2025.002'],
     ['Realidade aumentada no ensino de anatomia', 'ARTIGO', 2024, 'a1', '10.1000/ravel.2024.003'], ['Evasão no ensino superior privado: um estudo de caso', 'ARTIGO', 2024, 'b2', '10.1000/ravel.2024.004'],
     ['Manual de Semiologia Odontológica', 'LIVRO', 2023, 'b3', '10.1000/ravel.2023.005'],
   ]
@@ -609,7 +609,7 @@ async function jornadas(c: Ctx) {
     const alvo = [[0, 3], [1, 6], [2, 9], [3, 2], [4, 12], [5, 5]]
     for (const [i, passos] of alvo) {
       const st = S.students[i]
-      const r = await c.api('POST', `${J}/instancias`, { personType: 'aluno', personId: st.userId, templateId: tAluno.id, personNome: st.nomeCompleto, contexto: { possuiFies: i % 2 === 0, ultimoPeriodo: false } })
+      const r = await c.api('POST', `${J}/instancias`, { personType: 'aluno', personId: st.id, templateId: tAluno.id, personNome: st.nomeCompleto, contexto: { possuiFies: i % 2 === 0, ultimoPeriodo: false } })
       const inst = r?.instancia ?? r
       if (inst?.id) { S.instancias.push(inst); await drive(inst.id, passos) }
     }
@@ -674,9 +674,11 @@ async function main() {
     return j
   }
   const steps = (process.env.SEED_STEPS || '').split(',').filter(Boolean)
+  const skip = (process.env.SEED_SKIP || '').split(',').filter(Boolean)
   const ctx: Ctx = { api, tenantId: TENANT, clinicId: clinic.id, mk, loginAs: (c) => login(clinic.id, c), failures }
   for (const [name, fn] of STEPS) {
     if (steps.length && !steps.includes(name)) continue
+    if (skip.includes(name)) continue
     console.log('>> etapa', name)
     try { await fn(ctx) } catch (e: any) { failures.push(`ETAPA ${name}: ${e?.stack?.split('\n').slice(0, 3).join(' | ')}`) }
   }

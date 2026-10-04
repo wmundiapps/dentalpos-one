@@ -8,7 +8,7 @@ import { eduApi } from "../../services/EduApi";
 
 // ---------------------------------------------------------------- formatação
 export const fmtDate = (v: any) => (v ? new Date(v).toLocaleDateString("pt-BR") : "—");
-export const fmtDateTime = (v: any) => (v ? new Date(v).toLocaleString("pt-BR") : "—");
+export const fmtDateTime = (v: any) => (v ? new Date(v).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—");
 export const fmtPct = (v: any, d = 1) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "—" : `${Number(v).toFixed(d).replace(".", ",")}%`);
 export const fmtNum = (v: any, d = 1) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "—" : Number(v).toFixed(d).replace(".", ","));
 export const fmtMoney = (v: any) => (v === null || v === undefined ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));

@@ -5,6 +5,7 @@ import { eduApi } from "../../services/EduApi";
 import { fmtData, msgErro } from "../reitoria/common";
 import { AdiarDialog, useConfirmAcao } from "./acoes";
 
+import { moduloLabel } from "./PendenciasTab";
 interface Lembrete { id: string; titulo: string; descricao?: string | null; dueAt: string; status: string; severity: string; modulo: string; atrasado?: boolean }
 
 function NovoLembrete({ aberto, onClose, onDone }: { aberto: boolean; onClose: () => void; onDone: () => void }) {
@@ -65,7 +66,7 @@ export default function LembretesTab({ onChanged }: { onChanged: () => void }) {
               {l.descricao && <Typography variant="body2" color="text.secondary">{l.descricao}</Typography>}
               <Box sx={{ display: "flex", gap: 1, mt: 0.5, flexWrap: "wrap" }}>
                 <Chip size="small" label={`Prazo ${fmtData(l.dueAt)}`} color={l.atrasado ? "error" : "default"} />
-                <Chip size="small" variant="outlined" label={l.modulo} />
+                <Chip size="small" variant="outlined" label={moduloLabel(l.modulo)} />
                 {l.severity === "CRITICO" && <Chip size="small" color="error" label="Crítico" />}
                 {l.status === "ADIADO" && <Chip size="small" color="warning" label="Adiado" />}
               </Box>

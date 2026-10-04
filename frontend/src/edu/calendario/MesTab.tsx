@@ -39,7 +39,8 @@ export default function MesTab() {
   }, [data]);
 
   const cells = Array.from({ length: 42 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
-  const titulo = ref.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const tituloBruto = ref.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const titulo = tituloBruto.charAt(0).toUpperCase() + tituloBruto.slice(1);
 
   async function salvar() {
     setBusy(true);
@@ -74,7 +75,7 @@ export default function MesTab() {
     <Box>
       <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
         <IconButton onClick={() => setRef(new Date(ref.getFullYear(), ref.getMonth() - 1, 1))} aria-label="Mês anterior"><ChevronLeftIcon /></IconButton>
-        <Typography variant="h6" sx={{ minWidth: 190, textAlign: "center", textTransform: "capitalize", fontWeight: 700 }}>{titulo}</Typography>
+        <Typography variant="h6" sx={{ minWidth: 190, textAlign: "center", fontWeight: 700 }}>{titulo}</Typography>
         <IconButton onClick={() => setRef(new Date(ref.getFullYear(), ref.getMonth() + 1, 1))} aria-label="Próximo mês"><ChevronRightIcon /></IconButton>
         <Button size="small" onClick={() => setRef(new Date(today.getFullYear(), today.getMonth(), 1))}>Hoje</Button>
         <TextField select size="small" label="Tipo" value={tipoFiltro} onChange={(e) => setTipoFiltro(e.target.value)} sx={{ minWidth: 190 }}>

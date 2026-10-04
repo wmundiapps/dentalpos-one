@@ -222,11 +222,11 @@ export default function EduResourcePage(p: Props) {
               if (f.type === "bool") {
                 return <FormControlLabel key={f.key} control={<Checkbox checked={Boolean(form[f.key])} onChange={(e) => setForm({ ...form, [f.key]: e.target.checked })} />} label={f.label} />;
               }
-              const common = { key: f.key, size: "small" as const, label: f.label, value: v, required: f.required, helperText: f.helper, fullWidth: true,
+              const common = { size: "small" as const, label: f.label, value: v, required: f.required, helperText: f.helper, fullWidth: true,
                 onChange: (e: any) => setForm({ ...form, [f.key]: e.target.value }) };
               if (f.type === "select") {
                 return (
-                  <TextField {...common} select>
+                  <TextField key={f.key} {...common} select>
                     <MenuItem value="">—</MenuItem>
                     {(f.options || []).map((o) => {
                       const ov = typeof o === "string" ? o : o.value;
@@ -235,9 +235,9 @@ export default function EduResourcePage(p: Props) {
                   </TextField>
                 );
               }
-              if (f.type === "textarea") return <TextField {...common} multiline minRows={3} sx={{ gridColumn: { md: "1 / -1" } }} />;
+              if (f.type === "textarea") return <TextField key={f.key} {...common} multiline minRows={3} sx={{ gridColumn: { md: "1 / -1" } }} />;
               const htmlType = f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "datetime" ? "datetime-local" : "text";
-              return <TextField {...common} type={htmlType} slotProps={htmlType === "date" || htmlType === "datetime-local" ? { inputLabel: { shrink: true } } : undefined} />;
+              return <TextField key={f.key} {...common} type={htmlType} slotProps={htmlType === "date" || htmlType === "datetime-local" ? { inputLabel: { shrink: true } } : undefined} />;
             })}
           </Box>
         </DialogContent>

@@ -150,7 +150,7 @@ export function avaliarConformidade(input: ConformidadeInput): ConformidadeResul
       alertas.push({
         codigo: 'TUTORIA_INSUFICIENTE',
         severidade: rel.status === 'CRITICO' ? 'CRITICO' : 'ATENCAO',
-        mensagem: `Relação aluno/tutor de ${rel.relacao ?? 'sem tutores'} (limite ${limite}); faltam ${rel.tutoresFaltantes} tutor(es).`,
+        mensagem: rel.relacao != null ? `Relação aluno/tutor de ${rel.relacao} (limite ${limite}); faltam ${rel.tutoresFaltantes} tutor(es).` : `Curso sem tutores alocados (limite de ${limite} alunos por tutor); faltam ${rel.tutoresFaltantes} tutor(es).`,
       })
   }
 

@@ -2,7 +2,7 @@ import { Box, Chip, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/m
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TIPO_COR, papelLabel } from "./common";
 
 export interface DNo { id: string; titulo: string; tipo: string; papel?: string | null; fase?: string | null; slaDias?: number | null; modulo?: string | null; rota?: string | null; camada: number; linha: number; estado?: string }
@@ -10,6 +10,8 @@ export interface DAresta { id: string; de: string; para: string; rotulo?: string
 export interface DDiagrama { nos: DNo[]; arestas: DAresta[]; raias?: Array<{ papel: string; nos: number }> }
 
 const NW = 168, NH = 56, GX = 56, GY = 18, LANE_LABEL = 130, PAD = 16;
+// Layout vertical: raias viram colunas (cabeçalho no topo) e as camadas descem.
+const VGY = 34, LANE_HEAD = 34, VGX = 14;
 const ESTADO_COR: Record<string, string> = { CONCLUIDA: "#16a34a", PULADA: "#16a34a", ABERTA: "#2563eb", AGUARDANDO_EVENTO: "#2563eb", ATRASADA: "#dc2626" };
 const ESTADO_LABEL: Record<string, string> = { PENDENTE: "Pendente", CONCLUIDA: "Concluída", PULADA: "Pulada", ABERTA: "Em andamento", AGUARDANDO_EVENTO: "Aguardando evento", ATRASADA: "Atrasada" };
 
@@ -24,7 +26,7 @@ function quebra(t: string, max = 24): string[] {
 }
 
 /** Fluxograma em SVG com raias por papel. Sem dependências. */
-export default function FlowDiagram({ diagrama, height = 520 }: { diagrama: DDiagrama; height?: number }) {
+export default function FlowDiagram({ diagrama, height = 520, vertical = false }: { diagrama: DDiagrama; height?: number; vertical?: boolean }) {
   const [zoom, setZoom] = useState(1);
   const [sel, setSel] = useState<DNo | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -41,30 +43,59 @@ export default function FlowDiagram({ diagrama, height = 520 }: { diagrama: DDia
       const k = `${n.papel || ""}|${n.camada}`; const i = stack.get(k) || 0; stack.set(k, i + 1); idxInCell.set(n.id, i);
     }
     const laneRows = lanes.map((l) => Math.max(1, ...[...stack.entries()].filter(([k]) => k.startsWith(`${l}|`)).map(([, v]) => v)));
+    const camadas = Math.max(1, ...nos.map((n) => n.camada + 1));
+    const pos = new Map<string, { x: number; y: number; n: DNo }>();
+    if (vertical) {
+      const laneW = laneRows.map((r) => r * (NW + VGX) + VGX);
+      const laneY: number[] = []; // aqui: posição X de cada coluna
+      let accX = PAD;
+      laneW.forEach((w) => { laneY.push(accX); accX += w; });
+      const W = accX + PAD;
+      const H = PAD + LANE_HEAD + camadas * (NH + VGY) + PAD;
+      for (const n of nos) {
+        const li = lanes.indexOf(n.papel || "");
+        pos.set(n.id, { x: laneY[li] + VGX + (idxInCell.get(n.id) || 0) * (NW + VGX), y: PAD + LANE_HEAD + VGY / 2 + n.camada * (NH + VGY), n });
+      }
+      return { lanes, laneH: laneW, laneY, W, H, pos };
+    }
     const laneH = laneRows.map((r) => r * (NH + GY) + GY + 8);
     const laneY: number[] = []; let acc = PAD;
     laneH.forEach((h) => { laneY.push(acc); acc += h; });
-    const camadas = Math.max(1, ...nos.map((n) => n.camada + 1));
     const W = LANE_LABEL + camadas * (NW + GX) + PAD;
     const H = acc + PAD;
-    const pos = new Map<string, { x: number; y: number; n: DNo }>();
     for (const n of nos) {
       const li = lanes.indexOf(n.papel || "");
       pos.set(n.id, { x: LANE_LABEL + GX / 2 + n.camada * (NW + GX), y: laneY[li] + GY + 4 + (idxInCell.get(n.id) || 0) * (NH + GY), n });
     }
     return { lanes, laneH, laneY, W, H, pos };
-  }, [diagrama]);
+  }, [diagrama, vertical]);
 
   function fit() {
     const w = boxRef.current?.clientWidth || 800;
-    setZoom(Math.max(0.3, Math.min(1.2, (w - 8) / g.W)));
+    // Horizontal: o fluxo é muito largo; abre legível (>=55%) e rola. Vertical: cabe na largura.
+    setZoom(Math.max(vertical ? 0.3 : 0.55, Math.min(1.2, (w - 8) / g.W)));
   }
+
+  // Abre já ajustado à largura disponível para mostrar o fluxo inteiro.
+  useEffect(() => { fit(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [g.W, g.H, vertical]);
 
   const edges = diagrama.arestas.map((e) => {
     const A = g.pos.get(e.de), B = g.pos.get(e.para);
     if (!A || !B) return null;
     let d: string; let lx: number; let ly: number;
-    if (B.n.camada <= A.n.camada) {
+    if (vertical) {
+      const x1 = A.x + NW / 2, y1 = A.y + NH, x2 = B.x + NW / 2, y2 = B.y;
+      if (B.n.camada <= A.n.camada) {
+        const off = 60 + Math.abs(x2 - x1) * 0.15;
+        d = `M ${x1} ${y1} C ${x1 + off} ${y1 + 26}, ${x2 + off} ${y2 - 26}, ${x2} ${y2}`;
+        lx = (x1 + x2) / 2 + off * 0.75; ly = (y1 + y2) / 2;
+      } else {
+        const my = (y1 + y2) / 2;
+        d = `M ${x1} ${y1} C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2}`;
+        lx = (x1 + x2) / 2; ly = my - 3;
+      }
+    } else if (B.n.camada <= A.n.camada) {
       // retorno: contorna por baixo
       const y = Math.max(A.y, B.y) + NH + 10;
       const x1 = A.x + NW / 2, x2 = B.x + NW / 2;
@@ -98,7 +129,13 @@ export default function FlowDiagram({ diagrama, height = 520 }: { diagrama: DDia
             <marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" /></marker>
             <marker id="seta-ret" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626" /></marker>
           </defs>
-          {g.lanes.map((l, i) => (
+          {g.lanes.map((l, i) => vertical ? (
+            <g key={l || "geral"}>
+              <rect x={g.laneY[i]} y={0} width={g.laneH[i]} height={g.H} fill={i % 2 ? "rgba(100,116,139,.07)" : "rgba(100,116,139,.02)"} stroke="rgba(100,116,139,.35)" />
+              <rect x={g.laneY[i]} y={0} width={g.laneH[i]} height={PAD + LANE_HEAD - 6} fill="rgba(100,116,139,.18)" />
+              <text x={g.laneY[i] + g.laneH[i] / 2} y={(PAD + LANE_HEAD - 6) / 2 + 3} textAnchor="middle" dominantBaseline="middle" fontSize={12} fontWeight={700} fill="currentColor">{papelLabel(l)}</text>
+            </g>
+          ) : (
             <g key={l || "geral"}>
               <rect x={0} y={g.laneY[i]} width={g.W} height={g.laneH[i]} fill={i % 2 ? "rgba(100,116,139,.07)" : "rgba(100,116,139,.02)"} stroke="rgba(100,116,139,.35)" />
               <rect x={0} y={g.laneY[i]} width={LANE_LABEL - 10} height={g.laneH[i]} fill="rgba(100,116,139,.18)" />

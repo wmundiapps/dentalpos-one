@@ -208,12 +208,12 @@ export default function Header() {
         <Box sx={{ flexGrow: 1 }} />
 
         <Tooltip title={"Imprimir esta tela (ou salvar como PDF)"}>
-          <IconButton onClick={() => window.print()}>
+          <IconButton onClick={() => window.print()} sx={{ display: { xs: "none", sm: "inline-flex" } }}>
             <PrintOutlinedIcon />
           </IconButton>
         </Tooltip>
         <Tooltip title={"Relatar problema ou sugestão"}>
-          <IconButton onClick={() => setFeedbackOpen(true)} sx={{ color: "warning.main" }}>
+          <IconButton onClick={() => setFeedbackOpen(true)} sx={{ color: "warning.main", display: { xs: "none", sm: "inline-flex" } }}>
             <FeedbackOutlinedIcon />
           </IconButton>
         </Tooltip>

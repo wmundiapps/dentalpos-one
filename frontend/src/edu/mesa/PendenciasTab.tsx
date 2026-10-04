@@ -9,6 +9,9 @@ const SEV_COR: Record<string, string> = { INFO: "#2E7DD6", ATENCAO: "#E5A100", C
 const SEV_LABEL: Record<string, string> = { INFO: "Normal", ATENCAO: "Atenção", CRITICO: "Crítico" };
 const TIPO_LABEL: Record<string, string> = { LEMBRETE: "Lembrete", APROVACAO: "Aprovação", TAREFA: "Tarefa", ETAPA_JORNADA: "Etapa de jornada", NOTIFICACAO: "Notificação" };
 
+const MODULOS_ROTULO: Record<string, string> = { regulatorio: "Regulatório", governanca: "Governança", comunicacao: "Comunicação", infraestrutura: "Infraestrutura", calendario: "Calendário", secretaria: "Secretaria", admissoes: "Admissões", biblioteca: "Biblioteca", desempenho: "Desempenho", pesquisa: "Pesquisa", modalidades: "Modalidades", suprimentos: "Suprimentos", financeiro: "Financeiro", academico: "Acadêmico", jornadas: "Jornadas", reitoria: "Reitoria", apoio: "Apoio", notas: "Notas", manual: "Manual" };
+export const moduloLabel = (m: string) => MODULOS_ROTULO[m] || m;
+
 interface Item {
   id: string; tipo: string; modulo: string; titulo: string; descricao?: string | null; prazo?: string | null; severidade: string;
   atrasadoDias: number; rota?: string | null; ref?: { type: string; id: string } | null; acoes?: string[];
@@ -63,7 +66,7 @@ export default function PendenciasTab({ onChanged }: { onChanged: () => void }) 
               <Box sx={{ flex: 1, minWidth: 240 }}>
                 <Box sx={{ display: "flex", gap: 1, mb: 0.5, flexWrap: "wrap" }}>
                   <Chip size="small" label={TIPO_LABEL[i.tipo] || i.tipo} />
-                  <Chip size="small" variant="outlined" label={i.modulo} />
+                  <Chip size="small" variant="outlined" label={moduloLabel(i.modulo)} />
                   {i.atrasadoDias > 0 && <Chip size="small" color="error" label={`${i.atrasadoDias} dia(s) de atraso`} />}
                 </Box>
                 <Typography sx={{ fontWeight: 700 }}>{i.titulo}</Typography>

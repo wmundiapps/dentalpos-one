@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Chip, MenuItem, Paper, TextField, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { eduApi, qsOf } from "../../services/EduApi";
 import { baixarArquivo, Card, DIAS, fmtDT, itemsOf, minToHHMM, Row, useGet, useTerms, useToast } from "./kit";
 
@@ -10,6 +10,7 @@ const CORES = ["#2563eb", "#16a34a", "#9333ea", "#ea580c", "#0891b2", "#db2777",
 export default function GradeTab() {
   const terms = useTerms();
   const [termId, setTermId] = useState("");
+  useEffect(() => { if (!termId && terms.length) setTermId(String(terms[0].value)); }, [terms, termId]);
   const [modo, setModo] = useState<Modo>("turma");
   const [alvo, setAlvo] = useState("");
   const { toast, node } = useToast();

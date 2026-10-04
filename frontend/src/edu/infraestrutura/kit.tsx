@@ -214,7 +214,7 @@ export function Stat({ label: l, value, hint, tone = "default" }: { label: strin
   return (
     <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, minWidth: 0 }}>
       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{l}</Typography>
-      <Typography variant="h5" sx={{ fontWeight: 800, color: TONES[tone], lineHeight: 1.2, mt: 0.5, wordBreak: "break-word" }}>{value}</Typography>
+      <Typography variant="h5" sx={{ fontWeight: 800, color: TONES[tone], lineHeight: 1.2, mt: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "clamp(1.15rem, 1.7vw, 1.5rem)" }} title={typeof value === "string" ? value : undefined}>{value}</Typography>
       {hint ? <Typography variant="caption" color="text.secondary">{hint}</Typography> : null}
     </Paper>
   );

@@ -253,7 +253,8 @@ export function registerProvas(router: Router) {
       const travado = await comTravaDeEspaco(tenantId, [`exames:${sec.termId}`], async () => {
       const v = await validarExame(tenantId, { termId: sec.termId, classSectionId: sec.id, grupo: info.grupo, spaceId: b.spaceId ?? null, professorUserId, fiscais: fiscais.map((f) => f.userId), inicio: b.inicio, fim: b.fim, alunos: alunosPrevistos, tipo: b.tipo }, term)
       if (v.duros.length) return { conflito: { error: 'Não é possível agendar a avaliação.', motivos: v.duros, avisos: v.avisos } }
-      const titulo = b.titulo ?? `${b.tipo.replace('_', ' ').toLowerCase()} — ${disc?.nome ?? sec.nome}`
+      const tipoTxt = b.tipo.replace(/_/g, ' ').toLowerCase()
+      const titulo = b.titulo ?? `${tipoTxt.charAt(0).toUpperCase()}${tipoTxt.slice(1)} — ${disc?.nome ?? sec.nome}`
       const janela = b.tipo !== 'SEGUNDA_CHAMADA' && b.segundaChamadaDias > 0 ? { segundaChamadaInicio: addDays(startOfLocalDay(b.fim), 1), segundaChamadaFim: endOfLocalDay(addDays(startOfLocalDay(b.fim), b.segundaChamadaDias)) } : {}
       const row = await prisma.calExame.create({
         data: {

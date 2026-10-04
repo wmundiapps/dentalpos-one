@@ -32,7 +32,7 @@ export function NotasCard({ notas, onRevisao, podeAgir }: { notas: any; onRevisa
   return (
     <Box sx={{ display: "grid", gap: 2 }}>
       {(notas.alertas || []).map((a: any, i: number) => <Alert key={i} severity={a.nivel === "ALTO" ? "error" : "warning"}><b>{a.disciplina}:</b> {(a.motivos || []).join(" · ")}</Alert>)}
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "repeat(2, minmax(0, 1fr))" }, gap: 2 }}>
         {ds.map((d) => {
           const fp = d.frequenciaPct;
           return (

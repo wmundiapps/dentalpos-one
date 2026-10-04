@@ -52,7 +52,7 @@ export default function EduPortalAluno() {
       <Feedback loading={loading} error={error ? (/studentId|vinculado/i.test(error) ? "Seu usuário não está vinculado a um aluno. Use a busca acima para consultar o portal de um aluno." : error) : null} onRetry={reload} />
       {p && (
         <Box sx={{ display: "grid", gap: 2.5 }}>
-          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" } }}>
+          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" } }}>
             <Kpi title="Coef. de rendimento" value={fmtNum(p.notas?.cr, 2)} hint={p.notas?.crPeriodo != null ? `Período: ${fmtNum(p.notas.crPeriodo, 2)}` : undefined} color={cor} />
             <Kpi title="Frequência média" value={freqMedia != null ? `${fmtNum(freqMedia, 0)}%` : "—"} hint={`${disc.length} disciplina(s) no período`} color={freqMedia != null && freqMedia < 75 ? "#D32F2F" : "#2E7D32"} />
             <Kpi title="Financeiro" value={p.financeiro ? (p.financeiro.emDia ? "Em dia" : "Pendente") : "—"} hint={p.financeiro && !p.financeiro.emDia ? `${p.financeiro.qtdVencidas} vencida(s)` : undefined} color={p.financeiro && !p.financeiro.emDia ? "#D32F2F" : "#2E7D32"} />
@@ -64,7 +64,7 @@ export default function EduPortalAluno() {
           </Tabs>
 
           {tab === 0 && (
-            <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(3, 1fr)" } }}>
+            <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" } }}>
               <Card title="Próximas provas e aulas" icon={<EventNoteOutlinedIcon color="primary" />} accent={cor}><ProvasCard provas={p.proximasProvas} aulas={p.horarios?.proximasAulas} /></Card>
               <Card title="Financeiro" icon={<PaymentsOutlinedIcon color="primary" />} accent={cor}><FinanceiroCard fin={p.financeiro} /></Card>
               <Card title="Avisos" icon={<NotificationsNoneOutlinedIcon color="primary" />} accent={cor}><AvisosCard avisos={p.avisos} /></Card>

@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Checkbox, Chip, CircularProgress, FormControlLabel, FormGroup, LinearProgress, MenuItem, Paper, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { eduApi } from "../../services/EduApi";
 import { Card, DIAS_CURTO, fmtDT, itemsOf, Row, useGet, useTerms, usePrograms, useToast } from "./kit";
 
@@ -14,6 +14,7 @@ export default function GeradorTab() {
   const terms = useTerms(); const programs = usePrograms();
   const [f, setF] = useState<Record<string, any>>({ termId: "", programId: "", periodos: "", dias: [1, 2, 3, 4, 5], turnos: [], semanasLetivas: "", horaAulaMin: "", maxAulasGrupoDia: 6,
     preservarManuais: true, substituirGerados: true, considerarReservas: true, permitirPendencias: true, notificarProfessores: true });
+  useEffect(() => { if (!f.termId && terms.length) setF((cur) => (cur.termId ? cur : { ...cur, termId: String(terms[0].value) })); }, [terms, f.termId]);
   const [busy, setBusy] = useState<string | null>(null);
   const [diag, setDiag] = useState<any>(null);
   const [sim, setSim] = useState<any>(null);

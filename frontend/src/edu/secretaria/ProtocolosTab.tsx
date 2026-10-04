@@ -181,8 +181,8 @@ export default function ProtocolosTab() {
                   <Box sx={{ display: "grid", gap: 1, maxHeight: 520, overflow: "auto" }}>
                     {col.map((r) => (
                       <Paper key={r.id} variant="outlined" onClick={() => setSel(r.id)} sx={{ p: 1.25, borderRadius: 2, cursor: "pointer", "&:hover": { boxShadow: 3 } }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>{r.numero} · {r.tipo?.nome}</Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{r.assunto}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>{r.numero}{r.assunto && r.assunto !== r.tipo?.nome ? ` · ${r.tipo?.nome}` : ""}</Typography>
+                        {r.assunto && r.assunto !== r.tipo?.nome ? <Typography variant="body2" sx={{ fontWeight: 700 }}>{r.assunto}</Typography> : <Typography variant="body2" sx={{ fontWeight: 700 }}>{r.tipo?.nome || r.assunto}</Typography>}
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>{r.solicitanteNome || "Aluno"} · prazo {fmtDate(r.prazoEm)}</Typography>
                         <Box sx={{ mt: 0.5, display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                           {slaChip(r)}

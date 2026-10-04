@@ -28,10 +28,10 @@ export default function EduShell({ title, subtitle, actions, children, hero = tr
             display: "flex", alignItems: "center", gap: { xs: 2, md: 4 }, flexWrap: "wrap",
           }}
         >
-          <Box sx={{ bgcolor: "rgba(255,255,255,.96)", borderRadius: 3, p: 1.5, display: "flex", alignItems: "center", justifyContent: "center", minWidth: { xs: 160, md: 260 }, minHeight: 100, boxShadow: "0 10px 30px rgba(0,0,0,.18)" }}>
+          <Box sx={{ bgcolor: "rgba(255,255,255,.96)", borderRadius: 3, p: 1.5, display: "flex", alignItems: "center", justifyContent: "center", minWidth: { xs: 0, md: 260 }, maxWidth: "100%", boxSizing: "border-box", minHeight: 100, boxShadow: "0 10px 30px rgba(0,0,0,.18)" }}>
             <InstitutionLogo variant="hero" onPlaceholderClick={onLogoClick} />
           </Box>
-          <Box sx={{ flex: 1, minWidth: 220 }}>
+          <Box sx={{ flex: 1, minWidth: { xs: 0, md: 220 }, flexBasis: { xs: "100%", md: "auto" } }}>
             <Typography variant="overline" sx={{ opacity: 0.8, fontWeight: 800 }}>{b?.nome || "EduMaster Pro"}</Typography>
             <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.1 }}>{title}</Typography>
             {subtitle ? <Typography sx={{ opacity: 0.9, mt: 0.5 }}>{subtitle}</Typography> : null}

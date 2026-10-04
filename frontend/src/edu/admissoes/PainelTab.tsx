@@ -81,7 +81,7 @@ export default function PainelTab({ toast }: { toast: (t: Toast) => void }) {
           <Box sx={{ display: "grid", gap: 2.5 }}>
             {(vagas.data || []).map((v) => (
               <Box key={v.processoId}>
-                <Typography sx={{ fontWeight: 800 }}>{v.processo} <Chip size="small" label={String(v.status).replace(/_/g, " ")} sx={{ ml: 1 }} /></Typography>
+                <Typography component="div" sx={{ fontWeight: 800 }}>{v.processo} <Chip size="small" label={String(v.status).replace(/_/g, " ")} sx={{ ml: 1 }} /></Typography>
                 <Bar value={v.vagasOcupadas} max={v.vagasOfertadas} color={(v.ocupacaoPct ?? 0) >= 90 ? "success" : (v.ocupacaoPct ?? 0) >= 50 ? "primary" : "warning"}
                   label={`${v.vagasOcupadas} de ${v.vagasOfertadas} vagas (${pct(v.ocupacaoPct)})`} />
                 <Box sx={{ display: "grid", gap: 0.5, mt: 1, pl: 2 }}>

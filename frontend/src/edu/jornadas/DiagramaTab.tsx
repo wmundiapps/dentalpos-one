@@ -36,7 +36,7 @@ export default function DiagramaTab({ templateId }: { templateId: string }) {
               <Chip size="small" label={`${data.nos.length} etapas`} />
               {(data.raias || []).map((r) => <Chip key={r.papel} size="small" variant="outlined" label={`${papelLabel(r.papel)}: ${r.nos}`} />)}
             </Stack>
-            <FlowDiagram diagrama={data} />
+            <FlowDiagram diagrama={data} height={dir === "TB" ? 2600 : 760} vertical={dir === "TB"} />
           </>
         ) : <Alert severity="info">Esta jornada não possui etapas.</Alert>}
       </Loadable>
