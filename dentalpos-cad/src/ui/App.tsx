@@ -10,6 +10,7 @@ import { SmilePanel } from "./SmilePanel";
 import { WaxPanel } from "./WaxPanel";
 import { GuidePanel, implantMeshes } from "./GuidePanel";
 import { CamPanel } from "./CamPanel";
+import { validateUpload } from "../security/upload";
 import { RestorePanel } from "./RestorePanel";
 import { ScanPanel } from "./ScanPanel";
 import { ReportPanel } from "./ReportPanel";
@@ -158,7 +159,7 @@ export default function App({ initialProject, onProjectChange, persist = true, a
         <button className="btn" onClick={s.redo} disabled={!s.canRedo}>↷ Refazer</button>
         <button className="btn" onClick={() => { s.replace(createProject({}, "Novo caso")); setExtras({}); setSel(null); setPhotoUrl(null); }} data-testid="btn-new">Novo</button>
         <button className="btn" onClick={() => fileRef.current?.click()}>Abrir…</button>
-        <input ref={fileRef} type="file" accept=".json,.dpcad" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { s.replace(parseProject(await f.text())); toast("Projeto aberto."); } catch (err) { toast(String(err)); } }} />
+        <input ref={fileRef} type="file" accept=".json,.dpcad" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { const v = await validateUpload(f, "project"); if (!v.ok) throw new Error(v.reason); s.replace(parseProject(new TextDecoder().decode(v.data))); toast("Projeto aberto."); } catch (err) { toast(String(err)); } }} />
         <button className="btn p" onClick={() => download(`${s.project.name}.dpcad.json`, serializeProject(s.project), "application/json")}>Salvar</button>
       </div>
       <div className="main">

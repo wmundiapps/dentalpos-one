@@ -65,6 +65,9 @@ dente local x = distal, y = vestibular, z = oclusal; numeração FDI.
 * **Somente núcleo** (headless, p.ex. backend Node): `import { createProject, analyze, autoCorrect, evaluate } from "@dentalpos/cad"`.
 * Projeto = JSON (`.dpcad.json`), versionado (`version: 1`).
 
+## Segurança
+Login em 2 etapas (senha + TOTP + códigos de recuperação), dados cifrados (AES-GCM), bloqueio de domínio/iframe, dissuasão de F12, código ofuscado, CSP por hash, validação/reencode de uploads e filtro de nudez local. Veja [`docs/SEGURANCA.md`](docs/SEGURANCA.md) (inclui os limites do que é possível no navegador) e `npm run build:release`.
+
 ## Limitações conhecidas (v0.1)
 
 * A morfologia dentária é **paramétrica** (gerada por código), não escaneada: serve para planejar, simular e prototipar;

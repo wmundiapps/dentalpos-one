@@ -2,6 +2,8 @@ import { useCallback, useMemo, useReducer } from "react";
 import { createProject, evaluate, type CadProject, type Evaluated } from "../core/project";
 import { analyze, type Report } from "../core/rules";
 import type { ToothAdjust } from "../core/arch";
+import { SECURITY } from "../security/config";
+import { getAutosave, putAutosave } from "../security/auth";
 
 export interface HistoryState { past: CadProject[]; present: CadProject; future: CadProject[] }
 type Action =
@@ -18,7 +20,7 @@ function reducer(s: HistoryState, a: Action): HistoryState {
       const merge = a.coalesce && a.coalesce === lastKey && now - lastTime < 800;
       lastKey = a.coalesce ?? ""; lastTime = now;
       const next = a.fn(s.present);
-      if (persist) try { localStorage.setItem(AUTOSAVE, JSON.stringify({ ...next, photo: undefined })); } catch { /* cota */ }
+      if (persist) try { const j = JSON.stringify({ ...next, photo: undefined }); if (SECURITY.requireAuth) void putAutosave(j); else localStorage.setItem(AUTOSAVE, j); } catch { /* cota */ }
       return { past: merge ? s.past : [...s.past.slice(-59), s.present], present: next, future: [] };
     }
     case "replace": return { past: [], present: a.project, future: [] };
@@ -29,7 +31,7 @@ function reducer(s: HistoryState, a: Action): HistoryState {
 
 const AUTOSAVE = "dentalpos-cad:autosave";
 function load(): CadProject {
-  try { const j = localStorage.getItem(AUTOSAVE); if (j) { const p = JSON.parse(j) as CadProject; if (p.version === 1) return { ...createProject(), ...p, smile: { ...createProject().smile, ...p.smile }, implants: p.implants ?? [] }; } } catch { /* ignora */ }
+  try { const j = SECURITY.requireAuth ? getAutosave() : localStorage.getItem(AUTOSAVE); if (j) { const p = JSON.parse(j) as CadProject; if (p.version === 1) return { ...createProject(), ...p, smile: { ...createProject().smile, ...p.smile }, implants: p.implants ?? [] }; } } catch { /* ignora */ }
   return createProject({}, "Caso demonstração");
 }
 

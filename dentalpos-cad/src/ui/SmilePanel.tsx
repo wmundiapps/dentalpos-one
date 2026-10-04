@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { validateUpload, sanitizeImage } from "../security/upload";
+import { checkExplicit } from "../security/nsfw";
 import { Check, Slider, fmt } from "./atoms";
 import { fitSmileToPhoto, smileMetrics, DEFAULT_FIT, type SmileFitOptions } from "../core/smileFit";
 import { toothRef } from "../core/anatomy";
@@ -30,11 +32,19 @@ export function SmilePanel({ c }: { c: Ctx }) {
     return { ...q, adjust: a };
   }, `${key}${selF}`);
   const TOOLS: Array<[SmileTool, string, string]> = [["move", "✥ Mover", "Arraste o dente: posição horizontal e altura"], ["size", "⇕ Tamanho", "Arraste: ↕ altura, ↔ largura (ou use a roda do mouse; Shift = largura)"], ["tilt", "∠ Inclinar", "Arraste ↔ para inclinar (angulação)"], ["rotate", "⟳ Girar", "Arraste ↔ para girar o dente"], ["smile", "◫ Sorriso", "Arraste para mover todo o sorriso; Shift+arrastar inclina o plano"]];
-  const load = (file: File) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => { c.setPhotoUrl(url); c.s.set((q) => ({ ...q, photo: { name: file.name, width: img.naturalWidth, height: img.naturalHeight, landmarks: {} } })); setTimeout(() => detect(url), 50); };
-    img.src = url;
+  const load = async (file: File) => {
+    c.setBusy("Verificando a imagem (formato, conteúdo e segurança)…");
+    try {
+      const v = await validateUpload(file, "image");
+      if (!v.ok) throw new Error(v.reason);
+      const clean = await sanitizeImage(v.data, v.mime ?? "image/jpeg");
+      const verdict = await checkExplicit(clean.canvas);
+      if (verdict.blocked) throw new Error("Imagem bloqueada: conteúdo impróprio detectado. Envie apenas fotos clínicas do paciente.");
+      const url = URL.createObjectURL(clean.blob);
+      c.setPhotoUrl(url); c.s.set((q) => ({ ...q, photo: { name: file.name.replace(/[^\w.\- ]/g, "_"), width: clean.width, height: clean.height, landmarks: {} } }));
+      c.setBusy(null);
+      setTimeout(() => detect(url), 50);
+    } catch (e) { c.setBusy(null); c.toast(e instanceof Error ? e.message : String(e)); }
   };
   const detect = async (url?: string | null) => {
     const src = url ?? c.photoUrl; if (!src) return c.toast("Carregue uma foto primeiro.");

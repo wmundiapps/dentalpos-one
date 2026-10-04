@@ -6,6 +6,7 @@ import { MATERIALS, materialList, type MaterialId } from "../core/materials";
 import { designOf, toWorldMesh, type RestorationKind } from "../core/project";
 import { DEFAULT_PREP } from "../core/crown";
 import { job } from "./jobs";
+import { validateUpload } from "../security/upload";
 import { importMesh } from "../core/io";
 import { meshToCustom } from "../core/library";
 
@@ -48,7 +49,7 @@ export function TeethPanel({ c }: { c: Ctx }) {
       <h4>Biblioteca personalizada</h4>
       <div className="hint">Use um STL/OBJ/PLY de dente (x = distal, y = vestibular, z = oclusal) no lugar do dente paramétrico. O modelo é ajustado às dimensões do dente.</div>
       <div className="btns">
-        <label className="btn" style={{ cursor: "pointer" }}>Importar STL deste dente…<input type="file" accept=".stl,.obj,.ply" hidden data-testid="file-tooth" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; try { const m = importMesh(file.name, await file.arrayBuffer()); c.s.set((q) => ({ ...q, customTeeth: { ...(q.customTeeth ?? {}), [f]: meshToCustom(m, file.name) } })); c.toast(`Modelo ${file.name} aplicado ao dente ${f}.`); } catch (err) { c.toast(String(err)); } }} /></label>
+        <label className="btn" style={{ cursor: "pointer" }}>Importar STL deste dente…<input type="file" accept=".stl,.obj,.ply" hidden data-testid="file-tooth" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; try { const v = await validateUpload(file, "mesh"); if (!v.ok) throw new Error(v.reason); const m = importMesh(file.name, v.data); c.s.set((q) => ({ ...q, customTeeth: { ...(q.customTeeth ?? {}), [f]: meshToCustom(m, file.name) } })); c.toast(`Modelo ${file.name} aplicado ao dente ${f}.`); } catch (err) { c.toast(String(err)); } }} /></label>
         {p.customTeeth?.[f] && <button className="btn d" onClick={() => c.s.set((q) => { const ct = { ...(q.customTeeth ?? {}) }; delete ct[f]; return { ...q, customTeeth: ct }; })}>Voltar ao paramétrico</button>}
       </div>
       {p.customTeeth?.[f] && <div className="hint">Modelo personalizado: {p.customTeeth[f].name}</div>}

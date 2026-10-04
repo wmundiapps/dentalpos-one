@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./ui/App";
 import { parseProject } from "./core/io";
+import { AuthGate } from "./security/AuthGate";
 import type { CadProject } from "./core/project";
 
 // Modo incorporado (iframe): ?embed=1 — troca de mensagens com o sistema hospedeiro.
@@ -21,8 +22,10 @@ if (embed) {
 }
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+   <AuthGate>
     <App initialProject={initial} persist={!embed} apiRef={api}
       onProjectChange={embed ? (p) => window.parent?.postMessage({ type: "dpcad:change", project: p }, hostOrigin) : undefined} />
+   </AuthGate>
   </StrictMode>,
 );
 if (embed) window.parent?.postMessage({ type: "dpcad:ready" }, hostOrigin);

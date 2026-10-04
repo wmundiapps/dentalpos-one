@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { Check, Section, fmt } from "./atoms";
 import type { Ctx } from "./ctx";
 import { loadSTLFile } from "../scan/engine/meshLoader";
+import { validateUpload } from "../security/upload";
 import { fixStlHeader } from "../core/io";
 import { diagnoseMesh, type MeshDiagnosticResult } from "../scan/engine/meshDiagnostics";
 import { repairMesh } from "../scan/engine/meshRepair";
@@ -60,7 +61,8 @@ export function ScanPanel({ c }: { c: Ctx }) {
   const load = async (k: Kind, file: File) => {
     try {
       c.setBusy(`Carregando ${file.name}…`);
-      const l = await loadSTLFile(new File([fixStlHeader(await file.arrayBuffer())], file.name));
+      const v = await validateUpload(file, "mesh"); if (!v.ok) throw new Error(`${file.name}: ${v.reason}`);
+      const l = await loadSTLFile(new File([fixStlHeader(v.data)], file.name));
       if (l.width < 1e-3 && l.height < 1e-3 && l.depth < 1e-3) throw new Error(`${file.name}: arquivo vazio ou corrompido (${l.triangles.toLocaleString("pt-BR")} triângulos, mas todos os vértices valem zero). Exporte o STL novamente do scanner/CAD.`);
       const geometry = l.geometry; geometry.computeVertexNormals();
       store[k] = { geometry, fileName: file.name, diag: null };

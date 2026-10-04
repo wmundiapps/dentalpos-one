@@ -92,7 +92,7 @@ export function importMesh(name: string, data: ArrayBuffer): Mesh {
 // ---- projeto ----
 export const serializeProject = (p: CadProject) => JSON.stringify(p, null, 2);
 export function parseProject(json: string): CadProject {
-  const p = JSON.parse(json) as CadProject;
+  const p = JSON.parse(json, (k, v) => { if (k === "__proto__" || k === "constructor" || k === "prototype") throw new Error("Projeto inválido (chave proibida)"); return v; }) as CadProject;
   if (p.version !== 1 || !p.fdis || !p.patient) throw new Error("Arquivo de projeto DentalPos CAD inválido");
   return p;
 }

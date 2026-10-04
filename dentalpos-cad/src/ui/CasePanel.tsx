@@ -11,6 +11,7 @@ import { DEFAULT_HEIGHTS } from "../core/anatomy";
 import { PROPORTION_LABEL } from "../core/rules";
 import { autoDesign, recommendDesign } from "../core/ai";
 import type { ProportionRule } from "../core/project";
+import { validateUpload } from "../security/upload";
 import { importMesh } from "../core/io";
 import { meshToCustom, customToMesh } from "../core/library";
 import { mirrorFdi } from "../core/anatomy";
@@ -77,7 +78,7 @@ export function CasePanel({ c }: { c: Ctx }) {
           for (const f of files) {
             const m = /(?<!\d)([1-4][1-8])(?!\d)/.exec(f.name);
             if (!m) { skipped.push(f.name); continue; }
-            try { found[parseInt(m[1])] = meshToCustom(importMesh(f.name, await f.arrayBuffer()), f.name); } catch { skipped.push(f.name); }
+            try { const v = await validateUpload(f, "mesh"); if (!v.ok) { skipped.push(`${f.name} (${v.reason})`); continue; } found[parseInt(m[1])] = meshToCustom(importMesh(f.name, v.data), f.name); } catch { skipped.push(f.name); }
           }
           const mirrored: number[] = [];
           if (mirrorMissing) for (const k of Object.keys(found)) { const f = parseInt(k), mf = mirrorFdi(f); if (!found[mf]) { const src = customToMesh(found[f]); const pos = new Float32Array(src.positions); for (let i = 0; i < pos.length; i += 3) pos[i] = -pos[i]; found[mf] = meshToCustom(flipWinding({ positions: pos, indices: src.indices }), `${found[f].name} (espelhado)`); mirrored.push(mf); }
