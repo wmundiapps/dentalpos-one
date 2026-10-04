@@ -178,7 +178,7 @@ export function detectarTipo(b: Buffer): string | null {
   if (ascii(b, 0, 'fLaC')) return 'flac'
   if (pareceTexto(b)) {
     const ini = textoDe(b.subarray(0, 4096)).replace(/^﻿/, '').trimStart().toLowerCase()
-    if (ini.startsWith('<svg') || (/^(<\?xml[^>]*\?>\s*)?(<!--[\s\S]*?-->\s*)*(<!doctype svg[^>]*>\s*)?<svg\b/.test(ini))) return 'svg'
+    if (ini.startsWith('<svg') || (/^(<\?xml[^>]*\?>\s*)?(<!--[\s\S]*?-->\s*)*(<!doctype svg(?:[^>\[]|\[[\s\S]*?\])*>\s*)?<svg\b/.test(ini))) return 'svg'
     return 'texto'
   }
   return null
