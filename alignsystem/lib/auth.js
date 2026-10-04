@@ -64,7 +64,7 @@ function readSession(req) {
 export async function currentUser(sql, req) {
   const s = readSession(req);
   if (!s) return null;
-  const [u] = await sql`select id, email, name, role, dentist_id, active from users where id = ${s.u}`;
+  const [u] = await sql`select id, email, name, role, dentist_id, active, totp_enabled_at from users where id = ${s.u}`;
   return u && u.active ? u : null;
 }
 

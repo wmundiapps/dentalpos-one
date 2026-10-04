@@ -136,10 +136,14 @@
       '<p class="muted small">Equipe AlignSystem e dentistas parceiros.</p>' +
       field('email', 'E-mail', '', 'type="email" autocomplete="username" required') +
       field('password', 'Senha', '', 'type="password" autocomplete="current-password" required') +
+      '<div class="field hidden" id="codeField"><label for="code">Código do aplicativo autenticador</label><input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="6 dígitos (ou código de recuperação)"></div>' +
       '<button class="btn btn-primary" type="submit">Entrar</button> <a href="#" id="forgot" class="small" style="margin-left:10px">Esqueci a senha</a><div class="fmsg"></div></form>' +
       '<p class="small muted center">Dentista e ainda não é parceiro? <a href="/parceiros#credenciamento">Cadastre-se</a></p></main>';
     onSubmit($('#lf'), function (d) {
-      return api('/api/auth/login', { method: 'POST', body: d }).then(function () { boot(); return false; });
+      return api('/api/auth/login', { method: 'POST', body: d }).then(function () { boot(); return false; }).catch(function (err) {
+        if (err.data && err.data.needCode) { $('#codeField').classList.remove('hidden'); $('#code').focus(); }
+        throw err;
+      });
     });
     $('#forgot').addEventListener('click', function (e) {
       e.preventDefault();
@@ -160,6 +164,42 @@
     onSubmit($('#pf', m), function (d, f) {
       return api('/api/auth/password', { method: 'POST', body: d }).then(function () { f.reset(); return 'Senha alterada.'; });
     });
+    var box = document.createElement('div');
+    box.className = 'card';
+    box.style.maxWidth = '480px';
+    $('#main').appendChild(box);
+    function render2fa() {
+      if (me.totpEnabled) {
+        box.innerHTML = '<h2>Verificação em duas etapas</h2><div class="msg ok">Ativa. Ao entrar, o painel pede o código do aplicativo autenticador.</div>' +
+          '<details><summary class="btn btn-line btn-sm">Desativar</summary><form id="tdf" style="margin-top:12px">' + field('password', 'Senha', '', 'type="password" required') + field('code', 'Código do aplicativo', '', 'inputmode="numeric" required') +
+          '<button class="btn btn-danger btn-sm" type="submit">Desativar verificação</button><div class="fmsg"></div></form></details>';
+        onSubmit($('#tdf', box), function (d) { return api('/api/auth/totp/disable', { method: 'POST', body: d }).then(function () { me.totpEnabled = false; render2fa(); return false; }); });
+        return;
+      }
+      box.innerHTML = '<h2>Verificação em duas etapas</h2><p class="small muted">Protege o painel mesmo se a senha vazar: além da senha, o login pede um código de 6 dígitos do celular (Google Authenticator, Microsoft Authenticator ou similar).</p>' +
+        (me.role === 'admin' ? '<div class="msg warn">Recomendado para administradores.</div>' : '') +
+        '<button class="btn btn-primary" id="tsetup">Ativar</button><div id="tbox"></div>';
+      $('#tsetup', box).addEventListener('click', function (e) {
+        busyBtn(e.target, api('/api/auth/totp/setup', { method: 'POST', body: {} })).then(function (r) {
+          $('#tbox', box).innerHTML = '<ol class="small" style="padding-left:18px;margin:14px 0"><li>Instale um aplicativo autenticador no celular.</li><li>No aplicativo, toque em adicionar e leia o QR code abaixo.</li><li>Digite o código de 6 dígitos que aparecer.</li></ol>' +
+            '<div style="background:#fff;display:inline-block;padding:8px;border-radius:8px">' + r.qr + '</div>' +
+            '<p class="small muted">Sem câmera? Digite a chave: <code style="word-break:break-all">' + esc(r.secret) + '</code></p>' +
+            '<form id="tef">' + field('code', 'Código de 6 dígitos', '', 'inputmode="numeric" autocomplete="one-time-code" required') + '<button class="btn btn-green" type="submit">Confirmar e ativar</button><div class="fmsg"></div></form>';
+          onSubmit($('#tef', box), function (d) {
+            return api('/api/auth/totp/enable', { method: 'POST', body: d }).then(function (x) {
+              me.totpEnabled = true;
+              box.innerHTML = '<h2>Verificação em duas etapas ativada ✓</h2><div class="msg warn"><b>Guarde estes códigos de recuperação</b> (cada um funciona uma vez, se você perder o celular). Eles não serão mostrados de novo.</div>' +
+                '<pre style="font-size:15px;line-height:1.8;background:var(--bg-deep);padding:12px;border-radius:8px">' + x.recoveryCodes.map(esc).join('\n') + '</pre>' +
+                '<button class="btn btn-line btn-sm" id="cpc">Copiar códigos</button> <button class="btn btn-primary btn-sm" id="okc">Já guardei</button>';
+              $('#cpc', box).addEventListener('click', function (e) { AS.copy(x.recoveryCodes.join('\n'), e.target); });
+              $('#okc', box).addEventListener('click', render2fa);
+              return false;
+            });
+          });
+        }).catch(function (err) { alert(err.message); });
+      });
+    }
+    render2fa();
   }
 
   // ------------------------------------------------------------ ADMIN: início
@@ -172,6 +212,7 @@
       else if (d.integrations.asaas === 'sandbox') warn.push('Cobranças em modo de TESTE (sandbox do Asaas). Troque ASAAS_ENV para "production" quando a conta real estiver aprovada.');
       if (!d.integrations.email) warn.push('E-mail: configure SMTP (contato@alignsystem.com.br) ou Resend para enviar avisos automáticos.');
       if (!d.integrations.whatsapp) warn.push('WhatsApp: defina o número real em PUBLIC_WHATSAPP (os botões das páginas usam esse número).');
+      if (d.adminsWithout2fa && d.adminsWithout2fa.length) warn.push('Segurança: ative a verificação em duas etapas em "Minha conta" (' + d.adminsWithout2fa.join(', ') + ').');
       if (!d.integrations.contractsReviewed) warn.push('Contratos: exibidos como "minuta em revisão jurídica" até CONTRACTS_REVIEWED=true.');
       var cs = function (k) { return d.cases[k] || 0; };
       var html = '<h1>Início</h1>' +
@@ -268,7 +309,13 @@
         '</div>' +
 
         // fotos
+        (c.blocked_at ? '<div class="msg err"><b>Caso bloqueado</b> em ' + esc(AS.date(c.blocked_at, true)) + ' (' + esc(c.blocked_reason || '') + '). O link do paciente está desativado. <button class="btn btn-line btn-sm" id="unblock">Desbloquear</button></div>' : '') +
         '<div class="card" id="photosCard"><h2>Fotos da pré-avaliação (' + evalPhotos.length + '/7)</h2>' +
+        (function () {
+          var pend = d.photos.filter(function (p) { return p.uploaded_by === 'paciente' && !p.reviewed_at; }).length;
+          return pend ? '<div class="msg warn"><b>' + pend + ' foto(s) do paciente aguardando revisão.</b> O dentista só vê depois que você liberar. ' +
+            '<button class="btn btn-green btn-sm" id="releasePhotos">Fotos ok, liberar para o dentista</button> <button class="btn btn-danger btn-sm" id="blockCase">Conteúdo impróprio: bloquear caso</button></div>' : '';
+        })() +
         (c.photos_submitted_at ? '<p class="small muted">Enviadas pelo paciente em ' + esc(AS.date(c.photos_submitted_at, true)) + '</p>' : '') +
         gallery(evalPhotos, { slots: d.slots, canDelete: true }) +
         '<h3 style="margin-top:18px">Outras fotos e documentos</h3>' + gallery(otherPhotos, { canDelete: true }) +
@@ -364,6 +411,16 @@
         busyBtn(e.target, api('/api/admin/cases/' + id, { method: 'PATCH', body: f })).then(reload).catch(function (err) { flash($('#stf .fmsg', m), 'err', err.message); });
       });
       onSubmit($('#df', m), function (f) { return api('/api/admin/cases/' + id, { method: 'PATCH', body: f }).then(function () { return 'Dados salvos.'; }); });
+      var rel = $('#releasePhotos', m);
+      if (rel) rel.addEventListener('click', function () { busyBtn(rel, api('/api/admin/cases/' + id + '/photos/release', { method: 'POST', body: {} })).then(reload).catch(function (e) { alert(e.message); }); });
+      var blk = $('#blockCase', m);
+      if (blk) blk.addEventListener('click', function () {
+        var reason = prompt('Isto APAGA todas as fotos enviadas pelo paciente e DESATIVA o link dele. Motivo (fica no histórico):', 'conteúdo impróprio');
+        if (reason === null) return;
+        busyBtn(blk, api('/api/admin/cases/' + id + '/block', { method: 'POST', body: { reason: reason } })).then(reload).catch(function (e) { alert(e.message); });
+      });
+      var unb = $('#unblock', m);
+      if (unb) unb.addEventListener('click', function () { if (confirm('Reativar o link do paciente?')) busyBtn(unb, api('/api/admin/cases/' + id + '/unblock', { method: 'POST', body: {} })).then(reload).catch(function (e) { alert(e.message); }); });
       $('#docUp', m).addEventListener('change', function (e) {
         var span = $('.upmsg', m);
         span.textContent = 'Enviando…';
@@ -509,8 +566,8 @@
     loading('equipe');
     api('/api/admin/users').then(function (d) {
       var html = '<h1>Equipe</h1><div class="card"><div class="list">' + d.users.map(function (u) {
-        return '<div class="it"><div><b>' + esc(u.name) + '</b><div class="small muted">' + esc(u.email) + (u.last_login_at ? ' · último acesso ' + esc(AS.date(u.last_login_at, true)) : '') + '</div></div>' +
-          (u.id === me.id ? statusBadge('você', 'green') : '<button class="btn btn-sm ' + (u.active ? 'btn-danger' : 'btn-line') + '" data-toggle="' + u.id + '" data-active="' + (u.active ? '0' : '1') + '">' + (u.active ? 'Desativar' : 'Reativar') + '</button>') + '</div>';
+        return '<div class="it"><div><b>' + esc(u.name) + '</b><div class="small muted">' + esc(u.email) + (u.last_login_at ? ' · último acesso ' + esc(AS.date(u.last_login_at, true)) : '') + ' · ' + (u.totp_enabled ? 'duas etapas ativa' : 'sem duas etapas') + '</div></div>' +
+          '<div class="row">' + (u.totp_enabled && u.id !== me.id ? '<button class="btn btn-line btn-sm" data-reset2fa="' + u.id + '">Zerar duas etapas</button>' : '') + (u.id === me.id ? statusBadge('você', 'green') : '<button class="btn btn-sm ' + (u.active ? 'btn-danger' : 'btn-line') + '" data-toggle="' + u.id + '" data-active="' + (u.active ? '0' : '1') + '">' + (u.active ? 'Desativar' : 'Reativar') + '</button>') + '</div></div>';
       }).join('') + '</div></div>' +
         '<form class="card" id="uf" style="max-width:520px"><h2>Adicionar administrador</h2>' + field('name', 'Nome', '') + field('email', 'E-mail', '', 'type="email" required') +
         '<button class="btn btn-primary" type="submit">Criar acesso</button><div class="fmsg"></div><div id="ul"></div></form>';
@@ -520,6 +577,12 @@
           $('#ul', m).innerHTML = '<div class="msg ok">Acesso criado. Link para criar a senha: <button type="button" class="btn btn-line btn-sm" id="cu">copiar</button></div>';
           $('#cu', m).addEventListener('click', function (e) { AS.copy(r.setPasswordUrl, e.target); });
           return false;
+        });
+      });
+      $all('[data-reset2fa]', m).forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!confirm('Zerar a verificação em duas etapas deste administrador? Use só se ele perdeu o celular e os códigos de recuperação.')) return;
+          api('/api/admin/users/' + b.getAttribute('data-reset2fa') + '/reset-2fa', { method: 'POST', body: {} }).then(adminTeam).catch(function (e) { alert(e.message); });
         });
       });
       $all('[data-toggle]', m).forEach(function (b) {

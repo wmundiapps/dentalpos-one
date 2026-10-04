@@ -59,7 +59,12 @@ async function call(method, path, { body, who, raw, headers = {} } = {}) {
 }
 
 // JPEG mínimo válido (cabeçalho basta para a validação de tipo)
-const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 1), Buffer.from([0xff, 0xd9])]);
+import sharp from 'sharp';
+// foto válida com EXIF (GPS) e um "anexo" escondido após o fim da imagem, para testar a recriação no servidor
+const JPEG = Buffer.concat([
+  await sharp({ create: { width: 64, height: 48, channels: 3, background: '#c99' } }).jpeg().withExif({ IFD3: { GPSLatitudeRef: 'S' } }).toBuffer(),
+  Buffer.from('<script>alert(1)</script>MALWARE-MARKER'),
+]);
 
 before(async () => {
   if (skip) return;
@@ -316,8 +321,20 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   assert.equal((await sql`select 1 from alignsystem_test.payments where asaas_payment_id = 'pay_outro'`).length, 0);
 
   // dentista registra atendimento com foto; admin valida
-  const dc = await call('GET', `/api/dentist/cases/${caseId}`, { who: 'dent' });
+  let dc = await call('GET', `/api/dentist/cases/${caseId}`, { who: 'dent' });
   assert.equal(dc.status, 200);
+  const hidden = (await sql`select id from alignsystem_test.photos where case_id = ${caseId} and uploaded_by = 'paciente' limit 1`)[0].id;
+  assert.equal(dc.data.photos.filter((p) => p.uploaded_by === 'paciente').length, 0); // aguardando revisão
+  assert.equal((await call('GET', `/api/photos/${hidden}`, { who: 'dent' })).status, 404);
+  assert.equal((await call('POST', `/api/admin/cases/${caseId}/photos/release`, { who: 'admin', body: {} })).data.released, 7);
+  dc = await call('GET', `/api/dentist/cases/${caseId}`, { who: 'dent' });
+  assert.equal(dc.data.photos.filter((p) => p.uploaded_by === 'paciente').length, 7);
+  const served = await fetch(`${base}/api/photos/${hidden}`, { headers: { cookie: jars.dent } });
+  assert.equal(served.status, 200);
+  assert.match(served.headers.get('content-security-policy'), /sandbox/);
+  const bytes = Buffer.from(await served.arrayBuffer());
+  assert.ok(!bytes.includes('MALWARE-MARKER')); // conteúdo escondido removido
+  assert.equal((await sharp(bytes).metadata()).exif, undefined); // sem EXIF/GPS
   assert.equal(dc.data.case.cpf, undefined); // CPF não vai para o dentista
   const ev = await call('POST', `/api/dentist/cases/${caseId}/evidences`, { who: 'dent', body: { milestone: 'instalacao', notes: 'Instalado.' } });
   assert.equal(ev.status, 201);
@@ -351,4 +368,40 @@ test('páginas públicas não citam preço, gratuidade nem condições de pagame
     const text = (await readFile(new URL(f, dir), 'utf8')).replace(/<script[\s\S]*?<\/script>/g, '');
     assert.doesNotMatch(text, /gr[aá]tis|gratuit|sem custo|n[aã]o tem custo|de gra[cç]a|R\$\s?\d|\d+x|parcelamento facilitado|sem taxa/i, `${f} menciona preço/gratuidade`);
   }
+});
+
+test('segurança: bloqueio de caso e verificação em duas etapas', { skip }, async () => {
+  const totp = await import('../lib/totp.js');
+  // bloqueio: apaga as fotos do paciente e desativa o link
+  const lead = await call('POST', '/api/leads/paciente', { body: { name: 'Fulano Teste', age: 30, whatsapp: '44911112222', city: 'Maringá', uf: 'PR', consent: true } });
+  const tk = lead.data.token;
+  const cs = await call('POST', `/api/portal/${tk}/consent`, { body: { acceptedName: 'Fulano Teste', birthDate: '1990-01-01', adult: true, agree: true, hash: (await call('GET', `/api/portal/${tk}`)).data.tcle.hash } });
+  assert.equal(cs.status, 201, JSON.stringify(cs.data));
+  assert.equal((await call('POST', `/api/portal/${tk}/photos?slot=1`, { raw: JPEG })).status, 201);
+  const [c] = await sql`select id from alignsystem_test.cases where token = ${tk}`;
+  const blk = await call('POST', `/api/admin/cases/${c.id}/block`, { who: 'admin', body: { reason: 'teste' } });
+  assert.equal(blk.data.deleted, 1);
+  assert.equal((await call('GET', `/api/portal/${tk}`)).status, 403);
+  assert.equal((await call('POST', `/api/admin/cases/${c.id}/unblock`, { who: 'admin', body: {} })).status, 200);
+  assert.equal((await call('GET', `/api/portal/${tk}`)).status, 200);
+
+  // duas etapas
+  const setup = await call('POST', '/api/auth/totp/setup', { who: 'admin', body: {} });
+  assert.match(setup.data.qr, /<svg/);
+  const step = Math.floor(Date.now() / 30000);
+  assert.equal((await call('POST', '/api/auth/totp/enable', { who: 'admin', body: { code: '000000' } })).status, 400);
+  const en = await call('POST', '/api/auth/totp/enable', { who: 'admin', body: { code: totp.codeAt(setup.data.secret, step) } });
+  assert.equal(en.status, 200);
+  assert.equal(en.data.recoveryCodes.length, 8);
+  const noCode = await call('POST', '/api/auth/login', { body: { email: 'admin@teste.com', password: 'senhaforte123' } });
+  assert.equal(noCode.status, 401);
+  assert.equal(noCode.data.needCode, true);
+  // mesmo código não pode ser reutilizado
+  assert.equal((await call('POST', '/api/auth/login', { body: { email: 'admin@teste.com', password: 'senhaforte123', code: totp.codeAt(setup.data.secret, step) } })).status, 401);
+  assert.equal((await call('POST', '/api/auth/login', { who: 'admin', body: { email: 'admin@teste.com', password: 'senhaforte123', code: totp.codeAt(setup.data.secret, step + 1) } })).status, 200);
+  // código de recuperação funciona uma vez
+  const rc = en.data.recoveryCodes[0];
+  assert.equal((await call('POST', '/api/auth/login', { body: { email: 'admin@teste.com', password: 'senhaforte123', code: rc } })).status, 200);
+  assert.equal((await call('POST', '/api/auth/login', { body: { email: 'admin@teste.com', password: 'senhaforte123', code: rc } })).status, 401);
+  assert.equal((await call('GET', '/api/auth/me', { who: 'admin' })).data.user.totpEnabled, true);
 });

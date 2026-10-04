@@ -26,6 +26,7 @@
         if (!r.ok) {
           var err = new Error((d && d.error) || ('Erro ' + r.status));
           err.status = r.status;
+          err.data = d;
           throw err;
         }
         return d;

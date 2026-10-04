@@ -10,6 +10,9 @@ import { sendMail, notifyAddress, layout, button, para, table } from './mail.js'
 import * as asaas from './asaas.js';
 import { MODEL, quote, dentistSplitPct } from './pricing.js';
 import * as geo from './geo.js';
+import * as totp from './totp.js';
+import { sanitizeImage } from './images.js';
+import QRCode from 'qrcode';
 import { patientContract, partnerContract, contractsReviewed, PARTNER_DEFAULTS } from './contracts.js';
 import { ensureTcle, currentConsent, TCLE_KIND, TCLE_VERSION } from './tcle.js';
 import {
@@ -50,25 +53,31 @@ async function caseByToken(sql, t) {
   if (!t || String(t).length < 20) fail(404, 'Link inválido.');
   const [c] = await sql`select * from cases where token = ${String(t)}`;
   if (!c) fail(404, 'Link inválido ou expirado.');
+  if (c.blocked_at) fail(403, 'Este link foi desativado. Fale com a equipe AlignSystem.');
   return c;
 }
 
 async function photoMeta(sql, caseId) {
-  return sql`select id, slot, kind, mime, size, evidence_id, uploaded_by, created_at
+  return sql`select id, slot, kind, mime, size, evidence_id, uploaded_by, created_at, reviewed_at
              from photos where case_id = ${caseId} order by kind, slot nulls last, created_at`;
 }
 
 async function saveImage(sql, req, { caseId, kind, slot = null, evidenceId = null, uploadedBy, userId = null, allowPdf = false }) {
   const buf = await readRaw(req, MAX_PHOTO_BYTES);
   if (!buf.length) fail(400, 'Arquivo vazio.');
-  const mime = imageMime(buf);
-  if (!mime || (mime === 'application/pdf' && !allowPdf)) fail(415, 'Envie uma foto em JPG, PNG, WEBP ou HEIC.');
+  const detected = imageMime(buf);
+  if (!detected || (detected === 'application/pdf' && !allowPdf)) fail(415, 'Envie uma foto em JPG, PNG, WEBP ou HEIC.');
+  // imagens são recriadas no servidor (sem metadados nem conteúdo escondido); PDF só de equipe/dentista
+  const safe = detected === 'application/pdf' ? { buf, mime: detected } : await sanitizeImage(buf);
+  const mime = safe.mime;
+  const data = safe.buf;
   const [{ n }] = await sql`select count(*)::int as n from photos where case_id = ${caseId}`;
   if (n >= MAX_PHOTOS_PER_CASE * (uploadedBy === 'paciente' ? 1 : 4)) fail(409, 'Limite de arquivos deste caso atingido.');
   return sql.begin(async (tx) => {
     if (kind === 'avaliacao' && slot) await tx`delete from photos where case_id = ${caseId} and kind = 'avaliacao' and slot = ${slot}`;
-    const [p] = await tx`insert into photos (case_id, evidence_id, slot, kind, mime, size, data, uploaded_by, user_id)
-      values (${caseId}, ${evidenceId}, ${slot}, ${kind}, ${mime}, ${buf.length}, ${buf}, ${uploadedBy}, ${userId})
+    const [p] = await tx`insert into photos (case_id, evidence_id, slot, kind, mime, size, data, uploaded_by, user_id, reviewed_at)
+      values (${caseId}, ${evidenceId}, ${slot}, ${kind}, ${mime}, ${data.length}, ${data}, ${uploadedBy}, ${userId},
+              ${uploadedBy === 'paciente' ? null : new Date()})
       returning id, slot, kind, mime, size, created_at`;
     return p;
   });
@@ -82,6 +91,9 @@ async function sendPhoto(sql, res, where) {
     'Content-Type': row.mime,
     'Cache-Control': 'private, max-age=600',
     'Content-Disposition': 'inline',
+    'X-Content-Type-Options': 'nosniff',
+    // o arquivo nunca roda como página: sem scripts, sem acesso ao site
+    ...(row.mime.startsWith('image/') ? { 'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox" } : {}),
   });
 }
 
@@ -578,6 +590,26 @@ r('POST', '/api/auth/login', async (req, res) => {
       locked_until = case when failed_logins + 1 >= 5 then now() + interval '15 minutes' else null end where id = ${u.id}`;
     fail(401, 'E-mail ou senha incorretos.');
   }
+  if (u.totp_enabled_at) {
+    const code = String(b.code || '').trim();
+    if (!code) return send(res, 401, { error: 'Digite o código do aplicativo autenticador.', needCode: true });
+    const step = totp.verifyCode(u.totp_secret, code, u.totp_last_step);
+    let usedRecovery = false;
+    if (step == null) {
+      const h = totp.hashRecovery(code);
+      const left = (u.totp_recovery || []).filter((x) => x !== h);
+      if (left.length === (u.totp_recovery || []).length) {
+        await sql`update users set failed_logins = failed_logins + 1,
+          locked_until = case when failed_logins + 1 >= 5 then now() + interval '15 minutes' else null end where id = ${u.id}`;
+        return send(res, 401, { error: 'Código inválido. Confira o aplicativo autenticador.', needCode: true });
+      }
+      usedRecovery = true;
+      await sql`update users set totp_recovery = ${sql.json(left)} where id = ${u.id}`;
+    } else {
+      await sql`update users set totp_last_step = ${step} where id = ${u.id}`;
+    }
+    if (usedRecovery) await sendMail({ to: u.email, subject: 'Código de recuperação usado — AlignSystem', html: layout('Código de recuperação usado', para('Um código de recuperação da verificação em duas etapas foi usado para entrar no painel. Se não foi você, troque sua senha e avise a equipe.')) });
+  }
   await sql`update users set failed_logins = 0, locked_until = null, last_login_at = now() where id = ${u.id}`;
   send(res, 200, { ok: true, role: u.role }, { 'Set-Cookie': sessionCookie(u) });
 });
@@ -593,7 +625,56 @@ r('GET', '/api/auth/me', async (req, res) => {
     const d = await dentistById(sql, u.dentist_id);
     dentist = d && { id: d.id, name: d.name, status: d.status, cro: d.cro, croUf: d.cro_uf, hasWallet: Boolean(d.asaas_wallet_id) };
   }
-  send(res, 200, { user: { id: u.id, email: u.email, name: u.name, role: u.role }, dentist });
+  send(res, 200, { user: { id: u.id, email: u.email, name: u.name, role: u.role, totpEnabled: Boolean(u.totp_enabled_at) }, dentist });
+});
+
+// Verificação em duas etapas (aplicativo autenticador: Google Authenticator, Microsoft Authenticator etc.)
+r('POST', '/api/auth/totp/setup', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req);
+  if (u.totp_enabled_at) fail(409, 'A verificação em duas etapas já está ativa.');
+  const secret = totp.newSecret();
+  await sql`update users set totp_secret = ${secret} where id = ${u.id}`;
+  const url = totp.otpauthUrl(secret, u.email);
+  send(res, 200, { secret, url, qr: await QRCode.toString(url, { type: 'svg', margin: 1, width: 200 }) }, { 'Cache-Control': 'no-store' });
+});
+
+r('POST', '/api/auth/totp/enable', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req);
+  const b = await readJson(req);
+  await rateLimit(sql, `totp:${u.id}`, 10, 15);
+  const [row] = await sql`select totp_secret, totp_enabled_at from users where id = ${u.id}`;
+  if (row.totp_enabled_at) fail(409, 'A verificação em duas etapas já está ativa.');
+  if (!row.totp_secret) fail(400, 'Comece pela leitura do QR code.');
+  const step = totp.verifyCode(row.totp_secret, b.code);
+  if (step == null) fail(400, 'Código inválido. Confira se o horário do celular está automático e tente de novo.');
+  const { codes, hashes } = totp.recoveryCodes();
+  await sql`update users set totp_enabled_at = now(), totp_last_step = ${step}, totp_recovery = ${sql.json(hashes)} where id = ${u.id}`;
+  await sendMail({ to: u.email, subject: 'Verificação em duas etapas ativada — AlignSystem', html: layout('Verificação em duas etapas ativada', para('A partir de agora, além da senha, o painel vai pedir o código do aplicativo autenticador. Se não foi você, avise a equipe imediatamente.')) });
+  send(res, 200, { ok: true, recoveryCodes: codes }, { 'Cache-Control': 'no-store' });
+});
+
+r('POST', '/api/auth/totp/disable', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req);
+  const b = await readJson(req);
+  await rateLimit(sql, `totp:${u.id}`, 10, 15);
+  const [row] = await sql`select password_hash, totp_secret, totp_last_step from users where id = ${u.id}`;
+  if (!(await verifyPassword(String(b.password || ''), row.password_hash))) fail(400, 'Senha incorreta.');
+  if (totp.verifyCode(row.totp_secret, b.code, row.totp_last_step) == null) fail(400, 'Código inválido.');
+  await sql`update users set totp_secret = null, totp_enabled_at = null, totp_recovery = null, totp_last_step = null where id = ${u.id}`;
+  send(res, 200, { ok: true });
+});
+
+// Outro administrador zera a verificação de quem perdeu o celular e os códigos de recuperação
+r('POST', '/api/admin/users/:id/reset-2fa', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  if (id === u.id) fail(400, 'Para desativar a sua, use "Minha conta".');
+  await sql`update users set totp_secret = null, totp_enabled_at = null, totp_recovery = null, totp_last_step = null where id = ${id}`;
+  await logEvent(sql, { actor: u.email, type: 'totp_zerado', data: { userId: id } });
+  send(res, 200, { ok: true });
 });
 
 r('POST', '/api/auth/password', async (req, res) => {
@@ -666,7 +747,42 @@ r('GET', '/api/photos/:id', async (req, res, { id }) => {
   const u = await requireUser(sql, req);
   if (u.role === 'admin') return sendPhoto(sql, res, sql`select id from photos where id = ${id}`);
   await sendPhoto(sql, res, sql`select p.id from photos p join cases c on c.id = p.case_id
-    where p.id = ${id} and c.dentist_id = ${u.dentist_id}`);
+    where p.id = ${id} and c.dentist_id = ${u.dentist_id} and c.blocked_at is null
+      and (p.uploaded_by <> 'paciente' or p.reviewed_at is not null)`);
+});
+
+// ------------------------------------------------------------------ revisão de fotos e bloqueio de caso
+
+// Fotos enviadas pelo paciente só aparecem para o dentista depois da revisão da equipe
+r('POST', '/api/admin/cases/:id/photos/release', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const rows = await sql`update photos set reviewed_at = now(), reviewed_by = ${u.id}
+    where case_id = ${id} and uploaded_by = 'paciente' and reviewed_at is null returning id`;
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'fotos_liberadas', data: { n: rows.length } });
+  send(res, 200, { ok: true, released: rows.length });
+});
+
+// Conteúdo impróprio ou uso indevido: apaga as fotos enviadas pelo paciente e desativa o link dele
+r('POST', '/api/admin/cases/:id/block', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const [c] = await sql`select id from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  const reason = clean(b.reason, 300) || 'conteúdo impróprio';
+  const del = await sql`delete from photos where case_id = ${id} and uploaded_by = 'paciente' returning id`;
+  await sql`update cases set blocked_at = now(), blocked_reason = ${reason}, updated_at = now() where id = ${id}`;
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'caso_bloqueado', data: { reason, fotosApagadas: del.length } });
+  send(res, 200, { ok: true, deleted: del.length });
+});
+
+r('POST', '/api/admin/cases/:id/unblock', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  await sql`update cases set blocked_at = null, blocked_reason = null, updated_at = now() where id = ${id}`;
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'caso_desbloqueado' });
+  send(res, 200, { ok: true });
 });
 
 // ------------------------------------------------------------------ admin
@@ -689,6 +805,7 @@ r('GET', '/api/admin/overview', async (req, res) => {
       whatsapp: Boolean(digits(process.env.PUBLIC_WHATSAPP || '')) && !/^5544900000000$/.test(digits(process.env.PUBLIC_WHATSAPP || '')),
       contractsReviewed: contractsReviewed(),
     },
+    adminsWithout2fa: (await sql`select email from users where role = 'admin' and active and totp_enabled_at is null`).map((x) => x.email),
   });
 });
 
@@ -1247,7 +1364,7 @@ r('POST', '/api/admin/dentists/:id/asaas-account', async (req, res, { id }) => {
 r('GET', '/api/admin/users', async (req, res) => {
   const sql = db();
   await requireUser(sql, req, 'admin');
-  send(res, 200, { users: await sql`select id, email, name, role, active, last_login_at, created_at from users where role = 'admin' order by created_at` });
+  send(res, 200, { users: await sql`select id, email, name, role, active, last_login_at, created_at, totp_enabled_at is not null as totp_enabled from users where role = 'admin' order by created_at` });
 });
 
 r('POST', '/api/admin/users', async (req, res) => {
@@ -1312,7 +1429,7 @@ r('GET', '/api/dentist/cases/:id', async (req, res, { id }) => {
   const u = await dentistUser(sql, req);
   const c = await dentistCase(sql, u, id);
   const [photos, appts, evidences] = await Promise.all([
-    photoMeta(sql, id),
+    photoMeta(sql, id).then((list) => list.filter((p) => p.uploaded_by !== 'paciente' || p.reviewed_at)),
     sql`select * from appointments where case_id = ${id} order by starts_at desc`,
     sql`select * from evidences where case_id = ${id} order by performed_at desc, created_at desc`,
   ]);
