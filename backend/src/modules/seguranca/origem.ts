@@ -58,7 +58,7 @@ const METODOS_SEGUROS = new Set(['GET', 'HEAD', 'OPTIONS'])
  * Para métodos que alteram estado: se vier Origin (ou Referer) fora da allowlist, responde 403 e registra SegEvento.
  * Sem Origin/Referer (webhooks, cron com Bearer CRON_SECRET, servidores, curl) continua permitido.
  */
-export const originGuard: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+export const originGuard: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   if (METODOS_SEGUROS.has(req.method)) return next()
   const origin = req.get('origin')
   let alvo = origin
@@ -75,7 +75,7 @@ export const originGuard: RequestHandler = (req: Request, res: Response, next: N
   if (origemPermitida(alvo)) return next()
 
   if (deveRegistrarComLimite(`origem:${req.ip}:${alvo}`)) {
-    void eventoDeRequisicao(req, { tipo: 'origem_negada', severidade: 'ATENCAO', detalhe: { origem: alvo, metodo: req.method, rota: req.path.slice(0, 120) } })
+    await eventoDeRequisicao(req, { tipo: 'origem_negada', severidade: 'ATENCAO', detalhe: { origem: alvo, metodo: req.method, rota: req.path.slice(0, 120) } })
   }
   // Mesma mensagem do CORS atual para não alterar o contrato esperado pelo frontend.
   return res.status(403).json({ error: 'Origem não autorizada pelo CORS.' })

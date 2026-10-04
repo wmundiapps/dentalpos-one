@@ -230,7 +230,8 @@ function analisarZip(b: Buffer, ac: Acumulador, profundidade = 0): string {
     if (/(^|\/)\.\.(\/|$)/.test(n) || n.startsWith('/') || /^[a-zA-Z]:/.test(n)) ac.bloquear('ZIP com caminho malicioso (path traversal)')
     if (!e.diretorio) {
       const nome = checarNomeArquivo(n.split('/').pop() || '')
-      if (!nome.ok) ac.bloquear(`ZIP contém arquivo proibido: ${n.split('/').pop()} (${nome.motivo})`)
+      // .bin é comum em pacotes legítimos (printerSettings, oleObject): quem decide é o conteúdo (magic bytes abaixo)
+      if (!nome.ok && nome.ext !== 'bin') ac.bloquear(`ZIP contém arquivo proibido: ${n.split('/').pop()} (${nome.motivo})`)
     }
     if (e.tamComprimido > 0 && e.tamDescomprimido > 1024 * 1024 && e.tamDescomprimido / e.tamComprimido > MAX_RAZAO_ZIP * 10) ac.bloquear('ZIP com entrada de razão de compressão absurda (zip-bomb)')
   }

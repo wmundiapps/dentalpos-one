@@ -18,7 +18,7 @@ const CHAVES_MIME = ['mime', 'mimeType', 'contentType', 'tipoMime']
 const CHAVES_URL_ANEXO = new Set([
   'arquivourl', 'urlarquivo', 'fileurl', 'externalurl', 'camerareadyurl', 'capaurl', 'repositoriourl', 'anaisurl', 'urlacesso', 'attachmenturl', 'anexourl', 'documentourl', 'imageurl', 'logourl',
 ])
-const PAI_ANEXO = /(anexo|arquivo|documento|attachment|file|upload|logo|imagem|midia|camera|evidencia|foto|capa)/i
+const PAI_ANEXO = /(anexo|arquivo|documento|attachment|file|upload|logo|imagem|midia|camera|evidencia|foto|capa|marca|identidade|brand)/i
 
 interface Item {
   tipo: 'data' | 'base64' | 'url' | 'meta'
