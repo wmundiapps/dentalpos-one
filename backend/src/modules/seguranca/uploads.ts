@@ -506,7 +506,7 @@ async function registrarVeredito(r: ScanResult, d: { nome?: string; mime?: strin
 
 /** Mensagem em português para respostas 422. */
 export function mensagemBloqueio(r: ScanResult): string {
-  return `Arquivo bloqueado pela verificação de segurança: ${r.motivo || 'conteúdo não permitido'}.`
+  return `Arquivo bloqueado pela verificação de segurança: ${(r.motivo || 'conteúdo não permitido').replace(/\.$/, '')}.`
 }
 
 /** Lança erro 422 (compatível com academicErrorHandler) se o arquivo/URL for bloqueado. */

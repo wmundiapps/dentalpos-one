@@ -55,7 +55,7 @@ async function main() {
   r = await call(tch, 'POST', P + '/projetos-entregaveis', { projetoId: pj.id, titulo: 'Artigo final', prazo: d(300) }); check('entregavel', r.status === 201, r.text); const ent = r.json
   r = await call(tch, 'POST', P + `/projetos/${pj.id}/transicao`, { para: 'CONCLUIDO' }); check('prof conclui 403', r.status === 403)
   r = await call(coord, 'POST', P + `/projetos/${pj.id}/transicao`, { para: 'CONCLUIDO' }); check('concluir pendente 422', r.status === 422, r.text)
-  r = await call(tch, 'POST', P + `/projetos-entregaveis/${ent.id}/entregar`, { url: 'http://x' }); check('entregar', r.status === 200, r.text)
+  r = await call(tch, 'POST', P + `/projetos-entregaveis/${ent.id}/entregar`, { url: 'https://exemplo.com/x' }); check('entregar', r.status === 200, r.text)
   // ---- edital -> bolsas
   const ed = { numero: 'ED-001/' + Math.random().toString(36).slice(2, 5), titulo: 'Edital IC teste', tipo: 'PIBIC', dataAbertura: d(-1), dataFechamento: d(30), vagas: 1, vagasSuplentes: 1, valorBolsa: 400, duracaoMeses: 6, notaMinima: 5, criterios: [{ nome: 'merito', peso: 2, notaMax: 10 }, { nome: 'viab', peso: 1, notaMax: 10 }] }
   r = await call(coord, 'POST', P + '/editais', { ...ed, dataFechamento: d(-5) }); check('edital datas 400', r.status === 400, r.text)
@@ -154,10 +154,10 @@ async function main() {
   r = await call(tch, 'POST', P + `/trabalhos/${tr.id}/resultado`, { notas: [{ membroId: b1.id, nota: 9 }, { membroId: b2.id, nota: 8 }, { membroId: b3.id, nota: 10 }], ressalvas: 'ajustar refs' }); check('resultado', r.status === 200 && r.json.resultado === 'APROVADO_COM_RESSALVAS' && r.json.media === 9, r.text)
   r = await call(tch, 'POST', P + `/trabalhos/${tr.id}/resultado`, { notas: [{ membroId: b1.id, nota: 1 }] }); check('resultado 2x 409', r.status === 409, r.text)
   r = await call(tch, 'GET', P + `/trabalhos/${tr.id}/ata`); check('ata html', r.status === 200 && r.text.includes('Trabalho'), r.status)
-  r = await call(lib, 'POST', P + `/trabalhos/${tr.id}/depositar`, { repositorioUrl: 'http://repo/1', autorizaPublicacao: true }); check('depositar sem versao final 422', r.status === 422, r.text)
-  r = await call(stu, 'POST', P + `/trabalhos/${tr.id}/versoes`, { tipo: 'FINAL', arquivoUrl: 'http://f/final.pdf' }); check('versao final', r.status === 201, r.text)
-  r = await call(lib, 'POST', P + `/trabalhos/${tr.id}/depositar`, { repositorioUrl: 'http://repo/1', autorizaPublicacao: true }); check('depositar', r.status === 200 && r.json.status === 'DEPOSITADO', r.text)
-  r = await call(lib, 'POST', P + `/trabalhos/${tr.id}/depositar`, { repositorioUrl: 'http://repo/1', autorizaPublicacao: true }); check('depositar 2x 409', r.status === 409, r.text)
+  r = await call(lib, 'POST', P + `/trabalhos/${tr.id}/depositar`, { repositorioUrl: 'https://exemplo.com/repo/1', autorizaPublicacao: true }); check('depositar sem versao final 422', r.status === 422, r.text)
+  r = await call(stu, 'POST', P + `/trabalhos/${tr.id}/versoes`, { tipo: 'FINAL', arquivoUrl: 'https://exemplo.com/f/final.pdf' }); check('versao final', r.status === 201, r.text)
+  r = await call(lib, 'POST', P + `/trabalhos/${tr.id}/depositar`, { repositorioUrl: 'https://exemplo.com/repo/1', autorizaPublicacao: true }); check('depositar', r.status === 200 && r.json.status === 'DEPOSITADO', r.text)
+  r = await call(lib, 'POST', P + `/trabalhos/${tr.id}/depositar`, { repositorioUrl: 'https://exemplo.com/repo/1', autorizaPublicacao: true }); check('depositar 2x 409', r.status === 409, r.text)
   r = await call(coord, 'GET', P + '/trabalhos-painel'); check('painel', r.status === 200, r.text)
   r = await call(admB, 'GET', P + '/trabalhos/' + tr.id); check('trab tenant B 404', r.status === 404)
   // tese: requisitos

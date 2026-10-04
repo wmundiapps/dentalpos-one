@@ -101,7 +101,7 @@ export const uploadGuard: RequestHandler = async (req: Request, res: Response, n
         const temEsquema = /^[a-z][a-z0-9+.-]*:/i.test(v) || v.startsWith('//')
         if (temEsquema) {
           const r = await scanUpload({ url: v.startsWith('//') ? 'https:' + v : v, contexto })
-          if (!r.ok) return bloquear(`Link de anexo bloqueado: ${r.motivo}.`)
+          if (!r.ok) return bloquear(`Link de anexo bloqueado: ${(r.motivo || '').replace(/\.$/, '')}.`)
         } else {
           const n = checarNomeArquivo(v.split('?')[0].split('/').pop() || '')
           if (!n.ok) return bloquear(`Link de anexo bloqueado: ${n.motivo}.`)

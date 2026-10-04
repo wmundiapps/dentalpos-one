@@ -27,7 +27,7 @@ async function main() {
   for (const u of [rev1, rev2]) { r = await call(coord, 'POST', P + '/periodicos-equipe', { periodicoId: per.id, userId: u.id, papel: 'PARECERISTA', areas: ['saude'] }); check('equipe', r.status === 201, r.text); eq.push(r.json) }
   r = await call(coord, 'POST', P + '/periodicos-equipe', { periodicoId: per.id, nome: 'Externo Fulano', email: 'ext@x.com', papel: 'PARECERISTA', areas: ['saude'] }); check('equipe externo', r.status === 201, r.text); const ext = r.json
   // submissão
-  const sub = { periodicoId: per.id, titulo: 'Um estudo sobre qualidade do ensino', resumo: 'x'.repeat(120), palavrasChave: ['a1', 'b2', 'c3'], autores: [{ nome: 'Autor Um', email: 'a1@x.com' }], declaracaoOriginalidade: true, arquivoUrl: 'http://f/1.pdf' }
+  const sub = { periodicoId: per.id, titulo: 'Um estudo sobre qualidade do ensino', resumo: 'x'.repeat(120), palavrasChave: ['a1', 'b2', 'c3'], autores: [{ nome: 'Autor Um', email: 'a1@x.com' }], declaracaoOriginalidade: true, arquivoUrl: 'https://exemplo.com/f/1.pdf' }
   r = await call(stu, 'POST', P + '/submissoes', { ...sub, resumo: 'curto' }); check('sub validacao 400', r.status === 400, r.text)
   r = await call(stu, 'POST', P + '/submissoes', sub); check('submeter', r.status === 201, r.text); const s1 = r.json
   r = await call(stu, 'POST', P + '/submissoes', sub); check('submissao duplicada 409', r.status === 409, r.text)
@@ -80,8 +80,8 @@ async function main() {
   r = await call(ed, 'POST', P + `/submissoes/${s1.id}/decisao`, { decisao: 'ACEITAR', justificativa: 'justificativa longa', cartaAutor: 'carta longa aqui' }); check('decisao 2x 409', r.status === 409, r.text)
   r = await call(stu, 'GET', P + '/submissoes/' + s1.id); check('autor ve pareceres anonimos', r.status === 200 && r.json.pareceres?.length === 2 && !JSON.stringify(r.json.pareceres).includes('Externo') && !JSON.stringify(r.json.pareceres).includes('TEACHER'), r.text)
   // reenvio
-  r = await call(stu2, 'POST', P + `/submissoes/${s1.id}/revisao-autor`, { arquivoUrl: 'http://f/2.pdf', cartaResposta: 'c'.repeat(40) }); check('reenvio por outro aluno 403/404', r.status === 403 || r.status === 404, r.status)
-  r = await call(stu, 'POST', P + `/submissoes/${s1.id}/revisao-autor`, { arquivoUrl: 'http://f/2.pdf', cartaResposta: 'c'.repeat(40) }); check('reenvio', r.status === 200 && r.json.reconvidados === 2, r.text)
+  r = await call(stu2, 'POST', P + `/submissoes/${s1.id}/revisao-autor`, { arquivoUrl: 'https://exemplo.com/f/2.pdf', cartaResposta: 'c'.repeat(40) }); check('reenvio por outro aluno 403/404', r.status === 403 || r.status === 404, r.status)
+  r = await call(stu, 'POST', P + `/submissoes/${s1.id}/revisao-autor`, { arquivoUrl: 'https://exemplo.com/f/2.pdf', cartaResposta: 'c'.repeat(40) }); check('reenvio', r.status === 200 && r.json.reconvidados === 2, r.text)
   const rv2 = await prisma.pesRevisao.findMany({ where: { submissaoId: s1.id, rodada: 2 } })
   check('2 reconvites', rv2.length === 2)
   // rodada 2: aceitam e parecer
@@ -97,7 +97,7 @@ async function main() {
   r = await call(ed, 'POST', P + `/edicoes/${edc.id}/publicar`, {}); check('publicar edicao vazia 422', r.status === 422, r.text)
   r = await call(ed, 'POST', P + `/submissoes/${s1.id}/editoracao`, { edicaoId: edc.id, doi: '10.1234/abc.1' }); check('editoracao', r.status === 200, r.text)
   r = await call(ed, 'POST', P + `/edicoes/${edc.id}/publicar`, {}); check('publicar sem versao final 422', r.status === 422, r.text)
-  r = await call(stu, 'POST', P + `/submissoes/${s1.id}/versoes`, { tipo: 'FINAL', arquivoUrl: 'http://f/final.pdf' }); check('versao final', r.status === 201, r.text)
+  r = await call(stu, 'POST', P + `/submissoes/${s1.id}/versoes`, { tipo: 'FINAL', arquivoUrl: 'https://exemplo.com/f/final.pdf' }); check('versao final', r.status === 201, r.text)
   r = await call(ed, 'POST', P + `/edicoes/${edc.id}/publicar`, {}); check('publicar edicao', r.status === 200 && r.json.artigosPublicados === 1, r.text)
   r = await call(ed, 'POST', P + `/edicoes/${edc.id}/publicar`, {}); check('publicar 2x 409', r.status === 409, r.text)
   r = await call(coord, 'PUT', P + `/edicoes/${edc.id}`, { titulo: 'x' }); check('editar edicao publicada 409', r.status === 409, r.text)
