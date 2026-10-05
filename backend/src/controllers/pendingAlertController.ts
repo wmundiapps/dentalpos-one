@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { getUserPermissionCodes } from '../services/permissionService'
 import { dispatchRevah } from '../services/revahProviderService'
+import { deliverWithCode } from '../services/labDeliveryCode'
 import { writeAudit } from '../services/auditService'
 
 const FLAG_KEY = 'PENDING_ALERTS'
@@ -319,33 +320,21 @@ export async function unlockUser(req: AuthRequest, res: Response) {
 }
 
 
-// Destrava resolvendo a pendência: marca o trabalho como entregue COM comprovação (quem recebeu + protocolo/observação).
-// A comprovação fica gravada na ordem e na auditoria, e os gestores são avisados.
+// Destrava resolvendo a pendência: dá baixa no trabalho com o código de entrega (nome de quem recebeu + data/hora).
 export async function resolveLabDelivery(req: AuthRequest, res: Response) {
   try {
     const { clinicId, tenantId, userId, role } = ctx(req)
     const localId = String(req.body?.localId || '').slice(0, 60)
-    const receivedBy = String(req.body?.receivedBy || '').trim().slice(0, 120)
-    const proof = String(req.body?.proof || '').trim().slice(0, 500)
+    const code = String(req.body?.code || '')
     if (!localId) return res.status(400).json({ error: 'Trabalho não informado.' })
-    if (receivedBy.length < 3) return res.status(400).json({ error: 'Informe quem recebeu o trabalho (dentista ou clínica).' })
-    if (proof.length < 5) return res.status(400).json({ error: 'Descreva a comprovação da entrega (protocolo, data/hora, observação).' })
+    if (!code.trim()) return res.status(400).json({ error: 'Informe o código de entrega.' })
     const codes = role === 'ADMIN' ? null : await getUserPermissionCodes(userId)
     if (codes !== null && !codes.includes('laboratory.view')) return res.status(403).json({ error: 'Sem permissão para resolver trabalhos do laboratório.' })
-    const order = await prisma.labOrder.findUnique({ where: { clinicId_localId: { clinicId, localId } } })
-    if (!order || order.tenantId !== tenantId || order.deletedAt) return res.status(404).json({ error: 'Trabalho não encontrado.' })
-    if (order.deliveredAt) return res.json({ ok: true, alreadyDelivered: true })
-    const now = new Date()
-    const prevData = (order.data && typeof order.data === 'object' ? order.data : {}) as Record<string, unknown>
-    const actor = await prisma.user.findFirst({ where: { id: userId }, select: { firstName: true, lastName: true, email: true } })
-    const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() || actor.email : userId
-    const data = { ...prevData, status: 'Entregue', updatedAtISO: now.toISOString(), proofOfDelivery: { receivedBy, proof, at: now.toISOString(), byUserId: userId, byName: actorName, via: 'PENDING_UNLOCK' } }
-    await prisma.labOrder.update({ where: { id: order.id }, data: { status: 'Entregue', deliveredAt: now, data: data as Prisma.InputJsonValue } })
-    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: 'LAB_DELIVERY_PROVEN', entityType: 'LabOrder', entityId: order.id, beforeData: { status: order.status }, afterData: { status: 'Entregue', receivedBy, proof }, summary: `Entrega comprovada por ${actorName}: ${order.workType} — ${order.patientName} (recebido por ${receivedBy}).` }).catch((e: unknown) => console.error(e))
-    void notifyManagers(clinicId, tenantId, 'Entrega comprovada para destravar pendência', `${actorName} informou a entrega de "${order.workType}" do paciente ${order.patientName} (recebido por ${receivedBy}).\nComprovação: ${proof}\n\nO registro está na auditoria do laboratório; confira se a entrega ocorreu.`)
+    const result = await deliverWithCode({ clinicId, tenantId, actorId: userId, localId, code, via: 'PENDING_UNLOCK' })
+    if (!result.ok) return res.status(result.status).json({ error: result.error })
     return res.json({ ok: true })
   } catch (error) {
-    console.error('Erro ao comprovar entrega:', error)
+    console.error('Erro ao dar baixa com código:', error)
     return res.status(500).json({ error: 'Erro ao registrar a entrega.' })
   }
 }

@@ -237,6 +237,8 @@ router.delete('/clinical-files/:id', requirePermission('clinical.edit'), clinica
 router.get('/lab-orders', requirePermission('laboratory.view'), labOrderController.list)
 router.post('/lab-orders/upsert', requirePermission('laboratory.create'), labOrderController.upsert)
 router.post('/lab-orders/bulk', requirePermission('laboratory.create'), labOrderController.bulk)
+router.post('/lab-orders/:localId/delivery-code', requirePermission('laboratory.view'), labOrderController.deliveryCode)
+router.post('/lab-orders/:localId/deliver', requirePermission('laboratory.edit'), labOrderController.deliver)
 router.delete('/lab-orders/:localId', requirePermission('laboratory.edit'), labOrderController.remove)
 router.post('/lab-orders/:localId/restore', requirePermission('laboratory.edit'), labOrderController.restore)
 router.get('/lab-notifications', requirePermission('laboratory.view'), labNotificationController.list)
