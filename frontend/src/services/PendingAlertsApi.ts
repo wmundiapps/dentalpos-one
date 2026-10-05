@@ -1,6 +1,6 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-export interface PendingAlertItem { key: string; label: string; count: number; path: string }
+export interface PendingAlertItem { key: string; label: string; count: number; path: string; lines?: string[] }
 export interface LockedUser { id: string; name: string; count: number }
 export interface PendingAlerts {
   enabled: boolean;

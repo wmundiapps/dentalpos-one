@@ -14,19 +14,19 @@ const KEY_LOCK_MS = 15 * 60 * 1000
 type Mode = 'ALERT' | 'BLOCK'
 type Visibility = Record<string, string[]>
 type Settings = { enabled: boolean; mode: Mode; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility }
-type Item = { key: string; label: string; count: number; path: string }
+type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[] }
 
 // Quem enxerga cada tipo de pendência, por departamento (código do perfil de acesso). Admin vê tudo sempre.
 // Se o gestor não configurou nada, vale este padrão: cobrança vai para recepção, financeiro e clínico; laboratório não vê cobrança.
 export const ALERT_CATEGORIES: Array<{ key: string; label: string }> = [
   { key: 'appointments', label: 'Agendamentos sem desfecho' },
   { key: 'receivables', label: 'Recebimentos vencidos / pacientes em atraso' },
-  { key: 'laboratory', label: 'Trabalhos de laboratório atrasados' }
+  { key: 'laboratory', label: 'Fila de trabalhos do laboratório (até a entrega)' }
 ]
 const DEFAULT_VISIBILITY: Visibility = {
   appointments: ['GESTOR', 'RECEPCAO', 'DENTISTA', 'AUXILIAR', 'ADMINISTRACAO'],
   receivables: ['GESTOR', 'RECEPCAO', 'FINANCEIRO', 'DENTISTA', 'ADMINISTRACAO'],
-  laboratory: ['GESTOR', 'LABORATORIO', 'DENTISTA']
+  laboratory: ['GESTOR', 'LABORATORIO', 'DENTISTA', 'RECEPCAO', 'ADMINISTRACAO']
 }
 
 // Tentativas erradas de chave (em memória, por usuário): 5 erros trava novas tentativas por 15 minutos.
@@ -82,7 +82,7 @@ const visibleCategories = (settings: Settings, profileCodes: string[] | null) =>
   ALERT_CATEGORIES.map(c => c.key).filter(key => profileCodes === null || profileCodes.some(code => settings.visibility[key]?.includes(code)))
 
 // Pendências visíveis para quem tem estas permissões (null = todas, caso do ADMIN).
-async function computeItems(clinicId: string, tenantId: string, codes: string[] | null, visible: string[]): Promise<Item[]> {
+async function computeItems(clinicId: string, tenantId: string, codes: string[] | null, visible: string[], blockMode = false): Promise<Item[]> {
   const can = (code: string, category: string) => visible.includes(category) && (codes === null || codes.includes(code))
   const today = startOfTodayBrt()
   const items: Item[] = []
@@ -99,10 +99,26 @@ async function computeItems(clinicId: string, tenantId: string, codes: string[] 
     if (count) items.push({ key: 'receivables', label: `${count} recebimento(s) vencido(s) (paciente em atraso: a régua de cobrança acompanha)`, count, path: '/financeiro' })
   }
   if (can('laboratory.view', 'laboratory')) {
-    // Ordens do laboratório (banco): não excluídas, não entregues e com prazo vencido.
-    // Tolerante: se a tabela ainda não foi criada no banco, o contador de laboratório fica zerado em vez de derrubar os avisos.
-    const count = await prisma.labOrder.count({ where: { clinicId, tenantId, deletedAt: null, deliveredAt: null, dueDate: { lt: today } } }).catch(() => 0)
-    if (count) items.push({ key: 'laboratory', label: `${count} trabalho(s) de laboratório com prazo vencido`, count, path: '/laboratorio' })
+    // Fila diária do laboratório: todo trabalho não excluído e ainda não entregue ao dentista/clínica.
+    // Só sai da fila quando o status vira Entregue/Liberado (deliveredAt). Apenas os vencidos contam para o bloqueio.
+    // Tolerante: se a tabela ainda não foi criada no banco, a fila fica vazia em vez de derrubar os avisos.
+    const queue = await prisma.labOrder.findMany({
+      where: { clinicId, tenantId, deletedAt: null, deliveredAt: null },
+      select: { patientName: true, workType: true, dentistName: true, status: true, dueDate: true },
+      orderBy: [{ dueDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
+      take: 300
+    }).catch(() => [])
+    if (queue.length) {
+      const tomorrow = new Date(today.getTime() + DAY)
+      const overdue = queue.filter(o => o.dueDate && o.dueDate < today).length
+      const dueToday = queue.filter(o => o.dueDate && o.dueDate >= today && o.dueDate < tomorrow).length
+      const fmt = (d: Date | null) => (d ? new Date(d.getTime() - 3 * 3600000).toISOString().slice(8, 10) + '/' + new Date(d.getTime() - 3 * 3600000).toISOString().slice(5, 7) : 'sem prazo')
+      const lines = queue.slice(0, 8).map(o => `${o.patientName} · ${o.workType}${o.dentistName ? ` (${o.dentistName})` : ''} · ${o.status} · prazo ${fmt(o.dueDate)}${o.dueDate && o.dueDate < today ? ' · ATRASADO' : ''}`)
+      if (queue.length > lines.length) lines.push(`+ ${queue.length - lines.length} trabalho(s) na fila`)
+      let label = `Fila do laboratório: ${queue.length} trabalho(s) (${overdue} atrasado(s), ${dueToday} vencem hoje). Só saem da fila quando concluídos e entregues ao dentista/clínica.`
+      if (blockMode && overdue) label += ' Se os atrasados não forem resolvidos, o sistema será bloqueado.'
+      items.push({ key: 'laboratory', label, count: queue.length, blocks: overdue, lines, path: '/laboratorio' })
+    }
   }
   return items
 }
@@ -121,11 +137,12 @@ export async function show(req: AuthRequest, res: Response) {
     const profileCodes = role === 'ADMIN' ? null : await getUserProfileCodes(userId)
     const visibleKeys = visibleCategories(settings, profileCodes)
 
-    const items = settings.enabled ? await computeItems(clinicId, tenantId, codes, visibleKeys) : []
+    const items = settings.enabled ? await computeItems(clinicId, tenantId, codes, visibleKeys, settings.mode === 'BLOCK') : []
     const total = items.reduce((sum, item) => sum + item.count, 0)
+    const blockingTotal = items.reduce((sum, item) => sum + (item.blocks ?? item.count), 0)
     // Quem gerencia nunca é travado (precisa conseguir destravar os outros e mexer na configuração).
     const configured = settings.lockedUserIds.includes(userId) && !canManage
-    const blocked = settings.enabled && settings.mode === 'BLOCK' && configured && total > 0 && !isUnlocked(settings, userId)
+    const blocked = settings.enabled && settings.mode === 'BLOCK' && configured && blockingTotal > 0 && !isUnlocked(settings, userId)
 
     // Para admin/gestor: quais telas estão travadas agora (cada usuário configurado, com as pendências que ele enxerga).
     let lockedUsers: Array<{ id: string; name: string; count: number }> = []
@@ -138,8 +155,8 @@ export async function show(req: AuthRequest, res: Response) {
         if (user.role === 'ADMIN' || isUnlocked(settings, user.id)) continue
         const userCodes = await getUserPermissionCodes(user.id)
         if (userCodes.includes('settings.edit')) continue
-        const userItems = await computeItems(clinicId, tenantId, userCodes, visibleCategories(settings, await getUserProfileCodes(user.id)))
-        const count = userItems.reduce((sum, item) => sum + item.count, 0)
+        const userItems = await computeItems(clinicId, tenantId, userCodes, visibleCategories(settings, await getUserProfileCodes(user.id)), true)
+        const count = userItems.reduce((sum, item) => sum + (item.blocks ?? item.count), 0)
         if (count > 0) lockedUsers.push({ id: user.id, name: `${user.firstName} ${user.lastName}`.trim() || user.email, count })
       }
     }

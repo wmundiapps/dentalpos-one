@@ -50,6 +50,13 @@ export default function PendingAlertsBar() {
                 {item.label}
               </Link>
             ))}
+            {data.items.flatMap((item) => item.lines || []).length > 0 && (
+              <Box sx={{ width: "100%" }}>
+                {data.items.flatMap((item) => item.lines || []).map((line, i) => (
+                  <Typography key={i} variant="caption" sx={{ display: "block" }}>{`• ${line}`}</Typography>
+                ))}
+              </Box>
+            )}
           </Box>
         </Alert>
       )}
