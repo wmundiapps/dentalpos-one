@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { getUserPermissionCodes } from '../services/permissionService'
+import { dispatchRevah } from '../services/revahProviderService'
 import { writeAudit } from '../services/auditService'
 
 const FLAG_KEY = 'PENDING_ALERTS'
@@ -13,7 +14,7 @@ const KEY_LOCK_MS = 15 * 60 * 1000
 
 type Mode = 'ALERT' | 'BLOCK'
 type Visibility = Record<string, string[]>
-type Settings = { enabled: boolean; mode: Mode; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility }
+type Settings = { enabled: boolean; mode: Mode; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility; lockEvents: Record<string, { day: string; resolved: boolean }> }
 type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[] }
 
 // Quem enxerga cada tipo de pendência, por departamento (código do perfil de acesso). Admin vê tudo sempre.
@@ -39,8 +40,9 @@ function ctx(req: AuthRequest) {
 
 async function loadSettings(clinicId: string): Promise<Settings> {
   const row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: FLAG_KEY } } })
-  const meta = (row?.metadata || {}) as { mode?: string; lockedUserIds?: unknown; keyHash?: string; unlocks?: Record<string, string>; visibility?: Record<string, unknown> }
+  const meta = (row?.metadata || {}) as { mode?: string; lockedUserIds?: unknown; keyHash?: string; unlocks?: Record<string, string>; visibility?: Record<string, unknown>; lockEvents?: Record<string, { day: string; resolved: boolean }> }
   return {
+    lockEvents: meta.lockEvents && typeof meta.lockEvents === 'object' ? meta.lockEvents : {},
     // Sem configuração gravada o aviso fica ligado no modo "só alerta".
     enabled: row ? row.enabled : true,
     mode: meta.mode === 'BLOCK' ? 'BLOCK' : 'ALERT',
@@ -54,10 +56,51 @@ async function loadSettings(clinicId: string): Promise<Settings> {
   }
 }
 
+function pruneLockEvents(events: Settings['lockEvents']) {
+  const limit = new Date(Date.now() - 3 * DAY).toISOString().slice(0, 10)
+  return Object.fromEntries(Object.entries(events).filter(([, e]) => e.day >= limit))
+}
+
+// Avisa gestores e administradores por e-mail (conta da plataforma) e registra na auditoria. Nunca derruba o aviso de pendências.
+async function notifyManagers(clinicId: string, tenantId: string, subject: string, message: string) {
+  try {
+    const apiKey = String(process.env.RESEND_API_KEY || '').trim()
+    if (!apiKey) return
+    const managers = await prisma.user.findMany({
+      where: { clinicId, tenantId, isActive: true, OR: [{ role: 'ADMIN' }, { accessProfiles: { some: { profile: { code: 'GESTOR', isActive: true } } } }] },
+      select: { email: true }, take: 10
+    })
+    const to = [...new Set(managers.map(m => m.email).filter(Boolean))]
+    for (const address of to) {
+      await dispatchRevah('EMAIL', address, message, { apiKey, subject }, 'DentalPos One <contato@dentalpos.com.br>').catch((e: unknown) => console.error('Aviso ao gestor falhou:', e))
+    }
+  } catch (error) {
+    console.error('Erro ao avisar gestores:', error)
+  }
+}
+
+async function trackLockEvent(settings: Settings, clinicId: string, tenantId: string, userId: string, blocked: boolean, pendingGone: boolean, lines: string[]) {
+  const today = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10)
+  const prev = settings.lockEvents[userId]
+  const user = await prisma.user.findFirst({ where: { id: userId, clinicId }, select: { firstName: true, lastName: true, email: true } })
+  const name = user ? `${user.firstName} ${user.lastName}`.trim() || user.email : 'Usuário'
+  if (blocked && (!prev || prev.day !== today)) {
+    settings.lockEvents[userId] = { day: today, resolved: false }
+    await saveSettings(clinicId, tenantId, settings)
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'settings', action: 'PENDING_LOCK_TRIGGERED', entityType: 'User', entityId: userId, summary: `Tela de ${name} travada por pendências não resolvidas.` }).catch((e: unknown) => console.error(e))
+    await notifyManagers(clinicId, tenantId, 'Falha: tela travada por pendências', `A tela de ${name} foi travada porque pendências não foram resolvidas a tempo.\n\n${lines.join('\n') || 'Veja o detalhe em Pendências.'}\n\nO usuário destrava resolvendo a pendência ou com a chave de desbloqueio; você também pode destravar pelo sistema.`)
+  } else if (pendingGone && prev && !prev.resolved) {
+    settings.lockEvents[userId] = { ...prev, resolved: true }
+    await saveSettings(clinicId, tenantId, settings)
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'settings', action: 'PENDING_LOCK_RESOLVED', entityType: 'User', entityId: userId, summary: `Pendências de ${name} resolvidas; tela liberada.` }).catch((e: unknown) => console.error(e))
+    await notifyManagers(clinicId, tenantId, 'Pendências resolvidas: tela liberada', `${name} resolveu as pendências que travaram a tela e o acesso foi liberado automaticamente. A falha ficou registrada na auditoria.`)
+  }
+}
+
 async function saveSettings(clinicId: string, tenantId: string, s: Settings) {
   // Limpa liberações vencidas para o registro não crescer.
   const unlocks = Object.fromEntries(Object.entries(s.unlocks).filter(([, until]) => new Date(until).getTime() > Date.now()))
-  const metadata = { mode: s.mode, lockedUserIds: s.lockedUserIds, keyHash: s.keyHash, unlocks, visibility: s.visibility }
+  const metadata = { mode: s.mode, lockedUserIds: s.lockedUserIds, keyHash: s.keyHash, unlocks, visibility: s.visibility, lockEvents: pruneLockEvents(s.lockEvents) }
   await prisma.tenantFeatureFlag.upsert({
     where: { clinicId_key: { clinicId, key: FLAG_KEY } },
     update: { enabled: s.enabled, metadata },
@@ -143,6 +186,11 @@ export async function show(req: AuthRequest, res: Response) {
     // Quem gerencia nunca é travado (precisa conseguir destravar os outros e mexer na configuração).
     const configured = settings.lockedUserIds.includes(userId) && !canManage
     const blocked = settings.enabled && settings.mode === 'BLOCK' && configured && blockingTotal > 0 && !isUnlocked(settings, userId)
+
+    if (configured && settings.enabled && settings.mode === 'BLOCK') {
+      const lines = items.filter(i => (i.blocks ?? i.count) > 0).map(i => `• ${i.label}`)
+      await trackLockEvent(settings, clinicId, tenantId, userId, blocked, blockingTotal === 0, lines).catch((e: unknown) => console.error('Falha ao registrar travamento:', e))
+    }
 
     // Para admin/gestor: quais telas estão travadas agora (cada usuário configurado, com as pendências que ele enxerga).
     let lockedUsers: Array<{ id: string; name: string; count: number }> = []
