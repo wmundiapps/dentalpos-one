@@ -34,7 +34,7 @@ function postRecipe(ref: ToothRef): PostRecipe {
   }
   if (up) {
     const m1 = t === "molar1";
-    return { cusps: [{ u: -0.46, w: 0.46, hf: 1, rb: 0.36, rt: 0.17 }, { u: 0.46, w: 0.46, hf: 0.9, rb: 0.34, rt: 0.16 }, { u: -0.44, w: -0.46, hf: 1, rb: 0.38, rt: 0.18 }, { u: 0.5, w: -0.44, hf: m1 ? 0.62 : 0.78, rb: m1 ? 0.28 : 0.31, rt: 0.14 }], ridges: [[0, 2], [1, 2], [1, 3]], cuspH: 0.36, marginal: 0.8, rhomb: 0.14, fossa: [[0, 0, 0.55]], lingTaper: 0.3, premolar: false };
+    return { cusps: [{ u: -0.46, w: 0.46, hf: 1, rb: 0.36, rt: 0.17 }, { u: 0.46, w: 0.46, hf: 0.9, rb: 0.34, rt: 0.16 }, { u: -0.44, w: -0.46, hf: 1, rb: 0.38, rt: 0.18 }, { u: 0.5, w: -0.44, hf: m1 ? 0.62 : 0.78, rb: m1 ? 0.28 : 0.31, rt: 0.14 }], ridges: [[0, 2], [1, 2], [1, 3]], cuspH: 0.36, marginal: 0.8, rhomb: 0.14, fossa: [[-0.6, 0.1, 0.5], [0.64, -0.1, 0.5]], lingTaper: 0.3, premolar: false };
   }
   return { cusps: [{ u: -0.5, w: 0.46, hf: 0.95, rb: 0.34, rt: 0.16 }, { u: 0.0, w: 0.5, hf: 0.9, rb: 0.32, rt: 0.15 }, { u: 0.55, w: 0.4, hf: 0.74, rb: 0.3, rt: 0.14 }, { u: -0.34, w: -0.46, hf: 1, rb: 0.34, rt: 0.16 }, { u: 0.36, w: -0.44, hf: 0.96, rb: 0.33, rt: 0.16 }], ridges: [[0, 3], [1, 3], [1, 4], [2, 4]], cuspH: 0.36, marginal: 0.7, rhomb: 0, fossa: [[0, 0, 0.5]], lingTaper: 0.34, premolar: false };
 }
@@ -71,7 +71,9 @@ function posteriorField(ref: ToothRef, o: SculptOpts, a: number, B: number): (p:
     const u = x / a, w = (y - yc) / hy;
     const rim = cuspH * (R.marginal * 0.55 * ss(0.5, 0.85, Math.abs(u)) + 0.18 * ss(0.62, 0.95, Math.abs(w)));
     const cejP = 0.07 * h * Math.pow(Math.min(1, Math.abs(x / a)), 2);
-    let d = smax(smax(side, cejP - z, 0.6), z - (hw + rim), 0.4);
+    let pit = 0;
+    for (const [fu, fw, fd] of R.fossa) pit += cuspH * (0.12 + 0.45 * fd) * Math.exp(-(((x - fu * a * 0.7) / (a * 0.3)) ** 2 + ((y - fw * B * 0.7) / (B * 0.2)) ** 2));
+    let d = smax(smax(side, cejP - z, 0.6), z - (hw + rim - pit), 0.4);
     // cúspides: domos largos fundidos ao corpo
     for (const c of cs) d = smin(d, sdEll(x - c.cx, y - c.cy, z - (hw - cuspH * 0.15), c.rx, c.ry, c.zt - hw + cuspH * 0.15), 0.7);
     // cristas triangulares / oblíqua: da ponta da cúspide até a fossa central
@@ -80,10 +82,6 @@ function posteriorField(ref: ToothRef, o: SculptOpts, a: number, B: number): (p:
       d = smin(d, sdRound(p, [A.cx, A.cy, A.zt - cuspH * 0.35], [Bc.cx, Bc.cy, Bc.zt - cuspH * 0.35], 0.55, 0.55), 0.7);
     }
     for (const c of cs) d = smin(d, sdRound(p, [c.cx, c.cy, c.zt - cuspH * 0.25], [c.cx * 0.3, c.cy * 0.3, fz], 0.7, 0.5), 0.8);
-    // sulco central e fossas
-    let carve = 1e9;
-    for (const [fu, fw, fd] of R.fossa) carve = Math.min(carve, sdEll(x - fu * a * 0.7, y - fw * B * 0.7, z - (hw + cuspH * (0.35 - fd * 0.4)), a * 0.34, B * 0.2, cuspH * 0.3 + 0.1));
-    d = smax(d, -carve, 0.5);
     return d;
   };
 }
