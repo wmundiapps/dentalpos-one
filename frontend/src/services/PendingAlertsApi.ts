@@ -1,6 +1,6 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-export interface PendingAlertItem { key: string; label: string; count: number; path: string }
+export interface PendingAlertItem { key: string; label: string; count: number; path: string; lines?: string[] }
 export interface LockedUser { id: string; name: string; count: number }
 export interface PendingAlerts {
   enabled: boolean;
@@ -11,6 +11,7 @@ export interface PendingAlerts {
   items: PendingAlertItem[];
   lockedUsers: LockedUser[];
   visibleKeys: string[];
+  blockingLabOrders?: Array<{ localId: string; patientName: string; workType: string; dentistName: string | null; dueDate: string | null }>;
   settings?: {
     lockedUserIds: string[]; hasKey: boolean;
     visibility: Record<string, string[]>;
@@ -68,8 +69,15 @@ export async function unlockPendingAlerts(key: string) {
 }
 
 // Admin/gestor destrava a tela de um usuário.
-export async function unlockUserScreen(userId: string) {
-  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unlock-user`, { method: "POST", headers: headers(true), body: JSON.stringify({ userId }) }));
+export async function unlockUserScreen(userId: string, deadline: string, reason = "") {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unlock-user`, { method: "POST", headers: headers(true), body: JSON.stringify({ userId, deadline, reason }) }));
+  window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
+  return result;
+}
+
+// Destrava resolvendo a pendência: informa a entrega do trabalho com comprovação.
+export async function proveLabDelivery(input: { localId: string; receivedBy: string; proof: string }) {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/resolve-lab`, { method: "POST", headers: headers(true), body: JSON.stringify(input) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
 }
