@@ -16,6 +16,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import PageHeader from "../components/PageHeader";
 import LabNotifyFields from "../components/LabNotifyFields";
 import ExportMenu from "../components/ExportMenu";
+import LabDeliveryDialog from "../components/LabDeliveryDialog";
 import { labRisk } from "../utils/labRisk";
 import { fetchLabOrders, restoreLabOrder, type LabOrderRow } from "../services/LabOrderApi";
 import { cachedLabNotify, cancelLabNotifications, rememberLabNotify, scheduleLabNotifications, type LabNotifyChoice } from "../services/LabNotifyApi";
@@ -47,6 +48,7 @@ const priorityColor = (p:LaboratoryPriority) => p==="Urgente" ? "error" as const
 export default function Laboratory(){
   const navigate=useNavigate();
   const [works,setWorks]=useState<IntegratedLaboratoryWork[]>(getLaboratoryWorks);
+  const [deliveryWork,setDeliveryWork]=useState<{id:number;patientName:string;workType:string}|null>(null);
   const [open,setOpen]=useState(false); const [editing,setEditing]=useState<IntegratedLaboratoryWork|null>(null); const [historyWork,setHistoryWork]=useState<IntegratedLaboratoryWork|null>(null);
   const [search,setSearch]=useState(""); const [form,setForm]=useState<LabForm>(blankForm());
   const [notify,setNotify]=useState<LabNotifyChoice>({labMemberId:"",channels:[]});
@@ -105,11 +107,13 @@ export default function Laboratory(){
           <Box><Typography sx={{fontWeight:800}}>{w.workType}</Typography><Typography variant="body2" color="text.secondary">Dentes: {w.teeth||"—"} • {w.material}</Typography><Typography variant="body2" sx={{fontWeight:700}}>Cor: {w.toothShade||"NÃO INFORMADA"} {w.shadeSystem?`(${w.shadeSystem})`:""}</Typography><Typography variant="caption" color="text.secondary">{w.impressionType||"—"} • {(w.receivedItems||[]).join(" • ")||"Itens não conferidos"}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Dentista / Técnico</Typography><Typography>{w.dentistName}</Typography><Typography variant="body2" color="text.secondary">{w.responsibleTechnician}</Typography></Box>
           <Box><Typography variant="caption" color="text.secondary">Prazo / Retorno</Typography><Typography sx={{fontWeight:700}}>Lab: {formatDate(w.dueDateISO)}</Typography><Typography sx={{fontWeight:700}}>Paciente: {formatDate(w.patientReturnDateISO)}</Typography><Typography variant="caption" color="text.secondary">Próxima ação: {w.nextAction||"Definir"}</Typography></Box>
-          <TextField select size="small" label="Status" value={w.status} onChange={e=>{updateLaboratoryWork(w.id,{status:e.target.value as LaboratoryWorkStatus});if(["Entregue","Liberado"].includes(e.target.value))void cancelLabNotifications(String(w.id)).catch(()=>undefined)}}>{statuses.map(s=><MenuItem key={s} value={s}>{s}</MenuItem>)}</TextField>
+          <TextField select size="small" label="Status" value={w.status} onChange={e=>{if(["Entregue","Liberado"].includes(e.target.value)){if(!["Entregue","Liberado"].includes(w.status))setDeliveryWork({id:w.id,patientName:w.patientName,workType:w.workType});return}updateLaboratoryWork(w.id,{status:e.target.value as LaboratoryWorkStatus})}}>{statuses.map(s=><MenuItem key={s} value={s}>{s}</MenuItem>)}</TextField>
         </Box>
-        <Box sx={{display:"flex",gap:1,mt:1.4,flexWrap:"wrap"}}><Button size="small" startIcon={<EditIcon/>} onClick={()=>openEdit(w)}>Editar</Button><Button size="small" startIcon={<HistoryIcon/>} onClick={()=>setHistoryWork(w)}>Histórico</Button><Button size="small" color="error" onClick={()=>removeWork(w)}>Excluir</Button><Button size="small" variant="contained" startIcon={<ArchitectureIcon/>} disabled={!w.toothShade} onClick={()=>sendDesign(w)}>Abrir no DentalPos Design</Button></Box>
+        <Box sx={{display:"flex",gap:1,mt:1.4,flexWrap:"wrap"}}><Button size="small" startIcon={<EditIcon/>} onClick={()=>openEdit(w)}>Editar</Button><Button size="small" startIcon={<LocalShippingIcon/>} disabled={["Entregue","Liberado"].includes(w.status)} onClick={()=>setDeliveryWork({id:w.id,patientName:w.patientName,workType:w.workType})}>Entrega (código)</Button><Button size="small" startIcon={<HistoryIcon/>} onClick={()=>setHistoryWork(w)}>Histórico</Button><Button size="small" color="error" onClick={()=>removeWork(w)}>Excluir</Button><Button size="small" variant="contained" startIcon={<ArchitectureIcon/>} disabled={!w.toothShade} onClick={()=>sendDesign(w)}>Abrir no DentalPos Design</Button></Box>
       </Box>})}
     </Paper>
+
+    <LabDeliveryDialog work={deliveryWork} onClose={()=>setDeliveryWork(null)} onDelivered={id=>{updateLaboratoryWork(id,{status:"Entregue"});void cancelLabNotifications(String(id)).catch(()=>undefined)}}/>
 
     <Dialog open={open} onClose={()=>setOpen(false)} fullWidth maxWidth="md"><DialogTitle>{editing?"Editar trabalho laboratorial":"Novo trabalho laboratorial"}</DialogTitle><DialogContent sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"1fr 1fr"},gap:2,pt:"12px!important"}}>
       <TextField required label="Paciente" value={form.patientName} onChange={e=>setForm({...form,patientName:e.target.value})}/><TextField label="Dentista" value={form.dentistName} onChange={e=>setForm({...form,dentistName:e.target.value})}/><TextField required label="Tipo de trabalho" value={form.workType} onChange={e=>setForm({...form,workType:e.target.value})}/><TextField label="Dentes envolvidos" placeholder="Ex.: 11, 12, 21 ou 14-16" value={form.teeth} onChange={e=>setForm({...form,teeth:e.target.value})}/>

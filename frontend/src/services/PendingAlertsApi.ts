@@ -76,7 +76,7 @@ export async function unlockUserScreen(userId: string, deadline: string, reason 
 }
 
 // Destrava resolvendo a pendência: informa a entrega do trabalho com comprovação.
-export async function proveLabDelivery(input: { localId: string; receivedBy: string; proof: string }) {
+export async function proveLabDelivery(input: { localId: string; code: string }) {
   const result = await parse<unknown>(await fetch(`${API}/pending-alerts/resolve-lab`, { method: "POST", headers: headers(true), body: JSON.stringify(input) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;

@@ -11,8 +11,7 @@ export default function PendingAlertsBar() {
   const [busy, setBusy] = useState(false);
   const [target, setTarget] = useState<{ id: string; name: string } | null>(null);
   const [proofFor, setProofFor] = useState<string | null>(null);
-  const [receivedBy, setReceivedBy] = useState("");
-  const [proof, setProof] = useState("");
+  const [deliveryCode, setDeliveryCode] = useState("");
 
   const load = useCallback(async () => {
     if (!localStorage.getItem("dentalpos.token")) return;
@@ -49,8 +48,8 @@ export default function PendingAlertsBar() {
     setBusy(true);
     setError("");
     try {
-      await proveLabDelivery({ localId: proofFor, receivedBy, proof });
-      setProofFor(null); setReceivedBy(""); setProof("");
+      await proveLabDelivery({ localId: proofFor, code: deliveryCode });
+      setProofFor(null); setDeliveryCode("");
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível registrar a entrega."); }
     finally { setBusy(false); }
@@ -113,19 +112,18 @@ export default function PendingAlertsBar() {
           {data.items.map((item) => <Typography key={item.key} sx={{ mb: 0.5 }}>{`• ${item.label}`}</Typography>)}
           {(data.blockingLabOrders?.length ?? 0) > 0 && (
             <Box sx={{ mt: 2, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
-              <Typography sx={{ fontWeight: 800, mb: 0.5 }}>Resolver agora: informe a entrega com comprovação</Typography>
-              <Typography variant="caption" sx={{ display: "block", mb: 1 }}>Ao comprovar a entrega ao dentista/clínica, o trabalho sai da fila e a tela destrava sozinha. O gestor é avisado e confere depois.</Typography>
+              <Typography sx={{ fontWeight: 800, mb: 0.5 }}>Resolver agora: dar baixa com o código de entrega</Typography>
+              <Typography variant="caption" sx={{ display: "block", mb: 1 }}>O código traz o nome de quem recebeu, a data e a hora, e vem do dentista, da recepção ou da administração. Com ele o trabalho sai da fila e a tela destrava sozinha.</Typography>
               {data.blockingLabOrders!.map((o) => (
                 <Box key={o.localId} sx={{ mb: 1 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: "space-between" }}>
                     <Typography variant="body2">{`${o.patientName} · ${o.workType}${o.dentistName ? ` (${o.dentistName})` : ""}`}</Typography>
-                    <Button size="small" variant="outlined" onClick={() => { setProofFor(proofFor === o.localId ? null : o.localId); setError(""); }}>Comprovar entrega</Button>
+                    <Button size="small" variant="outlined" onClick={() => { setProofFor(proofFor === o.localId ? null : o.localId); setError(""); }}>Informar código</Button>
                   </Box>
                   {proofFor === o.localId && (
                     <Box sx={{ display: "grid", gap: 1, mt: 1 }}>
-                      <TextField size="small" label="Quem recebeu (dentista/clínica)" value={receivedBy} onChange={(e) => setReceivedBy(e.target.value)} />
-                      <TextField size="small" label="Comprovação (protocolo, data/hora, observação)" value={proof} onChange={(e) => setProof(e.target.value)} multiline minRows={2} />
-                      <Button variant="contained" disabled={busy || receivedBy.trim().length < 3 || proof.trim().length < 5} onClick={() => void submitProof()}>Confirmar entrega e destravar</Button>
+                      <TextField size="small" multiline minRows={2} label="Código de entrega (gerado por quem recebeu: dentista, recepção ou administração)" value={deliveryCode} onChange={(e) => setDeliveryCode(e.target.value)} />
+                      <Button variant="contained" disabled={busy || deliveryCode.trim().length < 20} onClick={() => void submitProof()}>Dar baixa e destravar</Button>
                     </Box>
                   )}
                 </Box>
