@@ -1,3 +1,4 @@
+import LockedUsersUnlock from "./LockedUsersUnlock";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Checkbox, FormControlLabel, Paper, Radio, RadioGroup, Switch, TextField, Typography } from "@mui/material";
 import NotificationImportantIcon from "@mui/icons-material/NotificationImportant";
@@ -47,6 +48,7 @@ export default function PendingAlertsSettingsCard() {
 
   return (
     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid", borderColor: "divider", mb: 3 }}>
+      <LockedUsersUnlock />
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
         <NotificationImportantIcon color="error" />
         <Box>

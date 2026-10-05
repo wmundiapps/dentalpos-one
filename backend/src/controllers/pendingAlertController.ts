@@ -1,5 +1,6 @@
 import { Response } from 'express'
 import bcrypt from 'bcryptjs'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { getUserPermissionCodes } from '../services/permissionService'
@@ -192,6 +193,15 @@ export async function show(req: AuthRequest, res: Response) {
       await trackLockEvent(settings, clinicId, tenantId, userId, blocked, blockingTotal === 0, lines).catch((e: unknown) => console.error('Falha ao registrar travamento:', e))
     }
 
+    // Para quem está travado: trabalhos atrasados que podem ser resolvidos informando a comprovação da entrega.
+    const blockingLabOrders = blocked && items.some(i => i.key === 'laboratory')
+      ? (await prisma.labOrder.findMany({
+          where: { clinicId, tenantId, deletedAt: null, deliveredAt: null, dueDate: { lt: startOfTodayBrt() } },
+          select: { localId: true, patientName: true, workType: true, dentistName: true, dueDate: true },
+          orderBy: { dueDate: 'asc' }, take: 20
+        }).catch(() => []))
+      : []
+
     // Para admin/gestor: quais telas estão travadas agora (cada usuário configurado, com as pendências que ele enxerga).
     let lockedUsers: Array<{ id: string; name: string; count: number }> = []
     if (canManage && settings.enabled && settings.mode === 'BLOCK' && settings.lockedUserIds.length) {
@@ -211,7 +221,7 @@ export async function show(req: AuthRequest, res: Response) {
     if (!canManage) lockedUsers = []
 
     return res.json({
-      enabled: settings.enabled, mode: settings.mode, blocked, canManage, total, items, lockedUsers, visibleKeys,
+      enabled: settings.enabled, mode: settings.mode, blocked, canManage, total, items, lockedUsers, visibleKeys, blockingLabOrders,
       settings: canManage ? { lockedUserIds: settings.lockedUserIds, hasKey: Boolean(settings.keyHash), visibility: settings.visibility, categories: ALERT_CATEGORIES, profiles: await prisma.accessProfile.findMany({ where: { clinicId, isActive: true, code: { not: 'ADMIN' } }, select: { code: true, name: true }, orderBy: { code: 'asc' } }) } : undefined
     })
   } catch (error) {
@@ -297,5 +307,37 @@ export async function unlockUser(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error('Erro ao destravar usuário:', error)
     return res.status(500).json({ error: 'Erro ao destravar.' })
+  }
+}
+
+
+// Destrava resolvendo a pendência: marca o trabalho como entregue COM comprovação (quem recebeu + protocolo/observação).
+// A comprovação fica gravada na ordem e na auditoria, e os gestores são avisados.
+export async function resolveLabDelivery(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, userId, role } = ctx(req)
+    const localId = String(req.body?.localId || '').slice(0, 60)
+    const receivedBy = String(req.body?.receivedBy || '').trim().slice(0, 120)
+    const proof = String(req.body?.proof || '').trim().slice(0, 500)
+    if (!localId) return res.status(400).json({ error: 'Trabalho não informado.' })
+    if (receivedBy.length < 3) return res.status(400).json({ error: 'Informe quem recebeu o trabalho (dentista ou clínica).' })
+    if (proof.length < 5) return res.status(400).json({ error: 'Descreva a comprovação da entrega (protocolo, data/hora, observação).' })
+    const codes = role === 'ADMIN' ? null : await getUserPermissionCodes(userId)
+    if (codes !== null && !codes.includes('laboratory.view')) return res.status(403).json({ error: 'Sem permissão para resolver trabalhos do laboratório.' })
+    const order = await prisma.labOrder.findUnique({ where: { clinicId_localId: { clinicId, localId } } })
+    if (!order || order.tenantId !== tenantId || order.deletedAt) return res.status(404).json({ error: 'Trabalho não encontrado.' })
+    if (order.deliveredAt) return res.json({ ok: true, alreadyDelivered: true })
+    const now = new Date()
+    const prevData = (order.data && typeof order.data === 'object' ? order.data : {}) as Record<string, unknown>
+    const actor = await prisma.user.findFirst({ where: { id: userId }, select: { firstName: true, lastName: true, email: true } })
+    const actorName = actor ? `${actor.firstName} ${actor.lastName}`.trim() || actor.email : userId
+    const data = { ...prevData, status: 'Entregue', updatedAtISO: now.toISOString(), proofOfDelivery: { receivedBy, proof, at: now.toISOString(), byUserId: userId, byName: actorName, via: 'PENDING_UNLOCK' } }
+    await prisma.labOrder.update({ where: { id: order.id }, data: { status: 'Entregue', deliveredAt: now, data: data as Prisma.InputJsonValue } })
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: 'LAB_DELIVERY_PROVEN', entityType: 'LabOrder', entityId: order.id, beforeData: { status: order.status }, afterData: { status: 'Entregue', receivedBy, proof }, summary: `Entrega comprovada por ${actorName}: ${order.workType} — ${order.patientName} (recebido por ${receivedBy}).` }).catch((e: unknown) => console.error(e))
+    void notifyManagers(clinicId, tenantId, 'Entrega comprovada para destravar pendência', `${actorName} informou a entrega de "${order.workType}" do paciente ${order.patientName} (recebido por ${receivedBy}).\nComprovação: ${proof}\n\nO registro está na auditoria do laboratório; confira se a entrega ocorreu.`)
+    return res.json({ ok: true })
+  } catch (error) {
+    console.error('Erro ao comprovar entrega:', error)
+    return res.status(500).json({ error: 'Erro ao registrar a entrega.' })
   }
 }

@@ -136,6 +136,7 @@ router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.
 router.delete('/team-member/:id', requirePermission('agenda.edit'), teamController.remove)
 router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
 router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendingAlertController.updateSettings)
+router.post('/pending-alerts/resolve-lab', requirePermission('dashboard.view'), pendingAlertController.resolveLabDelivery)
 router.post('/pending-alerts/unlock', requirePermission('dashboard.view'), pendingAlertController.unlock)
 router.post('/pending-alerts/unlock-user', requirePermission('settings.edit'), pendingAlertController.unlockUser)
 router.post('/users/:userId/access-profiles', requirePermission('users.manage'), accessController.assignProfile)

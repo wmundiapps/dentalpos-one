@@ -1,3 +1,4 @@
+import LockedUsersUnlock from "../components/LockedUsersUnlock";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -128,6 +129,7 @@ export default function Dashboard() {
 
   return (
     <Box>
+      <LockedUsersUnlock />
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Dashboard</Typography>
       <Typography color="text.secondary" sx={{ mb: 4 }}>
         Visão operacional integrada do DentalPos One.
