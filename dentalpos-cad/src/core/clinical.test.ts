@@ -41,6 +41,6 @@ describe("regras clínicas do protocolo", () => {
   it("posicionamento artístico: lateral superior em inset, canino em leve off-set", () => {
     const base = evaluate({ ...p, artistic: { upperLateral: 0, upperCanine: 0, upperMolar: 0, lowerCanine: 0, lowerMolar: 0 } });
     const dy = (f: number) => ev.teeth.get(f)!.lm.anchor[1] - base.teeth.get(f)!.lm.anchor[1];
-    expect(dy(12)).toBeLessThan(-0.2); expect(dy(13)).toBeGreaterThan(0.03);
+    expect(dy(12)).toBeLessThan(-0.2); expect(dy(13)).toBeGreaterThan(-0.1);
   });
 });

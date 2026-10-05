@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { onSculptReady } from "../core/sculptCache";
 import { createProject, evaluate, type CadProject, type Evaluated } from "../core/project";
 import { analyze, type Report } from "../core/rules";
 import type { ToothAdjust } from "../core/arch";
@@ -39,7 +40,10 @@ export function useCadStore(initial?: CadProject, pers = true) {
   persist = pers;
   const [h, dispatch] = useReducer(reducer, undefined, () => ({ past: [], present: initial ?? load(), future: [] }) as HistoryState);
   const project = h.present;
-  const ev: Evaluated = useMemo(() => evaluate(project), [project]);
+  const [libVer, setLibVer] = useState(0);
+  useEffect(() => onSculptReady(() => setLibVer((v) => v + 1)), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ev: Evaluated = useMemo(() => evaluate(project), [project, libVer]);
   const report: Report = useMemo(() => analyze(project, ev), [project, ev]);
   const set = useCallback((fn: (p: CadProject) => CadProject, coalesce?: string) => {
     dispatch({ type: "set", fn, coalesce });

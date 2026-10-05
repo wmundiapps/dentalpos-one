@@ -10,6 +10,7 @@ import { SmilePanel } from "./SmilePanel";
 import { WaxPanel } from "./WaxPanel";
 import { GuidePanel, implantMeshes } from "./GuidePanel";
 import { CamPanel } from "./CamPanel";
+import { ensureSculpted } from "./sculptLoader";
 import { validateUpload } from "../security/upload";
 import { RestorePanel } from "./RestorePanel";
 import { ScanPanel } from "./ScanPanel";
@@ -132,6 +133,7 @@ export default function App({ initialProject, onProjectChange, persist = true, a
     }, key);
   };
   const moveSmile = (dxMm: number, dzMm: number, dCant: number) => s.set((q) => ({ ...q, smile: { ...q.smile, offsetXmm: q.smile.offsetXmm + dxMm, offsetZmm: q.smile.offsetZmm + dzMm, cantDeg: q.smile.cantDeg + dCant } }), "smv");
+  useEffect(() => { if (s.project.library !== "procedural") ensureSculpted(s.project.fdis, s.ev.mods); }, [s.project.fdis, s.project.library, s.ev.mods]);
   const smileUi = { activeKey, setActiveKey, showDesign, setShowDesign, split, setSplit, showGrid, setShowGrid, zoom, setZoom, tool, setTool, sym, setSym };
   const fitView = () => setView((v) => ({ name: "fit", nonce: v.nonce + 1 }));
   const ctx: Ctx = { fitView, s, sel, setSel, extras, setExtra, setLines, busy, setBusy, toast, photoUrl, setPhotoUrl, hideTeeth, setHideTeeth, colorMode, setColorMode, dragMode, setDragMode, setHighlight, pickHandler, smileUi };

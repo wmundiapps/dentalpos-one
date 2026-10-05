@@ -7,6 +7,8 @@ import { planCamJob, type CamJobUnit, type Disc } from "./cam";
 import { designOf } from "./project";
 import type { Mesh } from "./mesh";
 import type { Jaw } from "./anatomy";
+import { sculptTooth, type SculptOpts } from "./toothSdf";
+import { toothRef } from "./anatomy";
 import { designRestoration, type RestorationParams } from "./restoration";
 import type { ToothModel } from "./toothMesh";
 import type { Vec3 } from "./math";
@@ -18,6 +20,7 @@ export type JobRequest =
   | { id: number; kind: "guide"; project: CadProject; jaw: Jaw; opts: Partial<GuideOptions> }
   | { id: number; kind: "crown"; project: CadProject; fdi: number; spec: PrepSpec }
   | { id: number; kind: "cam"; project: CadProject; disc?: Disc; bur?: number; extra?: Array<{ id: string; mesh: Mesh; material: MaterialId }> }
+  | { id: number; kind: "sculpt"; fdi: number; opts: SculptOpts }
   | { id: number; kind: "restore"; scan: Mesh; antagonist?: Mesh; pick: Vec3; tooth: ToothModel; params?: Partial<RestorationParams>; axis?: Vec3; margin?: Vec3[] };
 export interface JobResponse { id: number; ok: boolean; error?: string; meshes?: Record<string, Mesh>; data?: unknown; progress?: { stage: string; p: number } }
 
@@ -25,6 +28,7 @@ const transfer = (r: JobResponse) => (r.meshes ? Object.values(r.meshes).flatMap
 
 export function runJob(req: JobRequest, onProgress?: (stage: string, p: number) => void): JobResponse {
   try {
+    if (req.kind === "sculpt") return { id: req.id, ok: true, meshes: { tooth: sculptTooth(toothRef(req.fdi), req.opts) } };
     if (req.kind === "restore") {
       const r = designRestoration({ scan: req.scan, antagonist: req.antagonist, pick: req.pick, tooth: req.tooth, params: req.params, axis: req.axis, margin: req.margin, onProgress });
       return { id: req.id, ok: true, meshes: { crown: r.crown, ...(r.cavity ? { cavity: r.cavity } : {}) }, data: { report: r.report, margin: r.margin, axis: r.axis, params: r.params } };

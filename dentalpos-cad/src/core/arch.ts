@@ -16,7 +16,7 @@ export interface ArchParams {
 }
 export const DEFAULT_ARCH: Record<Jaw, ArchParams> = {
   upper: { form: "ovoid", width: 49, depth: 25.6 },
-  lower: { form: "ovoid", width: 44, depth: 27.6 },
+  lower: { form: "ovoid", width: 46, depth: 27.0 },
 };
 
 // O arco é definido pela curvatura ao longo do comprimento de arco: arredondado na região anterior e quase reto nos segmentos
@@ -24,8 +24,8 @@ export const DEFAULT_ARCH: Record<Jaw, ArchParams> = {
 // Os incisivos ficam num segmento pouco curvo e a curvatura máxima ocorre na região do canino (centro sc = p, largura L1):
 //   κ(s) = κ0·exp(−((s−p)/L1)²) + κpost·passo(s)   ;   ψ(s) = ∫κ ds   (ψ = rotação da tangente, 90° = segmento posterior paralelo)
 const FORM_PROFILE: Record<Jaw, Record<ArchForm, { p: number; kPost: number }>> = {
-  upper: { ovoid: { p: 14, kPost: 0.011 }, square: { p: 15, kPost: 0.006 }, tapered: { p: 8, kPost: 0.014 } },
-  lower: { ovoid: { p: 14, kPost: 0 }, square: { p: 15, kPost: 0 }, tapered: { p: 8, kPost: 0 } },
+  upper: { ovoid: { p: 10.5, kPost: 0.011 }, square: { p: 12, kPost: 0.006 }, tapered: { p: 6, kPost: 0.014 } },
+  lower: { ovoid: { p: 17, kPost: 0 }, square: { p: 18, kPost: 0 }, tapered: { p: 8, kPost: 0 } },
 };
 type Pt = [number, number];
 /** ∫0^∞ exp(−((s−sc)/w)²) ds */

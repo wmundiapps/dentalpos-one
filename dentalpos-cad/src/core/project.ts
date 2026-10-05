@@ -7,6 +7,8 @@ import { buildPoses, DEFAULT_ARTISTIC, artisticOffset, type ArtisticParams, DEFA
 import { generateTooth, type ToothModel } from "./toothMesh";
 import { customToMesh, modelFromMesh, type CustomTooth } from "./library";
 import type { MaterialId } from "./materials";
+import { getSculpted } from "./sculptCache";
+import { modelFromSculpt } from "./toothSdf";
 
 export type RestorationKind = "natural" | "crown" | "veneer" | "inlay" | "onlay" | "pontic" | "implant-crown" | "provisional" | "wax" | "denture-tooth";
 export type ProportionRule = "golden" | "red70" | "red80" | "preston" | "none";
@@ -52,6 +54,8 @@ export interface CadProject {
   implants: ImplantPlan[];
   /** modelos de dente importados (STL/OBJ/PLY) que substituem o dente paramétrico */
   customTeeth?: Record<number, CustomTooth>;
+  /** biblioteca de dentes: "sculpt" (escultura SDF, padrão — usa o paramétrico enquanto gera) ou "procedural" */
+  library?: "sculpt" | "procedural";
   /** esquema de alturas de coroa (X) */
   heights?: HeightScheme;
   /** inset/off-set artístico */
@@ -110,7 +114,17 @@ export interface Evaluated {
 }
 
 const modelCache = new Map<string, ToothModel>();
-function getModel(ref: ToothRef, dims: { md: number; bl: number; h: number }, mods: StyleModifiers): ToothModel {
+const sculptModelCache = new WeakMap<Mesh, Map<string, ToothModel>>();
+function sculptModel(ref: ToothRef, mesh: Mesh, d: { md: number; bl: number; h: number }): ToothModel {
+  let byKey = sculptModelCache.get(mesh); if (!byKey) { byKey = new Map(); sculptModelCache.set(mesh, byKey); }
+  const key = `${ref.fdi}|${d.md.toFixed(2)}|${d.bl.toFixed(2)}|${d.h.toFixed(2)}`;
+  let m = byKey.get(key);
+  if (!m) { const c = MEAN_DIMS[ref.jaw][ref.type]; m = modelFromSculpt(ref, mesh, c, d, ref.type === "central" || ref.type === "lateral" || ref.type === "canine" ? 0 : Math.abs(ANDREWS_NORMS[ref.jaw][ref.type].torque) * 0.55); byKey.set(key, m); }
+  return m;
+}
+function getModel(ref: ToothRef, dims: { md: number; bl: number; h: number }, mods: StyleModifiers, useSculpt = true): ToothModel {
+  const sc = useSculpt ? getSculpted(ref, mods) : null;
+  if (sc) return sculptModel(ref, sc, dims);
   const key = `${ref.fdi}|t|${dims.md.toFixed(2)}|${dims.bl.toFixed(2)}|${dims.h.toFixed(2)}|${JSON.stringify(mods)}`;
   let m = modelCache.get(key);
   if (!m) {
@@ -151,7 +165,7 @@ export function evaluate(p: CadProject): Evaluated {
     if (!m) {
       const r = toothRef(f), d = adjustedDims(f);
       const cu = p.customTeeth?.[f];
-      m = cu ? customModel(r, cu, d) : getModel(r, d, mods);
+      m = cu ? customModel(r, cu, d) : getModel(r, d, mods, p.library !== "procedural");
       models.set(f, m);
     }
     return m;
@@ -159,7 +173,7 @@ export function evaluate(p: CadProject): Evaluated {
   const res = buildPoses({
     fdis: p.fdis, dimsOf: dimsOfFn, landmarksOf: (f) => modelOf(f).landmarks,
     arches: p.arches, occlusion: p.occlusion, adjust: p.adjust, applyAndrews: p.andrews,
-    edgeOffset: (r) => (r.jaw === "upper" ? (r.type === "lateral" ? mods.lateralStep : r.type === "canine" ? 0.6 : 0) : r.type === "lateral" ? 0.2 : 0),
+    edgeOffset: (r) => (r.jaw === "upper" ? (r.type === "lateral" ? mods.lateralStep : r.type === "canine" ? 0.3 : 0) : r.type === "lateral" ? 0.2 : 0),
     facialOffset: (r) => artisticOffset(r, art),
   });
   const teeth = new Map<number, WorldTooth>();
