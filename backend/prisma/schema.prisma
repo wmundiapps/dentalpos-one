@@ -2624,3 +2624,76 @@ model DunningNotice {
   @@index([clinicId, status, scheduledFor])
   @@index([clinicId, createdAt])
 }
+
+// ===== Prospecção (captador de leads da Receita Federal) =====
+// Colar no FINAL do backend/prisma/schema.prisma (sem BOM) e rodar `npx prisma generate`.
+// As tabelas são criadas pelo sql/prospeccao.sql — nunca usar prisma migrate / db push.
+
+model ProspectLead {
+  id               String          @id @default(cuid())
+  cnpj             String          @unique
+  razaoSocial      String
+  nomeFantasia     String?
+  displayName      String
+  email            String?
+  emailType        String?
+  phone1           String?
+  phone2           String?
+  uf               String
+  city             String?
+  bairro           String?
+  cep              String?
+  address          String?
+  cnaePrincipal    String?
+  segment          String          @default("CLINICA")
+  naturezaJuridica String?
+  porte            String?
+  openedAt         String?
+  isMatriz         Boolean         @default(true)
+  source           String          @default("RECEITA_FEDERAL")
+  status           String          @default("NOVO")
+  lastStep         Int             @default(0)
+  firstSentAt      DateTime?       @db.Timestamp(3)
+  lastSentAt       DateTime?       @db.Timestamp(3)
+  hotAt            DateTime?       @db.Timestamp(3)
+  token            String          @unique
+  notes            String?
+  createdAt        DateTime        @default(now()) @db.Timestamp(3)
+  updatedAt        DateTime        @default(now()) @updatedAt @db.Timestamp(3)
+  events           ProspectEvent[]
+
+  @@index([status, lastSentAt])
+  @@index([email])
+}
+
+model ProspectEvent {
+  id         String       @id @default(cuid())
+  leadId     String
+  lead       ProspectLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type       String
+  step       Int?
+  detail     String?
+  providerId String?
+  createdAt  DateTime     @default(now()) @db.Timestamp(3)
+
+  @@index([leadId, createdAt])
+  @@index([providerId])
+  @@index([type, createdAt])
+}
+
+model ProspectSuppression {
+  email     String   @id
+  reason    String
+  createdAt DateTime @default(now()) @db.Timestamp(3)
+}
+
+model ProspectConfig {
+  id             String   @id
+  sendingEnabled Boolean  @default(false)
+  dailyLimit     Int      @default(10)
+  step2AfterDays Int      @default(3)
+  step3AfterDays Int      @default(7)
+  sendToWebmail  Boolean  @default(true)
+  segments       String   @default("CLINICA")
+  updatedAt      DateTime @default(now()) @updatedAt @db.Timestamp(3)
+}

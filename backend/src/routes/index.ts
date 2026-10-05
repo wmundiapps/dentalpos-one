@@ -63,6 +63,7 @@ import * as clinicalFileController from '../controllers/clinicalFileController'
 import * as treatmentPlanController from '../controllers/treatmentPlanController'
 import * as financialAlertResolutionController from '../controllers/financialAlertResolutionController'
 import * as operationalAlertResolutionController from '../controllers/operationalAlertResolutionController'
+import { prospectPublicRouter, prospectAdminRouter } from './prospectRoutes'
 import * as reportController5787 from '../controllers/reportController5787'
 
 const router = Router()
@@ -89,6 +90,7 @@ router.post('/webhooks/stripe', webhookController.stripe)
 router.post('/webhooks/platform-asaas', platformBillingController.webhook)
 router.all('/cron/reminders', cronController.reminders)
 router.all('/cron/revah-sync', revahBridgeController.cronSync)
+router.use(prospectPublicRouter)
 router.post('/revah-bridge/webhook/:clinicId', revahBridgeController.webhook)
 
 // PUBLIC BOOKING
@@ -102,6 +104,7 @@ router.post('/public/booking/:clinicId', publicBookingController.store)
 
 router.use(authMiddleware)
 router.use(tenantMiddleware)
+router.use(prospectAdminRouter)
 
 // Clinical modules integrated by Chat 8. Authentication and tenant context are already resolved above.
 router.use(clinicalRecordRoutes)
