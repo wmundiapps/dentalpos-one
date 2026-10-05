@@ -69,8 +69,8 @@ export async function unlockPendingAlerts(key: string) {
 }
 
 // Admin/gestor destrava a tela de um usuário.
-export async function unlockUserScreen(userId: string) {
-  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unlock-user`, { method: "POST", headers: headers(true), body: JSON.stringify({ userId }) }));
+export async function unlockUserScreen(userId: string, deadline: string, reason = "") {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unlock-user`, { method: "POST", headers: headers(true), body: JSON.stringify({ userId, deadline, reason }) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
 }

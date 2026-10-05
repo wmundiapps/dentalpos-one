@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import { loadPendingAlerts, PENDING_ALERTS_EVENT, PENDING_ALERTS_MESSAGE, proveLabDelivery, unlockPendingAlerts, unlockUserScreen, type PendingAlerts } from "../services/PendingAlertsApi";
+import UnlockDeadlineDialog from "./UnlockDeadlineDialog";
+import { loadPendingAlerts, PENDING_ALERTS_EVENT, PENDING_ALERTS_MESSAGE, proveLabDelivery, unlockPendingAlerts, type PendingAlerts } from "../services/PendingAlertsApi";
 
 export default function PendingAlertsBar() {
   const [data, setData] = useState<PendingAlerts | null>(null);
   const [error, setError] = useState("");
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
+  const [target, setTarget] = useState<{ id: string; name: string } | null>(null);
   const [proofFor, setProofFor] = useState<string | null>(null);
   const [receivedBy, setReceivedBy] = useState("");
   const [proof, setProof] = useState("");
@@ -48,12 +50,6 @@ export default function PendingAlertsBar() {
     finally { setBusy(false); }
   };
 
-  const unlockOther = async (id: string) => {
-    setError("");
-    try { await unlockUserScreen(id); await load(); }
-    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível destravar."); }
-  };
-
   return (
     <>
       {data.total > 0 && (
@@ -84,14 +80,16 @@ export default function PendingAlertsBar() {
             {data.lockedUsers.map((u) => (
               <Box key={u.id} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>{`${u.name} (${u.count} pendência(s))`}</Typography>
-                <Button size="small" variant="outlined" color="inherit" onClick={() => void unlockOther(u.id)}>Destravar</Button>
+                <Button size="small" variant="outlined" color="inherit" onClick={() => setTarget({ id: u.id, name: u.name })}>Destravar</Button>
               </Box>
             ))}
           </Box>
-          <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>O usuário também pode se destravar digitando a chave de desbloqueio. A liberação vale até o fim do dia.</Typography>
+          <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>O usuário também pode se destravar digitando a chave de desbloqueio. A liberação do gestor vale até o novo prazo definido; a da chave, até o fim do dia.</Typography>
           {error && <Typography variant="caption" sx={{ display: "block", fontWeight: 700 }}>{error}</Typography>}
         </Alert>
       )}
+
+      <UnlockDeadlineDialog user={target} onClose={() => setTarget(null)} onDone={() => { setTarget(null); void load(); }} />
 
       <Dialog open={data.blocked} fullWidth maxWidth="sm">
         <DialogTitle sx={{ fontWeight: 900, color: "error.main" }}>Tela travada por pendências</DialogTitle>

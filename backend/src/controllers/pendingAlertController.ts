@@ -299,10 +299,18 @@ export async function unlockUser(req: AuthRequest, res: Response) {
     const target = String(req.body?.userId || '')
     const user = await prisma.user.findFirst({ where: { id: target, clinicId, tenantId }, select: { id: true, firstName: true, lastName: true } })
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' })
+    // Novo prazo obrigatório: a tela fica liberada até o fim do dia escolhido (máx. 30 dias) e volta a travar se a pendência persistir.
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(req.body?.deadline || ''))
+    if (!m) return res.status(400).json({ error: 'Informe o novo prazo para resolver a pendência.' })
+    const deadlineEnd = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999) + 3 * 3600000)
+    if (Number.isNaN(deadlineEnd.getTime()) || deadlineEnd.getTime() < endOfTodayBrt().getTime()) return res.status(400).json({ error: 'O novo prazo não pode ser anterior a hoje.' })
+    if (deadlineEnd.getTime() > endOfTodayBrt().getTime() + 30 * DAY) return res.status(400).json({ error: 'O prazo máximo é de 30 dias.' })
+    const reason = String(req.body?.reason || '').trim().slice(0, 300)
     const settings = await loadSettings(clinicId)
-    settings.unlocks[target] = endOfTodayBrt().toISOString()
+    settings.unlocks[target] = deadlineEnd.toISOString()
     await saveSettings(clinicId, tenantId, settings)
-    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'settings', action: 'PENDING_UNLOCK_BY_MANAGER', entityType: 'User', entityId: target, summary: `Tela de ${user.firstName} ${user.lastName} destravada pelo gestor.` }).catch((e: unknown) => console.error(e))
+    const deadlineLabel = `${m[3]}/${m[2]}/${m[1]}`
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'settings', action: 'PENDING_UNLOCK_BY_MANAGER', entityType: 'User', entityId: target, afterData: { deadline: m[0], reason }, summary: `Tela de ${user.firstName} ${user.lastName} destravada pelo gestor com novo prazo até ${deadlineLabel}${reason ? ` (${reason})` : ''}.` }).catch((e: unknown) => console.error(e))
     return res.json({ ok: true })
   } catch (error) {
     console.error('Erro ao destravar usuário:', error)
