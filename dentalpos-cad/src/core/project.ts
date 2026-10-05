@@ -8,7 +8,7 @@ import { generateTooth, type ToothModel } from "./toothMesh";
 import { customToMesh, modelFromMesh, type CustomTooth } from "./library";
 import type { MaterialId } from "./materials";
 import { getSculpted } from "./sculptCache";
-import { modelFromSculpt } from "./toothSdf";
+import { modelFromSculpt, DEFAULT_ANATOMY, type AnatomyParams } from "./toothSdf";
 
 export type RestorationKind = "natural" | "crown" | "veneer" | "inlay" | "onlay" | "pontic" | "implant-crown" | "provisional" | "wax" | "denture-tooth";
 export type ProportionRule = "golden" | "red70" | "red80" | "preston" | "none";
@@ -56,6 +56,8 @@ export interface CadProject {
   customTeeth?: Record<number, CustomTooth>;
   /** biblioteca de dentes: "sculpt" (escultura SDF, padrão — usa o paramétrico enquanto gera) ou "procedural" */
   library?: "sculpt" | "procedural";
+  /** anatomia da biblioteca esculpida: ajustes por tipo de dente e por dente (multiplicadores) */
+  anatomy?: { byType?: Partial<Record<string, Partial<AnatomyParams>>>; byTooth?: Record<number, Partial<AnatomyParams>> };
   /** esquema de alturas de coroa (X) */
   heights?: HeightScheme;
   /** inset/off-set artístico */
@@ -122,8 +124,11 @@ function sculptModel(ref: ToothRef, mesh: Mesh, d: { md: number; bl: number; h: 
   if (!m) { const c = MEAN_DIMS[ref.jaw][ref.type]; m = modelFromSculpt(ref, mesh, c, d, ref.type === "central" || ref.type === "lateral" || ref.type === "canine" ? 0 : Math.abs(ANDREWS_NORMS[ref.jaw][ref.type].torque) * 0.55); byKey.set(key, m); }
   return m;
 }
-function getModel(ref: ToothRef, dims: { md: number; bl: number; h: number }, mods: StyleModifiers, useSculpt = true): ToothModel {
-  const sc = useSculpt ? getSculpted(ref, mods) : null;
+export function anatomyOf(p: Pick<CadProject, "anatomy">, ref: ToothRef): AnatomyParams {
+  return { ...DEFAULT_ANATOMY, ...(p.anatomy?.byType?.[`${ref.jaw}-${ref.type}`] ?? {}), ...(p.anatomy?.byTooth?.[ref.fdi] ?? {}) };
+}
+function getModel(ref: ToothRef, dims: { md: number; bl: number; h: number }, mods: StyleModifiers, useSculpt = true, anat?: AnatomyParams): ToothModel {
+  const sc = useSculpt ? getSculpted(ref, mods, anat) : null;
   if (sc) return sculptModel(ref, sc, dims);
   const key = `${ref.fdi}|t|${dims.md.toFixed(2)}|${dims.bl.toFixed(2)}|${dims.h.toFixed(2)}|${JSON.stringify(mods)}`;
   let m = modelCache.get(key);
@@ -165,7 +170,7 @@ export function evaluate(p: CadProject): Evaluated {
     if (!m) {
       const r = toothRef(f), d = adjustedDims(f);
       const cu = p.customTeeth?.[f];
-      m = cu ? customModel(r, cu, d) : getModel(r, d, mods, p.library !== "procedural");
+      m = cu ? customModel(r, cu, d) : getModel(r, d, mods, p.library !== "procedural", anatomyOf(p, r));
       models.set(f, m);
     }
     return m;

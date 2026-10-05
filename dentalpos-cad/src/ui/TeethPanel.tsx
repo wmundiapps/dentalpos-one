@@ -9,6 +9,9 @@ import { job } from "./jobs";
 import { validateUpload } from "../security/upload";
 import { importMesh } from "../core/io";
 import { meshToCustom } from "../core/library";
+import { ANATOMY_LABEL, DEFAULT_ANATOMY, type AnatomyParams } from "../core/toothSdf";
+import { anatomyOf } from "../core/project";
+import { isAnterior } from "../core/anatomy";
 
 const KINDS: Array<[RestorationKind, string]> = [["natural", "Dente natural / planejamento"], ["crown", "Coroa total"], ["veneer", "Faceta / laminado"], ["inlay", "Inlay"], ["onlay", "Onlay"], ["pontic", "Pôntico (ponte)"], ["implant-crown", "Coroa sobre implante"], ["provisional", "Provisório"], ["wax", "Enceramento diagnóstico"], ["denture-tooth", "Dente de prótese"]];
 
@@ -16,6 +19,7 @@ export function TeethPanel({ c }: { c: Ctx }) {
   const { project: p, ev } = c.s;
   const f = c.sel;
   const [stats, setStats] = useState<string | null>(null);
+  const [scope, setScope] = useState<"tooth" | "type" | "mirror">("type");
   if (!f || !ev.teeth.has(f)) {
     return (<div data-testid="panel-teeth"><h3>Dentes</h3><p className="hint">Clique em um dente no modelo 3D ou no odontograma para editar posição, rotação, torque, dimensões e restauração.</p>
       <div className="card"><div className="t">Atalhos (dente selecionado)</div><div className="tip"><span className="kbd">←</span> <span className="kbd">→</span> mesio-distal · <span className="kbd">↑</span> <span className="kbd">↓</span> vestíbulo-lingual · <span className="kbd">PgUp</span> <span className="kbd">PgDn</span> altura · <span className="kbd">Q</span> <span className="kbd">E</span> rotação · <span className="kbd">T</span> <span className="kbd">G</span> torque · <span className="kbd">Shift</span> = passo fino · <span className="kbd">Ctrl+Z</span> desfaz</div></div></div>);
@@ -28,6 +32,25 @@ export function TeethPanel({ c }: { c: Ctx }) {
     <div data-testid="panel-teeth">
       <h3>Dente {f} <span className="badge">{ref.name}</span></h3>
       <div className="hint">Largura {fmt(t.dims.md)} · Espessura {fmt(t.dims.bl)} · Altura {fmt(t.dims.h)} mm</div>
+      {p.library !== "procedural" && !p.customTeeth?.[f] && (() => {
+        const an = anatomyOf(p, ref), ant = isAnterior(ref.type);
+        const keys = (Object.keys(ANATOMY_LABEL) as Array<keyof AnatomyParams>).filter((k) => (ant ? ANATOMY_LABEL[k][2] : ANATOMY_LABEL[k][3]));
+        const setAn = (k: keyof AnatomyParams, v: number) => c.s.set((q) => {
+          const A = { ...(q.anatomy ?? {}) };
+          if (scope === "type") A.byType = { ...(A.byType ?? {}), [`${ref.jaw}-${ref.type}`]: { ...(A.byType?.[`${ref.jaw}-${ref.type}`] ?? {}), [k]: v } };
+          else { const by = { ...(A.byTooth ?? {}) }; for (const ff of scope === "mirror" ? [f, mf] : [f]) by[ff] = { ...(by[ff] ?? {}), [k]: v }; A.byTooth = by; }
+          return { ...q, anatomy: A };
+        }, `an${k}${f}${scope}`);
+        return (<>
+          <h4>Anatomia (escultura)</h4>
+          <div className="hint">Ajusta o desenho do dente da biblioteca. A malha é regenerada em segundo plano (alguns segundos).</div>
+          <Sel label="Aplicar a" value={scope} options={[["type", `Todos os ${ref.jaw === "upper" ? "superiores" : "inferiores"} deste tipo`], ["tooth", "Só este dente"], ["mirror", "Este dente e o do lado oposto"]]} onChange={setScope} />
+          {keys.map((k) => <Slider key={k} label={ANATOMY_LABEL[k][0]} value={an[k]} min={0.4} max={1.8} step={0.05} digits={2} unit="×" onChange={(v) => setAn(k, v)} />)}
+          <div className="btns"><button className="btn" onClick={() => c.s.set((q) => { const A = { ...(q.anatomy ?? {}) }; if (A.byType) { const bt = { ...A.byType }; delete bt[`${ref.jaw}-${ref.type}`]; A.byType = bt; } if (A.byTooth) { const bo = { ...A.byTooth }; delete bo[f]; delete bo[mf]; A.byTooth = bo; } return { ...q, anatomy: A }; })}>Voltar ao padrão</button>
+            <button className="btn" onClick={() => c.s.set((q) => ({ ...q, anatomy: undefined }))}>Zerar toda a anatomia</button></div>
+          <div className="hint" style={{ opacity: 0.7 }}>Padrão = 1,00× em todos ({Object.keys(DEFAULT_ANATOMY).length} parâmetros).</div>
+        </>);
+      })()}
       <div className="btns">
         <label className="chip" style={{ cursor: "pointer" }}><input type="checkbox" checked={c.dragMode} onChange={(e) => c.setDragMode(e.target.checked)} /> arrastar no 3D</label>
         <button className="btn" onClick={() => c.s.set((q) => { const a = { ...q.adjust }; delete a[f]; return { ...q, adjust: a }; })}>Resetar dente</button>

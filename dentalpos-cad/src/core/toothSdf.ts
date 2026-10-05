@@ -5,7 +5,33 @@ import { type ToothRef, type ToothType } from "./anatomy";
 import { type Mesh, computeNormals } from "./mesh";
 import { makeGrid, gridPoint, gidx, surfaceNets, laplacianSmooth } from "./voxel";
 
-export interface SculptOpts { md: number; bl: number; h: number; res?: number; squareness?: number; cornerRounding?: number; labialConvexity?: number; mamelon?: number; wear?: number }
+/** Parâmetros de anatomia (multiplicadores; 1 = padrão). Cada um altera a escultura do dente. */
+export interface AnatomyParams {
+  /** altura das cúspides / incisal */ cuspHeight: number;
+  /** largura (volume) das cúspides */ cuspWidth: number;
+  /** profundidade de fossas e sulcos */ fossa: number;
+  /** cristas marginais (mesial/distal) */ marginal: number;
+  /** cíngulo (anteriores) */ cingulum: number;
+  /** convexidade vestibular / bojo cervical */ labial: number;
+  /** lóbulos de desenvolvimento / crista labial */ lobes: number;
+  /** convergência das paredes para oclusal */ taper: number;
+  /** espessura da borda incisal */ edge: number;
+}
+export const DEFAULT_ANATOMY: AnatomyParams = { cuspHeight: 1, cuspWidth: 1, fossa: 1, marginal: 1, cingulum: 1, labial: 1, lobes: 1, taper: 1, edge: 1 };
+export const ANATOMY_LABEL: Record<keyof AnatomyParams, [string, string, boolean, boolean]> = {
+  // [rótulo, dica, vale p/ anteriores, vale p/ posteriores]
+  cuspHeight: ["Altura das cúspides / borda", "Quanto as cúspides (ou a borda incisal) sobem acima da mesa oclusal", true, true],
+  cuspWidth: ["Volume das cúspides", "Cúspides mais largas e cheias ou mais finas", false, true],
+  fossa: ["Profundidade das fossas e sulcos", "Fossas oclusais (posteriores) e fossa lingual (anteriores)", true, true],
+  marginal: ["Cristas marginais", "Altura das cristas mesial e distal", true, true],
+  cingulum: ["Cíngulo", "Volume do cíngulo na face lingual", true, false],
+  labial: ["Convexidade vestibular", "Bojo da face vestibular (equador)", true, true],
+  lobes: ["Lóbulos / crista labial", "Relevo de desenvolvimento na face vestibular", true, false],
+  taper: ["Convergência para oclusal", "Quanto as paredes se estreitam em direção à mesa oclusal", false, true],
+  edge: ["Espessura da borda incisal", "Borda incisal mais fina ou mais espessa", true, false],
+};
+
+export interface SculptOpts { md: number; bl: number; h: number; res?: number; squareness?: number; cornerRounding?: number; labialConvexity?: number; mamelon?: number; wear?: number; anat?: Partial<AnatomyParams> }
 
 const smin = (a: number, b: number, k: number) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
 const smax = (a: number, b: number, k: number) => -smin(-a, -b, k);
@@ -53,26 +79,27 @@ export function sculptTooth(ref: ToothRef, o: SculptOpts): Mesh {
 }
 
 function posteriorField(ref: ToothRef, o: SculptOpts, a: number, B: number): (p: Vec3) => number {
-  const R = postRecipe(ref), h = o.h, cuspH = R.cuspH * h, hw = h - cuspH;
+  const A = { ...DEFAULT_ANATOMY, ...o.anat };
+  const R = postRecipe(ref), h = o.h, cuspH = R.cuspH * h * A.cuspHeight, hw = h - cuspH;
   const n = 2.6 + (o.squareness ?? 0) * 0.8;
-  const cs = R.cusps.map((c) => ({ ...c, cx: c.u * a * 0.8, cy: c.w * B * 0.74, zt: hw + c.hf * cuspH, rx: a * (R.premolar ? 0.6 : 0.42), ry: B * (R.premolar ? 0.52 : 0.4) }));
+  const cs = R.cusps.map((c) => ({ ...c, cx: c.u * a * 0.8, cy: c.w * B * 0.74, zt: hw + c.hf * cuspH, rx: a * (R.premolar ? 0.6 : 0.42) * A.cuspWidth, ry: B * (R.premolar ? 0.52 : 0.4) * A.cuspWidth }));
   const fz = hw + cuspH * 0.12;
   return (p) => {
     const [x, y, z] = p;
     const t = clamp(z / hw, 0, 1.2);
     // seção transversal: romboide (molares superiores), convergência para oclusal, bojo vestibular no terço cervical
     const hx = a * (0.8 + 0.2 * ss(0, 0.75, t)) * (1 - 0.06 * ss(0.7, 1.1, t));
-    const bulge = 0.09 * B * g(t - 0.22, 0.22);
-    const yf = B * (1 - 0.16 * ss(0.3, 1.05, t)) + bulge, yl = -B * (1 - R.lingTaper * ss(0.25, 1.05, t));
+    const bulge = 0.09 * B * A.labial * g(t - 0.22, 0.22);
+    const yf = B * (1 - 0.16 * A.taper * ss(0.3, 1.05, t)) + bulge, yl = -B * (1 - R.lingTaper * A.taper * ss(0.25, 1.05, t));
     const yc = (yf + yl) / 2, hy = (yf - yl) / 2;
     const qx = (x - R.rhomb * (y - yc) * (a / B)) / hx, qy = (y - yc) / hy;
     const side = (Math.pow(Math.pow(Math.abs(qx), n) + Math.pow(Math.abs(qy), n), 1 / n) - 1) * Math.min(hx, hy);
     // mesa oclusal com borda elevada (cristas marginais) e leve elevação nas paredes vestibular/lingual
     const u = x / a, w = (y - yc) / hy;
-    const rim = cuspH * (R.marginal * 0.55 * ss(0.5, 0.85, Math.abs(u)) + 0.18 * ss(0.62, 0.95, Math.abs(w)));
+    const rim = cuspH * (R.marginal * A.marginal * 0.55 * ss(0.5, 0.85, Math.abs(u)) + 0.18 * ss(0.62, 0.95, Math.abs(w)));
     const cejP = 0.07 * h * Math.pow(Math.min(1, Math.abs(x / a)), 2);
     let pit = 0;
-    for (const [fu, fw, fd] of R.fossa) pit += cuspH * (0.12 + 0.45 * fd) * Math.exp(-(((x - fu * a * 0.7) / (a * 0.3)) ** 2 + ((y - fw * B * 0.7) / (B * 0.2)) ** 2));
+    for (const [fu, fw, fd] of R.fossa) pit += A.fossa * cuspH * (0.12 + 0.45 * fd) * Math.exp(-(((x - fu * a * 0.7) / (a * 0.3)) ** 2 + ((y - fw * B * 0.7) / (B * 0.2)) ** 2));
     let d = smax(smax(side, cejP - z, 0.6), z - (hw + rim - pit), 0.4);
     // cúspides: domos largos fundidos ao corpo
     for (const c of cs) d = smin(d, sdEll(x - c.cx, y - c.cy, z - (hw - cuspH * 0.15), c.rx, c.ry, c.zt - hw + cuspH * 0.15), 0.7);
@@ -87,9 +114,10 @@ function posteriorField(ref: ToothRef, o: SculptOpts, a: number, B: number): (p:
 }
 
 function anteriorField(type: ToothType, o: SculptOpts, a: number, B: number): (p: Vec3) => number {
-  const { h, bl } = o, conv = o.labialConvexity ?? 0.5, rnd = o.cornerRounding ?? 0.5, mam = o.mamelon ?? 0.3;
+  const A = { ...DEFAULT_ANATOMY, ...o.anat };
+  const { h, bl } = o, conv = (o.labialConvexity ?? 0.5) * A.labial, rnd = o.cornerRounding ?? 0.5, mam = o.mamelon ?? 0.3;
   const canine = type === "canine", lat = type === "lateral";
-  const edgeT = clamp(1.1 + (o.wear ?? 0) * 0.9, 1, 2);
+  const edgeT = clamp((1.1 + (o.wear ?? 0) * 0.9) * A.edge, 0.6, 3);
   return (p) => {
     const [x, y, z] = p;
     const t = clamp(z / h, -0.2, 1.2), u = x / a;
@@ -98,7 +126,7 @@ function anteriorField(type: ToothType, o: SculptOpts, a: number, B: number): (p
       ? (u < 0 ? 0.42 : 0.62) * h * 0.30 * Math.pow(Math.abs(u), 1.15) * 1.6
       : (u < 0 ? 0.25 * rnd : 0.75 * rnd * (lat ? 1.3 : 1)) * Math.pow(Math.abs(u), lat ? 2.4 : 3.2) * 1.6 + 0.12 * h * 0 ;
     const mamZ = canine ? 0 : mam * 0.5 * Math.max(0, Math.cos(u * 3 * Math.PI * 0.5)) ** 2;
-    const zTop = h - drop + mamZ * 0.6;
+    const zTop = h - drop * clamp(2 - A.cuspHeight, 0.2, 1.8) + mamZ * 0.6 * A.cuspHeight;
     // largura mésio-distal: colo estreito, maior diâmetro no terço incisal; lado distal mais convexo
     const wcerv = (canine ? 0.62 : 0.7) + (lat ? 0.02 : 0);
     const wt = wcerv + (1 - wcerv) * ss(0, canine ? 0.7 : 0.82, t);
@@ -108,13 +136,13 @@ function anteriorField(type: ToothType, o: SculptOpts, a: number, B: number): (p
     // espessura vestíbulo-lingual
     const thick = edgeT + (bl - edgeT) * Math.pow(1 - ss(0.12, 1.0, t), 1.25);
     // face vestibular: convexa (3 lóbulos no incisivo, crista labial no canino) e bojo cervical
-    const lob = canine ? 0.55 * conv * g(u, 0.28) - 0.12 * ss(0.5, 1, Math.abs(u)) : 0.2 * conv * (0.5 + 0.5 * Math.cos(3 * Math.PI * u)) * ss(0.25, 0.95, t);
+    const lob = A.lobes * (canine ? 0.55 * conv * g(u, 0.28) - 0.12 * ss(0.5, 1, Math.abs(u)) : 0.2 * conv * (0.5 + 0.5 * Math.cos(3 * Math.PI * u)) * ss(0.25, 0.95, t));
     const cerv = 0.34 * g(t - 0.2, 0.2);
     const yf = B * 0.5 + (bl * 0.5 - 0.12 * bl * ss(0.2, 1, t)) * 0.5 + cerv + lob - 0.3 * u * u;
     // face lingual: cíngulo, cristas marginais e fossa
-    const ling = -(0.9 * g(u, 0.5) * g(t - 0.22, 0.16)) + (canine ? 0.35 * g(u, 0.16) * ss(0.3, 0.9, t) : 0);
-    const ridge = 0.28 * g(Math.abs(u) - 0.72, 0.16) * ss(0.35, 0.85, t);
-    const fossa = -Math.min(0.5, 0.3 * bl * 0.3) * g(u, 0.45) * ss(0.3, 0.55, t) * (1 - ss(0.78, 1, t));
+    const ling = -(0.9 * A.cingulum * g(u, 0.5) * g(t - 0.22, 0.16)) + (canine ? 0.35 * g(u, 0.16) * ss(0.3, 0.9, t) : 0);
+    const ridge = 0.28 * A.marginal * g(Math.abs(u) - 0.72, 0.16) * ss(0.35, 0.85, t);
+    const fossa = -Math.min(0.5, 0.3 * bl * 0.3) * A.fossa * g(u, 0.45) * ss(0.3, 0.55, t) * (1 - ss(0.78, 1, t));
     const yl = yf - thick + ridge * 1.5 + ling - fossa;
     const slab = Math.max(yl - y, y - yf);
     let d = smax(smax(side, slab, 0.5), z - zTop, 0.5);
