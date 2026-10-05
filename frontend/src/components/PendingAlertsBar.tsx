@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import UnlockDeadlineDialog from "./UnlockDeadlineDialog";
-import { loadPendingAlerts, PENDING_ALERTS_EVENT, PENDING_ALERTS_MESSAGE, proveLabDelivery, unlockPendingAlerts, type PendingAlerts } from "../services/PendingAlertsApi";
+import { loadPendingAlerts, PENDING_ALERTS_EVENT, PENDING_ALERTS_MESSAGE, proveLabDelivery, savePendingAlertsSettings, unlockPendingAlerts, type PendingAlerts } from "../services/PendingAlertsApi";
 
 export default function PendingAlertsBar() {
   const [data, setData] = useState<PendingAlerts | null>(null);
@@ -30,6 +30,12 @@ export default function PendingAlertsBar() {
   const hasLocked = data.lockedUsers.length > 0;
   if (data.total === 0 && !hasLocked) return null;
 
+  const toggleLock = async () => {
+    setError("");
+    try { await savePendingAlertsSettings({ mode: data.mode === "BLOCK" ? "ALERT" : "BLOCK" }); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível alterar o travamento."); }
+  };
+
   const unlockSelf = async () => {
     setBusy(true);
     setError("");
@@ -54,13 +60,22 @@ export default function PendingAlertsBar() {
     <>
       {data.total > 0 && (
         <Alert severity="error" variant="filled" sx={{ borderRadius: 0, alignItems: "center" }}>
-          <Typography sx={{ fontWeight: 800 }}>{PENDING_ALERTS_MESSAGE}</Typography>
+          <Typography sx={{ fontWeight: 800 }}>{data.mode === "BLOCK" ? PENDING_ALERTS_MESSAGE : "Resolva as pendências abaixo. Os avisos e as filas continuam até serem resolvidos."}</Typography>
+          {data.canManage && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700 }}>{data.mode === "BLOCK" ? "Travamento de tela: LIGADO" : "Travamento de tela: DESLIGADO"}</Typography>
+              <Button size="small" variant="outlined" color="inherit" disabled={data.mode !== "BLOCK" && !data.settings?.hasKey} onClick={() => void toggleLock()}>
+                {data.mode === "BLOCK" ? "Desligar travamento" : data.settings?.hasKey ? "Ligar travamento" : "Defina a chave em Configurações"}
+              </Button>
+            </Box>
+          )}
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 0.5 }}>
             {data.items.map((item) => (
               <Link key={item.key} component={RouterLink} to={item.path} sx={{ color: "inherit", fontWeight: 700, textDecoration: "underline" }}>
                 {item.label}
               </Link>
             ))}
+            {error && !hasLocked && <Typography variant="caption" sx={{ width: "100%", fontWeight: 700 }}>{error}</Typography>}
             {data.items.flatMap((item) => item.lines || []).length > 0 && (
               <Box sx={{ width: "100%" }}>
                 {data.items.flatMap((item) => item.lines || []).map((line, i) => (

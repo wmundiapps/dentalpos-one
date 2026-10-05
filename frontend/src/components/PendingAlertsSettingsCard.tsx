@@ -1,6 +1,6 @@
 import LockedUsersUnlock from "./LockedUsersUnlock";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Box, Button, Checkbox, FormControlLabel, Paper, Radio, RadioGroup, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, FormControlLabel, Paper, Switch, TextField, Typography } from "@mui/material";
 import NotificationImportantIcon from "@mui/icons-material/NotificationImportant";
 import { loadPendingAlerts, savePendingAlertsSettings, type PendingAlerts } from "../services/PendingAlertsApi";
 import { errorMessage, toast } from "../utils/toast";
@@ -59,10 +59,16 @@ export default function PendingAlertsSettingsCard() {
       <FormControlLabel control={<Switch checked={data.enabled} onChange={(_, v) => void save({ enabled: v })} />} label="Avisar sobre pendências" />
       {data.enabled && (
         <>
-          <RadioGroup value={data.mode} onChange={(_, v) => void save({ mode: v as "ALERT" | "BLOCK" })} sx={{ mt: 1 }}>
-            <FormControlLabel value="ALERT" control={<Radio />} label="Só alerta: mostra o aviso, mas não impede o uso" />
-            <FormControlLabel value="BLOCK" control={<Radio />} label="Bloqueio: trava a tela dos usuários escolhidos enquanto houver pendência" />
-          </RadioGroup>
+          <Box sx={{ mt: 1.5, p: 2, border: "2px solid", borderColor: data.mode === "BLOCK" ? "error.main" : "divider", borderRadius: 2 }}>
+            <FormControlLabel
+              control={<Switch color="error" checked={data.mode === "BLOCK"} disabled={data.mode !== "BLOCK" && !hasKey} onChange={(_, v) => void save({ mode: v ? "BLOCK" : "ALERT" }, v ? "Travamento de tela LIGADO." : "Travamento de tela DESLIGADO. Os avisos e as filas continuam.")} />}
+              label={<Typography sx={{ fontWeight: 800 }}>{data.mode === "BLOCK" ? "Travamento de tela: LIGADO" : "Travamento de tela: DESLIGADO"}</Typography>}
+            />
+            <Typography variant="body2" color="text.secondary">
+              A decisão é sua (administrador/gestor). Desligado, as filas, tarefas e avisos continuam aparecendo normalmente, só que sem travar a tela. Ligado, a tela dos usuários marcados abaixo trava quando há pendência vencida.
+              {!hasKey && data.mode !== "BLOCK" ? " Para ligar, defina antes a chave de desbloqueio." : ""}
+            </Typography>
+          </Box>
 
           <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
             <Typography sx={{ fontWeight: 800 }}>Quem vê cada pendência</Typography>
