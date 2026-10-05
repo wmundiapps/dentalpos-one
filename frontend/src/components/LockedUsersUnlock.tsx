@@ -20,15 +20,6 @@ export default function LockedUsersUnlock() {
   }, [load]);
 
   if (!users.length) return null;
-  return () => window.removeEventListener(PENDING_ALERTS_EVENT, load);
-  }, [load]);
-
-  if (!users.length) return null;
-  const unlock = async (id: string) => {
-    setError("");
-    try { await unlockUserScreen(id); await load(); }
-    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível destravar."); }
-  };
 
   return (
     <Alert severity="warning" sx={{ mb: 2, alignItems: "center" }}>

@@ -25,7 +25,7 @@ export default function UnlockDeadlineDialog({ user, onClose, onDone }: { user: 
       <DialogTitle sx={{ fontWeight: 900 }}>{`Destravar ${user?.name || ""}`}</DialogTitle>
       <DialogContent>
         <Typography variant="body2" sx={{ mb: 2 }}>Defina o novo prazo para resolver a pendência. Se ela continuar aberta depois dessa data, a tela trava de novo.</Typography>
-        <TextField fullWidth type="date" label="Novo prazo" value={deadline} onChange={(e) => setDeadline(e.target.value)} InputLabelProps={{ shrink: true }} inputProps={{ min: ymd(new Date()), max: ymd(new Date(Date.now() + 30 * 86400000)) }} sx={{ mb: 2 }} />
+        <TextField fullWidth type="date" label="Novo prazo" value={deadline} onChange={(e) => setDeadline(e.target.value)} slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: ymd(new Date()), max: ymd(new Date(Date.now() + 30 * 86400000)) } }} sx={{ mb: 2 }} />
         <TextField fullWidth label="Motivo / combinado (opcional)" value={reason} onChange={(e) => setReason(e.target.value)} />
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
       </DialogContent>
