@@ -57,6 +57,7 @@ import Stock from "../pages/Stock";
 import TreatmentPlanning from "../pages/TreatmentPlanning";
 import PlatformAdministration from "../pages/PlatformAdministration";
 import LeadDiscovery from "../pages/LeadDiscovery";
+import Prospecting from "../pages/Prospecting";
 import Integrations from "../pages/Integrations";
 import ImportPatients from "../pages/ImportPatients";
 import Team from "../pages/Team";
@@ -279,6 +280,7 @@ export default function AppRoutes() {
 
       <Route path="/plataforma-saas" element={<PlatformAdministration />} />
       <Route path="/revah-leads" element={<LeadDiscovery />} />
+      <Route path="/prospeccao" element={<WmundiStaffOnly><Prospecting /></WmundiStaffOnly>} />
       <Route path="/integracoes" element={<Integrations />} />
       <Route path="/importar-pacientes" element={<ImportPatients />} />
       <Route path="/equipe" element={<Team />} />

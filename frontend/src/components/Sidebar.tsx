@@ -1,3 +1,4 @@
+import { isWmundiStaff } from "./WmundiStaffOnly";
 import {
   Avatar, Box, Collapse, Divider, IconButton, List, ListItemButton, ListItemIcon,
   ListItemText, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button
@@ -50,6 +51,7 @@ export default function Sidebar(){
     const seen=new Set<string>();
     return navigationGroups.map(group=>{
       const items=group.items.filter(it=>{
+        if(it.path==="/prospeccao"&&!isWmundiStaff())return false;
         const dedupeKey=it.path;
         if(seen.has(dedupeKey))return false;
         seen.add(dedupeKey);
