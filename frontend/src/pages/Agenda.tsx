@@ -1,3 +1,4 @@
+import { PENDING_ALERTS_EVENT } from "../services/PendingAlertsApi";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -306,6 +307,7 @@ export default function Agenda() {
     saveAppointments(refreshed);
     setItems(refreshed);
     setEdit(null);
+    window.dispatchEvent(new Event(PENDING_ALERTS_EVENT)); // atualiza a faixa de pendências na hora
     toast.success("Agenda atualizada.");
   };
   const [editReason, setEditReason] = useState("");
@@ -1409,12 +1411,14 @@ export default function Agenda() {
                   variant="outlined"
                   onClick={async () => {
                     try {
-                      // Compareceu = chegada: o paciente entra na fila do Painel de Atendimento (sala de espera).
-                      await appointmentFlowAction(edit.backendId!, "ARRIVED");
+                      // Hoje: Compareceu = chegada (o paciente entra na sala de espera).
+                      // Dia anterior: o paciente já veio e já foi embora; registra como atendido para resolver a pendência.
+                      const pastDay = edit.dateISO < iso(new Date());
+                      await appointmentFlowAction(edit.backendId!, pastDay ? "ATTENDED" : "ARRIVED");
                       await refreshAfterQuickAction();
-                      toast.success("Chegada confirmada: o paciente entrou na sala de espera.");
+                      toast.success(pastDay ? "Comparecimento confirmado e atendimento registrado: pendência resolvida." : "Chegada confirmada: o paciente entrou na sala de espera.");
                     } catch (error) {
-                      window.alert(error instanceof Error ? error.message : "Não foi possível confirmar o comparecimento.");
+                      toast.error(error instanceof Error ? error.message : "Não foi possível confirmar o comparecimento.");
                     }
                   }}
                 >
@@ -1432,7 +1436,7 @@ export default function Agenda() {
                       await refreshAfterQuickAction();
                       toast.success("Atendimento finalizado.");
                     } catch (error) {
-                      window.alert(error instanceof Error ? error.message : "Não foi possível finalizar o atendimento.");
+                      toast.error(error instanceof Error ? error.message : "Não foi possível finalizar o atendimento.");
                     }
                   }}
                 >
