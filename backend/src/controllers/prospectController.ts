@@ -252,6 +252,8 @@ export async function sendTest(req: AuthRequest, res: Response) {
 }
 
 // ---------- Rotas públicas (sem login) ----------
+const escapeHtml = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+
 function page(title: string, message: string) {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
 <body style="font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:40px 16px;color:#1f2933">
@@ -280,7 +282,7 @@ export async function publicUnsubscribe(req: Request, res: Response) {
     const lead = await handleUnsubscribe(String(req.params.token))
     if (req.method === 'POST') return res.status(200).send('ok')
     if (!lead) return res.status(404).send(page('Link inválido', 'Não encontramos este cadastro. Se quiser, escreva para contato@dentalpos.com.br que removemos manualmente.'))
-    return res.send(page('Pronto, você não vai mais receber', `O e-mail ${lead.email || ''} foi removido da nossa lista de contatos comerciais e não receberá novas mensagens. Desculpe o incômodo.`))
+    return res.send(page('Pronto, você não vai mais receber', `O e-mail ${escapeHtml(lead.email || '')} foi removido da nossa lista de contatos comerciais e não receberá novas mensagens. Desculpe o incômodo.`))
   } catch (error) {
     console.error('Falha no descadastro:', error)
     return res.status(500).send(page('Não foi possível concluir', 'Tente de novo em instantes ou escreva para contato@dentalpos.com.br que removemos manualmente.'))
