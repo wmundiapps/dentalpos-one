@@ -1,11 +1,13 @@
 import type { Request, Response } from 'express'
+import { timingSafeEqual } from 'crypto'
 import { prisma } from '../lib/prisma'
 import { DEMO_ACCESS_FLAG, getDemoAccess } from '../services/demoAccessService'
 
 function checkSecret(req: Request, res: Response): boolean {
   const expected = process.env.DEBUG_DEMO_SECRET || ''
   const provided = req.header('x-debug-secret') || ''
-  if (!expected || provided !== expected) {
+  const same = expected.length > 0 && expected.length === provided.length && timingSafeEqual(Buffer.from(expected), Buffer.from(provided))
+  if (!same) {
     res.status(403).json({ error: 'Não autorizado.' })
     return false
   }
