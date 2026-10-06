@@ -11,7 +11,7 @@ export const IMAGE_TYPES: Record<string, string> = {
 export const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 
 /** Confere a assinatura do arquivo (não confia só no tipo declarado pelo navegador). */
-function sniff(buf: Buffer): string | undefined {
+export function sniffImage(buf: Buffer): string | undefined {
   if (buf.length < 12) return undefined;
   if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
   if (buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
@@ -28,7 +28,7 @@ function sniff(buf: Buffer): string | undefined {
 
 export async function saveImage(ownerId: string, data: Buffer): Promise<{ id: string; url: string; mime: string }> {
   if (data.length > IMAGE_MAX_BYTES) throw new HttpError(413, 'file_too_large');
-  const mime = sniff(data);
+  const mime = sniffImage(data);
   if (!mime) throw new HttpError(422, 'invalid_image');
   const fileId = id('img');
   let url: string;

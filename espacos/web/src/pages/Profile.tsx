@@ -52,6 +52,7 @@ export default function Profile() {
 
       <LicenseSection onDone={refreshMe} onSent={() => back && setShowBack(true)} />
       <MarketingPrefs />
+      <TwoFactorPrefs />
       <DeleteAccountSection />
       {showBack && back && (
         <NextStep icon="🎉" title={t('journey.sentTitle')} onClose={() => setShowBack(false)}
@@ -200,6 +201,27 @@ function MarketingPrefs() {
       <h2>{t('profile.marketingTitle')}</h2>
       <label className="check"><input type="checkbox" checked={optIn} onChange={(e) => change(e.target.checked)} /> {t('auth.marketingOptIn')}</label>
       <p className="muted small">{t('profile.marketingHelp')}</p>
+    </section>
+  );
+}
+
+/** Verificação em duas etapas: a cada login, um código no e-mail (obrigatória para administradores). */
+function TwoFactorPrefs() {
+  const { t } = useI18n();
+  const [st, setSt] = useState<{ enabled: boolean; forced: boolean } | null>(null);
+  const [err, setErr] = useState('');
+  useEffect(() => { api<{ enabled: boolean; forced: boolean }>('/me/two-factor').then(setSt).catch(() => {}); }, []);
+  if (!st) return null;
+  async function change(v: boolean) {
+    setErr('');
+    try { setSt(await api<{ enabled: boolean; forced: boolean }>('/me/two-factor', { body: { enabled: v } })); } catch (e) { setErr(errorText(e, t)); }
+  }
+  return (
+    <section className="panel" id="duas-etapas">
+      <h2>🔐 {t('profile.twoFactorTitle')}</h2>
+      <label className="check"><input type="checkbox" checked={st.enabled} disabled={st.forced} onChange={(e) => change(e.target.checked)} /> {t('profile.twoFactorOn')}</label>
+      <p className="muted small">{st.forced ? t('profile.twoFactorForced') : t('profile.twoFactorText')}</p>
+      {err && <p className="errors small" role="alert">{err}</p>}
     </section>
   );
 }

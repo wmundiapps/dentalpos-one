@@ -33,15 +33,52 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const passwordRef = useRef<HTMLInputElement>(null);
+  // Verificação em duas etapas: depois da senha, o código enviado por e-mail
+  const [challenge, setChallenge] = useState<{ challengeId: string; email: string } | null>(null);
+  const [code, setCode] = useState('');
+  const [info, setInfo] = useState('');
+  function done(r: { token: string; user: Me }) {
+    rememberEmail(r.user.email);
+    login(r.token, r.user);
+    nav(safePath(params.get('next')) ?? '/');
+  }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    setError('');
     try {
-      const r = await api<{ token: string; user: Me }>('/auth/login', { body: { email, password } });
-      rememberEmail(r.user.email);
-      login(r.token, r.user);
-      nav(params.get('next') ?? '/');
+      const r = await api<{ token: string; user: Me } | { twoFactor: true; challengeId: string; email: string }>('/auth/login', { body: { email, password } });
+      if ('twoFactor' in r) { setChallenge(r); setCode(''); setInfo(''); return; }
+      done(r);
     } catch (err) { setError(errorText(err, t)); }
   }
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    try { done(await api<{ token: string; user: Me }>('/auth/login/verify', { body: { challengeId: challenge!.challengeId, code } })); }
+    catch (err) {
+      if (err instanceof ApiError && err.code === 'login_code_expired') { setChallenge(null); setPassword(''); }
+      setError(errorText(err, t));
+    }
+  }
+  async function resend() {
+    setError(''); setInfo('');
+    try { await api('/auth/login/resend', { body: { challengeId: challenge!.challengeId } }); setInfo(t('auth.twoFactorResent')); }
+    catch (err) { setError(errorText(err, t)); }
+  }
+  if (challenge) return (
+    <div className="container narrow">
+      <h1>🔐 {t('auth.twoFactorTitle')}</h1>
+      <form className="panel" onSubmit={verify}>
+        <p>{t('auth.twoFactorText', { email: challenge.email })}</p>
+        <label>{t('auth.twoFactorCode')}<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" required autoFocus
+          value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="code-input" /></label>
+        {error && <p className="errors" role="alert">{error}</p>}
+        {info && <p className="notice small">{info}</p>}
+        <button className="btn btn-primary block" disabled={code.length !== 6}>{t('auth.twoFactorConfirm')}</button>
+        <p className="small center"><button type="button" className="link-btn" onClick={resend}>{t('auth.twoFactorResend')}</button> · <button type="button" className="link-btn" onClick={() => { setChallenge(null); setError(''); }}>{t('common.back')}</button></p>
+      </form>
+    </div>
+  );
   return (
     <div className="container narrow">
       <h1>{t('auth.login')}</h1>

@@ -11,12 +11,16 @@ import { geoCity, geoState, hasGeo, rawGeo, stateTimezone } from '../geo.js';
 import { marketplaceEnabled } from '../payments/mpAccounts.js';
 import { MERCADOPAGO_COUNTRIES } from '../payments/mercadopago.js';
 import { type HostProvider, gatewayFor, hostProviders, payoutRequired, supportsHold } from '../payments/index.js';
+import { assertCleanText } from '../security.js';
 
 const MP_COUNTRIES: readonly string[] = MERCADOPAGO_COUNTRIES;
 import { getListing, quote } from '../bookings.js';
 import { COUNTRY_BY_CODE, getCity } from '../../../shared/countries.js';
 import { AMENITIES, BOOKING_LIMITS, CATEGORIES, FEES, toMinutes, validateOccurrences, weekdayOf } from '../../../shared/rules.js';
 import type { Listing, TimeRange, User } from '../../../shared/types.js';
+
+/** Textos livres do anúncio que passam pelo filtro de conteúdo impróprio. */
+const listingTexts = (d: Record<string, unknown>) => Object.values(d).flatMap((v) => typeof v === 'string' ? [v] : Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 
 export const listingsRouter = Router();
 
@@ -199,6 +203,7 @@ listingsRouter.post('/listings/:id/quote', optionalAuth, async (req: AuthedReque
 
 listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) => {
   const data = listingSchema.parse(req.body);
+  await assertCleanText(listingTexts(data), { userId: req.user!.id, ip: req.ip, where: 'listing' });
   const derived = checkListingRules(data);
   const user = req.user!;
   // Sem e-mail confirmado o anúncio fica salvo e entra no ar na confirmação (não perde o que foi preenchido)
@@ -241,6 +246,7 @@ listingsRouter.post('/listings', requireAuth, async (req: AuthedRequest, res) =>
 
 listingsRouter.put('/listings/:id', requireAuth, async (req: AuthedRequest, res) => {
   const data = listingSchema.parse(req.body);
+  await assertCleanText(listingTexts(data), { userId: req.user!.id, ip: req.ip, where: 'listing' });
   const derived = checkListingRules(data);
   await assertCepMatches(data as { countryCode: string; address: string; city: string; state?: string });
   const l = await withTx(async (tx) => {

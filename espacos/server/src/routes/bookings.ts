@@ -4,6 +4,7 @@ import { id, nowIso, pool, token, withTx, type Db } from '../db.js';
 import * as repo from '../repo.js';
 import { HttpError, requireAuth, toPublicUser, type AuthedRequest } from '../auth.js';
 import { assertEmailVerified } from '../emailVerification.js';
+import { assertCleanText } from '../security.js';
 import {
   checkIn, checkOut, createBooking, getBooking, getListing, guestCancel, hostCancel, hostDecision, paymentOf,
   refundPreview, reportIncident, resolveIncident, respondGuarantor, respondIncident, revealReviewsIfBoth, reviewWindowOpen,
@@ -141,6 +142,7 @@ bookingsRouter.post('/bookings/:id/messages', requireAuth, async (req: AuthedReq
   const b = await getBooking(pool, req.params.id);
   ensureParty(b, req.user!);
   let { text } = z.object({ text: z.string().min(1).max(2000) }).parse(req.body);
+  await assertCleanText([text], { userId: req.user!.id, ip: req.ip, where: 'message' });
   // Antes da confirmação, contatos são ocultados para evitar pagamento fora da plataforma
   let flagged = false;
   if (!['confirmed', 'checked_in', 'completed'].includes(b.status) && new RegExp(CONTACT_PATTERN.source).test(text)) {
@@ -171,6 +173,7 @@ bookingsRouter.post('/bookings/:id/review', requireAuth, async (req: AuthedReque
     privateNote: z.string().max(1000).optional(),
     wouldRecommend: z.boolean().optional(),
   }).parse(req.body);
+  await assertCleanText([data.comment, data.privateNote], { userId: user.id, ip: req.ip, where: 'review' });
   const review = await withTx(async (tx) => {
     const b = await getBooking(tx, req.params.id, true);
     if (b.guestId !== user.id && b.hostId !== user.id) throw new HttpError(403, 'forbidden');
@@ -192,6 +195,7 @@ bookingsRouter.post('/bookings/:id/review', requireAuth, async (req: AuthedReque
 
 bookingsRouter.post('/reviews/:id/response', requireAuth, async (req: AuthedRequest, res) => {
   const { text } = z.object({ text: z.string().min(2).max(1000) }).parse(req.body);
+  await assertCleanText([text], { userId: req.user?.id, ip: req.ip, where: 'review_response' });
   const r = await repo.getReview(pool, req.params.id);
   if (!r) throw new HttpError(404, 'review_not_found');
   const listing = await getListing(pool, r.listingId);
@@ -240,6 +244,7 @@ bookingsRouter.post('/client-review/:token', async (req, res) => {
     displayName: z.string().max(40).optional(),
     consent: z.literal(true),
   }).parse(req.body);
+  await assertCleanText([data.comment, data.displayName], { ip: req.ip, where: 'client_review' });
   await withTx(async (tx) => {
     const inv = await repo.getInvite(tx, req.params.token, true);
     if (!inv) throw new HttpError(404, 'invite_not_found');
