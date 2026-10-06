@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
+  Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
   Divider, MenuItem, Paper, TextField, Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -17,6 +17,7 @@ import PageHeader from "../components/PageHeader";
 import LabNotifyFields from "../components/LabNotifyFields";
 import ExportMenu from "../components/ExportMenu";
 import LabDeliveryDialog from "../components/LabDeliveryDialog";
+import { errorMessage, toast } from "../utils/toast";
 import { labRisk } from "../utils/labRisk";
 import { fetchLabOrders, restoreLabOrder, type LabOrderRow } from "../services/LabOrderApi";
 import { cachedLabNotify, cancelLabNotifications, rememberLabNotify, scheduleLabNotifications, type LabNotifyChoice } from "../services/LabNotifyApi";
@@ -50,6 +51,8 @@ export default function Laboratory(){
   const [works,setWorks]=useState<IntegratedLaboratoryWork[]>(getLaboratoryWorks);
   const [deliveryWork,setDeliveryWork]=useState<{id:number;patientName:string;workType:string}|null>(null);
   const [open,setOpen]=useState(false); const [editing,setEditing]=useState<IntegratedLaboratoryWork|null>(null); const [historyWork,setHistoryWork]=useState<IntegratedLaboratoryWork|null>(null);
+  const [formError,setFormError]=useState("");
+  useEffect(()=>{setFormError("")},[open]);
   const [search,setSearch]=useState(""); const [form,setForm]=useState<LabForm>(blankForm());
   const [notify,setNotify]=useState<LabNotifyChoice>({labMemberId:"",channels:[]});
   const [filtro,setFiltro]=useState<""|"ativos"|"design"|"atrasados"|"risco"|"entregues">(((new URLSearchParams(window.location.search).get("filtro")) || "") as ""|"ativos"|"design"|"atrasados"|"risco"|"entregues");
@@ -86,9 +89,17 @@ export default function Laboratory(){
       if(notify.labMemberId&&notify.channels.length){
         await scheduleLabNotifications({workRef:String(workId),patientName:form.patientName.trim(),workType:form.workType.trim(),teeth:form.teeth.trim()||undefined,dueDateISO:form.dueDateISO||undefined,dentistName:form.dentistName.trim()||undefined,labMemberId:notify.labMemberId,channels:notify.channels,isNew,createdAtISO:entryISO?`${entryISO}T12:00:00-03:00`:undefined});
       } else if(!isNew){ await cancelLabNotifications(String(workId)); }
-    }catch(e){ window.alert(`O trabalho foi salvo, mas os avisos ao laboratório não foram programados: ${e instanceof Error?e.message:"erro desconhecido"}`) }
+    }catch(e){ toast.error(`O trabalho foi salvo, mas os avisos ao laboratório não foram programados: ${errorMessage(e,"erro desconhecido")}`) }
   };
-  const save=()=>{ if(!form.patientName.trim()||!form.workType.trim()||!form.toothShade.trim()) return; if(editing){ updateLaboratoryWork(editing.id,payload(),"Ficha laboratorial corrigida/atualizada."); void syncNotify(editing.id,false,editing.entryDateISO); } else { const created=createLaboratoryWork(payload()); void syncNotify(created.id,true,created.entryDateISO); } setOpen(false); setEditing(null); setForm(blankForm()); };
+  const save=()=>{
+    const missing=[!form.patientName.trim()&&"Paciente",!form.workType.trim()&&"Tipo de trabalho",!form.toothShade.trim()&&"Cor do dente"].filter(Boolean) as string[];
+    if(missing.length){ const msg=`Não foi possível salvar. Preencha: ${missing.join(", ")}.`; setFormError(msg); toast.error(msg); return; }
+    try{
+      if(editing){ updateLaboratoryWork(editing.id,payload(),"Ficha laboratorial corrigida/atualizada."); void syncNotify(editing.id,false,editing.entryDateISO); toast.success("Trabalho atualizado."); }
+      else { const created=createLaboratoryWork(payload()); void syncNotify(created.id,true,created.entryDateISO); toast.success("Trabalho salvo e adicionado à fila do laboratório."); }
+      setOpen(false); setEditing(null); setForm(blankForm());
+    }catch(e){ const msg=`Erro ao salvar o trabalho: ${errorMessage(e,"tente de novo")}`; setFormError(msg); toast.error(msg); }
+  };
   const sendDesign=(w:IntegratedLaboratoryWork)=>{sendLaboratoryWorkToDesign(w.id);navigate("/design")};
 
   return <Box>
@@ -115,7 +126,7 @@ export default function Laboratory(){
 
     <LabDeliveryDialog work={deliveryWork} onClose={()=>setDeliveryWork(null)} onDelivered={id=>{updateLaboratoryWork(id,{status:"Entregue"});void cancelLabNotifications(String(id)).catch(()=>undefined)}}/>
 
-    <Dialog open={open} onClose={()=>setOpen(false)} fullWidth maxWidth="md"><DialogTitle>{editing?"Editar trabalho laboratorial":"Novo trabalho laboratorial"}</DialogTitle><DialogContent sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"1fr 1fr"},gap:2,pt:"12px!important"}}>
+    <Dialog open={open} onClose={()=>setOpen(false)} fullWidth maxWidth="md"><DialogTitle>{editing?"Editar trabalho laboratorial":"Novo trabalho laboratorial"}</DialogTitle><DialogContent sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"1fr 1fr"},gap:2,pt:"12px!important"}}>{formError&&<Alert severity="error" sx={{gridColumn:"1 / -1"}}>{formError}</Alert>}
       <TextField required label="Paciente" value={form.patientName} onChange={e=>setForm({...form,patientName:e.target.value})}/><TextField label="Dentista" value={form.dentistName} onChange={e=>setForm({...form,dentistName:e.target.value})}/><TextField required label="Tipo de trabalho" value={form.workType} onChange={e=>setForm({...form,workType:e.target.value})}/><TextField label="Dentes envolvidos" placeholder="Ex.: 11, 12, 21 ou 14-16" value={form.teeth} onChange={e=>setForm({...form,teeth:e.target.value})}/>
       <TextField select label="Tipo de moldagem" value={form.impressionType} onChange={e=>setForm({...form,impressionType:e.target.value as LabForm["impressionType"],receivedItems:[]})}>{["Analógica","Digital"].map(v=><MenuItem key={v} value={v}>{v}</MenuItem>)}</TextField><TextField label="Material" value={form.material} onChange={e=>setForm({...form,material:e.target.value})}/>
       <TextField required label="Cor do dente" helperText="Obrigatória para encaminhar ao Design/produção" value={form.toothShade} onChange={e=>setForm({...form,toothShade:e.target.value})}/><TextField select label="Sistema de cor" value={form.shadeSystem} onChange={e=>setForm({...form,shadeSystem:e.target.value as LabForm["shadeSystem"]})}>{shadeSystems.map(v=><MenuItem key={v} value={v}>{v}</MenuItem>)}</TextField><TextField label="Observação da cor / caracterização" value={form.shadeNotes} onChange={e=>setForm({...form,shadeNotes:e.target.value})} sx={{gridColumn:{md:"1/-1"}}}/>
