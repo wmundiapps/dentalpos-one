@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField, Typography } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useLocation } from "react-router-dom";
 import UnlockDeadlineDialog from "./UnlockDeadlineDialog";
 import { loadPendingAlerts, PENDING_ALERTS_EVENT, PENDING_ALERTS_MESSAGE, proveLabDelivery, savePendingAlertsSettings, unlockPendingAlerts, type PendingAlerts } from "../services/PendingAlertsApi";
 
 export default function PendingAlertsBar() {
   const [data, setData] = useState<PendingAlerts | null>(null);
   const [error, setError] = useState("");
+  const location = useLocation();
+  const [expanded, setExpanded] = useState(false);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [target, setTarget] = useState<{ id: string; name: string } | null>(null);
@@ -27,7 +29,10 @@ export default function PendingAlertsBar() {
 
   if (!data || !data.enabled) return null;
   const hasLocked = data.lockedUsers.length > 0;
-  if (data.total === 0 && !hasLocked) return null;
+  // Gestor/admin veem todas as pendências; cada departamento vê só a da sua própria tela.
+  const shown = data.canManage ? data.items : data.items.filter((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
+  const shownCount = shown.reduce((sum, item) => sum + item.count, 0);
+  if (shown.length === 0 && !hasLocked && !data.blocked) return null;
 
   const toggleLock = async () => {
     setError("");
@@ -57,32 +62,36 @@ export default function PendingAlertsBar() {
 
   return (
     <>
-      {data.total > 0 && (
-        <Alert severity="error" variant="filled" sx={{ borderRadius: 0, alignItems: "center" }}>
-          <Typography sx={{ fontWeight: 800 }}>{data.mode === "BLOCK" ? PENDING_ALERTS_MESSAGE : "Resolva as pendências abaixo. Os avisos e as filas continuam até serem resolvidos."}</Typography>
-          {data.canManage && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700 }}>{data.mode === "BLOCK" ? "Travamento de tela: LIGADO" : "Travamento de tela: DESLIGADO"}</Typography>
-              <Button size="small" variant="outlined" color="inherit" disabled={data.mode !== "BLOCK" && !data.settings?.hasKey} onClick={() => void toggleLock()}>
-                {data.mode === "BLOCK" ? "Desligar travamento" : data.settings?.hasKey ? "Ligar travamento" : "Defina a chave em Configurações"}
-              </Button>
+      {shown.length > 0 && (
+        <Alert severity="error" variant="filled" sx={{ borderRadius: 0, alignItems: "center", py: 0.25 }}>
+          <Box role="button" tabIndex={0} onClick={() => setExpanded((v) => !v)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setExpanded((v) => !v); }} sx={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+            <Typography noWrap sx={{ fontWeight: 800, fontSize: 14 }}>
+              {`${shown.length === 1 ? shown[0].label : `${shownCount} pendência(s) em ${shown.length} áreas`}`}
+            </Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: 12, whiteSpace: "nowrap", textDecoration: "underline" }}>{expanded ? "ocultar" : "ver tudo"}</Typography>
+          </Box>
+          {expanded && (
+            <Box sx={{ mt: 1 }}>
+              <Typography sx={{ fontWeight: 800 }}>{data.mode === "BLOCK" ? PENDING_ALERTS_MESSAGE : "Resolva as pendências abaixo. Os avisos e as filas continuam até serem resolvidos."}</Typography>
+              {data.canManage && (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700 }}>{data.mode === "BLOCK" ? "Travamento de tela: LIGADO" : "Travamento de tela: DESLIGADO"}</Typography>
+                  <Button size="small" variant="outlined" color="inherit" disabled={data.mode !== "BLOCK" && !data.settings?.hasKey} onClick={() => void toggleLock()}>
+                    {data.mode === "BLOCK" ? "Desligar travamento" : data.settings?.hasKey ? "Ligar travamento" : "Defina a chave em Configurações"}
+                  </Button>
+                </Box>
+              )}
+              <Box sx={{ display: "grid", gap: 0.5, mt: 0.75 }}>
+                {shown.map((item) => (
+                  <Box key={item.key}>
+                    <Link component={RouterLink} to={item.path} sx={{ color: "inherit", fontWeight: 700, textDecoration: "underline" }}>{item.label}</Link>
+                    {(item.lines || []).map((line, i) => <Typography key={i} variant="caption" sx={{ display: "block" }}>{`• ${line}`}</Typography>)}
+                  </Box>
+                ))}
+                {error && !hasLocked && <Typography variant="caption" sx={{ fontWeight: 700 }}>{error}</Typography>}
+              </Box>
             </Box>
           )}
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 0.5 }}>
-            {data.items.map((item) => (
-              <Link key={item.key} component={RouterLink} to={item.path} sx={{ color: "inherit", fontWeight: 700, textDecoration: "underline" }}>
-                {item.label}
-              </Link>
-            ))}
-            {error && !hasLocked && <Typography variant="caption" sx={{ width: "100%", fontWeight: 700 }}>{error}</Typography>}
-            {data.items.flatMap((item) => item.lines || []).length > 0 && (
-              <Box sx={{ width: "100%" }}>
-                {data.items.flatMap((item) => item.lines || []).map((line, i) => (
-                  <Typography key={i} variant="caption" sx={{ display: "block" }}>{`• ${line}`}</Typography>
-                ))}
-              </Box>
-            )}
-          </Box>
         </Alert>
       )}
 

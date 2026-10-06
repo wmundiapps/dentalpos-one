@@ -117,6 +117,13 @@ function endOfTodayBrt() {
 }
 const startOfTodayBrt = () => new Date(endOfTodayBrt().getTime() - DAY + 1)
 
+// Ferramentas de travamento são exclusivas do gestor e do administrador (master), não de qualquer usuário com permissão de configurações.
+const MANAGER_PROFILES = ['GESTOR', 'ADMIN']
+async function isManager(userId: string, role: string) {
+  if (role === 'ADMIN') return true
+  return (await getUserProfileCodes(userId)).some(code => MANAGER_PROFILES.includes(code))
+}
+
 async function getUserProfileCodes(userId: string): Promise<string[]> {
   const rows = await prisma.userAccessProfile.findMany({ where: { userId, profile: { isActive: true } }, select: { profile: { select: { code: true } } } })
   return [...new Set(rows.map(r => r.profile.code))]
@@ -178,7 +185,7 @@ export async function show(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, userId, role } = ctx(req)
     const settings = await loadSettings(clinicId)
     const codes = role === 'ADMIN' ? null : await getUserPermissionCodes(userId)
-    const canManage = codes === null || codes.includes('settings.edit')
+    const canManage = await isManager(userId, role)
     const profileCodes = role === 'ADMIN' ? null : await getUserProfileCodes(userId)
     const visibleKeys = visibleCategories(settings, profileCodes)
 
@@ -213,7 +220,7 @@ export async function show(req: AuthRequest, res: Response) {
       for (const user of users) {
         if (user.role === 'ADMIN' || isUnlocked(settings, user.id)) continue
         const userCodes = await getUserPermissionCodes(user.id)
-        if (userCodes.includes('settings.edit')) continue
+        if (await isManager(user.id, user.role)) continue
         const userItems = await computeItems(clinicId, tenantId, userCodes, visibleCategories(settings, await getUserProfileCodes(user.id)), true)
         const count = userItems.reduce((sum, item) => sum + (item.blocks ?? item.count), 0)
         if (count > 0) lockedUsers.push({ id: user.id, name: `${user.firstName} ${user.lastName}`.trim() || user.email, count })
@@ -233,7 +240,8 @@ export async function show(req: AuthRequest, res: Response) {
 
 export async function updateSettings(req: AuthRequest, res: Response) {
   try {
-    const { clinicId, tenantId, userId } = ctx(req)
+    const { clinicId, tenantId, userId, role } = ctx(req)
+    if (!(await isManager(userId, role))) return res.status(403).json({ error: 'Apenas o gestor ou o administrador podem alterar o travamento e os avisos.' })
     const current = await loadSettings(clinicId)
     const b = req.body || {}
     const next: Settings = { ...current, visibility: { ...current.visibility } }
@@ -296,7 +304,8 @@ export async function unlock(req: AuthRequest, res: Response) {
 // Admin/gestor destrava a tela de um usuário (até o fim do dia).
 export async function unlockUser(req: AuthRequest, res: Response) {
   try {
-    const { clinicId, tenantId, userId } = ctx(req)
+    const { clinicId, tenantId, userId, role } = ctx(req)
+    if (!(await isManager(userId, role))) return res.status(403).json({ error: 'Apenas o gestor ou o administrador podem destravar usuários.' })
     const target = String(req.body?.userId || '')
     const user = await prisma.user.findFirst({ where: { id: target, clinicId, tenantId }, select: { id: true, firstName: true, lastName: true } })
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' })

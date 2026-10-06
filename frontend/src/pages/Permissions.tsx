@@ -123,6 +123,27 @@ export default function Permissions() {
         </Box>
       </Paper>
 
+      <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>O que cada usuário pode ver</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Resumo do que cada pessoa enxerga hoje, somando os perfis dela. Para mudar, ajuste as permissões do perfil acima ou troque os perfis do usuário abaixo.</Typography>
+        {users.map((user) => {
+          const isMaster = user.role === "ADMIN";
+          const seen = new Set<string>();
+          for (const p of profiles.filter((x) => user.profileIds.includes(x.id))) for (const x of p.permissions) if (x.permission.code.endsWith(".view")) seen.add(x.permission.code.split(".")[0]);
+          const visible = Object.keys(MODULE_NAMES).filter((m) => isMaster || seen.has(m));
+          const hidden = Object.keys(MODULE_NAMES).filter((m) => !isMaster && !seen.has(m));
+          return (
+            <Box key={user.id} sx={{ py: 1.25, borderTop: "1px solid", borderColor: "divider" }}>
+              <Typography sx={{ fontWeight: 700 }}>{`${user.firstName} ${user.lastName}`.trim() || user.email}{isMaster ? " — Administrador (vê tudo)" : ""}</Typography>
+              <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
+                {visible.map((m) => <Chip key={m} size="small" color="success" variant="outlined" label={MODULE_NAMES[m]} />)}
+                {hidden.map((m) => <Chip key={m} size="small" variant="outlined" label={`Sem acesso: ${MODULE_NAMES[m]}`} sx={{ opacity: 0.6 }} />)}
+              </Box>
+            </Box>
+          );
+        })}
+      </Paper>
+
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>Perfis de cada usuário</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Clique em um perfil para retirá-lo do usuário ou escolha outro na lista para acrescentar.</Typography>
