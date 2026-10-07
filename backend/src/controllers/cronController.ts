@@ -1,3 +1,4 @@
+import { processAbsenceRecalls } from '../services/absenceRecallService'
 import type { Request, Response } from 'express'
 import crypto from 'crypto'
 import { processDueAppointmentReminders } from '../services/appointmentReminderService'
@@ -19,6 +20,7 @@ export async function reminders(req: Request, res: Response) {
     await processDueAppointmentReminders()
     await processDailyLabRisk().then(() => processDueLabNotifications()).catch((e) => console.error('Avisos do laboratório:', e))
     await processDunning().catch((e) => console.error('Régua de cobrança:', e))
+    await processAbsenceRecalls().catch((e) => console.error('Retorno de pacientes ausentes:', e))
     return res.json({ ok: true, ms: Date.now() - started })
   } catch (error) {
     console.error(error)

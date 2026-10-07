@@ -11,6 +11,7 @@ import * as patientController from '../controllers/patientController'
 import * as appointmentController from '../controllers/appointmentController'
 import * as chargeController from '../controllers/chargeController'
 import * as asaasSetupController from '../controllers/asaasSetupController'
+import * as absenceRecallController from '../controllers/absenceRecallController'
 import * as dunningController from '../controllers/dunningController'
 import * as payoutController from '../controllers/payoutController'
 import * as labOrderController from '../controllers/labOrderController'
@@ -139,6 +140,10 @@ router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.
 router.delete('/team-member/:id', requirePermission('agenda.edit'), teamController.remove)
 router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
 router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendingAlertController.updateSettings)
+router.get('/absence-recall', requirePermission('agenda.view'), absenceRecallController.show)
+router.get('/absence-recall/today', requirePermission('agenda.view'), absenceRecallController.today)
+router.put('/absence-recall/settings', requirePermission('agenda.edit'), absenceRecallController.updateSettings)
+router.post('/absence-recall/run', requirePermission('agenda.edit'), absenceRecallController.run)
 router.post('/pending-alerts/resolve-lab', requirePermission('dashboard.view'), pendingAlertController.resolveLabDelivery)
 router.post('/pending-alerts/unlock', requirePermission('dashboard.view'), pendingAlertController.unlock)
 router.post('/pending-alerts/unlock-user', requirePermission('settings.edit'), pendingAlertController.unlockUser)
