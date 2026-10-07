@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -20,7 +21,7 @@ import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import QuickScheduleDialog from "../components/QuickScheduleDialog";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import ExportMenu from "../components/ExportMenu";
 import {
@@ -71,6 +72,7 @@ const genderOptions: PatientGender[] = ["Masculino", "Feminino", "Outro", "Não 
 const statusOptions: PatientStatus[] = ["Ativo", "Em acompanhamento", "Inativo"];
 
 export default function Patients() {
+  const [urlParams] = useSearchParams();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [quickFilter, setQuickFilter] = useState<"Todos"|"Ativos"|"Em tratamento"|"Inadimplentes"|"Novos no mês"|"Finalizados">((new URLSearchParams(window.location.search).get("filtro") || "Todos") as any);
@@ -218,6 +220,7 @@ export default function Patients() {
         actionIcon={<AddIcon />}
         onAction={openNew}
       />
+      {urlParams.get("acao") === "financeiro" && <Alert severity="info" sx={{ mb: 2 }}>Escolha o paciente e clique em <b>Gerar financeiro</b> para emitir boleto, Pix, cartão, cheque pré-datado ou dinheiro.</Alert>}
 
       {error && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2, borderColor: "error.main" }}>
@@ -320,6 +323,13 @@ export default function Patients() {
                   }
                 >
                   Abrir ficha completa
+                </Button>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={() => navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}&patient=${encodeURIComponent(patient.fullName)}&paciente=${encodeURIComponent(patient.fullName)}&aba=cobranca`)}
+                >
+                  Gerar financeiro
                 </Button>
                 <Button
                   variant="outlined"
