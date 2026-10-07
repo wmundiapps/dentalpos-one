@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Alert, Box, Button, Chip, CircularProgress, Paper, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, CircularProgress, Paper, Tab, Tabs, Typography } from "@mui/material";
+import PersonIcon from "@mui/icons-material/Person";
+import BiotechIcon from "@mui/icons-material/Biotech";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import GridOnIcon from "@mui/icons-material/GridOn";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import ImageIcon from "@mui/icons-material/Image";
-import DescriptionIcon from "@mui/icons-material/Description";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import EventIcon from "@mui/icons-material/Event";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
@@ -16,10 +17,12 @@ import type { ReactNode } from "react";
 import PageHeader from "../components/PageHeader";
 import PatientHeader, { type ClinicalAlerts } from "../components/patient/PatientHeader";
 import MedicalHistoryTab from "../components/patient/MedicalHistoryTab";
+import PatientDataTab from "../components/patient/PatientDataTab";
+import PatientBillingTab from "../components/patient/PatientBillingTab";
+import PatientLabTab from "../components/patient/PatientLabTab";
 import ClinicalRecord from "./ClinicalRecord";
 import OdontogramPeriodontogram from "./OdontogramPeriodontogram";
 import TreatmentPlanning from "./TreatmentPlanning";
-import Financial from "./Financial";
 import ClinicalFiles from "./ClinicalFiles";
 import ClinicalDocuments from "./ClinicalDocuments";
 import { loadBackendPatient, type BackendPatient } from "../services/PatientApi";
@@ -120,6 +123,7 @@ export default function PatientFile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("resumo");
+  const [clinicalSub, setClinicalSub] = useState("ficha");
   const [record, setRecord] = useState<ClinicalRecordData | null>(null);
   const [recordLoading, setRecordLoading] = useState(true);
   const [appts, setAppts] = useState<BackendAppointment[]>([]);
@@ -175,18 +179,22 @@ export default function PatientFile() {
     alerts: [...(record?.clinicalAlerts || []), ...(record?.riskConditions || [])],
   }), [record, patient]);
 
-  const ir = useCallback((k: string) => setTab(k), []);
+  const ir = useCallback((k: string) => {
+    // Atalhos antigos levam para a aba certa do caderno.
+    if (["ficha", "plano", "odontograma", "exames", "documentos"].includes(k)) { setTab("prontuario"); setClinicalSub(k); return; }
+    if (k === "prontuario") { setTab("prontuario"); setClinicalSub("ficha"); return; }
+    if (k === "financeiro") { setTab("cobranca"); return; }
+    setTab(k);
+  }, []);
   const agendar = useCallback(() => setScheduleOpen(true), []);
 
   const abas: Array<{ key: string; label: string; icon: ReactNode }> = [
     { key: "resumo", label: "Resumo", icon: <SummarizeIcon /> },
+    { key: "dados", label: "Dados pessoais", icon: <PersonIcon /> },
+    { key: "cobranca", label: "Cobrança", icon: <PaymentsIcon /> },
+    { key: "laboratorio", label: "Laboratório", icon: <BiotechIcon /> },
+    { key: "prontuario", label: "Prontuário clínico", icon: <AssignmentIndIcon /> },
     { key: "historico", label: "Histórico Médico", icon: <MonitorHeartIcon /> },
-    { key: "prontuario", label: "Prontuário", icon: <AssignmentIndIcon /> },
-    { key: "odontograma", label: "Odontograma", icon: <GridOnIcon /> },
-    { key: "plano", label: "Plano e Orçamento", icon: <RequestQuoteIcon /> },
-    { key: "exames", label: "Exames e Imagens", icon: <ImageIcon /> },
-    { key: "documentos", label: "Documentos", icon: <DescriptionIcon /> },
-    { key: "financeiro", label: "Financeiro", icon: <PaymentsIcon /> },
     { key: "atendimentos", label: "Atendimentos", icon: <EventIcon /> },
   ];
 
@@ -213,7 +221,7 @@ export default function PatientFile() {
         </Typography>
         <Button variant="contained" color="success" startIcon={<EventAvailableIcon />} onClick={agendar}>Agendar consulta</Button>
       </Paper>
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(3,1fr)", sm: "repeat(5,1fr)", lg: "repeat(9,1fr)" }, gap: 1, mb: 2 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", sm: "repeat(4,1fr)", lg: "repeat(7,1fr)" }, gap: 1, mb: 2 }}>
         {abas.map((a) => {
           const ativo = tab === a.key;
           return (
@@ -227,13 +235,26 @@ export default function PatientFile() {
       </Box>
       <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 2, md: 3 } }}>
         {tab === "resumo" && <Resumo patient={patient} plan={plan} appts={appts} ir={ir} agendar={agendar} />}
+        {tab === "dados" && <PatientDataTab patient={patient} onSaved={setPatient} />}
+        {tab === "cobranca" && <PatientBillingTab patient={patient} />}
+        {tab === "laboratorio" && <PatientLabTab patient={patient} />}
+        {tab === "prontuario" && (
+          <Box>
+            <Tabs value={clinicalSub} onChange={(_, v) => setClinicalSub(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>
+              <Tab value="ficha" label="Ficha clínica e anamnese" />
+              <Tab value="plano" label="Orçamento e procedimentos" />
+              <Tab value="odontograma" label="Odontograma" />
+              <Tab value="exames" label="Fotos, etiquetas, exames, DICOM e STL" />
+              <Tab value="documentos" label="Documentos" />
+            </Tabs>
+            {clinicalSub === "ficha" && <ClinicalRecord />}
+            {clinicalSub === "plano" && <TreatmentPlanning initialPatientId={patient.id} />}
+            {clinicalSub === "odontograma" && <OdontogramPeriodontogram />}
+            {clinicalSub === "exames" && <ClinicalFiles fixedPatientId={patient.id} />}
+            {clinicalSub === "documentos" && <ClinicalDocuments fixedPatientId={patient.id} />}
+          </Box>
+        )}
         {tab === "historico" && <MedicalHistoryTab patient={patient} data={record} loading={recordLoading} />}
-        {tab === "prontuario" && <ClinicalRecord />}
-        {tab === "odontograma" && <OdontogramPeriodontogram />}
-        {tab === "plano" && <TreatmentPlanning initialPatientId={patient.id} />}
-        {tab === "exames" && <ClinicalFiles fixedPatientId={patient.id} />}
-        {tab === "documentos" && <ClinicalDocuments fixedPatientId={patient.id} />}
-        {tab === "financeiro" && <Financial />}
         {tab === "atendimentos" && <Consultas rows={appts} loading={apptsLoading} agendar={agendar} />}
       </Paper>
       <QuickScheduleDialog open={scheduleOpen} onClose={() => setScheduleOpen(false)} onSaved={reloadAppts} fixedPatient={patient} />
