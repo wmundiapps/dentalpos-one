@@ -12,6 +12,7 @@ import * as appointmentController from '../controllers/appointmentController'
 import * as chargeController from '../controllers/chargeController'
 import * as asaasSetupController from '../controllers/asaasSetupController'
 import * as absenceRecallController from '../controllers/absenceRecallController'
+import * as financialHoldController from '../controllers/financialHoldController'
 import * as dunningController from '../controllers/dunningController'
 import * as payoutController from '../controllers/payoutController'
 import * as labOrderController from '../controllers/labOrderController'
@@ -140,6 +141,9 @@ router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.
 router.delete('/team-member/:id', requirePermission('agenda.edit'), teamController.remove)
 router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
 router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendingAlertController.updateSettings)
+router.get('/patients/:id/financial-hold', requirePermission('agenda.view'), financialHoldController.patientHold)
+router.get('/financial-hold/settings', requirePermission('agenda.view'), financialHoldController.settings)
+router.put('/financial-hold/settings', requirePermission('finance.approve'), financialHoldController.updateSettings)
 router.get('/absence-recall', requirePermission('agenda.view'), absenceRecallController.show)
 router.get('/absence-recall/today', requirePermission('agenda.view'), absenceRecallController.today)
 router.put('/absence-recall/settings', requirePermission('agenda.edit'), absenceRecallController.updateSettings)

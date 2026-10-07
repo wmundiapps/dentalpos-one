@@ -146,11 +146,12 @@ export async function createBackendAppointment(input: {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(body?.error || `Erro HTTP ${response.status}`);
+    throw Object.assign(new Error(body?.error || `Erro HTTP ${response.status}`), { code: body?.code as string | undefined });
   }
 
   return response.json() as Promise<BackendAppointment>;
 }
+export const isFinancialHold = (e: unknown) => (e as { code?: string } | null)?.code === "FINANCIAL_HOLD";
 export async function updateBackendAppointment(id: string, input: {
   scheduledAt?: string;
   durationMinutes?: number;
