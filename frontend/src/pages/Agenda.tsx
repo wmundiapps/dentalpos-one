@@ -1398,7 +1398,7 @@ export default function Agenda() {
             const patient = backendPatients.find((item) => item.fullName.toLowerCase() === edit.patientName.toLowerCase());
             return (
               <>
-                <Button disabled={!patient} onClick={() => patient && navigate(`/prontuario?patientId=${encodeURIComponent(patient.id)}`)}>Prontuário</Button>
+                <Button variant="contained" disabled={!patient} onClick={() => patient && navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}`)}>Ficha do paciente</Button><Button disabled={!patient} onClick={() => patient && navigate(`/prontuario?patientId=${encodeURIComponent(patient.id)}`)}>Prontuário</Button>
                 <Button onClick={() => navigate(`/financeiro?paciente=${encodeURIComponent(edit.patientName)}`)}>Financeiro</Button><Button startIcon={<AddIcon />} onClick={() => { const current = edit; setEdit(null); if (current) openNew({ patientName: current.patientName, patientPhone: current.patientPhone || "", professionalName: current.professionalName, dateISO: date }); }}>Agendar novo</Button>
               </>
             );

@@ -32,6 +32,7 @@ export interface IntegratedLaboratoryWork {
   impressionType?: "Analógica" | "Digital";
   receivedItems?: string[];
   toothShade?: string;
+  dvo?: string;
   faceBiotype?: "Dolicocéfalo" | "Mesocéfalo" | "Braquicéfalo";
   faceShape?: "Ovoide" | "Quadrado" | "Triangular" | "Outro";
   faceDescription?: string;

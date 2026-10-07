@@ -78,6 +78,14 @@ export async function categories(req: AuthRequest, res: Response) {
         orderBy: [{ isSystem: 'desc' }, { name: 'asc' }]
       })
     }
+    // Pasta para fotos das etiquetas de implantes, biomateriais e componentes (rastreabilidade). Criada também nas clínicas já existentes.
+    if (!rows.some(r => r.name === 'Etiquetas de implantes e materiais')) {
+      await prisma.clinicalFileCategory.create({ data: { clinicId, tenantId, name: 'Etiquetas de implantes e materiais', kind: 'PHOTO', isSystem: true } }).catch(() => undefined)
+      rows = await prisma.clinicalFileCategory.findMany({
+        where: { clinicId, tenantId, isActive: true },
+        orderBy: [{ isSystem: 'desc' }, { name: 'asc' }]
+      })
+    }
     return res.json(rows)
   } catch (error) {
     console.error(error)
