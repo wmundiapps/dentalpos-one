@@ -50,10 +50,12 @@ import { createBackendPatient, loadBackendPatients, type BackendPatient } from "
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadFinancialEntries } from "../services/FinancialApi";
 import { toast } from "../utils/toast";
+import FinancialHoldDialog from "../components/FinancialHoldDialog";
+import { loadPatientHold } from "../services/FinancialHoldApi";
 import AbsenceRecallDialog from "../components/AbsenceRecallDialog";
 import AbsenceRecallBanner from "../components/AbsenceRecallBanner";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
-import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
+import { isFinancialHold, createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import {
@@ -313,6 +315,7 @@ export default function Agenda() {
     toast.success("Agenda atualizada.");
   };
   const [absenceOpen, setAbsenceOpen] = useState(false);
+  const [holdTarget, setHoldTarget] = useState<{ id: string; name: string } | null>(null);
   const [editReason, setEditReason] = useState("");
   const [editRequestedBy, setEditRequestedBy] = useState<"Paciente" | "Clínica" | "Dentista" | "Outro">("Paciente");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -831,9 +834,12 @@ export default function Agenda() {
         reminders: reminderSelection,
       });
     } catch (error) {
+      if (isFinancialHold(error)) setHoldTarget({ id: backendPatient.id, name: backendPatient.fullName });
       window.alert(error instanceof Error ? error.message : "Não foi possível salvar o agendamento.");
       return;
     }
+    // Aviso de pendência financeira: este é o único horário permitido até regularizar.
+    void loadPatientHold(backendPatient.id).then((hold) => { if (hold.hasPending) setHoldTarget({ id: backendPatient.id, name: backendPatient.fullName }); }).catch(() => undefined);
     createAppointment({
       ...form,
       patientName: patientNameForAppointment,
@@ -976,6 +982,7 @@ export default function Agenda() {
       </Box>
       <AbsenceRecallBanner />
       <AbsenceRecallDialog open={absenceOpen} onClose={() => setAbsenceOpen(false)} />
+      {holdTarget && <FinancialHoldDialog patientId={holdTarget.id} patientName={holdTarget.name} open onClose={() => setHoldTarget(null)} />}
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
         <Box

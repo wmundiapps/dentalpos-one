@@ -1,3 +1,4 @@
+import { getHold } from '../services/financialHoldService'
 import { nextRecordNumber } from './patientController'
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
@@ -437,6 +438,12 @@ export async function store(req: Request, res: Response) {
         },
         select: { id: true, phone: true, fullName: true, birthDate: true, city: true },
       })
+    }
+
+    // Pendência financeira: já tem um horário marcado e há cobrança vencida → só depois de regularizar (sem expor valores na página pública).
+    const hold = await getHold(clinicId, clinic.tenantId, patient.id).catch(() => null)
+    if (hold?.blocked) {
+      return res.status(409).json({ code: 'FINANCIAL_HOLD', error: 'Você já tem um horário marcado e há uma pendência financeira em aberto. Para marcar outro horário, entre em contato com a clínica para regularizar (boleto, Pix ou cartão).' })
     }
 
     const reminderChannel = normalizeChannel(rawChannel)

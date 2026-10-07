@@ -1,3 +1,4 @@
+import { getHold, holdMessage } from '../services/financialHoldService'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
@@ -247,6 +248,14 @@ export async function store(req: AuthRequest, res: Response) {
 
     if (when.getTime() < Date.now()) {
       return res.status(400).json({ error: 'Não é permitido criar agendamento em data ou horário retroativo.' })
+    }
+
+    // Pendência financeira: 1 horário é permitido; o seguinte só depois de regularizar (admin pode liberar com justificativa).
+    const hold = await getHold(req.user.clinicId, req.user.tenantId, patient.id).catch(() => null)
+    if (hold?.blocked) {
+      const override = req.body?.overrideFinancialHold === true && req.user.role === 'ADMIN' && String(req.body?.overrideReason || '').trim().length >= 5
+      if (!override) return res.status(409).json({ code: 'FINANCIAL_HOLD', error: holdMessage(hold), hold })
+      await writeAudit({ clinicId: req.user.clinicId, tenantId: req.user.tenantId, actorId: req.user.id, module: 'agenda', action: 'FINANCIAL_HOLD_OVERRIDE', entityType: 'Patient', entityId: patient.id, summary: `Agendamento liberado com pendência financeira por administrador: ${String(req.body.overrideReason).trim().slice(0, 200)}` }).catch((e: unknown) => console.error(e))
     }
 
     const assistantId = req.body.assistantId ? String(req.body.assistantId) : null

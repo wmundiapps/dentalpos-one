@@ -1,3 +1,4 @@
+import { getHold } from './financialHoldService'
 import { prisma } from '../lib/prisma'
 import { decryptSecret } from './secretVault'
 import { dispatchRevah, type RevahChannel } from './revahProviderService'
@@ -180,7 +181,13 @@ export async function processDueAppointmentReminders() {
           consultationValueLabel: formatConsultationValue(appointment.doctor?.consultationValue ?? null),
         })
 
-        const result = await dispatchRevah(channel, destination, message, credentials, sender?.address)
+        // Paciente com cobrança vencida recebe o aviso junto com o lembrete (novos horários ficam bloqueados até regularizar).
+        const hold = await getHold(appointment.clinicId, appointment.tenantId, appointment.patientId).catch(() => null)
+        const text = hold?.hasPending
+          ? `${message}\n\nAviso: há uma pendência financeira em aberto no seu cadastro. Para poder marcar novos horários, regularize com a clínica (reemissão de boleto, Pix ou cartão).`
+          : message
+
+        const result = await dispatchRevah(channel, destination, text, credentials, sender?.address)
 
         if (result.simulated) {
           await postponeWithError(reminder.id, `O provedor ${result.provider} está em modo simulado.`)
