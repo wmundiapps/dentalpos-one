@@ -22,6 +22,7 @@ import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import QuickScheduleDialog from "../components/QuickScheduleDialog";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import GerarFinanceiroButton from "../components/patient/GerarFinanceiroButton";
 import PageHeader from "../components/PageHeader";
 import ExportMenu from "../components/ExportMenu";
 import {
@@ -220,6 +221,7 @@ export default function Patients() {
         actionIcon={<AddIcon />}
         onAction={openNew}
       />
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}><GerarFinanceiroButton /></Box>
       {urlParams.get("acao") === "financeiro" && <Alert severity="info" sx={{ mb: 2 }}>Escolha o paciente e clique em <b>Gerar financeiro</b> para emitir boleto, Pix, cartão, cheque pré-datado ou dinheiro.</Alert>}
 
       {error && (
