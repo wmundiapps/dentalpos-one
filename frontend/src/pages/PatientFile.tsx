@@ -95,6 +95,7 @@ function Resumo({ patient, plan, appts, ir, agendar }: { patient: BackendPatient
       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
         <Typography sx={{ fontWeight: 900, mb: 1 }}>Atalhos</Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Button variant="contained" startIcon={<PaymentsIcon />} onClick={() => ir("cobranca")}>Gerar financeiro</Button>
           <Button variant="contained" color="success" startIcon={<EventAvailableIcon />} onClick={agendar}>Agendar consulta</Button>
           <Button variant="contained" startIcon={<ImageIcon />} onClick={() => ir("exames")}>Adicionar exame ou imagem</Button>
           <Button variant="outlined" startIcon={<AssignmentIndIcon />} onClick={() => ir("prontuario")}>{"Abrir prontuário"}</Button>
@@ -122,7 +123,7 @@ export default function PatientFile() {
   const [patient, setPatient] = useState<BackendPatient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState("resumo");
+  const [tab, setTab] = useState(["cobranca", "financeiro"].includes(searchParams.get("aba") || "") ? "cobranca" : "resumo");
   const [clinicalSub, setClinicalSub] = useState("ficha");
   const [record, setRecord] = useState<ClinicalRecordData | null>(null);
   const [recordLoading, setRecordLoading] = useState(true);
@@ -140,7 +141,7 @@ export default function PatientFile() {
   useEffect(() => {
     let active = true;
     if (!patientId) { setError("Selecione um paciente para abrir a ficha."); setLoading(false); return; }
-    setLoading(true); setError(""); setTab("resumo");
+    setLoading(true); setError(""); setTab(["cobranca", "financeiro"].includes(searchParams.get("aba") || "") ? "cobranca" : "resumo");
     loadBackendPatient(patientId)
       .then((d) => { if (active) setPatient(d); })
       .catch((e) => { if (active) setError(e instanceof Error ? e.message : "Erro ao carregar paciente."); })
@@ -191,7 +192,7 @@ export default function PatientFile() {
   const abas: Array<{ key: string; label: string; icon: ReactNode }> = [
     { key: "resumo", label: "Resumo", icon: <SummarizeIcon /> },
     { key: "dados", label: "Dados pessoais", icon: <PersonIcon /> },
-    { key: "cobranca", label: "Cobrança", icon: <PaymentsIcon /> },
+    { key: "cobranca", label: "Financeiro", icon: <PaymentsIcon /> },
     { key: "laboratorio", label: "Laboratório", icon: <BiotechIcon /> },
     { key: "prontuario", label: "Prontuário clínico", icon: <AssignmentIndIcon /> },
     { key: "historico", label: "Histórico Médico", icon: <MonitorHeartIcon /> },
@@ -219,7 +220,7 @@ export default function PatientFile() {
             return proxima ? `Próximo atendimento: ${dataHora(proxima.scheduledAt)} • ${proxima.procedure}` : "Nenhum atendimento futuro agendado.";
           })()}
         </Typography>
-        <Button variant="contained" color="success" startIcon={<EventAvailableIcon />} onClick={agendar}>Agendar consulta</Button>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}><Button variant="contained" startIcon={<PaymentsIcon />} onClick={() => setTab("cobranca")}>Gerar financeiro</Button><Button variant="contained" color="success" startIcon={<EventAvailableIcon />} onClick={agendar}>Agendar consulta</Button></Box>
       </Paper>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", sm: "repeat(4,1fr)", lg: "repeat(7,1fr)" }, gap: 1, mb: 2 }}>
         {abas.map((a) => {

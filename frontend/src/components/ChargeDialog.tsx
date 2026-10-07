@@ -23,7 +23,7 @@ export function CopyField({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function ChargeDialog({ entry, existing, onClose, onChanged }: { entry: ChargeEntry | null; existing?: ReceivableCharge | null; onClose: () => void; onChanged: () => void }) {
+export default function ChargeDialog({ entry, existing, onClose, onChanged, initialBillingType }: { entry: ChargeEntry | null; existing?: ReceivableCharge | null; onClose: () => void; onChanged: () => void; initialBillingType?: "ESCOLHER" | "PIX" | "BOLETO" | "CARTAO" }) {
   const navigate = useNavigate();
   const [ready, setReady] = useState<boolean | null>(null);
   const [accounts, setAccounts] = useState<PayoutAccount[]>([]);
@@ -39,7 +39,7 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged }: { 
 
   useEffect(() => {
     if (!entry) return;
-    setError(""); setCharge(existing || null); setBillingType("ESCOLHER"); setInstallments("1"); setDoctorId(""); setMode("RULE"); setValue("");
+    setError(""); setCharge(existing || null); setBillingType(initialBillingType || "ESCOLHER"); setInstallments("1"); setDoctorId(""); setMode("RULE"); setValue("");
     setDueDate(new Date(entry.dueDate).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }));
     ReceiptsApi.readiness().then((r) => setReady(r.ready)).catch(() => setReady(false));
     ReceiptsApi.accounts().then(setAccounts).catch(() => setAccounts([]));
