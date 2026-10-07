@@ -50,6 +50,8 @@ import { createBackendPatient, loadBackendPatients, type BackendPatient } from "
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadFinancialEntries } from "../services/FinancialApi";
 import { toast } from "../utils/toast";
+import AbsenceRecallDialog from "../components/AbsenceRecallDialog";
+import AbsenceRecallBanner from "../components/AbsenceRecallBanner";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
 import { createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
@@ -310,6 +312,7 @@ export default function Agenda() {
     window.dispatchEvent(new Event(PENDING_ALERTS_EVENT)); // atualiza a faixa de pendências na hora
     toast.success("Agenda atualizada.");
   };
+  const [absenceOpen, setAbsenceOpen] = useState(false);
   const [editReason, setEditReason] = useState("");
   const [editRequestedBy, setEditRequestedBy] = useState<"Paciente" | "Clínica" | "Dentista" | "Outro">("Paciente");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -968,6 +971,11 @@ export default function Agenda() {
         actionIcon={<AddIcon />}
         onAction={() => openNew({ dateISO: date })}
       />
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+        <Button variant="outlined" onClick={() => setAbsenceOpen(true)}>Pacientes ausentes: convidar para retorno</Button>
+      </Box>
+      <AbsenceRecallBanner />
+      <AbsenceRecallDialog open={absenceOpen} onClose={() => setAbsenceOpen(false)} />
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
         <Box
