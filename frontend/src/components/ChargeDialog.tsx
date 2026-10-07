@@ -36,10 +36,16 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged, init
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [charge, setCharge] = useState<ReceivableCharge | null>(null);
+  const [needData, setNeedData] = useState(false);
+  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [custEmail, setCustEmail] = useState("");
+  const [custPhone, setCustPhone] = useState("");
+  const [emailState, setEmailState] = useState<{ sent: boolean; to: string | null; reason?: string } | null>(null);
+  const [emailBusy, setEmailBusy] = useState(false);
 
   useEffect(() => {
     if (!entry) return;
-    setError(""); setCharge(existing || null); setBillingType(initialBillingType || "ESCOLHER"); setInstallments("1"); setDoctorId(""); setMode("RULE"); setValue("");
+    setError(""); setNeedData(false); setCpfCnpj(""); setCustEmail(""); setCustPhone(entry.phone || ""); setEmailState(null); setCharge(existing || null); setBillingType(initialBillingType || "ESCOLHER"); setInstallments("1"); setDoctorId(""); setMode("RULE"); setValue("");
     setDueDate(new Date(entry.dueDate).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }));
     ReceiptsApi.readiness().then((r) => setReady(r.ready)).catch(() => setReady(false));
     ReceiptsApi.accounts().then(setAccounts).catch(() => setAccounts([]));
@@ -64,15 +70,34 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged, init
     setBusy(true); setError("");
     try {
       const num = Number(value.replace(",", "."));
+      const customer = {
+        ...(cpfCnpj.replace(/\D/g, "") ? { cpfCnpj: cpfCnpj.replace(/\D/g, "") } : {}),
+        ...(custEmail.trim() ? { email: custEmail.trim() } : {}),
+        ...(custPhone.trim() ? { phone: custPhone.trim() } : {}),
+      };
       const result = await ReceiptsApi.createCharge(entry.id, {
         billingType, installments: billingType === "CARTAO" ? Number(installments) : 1, dueDate,
+        ...(Object.keys(customer).length ? { customer } : {}),
         ...(doctorId ? { split: { doctorId, mode, ...(mode !== "RULE" ? { value: num } : {}) } } : {}),
       });
       setCharge(result);
+      setNeedData(false);
+      if (result.email) setEmailState(result.email);
       onChanged();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível gerar a cobrança.");
+      const msg = e instanceof Error ? e.message : "Não foi possível gerar a cobrança.";
+      setError(msg);
+      // Falta dado do cliente: abre os campos para preencher/corrigir e tentar de novo, até a cobrança ser gerada.
+      if (/cpf|cnpj|e-?mail|telefone|documento/i.test(msg)) setNeedData(true);
     } finally { setBusy(false); }
+  };
+
+  const sendEmail = async () => {
+    if (!charge) return;
+    setEmailBusy(true);
+    try { setEmailState(await ReceiptsApi.sendChargeEmail(charge.id, custEmail.trim() || undefined)); }
+    catch (e) { setEmailState({ sent: false, to: null, reason: e instanceof Error ? e.message : "Não foi possível enviar o e-mail." }); }
+    finally { setEmailBusy(false); }
   };
 
   const cancel = async () => {
@@ -102,6 +127,15 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged, init
             <Alert severity={charge.status === "PAGO" ? "success" : charge.status === "VENCIDO" ? "warning" : "info"}>
               {charge.reused ? "Já existe uma cobrança para este lançamento. " : ""}Situação: <b>{{ PENDENTE: "aguardando pagamento", PAGO: "paga", VENCIDO: "vencida", ESTORNADO: "estornada", CANCELADO: "cancelada" }[charge.status]}</b>. O lançamento é baixado automaticamente quando o Asaas confirmar o pagamento.
             </Alert>
+            {emailState?.sent && <Alert severity="success">Cobrança enviada por e-mail para {emailState.to}.</Alert>}
+            {emailState && !emailState.sent && (
+              <Box sx={{ display: "grid", gap: 1, p: 1.5, border: "2px solid", borderColor: "warning.main", borderRadius: 2 }}>
+                <Typography sx={{ fontWeight: 800 }}>A cobrança ainda não foi enviada por e-mail</Typography>
+                <Typography variant="body2" color="text.secondary">{emailState.reason || "Não foi possível enviar."}</Typography>
+                <TextField size="small" label="E-mail do paciente" value={custEmail} onChange={(e) => setCustEmail(e.target.value)} placeholder={emailState.to || "nome@exemplo.com"} />
+                <Box><Button variant="contained" disabled={emailBusy} onClick={() => void sendEmail()}>{emailBusy ? "Enviando..." : "Salvar e enviar por e-mail agora"}</Button></Box>
+              </Box>
+            )}
             {charge.invoiceUrl && <CopyField label="Link de pagamento (o paciente escolhe PIX, boleto ou cartão)" value={charge.invoiceUrl} />}
             {charge.pixCopyPaste && <CopyField label="PIX copia e cola" value={charge.pixCopyPaste} />}
             {charge.digitableLine && <CopyField label="Linha digitável do boleto" value={charge.digitableLine} />}
@@ -117,6 +151,15 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged, init
           </Alert>
         ) : (
           <>
+            {needData && (
+              <Box sx={{ display: "grid", gap: 1.5, p: 1.5, border: "2px solid", borderColor: "warning.main", borderRadius: 2 }}>
+                <Typography sx={{ fontWeight: 800 }}>Complete os dados do paciente para gerar a cobrança</Typography>
+                <TextField label="CPF ou CNPJ do paciente" value={cpfCnpj} onChange={(e) => setCpfCnpj(e.target.value)} placeholder="Somente números" slotProps={{ htmlInput: { inputMode: "numeric" } }} autoFocus />
+                <TextField label="E-mail do paciente (a cobrança é enviada por e-mail)" value={custEmail} onChange={(e) => setCustEmail(e.target.value)} />
+                <TextField label="Telefone / WhatsApp" value={custPhone} onChange={(e) => setCustPhone(e.target.value)} />
+                <Typography variant="caption" color="text.secondary">Os dados ficam salvos no cadastro do paciente. Preencha e clique em “Salvar e gerar cobrança”.</Typography>
+              </Box>
+            )}
             <TextField select label="Forma de cobrança" value={billingType} onChange={(e) => setBillingType(e.target.value as typeof billingType)}>
               <MenuItem value="ESCOLHER">O paciente escolhe (PIX, boleto ou cartão)</MenuItem>
               <MenuItem value="PIX">PIX</MenuItem>
@@ -164,7 +207,7 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged, init
         <Button onClick={onClose} disabled={busy}>{charge ? "Fechar" : "Cancelar"}</Button>
         {!charge && ready !== false && (
           <Button variant="contained" disabled={busy || ready === null || (Boolean(doctorId) && (!doctor?.ready || (mode !== "RULE" && !(Number(value.replace(",", ".")) > 0))))} onClick={() => void submit()}>
-            {busy ? "Gerando..." : "Gerar cobrança"}
+            {busy ? "Gerando..." : needData ? "Salvar e gerar cobrança" : "Gerar cobrança"}
           </Button>
         )}
       </DialogActions>

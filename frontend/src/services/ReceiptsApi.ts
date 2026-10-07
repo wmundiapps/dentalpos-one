@@ -53,6 +53,7 @@ export interface ReceivableCharge {
   paidAt?: string | null;
   splits: ChargeSplit[];
   reused?: boolean;
+  email?: { sent: boolean; to: string | null; reason?: string };
 }
 
 export interface CreateChargeInput {
@@ -60,6 +61,7 @@ export interface CreateChargeInput {
   installments?: number;
   dueDate?: string;
   split?: { doctorId: string; mode: "RULE" | "PERCENT" | "FIXED"; value?: number };
+  customer?: { cpfCnpj?: string; email?: string; phone?: string };
 }
 
 export interface PayoutRow { id: string; doctorId: string; doctorName: string; description: string; customer: string; chargeValue: number; dueDate: string; paidAt?: string | null; mode: string; percent: number | null; amount: number; planned: number; status: string }
@@ -77,6 +79,7 @@ export const ReceiptsApi = {
     parse<ReceivableCharge[]>(await fetch(`${API}/receivable-charges${entryIds?.length ? `?entryIds=${entryIds.join(",")}` : ""}`, { headers: headers() })),
   createCharge: async (entryId: string, input: CreateChargeInput) =>
     parse<ReceivableCharge>(await fetch(`${API}/financial-entries/${entryId}/charge`, { method: "POST", headers: headers(true), body: JSON.stringify(input) })),
+  sendChargeEmail: async (id: string, email?: string) => parse<{ sent: boolean; to: string | null; reason?: string }>(await fetch(`${API}/receivable-charges/${id}/send-email`, { method: "POST", headers: headers(true), body: JSON.stringify({ email }) })),
   cancelCharge: async (id: string) => parse<{ ok: boolean }>(await fetch(`${API}/receivable-charges/${id}/cancel`, { method: "POST", headers: headers(true), body: "{}" })),
   payouts: async (filter: { doctorId?: string; from?: string; to?: string } = {}) => {
     const q = new URLSearchParams(Object.entries(filter).filter(([, v]) => v) as Array<[string, string]>).toString();
