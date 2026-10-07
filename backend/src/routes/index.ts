@@ -332,6 +332,7 @@ router.post('/financial-entries', requirePermission('finance.create'), financial
 router.put('/financial-entries/:id', requirePermission('finance.edit'), financialController.update)
 router.get('/receivable-charges/readiness', requirePermission('finance.view'), chargeController.readiness)
 router.get('/receivable-charges', requirePermission('finance.view'), chargeController.listCharges)
+router.post('/receivable-charges/:id/send-email', requirePermission('finance.create'), chargeController.sendEmail)
 router.post('/receivable-charges/:id/cancel', requirePermission('finance.approve'), chargeController.cancelCharge)
 router.post('/financial-entries/:id/charge', requirePermission('finance.create'), chargeController.createForEntry)
 router.get('/dunning', requirePermission('finance.approve'), dunningController.show)
