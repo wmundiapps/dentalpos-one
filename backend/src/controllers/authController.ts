@@ -107,6 +107,8 @@ export async function register(req: Request, res: Response) {
   }
 }
 
+import { clearLoginFailures, lockoutKey, lockRemainingMs, registerLoginFailure } from '../lib/loginLockout'
+
 export async function login(req: Request, res: Response) {
   try {
     const { clinicId, email, password } = req.body
@@ -116,6 +118,15 @@ export async function login(req: Request, res: Response) {
     }
 
     const normalizedEmail = String(email).trim().toLowerCase()
+    const lockKey = lockoutKey(normalizedEmail, clinicId ? String(clinicId) : undefined)
+    const lockedMs = lockRemainingMs(lockKey)
+    if (lockedMs > 0) {
+      res.setHeader('Retry-After', String(Math.ceil(lockedMs / 1000)))
+      return res.status(429).json({
+        code: 'ACCOUNT_LOCKED',
+        error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
+      })
+    }
     let user
 
     if (clinicId) {
@@ -139,14 +150,17 @@ export async function login(req: Request, res: Response) {
     }
 
     if (!user || !user.isActive) {
+      registerLoginFailure(lockKey)
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
     }
 
     const validPassword = await comparePassword(String(password), user.password)
 
     if (!validPassword) {
+      registerLoginFailure(lockKey)
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' })
     }
+    clearLoginFailures(lockKey)
 
     const demo = await getDemoAccess(user.clinicId)
     if (demo.isDemo && demo.phase === 'ENDED') {

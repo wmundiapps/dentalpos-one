@@ -4,11 +4,13 @@ import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
 import { AppThemeProvider } from "./contexts/AppThemeContext";
+import { enforceSiteGuard } from "./utils/siteGuard";
 import { repairLocalStorageText } from "./utils/textEncoding";
 
 import "./index.css";
 import "./print.css";
 
+enforceSiteGuard();
 repairLocalStorageText();
 
 const rootElement = document.getElementById("root");
