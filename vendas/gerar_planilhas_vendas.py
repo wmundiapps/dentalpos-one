@@ -5,6 +5,7 @@ Uso:
   modelo       # cria o modelo em branco (sem senha). Cada vendedor salva uma cópia e cria a PRÓPRIA senha.
   consolidar   # lê as planilhas recebidas em ./recebidas e gera GESTOR_Consolidado.xlsx
                # (senhas: arquivo senhas.json {"Vendas_Nome.xlsx": "senha"} ou digitadas na hora)
+  drive        # pacote Google Drive: modelo sem senha + Painel_Gestor_Drive.xlsx (IMPORTRANGE)
   gerar        # (opcional) gera um arquivo com senha definida por você para cada nome em vendedores.json
 Dependências: pip install openpyxl msoffcrypto-tool
 """
@@ -147,7 +148,7 @@ TERMO = [
 ]
 
 
-def aba_cadastro(wb):
+def aba_cadastro(wb, drive=False):
     ws = wb.create_sheet("Cadastro e Termo", 1)
     ws.sheet_properties.tabColor = "8E44AD"
     ws.column_dimensions["A"].width = 42
@@ -162,13 +163,14 @@ def aba_cadastro(wb):
         c.fill, c.border = PatternFill("solid", fgColor=AMARELO), BORDA
         c.number_format = "@"
     r = 4 + len(CAMPOS_CADASTRO) + 1
-    for i, t in enumerate(TERMO):
+    termo = [t.replace('protegidos por senha e', 'guardados apenas neste arquivo do Drive e') for t in TERMO] if drive else TERMO
+    for i, t in enumerate(termo):
         c = ws.cell(row=r + i, column=1, value=t)
         ws.merge_cells(start_row=r + i, start_column=1, end_row=r + i, end_column=2)
         c.alignment = Alignment(wrap_text=True, vertical="top")
         c.font = Font(bold=(i == 0))
         ws.row_dimensions[r + i].height = 20 if i == 0 else 48
-    a = r + len(TERMO) + 1
+    a = r + len(termo) + 1
     ws.cell(row=a, column=1, value="Li e ACEITO o termo acima?").font = Font(bold=True)
     ws.cell(row=a + 1, column=1, value="Nome completo (digite para assinar)").font = Font(bold=True)
     ws.cell(row=a + 2, column=1, value="Data do aceite").font = Font(bold=True)
@@ -181,7 +183,7 @@ def aba_cadastro(wb):
     return a  # linha do aceite
 
 
-def montar_modelo(vendedor="(modelo)"):
+def montar_modelo(vendedor="(modelo)", drive=False):
     wb = Workbook()
     ins = wb.active
     ins.title = "Instruções"
@@ -210,12 +212,17 @@ def montar_modelo(vendedor="(modelo)"):
         ("Precisa de mais? Clique com o botão direito numa aba amarela > Mover ou copiar > Criar uma cópia.", None),
         ("Novas fases e origens: edite a aba 'Listas' (acrescente na primeira linha vazia da coluna).", None),
     ]
+    if drive:
+        linhas[1] = ("Este arquivo é pessoal: fica numa pasta do Google Drive compartilhada só com você e com a gestão. Nenhum outro vendedor tem acesso.", None)
+        linhas[4] = ("1. Abra o arquivo pelo link do Google Planilhas enviado pela gestão. Não precisa de senha nem de enviar nada: as comissões são conferidas direto neste arquivo.", None)
+        linhas[5] = ("2. Não renomeie, não mova nem compartilhe este arquivo com terceiros.", None)
+        linhas[13] = ("5. Mantenha as informações sempre atualizadas: o pagamento das comissões é conferido por aqui.", None)
     for i, (t, f) in enumerate(linhas, 1):
         ins.cell(row=i, column=1, value=t)
         if f: ins.cell(row=i, column=1).font = f
     ins.column_dimensions["A"].width = 140
 
-    linha_aceite = aba_cadastro(wb)
+    linha_aceite = aba_cadastro(wb, drive)
     lst = wb.create_sheet("Listas")
     lst.sheet_properties.tabColor = "888888"
     lst["A1"], lst["B1"] = "Fases da negociação", "Origens"
@@ -253,6 +260,71 @@ def montar_modelo(vendedor="(modelo)"):
     for col, w in zip("ABCDEFG", (34, 58, 11, 14, 10, 11, 20)):
         res.column_dimensions[col].width = w
     wb.linha_aceite = linha_aceite
+    return wb
+
+
+def consolidado_drive(max_vendedores=15):
+    """Planilha do gestor para o Google Sheets: puxa os dados de cada vendedor com IMPORTRANGE."""
+    wb = Workbook()
+    ins = wb.active; ins.title = "Como usar"
+    for i, t in enumerate([
+        "Painel do gestor (Google Planilhas)",
+        "1. Envie este arquivo ao Drive e abra com Google Planilhas.",
+        "2. Na aba 'Vendedores', digite o nome e cole o LINK da planilha de cada vendedor (você precisa ter acesso a ela).",
+        "3. Na primeira vez, o Google mostra #REF! com o botão 'Permitir acesso' em cada célula: clique para liberar a ligação.",
+        "4. 'Resumo geral' mostra negócios, ganhos e comissão de cada um; 'Cadastro e Pix' mostra os dados de pagamento;",
+        "   'Detalhe' lista todos os negócios de um vendedor/aba escolhidos.",
+        "Obs.: as linhas de TOTAL do Resumo de cada vendedor são lidas da linha %d da aba Resumo." % (4 + len(EMPRESAS)),
+    ], 1):
+        ins.cell(row=i, column=1, value=t)
+    ins["A1"].font = Font(size=16, bold=True, color=AZUL_ESC)
+    ins.column_dimensions["A"].width = 130
+
+    vs = wb.create_sheet("Vendedores")
+    vs.append(["Vendedor", "Link da planilha do vendedor"])
+    for c in vs[1]: c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor=AZUL_ESC)
+    for i in range(2, max_vendedores + 2):
+        for col in (1, 2):
+            c = vs.cell(row=i, column=col); c.fill = PatternFill("solid", fgColor=AMARELO); c.border = BORDA
+    vs.column_dimensions["A"].width = 28; vs.column_dimensions["B"].width = 90
+
+    t = 4 + len(EMPRESAS)
+    rg = wb.create_sheet("Resumo geral")
+    rg.append(["Vendedor", "Negócios", "Ganhos", "Comissão a pagar"])
+    for c in rg[1]: c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor=AZUL_ESC)
+    for i in range(2, max_vendedores + 2):
+        u = f"Vendedores!$B{i}"
+        rg[f"A{i}"] = f'=IF(Vendedores!A{i}="","",Vendedores!A{i})'
+        rg[f"B{i}"] = f'=IF({u}="","",IMPORTRANGE({u},"Resumo!C{t}"))'
+        rg[f"C{i}"] = f'=IF({u}="","",IMPORTRANGE({u},"Resumo!E{t}"))'
+        rg[f"D{i}"] = f'=IF({u}="","",IMPORTRANGE({u},"Resumo!G{t}"))'
+        rg[f"D{i}"].number_format = BRL
+    f = max_vendedores + 2
+    rg[f"A{f}"], rg[f"B{f}"], rg[f"C{f}"], rg[f"D{f}"] = "TOTAL", f"=SUM(B2:B{f-1})", f"=SUM(C2:C{f-1})", f"=SUM(D2:D{f-1})"
+    rg[f"D{f}"].number_format = BRL
+    for c in rg[f]: c.font = Font(bold=True)
+    for col, w in zip("ABCD", (28, 12, 12, 20)): rg.column_dimensions[col].width = w
+
+    cp = wb.create_sheet("Cadastro e Pix")
+    cp.append(["Vendedor"] + CAMPOS_CADASTRO)
+    for c in cp[1]: c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor=AZUL_ESC)
+    n = len(CAMPOS_CADASTRO)
+    for i in range(2, max_vendedores + 2):
+        u = f"Vendedores!$B{i}"
+        cp[f"A{i}"] = f'=IF(Vendedores!A{i}="","",Vendedores!A{i})'
+        cp[f"B{i}"] = f'=IF({u}="","",TRANSPOSE(IMPORTRANGE({u},"\'Cadastro e Termo\'!B4:B{3 + n}")))'
+    for j in range(1, n + 2): cp.column_dimensions[get_column_letter(j)].width = 26
+
+    dt = wb.create_sheet("Detalhe")
+    dt["A1"], dt["A2"] = "Vendedor:", "Aba (empresa):"
+    for c in ("A1", "A2"): dt[c].font = Font(bold=True)
+    for c in ("B1", "B2"): dt[c].fill = PatternFill("solid", fgColor=AMARELO); dt[c].border = BORDA
+    dt["B1"], dt["B2"] = "(escolha)", EMPRESAS[0][0]
+    d1 = DataValidation(type="list", formula1=f"=Vendedores!$A$2:$A${max_vendedores+1}", allow_blank=True)
+    d2 = DataValidation(type="list", formula1='"' + ",".join(e[0] for e in EMPRESAS) + '"', allow_blank=True)
+    dt.add_data_validation(d1); dt.add_data_validation(d2); d1.add("B1"); d2.add("B2")
+    dt["A4"] = ('=IF(COUNTIF(Vendedores!A:A,B1)=0,"Escolha o vendedor e a aba",IMPORTRANGE(VLOOKUP(B1,Vendedores!A:B,2,FALSE),"\'"&B2&"\'!A5:M%d"))' % ULTIMA)
+    dt.column_dimensions["A"].width = 28; dt.column_dimensions["B"].width = 28
     return wb
 
 
@@ -369,7 +441,10 @@ def consolidar():
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "modelo"
-    if cmd == "modelo":
+    if cmd == "drive":
+        montar_modelo(drive=True).save(AQUI / "Modelo_Vendas_DentalPos_Drive.xlsx")
+        consolidado_drive().save(AQUI / "Painel_Gestor_Drive.xlsx"); print("Pacote Drive criado.")
+    elif cmd == "modelo":
         montar_modelo().save(AQUI / "Modelo_Vendas_DentalPos.xlsx"); print("Modelo criado.")
     elif cmd == "gerar": gerar()
     elif cmd == "consolidar": consolidar()
