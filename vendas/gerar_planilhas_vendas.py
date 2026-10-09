@@ -2,12 +2,10 @@
 """Planilha de acompanhamento de vendas por vendedor (DentalPos).
 
 Uso:
-  python3 gerar_planilhas_vendas.py gerar        # cria um arquivo .xlsx protegido por senha para cada vendedor
-  python3 gerar_planilhas_vendas.py consolidar   # junta os dados de todos os vendedores num arquivo do gestor
-  python3 gerar_planilhas_vendas.py modelo       # cria só o modelo em branco (sem senha)
-
-Os vendedores ficam em vendedores.json (copie de vendedores.exemplo.json).
-Se um vendedor não tiver "senha", uma é gerada e gravada no próprio json.
+  modelo       # cria o modelo em branco (sem senha). Cada vendedor salva uma cópia e cria a PRÓPRIA senha.
+  consolidar   # lê as planilhas recebidas em ./recebidas e gera GESTOR_Consolidado.xlsx
+               # (senhas: arquivo senhas.json {"Vendas_Nome.xlsx": "senha"} ou digitadas na hora)
+  gerar        # (opcional) gera um arquivo com senha definida por você para cada nome em vendedores.json
 Dependências: pip install openpyxl msoffcrypto-tool
 """
 import io, json, secrets, string, sys
@@ -21,6 +19,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 AQUI = Path(__file__).resolve().parent
 SAIDA = AQUI / "planilhas-geradas"
+RECEBIDAS = AQUI / "recebidas"  # planilhas enviadas pelos vendedores
 PRIMEIRA, ULTIMA = 6, 505  # linhas de dados (500 negócios por aba)
 
 FASES = ["Novo lead", "Contato realizado", "Em negociação", "Proposta / Teste", "Fechado (ganho)", "Perdido"]
@@ -133,20 +132,75 @@ def aba_empresa(wb, nome, produtos, tipo, valor, regra, lista_fases, lista_orige
     return ws
 
 
+CAMPOS_CADASTRO = ["Nome completo", "CPF", "CNPJ / MEI (se tiver)", "Endereço completo", "Cidade / UF", "CEP",
+                   "E-mail", "WhatsApp", "Chave Pix (tipo e chave)", "Banco / Agência / Conta (se não usar Pix)"]
+TERMO = [
+    "TERMO DE ACEITE - PRESTAÇÃO DE SERVIÇOS COMO FREELANCER (REPRESENTANTE COMERCIAL AUTÔNOMO)",
+    "1. Natureza: o(a) vendedor(a) atua como profissional autônomo(a) (freelancer), por conta própria, sem vínculo empregatício, sem subordinação, sem horário fixo e sem exclusividade com a Wmundi / DentalPos e suas empresas e produtos.",
+    "2. Objeto: divulgar e captar clientes para os produtos e serviços listados nas abas desta planilha, informando apenas as condições oficiais, sem prometer preços, prazos ou benefícios não autorizados.",
+    "3. Remuneração: somente comissão, conforme a regra exibida no topo de cada aba (valor fixo ou %). A comissão é paga uma única vez por negócio, depois que a venda/ativação for confirmada pela empresa (fase 'Fechado (ganho)'). Negócios perdidos, cancelados ou estornados não geram comissão.",
+    "4. Pagamento: por Pix ou transferência para os dados informados acima, no prazo combinado com a gestão, mediante conferência desta planilha. O(a) vendedor(a) é responsável pelos seus próprios tributos e, quando exigido, pela emissão de nota fiscal/RPA.",
+    "5. Dados e sigilo (LGPD): os dados de clientes e leads registrados nesta planilha pertencem à empresa, devem ser usados somente para a venda dos produtos acima, mantidos em sigilo, protegidos por senha e jamais repassados, vendidos ou usados para outros fins. Ao encerrar a parceria, o arquivo deve ser entregue e as cópias apagadas.",
+    "6. Conduta: é proibido usar a marca de forma indevida, fazer propaganda enganosa, spam ou abordagens contrárias à lei. Cada vendedor trabalha apenas com a própria carteira.",
+    "7. Vigência: prazo indeterminado; qualquer parte pode encerrar a qualquer momento por aviso simples, ficando garantidas as comissões de vendas já confirmadas.",
+    "8. A veracidade dos dados informados e o aceite digital abaixo valem como concordância integral com este termo.",
+]
+
+
+def aba_cadastro(wb):
+    ws = wb.create_sheet("Cadastro e Termo", 1)
+    ws.sheet_properties.tabColor = "8E44AD"
+    ws.column_dimensions["A"].width = 42
+    ws.column_dimensions["B"].width = 90
+    ws["A1"] = "Cadastro do vendedor (freelancer)"
+    ws["A1"].font = Font(size=16, bold=True, color=AZUL_ESC)
+    ws["A2"] = "Preencha todos os campos amarelos. Estes dados são usados para pagar suas comissões."
+    ws["A2"].font = Font(italic=True, color="555555")
+    for i, campo in enumerate(CAMPOS_CADASTRO, 4):
+        ws.cell(row=i, column=1, value=campo).font = Font(bold=True)
+        c = ws.cell(row=i, column=2)
+        c.fill, c.border = PatternFill("solid", fgColor=AMARELO), BORDA
+        c.number_format = "@"
+    r = 4 + len(CAMPOS_CADASTRO) + 1
+    for i, t in enumerate(TERMO):
+        c = ws.cell(row=r + i, column=1, value=t)
+        ws.merge_cells(start_row=r + i, start_column=1, end_row=r + i, end_column=2)
+        c.alignment = Alignment(wrap_text=True, vertical="top")
+        c.font = Font(bold=(i == 0))
+        ws.row_dimensions[r + i].height = 20 if i == 0 else 48
+    a = r + len(TERMO) + 1
+    ws.cell(row=a, column=1, value="Li e ACEITO o termo acima?").font = Font(bold=True)
+    ws.cell(row=a + 1, column=1, value="Nome completo (digite para assinar)").font = Font(bold=True)
+    ws.cell(row=a + 2, column=1, value="Data do aceite").font = Font(bold=True)
+    for k in range(3):
+        c = ws.cell(row=a + k, column=2)
+        c.fill, c.border = PatternFill("solid", fgColor=AMARELO), BORDA
+    ws.cell(row=a + 2, column=2).number_format = "dd/mm/yyyy"
+    dv = DataValidation(type="list", formula1='"Sim,Não"', allow_blank=True)
+    ws.add_data_validation(dv); dv.add(f"B{a}")
+    return a  # linha do aceite
+
+
 def montar_modelo(vendedor="(modelo)"):
     wb = Workbook()
     ins = wb.active
     ins.title = "Instruções"
     ins.sheet_properties.tabColor = "888888"
     linhas = [
-        (f"Acompanhamento de vendas - {vendedor}", Font(size=18, bold=True, color=AZUL_ESC)),
-        ("Este arquivo é pessoal: só quem tem a senha consegue abrir. Os dados de um vendedor não aparecem para outro.", None),
+        ("Acompanhamento de vendas - DentalPos / Wmundi", Font(size=18, bold=True, color=AZUL_ESC)),
+        ("Este arquivo é pessoal e fica protegido por uma senha que VOCÊ cria. Os dados de um vendedor não aparecem para outro.", None),
         ("", None),
-        ("Como usar", Font(bold=True, size=12)),
-        ("1. Vá na aba da empresa/produto e registre cada negócio em uma linha (Produto, Cliente, Cidade, E-mail, WhatsApp, Origem, Interesse...).", None),
-        ("2. Atualize a coluna 'Fase da negociação' conforme o cliente avança. Só 'Fechado (ganho)' gera comissão.", None),
-        ("3. A coluna 'Comissão (R$)' é calculada sozinha (não digite nela). Nas abas com comissão em % (Componentes, Campanhas, Mkt Recorrente) informe o 'Valor da venda' - nas Wmundi, só o valor principal, sem mensalidades. Toda comissão é paga uma única vez.", None),
-        ("4. A aba 'Resumo' soma tudo o que você tem a receber por produto.", None),
+        ("Primeiros passos", Font(bold=True, size=12)),
+        ("1. Salve uma cópia com seu nome: Arquivo > Salvar como > Vendas_SeuNome.xlsx (não altere o nome nos envios seguintes).", None),
+        ("2. Crie sua senha: Arquivo > Informações > Proteger Pasta de Trabalho > Criptografar com Senha. Guarde-a e informe ao gestor por um canal seguro.", None),
+        ("3. Abra a aba 'Cadastro e Termo', preencha seus dados (nome, CPF/CNPJ, endereço, Pix ou conta) e dê o aceite do termo de freelancer.", None),
+        ("", None),
+        ("No dia a dia", Font(bold=True, size=12)),
+        ("1. Na aba da empresa/produto, registre cada negócio em uma linha (Produto, Cliente, Cidade, E-mail, WhatsApp, Origem, Interesse...).", None),
+        ("2. Atualize a coluna 'Fase da negociação' conforme o cliente avança. Só 'Fechado (ganho)' gera comissão (paga uma única vez).", None),
+        ("3. A coluna 'Comissão (R$)' é calculada sozinha (não digite nela). Nas abas com comissão em % (Componentes, Campanhas, Mkt Recorrente), informe o 'Valor da venda' - nas Wmundi, só o valor principal, sem mensalidades.", None),
+        ("4. A aba 'Resumo' soma o que você tem a receber por produto.", None),
+        ("5. Envie o arquivo ao gestor todos os dias (e-mail, WhatsApp ou pasta compartilhada), sempre com o mesmo nome.", None),
         ("", None),
         ("Fases: Novo lead > Contato realizado > Em negociação > Proposta / Teste > Fechado (ganho) ou Perdido", None),
         ("Dentalpos One: marque 'Fechado (ganho)' somente quando o cliente for ativado após o período de testes.", None),
@@ -161,6 +215,7 @@ def montar_modelo(vendedor="(modelo)"):
         if f: ins.cell(row=i, column=1).font = f
     ins.column_dimensions["A"].width = 140
 
+    linha_aceite = aba_cadastro(wb)
     lst = wb.create_sheet("Listas")
     lst.sheet_properties.tabColor = "888888"
     lst["A1"], lst["B1"] = "Fases da negociação", "Origens"
@@ -174,7 +229,7 @@ def montar_modelo(vendedor="(modelo)"):
 
     res = wb.create_sheet("Resumo", 1)
     res.sheet_properties.tabColor = "2E9E5B"
-    res["A1"] = f"Resumo de comissões - {vendedor}"
+    res["A1"] = "=\"Resumo de comissões - \"&'Cadastro e Termo'!B4"
     res["A1"].font = Font(size=16, bold=True, color=AZUL_ESC)
     for j, h in enumerate(["Empresa / produto", "Regra da comissão", "Negócios", "Em andamento", "Ganhos", "Conversão", "Comissão a receber"], 1):
         c = res.cell(row=3, column=j, value=h)
@@ -197,6 +252,7 @@ def montar_modelo(vendedor="(modelo)"):
     res.cell(row=t, column=7).number_format = BRL
     for col, w in zip("ABCDEFG", (34, 58, 11, 14, 10, 11, 20)):
         res.column_dimensions[col].width = w
+    wb.linha_aceite = linha_aceite
     return wb
 
 
@@ -234,19 +290,42 @@ def gerar():
         print(f"{v['nome']:<25} {dest.name}   senha: {v['senha']}")
 
 
+def abrir_planilha(arq, senhas):
+    """Abre a planilha; se estiver com senha, usa senhas.json (por nome de arquivo) ou pergunta."""
+    import getpass, msoffcrypto
+    with open(arq, "rb") as fh:
+        f = msoffcrypto.OfficeFile(fh)
+        if not f.is_encrypted():
+            return load_workbook(arq)
+        senha = senhas.get(arq.name) or getpass.getpass(f"Senha de {arq.name}: ")
+        buf = io.BytesIO(); f.load_key(password=senha); f.decrypt(buf)
+        return load_workbook(buf)
+
+
 def consolidar():
-    import msoffcrypto
+    RECEBIDAS.mkdir(exist_ok=True)
+    arq_senhas = AQUI / "senhas.json"
+    senhas = json.loads(arq_senhas.read_text(encoding="utf-8")) if arq_senhas.exists() else {}
+    arquivos = sorted(p for p in RECEBIDAS.glob("*.xlsx") if not p.name.startswith("~"))
+    if not arquivos:
+        sys.exit(f"Coloque as planilhas recebidas dos vendedores em {RECEBIDAS}")
     out = Workbook(); ws = out.active; ws.title = "Todos os negócios"
     ws.append(["Vendedor", "Empresa (aba)"] + CABECALHO)
-    resumo = {}
-    for v in carregar_vendedores():
-        arq = SAIDA / nome_arquivo(v["nome"])
-        if not arq.exists():
-            print(f"(sem arquivo para {v['nome']}, ignorado)"); continue
-        buf = io.BytesIO()
-        f = msoffcrypto.OfficeFile(open(arq, "rb")); f.load_key(password=v["senha"]); f.decrypt(buf)
-        wb = load_workbook(buf)
+    resumo, cadastros = {}, []
+    for arq in arquivos:
+        try:
+            wb = abrir_planilha(arq, senhas)
+        except Exception as e:
+            print(f"(não consegui abrir {arq.name}: {e})"); continue
+        cad = wb["Cadastro e Termo"]
+        vend = cad["B4"].value or arq.stem
+        dados = [cad.cell(row=4 + i, column=2).value for i in range(len(CAMPOS_CADASTRO))]
+        aceite = next((cad.cell(row=r, column=2).value for r in range(1, cad.max_row + 1)
+                       if str(cad.cell(row=r, column=1).value).startswith("Li e ACEITO")), None)
+        cadastros.append([arq.name] + dados + [aceite])
         for emp in EMPRESAS:
+            if emp[0] not in wb.sheetnames:
+                continue
             a = wb[emp[0]]
             tipo, valor = a["B2"].value, a["C2"].value or 0
             nome_emp = a["A1"].value
@@ -256,17 +335,18 @@ def consolidar():
                 row = list(row)
                 ganho = row[7] == GANHO
                 row[11] = (((row[10] or 0) * valor) if tipo == "%" else valor) if ganho else 0
-                ws.append([v["nome"], nome_emp] + row)
-                k = (v["nome"], nome_emp)
-                r = resumo.setdefault(k, [0, 0, 0.0]); r[0] += 1; r[1] += ganho; r[2] += row[11]
-    for j, h in enumerate([c.value for c in ws[1]], 1):
-        ws.cell(row=1, column=j).font = Font(bold=True, color="FFFFFF")
-        ws.cell(row=1, column=j).fill = PatternFill("solid", fgColor=AZUL_ESC)
-        ws.column_dimensions[get_column_letter(j)].width = max(14, min(36, len(str(h)) + 6))
+                ws.append([vend, nome_emp] + row)
+                r = resumo.setdefault((vend, nome_emp), [0, 0, 0.0]); r[0] += 1; r[1] += ganho; r[2] += row[11]
+        print("lido:", arq.name, "-", vend)
+    for j in range(1, ws.max_column + 1):
+        c = ws.cell(row=1, column=j)
+        c.font, c.fill = Font(bold=True, color="FFFFFF"), PatternFill("solid", fgColor=AZUL_ESC)
+        ws.column_dimensions[get_column_letter(j)].width = max(14, min(36, len(str(c.value)) + 6))
     for row in ws.iter_rows(min_row=2):
         row[10].number_format = row[11].number_format = "dd/mm/yyyy"
         row[12].number_format = row[13].number_format = BRL
     ws.freeze_panes = "C2"; ws.auto_filter.ref = ws.dimensions
+
     rs = out.create_sheet("Resumo por vendedor", 0)
     rs.append(["Vendedor", "Empresa", "Negócios", "Ganhos", "Comissão a pagar"])
     for c in rs[1]: c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor=AZUL_ESC)
@@ -275,14 +355,20 @@ def consolidar():
     rs.append(["TOTAL", "", f"=SUM(C2:C{rs.max_row})", f"=SUM(D2:D{rs.max_row})", f"=SUM(E2:E{rs.max_row})"])
     rs.cell(row=rs.max_row, column=5).number_format = BRL
     for c in rs[rs.max_row]: c.font = Font(bold=True)
-    for col, w in zip("ABCDE", (26, 28, 11, 10, 20)): rs.column_dimensions[col].width = w
-    dest = SAIDA / "GESTOR_Consolidado.xlsx"
-    SAIDA.mkdir(exist_ok=True); out.save(dest)
+    for col, w in zip("ABCDE", (26, 30, 11, 10, 20)): rs.column_dimensions[col].width = w
+
+    cs = out.create_sheet("Cadastro dos vendedores", 1)
+    cs.append(["Arquivo"] + CAMPOS_CADASTRO + ["Aceitou o termo?"])
+    for c in cs[1]: c.font = Font(bold=True, color="FFFFFF"); c.fill = PatternFill("solid", fgColor=AZUL_ESC)
+    for linha in cadastros: cs.append(linha)
+    for j in range(1, cs.max_column + 1): cs.column_dimensions[get_column_letter(j)].width = 28
+    dest = AQUI / "GESTOR_Consolidado.xlsx"
+    out.save(dest)
     print("Consolidado salvo em", dest)
 
 
 if __name__ == "__main__":
-    cmd = sys.argv[1] if len(sys.argv) > 1 else "gerar"
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "modelo"
     if cmd == "modelo":
         montar_modelo().save(AQUI / "Modelo_Vendas_DentalPos.xlsx"); print("Modelo criado.")
     elif cmd == "gerar": gerar()
