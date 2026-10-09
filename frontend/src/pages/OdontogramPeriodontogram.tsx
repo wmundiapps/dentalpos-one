@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  Alert, Box, Button, Chip, Divider, FormControl, InputLabel, MenuItem, Paper,
-  Select, Stack, Tab, Tabs, TextField, Typography
+  Alert, AppBar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Paper,
+  Select, Stack, Tab, Tabs, TextField, Toolbar, Typography
 } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
+import FullscreenIcon from '@mui/icons-material/Fullscreen'
+import OdontogramBoard, { DONE_COLOR, OdontogramLegend, TODO_COLOR, isDone } from '../components/OdontogramBoard'
 import PageHeader from '../components/PageHeader'
 import PatientPicker from '../components/patient/PatientPicker'
 import { DentalChartService } from '../services/DentalChartService'
@@ -13,13 +16,15 @@ import type {
 
 const SITES: PeriodontalSite[] = ['MB','B','DB','ML','L','DL']
 const SURFACES: ToothSurface[] = ['M','D','O','V','L']
-const stateLabel: Record<ClinicalState,string> = { CURRENT:'Atual', PLANNED:'Planejado', COMPLETED:'Concluído' }
+const stateLabel: Record<ClinicalState,string> = { CURRENT:'A fazer (marcado)', PLANNED:'A fazer (planejado)', COMPLETED:'Concluído' }
 
-export default function OdontogramPeriodontogram() {
+export default function OdontogramPeriodontogram({ startFullscreen = false }: { startFullscreen?: boolean }) {
   const params = new URLSearchParams(window.location.search)
   const patientId = params.get('patientId') || ''
   const patientName = params.get('patient') || 'Paciente'
   const [tab,setTab] = useState(0)
+  const [fullscreen,setFullscreen] = useState(startFullscreen)
+  const [toothOpen,setToothOpen] = useState<number|null>(null)
   const [dentition,setDentition] = useState<Dentition>('ADULT')
   const [entries,setEntries] = useState<DentalChartEntry[]>([])
   const [findings,setFindings] = useState<DentalFinding[]>([])
@@ -59,7 +64,6 @@ export default function OdontogramPeriodontogram() {
   },[dentition])
 
   const activeFinding = findings.find(f=>f.code===findingCode)
-  const grouped = useMemo(()=>Object.fromEntries(teeth.map(t=>[t,entries.filter(e=>e.tooth===t && e.dentition===dentition)])),[entries,teeth,dentition])
 
   async function saveMark() {
     if (!patientId || !selectedTooth || !activeFinding) return
@@ -71,6 +75,23 @@ export default function OdontogramPeriodontogram() {
       setNotes(''); await load()
     } catch(e:any){setError(e.message)}
   }
+
+  async function setEntryState(e:DentalChartEntry,state:ClinicalState){
+    try{
+      await DentalChartService.saveEntry(patientId,{
+        id:e.id,dentition:e.dentition,tooth:e.tooth,surface:e.surface||null,
+        findingCode:e.findingCode,findingLabel:e.findingLabel,clinicalState:state,notes:e.notes||undefined
+      })
+      await load()
+    }catch(err:any){setError(err.message)}
+  }
+  async function removeEntry(e:DentalChartEntry){
+    if(!window.confirm('Remover esta marcação do odontograma?'))return
+    try{await DentalChartService.removeEntry(patientId,e.id);await load()}catch(err:any){setError(err.message)}
+  }
+  function openTooth(t:number){ setToothOpen(t); setSelectedTooth(t) }
+  const toothEntries = toothOpen ? entries.filter(e=>e.tooth===toothOpen && e.dentition===dentition) : []
+  const todoList = entries.filter(e=>e.dentition===dentition && !isDone(e.clinicalState)).sort((a,b)=>a.tooth-b.tooth)
 
   function recordKey(tooth:number,site:PeriodontalSite){ return `${tooth}-${site}` }
   function getRecord(tooth:number,site:PeriodontalSite): PeriodontalSiteRecord {
@@ -106,7 +127,7 @@ export default function OdontogramPeriodontogram() {
           <MenuItem value="ADULT">Adulto • FDI</MenuItem><MenuItem value="CHILD">Infantil • FDI</MenuItem>
         </Select></FormControl>
         <Stack direction="row" spacing={1} sx={{ flexWrap:"wrap" }}>
-          <Chip label="Atual" variant="outlined"/><Chip label="Planejado" color="warning"/><Chip label="Concluído" color="success"/>
+          <Chip label="Vermelho: a fazer" sx={{bgcolor:TODO_COLOR,color:'#fff',fontWeight:700}}/><Chip label="Preto: concluído" sx={{bgcolor:DONE_COLOR,color:'#fff',fontWeight:700}}/>
         </Stack>
       </Stack>
     </Paper>
@@ -135,16 +156,13 @@ export default function OdontogramPeriodontogram() {
         </Box>
         <TextField fullWidth label="Observações" value={notes} onChange={e=>setNotes(e.target.value)} sx={{mt:1.5}}/>
       </Paper>
-      <Box sx={{display:'grid',gridTemplateColumns:{xs:'repeat(4,1fr)',md:'repeat(8,1fr)'},gap:1}}>
-        {teeth.map(tooth=><Paper key={tooth} variant="outlined" sx={{p:1.25,minHeight:110,borderRadius:2}}>
-          <Typography sx={{ fontWeight:900, textAlign:"center" }}>{tooth}</Typography>
-          <Divider sx={{my:.75}}/>
-          <Stack spacing={0.5}>
-            {(grouped[tooth]||[]).map(e=><Chip key={e.id} size="small" label={`${e.surface?e.surface+' • ':''}${e.findingLabel} • ${stateLabel[e.clinicalState]}`}
-              color={e.clinicalState==='COMPLETED'?'success':e.clinicalState==='PLANNED'?'warning':'default'} />)}
-          </Stack>
-        </Paper>)}
-      </Box>
+      <Paper variant="outlined" sx={{p:2,borderRadius:3}}>
+        <Box sx={{display:'flex',justifyContent:'flex-end',mb:1}}><Button startIcon={<FullscreenIcon/>} onClick={()=>setFullscreen(true)}>Tela cheia</Button></Box>
+        <Box sx={{display:'flex',gap:3,flexDirection:{xs:'column',lg:'row'}}}>
+          <Box sx={{flex:1,minWidth:0}}><OdontogramBoard entries={entries} dentition={dentition} onToothClick={openTooth}/></Box>
+          <OdontogramLegend entries={entries.filter(e=>e.dentition===dentition)}/>
+        </Box>
+      </Paper>
     </>}
 
     {tab===1 && <Paper variant="outlined" sx={{p:2,borderRadius:3}}>
@@ -184,5 +202,71 @@ export default function OdontogramPeriodontogram() {
           <Typography color="text.secondary">{exam.sites.length} sítio(s) registrados • {exam.notes||'Sem observações gerais'}</Typography>
         </Paper>)}
     </Stack>}
+    <Dialog open={toothOpen!==null} onClose={()=>setToothOpen(null)} fullWidth maxWidth="sm">
+      <DialogTitle sx={{fontWeight:900}}>Dente {toothOpen}</DialogTitle>
+      <DialogContent>
+        {toothEntries.length===0 && <Alert severity="info" sx={{mb:2}}>Nenhuma marcação neste dente.</Alert>}
+        <Stack spacing={1} sx={{mb:2}}>
+          {toothEntries.map(e=><Paper key={e.id} variant="outlined" sx={{p:1.2,display:'flex',alignItems:'center',gap:1,flexWrap:'wrap',borderLeft:`6px solid ${isDone(e.clinicalState)?DONE_COLOR:TODO_COLOR}`}}>
+            <Box sx={{flex:1,minWidth:160}}>
+              <Typography sx={{fontWeight:800}}>{e.surface?`Face ${e.surface} • `:''}{e.findingLabel}</Typography>
+              <Typography variant="caption" color="text.secondary">{isDone(e.clinicalState)?'Concluído':'A fazer'}{e.notes?` • ${e.notes}`:''}</Typography>
+            </Box>
+            {isDone(e.clinicalState)
+              ? <Button size="small" onClick={()=>void setEntryState(e,'PLANNED')}>Voltar para a fazer</Button>
+              : <Button size="small" variant="contained" sx={{bgcolor:DONE_COLOR,'&:hover':{bgcolor:'#333'}}} onClick={()=>void setEntryState(e,'COMPLETED')}>Marcar concluído</Button>}
+            <Button size="small" color="error" onClick={()=>void removeEntry(e)}>Remover</Button>
+          </Paper>)}
+        </Stack>
+        <Typography sx={{fontWeight:900,mb:1}}>Adicionar procedimento neste dente</Typography>
+        <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',sm:'1fr 1fr'},gap:1.5}}>
+          <FormControl size="small"><InputLabel>Face</InputLabel><Select value={surface} label="Face" onChange={e=>setSurface(e.target.value as ToothSurface|'')}>
+            <MenuItem value="">Dente inteiro</MenuItem>{SURFACES.map(x=><MenuItem key={x} value={x}>{x}</MenuItem>)}
+          </Select></FormControl>
+          <FormControl size="small"><InputLabel>Achado / procedimento</InputLabel><Select value={findingCode} label="Achado / procedimento" onChange={e=>setFindingCode(e.target.value)}>
+            {findings.map(f=><MenuItem key={f.id} value={f.code}>{f.label}</MenuItem>)}
+          </Select></FormControl>
+          <FormControl size="small"><InputLabel>Situação</InputLabel><Select value={clinicalState} label="Situação" onChange={e=>setClinicalState(e.target.value as ClinicalState)}>
+            {(['PLANNED','CURRENT','COMPLETED'] as ClinicalState[]).map(x=><MenuItem key={x} value={x}>{stateLabel[x]}</MenuItem>)}
+          </Select></FormControl>
+          <TextField size="small" label="Observações" value={notes} onChange={e=>setNotes(e.target.value)}/>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={()=>setToothOpen(null)}>Fechar</Button>
+        <Button variant="contained" disabled={!activeFinding} onClick={()=>void saveMark()}>Adicionar</Button>
+      </DialogActions>
+    </Dialog>
+
+    <Dialog fullScreen open={fullscreen} onClose={()=>setFullscreen(false)}>
+      <AppBar position="sticky" color="default" elevation={1}>
+        <Toolbar sx={{gap:2}}>
+          <Typography sx={{flex:1,fontWeight:900,fontSize:{xs:16,md:20}}}>Odontograma • {patientName}</Typography>
+          <FormControl size="small" sx={{minWidth:150}}><Select value={dentition} onChange={e=>setDentition(e.target.value as Dentition)}>
+            <MenuItem value="ADULT">Adulto • FDI</MenuItem><MenuItem value="CHILD">Infantil • FDI</MenuItem>
+          </Select></FormControl>
+          <Button variant="contained" onClick={()=>setFullscreen(false)} startIcon={<CloseIcon/>}>Fechar tela cheia</Button>
+        </Toolbar>
+      </AppBar>
+      <Box sx={{p:{xs:1.5,md:3},display:'grid',gap:3}}>
+        {error && <Alert severity="error" onClose={()=>setError('')}>{error}</Alert>}
+        <Box sx={{display:'flex',gap:4,flexDirection:{xs:'column',lg:'row'}}}>
+          <Box sx={{flex:1,minWidth:0}}><OdontogramBoard big entries={entries} dentition={dentition} onToothClick={openTooth}/></Box>
+          <Paper variant="outlined" sx={{p:2,borderRadius:3,alignSelf:'flex-start'}}><OdontogramLegend entries={entries.filter(e=>e.dentition===dentition)}/></Paper>
+        </Box>
+        <Paper variant="outlined" sx={{p:2,borderRadius:3}}>
+          <Typography sx={{fontWeight:900,mb:1,color:TODO_COLOR}}>O que falta fazer ({todoList.length})</Typography>
+          {todoList.length===0
+            ? <Typography color="text.secondary">Nada pendente neste odontograma.</Typography>
+            : <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'repeat(2,1fr)',xl:'repeat(3,1fr)'},gap:1}}>
+                {todoList.map(e=><Paper key={e.id} variant="outlined" onClick={()=>openTooth(e.tooth)} sx={{p:1,cursor:'pointer',borderLeft:`6px solid ${TODO_COLOR}`}}>
+                  <Typography sx={{fontWeight:800}}>Dente {e.tooth}{e.surface?` • face ${e.surface}`:''} — {e.findingLabel}</Typography>
+                  {e.notes && <Typography variant="caption" color="text.secondary">{e.notes}</Typography>}
+                </Paper>)}
+              </Box>}
+        </Paper>
+      </Box>
+      
+    </Dialog>
   </Box>
 }

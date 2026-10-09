@@ -183,7 +183,7 @@ export default function PatientFile() {
   const ir = useCallback((k: string) => {
     // Atalhos antigos levam para a aba certa do caderno.
     if (["ficha", "plano", "odontograma", "exames", "documentos"].includes(k)) { setTab("prontuario"); setClinicalSub(k); return; }
-    if (k === "prontuario") { setTab("prontuario"); setClinicalSub("ficha"); return; }
+    if (k === "prontuario") { setTab("prontuario"); setClinicalSub("odontograma"); return; }
     if (k === "financeiro") { setTab("cobranca"); return; }
     setTab(k);
   }, []);
@@ -226,7 +226,7 @@ export default function PatientFile() {
         {abas.map((a) => {
           const ativo = tab === a.key;
           return (
-            <Paper key={a.key} variant="outlined" onClick={() => setTab(a.key)}
+            <Paper key={a.key} variant="outlined" onClick={() => { setTab(a.key); if (a.key === "prontuario") setClinicalSub("odontograma"); }}
               sx={{ p: 1.2, borderRadius: 2, cursor: "pointer", textAlign: "center", borderColor: ativo ? "primary.main" : "divider", bgcolor: ativo ? "primary.main" : "background.paper", color: ativo ? "#fff" : "text.primary", "&:hover": { borderColor: "primary.main" } }}>
               <Box sx={{ display: "flex", justifyContent: "center", mb: 0.3 }}>{a.icon}</Box>
               <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.1, display: "block" }}>{a.label}</Typography>
@@ -250,7 +250,7 @@ export default function PatientFile() {
             </Tabs>
             {clinicalSub === "ficha" && <ClinicalRecord />}
             {clinicalSub === "plano" && <TreatmentPlanning initialPatientId={patient.id} />}
-            {clinicalSub === "odontograma" && <OdontogramPeriodontogram />}
+            {clinicalSub === "odontograma" && <OdontogramPeriodontogram startFullscreen />}
             {clinicalSub === "exames" && <ClinicalFiles fixedPatientId={patient.id} />}
             {clinicalSub === "documentos" && <ClinicalDocuments fixedPatientId={patient.id} />}
           </Box>
