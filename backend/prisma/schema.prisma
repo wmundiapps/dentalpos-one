@@ -2697,3 +2697,64 @@ model ProspectConfig {
   segments       String   @default("CLINICA")
   updatedAt      DateTime @default(now()) @updatedAt @db.Timestamp(3)
 }
+
+// Treinamento (Odonto Odisseia): configuração por clínica, progresso por usuário,
+// tempo de jogo por dia e prêmios conquistados.
+model TrainingSettings {
+  id                   String    @id @default(cuid())
+  clinicId             String    @unique
+  tenantId             String
+  prize                String    @default("Meio período de folga")
+  minLevel             String    @default("mediano")
+  dailyLimitMinutes    Int       @default(5)
+  jobRotationSectors   String[]  @default(["rec", "cme", "fin", "lab", "asb"])
+  permissionsSeededAt  DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+model TrainingProgress {
+  id        String   @id @default(cuid())
+  clinicId  String
+  tenantId  String
+  userId    String
+  module    String
+  state     Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([userId, module])
+  @@index([clinicId])
+}
+
+model TrainingUsage {
+  id         String   @id @default(cuid())
+  clinicId   String
+  tenantId   String
+  userId     String
+  day        String
+  seconds    Int      @default(0)
+  lastBeatAt DateTime @default(now())
+
+  @@unique([userId, day])
+  @@index([clinicId, day])
+}
+
+model TrainingPrize {
+  id          String    @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  userId      String
+  userName    String
+  module      String
+  level       String
+  prize       String
+  code        String    @unique
+  deliveredAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, module])
+  @@index([clinicId])
+}

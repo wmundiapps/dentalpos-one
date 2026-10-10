@@ -2,6 +2,8 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 
 import Academic from "../pages/Academic";
+import Training from "../pages/Training";
+import TrainingAdmin from "../pages/TrainingAdmin";
 import Accounting from "../pages/Accounting";
 import Agenda from "../pages/Agenda";
 import Backup from "../pages/Backup";
@@ -117,6 +119,10 @@ export default function AppRoutes() {
       <Route path="/" element={<Dashboard />} />
 
       <Route path="/academico" element={<Academic />} />
+
+      <Route path="/treinamento/gestao" element={<TrainingAdmin />} />
+
+      <Route path="/treinamento/:modulo" element={<Training />} />
 
       <Route path="/agenda" element={<Agenda />} />
 
