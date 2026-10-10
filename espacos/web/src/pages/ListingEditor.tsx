@@ -238,6 +238,8 @@ export default function ListingEditor() {
           <h2 className="span2">5. {t('editor.pricing', { currency: cfg.currency })}</h2>
           <label>{t('form.pricePerHour')}<NumInput min={0.01} step="0.01" required value={f.pricePerHour || undefined} onChange={(v) => set('pricePerHour', v ?? 0)} /></label>
           <label>{t('form.pricePerDay')}<NumInput min={0} step="0.01" value={f.pricePerDay} onChange={(v) => set('pricePerDay', v)} /></label>
+          <label>{t('form.packageDiscount')}<NumInput min={0} max={BOOKING_LIMITS.maxPackageDiscountPct} step="1" placeholder="0" value={f.packageDiscountPct || undefined} onChange={(v) => set('packageDiscountPct', v ?? 0)} /></label>
+          <p className="muted small">{t('form.packageDiscountHelp', { max: BOOKING_LIMITS.maxPackageDiscountPct })}</p>
           <label>{t('form.cleaningFee')}<NumInput min={0} step="0.01" placeholder="0" value={f.cleaningFee || undefined} onChange={(v) => set('cleaningFee', v ?? 0)} /></label>
           <label>{t('form.deposit')}<NumInput min={0} step="0.01" placeholder="0" value={f.securityDeposit || undefined} onChange={(v) => set('securityDeposit', v ?? 0)} /></label>
           <p className="muted small span2">🔒 {t('editor.depositHelp')} <Link to="/regras/guarantor-deposit">{t('legal.guarantor-deposit')}</Link></p>

@@ -43,6 +43,7 @@ const listingSchema = z.object({
   photos: z.array(z.string().max(1000).refine((u) => /^https:\/\//.test(u) || /^\/api\/uploads\/[\w-]+$/.test(u), 'photo_url')).max(20).default([]),
   pricePerHour: z.number().positive(),
   pricePerDay: z.number().positive().optional(),
+  packageDiscountPct: z.number().min(0).max(BOOKING_LIMITS.maxPackageDiscountPct).optional(),
   minHours: z.number().int().min(1).max(BOOKING_LIMITS.maxHoursPerOccurrence),
   cleaningFee: z.number().min(0),
   securityDeposit: z.number().min(0),

@@ -274,7 +274,7 @@ test('cron protegido por segredo', async () => {
   process.env.CRON_SECRET = 's3cret';
   const r = await fetch(`${base}/cron/tick`, { headers: { Authorization: 'Bearer s3cret' } });
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'cart', 'documents', 'email', 'mp_tokens', 'push', 'security', 'verifications']);
+  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'cart', 'documents', 'email', 'mp_tokens', 'packages', 'push', 'security', 'verifications']);
   delete process.env.CRON_SECRET;
 });
 
@@ -1042,7 +1042,10 @@ test('prazos de pagamento: Pix 30 min, cartão 24 h, boleto 3 dias (só com 3 di
   try {
     const l = byTitle('Sala de psicologia');
     const base = { guests: 1, purpose: 'Sessão', acceptRules: true, listingId: l.id };
-    const soon = { ...base, occurrences: [{ date: addDays(todayInZone(l.timezone), 1), start: '19:00', end: '20:00' }] };
+    // Amanhã ou depois (o que tiver horário livre): menos de 3 dias, então boleto não pode
+    const soonDate = [1, 2].map((i) => addDays(todayInZone(l.timezone), i))
+      .find((dt) => (l.weeklyAvailability[weekdayOf(dt) as 0] ?? []).some((w) => w.start <= '19:00' && w.end >= '20:00'))!;
+    const soon = { ...base, occurrences: [{ date: soonDate, start: '19:00', end: '20:00' }] };
     await assert.rejects(B.createBooking(guest, { ...soon, paymentMethod: 'boleto' }), /boleto_needs_3_days/);
     const far = { ...base, occurrences: [{ date: nextDateWith(l, 4, 5), start: '19:00', end: '20:00' }] };
     const bol = await B.createBooking(guest, { ...far, paymentMethod: 'boleto' });
@@ -1116,4 +1119,33 @@ test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo imp
   assert.equal(h.headers.get('x-frame-options'), 'DENY');
   assert.equal(h.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(h.headers.get('x-powered-by'), null);
+});
+
+test('pacote recorrente: até 3 dias por semana, pago de uma vez; aviso de renovação 5 dias antes do fim', async () => {
+  const fake = fakeGateway();
+  P.setGatewayOverride(() => fake);
+  try {
+    const l = byTitle('Sala de psicologia');
+    const free = ([0, 1, 2, 3, 4, 5, 6] as const).filter((w) => (l.weeklyAvailability[w] ?? []).some((x) => x.start <= '08:00' && x.end >= '09:00')).slice(0, 3);
+    assert.ok(free.length >= 2, 'espaço com pelo menos 2 dias livres de manhã');
+    const from = addDays(todayInZone(l.timezone), 3);
+    const occurrences = Array.from({ length: 14 }, (_, i) => addDays(from, i))
+      .filter((dt) => (free as readonly number[]).includes(weekdayOf(dt))).map((date) => ({ date, start: '08:00', end: '09:00' }));
+    const b = await B.createBooking(guest, { guests: 1, purpose: 'Atendimentos', acceptRules: true, listingId: l.id, occurrences, paymentMethod: 'pix' });
+    assert.equal(b.occurrences.length, occurrences.length);
+    await B.applyPaymentUpdate({ paymentId: b.paymentId!, outcome: 'captured', providerRef: 'pkg1' });
+
+    const Pk = await import('../src/packages.js');
+    const last = occurrences.at(-1)!.date;
+    // 10 dias antes do fim: ainda não avisa; 4 dias antes: avisa uma vez só
+    assert.equal(await Pk.sendPackageRenewals(new Date(`${addDays(last, -10)}T15:00:00Z`)), 0);
+    assert.equal(await Pk.sendPackageRenewals(new Date(`${addDays(last, -4)}T15:00:00Z`)), 1);
+    assert.equal(await Pk.sendPackageRenewals(new Date(`${addDays(last, -3)}T15:00:00Z`)), 0);
+    const n = await one<{ text: string; link: string }>(pool, "SELECT text, link FROM notifications WHERE user_id = $1 AND kind = 'package_renewal' ORDER BY created_at DESC LIMIT 1", [guest.id]);
+    assert.match(n!.text, /renovar/);
+    assert.match(n!.link, new RegExp(`^/espacos/${l.id}\\?pacote=1&dias=`));
+    assert.ok(n!.link.includes(`de=${addDays(last, 1)}`), 'próximo pacote começa depois do último dia');
+  } finally {
+    P.setGatewayOverride();
+  }
 });

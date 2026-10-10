@@ -1052,6 +1052,20 @@ const ja: Dict = {
   'err.content_not_allowed': 'This text has content or a link that isn\'t allowed on SpaceHour. Please review it and try again.',
   'err.image_not_allowed': 'One of the photos was rejected for inappropriate content.',
   'err.login_code_expired': 'The code expired or was already used. Sign in again with your password.',
+  // Pacote recorrente
+  'book.mode.package': 'Package',
+  'book.packageDays': 'Choose up to {max} weekdays:',
+  'book.packageHint': 'Same time on the chosen days, for up to {days} days. Paid at once; no exclusive use of the room at other times.',
+  'book.packageDiscount': 'This space gives {pct}% off packages of 2 weeks or more.',
+  'book.packageWeeks': 'Package length',
+  'book.packageWeeksN': '{n} week(s)',
+  'book.skipBusy': 'Skip the {n} busy date(s)',
+  'book.skipped': 'Skipped dates: {dates}',
+  'price.packageDiscount': 'Package discount',
+  'form.packageDiscount': 'Package discount (%)',
+  'form.packageDiscountHelp': 'Optional, up to {max}%. Applies to packages of 2 weeks or more (up to 3 days a week, for up to 30 days).',
+  'val.package_max_days': 'A package can last at most {max} days.',
+  'val.package_max_weekdays': 'Choose at most {max} weekdays in a package.',
 };
 
 export default ja;
