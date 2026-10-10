@@ -3,7 +3,7 @@
 // Exige a variável RESEND_API_KEY no projeto dentalpos-landing (Vercel)
 
 const DESTINO = 'contato@dentalpos.com.br'
-const REMETENTE = 'DentalPos One <contato@dentalpos.com.br>'
+const REMETENTE = 'DentalPos <contato@dentalpos.com.br>'
 
 function limpo(v, max) {
   return String(v == null ? '' : v).replace(/[<>]/g, '').trim().slice(0, max || 200)
@@ -99,16 +99,16 @@ export default async function handler(req, res) {
     await enviar({
       from: REMETENTE,
       to: [email],
-      subject: canal ? 'Seu acesso ao DentalPos One' : 'Recebemos seu contato — DentalPos One',
+      subject: canal ? 'Seu acesso ao DentalPos' : 'Recebemos seu contato — DentalPos',
       html:
         '<div style="font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:560px;color:#1D1D1F">' +
         '<h2 style="margin:0 0 12px">Obrigado, ' + nome + '!</h2>' +
-        '<p style="line-height:1.6">Recebemos seus dados e entraremos em contato em breve para mostrar o DentalPos One funcionando com a rotina da sua clínica.</p>' +
+        '<p style="line-height:1.6">Recebemos seus dados e entraremos em contato em breve para mostrar o DentalPos funcionando com a rotina da sua clínica.</p>' +
         (canal ? blocoAcesso : '') +
         '<p style="line-height:1.6">Se preferir falar agora, é só chamar no WhatsApp: ' +
         '<a href="https://wa.me/5544984535069" style="color:#B9821F;font-weight:700">(44) 98453-5069</a>.</p>' +
         '<p style="line-height:1.6">O Experience são 30 dias gratuitos, sem cartão de crédito, e tudo o que você registrar fica guardado mesmo que decida não seguir.</p>' +
-        '<p style="margin-top:26px;color:#6B6660;font-size:13.5px">DentalPos One · Desenvolvido por WMundi Technologies &amp; Co</p>' +
+        '<p style="margin-top:26px;color:#6B6660;font-size:13.5px">DentalPos · Desenvolvido por WMundi Technologies &amp; Co</p>' +
         '</div>'
     })
 

@@ -23,7 +23,7 @@ export async function dispatchRevah(channel:RevahChannel,destination:string,cont
  }
  if(channel==='SMS'){
   const apiKey=credentials.apiKey; if(!apiKey)throw new Error('API Key Comtele não configurada.')
-  const d=await parse(await fetch('https://api.comtele.com.br/messages/sms/send',{method:'POST',headers:{'x-api-key':String(apiKey),'Content-Type':'application/json'},body:JSON.stringify({receivers:[Number(digits(destination))],contactGroups:[],message:content,route:Number(credentials.route||17),tag:credentials.tag||'DentalPos-REVAH',custom:'DentalPos One'})}))
+  const d=await parse(await fetch('https://api.comtele.com.br/messages/sms/send',{method:'POST',headers:{'x-api-key':String(apiKey),'Content-Type':'application/json'},body:JSON.stringify({receivers:[Number(digits(destination))],contactGroups:[],message:content,route:Number(credentials.route||17),tag:credentials.tag||'DentalPos-REVAH',custom:'DentalPos'})}))
   return{provider,simulated:false,providerMessageId:String(d?.object?.id||d?.id||Date.now()),raw:d}
  }
  if(channel==='EMAIL'){

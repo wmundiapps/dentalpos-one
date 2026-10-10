@@ -191,7 +191,7 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
           try {
             const result = await uploadClinicalFile({ patientId, ...data });
             if (!result.upload?.configured) {
-              setStorageWarning("O exame foi registrado, mas o armazenamento de imagens desta clínica ainda está sendo ativado pela equipe DentalPos One. O arquivo ficará disponível assim que a ativação for concluída.");
+              setStorageWarning("O exame foi registrado, mas o armazenamento de imagens desta clínica ainda está sendo ativado pela equipe DentalPos. O arquivo ficará disponível assim que a ativação for concluída.");
             } else {
               setUploadOpen(false);
             }

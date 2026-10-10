@@ -76,7 +76,7 @@ async function sendOne(clinicId: string, tenantId: string, channel: RevahChannel
     try { credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {} } catch { return { ok: false as const, reason: 'Credenciais do canal não puderam ser abertas.' } }
   } else credentials = { apiKey: platformKey }
   if (!Object.keys(credentials).length || credentials.simulated === true) return { ok: false as const, reason: `Canal ${channel} ainda sem credenciais reais.` }
-  const address = sender ? sender.address : 'DentalPos One <contato@dentalpos.com.br>'
+  const address = sender ? sender.address : 'DentalPos <contato@dentalpos.com.br>'
   try {
     const result = await dispatchRevah(channel, destination, message.replace(MARKER, '').trim(), channel === 'EMAIL' ? { ...credentials, subject: 'Acompanhamento: vamos agendar o seu retorno?' } : credentials, address)
     if (result.simulated) return { ok: false as const, reason: `Provedor ${result.provider} em modo simulado.` }

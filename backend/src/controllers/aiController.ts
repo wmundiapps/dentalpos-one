@@ -57,7 +57,7 @@ export async function run(req: AuthRequest, res: Response) {
   try {
     const c = ctx(req)
     const task = String(req.body?.task || '').toUpperCase() as AiTask
-    const system = String(req.body?.system || 'Voce e um assistente do DentalPos One. Responda em portugues do Brasil, de forma curta e pratica.')
+    const system = String(req.body?.system || 'Voce e um assistente do DentalPos. Responda em portugues do Brasil, de forma curta e pratica.')
     const prompt = String(req.body?.prompt || '').trim()
 
     if (!prompt) return res.status(400).json({ error: 'Informe o que voce precisa.' })

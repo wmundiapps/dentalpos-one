@@ -201,9 +201,9 @@ export async function sendDocument(c: Ctx, id: string) {
       let creds: any = sender ? decryptSecret<any>(sender.encryptedCredentials) || {} : null
       let remetente = sender?.address
       // E-mail de documento fiscal nao pode depender de canal configurado: usa a conta da plataforma.
-      if (!creds && canal === "EMAIL" && process.env.RESEND_API_KEY) { creds = { apiKey: process.env.RESEND_API_KEY }; remetente = `${d.issuerName || "DentalPos One"} <contato@dentalpos.com.br>` }
+      if (!creds && canal === "EMAIL" && process.env.RESEND_API_KEY) { creds = { apiKey: process.env.RESEND_API_KEY }; remetente = `${d.issuerName || "DentalPos"} <contato@dentalpos.com.br>` }
       if (!creds) throw new Error(`Canal ${canal} nao configurado em Canais de Envio.`)
-      const r = await dispatchRevah(canal as RevahChannel, destino, texto, { ...creds, subject: `${nomes[d.kind] || "Documento fiscal"} - ${d.issuerName || "DentalPos One"}` }, remetente)
+      const r = await dispatchRevah(canal as RevahChannel, destino, texto, { ...creds, subject: `${nomes[d.kind] || "Documento fiscal"} - ${d.issuerName || "DentalPos"}` }, remetente)
       resultados.push(await prisma.fiscalSendRecord.create({ data: { ...base, destination: destino, status: r.simulated ? "NAO_ENVIADO" : "ENVIADO", sentAt: new Date(), providerMessageId: r.providerMessageId || null, failureReason: r.simulated ? "Envio simulado: canal sem credenciais." : null } }))
     } catch (erro) {
       resultados.push(await prisma.fiscalSendRecord.create({ data: { ...base, destination: destino, status: "FALHOU", failureReason: erro instanceof Error ? erro.message : "Falha no envio." } }))
@@ -238,7 +238,7 @@ async function sendCopies(c: Ctx, d: any, rule: any, nome: string) {
       const sender = await senderFor(c, "EMAIL")
       let creds: any = sender ? decryptSecret<any>(sender.encryptedCredentials) || {} : null
       let remetente = sender?.address
-      if (!creds && process.env.RESEND_API_KEY) { creds = { apiKey: process.env.RESEND_API_KEY }; remetente = `${d.issuerName || "DentalPos One"} <contato@dentalpos.com.br>` }
+      if (!creds && process.env.RESEND_API_KEY) { creds = { apiKey: process.env.RESEND_API_KEY }; remetente = `${d.issuerName || "DentalPos"} <contato@dentalpos.com.br>` }
       if (!creds) throw new Error("Canal EMAIL nao configurado em Canais de Envio.")
       const r = await dispatchRevah("EMAIL" as RevahChannel, a.email, texto, { ...creds, subject: `[Copia] ${nome} - ${d.payerName}` }, remetente)
       await prisma.fiscalSendRecord.create({ data: { ...base, destination: a.email, status: r.simulated ? "NAO_ENVIADO" : "ENVIADO", sentAt: new Date(), providerMessageId: r.providerMessageId || null, failureReason: r.simulated ? "Envio simulado: canal sem credenciais." : null } })

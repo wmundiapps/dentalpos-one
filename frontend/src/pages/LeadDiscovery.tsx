@@ -10,7 +10,7 @@ const categories = [
 ] as const;
 
 const RESPONSIBILITY_TEXT =
-  "Declaro que sou o(a) responsável exclusivo(a) pelo uso ético, legal e em conformidade com a LGPD dos contatos extraídos através desta ferramenta. O DentalPos One atua apenas como intermediário técnico; toda comunicação enviada a esses contatos (finalidade, consentimento, opt-out e demais obrigações legais) é de responsabilidade única e exclusiva da minha clínica.";
+  "Declaro que sou o(a) responsável exclusivo(a) pelo uso ético, legal e em conformidade com a LGPD dos contatos extraídos através desta ferramenta. O DentalPos atua apenas como intermediário técnico; toda comunicação enviada a esses contatos (finalidade, consentimento, opt-out e demais obrigações legais) é de responsabilidade única e exclusiva da minha clínica.";
 
 export default function LeadDiscovery() {
   const [category, setCategory] = useState<string>(categories[0]);

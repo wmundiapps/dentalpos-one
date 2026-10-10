@@ -40,14 +40,14 @@ export default function Feedback() {
 
   return (
     <Box>
-      <PageHeader title={"Sugestões e Problemas"} description={"Relate bugs, botões que não funcionam, correções, elogios e ideias de novas funcionalidades. Cada relato chega direto à equipe DentalPos One."} />
+      <PageHeader title={"Sugestões e Problemas"} description={"Relate bugs, botões que não funcionam, correções, elogios e ideias de novas funcionalidades. Cada relato chega direto à equipe DentalPos."} />
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
         <Button variant="contained" startIcon={<AddCommentIcon />} onClick={() => setOpen(true)}>Novo relato</Button>
         {staff && <FormControlLabel control={<Switch checked={all} onChange={(_, v) => setAll(v)} />} label={"Todas as clínicas (equipe WMundi)"} />}
       </Box>
       {!staff && (
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-          <Typography color="text.secondary">{"Sua sugestão ou elogio será avaliado e, caso seja aprovado, a implementação ou melhoria será aplicada. Obrigado por ajudar a melhorar o DentalPos One!"}</Typography>
+          <Typography color="text.secondary">{"Sua sugestão ou elogio será avaliado e, caso seja aprovado, a implementação ou melhoria será aplicada. Obrigado por ajudar a melhorar o DentalPos!"}</Typography>
         </Paper>
       )}
       {staff && <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3,1fr)" }, gap: 2, mb: 2 }}>

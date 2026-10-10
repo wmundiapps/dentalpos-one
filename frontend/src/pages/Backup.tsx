@@ -9,7 +9,7 @@ export default function Backup() {
     <Box>
       <PageHeader
         title="Backup e Recuperação"
-        description="Política de cópia, retenção e teste de restauração do DentalPos One."
+        description="Política de cópia, retenção e teste de restauração do DentalPos."
       />
 
       <Alert severity="warning" sx={{ mb: 3 }}>

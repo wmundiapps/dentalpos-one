@@ -74,7 +74,7 @@ async function notifyManagers(clinicId: string, tenantId: string, subject: strin
     })
     const to = [...new Set(managers.map(m => m.email).filter(Boolean))]
     for (const address of to) {
-      await dispatchRevah('EMAIL', address, message, { apiKey, subject }, 'DentalPos One <contato@dentalpos.com.br>').catch((e: unknown) => console.error('Aviso ao gestor falhou:', e))
+      await dispatchRevah('EMAIL', address, message, { apiKey, subject }, 'DentalPos <contato@dentalpos.com.br>').catch((e: unknown) => console.error('Aviso ao gestor falhou:', e))
     }
   } catch (error) {
     console.error('Erro ao avisar gestores:', error)

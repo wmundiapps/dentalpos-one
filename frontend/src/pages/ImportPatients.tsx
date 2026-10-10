@@ -187,7 +187,7 @@ export default function ImportPatients() {
     <Box>
       <PageHeader
         title="Importar pacientes de outro sistema"
-        description="Traga o cadastro dos seus pacientes de outro sistema, como o Clinicorp. Somente dados cadastrais são importados — financeiro, recebimentos e agenda permanecem no sistema de origem."
+        description="Traga o cadastro dos seus pacientes de outro sistema. Somente dados cadastrais são importados — financeiro, recebimentos e agenda permanecem no sistema de origem."
       />
 
       <Alert severity="info" sx={{ mb: 2 }}>
@@ -220,7 +220,7 @@ export default function ImportPatients() {
         <>
           <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
             <Typography sx={{ fontWeight: 900, mb: 0.5 }}>Correspondência das colunas</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Para cada coluna do arquivo, escolha o campo do DentalPos One. Colunas sem campo são ignoradas. Se houver mais de uma coluna de telefone, vale a primeira com DDD válido.</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Para cada coluna do arquivo, escolha o campo do DentalPos. Colunas sem campo são ignoradas. Se houver mais de uma coluna de telefone, vale a primeira com DDD válido.</Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 2 }}>
               {grid.headers.map((header, index) => (
                 <TextField

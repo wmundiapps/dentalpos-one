@@ -36,9 +36,9 @@ function clinicName() {
   try {
     const user = JSON.parse(localStorage.getItem("dentalpos.user") || "null") as { clinic?: { name?: string; displayName?: string | null } } | null;
     const identity = JSON.parse(localStorage.getItem("dentalpos.clinic.identity.v1") || "null") as { name?: string } | null;
-    return user?.clinic?.displayName || user?.clinic?.name || identity?.name || "DentalPos One";
+    return user?.clinic?.displayName || user?.clinic?.name || identity?.name || "DentalPos";
   } catch {
-    return "DentalPos One";
+    return "DentalPos";
   }
 }
 

@@ -136,7 +136,7 @@ export default function App() {
             Pacientes, agenda e histórico não são apagados automaticamente pelo vencimento do EXPERIENCE.
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Para reativar o acesso e continuar utilizando o DentalPos One, solicite uma proposta comercial.
+            Para reativar o acesso e continuar utilizando o DentalPos, solicite uma proposta comercial.
           </Typography>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
             <Button
@@ -166,7 +166,7 @@ export default function App() {
     return (
       <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center", p: 2 }}>
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 4, width: "min(520px,100%)" }}>
-          <Alert severity="warning" sx={{ mb: 2 }}>A API do DentalPos One não respondeu. Nenhum dado foi alterado.</Alert>
+          <Alert severity="warning" sx={{ mb: 2 }}>A API do DentalPos não respondeu. Nenhum dado foi alterado.</Alert>
           <Typography variant="h6" sx={{ fontWeight: 900 }}>Ambiente indisponível</Typography>
           <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
             Verifique o backend e tente novamente. Em homologação pública, esta tela evita operar com uma sessão não validada.

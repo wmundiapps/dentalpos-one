@@ -231,7 +231,7 @@ async function deliverPasswordReset(input: {
   const credentialsToUse = sender
     ? decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {}
     : { apiKey: platformKey }
-  const addressToUse = sender ? sender.address : 'DentalPos One <contato@dentalpos.com.br>'
+  const addressToUse = sender ? sender.address : 'DentalPos <contato@dentalpos.com.br>'
 
   const url = new URL('redefinir-senha', base)
   url.searchParams.set('token', input.token)
@@ -243,14 +243,14 @@ async function deliverPasswordReset(input: {
     [
       `Olá, ${input.firstName}.`,
       '',
-      'Recebemos uma solicitação para redefinir sua senha do DentalPos One.',
+      'Recebemos uma solicitação para redefinir sua senha do DentalPos.',
       `Use este link temporário: ${url.toString()}`,
       '',
       'O link expira em 30 minutos. Se você não solicitou a alteração, ignore esta mensagem.',
     ].join('\n'),
     {
       ...credentialsToUse,
-      subject: 'Redefinição de senha — DentalPos One',
+      subject: 'Redefinição de senha — DentalPos',
     },
     addressToUse,
   )

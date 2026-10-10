@@ -17,7 +17,7 @@ export interface TemplateLinks {
 
 const SENDER_LINE =
   process.env.PROSPECT_SENDER_ID ||
-  'DentalPos One · WMundi Technologies · Maringá/PR · contato@dentalpos.com.br'
+  'DentalPos · WMundi Technologies · Maringá/PR · contato@dentalpos.com.br'
 
 function formatCnpj(cnpj: string) {
   const d = cnpj.replace(/\D/g, '').padStart(14, '0')
@@ -39,14 +39,14 @@ function bodies(lead: TemplateLead, step: number): { subject: string; paragraphs
       paragraphs: [
         'Olá, tudo bem?',
         isLab
-          ? `Sou o Dr. Robson Ravel, de Maringá (PR). Criei o DentalPos One, um sistema de gestão odontológica, e estou convidando laboratórios de prótese de ${cidade} para conhecer.`
-          : `Sou o Dr. Robson Ravel, de Maringá (PR). Criei o DentalPos One porque, como dentista, eu via o consultório perder horas com agenda, confirmação de pacientes e financeiro espalhados em vários lugares.`,
+          ? `Sou o Dr. Robson Ravel, de Maringá (PR). Criei o DentalPos, um sistema de gestão odontológica, e estou convidando laboratórios de prótese de ${cidade} para conhecer.`
+          : `Sou o Dr. Robson Ravel, de Maringá (PR). Criei o DentalPos porque, como dentista, eu via o consultório perder horas com agenda, confirmação de pacientes e financeiro espalhados em vários lugares.`,
         isLab
-          ? 'No DentalPos One as clínicas registram a ordem de serviço com o prazo de entrega, e o laboratório acompanha tudo, com avisos automáticos de andamento.'
-          : 'No DentalPos One a agenda, a ficha do paciente, o prontuário, o orçamento e o financeiro ficam juntos, e os lembretes de consulta saem sozinhos pelo WhatsApp.',
+          ? 'No DentalPos as clínicas registram a ordem de serviço com o prazo de entrega, e o laboratório acompanha tudo, com avisos automáticos de andamento.'
+          : 'No DentalPos a agenda, a ficha do paciente, o prontuário, o orçamento e o financeiro ficam juntos, e os lembretes de consulta saem sozinhos pelo WhatsApp.',
         'Estamos em lançamento: são 30 dias grátis, sem cartão, e quem assinar tem 50% de desconto no primeiro ano.',
       ],
-      cta: 'Conhecer o DentalPos One',
+      cta: 'Conhecer o DentalPos',
     }
   }
 
@@ -56,8 +56,8 @@ function bodies(lead: TemplateLead, step: number): { subject: string; paragraphs
       paragraphs: [
         'Olá, retomando meu contato de alguns dias atrás.',
         isLab
-          ? 'Um dos pontos que mais tomam tempo entre clínica e laboratório é cobrar e confirmar prazo. No DentalPos One a ordem de serviço já nasce com a data de entrega e os lembretes vão sozinhos.'
-          : 'O que mais pesa no faturamento de um consultório costuma ser o horário vazio. No DentalPos One o paciente recebe a confirmação ao agendar, um lembrete na véspera e outro no dia, e a recepção vê na hora quem confirmou.',
+          ? 'Um dos pontos que mais tomam tempo entre clínica e laboratório é cobrar e confirmar prazo. No DentalPos a ordem de serviço já nasce com a data de entrega e os lembretes vão sozinhos.'
+          : 'O que mais pesa no faturamento de um consultório costuma ser o horário vazio. No DentalPos o paciente recebe a confirmação ao agendar, um lembrete na véspera e outro no dia, e a recepção vê na hora quem confirmou.',
         'Você testa com a sua rotina real durante 30 dias, sem custo e sem compromisso.',
       ],
       cta: 'Testar 30 dias grátis',
@@ -77,7 +77,7 @@ function bodies(lead: TemplateLead, step: number): { subject: string; paragraphs
 
 export function renderProspectEmail(lead: TemplateLead, step: number, links: TemplateLinks) {
   const { subject, paragraphs, cta } = bodies(lead, step)
-  const signature = ['Dr. Robson Ravel', 'DentalPos One — você só precisa atender.']
+  const signature = ['Dr. Robson Ravel', 'DentalPos — você só precisa atender.']
   const why = `Você recebeu este e-mail porque ${lead.razaoSocial} (CNPJ ${formatCnpj(lead.cnpj)}) consta com atividade ${lead.segment === 'LABORATORIO' ? 'de prótese dentária' : 'odontológica'} nos dados públicos do CNPJ da Receita Federal. Este é um contato comercial entre empresas.`
 
   const text = [

@@ -15,7 +15,7 @@ export default function BrandName({
       className="notranslate"
       {...props}
     >
-      {short ? "DentalPos" : "DentalPos One"}
+      {short ? "DentalPos" : "DentalPos"}
     </span>
   );
 }

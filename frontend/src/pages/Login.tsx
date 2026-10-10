@@ -114,7 +114,7 @@ export default function Login() {
         }}
       >
         <Typography variant="overline" color="primary" sx={{ fontWeight: 900 }}>
-          DENTALPOS ONE
+          DENTALPOS
         </Typography>
         <Typography variant="h4" sx={{ fontWeight: 950 }}>
           Bem-vindo
@@ -174,7 +174,7 @@ export default function Login() {
 
         <Box sx={{ mt: 3, pt: 2.5, borderTop: "1px solid", borderColor: "divider" }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Ainda não usa o DentalPos One? O EXPERIENCE é gratuito, temporário e informa claramente
+            Ainda não usa o DentalPos? O EXPERIENCE é gratuito, temporário e informa claramente
             a data de encerramento.
           </Typography>
           <Button
