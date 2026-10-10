@@ -153,6 +153,8 @@ function fakeClaude(result: Partial<LicenseAiResult>): Anthropic {
   return { beta: { messages: { create: async () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(full) }] }) } } } as unknown as Anthropic;
 }
 
+const US = await import('../src/uploadSafety.js');
+const { default: sharp } = await import('sharp');
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
 async function register(email: string, verified = true) {
@@ -231,12 +233,38 @@ test('upload de fotos: imagens do celular/PC aceitas, outros arquivos recusados'
   assert.ok(files.every((f) => f.mime === 'image/png' && f.url.startsWith('/api/uploads/')));
   const img = await fetch(`${base}${files[0].url.slice(4)}`);
   assert.equal(img.status, 200);
-  assert.deepEqual(Buffer.from(await img.arrayBuffer()), PNG);
+  assert.deepEqual(Buffer.from(await img.arrayBuffer()), (await US.reencodeImage(PNG)).data, 'foto regravada no servidor');
 
   const bad = new FormData();
   bad.append('files', new Blob(['<script>alert(1)</script>'], { type: 'image/png' }), 'x.png');
   assert.equal((await fetch(`${base}/uploads`, { method: 'POST', headers: { Authorization: `Bearer ${tok}` }, body: bad })).status, 422);
   assert.equal((await fetch(`${base}/uploads`, { method: 'POST', body: form })).status, 401);
+});
+
+test('envio seguro: foto sem GPS e no máximo 2000 px; PDF com JavaScript, anexo ou cifrado recusado', async () => {
+  // Foto de celular com GPS no EXIF e 3000 px
+  const gps = await sharp({ create: { width: 3000, height: 1500, channels: 3, background: '#0f766e' } })
+    .jpeg().withExif({ IFD0: { Make: 'Celular' }, IFD3: { GPSLatitudeRef: 'S', GPSLatitude: '23/1 25/1 0/1' } }).toBuffer();
+  assert.ok((await sharp(gps).metadata()).exif, 'a foto de teste tem EXIF');
+  const clean = await US.reencodeImage(gps);
+  const meta = await sharp(clean.data).metadata();
+  assert.equal(meta.exif, undefined, 'GPS e metadados apagados');
+  assert.equal(meta.width, 2000);
+  assert.equal(clean.mime, 'image/jpeg');
+
+  const pdf = (body: string) => Buffer.from(`%PDF-1.4\n1 0 obj << /Type /Catalog ${body} >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n`, 'latin1');
+  assert.equal(US.pdfProblem(pdf('/Pages 2 0 R')), null, 'PDF simples aceito');
+  assert.equal(US.pdfProblem(pdf('/OpenAction << /S /JavaScript /JS (app.alert(1)) >>')), 'OpenAction');
+  assert.equal(US.pdfProblem(pdf('/Names << /J#61vaScript 3 0 R >>')), 'JavaScript', 'nome disfarçado com #');
+  assert.equal(US.pdfProblem(pdf('/Names << /EmbeddedFiles 3 0 R >>')), 'EmbeddedFiles');
+  assert.equal(US.pdfProblem(pdf('/Encrypt 5 0 R')), 'Encrypt');
+  const { deflateSync } = await import('node:zlib');
+  const hidden = deflateSync(Buffer.from('<< /S /JavaScript /JS (x) >>'));
+  const objStm = Buffer.concat([Buffer.from('%PDF-1.5\n4 0 obj << /Type /ObjStm /N 1 /First 4 /Filter /FlateDecode >>\nstream\n', 'latin1'), hidden, Buffer.from('\nendstream endobj\n%%EOF\n', 'latin1')]);
+  assert.equal(US.pdfProblem(objStm), 'JavaScript', 'escondido em objeto comprimido');
+  await assert.rejects(US.safeDocument(pdf('/AA << >>'), { allowPdf: true }), /unsafe_pdf/);
+  await assert.rejects(US.safeDocument(pdf('/Pages 2 0 R'), { allowPdf: false }), /invalid_document_type/);
+  await assert.rejects(US.safeDocument(Buffer.from('MZ executável disfarçado'), { allowPdf: true }), /invalid_image/);
 });
 
 test('avaliação do app, sugestões e erros + fila de e-mails', async () => {
@@ -305,7 +333,8 @@ test('documentos de registro: cifrados no banco, acesso registrado e apagados ap
 
     const adminTok = signToken(admin);
     const doc = await fetch(`${base}/admin/verifications/${verificationId}/document`, { headers: { Authorization: `Bearer ${adminTok}` } });
-    assert.deepEqual(Buffer.from(await doc.arrayBuffer()), PNG, 'equipe vê o original');
+    assert.deepEqual(Buffer.from(await doc.arrayBuffer()), (await US.reencodeImage(PNG)).data, 'equipe vê o documento (regravado, sem metadados)');
+    assert.match(doc.headers.get('content-security-policy') ?? '', /sandbox/);
     const log = await (await fetch(`${base}/admin/verifications/${verificationId}/access-log`, { headers: { Authorization: `Bearer ${adminTok}` } })).json() as { action: string; email: string | null }[];
     assert.ok(log.some((l) => l.action === 'view' && l.email === admin.email));
     assert.ok(log.some((l) => l.action === 'ai_analysis'));
@@ -886,7 +915,7 @@ test('identidade: CPF/CNPJ + documento + selfie com checagem automática; equipe
     assert.ok(cv && open.some((x) => x.email === 'id4@example.com'));
     const selfie = await fetch(`${base}/admin/identities/${cv.id}/selfie`, { headers: adm });
     assert.equal(selfie.status, 200);
-    assert.ok(Buffer.from(await selfie.arrayBuffer()).equals(PNG), 'arquivo decifrado para a equipe');
+    assert.ok(Buffer.from(await selfie.arrayBuffer()).equals((await US.reencodeImage(PNG)).data), 'arquivo decifrado para a equipe');
     const stored = await one<{ selfie: Buffer }>(pool, 'SELECT selfie FROM identity_verifications WHERE id = $1', [cv.id]);
     assert.ok(!stored!.selfie.equals(PNG), 'guardado cifrado');
     assert.equal((await one<{ n: number }>(pool, "SELECT count(*)::int AS n FROM identity_access_log WHERE verification_id = $1 AND action = 'view'", [cv.id]))!.n, 1);

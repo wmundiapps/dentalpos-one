@@ -36,6 +36,18 @@ export async function apiUpload<T = unknown>(path: string, form: FormData): Prom
   return data as T;
 }
 
+/** Documento sensível (equipe): foto abre em outra aba; PDF é baixado, nunca aberto dentro do site. */
+export async function openProtectedFile(path: string, name = 'documento') {
+  const res = await fetch(`/api${path}`, { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} });
+  if (!res.ok) throw new ApiError(res.status, 'not_found');
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  if (blob.type === 'application/pdf') {
+    const a = document.createElement('a'); a.href = url; a.download = `${name}.pdf`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } else window.open(url, '_blank', 'noopener');
+}
+
 /** Baixa um arquivo protegido (ex.: documento para a equipe) e devolve uma URL local. */
 export async function apiBlobUrl(path: string): Promise<string> {
   const res = await fetch(`/api${path}`, { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} });
