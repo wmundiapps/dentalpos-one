@@ -126,7 +126,7 @@ async function sendNotice(notice: { id: string; clinicId: string; tenantId: stri
     try { credentials = decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {} } catch { return fail(`Credenciais de ${channel} não puderam ser abertas.`) }
   } else credentials = { apiKey: platformKey }
   if (!Object.keys(credentials).length || credentials.simulated === true) return fail(`Credenciais reais de ${channel} ainda não configuradas.`)
-  const address = sender ? sender.address : 'DentalPos One <contato@dentalpos.com.br>'
+  const address = sender ? sender.address : 'DentalPos <contato@dentalpos.com.br>'
   try {
     const result = await dispatchRevah(channel, destination, notice.message, channel === 'EMAIL' ? { ...credentials, subject: 'Aviso de pagamento em atraso' } : credentials, address)
     if (result.simulated) return fail(`O provedor ${result.provider} está em modo simulado.`)

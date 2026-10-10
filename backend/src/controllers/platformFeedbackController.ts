@@ -23,7 +23,7 @@ async function notifyAdmin(row: { id: string; clinicId: string; type: string; ti
     const isEvaluation = row.type === 'Avalia\u00e7\u00e3o'
     const stars = row.rating ? `${'\u2605'.repeat(row.rating)}${'\u2606'.repeat(5 - row.rating)} (${row.rating}/5)` : null
     const content = [
-      isEvaluation ? 'Nova avalia\u00e7\u00e3o do sistema DentalPos One:' : `Novo relato no DentalPos One (${row.type}):`,
+      isEvaluation ? 'Nova avalia\u00e7\u00e3o do sistema DentalPos:' : `Novo relato no DentalPos (${row.type}):`,
       '',
       `Cl\u00ednica: ${clinic?.name || row.clinicId}`,
       clinic?.phone ? `Telefone da cl\u00ednica: ${clinic.phone}` : null,
@@ -45,7 +45,7 @@ async function notifyAdmin(row: { id: string; clinicId: string; type: string; ti
       : `${row.type} \u2014 ${row.title} \u2014 ${clinic?.name || 'cl\u00ednica'}`
     await dispatchRevah('EMAIL', ADMIN_EMAIL, content, {
       apiKey,
-      from: 'DentalPos One <contato@dentalpos.com.br>',
+      from: 'DentalPos <contato@dentalpos.com.br>',
       subject,
     })
   } catch (error) {

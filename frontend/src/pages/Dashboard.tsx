@@ -132,7 +132,7 @@ export default function Dashboard() {
       <LockedUsersUnlock />
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Dashboard</Typography>
       <Typography color="text.secondary" sx={{ mb: 4 }}>
-        Visão operacional integrada do DentalPos One.
+        Visão operacional integrada do DentalPos.
       </Typography>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(4, 1fr)" }, gap: 3 }}>

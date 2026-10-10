@@ -61,7 +61,7 @@ const CARDS: Array<{ key: string; label: string; help: string }> = [
   { key: "EM_SEQUENCIA", label: "Em sequência", help: "Receberam o 1º ou o 2º e-mail" },
   { key: "QUENTE", label: "Quentes", help: "Clicaram no link: ligar hoje" },
   { key: "RESPONDEU", label: "Responderam", help: "Marcados pela equipe" },
-  { key: "CONVERTIDO", label: "Convertidos", help: "Criaram conta no DentalPos One" },
+  { key: "CONVERTIDO", label: "Convertidos", help: "Criaram conta no DentalPos" },
   { key: "DESCADASTRADO", label: "Descadastrados", help: "Nunca mais recebem" },
 ];
 

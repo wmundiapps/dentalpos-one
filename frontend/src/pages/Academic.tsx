@@ -55,7 +55,7 @@ const operationalAreas: Record<Exclude<AcademicSection, "visao-geral" | "cursos"
   ],
   financeiro: [
     { title: "Mensalidades e parcelas", description: "Integração planejada com o financeiro central para contas a receber, inadimplência e baixa de pagamentos." },
-    { title: "PIX, boleto e cartão", description: "Estrutura compatível com os provedores financeiros já preparados no DentalPos One." },
+    { title: "PIX, boleto e cartão", description: "Estrutura compatível com os provedores financeiros já preparados no DentalPos." },
     { title: "Visão acadêmico-financeira", description: "Separação por curso, turma, aluno e centro de resultado para análise gerencial." },
   ],
   documentos: [

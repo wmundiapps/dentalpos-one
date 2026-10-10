@@ -1,4 +1,4 @@
-# Landing page do DentalPos One
+# Landing page do DentalPos
 
 **Versão atual:** `landing-dentalpos-one-v3.html`, publicada em `https://one.dentalpos.com.br/landingpage` (projeto Vercel `dentalpos-landing`). A página principal (`/`) foi atualizada com a mesma política (cópia em `pagina-principal-www-dentalpos.html`); o formulário de contato (`api/contato.js`) não mudou.
 `landing-dentalpos-one-v1.html` é o rascunho original (artefato https://claude.ai/artifact/MqEQR3z6hwDpRX6j9Q3nyo), mantido só como histórico.

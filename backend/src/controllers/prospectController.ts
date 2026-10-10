@@ -259,7 +259,7 @@ function page(title: string, message: string) {
 <body style="font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:40px 16px;color:#1f2933">
 <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:10px;padding:28px">
 <h1 style="font-size:20px;margin:0 0 12px">${title}</h1><p style="line-height:1.55;margin:0 0 12px">${message}</p>
-<p style="font-size:13px;color:#7b8794;margin:0">DentalPos One · contato@dentalpos.com.br</p></div></body></html>`
+<p style="font-size:13px;color:#7b8794;margin:0">DentalPos · contato@dentalpos.com.br</p></div></body></html>`
 }
 
 export async function publicClick(req: Request, res: Response) {
