@@ -205,6 +205,8 @@ export default function FiscalAutomation() {
               <MenuItem value="RECIBO">Recibo</MenuItem>
             </TextField>
             <TextField label="Canais de envio (EMAIL, WHATSAPP, SMS)" value={rules.sendChannels} onChange={(e) => setRules({ ...rules, sendChannels: e.target.value })} helperText={"Separe por v\u00edrgula. E-mail funciona mesmo sem canal configurado."} />
+            <TextField type="email" label="E-mail do contador (recebe c\u00f3pia de cada documento)" value={rules.accountantEmail || ""} onChange={(e) => setRules({ ...rules, accountantEmail: e.target.value })} />
+            <TextField type="email" label="E-mail do administrativo (recebe c\u00f3pia de cada documento)" value={rules.adminEmail || ""} onChange={(e) => setRules({ ...rules, adminEmail: e.target.value })} />
             <TextField label={"C\u00f3digo do servi\u00e7o (NFS-e)"} value={rules.serviceCode || ""} onChange={(e) => setRules({ ...rules, serviceCode: e.target.value })} />
             <TextField type="number" label={"Al\u00edquota de ISS (%)"} value={rules.issRate ?? ""} onChange={(e) => setRules({ ...rules, issRate: e.target.value === "" ? null : Number(e.target.value) })} />
           </DialogContent>

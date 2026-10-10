@@ -12,6 +12,14 @@ const PENDENTES = ["AGUARDANDO_EMISSAO", "PROGRAMADO", "AGUARDANDO_RECEITA_SAUDE
 const EMITIDOS = ["EMITIDO", "ENVIADO", "CONCLUIDO"]
 const digits = (v?: string | null) => String(v || "").replace(/\D/g, "")
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+function cleanEmail(v: any) {
+  const e = String(v || "").trim().toLowerCase()
+  if (!e) return null
+  if (!EMAIL_RE.test(e)) throw new Error(`E-mail invalido: ${e}`)
+  return e
+}
+
 export async function getRule(c: Ctx) {
   const found = await prisma.fiscalRule.findUnique({ where: { clinicId: c.clinicId } })
   if (found) return found
@@ -31,6 +39,8 @@ export async function saveRule(c: Ctx, body: any) {
       sendChannels: (canais.length ? canais : ["EMAIL"]).join(","),
       requireAccountantApproval: Boolean(body?.requireAccountantApproval),
       serviceCode: body?.serviceCode ? String(body.serviceCode) : null,
+      accountantEmail: cleanEmail(body?.accountantEmail),
+      adminEmail: cleanEmail(body?.adminEmail),
       issRate: body?.issRate !== undefined && body?.issRate !== null && body?.issRate !== "" ? Number(body.issRate) : null,
       updatedAt: new Date(),
     },
@@ -200,8 +210,42 @@ export async function sendDocument(c: Ctx, id: string) {
     }
   }
   if (resultados.some((r) => r.status === "ENVIADO")) await prisma.fiscalDocument.update({ where: { id: d.id }, data: { status: "ENVIADO", updatedAt: new Date() } })
+  await sendCopies(c, d, rule, nomes[d.kind] || "Documento fiscal")
   await refreshAlerts(c, d.id)
   return resultados
+}
+
+// Copia por e-mail ao contador e ao administrativo, uma unica vez por documento e destinatario.
+async function sendCopies(c: Ctx, d: any, rule: any, nome: string) {
+  const alvos = [
+    { email: rule.accountantEmail as string | null, papel: "Contador" },
+    { email: rule.adminEmail as string | null, papel: "Administrativo" },
+  ].filter((a) => a.email) as { email: string; papel: string }[]
+  const unicos = alvos.filter((a, i) => alvos.findIndex((b) => b.email === a.email) === i)
+  for (const a of unicos) {
+    const ja = await prisma.fiscalSendRecord.findFirst({ where: { fiscalDocumentId: d.id, channel: "EMAIL", destination: a.email, status: "ENVIADO" } })
+    if (ja) continue
+    const base = { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, fiscalDocumentId: d.id, channel: "EMAIL", recipientName: a.papel }
+    const texto = [
+      `Copia para ${a.papel.toLowerCase()}: ${nome}${d.documentNumber ? ` n. ${d.documentNumber}` : ""}${d.protocolNumber ? ` (protocolo ${d.protocolNumber})` : ""}.`,
+      `Pagador: ${d.payerName}${d.payerDocument ? ` (CPF/CNPJ ${d.payerDocument})` : ""}.`,
+      `Valor: R$ ${Number(d.amount).toFixed(2).replace(".", ",")}.`,
+      d.issuedAt ? `Emissao: ${new Date(d.issuedAt).toLocaleDateString("pt-BR")}.` : "",
+      d.documentUrl ? `Documento: ${d.documentUrl}` : "",
+      d.issuerName ? `Emitente: ${d.issuerName}.` : "",
+    ].filter(Boolean).join("\n")
+    try {
+      const sender = await senderFor(c, "EMAIL")
+      let creds: any = sender ? decryptSecret<any>(sender.encryptedCredentials) || {} : null
+      let remetente = sender?.address
+      if (!creds && process.env.RESEND_API_KEY) { creds = { apiKey: process.env.RESEND_API_KEY }; remetente = `${d.issuerName || "DentalPos One"} <contato@dentalpos.com.br>` }
+      if (!creds) throw new Error("Canal EMAIL nao configurado em Canais de Envio.")
+      const r = await dispatchRevah("EMAIL" as RevahChannel, a.email, texto, { ...creds, subject: `[Copia] ${nome} - ${d.payerName}` }, remetente)
+      await prisma.fiscalSendRecord.create({ data: { ...base, destination: a.email, status: r.simulated ? "NAO_ENVIADO" : "ENVIADO", sentAt: new Date(), providerMessageId: r.providerMessageId || null, failureReason: r.simulated ? "Envio simulado: canal sem credenciais." : null } })
+    } catch (erro) {
+      await prisma.fiscalSendRecord.create({ data: { ...base, destination: a.email, status: "FALHOU", failureReason: erro instanceof Error ? erro.message : "Falha no envio." } })
+    }
+  }
 }
 
 export async function concludeDocument(c: Ctx, id: string) {
