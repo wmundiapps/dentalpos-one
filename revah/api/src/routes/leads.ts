@@ -4,11 +4,11 @@ import { prisma } from '../lib/prisma'
 import { ah } from '../lib/errors'
 import { requireRole, type AuthedRequest } from '../middleware/auth'
 import { audit } from '../services/audit'
-import { acceptTerms, importLeads, leadsAccess, publicLead, runSearch } from '../services/leads'
+import { acceptTerms, importLeads, leadsAccess, optOutLeads, publicLead, runSearch } from '../services/leads'
 import { companyBaseStatus, findSegments } from '../services/leads/providers'
 import { linkedinAuthUrl, linkedinAvailable, syncLinkedinSource } from '../services/leads/linkedin'
 import { config } from '../config'
-import { notFound } from '../lib/errors'
+import { badRequest, notFound } from '../lib/errors'
 
 const r = Router()
 
@@ -35,6 +35,8 @@ r.post('/leads/search', ah(async (req: AuthedRequest, res) => {
       uf: z.string().length(2).optional(),
       cnaes: z.array(z.string().max(7)).max(20).optional(),
       limit: z.number().int().min(1).max(200).optional(),
+      mei: z.enum(['ALL', 'ONLY', 'EXCLUDE']).optional(),
+      audienceId: z.string().max(40).optional(),
     })
     .parse(req.body)
   if (b.kind === 'LOCAL' && b.limit) b.limit = Math.min(b.limit, 60)
@@ -54,7 +56,7 @@ r.get('/leads/base', ah(async (_req: AuthedRequest, res) => {
 r.get('/leads', ah(async (req: AuthedRequest, res) => {
   const status = String(req.query.status || '')
   const rows = await prisma.lead.findMany({
-    where: { tenantId: req.tenant.id, ...(['NEW', 'IMPORTED', 'DISCARDED'].includes(status) ? { status } : {}) },
+    where: { tenantId: req.tenant.id, ...(['NEW', 'IMPORTED', 'DISCARDED', 'OPTED_OUT'].includes(status) ? { status } : {}) },
     orderBy: { createdAt: 'desc' },
     take: 500,
   })
@@ -72,6 +74,49 @@ r.post('/leads/discard', ah(async (req: AuthedRequest, res) => {
   const b = z.object({ ids: z.array(z.string()).min(1).max(1000) }).parse(req.body)
   const r2 = await prisma.lead.updateMany({ where: { tenantId: req.tenant.id, id: { in: b.ids }, status: 'NEW' }, data: { status: 'DISCARDED' } })
   res.json({ discarded: r2.count })
+}))
+
+// "Não quero receber": bloqueia para sempre nas buscas deste cliente e nos canais (lista de bloqueio).
+r.post('/leads/optout', ah(async (req: AuthedRequest, res) => {
+  const b = z.object({ ids: z.array(z.string()).min(1).max(1000) }).parse(req.body)
+  const out = await optOutLeads(req.tenant, b.ids)
+  await audit(req.tenant.id, req.user.id, 'LEADS_OPT_OUT', 'Lead', undefined, out)
+  res.json(out)
+}))
+
+// Públicos salvos: segmentos (CNAE), local e texto de convite escolhidos por cada cliente.
+const AudienceSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  cnaes: z.array(z.string().regex(/^\d{2,7}$/)).min(1).max(20),
+  uf: z.string().length(2).nullable().optional(),
+  city: z.string().trim().max(120).nullable().optional(),
+  meiFilter: z.enum(['ALL', 'ONLY', 'EXCLUDE']).default('ALL'),
+  inviteText: z.string().trim().max(1000).nullable().optional(),
+})
+
+r.get('/leads/audiences', ah(async (req: AuthedRequest, res) => {
+  const rows = await prisma.leadAudience.findMany({ where: { tenantId: req.tenant.id }, orderBy: { name: 'asc' } })
+  const names = new Map((await prisma.cnaeCode.findMany({ where: { code: { in: [...new Set(rows.flatMap((a) => a.cnaes))] } } })).map((c) => [c.code, c.description]))
+  res.json(rows.map((a) => ({ ...a, segments: a.cnaes.map((code) => ({ code, description: names.get(code) || code })) })))
+}))
+
+r.post('/leads/audiences', requireRole('OWNER', 'ADMIN'), ah(async (req: AuthedRequest, res) => {
+  const b = AudienceSchema.parse(req.body)
+  if ((await prisma.leadAudience.count({ where: { tenantId: req.tenant.id } })) >= 50) throw badRequest('Limite de 50 públicos salvos.')
+  res.status(201).json(await prisma.leadAudience.create({ data: { ...b, uf: b.uf?.toUpperCase() || null, tenantId: req.tenant.id } }))
+}))
+
+r.put('/leads/audiences/:id', requireRole('OWNER', 'ADMIN'), ah(async (req: AuthedRequest, res) => {
+  const b = AudienceSchema.parse(req.body)
+  const out = await prisma.leadAudience.updateMany({ where: { id: req.params.id, tenantId: req.tenant.id }, data: { ...b, uf: b.uf?.toUpperCase() || null } })
+  if (!out.count) throw notFound()
+  res.json(await prisma.leadAudience.findUnique({ where: { id: req.params.id } }))
+}))
+
+r.delete('/leads/audiences/:id', requireRole('OWNER', 'ADMIN'), ah(async (req: AuthedRequest, res) => {
+  const out = await prisma.leadAudience.deleteMany({ where: { id: req.params.id, tenantId: req.tenant.id } })
+  if (!out.count) throw notFound()
+  res.json({ ok: true })
 }))
 
 // Fontes conectadas (formulários de anúncios do LinkedIn). O Meta Lead Ads chega pela conexão da página em Canais.
