@@ -3,6 +3,7 @@ import { Router, type Response } from 'express';
 import { z } from 'zod';
 import { HttpError, requireAuth, type AuthedRequest } from '../auth.js';
 import * as P from '../prospecting.js';
+import { INVITE_MAILBOX, inviteMailProblem } from '../mailer.js';
 
 export const prospectingRouter = Router();
 
@@ -15,6 +16,7 @@ prospectingRouter.get('/admin/prospecting/overview', requireAuth, async (req: Au
   res.json({
     segments: P.SEGMENTS, base: await P.baseStatus(), stats: await P.stats(), config: await P.getConfig(),
     mapsEnabled: !!process.env.GOOGLE_PLACES_API_KEY,
+    inviteMailbox: { address: INVITE_MAILBOX(), problem: inviteMailProblem() },
   });
 });
 

@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import ExcelJS from 'exceljs';
 import { id, one, pool, rows, token } from './db.js';
 import { HttpError, adminEmails } from './auth.js';
-import { SUPPORT_EMAIL, sendMail } from './mailer.js';
+import { INVITE_MAILBOX, SUPPORT_EMAIL, inviteMailProblem, sendInviteMail, sendMail } from './mailer.js';
 
 // ───────────── Segmentos (CNAE) de quem costuma ter sala ou horário ocioso ─────────────
 export const SEGMENTS: Array<{ id: string; label: string; cnaes: string[]; maps: string }> = [
@@ -251,13 +251,14 @@ ${copy.body.split('\n\n').map((par) => `<p style="font-size:15px;line-height:1.5
 
 async function sendStep(p: P, step: 1 | 2 | 3, to = p.email) {
   const m = renderStep(p, step);
-  await sendMail({
+  await sendInviteMail({
     to, subject: m.subject, text: m.text, html: m.html,
-    headers: { 'List-Unsubscribe': `<${m.unsubscribe}>, <mailto:${SUPPORT_EMAIL()}?subject=descadastrar>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+    headers: { 'List-Unsubscribe': `<${m.unsubscribe}>, <mailto:${INVITE_MAILBOX() ?? SUPPORT_EMAIL()}?subject=descadastrar>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
   });
 }
 
 export async function sendTest(to: string, step: 1 | 2 | 3) {
+  if (inviteMailProblem()) throw new HttpError(503, 'invite_mailbox_missing');
   await sendStep({ id: 'teste', name: 'Clínica Exemplo', email: to, token: 'teste', city: 'Maringá', segment: null }, step, to);
 }
 
@@ -277,6 +278,8 @@ export async function runSequence({ dryRun = false, now = new Date() } = {}) {
   const brt = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
   const business = brt.getDay() >= 1 && brt.getDay() <= 5 && brt.getHours() >= 9 && brt.getHours() < 18;
   if (!business && !dryRun) return { enabled: true, sent: 0, converted, outsideHours: true };
+  const mailbox = inviteMailProblem();
+  if (mailbox && !dryRun) return { enabled: true, sent: 0, converted, mailbox };
   const sentToday = (await one<{ n: number }>(pool,
     `SELECT count(*)::int AS n FROM prospect_events WHERE type = 'sent'
        AND (created_at AT TIME ZONE 'America/Sao_Paulo')::date = ($1::timestamptz AT TIME ZONE 'America/Sao_Paulo')::date`, [now]))!.n;

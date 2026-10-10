@@ -14,7 +14,7 @@ type Candidate = {
 };
 type Config = { sending_enabled: boolean; daily_limit: number; step2_after_days: number; step3_after_days: number; send_to_webmail: boolean };
 type Stats = { byStatus: Record<string, number>; sent_today: number; sent_7d: number; clicks_7d: number };
-type Overview = { segments: Segment[]; base: { companies: number; withEmail: number; refMonth: string | null }; stats: Stats; config: Config; mapsEnabled: boolean };
+type Overview = { segments: Segment[]; base: { companies: number; withEmail: number; refMonth: string | null }; stats: Stats; config: Config; mapsEnabled: boolean; inviteMailbox: { address: string | null; problem: string | null } };
 type Prospect = { id: string; source: string; name: string; segment: string | null; email: string | null; phone: string | null; website: string | null; city: string | null; uf: string | null; status: string; last_step: number; last_sent_at: string | null; notes: string | null; token: string; wa_invited_at: string | null };
 
 const STATUS: Record<string, string> = {
@@ -248,6 +248,9 @@ function Sequence({ ov, onChange }: { ov: Overview; onChange: () => void }) {
     <section className="panel">
       <h2>✉️ Sequência de e-mails</h2>
       <p className="small muted">3 e-mails para clínicas e empresas (passo 1 na hora, passo 2 e passo 3 depois dos intervalos abaixo), só em dias úteis das 9h às 18h, aos poucos. Quem clica vira <strong>🔥 quente</strong> e você recebe um aviso por e-mail. Todo e-mail tem descadastro em um clique, e quem se descadastra nunca mais recebe.</p>
+      {ov.inviteMailbox.problem
+        ? <p className="notice small">⚠️ <strong>Caixa de convites não configurada.</strong> {ov.inviteMailbox.problem} Os convites saem por uma caixa só deles (ex.: convites@space-hour.com), nunca pela caixa dos e-mails de senha e pagamento: uma denúncia de spam não derruba o sistema. Enquanto isso, nada é enviado.</p>
+        : <p className="small muted">Convites saem por <strong>{ov.inviteMailbox.address}</strong> (respostas chegam nessa caixa).</p>}
       <label className="check"><input type="checkbox" checked={c.sending_enabled} onChange={(e) => save({ sending_enabled: e.target.checked })} /> <strong>Envio automático ligado</strong></label>
       <div className="form-grid">
         <label>Limite por dia<input type="number" min={1} max={200} value={c.daily_limit} onChange={(e) => setC({ ...c, daily_limit: Number(e.target.value) })} onBlur={() => save({ daily_limit: c.daily_limit })} /></label>
@@ -257,7 +260,7 @@ function Sequence({ ov, onChange }: { ov: Overview; onChange: () => void }) {
       </div>
       <p className="muted small">Comece com 20 por dia: limites baixos protegem a reputação do domínio e evitam cair no spam.</p>
       <div className="row gap">
-        {([1, 2, 3] as const).map((s) => <button key={s} className="btn btn-outline small" onClick={() => test(s)}>Testar passo {s} no meu e-mail</button>)}
+        {([1, 2, 3] as const).map((s) => <button key={s} className="btn btn-outline small" disabled={!!ov.inviteMailbox.problem} onClick={() => test(s)}>Testar passo {s} no meu e-mail</button>)}
         <button className="btn btn-outline small" onClick={dry}>Quem recebe na próxima rodada?</button>
       </div>
       {info && <p className="notice small">{info}</p>}

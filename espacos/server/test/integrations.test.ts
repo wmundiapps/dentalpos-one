@@ -1177,6 +1177,18 @@ test('captação: Receita + Google Maps, sequência de e-mails em horário comer
     Pr.setPlacesFetch();
   }
 
+  // Caixa própria de convites: sem ela (ou igual à do sistema) nada sai
+  assert.match(M.inviteMailProblem()!, /INVITE_SMTP_USER/);
+  process.env.SMTP_HOST = 'smtp.teste'; process.env.SMTP_USER = 'noreply@space-hour.com';
+  process.env.INVITE_SMTP_USER = 'NoReply@space-hour.com'; process.env.INVITE_SMTP_PASS = 'x';
+  assert.match(M.inviteMailProblem()!, /diferente/);
+  process.env.INVITE_SMTP_USER = 'convites@space-hour.com';
+  assert.equal(M.inviteMailProblem(), null);
+  for (const k of ['SMTP_HOST', 'SMTP_USER', 'INVITE_SMTP_USER', 'INVITE_SMTP_PASS']) delete process.env[k];
+  await Pr.setConfig({ sending_enabled: true });
+  assert.match(String((await Pr.runSequence({ now: new Date('2026-10-12T17:00:00Z') }) as { mailbox?: string }).mailbox), /caixa de convites/);
+  await Pr.setConfig({ sending_enabled: false });
+
   const sent: Array<{ to: string; subject: string; text: string; headers?: Record<string, string> }> = [];
   M.setMailSender(async (m) => { sent.push(m); });
   try {
