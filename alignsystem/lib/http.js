@@ -30,10 +30,10 @@ export async function readRaw(req, limit) {
   return Buffer.concat(chunks);
 }
 
-export async function readJson(req) {
+export async function readJson(req, limit = 200_000) {
   if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
   if (typeof req.body === 'string') return req.body ? JSON.parse(req.body) : {};
-  const raw = await readRaw(req, 200_000);
+  const raw = await readRaw(req, limit);
   if (!raw.length) return {};
   try { return JSON.parse(raw.toString('utf8')); } catch { fail(400, 'JSON inválido.'); }
 }

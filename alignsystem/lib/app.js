@@ -12,6 +12,7 @@ import { MODEL, quote, dentistSplitPct } from './pricing.js';
 import * as geo from './geo.js';
 import * as totp from './totp.js';
 import { sanitizeImage } from './images.js';
+import * as prospects from './prospects.js';
 import QRCode from 'qrcode';
 import { patientContract, partnerContract, contractsReviewed, PARTNER_DEFAULTS } from './contracts.js';
 import { ensureTcle, currentConsent, TCLE_KIND, TCLE_VERSION } from './tcle.js';
@@ -749,6 +750,98 @@ r('GET', '/api/photos/:id', async (req, res, { id }) => {
   await sendPhoto(sql, res, sql`select p.id from photos p join cases c on c.id = p.case_id
     where p.id = ${id} and c.dentist_id = ${u.dentist_id} and c.blocked_at is null
       and (p.uploaded_by <> 'paciente' or p.reviewed_at is not null)`);
+});
+
+// ------------------------------------------------------------------ captação de dentistas (Receita Federal)
+
+const PROSPECT_PAGE = 50;
+
+function prospectFilter(sql, q) {
+  const status = prospects.PROSPECT_STATUSES.includes(q.get('status')) ? q.get('status') : '';
+  const uf = /^[A-Z]{2}$/.test(String(q.get('uf') || '').toUpperCase()) ? q.get('uf').toUpperCase() : '';
+  const city = clean(q.get('city'), 80);
+  const category = prospects.CATEGORIES[q.get('category')] ? q.get('category') : '';
+  const text = clean(q.get('q'), 80);
+  const textDigits = digits(text) || '__nenhum__';
+  return {
+    params: { status, uf, city, category, q: text, priority: q.get('priority') === '1', mobile: q.get('mobile') === '1' },
+    where: (withStatus = true) => sql`
+      (${withStatus ? status : ''} = '' or status = ${status})
+      and (${uf} = '' or uf = ${uf})
+      and (${city} = '' or lower(city) = lower(${city}))
+      and (${category} = '' or category = ${category})
+      and (${q.get('priority') !== '1'} or priority)
+      and (${q.get('mobile') !== '1'} or mobile)
+      and (${text} = '' or name ilike ${'%' + text + '%'} or cnpj like ${'%' + textDigits + '%'})`,
+  };
+}
+
+r('GET', '/api/admin/prospects', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const q = new URL(req.url, 'http://x').searchParams;
+  const page = Math.min(Math.max(Number(q.get('page')) || 1, 1), 10000);
+  const f = prospectFilter(sql, q);
+  const [rows, [{ total }], grouped, cities] = await Promise.all([
+    sql`select id, cnpj, name, category, priority, uf, city, phone, mobile, email, status, invited_at, invite_channel, visited_at, converted_at, origin
+        from prospects where ${f.where()} order by status = 'novo' desc, priority desc, city, name limit ${PROSPECT_PAGE} offset ${(page - 1) * PROSPECT_PAGE}`,
+    sql`select count(*)::int as total from prospects where ${f.where()}`,
+    sql`select status, count(*)::int as n from prospects where ${f.where(false)} group by status`,
+    sql`select uf, city, count(*)::int as n from prospects where status <> 'saiu' group by uf, city order by n desc limit 300`,
+  ]);
+  send(res, 200, {
+    prospects: rows, total, page, pageSize: PROSPECT_PAGE, filter: f.params,
+    counts: Object.fromEntries(prospects.PROSPECT_STATUSES.map((s) => [s, grouped.find((g) => g.status === s)?.n || 0])),
+    categories: prospects.CATEGORIES, cities,
+  }, { 'Cache-Control': 'no-store' });
+});
+
+// Programa BuscarDentistas.exe (computador da equipe; a Receita só responde a internet brasileira):
+// entra com e-mail, senha e código de 2 etapas do administrador e manda os contatos em lotes
+r('POST', '/api/admin/prospects/import', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req, 2_000_000);
+  const uf = String(b.uf || '').toUpperCase();
+  if (!/^[A-Z]{2}$/.test(uf)) fail(400, 'UF inválida.');
+  if (!/^\d{4}-\d{2}$/.test(String(b.sourceMonth || ''))) fail(400, 'Mês da Receita inválido.');
+  if (!Array.isArray(b.rows) || b.rows.length > 1000) fail(400, 'Envie até 1000 contatos por vez.');
+  const rows = b.rows.map((x) => {
+    const phone = prospects.fixOldMobile(/^\d{10,11}$/.test(String(x.phone || '')) ? String(x.phone) : null);
+    const email = isEmail(String(x.email || '').trim().toLowerCase()) ? String(x.email).trim().toLowerCase().slice(0, 160) : null;
+    return { cnpj: String(x.cnpj || ''), name: clean(x.name, 200), category: String(x.category || ''), cnae: String(x.cnae || ''), city: clean(x.city, 80), phone, email };
+  }).filter((x) => /^\d{14}$/.test(x.cnpj) && x.name && x.city && prospects.CATEGORIES[x.category] && /^\d{7}$/.test(x.cnae) && (x.phone || x.email));
+  const hashes = rows.flatMap((x) => [prospects.blockHash('cnpj', x.cnpj), x.phone && prospects.blockHash('phone', x.phone), x.email && prospects.blockHash('email', x.email)].filter(Boolean));
+  const blocked = new Set(hashes.length ? (await sql`select hash from prospect_blocklist where hash = any(${hashes})`).map((x) => x.hash) : []);
+  const ok = rows.filter((x) => !blocked.has(prospects.blockHash('cnpj', x.cnpj))
+    && !(x.phone && blocked.has(prospects.blockHash('phone', x.phone)))
+    && !(x.email && blocked.has(prospects.blockHash('email', x.email))));
+  if (ok.length) {
+    const origin = `Receita Federal, dados abertos do CNPJ (${b.sourceMonth})`;
+    await sql`
+      insert into prospects (cnpj, name, category, cnae, priority, uf, city, phone, mobile, email, origin)
+      select t.cnpj, t.name, t.category, t.cnae, t.priority::boolean, ${uf}, t.city, t.phone, t.mobile::boolean, t.email, ${origin}
+      from unnest(${ok.map((x) => x.cnpj)}::text[], ${ok.map((x) => x.name)}::text[], ${ok.map((x) => x.category)}::text[],
+                  ${ok.map((x) => x.cnae)}::text[], ${ok.map((x) => String(prospects.isPriority(x.name)))}::text[], ${ok.map((x) => x.city)}::text[],
+                  ${ok.map((x) => x.phone)}::text[], ${ok.map((x) => String(prospects.isMobile(x.phone)))}::text[], ${ok.map((x) => x.email)}::text[])
+        as t(cnpj, name, category, cnae, priority, city, phone, mobile, email)
+      on conflict (cnpj) do update set
+        name = excluded.name, category = excluded.category, cnae = excluded.cnae, priority = excluded.priority, uf = excluded.uf,
+        city = excluded.city, phone = excluded.phone, mobile = excluded.mobile, email = excluded.email, origin = excluded.origin, updated_at = now()
+      where prospects.status <> 'saiu'`;
+  }
+  await logEvent(sql, { actor: u.email, type: 'captacao_importada', data: { uf, sourceMonth: b.sourceMonth, received: b.rows.length, saved: ok.length, ip: clientIp(req) } });
+  send(res, 200, { received: b.rows.length, saved: ok.length });
+});
+
+// "Não quer receber" marcado pela equipe (ex.: respondeu SAIR no WhatsApp)
+r('POST', '/api/admin/prospects/:id/optout', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const p = await prospects.optOutProspect(sql, id);
+  if (!p) fail(404, 'Contato não encontrado.');
+  await logEvent(sql, { actor: u.email, type: 'captacao_saiu', data: { prospect: id, by: 'equipe', ip: clientIp(req) } });
+  send(res, 200, { ok: true });
 });
 
 // ------------------------------------------------------------------ revisão de fotos e bloqueio de caso

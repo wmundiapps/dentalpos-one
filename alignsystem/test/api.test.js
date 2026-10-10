@@ -405,3 +405,35 @@ test('segurança: bloqueio de caso e verificação em duas etapas', { skip }, as
   assert.equal((await call('POST', '/api/auth/login', { body: { email: 'admin@teste.com', password: 'senhaforte123', code: rc } })).status, 401);
   assert.equal((await call('GET', '/api/auth/me', { who: 'admin' })).data.user.totpEnabled, true);
 });
+
+test('captação: importação da Receita, prioridade, celular antigo e "não quero receber"', { skip }, async () => {
+  const row = (cnpj, name, extra = {}) => ({ cnpj, name, category: 'odontologia', cnae: '8630504', city: 'Maringa', phone: '4499887766', email: null, ...extra });
+  const body = { uf: 'PR', sourceMonth: '2026-09', rows: [
+    row('11111111000199', 'ORTODONTIA SORRISO'),
+    row('22222222000199', 'CLINICA ODONTO LTDA', { phone: '4430301010', category: 'odontologia-secundaria' }),
+    row('33333333000199', 'SEM CONTATO', { phone: null }),
+    row('44444444000199', 'CATEGORIA ERRADA', { category: 'padaria' }),
+  ] };
+  assert.equal((await call('POST', '/api/admin/prospects/import', { body })).status, 401); // só administrador
+  const imp = await call('POST', '/api/admin/prospects/import', { who: 'admin', body });
+  assert.equal(imp.status, 200, JSON.stringify(imp.data));
+  assert.equal(imp.data.saved, 2);
+  let list = await call('GET', '/api/admin/prospects', { who: 'admin' });
+  const orto = list.data.prospects.find((p) => p.cnpj === '11111111000199');
+  assert.equal(orto.priority, true);
+  assert.equal(orto.phone, '44999887766'); // celular antigo ganhou o 9
+  assert.equal(orto.mobile, true);
+  assert.equal(list.data.prospects.find((p) => p.cnpj === '22222222000199').mobile, false); // fixo
+  assert.equal(list.data.counts.novo, 2);
+  assert.equal((await call('GET', '/api/admin/prospects?priority=1', { who: 'admin' })).data.total, 1);
+  // "não quer": apaga telefone e e-mail e bloqueia reimportação para sempre
+  assert.equal((await call('POST', `/api/admin/prospects/${orto.id}/optout`, { who: 'admin', body: {} })).status, 200);
+  const again = await call('POST', '/api/admin/prospects/import', { who: 'admin', body: { ...body, rows: [row('11111111000199', 'ORTODONTIA SORRISO')] } });
+  assert.equal(again.data.saved, 0);
+  // mesmo telefone em outro CNPJ também fica bloqueado
+  assert.equal((await call('POST', '/api/admin/prospects/import', { who: 'admin', body: { ...body, rows: [row('55555555000199', 'OUTRA', { phone: '44999887766' })] } })).data.saved, 0);
+  const [gone] = await sql`select status, phone, email from alignsystem_test.prospects where cnpj = '11111111000199'`;
+  assert.deepEqual({ ...gone }, { status: 'saiu', phone: null, email: null });
+  list = await call('GET', '/api/admin/prospects', { who: 'admin' });
+  assert.equal(list.data.counts.saiu, 1);
+});

@@ -104,12 +104,68 @@
     }).catch(function (e) { errorView(e, 'cobertura'); });
   }
 
+  var PROSPECT_STATUS = { novo: 'Novos', convidado: 'Convidados', cadastrado: 'Cadastrados', saiu: 'Não querem' };
+
+  function adminProspects(query) {
+    loading('captacao');
+    var qs = ['status', 'uf', 'city', 'category', 'priority', 'mobile', 'q', 'page'].filter(function (k) { return query[k]; })
+      .map(function (k) { return k + '=' + encodeURIComponent(query[k]); }).join('&');
+    api('/api/admin/prospects?' + qs).then(function (d) {
+      var f = d.filter;
+      var link = function (extra) {
+        var p = Object.assign({}, query, extra); delete p.page;
+        return '#/captacao?' + Object.keys(p).filter(function (k) { return p[k]; }).map(function (k) { return k + '=' + encodeURIComponent(p[k]); }).join('&');
+      };
+      var html = '<h1>Captação de dentistas</h1>' +
+        '<details class="card"><summary><b>Como buscar dentistas na Receita Federal</b></summary>' +
+        '<ol class="small" style="padding-left:18px;margin-top:10px">' +
+        '<li>Baixe o <b>BuscarDentistas.exe</b> em <a href="https://github.com/wmundiapps/dentalpos-one/releases/tag/buscardentistas" target="_blank" rel="noopener">github.com/wmundiapps/dentalpos-one/releases/tag/buscardentistas</a> (só no Windows).</li>' +
+        '<li>Abra no seu computador, com internet do Brasil (a Receita recusa acesso de fora).</li>' +
+        '<li>Entre com seu e-mail, senha e o código de 2 etapas; escolha o estado e as cidades.</li>' +
+        '<li>A primeira busca do mês baixa cerca de 6 GB e leva de 30 a 60 minutos; as seguintes são rápidas.</li>' +
+        '</ol><p class="small muted">Busca clínicas e consultórios com CNAE 8630-5/04 (principal ou secundário). Nomes com ORTO, ALINH, SORRIS ou SMILE ficam marcados como prioridade. Quem pediu para sair nunca volta para a lista. Dentista que atende só como pessoa física (sem CNPJ) não aparece na Receita.</p></details>' +
+        '<div class="stats">' + Object.keys(PROSPECT_STATUS).map(function (k) {
+          return '<a class="stat" href="' + link({ status: k }) + '" style="text-decoration:none;color:inherit' + (f.status === k ? ';outline:2px solid var(--emerald)' : '') + '"><b>' + (d.counts[k] || 0) + '</b><span>' + PROSPECT_STATUS[k] + '</span></a>';
+        }).join('') + '</div>' +
+        '<form class="row" id="pff" style="margin-bottom:12px">' +
+        '<input name="q" value="' + esc(f.q || '') + '" placeholder="Nome ou CNPJ" style="max-width:220px">' +
+        '<input name="city" value="' + esc(f.city || '') + '" placeholder="Cidade" list="pcities" style="max-width:180px"><datalist id="pcities">' + d.cities.map(function (c) { return '<option value="' + esc(c.city) + '">' + esc(c.uf + ' · ' + c.n) + '</option>'; }).join('') + '</datalist>' +
+        '<select name="category" style="max-width:260px"><option value="">Todas as categorias</option>' + Object.keys(d.categories).map(function (k) { return '<option value="' + k + '"' + (f.category === k ? ' selected' : '') + '>' + esc(d.categories[k]) + '</option>'; }).join('') + '</select>' +
+        '<label class="check" style="margin:0"><input type="checkbox" name="priority" value="1"' + (f.priority ? ' checked' : '') + '><span class="small">Só prioridade (ortodontia)</span></label>' +
+        '<label class="check" style="margin:0"><input type="checkbox" name="mobile" value="1"' + (f.mobile ? ' checked' : '') + '><span class="small">Só com celular</span></label>' +
+        '<button class="btn btn-line btn-sm" type="submit">Filtrar</button>' + (qs ? ' <a class="small" href="#/captacao">limpar</a>' : '') + '</form>' +
+        '<div class="card table-wrap" style="padding:8px 12px">' + (d.prospects.length ? '<table class="t"><thead><tr><th>Nome</th><th>Cidade</th><th>Contato</th><th>Situação</th><th></th></tr></thead><tbody>' +
+          d.prospects.map(function (p) {
+            return '<tr><td><b>' + esc(p.name) + '</b>' + (p.priority ? ' ' + statusBadge('ortodontia', 'honey') : '') + '<div class="small muted">' + esc(d.categories[p.category] || p.category) + (p.cnpj ? ' · CNPJ ' + esc(p.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')) : '') + '</div></td>' +
+              '<td>' + esc(p.city + '/' + p.uf) + '</td>' +
+              '<td class="small">' + (p.phone ? esc(AS.phone(p.phone)) + (p.mobile ? '' : ' (fixo)') : '—') + (p.email ? '<br>' + esc(p.email) : '') + '</td>' +
+              '<td>' + statusBadge(PROSPECT_STATUS[p.status], p.status === 'saiu' ? 'red' : p.status === 'cadastrado' ? 'green' : '') + (p.invited_at ? '<div class="small muted">' + esc(AS.date(p.invited_at)) + '</div>' : '') + '</td>' +
+              '<td>' + (p.status !== 'saiu' ? '<button class="btn btn-line btn-sm" data-optout="' + p.id + '">Não quer</button>' : '') + '</td></tr>';
+          }).join('') + '</tbody></table>' : '<p class="muted" style="padding:14px">Nenhum contato. Rode o BuscarDentistas.exe (instruções acima).</p>') + '</div>' +
+        (d.total > d.pageSize ? '<div class="row" style="justify-content:center">' + (d.page > 1 ? '<a class="btn btn-line btn-sm" href="' + link({}) + '&page=' + (d.page - 1) + '">Anterior</a>' : '') +
+          '<span class="small muted">Página ' + d.page + ' de ' + Math.ceil(d.total / d.pageSize) + ' · ' + d.total + ' contatos</span>' +
+          (d.page * d.pageSize < d.total ? '<a class="btn btn-line btn-sm" href="' + link({}) + '&page=' + (d.page + 1) + '">Próxima</a>' : '') + '</div>' : '');
+      var m = mount(html, 'captacao');
+      $('#pff', m).addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fd = formData($('#pff', m));
+        location.hash = link({ q: fd.q, city: fd.city, category: fd.category, priority: fd.priority ? '1' : '', mobile: fd.mobile ? '1' : '' });
+      });
+      $all('[data-optout]', m).forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!confirm('Marcar como "não quer receber"? O contato sai da lista para sempre e o telefone e o e-mail são apagados.')) return;
+          busyBtn(b, api('/api/admin/prospects/' + b.getAttribute('data-optout') + '/optout', { method: 'POST', body: {} })).then(function () { adminProspects(query); }).catch(function (e) { alert(e.message); });
+        });
+      });
+    }).catch(function (e) { errorView(e, 'captacao'); });
+  }
+
   var APPT_STATUS = { agendado: 'Agendado', realizado: 'Realizado', cancelado: 'Cancelado', faltou: 'Faltou' };
 
   // ------------------------------------------------------------ layout
   function shell(content, active) {
     var nav = me.role === 'admin'
-      ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/cobertura', 'Cobertura e marketing', 'cobertura'], ['#/equipe', 'Equipe', 'equipe'], ['#/conta', 'Minha conta', 'conta']]
+      ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/cobertura', 'Cobertura e marketing', 'cobertura'], ['#/captacao', 'Captação de dentistas', 'captacao'], ['#/equipe', 'Equipe', 'equipe'], ['#/conta', 'Minha conta', 'conta']]
       : [['#/', 'Meus casos', 'inicio'], ['#/conta', 'Minha conta', 'conta']];
     return '<div class="mobile-top"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="28"></span><button class="btn btn-sm btn-line" style="color:#fff;border-color:rgba(255,255,255,.4)" id="menuBtn">Menu</button></div>' +
       '<div class="shell"><aside class="side" id="side"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="30"></span>' +
@@ -689,6 +745,7 @@
       if ((m = r.path.match(/^\/parceiro\/([0-9a-f-]{36})$/))) return adminDentist(m[1]);
       if (r.path === '/equipe') return adminTeam();
       if (r.path === '/cobertura') return adminCoverage();
+      if (r.path === '/captacao') return adminProspects(r.query);
       return adminHome();
     }
     if ((m = r.path.match(/^\/caso\/([0-9a-f-]{36})$/))) return dentistCase(m[1]);
