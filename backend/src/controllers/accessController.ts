@@ -28,6 +28,27 @@ export async function myPermissions(req: AuthRequest, res: Response) {
   return res.json({ role: req.user!.role, permissions: await getUserPermissionCodes(req.user!.id) })
 }
 
+// Quais itens do menu o usuário pode ver. Perfil já configurado na tela de Permissões (tem códigos menu.*) vale pelos itens marcados;
+// perfil ainda não configurado vale pelas permissões de visualização de cada módulo (comportamento anterior).
+export async function myMenuAccess(req: AuthRequest, res: Response) {
+  if (req.user!.role === 'ADMIN') return res.json({ all: true, menuCodes: [], legacyModules: [] })
+  const memberships = await prisma.userAccessProfile.findMany({
+    where: { userId: req.user!.id, profile: { isActive: true } },
+    include: { profile: { include: { permissions: { include: { permission: true } } } } }
+  })
+  if (memberships.some(m => m.profile.code === 'ADMIN')) return res.json({ all: true, menuCodes: [], legacyModules: [] })
+  const menuCodes = new Set<string>()
+  const legacyModules = new Set<string>()
+  let hasLegacy = false
+  for (const m of memberships) {
+    const codes = m.profile.permissions.map(p => p.permission.code)
+    const menu = codes.filter(c => c.startsWith('menu.'))
+    if (menu.length) menu.forEach(c => menuCodes.add(c))
+    else { hasLegacy = true; codes.filter(c => c.endsWith('.view')).forEach(c => legacyModules.add(c.split('.')[0])) }
+  }
+  return res.json({ all: false, menuCodes: [...menuCodes], legacyModules: [...legacyModules], hasLegacy: hasLegacy || memberships.length === 0 })
+}
+
 export async function assignProfile(req: AuthRequest, res: Response) {
   const userId = String(req.params.userId)
   const { profileId } = req.body
@@ -68,8 +89,13 @@ export async function setProfilePermissions(req: AuthRequest, res: Response) {
   const current = await prisma.accessProfilePermission.findMany({ where: { profileId: id }, include: { permission: true } })
   const currentCodes = current.map(p => p.permission.code)
   // Não permite conceder o que o próprio usuário não tem; permissões que o perfil já tinha são mantidas se não forem desmarcadas.
-  const allowedToGrant = (code: string) => mine === null || mine.includes(code) || currentCodes.includes(code)
+  // Itens de menu (menu.*) podem ser liberados por quem gerencia usuários; o catálogo deles nasce aqui, conforme são marcados.
+  const isMenu = (code: string) => /^menu\.[a-z0-9_]{1,80}$/.test(code)
+  const allowedToGrant = (code: string) => isMenu(code) || mine === null || mine.includes(code) || currentCodes.includes(code)
   const finalCodes = [...new Set(requested)].filter(allowedToGrant)
+  for (const code of finalCodes.filter(isMenu)) {
+    await prisma.permission.upsert({ where: { code }, update: {}, create: { code, module: 'menu', action: 'view' } })
+  }
   const all = await prisma.permission.findMany({ where: { code: { in: finalCodes } } })
   await prisma.$transaction([
     prisma.accessProfilePermission.deleteMany({ where: { profileId: id } }),

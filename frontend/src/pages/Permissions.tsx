@@ -1,13 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Box, Button, Checkbox, Chip, FormControlLabel, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Checkbox, Chip, FormControlLabel, List, ListItemButton, ListItemText, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PageHeader from "../components/PageHeader";
+import { navigationGroups } from "../config/navigation";
+import { defaultMenuCodes, menuCode, resetMenuAccess } from "../config/menuAccess";
 import { AccessApi, type AccessProfile, type AccessUser, type PermissionItem } from "../services/AccessApi";
 
 const PROFILE_NAMES: Record<string, string> = {
   DENTISTA: "Dentista", AUXILIAR: "Auxiliares", RECEPCAO: "Recepção", FINANCEIRO: "Financeiro", ADMINISTRACAO: "Administração",
-  LABORATORIO: "Laboratório", CONTADOR: "Contador", JURIDICO: "Jurídico", GESTOR: "Gestor", RH: "Recursos Humanos", ADMIN: "Administrador (Master)",
+  LABORATORIO: "Laboratório", CONTADOR: "Contabilidade", JURIDICO: "Jurídico", GESTOR: "Gestor", RH: "Recursos Humanos", ADMIN: "Administrador (Master)",
+  MARKETING: "Marketing", VENDAS: "Vendas", MARKETPLACE: "Marketplace", COMPRAS: "Compras e estoque", EDUCACIONAL: "Educacional",
 };
-const PROFILE_ORDER = ["DENTISTA", "AUXILIAR", "RECEPCAO", "FINANCEIRO", "ADMINISTRACAO", "LABORATORIO", "CONTADOR", "JURIDICO", "GESTOR", "RH", "ADMIN"];
+PROFILE_NAMES.DENTISTA = "Clínico (dentistas)"; PROFILE_NAMES.ADMINISTRACAO = "Administração / Escritório";
+const PROFILE_ORDER = ["ADMIN", "GESTOR", "ADMINISTRACAO", "RH", "RECEPCAO", "DENTISTA", "AUXILIAR", "LABORATORIO", "FINANCEIRO", "CONTADOR", "JURIDICO", "MARKETING", "VENDAS", "MARKETPLACE", "COMPRAS", "EDUCACIONAL"];
+
+// Itens do menu na mesma ordem do menu lateral (um item que aparece em dois grupos entra só no primeiro).
+const MENU_GROUPS = (() => {
+  const seen = new Set<string>();
+  const all = navigationGroups.map((g) => ({ label: g.label, items: g.items.filter((it) => { if (seen.has(it.path)) return false; seen.add(it.path); return true; }) })).filter((g) => g.items.length > 0);
+  return all;
+})();
+const ALL_ITEMS = MENU_GROUPS.flatMap((g) => g.items);
 const MODULE_NAMES: Record<string, string> = {
   dashboard: "Painel inicial", agenda: "Agenda e painel de atendimentos", patients: "Pacientes", clinical: "Clínico / prontuário", laboratory: "Laboratório",
   design: "DentalPos Design", finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", sales: "Vendas", marketing: "Marketing e Revah",
@@ -47,13 +60,23 @@ export default function Permissions() {
   useEffect(() => { void load(); }, [load]);
 
   const profile = profiles.find((p) => p.id === profileId);
+  const [suggested, setSuggested] = useState(false);
   useEffect(() => {
-    setChecked(new Set(profile?.permissions.map((x) => x.permission.code) || []));
+    const codes = profile?.permissions.map((x) => x.permission.code) || [];
+    const next = new Set(codes);
+    const configured = codes.some((c) => c.startsWith("menu."));
+    // Departamento ainda não configurado: pré-marca o que ele já enxerga hoje, para o "Salvar" não tirar nada sem querer.
+    if (profile && profile.code !== "ADMIN" && !configured) {
+      const viewModules = codes.filter((c) => c.endsWith(".view")).map((c) => c.split(".")[0]);
+      defaultMenuCodes(ALL_ITEMS, viewModules).forEach((c) => next.add(c));
+      setSuggested(true);
+    } else setSuggested(false);
+    setChecked(next);
   }, [profile]);
 
   const modules = useMemo(() => {
     const map = new Map<string, PermissionItem[]>();
-    for (const item of catalog) map.set(item.module, [...(map.get(item.module) || []), item]);
+    for (const item of catalog.filter((c) => c.module !== "menu")) map.set(item.module, [...(map.get(item.module) || []), item]);
     return [...map.entries()];
   }, [catalog]);
 
@@ -72,7 +95,8 @@ export default function Permissions() {
     setNotice("");
     try {
       await AccessApi.setPermissions(profile.id, [...checked]);
-      setNotice(`Permissões do perfil ${profileName(profile)} salvas.`);
+      setNotice(`Acessos do departamento ${profileName(profile)} salvos.`);
+      resetMenuAccess();
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível salvar.");
@@ -93,35 +117,79 @@ export default function Permissions() {
 
   return (
     <Box>
-      <PageHeader title="Permissões de acesso" description="Escolha um perfil ou departamento e marque o que cada função do sistema pode fazer. O Administrador (Master) sempre tem acesso total." />
+      <PageHeader title="Permissões de acesso" description="Escolha o departamento e marque o que ele pode abrir no sistema. O Administrador (Master) sempre tem acesso total." />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {notice && <Alert severity="success" sx={{ mb: 2 }}>{notice}</Alert>}
 
-      <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
-        <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
-          <TextField select label="Perfil / departamento" value={profileId} onChange={(e) => setProfileId(e.target.value)} sx={{ minWidth: 260 }}>
-            {profiles.map((p) => <MenuItem key={p.id} value={p.id}>{profileName(p)}</MenuItem>)}
-          </TextField>
-          <Button variant="contained" disabled={busy || locked || !profile} onClick={() => void save()}>{busy ? "Salvando..." : "Salvar permissões"}</Button>
-          {locked && <Chip color="warning" label="Perfil Master: acesso total, não editável" />}
-        </Box>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
-          {modules.map(([module, items]) => (
-            <Paper key={module} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-              <Typography sx={{ fontWeight: 800, mb: 0.5 }}>{MODULE_NAMES[module] || module}</Typography>
-              <Box sx={{ display: "flex", flexWrap: "wrap", columnGap: 2 }}>
-                {items.map((item) => (
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "260px 1fr" }, gap: 2, mb: 3, alignItems: "start" }}>
+        <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
+          <Typography sx={{ fontWeight: 800, p: 2, pb: 1 }}>Departamentos</Typography>
+          <List dense disablePadding>
+            {profiles.map((p) => (
+              <ListItemButton key={p.id} selected={p.id === profileId} onClick={() => setProfileId(p.id)}>
+                <ListItemText primary={profileName(p)} secondary={`${p._count?.users ?? 0} usuário(s)`} slotProps={{ primary: { sx: { fontWeight: p.id === profileId ? 800 : 600 } } }} />
+              </ListItemButton>
+            ))}
+          </List>
+        </Paper>
+
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+          <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 900, flex: 1 }}>{profile ? profileName(profile) : "Escolha um departamento"}</Typography>
+            <Button variant="contained" disabled={busy || locked || !profile} onClick={() => void save()}>{busy ? "Salvando..." : "Salvar acessos"}</Button>
+          </Box>
+          {locked && <Chip color="warning" label="Perfil Master: acesso total, não editável" sx={{ mb: 1 }} />}
+          {suggested && !locked && <Alert severity="info" sx={{ mb: 2 }}>Este departamento ainda não foi configurado. Já marquei o que ele vê hoje. Ajuste e clique em Salvar acessos.</Alert>}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Marque o que este departamento pode abrir no sistema, na mesma ordem do menu lateral. Só o administrador e o gestor mudam estes acessos.</Typography>
+          <Box sx={{ display: "grid", gap: 2 }}>
+            {MENU_GROUPS.map((group) => {
+              const codes = group.items.map((it) => menuCode(it.path));
+              const all = locked || codes.every((c) => checked.has(c));
+              const some = !all && codes.some((c) => checked.has(c));
+              const setGroup = (on: boolean) => { const next = new Set(checked); codes.forEach((c) => (on ? next.add(c) : next.delete(c))); setChecked(next); };
+              return (
+                <Paper key={group.label} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
                   <FormControlLabel
-                    key={item.code}
-                    control={<Checkbox size="small" checked={locked || checked.has(item.code)} disabled={locked} onChange={() => toggle(item.code)} />}
-                    label={ACTION_NAMES[item.action] || item.action}
+                    control={<Checkbox checked={all} indeterminate={some} disabled={locked} onChange={(_, v) => setGroup(v)} />}
+                    label={<Typography sx={{ fontWeight: 900 }}>{group.label}</Typography>}
                   />
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, columnGap: 2, pl: 3 }}>
+                    {group.items.map((it) => (
+                      <FormControlLabel
+                        key={it.path}
+                        control={<Checkbox size="small" checked={locked || checked.has(menuCode(it.path))} disabled={locked} onChange={() => toggle(menuCode(it.path))} />}
+                        label={it.label}
+                      />
+                    ))}
+                  </Box>
+                </Paper>
+              );
+            })}
+          </Box>
+
+          <Accordion disableGutters variant="outlined" sx={{ mt: 3, borderRadius: 2 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 800 }}>Ações avançadas (criar, editar, aprovar, ver valores)</Typography></AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+                {modules.map(([module, items]) => (
+                  <Paper key={module} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                    <Typography sx={{ fontWeight: 800, mb: 0.5 }}>{MODULE_NAMES[module] || module}</Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", columnGap: 2 }}>
+                      {items.map((item) => (
+                        <FormControlLabel
+                          key={item.code}
+                          control={<Checkbox size="small" checked={locked || checked.has(item.code)} disabled={locked} onChange={() => toggle(item.code)} />}
+                          label={ACTION_NAMES[item.action] || item.action}
+                        />
+                      ))}
+                    </Box>
+                  </Paper>
                 ))}
               </Box>
-            </Paper>
-          ))}
-        </Box>
-      </Paper>
+            </AccordionDetails>
+          </Accordion>
+        </Paper>
+      </Box>
 
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>O que cada usuário pode ver</Typography>
