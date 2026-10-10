@@ -17,7 +17,8 @@
     "seed:core": "tsx src/scripts/seedCore.ts",
     "bootstrap:admin": "tsx src/scripts/bootstrapAdmin.ts",
     "preflight:release": "tsx src/scripts/releasePreflight.ts",
-    "demo:admin": "tsx src/scripts/demoAdmin.ts"
+    "demo:admin": "tsx src/scripts/demoAdmin.ts",
+    "test:smoke": "bash scripts/run-smoke-tests.sh"
   },
   "engines": {
     "node": ">=20"

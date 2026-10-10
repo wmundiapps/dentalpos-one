@@ -98,6 +98,12 @@ export default function Footer() {
           <span translate="no" className="notranslate">
             {appConfig.developer}
           </span>
+          {" • "}
+          <Link href="/termos" variant="body2" underline="hover">Termos de Uso</Link>
+          {" • "}
+          <Link href="/privacidade" variant="body2" underline="hover">Privacidade</Link>
+          {" • "}
+          <Link href="/ajuda" variant="body2" underline="hover">Ajuda</Link>
         </Typography>
 
         <Chip size="small" label={appConfig.version} color="primary" variant="outlined" />

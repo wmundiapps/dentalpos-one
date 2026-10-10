@@ -112,7 +112,13 @@ export default function Login() {
           backdropFilter: "blur(18px)",
         }}
       >
-        <Typography variant="overline" color="primary" sx={{ fontWeight: 900 }}>
+        <Typography
+          component="a"
+          href="/sobre"
+          variant="overline"
+          color="primary"
+          sx={{ fontWeight: 900, textDecoration: "none", display: "block" }}
+        >
           EDUMASTER PRO
         </Typography>
         <Typography variant="h4" sx={{ fontWeight: 950 }}>
