@@ -19,6 +19,7 @@ export const config = {
   corsOrigins: list(process.env.CORS_ORIGINS),
   cronSecret: process.env.CRON_SECRET || '',
   superadminEmails: list(process.env.REVAH_SUPERADMIN_EMAILS).map((e) => e.toLowerCase()),
+  adminRequire2fa: process.env.REVAH_ADMIN_REQUIRE_2FA !== '0',
 
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY || '',

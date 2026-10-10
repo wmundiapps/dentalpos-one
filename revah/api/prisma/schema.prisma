@@ -74,6 +74,12 @@ model User {
   resetTokenHash    String?
   resetTokenExpires DateTime?
   lastLoginAt       DateTime?
+  // Verificação em 2 etapas (aplicativo autenticador, TOTP). Segredo cifrado; códigos reserva só como hash.
+  totpSecret        String?
+  totpPending       String?
+  totpEnabledAt     DateTime?
+  totpLastStep      BigInt?
+  totpBackupHashes  String[]  @default([])
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 

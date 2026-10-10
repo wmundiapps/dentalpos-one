@@ -11,6 +11,16 @@ import { audit } from '../services/audit'
 import { ssoExchange } from '../services/dentalpos'
 import { limitsFor, trialStatus } from '../services/plans'
 import { sendSystemEmail } from '../services/systemEmail'
+import {
+  confirmSetup,
+  disableTwoFactor,
+  issueLoginTicket,
+  readLoginTicket,
+  regenerateBackupCodes,
+  startSetup,
+  twoFactorEnabled,
+  verifySecondFactor,
+} from '../services/twoFactor'
 
 const r = Router()
 
@@ -29,7 +39,7 @@ const RegisterSchema = z.object({
 export function sessionPayload(user: any, tenant: any, embedded = false) {
   return {
     token: signSession(user, embedded),
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, twoFactorEnabled: twoFactorEnabled(user) },
     tenant: {
       id: tenant.id,
       name: tenant.name,
@@ -105,8 +115,88 @@ r.post(
     const ok = user?.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false
     if (!user || !ok) throw new HttpError(401, 'E-mail ou senha incorretos.', 'INVALID_CREDENTIALS')
     if (!user.isActive) throw new HttpError(403, 'Usuário desativado. Fale com o administrador da sua empresa.')
+    // Com 2 etapas ativa, a senha só libera um bilhete de 5 minutos para o passo do código.
+    if (twoFactorEnabled(user)) return res.json({ twoFactorRequired: true, ticket: issueLoginTicket(user.id) })
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
     res.json(sessionPayload(user, user.tenant))
+  }),
+)
+
+// Segundo passo do login: código do aplicativo autenticador ou um código reserva.
+r.post(
+  '/2fa/login',
+  ah(async (req, res) => {
+    const userId = readLoginTicket(String(req.body?.ticket || ''))
+    if (!userId) throw new HttpError(401, 'O tempo para digitar o código acabou. Entre com a senha de novo.', 'TWO_FACTOR_EXPIRED')
+    const user = await prisma.user.findUnique({ where: { id: userId }, include: { tenant: true } })
+    if (!user || !user.isActive) throw new HttpError(401, 'Usuário inválido.', 'UNAUTHENTICATED')
+    const { tenant, ...plain } = user
+    const how = await verifySecondFactor(plain as any, String(req.body?.code || ''))
+    if (!how) {
+      await audit(user.tenantId, user.id, 'AUTH_2FA_FAILED', 'User', user.id)
+      throw new HttpError(401, 'Código não confere. Digite o código que aparece agora no aplicativo.', 'TWO_FACTOR_INVALID')
+    }
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
+    if (how === 'backup') await audit(user.tenantId, user.id, 'AUTH_2FA_BACKUP_USED', 'User', user.id)
+    const fresh = await prisma.user.findUnique({ where: { id: user.id } })
+    res.json({ ...sessionPayload(fresh, tenant), usedBackupCode: how === 'backup', backupCodesLeft: fresh?.totpBackupHashes.length ?? 0 })
+  }),
+)
+
+// Ativar, desativar e renovar códigos reserva (Configurações → Segurança).
+r.get(
+  '/2fa',
+  requireAuth,
+  ah(async (req: AuthedRequest, res) => {
+    res.json({ enabled: twoFactorEnabled(req.user), enabledAt: req.user.totpEnabledAt, backupCodesLeft: req.user.totpBackupHashes.length })
+  }),
+)
+
+r.post(
+  '/2fa/setup',
+  requireAuth,
+  ah(async (req: AuthedRequest, res) => {
+    if (twoFactorEnabled(req.user)) throw conflict('A verificação em 2 etapas já está ativa.')
+    res.json(await startSetup(req.user))
+  }),
+)
+
+r.post(
+  '/2fa/enable',
+  requireAuth,
+  ah(async (req: AuthedRequest, res) => {
+    const code = String(req.body?.code || '').trim()
+    if (!/^\d{6}$/.test(code)) throw badRequest('O código tem 6 números.')
+    if (twoFactorEnabled(req.user)) throw conflict('A verificação em 2 etapas já está ativa.')
+    if (!req.user.totpPending) throw badRequest('Comece pelo botão "Ativar".')
+    const codes = await confirmSetup(req.user, code)
+    if (!codes) throw badRequest('Código não confere. Confira a hora do celular e digite o código que aparece agora.')
+    await audit(req.tenant.id, req.user.id, 'AUTH_2FA_ENABLED', 'User', req.user.id)
+    res.json({ backupCodes: codes })
+  }),
+)
+
+r.post(
+  '/2fa/disable',
+  requireAuth,
+  ah(async (req: AuthedRequest, res) => {
+    if (!twoFactorEnabled(req.user)) throw conflict('A verificação em 2 etapas não está ativa.')
+    const passwordOk = req.user.passwordHash ? await bcrypt.compare(String(req.body?.password || ''), req.user.passwordHash) : false
+    if (!passwordOk || !(await verifySecondFactor(req.user, String(req.body?.code || '')))) throw badRequest('Senha ou código não conferem.')
+    await disableTwoFactor(req.user.id)
+    await audit(req.tenant.id, req.user.id, 'AUTH_2FA_DISABLED', 'User', req.user.id)
+    res.json({ ok: true })
+  }),
+)
+
+r.post(
+  '/2fa/backup-codes',
+  requireAuth,
+  ah(async (req: AuthedRequest, res) => {
+    if ((await verifySecondFactor(req.user, String(req.body?.code || ''))) !== 'totp') throw badRequest('Digite o código que aparece agora no aplicativo.')
+    const codes = await regenerateBackupCodes(req.user.id)
+    await audit(req.tenant.id, req.user.id, 'AUTH_2FA_BACKUP_REGENERATED', 'User', req.user.id)
+    res.json({ backupCodes: codes })
   }),
 )
 
@@ -147,6 +237,8 @@ r.post(
     const user = await prisma.user.findFirst({ where: { resetTokenHash: sha256(token), resetTokenExpires: { gt: new Date() } }, include: { tenant: true } })
     if (!user) throw badRequest('Link inválido ou expirado. Peça um novo.')
     await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(password, 11), resetTokenHash: null, resetTokenExpires: null } })
+    // Trocar a senha pelo e-mail não pula a 2 etapas.
+    if (twoFactorEnabled(user)) return res.json({ twoFactorRequired: true, ticket: issueLoginTicket(user.id) })
     res.json(sessionPayload(user, user.tenant))
   }),
 )

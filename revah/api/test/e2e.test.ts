@@ -308,3 +308,44 @@ test('descadastro por link de e-mail', async () => {
   assert.equal((await request(app).post(path)).status, 200)
   assert.ok(await prisma.suppression.findFirst({ where: { tenantId: tenant.id, channel: 'EMAIL', value: 'cliente@x.com' } }))
 })
+
+test('verificação em 2 etapas: ativar, login em dois passos, código reserva e painel da WMundi', async () => {
+  const { hotp, base32Decode } = await import('../src/services/twoFactor')
+  const codeAt = (key: string, offsetSteps = 0) => hotp(base32Decode(key), Math.floor(Date.now() / 30000) + offsetSteps)
+  const { token } = await register('admin@wmundi.com')
+
+  // Superadmin sem 2 etapas não abre o painel da WMundi.
+  const blocked = await request(app).get('/admin/tenants').set(auth(token))
+  assert.equal(blocked.status, 403)
+  assert.equal(blocked.body.code, 'TWO_FACTOR_REQUIRED')
+
+  const setup = await request(app).post('/auth/2fa/setup').set(auth(token))
+  assert.equal(setup.status, 200)
+  assert.match(setup.body.uri, /^otpauth:\/\/totp\/REVAH/)
+  assert.equal((await request(app).post('/auth/2fa/enable').set(auth(token)).send({ code: '000000' })).status, 400)
+  const en = await request(app).post('/auth/2fa/enable').set(auth(token)).send({ code: codeAt(setup.body.key) })
+  assert.equal(en.status, 200, JSON.stringify(en.body))
+  assert.equal(en.body.backupCodes.length, 8)
+
+  // Senha certa agora só devolve o bilhete.
+  const step1 = await request(app).post('/auth/login').send({ email: 'admin@wmundi.com', password: 'senha-forte-1' })
+  assert.equal(step1.body.twoFactorRequired, true)
+  assert.equal(step1.body.token, undefined)
+  assert.equal((await request(app).post('/auth/2fa/login').send({ ticket: step1.body.ticket, code: '123456' })).status, 401)
+  assert.equal((await request(app).post('/auth/2fa/login').send({ ticket: 'falso', code: codeAt(setup.body.key, 1) })).status, 401)
+  const step2 = await request(app).post('/auth/2fa/login').send({ ticket: step1.body.ticket, code: codeAt(setup.body.key, 1) })
+  assert.equal(step2.status, 200, JSON.stringify(step2.body))
+  assert.equal(step2.body.user.twoFactorEnabled, true)
+  // O mesmo código não vale duas vezes.
+  assert.equal((await request(app).post('/auth/2fa/login').send({ ticket: step1.body.ticket, code: codeAt(setup.body.key, 1) })).status, 401)
+
+  // Código reserva funciona uma única vez.
+  const backup = en.body.backupCodes[0]
+  const viaBackup = await request(app).post('/auth/2fa/login').send({ ticket: step1.body.ticket, code: backup })
+  assert.equal(viaBackup.status, 200)
+  assert.equal(viaBackup.body.backupCodesLeft, 7)
+  assert.equal((await request(app).post('/auth/2fa/login').send({ ticket: step1.body.ticket, code: backup })).status, 401)
+
+  // Com 2 etapas, o painel da WMundi abre.
+  assert.equal((await request(app).get('/admin/tenants').set(auth(step2.body.token))).status, 200)
+})

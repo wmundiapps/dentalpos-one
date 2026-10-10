@@ -65,6 +65,11 @@ export function requireRole(...roles: string[]) {
 export function requireSuperadmin(req: Request, _res: Response, next: NextFunction) {
   const email = (req as AuthedRequest).user?.email?.toLowerCase()
   if (!email || !config.superadminEmails.includes(email)) return next(new HttpError(403, 'Acesso restrito à WMundi.', 'FORBIDDEN'))
+  // Painel da WMundi exige 2 etapas ativa (REVAH_ADMIN_REQUIRE_2FA=0 desliga).
+  const u = (req as AuthedRequest).user
+  if (config.adminRequire2fa && !(u.totpEnabledAt && u.totpSecret)) {
+    return next(new HttpError(403, 'Ative a verificação em 2 etapas em Configurações → Segurança para abrir o painel da WMundi.', 'TWO_FACTOR_REQUIRED'))
+  }
   next()
 }
 

@@ -91,3 +91,12 @@ test('LinkedIn: respostas do formulário viram lead', async () => {
   assert.equal(lead.phone, '5544999998888')
   assert.equal(lead.originRef, 'abc')
 })
+
+test('2 etapas: TOTP confere com o vetor do RFC 6238', async () => {
+  const { hotp, base32Encode, base32Decode, matchStep } = await import('../src/services/twoFactor')
+  const secret = Buffer.from('12345678901234567890')
+  assert.equal(hotp(secret, 1), '287082') // T=59s → 94287082 (8 dígitos)
+  assert.deepEqual(base32Decode(base32Encode(secret)), secret)
+  assert.equal(matchStep(secret, '287082', 59_000), 1)
+  assert.equal(matchStep(secret, '000000', 59_000), null)
+})
