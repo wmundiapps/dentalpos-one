@@ -2,6 +2,8 @@
 
 Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
+Atualização de 10/10/2026: inclusão do item 3.6 (contato comercial com empresas) e do clique de anúncio no item 8.2.
+
 ## 1. Quem somos e a quem se aplica
 
 1.1. Esta Política explica como **Instituto Ravel de Ensino Superior Ltda.**, CNPJ **03.162.275/0001-10**, com sede em **Av. XV de Novembro, 255, Maringá/PR, CEP 87013-230, Brasil** (a "Operadora"), trata dados pessoais na Plataforma SpaceHour, na qualidade de **controladora**.
@@ -66,6 +68,8 @@ Versão 2026-09-27 · Vigência a partir de 27/09/2026
 
 3.5. **Registro de segurança.** Guardamos o IP, o navegador e o horário do cadastro e da confirmação do e-mail, e recusamos e-mails temporários (descartáveis), para prevenir fraude e cumprir a guarda de registros de acesso (Marco Civil da Internet, art. 15).
 
+3.6. **Contato comercial com empresas (captação).** Para convidar consultórios e clínicas a anunciar na Plataforma, a Operadora usa dados de contato comercial públicos: a base aberta do CNPJ da Receita Federal (razão social, nome fantasia, atividade, cidade, telefone e e-mail cadastrados), perfis comerciais públicos (ex.: Google Maps) e contatos entregues pelo próprio titular em formulários e eventos. A base legal é o legítimo interesse (LGPD art. 7º, IX, e art. 10), limitado a oferta B2B relacionada à atividade da empresa. Cada convite identifica a Operadora e a origem do dado e traz opção de descadastro em um clique (ou resposta "SAIR" no WhatsApp). Quem se descadastra tem telefone e e-mail apagados do registro, e a Operadora guarda apenas um código irreversível (hash) do CNPJ, telefone e e-mail para impedir novo contato. Os convites saem em pequeno volume, em horário comercial, e esses dados não são vendidos nem compartilhados com terceiros.
+
 ## 4. Compartilhamento
 
 4.1. **Entre Anfitrião e Locatário.** Após a confirmação de uma Reserva, o Anfitrião recebe o nome, o perfil público, a atividade declarada, o número de pessoas e, quando o Anúncio exigir, a indicação de registro profissional verificado do Locatário; o Locatário recebe o endereço completo e as instruções de acesso do Espaço. Telefone e e-mail não são exibidos, e as partes se comunicam pela Plataforma.
@@ -123,6 +127,8 @@ Os dados de cartão são informados diretamente nos ambientes seguros desses pro
 ## 8. Cookies
 
 8.1. Utilizamos cookies e tecnologias semelhantes: (a) **essenciais**, para login, segurança, idioma e funcionamento da Reserva, que não dependem de consentimento; (b) **de preferências**; (c) **analíticos**; e (d) **de marketing**, estes três últimos somente com consentimento quando exigido por lei, gerenciável a qualquer tempo pelo painel de cookies.
+
+8.2. Quando o visitante chega por um anúncio do Google e aceita os cookies, guardamos o identificador do clique (gclid) por até 90 dias e o associamos ao cadastro, apenas para medir qual anúncio trouxe a conta. Sem o aceite, registramos só a origem genérica ("google/cpc"), sem identificador.
 
 ## 9. Dados de Clientes Finais nas avaliações
 

@@ -3,6 +3,9 @@ import type { DictKey } from './i18n';
 
 type T = (key: DictKey, params?: Record<string, string | number>) => string;
 
+/** Ação "ir resolver" do erro, se o servidor mandou. */
+export const errorAction = (e: unknown) => (e instanceof ApiError ? e.action : undefined);
+
 // Converte erros da API (códigos) em mensagens no idioma atual.
 export function errorText(e: unknown, t: T): string {
   if (e instanceof ApiError) {

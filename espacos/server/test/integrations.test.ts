@@ -153,6 +153,8 @@ function fakeClaude(result: Partial<LicenseAiResult>): Anthropic {
   return { beta: { messages: { create: async () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(full) }] }) } } } as unknown as Anthropic;
 }
 
+const US = await import('../src/uploadSafety.js');
+const { default: sharp } = await import('sharp');
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
 async function register(email: string, verified = true) {
@@ -231,12 +233,38 @@ test('upload de fotos: imagens do celular/PC aceitas, outros arquivos recusados'
   assert.ok(files.every((f) => f.mime === 'image/png' && f.url.startsWith('/api/uploads/')));
   const img = await fetch(`${base}${files[0].url.slice(4)}`);
   assert.equal(img.status, 200);
-  assert.deepEqual(Buffer.from(await img.arrayBuffer()), PNG);
+  assert.deepEqual(Buffer.from(await img.arrayBuffer()), (await US.reencodeImage(PNG)).data, 'foto regravada no servidor');
 
   const bad = new FormData();
   bad.append('files', new Blob(['<script>alert(1)</script>'], { type: 'image/png' }), 'x.png');
   assert.equal((await fetch(`${base}/uploads`, { method: 'POST', headers: { Authorization: `Bearer ${tok}` }, body: bad })).status, 422);
   assert.equal((await fetch(`${base}/uploads`, { method: 'POST', body: form })).status, 401);
+});
+
+test('envio seguro: foto sem GPS e no máximo 2000 px; PDF com JavaScript, anexo ou cifrado recusado', async () => {
+  // Foto de celular com GPS no EXIF e 3000 px
+  const gps = await sharp({ create: { width: 3000, height: 1500, channels: 3, background: '#0f766e' } })
+    .jpeg().withExif({ IFD0: { Make: 'Celular' }, IFD3: { GPSLatitudeRef: 'S', GPSLatitude: '23/1 25/1 0/1' } }).toBuffer();
+  assert.ok((await sharp(gps).metadata()).exif, 'a foto de teste tem EXIF');
+  const clean = await US.reencodeImage(gps);
+  const meta = await sharp(clean.data).metadata();
+  assert.equal(meta.exif, undefined, 'GPS e metadados apagados');
+  assert.equal(meta.width, 2000);
+  assert.equal(clean.mime, 'image/jpeg');
+
+  const pdf = (body: string) => Buffer.from(`%PDF-1.4\n1 0 obj << /Type /Catalog ${body} >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n`, 'latin1');
+  assert.equal(US.pdfProblem(pdf('/Pages 2 0 R')), null, 'PDF simples aceito');
+  assert.equal(US.pdfProblem(pdf('/OpenAction << /S /JavaScript /JS (app.alert(1)) >>')), 'OpenAction');
+  assert.equal(US.pdfProblem(pdf('/Names << /J#61vaScript 3 0 R >>')), 'JavaScript', 'nome disfarçado com #');
+  assert.equal(US.pdfProblem(pdf('/Names << /EmbeddedFiles 3 0 R >>')), 'EmbeddedFiles');
+  assert.equal(US.pdfProblem(pdf('/Encrypt 5 0 R')), 'Encrypt');
+  const { deflateSync } = await import('node:zlib');
+  const hidden = deflateSync(Buffer.from('<< /S /JavaScript /JS (x) >>'));
+  const objStm = Buffer.concat([Buffer.from('%PDF-1.5\n4 0 obj << /Type /ObjStm /N 1 /First 4 /Filter /FlateDecode >>\nstream\n', 'latin1'), hidden, Buffer.from('\nendstream endobj\n%%EOF\n', 'latin1')]);
+  assert.equal(US.pdfProblem(objStm), 'JavaScript', 'escondido em objeto comprimido');
+  await assert.rejects(US.safeDocument(pdf('/AA << >>'), { allowPdf: true }), /unsafe_pdf/);
+  await assert.rejects(US.safeDocument(pdf('/Pages 2 0 R'), { allowPdf: false }), /invalid_document_type/);
+  await assert.rejects(US.safeDocument(Buffer.from('MZ executável disfarçado'), { allowPdf: true }), /invalid_image/);
 });
 
 test('avaliação do app, sugestões e erros + fila de e-mails', async () => {
@@ -305,7 +333,8 @@ test('documentos de registro: cifrados no banco, acesso registrado e apagados ap
 
     const adminTok = signToken(admin);
     const doc = await fetch(`${base}/admin/verifications/${verificationId}/document`, { headers: { Authorization: `Bearer ${adminTok}` } });
-    assert.deepEqual(Buffer.from(await doc.arrayBuffer()), PNG, 'equipe vê o original');
+    assert.deepEqual(Buffer.from(await doc.arrayBuffer()), (await US.reencodeImage(PNG)).data, 'equipe vê o documento (regravado, sem metadados)');
+    assert.match(doc.headers.get('content-security-policy') ?? '', /sandbox/);
     const log = await (await fetch(`${base}/admin/verifications/${verificationId}/access-log`, { headers: { Authorization: `Bearer ${adminTok}` } })).json() as { action: string; email: string | null }[];
     assert.ok(log.some((l) => l.action === 'view' && l.email === admin.email));
     assert.ok(log.some((l) => l.action === 'ai_analysis'));
@@ -511,8 +540,9 @@ test('ADMIN_EMAILS: conta Gmail vira admin já no login, mesmo com pontos, "+alg
 
 test('origem do cadastro (UTM) aparece no relatório de campanha do admin', async () => {
   const r = await fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'Dra. Campanha', email: 'campanha@example.com', password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true, source: 'meta/paid/lancamento-anfitrioes' }) });
+    body: JSON.stringify({ name: 'Dra. Campanha', email: 'campanha@example.com', password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true, source: 'meta/paid/lancamento-anfitrioes', gclid: 'Cj0KCQjw_teste-123' }) });
   assert.equal(r.status, 201);
+  assert.equal((await one<{ g: string }>(pool, "SELECT signup_gclid AS g FROM users WHERE email = 'campanha@example.com'"))!.g, 'Cj0KCQjw_teste-123', 'clique do Google Ads guardado');
   const u = (await r.json()) as { token: string };
   assert.equal((await fetch(`${base}/admin/signups`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
   const rep = await (await fetch(`${base}/admin/signups?days=7`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { bySource: { source: string; signups: number }[] };
@@ -885,7 +915,7 @@ test('identidade: CPF/CNPJ + documento + selfie com checagem automática; equipe
     assert.ok(cv && open.some((x) => x.email === 'id4@example.com'));
     const selfie = await fetch(`${base}/admin/identities/${cv.id}/selfie`, { headers: adm });
     assert.equal(selfie.status, 200);
-    assert.ok(Buffer.from(await selfie.arrayBuffer()).equals(PNG), 'arquivo decifrado para a equipe');
+    assert.ok(Buffer.from(await selfie.arrayBuffer()).equals((await US.reencodeImage(PNG)).data), 'arquivo decifrado para a equipe');
     const stored = await one<{ selfie: Buffer }>(pool, 'SELECT selfie FROM identity_verifications WHERE id = $1', [cv.id]);
     assert.ok(!stored!.selfie.equals(PNG), 'guardado cifrado');
     assert.equal((await one<{ n: number }>(pool, "SELECT count(*)::int AS n FROM identity_access_log WHERE verification_id = $1 AND action = 'view'", [cv.id]))!.n, 1);
@@ -1064,6 +1094,66 @@ test('prazos de pagamento: Pix 30 min, cartão 24 h, boleto 3 dias (só com 3 di
   }
 });
 
+test('2 etapas por aplicativo autenticador: QR, código sem reuso, 8 códigos reserva de uso único, desligar com senha + código', async () => {
+  const T = await import('../src/totp.js');
+  assert.equal(T.totpAt(Buffer.from('12345678901234567890'), 1), '287082', 'vetor de teste da RFC 6238 (t = 59 s)');
+  assert.deepEqual(T.unbase32(T.base32(Buffer.from('SpaceHour!'))), Buffer.from('SpaceHour!'));
+
+  const u = await register('totp@example.com');
+  const auth = { Authorization: `Bearer ${u.token}`, 'Content-Type': 'application/json' };
+  const post = (path: string, body: unknown, headers: Record<string, string> = auth) => fetch(`${base}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  assert.equal((await post('/me/totp/setup', { password: 'errada' })).status, 401);
+  const setup = await (await post('/me/totp/setup', { password: 'senha-forte-1' })).json() as { secret: string; uri: string };
+  assert.match(setup.uri, /^otpauth:\/\/totp\/SpaceHour%3Atotp%40example\.com\?secret=[A-Z2-7]+&issuer=SpaceHour/);
+  const secret = T.unbase32(setup.secret);
+  const stored = await one<{ s: Buffer }>(pool, "SELECT totp_pending_secret AS s FROM users WHERE email = 'totp@example.com'");
+  assert.ok(!stored!.s.includes(secret), 'segredo cifrado no banco');
+  const step = Math.floor(Date.now() / 30000);
+  assert.equal((await post('/me/totp/confirm', { code: '000000' === T.totpAt(secret, step) ? '111111' : '000000' })).status, 400);
+  const conf = await (await post('/me/totp/confirm', { code: T.totpAt(secret, step) })).json() as { backupCodes: string[] };
+  assert.equal(conf.backupCodes.length, 8);
+  assert.equal((await one<{ n: number }>(pool, "SELECT count(*)::int AS n FROM totp_backup_codes b JOIN users u ON u.id = b.user_id WHERE u.email = 'totp@example.com' AND b.code_hash LIKE '$2%'"))!.n, 8, 'só o hash');
+
+  const json = { 'Content-Type': 'application/json' };
+  const login = async () => (await post('/auth/login', { email: 'totp@example.com', password: 'senha-forte-1' }, json)).json() as Promise<{ challengeId: string; method: string; email?: string }>;
+  const sent: string[] = [];
+  M.setMailSender(async (m) => { sent.push(m.subject); });
+  try {
+    const c1 = await login();
+    assert.equal(c1.method, 'app');
+    assert.equal(sent.length, 0, 'com o aplicativo, nenhum código vai por e-mail');
+    assert.equal((await post('/auth/login/resend', { challengeId: c1.challengeId }, json)).status, 400);
+    assert.equal((await post('/auth/login/verify', { challengeId: c1.challengeId, code: T.totpAt(secret, step) }, json)).status, 400, 'o mesmo código não vale duas vezes');
+    const ok = await post('/auth/login/verify', { challengeId: c1.challengeId, code: T.totpAt(secret, step + 1) }, json);
+    assert.equal(ok.status, 200);
+
+    // Código reserva: vale uma vez
+    const c2 = await login();
+    assert.equal((await post('/auth/login/verify', { challengeId: c2.challengeId, code: conf.backupCodes[0].toUpperCase() }, json)).status, 200);
+    const c3 = await login();
+    assert.equal((await post('/auth/login/verify', { challengeId: c3.challengeId, code: conf.backupCodes[0] }, json)).status, 400, 'reserva usado não vale de novo');
+    assert.equal((await (await fetch(`${base}/me/totp`, { headers: auth })).json() as { backupCodesLeft: number }).backupCodesLeft, 7);
+
+    // Desligar exige senha + código
+    assert.equal((await post('/me/totp/disable', { password: 'senha-forte-1', code: '123456' })).status, 400);
+    assert.equal((await post('/me/totp/disable', { password: 'senha-forte-1', code: conf.backupCodes[1] })).status, 200);
+    const c4 = await (await post('/auth/login', { email: 'totp@example.com', password: 'senha-forte-1' }, json)).json() as { token?: string };
+    assert.ok(c4.token, 'desligado: entra só com a senha');
+  } finally {
+    M.setMailSender();
+  }
+});
+
+test('erro com botão "ir resolver": o servidor diz para onde ir', async () => {
+  const u = await register('acao@example.com', false);
+  const form = new FormData();
+  form.set('fullName', 'Dra. Ação'); form.set('body', 'CRO'); form.set('number', '12345');
+  form.set('document', new Blob([PNG], { type: 'image/png' }), 'doc.png');
+  const r = await fetch(`${base}/me/license`, { method: 'POST', headers: { Authorization: `Bearer ${u.token}` }, body: form });
+  assert.equal(r.status, 403);
+  assert.deepEqual(await r.json(), { error: 'email_not_verified', action: { to: '/perfil', label: 'verifyEmail' } });
+});
+
 test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo impróprio barrado e cabeçalhos de proteção', async () => {
   const S = await import('../src/security.js');
   const post = (path: string, body: unknown, token?: string) => fetch(`${base}${path}`, { method: 'POST',
@@ -1084,7 +1174,7 @@ test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo imp
   assert.equal(((await bad.json()) as { error: string }).error, 'content_not_allowed');
 
   // Duas etapas opcional para qualquer conta
-  assert.deepEqual(await (await fetch(`${base}/me/two-factor`, { headers: { Authorization: `Bearer ${u.token}` } })).json(), { enabled: false, forced: false });
+  assert.deepEqual(await (await fetch(`${base}/me/two-factor`, { headers: { Authorization: `Bearer ${u.token}` } })).json(), { enabled: false, forced: false, method: 'email' });
   assert.equal((await post('/me/two-factor', { enabled: true }, u.token)).status, 200);
   const sent: Array<{ text: string }> = [];
   M.setMailSender(async (m) => { sent.push(m); });
@@ -1176,6 +1266,18 @@ test('captação: Receita + Google Maps, sequência de e-mails em horário comer
     delete process.env.GOOGLE_PLACES_API_KEY;
     Pr.setPlacesFetch();
   }
+
+  // Caixa própria de convites: sem ela (ou igual à do sistema) nada sai
+  assert.match(M.inviteMailProblem()!, /INVITE_SMTP_USER/);
+  process.env.SMTP_HOST = 'smtp.teste'; process.env.SMTP_USER = 'noreply@space-hour.com';
+  process.env.INVITE_SMTP_USER = 'NoReply@space-hour.com'; process.env.INVITE_SMTP_PASS = 'x';
+  assert.match(M.inviteMailProblem()!, /diferente/);
+  process.env.INVITE_SMTP_USER = 'convites@space-hour.com';
+  assert.equal(M.inviteMailProblem(), null);
+  for (const k of ['SMTP_HOST', 'SMTP_USER', 'INVITE_SMTP_USER', 'INVITE_SMTP_PASS']) delete process.env[k];
+  await Pr.setConfig({ sending_enabled: true });
+  assert.match(String((await Pr.runSequence({ now: new Date('2026-10-12T17:00:00Z') }) as { mailbox?: string }).mailbox), /caixa de convites/);
+  await Pr.setConfig({ sending_enabled: false });
 
   const sent: Array<{ to: string; subject: string; text: string; headers?: Record<string, string> }> = [];
   M.setMailSender(async (m) => { sent.push(m); });

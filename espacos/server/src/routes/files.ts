@@ -7,6 +7,7 @@ import { HttpError, requireAuth, toSelf, type AuthedRequest } from '../auth.js';
 import { assertEmailVerified } from '../emailVerification.js';
 import { IMAGE_MAX_BYTES, readImage, saveImage, sniffImage } from '../storage.js';
 import { assertCleanImage, limit } from '../security.js';
+import { reencodeImage, safeDocument } from '../uploadSafety.js';
 import { LICENSE_DOC_MAX_BYTES, decide, latestLicenseCheck, pendingVerifications, runVerification, submitLicense, verificationDocument, documentAccessLog } from '../verification.js';
 import { CATEGORIES } from '../../../shared/rules.js';
 import { pool } from '../db.js';
@@ -36,10 +37,12 @@ filesRouter.post('/uploads', requireAuth, upload(photos.array('files', 20)), asy
   const files = (req.files as Express.Multer.File[] | undefined) ?? [];
   if (!files.length) throw new HttpError(422, 'no_file');
   if (req.ip) await limit(`upload:ip:${req.ip}`, 200, 60 * 60); // no máximo 200 fotos por hora
-  // Formato conferido pela assinatura do arquivo (saveImage) e conteúdo impróprio barrado pela IA
-  await Promise.all(files.map((f) => assertCleanImage(f.buffer, sniffImage(f.buffer) ?? '', { userId: req.user!.id, ip: req.ip })));
+  // Formato conferido pela assinatura do arquivo, foto regravada sem GPS/metadados (máx. 2000 px)
+  // e conteúdo impróprio barrado pela IA
+  const clean = await Promise.all(files.map((f) => reencodeImage(f.buffer)));
+  await Promise.all(clean.map((f) => assertCleanImage(f.data, sniffImage(f.data) ?? '', { userId: req.user!.id, ip: req.ip })));
   const saved = [];
-  for (const f of files) saved.push(await saveImage(req.user!.id, f.buffer));
+  for (const f of clean) saved.push(await saveImage(req.user!.id, f.data));
   res.status(201).json({ files: saved });
 });
 
@@ -65,7 +68,8 @@ filesRouter.post('/me/license', requireAuth, upload(licenseDoc.single('document'
   assertEmailVerified(req.user!);
   const file = req.file;
   if (!file) throw new HttpError(422, 'no_file');
-  const verificationId = await submitLicense(req.user!, { ...data, category: data.category as never, document: file.buffer, documentType: file.mimetype });
+  const doc = await safeDocument(file.buffer, { allowPdf: true }); // tipo real do arquivo; PDF sem conteúdo ativo
+  const verificationId = await submitLicense(req.user!, { ...data, category: data.category as never, document: doc.data, documentType: doc.mime });
   // Na Vercel a função termina com a resposta; o cron retoma o que ficar pendente.
   const analysis = runVerification(verificationId).catch((e) => console.error('[verificação IA]', (e as Error).message));
   if (process.env.LICENSE_VERIFY_SYNC === 'true') await analysis;
@@ -89,7 +93,8 @@ filesRouter.get('/admin/verifications/:id/document', requireAuth, async (req: Au
   res.set('Content-Type', doc.documentType);
   res.set('Cache-Control', 'private, no-store');
   res.set('X-Content-Type-Options', 'nosniff');
-  res.set('Content-Disposition', 'inline');
+  res.set('Content-Security-Policy', "default-src 'none'; sandbox"); // nunca roda como página do site
+  res.set('Content-Disposition', doc.documentType === 'application/pdf' ? 'attachment; filename="documento.pdf"' : 'inline');
   res.send(doc.document);
 });
 
@@ -112,8 +117,9 @@ filesRouter.post('/me/identity', requireAuth, upload(identityFiles.fields([{ nam
   const doc = files?.document?.[0];
   const selfie = files?.selfie?.[0];
   if (!doc || !selfie) throw new HttpError(422, 'no_file');
+  const [d, s] = await Promise.all([safeDocument(doc.buffer, { allowPdf: true }), safeDocument(selfie.buffer, { allowPdf: false })]);
   const vid = await submitIdentity(req.user!, {
-    taxId, document: doc.buffer, documentType: doc.mimetype, selfie: selfie.buffer, selfieType: selfie.mimetype,
+    taxId, document: d.data, documentType: d.mime, selfie: s.data, selfieType: s.mime,
     ip: req.ip, userAgent: req.get('user-agent'),
   });
   const analysis = runIdentityCheck(vid).catch((e) => console.error('[identidade IA]', (e as Error).message));
@@ -139,6 +145,8 @@ filesRouter.get('/admin/identities/:id/:which', requireAuth, async (req: AuthedR
   res.set('Content-Type', f.type);
   res.set('Cache-Control', 'private, no-store');
   res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Content-Security-Policy', "default-src 'none'; sandbox");
+  res.set('Content-Disposition', f.type === 'application/pdf' ? `attachment; filename="${which}.pdf"` : 'inline');
   res.send(f.data);
 });
 

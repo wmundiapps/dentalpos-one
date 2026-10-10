@@ -11,6 +11,7 @@ import type { User } from '../../../shared/types.js';
 import { confirmEmail, confirmEmailCode, sendVerificationEmail } from '../emailVerification.js';
 import { requestPasswordReset, resetPassword } from '../passwordReset.js';
 import { RESET_MAX_USERS, RESET_PHRASE, resetAllData } from '../reset.js';
+import * as T from '../totp.js';
 import { assertCleanText, assertLoginAllowed, limit, loginFailed, resendLoginChallenge, securityEvent, setTwoFactor, startLoginChallenge, twoFactorRequired, twoFactorStatus, verifyLoginChallenge } from '../security.js';
 
 export const authRouter = Router();
@@ -24,6 +25,7 @@ const registerSchema = z.object({
   acceptTerms: z.literal(true),
   confirmAge: z.literal(true),
   source: z.string().max(200).optional(), // utm_source/medium/campaign/content (first touch)
+  gclid: z.string().regex(/^[\w-]{10,200}$/).optional().catch(undefined), // clique do Google Ads (só com consentimento)
   marketingOptIn: z.boolean().optional(), // consentimento separado para novidades (LGPD)
 });
 
@@ -40,8 +42,8 @@ authRouter.post('/auth/register', async (req, res) => {
     identityVerified: false, strikes: [], termsAcceptedAt: nowIso(), termsVersion: RULES_VERSION, licenseStatus: 'none',
   };
   await insertUser(pool, user); // índice único em lower(email) cobre cadastros simultâneos
-  await pool.query('UPDATE users SET signup_source = $2, signup_ip = $3, signup_user_agent = $4 WHERE id = $1',
-    [user.id, data.source ?? null, req.ip ?? null, req.get('user-agent')?.slice(0, 300) ?? null]);
+  await pool.query('UPDATE users SET signup_source = $2, signup_ip = $3, signup_user_agent = $4, signup_gclid = $5 WHERE id = $1',
+    [user.id, data.source ?? null, req.ip ?? null, req.get('user-agent')?.slice(0, 300) ?? null, data.gclid ?? null]);
   if (data.marketingOptIn) await pool.query('UPDATE users SET marketing_opt_in_at = now() WHERE id = $1', [user.id]);
   // Falha no envio não impede o cadastro: dá para reenviar pelo aviso no app.
   await sendVerificationEmail(user).catch((e) => console.error('[email] confirmação de cadastro', (e as Error).message));
@@ -87,6 +89,32 @@ authRouter.post('/me/two-factor', requireAuth, async (req: AuthedRequest, res) =
   const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
   await setTwoFactor(req.user!, enabled);
   res.json(await twoFactorStatus(req.user!));
+});
+
+// Aplicativo autenticador (Google Authenticator etc.): configurar com QR code, desligar e gerar novos códigos reserva
+authRouter.get('/me/totp', requireAuth, async (req: AuthedRequest, res) => {
+  res.json(await T.totpStatus(req.user!));
+});
+authRouter.post('/me/totp/setup', requireAuth, async (req: AuthedRequest, res) => {
+  const { password } = z.object({ password: z.string().max(200) }).parse(req.body);
+  if (!(await bcrypt.compare(password, req.user!.passwordHash))) throw new HttpError(401, 'invalid_credentials');
+  res.json(await T.startTotpSetup(req.user!));
+});
+authRouter.post('/me/totp/confirm', requireAuth, async (req: AuthedRequest, res) => {
+  const { code } = z.object({ code: z.string().min(6).max(12) }).parse(req.body);
+  if (req.ip) await limit(`totp:ip:${req.ip}`, 30, 15 * 60);
+  res.json(await T.confirmTotpSetup(req.user!, code, req.ip));
+});
+authRouter.post('/me/totp/disable', requireAuth, async (req: AuthedRequest, res) => {
+  const { password, code } = z.object({ password: z.string().max(200), code: z.string().min(6).max(12) }).parse(req.body);
+  if (req.ip) await limit(`totp:ip:${req.ip}`, 30, 15 * 60);
+  await T.disableTotp(req.user!, password, code, req.ip);
+  res.json(await T.totpStatus(req.user!));
+});
+authRouter.post('/me/totp/backup-codes', requireAuth, async (req: AuthedRequest, res) => {
+  const { password, code } = z.object({ password: z.string().max(200), code: z.string().min(6).max(12) }).parse(req.body);
+  if (req.ip) await limit(`totp:ip:${req.ip}`, 30, 15 * 60);
+  res.json(await T.regenerateBackupCodes(req.user!, password, code));
 });
 
 authRouter.post('/auth/forgot-password', async (req, res) => {
@@ -212,7 +240,7 @@ authRouter.delete('/me', requireAuth, async (req: AuthedRequest, res) => {
     await tx.query(
       `UPDATE users SET email = $2, name = 'Conta excluída', phone = NULL, bio = NULL, document_type = NULL, document_number = NULL,
          license_body = NULL, license_number = NULL, license_region = NULL, license_verified = false, company_tax_id = NULL,
-         password_hash = $3, banned = true, email_verified_at = NULL, email_verify_token_hash = NULL, email_verify_prev_hash = NULL, signup_source = NULL, deleted_at = now()
+         password_hash = $3, banned = true, email_verified_at = NULL, email_verify_token_hash = NULL, email_verify_prev_hash = NULL, signup_source = NULL, signup_gclid = NULL, deleted_at = now()
        WHERE id = $1`, [u.id, `excluido-${u.id}@deleted.space-hour.com`, crypto.randomBytes(32).toString('hex')]);
     await tx.query('UPDATE listings SET active = false WHERE host_id = $1', [u.id]);
     await tx.query('UPDATE license_verifications SET document = NULL WHERE user_id = $1', [u.id]);

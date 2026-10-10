@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, apiBlobUrl } from '../api';
+import { api, apiBlobUrl, openProtectedFile } from '../api';
 import { useI18n, type DictKey } from '../i18n';
 import { useApp } from '../state';
 import { IncidentItem } from './BookingPage';
@@ -140,7 +140,7 @@ function Verifications() {
     try { await api(`/admin/verifications/${v.id}/decision`, { body: { status, note: notes[v.id] || undefined } }); load(); } catch (e) { setError(errorText(e, t)); }
   }
   async function openDoc(v: Verification) {
-    try { window.open(await apiBlobUrl(`/admin/verifications/${v.id}/document`), '_blank', 'noopener'); } catch (e) { setError(errorText(e, t)); }
+    try { await openProtectedFile(`/admin/verifications/${v.id}/document`, `registro-${v.id}`); } catch (e) { setError(errorText(e, t)); }
   }
   return (
     <div>
@@ -185,7 +185,7 @@ function IdentityReview() {
   const load = () => api<Idv[]>('/admin/identities').then(setList).catch((e) => setError(errorText(e, t)));
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const open = async (v: Idv, which: 'document' | 'selfie') => {
-    try { window.open(await apiBlobUrl(`/admin/identities/${v.id}/${which}`), '_blank', 'noopener'); } catch (e) { setError(errorText(e, t)); }
+    try { await openProtectedFile(`/admin/identities/${v.id}/${which}`, `${which}-${v.id}`); } catch (e) { setError(errorText(e, t)); }
   };
   const decide = async (v: Idv, status: 'approved' | 'rejected') => {
     try { await api(`/admin/identities/${v.id}/decision`, { body: { status } }); load(); } catch (e) { setError(errorText(e, t)); }
