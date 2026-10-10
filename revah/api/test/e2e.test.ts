@@ -12,6 +12,7 @@ process.env.ASAAS_BASE_URL = 'http://asaas.mock/v3'
 process.env.ASAAS_WEBHOOK_TOKEN = 'asaas-webhook-token'
 process.env.LEADS_INVITE_HOURS = '0-24'
 process.env.LEADS_INVITE_DAILY_CAP = '2'
+process.env.LEADS_EMAIL_DAILY_CAP = '2'
 
 // Asaas simulado (sem rede).
 const realFetch = globalThis.fetch
@@ -449,4 +450,24 @@ test('REVAH Leads: planilha com WhatsApp de um clique, um convite por pessoa, li
   // Amostra por segmento: só quem ainda não foi convidado e tem WhatsApp, MEI primeiro.
   const sample = await request(app).get('/leads/export.xlsx?porSegmento=1').set(auth(token))
   assert.equal(sample.status, 200)
+})
+
+test('e-mail para contatos da captação: limite diário por cliente, o resto vai para o dia seguinte', async () => {
+  const { token, tenant } = await register('frios@revah.test')
+  await activate(tenant.id)
+  const ch = await request(app).post('/channels').set(auth(token)).send({ channel: 'EMAIL', provider: 'RESEND', label: 'Caixa', address: 'contato@agencia.test', credentials: { simulated: true } })
+  assert.equal(ch.status, 201, JSON.stringify(ch.body))
+  const ids: string[] = []
+  for (let i = 1; i <= 3; i++) ids.push((await prisma.contact.create({ data: { tenantId: tenant.id, name: `Frio ${i}`, email: `frio${i}@x.com`, source: 'LEADS' } })).id)
+  ids.push((await prisma.contact.create({ data: { tenantId: tenant.id, name: 'Cliente', email: 'cliente@x.com', source: 'MANUAL' } })).id)
+  const c = await request(app).post('/campaigns').set(auth(token)).send({ name: 'Frios', channel: 'EMAIL', subject: 'Oi', template: 'Olá {{nome}}', audience: { contactIds: ids } })
+  assert.equal(c.status, 201, JSON.stringify(c.body))
+  assert.equal((await request(app).post(`/campaigns/${c.body.id}/launch`).set(auth(token))).status, 200)
+  await processDueJobs({ maxMs: 10_000 })
+  const recips = await prisma.campaignRecipient.findMany({ where: { campaignId: c.body.id } })
+  assert.equal(recips.filter((r: any) => r.status === 'SENT').length, 3, '2 frios + o cliente da base')
+  const waiting = await prisma.job.findMany({ where: { tenantId: tenant.id, type: 'CAMPAIGN_SEND', status: 'PENDING' } })
+  assert.equal(waiting.length, 1)
+  assert.ok(waiting[0].runAt.getTime() > Date.now() + 60 * 60_000, 'remarcado para o dia seguinte')
+  assert.match(waiting[0].lastError, /Limite diário/)
 })
