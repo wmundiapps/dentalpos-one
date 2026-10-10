@@ -34,7 +34,7 @@ export function Login() {
   const [error, setError] = useState('');
   const passwordRef = useRef<HTMLInputElement>(null);
   // Verificação em duas etapas: depois da senha, o código enviado por e-mail
-  const [challenge, setChallenge] = useState<{ challengeId: string; email: string } | null>(null);
+  const [challenge, setChallenge] = useState<{ challengeId: string; email?: string; method?: 'app' | 'email' } | null>(null);
   const [code, setCode] = useState('');
   const [info, setInfo] = useState('');
   function done(r: { token: string; user: Me }) {
@@ -46,7 +46,7 @@ export function Login() {
     e.preventDefault();
     setError('');
     try {
-      const r = await api<{ token: string; user: Me } | { twoFactor: true; challengeId: string; email: string }>('/auth/login', { body: { email, password } });
+      const r = await api<{ token: string; user: Me } | { twoFactor: true; challengeId: string; email?: string; method?: 'app' | 'email' }>('/auth/login', { body: { email, password } });
       if ('twoFactor' in r) { setChallenge(r); setCode(''); setInfo(''); return; }
       done(r);
     } catch (err) { setError(errorText(err, t)); }
@@ -69,13 +69,18 @@ export function Login() {
     <div className="container narrow">
       <h1>🔐 {t('auth.twoFactorTitle')}</h1>
       <form className="panel" onSubmit={verify}>
-        <p>{t('auth.twoFactorText', { email: challenge.email })}</p>
-        <label>{t('auth.twoFactorCode')}<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" required autoFocus
-          value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="code-input" /></label>
+        {challenge.method === 'app'
+          ? <p>{t('auth.twoFactorAppText')}</p>
+          : <p>{t('auth.twoFactorText', { email: challenge.email ?? '' })}</p>}
+        {challenge.method === 'app'
+          ? <label>{t('auth.twoFactorCode')}<input autoComplete="one-time-code" maxLength={11} required autoFocus autoCapitalize="off" spellCheck={false}
+              value={code} onChange={(e) => setCode(e.target.value.replace(/[^0-9a-fA-F-]/g, '').slice(0, 11))} className="code-input" /></label>
+          : <label>{t('auth.twoFactorCode')}<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" required autoFocus
+              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="code-input" /></label>}
         {error && <p className="errors" role="alert">{error}</p>}
         {info && <p className="notice small">{info}</p>}
-        <button className="btn btn-primary block" disabled={code.length !== 6}>{t('auth.twoFactorConfirm')}</button>
-        <p className="small center"><button type="button" className="link-btn" onClick={resend}>{t('auth.twoFactorResend')}</button> · <button type="button" className="link-btn" onClick={() => { setChallenge(null); setError(''); }}>{t('common.back')}</button></p>
+        <button className="btn btn-primary block" disabled={challenge.method === 'app' ? code.replace(/-/g, '').length < 6 : code.length !== 6}>{t('auth.twoFactorConfirm')}</button>
+        <p className="small center">{challenge.method !== 'app' && <><button type="button" className="link-btn" onClick={resend}>{t('auth.twoFactorResend')}</button> · </>}<button type="button" className="link-btn" onClick={() => { setChallenge(null); setError(''); }}>{t('common.back')}</button></p>
       </form>
     </div>
   );

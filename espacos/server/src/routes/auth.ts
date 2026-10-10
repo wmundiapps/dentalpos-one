@@ -11,6 +11,7 @@ import type { User } from '../../../shared/types.js';
 import { confirmEmail, confirmEmailCode, sendVerificationEmail } from '../emailVerification.js';
 import { requestPasswordReset, resetPassword } from '../passwordReset.js';
 import { RESET_MAX_USERS, RESET_PHRASE, resetAllData } from '../reset.js';
+import * as T from '../totp.js';
 import { assertCleanText, assertLoginAllowed, limit, loginFailed, resendLoginChallenge, securityEvent, setTwoFactor, startLoginChallenge, twoFactorRequired, twoFactorStatus, verifyLoginChallenge } from '../security.js';
 
 export const authRouter = Router();
@@ -88,6 +89,32 @@ authRouter.post('/me/two-factor', requireAuth, async (req: AuthedRequest, res) =
   const { enabled } = z.object({ enabled: z.boolean() }).parse(req.body);
   await setTwoFactor(req.user!, enabled);
   res.json(await twoFactorStatus(req.user!));
+});
+
+// Aplicativo autenticador (Google Authenticator etc.): configurar com QR code, desligar e gerar novos códigos reserva
+authRouter.get('/me/totp', requireAuth, async (req: AuthedRequest, res) => {
+  res.json(await T.totpStatus(req.user!));
+});
+authRouter.post('/me/totp/setup', requireAuth, async (req: AuthedRequest, res) => {
+  const { password } = z.object({ password: z.string().max(200) }).parse(req.body);
+  if (!(await bcrypt.compare(password, req.user!.passwordHash))) throw new HttpError(401, 'invalid_credentials');
+  res.json(await T.startTotpSetup(req.user!));
+});
+authRouter.post('/me/totp/confirm', requireAuth, async (req: AuthedRequest, res) => {
+  const { code } = z.object({ code: z.string().min(6).max(12) }).parse(req.body);
+  if (req.ip) await limit(`totp:ip:${req.ip}`, 30, 15 * 60);
+  res.json(await T.confirmTotpSetup(req.user!, code, req.ip));
+});
+authRouter.post('/me/totp/disable', requireAuth, async (req: AuthedRequest, res) => {
+  const { password, code } = z.object({ password: z.string().max(200), code: z.string().min(6).max(12) }).parse(req.body);
+  if (req.ip) await limit(`totp:ip:${req.ip}`, 30, 15 * 60);
+  await T.disableTotp(req.user!, password, code, req.ip);
+  res.json(await T.totpStatus(req.user!));
+});
+authRouter.post('/me/totp/backup-codes', requireAuth, async (req: AuthedRequest, res) => {
+  const { password, code } = z.object({ password: z.string().max(200), code: z.string().min(6).max(12) }).parse(req.body);
+  if (req.ip) await limit(`totp:ip:${req.ip}`, 30, 15 * 60);
+  res.json(await T.regenerateBackupCodes(req.user!, password, code));
 });
 
 authRouter.post('/auth/forgot-password', async (req, res) => {

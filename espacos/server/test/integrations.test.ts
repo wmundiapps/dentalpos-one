@@ -1094,6 +1094,56 @@ test('prazos de pagamento: Pix 30 min, cartão 24 h, boleto 3 dias (só com 3 di
   }
 });
 
+test('2 etapas por aplicativo autenticador: QR, código sem reuso, 8 códigos reserva de uso único, desligar com senha + código', async () => {
+  const T = await import('../src/totp.js');
+  assert.equal(T.totpAt(Buffer.from('12345678901234567890'), 1), '287082', 'vetor de teste da RFC 6238 (t = 59 s)');
+  assert.deepEqual(T.unbase32(T.base32(Buffer.from('SpaceHour!'))), Buffer.from('SpaceHour!'));
+
+  const u = await register('totp@example.com');
+  const auth = { Authorization: `Bearer ${u.token}`, 'Content-Type': 'application/json' };
+  const post = (path: string, body: unknown, headers: Record<string, string> = auth) => fetch(`${base}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  assert.equal((await post('/me/totp/setup', { password: 'errada' })).status, 401);
+  const setup = await (await post('/me/totp/setup', { password: 'senha-forte-1' })).json() as { secret: string; uri: string };
+  assert.match(setup.uri, /^otpauth:\/\/totp\/SpaceHour%3Atotp%40example\.com\?secret=[A-Z2-7]+&issuer=SpaceHour/);
+  const secret = T.unbase32(setup.secret);
+  const stored = await one<{ s: Buffer }>(pool, "SELECT totp_pending_secret AS s FROM users WHERE email = 'totp@example.com'");
+  assert.ok(!stored!.s.includes(secret), 'segredo cifrado no banco');
+  const step = Math.floor(Date.now() / 30000);
+  assert.equal((await post('/me/totp/confirm', { code: '000000' === T.totpAt(secret, step) ? '111111' : '000000' })).status, 400);
+  const conf = await (await post('/me/totp/confirm', { code: T.totpAt(secret, step) })).json() as { backupCodes: string[] };
+  assert.equal(conf.backupCodes.length, 8);
+  assert.equal((await one<{ n: number }>(pool, "SELECT count(*)::int AS n FROM totp_backup_codes b JOIN users u ON u.id = b.user_id WHERE u.email = 'totp@example.com' AND b.code_hash LIKE '$2%'"))!.n, 8, 'só o hash');
+
+  const json = { 'Content-Type': 'application/json' };
+  const login = async () => (await post('/auth/login', { email: 'totp@example.com', password: 'senha-forte-1' }, json)).json() as Promise<{ challengeId: string; method: string; email?: string }>;
+  const sent: string[] = [];
+  M.setMailSender(async (m) => { sent.push(m.subject); });
+  try {
+    const c1 = await login();
+    assert.equal(c1.method, 'app');
+    assert.equal(sent.length, 0, 'com o aplicativo, nenhum código vai por e-mail');
+    assert.equal((await post('/auth/login/resend', { challengeId: c1.challengeId }, json)).status, 400);
+    assert.equal((await post('/auth/login/verify', { challengeId: c1.challengeId, code: T.totpAt(secret, step) }, json)).status, 400, 'o mesmo código não vale duas vezes');
+    const ok = await post('/auth/login/verify', { challengeId: c1.challengeId, code: T.totpAt(secret, step + 1) }, json);
+    assert.equal(ok.status, 200);
+
+    // Código reserva: vale uma vez
+    const c2 = await login();
+    assert.equal((await post('/auth/login/verify', { challengeId: c2.challengeId, code: conf.backupCodes[0].toUpperCase() }, json)).status, 200);
+    const c3 = await login();
+    assert.equal((await post('/auth/login/verify', { challengeId: c3.challengeId, code: conf.backupCodes[0] }, json)).status, 400, 'reserva usado não vale de novo');
+    assert.equal((await (await fetch(`${base}/me/totp`, { headers: auth })).json() as { backupCodesLeft: number }).backupCodesLeft, 7);
+
+    // Desligar exige senha + código
+    assert.equal((await post('/me/totp/disable', { password: 'senha-forte-1', code: '123456' })).status, 400);
+    assert.equal((await post('/me/totp/disable', { password: 'senha-forte-1', code: conf.backupCodes[1] })).status, 200);
+    const c4 = await (await post('/auth/login', { email: 'totp@example.com', password: 'senha-forte-1' }, json)).json() as { token?: string };
+    assert.ok(c4.token, 'desligado: entra só com a senha');
+  } finally {
+    M.setMailSender();
+  }
+});
+
 test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo impróprio barrado e cabeçalhos de proteção', async () => {
   const S = await import('../src/security.js');
   const post = (path: string, body: unknown, token?: string) => fetch(`${base}${path}`, { method: 'POST',
@@ -1114,7 +1164,7 @@ test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo imp
   assert.equal(((await bad.json()) as { error: string }).error, 'content_not_allowed');
 
   // Duas etapas opcional para qualquer conta
-  assert.deepEqual(await (await fetch(`${base}/me/two-factor`, { headers: { Authorization: `Bearer ${u.token}` } })).json(), { enabled: false, forced: false });
+  assert.deepEqual(await (await fetch(`${base}/me/two-factor`, { headers: { Authorization: `Bearer ${u.token}` } })).json(), { enabled: false, forced: false, method: 'email' });
   assert.equal((await post('/me/two-factor', { enabled: true }, u.token)).status, 200);
   const sent: Array<{ text: string }> = [];
   M.setMailSender(async (m) => { sent.push(m); });

@@ -543,3 +543,5 @@ details.section > summary::after { content: ' ▾'; color: var(--muted); }
 .prospecting .table .badge { margin-inline-start: 6px; }
 .prospecting textarea { width: 100%; margin: 8px 0; font-family: monospace; }
 .prospecting details > summary { cursor: pointer; }
+.totp { margin-top: 18px; border-top: 1px solid var(--border, #e5e7eb); padding-top: 14px; }
+.backup-codes { font-size: 16px; letter-spacing: 1px; background: #fff; color: #111827; padding: 10px 14px; border-radius: 8px; columns: 2; }

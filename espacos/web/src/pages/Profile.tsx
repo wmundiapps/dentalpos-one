@@ -208,7 +208,7 @@ function MarketingPrefs() {
 /** Verificação em duas etapas: a cada login, um código no e-mail (obrigatória para administradores). */
 function TwoFactorPrefs() {
   const { t } = useI18n();
-  const [st, setSt] = useState<{ enabled: boolean; forced: boolean } | null>(null);
+  const [st, setSt] = useState<{ enabled: boolean; forced: boolean; method?: 'app' | 'email' } | null>(null);
   const [err, setErr] = useState('');
   useEffect(() => { api<{ enabled: boolean; forced: boolean }>('/me/two-factor').then(setSt).catch(() => {}); }, []);
   if (!st) return null;
@@ -219,9 +219,97 @@ function TwoFactorPrefs() {
   return (
     <section className="panel" id="duas-etapas">
       <h2>🔐 {t('profile.twoFactorTitle')}</h2>
-      <label className="check"><input type="checkbox" checked={st.enabled} disabled={st.forced} onChange={(e) => change(e.target.checked)} /> {t('profile.twoFactorOn')}</label>
+      <label className="check"><input type="checkbox" checked={st.enabled} disabled={st.forced || st.method === 'app'} onChange={(e) => change(e.target.checked)} /> {t('profile.twoFactorOn')}</label>
       <p className="muted small">{st.forced ? t('profile.twoFactorForced') : t('profile.twoFactorText')}</p>
       {err && <p className="errors small" role="alert">{err}</p>}
+      <AuthenticatorApp onChange={() => api<{ enabled: boolean; forced: boolean; method?: 'app' | 'email' }>('/me/two-factor').then(setSt).catch(() => {})} />
     </section>
+  );
+}
+
+/** Aplicativo autenticador (TOTP): QR code, 8 códigos reserva, desligar com senha + código. */
+function AuthenticatorApp({ onChange }: { onChange: () => void }) {
+  const { t, locale } = useI18n();
+  const [st, setSt] = useState<{ enabled: boolean; since: string | null; backupCodesLeft: number } | null>(null);
+  const [step, setStep] = useState<'idle' | 'password' | 'scan' | 'manage'>('idle');
+  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [setup, setSetup] = useState<{ secret: string; uri: string; qr: string } | null>(null);
+  const [backup, setBackup] = useState<string[] | null>(null);
+  const [err, setErr] = useState('');
+  const load = () => api<{ enabled: boolean; since: string | null; backupCodesLeft: number }>('/me/totp').then(setSt).catch(() => {});
+  useEffect(() => { load(); }, []);
+  if (!st) return null;
+  const reset = () => { setPassword(''); setCode(''); setErr(''); };
+  async function start(e: React.FormEvent) {
+    e.preventDefault(); setErr('');
+    try {
+      const r = await api<{ secret: string; uri: string }>('/me/totp/setup', { body: { password } });
+      const QR = await import('qrcode');
+      setSetup({ ...r, qr: await QR.toDataURL(r.uri, { margin: 1, width: 220 }) });
+      setStep('scan'); reset();
+    } catch (x) { setErr(errorText(x, t)); }
+  }
+  async function confirm(e: React.FormEvent) {
+    e.preventDefault(); setErr('');
+    try {
+      const r = await api<{ backupCodes: string[] }>('/me/totp/confirm', { body: { code } });
+      setBackup(r.backupCodes); setSetup(null); setStep('idle'); reset(); load(); onChange();
+    } catch (x) { setErr(errorText(x, t)); }
+  }
+  async function manage(action: 'disable' | 'backup-codes') {
+    setErr('');
+    try {
+      const r = await api<{ backupCodes?: string[] }>(`/me/totp/${action}`, { body: { password, code } });
+      if (r.backupCodes) setBackup(r.backupCodes);
+      setStep('idle'); reset(); load(); onChange();
+    } catch (x) { setErr(errorText(x, t)); }
+  }
+  return (
+    <div className="totp">
+      <h3>📱 {t('profile.totpTitle')}</h3>
+      <p className="muted small">{t('profile.totpText')}</p>
+      {backup && (
+        <div className="notice">
+          <strong>{t('profile.totpBackupTitle')}</strong>
+          <p className="small">{t('profile.totpBackupText')}</p>
+          <pre className="backup-codes">{backup.join('\n')}</pre>
+          <button className="btn btn-outline small" onClick={() => setBackup(null)}>{t('common.close')}</button>
+        </div>
+      )}
+      {st.enabled ? (
+        <>
+          <p className="small">✅ {t('profile.totpOn', { date: st.since ? new Date(st.since).toLocaleDateString(locale) : '', n: st.backupCodesLeft })}</p>
+          {step !== 'manage'
+            ? <button className="btn btn-outline small" onClick={() => { reset(); setStep('manage'); }}>{t('profile.totpManage')}</button>
+            : <form className="form-grid" onSubmit={(e) => e.preventDefault()}>
+                <label>{t('profile.totpPassword')}<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+                <label>{t('profile.totpCode')}<input autoComplete="one-time-code" maxLength={11} value={code} onChange={(e) => setCode(e.target.value.slice(0, 11))} /></label>
+                <div className="row gap span2">
+                  <button type="button" className="btn btn-outline small" disabled={!password || code.length < 6} onClick={() => manage('backup-codes')}>{t('profile.totpNewCodes')}</button>
+                  <button type="button" className="btn btn-danger small" disabled={!password || code.length < 6} onClick={() => manage('disable')}>{t('profile.totpDisable')}</button>
+                  <button type="button" className="link-btn" onClick={() => { setStep('idle'); reset(); }}>{t('common.back')}</button>
+                </div>
+              </form>}
+        </>
+      ) : step === 'idle' ? (
+        <button className="btn btn-primary small" onClick={() => { reset(); setStep('password'); }}>{t('profile.totpStart')}</button>
+      ) : step === 'password' ? (
+        <form className="row gap" onSubmit={start}>
+          <label>{t('profile.totpPassword')}<input type="password" autoComplete="current-password" required autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+          <button className="btn btn-primary small">{t('profile.totpContinue')}</button>
+          <button type="button" className="link-btn" onClick={() => { setStep('idle'); reset(); }}>{t('common.back')}</button>
+        </form>
+      ) : setup && (
+        <form onSubmit={confirm}>
+          <p className="small">{t('profile.totpScan')}</p>
+          <img src={setup.qr} width={220} height={220} alt="QR code" />
+          <p className="small"><code>{setup.secret}</code></p>
+          <label>{t('profile.totpCode')}<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} required autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="code-input" /></label>
+          <button className="btn btn-primary small" disabled={code.length !== 6}>{t('profile.totpConfirm')}</button>
+        </form>
+      )}
+      {err && <p className="errors small" role="alert">{err}</p>}
+    </div>
   );
 }
