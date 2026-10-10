@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { signupSource, track } from '../tracking';
+import { signupSource, adClickId, track } from '../tracking';
 import { api, ApiError } from '../api';
 import { useI18n } from '../i18n';
 import { useApp, type Me } from '../state';
@@ -129,7 +129,7 @@ export function Register() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const r = await api<{ token: string; user: Me }>('/auth/register', { body: { ...f, locale, source: signupSource() } });
+      const r = await api<{ token: string; user: Me }>('/auth/register', { body: { ...f, locale, source: signupSource(), gclid: adClickId() } });
       track('CompleteRegistration');
       rememberEmail(r.user.email);
       login(r.token, r.user);

@@ -24,6 +24,7 @@ const registerSchema = z.object({
   acceptTerms: z.literal(true),
   confirmAge: z.literal(true),
   source: z.string().max(200).optional(), // utm_source/medium/campaign/content (first touch)
+  gclid: z.string().regex(/^[\w-]{10,200}$/).optional().catch(undefined), // clique do Google Ads (só com consentimento)
   marketingOptIn: z.boolean().optional(), // consentimento separado para novidades (LGPD)
 });
 
@@ -40,8 +41,8 @@ authRouter.post('/auth/register', async (req, res) => {
     identityVerified: false, strikes: [], termsAcceptedAt: nowIso(), termsVersion: RULES_VERSION, licenseStatus: 'none',
   };
   await insertUser(pool, user); // índice único em lower(email) cobre cadastros simultâneos
-  await pool.query('UPDATE users SET signup_source = $2, signup_ip = $3, signup_user_agent = $4 WHERE id = $1',
-    [user.id, data.source ?? null, req.ip ?? null, req.get('user-agent')?.slice(0, 300) ?? null]);
+  await pool.query('UPDATE users SET signup_source = $2, signup_ip = $3, signup_user_agent = $4, signup_gclid = $5 WHERE id = $1',
+    [user.id, data.source ?? null, req.ip ?? null, req.get('user-agent')?.slice(0, 300) ?? null, data.gclid ?? null]);
   if (data.marketingOptIn) await pool.query('UPDATE users SET marketing_opt_in_at = now() WHERE id = $1', [user.id]);
   // Falha no envio não impede o cadastro: dá para reenviar pelo aviso no app.
   await sendVerificationEmail(user).catch((e) => console.error('[email] confirmação de cadastro', (e as Error).message));
@@ -212,7 +213,7 @@ authRouter.delete('/me', requireAuth, async (req: AuthedRequest, res) => {
     await tx.query(
       `UPDATE users SET email = $2, name = 'Conta excluída', phone = NULL, bio = NULL, document_type = NULL, document_number = NULL,
          license_body = NULL, license_number = NULL, license_region = NULL, license_verified = false, company_tax_id = NULL,
-         password_hash = $3, banned = true, email_verified_at = NULL, email_verify_token_hash = NULL, email_verify_prev_hash = NULL, signup_source = NULL, deleted_at = now()
+         password_hash = $3, banned = true, email_verified_at = NULL, email_verify_token_hash = NULL, email_verify_prev_hash = NULL, signup_source = NULL, signup_gclid = NULL, deleted_at = now()
        WHERE id = $1`, [u.id, `excluido-${u.id}@deleted.space-hour.com`, crypto.randomBytes(32).toString('hex')]);
     await tx.query('UPDATE listings SET active = false WHERE host_id = $1', [u.id]);
     await tx.query('UPDATE license_verifications SET document = NULL WHERE user_id = $1', [u.id]);

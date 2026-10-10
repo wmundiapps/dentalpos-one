@@ -511,8 +511,9 @@ test('ADMIN_EMAILS: conta Gmail vira admin já no login, mesmo com pontos, "+alg
 
 test('origem do cadastro (UTM) aparece no relatório de campanha do admin', async () => {
   const r = await fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'Dra. Campanha', email: 'campanha@example.com', password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true, source: 'meta/paid/lancamento-anfitrioes' }) });
+    body: JSON.stringify({ name: 'Dra. Campanha', email: 'campanha@example.com', password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true, source: 'meta/paid/lancamento-anfitrioes', gclid: 'Cj0KCQjw_teste-123' }) });
   assert.equal(r.status, 201);
+  assert.equal((await one<{ g: string }>(pool, "SELECT signup_gclid AS g FROM users WHERE email = 'campanha@example.com'"))!.g, 'Cj0KCQjw_teste-123', 'clique do Google Ads guardado');
   const u = (await r.json()) as { token: string };
   assert.equal((await fetch(`${base}/admin/signups`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
   const rep = await (await fetch(`${base}/admin/signups?days=7`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { bySource: { source: string; signups: number }[] };
