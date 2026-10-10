@@ -336,6 +336,7 @@ export interface Lead {
   category: string | null
   status: 'NEW' | 'IMPORTED' | 'DISCARDED' | 'OPTED_OUT'
   isMei?: boolean
+  invitedAt?: string | null
   contactId: string | null
   createdAt: string
 }

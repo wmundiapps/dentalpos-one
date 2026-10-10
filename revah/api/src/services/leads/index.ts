@@ -67,12 +67,12 @@ export async function optOutLeads(tenant: Tenant, ids: string[]) {
   return { optedOut: leads.length }
 }
 
-async function saveLeads(tenantId: string, searchId: string | null, raws: RawLead[]) {
+async function saveLeads(tenantId: string, searchId: string | null, raws: RawLead[], audienceId: string | null = null) {
   const out: Lead[] = []
   for (const r of raws) {
     const lead = await prisma.lead.upsert({
       where: { tenantId_origin_originRef: { tenantId, origin: r.origin, originRef: r.originRef } },
-      create: { tenantId, searchId, ...r },
+      create: { tenantId, searchId, audienceId, ...r },
       update: { searchId: searchId ?? undefined, name: r.name, phone: r.phone ?? undefined, email: r.email ?? undefined },
     })
     out.push(lead)
@@ -123,7 +123,7 @@ export async function runSearch(
   const search = await prisma.leadSearch.create({
     data: { tenantId: tenant.id, userId: user.id, kind: input.kind, query: { documents: input.documents, query: input.query, city: input.city, uf: input.uf, cnaes: input.cnaes } as any, origin, resultCount: raws.length },
   })
-  const leads = await saveLeads(tenant.id, search.id, raws)
+  const leads = await saveLeads(tenant.id, search.id, raws, input.kind === 'SEGMENT' ? input.audienceId || null : null)
   return { searchId: search.id, leads: leads.map(publicLead) }
 }
 

@@ -10,6 +10,8 @@ process.env.CAMPAIGN_THROTTLE_MS = '0'
 process.env.ASAAS_API_KEY = 'asaas-test'
 process.env.ASAAS_BASE_URL = 'http://asaas.mock/v3'
 process.env.ASAAS_WEBHOOK_TOKEN = 'asaas-webhook-token'
+process.env.LEADS_INVITE_HOURS = '0-24'
+process.env.LEADS_INVITE_DAILY_CAP = '2'
 
 // Asaas simulado (sem rede).
 const realFetch = globalThis.fetch
@@ -394,4 +396,54 @@ test('REVAH Leads: público salvo por cliente, MEI, celular corrigido e "não qu
   await request(app).post('/leads/terms/accept').set(auth(other.token)).send({ signerName: 'Outro Dono', signerDocument: '98765432100', agree: true })
   const theirs = await request(app).post('/leads/search').set(auth(other.token)).send({ kind: 'SEGMENT', cnaes: ['8630504'], uf: 'PR' })
   assert.equal(theirs.body.leads.length, 2)
+})
+
+test('REVAH Leads: planilha com WhatsApp de um clique, um convite por pessoa, limite do dia e "não quero receber"', async () => {
+  const { token, tenant } = await register('planilha@revah.test')
+  await prisma.tenant.update({ where: { id: tenant.id }, data: { plan: 'PRO', status: 'ACTIVE', leadsAddonActive: true, name: 'Agência Sol' } })
+  await request(app).post('/leads/terms/accept').set(auth(token)).send({ signerName: 'Dono Teste', signerDocument: '12345678901', agree: true })
+  const aud = await prisma.leadAudience.create({ data: { tenantId: tenant.id, name: 'Dentistas', cnaes: ['8630504'], inviteText: 'Oi {{primeiro_nome}}, aqui é da {{minha_empresa}}!' } })
+  const mk = (n: number, extra: any = {}) => ({ tenantId: tenant.id, name: `CLINICA ${n}`, phone: `55449999900${n}0`, category: 'Atividade odontológica', origin: 'cnpj_public', originRef: `x${n}`, audienceId: aud.id, ...extra })
+  await prisma.lead.createMany({ data: [mk(1, { isMei: true }), mk(2), mk(3), mk(4, { phone: '554430301010' })] })
+
+  const xlsx = await request(app).get('/leads/export.xlsx').set(auth(token)).buffer(true).parse((res: any, cb: any) => {
+    const chunks: Buffer[] = []
+    res.on('data', (c: Buffer) => chunks.push(c))
+    res.on('end', () => cb(null, Buffer.concat(chunks)))
+  })
+  assert.equal(xlsx.status, 200)
+  assert.match(xlsx.headers['content-type'], /spreadsheetml/)
+  const ExcelJS = (await import('exceljs')).default
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.load(xlsx.body)
+  const links = (wb.getWorksheet('Leads')!.getColumn(7).values as any[]).filter((v) => v?.hyperlink).map((v) => v.hyperlink as string)
+  assert.equal(links.length, 3, 'só celulares viram link de WhatsApp')
+
+  const path = (u: string) => new URL(u).pathname
+  const first = await request(app).get(path(links[0]))
+  assert.equal(first.status, 302)
+  assert.match(first.headers.location, /^https:\/\/wa\.me\/55449999900\d0\?text=Oi%20Clinica%2C%20aqui%20%C3%A9%20da%20Ag%C3%AAncia%20Sol!/)
+  assert.match(decodeURIComponent(first.headers.location), /\/c\/sair\/[0-9a-f]{32}/)
+  // Um convite por pessoa.
+  const again = await request(app).get(path(links[0]))
+  assert.equal(again.status, 409)
+  assert.match(again.text, /Já convidado/)
+  // Limite do dia (2 no teste).
+  assert.equal((await request(app).get(path(links[1]))).status, 302)
+  const cap = await request(app).get(path(links[2]))
+  assert.equal(cap.status, 409)
+  assert.match(cap.text, /Limite do dia/)
+
+  // Quem recebe pode sair pelo link; a planilha antiga passa a respeitar.
+  const tok = path(links[2]).split('/').pop()
+  assert.equal((await request(app).get(`/c/sair/${tok}`)).status, 200)
+  const out = await request(app).post(`/c/sair/${tok}`)
+  assert.match(out.text, /não vai receber mais mensagens de Agência Sol/)
+  await prisma.lead.updateMany({ where: { tenantId: tenant.id }, data: { invitedAt: null } })
+  const blocked = await request(app).get(path(links[2]))
+  assert.match(blocked.text, /Pediu para não receber/)
+
+  // Amostra por segmento: só quem ainda não foi convidado e tem WhatsApp, MEI primeiro.
+  const sample = await request(app).get('/leads/export.xlsx?porSegmento=1').set(auth(token))
+  assert.equal(sample.status, 200)
 })

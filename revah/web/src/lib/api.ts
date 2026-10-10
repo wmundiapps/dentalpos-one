@@ -137,3 +137,19 @@ export function errorMessage(e: unknown): string {
   if (e instanceof Error) return e.message
   return 'Algo deu errado. Tente novamente.'
 }
+
+// Baixa um arquivo da API (planilhas) com a sessão atual.
+export async function downloadFile(path: string, query: Record<string, string | number | undefined>, filename: string) {
+  const qs = new URLSearchParams(Object.entries(query).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)]))
+  const res = await fetch(`${API_URL}${path}${qs.toString() ? `?${qs}` : ''}`, { headers: { Authorization: `Bearer ${getToken() || ''}` } })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new ApiError(res.status, data?.error || `Erro ${res.status}.`, data?.code)
+  }
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
+}

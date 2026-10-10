@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Briefcase, Building2, FileSignature, Megaphone, MapPin, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react'
-import { ApiError, del, get, post, put } from '../lib/api'
+import { Briefcase, Building2, Download, FileSignature, Megaphone, MapPin, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react'
+import { ApiError, del, downloadFile, get, post, put } from '../lib/api'
 import { fmtPhone } from '../lib/format'
 import { useAuthed } from '../lib/session'
 import type { Lead } from '../lib/types'
@@ -231,6 +231,17 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
     }
   }
 
+  async function exportXlsx(perSegment?: number) {
+    setBusy(perSegment ? 'sample' : 'export')
+    try {
+      await downloadFile('/leads/export.xlsx', { status: statusFilter, audienceId: audienceId || undefined, porSegmento: perSegment }, `revah-leads-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch (e) {
+      handle(e)
+    } finally {
+      setBusy('')
+    }
+  }
+
   async function optOutSel() {
     if (!confirm('Marcar como "não quer receber"? Estas empresas nunca mais aparecem nas suas buscas e entram na sua lista de bloqueio.')) return
     setBusy('optout')
@@ -379,6 +390,13 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
               Ver leads salvos
             </Button>
           ) : (
+            <div className="row wrap gap-xs">
+            <Button size="sm" variant="ghost" icon={<Download size={14} />} onClick={() => exportXlsx()} loading={busy === 'export'} title="Planilha com WhatsApp de um clique: o convite abre pronto, um por pessoa, das 8h às 21h">
+              Baixar planilha
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => exportXlsx(3)} loading={busy === 'sample'} title="Até 3 por segmento, ainda não convidados e com WhatsApp, MEI primeiro">
+              Amostra (3 por segmento)
+            </Button>
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
               <option value="NEW">Novos</option>
               <option value="IMPORTED">Importados</option>
@@ -386,6 +404,7 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
               <option value="OPTED_OUT">Pediram para não receber</option>
               <option value="">Todos</option>
             </select>
+            </div>
           )
         }
         pad={false}
@@ -482,6 +501,8 @@ function LeadsSearch({ onAccessLost }: { onAccessLost: () => void }) {
                         <Badge tone="gray">Descartado</Badge>
                       ) : l.status === 'OPTED_OUT' ? (
                         <Badge tone="red">Não quer receber</Badge>
+                      ) : l.invitedAt ? (
+                        <Badge tone="blue">Convidado</Badge>
                       ) : (
                         <Badge tone="indigo">Novo</Badge>
                       )}
