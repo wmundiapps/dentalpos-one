@@ -4,7 +4,8 @@ import { prisma } from '../lib/prisma'
 import { ah } from '../lib/errors'
 import { requireRole, type AuthedRequest } from '../middleware/auth'
 import { audit } from '../services/audit'
-import { acceptTerms, importLeads, leadsAccess, optOutLeads, publicLead, runSearch } from '../services/leads'
+import { acceptTerms, assertLeadsAccess, importLeads, leadsAccess, optOutLeads, publicLead, runSearch } from '../services/leads'
+import { exportLeadsXlsx } from '../services/leads/invites'
 import { companyBaseStatus, findSegments } from '../services/leads/providers'
 import { linkedinAuthUrl, linkedinAvailable, syncLinkedinSource } from '../services/leads/linkedin'
 import { config } from '../config'
@@ -74,6 +75,18 @@ r.post('/leads/discard', ah(async (req: AuthedRequest, res) => {
   const b = z.object({ ids: z.array(z.string()).min(1).max(1000) }).parse(req.body)
   const r2 = await prisma.lead.updateMany({ where: { tenantId: req.tenant.id, id: { in: b.ids }, status: 'NEW' }, data: { status: 'DISCARDED' } })
   res.json({ discarded: r2.count })
+}))
+
+// Planilha com WhatsApp de um clique (o link passa pelo REVAH). ?porSegmento=3 traz uma amostra para começar.
+r.get('/leads/export.xlsx', ah(async (req: AuthedRequest, res) => {
+  await assertLeadsAccess(req.tenant)
+  const q = z.object({ status: z.string().optional(), audienceId: z.string().max(40).optional(), porSegmento: z.coerce.number().int().min(1).max(20).optional() }).parse(req.query)
+  const { buffer, count } = await exportLeadsXlsx(req.tenant, { status: q.status, audienceId: q.audienceId, perSegment: q.porSegmento })
+  await audit(req.tenant.id, req.user.id, 'LEADS_EXPORT', 'Lead', undefined, { ...q, rows: count })
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  res.setHeader('Content-Disposition', `attachment; filename="revah-leads-${new Date().toISOString().slice(0, 10)}.xlsx"`)
+  res.setHeader('Cache-Control', 'no-store')
+  res.send(buffer)
 }))
 
 // "Não quero receber": bloqueia para sempre nas buscas deste cliente e nos canais (lista de bloqueio).

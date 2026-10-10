@@ -566,27 +566,31 @@ model LeadSearch {
 }
 
 model Lead {
-  id        String      @id @default(cuid())
-  tenantId  String
-  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  searchId  String?
-  search    LeadSearch? @relation(fields: [searchId], references: [id], onDelete: SetNull)
-  name      String
-  company   String?
-  document  String?
-  phone     String?
-  email     String?
-  website   String?
-  address   String?
-  city      String?
-  state     String?
-  category  String?
-  isMei     Boolean     @default(false)
-  origin    String // interno
-  originRef String? // interno (dedupe)
-  status    String      @default("NEW") // NEW | IMPORTED | DISCARDED
-  contactId String?
-  createdAt DateTime    @default(now())
+  id          String      @id @default(cuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  searchId    String?
+  search      LeadSearch? @relation(fields: [searchId], references: [id], onDelete: SetNull)
+  name        String
+  company     String?
+  document    String?
+  phone       String?
+  email       String?
+  website     String?
+  address     String?
+  city        String?
+  state       String?
+  category    String?
+  isMei       Boolean     @default(false)
+  // Convite por WhatsApp a partir da planilha: o link passa pelo REVAH (horário, um convite por pessoa, "não quero receber").
+  audienceId  String?
+  inviteToken String?     @unique
+  invitedAt   DateTime?
+  origin      String // interno
+  originRef   String? // interno (dedupe)
+  status      String      @default("NEW") // NEW | IMPORTED | DISCARDED
+  contactId   String?
+  createdAt   DateTime    @default(now())
 
   @@unique([tenantId, origin, originRef])
   @@index([tenantId, status])
