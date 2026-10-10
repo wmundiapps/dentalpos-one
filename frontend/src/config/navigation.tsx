@@ -140,6 +140,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Automação Fiscal","/automacao-fiscal",<ReceiptLongIcon/>),
       item("Evidências Operacionais","/evidencias-operacionais",<DescriptionIcon/>),
       item("Gestão Operacional","/operacional",<CleaningServicesIcon/>),
+      item("Pendências","/pendencias",<AssignmentIcon/>),
       item("Corpo Clínico","/corpo-clinico",<MedicalInformationIcon/>),
       item("RH e Gestão de Pessoas","/rh",<WorkIcon/>),
       item("Registrar ponto","/rh?ponto=1",<FingerprintIcon/>),

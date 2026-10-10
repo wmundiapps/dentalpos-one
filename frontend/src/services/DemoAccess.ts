@@ -113,7 +113,7 @@ const ROUTE_MODULES: Array<[RegExp, string]> = [
   [/^\/(?:marketing|revah|revah-chatbot|comunicacoes|recall|avaliacoes-atendimento)(?:\/|$)/, "marketing"],
   [/^\/(?:sales|comercial|crm|crm-inteligente|estoque|revah-leads)(?:\/|$)/, "sales"],
   [/^\/(?:backup|clinicas|configuracoes|seguranca|integracoes|homologacao|plataforma-saas|sugestoes-problemas)(?:\/|$)/, "settings"],
-  [/^\/(?:centro-de-comando|centro-de-inteligencia|painel-executivo|indice-saude-clinica|benchmark|relatorios|notificacoes)(?:\/|$)/, "dashboard"],
+  [/^\/(?:centro-de-comando|pendencias|centro-de-inteligencia|painel-executivo|indice-saude-clinica|benchmark|relatorios|notificacoes)(?:\/|$)/, "dashboard"],
   [/^\/(?:evidencias-operacionais|operacional)(?:\/|$)/, "operational"],
   [/^\/academico(?:\/|$)/, "academic"],
   [/^\/(?:corpo-clinico|canais-envio)(?:\/|$)/, "settings"],

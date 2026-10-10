@@ -161,3 +161,29 @@ export async function purgeCancelledEntries(ids?: string[]): Promise<{ deleted: 
   });
   return parse<{ deleted: number; keptFiscal: number }>(response);
 }
+
+export interface PaymentProviderRow {
+  id: string;
+  provider: string;
+  environment: string;
+  isActive: boolean;
+  credentialsConfigured: boolean;
+  webhookConfigured: boolean;
+}
+
+export async function loadPaymentProviders(): Promise<PaymentProviderRow[]> {
+  const response = await fetch(`${API}/payment-providers`, { headers: headers() });
+  return parse<PaymentProviderRow[]>(response);
+}
+
+export async function savePaymentProvider(
+  provider: string,
+  input: { environment: string; isActive: boolean; credentialsConfigured: boolean; webhookConfigured: boolean },
+): Promise<PaymentProviderRow> {
+  const response = await fetch(`${API}/payment-providers/${encodeURIComponent(provider.toUpperCase())}`, {
+    method: "PUT",
+    headers: headers(true),
+    body: JSON.stringify(input),
+  });
+  return parse<PaymentProviderRow>(response);
+}

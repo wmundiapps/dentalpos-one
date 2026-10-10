@@ -101,7 +101,28 @@ export interface DreResponse {
   byIssuer: DreByIssuer[];
 }
 
+export interface AccountingOverview {
+  month: string;
+  entryCount: number;
+  revenue: number;
+  expenses: number;
+  result: number;
+  taxEstimated: number;
+  taxOpen: number;
+  pendingDocuments: number;
+  pendingReview: number;
+  overdue: number;
+  openObligations: number;
+  byIssuer: { issuerEntity: string; revenue: number; expense: number }[];
+  readyToClose: boolean;
+  blockers: string[];
+  pendingDocumentList: { id: string; description: string; personName: string; amount: number; date: string }[];
+  activeAccountants: number;
+  activeBankConnections: number;
+}
+
 export const BackofficeApi = {
+  accountingOverview: (month?: string) => request<AccountingOverview>(`/accounting/overview${month ? `?month=${month}` : ""}`),
   dashboard: () => request<BackofficeDashboard>("/backoffice/dashboard"),
   dre: (from?: string, to?: string) => {
     const params = new URLSearchParams();

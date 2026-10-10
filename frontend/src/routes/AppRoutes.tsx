@@ -67,6 +67,7 @@ import Homologation from "../pages/Homologation";
 import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
 import SmileDesign from "../pages/SmileDesign";
 import Security from "../pages/Security";
+import Pendencias from "../pages/Pendencias";
 import {
   getDemoModuleStatus,
   moduleForPath,
@@ -275,6 +276,7 @@ export default function AppRoutes() {
       <Route path="/relatorios" element={<Reports />} />
 
       <Route path="/rh" element={<HumanResources />} />
+      <Route path="/pendencias" element={<Pendencias />} />
 
       <Route
         path="/sugestoes-problemas"

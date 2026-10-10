@@ -18,7 +18,7 @@
     "bootstrap:admin": "tsx src/scripts/bootstrapAdmin.ts",
     "preflight:release": "tsx src/scripts/releasePreflight.ts",
     "demo:admin": "tsx src/scripts/demoAdmin.ts",
-    "test:security": "tsx src/tests/totp.test.ts && tsx src/tests/policies.test.ts"
+    "test:security": "tsx src/tests/totp.test.ts && tsx src/tests/policies.test.ts && tsx src/tests/accountingOverview.test.ts"
   },
   "engines": {
     "node": ">=20"

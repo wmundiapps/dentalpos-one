@@ -17,6 +17,7 @@ import * as labOrderController from '../controllers/labOrderController'
 import * as labNotificationController from '../controllers/labNotificationController'
 import * as procedureDurationController from '../controllers/procedureDurationController'
 import * as teamController from '../controllers/teamController'
+import * as pendingTaskController from '../controllers/pendingTaskController'
 import * as pendingAlertController from '../controllers/pendingAlertController'
 import * as publicBookingController from '../controllers/publicBookingController'
 import * as scheduleController from '../controllers/scheduleController'
@@ -53,6 +54,8 @@ import * as smartSchedulingController from '../controllers/smartSchedulingContro
 import * as demoController from '../controllers/demoController'
 import * as debugDemoController from '../controllers/debugDemoController'
 import * as landingLeadController from '../controllers/landingLeadController'
+import * as satisfactionController from '../controllers/satisfactionController'
+import rateLimit from 'express-rate-limit'
 import { requirePermission, requireWmundiStaff } from '../middleware/permission'
 import clinicalRecordRoutes from './clinicalRecordRoutes'
 import dentalChartRoutes from './dentalChartRoutes'
@@ -98,6 +101,18 @@ router.get('/public/booking/:clinicId', publicBookingController.config)
 router.get('/public/booking/:clinicId/availability', publicBookingController.availability)
 router.post('/public/booking/:clinicId', publicBookingController.store)
 
+// PUBLIC SATISFACTION SURVEY (link de uso único, sem login)
+const satisfactionPublicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: Number(process.env.AUTH_RATE_LIMIT_MAX || 10) * 6,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.' }
+})
+router.get('/public/satisfaction/:token', satisfactionPublicLimiter, satisfactionController.publicShow)
+router.post('/public/satisfaction/:token/answer', satisfactionPublicLimiter, satisfactionController.publicAnswer)
+router.post('/public/satisfaction/:token/optout', satisfactionPublicLimiter, satisfactionController.publicOptOut)
+
 // ======================
 // MIDDLEWARES
 // ======================
@@ -109,6 +124,15 @@ router.post('/auth/2fa/enable', securityController.twoFactorEnable)
 router.post('/auth/2fa/disable', securityController.twoFactorDisable)
 router.post('/dpd/token', securityController.dpdToken)
 router.use(tenantMiddleware)
+
+// Pesquisa de satisfação (área interna)
+router.get('/satisfaction/surveys', requirePermission('marketing.view'), satisfactionController.list)
+router.post('/satisfaction/surveys', requirePermission('marketing.send'), satisfactionController.create)
+router.post('/satisfaction/surveys/dispatch-due', requirePermission('marketing.send'), satisfactionController.dispatchDue)
+router.post('/satisfaction/surveys/:id/link', requirePermission('marketing.send'), satisfactionController.regenerateLink)
+router.get('/satisfaction/report', requirePermission('marketing.view'), satisfactionController.report)
+router.get('/satisfaction/not-contracted', requirePermission('marketing.view'), satisfactionController.notContracted)
+router.post('/satisfaction/answers/:id/handled', requirePermission('marketing.send'), satisfactionController.markHandled)
 
 // Clinical modules integrated by Chat 8. Authentication and tenant context are already resolved above.
 router.use(clinicalRecordRoutes)
@@ -426,6 +450,7 @@ router.post('/lead-discovery/imports', requirePermission('sales.edit'), leadDisc
 
 router.get('/backoffice/dashboard', requirePermission('accounting.view'), backofficeController.dashboard)
 router.get('/backoffice/dre', requirePermission('accounting.view'), backofficeController.dre)
+router.get('/accounting/overview', requirePermission('accounting.view'), backofficeController.accountingOverview)
 router.get('/suppliers', requirePermission('accounting.view'), backofficeController.suppliers)
 router.post('/suppliers', requirePermission('accounting.edit'), backofficeController.createSupplier)
 router.get('/accounting/accounts', requirePermission('accounting.view'), backofficeController.accounts)
@@ -461,6 +486,13 @@ router.post('/feedbacks', requirePermission('patients.edit'), feedbackController
 router.put('/feedback/:id', requirePermission('patients.edit'), feedbackController.update)
 router.delete('/feedback/:id', requirePermission('patients.edit'), feedbackController.remove)
 router.post('/platform-feedbacks', platformFeedbackController.create)
+router.get('/pending-tasks', requirePermission('dashboard.view'), pendingTaskController.list)
+router.get('/pending-tasks/assignees', requirePermission('dashboard.view'), pendingTaskController.assignees)
+router.get('/pending-tasks/ranking', requirePermission('dashboard.view'), pendingTaskController.ranking)
+router.post('/pending-tasks', requirePermission('dashboard.view'), pendingTaskController.create)
+router.put('/pending-tasks/:id', requirePermission('dashboard.view'), pendingTaskController.update)
+router.post('/pending-tasks/:id/complete', requirePermission('dashboard.view'), pendingTaskController.complete)
+router.post('/pending-tasks/:id/cancel', requirePermission('dashboard.view'), pendingTaskController.cancel)
 router.get('/platform-feedbacks', platformFeedbackController.listMine)
 router.get('/platform-feedbacks/all', requireWmundiStaff, platformFeedbackController.listAll)
 router.put('/platform-feedbacks/:id/status', requireWmundiStaff, platformFeedbackController.updateStatus)

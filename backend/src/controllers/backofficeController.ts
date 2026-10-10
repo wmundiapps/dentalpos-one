@@ -2,6 +2,7 @@ import type { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import type { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { buildAccountingOverview, monthRange } from '../services/accountingOverview'
 
 function context(req: AuthRequest) {
   if (!req.user) throw new Error('Não autenticado')
@@ -367,5 +368,24 @@ export async function updateAccountantAccess(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao atualizar acesso do contador.' })
+  }
+}
+
+export async function accountingOverview(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = context(req)
+    const now = new Date()
+    const month = String(req.query.month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+    if (!monthRange(month)) return res.status(400).json({ error: 'Mês inválido. Use AAAA-MM.' })
+    const [entries, obligations, accountants, banks] = await Promise.all([
+      prisma.financialEntry.findMany({ where: { clinicId, tenantId } }),
+      prisma.taxObligation.findMany({ where: { clinicId, tenantId } }),
+      prisma.accountantPortalAccess.count({ where: { clinicId, tenantId, status: 'ACTIVE' } }),
+      prisma.bankConnection.count({ where: { clinicId, tenantId, isActive: true } }),
+    ])
+    return res.json({ ...buildAccountingOverview(entries, obligations, month, now), activeAccountants: accountants, activeBankConnections: banks })
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao montar visão contábil.' })
   }
 }
