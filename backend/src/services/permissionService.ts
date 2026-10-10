@@ -43,7 +43,7 @@ export async function createDefaultProfiles(clinicId: string, tenantId: string) 
 
   const definitions: Record<string, string[]> = {
     ADMIN: permissions.map(p => p.code),
-    GESTOR: permissions.filter(p => !p.code.startsWith('hr.sensitive')).map(p => p.code),
+    GESTOR: permissions.map(p => p.code),
     RECEPCAO: ['dashboard.view','agenda.view','agenda.create','agenda.edit','agenda.cancel','patients.view','patients.create','patients.edit','clinical.view','finance.view','finance.values','marketing.view'],
     DENTISTA: ['dashboard.view','agenda.view','patients.view','clinical.view','clinical.edit','laboratory.view','laboratory.create','design.view','design.edit'],
     LABORATORIO: ['dashboard.view','laboratory.view','laboratory.create','laboratory.edit','design.view','design.edit'],
@@ -51,13 +51,13 @@ export async function createDefaultProfiles(clinicId: string, tenantId: string) 
     RH: ['dashboard.view','hr.view','hr.create','hr.edit','hr.sensitive','documents.view','documents.edit','finance.view'],
     CONTADOR: ['dashboard.view','finance.view','finance.values','accounting.view','accounting.edit','accounting.approve','accounting.portal','documents.view'],
     AUXILIAR: ['dashboard.view','agenda.view','patients.view','clinical.view','laboratory.view'],
-    ADMINISTRACAO: ['dashboard.view','agenda.view','patients.view','patients.create','patients.edit','finance.view','documents.view','documents.edit','hr.view','settings.view','users.view'],
+    ADMINISTRACAO: ['dashboard.view','agenda.view','patients.view','patients.create','patients.edit','finance.view','documents.view','documents.edit','hr.view','hr.create','hr.edit','hr.sensitive','settings.view','users.view'],
     MARKETING: ['dashboard.view','patients.view','marketing.view','marketing.send','documents.view'],
     VENDAS: ['dashboard.view','patients.view','sales.view','sales.edit','marketing.view'],
     MARKETPLACE: ['dashboard.view','sales.view','sales.edit'],
     COMPRAS: ['dashboard.view','sales.view','sales.edit','finance.view'],
     EDUCACIONAL: ['dashboard.view','patients.view','documents.view','documents.edit'],
-    JURIDICO: ['dashboard.view','patients.view','documents.view','documents.edit','hr.view','accounting.view','audit.view']
+    JURIDICO: ['dashboard.view','patients.view','documents.view','documents.edit','accounting.view','audit.view']
   }
 
   for (const [code, codes] of Object.entries(definitions)) {

@@ -35,6 +35,7 @@ import Financial from "../pages/Financial";
 import FinancialScanner from "../pages/FinancialScanner";
 import FiscalAutomation from "../pages/FiscalAutomation";
 import HumanResources from "../pages/HumanResources";
+import MyTimeclock from "../pages/MyTimeclock";
 import Laboratory from "../pages/Laboratory";
 import Marketing from "../pages/Marketing";
 import MarketingHub from "../pages/MarketingHub";
@@ -272,6 +273,7 @@ export default function AppRoutes() {
       <Route path="/relatorios" element={<Reports />} />
 
       <Route path="/rh" element={<HumanResources />} />
+      <Route path="/meu-ponto" element={<MyTimeclock />} />
 
       <Route
         path="/sugestoes-problemas"

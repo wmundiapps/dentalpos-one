@@ -3,7 +3,7 @@ import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chec
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PageHeader from "../components/PageHeader";
 import { navigationGroups } from "../config/navigation";
-import { defaultMenuCodes, menuCode, resetMenuAccess } from "../config/menuAccess";
+import { ALWAYS_ALLOWED, defaultMenuCodes, menuCode, resetMenuAccess } from "../config/menuAccess";
 import { AccessApi, type AccessProfile, type AccessUser, type PermissionItem } from "../services/AccessApi";
 
 const PROFILE_NAMES: Record<string, string> = {
@@ -17,7 +17,7 @@ const PROFILE_ORDER = ["ADMIN", "GESTOR", "ADMINISTRACAO", "RH", "RECEPCAO", "DE
 // Itens do menu na mesma ordem do menu lateral (um item que aparece em dois grupos entra só no primeiro).
 const MENU_GROUPS = (() => {
   const seen = new Set<string>();
-  const all = navigationGroups.map((g) => ({ label: g.label, items: g.items.filter((it) => { if (seen.has(it.path)) return false; seen.add(it.path); return true; }) })).filter((g) => g.items.length > 0);
+  const all = navigationGroups.map((g) => ({ label: g.label, items: g.items.filter((it) => { if (ALWAYS_ALLOWED.includes(it.path) || seen.has(it.path)) return false; seen.add(it.path); return true; }) })).filter((g) => g.items.length > 0);
   return all;
 })();
 const ALL_ITEMS = MENU_GROUPS.flatMap((g) => g.items);
