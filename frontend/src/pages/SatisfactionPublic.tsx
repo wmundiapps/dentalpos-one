@@ -75,12 +75,12 @@ export default function SatisfactionPublic() {
         {done === "optout" && <Alert severity="success">Pronto. Você não receberá mais pesquisas de satisfação desta clínica.</Alert>}
         {survey && !done && (
           <>
-            <Typography variant="h6" fontWeight={800}>{survey.clinicName}</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>{survey.clinicName}</Typography>
             <Typography color="text.secondary" sx={{ mb: 2 }}>
               Olá{survey.patientFirstName ? `, ${survey.patientFirstName}` : ""}! Conte como foi seu atendimento{survey.doctorName ? ` com ${survey.doctorName}` : ""}. Leva menos de 1 minuto.
             </Typography>
 
-            <Typography fontWeight={700}>De 0 a 10, o quanto você recomendaria a clínica a um amigo ou familiar?</Typography>
+            <Typography sx={{ fontWeight: 700 }}>De 0 a 10, o quanto você recomendaria a clínica a um amigo ou familiar?</Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 0.75, mt: 1 }}>
               {Array.from({ length: 11 }, (_, n) => (
                 <Button key={n} variant={nps === n ? "contained" : "outlined"} onClick={() => setNps(n)} sx={{ minWidth: 0, py: 1.2 }} aria-label={`Nota ${n}`}>{n}</Button>
@@ -104,12 +104,12 @@ export default function SatisfactionPublic() {
                 {yesNo("Você recebeu um orçamento?", receivedBudget, setReceivedBudget)}
                 {receivedBudget === "sim" && yesNo("Você decidiu contratar o tratamento?", contracted, setContracted)}
                 {contracted === "nao" && (
-                  <TextField fullWidth multiline minRows={2} sx={{ mt: 1.5 }} label="O que pesou na decisão? (valor, prazo, dúvida, outro)" value={reason} onChange={e => setReason(e.target.value)} inputProps={{ maxLength: 300 }} />
+                  <TextField fullWidth multiline minRows={2} sx={{ mt: 1.5 }} label="O que pesou na decisão? (valor, prazo, dúvida, outro)" value={reason} onChange={e => setReason(e.target.value)} slotProps={{ htmlInput: { maxLength: 300 } }} />
                 )}
               </>
             )}
 
-            <TextField fullWidth multiline minRows={3} sx={{ mt: 2 }} label="Comentário (opcional)" value={comment} onChange={e => setComment(e.target.value)} inputProps={{ maxLength: 2000 }} />
+            <TextField fullWidth multiline minRows={3} sx={{ mt: 2 }} label="Comentário (opcional)" value={comment} onChange={e => setComment(e.target.value)} slotProps={{ htmlInput: { maxLength: 2000 } }} />
             <FormControlLabel sx={{ mt: 1 }} control={<Checkbox checked={wantsContact} onChange={e => setWantsContact(e.target.checked)} />} label="Quero que a clínica entre em contato comigo" />
             {survey.journey === "FIM_TRATAMENTO" && (
               <FormControlLabel control={<Checkbox checked={testimonial} onChange={e => setTestimonial(e.target.checked)} />} label="Autorizo a clínica a usar meu comentário como depoimento" />

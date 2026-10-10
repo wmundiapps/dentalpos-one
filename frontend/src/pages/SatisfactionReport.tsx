@@ -13,7 +13,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   return (
     <Paper variant="outlined" sx={{ p: 2, flex: "1 1 160px" }}>
       <Typography variant="caption" color="text.secondary">{label}</Typography>
-      <Typography variant="h5" fontWeight={800}>{value}</Typography>
+      <Typography variant="h5" sx={{ fontWeight: 800 }}>{value}</Typography>
       {hint && <Typography variant="caption" color="text.secondary">{hint}</Typography>}
     </Paper>
   );
@@ -54,11 +54,11 @@ export default function SatisfactionReport() {
 
   return (
     <Box sx={{ p: { xs: 1.5, md: 3 } }}>
-      <Typography variant="h5" fontWeight={800}>Satisfação dos pacientes</Typography>
+      <Typography variant="h5" sx={{ fontWeight: 800 }}>Satisfação dos pacientes</Typography>
       <Typography color="text.secondary" sx={{ mb: 2 }}>NPS, avaliação por profissional, motivos de não contratação e conversão de primeiras consultas.</Typography>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: 2 }}>
-        <TextField type="date" size="small" label="De" InputLabelProps={{ shrink: true }} value={from} onChange={e => setFrom(e.target.value)} />
-        <TextField type="date" size="small" label="Até" InputLabelProps={{ shrink: true }} value={to} onChange={e => setTo(e.target.value)} />
+        <TextField type="date" size="small" label="De" slotProps={{ inputLabel: { shrink: true } }} value={from} onChange={e => setFrom(e.target.value)} />
+        <TextField type="date" size="small" label="Até" slotProps={{ inputLabel: { shrink: true } }} value={to} onChange={e => setTo(e.target.value)} />
         <Button variant="outlined" onClick={dispatchDue}>Enviar pesquisas agendadas</Button>
       </Stack>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
@@ -66,7 +66,7 @@ export default function SatisfactionReport() {
       {loading && <CircularProgress />}
       {report && !loading && (
         <>
-          <Stack direction="row" flexWrap="wrap" gap={1.5} sx={{ mb: 3 }}>
+          <Stack direction="row" sx={{ mb: 3, flexWrap: "wrap", gap: 1.5 }}>
             <Stat label="NPS geral" value={report.nps === null ? "-" : String(report.nps)} hint={`${report.responses} respostas`} />
             <Stat label="Taxa de resposta" value={report.responseRate === null ? "-" : `${report.responseRate}%`} hint={`${report.sent} enviadas`} />
             <Stat label="Promotores / Neutros / Detratores" value={`${report.distribution.promoters} / ${report.distribution.neutrals} / ${report.distribution.detractors}`} />
@@ -75,7 +75,7 @@ export default function SatisfactionReport() {
 
           {report.alerts.lowScoreCount > 0 && (
             <Paper variant="outlined" sx={{ p: 2, mb: 3, borderColor: "error.main" }}>
-              <Typography fontWeight={700} color="error">Alertas: {report.alerts.lowScoreCount} nota(s) de 0 a 6 para tratar</Typography>
+              <Typography sx={{ fontWeight: 700 }} color="error">Alertas: {report.alerts.lowScoreCount} nota(s) de 0 a 6 para tratar</Typography>
               {report.alerts.items.map(a => (
                 <Box key={a.answerId} sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap", py: 0.75, borderTop: "1px solid", borderColor: "divider", mt: 0.75 }}>
                   <Chip size="small" color="error" label={`Nota ${a.nps}`} />
@@ -88,7 +88,7 @@ export default function SatisfactionReport() {
             </Paper>
           )}
 
-          <Typography fontWeight={700} sx={{ mb: 1 }}>Por profissional</Typography>
+          <Typography sx={{ fontWeight: 700, mb: 1 }}>Por profissional</Typography>
           <Paper variant="outlined" sx={{ mb: 3, overflowX: "auto" }}>
             <Table size="small">
               <TableHead><TableRow><TableCell>Profissional</TableCell><TableCell align="right">Respostas</TableCell><TableCell align="right">Nota média</TableCell><TableCell align="right">NPS</TableCell></TableRow></TableHead>
@@ -101,13 +101,13 @@ export default function SatisfactionReport() {
             </Table>
           </Paper>
 
-          <Typography fontWeight={700} sx={{ mb: 1 }}>Motivos de não contratação</Typography>
+          <Typography sx={{ fontWeight: 700, mb: 1 }}>Motivos de não contratação</Typography>
           <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
             {report.notContractedReasons.length === 0 && <Typography color="text.secondary">Nenhum registro no período.</Typography>}
             {report.notContractedReasons.map(r => <Typography key={r.reason} variant="body2">{r.count}x - {r.reason}</Typography>)}
           </Paper>
 
-          <Typography fontWeight={700} sx={{ mb: 1 }}>Pacientes que não contrataram (para contato comercial)</Typography>
+          <Typography sx={{ fontWeight: 700, mb: 1 }}>Pacientes que não contrataram (para contato comercial)</Typography>
           <Paper variant="outlined" sx={{ mb: 3, overflowX: "auto" }}>
             <Table size="small">
               <TableHead><TableRow><TableCell>Paciente</TableCell><TableCell>Contato</TableCell><TableCell>Motivo</TableCell><TableCell>Data</TableCell></TableRow></TableHead>
@@ -122,14 +122,14 @@ export default function SatisfactionReport() {
 
           {report.testimonials.length > 0 && (
             <>
-              <Typography fontWeight={700} sx={{ mb: 1 }}>Depoimentos autorizados</Typography>
+              <Typography sx={{ fontWeight: 700, mb: 1 }}>Depoimentos autorizados</Typography>
               <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
                 {report.testimonials.map((t, i) => <Typography key={i} variant="body2" sx={{ mb: 1 }}>"{t.comment}" {t.doctor ? `- sobre ${t.doctor}` : ""} ({fmt(t.createdAt)})</Typography>)}
               </Paper>
             </>
           )}
 
-          <Typography fontWeight={700} sx={{ mb: 1 }}>Pesquisas</Typography>
+          <Typography sx={{ fontWeight: 700, mb: 1 }}>Pesquisas</Typography>
           <Typography variant="caption" color="text.secondary">Sem canal de envio configurado, gere o link e copie para enviar manualmente. Para criar uma pesquisa, finalize o atendimento na Agenda.</Typography>
           <Paper variant="outlined" sx={{ mt: 1, overflowX: "auto" }}>
             <Table size="small">
