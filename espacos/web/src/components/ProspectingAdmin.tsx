@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api } from '../api';
+import { api, apiBlobUrl } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../errors';
 
@@ -15,11 +15,11 @@ type Candidate = {
 type Config = { sending_enabled: boolean; daily_limit: number; step2_after_days: number; step3_after_days: number; send_to_webmail: boolean };
 type Stats = { byStatus: Record<string, number>; sent_today: number; sent_7d: number; clicks_7d: number };
 type Overview = { segments: Segment[]; base: { companies: number; withEmail: number; refMonth: string | null }; stats: Stats; config: Config; mapsEnabled: boolean };
-type Prospect = { id: string; source: string; name: string; segment: string | null; email: string | null; phone: string | null; website: string | null; city: string | null; uf: string | null; status: string; last_step: number; last_sent_at: string | null; notes: string | null };
+type Prospect = { id: string; source: string; name: string; segment: string | null; email: string | null; phone: string | null; website: string | null; city: string | null; uf: string | null; status: string; last_step: number; last_sent_at: string | null; notes: string | null; token: string; wa_invited_at: string | null };
 
 const STATUS: Record<string, string> = {
   new: 'Nova', in_sequence: 'Recebendo e-mails', done: 'Sequência concluída', hot: '🔥 Quente (clicou)', replied: 'Respondeu',
-  converted: '✅ Cadastrou', unsubscribed: 'Descadastrou', bounced: 'E-mail inválido', excluded: 'Excluída',
+  converted: '✅ Cadastrou', unsubscribed: 'Não quer receber', bounced: 'E-mail inválido', excluded: 'Excluída',
 };
 const SOURCE: Record<string, string> = { receita: 'Receita', maps: 'Google Maps', csv: 'Planilha', manual: 'Manual' };
 
@@ -82,8 +82,8 @@ function Search({ ov, onAdded }: { ov: Overview; onAdded: (m: string) => void })
     const items = results.filter((_, i) => sel.has(i)).map((c) => ({ ...c, segment: c.segment ?? ov.segments.find((x) => x.id === segment)?.label }));
     if (!items.length) return;
     try {
-      const r = await api<{ added: number; skipped: number }>('/admin/prospecting/add', { body: { items } });
-      onAdded(`${r.added} empresa(s) adicionada(s) à lista${r.skipped ? ` · ${r.skipped} já estavam` : ''}.`);
+      const r = await api<{ added: number; skipped: number; blocked: number }>('/admin/prospecting/add', { body: { items } });
+      onAdded(`${r.added} empresa(s) adicionada(s) à lista${r.skipped ? ` · ${r.skipped} já estavam` : ''}${r.blocked ? ` · ${r.blocked} pediram para não receber` : ''}.`);
       setResults((cur) => cur.map((c, i) => (sel.has(i) ? { ...c, alreadyAdded: true } : c))); setSel(new Set());
     } catch (x) { setErr(errorText(x, t)); }
   }
@@ -155,8 +155,8 @@ function ImportCsv({ onAdded }: { onAdded: (m: string) => void }) {
     try {
       const items = rows.map(({ row, ...r }) => ({ ...r, sourceRef: r.email ? `email:${r.email.toLowerCase()}` : `linha:${row}:${r.phone}` }));
       for (let i = 0; i < items.length; i += 1000) {
-        const r = await api<{ added: number; skipped: number }>('/admin/prospecting/add', { body: { items: items.slice(i, i + 1000) } });
-        onAdded(`Planilha: ${r.added} contato(s) adicionado(s)${r.skipped ? ` · ${r.skipped} repetidos` : ''}.`);
+        const r = await api<{ added: number; skipped: number; blocked: number }>('/admin/prospecting/add', { body: { items: items.slice(i, i + 1000) } });
+        onAdded(`Planilha: ${r.added} contato(s) adicionado(s)${r.skipped ? ` · ${r.skipped} repetidos` : ''}${r.blocked ? ` · ${r.blocked} pediram para não receber` : ''}.`);
       }
       setText('');
     } catch (x) { setErr(errorText(x, t)); }
@@ -186,22 +186,27 @@ function ProspectList() {
   async function patch(id: string, body: Partial<Prospect>) {
     try { await api(`/admin/prospecting/prospects/${id}`, { method: 'PATCH', body }); load(); } catch (e) { setErr(errorText(e, t)); }
   }
-  function exportCsv() {
-    const head = 'nome;email;telefone;cidade;uf;status;origem';
-    const body = list.map((p) => [p.name, p.email ?? '', p.phone ?? '', p.city ?? '', p.uf ?? '', STATUS[p.status] ?? p.status, SOURCE[p.source] ?? p.source].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(';'));
-    const url = URL.createObjectURL(new Blob([`﻿${[head, ...body].join('\n')}`], { type: 'text/csv' }));
-    const a = document.createElement('a'); a.href = url; a.download = 'captacao-spacehour.csv'; a.click(); URL.revokeObjectURL(url);
+  async function exportXlsx(sample?: number) {
+    try {
+      const url = await apiBlobUrl(`/admin/prospecting/export.xlsx?${new URLSearchParams({ ...(status ? { status } : {}), ...(sample ? { amostra: String(sample) } : {}) })}`);
+      const a = document.createElement('a'); a.href = url; a.download = `captacao-spacehour-${new Date().toISOString().slice(0, 10)}.xlsx`; a.click(); URL.revokeObjectURL(url);
+    } catch (e) { setErr(errorText(e, t)); }
+  }
+  async function optOut(p: Prospect) {
+    if (confirm(`${p.name} pediu para não receber? O telefone e o e-mail serão apagados e o contato nunca mais recebe mensagens.`)) await patch(p.id, { status: 'unsubscribed' });
   }
   return (
     <section className="panel">
       <h2>📋 Lista de captação</h2>
+      <p className="small muted">O WhatsApp abre com o convite pronto, só entre 8h e 21h, um convite por pessoa e no máximo 30 por dia. Use um número só para convites. Quem responder SAIR: clique em <strong>Não quer</strong> e o contato nunca mais recebe nada (nem se for importado de novo).</p>
       <div className="row gap">
         <select value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">Todos os status</option>
           {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         <form onSubmit={(e) => { e.preventDefault(); load(); }} className="row gap"><input placeholder="Buscar nome, e-mail ou cidade" value={q} onChange={(e) => setQ(e.target.value)} /><button className="btn btn-outline small">Buscar</button></form>
-        <button className="btn btn-outline small" disabled={!list.length} onClick={exportCsv}>Baixar CSV</button>
+        <button className="btn btn-outline small" disabled={!list.length} onClick={() => exportXlsx()}>Baixar Excel</button>
+        <button className="btn btn-outline small" disabled={!list.length} onClick={() => exportXlsx(3)} title="Até 3 por segmento, ainda não convidados e com celular, sorteados">Amostra para convidar (3 por segmento)</button>
       </div>
       {err && <p className="errors small">{err}</p>}
       <div className="table-wrap"><table className="table small">
@@ -209,7 +214,10 @@ function ProspectList() {
         <tbody>{list.map((p) => (
           <tr key={p.id} className={p.status === 'hot' ? 'hot' : ''}>
             <td>{p.name}<div className="muted">{[p.segment, [p.city, p.uf].filter(Boolean).join('/')].filter(Boolean).join(' · ')}</div></td>
-            <td>{p.email ?? '—'}<div className="muted">{p.phone ?? ''}{p.phone && <> · <a href={`https://wa.me/55${p.phone.replace(/\D/g, '').replace(/^55/, '')}`} target="_blank" rel="noreferrer noopener">WhatsApp</a></>}</div></td>
+            <td>{p.email ?? '—'}<div className="muted">{p.phone ?? ''}{p.phone && (p.wa_invited_at
+              ? <> · convidado em {new Date(p.wa_invited_at).toLocaleDateString('pt-BR')}</>
+              : <> · <a href={`/api/p/w/${p.token}`} target="_blank" rel="noreferrer noopener" onClick={() => setTimeout(load, 1500)}>Convidar no WhatsApp</a></>)}
+              {p.status !== 'unsubscribed' && <> · <button className="link-btn" onClick={() => optOut(p)}>Não quer</button></>}</div></td>
             <td>{SOURCE[p.source] ?? p.source}</td>
             <td><select value={p.status} onChange={(e) => patch(p.id, { status: e.target.value })}>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></td>
             <td>{p.last_step}/3{p.last_sent_at && <div className="muted">{new Date(p.last_sent_at).toLocaleDateString('pt-BR')}</div>}</td>

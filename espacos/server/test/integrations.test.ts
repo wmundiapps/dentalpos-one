@@ -1159,8 +1159,11 @@ test('captação: Receita + Google Maps, sequência de e-mails em horário comer
   const found = await Pr.searchReceita({ segment: 'odonto', city: 'Maringá', uf: 'PR' });
   assert.deepEqual(found.map((f) => f.name).sort(), ['Clínica Sorriso', 'Odonto Pessoal'], 'só o segmento e a cidade pedidos');
   assert.equal(found.find((f) => f.name === 'Odonto Pessoal')!.webmail, true);
-  assert.deepEqual(await Pr.addProspects(found), { added: 2, skipped: 0 });
-  assert.deepEqual(await Pr.addProspects(found), { added: 0, skipped: 2 }, 'não duplica');
+  assert.equal(found.find((f) => f.name === 'Clínica Sorriso')!.phone, '4432220000', 'fixo fica como está');
+  assert.equal(Pr.normPhone('(44) 9822-1234'), '44998221234', 'celular antigo da Receita ganha o 9');
+  assert.equal(Pr.normPhone('+55 44 99822-1234'), '44998221234');
+  assert.deepEqual(await Pr.addProspects(found), { added: 2, skipped: 0, blocked: 0 });
+  assert.deepEqual(await Pr.addProspects(found), { added: 0, skipped: 2, blocked: 0 }, 'não duplica');
 
   // Google Maps (Places API oficial) com até 60 resultados
   process.env.GOOGLE_PLACES_API_KEY = 'k';
@@ -1196,10 +1199,33 @@ test('captação: Receita + Google Maps, sequência de e-mails em horário comer
     assert.match(click.headers.get('location')!, /\/anuncie\?utm_source=prospeccao/);
     assert.equal((await one<{ status: string }>(pool, 'SELECT status FROM prospects WHERE token = $1', [tok]))!.status, 'hot');
 
-    // Descadastro: sai da lista e entra na lista de supressão
+    // WhatsApp por link controlado: horário, um convite por pessoa
+    await pool.query("UPDATE prospects SET phone = '4498221234' WHERE token = $1", [tok]);
+    assert.ok('error' in await Pr.whatsappInvite(tok, new Date('2026-10-13T01:00:00Z')), 'fora do horário (22h)');
+    const wa = await Pr.whatsappInvite(tok, monday14h);
+    assert.ok('url' in wa && wa.url.startsWith('https://wa.me/5544998221234?text='), 'abre com o 9 e o texto pronto');
+    assert.match(decodeURIComponent((wa as { url: string }).url), /Olá, equipe Clínica Sorriso! .*responda SAIR/s);
+    assert.match((await Pr.whatsappInvite(tok, monday14h) as { error: string }).error, /já foi convidado/);
+    const waPage = await fetch(`${base}/p/w/${tok}`, { redirect: 'manual' });
+    assert.notEqual(waPage.status, 302, 'link antigo do Excel não convida de novo');
+
+    // Excel: só admin, grava auditoria
+    const { buffer, rows: nRows } = await Pr.exportXlsx({ userId: 'usr_teste' });
+    assert.ok(buffer.length > 1000 && nRows >= 2);
+    assert.ok(await one(pool, "SELECT 1 FROM prospect_exports WHERE user_id = 'usr_teste'"));
+    assert.equal((await fetch(`${base}/admin/prospecting/export.xlsx`)).status, 401);
+
+    // Descadastro: bloqueio permanente por hash e telefone/e-mail apagados
     const page = await fetch(`${base}/p/u/${tok}`);
     assert.match(await page.text(), /não vai mais receber/);
-    assert.ok(await one(pool, "SELECT 1 FROM prospect_suppression WHERE email = 'contato@sorriso.com.br'"));
+    assert.ok(await one(pool, 'SELECT 1 FROM prospect_blocklist WHERE hash = $1', [Pr.blockHash('email', 'contato@sorriso.com.br')]));
+    assert.ok(await one(pool, 'SELECT 1 FROM prospect_blocklist WHERE hash = $1', [Pr.blockHash('cnpj', '11111111000101')]));
+    assert.ok(await one(pool, 'SELECT 1 FROM prospect_blocklist WHERE hash = $1', [Pr.blockHash('phone', '44998221234')]));
+    const gone = await one<{ email: string | null; phone: string | null }>(pool, 'SELECT email, phone FROM prospects WHERE token = $1', [tok]);
+    assert.deepEqual(gone, { email: null, phone: null }, 'dado apagado do registro');
+    // Reimportar não traz de volta (nem pela busca, nem pela planilha)
+    assert.ok(!(await Pr.searchReceita({ segment: 'odonto', city: 'Maringá', uf: 'PR' })).some((f) => f.name === 'Clínica Sorriso'));
+    assert.deepEqual(await Pr.addProspects([{ source: 'csv', sourceRef: 'x', name: 'Outra', email: 'CONTATO@sorriso.com.br ' }]), { added: 0, skipped: 0, blocked: 1 });
     sent.length = 0;
     await Pr.setConfig({ send_to_webmail: true });
     await Pr.runSequence({ now: new Date('2026-10-26T17:00:00Z') });
