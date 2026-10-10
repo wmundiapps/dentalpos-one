@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
+import { fetchMyPermissionCodes, TRAINING_PATH_PERMISSION } from "../services/TrainingApi";
 import {
   getDemoModuleStatus,
   readDemoAccess,
@@ -45,6 +46,13 @@ export default function Sidebar(){
     return saved===null ? true : saved==="1"; // compacto por padrão
   });
   const [showInDevelopment,setShowInDevelopment]=useState(false);
+  // Treinamento: cada departamento vê só o módulo liberado no seu perfil de acesso.
+  const [permissionCodes,setPermissionCodes]=useState<string[]|null>(null);
+  useEffect(()=>{
+    let alive=true;
+    fetchMyPermissionCodes().then(codes=>{if(alive)setPermissionCodes(codes);}).catch(()=>{if(alive)setPermissionCodes(["*"]);});
+    return()=>{alive=false;};
+  },[]);
 
   // No EXPERIENCE, nenhum item deve desaparecer do menu — apenas deduplicado.
   const visibleGroups=useMemo(()=>{
@@ -52,6 +60,8 @@ export default function Sidebar(){
     return navigationGroups.map(group=>{
       const items=group.items.filter(it=>{
         if(it.path==="/prospeccao"&&!isWmundiStaff())return false;
+        const trainingCode=TRAINING_PATH_PERMISSION[it.path];
+        if(trainingCode&&!(permissionCodes&&(permissionCodes.includes("*")||permissionCodes.includes(trainingCode))))return false;
         const dedupeKey=it.path;
         if(seen.has(dedupeKey))return false;
         seen.add(dedupeKey);
@@ -59,7 +69,7 @@ export default function Sidebar(){
       });
       return {...group,items};
     }).filter(g=>g.items.length>0);
-  },[]);
+  },[permissionCodes]);
 
   const activeGroup=useMemo(
     ()=>visibleGroups.find(g=>g.items.some(it=>pathMatches(it.path,location.pathname,location.search)))?.label,

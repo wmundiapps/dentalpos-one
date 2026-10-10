@@ -15,7 +15,8 @@ export const PERMISSIONS = [
   ['documents.view', 'documents', 'view'], ['documents.edit', 'documents', 'edit'],
   ['settings.view', 'settings', 'view'], ['settings.edit', 'settings', 'edit'],
   ['users.view', 'users', 'view'], ['users.manage', 'users', 'manage'],
-  ['audit.view', 'audit', 'view']
+  ['audit.view', 'audit', 'view'],
+  ['training.clinical', 'training', 'clinical'], ['training.jobrotation', 'training', 'jobrotation'], ['training.manage', 'training', 'manage']
 ] as const
 
 export async function seedPermissionCatalog() {
@@ -44,14 +45,14 @@ export async function createDefaultProfiles(clinicId: string, tenantId: string) 
   const definitions: Record<string, string[]> = {
     ADMIN: permissions.map(p => p.code),
     GESTOR: permissions.filter(p => !p.code.startsWith('hr.sensitive')).map(p => p.code),
-    RECEPCAO: ['dashboard.view','agenda.view','agenda.create','agenda.edit','agenda.cancel','patients.view','patients.create','patients.edit','clinical.view','finance.view','finance.values','marketing.view'],
-    DENTISTA: ['dashboard.view','agenda.view','patients.view','clinical.view','clinical.edit','laboratory.view','laboratory.create','design.view','design.edit'],
-    LABORATORIO: ['dashboard.view','laboratory.view','laboratory.create','laboratory.edit','design.view','design.edit'],
-    FINANCEIRO: ['dashboard.view','patients.view','finance.view','finance.create','finance.edit','finance.approve','finance.values','accounting.view','accounting.edit'],
+    RECEPCAO: ['dashboard.view','agenda.view','agenda.create','agenda.edit','agenda.cancel','patients.view','patients.create','patients.edit','clinical.view','finance.view','finance.values','marketing.view','training.jobrotation'],
+    DENTISTA: ['dashboard.view','agenda.view','patients.view','clinical.view','clinical.edit','laboratory.view','laboratory.create','design.view','design.edit','training.clinical'],
+    LABORATORIO: ['dashboard.view','laboratory.view','laboratory.create','laboratory.edit','design.view','design.edit','training.jobrotation'],
+    FINANCEIRO: ['dashboard.view','patients.view','finance.view','finance.create','finance.edit','finance.approve','finance.values','accounting.view','accounting.edit','training.jobrotation'],
     RH: ['dashboard.view','hr.view','hr.create','hr.edit','hr.sensitive','documents.view','documents.edit','finance.view'],
     CONTADOR: ['dashboard.view','finance.view','finance.values','accounting.view','accounting.edit','accounting.approve','accounting.portal','documents.view'],
-    AUXILIAR: ['dashboard.view','agenda.view','patients.view','clinical.view','laboratory.view'],
-    ADMINISTRACAO: ['dashboard.view','agenda.view','patients.view','patients.create','patients.edit','finance.view','documents.view','documents.edit','hr.view','settings.view','users.view'],
+    AUXILIAR: ['dashboard.view','agenda.view','patients.view','clinical.view','laboratory.view','training.jobrotation'],
+    ADMINISTRACAO: ['dashboard.view','agenda.view','patients.view','patients.create','patients.edit','finance.view','documents.view','documents.edit','hr.view','settings.view','users.view','training.jobrotation'],
     JURIDICO: ['dashboard.view','patients.view','documents.view','documents.edit','hr.view','accounting.view','audit.view']
   }
 

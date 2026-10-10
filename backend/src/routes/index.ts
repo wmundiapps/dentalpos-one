@@ -30,6 +30,7 @@ import * as paymentProviderController from '../controllers/paymentProviderContro
 import * as feedbackController from '../controllers/feedbackController'
 import * as cronController from '../controllers/cronController'
 import * as platformFeedbackController from '../controllers/platformFeedbackController'
+import * as trainingController from '../controllers/trainingController'
 import * as accessController from '../controllers/accessController'
 import * as auditController from '../controllers/auditController'
 import * as settingsController from '../controllers/settingsController'
@@ -133,6 +134,17 @@ router.put('/access-profiles/:id/permissions', requirePermission('users.manage')
 router.get('/users-access', requirePermission('users.view'), accessController.usersAccess)
 router.post('/access-profiles/bootstrap', requirePermission('users.manage'), accessController.bootstrapProfiles)
 router.get('/me/permissions', accessController.myPermissions)
+
+// TREINAMENTO (Odonto Odisseia). O acesso a cada módulo é conferido dentro do controller.
+router.get('/training/me', trainingController.me)
+router.put('/training/progress/:module', trainingController.saveProgress)
+router.post('/training/usage/heartbeat', trainingController.heartbeat)
+router.post('/training/prizes/claim', trainingController.claimPrize)
+router.get('/training/settings', requirePermission('training.manage'), trainingController.getSettings)
+router.put('/training/settings', requirePermission('training.manage'), trainingController.updateSettings)
+router.get('/training/prizes', requirePermission('training.manage'), trainingController.listPrizes)
+router.put('/training/prizes/:id/delivered', requirePermission('training.manage'), trainingController.markDelivered)
+router.get('/training/overview', requirePermission('training.manage'), trainingController.overview)
 router.get('/procedure-durations', requirePermission('agenda.view'), procedureDurationController.show)
 router.put('/procedure-durations', requirePermission('agenda.edit'), procedureDurationController.save)
 router.get('/team-members', requirePermission('agenda.view'), teamController.index)
