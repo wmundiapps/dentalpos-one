@@ -334,7 +334,8 @@ export interface Lead {
   city: string | null
   state: string | null
   category: string | null
-  status: 'NEW' | 'IMPORTED' | 'DISCARDED'
+  status: 'NEW' | 'IMPORTED' | 'DISCARDED' | 'OPTED_OUT'
+  isMei?: boolean
   contactId: string | null
   createdAt: string
 }

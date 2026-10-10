@@ -18,6 +18,7 @@ export interface RawLead {
   city?: string | null
   state?: string | null
   category?: string | null
+  isMei?: boolean
   origin: string
   originRef: string
 }
@@ -35,6 +36,7 @@ function companyLead(c: NonNullable<CompanyRow>, cnaeNames: Map<string, string>)
     city: c.city,
     state: c.uf,
     category: cnaeNames.get(c.cnae) || null,
+    isMei: c.isMei,
     origin: 'cnpj_public',
     originRef: c.cnpj,
   }
@@ -60,7 +62,7 @@ export async function companyBaseStatus() {
 }
 
 // Empresas ativas por segmento + UF/cidade, na base empresarial carregada.
-export async function searchCompanies(p: { cnaes: string[]; uf?: string | null; city?: string | null; limit: number; excludeRefs: string[] }): Promise<RawLead[]> {
+export async function searchCompanies(p: { cnaes: string[]; uf?: string | null; city?: string | null; limit: number; excludeRefs: string[]; mei?: 'ALL' | 'ONLY' | 'EXCLUDE' }): Promise<RawLead[]> {
   if (!p.cnaes.length) return []
   const rows = await prisma.companyRecord.findMany({
     where: {
@@ -68,6 +70,7 @@ export async function searchCompanies(p: { cnaes: string[]; uf?: string | null; 
       ...(p.uf ? { uf: p.uf.toUpperCase() } : {}),
       ...(p.city ? { cityNorm: searchText(p.city) } : {}),
       ...(p.excludeRefs.length ? { cnpj: { notIn: p.excludeRefs } } : {}),
+      ...(p.mei === 'ONLY' ? { isMei: true } : p.mei === 'EXCLUDE' ? { isMei: false } : {}),
     },
     orderBy: { openedAt: 'desc' },
     take: p.limit,

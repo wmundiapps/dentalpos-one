@@ -395,7 +395,10 @@ var require_main = __commonJS({
 // src/scripts/receitaImport.ts
 var receitaImport_exports = {};
 __export(receitaImport_exports, {
+  cacheDir: () => cacheDir,
   establishmentRecord: () => establishmentRecord,
+  fixOldMobile: () => fixOldMobile,
+  isMeiNature: () => isMeiNature,
   latestMonth: () => latestMonth,
   pgConfig: () => pgConfig,
   shareInfo: () => shareInfo,
@@ -429,6 +432,7 @@ var config = {
   corsOrigins: list(process.env.CORS_ORIGINS),
   cronSecret: process.env.CRON_SECRET || "",
   superadminEmails: list(process.env.REVAH_SUPERADMIN_EMAILS).map((e) => e.toLowerCase()),
+  adminRequire2fa: process.env.REVAH_ADMIN_REQUIRE_2FA !== "0",
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY || "",
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
@@ -627,11 +631,15 @@ function splitRow(line) {
   if (s.endsWith('"')) s = s.slice(0, -1);
   return s.split('";"').map((v) => v.trim());
 }
+function fixOldMobile(national) {
+  return national.length === 10 && "6789".includes(national[2]) ? `${national.slice(0, 2)}9${national.slice(2)}` : national;
+}
 function phoneOf(ddd, num) {
   const d = digits(ddd);
   const n = digits(num);
-  return d && n ? normalizePhone(d + n) : null;
+  return d && n ? normalizePhone(fixOldMobile(d + n)) : null;
 }
+var isMeiNature = (code) => digits(code) === "2135";
 function establishmentRecord(f, o) {
   if (f.length < 28 || f[5] !== "02") return null;
   const uf = f[19];
@@ -683,11 +691,17 @@ async function upsertBatch(batch) {
 async function updateLegalNames(rows) {
   if (!rows.length) return;
   const params = [];
-  const values = rows.map(([b, l, s]) => {
-    params.push(b, l, s);
-    return `($${params.length - 2},$${params.length - 1},$${params.length})`;
+  const values = rows.map(([b, l, s, m]) => {
+    params.push(b, l, s, m);
+    return `($${params.length - 3},$${params.length - 2},$${params.length - 1},$${params.length}::boolean)`;
   });
-  await sql(`UPDATE "CompanyRecord" c SET "legalName"=v.l,"size"=v.s FROM (VALUES ${values.join(",")}) AS v(b,l,s) WHERE c."basico"=v.b`, params);
+  await sql(`UPDATE "CompanyRecord" c SET "legalName"=v.l,"size"=v.s,"isMei"=v.m FROM (VALUES ${values.join(",")}) AS v(b,l,s,m) WHERE c."basico"=v.b`, params);
+}
+function cacheDir(month) {
+  const base = process.env.LOCALAPPDATA ? import_node_path.default.join(process.env.LOCALAPPDATA, "RevahReceita") : import_node_path.default.join(import_node_os.default.homedir(), ".cache", "revah-receita");
+  import_node_fs.default.mkdirSync(import_node_path.default.join(base, month), { recursive: true });
+  for (const d of import_node_fs.default.readdirSync(base)) if (d !== month && /^\d{4}-\d{2}$/.test(d)) import_node_fs.default.rmSync(import_node_path.default.join(base, d), { recursive: true, force: true });
+  return import_node_path.default.join(base, month);
 }
 async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -705,7 +719,8 @@ async function main() {
   if (!month && !localDir) month = latestMonth(await listDir(share));
   if (!month) month = (/* @__PURE__ */ new Date()).toISOString().slice(0, 7);
   console.log(`Base de ${month} \u2014 filtros: UF=${ufs.join(",") || "todas"} CNAE=${cnaes.join(",") || "todos"}${dryRun ? " (simula\xE7\xE3o)" : ""}`);
-  const work = localDir || import_node_fs.default.mkdtempSync(import_node_path.default.join(import_node_os.default.tmpdir(), "revah-cnpj-"));
+  const keepCache = !args["sem-cache"];
+  const work = localDir || (keepCache ? cacheDir(month) : import_node_fs.default.mkdtempSync(import_node_path.default.join(import_node_os.default.tmpdir(), "revah-cnpj-")));
   const remote = localDir ? [] : await listDir(share, month).catch(() => []);
   const fileFor = async (name) => {
     const local = import_node_path.default.join(work, name);
@@ -713,11 +728,12 @@ async function main() {
     if (localDir) throw new Error(`Arquivo ${name} n\xE3o encontrado em ${localDir}.`);
     if (remote.length && !remote.includes(name)) throw new Error(`Arquivo ${name} n\xE3o existe em ${month}.`);
     console.log(`Baixando ${name}...`);
-    await download(share, month, name, local);
+    await download(share, month, name, `${local}.part`);
+    await import_node_fs.default.promises.rename(`${local}.part`, local);
     return local;
   };
   const done = async (file) => {
-    if (!localDir) await import_node_fs.default.promises.rm(file, { force: true });
+    if (!localDir && !keepCache) await import_node_fs.default.promises.rm(file, { force: true });
   };
   if (!process.env.DATABASE_URL && !dryRun) throw new Error("Defina DATABASE_URL com o endere\xE7o do banco do REVAH.");
   db = new import_pg.Client(pgConfig(process.env.DATABASE_URL || "postgresql://localhost/revah"));
@@ -779,7 +795,7 @@ async function main() {
         for await (const line of await zipLines(file)) {
           const f = splitRow(line);
           if (!basicos.has(f[0])) continue;
-          batch.push([f[0], f[1], f[5] || null]);
+          batch.push([f[0], f[1], f[5] || null, isMeiNature(f[2])]);
           if (batch.length >= 1e3) {
             await updateLegalNames(batch);
             batch = [];
@@ -808,7 +824,7 @@ async function main() {
     if (jobId) await sql(`UPDATE "CompanyImport" SET "status"='FAILED',"error"=$2,"finishedAt"=NOW() WHERE "id"=$1`, [jobId, String(e?.message || e).slice(0, 1e3)]).catch(() => 0);
     throw e;
   } finally {
-    if (!localDir) await import_node_fs.default.promises.rm(work, { recursive: true, force: true });
+    if (!localDir && !keepCache) await import_node_fs.default.promises.rm(work, { recursive: true, force: true });
     if (!dryRun) await db.end().catch(() => void 0);
   }
 }
@@ -821,7 +837,10 @@ if (require.main === module) {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  cacheDir,
   establishmentRecord,
+  fixOldMobile,
+  isMeiNature,
   latestMonth,
   pgConfig,
   shareInfo,

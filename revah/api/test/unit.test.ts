@@ -100,3 +100,13 @@ test('2 etapas: TOTP confere com o vetor do RFC 6238', async () => {
   assert.equal(matchStep(secret, '287082', 59_000), 1)
   assert.equal(matchStep(secret, '000000', 59_000), null)
 })
+
+test('captação: celular antigo sem o 9 e MEI', async () => {
+  const { fixOldMobile, isMeiNature } = await import('../src/scripts/receitaImport')
+  assert.equal(fixOldMobile('4499998888'), '44999998888') // celular antigo (começa em 9)
+  assert.equal(fixOldMobile('4488887777'), '44988887777') // celular antigo (começa em 8)
+  assert.equal(fixOldMobile('4430301010'), '4430301010') // fixo fica como está
+  assert.equal(fixOldMobile('44999998888'), '44999998888') // já com o 9
+  assert.equal(isMeiNature('213-5'), true)
+  assert.equal(isMeiNature('2062'), false)
+})

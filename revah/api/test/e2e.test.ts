@@ -349,3 +349,49 @@ test('verificação em 2 etapas: ativar, login em dois passos, código reserva e
   // Com 2 etapas, o painel da WMundi abre.
   assert.equal((await request(app).get('/admin/tenants').set(auth(step2.body.token))).status, 200)
 })
+
+test('REVAH Leads: público salvo por cliente, MEI, celular corrigido e "não quero receber" por cliente', async () => {
+  const { token, tenant } = await register('captacao@revah.test')
+  await prisma.tenant.update({ where: { id: tenant.id }, data: { plan: 'PRO', status: 'ACTIVE', leadsAddonActive: true } })
+  await request(app).post('/leads/terms/accept').set(auth(token)).send({ signerName: 'Dono Teste', signerDocument: '12345678901', agree: true })
+  await prisma.cnaeCode.upsert({ where: { code: '8630504' }, create: { code: '8630504', description: 'Atividade odontológica', searchNorm: 'atividade odontologica' }, update: {} })
+  const base = { basico: '', cnae: '8630504', uf: 'PR', cityCode: '7691', city: 'MARINGA', cityNorm: 'maringa', refMonth: '2026-09' }
+  await prisma.companyRecord.createMany({
+    data: [
+      { ...base, cnpj: '11111111000111', basico: '11111111', tradeName: 'Clínica MEI', isMei: true, phone: '5544999990001' },
+      { ...base, cnpj: '22222222000122', basico: '22222222', tradeName: 'Clínica LTDA', isMei: false, phone: '5544999990002', email: 'ltda@x.com' },
+    ],
+    skipDuplicates: true,
+  })
+
+  const aud = await request(app).post('/leads/audiences').set(auth(token)).send({ name: 'Dentistas Maringá', cnaes: ['8630504'], uf: 'PR', city: 'Maringá', meiFilter: 'ONLY', inviteText: 'Olá {{nome}}!' })
+  assert.equal(aud.status, 201, JSON.stringify(aud.body))
+  const list = await request(app).get('/leads/audiences').set(auth(token))
+  assert.equal(list.body[0].segments[0].description, 'Atividade odontológica')
+
+  const onlyMei = await request(app).post('/leads/search').set(auth(token)).send({ kind: 'SEGMENT', audienceId: aud.body.id })
+  assert.equal(onlyMei.status, 200, JSON.stringify(onlyMei.body))
+  assert.deepEqual(onlyMei.body.leads.map((l: any) => l.name), ['Clínica MEI'])
+  assert.equal(onlyMei.body.leads[0].isMei, true)
+
+  const ltda = await request(app).post('/leads/search').set(auth(token)).send({ kind: 'SEGMENT', cnaes: ['8630504'], uf: 'PR', mei: 'EXCLUDE' })
+  assert.equal(ltda.body.leads.length, 1)
+  const out = await request(app).post('/leads/optout').set(auth(token)).send({ ids: [ltda.body.leads[0].id] })
+  assert.equal(out.body.optedOut, 1)
+  const lead = await prisma.lead.findUnique({ where: { id: ltda.body.leads[0].id } })
+  assert.equal(lead.status, 'OPTED_OUT')
+  assert.equal(lead.phone, null)
+  assert.ok(await prisma.suppression.findFirst({ where: { tenantId: tenant.id, channel: 'EMAIL', value: 'ltda@x.com' } }))
+
+  // Mesmo numa base nova (lead apagado), a empresa não volta para este cliente…
+  await prisma.lead.deleteMany({ where: { tenantId: tenant.id } })
+  const again = await request(app).post('/leads/search').set(auth(token)).send({ kind: 'SEGMENT', cnaes: ['8630504'], uf: 'PR' })
+  assert.deepEqual(again.body.leads.map((l: any) => l.name), ['Clínica MEI'])
+
+  // …mas outro cliente do REVAH tem a própria lista e continua vendo a empresa.
+  const other = await register('outro-cliente@revah.test')
+  await prisma.tenant.update({ where: { id: other.tenant.id }, data: { plan: 'PRO', status: 'ACTIVE', leadsAddonActive: true } })
+  await request(app).post('/leads/terms/accept').set(auth(other.token)).send({ signerName: 'Outro Dono', signerDocument: '98765432100', agree: true })
+  const theirs = await request(app).post('/leads/search').set(auth(other.token)).send({ kind: 'SEGMENT', cnaes: ['8630504'], uf: 'PR' })
+  assert.equal(theirs.body.leads.length, 2)
+})

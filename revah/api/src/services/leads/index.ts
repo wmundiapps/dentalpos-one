@@ -1,5 +1,7 @@
 import type { Lead, Tenant, User } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
+import { sha256 } from '../../lib/crypto'
+import { suppress } from '../suppression'
 import { badRequest, paymentRequired } from '../../lib/errors'
 import { emitEvent } from '../automations'
 import { upsertContact } from '../contacts'
@@ -31,6 +33,40 @@ export async function acceptTerms(tenant: Tenant, user: User, p: { signerName: s
   })
 }
 
+// "Não quero receber" do REVAH Leads, por cliente: hash do CNPJ, telefone e e-mail (o dado em si não fica guardado).
+export const leadBlockHash = (kind: 'cnpj' | 'phone' | 'email', value: string) => sha256(`lead-block:${kind}:${value.trim().toLowerCase()}`)
+
+function hashesOf(r: { document?: string | null; phone?: string | null; email?: string | null }) {
+  return [
+    r.document ? leadBlockHash('cnpj', r.document) : null,
+    r.phone ? leadBlockHash('phone', r.phone) : null,
+    r.email ? leadBlockHash('email', r.email) : null,
+  ].filter(Boolean) as string[]
+}
+
+// Tira da lista quem pediu para sair: bloqueio do Leads (hash) e a lista de bloqueio dos canais do cliente.
+export async function withoutBlocked<T extends { document?: string | null; phone?: string | null; email?: string | null }>(tenantId: string, rows: T[]) {
+  if (!rows.length) return rows
+  const hashes = rows.flatMap(hashesOf)
+  const blocked = new Set((await prisma.leadBlock.findMany({ where: { tenantId, hash: { in: hashes } }, select: { hash: true } })).map((b) => b.hash))
+  const values = rows.flatMap((r) => [r.phone, r.email]).filter(Boolean) as string[]
+  const suppressed = new Set((await prisma.suppression.findMany({ where: { tenantId, value: { in: values } }, select: { value: true } })).map((s) => s.value))
+  return rows.filter((r) => !hashesOf(r).some((h) => blocked.has(h)) && !(r.phone && suppressed.has(r.phone)) && !(r.email && suppressed.has(r.email)))
+}
+
+// Marca "não quero receber": bloqueia para sempre nas buscas deste cliente, coloca o telefone e o e-mail
+// na lista de bloqueio dos canais e apaga o contato do lead.
+export async function optOutLeads(tenant: Tenant, ids: string[]) {
+  const leads = await prisma.lead.findMany({ where: { tenantId: tenant.id, id: { in: ids } } })
+  for (const l of leads) {
+    await prisma.leadBlock.createMany({ data: hashesOf(l).map((hash) => ({ tenantId: tenant.id, hash })), skipDuplicates: true })
+    if (l.phone) for (const ch of ['WHATSAPP', 'SMS', 'VOICE'] as const) await suppress(tenant.id, ch, l.phone, 'OPT_OUT', { contactId: l.contactId, detail: 'REVAH Leads: pediu para não receber' })
+    if (l.email) await suppress(tenant.id, 'EMAIL', l.email, 'OPT_OUT', { contactId: l.contactId, detail: 'REVAH Leads: pediu para não receber' })
+    await prisma.lead.update({ where: { id: l.id }, data: { status: 'OPTED_OUT', phone: null, email: null } })
+  }
+  return { optedOut: leads.length }
+}
+
 async function saveLeads(tenantId: string, searchId: string | null, raws: RawLead[]) {
   const out: Lead[] = []
   for (const r of raws) {
@@ -47,7 +83,7 @@ async function saveLeads(tenantId: string, searchId: string | null, raws: RawLea
 export async function runSearch(
   tenant: Tenant,
   user: User,
-  input: { kind: 'COMPANY' | 'LOCAL' | 'SEGMENT'; documents?: string[]; query?: string; city?: string; uf?: string; cnaes?: string[]; limit?: number },
+  input: { kind: 'COMPANY' | 'LOCAL' | 'SEGMENT'; documents?: string[]; query?: string; city?: string; uf?: string; cnaes?: string[]; limit?: number; mei?: 'ALL' | 'ONLY' | 'EXCLUDE'; audienceId?: string },
 ) {
   await assertLeadsAccess(tenant)
   let raws: RawLead[] = []
@@ -60,7 +96,14 @@ export async function runSearch(
       const r = await lookupCompany(doc).catch(() => null)
       if (r) raws.push(r)
     }
+    raws = await withoutBlocked(tenant.id, raws)
   } else if (input.kind === 'SEGMENT') {
+    // Público salvo do cliente: usa os segmentos e o local guardados (o que vier na busca tem prioridade).
+    if (input.audienceId) {
+      const a = await prisma.leadAudience.findFirst({ where: { id: input.audienceId, tenantId: tenant.id } })
+      if (!a) throw badRequest('Público não encontrado.')
+      input = { ...input, cnaes: input.cnaes?.length ? input.cnaes : a.cnaes, uf: input.uf || a.uf || undefined, city: input.city || a.city || undefined, mei: input.mei || (a.meiFilter as any) }
+    }
     let cnaes = (input.cnaes || []).map((c) => c.replace(/\D/g, '')).filter((c) => c.length >= 2).slice(0, 20)
     if (!cnaes.length && input.query?.trim()) cnaes = (await findSegments(input.query.trim(), 20)).map((s) => s.code)
     if (!cnaes.length) throw badRequest('Nenhum segmento encontrado. Escolha um segmento da lista.')
@@ -68,11 +111,14 @@ export async function runSearch(
     origin = 'cnpj_public'
     // Não repete empresas que esta conta já recebeu.
     const seen = await prisma.lead.findMany({ where: { tenantId: tenant.id, origin: 'cnpj_public' }, select: { originRef: true }, take: 20000 })
-    raws = await searchCompanies({ cnaes, uf: input.uf, city: input.city, limit: input.limit || 50, excludeRefs: seen.map((s) => s.originRef!).filter(Boolean) })
+    const limit = input.limit || 50
+    // Busca um pouco a mais para repor quem está na lista de "não quero receber".
+    const found = await searchCompanies({ cnaes, uf: input.uf, city: input.city, limit: Math.ceil(limit * 1.3) + 10, excludeRefs: seen.map((s) => s.originRef!).filter(Boolean), mei: input.mei })
+    raws = (await withoutBlocked(tenant.id, found)).slice(0, limit)
   } else {
     if (!input.query?.trim()) throw badRequest('Informe o segmento ou termo de busca.')
     origin = 'places'
-    raws = await searchLocalBusinesses(input.query.trim(), input.city, input.limit || 20)
+    raws = await withoutBlocked(tenant.id, await searchLocalBusinesses(input.query.trim(), input.city, input.limit || 20))
   }
   const search = await prisma.leadSearch.create({
     data: { tenantId: tenant.id, userId: user.id, kind: input.kind, query: { documents: input.documents, query: input.query, city: input.city, uf: input.uf, cnaes: input.cnaes } as any, origin, resultCount: raws.length },
@@ -100,7 +146,8 @@ export async function ingestAndImportAdLead(tenantId: string, raw: RawLead, tag:
 
 export async function importLeads(tenant: Tenant, ids: string[], tags: string[] = []) {
   await assertLeadsAccess(tenant)
-  const leads = await prisma.lead.findMany({ where: { tenantId: tenant.id, id: { in: ids }, status: 'NEW' } })
+  const all = await prisma.lead.findMany({ where: { tenantId: tenant.id, id: { in: ids }, status: 'NEW' } })
+  const leads = await withoutBlocked(tenant.id, all)
   let imported = 0
   for (const l of leads) {
     if (!l.phone && !l.email) continue
@@ -113,5 +160,5 @@ export async function importLeads(tenant: Tenant, ids: string[], tags: string[] 
     await emitEvent(tenant.id, 'lead.imported', { contactId: contact.id, data: { segmento: l.category } })
     imported++
   }
-  return { imported, skipped: leads.length - imported }
+  return { imported, skipped: all.length - imported }
 }
