@@ -110,7 +110,7 @@ const ROUTE_MODULES: Array<[RegExp, string]> = [
   [/^\/(?:financeiro|pagamentos|inteligencia-financeira)(?:\/|$)/, "finance"],
   [/^\/(?:backoffice|contabil-fiscal|automacao-fiscal)(?:\/|$)/, "accounting"],
   [/^\/rh(?:\/|$)/, "hr"],
-  [/^\/(?:marketing|revah|revah-chatbot|comunicacoes|recall|avaliacoes-atendimento)(?:\/|$)/, "marketing"],
+  [/^\/(?:marketing|revah|revah-chatbot|comunicacoes|recall|avaliacoes-atendimento|satisfacao)(?:\/|$)/, "marketing"],
   [/^\/(?:sales|comercial|crm|crm-inteligente|estoque|revah-leads)(?:\/|$)/, "sales"],
   [/^\/(?:backup|clinicas|configuracoes|seguranca|integracoes|homologacao|plataforma-saas|sugestoes-problemas)(?:\/|$)/, "settings"],
   [/^\/(?:centro-de-comando|pendencias|centro-de-inteligencia|painel-executivo|indice-saude-clinica|benchmark|relatorios|notificacoes)(?:\/|$)/, "dashboard"],

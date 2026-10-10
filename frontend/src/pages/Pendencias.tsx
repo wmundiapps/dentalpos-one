@@ -73,7 +73,7 @@ export default function Pendencias() {
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" }, gap: 2, alignItems: "start" }}>
         <Box>
-          <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap", gap: 1 }} alignItems="center">
+          <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap", gap: 1, alignItems: "center" }}>
             <Button variant="contained" startIcon={<AddTaskIcon />} onClick={openNew}>Nova pendência</Button>
             <TextField select size="small" label="Status" value={fStatus} onChange={(e) => setFStatus(e.target.value)} sx={{ minWidth: 150 }}>
               <MenuItem value="">Todos</MenuItem>
@@ -96,7 +96,7 @@ export default function Pendencias() {
               const done = t.status === "CONCLUIDA" || t.status === "CANCELADA";
               return (
                 <Paper key={t.id} variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-                  <Stack direction="row" justifyContent="space-between" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, justifyContent: "space-between" }}>
                     <Box sx={{ minWidth: 0 }}>
                       <Typography sx={{ fontWeight: 800 }}>{t.title}</Typography>
                       {t.description && <Typography variant="body2" color="text.secondary">{t.description}</Typography>}
@@ -104,7 +104,7 @@ export default function Pendencias() {
                         {`Responsável: ${t.assignee ? `${t.assignee.firstName} ${t.assignee.lastName}`.trim() : "não definido"} · Prazo: ${fmtDate(t.dueDate)}${t.module ? ` · ${t.module}` : ""}`}
                       </Typography>
                     </Box>
-                    <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }} alignItems="flex-start">
+                    <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5, alignItems: "flex-start" }}>
                       <Chip size="small" color={priorityColor(t.priority)} label={TASK_PRIORITY_LABEL[t.priority] || t.priority} />
                       <Chip size="small" color={statusColor(t.status)} label={TASK_STATUS_LABEL[t.status] || t.status} />
                       {isLate(t) && <Chip size="small" color="error" variant="outlined" label="Atrasada" />}
@@ -125,7 +125,7 @@ export default function Pendencias() {
           </Stack>
         </Box>
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+          <Stack direction="row" sx={{ mb: 1.5, justifyContent: "space-between", alignItems: "center" }}>
             <Typography sx={{ fontWeight: 900 }}>Ranking de pontuação</Typography>
             <ToggleButtonGroup size="small" exclusive value={period} onChange={(_, v) => v && setPeriod(v)}>
               <ToggleButton value="week">Semana</ToggleButton>
@@ -161,7 +161,7 @@ export default function Pendencias() {
             <TextField select label="Prioridade" value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
               {Object.entries(TASK_PRIORITY_LABEL).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
             </TextField>
-            <TextField label="Prazo" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} InputLabelProps={{ shrink: true }} />
+            <TextField label="Prazo" type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} slotProps={{ inputLabel: { shrink: true } }} />
             <TextField select label="Responsável" value={form.assigneeId} onChange={(e) => setForm({ ...form, assigneeId: e.target.value })}>
               <MenuItem value="">Sem responsável</MenuItem>
               {people.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}

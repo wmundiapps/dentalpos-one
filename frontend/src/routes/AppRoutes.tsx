@@ -38,6 +38,7 @@ import HumanResources from "../pages/HumanResources";
 import Laboratory from "../pages/Laboratory";
 import Marketing from "../pages/Marketing";
 import MarketingHub from "../pages/MarketingHub";
+import SatisfactionReport from "../pages/SatisfactionReport";
 import Notifications from "../pages/Notifications";
 import Operations from "../pages/Operations";
 import OperationalEvidence from "../pages/OperationalEvidence";
@@ -223,6 +224,7 @@ export default function AppRoutes() {
 
       <Route path="/marketing" element={<Marketing />} />
       <Route path="/marketing/central" element={<MarketingHub />} />
+      <Route path="/satisfacao" element={<SatisfactionReport />} />
 
       <Route
         path="/notificacoes"

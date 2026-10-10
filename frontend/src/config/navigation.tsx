@@ -158,6 +158,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Índice de Saúde da Clínica","/indice-saude-clinica",<HealthAndSafetyIcon/>),
       item("Benchmark","/benchmark",<AssessmentIcon/>),
       item("Relatórios","/relatorios",<AssessmentIcon/>),
+      item("Satisfação dos Pacientes","/satisfacao",<InsightsIcon/>),
     ])
   },
   {
