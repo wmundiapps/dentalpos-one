@@ -47,7 +47,8 @@ async function loadSettings(clinicId: string): Promise<Settings> {
     lockEvents: meta.lockEvents && typeof meta.lockEvents === 'object' ? meta.lockEvents : {},
     // Sem configuração gravada o aviso fica ligado no modo "só alerta".
     enabled: row ? row.enabled : true,
-    mode: meta.mode === 'BLOCK' ? 'BLOCK' : 'ALERT',
+    // O travamento de tela foi substituído pelo alerta "Você está em risco": o modo é sempre ALERT.
+    mode: 'ALERT',
     lockedUserIds: Array.isArray(meta.lockedUserIds) ? meta.lockedUserIds.map(String) : [],
     keyHash: meta.keyHash || null,
     unlocks: meta.unlocks && typeof meta.unlocks === 'object' ? meta.unlocks : {},
@@ -246,7 +247,6 @@ export async function updateSettings(req: AuthRequest, res: Response) {
     const b = req.body || {}
     const next: Settings = { ...current, visibility: { ...current.visibility } }
     if (typeof b.enabled === 'boolean') next.enabled = b.enabled
-    if (b.mode === 'BLOCK' || b.mode === 'ALERT') next.mode = b.mode
     if (Array.isArray(b.lockedUserIds)) {
       const ids = [...new Set((b.lockedUserIds as unknown[]).map(String))]
       const valid = await prisma.user.findMany({ where: { id: { in: ids }, clinicId, tenantId, isActive: true, role: { not: 'ADMIN' } }, select: { id: true } })
