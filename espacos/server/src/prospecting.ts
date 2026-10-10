@@ -3,6 +3,8 @@
 // monta a lista e envia uma sequência de 3 e-mails B2B com clique rastreado e
 // descadastro em um clique (LGPD: legítimo interesse, dados públicos de CNPJ, opt-out).
 // Env: GOOGLE_PLACES_API_KEY (busca no Maps), APP_URL, ADMIN_EMAILS (aviso de lead quente).
+import { createHash } from 'node:crypto';
+import ExcelJS from 'exceljs';
 import { id, one, pool, rows, token } from './db.js';
 import { HttpError, adminEmails } from './auth.js';
 import { SUPPORT_EMAIL, sendMail } from './mailer.js';
@@ -28,6 +30,52 @@ const cleanEmail = (e?: string | null) => {
   const v = e?.trim().toLowerCase();
   return v && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v : null;
 };
+
+// ───────────── Telefone e "não quero receber" (bloqueio permanente por hash) ─────────────
+/** Só dígitos, sem o 55 do país. */
+export function normPhone(phone?: string | null) {
+  let d = (phone ?? '').replace(/\D/g, '');
+  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2);
+  return d.length >= 10 && d.length <= 11 ? fixOldMobile(d) : null;
+}
+/** A Receita guarda muito celular antigo sem o 9 (DDD + 8 dígitos começando em 6 a 9). */
+export function fixOldMobile(d: string) {
+  return d.length === 10 && '6789'.includes(d[2]) ? `${d.slice(0, 2)}9${d.slice(2)}` : d;
+}
+export const isMobile = (d?: string | null) => !!d && d.length === 11 && d[2] === '9';
+
+type BlockKind = 'cnpj' | 'phone' | 'email';
+/** Mesmo cálculo da migração 018 (sha256 de 'tipo:valor'): bloqueia sem guardar o dado. */
+export function blockHash(kind: BlockKind, value: string) {
+  const v = kind === 'email' ? value.trim().toLowerCase() : value.replace(/\D/g, '');
+  return createHash('sha256').update(`${kind}:${v}`).digest('hex');
+}
+function hashesOf(c: { cnpj?: string | null; phone?: string | null; email?: string | null }) {
+  const out: Array<{ kind: BlockKind; hash: string }> = [];
+  if (c.cnpj && /^\d{14}$/.test(c.cnpj.replace(/\D/g, ''))) out.push({ kind: 'cnpj', hash: blockHash('cnpj', c.cnpj) });
+  const ph = normPhone(c.phone);
+  if (ph) out.push({ kind: 'phone', hash: blockHash('phone', ph) });
+  if (c.email?.trim()) out.push({ kind: 'email', hash: blockHash('email', c.email) });
+  return out;
+}
+async function blockedHashes(hashes: string[]) {
+  if (!hashes.length) return new Set<string>();
+  return new Set((await rows<{ hash: string }>(pool, 'SELECT hash FROM prospect_blocklist WHERE hash = ANY($1)', [hashes])).map((r) => r.hash));
+}
+const cnpjOf = (c: { source: string; sourceRef?: string | null; source_ref?: string | null }) => (c.source === 'receita' ? (c.sourceRef ?? c.source_ref ?? null) : null);
+
+/** "Não quero receber": bloqueia para sempre (hash de CNPJ, telefone e e-mail) e apaga telefone e e-mail do registro. */
+export async function optOut(prospectId: string, reason = 'unsubscribe') {
+  const p = await one<{ id: string; source: string; source_ref: string | null; email: string | null; phone: string | null }>(pool,
+    'SELECT id, source, source_ref, email, phone FROM prospects WHERE id = $1', [prospectId]);
+  if (!p) return null;
+  for (const h of hashesOf({ cnpj: cnpjOf(p), phone: p.phone, email: p.email })) {
+    await pool.query('INSERT INTO prospect_blocklist (hash, kind, reason) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [h.hash, h.kind, reason]);
+  }
+  await pool.query("UPDATE prospects SET status = 'unsubscribed', email = NULL, phone = NULL WHERE id = $1", [p.id]);
+  await event(p.id, 'unsubscribe', undefined, reason);
+  return p;
+}
 
 export type Candidate = {
   source: 'receita' | 'maps' | 'csv' | 'manual'; sourceRef?: string; name: string; segment?: string;
@@ -58,9 +106,10 @@ export async function searchReceita(q: { segment?: string; cnaes?: string[]; cit
        FROM "CompanyRecord" c WHERE ${where.join(' AND ')}
       ORDER BY (c."email" IS NULL), c."openedAt" DESC NULLS LAST LIMIT $${params.length}`, params);
   const segment = q.segment ? SEGMENTS.find((s) => s.id === q.segment)?.label : undefined;
-  return list.map<Candidate>((c) => ({
+  const blocked = await blockedHashes(list.flatMap((c) => hashesOf({ cnpj: c.cnpj, phone: c.phone, email: c.email }).map((h) => h.hash)));
+  return list.filter((c) => !hashesOf({ cnpj: c.cnpj, phone: c.phone, email: c.email }).some((h) => blocked.has(h.hash))).map<Candidate>((c) => ({
     source: 'receita', sourceRef: c.cnpj!, name: c.tradeName || c.legalName || `CNPJ ${c.cnpj}`, segment,
-    email: cleanEmail(c.email), phone: c.phone, address: [c.address, c.district].filter(Boolean).join(', ') || null,
+    email: cleanEmail(c.email), phone: normPhone(c.phone) ?? c.phone, address: [c.address, c.district].filter(Boolean).join(', ') || null,
     city: c.city, uf: c.uf, openedAt: c.openedAt, alreadyAdded: !!(c as unknown as { added: boolean }).added, webmail: isWebmail(c.email),
   }));
 }
@@ -104,16 +153,21 @@ export async function searchMaps(q: { query?: string; segment?: string; city: st
 // ───────────── Lista ─────────────
 export async function addProspects(items: Candidate[], userId?: string) {
   let added = 0;
-  for (const c of items) {
+  let blocked = 0;
+  const hashes = items.map((c) => hashesOf({ cnpj: cnpjOf(c), phone: c.phone, email: c.email }));
+  const isBlocked = await blockedHashes(hashes.flat().map((h) => h.hash));
+  for (const [i, c] of items.entries()) {
+    if (hashes[i].some((h) => isBlocked.has(h.hash))) { blocked++; continue; } // pediu para sair: nunca volta
+    const phone = normPhone(c.phone) ?? c.phone?.trim() ?? null;
     const r = await pool.query(
       `INSERT INTO prospects (id, source, source_ref, name, segment, email, phone, website, address, city, uf, token, created_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT DO NOTHING`,
       [id('prs'), c.source, c.sourceRef ?? null, c.name.slice(0, 200), c.segment?.slice(0, 120) ?? null, cleanEmail(c.email),
-        c.phone?.slice(0, 40) ?? null, c.website?.slice(0, 300) ?? null, c.address?.slice(0, 300) ?? null, c.city?.slice(0, 120) ?? null,
+        phone?.slice(0, 40) ?? null, c.website?.slice(0, 300) ?? null, c.address?.slice(0, 300) ?? null, c.city?.slice(0, 120) ?? null,
         c.uf?.slice(0, 2).toUpperCase() ?? null, token(), userId ?? null]);
     added += r.rowCount ?? 0;
   }
-  return { added, skipped: items.length - added };
+  return { added, skipped: items.length - added - blocked, blocked };
 }
 
 export async function listProspects(q: { status?: string; q?: string; limit?: number }) {
@@ -150,6 +204,15 @@ async function event(prospectId: string, type: string, step?: number, detail?: s
 }
 
 // ───────────── E-mails da sequência ─────────────
+const OPERATOR = 'SpaceHour é operado pelo Instituto Ravel, CNPJ 03.162.275/0001-10';
+const COMPANY = /\b(ltda|eireli|s\/?s|s\.?a\.?|me|epp|clinica|clínica|odonto\w*|centro|instituto|consult\w*|sociedade|servi[cç]os|sorriso|dental)\b/i;
+const title = (s: string) => s.toLowerCase().replace(/(^|\s)(\p{L})/gu, (_, a, b) => a + b.toUpperCase());
+/** "Olá, Dr(a). Ana!" para pessoa; "Olá, equipe Clínica X!" para empresa. */
+export function greeting(name: string) {
+  const n = name.replace(/\s+/g, ' ').trim();
+  return COMPANY.test(n) || !n ? `Olá, equipe ${title(n) || 'do consultório'}!` : `Olá, Dr(a). ${title(n.split(' ')[0])}!`;
+}
+const area = (segment: string | null) => (segment && !/odonto/i.test(segment) ? segment.toLowerCase() : 'odontologia');
 const APP_URL = () => (process.env.APP_URL ?? 'https://space-hour.com').replace(/\/$/, '');
 const API_URL = () => `${APP_URL()}/api`;
 type P = { id: string; name: string; email: string; token: string; city: string | null; segment: string | null };
@@ -160,8 +223,8 @@ export function renderStep(p: P, step: 1 | 2 | 3) {
   const where = p.city ? ` em ${p.city}` : '';
   const copy = {
     1: {
-      subject: `${p.name}: horários vagos podem virar renda`,
-      body: `Olá, equipe ${p.name}!\n\nSou do SpaceHour, uma plataforma${where} onde clínicas e consultórios anunciam salas nos horários que ficam vagos e recebem por hora, direto no Mercado Pago.\n\nNão tem mensalidade: o anúncio é grátis. Os profissionais que reservam (dentistas, médicos, psicólogos, fisioterapeutas) têm o registro no conselho verificado, e vocês definem preço, regras e horários.\n\nVeja como funciona e anuncie em 5 minutos:`,
+      subject: `Seu consultório vazio pode gerar renda, ${p.name}`,
+      body: `${greeting(p.name)}\n\nNotamos que a ${p.name} atua em ${area(p.segment)}${where}.\n\nNo SpaceHour, dentistas alugam consultórios equipados por hora, dia ou pacote mensal (até 3x por semana). Se você tem horários ociosos, cadastre o seu espaço de graça. Se precisa de um consultório sem montar o seu, encontre um perto de você.`,
       cta: 'Conhecer o SpaceHour',
     },
     2: {
@@ -175,7 +238,7 @@ export function renderStep(p: P, step: 1 | 2 | 3) {
       cta: 'Ver o SpaceHour',
     },
   }[step];
-  const why = 'Você recebeu este e-mail porque o contato da empresa consta em cadastro público (CNPJ / perfil comercial) e oferecemos um serviço B2B relacionado à atividade de vocês.';
+  const why = `${OPERATOR}. Você recebeu este e-mail porque o contato da empresa consta em cadastro público (dados abertos de CNPJ da Receita Federal ou perfil comercial) e oferecemos um serviço B2B relacionado à atividade de vocês.`;
   const text = `${copy.body}\n\n${copy.cta}: ${link}\n\n— Equipe SpaceHour · ${SUPPORT_EMAIL()}\n\n${why}\nNão quer mais receber? ${out}`;
   const html = `<div style="font-family:system-ui,Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#1f2937">
 <h2 style="color:#0f766e;margin:0 0 16px">SpaceHour</h2>
@@ -223,7 +286,7 @@ export async function runSequence({ dryRun = false, now = new Date() } = {}) {
   const due = await rows<P & { last_step: number }>(pool,
     `SELECT p.id, p.name, p.email, p.token, p.city, p.segment, p.last_step FROM prospects p
       WHERE p.email IS NOT NULL AND ($2 OR NOT (p.email ~* $3))
-        AND NOT EXISTS (SELECT 1 FROM prospect_suppression s WHERE s.email = lower(p.email))
+        AND NOT EXISTS (SELECT 1 FROM prospect_blocklist b WHERE b.hash = encode(sha256(convert_to('email:' || lower(trim(p.email)), 'UTF8')), 'hex'))
         AND ((p.status = 'new' AND p.last_step = 0)
           OR (p.status = 'in_sequence' AND p.last_step = 1 AND p.last_sent_at <= $1::timestamptz - make_interval(days => $4))
           OR (p.status = 'in_sequence' AND p.last_step = 2 AND p.last_sent_at <= $1::timestamptz - make_interval(days => $5)))
@@ -250,7 +313,9 @@ export async function runSequence({ dryRun = false, now = new Date() } = {}) {
 export async function handleClick(tok: string, step?: number) {
   const p = await one<{ id: string; name: string; email: string | null; phone: string | null; city: string | null; status: string }>(pool,
     'SELECT id, name, email, phone, city, status FROM prospects WHERE token = $1', [tok]);
-  const dest = `${APP_URL()}/anuncie?utm_source=prospeccao&utm_medium=email&utm_campaign=passo${step ?? 1}`;
+  const dest = step === 0
+    ? `${APP_URL()}/anuncie?utm_source=prospeccao&utm_medium=whatsapp&utm_campaign=convite`
+    : `${APP_URL()}/anuncie?utm_source=prospeccao&utm_medium=email&utm_campaign=passo${step ?? 1}`;
   if (!p) return dest;
   await event(p.id, 'click', step);
   if (!['converted', 'unsubscribed', 'hot'].includes(p.status)) {
@@ -258,21 +323,120 @@ export async function handleClick(tok: string, step?: number) {
     const to = adminEmails()[0];
     if (to) await sendMail({
       to, subject: `🔥 Lead quente na captação: ${p.name}`,
-      text: `${p.name}${p.city ? ` (${p.city})` : ''} clicou no e-mail da captação (passo ${step ?? 1}).\nE-mail: ${p.email ?? '—'}\nTelefone: ${p.phone ?? '—'}\n\nVale um contato hoje: ${APP_URL()}/admin`,
+      text: `${p.name}${p.city ? ` (${p.city})` : ''} clicou no ${step === 0 ? 'convite de WhatsApp' : `e-mail da captação (passo ${step ?? 1})`}.\nE-mail: ${p.email ?? '—'}\nTelefone: ${p.phone ?? '—'}\n\nVale um contato hoje: ${APP_URL()}/admin`,
     }).catch(() => undefined);
   }
   return dest;
 }
 
 export async function unsubscribe(tok: string) {
-  const p = await one<{ id: string; email: string | null }>(pool, 'SELECT id, email FROM prospects WHERE token = $1', [tok]);
+  const p = await one<{ id: string }>(pool, 'SELECT id FROM prospects WHERE token = $1', [tok]);
   if (!p) return null;
-  if (p.email) await pool.query("INSERT INTO prospect_suppression (email, reason) VALUES (lower($1), 'unsubscribe') ON CONFLICT DO NOTHING", [p.email]);
-  await pool.query("UPDATE prospects SET status = 'unsubscribed' WHERE id = $1", [p.id]);
-  await event(p.id, 'unsubscribe');
-  return p.email;
+  return (await optOut(p.id, 'unsubscribe'))?.email ?? null;
 }
 
 export function esc(s: string) {
   return s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
+}
+
+// ───────────── Convite por WhatsApp (link controlado) e planilha Excel ─────────────
+export const WA_DAILY_LIMIT = () => Number(process.env.WA_DAILY_LIMIT ?? 30);
+/** Convites só entre 8h e 21h (horário de Brasília). */
+export function insideWhatsAppWindow(now = new Date()) {
+  const h = Number(new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', hourCycle: 'h23' }).format(now));
+  return h >= 8 && h < 21;
+}
+export function whatsappText(p: { name: string; token: string }) {
+  return [
+    `${greeting(p.name)} Sou do SpaceHour, plataforma brasileira de aluguel de consultórios por hora.`,
+    'Se o seu consultório fica com horários vagos, dá para alugar esses horários para outros dentistas, com pagamento garantido e sem exclusividade.',
+    `Cadastro gratuito: ${API_URL()}/p/c/${p.token}?s=0`,
+    '',
+    `Se não quiser mais receber, responda SAIR ou acesse ${API_URL()}/p/u/${p.token}`,
+  ].join('\n');
+}
+export const waLink = (tok: string) => `${API_URL()}/p/w/${tok}`;
+
+/**
+ * Clique no número (lista ou Excel): confere horário, limite do dia, "não quero receber" e um convite
+ * por pessoa; só então devolve o wa.me com o texto pronto. Até um Excel antigo respeita quem saiu.
+ */
+export async function whatsappInvite(tok: string, now = new Date()): Promise<{ url: string } | { error: string }> {
+  if (!insideWhatsAppWindow(now)) return { error: 'Convites só entre 8h e 21h (horário de Brasília).' };
+  const p = await one<{ id: string; name: string; phone: string | null; token: string; status: string; wa_invited_at: Date | null; source: string; source_ref: string | null; email: string | null }>(pool,
+    'SELECT id, name, phone, token, status, wa_invited_at, source, source_ref, email FROM prospects WHERE token = $1', [tok]);
+  if (!p || ['unsubscribed', 'excluded'].includes(p.status)) return { error: 'Este contato pediu para não receber mensagens.' };
+  const phone = normPhone(p.phone);
+  if (!isMobile(phone)) return { error: 'Este contato não tem celular (WhatsApp).' };
+  const blocked = await blockedHashes(hashesOf({ cnpj: cnpjOf(p), phone, email: p.email }).map((h) => h.hash));
+  if (blocked.size) { await optOut(p.id, 'blocklist'); return { error: 'Este contato pediu para não receber mensagens.' }; }
+  if (p.wa_invited_at) return { error: `Este contato já foi convidado em ${p.wa_invited_at.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}. Um convite por pessoa.` };
+  const today = (await one<{ n: number }>(pool,
+    `SELECT count(*)::int AS n FROM prospects WHERE (wa_invited_at AT TIME ZONE 'America/Sao_Paulo')::date = ($1::timestamptz AT TIME ZONE 'America/Sao_Paulo')::date`, [now]))!.n;
+  if (today >= WA_DAILY_LIMIT()) return { error: `Limite de ${WA_DAILY_LIMIT()} convites por dia atingido. Muitos convites seguidos fazem o WhatsApp bloquear o número.` };
+  // Trava contra clique duplo: só um convite passa
+  const claimed = await pool.query('UPDATE prospects SET wa_invited_at = $2 WHERE id = $1 AND wa_invited_at IS NULL', [p.id, now]);
+  if (claimed.rowCount !== 1) return { error: 'Este contato acabou de ser convidado.' };
+  await event(p.id, 'wa_invite');
+  return { url: `https://wa.me/55${phone}?text=${encodeURIComponent(whatsappText(p))}` };
+}
+
+type ExportRow = { id: string; name: string; segment: string | null; city: string | null; uf: string | null; phone: string | null; email: string | null; source: string; source_ref: string | null; status: string; token: string; wa_invited_at: Date | null; last_step: number };
+const STATUS_PT: Record<string, string> = { new: 'Nova', in_sequence: 'Em contato', done: 'Sequência concluída', hot: 'Quente', replied: 'Respondeu', converted: 'Cadastrou', bounced: 'E-mail inválido' };
+
+/** Excel da captação (nunca inclui quem saiu); ?amostra=N traz até N por segmento, ainda não convidados e com celular. Grava auditoria. */
+export async function exportXlsx(q: { status?: string; sample?: number; userId: string; ip?: string }) {
+  const where = [`status NOT IN ('unsubscribed','excluded')`];
+  const params: unknown[] = [];
+  if (q.status) { params.push(q.status); where.push(`status = $${params.length}`); }
+  let list = await rows<ExportRow>(pool,
+    `SELECT id, name, segment, city, uf, phone, email, source, source_ref, status, token, wa_invited_at, last_step FROM prospects
+      WHERE ${where.join(' AND ')} ORDER BY segment NULLS LAST, city NULLS LAST, name LIMIT 5000`, params);
+  if (q.sample) {
+    const bySeg = new Map<string, ExportRow[]>();
+    for (const r of list.filter((r) => !r.wa_invited_at && isMobile(normPhone(r.phone)))) bySeg.set(r.segment ?? '', [...(bySeg.get(r.segment ?? '') ?? []), r]);
+    list = [...bySeg.values()].flatMap((l) => l.map((r) => ({ r, k: Math.random() })).sort((a, b) => a.k - b.k).slice(0, q.sample).map((x) => x.r));
+  }
+  await pool.query('INSERT INTO prospect_exports (id, user_id, format, filters, rows, ip) VALUES ($1,$2,$3,$4,$5,$6)',
+    [id('pex'), q.userId, 'xlsx', JSON.stringify({ status: q.status ?? null, sample: q.sample ?? null }), list.length, q.ip?.slice(0, 80) ?? null]);
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'SpaceHour';
+  const ws = wb.addWorksheet('Captação', { views: [{ state: 'frozen', ySplit: 1 }] });
+  ws.columns = [
+    { header: 'Nome', key: 'name', width: 38 }, { header: 'Segmento', key: 'segment', width: 24 }, { header: 'Cidade', key: 'city', width: 18 },
+    { header: 'UF', key: 'uf', width: 5 }, { header: 'WhatsApp (clique para convidar)', key: 'wa', width: 30 }, { header: 'Situação', key: 'status', width: 16 },
+    { header: 'Convidado em', key: 'invited', width: 14 }, { header: 'E-mail', key: 'email', width: 30 }, { header: 'CNPJ', key: 'cnpj', width: 20 },
+  ];
+  const head = ws.getRow(1);
+  head.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } };
+  for (const r of list) {
+    const cnpj = cnpjOf(r);
+    const row = ws.addRow({
+      name: r.name, segment: r.segment ?? '', city: r.city ?? '', uf: r.uf ?? '', status: STATUS_PT[r.status] ?? r.status,
+      invited: r.wa_invited_at ?? null, email: r.email ?? '', cnpj: cnpj ? cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '',
+    });
+    const cell = row.getCell('wa');
+    const ph = normPhone(r.phone);
+    if (isMobile(ph)) {
+      cell.value = { text: ph!.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3'), hyperlink: waLink(r.token) };
+      cell.font = { color: { argb: 'FF0F766E' }, underline: true, bold: true };
+    } else {
+      cell.value = ph ? `${ph.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3')} (fixo)` : 'sem telefone';
+      cell.font = { color: { argb: 'FF888888' } };
+    }
+    row.getCell('invited').numFmt = 'dd/mm/yyyy';
+  }
+  ws.autoFilter = { from: 'A1', to: 'I1' };
+  const info = wb.addWorksheet('Como usar');
+  info.getColumn(1).width = 110;
+  for (const line of [
+    'Clique no número (coluna WhatsApp). Abre a conversa com o convite já escrito: confira e toque em enviar.',
+    'Um convite por pessoa. Os links só funcionam entre 8h e 21h (horário de Brasília).',
+    `Quem responder SAIR: marque "Não quer" na aba Captação do admin. O contato nunca mais recebe mensagem.`,
+    `Envie no máximo ${WA_DAILY_LIMIT()} por dia, de um número só para convites: muitos envios seguidos fazem o WhatsApp bloquear o número.`,
+    'Números marcados como (fixo) não têm WhatsApp. Esta planilha tem dados de contato: não repasse e apague depois de usar.',
+  ]) info.addRow([line]);
+  return { buffer: Buffer.from(await wb.xlsx.writeBuffer()), rows: list.length };
 }

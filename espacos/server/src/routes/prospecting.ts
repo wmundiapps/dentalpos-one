@@ -67,12 +67,25 @@ prospectingRouter.patch('/admin/prospecting/prospects/:id', requireAuth, async (
     email: z.string().email().max(200).optional(),
   }).parse(req.body);
   const { pool } = await import('../db.js');
+  if (d.status === 'unsubscribed') { await P.optOut(String(req.params.id), 'admin'); return res.json({ ok: true }); }
   await pool.query(`UPDATE prospects SET status = coalesce($2, status), notes = coalesce($3, notes), email = coalesce(lower($4), email) WHERE id = $1`,
     [req.params.id, d.status ?? null, d.notes ?? null, d.email ?? null]);
-  if (d.status === 'unsubscribed' || d.status === 'bounced') {
-    await pool.query(`INSERT INTO prospect_suppression (email, reason) SELECT lower(email), $2 FROM prospects WHERE id = $1 AND email IS NOT NULL ON CONFLICT DO NOTHING`, [req.params.id, d.status]);
+  if (d.status === 'bounced') { // e-mail inválido: não tenta de novo
+    await pool.query(`INSERT INTO prospect_blocklist (hash, kind, reason)
+      SELECT encode(sha256(convert_to('email:' || lower(trim(email)), 'UTF8')), 'hex'), 'email', 'bounced' FROM prospects WHERE id = $1 AND email IS NOT NULL ON CONFLICT DO NOTHING`, [req.params.id]);
   }
   res.json({ ok: true });
+});
+
+// Excel com WhatsApp de um clique (links controlados); grava quem exportou
+prospectingRouter.get('/admin/prospecting/export.xlsx', requireAuth, async (req: AuthedRequest, res) => {
+  requireAdmin(req);
+  const q = z.object({ status: z.string().max(20).optional(), amostra: z.coerce.number().int().min(1).max(20).optional() }).parse(req.query);
+  const { buffer } = await P.exportXlsx({ status: q.status, sample: q.amostra, userId: req.user!.id, ip: req.ip });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="captacao-spacehour-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(buffer);
 });
 
 prospectingRouter.put('/admin/prospecting/config', requireAuth, async (req: AuthedRequest, res) => {
@@ -102,8 +115,22 @@ prospectingRouter.post('/admin/prospecting/test', requireAuth, async (req: Authe
 
 // ───────────── Públicos (links do e-mail) ─────────────
 prospectingRouter.get('/p/c/:token', async (req, res) => {
-  res.redirect(302, await P.handleClick(String(req.params.token).slice(0, 80), Number(req.query.s) || undefined));
+  res.redirect(302, await P.handleClick(String(req.params.token).slice(0, 80), req.query.s === '0' ? 0 : Number(req.query.s) || undefined));
 });
+
+// Clique no número do WhatsApp (lista ou Excel): só abre a conversa se puder convidar
+prospectingRouter.get('/p/w/:token', async (req, res) => {
+  const r = await P.whatsappInvite(String(req.params.token).slice(0, 80));
+  if ('url' in r) return res.redirect(302, r.url);
+  res.status(409).set('Content-Type', 'text/html; charset=utf-8').set('Cache-Control', 'no-store');
+  res.send(simplePage(P.esc(r.error)));
+});
+
+function simplePage(html: string) {
+  return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SpaceHour</title>
+<div style="font-family:system-ui,Arial,sans-serif;max-width:520px;margin:60px auto;padding:24px;color:#1f2937;text-align:center">
+<h2 style="color:#0f766e">SpaceHour</h2><p>${html}</p></div>`;
+}
 
 async function unsubscribePage(req: AuthedRequest, res: Response) {
   const email = await P.unsubscribe(String(req.params.token).slice(0, 80));
