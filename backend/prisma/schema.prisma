@@ -2441,6 +2441,8 @@ model FiscalRule {
   requireAccountantApproval Boolean  @default(false)
   serviceCode               String?
   issRate                   Decimal? @db.Decimal(5, 2)
+  accountantEmail           String?
+  adminEmail                String?
   createdAt                 DateTime @default(now()) @db.Timestamp(3)
   updatedAt                 DateTime @default(now()) @db.Timestamp(3)
 }

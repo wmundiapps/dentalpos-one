@@ -4,7 +4,7 @@ export interface FiscalDoc { id: string; payerName: string; payerDocument?: stri
 export interface FiscalAlertRow { id: string; fiscalDocumentId?: string | null; title: string; description?: string | null; priority: string; resolved: boolean; createdAt: string; }
 export interface FiscalSendRow { id: string; fiscalDocumentId: string; channel: string; destination: string; recipientName?: string | null; status: string; sentAt?: string | null; failureReason?: string | null; createdAt: string; }
 export interface FiscalSummaryData { confirmedPayments: number; pendingDocuments: number; issuedDocuments: number; deliveryFailures: number; pendingTaxValue: number; }
-export interface FiscalRuleData { autoProcess: boolean; issueDelayMinutes: number; defaultKindPJ: string; defaultKindPF: string; sendChannels: string; requireAccountantApproval: boolean; serviceCode?: string | null; issRate?: number | null; }
+export interface FiscalRuleData { autoProcess: boolean; issueDelayMinutes: number; defaultKindPJ: string; defaultKindPF: string; sendChannels: string; requireAccountantApproval: boolean; serviceCode?: string | null; issRate?: number | null; accountantEmail?: string | null; adminEmail?: string | null; }
 
 function headers(json = false) {
   const token = localStorage.getItem("dentalpos.token") || "";
