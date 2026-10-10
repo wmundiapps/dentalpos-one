@@ -52,6 +52,11 @@ export async function createDefaultProfiles(clinicId: string, tenantId: string) 
     CONTADOR: ['dashboard.view','finance.view','finance.values','accounting.view','accounting.edit','accounting.approve','accounting.portal','documents.view'],
     AUXILIAR: ['dashboard.view','agenda.view','patients.view','clinical.view','laboratory.view'],
     ADMINISTRACAO: ['dashboard.view','agenda.view','patients.view','patients.create','patients.edit','finance.view','documents.view','documents.edit','hr.view','settings.view','users.view'],
+    MARKETING: ['dashboard.view','patients.view','marketing.view','marketing.send','documents.view'],
+    VENDAS: ['dashboard.view','patients.view','sales.view','sales.edit','marketing.view'],
+    MARKETPLACE: ['dashboard.view','sales.view','sales.edit'],
+    COMPRAS: ['dashboard.view','sales.view','sales.edit','finance.view'],
+    EDUCACIONAL: ['dashboard.view','patients.view','documents.view','documents.edit'],
     JURIDICO: ['dashboard.view','patients.view','documents.view','documents.edit','hr.view','accounting.view','audit.view']
   }
 

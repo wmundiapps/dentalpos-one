@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
+import { itemAllowed, useMenuAccess } from "../config/menuAccess";
 import {
   getDemoModuleStatus,
   readDemoAccess,
@@ -47,11 +48,13 @@ export default function Sidebar(){
   const [showInDevelopment,setShowInDevelopment]=useState(false);
 
   // No EXPERIENCE, nenhum item deve desaparecer do menu — apenas deduplicado.
+  const menuAccess=useMenuAccess();
   const visibleGroups=useMemo(()=>{
     const seen=new Set<string>();
     return navigationGroups.map(group=>{
       const items=group.items.filter(it=>{
         if(it.path==="/prospeccao"&&!isWmundiStaff())return false;
+        if(!itemAllowed(it,menuAccess))return false;
         const dedupeKey=it.path;
         if(seen.has(dedupeKey))return false;
         seen.add(dedupeKey);
@@ -59,7 +62,7 @@ export default function Sidebar(){
       });
       return {...group,items};
     }).filter(g=>g.items.length>0);
-  },[]);
+  },[menuAccess]);
 
   const activeGroup=useMemo(
     ()=>visibleGroups.find(g=>g.items.some(it=>pathMatches(it.path,location.pathname,location.search)))?.label,

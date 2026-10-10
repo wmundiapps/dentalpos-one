@@ -1,4 +1,6 @@
-import { Box } from "@mui/material";
+import { Alert, Box } from "@mui/material";
+import { useLocation } from "react-router-dom";
+import { pathAllowed, useMenuAccess } from "../config/menuAccess";
 import { useEffect, type ReactNode } from "react";
 import { syncProcedureDurations } from "../services/ProcedureDurations";
 
@@ -19,6 +21,9 @@ export default function Layout({
   children,
 }: LayoutProps) {
   useEffect(() => { void syncProcedureDurations(); }, []);
+  const location = useLocation();
+  const menuAccess = useMenuAccess();
+  const blocked = !pathAllowed(location.pathname, menuAccess);
 
   return (
     <Box
@@ -55,7 +60,7 @@ export default function Layout({
           }}
         >
           <PrintHeader />
-          {children}
+          {blocked ? <Alert severity="warning" sx={{ maxWidth: 640 }}>Seu departamento não tem acesso a esta tela. Peça ao administrador ou ao gestor para liberar em Configurações &gt; Permissões.</Alert> : children}
         </Box>
 
         <Footer />
