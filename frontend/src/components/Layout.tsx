@@ -4,6 +4,8 @@ import { useIdleLogout } from "../hooks/useIdleLogout";
 import { syncProcedureDurations } from "../services/ProcedureDurations";
 
 import DemoBanner from "./DemoBanner";
+import ActionFeedbackHost from "./ActionFeedbackHost";
+import FeedbackFab from "./FeedbackFab";
 import EvaluationWidget from "./EvaluationWidget";
 import Footer from "./Footer";
 import Header from "./Header";
@@ -58,6 +60,8 @@ export default function Layout({
           {children}
         </Box>
 
+        <FeedbackFab />
+        <ActionFeedbackHost />
         <Footer />
       </Box>
 

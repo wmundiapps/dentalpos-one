@@ -2,12 +2,9 @@ import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { readSessionUser } from "../services/DemoAccess";
 
-const WMUNDI_STAFF_EMAILS = ["contato@dentalpos.com.br"];
-
+/** A lista de e-mails da equipe vive só no servidor (WMUNDI_STAFF_EMAILS); aqui só lemos o resultado do login. */
 export function isWmundiStaff(): boolean {
-  const user = readSessionUser();
-  const email = (user?.email || "").toLowerCase();
-  return WMUNDI_STAFF_EMAILS.includes(email);
+  return readSessionUser()?.isWmundiStaff === true;
 }
 
 export default function WmundiStaffOnly({ children }: { children: ReactNode }) {

@@ -51,7 +51,7 @@ export default function OnlineReceipts() {
     try {
       const s = await ReceiptsApi.connect({ ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}), environment, isActive: active });
       setStatus(s); setApiKey("");
-      setNotice(s.webhookConfigured ? "Conta Asaas conectada. O aviso automático de pagamentos (webhook) foi cadastrado." : "Conta Asaas conectada. Cadastre o webhook manualmente no Asaas com os dados abaixo.");
+      setNotice(s.webhookConfigured ? "Conta de recebimentos conectada. O aviso automático de pagamentos (webhook) foi cadastrado." : "Conta de recebimentos conectada. Cadastre o webhook manualmente no gateway com os dados abaixo.");
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível conectar."); }
     finally { setBusy(false); }
   };
@@ -71,21 +71,21 @@ export default function OnlineReceipts() {
 
   return (
     <Box>
-      <PageHeader title="Recebimentos online" description="Conecte a conta Asaas da clínica, cadastre a carteira dos dentistas para a divisão automática do pagamento e acompanhe os repasses." />
+      <PageHeader title="Recebimentos online" description="Conecte a conta de recebimentos da clínica, cadastre a carteira dos dentistas para a divisão automática do pagamento e acompanhe os repasses." />
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
       {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
 
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
         <Box sx={{ display: "flex", gap: 1.5, alignItems: "center", flexWrap: "wrap", mb: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>1. Conta Asaas da clínica</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800 }}>1. Conta de recebimentos da clínica</Typography>
           {status && <Chip size="small" color={status.connected && status.active ? "success" : "default"} label={status.connected ? (status.active ? "Conectada" : "Conectada (desativada)") : "Não conectada"} />}
           {status?.connected && <Chip size="small" variant="outlined" label={status.environment === "PRODUCTION" ? "Produção (dinheiro real)" : "Teste (sandbox)"} />}
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Cada clínica recebe na própria conta Asaas: o dinheiro cai direto nela. Crie a conta em https://www.asaas.com (ou, para testar sem dinheiro real, em https://sandbox.asaas.com), gere a chave de API em Integrações e cole abaixo.
+          Cada clínica recebe na própria conta de recebimentos: o dinheiro cai direto nela. Crie a conta no gateway de pagamento contratado (ou, para testar sem dinheiro real, use o ambiente de teste), gere a chave de API na área de Integrações do gateway e cole abaixo.
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" }, gap: 2 }}>
-          <TextField type="password" label={status?.connected ? "Nova chave de API (deixe vazio para manter a atual)" : "Chave de API do Asaas"} value={apiKey} onChange={(e) => setApiKey(e.target.value)} autoComplete="off" />
+          <TextField type="password" label={status?.connected ? "Nova chave de API (deixe vazio para manter a atual)" : "Chave de API do gateway"} value={apiKey} onChange={(e) => setApiKey(e.target.value)} autoComplete="off" />
           <TextField select label="Ambiente" value={environment} onChange={(e) => setEnvironment(e.target.value as typeof environment)}>
             <MenuItem value="SANDBOX">Teste (sandbox) — sem dinheiro real</MenuItem>
             <MenuItem value="PRODUCTION">Produção — dinheiro real</MenuItem>
@@ -99,8 +99,8 @@ export default function OnlineReceipts() {
           <Box sx={{ mt: 2.5, display: "grid", gap: 1.5 }}>
             <Alert severity={status.webhookConfigured ? "success" : "warning"}>
               {status.webhookConfigured
-                ? "O aviso de pagamentos (webhook) está cadastrado no Asaas: quando o paciente pagar, o lançamento é baixado sozinho."
-                : "Não foi possível cadastrar o webhook automaticamente. No Asaas, vá em Integrações → Webhooks → Novo webhook, informe a URL e o token abaixo e marque os eventos de cobrança."}
+                ? "O aviso de pagamentos (webhook) está cadastrado no gateway: quando o paciente pagar, o lançamento é baixado sozinho."
+                : "Não foi possível cadastrar o webhook automaticamente. No painel do gateway, vá em Integrações → Webhooks → Novo webhook, informe a URL e o token abaixo e marque os eventos de cobrança."}
             </Alert>
             {!status.webhookConfigured && status.webhookToken && (
               <>
@@ -115,7 +115,7 @@ export default function OnlineReceipts() {
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.5 }}>2. Carteira dos dentistas (divisão automática)</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Para o Asaas dividir o pagamento, cada dentista precisa ter conta no Asaas. Cole aqui o Wallet ID dele (o dentista encontra no painel do Asaas, em Integrações). A regra de repasse vem do cadastro do dentista no Corpo Clínico.
+          Para o gateway dividir o pagamento, cada dentista precisa ter conta no gateway. Cole aqui o Wallet ID dele (o dentista encontra no painel do gateway, em Integrações). A regra de repasse vem do cadastro do dentista no Corpo Clínico.
         </Typography>
         {accounts.length === 0 && <Typography color="text.secondary">Nenhum dentista cadastrado.</Typography>}
         {accounts.map((a) => (
@@ -125,7 +125,7 @@ export default function OnlineReceipts() {
               <Chip size="small" color={a.ready ? "success" : "default"} label={a.ready ? "Pronto para dividir" : "Sem carteira"} sx={{ mt: 0.5 }} />
             </Box>
             <Typography variant="body2" color={a.rule.ok ? "text.primary" : "text.secondary"}>{a.rule.ok ? a.rule.label : a.rule.reason}</Typography>
-            <TextField size="small" label="Wallet ID do Asaas" value={wallets[a.doctorId] || ""} onChange={(e) => setWallets({ ...wallets, [a.doctorId]: e.target.value })} />
+            <TextField size="small" label="ID da carteira (gateway)" value={wallets[a.doctorId] || ""} onChange={(e) => setWallets({ ...wallets, [a.doctorId]: e.target.value })} />
             <Button variant="outlined" onClick={() => void saveWallet(a.doctorId)}>Salvar carteira</Button>
           </Box>
         ))}

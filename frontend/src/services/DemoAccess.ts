@@ -24,6 +24,8 @@ export interface SessionUser {
   lastName: string;
   role: string;
   clinicId: string;
+  /** informado pelo servidor no login: equipe WMundi (só controla a exibição de telas) */
+  isWmundiStaff?: boolean;
   tenantId?: string;
   avatar?: string | null;
   clinic?: {

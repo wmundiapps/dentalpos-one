@@ -77,7 +77,7 @@ export default function Login() {
       localStorage.setItem("dentalpos.clinicId", data.user?.clinicId || clinicId.trim());
       writeSessionUser(data.user);
       writeDemoAccess(data.demo);
-      window.location.href = appRootUrl();
+      window.location.href = data.twoFactorSetupRequired ? new URL("seguranca", appRootUrl()).toString() : appRootUrl();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no login");
     } finally {

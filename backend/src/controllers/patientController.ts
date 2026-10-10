@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
+import { auditRead } from '../services/accessAudit'
 import { writeAudit } from '../services/auditService'
 
 function ctx(req: AuthRequest) {
@@ -80,7 +81,7 @@ export async function index(req: AuthRequest, res: Response) {
   try { const {clinicId,tenantId}=ctx(req); const patients=await prisma.patient.findMany({where:{clinicId,tenantId},orderBy:{fullName:'asc'}}); return res.status(200).json(patients) }
   catch(error){console.error('Erro ao listar pacientes:',error);return res.status(500).json({error:'Erro ao listar pacientes.'})}
 }
-export async function show(req: AuthRequest,res:Response){try{const{clinicId,tenantId}=ctx(req);const id=String(req.params.id);const patient=await prisma.patient.findFirst({where:{id,clinicId,tenantId}});if(!patient)return res.status(404).json({error:'Paciente n\u00e3o encontrado.'});return res.json(patient)}catch(error){console.error(error);return res.status(500).json({error:'Erro ao buscar paciente.'})}}
+export async function show(req: AuthRequest,res:Response){try{const{clinicId,tenantId}=ctx(req);const id=String(req.params.id);const patient=await prisma.patient.findFirst({where:{id,clinicId,tenantId}});if(!patient)return res.status(404).json({error:'Paciente n\u00e3o encontrado.'});auditRead(req,'PATIENT_VIEW','Patient',id,`Cadastro de ${patient.fullName} visualizado.`,id);return res.json(patient)}catch(error){console.error(error);return res.status(500).json({error:'Erro ao buscar paciente.'})}}
 
 export async function store(req: AuthRequest, res: Response) {
   try {

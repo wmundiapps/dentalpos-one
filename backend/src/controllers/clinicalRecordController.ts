@@ -1,3 +1,4 @@
+import { auditRead } from '../services/accessAudit'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
@@ -17,7 +18,7 @@ function failure(res: Response, error: unknown, fallback: string) {
 }
 
 export async function show(req: AuthRequest, res: Response) {
-  try { const c=context(req); return res.json(await records.getClinicalRecord(c.clinicId,c.tenantId,String(req.params.patientId))) }
+  try { const c=context(req); const pid=String(req.params.patientId); const rec=await records.getClinicalRecord(c.clinicId,c.tenantId,pid); auditRead(req,'CLINICAL_RECORD_VIEW','ClinicalRecord',pid,'Prontuário visualizado.',pid); return res.json(rec) }
   catch(error) { console.error(error); return failure(res,error,'Erro ao carregar prontuário.') }
 }
 

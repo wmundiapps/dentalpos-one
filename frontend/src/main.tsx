@@ -4,12 +4,14 @@ import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
 import { AppThemeProvider } from "./contexts/AppThemeContext";
+import { installActionFeedback } from "./services/ActionFeedback";
 import { repairLocalStorageText } from "./utils/textEncoding";
 
 import "./index.css";
 import "./print.css";
 
 repairLocalStorageText();
+installActionFeedback();
 
 // Trava de domínio (opcional): defina VITE_ALLOWED_HOSTS="app.exemplo.com,*.exemplo.com" para só rodar nesses hosts.
 function hostAllowed(): boolean {

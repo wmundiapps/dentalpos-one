@@ -11,6 +11,7 @@ import {
 import { writeAudit } from '../services/auditService'
 import { getDemoAccess } from '../services/demoAccessService'
 import { decryptSecret } from '../services/secretVault'
+import { isWmundiStaffEmail } from '../utils/staff'
 import { validatePassword } from '../utils/passwordPolicy'
 import { checkSecondFactor, getSecurity, isLocked, recordFailure, recordSuccess } from '../services/userSecurityService'
 import { dispatchRevah } from '../services/revahProviderService'
@@ -35,9 +36,10 @@ function readChallenge(token: string): string | null {
   }
 }
 
-function safeUser<T extends { password?: unknown }>(user: T) {
+function safeUser<T extends { password?: unknown; email?: string }>(user: T) {
   const { password: _password, ...safe } = user
-  return safe
+  // a interface só usa isto para mostrar/ocultar telas; o backend sempre revalida (requireWmundiStaff)
+  return { ...safe, isWmundiStaff: isWmundiStaffEmail(user.email) }
 }
 
 function generateToken(user: {
@@ -183,7 +185,9 @@ export async function login(req: Request, res: Response) {
     }
     if (sec) await recordSuccess(user.id).catch(() => undefined)
 
-    return finishLogin(req, res, user)
+    // REQUIRE_2FA_ADMIN=true: administradores sem 2FA entram, mas a interface os leva direto para ativá-la
+    const setupRequired = process.env.REQUIRE_2FA_ADMIN === 'true' && user.role === 'ADMIN' && !sec?.totpEnabled
+    return finishLogin(req, res, user, 'Login realizado com sucesso.', setupRequired)
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro interno do servidor.' })
@@ -222,6 +226,7 @@ async function finishLogin(
   res: Response,
   user: { id: string; email: string; clinicId: string; tenantId: string; role: string; password: string },
   summary = 'Login realizado com sucesso.',
+  twoFactorSetupRequired = false,
 ) {
   const demo = await getDemoAccess(user.clinicId)
   if (demo.isDemo && demo.phase === 'ENDED') {
@@ -258,7 +263,7 @@ async function finishLogin(
     console.warn('Falha ao registrar auditoria de login:', auditError)
   }
 
-  return res.json({ token, user: safeUser(user), demo })
+  return res.json({ token, user: safeUser(user), demo, ...(twoFactorSetupRequired ? { twoFactorSetupRequired: true } : {}) })
 }
 
 export async function me(_req: Request, res: Response) {

@@ -1,3 +1,4 @@
+import { auditRead } from '../services/accessAudit'
 import { checkUploadMeta } from '../utils/uploadPolicy'
 import { Response } from 'express'
 import { Prisma } from '@prisma/client'
@@ -318,6 +319,7 @@ export async function access(req: AuthRequest, res: Response) {
       error: 'Storage clínico ainda não possui credenciais/provedor configurados.',
       code: 'CLINICAL_STORAGE_NOT_CONFIGURED'
     })
+    auditRead(req, 'CLINICAL_FILE_ACCESS', 'ClinicalFile', id, `Arquivo clínico "${row.originalName}" acessado.`, row.patientId)
     return res.json(download)
   } catch (error) {
     console.error(error)

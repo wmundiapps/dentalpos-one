@@ -76,7 +76,7 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged }: { 
   };
 
   const cancel = async () => {
-    if (!charge || !window.confirm("Cancelar esta cobrança no Asaas? O paciente não poderá mais pagá-la por este link.")) return;
+    if (!charge || !window.confirm("Cancelar esta cobrança no gateway? O paciente não poderá mais pagá-la por este link.")) return;
     setBusy(true); setError("");
     try { await ReceiptsApi.cancelCharge(charge.id); setCharge(null); onChanged(); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível cancelar."); }
@@ -100,7 +100,7 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged }: { 
         {charge ? (
           <>
             <Alert severity={charge.status === "PAGO" ? "success" : charge.status === "VENCIDO" ? "warning" : "info"}>
-              {charge.reused ? "Já existe uma cobrança para este lançamento. " : ""}Situação: <b>{{ PENDENTE: "aguardando pagamento", PAGO: "paga", VENCIDO: "vencida", ESTORNADO: "estornada", CANCELADO: "cancelada" }[charge.status]}</b>. O lançamento é baixado automaticamente quando o Asaas confirmar o pagamento.
+              {charge.reused ? "Já existe uma cobrança para este lançamento. " : ""}Situação: <b>{{ PENDENTE: "aguardando pagamento", PAGO: "paga", VENCIDO: "vencida", ESTORNADO: "estornada", CANCELADO: "cancelada" }[charge.status]}</b>. O lançamento é baixado automaticamente quando o gateway confirmar o pagamento.
             </Alert>
             {charge.invoiceUrl && <CopyField label="Link de pagamento (o paciente escolhe PIX, boleto ou cartão)" value={charge.invoiceUrl} />}
             {charge.pixCopyPaste && <CopyField label="PIX copia e cola" value={charge.pixCopyPaste} />}
@@ -113,7 +113,7 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged }: { 
           </>
         ) : ready === false ? (
           <Alert severity="warning" action={<Button color="inherit" size="small" onClick={() => { onClose(); navigate("/recebimentos-online"); }}>Conectar</Button>}>
-            A conta Asaas da clínica ainda não está conectada.
+            A conta de recebimentos da clínica ainda não está conectada.
           </Alert>
         ) : (
           <>
@@ -132,25 +132,25 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged }: { 
 
             <TextField select label="Repassar parte a um dentista (divisão automática)" value={doctorId} onChange={(e) => setDoctorId(e.target.value)}>
               <MenuItem value="">Sem repasse (tudo fica com a clínica)</MenuItem>
-              {accounts.map((a) => <MenuItem key={a.doctorId} value={a.doctorId}>{`${a.name}${a.ready ? "" : " — sem carteira Asaas"}`}</MenuItem>)}
+              {accounts.map((a) => <MenuItem key={a.doctorId} value={a.doctorId}>{`${a.name}${a.ready ? "" : " — sem carteira de recebimentos"}`}</MenuItem>)}
             </TextField>
             {doctor && !doctor.ready && (
               <Alert severity="warning" action={<Button color="inherit" size="small" onClick={() => { onClose(); navigate("/recebimentos-online"); }}>Cadastrar</Button>}>
-                Cadastre a carteira (Wallet ID) do Asaas deste dentista para dividir o pagamento.
+                Cadastre a carteira (Wallet ID) do gateway deste dentista para dividir o pagamento.
               </Alert>
             )}
             {doctor?.ready && (
               <>
                 <RadioGroup value={mode} onChange={(_, v) => setMode(v as typeof mode)}>
                   <FormControlLabel value="RULE" disabled={!doctor.rule.ok} control={<Radio />} label={doctor.rule.ok ? `Regra do cadastro: ${doctor.rule.label}` : `Regra do cadastro indisponível: ${doctor.rule.reason}`} />
-                  <FormControlLabel value="PERCENT" control={<Radio />} label="Percentual do valor líquido (após taxas do Asaas)" />
+                  <FormControlLabel value="PERCENT" control={<Radio />} label="Percentual do valor líquido (após taxas do gateway)" />
                   <FormControlLabel value="FIXED" control={<Radio />} label="Valor fixo em reais" />
                 </RadioGroup>
                 {mode !== "RULE" && (
                   <TextField label={mode === "PERCENT" ? "Percentual (%)" : "Valor do repasse (R$)"} value={value} onChange={(e) => setValue(e.target.value.replace(/[^\d.,]/g, ""))} slotProps={{ htmlInput: { inputMode: "decimal" } }} />
                 )}
                 {preview && preview.repasse > 0 && (
-                  <Alert severity="info">{`O dentista recebe cerca de ${money(preview.repasse)} (${preview.texto}) e a clínica fica com o restante, descontadas as taxas do Asaas. O repasse é feito pelo Asaas, direto na carteira do dentista.`}</Alert>
+                  <Alert severity="info">{`O dentista recebe cerca de ${money(preview.repasse)} (${preview.texto}) e a clínica fica com o restante, descontadas as taxas do gateway. O repasse é feito pelo gateway, direto na carteira do dentista.`}</Alert>
                 )}
               </>
             )}
