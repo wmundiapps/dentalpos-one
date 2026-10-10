@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+// Proteção contra cópia e moldura: o site só roda em revah.com.br e nunca dentro de outro site.
+(function(){var h=location.hostname,ok=/^(www\.)?revah\.com\.br$|^localhost$|^127\.0\.0\.1$|^revah-app(--[a-z0-9-]+)?\.netlify\.app$/.test(h);
+if(!ok){location.replace('https://revah.com.br'+location.pathname+location.search+location.hash);return}
+if(window.top!==window.self){try{window.top.location.href=location.href}catch(e){document.documentElement.innerHTML=''}}})();
+</script>
 <title>REVAH® — Plataforma Business de Mensageria</title>
 <meta name="description" content="REVAH® é a plataforma business de mensageria multicanal oficial (WhatsApp Meta, Telegram, SMS, voz e e-mail), automação com IA, CRM e captação de leads. Limites conforme plano.">
 <meta name="robots" content="index, follow">
