@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
 import { purchaseOrderSchema, saleSchema, stockAdjustmentSchema, supplyItemSchema } from '../validators/eduSupplyValidator'
+import { debitWallet } from './eduWalletController'
 
 function ctx(req: AuthRequest) {
   if (!req.user) throw new Error('Usuário não autenticado')
@@ -184,10 +185,16 @@ export async function createSale(req: AuthRequest, res: Response) {
     const parsed = saleSchema.safeParse(req.body)
     if (!parsed.success) return res.status(400).json({ error: 'Dados inválidos.', details: parsed.error.flatten() })
 
+    let student: Awaited<ReturnType<typeof prisma.eduStudent.findFirst>> = null
     if (parsed.data.studentId) {
-      const student = await prisma.eduStudent.findFirst({ where: { id: parsed.data.studentId, clinicId, tenantId } })
+      student = await prisma.eduStudent.findFirst({ where: { id: parsed.data.studentId, clinicId, tenantId } })
       if (!student) return res.status(400).json({ error: 'Aluno inválido.' })
     }
+
+    // Pagamento com créditos pré-pagos da cantina (ver eduWalletController):
+    // só debita o saldo já recarregado, sem gerar nova receita no Financeiro.
+    const isWalletPayment = parsed.data.paymentMethod === 'CREDITO_CANTINA'
+    if (isWalletPayment && !student) return res.status(400).json({ error: 'Pagamento com créditos da cantina exige um aluno identificado.' })
 
     const itemIds = parsed.data.items.filter(item => item.itemId).map(item => item.itemId!)
     const stockItems = itemIds.length ? await prisma.eduSupplyItem.findMany({ where: { id: { in: itemIds }, clinicId, tenantId } }) : []
@@ -201,6 +208,11 @@ export async function createSale(req: AuthRequest, res: Response) {
 
     const totalAmount = parsed.data.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
 
+    if (isWalletPayment) {
+      const wallet = await prisma.eduStudentWallet.findUnique({ where: { studentId: student!.id } })
+      if (!wallet || wallet.balance < totalAmount) return res.status(409).json({ error: 'Saldo de créditos insuficiente para esta compra.' })
+    }
+
     const sale = await prisma.eduSale.create({
       data: {
         clinicId, tenantId, createdById: actorId, studentId: parsed.data.studentId, buyerName: parsed.data.buyerName,
@@ -209,17 +221,30 @@ export async function createSale(req: AuthRequest, res: Response) {
       include: { items: true }
     })
 
-    const financialEntry = await prisma.financialEntry.create({
-      data: {
-        clinicId, tenantId, type: 'INCOME', category: 'SUPRIMENTOS',
-        description: `Venda — ${sale.buyerName}`, personName: sale.buyerName,
-        amount: totalAmount, dueDate: new Date(), status: 'PENDING',
-        origin: 'EDU_SALE', originId: sale.id
+    let financialEntryId: string | undefined
+    if (isWalletPayment) {
+      const debit = await debitWallet({
+        clinicId, tenantId, studentId: student!.id, amount: totalAmount,
+        description: `Compra na cantina — venda ${sale.id}`, referenceType: 'EduSale', referenceId: sale.id, createdById: actorId
+      })
+      if (!debit.ok) {
+        await prisma.eduSale.delete({ where: { id: sale.id } })
+        return res.status(409).json({ error: debit.error })
       }
-    })
+    } else {
+      const financialEntry = await prisma.financialEntry.create({
+        data: {
+          clinicId, tenantId, type: 'INCOME', category: 'SUPRIMENTOS',
+          description: `Venda — ${sale.buyerName}`, personName: sale.buyerName,
+          amount: totalAmount, dueDate: new Date(), status: 'PENDING',
+          origin: 'EDU_SALE', originId: sale.id
+        }
+      })
+      financialEntryId = financialEntry.id
+      await prisma.eduSale.update({ where: { id: sale.id }, data: { financialEntryId } })
+    }
 
     await prisma.$transaction([
-      prisma.eduSale.update({ where: { id: sale.id }, data: { financialEntryId: financialEntry.id } }),
       ...parsed.data.items.filter(item => item.itemId).map(item => prisma.eduSupplyMovement.create({
         data: { clinicId, tenantId, itemId: item.itemId!, type: 'SAIDA', quantity: -Math.abs(item.quantity), reason: `Venda ${sale.id}`, referenceType: 'EduSale', referenceId: sale.id, createdById: actorId }
       })),
@@ -229,7 +254,7 @@ export async function createSale(req: AuthRequest, res: Response) {
     ])
 
     await audit({ clinicId, tenantId, actorId, action: 'EDU_SALE_CREATE', entityType: 'EduSale', entityId: sale.id, summary: `Venda para ${sale.buyerName} registrada (R$ ${totalAmount.toFixed(2)}).` })
-    return res.status(201).json({ ...sale, financialEntryId: financialEntry.id })
+    return res.status(201).json({ ...sale, financialEntryId })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao registrar venda.' })

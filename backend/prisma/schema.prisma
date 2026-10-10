@@ -132,6 +132,9 @@ model Clinic {
   eduBookableResources    EduBookableResource[]
   eduResourceBookings     EduResourceBooking[]
   eduJobPostings          EduJobPosting[]
+  eduEnrollmentContracts  EduEnrollmentContract[]
+  eduStudentWallets       EduStudentWallet[]
+  eduWalletTransactions   EduWalletTransaction[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2682,6 +2685,8 @@ model EduStudent {
   sales                      EduSale[]
   equivalencyRequests        EduEquivalencyRequest[]
   jobApplications            EduJobApplication[]
+  enrollmentContracts        EduEnrollmentContract[]
+  wallet                     EduStudentWallet?
 
   @@unique([clinicId, email])
   @@index([clinicId, status])
@@ -2711,6 +2716,7 @@ model EduEnrollment {
   updatedAt        DateTime      @updatedAt
 
   classEnrollments EduClassEnrollment[]
+  contract         EduEnrollmentContract?
 
   @@unique([clinicId, enrollmentNumber])
   @@unique([studentId, programId])
@@ -2766,6 +2772,89 @@ model EduClassEnrollment {
   @@unique([classId, studentId])
   @@index([studentId, status])
   @@map("edu_class_enrollments")
+}
+
+// Contrato de matrícula digital: gerado automaticamente ao matricular o
+// aluno (snapshot imutável dos termos no momento da matrícula) e assinado
+// por um link público de aceite eletrônico (clickwrap), sem exigir login
+// do aluno. Texto é um modelo/rascunho — requer revisão jurídica antes do
+// uso comercial (mesmo aviso dado em Termos de Uso/Privacidade).
+model EduEnrollmentContract {
+  id             String       @id @default(cuid())
+  clinicId       String
+  clinic         Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId       String
+  enrollmentId   String       @unique
+  enrollment     EduEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        EduStudent   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  contractNumber String
+  institutionName String
+  studentName    String
+  programName    String
+  termName       String
+  monthlyFee     Float?
+  tuitionDueDay  Int          @default(10)
+  termsText      String
+  status         String       @default("PENDENTE_ASSINATURA")
+  signingToken   String       @unique
+  signedAt       DateTime?
+  signedByName   String?
+  signedIp       String?
+  signedUserAgent String?
+  createdById    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([clinicId, status])
+  @@index([tenantId])
+  @@index([studentId])
+  @@map("edu_enrollment_contracts")
+}
+
+// Carteira de créditos pré-pagos do aluno (cantina, materiais, uniformes
+// etc.). Recarga gera FinancialEntry (receita já recebida); o débito no
+// momento da compra (EduSale com paymentMethod "CREDITO_CANTINA") só
+// movimenta o saldo, sem gerar nova receita (já contabilizada na recarga).
+model EduStudentWallet {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId  String
+  studentId String   @unique
+  student   EduStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  balance   Float    @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions EduWalletTransaction[]
+
+  @@index([clinicId])
+  @@index([tenantId])
+  @@map("edu_student_wallets")
+}
+
+model EduWalletTransaction {
+  id              String           @id @default(cuid())
+  clinicId        String
+  clinic          Clinic           @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  tenantId        String
+  walletId        String
+  wallet          EduStudentWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type            String
+  amount          Float
+  balanceAfter    Float
+  description     String?
+  referenceType   String?
+  referenceId     String?
+  createdById     String?
+  createdAt       DateTime         @default(now())
+
+  @@index([walletId, createdAt])
+  @@index([clinicId])
+  @@index([tenantId])
+  @@map("edu_wallet_transactions")
 }
 
 model EduSession {

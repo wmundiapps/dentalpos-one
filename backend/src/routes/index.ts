@@ -62,8 +62,11 @@ import eduLegalRoutes from './eduLegalRoutes'
 import eduFormRoutes from './eduFormRoutes'
 import eduInstitutionRoutes from './eduInstitutionRoutes'
 import eduCareerRoutes from './eduCareerRoutes'
+import eduContractRoutes from './eduContractRoutes'
+import eduWalletRoutes from './eduWalletRoutes'
 import * as eduAdmissionController from '../controllers/eduAdmissionController'
 import * as eduDocumentController from '../controllers/eduDocumentController'
+import * as eduContractController from '../controllers/eduContractController'
 import * as clinicalDocumentController from '../controllers/clinicalDocumentController'
 import * as clinicalFileController from '../controllers/clinicalFileController'
 import * as treatmentPlanController from '../controllers/treatmentPlanController'
@@ -106,6 +109,11 @@ router.get('/edu/certificates/verify/:code', eduDocumentController.verifyCertifi
 // PUBLIC — inscrição de candidato em processo seletivo do EduMaster
 router.post('/edu/admission-exams/:admissionExamId/apply', eduAdmissionController.publicApply)
 
+// PUBLIC — assinatura eletrônica do contrato de matrícula pelo link
+// enviado ao(à) aluno(a) (token aleatório, sem necessidade de login)
+router.get('/edu/contracts/sign/:token', eduContractController.getContractByToken)
+router.post('/edu/contracts/sign/:token', eduContractController.signContractByToken)
+
 // ======================
 // MIDDLEWARES
 // ======================
@@ -147,6 +155,10 @@ router.use(eduFormRoutes)
 router.use(eduInstitutionRoutes)
 // EduMaster Pro — Vagas e Carreiras (módulo isolado, ver src/routes/eduCareerRoutes.ts)
 router.use(eduCareerRoutes)
+// EduMaster Pro — Contratos de Matrícula Digitais (módulo isolado, ver src/routes/eduContractRoutes.ts)
+router.use(eduContractRoutes)
+// EduMaster Pro — Carteira de Créditos (Cantina) (módulo isolado, ver src/routes/eduWalletRoutes.ts)
+router.use(eduWalletRoutes)
 
 router.get('/reports/:key', requirePermission('dashboard.view'), reportController5787.report)
 

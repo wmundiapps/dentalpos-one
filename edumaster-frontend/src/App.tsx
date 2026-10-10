@@ -3,7 +3,10 @@ import { Alert, Box, Button, CircularProgress, Paper, Typography } from "@mui/ma
 import Layout from "./components/Layout";
 import AppRoutes from "./routes/AppRoutes";
 import Login from "./pages/Login";
+import Landing from "./pages/Landing";
+import { PrivacyPolicy, TermsOfUse } from "./pages/PublicLegal";
 import PasswordReset from "./pages/PasswordReset";
+import SignContract from "./pages/SignContract";
 import {
   clearClientSession,
   demoSalesUrl,
@@ -92,6 +95,23 @@ export default function App() {
 
   if (appPath === "/redefinir-senha") {
     return <PasswordReset />;
+  }
+
+  if (appPath === "/sobre") {
+    return <Landing />;
+  }
+
+  if (appPath === "/termos") {
+    return <TermsOfUse />;
+  }
+
+  if (appPath === "/privacidade") {
+    return <PrivacyPolicy />;
+  }
+
+  if (appPath.startsWith("/assinar-contrato/")) {
+    const token = appPath.slice("/assinar-contrato/".length);
+    return <SignContract token={token} />;
   }
 
   if (session === "invalid") return <Login />;

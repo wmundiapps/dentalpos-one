@@ -35,12 +35,14 @@ import {
   type Certificate,
   type DocumentRequest,
 } from "../services/DocumentApi";
+import { cancelContract, contractSignUrl, listContracts, type EnrollmentContract } from "../services/ContractApi";
 
-type Secao = "solicitacoes" | "certificados";
+type Secao = "solicitacoes" | "certificados" | "contratos";
 
 const SECOES: { value: Secao; label: string }[] = [
   { value: "solicitacoes", label: "Solicitações de documentos" },
   { value: "certificados", label: "Certificados e diplomas" },
+  { value: "contratos", label: "Contratos de matrícula" },
 ];
 
 const STATUS_COLOR: Record<string, "default" | "warning" | "success" | "error"> = {
@@ -66,6 +68,76 @@ export default function Documents() {
 
       {secao === "solicitacoes" && <Solicitacoes students={students} />}
       {secao === "certificados" && <Certificados students={students} />}
+      {secao === "contratos" && <Contratos />}
+    </Box>
+  );
+}
+
+const CONTRACT_STATUS_COLOR: Record<string, "default" | "warning" | "success" | "error"> = {
+  PENDENTE_ASSINATURA: "warning", ASSINADO: "success", CANCELADO: "error",
+};
+
+function Contratos() {
+  const [contracts, setContracts] = useState<EnrollmentContract[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+
+  const reload = async () => {
+    setLoading(true); setError("");
+    try { setContracts(await listContracts()); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao carregar contratos."); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { void reload(); }, []);
+
+  const copyLink = async (contract: EnrollmentContract) => {
+    const url = contractSignUrl(contract.signingToken);
+    try { await navigator.clipboard.writeText(url); setToast("Link de assinatura copiado."); }
+    catch { setToast(url); }
+  };
+
+  const cancel = async (contract: EnrollmentContract) => {
+    try { await cancelContract(contract.id); await reload(); setToast("Contrato cancelado."); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao cancelar contrato."); }
+  };
+
+  return (
+    <Box>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Um contrato é gerado automaticamente para cada matrícula efetivada. Copie o link de assinatura e envie ao(à) aluno(a) — ele(a) confirma a assinatura sem precisar de login.
+      </Alert>
+      <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Contratos de matrícula</Typography>
+
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small">
+          <TableHead><TableRow><TableCell>Aluno</TableCell><TableCell>Nº do contrato</TableCell><TableCell>Curso</TableCell><TableCell>Status</TableCell><TableCell align="right">Ações</TableCell></TableRow></TableHead>
+          <TableBody>
+            {!loading && contracts.length === 0 && <TableRow><TableCell colSpan={5}><Typography color="text.secondary" sx={{ py: 2 }}>Nenhum contrato gerado ainda.</Typography></TableCell></TableRow>}
+            {contracts.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell>{c.student?.fullName || c.studentId}</TableCell>
+                <TableCell>{c.contractNumber}</TableCell>
+                <TableCell>{c.programName}</TableCell>
+                <TableCell><Chip size="small" label={c.status} color={CONTRACT_STATUS_COLOR[c.status] || "default"} /></TableCell>
+                <TableCell align="right">
+                  {c.status === "PENDENTE_ASSINATURA" && (
+                    <>
+                      <Button size="small" onClick={() => void copyLink(c)}>Copiar link de assinatura</Button>
+                      <Button size="small" color="error" onClick={() => void cancel(c)}>Cancelar</Button>
+                    </>
+                  )}
+                  {c.status === "ASSINADO" && <Typography variant="caption" color="text.secondary">Assinado por {c.signedByName}</Typography>}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Snackbar open={Boolean(toast)} autoHideDuration={4000} onClose={() => setToast("")} message={toast} />
     </Box>
   );
 }

@@ -11,6 +11,8 @@ import Admission from "../pages/Admission";
 import Research from "../pages/Research";
 import Legal from "../pages/Legal";
 import Forms from "../pages/Forms";
+import HelpCenter from "../pages/HelpCenter";
+import PlansBilling from "../pages/PlansBilling";
 
 export default function AppRoutes() {
   return (
@@ -27,6 +29,8 @@ export default function AppRoutes() {
       <Route path="/pesquisa" element={<Research />} />
       <Route path="/juridico" element={<Legal />} />
       <Route path="/formularios" element={<Forms />} />
+      <Route path="/ajuda" element={<HelpCenter />} />
+      <Route path="/planos" element={<PlansBilling />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

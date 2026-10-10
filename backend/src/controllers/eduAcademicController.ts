@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { createContractForEnrollment } from './eduContractController'
 import {
   attendanceBulkSchema,
   classEnrollmentSchema,
@@ -464,8 +465,16 @@ export async function createEnrollment(req: AuthRequest, res: Response) {
       finalRow = await prisma.eduEnrollment.update({ where: { id: row.id }, data: { tuitionBillId: bill.id } })
     }
 
+    // Contrato de matrícula digital gerado automaticamente (mesmo padrão de
+    // automação usado para a mensalidade acima).
+    const contract = await createContractForEnrollment({
+      clinicId, tenantId, enrollmentId: row.id, studentId: student.id, studentName: student.fullName,
+      programName: program.name, termName: term.name, enrollmentNumber, monthlyFee: parsed.data.monthlyFee,
+      tuitionDueDay: parsed.data.tuitionDueDay, createdById: actorId
+    })
+
     await audit({ clinicId, tenantId, actorId, action: 'EDU_ENROLLMENT_CREATE', entityType: 'EduEnrollment', entityId: row.id, summary: `Matrícula ${enrollmentNumber} de ${student.fullName} em ${program.name}.` })
-    return res.status(201).json(finalRow)
+    return res.status(201).json({ ...finalRow, contractId: contract.id, contractSigningToken: contract.signingToken })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao efetivar matrícula.' })

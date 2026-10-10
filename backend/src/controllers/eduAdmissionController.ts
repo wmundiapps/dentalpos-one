@@ -2,6 +2,7 @@ import { Response, Request } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { createContractForEnrollment } from './eduContractController'
 import {
   admissionExamSchema,
   applicationSchema,
@@ -246,9 +247,15 @@ export async function convertApplicationToEnrollment(req: AuthRequest, res: Resp
       enrollment = await prisma.eduEnrollment.update({ where: { id: enrollment.id }, data: { tuitionBillId: bill.id } })
     }
 
+    const contract = await createContractForEnrollment({
+      clinicId, tenantId, enrollmentId: enrollment.id, studentId: student.id, studentName: student.fullName,
+      programName: application.admissionExam.program.name, termName: term.name, enrollmentNumber,
+      monthlyFee: parsed.data.monthlyFee, tuitionDueDay: parsed.data.tuitionDueDay, createdById: actorId
+    })
+
     await prisma.eduApplication.update({ where: { id }, data: { status: 'MATRICULADO', enrolledStudentId: student.id } })
     await audit({ clinicId, tenantId, actorId, action: 'EDU_APPLICATION_CONVERT_ENROLLMENT', entityType: 'EduApplication', entityId: id, summary: `${student.fullName} matriculado(a) a partir da inscrição ${id} (${enrollmentNumber}).` })
-    return res.status(201).json({ student, enrollment })
+    return res.status(201).json({ student, enrollment: { ...enrollment, contractId: contract.id, contractSigningToken: contract.signingToken } })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao efetivar matrícula a partir da inscrição.' })

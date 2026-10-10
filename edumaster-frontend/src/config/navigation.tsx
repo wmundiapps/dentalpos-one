@@ -2,8 +2,10 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import DescriptionIcon from "@mui/icons-material/Description";
 import EventIcon from "@mui/icons-material/Event";
 import GroupsIcon from "@mui/icons-material/Groups";
+import HelpOutlineIcon from "@mui/icons-material/HelpCenter";
 import InsightsIcon from "@mui/icons-material/Insights";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import SchoolIcon from "@mui/icons-material/School";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -70,6 +72,7 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       item("Protocolo e certificados", "/documentos?secao=solicitacoes", <DescriptionIcon />),
       item("Certificados e diplomas", "/documentos?secao=certificados", <DescriptionIcon />),
+      item("Contratos de matrícula", "/documentos?secao=contratos", <AssignmentIcon />),
     ],
   },
   {
@@ -91,6 +94,7 @@ export const navigationGroups: NavigationGroup[] = [
       item("Itens e estoque", "/suprimentos?secao=itens", <WorkIcon />),
       item("Pedidos de compra", "/suprimentos?secao=compras", <WorkIcon />),
       item("Vendas", "/suprimentos?secao=vendas", <WorkIcon />),
+      item("Carteira de créditos (cantina)", "/suprimentos?secao=carteira", <PaymentsIcon />),
     ],
   },
   {
@@ -139,6 +143,8 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       item("Identidade e marca", "/configuracoes?secao=identidade", <SettingsIcon />),
       item("Unidades e polos", "/configuracoes?secao=unidades", <SchoolIcon />),
+      item("Planos e cobrança", "/planos", <PaymentsIcon />),
+      item("Central de ajuda", "/ajuda", <HelpOutlineIcon />),
     ],
   },
 ];

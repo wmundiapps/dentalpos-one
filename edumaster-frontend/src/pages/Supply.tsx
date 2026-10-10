@@ -40,13 +40,15 @@ import {
   type Sale,
   type SupplyItem,
 } from "../services/SupplyApi";
+import { adjustWallet, getStudentWallet, rechargeWallet, type Wallet } from "../services/WalletApi";
 
-type Secao = "itens" | "compras" | "vendas";
+type Secao = "itens" | "compras" | "vendas" | "carteira";
 
 const SECOES: { value: Secao; label: string }[] = [
   { value: "itens", label: "Itens e estoque" },
   { value: "compras", label: "Pedidos de compra" },
   { value: "vendas", label: "Vendas" },
+  { value: "carteira", label: "Carteira de créditos (cantina)" },
 ];
 
 export default function Supply() {
@@ -64,6 +66,7 @@ export default function Supply() {
       {secao === "itens" && <Itens />}
       {secao === "compras" && <Compras />}
       {secao === "vendas" && <Vendas />}
+      {secao === "carteira" && <Carteira />}
     </Box>
   );
 }
@@ -354,7 +357,11 @@ function Vendas() {
             <MenuItem value="PIX">PIX</MenuItem>
             <MenuItem value="DINHEIRO">Dinheiro</MenuItem>
             <MenuItem value="CARTAO">Cartão</MenuItem>
+            <MenuItem value="CREDITO_CANTINA">Créditos da cantina (exige aluno)</MenuItem>
           </TextField>
+          {form.paymentMethod === "CREDITO_CANTINA" && !form.studentId && (
+            <Alert severity="warning">Selecione o aluno acima para debitar da carteira de créditos.</Alert>
+          )}
           <TextField required label="Descrição do item" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
             <TextField label="Quantidade" type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })} />
@@ -364,6 +371,131 @@ function Vendas() {
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
           <Button variant="contained" disabled={saving} onClick={() => void save()}>{saving ? "Salvando…" : "Registrar"}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={Boolean(toast)} autoHideDuration={3000} onClose={() => setToast("")} message={toast} />
+    </Box>
+  );
+}
+
+function Carteira() {
+  const [students, setStudents] = useState<EduStudent[]>([]);
+  const [studentId, setStudentId] = useState("");
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [toast, setToast] = useState("");
+
+  const [rechargeOpen, setRechargeOpen] = useState(false);
+  const [rechargeAmount, setRechargeAmount] = useState(50);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustAmount, setAdjustAmount] = useState(0);
+  const [adjustNotes, setAdjustNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { listStudents().then(setStudents).catch(() => {}); }, []);
+
+  const loadWallet = async (id: string) => {
+    if (!id) { setWallet(null); return; }
+    setLoading(true); setError("");
+    try { setWallet(await getStudentWallet(id)); }
+    catch (e) { setError(e instanceof Error ? e.message : "Erro ao carregar carteira."); }
+    finally { setLoading(false); }
+  };
+
+  const selectStudent = (id: string) => { setStudentId(id); void loadWallet(id); };
+
+  const doRecharge = async () => {
+    if (rechargeAmount <= 0) { setError("Informe um valor maior que zero."); return; }
+    setSaving(true); setError("");
+    try {
+      await rechargeWallet(studentId, { amount: rechargeAmount });
+      setRechargeOpen(false);
+      setRechargeAmount(50);
+      await loadWallet(studentId);
+      setToast("Créditos recarregados.");
+    } catch (e) { setError(e instanceof Error ? e.message : "Erro ao recarregar créditos."); }
+    finally { setSaving(false); }
+  };
+
+  const doAdjust = async () => {
+    if (adjustAmount === 0 || !adjustNotes.trim()) { setError("Informe o valor do ajuste (positivo ou negativo) e o motivo."); return; }
+    setSaving(true); setError("");
+    try {
+      await adjustWallet(studentId, { amount: adjustAmount, notes: adjustNotes });
+      setAdjustOpen(false);
+      setAdjustAmount(0);
+      setAdjustNotes("");
+      await loadWallet(studentId);
+      setToast("Carteira ajustada.");
+    } catch (e) { setError(e instanceof Error ? e.message : "Erro ao ajustar carteira."); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Box>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Recarregue créditos para o aluno usar na cantina. A recarga gera receita no Financeiro; a compra paga com créditos só debita o saldo (já contabilizado na recarga), sem duplicar a receita.
+      </Alert>
+
+      <TextField select label="Aluno" value={studentId} onChange={(e) => selectStudent(e.target.value)} sx={{ maxWidth: 360, mb: 3 }} fullWidth>
+        <MenuItem value="">Selecione um aluno…</MenuItem>
+        {students.map((s) => <MenuItem key={s.id} value={s.id}>{s.fullName}</MenuItem>)}
+      </TextField>
+
+      {loading && <Typography color="text.secondary">Carregando…</Typography>}
+
+      {studentId && wallet && !loading && (
+        <Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, flexWrap: "wrap" }}>
+            <Chip color={wallet.balance > 0 ? "success" : "default"} label={`Saldo: R$ ${wallet.balance.toFixed(2)}`} sx={{ fontSize: 16, py: 2.5, fontWeight: 800 }} />
+            <Button variant="contained" onClick={() => setRechargeOpen(true)}>Recarregar créditos</Button>
+            <Button variant="outlined" onClick={() => setAdjustOpen(true)}>Ajuste manual</Button>
+          </Box>
+
+          <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Extrato</Typography>
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableHead><TableRow><TableCell>Data</TableCell><TableCell>Tipo</TableCell><TableCell>Valor</TableCell><TableCell>Saldo após</TableCell><TableCell>Descrição</TableCell></TableRow></TableHead>
+              <TableBody>
+                {wallet.transactions.length === 0 && <TableRow><TableCell colSpan={5}><Typography color="text.secondary" sx={{ py: 2 }}>Nenhuma movimentação ainda.</Typography></TableCell></TableRow>}
+                {wallet.transactions.map((t) => (
+                  <TableRow key={t.id}>
+                    <TableCell>{new Date(t.createdAt).toLocaleString("pt-BR")}</TableCell>
+                    <TableCell><Chip size="small" label={t.type} color={t.type === "DEBITO" ? "error" : "success"} /></TableCell>
+                    <TableCell>{t.amount >= 0 ? "+" : ""}R$ {t.amount.toFixed(2)}</TableCell>
+                    <TableCell>R$ {t.balanceAfter.toFixed(2)}</TableCell>
+                    <TableCell>{t.description || "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
+
+      <Dialog open={rechargeOpen} onClose={() => setRechargeOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Recarregar créditos</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          <TextField label="Valor (R$)" type="number" value={rechargeAmount} onChange={(e) => setRechargeAmount(Number(e.target.value))} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRechargeOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={() => void doRecharge()}>{saving ? "Salvando…" : "Recarregar"}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={adjustOpen} onClose={() => setAdjustOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Ajuste manual de saldo</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          <TextField label="Valor (use negativo para debitar)" type="number" value={adjustAmount} onChange={(e) => setAdjustAmount(Number(e.target.value))} />
+          <TextField label="Motivo" value={adjustNotes} onChange={(e) => setAdjustNotes(e.target.value)} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAdjustOpen(false)}>Cancelar</Button>
+          <Button variant="contained" disabled={saving} onClick={() => void doAdjust()}>{saving ? "Salvando…" : "Confirmar"}</Button>
         </DialogActions>
       </Dialog>
 
