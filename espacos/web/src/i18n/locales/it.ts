@@ -1066,6 +1066,7 @@ const it: Dict = {
   'form.packageDiscountHelp': 'Optional, up to {max}%. Applies to packages of 2 weeks or more (up to 3 days a week, for up to 30 days).',
   'val.package_max_days': 'A package can last at most {max} days.',
   'val.package_max_weekdays': 'Choose at most {max} weekdays in a package.',
+  'admin.tabProspecting': 'Prospecting',
 };
 
 export default it;

@@ -1068,6 +1068,7 @@ const ptBR = {
   'form.packageDiscountHelp': 'Opcional, até {max}%. Vale para quem reserva um pacote de 2 semanas ou mais (até 3 dias por semana, por até 30 dias).',
   'val.package_max_days': 'O pacote pode durar no máximo {max} dias.',
   'val.package_max_weekdays': 'No pacote, escolha no máximo {max} dias da semana.',
+  'admin.tabProspecting': 'Captação',
 };
 
 export default ptBR;

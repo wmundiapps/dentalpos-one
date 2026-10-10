@@ -274,7 +274,7 @@ test('cron protegido por segredo', async () => {
   process.env.CRON_SECRET = 's3cret';
   const r = await fetch(`${base}/cron/tick`, { headers: { Authorization: 'Bearer s3cret' } });
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'cart', 'documents', 'email', 'mp_tokens', 'packages', 'push', 'security', 'verifications']);
+  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'cart', 'documents', 'email', 'mp_tokens', 'packages', 'prospecting', 'push', 'security', 'verifications']);
   delete process.env.CRON_SECRET;
 });
 
@@ -1147,5 +1147,65 @@ test('pacote recorrente: até 3 dias por semana, pago de uma vez; aviso de renov
     assert.ok(n!.link.includes(`de=${addDays(last, 1)}`), 'próximo pacote começa depois do último dia');
   } finally {
     P.setGatewayOverride();
+  }
+});
+
+test('captação: Receita + Google Maps, sequência de e-mails em horário comercial, clique quente e descadastro (LGPD)', async () => {
+  const Pr = await import('../src/prospecting.js');
+  await pool.query(`INSERT INTO "CompanyRecord" ("cnpj","basico","tradeName","cnae","uf","cityCode","city","cityNorm","email","phone","refMonth") VALUES
+    ('11111111000101','11111111','Clínica Sorriso','8630504','PR','7691','MARINGA','maringa','contato@sorriso.com.br','4432220000','2026-09'),
+    ('22222222000102','22222222','Odonto Pessoal','8630504','PR','7691','MARINGA','maringa','dono@gmail.com',null,'2026-09'),
+    ('33333333000103','33333333','Padaria','1091102','PR','7691','MARINGA','maringa','pao@padaria.com.br',null,'2026-09')`);
+  const found = await Pr.searchReceita({ segment: 'odonto', city: 'Maringá', uf: 'PR' });
+  assert.deepEqual(found.map((f) => f.name).sort(), ['Clínica Sorriso', 'Odonto Pessoal'], 'só o segmento e a cidade pedidos');
+  assert.equal(found.find((f) => f.name === 'Odonto Pessoal')!.webmail, true);
+  assert.deepEqual(await Pr.addProspects(found), { added: 2, skipped: 0 });
+  assert.deepEqual(await Pr.addProspects(found), { added: 0, skipped: 2 }, 'não duplica');
+
+  // Google Maps (Places API oficial) com até 60 resultados
+  process.env.GOOGLE_PLACES_API_KEY = 'k';
+  Pr.setPlacesFetch((async () => new Response(JSON.stringify({ places: [{ id: 'g1', displayName: { text: 'Coworking Centro' }, formattedAddress: 'Av. Brasil, Maringá', nationalPhoneNumber: '(44) 3000-0000' }] }))) as typeof fetch);
+  try {
+    const maps = await Pr.searchMaps({ segment: 'coworking', city: 'Maringá' });
+    assert.equal(maps[0].name, 'Coworking Centro');
+    assert.equal(maps[0].phone, '(44) 3000-0000');
+  } finally {
+    delete process.env.GOOGLE_PLACES_API_KEY;
+    Pr.setPlacesFetch();
+  }
+
+  const sent: Array<{ to: string; subject: string; text: string; headers?: Record<string, string> }> = [];
+  M.setMailSender(async (m) => { sent.push(m); });
+  try {
+    const monday14h = new Date('2026-10-12T17:00:00Z'); // segunda, 14h em Brasília
+    assert.equal((await Pr.runSequence({ now: monday14h })).sent, 0, 'desligada por padrão');
+    await Pr.setConfig({ sending_enabled: true, daily_limit: 10 });
+    assert.equal((await Pr.runSequence({ now: new Date('2026-10-12T02:00:00Z') })).sent, 0, 'fora do horário comercial');
+    const r = await Pr.runSequence({ now: monday14h });
+    assert.equal(r.sent, 1, 'e-mail pessoal (gmail) fica de fora por padrão');
+    const mail = sent.find((m) => m.to === 'contato@sorriso.com.br')!;
+    assert.ok(mail.headers?.['List-Unsubscribe'], 'descadastro em um clique');
+    assert.match(mail.text, /cadastro público/);
+    assert.equal((await Pr.runSequence({ now: monday14h })).sent, 0, 'passo 2 só depois de 3 dias');
+    assert.equal((await Pr.runSequence({ now: new Date('2026-10-15T17:00:00Z') })).sent, 1, 'passo 2 após 3 dias');
+
+    // Clique: vira lead quente e vai para a página de anunciantes
+    const tok = mail.text.match(/\/p\/c\/([\w-]+)\?s=1/)![1];
+    const click = await fetch(`${base}/p/c/${tok}?s=1`, { redirect: 'manual' });
+    assert.equal(click.status, 302);
+    assert.match(click.headers.get('location')!, /\/anuncie\?utm_source=prospeccao/);
+    assert.equal((await one<{ status: string }>(pool, 'SELECT status FROM prospects WHERE token = $1', [tok]))!.status, 'hot');
+
+    // Descadastro: sai da lista e entra na lista de supressão
+    const page = await fetch(`${base}/p/u/${tok}`);
+    assert.match(await page.text(), /não vai mais receber/);
+    assert.ok(await one(pool, "SELECT 1 FROM prospect_suppression WHERE email = 'contato@sorriso.com.br'"));
+    sent.length = 0;
+    await Pr.setConfig({ send_to_webmail: true });
+    await Pr.runSequence({ now: new Date('2026-10-26T17:00:00Z') });
+    assert.ok(!sent.some((m) => m.to === 'contato@sorriso.com.br'), 'descadastrado não recebe mais');
+  } finally {
+    M.setMailSender();
+    await Pr.setConfig({ sending_enabled: false, send_to_webmail: false });
   }
 });

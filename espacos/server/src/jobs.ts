@@ -12,12 +12,13 @@ import { encryptLegacyDocuments, purgeExpiredDocuments, resumePendingVerificatio
 
 import { pruneSecurity } from './security.js';
 import { sendPackageRenewals } from './packages.js';
+import { runSequence } from './prospecting.js';
 
 export async function runJobs() {
   const out: Record<string, string> = {};
   for (const [name, job] of [['bookings', () => tick()], ['verifications', async () => { await resumePendingVerifications(); await identityJobs(); }], ['assistant', () => emailIdleConversations()], ['cart', async () => { await sendCartReminders(); await sendVerifyReminders(); }], ['email', () => flushEmailQueue()], ['push', () => flushPushQueue()],
     ['documents', async () => { await encryptLegacyDocuments(); await purgeExpiredDocuments(); await rotateDocumentKey(); }],
-    ['mp_tokens', async () => { if (marketplaceEnabled()) await refreshExpiringTokens(); }], ['security', () => pruneSecurity()], ['packages', () => sendPackageRenewals()]] as const) {
+    ['mp_tokens', async () => { if (marketplaceEnabled()) await refreshExpiringTokens(); }], ['security', () => pruneSecurity()], ['packages', () => sendPackageRenewals()], ['prospecting', () => runSequence()]] as const) {
     try { await job(); out[name] = 'ok'; } catch (e) { out[name] = (e as Error).message; console.error(`[job ${name}]`, e); }
   }
   return out;
