@@ -1133,6 +1133,8 @@ model HREmployee {
   vacations           HRVacation[]
   documents           HRDocument[]
   disciplinaryActions HRDisciplinaryAction[]
+  timePunches         HRTimePunch[]
+  absenceRequests     HRAbsenceRequest[]
 
   @@unique([clinicId, employeeCode])
   @@index([clinicId, status])
@@ -1158,6 +1160,51 @@ model HRAttendance {
   @@index([clinicId, date])
   @@index([employeeId, date])
   @@index([tenantId])
+}
+
+model HRTimePunch {
+  id              String     @id @default(cuid())
+  clinicId        String
+  tenantId        String
+  employeeId      String
+  employee        HREmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  userId          String?
+  kind            String
+  punchedAt       DateTime   @default(now()) @db.Timestamp(3)
+  ip              String?
+  latitude        Float?
+  longitude       Float?
+  accuracyMeters  Float?
+  insideWorkplace Boolean?
+  workplaceNote   String?
+  method          String     @default("PASSWORD")
+  userAgent       String?
+  createdAt       DateTime   @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, punchedAt])
+  @@index([employeeId, punchedAt])
+}
+
+model HRAbsenceRequest {
+  id           String     @id @default(cuid())
+  clinicId     String
+  tenantId     String
+  employeeId   String
+  employee     HREmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  userId       String?
+  absenceDate  String
+  type         String
+  reason       String
+  attachments  Json?
+  status       String     @default("PENDENTE")
+  decisionNote String?
+  decidedBy    String?
+  decidedAt    DateTime?  @db.Timestamp(3)
+  createdAt    DateTime   @default(now()) @db.Timestamp(3)
+  updatedAt    DateTime   @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, status])
+  @@index([employeeId, absenceDate])
 }
 
 model HRPayrollEntry {

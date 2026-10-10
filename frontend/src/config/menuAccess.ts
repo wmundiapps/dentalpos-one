@@ -34,8 +34,11 @@ export function moduleOfPath(pathname: string): string | null {
   return hit ? hit[1] : null;
 }
 
+// Telas pessoais: todo colaborador usa (cada um só vê os próprios dados).
+export const ALWAYS_ALLOWED = ["/meu-ponto"];
+
 export function itemAllowed(item: Pick<NavigationItem, "path">, access: MenuAccess | null): boolean {
-  if (!access || access.all) return true;
+  if (!access || access.all || ALWAYS_ALLOWED.includes(item.path.split("?")[0])) return true;
   if (access.menuCodes.includes(menuCode(item.path))) return true;
   const module = moduleOfPath(item.path.split("?")[0]);
   // Item sem módulo (ex.: painel inicial) fica livre, a não ser que o departamento já tenha sido configurado.
@@ -45,7 +48,7 @@ export function itemAllowed(item: Pick<NavigationItem, "path">, access: MenuAcce
 
 /** Vale para a rota aberta no navegador (não só para o menu): quem digita o endereço também esbarra aqui. O servidor continua protegendo os dados. */
 export function pathAllowed(pathname: string, access: MenuAccess | null): boolean {
-  if (!access || access.all || pathname === "/") return true;
+  if (!access || access.all || pathname === "/" || ALWAYS_ALLOWED.includes(pathname)) return true;
   const sameRoute = navigationItems.filter((i) => i.path.split("?")[0] === pathname);
   if (sameRoute.length) return sameRoute.some((i) => itemAllowed(i, access));
   const module = moduleOfPath(pathname);

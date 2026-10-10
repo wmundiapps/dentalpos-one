@@ -38,6 +38,7 @@ import * as clinicalController from '../controllers/clinicalController'
 import * as laboratoryController from '../controllers/laboratoryController'
 import * as designController from '../controllers/designController'
 import * as hrController from '../controllers/hrController'
+import * as hrTime from '../controllers/hrTimeController'
 import * as revahController from '../controllers/revahController'
 import * as salesController from '../controllers/salesController'
 import * as platformController from '../controllers/platformController'
@@ -376,6 +377,28 @@ router.post('/hr/payroll-close', requirePermission('hr.sensitive'), hrController
 router.post('/hr/vacations', requirePermission('hr.edit'), hrController.createVacation)
 router.post('/hr/documents', requirePermission('hr.sensitive'), hrController.createDocument)
 router.post('/hr/disciplinary-actions', requirePermission('hr.sensitive'), hrController.createDiscipline)
+// Ponto eletrônico e justificativas: o funcionário só acessa os próprios dados (sem permissão de RH).
+router.get('/hr/me/today', hrTime.meToday)
+router.post('/hr/me/punch', hrTime.mePunch)
+router.get('/hr/me/month', hrTime.meMonth)
+router.get('/hr/me/absence-requests', hrTime.meRequests)
+router.get('/hr/me/absence-requests/:id', hrTime.meRequest)
+router.post('/hr/me/absence-requests', hrTime.meCreateRequest)
+// RH, administração e gestor.
+router.get('/hr/timeclock/settings', requirePermission('hr.view'), hrTime.settingsGet)
+router.put('/hr/timeclock/settings', requirePermission('hr.edit'), hrTime.settingsSave)
+router.get('/hr/timesheet', requirePermission('hr.view'), hrTime.timesheet)
+router.get('/hr/timesheet/:employeeId', requirePermission('hr.view'), hrTime.employeeMonth)
+router.get('/hr/payroll-suggestions', requirePermission('hr.sensitive'), hrTime.suggestions)
+router.get('/hr/absence-requests', requirePermission('hr.view'), hrTime.requests)
+router.get('/hr/absence-requests/:id', requirePermission('hr.view'), hrTime.request)
+router.post('/hr/absence-requests/:id/decide', requirePermission('hr.edit'), hrTime.decide)
+router.get('/hr/attendance', requirePermission('hr.view'), hrTime.listAttendance)
+router.get('/hr/payroll-entries', requirePermission('hr.sensitive'), hrTime.listPayrollEntries)
+router.get('/hr/payroll-closings', requirePermission('hr.sensitive'), hrTime.listClosings)
+router.get('/hr/vacations', requirePermission('hr.view'), hrTime.listVacations)
+router.get('/hr/documents', requirePermission('hr.sensitive'), hrTime.listDocuments)
+router.get('/hr/disciplinary-actions', requirePermission('hr.sensitive'), hrTime.listDiscipline)
 
 // ======================
 // REVAH / MARKETING / SALES
