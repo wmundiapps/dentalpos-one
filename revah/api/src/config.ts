@@ -56,6 +56,8 @@ export const config = {
     termsVersion: process.env.LEADS_TERMS_VERSION || '2026-09-v1',
     // Convites por WhatsApp a partir da planilha do Leads: limite diário por cliente (o WhatsApp bloqueia números que convidam demais).
     inviteDailyCap: Number(process.env.LEADS_INVITE_DAILY_CAP || 50),
+    // E-mails de campanha para contatos vindos da captação (frios): limite diário por cliente, para não queimar a caixa dele.
+    emailDailyCap: Number(process.env.LEADS_EMAIL_DAILY_CAP || 50),
     // Janela dos convites no fuso do cliente (início-fim, horas inteiras).
     inviteHours: (process.env.LEADS_INVITE_HOURS || '8-21').split('-').map(Number) as [number, number],
     // Dados abertos de CNPJ (compartilhamento público no Nextcloud da Receita Federal).
