@@ -1,5 +1,7 @@
+/** Botão "ir resolver" que o servidor manda junto com alguns erros. */
+export type ErrorAction = { to: string; label: string };
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, public params?: unknown) {
+  constructor(public status: number, public code: string, public params?: unknown, public action?: ErrorAction) {
     super(code);
   }
 }
@@ -24,8 +26,14 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
   });
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data.error ?? 'internal', data.params);
+  if (!res.ok) throw new ApiError(res.status, data.error ?? 'internal', data.params, safeAction(data.action));
   return data as T;
+}
+
+/** Só rotas internas do site (nunca um link externo vindo da resposta). */
+function safeAction(a: unknown): ErrorAction | undefined {
+  const x = a as ErrorAction | undefined;
+  return x && typeof x.to === 'string' && /^\/(?!\/)/.test(x.to) && typeof x.label === 'string' ? x : undefined;
 }
 
 /** Envio de arquivos (multipart). O navegador define o Content-Type com o boundary. */

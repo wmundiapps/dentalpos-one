@@ -1044,6 +1044,8 @@ const it: Dict = {
   'auth.twoFactorConfirm': 'Sign in',
   'auth.twoFactorResend': 'Resend code',
   'auth.twoFactorResent': 'New code sent. Check your spam folder too.',
+  'action.license': 'Send my professional license',
+  'action.verifyEmail': 'Confirm my email',
   'auth.twoFactorAppText': 'Open your authenticator app and enter the 6-digit SpaceHour code. Lost your phone? Enter one of your backup codes.',
   'profile.totpTitle': 'Authenticator app (more secure)',
   'profile.totpText': 'With Google Authenticator, Microsoft Authenticator or Authy, the code changes every 30 seconds and works even offline. Once on, it replaces the email code.',

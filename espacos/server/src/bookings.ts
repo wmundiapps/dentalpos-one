@@ -145,7 +145,7 @@ export function createBooking(guest: User, input: CreateBookingInput): Promise<B
         if (guest.licenseStatus !== 'pending') guest.licenseStatus = 'needs_review';
         await repo.updateUser(tx, guest);
       } else if (!['pending', 'needs_review'].includes(guest.licenseStatus)) {
-        throw new HttpError(422, 'license_required');
+        throw new HttpError(422, 'license_required', undefined, { to: '/perfil#registro', label: 'license' });
       }
     }
     if (!isLaunched(listing.countryCode)) throw new HttpError(422, 'country_not_supported');

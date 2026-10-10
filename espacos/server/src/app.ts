@@ -103,7 +103,7 @@ export function createApp() {
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found')));
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    if (err instanceof HttpError) return res.status(err.status).json({ error: err.code, params: err.params });
+    if (err instanceof HttpError) return res.status(err.status).json({ error: err.code, params: err.params, ...(err.action ? { action: err.action } : {}) });
     if (err instanceof ZodError) return res.status(422).json({ error: 'validation', params: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })) });
     const pgErr = err as { code?: string; constraint?: string };
     if (pgErr.code === '23505' && pgErr.constraint === 'users_email_key') return res.status(409).json({ error: 'email_in_use' });

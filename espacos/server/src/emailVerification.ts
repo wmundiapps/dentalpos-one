@@ -85,7 +85,7 @@ async function markVerified(userId: string, origin: Origin) {
 }
 
 export function assertEmailVerified(user: User) {
-  if (!user.emailVerifiedAt) throw new HttpError(403, 'email_not_verified');
+  if (!user.emailVerifiedAt) throw new HttpError(403, 'email_not_verified', undefined, { to: '/perfil', label: 'verifyEmail' });
 }
 
 function escape(s: string) {

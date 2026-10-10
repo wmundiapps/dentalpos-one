@@ -1144,6 +1144,16 @@ test('2 etapas por aplicativo autenticador: QR, código sem reuso, 8 códigos re
   }
 });
 
+test('erro com botão "ir resolver": o servidor diz para onde ir', async () => {
+  const u = await register('acao@example.com', false);
+  const form = new FormData();
+  form.set('fullName', 'Dra. Ação'); form.set('body', 'CRO'); form.set('number', '12345');
+  form.set('document', new Blob([PNG], { type: 'image/png' }), 'doc.png');
+  const r = await fetch(`${base}/me/license`, { method: 'POST', headers: { Authorization: `Bearer ${u.token}` }, body: form });
+  assert.equal(r.status, 403);
+  assert.deepEqual(await r.json(), { error: 'email_not_verified', action: { to: '/perfil', label: 'verifyEmail' } });
+});
+
 test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo impróprio barrado e cabeçalhos de proteção', async () => {
   const S = await import('../src/security.js');
   const post = (path: string, body: unknown, token?: string) => fetch(`${base}${path}`, { method: 'POST',

@@ -1046,6 +1046,8 @@ const ptBR = {
   'auth.twoFactorConfirm': 'Entrar',
   'auth.twoFactorResend': 'Reenviar código',
   'auth.twoFactorResent': 'Código novo enviado. Veja também o spam.',
+  'action.license': 'Enviar meu registro profissional',
+  'action.verifyEmail': 'Confirmar meu e-mail',
   'auth.twoFactorAppText': 'Abra o aplicativo autenticador e digite o código de 6 números do SpaceHour. Perdeu o celular? Digite um dos códigos reserva.',
   'profile.totpTitle': 'Aplicativo autenticador (mais seguro)',
   'profile.totpText': 'Com o Google Authenticator, Microsoft Authenticator ou Authy, o código muda a cada 30 segundos e funciona até sem internet. Ativado, ele substitui o código por e-mail.',

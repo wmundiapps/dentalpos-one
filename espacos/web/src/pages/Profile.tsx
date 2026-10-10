@@ -155,7 +155,7 @@ function LicenseSection({ onDone, onSent }: { onDone: () => Promise<void>; onSen
   }
 
   return (
-    <section className="panel">
+    <section className="panel" id="registro">
       <h2>{t('profile.license')} {status === 'approved' && <span className="badge">✅ {t('profile.verified')}</span>}</h2>
       {me!.professionalLicense && <p>{me!.professionalLicense.body} · {me!.professionalLicense.number} {me!.professionalLicense.region}</p>}
       <p className={`small ${status === 'rejected' ? 'errors' : ''}`}>{t('profile.licenseStatus', { status: t(`license.status.${status}` as DictKey) })}</p>
