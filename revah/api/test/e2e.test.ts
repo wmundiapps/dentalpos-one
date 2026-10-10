@@ -67,6 +67,9 @@ test('teste de 14 dias: forma de pagamento (Asaas), 20 contatos por campanha, co
   const { token, tenant } = await register('trial@revah.test', { phone: '44911112222' })
   await simulatedWhatsapp(token)
 
+  const dirty = await request(app).post('/campaigns').set(auth(token)).send({ name: 'Ruim', channel: 'WHATSAPP', template: 'Veja meus nudes', audience: { manual: manual(1) } })
+  assert.equal(dirty.status, 400)
+  assert.equal(dirty.body.code, 'CONTENT_BLOCKED')
   const c0 = await request(app).post('/campaigns').set(auth(token)).send({ name: 'Antes', channel: 'WHATSAPP', template: 'Oi', audience: { manual: manual(2) } })
   const blocked0 = await request(app).post(`/campaigns/${c0.body.id}/launch`).set(auth(token))
   assert.equal(blocked0.status, 402)

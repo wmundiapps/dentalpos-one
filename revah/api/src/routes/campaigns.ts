@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { assertCleanText } from '../lib/contentFilter'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { ah, badRequest, conflict, notFound } from '../lib/errors'
@@ -42,6 +43,7 @@ r.post(
   '/campaigns',
   ah(async (req: AuthedRequest, res) => {
     const b = CampaignSchema.parse(req.body)
+    assertCleanText({ Mensagem: b.template, Assunto: b.subject })
     if (['INSTAGRAM', 'MESSENGER'].includes(b.channel)) throw badRequest('Instagram e Messenger só permitem responder conversas iniciadas pelo cliente. Use automações/inbox.')
     if (b.channel === 'EMAIL' && !b.subject) throw badRequest('Informe o assunto do e-mail.')
     const c = await prisma.campaign.create({
@@ -82,6 +84,7 @@ r.patch(
     if (!c) throw notFound('Campanha não encontrada.')
     if (c.status !== 'DRAFT') throw conflict('Só é possível editar campanhas em rascunho.')
     const b = CampaignSchema.partial().parse(req.body)
+    assertCleanText({ Mensagem: b.template, Assunto: b.subject })
     const updated = await prisma.campaign.update({
       where: { id: c.id },
       data: {

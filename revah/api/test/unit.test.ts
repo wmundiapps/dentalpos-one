@@ -110,3 +110,15 @@ test('captação: celular antigo sem o 9 e MEI', async () => {
   assert.equal(isMeiNature('213-5'), true)
   assert.equal(isMeiNature('2062'), false)
 })
+
+test('filtro de texto das campanhas: recusa conteúdo adulto e link de executável, aceita marketing normal', async () => {
+  const { checkText } = await import('../src/lib/contentFilter')
+  assert.equal(checkText('Veja meus nudes'), 'improprio')
+  assert.equal(checkText('P0rn0 grátis'), 'improprio')
+  assert.equal(checkText('Garota  de programa'), 'improprio')
+  assert.equal(checkText('Baixe aqui: https://x.com/promo.exe'), 'executavel')
+  assert.equal(checkText('Instale o app https://site.com/app.apk?v=2 agora'), 'executavel')
+  assert.equal(checkText('Consulta de saúde sexual com 20% off. Ligue (44) 99999-1111 ou acesse https://clinica.com.br'), null)
+  assert.equal(checkText('Disputa de preços, reputação e computador novo'), null)
+  assert.equal(checkText('Baixe o PDF: https://site.com.br/catalogo.pdf'), null)
+})

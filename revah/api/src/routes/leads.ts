@@ -10,6 +10,7 @@ import { companyBaseStatus, findSegments } from '../services/leads/providers'
 import { linkedinAuthUrl, linkedinAvailable, syncLinkedinSource } from '../services/leads/linkedin'
 import { config } from '../config'
 import { badRequest, notFound } from '../lib/errors'
+import { assertCleanText } from '../lib/contentFilter'
 
 const r = Router()
 
@@ -115,12 +116,14 @@ r.get('/leads/audiences', ah(async (req: AuthedRequest, res) => {
 
 r.post('/leads/audiences', requireRole('OWNER', 'ADMIN'), ah(async (req: AuthedRequest, res) => {
   const b = AudienceSchema.parse(req.body)
+  assertCleanText({ 'Texto de convite': b.inviteText })
   if ((await prisma.leadAudience.count({ where: { tenantId: req.tenant.id } })) >= 50) throw badRequest('Limite de 50 públicos salvos.')
   res.status(201).json(await prisma.leadAudience.create({ data: { ...b, uf: b.uf?.toUpperCase() || null, tenantId: req.tenant.id } }))
 }))
 
 r.put('/leads/audiences/:id', requireRole('OWNER', 'ADMIN'), ah(async (req: AuthedRequest, res) => {
   const b = AudienceSchema.parse(req.body)
+  assertCleanText({ 'Texto de convite': b.inviteText })
   const out = await prisma.leadAudience.updateMany({ where: { id: req.params.id, tenantId: req.tenant.id }, data: { ...b, uf: b.uf?.toUpperCase() || null } })
   if (!out.count) throw notFound()
   res.json(await prisma.leadAudience.findUnique({ where: { id: req.params.id } }))
