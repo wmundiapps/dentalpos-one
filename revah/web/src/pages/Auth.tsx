@@ -23,6 +23,42 @@ function AuthShell({ title, subtitle, children, footer }: { title: string; subti
   )
 }
 
+type LoginResult = Session | { twoFactorRequired: true; ticket: string }
+
+// Segundo passo do login: código de 6 números do aplicativo autenticador ou um código reserva.
+function TwoFactorStep({ ticket, onDone, onRestart }: { ticket: string; onDone: (s: Session & { usedBackupCode?: boolean; backupCodesLeft?: number }) => void; onRestart: () => void }) {
+  const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      onDone(await post('/auth/2fa/login', { ticket, code: code.trim() }))
+    } catch (err: any) {
+      if (err?.code === 'TWO_FACTOR_EXPIRED') onRestart()
+      setError(errorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+  return (
+    <form onSubmit={submit} className="stack">
+      {error && <Alert tone="red">{error}</Alert>}
+      <Field label="Código do aplicativo autenticador" hint="6 números que mudam a cada 30 segundos. Sem o celular? Use um dos códigos reserva.">
+        <input autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={9} required value={code} onChange={(e) => setCode(e.target.value)} />
+      </Field>
+      <Button variant="primary" type="submit" loading={loading} className="btn-block">
+        Confirmar
+      </Button>
+      <button type="button" className="link-btn center small" onClick={onRestart}>
+        Voltar e entrar com outra conta
+      </button>
+    </form>
+  )
+}
+
 export function Login() {
   const { setSession } = useSession()
   const navigate = useNavigate()
@@ -31,20 +67,39 @@ export function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [ticket, setTicket] = useState('')
+
+  function finish(s: Session & { usedBackupCode?: boolean; backupCodesLeft?: number }) {
+    setSession(s)
+    if (s.usedBackupCode) alert(`Você entrou com um código reserva. Restam ${s.backupCodesLeft ?? 0}. Gere novos em Configurações → Segurança.`)
+    navigate((location.state as any)?.from || '/', { replace: true })
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
     try {
-      const s = await post<Session>('/auth/login', { email, password })
-      setSession(s)
-      navigate((location.state as any)?.from || '/', { replace: true })
+      const s = await post<LoginResult>('/auth/login', { email, password })
+      if ('twoFactorRequired' in s) {
+        setTicket(s.ticket)
+        setPassword('')
+        return
+      }
+      finish(s)
     } catch (err) {
       setError(errorMessage(err))
     } finally {
       setLoading(false)
     }
+  }
+
+  if (ticket) {
+    return (
+      <AuthShell title="Verificação em 2 etapas" subtitle="Abra o aplicativo autenticador no celular e digite o código do REVAH.">
+        <TwoFactorStep ticket={ticket} onDone={finish} onRestart={() => setTicket('')} />
+      </AuthShell>
+    )
   }
 
   return (
@@ -202,6 +257,7 @@ export function ResetPassword() {
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [ticket, setTicket] = useState('')
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -210,7 +266,8 @@ export function ResetPassword() {
     setLoading(true)
     setError('')
     try {
-      const s = await post<Session>('/auth/reset-password', { token, password })
+      const s = await post<LoginResult>('/auth/reset-password', { token, password })
+      if ('twoFactorRequired' in s) return setTicket(s.ticket)
       setSession(s)
       navigate('/', { replace: true })
     } catch (err) {
@@ -218,6 +275,21 @@ export function ResetPassword() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (ticket) {
+    return (
+      <AuthShell title="Verificação em 2 etapas" subtitle="Senha alterada. Para entrar, digite o código do aplicativo autenticador.">
+        <TwoFactorStep
+          ticket={ticket}
+          onDone={(s) => {
+            setSession(s)
+            navigate('/', { replace: true })
+          }}
+          onRestart={() => navigate('/login', { replace: true })}
+        />
+      </AuthShell>
+    )
   }
 
   return (

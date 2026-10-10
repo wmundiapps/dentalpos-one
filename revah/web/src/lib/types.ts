@@ -45,7 +45,7 @@ export interface LibraryTemplate {
 
 export interface Session {
   token: string
-  user: { id: string; name: string; email: string; role: Role }
+  user: { id: string; name: string; email: string; role: Role; twoFactorEnabled?: boolean }
   tenant: {
     id: string
     name: string
