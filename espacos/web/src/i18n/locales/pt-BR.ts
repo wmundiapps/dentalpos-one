@@ -1054,6 +1054,21 @@ const ptBR = {
   'err.content_not_allowed': 'Este texto tem conteúdo ou link não permitido no SpaceHour. Revise e tente de novo.',
   'err.image_not_allowed': 'Uma das fotos não foi aceita por conter conteúdo impróprio.',
   'err.login_code_expired': 'O código venceu ou foi usado. Entre de novo com sua senha.',
+  // Pacote recorrente
+  'book.mode.package': 'Pacote',
+  'book.packageDays': 'Escolha até {max} dias da semana:',
+  'book.packageHint': 'Mesmo horário nos dias escolhidos, por até {days} dias. Pago de uma vez; sem exclusividade da sala nos outros horários.',
+  'book.packageDiscount': 'Este espaço dá {pct}% de desconto em pacotes de 2 semanas ou mais.',
+  'book.packageWeeks': 'Duração do pacote',
+  'book.packageWeeksN': '{n} semana(s)',
+  'book.skipBusy': 'Pular as {n} data(s) ocupada(s)',
+  'book.skipped': 'Datas puladas: {dates}',
+  'price.packageDiscount': 'Desconto do pacote',
+  'form.packageDiscount': 'Desconto para pacotes (%)',
+  'form.packageDiscountHelp': 'Opcional, até {max}%. Vale para quem reserva um pacote de 2 semanas ou mais (até 3 dias por semana, por até 30 dias).',
+  'val.package_max_days': 'O pacote pode durar no máximo {max} dias.',
+  'val.package_max_weekdays': 'No pacote, escolha no máximo {max} dias da semana.',
+  'admin.tabProspecting': 'Captação',
 };
 
 export default ptBR;

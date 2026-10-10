@@ -14,6 +14,7 @@ import { filesRouter } from './routes/files.js';
 import { feedbackRouter } from './routes/feedback.js';
 import { payoutsRouter } from './routes/payouts.js';
 import { marketingRouter } from './routes/marketing.js';
+import { prospectingRouter } from './routes/prospecting.js';
 import { runJobs } from './jobs.js';
 import { one, pool } from './db.js';
 import { marketplaceEnabled } from './payments/mpAccounts.js';
@@ -98,7 +99,7 @@ export function createApp() {
     }
     next();
   });
-  app.use('/api', assistantRouter, authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter, marketingRouter);
+  app.use('/api', assistantRouter, authRouter, listingsRouter, bookingsRouter, filesRouter, feedbackRouter, payoutsRouter, marketingRouter, prospectingRouter);
 
   app.use((_req, _res, next) => next(new HttpError(404, 'not_found')));
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

@@ -8,6 +8,7 @@ export function PriceLines({ p, showHost, hideDeposit }: { p: PriceBreakdown; sh
   return (
     <dl className="price-lines">
       <div><dt>{t('price.base', { hours: p.hours, n: p.occurrences })}</dt><dd>{m(p.baseAmount)}</dd></div>
+      {!!p.packageDiscount && <div className="small"><dt>{t('price.packageDiscount')}</dt><dd>−{m(p.packageDiscount)}</dd></div>}
       {p.days > 0 && <div className="muted small"><dt>{t('price.dailyApplied', { n: p.days })}</dt><dd /></div>}
       {p.cleaningFee > 0 && <div><dt>{t('price.cleaning')}</dt><dd>{m(p.cleaningFee)}</dd></div>}
       <div><dt>{t('price.serviceFee')}</dt><dd>{m(p.guestServiceFee)}</dd></div>

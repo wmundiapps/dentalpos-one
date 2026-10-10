@@ -17,6 +17,7 @@ import {
   BOOKING_LIMITS, FEES, addDays, GUARANTOR_RULES, INCIDENT_RESPONSE_HOURS, OVERSTAY, PENALTIES, REVIEW_RULES, RULES_VERSION,
   computeGuestRefund, computePrice, daysBetween, guarantorRequired, hostCancellationPenalty, occurrenceEndUtc,
   occurrenceHours, occurrenceStartUtc, roundMoney, suggestedPenalty, validateOccurrences,
+  bookingPattern,
 } from '../../shared/rules.js';
 import { getCountry } from '../../shared/countries.js';
 import { isLaunched } from './launch.js';
@@ -76,7 +77,8 @@ export async function validationContext(db: Db, listing: Listing, guestId: strin
         // janela móvel de 30 dias em torno das novas ocorrências
         if (Math.abs(daysBetween(dates[0], o.date)) <= 30 || Math.abs(daysBetween(dates[dates.length - 1], o.date)) <= 30) guestHours += occurrenceHours(o);
       }
-      if (b.occurrences.length > 1 && daysBetween(b.occurrences[0].date, b.occurrences[1].date) === 7) series++;
+      const pat = bookingPattern(b.occurrences);
+      if (pat === 'weekly' || pat === 'package') series++; // séries semanais e pacotes contam juntos
     }
   }
   // Intervalo obrigatório após uma série semanal completa (12 semanas) no mesmo espaço
