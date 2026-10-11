@@ -1,0 +1,8 @@
+{
+  "name": "spacehour-receita-import",
+  "private": true,
+  "description": "Carga da base de empresas (dados abertos de CNPJ da Receita Federal) no banco do SpaceHour. Mesmo importador do REVAH (revah/tools/receita-import).",
+  "scripts": { "importar": "node importar.cjs" },
+  "engines": { "node": ">=20" },
+  "dependencies": { "pg": "^8.23.1" }
+}
