@@ -158,6 +158,17 @@ export async function updateConfig(req: AuthRequest, res: Response) {
   }
 }
 
+// A Receita guarda muito celular no formato antigo (DDD + 8 dígitos começando em 6 a 9): põe o 9 na frente.
+function fixOldMobile(raw: string): string | null {
+  if (!raw) return null
+  const d = digits(raw)
+  if (d.length === 10 && '6789'.includes(d[2])) {
+    const n = `${d.slice(0, 2)}9${d.slice(2)}`
+    return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`
+  }
+  return raw
+}
+
 // Recebe o JSON gerado pelo scripts/receita-prospects.mjs, em lotes (o painel manda de 500 em 500).
 export async function importLeads(req: AuthRequest, res: Response) {
   if (denyIfNotStaff(req, res)) return
@@ -193,8 +204,8 @@ export async function importLeads(req: AuthRequest, res: Response) {
           displayName,
           email,
           emailType: email ? (isWebmail(email) ? 'WEBMAIL' : 'CORPORATIVO') : null,
-          phone1: txt(item.phone1, 30) || null,
-          phone2: txt(item.phone2, 30) || null,
+          phone1: fixOldMobile(txt(item.phone1, 30)),
+          phone2: fixOldMobile(txt(item.phone2, 30)),
           uf,
           city: txt(item.city, 120) || null,
           bairro: txt(item.bairro, 120) || null,

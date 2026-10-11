@@ -5,7 +5,9 @@
 //   node scripts/receita-prospects.mjs --pasta "C:\dados-cnpj" --uf PR
 // Opções:
 //   --uf PR                 UF (ou várias: PR,SC,SP). Padrão: PR
-//   --cnaes 8630504         CNAEs (principal OU secundário). Laboratórios: 8630504,3250706
+//   --mapa data/cnae-categorias.json   mapa de categorias do DentalPos (padrão, se o arquivo existir)
+//   --categorias a,b        só estas categorias do mapa (padrão: todas)
+//   --cnaes 8630504         CNAEs soltos (principal OU secundário), no lugar do mapa
 //   --incluir-individuais   inclui MEI / empresário individual (desligado por padrão: o e-mail tende a ser dado pessoal — LGPD)
 //   --saida arquivo.json    padrão: prospects-<UF>.json na pasta atual
 //
@@ -25,10 +27,29 @@ const flag = (name) => args.includes(`--${name}`)
 
 const PASTA = opt('pasta', '')
 const UFS = opt('uf', 'PR').toUpperCase().split(',').map((s) => s.trim()).filter(Boolean)
-const CNAES = opt('cnaes', '8630504').split(',').map((s) => s.replace(/\D/g, '')).filter(Boolean)
+// Categorias: cada CNAE pertence a uma categoria do mapa, e a categoria define o segmento (CLINICA ou LABORATORIO).
+const MAPA_ARQ = opt('mapa', fs.existsSync('data/cnae-categorias.json') ? 'data/cnae-categorias.json' : '')
+const CNAE_SEGMENTO = new Map()
+if (!opt('cnaes', '') && MAPA_ARQ) {
+  const mapa = JSON.parse(fs.readFileSync(MAPA_ARQ, 'utf8'))
+  const escolhidas = opt('categorias', '').split(',').map((s) => s.trim()).filter(Boolean)
+  for (const [nome, def] of Object.entries(mapa)) {
+    if (nome.startsWith('_') || (escolhidas.length && !escolhidas.includes(nome))) continue
+    for (const c of def.cnaes || []) CNAE_SEGMENTO.set(String(c).replace(/\D/g, ''), def.segmento === 'LABORATORIO' ? 'LABORATORIO' : 'CLINICA')
+  }
+}
+const CNAES = CNAE_SEGMENTO.size
+  ? [...CNAE_SEGMENTO.keys()]
+  : opt('cnaes', '8630504').split(',').map((s) => s.replace(/\D/g, '')).filter(Boolean)
 const INCLUIR_INDIVIDUAIS = flag('incluir-individuais')
 const SAIDA = opt('saida', `prospects-${UFS.join('-')}.json`)
 const LAB_CNAE = '3250706'
+const segmentoDe = (principal, secundarias) => {
+  if (CNAE_SEGMENTO.has(principal)) return CNAE_SEGMENTO.get(principal)
+  const achada = secundarias.find((c) => CNAE_SEGMENTO.has(c))
+  if (achada) return CNAE_SEGMENTO.get(achada)
+  return principal === LAB_CNAE || (!CNAES.includes(principal) && secundarias.includes(LAB_CNAE)) ? 'LABORATORIO' : 'CLINICA'
+}
 
 if (!PASTA || !fs.existsSync(PASTA)) {
   console.error('Informe --pasta com os arquivos descompactados da Receita Federal.')
@@ -94,9 +115,11 @@ const limparRazao = (v) =>
     .replace(/\s+/g, ' ')
     .trim()
 
+// A Receita guarda muito celular no formato antigo (8 dígitos começando em 6 a 9): põe o 9 na frente.
 const fone = (ddd, tel) => {
   const d = String(ddd || '').replace(/\D/g, '')
-  const t = String(tel || '').replace(/\D/g, '')
+  let t = String(tel || '').replace(/\D/g, '')
+  if (t.length === 8 && '6789'.includes(t[0])) t = `9${t}`
   if (d.length < 2 || t.length < 8) return null
   return t.length === 9 ? `(${d.slice(-2)}) ${t.slice(0, 5)}-${t.slice(5)}` : `(${d.slice(-2)}) ${t.slice(0, 4)}-${t.slice(4)}`
 }
@@ -132,7 +155,7 @@ for (const file of ESTAB) {
       nomeFantasia: c[4],
       openedAt: c[10],
       cnaePrincipal: principal,
-      segment: principal === LAB_CNAE || (!CNAES.includes(principal) && secundarias.includes(LAB_CNAE)) ? 'LABORATORIO' : 'CLINICA',
+      segment: segmentoDe(principal, secundarias),
       address: [c[13], c[14], c[15], c[16]].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim(),
       bairro: c[17],
       cep: c[18],
