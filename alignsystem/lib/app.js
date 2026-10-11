@@ -13,6 +13,7 @@ import * as geo from './geo.js';
 import * as totp from './totp.js';
 import { sanitizeImage } from './images.js';
 import * as prospects from './prospects.js';
+import * as scan from './scan.js';
 import QRCode from 'qrcode';
 import { patientContract, partnerContract, contractsReviewed, PARTNER_DEFAULTS } from './contracts.js';
 import { ensureTcle, currentConsent, TCLE_KIND, TCLE_VERSION } from './tcle.js';
@@ -362,6 +363,119 @@ r('GET', '/api/admin/cobertura', async (req, res) => {
   });
 });
 
+// ------------------------------------------------------------------ escaneamento (pago antes do tratamento)
+
+const SCAN_OK_ASSESSMENTS = ['indicado', 'avaliacao_presencial'];
+
+async function portalScan(sql, c) {
+  const prices = await scan.getPrices(sql);
+  const published = Boolean(c.assessment_published_at) && SCAN_OK_ASSESSMENTS.includes(c.assessment);
+  const [order] = await sql`select o.id, o.status, o.price, o.billing_type, o.paid_at, o.preference, o.preference_at, ch.invoice_url
+    from scan_orders o left join charges ch on ch.id = o.charge_id where o.case_id = ${c.id} and o.status <> 'cancelado' order by o.created_at desc limit 1`;
+  if (!published && !order) return null;
+  if (!prices.scan && !order) return null;
+  const terms = prices.scan ? scan.scanTerms(prices.scan) : null;
+  return {
+    price: prices.scan,
+    table: ['simples', 'mediano', 'complexo'].map((k) => ({ key: k, consults: scan.consultLimits[k], price: prices[k] })),
+    pixDiscountPct: MODEL.pixDiscountPct, cardMaxInstallments: MODEL.cardMaxInstallments, boletoMaxInstallments: MODEL.boletoMaxInstallments,
+    terms: terms && { version: terms.version, body: terms.body, hash: terms.hash },
+    order: order && { status: order.status, price: Number(order.price), billingType: order.billing_type, paidAt: order.paid_at, preference: order.preference, invoiceUrl: order.invoice_url },
+    prefill: { name: c.name, cpf: c.cpf, email: c.email, whatsapp: c.whatsapp, postalCode: c.postal_code, address: c.address, city: c.city, uf: c.uf },
+  };
+}
+
+r('POST', '/api/portal/:token/escaneamento', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  await requireConsent(sql, c);
+  const b = await readJson(req);
+  await rateLimit(sql, `scan:${c.id}`, 10, 60);
+  if (!(c.assessment_published_at && SCAN_OK_ASSESSMENTS.includes(c.assessment))) fail(409, 'O escaneamento fica disponível depois do parecer da pré-avaliação.');
+  const prices = await scan.getPrices(sql);
+  if (!prices.scan) fail(409, 'Valor do escaneamento ainda não definido. Fale com a equipe AlignSystem.');
+  const terms = scan.scanTerms(prices.scan);
+  if (!b.agree) fail(400, 'Marque "Li e aceito" no termo do escaneamento.');
+  if (b.hash !== terms.hash) fail(409, 'O termo foi atualizado. Recarregue a página e leia de novo.');
+  const name = clean(b.name, 120);
+  const cpf = digits(b.cpf);
+  const email = clean(b.email, 160).toLowerCase();
+  const whatsapp = digits(b.whatsapp);
+  const cep = digits(b.postalCode);
+  const street = clean(b.address, 200);
+  const city = clean(b.city, 80);
+  const uf = geo.UFS.includes(String(b.uf || '').toUpperCase()) ? String(b.uf).toUpperCase() : '';
+  if (name.split(' ').filter(Boolean).length < 2) fail(400, 'Informe o nome completo.');
+  if (!validCpf(cpf)) fail(400, 'CPF inválido.');
+  if (!isEmail(email)) fail(400, 'E-mail inválido.');
+  if (whatsapp.length < 10) fail(400, 'Informe o celular com DDD.');
+  if (cep.length !== 8 || !street || !city || !uf) fail(400, 'Preencha CEP, endereço, cidade e estado.');
+  const billingType = b.billingType === 'PIX' ? 'PIX' : 'CREDIT_CARD';
+  const [paid] = await sql`select 1 from scan_orders where case_id = ${c.id} and status in ('pago','agendado','realizado')`;
+  if (paid) fail(409, 'O escaneamento já está pago.');
+  const address = `${street}, ${city}/${uf}, CEP ${cep.replace(/(\d{5})(\d{3})/, '$1-$2')}`;
+  await sql`update cases set name = ${name}, cpf = ${cpf}, email = ${email}, whatsapp = ${whatsapp}, postal_code = ${cep}, address = ${address}, updated_at = now() where id = ${c.id}`;
+  // pedido anterior ainda não pago: cancela a cobrança antiga
+  const old = await sql`select o.id, ch.asaas_payment_id from scan_orders o left join charges ch on ch.id = o.charge_id
+    where o.case_id = ${c.id} and o.status = 'aguardando_pagamento'`;
+  for (const o of old) {
+    if (o.asaas_payment_id) await asaas.cancelPayment(o.asaas_payment_id).catch(() => {});
+    await sql`update scan_orders set status = 'cancelado' where id = ${o.id}`;
+  }
+  const customer = c.asaas_customer_id || (await asaas.ensureCustomer({ name, cpfCnpj: cpf, email, mobilePhone: whatsapp.replace(/^55/, ''), externalReference: c.id }));
+  if (!c.asaas_customer_id) await sql`update cases set asaas_customer_id = ${customer} where id = ${c.id}`;
+  const description = `Escaneamento intraoral e documentação — caso #${c.code}`;
+  const [ch] = await sql`insert into charges (case_id, kind, description, billing_type, value, installment_count, due_date, pay_option, status)
+    values (${c.id}, 'escaneamento', ${description}, ${billingType}, ${prices.scan}, 1, ${dueIn(2)}, ${billingType}, 'PENDING') returning id`;
+  const p = await asaas.createPayment({ customer, billingType, value: prices.scan, dueDate: dueIn(2), description, installmentCount: 1, externalReference: ch.id });
+  await sql`update charges set asaas_payment_id = ${p.id}, invoice_url = ${p.invoiceUrl}, status = ${p.status || 'PENDING'} where id = ${ch.id}`;
+  await sql`insert into scan_orders (case_id, charge_id, price, billing_type, terms_version, terms_hash, accepted_name, accepted_cpf, accepted_ip, accepted_ua)
+    values (${c.id}, ${ch.id}, ${prices.scan}, ${billingType}, ${terms.version}, ${terms.hash}, ${name}, ${cpf}, ${clientIp(req)}, ${clean(req.headers['user-agent'], 300)})`;
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'escaneamento_contratado', data: { price: prices.scan, billingType, terms: terms.version } });
+  send(res, 200, { invoiceUrl: p.invoiceUrl });
+});
+
+// Depois de pago: o paciente diz os melhores dias e horários
+r('POST', '/api/portal/:token/escaneamento/preferencia', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  const pref = clean(b.preference, 300);
+  if (pref.length < 3) fail(400, 'Diga os melhores dias e horários.');
+  const [o] = await sql`update scan_orders set preference = ${pref}, preference_at = now()
+    where id = (select id from scan_orders where case_id = ${c.id} and status in ('pago','agendado') order by created_at desc limit 1) returning id`;
+  if (!o) fail(409, 'Conclua o pagamento do escaneamento primeiro.');
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'escaneamento_preferencia', data: { pref } });
+  await sendMail({
+    to: notifyAddress(), subject: `Agendar escaneamento — caso #${c.code} (${c.name})`,
+    html: layout('Paciente escolheu horário para o escaneamento', table([['Paciente', c.name], ['Cidade', c.city], ['WhatsApp', c.whatsapp], ['Preferência', pref]]) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Abrir o caso')),
+  });
+  send(res, 200, { ok: true });
+});
+
+// Painel: tabela de preços (escaneamento e tratamento por grau de dificuldade)
+r('GET', '/api/admin/settings/prices', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  send(res, 200, { prices: await scan.getPrices(sql), consultLimits: scan.consultLimits });
+});
+
+r('PUT', '/api/admin/settings/prices', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const v = {};
+  for (const k of ['scan', 'simples', 'mediano', 'complexo']) {
+    const n = money(b[k]);
+    if (n !== null && !(n > 0)) fail(400, 'Valores precisam ser maiores que zero.');
+    v[k] = n;
+  }
+  await sql`insert into settings (key, value, updated_by) values ('prices', ${sql.json(v)}, ${u.id})
+    on conflict (key) do update set value = excluded.value, updated_at = now(), updated_by = excluded.updated_by`;
+  await logEvent(sql, { actor: u.email, type: 'precos_alterados', data: { ...v, ip: clientIp(req) } });
+  send(res, 200, { ok: true, prices: await scan.getPrices(sql) });
+});
+
 // ------------------------------------------------------------------ portal do paciente (link com token)
 
 r('GET', '/api/portal/:token', async (req, res, { token: t }) => {
@@ -384,6 +498,7 @@ r('GET', '/api/portal/:token', async (req, res, { token: t }) => {
     case: { ...publicCase(c), isMinor: Number(c.age) < 18, uf: c.uf },
     attendance: publicAttendance(c.attendance),
     ufs: geo.UFS,
+    scan: await portalScan(sql, c),
     consent: consent && { acceptedAt: consent.accepted_at, acceptedName: consent.accepted_name, byGuardian: consent.accepted_by_guardian, version: consent.version },
     tcle: tcle && { version: tcle.version, title: tcle.title, body: tcle.body, hash: tcle.hash },
     dentist: dentist ? { name: dentist.name, cro: dentist.cro, croUf: dentist.cro_uf, city: dentist.city } : null,
@@ -963,6 +1078,7 @@ r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
     charges: d.charges.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
     payments: d.payments.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
     evidences: d.evidences, events: d.events, consents: d.consents,
+    scanOrders: await sql`select status, price, billing_type, accepted_name, accepted_at, accepted_ip, paid_at, preference, preference_at, terms_version from scan_orders where case_id = ${id} order by created_at desc`,
     labels: { CASE_STATUS, ASSESSMENT, MILESTONES },
     slots: PHOTO_SLOTS,
   });
@@ -1093,6 +1209,7 @@ async function addAppointment(sql, u, caseId, b, dentistIdForced) {
     values (${caseId}, ${dentistId}, ${kind}, ${starts}, ${Number(b.duration_min) || 30}, ${roomUrl}, ${clean(b.location, 300) || null}, ${clean(b.notes, 1000) || null})
     returning *`;
   if (kind === 'documentacao') await sql`update cases set status = 'documentacao_agendada', updated_at = now() where id = ${caseId} and status in ('novo','fotos_enviadas','parecer_enviado')`;
+  if (kind === 'documentacao') await sql`update scan_orders set status = 'agendado' where case_id = ${caseId} and status = 'pago'`;
   await logEvent(sql, { caseId, actor: u.email, type: 'agendamento', data: { kind, starts_at: starts } });
   const when = starts.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'full', timeStyle: 'short' });
   if (c.email) {
@@ -1623,6 +1740,15 @@ r('POST', '/api/webhooks/asaas', async (req, res) => {
   await sql`insert into webhook_events (provider, event, payload) values ('asaas', ${clean(b.event, 80)}, ${sql.json(b)})`;
   await upsertPayment(sql, p, ch);
   if (asaas.PAID.has(p.status) && ch.pay_option === 'BOLETO' && p.id === ch.asaas_payment_id) await ensureBoletos(sql, ch.id);
+  if (asaas.PAID.has(p.status) && ch.kind === 'escaneamento') {
+    const [o] = await sql`update scan_orders set status = 'pago', paid_at = coalesce(paid_at, now()) where charge_id = ${ch.id} and status = 'aguardando_pagamento' returning id`;
+    if (o) {
+      await logEvent(sql, { caseId: ch.case_id, actor: 'asaas', type: 'escaneamento_pago', data: { value: p.value } });
+      const [cc] = await sql`select id, code, name, city, whatsapp from cases where id = ${ch.case_id}`;
+      await sendMail({ to: notifyAddress(), subject: `Escaneamento pago — caso #${cc.code} (${cc.name})`,
+        html: layout('Escaneamento pago: agendar', table([['Paciente', cc.name], ['Cidade', cc.city], ['WhatsApp', cc.whatsapp], ['Valor', brl(p.value)]]) + para('O paciente vai indicar os melhores dias e horários na página dele. Agende a documentação no caso.') + button(`${appUrl()}/painel#/caso/${cc.id}`, 'Abrir o caso')) });
+    }
+  }
   if (asaas.PAID.has(p.status)) {
     const [c] = await sql`select id, code, name from cases where id = ${ch.case_id}`;
     await logEvent(sql, { caseId: ch.case_id, actor: 'asaas', type: 'pagamento_confirmado', data: { value: p.value, id: p.id } });

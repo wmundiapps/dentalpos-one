@@ -437,3 +437,42 @@ test('captação: importação da Receita, prioridade, celular antigo e "não qu
   list = await call('GET', '/api/admin/prospects', { who: 'admin' });
   assert.equal(list.data.counts.saiu, 1);
 });
+
+test('escaneamento: preços no painel, termo, pagamento e preferência de horário', { skip }, async () => {
+  const lead = await call('POST', '/api/leads/paciente', { body: { name: 'Clara Scan', age: 35, whatsapp: '44933334444', city: 'Maringá', uf: 'PR', consent: true } });
+  const tk = lead.data.token;
+  const tcle = (await call('GET', `/api/portal/${tk}`)).data.tcle;
+  await call('POST', `/api/portal/${tk}/consent`, { body: { acceptedName: 'Clara Scan', birthDate: '1990-01-01', adult: true, agree: true, hash: tcle.hash } });
+  const [c] = await sql`select id from alignsystem_test.cases where token = ${tk}`;
+  assert.equal((await call('GET', `/api/portal/${tk}`)).data.scan, null); // sem parecer, sem botão
+  await call('PATCH', `/api/admin/cases/${c.id}`, { who: 'admin', body: { assessment: 'indicado', publish_assessment: true } });
+  assert.equal((await call('GET', `/api/portal/${tk}`)).data.scan, null); // sem preço, sem botão
+  assert.equal((await call('PUT', '/api/admin/settings/prices', { who: 'admin', body: { scan: '350', simples: '6900', mediano: '8900', complexo: '11900' } })).status, 200);
+  const S = (await call('GET', `/api/portal/${tk}`)).data.scan;
+  assert.equal(S.price, 350);
+  assert.deepEqual(S.table.map((r) => [r.key, r.consults, r.price]), [['simples', 8, 6900], ['mediano', 10, 8900], ['complexo', 15, 11900]]);
+  assert.match(S.terms.body, /7 \(sete\) dias/);
+  const body = { name: 'Clara Scan Souza', cpf: '529.982.247-25', email: 'clara@x.com', whatsapp: '44933334444', postalCode: '87013-230', address: 'Rua A, 10', city: 'Maringá', uf: 'PR', agree: true, hash: S.terms.hash, billingType: 'CREDIT_CARD' };
+  assert.equal((await call('POST', `/api/portal/${tk}/escaneamento`, { body: { ...body, agree: false } })).status, 400);
+  assert.equal((await call('POST', `/api/portal/${tk}/escaneamento`, { body: { ...body, cpf: '11111111111' } })).status, 400);
+  const ok = await call('POST', `/api/portal/${tk}/escaneamento`, { body });
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  assert.ok(ok.data.invoiceUrl);
+  const pay = asaasCalls.filter((x) => x.url.endsWith('/payments') && x.method === 'POST').at(-1).body;
+  assert.equal(pay.billingType, 'CREDIT_CARD');
+  assert.equal(pay.value, 350);
+  assert.equal(pay.split, undefined);
+  const [ch] = await sql`select id, asaas_payment_id from alignsystem_test.charges where case_id = ${c.id} and kind = 'escaneamento'`;
+  assert.equal((await call('POST', `/api/portal/${tk}/escaneamento/preferencia`, { body: { preference: 'segunda à tarde' } })).status, 409); // ainda não pago
+  payStatus[ch.asaas_payment_id] = 'RECEIVED';
+  await call('POST', '/api/webhooks/asaas', { headers: { 'asaas-access-token': 'wh-token' }, body: { event: 'PAYMENT_RECEIVED', payment: { id: ch.asaas_payment_id, value: 350, status: 'RECEIVED', billingType: 'CREDIT_CARD', dueDate: '2026-10-12', externalReference: ch.id } } });
+  let P = (await call('GET', `/api/portal/${tk}`)).data.scan;
+  assert.equal(P.order.status, 'pago');
+  assert.equal((await call('POST', `/api/portal/${tk}/escaneamento`, { body })).status, 409); // não paga duas vezes
+  assert.equal((await call('POST', `/api/portal/${tk}/escaneamento/preferencia`, { body: { preference: 'segunda à tarde' } })).status, 200);
+  P = (await call('GET', `/api/portal/${tk}`)).data.scan;
+  assert.equal(P.order.preference, 'segunda à tarde');
+  const adm = await call('GET', `/api/admin/cases/${c.id}`, { who: 'admin' });
+  assert.equal(adm.data.scanOrders[0].status, 'pago');
+  assert.equal(adm.data.case.cpf, '52998224725');
+});

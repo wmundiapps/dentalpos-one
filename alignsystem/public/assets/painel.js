@@ -160,12 +160,29 @@
     }).catch(function (e) { errorView(e, 'captacao'); });
   }
 
+  function adminPrices() {
+    loading('precos');
+    api('/api/admin/settings/prices').then(function (d) {
+      var P = d.prices, L = d.consultLimits;
+      var html = '<h1>Preços</h1>' +
+        '<form class="card" id="prf" style="max-width:560px"><p class="small muted">Estes valores aparecem <b>só na página particular do paciente</b>, depois do parecer (nunca no site público, por causa das normas do CRO). O botão "Agendar escaneamento" só aparece para o paciente quando o valor do escaneamento estiver preenchido.</p>' +
+        field('scan', 'Escaneamento e documentação (R$)', P.scan || '', 'inputmode="decimal" required') +
+        '<h3>Tratamento por grau de dificuldade</h3>' +
+        field('simples', 'Caso simples — até ' + L.simples + ' consultas (R$)', P.simples || '', 'inputmode="decimal"') +
+        field('mediano', 'Média complexidade — até ' + L.mediano + ' consultas (R$)', P.mediano || '', 'inputmode="decimal"') +
+        field('complexo', 'Caso complexo — até ' + L.complexo + ' consultas (R$)', P.complexo || '', 'inputmode="decimal"') +
+        '<button class="btn btn-primary" type="submit">Salvar preços</button><div class="fmsg"></div></form>';
+      var m = mount(html, 'precos');
+      onSubmit($('#prf', m), function (f) { return api('/api/admin/settings/prices', { method: 'PUT', body: f }).then(function () { return 'Preços salvos.'; }); });
+    }).catch(function (e) { errorView(e, 'precos'); });
+  }
+
   var APPT_STATUS = { agendado: 'Agendado', realizado: 'Realizado', cancelado: 'Cancelado', faltou: 'Faltou' };
 
   // ------------------------------------------------------------ layout
   function shell(content, active) {
     var nav = me.role === 'admin'
-      ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/cobertura', 'Cobertura e marketing', 'cobertura'], ['#/captacao', 'Captação de dentistas', 'captacao'], ['#/equipe', 'Equipe', 'equipe'], ['#/conta', 'Minha conta', 'conta']]
+      ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/cobertura', 'Cobertura e marketing', 'cobertura'], ['#/captacao', 'Captação de dentistas', 'captacao'], ['#/precos', 'Preços', 'precos'], ['#/equipe', 'Equipe', 'equipe'], ['#/conta', 'Minha conta', 'conta']]
       : [['#/', 'Meus casos', 'inicio'], ['#/conta', 'Minha conta', 'conta']];
     return '<div class="mobile-top"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="28"></span><button class="btn btn-sm btn-line" style="color:#fff;border-color:rgba(255,255,255,.4)" id="menuBtn">Menu</button></div>' +
       '<div class="shell"><aside class="side" id="side"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="30"></span>' +
@@ -393,6 +410,13 @@
 
         // fotos
         (c.blocked_at ? '<div class="msg err"><b>Caso bloqueado</b> em ' + esc(AS.date(c.blocked_at, true)) + ' (' + esc(c.blocked_reason || '') + '). O link do paciente está desativado. <button class="btn btn-line btn-sm" id="unblock">Desbloquear</button></div>' : '') +
+        (d.scanOrders && d.scanOrders.length ? (function () {
+          var o = d.scanOrders[0];
+          var lab = { aguardando_pagamento: 'aguardando pagamento', pago: 'pago — agendar', agendado: 'agendado', realizado: 'realizado', cancelado: 'cancelado' }[o.status];
+          return '<div class="card"><h2>Escaneamento</h2><p>' + statusBadge(lab, o.status === 'pago' ? 'honey' : o.status === 'aguardando_pagamento' ? '' : 'green') + ' ' + esc(AS.money(o.price)) + ' · ' + (o.billing_type === 'PIX' ? 'Pix' : 'cartão') + '</p>' +
+            '<p class="small muted">Termo aceito por ' + esc(o.accepted_name) + ' em ' + esc(AS.date(o.accepted_at, true)) + ' (IP ' + esc(o.accepted_ip || '') + ', versão ' + esc(o.terms_version) + ')' + (o.paid_at ? ' · pago em ' + esc(AS.date(o.paid_at, true)) : '') + '</p>' +
+            (o.preference ? '<div class="msg warn">Preferência de horário: <b>' + esc(o.preference) + '</b>. Agende abaixo em "Agendamentos" com o tipo Documentação.</div>' : '') + '</div>';
+        })() : '') +
         '<div class="card" id="photosCard"><h2>Fotos da pré-avaliação (' + evalPhotos.length + '/7)</h2>' +
         (function () {
           var pend = d.photos.filter(function (p) { return p.uploaded_by === 'paciente' && !p.reviewed_at; }).length;
@@ -773,6 +797,7 @@
       if (r.path === '/equipe') return adminTeam();
       if (r.path === '/cobertura') return adminCoverage();
       if (r.path === '/captacao') return adminProspects(r.query);
+      if (r.path === '/precos') return adminPrices();
       return adminHome();
     }
     if ((m = r.path.match(/^\/caso\/([0-9a-f-]{36})$/))) return dentistCase(m[1]);

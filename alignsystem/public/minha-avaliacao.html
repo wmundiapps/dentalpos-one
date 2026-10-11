@@ -34,7 +34,8 @@
   var state = null;
   var attSim = null; // simulação do atendimento presencial
   var attEdit = false;
-  var showPhotos = false; // depois do envio, as fotos ficam recolhidas
+  var showPhotos = false;
+  var scanOpen = false; // depois do envio, as fotos ficam recolhidas
   var cfg = {};
   var busy = {};
 
@@ -111,6 +112,56 @@
         '<p><span class="badge ' + (c.assessment === 'nao_indicado' ? 'red' : c.assessment === 'indicado' ? 'green' : 'honey') + '">' + esc(c.assessmentLabel) + '</span></p>' +
         (c.assessmentNotes ? '<p style="white-space:pre-line">' + esc(c.assessmentNotes) + '</p>' : '') +
         '<p class="small muted">A pré-avaliação por fotos é orientativa. A indicação do tratamento é confirmada no exame e na documentação presenciais.</p></div>';
+    }
+
+    // Escaneamento (depois do parecer)
+    var S = state.scan;
+    if (S) {
+      var O = S.order;
+      var money = function (v) { return v ? AS.money(v) : 'a definir'; };
+      html += '<div class="card" id="escaneamento">';
+      if (O && (O.status === 'pago' || O.status === 'agendado' || O.status === 'realizado')) {
+        html += '<h2>Escaneamento pago ✓</h2>';
+        if (O.status === 'agendado') html += '<div class="msg ok">Seu escaneamento está agendado. Veja a data e o local em "Teleorientação e agendamentos", abaixo.</div>';
+        else if (O.status === 'realizado') html += '<div class="msg ok">Escaneamento realizado. O dentista está preparando o seu plano de tratamento.</div>';
+        else if (O.preference) html += '<div class="msg ok">Recebemos sua preferência de horário: <b>' + esc(O.preference) + '</b>. Nossa equipe confirma a data e o local pelo WhatsApp.</div>';
+        else html += '<p>Pagamento confirmado. Agora diga os melhores dias e horários para você:</p>' +
+          '<form id="scanPref"><div class="field"><label for="spref">Melhores dias e horários</label><input id="spref" maxlength="300" placeholder="Ex.: segunda ou quarta à tarde" required></div>' +
+          '<button class="btn btn-primary btn-sm" type="submit">Enviar</button><div id="scanPrefMsg"></div></form>';
+      } else {
+        html += '<h2>Próximo passo: escaneamento</h2>' +
+          '<p>O escaneamento digital dos dentes e a documentação mostram ao dentista o grau de dificuldade do seu caso e permitem montar o seu plano de tratamento.</p>';
+        if (O && O.status === 'aguardando_pagamento' && O.invoiceUrl) {
+          html += '<div class="msg warn">Seu pagamento do escaneamento está pendente. <a class="btn btn-primary btn-sm" href="' + esc(O.invoiceUrl) + '">Pagar agora</a></div>';
+        }
+        if (!scanOpen) {
+          html += '<button class="btn btn-primary" id="scanOpen" style="font-size:16px;padding:14px 24px;letter-spacing:.02em">AGENDAR ESCANEAMENTO</button>';
+        } else {
+          var P = S.prefill || {};
+          html += '<div class="msg ok" style="font-size:16px">Valor do escaneamento e da documentação: <b>' + esc(money(S.price)) + '</b></div>' +
+            '<h3 style="margin-top:16px">Valores do tratamento por grau de dificuldade</h3>' +
+            '<div class="list">' + S.table.map(function (r) {
+              return '<div class="it"><div><b>' + ({ simples: 'Caso simples', mediano: 'Média complexidade', complexo: 'Caso complexo' })[r.key] + '</b><div class="small muted">até ' + r.consults + ' consultas incluídas</div></div><b style="white-space:nowrap">' + esc(money(r.price)) + '</b></div>';
+            }).join('') + '</div>' +
+            '<p class="small muted">O grau do seu caso é definido pelo dentista depois do escaneamento. Formas de pagamento do tratamento: Pix com ' + S.pixDiscountPct + '% de desconto, cartão em até ' + S.cardMaxInstallments + 'x sem juros, ou entrada de 50% e o restante em até ' + S.boletoMaxInstallments + ' boletos.</p>' +
+            '<form id="scanForm"><h3 style="margin-top:18px">Seus dados</h3><div class="grid2">' +
+            '<div class="field"><label for="sname">Nome completo</label><input id="sname" autocomplete="name" required value="' + esc(P.name || '') + '"></div>' +
+            '<div class="field"><label for="scpf">CPF</label><input id="scpf" inputmode="numeric" required value="' + esc(P.cpf || '') + '"></div>' +
+            '<div class="field"><label for="semail">E-mail</label><input id="semail" type="email" autocomplete="email" required value="' + esc(P.email || '') + '"></div>' +
+            '<div class="field"><label for="swa">Celular (WhatsApp)</label><input id="swa" type="tel" autocomplete="tel" required value="' + esc(P.whatsapp || '') + '"></div>' +
+            '<div class="field"><label for="scep">CEP</label><input id="scep" inputmode="numeric" autocomplete="postal-code" required value="' + esc(P.postalCode || '') + '"></div>' +
+            '<div class="field"><label for="saddr">Endereço com número</label><input id="saddr" autocomplete="street-address" required></div>' +
+            '<div class="field"><label for="scity">Cidade</label><input id="scity" required value="' + esc(P.city || '') + '"></div>' +
+            '<div class="field"><label for="suf">Estado</label><select id="suf" required><option value="">UF</option>' + state.ufs.map(function (u) { return '<option' + (P.uf === u ? ' selected' : '') + '>' + u + '</option>'; }).join('') + '</select></div></div>' +
+            '<div class="tcle-box">' + (S.terms ? S.terms.body : '') + '</div>' +
+            '<div class="check field"><input type="checkbox" id="sagree" required><label for="sagree"><b>Li e aceito</b> o termo de contratação do escaneamento.</label></div>' +
+            '<h3>Forma de pagamento do escaneamento</h3>' +
+            '<div class="check field"><input type="radio" name="sbill" id="sbc" value="CREDIT_CARD" checked><label for="sbc">Cartão de crédito</label></div>' +
+            '<div class="check field"><input type="radio" name="sbill" id="sbp" value="PIX"><label for="sbp">Pix</label></div>' +
+            '<button class="btn btn-primary" type="submit">Ir para o pagamento</button><div id="scanMsg"></div></form>';
+        }
+      }
+      html += '</div>';
     }
 
     // Fotos
@@ -252,6 +303,27 @@
   }
 
   function bind() {
+    var so = document.getElementById('scanOpen');
+    if (so) so.addEventListener('click', function () { scanOpen = true; render(); var el = document.getElementById('escaneamento'); if (el) el.scrollIntoView({ block: 'start' }); });
+    var sf = document.getElementById('scanForm');
+    if (sf) sf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = sf.querySelector('button[type=submit]');
+      btn.disabled = true; btn.textContent = 'Gerando pagamento…';
+      var v = function (id) { return document.getElementById(id).value; };
+      AS.api('/api/portal/' + encodeURIComponent(T) + '/escaneamento', { method: 'POST', body: {
+        name: v('sname'), cpf: v('scpf'), email: v('semail'), whatsapp: v('swa'), postalCode: v('scep'), address: v('saddr'), city: v('scity'), uf: v('suf'),
+        agree: document.getElementById('sagree').checked, hash: state.scan.terms && state.scan.terms.hash,
+        billingType: sf.querySelector('input[name=sbill]:checked').value,
+      } }).then(function (r) { location.href = r.invoiceUrl; })
+        .catch(function (err) { btn.disabled = false; btn.textContent = 'Ir para o pagamento'; document.getElementById('scanMsg').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
+    });
+    var sp2 = document.getElementById('scanPref');
+    if (sp2) sp2.addEventListener('submit', function (e) {
+      e.preventDefault();
+      AS.api('/api/portal/' + encodeURIComponent(T) + '/escaneamento/preferencia', { method: 'POST', body: { preference: document.getElementById('spref').value } })
+        .then(load).catch(function (err) { document.getElementById('scanPrefMsg').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
+    });
     var attCh = document.getElementById('attChange');
     if (attCh) attCh.addEventListener('click', function () { attEdit = true; attSim = null; render(); });
     var ufSel = document.getElementById('attUf');
