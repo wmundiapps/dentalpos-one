@@ -5,8 +5,9 @@ import App from './App'
 import { SessionProvider } from './lib/session'
 import { FeedbackProvider } from './components/feedback'
 import './styles.css'
+import { guardPage } from './lib/guard'
 
-createRoot(document.getElementById('root')!).render(
+if (guardPage()) createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <SessionProvider>

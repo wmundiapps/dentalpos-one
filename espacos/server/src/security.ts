@@ -8,6 +8,7 @@ import { id, one, pool } from './db.js';
 import { HttpError, isAdminEmail } from './auth.js';
 import { SUPPORT_EMAIL, sendMail } from './mailer.js';
 import type { User } from '../../shared/types.js';
+import { totpEnabled, verifyTotpOrBackup } from './totp.js';
 
 // ───────────── Registro de eventos ─────────────
 export async function securityEvent(kind: string, data: { userId?: string; ip?: string; detail?: string } = {}) {
@@ -63,14 +64,14 @@ const codeHash = (challengeId: string, code: string) => crypto.createHash('sha25
 /** Administradores sempre; demais contas se ativaram em Perfil. */
 export async function twoFactorRequired(user: User) {
   if (user.roles.includes('admin') || (user.emailVerifiedAt && isAdminEmail(user.email))) return true;
-  const r = await one<{ on: boolean }>(pool, 'SELECT two_factor_enabled AS on FROM users WHERE id = $1', [user.id]);
-  return !!r?.on;
+  const r = await one<{ on: boolean; totp: boolean }>(pool, 'SELECT two_factor_enabled AS on, totp_enabled_at IS NOT NULL AS totp FROM users WHERE id = $1', [user.id]);
+  return !!r?.on || !!r?.totp;
 }
 
 export async function twoFactorStatus(user: User) {
-  const r = await one<{ on: boolean }>(pool, 'SELECT two_factor_enabled AS on FROM users WHERE id = $1', [user.id]);
+  const r = await one<{ on: boolean; totp: boolean }>(pool, 'SELECT two_factor_enabled AS on, totp_enabled_at IS NOT NULL AS totp FROM users WHERE id = $1', [user.id]);
   const forced = user.roles.includes('admin');
-  return { enabled: forced || !!r?.on, forced };
+  return { enabled: forced || !!r?.on || !!r?.totp, forced, method: r?.totp ? 'app' as const : 'email' as const };
 }
 
 export async function setTwoFactor(user: User, enabled: boolean) {
@@ -101,22 +102,29 @@ async function sendLoginCode(user: User, challengeId: string, origin: { ip?: str
   });
 }
 
-/** Senha conferida: cria o desafio e manda o código por e-mail. */
+/** Senha conferida: cria o desafio; com aplicativo autenticador pede o código dele, senão manda o código por e-mail. */
 export async function startLoginChallenge(user: User, origin: { ip?: string; userAgent?: string }) {
   const challengeId = id('lc');
+  if (await totpEnabled(user.id)) { // bilhete de 5 minutos entre a senha e o código do aplicativo
+    await pool.query(
+      `INSERT INTO login_challenges (id, user_id, code_hash, ip, user_agent, expires_at, method)
+       VALUES ($1,$2,'',$3,$4, now() + interval '5 minutes', 'totp')`,
+      [challengeId, user.id, origin.ip ?? null, origin.userAgent?.slice(0, 300) ?? null]);
+    return { twoFactor: true as const, challengeId, method: 'app' as const };
+  }
   await pool.query(
     `INSERT INTO login_challenges (id, user_id, code_hash, ip, user_agent, expires_at)
      VALUES ($1,$2,'',$3,$4, now() + make_interval(mins => $5))`,
     [challengeId, user.id, origin.ip ?? null, origin.userAgent?.slice(0, 300) ?? null, CHALLENGE_MINUTES]);
   await sendLoginCode(user, challengeId, origin);
-  return { twoFactor: true as const, challengeId, email: maskEmail(user.email) };
+  return { twoFactor: true as const, challengeId, method: 'email' as const, email: maskEmail(user.email) };
 }
 
 export async function resendLoginChallenge(challengeId: string, getUser: (id: string) => Promise<User | undefined>, origin: { ip?: string; userAgent?: string }) {
-  const c = await one<{ user_id: string; recent: boolean }>(pool,
-    `SELECT user_id, created_at > now() - make_interval(secs => $2) AS recent FROM login_challenges
+  const c = await one<{ user_id: string; recent: boolean; method: string }>(pool,
+    `SELECT user_id, method, created_at > now() - make_interval(secs => $2) AS recent FROM login_challenges
       WHERE id = $1 AND used_at IS NULL AND created_at > now() - interval '1 hour'`, [challengeId, RESEND_SECONDS]);
-  if (!c) throw new HttpError(400, 'login_code_expired');
+  if (!c || c.method === 'totp') throw new HttpError(400, 'login_code_expired'); // código do aplicativo não é reenviado
   if (c.recent) throw new HttpError(429, 'verification_recently_sent');
   const user = await getUser(c.user_id);
   if (!user) throw new HttpError(400, 'login_code_expired');
@@ -125,10 +133,10 @@ export async function resendLoginChallenge(challengeId: string, getUser: (id: st
 
 /** Confere o código; devolve o id do usuário. */
 export async function verifyLoginChallenge(challengeId: string, code: string, ip?: string) {
-  const c = await one<{ user_id: string; code_hash: string; attempts: number; fresh: boolean }>(pool,
-    `SELECT user_id, code_hash, attempts, expires_at > now() AS fresh FROM login_challenges WHERE id = $1 AND used_at IS NULL`, [challengeId]);
+  const c = await one<{ user_id: string; code_hash: string; attempts: number; fresh: boolean; method: string }>(pool,
+    `SELECT user_id, code_hash, attempts, method, expires_at > now() AS fresh FROM login_challenges WHERE id = $1 AND used_at IS NULL`, [challengeId]);
   if (!c || !c.fresh || c.attempts >= CHALLENGE_MAX_ATTEMPTS) throw new HttpError(400, 'login_code_expired');
-  const ok = crypto.timingSafeEqual(Buffer.from(c.code_hash.padEnd(64, '0')), Buffer.from(codeHash(challengeId, code.replace(/\D/g, ''))));
+  const ok = c.method === 'totp' ? await verifyTotpOrBackup(c.user_id, code) : crypto.timingSafeEqual(Buffer.from(c.code_hash.padEnd(64, '0')), Buffer.from(codeHash(challengeId, code.replace(/\D/g, ''))));
   if (!ok) {
     await pool.query('UPDATE login_challenges SET attempts = attempts + 1 WHERE id = $1', [challengeId]);
     await securityEvent('login_code_failed', { userId: c.user_id, ip });

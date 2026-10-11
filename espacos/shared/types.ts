@@ -87,6 +87,7 @@ export interface Listing {
   currency: string;
   pricePerHour: number;
   pricePerDay?: number;     // diária (turno completo), opcional
+  packageDiscountPct?: number; // desconto (%) para pacotes recorrentes de 2+ semanas
   minHours: number;
   cleaningFee: number;
   securityDeposit: number;  // caução (pré-autorização), 0 = sem caução
@@ -133,6 +134,7 @@ export interface PriceBreakdown {
   hostServiceFee: number;
   hostPayout: number;
   securityDeposit: number;
+  packageDiscount?: number; // desconto de pacote já abatido do baseAmount
 }
 
 export interface Occurrence { date: string; start: string; end: string } // data local do espaço

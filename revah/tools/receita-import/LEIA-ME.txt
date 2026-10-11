@@ -7,7 +7,9 @@ O site da Receita só aceita conexões do Brasil, por isso esta carga roda no se
      npm install
      $env:DATABASE_URL = "<endereço do banco do REVAH>"
      node importar.cjs --ufs=PR
-3. Opções: --ufs=PR,SP  --cnaes=8630,4781  --month=AAAA-MM  --dry-run  --dir=C:\pasta\com\zips
+3. Opções: --ufs=PR,SP  --cnaes=8630,4781  --month=AAAA-MM  --dry-run  --dir=C:\pasta\com\zips  --sem-cache
 
-A carga baixa uns 6 GB (um arquivo por vez, apagado depois de lido) e leva de 30 a 90 minutos.
+A carga baixa uns 6 GB e leva de 30 a 90 minutos. Os arquivos ficam guardados em %LOCALAPPDATA%\RevahReceita\<mês>:
+se a janela fechar, rode de novo e ele continua sem baixar tudo outra vez (o mês anterior é apagado sozinho).
+Celulares antigos sem o 9 são corrigidos e os MEIs ficam marcados.
 Repita todo mês para atualizar a base.

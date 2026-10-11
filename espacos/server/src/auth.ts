@@ -10,8 +10,10 @@ if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
   throw new Error('JWT_SECRET é obrigatório em produção');
 }
 
+/** Botão "ir resolver" que acompanha o erro: rota da tela (com #âncora) e rótulo (chave action.* da tela). */
+export type ErrorAction = { to: string; label: 'license' | 'verifyEmail' };
 export class HttpError extends Error {
-  constructor(public status: number, public code: string, public params?: unknown) {
+  constructor(public status: number, public code: string, public params?: unknown, public action?: ErrorAction) {
     super(code);
   }
 }

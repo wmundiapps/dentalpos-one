@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addDays, computeGuestRefund, computePrice, overstayCharge, todayInZone, validateOccurrences, zonedToUtc } from '../../shared/rules.js';
+import { addDays, bookingPattern, computeGuestRefund, computePrice, overstayCharge, todayInZone, validateOccurrences, weekdayOf, zonedToUtc } from '../../shared/rules.js';
 import type { Listing } from '../../shared/types.js';
 
 const tz = 'America/Sao_Paulo';
@@ -43,8 +43,9 @@ test('anti longo prazo: máx 5 dias seguidos e 12 semanas', () => {
   const weeks = Array.from({ length: 13 }, (_, i) => ({ date: d(1 + i * 7), start: '09:00', end: '10:00' }));
   const codes = validateOccurrences(listing, weeks, ctx).map((e) => e.code);
   assert.ok(codes.includes('max_recurring_weeks') || codes.includes('too_many_occurrences'));
-  const irregular = [d(1), d(3)].map((date) => ({ date, start: '09:00', end: '10:00' }));
-  assert.ok(validateOccurrences(listing, irregular, ctx).some((e) => e.code === 'invalid_pattern'));
+  // Datas soltas cabem num pacote (até 3 dias da semana, até 30 dias); passando de 30 dias, não
+  const irregular = [d(1), d(40)].map((date) => ({ date, start: '09:00', end: '10:00' }));
+  assert.ok(validateOccurrences(listing, irregular, ctx).some((e) => e.code === 'package_max_days'));
   assert.ok(validateOccurrences(listing, [{ date: d(2), start: '09:00', end: '19:00' }], { ...ctx, guestHoursLast30Days: 115 }).some((e) => e.code === 'monthly_cap'));
 });
 
@@ -90,4 +91,33 @@ test('atraso na saída: tolerância 10 min, depois blocos de 15 min', () => {
   assert.equal(overstayCharge(8, 100, 'BRL'), 0);
   assert.equal(overstayCharge(20, 100, 'BRL'), 75); // 2 blocos × 0,25 h × 100 × 1,5
   assert.equal(overstayCharge(40, 100, 'BRL'), 150); // 3 blocos × 0,25 h × 100 × 2
+});
+
+test('pacote recorrente: até 3 dias da semana, até 30 dias, desconto do anfitrião a partir de 2 semanas', () => {
+  let monday = d(3);
+  while (weekdayOf(monday) !== 1) monday = addDays(monday, 1);
+  const pkg = (days: number[], weeks: number) => Array.from({ length: Math.min(weeks * 7, 30) }, (_, i) => addDays(monday, i))
+    .filter((dt) => days.includes(weekdayOf(dt))).map((date) => ({ date, start: '14:00', end: '16:00' }));
+  const codes = (o: ReturnType<typeof pkg>) => validateOccurrences(listing, o, ctx).map((e) => e.code);
+
+  const four = pkg([1, 3, 5], 4); // seg, qua, sex por 4 semanas = 12 datas
+  assert.equal(four.length, 12);
+  assert.equal(bookingPattern(four), 'package');
+  assert.deepEqual(codes(four), []);
+  assert.ok(codes(pkg([1, 2, 3, 4], 2)).includes('package_max_weekdays'), 'no máximo 3 dias por semana');
+  const long = [...four, { date: addDays(monday, 35), start: '14:00', end: '16:00' }];
+  assert.ok(codes(long).includes('package_max_days'), 'no máximo 30 dias');
+  // Pacote conta como série: com 2 séries ativas no mesmo espaço, não dá para abrir outra
+  assert.ok(validateOccurrences(listing, four, { ...ctx, guestActiveSeries: 2 }).map((e) => e.code).includes('max_active_series'));
+  // Teto de 120 h em 30 dias continua valendo (3 dias × 12 h × 4 semanas passaria)
+  const heavy = four.map((o) => ({ ...o, start: '08:00', end: '20:00' }));
+  assert.ok(codes(heavy).includes('monthly_cap'));
+
+  // Desconto do anfitrião: só em pacotes de 2 semanas ou mais
+  const withDiscount = { ...listing, packageDiscountPct: 10 };
+  const p4 = computePrice(withDiscount, four);
+  assert.equal(p4.packageDiscount, 240); // 12 × 2 h × R$ 100 × 10%
+  assert.equal(p4.baseAmount, 2160);
+  assert.equal(computePrice(withDiscount, pkg([1, 3, 5], 1)).packageDiscount, undefined, '1 semana: sem desconto');
+  assert.equal(computePrice(listing, four).packageDiscount, undefined, 'anfitrião sem desconto');
 });

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { api } from '../api';
+import { api, type ErrorAction } from '../api';
 import { useI18n, type DictKey } from '../i18n';
 import { useApp } from '../state';
 import { PriceLines } from '../components/PriceLines';
@@ -8,7 +8,8 @@ import { PolicySummary } from '../components/PolicySummary';
 import type { ListingSummary } from '../components/ListingCard';
 import { ASYNC_PAYMENT_METHODS, COUNTRY_BY_CODE, PAYMENT_METHOD_LABELS, type PaymentMethodId } from '../../../shared/countries';
 import type { Occurrence, PriceBreakdown } from '../../../shared/types';
-import { errorText } from '../errors';
+import { errorAction, errorText } from '../errors';
+import { ActionButton } from '../components/ActionAlert';
 import { formatDate, money } from '../format';
 import { NextStep } from '../components/NextStep';
 
@@ -34,6 +35,7 @@ export default function Checkout() {
   const [accept, setAccept] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [action, setAction] = useState<ErrorAction>();
   const [provider, setProvider] = useState<'asaas' | 'mercadopago' | ''>('');
   const [taxId, setTaxId] = useState('');
   const [lic, setLic] = useState({ body: '', number: '', region: '' });
@@ -73,7 +75,7 @@ export default function Checkout() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true); setError('');
+    setBusy(true); setError(''); setAction(undefined);
     try {
       const b = await api<{ id: string; status: string; payment?: { checkoutUrl?: string } }>('/bookings', {
         body: {
@@ -89,7 +91,7 @@ export default function Checkout() {
       if (b.status === 'pending_payment' && b.payment?.checkoutUrl) setPay({ url: b.payment.checkoutUrl, id: b.id });
       else nav(`/reservas/${b.id}?novo=1`);
     } catch (err) {
-      setError(errorText(err, t));
+      setError(errorText(err, t)); setAction(errorAction(err));
     } finally {
       setBusy(false);
     }
@@ -212,7 +214,7 @@ export default function Checkout() {
                 <Link to="/regras/terms" target="_blank">{t('legal.terms')}</Link>, <Link to="/regras/booking-rules" target="_blank">{t('legal.booking-rules')}</Link>, <Link to="/regras/space-norms" target="_blank">{t('legal.space-norms')}</Link>, <Link to="/regras/penalties" target="_blank">{t('legal.penalties')}</Link>, <Link to="/regras/cancellation-refunds" target="_blank">{t('legal.cancellation-refunds')}</Link> {t('checkout.acceptHouse')}
               </span>
             </label>
-            {error && <p className="errors" role="alert">{error}</p>}
+            {error && <p className="errors" role="alert">{error} <ActionButton action={action} /></p>}
             <button className="btn btn-primary" disabled={busy || !accept || !method || quote.errors.length > 0}>
               {busy ? t('common.wait') : listing.instantBook ? t('checkout.confirmPay') : t('checkout.sendRequest')}
             </button>

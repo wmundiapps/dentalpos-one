@@ -55,6 +55,8 @@ model Tenant {
   leads          Lead[]
   leadsContracts LeadsContract[]
   leadSources    LeadSource[]
+  leadBlocks     LeadBlock[]
+  leadAudiences  LeadAudience[]
   apiKeys        ApiKey[]
   events         IntegrationEvent[]
   notes          Note[]
@@ -74,6 +76,12 @@ model User {
   resetTokenHash    String?
   resetTokenExpires DateTime?
   lastLoginAt       DateTime?
+  // Verificação em 2 etapas (aplicativo autenticador, TOTP). Segredo cifrado; códigos reserva só como hash.
+  totpSecret        String?
+  totpPending       String?
+  totpEnabledAt     DateTime?
+  totpLastStep      BigInt?
+  totpBackupHashes  String[]  @default([])
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -558,26 +566,31 @@ model LeadSearch {
 }
 
 model Lead {
-  id        String      @id @default(cuid())
-  tenantId  String
-  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  searchId  String?
-  search    LeadSearch? @relation(fields: [searchId], references: [id], onDelete: SetNull)
-  name      String
-  company   String?
-  document  String?
-  phone     String?
-  email     String?
-  website   String?
-  address   String?
-  city      String?
-  state     String?
-  category  String?
-  origin    String // interno
-  originRef String? // interno (dedupe)
-  status    String      @default("NEW") // NEW | IMPORTED | DISCARDED
-  contactId String?
-  createdAt DateTime    @default(now())
+  id          String      @id @default(cuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  searchId    String?
+  search      LeadSearch? @relation(fields: [searchId], references: [id], onDelete: SetNull)
+  name        String
+  company     String?
+  document    String?
+  phone       String?
+  email       String?
+  website     String?
+  address     String?
+  city        String?
+  state       String?
+  category    String?
+  isMei       Boolean     @default(false)
+  // Convite por WhatsApp a partir da planilha: o link passa pelo REVAH (horário, um convite por pessoa, "não quero receber").
+  audienceId  String?
+  inviteToken String?     @unique
+  invitedAt   DateTime?
+  origin      String // interno
+  originRef   String? // interno (dedupe)
+  status      String      @default("NEW") // NEW | IMPORTED | DISCARDED
+  contactId   String?
+  createdAt   DateTime    @default(now())
 
   @@unique([tenantId, origin, originRef])
   @@index([tenantId, status])
@@ -652,6 +665,7 @@ model CompanyRecord {
   email         String?
   openedAt      String? // AAAAMMDD
   size          String? // porte: 01 ME, 03 EPP, 05 demais
+  isMei         Boolean  @default(false) // natureza jurídica 2135 (empresário individual / MEI)
   refMonth      String // AAAA-MM da carga
   updatedAt     DateTime @updatedAt
 
@@ -693,4 +707,33 @@ model LeadSource {
   updatedAt            DateTime  @updatedAt
 
   @@unique([tenantId, provider, externalId])
+}
+
+// "Não quero receber" do REVAH Leads, por cliente: hash do CNPJ, telefone e e-mail de quem pediu para sair.
+// A empresa nunca mais aparece nas buscas daquele cliente, mesmo numa base nova da Receita.
+model LeadBlock {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  hash      String
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, hash])
+}
+
+// Públicos salvos por cliente: o "mapa de CNAE" de cada cliente do REVAH, com o texto de convite dele.
+model LeadAudience {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name       String
+  cnaes      String[]
+  uf         String?
+  city       String?
+  meiFilter  String   @default("ALL") // ALL | ONLY | EXCLUDE
+  inviteText String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId])
 }

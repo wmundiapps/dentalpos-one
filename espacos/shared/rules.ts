@@ -19,6 +19,11 @@ export const BOOKING_LIMITS = {
   maxConsecutiveDays: 5,         // reserva multi-dia: no máximo 5 dias seguidos
   maxRecurringWeeks: 12,         // recorrência semanal: no máximo 12 semanas por série
   maxOccurrencesPerBooking: 12,
+  // Pacote recorrente: vários dias da semana, sem exclusividade (cessão de uso por horário)
+  maxPackageWeekdays: 3,         // no máximo 3 dias por semana por locatário
+  maxPackageDays: 30,            // duração máxima do pacote (do primeiro ao último dia)
+  maxPackageOccurrences: 15,     // 3 dias × 5 semanas parciais dentro de 30 dias
+  maxPackageDiscountPct: 30,     // desconto máximo que o anfitrião pode dar para pacotes
   maxAdvanceDays: 180,           // antecedência máxima
   minAdvanceMinutes: 60,         // reservar com pelo menos 1 h de antecedência
   maxHoursPer30DaysPerListing: 120, // teto por locatário, por espaço, em janela móvel de 30 dias
@@ -227,7 +232,9 @@ export function computePrice(listing: Listing, occurrences: Occurrence[]): Price
       base += hourly;
     }
   }
-  base = roundMoney(base, cur);
+  const discountRate = packageDiscountRate(listing, occurrences);
+  const packageDiscount = roundMoney(base * discountRate, cur);
+  base = roundMoney(base - packageDiscount, cur);
   const cleaningFee = roundMoney(listing.cleaningFee * occurrences.length, cur);
   const guestServiceFee = roundMoney((base + cleaningFee) * FEES.guestServiceFeeRate, cur);
   const taxOnServiceFee = roundMoney(guestServiceFee * country.taxRate, cur);
@@ -237,6 +244,7 @@ export function computePrice(listing: Listing, occurrences: Occurrence[]): Price
   return {
     currency: cur, hours, days, occurrences: occurrences.length, baseAmount: base, cleaningFee, guestServiceFee,
     taxOnServiceFee, taxName: country.taxName, total, hostServiceFee, hostPayout, securityDeposit: listing.securityDeposit,
+    ...(packageDiscount > 0 ? { packageDiscount } : {}),
   };
 }
 
@@ -251,12 +259,37 @@ export interface ValidationContext {
 
 export type ValidationError = { code: string; params?: Record<string, string | number> };
 
+export type BookingPattern = 'single' | 'consecutive' | 'weekly' | 'package' | 'invalid';
+
+/** Formato da reserva: um dia, dias seguidos, mesmo dia toda semana ou pacote (até 3 dias da semana, até 30 dias). */
+export function bookingPattern(occurrences: Occurrence[]): BookingPattern {
+  if (occurrences.length <= 1) return 'single';
+  const dates = occurrences.map((o) => o.date).sort();
+  if (new Set(dates).size !== dates.length) return 'invalid';
+  const diffs = dates.slice(1).map((d, i) => daysBetween(dates[i], d));
+  if (diffs.every((d) => d === 1)) return 'consecutive';
+  if (diffs.every((d) => d === 7)) return 'weekly';
+  const span = daysBetween(dates[0], dates[dates.length - 1]) + 1;
+  if (span <= BOOKING_LIMITS.maxPackageDays && new Set(dates.map(weekdayOf)).size <= BOOKING_LIMITS.maxPackageWeekdays) return 'package';
+  return 'invalid';
+}
+
+/** Desconto do anfitrião para pacotes de pelo menos 2 semanas (percentual sobre o valor das horas). */
+export function packageDiscountRate(listing: Pick<Listing, 'packageDiscountPct'>, occurrences: Occurrence[]): number {
+  const pct = Math.min(Math.max(listing.packageDiscountPct ?? 0, 0), BOOKING_LIMITS.maxPackageDiscountPct);
+  if (!pct || bookingPattern(occurrences) !== 'package') return 0;
+  const dates = occurrences.map((o) => o.date).sort();
+  return daysBetween(dates[0], dates[dates.length - 1]) >= 7 ? pct / 100 : 0;
+}
+
 export function validateOccurrences(listing: Listing, occurrences: Occurrence[], ctx: ValidationContext): ValidationError[] {
   const L = BOOKING_LIMITS;
   const errors: ValidationError[] = [];
   const now = ctx.now ?? new Date();
   if (occurrences.length === 0) return [{ code: 'no_occurrences' }];
-  if (occurrences.length > L.maxOccurrencesPerBooking) errors.push({ code: 'too_many_occurrences', params: { max: L.maxOccurrencesPerBooking } });
+  const pattern = bookingPattern(occurrences);
+  const maxOcc = pattern === 'package' ? L.maxPackageOccurrences : L.maxOccurrencesPerBooking;
+  if (occurrences.length > maxOcc) errors.push({ code: 'too_many_occurrences', params: { max: maxOcc } });
 
   const sorted = [...occurrences].sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
   const today = todayInZone(listing.timezone, now);
@@ -272,8 +305,13 @@ export function validateOccurrences(listing: Listing, occurrences: Occurrence[],
     const weekly = diffs.every((d) => d === 7);
     if (consecutive && sorted.length > L.maxConsecutiveDays) errors.push({ code: 'max_consecutive_days', params: { max: L.maxConsecutiveDays } });
     if (weekly && sorted.length > L.maxRecurringWeeks) errors.push({ code: 'max_recurring_weeks', params: { max: L.maxRecurringWeeks } });
-    if (!consecutive && !weekly) errors.push({ code: 'invalid_pattern' });
-    if (weekly && ctx.guestActiveSeries >= L.maxActiveSeriesPerListing) errors.push({ code: 'max_active_series', params: { max: L.maxActiveSeriesPerListing } });
+    if (!consecutive && !weekly) {
+      // Pacote: até 3 dias da semana, por até 30 dias
+      const span = daysBetween(sorted[0].date, sorted[sorted.length - 1].date) + 1;
+      if (span > L.maxPackageDays) errors.push({ code: 'package_max_days', params: { max: L.maxPackageDays } });
+      else if (new Set(dates.map(weekdayOf)).size > L.maxPackageWeekdays) errors.push({ code: 'package_max_weekdays', params: { max: L.maxPackageWeekdays } });
+    }
+    if ((weekly || pattern === 'package') && ctx.guestActiveSeries >= L.maxActiveSeriesPerListing) errors.push({ code: 'max_active_series', params: { max: L.maxActiveSeriesPerListing } });
     if (weekly && ctx.seriesCooldownUntil && sorted[0].date < ctx.seriesCooldownUntil) errors.push({ code: 'series_cooldown', params: { date: ctx.seriesCooldownUntil } });
   }
 

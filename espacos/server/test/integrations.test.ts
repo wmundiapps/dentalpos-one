@@ -153,6 +153,8 @@ function fakeClaude(result: Partial<LicenseAiResult>): Anthropic {
   return { beta: { messages: { create: async () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(full) }] }) } } } as unknown as Anthropic;
 }
 
+const US = await import('../src/uploadSafety.js');
+const { default: sharp } = await import('sharp');
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
 async function register(email: string, verified = true) {
@@ -231,12 +233,38 @@ test('upload de fotos: imagens do celular/PC aceitas, outros arquivos recusados'
   assert.ok(files.every((f) => f.mime === 'image/png' && f.url.startsWith('/api/uploads/')));
   const img = await fetch(`${base}${files[0].url.slice(4)}`);
   assert.equal(img.status, 200);
-  assert.deepEqual(Buffer.from(await img.arrayBuffer()), PNG);
+  assert.deepEqual(Buffer.from(await img.arrayBuffer()), (await US.reencodeImage(PNG)).data, 'foto regravada no servidor');
 
   const bad = new FormData();
   bad.append('files', new Blob(['<script>alert(1)</script>'], { type: 'image/png' }), 'x.png');
   assert.equal((await fetch(`${base}/uploads`, { method: 'POST', headers: { Authorization: `Bearer ${tok}` }, body: bad })).status, 422);
   assert.equal((await fetch(`${base}/uploads`, { method: 'POST', body: form })).status, 401);
+});
+
+test('envio seguro: foto sem GPS e no máximo 2000 px; PDF com JavaScript, anexo ou cifrado recusado', async () => {
+  // Foto de celular com GPS no EXIF e 3000 px
+  const gps = await sharp({ create: { width: 3000, height: 1500, channels: 3, background: '#0f766e' } })
+    .jpeg().withExif({ IFD0: { Make: 'Celular' }, IFD3: { GPSLatitudeRef: 'S', GPSLatitude: '23/1 25/1 0/1' } }).toBuffer();
+  assert.ok((await sharp(gps).metadata()).exif, 'a foto de teste tem EXIF');
+  const clean = await US.reencodeImage(gps);
+  const meta = await sharp(clean.data).metadata();
+  assert.equal(meta.exif, undefined, 'GPS e metadados apagados');
+  assert.equal(meta.width, 2000);
+  assert.equal(clean.mime, 'image/jpeg');
+
+  const pdf = (body: string) => Buffer.from(`%PDF-1.4\n1 0 obj << /Type /Catalog ${body} >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n`, 'latin1');
+  assert.equal(US.pdfProblem(pdf('/Pages 2 0 R')), null, 'PDF simples aceito');
+  assert.equal(US.pdfProblem(pdf('/OpenAction << /S /JavaScript /JS (app.alert(1)) >>')), 'OpenAction');
+  assert.equal(US.pdfProblem(pdf('/Names << /J#61vaScript 3 0 R >>')), 'JavaScript', 'nome disfarçado com #');
+  assert.equal(US.pdfProblem(pdf('/Names << /EmbeddedFiles 3 0 R >>')), 'EmbeddedFiles');
+  assert.equal(US.pdfProblem(pdf('/Encrypt 5 0 R')), 'Encrypt');
+  const { deflateSync } = await import('node:zlib');
+  const hidden = deflateSync(Buffer.from('<< /S /JavaScript /JS (x) >>'));
+  const objStm = Buffer.concat([Buffer.from('%PDF-1.5\n4 0 obj << /Type /ObjStm /N 1 /First 4 /Filter /FlateDecode >>\nstream\n', 'latin1'), hidden, Buffer.from('\nendstream endobj\n%%EOF\n', 'latin1')]);
+  assert.equal(US.pdfProblem(objStm), 'JavaScript', 'escondido em objeto comprimido');
+  await assert.rejects(US.safeDocument(pdf('/AA << >>'), { allowPdf: true }), /unsafe_pdf/);
+  await assert.rejects(US.safeDocument(pdf('/Pages 2 0 R'), { allowPdf: false }), /invalid_document_type/);
+  await assert.rejects(US.safeDocument(Buffer.from('MZ executável disfarçado'), { allowPdf: true }), /invalid_image/);
 });
 
 test('avaliação do app, sugestões e erros + fila de e-mails', async () => {
@@ -274,7 +302,7 @@ test('cron protegido por segredo', async () => {
   process.env.CRON_SECRET = 's3cret';
   const r = await fetch(`${base}/cron/tick`, { headers: { Authorization: 'Bearer s3cret' } });
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'cart', 'documents', 'email', 'mp_tokens', 'push', 'security', 'verifications']);
+  assert.deepEqual(Object.keys(await r.json()).sort(), ['assistant', 'bookings', 'cart', 'documents', 'email', 'mp_tokens', 'packages', 'prospecting', 'push', 'security', 'verifications']);
   delete process.env.CRON_SECRET;
 });
 
@@ -305,7 +333,8 @@ test('documentos de registro: cifrados no banco, acesso registrado e apagados ap
 
     const adminTok = signToken(admin);
     const doc = await fetch(`${base}/admin/verifications/${verificationId}/document`, { headers: { Authorization: `Bearer ${adminTok}` } });
-    assert.deepEqual(Buffer.from(await doc.arrayBuffer()), PNG, 'equipe vê o original');
+    assert.deepEqual(Buffer.from(await doc.arrayBuffer()), (await US.reencodeImage(PNG)).data, 'equipe vê o documento (regravado, sem metadados)');
+    assert.match(doc.headers.get('content-security-policy') ?? '', /sandbox/);
     const log = await (await fetch(`${base}/admin/verifications/${verificationId}/access-log`, { headers: { Authorization: `Bearer ${adminTok}` } })).json() as { action: string; email: string | null }[];
     assert.ok(log.some((l) => l.action === 'view' && l.email === admin.email));
     assert.ok(log.some((l) => l.action === 'ai_analysis'));
@@ -511,8 +540,9 @@ test('ADMIN_EMAILS: conta Gmail vira admin já no login, mesmo com pontos, "+alg
 
 test('origem do cadastro (UTM) aparece no relatório de campanha do admin', async () => {
   const r = await fetch(`${base}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'Dra. Campanha', email: 'campanha@example.com', password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true, source: 'meta/paid/lancamento-anfitrioes' }) });
+    body: JSON.stringify({ name: 'Dra. Campanha', email: 'campanha@example.com', password: 'senha-forte-1', countryCode: 'BR', locale: 'pt-BR', acceptTerms: true, confirmAge: true, source: 'meta/paid/lancamento-anfitrioes', gclid: 'Cj0KCQjw_teste-123' }) });
   assert.equal(r.status, 201);
+  assert.equal((await one<{ g: string }>(pool, "SELECT signup_gclid AS g FROM users WHERE email = 'campanha@example.com'"))!.g, 'Cj0KCQjw_teste-123', 'clique do Google Ads guardado');
   const u = (await r.json()) as { token: string };
   assert.equal((await fetch(`${base}/admin/signups`, { headers: { Authorization: `Bearer ${u.token}` } })).status, 403);
   const rep = await (await fetch(`${base}/admin/signups?days=7`, { headers: { Authorization: `Bearer ${signToken(admin)}` } })).json() as { bySource: { source: string; signups: number }[] };
@@ -885,7 +915,7 @@ test('identidade: CPF/CNPJ + documento + selfie com checagem automática; equipe
     assert.ok(cv && open.some((x) => x.email === 'id4@example.com'));
     const selfie = await fetch(`${base}/admin/identities/${cv.id}/selfie`, { headers: adm });
     assert.equal(selfie.status, 200);
-    assert.ok(Buffer.from(await selfie.arrayBuffer()).equals(PNG), 'arquivo decifrado para a equipe');
+    assert.ok(Buffer.from(await selfie.arrayBuffer()).equals((await US.reencodeImage(PNG)).data), 'arquivo decifrado para a equipe');
     const stored = await one<{ selfie: Buffer }>(pool, 'SELECT selfie FROM identity_verifications WHERE id = $1', [cv.id]);
     assert.ok(!stored!.selfie.equals(PNG), 'guardado cifrado');
     assert.equal((await one<{ n: number }>(pool, "SELECT count(*)::int AS n FROM identity_access_log WHERE verification_id = $1 AND action = 'view'", [cv.id]))!.n, 1);
@@ -1042,7 +1072,10 @@ test('prazos de pagamento: Pix 30 min, cartão 24 h, boleto 3 dias (só com 3 di
   try {
     const l = byTitle('Sala de psicologia');
     const base = { guests: 1, purpose: 'Sessão', acceptRules: true, listingId: l.id };
-    const soon = { ...base, occurrences: [{ date: addDays(todayInZone(l.timezone), 1), start: '19:00', end: '20:00' }] };
+    // Amanhã ou depois (o que tiver horário livre): menos de 3 dias, então boleto não pode
+    const soonDate = [1, 2].map((i) => addDays(todayInZone(l.timezone), i))
+      .find((dt) => (l.weeklyAvailability[weekdayOf(dt) as 0] ?? []).some((w) => w.start <= '19:00' && w.end >= '20:00'))!;
+    const soon = { ...base, occurrences: [{ date: soonDate, start: '19:00', end: '20:00' }] };
     await assert.rejects(B.createBooking(guest, { ...soon, paymentMethod: 'boleto' }), /boleto_needs_3_days/);
     const far = { ...base, occurrences: [{ date: nextDateWith(l, 4, 5), start: '19:00', end: '20:00' }] };
     const bol = await B.createBooking(guest, { ...far, paymentMethod: 'boleto' });
@@ -1059,6 +1092,66 @@ test('prazos de pagamento: Pix 30 min, cartão 24 h, boleto 3 dias (só com 3 di
   } finally {
     P.setGatewayOverride();
   }
+});
+
+test('2 etapas por aplicativo autenticador: QR, código sem reuso, 8 códigos reserva de uso único, desligar com senha + código', async () => {
+  const T = await import('../src/totp.js');
+  assert.equal(T.totpAt(Buffer.from('12345678901234567890'), 1), '287082', 'vetor de teste da RFC 6238 (t = 59 s)');
+  assert.deepEqual(T.unbase32(T.base32(Buffer.from('SpaceHour!'))), Buffer.from('SpaceHour!'));
+
+  const u = await register('totp@example.com');
+  const auth = { Authorization: `Bearer ${u.token}`, 'Content-Type': 'application/json' };
+  const post = (path: string, body: unknown, headers: Record<string, string> = auth) => fetch(`${base}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  assert.equal((await post('/me/totp/setup', { password: 'errada' })).status, 401);
+  const setup = await (await post('/me/totp/setup', { password: 'senha-forte-1' })).json() as { secret: string; uri: string };
+  assert.match(setup.uri, /^otpauth:\/\/totp\/SpaceHour%3Atotp%40example\.com\?secret=[A-Z2-7]+&issuer=SpaceHour/);
+  const secret = T.unbase32(setup.secret);
+  const stored = await one<{ s: Buffer }>(pool, "SELECT totp_pending_secret AS s FROM users WHERE email = 'totp@example.com'");
+  assert.ok(!stored!.s.includes(secret), 'segredo cifrado no banco');
+  const step = Math.floor(Date.now() / 30000);
+  assert.equal((await post('/me/totp/confirm', { code: '000000' === T.totpAt(secret, step) ? '111111' : '000000' })).status, 400);
+  const conf = await (await post('/me/totp/confirm', { code: T.totpAt(secret, step) })).json() as { backupCodes: string[] };
+  assert.equal(conf.backupCodes.length, 8);
+  assert.equal((await one<{ n: number }>(pool, "SELECT count(*)::int AS n FROM totp_backup_codes b JOIN users u ON u.id = b.user_id WHERE u.email = 'totp@example.com' AND b.code_hash LIKE '$2%'"))!.n, 8, 'só o hash');
+
+  const json = { 'Content-Type': 'application/json' };
+  const login = async () => (await post('/auth/login', { email: 'totp@example.com', password: 'senha-forte-1' }, json)).json() as Promise<{ challengeId: string; method: string; email?: string }>;
+  const sent: string[] = [];
+  M.setMailSender(async (m) => { sent.push(m.subject); });
+  try {
+    const c1 = await login();
+    assert.equal(c1.method, 'app');
+    assert.equal(sent.length, 0, 'com o aplicativo, nenhum código vai por e-mail');
+    assert.equal((await post('/auth/login/resend', { challengeId: c1.challengeId }, json)).status, 400);
+    assert.equal((await post('/auth/login/verify', { challengeId: c1.challengeId, code: T.totpAt(secret, step) }, json)).status, 400, 'o mesmo código não vale duas vezes');
+    const ok = await post('/auth/login/verify', { challengeId: c1.challengeId, code: T.totpAt(secret, step + 1) }, json);
+    assert.equal(ok.status, 200);
+
+    // Código reserva: vale uma vez
+    const c2 = await login();
+    assert.equal((await post('/auth/login/verify', { challengeId: c2.challengeId, code: conf.backupCodes[0].toUpperCase() }, json)).status, 200);
+    const c3 = await login();
+    assert.equal((await post('/auth/login/verify', { challengeId: c3.challengeId, code: conf.backupCodes[0] }, json)).status, 400, 'reserva usado não vale de novo');
+    assert.equal((await (await fetch(`${base}/me/totp`, { headers: auth })).json() as { backupCodesLeft: number }).backupCodesLeft, 7);
+
+    // Desligar exige senha + código
+    assert.equal((await post('/me/totp/disable', { password: 'senha-forte-1', code: '123456' })).status, 400);
+    assert.equal((await post('/me/totp/disable', { password: 'senha-forte-1', code: conf.backupCodes[1] })).status, 200);
+    const c4 = await (await post('/auth/login', { email: 'totp@example.com', password: 'senha-forte-1' }, json)).json() as { token?: string };
+    assert.ok(c4.token, 'desligado: entra só com a senha');
+  } finally {
+    M.setMailSender();
+  }
+});
+
+test('erro com botão "ir resolver": o servidor diz para onde ir', async () => {
+  const u = await register('acao@example.com', false);
+  const form = new FormData();
+  form.set('fullName', 'Dra. Ação'); form.set('body', 'CRO'); form.set('number', '12345');
+  form.set('document', new Blob([PNG], { type: 'image/png' }), 'doc.png');
+  const r = await fetch(`${base}/me/license`, { method: 'POST', headers: { Authorization: `Bearer ${u.token}` }, body: form });
+  assert.equal(r.status, 403);
+  assert.deepEqual(await r.json(), { error: 'email_not_verified', action: { to: '/perfil', label: 'verifyEmail' } });
 });
 
 test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo impróprio barrado e cabeçalhos de proteção', async () => {
@@ -1081,7 +1174,7 @@ test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo imp
   assert.equal(((await bad.json()) as { error: string }).error, 'content_not_allowed');
 
   // Duas etapas opcional para qualquer conta
-  assert.deepEqual(await (await fetch(`${base}/me/two-factor`, { headers: { Authorization: `Bearer ${u.token}` } })).json(), { enabled: false, forced: false });
+  assert.deepEqual(await (await fetch(`${base}/me/two-factor`, { headers: { Authorization: `Bearer ${u.token}` } })).json(), { enabled: false, forced: false, method: 'email' });
   assert.equal((await post('/me/two-factor', { enabled: true }, u.token)).status, 200);
   const sent: Array<{ text: string }> = [];
   M.setMailSender(async (m) => { sent.push(m); });
@@ -1116,4 +1209,131 @@ test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo imp
   assert.equal(h.headers.get('x-frame-options'), 'DENY');
   assert.equal(h.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(h.headers.get('x-powered-by'), null);
+});
+
+test('pacote recorrente: até 3 dias por semana, pago de uma vez; aviso de renovação 5 dias antes do fim', async () => {
+  const fake = fakeGateway();
+  P.setGatewayOverride(() => fake);
+  try {
+    const l = byTitle('Sala de psicologia');
+    const free = ([0, 1, 2, 3, 4, 5, 6] as const).filter((w) => (l.weeklyAvailability[w] ?? []).some((x) => x.start <= '08:00' && x.end >= '09:00')).slice(0, 3);
+    assert.ok(free.length >= 2, 'espaço com pelo menos 2 dias livres de manhã');
+    const from = addDays(todayInZone(l.timezone), 3);
+    const occurrences = Array.from({ length: 14 }, (_, i) => addDays(from, i))
+      .filter((dt) => (free as readonly number[]).includes(weekdayOf(dt))).map((date) => ({ date, start: '08:00', end: '09:00' }));
+    const b = await B.createBooking(guest, { guests: 1, purpose: 'Atendimentos', acceptRules: true, listingId: l.id, occurrences, paymentMethod: 'pix' });
+    assert.equal(b.occurrences.length, occurrences.length);
+    await B.applyPaymentUpdate({ paymentId: b.paymentId!, outcome: 'captured', providerRef: 'pkg1' });
+
+    const Pk = await import('../src/packages.js');
+    const last = occurrences.at(-1)!.date;
+    // 10 dias antes do fim: ainda não avisa; 4 dias antes: avisa uma vez só
+    assert.equal(await Pk.sendPackageRenewals(new Date(`${addDays(last, -10)}T15:00:00Z`)), 0);
+    assert.equal(await Pk.sendPackageRenewals(new Date(`${addDays(last, -4)}T15:00:00Z`)), 1);
+    assert.equal(await Pk.sendPackageRenewals(new Date(`${addDays(last, -3)}T15:00:00Z`)), 0);
+    const n = await one<{ text: string; link: string }>(pool, "SELECT text, link FROM notifications WHERE user_id = $1 AND kind = 'package_renewal' ORDER BY created_at DESC LIMIT 1", [guest.id]);
+    assert.match(n!.text, /renovar/);
+    assert.match(n!.link, new RegExp(`^/espacos/${l.id}\\?pacote=1&dias=`));
+    assert.ok(n!.link.includes(`de=${addDays(last, 1)}`), 'próximo pacote começa depois do último dia');
+  } finally {
+    P.setGatewayOverride();
+  }
+});
+
+test('captação: Receita + Google Maps, sequência de e-mails em horário comercial, clique quente e descadastro (LGPD)', async () => {
+  const Pr = await import('../src/prospecting.js');
+  await pool.query(`INSERT INTO "CompanyRecord" ("cnpj","basico","tradeName","cnae","uf","cityCode","city","cityNorm","email","phone","refMonth") VALUES
+    ('11111111000101','11111111','Clínica Sorriso','8630504','PR','7691','MARINGA','maringa','contato@sorriso.com.br','4432220000','2026-09'),
+    ('22222222000102','22222222','Odonto Pessoal','8630504','PR','7691','MARINGA','maringa','dono@gmail.com',null,'2026-09'),
+    ('33333333000103','33333333','Padaria','1091102','PR','7691','MARINGA','maringa','pao@padaria.com.br',null,'2026-09')`);
+  const found = await Pr.searchReceita({ segment: 'odonto', city: 'Maringá', uf: 'PR' });
+  assert.deepEqual(found.map((f) => f.name).sort(), ['Clínica Sorriso', 'Odonto Pessoal'], 'só o segmento e a cidade pedidos');
+  assert.equal(found.find((f) => f.name === 'Odonto Pessoal')!.webmail, true);
+  assert.equal(found.find((f) => f.name === 'Clínica Sorriso')!.phone, '4432220000', 'fixo fica como está');
+  assert.equal(Pr.normPhone('(44) 9822-1234'), '44998221234', 'celular antigo da Receita ganha o 9');
+  assert.equal(Pr.normPhone('+55 44 99822-1234'), '44998221234');
+  assert.deepEqual(await Pr.addProspects(found), { added: 2, skipped: 0, blocked: 0 });
+  assert.deepEqual(await Pr.addProspects(found), { added: 0, skipped: 2, blocked: 0 }, 'não duplica');
+
+  // Google Maps (Places API oficial) com até 60 resultados
+  process.env.GOOGLE_PLACES_API_KEY = 'k';
+  Pr.setPlacesFetch((async () => new Response(JSON.stringify({ places: [{ id: 'g1', displayName: { text: 'Coworking Centro' }, formattedAddress: 'Av. Brasil, Maringá', nationalPhoneNumber: '(44) 3000-0000' }] }))) as typeof fetch);
+  try {
+    const maps = await Pr.searchMaps({ segment: 'coworking', city: 'Maringá' });
+    assert.equal(maps[0].name, 'Coworking Centro');
+    assert.equal(maps[0].phone, '(44) 3000-0000');
+  } finally {
+    delete process.env.GOOGLE_PLACES_API_KEY;
+    Pr.setPlacesFetch();
+  }
+
+  // Caixa própria de convites: sem ela (ou igual à do sistema) nada sai
+  assert.match(M.inviteMailProblem()!, /INVITE_SMTP_USER/);
+  process.env.SMTP_HOST = 'smtp.teste'; process.env.SMTP_USER = 'noreply@space-hour.com';
+  process.env.INVITE_SMTP_USER = 'NoReply@space-hour.com'; process.env.INVITE_SMTP_PASS = 'x';
+  assert.match(M.inviteMailProblem()!, /diferente/);
+  process.env.INVITE_SMTP_USER = 'convites@space-hour.com';
+  assert.equal(M.inviteMailProblem(), null);
+  for (const k of ['SMTP_HOST', 'SMTP_USER', 'INVITE_SMTP_USER', 'INVITE_SMTP_PASS']) delete process.env[k];
+  await Pr.setConfig({ sending_enabled: true });
+  assert.match(String((await Pr.runSequence({ now: new Date('2026-10-12T17:00:00Z') }) as { mailbox?: string }).mailbox), /caixa de convites/);
+  await Pr.setConfig({ sending_enabled: false });
+
+  const sent: Array<{ to: string; subject: string; text: string; headers?: Record<string, string> }> = [];
+  M.setMailSender(async (m) => { sent.push(m); });
+  try {
+    const monday14h = new Date('2026-10-12T17:00:00Z'); // segunda, 14h em Brasília
+    assert.equal((await Pr.runSequence({ now: monday14h })).sent, 0, 'desligada por padrão');
+    await Pr.setConfig({ sending_enabled: true, daily_limit: 10 });
+    assert.equal((await Pr.runSequence({ now: new Date('2026-10-12T02:00:00Z') })).sent, 0, 'fora do horário comercial');
+    const r = await Pr.runSequence({ now: monday14h });
+    assert.equal(r.sent, 1, 'e-mail pessoal (gmail) fica de fora por padrão');
+    const mail = sent.find((m) => m.to === 'contato@sorriso.com.br')!;
+    assert.ok(mail.headers?.['List-Unsubscribe'], 'descadastro em um clique');
+    assert.match(mail.text, /cadastro público/);
+    assert.equal((await Pr.runSequence({ now: monday14h })).sent, 0, 'passo 2 só depois de 3 dias');
+    assert.equal((await Pr.runSequence({ now: new Date('2026-10-15T17:00:00Z') })).sent, 1, 'passo 2 após 3 dias');
+
+    // Clique: vira lead quente e vai para a página de anunciantes
+    const tok = mail.text.match(/\/p\/c\/([\w-]+)\?s=1/)![1];
+    const click = await fetch(`${base}/p/c/${tok}?s=1`, { redirect: 'manual' });
+    assert.equal(click.status, 302);
+    assert.match(click.headers.get('location')!, /\/anuncie\?utm_source=prospeccao/);
+    assert.equal((await one<{ status: string }>(pool, 'SELECT status FROM prospects WHERE token = $1', [tok]))!.status, 'hot');
+
+    // WhatsApp por link controlado: horário, um convite por pessoa
+    await pool.query("UPDATE prospects SET phone = '4498221234' WHERE token = $1", [tok]);
+    assert.ok('error' in await Pr.whatsappInvite(tok, new Date('2026-10-13T01:00:00Z')), 'fora do horário (22h)');
+    const wa = await Pr.whatsappInvite(tok, monday14h);
+    assert.ok('url' in wa && wa.url.startsWith('https://wa.me/5544998221234?text='), 'abre com o 9 e o texto pronto');
+    assert.match(decodeURIComponent((wa as { url: string }).url), /Olá, equipe Clínica Sorriso! .*responda SAIR/s);
+    assert.match((await Pr.whatsappInvite(tok, monday14h) as { error: string }).error, /já foi convidado/);
+    const waPage = await fetch(`${base}/p/w/${tok}`, { redirect: 'manual' });
+    assert.notEqual(waPage.status, 302, 'link antigo do Excel não convida de novo');
+
+    // Excel: só admin, grava auditoria
+    const { buffer, rows: nRows } = await Pr.exportXlsx({ userId: 'usr_teste' });
+    assert.ok(buffer.length > 1000 && nRows >= 2);
+    assert.ok(await one(pool, "SELECT 1 FROM prospect_exports WHERE user_id = 'usr_teste'"));
+    assert.equal((await fetch(`${base}/admin/prospecting/export.xlsx`)).status, 401);
+
+    // Descadastro: bloqueio permanente por hash e telefone/e-mail apagados
+    const page = await fetch(`${base}/p/u/${tok}`);
+    assert.match(await page.text(), /não vai mais receber/);
+    assert.ok(await one(pool, 'SELECT 1 FROM prospect_blocklist WHERE hash = $1', [Pr.blockHash('email', 'contato@sorriso.com.br')]));
+    assert.ok(await one(pool, 'SELECT 1 FROM prospect_blocklist WHERE hash = $1', [Pr.blockHash('cnpj', '11111111000101')]));
+    assert.ok(await one(pool, 'SELECT 1 FROM prospect_blocklist WHERE hash = $1', [Pr.blockHash('phone', '44998221234')]));
+    const gone = await one<{ email: string | null; phone: string | null }>(pool, 'SELECT email, phone FROM prospects WHERE token = $1', [tok]);
+    assert.deepEqual(gone, { email: null, phone: null }, 'dado apagado do registro');
+    // Reimportar não traz de volta (nem pela busca, nem pela planilha)
+    assert.ok(!(await Pr.searchReceita({ segment: 'odonto', city: 'Maringá', uf: 'PR' })).some((f) => f.name === 'Clínica Sorriso'));
+    assert.deepEqual(await Pr.addProspects([{ source: 'csv', sourceRef: 'x', name: 'Outra', email: 'CONTATO@sorriso.com.br ' }]), { added: 0, skipped: 0, blocked: 1 });
+    sent.length = 0;
+    await Pr.setConfig({ send_to_webmail: true });
+    await Pr.runSequence({ now: new Date('2026-10-26T17:00:00Z') });
+    assert.ok(!sent.some((m) => m.to === 'contato@sorriso.com.br'), 'descadastrado não recebe mais');
+  } finally {
+    M.setMailSender();
+    await Pr.setConfig({ sending_enabled: false, send_to_webmail: false });
+  }
 });

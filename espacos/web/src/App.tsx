@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { FeedbackWidget } from './components/FeedbackWidget';
 import { EmailVerifyBanner } from './components/EmailVerifyBanner';
+import { ScrollToHash } from './components/ActionAlert';
 import { MercadoPagoBar } from './components/MercadoPagoBar';
 import { ConsentBanner } from './components/ConsentBanner';
 import { AssistantWidget } from './components/AssistantWidget';
@@ -58,6 +59,7 @@ export default function App() {
       <MercadoPagoBar />
       <main id="main">
         <EmailVerifyBanner />
+        <ScrollToHash />
         <Suspense fallback={<div className="container"><div className="skeleton hero-skeleton" /></div>}>
           <Routes>
             <Route path="/" element={<Home />} />

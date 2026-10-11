@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import QRCode from 'qrcode'
 import { KeyRound, Plus, RefreshCw, ShieldOff } from 'lucide-react'
 import { del, get, patch, post, put } from '../lib/api'
 import { ALL_CHANNELS, CHANNEL_LABEL, ROLE_LABEL, SUPPRESSION_REASON, fmtDateTime, fmtPhone } from '../lib/format'
@@ -7,7 +8,7 @@ import type { Channel, Suppression, TeamUser } from '../lib/types'
 import { useFeedback } from '../components/feedback'
 import { Alert, Badge, Button, Card, CopyButton, EmptyState, ErrorBox, Field, Loading, Modal, PageHeader, Tabs, Toggle, useLoad } from '../components/ui'
 
-type Tab = 'empresa' | 'bot' | 'equipe' | 'api' | 'integracao' | 'bloqueios' | 'auditoria' | 'senha'
+type Tab = 'empresa' | 'bot' | 'equipe' | 'api' | 'integracao' | 'bloqueios' | 'auditoria' | 'senha' | 'seguranca'
 
 export default function SettingsPage() {
   const { canManage } = useAuthed()
@@ -25,6 +26,7 @@ export default function SettingsPage() {
     { value: 'bloqueios', label: 'Bloqueios' },
     ...(canManage ? ([{ value: 'auditoria', label: 'Auditoria' }] as { value: Tab; label: string }[]) : []),
     { value: 'senha', label: 'Minha senha' },
+    { value: 'seguranca', label: 'Segurança' },
   ]
   return (
     <div className="page">
@@ -40,6 +42,7 @@ export default function SettingsPage() {
       {tab === 'bloqueios' && <SuppressionsTab />}
       {tab === 'auditoria' && <AuditTab />}
       {tab === 'senha' && <PasswordTab />}
+      {tab === 'seguranca' && <TwoFactorTab />}
     </div>
   )
 }
@@ -714,6 +717,157 @@ function PasswordTab() {
             Alterar senha
           </Button>
         </div>
+      </div>
+    </Card>
+  )
+}
+
+// Verificação em 2 etapas (aplicativo autenticador). Obrigatória para o painel da WMundi; recomendada para todos.
+function BackupCodes({ codes }: { codes: string[] }) {
+  return (
+    <div className="stack">
+      <Alert tone="amber" title="Guarde estes 8 códigos reserva">
+        Cada um vale uma vez para entrar sem o celular. Eles não aparecem de novo: anote em papel ou guarde num gerenciador de senhas.
+      </Alert>
+      <div className="grid-2 gap-sm">
+        {codes.map((c) => (
+          <code key={c}>{c}</code>
+        ))}
+      </div>
+      <div className="row end">
+        <CopyButton text={codes.join('\n')} />
+      </div>
+    </div>
+  )
+}
+
+function TwoFactorTab() {
+  const fb = useFeedback()
+  const { refresh, session } = useAuthed()
+  const st = useLoad(() => get<{ enabled: boolean; enabledAt: string | null; backupCodesLeft: number }>('/auth/2fa'))
+  const [setup, setSetup] = useState<{ key: string; uri: string; qr: string } | null>(null)
+  const [code, setCode] = useState('')
+  const [password, setPassword] = useState('')
+  const [codes, setCodes] = useState<string[] | null>(null)
+  const [busy, setBusy] = useState('')
+  const [error, setError] = useState('')
+
+  async function start() {
+    setError('')
+    setBusy('start')
+    try {
+      const s = await post<{ key: string; uri: string }>('/auth/2fa/setup')
+      setSetup({ ...s, qr: await QRCode.toDataURL(s.uri, { margin: 1, width: 220 }) })
+    } catch (e) {
+      fb.fail(e)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function act(kind: 'enable' | 'disable' | 'backup') {
+    setError('')
+    setBusy(kind)
+    try {
+      if (kind === 'enable') {
+        const r = await post<{ backupCodes: string[] }>('/auth/2fa/enable', { code: code.trim() })
+        setCodes(r.backupCodes)
+        setSetup(null)
+        fb.success('Verificação em 2 etapas ativada.')
+      } else if (kind === 'disable') {
+        await post('/auth/2fa/disable', { password, code: code.trim() })
+        setCodes(null)
+        fb.success('Verificação em 2 etapas desativada.')
+      } else {
+        const r = await post<{ backupCodes: string[] }>('/auth/2fa/backup-codes', { code: code.trim() })
+        setCodes(r.backupCodes)
+        fb.success('Novos códigos reserva gerados. Os antigos não valem mais.')
+      }
+      setCode('')
+      setPassword('')
+      st.reload(true)
+      await refresh().catch(() => null)
+    } catch (e: any) {
+      setError(e?.message || 'Não foi possível concluir.')
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const d = st.data
+  return (
+    <Card title="Verificação em 2 etapas">
+      <div className="stack narrow">
+        <ErrorBox error={st.error} onRetry={st.reload} />
+        {error && <Alert tone="red">{error}</Alert>}
+        {codes && <BackupCodes codes={codes} />}
+        {!d ? (
+          <Loading />
+        ) : d.enabled ? (
+          <>
+            <Alert tone="green" title="Ativa">
+              Ao entrar, além da senha, o REVAH pede o código do aplicativo autenticador. Códigos reserva restantes: {d.backupCodesLeft}.
+            </Alert>
+            <Field label="Código do aplicativo">
+              <input inputMode="numeric" autoComplete="one-time-code" maxLength={9} value={code} onChange={(e) => setCode(e.target.value)} />
+            </Field>
+            <div className="row wrap gap-sm end">
+              <Button variant="secondary" onClick={() => act('backup')} loading={busy === 'backup'} disabled={!/^\d{6}$/.test(code.trim())}>
+                Gerar novos códigos reserva
+              </Button>
+            </div>
+            <details>
+              <summary className="small muted">Desativar</summary>
+              <div className="stack" style={{ marginTop: 12 }}>
+                <Field label="Sua senha">
+                  <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                </Field>
+                <div className="row end">
+                  <Button variant="danger" onClick={() => act('disable')} loading={busy === 'disable'} disabled={!password || !code.trim()}>
+                    Desativar 2 etapas
+                  </Button>
+                </div>
+              </div>
+            </details>
+          </>
+        ) : setup ? (
+          <>
+            <p>
+              1. Instale um aplicativo autenticador no celular (Google Authenticator, Microsoft Authenticator ou Authy).
+              <br />
+              2. No aplicativo, escolha <strong>adicionar conta</strong> e leia o QR abaixo.
+            </p>
+            <div className="row center-x">
+              <img src={setup.qr} alt="QR para o aplicativo autenticador" width={220} height={220} />
+            </div>
+            <p className="small muted">
+              Sem câmera? Digite esta chave no aplicativo: <code>{setup.key}</code>
+            </p>
+            <Field label="3. Digite o código de 6 números que aparece no aplicativo">
+              <input autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} />
+            </Field>
+            <div className="row end gap-sm">
+              <Button variant="ghost" onClick={() => setSetup(null)}>
+                Cancelar
+              </Button>
+              <Button variant="primary" onClick={() => act('enable')} loading={busy === 'enable'} disabled={!/^\d{6}$/.test(code.trim())}>
+                Ativar
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p>
+              Protege a sua conta mesmo se a senha vazar: para entrar, o REVAH pede também um código do aplicativo autenticador do seu celular.
+              {session.superadmin ? ' Obrigatória para abrir o painel da WMundi.' : ''}
+            </p>
+            <div className="row end">
+              <Button variant="primary" onClick={start} loading={busy === 'start'}>
+                Ativar verificação em 2 etapas
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </Card>
   )
