@@ -274,7 +274,8 @@ ul.errors { padding-inline-start: 18px; }
 .footer-grid > div:last-child ul { columns: 1; }
 .footer li { margin: 4px 0; }
 .footer a { text-decoration: none; }
-.footer-bottom { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.footer-bottom { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 12px; font-size: 0.72rem; color: var(--muted); opacity: 0.8; }
+.footer-bottom a { color: inherit; text-decoration: underline; }
 
 @media (max-width: 900px) {
   .listing-layout, .checkout-layout, .booking-layout, .legal-layout, .footer-grid { grid-template-columns: 1fr; gap: 10px; }
