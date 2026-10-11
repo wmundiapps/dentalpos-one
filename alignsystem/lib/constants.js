@@ -27,6 +27,22 @@ export const ASSESSMENT = {
   nao_indicado: 'Alinhadores não indicados para o caso',
 };
 
+// Tipo de má oclusão (parecer clínico; pode marcar vários)
+export const MALOCCLUSION = {
+  classe_i: 'Classe I',
+  classe_ii: 'Classe II',
+  classe_iii: 'Classe III',
+  mordida_aberta: 'Mordida aberta',
+  sobremordida: 'Sobremordida',
+  cruzada_posterior: 'Mordida cruzada posterior',
+  cruzada_anterior: 'Mordida cruzada anterior',
+  dentario: 'Dentário',
+  esqueletico: 'Esquelético',
+  apinhamento_ant_sup: 'Apinhamento anterior superior',
+  apinhamento_ant_inf: 'Apinhamento anterior inferior',
+  agenesia: 'Agenesias',
+};
+
 export const MILESTONES = {
   documentacao: 'Documentação',
   instalacao: 'Instalação',

@@ -18,7 +18,7 @@ import QRCode from 'qrcode';
 import { patientContract, partnerContract, contractsReviewed, PARTNER_DEFAULTS } from './contracts.js';
 import { ensureTcle, currentConsent, TCLE_KIND, TCLE_VERSION } from './tcle.js';
 import {
-  CASE_STATUS, DENTIST_STATUS, ASSESSMENT, MILESTONES, PHOTO_SLOTS, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_CASE,
+  CASE_STATUS, DENTIST_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION, PHOTO_SLOTS, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_CASE,
 } from './constants.js';
 
 const router = createRouter();
@@ -1079,7 +1079,7 @@ r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
     payments: d.payments.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
     evidences: d.evidences, events: d.events, consents: d.consents,
     scanOrders: await sql`select status, price, billing_type, accepted_name, accepted_at, accepted_ip, paid_at, preference, preference_at, terms_version from scan_orders where case_id = ${id} order by created_at desc`,
-    labels: { CASE_STATUS, ASSESSMENT, MILESTONES },
+    labels: { CASE_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION },
     slots: PHOTO_SLOTS,
   });
 });
@@ -1127,6 +1127,11 @@ r('PATCH', '/api/admin/cases/:id', async (req, res, { id }) => {
   if (b.status !== undefined) { if (!CASE_STATUS[b.status]) fail(400, 'Status inválido.'); up.status = b.status; }
   if (b.assessment !== undefined) { if (b.assessment && !ASSESSMENT[b.assessment]) fail(400, 'Parecer inválido.'); up.assessment = b.assessment || null; }
   if (b.assessment_notes !== undefined) up.assessment_notes = clean(b.assessment_notes, 3000) || null;
+  if (b.malocclusion !== undefined) {
+    const types = (Array.isArray(b.malocclusion?.types) ? b.malocclusion.types : []).filter((k) => MALOCCLUSION[k]);
+    const agenesisTeeth = types.includes('agenesia') ? clean(b.malocclusion?.agenesisTeeth, 120) || null : null;
+    up.malocclusion = sql.json({ types: [...new Set(types)], agenesisTeeth });
+  }
   if (b.dentist_id !== undefined) up.dentist_id = b.dentist_id || null;
   for (const k of ['name', 'city', 'reason', 'referred_by', 'address', 'internal_notes']) if (b[k] !== undefined) up[k] = clean(b[k], k === 'internal_notes' ? 5000 : 300) || null;
   if (b.email !== undefined) { const em = clean(b.email, 160).toLowerCase(); if (em && !isEmail(em)) fail(400, 'E-mail inválido.'); up.email = em || null; }
@@ -1662,10 +1667,10 @@ r('GET', '/api/dentist/cases/:id', async (req, res, { id }) => {
   send(res, 200, {
     case: {
       id: c.id, code: c.code, name: c.name, age: c.age, city: c.city, whatsapp: c.whatsapp, reason: c.reason, status: c.status,
-      assessment: c.assessment, assessment_notes: c.assessment_notes, plan: { brand: c.plan?.brand, months: c.plan?.months, treatmentNotes: c.plan?.treatmentNotes, model: c.plan?.model || 'parceiro', complexity: c.plan?.complexity || null, consultLimit: consultLimit(c.plan) },
+      assessment: c.assessment, assessment_notes: c.assessment_notes, malocclusion: c.malocclusion, plan: { brand: c.plan?.brand, months: c.plan?.months, treatmentNotes: c.plan?.treatmentNotes, model: c.plan?.model || 'parceiro', complexity: c.plan?.complexity || null, consultLimit: consultLimit(c.plan) },
     },
     photos, appointments: appts, evidences,
-    labels: { CASE_STATUS, ASSESSMENT, MILESTONES },
+    labels: { CASE_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION },
     slots: PHOTO_SLOTS,
   });
 });

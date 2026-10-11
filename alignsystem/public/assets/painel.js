@@ -379,6 +379,14 @@
         '<form class="card" id="stf"><h2>Situação e parecer</h2>' +
         '<div class="field"><label for="status">Situação</label><select id="status" name="status">' + options(L.CASE_STATUS, c.status) + '</select></div>' +
         '<div class="field"><label for="assessment">Parecer da pré-avaliação</label><select id="assessment" name="assessment">' + options(L.ASSESSMENT, c.assessment || '', '— sem parecer —') + '</select></div>' +
+        (function () {
+          var mo = c.malocclusion || { types: [] };
+          return '<fieldset class="field" style="border:1px solid var(--line);border-radius:10px;padding:10px 14px"><legend class="small" style="font-weight:600;color:var(--ink-60);padding:0 6px">Tipo de má oclusão (uso interno)</legend>' +
+            '<div class="grid2" style="gap:4px 14px">' + Object.keys(L.MALOCCLUSION).map(function (k) {
+              return '<label class="check" style="margin:0;font-weight:400;color:var(--ink)"><input type="checkbox" data-mo="' + k + '"' + (mo.types.indexOf(k) >= 0 ? ' checked' : '') + '><span>' + esc(L.MALOCCLUSION[k]) + '</span></label>';
+            }).join('') + '</div>' +
+            '<div class="field" style="margin-top:8px"><label for="moTeeth">Agenesias: quais dentes</label><input id="moTeeth" placeholder="Ex.: 12, 22" value="' + esc(mo.agenesisTeeth || '') + '"></div></fieldset>';
+        })() +
         area('assessment_notes', 'Texto do parecer (o paciente vê)', c.assessment_notes) +
         '<div class="field"><label for="dentist_id">Dentista responsável</label><select id="dentist_id" name="dentist_id">' + opt('', '— definir —', c.dentist_id || '') +
         dentists.map(function (x) { return opt(x.id, x.name + ' · ' + x.city, c.dentist_id || ''); }).join('') + '</select></div>' +
@@ -509,11 +517,16 @@
       $('#copyPortal', m).addEventListener('click', function (e) { AS.copy(c.portalUrl, e.target); });
       $all('[data-copy]', m).forEach(function (b) { b.addEventListener('click', function () { AS.copy(b.getAttribute('data-copy'), b); }); });
 
+      var withMo = function (f) {
+        f.malocclusion = { types: $all('[data-mo]', m).filter(function (x) { return x.checked; }).map(function (x) { return x.getAttribute('data-mo'); }), agenesisTeeth: $('#moTeeth', m).value };
+        return f;
+      };
+      $('#moTeeth', m).addEventListener('input', function () { if (this.value) $('[data-mo="agenesia"]', m).checked = true; });
       onSubmit($('#stf', m), function (f) {
-        return api('/api/admin/cases/' + id, { method: 'PATCH', body: f }).then(function () { setTimeout(reload, 600); return 'Salvo.'; });
+        return api('/api/admin/cases/' + id, { method: 'PATCH', body: withMo(f) }).then(function () { setTimeout(reload, 600); return 'Salvo.'; });
       });
       $('#publish', m).addEventListener('click', function (e) {
-        var f = formData($('#stf', m));
+        var f = withMo(formData($('#stf', m)));
         f.publish_assessment = true;
         busyBtn(e.target, api('/api/admin/cases/' + id, { method: 'PATCH', body: f })).then(reload).catch(function (err) { flash($('#stf .fmsg', m), 'err', err.message); });
       });
@@ -734,7 +747,8 @@
       var html = '<p><a href="#/">← Meus casos</a></p><h1>#' + c.code + ' · ' + esc(c.name) + '</h1>' +
         '<p class="muted">' + esc(c.age) + ' anos · ' + esc(c.city) + ' · ' + esc(L.CASE_STATUS[c.status]) + ' · <a target="_blank" rel="noopener" href="' + esc(AS.waLink(c.whatsapp)) + '">WhatsApp ' + esc(AS.phone(c.whatsapp)) + '</a></p>' +
         '<div class="grid2"><div class="card"><h2>Pré-avaliação</h2><dl class="kv"><dt>Motivo</dt><dd>' + esc(c.reason || '—') + '</dd><dt>Parecer</dt><dd>' + esc(c.assessment ? L.ASSESSMENT[c.assessment] : '—') + '</dd>' +
-        '<dt>Observações</dt><dd style="white-space:pre-line">' + esc(c.assessment_notes || '—') + '</dd><dt>Alinhador</dt><dd>' + esc(c.plan.brand || '—') + (c.plan.months ? ' · ' + esc(c.plan.months) + ' meses' : '') + '</dd>' +
+        '<dt>Observações</dt><dd style="white-space:pre-line">' + esc(c.assessment_notes || '—') + '</dd>' +
+        '<dt>Má oclusão</dt><dd>' + (c.malocclusion && c.malocclusion.types.length ? esc(c.malocclusion.types.map(function (k) { return L.MALOCCLUSION[k] || k; }).join(', ')) + (c.malocclusion.agenesisTeeth ? ' (agenesia: ' + esc(c.malocclusion.agenesisTeeth) + ')' : '') : '—') + '</dd><dt>Alinhador</dt><dd>' + esc(c.plan.brand || '—') + (c.plan.months ? ' · ' + esc(c.plan.months) + ' meses' : '') + '</dd>' +
         '<dt>Plano</dt><dd style="white-space:pre-line">' + esc(c.plan.treatmentNotes || '—') + '</dd>' +
         (c.plan.consultLimit ? '<dt>Consultas incluídas</dt><dd>Até ' + c.plan.consultLimit + ' (caso ' + esc(c.plan.complexity) + ')' + (c.plan.model === 'rede' ? ' · modelo rede: pagamento por consulta validada' : '') + '. Acima disso, só com aditivo do paciente.</dd>' : '') + '</dl></div>' +
         '<form class="card" id="apf"><h2>Agendar</h2><div class="grid2"><div class="field"><label for="kind">Tipo</label><select id="kind" name="kind">' + options(KIND_APPT, 'consulta') + '</select></div>' +

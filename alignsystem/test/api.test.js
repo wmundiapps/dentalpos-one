@@ -476,3 +476,14 @@ test('escaneamento: preços no painel, termo, pagamento e preferência de horár
   assert.equal(adm.data.scanOrders[0].status, 'pago');
   assert.equal(adm.data.case.cpf, '52998224725');
 });
+
+test('má oclusão: classificação no parecer, só tipos válidos', { skip }, async () => {
+  const lead = await call('POST', '/api/leads/paciente', { body: { name: 'Davi Oclusao', age: 28, whatsapp: '44922223333', city: 'Maringá', uf: 'PR', consent: true } });
+  const [c] = await sql`select id from alignsystem_test.cases where token = ${lead.data.token}`;
+  const r = await call('PATCH', `/api/admin/cases/${c.id}`, { who: 'admin', body: { malocclusion: { types: ['classe_ii', 'sobremordida', 'agenesia', 'inventado'], agenesisTeeth: '12, 22' } } });
+  assert.equal(r.status, 200);
+  const d = await call('GET', `/api/admin/cases/${c.id}`, { who: 'admin' });
+  assert.deepEqual(d.data.case.malocclusion, { types: ['classe_ii', 'sobremordida', 'agenesia'], agenesisTeeth: '12, 22' });
+  assert.equal(d.data.labels.MALOCCLUSION.classe_iii, 'Classe III');
+  assert.equal((await call('GET', `/api/portal/${lead.data.token}`)).data.case.malocclusion, undefined); // paciente não vê
+});
