@@ -107,3 +107,9 @@ ${paragraphs.map((p) => `<p style="margin:0 0 14px;">${escapeHtml(p)}</p>`).join
 
   return { subject, text, html }
 }
+
+// Primeira mensagem de WhatsApp: sem link, com saída fácil (texto aprovado pelo Robson).
+export function whatsappText(lead: { segment: string }) {
+  const publico = lead.segment === 'LABORATORIO' ? 'clínicas e laboratórios de prótese' : 'clínicas'
+  return `Olá! Aqui é o Dr. Robson Ravel, dentista de Maringá, criador do DentalPos, um sistema de gestão para ${publico}. Posso te enviar uma explicação rápida? Se não quiser receber, é só responder SAIR.`
+}

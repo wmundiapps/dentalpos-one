@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto'
 import { prisma } from '../lib/prisma'
 import { renderProspectEmail } from './prospectTemplates'
+import { blockContacts } from './prospectBlock'
 
 export const PUBLIC_BASE = (process.env.PROSPECT_PUBLIC_BASE || 'https://api.dentalpos.com.br/api').replace(/\/$/, '')
 export const LANDING_URL = process.env.PROSPECT_LANDING_URL || 'https://one.dentalpos.com.br/landingpage'
@@ -282,15 +283,23 @@ export async function suppress(email: string, reason: string) {
   await prisma.prospectSuppression.upsert({ where: { email: normalized }, update: { reason }, create: { email: normalized, reason } })
 }
 
+// "Não quero receber": bloqueia CNPJ, telefones e e-mail para sempre (por impressão digital) e apaga os contatos do registro.
+export async function optOutLead(leadId: string, reason: string, detail: string) {
+  const lead = await prisma.prospectLead.findUnique({ where: { id: leadId } })
+  if (!lead) return null
+  if (lead.email) await suppress(lead.email, reason)
+  await blockContacts(lead, reason)
+  if (lead.status !== 'DESCADASTRADO' || lead.email || lead.phone1 || lead.phone2) {
+    await prisma.prospectLead.update({ where: { id: lead.id }, data: { status: 'DESCADASTRADO', email: null, phone1: null, phone2: null } })
+    await logEvent(lead.id, 'DESCADASTRO', { detail })
+  }
+  return lead
+}
+
 export async function handleUnsubscribe(token: string) {
   const lead = await prisma.prospectLead.findUnique({ where: { token } })
   if (!lead) return null
-  if (lead.email) await suppress(lead.email, 'DESCADASTRO')
-  if (lead.status !== 'DESCADASTRADO') {
-    await prisma.prospectLead.update({ where: { id: lead.id }, data: { status: 'DESCADASTRADO' } })
-    await logEvent(lead.id, 'DESCADASTRO', { detail: 'Pediu para não receber mais e-mails.' })
-  }
-  return lead
+  return optOutLead(lead.id, 'DESCADASTRO', 'Pediu para não receber mais mensagens.')
 }
 
 export async function handleProviderEvent(type: string, providerId: string, to: string[]) {
