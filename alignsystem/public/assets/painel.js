@@ -171,9 +171,31 @@
         field('simples', 'Caso simples — até ' + L.simples + ' consultas (R$)', P.simples || '', 'inputmode="decimal"') +
         field('mediano', 'Média complexidade — até ' + L.mediano + ' consultas (R$)', P.mediano || '', 'inputmode="decimal"') +
         field('complexo', 'Caso complexo — até ' + L.complexo + ' consultas (R$)', P.complexo || '', 'inputmode="decimal"') +
+        '<h3>Custo dos alinhadores (modelo preço próprio)</h3><p class="small muted">No modelo em que o dentista define o preço, este valor fica com a AlignSystem e o restante é dividido 80% dentista / 20% AlignSystem.</p>' +
+        field('aligner_simples', 'Alinhadores — caso simples (R$)', (P.aligner || {}).simples || '', 'inputmode="decimal"') +
+        field('aligner_mediano', 'Alinhadores — média complexidade (R$)', (P.aligner || {}).mediano || '', 'inputmode="decimal"') +
+        field('aligner_complexo', 'Alinhadores — caso complexo (R$)', (P.aligner || {}).complexo || '', 'inputmode="decimal"') +
         '<button class="btn btn-primary" type="submit">Salvar preços</button><div class="fmsg"></div></form>';
       var m = mount(html, 'precos');
       onSubmit($('#prf', m), function (f) { return api('/api/admin/settings/prices', { method: 'PUT', body: f }).then(function () { return 'Preços salvos.'; }); });
+    }).catch(function (e) { errorView(e, 'precos'); });
+  }
+
+  function ownPriceForm(P, L, extra) {
+    return field('simples', 'Caso simples — até ' + L.simples + ' consultas (R$)', P.simples || '', 'inputmode="decimal" required') +
+      field('mediano', 'Média complexidade — até ' + L.mediano + ' consultas (R$)', P.mediano || '', 'inputmode="decimal" required') +
+      field('complexo', 'Caso complexo — até ' + L.complexo + ' consultas (R$)', P.complexo || '', 'inputmode="decimal" required') + (extra || '');
+  }
+
+  function dentistPrices() {
+    loading('precos');
+    api('/api/dentist/prices').then(function (d) {
+      var html = '<h1>Meus preços</h1><form class="card" id="dpf" style="max-width:560px">' +
+        '<p class="small muted">Valor total do tratamento que o paciente vê na página dele (nunca no site público). Do valor pago, a AlignSystem desconta o custo dos alinhadores, que ela fornece, e o restante é dividido: <b>' + d.dentistPct + '% para você</b> e ' + d.platformPct + '% para a AlignSystem, pelo diagnóstico e planejamento compartilhados. O repasse cai direto na sua conta (split).</p>' +
+        ownPriceForm(d.prices || {}, d.consultLimits) +
+        '<button class="btn btn-primary" type="submit">Salvar meus preços</button><div class="fmsg"></div></form>';
+      var m = mount(html, 'precos');
+      onSubmit($('#dpf', m), function (f) { return api('/api/dentist/prices', { method: 'PUT', body: f }).then(function () { return 'Preços salvos.'; }); });
     }).catch(function (e) { errorView(e, 'precos'); });
   }
 
@@ -183,7 +205,7 @@
   function shell(content, active) {
     var nav = me.role === 'admin'
       ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/cobertura', 'Cobertura e marketing', 'cobertura'], ['#/captacao', 'Captação de dentistas', 'captacao'], ['#/precos', 'Preços', 'precos'], ['#/equipe', 'Equipe', 'equipe'], ['#/conta', 'Minha conta', 'conta']]
-      : [['#/', 'Meus casos', 'inicio'], ['#/conta', 'Minha conta', 'conta']];
+      : [['#/', 'Meus casos', 'inicio'], ['#/meus-precos', 'Meus preços', 'precos'], ['#/conta', 'Minha conta', 'conta']];
     return '<div class="mobile-top"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="28"></span><button class="btn btn-sm btn-line" style="color:#fff;border-color:rgba(255,255,255,.4)" id="menuBtn">Menu</button></div>' +
       '<div class="shell"><aside class="side" id="side"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="30"></span>' +
       nav.map(function (n) { return '<a class="nav' + (n[2] === active ? ' on' : '') + '" href="' + n[0] + '">' + esc(n[1]) + '</a>'; }).join('') +
@@ -457,7 +479,7 @@
         field('total', 'Valor total (R$)', plan.total, 'inputmode="decimal"') +
         field('replacementValue', 'Reposição de alinhador (R$/un.)', plan.replacementValue, 'inputmode="decimal"') +
         '<div class="field"><label for="pcx">Complexidade</label><select id="pcx" name="complexity">' + opt('', '—', plan.complexity || '') + opt('simples', 'Simples (até 8 consultas)', plan.complexity || '') + opt('mediano', 'Média (até 10 consultas)', plan.complexity || '') + opt('complexo', 'Complexo (até 15 consultas)', plan.complexity || '') + '</select></div>' +
-        '<div class="field"><label for="pmodel">Modelo</label><select id="pmodel" name="model">' + opt('parceiro', 'Dentista parceiro (50/30/20, split)', plan.model || 'parceiro') + opt('rede', 'AlignSystem 100% (rede credenciada, raio 300 km)', plan.model || 'parceiro') + '</select></div>' +
+        '<div class="field"><label for="pmodel">Modelo</label><select id="pmodel" name="model">' + opt('parceiro', 'Dentista parceiro (50/30/20, split)', plan.model || 'parceiro') + opt('rede', 'AlignSystem 100% (rede credenciada, raio 300 km)', plan.model || 'parceiro') + opt('proprio', 'Preço do dentista (alinhadores + 80/20)', plan.model || 'parceiro') + '</select></div>' +
         field('travel', 'Deslocamentos incluídos (R$)', plan.travel != null ? plan.travel : (att && att.choice === 'mais_proximo_viagem' ? att.travelTotal : ''), 'inputmode="decimal"') + '</div>' +
         (att ? '<div class="msg ' + (att.choice === 'sem_cobertura' ? 'warn' : 'ok') + '"><b>Questionário de atendimento:</b> ' + esc(att.label) + ' · ' + esc(att.city + '/' + att.uf) +
           (att.km != null ? ' · credenciado mais próximo: ' + esc(att.nearestCity + '/' + att.nearestUf) + ' (~' + att.km + ' km)' : '') +
@@ -480,13 +502,16 @@
         field('value', 'Valor total (tratamento + deslocamentos) (R$)', plan.total ? Math.round((Number(plan.total) + Number(plan.model === 'rede' ? plan.travel || 0 : 0)) * 100) / 100 : '', 'inputmode="decimal" required') +
         field('boletoMax', 'Boletos do saldo em até (x)', Math.min(18, plan.months || 18), 'type="number" min="1" max="18"') + '</div>' +
         '<div class="check field"><input type="checkbox" id="boleto" name="boleto" checked><label for="boleto">Permitir boleto (só depois de analisar o crédito do paciente)</label></div>' +
-        '<div class="check field"><input type="checkbox" id="dentistShare" name="dentistShare"' + (c.dentist_id && plan.model !== 'rede' ? ' checked' : '') + '><label for="dentistShare">Repassar 30% ao dentista do caso (' + esc(dentistName || 'sem dentista') + ') por split — modelo 50/30/20</label></div>' +
+        '<div class="field"><label for="dentistShare">Repasse ao dentista do caso (' + esc(dentistName || 'sem dentista') + ')</label><select id="dentistShare">' +
+          opt('', 'Sem repasse (AlignSystem recebe tudo)', plan.model === 'rede' || !c.dentist_id ? '' : plan.model === 'proprio' ? '80/20' : '50/30/20') +
+          opt('50/30/20', 'Modelo parceiro: 30% do valor ao dentista', plan.model === 'rede' || !c.dentist_id ? '' : plan.model === 'proprio' ? '80/20' : '50/30/20') +
+          opt('80/20', 'Preço do dentista: desconta os alinhadores e repassa 80% do restante', plan.model === 'rede' || !c.dentist_id ? '' : plan.model === 'proprio' ? '80/20' : '50/30/20') + '</select></div>' +
         '<button class="btn btn-primary" type="submit">Criar link de pagamento e enviar ao paciente</button><div class="fmsg"></div>' +
         (d.charges.length ? '<div class="list" style="margin-top:14px">' + d.charges.map(function (ch) {
           var pays = d.payments.filter(function (p) { return p.charge_id === ch.id && p.status !== 'DELETED'; });
           var paid = pays.filter(function (p) { return /RECEIVED|CONFIRMED/.test(p.status); }).length;
           return '<div class="it"><div><b>' + esc(ch.description) + '</b><div class="small muted">' + esc(AS.money(ch.value)) + ' · ' + (ch.pay_option === 'PIX' ? 'Pix à vista' : ch.pay_option === 'CREDIT_CARD' ? 'cartão ' + (ch.installment_count || 1) + 'x' : ch.pay_option === 'BOLETO' ? 'boleto: entrada + ' + (ch.installment_count || 1) + 'x' : ch.kind === 'integral' ? 'aguardando escolha' : esc(ch.kind)) +
-            (pays.length ? ' · ' + paid + '/' + pays.length + ' pagas' : '') + (ch.split ? ' · repasse ' + (ch.split.type === 'percent' ? ch.split.value + '%' : AS.money(ch.split.value)) : '') + ' · ' + statusBadge(ch.statusLabel, ch.status === 'cancelado' || ch.status === 'erro' ? 'red' : '') + '</div></div>' +
+            (pays.length ? ' · ' + paid + '/' + pays.length + ' pagas' : '') + (ch.split ? ' · repasse ' + (ch.split.model === '80/20' ? ch.split.value + '% (alinhadores ' + AS.money(ch.split.alignerCost) + ' + 80/20)' : ch.split.type === 'percent' ? ch.split.value + '%' : AS.money(ch.split.value)) : '') + ' · ' + statusBadge(ch.statusLabel, ch.status === 'cancelado' || ch.status === 'erro' ? 'red' : '') + '</div></div>' +
             '<div class="row">' + (ch.pay_token ? '<button type="button" class="btn btn-line btn-sm" data-copy="' + esc(location.origin + '/pagamento?t=' + ch.pay_token) + '">Copiar link</button>' +
               '<a class="btn btn-green btn-sm" target="_blank" rel="noopener" href="' + esc(AS.waLink(c.whatsapp, 'Olá, ' + c.name.split(' ')[0] + '! Seu link de pagamento AlignSystem: ' + location.origin + '/pagamento?t=' + ch.pay_token)) + '">WhatsApp</a>' : '') +
             (ch.invoice_url ? '<a class="btn btn-line btn-sm" target="_blank" rel="noopener" href="' + esc(ch.invoice_url) + '">Fatura</a>' : '') +
@@ -567,7 +592,7 @@
       onSubmit($('#chf', m), function (f) {
         var body = {
           description: f.description, value: f.value, boletoMax: f.boletoMax,
-          boleto: $('#boleto', m).checked, dentistShare: $('#dentistShare', m).checked,
+          boleto: $('#boleto', m).checked, dentistShare: $('#dentistShare', m).value,
         };
         if (!confirm('Criar o link de pagamento de ' + AS.money(String(f.value).replace(',', '.')) + ' e enviar ao paciente?')) return false;
         return api('/api/admin/cases/' + id + '/charges', { method: 'POST', body: body }).then(function () { reload(); return false; });
@@ -641,6 +666,8 @@
             (ct.status !== 'cancelado' ? '<div class="row"><a class="btn btn-line btn-sm" target="_blank" href="' + esc(ct.url) + '">Abrir</a><a class="btn btn-green btn-sm" target="_blank" rel="noopener" href="' + esc(AS.waLink(x.phone, 'Olá, Dr(a). ' + x.name.split(' ')[0] + '! Segue o Termo de Adesão da rede AlignSystem para leitura e aceite: ' + ct.url)) + '">WhatsApp</a></div>' : '') + '</div>';
         }).join('') + '</div>' : '') + '</form>' +
 
+        '<form class="card" id="opf"><h2>Preço próprio do parceiro</h2><p class="small muted">Usado no modelo "Preço do dentista": desconta os alinhadores e repassa 80% do restante. O dentista também pode editar em "Meus preços".</p>' +
+        ownPriceForm(x.prices || {}, { simples: 8, mediano: 10, complexo: 15 }) + '<button class="btn btn-line btn-sm" type="submit">Salvar preços do parceiro</button><div class="fmsg"></div></form>' +
         '<form class="card" id="wf"><h2>Conta de recebimento (split)</h2>' +
         (x.asaas_wallet_id ? '<div class="msg ok">Conta de recebimento ativa: <code>' + esc(x.asaas_wallet_id) + '</code></div>' :
           '<p class="small muted">Os repasses caem direto na conta do dentista no Asaas. Crie uma subconta automaticamente (usa CPF/CNPJ, nascimento, endereço e renda do cadastro) ou informe o walletId de uma conta Asaas que ele já tenha.</p>' +
@@ -677,6 +704,7 @@
         if (!confirm('Criar a subconta de recebimento no Asaas com os dados do cadastro?')) return;
         busyBtn(mk, api('/api/admin/dentists/' + id + '/asaas-account', { method: 'POST', body: {} })).then(reload).catch(function (e) { flash($('#wf .fmsg', m), 'err', e.message); });
       });
+      onSubmit($('#opf', m), function (f) { return api('/api/admin/dentists/' + id + '/prices', { method: 'PUT', body: f }).then(function () { return 'Preços salvos.'; }); });
       onSubmit($('#wf', m), function (f) { return api('/api/admin/dentists/' + id, { method: 'PATCH', body: { asaas_wallet_id: f.asaas_wallet_id } }).then(function () { setTimeout(reload, 600); return 'Salvo.'; }); });
     }).catch(function (e) { errorView(e, 'parceiros'); });
   }
@@ -815,6 +843,7 @@
       return adminHome();
     }
     if ((m = r.path.match(/^\/caso\/([0-9a-f-]{36})$/))) return dentistCase(m[1]);
+    if (r.path === '/meus-precos') return dentistPrices();
     return dentistHome();
   }
 

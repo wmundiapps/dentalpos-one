@@ -9,7 +9,11 @@ export async function getPrices(sql) {
   const [row] = await sql`select value from settings where key = 'prices'`;
   const v = row?.value || {};
   const n = (x) => (Number(x) > 0 ? Math.round(Number(x) * 100) / 100 : null);
-  return { scan: n(v.scan), simples: n(v.simples), mediano: n(v.mediano), complexo: n(v.complexo) };
+  return {
+    scan: n(v.scan), simples: n(v.simples), mediano: n(v.mediano), complexo: n(v.complexo),
+    // custo dos alinhadores por complexidade (modelo preço próprio: fica com a AlignSystem antes do 80/20)
+    aligner: { simples: n(v.aligner?.simples), mediano: n(v.aligner?.mediano), complexo: n(v.aligner?.complexo) },
+  };
 }
 
 export function scanTerms(price) {

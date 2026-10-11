@@ -487,3 +487,42 @@ test('má oclusão: classificação no parecer, só tipos válidos', { skip }, a
   assert.equal(d.data.labels.MALOCCLUSION.classe_iii, 'Classe III');
   assert.equal((await call('GET', `/api/portal/${lead.data.token}`)).data.case.malocclusion, undefined); // paciente não vê
 });
+
+test('preço próprio: dentista define valores, alinhadores ficam com a AlignSystem e o resto vai 80/20', { skip }, async () => {
+  const { ownPriceDentistPct } = await import('../lib/pricing.js');
+  assert.equal(ownPriceDentistPct(10000, 3000), 56);
+  assert.equal(ownPriceDentistPct(3000, 3000), 0);
+  const dentistId = (await call('GET', '/api/admin/dentists', { who: 'admin' })).data.dentists[0].id;
+  assert.equal((await call('PUT', '/api/dentist/prices', { who: 'dent', body: { simples: '7500', mediano: '0', complexo: '12000' } })).status, 400);
+  assert.equal((await call('PUT', '/api/dentist/prices', { who: 'dent', body: { simples: '7500', mediano: '9500', complexo: '12000' } })).status, 200);
+  assert.equal((await call('GET', '/api/dentist/prices', { who: 'dent' })).data.prices.mediano, 9500);
+  assert.equal((await call('PUT', '/api/admin/dentists/00000000-0000-0000-0000-000000000000/prices', { who: 'admin', body: { simples: '1' } })).status, 404);
+  await call('PUT', '/api/admin/settings/prices', { who: 'admin', body: { scan: '350', simples: '6900', mediano: '8900', complexo: '11900', aligner_simples: '2000', aligner_mediano: '3000', aligner_complexo: '4000' } });
+
+  const lead = await call('POST', '/api/leads/paciente', { body: { name: 'Bruno Proprio', age: 30, whatsapp: '44955556666', city: 'Maringá', uf: 'PR', consent: true } });
+  const tk = lead.data.token;
+  const tcle = (await call('GET', `/api/portal/${tk}`)).data.tcle;
+  await call('POST', `/api/portal/${tk}/consent`, { body: { acceptedName: 'Bruno Proprio', birthDate: '1990-01-01', adult: true, agree: true, hash: tcle.hash } });
+  const [c] = await sql`select id from alignsystem_test.cases where token = ${tk}`;
+  await call('PATCH', `/api/admin/cases/${c.id}`, { who: 'admin', body: { assessment: 'indicado', publish_assessment: true, dentist_id: dentistId, cpf: '529.982.247-25', address: 'Rua C, 30, Maringá/PR', email: 'bruno@x.com' } });
+  // portal mostra a tabela do dentista do caso
+  const S = (await call('GET', `/api/portal/${tk}`)).data.scan;
+  assert.deepEqual(S.table.map((r) => r.price), [7500, 9500, 12000]);
+
+  await call('PATCH', `/api/admin/cases/${c.id}`, { who: 'admin', body: { plan: { model: 'proprio', brand: 'Invisalign', months: 12, complexity: 'mediano', total: '10000' } } });
+  const ct = await call('POST', `/api/admin/cases/${c.id}/contract`, { who: 'admin', body: {} });
+  assert.equal(ct.status, 201, JSON.stringify(ct.data));
+  const doc = await call('GET', `/api/contracts/${new URL(ct.data.url).searchParams.get('t')}`);
+  assert.match(doc.data.body.replace(/<[^>]+>/g, ''), /R\$\s?3\.000,00 referentes ao fornecimento dos alinhadores/);
+  assert.match(doc.data.body, /80% correspondem aos atendimentos clínicos/);
+
+  const ch = await call('POST', `/api/admin/cases/${c.id}/charges`, { who: 'admin', body: { value: '10000', dentistShare: '80/20' } });
+  assert.equal(ch.status, 201, JSON.stringify(ch.data));
+  assert.equal(ch.data.split.value, 56);
+  assert.equal(ch.data.split.alignerCost, 3000);
+  const payTok = new URL(ch.data.pay_url).searchParams.get('t');
+  assert.equal((await call('POST', `/api/pay/${payTok}`, { body: { option: 'CREDIT_CARD', installments: 10 } })).status, 200);
+  const last = asaasCalls.filter((x) => x.url.endsWith('/payments') && x.method === 'POST').at(-1).body;
+  assert.deepEqual(last.split, [{ walletId: 'wal_1', percentualValue: 56 }]);
+  assert.equal((await call('POST', `/api/admin/cases/${c.id}/charges`, { who: 'admin', body: { value: '2500', dentistShare: '80/20' } })).status, 400); // abaixo do custo dos alinhadores
+});

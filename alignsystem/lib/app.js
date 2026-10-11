@@ -8,7 +8,7 @@ import {
 import { token, sha256, clean, digits, isEmail, appUrl, brl, validCpf, validCpfCnpj } from './util.js';
 import { sendMail, notifyAddress, layout, button, para, table } from './mail.js';
 import * as asaas from './asaas.js';
-import { MODEL, quote, dentistSplitPct } from './pricing.js';
+import { MODEL, quote, dentistSplitPct, ownPriceDentistPct } from './pricing.js';
 import * as geo from './geo.js';
 import * as totp from './totp.js';
 import { sanitizeImage } from './images.js';
@@ -369,6 +369,8 @@ const SCAN_OK_ASSESSMENTS = ['indicado', 'avaliacao_presencial'];
 
 async function portalScan(sql, c) {
   const prices = await scan.getPrices(sql);
+  const own = c.dentist_id ? ownPrices((await dentistById(sql, c.dentist_id))?.prices) : null;
+  if (own) Object.assign(prices, own);
   const published = Boolean(c.assessment_published_at) && SCAN_OK_ASSESSMENTS.includes(c.assessment);
   const [order] = await sql`select o.id, o.status, o.price, o.billing_type, o.paid_at, o.preference, o.preference_at, ch.invoice_url
     from scan_orders o left join charges ch on ch.id = o.charge_id where o.case_id = ${c.id} and o.status <> 'cancelado' order by o.created_at desc limit 1`;
@@ -453,6 +455,49 @@ r('POST', '/api/portal/:token/escaneamento/preferencia', async (req, res, { toke
   send(res, 200, { ok: true });
 });
 
+// Tabela própria do dentista (modelo preço próprio): só vale com os 3 valores preenchidos
+function ownPrices(p) {
+  const n = (x) => (Number(x) > 0 ? Math.round(Number(x) * 100) / 100 : null);
+  const v = { simples: n(p?.simples), mediano: n(p?.mediano), complexo: n(p?.complexo) };
+  return v.simples && v.mediano && v.complexo ? v : null;
+}
+
+function readOwnPrices(b) {
+  const v = {};
+  for (const k of ['simples', 'mediano', 'complexo']) {
+    const n = money(b[k]);
+    if (n !== null && !(n > 0)) fail(400, 'Valores precisam ser maiores que zero.');
+    v[k] = n;
+  }
+  return v;
+}
+
+r('GET', '/api/dentist/prices', async (req, res) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const d = await dentistById(sql, u.dentist_id);
+  send(res, 200, { prices: d?.prices || {}, consultLimits: scan.consultLimits, platformPct: MODEL.ownPricePlatformPct, dentistPct: MODEL.ownPriceDentistPct });
+});
+
+r('PUT', '/api/dentist/prices', async (req, res) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const v = readOwnPrices(await readJson(req));
+  await sql`update dentists set prices = ${sql.json(v)}, updated_at = now() where id = ${u.dentist_id}`;
+  await logEvent(sql, { dentistId: u.dentist_id, actor: u.email, type: 'precos_dentista', data: { ...v, ip: clientIp(req) } });
+  send(res, 200, { ok: true });
+});
+
+r('PUT', '/api/admin/dentists/:id/prices', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const v = readOwnPrices(await readJson(req));
+  const [d] = await sql`update dentists set prices = ${sql.json(v)}, updated_at = now() where id = ${id} returning id`;
+  if (!d) fail(404, 'Parceiro não encontrado.');
+  await logEvent(sql, { dentistId: id, actor: u.email, type: 'precos_dentista', data: { ...v, ip: clientIp(req) } });
+  send(res, 200, { ok: true });
+});
+
 // Painel: tabela de preços (escaneamento e tratamento por grau de dificuldade)
 r('GET', '/api/admin/settings/prices', async (req, res) => {
   const sql = db();
@@ -464,11 +509,11 @@ r('PUT', '/api/admin/settings/prices', async (req, res) => {
   const sql = db();
   const u = await requireUser(sql, req, 'admin');
   const b = await readJson(req);
-  const v = {};
-  for (const k of ['scan', 'simples', 'mediano', 'complexo']) {
+  const v = { aligner: {} };
+  for (const k of ['scan', 'simples', 'mediano', 'complexo', 'aligner_simples', 'aligner_mediano', 'aligner_complexo']) {
     const n = money(b[k]);
     if (n !== null && !(n > 0)) fail(400, 'Valores precisam ser maiores que zero.');
-    v[k] = n;
+    if (k.startsWith('aligner_')) v.aligner[k.slice(8)] = n; else v[k] = n;
   }
   await sql`insert into settings (key, value, updated_by) values ('prices', ${sql.json(v)}, ${u.id})
     on conflict (key) do update set value = excluded.value, updated_at = now(), updated_by = excluded.updated_by`;
@@ -1143,7 +1188,7 @@ r('PATCH', '/api/admin/cases/:id', async (req, res, { id }) => {
     up.plan = sql.json({
       brand: clean(p.brand, 60), months: Number(p.months) || null, total: money(p.total), replacementValue: money(p.replacementValue),
       complexity: ['simples', 'mediano', 'complexo'].includes(p.complexity) ? p.complexity : null,
-      model: p.model === 'rede' ? 'rede' : 'parceiro', travel: p.travel === '' || p.travel == null ? null : money(p.travel),
+      model: ['rede', 'proprio'].includes(p.model) ? p.model : 'parceiro', travel: p.travel === '' || p.travel == null ? null : money(p.travel),
       treatmentNotes: clean(p.treatmentNotes, 4000),
     });
   }
@@ -1257,14 +1302,17 @@ r('POST', '/api/admin/cases/:id/contract', async (req, res, { id }) => {
   if (!c.cpf) missing.push('CPF do paciente');
   if (!c.address) missing.push('endereço do paciente');
   if (plan.model !== 'rede' && !c.dentist_id) missing.push('dentista responsável');
+  if (plan.model === 'proprio' && !(await dentistById(sql, c.dentist_id))?.asaas_wallet_id) missing.push('conta de recebimento (walletId) do dentista');
   if (!plan.complexity) missing.push('complexidade do caso (simples, mediano ou complexo)');
   if (plan.model === 'rede' && !c.attendance) missing.push('questionário de atendimento presencial respondido pelo paciente');
   if (plan.model === 'rede' && c.attendance?.choice === 'sem_cobertura') missing.push('dentista credenciado na região do paciente');
   if (!plan.brand) missing.push('marca do alinhador');
   if (!plan.total) missing.push('valor total');
+  const alignerCost = plan.model === 'proprio' && plan.complexity ? Number((await scan.getPrices(sql)).aligner?.[plan.complexity]) || 0 : 0;
+  if (plan.model === 'proprio' && !alignerCost) missing.push(`custo dos alinhadores (${plan.complexity || 'complexidade'}) em Preços`);
   if (missing.length) fail(400, `Preencha antes de gerar o contrato: ${missing.join(', ')}.`);
   const dentist = await dentistById(sql, c.dentist_id);
-  const { title, body } = patientContract(c, dentist);
+  const { title, body } = patientContract(plan.model === 'proprio' ? { ...c, plan: { ...plan, alignerCost } } : c, dentist);
   await sql`update contracts set status = 'cancelado' where case_id = ${id} and kind = 'paciente' and status = 'enviado'`;
   const t = token(24);
   await sql`insert into contracts (kind, case_id, token, title, body, body_hash, created_by)
@@ -1294,11 +1342,22 @@ r('POST', '/api/admin/cases/:id/charges', async (req, res, { id }) => {
   const boletoMax = Math.min(Math.max(Number(b.boletoMax) || MODEL.boletoMaxInstallments, 1), MODEL.boletoMaxInstallments);
   const description = clean(b.description, 200) || `AlignSystem — tratamento (caso #${c.code})`;
   let split = null;
-  if (b.dentistShare) {
+  const share = b.dentistShare === '80/20' ? '80/20' : b.dentistShare ? '50/30/20' : null;
+  if (share) {
     const d = await dentistById(sql, c.dentist_id);
     if (!d) fail(400, 'Defina o dentista do caso para dividir o pagamento.');
     if (!d.asaas_wallet_id) fail(400, `${d.name} ainda não tem conta de recebimento (walletId) cadastrada.`);
-    split = { walletId: d.asaas_wallet_id, dentistId: d.id, type: 'percent', value: MODEL.dentistPct, model: '50/30/20' };
+    let pct = MODEL.dentistPct;
+    let alignerCost = null;
+    if (share === '80/20') {
+      const cx = c.plan?.complexity;
+      if (!cx) fail(400, 'Defina a complexidade do caso no plano (o custo dos alinhadores depende dela).');
+      alignerCost = (await scan.getPrices(sql)).aligner[cx];
+      if (!alignerCost) fail(400, 'Preencha em Preços o custo dos alinhadores para este grau de complexidade.');
+      if (alignerCost >= value) fail(400, 'O valor cobrado precisa ser maior que o custo dos alinhadores.');
+      pct = ownPriceDentistPct(value, alignerCost);
+    }
+    split = { walletId: d.asaas_wallet_id, dentistId: d.id, type: 'percent', value: pct, model: share, alignerCost };
   }
   const t = token(24);
   const [out] = await sql`insert into charges (case_id, dentist_id, kind, description, billing_type, value, max_installments, boleto_enabled, boleto_max,
@@ -1328,7 +1387,7 @@ const anyPaid = async (sql, chargeId) =>
 
 const splitFor = (ch, part) => {
   if (!ch.split?.walletId) return null;
-  const pct = ch.split.model ? dentistSplitPct(part) : Number(ch.split.value);
+  const pct = ch.split.model === '80/20' ? Number(ch.split.value) : ch.split.model ? dentistSplitPct(part, ch.split.model) : Number(ch.split.value);
   return pct > 0 ? { walletId: ch.split.walletId, type: ch.split.model ? 'percent' : ch.split.type, value: pct } : null;
 };
 

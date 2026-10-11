@@ -13,6 +13,9 @@ export const MODEL = {
   dentistPct: 30,
   supervisionPct: 20,
   withdrawalPenaltyPct: 20,
+  // modelo preço próprio: o dentista define os valores e compra os alinhadores; a AlignSystem fica com 20% (diagnóstico e planejamento)
+  ownPriceDentistPct: 80,
+  ownPricePlatformPct: 20,
   // consultas presenciais incluídas no contrato, por complexidade; acima disso, aditivo pago pelo paciente
   consultLimits: { simples: 8, mediano: 10, complexo: 15 },
 };
@@ -35,7 +38,15 @@ export function quote(total, { cardMax = MODEL.cardMaxInstallments, boletoMax = 
 }
 
 // Percentual do dentista sobre cada cobrança (aplicado pelo Asaas sobre o valor líquido)
-export function dentistSplitPct(part) {
+// Preço próprio: tira o custo dos alinhadores (AlignSystem) e divide o restante 80/20.
+// Devolve o percentual do dentista sobre o valor total, aplicado igual em todas as cobranças do caso.
+export function ownPriceDentistPct(total, alignerCost) {
+  const t = Number(total), a = Number(alignerCost) || 0;
+  if (!(t > 0) || a >= t) return 0;
+  return Math.round((MODEL.ownPriceDentistPct / 100) * ((t - a) / t) * 10000) / 100;
+}
+
+export function dentistSplitPct(part, model = '50/30/20') {
   if (part === 'boleto_entry') return 0; // entrada = alinhadores, 100% AlignSystem
   if (part === 'boleto_rest') return round2(MODEL.dentistPct / (100 - MODEL.alignerPct) * 100); // 30/50 = 60%
   return MODEL.dentistPct; // Pix ou cartão: 30% do total pago
