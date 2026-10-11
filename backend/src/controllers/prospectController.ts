@@ -21,6 +21,7 @@ import {
 import { blockedKeySet, insideSendWindow, isBlockedBy, whatsappNumber } from '../services/prospectBlock'
 import { whatsappText } from '../services/prospectTemplates'
 import { writeAudit } from '../services/auditService'
+import { verifyGithubToken } from '../services/githubOidc'
 
 // ---------- Acesso: só equipe WMundi ----------
 // WMUNDI_STAFF_EMAILS = lista separada por vírgula (ex.: "clinicaravel@gmail.com,contato@dentalpos.com.br").
@@ -380,6 +381,20 @@ export async function publicUnsubscribe(req: Request, res: Response) {
   } catch (error) {
     console.error('Falha no descadastro:', error)
     return res.status(500).send(page('Não foi possível concluir', 'Tente de novo em instantes ou escreva para contato@dentalpos.com.br que removemos manualmente.'))
+  }
+}
+
+// Rodada de convites por e-mail pedida pelo GitHub Actions (de hora em hora): token OIDC do GitHub, sem senha guardada.
+export async function cronGithub(req: Request, res: Response) {
+  const token = String(req.get('authorization') || '').replace(/^Bearer\s+/i, '')
+  if (!token || !(await verifyGithubToken(token, 'prospect-invites.yml', 'dentalpos-prospect-invites').catch(() => false))) {
+    return res.status(401).json({ error: 'Não autorizado.' })
+  }
+  try {
+    return res.json(await runSequence({ scheduled: true }))
+  } catch (error) {
+    console.error('Falha na rodada agendada de prospecção:', error)
+    return res.status(500).json({ error: 'Falha na rodada.' })
   }
 }
 

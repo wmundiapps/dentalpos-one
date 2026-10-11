@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto'
 import { prisma } from '../lib/prisma'
 import { renderProspectEmail } from './prospectTemplates'
-import { blockContacts } from './prospectBlock'
+import { blockContacts, insideSendWindow } from './prospectBlock'
 
 export const PUBLIC_BASE = (process.env.PROSPECT_PUBLIC_BASE || 'https://api.dentalpos.com.br/api').replace(/\/$/, '')
 export const LANDING_URL = process.env.PROSPECT_LANDING_URL || 'https://one.dentalpos.com.br/landingpage'
@@ -154,15 +154,23 @@ export async function markConversions() {
   return converted
 }
 
-export async function runSequence(options: { force?: boolean; dryRun?: boolean } = {}) {
+// Rodada agendada (de hora em hora): só entre 8h e 20h de Brasília e em fatias, para o limite do dia sair ao longo do dia.
+const SCHEDULED_SLOTS = 13
+const scheduledWindowOpen = (now = new Date()) => insideSendWindow(now) && (now.getUTCHours() - 3 + 24) % 24 < 20
+
+export async function runSequence(options: { force?: boolean; dryRun?: boolean; scheduled?: boolean } = {}) {
   const config = await getConfig()
   if (!config.sendingEnabled && !options.force) {
     return { skipped: true, reason: 'Envio desligado no painel de prospecção.' }
   }
+  if (options.scheduled && !options.force && !scheduledWindowOpen()) {
+    return { skipped: true, reason: 'Fora do horário de envio (8h às 20h, Brasília).' }
+  }
 
   const converted = await markConversions()
   const alreadyToday = await sentToday()
-  const remaining = Math.max(0, Math.min(config.dailyLimit - alreadyToday, MAX_PER_RUN))
+  const slice = options.scheduled && !options.force ? Math.max(1, Math.ceil(config.dailyLimit / SCHEDULED_SLOTS)) : MAX_PER_RUN
+  const remaining = Math.max(0, Math.min(config.dailyLimit - alreadyToday, slice))
   if (remaining === 0) return { skipped: true, reason: 'Limite diário atingido.', converted, sentToday: alreadyToday }
 
   const now = Date.now()
