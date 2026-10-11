@@ -1,0 +1,26 @@
+name: Captação — convites por e-mail (de hora em hora)
+
+# Das 8h às 20h de Brasília (11h às 23h UTC). O servidor confere horário, limite do dia e se o envio está ligado no painel.
+on:
+  schedule:
+    - cron: '17 11-23 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write   # token OIDC que a API confere; não existe senha para esta rotina
+
+concurrency:
+  group: prospect-invites
+  cancel-in-progress: false
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Pedir ao DentalPos a rodada de convites
+        run: |
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=dentalpos-prospect-invites" | python3 -c 'import sys,json;print(json.load(sys.stdin)["value"])')
+          curl -sS -m 120 -X POST -H "Authorization: Bearer $TOKEN" https://api.dentalpos.com.br/api/p/cron-github -w '\nHTTP %{http_code}\n'

@@ -9,6 +9,7 @@ prospectPublicRouter.get('/p/w/:token', prospect.publicWhatsapp)
 prospectPublicRouter.get('/p/u/:token', prospect.publicUnsubscribe)
 prospectPublicRouter.post('/p/u/:token', prospect.publicUnsubscribe)
 prospectPublicRouter.get('/p/cron', prospect.cron)
+prospectPublicRouter.post('/p/cron-github', prospect.cronGithub)
 prospectPublicRouter.post('/p/webhook/resend', prospect.resendWebhook)
 
 // Rotas do PAINEL (exigem login; o controller ainda confere se é equipe WMundi).
