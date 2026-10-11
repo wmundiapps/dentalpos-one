@@ -1,0 +1,16 @@
+SpaceHour — carga da base de empresas (Receita Federal)
+
+O site da Receita só aceita conexões do Brasil, por isso esta carga roda no seu computador (Windows).
+
+1. Instale o Node.js (versão LTS) em https://nodejs.org, se ainda não tiver.
+2. Dê dois cliques em carregar-dentistas-PR.bat.
+3. Quando pedir, cole o DATABASE_URL do SpaceHour (Vercel > projeto spacehour > Settings > Environment Variables)
+   e aperte Enter. Esse endereço tem senha: não mande para ninguém.
+
+A carga baixa uns 6 GB e leva de 30 a 90 minutos. Os arquivos ficam em %LOCALAPPDATA%\RevahReceita\<mês>:
+se a janela fechar, rode de novo e ele continua sem baixar tudo outra vez.
+Celulares antigos sem o 9 são corrigidos e os MEIs ficam marcados. Repita todo mês para atualizar.
+
+Outros estados ou atividades (PowerShell, nesta pasta):
+  $env:DATABASE_URL = "<endereço>"
+  node importar.cjs --ufs=PR,SC,SP --cnaes=8630504

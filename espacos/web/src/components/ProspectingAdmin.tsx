@@ -49,8 +49,8 @@ export function ProspectingAdmin() {
       <details className="panel">
         <summary><strong>Como carregar a base da Receita Federal</strong></summary>
         <ol className="small">
-          <li>No PC (o site da Receita só aceita conexões do Brasil), use a pasta <code>revah/tools/receita-import</code> do repositório.</li>
-          <li>Rode, apontando para o banco do SpaceHour: <code>DATABASE_URL=… node importar.cjs --ufs=PR --cnaes=8630,8650,9602,8211,6821,6822,6911</code></li>
+          <li>No PC com Windows (o site da Receita só aceita conexões do Brasil), use a pasta <code>espacos/tools/receita-import</code> do repositório.</li>
+          <li>Dê dois cliques em <code>carregar-dentistas-PR.bat</code> e cole o <code>DATABASE_URL</code> do SpaceHour (Vercel). Outros estados: <code>node importar.cjs --ufs=PR,SC --cnaes=8630504</code>.</li>
           <li>A carga leva de 30 a 90 minutos e pode ser repetida todo mês (a Receita atualiza mensalmente).</li>
         </ol>
       </details>
