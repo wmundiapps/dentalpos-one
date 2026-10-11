@@ -203,11 +203,28 @@
     });
     $('#forgot').addEventListener('click', function (e) {
       e.preventDefault();
-      var email = $('#email').value || prompt('Seu e-mail:');
-      if (!email) return;
-      api('/api/auth/forgot', { method: 'POST', body: { email: email } }).then(function () {
-        flash($('.fmsg'), 'ok', 'Se o e-mail estiver cadastrado, enviamos um link para criar nova senha.');
-      }).catch(function (err) { flash($('.fmsg'), 'err', err.message); });
+      var box = document.createElement('div');
+      box.className = 'lightbox';
+      box.style.cursor = 'default';
+      box.innerHTML = '<form class="card" id="ff" style="max-width:420px;width:100%;margin:0" role="dialog" aria-modal="true" aria-labelledby="ffT">' +
+        '<h2 id="ffT">Recuperar senha</h2><p class="small muted">Digite o e-mail que você usa para entrar no painel.</p>' +
+        field('femail', 'E-mail', $('#email').value || '', 'type="email" autocomplete="username" required') +
+        '<div class="row"><button class="btn btn-primary" type="submit">Enviar instruções</button><button class="btn btn-line" type="button" id="ffClose">Cancelar</button></div><div class="fmsg"></div></form>';
+      document.body.appendChild(box);
+      var close = function () { box.remove(); };
+      $('#ffClose', box).addEventListener('click', close);
+      box.addEventListener('click', function (ev) { if (ev.target === box) close(); });
+      $('#femail', box).focus();
+      $('#ff', box).addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var btn = $('button[type=submit]', box);
+        btn.disabled = true;
+        api('/api/auth/forgot', { method: 'POST', body: { email: $('#femail', box).value } }).then(function () {
+          $('#ff', box).innerHTML = '<h2>Pronto</h2><div class="msg ok">Se o e-mail estiver cadastrado, você vai receber em alguns minutos as instruções para criar uma nova senha. ' +
+            'O link vale por 2 horas. Confira também a caixa de spam.</div><button class="btn btn-primary" type="button" id="ffOk">Voltar para o login</button>';
+          $('#ffOk', box).addEventListener('click', close);
+        }).catch(function (err) { btn.disabled = false; flash($('.fmsg', box), 'err', err.message); });
+      });
     });
   }
 

@@ -721,7 +721,9 @@ r('POST', '/api/auth/bootstrap', async (req, res) => {
   }
   await sql`update users set active = true, failed_logins = 0, locked_until = null where id = ${u.id}`;
   const t = await createPasswordToken(sql, u.id, 72);
-  send(res, 201, { setPasswordUrl: `${appUrl()}/definir-senha?t=${t}` });
+  // diagnóstico opcional do envio de e-mail (só com o token de recuperação)
+  const mail = b.testEmail ? await sendMail({ to: email, subject: 'Teste de envio — AlignSystem', html: layout('Teste de envio', para('Se você recebeu esta mensagem, o envio de e-mails do painel está funcionando.')) }) : undefined;
+  send(res, 201, { setPasswordUrl: `${appUrl()}/definir-senha?t=${t}`, mail });
 });
 
 r('POST', '/api/auth/forgot', async (req, res) => {
