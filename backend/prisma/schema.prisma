@@ -2746,3 +2746,13 @@ model ProspectConfig {
   segments       String   @default("CLINICA")
   updatedAt      DateTime @default(now()) @updatedAt @db.Timestamp(3)
 }
+
+model UserTwoFactor {
+  userId       String    @id
+  secret       String?
+  pending      String?
+  enabledAt    DateTime? @db.Timestamp(3)
+  lastStep     Int?
+  backupHashes String[]  @default([])
+  updatedAt    DateTime  @default(now()) @updatedAt @db.Timestamp(3)
+}

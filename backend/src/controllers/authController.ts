@@ -12,6 +12,7 @@ import { writeAudit } from '../services/auditService'
 import { getDemoAccess } from '../services/demoAccessService'
 import { decryptSecret } from '../services/secretVault'
 import { dispatchRevah } from '../services/revahProviderService'
+import { issueLoginTicket, readLoginTicket, twoFactorEnabled, verifySecondFactor } from '../services/twoFactorService'
 
 function jwtSecret() {
   const secret = process.env.JWT_SECRET
@@ -107,6 +108,36 @@ export async function register(req: Request, res: Response) {
   }
 }
 
+// Abre a sessão (depois da senha e, se a conta tiver, do código de 2 etapas).
+async function finishLogin(req: Request, res: Response, user: any, demo: unknown) {
+  const token = generateToken({
+    id: user.id,
+    email: user.email,
+    clinicId: user.clinicId,
+    tenantId: user.tenantId,
+    role: user.role
+  })
+
+  try {
+    await writeAudit({
+      clinicId: user.clinicId,
+      tenantId: user.tenantId,
+      actorId: user.id,
+      module: 'auth',
+      action: 'LOGIN',
+      entityType: 'User',
+      entityId: user.id,
+      summary: 'Login realizado com sucesso.',
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined
+    })
+  } catch (auditError) {
+    console.warn('Falha ao registrar auditoria de login:', auditError)
+  }
+
+  return res.json({ token, user: safeUser(user), demo })
+}
+
 export async function login(req: Request, res: Response) {
   try {
     const { clinicId, email, password } = req.body
@@ -158,32 +189,12 @@ export async function login(req: Request, res: Response) {
       })
     }
 
-    const token = generateToken({
-      id: user.id,
-      email: user.email,
-      clinicId: user.clinicId,
-      tenantId: user.tenantId,
-      role: user.role
-    })
-
-    try {
-      await writeAudit({
-        clinicId: user.clinicId,
-        tenantId: user.tenantId,
-        actorId: user.id,
-        module: 'auth',
-        action: 'LOGIN',
-        entityType: 'User',
-        entityId: user.id,
-        summary: 'Login realizado com sucesso.',
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent') || undefined
-      })
-    } catch (auditError) {
-      console.warn('Falha ao registrar auditoria de login:', auditError)
+    // Conta com verificação em 2 etapas: a senha sozinha não abre a sessão.
+    if (await twoFactorEnabled(user.id)) {
+      return res.json({ twoFactorRequired: true, ticket: issueLoginTicket(user.id) })
     }
 
-    return res.json({ token, user: safeUser(user), demo })
+    return finishLogin(req, res, user, demo)
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro interno do servidor.' })
@@ -396,5 +407,40 @@ export async function resetPassword(req: Request, res: Response) {
   } catch (error) {
     console.error('Erro ao redefinir senha:', error)
     return res.status(500).json({ error: 'Não foi possível redefinir a senha.' })
+  }
+}
+
+
+// Segundo passo do login: bilhete da senha + código do aplicativo (ou código reserva).
+const secondFactorTries = new Map<string, { count: number; until: number }>()
+
+export async function login2fa(req: Request, res: Response) {
+  try {
+    const userId = readLoginTicket(String(req.body?.ticket || ''))
+    if (!userId) return res.status(401).json({ error: 'A confirmação expirou. Entre de novo com e-mail e senha.' })
+    const lock = secondFactorTries.get(userId)
+    if (lock && lock.until > Date.now()) return res.status(429).json({ error: 'Muitas tentativas. Aguarde alguns minutos.' })
+    const user = await prisma.user.findFirst({ where: { id: userId, isActive: true } })
+    if (!user) return res.status(401).json({ error: 'Usuário ou código inválidos.' })
+
+    const how = await verifySecondFactor(user.id, String(req.body?.code || ''))
+    if (!how) {
+      const f = secondFactorTries.get(userId) || { count: 0, until: 0 }
+      f.count += 1
+      if (f.count >= 5) { f.until = Date.now() + 10 * 60 * 1000; f.count = 0 }
+      secondFactorTries.set(userId, f)
+      return res.status(401).json({ error: 'Código não confere. Digite o código que aparece agora no aplicativo.' })
+    }
+    secondFactorTries.delete(userId)
+
+    const demo = await getDemoAccess(user.clinicId)
+    if (demo.isDemo && demo.phase === 'ENDED') {
+      return res.status(403).json({ code: 'DEMO_ENDED', error: 'A demonstração gratuita foi encerrada. Seus dados permanecem preservados. Solicite uma proposta para reativar o acesso.', demo })
+    }
+    if (how === 'backup') console.warn(`Login com código reserva de 2 etapas: usuário ${user.id}`)
+    return finishLogin(req, res, user, demo)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro interno do servidor.' })
   }
 }
