@@ -353,3 +353,19 @@ nav.primary a{font-size:14.5px;}
 .cities li{background:var(--white);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:9px 16px;font-weight:600;font-size:15px;}
 .cities li span{color:var(--ink-60);font-weight:500;margin-left:4px;}
 .cities-note{margin-top:18px;color:var(--ink-60);font-size:15px;}
+
+/* botão Entrar sempre visível no topo */
+.login-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;color:var(--ink);text-decoration:none;font-weight:600;font-size:14.5px;white-space:nowrap;background:var(--white);}
+.login-btn:hover{border-color:var(--emerald);color:var(--emerald);}
+.nav-row .login-btn{margin-left:auto;margin-right:4px;}
+.nav-cta + .login-btn{margin-left:12px;}
+@media(max-width:380px){.login-btn span{display:none;}.login-btn{padding:8px 10px;}}
+.nav-row{flex-wrap:nowrap;column-gap:14px;}
+.nav-row .logo{flex-shrink:0;}
+nav.primary{gap:clamp(14px,2.2vw,34px);}
+nav.primary a{white-space:nowrap;}
+.login-btn,.login-btn svg{flex-shrink:0;}
+@media(max-width:1320px) and (min-width:861px){nav.primary a[href="#base-legal"],.nav-cta .btn-ghost{display:none;}}
+@media(max-width:1180px) and (min-width:861px){nav.primary a[href="#valores"],.nav-cta .btn-ghost{display:none;}}
+@media(max-width:1020px) and (min-width:861px){nav.primary{display:none;}.burger{display:block;}}
+@media(max-width:480px){.nav-row .logo small{display:none;}}
