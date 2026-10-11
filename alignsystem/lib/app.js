@@ -752,6 +752,20 @@ r('GET', '/api/photos/:id', async (req, res, { id }) => {
       and (p.uploaded_by <> 'paciente' or p.reviewed_at is not null)`);
 });
 
+// Teste do e-mail de aviso: manda uma mensagem e mostra na tela se saiu ou o erro do provedor
+r('POST', '/api/admin/test-email', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  await rateLimit(sql, `testmail:${u.id}`, 5, 15);
+  const to = notifyAddress();
+  const result = await sendMail({
+    to, subject: 'Teste de aviso — AlignSystem',
+    html: layout('E-mail de aviso funcionando', para(`Este é um teste pedido por ${u.email} no painel. Os avisos de caso novo, fotos recebidas e pagamentos chegam neste endereço (${to}).`)),
+  });
+  await logEvent(sql, { actor: u.email, type: 'teste_email', data: { to, ...result } });
+  send(res, 200, { to, smtp: process.env.SMTP_HOST || null, from: process.env.MAIL_FROM || null, ...result });
+});
+
 // ------------------------------------------------------------------ captação de dentistas (Receita Federal)
 
 const PROSPECT_PAGE = 50;

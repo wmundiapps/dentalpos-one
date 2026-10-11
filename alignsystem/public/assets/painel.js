@@ -273,6 +273,8 @@
       var cs = function (k) { return d.cases[k] || 0; };
       var html = '<h1>Início</h1>' +
         (warn.length ? '<div class="card"><h2>Pendências de configuração</h2>' + warn.map(function (w) { return '<div class="msg warn">' + esc(w) + '</div>'; }).join('') + '</div>' : '') +
+        '<div class="card"><h2>Avisos por e-mail</h2><p class="small muted">Caso novo, fotos recebidas e pagamentos são avisados por e-mail. Não está chegando? Teste aqui:</p>' +
+        '<button class="btn btn-line btn-sm" id="testMail">Testar e-mail de aviso</button><div id="testMailMsg"></div></div>' +
         '<div class="stats">' +
         '<a class="stat" href="#/casos?status=novo" style="text-decoration:none;color:inherit"><b>' + cs('novo') + '</b><span>Novos contatos</span></a>' +
         '<a class="stat" href="#/casos?status=fotos_enviadas" style="text-decoration:none;color:inherit"><b>' + cs('fotos_enviadas') + '</b><span>Fotos aguardando parecer</span></a>' +
@@ -283,7 +285,15 @@
         '</div><div class="card"><h2>Funil de pacientes</h2><div class="list">' +
         Object.keys(L.CASE_STATUS).map(function (k) { return '<div class="it"><a href="#/casos?status=' + k + '">' + esc(L.CASE_STATUS[k]) + '</a><b>' + cs(k) + '</b></div>'; }).join('') +
         '</div></div>';
-      mount(html, 'inicio');
+      var m = mount(html, 'inicio');
+      var tb = $('#testMail', m);
+      tb.addEventListener('click', function () {
+        busyBtn(tb, api('/api/admin/test-email', { method: 'POST', body: {} })).then(function (r) {
+          $('#testMailMsg', m).innerHTML = r.sent
+            ? '<div class="msg ok">E-mail enviado para <b>' + esc(r.to) + '</b>. Confira a caixa de entrada e o spam em alguns minutos. Se não chegar, o problema está no repasse desse endereço.</div>'
+            : '<div class="msg err">Não saiu. ' + esc(r.error || (r.skipped ? 'E-mail não configurado.' : 'Erro desconhecido.')) + '</div>';
+        }).catch(function (e) { $('#testMailMsg', m).innerHTML = '<div class="msg err">' + esc(e.message) + '</div>'; });
+      });
     }).catch(function (e) { errorView(e, 'inicio'); });
   }
 
