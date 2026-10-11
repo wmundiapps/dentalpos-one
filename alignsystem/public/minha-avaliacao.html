@@ -34,6 +34,7 @@
   var state = null;
   var attSim = null; // simulação do atendimento presencial
   var attEdit = false;
+  var showPhotos = false; // depois do envio, as fotos ficam recolhidas
   var cfg = {};
   var busy = {};
 
@@ -117,12 +118,18 @@
       html += '<div class="card"><h2>Envio das fotos e teleorientação</h2><p class="muted">Liberados assim que você aceitar o termo de consentimento acima.</p></div>';
     }
     if (!state.tcle) {
+    if (!locked && c.photosSubmittedAt && !showPhotos) {
+      html += '<div class="card" id="fotos"><h2>Fotos enviadas ✓</h2>' +
+        '<div class="msg ok">Suas 7 fotos chegaram para a equipe AlignSystem em ' + esc(AS.date(c.photosSubmittedAt, true)) + '. ' +
+        'Agora é só aguardar: o parecer aparece aqui nesta página' + (cfg.whatsapp ? ' e avisamos pelo WhatsApp' : '') + '. Você não precisa fazer mais nada.</div>' +
+        '<button class="btn btn-line btn-sm" id="showPhotos">Ver ou trocar as fotos</button></div>';
+    } else {
     html += '<div class="card" id="fotos"><h2>' + (locked ? 'Suas fotos' : 'Envie as 7 fotos do seu sorriso') + '</h2>';
     if (!locked) {
       html += '<p class="muted">Use luz natural, sem flash direto, e retire óculos e batom. Você pode tirar a foto na hora ou escolher da galeria. ' +
         '<a href="/guia-fotos" target="_blank">Ver guia com exemplos</a></p>';
     }
-    html += '<p class="small muted">' + done + ' de 7 fotos enviadas</p><div class="slots">';
+    html += '<p class="small muted">' + done + ' de 7 fotos prontas' + (c.photosSubmittedAt ? '' : ' (ainda não enviadas para a equipe)') + '</p><div class="slots">';
     state.slots.forEach(function (s) {
       var p = photoFor(s.slot);
       html += '<div class="slot' + (p ? ' done' : '') + '" data-slot="' + s.slot + '">' +
@@ -136,13 +143,14 @@
     html += '</div>';
     if (!locked) {
       if (c.photosSubmittedAt) {
-        html += '<div class="msg ok" style="margin-top:14px">Fotos enviadas para a equipe em ' + esc(AS.date(c.photosSubmittedAt, true)) + '. Você recebe o parecer aqui mesmo' + (cfg.whatsapp ? ' e pelo WhatsApp' : '') + '. Se trocar alguma foto, clique em enviar de novo.</div>';
+        html += '<div class="msg ok" style="margin-top:14px">Fotos enviadas para a equipe em ' + esc(AS.date(c.photosSubmittedAt, true)) + '. Se trocar alguma foto, clique em "Reenviar para avaliação".</div>';
       }
       html += '<div class="row" style="margin-top:14px"><button class="btn btn-primary" id="submitPhotos"' + (done < 7 ? ' disabled' : '') + '>' +
         (c.photosSubmittedAt ? 'Reenviar para avaliação' : 'Enviar fotos para avaliação') + '</button>' +
         (done < 7 ? '<span class="small muted">Faltam ' + (7 - done) + ' foto(s).</span>' : '') + '</div><div id="photoMsg"></div>';
     }
     html += '</div>';
+    }
     }
 
     // Agendamentos
@@ -298,11 +306,13 @@
       img.addEventListener('click', function () { AS.lightbox(img.src); });
     });
 
+    var sp = document.getElementById('showPhotos');
+    if (sp) sp.addEventListener('click', function () { showPhotos = true; render(); });
     var sub = document.getElementById('submitPhotos');
     if (sub) sub.addEventListener('click', function () {
       sub.disabled = true;
       AS.api('/api/portal/' + encodeURIComponent(T) + '/submit', { method: 'POST', body: {} })
-        .then(load)
+        .then(function () { showPhotos = false; return load(); }).then(function () { var el = document.getElementById('fotos'); if (el) el.scrollIntoView({ block: 'start' }); })
         .catch(function (e) { sub.disabled = false; document.getElementById('photoMsg').innerHTML = '<div class="msg err">' + esc(e.message) + '</div>'; });
     });
 
