@@ -15,8 +15,14 @@ if not exist node_modules (
   call npm install --no-audit --no-fund
 )
 echo.
-echo Cole o endereco do banco do SpaceHour (DATABASE_URL, copiado da Vercel) e aperte Enter:
-set /p DATABASE_URL=
+echo Cole o endereco do banco do SpaceHour (copiado da Vercel) e aperte Enter.
+echo O texto fica escondido enquanto voce cola: e normal. Nao mostre este endereco a ninguem.
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "$s = Read-Host -AsSecureString 'Endereco'; [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))"`) do set "DATABASE_URL=%%i"
+if not defined DATABASE_URL (
+  echo Nenhum endereco colado. Rode de novo.
+  pause
+  exit /b
+)
 echo.
 echo Baixando a base da Receita e gravando os dentistas do PR. Leva de 30 a 90 minutos.
 echo Pode usar o computador normalmente. Nao feche esta janela.
