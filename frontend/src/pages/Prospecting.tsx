@@ -29,6 +29,7 @@ import SendIcon from "@mui/icons-material/Send";
 import HistoryIcon from "@mui/icons-material/History";
 import PageHeader from "../components/PageHeader";
 import {
+  downloadWhatsappSheet,
   importProspects,
   loadProspectEvents,
   loadProspects,
@@ -81,6 +82,8 @@ export default function Prospecting() {
   const [busy, setBusy] = useState(false);
   const [testTo, setTestTo] = useState("");
   const [testStep, setTestStep] = useState(1);
+  const [waLimit, setWaLimit] = useState(30);
+  const [waSegment, setWaSegment] = useState<"" | "CLINICA" | "LABORATORIO">("");
   const [history, setHistory] = useState<{ lead: ProspectLead; events: ProspectEvent[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -163,6 +166,19 @@ export default function Prospecting() {
       setMessage(`Teste do e-mail ${testStep} enviado para ${testTo} (modelo: ${r.modelLead}). Confira também a caixa de spam.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao enviar teste.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const baixarWhatsapp = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await downloadWhatsappSheet(waLimit, waSegment || undefined);
+      setMessage(`Planilha com até ${waLimit} contatos baixada. Cada número abre o WhatsApp com a mensagem pronta.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao gerar a planilha.");
     } finally {
       setBusy(false);
     }
@@ -273,6 +289,17 @@ export default function Prospecting() {
         </Box>
 
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 2, alignItems: "center" }}>
+          <TextField size="small" type="number" label="Quantidade" value={waLimit} onChange={(e) => setWaLimit(Math.max(1, Math.min(100, Number(e.target.value) || 30)))} sx={{ width: 120 }} />
+          <TextField select size="small" label="Público" value={waSegment} onChange={(e) => setWaSegment(e.target.value as "" | "CLINICA" | "LABORATORIO")} sx={{ width: 170 }}>
+            <MenuItem value="">Clínicas e laboratórios</MenuItem>
+            <MenuItem value="CLINICA">Só clínicas</MenuItem>
+            <MenuItem value="LABORATORIO">Só laboratórios</MenuItem>
+          </TextField>
+          <Button variant="outlined" disabled={busy} onClick={() => void baixarWhatsapp()}>Baixar Excel para WhatsApp</Button>
+          <Typography variant="caption" color="text.secondary">Cada número abre o WhatsApp com a mensagem pronta, só entre 8h e 21h, uma vez por pessoa. Quem pedir SAIR: marque "Não quer mais receber" na linha dele.</Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 2, alignItems: "center" }}>
           <TextField size="small" label="Enviar teste para" placeholder="seu@email.com" value={testTo} onChange={(e) => setTestTo(e.target.value)} sx={{ minWidth: 240 }} />
           <TextField select size="small" label="E-mail" value={testStep} onChange={(e) => setTestStep(Number(e.target.value))} sx={{ width: 170 }}>
             <MenuItem value={1}>1 · Apresentação</MenuItem>
@@ -333,6 +360,7 @@ export default function Prospecting() {
                         <MenuItem value="RESPONDEU">Respondeu</MenuItem>
                         <MenuItem value="CONVERTIDO">Convertido</MenuItem>
                         <MenuItem value="NOVO">Voltar para novo</MenuItem>
+                        <MenuItem value="DESCADASTRADO">Não quer mais receber</MenuItem>
                         <MenuItem value="EXCLUIDO">Excluir e bloquear</MenuItem>
                       </TextField>
                     </TableCell>

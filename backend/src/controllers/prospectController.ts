@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import ExcelJS from 'exceljs'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import {
@@ -10,11 +11,16 @@ import {
   isWebmail,
   logEvent,
   newToken,
+  optOutLead,
+  PUBLIC_BASE,
   runSequence,
   sendStep,
   sentToday,
   suppress,
 } from '../services/prospectService'
+import { blockedKeySet, insideSendWindow, isBlockedBy, whatsappNumber } from '../services/prospectBlock'
+import { whatsappText } from '../services/prospectTemplates'
+import { writeAudit } from '../services/auditService'
 
 // ---------- Acesso: só equipe WMundi ----------
 // WMUNDI_STAFF_EMAILS = lista separada por vírgula (ex.: "clinicaravel@gmail.com,contato@dentalpos.com.br").
@@ -120,13 +126,19 @@ export async function updateLead(req: AuthRequest, res: Response) {
     const status = txt(req.body?.status, 40)
     const notes = req.body?.notes === undefined ? undefined : txt(req.body.notes, 2000)
     if (status && !STATUSES.includes(status)) return res.status(400).json({ error: 'Status inválido.' })
+    if (status === 'DESCADASTRADO' && status !== lead.status) {
+      // Pediu para sair (por e-mail, WhatsApp ou telefone): bloqueia para sempre e apaga os contatos.
+      await optOutLead(id, 'MANUAL', `Marcado como "não quer receber" por ${req.user?.email || 'equipe'}.`)
+      if (notes !== undefined) await prisma.prospectLead.update({ where: { id }, data: { notes } })
+      return res.json(await prisma.prospectLead.findUnique({ where: { id } }))
+    }
     const row = await prisma.prospectLead.update({
       where: { id },
       data: { ...(status ? { status } : {}), ...(notes !== undefined ? { notes } : {}) },
     })
     if (status && status !== lead.status) {
       await logEvent(id, status === 'RESPONDEU' ? 'RESPOSTA' : 'STATUS', { detail: `Status ${lead.status} → ${status} por ${req.user?.email || 'equipe'}` })
-      if ((status === 'DESCADASTRADO' || status === 'EXCLUIDO') && lead.email) await suppress(lead.email, 'MANUAL')
+      if (status === 'EXCLUIDO' && lead.email) await suppress(lead.email, 'MANUAL')
     }
     return res.json(row)
   } catch (error) {
@@ -182,6 +194,7 @@ export async function importLeads(req: AuthRequest, res: Response) {
     const existing = new Set((await prisma.prospectLead.findMany({ where: { cnpj: { in: cnpjs } }, select: { cnpj: true } })).map((r) => r.cnpj))
     const emails = items.map((item) => txt(item.email, 200).toLowerCase()).filter(Boolean)
     const blocked = new Set((await prisma.prospectSuppression.findMany({ where: { email: { in: emails } }, select: { email: true } })).map((r) => r.email))
+    const hashBlocked = await blockedKeySet(items.map((item) => ({ cnpj: txt(item.cnpj, 20), email: txt(item.email, 200), phone1: txt(item.phone1, 30), phone2: txt(item.phone2, 30) })))
 
     let created = 0
     let skipped = 0
@@ -194,7 +207,7 @@ export async function importLeads(req: AuthRequest, res: Response) {
       const displayName = txt(item.displayName, 200) || txt(item.nomeFantasia, 200) || razaoSocial
       const uf = txt(item.uf, 2).toUpperCase()
       if (!razaoSocial || !uf) { skipped += 1; continue }
-      const isBlocked = Boolean(email && blocked.has(email))
+      const isBlocked = Boolean(email && blocked.has(email)) || isBlockedBy(hashBlocked, { cnpj, email, phone1: txt(item.phone1, 30), phone2: txt(item.phone2, 30) })
       if (isBlocked) blockedCount += 1
       const lead = await prisma.prospectLead.create({
         data: {
@@ -262,6 +275,55 @@ export async function sendTest(req: AuthRequest, res: Response) {
   }
 }
 
+// ---------- Excel com WhatsApp de um clique ----------
+// O número da planilha não abre o WhatsApp direto: aponta para /p/w/<token>, que antes confere horário, um convite por pessoa e a lista de bloqueio.
+export async function exportWhatsappSheet(req: AuthRequest, res: Response) {
+  if (denyIfNotStaff(req, res)) return
+  try {
+    const limite = Math.min(100, Math.max(1, Math.round(Number(req.query.limite) || 30)))
+    const segmento = req.query.segmento === 'LABORATORIO' ? 'LABORATORIO' : req.query.segmento === 'CLINICA' ? 'CLINICA' : null
+    const cidade = txt(req.query.cidade, 120)
+    const invited = new Set((await prisma.prospectEvent.findMany({ where: { type: 'WHATSAPP' }, select: { leadId: true } })).map((e) => e.leadId))
+    const pool = await prisma.prospectLead.findMany({
+      where: { status: { notIn: ['DESCADASTRADO', 'EXCLUIDO', 'CONVERTIDO'] }, ...(segmento ? { segment: segmento } : {}), ...(cidade ? { city: { equals: cidade, mode: 'insensitive' as const } } : {}), OR: [{ phone1: { not: null } }, { phone2: { not: null } }] },
+      take: 3000,
+    })
+    const blocked = await blockedKeySet(pool)
+    const eligible = pool.filter((l) => !invited.has(l.id) && !isBlockedBy(blocked, l) && whatsappNumber(l.phone1, l.phone2))
+    // Sorteia para não convidar sempre as mesmas cidades/bairros
+    for (let i = eligible.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [eligible[i], eligible[j]] = [eligible[j], eligible[i]] }
+    const picked = eligible.slice(0, limite)
+
+    const wb = new ExcelJS.Workbook()
+    const ws = wb.addWorksheet('Convites')
+    ws.columns = [{ header: 'Clínica / laboratório', width: 38 }, { header: 'Cidade', width: 20 }, { header: 'Segmento', width: 14 }, { header: 'WhatsApp (clique para abrir)', width: 28 }, { header: 'Mensagem (já vai pronta no WhatsApp)', width: 90 }]
+    ws.getRow(1).font = { bold: true }
+    for (const l of picked) {
+      const number = whatsappNumber(l.phone1, l.phone2) as string
+      const row = ws.addRow([l.displayName, l.city || '', l.segment === 'LABORATORIO' ? 'Laboratório' : 'Clínica', '', whatsappText(l)])
+      row.getCell(4).value = { text: `(${number.slice(2, 4)}) ${number.slice(4, 9)}-${number.slice(9)}`, hyperlink: `${PUBLIC_BASE}/p/w/${l.token}` }
+      row.getCell(4).font = { color: { argb: 'FF1565C0' }, underline: true }
+    }
+    const help = wb.addWorksheet('Como usar')
+    help.getColumn(1).width = 110
+    ;[
+      'Clique no número: o sistema confere o horário (8h às 21h), se a pessoa já foi convidada e se pediu para sair, e só então abre o WhatsApp com a mensagem pronta.',
+      'Use um número só para convites (WhatsApp Business, chip ou fixo), 20 a 30 por dia no começo.',
+      'Se a pessoa responder SAIR (ou pedir para não receber), marque "Não quer receber" no painel de prospecção: o número é bloqueado para sempre e apagado do registro.',
+      'Contatos vindos dos dados públicos de CNPJ da Receita Federal, para contato comercial entre empresas (LGPD, legítimo interesse).',
+    ].forEach((t) => help.addRow([t]))
+
+    await writeAudit({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, actorId: req.user!.id, module: 'prospect', action: 'EXPORT_WHATSAPP', summary: `${picked.length} contatos exportados para convite por WhatsApp${segmento ? ` (${segmento})` : ''}.` }).catch(() => undefined)
+    const buffer = await wb.xlsx.writeBuffer()
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    res.setHeader('Content-Disposition', `attachment; filename="convites-whatsapp-${new Date().toISOString().slice(0, 10)}.xlsx"`)
+    return res.send(Buffer.from(buffer))
+  } catch (error) {
+    console.error('Falha ao gerar o Excel de convites:', error)
+    return res.status(500).json({ error: 'Não foi possível gerar a planilha.' })
+  }
+}
+
 // ---------- Rotas públicas (sem login) ----------
 const escapeHtml = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
@@ -286,6 +348,27 @@ export async function publicClick(req: Request, res: Response) {
   target.searchParams.set('utm_campaign', 'receita-federal')
   target.searchParams.set('utm_content', `etapa-${step}`)
   return res.redirect(302, target.toString())
+}
+
+export async function publicWhatsapp(req: Request, res: Response) {
+  try {
+    if (!insideSendWindow()) return res.status(200).send(page('Fora do horário de convites', 'Convites só saem entre 8h e 21h (horário de Brasília). Volte a clicar no horário certo.'))
+    const lead = await prisma.prospectLead.findUnique({ where: { token: String(req.params.token) } })
+    if (!lead) return res.status(404).send(page('Link inválido', 'Este convite não existe mais.'))
+    const blocked = await blockedKeySet([lead])
+    if (['DESCADASTRADO', 'EXCLUIDO', 'CONVERTIDO'].includes(lead.status) || isBlockedBy(blocked, lead)) {
+      return res.status(200).send(page('Não enviar', 'Esta pessoa pediu para não receber contato ou já é cliente. Nada foi aberto.'))
+    }
+    const number = whatsappNumber(lead.phone1, lead.phone2)
+    if (!number) return res.status(200).send(page('Sem WhatsApp', 'Este contato não tem celular cadastrado.'))
+    const already = await prisma.prospectEvent.findFirst({ where: { leadId: lead.id, type: 'WHATSAPP' } })
+    if (already) return res.status(200).send(page('Convite já enviado', 'Esta pessoa já foi convidada por WhatsApp. Um convite por pessoa.'))
+    await logEvent(lead.id, 'WHATSAPP', { detail: 'Convite por WhatsApp aberto pela equipe.' })
+    return res.redirect(302, `https://wa.me/${number}?text=${encodeURIComponent(whatsappText(lead))}`)
+  } catch (error) {
+    console.error('Falha no convite por WhatsApp:', error)
+    return res.status(500).send(page('Não foi possível abrir', 'Tente de novo em instantes.'))
+  }
 }
 
 export async function publicUnsubscribe(req: Request, res: Response) {

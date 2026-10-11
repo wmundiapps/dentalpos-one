@@ -110,3 +110,20 @@ export const runProspects = (input: { force?: boolean; dryRun?: boolean }) =>
 
 export const sendProspectTest = (to: string, step: number) =>
   call<{ ok: boolean; modelLead: string }>("/prospects/test", { method: "POST", body: JSON.stringify({ to, step }) });
+
+// Planilha de convites por WhatsApp (número com clique que confere horário, convite único e bloqueio).
+export async function downloadWhatsappSheet(limit: number, segment?: "CLINICA" | "LABORATORIO") {
+  const query = new URLSearchParams({ limite: String(limit), ...(segment ? { segmento: segment } : {}) });
+  const response = await fetch(`${API}/prospects/export.xlsx?${query}`, { headers: headers() });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || `Erro HTTP ${response.status}`);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `convites-whatsapp-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
