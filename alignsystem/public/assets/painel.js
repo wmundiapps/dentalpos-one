@@ -186,7 +186,7 @@
     ['scan', 'Escaneamento e submissão do caso'],
     ['simples', 'Caso simples'], ['mediano', 'Média complexidade'], ['complexo', 'Caso complexo'],
   ];
-  var MAX_BRANDS = 6;
+  var MAX_BRANDS = 3;
   function brandsOf(P) {
     if (P && P.brands && P.brands.length) return P.brands.slice();
     if (P && (P.simples || P.mediano || P.complexo)) return [{ name: '', origin: 'nacional', simples: P.simples, mediano: P.mediano, complexo: P.complexo }];

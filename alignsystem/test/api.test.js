@@ -545,6 +545,20 @@ test('preço próprio: dentista define valores, alinhadores ficam com a AlignSys
   // portal mostra a tabela do dentista do caso
   const S = (await call('GET', `/api/portal/${tk}`)).data.scan;
   assert.deepEqual(S.table.map((r) => r.price), [7500, 9500, 12000]);
+  assert.deepEqual(S.options, []); // tabela antiga, sem marcas
+  const four = [1, 2, 3, 4].map((n) => ({ name: `Marca ${n}`, simples: '9000' }));
+  assert.equal((await call('PUT', '/api/dentist/prices', { who: 'dent', body: { brands: four } })).status, 400); // até 3 marcas
+  assert.equal((await call('PUT', '/api/dentist/prices', { who: 'dent', body: { brands: [
+    { name: 'Smiller', origin: 'nacional', scan: '600', simples: '7500', mediano: '9500', complexo: '12000', refValue: '250', refCount: '2' },
+    { name: 'ClearCorrect', origin: 'importado', simples: '11500', mediano: '14500', complexo: '16500' },
+    { name: 'Invisalign', origin: 'importado', simples: '14500', mediano: '18000', complexo: '24000' },
+  ] } })).status, 200);
+  const S2 = (await call('GET', `/api/portal/${tk}`)).data.scan;
+  assert.deepEqual(S2.options.map((o) => o.name), ['Smiller', 'ClearCorrect', 'Invisalign']);
+  assert.equal(S2.options[0].scan, 600);
+  assert.equal(S2.options[0].refCount, 2);
+  assert.deepEqual(S2.options[2].table.map((r) => r.price), [14500, 18000, 24000]);
+  assert.deepEqual(S2.table.map((r) => r.price), [7500, 9500, 12000]); // "a partir de" = menor valor
 
   await call('PATCH', `/api/admin/cases/${c.id}`, { who: 'admin', body: { plan: { model: 'proprio', brand: 'Invisalign', months: 12, complexity: 'mediano', total: '10000' } } });
   const ct = await call('POST', `/api/admin/cases/${c.id}/contract`, { who: 'admin', body: {} });

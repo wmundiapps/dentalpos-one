@@ -401,8 +401,14 @@ const SCAN_OK_ASSESSMENTS = ['indicado', 'avaliacao_presencial'];
 
 async function portalScan(sql, c) {
   const prices = await scan.getPrices(sql);
-  const own = c.dentist_id ? ownPrices((await dentistById(sql, c.dentist_id))?.prices) : null;
+  const dp = c.dentist_id ? (await dentistById(sql, c.dentist_id))?.prices : null;
+  const own = ownPrices(dp);
   if (own) Object.assign(prices, own);
+  // opções por marca do dentista do caso (até 3), na ordem em que ele cadastrou
+  const options = (dp?.brands || []).filter((b) => b.simples || b.mediano || b.complexo).slice(0, MAX_BRANDS).map((b) => ({
+    name: b.name, origin: b.origin, scan: b.scan || null, refValue: b.refValue || null, refCount: b.refCount ?? null,
+    table: ['simples', 'mediano', 'complexo'].map((k) => ({ key: k, consults: scan.consultLimits[k], price: b[k] || null })),
+  }));
   const published = Boolean(c.assessment_published_at) && SCAN_OK_ASSESSMENTS.includes(c.assessment);
   const [order] = await sql`select o.id, o.status, o.price, o.billing_type, o.paid_at, o.preference, o.preference_at, ch.invoice_url
     from scan_orders o left join charges ch on ch.id = o.charge_id where o.case_id = ${c.id} and o.status <> 'cancelado' order by o.created_at desc limit 1`;
@@ -412,6 +418,7 @@ async function portalScan(sql, c) {
   return {
     price: prices.scan,
     table: ['simples', 'mediano', 'complexo'].map((k) => ({ key: k, consults: scan.consultLimits[k], price: prices[k] })),
+    options,
     pixDiscountPct: MODEL.pixDiscountPct, cardMaxInstallments: MODEL.cardMaxInstallments, boletoMaxInstallments: MODEL.boletoMaxInstallments,
     terms: terms && { version: terms.version, body: terms.body, hash: terms.hash },
     order: order && { status: order.status, price: Number(order.price), billingType: order.billing_type, paidAt: order.paid_at, preference: order.preference, invoiceUrl: order.invoice_url },
@@ -496,7 +503,7 @@ function ownPrices(p) {
 
 // Tabela do dentista: uma coluna por marca (nacional/importado) com escaneamento e submissão, os 3 graus e o refinamento.
 // simples/mediano/complexo guardam o menor valor entre as marcas ("a partir de"), usado na página do paciente.
-const MAX_BRANDS = 6;
+const MAX_BRANDS = 3; // 3 opções de marca por dentista, mostradas ao paciente
 function readOwnPrices(b) {
   const amount = (x, label) => {
     const n = money(x);

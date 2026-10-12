@@ -140,9 +140,19 @@
           var P = S.prefill || {};
           html += '<div class="msg ok" style="font-size:16px">Valor do escaneamento e da documentação: <b>' + esc(money(S.price)) + '</b></div>' +
             '<h3 style="margin-top:16px">Valores do tratamento por grau de dificuldade</h3>' +
-            '<div class="list">' + S.table.map(function (r) {
+            (S.options && S.options.length ? '<p class="small muted">Seu dentista trabalha com ' + (S.options.length === 1 ? 'esta opção' : 'estas ' + S.options.length + ' opções') + ' de alinhador. A escolha é feita com ele, depois do escaneamento.</p>' +
+              '<div class="brand-options">' + S.options.map(function (o, i) {
+                return '<div class="brand-opt"><div class="small muted">Opção ' + (i + 1) + '</div><h3 style="margin:2px 0 2px">' + esc(o.name) + '</h3><div class="small muted" style="margin-bottom:8px">Alinhador ' + (o.origin === 'importado' ? 'importado' : 'nacional') + '</div><div class="list">' +
+                  (o.scan ? '<div class="it"><div><b>Escaneamento e submissão do caso</b></div><b style="white-space:nowrap">' + esc(money(o.scan)) + '</b></div>' : '') +
+                  o.table.map(function (r) {
+                    return '<div class="it"><div><b>' + ({ simples: 'Caso simples', mediano: 'Média complexidade', complexo: 'Caso complexo' })[r.key] + '</b><div class="small muted">até ' + r.consults + ' consultas incluídas</div></div><b style="white-space:nowrap">' + (r.price ? esc(money(r.price)) : '—') + '</b></div>';
+                  }).join('') +
+                  (o.refValue ? '<div class="it"><div><b>Refinamento</b><div class="small muted">' + (o.refCount ? o.refCount + ' consulta' + (o.refCount > 1 ? 's' : '') + ' de refinamento' : 'por consulta') + '</div></div><b style="white-space:nowrap">' + esc(money(o.refValue)) + (o.refCount ? ' cada' : '') + '</b></div>' : '') +
+                  '</div></div>';
+              }).join('') + '</div>'
+            : '<div class="list">' + S.table.map(function (r) {
               return '<div class="it"><div><b>' + ({ simples: 'Caso simples', mediano: 'Média complexidade', complexo: 'Caso complexo' })[r.key] + '</b><div class="small muted">até ' + r.consults + ' consultas incluídas</div></div><b style="white-space:nowrap">' + esc(money(r.price)) + '</b></div>';
-            }).join('') + '</div>' +
+            }).join('') + '</div>') +
             '<p class="small muted">O grau do seu caso é definido pelo dentista depois do escaneamento. Formas de pagamento do tratamento: Pix com ' + S.pixDiscountPct + '% de desconto, cartão em até ' + S.cardMaxInstallments + 'x sem juros, ou entrada de 50% e o restante em até ' + S.boletoMaxInstallments + ' boletos.</p>' +
             '<form id="scanForm"><h3 style="margin-top:18px">Seus dados</h3><div class="grid2">' +
             '<div class="field"><label for="sname">Nome completo</label><input id="sname" autocomplete="name" required value="' + esc(P.name || '') + '"></div>' +
