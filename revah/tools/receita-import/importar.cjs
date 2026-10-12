@@ -592,7 +592,7 @@ async function download(share, month, file, dest) {
   ];
   let last = "";
   for (const [url, headers] of urls) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 5; attempt++) {
       try {
         const res = await fetch(url, { headers });
         if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -609,7 +609,8 @@ async function download(share, month, file, dest) {
         return;
       } catch (e) {
         last = e?.message || String(e);
-        await new Promise((r) => setTimeout(r, attempt * 3e3));
+        // A Receita limita downloads seguidos: espera cada vez mais (20 s, 40 s, 60 s...)
+        await new Promise((r) => setTimeout(r, attempt * 2e4));
       }
     }
   }

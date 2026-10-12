@@ -27,13 +27,16 @@ Write-Host 'Endereco OK. Baixando a base da Receita e gravando os dentistas do P
 Write-Host 'Leva de 30 a 90 minutos. Pode minimizar esta janela, mas NAO feche.'
 Write-Host ''
 $env:DATABASE_URL = $url
-# Tenta o mes mais recente; se a Receita ainda estiver enviando os arquivos, usa o mes anterior
+# Tenta o mes mais recente; se a Receita ainda estiver enviando os arquivos, usa o mes anterior.
+# Os arquivos ja baixados ficam guardados: cada nova rodada continua de onde parou.
+$prev = (Get-Date).AddMonths(-1).ToString('yyyy-MM')
 node importar.cjs --ufs=PR --cnaes=8630504
-if ($LASTEXITCODE -ne 0) {
-  $prev = (Get-Date).AddMonths(-1).ToString('yyyy-MM')
+for ($round = 1; $round -le 6 -and $LASTEXITCODE -ne 0; $round++) {
   Write-Host ''
-  Write-Host "Tentando de novo com a base de $prev..." -ForegroundColor Yellow
-  node importar.cjs --ufs=PR --cnaes=8630504 --month=$prev
+  Write-Host "A Receita pausou os downloads. Nova tentativa em 3 minutos ($round de 6)... Nao feche a janela." -ForegroundColor Yellow
+  Start-Sleep -Seconds 180
+  # rodadas 1 a 3 continuam o mes mais recente (aproveitam o que ja baixou); 4 a 6 tentam o mes anterior
+  if ($round -le 3) { node importar.cjs --ufs=PR --cnaes=8630504 } else { node importar.cjs --ufs=PR --cnaes=8630504 --month=$prev }
 }
 Write-Host ''
 if ($LASTEXITCODE -eq 0) {
