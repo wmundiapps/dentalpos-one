@@ -260,23 +260,34 @@ bookingsRouter.post('/client-review/:token', async (req, res) => {
   res.status(201).json({ ok: true });
 });
 
-// ───────────── Avalista ─────────────
+// ───────────── Fiador (e autorização do cônjuge) ─────────────
+// O mesmo link /fiador/:token serve ao fiador e ao cônjuge (cada um com o próprio token).
 bookingsRouter.get('/guarantor/:token', async (req, res) => {
   const b = await repo.getBookingByGuarantorToken(pool, req.params.token);
   if (!b || !b.guarantor) throw new HttpError(404, 'guarantor_invite_not_found');
   const l = await getListing(pool, b.listingId);
   const guest = (await repo.getUser(pool, b.guestId))!;
+  const g = b.guarantor;
+  const isSpouse = g.spouse?.token === req.params.token;
   res.json({
-    guarantorName: b.guarantor.name, guestName: guest.name, status: b.guarantor.status, bookingStatus: b.status,
-    liabilityCap: b.guarantor.liabilityCap, currency: b.price.currency, total: b.price.total,
+    role: isSpouse ? 'spouse' : 'guarantor',
+    guarantorName: g.name, spouseName: isSpouse ? g.spouse!.name : undefined, guestName: guest.name,
+    status: isSpouse ? g.spouse!.status : g.status, bookingStatus: b.status,
+    liabilityCap: g.liabilityCap, currency: b.price.currency, total: b.price.total,
     listing: { title: l.title, city: l.city, countryCode: l.countryCode }, occurrences: b.occurrences, deadline: b.hostDecisionDeadline,
   });
 });
 bookingsRouter.post('/guarantor/:token', async (req, res) => {
-  const { accept, consent } = z.object({ accept: z.boolean(), consent: z.boolean().optional() }).parse(req.body);
-  if (accept && !consent) throw new HttpError(422, 'guarantor_consent_required');
-  const b = await respondGuarantor(req.params.token, accept);
-  res.json({ status: b.guarantor!.status, bookingStatus: b.status });
+  const d = z.object({
+    accept: z.boolean(),
+    consent: z.boolean().optional(),
+    maritalStatus: z.enum(['single', 'married', 'stable_union', 'divorced', 'widowed']).optional(),
+    propertyRegime: z.enum(['partial', 'universal', 'final_participation', 'separation_conventional', 'separation_mandatory']).optional(),
+    spouse: z.object({ name: z.string().min(3).max(160), documentNumber: z.string().min(5).max(30), email: z.string().email().max(200) }).optional(),
+  }).parse(req.body);
+  if (d.accept && !d.consent) throw new HttpError(422, 'guarantor_consent_required');
+  const b = await respondGuarantor(req.params.token, d);
+  res.json({ status: b.guarantor!.status, spouseStatus: b.guarantor!.spouse?.status, bookingStatus: b.status });
 });
 
 // ───────────── Incidentes / Central de resolução ─────────────

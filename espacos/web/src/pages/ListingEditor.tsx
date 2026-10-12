@@ -13,7 +13,7 @@ import { PhotoUploader } from '../components/PhotoUploader';
 import { AddressMap } from '../components/AddressMap';
 import { PlacePicker } from '../components/PlacePicker';
 
-type Form = Omit<Listing, 'id' | 'hostId' | 'createdAt' | 'currency' | 'timezone'>;
+type Form = Omit<Listing, 'id' | 'hostId' | 'createdAt' | 'currency' | 'timezone'> & { occupancyConsent?: boolean };
 
 const WEEK: Weekday[] = [1, 2, 3, 4, 5, 6, 0];
 
@@ -57,7 +57,7 @@ const FIELD_SECTION: Record<string, number> = {
   houseRules: 7, buildingRules: 7, allowedActivities: 7, forbiddenActivities: 7,
 };
 const CODE_SECTION: Record<string, number> = {
-  country_not_supported: 2, state_required: 2, city_not_supported: 2, availability_outside_platform_hours: 4,
+  country_not_supported: 2, state_required: 2, city_not_supported: 2, occupancy_required: 2, occupancy_consent_required: 2, availability_outside_platform_hours: 4,
   cleaning_fee_too_high: 5, deposit_too_high: 5, guarantor_threshold_required: 6,
 };
 const FIELD_LABEL: Record<string, DictKey> = {
@@ -96,7 +96,7 @@ export default function ListingEditor() {
       const l = ls.find((x) => x.id === id);
       if (!l) return;
       const { id: _i, hostId: _h, createdAt: _c, currency: _cu, timezone: _tz, ...rest } = l;
-      setF(rest as Form);
+      setF({ ...rest, occupancyConsent: !!l.occupancyConsentAt } as Form);
       setBlockedText(l.blockedDates.join('\n'));
     });
   }, [id]);
@@ -180,6 +180,15 @@ export default function ListingEditor() {
           <PlacePicker required country={f.countryCode} state={f.state ?? ''} city={f.city} onChange={(st, ci) => setF((x) => ({ ...x, state: st, city: ci }))} />
           <label>{t('form.neighborhood')}<input value={f.neighborhood ?? ''} onChange={(e) => set('neighborhood', e.target.value)} /></label>
           <label>{t('form.address')}<input required minLength={5} value={f.address} onChange={(e) => set('address', e.target.value)} /></label>
+          <label className="span2">{t('form.occupancy')}
+            <select required value={f.occupancy ?? ''} onChange={(e) => set('occupancy', (e.target.value || undefined) as Form['occupancy'])}>
+              <option value="">—</option>
+              {(['owner', 'tenant', 'other'] as const).map((o) => <option key={o} value={o}>{t(`form.occ.${o}` as DictKey)}</option>)}
+            </select>
+          </label>
+          {f.occupancy && f.occupancy !== 'owner' && (
+            <label className="check span2"><input type="checkbox" required checked={!!f.occupancyConsent} onChange={(e) => set('occupancyConsent', e.target.checked)} /> {t('form.occupancyConsent')}</label>
+          )}
           <p className="muted small span2">{t('editor.addressPrivate')} · {t('place.currencyInfo', { currency: cfg.currency })}</p>
           {f.address.trim().length >= 5 && f.city && (
             <div className="span2">

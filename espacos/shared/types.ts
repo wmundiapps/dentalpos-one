@@ -97,6 +97,8 @@ export interface Listing {
   guarantorThreshold?: number; // p/ required_over_amount
   requiresLicense: boolean;    // exige registro profissional verificado
   hostLicenseResponsibility: boolean; // anfitrião assume conferir o registro do locatário
+  occupancy?: Occupancy;              // a que título o anfitrião ocupa o imóvel
+  occupancyConsentAt?: string;        // declarou autorização do proprietário/locador (quem não é proprietário)
   houseRules: string;          // normas do espaço
   buildingRules?: string;      // normas do condomínio/edifício
   allowedActivities?: string;
@@ -118,7 +120,15 @@ export interface Guarantor {
   status: 'invited' | 'accepted' | 'declined';
   liabilityCap: number;
   respondedAt?: string;
+  maritalStatus?: MaritalStatus;
+  propertyRegime?: PropertyRegime;
+  /** Autorização do cônjuge (CC art. 1.647, III), exigida para fiador casado fora da separação convencional de bens */
+  spouse?: { name: string; documentNumber: string; email: string; token: string; status: 'invited' | 'accepted' | 'declined'; respondedAt?: string };
 }
+
+export type MaritalStatus = 'single' | 'married' | 'stable_union' | 'divorced' | 'widowed';
+export type PropertyRegime = 'partial' | 'universal' | 'final_participation' | 'separation_conventional' | 'separation_mandatory';
+export type Occupancy = 'owner' | 'tenant' | 'other';
 
 export interface PriceBreakdown {
   currency: string;

@@ -58,7 +58,7 @@ export default function Checkout() {
 
   const country = COUNTRY_BY_CODE[listing.countryCode];
   const asyncMethod = method && ASYNC_PAYMENT_METHODS.includes(method);
-  // Caução sem pré-autorização (Pix/boleto, ou processador que não permite, como o Mercado Pago no Brasil) → avalista
+  // Caução sem pré-autorização (Pix/boleto, ou processador que não permite, como o Mercado Pago no Brasil) → fiador
   const depositByGuarantor = listing.securityDeposit > 0 && (!!asyncMethod || listing.depositHold === false);
   const needsGuarantor = quote.guarantorRequired || depositByGuarantor;
   const showGuarantor = needsGuarantor || useGuarantor;

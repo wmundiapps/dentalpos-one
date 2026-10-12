@@ -71,8 +71,8 @@ CUSTOS (valores exatos)
 - Anunciar não custa nada. Só há cobrança quando uma locação acontece.
 - O SpaceHour desconta ${host}% do valor definido pelo anfitrião (valor da locação + limpeza).
 - O Mercado Pago desconta a tarifa de pagamento dele da parte do anfitrião (aproximadamente 1% no Pix e 5% no cartão; a taxa exata depende do plano da conta Mercado Pago de cada um).
-- Quem aluga paga o preço do anfitrião + taxa de serviço de ${guest}% + ISS (5%) sobre essa taxa. O total aparece antes de confirmar.
-- Exemplo: anfitrião cobra R$ 100 → quem aluga paga R$ 115,75 → o anfitrião recebe cerca de R$ 94 no Pix (cerca de R$ 89 no cartão) → o SpaceHour fica com R$ 20 (${host}% + ${guest}%) e o ISS vai para a prefeitura.
+- Quem aluga paga o preço do anfitrião + taxa de serviço de ${guest}% (tributos incluídos, sem nada à parte). O total aparece antes de confirmar.
+- Exemplo: anfitrião cobra R$ 100 → quem aluga paga R$ 115 → o anfitrião recebe cerca de R$ 94 no Pix (cerca de R$ 89 no cartão) → o SpaceHour fica com R$ 20 (${host}% + ${guest}%), já com os tributos.
 
 RESERVAR (PROFISSIONAL)
 - Escolher o espaço, a data e o horário, conferir o preço total e pagar com Pix ou cartão (Mercado Pago). O endereço exato aparece depois da confirmação.
