@@ -1568,7 +1568,7 @@ r('POST', '/api/admin/evidences/:id/validate', async (req, res, { id }) => {
 r('GET', '/api/admin/dentists', async (req, res) => {
   const sql = db();
   await requireUser(sql, req, 'admin');
-  const rows = await sql`select d.id, d.name, d.cro, d.cro_uf, d.city, d.phone, d.email, d.status, d.created_at, d.asaas_wallet_id is not null as has_wallet,
+  const rows = await sql`select d.id, d.name, d.cro, d.cro_uf, d.city, d.extra_cities, d.phone, d.email, d.status, d.created_at, d.asaas_wallet_id is not null as has_wallet,
       (select count(*)::int from cases c where c.dentist_id = d.id) as case_count,
       (select status from contracts ct where ct.dentist_id = d.id and ct.kind = 'parceiro' and ct.status <> 'cancelado' order by created_at desc limit 1) as term_status
     from dentists d order by d.created_at desc limit 500`;

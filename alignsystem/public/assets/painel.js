@@ -363,7 +363,7 @@
       var html = '<h1>Pacientes</h1><form class="row" id="sf" style="margin-bottom:12px"><input name="q" value="' + esc(q) + '" placeholder="Buscar por nome, cidade, WhatsApp ou nº do caso" style="max-width:380px"><button class="btn btn-line btn-sm" type="submit">Buscar</button></form>' +
         '<div class="tabs"><button data-st=""' + (status ? '' : ' class="on"') + '>Todos</button>' +
         Object.keys(L).map(function (k) { return '<button data-st="' + k + '"' + (status === k ? ' class="on"' : '') + '>' + esc(L[k]) + '</button>'; }).join('') + '</div>' +
-        '<div class="card table-wrap" style="padding:8px 12px">' + (d.cases.length ? '<table class="t"><thead><tr><th>#</th><th>Paciente</th><th>Cidade</th><th>Cobertura</th><th>Situação</th><th>Fotos</th><th>Dentista</th><th>Entrada</th></tr></thead><tbody>' +
+        '<div class="card table-wrap" style="padding:8px 12px">' + (d.cases.length ? '<table class="t"><thead><tr><th>#</th><th>Paciente</th><th>Cidade</th><th>Outras cidades</th><th>Situação</th><th>Fotos</th><th>Dentista</th><th>Entrada</th></tr></thead><tbody>' +
         d.cases.map(function (c) {
           return '<tr class="click" data-go="#/caso/' + c.id + '"><td>' + c.code + '</td><td><b>' + esc(c.name) + '</b><div class="small muted">' + esc(AS.phone(c.whatsapp)) + '</div></td><td>' + esc(c.city + (c.uf ? '/' + c.uf : '')) + '</td><td>' + coverageBadge(c.coverage_km) + '</td><td>' +
             statusBadge(L[c.status], c.status === 'fotos_enviadas' ? 'honey' : c.status === 'perdido' ? 'red' : '') + '</td><td>' + c.photo_count + '/7</td><td>' + esc(c.dentist_name || '—') + '</td><td class="small">' + esc(AS.date(c.created_at)) + '</td></tr>';
@@ -621,9 +621,9 @@
     api('/api/admin/dentists').then(function (d) {
       var L = d.labels;
       var html = '<h1>Dentistas parceiros</h1><p class="muted">Cadastros chegam pela página <a href="/parceiros" target="_blank">/parceiros</a>.</p>' +
-        '<div class="card table-wrap" style="padding:8px 12px">' + (d.dentists.length ? '<table class="t"><thead><tr><th>Dentista</th><th>CRO</th><th>Cidade</th><th>Cobertura</th><th>Situação</th><th>Termo</th><th>Recebimento</th><th>Casos</th></tr></thead><tbody>' +
+        '<div class="card table-wrap" style="padding:8px 12px">' + (d.dentists.length ? '<table class="t"><thead><tr><th>Dentista</th><th>CRO</th><th>Cidade</th><th>Outras cidades</th><th>Situação</th><th>Termo</th><th>Recebimento</th><th>Casos</th></tr></thead><tbody>' +
         d.dentists.map(function (x) {
-          return '<tr class="click" data-go="#/parceiro/' + x.id + '"><td><b>' + esc(x.name) + '</b><div class="small muted">' + esc(AS.phone(x.phone)) + '</div></td><td>' + esc(x.cro) + '/' + esc(x.cro_uf || '') + '</td><td>' + esc(x.city) + '</td><td>' +
+          return '<tr class="click" data-go="#/parceiro/' + x.id + '"><td><b>' + esc(x.name) + '</b><div class="small muted">' + esc(AS.phone(x.phone)) + '</div></td><td>' + esc(x.cro) + '/' + esc(x.cro_uf || '') + '</td><td>' + esc(x.city) + '</td><td class="small">' + ((x.extra_cities || []).length ? esc((x.extra_cities || []).map(function (c) { return c.city; }).join(', ')) : '<span class="muted">só a cidade principal</span>') + '</td><td>' +
             statusBadge(L[x.status], x.status === 'ativo' ? 'green' : x.status === 'lead' ? 'honey' : '') + '</td><td>' + esc(x.term_status || '—') + '</td><td>' + (x.has_wallet ? statusBadge('ok', 'green') : '—') + '</td><td>' + x.case_count + '</td></tr>';
         }).join('') + '</tbody></table>' : '<p class="muted" style="padding:14px">Nenhum cadastro ainda.</p>') + '</div>';
       var m = mount(html, 'parceiros');
