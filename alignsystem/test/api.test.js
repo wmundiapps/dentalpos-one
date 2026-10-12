@@ -496,6 +496,19 @@ test('preço próprio: dentista define valores, alinhadores ficam com a AlignSys
   assert.equal((await call('PUT', '/api/dentist/prices', { who: 'dent', body: { simples: '7500', mediano: '0', complexo: '12000' } })).status, 400);
   assert.equal((await call('PUT', '/api/dentist/prices', { who: 'dent', body: { simples: '7500', mediano: '9500', complexo: '12000' } })).status, 200);
   assert.equal((await call('GET', '/api/dentist/prices', { who: 'dent' })).data.prices.mediano, 9500);
+  // tabela por marca: escaneamento e submissão, 3 graus e refinamento; o paciente vê o menor valor ("a partir de")
+  assert.equal((await call('PUT', '/api/dentist/prices', { who: 'dent', body: { brands: [{ name: '', simples: '1' }] } })).status, 400);
+  assert.equal((await call('PUT', '/api/dentist/prices', { who: 'dent', body: { brands: [{ name: 'Smiller', refCount: '99' }] } })).status, 400);
+  const tb = await call('PUT', '/api/dentist/prices', { who: 'dent', body: { brands: [
+    { name: 'Smiller', origin: 'nacional', scan: '600', simples: '9000', mediano: '12000', complexo: '14000', refValue: '250', refCount: '3' },
+    { name: 'Invisalign', origin: 'importado', scan: '900', simples: '14500', mediano: '9500', complexo: '24000', refValue: '400', refCount: '4' },
+  ] } });
+  assert.equal(tb.status, 200, JSON.stringify(tb.data));
+  const gp = (await call('GET', '/api/dentist/prices', { who: 'dent' })).data.prices;
+  assert.equal(gp.brands[1].origin, 'importado');
+  assert.equal(gp.brands[0].refCount, 3);
+  assert.deepEqual([gp.simples, gp.mediano, gp.complexo], [9000, 9500, 14000]);
+  assert.equal((await call('PUT', '/api/dentist/prices', { who: 'dent', body: { simples: '7500', mediano: '9500', complexo: '12000' } })).status, 200);
   assert.equal((await call('PUT', '/api/admin/dentists/00000000-0000-0000-0000-000000000000/prices', { who: 'admin', body: { simples: '1' } })).status, 404);
   await call('PUT', '/api/admin/settings/prices', { who: 'admin', body: { scan: '350', simples: '6900', mediano: '8900', complexo: '11900', aligner_simples: '2000', aligner_mediano: '3000', aligner_complexo: '4000' } });
 

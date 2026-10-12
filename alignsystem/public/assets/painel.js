@@ -181,21 +181,74 @@
     }).catch(function (e) { errorView(e, 'precos'); });
   }
 
+  // Tabela de preços do dentista: uma coluna por marca de alinhador (nacional ou importado)
+  var PRICE_ROWS = [
+    ['scan', 'Escaneamento e submissão do caso'],
+    ['simples', 'Caso simples'], ['mediano', 'Média complexidade'], ['complexo', 'Caso complexo'],
+  ];
+  var MAX_BRANDS = 6;
+  function brandsOf(P) {
+    if (P && P.brands && P.brands.length) return P.brands.slice();
+    if (P && (P.simples || P.mediano || P.complexo)) return [{ name: '', origin: 'nacional', simples: P.simples, mediano: P.mediano, complexo: P.complexo }];
+    return [];
+  }
   function ownPriceForm(P, L, extra) {
-    return field('simples', 'Caso simples — até ' + L.simples + ' consultas (R$)', P.simples || '', 'inputmode="decimal" required') +
-      field('mediano', 'Média complexidade — até ' + L.mediano + ' consultas (R$)', P.mediano || '', 'inputmode="decimal" required') +
-      field('complexo', 'Caso complexo — até ' + L.complexo + ' consultas (R$)', P.complexo || '', 'inputmode="decimal" required') + (extra || '');
+    var brands = brandsOf(P);
+    while (brands.length < 3) brands.push({ origin: 'nacional' });
+    return '<div class="price-table" data-limits="' + esc(JSON.stringify(L)) + '">' + priceTableHtml(brands, L) + '</div>' + (extra || '');
+  }
+  function priceTableHtml(brands, L) {
+    var lim = { simples: L.simples, mediano: L.mediano, complexo: L.complexo };
+    var inp = function (i, k, v, attrs) { return '<input name="b' + i + '_' + k + '" value="' + esc(v == null ? '' : v) + '" ' + (attrs || 'inputmode="decimal" placeholder="R$"') + ' style="min-width:110px">'; };
+    var head = '<tr><td style="min-width:190px"><b>Marca do alinhador</b></td>' + brands.map(function (b, i) { return '<td>' + inp(i, 'name', b.name, 'placeholder="Marca" maxlength="60"') + '</td>'; }).join('') + '</tr>' +
+      '<tr><td><b>Nacional ou importado</b></td>' + brands.map(function (b, i) {
+        return '<td><select name="b' + i + '_origin" style="min-width:110px"><option value="nacional"' + (b.origin !== 'importado' ? ' selected' : '') + '>Nacional</option><option value="importado"' + (b.origin === 'importado' ? ' selected' : '') + '>Importado</option></select></td>';
+      }).join('') + '</tr>';
+    var rows = PRICE_ROWS.map(function (r) {
+      return '<tr><td><b>' + esc(r[1]) + '</b>' + (lim[r[0]] ? '<div class="small muted">até ' + lim[r[0]] + ' consultas</div>' : '') + '</td>' +
+        brands.map(function (b, i) { return '<td>' + inp(i, r[0], b[r[0]]) + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    var ref = '<tr><td><b>Refinamento</b><div class="small muted">valor por consulta e quantas consultas</div></td>' + brands.map(function (b, i) {
+      return '<td>' + inp(i, 'refValue', b.refValue) + '<input name="b' + i + '_refCount" value="' + esc(b.refCount == null ? '' : b.refCount) + '" type="number" min="0" max="30" placeholder="nº consultas" style="margin-top:6px;min-width:110px"></td>';
+    }).join('') + '</tr>';
+    return '<div class="table-wrap" style="overflow-x:auto"><table class="t">' + head + rows + ref + '</table></div>' +
+      (brands.length < MAX_BRANDS ? '<button type="button" class="btn btn-line btn-sm add-brand" style="margin:8px 0 14px">+ Adicionar marca</button>' : '') +
+      '<p class="small muted">Deixe em branco a coluna que não for usar. Valores em reais (R$).</p>';
+  }
+  function readPriceTable(form) {
+    var f = formData(form), brands = [];
+    for (var i = 0; i < MAX_BRANDS; i++) {
+      if (f['b' + i + '_name'] === undefined) break;
+      var b = { name: f['b' + i + '_name'], origin: f['b' + i + '_origin'] };
+      ['scan', 'simples', 'mediano', 'complexo', 'refValue', 'refCount'].forEach(function (k) { b[k] = f['b' + i + '_' + k]; });
+      if (b.name || b.scan || b.simples || b.mediano || b.complexo || b.refValue || b.refCount) brands.push(b);
+    }
+    return { brands: brands };
+  }
+  function wirePriceTable(form) {
+    if (!form) return;
+    form.addEventListener('click', function (e) {
+      if (!e.target.classList.contains('add-brand')) return;
+      var box = $('.price-table', form);
+      var L = JSON.parse(box.getAttribute('data-limits'));
+      var cur = readPriceTable(form).brands;
+      var n = $all('input[name$="_name"]', box).length;
+      while (cur.length < n) cur.push({ origin: 'nacional' });
+      cur.push({ origin: 'nacional' });
+      box.innerHTML = priceTableHtml(cur, L);
+    });
   }
 
   function dentistPrices() {
     loading('precos');
     api('/api/dentist/prices').then(function (d) {
-      var html = '<h1>Meus preços</h1><form class="card" id="dpf" style="max-width:560px">' +
+      var html = '<h1>Meus preços</h1><form class="card" id="dpf">' +
         '<p class="small muted">Valor total do tratamento que o paciente vê na página dele (nunca no site público). Do valor pago, a AlignSystem desconta o custo dos alinhadores, que ela fornece, e o restante é dividido: <b>' + d.dentistPct + '% para você</b> e ' + d.platformPct + '% para a AlignSystem, pelo diagnóstico e planejamento compartilhados. O repasse cai direto na sua conta (split).</p>' +
         ownPriceForm(d.prices || {}, d.consultLimits) +
         '<button class="btn btn-primary" type="submit">Salvar meus preços</button><div class="fmsg"></div></form>';
       var m = mount(html, 'precos');
-      onSubmit($('#dpf', m), function (f) { return api('/api/dentist/prices', { method: 'PUT', body: f }).then(function () { return 'Preços salvos.'; }); });
+      wirePriceTable($('#dpf', m));
+      onSubmit($('#dpf', m), function (f, form) { return api('/api/dentist/prices', { method: 'PUT', body: readPriceTable(form) }).then(function () { return 'Preços salvos.'; }); });
     }).catch(function (e) { errorView(e, 'precos'); });
   }
 
@@ -667,8 +720,6 @@
             (ct.status !== 'cancelado' ? '<div class="row"><a class="btn btn-line btn-sm" target="_blank" href="' + esc(ct.url) + '">Abrir</a><a class="btn btn-green btn-sm" target="_blank" rel="noopener" href="' + esc(AS.waLink(x.phone, 'Olá, Dr(a). ' + x.name.split(' ')[0] + '! Segue o Termo de Adesão da rede AlignSystem para leitura e aceite: ' + ct.url)) + '">WhatsApp</a></div>' : '') + '</div>';
         }).join('') + '</div>' : '') + '</form>' +
 
-        '<form class="card" id="opf"><h2>Preço próprio do parceiro</h2><p class="small muted">Usado no modelo "Preço do dentista": desconta os alinhadores e repassa 80% do restante. O dentista também pode editar em "Meus preços".</p>' +
-        ownPriceForm(x.prices || {}, { simples: 8, mediano: 10, complexo: 15 }) + '<button class="btn btn-line btn-sm" type="submit">Salvar preços do parceiro</button><div class="fmsg"></div></form>' +
         '<form class="card" id="wf"><h2>Conta de recebimento (split)</h2>' +
         (x.asaas_wallet_id ? '<div class="msg ok">Conta de recebimento ativa: <code>' + esc(x.asaas_wallet_id) + '</code></div>' :
           '<p class="small muted">Os repasses caem direto na conta do dentista no Asaas. Crie uma subconta automaticamente (usa CPF/CNPJ, nascimento, endereço e renda do cadastro) ou informe o walletId de uma conta Asaas que ele já tenha.</p>' +
@@ -676,6 +727,8 @@
         field('asaas_wallet_id', 'walletId (informar manualmente)', x.asaas_wallet_id) + '<button class="btn btn-line btn-sm" type="submit">Salvar walletId</button><div class="fmsg"></div></form>' +
         '</div></div>' +
 
+        '<form class="card" id="opf"><h2>Tabela de preços do parceiro</h2><p class="small muted">Usado no modelo "Preço do dentista": desconta os alinhadores e repassa 80% do restante. O dentista também pode editar em "Meus preços".</p>' +
+        ownPriceForm(x.prices || {}, { simples: 8, mediano: 10, complexo: 15 }) + '<button class="btn btn-line btn-sm" type="submit">Salvar preços do parceiro</button><div class="fmsg"></div></form>' +
         '<div class="card"><h2>Casos deste dentista</h2>' + (d.cases.length ? '<div class="list">' + d.cases.map(function (c) {
           return '<div class="it"><a href="#/caso/' + c.id + '">#' + c.code + ' · ' + esc(c.name) + '</a><span class="small muted">' + esc(c.city) + ' · ' + esc(L.CASE_STATUS[c.status]) + '</span></div>';
         }).join('') + '</div>' : '<p class="muted small">Nenhum caso direcionado ainda.</p>') + '</div>' +
@@ -705,7 +758,8 @@
         if (!confirm('Criar a subconta de recebimento no Asaas com os dados do cadastro?')) return;
         busyBtn(mk, api('/api/admin/dentists/' + id + '/asaas-account', { method: 'POST', body: {} })).then(reload).catch(function (e) { flash($('#wf .fmsg', m), 'err', e.message); });
       });
-      onSubmit($('#opf', m), function (f) { return api('/api/admin/dentists/' + id + '/prices', { method: 'PUT', body: f }).then(function () { return 'Preços salvos.'; }); });
+      wirePriceTable($('#opf', m));
+      onSubmit($('#opf', m), function (f, form) { return api('/api/admin/dentists/' + id + '/prices', { method: 'PUT', body: readPriceTable(form) }).then(function () { return 'Preços salvos.'; }); });
       onSubmit($('#wf', m), function (f) { return api('/api/admin/dentists/' + id, { method: 'PATCH', body: { asaas_wallet_id: f.asaas_wallet_id } }).then(function () { setTimeout(reload, 600); return 'Salvo.'; }); });
     }).catch(function (e) { errorView(e, 'parceiros'); });
   }

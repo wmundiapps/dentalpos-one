@@ -492,14 +492,39 @@ function ownPrices(p) {
   return v.simples && v.mediano && v.complexo ? v : null;
 }
 
+// Tabela do dentista: uma coluna por marca (nacional/importado) com escaneamento e submissão, os 3 graus e o refinamento.
+// simples/mediano/complexo guardam o menor valor entre as marcas ("a partir de"), usado na página do paciente.
+const MAX_BRANDS = 6;
 function readOwnPrices(b) {
-  const v = {};
-  for (const k of ['simples', 'mediano', 'complexo']) {
-    const n = money(b[k]);
-    if (n !== null && !(n > 0)) fail(400, 'Valores precisam ser maiores que zero.');
-    v[k] = n;
+  const amount = (x, label) => {
+    const n = money(x);
+    if (n !== null && !(n > 0)) fail(400, `${label}: o valor precisa ser maior que zero.`);
+    return n;
+  };
+  if (!Array.isArray(b.brands)) {
+    const v = {};
+    for (const k of ['simples', 'mediano', 'complexo']) v[k] = amount(b[k], 'Preço');
+    return v;
   }
-  return v;
+  if (b.brands.length > MAX_BRANDS) fail(400, `Até ${MAX_BRANDS} marcas por tabela.`);
+  const brands = b.brands.map((x, i) => {
+    const name = clean(x?.name, 60);
+    if (!name) fail(400, `Informe o nome da marca na coluna ${i + 1}.`);
+    const origin = x.origin === 'importado' ? 'importado' : 'nacional';
+    const refCount = x.refCount === '' || x.refCount == null ? null : Number(x.refCount);
+    if (refCount !== null && !(Number.isInteger(refCount) && refCount >= 0 && refCount <= 30)) fail(400, `${name}: número de consultas de refinamento inválido (0 a 30).`);
+    return {
+      name, origin,
+      scan: amount(x.scan, `${name} — escaneamento e submissão`),
+      simples: amount(x.simples, `${name} — caso simples`),
+      mediano: amount(x.mediano, `${name} — média complexidade`),
+      complexo: amount(x.complexo, `${name} — caso complexo`),
+      refValue: amount(x.refValue, `${name} — refinamento`),
+      refCount,
+    };
+  });
+  const min = (k) => { const vals = brands.map((x) => x[k]).filter((n) => n > 0); return vals.length ? Math.min(...vals) : null; };
+  return { brands, simples: min('simples'), mediano: min('mediano'), complexo: min('complexo') };
 }
 
 r('GET', '/api/dentist/prices', async (req, res) => {
