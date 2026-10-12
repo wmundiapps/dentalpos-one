@@ -639,7 +639,7 @@
       var T = d.partnerDefaults;
       var hasUser = d.users.length > 0;
       var html = '<p><a href="#/parceiros">← Dentistas parceiros</a></p>' +
-        '<div class="row" style="justify-content:space-between"><div><h1 style="margin:0">' + esc(x.name) + '</h1><p class="muted">CRO ' + esc(x.cro) + '/' + esc(x.cro_uf || '') + ' · ' + esc(x.city) + ' · ' + esc(x.experience || '') + '</p></div>' +
+        '<div class="row" style="justify-content:space-between"><div><h1 style="margin:0">' + esc(x.name) + '</h1><p class="muted">CRO ' + esc(x.cro) + '/' + esc(x.cro_uf || '') + ' · ' + esc([x.city].concat((x.extra_cities || []).map(function (c) { return c.city; })).join(', ')) + ' · ' + esc(x.experience || '') + '</p></div>' +
         '<div class="row"><a class="btn btn-green btn-sm" target="_blank" rel="noopener" href="' + esc(AS.waLink(x.phone)) + '">WhatsApp</a>' +
         '<a class="btn btn-line btn-sm" target="_blank" rel="noopener" href="https://website.cfo.org.br/busca-profissionais/">Consultar CRO (CFO)</a></div></div>' +
         '<div class="grid2">' +
@@ -650,6 +650,7 @@
         '<div class="field"><label for="company_type">Tipo de empresa (se CNPJ)</label><select id="company_type" name="company_type">' + opt('', '—', x.company_type || '') + opt('MEI', 'MEI', x.company_type) + opt('LIMITED', 'Limitada', x.company_type) + opt('INDIVIDUAL', 'Individual', x.company_type) + opt('ASSOCIATION', 'Associação', x.company_type) + '</select></div>' +
         field('income_value', 'Faturamento/renda mensal (R$)', x.income_value, 'inputmode="decimal"') +
         field('address', 'Rua', x.address) + field('address_number', 'Número', x.address_number) + field('province', 'Bairro', x.province) + field('postal_code', 'CEP', x.postal_code) + '</div>' +
+        area('extra_cities', 'Outras cidades onde atende — mesmo estado, até 9 além da principal (uma por linha, ex.: Londrina/PR)', (x.extra_cities || []).map(function (c) { return c.city + '/' + c.uf; }).join('\n')) +
         area('notes', 'Anotações internas', x.notes) + '<button class="btn btn-primary" type="submit">Salvar</button><div class="fmsg"></div></form>' +
 
         '<div>' +

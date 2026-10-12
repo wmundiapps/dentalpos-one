@@ -526,3 +526,29 @@ test('preço próprio: dentista define valores, alinhadores ficam com a AlignSys
   assert.deepEqual(last.split, [{ walletId: 'wal_1', percentualValue: 56 }]);
   assert.equal((await call('POST', `/api/admin/cases/${c.id}/charges`, { who: 'admin', body: { value: '2500', dentistShare: '80/20' } })).status, 400); // abaixo do custo dos alinhadores
 });
+
+test('cidades de atendimento: até 10 por parceiro, mesmo estado; outro estado é outro cadastro', { skip }, async () => {
+  const r = await call('POST', '/api/leads/parceiro', { body: { name: 'Dr. Paulo Rede', cro: '777 / PR', whatsapp: '44988887777', email: 'paulo@x.com', city: 'Maringá', consent: true,
+    otherCities: 'Londrina/PR, Curitiba, Cascavel - PR\nCampo Mourão; Maringá/PR, Florianópolis/SC, Cidade Inventada' } });
+  assert.equal(r.status, 201);
+  const [d] = await sql`select id, extra_cities from alignsystem_test.dentists where email = 'paulo@x.com'`;
+  assert.deepEqual(d.extra_cities.map((c) => c.city), ['Londrina', 'Curitiba', 'Cascavel', 'Campo Mourão']);
+  const patch = (extra_cities) => call('PATCH', `/api/admin/dentists/${d.id}`, { who: 'admin', body: { extra_cities } });
+  assert.equal((await patch('Joinville/SC')).status, 400); // outro estado
+  assert.equal((await patch('Cidade Inventada')).status, 400);
+  assert.equal((await patch('Londrina, Curitiba, Cascavel, Campo Mourão, Ponta Grossa, Toledo, Umuarama, Apucarana, Arapongas, Paranavaí')).status, 400); // 11 cidades
+  assert.equal((await patch('Londrina, PR\nCuritiba/PR')).status, 200);
+  await call('PATCH', `/api/admin/dentists/${d.id}`, { who: 'admin', body: { status: 'ativo' } });
+  const cov = (await call('GET', '/api/public/cobertura')).data.cities.map((c) => c.city);
+  for (const c of ['Maringá', 'Londrina', 'Curitiba']) assert.ok(cov.includes(c), c);
+  // paciente em Ponta Grossa: Curitiba é a mais próxima
+  const lead = await call('POST', '/api/leads/paciente', { body: { name: 'Lia Ponta', age: 30, whatsapp: '42999990000', city: 'Ponta Grossa', uf: 'PR', consent: true } });
+  const near = await call('POST', `/api/portal/${lead.data.token}/atendimento/simular`, { body: { uf: 'PR', city: 'Ponta Grossa' } });
+  assert.equal(near.data.nearest.city, 'Curitiba');
+  // CRO de outro estado com o mesmo e-mail: novo cadastro, mas a aprovação pede outro e-mail
+  await call('POST', '/api/leads/parceiro', { body: { name: 'Dr. Paulo Rede', cro: '999 / SC', whatsapp: '44988887777', email: 'paulo@x.com', city: 'Joinville', uf: 'SC', consent: true } });
+  const [sc] = await sql`select id from alignsystem_test.dentists where cro = '999'`;
+  await call('PATCH', `/api/admin/dentists/${d.id}`, { who: 'admin', body: { cpf_cnpj: '529.982.247-25' } });
+  assert.equal((await call('POST', `/api/admin/dentists/${d.id}/approve`, { who: 'admin', body: { terms: {} } })).status, 200);
+  assert.equal((await call('POST', `/api/admin/dentists/${sc.id}/approve`, { who: 'admin', body: { terms: {} } })).status, 409);
+});

@@ -110,7 +110,7 @@
       if (kind === 'paciente') {
         body.age = val(form, 'idade'); body.reason = val(form, 'motivo'); body.referredBy = val(form, 'indicacao');
       } else {
-        body.cro = val(form, 'cro'); body.experience = val(form, 'motivo');
+        body.cro = val(form, 'cro'); body.experience = val(form, 'motivo'); body.otherCities = form.elements.outras ? val(form, 'outras') : '';
       }
       fetch('/api/leads/' + kind, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); })

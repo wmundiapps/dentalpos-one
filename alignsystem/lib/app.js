@@ -226,9 +226,10 @@ r('POST', '/api/leads/parceiro', async (req, res) => {
   await rateLimit(sql, `partner:${ip}`, 6, 60);
   const source = {};
   for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'gclid', 'fbclid']) if (b.source?.[k]) source[k] = clean(b.source[k], 200);
-  const [d] = await sql`insert into dentists (name, cro, cro_uf, email, phone, city, state, experience, consent_at, consent_ip, source)
+  const other = parseCities(b.otherCities, clean(b.uf || croUf, 2).toUpperCase(), city);
+  const [d] = await sql`insert into dentists (name, cro, cro_uf, email, phone, city, state, experience, consent_at, consent_ip, source, extra_cities)
     values (${name}, ${digits(croNum)}, ${clean(croUf || b.uf, 2).toUpperCase() || null}, ${email}, ${phone}, ${city},
-            ${clean(b.uf || croUf, 2).toUpperCase() || null}, ${clean(b.experience, 200)}, now(), ${ip}, ${sql.json(source)})
+            ${clean(b.uf || croUf, 2).toUpperCase() || null}, ${clean(b.experience, 200)}, now(), ${ip}, ${sql.json(source)}, ${sql.json(other.cities)})
     returning id`;
   await logEvent(sql, { dentistId: d.id, actor: 'parceiro', type: 'lead_parceiro' });
   await sendMail({
@@ -236,6 +237,7 @@ r('POST', '/api/leads/parceiro', async (req, res) => {
     subject: `Novo dentista interessado: ${name} (${city})`,
     html: layout('Novo interessado em ser parceiro', table([
       ['Nome', name], ['CRO', `${digits(croNum)}/${croUf || ''}`], ['WhatsApp', phone], ['E-mail', email], ['Cidade', city],
+      ...(other.cities.length || other.bad.length || other.extra.length || other.otherUf.length ? [['Outras cidades', other.cities.map((c) => `${c.city}/${c.uf}`).concat(other.bad.map((x) => `${x} (não encontrada — conferir)`), other.extra.map((c) => `${c.city}/${c.uf} (acima do limite de ${MAX_DENTIST_CITIES})`), other.otherUf.map((x) => `${x} (outro estado — não incluída)`)).join(', ')]] : []),
       ['Experiência', clean(b.experience, 200)],
     ]) + button(`${appUrl()}/painel#/parceiro/${d.id}`, 'Abrir no painel')),
   });
@@ -252,7 +254,35 @@ r('POST', '/api/leads/parceiro', async (req, res) => {
 // Consultas presenciais incluídas no contrato do paciente, conforme a complexidade do caso (vale para os dois modelos)
 const consultLimit = (plan) => (plan?.complexity ? MODEL.consultLimits[plan.complexity] || null : null);
 
-const networkDentists = (sql) => sql`select id, name, city, coalesce(state, cro_uf) as cro_uf from dentists where status = 'ativo'`;
+// Cada cidade de atendimento do dentista (principal + outras) conta como um ponto da rede
+const networkDentists = async (sql) => (await sql`select id, name, city, coalesce(state, cro_uf) as cro_uf, extra_cities from dentists where status = 'ativo'`)
+  .flatMap((d) => [{ id: d.id, name: d.name, city: d.city, cro_uf: d.cro_uf }, ...(d.extra_cities || []).map((c) => ({ id: d.id, name: d.name, city: c.city, cro_uf: c.uf }))]);
+
+// Cada parceiro atende em até 10 cidades do mesmo estado: a principal do cadastro + até 9 outras
+const MAX_DENTIST_CITIES = 10;
+
+// "Londrina/PR, Curitiba - PR" (uma por linha ou separadas por vírgula/ponto e vírgula) → [{city, uf}] válidas + nomes não encontrados
+function parseCities(text, defaultUf, main) {
+  const tokens = (Array.isArray(text) ? text.map((x) => (typeof x === 'object' && x ? `${x.city}/${x.uf}` : x)) : String(text || '').split(/[\n;,]+/))
+    .map((x) => clean(x, 80)).filter(Boolean);
+  const parts = [];
+  for (const t of tokens) {
+    if (/^[A-Za-z]{2}$/.test(t) && geo.UFS.includes(t.toUpperCase()) && parts.length) parts[parts.length - 1] += `/${t}`; // "Maringá, PR"
+    else parts.push(t);
+  }
+  const ok = new Map(), bad = [], otherUf = [];
+  const mainLoc = main ? geo.findCity(main, defaultUf) : null;
+  const uf = mainLoc?.uf || String(defaultUf || '').toUpperCase();
+  for (const raw of parts.slice(0, 40)) {
+    const loc = geo.findCity(raw, /[/\-–]\s*[A-Za-z]{2}\s*$/.test(raw) ? '' : uf);
+    if (!loc) { bad.push(raw); continue; }
+    if (mainLoc && loc.name === mainLoc.name && loc.uf === mainLoc.uf) continue;
+    if (uf && loc.uf !== uf) { otherUf.push(`${loc.name}/${loc.uf}`); continue; } // só no estado do CRO / da cidade principal
+    ok.set(`${loc.name}/${loc.uf}`, { city: loc.name, uf: loc.uf });
+  }
+  const cities = [...ok.values()];
+  return { cities: cities.slice(0, MAX_DENTIST_CITIES - 1), extra: cities.slice(MAX_DENTIST_CITIES - 1), bad, otherUf, uf };
+}
 
 // Cidades atendidas pela rede (sem nomes de dentistas), para a página e o marketing
 r('GET', '/api/public/cobertura', async (req, res) => {
@@ -1584,6 +1614,14 @@ r('PATCH', '/api/admin/dentists/:id', async (req, res, { id }) => {
   if (b.income_value !== undefined) up.income_value = money(b.income_value);
   if (b.asaas_wallet_id !== undefined) up.asaas_wallet_id = clean(b.asaas_wallet_id, 80) || null;
   if (b.status !== undefined) { if (!DENTIST_STATUS[b.status]) fail(400, 'Status inválido.'); up.status = b.status; }
+  if (b.extra_cities !== undefined) {
+    const [cur] = await sql`select city, coalesce(state, cro_uf) as uf from dentists where id = ${id}`;
+    const p = parseCities(b.extra_cities, up.cro_uf || up.state || cur?.uf || '', up.city || cur?.city);
+    if (p.bad.length) fail(400, `Cidade não encontrada: ${p.bad.join(', ')}. Escreva no formato Cidade/UF, por exemplo Londrina/PR.`);
+    if (p.otherUf.length) fail(400, `As cidades precisam ser do mesmo estado da cidade principal (${p.uf}): ${p.otherUf.join(', ')}.`);
+    if (p.extra.length) fail(400, `Cada parceiro pode atender em até ${MAX_DENTIST_CITIES} cidades (a principal + ${MAX_DENTIST_CITIES - 1} outras).`);
+    up.extra_cities = sql.json(p.cities);
+  }
   if (!Object.keys(up).length) return send(res, 200, { ok: true });
   up.updated_at = new Date();
   await sql`update dentists set ${sql(up)} where id = ${id}`;
@@ -1604,7 +1642,12 @@ r('POST', '/api/admin/dentists/:id/approve', async (req, res, { id }) => {
   if (!d.email) fail(400, 'Cadastre o e-mail do dentista.');
   const terms = {};
   for (const k of Object.keys(PARTNER_DEFAULTS)) if (b.terms?.[k] !== undefined && b.terms[k] !== '') terms[k] = money(b.terms[k]);
-  let [user] = await sql`select * from users where dentist_id = ${id} or email = ${d.email}`;
+  let [user] = await sql`select * from users where dentist_id = ${id} or email = ${d.email} order by (dentist_id = ${id}) desc nulls last limit 1`;
+  if (user && user.role !== 'dentist') fail(409, `O e-mail ${d.email} é um acesso da equipe AlignSystem. Use outro e-mail no cadastro do parceiro.`);
+  if (user && user.dentist_id && user.dentist_id !== id) {
+    // CRO de outro estado é outro cadastro, com acesso próprio
+    fail(409, `O e-mail ${d.email} já é o acesso de outro cadastro de parceiro. Para o CRO de outro estado, use um e-mail diferente neste cadastro.`);
+  }
   if (user && user.role === 'admin') fail(409, 'Este e-mail já pertence a um administrador.');
   if (!user) [user] = await sql`insert into users (email, name, role, dentist_id) values (${d.email}, ${d.name}, 'dentist', ${id}) returning *`;
   else await sql`update users set dentist_id = ${id}, active = true where id = ${user.id}`;
