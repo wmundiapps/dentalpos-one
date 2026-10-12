@@ -3,7 +3,7 @@ SpaceHour — carga da base de empresas (Receita Federal)
 O site da Receita só aceita conexões do Brasil, por isso esta carga roda no seu computador (Windows).
 
 1. Instale o Node.js (versão LTS) em https://nodejs.org, se ainda não tiver.
-2. Dê dois cliques em carregar-dentistas-PR.bat.
+2. Dê dois cliques em CARREGAR-DENTISTAS-PR.bat.
 3. Quando pedir, cole o DATABASE_URL do SpaceHour (Vercel > projeto spacehour > Settings > Environment Variables)
    e aperte Enter. Esse endereço tem senha: não mande para ninguém.
 
