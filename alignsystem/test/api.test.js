@@ -589,3 +589,18 @@ test('cidades de atendimento: até 10 por parceiro, mesmo estado; outro estado �
   assert.equal((await call('POST', `/api/admin/dentists/${d.id}/approve`, { who: 'admin', body: { terms: {} } })).status, 200);
   assert.equal((await call('POST', `/api/admin/dentists/${sc.id}/approve`, { who: 'admin', body: { terms: {} } })).status, 409);
 });
+
+test('data de pagamento por atendimento: dia 10 do mês seguinte ao registro, até o último dia útil', async () => {
+  const { payoutDate, lastBusinessDay } = await import('../lib/payout.js');
+  assert.equal(payoutDate('2026-10-15T14:00:00-03:00'), '2026-11-10');
+  assert.equal(payoutDate('2026-10-30T23:30:00-03:00'), '2026-11-10'); // último dia útil de outubro/2026 (sexta)
+  assert.equal(payoutDate('2026-10-31T10:00:00-03:00'), '2026-12-10'); // sábado, depois do último dia útil
+  assert.equal(payoutDate('2026-11-01T10:00:00-03:00'), '2026-12-10');
+  assert.equal(payoutDate('2026-12-31T10:00:00-03:00'), '2027-01-10');
+  assert.equal(lastBusinessDay(2027, 4), 30);
+  const { partnerContract } = await import('../lib/contracts.js');
+  const body = partnerContract({ name: 'Dra. Teste', cro: '1', cro_uf: 'PR', city: 'Maringá' }).body.replace(/<[^>]+>/g, '');
+  assert.match(body, /dia 10 \(dez\) do mês seguinte ao do registro/);
+  assert.match(body, /autorização prévia/);
+  assert.doesNotMatch(body, /dias úteis após/);
+});

@@ -270,6 +270,9 @@
       (a.over_limit ? '<div class="small" style="color:#A8452F;margin-top:4px"><b>Acima do limite de consultas do contrato</b>: exige termo aditivo pago pelo paciente.</div>' : '') +
       (a.decision_note ? '<div class="small muted" style="margin-top:4px"><b>Equipe:</b> ' + esc(a.decision_note) + '</div>' : '');
   }
+  function payoutHtml(e) {
+    return e.payout_date ? '<div class="small" style="margin-top:6px"><b>Pagamento previsto:</b> ' + esc(AS.date(e.payout_date)) + (e.validated_at ? '' : ' (depois da validação)') + '</div>' : '';
+  }
   function signaturesHtml(e) {
     if (!e.has_patient_signature || !e.has_dentist_signature) return '<div class="small" style="color:#A8452F;margin-top:6px">Registro sem autorização prévia ou sem assinaturas: não pode ser validado.</div>';
     return '<div class="row" style="gap:14px;margin-top:8px;flex-wrap:wrap">' +
@@ -630,7 +633,7 @@
           var ph = d.photos.filter(function (p) { return p.evidence_id === e.id; });
           return '<div class="it" style="display:block"><div class="row" style="justify-content:space-between"><div><b>' + esc(L.MILESTONES[e.milestone]) + '</b> · ' + esc(AS.date(e.performed_at)) + ' · ' + esc(e.dentist_name || '') + '</div>' +
             (e.validated_at ? statusBadge('Validado em ' + AS.date(e.validated_at), 'green') : (e.authorization_id && e.has_patient_signature && e.has_dentist_signature ? '<button class="btn btn-green btn-sm" data-validate="' + e.id + '">Validar atendimento</button>' : statusBadge('sem autorização/assinaturas', 'red'))) + '</div>' +
-            (e.notes ? '<p class="small" style="white-space:pre-line;margin-top:6px">' + esc(e.notes) + '</p>' : '') + signaturesHtml(e) + gallery(ph) + '</div>';
+            (e.notes ? '<p class="small" style="white-space:pre-line;margin-top:6px">' + esc(e.notes) + '</p>' : '') + signaturesHtml(e) + payoutHtml(e) + gallery(ph) + '</div>';
         }).join('') + '</div>' : '<p class="muted small">Nenhum atendimento registrado ainda.</p>') + '</div>' +
 
         '<div class="card"><h2>Histórico</h2><div class="timeline">' + d.events.map(function (ev) {
@@ -762,7 +765,7 @@
 
         '<div>' +
         '<form class="card" id="apf"><h2>Credenciamento e Termo de Adesão</h2><p class="small muted">Ao aprovar, o sistema cria o acesso ao painel e o Termo de Adesão com os valores abaixo (o dentista recebe por e-mail; você também pode enviar pelo WhatsApp).</p><div class="grid2">' +
-        field('avulsaValue', 'Consulta avulsa (R$)', T.avulsaValue, 'inputmode="decimal"') + field('redeValue', 'Consulta no modelo rede (R$)', T.redeValue, 'inputmode="decimal"') + field('payoutDays', 'Prazo de repasse avulso (dias úteis)', T.payoutDays, 'type="number"') +
+        field('avulsaValue', 'Consulta avulsa (R$)', T.avulsaValue, 'inputmode="decimal"') + field('redeValue', 'Consulta no modelo rede (R$)', T.redeValue, 'inputmode="decimal"') +
         field('noticeDays', 'Aviso prévio (dias)', T.noticeDays, 'type="number"') + field('lockMonths', 'Multa se sair antes de (meses)', T.lockMonths, 'type="number"') +
         field('penaltyRepasses', 'Multa: nº de repasses médios', T.penaltyRepasses, 'type="number"') + field('penaltyFixed', 'Multa mínima (R$)', T.penaltyFixed, 'inputmode="decimal"') +
         field('nonSolicitMonths', 'Não desvio após saída (meses)', T.nonSolicitMonths, 'type="number"') + '</div>' +
@@ -917,7 +920,7 @@
         '<div class="card"><h2>Registros anteriores</h2>' + (d.evidences.length ? '<div class="list">' + d.evidences.map(function (e) {
           var ph = d.photos.filter(function (p) { return p.evidence_id === e.id; });
           return '<div class="it" style="display:block"><div class="row" style="justify-content:space-between"><b>' + esc(L.MILESTONES[e.milestone]) + ' · ' + esc(AS.date(e.performed_at)) + '</b>' +
-            (e.validated_at ? statusBadge('validado', 'green') : statusBadge('aguardando validação', 'honey')) + '</div>' + (e.notes ? '<p class="small" style="white-space:pre-line">' + esc(e.notes) + '</p>' : '') + signaturesHtml(e) + gallery(ph) + '</div>';
+            (e.validated_at ? statusBadge('validado', 'green') : statusBadge('aguardando validação', 'honey')) + '</div>' + (e.notes ? '<p class="small" style="white-space:pre-line">' + esc(e.notes) + '</p>' : '') + signaturesHtml(e) + payoutHtml(e) + gallery(ph) + '</div>';
         }).join('') + '</div>' : '<p class="muted small">Nenhum registro ainda.</p>') + '</div>';
       var m = mount(html, 'inicio');
       var reload = function () { dentistCase(id); };

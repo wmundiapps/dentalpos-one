@@ -10,6 +10,7 @@ import { sendMail, notifyAddress, layout, button, para, table } from './mail.js'
 import * as asaas from './asaas.js';
 import { MODEL, quote, dentistSplitPct, ownPriceDentistPct } from './pricing.js';
 import * as geo from './geo.js';
+import { payoutDate } from './payout.js';
 import * as totp from './totp.js';
 import { sanitizeImage, sanitizeSignature } from './images.js';
 import * as prospects from './prospects.js';
@@ -1170,6 +1171,8 @@ async function caseDetail(sql, id) {
   const authorizations = await sql`select a.*, d.name as dentist_name from authorizations a left join dentists d on d.id = a.dentist_id where a.case_id = ${id} order by a.created_at desc`;
   const consents = await sql`select id, version, body_hash, accepted_name, accepted_by_guardian, guardian_name, accepted_birth_date, ip, accepted_at
     from consents where case_id = ${id} order by accepted_at desc`;
+  // consultas pagas por atendimento: dia 10 do mês seguinte ao registro (Termo de Adesão, cláusula 6.8.1)
+  for (const e of evidences) if (c.plan?.model === 'rede' || e.milestone === 'consulta_avulsa') e.payout_date = payoutDate(e.created_at);
   return { c, photos, appts, contracts, charges, payments, evidences, events, consents, authorizations };
 }
 
@@ -1801,6 +1804,7 @@ r('GET', '/api/dentist/cases/:id', async (req, res, { id }) => {
     sql`select e.id, e.case_id, e.dentist_id, e.milestone, e.notes, e.performed_at, e.validated_at, e.validated_by, e.created_at, e.authorization_id, e.patient_signer, e.signed_at, e.signed_ip, e.signatures_hash, (e.patient_signature is not null) as has_patient_signature, (e.dentist_signature is not null) as has_dentist_signature from evidences e where case_id = ${id} order by performed_at desc, created_at desc`,
   ]);
   const authorizations = await sql`select * from authorizations where case_id = ${id} and dentist_id = ${u.dentist_id} order by created_at desc`;
+  for (const e of evidences) if (c.plan?.model === 'rede' || e.milestone === 'consulta_avulsa') e.payout_date = payoutDate(e.created_at);
   send(res, 200, {
     case: {
       id: c.id, code: c.code, name: c.name, age: c.age, city: c.city, whatsapp: c.whatsapp, reason: c.reason, status: c.status,
