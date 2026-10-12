@@ -9,11 +9,28 @@ export async function getPrices(sql) {
   const [row] = await sql`select value from settings where key = 'prices'`;
   const v = row?.value || {};
   const n = (x) => (Number(x) > 0 ? Math.round(Number(x) * 100) / 100 : null);
+  // tabela da AlignSystem por marca (até 3): tratamento por grau + custo dos alinhadores por grau
+  const brands = (Array.isArray(v.brands) ? v.brands : []).map((b) => ({
+    name: String(b.name || ''), origin: b.origin === 'importado' ? 'importado' : 'nacional',
+    simples: n(b.simples), mediano: n(b.mediano), complexo: n(b.complexo),
+    aligner: { simples: n(b.aligner?.simples), mediano: n(b.aligner?.mediano), complexo: n(b.aligner?.complexo) },
+  }));
+  const min = (k) => { const vals = brands.map((b) => b[k]).filter(Boolean); return vals.length ? Math.min(...vals) : n(v[k]); };
   return {
-    scan: n(v.scan), simples: n(v.simples), mediano: n(v.mediano), complexo: n(v.complexo),
-    // custo dos alinhadores por complexidade (modelo preço próprio: fica com a AlignSystem antes do 80/20)
+    scan: n(v.scan), simples: min('simples'), mediano: min('mediano'), complexo: min('complexo'), brands,
+    // custo dos alinhadores por complexidade sem marca (tabela antiga), usado só se a marca do caso não estiver na tabela
     aligner: { simples: n(v.aligner?.simples), mediano: n(v.aligner?.mediano), complexo: n(v.aligner?.complexo) },
   };
+}
+
+const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// Custo dos alinhadores da marca do caso, no grau de dificuldade do caso (modelo preço próprio)
+export function alignerCostFor(prices, brand, complexity) {
+  const key = norm(brand);
+  const hit = key && prices.brands.find((b) => norm(b.name) === key);
+  if (hit) return hit.aligner[complexity] || null;
+  return prices.brands.length ? null : prices.aligner[complexity] || null;
 }
 
 export function scanTerms(price) {

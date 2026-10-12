@@ -641,3 +641,24 @@ test('data de pagamento por atendimento: dia 10 do mês seguinte ao registro, at
   assert.match(body, /negligência, imperícia ou imprudência/);
   assert.match(body, /não for dia útil, o pagamento é feito no primeiro dia útil seguinte/);
 });
+
+test('Preços da AlignSystem por marca: valores com ponto de milhar, erro que diz o campo, custo dos alinhadores pela marca do caso', { skip }, async () => {
+  const put = (body) => call('PUT', '/api/admin/settings/prices', { who: 'admin', body });
+  const bad = await put({ scan: '300,00', brands: [{ name: 'Alligner', simples: 'Alligner 9.000,00' }] });
+  assert.equal(bad.status, 400);
+  assert.match(bad.data.error, /Alligner — tratamento caso simples/);
+  assert.equal((await put({ scan: '300,00', brands: [{ simples: '9.000,00' }] })).status, 400); // sem nome da marca
+  const ok = await put({ scan: 'R$ 300,00', brands: [
+    { name: 'Alligner', origin: 'nacional', simples: '9.000,00', mediano: '10.000,00', complexo: '12.000,00', aligner: { simples: '2500,00', mediano: '3000,00', complexo: '3800,00' } },
+    { name: 'ClearCorrect', origin: 'importado', simples: '11.000,00', mediano: '12.000,00', complexo: '18.000,00', aligner: { simples: '3200,00', mediano: '4200,00', complexo: '5200,00' } },
+    { name: 'Invisalign', origin: 'importado', simples: '12.000,00', mediano: '14.000,00', complexo: '20.000,00', aligner: { simples: '4200,00', mediano: '5200,00', complexo: '6200,00' } },
+  ] });
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  const P = ok.data.prices;
+  assert.equal(P.scan, 300);
+  assert.deepEqual(P.brands.map((b) => [b.name, b.simples, b.aligner.complexo]), [['Alligner', 9000, 3800], ['ClearCorrect', 11000, 5200], ['Invisalign', 12000, 6200]]);
+  assert.deepEqual([P.simples, P.mediano, P.complexo], [9000, 10000, 12000]);
+  const { alignerCostFor } = await import('../lib/scan.js');
+  assert.equal(alignerCostFor(P, 'clear correct', 'mediano'), 4200); // nome sem diferenciar maiúsculas/espaços
+  assert.equal(alignerCostFor(P, 'Spark', 'mediano'), null);
+});

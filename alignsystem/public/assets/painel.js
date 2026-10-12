@@ -164,20 +164,40 @@
     loading('precos');
     api('/api/admin/settings/prices').then(function (d) {
       var P = d.prices, L = d.consultLimits;
+      var brands = (P.brands || []).slice();
+      if (!brands.length && (P.simples || P.mediano || P.complexo)) brands.push({ name: '', origin: 'nacional', simples: P.simples, mediano: P.mediano, complexo: P.complexo, aligner: P.aligner || {} });
+      while (brands.length < 3) brands.push({ origin: 'nacional', aligner: {} });
+      var inp = function (name, v, attrs) { return '<input name="' + name + '" value="' + esc(v == null ? '' : v) + '" ' + (attrs || 'inputmode="decimal" placeholder="R$"') + ' style="min-width:110px">'; };
+      var row = function (label, sub, cells) { return '<tr><td><b>' + esc(label) + '</b>' + (sub ? '<div class="small muted">' + esc(sub) + '</div>' : '') + '</td>' + cells + '</tr>'; };
+      var head = function (t) { return '<tr><td colspan="4" style="padding-top:16px"><h3 style="margin:0">' + esc(t) + '</h3></td></tr>'; };
+      var LBL = { simples: 'Caso simples', mediano: 'Média complexidade', complexo: 'Caso complexo' };
+      var table = '<div class="table-wrap" style="overflow-x:auto"><table class="t">' +
+        row('Opção', '', brands.map(function (b, i) { return '<td><b>Marca ' + (i + 1) + '</b></td>'; }).join('')) +
+        row('Marca do alinhador', '', brands.map(function (b, i) { return '<td>' + inp('b' + i + '_name', b.name, 'placeholder="Ex.: Alligner" maxlength="60"') + '</td>'; }).join('')) +
+        row('Nacional ou importado', '', brands.map(function (b, i) {
+          return '<td><select name="b' + i + '_origin" style="min-width:110px"><option value="nacional"' + (b.origin !== 'importado' ? ' selected' : '') + '>Nacional</option><option value="importado"' + (b.origin === 'importado' ? ' selected' : '') + '>Importado</option></select></td>';
+        }).join('')) +
+        head('Tratamento por grau de dificuldade') +
+        ['simples', 'mediano', 'complexo'].map(function (k) { return row(LBL[k], 'até ' + L[k] + ' consultas', brands.map(function (b, i) { return '<td>' + inp('b' + i + '_' + k, b[k]) + '</td>'; }).join('')); }).join('') +
+        head('Custo dos alinhadores (modelo preço próprio)') +
+        '<tr><td colspan="4"><div class="msg warn small" style="margin:0">⚠️ No modelo em que o dentista define o preço, o custo dos alinhadores fica com a AlignSystem e o restante é dividido 80% dentista / 20% AlignSystem. Os valores dos alinhadores estão sujeitos a variações de acordo com cada fabricante, podendo ser ajustados.</div></td></tr>' +
+        ['simples', 'mediano', 'complexo'].map(function (k) { return row('Alinhadores — ' + LBL[k].toLowerCase(), '', brands.map(function (b, i) { return '<td>' + inp('b' + i + '_a_' + k, (b.aligner || {})[k]) + '</td>'; }).join('')); }).join('') +
+        '</table></div>';
       var html = '<h1>Preços</h1>' +
-        '<form class="card" id="prf" style="max-width:560px"><p class="small muted">Estes valores aparecem <b>só na página particular do paciente</b>, depois do parecer (nunca no site público, por causa das normas do CRO). O botão "Agendar escaneamento" só aparece para o paciente quando o valor do escaneamento estiver preenchido.</p>' +
-        field('scan', 'Escaneamento e documentação (R$)', P.scan || '', 'inputmode="decimal" required') +
-        '<h3>Tratamento por grau de dificuldade</h3>' +
-        field('simples', 'Caso simples — até ' + L.simples + ' consultas (R$)', P.simples || '', 'inputmode="decimal"') +
-        field('mediano', 'Média complexidade — até ' + L.mediano + ' consultas (R$)', P.mediano || '', 'inputmode="decimal"') +
-        field('complexo', 'Caso complexo — até ' + L.complexo + ' consultas (R$)', P.complexo || '', 'inputmode="decimal"') +
-        '<h3>Custo dos alinhadores (modelo preço próprio)</h3><p class="small muted">No modelo em que o dentista define o preço, este valor fica com a AlignSystem e o restante é dividido 80% dentista / 20% AlignSystem.</p><div class="msg warn small">⚠️ Os valores dos alinhadores estão sujeitos a variações de acordo com cada fabricante, podendo ser ajustados.</div>' +
-        field('aligner_simples', 'Alinhadores — caso simples (R$)', (P.aligner || {}).simples || '', 'inputmode="decimal"') +
-        field('aligner_mediano', 'Alinhadores — média complexidade (R$)', (P.aligner || {}).mediano || '', 'inputmode="decimal"') +
-        field('aligner_complexo', 'Alinhadores — caso complexo (R$)', (P.aligner || {}).complexo || '', 'inputmode="decimal"') +
+        '<form class="card" id="prf"><p class="small muted">Estes valores aparecem <b>só na página particular do paciente</b>, depois do parecer (nunca no site público, por causa das normas do CRO). O botão "Agendar escaneamento" só aparece para o paciente quando o valor do escaneamento estiver preenchido. Escreva só números, por exemplo <b>9.000,00</b>.</p>' +
+        '<div style="max-width:320px">' + field('scan', 'Escaneamento e documentação (R$) — valor único', P.scan || '', 'inputmode="decimal" required') + '</div>' +
+        table + '<p class="small muted">Até 3 marcas. Deixe em branco a coluna que não for usar. No plano de cada caso, escreva a marca com o mesmo nome usado aqui, para o sistema achar o custo dos alinhadores.</p>' +
         '<button class="btn btn-primary" type="submit">Salvar preços</button><div class="fmsg"></div></form>';
       var m = mount(html, 'precos');
-      onSubmit($('#prf', m), function (f) { return api('/api/admin/settings/prices', { method: 'PUT', body: f }).then(function () { return 'Preços salvos.'; }); });
+      onSubmit($('#prf', m), function (f) {
+        var body = { scan: f.scan, brands: [] };
+        for (var i = 0; i < 3; i++) {
+          var x = { name: f['b' + i + '_name'], origin: f['b' + i + '_origin'], simples: f['b' + i + '_simples'], mediano: f['b' + i + '_mediano'], complexo: f['b' + i + '_complexo'],
+            aligner: { simples: f['b' + i + '_a_simples'], mediano: f['b' + i + '_a_mediano'], complexo: f['b' + i + '_a_complexo'] } };
+          if (x.name || x.simples || x.mediano || x.complexo || x.aligner.simples || x.aligner.mediano || x.aligner.complexo) body.brands.push(x);
+        }
+        return api('/api/admin/settings/prices', { method: 'PUT', body: body }).then(function () { return 'Preços salvos.'; });
+      });
     }).catch(function (e) { errorView(e, 'precos'); });
   }
 

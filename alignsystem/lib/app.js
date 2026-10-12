@@ -51,7 +51,16 @@ function imageMime(buf) {
 const portalUrl = (t) => `${appUrl()}/minha-avaliacao?t=${t}`;
 const contractUrl = (t) => `${appUrl()}/contrato?t=${t}`;
 const payUrl = (t) => `${appUrl()}/pagamento?t=${t}`;
-const money = (v) => (v === '' || v == null ? null : Math.round(Number(String(v).replace(',', '.')) * 100) / 100);
+// Aceita "9000", "9000.5", "9.000,00", "R$ 9.000,00", "9,5"; texto que não é número vira NaN (recusado na validação)
+const money = (v) => {
+  if (v === '' || v == null) return null;
+  if (typeof v === 'number') return Math.round(v * 100) / 100;
+  let t = String(v).replace(/R\$|\s/gi, '');
+  if (t === '') return null;
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, ''); // "9.000" = nove mil
+  return /^-?\d+(\.\d+)?$/.test(t) ? Math.round(Number(t) * 100) / 100 : NaN;
+};
 
 async function caseByToken(sql, t) {
   if (!t || String(t).length < 20) fail(404, 'Link inválido.');
@@ -415,7 +424,7 @@ async function portalScan(sql, c) {
   if (own) Object.assign(prices, own);
   prices.scan = await caseScanPrice(sql);
   // opções por marca do dentista do caso (até 3), na ordem em que ele cadastrou
-  const options = (dp?.brands || []).filter((b) => b.simples || b.mediano || b.complexo).slice(0, MAX_BRANDS).map((b) => ({
+  const options = (dp?.brands?.length ? dp.brands : prices.brands).filter((b) => b.simples || b.mediano || b.complexo).slice(0, MAX_BRANDS).map((b) => ({
     name: b.name, origin: b.origin, refValue: b.refValue || null, refCount: b.refCount ?? null,
     table: ['simples', 'mediano', 'complexo'].map((k) => ({ key: k, consults: scan.consultLimits[k], price: b[k] || null })),
   }));
@@ -588,11 +597,30 @@ r('PUT', '/api/admin/settings/prices', async (req, res) => {
   const sql = db();
   const u = await requireUser(sql, req, 'admin');
   const b = await readJson(req);
-  const v = { aligner: {} };
-  for (const k of ['scan', 'simples', 'mediano', 'complexo', 'aligner_simples', 'aligner_mediano', 'aligner_complexo']) {
-    const n = money(b[k]);
-    if (n !== null && !(n > 0)) fail(400, 'Valores precisam ser maiores que zero.');
-    if (k.startsWith('aligner_')) v.aligner[k.slice(8)] = n; else v[k] = n;
+  const amount = (x, label) => {
+    const n = money(x);
+    if (n !== null && !(n > 0)) fail(400, `${label}: escreva só o número, por exemplo 9.000,00.`);
+    return n;
+  };
+  const LBL = { simples: 'caso simples', mediano: 'média complexidade', complexo: 'caso complexo' };
+  const v = { aligner: {}, scan: amount(b.scan, 'Escaneamento e documentação') };
+  if (Array.isArray(b.brands)) {
+    if (b.brands.length > 3) fail(400, 'Até 3 marcas.');
+    v.brands = b.brands.map((x, i) => {
+      const name = clean(x?.name, 60);
+      if (!name) fail(400, `Informe o nome da marca ${i + 1}.`);
+      const o = { name, origin: x.origin === 'importado' ? 'importado' : 'nacional', aligner: {} };
+      for (const k of ['simples', 'mediano', 'complexo']) {
+        o[k] = amount(x[k], `${name} — tratamento ${LBL[k]}`);
+        o.aligner[k] = amount(x.aligner?.[k], `${name} — custo dos alinhadores ${LBL[k]}`);
+      }
+      return o;
+    });
+  } else {
+    for (const k of ['simples', 'mediano', 'complexo']) {
+      v[k] = amount(b[k], `Tratamento ${LBL[k]}`);
+      v.aligner[k] = amount(b[`aligner_${k}`], `Custo dos alinhadores ${LBL[k]}`);
+    }
   }
   await sql`insert into settings (key, value, updated_by) values ('prices', ${sql.json(v)}, ${u.id})
     on conflict (key) do update set value = excluded.value, updated_at = now(), updated_by = excluded.updated_by`;
@@ -1397,8 +1425,8 @@ r('POST', '/api/admin/cases/:id/contract', async (req, res, { id }) => {
   if (plan.model === 'rede' && c.attendance?.choice === 'sem_cobertura') missing.push('dentista credenciado na região do paciente');
   if (!plan.brand) missing.push('marca do alinhador');
   if (!plan.total) missing.push('valor total');
-  const alignerCost = plan.model === 'proprio' && plan.complexity ? Number((await scan.getPrices(sql)).aligner?.[plan.complexity]) || 0 : 0;
-  if (plan.model === 'proprio' && !alignerCost) missing.push(`custo dos alinhadores (${plan.complexity || 'complexidade'}) em Preços`);
+  const alignerCost = plan.model === 'proprio' && plan.complexity ? Number(scan.alignerCostFor(await scan.getPrices(sql), plan.brand, plan.complexity)) || 0 : 0;
+  if (plan.model === 'proprio' && !alignerCost) missing.push(`custo dos alinhadores da marca "${plan.brand || '—'}" (${plan.complexity || 'complexidade'}) em Preços`);
   if (missing.length) fail(400, `Preencha antes de gerar o contrato: ${missing.join(', ')}.`);
   const dentist = await dentistById(sql, c.dentist_id);
   const { title, body } = patientContract(plan.model === 'proprio' ? { ...c, plan: { ...plan, alignerCost } } : c, dentist);
@@ -1445,8 +1473,9 @@ r('POST', '/api/admin/cases/:id/charges', async (req, res, { id }) => {
     if (share === '80/20') {
       const cx = c.plan?.complexity;
       if (!cx) fail(400, 'Defina a complexidade do caso no plano (o custo dos alinhadores depende dela).');
-      alignerCost = (await scan.getPrices(sql)).aligner[cx];
-      if (!alignerCost) fail(400, 'Preencha em Preços o custo dos alinhadores para este grau de complexidade.');
+      const prices = await scan.getPrices(sql);
+      alignerCost = scan.alignerCostFor(prices, c.plan?.brand, cx);
+      if (!alignerCost) fail(400, `Preencha em Preços o custo dos alinhadores da marca "${c.plan?.brand || '—'}" (${cx}).` + (prices.brands.length ? ` Marcas cadastradas: ${prices.brands.map((x) => x.name).join(', ')}. A marca do plano do caso precisa ter o mesmo nome.` : ''));
       if (alignerCost >= value) fail(400, 'O valor cobrado precisa ser maior que o custo dos alinhadores.');
       pct = ownPriceDentistPct(value, alignerCost);
     }
