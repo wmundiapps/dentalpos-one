@@ -1,163 +1,139 @@
-# Pagamentos Internacionais
+# Pagamentos
 
-Versão 2026-09-25 · Vigência a partir de 25/09/2026
+Versão 2026-10-12 · Vigência a partir de 12/10/2026
 
-## 1. Objeto
+## 1. Objeto e processadores
 
-1.1. Este documento integra os Termos de Uso e disciplina a cobrança, o processamento, o repasse, os reembolsos e as retenções de valores relativos às Reservas.
+1.1. Este documento integra os Termos de Uso (anexo "g") e descreve como funcionam a cobrança, o recebimento pelo Anfitrião, os estornos e as cobranças adicionais relativas às Reservas, conforme os meios de pagamento efetivamente disponíveis na Plataforma.
 
-1.2. Os pagamentos são processados por instituições de pagamento e adquirentes parceiros, devidamente autorizados em cada jurisdição. A Operadora atua como agente de cobrança limitado do Anfitrião: o pagamento feito pelo Locatário à Plataforma quita a obrigação do Locatário perante o Anfitrião.
+1.2. **Processadores.** Os pagamentos são processados por instituições de pagamento parceiras, em ambiente próprio delas (*checkout* hospedado):
+- (a) **Mercado Pago**, por meio do *Checkout Pro*; e
+- (b) **Asaas**, por meio de cobrança com página de pagamento própria, que não exige do Locatário conta no Asaas, mas exige o CPF ou CNPJ de quem paga.
 
-1.3. **Processadores de pagamento.** A Plataforma utiliza dois processadores:
+1.3. **Conta do Anfitrião.** Para receber Reservas, o Anfitrião deve conectar à Plataforma uma conta Mercado Pago ou uma carteira Asaas de sua titularidade (ou da pessoa jurídica titular do Anúncio) e mantê-la ativa. Enquanto nenhuma conta estiver conectada, o Anúncio não recebe Reservas. O Anfitrião aceita os termos do processador escolhido e fornece a ele os dados de identificação e bancários exigidos pela regulação aplicável. Quando o Anfitrião tiver as duas contas conectadas, o Locatário escolhe por qual processador pagar.
 
-| Processador | Países |
-|---|---|
-| **Mercado Pago** | Brasil, Argentina, Chile, Colômbia, México, Peru e Uruguai |
-| **Stripe** | Demais países atendidos e operações internacionais |
+1.4. **Moeda.** Todos os preços e pagamentos são em reais (BRL).
 
-1.4. O processador aplicável é definido pelo país do Espaço e indicado no resumo da Reserva. Anfitriões podem ter de aceitar os termos do processador e fornecer a ele os dados de identificação e bancários exigidos por sua regulação (KYC) para receber repasses.
+1.5. **Dados de cartão.** Os dados de cartão são digitados diretamente no ambiente do Mercado Pago ou do Asaas e **nunca transitam nem são armazenados nos servidores da Plataforma**. A Plataforma recebe apenas referências da transação (identificador, situação e valor).
 
-1.5. **Dados de cartão.** Os dados de cartão são digitados diretamente nos campos seguros ou nos aplicativos do Mercado Pago ou da Stripe, certificados PCI DSS, e **nunca transitam nem são armazenados nos servidores da Plataforma**. A Plataforma recebe apenas um *token*, a bandeira, os últimos dígitos e a validade, para exibição e cobranças autorizadas.
+## 2. Composição do preço
 
-## 2. Moeda
-
-2.1. Todo Espaço é precificado na **moeda oficial do país onde está localizado** (por exemplo, BRL no Brasil, EUR em Portugal, USD nos Estados Unidos, no Equador, no Panamá e em El Salvador). A Reserva é cobrada nessa moeda.
-
-2.2. A Plataforma pode exibir valores aproximados na moeda do Locatário apenas para referência. Se o meio de pagamento do Locatário estiver em outra moeda, a **conversão é feita pelo emissor** do cartão ou da conta, com taxa, tarifas e tributos (como o IOF no Brasil) definidos por ele, sobre os quais a Operadora não tem controle.
-
-2.3. Valores são arredondados conforme as casas decimais da moeda (por exemplo, zero casas para JPY e CLP).
-
-## 3. Composição do preço
-
-3.1. O total pago pelo Locatário é composto por:
+2.1. O total pago pelo Locatário é composto por:
 
 | Componente | Cálculo |
 |---|---|
-| Valor Base | Soma, por Ocorrência, de horas × preço por hora, ou preço de diária para Ocorrências de 6 horas ou mais quando mais vantajoso |
+| Valor Base | Soma, por Ocorrência, de horas × preço por hora, ou preço de diária para Ocorrências de 6 horas ou mais quando mais vantajoso; deduzido o desconto de pacote, quando houver (Regras de Reserva e Uso, cláusula 2.3) |
 | Taxa de Limpeza | Valor fixo por Ocorrência, definido pelo Anfitrião, limitado a 30% do Valor Base |
-| Taxa de Serviço do Locatário | **15%** sobre (Valor Base + Taxa de Limpeza) |
-| Tributo sobre a Taxa de Serviço | Alíquota de referência do país (ex.: ISS 5% no Brasil, IVA 16% no México, IVA 23% em Portugal) aplicada sobre a Taxa de Serviço |
+| **Taxa de Serviço SpaceHour** | **15%** sobre (Valor Base + Taxa de Limpeza), **tributos incluídos** |
 | **Total** | Soma dos itens acima |
 
-3.2. O repasse ao Anfitrião é:
+2.2. Nenhum tributo é acrescentado à parte sobre a Taxa de Serviço SpaceHour: os tributos incidentes sobre a remuneração da Operadora estão incluídos no percentual de 15%.
+
+2.3. O valor destinado ao Anfitrião é:
 
 | Componente | Cálculo |
 |---|---|
 | Valor Base + Taxa de Limpeza | Integral |
 | (–) Taxa de Serviço do Anfitrião | **5%** sobre (Valor Base + Taxa de Limpeza) |
-| (–) Retenções legais, multas e ajustes | Quando aplicáveis |
-| **Repasse** | Resultado |
+| **Valor do Anfitrião** | Resultado, antes das tarifas do processador (cláusula 5) |
 
-3.3. **Exemplo (Brasil).** Reserva de 4 horas a R$ 80/hora, Taxa de Limpeza de R$ 30. Valor Base: R$ 320. Taxa de Serviço do Locatário: 15% × R$ 350 = R$ 52,50. ISS de referência (5%) sobre a Taxa de Serviço: R$ 2,63. Total pago: R$ 405,13. Taxa do Anfitrião: 5% × R$ 350 = R$ 17,50. Repasse ao Anfitrião: R$ 332,50.
+2.4. **Exemplo.** Reserva de 4 horas a R$ 80,00/hora, Taxa de Limpeza de R$ 30,00. Valor Base: R$ 320,00. Taxa de Serviço SpaceHour: 15% × R$ 350,00 = R$ 52,50. **Total pago pelo Locatário: R$ 402,50.** Taxa de Serviço do Anfitrião: 5% × R$ 350,00 = R$ 17,50. **Valor do Anfitrião: R$ 332,50**, antes das tarifas do processador. Remuneração da Operadora: R$ 70,00 (R$ 52,50 + R$ 17,50).
 
-3.4. O detalhamento completo é exibido antes da confirmação. Não há cobranças ocultas. Onde a lei exigir que o preço anunciado já inclua todas as taxas obrigatórias (por exemplo, Reino Unido, Austrália, Califórnia e Índia), o preço exibido nas buscas e no Anúncio inclui a Taxa de Serviço e a Taxa de Limpeza.
+2.5. O detalhamento completo é exibido antes da confirmação. Não há cobranças ocultas.
 
-## 4. Meios de pagamento por país
+## 3. Meios de pagamento e momento da cobrança
 
-4.1. Os meios aceitos variam por país do Espaço:
+3.1. **Meios aceitos:** cartão de crédito, Pix e boleto bancário (Mercado Pago e Asaas) e saldo ou conta Mercado Pago (somente Mercado Pago). "Cartão" abrange as bandeiras aceitas pelo processador.
 
-| País | Meios de pagamento |
-|---|---|
-| Brasil | Pix, cartão, boleto bancário, Apple Pay, Google Pay, Mercado Pago |
-| Argentina | Cartão, Mercado Pago, transferência bancária |
-| Bolívia | Cartão, transferência bancária |
-| Chile | Cartão, Webpay, Mercado Pago, transferência bancária |
-| Colômbia | Cartão, PSE, Mercado Pago, transferência bancária |
-| Equador | Cartão, transferência bancária, PayPal |
-| Paraguai | Cartão, transferência bancária |
-| Peru | Cartão, Yape, Mercado Pago, transferência bancária |
-| Uruguai | Cartão, Mercado Pago, transferência bancária |
-| Panamá | Cartão, transferência bancária, PayPal |
-| Costa Rica | Cartão, transferência bancária, PayPal |
-| Guatemala | Cartão, transferência bancária |
-| El Salvador | Cartão, transferência bancária |
-| Honduras | Cartão, transferência bancária |
-| Nicarágua | Cartão, transferência bancária |
-| Belize | Cartão, transferência bancária, PayPal |
-| México | Cartão, OXXO, SPEI, Mercado Pago, PayPal, Apple Pay, Google Pay |
-| Estados Unidos | Cartão, ACH bank debit, Apple Pay, Google Pay, PayPal |
-| Canadá | Cartão, Interac, Pre-authorized debit (PAD), Apple Pay, Google Pay, PayPal |
-| Portugal | Cartão, MB WAY, Multibanco, SEPA Direct Debit, Apple Pay, Google Pay, PayPal |
-| Espanha | Cartão, Bizum, SEPA Direct Debit, Apple Pay, Google Pay, PayPal |
-| Itália | Cartão, Satispay, SEPA Direct Debit, Klarna, Apple Pay, Google Pay, PayPal |
-| França | Cartão, Cartes Bancaires, SEPA Direct Debit, Klarna, Apple Pay, Google Pay, PayPal |
-| Alemanha | Cartão, SEPA Direct Debit, Klarna, Wero, PayPal, Apple Pay, Google Pay |
-| Reino Unido | Cartão, Pay by bank (Open Banking), Bacs Direct Debit, Apple Pay, Google Pay, PayPal, Klarna |
-| Emirados Árabes Unidos | Cartão, Apple Pay, Google Pay, transferência bancária |
-| Israel | Cartão, Bit, Apple Pay, Google Pay, PayPal, transferência bancária |
-| China | Alipay, WeChat Pay, UnionPay, cartão |
-| Japão | Cartão, JCB, Konbini, PayPay, Apple Pay, Google Pay |
-| Índia | UPI, cartão, RuPay, net banking, PayPal |
-| Austrália | Cartão, PayID, BPAY, Apple Pay, Google Pay, PayPal |
+3.2. **Aguardando pagamento.** Ao solicitar a Reserva, o Locatário é direcionado ao ambiente do processador. A Reserva fica com o status **"aguardando pagamento"** e o horário fica guardado pelo prazo do meio escolhido, nunca depois do início da primeira Ocorrência. Nesse estado, **nada foi debitado** do Locatário. Se o pagamento não for aprovado no prazo, a Reserva expira, o horário é liberado e a cobrança pendente é cancelada.
 
-4.2. "Cartão" abrange Visa, Mastercard e American Express, conforme disponibilidade do processador. A disponibilidade efetiva de cada meio depende do processador responsável no país (cláusula 1.3); meios não suportados por ele não são exibidos no pagamento.
+3.3. **Regras por meio de pagamento:**
 
-4.3. **Pagamentos assíncronos.** Pix, boleto, OXXO, SPEI, Multibanco, konbini, transferência bancária, BPAY, PSE, net banking, UPI, Bizum, MB WAY, Bit, PayID e Yape são confirmados somente após a compensação. A Reserva só é confirmada após o recebimento, e pagamentos não compensados no prazo indicado expiram. Esses meios não permitem pré-autorização de Caução, aplicando-se o documento Avalista e Caução.
+| | Cartão de crédito | Pix | Boleto bancário |
+|---|---|---|---|
+| **Prazo para pagar** (horário guardado) | 24 horas | 30 minutos | 3 dias; aceito apenas se a primeira Ocorrência começar em pelo menos 3 dias |
+| **Quando o valor é debitado** | Na aprovação da transação pelo emissor e pelo processador, que autoriza e liquida a compra no mesmo ato. A transação pode ficar "pendente" ou "em análise" enquanto o processador conclui sua verificação antifraude | No momento em que o Locatário conclui o Pix: a transferência é instantânea e definitiva, **não é uma pré-autorização** | Quando o banco compensa o pagamento, o que pode levar até 3 dias úteis após o pagamento |
+| **O que significa "pendente"** | O processador ainda não aprovou a transação; o horário continua guardado até o prazo | O QR Code ou código "copia e cola" foi gerado, mas o Pix ainda não foi feito | O boleto foi emitido, mas a compensação ainda não foi informada pelo banco |
+| **Se o prazo vencer sem aprovação** | Reserva expira; nada é cobrado | Reserva expira; o Pix gerado deixa de ser válido | Reserva expira; o boleto vence e não deve ser pago |
+| **Pagamento aprovado depois do prazo** | Estorno integral automático | Devolução integral automática do Pix | Devolução integral automática |
+| **Forma do estorno** | Estorno na fatura do cartão | Devolução do Pix para a conta de origem | Na forma disponibilizada pelo processador para o boleto |
 
-## 5. Autorização, captura e pré-autorização
+3.4. O saldo ou conta Mercado Pago segue as regras do cartão quanto ao prazo (24 horas) e é debitado na aprovação pelo processador.
 
-5.1. **Reserva por solicitação.** O valor é **autorizado** (reservado) e só é **capturado** quando o Anfitrião aceita. Recusa ou expiração em 24 horas libera a autorização.
+3.5. **Não há pré-autorização.** A Plataforma não realiza pré-autorização (bloqueio de limite com captura posterior) em nenhum dos meios disponíveis. O valor é efetivamente debitado quando o pagamento é aprovado. Por isso, nas Reservas por solicitação e nas Reservas com Fiador:
+- (a) o pagamento é feito antes da decisão do Anfitrião, do Fiador ou do cônjuge do Fiador;
+- (b) se a Reserva não for concluída — por recusa ou silêncio do Anfitrião (24 horas) ou do Fiador ou de seu cônjuge (48 horas) —, o valor pago é **integralmente estornado** pelo mesmo meio, sem qualquer retenção, e nada é devido pelo Locatário.
 
-5.2. **Reserva com Avalista.** O valor permanece autorizado até o aceite do Avalista (prazo de 48 horas).
+3.6. **Confirmação.** Aprovado o pagamento, a Reserva segue para o aceite do Fiador (quando exigido) e, em seguida, é confirmada automaticamente (Reserva instantânea) ou submetida ao Anfitrião (Reserva por solicitação), conforme as Regras de Reserva e Uso, cláusula 4.
 
-5.3. **Reserva instantânea.** A captura ocorre na confirmação.
+3.7. **Quitação.** O pagamento aprovado pelo processador quita a obrigação do Locatário de pagar o preço da Reserva perante o Anfitrião.
 
-5.4. **Caução.** Pré-autorização adicional, limitada a 3 vezes o Valor Base, liberada 72 horas após o check-out se não houver Incidente.
+## 4. Divisão do pagamento e recebimento pelo Anfitrião
 
-5.5. **Reservas recorrentes.** Em séries, o valor total pode ser cobrado na confirmação ou, quando a regulação local exigir ou o Locatário optar, em parcelas por Ocorrência, observadas as regras locais de pagamentos recorrentes (por exemplo, *e-mandates* do RBI na Índia).
+4.1. **Divisão automática (*split*).** O pagamento é dividido pelo próprio processador entre o Anfitrião e a Operadora, sem que a Operadora receba ou guarde a parcela do Anfitrião:
 
-## 6. Repasse ao Anfitrião
+| | Mercado Pago | Asaas |
+|---|---|---|
+| **Quem recebe o pagamento** | A transação é criada em nome do Anfitrião, na conta Mercado Pago dele conectada à Plataforma | A cobrança é emitida pela conta Asaas da Operadora, com divisão automática para a carteira Asaas do Anfitrião |
+| **Parcela do Anfitrião** | Creditada pelo Mercado Pago na conta do Anfitrião no momento da aprovação | Creditada pelo Asaas na carteira do Anfitrião quando o pagamento é confirmado, no percentual correspondente ao Valor do Anfitrião sobre o total |
+| **Remuneração da Operadora** | Retida pelo Mercado Pago no ato, como tarifa de *marketplace*, correspondente à Taxa de Serviço SpaceHour e à Taxa de Serviço do Anfitrião | Parcela remanescente, que permanece na conta da Operadora |
+| **Tarifa do processador** | Descontada pelo Mercado Pago da parcela do Anfitrião, conforme as condições da conta dele | Como a divisão é percentual sobre o valor líquido, a tarifa do Asaas é suportada proporcionalmente pelo Anfitrião e pela Operadora |
+| **Disponibilidade do saldo** | Conforme os prazos do Mercado Pago para o meio de pagamento utilizado | Conforme os prazos do Asaas para o meio de pagamento utilizado |
 
-6.1. **Brasil (pagamento dividido).** No Brasil, o pagamento da Reserva é processado pelo Mercado Pago com divisão automática (*split*): no momento da aprovação, o valor devido ao Anfitrião — Valor Base e Taxa de Limpeza, deduzida a Taxa de Serviço do Anfitrião — é creditado diretamente na conta Mercado Pago do próprio Anfitrião, conectada à Plataforma, e a Plataforma recebe apenas as Taxas de Serviço e os tributos sobre elas. A Plataforma não recebe nem custodia o valor do Anfitrião. A disponibilidade do saldo segue os prazos do Mercado Pago para o meio de pagamento utilizado. A tarifa de processamento do Mercado Pago é descontada pelo próprio Mercado Pago da parcela creditada ao Anfitrião, conforme as condições da conta dele, e não integra a Taxa de Serviço do Anfitrião.
+4.2. A tarifa do processador não integra a Taxa de Serviço do Anfitrião e pode variar conforme o meio de pagamento e as condições contratadas pelo Anfitrião com o processador.
 
-6.2. **Conta de recebimento.** Para anunciar no Brasil, o Anfitrião deve conectar uma conta Mercado Pago de sua titularidade (ou da pessoa jurídica titular do Anúncio) e mantê-la ativa. Enquanto a conta não estiver conectada, o Anúncio não recebe Reservas. Cada Anfitrião é responsável pela emissão do documento fiscal referente ao valor que recebe, e a Plataforma, pelo documento fiscal referente às Taxas de Serviço.
+4.3. O Anfitrião acompanha na Plataforma o resumo de cada Reserva, mas os saldos, extratos e saques são geridos diretamente na conta do processador.
 
-6.3. **Reembolsos e ajustes no Brasil.** Reembolsos ao Locatário (cancelamento, Incidente procedente, não prestação) são estornados pelo Mercado Pago e debitados proporcionalmente do saldo de cada parte: a parcela do Anfitrião, do saldo do Anfitrião; as Taxas de Serviço, do saldo da Plataforma, observadas as regras de cancelamento. Multas devidas pelo Anfitrião e valores que o saldo dele não cubra podem ser cobrados à parte ou compensados com Reservas futuras.
+## 5. Estornos e reembolsos
 
-6.4. **Demais países.** Onde o pagamento dividido não estiver disponível, o repasse é liberado 24 horas após o início da primeira Ocorrência da Reserva, para a conta cadastrada pelo Anfitrião, deduzidas a Taxa de Serviço do Anfitrião e eventuais retenções; em séries, pode ser liberado por Ocorrência. O crédito depende dos prazos do meio de transferência e do banco de destino, e repasses internacionais podem estar sujeitos a tarifas bancárias e conversão cambial.
+5.1. Os reembolsos seguem a Política de Cancelamento e Reembolso e são feitos por **estorno, total ou parcial, da transação original**, solicitado pela Plataforma ao processador, pelo mesmo meio de pagamento:
+- (a) **cartão**: estorno na fatura, em prazo que depende do emissor (em regra, de 5 a 10 dias úteis, podendo aparecer na fatura seguinte);
+- (b) **Pix**: devolução para a conta de origem do Pix;
+- (c) **boleto**: na forma disponibilizada pelo processador, podendo ser solicitada ao Locatário a indicação de conta bancária;
+- (d) **saldo Mercado Pago**: devolução ao saldo da conta do pagador.
 
-## 7. Retenções
+5.2. **Efeito sobre a divisão.** Como o valor foi dividido no momento do pagamento, o estorno é suportado pelas contas que o receberam, segundo as regras do processador. Quando a divisão do estorno pelo processador não corresponder à responsabilidade de cada parte prevista na Política de Cancelamento e Reembolso ou em decisão de Incidente, a diferença é acertada entre a Operadora e o Anfitrião por compensação ou cobrança.
 
-7.1. A Plataforma pode reter, total ou parcialmente, repasses ao Anfitrião quando: (a) houver Incidente aberto pelo Locatário ou disputa pendente; (b) houver indício de fraude, lavagem de dinheiro, conta comprometida ou violação grave; (c) faltarem dados de identificação, fiscais ou bancários; (d) houver débito do Anfitrião perante a Plataforma (multas por cancelamento, reembolsos devidos); (e) houver ordem judicial ou administrativa; (f) houver *chargeback* em curso.
+5.3. Reembolsos que decorram de falha do Anfitrião (cancelamento pelo Anfitrião, falta de acesso, Anúncio impreciso) reduzem o valor recebido pelo Anfitrião; quando o saldo dele no processador não comportar o estorno, o valor pode ser cobrado do Anfitrião.
 
-7.2. A retenção é comunicada ao Anfitrião com o motivo e perdura somente pelo tempo necessário.
+## 6. Cobranças adicionais
 
-7.3. **Retenções tributárias.** Quando a lei impuser à Plataforma retenção de tributos sobre repasses (por exemplo, IVA/ISR no México, pela Ley del IVA, Cap. III Bis, e pela LISR, arts. 113-A a 113-D; TCS de 0,5% sob o GST e TDS de 0,1% da s. 194-O do Income-tax Act na Índia; *backup withholding* nos Estados Unidos, se o Anfitrião não fornecer o Form W-9), os valores retidos são recolhidos e informados ao Anfitrião com o respectivo comprovante.
+6.1. Tarifa adicional por atraso na saída, ressarcimento de danos, limpeza extra, multas de condomínio e cláusulas penais reconhecidas ou decididas em Incidente (Penalidades e Medidas) **não são debitadas automaticamente** do meio de pagamento do Locatário, porque os meios disponíveis não permitem cobrança sem a presença do pagador. A Plataforma envia ao Locatário um **link de pagamento** (no Asaas, cobrança por Pix), com prazo de 5 dias. Sem pagamento, a cobrança pode ser direcionada ao Fiador, até o limite de sua responsabilidade (Fiança e Caução).
 
-7.4. **Comunicação de rendimentos.** A Plataforma ou o processador de pagamento podem comunicar às autoridades fiscais os rendimentos recebidos pelos Anfitriões, por exemplo pela Diretiva DAC7 (União Europeia), pelo Form 1099-K (Estados Unidos), pelas regras de *platform reporting* do Reino Unido, do Canadá e da Austrália e pelas regras chinesas de comunicação de informações fiscais por plataformas (documento Obrigações do Anfitrião, cláusula 11).
+6.2. Os valores pagos em cobranças adicionais devidos ao Anfitrião são creditados na conta do Anfitrião no processador ou, quando o processador não permitir a divisão automática daquela cobrança, recebidos pela Operadora e transferidos ao Anfitrião.
 
-## 8. Reembolsos
+6.3. A cláusula penal devida pelo Anfitrião por cancelamento (Penalidades e Medidas, cláusula 5.3) e outros valores devidos por ele são cobrados à parte ou compensados com valores que lhe sejam devidos, mediante informação detalhada.
 
-8.1. Os reembolsos seguem a Política de Cancelamento e Reembolso e são devolvidos pelo mesmo meio de pagamento: cartão em 5 a 10 dias úteis conforme o emissor; Pix e transferências em até 5 dias úteis; boleto, OXXO, konbini e similares por transferência para conta bancária indicada pelo Locatário.
+## 7. Bloqueios e retenções
 
-8.2. Reembolsos que decorram de falha do Anfitrião são descontados de seus repasses futuros ou cobrados dele.
+7.1. A Operadora não retém a parcela do Anfitrião creditada pelo processador. Os processadores podem, segundo suas próprias regras, bloquear ou reter valores em caso de contestação (*chargeback*), suspeita de fraude ou ordem judicial.
 
-## 9. Cobranças adicionais
+7.2. Em caso de Incidente aberto pelo Locatário contra o Anfitrião, indício de fraude, violação grave ou ordem judicial ou administrativa, a Plataforma pode suspender o Anúncio, cancelar Reservas futuras com estorno ao Locatário e solicitar ao processador as medidas previstas nos termos dele, comunicando o Anfitrião com o motivo.
 
-9.1. Atraso na saída, danos, limpeza extra, multas de condomínio e penalidades decididas em Incidente são cobrados na ordem: Caução, meio de pagamento cadastrado e Avalista (Penalidades e Medidas). O Locatário autoriza expressamente essas cobranças ao aceitar os Termos e recebe o detalhamento de cada uma.
+## 8. Contestações (*chargebacks*)
 
-## 10. Contestações (chargebacks)
+8.1. O Locatário deve buscar primeiro a Central de Resolução antes de contestar uma cobrança junto ao emissor do cartão. Isso não limita os direitos do titular do cartão.
 
-10.1. O Locatário deve buscar primeiro a Central de Resolução antes de contestar uma cobrança junto ao emissor. Isso não limita os direitos do titular do cartão.
+8.2. Em caso de *chargeback*, a Plataforma fornecerá ao processador as evidências da Reserva (aceite dos Termos e das regras, check-in e check-out, mensagens, fotos). *Chargebacks* julgados procedentes em razão de falha do Anfitrião são suportados pelo Anfitrião. *Chargebacks* fraudulentos ou abusivos sujeitam o Locatário a suspensão e cobrança do valor.
 
-10.2. Em caso de *chargeback*, a Plataforma apresentará ao emissor as evidências da Reserva (aceite dos Termos e das regras, check-in/check-out, mensagens, fotos). Se o *chargeback* for julgado procedente em razão de falha do Anfitrião, o valor será debitado dos repasses deste. *Chargebacks* fraudulentos ou abusivos sujeitam o Locatário a suspensão e cobrança do valor, com tarifas.
+## 9. Proibição de pagamento fora da Plataforma
 
-## 11. Proibição de pagamento fora da Plataforma
+9.1. Todo pagamento relativo a Reservas deve ser feito pela Plataforma. Solicitar, oferecer ou aceitar pagamento por fora (inclusive "desconto para pagar direto", depósito em conta, Pix direto, dinheiro) é falta grave que pode levar à exclusão das contas envolvidas. Pagamentos por fora não contam com qualquer proteção da Plataforma.
 
-11.1. Todo pagamento relativo a Reservas deve ser feito pela Plataforma. Solicitar, oferecer ou aceitar pagamento por fora (inclusive "desconto para pagar direto", depósito em conta, Pix direto, dinheiro) é falta grave que leva à exclusão das contas envolvidas. Pagamentos por fora não contam com qualquer proteção da Plataforma.
+## 10. Recibos e documentos fiscais
 
-## 12. Recibos e documentos fiscais
+10.1. O Locatário recebe comprovante eletrônico de cada pagamento, com o detalhamento dos componentes.
 
-12.1. O Locatário recebe recibo eletrônico de cada pagamento, com o detalhamento dos componentes. A Operadora emite o documento fiscal referente à **Taxa de Serviço** conforme a legislação do país (no Brasil, nota fiscal de serviço eletrônica — NFS-e).
+10.2. A Operadora emite a nota fiscal de serviço eletrônica (NFS-e) referente à sua remuneração (Taxa de Serviço SpaceHour e Taxa de Serviço do Anfitrião), conforme a legislação municipal aplicável e, na transição da Reforma Tributária (Lei Complementar nº 214/2025), observará as obrigações que lhe forem atribuídas.
 
-12.2. O documento fiscal relativo ao **Valor Base e à Taxa de Limpeza**, quando exigido, é de responsabilidade do Anfitrião, que deve emiti-lo ao Locatário conforme sua legislação. A Plataforma disponibiliza os dados necessários.
+10.3. O documento fiscal relativo ao **Valor Base e à Taxa de Limpeza**, quando exigido, é de responsabilidade do Anfitrião, que deve emiti-lo ao Locatário conforme a legislação aplicável. A Plataforma disponibiliza os dados necessários.
 
-12.3. Locatários pessoa jurídica devem informar sua identificação fiscal (por exemplo, CNPJ, RFC, NIF, VAT number) para constar nos documentos.
+10.4. Locatários pessoa jurídica devem informar seu CNPJ para constar nos documentos.
 
-## 13. Prevenção à fraude, AML e KYC
+## 11. Prevenção à fraude
 
-13.1. A Plataforma adota procedimentos de **conheça seu cliente (KYC)** e de **prevenção à lavagem de dinheiro e ao financiamento do terrorismo (AML/CFT)**, incluindo verificação de identidade e de titularidade de contas bancárias, triagem em listas de sanções, monitoramento de transações atípicas, limites operacionais e verificação reforçada (3-D Secure, confirmação por *link*).
+11.1. A Plataforma e os processadores adotam procedimentos de prevenção à fraude e à lavagem de dinheiro, incluindo verificação de identidade, monitoramento de transações atípicas e autenticação reforçada quando exigida pelo processador.
 
-13.2. A Plataforma pode recusar, cancelar ou reter pagamentos e repasses com indícios de fraude, uso de cartão de terceiros, operações simuladas ou incompatíveis com o perfil, e comunicar as autoridades competentes conforme a lei.
+11.2. A Plataforma pode recusar ou cancelar Reservas com indícios de fraude, uso de cartão de terceiros ou operações simuladas, com estorno do valor pago, e comunicar as autoridades competentes nos termos da lei.
 
-13.3. Os dados de cartão são coletados e tokenizados diretamente pelo Mercado Pago ou pela Stripe, certificados PCI DSS; eles nunca transitam pelos servidores da Plataforma, que não recebe nem armazena o número completo do cartão nem o código de segurança. Autenticação reforçada (3-D Secure ou equivalente) pode ser exigida pelo processador ou pela regulação local (por exemplo, SCA na União Europeia e no Reino Unido).
+11.3. Os processadores podem atuar como controladores independentes de parte dos dados de pagamento, conforme suas próprias políticas de privacidade (Política de Privacidade).

@@ -87,6 +87,7 @@ export default function App() {
             <Route path="/anuncie" element={<HostLanding />} />
             <Route path="/profissionais" element={<ProLanding />} />
             <Route path="/conheca" element={<GeneralLanding />} />
+            <Route path="/fiador/:token" element={<GuarantorPage />} />
             <Route path="/avalista/:token" element={<GuarantorPage />} />
             <Route path="/avaliar/:token" element={<ClientReviewPage />} />
             <Route path="/regras" element={<LegalPage />} />

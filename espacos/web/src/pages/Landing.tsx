@@ -102,7 +102,7 @@ export function HostLanding() {
           ['🏦', 'Dinheiro direto na sua conta', 'O pagamento (Pix ou cartão) é feito pelo Mercado Pago e a sua parte vai direto para a sua conta, sem passar pela nossa.'],
           ['🗓️', 'Você decide tudo', 'Escolha os dias e horários disponíveis, o preço por hora, a taxa de limpeza e se aprova cada pedido ou aceita reservas na hora.'],
           ['🩺', 'Profissionais verificados', 'Quem aluga envia o registro no conselho (CRO, CRM, CRP e outros). O documento passa por uma checagem automática e pela nossa equipe, e você pode conferir antes de liberar a sala.'],
-          ['🛡️', 'Caução e regras claras', 'Você pode exigir caução e avalista. Os danos são tratados por mediação, e as regras de cancelamento ficam claras para os dois lados.'],
+          ['🛡️', 'Caução e regras claras', 'Você pode exigir caução e fiador. Os danos são tratados por mediação, e as regras de cancelamento ficam claras para os dois lados.'],
           ['⭐', 'Avaliações dos dois lados', 'Cada reserva gera avaliação do espaço e do profissional. Bons inquilinos voltam, e quem não cumpre as regras recebe advertência.'],
         ]} />
         <Simulator />
@@ -113,9 +113,9 @@ export function HostLanding() {
         ]} />
         <Faq items={[
           ['Quanto custa anunciar?', `Nada. Não há mensalidade: você só paga quando uma locação acontece. Nessa hora, o SpaceHour desconta ${fee} do valor que você definiu e o Mercado Pago desconta a tarifa de pagamento dele (cerca de 1% no Pix e cerca de 5% no cartão; confira no seu painel do Mercado Pago). Exemplo: você cobra R$ 100 e recebe cerca de R$ 94 no Pix ou R$ 89 no cartão.`],
-          ['E quem aluga, paga o quê?', `Quem aluga paga o seu preço mais uma taxa de serviço de ${Math.round(FEES.guestServiceFeeRate * 100)}% ao SpaceHour e o ISS sobre essa taxa. No exemplo de R$ 100, o profissional paga R$ 115,75. Esse valor aparece completo antes de ele confirmar a reserva, e a taxa não sai do seu bolso.`],
+          ['E quem aluga, paga o quê?', `Quem aluga paga o seu preço mais uma taxa de serviço de ${Math.round(FEES.guestServiceFeeRate * 100)}% ao SpaceHour, com os tributos já incluídos. No exemplo de R$ 100, o profissional paga R$ 115. Esse valor aparece completo antes de ele confirmar a reserva, e a taxa não sai do seu bolso.`],
           ['Quando recebo o dinheiro?', 'O pagamento é processado pelo Mercado Pago e a sua parte vai direto para a sua conta Mercado Pago, dentro do prazo de liberação dela.'],
-          ['E se alguém danificar algo?', 'Você pode exigir caução e avalista no anúncio. Se houver um problema, abra um incidente na reserva: a nossa equipe faz a mediação e o responsável recebe advertência.'],
+          ['E se alguém danificar algo?', 'Você pode exigir caução e fiador no anúncio. Se houver um problema, abra um incidente na reserva: a nossa equipe faz a mediação e o responsável recebe advertência.'],
           ['Posso alugar um consultório de saúde?', 'Pode. Você continua responsável pelo alvará, pela vigilância sanitária e pelas regras do seu conselho. Leia as Obrigações do Anfitrião antes de publicar.'],
           ['Posso bloquear horários ou pausar o anúncio?', 'Pode. Você edita dias, horários e preço quando quiser em Painel do anfitrião → Meus anúncios.'],
         ]} />
@@ -158,7 +158,7 @@ export function ProLanding() {
         ]} />
         <Faq items={[
           ['Preciso assinar contrato?', 'Não. Cada reserva segue os Termos de Uso e as regras do espaço, que você aceita ao reservar.'],
-          ['Quanto custa?', `O preço por hora é definido pelo anfitrião. Somam-se a taxa de limpeza (se houver), a taxa de serviço do SpaceHour de ${Math.round(FEES.guestServiceFeeRate * 100)}% e o ISS sobre essa taxa. Exemplo: se o espaço custa R$ 100, você paga R$ 115,75. O total aparece antes de você pagar, sem surpresa.`],
+          ['Quanto custa?', `O preço por hora é definido pelo anfitrião. Somam-se a taxa de limpeza (se houver), a taxa de serviço do SpaceHour de ${Math.round(FEES.guestServiceFeeRate * 100)}%, com os tributos já incluídos. Exemplo: se o espaço custa R$ 100, você paga R$ 115. O total aparece antes de você pagar, sem surpresa.`],
           ['Por que pedem meu registro profissional?', 'Salas de saúde e de outras profissões regulamentadas só podem ser usadas por profissionais habilitados. O registro protege você, o anfitrião e os seus pacientes.'],
           ['Posso reservar toda semana no mesmo horário?', 'Pode. Na reserva você escolhe vários dias de uma vez, respeitando os limites do espaço.'],
         ]} />
@@ -233,7 +233,7 @@ export function GeneralLanding() {
           ['⭐', 'Avaliações dos dois lados', 'Espaço e profissional se avaliam depois de cada reserva. Regras claras de cancelamento e mediação em caso de problema.'],
         ]} />
         <Faq items={[
-          ['Quanto custa usar o SpaceHour?', `Anunciar e se cadastrar é grátis. Quem tem o espaço paga ${fee} por reserva, mais a tarifa do Mercado Pago. Quem aluga paga o preço do anfitrião mais uma taxa de serviço de ${Math.round(FEES.guestServiceFeeRate * 100)}% e o ISS sobre essa taxa.`],
+          ['Quanto custa usar o SpaceHour?', `Anunciar e se cadastrar é grátis. Quem tem o espaço paga ${fee} por reserva, mais a tarifa do Mercado Pago. Quem aluga paga o preço do anfitrião mais uma taxa de serviço de ${Math.round(FEES.guestServiceFeeRate * 100)}%, com os tributos já incluídos.`],
           ['Preciso assinar contrato?', 'Não. Cada reserva segue os Termos de Uso e as regras do espaço, aceitos no momento da reserva.'],
           ['Em quais cidades funciona?', 'Começamos por Maringá e região. Londrina e Curitiba vêm em seguida. Você já pode anunciar o seu espaço em qualquer cidade do Brasil.'],
           ['Quem está por trás do SpaceHour?', 'O SpaceHour é operado pelo Instituto Ravel de Ensino Superior Ltda (CNPJ 03.162.275/0001-10), de Maringá/PR.'],

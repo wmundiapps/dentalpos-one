@@ -436,7 +436,7 @@ test('anúncio no Brasil: estado + município do IBGE; e-mail de publicação co
     title: 'Consultório em Maringá', description: 'Consultório equipado para atendimentos por hora no centro de Maringá.', category: 'dental',
     countryCode: 'BR', state: 'PR', city: 'maringa', address: 'Av. XV de Novembro, 100', capacity: 3, amenities: ['wifi'], equipment: '',
     photos: [], pricePerHour: 80, minHours: 1, cleaningFee: 0, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate',
-    guarantorPolicy: 'none', requiresLicense: false, houseRules: 'Deixar a sala organizada.', bufferMinutes: 30,
+    guarantorPolicy: 'none', requiresLicense: false, occupancy: 'owner', houseRules: 'Deixar a sala organizada.', bufferMinutes: 30,
     weeklyAvailability: base0.weeklyAvailability, blockedDates: [], active: true,
   };
   const post = (b: unknown) => fetch(`${base}/listings`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify(b) });
@@ -446,6 +446,11 @@ test('anúncio no Brasil: estado + município do IBGE; e-mail de publicação co
   assert.deepEqual([l.state, l.city, l.timezone], ['PR', 'Maringá', 'America/Sao_Paulo'], 'nome oficial do município');
   assert.equal((await post({ ...body, state: undefined })).status, 422);
   assert.equal((await post({ ...body, city: 'Cidade Inventada' })).status, 422);
+  // Lei 8.245/91, art. 13: quem não é dono declara a autorização do proprietário/locador
+  assert.equal(((await (await post({ ...body, occupancy: undefined })).json()) as { error: string }).error, 'occupancy_required');
+  assert.equal(((await (await post({ ...body, occupancy: 'tenant' })).json()) as { error: string }).error, 'occupancy_consent_required');
+  const tenant = await (await post({ ...body, occupancy: 'tenant', occupancyConsent: true })).json() as Listing;
+  assert.ok(tenant.occupancyConsentAt, 'declaração registrada com data');
   const ac = await (await post({ ...body, state: 'AC', city: 'Rio Branco' })).json() as Listing;
   assert.equal(ac.timezone, 'America/Rio_Branco', 'fuso do município');
   const n = await one<{ text: string; link: string }>(pool, "SELECT text, link FROM notifications WHERE user_id = $1 AND kind = 'listing_published' ORDER BY created_at DESC LIMIT 1", [host.id]);
@@ -466,7 +471,7 @@ test('outros países: estado/província + cidade da base; cidade fora da lista a
     title: 'Therapy office in Los Angeles', description: 'Quiet therapy office available by the hour in Los Angeles.', category: 'psychology',
     countryCode: 'US', state: 'CA', city: 'los angeles', address: '100 Main St', capacity: 3, amenities: ['wifi'], equipment: '',
     photos: [], pricePerHour: 50, minHours: 1, cleaningFee: 0, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate',
-    guarantorPolicy: 'none', requiresLicense: false, houseRules: 'Leave the room tidy.', bufferMinutes: 30,
+    guarantorPolicy: 'none', requiresLicense: false, occupancy: 'owner', houseRules: 'Leave the room tidy.', bufferMinutes: 30,
     weeklyAvailability: base0.weeklyAvailability, blockedDates: [], active: true,
   };
   const post = (b: unknown) => fetch(`${base}/listings`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok}` }, body: JSON.stringify(b) });
@@ -801,7 +806,7 @@ test('cadastro fácil e seguro: código de 6 dígitos, anúncio salvo até confi
       title: 'Sala salva antes de confirmar', description: 'Sala equipada para atendimentos por hora, anunciada antes de confirmar o e-mail.', category: 'psychology',
       countryCode: 'BR', state: 'PR', city: 'Maringá', address: 'Av. Brasil, 200', capacity: 2, amenities: ['wifi'], equipment: '',
       photos: [], pricePerHour: 60, minHours: 1, cleaningFee: 0, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate',
-      guarantorPolicy: 'none', requiresLicense: false, houseRules: 'Deixar a sala organizada.', bufferMinutes: 30,
+      guarantorPolicy: 'none', requiresLicense: false, occupancy: 'owner', houseRules: 'Deixar a sala organizada.', bufferMinutes: 30,
       weeklyAvailability: base0.weeklyAvailability, blockedDates: [], active: true,
     };
     const lr = await fetch(`${base}/listings`, { method: 'POST', headers: auth, body: JSON.stringify(body) });
@@ -929,7 +934,7 @@ test('identidade: CPF/CNPJ + documento + selfie com checagem automática; equipe
       title: 'Sala com CEP conferido', description: 'Sala equipada para atendimentos por hora com CEP conferido pela plataforma.', category: 'psychology',
       countryCode: 'BR', state: 'PR', city: 'Maringá', address: 'Av. Paulista, 1000 - CEP 01310-100', capacity: 2, amenities: ['wifi'], equipment: '',
       photos: [], pricePerHour: 60, minHours: 1, cleaningFee: 0, securityDeposit: 0, instantBook: true, cancellationPolicy: 'moderate',
-      guarantorPolicy: 'none', requiresLicense: false, houseRules: 'Deixar a sala organizada.', bufferMinutes: 30,
+      guarantorPolicy: 'none', requiresLicense: false, occupancy: 'owner', houseRules: 'Deixar a sala organizada.', bufferMinutes: 30,
       weeklyAvailability: base0.weeklyAvailability, blockedDates: [], active: true,
     };
     const post = (b0: unknown) => fetch(`${base}/listings`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${signToken(host)}` }, body: JSON.stringify(b0) });

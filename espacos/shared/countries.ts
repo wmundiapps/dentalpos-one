@@ -68,8 +68,10 @@ export const COUNTRIES: CountryConfig[] = [
     ],
     // boleto só para reservas com 3 dias de antecedência (o horário fica guardado 3 dias)
     paymentMethods: ['pix', 'card', 'boleto', 'mercado_pago'],
-    taxName: 'ISS', taxRate: 0.05,
-    taxNote: 'ISS municipal (2% a 5%). Na transição da Reforma Tributária (LC 214/2025) observar CBS/IBS.',
+    // Taxa de serviço com tributos incluídos (parecer jurídico 2026-10): nenhum tributo destacado à parte
+    // até o contador validar CNAE, item da LC 116, município, alíquota e modelo da NFS-e.
+    taxName: 'ISS', taxRate: 0,
+    taxNote: 'Tributos incluídos na taxa de serviço. Na transição da Reforma Tributária (LC 214/2025) observar CBS/IBS.',
     withdrawalDays: 7, minAge: 18,
     dataProtectionLaw: 'LGPD — Lei 13.709/2018',
     consumerLaw: 'Código de Defesa do Consumidor — Lei 8.078/1990 (art. 49: arrependimento em 7 dias)',

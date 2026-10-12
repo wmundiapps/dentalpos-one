@@ -27,7 +27,7 @@ function client() {
 const DOCS: Array<[string, string]> = [
   ['booking-rules', 'Regras de Reserva e Uso'], ['cancellation-refunds', 'Cancelamento e Reembolso'], ['payments', 'Pagamentos'],
   ['host-obligations', 'Obrigações do Anfitrião'], ['space-norms', 'Normas de Conduta nos Espaços'], ['penalties', 'Penalidades'],
-  ['guarantor-deposit', 'Avalista e Caução'],
+  ['guarantor-deposit', 'Fiança e Caução'],
 ];
 
 const guest = Math.round(FEES.guestServiceFeeRate * 100);
@@ -71,8 +71,8 @@ CUSTOS (valores exatos)
 - Anunciar não custa nada. Só há cobrança quando uma locação acontece.
 - O SpaceHour desconta ${host}% do valor definido pelo anfitrião (valor da locação + limpeza).
 - O Mercado Pago desconta a tarifa de pagamento dele da parte do anfitrião (aproximadamente 1% no Pix e 5% no cartão; a taxa exata depende do plano da conta Mercado Pago de cada um).
-- Quem aluga paga o preço do anfitrião + taxa de serviço de ${guest}% + ISS (5%) sobre essa taxa. O total aparece antes de confirmar.
-- Exemplo: anfitrião cobra R$ 100 → quem aluga paga R$ 115,75 → o anfitrião recebe cerca de R$ 94 no Pix (cerca de R$ 89 no cartão) → o SpaceHour fica com R$ 20 (${host}% + ${guest}%) e o ISS vai para a prefeitura.
+- Quem aluga paga o preço do anfitrião + taxa de serviço de ${guest}% (tributos incluídos, sem nada à parte). O total aparece antes de confirmar.
+- Exemplo: anfitrião cobra R$ 100 → quem aluga paga R$ 115 → o anfitrião recebe cerca de R$ 94 no Pix (cerca de R$ 89 no cartão) → o SpaceHour fica com R$ 20 (${host}% + ${guest}%), já com os tributos.
 
 RESERVAR (PROFISSIONAL)
 - Escolher o espaço, a data e o horário, conferir o preço total e pagar com Pix ou cartão (Mercado Pago). O endereço exato aparece depois da confirmação.
@@ -82,7 +82,7 @@ RESERVAR (PROFISSIONAL)
 
 CAUÇÃO E DANOS
 - O anfitrião pode definir uma caução (até 3× o valor da reserva), recomendada quando há equipamentos caros ou infraestrutura de valor (cadeira odontológica, aparelhos, equipamentos de imagem ou som).
-- No Brasil, hoje, a caução não é cobrada nem bloqueada no cartão: como o Mercado Pago não permite pré-autorização pela plataforma, ela é garantida por um avalista indicado por quem aluga ao reservar. A garantia se encerra ao final da locação se não houver dano.
+- No Brasil, hoje, a caução não é cobrada nem bloqueada no cartão: como o Mercado Pago não permite pré-autorização pela plataforma, ela é garantida por um fiador indicado por quem aluga ao reservar (se o fiador for casado, o cônjuge também autoriza). A garantia se encerra ao final da locação se não houver dano.
 - Danos ao patrimônio ou aos equipamentos nunca são cobrados automaticamente: só se quem alugou reconhecer, ou quando a mediação (Central de Resolução) não resultar em acordo e a causa do dano for comprovada. Desgaste natural e defeitos preexistentes não são cobrados. O anfitrião deve registrar fotos antes e depois e abrir o incidente pela reserva dentro do prazo.
 - A caução é uma garantia parcial: se o dano comprovado for maior que o valor da caução, quem alugou deve complementar a diferença.
 

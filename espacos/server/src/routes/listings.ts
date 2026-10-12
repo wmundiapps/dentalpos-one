@@ -53,6 +53,9 @@ const listingSchema = z.object({
   guarantorThreshold: z.number().positive().optional(),
   requiresLicense: z.boolean(),
   hostLicenseResponsibility: z.boolean().default(false),
+  // A que título o anfitrião ocupa o imóvel; quem não é proprietário declara a autorização do proprietário/locador
+  occupancy: z.enum(['owner', 'tenant', 'other']).optional(),
+  occupancyConsent: z.boolean().optional(),
   houseRules: z.string().min(10).max(5000),
   buildingRules: z.string().max(5000).optional(),
   allowedActivities: z.string().max(2000).optional(),
@@ -82,6 +85,9 @@ function checkListingRules(data: z.infer<typeof listingSchema>) {
   const dayRef = data.pricePerDay ?? data.pricePerHour * BOOKING_LIMITS.maxHoursPerOccurrence;
   if (data.securityDeposit > dayRef * FEES.maxDepositMultiple) throw new HttpError(422, 'deposit_too_high', { maxMultiple: FEES.maxDepositMultiple });
   if (data.guarantorPolicy === 'required_over_amount' && !data.guarantorThreshold) throw new HttpError(422, 'guarantor_threshold_required');
+  // Lei 8.245/91, art. 13: cessão do uso por quem não é proprietário depende de consentimento prévio e escrito do locador
+  if (!data.occupancy) throw new HttpError(422, 'occupancy_required');
+  if (data.occupancy !== 'owner' && !data.occupancyConsent) throw new HttpError(422, 'occupancy_consent_required');
   for (const ranges of Object.values(data.weeklyAvailability)) {
     for (const r of ranges as TimeRange[]) {
       if (toMinutes(r.start) < toMinutes(BOOKING_LIMITS.earliestStart) || toMinutes(r.end) > toMinutes(BOOKING_LIMITS.latestEnd)) {
@@ -89,7 +95,10 @@ function checkListingRules(data: z.infer<typeof listingSchema>) {
       }
     }
   }
-  return { currency: country.currency, timezone: city.tz, city: city.name, state: hasGeo(data.countryCode) ? data.state : undefined };
+  return {
+    currency: country.currency, timezone: city.tz, city: city.name, state: hasGeo(data.countryCode) ? data.state : undefined,
+    occupancyConsentAt: data.occupancy === 'owner' ? undefined : nowIso(),
+  };
 }
 
 /** Endereço completo só para o anfitrião e para quem tem reserva confirmada. */

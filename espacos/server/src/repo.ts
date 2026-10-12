@@ -94,6 +94,7 @@ function toListing(r: any): Listing {
     pricePerHour: r.price_per_hour, pricePerDay: opt(r.price_per_day), minHours: r.min_hours, cleaningFee: r.cleaning_fee,
     securityDeposit: r.security_deposit, instantBook: r.instant_book, cancellationPolicy: r.cancellation_policy,
     guarantorPolicy: r.guarantor_policy, guarantorThreshold: opt(r.guarantor_threshold), requiresLicense: r.requires_license, hostLicenseResponsibility: r.host_license_responsibility,
+    occupancy: opt(r.occupancy), occupancyConsentAt: iso(opt(r.occupancy_consent_at)),
     houseRules: r.house_rules, buildingRules: opt(r.building_rules), allowedActivities: opt(r.allowed_activities),
     forbiddenActivities: opt(r.forbidden_activities), bufferMinutes: r.buffer_minutes, weeklyAvailability: r.weekly_availability,
     blockedDates: r.blocked_dates ?? [], active: r.active, createdAt: iso(r.created_at)!,
@@ -141,8 +142,9 @@ export async function insertListing(db: Db, l: Listing) {
     `INSERT INTO listings (id, host_id, title, description, category, country_code, city, timezone, neighborhood, address, capacity,
        area_m2, amenities, equipment, photos, currency, price_per_hour, price_per_day, min_hours, cleaning_fee, security_deposit,
        instant_book, cancellation_policy, guarantor_policy, guarantor_threshold, requires_license, house_rules, building_rules,
-       allowed_activities, forbidden_activities, buffer_minutes, weekly_availability, blocked_dates, active, created_at, host_license_responsibility, state, package_discount_pct)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38)`,
+       allowed_activities, forbidden_activities, buffer_minutes, weekly_availability, blocked_dates, active, created_at, host_license_responsibility, state, package_discount_pct,
+       occupancy, occupancy_consent_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40)`,
     listingParams(l),
   );
 }
@@ -154,7 +156,8 @@ export async function updateListing(db: Db, l: Listing) {
        price_per_day=$18, min_hours=$19, cleaning_fee=$20, security_deposit=$21, instant_book=$22, cancellation_policy=$23,
        guarantor_policy=$24, guarantor_threshold=$25, requires_license=$26, house_rules=$27, building_rules=$28,
        allowed_activities=$29, forbidden_activities=$30, buffer_minutes=$31, weekly_availability=$32, blocked_dates=$33,
-       active=$34, created_at=$35, host_license_responsibility=$36, state=$37, package_discount_pct=$38
+       active=$34, created_at=$35, host_license_responsibility=$36, state=$37, package_discount_pct=$38,
+       occupancy=$39, occupancy_consent_at=$40
      WHERE id=$1`,
     listingParams(l),
   );
@@ -165,7 +168,8 @@ function listingParams(l: Listing) {
     l.capacity, l.areaM2 ?? null, l.amenities, l.equipment, l.photos, l.currency, l.pricePerHour, l.pricePerDay ?? null, l.minHours,
     l.cleaningFee, l.securityDeposit, l.instantBook, l.cancellationPolicy, l.guarantorPolicy, l.guarantorThreshold ?? null,
     l.requiresLicense, l.houseRules, l.buildingRules ?? null, l.allowedActivities ?? null, l.forbiddenActivities ?? null,
-    l.bufferMinutes, JSON.stringify(l.weeklyAvailability), l.blockedDates, l.active, l.createdAt, !!l.hostLicenseResponsibility, l.state ?? null, l.packageDiscountPct ?? 0];
+    l.bufferMinutes, JSON.stringify(l.weeklyAvailability), l.blockedDates, l.active, l.createdAt, !!l.hostLicenseResponsibility, l.state ?? null, l.packageDiscountPct ?? 0,
+    l.occupancy ?? null, l.occupancyConsentAt ?? null];
 }
 
 export async function ratingSummaries(db: Db, listingIds: string[]) {
@@ -209,6 +213,11 @@ async function hydrateBookings(db: Db, list: any[]): Promise<Booking[]> {
       b.guarantor = {
         name: g.name, email: g.email, phone: opt(g.phone), documentNumber: g.document_number, relationship: opt(g.relationship),
         token: g.token, status: g.status, liabilityCap: g.liability_cap, respondedAt: iso(opt(g.responded_at)),
+        maritalStatus: opt(g.marital_status), propertyRegime: opt(g.property_regime),
+        spouse: g.spouse_token ? {
+          name: g.spouse_name, documentNumber: g.spouse_document, email: g.spouse_email, token: g.spouse_token,
+          status: g.spouse_status, respondedAt: iso(opt(g.spouse_responded_at)),
+        } : undefined,
       };
     }
     return b;
@@ -221,7 +230,7 @@ export async function getBooking(db: Db, bookingId: string, forUpdate = false) {
 }
 
 export async function getBookingByGuarantorToken(db: Db, tok: string, forUpdate = false) {
-  const r = await one(db, `SELECT b.* FROM bookings b JOIN guarantors g ON g.booking_id = b.id WHERE g.token = $1${forUpdate ? ' FOR UPDATE OF b' : ''}`, [tok]);
+  const r = await one(db, `SELECT b.* FROM bookings b JOIN guarantors g ON g.booking_id = b.id WHERE (g.token = $1 OR g.spouse_token = $1)${forUpdate ? ' FOR UPDATE OF b' : ''}`, [tok]);
   return r ? (await hydrateBookings(db, [r]))[0] : undefined;
 }
 
@@ -263,10 +272,16 @@ export async function saveBooking(db: Db, b: Booking) {
   if (b.guarantor) {
     const g = b.guarantor;
     await db.query(
-      `INSERT INTO guarantors (booking_id, name, email, phone, document_number, relationship, token, status, liability_cap, responded_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-       ON CONFLICT (booking_id) DO UPDATE SET status=EXCLUDED.status, responded_at=EXCLUDED.responded_at`,
-      [b.id, g.name, g.email, g.phone ?? null, g.documentNumber, g.relationship ?? null, g.token, g.status, g.liabilityCap, g.respondedAt ?? null],
+      `INSERT INTO guarantors (booking_id, name, email, phone, document_number, relationship, token, status, liability_cap, responded_at,
+         marital_status, property_regime, spouse_name, spouse_document, spouse_email, spouse_token, spouse_status, spouse_responded_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+       ON CONFLICT (booking_id) DO UPDATE SET status=EXCLUDED.status, responded_at=EXCLUDED.responded_at,
+         marital_status=EXCLUDED.marital_status, property_regime=EXCLUDED.property_regime, spouse_name=EXCLUDED.spouse_name,
+         spouse_document=EXCLUDED.spouse_document, spouse_email=EXCLUDED.spouse_email, spouse_token=EXCLUDED.spouse_token,
+         spouse_status=EXCLUDED.spouse_status, spouse_responded_at=EXCLUDED.spouse_responded_at`,
+      [b.id, g.name, g.email, g.phone ?? null, g.documentNumber, g.relationship ?? null, g.token, g.status, g.liabilityCap, g.respondedAt ?? null,
+        g.maritalStatus ?? null, g.propertyRegime ?? null, g.spouse?.name ?? null, g.spouse?.documentNumber ?? null, g.spouse?.email ?? null,
+        g.spouse?.token ?? null, g.spouse?.status ?? null, g.spouse?.respondedAt ?? null],
     );
   }
 }

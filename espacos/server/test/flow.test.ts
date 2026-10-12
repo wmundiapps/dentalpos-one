@@ -87,15 +87,23 @@ test('falha no meio da operação desfaz tudo (transação)', async () => {
   assert.equal(after!.n, before!.n);
 });
 
-test('solicitação com avalista: avalista aceita → anfitrião aprova → anfitrião cancela', async () => {
+test('solicitação com fiador casado: fiador aceita, cônjuge autoriza (CC 1.647) → anfitrião aprova → anfitrião cancela', async () => {
   const l = byTitle('Auditório para 120');
   const host = (await repo.getUser(pool, l.hostId))!;
   const date = nextDateWith(l, 6);
   await assert.rejects(B.createBooking(guest, { listingId: l.id, occurrences: [{ date, start: '09:00', end: '13:00' }], guests: 80, purpose: 'Congresso', paymentMethod: 'card', acceptRules: true }), /guarantor_required/);
   let b = await B.createBooking(guest, { listingId: l.id, occurrences: [{ date, start: '09:00', end: '13:00' }], guests: 80, purpose: 'Congresso', paymentMethod: 'card', acceptRules: true, guarantor: { name: 'João Avalista', email: 'joao@example.com', documentNumber: '123.456.789-00' } });
   assert.equal(b.status, 'pending_guarantor');
-  b = await B.respondGuarantor(b.guarantor!.token, true);
+  await assert.rejects(B.respondGuarantor(b.guarantor!.token, { accept: true }), /guarantor_marital_status_required/);
+  await assert.rejects(B.respondGuarantor(b.guarantor!.token, { accept: true, maritalStatus: 'married', propertyRegime: 'partial' }), /guarantor_spouse_required/);
+  b = await B.respondGuarantor(b.guarantor!.token, { accept: true, maritalStatus: 'married', propertyRegime: 'partial', spouse: { name: 'Maria Cônjuge', documentNumber: '987.654.321-00', email: 'maria@example.com' } });
+  assert.equal(b.status, 'pending_guarantor', 'fiança só vale com a autorização do cônjuge');
+  assert.equal(b.guarantor!.status, 'accepted');
+  assert.equal(b.guarantor!.spouse!.status, 'invited');
+  await assert.rejects(B.respondGuarantor(b.guarantor!.token, { accept: true }), /guarantor_invite_closed/);
+  b = await B.respondGuarantor(b.guarantor!.spouse!.token, { accept: true });
   assert.equal(b.status, 'pending_host');
+  assert.equal(b.guarantor!.spouse!.status, 'accepted');
   b = await B.hostDecision(host, b.id, true);
   assert.equal(b.status, 'confirmed');
   assert.equal((await repo.getPayment(pool, b.paymentId))!.depositStatus, 'held');
