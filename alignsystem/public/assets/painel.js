@@ -767,7 +767,7 @@
         '<form class="card" id="apf"><h2>Credenciamento e Termo de Adesão</h2><p class="small muted">Ao aprovar, o sistema cria o acesso ao painel e o Termo de Adesão com os valores abaixo (o dentista recebe por e-mail; você também pode enviar pelo WhatsApp).</p><div class="grid2">' +
         field('avulsaValue', 'Consulta avulsa (R$)', T.avulsaValue, 'inputmode="decimal"') + field('redeValue', 'Consulta no modelo rede (R$)', T.redeValue, 'inputmode="decimal"') +
         field('noticeDays', 'Aviso prévio (dias)', T.noticeDays, 'type="number"') + field('lockMonths', 'Multa se sair antes de (meses)', T.lockMonths, 'type="number"') +
-        field('penaltyRepasses', 'Multa: nº de repasses médios', T.penaltyRepasses, 'type="number"') + field('penaltyFixed', 'Multa mínima (R$)', T.penaltyFixed, 'inputmode="decimal"') +
+        field('penaltyFixed', 'Multa rescisória fixa (R$)', T.penaltyFixed, 'inputmode="decimal"') +
         field('nonSolicitMonths', 'Não desvio após saída (meses)', T.nonSolicitMonths, 'type="number"') + '</div>' +
         '<button class="btn btn-green" type="submit">' + (hasUser ? 'Gerar novo Termo e reenviar acesso' : 'Aprovar e enviar Termo de Adesão') + '</button><div class="fmsg"></div><div id="links"></div>' +
         (hasUser ? '<p class="small muted" style="margin-top:10px">Acesso: ' + esc(d.users[0].email) + (d.users[0].has_password ? ' · senha criada' : ' · senha ainda não criada') + (d.users[0].last_login_at ? ' · último acesso ' + esc(AS.date(d.users[0].last_login_at, true)) : '') +

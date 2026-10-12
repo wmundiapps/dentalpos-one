@@ -603,4 +603,6 @@ test('data de pagamento por atendimento: dia 10 do mês seguinte ao registro, at
   assert.match(body, /dia 10 \(dez\) do mês seguinte ao do registro/);
   assert.match(body, /autorização prévia/);
   assert.doesNotMatch(body, /dias úteis após/);
+  assert.match(body, /multa rescisória fixa de R\$\s?5\.000,00\./);
+  assert.doesNotMatch(body, /repasses médios/);
 });

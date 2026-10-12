@@ -124,7 +124,6 @@ export const PARTNER_DEFAULTS = {
   limitComplex: MODEL.consultLimits.complexo,
   noticeDays: 30,
   lockMonths: 12,
-  penaltyRepasses: 3,
   penaltyFixed: 5000,
   nonSolicitMonths: 12,
 };
@@ -185,7 +184,7 @@ export function partnerContract(d, terms = {}) {
     sec(9, 'Vigência', p('O presente Termo vigora por prazo indeterminado a partir de seu aceite, podendo ser rescindido pelas Partes na forma da Cláusula 10.')),
     sec(10, 'Rescisão e multa rescisória',
       p(`10.1. Qualquer das Partes poderá rescindir este Termo mediante aviso prévio por escrito de ${e(t.noticeDays)} dias, ressalvada a conclusão dos casos clínicos em andamento sob responsabilidade do(a) Parceiro(a), que deverão ser finalizados ou formalmente transferidos, conforme acordo entre as Partes.`) +
-      p(`<b>10.2. Em caso de rescisão imotivada por qualquer das Partes antes de completados ${e(t.lockMonths)} meses de vigência, a parte denunciante pagará à outra multa rescisória equivalente a ${e(t.penaltyRepasses)} repasses médios mensais apurados nos últimos 90 dias, ou o valor fixo de ${e(brl(t.penaltyFixed))}, o que for maior.</b>`) +
+      p(`<b>10.2. Em caso de rescisão imotivada por qualquer das Partes antes de completados ${e(t.lockMonths)} meses de vigência, a parte denunciante pagará à outra multa rescisória fixa de ${e(brl(t.penaltyFixed))}.</b>`) +
       p('10.3. Havendo justa causa — descumprimento contratual, infração ética ou legal, ou risco à segurança do paciente —, a rescisão poderá ocorrer de forma imediata, sem aviso prévio e sem multa em favor da parte infratora.')),
     sec(11, 'Proteção de dados (LGPD)', p('Cada Parte atuará como controladora ou operadora de dados pessoais conforme sua atuação nesta parceria, comprometendo-se a adotar medidas técnicas e administrativas adequadas à proteção dos dados de pacientes, e a comunicar prontamente eventuais incidentes de segurança à outra Parte.')),
     sec(12, 'Disposições gerais',
