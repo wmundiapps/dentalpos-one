@@ -32,6 +32,7 @@
   var T = params.get('t');
   var app = document.getElementById('app');
   var state = null;
+  var neg = { discount: 0, option: 'PIX', installments: 1 }; // escolhas do paciente na negociação
   var attSim = null; // simulação do atendimento presencial
   var attEdit = false;
   var showPhotos = false;
@@ -283,6 +284,51 @@
       html += '</div>';
     }
 
+    // Negociação on-line (aberta pelo dentista)
+    var NG = state.negotiation;
+    if (NG) {
+      var OPT = { PIX: 'Pix à vista', CREDIT_CARD: 'Cartão de crédito', BOLETO: 'Boleto' };
+      html += '<div class="card" id="negociacao"><h2>Negociação do seu tratamento</h2>';
+      if (NG.status === 'fechada' && NG.deal) {
+        html += '<div class="msg ok"><b>Tratamento fechado!</b> Valor: <b>' + esc(AS.money(NG.deal.total)) + '</b>' + (NG.deal.discountPct ? ' (' + esc(NG.deal.discountPct) + '% de desconto)' : '') +
+          ' · ' + esc(OPT[NG.deal.option]) + (NG.deal.installments > 1 ? ' em ' + NG.deal.installments + 'x' : '') + '. Agora a equipe prepara o seu contrato e o link de pagamento; você recebe tudo por e-mail e WhatsApp.</div>';
+      } else if (NG.status === 'contraproposta') {
+        html += '<div class="msg warn">Recebemos sua contraproposta de <b>' + esc(AS.money(NG.counterSent && NG.counterSent.value)) + '</b>. O dentista vai responder em breve; você recebe a resposta por e-mail.</div>';
+      } else {
+        var d0 = Math.min(neg.discount, NG.maxDiscountPct);
+        var total = Math.round(NG.total * (1 - d0 / 100) * 100) / 100;
+        var pix = Math.round(total * (1 - NG.pixDiscountPct / 100) * 100) / 100;
+        var entry = Math.round(total * 0.5 * 100) / 100, rest = Math.round((total - entry) * 100) / 100;
+        var pmt = function (v, n, r) { r = r / 100; return n <= 1 || !(r > 0) ? v / n : (v * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1); };
+        var boletoEach = function (n) { return n > NG.noInterestUpTo ? pmt(rest, n, NG.interestPct) : rest / n; };
+        if (NG.lastDecision) html += '<div class="msg ' + (NG.lastDecision.accepted ? 'ok' : 'warn') + '">' + (NG.lastDecision.accepted ? 'Sua contraproposta foi <b>aceita</b>: o novo desconto já está liberado abaixo.' : 'Sua contraproposta não pôde ser aceita, mas as condições abaixo continuam valendo.') + (NG.lastDecision.note ? '<br>' + esc(NG.lastDecision.note) : '') + '</div>';
+        html += '<p class="muted">Seu dentista liberou condições especiais para você fechar o tratamento. Escolha o desconto e a forma de pagamento:</p>' +
+          '<div class="small muted">Valor do tratamento: ' + esc(AS.money(NG.total)) + '</div>' +
+          (NG.maxDiscountPct > 0 ? '<div class="field" style="margin-top:10px"><label for="ngDisc">Desconto: <b id="ngDiscLbl">' + d0 + '%</b> — valor com desconto: <b id="ngTotal">' + esc(AS.money(total)) + '</b></label>' +
+            '<input type="range" id="ngDisc" min="0" max="' + NG.maxDiscountPct + '" step="0.5" value="' + d0 + '" style="width:100%"></div>' : '<div style="margin-top:8px">Valor: <b>' + esc(AS.money(total)) + '</b></div>') +
+          '<h3 style="margin-top:14px">Forma de pagamento</h3>' +
+          '<div class="check field"><input type="radio" name="ngOpt" id="ngPix" value="PIX"' + (neg.option === 'PIX' ? ' checked' : '') + '><label for="ngPix"><b>Pix à vista</b> com mais ' + NG.pixDiscountPct + '% de desconto: <b>' + esc(AS.money(pix)) + '</b></label></div>' +
+          '<div class="check field"><input type="radio" name="ngOpt" id="ngCard" value="CREDIT_CARD"' + (neg.option === 'CREDIT_CARD' ? ' checked' : '') + '><label for="ngCard"><b>Cartão de crédito</b> em até ' + NG.cardMax + 'x sem juros: ' + NG.cardMax + 'x de <b>' + esc(AS.money(total / NG.cardMax)) + '</b></label></div>' +
+          (NG.boleto ? '<div class="check field"><input type="radio" name="ngOpt" id="ngBol" value="BOLETO"' + (neg.option === 'BOLETO' ? ' checked' : '') + '><label for="ngBol"><b>Boleto</b>: entrada de ' + esc(AS.money(entry)) + ' (50%) + saldo em até ' + NG.boletoMax + ' boletos</label></div>' : '') +
+          (neg.option === 'CREDIT_CARD' || neg.option === 'BOLETO' ? (function () {
+            var max = neg.option === 'CREDIT_CARD' ? NG.cardMax : NG.boletoMax, opts = '';
+            for (var n = 1; n <= max; n++) {
+              var each = neg.option === 'CREDIT_CARD' ? total / n : boletoEach(n);
+              opts += '<option value="' + n + '"' + (n === neg.installments ? ' selected' : '') + '>' + n + 'x de ' + AS.money(Math.round(each * 100) / 100) + (neg.option === 'BOLETO' && n > NG.noInterestUpTo ? ' · juros ' + String(NG.interestPct).replace('.', ',') + '% a.m.' : ' sem juros') + '</option>';
+            }
+            return '<div class="field"><label for="ngInst">' + (neg.option === 'BOLETO' ? 'Saldo em' : 'Parcelas') + '</label><select id="ngInst">' + opts + '</select></div>';
+          })() : '') +
+          '<div class="check field"><input type="checkbox" id="ngAgree"><label for="ngAgree">Quero fechar o meu tratamento com estas condições. Sei que, em seguida, recebo o contrato para ler e aceitar e o link de pagamento.</label></div>' +
+          '<button class="btn btn-primary" id="ngClose" style="font-size:16px;padding:14px 24px">Fechar meu tratamento</button>' +
+          (NG.counter ? '<details style="margin-top:16px"><summary><b>Não cabe no seu orçamento? Faça uma contraproposta</b></summary><form id="ngCounterForm" style="margin-top:10px">' +
+            '<div class="field"><label for="ngCv">Quanto você pode pagar pelo tratamento? (a partir de ' + esc(AS.money(NG.counterMin)) + ')</label><input id="ngCv" inputmode="decimal" placeholder="Ex.: 8.500,00" required></div>' +
+            '<div class="field"><label for="ngCm">Mensagem para o dentista (opcional)</label><textarea id="ngCm" maxlength="500"></textarea></div>' +
+            '<button class="btn btn-line" type="submit">Enviar contraproposta</button></form></details>' : '') +
+          '<div id="ngMsg"></div>';
+      }
+      html += '</div>';
+    }
+
     // Contratos
     if (state.contracts.length) {
       html += '<div class="card"><h2>Contrato</h2><div class="list">';
@@ -319,6 +365,33 @@
   }
 
   function bind() {
+    var ngD = document.getElementById('ngDisc');
+    if (ngD) ngD.addEventListener('input', function () {
+      neg.discount = Number(ngD.value);
+      var NG = state.negotiation, t = Math.round(NG.total * (1 - neg.discount / 100) * 100) / 100;
+      document.getElementById('ngDiscLbl').textContent = neg.discount + '%';
+      document.getElementById('ngTotal').textContent = AS.money(t);
+    });
+    if (ngD) ngD.addEventListener('change', function () { render(); var el = document.getElementById('negociacao'); if (el) el.scrollIntoView({ block: 'start' }); });
+    Array.prototype.forEach.call(document.querySelectorAll('input[name=ngOpt]'), function (r) {
+      r.addEventListener('change', function () { neg.option = r.value; neg.installments = r.value === 'CREDIT_CARD' ? state.negotiation.cardMax : 1; render(); var el = document.getElementById('negociacao'); if (el) el.scrollIntoView({ block: 'start' }); });
+    });
+    var ngI = document.getElementById('ngInst');
+    if (ngI) ngI.addEventListener('change', function () { neg.installments = Number(ngI.value); });
+    var ngC = document.getElementById('ngClose');
+    if (ngC) ngC.addEventListener('click', function () {
+      var out = document.getElementById('ngMsg');
+      if (!document.getElementById('ngAgree').checked) { out.innerHTML = '<div class="msg err">Marque a caixa de confirmação para fechar.</div>'; return; }
+      ngC.disabled = true; ngC.textContent = 'Fechando…';
+      AS.api('/api/portal/' + encodeURIComponent(T) + '/negociacao/fechar', { method: 'POST', body: { discountPct: neg.discount, option: neg.option, installments: neg.installments, agree: true } })
+        .then(load).catch(function (err) { ngC.disabled = false; ngC.textContent = 'Fechar meu tratamento'; out.innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
+    });
+    var ngF = document.getElementById('ngCounterForm');
+    if (ngF) ngF.addEventListener('submit', function (e) {
+      e.preventDefault();
+      AS.api('/api/portal/' + encodeURIComponent(T) + '/negociacao/contraproposta', { method: 'POST', body: { value: document.getElementById('ngCv').value, message: document.getElementById('ngCm').value } })
+        .then(load).catch(function (err) { document.getElementById('ngMsg').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
+    });
     var so = document.getElementById('scanOpen');
     if (so) so.addEventListener('click', function () { scanOpen = true; render(); var el = document.getElementById('escaneamento'); if (el) el.scrollIntoView({ block: 'start' }); });
     var sf = document.getElementById('scanForm');

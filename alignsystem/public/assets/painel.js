@@ -188,7 +188,17 @@
         '<div style="max-width:320px">' + field('scan', 'Escaneamento e documentação (R$) — valor único', P.scan || '', 'inputmode="decimal" required') + '</div>' +
         table + '<p class="small muted">Até 3 marcas. Deixe em branco a coluna que não for usar. No plano de cada caso, escreva a marca com o mesmo nome usado aqui, para o sistema achar o custo dos alinhadores.</p>' +
         '<button class="btn btn-primary" type="submit">Salvar preços</button><div class="fmsg"></div></form>';
+      html += '<form class="card" id="ncf" style="max-width:640px"><h2>Negociação on-line — teto da AlignSystem</h2><p class="small muted">Limites máximos que os dentistas podem oferecer na negociação com o paciente. O desconto é dividido proporcionalmente entre as partes. No boleto, a entrada é sempre 50% (alinhadores); o saldo vai até 18x sem juros e, acima disso, com os juros abaixo.</p><div class="grid2">' +
+        field('maxDiscountPct', 'Desconto máximo (%)', '', 'type="number" min="0" max="50" step="0.5"') +
+        field('maxBoletos', 'Saldo do boleto em até (x)', '', 'type="number" min="1" max="60"') +
+        field('interestPctMonth', 'Juros ao mês acima de 18x (%)', '', 'inputmode="decimal"') + '</div>' +
+        '<button class="btn btn-primary" type="submit">Salvar teto</button><div class="fmsg"></div></form>';
       var m = mount(html, 'precos');
+      api('/api/admin/settings/negotiation').then(function (r) {
+        var f = $('#ncf', m); if (!f) return;
+        f.elements.maxDiscountPct.value = r.negotiation.maxDiscountPct; f.elements.maxBoletos.value = r.negotiation.maxBoletos; f.elements.interestPctMonth.value = String(r.negotiation.interestPctMonth).replace('.', ',');
+      }).catch(function () {});
+      onSubmit($('#ncf', m), function (f) { return api('/api/admin/settings/negotiation', { method: 'PUT', body: f }).then(function () { return 'Teto salvo.'; }); });
       onSubmit($('#prf', m), function (f) {
         var body = { scan: f.scan, brands: [] };
         for (var i = 0; i < 3; i++) {
@@ -291,6 +301,81 @@
       '<div class="small muted">Assinado em ' + esc(AS.date(e.signed_at, true)) + '<br>IP ' + esc(e.signed_ip || '') + '</div></div>';
   }
 
+  // ---------------------------------------------------------- negociação on-line (quadro do caso)
+  var NEG_STATUS = { aberta: 'Aberta para o paciente', contraproposta: 'Contraproposta aguardando resposta', fechada: 'Fechada pelo paciente', encerrada: 'Encerrada' };
+  var NEG_OPT = { PIX: 'Pix à vista', CREDIT_CARD: 'Cartão de crédito', BOLETO: 'Boleto (entrada 50% + saldo)' };
+  function negotiationCard(N, opts) {
+    var h = '<div class="card" id="negCard"><h2>Negociação on-line</h2>';
+    if (!opts.consent) h += '<div class="msg warn small">O dentista do caso ainda não aceitou o termo da negociação on-line' + (opts.isDentist ? ': vá em <a href="#/negociacao">Negociação</a>.' : '.') + '</div>';
+    if (!N) h += '<p class="small muted">Com a negociação aberta, o paciente recebe um aviso e, na página dele, escolhe desconto e forma de pagamento dentro dos limites do dentista, ou faz uma contraproposta.</p>';
+    else {
+      var P = N.params || {};
+      h += '<div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:8px">' + statusBadge(NEG_STATUS[N.status] || N.status, N.status === 'fechada' ? 'green' : N.status === 'contraproposta' ? 'honey' : N.status === 'encerrada' ? '' : 'green') + '</div>' +
+        '<div class="small">Valor de tabela: <b>' + esc(AS.money(N.total)) + '</b> · desconto até <b>' + esc(P.maxDiscountPct) + '%</b> · cartão até <b>' + esc(P.cardMax) + 'x</b>' + (P.boleto ? ' · boleto: entrada 50% + até <b>' + esc(P.boletoMax) + '</b> boletos' : '') + (P.counter ? ' · aceita contraproposta' : '') + '</div>';
+      if (N.status === 'contraproposta' && N.counter) h += '<div class="msg warn" style="margin-top:10px"><b>Contraproposta:</b> ' + esc(AS.money(N.counter.value)) + ' (' + esc(Math.round((1 - N.counter.value / N.total) * 10000) / 100) + '% de desconto)' + (N.counter.message ? '<br>"' + esc(N.counter.message) + '"' : '') +
+        '<div class="row" style="margin-top:8px"><button type="button" class="btn btn-green btn-sm" id="negAccept">Aceitar</button><button type="button" class="btn btn-danger btn-sm" id="negDecline">Recusar</button></div></div>';
+      if (N.deal) h += '<div class="msg ok" style="margin-top:10px"><b>Fechado em ' + esc(AS.date(N.deal.at, true)) + ':</b> ' + esc(AS.money(N.deal.total)) + ' (' + esc(N.deal.discountPct) + '% de desconto) · ' + esc(NEG_OPT[N.deal.option] || N.deal.option) + (N.deal.installments > 1 ? ' em ' + N.deal.installments + 'x' : '') + '</div>';
+    }
+    if (!N || N.status === 'encerrada') h += '<button type="button" class="btn btn-primary btn-sm" id="negOpen"' + (opts.consent ? '' : ' disabled') + ' style="margin-top:10px">Abrir negociação e avisar o paciente</button>';
+    else if (N.status === 'aberta' || N.status === 'contraproposta') h += '<div class="row" style="margin-top:10px"><button type="button" class="btn btn-line btn-sm" id="negOpen">Atualizar limites e avisar de novo</button><button type="button" class="btn btn-line btn-sm" id="negEnd">Encerrar negociação</button></div>';
+    return h + '<div id="negMsg"></div></div>';
+  }
+  function bindNegotiation(m, base, reload) {
+    var msg = $('#negMsg', m);
+    var show = function (html) { if (msg) msg.innerHTML = html; };
+    var fail = function (e) { show('<div class="msg err">' + esc(e.message) + '</div>'); };
+    var op = $('#negOpen', m);
+    if (op) op.addEventListener('click', function () {
+      busyBtn(op, api(base + '/negotiation/open', { method: 'POST', body: {} })).then(function (r) {
+        show('<div class="msg ok">Negociação aberta. ' + (r.emailed ? 'O paciente recebeu o aviso por e-mail. ' : 'Paciente sem e-mail cadastrado. ') +
+          (r.whatsappUrl ? '<a class="btn btn-green btn-sm" target="_blank" rel="noopener" href="' + esc(r.whatsappUrl) + '">Avisar também no WhatsApp</a>' : '') + '</div>');
+        setTimeout(reload, 4000);
+      }).catch(fail);
+    });
+    var en = $('#negEnd', m);
+    if (en) en.addEventListener('click', function () {
+      if (!confirm('Encerrar a negociação? O paciente deixa de ver as condições.')) return;
+      busyBtn(en, api(base + '/negotiation/end', { method: 'POST', body: {} })).then(reload).catch(fail);
+    });
+    var ac = $('#negAccept', m), dc = $('#negDecline', m);
+    if (ac) ac.addEventListener('click', function () {
+      busyBtn(ac, api(base + '/negotiation/counter', { method: 'POST', body: { accept: true, note: prompt('Mensagem para o paciente (opcional):') || '' } })).then(reload).catch(fail);
+    });
+    if (dc) dc.addEventListener('click', function () {
+      var note = prompt('Motivo / mensagem para o paciente:');
+      if (note === null) return;
+      busyBtn(dc, api(base + '/negotiation/counter', { method: 'POST', body: { accept: false, note: note } })).then(reload).catch(fail);
+    });
+  }
+
+  function dentistNegotiation() {
+    loading('negociacao');
+    api('/api/dentist/negotiation').then(function (d) {
+      var C = d.config || { maxDiscountPct: 0, cardMax: 18, boleto: true, boletoMax: 18, counter: false, counterFloorPct: 0 }, X = d.ceiling;
+      var consented = Boolean(d.config && d.config.consentAt);
+      var html = '<h1>Negociação on-line</h1><form class="card" id="ngf" style="max-width:640px">' +
+        '<p class="small muted">Quando você abre a negociação num caso, o paciente recebe um aviso e, na página dele, escolhe o desconto e a forma de pagamento dentro dos limites abaixo, ou faz uma contraproposta para você aceitar ou recusar. Teto da AlignSystem: desconto até <b>' + X.maxDiscountPct + '%</b>, cartão até <b>18x sem juros</b>, saldo do boleto até <b>' + X.maxBoletos + 'x</b> (acima de 18x com juros de ' + String(X.interestPctMonth).replace('.', ',') + '% ao mês).</p>' +
+        (consented ? '<div class="msg ok small">Termo aceito em ' + esc(AS.date(d.config.consentAt, true)) + '.</div>' :
+          '<div class="tcle-box" style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px">' + d.terms.paragraphs.map(function (p) { return '<p class="small">' + esc(p) + '</p>'; }).join('') + '</div>' +
+          '<div class="check field"><input type="checkbox" id="ngAgree"><label for="ngAgree"><b>Li e aceito</b> o termo da negociação on-line.</label></div>') +
+        '<div class="grid2">' +
+        field('maxDiscountPct', 'Desconto máximo que o paciente pode escolher (%)', C.maxDiscountPct, 'type="number" min="0" max="' + X.maxDiscountPct + '" step="0.5"') +
+        field('cardMax', 'Cartão de crédito: até quantas parcelas (sem juros)', C.cardMax, 'type="number" min="1" max="18"') +
+        field('boletoMax', 'Boleto: saldo em até quantas parcelas', C.boletoMax, 'type="number" min="1" max="' + X.maxBoletos + '"') +
+        field('counterFloorPct', 'Contraproposta: desconto máximo que o paciente pode pedir (%)', C.counterFloorPct, 'type="number" min="0" max="' + X.maxDiscountPct + '" step="0.5"') + '</div>' +
+        '<div class="check field"><input type="checkbox" id="ngBoleto"' + (C.boleto ? ' checked' : '') + '><label for="ngBoleto">Permitir boleto (entrada de 50% + saldo)</label></div>' +
+        '<div class="check field"><input type="checkbox" id="ngCounter"' + (C.counter ? ' checked' : '') + '><label for="ngCounter">Aceitar contraproposta do paciente (precisa ser maior que o desconto máximo acima)</label></div>' +
+        '<button class="btn btn-primary" type="submit">Salvar</button><div class="fmsg"></div></form>';
+      var m = mount(html, 'negociacao');
+      onSubmit($('#ngf', m), function (f) {
+        var body = { maxDiscountPct: f.maxDiscountPct, cardMax: f.cardMax, boletoMax: f.boletoMax, counterFloorPct: f.counterFloorPct,
+          boleto: $('#ngBoleto', m).checked, counter: $('#ngCounter', m).checked };
+        if (!consented) { body.agree = $('#ngAgree', m).checked; body.hash = d.terms.hash; }
+        return api('/api/dentist/negotiation', { method: 'PUT', body: body }).then(function () { setTimeout(dentistNegotiation, 800); return 'Salvo.'; });
+      });
+    }).catch(function (e) { errorView(e, 'negociacao'); });
+  }
+
   function dentistPrices() {
     loading('precos');
     api('/api/dentist/prices').then(function (d) {
@@ -310,7 +395,7 @@
   function shell(content, active) {
     var nav = me.role === 'admin'
       ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/cobertura', 'Cobertura e marketing', 'cobertura'], ['#/captacao', 'Captação de dentistas', 'captacao'], ['#/precos', 'Preços', 'precos'], ['#/equipe', 'Equipe', 'equipe'], ['#/conta', 'Minha conta', 'conta']]
-      : [['#/', 'Meus casos', 'inicio'], ['#/meus-precos', 'Meus preços', 'precos'], ['#/conta', 'Minha conta', 'conta']];
+      : [['#/', 'Meus casos', 'inicio'], ['#/meus-precos', 'Meus preços', 'precos'], ['#/negociacao', 'Negociação', 'negociacao'], ['#/conta', 'Minha conta', 'conta']];
     return '<div class="mobile-top"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="28"></span><button class="btn btn-sm btn-line" style="color:#fff;border-color:rgba(255,255,255,.4)" id="menuBtn">Menu</button></div>' +
       '<div class="shell"><aside class="side" id="side"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="30"></span>' +
       nav.map(function (n) { return '<a class="nav' + (n[2] === active ? ' on' : '') + '" href="' + n[0] + '">' + esc(n[1]) + '</a>'; }).join('') +
@@ -607,8 +692,9 @@
         '<p class="small muted">O paciente recebe um link e escolhe: <b>Pix à vista com 12% de desconto</b>, <b>cartão em até 18x sem juros</b> ou <b>boleto</b> (entrada de 50% por Pix/cartão + saldo em até 18 boletos).</p>' +
         '<div class="grid2">' +
         field('description', 'Descrição', 'AlignSystem — tratamento (caso ' + c.code + ')') +
-        field('value', 'Valor total (tratamento + deslocamentos) (R$)', plan.total ? Math.round((Number(plan.total) + Number(plan.model === 'rede' ? plan.travel || 0 : 0)) * 100) / 100 : '', 'inputmode="decimal" required') +
-        field('boletoMax', 'Boletos do saldo em até (x)', Math.min(18, plan.months || 18), 'type="number" min="1" max="18"') + '</div>' +
+        field('value', 'Valor total (tratamento + deslocamentos) (R$)' + (plan.negotiatedTotal ? ' — negociado com ' + plan.negotiatedDiscountPct + '% de desconto' : ''), (plan.negotiatedTotal || plan.total) ? Math.round((Number(plan.negotiatedTotal || plan.total) + Number(plan.model === 'rede' ? plan.travel || 0 : 0)) * 100) / 100 : '', 'inputmode="decimal" required') +
+        field('boletoMax', 'Boletos do saldo em até (x) — acima de 18 com juros', (c.negotiation && c.negotiation.params && c.negotiation.params.boletoMax) || Math.min(18, plan.months || 18), 'type="number" min="1" max="60"') +
+        field('cardMax', 'Cartão em até (x), sem juros', (c.negotiation && c.negotiation.params && c.negotiation.params.cardMax) || 18, 'type="number" min="1" max="18"') + '</div>' +
         '<div class="check field"><input type="checkbox" id="boleto" name="boleto" checked><label for="boleto">Permitir boleto (só depois de analisar o crédito do paciente)</label></div>' +
         '<div class="field"><label for="dentistShare">Repasse ao dentista do caso (' + esc(dentistName || 'sem dentista') + ')</label><select id="dentistShare">' +
           opt('', 'Sem repasse (AlignSystem recebe tudo)', plan.model === 'rede' || !c.dentist_id ? '' : plan.model === 'proprio' ? '80/20' : '50/30/20') +
@@ -628,6 +714,8 @@
             (ch.invoice_url ? '<a class="btn btn-line btn-sm" target="_blank" rel="noopener" href="' + esc(ch.invoice_url) + '">Fatura</a>' : '') +
             (ch.status !== 'cancelado' && ch.status !== 'erro' ? '<button type="button" class="btn btn-line btn-sm" data-sync="' + ch.id + '">Atualizar</button><button type="button" class="btn btn-danger btn-sm" data-cancel="' + ch.id + '">Cancelar</button>' : '') + '</div></div>';
         }).join('') + '</div>' : '') + '</form></div>' +
+
+        negotiationCard(c.negotiation, { consent: c.negotiationConsent }) +
 
         // autorizações prévias
         '<div class="card"><h2>Autorizações de atendimento</h2>' + ((d.authorizations || []).length ? '<div class="list">' + d.authorizations.map(function (a) {
@@ -656,6 +744,7 @@
       var m = mount(html, 'casos');
       var reload = function () { adminCase(id); };
       bindGallery(m, reload);
+      bindNegotiation(m, '/api/admin/cases/' + id, reload);
       $('#copyPortal', m).addEventListener('click', function (e) { AS.copy(c.portalUrl, e.target); });
       $all('[data-copy]', m).forEach(function (b) { b.addEventListener('click', function () { AS.copy(b.getAttribute('data-copy'), b); }); });
 
@@ -708,10 +797,10 @@
       });
       onSubmit($('#chf', m), function (f) {
         var body = {
-          description: f.description, value: f.value, boletoMax: f.boletoMax,
+          description: f.description, value: f.value, boletoMax: f.boletoMax, cardMax: f.cardMax,
           boleto: $('#boleto', m).checked, dentistShare: $('#dentistShare', m).value,
         };
-        if (!confirm('Criar o link de pagamento de ' + AS.money(String(f.value).replace(',', '.')) + ' e enviar ao paciente?')) return false;
+        if (!confirm('Criar o link de pagamento de R$ ' + f.value + ' (o escaneamento já pago é descontado) e enviar ao paciente?')) return false;
         return api('/api/admin/cases/' + id + '/charges', { method: 'POST', body: body }).then(function () { reload(); return false; });
       });
       $all('[data-sync]', m).forEach(function (b) { b.addEventListener('click', function () { busyBtn(b, api('/api/admin/charges/' + b.getAttribute('data-sync') + '/sync', { method: 'POST', body: {} })).then(reload).catch(function (e) { alert(e.message); }); }); });
@@ -918,6 +1007,7 @@
             '<select data-appt="' + a.id + '" style="max-width:150px">' + options(APPT_STATUS, a.status) + '</select></div>';
         }).join('') + '</div>' : '') + '</form></div>' +
         '<div class="card"><h2>Fotos do paciente</h2>' + gallery(evalPhotos, { slots: d.slots }) + (others.length ? '<h3 style="margin-top:14px">Documentação</h3>' + gallery(others) : '') + '</div>' +
+        negotiationCard(d.negotiation, { consent: d.negotiationConsent, isDentist: true }) +
         '<form class="card" id="auf"><h2>Pedir autorização de atendimento</h2><p class="small muted">Todo atendimento precisa de autorização prévia da AlignSystem. Sem ela, o atendimento não pode ser registrado nem gera repasse.</p><div class="grid2">' +
         '<div class="field"><label for="au_milestone">Tipo de atendimento</label><select id="au_milestone" name="milestone" required>' + options(L.MILESTONES, '', '— escolha —') + '</select></div>' +
         '<div class="field"><label for="au_urgency">Rotina ou urgência</label><select id="au_urgency" name="urgency" required><option value="">— escolha —</option><option value="rotina">Rotina</option><option value="urgencia">Urgência</option></select></div>' +
@@ -944,6 +1034,7 @@
       var m = mount(html, 'inicio');
       var reload = function () { dentistCase(id); };
       bindGallery(m, reload);
+      bindNegotiation(m, '/api/dentist/cases/' + id, reload);
       onSubmit($('#apf', m), function (f) {
         f.starts_at = new Date(f.starts_at).toISOString();
         return api('/api/dentist/cases/' + id + '/appointments', { method: 'POST', body: f }).then(function () { reload(); return false; });
@@ -1012,6 +1103,7 @@
     }
     if ((m = r.path.match(/^\/caso\/([0-9a-f-]{36})$/))) return dentistCase(m[1]);
     if (r.path === '/meus-precos') return dentistPrices();
+    if (r.path === '/negociacao') return dentistNegotiation();
     return dentistHome();
   }
 

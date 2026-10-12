@@ -662,3 +662,67 @@ test('Preços da AlignSystem por marca: valores com ponto de milhar, erro que di
   assert.equal(alignerCostFor(P, 'clear correct', 'mediano'), 4200); // nome sem diferenciar maiúsculas/espaços
   assert.equal(alignerCostFor(P, 'Spark', 'mediano'), null);
 });
+
+test('negociação on-line: termo do dentista, teto da AlignSystem, abrir, contraproposta, fechar e cobrança com juros acima de 18x', { skip }, async () => {
+  const [{ dentist_id: dentistId }] = await sql`select dentist_id from alignsystem_test.users where role = 'dentist' and dentist_id = (select id from alignsystem_test.dentists where cro = '12345' limit 1)`;
+  // teto da AlignSystem
+  assert.equal((await call('PUT', '/api/admin/settings/negotiation', { who: 'admin', body: { maxDiscountPct: '80', maxBoletos: '36', interestPctMonth: '1,99' } })).status, 400);
+  assert.equal((await call('PUT', '/api/admin/settings/negotiation', { who: 'admin', body: { maxDiscountPct: '15', maxBoletos: '36', interestPctMonth: '1,99' } })).status, 200);
+  // dentista: sem aceite do termo não salva; com aceite, limites presos ao teto
+  const g = (await call('GET', '/api/dentist/negotiation', { who: 'dent' })).data;
+  assert.equal(g.ceiling.maxDiscountPct, 15);
+  assert.equal((await call('PUT', '/api/dentist/negotiation', { who: 'dent', body: { maxDiscountPct: 10 } })).status, 400);
+  const sv = await call('PUT', '/api/dentist/negotiation', { who: 'dent', body: { agree: true, hash: g.terms.hash, maxDiscountPct: 40, cardMax: 12, boleto: true, boletoMax: 99, counter: true, counterFloorPct: 15 } });
+  assert.equal(sv.status, 200, JSON.stringify(sv.data));
+  assert.deepEqual([sv.data.config.maxDiscountPct, sv.data.config.cardMax, sv.data.config.boletoMax], [15, 12, 36]); // presos ao teto
+  await call('PUT', '/api/dentist/negotiation', { who: 'dent', body: { maxDiscountPct: 10, cardMax: 12, boleto: true, boletoMax: 24, counter: true, counterFloorPct: 15 } });
+
+  // caso do dentista com plano
+  await sql`delete from alignsystem_test.rate_hits`; // os testes anteriores já usaram o limite de cadastros por IP
+  const lead = await call('POST', '/api/leads/paciente', { body: { name: 'Nina Negocia', age: 31, whatsapp: '44977776666', city: 'Maringá', uf: 'PR', consent: true } });
+  const tk = lead.data.token;
+  const [c] = await sql`select id from alignsystem_test.cases where token = ${tk}`;
+  await call('PATCH', `/api/admin/cases/${c.id}`, { who: 'admin', body: { dentist_id: dentistId, email: 'nina@x.com', cpf: '529.982.247-25', address: 'Rua N, 1, Maringá/PR', plan: { brand: 'ClearCorrect', months: 12, complexity: 'mediano', total: '10000' } } });
+  assert.equal((await call('GET', `/api/portal/${tk}`)).data.negotiation, null); // fechada até o dentista abrir
+  const op = await call('POST', `/api/dentist/cases/${c.id}/negotiation/open`, { who: 'dent', body: {} });
+  assert.equal(op.status, 200, JSON.stringify(op.data));
+  assert.match(op.data.whatsappUrl, /wa\.me\/5544977776666/);
+  let N = (await call('GET', `/api/portal/${tk}`)).data.negotiation;
+  assert.deepEqual([N.status, N.total, N.maxDiscountPct, N.cardMax, N.boletoMax, N.counter, N.counterMin], ['aberta', 10000, 10, 12, 24, true, 8500]);
+  assert.equal(N.quoteMax.total, 9000);
+  assert.equal(N.quote.boleto.options[23].interest, true); // 24x: acima de 18, com juros
+  assert.equal(N.quote.boleto.options[17].interest, false);
+  // contraproposta: dentro das condições não precisa; abaixo do piso é recusada; no intervalo vai para o dentista
+  assert.equal((await call('POST', `/api/portal/${tk}/negociacao/contraproposta`, { body: { value: '9.500,00' } })).status, 400);
+  assert.equal((await call('POST', `/api/portal/${tk}/negociacao/contraproposta`, { body: { value: '8.000,00' } })).status, 400);
+  assert.equal((await call('POST', `/api/portal/${tk}/negociacao/contraproposta`, { body: { value: '8.700,00', message: 'Consigo isso no Pix' } })).status, 200);
+  assert.equal((await call('GET', `/api/portal/${tk}`)).data.negotiation.status, 'contraproposta');
+  assert.equal((await call('POST', `/api/portal/${tk}/negociacao/fechar`, { body: { discountPct: 5, option: 'PIX', agree: true } })).status, 409); // aguardando resposta
+  assert.equal((await call('POST', `/api/dentist/cases/${c.id}/negotiation/counter`, { who: 'dent', body: { accept: true, note: 'Fechado!' } })).status, 200);
+  N = (await call('GET', `/api/portal/${tk}`)).data.negotiation;
+  assert.equal(N.maxDiscountPct, 13);
+  assert.equal(N.lastDecision.accepted, true);
+  // fechar: acima do desconto liberado é recusado; dentro, fecha
+  assert.equal((await call('POST', `/api/portal/${tk}/negociacao/fechar`, { body: { discountPct: 20, option: 'PIX', agree: true } })).status, 400);
+  assert.equal((await call('POST', `/api/portal/${tk}/negociacao/fechar`, { body: { discountPct: 13, option: 'BOLETO', installments: 24 } })).status, 400); // sem confirmação
+  const fe = await call('POST', `/api/portal/${tk}/negociacao/fechar`, { body: { discountPct: 13, option: 'BOLETO', installments: 24, agree: true } });
+  assert.equal(fe.status, 200, JSON.stringify(fe.data));
+  assert.equal(fe.data.deal.total, 8700);
+  const adm = (await call('GET', `/api/admin/cases/${c.id}`, { who: 'admin' })).data.case;
+  assert.equal(adm.negotiation.status, 'fechada');
+  assert.equal(adm.plan.negotiatedTotal, 8700);
+  // contrato sai com o valor negociado e o desconto
+  const ct = await call('POST', `/api/admin/cases/${c.id}/contract`, { who: 'admin', body: {} });
+  assert.equal(ct.status, 201, JSON.stringify(ct.data));
+  const doc = (await call('GET', `/api/contracts/${new URL(ct.data.url).searchParams.get('t')}`)).data.body.replace(/<[^>]+>/g, '');
+  assert.match(doc, /R\$\s?8\.700,00 \("Contrato Fechado"\)/);
+  assert.match(doc, /desconto de 13% concedido na negociação on-line/);
+  // cobrança: saldo do boleto em 24x com juros
+  const ch = await call('POST', `/api/admin/cases/${c.id}/charges`, { who: 'admin', body: { value: '8700', boletoMax: 24, cardMax: 12 } });
+  assert.equal(ch.status, 201, JSON.stringify(ch.data));
+  assert.equal(Number(ch.data.interest_pct), 1.99);
+  const pg = (await call('GET', `/api/pay/${new URL(ch.data.pay_url).searchParams.get('t')}`)).data;
+  assert.equal(pg.quote.card.length, 12);
+  assert.equal(pg.quote.boleto.options.length, 24);
+  assert.ok(pg.quote.boleto.options[23].totalRest > 4350);
+});

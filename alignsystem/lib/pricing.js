@@ -20,13 +20,24 @@ export const MODEL = {
   consultLimits: { simples: 8, mediano: 10, complexo: 15 },
   // consulta por quebra/perda de alinhador: valor da consulta do dentista + 30% (o acréscimo fica com a AlignSystem)
   breakageMarkupPct: 30,
+  // negociação on-line: teto padrão da AlignSystem (editável em Preços)
+  negotiation: { maxDiscountPct: 15, maxBoletos: 36, interestPctMonth: 1.99, noInterestUpTo: 18 },
 };
 
 export const COMPLEXITY_LABEL = { simples: 'simples', mediano: 'de média complexidade', complexo: 'complexo' };
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
-export function quote(total, { cardMax = MODEL.cardMaxInstallments, boletoMax = MODEL.boletoMaxInstallments, boleto = true } = {}) {
+// Parcela fixa com juros (tabela Price)
+export function pmt(value, n, ratePct) {
+  const v = Number(value), i = Number(ratePct) / 100;
+  if (!(n > 1) || !(i > 0)) return round2(v / Math.max(n, 1));
+  return round2((v * i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1));
+}
+
+// boletoMax pode passar de 18: acima de noInterestUpTo parcelas o saldo tem juros de interestPct ao mês
+export function quote(total, { cardMax = MODEL.cardMaxInstallments, boletoMax = MODEL.boletoMaxInstallments, boleto = true,
+  interestPct = MODEL.negotiation.interestPctMonth, noInterestUpTo = MODEL.negotiation.noInterestUpTo } = {}) {
   const t = Number(total);
   const pix = round2(t * (1 - MODEL.pixDiscountPct / 100));
   const entry = round2(t * MODEL.boletoEntryPct / 100);
@@ -34,8 +45,16 @@ export function quote(total, { cardMax = MODEL.cardMaxInstallments, boletoMax = 
   return {
     total: t,
     pix,
-    card: Array.from({ length: cardMax }, (_, i) => ({ installments: i + 1, each: round2(t / (i + 1)) })),
-    boleto: boleto ? { entry, rest, options: Array.from({ length: boletoMax }, (_, i) => ({ installments: i + 1, each: round2(rest / (i + 1)) })) } : null,
+    card: Array.from({ length: Math.min(cardMax, MODEL.cardMaxInstallments) }, (_, i) => ({ installments: i + 1, each: round2(t / (i + 1)) })),
+    boleto: boleto ? {
+      entry, rest, noInterestUpTo, interestPct: Number(interestPct) || 0,
+      options: Array.from({ length: boletoMax }, (_, i) => {
+        const n = i + 1;
+        const withInterest = n > noInterestUpTo && Number(interestPct) > 0;
+        const each = withInterest ? pmt(rest, n, interestPct) : round2(rest / n);
+        return { installments: n, each, interest: withInterest, totalRest: round2(each * n) };
+      }),
+    } : null,
   };
 }
 

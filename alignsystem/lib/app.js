@@ -8,7 +8,7 @@ import {
 import { token, sha256, clean, digits, isEmail, appUrl, brl, validCpf, validCpfCnpj } from './util.js';
 import { sendMail, notifyAddress, layout, button, para, table } from './mail.js';
 import * as asaas from './asaas.js';
-import { MODEL, quote, dentistSplitPct, ownPriceDentistPct, breakagePrice } from './pricing.js';
+import { MODEL, quote, pmt, dentistSplitPct, ownPriceDentistPct, breakagePrice } from './pricing.js';
 import * as geo from './geo.js';
 import { payoutDate } from './payout.js';
 import * as totp from './totp.js';
@@ -412,6 +412,260 @@ r('GET', '/api/admin/cobertura', async (req, res) => {
   });
 });
 
+// ------------------------------------------------------------------ negociação on-line (inspirada no SimulaClinic)
+// O dentista aceita o termo e define limites (dentro do teto da AlignSystem), abre a negociação no caso,
+// o paciente é avisado e, na página dele, fecha o tratamento dentro dos limites ou faz uma contraproposta.
+
+const NEGOTIATION_TERMS_VERSION = 'negociacao-2026-10-12';
+const NEGOTIATION_TERMS = [
+  'Autorizo a AlignSystem (Instituto Ravel de Ensino Superior Ltda) a apresentar aos meus pacientes, na página particular de cada um, uma negociação on-line do valor do tratamento, dentro dos limites de desconto, parcelamento e formas de pagamento que eu definir nesta tela, respeitado o teto da AlignSystem.',
+  'Entendo que: (a) a negociação só é aberta para o paciente quando eu (ou a equipe AlignSystem, a meu pedido) acionar o botão "Abrir negociação" no caso; (b) o desconto concedido reduz proporcionalmente os valores de todas as partes, inclusive o meu repasse; (c) no boleto, a entrada de 50% corresponde aos alinhadores e o saldo pode ser parcelado em até 18 vezes sem juros, e acima disso com os juros mensais informados ao paciente; (d) contrapropostas do paciente só valem depois de aceitas por mim ou pela AlignSystem; (e) posso alterar os limites ou encerrar a negociação a qualquer momento antes de o paciente fechar.',
+  'Os valores e condições negociados respeitam o Código de Ética Odontológica: não serão divulgados publicamente, apenas ao paciente, em ambiente privado.',
+];
+const negotiationTermsHash = () => sha256(NEGOTIATION_TERMS.join('\n'));
+
+async function negotiationSettings(sql) {
+  const [row] = await sql`select value from settings where key = 'negotiation'`;
+  const v = { ...MODEL.negotiation, ...(row?.value || {}) };
+  return {
+    maxDiscountPct: Math.min(Math.max(Number(v.maxDiscountPct) || 0, 0), 50),
+    maxBoletos: Math.min(Math.max(Number(v.maxBoletos) || MODEL.boletoMaxInstallments, 1), 60),
+    interestPctMonth: Math.max(Number(v.interestPctMonth) || 0, 0),
+    noInterestUpTo: MODEL.negotiation.noInterestUpTo,
+  };
+}
+
+// Limites do dentista, sempre dentro do teto
+function clampDentistNegotiation(cfg, ceil) {
+  const n = (x, min, max, def) => { const v = Number(x); return Number.isFinite(v) ? Math.min(Math.max(v, min), max) : def; };
+  return {
+    maxDiscountPct: n(cfg?.maxDiscountPct, 0, ceil.maxDiscountPct, 0),
+    cardMax: Math.round(n(cfg?.cardMax, 1, MODEL.cardMaxInstallments, MODEL.cardMaxInstallments)),
+    boleto: cfg?.boleto !== false,
+    boletoMax: Math.round(n(cfg?.boletoMax, 1, ceil.maxBoletos, MODEL.boletoMaxInstallments)),
+    counter: cfg?.counter === true,
+    counterFloorPct: n(cfg?.counterFloorPct, 0, ceil.maxDiscountPct, 0),
+  };
+}
+
+// o desconto vale sobre o tratamento; deslocamentos do modelo rede (se houver) continuam à parte
+const negotiationBase = (c) => Math.round(Number(c.plan?.total || 0) * 100) / 100;
+
+// O que o paciente vê: limites + simulação (para o desconto escolhido) — nada além do caso dele
+function negotiationView(c, ceilInterest) {
+  const N = c.negotiation;
+  if (!N || !['aberta', 'contraproposta', 'fechada'].includes(N.status)) return null;
+  const P = N.params;
+  const quoteFor = (discountPct) => {
+    const total = Math.round(N.total * (1 - discountPct / 100) * 100) / 100;
+    return quote(total, { cardMax: P.cardMax, boletoMax: P.boletoMax, boleto: P.boleto, interestPct: ceilInterest });
+  };
+  return {
+    status: N.status, total: N.total, maxDiscountPct: P.maxDiscountPct, cardMax: P.cardMax, boleto: P.boleto, boletoMax: P.boletoMax,
+    counter: P.counter && P.counterFloorPct > P.maxDiscountPct && N.status === 'aberta',
+    counterMin: Math.round(N.total * (1 - Math.max(P.counterFloorPct, P.maxDiscountPct) / 100) * 100) / 100, pixDiscountPct: MODEL.pixDiscountPct, interestPct: ceilInterest, noInterestUpTo: MODEL.negotiation.noInterestUpTo,
+    quote: quoteFor(N.deal?.discountPct ?? 0), quoteMax: quoteFor(P.maxDiscountPct),
+    counterSent: N.counter && N.status === 'contraproposta' ? { value: N.counter.value, at: N.counter.at } : null,
+    lastDecision: N.counterDecision ? { accepted: N.counterDecision.accepted, note: N.counterDecision.note } : null,
+    deal: N.deal ? { discountPct: N.deal.discountPct, total: N.deal.total, option: N.deal.option, installments: N.deal.installments, at: N.deal.at } : null,
+  };
+}
+
+const NEG_OPTION_PT = { PIX: 'Pix à vista', CREDIT_CARD: 'Cartão de crédito', BOLETO: 'Boleto (entrada de 50% + saldo)' };
+
+r('GET', '/api/dentist/negotiation', async (req, res) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const d = await dentistById(sql, u.dentist_id);
+  const ceil = await negotiationSettings(sql);
+  send(res, 200, {
+    config: d?.negotiation ? { ...clampDentistNegotiation(d.negotiation, ceil), consentAt: d.negotiation.consentAt || null } : null,
+    ceiling: ceil, terms: { version: NEGOTIATION_TERMS_VERSION, paragraphs: NEGOTIATION_TERMS, hash: negotiationTermsHash() },
+  });
+});
+
+r('PUT', '/api/dentist/negotiation', async (req, res) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const b = await readJson(req);
+  const d = await dentistById(sql, u.dentist_id);
+  const ceil = await negotiationSettings(sql);
+  const already = d?.negotiation?.consentVersion === NEGOTIATION_TERMS_VERSION;
+  if (!already && !(b.agree === true && b.hash === negotiationTermsHash())) fail(400, 'Para usar a negociação on-line, leia e marque "Li e aceito" no termo.');
+  const cfg = clampDentistNegotiation(b, ceil);
+  const value = {
+    ...cfg,
+    consentVersion: NEGOTIATION_TERMS_VERSION,
+    consentAt: already ? d.negotiation.consentAt : new Date().toISOString(),
+    consentIp: already ? d.negotiation.consentIp : clientIp(req),
+  };
+  await sql`update dentists set negotiation = ${sql.json(value)}, updated_at = now() where id = ${u.dentist_id}`;
+  await logEvent(sql, { dentistId: u.dentist_id, actor: u.email, type: 'negociacao_configurada', data: { ...cfg, consent: !already, ip: clientIp(req) } });
+  send(res, 200, { ok: true, config: value });
+});
+
+// Abrir a negociação de um caso (dentista do caso ou equipe)
+async function openNegotiation(sql, req, u, c) {
+  const d = await dentistById(sql, c.dentist_id);
+  if (!d) fail(400, 'Defina o dentista do caso antes de abrir a negociação.');
+  if (d.negotiation?.consentVersion !== NEGOTIATION_TERMS_VERSION) fail(409, `${d.name} ainda não aceitou o termo da negociação on-line (painel do dentista → Negociação).`);
+  const total = negotiationBase(c);
+  if (!(total > 0)) fail(400, 'Defina o valor total do tratamento no plano antes de abrir a negociação.');
+  if (c.negotiation?.status === 'fechada') fail(409, 'O paciente já fechou a negociação deste caso.');
+  const ceil = await negotiationSettings(sql);
+  const params = clampDentistNegotiation(d.negotiation, ceil);
+  const N = { status: 'aberta', total, params, openedAt: new Date().toISOString(), openedBy: u.email, history: [...(c.negotiation?.history || []), { at: new Date().toISOString(), by: u.email, what: 'aberta' }] };
+  await sql`update cases set negotiation = ${sql.json(N)}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, dentistId: d.id, actor: u.email, type: 'negociacao_aberta', data: { total, ...params, ip: clientIp(req) } });
+  const link = portalUrl(c.token);
+  const first = c.name.split(' ')[0];
+  const msg = `Olá, ${first}! A negociação do seu tratamento com alinhadores foi liberada. Acesse sua página na AlignSystem, veja as condições e feche o seu tratamento: ${link}`;
+  let emailed = false;
+  if (c.email) emailed = Boolean((await sendMail({
+    to: c.email, subject: 'Sua negociação foi liberada — AlignSystem',
+    html: layout(`Olá, ${first}!`, para('A negociação do seu tratamento com alinhadores foi liberada pelo seu dentista. Veja as condições de desconto e pagamento e feche o seu tratamento na sua página particular.') + button(link, 'Ver condições e fechar meu tratamento')),
+  }))?.sent);
+  return { ok: true, emailed, whatsappUrl: c.whatsapp ? `https://wa.me/55${digits(c.whatsapp).replace(/^55/, '')}?text=${encodeURIComponent(msg)}` : null, message: msg };
+}
+
+r('POST', '/api/dentist/cases/:id/negotiation/open', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  await dentistCase(sql, u, id);
+  const [c] = await sql`select * from cases where id = ${id}`;
+  send(res, 200, await openNegotiation(sql, req, u, c));
+});
+
+r('POST', '/api/admin/cases/:id/negotiation/open', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  send(res, 200, await openNegotiation(sql, req, u, c));
+});
+
+async function closeNegotiationByStaff(sql, u, c) {
+  if (!c.negotiation || c.negotiation.status === 'fechada') fail(409, 'Não há negociação aberta neste caso.');
+  const N = { ...c.negotiation, status: 'encerrada', history: [...(c.negotiation.history || []), { at: new Date().toISOString(), by: u.email, what: 'encerrada' }] };
+  await sql`update cases set negotiation = ${sql.json(N)}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: u.email, type: 'negociacao_encerrada' });
+  return { ok: true };
+}
+r('POST', '/api/dentist/cases/:id/negotiation/end', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  await dentistCase(sql, u, id);
+  const [c] = await sql`select * from cases where id = ${id}`;
+  send(res, 200, await closeNegotiationByStaff(sql, u, c));
+});
+r('POST', '/api/admin/cases/:id/negotiation/end', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  send(res, 200, await closeNegotiationByStaff(sql, u, c));
+});
+
+// Resposta à contraproposta: aceitar libera o desconto pedido (até o teto da AlignSystem) para o paciente fechar
+async function answerCounter(sql, req, u, c, b) {
+  const N = c.negotiation;
+  if (!N || N.status !== 'contraproposta' || !N.counter) fail(409, 'Não há contraproposta aguardando resposta.');
+  const accept = b.accept === true;
+  const note = clean(b.note, 500) || null;
+  const ceil = await negotiationSettings(sql);
+  const askedPct = Math.round((1 - N.counter.value / N.total) * 10000) / 100;
+  if (accept && askedPct > ceil.maxDiscountPct) fail(400, `A contraproposta pede ${askedPct}% de desconto, acima do teto da AlignSystem (${ceil.maxDiscountPct}%). Recuse ou fale com a equipe.`);
+  const params = accept ? { ...N.params, maxDiscountPct: Math.max(N.params.maxDiscountPct, askedPct) } : N.params;
+  const next = { ...N, status: 'aberta', params, counterDecision: { accepted: accept, note, at: new Date().toISOString(), by: u.email },
+    history: [...(N.history || []), { at: new Date().toISOString(), by: u.email, what: accept ? 'contraproposta aceita' : 'contraproposta recusada' }] };
+  await sql`update cases set negotiation = ${sql.json(next)}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: u.email, type: accept ? 'contraproposta_aceita' : 'contraproposta_recusada', data: { value: N.counter.value, askedPct, note, ip: clientIp(req) } });
+  if (c.email) await sendMail({
+    to: c.email, subject: accept ? 'Sua contraproposta foi aceita — AlignSystem' : 'Resposta à sua contraproposta — AlignSystem',
+    html: layout(`Olá, ${c.name.split(' ')[0]}!`, para(accept
+      ? `Sua contraproposta de ${brl(N.counter.value)} foi aceita. Volte à sua página e feche o seu tratamento com o novo valor.`
+      : 'Sua contraproposta não pôde ser aceita, mas as condições da negociação continuam disponíveis na sua página.') + (note ? para(`Mensagem: ${note}`) : '') + button(portalUrl(c.token), 'Abrir minha página')),
+  });
+  return { ok: true, negotiation: next };
+}
+r('POST', '/api/dentist/cases/:id/negotiation/counter', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  await dentistCase(sql, u, id);
+  const [c] = await sql`select * from cases where id = ${id}`;
+  send(res, 200, await answerCounter(sql, req, u, c, await readJson(req)));
+});
+r('POST', '/api/admin/cases/:id/negotiation/counter', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  send(res, 200, await answerCounter(sql, req, u, c, await readJson(req)));
+});
+
+async function notifyNegotiation(sql, c, subject, rows) {
+  const d = c.dentist_id ? await dentistById(sql, c.dentist_id) : null;
+  const html = layout(subject, table(rows) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Abrir o caso'));
+  await sendMail({ to: notifyAddress(), subject: `${subject} — caso #${c.code}`, html });
+  if (d?.email) await sendMail({ to: d.email, subject: `${subject} — caso #${c.code}`, html });
+}
+
+// Paciente: fechar o tratamento dentro dos limites
+r('POST', '/api/portal/:token/negociacao/fechar', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  await rateLimit(sql, `neg:${c.id}`, 20, 60);
+  const N = c.negotiation;
+  if (!N || N.status !== 'aberta') fail(409, N?.status === 'fechada' ? 'Você já fechou o seu tratamento.' : 'A negociação não está disponível agora.');
+  if (b.agree !== true) fail(400, 'Marque a caixa de confirmação para fechar.');
+  const P = N.params;
+  const discountPct = Math.round(Number(b.discountPct) * 100) / 100;
+  if (!(discountPct >= 0) || discountPct > P.maxDiscountPct) fail(400, `O desconto pode ir até ${P.maxDiscountPct}%.`);
+  const option = ['PIX', 'CREDIT_CARD', 'BOLETO'].includes(b.option) ? b.option : fail(400, 'Escolha a forma de pagamento.');
+  if (option === 'BOLETO' && !P.boleto) fail(400, 'Boleto não está disponível nesta negociação.');
+  const maxN = option === 'CREDIT_CARD' ? P.cardMax : option === 'BOLETO' ? P.boletoMax : 1;
+  const installments = Math.min(Math.max(Math.round(Number(b.installments) || 1), 1), maxN);
+  const total = Math.round(N.total * (1 - discountPct / 100) * 100) / 100;
+  const deal = { discountPct, total, option, installments, at: new Date().toISOString(), ip: clientIp(req), userAgent: clean(req.headers['user-agent'], 300) };
+  const next = { ...N, status: 'fechada', deal, history: [...(N.history || []), { at: deal.at, by: 'paciente', what: 'fechada' }] };
+  await sql`update cases set negotiation = ${sql.json(next)}, plan = ${sql.json({ ...(c.plan || {}), negotiatedTotal: total, negotiatedDiscountPct: discountPct })}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'negociacao_fechada', data: deal });
+  await notifyNegotiation(sql, c, 'Paciente fechou o tratamento na negociação', [
+    ['Paciente', c.name], ['Valor de tabela', brl(N.total)], ['Desconto', `${discountPct}%`], ['Valor fechado', brl(total)],
+    ['Forma escolhida', `${NEG_OPTION_PT[option]}${installments > 1 ? ` em ${installments}x` : ''}`],
+    ['Próximo passo', 'Gerar o contrato e a cobrança no painel (o valor fechado já vem preenchido).'],
+  ]);
+  send(res, 200, { ok: true, deal });
+});
+
+// Paciente: contraproposta (vai para o dentista/equipe aceitar ou recusar)
+r('POST', '/api/portal/:token/negociacao/contraproposta', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  await rateLimit(sql, `negc:${c.id}`, 5, 60);
+  const N = c.negotiation;
+  if (!N || N.status !== 'aberta') fail(409, 'A negociação não está disponível agora.');
+  if (!N.params.counter) fail(409, 'Esta negociação não aceita contraproposta.');
+  const value = money(b.value);
+  if (!(value > 0)) fail(400, 'Informe o valor da sua proposta, por exemplo 8.500,00.');
+  const minAllowed = Math.round(N.total * (1 - N.params.maxDiscountPct / 100) * 100) / 100;
+  if (value >= minAllowed) fail(400, `Esse valor já está dentro das condições oferecidas (a partir de ${brl(minAllowed)}). Use "Fechar meu tratamento".`);
+  // piso: desconto máximo que o paciente pode pedir na contraproposta (definido pelo dentista, dentro do teto)
+  const floor = Math.round(N.total * (1 - Math.max(N.params.counterFloorPct, N.params.maxDiscountPct) / 100) * 100) / 100;
+  if (value < floor) fail(400, `A proposta mínima para este tratamento é ${brl(floor)}.`);
+  const counter = { value, message: clean(b.message, 500) || null, at: new Date().toISOString(), ip: clientIp(req) };
+  const next = { ...N, status: 'contraproposta', counter, history: [...(N.history || []), { at: counter.at, by: 'paciente', what: 'contraproposta' }] };
+  await sql`update cases set negotiation = ${sql.json(next)}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'contraproposta_enviada', data: counter });
+  await notifyNegotiation(sql, c, 'Contraproposta do paciente', [
+    ['Paciente', c.name], ['Valor de tabela', brl(N.total)], ['Oferecido até', brl(minAllowed)], ['Contraproposta', brl(value)],
+    ['Desconto pedido', `${Math.round((1 - value / N.total) * 10000) / 100}%`], ['Mensagem', counter.message || '—'],
+  ]);
+  send(res, 200, { ok: true });
+});
+
 // ------------------------------------------------------------------ escaneamento (pago antes do tratamento)
 
 const SCAN_OK_ASSESSMENTS = ['indicado', 'avaliacao_presencial'];
@@ -628,6 +882,32 @@ r('PUT', '/api/admin/settings/prices', async (req, res) => {
   send(res, 200, { ok: true, prices: await scan.getPrices(sql) });
 });
 
+r('GET', '/api/admin/settings/negotiation', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  send(res, 200, { negotiation: await negotiationSettings(sql) });
+});
+
+r('PUT', '/api/admin/settings/negotiation', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const num = (x, label, min, max) => {
+    const n = money(x);
+    if (n === null || !(n >= min && n <= max)) fail(400, `${label}: informe um número entre ${min} e ${max}.`);
+    return n;
+  };
+  const v = {
+    maxDiscountPct: num(b.maxDiscountPct, 'Desconto máximo (%)', 0, 50),
+    maxBoletos: Math.round(num(b.maxBoletos, 'Boletos do saldo (máximo)', 1, 60)),
+    interestPctMonth: num(b.interestPctMonth, 'Juros ao mês acima de 18x (%)', 0, 10),
+  };
+  await sql`insert into settings (key, value, updated_by) values ('negotiation', ${sql.json(v)}, ${u.id})
+    on conflict (key) do update set value = excluded.value, updated_at = now(), updated_by = excluded.updated_by`;
+  await logEvent(sql, { actor: u.email, type: 'teto_negociacao_alterado', data: { ...v, ip: clientIp(req) } });
+  send(res, 200, { ok: true, negotiation: await negotiationSettings(sql) });
+});
+
 // ------------------------------------------------------------------ portal do paciente (link com token)
 
 r('GET', '/api/portal/:token', async (req, res, { token: t }) => {
@@ -651,6 +931,7 @@ r('GET', '/api/portal/:token', async (req, res, { token: t }) => {
     attendance: publicAttendance(c.attendance),
     ufs: geo.UFS,
     scan: await portalScan(sql, c),
+    negotiation: negotiationView(c, (await negotiationSettings(sql)).interestPctMonth),
     consent: consent && { acceptedAt: consent.accepted_at, acceptedName: consent.accepted_name, byGuardian: consent.accepted_by_guardian, version: consent.version },
     tcle: tcle && { version: tcle.version, title: tcle.title, body: tcle.body, hash: tcle.hash },
     dentist: dentist ? { name: dentist.name, cro: dentist.cro, croUf: dentist.cro_uf, city: dentist.city } : null,
@@ -1234,6 +1515,7 @@ r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
   const [{ paid: scanPaid }] = await sql`select coalesce(sum(price), 0)::float as paid from scan_orders where case_id = ${id} and status in ('pago','agendado','realizado')`;
   send(res, 200, {
     case: { ...d.c, portalUrl: portalUrl(d.c.token), consultLimit: consultLimit(d.c.plan), consultValue: PARTNER_DEFAULTS.redeValue,
+      negotiationConsent: Boolean(dent?.negotiation?.consentVersion),
       scanPaid, breakage: dent ? { price: breakagePrice(dentistConsultValue(dent)), dentist: dentistConsultValue(dent) } : null, attendance: d.c.attendance && { ...publicAttendance(d.c.attendance), ip: d.c.attendance.ip } },
     photos: d.photos, appointments: d.appts,
     contracts: d.contracts.map((x) => ({ ...x, url: contractUrl(x.token) })),
@@ -1429,7 +1711,8 @@ r('POST', '/api/admin/cases/:id/contract', async (req, res, { id }) => {
   if (plan.model === 'proprio' && !alignerCost) missing.push(`custo dos alinhadores da marca "${plan.brand || '—'}" (${plan.complexity || 'complexidade'}) em Preços`);
   if (missing.length) fail(400, `Preencha antes de gerar o contrato: ${missing.join(', ')}.`);
   const dentist = await dentistById(sql, c.dentist_id);
-  const { title, body } = patientContract(plan.model === 'proprio' ? { ...c, plan: { ...plan, alignerCost } } : c, dentist);
+  const negotiated = Number(plan.negotiatedTotal) > 0 ? { total: plan.negotiatedTotal } : {};
+  const { title, body } = patientContract({ ...c, plan: { ...plan, ...negotiated, ...(plan.model === 'proprio' ? { alignerCost } : {}) } }, dentist);
   await sql`update contracts set status = 'cancelado' where case_id = ${id} and kind = 'paciente' and status = 'enviado'`;
   const t = token(24);
   await sql`insert into contracts (kind, case_id, token, title, body, body_hash, created_by)
@@ -1460,7 +1743,9 @@ r('POST', '/api/admin/cases/:id/charges', async (req, res, { id }) => {
   const [{ paid: scanPaid }] = await sql`select coalesce(sum(price), 0)::float as paid from scan_orders where case_id = ${id} and status in ('pago','agendado','realizado')`;
   const value = Math.round((total - scanPaid) * 100) / 100;
   if (!(value > 0)) fail(400, `O valor do tratamento precisa ser maior que o escaneamento já pago (${brl(scanPaid)}).`);
-  const boletoMax = Math.min(Math.max(Number(b.boletoMax) || MODEL.boletoMaxInstallments, 1), MODEL.boletoMaxInstallments);
+  const negCfg = await negotiationSettings(sql);
+  const boletoMax = Math.min(Math.max(Number(b.boletoMax) || MODEL.boletoMaxInstallments, 1), negCfg.maxBoletos);
+  const interestPct = boletoMax > negCfg.noInterestUpTo ? negCfg.interestPctMonth : null;
   const description = clean(b.description, 200) || `AlignSystem — tratamento (caso #${c.code})`;
   let split = null;
   const share = b.dentistShare === '80/20' ? '80/20' : b.dentistShare ? '50/30/20' : null;
@@ -1483,9 +1768,9 @@ r('POST', '/api/admin/cases/:id/charges', async (req, res, { id }) => {
   }
   const t = token(24);
   const [out] = await sql`insert into charges (case_id, dentist_id, kind, description, billing_type, value, max_installments, boleto_enabled, boleto_max,
-      due_date, split, pay_token, status, created_by, scan_deducted)
-    values (${id}, ${split?.dentistId || null}, 'integral', ${description}, 'UNDEFINED', ${value}, ${MODEL.cardMaxInstallments}, ${b.boleto !== false}, ${boletoMax},
-            ${dueIn(3)}, ${split ? sql.json(split) : null}, ${t}, 'aguardando_escolha', ${u.id}, ${scanPaid || null}) returning *`;
+      due_date, split, pay_token, status, created_by, scan_deducted, interest_pct)
+    values (${id}, ${split?.dentistId || null}, 'integral', ${description}, 'UNDEFINED', ${value}, ${Math.min(Number(b.cardMax) || MODEL.cardMaxInstallments, MODEL.cardMaxInstallments)}, ${b.boleto !== false}, ${boletoMax},
+            ${dueIn(3)}, ${split ? sql.json(split) : null}, ${t}, 'aguardando_escolha', ${u.id}, ${scanPaid || null}, ${interestPct}) returning *`;
   await logEvent(sql, { caseId: id, actor: u.email, type: 'cobranca_criada', data: { total, scanDeducted: scanPaid, value, boleto: b.boleto !== false, repasseDentista: Boolean(split) } });
   if (c.email) await sendMail({
     to: c.email, subject: `Pagamento AlignSystem — ${description}`,
@@ -1513,7 +1798,8 @@ const splitFor = (ch, part) => {
   return pct > 0 ? { walletId: ch.split.walletId, type: ch.split.model ? 'percent' : ch.split.type, value: pct } : null;
 };
 
-const chargeQuote = (ch) => quote(ch.value, { cardMax: ch.max_installments || MODEL.cardMaxInstallments, boletoMax: ch.boleto_max || MODEL.boletoMaxInstallments, boleto: ch.boleto_enabled });
+const chargeQuote = (ch) => quote(ch.value, { cardMax: ch.max_installments || MODEL.cardMaxInstallments, boletoMax: ch.boleto_max || MODEL.boletoMaxInstallments, boleto: ch.boleto_enabled,
+  ...(ch.interest_pct != null ? { interestPct: Number(ch.interest_pct) } : {}) });
 
 // Consulta por quebra/perda de alinhador: cobrada à parte do paciente (consulta do dentista + 30%);
 // o dentista recebe o valor da consulta por split e o acréscimo fica com a AlignSystem
@@ -1554,8 +1840,9 @@ async function ensureBoletos(sql, chargeId) {
     const [entry] = await tx`select paid_at from payments where asaas_payment_id = ${ch.asaas_payment_id} and status = any(${[...asaas.PAID]})`;
     if (!entry) return;
     const q = chargeQuote(ch);
+    const opt = q.boleto.options[(ch.installment_count || 1) - 1];
     const p = await asaas.createPayment({
-      customer: ch.asaas_customer_id, billingType: 'BOLETO', value: q.boleto.rest, dueDate: dueIn(30, entry.paid_at || Date.now()),
+      customer: ch.asaas_customer_id, billingType: 'BOLETO', value: opt?.interest ? opt.totalRest : q.boleto.rest, dueDate: dueIn(30, entry.paid_at || Date.now()),
       description: `${ch.description} — saldo em boletos`, installmentCount: ch.installment_count || 1, split: splitFor(ch, 'boleto_rest'), externalReference: ch.id,
     });
     await tx`update charges set rest_payment_id = ${p.id}, rest_installment_id = ${p.installment || null}, updated_at = now() where id = ${ch.id}`;
@@ -1901,6 +2188,7 @@ r('GET', '/api/dentist/cases/:id', async (req, res, { id }) => {
       assessment: c.assessment, assessment_notes: c.assessment_notes, malocclusion: c.malocclusion, plan: { brand: c.plan?.brand, months: c.plan?.months, treatmentNotes: c.plan?.treatmentNotes, model: c.plan?.model || 'parceiro', complexity: c.plan?.complexity || null, consultLimit: consultLimit(c.plan) },
     },
     photos, appointments: appts, evidences, authorizations,
+    negotiation: c.negotiation || null, negotiationConsent: Boolean((await dentistById(sql, u.dentist_id))?.negotiation?.consentVersion),
     labels: { CASE_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION, URGENCY, AUTH_STATUS },
     slots: PHOTO_SLOTS,
   });
