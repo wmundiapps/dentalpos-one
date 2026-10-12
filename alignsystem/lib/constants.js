@@ -65,3 +65,13 @@ export const PHOTO_SLOTS = [
 
 export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 export const MAX_PHOTOS_PER_CASE = 40;
+
+// Autorização prévia de atendimento
+export const URGENCY = { rotina: 'Rotina', urgencia: 'Urgência' };
+export const AUTH_STATUS = {
+  solicitada: 'Aguardando autorização',
+  autorizada: 'Autorizado',
+  negada: 'Negado',
+  realizada: 'Realizado',
+  cancelada: 'Cancelado',
+};

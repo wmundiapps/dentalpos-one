@@ -11,7 +11,7 @@ import * as asaas from './asaas.js';
 import { MODEL, quote, dentistSplitPct, ownPriceDentistPct } from './pricing.js';
 import * as geo from './geo.js';
 import * as totp from './totp.js';
-import { sanitizeImage } from './images.js';
+import { sanitizeImage, sanitizeSignature } from './images.js';
 import * as prospects from './prospects.js';
 import * as scan from './scan.js';
 import QRCode from 'qrcode';
@@ -19,6 +19,7 @@ import { patientContract, partnerContract, contractsReviewed, PARTNER_DEFAULTS }
 import { ensureTcle, currentConsent, TCLE_KIND, TCLE_VERSION } from './tcle.js';
 import {
   CASE_STATUS, DENTIST_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION, PHOTO_SLOTS, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_CASE,
+  URGENCY, AUTH_STATUS,
 } from './constants.js';
 
 const router = createRouter();
@@ -1118,11 +1119,15 @@ r('GET', '/api/admin/overview', async (req, res) => {
   const dentists = await sql`select status, count(*)::int as n from dentists group by status`;
   const [paid] = await sql`select coalesce(sum(value),0)::float as total, count(*)::int as n from payments
     where status in ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH') and paid_at > now() - interval '30 days'`;
+  const pendingAuth = await sql`select a.id, a.case_id, a.milestone, a.urgency, a.created_at, a.over_limit, c.code, c.name, d.name as dentist_name
+    from authorizations a join cases c on c.id = a.case_id left join dentists d on d.id = a.dentist_id
+    where a.status = 'solicitada' order by (a.urgency = 'urgencia') desc, a.created_at limit 50`;
   send(res, 200, {
+    pendingAuth,
     cases: Object.fromEntries(cases.map((x) => [x.status, x.n])),
     dentists: Object.fromEntries(dentists.map((x) => [x.status, x.n])),
     paid30: paid,
-    labels: { CASE_STATUS, DENTIST_STATUS, ASSESSMENT, MILESTONES },
+    labels: { CASE_STATUS, DENTIST_STATUS, ASSESSMENT, MILESTONES, URGENCY },
     integrations: {
       asaas: asaas.asaasConfigured() ? asaas.asaasEnv() : null,
       email: process.env.SMTP_HOST ? 'smtp' : process.env.RESEND_API_KEY ? 'resend' : null,
@@ -1159,12 +1164,13 @@ async function caseDetail(sql, id) {
     sql`select id, kind, token, title, status, accepted_at, accepted_name, accepted_ip, body_hash, created_at from contracts where case_id = ${id} order by created_at desc`,
     sql`select * from charges where case_id = ${id} order by created_at desc`,
     sql`select * from payments where case_id = ${id} order by due_date`,
-    sql`select e.*, d.name as dentist_name from evidences e left join dentists d on d.id = e.dentist_id where case_id = ${id} order by performed_at desc, created_at desc`,
+    sql`select e.id, e.case_id, e.dentist_id, e.milestone, e.notes, e.performed_at, e.validated_at, e.validated_by, e.created_at, e.authorization_id, e.patient_signer, e.signed_at, e.signed_ip, e.signatures_hash, (e.patient_signature is not null) as has_patient_signature, (e.dentist_signature is not null) as has_dentist_signature, d.name as dentist_name from evidences e left join dentists d on d.id = e.dentist_id where case_id = ${id} order by performed_at desc, created_at desc`,
     sql`select actor, type, data, created_at from events where case_id = ${id} order by created_at desc limit 100`,
   ]);
+  const authorizations = await sql`select a.*, d.name as dentist_name from authorizations a left join dentists d on d.id = a.dentist_id where a.case_id = ${id} order by a.created_at desc`;
   const consents = await sql`select id, version, body_hash, accepted_name, accepted_by_guardian, guardian_name, accepted_birth_date, ip, accepted_at
     from consents where case_id = ${id} order by accepted_at desc`;
-  return { c, photos, appts, contracts, charges, payments, evidences, events, consents };
+  return { c, photos, appts, contracts, charges, payments, evidences, events, consents, authorizations };
 }
 
 r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
@@ -1177,9 +1183,9 @@ r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
     contracts: d.contracts.map((x) => ({ ...x, url: contractUrl(x.token) })),
     charges: d.charges.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
     payments: d.payments.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
-    evidences: d.evidences, events: d.events, consents: d.consents,
+    evidences: d.evidences, events: d.events, consents: d.consents, authorizations: d.authorizations,
     scanOrders: await sql`select status, price, billing_type, accepted_name, accepted_at, accepted_ip, paid_at, preference, preference_at, terms_version from scan_orders where case_id = ${id} order by created_at desc`,
-    labels: { CASE_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION },
+    labels: { CASE_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION, URGENCY, AUTH_STATUS },
     slots: PHOTO_SLOTS,
   });
 });
@@ -1580,7 +1586,10 @@ r('POST', '/api/admin/charges/:id/cancel', async (req, res, { id }) => {
 r('POST', '/api/admin/evidences/:id/validate', async (req, res, { id }) => {
   const sql = db();
   const u = await requireUser(sql, req, 'admin');
-  const [e] = await sql`update evidences set validated_at = now(), validated_by = ${u.id} where id = ${id} and validated_at is null returning *`;
+  const [chk] = await sql`select authorization_id, patient_signature is not null as ps, dentist_signature is not null as ds from evidences where id = ${id}`;
+  if (!chk) fail(404, 'Registro não encontrado.');
+  if (!chk.authorization_id || !chk.ps || !chk.ds) fail(409, 'Só é possível validar atendimento com autorização prévia e as assinaturas do paciente e do dentista.');
+  const [e] = await sql`update evidences set validated_at = now(), validated_by = ${u.id} where id = ${id} and validated_at is null returning id, case_id, dentist_id, milestone`;
   if (e) {
     await logEvent(sql, { caseId: e.case_id, dentistId: e.dentist_id, actor: u.email, type: 'evidencia_validada', data: { milestone: e.milestone } });
     const d = await dentistById(sql, e.dentist_id);
@@ -1610,7 +1619,7 @@ r('GET', '/api/admin/dentists/:id', async (req, res, { id }) => {
     sql`select id, code, name, city, status from cases where dentist_id = ${id} order by created_at desc`,
     sql`select id, email, active, last_login_at, password_hash is not null as has_password from users where dentist_id = ${id}`,
     sql`select actor, type, data, created_at from events where dentist_id = ${id} order by created_at desc limit 50`,
-    sql`select e.*, c.code from evidences e join cases c on c.id = e.case_id where e.dentist_id = ${id} order by e.created_at desc limit 100`,
+    sql`select e.id, e.milestone, e.performed_at, e.validated_at, e.authorization_id, c.code from evidences e join cases c on c.id = e.case_id where e.dentist_id = ${id} order by e.created_at desc limit 100`,
   ]);
   send(res, 200, {
     dentist: d,
@@ -1789,39 +1798,144 @@ r('GET', '/api/dentist/cases/:id', async (req, res, { id }) => {
   const [photos, appts, evidences] = await Promise.all([
     photoMeta(sql, id).then((list) => list.filter((p) => p.uploaded_by !== 'paciente' || p.reviewed_at)),
     sql`select * from appointments where case_id = ${id} order by starts_at desc`,
-    sql`select * from evidences where case_id = ${id} order by performed_at desc, created_at desc`,
+    sql`select e.id, e.case_id, e.dentist_id, e.milestone, e.notes, e.performed_at, e.validated_at, e.validated_by, e.created_at, e.authorization_id, e.patient_signer, e.signed_at, e.signed_ip, e.signatures_hash, (e.patient_signature is not null) as has_patient_signature, (e.dentist_signature is not null) as has_dentist_signature from evidences e where case_id = ${id} order by performed_at desc, created_at desc`,
   ]);
+  const authorizations = await sql`select * from authorizations where case_id = ${id} and dentist_id = ${u.dentist_id} order by created_at desc`;
   send(res, 200, {
     case: {
       id: c.id, code: c.code, name: c.name, age: c.age, city: c.city, whatsapp: c.whatsapp, reason: c.reason, status: c.status,
       assessment: c.assessment, assessment_notes: c.assessment_notes, malocclusion: c.malocclusion, plan: { brand: c.plan?.brand, months: c.plan?.months, treatmentNotes: c.plan?.treatmentNotes, model: c.plan?.model || 'parceiro', complexity: c.plan?.complexity || null, consultLimit: consultLimit(c.plan) },
     },
-    photos, appointments: appts, evidences,
-    labels: { CASE_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION },
+    photos, appointments: appts, evidences, authorizations,
+    labels: { CASE_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION, URGENCY, AUTH_STATUS },
     slots: PHOTO_SLOTS,
   });
 });
 
-r('POST', '/api/dentist/cases/:id/evidences', async (req, res, { id }) => {
+// Pedido de autorização prévia: sem ele (e sem o "autorizado" da equipe) o atendimento não pode ser registrado
+r('POST', '/api/dentist/cases/:id/authorizations', async (req, res, { id }) => {
   const sql = db();
   const u = await dentistUser(sql, req);
   const c = await dentistCase(sql, u, id);
   const b = await readJson(req);
   if (!MILESTONES[b.milestone]) fail(400, 'Escolha o tipo de atendimento.');
+  if (!URGENCY[b.urgency]) fail(400, 'Informe se é rotina ou urgência.');
+  const justification = clean(b.justification, 2000);
+  if (justification.length < 10) fail(400, 'Escreva a justificativa do atendimento.');
+  const planned = /^\d{4}-\d{2}-\d{2}$/.test(b.planned_for || '') ? b.planned_for : null;
+  await rateLimit(sql, `auth:${u.id}`, 30, 60);
+  const limit = consultLimit(c.plan);
+  const [{ n }] = await sql`select count(*)::int as n from authorizations where case_id = ${id} and status in ('solicitada','autorizada','realizada')`;
+  const overLimit = Boolean(limit && n + 1 > limit);
+  const [a] = await sql`insert into authorizations (case_id, dentist_id, milestone, urgency, justification, planned_for, over_limit, requested_by)
+    values (${id}, ${u.dentist_id}, ${b.milestone}, ${b.urgency}, ${justification}, ${planned}, ${overLimit}, ${u.id}) returning *`;
+  await logEvent(sql, { caseId: id, dentistId: u.dentist_id, actor: u.email, type: 'autorizacao_solicitada', data: { milestone: b.milestone, urgency: b.urgency, overLimit } });
+  const urgent = b.urgency === 'urgencia';
+  await sendMail({
+    to: notifyAddress(),
+    subject: `${urgent ? 'URGENTE — ' : ''}Pedido de autorização — caso #${c.code} (${MILESTONES[b.milestone]})`,
+    html: layout(urgent ? 'Pedido de autorização URGENTE' : 'Pedido de autorização de atendimento', table([
+      ['Dentista', u.name], ['Caso', `#${c.code} — ${c.name}`], ['Atendimento', MILESTONES[b.milestone]], ['Tipo', URGENCY[b.urgency]],
+      ['Data prevista', planned ? planned.split('-').reverse().join('/') : '—'], ['Justificativa', justification],
+      ...(overLimit ? [['Atenção', `Acima do limite de ${limit} consultas do contrato: exige termo aditivo pago pelo paciente.`]] : []),
+    ]) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Autorizar ou negar no painel')),
+  });
+  send(res, 201, a);
+});
+
+r('POST', '/api/dentist/authorizations/:id/cancel', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const [a] = await sql`update authorizations set status = 'cancelada', updated_at = now()
+    where id = ${id} and dentist_id = ${u.dentist_id} and status in ('solicitada','autorizada') returning *`;
+  if (!a) fail(409, 'Este pedido não pode mais ser cancelado.');
+  await logEvent(sql, { caseId: a.case_id, dentistId: u.dentist_id, actor: u.email, type: 'autorizacao_cancelada' });
+  send(res, 200, { ok: true });
+});
+
+r('POST', '/api/admin/authorizations/:id/decide', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const approve = b.approve === true;
+  const note = clean(b.note, 1000) || null;
+  if (!approve && !note) fail(400, 'Escreva o motivo para negar.');
+  const [a] = await sql`update authorizations set status = ${approve ? 'autorizada' : 'negada'}, decided_at = now(), decided_by = ${u.id},
+      decision_note = ${note}, updated_at = now()
+    where id = ${id} and status = 'solicitada' returning *`;
+  if (!a) fail(409, 'Este pedido já foi decidido ou cancelado.');
+  await logEvent(sql, { caseId: a.case_id, dentistId: a.dentist_id, actor: u.email, type: approve ? 'autorizacao_concedida' : 'autorizacao_negada', data: { note, ip: clientIp(req) } });
+  const d = await dentistById(sql, a.dentist_id);
+  const [c] = await sql`select code from cases where id = ${a.case_id}`;
+  if (d?.email) await sendMail({
+    to: d.email,
+    subject: `${approve ? 'Atendimento autorizado' : 'Atendimento não autorizado'} — caso #${c.code}`,
+    html: layout(approve ? 'Atendimento autorizado' : 'Atendimento não autorizado',
+      para(approve
+        ? `O atendimento "${MILESTONES[a.milestone]}" do caso #${c.code} foi autorizado. Depois de atender, registre no painel o que foi feito e colete a assinatura do paciente e a sua.`
+        : `O atendimento "${MILESTONES[a.milestone]}" do caso #${c.code} não foi autorizado.`) + (note ? para(`Observação da equipe: ${note}`) : '') +
+      button(`${appUrl()}/painel#/caso/${a.case_id}`, 'Abrir o caso')),
+  });
+  send(res, 200, a);
+});
+
+// Registro do atendimento: só com autorização concedida, descrição do que foi feito e as duas assinaturas
+r('POST', '/api/dentist/cases/:id/evidences', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const c = await dentistCase(sql, u, id);
+  const b = await readJson(req);
+  const [auth] = b.authorizationId ? await sql`select * from authorizations where id = ${b.authorizationId} and case_id = ${id} and dentist_id = ${u.dentist_id}` : [];
+  if (!auth) fail(409, 'Este atendimento precisa de autorização prévia da AlignSystem. Faça o pedido de autorização antes de atender.');
+  if (auth.status === 'solicitada') fail(409, 'O pedido de autorização ainda está aguardando a AlignSystem.');
+  if (auth.status !== 'autorizada') fail(409, `Este pedido está "${AUTH_STATUS[auth.status]}" e não permite registrar atendimento.`);
+  const notes = clean(b.notes, 3000);
+  if (notes.length < 10) fail(400, 'Descreva o que foi feito no atendimento.');
+  const signer = clean(b.patientSigner, 120);
+  if (signer.length < 3) fail(400, 'Informe o nome de quem assinou pelo paciente.');
+  const patientSig = await sanitizeSignature(b.patientSignature, 'paciente');
+  const dentistSig = await sanitizeSignature(b.dentistSignature, 'dentista');
   const performed = /^\d{4}-\d{2}-\d{2}$/.test(b.performed_at || '') ? b.performed_at : new Date().toISOString().slice(0, 10);
-  const [e] = await sql`insert into evidences (case_id, dentist_id, milestone, notes, performed_at)
-    values (${id}, ${u.dentist_id}, ${b.milestone}, ${clean(b.notes, 3000) || null}, ${performed}) returning *`;
-  if (b.milestone === 'instalacao' || b.milestone === 'inicio_alinhadores') {
+  const ip = clientIp(req);
+  const hash = sha256([auth.id, performed, notes, signer, patientSig.toString('base64'), dentistSig.toString('base64')].join('|'));
+  const e = await sql.begin(async (tx) => {
+    const [upd] = await tx`update authorizations set status = 'realizada', updated_at = now() where id = ${auth.id} and status = 'autorizada' returning id`;
+    if (!upd) fail(409, 'Este atendimento já foi registrado.');
+    const [row] = await tx`insert into evidences (case_id, dentist_id, milestone, notes, performed_at, authorization_id, patient_signature, dentist_signature,
+        patient_signer, signed_at, signed_ip, signatures_hash)
+      values (${id}, ${u.dentist_id}, ${auth.milestone}, ${notes}, ${performed}, ${auth.id}, ${patientSig}, ${dentistSig}, ${signer}, now(), ${ip}, ${hash})
+      returning id, milestone, performed_at, authorization_id`;
+    return row;
+  });
+  const m = auth.milestone;
+  if (m === 'instalacao' || m === 'inicio_alinhadores') {
     await sql`update cases set status = 'em_tratamento', updated_at = now() where id = ${id} and status in ('contrato_assinado','documentacao_realizada','plano_apresentado')`;
   }
-  if (b.milestone === 'documentacao') await sql`update cases set status = 'documentacao_realizada', updated_at = now() where id = ${id} and status in ('documentacao_agendada','parecer_enviado','fotos_enviadas','novo')`;
-  if (b.milestone === 'finalizacao') await sql`update cases set status = 'finalizado', updated_at = now() where id = ${id} and status = 'em_tratamento'`;
-  await logEvent(sql, { caseId: id, dentistId: u.dentist_id, actor: u.email, type: 'evidencia_registrada', data: { milestone: b.milestone } });
+  if (m === 'documentacao') await sql`update cases set status = 'documentacao_realizada', updated_at = now() where id = ${id} and status in ('documentacao_agendada','parecer_enviado','fotos_enviadas','novo')`;
+  if (m === 'finalizacao') await sql`update cases set status = 'finalizado', updated_at = now() where id = ${id} and status = 'em_tratamento'`;
+  await logEvent(sql, { caseId: id, dentistId: u.dentist_id, actor: u.email, type: 'evidencia_registrada', data: { milestone: m, authorizationId: auth.id, signer, ip, hash } });
   await sendMail({
-    to: notifyAddress(), subject: `Atendimento registrado — caso #${c.code} (${MILESTONES[b.milestone]})`,
-    html: layout('Novo registro de atendimento', table([['Dentista', u.name], ['Caso', `#${c.code} — ${c.name}`], ['Tipo', MILESTONES[b.milestone]], ['Data', performed]]) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Validar no painel')),
+    to: notifyAddress(), subject: `Atendimento registrado — caso #${c.code} (${MILESTONES[m]})`,
+    html: layout('Novo registro de atendimento', table([['Dentista', u.name], ['Caso', `#${c.code} — ${c.name}`], ['Tipo', MILESTONES[m]], ['Data', performed], ['Assinado por', `${signer} e o dentista`]]) +
+      button(`${appUrl()}/painel#/caso/${c.id}`, 'Validar no painel')),
   });
   send(res, 201, e);
+});
+
+// Imagem da assinatura (equipe ou o próprio dentista)
+r('GET', '/api/evidences/:id/signature/:who', async (req, res, { id, who }) => {
+  const sql = db();
+  const u = await requireUser(sql, req);
+  if (who !== 'paciente' && who !== 'dentista') fail(404, 'Assinatura não encontrada.');
+  const [e] = u.role === 'admin'
+    ? await sql`select patient_signature, dentist_signature from evidences where id = ${id}`
+    : await sql`select patient_signature, dentist_signature from evidences where id = ${id} and dentist_id = ${u.dentist_id}`;
+  const img = e && (who === 'paciente' ? e.patient_signature : e.dentist_signature);
+  if (!img) fail(404, 'Assinatura não encontrada.');
+  send(res, 200, Buffer.from(img), {
+    'Content-Type': 'image/png', 'Cache-Control': 'private, max-age=600', 'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
+  });
 });
 
 r('POST', '/api/dentist/evidences/:id/photos', async (req, res, { id }) => {

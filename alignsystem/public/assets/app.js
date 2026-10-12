@@ -37,7 +37,9 @@
   A.date = function (d, withTime) {
     if (!d) return '';
     var x = new Date(d);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(String(d))) x = new Date(d + 'T12:00:00');
+    // colunas só de data chegam como "AAAA-MM-DD" ou "AAAA-MM-DDT00:00:00.000Z" (meia-noite UTC): sem ajuste, viram o dia anterior no Brasil
+    var day = /^(\d{4}-\d{2}-\d{2})(T00:00:00(\.000)?Z)?$/.exec(String(d));
+    if (day && !withTime) x = new Date(day[1] + 'T12:00:00');
     return x.toLocaleString('pt-BR', withTime
       ? { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }
       : { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' });

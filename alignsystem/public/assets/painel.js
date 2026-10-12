@@ -239,6 +239,45 @@
     });
   }
 
+  // Assinatura com o dedo ou o mouse (fundo branco, traço escuro)
+  function sigPadHtml(id, label) {
+    return '<div class="field"><label>' + esc(label) + '</label><div style="border:1.5px dashed var(--line,#ccc);border-radius:12px;background:#fff;position:relative">' +
+      '<canvas id="' + id + '" width="900" height="300" style="width:100%;height:170px;touch-action:none;display:block;border-radius:12px"></canvas>' +
+      '<button type="button" class="btn btn-line btn-sm" data-clear="' + id + '" style="position:absolute;right:8px;top:8px">Limpar</button></div></div>';
+  }
+  function sigPad(canvas) {
+    var ctx = canvas.getContext('2d'), drawing = false, dirty = false, last = null;
+    function reset() { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); dirty = false; }
+    function pos(e) { var r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * canvas.width / r.width, y: (e.clientY - r.top) * canvas.height / r.height }; }
+    reset();
+    ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111';
+    canvas.addEventListener('pointerdown', function (e) { drawing = true; last = pos(e); canvas.setPointerCapture(e.pointerId); e.preventDefault(); });
+    canvas.addEventListener('pointermove', function (e) {
+      if (!drawing) return;
+      var p = pos(e); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p; dirty = true; e.preventDefault();
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (t) { canvas.addEventListener(t, function () { drawing = false; }); });
+    return { clear: reset, empty: function () { return !dirty; }, data: function () { return canvas.toDataURL('image/png'); } };
+  }
+  function authBadge(a, L) {
+    var kind = { solicitada: 'honey', autorizada: 'green', realizada: 'green', negada: 'red', cancelada: '' }[a.status] || '';
+    return statusBadge(L.AUTH_STATUS[a.status], kind) + ' ' + (a.urgency === 'urgencia' ? statusBadge('URGÊNCIA', 'red') : statusBadge('Rotina', ''));
+  }
+  function authInfo(a, L) {
+    return '<div><b>' + esc(L.MILESTONES[a.milestone]) + '</b> · pedido em ' + esc(AS.date(a.created_at, true)) + (a.planned_for ? ' · previsto para ' + esc(AS.date(a.planned_for)) : '') +
+      (a.dentist_name ? ' · ' + esc(a.dentist_name) : '') + '</div>' +
+      '<div class="small" style="white-space:pre-line;margin-top:4px"><b>Justificativa:</b> ' + esc(a.justification) + '</div>' +
+      (a.over_limit ? '<div class="small" style="color:#A8452F;margin-top:4px"><b>Acima do limite de consultas do contrato</b>: exige termo aditivo pago pelo paciente.</div>' : '') +
+      (a.decision_note ? '<div class="small muted" style="margin-top:4px"><b>Equipe:</b> ' + esc(a.decision_note) + '</div>' : '');
+  }
+  function signaturesHtml(e) {
+    if (!e.has_patient_signature || !e.has_dentist_signature) return '<div class="small" style="color:#A8452F;margin-top:6px">Registro sem autorização prévia ou sem assinaturas: não pode ser validado.</div>';
+    return '<div class="row" style="gap:14px;margin-top:8px;flex-wrap:wrap">' +
+      '<div class="small muted">Paciente (' + esc(e.patient_signer || '') + ')<br><img src="/api/evidences/' + e.id + '/signature/paciente" alt="Assinatura do paciente" style="height:60px;background:#fff;border:1px solid #ddd;border-radius:8px"></div>' +
+      '<div class="small muted">Dentista<br><img src="/api/evidences/' + e.id + '/signature/dentista" alt="Assinatura do dentista" style="height:60px;background:#fff;border:1px solid #ddd;border-radius:8px"></div>' +
+      '<div class="small muted">Assinado em ' + esc(AS.date(e.signed_at, true)) + '<br>IP ' + esc(e.signed_ip || '') + '</div></div>';
+  }
+
   function dentistPrices() {
     loading('precos');
     api('/api/dentist/prices').then(function (d) {
@@ -391,7 +430,10 @@
         '<a class="stat" href="#/casos?status=em_tratamento" style="text-decoration:none;color:inherit"><b>' + cs('em_tratamento') + '</b><span>Em tratamento</span></a>' +
         '<a class="stat" href="#/parceiros" style="text-decoration:none;color:inherit"><b>' + ((d.dentists.lead || 0) + (d.dentists.em_analise || 0)) + '</b><span>Dentistas aguardando análise</span></a>' +
         '<div class="stat"><b>' + esc(AS.money(d.paid30.total)) + '</b><span>Recebido em 30 dias</span></div>' +
-        '</div><div class="card"><h2>Funil de pacientes</h2><div class="list">' +
+        '</div>' + (d.pendingAuth && d.pendingAuth.length ? '<div class="card"><h2>Pedidos de autorização de atendimento</h2><div class="list">' + d.pendingAuth.map(function (a) {
+          return '<div class="it"><a href="#/caso/' + a.case_id + '"><b>#' + a.code + ' · ' + esc(a.name) + '</b> · ' + esc(L.MILESTONES[a.milestone]) + '</a><span>' +
+            (a.urgency === 'urgencia' ? statusBadge('URGÊNCIA', 'red') : statusBadge('Rotina', '')) + (a.over_limit ? ' ' + statusBadge('acima do limite', 'honey') : '') + ' <span class="small muted">' + esc(a.dentist_name || '') + ' · ' + esc(AS.date(a.created_at, true)) + '</span></span></div>';
+        }).join('') + '</div></div>' : '') + '<div class="card"><h2>Funil de pacientes</h2><div class="list">' +
         Object.keys(L.CASE_STATUS).map(function (k) { return '<div class="it"><a href="#/casos?status=' + k + '">' + esc(L.CASE_STATUS[k]) + '</a><b>' + cs(k) + '</b></div>'; }).join('') +
         '</div></div>';
       var m = mount(html, 'inicio');
@@ -571,6 +613,12 @@
             (ch.status !== 'cancelado' && ch.status !== 'erro' ? '<button type="button" class="btn btn-line btn-sm" data-sync="' + ch.id + '">Atualizar</button><button type="button" class="btn btn-danger btn-sm" data-cancel="' + ch.id + '">Cancelar</button>' : '') + '</div></div>';
         }).join('') + '</div>' : '') + '</form></div>' +
 
+        // autorizações prévias
+        '<div class="card"><h2>Autorizações de atendimento</h2>' + ((d.authorizations || []).length ? '<div class="list">' + d.authorizations.map(function (a) {
+          return '<div class="it" style="display:block"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px">' + authInfo(a, L) + '<div>' + authBadge(a, L) + '</div></div>' +
+            (a.status === 'solicitada' ? '<div class="row" style="margin-top:8px"><button type="button" class="btn btn-green btn-sm" data-auth-ok="' + a.id + '">Autorizar</button><button type="button" class="btn btn-danger btn-sm" data-auth-no="' + a.id + '">Negar</button></div>' : '') + '</div>';
+        }).join('') + '</div>' : '<p class="muted small">Nenhum pedido de autorização.</p>') + '</div>' +
+
         // evidências
         '<div class="card"><h2>Atendimentos registrados pelo dentista</h2>' +
         (c.consultLimit ? (function () {
@@ -581,8 +629,8 @@
         })() : '') + (d.evidences.length ? '<div class="list">' + d.evidences.map(function (e) {
           var ph = d.photos.filter(function (p) { return p.evidence_id === e.id; });
           return '<div class="it" style="display:block"><div class="row" style="justify-content:space-between"><div><b>' + esc(L.MILESTONES[e.milestone]) + '</b> · ' + esc(AS.date(e.performed_at)) + ' · ' + esc(e.dentist_name || '') + '</div>' +
-            (e.validated_at ? statusBadge('Validado em ' + AS.date(e.validated_at), 'green') : '<button class="btn btn-green btn-sm" data-validate="' + e.id + '">Validar atendimento</button>') + '</div>' +
-            (e.notes ? '<p class="small" style="white-space:pre-line;margin-top:6px">' + esc(e.notes) + '</p>' : '') + gallery(ph) + '</div>';
+            (e.validated_at ? statusBadge('Validado em ' + AS.date(e.validated_at), 'green') : (e.authorization_id && e.has_patient_signature && e.has_dentist_signature ? '<button class="btn btn-green btn-sm" data-validate="' + e.id + '">Validar atendimento</button>' : statusBadge('sem autorização/assinaturas', 'red'))) + '</div>' +
+            (e.notes ? '<p class="small" style="white-space:pre-line;margin-top:6px">' + esc(e.notes) + '</p>' : '') + signaturesHtml(e) + gallery(ph) + '</div>';
         }).join('') + '</div>' : '<p class="muted small">Nenhum atendimento registrado ainda.</p>') + '</div>' +
 
         '<div class="card"><h2>Histórico</h2><div class="timeline">' + d.events.map(function (ev) {
@@ -657,6 +705,12 @@
           busyBtn(b, api('/api/admin/charges/' + b.getAttribute('data-cancel') + '/cancel', { method: 'POST', body: {} })).then(reload).catch(function (e) { alert(e.message); });
         });
       });
+      $all('[data-auth-ok]', m).forEach(function (b) { b.addEventListener('click', function () {
+        busyBtn(b, api('/api/admin/authorizations/' + b.getAttribute('data-auth-ok') + '/decide', { method: 'POST', body: { approve: true } })).then(reload).catch(function (e) { alert(e.message); }); }); });
+      $all('[data-auth-no]', m).forEach(function (b) { b.addEventListener('click', function () {
+        var note = prompt('Motivo para negar (o dentista vai receber):');
+        if (!note) return;
+        busyBtn(b, api('/api/admin/authorizations/' + b.getAttribute('data-auth-no') + '/decide', { method: 'POST', body: { approve: false, note: note } })).then(reload).catch(function (e) { alert(e.message); }); }); });
       $all('[data-validate]', m).forEach(function (b) { b.addEventListener('click', function () {
         if (c.consultLimit && d.evidences.filter(function (e) { return e.validated_at; }).length >= c.consultLimit &&
           !confirm('Este caso já atingiu o limite de ' + c.consultLimit + ' consultas incluídas no contrato. Validar mesmo assim (consulta extra contratada por aditivo ou autorizada)?')) return;
@@ -842,16 +896,28 @@
             '<select data-appt="' + a.id + '" style="max-width:150px">' + options(APPT_STATUS, a.status) + '</select></div>';
         }).join('') + '</div>' : '') + '</form></div>' +
         '<div class="card"><h2>Fotos do paciente</h2>' + gallery(evalPhotos, { slots: d.slots }) + (others.length ? '<h3 style="margin-top:14px">Documentação</h3>' + gallery(others) : '') + '</div>' +
-        '<form class="card" id="evf"><h2>Registrar atendimento</h2><p class="small muted">Registre cada atendimento com fotos: é o que libera o repasse após a validação da equipe.</p><div class="grid2">' +
-        '<div class="field"><label for="milestone">Tipo de atendimento</label><select id="milestone" name="milestone" required>' + options(L.MILESTONES, '', '— escolha —') + '</select></div>' +
-        field('performed_at', 'Data', new Date().toISOString().slice(0, 10), 'type="date" required') + '</div>' +
-        area('notes', 'Anotações clínicas', '') +
-        '<div class="field"><label for="evPhotos">Fotos / arquivos do atendimento</label><input id="evPhotos" type="file" multiple accept="image/*,application/pdf"></div>' +
-        '<button class="btn btn-primary" type="submit">Salvar registro</button><div class="fmsg"></div></form>' +
+        '<form class="card" id="auf"><h2>Pedir autorização de atendimento</h2><p class="small muted">Todo atendimento precisa de autorização prévia da AlignSystem. Sem ela, o atendimento não pode ser registrado nem gera repasse.</p><div class="grid2">' +
+        '<div class="field"><label for="au_milestone">Tipo de atendimento</label><select id="au_milestone" name="milestone" required>' + options(L.MILESTONES, '', '— escolha —') + '</select></div>' +
+        '<div class="field"><label for="au_urgency">Rotina ou urgência</label><select id="au_urgency" name="urgency" required><option value="">— escolha —</option><option value="rotina">Rotina</option><option value="urgencia">Urgência</option></select></div>' +
+        field('planned_for', 'Data prevista', new Date().toISOString().slice(0, 10), 'type="date"') + '</div>' +
+        area('justification', 'Justificativa', '') +
+        '<button class="btn btn-primary" type="submit">Pedir autorização</button><div class="fmsg"></div></form>' +
+        '<div class="card"><h2>Autorizações</h2>' + (d.authorizations.length ? '<div class="list">' + d.authorizations.map(function (a) {
+          return '<div class="it" style="display:block"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px">' + authInfo(a, L) + '<div>' + authBadge(a, L) + '</div></div>' +
+            (a.status === 'autorizada' ? '<div class="row" style="margin-top:8px"><button type="button" class="btn btn-green btn-sm" data-register="' + a.id + '">Registrar atendimento e colher assinaturas</button><button type="button" class="btn btn-line btn-sm" data-cancel-auth="' + a.id + '">Cancelar</button></div>' : '') +
+            (a.status === 'solicitada' ? '<div class="row" style="margin-top:8px"><button type="button" class="btn btn-line btn-sm" data-cancel-auth="' + a.id + '">Cancelar pedido</button></div>' : '') + '</div>';
+        }).join('') + '</div>' : '<p class="muted small">Nenhum pedido ainda.</p>') + '</div>' +
+        '<form class="card" id="evf" style="display:none"><h2>Registrar atendimento</h2><input type="hidden" name="authorizationId"><p class="small muted" id="evfInfo"></p><div class="grid2">' +
+        field('performed_at', 'Data do atendimento', new Date().toISOString().slice(0, 10), 'type="date" required') + field('patientSigner', 'Nome de quem assina pelo paciente', c.name, 'required') + '</div>' +
+        area('notes', 'O que foi feito', '') +
+        '<div class="field"><label for="evPhotos">Fotos / arquivos do atendimento (opcional)</label><input id="evPhotos" type="file" multiple accept="image/*,application/pdf"></div>' +
+        sigPadHtml('sigPatient', 'Assinatura do paciente (ou responsável)') + sigPadHtml('sigDentist', 'Assinatura do dentista') +
+        '<p class="small muted">Ao assinar, o paciente confirma que o atendimento descrito foi realizado nesta data.</p>' +
+        '<button class="btn btn-primary" type="submit">Salvar atendimento assinado</button> <button class="btn btn-line" type="button" id="evfClose">Fechar</button><div class="fmsg"></div></form>' +
         '<div class="card"><h2>Registros anteriores</h2>' + (d.evidences.length ? '<div class="list">' + d.evidences.map(function (e) {
           var ph = d.photos.filter(function (p) { return p.evidence_id === e.id; });
           return '<div class="it" style="display:block"><div class="row" style="justify-content:space-between"><b>' + esc(L.MILESTONES[e.milestone]) + ' · ' + esc(AS.date(e.performed_at)) + '</b>' +
-            (e.validated_at ? statusBadge('validado', 'green') : statusBadge('aguardando validação', 'honey')) + '</div>' + (e.notes ? '<p class="small" style="white-space:pre-line">' + esc(e.notes) + '</p>' : '') + gallery(ph) + '</div>';
+            (e.validated_at ? statusBadge('validado', 'green') : statusBadge('aguardando validação', 'honey')) + '</div>' + (e.notes ? '<p class="small" style="white-space:pre-line">' + esc(e.notes) + '</p>' : '') + signaturesHtml(e) + gallery(ph) + '</div>';
         }).join('') + '</div>' : '<p class="muted small">Nenhum registro ainda.</p>') + '</div>';
       var m = mount(html, 'inicio');
       var reload = function () { dentistCase(id); };
@@ -863,7 +929,32 @@
       $all('[data-appt]', m).forEach(function (s) {
         s.addEventListener('change', function () { api('/api/dentist/appointments/' + s.getAttribute('data-appt'), { method: 'PATCH', body: { status: s.value } }).catch(function (e) { alert(e.message); }); });
       });
-      onSubmit($('#evf', m), function (f) {
+      onSubmit($('#auf', m), function (f) {
+        return api('/api/dentist/cases/' + id + '/authorizations', { method: 'POST', body: f }).then(function () { reload(); return false; });
+      });
+      $all('[data-cancel-auth]', m).forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!confirm('Cancelar este pedido de autorização?')) return;
+          busyBtn(b, api('/api/dentist/authorizations/' + b.getAttribute('data-cancel-auth') + '/cancel', { method: 'POST', body: {} })).then(reload).catch(function (e) { alert(e.message); });
+        });
+      });
+      var evf = $('#evf', m), pads = {};
+      pads.p = sigPad($('#sigPatient', m)); pads.d = sigPad($('#sigDentist', m));
+      $all('[data-clear]', m).forEach(function (b) { b.addEventListener('click', function () { (b.getAttribute('data-clear') === 'sigPatient' ? pads.p : pads.d).clear(); }); });
+      $('#evfClose', m).addEventListener('click', function () { evf.style.display = 'none'; });
+      $all('[data-register]', m).forEach(function (b) {
+        b.addEventListener('click', function () {
+          var a = d.authorizations.filter(function (x) { return x.id === b.getAttribute('data-register'); })[0];
+          evf.elements.authorizationId.value = a.id;
+          $('#evfInfo', m).textContent = 'Atendimento autorizado: ' + L.MILESTONES[a.milestone] + ' (' + L.URGENCY[a.urgency] + ').';
+          evf.style.display = ''; pads.p.clear(); pads.d.clear();
+          evf.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+      onSubmit(evf, function (f) {
+        if (pads.p.empty()) throw new Error('Falta a assinatura do paciente.');
+        if (pads.d.empty()) throw new Error('Falta a assinatura do dentista.');
+        f.patientSignature = pads.p.data(); f.dentistSignature = pads.d.data();
         var files = $('#evPhotos', m).files;
         return api('/api/dentist/cases/' + id + '/evidences', { method: 'POST', body: f }).then(function (ev) {
           return uploadFiles(files, '/api/dentist/evidences/' + ev.id + '/photos');

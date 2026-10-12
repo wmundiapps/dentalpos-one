@@ -336,8 +336,32 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   assert.ok(!bytes.includes('MALWARE-MARKER')); // conteúdo escondido removido
   assert.equal((await sharp(bytes).metadata()).exif, undefined); // sem EXIF/GPS
   assert.equal(dc.data.case.cpf, undefined); // CPF não vai para o dentista
-  const ev = await call('POST', `/api/dentist/cases/${caseId}/evidences`, { who: 'dent', body: { milestone: 'instalacao', notes: 'Instalado.' } });
-  assert.equal(ev.status, 201);
+  // autorização prévia → atendimento com o que foi feito + assinaturas do paciente e do dentista → validação
+  const SIG = 'data:image/png;base64,' + (await sharp({ create: { width: 600, height: 200, channels: 3, background: '#fff' } })
+    .composite([{ input: Buffer.from('<svg width="600" height="200"><path d="M20 150 C 120 20, 220 180, 320 60 S 520 160, 580 40" stroke="#111" stroke-width="8" fill="none"/></svg>'), top: 0, left: 0 }]).png().toBuffer()).toString('base64');
+  const BLANK = 'data:image/png;base64,' + (await sharp({ create: { width: 600, height: 200, channels: 3, background: '#fff' } }).png().toBuffer()).toString('base64');
+  const evBody = { notes: 'Instalação dos attachments e entrega dos alinhadores 1 a 3.', patientSigner: 'Maria da Silva', patientSignature: SIG, dentistSignature: SIG };
+  assert.equal((await call('POST', `/api/dentist/cases/${caseId}/evidences`, { who: 'dent', body: { milestone: 'instalacao', ...evBody } })).status, 409); // sem autorização
+  assert.equal((await call('POST', `/api/dentist/cases/${caseId}/authorizations`, { who: 'dent', body: { milestone: 'instalacao', urgency: 'rotina', justification: 'x' } })).status, 400);
+  const au = await call('POST', `/api/dentist/cases/${caseId}/authorizations`, { who: 'dent', body: { milestone: 'instalacao', urgency: 'rotina', justification: 'Início do tratamento: instalação dos attachments.', planned_for: '2026-10-20' } });
+  assert.equal(au.status, 201, JSON.stringify(au.data));
+  assert.equal((await call('POST', `/api/dentist/cases/${caseId}/evidences`, { who: 'dent', body: { authorizationId: au.data.id, ...evBody } })).status, 409); // ainda não autorizada
+  assert.equal((await call('POST', `/api/admin/authorizations/${au.data.id}/decide`, { who: 'dent', body: { approve: true } })).status, 403);
+  assert.equal((await call('POST', `/api/admin/authorizations/${au.data.id}/decide`, { who: 'admin', body: { approve: false } })).status, 400); // negar exige motivo
+  assert.equal((await call('POST', `/api/admin/authorizations/${au.data.id}/decide`, { who: 'admin', body: { approve: true } })).status, 200);
+  assert.equal((await call('POST', `/api/dentist/cases/${caseId}/evidences`, { who: 'dent', body: { authorizationId: au.data.id, ...evBody, dentistSignature: BLANK } })).status, 400); // assinatura em branco
+  assert.equal((await call('POST', `/api/dentist/cases/${caseId}/evidences`, { who: 'dent', body: { authorizationId: au.data.id, ...evBody, notes: 'ok' } })).status, 400); // sem descrição
+  const ev = await call('POST', `/api/dentist/cases/${caseId}/evidences`, { who: 'dent', body: { authorizationId: au.data.id, ...evBody } });
+  assert.equal(ev.status, 201, JSON.stringify(ev.data));
+  assert.equal((await call('POST', `/api/dentist/cases/${caseId}/evidences`, { who: 'dent', body: { authorizationId: au.data.id, ...evBody } })).status, 409); // uma autorização, um atendimento
+  const sigImg = await call('GET', `/api/evidences/${ev.data.id}/signature/paciente`, { who: 'admin' });
+  assert.equal(sigImg.status, 200);
+  assert.equal((await sharp(Buffer.from(sigImg.data)).metadata()).format, 'png');
+  const ad = (await call('GET', `/api/admin/cases/${caseId}`, { who: 'admin' })).data;
+  assert.equal(ad.authorizations[0].status, 'realizada');
+  assert.equal(ad.evidences[0].has_patient_signature, true);
+  assert.equal(ad.evidences[0].patient_signature, undefined); // imagem não vai na lista
+  assert.equal((await call('GET', '/api/admin/overview', { who: 'admin' })).data.pendingAuth.length, 0);
   assert.equal((await call('POST', `/api/dentist/evidences/${ev.data.id}/photos`, { who: 'dent', raw: JPEG })).status, 201);
   assert.equal((await call('POST', `/api/admin/evidences/${ev.data.id}/validate`, { who: 'admin', body: {} })).status, 200);
   portal = await call('GET', `/api/portal/${t}`);
