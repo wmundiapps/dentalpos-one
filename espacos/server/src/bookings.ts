@@ -360,8 +360,8 @@ export function respondGuarantor(tok: string, answer: GuarantorAnswer): Promise<
       b.status = 'expired';
       await voidBookingPayment(tx, b, l);
       await notify(tx, { userId: b.guestId }, 'guarantor_declined', isSpouse
-        ? `O cônjuge de ${g.name} não autorizou a fiança. A reserva não foi concluída e nada foi cobrado.`
-        : `${g.name} recusou ser fiador(a). A reserva não foi concluída e nada foi cobrado.`, `/reservas/${b.id}`);
+        ? `O cônjuge de ${g.name} não autorizou a fiança. A reserva não foi concluída; se você já pagou, o valor será estornado integralmente.`
+        : `${g.name} recusou ser fiador(a). A reserva não foi concluída; se você já pagou, o valor será estornado integralmente.`, `/reservas/${b.id}`);
       await repo.saveBooking(tx, b);
       return b;
     }
@@ -412,7 +412,7 @@ export function hostDecision(host: User, bookingId: string, approve: boolean, re
       b.status = 'declined';
       b.cancellationReason = reason;
       await voidBookingPayment(tx, b, l);
-      await notify(tx, { userId: b.guestId }, 'booking_declined', `O anfitrião não pôde aceitar sua solicitação para "${l.title}". Nada foi cobrado.`, `/reservas/${b.id}`);
+      await notify(tx, { userId: b.guestId }, 'booking_declined', `O anfitrião não pôde aceitar sua solicitação para "${l.title}". Se você já pagou, o valor será estornado integralmente.`, `/reservas/${b.id}`);
     }
     await repo.saveBooking(tx, b);
     return b;
@@ -596,7 +596,7 @@ export function respondIncident(user: User, incidentId: string, accept: boolean,
     } else {
       inc.status = 'contested';
       await repo.saveIncident(tx, inc);
-      await notify(tx, { userId: inc.reporterId }, 'incident_contested', 'A outra parte contestou o incidente. A equipe de mediação decidirá em até 5 dias úteis.', `/ocorrencias/${inc.id}`);
+      await notify(tx, { userId: inc.reporterId }, 'incident_contested', 'A outra parte contestou o incidente. A equipe de mediação decidirá em até 10 dias úteis.', `/ocorrencias/${inc.id}`);
     }
     return inc;
   });
@@ -707,7 +707,7 @@ export async function tick(now = new Date()) {
       if ((b.status === 'pending_host' || b.status === 'pending_guarantor') && b.hostDecisionDeadline && new Date(b.hostDecisionDeadline) < now) {
         b.status = 'expired';
         if (p) await voidPayment(await gw(l, p), p);
-        await notify(tx, { userId: b.guestId }, 'booking_expired', `Sua solicitação para "${l.title}" expirou sem resposta. Nada foi cobrado.`, `/reservas/${b.id}`);
+        await notify(tx, { userId: b.guestId }, 'booking_expired', `Sua solicitação para "${l.title}" expirou sem resposta. Se você já pagou, o valor será estornado integralmente.`, `/reservas/${b.id}`);
         changed = true;
       }
       const start = firstStart(l, b);
@@ -742,9 +742,21 @@ export async function tick(now = new Date()) {
       }
     });
   }
+  // Sem resposta no prazo: só o atraso na saída (tarifa objetiva, medida pelo check-out) é cobrado sozinho;
+  // dano e demais cobranças vão para a mediação, com revisão humana antes de cobrar (parecer jurídico 2026-10).
   const expired = await repo.findIncidents(pool, "status = 'open' AND response_deadline < $1", [now.toISOString()]);
   for (const inc of expired) {
-    await resolveIncident(inc.id, { chargedAmount: inc.requestedAmount, note: 'no_response_within_deadline' }).catch(() => {});
+    if (inc.type === 'overstay') {
+      await resolveIncident(inc.id, { chargedAmount: inc.requestedAmount, note: 'no_response_within_deadline' }).catch(() => {});
+    } else {
+      await withTx(async (tx) => {
+        const cur = await repo.getIncident(tx, inc.id);
+        if (!cur || cur.status !== 'open') return;
+        cur.status = 'contested';
+        await repo.saveIncident(tx, cur);
+        await notify(tx, { userId: cur.reporterId }, 'incident_contested', 'A outra parte não respondeu no prazo. A equipe de mediação vai analisar o caso e decidir em até 10 dias úteis.', `/ocorrencias/${cur.id}`);
+      }).catch(() => {});
+    }
   }
 }
 
