@@ -597,6 +597,15 @@ async function download(share, month, file, dest) {
         const res = await fetch(url, { headers });
         if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
         await (0, import_promises.pipeline)(import_node_stream.Readable.fromWeb(res.body), import_node_fs.default.createWriteStream(dest));
+        // A Receita às vezes responde 200 com corpo vazio ou página HTML: só vale se for um zip de verdade
+        const fd = await import_node_fs.default.promises.open(dest, "r");
+        const sig = Buffer.alloc(4);
+        const { bytesRead } = await fd.read(sig, 0, 4, 0);
+        await fd.close();
+        if (bytesRead < 4 || sig.readUInt32LE(0) !== 67324752) {
+          await import_node_fs.default.promises.rm(dest, { force: true });
+          throw new Error(`resposta sem arquivo (${bytesRead} bytes)`);
+        }
         return;
       } catch (e) {
         last = e?.message || String(e);
@@ -724,6 +733,8 @@ async function main() {
   const remote = localDir ? [] : await listDir(share, month).catch(() => []);
   const fileFor = async (name) => {
     const local = import_node_path.default.join(work, name);
+    // Arquivo guardado vazio ou cortado (resposta ruim da Receita): apaga e baixa de novo
+    if (import_node_fs.default.existsSync(local) && !localDir && import_node_fs.default.statSync(local).size < 1024) import_node_fs.default.rmSync(local, { force: true });
     if (import_node_fs.default.existsSync(local)) return local;
     if (localDir) throw new Error(`Arquivo ${name} n\xE3o encontrado em ${localDir}.`);
     if (remote.length && !remote.includes(name)) throw new Error(`Arquivo ${name} n\xE3o existe em ${month}.`);
