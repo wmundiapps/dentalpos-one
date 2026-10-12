@@ -3,7 +3,7 @@
 
 const DESTINO = 'contato@dentalpos.com.br'
 const REMETENTE = 'DentalPos <contato@dentalpos.com.br>'
-const VERSAO_CONDICOES = '2026-10-11'
+const VERSAO_CONDICOES = '2026-10-12'
 const TIPOS = ['Curso online gravado', 'Aula ou webinar ao vivo', 'Curso presencial / hands-on', 'Mentoria', 'E-book / material', 'Imersão / evento']
 
 function limpo(v, max) {
@@ -151,7 +151,7 @@ export default async function handler(req, res) {
         '<p style="line-height:1.6"><strong>Próximos passos:</strong> depois da análise, enviamos o Termo de Credenciamento para assinatura e o cadastro da sua conta de recebimento. A cada venda, você recebe 80% do valor líquido direto na sua conta; a DentalPos retém 20%.</p>' +
         '<p style="line-height:1.6">Você aceitou as condições de credenciamento versão ' + VERSAO_CONDICOES + ' em ' + esc(quando) + '. Elas estão em <a href="https://www.dentalpos.com.br/professores#termo" style="color:#B9821F;font-weight:700">dentalpos.com.br/professores</a>.</p>' +
         '<p style="line-height:1.6">Dúvidas? Chame no WhatsApp: <a href="https://wa.me/5544984535069" style="color:#B9821F;font-weight:700">(44) 98453-5069</a>.</p>' +
-        '<p style="margin-top:26px;color:#6B6660;font-size:13.5px">DentalPos · Desenvolvido por WMundi Technologies &amp; Co</p>' +
+        '<p style="margin-top:26px;color:#6B6660;font-size:13.5px">DentalPos · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10</p>' +
         '</div>'
     })
 

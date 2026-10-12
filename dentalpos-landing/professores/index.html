@@ -189,8 +189,9 @@ legend{font-weight:700;font-size:15px;margin-bottom:8px;padding:0}
       </div>
 
       <details class="termo" id="termo">
-        <summary>Condições de credenciamento (versão 2026-10-11)</summary>
+        <summary>Condições de credenciamento (versão 2026-10-12)</summary>
         <ol>
+          <li><b>Partes.</b> A plataforma DentalPos é operada pelo Instituto Ravel de Ensino Superior Ltda., CNPJ 03.162.275/0001-10 ("DentalPos").</li>
           <li><b>Pré-credenciamento.</b> Este envio é um pedido de credenciamento para publicar e vender cursos e conteúdos na DentalPos. O credenciamento só passa a valer depois da análise da equipe e da assinatura do Termo de Credenciamento que enviaremos por e-mail.</li>
           <li><b>Preço e divisão.</b> O(a) professor(a) define o preço de cada conteúdo. Em cada venda, a DentalPos retém 20% (vinte por cento) do valor líquido recebido, pela hospedagem, divulgação, cobrança e suporte ao aluno. Os 80% (oitenta por cento) restantes vão direto para a conta de recebimento do(a) professor(a), por divisão automática no momento do pagamento. Não há mensalidade nem taxa de adesão.</li>
           <li><b>Reembolso.</b> O aluno que compra pela internet pode desistir em até 7 dias (Código de Defesa do Consumidor, art. 49). Havendo reembolso, a divisão da venda é desfeita na mesma proporção.</li>
@@ -232,7 +233,7 @@ legend{font-weight:700;font-size:15px;margin-bottom:8px;padding:0}
 </main>
 
 <footer class="rodape">
-  <div class="wrap">DentalPos · Desenvolvido por WMundi Technologies &amp; Co · <a href="/">página inicial</a> · <a href="mailto:contato@dentalpos.com.br">contato@dentalpos.com.br</a></div>
+  <div class="wrap">DentalPos · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · Desenvolvido por WMundi Technologies &amp; Co · <a href="/">página inicial</a> · <a href="mailto:contato@dentalpos.com.br">contato@dentalpos.com.br</a></div>
 </footer>
 
 <script>
@@ -254,7 +255,7 @@ legend{font-weight:700;font-size:15px;margin-bottom:8px;padding:0}
     if (!tipos.length) return mostrarErro('Marque o que você quer publicar.');
     if (!document.getElementById('aceite').checked) { document.getElementById('termo').open = true; return mostrarErro('Para enviar, leia e aceite as condições de credenciamento.', 'aceite'); }
     if (!document.getElementById('direitos').checked) return mostrarErro('Confirme que tem os direitos do conteúdo.', 'direitos');
-    var dados = { nome:v('nome'), doc:v('doc'), cro:v('cro'), email:v('email'), zap:v('zap'), cidade:v('cidade'), titulacao:v('titulacao'), curriculo:v('curriculo'), links:v('links'), tipos:tipos, curso:v('curso'), descricao:v('descricao'), carga:v('carga'), preco:v('preco'), amostra:v('amostra'), site:v('site'), aceite:true, direitos:true, novidades:document.getElementById('novidades').checked, versao:'2026-10-11' };
+    var dados = { nome:v('nome'), doc:v('doc'), cro:v('cro'), email:v('email'), zap:v('zap'), cidade:v('cidade'), titulacao:v('titulacao'), curriculo:v('curriculo'), links:v('links'), tipos:tipos, curso:v('curso'), descricao:v('descricao'), carga:v('carga'), preco:v('preco'), amostra:v('amostra'), site:v('site'), aceite:true, direitos:true, novidades:document.getElementById('novidades').checked, versao:'2026-10-12' };
     botao.disabled = true; botao.textContent = 'Enviando…';
     fetch('/api/professor', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(dados) })
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return { ok:r.ok, j:j }; }); })
