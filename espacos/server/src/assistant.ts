@@ -27,7 +27,7 @@ function client() {
 const DOCS: Array<[string, string]> = [
   ['booking-rules', 'Regras de Reserva e Uso'], ['cancellation-refunds', 'Cancelamento e Reembolso'], ['payments', 'Pagamentos'],
   ['host-obligations', 'Obrigações do Anfitrião'], ['space-norms', 'Normas de Conduta nos Espaços'], ['penalties', 'Penalidades'],
-  ['guarantor-deposit', 'Avalista e Caução'],
+  ['guarantor-deposit', 'Fiança e Caução'],
 ];
 
 const guest = Math.round(FEES.guestServiceFeeRate * 100);
@@ -82,7 +82,7 @@ RESERVAR (PROFISSIONAL)
 
 CAUÇÃO E DANOS
 - O anfitrião pode definir uma caução (até 3× o valor da reserva), recomendada quando há equipamentos caros ou infraestrutura de valor (cadeira odontológica, aparelhos, equipamentos de imagem ou som).
-- No Brasil, hoje, a caução não é cobrada nem bloqueada no cartão: como o Mercado Pago não permite pré-autorização pela plataforma, ela é garantida por um avalista indicado por quem aluga ao reservar. A garantia se encerra ao final da locação se não houver dano.
+- No Brasil, hoje, a caução não é cobrada nem bloqueada no cartão: como o Mercado Pago não permite pré-autorização pela plataforma, ela é garantida por um fiador indicado por quem aluga ao reservar (se o fiador for casado, o cônjuge também autoriza). A garantia se encerra ao final da locação se não houver dano.
 - Danos ao patrimônio ou aos equipamentos nunca são cobrados automaticamente: só se quem alugou reconhecer, ou quando a mediação (Central de Resolução) não resultar em acordo e a causa do dano for comprovada. Desgaste natural e defeitos preexistentes não são cobrados. O anfitrião deve registrar fotos antes e depois e abrir o incidente pela reserva dentro do prazo.
 - A caução é uma garantia parcial: se o dano comprovado for maior que o valor da caução, quem alugou deve complementar a diferença.
 

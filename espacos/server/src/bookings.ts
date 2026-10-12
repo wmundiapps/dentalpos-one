@@ -659,7 +659,7 @@ async function applyResolution(tx: Db, inc: Incident, decision: { chargedAmount:
     await notify(tx, { email: b.guarantor.email }, 'guarantor_notice', `Aviso ao fiador: houve cobrança de ${amount} ${b.price.currency} na reserva ${b.id}. Se o locatário não pagar em 5 dias, a cobrança poderá ser direcionada a você, até o limite de ${b.guarantor.liabilityCap}.`);
   }
   if (payLink) {
-    await notify(tx, { userId: b.guestId }, 'extra_charge_link', `Pague ${amount} ${b.price.currency} referentes ao incidente da reserva ${b.id}. Sem pagamento em 5 dias, o valor poderá ser cobrado do avalista.`, payLink);
+    await notify(tx, { userId: b.guestId }, 'extra_charge_link', `Pague ${amount} ${b.price.currency} referentes ao incidente da reserva ${b.id}. Sem pagamento em 5 dias, o valor poderá ser cobrado do fiador.`, payLink);
   }
   await notify(tx, { userId: inc.againstUserId }, 'incident_resolved', `Incidente resolvido. Valor: ${amount} ${b.price.currency}.`, `/ocorrencias/${inc.id}`);
   await notify(tx, { userId: inc.reporterId }, 'incident_resolved', `Incidente resolvido. Valor: ${amount} ${b.price.currency}.`, `/ocorrencias/${inc.id}`);
