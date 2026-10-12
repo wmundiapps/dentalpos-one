@@ -171,7 +171,7 @@
         field('simples', 'Caso simples — até ' + L.simples + ' consultas (R$)', P.simples || '', 'inputmode="decimal"') +
         field('mediano', 'Média complexidade — até ' + L.mediano + ' consultas (R$)', P.mediano || '', 'inputmode="decimal"') +
         field('complexo', 'Caso complexo — até ' + L.complexo + ' consultas (R$)', P.complexo || '', 'inputmode="decimal"') +
-        '<h3>Custo dos alinhadores (modelo preço próprio)</h3><p class="small muted">No modelo em que o dentista define o preço, este valor fica com a AlignSystem e o restante é dividido 80% dentista / 20% AlignSystem.</p>' +
+        '<h3>Custo dos alinhadores (modelo preço próprio)</h3><p class="small muted">No modelo em que o dentista define o preço, este valor fica com a AlignSystem e o restante é dividido 80% dentista / 20% AlignSystem.</p><div class="msg warn small">⚠️ Os valores dos alinhadores estão sujeitos a variações de acordo com cada fabricante, podendo ser ajustados.</div>' +
         field('aligner_simples', 'Alinhadores — caso simples (R$)', (P.aligner || {}).simples || '', 'inputmode="decimal"') +
         field('aligner_mediano', 'Alinhadores — média complexidade (R$)', (P.aligner || {}).mediano || '', 'inputmode="decimal"') +
         field('aligner_complexo', 'Alinhadores — caso complexo (R$)', (P.aligner || {}).complexo || '', 'inputmode="decimal"') +
@@ -208,6 +208,7 @@
       PRICE_ROWS.map(function (r) {
         return '<tr><td><b>' + esc(r[1]) + '</b><div class="small muted">até ' + L[r[0]] + ' consultas</div></td>' + brands.map(function (b, i) { return '<td>' + inp(i, r[0], b[r[0]]) + '</td>'; }).join('') + '</tr>';
       }).join('') +
+      '<tr><td colspan="' + (n + 1) + '"><div class="msg warn small" style="margin:0">⚠️ No modelo em que você fica com 80% e a AlignSystem com 20%, o custo dos alinhadores é pago à parte. Os valores dos alinhadores estão sujeitos a variações de acordo com cada fabricante, podendo ser ajustados.</div></td></tr>' +
       '<tr><td><b>Refinamento</b><div class="small muted">valor por consulta e quantas consultas</div></td>' + brands.map(function (b, i) {
         return '<td>' + inp(i, 'refValue', b.refValue) + '<input name="b' + i + '_refCount" value="' + esc(b.refCount == null ? '' : b.refCount) + '" type="number" min="0" max="30" placeholder="nº consultas" style="margin-top:6px;min-width:110px"></td>';
       }).join('') + '</tr>' +
