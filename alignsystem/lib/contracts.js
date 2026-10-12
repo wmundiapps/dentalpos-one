@@ -150,7 +150,8 @@ export function partnerContract(d, terms = {}) {
         'a relação financeira e de cobrança com o paciente.',
       ]) +
       p('3.2. Fica a cargo do(a) Parceiro(a) a execução clínica presencial do caso — avaliação, instalação, ajustes, acompanhamento e finalização — conforme o plano de tratamento aprovado, bem como o registro de evidências clínicas (fotos e anotações) de cada atendimento na plataforma AlignSystem.') +
-      p('3.3. A pré-avaliação por fotos e a teleorientação feitas pela plataforma têm caráter orientativo, respeitadas as normas do Conselho Federal de Odontologia sobre odontologia mediada por tecnologia; diagnóstico e plano de tratamento dependem de exame clínico presencial.')),
+      p('3.3. A pré-avaliação por fotos e a teleorientação feitas pela plataforma têm caráter orientativo, respeitadas as normas do Conselho Federal de Odontologia sobre odontologia mediada por tecnologia; diagnóstico e plano de tratamento dependem de exame clínico presencial.' +
+      p('<b>3.4. Responsabilidade profissional.</b> O(A) Parceiro(a) responde pessoalmente pelos atos profissionais que praticar, inclusive perante demandas judiciais e administrativas propostas por pacientes ou terceiros. Comprovada negligência, imperícia ou imprudência do(a) Parceiro(a), a AlignSystem poderá acioná-lo(a), inclusive judicialmente, em ação de regresso, para reaver os valores que for obrigada a pagar, acrescidos das despesas processuais e honorários advocatícios.')),
     sec(4, 'Obrigações do(a) Parceiro(a)', ul([
       'manter registro profissional (CRO) ativo e regular durante toda a vigência deste Termo;',
       'executar os procedimentos conforme o planejamento aprovado, informando à AlignSystem qualquer divergência clínica relevante;',

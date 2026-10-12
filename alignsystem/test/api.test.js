@@ -605,4 +605,5 @@ test('data de pagamento por atendimento: dia 10 do mês seguinte ao registro, at
   assert.doesNotMatch(body, /dias úteis após/);
   assert.match(body, /multa rescisória fixa de R\$\s?5\.000,00\./);
   assert.doesNotMatch(body, /repasses médios/);
+  assert.match(body, /negligência, imperícia ou imprudência/);
 });
