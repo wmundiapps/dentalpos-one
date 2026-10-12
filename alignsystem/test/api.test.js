@@ -596,7 +596,8 @@ test('data de pagamento por atendimento: dia 10 do mês seguinte ao registro, at
   assert.equal(payoutDate('2026-10-30T23:30:00-03:00'), '2026-11-10'); // último dia útil de outubro/2026 (sexta)
   assert.equal(payoutDate('2026-10-31T10:00:00-03:00'), '2026-12-10'); // sábado, depois do último dia útil
   assert.equal(payoutDate('2026-11-01T10:00:00-03:00'), '2026-12-10');
-  assert.equal(payoutDate('2026-12-31T10:00:00-03:00'), '2027-01-10');
+  assert.equal(payoutDate('2026-12-31T10:00:00-03:00'), '2027-01-11'); // 10/01/2027 é domingo → segunda
+  assert.equal(payoutDate('2027-03-15T10:00:00-03:00'), '2027-04-12'); // 10/04/2027 é sábado → segunda
   assert.equal(lastBusinessDay(2027, 4), 30);
   const { partnerContract } = await import('../lib/contracts.js');
   const body = partnerContract({ name: 'Dra. Teste', cro: '1', cro_uf: 'PR', city: 'Maringá' }).body.replace(/<[^>]+>/g, '');
@@ -606,4 +607,5 @@ test('data de pagamento por atendimento: dia 10 do mês seguinte ao registro, at
   assert.match(body, /multa rescisória fixa de R\$\s?5\.000,00\./);
   assert.doesNotMatch(body, /repasses médios/);
   assert.match(body, /negligência, imperícia ou imprudência/);
+  assert.match(body, /não for dia útil, o pagamento é feito no primeiro dia útil seguinte/);
 });

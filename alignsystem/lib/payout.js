@@ -1,5 +1,6 @@
 // Data de pagamento das consultas pagas por atendimento (modelo rede e consultas avulsas/excedentes):
 // atendimento registrado até o último dia útil do mês → dia 10 do mês seguinte; registrado depois → dia 10 do segundo mês seguinte.
+// Se o dia 10 não for dia útil, paga no próximo dia útil.
 // Ex.: registrado até o último dia útil de outubro → 10/11; registrado em 01/11 → 10/12.
 // Dia útil: segunda a sexta, sem feriados nacionais (fixos e os ligados à Páscoa).
 
@@ -41,5 +42,7 @@ export function payoutDate(registeredAt) {
   const [y, m, d] = brDate(registeredAt).split('-').map(Number);
   const add = d <= lastBusinessDay(y, m) ? 1 : 2;
   const t = new Date(Date.UTC(y, m - 1 + add, 10));
+  // dia 10 que não é dia útil → próximo dia útil
+  while (!isBusinessDay(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate())) t.setUTCDate(t.getUTCDate() + 1);
   return t.toISOString().slice(0, 10);
 }
