@@ -140,16 +140,22 @@
           var P = S.prefill || {};
           html += '<div class="msg ok" style="font-size:16px">Valor do escaneamento e da documentação: <b>' + esc(money(S.price)) + '</b></div>' +
             '<h3 style="margin-top:16px">Valores do tratamento por grau de dificuldade</h3>' +
-            (S.options && S.options.length ? '<p class="small muted">Seu dentista trabalha com ' + (S.options.length === 1 ? 'esta opção' : 'estas ' + S.options.length + ' opções') + ' de alinhador. A escolha é feita com ele, depois do escaneamento.</p>' +
-              '<div class="brand-options">' + S.options.map(function (o, i) {
-                return '<div class="brand-opt"><div class="small muted">Opção ' + (i + 1) + '</div><h3 style="margin:2px 0 2px">' + esc(o.name) + '</h3><div class="small muted" style="margin-bottom:8px">Alinhador ' + (o.origin === 'importado' ? 'importado' : 'nacional') + '</div><div class="list">' +
-                  (o.scan ? '<div class="it"><div><b>Escaneamento e submissão do caso</b></div><b style="white-space:nowrap">' + esc(money(o.scan)) + '</b></div>' : '') +
-                  o.table.map(function (r) {
-                    return '<div class="it"><div><b>' + ({ simples: 'Caso simples', mediano: 'Média complexidade', complexo: 'Caso complexo' })[r.key] + '</b><div class="small muted">até ' + r.consults + ' consultas incluídas</div></div><b style="white-space:nowrap">' + (r.price ? esc(money(r.price)) : '—') + '</b></div>';
-                  }).join('') +
-                  (o.refValue ? '<div class="it"><div><b>Refinamento</b><div class="small muted">' + (o.refCount ? o.refCount + ' consulta' + (o.refCount > 1 ? 's' : '') + ' de refinamento' : 'por consulta') + '</div></div><b style="white-space:nowrap">' + esc(money(o.refValue)) + (o.refCount ? ' cada' : '') + '</b></div>' : '') +
-                  '</div></div>';
-              }).join('') + '</div>'
+            (S.options && S.options.length ? (function () {
+              var O = S.options, n = O.length, LBL = { simples: 'Caso simples', mediano: 'Média complexidade', complexo: 'Caso complexo' };
+              var row = function (label, sub, cells) { return '<tr><th scope="row">' + label + (sub ? '<div class="small muted">' + sub + '</div>' : '') + '</th>' + cells + '</tr>'; };
+              var span = function (html) { return '<td colspan="' + n + '" class="span">' + html + '</td>'; };
+              return '<p class="small muted">Seu dentista trabalha com ' + (n === 1 ? 'esta opção' : 'estas ' + n + ' opções') + ' de alinhador. A escolha é feita com ele, depois do escaneamento.</p>' +
+                '<div class="price-grid"><table style="--n:' + n + '"><thead><tr><th></th>' + O.map(function (o, i) {
+                  return '<th scope="col"><div class="small muted">Opção ' + (i + 1) + '</div>' + esc(o.name) + '<div class="small muted">' + (o.origin === 'importado' ? 'importado' : 'nacional') + '</div></th>';
+                }).join('') + '</tr></thead><tbody>' +
+                row('Escaneamento e submissão do caso', 'pago agora e descontado do valor do tratamento', span('<b>' + esc(money(S.price)) + '</b>')) +
+                ['simples', 'mediano', 'complexo'].map(function (k, idx) {
+                  return row(LBL[k], 'até ' + S.table[idx].consults + ' consultas incluídas', O.map(function (o) { var r = o.table[idx]; return '<td><b>' + (r.price ? esc(money(r.price)) : '—') + '</b></td>'; }).join(''));
+                }).join('') +
+                row('Refinamento', 'por consulta', O.map(function (o) { return '<td>' + (o.refValue ? '<b>' + esc(money(o.refValue)) + '</b>' + (o.refCount ? '<div class="small muted">' + o.refCount + ' consulta' + (o.refCount > 1 ? 's' : '') + '</div>' : '') : '—') + '</td>'; }).join('')) +
+                (S.breakage ? row('Consulta por quebra ou perda de alinhador', 'cobrada à parte', span('<b>' + esc(money(S.breakage)) + '</b>')) : '') +
+                '</tbody></table></div>';
+            })()
             : '<div class="list">' + S.table.map(function (r) {
               return '<div class="it"><div><b>' + ({ simples: 'Caso simples', mediano: 'Média complexidade', complexo: 'Caso complexo' })[r.key] + '</b><div class="small muted">até ' + r.consults + ' consultas incluídas</div></div><b style="white-space:nowrap">' + esc(money(r.price)) + '</b></div>';
             }).join('') + '</div>') +

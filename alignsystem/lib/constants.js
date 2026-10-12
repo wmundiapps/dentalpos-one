@@ -50,6 +50,7 @@ export const MILESTONES = {
   acompanhamento: 'Acompanhamento',
   finalizacao: 'Finalização',
   consulta_avulsa: 'Consulta avulsa',
+  quebra: 'Consulta por quebra ou perda de alinhador',
 };
 
 // As 7 fotos da pré-avaliação (mesmo roteiro do guia)

@@ -499,6 +499,13 @@ test('escaneamento: preços no painel, termo, pagamento e preferência de horár
   const adm = await call('GET', `/api/admin/cases/${c.id}`, { who: 'admin' });
   assert.equal(adm.data.scanOrders[0].status, 'pago');
   assert.equal(adm.data.case.cpf, '52998224725');
+  assert.equal(adm.data.case.scanPaid, 350);
+  // o escaneamento pago é descontado do valor do tratamento
+  assert.equal((await call('POST', `/api/admin/cases/${c.id}/charges`, { who: 'admin', body: { value: '300' } })).status, 400);
+  const tr = await call('POST', `/api/admin/cases/${c.id}/charges`, { who: 'admin', body: { value: '8900' } });
+  assert.equal(tr.status, 201, JSON.stringify(tr.data));
+  assert.equal(Number(tr.data.value), 8550);
+  assert.equal(Number(tr.data.scan_deducted), 350);
 });
 
 test('má oclusão: classificação no parecer, só tipos válidos', { skip }, async () => {
@@ -555,7 +562,9 @@ test('preço próprio: dentista define valores, alinhadores ficam com a AlignSys
   ] } })).status, 200);
   const S2 = (await call('GET', `/api/portal/${tk}`)).data.scan;
   assert.deepEqual(S2.options.map((o) => o.name), ['Smiller', 'ClearCorrect', 'Invisalign']);
-  assert.equal(S2.options[0].scan, 600);
+  assert.equal(S2.options[0].scan, undefined); // escaneamento: valor único da AlignSystem
+  assert.equal(S2.price, 350);
+  assert.equal(S2.breakage, 195); // consulta por quebra: consulta combinada (150) + 30%
   assert.equal(S2.options[0].refCount, 2);
   assert.deepEqual(S2.options[2].table.map((r) => r.price), [14500, 18000, 24000]);
   assert.deepEqual(S2.table.map((r) => r.price), [7500, 9500, 12000]); // "a partir de" = menor valor
@@ -576,6 +585,14 @@ test('preço próprio: dentista define valores, alinhadores ficam com a AlignSys
   const last = asaasCalls.filter((x) => x.url.endsWith('/payments') && x.method === 'POST').at(-1).body;
   assert.deepEqual(last.split, [{ walletId: 'wal_1', percentualValue: 56 }]);
   assert.equal((await call('POST', `/api/admin/cases/${c.id}/charges`, { who: 'admin', body: { value: '2500', dentistShare: '80/20' } })).status, 400); // abaixo do custo dos alinhadores
+  // consulta por quebra: paciente paga 195, dentista recebe 150 (consulta combinada) por split fixo, 45 ficam com a AlignSystem
+  const q = await call('POST', `/api/admin/cases/${c.id}/charges/quebra`, { who: 'admin', body: {} });
+  assert.equal(q.status, 201, JSON.stringify(q.data));
+  assert.deepEqual([q.data.value, q.data.dentist], [195, 150]);
+  const qp = asaasCalls.filter((x) => x.url.endsWith('/payments') && x.method === 'POST').at(-1).body;
+  assert.equal(qp.value, 195);
+  assert.deepEqual(qp.split, [{ walletId: 'wal_1', fixedValue: 150 }]);
+  assert.match(doc.data.body.replace(/<[^>]+>/g, ''), /quebra de alinhador não integra as consultas incluídas[\s\S]*?R\$\s?195,00 por consulta/);
 });
 
 test('cidades de atendimento: até 10 por parceiro, mesmo estado; outro estado é outro cadastro', { skip }, async () => {
@@ -620,6 +637,7 @@ test('data de pagamento por atendimento: dia 10 do mês seguinte ao registro, at
   assert.doesNotMatch(body, /dias úteis após/);
   assert.match(body, /multa rescisória fixa de R\$\s?5\.000,00\./);
   assert.doesNotMatch(body, /repasses médios/);
+  assert.match(body, /acrescido de 30% \(trinta por cento\), totalizando R\$\s?156,00/); // consulta avulsa padrão 120 + 30%
   assert.match(body, /negligência, imperícia ou imprudência/);
   assert.match(body, /não for dia útil, o pagamento é feito no primeiro dia útil seguinte/);
 });

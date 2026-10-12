@@ -182,38 +182,38 @@
   }
 
   // Tabela de preços do dentista: uma coluna por marca de alinhador (nacional ou importado)
-  var PRICE_ROWS = [
-    ['scan', 'Escaneamento e submissão do caso'],
-    ['simples', 'Caso simples'], ['mediano', 'Média complexidade'], ['complexo', 'Caso complexo'],
-  ];
+  var PRICE_ROWS = [['simples', 'Caso simples'], ['mediano', 'Média complexidade'], ['complexo', 'Caso complexo']];
   var MAX_BRANDS = 3;
   function brandsOf(P) {
     if (P && P.brands && P.brands.length) return P.brands.slice();
     if (P && (P.simples || P.mediano || P.complexo)) return [{ name: '', origin: 'nacional', simples: P.simples, mediano: P.mediano, complexo: P.complexo }];
     return [];
   }
-  function ownPriceForm(P, L, extra) {
+  // info: { scanPrice, consultValue, breakage, breakageMarkupPct } — linhas fixas (não editáveis pelo dentista)
+  function ownPriceForm(P, L, info, extra) {
     var brands = brandsOf(P);
-    while (brands.length < 3) brands.push({ origin: 'nacional' });
-    return '<div class="price-table" data-limits="' + esc(JSON.stringify(L)) + '">' + priceTableHtml(brands, L) + '</div>' + (extra || '');
+    while (brands.length < MAX_BRANDS) brands.push({ origin: 'nacional' });
+    return '<div class="price-table">' + priceTableHtml(brands.slice(0, MAX_BRANDS), L, info || {}) + '</div>' + (extra || '');
   }
-  function priceTableHtml(brands, L) {
-    var lim = { simples: L.simples, mediano: L.mediano, complexo: L.complexo };
+  function priceTableHtml(brands, L, info) {
+    var n = brands.length;
     var inp = function (i, k, v, attrs) { return '<input name="b' + i + '_' + k + '" value="' + esc(v == null ? '' : v) + '" ' + (attrs || 'inputmode="decimal" placeholder="R$"') + ' style="min-width:110px">'; };
-    var head = '<tr><td style="min-width:190px"><b>Marca do alinhador</b></td>' + brands.map(function (b, i) { return '<td>' + inp(i, 'name', b.name, 'placeholder="Marca" maxlength="60"') + '</td>'; }).join('') + '</tr>' +
+    var fixed = function (label, sub, text) { return '<tr><td><b>' + esc(label) + '</b>' + (sub ? '<div class="small muted">' + esc(sub) + '</div>' : '') + '</td><td colspan="' + n + '" style="background:rgba(0,0,0,.03)">' + text + '</td></tr>'; };
+    var html = '<tr><td style="min-width:190px"><b>Opção</b></td>' + brands.map(function (b, i) { return '<td><b>Opção ' + (i + 1) + '</b></td>'; }).join('') + '</tr>' +
+      '<tr><td><b>Marca do alinhador</b></td>' + brands.map(function (b, i) { return '<td>' + inp(i, 'name', b.name, 'placeholder="Marca" maxlength="60"') + '</td>'; }).join('') + '</tr>' +
       '<tr><td><b>Nacional ou importado</b></td>' + brands.map(function (b, i) {
         return '<td><select name="b' + i + '_origin" style="min-width:110px"><option value="nacional"' + (b.origin !== 'importado' ? ' selected' : '') + '>Nacional</option><option value="importado"' + (b.origin === 'importado' ? ' selected' : '') + '>Importado</option></select></td>';
-      }).join('') + '</tr>';
-    var rows = PRICE_ROWS.map(function (r) {
-      return '<tr><td><b>' + esc(r[1]) + '</b>' + (lim[r[0]] ? '<div class="small muted">até ' + lim[r[0]] + ' consultas</div>' : '') + '</td>' +
-        brands.map(function (b, i) { return '<td>' + inp(i, r[0], b[r[0]]) + '</td>'; }).join('') + '</tr>';
-    }).join('');
-    var ref = '<tr><td><b>Refinamento</b><div class="small muted">valor por consulta e quantas consultas</div></td>' + brands.map(function (b, i) {
-      return '<td>' + inp(i, 'refValue', b.refValue) + '<input name="b' + i + '_refCount" value="' + esc(b.refCount == null ? '' : b.refCount) + '" type="number" min="0" max="30" placeholder="nº consultas" style="margin-top:6px;min-width:110px"></td>';
-    }).join('') + '</tr>';
-    return '<div class="table-wrap" style="overflow-x:auto"><table class="t">' + head + rows + ref + '</table></div>' +
-      (brands.length < MAX_BRANDS ? '<button type="button" class="btn btn-line btn-sm add-brand" style="margin:8px 0 14px">+ Adicionar marca</button>' : '') +
-      '<p class="small muted">Deixe em branco a coluna que não for usar. Valores em reais (R$).</p>';
+      }).join('') + '</tr>' +
+      fixed('Escaneamento e submissão do caso', 'valor único da AlignSystem', '<b>' + (info.scanPrice ? esc(AS.money(info.scanPrice)) : 'a definir') + '</b> <span class="small muted">— pago pelo paciente antes do tratamento e descontado do valor total do tratamento</span>') +
+      PRICE_ROWS.map(function (r) {
+        return '<tr><td><b>' + esc(r[1]) + '</b><div class="small muted">até ' + L[r[0]] + ' consultas</div></td>' + brands.map(function (b, i) { return '<td>' + inp(i, r[0], b[r[0]]) + '</td>'; }).join('') + '</tr>';
+      }).join('') +
+      '<tr><td><b>Refinamento</b><div class="small muted">valor por consulta e quantas consultas</div></td>' + brands.map(function (b, i) {
+        return '<td>' + inp(i, 'refValue', b.refValue) + '<input name="b' + i + '_refCount" value="' + esc(b.refCount == null ? '' : b.refCount) + '" type="number" min="0" max="30" placeholder="nº consultas" style="margin-top:6px;min-width:110px"></td>';
+      }).join('') + '</tr>' +
+      (info.breakage ? fixed('Consulta por quebra ou perda de alinhador', 'cobrada à parte do paciente', '<b>' + esc(AS.money(info.breakage)) + '</b> <span class="small muted">— sua consulta (' + esc(AS.money(info.consultValue)) + ') + ' + info.breakageMarkupPct + '% AlignSystem. Você recebe ' + esc(AS.money(info.consultValue)) + ' por split.</span>') : '');
+    return '<div class="table-wrap" style="overflow-x:auto"><table class="t">' + html + '</table></div>' +
+      '<p class="small muted">Até 3 opções de marca. Deixe em branco a coluna que não for usar. Valores em reais (R$).</p>';
   }
   function readPriceTable(form) {
     var f = formData(form), brands = [];
@@ -225,19 +225,8 @@
     }
     return { brands: brands };
   }
-  function wirePriceTable(form) {
-    if (!form) return;
-    form.addEventListener('click', function (e) {
-      if (!e.target.classList.contains('add-brand')) return;
-      var box = $('.price-table', form);
-      var L = JSON.parse(box.getAttribute('data-limits'));
-      var cur = readPriceTable(form).brands;
-      var n = $all('input[name$="_name"]', box).length;
-      while (cur.length < n) cur.push({ origin: 'nacional' });
-      cur.push({ origin: 'nacional' });
-      box.innerHTML = priceTableHtml(cur, L);
-    });
-  }
+  function wirePriceTable() {}
+
 
   // Assinatura com o dedo ou o mouse (fundo branco, traço escuro)
   function sigPadHtml(id, label) {
@@ -286,7 +275,7 @@
     api('/api/dentist/prices').then(function (d) {
       var html = '<h1>Meus preços</h1><form class="card" id="dpf">' +
         '<p class="small muted">Valor total do tratamento que o paciente vê na página dele (nunca no site público). Do valor pago, a AlignSystem desconta o custo dos alinhadores, que ela fornece, e o restante é dividido: <b>' + d.dentistPct + '% para você</b> e ' + d.platformPct + '% para a AlignSystem, pelo diagnóstico e planejamento compartilhados. O repasse cai direto na sua conta (split).</p>' +
-        ownPriceForm(d.prices || {}, d.consultLimits) +
+        ownPriceForm(d.prices || {}, d.consultLimits, d) +
         '<button class="btn btn-primary" type="submit">Salvar meus preços</button><div class="fmsg"></div></form>';
       var m = mount(html, 'precos');
       wirePriceTable($('#dpf', m));
@@ -604,7 +593,10 @@
           opt('', 'Sem repasse (AlignSystem recebe tudo)', plan.model === 'rede' || !c.dentist_id ? '' : plan.model === 'proprio' ? '80/20' : '50/30/20') +
           opt('50/30/20', 'Modelo parceiro: 30% do valor ao dentista', plan.model === 'rede' || !c.dentist_id ? '' : plan.model === 'proprio' ? '80/20' : '50/30/20') +
           opt('80/20', 'Preço do dentista: desconta os alinhadores e repassa 80% do restante', plan.model === 'rede' || !c.dentist_id ? '' : plan.model === 'proprio' ? '80/20' : '50/30/20') + '</select></div>' +
+        (c.scanPaid > 0 ? '<div class="msg ok small">Escaneamento e submissão já pagos: <b>' + esc(AS.money(c.scanPaid)) + '</b>. Esse valor é descontado automaticamente do valor total na cobrança.</div>' : '') +
         '<button class="btn btn-primary" type="submit">Criar link de pagamento e enviar ao paciente</button><div class="fmsg"></div>' +
+        (c.breakage ? '<div style="margin-top:12px"><button type="button" class="btn btn-line btn-sm" id="chQuebra">Cobrar consulta por quebra ou perda de alinhador (' + esc(AS.money(c.breakage.price)) + ')</button>' +
+          '<div class="small muted">Dentista recebe ' + esc(AS.money(c.breakage.dentist)) + ' por split; AlignSystem fica com ' + esc(AS.money(Math.round((c.breakage.price - c.breakage.dentist) * 100) / 100)) + '.</div><div id="chQuebraMsg"></div></div>' : '') +
         (d.charges.length ? '<div class="list" style="margin-top:14px">' + d.charges.map(function (ch) {
           var pays = d.payments.filter(function (p) { return p.charge_id === ch.id && p.status !== 'DELETED'; });
           var paid = pays.filter(function (p) { return /RECEIVED|CONFIRMED/.test(p.status); }).length;
@@ -708,6 +700,12 @@
           busyBtn(b, api('/api/admin/charges/' + b.getAttribute('data-cancel') + '/cancel', { method: 'POST', body: {} })).then(reload).catch(function (e) { alert(e.message); });
         });
       });
+      var cq = $('#chQuebra', m);
+      if (cq) cq.addEventListener('click', function () {
+        if (!confirm('Criar a cobrança da consulta por quebra (' + AS.money(c.breakage.price) + ') e enviar ao paciente?')) return;
+        busyBtn(cq, api('/api/admin/cases/' + id + '/charges/quebra', { method: 'POST', body: {} })).then(function () { setTimeout(reload, 600); })
+          .catch(function (e) { $('#chQuebraMsg', m).innerHTML = '<div class="msg err">' + esc(e.message) + '</div>'; });
+      });
       $all('[data-auth-ok]', m).forEach(function (b) { b.addEventListener('click', function () {
         busyBtn(b, api('/api/admin/authorizations/' + b.getAttribute('data-auth-ok') + '/decide', { method: 'POST', body: { approve: true } })).then(reload).catch(function (e) { alert(e.message); }); }); });
       $all('[data-auth-no]', m).forEach(function (b) { b.addEventListener('click', function () {
@@ -785,7 +783,7 @@
         '</div></div>' +
 
         '<form class="card" id="opf"><h2>Tabela de preços do parceiro</h2><p class="small muted">Usado no modelo "Preço do dentista": desconta os alinhadores e repassa 80% do restante. O dentista também pode editar em "Meus preços".</p>' +
-        ownPriceForm(x.prices || {}, { simples: 8, mediano: 10, complexo: 15 }) + '<button class="btn btn-line btn-sm" type="submit">Salvar preços do parceiro</button><div class="fmsg"></div></form>' +
+        ownPriceForm(x.prices || {}, { simples: 8, mediano: 10, complexo: 15 }, d.priceInfo) + '<button class="btn btn-line btn-sm" type="submit">Salvar preços do parceiro</button><div class="fmsg"></div></form>' +
         '<div class="card"><h2>Casos deste dentista</h2>' + (d.cases.length ? '<div class="list">' + d.cases.map(function (c) {
           return '<div class="it"><a href="#/caso/' + c.id + '">#' + c.code + ' · ' + esc(c.name) + '</a><span class="small muted">' + esc(c.city) + ' · ' + esc(L.CASE_STATUS[c.status]) + '</span></div>';
         }).join('') + '</div>' : '<p class="muted small">Nenhum caso direcionado ainda.</p>') + '</div>' +

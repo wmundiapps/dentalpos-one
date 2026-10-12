@@ -157,3 +157,23 @@ table.t tr.click:hover td{background:var(--bg-deep);}
 /* opções de alinhador por marca (página do paciente) */
 .brand-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:10px 0}
 .brand-opt{border:1.5px solid var(--line);border-radius:16px;padding:14px 16px;background:var(--card)}
+/* grade de preços por marca (página do paciente) */
+.price-grid{overflow-x:auto;margin:10px 0;border:1.5px solid var(--line);border-radius:14px;background:var(--card)}
+.price-grid table{border-collapse:collapse;width:100%;min-width:420px;font-size:14px}
+.price-grid th,.price-grid td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:center;vertical-align:top}
+.price-grid th[scope=row]{text-align:left;font-weight:600;min-width:130px}
+.price-grid thead th{font-family:inherit;font-size:15px}
+.price-grid tr:last-child th,.price-grid tr:last-child td{border-bottom:0}
+.price-grid td.span{text-align:center}
+@media(max-width:560px){
+  .price-grid table{min-width:0;font-size:12.5px;table-layout:fixed}
+  .price-grid thead th{font-size:13px;overflow-wrap:anywhere}
+  .price-grid thead tr,.price-grid tbody tr{display:grid;grid-template-columns:repeat(var(--n),1fr)}
+  .price-grid thead th:first-child{display:none}
+  .price-grid th,.price-grid td{padding:8px 2px;border-bottom:0;min-width:0}
+  .price-grid th[scope=row]{padding-left:8px;padding-right:8px}
+  .price-grid tbody tr{border-top:1px solid var(--line)}
+  .price-grid th[scope=row]{grid-column:1/-1;padding-bottom:0}
+  .price-grid th[scope=row] .small{display:inline;margin-left:4px}
+  .price-grid td.span{grid-column:1/-1}
+}

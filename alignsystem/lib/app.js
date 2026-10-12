@@ -8,7 +8,7 @@ import {
 import { token, sha256, clean, digits, isEmail, appUrl, brl, validCpf, validCpfCnpj } from './util.js';
 import { sendMail, notifyAddress, layout, button, para, table } from './mail.js';
 import * as asaas from './asaas.js';
-import { MODEL, quote, dentistSplitPct, ownPriceDentistPct } from './pricing.js';
+import { MODEL, quote, dentistSplitPct, ownPriceDentistPct, breakagePrice } from './pricing.js';
 import * as geo from './geo.js';
 import { payoutDate } from './payout.js';
 import * as totp from './totp.js';
@@ -133,6 +133,14 @@ async function createPartnerContract(sql, dentist, terms, userId) {
   const [ct] = await sql`insert into contracts (kind, dentist_id, token, title, body, body_hash, created_by)
     values ('parceiro', ${dentist.id}, ${t}, ${title}, ${body}, ${sha256(body)}, ${userId}) returning id, token`;
   return ct;
+}
+
+// Valor da consulta combinado com o parceiro no credenciamento (consulta avulsa); padrão do Termo se ainda não houver
+const dentistConsultValue = (d) => Number(d?.terms?.avulsaValue) || PARTNER_DEFAULTS.avulsaValue;
+
+// Escaneamento e submissão do caso: valor único da AlignSystem (Preços), descontado depois do valor do tratamento
+async function caseScanPrice(sql) {
+  return (await scan.getPrices(sql)).scan;
 }
 
 // ------------------------------------------------------------------ público
@@ -401,12 +409,14 @@ const SCAN_OK_ASSESSMENTS = ['indicado', 'avaliacao_presencial'];
 
 async function portalScan(sql, c) {
   const prices = await scan.getPrices(sql);
-  const dp = c.dentist_id ? (await dentistById(sql, c.dentist_id))?.prices : null;
+  const dentist = c.dentist_id ? await dentistById(sql, c.dentist_id) : null;
+  const dp = dentist?.prices;
   const own = ownPrices(dp);
   if (own) Object.assign(prices, own);
+  prices.scan = await caseScanPrice(sql);
   // opções por marca do dentista do caso (até 3), na ordem em que ele cadastrou
   const options = (dp?.brands || []).filter((b) => b.simples || b.mediano || b.complexo).slice(0, MAX_BRANDS).map((b) => ({
-    name: b.name, origin: b.origin, scan: b.scan || null, refValue: b.refValue || null, refCount: b.refCount ?? null,
+    name: b.name, origin: b.origin, refValue: b.refValue || null, refCount: b.refCount ?? null,
     table: ['simples', 'mediano', 'complexo'].map((k) => ({ key: k, consults: scan.consultLimits[k], price: b[k] || null })),
   }));
   const published = Boolean(c.assessment_published_at) && SCAN_OK_ASSESSMENTS.includes(c.assessment);
@@ -419,6 +429,9 @@ async function portalScan(sql, c) {
     price: prices.scan,
     table: ['simples', 'mediano', 'complexo'].map((k) => ({ key: k, consults: scan.consultLimits[k], price: prices[k] })),
     options,
+    // escaneamento e submissão: descontado do valor do tratamento; consulta por quebra: cobrada à parte
+    scanDeducted: true,
+    breakage: dentist ? breakagePrice(dentistConsultValue(dentist)) : null,
     pixDiscountPct: MODEL.pixDiscountPct, cardMaxInstallments: MODEL.cardMaxInstallments, boletoMaxInstallments: MODEL.boletoMaxInstallments,
     terms: terms && { version: terms.version, body: terms.body, hash: terms.hash },
     order: order && { status: order.status, price: Number(order.price), billingType: order.billing_type, paidAt: order.paid_at, preference: order.preference, invoiceUrl: order.invoice_url },
@@ -433,7 +446,7 @@ r('POST', '/api/portal/:token/escaneamento', async (req, res, { token: t }) => {
   const b = await readJson(req);
   await rateLimit(sql, `scan:${c.id}`, 10, 60);
   if (!(c.assessment_published_at && SCAN_OK_ASSESSMENTS.includes(c.assessment))) fail(409, 'O escaneamento fica disponível depois do parecer da pré-avaliação.');
-  const prices = await scan.getPrices(sql);
+  const prices = { scan: await caseScanPrice(sql) };
   if (!prices.scan) fail(409, 'Valor do escaneamento ainda não definido. Fale com a equipe AlignSystem.');
   const terms = scan.scanTerms(prices.scan);
   if (!b.agree) fail(400, 'Marque "Li e aceito" no termo do escaneamento.');
@@ -533,6 +546,7 @@ function readOwnPrices(b) {
     };
   });
   const min = (k) => { const vals = brands.map((x) => x[k]).filter((n) => n > 0); return vals.length ? Math.min(...vals) : null; };
+  for (const x of brands) delete x.scan; // escaneamento: valor único da AlignSystem
   return { brands, simples: min('simples'), mediano: min('mediano'), complexo: min('complexo') };
 }
 
@@ -540,7 +554,8 @@ r('GET', '/api/dentist/prices', async (req, res) => {
   const sql = db();
   const u = await dentistUser(sql, req);
   const d = await dentistById(sql, u.dentist_id);
-  send(res, 200, { prices: d?.prices || {}, consultLimits: scan.consultLimits, platformPct: MODEL.ownPricePlatformPct, dentistPct: MODEL.ownPriceDentistPct });
+  send(res, 200, { prices: d?.prices || {}, consultLimits: scan.consultLimits, platformPct: MODEL.ownPricePlatformPct, dentistPct: MODEL.ownPriceDentistPct,
+    scanPrice: await caseScanPrice(sql), consultValue: dentistConsultValue(d), breakage: breakagePrice(dentistConsultValue(d)), breakageMarkupPct: MODEL.breakageMarkupPct });
 });
 
 r('PUT', '/api/dentist/prices', async (req, res) => {
@@ -1187,8 +1202,11 @@ r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
   const sql = db();
   await requireUser(sql, req, 'admin');
   const d = await caseDetail(sql, id);
+  const dent = d.c.dentist_id ? await dentistById(sql, d.c.dentist_id) : null;
+  const [{ paid: scanPaid }] = await sql`select coalesce(sum(price), 0)::float as paid from scan_orders where case_id = ${id} and status in ('pago','agendado','realizado')`;
   send(res, 200, {
-    case: { ...d.c, portalUrl: portalUrl(d.c.token), consultLimit: consultLimit(d.c.plan), consultValue: PARTNER_DEFAULTS.redeValue, attendance: d.c.attendance && { ...publicAttendance(d.c.attendance), ip: d.c.attendance.ip } },
+    case: { ...d.c, portalUrl: portalUrl(d.c.token), consultLimit: consultLimit(d.c.plan), consultValue: PARTNER_DEFAULTS.redeValue,
+      scanPaid, breakage: dent ? { price: breakagePrice(dentistConsultValue(dent)), dentist: dentistConsultValue(dent) } : null, attendance: d.c.attendance && { ...publicAttendance(d.c.attendance), ip: d.c.attendance.ip } },
     photos: d.photos, appointments: d.appts,
     contracts: d.contracts.map((x) => ({ ...x, url: contractUrl(x.token) })),
     charges: d.charges.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
@@ -1408,8 +1426,12 @@ r('POST', '/api/admin/cases/:id/charges', async (req, res, { id }) => {
   const [c] = await sql`select * from cases where id = ${id}`;
   if (!c) fail(404, 'Caso não encontrado.');
   if (!c.cpf) fail(400, 'Cadastre o CPF do paciente antes de cobrar.');
-  const value = money(b.value);
-  if (!(value > 0)) fail(400, 'Informe o valor total do tratamento.');
+  const total = money(b.value);
+  if (!(total > 0)) fail(400, 'Informe o valor total do tratamento.');
+  // o escaneamento e a submissão já pagos são descontados do valor do tratamento
+  const [{ paid: scanPaid }] = await sql`select coalesce(sum(price), 0)::float as paid from scan_orders where case_id = ${id} and status in ('pago','agendado','realizado')`;
+  const value = Math.round((total - scanPaid) * 100) / 100;
+  if (!(value > 0)) fail(400, `O valor do tratamento precisa ser maior que o escaneamento já pago (${brl(scanPaid)}).`);
   const boletoMax = Math.min(Math.max(Number(b.boletoMax) || MODEL.boletoMaxInstallments, 1), MODEL.boletoMaxInstallments);
   const description = clean(b.description, 200) || `AlignSystem — tratamento (caso #${c.code})`;
   let split = null;
@@ -1432,10 +1454,10 @@ r('POST', '/api/admin/cases/:id/charges', async (req, res, { id }) => {
   }
   const t = token(24);
   const [out] = await sql`insert into charges (case_id, dentist_id, kind, description, billing_type, value, max_installments, boleto_enabled, boleto_max,
-      due_date, split, pay_token, status, created_by)
+      due_date, split, pay_token, status, created_by, scan_deducted)
     values (${id}, ${split?.dentistId || null}, 'integral', ${description}, 'UNDEFINED', ${value}, ${MODEL.cardMaxInstallments}, ${b.boleto !== false}, ${boletoMax},
-            ${dueIn(3)}, ${split ? sql.json(split) : null}, ${t}, 'aguardando_escolha', ${u.id}) returning *`;
-  await logEvent(sql, { caseId: id, actor: u.email, type: 'cobranca_criada', data: { value, boleto: b.boleto !== false, repasseDentista: Boolean(split) } });
+            ${dueIn(3)}, ${split ? sql.json(split) : null}, ${t}, 'aguardando_escolha', ${u.id}, ${scanPaid || null}) returning *`;
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'cobranca_criada', data: { total, scanDeducted: scanPaid, value, boleto: b.boleto !== false, repasseDentista: Boolean(split) } });
   if (c.email) await sendMail({
     to: c.email, subject: `Pagamento AlignSystem — ${description}`,
     html: layout('Seu pagamento está disponível', table([['Descrição', description], ['Valor do tratamento', brl(value)]]) +
@@ -1463,6 +1485,36 @@ const splitFor = (ch, part) => {
 };
 
 const chargeQuote = (ch) => quote(ch.value, { cardMax: ch.max_installments || MODEL.cardMaxInstallments, boletoMax: ch.boleto_max || MODEL.boletoMaxInstallments, boleto: ch.boleto_enabled });
+
+// Consulta por quebra/perda de alinhador: cobrada à parte do paciente (consulta do dentista + 30%);
+// o dentista recebe o valor da consulta por split e o acréscimo fica com a AlignSystem
+r('POST', '/api/admin/cases/:id/charges/quebra', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  if (!c.cpf) fail(400, 'Cadastre o CPF do paciente antes de cobrar.');
+  const d = await dentistById(sql, c.dentist_id);
+  if (!d) fail(400, 'Defina o dentista do caso.');
+  if (!d.asaas_wallet_id) fail(400, `${d.name} ainda não tem conta de recebimento (walletId) cadastrada.`);
+  const consult = dentistConsultValue(d);
+  const value = breakagePrice(consult);
+  const customer = c.asaas_customer_id || (await asaas.ensureCustomer({ name: c.name, cpfCnpj: c.cpf, email: c.email, mobilePhone: String(c.whatsapp || '').replace(/^55/, ''), externalReference: c.id }));
+  if (!c.asaas_customer_id) await sql`update cases set asaas_customer_id = ${customer} where id = ${c.id}`;
+  const description = `Consulta por quebra ou perda de alinhador — caso #${c.code}`;
+  const split = { walletId: d.asaas_wallet_id, dentistId: d.id, type: 'fixed', value: consult, model: 'quebra' };
+  const [ch] = await sql`insert into charges (case_id, dentist_id, kind, description, billing_type, value, installment_count, due_date, split, status, created_by)
+    values (${c.id}, ${d.id}, 'avulsa', ${description}, 'UNDEFINED', ${value}, 1, ${dueIn(3)}, ${sql.json(split)}, 'PENDING', ${u.id}) returning id`;
+  const p = await asaas.createPayment({ customer, billingType: 'UNDEFINED', value, dueDate: dueIn(3), description, installmentCount: 1,
+    split: { walletId: d.asaas_wallet_id, type: 'fixed', value: consult }, externalReference: ch.id });
+  await sql`update charges set asaas_payment_id = ${p.id}, invoice_url = ${p.invoiceUrl}, status = ${p.status || 'PENDING'} where id = ${ch.id}`;
+  await logEvent(sql, { caseId: c.id, dentistId: d.id, actor: u.email, type: 'cobranca_quebra', data: { value, dentist: consult, platform: Math.round((value - consult) * 100) / 100 } });
+  if (c.email) await sendMail({
+    to: c.email, subject: `Pagamento AlignSystem — ${description}`,
+    html: layout('Consulta por quebra ou perda de alinhador', table([['Descrição', description], ['Valor', brl(value)]]) + button(p.invoiceUrl, 'Pagar')),
+  });
+  send(res, 201, { id: ch.id, value, dentist: consult, invoiceUrl: p.invoiceUrl });
+});
 
 // Boleto: depois da entrada confirmada, gera o saldo em boletos mensais (idempotente)
 async function ensureBoletos(sql, chargeId) {
@@ -1633,6 +1685,7 @@ r('GET', '/api/admin/dentists/:id', async (req, res, { id }) => {
   ]);
   send(res, 200, {
     dentist: d,
+    priceInfo: { scanPrice: await caseScanPrice(sql), consultValue: dentistConsultValue(d), breakage: breakagePrice(dentistConsultValue(d)), breakageMarkupPct: MODEL.breakageMarkupPct },
     contracts: contracts.map((x) => ({ ...x, url: contractUrl(x.token) })),
     cases, users, events, evidences,
     labels: { DENTIST_STATUS, CASE_STATUS, MILESTONES },
@@ -1695,6 +1748,7 @@ r('POST', '/api/admin/dentists/:id/approve', async (req, res, { id }) => {
   if (user && user.role === 'admin') fail(409, 'Este e-mail já pertence a um administrador.');
   if (!user) [user] = await sql`insert into users (email, name, role, dentist_id) values (${d.email}, ${d.name}, 'dentist', ${id}) returning *`;
   else await sql`update users set dentist_id = ${id}, active = true where id = ${user.id}`;
+  await sql`update dentists set terms = ${sql.json({ ...PARTNER_DEFAULTS, ...terms })}, updated_at = now() where id = ${id}`;
   const ct = await createPartnerContract(sql, d, terms, u.id);
   if (d.status === 'lead' || d.status === 'em_analise') await sql`update dentists set status = 'aprovado', updated_at = now() where id = ${id}`;
   const pw = await createPasswordToken(sql, user.id, 24 * 7);

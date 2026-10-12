@@ -18,6 +18,8 @@ export const MODEL = {
   ownPricePlatformPct: 20,
   // consultas presenciais incluídas no contrato, por complexidade; acima disso, aditivo pago pelo paciente
   consultLimits: { simples: 8, mediano: 10, complexo: 15 },
+  // consulta por quebra/perda de alinhador: valor da consulta do dentista + 30% (o acréscimo fica com a AlignSystem)
+  breakageMarkupPct: 30,
 };
 
 export const COMPLEXITY_LABEL = { simples: 'simples', mediano: 'de média complexidade', complexo: 'complexo' };
@@ -50,4 +52,10 @@ export function dentistSplitPct(part, model = '50/30/20') {
   if (part === 'boleto_entry') return 0; // entrada = alinhadores, 100% AlignSystem
   if (part === 'boleto_rest') return round2(MODEL.dentistPct / (100 - MODEL.alignerPct) * 100); // 30/50 = 60%
   return MODEL.dentistPct; // Pix ou cartão: 30% do total pago
+}
+
+// Consulta por quebra: o dentista recebe o valor da consulta combinado; o paciente paga +30%
+export function breakagePrice(consultValue) {
+  const v = Number(consultValue) || 0;
+  return v > 0 ? Math.round(v * (1 + MODEL.breakageMarkupPct / 100) * 100) / 100 : 0;
 }
