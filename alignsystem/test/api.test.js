@@ -230,6 +230,7 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   assert.match(redeBody, /qualquer dentista credenciado|dentista credenciado mais próximo/);
   assert.match(redeBody, /R\$\s?12\.918,40/);
   assert.doesNotMatch(redeBody, /interveniente/);
+  assert.match(redeBody, /3\.5\. Local das consultas presenciais.*sede da Contratada, em Maringá\/PR/);
 
   // direciona o caso, plano, contrato
   await call('PATCH', `/api/admin/cases/${caseId}`, { who: 'admin', body: { dentist_id: dentistId, cpf: '529.982.247-25', address: 'Rua B, 20, Maringá/PR', email: 'maria@x.com' } });
