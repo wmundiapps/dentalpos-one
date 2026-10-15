@@ -2,6 +2,8 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { createUser, getUserByEmail } from '../services/userService'
+import { createDefaultProfiles, getUserPermissionCodes } from '../services/permissionService'
 
 const DF=['contractType','croState','rqe','cpf','rg','personalAddress','personalCity','personalState','personalZipCode','companyName','tradeName','cnpj','companyCro','technicalManager','companyAddress','companyCity','companyState','companyZipCode','municipalRegistration','documentIssuer','revenueModel','revenueBase','materialSplit','labSplit','cardFeeSplit','bankName','bankAgency','bankAccount','pixKey','notes']
 const DD=['birthDate','contractStartDate','contractEndDate']
@@ -70,11 +72,35 @@ export async function show(req: AuthRequest, res: Response) {
 }
 
 export async function store(req: AuthRequest, res: Response) {
+  let createdUserId: string | null = null
   try {
     const { clinicId, tenantId, actorId } = ctx(req)
-    const userId = String(req.body.userId || '')
+    let userId = String(req.body.userId || '')
     const cro = String(req.body.cro || '').trim()
     const specialty = String(req.body.specialty || '').trim()
+
+    // Cadastro do login do dentista na própria tela: cria o usuário e já dá o perfil de dentista.
+    const nu = req.body.newUser as Record<string, unknown> | undefined
+    if (!userId && nu && typeof nu === 'object') {
+      const canManageUsers = req.user!.role === 'ADMIN' || (await getUserPermissionCodes(req.user!.id)).includes('users.manage')
+      if (!canManageUsers) return res.status(403).json({ error: 'Só o administrador ou o gestor pode criar o login de um novo profissional.' })
+      const firstName = String(nu.firstName || '').trim()
+      const lastName = String(nu.lastName || '').trim()
+      const email = String(nu.email || '').trim().toLowerCase()
+      const password = String(nu.password || '')
+      if (!firstName || !lastName) return res.status(400).json({ error: 'Informe nome e sobrenome do novo usuário.' })
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'E-mail do novo usuário inválido.' })
+      if (password.length < 8) return res.status(400).json({ error: 'A senha provisória precisa ter pelo menos 8 caracteres.' })
+      if (!cro || !specialty) return res.status(400).json({ error: 'CRO e especialidade são obrigatórios.' })
+      if (await getUserByEmail(clinicId, email)) return res.status(409).json({ error: 'Já existe um usuário com este e-mail nesta clínica. Escolha-o na lista.' })
+      const created = await createUser({ clinicId, tenantId, email, password, firstName, lastName, phone: nu.phone ? String(nu.phone).trim() : undefined, role: 'STAFF', isActive: true })
+      createdUserId = created.id
+      userId = created.id
+      await createDefaultProfiles(clinicId, tenantId)
+      const profile = await prisma.accessProfile.findUnique({ where: { clinicId_code: { clinicId, code: 'DENTISTA' } } })
+      if (profile) await prisma.userAccessProfile.upsert({ where: { userId_profileId: { userId: created.id, profileId: profile.id } }, update: {}, create: { userId: created.id, profileId: profile.id } })
+      await writeAudit({ clinicId, tenantId, actorId, module: 'users', action: 'create', entityType: 'User', entityId: created.id, summary: `Usuário ${email} criado no cadastro de profissional.` }).catch(() => undefined)
+    }
 
     if (!userId || !cro || !specialty) {
       return res.status(400).json({ error: 'Usuário, CRO e especialidade são obrigatórios.' })
@@ -120,6 +146,9 @@ export async function store(req: AuthRequest, res: Response) {
 
     return res.status(201).json(doctor)
   } catch (error) {
+    // Se o profissional não pôde ser salvo, o login recém-criado não fica solto.
+    if (createdUserId) await prisma.user.delete({ where: { id: createdUserId } }).catch(() => undefined)
+    if ((error as { code?: string })?.code === 'P2002') return res.status(409).json({ error: 'Este usuário já está cadastrado como profissional.' })
     console.error('Erro ao cadastrar profissional:', error)
     return res.status(500).json({ error: 'Erro ao cadastrar profissional.' })
   }
