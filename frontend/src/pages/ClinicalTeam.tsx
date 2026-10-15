@@ -40,6 +40,8 @@ export default function ClinicalTeam() {
   const [docs, setDocs] = useState<DoctorDocument[]>([]);
   const DOC_VAZIO = { documentType:"RG_CPF", title:"", fileName:"", issueDate:"", expiresAt:"", notes:"" };
   const [docForm, setDocForm] = useState(DOC_VAZIO);
+  const NOVO_USUARIO = { aberto: false, firstName: "", lastName: "", email: "", phone: "", password: "" };
+  const [novoUsuario, setNovoUsuario] = useState(NOVO_USUARIO);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -49,7 +51,7 @@ export default function ClinicalTeam() {
   }, []);
   useEffect(() => { void carregar(); }, [carregar]);
 
-  const abrirNovo = () => { setEditId(null); setForm(VAZIO); setAba(0); setError(""); setOpen(true); };
+  const abrirNovo = () => { setEditId(null); setForm(VAZIO); setNovoUsuario(NOVO_USUARIO); setAba(0); setError(""); setOpen(true); };
   const abrirEdicao = (d: Doctor) => {
     setEditId(d.id);
     setForm({ ...VAZIO, userId:d.userId, cro:d.cro||"", croState:d.croState||"", rqe:d.rqe||"", specialty:d.specialty||"", specialties:d.specialties||[],
@@ -72,8 +74,15 @@ export default function ClinicalTeam() {
       const payload: Record<string, unknown> = { ...form, specialty: form.specialty || form.specialties[0] || "Clínica geral" };
       if (editId) { delete payload.userId; await updateDoctor(editId, payload); }
       else {
-        if (!form.userId) { setError("Escolha o usuário do sistema ligado a este profissional."); setBusy(false); return; }
         if (!form.cro.trim()) { setError("Informe o CRO."); setBusy(false); return; }
+        if (novoUsuario.aberto) {
+          const n = novoUsuario;
+          if (!n.firstName.trim() || !n.lastName.trim()) { setError("Informe nome e sobrenome do novo usuário."); setBusy(false); return; }
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(n.email.trim())) { setError("Informe um e-mail válido para o login."); setBusy(false); return; }
+          if (n.password.length < 8) { setError("A senha provisória precisa ter pelo menos 8 caracteres."); setBusy(false); return; }
+          delete payload.userId;
+          payload.newUser = { firstName: n.firstName.trim(), lastName: n.lastName.trim(), email: n.email.trim(), phone: n.phone.trim(), password: n.password };
+        } else if (!form.userId) { setError("Escolha o usuário do sistema ou cadastre um novo."); setBusy(false); return; }
         await createDoctor(payload);
       }
       setOpen(false); setNotice("Profissional salvo."); await carregar();
@@ -155,9 +164,28 @@ export default function ClinicalTeam() {
           {aba === 0 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
               {!editId && (
-                <TextField select required label={"Usuário do sistema"} value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} sx={{ gridColumn: { md: "1/-1" } }} helperText={"O profissional precisa de um usuário para ter acesso e agenda."}>
-                  {users.map((u) => <MenuItem key={u.id} value={u.id}>{`${u.firstName} ${u.lastName} — ${u.email}`}</MenuItem>)}
-                </TextField>
+                <Box sx={{ gridColumn: { md: "1/-1" }, display: "grid", gap: 1.5 }}>
+                  {!novoUsuario.aberto && (
+                    <TextField select required label={"Usuário do sistema"} value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })} helperText={users.length ? "Escolha um usuário que já existe ou cadastre um novo logo abaixo." : "Ainda não há usuário livre. Cadastre um novo logo abaixo."}>
+                      {users.map((u) => <MenuItem key={u.id} value={u.id}>{`${u.firstName} ${u.lastName} — ${u.email}`}</MenuItem>)}
+                    </TextField>
+                  )}
+                  <Box>
+                    <Button size="small" variant={novoUsuario.aberto ? "text" : "outlined"} onClick={() => setNovoUsuario({ ...novoUsuario, aberto: !novoUsuario.aberto })}>
+                      {novoUsuario.aberto ? "Usar um usuário que já existe" : "+ Cadastrar novo usuário (login do dentista)"}
+                    </Button>
+                  </Box>
+                  {novoUsuario.aberto && (
+                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+                      <Alert severity="info" sx={{ gridColumn: { md: "1/-1" } }}>{"O dentista entra no sistema com este e-mail e a senha provisória que você definir aqui. Ele ganha o acesso de Dentista, que você ajusta em Configurações > Permissões. Peça para ele trocar a senha em “Esqueci minha senha”."}</Alert>
+                      <TextField required label="Nome" value={novoUsuario.firstName} onChange={(e) => setNovoUsuario({ ...novoUsuario, firstName: e.target.value })} />
+                      <TextField required label="Sobrenome" value={novoUsuario.lastName} onChange={(e) => setNovoUsuario({ ...novoUsuario, lastName: e.target.value })} />
+                      <TextField required type="email" label="E-mail (será o login)" value={novoUsuario.email} onChange={(e) => setNovoUsuario({ ...novoUsuario, email: e.target.value })} />
+                      <TextField label="Telefone" value={novoUsuario.phone} onChange={(e) => setNovoUsuario({ ...novoUsuario, phone: e.target.value })} />
+                      <TextField required type="password" label="Senha provisória (mín. 8 caracteres)" value={novoUsuario.password} onChange={(e) => setNovoUsuario({ ...novoUsuario, password: e.target.value })} autoComplete="new-password" sx={{ gridColumn: { md: "1/-1" } }} />
+                    </Paper>
+                  )}
+                </Box>
               )}
               {seletor("contractType", "Vínculo", VINCULOS)}
               {seletor("documentIssuer", "Documentos do paciente em nome de", [["CLINICA","Clínica"],["PROFISSIONAL","Profissional"]], { helperText: "Define o cabeçalho dos contratos e termos." })}
