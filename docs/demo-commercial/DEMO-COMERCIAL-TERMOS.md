@@ -1,6 +1,6 @@
 # Termos-base — Demo DentalPos One / Early Access
 
-Versão: 2026-08-30
+Versão: 2026-10-15
 
 ## 1. Natureza da demonstração
 
@@ -35,6 +35,14 @@ A contratação posterior poderá ser formalizada por proposta, pedido de compra
 ## 7. Segurança
 
 Credenciais são individuais e não devem ser compartilhadas fora da equipe autorizada. O usuário deve comunicar suspeitas de acesso indevido e manter senhas fortes.
+
+## 8. Disponibilidade e atualizações
+
+O DentalPos é atualizado semanalmente, com melhorias e correções. Durante as atualizações, o sistema poderá ficar temporariamente indisponível.
+
+Outras causas de indisponibilidade que não sejam de responsabilidade da DentalPos, como falhas dos servidores e provedores de hospedagem, do banco de dados, da internet, de energia e de serviços de terceiros, serão tratadas junto aos servidores e às empresas responsáveis.
+
+Caso ocorra qualquer indisponibilidade, a clínica deve entrar em contato com o suporte por e-mail: contato@dentalpos.com.br.
 
 ---
 

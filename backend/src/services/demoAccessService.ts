@@ -60,7 +60,7 @@ export function demoOptions() {
   const modules = normalizeModules(
     String(process.env.DEMO_DEFAULT_MODULES || 'agenda,patients').split(','),
   )
-  const termsVersion = String(process.env.DEMO_TERMS_VERSION || '2026-08-30').trim()
+  const termsVersion = String(process.env.DEMO_TERMS_VERSION || '2026-10-15').trim()
   const enabled =
     process.env.ENABLE_DEMO_REGISTRATION === 'true' ||
     (process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEMO_REGISTRATION !== 'false')
