@@ -100,7 +100,7 @@ export function demoSalesUrl() {
 }
 
 const ROUTE_MODULES: Array<[RegExp, string]> = [
-  [/^\/agenda(?:\/|$)/, "agenda"],
+  [/^\/(?:agenda|chegada-por-rosto)(?:\/|$)/, "agenda"],
   [/^\/pacientes(?:\/|$)/, "patients"],
   [/^\/(?:prontuario|documentos-clinicos|orcamentos-tratamentos|painel-atendimentos)(?:\/|$)/, "clinical"],
   [/^\/laboratorio(?:\/|$)/, "laboratory"],

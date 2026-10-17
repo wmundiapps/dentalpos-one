@@ -38,6 +38,7 @@ import * as clinicalController from '../controllers/clinicalController'
 import * as laboratoryController from '../controllers/laboratoryController'
 import * as designController from '../controllers/designController'
 import * as hrController from '../controllers/hrController'
+import * as face from '../controllers/faceController'
 import * as condoSplit from '../controllers/condoSplitController'
 import * as followUp from '../controllers/followUpController'
 import * as hrTime from '../controllers/hrTimeController'
@@ -148,6 +149,10 @@ router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendi
 router.get('/patients/:id/financial-hold', requirePermission('agenda.view'), financialHoldController.patientHold)
 router.get('/financial-hold/settings', requirePermission('agenda.view'), financialHoldController.settings)
 router.put('/financial-hold/settings', requirePermission('finance.approve'), financialHoldController.updateSettings)
+router.get('/face/status/:patientId', requirePermission('patients.view'), face.status)
+router.post('/face/enroll', requirePermission('patients.edit'), face.enroll)
+router.delete('/face/:patientId', requirePermission('patients.edit'), face.remove)
+router.post('/face/identify', requirePermission('agenda.edit'), face.identify)
 router.get('/condo-split', requirePermission('finance.view'), condoSplit.show)
 router.put('/condo-split', requirePermission('finance.edit'), condoSplit.save)
 router.get('/followup/unscheduled', requirePermission('patients.view'), followUp.unscheduled)

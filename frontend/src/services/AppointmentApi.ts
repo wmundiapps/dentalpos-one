@@ -178,7 +178,7 @@ export async function updateBackendAppointment(id: string, input: {
   return response.json() as Promise<BackendAppointment>;
 }
 
-export type FlowAction = "ARRIVED" | "PREPARE_ROOM" | "START" | "FINISH" | "ATTENDED";
+export type FlowAction = "ARRIVED" | "UNDO_ARRIVAL" | "PREPARE_ROOM" | "START" | "FINISH" | "ATTENDED";
 
 export async function appointmentFlowAction(id: string, action: FlowAction) {
   const response = await fetch(`${API}/appointment/${id}/flow`, {
