@@ -6,6 +6,7 @@ import PaletteIcon from "@mui/icons-material/Palette";
 import BusinessIcon from "@mui/icons-material/Business";
 import PageHeader from "../components/PageHeader";
 import PendingAlertsSettingsCard from "../components/PendingAlertsSettingsCard";
+import FollowUpSettingsCard from "../components/FollowUpSettingsCard";
 import FinancialHoldSettingsCard from "../components/FinancialHoldSettingsCard";
 import DunningSettingsCard from "../components/DunningSettingsCard";
 import { useAppTheme } from "../contexts/AppThemeContext";
@@ -15,6 +16,7 @@ export default function Settings(){
  const {mode,primaryColor,toggleMode,setPrimaryColor}=useAppTheme();
  const [identity,setIdentity]=useState(()=>{try{return JSON.parse(localStorage.getItem(ID_KEY)||"null")||{name:"Clínica DentalPos",doctor:"Dr. Exemplo 1",logo:""}}catch{return{name:"Clínica DentalPos",doctor:"Dr. Exemplo 1",logo:""}}});
  return <Box><PageHeader title="Configurações" description="Identidade da clínica, aparência, cores e preferências do sistema."/>
+ <FollowUpSettingsCard/>
  <PendingAlertsSettingsCard/>
  <FinancialHoldSettingsCard/>
  <DunningSettingsCard/>

@@ -1,4 +1,5 @@
 import LockedUsersUnlock from "../components/LockedUsersUnlock";
+import UnscheduledPatientsCard from "../components/UnscheduledPatientsCard";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -138,6 +139,8 @@ export default function Dashboard() {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(4, 1fr)" }, gap: 3 }}>
         {cards.map((card) => <DashboardCard key={card.titulo} {...card} onClick={() => { if (card.path.startsWith("#")) { setAlertFilter(card.path.slice(1) as "FIN" | "CRIT"); document.getElementById("central-alertas")?.scrollIntoView({ behavior: "smooth" }); } else navigate(card.path); }} />)}
       </Box>
+
+      <Box sx={{ mt: 4 }}><UnscheduledPatientsCard /></Box>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1.4fr 1fr" }, gap: 3, mt: 4 }}>
         <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>

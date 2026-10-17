@@ -110,6 +110,12 @@ export async function processDueAppointmentReminders() {
         continue
       }
 
+      // Lembrete de consulta que já passou não é mais enviado (a rotina agora roda de hora em hora; lembretes antigos ficariam presos).
+      if (appointment.scheduledAt.getTime() < Date.now()) {
+        await prisma.appointmentReminder.update({ where: { id: reminder.id }, data: { status: 'CANCELLED', errorMessage: 'Consulta já passou.' } })
+        continue
+      }
+
       if (reminder.type !== 'ON_BOOKING' && appointment.status === 'WAITING') {
         continue
       }
