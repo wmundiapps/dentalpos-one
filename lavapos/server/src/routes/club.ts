@@ -44,3 +44,10 @@ clubRouter.get('/summary', async (req: AuthedRequest, res) => {
     count(*) FILTER (WHERE data->>'status'='inadimplente')::int AS inadimplentes FROM records WHERE tenant_id=$1 AND kind='subscription'`, [tenantOf(req)]))[0];
   res.json(r);
 });
+
+/** Saldo e extrato de cashback de um cliente. */
+clubRouter.get('/cashback/:customerId', async (req: AuthedRequest, res) => {
+  const tenantId = tenantOf(req);
+  const ledger = await listRecs(pool, tenantId, 'cashback', { where: `data->>'customerId' = $3`, params: [req.params.customerId], limit: 200 });
+  res.json({ balanceCents: ledger.reduce((a, l) => a + (l.data.deltaCents as number), 0), ledger: ledger.map((l) => ({ id: l.id, createdAt: l.createdAt, ...l.data })) });
+});

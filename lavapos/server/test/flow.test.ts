@@ -18,7 +18,7 @@ async function api(path: string, opts: { method?: string; token?: string; body?:
   const r = await fetch(base + path, {
     method: opts.method ?? (opts.body || opts.raw ? 'POST' : 'GET'),
     headers: { ...(opts.body ? { 'content-type': 'application/json' } : {}), ...(opts.raw ? { 'content-type': opts.type ?? 'image/jpeg' } : {}), ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {}) },
-    body: opts.raw ?? (opts.body ? JSON.stringify(opts.body) : undefined),
+    body: (opts.raw ? new Uint8Array(opts.raw) : undefined) ?? (opts.body ? JSON.stringify(opts.body) : undefined),
   });
   const text = await r.text();
   let json: any = null; try { json = JSON.parse(text); } catch { /* binário */ }

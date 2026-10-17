@@ -31,10 +31,12 @@ dashboardRouter.get('/', async (req: AuthedRequest, res) => {
       FROM records WHERE tenant_id=$1 AND kind='payment' AND data->>'status'='pago'`, [tenantId, month + '%', today + '%']),
     one(pool, `SELECT count(*)::int AS n FROM records WHERE tenant_id=$1 AND kind='customer' AND COALESCE(data->>'archived','false')<>'true'`, [tenantId]),
   ]);
+  const [custAll, vehAll] = await Promise.all([listRecs(pool, tenantId, 'customer', { archived: true, limit: 5000 }), listRecs(pool, tenantId, 'vehicle', { archived: true, limit: 5000 })]);
+  const names = new Map(custAll.map((c) => [c.id, c.data.name as string])); const plates = new Map(vehAll.map((v) => [v.id, v.data.plate as string]));
   const trialDaysLeft = t.billing_status === 'trial' ? Math.max(0, Math.ceil((new Date(t.trial_ends_at).getTime() - Date.now()) / 86400000)) : null;
   res.json({
     today, trialDaysLeft, billingStatus: t.billing_status,
-    appointmentsToday: apps.map((a) => ({ id: a.id, ...a.data })),
+    appointmentsToday: apps.map((a) => ({ id: a.id, ...a.data, customerName: names.get(a.data.customerId) ?? '', plate: plates.get(a.data.vehicleId) ?? '' })),
     inService: open.filter((o) => o.data.status === 'em_servico').length, ready: open.filter((o) => o.data.status === 'pronto').length,
     openOrders: open.map((o) => ({ id: o.id, number: o.data.number, status: o.data.status, plate: o.data.plate, customerName: o.data.customerName, vehicleLabel: o.data.vehicleLabel })),
     revenueTodayCents: rev!.today, revenueMonthCents: rev!.month, customers: cust!.n, subscribers: subs!.n, mrrCents: subs!.mrr,

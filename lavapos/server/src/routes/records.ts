@@ -55,6 +55,11 @@ recordsRouter.get('/:kind', async (req: AuthedRequest, res) => {
   const q = req.query;
   let where: string | undefined; const params: unknown[] = [];
   if (typeof q.customerId === 'string') { params.push(q.customerId); where = `data->>'customerId' = $3`; }
+  if (typeof q.plate === 'string' && req.params.kind === 'vehicle') { params.push(q.plate.toUpperCase().replace(/[^A-Z0-9]/g, '')); where = `data->>'plate' = $3`; }
+  if (typeof q.q === 'string' && q.q.trim() && req.params.kind === 'customer') {
+    params.push(`%${q.q.trim().slice(0, 40).replace(/[%_\\]/g, '')}%`);
+    where = `(data->>'name' ILIKE $3 OR data->>'whatsapp' LIKE $3)`;
+  }
   const list = await listRecs(pool, tenantOf(req), req.params.kind as string, { archived: q.archived === '1', where, params, limit: 2000 });
   res.json(list.map((r) => toClient(req.params.kind as string, r, false)));
 });

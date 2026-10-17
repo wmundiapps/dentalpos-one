@@ -31,6 +31,7 @@ export const clientIp = (req: Request) => (req.ip ?? 'desconhecido').replace(/^:
  */
 export function rateLimit(name: string, max: number, windowSec: number, closed = false) {
   return async (req: Request, res: Response, next: NextFunction) => {
+    if (process.env.RATE_LIMIT_OFF === '1' && process.env.NODE_ENV !== 'production') return next(); // só para semear dados de demonstração
     try {
       const r = await one<{ hits: number }>(pool,
         `INSERT INTO rate_hits (bucket, window_start, hits)
