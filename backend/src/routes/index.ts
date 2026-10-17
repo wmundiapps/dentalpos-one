@@ -38,6 +38,7 @@ import * as clinicalController from '../controllers/clinicalController'
 import * as laboratoryController from '../controllers/laboratoryController'
 import * as designController from '../controllers/designController'
 import * as hrController from '../controllers/hrController'
+import * as followUp from '../controllers/followUpController'
 import * as hrTime from '../controllers/hrTimeController'
 import * as revahController from '../controllers/revahController'
 import * as salesController from '../controllers/salesController'
@@ -146,6 +147,10 @@ router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendi
 router.get('/patients/:id/financial-hold', requirePermission('agenda.view'), financialHoldController.patientHold)
 router.get('/financial-hold/settings', requirePermission('agenda.view'), financialHoldController.settings)
 router.put('/financial-hold/settings', requirePermission('finance.approve'), financialHoldController.updateSettings)
+router.get('/followup/unscheduled', requirePermission('patients.view'), followUp.unscheduled)
+router.get('/followup/settings', requirePermission('settings.view'), followUp.show)
+router.put('/followup/settings', requirePermission('settings.edit'), followUp.update)
+router.post('/followup/send-now', requirePermission('settings.edit'), followUp.sendNow)
 router.get('/absence-recall', requirePermission('agenda.view'), absenceRecallController.show)
 router.get('/absence-recall/today', requirePermission('agenda.view'), absenceRecallController.today)
 router.put('/absence-recall/settings', requirePermission('agenda.edit'), absenceRecallController.updateSettings)

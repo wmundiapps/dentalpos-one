@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma'
 import { decryptSecret } from './secretVault'
 import { dispatchRevah, type RevahChannel } from './revahProviderService'
+import { paidClinics } from './followUpService'
 
 // Retorno de pacientes ausentes: encontra quem não comparece há X dias (e não tem consulta futura) e envia um contato
 // de acompanhamento por e-mail/WhatsApp com o link da agenda online. Sem tabela nova: a configuração fica na flag da clínica
@@ -10,7 +11,8 @@ export const PERIODS_DAYS = [7, 15, 30, 45, 60, 75, 90, 120, 150, 180, 210, 365,
 export const MARKER = '[RETORNO]'
 const DAY = 86400000
 const START_HOUR_BRT = 9
-const DEFAULT_DAILY_LIMIT = 30
+const DEFAULT_DAILY_LIMIT = 10
+const MISSED_AFTER_DAYS = 3 // faltou ou cancelou e não remarcou: o contato sai depois de 3 dias
 const MAX_DAILY_LIMIT = 200
 let running = false
 
@@ -25,7 +27,8 @@ export async function loadSettings(clinicId: string): Promise<AbsenceSettings> {
   const m = (row?.metadata || {}) as { periodDays?: number; channels?: string[]; dailyLimit?: number }
   const channels = (Array.isArray(m.channels) ? m.channels : ['EMAIL']).filter((c): c is RevahChannel => c === 'EMAIL' || c === 'WHATSAPP')
   return {
-    enabled: row?.enabled === true,
+    // Clínica contratada começa com o retorno ligado (antes ficava desligado e nunca enviava); o gestor pode desligar.
+    enabled: row ? row.enabled : true,
     periodDays: (PERIODS_DAYS as readonly number[]).includes(Number(m.periodDays)) ? Number(m.periodDays) : 90,
     channels: channels.length ? channels : ['EMAIL'],
     dailyLimit: Math.min(MAX_DAILY_LIMIT, Math.max(1, Math.round(Number(m.dailyLimit) || DEFAULT_DAILY_LIMIT))),
@@ -41,18 +44,24 @@ export async function saveSettings(clinicId: string, tenantId: string, s: Absenc
   })
 }
 
-// Pacientes ativos cuja última consulta realizada foi há pelo menos `periodDays`, sem nenhuma consulta futura marcada.
+// Pacientes ativos sem nenhuma consulta futura marcada cujo último contato foi uma consulta realizada há pelo menos `periodDays`,
+// ou uma falta/cancelamento há 3 dias ou mais (esses voltam a ser procurados bem antes).
 export async function findCandidates(clinicId: string, tenantId: string, periodDays: number, now = new Date()): Promise<Candidate[]> {
   const cutoff = new Date(now.getTime() - periodDays * DAY)
+  const missedCutoff = new Date(now.getTime() - Math.min(periodDays, MISSED_AFTER_DAYS) * DAY)
   const rows = await prisma.$queryRaw<Array<{ id: string; fullName: string; email: string | null; phone: string; last: Date }>>`
-    SELECT p."id", p."fullName", p."email", p."phone", MAX(a."scheduledAt") AS last
-    FROM "Patient" p
-    JOIN "Appointment" a ON a."patientId" = p."id" AND a."clinicId" = ${clinicId} AND a."tenantId" = ${tenantId} AND a."status" = 'COMPLETED'
+    SELECT p."id", p."fullName", p."email", p."phone", l."last"
+    FROM (
+      SELECT DISTINCT ON (a."patientId") a."patientId", a."scheduledAt" AS "last", a."status"
+      FROM "Appointment" a
+      WHERE a."clinicId" = ${clinicId} AND a."tenantId" = ${tenantId} AND a."scheduledAt" <= ${now} AND a."status" IN ('COMPLETED', 'NO_SHOW', 'CANCELLED')
+      ORDER BY a."patientId", a."scheduledAt" DESC
+    ) l
+    JOIN "Patient" p ON p."id" = l."patientId"
     WHERE p."clinicId" = ${clinicId} AND p."tenantId" = ${tenantId} AND p."isActive" = true AND COALESCE(p."status", 'Ativo') <> 'Inativo'
       AND NOT EXISTS (SELECT 1 FROM "Appointment" f WHERE f."patientId" = p."id" AND f."scheduledAt" > ${now} AND f."status" NOT IN ('CANCELLED', 'NO_SHOW'))
-    GROUP BY p."id", p."fullName", p."email", p."phone"
-    HAVING MAX(a."scheduledAt") <= ${cutoff}
-    ORDER BY MAX(a."scheduledAt") ASC
+      AND ((l."status" = 'COMPLETED' AND l."last" <= ${cutoff}) OR (l."status" IN ('NO_SHOW', 'CANCELLED') AND l."last" <= ${missedCutoff}))
+    ORDER BY l."last" ASC
     LIMIT 2000`
   return rows.map((r) => ({ patientId: r.id, name: r.fullName, email: r.email, phone: r.phone, lastVisit: r.last.toISOString(), daysAway: Math.floor((now.getTime() - r.last.getTime()) / DAY) }))
 }
@@ -141,7 +150,9 @@ export async function processAbsenceRecalls(now = new Date()) {
   running = true
   try {
     if (new Date(now.getTime() - 3 * 3600000).getUTCHours() < START_HOUR_BRT) return
-    const flags = await prisma.tenantFeatureFlag.findMany({ where: { key: FLAG_KEY, enabled: true }, select: { clinicId: true, tenantId: true } })
-    for (const f of flags) await runForClinic(f.clinicId, f.tenantId, { now }).catch((e) => console.error('Retorno de ausentes:', e))
+    for (const c of await paidClinics()) {
+      if (!(await loadSettings(c.id)).enabled) continue
+      await runForClinic(c.id, c.tenantId, { now }).catch((e) => console.error('Retorno de ausentes:', e))
+    }
   } finally { running = false }
 }
