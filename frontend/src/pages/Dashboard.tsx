@@ -1,4 +1,5 @@
 import LockedUsersUnlock from "../components/LockedUsersUnlock";
+import { loadFinancialDashboard, type FinancialDashboard } from "../services/FinancialApi";
 import MobileHome from "../components/MobileHome";
 import UnscheduledPatientsCard from "../components/UnscheduledPatientsCard";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
@@ -66,6 +67,8 @@ function severityColor(severity: OperationalAlert["severity"]) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width:700px)");
+  const [fin, setFin] = useState<FinancialDashboard | null>(null);
+  useEffect(() => { if (isMobile) loadFinancialDashboard().then(setFin).catch(() => setFin(null)); }, [isMobile]);
   const [appointments, setAppointments] = useState<IntegratedAppointment[]>(getAppointments);
   const [allAlerts, setAlerts] = useState<OperationalAlert[]>(getOperationalAlerts);
   const filterVisible = usePendingVisibility();
@@ -132,12 +135,20 @@ export default function Dashboard() {
   ];
 
   const openCard = (path: string) => { if (path.startsWith("#")) { setAlertFilter(path.slice(1) as "FIN" | "CRIT"); document.getElementById("central-alertas")?.scrollIntoView({ behavior: "smooth" }); } else navigate(path); };
-  const cores = ["#4CAF50", "#EC6725", "#1976D2", "#C62828"];
+  const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const finValue = (v?: number) => (fin ? brl(v || 0) : "…");
+  const mobileCards = [
+    { titulo: "A receber", valor: finValue(fin?.receivable), cor: "#1976D2", onClick: () => navigate("/financeiro?tipo=Receita") },
+    { titulo: "Em atraso", valor: finValue(fin?.overdue), cor: "#C62828", onClick: () => navigate("/financeiro?tipo=Receita") },
+    { titulo: "Recebido", valor: finValue(fin?.received), cor: "#4CAF50", onClick: () => navigate("/financeiro?tipo=Receita") },
+    { titulo: "Agenda hoje", valor: String(todayAppointments.length), cor: "#EC6725", onClick: () => navigate("/agenda") },
+    { titulo: "Alertas críticos", valor: String(criticalAlerts), cor: "#6D4C41", onClick: () => openCard("#CRIT") },
+  ];
 
   return (
     <Box>
       <LockedUsersUnlock />
-      {isMobile && <Box sx={{ mb: 3 }}><MobileHome cards={cards.map((c, i) => ({ titulo: c.titulo, valor: c.valor, cor: cores[i % cores.length], onClick: () => openCard(c.path) }))} onNavigate={navigate} /></Box>}
+      {isMobile && <Box sx={{ mb: 3 }}><MobileHome cards={mobileCards} onNavigate={navigate} /></Box>}
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Dashboard</Typography>
       <Typography color="text.secondary" sx={{ mb: 4 }}>
         Visão operacional integrada do CompletoDonto.
