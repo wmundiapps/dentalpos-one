@@ -1,4 +1,5 @@
 import LockedUsersUnlock from "../components/LockedUsersUnlock";
+import MobileHome from "../components/MobileHome";
 import UnscheduledPatientsCard from "../components/UnscheduledPatientsCard";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
 import { useEffect, useMemo, useState } from "react";
@@ -16,6 +17,7 @@ import {
   DialogActions,
   TextField,
   Alert,
+  useMediaQuery,
 } from "@mui/material";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import EventIcon from "@mui/icons-material/Event";
@@ -63,6 +65,7 @@ function severityColor(severity: OperationalAlert["severity"]) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery("(max-width:700px)");
   const [appointments, setAppointments] = useState<IntegratedAppointment[]>(getAppointments);
   const [allAlerts, setAlerts] = useState<OperationalAlert[]>(getOperationalAlerts);
   const filterVisible = usePendingVisibility();
@@ -128,15 +131,19 @@ export default function Dashboard() {
     { titulo: "Alertas críticos", valor: String(criticalAlerts), descricao: "Atenção imediata", icone: <WarningAmberIcon />, path: "#CRIT" },
   ];
 
+  const openCard = (path: string) => { if (path.startsWith("#")) { setAlertFilter(path.slice(1) as "FIN" | "CRIT"); document.getElementById("central-alertas")?.scrollIntoView({ behavior: "smooth" }); } else navigate(path); };
+  const cores = ["#4CAF50", "#EC6725", "#1976D2", "#C62828"];
+
   return (
     <Box>
       <LockedUsersUnlock />
+      {isMobile && <Box sx={{ mb: 3 }}><MobileHome cards={cards.map((c, i) => ({ titulo: c.titulo, valor: c.valor, cor: cores[i % cores.length], onClick: () => openCard(c.path) }))} onNavigate={navigate} /></Box>}
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Dashboard</Typography>
       <Typography color="text.secondary" sx={{ mb: 4 }}>
         Visão operacional integrada do CompletoDonto.
       </Typography>
 
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(4, 1fr)" }, gap: 3 }}>
+      <Box sx={{ display: isMobile ? "none" : "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(4, 1fr)" }, gap: 3 }}>
         {cards.map((card) => <DashboardCard key={card.titulo} {...card} onClick={() => { if (card.path.startsWith("#")) { setAlertFilter(card.path.slice(1) as "FIN" | "CRIT"); document.getElementById("central-alertas")?.scrollIntoView({ behavior: "smooth" }); } else navigate(card.path); }} />)}
       </Box>
 
