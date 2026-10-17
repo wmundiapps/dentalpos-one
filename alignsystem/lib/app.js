@@ -1,0 +1,2414 @@
+// API da AlignSystem — uma única função serverless com roteador interno.
+import { db, logEvent } from './db.js';
+import { createRouter, send, fail, readJson, readRaw, clientIp, HttpError } from './http.js';
+import {
+  hashPassword, verifyPassword, passwordProblem, sessionCookie, clearCookie,
+  currentUser, requireUser, createPasswordToken, consumePasswordToken,
+} from './auth.js';
+import { token, sha256, clean, digits, isEmail, appUrl, brl, validCpf, validCpfCnpj } from './util.js';
+import { sendMail, notifyAddress, layout, button, para, table } from './mail.js';
+import * as asaas from './asaas.js';
+import { MODEL, quote, pmt, dentistSplitPct, ownPriceDentistPct, breakagePrice } from './pricing.js';
+import * as geo from './geo.js';
+import { payoutDate } from './payout.js';
+import * as totp from './totp.js';
+import { sanitizeImage, sanitizeSignature } from './images.js';
+import * as prospects from './prospects.js';
+import * as scan from './scan.js';
+import QRCode from 'qrcode';
+import { patientContract, partnerContract, contractsReviewed, PARTNER_DEFAULTS } from './contracts.js';
+import { ensureTcle, currentConsent, TCLE_KIND, TCLE_VERSION } from './tcle.js';
+import {
+  CASE_STATUS, DENTIST_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION, PHOTO_SLOTS, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_CASE,
+  URGENCY, AUTH_STATUS,
+} from './constants.js';
+
+const router = createRouter();
+const r = router.add;
+
+// ------------------------------------------------------------------ helpers
+
+async function rateLimit(sql, key, max, minutes) {
+  const [{ n }] = await sql`select count(*)::int as n from rate_hits where key = ${key} and at > now() - ${minutes + ' minutes'}::interval`;
+  if (n >= max) fail(429, 'Muitas tentativas. Aguarde alguns minutos e tente de novo.');
+  await sql`insert into rate_hits (key) values (${key})`;
+  if (Math.random() < 0.02) await sql`delete from rate_hits where at < now() - interval '1 day'`;
+}
+
+function imageMime(buf) {
+  if (buf.length < 12) return null;
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png';
+  if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
+  if (buf.toString('ascii', 4, 8) === 'ftyp') {
+    const brand = buf.toString('ascii', 8, 12);
+    if (/^(heic|heix|hevc|hevx|mif1|msf1)$/.test(brand)) return 'image/heic';
+  }
+  if (buf.toString('ascii', 0, 5) === '%PDF-') return 'application/pdf';
+  return null;
+}
+
+const portalUrl = (t) => `${appUrl()}/minha-avaliacao?t=${t}`;
+const contractUrl = (t) => `${appUrl()}/contrato?t=${t}`;
+const payUrl = (t) => `${appUrl()}/pagamento?t=${t}`;
+// Aceita "9000", "9000.5", "9.000,00", "R$ 9.000,00", "9,5"; texto que não é número vira NaN (recusado na validação)
+const money = (v) => {
+  if (v === '' || v == null) return null;
+  if (typeof v === 'number') return Math.round(v * 100) / 100;
+  let t = String(v).replace(/R\$|\s/gi, '');
+  if (t === '') return null;
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, ''); // "9.000" = nove mil
+  return /^-?\d+(\.\d+)?$/.test(t) ? Math.round(Number(t) * 100) / 100 : NaN;
+};
+
+async function caseByToken(sql, t) {
+  if (!t || String(t).length < 20) fail(404, 'Link inválido.');
+  const [c] = await sql`select * from cases where token = ${String(t)}`;
+  if (!c) fail(404, 'Link inválido ou expirado.');
+  if (c.blocked_at) fail(403, 'Este link foi desativado. Fale com a equipe AlignSystem.');
+  return c;
+}
+
+async function photoMeta(sql, caseId) {
+  return sql`select id, slot, kind, mime, size, evidence_id, uploaded_by, created_at, reviewed_at
+             from photos where case_id = ${caseId} order by kind, slot nulls last, created_at`;
+}
+
+async function saveImage(sql, req, { caseId, kind, slot = null, evidenceId = null, uploadedBy, userId = null, allowPdf = false }) {
+  const buf = await readRaw(req, MAX_PHOTO_BYTES);
+  if (!buf.length) fail(400, 'Arquivo vazio.');
+  const detected = imageMime(buf);
+  if (!detected || (detected === 'application/pdf' && !allowPdf)) fail(415, 'Envie uma foto em JPG, PNG, WEBP ou HEIC.');
+  // imagens são recriadas no servidor (sem metadados nem conteúdo escondido); PDF só de equipe/dentista
+  const safe = detected === 'application/pdf' ? { buf, mime: detected } : await sanitizeImage(buf);
+  const mime = safe.mime;
+  const data = safe.buf;
+  const [{ n }] = await sql`select count(*)::int as n from photos where case_id = ${caseId}`;
+  if (n >= MAX_PHOTOS_PER_CASE * (uploadedBy === 'paciente' ? 1 : 4)) fail(409, 'Limite de arquivos deste caso atingido.');
+  return sql.begin(async (tx) => {
+    if (kind === 'avaliacao' && slot) await tx`delete from photos where case_id = ${caseId} and kind = 'avaliacao' and slot = ${slot}`;
+    const [p] = await tx`insert into photos (case_id, evidence_id, slot, kind, mime, size, data, uploaded_by, user_id, reviewed_at)
+      values (${caseId}, ${evidenceId}, ${slot}, ${kind}, ${mime}, ${data.length}, ${data}, ${uploadedBy}, ${userId},
+              ${uploadedBy === 'paciente' ? null : new Date()})
+      returning id, slot, kind, mime, size, created_at`;
+    return p;
+  });
+}
+
+async function sendPhoto(sql, res, where) {
+  const [p] = await where;
+  if (!p) fail(404, 'Foto não encontrada.');
+  const [row] = await sql`select mime, data from photos where id = ${p.id}`;
+  send(res, 200, Buffer.from(row.data), {
+    'Content-Type': row.mime,
+    'Cache-Control': 'private, max-age=600',
+    'Content-Disposition': 'inline',
+    'X-Content-Type-Options': 'nosniff',
+    // o arquivo nunca roda como página: sem scripts, sem acesso ao site
+    ...(row.mime.startsWith('image/') ? { 'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox" } : {}),
+  });
+}
+
+async function requireConsent(sql, c) {
+  if (!(await currentConsent(sql, c.id))) fail(409, 'Antes de continuar, leia e aceite o termo de consentimento do atendimento a distância.');
+}
+
+function publicCase(c) {
+  const published = Boolean(c.assessment_published_at);
+  return {
+    code: c.code,
+    name: c.name,
+    firstName: c.name.split(' ')[0],
+    status: c.status,
+    statusLabel: CASE_STATUS[c.status],
+    photosSubmittedAt: c.photos_submitted_at,
+    assessment: published ? c.assessment : null,
+    assessmentLabel: published ? ASSESSMENT[c.assessment] : null,
+    assessmentNotes: published ? c.assessment_notes : null,
+  };
+}
+
+async function dentistById(sql, id) {
+  if (!id) return null;
+  const [d] = await sql`select * from dentists where id = ${id}`;
+  return d || null;
+}
+
+async function createPartnerContract(sql, dentist, terms, userId) {
+  const { title, body } = partnerContract(dentist, terms);
+  await sql`update contracts set status = 'cancelado' where dentist_id = ${dentist.id} and kind = 'parceiro' and status = 'enviado'`;
+  const t = token(24);
+  const [ct] = await sql`insert into contracts (kind, dentist_id, token, title, body, body_hash, created_by)
+    values ('parceiro', ${dentist.id}, ${t}, ${title}, ${body}, ${sha256(body)}, ${userId}) returning id, token`;
+  return ct;
+}
+
+// Valor da consulta combinado com o parceiro no credenciamento (consulta avulsa); padrão do Termo se ainda não houver
+const dentistConsultValue = (d) => Number(d?.terms?.avulsaValue) || PARTNER_DEFAULTS.avulsaValue;
+
+// Escaneamento e submissão do caso: valor único da AlignSystem (Preços), descontado depois do valor do tratamento
+async function caseScanPrice(sql) {
+  return (await scan.getPrices(sql)).scan;
+}
+
+// ------------------------------------------------------------------ público
+
+r('GET', '/api/health', async (req, res) => {
+  const sql = db();
+  await sql`select 1`;
+  send(res, 200, { ok: true });
+});
+
+r('GET', '/api/config', async (req, res) => {
+  send(res, 200, {
+    whatsapp: digits(process.env.PUBLIC_WHATSAPP || ''),
+    contactEmail: process.env.PUBLIC_CONTACT_EMAIL || 'contato@alignsystem.com.br',
+    supportEmail: process.env.PUBLIC_SUPPORT_EMAIL || 'suporte@alignsystem.com.br',
+    responsavelTecnico: process.env.PUBLIC_RESPONSAVEL_TECNICO || '',
+    razaoSocial: process.env.PUBLIC_RAZAO_SOCIAL || '',
+    metaPixelId: digits(process.env.META_PIXEL_ID || ''),
+    googleTagId: clean(process.env.GOOGLE_TAG_ID || '', 40).replace(/[^A-Za-z0-9-]/g, ''),
+    photoSlots: PHOTO_SLOTS,
+  }, { 'Cache-Control': 'public, max-age=300' });
+});
+
+// Captação — paciente
+r('POST', '/api/leads/paciente', async (req, res) => {
+  const sql = db();
+  const b = await readJson(req);
+  if (b.website) return send(res, 200, { ok: true }); // honeypot
+  const name = clean(b.name, 120);
+  const whatsapp = digits(b.whatsapp);
+  const city = clean(b.city, 80);
+  const uf = geo.UFS.includes(String(b.uf || '').toUpperCase()) ? String(b.uf).toUpperCase() : null;
+  const email = clean(b.email, 160).toLowerCase();
+  const age = Number(b.age);
+  if (name.length < 3) fail(400, 'Informe seu nome completo.');
+  if (whatsapp.length < 10 || whatsapp.length > 13) fail(400, 'Informe um WhatsApp válido com DDD.');
+  if (!city) fail(400, 'Informe sua cidade.');
+  if (email && !isEmail(email)) fail(400, 'E-mail inválido.');
+  if (!(age >= 10 && age <= 99)) fail(400, 'Informe uma idade válida.');
+  if (!b.consent) fail(400, 'É preciso autorizar o contato para continuar.');
+  const ip = clientIp(req);
+  await rateLimit(sql, `lead:${ip}`, 8, 60);
+  const t = token(24);
+  const source = {};
+  for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'fbclid', 'page']) {
+    if (b.source?.[k]) source[k] = clean(b.source[k], 200);
+  }
+  const loc = geo.findCity(city, uf);
+  const near = loc ? geo.nearestDentist(loc, await networkDentists(sql)) : null;
+  const [c] = await sql`insert into cases (token, name, age, whatsapp, email, city, uf, coverage_km, reason, referred_by, consent_at, consent_ip, source)
+    values (${t}, ${name}, ${age}, ${whatsapp}, ${email || null}, ${loc ? loc.name : city}, ${loc?.uf || uf}, ${near ? near.km : null},
+            ${clean(b.reason, 200)}, ${clean(b.referredBy, 120) || null}, now(), ${ip}, ${sql.json(source)})
+    returning id, code, token`;
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'lead_criado', data: { city } });
+  await sendMail({
+    to: notifyAddress(),
+    subject: `Novo paciente #${c.code}: ${name} (${city})`,
+    html: layout('Novo contato de paciente', table([
+      ['Nome', name], ['Idade', age], ['WhatsApp', whatsapp], ['E-mail', email], ['Cidade', uf ? `${city}/${uf}` : city],
+      ['Cobertura', near ? `dentista credenciado a ~${near.km} km (${near.city}/${near.uf})` : 'sem dentista credenciado identificado'],
+      ['Motivo', clean(b.reason, 200)], ['Indicado por', clean(b.referredBy, 120)], ['Origem', source.utm_source],
+    ]) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Abrir no painel')),
+  });
+  if (email) {
+    await sendMail({
+      to: email,
+      subject: 'Sua pré-avaliação AlignSystem — envie suas fotos',
+      html: layout(`Olá, ${name.split(' ')[0]}!`, para('Recebemos seu contato. Pelo link abaixo você envia as 7 fotos do seu sorriso, acompanha o parecer da nossa equipe, agenda uma teleorientação e vê os próximos passos.') +
+        button(portalUrl(t), 'Enviar minhas fotos') + para('Guarde este e-mail: o link é pessoal e dá acesso à sua avaliação.')),
+    });
+  }
+  send(res, 201, { ok: true, token: t, portalUrl: `/minha-avaliacao?t=${t}`, code: c.code });
+});
+
+// Captação — dentista parceiro
+r('POST', '/api/leads/parceiro', async (req, res) => {
+  const sql = db();
+  const b = await readJson(req);
+  if (b.website) return send(res, 200, { ok: true });
+  const name = clean(b.name, 120);
+  const phone = digits(b.whatsapp);
+  const email = clean(b.email, 160).toLowerCase();
+  const croRaw = clean(b.cro, 40);
+  const [croNum, croUf] = croRaw.split('/').map((s) => s.trim());
+  const city = clean(b.city, 80);
+  if (name.length < 3) fail(400, 'Informe seu nome completo.');
+  if (!digits(croNum)) fail(400, 'Informe seu número de CRO.');
+  if (phone.length < 10) fail(400, 'Informe um WhatsApp válido com DDD.');
+  if (!isEmail(email)) fail(400, 'Informe um e-mail válido.');
+  if (!city) fail(400, 'Informe a cidade onde atende.');
+  if (!b.consent) fail(400, 'É preciso autorizar o contato para continuar.');
+  const ip = clientIp(req);
+  await rateLimit(sql, `partner:${ip}`, 6, 60);
+  const source = {};
+  for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'gclid', 'fbclid']) if (b.source?.[k]) source[k] = clean(b.source[k], 200);
+  const other = parseCities(b.otherCities, clean(b.uf || croUf, 2).toUpperCase(), city);
+  const [d] = await sql`insert into dentists (name, cro, cro_uf, email, phone, city, state, experience, consent_at, consent_ip, source, extra_cities)
+    values (${name}, ${digits(croNum)}, ${clean(croUf || b.uf, 2).toUpperCase() || null}, ${email}, ${phone}, ${city},
+            ${clean(b.uf || croUf, 2).toUpperCase() || null}, ${clean(b.experience, 200)}, now(), ${ip}, ${sql.json(source)}, ${sql.json(other.cities)})
+    returning id`;
+  await logEvent(sql, { dentistId: d.id, actor: 'parceiro', type: 'lead_parceiro' });
+  await sendMail({
+    to: notifyAddress(),
+    subject: `Novo dentista interessado: ${name} (${city})`,
+    html: layout('Novo interessado em ser parceiro', table([
+      ['Nome', name], ['CRO', `${digits(croNum)}/${croUf || ''}`], ['WhatsApp', phone], ['E-mail', email], ['Cidade', city],
+      ...(other.cities.length || other.bad.length || other.extra.length || other.otherUf.length ? [['Outras cidades', other.cities.map((c) => `${c.city}/${c.uf}`).concat(other.bad.map((x) => `${x} (não encontrada — conferir)`), other.extra.map((c) => `${c.city}/${c.uf} (acima do limite de ${MAX_DENTIST_CITIES})`), other.otherUf.map((x) => `${x} (outro estado — não incluída)`)).join(', ')]] : []),
+      ['Experiência', clean(b.experience, 200)],
+    ]) + button(`${appUrl()}/painel#/parceiro/${d.id}`, 'Abrir no painel')),
+  });
+  await sendMail({
+    to: email,
+    subject: 'Recebemos seu interesse na rede AlignSystem',
+    html: layout(`Olá, ${name.split(' ')[0]}!`, para('Obrigado pelo interesse em fazer parte da rede AlignSystem. Nossa equipe vai conferir seu registro no CRO e entrar em contato pelo WhatsApp com os Termos de Adesão e as condições da parceria.')),
+  });
+  send(res, 201, { ok: true });
+});
+
+// ------------------------------------------------------------------ cobertura da rede e atendimento presencial
+
+// Consultas presenciais incluídas no contrato do paciente, conforme a complexidade do caso (vale para os dois modelos)
+const consultLimit = (plan) => (plan?.complexity ? MODEL.consultLimits[plan.complexity] || null : null);
+
+// Cada cidade de atendimento do dentista (principal + outras) conta como um ponto da rede
+const networkDentists = async (sql) => (await sql`select id, name, city, coalesce(state, cro_uf) as cro_uf, extra_cities from dentists where status = 'ativo'`)
+  .flatMap((d) => [{ id: d.id, name: d.name, city: d.city, cro_uf: d.cro_uf }, ...(d.extra_cities || []).map((c) => ({ id: d.id, name: d.name, city: c.city, cro_uf: c.uf }))]);
+
+// Cada parceiro atende em até 10 cidades do mesmo estado: a principal do cadastro + até 9 outras
+const MAX_DENTIST_CITIES = 10;
+
+// "Londrina/PR, Curitiba - PR" (uma por linha ou separadas por vírgula/ponto e vírgula) → [{city, uf}] válidas + nomes não encontrados
+function parseCities(text, defaultUf, main) {
+  const tokens = (Array.isArray(text) ? text.map((x) => (typeof x === 'object' && x ? `${x.city}/${x.uf}` : x)) : String(text || '').split(/[\n;,]+/))
+    .map((x) => clean(x, 80)).filter(Boolean);
+  const parts = [];
+  for (const t of tokens) {
+    if (/^[A-Za-z]{2}$/.test(t) && geo.UFS.includes(t.toUpperCase()) && parts.length) parts[parts.length - 1] += `/${t}`; // "Maringá, PR"
+    else parts.push(t);
+  }
+  const ok = new Map(), bad = [], otherUf = [];
+  const mainLoc = main ? geo.findCity(main, defaultUf) : null;
+  const uf = mainLoc?.uf || String(defaultUf || '').toUpperCase();
+  for (const raw of parts.slice(0, 40)) {
+    const loc = geo.findCity(raw, /[/\-–]\s*[A-Za-z]{2}\s*$/.test(raw) ? '' : uf);
+    if (!loc) { bad.push(raw); continue; }
+    if (mainLoc && loc.name === mainLoc.name && loc.uf === mainLoc.uf) continue;
+    if (uf && loc.uf !== uf) { otherUf.push(`${loc.name}/${loc.uf}`); continue; } // só no estado do CRO / da cidade principal
+    ok.set(`${loc.name}/${loc.uf}`, { city: loc.name, uf: loc.uf });
+  }
+  const cities = [...ok.values()];
+  return { cities: cities.slice(0, MAX_DENTIST_CITIES - 1), extra: cities.slice(MAX_DENTIST_CITIES - 1), bad, otherUf, uf };
+}
+
+// Cidades atendidas pela rede (sem nomes de dentistas), para a página e o marketing
+r('GET', '/api/public/cobertura', async (req, res) => {
+  const sql = db();
+  const seen = new Map();
+  for (const d of await networkDentists(sql)) {
+    const loc = geo.findCity(d.city, d.cro_uf);
+    if (loc) seen.set(`${loc.name}/${loc.uf}`, { city: loc.name, uf: loc.uf });
+  }
+  send(res, 200, { radiusKm: geo.RADIUS_KM, cities: [...seen.values()].sort((a, b) => a.uf.localeCompare(b.uf) || a.city.localeCompare(b.city)) },
+    { 'Cache-Control': 'public, max-age=300' });
+});
+
+r('GET', '/api/geo/cidades', async (req, res) => {
+  const uf = String(new URL(req.url, 'http://x').searchParams.get('uf') || '').toUpperCase();
+  if (!geo.UFS.includes(uf)) fail(400, 'UF inválida.');
+  send(res, 200, { cities: geo.citiesOf(uf) }, { 'Cache-Control': 'public, max-age=86400' });
+});
+
+// Simula o atendimento presencial a partir da cidade do paciente
+async function attendanceQuote(sql, cityName, uf) {
+  const loc = geo.findCity(cityName, uf);
+  if (!loc) fail(400, 'Não encontramos essa cidade. Confira o nome e o estado.');
+  const near = geo.nearestDentist(loc, await networkDentists(sql));
+  if (!near) return { city: loc.name, uf: loc.uf, nearest: null, withinRadius: false, travelPerTrip: null, travelTotal: null };
+  const within = near.km <= geo.RADIUS_KM;
+  const perTrip = within ? 0 : geo.roundTripFare(near.km);
+  return {
+    city: loc.name, uf: loc.uf, nearest: { city: near.city, uf: near.uf, km: near.km, dentistId: near.id }, withinRadius: within,
+    radiusKm: geo.RADIUS_KM, trips: geo.TRIPS, travelPerTrip: perTrip, travelTotal: Math.round(perTrip * geo.TRIPS * 100) / 100,
+  };
+}
+
+r('POST', '/api/portal/:token/atendimento/simular', async (req, res, { token: t }) => {
+  const sql = db();
+  await caseByToken(sql, t);
+  const b = await readJson(req);
+  const q = await attendanceQuote(sql, b.city, b.uf);
+  send(res, 200, { ...q, nearest: q.nearest && { city: q.nearest.city, uf: q.nearest.uf, km: q.nearest.km } });
+});
+
+r('POST', '/api/portal/:token/atendimento', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  if (c.status === 'contrato_assinado' || c.status === 'em_tratamento') fail(409, 'O contrato já foi assinado. Fale com a equipe para alterar o atendimento.');
+  if (!b.agree) fail(400, 'Marque a caixa de concordância para continuar.');
+  const q = await attendanceQuote(sql, b.city, b.uf);
+  let choice;
+  if (!q.nearest) choice = 'sem_cobertura';
+  else if (q.withinRadius) choice = b.choice === 'mais_proximo' ? 'mais_proximo' : 'rede_300';
+  else choice = 'mais_proximo_viagem';
+  const attendance = {
+    choice, city: q.city, uf: q.uf, nearestCity: q.nearest?.city || null, nearestUf: q.nearest?.uf || null, nearestDentistId: q.nearest?.dentistId || null,
+    km: q.nearest?.km ?? null, trips: geo.TRIPS, travelPerTrip: q.travelPerTrip, travelTotal: q.travelTotal,
+    answeredAt: new Date().toISOString(), ip: clientIp(req), userAgent: clean(req.headers['user-agent'], 300),
+  };
+  await sql`update cases set attendance = ${sql.json(attendance)}, city = ${q.city}, uf = ${q.uf}, coverage_km = ${q.nearest?.km ?? null}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'atendimento_escolhido', data: { choice, km: attendance.km, travelTotal: attendance.travelTotal } });
+  send(res, 200, { ok: true, attendance: publicAttendance(attendance) });
+});
+
+const ATTENDANCE_LABEL = {
+  rede_300: 'Qualquer dentista credenciado em até 300 km (deslocamento por conta do paciente)',
+  mais_proximo: 'Dentista credenciado mais próximo, em até 300 km (deslocamento por conta do paciente)',
+  mais_proximo_viagem: 'Dentista credenciado mais próximo, a mais de 300 km (4 deslocamentos incluídos no preço)',
+  sem_cobertura: 'Sem dentista credenciado na região (aguardando contato da equipe)',
+};
+const publicAttendance = (a) => a && {
+  choice: a.choice, label: ATTENDANCE_LABEL[a.choice], city: a.city, uf: a.uf, nearestCity: a.nearestCity, nearestUf: a.nearestUf,
+  km: a.km, trips: a.trips, travelPerTrip: a.travelPerTrip, travelTotal: a.travelTotal, answeredAt: a.answeredAt,
+};
+
+// Painel: cobertura da rede × pacientes, para direcionar o marketing
+r('GET', '/api/admin/cobertura', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const dentists = await networkDentists(sql);
+  const cases = await sql`select id, city, uf, coverage_km, status, created_at, source from cases where created_at > now() - interval '365 days'`;
+  const hubs = new Map();
+  for (const d of dentists) {
+    const loc = geo.findCity(d.city, d.cro_uf);
+    if (!loc) continue;
+    const k = `${loc.name}/${loc.uf}`;
+    if (!hubs.has(k)) hubs.set(k, { city: loc.name, uf: loc.uf, lat: loc.lat, lon: loc.lon, dentists: 0, leads: 0, leads30: 0 });
+    hubs.get(k).dentists++;
+  }
+  const outside = new Map();
+  let unknown = 0;
+  for (const c of cases) {
+    const loc = geo.findCity(c.city, c.uf);
+    if (!loc) { unknown++; continue; }
+    let best = null;
+    for (const h of hubs.values()) { const km = geo.roadKm(loc, h); if (!best || km < best.km) best = { h, km }; }
+    if (best && best.km <= geo.RADIUS_KM) {
+      best.h.leads++;
+      if (Date.now() - new Date(c.created_at).getTime() < 30 * 86400_000) best.h.leads30++;
+    } else {
+      const k = `${loc.name}/${loc.uf}`;
+      outside.set(k, { city: loc.name, uf: loc.uf, leads: (outside.get(k)?.leads || 0) + 1, nearestKm: best?.km ?? null });
+    }
+  }
+  send(res, 200, {
+    radiusKm: geo.RADIUS_KM,
+    hubs: [...hubs.values()].map(({ lat, lon, ...h }) => h).sort((a, b) => b.leads - a.leads),
+    outside: [...outside.values()].sort((a, b) => b.leads - a.leads).slice(0, 30),
+    unknown, totalCases: cases.length,
+  });
+});
+
+// ------------------------------------------------------------------ negociação on-line (inspirada no SimulaClinic)
+// O dentista aceita o termo e define limites (dentro do teto da AlignSystem), abre a negociação no caso,
+// o paciente é avisado e, na página dele, fecha o tratamento dentro dos limites ou faz uma contraproposta.
+
+const NEGOTIATION_TERMS_VERSION = 'negociacao-2026-10-12';
+const NEGOTIATION_TERMS = [
+  'Autorizo a AlignSystem (Instituto Ravel de Ensino Superior Ltda) a apresentar aos meus pacientes, na página particular de cada um, uma negociação on-line do valor do tratamento, dentro dos limites de desconto, parcelamento e formas de pagamento que eu definir nesta tela, respeitado o teto da AlignSystem.',
+  'Entendo que: (a) a negociação só é aberta para o paciente quando eu (ou a equipe AlignSystem, a meu pedido) acionar o botão "Abrir negociação" no caso; (b) o desconto concedido reduz proporcionalmente os valores de todas as partes, inclusive o meu repasse; (c) no boleto, a entrada de 50% corresponde aos alinhadores e o saldo pode ser parcelado em até 18 vezes sem juros, e acima disso com os juros mensais informados ao paciente; (d) contrapropostas do paciente só valem depois de aceitas por mim ou pela AlignSystem; (e) posso alterar os limites ou encerrar a negociação a qualquer momento antes de o paciente fechar.',
+  'Os valores e condições negociados respeitam o Código de Ética Odontológica: não serão divulgados publicamente, apenas ao paciente, em ambiente privado.',
+];
+const negotiationTermsHash = () => sha256(NEGOTIATION_TERMS.join('\n'));
+
+async function negotiationSettings(sql) {
+  const [row] = await sql`select value from settings where key = 'negotiation'`;
+  const v = { ...MODEL.negotiation, ...(row?.value || {}) };
+  return {
+    maxDiscountPct: Math.min(Math.max(Number(v.maxDiscountPct) || 0, 0), 50),
+    maxBoletos: Math.min(Math.max(Number(v.maxBoletos) || MODEL.boletoMaxInstallments, 1), 60),
+    interestPctMonth: Math.max(Number(v.interestPctMonth) || 0, 0),
+    noInterestUpTo: MODEL.negotiation.noInterestUpTo,
+  };
+}
+
+// Limites do dentista, sempre dentro do teto
+function clampDentistNegotiation(cfg, ceil) {
+  const n = (x, min, max, def) => { const v = Number(x); return Number.isFinite(v) ? Math.min(Math.max(v, min), max) : def; };
+  return {
+    maxDiscountPct: n(cfg?.maxDiscountPct, 0, ceil.maxDiscountPct, 0),
+    cardMax: Math.round(n(cfg?.cardMax, 1, MODEL.cardMaxInstallments, MODEL.cardMaxInstallments)),
+    boleto: cfg?.boleto !== false,
+    boletoMax: Math.round(n(cfg?.boletoMax, 1, ceil.maxBoletos, MODEL.boletoMaxInstallments)),
+    counter: cfg?.counter === true,
+    counterFloorPct: n(cfg?.counterFloorPct, 0, ceil.maxDiscountPct, 0),
+  };
+}
+
+// o desconto vale sobre o tratamento; deslocamentos do modelo rede (se houver) continuam à parte
+const negotiationBase = (c) => Math.round(Number(c.plan?.total || 0) * 100) / 100;
+
+// O que o paciente vê: limites + simulação (para o desconto escolhido) — nada além do caso dele
+function negotiationView(c, ceilInterest) {
+  const N = c.negotiation;
+  if (!N || !['aberta', 'contraproposta', 'fechada'].includes(N.status)) return null;
+  const P = N.params;
+  const quoteFor = (discountPct) => {
+    const total = Math.round(N.total * (1 - discountPct / 100) * 100) / 100;
+    return quote(total, { cardMax: P.cardMax, boletoMax: P.boletoMax, boleto: P.boleto, interestPct: ceilInterest });
+  };
+  return {
+    status: N.status, total: N.total, maxDiscountPct: P.maxDiscountPct, cardMax: P.cardMax, boleto: P.boleto, boletoMax: P.boletoMax,
+    counter: P.counter && P.counterFloorPct > P.maxDiscountPct && N.status === 'aberta',
+    counterMin: Math.round(N.total * (1 - Math.max(P.counterFloorPct, P.maxDiscountPct) / 100) * 100) / 100, pixDiscountPct: MODEL.pixDiscountPct, interestPct: ceilInterest, noInterestUpTo: MODEL.negotiation.noInterestUpTo,
+    quote: quoteFor(N.deal?.discountPct ?? 0), quoteMax: quoteFor(P.maxDiscountPct),
+    counterSent: N.counter && N.status === 'contraproposta' ? { value: N.counter.value, at: N.counter.at } : null,
+    lastDecision: N.counterDecision ? { accepted: N.counterDecision.accepted, note: N.counterDecision.note } : null,
+    deal: N.deal ? { discountPct: N.deal.discountPct, total: N.deal.total, option: N.deal.option, installments: N.deal.installments, at: N.deal.at } : null,
+  };
+}
+
+const NEG_OPTION_PT = { PIX: 'Pix à vista', CREDIT_CARD: 'Cartão de crédito', BOLETO: 'Boleto (entrada de 50% + saldo)' };
+
+r('GET', '/api/dentist/negotiation', async (req, res) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const d = await dentistById(sql, u.dentist_id);
+  const ceil = await negotiationSettings(sql);
+  send(res, 200, {
+    config: d?.negotiation ? { ...clampDentistNegotiation(d.negotiation, ceil), consentAt: d.negotiation.consentAt || null } : null,
+    ceiling: ceil, terms: { version: NEGOTIATION_TERMS_VERSION, paragraphs: NEGOTIATION_TERMS, hash: negotiationTermsHash() },
+  });
+});
+
+r('PUT', '/api/dentist/negotiation', async (req, res) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const b = await readJson(req);
+  const d = await dentistById(sql, u.dentist_id);
+  const ceil = await negotiationSettings(sql);
+  const already = d?.negotiation?.consentVersion === NEGOTIATION_TERMS_VERSION;
+  if (!already && !(b.agree === true && b.hash === negotiationTermsHash())) fail(400, 'Para usar a negociação on-line, leia e marque "Li e aceito" no termo.');
+  const cfg = clampDentistNegotiation(b, ceil);
+  const value = {
+    ...cfg,
+    consentVersion: NEGOTIATION_TERMS_VERSION,
+    consentAt: already ? d.negotiation.consentAt : new Date().toISOString(),
+    consentIp: already ? d.negotiation.consentIp : clientIp(req),
+  };
+  await sql`update dentists set negotiation = ${sql.json(value)}, updated_at = now() where id = ${u.dentist_id}`;
+  await logEvent(sql, { dentistId: u.dentist_id, actor: u.email, type: 'negociacao_configurada', data: { ...cfg, consent: !already, ip: clientIp(req) } });
+  send(res, 200, { ok: true, config: value });
+});
+
+// Abrir a negociação de um caso (dentista do caso ou equipe)
+async function openNegotiation(sql, req, u, c) {
+  const d = await dentistById(sql, c.dentist_id);
+  if (!d) fail(400, 'Defina o dentista do caso antes de abrir a negociação.');
+  if (d.negotiation?.consentVersion !== NEGOTIATION_TERMS_VERSION) fail(409, `${d.name} ainda não aceitou o termo da negociação on-line (painel do dentista → Negociação).`);
+  const total = negotiationBase(c);
+  if (!(total > 0)) fail(400, 'Defina o valor total do tratamento no plano antes de abrir a negociação.');
+  if (c.negotiation?.status === 'fechada') fail(409, 'O paciente já fechou a negociação deste caso.');
+  const ceil = await negotiationSettings(sql);
+  const params = clampDentistNegotiation(d.negotiation, ceil);
+  const N = { status: 'aberta', total, params, openedAt: new Date().toISOString(), openedBy: u.email, history: [...(c.negotiation?.history || []), { at: new Date().toISOString(), by: u.email, what: 'aberta' }] };
+  await sql`update cases set negotiation = ${sql.json(N)}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, dentistId: d.id, actor: u.email, type: 'negociacao_aberta', data: { total, ...params, ip: clientIp(req) } });
+  const link = portalUrl(c.token);
+  const first = c.name.split(' ')[0];
+  const msg = `Olá, ${first}! A negociação do seu tratamento com alinhadores foi liberada. Acesse sua página na AlignSystem, veja as condições e feche o seu tratamento: ${link}`;
+  let emailed = false;
+  if (c.email) emailed = Boolean((await sendMail({
+    to: c.email, subject: 'Sua negociação foi liberada — AlignSystem',
+    html: layout(`Olá, ${first}!`, para('A negociação do seu tratamento com alinhadores foi liberada pelo seu dentista. Veja as condições de desconto e pagamento e feche o seu tratamento na sua página particular.') + button(link, 'Ver condições e fechar meu tratamento')),
+  }))?.sent);
+  return { ok: true, emailed, whatsappUrl: c.whatsapp ? `https://wa.me/55${digits(c.whatsapp).replace(/^55/, '')}?text=${encodeURIComponent(msg)}` : null, message: msg };
+}
+
+r('POST', '/api/dentist/cases/:id/negotiation/open', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  await dentistCase(sql, u, id);
+  const [c] = await sql`select * from cases where id = ${id}`;
+  send(res, 200, await openNegotiation(sql, req, u, c));
+});
+
+r('POST', '/api/admin/cases/:id/negotiation/open', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  send(res, 200, await openNegotiation(sql, req, u, c));
+});
+
+async function closeNegotiationByStaff(sql, u, c) {
+  if (!c.negotiation || c.negotiation.status === 'fechada') fail(409, 'Não há negociação aberta neste caso.');
+  const N = { ...c.negotiation, status: 'encerrada', history: [...(c.negotiation.history || []), { at: new Date().toISOString(), by: u.email, what: 'encerrada' }] };
+  await sql`update cases set negotiation = ${sql.json(N)}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: u.email, type: 'negociacao_encerrada' });
+  return { ok: true };
+}
+r('POST', '/api/dentist/cases/:id/negotiation/end', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  await dentistCase(sql, u, id);
+  const [c] = await sql`select * from cases where id = ${id}`;
+  send(res, 200, await closeNegotiationByStaff(sql, u, c));
+});
+r('POST', '/api/admin/cases/:id/negotiation/end', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  send(res, 200, await closeNegotiationByStaff(sql, u, c));
+});
+
+// Resposta à contraproposta: aceitar libera o desconto pedido (até o teto da AlignSystem) para o paciente fechar
+async function answerCounter(sql, req, u, c, b) {
+  const N = c.negotiation;
+  if (!N || N.status !== 'contraproposta' || !N.counter) fail(409, 'Não há contraproposta aguardando resposta.');
+  const accept = b.accept === true;
+  const note = clean(b.note, 500) || null;
+  const ceil = await negotiationSettings(sql);
+  const askedPct = Math.round((1 - N.counter.value / N.total) * 10000) / 100;
+  if (accept && askedPct > ceil.maxDiscountPct) fail(400, `A contraproposta pede ${askedPct}% de desconto, acima do teto da AlignSystem (${ceil.maxDiscountPct}%). Recuse ou fale com a equipe.`);
+  const params = accept ? { ...N.params, maxDiscountPct: Math.max(N.params.maxDiscountPct, askedPct) } : N.params;
+  const next = { ...N, status: 'aberta', params, counterDecision: { accepted: accept, note, at: new Date().toISOString(), by: u.email },
+    history: [...(N.history || []), { at: new Date().toISOString(), by: u.email, what: accept ? 'contraproposta aceita' : 'contraproposta recusada' }] };
+  await sql`update cases set negotiation = ${sql.json(next)}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: u.email, type: accept ? 'contraproposta_aceita' : 'contraproposta_recusada', data: { value: N.counter.value, askedPct, note, ip: clientIp(req) } });
+  if (c.email) await sendMail({
+    to: c.email, subject: accept ? 'Sua contraproposta foi aceita — AlignSystem' : 'Resposta à sua contraproposta — AlignSystem',
+    html: layout(`Olá, ${c.name.split(' ')[0]}!`, para(accept
+      ? `Sua contraproposta de ${brl(N.counter.value)} foi aceita. Volte à sua página e feche o seu tratamento com o novo valor.`
+      : 'Sua contraproposta não pôde ser aceita, mas as condições da negociação continuam disponíveis na sua página.') + (note ? para(`Mensagem: ${note}`) : '') + button(portalUrl(c.token), 'Abrir minha página')),
+  });
+  return { ok: true, negotiation: next };
+}
+r('POST', '/api/dentist/cases/:id/negotiation/counter', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  await dentistCase(sql, u, id);
+  const [c] = await sql`select * from cases where id = ${id}`;
+  send(res, 200, await answerCounter(sql, req, u, c, await readJson(req)));
+});
+r('POST', '/api/admin/cases/:id/negotiation/counter', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  send(res, 200, await answerCounter(sql, req, u, c, await readJson(req)));
+});
+
+async function notifyNegotiation(sql, c, subject, rows) {
+  const d = c.dentist_id ? await dentistById(sql, c.dentist_id) : null;
+  const html = layout(subject, table(rows) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Abrir o caso'));
+  await sendMail({ to: notifyAddress(), subject: `${subject} — caso #${c.code}`, html });
+  if (d?.email) await sendMail({ to: d.email, subject: `${subject} — caso #${c.code}`, html });
+}
+
+// Paciente: fechar o tratamento dentro dos limites
+r('POST', '/api/portal/:token/negociacao/fechar', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  await rateLimit(sql, `neg:${c.id}`, 20, 60);
+  const N = c.negotiation;
+  if (!N || N.status !== 'aberta') fail(409, N?.status === 'fechada' ? 'Você já fechou o seu tratamento.' : 'A negociação não está disponível agora.');
+  if (b.agree !== true) fail(400, 'Marque a caixa de confirmação para fechar.');
+  const P = N.params;
+  const discountPct = Math.round(Number(b.discountPct) * 100) / 100;
+  if (!(discountPct >= 0) || discountPct > P.maxDiscountPct) fail(400, `O desconto pode ir até ${P.maxDiscountPct}%.`);
+  const option = ['PIX', 'CREDIT_CARD', 'BOLETO'].includes(b.option) ? b.option : fail(400, 'Escolha a forma de pagamento.');
+  if (option === 'BOLETO' && !P.boleto) fail(400, 'Boleto não está disponível nesta negociação.');
+  const maxN = option === 'CREDIT_CARD' ? P.cardMax : option === 'BOLETO' ? P.boletoMax : 1;
+  const installments = Math.min(Math.max(Math.round(Number(b.installments) || 1), 1), maxN);
+  const total = Math.round(N.total * (1 - discountPct / 100) * 100) / 100;
+  const deal = { discountPct, total, option, installments, at: new Date().toISOString(), ip: clientIp(req), userAgent: clean(req.headers['user-agent'], 300) };
+  const next = { ...N, status: 'fechada', deal, history: [...(N.history || []), { at: deal.at, by: 'paciente', what: 'fechada' }] };
+  await sql`update cases set negotiation = ${sql.json(next)}, plan = ${sql.json({ ...(c.plan || {}), negotiatedTotal: total, negotiatedDiscountPct: discountPct })}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'negociacao_fechada', data: deal });
+  await notifyNegotiation(sql, c, 'Paciente fechou o tratamento na negociação', [
+    ['Paciente', c.name], ['Valor de tabela', brl(N.total)], ['Desconto', `${discountPct}%`], ['Valor fechado', brl(total)],
+    ['Forma escolhida', `${NEG_OPTION_PT[option]}${installments > 1 ? ` em ${installments}x` : ''}`],
+    ['Próximo passo', 'Gerar o contrato e a cobrança no painel (o valor fechado já vem preenchido).'],
+  ]);
+  send(res, 200, { ok: true, deal });
+});
+
+// Paciente: contraproposta (vai para o dentista/equipe aceitar ou recusar)
+r('POST', '/api/portal/:token/negociacao/contraproposta', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  await rateLimit(sql, `negc:${c.id}`, 5, 60);
+  const N = c.negotiation;
+  if (!N || N.status !== 'aberta') fail(409, 'A negociação não está disponível agora.');
+  if (!N.params.counter) fail(409, 'Esta negociação não aceita contraproposta.');
+  const value = money(b.value);
+  if (!(value > 0)) fail(400, 'Informe o valor da sua proposta, por exemplo 8.500,00.');
+  const minAllowed = Math.round(N.total * (1 - N.params.maxDiscountPct / 100) * 100) / 100;
+  if (value >= minAllowed) fail(400, `Esse valor já está dentro das condições oferecidas (a partir de ${brl(minAllowed)}). Use "Fechar meu tratamento".`);
+  // piso: desconto máximo que o paciente pode pedir na contraproposta (definido pelo dentista, dentro do teto)
+  const floor = Math.round(N.total * (1 - Math.max(N.params.counterFloorPct, N.params.maxDiscountPct) / 100) * 100) / 100;
+  if (value < floor) fail(400, `A proposta mínima para este tratamento é ${brl(floor)}.`);
+  const counter = { value, message: clean(b.message, 500) || null, at: new Date().toISOString(), ip: clientIp(req) };
+  const next = { ...N, status: 'contraproposta', counter, history: [...(N.history || []), { at: counter.at, by: 'paciente', what: 'contraproposta' }] };
+  await sql`update cases set negotiation = ${sql.json(next)}, updated_at = now() where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'contraproposta_enviada', data: counter });
+  await notifyNegotiation(sql, c, 'Contraproposta do paciente', [
+    ['Paciente', c.name], ['Valor de tabela', brl(N.total)], ['Oferecido até', brl(minAllowed)], ['Contraproposta', brl(value)],
+    ['Desconto pedido', `${Math.round((1 - value / N.total) * 10000) / 100}%`], ['Mensagem', counter.message || '—'],
+  ]);
+  send(res, 200, { ok: true });
+});
+
+// ------------------------------------------------------------------ escaneamento (pago antes do tratamento)
+
+const SCAN_OK_ASSESSMENTS = ['indicado', 'avaliacao_presencial'];
+
+async function portalScan(sql, c) {
+  const prices = await scan.getPrices(sql);
+  const dentist = c.dentist_id ? await dentistById(sql, c.dentist_id) : null;
+  const dp = dentist?.prices;
+  const own = ownPrices(dp);
+  if (own) Object.assign(prices, own);
+  prices.scan = await caseScanPrice(sql);
+  // opções por marca do dentista do caso (até 3), na ordem em que ele cadastrou
+  const options = (dp?.brands?.length ? dp.brands : prices.brands).filter((b) => b.simples || b.mediano || b.complexo).slice(0, MAX_BRANDS).map((b) => ({
+    name: b.name, origin: b.origin, refValue: b.refValue || null, refCount: b.refCount ?? null,
+    table: ['simples', 'mediano', 'complexo'].map((k) => ({ key: k, consults: scan.consultLimits[k], price: b[k] || null })),
+  }));
+  const published = Boolean(c.assessment_published_at) && SCAN_OK_ASSESSMENTS.includes(c.assessment);
+  const [order] = await sql`select o.id, o.status, o.price, o.billing_type, o.paid_at, o.preference, o.preference_at, ch.invoice_url
+    from scan_orders o left join charges ch on ch.id = o.charge_id where o.case_id = ${c.id} and o.status <> 'cancelado' order by o.created_at desc limit 1`;
+  if (!published && !order) return null;
+  if (!prices.scan && !order) return null;
+  const terms = prices.scan ? scan.scanTerms(prices.scan) : null;
+  return {
+    price: prices.scan,
+    table: ['simples', 'mediano', 'complexo'].map((k) => ({ key: k, consults: scan.consultLimits[k], price: prices[k] })),
+    options,
+    // escaneamento e submissão: descontado do valor do tratamento; consulta por quebra: cobrada à parte
+    scanDeducted: true,
+    breakage: dentist ? breakagePrice(dentistConsultValue(dentist)) : null,
+    pixDiscountPct: MODEL.pixDiscountPct, cardMaxInstallments: MODEL.cardMaxInstallments, boletoMaxInstallments: MODEL.boletoMaxInstallments,
+    terms: terms && { version: terms.version, body: terms.body, hash: terms.hash },
+    order: order && { status: order.status, price: Number(order.price), billingType: order.billing_type, paidAt: order.paid_at, preference: order.preference, invoiceUrl: order.invoice_url },
+    prefill: { name: c.name, cpf: c.cpf, email: c.email, whatsapp: c.whatsapp, postalCode: c.postal_code, address: c.address, city: c.city, uf: c.uf },
+  };
+}
+
+r('POST', '/api/portal/:token/escaneamento', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  await requireConsent(sql, c);
+  const b = await readJson(req);
+  await rateLimit(sql, `scan:${c.id}`, 10, 60);
+  if (!(c.assessment_published_at && SCAN_OK_ASSESSMENTS.includes(c.assessment))) fail(409, 'O escaneamento fica disponível depois do parecer da pré-avaliação.');
+  const prices = { scan: await caseScanPrice(sql) };
+  if (!prices.scan) fail(409, 'Valor do escaneamento ainda não definido. Fale com a equipe AlignSystem.');
+  const terms = scan.scanTerms(prices.scan);
+  if (!b.agree) fail(400, 'Marque "Li e aceito" no termo do escaneamento.');
+  if (b.hash !== terms.hash) fail(409, 'O termo foi atualizado. Recarregue a página e leia de novo.');
+  const name = clean(b.name, 120);
+  const cpf = digits(b.cpf);
+  const email = clean(b.email, 160).toLowerCase();
+  const whatsapp = digits(b.whatsapp);
+  const cep = digits(b.postalCode);
+  const street = clean(b.address, 200);
+  const city = clean(b.city, 80);
+  const uf = geo.UFS.includes(String(b.uf || '').toUpperCase()) ? String(b.uf).toUpperCase() : '';
+  if (name.split(' ').filter(Boolean).length < 2) fail(400, 'Informe o nome completo.');
+  if (!validCpf(cpf)) fail(400, 'CPF inválido.');
+  if (!isEmail(email)) fail(400, 'E-mail inválido.');
+  if (whatsapp.length < 10) fail(400, 'Informe o celular com DDD.');
+  if (cep.length !== 8 || !street || !city || !uf) fail(400, 'Preencha CEP, endereço, cidade e estado.');
+  const billingType = b.billingType === 'PIX' ? 'PIX' : 'CREDIT_CARD';
+  const [paid] = await sql`select 1 from scan_orders where case_id = ${c.id} and status in ('pago','agendado','realizado')`;
+  if (paid) fail(409, 'O escaneamento já está pago.');
+  const address = `${street}, ${city}/${uf}, CEP ${cep.replace(/(\d{5})(\d{3})/, '$1-$2')}`;
+  await sql`update cases set name = ${name}, cpf = ${cpf}, email = ${email}, whatsapp = ${whatsapp}, postal_code = ${cep}, address = ${address}, updated_at = now() where id = ${c.id}`;
+  // pedido anterior ainda não pago: cancela a cobrança antiga
+  const old = await sql`select o.id, ch.asaas_payment_id from scan_orders o left join charges ch on ch.id = o.charge_id
+    where o.case_id = ${c.id} and o.status = 'aguardando_pagamento'`;
+  for (const o of old) {
+    if (o.asaas_payment_id) await asaas.cancelPayment(o.asaas_payment_id).catch(() => {});
+    await sql`update scan_orders set status = 'cancelado' where id = ${o.id}`;
+  }
+  const customer = c.asaas_customer_id || (await asaas.ensureCustomer({ name, cpfCnpj: cpf, email, mobilePhone: whatsapp.replace(/^55/, ''), externalReference: c.id }));
+  if (!c.asaas_customer_id) await sql`update cases set asaas_customer_id = ${customer} where id = ${c.id}`;
+  const description = `Escaneamento intraoral e documentação — caso #${c.code}`;
+  const [ch] = await sql`insert into charges (case_id, kind, description, billing_type, value, installment_count, due_date, pay_option, status)
+    values (${c.id}, 'escaneamento', ${description}, ${billingType}, ${prices.scan}, 1, ${dueIn(2)}, ${billingType}, 'PENDING') returning id`;
+  const p = await asaas.createPayment({ customer, billingType, value: prices.scan, dueDate: dueIn(2), description, installmentCount: 1, externalReference: ch.id });
+  await sql`update charges set asaas_payment_id = ${p.id}, invoice_url = ${p.invoiceUrl}, status = ${p.status || 'PENDING'} where id = ${ch.id}`;
+  await sql`insert into scan_orders (case_id, charge_id, price, billing_type, terms_version, terms_hash, accepted_name, accepted_cpf, accepted_ip, accepted_ua)
+    values (${c.id}, ${ch.id}, ${prices.scan}, ${billingType}, ${terms.version}, ${terms.hash}, ${name}, ${cpf}, ${clientIp(req)}, ${clean(req.headers['user-agent'], 300)})`;
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'escaneamento_contratado', data: { price: prices.scan, billingType, terms: terms.version } });
+  send(res, 200, { invoiceUrl: p.invoiceUrl });
+});
+
+// Depois de pago: o paciente diz os melhores dias e horários
+r('POST', '/api/portal/:token/escaneamento/preferencia', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  const pref = clean(b.preference, 300);
+  if (pref.length < 3) fail(400, 'Diga os melhores dias e horários.');
+  const [o] = await sql`update scan_orders set preference = ${pref}, preference_at = now()
+    where id = (select id from scan_orders where case_id = ${c.id} and status in ('pago','agendado') order by created_at desc limit 1) returning id`;
+  if (!o) fail(409, 'Conclua o pagamento do escaneamento primeiro.');
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'escaneamento_preferencia', data: { pref } });
+  await sendMail({
+    to: notifyAddress(), subject: `Agendar escaneamento — caso #${c.code} (${c.name})`,
+    html: layout('Paciente escolheu horário para o escaneamento', table([['Paciente', c.name], ['Cidade', c.city], ['WhatsApp', c.whatsapp], ['Preferência', pref]]) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Abrir o caso')),
+  });
+  send(res, 200, { ok: true });
+});
+
+// Tabela própria do dentista (modelo preço próprio): só vale com os 3 valores preenchidos
+function ownPrices(p) {
+  const n = (x) => (Number(x) > 0 ? Math.round(Number(x) * 100) / 100 : null);
+  const v = { simples: n(p?.simples), mediano: n(p?.mediano), complexo: n(p?.complexo) };
+  return v.simples && v.mediano && v.complexo ? v : null;
+}
+
+// Tabela do dentista: uma coluna por marca (nacional/importado) com escaneamento e submissão, os 3 graus e o refinamento.
+// simples/mediano/complexo guardam o menor valor entre as marcas ("a partir de"), usado na página do paciente.
+const MAX_BRANDS = 3; // 3 opções de marca por dentista, mostradas ao paciente
+function readOwnPrices(b) {
+  const amount = (x, label) => {
+    const n = money(x);
+    if (n !== null && !(n > 0)) fail(400, `${label}: o valor precisa ser maior que zero.`);
+    return n;
+  };
+  if (!Array.isArray(b.brands)) {
+    const v = {};
+    for (const k of ['simples', 'mediano', 'complexo']) v[k] = amount(b[k], 'Preço');
+    return v;
+  }
+  if (b.brands.length > MAX_BRANDS) fail(400, `Até ${MAX_BRANDS} marcas por tabela.`);
+  const brands = b.brands.map((x, i) => {
+    const name = clean(x?.name, 60);
+    if (!name) fail(400, `Informe o nome da marca na coluna ${i + 1}.`);
+    const origin = x.origin === 'importado' ? 'importado' : 'nacional';
+    const refCount = x.refCount === '' || x.refCount == null ? null : Number(x.refCount);
+    if (refCount !== null && !(Number.isInteger(refCount) && refCount >= 0 && refCount <= 30)) fail(400, `${name}: número de consultas de refinamento inválido (0 a 30).`);
+    return {
+      name, origin,
+      scan: amount(x.scan, `${name} — escaneamento e submissão`),
+      simples: amount(x.simples, `${name} — caso simples`),
+      mediano: amount(x.mediano, `${name} — média complexidade`),
+      complexo: amount(x.complexo, `${name} — caso complexo`),
+      refValue: amount(x.refValue, `${name} — refinamento`),
+      refCount,
+    };
+  });
+  const min = (k) => { const vals = brands.map((x) => x[k]).filter((n) => n > 0); return vals.length ? Math.min(...vals) : null; };
+  for (const x of brands) delete x.scan; // escaneamento: valor único da AlignSystem
+  return { brands, simples: min('simples'), mediano: min('mediano'), complexo: min('complexo') };
+}
+
+r('GET', '/api/dentist/prices', async (req, res) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const d = await dentistById(sql, u.dentist_id);
+  send(res, 200, { prices: d?.prices || {}, consultLimits: scan.consultLimits, platformPct: MODEL.ownPricePlatformPct, dentistPct: MODEL.ownPriceDentistPct,
+    scanPrice: await caseScanPrice(sql), consultValue: dentistConsultValue(d), breakage: breakagePrice(dentistConsultValue(d)), breakageMarkupPct: MODEL.breakageMarkupPct });
+});
+
+r('PUT', '/api/dentist/prices', async (req, res) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const v = readOwnPrices(await readJson(req));
+  await sql`update dentists set prices = ${sql.json(v)}, updated_at = now() where id = ${u.dentist_id}`;
+  await logEvent(sql, { dentistId: u.dentist_id, actor: u.email, type: 'precos_dentista', data: { ...v, ip: clientIp(req) } });
+  send(res, 200, { ok: true });
+});
+
+r('PUT', '/api/admin/dentists/:id/prices', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const v = readOwnPrices(await readJson(req));
+  const [d] = await sql`update dentists set prices = ${sql.json(v)}, updated_at = now() where id = ${id} returning id`;
+  if (!d) fail(404, 'Parceiro não encontrado.');
+  await logEvent(sql, { dentistId: id, actor: u.email, type: 'precos_dentista', data: { ...v, ip: clientIp(req) } });
+  send(res, 200, { ok: true });
+});
+
+// Painel: tabela de preços (escaneamento e tratamento por grau de dificuldade)
+r('GET', '/api/admin/settings/prices', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  send(res, 200, { prices: await scan.getPrices(sql), consultLimits: scan.consultLimits });
+});
+
+r('PUT', '/api/admin/settings/prices', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const amount = (x, label) => {
+    const n = money(x);
+    if (n !== null && !(n > 0)) fail(400, `${label}: escreva só o número, por exemplo 9.000,00.`);
+    return n;
+  };
+  const LBL = { simples: 'caso simples', mediano: 'média complexidade', complexo: 'caso complexo' };
+  const v = { aligner: {}, scan: amount(b.scan, 'Escaneamento e documentação') };
+  if (Array.isArray(b.brands)) {
+    if (b.brands.length > 3) fail(400, 'Até 3 marcas.');
+    v.brands = b.brands.map((x, i) => {
+      const name = clean(x?.name, 60);
+      if (!name) fail(400, `Informe o nome da marca ${i + 1}.`);
+      const o = { name, origin: x.origin === 'importado' ? 'importado' : 'nacional', aligner: {} };
+      for (const k of ['simples', 'mediano', 'complexo']) {
+        o[k] = amount(x[k], `${name} — tratamento ${LBL[k]}`);
+        o.aligner[k] = amount(x.aligner?.[k], `${name} — custo dos alinhadores ${LBL[k]}`);
+      }
+      return o;
+    });
+  } else {
+    for (const k of ['simples', 'mediano', 'complexo']) {
+      v[k] = amount(b[k], `Tratamento ${LBL[k]}`);
+      v.aligner[k] = amount(b[`aligner_${k}`], `Custo dos alinhadores ${LBL[k]}`);
+    }
+  }
+  await sql`insert into settings (key, value, updated_by) values ('prices', ${sql.json(v)}, ${u.id})
+    on conflict (key) do update set value = excluded.value, updated_at = now(), updated_by = excluded.updated_by`;
+  await logEvent(sql, { actor: u.email, type: 'precos_alterados', data: { ...v, ip: clientIp(req) } });
+  send(res, 200, { ok: true, prices: await scan.getPrices(sql) });
+});
+
+r('GET', '/api/admin/settings/negotiation', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  send(res, 200, { negotiation: await negotiationSettings(sql) });
+});
+
+r('PUT', '/api/admin/settings/negotiation', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const num = (x, label, min, max) => {
+    const n = money(x);
+    if (n === null || !(n >= min && n <= max)) fail(400, `${label}: informe um número entre ${min} e ${max}.`);
+    return n;
+  };
+  const v = {
+    maxDiscountPct: num(b.maxDiscountPct, 'Desconto máximo (%)', 0, 50),
+    maxBoletos: Math.round(num(b.maxBoletos, 'Boletos do saldo (máximo)', 1, 60)),
+    interestPctMonth: num(b.interestPctMonth, 'Juros ao mês acima de 18x (%)', 0, 10),
+  };
+  await sql`insert into settings (key, value, updated_by) values ('negotiation', ${sql.json(v)}, ${u.id})
+    on conflict (key) do update set value = excluded.value, updated_at = now(), updated_by = excluded.updated_by`;
+  await logEvent(sql, { actor: u.email, type: 'teto_negociacao_alterado', data: { ...v, ip: clientIp(req) } });
+  send(res, 200, { ok: true, negotiation: await negotiationSettings(sql) });
+});
+
+// ------------------------------------------------------------------ portal do paciente (link com token)
+
+r('GET', '/api/portal/:token', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const photos = (await photoMeta(sql, c.id)).filter((p) => p.uploaded_by === 'paciente');
+  const appts = await sql`select a.id, a.kind, a.starts_at, a.duration_min, a.room_url, a.location, a.status, d.name as dentist_name
+    from appointments a left join dentists d on d.id = a.dentist_id
+    where a.case_id = ${c.id} and a.status <> 'cancelado' order by a.starts_at`;
+  const contracts = await sql`select token, title, status, accepted_at from contracts
+    where case_id = ${c.id} and kind = 'paciente' and status <> 'cancelado' order by created_at desc`;
+  const charges = await sql`select id, kind, description, value, installment_count, invoice_url, status, due_date, pay_token, pay_option
+    from charges where case_id = ${c.id} and status <> 'cancelado' order by created_at`;
+  const payments = await sql`select asaas_payment_id, charge_id, value, due_date, status, invoice_url from payments
+    where case_id = ${c.id} order by due_date`;
+  const dentist = c.dentist_id ? await dentistById(sql, c.dentist_id) : null;
+  const consent = await currentConsent(sql, c.id);
+  const tcle = consent ? null : await ensureTcle(sql);
+  send(res, 200, {
+    case: { ...publicCase(c), isMinor: Number(c.age) < 18, uf: c.uf },
+    attendance: publicAttendance(c.attendance),
+    ufs: geo.UFS,
+    scan: await portalScan(sql, c),
+    negotiation: negotiationView(c, (await negotiationSettings(sql)).interestPctMonth),
+    consent: consent && { acceptedAt: consent.accepted_at, acceptedName: consent.accepted_name, byGuardian: consent.accepted_by_guardian, version: consent.version },
+    tcle: tcle && { version: tcle.version, title: tcle.title, body: tcle.body, hash: tcle.hash },
+    dentist: dentist ? { name: dentist.name, cro: dentist.cro, croUf: dentist.cro_uf, city: dentist.city } : null,
+    slots: PHOTO_SLOTS,
+    photos: photos.map((p) => ({ id: p.id, slot: p.slot, kind: p.kind })),
+    appointments: appts,
+    contracts: contracts.map((x) => ({ ...x, url: `/contrato?t=${x.token}`, token: undefined })),
+    charges: charges.map((ch) => ({
+      ...ch, pay_token: undefined, payUrl: ch.pay_token ? `/pagamento?t=${ch.pay_token}` : null,
+      statusLabel: asaas.STATUS_PT[ch.status] || ch.status,
+      payments: payments.filter((p) => p.charge_id === ch.id).map((p) => ({ ...p, statusLabel: asaas.STATUS_PT[p.status] || p.status })),
+    })),
+  }, { 'Cache-Control': 'no-store' });
+});
+
+// Aceite do termo de consentimento (TCLE) do atendimento a distância
+r('POST', '/api/portal/:token/consent', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  if (await currentConsent(sql, c.id)) return send(res, 200, { ok: true });
+  if (b.agree !== true) fail(400, 'Marque a caixa "Li e aceito" para continuar.');
+  const tcle = await ensureTcle(sql);
+  if (b.hash !== tcle.hash) fail(409, 'O termo foi atualizado. Recarregue a página e leia a versão nova.');
+  const minor = Number(c.age) < 18;
+  const acceptedName = clean(b.acceptedName, 120);
+  if (acceptedName.length < 5 || !/\s/.test(acceptedName)) fail(400, minor ? 'Informe o nome completo do responsável legal.' : 'Informe seu nome completo.');
+  const birth = /^\d{4}-\d{2}-\d{2}$/.test(b.birthDate || '') ? new Date(b.birthDate + 'T12:00:00Z') : null;
+  if (!birth || Number.isNaN(birth.getTime())) fail(400, 'Informe a data de nascimento de quem está aceitando o termo.');
+  const now = new Date();
+  let years = now.getUTCFullYear() - birth.getUTCFullYear();
+  if (now.getUTCMonth() < birth.getUTCMonth() || (now.getUTCMonth() === birth.getUTCMonth() && now.getUTCDate() < birth.getUTCDate())) years--;
+  if (years > 120) fail(400, 'Data de nascimento inválida.');
+  if (years < 18) fail(400, minor
+    ? 'O termo precisa ser aceito por um responsável legal maior de 18 anos.'
+    : 'O termo só pode ser aceito por maior de 18 anos. Se o paciente for menor, peça ao responsável legal para aceitar.');
+  if (b.adult !== true) fail(400, 'Confirme que você é maior de 18 anos.');
+  const guardianName = minor ? acceptedName : '';
+  await rateLimit(sql, `consent:${c.id}`, 10, 60);
+  const ip = clientIp(req);
+  const [row] = await sql`insert into consents (case_id, case_code, kind, version, body_hash, patient_name, accepted_name,
+      accepted_by_guardian, guardian_name, accepted_birth_date, ip, user_agent)
+    values (${c.id}, ${c.code}, ${TCLE_KIND}, ${tcle.version}, ${tcle.hash}, ${c.name}, ${acceptedName},
+      ${minor}, ${minor ? guardianName : null}, ${b.birthDate}, ${ip}, ${clean(req.headers['user-agent'], 300)})
+    returning id, accepted_at`;
+  await logEvent(sql, { caseId: c.id, actor: minor ? `responsável: ${guardianName}` : `paciente: ${acceptedName}`, type: 'tcle_aceito', data: { version: tcle.version, hash: tcle.hash, ip, consentId: row.id } });
+  send(res, 201, { ok: true });
+});
+
+r('POST', '/api/portal/:token/photos', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  await requireConsent(sql, c);
+  await rateLimit(sql, `upload:${c.id}`, 60, 60);
+  const url = new URL(req.url, 'http://x');
+  const slot = Number(url.searchParams.get('slot')) || null;
+  if (slot && !(slot >= 1 && slot <= 7)) fail(400, 'Foto inválida.');
+  const p = await saveImage(sql, req, { caseId: c.id, kind: slot ? 'avaliacao' : 'extra', slot, uploadedBy: 'paciente' });
+  send(res, 201, { id: p.id, slot: p.slot, kind: p.kind });
+});
+
+r('GET', '/api/portal/:token/photos/:id', async (req, res, { token: t, id }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  await sendPhoto(sql, res, sql`select id from photos where id = ${id} and case_id = ${c.id} and uploaded_by = 'paciente'`);
+});
+
+r('DELETE', '/api/portal/:token/photos/:id', async (req, res, { token: t, id }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  if (c.assessment_published_at) fail(409, 'O parecer já foi emitido; fale com a equipe para trocar fotos.');
+  await sql`delete from photos where id = ${id} and case_id = ${c.id} and uploaded_by = 'paciente'`;
+  send(res, 200, { ok: true });
+});
+
+r('POST', '/api/portal/:token/submit', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  await requireConsent(sql, c);
+  const [{ n }] = await sql`select count(distinct slot)::int as n from photos where case_id = ${c.id} and kind = 'avaliacao'`;
+  if (n < 7) fail(400, `Faltam ${7 - n} foto(s) para completar a pré-avaliação.`);
+  const first = !c.photos_submitted_at;
+  await sql`update cases set photos_submitted_at = now(), updated_at = now(),
+            status = case when status = 'novo' then 'fotos_enviadas' else status end where id = ${c.id}`;
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'fotos_enviadas' });
+  if (first) {
+    await sendMail({
+      to: notifyAddress(),
+      subject: `Fotos recebidas — caso #${c.code} (${c.name})`,
+      html: layout('Fotos da pré-avaliação recebidas', para(`${c.name} (${c.city}) enviou as 7 fotos.`) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Avaliar agora')),
+    });
+  }
+  send(res, 200, { ok: true });
+});
+
+// Paciente pede teleorientação
+r('POST', '/api/portal/:token/teleorientacao', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  const b = await readJson(req);
+  await requireConsent(sql, c);
+  await rateLimit(sql, `tele:${c.id}`, 3, 60 * 24);
+  const pref = clean(b.preference, 300);
+  await logEvent(sql, { caseId: c.id, actor: 'paciente', type: 'pedido_teleorientacao', data: { pref } });
+  await sendMail({
+    to: notifyAddress(),
+    subject: `Pedido de teleorientação — caso #${c.code}`,
+    html: layout('Paciente pediu teleorientação', table([['Paciente', c.name], ['WhatsApp', c.whatsapp], ['Preferência de horário', pref]]) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Agendar no painel')),
+  });
+  send(res, 200, { ok: true });
+});
+
+r('GET', '/api/consent-text', async (req, res) => {
+  const sql = db();
+  const v = new URL(req.url, 'http://x').searchParams.get('v') || TCLE_VERSION;
+  const cur = await ensureTcle(sql);
+  const [row] = await sql`select version, title, body, body_hash, created_at from consent_texts where version = ${v}`;
+  if (!row) fail(404, 'Versão do termo não encontrada.');
+  send(res, 200, { version: row.version, title: row.title, body: row.body, hash: row.body_hash, publishedAt: row.created_at, current: row.version === cur.version });
+});
+
+// ------------------------------------------------------------------ contratos (link com token)
+
+r('GET', '/api/contracts/:token', async (req, res, { token: t }) => {
+  const sql = db();
+  const [ct] = await sql`select id, kind, title, body, body_hash, status, accepted_at, accepted_name, accepted_doc, case_id, dentist_id
+    from contracts where token = ${String(t)}`;
+  if (!ct || ct.status === 'cancelado') fail(404, 'Contrato não encontrado ou substituído por uma versão mais nova.');
+  let signer = {};
+  if (ct.kind === 'paciente') {
+    const [c] = await sql`select name, cpf from cases where id = ${ct.case_id}`;
+    signer = { name: c?.name, doc: c?.cpf, docLabel: 'CPF' };
+  } else {
+    const d = await dentistById(sql, ct.dentist_id);
+    signer = { name: d?.name, doc: d?.cpf_cnpj, docLabel: 'CPF ou CNPJ' };
+  }
+  send(res, 200, {
+    kind: ct.kind, title: ct.title, body: ct.body, hash: ct.body_hash, status: ct.status,
+    acceptedAt: ct.accepted_at, acceptedName: ct.accepted_name, acceptedDoc: ct.accepted_doc ? ct.accepted_doc.replace(/\d(?=\d{2})/g, '•') : null,
+    signer: { name: signer.name, docLabel: signer.docLabel, hasDoc: Boolean(signer.doc) },
+    draft: !contractsReviewed(),
+  }, { 'Cache-Control': 'no-store' });
+});
+
+r('POST', '/api/contracts/:token/accept', async (req, res, { token: t }) => {
+  const sql = db();
+  const b = await readJson(req);
+  const [ct] = await sql`select * from contracts where token = ${String(t)}`;
+  if (!ct || ct.status === 'cancelado') fail(404, 'Contrato não encontrado.');
+  if (ct.status === 'aceito') fail(409, 'Este contrato já foi aceito.');
+  if (!b.agree) fail(400, 'Marque a caixa de concordância para aceitar.');
+  if (b.hash !== ct.body_hash) fail(409, 'O contrato foi atualizado. Recarregue a página e leia a versão nova.');
+  const name = clean(b.name, 120);
+  const doc = digits(b.doc);
+  if (name.length < 3) fail(400, 'Digite seu nome completo.');
+  await rateLimit(sql, `accept:${ct.id}`, 10, 60);
+  let expectedName = '';
+  if (ct.kind === 'paciente') {
+    if (!validCpf(doc)) fail(400, 'CPF inválido.');
+    const [c] = await sql`select * from cases where id = ${ct.case_id}`;
+    if (c.cpf && digits(c.cpf) !== doc) fail(400, 'O CPF não confere com o informado no contrato.');
+    expectedName = c.name;
+  } else {
+    if (!validCpfCnpj(doc)) fail(400, 'CPF ou CNPJ inválido.');
+    const d = await dentistById(sql, ct.dentist_id);
+    if (d.cpf_cnpj && digits(d.cpf_cnpj) !== doc) fail(400, 'O documento não confere com o informado no termo.');
+    expectedName = d.name;
+  }
+  const ip = clientIp(req);
+  const ua = clean(req.headers['user-agent'], 300);
+  await sql.begin(async (tx) => {
+    await tx`update contracts set status = 'aceito', accepted_at = now(), accepted_name = ${name}, accepted_doc = ${doc},
+             accepted_ip = ${ip}, accepted_ua = ${ua} where id = ${ct.id}`;
+    if (ct.kind === 'paciente') {
+      await tx`update cases set status = 'contrato_assinado', cpf = coalesce(cpf, ${doc}), updated_at = now()
+               where id = ${ct.case_id} and status in ('novo','fotos_enviadas','parecer_enviado','documentacao_agendada','documentacao_realizada','plano_apresentado','contrato_enviado')`;
+      await logEvent(tx, { caseId: ct.case_id, actor: 'paciente', type: 'contrato_aceito', data: { ip, hash: ct.body_hash } });
+    } else {
+      await tx`update dentists set status = 'ativo', cpf_cnpj = coalesce(cpf_cnpj, ${doc}), updated_at = now() where id = ${ct.dentist_id}`;
+      await logEvent(tx, { dentistId: ct.dentist_id, actor: 'parceiro', type: 'termo_aceito', data: { ip, hash: ct.body_hash } });
+    }
+  });
+  await sendMail({
+    to: notifyAddress(),
+    subject: `${ct.kind === 'paciente' ? 'Contrato do paciente' : 'Termo de Adesão'} aceito — ${name}`,
+    html: layout('Contrato aceito eletronicamente', table([
+      ['Documento', ct.title], ['Nome digitado', name], ['Nome no cadastro', expectedName], ['CPF/CNPJ', doc], ['IP', ip], ['Hash SHA-256', ct.body_hash],
+    ]) + button(contractUrl(t), 'Ver contrato')),
+  });
+  send(res, 200, { ok: true });
+});
+
+// ------------------------------------------------------------------ autenticação
+
+r('POST', '/api/auth/login', async (req, res) => {
+  const sql = db();
+  const b = await readJson(req);
+  const email = clean(b.email, 160).toLowerCase();
+  await rateLimit(sql, `login:${clientIp(req)}`, 20, 15);
+  const [u] = await sql`select * from users where email = ${email}`;
+  if (u?.locked_until && new Date(u.locked_until) > new Date()) fail(429, 'Conta bloqueada temporariamente por tentativas erradas. Tente em 15 minutos.');
+  const ok = u && u.active && (await verifyPassword(String(b.password || ''), u.password_hash));
+  if (!ok) {
+    if (u) await sql`update users set failed_logins = failed_logins + 1,
+      locked_until = case when failed_logins + 1 >= 5 then now() + interval '15 minutes' else null end where id = ${u.id}`;
+    fail(401, 'E-mail ou senha incorretos.');
+  }
+  if (u.totp_enabled_at) {
+    const code = String(b.code || '').trim();
+    if (!code) return send(res, 401, { error: 'Digite o código do aplicativo autenticador.', needCode: true });
+    const step = totp.verifyCode(u.totp_secret, code, u.totp_last_step);
+    let usedRecovery = false;
+    if (step == null) {
+      const h = totp.hashRecovery(code);
+      const left = (u.totp_recovery || []).filter((x) => x !== h);
+      if (left.length === (u.totp_recovery || []).length) {
+        await sql`update users set failed_logins = failed_logins + 1,
+          locked_until = case when failed_logins + 1 >= 5 then now() + interval '15 minutes' else null end where id = ${u.id}`;
+        return send(res, 401, { error: 'Código inválido. Confira o aplicativo autenticador.', needCode: true });
+      }
+      usedRecovery = true;
+      await sql`update users set totp_recovery = ${sql.json(left)} where id = ${u.id}`;
+    } else {
+      await sql`update users set totp_last_step = ${step} where id = ${u.id}`;
+    }
+    if (usedRecovery) await sendMail({ to: u.email, subject: 'Código de recuperação usado — AlignSystem', html: layout('Código de recuperação usado', para('Um código de recuperação da verificação em duas etapas foi usado para entrar no painel. Se não foi você, troque sua senha e avise a equipe.')) });
+  }
+  await sql`update users set failed_logins = 0, locked_until = null, last_login_at = now() where id = ${u.id}`;
+  send(res, 200, { ok: true, role: u.role }, { 'Set-Cookie': sessionCookie(u) });
+});
+
+r('POST', '/api/auth/logout', async (req, res) => send(res, 200, { ok: true }, { 'Set-Cookie': clearCookie() }));
+
+r('GET', '/api/auth/me', async (req, res) => {
+  const sql = db();
+  const u = await currentUser(sql, req);
+  if (!u) return send(res, 200, { user: null });
+  let dentist = null;
+  if (u.dentist_id) {
+    const d = await dentistById(sql, u.dentist_id);
+    dentist = d && { id: d.id, name: d.name, status: d.status, cro: d.cro, croUf: d.cro_uf, hasWallet: Boolean(d.asaas_wallet_id) };
+  }
+  send(res, 200, { user: { id: u.id, email: u.email, name: u.name, role: u.role, totpEnabled: Boolean(u.totp_enabled_at) }, dentist });
+});
+
+// Verificação em duas etapas (aplicativo autenticador: Google Authenticator, Microsoft Authenticator etc.)
+r('POST', '/api/auth/totp/setup', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req);
+  if (u.totp_enabled_at) fail(409, 'A verificação em duas etapas já está ativa.');
+  const secret = totp.newSecret();
+  await sql`update users set totp_secret = ${secret} where id = ${u.id}`;
+  const url = totp.otpauthUrl(secret, u.email);
+  send(res, 200, { secret, url, qr: await QRCode.toString(url, { type: 'svg', margin: 1, width: 200 }) }, { 'Cache-Control': 'no-store' });
+});
+
+r('POST', '/api/auth/totp/enable', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req);
+  const b = await readJson(req);
+  await rateLimit(sql, `totp:${u.id}`, 10, 15);
+  const [row] = await sql`select totp_secret, totp_enabled_at from users where id = ${u.id}`;
+  if (row.totp_enabled_at) fail(409, 'A verificação em duas etapas já está ativa.');
+  if (!row.totp_secret) fail(400, 'Comece pela leitura do QR code.');
+  const step = totp.verifyCode(row.totp_secret, b.code);
+  if (step == null) fail(400, 'Código inválido. Confira se o horário do celular está automático e tente de novo.');
+  const { codes, hashes } = totp.recoveryCodes();
+  await sql`update users set totp_enabled_at = now(), totp_last_step = ${step}, totp_recovery = ${sql.json(hashes)} where id = ${u.id}`;
+  await sendMail({ to: u.email, subject: 'Verificação em duas etapas ativada — AlignSystem', html: layout('Verificação em duas etapas ativada', para('A partir de agora, além da senha, o painel vai pedir o código do aplicativo autenticador. Se não foi você, avise a equipe imediatamente.')) });
+  send(res, 200, { ok: true, recoveryCodes: codes }, { 'Cache-Control': 'no-store' });
+});
+
+r('POST', '/api/auth/totp/disable', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req);
+  const b = await readJson(req);
+  await rateLimit(sql, `totp:${u.id}`, 10, 15);
+  const [row] = await sql`select password_hash, totp_secret, totp_last_step from users where id = ${u.id}`;
+  if (!(await verifyPassword(String(b.password || ''), row.password_hash))) fail(400, 'Senha incorreta.');
+  if (totp.verifyCode(row.totp_secret, b.code, row.totp_last_step) == null) fail(400, 'Código inválido.');
+  await sql`update users set totp_secret = null, totp_enabled_at = null, totp_recovery = null, totp_last_step = null where id = ${u.id}`;
+  send(res, 200, { ok: true });
+});
+
+// Outro administrador zera a verificação de quem perdeu o celular e os códigos de recuperação
+r('POST', '/api/admin/users/:id/reset-2fa', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  if (id === u.id) fail(400, 'Para desativar a sua, use "Minha conta".');
+  await sql`update users set totp_secret = null, totp_enabled_at = null, totp_recovery = null, totp_last_step = null where id = ${id}`;
+  await logEvent(sql, { actor: u.email, type: 'totp_zerado', data: { userId: id } });
+  send(res, 200, { ok: true });
+});
+
+r('POST', '/api/auth/password', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req);
+  const b = await readJson(req);
+  const [row] = await sql`select password_hash from users where id = ${u.id}`;
+  if (!(await verifyPassword(String(b.current || ''), row.password_hash))) fail(400, 'Senha atual incorreta.');
+  const problem = passwordProblem(b.password);
+  if (problem) fail(400, problem);
+  await sql`update users set password_hash = ${await hashPassword(b.password)} where id = ${u.id}`;
+  send(res, 200, { ok: true });
+});
+
+r('POST', '/api/auth/set-password', async (req, res) => {
+  const sql = db();
+  const b = await readJson(req);
+  const problem = passwordProblem(b.password);
+  if (problem) fail(400, problem);
+  await rateLimit(sql, `setpw:${clientIp(req)}`, 10, 60);
+  const userId = await consumePasswordToken(sql, b.token);
+  if (!userId) fail(400, 'Link inválido ou expirado. Peça um novo à equipe AlignSystem.');
+  const [u] = await sql`update users set password_hash = ${await hashPassword(b.password)}, failed_logins = 0, locked_until = null
+    where id = ${userId} returning *`;
+  send(res, 200, { ok: true, role: u.role }, { 'Set-Cookie': sessionCookie(u) });
+});
+
+// Primeiro administrador ou recuperação do acesso de um admin: só funciona com ADMIN_BOOTSTRAP_TOKEN definido.
+r('POST', '/api/auth/bootstrap', async (req, res) => {
+  const sql = db();
+  const expected = process.env.ADMIN_BOOTSTRAP_TOKEN;
+  const got = String(req.headers['x-bootstrap-token'] || '');
+  if (!expected || expected.length < 24 || got !== expected) fail(404, 'Rota não encontrada.');
+  const b = await readJson(req);
+  const email = clean(b.email, 160).toLowerCase();
+  if (!isEmail(email)) fail(400, 'E-mail inválido.');
+  // Admin já existente: gera novo link de senha (recuperação de acesso sem e-mail)
+  let [u] = await sql`select id from users where email = ${email} and role = 'admin'`;
+  if (!u) {
+    const [{ n }] = await sql`select count(*)::int as n from users where role = 'admin'`;
+    if (n > 0) fail(409, 'Já existe administrador.');
+    [u] = await sql`insert into users (email, name, role) values (${email}, ${clean(b.name, 120) || email}, 'admin') returning id`;
+  }
+  await sql`update users set active = true, failed_logins = 0, locked_until = null where id = ${u.id}`;
+  const t = await createPasswordToken(sql, u.id, 72);
+  // diagnóstico opcional do envio de e-mail (só com o token de recuperação)
+  const mail = b.testEmail ? await sendMail({ to: email, subject: 'Teste de envio — AlignSystem', html: layout('Teste de envio', para('Se você recebeu esta mensagem, o envio de e-mails do painel está funcionando.')) }) : undefined;
+  send(res, 201, { setPasswordUrl: `${appUrl()}/definir-senha?t=${t}`, mail });
+});
+
+r('POST', '/api/auth/forgot', async (req, res) => {
+  const sql = db();
+  const b = await readJson(req);
+  const email = clean(b.email, 160).toLowerCase();
+  await rateLimit(sql, `forgot:${clientIp(req)}`, 5, 60);
+  const [u] = await sql`select id, name, email from users where email = ${email} and active`;
+  if (u) {
+    const t = await createPasswordToken(sql, u.id, 2);
+    await sendMail({
+      to: u.email,
+      subject: 'Redefinir sua senha — AlignSystem',
+      html: layout('Redefinição de senha', para('Use o botão abaixo para criar uma nova senha. O link vale por 2 horas.') + button(`${appUrl()}/definir-senha?t=${t}`, 'Criar nova senha')),
+    });
+  }
+  send(res, 200, { ok: true });
+});
+
+// ------------------------------------------------------------------ fotos (equipe)
+
+r('GET', '/api/photos/:id', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req);
+  if (u.role === 'admin') return sendPhoto(sql, res, sql`select id from photos where id = ${id}`);
+  await sendPhoto(sql, res, sql`select p.id from photos p join cases c on c.id = p.case_id
+    where p.id = ${id} and c.dentist_id = ${u.dentist_id} and c.blocked_at is null
+      and (p.uploaded_by <> 'paciente' or p.reviewed_at is not null)`);
+});
+
+// Teste do e-mail de aviso: manda uma mensagem e mostra na tela se saiu ou o erro do provedor
+r('POST', '/api/admin/test-email', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  await rateLimit(sql, `testmail:${u.id}`, 5, 15);
+  const to = notifyAddress();
+  const result = await sendMail({
+    to, subject: 'Teste de aviso — AlignSystem',
+    html: layout('E-mail de aviso funcionando', para(`Este é um teste pedido por ${u.email} no painel. Os avisos de caso novo, fotos recebidas e pagamentos chegam neste endereço (${to}).`)),
+  });
+  await logEvent(sql, { actor: u.email, type: 'teste_email', data: { to, ...result } });
+  send(res, 200, { to, smtp: process.env.SMTP_HOST || null, from: process.env.MAIL_FROM || null, ...result });
+});
+
+// ------------------------------------------------------------------ captação de dentistas (Receita Federal)
+
+const PROSPECT_PAGE = 50;
+
+function prospectFilter(sql, q) {
+  const status = prospects.PROSPECT_STATUSES.includes(q.get('status')) ? q.get('status') : '';
+  const uf = /^[A-Z]{2}$/.test(String(q.get('uf') || '').toUpperCase()) ? q.get('uf').toUpperCase() : '';
+  const city = clean(q.get('city'), 80);
+  const category = prospects.CATEGORIES[q.get('category')] ? q.get('category') : '';
+  const text = clean(q.get('q'), 80);
+  const textDigits = digits(text) || '__nenhum__';
+  return {
+    params: { status, uf, city, category, q: text, priority: q.get('priority') === '1', mobile: q.get('mobile') === '1' },
+    where: (withStatus = true) => sql`
+      (${withStatus ? status : ''} = '' or status = ${status})
+      and (${uf} = '' or uf = ${uf})
+      and (${city} = '' or lower(city) = lower(${city}))
+      and (${category} = '' or category = ${category})
+      and (${q.get('priority') !== '1'} or priority)
+      and (${q.get('mobile') !== '1'} or mobile)
+      and (${text} = '' or name ilike ${'%' + text + '%'} or cnpj like ${'%' + textDigits + '%'})`,
+  };
+}
+
+r('GET', '/api/admin/prospects', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const q = new URL(req.url, 'http://x').searchParams;
+  const page = Math.min(Math.max(Number(q.get('page')) || 1, 1), 10000);
+  const f = prospectFilter(sql, q);
+  const [rows, [{ total }], grouped, cities] = await Promise.all([
+    sql`select id, cnpj, name, category, priority, uf, city, phone, mobile, email, status, invited_at, invite_channel, visited_at, converted_at, origin
+        from prospects where ${f.where()} order by status = 'novo' desc, priority desc, city, name limit ${PROSPECT_PAGE} offset ${(page - 1) * PROSPECT_PAGE}`,
+    sql`select count(*)::int as total from prospects where ${f.where()}`,
+    sql`select status, count(*)::int as n from prospects where ${f.where(false)} group by status`,
+    sql`select uf, city, count(*)::int as n from prospects where status <> 'saiu' group by uf, city order by n desc limit 300`,
+  ]);
+  send(res, 200, {
+    prospects: rows, total, page, pageSize: PROSPECT_PAGE, filter: f.params,
+    counts: Object.fromEntries(prospects.PROSPECT_STATUSES.map((s) => [s, grouped.find((g) => g.status === s)?.n || 0])),
+    categories: prospects.CATEGORIES, cities,
+  }, { 'Cache-Control': 'no-store' });
+});
+
+// Programa BuscarDentistas.exe (computador da equipe; a Receita só responde a internet brasileira):
+// entra com e-mail, senha e código de 2 etapas do administrador e manda os contatos em lotes
+r('POST', '/api/admin/prospects/import', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req, 2_000_000);
+  const uf = String(b.uf || '').toUpperCase();
+  if (!/^[A-Z]{2}$/.test(uf)) fail(400, 'UF inválida.');
+  if (!/^\d{4}-\d{2}$/.test(String(b.sourceMonth || ''))) fail(400, 'Mês da Receita inválido.');
+  if (!Array.isArray(b.rows) || b.rows.length > 1000) fail(400, 'Envie até 1000 contatos por vez.');
+  const rows = b.rows.map((x) => {
+    const phone = prospects.fixOldMobile(/^\d{10,11}$/.test(String(x.phone || '')) ? String(x.phone) : null);
+    const email = isEmail(String(x.email || '').trim().toLowerCase()) ? String(x.email).trim().toLowerCase().slice(0, 160) : null;
+    return { cnpj: String(x.cnpj || ''), name: clean(x.name, 200), category: String(x.category || ''), cnae: String(x.cnae || ''), city: clean(x.city, 80), phone, email };
+  }).filter((x) => /^\d{14}$/.test(x.cnpj) && x.name && x.city && prospects.CATEGORIES[x.category] && /^\d{7}$/.test(x.cnae) && (x.phone || x.email));
+  const hashes = rows.flatMap((x) => [prospects.blockHash('cnpj', x.cnpj), x.phone && prospects.blockHash('phone', x.phone), x.email && prospects.blockHash('email', x.email)].filter(Boolean));
+  const blocked = new Set(hashes.length ? (await sql`select hash from prospect_blocklist where hash = any(${hashes})`).map((x) => x.hash) : []);
+  const ok = rows.filter((x) => !blocked.has(prospects.blockHash('cnpj', x.cnpj))
+    && !(x.phone && blocked.has(prospects.blockHash('phone', x.phone)))
+    && !(x.email && blocked.has(prospects.blockHash('email', x.email))));
+  if (ok.length) {
+    const origin = `Receita Federal, dados abertos do CNPJ (${b.sourceMonth})`;
+    await sql`
+      insert into prospects (cnpj, name, category, cnae, priority, uf, city, phone, mobile, email, origin)
+      select t.cnpj, t.name, t.category, t.cnae, t.priority::boolean, ${uf}, t.city, t.phone, t.mobile::boolean, t.email, ${origin}
+      from unnest(${ok.map((x) => x.cnpj)}::text[], ${ok.map((x) => x.name)}::text[], ${ok.map((x) => x.category)}::text[],
+                  ${ok.map((x) => x.cnae)}::text[], ${ok.map((x) => String(prospects.isPriority(x.name)))}::text[], ${ok.map((x) => x.city)}::text[],
+                  ${ok.map((x) => x.phone)}::text[], ${ok.map((x) => String(prospects.isMobile(x.phone)))}::text[], ${ok.map((x) => x.email)}::text[])
+        as t(cnpj, name, category, cnae, priority, city, phone, mobile, email)
+      on conflict (cnpj) do update set
+        name = excluded.name, category = excluded.category, cnae = excluded.cnae, priority = excluded.priority, uf = excluded.uf,
+        city = excluded.city, phone = excluded.phone, mobile = excluded.mobile, email = excluded.email, origin = excluded.origin, updated_at = now()
+      where prospects.status <> 'saiu'`;
+  }
+  await logEvent(sql, { actor: u.email, type: 'captacao_importada', data: { uf, sourceMonth: b.sourceMonth, received: b.rows.length, saved: ok.length, ip: clientIp(req) } });
+  send(res, 200, { received: b.rows.length, saved: ok.length });
+});
+
+// "Não quer receber" marcado pela equipe (ex.: respondeu SAIR no WhatsApp)
+r('POST', '/api/admin/prospects/:id/optout', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const p = await prospects.optOutProspect(sql, id);
+  if (!p) fail(404, 'Contato não encontrado.');
+  await logEvent(sql, { actor: u.email, type: 'captacao_saiu', data: { prospect: id, by: 'equipe', ip: clientIp(req) } });
+  send(res, 200, { ok: true });
+});
+
+// ------------------------------------------------------------------ revisão de fotos e bloqueio de caso
+
+// Fotos enviadas pelo paciente só aparecem para o dentista depois da revisão da equipe
+r('POST', '/api/admin/cases/:id/photos/release', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const rows = await sql`update photos set reviewed_at = now(), reviewed_by = ${u.id}
+    where case_id = ${id} and uploaded_by = 'paciente' and reviewed_at is null returning id`;
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'fotos_liberadas', data: { n: rows.length } });
+  send(res, 200, { ok: true, released: rows.length });
+});
+
+// Conteúdo impróprio ou uso indevido: apaga as fotos enviadas pelo paciente e desativa o link dele
+r('POST', '/api/admin/cases/:id/block', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const [c] = await sql`select id from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  const reason = clean(b.reason, 300) || 'conteúdo impróprio';
+  const del = await sql`delete from photos where case_id = ${id} and uploaded_by = 'paciente' returning id`;
+  await sql`update cases set blocked_at = now(), blocked_reason = ${reason}, updated_at = now() where id = ${id}`;
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'caso_bloqueado', data: { reason, fotosApagadas: del.length } });
+  send(res, 200, { ok: true, deleted: del.length });
+});
+
+r('POST', '/api/admin/cases/:id/unblock', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  await sql`update cases set blocked_at = null, blocked_reason = null, updated_at = now() where id = ${id}`;
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'caso_desbloqueado' });
+  send(res, 200, { ok: true });
+});
+
+// ------------------------------------------------------------------ admin
+
+r('GET', '/api/admin/overview', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const cases = await sql`select status, count(*)::int as n from cases group by status`;
+  const dentists = await sql`select status, count(*)::int as n from dentists group by status`;
+  const [paid] = await sql`select coalesce(sum(value),0)::float as total, count(*)::int as n from payments
+    where status in ('RECEIVED','CONFIRMED','RECEIVED_IN_CASH') and paid_at > now() - interval '30 days'`;
+  const pendingAuth = await sql`select a.id, a.case_id, a.milestone, a.urgency, a.created_at, a.over_limit, c.code, c.name, d.name as dentist_name
+    from authorizations a join cases c on c.id = a.case_id left join dentists d on d.id = a.dentist_id
+    where a.status = 'solicitada' order by (a.urgency = 'urgencia') desc, a.created_at limit 50`;
+  send(res, 200, {
+    pendingAuth,
+    cases: Object.fromEntries(cases.map((x) => [x.status, x.n])),
+    dentists: Object.fromEntries(dentists.map((x) => [x.status, x.n])),
+    paid30: paid,
+    labels: { CASE_STATUS, DENTIST_STATUS, ASSESSMENT, MILESTONES, URGENCY },
+    integrations: {
+      asaas: asaas.asaasConfigured() ? asaas.asaasEnv() : null,
+      email: process.env.SMTP_HOST ? 'smtp' : process.env.RESEND_API_KEY ? 'resend' : null,
+      whatsapp: Boolean(digits(process.env.PUBLIC_WHATSAPP || '')) && !/^5544900000000$/.test(digits(process.env.PUBLIC_WHATSAPP || '')),
+      contractsReviewed: contractsReviewed(),
+    },
+    adminsWithout2fa: (await sql`select email from users where role = 'admin' and active and totp_enabled_at is null`).map((x) => x.email),
+  });
+});
+
+r('GET', '/api/admin/cases', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const url = new URL(req.url, 'http://x');
+  const status = url.searchParams.get('status') || '';
+  const q = clean(url.searchParams.get('q'), 80);
+  const qDigits = digits(q) || '__nenhum__';
+  const rows = await sql`select c.id, c.code, c.name, c.city, c.uf, c.coverage_km, c.whatsapp, c.status, c.assessment, c.created_at, c.photos_submitted_at,
+      d.name as dentist_name,
+      (select count(*)::int from photos p where p.case_id = c.id and p.kind = 'avaliacao') as photo_count
+    from cases c left join dentists d on d.id = c.dentist_id
+    where (${status} = '' or c.status = ${status})
+      and (${q} = '' or c.name ilike ${'%' + q + '%'} or c.city ilike ${'%' + q + '%'} or c.whatsapp like ${'%' + qDigits + '%'} or c.code::text = ${q})
+    order by c.created_at desc limit 300`;
+  send(res, 200, { cases: rows, labels: CASE_STATUS });
+});
+
+async function caseDetail(sql, id) {
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  const [photos, appts, contracts, charges, payments, evidences, events] = await Promise.all([
+    photoMeta(sql, id),
+    sql`select a.*, d.name as dentist_name from appointments a left join dentists d on d.id = a.dentist_id where case_id = ${id} order by starts_at desc`,
+    sql`select id, kind, token, title, status, accepted_at, accepted_name, accepted_ip, body_hash, created_at from contracts where case_id = ${id} order by created_at desc`,
+    sql`select * from charges where case_id = ${id} order by created_at desc`,
+    sql`select * from payments where case_id = ${id} order by due_date`,
+    sql`select e.id, e.case_id, e.dentist_id, e.milestone, e.notes, e.performed_at, e.validated_at, e.validated_by, e.created_at, e.authorization_id, e.patient_signer, e.signed_at, e.signed_ip, e.signatures_hash, (e.patient_signature is not null) as has_patient_signature, (e.dentist_signature is not null) as has_dentist_signature, d.name as dentist_name from evidences e left join dentists d on d.id = e.dentist_id where case_id = ${id} order by performed_at desc, created_at desc`,
+    sql`select actor, type, data, created_at from events where case_id = ${id} order by created_at desc limit 100`,
+  ]);
+  const authorizations = await sql`select a.*, d.name as dentist_name from authorizations a left join dentists d on d.id = a.dentist_id where a.case_id = ${id} order by a.created_at desc`;
+  const consents = await sql`select id, version, body_hash, accepted_name, accepted_by_guardian, guardian_name, accepted_birth_date, ip, accepted_at
+    from consents where case_id = ${id} order by accepted_at desc`;
+  // consultas pagas por atendimento: dia 10 do mês seguinte ao registro (Termo de Adesão, cláusula 6.8.1)
+  for (const e of evidences) if (c.plan?.model === 'rede' || e.milestone === 'consulta_avulsa') e.payout_date = payoutDate(e.created_at);
+  return { c, photos, appts, contracts, charges, payments, evidences, events, consents, authorizations };
+}
+
+r('GET', '/api/admin/cases/:id', async (req, res, { id }) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const d = await caseDetail(sql, id);
+  const dent = d.c.dentist_id ? await dentistById(sql, d.c.dentist_id) : null;
+  const [{ paid: scanPaid }] = await sql`select coalesce(sum(price), 0)::float as paid from scan_orders where case_id = ${id} and status in ('pago','agendado','realizado')`;
+  send(res, 200, {
+    case: { ...d.c, portalUrl: portalUrl(d.c.token), consultLimit: consultLimit(d.c.plan), consultValue: PARTNER_DEFAULTS.redeValue,
+      negotiationConsent: Boolean(dent?.negotiation?.consentVersion),
+      scanPaid, breakage: dent ? { price: breakagePrice(dentistConsultValue(dent)), dentist: dentistConsultValue(dent) } : null, attendance: d.c.attendance && { ...publicAttendance(d.c.attendance), ip: d.c.attendance.ip } },
+    photos: d.photos, appointments: d.appts,
+    contracts: d.contracts.map((x) => ({ ...x, url: contractUrl(x.token) })),
+    charges: d.charges.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
+    payments: d.payments.map((x) => ({ ...x, statusLabel: asaas.STATUS_PT[x.status] || x.status })),
+    evidences: d.evidences, events: d.events, consents: d.consents, authorizations: d.authorizations,
+    scanOrders: await sql`select status, price, billing_type, accepted_name, accepted_at, accepted_ip, paid_at, preference, preference_at, terms_version from scan_orders where case_id = ${id} order by created_at desc`,
+    labels: { CASE_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION, URGENCY, AUTH_STATUS },
+    slots: PHOTO_SLOTS,
+  });
+});
+
+// Comprovante do aceite do TCLE: texto exato aceito + registro (para imprimir/salvar em PDF)
+r('GET', '/api/admin/consents/:id/comprovante', async (req, res, { id }) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const [c] = await sql`select k.*, t.title, t.body from consents k join consent_texts t on t.version = k.version where k.id = ${id}`;
+  if (!c) fail(404, 'Registro não encontrado.');
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const when = new Date(c.accepted_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Comprovante de aceite — caso ${esc(c.case_code)}</title>
+<style>body{font:15px/1.6 Georgia,serif;max-width:760px;margin:30px auto;padding:0 18px;color:#111}h2{font-size:20px}h3{font-size:15px;margin:16px 0 4px}
+table{border-collapse:collapse;width:100%;font:14px Arial,sans-serif;margin:18px 0}td{border:1px solid #ccc;padding:6px 8px;vertical-align:top}td:first-child{width:34%;background:#f4f1ea}
+.box{border:2px solid #157A6E;padding:4px 16px;margin-top:10px}</style></head><body>
+<h1 style="font:600 22px Arial,sans-serif">Comprovante de aceite eletrônico</h1>
+<table>
+<tr><td>Documento</td><td>${esc(c.title)}</td></tr>
+<tr><td>Versão do texto</td><td>${esc(c.version)}</td></tr>
+<tr><td>Código de integridade (SHA-256)</td><td style="word-break:break-all">${esc(c.body_hash)}</td></tr>
+<tr><td>Caso nº</td><td>${esc(c.case_code)}</td></tr>
+<tr><td>Paciente</td><td>${esc(c.patient_name)}</td></tr>
+<tr><td>Aceito por</td><td>${esc(c.accepted_name)}${c.accepted_by_guardian ? ' (responsável legal — paciente menor de 18 anos)' : ''}</td></tr>
+<tr><td>Data de nascimento de quem aceitou</td><td>${c.accepted_birth_date ? esc(new Date(c.accepted_birth_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })) : 'não informada (versão anterior do termo)'}</td></tr>
+<tr><td>Declaração de maioridade</td><td>${c.accepted_birth_date ? 'Declarou ser maior de 18 anos; idade conferida pela data de nascimento no momento do aceite' : '—'}</td></tr>
+<tr><td>Data e hora (Brasília)</td><td>${esc(when)}</td></tr>
+<tr><td>Endereço IP</td><td>${esc(c.ip)}</td></tr>
+<tr><td>Navegador</td><td style="word-break:break-all">${esc(c.user_agent)}</td></tr>
+<tr><td>Forma do aceite</td><td>Nome completo e data de nascimento digitados, declaração de maioridade e caixa "Li e aceito" marcadas na página pessoal da avaliação, após exibição do texto integral abaixo.</td></tr>
+</table>
+<div class="box">${c.body}</div>
+<p style="font:12px Arial,sans-serif;color:#555;margin-top:18px">Documento gerado pelo painel AlignSystem em ${esc(new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}. Para salvar, use Imprimir → Salvar como PDF.</p>
+</body></html>`;
+  send(res, 200, Buffer.from(html), { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+});
+
+r('PATCH', '/api/admin/cases/:id', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  const up = {};
+  if (b.status !== undefined) { if (!CASE_STATUS[b.status]) fail(400, 'Status inválido.'); up.status = b.status; }
+  if (b.assessment !== undefined) { if (b.assessment && !ASSESSMENT[b.assessment]) fail(400, 'Parecer inválido.'); up.assessment = b.assessment || null; }
+  if (b.assessment_notes !== undefined) up.assessment_notes = clean(b.assessment_notes, 3000) || null;
+  if (b.malocclusion !== undefined) {
+    const types = (Array.isArray(b.malocclusion?.types) ? b.malocclusion.types : []).filter((k) => MALOCCLUSION[k]);
+    const agenesisTeeth = types.includes('agenesia') ? clean(b.malocclusion?.agenesisTeeth, 120) || null : null;
+    up.malocclusion = sql.json({ types: [...new Set(types)], agenesisTeeth });
+  }
+  if (b.dentist_id !== undefined) up.dentist_id = b.dentist_id || null;
+  for (const k of ['name', 'city', 'reason', 'referred_by', 'address', 'internal_notes']) if (b[k] !== undefined) up[k] = clean(b[k], k === 'internal_notes' ? 5000 : 300) || null;
+  if (b.email !== undefined) { const em = clean(b.email, 160).toLowerCase(); if (em && !isEmail(em)) fail(400, 'E-mail inválido.'); up.email = em || null; }
+  if (b.whatsapp !== undefined) up.whatsapp = digits(b.whatsapp);
+  if (b.cpf !== undefined) { const cpf = digits(b.cpf); if (cpf && !validCpf(cpf)) fail(400, 'CPF inválido.'); up.cpf = cpf || null; }
+  if (b.postal_code !== undefined) up.postal_code = digits(b.postal_code) || null;
+  if (b.plan !== undefined) {
+    const p = b.plan || {};
+    up.plan = sql.json({
+      brand: clean(p.brand, 60), months: Number(p.months) || null, total: money(p.total), replacementValue: money(p.replacementValue),
+      complexity: ['simples', 'mediano', 'complexo'].includes(p.complexity) ? p.complexity : null,
+      model: ['rede', 'proprio'].includes(p.model) ? p.model : 'parceiro', travel: p.travel === '' || p.travel == null ? null : money(p.travel),
+      treatmentNotes: clean(p.treatmentNotes, 4000),
+    });
+  }
+  if (b.publish_assessment) {
+    if (!(up.assessment || c.assessment)) fail(400, 'Escolha o parecer antes de publicar.');
+    up.assessment_published_at = new Date();
+    if (['novo', 'fotos_enviadas'].includes(up.status || c.status)) up.status = 'parecer_enviado';
+  }
+  if (!Object.keys(up).length) return send(res, 200, { ok: true });
+  up.updated_at = new Date();
+  await sql`update cases set ${sql(up)} where id = ${id}`;
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'caso_atualizado', data: { campos: Object.keys(up).filter((k) => k !== 'updated_at') } });
+  if (b.publish_assessment && (up.email ?? c.email)) {
+    await sendMail({
+      to: up.email ?? c.email,
+      subject: 'Seu parecer AlignSystem está pronto',
+      html: layout(`Olá, ${c.name.split(' ')[0]}!`, para('A equipe AlignSystem analisou suas fotos. Veja o parecer e os próximos passos no seu link pessoal.') + button(portalUrl(c.token), 'Ver meu parecer')),
+    });
+  }
+  if (b.dentist_id && b.dentist_id !== c.dentist_id) {
+    const d = await dentistById(sql, b.dentist_id);
+    if (d?.email) await sendMail({
+      to: d.email,
+      subject: `Novo caso direcionado a você — #${c.code}`,
+      html: layout('Novo caso na sua agenda', para(`O caso #${c.code} (${c.city}) foi direcionado a você pela rede AlignSystem.`) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Abrir caso')),
+    });
+  }
+  send(res, 200, { ok: true });
+});
+
+r('DELETE', '/api/admin/cases/:id', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [c] = await sql`select code, name from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  const [{ n }] = await sql`select count(*)::int as n from charges where case_id = ${id} and status <> 'cancelado'`;
+  if (n) fail(409, 'Há cobranças ativas neste caso. Cancele-as antes de excluir.');
+  await sql`delete from cases where id = ${id}`;
+  await logEvent(sql, { actor: u.email, type: 'caso_excluido', data: { code: c.code } });
+  send(res, 200, { ok: true });
+});
+
+r('POST', '/api/admin/cases/:id/photos', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const url = new URL(req.url, 'http://x');
+  const slot = Number(url.searchParams.get('slot')) || null;
+  const p = await saveImage(sql, req, { caseId: id, kind: slot ? 'avaliacao' : 'documento', slot, uploadedBy: 'admin', userId: u.id, allowPdf: !slot });
+  send(res, 201, p);
+});
+
+r('DELETE', '/api/admin/photos/:id', async (req, res, { id }) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  await sql`delete from photos where id = ${id}`;
+  send(res, 200, { ok: true });
+});
+
+async function addAppointment(sql, u, caseId, b, dentistIdForced) {
+  const [c] = await sql`select * from cases where id = ${caseId}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  const kind = ['teleorientacao', 'documentacao', 'consulta'].includes(b.kind) ? b.kind : 'teleorientacao';
+  const starts = new Date(b.starts_at);
+  if (Number.isNaN(starts.getTime())) fail(400, 'Data e hora inválidas.');
+  const roomUrl = kind === 'teleorientacao' ? `https://meet.jit.si/AlignSystem-${c.code}-${token(9).replace(/[^A-Za-z0-9]/g, '')}` : null;
+  const dentistId = dentistIdForced || b.dentist_id || c.dentist_id || null;
+  const [a] = await sql`insert into appointments (case_id, dentist_id, kind, starts_at, duration_min, room_url, location, notes)
+    values (${caseId}, ${dentistId}, ${kind}, ${starts}, ${Number(b.duration_min) || 30}, ${roomUrl}, ${clean(b.location, 300) || null}, ${clean(b.notes, 1000) || null})
+    returning *`;
+  if (kind === 'documentacao') await sql`update cases set status = 'documentacao_agendada', updated_at = now() where id = ${caseId} and status in ('novo','fotos_enviadas','parecer_enviado')`;
+  if (kind === 'documentacao') await sql`update scan_orders set status = 'agendado' where case_id = ${caseId} and status = 'pago'`;
+  await logEvent(sql, { caseId, actor: u.email, type: 'agendamento', data: { kind, starts_at: starts } });
+  const when = starts.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'full', timeStyle: 'short' });
+  if (c.email) {
+    await sendMail({
+      to: c.email,
+      subject: kind === 'teleorientacao' ? 'Sua teleorientação AlignSystem está agendada' : 'Seu atendimento AlignSystem está agendado',
+      html: layout('Agendamento confirmado', table([['Quando', when], ['Tipo', kind === 'teleorientacao' ? 'Teleorientação por vídeo' : kind === 'documentacao' ? 'Documentação (presencial)' : 'Consulta (presencial)'], ['Local', a.location]]) +
+        (roomUrl ? para('No horário marcado, entre pela sua página da avaliação — o botão da chamada de vídeo aparece lá.') : '') + button(portalUrl(c.token), 'Abrir minha avaliação')),
+    });
+  }
+  if (dentistId) {
+    const d = await dentistById(sql, dentistId);
+    if (d?.email) await sendMail({ to: d.email, subject: `Agendamento — caso #${c.code}`, html: layout('Novo agendamento', table([['Paciente', c.name], ['Quando', when], ['Tipo', kind], ['Sala de vídeo', roomUrl], ['Local', a.location]]) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Abrir caso')) });
+  }
+  return a;
+}
+
+r('POST', '/api/admin/cases/:id/appointments', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  send(res, 201, await addAppointment(sql, u, id, await readJson(req)));
+});
+
+r('PATCH', '/api/admin/appointments/:id', async (req, res, { id }) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  if (!['agendado', 'realizado', 'cancelado', 'faltou'].includes(b.status)) fail(400, 'Status inválido.');
+  await sql`update appointments set status = ${b.status} where id = ${id}`;
+  send(res, 200, { ok: true });
+});
+
+r('POST', '/api/admin/cases/:id/contract', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  const plan = c.plan || {};
+  const missing = [];
+  if (!c.cpf) missing.push('CPF do paciente');
+  if (!c.address) missing.push('endereço do paciente');
+  if (plan.model !== 'rede' && !c.dentist_id) missing.push('dentista responsável');
+  if (plan.model === 'proprio' && !(await dentistById(sql, c.dentist_id))?.asaas_wallet_id) missing.push('conta de recebimento (walletId) do dentista');
+  if (!plan.complexity) missing.push('complexidade do caso (simples, mediano ou complexo)');
+  if (plan.model === 'rede' && !c.attendance) missing.push('questionário de atendimento presencial respondido pelo paciente');
+  if (plan.model === 'rede' && c.attendance?.choice === 'sem_cobertura') missing.push('dentista credenciado na região do paciente');
+  if (!plan.brand) missing.push('marca do alinhador');
+  if (!plan.total) missing.push('valor total');
+  const alignerCost = plan.model === 'proprio' && plan.complexity ? Number(scan.alignerCostFor(await scan.getPrices(sql), plan.brand, plan.complexity)) || 0 : 0;
+  if (plan.model === 'proprio' && !alignerCost) missing.push(`custo dos alinhadores da marca "${plan.brand || '—'}" (${plan.complexity || 'complexidade'}) em Preços`);
+  if (missing.length) fail(400, `Preencha antes de gerar o contrato: ${missing.join(', ')}.`);
+  const dentist = await dentistById(sql, c.dentist_id);
+  const negotiated = Number(plan.negotiatedTotal) > 0 ? { total: plan.negotiatedTotal } : {};
+  const { title, body } = patientContract({ ...c, plan: { ...plan, ...negotiated, ...(plan.model === 'proprio' ? { alignerCost } : {}) } }, dentist);
+  await sql`update contracts set status = 'cancelado' where case_id = ${id} and kind = 'paciente' and status = 'enviado'`;
+  const t = token(24);
+  await sql`insert into contracts (kind, case_id, token, title, body, body_hash, created_by)
+    values ('paciente', ${id}, ${t}, ${title}, ${body}, ${sha256(body)}, ${u.id})`;
+  await sql`update cases set status = 'contrato_enviado', updated_at = now()
+    where id = ${id} and status in ('novo','fotos_enviadas','parecer_enviado','documentacao_agendada','documentacao_realizada','plano_apresentado')`;
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'contrato_gerado' });
+  if (c.email) await sendMail({
+    to: c.email, subject: 'Seu contrato AlignSystem',
+    html: layout(`Olá, ${c.name.split(' ')[0]}!`, para('Seu contrato de tratamento está pronto para leitura e aceite eletrônico.') + button(contractUrl(t), 'Ler e aceitar o contrato')),
+  });
+  send(res, 201, { url: contractUrl(t) });
+});
+
+// Cobrança do tratamento (modelo único). O paciente recebe um link e escolhe:
+//  Pix à vista com desconto · cartão de crédito em até 18x sem juros · boleto (entrada de 50% por Pix/cartão + saldo em boletos).
+// Com dentista parceiro, o repasse dele (30% do tratamento) sai por split percentual sobre o valor líquido.
+r('POST', '/api/admin/cases/:id/charges', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  if (!c.cpf) fail(400, 'Cadastre o CPF do paciente antes de cobrar.');
+  const total = money(b.value);
+  if (!(total > 0)) fail(400, 'Informe o valor total do tratamento.');
+  // o escaneamento e a submissão já pagos são descontados do valor do tratamento
+  const [{ paid: scanPaid }] = await sql`select coalesce(sum(price), 0)::float as paid from scan_orders where case_id = ${id} and status in ('pago','agendado','realizado')`;
+  const value = Math.round((total - scanPaid) * 100) / 100;
+  if (!(value > 0)) fail(400, `O valor do tratamento precisa ser maior que o escaneamento já pago (${brl(scanPaid)}).`);
+  const negCfg = await negotiationSettings(sql);
+  const boletoMax = Math.min(Math.max(Number(b.boletoMax) || MODEL.boletoMaxInstallments, 1), negCfg.maxBoletos);
+  const interestPct = boletoMax > negCfg.noInterestUpTo ? negCfg.interestPctMonth : null;
+  const description = clean(b.description, 200) || `AlignSystem — tratamento (caso #${c.code})`;
+  let split = null;
+  const share = b.dentistShare === '80/20' ? '80/20' : b.dentistShare ? '50/30/20' : null;
+  if (share) {
+    const d = await dentistById(sql, c.dentist_id);
+    if (!d) fail(400, 'Defina o dentista do caso para dividir o pagamento.');
+    if (!d.asaas_wallet_id) fail(400, `${d.name} ainda não tem conta de recebimento (walletId) cadastrada.`);
+    let pct = MODEL.dentistPct;
+    let alignerCost = null;
+    if (share === '80/20') {
+      const cx = c.plan?.complexity;
+      if (!cx) fail(400, 'Defina a complexidade do caso no plano (o custo dos alinhadores depende dela).');
+      const prices = await scan.getPrices(sql);
+      alignerCost = scan.alignerCostFor(prices, c.plan?.brand, cx);
+      if (!alignerCost) fail(400, `Preencha em Preços o custo dos alinhadores da marca "${c.plan?.brand || '—'}" (${cx}).` + (prices.brands.length ? ` Marcas cadastradas: ${prices.brands.map((x) => x.name).join(', ')}. A marca do plano do caso precisa ter o mesmo nome.` : ''));
+      if (alignerCost >= value) fail(400, 'O valor cobrado precisa ser maior que o custo dos alinhadores.');
+      pct = ownPriceDentistPct(value, alignerCost);
+    }
+    split = { walletId: d.asaas_wallet_id, dentistId: d.id, type: 'percent', value: pct, model: share, alignerCost };
+  }
+  const t = token(24);
+  const [out] = await sql`insert into charges (case_id, dentist_id, kind, description, billing_type, value, max_installments, boleto_enabled, boleto_max,
+      due_date, split, pay_token, status, created_by, scan_deducted, interest_pct)
+    values (${id}, ${split?.dentistId || null}, 'integral', ${description}, 'UNDEFINED', ${value}, ${Math.min(Number(b.cardMax) || MODEL.cardMaxInstallments, MODEL.cardMaxInstallments)}, ${b.boleto !== false}, ${boletoMax},
+            ${dueIn(3)}, ${split ? sql.json(split) : null}, ${t}, 'aguardando_escolha', ${u.id}, ${scanPaid || null}, ${interestPct}) returning *`;
+  await logEvent(sql, { caseId: id, actor: u.email, type: 'cobranca_criada', data: { total, scanDeducted: scanPaid, value, boleto: b.boleto !== false, repasseDentista: Boolean(split) } });
+  if (c.email) await sendMail({
+    to: c.email, subject: `Pagamento AlignSystem — ${description}`,
+    html: layout('Seu pagamento está disponível', table([['Descrição', description], ['Valor do tratamento', brl(value)]]) +
+      para('Abra o link para escolher a forma de pagamento.') + button(payUrl(t), 'Escolher forma de pagamento')),
+  });
+  send(res, 201, { ...out, pay_url: payUrl(t) });
+});
+
+const dueIn = (days, from = Date.now()) => new Date(new Date(from).getTime() + days * 86400_000).toISOString().slice(0, 10);
+
+async function chargeByPayToken(sql, t) {
+  const [ch] = t && t.length >= 16 ? await sql`select ch.*, c.name as patient_name, c.code as case_code, c.cpf, c.email, c.whatsapp, c.asaas_customer_id
+    from charges ch join cases c on c.id = ch.case_id where ch.pay_token = ${t}` : [];
+  if (!ch) fail(404, 'Link de pagamento inválido.');
+  return ch;
+}
+
+const anyPaid = async (sql, chargeId) =>
+  (await sql`select 1 from payments where charge_id = ${chargeId} and status = any(${[...asaas.PAID]}) limit 1`).length > 0;
+
+const splitFor = (ch, part) => {
+  if (!ch.split?.walletId) return null;
+  const pct = ch.split.model === '80/20' ? Number(ch.split.value) : ch.split.model ? dentistSplitPct(part, ch.split.model) : Number(ch.split.value);
+  return pct > 0 ? { walletId: ch.split.walletId, type: ch.split.model ? 'percent' : ch.split.type, value: pct } : null;
+};
+
+const chargeQuote = (ch) => quote(ch.value, { cardMax: ch.max_installments || MODEL.cardMaxInstallments, boletoMax: ch.boleto_max || MODEL.boletoMaxInstallments, boleto: ch.boleto_enabled,
+  ...(ch.interest_pct != null ? { interestPct: Number(ch.interest_pct) } : {}) });
+
+// Consulta por quebra/perda de alinhador: cobrada à parte do paciente (consulta do dentista + 30%);
+// o dentista recebe o valor da consulta por split e o acréscimo fica com a AlignSystem
+r('POST', '/api/admin/cases/:id/charges/quebra', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [c] = await sql`select * from cases where id = ${id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  if (!c.cpf) fail(400, 'Cadastre o CPF do paciente antes de cobrar.');
+  const d = await dentistById(sql, c.dentist_id);
+  if (!d) fail(400, 'Defina o dentista do caso.');
+  if (!d.asaas_wallet_id) fail(400, `${d.name} ainda não tem conta de recebimento (walletId) cadastrada.`);
+  const consult = dentistConsultValue(d);
+  const value = breakagePrice(consult);
+  const customer = c.asaas_customer_id || (await asaas.ensureCustomer({ name: c.name, cpfCnpj: c.cpf, email: c.email, mobilePhone: String(c.whatsapp || '').replace(/^55/, ''), externalReference: c.id }));
+  if (!c.asaas_customer_id) await sql`update cases set asaas_customer_id = ${customer} where id = ${c.id}`;
+  const description = `Consulta por quebra ou perda de alinhador — caso #${c.code}`;
+  const split = { walletId: d.asaas_wallet_id, dentistId: d.id, type: 'fixed', value: consult, model: 'quebra' };
+  const [ch] = await sql`insert into charges (case_id, dentist_id, kind, description, billing_type, value, installment_count, due_date, split, status, created_by)
+    values (${c.id}, ${d.id}, 'avulsa', ${description}, 'UNDEFINED', ${value}, 1, ${dueIn(3)}, ${sql.json(split)}, 'PENDING', ${u.id}) returning id`;
+  const p = await asaas.createPayment({ customer, billingType: 'UNDEFINED', value, dueDate: dueIn(3), description, installmentCount: 1,
+    split: { walletId: d.asaas_wallet_id, type: 'fixed', value: consult }, externalReference: ch.id });
+  await sql`update charges set asaas_payment_id = ${p.id}, invoice_url = ${p.invoiceUrl}, status = ${p.status || 'PENDING'} where id = ${ch.id}`;
+  await logEvent(sql, { caseId: c.id, dentistId: d.id, actor: u.email, type: 'cobranca_quebra', data: { value, dentist: consult, platform: Math.round((value - consult) * 100) / 100 } });
+  if (c.email) await sendMail({
+    to: c.email, subject: `Pagamento AlignSystem — ${description}`,
+    html: layout('Consulta por quebra ou perda de alinhador', table([['Descrição', description], ['Valor', brl(value)]]) + button(p.invoiceUrl, 'Pagar')),
+  });
+  send(res, 201, { id: ch.id, value, dentist: consult, invoiceUrl: p.invoiceUrl });
+});
+
+// Boleto: depois da entrada confirmada, gera o saldo em boletos mensais (idempotente)
+async function ensureBoletos(sql, chargeId) {
+  await sql.begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(hashtext(${'boletos:' + chargeId}))`;
+    const [ch] = await tx`select ch.*, c.asaas_customer_id from charges ch join cases c on c.id = ch.case_id where ch.id = ${chargeId}`;
+    if (!ch || ch.pay_option !== 'BOLETO' || ch.rest_payment_id || !ch.asaas_customer_id) return;
+    const [entry] = await tx`select paid_at from payments where asaas_payment_id = ${ch.asaas_payment_id} and status = any(${[...asaas.PAID]})`;
+    if (!entry) return;
+    const q = chargeQuote(ch);
+    const opt = q.boleto.options[(ch.installment_count || 1) - 1];
+    const p = await asaas.createPayment({
+      customer: ch.asaas_customer_id, billingType: 'BOLETO', value: opt?.interest ? opt.totalRest : q.boleto.rest, dueDate: dueIn(30, entry.paid_at || Date.now()),
+      description: `${ch.description} — saldo em boletos`, installmentCount: ch.installment_count || 1, split: splitFor(ch, 'boleto_rest'), externalReference: ch.id,
+    });
+    await tx`update charges set rest_payment_id = ${p.id}, rest_installment_id = ${p.installment || null}, updated_at = now() where id = ${ch.id}`;
+    await logEvent(tx, { caseId: ch.case_id, actor: 'sistema', type: 'boletos_gerados', data: { parcelas: ch.installment_count, valor: q.boleto.rest } });
+  });
+  await syncCharge(sql, chargeId).catch(() => {});
+}
+
+// Página de pagamento do paciente
+r('GET', '/api/pay/:token', async (req, res, { token: t }) => {
+  const sql = db();
+  const ch = await chargeByPayToken(sql, t);
+  const paid = await anyPaid(sql, ch.id);
+  const boletos = ch.pay_option === 'BOLETO' && ch.rest_payment_id
+    ? await sql`select due_date, value, status, invoice_url from payments
+        where charge_id = ${ch.id} and (asaas_payment_id = ${ch.rest_payment_id} or installment_id = ${ch.rest_installment_id || ''}) order by due_date`
+    : [];
+  const [entryPay] = ch.asaas_payment_id ? await sql`select invoice_url from payments where asaas_payment_id = ${ch.asaas_payment_id}` : [];
+  send(res, 200, {
+    description: ch.description, caseCode: ch.case_code, firstName: ch.patient_name.split(' ')[0],
+    status: ch.status === 'cancelado' ? 'cancelado' : paid ? (ch.pay_option === 'BOLETO' ? 'entrada_paga' : 'pago') : 'aberto',
+    option: ch.pay_option, installments: ch.installment_count || 1, entryMethod: ch.entry_method,
+    receiptUrl: paid ? entryPay?.invoice_url || ch.invoice_url : null,
+    quote: chargeQuote(ch), pixDiscountPct: MODEL.pixDiscountPct,
+    boletos: boletos.map((p) => ({ dueDate: p.due_date, value: Number(p.value), status: asaas.STATUS_PT[p.status] || p.status, paid: asaas.PAID.has(p.status), url: p.invoice_url })),
+  }, { 'Cache-Control': 'no-store' });
+});
+
+// O paciente escolhe a forma; gera (ou reaproveita) a cobrança no Asaas e devolve o link da fatura
+r('POST', '/api/pay/:token', async (req, res, { token: t }) => {
+  const sql = db();
+  const b = await readJson(req);
+  const option = ['PIX', 'CREDIT_CARD', 'BOLETO'].includes(b.option) ? b.option : fail(400, 'Escolha Pix, cartão de crédito ou boleto.');
+  const out = await sql.begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(hashtext(${'pay:' + t}))`;
+    const ch = await chargeByPayToken(tx, t);
+    if (ch.status === 'cancelado' || ch.status === 'erro') fail(409, 'Esta cobrança foi cancelada. Fale com a equipe AlignSystem.');
+    if (await anyPaid(tx, ch.id)) fail(409, 'Este pagamento já foi confirmado.');
+    const q = chargeQuote(ch);
+    if (option === 'BOLETO' && !q.boleto) fail(400, 'Boleto não disponível para esta cobrança.');
+    const maxN = option === 'CREDIT_CARD' ? q.card.length : option === 'BOLETO' ? q.boleto.options.length : 1;
+    const n = Math.min(Math.max(Number(b.installments) || 1, 1), maxN);
+    const entryMethod = option === 'BOLETO' ? (b.entryMethod === 'CREDIT_CARD' ? 'CREDIT_CARD' : 'PIX') : null;
+    if (ch.pay_option === option && (ch.installment_count || 1) === n && (ch.entry_method || null) === entryMethod && ch.invoice_url && ch.status === 'PENDING') {
+      return { invoiceUrl: ch.invoice_url };
+    }
+    // troca de forma: cancela o que estava em aberto
+    if (ch.asaas_installment_id) await asaas.cancelInstallment(ch.asaas_installment_id);
+    else if (ch.asaas_payment_id) await asaas.cancelPayment(ch.asaas_payment_id);
+    await tx`update payments set status = 'DELETED', updated_at = now() where charge_id = ${ch.id} and status in ('PENDING','OVERDUE')`;
+    const customer = ch.asaas_customer_id || (await asaas.ensureCustomer({
+      name: ch.patient_name, cpfCnpj: digits(ch.cpf), email: ch.email, mobilePhone: (ch.whatsapp || '').replace(/^55/, ''), externalReference: ch.case_id,
+    }));
+    if (!ch.asaas_customer_id) await tx`update cases set asaas_customer_id = ${customer} where id = ${ch.case_id}`;
+    const base = { customer, description: ch.description, externalReference: ch.id };
+    const p = option === 'PIX'
+      ? await asaas.createPayment({ ...base, billingType: 'PIX', value: q.pix, dueDate: dueIn(1), installmentCount: 1, split: splitFor(ch, 'pix') })
+      : option === 'CREDIT_CARD'
+        ? await asaas.createPayment({ ...base, billingType: 'CREDIT_CARD', value: q.total, dueDate: dueIn(3), installmentCount: n, split: splitFor(ch, 'card') })
+        : await asaas.createPayment({ ...base, description: `${ch.description} — entrada (alinhadores)`, billingType: entryMethod, value: q.boleto.entry, dueDate: dueIn(3), installmentCount: 1, split: splitFor(ch, 'boleto_entry') });
+    await tx`update charges set pay_option = ${option}, billing_type = ${option === 'BOLETO' ? entryMethod : option}, entry_method = ${entryMethod},
+             installment_count = ${n}, asaas_payment_id = ${p.id}, asaas_installment_id = ${p.installment || null}, invoice_url = ${p.invoiceUrl},
+             status = ${p.status || 'PENDING'}, due_date = ${p.dueDate || dueIn(3)}, updated_at = now() where id = ${ch.id}`;
+    await logEvent(tx, { caseId: ch.case_id, actor: 'paciente', type: 'forma_pagamento_escolhida', data: { option, installments: n, entryMethod } });
+    return { invoiceUrl: p.invoiceUrl, chargeId: ch.id };
+  });
+  if (out.chargeId) await syncCharge(sql, out.chargeId).catch(() => {});
+  send(res, 200, { invoiceUrl: out.invoiceUrl });
+});
+
+// Busca os pagamentos individuais no Asaas e grava/atualiza localmente
+async function syncCharge(sql, chargeId) {
+  const [ch] = await sql`select * from charges where id = ${chargeId}`;
+  if (!ch || !asaas.asaasConfigured()) return;
+  const list = [];
+  const fetchGroup = async (installmentId, paymentId) => {
+    if (installmentId) list.push(...((await asaas.listInstallmentPayments(installmentId)).data || []));
+    else if (paymentId) list.push(await asaas.getPayment(paymentId));
+  };
+  if (ch.asaas_subscription_id) list.push(...((await asaas.listSubscriptionPayments(ch.asaas_subscription_id)).data || []));
+  else await fetchGroup(ch.asaas_installment_id, ch.asaas_payment_id);
+  await fetchGroup(ch.rest_installment_id, ch.rest_payment_id);
+  for (const p of list) if (p?.id) await upsertPayment(sql, p, ch);
+  if (list.length && !ch.invoice_url) await sql`update charges set invoice_url = ${list[0].invoiceUrl} where id = ${ch.id}`;
+}
+
+async function upsertPayment(sql, p, ch) {
+  const paidAt = asaas.PAID.has(p.status) ? (p.clientPaymentDate || p.paymentDate || p.confirmedDate || new Date().toISOString()) : null;
+  await sql`insert into payments (asaas_payment_id, charge_id, case_id, installment_id, value, net_value, due_date, status, billing_type, invoice_url, paid_at, updated_at)
+    values (${p.id}, ${ch?.id || null}, ${ch?.case_id || null}, ${p.installment || null}, ${p.value}, ${p.netValue ?? null}, ${p.dueDate}, ${p.status}, ${p.billingType}, ${p.invoiceUrl}, ${paidAt}, now())
+    on conflict (asaas_payment_id) do update set status = excluded.status, installment_id = coalesce(excluded.installment_id, payments.installment_id), value = excluded.value, net_value = excluded.net_value,
+      due_date = excluded.due_date, billing_type = excluded.billing_type, invoice_url = excluded.invoice_url,
+      paid_at = coalesce(excluded.paid_at, payments.paid_at), updated_at = now(),
+      charge_id = coalesce(payments.charge_id, excluded.charge_id), case_id = coalesce(payments.case_id, excluded.case_id)`;
+  if (ch && !ch.asaas_subscription_id && !ch.asaas_installment_id && p.id === ch.asaas_payment_id) await sql`update charges set status = ${p.status}, updated_at = now() where id = ${ch.id}`;
+}
+
+r('POST', '/api/admin/charges/:id/sync', async (req, res, { id }) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  await syncCharge(sql, id);
+  send(res, 200, { ok: true });
+});
+
+r('POST', '/api/admin/charges/:id/cancel', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [ch] = await sql`select * from charges where id = ${id}`;
+  if (!ch) fail(404, 'Cobrança não encontrada.');
+  if (ch.asaas_subscription_id) await asaas.cancelSubscription(ch.asaas_subscription_id);
+  await syncCharge(sql, id).catch(() => {});
+  const pend = await sql`select asaas_payment_id from payments where charge_id = ${id} and status in ('PENDING','OVERDUE')`;
+  for (const p of pend) await asaas.cancelPayment(p.asaas_payment_id);
+  await sql`update charges set status = 'cancelado', updated_at = now() where id = ${id}`;
+  await logEvent(sql, { caseId: ch.case_id, actor: u.email, type: 'cobranca_cancelada', data: { id } });
+  send(res, 200, { ok: true });
+});
+
+r('POST', '/api/admin/evidences/:id/validate', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const [chk] = await sql`select authorization_id, patient_signature is not null as ps, dentist_signature is not null as ds from evidences where id = ${id}`;
+  if (!chk) fail(404, 'Registro não encontrado.');
+  if (!chk.authorization_id || !chk.ps || !chk.ds) fail(409, 'Só é possível validar atendimento com autorização prévia e as assinaturas do paciente e do dentista.');
+  const [e] = await sql`update evidences set validated_at = now(), validated_by = ${u.id} where id = ${id} and validated_at is null returning id, case_id, dentist_id, milestone`;
+  if (e) {
+    await logEvent(sql, { caseId: e.case_id, dentistId: e.dentist_id, actor: u.email, type: 'evidencia_validada', data: { milestone: e.milestone } });
+    const d = await dentistById(sql, e.dentist_id);
+    if (d?.email) await sendMail({ to: d.email, subject: 'Atendimento validado — AlignSystem', html: layout('Atendimento validado', para(`O registro "${MILESTONES[e.milestone]}" foi validado pela equipe. O repasse segue o prazo do seu Termo de Adesão.`)) });
+  }
+  send(res, 200, { ok: true });
+});
+
+// Parceiros
+r('GET', '/api/admin/dentists', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const rows = await sql`select d.id, d.name, d.cro, d.cro_uf, d.city, d.extra_cities, d.phone, d.email, d.status, d.created_at, d.asaas_wallet_id is not null as has_wallet,
+      (select count(*)::int from cases c where c.dentist_id = d.id) as case_count,
+      (select status from contracts ct where ct.dentist_id = d.id and ct.kind = 'parceiro' and ct.status <> 'cancelado' order by created_at desc limit 1) as term_status
+    from dentists d order by d.created_at desc limit 500`;
+  send(res, 200, { dentists: rows, labels: DENTIST_STATUS });
+});
+
+r('GET', '/api/admin/dentists/:id', async (req, res, { id }) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const d = await dentistById(sql, id);
+  if (!d) fail(404, 'Parceiro não encontrado.');
+  const [contracts, cases, users, events, evidences] = await Promise.all([
+    sql`select id, token, title, status, accepted_at, accepted_ip, body_hash, created_at from contracts where dentist_id = ${id} order by created_at desc`,
+    sql`select id, code, name, city, status from cases where dentist_id = ${id} order by created_at desc`,
+    sql`select id, email, active, last_login_at, password_hash is not null as has_password from users where dentist_id = ${id}`,
+    sql`select actor, type, data, created_at from events where dentist_id = ${id} order by created_at desc limit 50`,
+    sql`select e.id, e.milestone, e.performed_at, e.validated_at, e.authorization_id, c.code from evidences e join cases c on c.id = e.case_id where e.dentist_id = ${id} order by e.created_at desc limit 100`,
+  ]);
+  send(res, 200, {
+    dentist: d,
+    priceInfo: { scanPrice: await caseScanPrice(sql), consultValue: dentistConsultValue(d), breakage: breakagePrice(dentistConsultValue(d)), breakageMarkupPct: MODEL.breakageMarkupPct },
+    contracts: contracts.map((x) => ({ ...x, url: contractUrl(x.token) })),
+    cases, users, events, evidences,
+    labels: { DENTIST_STATUS, CASE_STATUS, MILESTONES },
+    partnerDefaults: PARTNER_DEFAULTS,
+    asaas: asaas.asaasConfigured() ? asaas.asaasEnv() : null,
+  });
+});
+
+r('PATCH', '/api/admin/dentists/:id', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const up = {};
+  for (const k of ['name', 'city', 'state', 'experience', 'address', 'address_number', 'province', 'notes', 'company_type', 'cro_uf']) {
+    if (b[k] !== undefined) up[k] = clean(b[k], k === 'notes' ? 5000 : 200) || null;
+  }
+  if (b.cro !== undefined) up.cro = digits(b.cro);
+  if (b.phone !== undefined) up.phone = digits(b.phone);
+  if (b.postal_code !== undefined) up.postal_code = digits(b.postal_code) || null;
+  if (b.email !== undefined) { const em = clean(b.email, 160).toLowerCase(); if (em && !isEmail(em)) fail(400, 'E-mail inválido.'); up.email = em || null; }
+  if (b.cpf_cnpj !== undefined) { const doc = digits(b.cpf_cnpj); if (doc && !validCpfCnpj(doc)) fail(400, 'CPF/CNPJ inválido.'); up.cpf_cnpj = doc || null; }
+  if (b.birth_date !== undefined) up.birth_date = b.birth_date || null;
+  if (b.income_value !== undefined) up.income_value = money(b.income_value);
+  if (b.asaas_wallet_id !== undefined) up.asaas_wallet_id = clean(b.asaas_wallet_id, 80) || null;
+  if (b.status !== undefined) { if (!DENTIST_STATUS[b.status]) fail(400, 'Status inválido.'); up.status = b.status; }
+  if (b.extra_cities !== undefined) {
+    const [cur] = await sql`select city, coalesce(state, cro_uf) as uf from dentists where id = ${id}`;
+    const p = parseCities(b.extra_cities, up.cro_uf || up.state || cur?.uf || '', up.city || cur?.city);
+    if (p.bad.length) fail(400, `Cidade não encontrada: ${p.bad.join(', ')}. Escreva no formato Cidade/UF, por exemplo Londrina/PR.`);
+    if (p.otherUf.length) fail(400, `As cidades precisam ser do mesmo estado da cidade principal (${p.uf}): ${p.otherUf.join(', ')}.`);
+    if (p.extra.length) fail(400, `Cada parceiro pode atender em até ${MAX_DENTIST_CITIES} cidades (a principal + ${MAX_DENTIST_CITIES - 1} outras).`);
+    up.extra_cities = sql.json(p.cities);
+  }
+  if (!Object.keys(up).length) return send(res, 200, { ok: true });
+  up.updated_at = new Date();
+  await sql`update dentists set ${sql(up)} where id = ${id}`;
+  if (up.status === 'inativo' || up.status === 'recusado') await sql`update users set active = false where dentist_id = ${id}`;
+  if (up.status === 'ativo' || up.status === 'aprovado') await sql`update users set active = true where dentist_id = ${id}`;
+  if (up.email) await sql`update users set email = ${up.email} where dentist_id = ${id}`;
+  await logEvent(sql, { dentistId: id, actor: u.email, type: 'parceiro_atualizado', data: { campos: Object.keys(up).filter((k) => k !== 'updated_at') } });
+  send(res, 200, { ok: true });
+});
+
+// Aprovar credenciamento: cria acesso ao painel + Termo de Adesão para aceite
+r('POST', '/api/admin/dentists/:id/approve', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const d = await dentistById(sql, id);
+  if (!d) fail(404, 'Parceiro não encontrado.');
+  if (!d.email) fail(400, 'Cadastre o e-mail do dentista.');
+  const terms = {};
+  for (const k of Object.keys(PARTNER_DEFAULTS)) if (b.terms?.[k] !== undefined && b.terms[k] !== '') terms[k] = money(b.terms[k]);
+  let [user] = await sql`select * from users where dentist_id = ${id} or email = ${d.email} order by (dentist_id = ${id}) desc nulls last limit 1`;
+  if (user && user.role !== 'dentist') fail(409, `O e-mail ${d.email} é um acesso da equipe AlignSystem. Use outro e-mail no cadastro do parceiro.`);
+  if (user && user.dentist_id && user.dentist_id !== id) {
+    // CRO de outro estado é outro cadastro, com acesso próprio
+    fail(409, `O e-mail ${d.email} já é o acesso de outro cadastro de parceiro. Para o CRO de outro estado, use um e-mail diferente neste cadastro.`);
+  }
+  if (user && user.role === 'admin') fail(409, 'Este e-mail já pertence a um administrador.');
+  if (!user) [user] = await sql`insert into users (email, name, role, dentist_id) values (${d.email}, ${d.name}, 'dentist', ${id}) returning *`;
+  else await sql`update users set dentist_id = ${id}, active = true where id = ${user.id}`;
+  await sql`update dentists set terms = ${sql.json({ ...PARTNER_DEFAULTS, ...terms })}, updated_at = now() where id = ${id}`;
+  const ct = await createPartnerContract(sql, d, terms, u.id);
+  if (d.status === 'lead' || d.status === 'em_analise') await sql`update dentists set status = 'aprovado', updated_at = now() where id = ${id}`;
+  const pw = await createPasswordToken(sql, user.id, 24 * 7);
+  const setUrl = `${appUrl()}/definir-senha?t=${pw}`;
+  await logEvent(sql, { dentistId: id, actor: u.email, type: 'parceiro_aprovado', data: { terms } });
+  const mail = await sendMail({
+    to: d.email, subject: 'Bem-vindo(a) à rede AlignSystem — próximos passos',
+    html: layout(`Olá, ${d.name.split(' ')[0]}!`, para('Seu credenciamento foi aprovado. São dois passos:') +
+      para('1) Leia e aceite o Termo de Adesão:') + button(contractUrl(ct.token), 'Ler o Termo de Adesão') +
+      para('2) Crie sua senha de acesso ao painel do parceiro (o link vale 7 dias):') + button(setUrl, 'Criar minha senha')),
+  });
+  send(res, 200, { contractUrl: contractUrl(ct.token), setPasswordUrl: setUrl, emailed: Boolean(mail.sent) });
+});
+
+r('POST', '/api/admin/dentists/:id/access-link', async (req, res, { id }) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  const [user] = await sql`select id from users where dentist_id = ${id}`;
+  if (!user) fail(400, 'Aprove o parceiro primeiro.');
+  const t = await createPasswordToken(sql, user.id, 24 * 7);
+  send(res, 200, { setPasswordUrl: `${appUrl()}/definir-senha?t=${t}` });
+});
+
+r('POST', '/api/admin/dentists/:id/asaas-account', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const d = await dentistById(sql, id);
+  if (!d) fail(404, 'Parceiro não encontrado.');
+  if (d.asaas_wallet_id) fail(409, 'Este parceiro já tem conta de recebimento.');
+  const missing = [];
+  if (!d.cpf_cnpj) missing.push('CPF/CNPJ');
+  if (!d.email) missing.push('e-mail');
+  if (d.cpf_cnpj && digits(d.cpf_cnpj).length === 11 && !d.birth_date) missing.push('data de nascimento');
+  if (!d.address || !d.address_number || !d.province || !d.postal_code) missing.push('endereço completo (rua, número, bairro, CEP)');
+  if (missing.length) fail(400, `Preencha antes: ${missing.join(', ')}.`);
+  const birth = d.birth_date ? new Date(d.birth_date).toISOString().slice(0, 10) : undefined;
+  const acc = await asaas.createSubaccount({ ...d, birth_date: birth });
+  await sql`update dentists set asaas_account_id = ${acc.id}, asaas_wallet_id = ${acc.walletId}, updated_at = now() where id = ${id}`;
+  await logEvent(sql, { dentistId: id, actor: u.email, type: 'subconta_asaas_criada', data: { account: acc.id } });
+  send(res, 201, { walletId: acc.walletId });
+});
+
+// Usuários administradores
+r('GET', '/api/admin/users', async (req, res) => {
+  const sql = db();
+  await requireUser(sql, req, 'admin');
+  send(res, 200, { users: await sql`select id, email, name, role, active, last_login_at, created_at, totp_enabled_at is not null as totp_enabled from users where role = 'admin' order by created_at` });
+});
+
+r('POST', '/api/admin/users', async (req, res) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const email = clean(b.email, 160).toLowerCase();
+  if (!isEmail(email)) fail(400, 'E-mail inválido.');
+  const name = clean(b.name, 120) || email;
+  const [exists] = await sql`select id from users where email = ${email}`;
+  if (exists) fail(409, 'Já existe um usuário com este e-mail.');
+  const [nu] = await sql`insert into users (email, name, role) values (${email}, ${name}, 'admin') returning id`;
+  const t = await createPasswordToken(sql, nu.id, 72);
+  const url = `${appUrl()}/definir-senha?t=${t}`;
+  await sendMail({ to: email, subject: 'Acesso ao painel AlignSystem', html: layout('Você recebeu acesso ao painel', para(`${u.name} criou seu acesso de administrador.`) + button(url, 'Criar minha senha')) });
+  send(res, 201, { setPasswordUrl: url });
+});
+
+r('PATCH', '/api/admin/users/:id', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  if (id === u.id) fail(400, 'Você não pode desativar o próprio acesso.');
+  await sql`update users set active = ${Boolean(b.active)} where id = ${id} and role = 'admin'`;
+  send(res, 200, { ok: true });
+});
+
+// ------------------------------------------------------------------ dentista parceiro
+
+async function dentistUser(sql, req) {
+  const u = await requireUser(sql, req, 'dentist');
+  if (!u.dentist_id) fail(403, 'Conta sem cadastro de parceiro.');
+  return u;
+}
+
+async function dentistCase(sql, u, id) {
+  const [c] = await sql`select * from cases where id = ${id} and dentist_id = ${u.dentist_id}`;
+  if (!c) fail(404, 'Caso não encontrado.');
+  return c;
+}
+
+r('GET', '/api/dentist/overview', async (req, res) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const d = await dentistById(sql, u.dentist_id);
+  const cases = await sql`select id, code, name, city, status, updated_at from cases where dentist_id = ${u.dentist_id} order by updated_at desc`;
+  const appts = await sql`select a.id, a.kind, a.starts_at, a.room_url, a.location, a.status, c.code, c.name, c.id as case_id
+    from appointments a join cases c on c.id = a.case_id where a.dentist_id = ${u.dentist_id} and a.starts_at > now() - interval '1 day' and a.status = 'agendado' order by a.starts_at limit 30`;
+  const [term] = await sql`select token, status, accepted_at from contracts where dentist_id = ${u.dentist_id} and kind = 'parceiro' and status <> 'cancelado' order by created_at desc limit 1`;
+  const evidences = await sql`select e.id, e.milestone, e.performed_at, e.validated_at, c.code from evidences e join cases c on c.id = e.case_id
+    where e.dentist_id = ${u.dentist_id} order by e.created_at desc limit 50`;
+  send(res, 200, {
+    dentist: { name: d.name, cro: d.cro, croUf: d.cro_uf, status: d.status, hasWallet: Boolean(d.asaas_wallet_id) },
+    term: term ? { status: term.status, acceptedAt: term.accepted_at, url: `/contrato?t=${term.token}` } : null,
+    cases, appointments: appts, evidences,
+    labels: { CASE_STATUS, MILESTONES },
+  });
+});
+
+r('GET', '/api/dentist/cases/:id', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const c = await dentistCase(sql, u, id);
+  const [photos, appts, evidences] = await Promise.all([
+    photoMeta(sql, id).then((list) => list.filter((p) => p.uploaded_by !== 'paciente' || p.reviewed_at)),
+    sql`select * from appointments where case_id = ${id} order by starts_at desc`,
+    sql`select e.id, e.case_id, e.dentist_id, e.milestone, e.notes, e.performed_at, e.validated_at, e.validated_by, e.created_at, e.authorization_id, e.patient_signer, e.signed_at, e.signed_ip, e.signatures_hash, (e.patient_signature is not null) as has_patient_signature, (e.dentist_signature is not null) as has_dentist_signature from evidences e where case_id = ${id} order by performed_at desc, created_at desc`,
+  ]);
+  const authorizations = await sql`select * from authorizations where case_id = ${id} and dentist_id = ${u.dentist_id} order by created_at desc`;
+  for (const e of evidences) if (c.plan?.model === 'rede' || e.milestone === 'consulta_avulsa') e.payout_date = payoutDate(e.created_at);
+  send(res, 200, {
+    case: {
+      id: c.id, code: c.code, name: c.name, age: c.age, city: c.city, whatsapp: c.whatsapp, reason: c.reason, status: c.status,
+      assessment: c.assessment, assessment_notes: c.assessment_notes, malocclusion: c.malocclusion, plan: { brand: c.plan?.brand, months: c.plan?.months, treatmentNotes: c.plan?.treatmentNotes, model: c.plan?.model || 'parceiro', complexity: c.plan?.complexity || null, consultLimit: consultLimit(c.plan) },
+    },
+    photos, appointments: appts, evidences, authorizations,
+    negotiation: c.negotiation || null, negotiationConsent: Boolean((await dentistById(sql, u.dentist_id))?.negotiation?.consentVersion),
+    labels: { CASE_STATUS, ASSESSMENT, MILESTONES, MALOCCLUSION, URGENCY, AUTH_STATUS },
+    slots: PHOTO_SLOTS,
+  });
+});
+
+// Pedido de autorização prévia: sem ele (e sem o "autorizado" da equipe) o atendimento não pode ser registrado
+r('POST', '/api/dentist/cases/:id/authorizations', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const c = await dentistCase(sql, u, id);
+  const b = await readJson(req);
+  if (!MILESTONES[b.milestone]) fail(400, 'Escolha o tipo de atendimento.');
+  if (!URGENCY[b.urgency]) fail(400, 'Informe se é rotina ou urgência.');
+  const justification = clean(b.justification, 2000);
+  if (justification.length < 10) fail(400, 'Escreva a justificativa do atendimento.');
+  const planned = /^\d{4}-\d{2}-\d{2}$/.test(b.planned_for || '') ? b.planned_for : null;
+  await rateLimit(sql, `auth:${u.id}`, 30, 60);
+  const limit = consultLimit(c.plan);
+  const [{ n }] = await sql`select count(*)::int as n from authorizations where case_id = ${id} and status in ('solicitada','autorizada','realizada')`;
+  const overLimit = Boolean(limit && n + 1 > limit);
+  const [a] = await sql`insert into authorizations (case_id, dentist_id, milestone, urgency, justification, planned_for, over_limit, requested_by)
+    values (${id}, ${u.dentist_id}, ${b.milestone}, ${b.urgency}, ${justification}, ${planned}, ${overLimit}, ${u.id}) returning *`;
+  await logEvent(sql, { caseId: id, dentistId: u.dentist_id, actor: u.email, type: 'autorizacao_solicitada', data: { milestone: b.milestone, urgency: b.urgency, overLimit } });
+  const urgent = b.urgency === 'urgencia';
+  await sendMail({
+    to: notifyAddress(),
+    subject: `${urgent ? 'URGENTE — ' : ''}Pedido de autorização — caso #${c.code} (${MILESTONES[b.milestone]})`,
+    html: layout(urgent ? 'Pedido de autorização URGENTE' : 'Pedido de autorização de atendimento', table([
+      ['Dentista', u.name], ['Caso', `#${c.code} — ${c.name}`], ['Atendimento', MILESTONES[b.milestone]], ['Tipo', URGENCY[b.urgency]],
+      ['Data prevista', planned ? planned.split('-').reverse().join('/') : '—'], ['Justificativa', justification],
+      ...(overLimit ? [['Atenção', `Acima do limite de ${limit} consultas do contrato: exige termo aditivo pago pelo paciente.`]] : []),
+    ]) + button(`${appUrl()}/painel#/caso/${c.id}`, 'Autorizar ou negar no painel')),
+  });
+  send(res, 201, a);
+});
+
+r('POST', '/api/dentist/authorizations/:id/cancel', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const [a] = await sql`update authorizations set status = 'cancelada', updated_at = now()
+    where id = ${id} and dentist_id = ${u.dentist_id} and status in ('solicitada','autorizada') returning *`;
+  if (!a) fail(409, 'Este pedido não pode mais ser cancelado.');
+  await logEvent(sql, { caseId: a.case_id, dentistId: u.dentist_id, actor: u.email, type: 'autorizacao_cancelada' });
+  send(res, 200, { ok: true });
+});
+
+r('POST', '/api/admin/authorizations/:id/decide', async (req, res, { id }) => {
+  const sql = db();
+  const u = await requireUser(sql, req, 'admin');
+  const b = await readJson(req);
+  const approve = b.approve === true;
+  const note = clean(b.note, 1000) || null;
+  if (!approve && !note) fail(400, 'Escreva o motivo para negar.');
+  const [a] = await sql`update authorizations set status = ${approve ? 'autorizada' : 'negada'}, decided_at = now(), decided_by = ${u.id},
+      decision_note = ${note}, updated_at = now()
+    where id = ${id} and status = 'solicitada' returning *`;
+  if (!a) fail(409, 'Este pedido já foi decidido ou cancelado.');
+  await logEvent(sql, { caseId: a.case_id, dentistId: a.dentist_id, actor: u.email, type: approve ? 'autorizacao_concedida' : 'autorizacao_negada', data: { note, ip: clientIp(req) } });
+  const d = await dentistById(sql, a.dentist_id);
+  const [c] = await sql`select code from cases where id = ${a.case_id}`;
+  if (d?.email) await sendMail({
+    to: d.email,
+    subject: `${approve ? 'Atendimento autorizado' : 'Atendimento não autorizado'} — caso #${c.code}`,
+    html: layout(approve ? 'Atendimento autorizado' : 'Atendimento não autorizado',
+      para(approve
+        ? `O atendimento "${MILESTONES[a.milestone]}" do caso #${c.code} foi autorizado. Depois de atender, registre no painel o que foi feito e colete a assinatura do paciente e a sua.`
+        : `O atendimento "${MILESTONES[a.milestone]}" do caso #${c.code} não foi autorizado.`) + (note ? para(`Observação da equipe: ${note}`) : '') +
+      button(`${appUrl()}/painel#/caso/${a.case_id}`, 'Abrir o caso')),
+  });
+  send(res, 200, a);
+});
+
+// Registro do atendimento: só com autorização concedida, descrição do que foi feito e as duas assinaturas
+r('POST', '/api/dentist/cases/:id/evidences', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const c = await dentistCase(sql, u, id);
+  const b = await readJson(req);
+  const [auth] = b.authorizationId ? await sql`select * from authorizations where id = ${b.authorizationId} and case_id = ${id} and dentist_id = ${u.dentist_id}` : [];
+  if (!auth) fail(409, 'Este atendimento precisa de autorização prévia da AlignSystem. Faça o pedido de autorização antes de atender.');
+  if (auth.status === 'solicitada') fail(409, 'O pedido de autorização ainda está aguardando a AlignSystem.');
+  if (auth.status !== 'autorizada') fail(409, `Este pedido está "${AUTH_STATUS[auth.status]}" e não permite registrar atendimento.`);
+  const notes = clean(b.notes, 3000);
+  if (notes.length < 10) fail(400, 'Descreva o que foi feito no atendimento.');
+  const signer = clean(b.patientSigner, 120);
+  if (signer.length < 3) fail(400, 'Informe o nome de quem assinou pelo paciente.');
+  const patientSig = await sanitizeSignature(b.patientSignature, 'paciente');
+  const dentistSig = await sanitizeSignature(b.dentistSignature, 'dentista');
+  const performed = /^\d{4}-\d{2}-\d{2}$/.test(b.performed_at || '') ? b.performed_at : new Date().toISOString().slice(0, 10);
+  const ip = clientIp(req);
+  const hash = sha256([auth.id, performed, notes, signer, patientSig.toString('base64'), dentistSig.toString('base64')].join('|'));
+  const e = await sql.begin(async (tx) => {
+    const [upd] = await tx`update authorizations set status = 'realizada', updated_at = now() where id = ${auth.id} and status = 'autorizada' returning id`;
+    if (!upd) fail(409, 'Este atendimento já foi registrado.');
+    const [row] = await tx`insert into evidences (case_id, dentist_id, milestone, notes, performed_at, authorization_id, patient_signature, dentist_signature,
+        patient_signer, signed_at, signed_ip, signatures_hash)
+      values (${id}, ${u.dentist_id}, ${auth.milestone}, ${notes}, ${performed}, ${auth.id}, ${patientSig}, ${dentistSig}, ${signer}, now(), ${ip}, ${hash})
+      returning id, milestone, performed_at, authorization_id`;
+    return row;
+  });
+  const m = auth.milestone;
+  if (m === 'instalacao' || m === 'inicio_alinhadores') {
+    await sql`update cases set status = 'em_tratamento', updated_at = now() where id = ${id} and status in ('contrato_assinado','documentacao_realizada','plano_apresentado')`;
+  }
+  if (m === 'documentacao') await sql`update cases set status = 'documentacao_realizada', updated_at = now() where id = ${id} and status in ('documentacao_agendada','parecer_enviado','fotos_enviadas','novo')`;
+  if (m === 'finalizacao') await sql`update cases set status = 'finalizado', updated_at = now() where id = ${id} and status = 'em_tratamento'`;
+  await logEvent(sql, { caseId: id, dentistId: u.dentist_id, actor: u.email, type: 'evidencia_registrada', data: { milestone: m, authorizationId: auth.id, signer, ip, hash } });
+  await sendMail({
+    to: notifyAddress(), subject: `Atendimento registrado — caso #${c.code} (${MILESTONES[m]})`,
+    html: layout('Novo registro de atendimento', table([['Dentista', u.name], ['Caso', `#${c.code} — ${c.name}`], ['Tipo', MILESTONES[m]], ['Data', performed], ['Assinado por', `${signer} e o dentista`]]) +
+      button(`${appUrl()}/painel#/caso/${c.id}`, 'Validar no painel')),
+  });
+  send(res, 201, e);
+});
+
+// Imagem da assinatura (equipe ou o próprio dentista)
+r('GET', '/api/evidences/:id/signature/:who', async (req, res, { id, who }) => {
+  const sql = db();
+  const u = await requireUser(sql, req);
+  if (who !== 'paciente' && who !== 'dentista') fail(404, 'Assinatura não encontrada.');
+  const [e] = u.role === 'admin'
+    ? await sql`select patient_signature, dentist_signature from evidences where id = ${id}`
+    : await sql`select patient_signature, dentist_signature from evidences where id = ${id} and dentist_id = ${u.dentist_id}`;
+  const img = e && (who === 'paciente' ? e.patient_signature : e.dentist_signature);
+  if (!img) fail(404, 'Assinatura não encontrada.');
+  send(res, 200, Buffer.from(img), {
+    'Content-Type': 'image/png', 'Cache-Control': 'private, max-age=600', 'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
+  });
+});
+
+r('POST', '/api/dentist/evidences/:id/photos', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const [e] = await sql`select * from evidences where id = ${id} and dentist_id = ${u.dentist_id}`;
+  if (!e) fail(404, 'Registro não encontrado.');
+  if (e.validated_at) fail(409, 'Registro já validado; crie um novo para mais fotos.');
+  const p = await saveImage(sql, req, { caseId: e.case_id, evidenceId: id, kind: 'evidencia', uploadedBy: 'dentista', userId: u.id, allowPdf: true });
+  send(res, 201, p);
+});
+
+r('POST', '/api/dentist/cases/:id/appointments', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  await dentistCase(sql, u, id);
+  send(res, 201, await addAppointment(sql, u, id, await readJson(req), u.dentist_id));
+});
+
+r('PATCH', '/api/dentist/appointments/:id', async (req, res, { id }) => {
+  const sql = db();
+  const u = await dentistUser(sql, req);
+  const b = await readJson(req);
+  if (!['agendado', 'realizado', 'cancelado', 'faltou'].includes(b.status)) fail(400, 'Status inválido.');
+  await sql`update appointments set status = ${b.status} where id = ${id} and dentist_id = ${u.dentist_id}`;
+  send(res, 200, { ok: true });
+});
+
+// ------------------------------------------------------------------ webhook Asaas
+
+r('POST', '/api/webhooks/asaas', async (req, res) => {
+  const sql = db();
+  const expected = process.env.ASAAS_WEBHOOK_TOKEN;
+  if (!expected || req.headers['asaas-access-token'] !== expected) fail(401, 'token inválido');
+  const b = await readJson(req);
+  const p = b.payment;
+  // A conta Asaas é compartilhada com outros negócios: só tratamos (e guardamos) pagamentos de cobranças da AlignSystem.
+  let ch = null;
+  if (p?.id) {
+    const ref = p.externalReference;
+    [ch] = ref && /^[0-9a-f-]{36}$/i.test(ref) ? await sql`select * from charges where id = ${ref}` : [];
+    if (!ch) [ch] = await sql`select * from charges where asaas_payment_id = ${p.id}
+      or rest_payment_id = ${p.id}
+      or (${p.installment || ''} <> '' and (asaas_installment_id = ${p.installment || ''} or rest_installment_id = ${p.installment || ''}))
+      or (${p.subscription || ''} <> '' and asaas_subscription_id = ${p.subscription || ''}) limit 1`;
+  }
+  if (!ch) return send(res, 200, { received: true, ignored: true });
+  await sql`insert into webhook_events (provider, event, payload) values ('asaas', ${clean(b.event, 80)}, ${sql.json(b)})`;
+  await upsertPayment(sql, p, ch);
+  if (asaas.PAID.has(p.status) && ch.pay_option === 'BOLETO' && p.id === ch.asaas_payment_id) await ensureBoletos(sql, ch.id);
+  if (asaas.PAID.has(p.status) && ch.kind === 'escaneamento') {
+    const [o] = await sql`update scan_orders set status = 'pago', paid_at = coalesce(paid_at, now()) where charge_id = ${ch.id} and status = 'aguardando_pagamento' returning id`;
+    if (o) {
+      await logEvent(sql, { caseId: ch.case_id, actor: 'asaas', type: 'escaneamento_pago', data: { value: p.value } });
+      const [cc] = await sql`select id, code, name, city, whatsapp from cases where id = ${ch.case_id}`;
+      await sendMail({ to: notifyAddress(), subject: `Escaneamento pago — caso #${cc.code} (${cc.name})`,
+        html: layout('Escaneamento pago: agendar', table([['Paciente', cc.name], ['Cidade', cc.city], ['WhatsApp', cc.whatsapp], ['Valor', brl(p.value)]]) + para('O paciente vai indicar os melhores dias e horários na página dele. Agende a documentação no caso.') + button(`${appUrl()}/painel#/caso/${cc.id}`, 'Abrir o caso')) });
+    }
+  }
+  if (asaas.PAID.has(p.status)) {
+    const [c] = await sql`select id, code, name from cases where id = ${ch.case_id}`;
+    await logEvent(sql, { caseId: ch.case_id, actor: 'asaas', type: 'pagamento_confirmado', data: { value: p.value, id: p.id } });
+    if (b.event === 'PAYMENT_RECEIVED' || b.event === 'PAYMENT_CONFIRMED') {
+      await sendMail({
+        to: notifyAddress(), subject: `Pagamento confirmado — caso #${c?.code} (${brl(p.value)})`,
+        html: layout('Pagamento confirmado', table([['Paciente', c?.name], ['Valor', brl(p.value)], ['Descrição', p.description], ['Forma', p.billingType]])),
+      });
+    }
+  }
+  send(res, 200, { received: true });
+});
+
+// ------------------------------------------------------------------ entrada
+
+export default async function handler(req, res) {
+  const url = new URL(req.url, 'http://localhost');
+  const m = router.match(req.method, url.pathname);
+  try {
+    if (!m) fail(404, 'Rota não encontrada.');
+    if (m.methodNotAllowed) fail(405, 'Método não permitido.');
+    // Proteção CSRF básica para rotas com sessão: exige mesma origem nos métodos de escrita
+    if (req.method !== 'GET' && !url.pathname.startsWith('/api/webhooks/')) {
+      const origin = req.headers.origin;
+      let host = null;
+      try { host = origin ? new URL(origin).host : null; } catch { host = 'inválida'; }
+      if (origin && host !== req.headers.host) fail(403, 'Origem não permitida.');
+    }
+    await m.handler(req, res, m.params);
+  } catch (e) {
+    if (e instanceof HttpError) return send(res, e.status, { error: e.message });
+    console.error(e);
+    send(res, 500, { error: 'Erro interno. Tente novamente em instantes.' });
+  }
+}
