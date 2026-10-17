@@ -1,0 +1,16 @@
+[
+ {"id":"agendador","nome":"Agendador","gatilho":"mensagem_recebida","canal":"whatsapp","aprovacao":false},
+ {"id":"lembrete","nome":"Lembrete","gatilho":"agendamento-24h,agendamento-2h","canal":"whatsapp,sms","aprovacao":false},
+ {"id":"retorno","nome":"Retorno","gatilho":"ciclo_servico_vencido","canal":"whatsapp","aprovacao":false},
+ {"id":"aniversario","nome":"Aniversário","gatilho":"data_nascimento","canal":"whatsapp,email","aprovacao":false},
+ {"id":"posvenda","nome":"Pós-venda","gatilho":"atendimento+2h","canal":"whatsapp","aprovacao":false},
+ {"id":"encaixe","nome":"Encaixe","gatilho":"cancelamento","canal":"whatsapp","aprovacao":false},
+ {"id":"instagram","nome":"Instagram","gatilho":"semanal","canal":"instagram","aprovacao":true,"skill":"skills/instagram"},
+ {"id":"facebook","nome":"Facebook","gatilho":"semanal,mensagem_recebida","canal":"facebook","aprovacao":true,"skill":"skills/facebook"},
+ {"id":"estoque","nome":"Estoque","gatilho":"saldo<=minimo","canal":"app","aprovacao":false},
+ {"id":"fiscal","nome":"Fiscal","gatilho":"pagamento_recebido","canal":"fiscal","aprovacao":false},
+ {"id":"comissao","nome":"Comissão","gatilho":"fechamento","canal":"app","aprovacao":true},
+ {"id":"clube","nome":"Clube","gatilho":"dia_cobranca","canal":"cartao,pix","aprovacao":false},
+ {"id":"reputacao","nome":"Reputação","gatilho":"nova_avaliacao","canal":"google","aprovacao":false},
+ {"id":"gestor","nome":"Gestor","gatilho":"diario-20h","canal":"whatsapp","aprovacao":false,"skill":"skills/whatsapp"}
+]

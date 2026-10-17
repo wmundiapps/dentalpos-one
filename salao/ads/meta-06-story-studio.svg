@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d4a85a"/><stop offset="1" stop-color="#e58aa8"/></linearGradient>
+<radialGradient id="r" cx=".5" cy="0" r=".9"><stop offset="0" stop-color="#d4a85a" stop-opacity=".35"/><stop offset="1" stop-color="#14121a" stop-opacity="0"/></radialGradient></defs>
+<rect width="1080" height="1920" fill="#14121a"/><rect width="1080" height="1920" fill="url(#r)"/>
+<rect x="40" y="40" width="1000" height="1840" rx="36" fill="none" stroke="url(#g)" stroke-width="4"/>
+<text x="540" y="700" text-anchor="middle" font-family="Georgia,serif" font-size="84" font-weight="700" fill="#f4efe6">Seu Studio Hair</text>
+<text x="540" y="800" text-anchor="middle" font-family="Georgia,serif" font-size="84" font-weight="700" fill="url(#g)">sempre lotado</text>
+<text x="540" y="890" text-anchor="middle" font-family="Arial,sans-serif" font-size="38" fill="#b9b2c4">Mega hair, noivas, spa e harmonização</text>
+<rect x="240" y="1620" width="600" height="104" rx="52" fill="url(#g)"/>
+<text x="540" y="1686" text-anchor="middle" font-family="Arial,sans-serif" font-size="40" font-weight="700" fill="#14121a">Testar grátis</text>
+<text x="540" y="1810" text-anchor="middle" font-family="Georgia,serif" font-size="44" fill="#f4efe6">Beauty<tspan fill="#d4a85a">Pos</tspan></text>
+</svg>
