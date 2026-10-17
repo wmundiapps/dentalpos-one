@@ -3,7 +3,7 @@ import { settingsSchema, defaultSettings, type Settings } from './settings.js';
 import { decrypt, encrypt } from './secure.js';
 import type { AsaasCreds } from './asaas.js';
 
-export interface TenantRow { id: string; slug: string; name: string; owner_name: string; email: string; phone: string | null; cnpj: string | null; trial_ends_at: Date; billing_status: string; terms_version: string | null; settings: any; secrets: string | null }
+export interface TenantRow { id: string; slug: string; name: string; owner_name: string; email: string; phone: string | null; cnpj: string | null; trial_ends_at: Date; billing_status: string; terms_version: string | null; asaas_subscription_id: string | null; monthly_fee_cents: number; settings: any; secrets: string | null }
 
 export async function getTenant(db: Db, id: string): Promise<TenantRow> {
   const t = await one<TenantRow>(db, 'SELECT * FROM tenants WHERE id = $1', [id]);

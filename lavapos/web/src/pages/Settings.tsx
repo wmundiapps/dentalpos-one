@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import { api, setToken } from '../api';
 import { Card, Chip, Field, Loading, NumberInput, Page, Select, Tabs, Text, Toggle, useAction, useLoad, useToast } from '../ui';
 import { useMe } from '../App';
@@ -37,6 +38,7 @@ export default function Settings() {
 
       {tab === 'conta' && (<>
         <PasswordCard />
+        <TwoFactor />
         <Card title="Seus dados (LGPD)"><p className="muted">Baixe uma cópia de todos os dados do lava-rápido, ou peça o encerramento da conta. Os dados ficam 30 dias para você exportar e depois são anonimizados.</p>
           <div className="row"><button onClick={async () => { const j = await run(() => api('/settings/export')); if (j) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(j, null, 2)], { type: 'application/json' })); a.download = 'lavapos-dados.json'; a.click(); } }}>⬇ Exportar meus dados</button>
             {owner && <button className="danger" onClick={async () => { if (prompt('Para encerrar a conta, digite ENCERRAR:') === 'ENCERRAR') { await run(() => api('/settings/close-account', { body: { confirm: 'ENCERRAR' } })); toast('Conta encerrada.'); logout(); } }}>Encerrar minha conta</button>}</div></Card>
@@ -77,4 +79,24 @@ function PasswordCard() {
   const [f, setF] = useState({ current: '', next: '' }); const [run, busy] = useAction();
   return (<Card title="Trocar senha"><div className="grid g2"><Field label="Senha atual"><input type="password" autoComplete="current-password" value={f.current} onChange={(e) => setF({ ...f, current: e.target.value })} /></Field><Field label="Nova senha (10+ caracteres, letras e números)"><input type="password" autoComplete="new-password" value={f.next} onChange={(e) => setF({ ...f, next: e.target.value })} /></Field></div>
     <button disabled={busy || !f.current || f.next.length < 10} onClick={async () => { const r = await run(() => api<{ token: string }>('/auth/change-password', { body: f }), 'Senha trocada. Outros aparelhos foram desconectados.'); if (r) { setToken(r.token); setF({ current: '', next: '' }); } }}>Trocar senha</button></Card>);
+}
+
+function TwoFactor() {
+  const st = useLoad<{ enabled: boolean }>('/auth/2fa'); const [setup, setSetup] = useState<{ secret: string; qr: string } | null>(null);
+  const [code, setCode] = useState(''); const [pw, setPw] = useState(''); const [run, busy] = useAction();
+  if (!st.data) return null;
+  return (<Card title="Verificação em 2 etapas">
+    <p className="muted">Mesmo que alguém descubra sua senha, não entra sem o código do aplicativo autenticador (Google Authenticator, Authy, 1Password…). Recomendamos ligar, principalmente para o dono.</p>
+    {st.data.enabled ? (<>
+      <div className="alert ok">✓ Ligada.</div>
+      <div className="grid g2"><Field label="Sua senha"><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" /></Field><Text label="Código atual do aplicativo" value={code} onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" /></div>
+      <button className="danger" disabled={busy || !pw || code.length !== 6} onClick={async () => { const r = await run(() => api('/auth/2fa/disable', { body: { password: pw, code } }), 'Desligada.'); if (r) { setPw(''); setCode(''); await st.reload(); } }}>Desligar</button></>
+    ) : setup ? (<>
+      <p>1) No aplicativo autenticador, escaneie o QR (ou digite a chave). 2) Digite o código de 6 dígitos que ele mostrar.</p>
+      <img src={setup.qr} alt="QR code para o aplicativo autenticador" width={200} height={200} />
+      <p className="small">Chave manual: <b style={{ letterSpacing: 2 }}>{setup.secret}</b></p>
+      <Text label="Código de 6 dígitos" value={code} onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" />
+      <button className="primary" disabled={busy || code.length !== 6} onClick={async () => { const r = await run(() => api('/auth/2fa/enable', { body: { code } }), 'Verificação em 2 etapas ligada!'); if (r) { setSetup(null); setCode(''); await st.reload(); } }}>Ligar</button></>
+    ) : <button className="primary" disabled={busy} onClick={async () => { const r = await run(() => api<{ secret: string; otpauth: string }>('/auth/2fa/setup', { body: {} })); if (r) setSetup({ secret: r.secret, qr: await QRCode.toDataURL(r.otpauth, { margin: 1, width: 400 }) }); }}>Ligar verificação em 2 etapas</button>}
+  </Card>);
 }

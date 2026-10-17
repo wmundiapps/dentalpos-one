@@ -177,3 +177,33 @@ test('API de plataforma é negada ao dono e cron exige segredo', async () => {
   assert.equal((await api('/cron/tick')).status, 401);
   assert.equal((await api('/webhooks/asaas', { body: { event: 'PAYMENT_RECEIVED', payment: { id: 'x' } } })).status, 401);
 });
+
+test('2 etapas: login exige o código e não aceita o mesmo código duas vezes', async () => {
+  const { codeAt } = await import('../src/totp.js');
+  const r = await reg('Lava Dois', 'dois@teste.com'); const t = r.json.token;
+  const setup = await api('/auth/2fa/setup', { token: t, body: {} });
+  assert.equal(setup.status, 200); assert.match(setup.json.otpauth, /^otpauth:\/\/totp\//);
+  const step = () => Math.floor(Date.now() / 30000);
+  assert.equal((await api('/auth/2fa/enable', { token: t, body: { code: '000000' } })).status, 400);
+  assert.equal((await api('/auth/2fa/enable', { token: t, body: { code: codeAt(setup.json.secret, step()) } })).status, 200);
+  const noCode = await api('/auth/login', { body: { email: 'dois@teste.com', password: 'Senha-forte-123' } });
+  assert.equal(noCode.status, 401); assert.equal(noCode.json.code, 'precisa_2fa');
+  const next = codeAt(setup.json.secret, step() + 1); // passo seguinte: ainda aceito pela tolerância e diferente do já usado
+  const ok = await api('/auth/login', { body: { email: 'dois@teste.com', password: 'Senha-forte-123', code: next } });
+  assert.equal(ok.status, 200);
+  const reuse = await api('/auth/login', { body: { email: 'dois@teste.com', password: 'Senha-forte-123', code: next } });
+  assert.equal(reuse.status, 401); assert.equal(reuse.json.code, 'codigo_invalido');
+  const row = await pool.query("SELECT totp_secret FROM users WHERE email = 'dois@teste.com'");
+  assert.ok(!row.rows[0].totp_secret.includes(setup.json.secret), 'segredo 2FA deve ficar cifrado');
+});
+
+test('proteções extras: JSON obrigatório, corpo gigante, script embutido e link em mensagem', async () => {
+  const r = await fetch(base + '/auth/login', { method: 'POST', headers: { 'content-type': 'text/plain' }, body: 'x' });
+  assert.equal(r.status, 415);
+  const big = await fetch(base + '/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'a@b.co', password: 'x'.repeat(300_000) }) });
+  assert.equal(big.status, 413);
+  const { stripLinks } = await import('../src/security.js');
+  assert.equal(stripLinks('Oi http://golpe.xyz/pix e www.banco-falso.com.br/x'), 'Oi [link removido] e [link removido]');
+  const xss = await api('/r/customer', { token: A, body: { name: '<img src=x onerror=alert(1)>Maria', whatsapp: '11911112222' } });
+  assert.ok(!xss.json.data.name.includes('<'));
+});

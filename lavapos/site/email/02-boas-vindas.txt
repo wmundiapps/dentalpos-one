@@ -1,0 +1,20 @@
+Assunto: Bem-vindo ao LavaPos — seus 30 dias grátis começaram
+
+Bem-vindo, {{nome}}!
+
+A conta do {{lavacar}} está pronta. Para começar em 10 minutos:
+
+- 1. Confira os preços em Serviços e preços
+- 2. Ajuste dias e horários em Configurações
+- 3. Faça seu primeiro check-in com fotos
+- 4. Compartilhe o link de agendamento com seus clientes
+
+Dica: ligue a verificação em 2 etapas em Configurações › Conta e dados.
+
+O LavaPos nunca pede sua senha por WhatsApp, SMS ou e-mail.
+
+Abrir o LavaPos: {{link_cadastro}}
+
+--
+LavaPos — [RAZÃO SOCIAL DA WMUNDI], CNPJ [CNPJ], Maringá/PR.
+Dúvidas? Responda este e-mail ou escreva para suporte@lavapos.com.br.

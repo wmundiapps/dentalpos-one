@@ -1,0 +1,5 @@
+Contact: mailto:seguranca@lavapos.com.br
+Expires: 2027-10-17T00:00:00.000Z
+Preferred-Languages: pt, en
+Canonical: https://app.lavapos.com.br/.well-known/security.txt
+Policy: https://app.lavapos.com.br/legal/privacidade

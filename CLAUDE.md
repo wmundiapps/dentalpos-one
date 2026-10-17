@@ -1,7 +1,7 @@
 # DentalPos — regras do repositório (memória do projeto)
 
 Sistema de gestão odontológica (clínicas, laboratórios, acadêmicos). Nome do produto: **DentalPos** (sem "One" em tela, e-mail ou texto). Endereço: app.dentalpos.com.br; API: api.dentalpos.com.br.
-Monorepo: `frontend/` (React + Vite + MUI), `backend/` (Express + Prisma, Postgres no Supabase), publicado na Vercel (projetos `dentalpos-one` e `dentalpos-one-w2pa`). Outros produtos no mesmo repositório: `revah/`, `espacos/` (SpaceHour).
+Monorepo: `frontend/` (React + Vite + MUI), `backend/` (Express + Prisma, Postgres no Supabase), publicado na Vercel (projetos `dentalpos-one` e `dentalpos-one-w2pa`). Outros produtos no mesmo repositório: `revah/`, `espacos/` (SpaceHour), `lavapos/` (LavaPos, gestão de lava-rápidos; regras em `lavapos/CLAUDE.md`).
 
 ## Como trabalhar com o Robson
 - Ele é dentista e dono da clínica; fala português. Quer **um passo curto por vez**, com comandos, URLs e valores em bloco de copiar e colar. Explique só quando ele perguntar.

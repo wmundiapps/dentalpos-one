@@ -6,7 +6,7 @@ import { flushOutbox, notifyCustomer, render, appUrl, enqueue } from './notify.j
 import { complianceAlerts } from './routes/dashboard.js';
 import { apptVars } from './routes/agenda.js';
 import { addDays, addMonths, daysBetween, nowLocal } from './time.js';
-import { createCharge, ensureCustomer, feeOf } from './asaas.js';
+import { createCharge, createPlatformSubscription, ensureCustomer, feeOf } from './asaas.js';
 import { decrypt } from './secure.js';
 
 export async function runJobs() {
@@ -56,6 +56,15 @@ export async function runJobs() {
         await patchRec(pool, t.id, 'subscription', sub.id, { nextBillingDate: addMonths(sub.data.nextBillingDate, 1) });
         if (invoiceUrl && cust2.data.whatsapp) await enqueue(pool, { tenantId: t.id, channel: 'whatsapp', to: cust2.data.whatsapp, body: `Olá, ${String(cust2.data.name).split(' ')[0]}! A mensalidade do clube da ${t.name} venceu hoje. Pague aqui: ${invoiceUrl}`, topic: 'cobranca', dedupeKey: `mensal:${sub.id}:${sub.data.nextBillingDate}` });
         out.subscriptionCharges++;
+      }
+      // 3b) Fim do teste grátis: cria a mensalidade (R$ 119) na conta Asaas da plataforma, uma única vez
+      if (t.billing_status === 'trial' && new Date(t.trial_ends_at) < new Date() && !t.asaas_subscription_id && process.env.PLATFORM_ASAAS_API_KEY) {
+        try {
+          const sub = await createPlatformSubscription({ name: t.name, email: t.email, cpfCnpj: t.cnpj ?? undefined, tenantId: t.id, valueCents: t.monthly_fee_cents, nextDueDate: addDays(now.date, 3) });
+          await pool.query('UPDATE tenants SET asaas_subscription_id = $2 WHERE id = $1', [t.id, sub.id]);
+          await enqueue(pool, { tenantId: t.id, channel: 'email', to: t.email, subject: 'Seu teste do LavaPos terminou — como continuar', topic: 'fim-teste', dedupeKey: 'fim-teste',
+            body: `Olá, ${String(t.owner_name).split(' ')[0]}!\n\nO período grátis do ${t.name} terminou e seus dados continuam guardados. A mensalidade do LavaPos é de R$ ${(t.monthly_fee_cents / 100).toFixed(2).replace('.', ',')}. A cobrança chega em outro e-mail, da nossa plataforma de pagamentos (Asaas), por Pix, boleto ou cartão.\n\nSe preferir não continuar, exporte seus dados em Configurações > Conta e dados.\nDúvidas: suporte@lavapos.com.br` });
+        } catch (e) { console.error('[jobs] mensalidade falhou', (e as Error).message); }
       }
       // 4) Alertas legais (licenças, alvarás, aluguel, contratos) por e-mail ao dono
       for (const a of await complianceAlerts(t.id)) {

@@ -1,19 +1,24 @@
 import { useState } from 'react';
-import { api, setToken } from '../api';
+import { api, ApiError, setToken } from '../api';
 import { Field, Text, useAction } from '../ui';
 import { maskPhone } from '../format';
 
 export default function Auth({ onDone }: { onDone: () => void }) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register'>(new URLSearchParams(location.search).has('cadastro') ? 'register' : 'login');
   const [f, setF] = useState({ lavacarName: '', ownerName: '', email: '', phone: '', password: '', cnpj: '' });
   const [accept, setAccept] = useState(false);
   const [website, setWebsite] = useState('');
+  const [need2fa, setNeed2fa] = useState(false);
+  const [code, setCode] = useState('');
   const [run, busy] = useAction();
   const set = (k: keyof typeof f) => (v: string) => setF({ ...f, [k]: v });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const r = await run(() => mode === 'login' ? api<{ token: string }>('/auth/login', { body: { email: f.email, password: f.password } }) : api<{ token: string }>('/auth/register', { body: { ...f, acceptTerms: accept, website } }));
+    const r = await run(async () => {
+      try { return mode === 'login' ? await api<{ token: string }>('/auth/login', { body: { email: f.email, password: f.password, code: need2fa ? code : undefined } }) : await api<{ token: string }>('/auth/register', { body: { ...f, acceptTerms: accept, website } }); }
+      catch (err) { if (err instanceof ApiError && err.code === 'precisa_2fa') { setNeed2fa(true); return undefined; } throw err; }
+    });
     if (r) { setToken(r.token); onDone(); }
   };
 
@@ -34,6 +39,7 @@ export default function Auth({ onDone }: { onDone: () => void }) {
         <Field label="Senha" hint={mode === 'register' ? 'Mínimo 10 caracteres, com letras e números.' : undefined}>
           <input type="password" value={f.password} onChange={(e) => set('password')(e.target.value)} required minLength={mode === 'register' ? 10 : 1} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
         </Field>
+        {need2fa && <Text label="Código do aplicativo autenticador (6 dígitos)" value={code} onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" autoFocus />}
         {mode === 'register' && (
           <label className="row" style={{ alignItems: 'flex-start', margin: '6px 0 12px' }}>
             <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} required />

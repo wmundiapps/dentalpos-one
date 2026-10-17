@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import { text } from './validators.js';
+import { stripLinks } from './security.js';
+
+/** Texto de mensagem ao cliente: links digitados à mão são removidos (anti-phishing); o link do sistema entra pela variável {link}. */
+const msg = text(500).transform(stripLinks);
 
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const channels = z.object({ whatsapp: z.boolean(), sms: z.boolean(), email: z.boolean() });
@@ -18,7 +22,7 @@ export const settingsSchema = z.object({
     appointmentReminderHours: z.number().int().min(1).max(72), appointmentReminder: channels,
     readyNotice: channels, bookingConfirmation: channels, reviewRequest: channels,
   }),
-  templates: z.object({ pronto: text(500), lembrete: text(500), agenda: text(500), confirmacao: text(500), avaliacao: text(500) }),
+  templates: z.object({ pronto: msg, lembrete: msg, agenda: msg, confirmacao: msg, avaliacao: msg }),
   google: z.object({ placeId: text(80), reviewDelayHours: z.number().int().min(0).max(72) }),
   pricing: z.object({ desiredMarginPct: z.number().min(0).max(90), taxPct: z.number().min(0).max(40), cardFeePct: z.number().min(0).max(10), workingDaysPerMonth: z.number().int().min(1).max(31), targetProfitCents: z.number().int().min(0).max(1_000_000_00) }),
   invoice: z.object({ autoIssue: z.boolean(), provider: z.enum(['manual', 'enotas', 'focusnfe']), serviceCode: text(20), municipalRegistration: text(30) }),

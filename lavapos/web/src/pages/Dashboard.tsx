@@ -9,7 +9,8 @@ export default function Dashboard() {
   if (!d) return <Loading error={error} />;
   return (
     <Page title={`Olá, ${me.user.name.split(' ')[0]}!`} sub={me.tenant?.name} actions={<Link className="btn primary" to="/checkin">📝 Novo check-in</Link>}>
-      {d.trialDaysLeft !== null && <div className="alert info">Teste grátis: faltam <b>{d.trialDaysLeft} dias</b>. Depois, mensalidade de {(me.tenant!.monthlyFeeCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.</div>}
+      {d.trialDaysLeft === 0 && <div className="alert warn">Seu teste grátis terminou. A cobrança da mensalidade chega por e-mail. Seus dados continuam guardados.</div>}
+      {d.trialDaysLeft !== null && d.trialDaysLeft > 0 && <div className="alert info">Teste grátis: faltam <b>{d.trialDaysLeft} dias</b>. Depois, mensalidade de {(me.tenant!.monthlyFeeCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.</div>}
       {d.billingStatus === 'inadimplente' && <div className="alert bad"><b>VOCÊ ESTÁ EM RISCO:</b> há mensalidade do LavaPos em atraso. Regularize para não perder recursos.</div>}
       {d.complianceAlerts.length > 0 && <div className="alert warn"><b>Atenção:</b> {d.complianceAlerts.slice(0, 3).map((a: any) => `${a.title} (${a.daysLeft < 0 ? `venceu há ${-a.daysLeft}d` : a.daysLeft === 0 ? 'vence hoje' : `em ${a.daysLeft}d`})`).join(' · ')} — <Link to="/lembretes">ver tudo</Link></div>}
       <div className="grid g4" style={{ marginBottom: 14 }}>

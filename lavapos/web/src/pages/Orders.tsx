@@ -9,8 +9,6 @@ import { brl, dmy, hm, waLink } from '../format';
 export default function Orders() {
   const [tab, setTab] = useState<'em_servico' | 'pronto' | 'entregue'>('em_servico');
   const { data, error, reload } = useLoad<any[]>(`/orders?status=${tab}`, [tab]);
-  const [open, setOpen] = useState(false);
-  void open; void setOpen;
   return (
     <Page title="Pátio e ordens" actions={<Link className="btn primary" to="/checkin">📝 Novo check-in</Link>}>
       <Tabs value={tab} onChange={setTab} items={[{ key: 'em_servico', label: 'Em serviço' }, { key: 'pronto', label: 'Prontos' }, { key: 'entregue', label: 'Entregues' }]} />

@@ -1,0 +1,15 @@
+Assunto: Seu teste do LavaPos terminou — como continuar
+
+{{nome}}, seu teste terminou
+
+O período grátis do {{lavacar}} chegou ao fim. Seus dados continuam guardados.
+
+Para continuar usando, a mensalidade é de R$ 119,00, por Pix, boleto ou cartão. Você recebe a cobrança em outro e-mail, da nossa plataforma de pagamentos.
+
+Se preferir não continuar, você pode exportar seus dados em Configurações › Conta e dados.
+
+Entrar no LavaPos: {{link_cadastro}}
+
+--
+LavaPos — [RAZÃO SOCIAL DA WMUNDI], CNPJ [CNPJ], Maringá/PR.
+Qualquer dúvida: suporte@lavapos.com.br. Desconfie de mensagens com links diferentes de lavapos.com.br ou app.lavapos.com.br.

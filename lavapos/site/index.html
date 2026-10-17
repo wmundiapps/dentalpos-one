@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LavaPos — sistema para lava-rápido: check-in com fotos, agenda e clube</title>
+<meta name="description" content="Sistema completo para lava-rápido e estética automotiva: check-in e entrega com fotos, agenda online, clube de assinatura, cashback, estoque e financeiro. 30 dias grátis, sem cartão. Depois R$ 119/mês.">
+<link rel="canonical" href="https://lavapos.com.br/">
+<link rel="icon" type="image/svg+xml" href="img/favicon.svg">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta property="og:type" content="website"><meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="LavaPos — sistema para lava-rápido"><meta property="og:description" content="Check-in com fotos, agenda online, clube de assinatura, cashback, estoque e financeiro. 30 dias grátis.">
+<meta property="og:image" content="https://lavapos.com.br/img/og-image.png"><meta property="og:url" content="https://lavapos.com.br/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0b2a4a">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"LavaPos","applicationCategory":"BusinessApplication","operatingSystem":"Web, Android, iOS","description":"Sistema de gestão para lava-rápidos e estética automotiva.","offers":{"@type":"Offer","price":"119.00","priceCurrency":"BRL","description":"30 dias grátis; depois R$ 119,00 por mês"},"inLanguage":"pt-BR"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Preciso de cartão para testar?","acceptedAnswer":{"@type":"Answer","text":"Não. São 30 dias grátis, sem cartão. Depois do teste, a mensalidade é de R$ 119,00."}},
+{"@type":"Question","name":"Existe taxa sobre as lavagens?","acceptedAnswer":{"@type":"Answer","text":"Sim: comissão de 10% do valor das lavagens registradas e pagas pelo sistema (Pix, cartão e boleto pelo Asaas são divididos automaticamente; pagamentos em dinheiro ou maquininha própria entram numa fatura mensal). A regra completa está no contrato."}},
+{"@type":"Question","name":"Funciona no celular?","acceptedAnswer":{"@type":"Answer","text":"Sim. Funciona no navegador do celular e do computador e terá aplicativos para Android e iPhone."}}]}</script>
+<style>
+:root{--navy:#0b2a4a;--brand:#0b5fd7;--aqua:#14b8e6;--ink:#0f2238;--muted:#5b6b7e;--bg:#f3f6fa;--line:#dde4ec}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font:17px/1.55 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:#fff}
+img{max-width:100%;height:auto;display:block}a{color:var(--brand)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+header.nav{position:sticky;top:0;z-index:10;background:rgba(11,42,74,.96);backdrop-filter:blur(8px)}
+.nav .wrap{display:flex;align-items:center;gap:18px;height:64px}.nav img{height:34px}.nav b{color:#fff;font-size:1.2rem;letter-spacing:-.5px}.nav b span{color:var(--aqua)}
+.nav nav{margin-left:auto;display:flex;gap:18px;align-items:center}.nav nav a{color:#cfe0f3;text-decoration:none;font-size:.95rem}
+.btn{display:inline-block;background:var(--brand);color:#fff;font-weight:700;padding:14px 24px;border-radius:14px;text-decoration:none;border:0;font-size:1rem}
+.btn.light{background:#fff;color:var(--navy)}.btn.ghost{background:transparent;border:2px solid #ffffff66;color:#fff}.btn.sm{padding:9px 16px;border-radius:11px;font-size:.92rem}
+.hero{background:linear-gradient(150deg,var(--navy),var(--brand));color:#fff;overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center;padding-top:56px;padding-bottom:0}
+.hero h1{font-size:clamp(2rem,5vw,3.4rem);line-height:1.05;letter-spacing:-1.5px;margin:0 0 16px}.hero h1 em{font-style:normal;color:var(--aqua)}
+.hero p.lead{font-size:1.2rem;opacity:.93;max-width:560px}.hero .cta{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0 10px}.hero small{opacity:.8}
+.phone{width:min(330px,80%);margin:0 auto;border-radius:44px 44px 0 0;background:#0a1624;padding:10px 10px 0;box-shadow:0 30px 80px #0008}.phone img{border-radius:34px 34px 0 0}
+section{padding:68px 0}section.alt{background:var(--bg)}
+h2{font-size:clamp(1.6rem,3.4vw,2.3rem);letter-spacing:-.8px;line-height:1.12;margin:0 0 12px}.sub{color:var(--muted);max-width:680px;margin:0 0 30px}
+.grid{display:grid;gap:18px}.g3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}.g4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px}.alt .card{background:#fff}.card h3{margin:.2rem 0 .4rem;font-size:1.1rem}.card p{margin:0;color:var(--muted);font-size:.97rem}.ico{font-size:1.7rem}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px;align-items:start}.shots figure{margin:0}.shots img{border-radius:18px;border:1px solid var(--line);box-shadow:0 10px 30px #0a213c18}.shots figcaption{font-size:.9rem;color:var(--muted);margin-top:8px;text-align:center}
+.wide{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}.wide img{border-radius:16px;border:1px solid var(--line);box-shadow:0 14px 40px #0a213c1f}
+.steps{counter-reset:s}.steps .card{position:relative;padding-top:54px}.steps .card:before{counter-increment:s;content:counter(s);position:absolute;top:14px;left:20px;width:30px;height:30px;border-radius:50%;background:var(--brand);color:#fff;font-weight:800;display:grid;place-items:center}
+.price{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch}.plan{border:2px solid var(--brand);border-radius:22px;padding:28px;background:#fff}.plan .big{font-size:3rem;font-weight:800;letter-spacing:-2px;line-height:1}.plan ul{padding-left:20px;margin:16px 0}.plan li{margin:6px 0}
+.tag{display:inline-block;background:#dbeaff;color:#0a4db0;font-weight:700;font-size:.8rem;padding:3px 10px;border-radius:99px}
+.note{background:#fff8e6;border:1px solid #f0c36d;border-radius:14px;padding:14px 16px;color:#6b4300;font-size:.95rem}
+details{border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:10px;background:#fff}summary{cursor:pointer;font-weight:700}details p{margin:.6rem 0 0;color:var(--muted)}
+.final{background:linear-gradient(150deg,var(--navy),var(--brand));color:#fff;text-align:center}.final h2{color:#fff}
+footer{background:#071a2f;color:#9db2c8;padding:34px 0;font-size:.9rem}footer a{color:#cfe0f3}
+@media(max-width:820px){.hero .wrap,.wide,.price{grid-template-columns:1fr}.nav nav a:not(.btn){display:none}.phone{margin-top:10px}}
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap"><img src="img/logo-icone.png" alt="" width="34" height="34"><b>Lava<span>Pos</span></b>
+<nav><a href="#recursos">Recursos</a><a href="#como-funciona">Como funciona</a><a href="#precos">Preços</a><a href="#perguntas">Perguntas</a><a class="btn sm" href="https://app.lavapos.com.br/?cadastro=1">Teste grátis</a></nav></div></header>
+
+<main>
+<section class="hero"><div class="wrap">
+  <div><h1>O sistema do seu lava-rápido: <em>do check-in ao caixa</em></h1>
+  <p class="lead">Check-in e entrega com fotos, agenda online, clube de assinatura, cashback, estoque e financeiro. Tudo no celular, em português, feito para lava-rápido e estética automotiva.</p>
+  <div class="cta"><a class="btn light" href="https://app.lavapos.com.br/?cadastro=1">Criar conta grátis — 30 dias</a><a class="btn ghost" href="#como-funciona">Ver como funciona</a></div>
+  <small>Sem cartão de crédito. Depois, R$ 119,00 por mês. Cancele quando quiser.</small></div>
+  <div><div class="phone"><img src="img/m-checklist.webp" alt="Tela de checklist do veículo no LavaPos, com opções marcadas por toque" width="560" height="1120" fetchpriority="high"></div></div>
+</div></section>
+
+<section><div class="wrap"><h2>Feito para os problemas do dia a dia do lava-rápido</h2><p class="sub">Sem planilha, sem caderno, sem discussão de "esse risco já estava aí".</p>
+<div class="grid g4">
+<div class="card"><div class="ico">⚖️</div><h3>"O risco foi vocês"</h3><p>Checklist e fotos na entrada e na saída. O cliente confere e concorda na tela.</p></div>
+<div class="card"><div class="ico">📵</div><h3>Telefone não para</h3><p>O cliente agenda sozinho pelo seu link e recebe aviso por WhatsApp, SMS e e-mail.</p></div>
+<div class="card"><div class="ico">🔁</div><h3>Cliente some</h3><p>Lembrete automático para voltar a lavar, clube de assinatura e cashback.</p></div>
+<div class="card"><div class="ico">🧮</div><h3>Não sei se lucro</h3><p>Preço pelo custo real, ponto de equilíbrio e lucro do mês.</p></div></div></div></section>
+
+<section class="alt" id="recursos"><div class="wrap"><h2>Tudo que seu lava-rápido precisa, num lugar só</h2><p class="sub">Categorias <b>Carro, SUV, Utilitários, Vans e Caminhões</b>, com preço por categoria e por serviço.</p>
+<div class="grid g3">
+<div class="card"><div class="ico">📝</div><h3>Check-in e check-out com fotos</h3><p>Marque o estado do carro com toques (✕), escolha marca, modelo e ano em listas de rolagem e fotografe os ângulos. Na saída, o sistema mostra o que mudou.</p></div>
+<div class="card"><div class="ico">🧽</div><h3>Serviços e preços configuráveis</h3><p>Lavagem completa ou externa, higienização, hidratação de couro, enceramento, espelhamento, impermeabilização, insulfilme, película de proteção e os itens que você criar.</p></div>
+<div class="card"><div class="ico">📅</div><h3>Agenda inteligente</h3><p>Respeita seus dias, horários e número de boxes. Link de agendamento para o cliente e lembrete antes do horário.</p></div>
+<div class="card"><div class="ico">💬</div><h3>Avisos automáticos</h3><p>Carro pronto, horário marcado e "hora de lavar de novo", por WhatsApp, SMS e e-mail, com respeito ao consentimento do cliente.</p></div>
+<div class="card"><div class="ico">🔁</div><h3>Clube de assinatura</h3><p>Lavagem semanal, quinzenal, trisemanal ou mensal, com cobrança mensal automática e controle de quem está em dia.</p></div>
+<div class="card"><div class="ico">🎁</div><h3>Cashback e fidelidade</h3><p>Programa próprio de cashback, com opção de adesão à Cashbacksmart.</p></div>
+<div class="card"><div class="ico">💰</div><h3>Financeiro e nota fiscal</h3><p>Pix, cartão e boleto pelo Asaas, despesas, resultado do mês e preparação automática da nota fiscal.</p></div>
+<div class="card"><div class="ico">📦</div><h3>Estoque e fornecedores</h3><p>Baixa automática de produto a cada serviço e alerta de estoque baixo. Cadastro de fornecedores.</p></div>
+<div class="card"><div class="ico">🔔</div><h3>Licenças e contratos</h3><p>Avisos de licença ambiental, alvará, bombeiros, aluguel e contratos antes de vencer.</p></div>
+<div class="card"><div class="ico">📈</div><h3>Precificação com margem</h3><p>Materiais, aluguel, funcionários e despesas fixas viram o preço certo por categoria, o ponto de equilíbrio e o lucro projetado.</p></div>
+<div class="card"><div class="ico">✨</div><h3>Antes e depois e Google</h3><p>Vitrine de fotos (com autorização do cliente) e avaliações do Google na página do seu lava-rápido.</p></div>
+<div class="card"><div class="ico">🔐</div><h3>Segurança e LGPD</h3><p>Verificação em 2 etapas, dados sensíveis criptografados, trilha de auditoria e exportação dos seus dados.</p></div></div></div></section>
+
+<section><div class="wrap"><h2>Telas reais do sistema</h2><p class="sub">Dados de demonstração.</p>
+<div class="shots"><figure><img loading="lazy" src="img/m-hoje.webp" alt="Tela Hoje com carros em serviço e recebimentos" width="560" height="1120"><figcaption>Seu dia num relance</figcaption></figure>
+<figure><img loading="lazy" src="img/m-fotos.webp" alt="Fotos de entrada do veículo" width="560" height="1120"><figcaption>Fotos de entrada</figcaption></figure>
+<figure><img loading="lazy" src="img/m-agenda.webp" alt="Agenda do dia" width="560" height="1120"><figcaption>Agenda</figcaption></figure>
+<figure><img loading="lazy" src="img/m-clube.webp" alt="Clube de assinatura" width="560" height="1120"><figcaption>Clube de assinatura</figcaption></figure></div></div></section>
+
+<section class="alt"><div class="wrap wide"><div><h2>Mostre seu trabalho: antes e depois</h2><p class="sub" style="margin:0 0 14px">Com a autorização do cliente e a placa coberta, as melhores fotos vão para a página pública do seu lava-rápido — junto com as avaliações do Google e o botão de agendar.</p><a class="btn" href="https://app.lavapos.com.br/?cadastro=1">Quero minha página</a></div><img loading="lazy" src="img/d-vitrine.webp" alt="Vitrine de antes e depois" width="1200" height="750"></div></section>
+
+<section id="como-funciona"><div class="wrap"><h2>Comece hoje, em 3 passos</h2><p class="sub">Em cerca de 10 minutos você já faz o primeiro check-in.</p>
+<div class="grid g3 steps"><div class="card"><h3>Crie sua conta</h3><p>Nome do lava-rápido, e-mail e senha. Sem cartão. Já vem com serviços, categorias, checklist e planos de exemplo.</p></div>
+<div class="card"><h3>Ajuste preços e horários</h3><p>Edite os valores por categoria, os dias de funcionamento e o número de boxes.</p></div>
+<div class="card"><h3>Faça o primeiro check-in</h3><p>Placa, serviços, checklist e fotos. Compartilhe o link de agendamento com seus clientes.</p></div></div></div></section>
+
+<section class="alt" id="precos"><div class="wrap"><h2>Preço simples e transparente</h2><p class="sub">Sem taxa de adesão e sem fidelidade.</p>
+<div class="price"><div class="plan"><span class="tag">LavaPos completo</span><p style="margin:12px 0 4px"><b>30 dias grátis</b>, sem cartão</p><div class="big">R$ 119<small style="font-size:1.1rem;letter-spacing:0;font-weight:600">/mês</small></div><p class="muted" style="color:var(--muted)">depois do teste, por lava-rápido</p>
+<ul><li>Check-in e check-out com fotos</li><li>Agenda e agendamento online</li><li>Avisos por WhatsApp, SMS e e-mail</li><li>Clube de assinatura e cashback</li><li>Financeiro, estoque, fornecedores</li><li>Licenças, alvarás e contratos</li><li>Precificação e lucro</li><li>Suporte por e-mail</li></ul><a class="btn" href="https://app.lavapos.com.br/?cadastro=1">Criar conta grátis</a></div>
+<div class="plan" style="border-color:var(--line)"><span class="tag">Como funciona a taxa</span><h3 style="margin:14px 0 8px">10% sobre as lavagens processadas pelo sistema</h3>
+<p>Quando o cliente paga por <b>Pix, cartão ou boleto gerado pelo LavaPos</b> (conta Asaas do seu lava-rápido), a divisão é automática: 10% para a plataforma e o restante direto para a sua conta. Pagamentos em dinheiro ou na maquininha própria, registrados no sistema, entram numa fatura mensal.</p>
+<div class="note">A regra completa, a base de cálculo e as demais condições estão no contrato, que você lê e aceita antes de criar a conta. As tarifas do Asaas e das operadoras de cartão são cobradas por eles.</div></div></div></div></section>
+
+<section><div class="wrap"><h2>Seus dados e os dos seus clientes, protegidos</h2><div class="grid g3">
+<div class="card"><h3>🔐 Entrada segura</h3><p>Verificação em 2 etapas, bloqueio após tentativas erradas e sessões protegidas.</p></div>
+<div class="card"><h3>🧱 Dados separados</h3><p>Cada lava-rápido enxerga só o que é seu. CPF e chaves ficam criptografados.</p></div>
+<div class="card"><h3>📜 LGPD</h3><p>Consentimento para mensagens, link para parar de receber, exportação e exclusão de dados. Contrato e política em português claro.</p></div></div></div></section>
+
+<section class="alt" id="perguntas"><div class="wrap" style="max-width:820px"><h2>Perguntas frequentes</h2>
+<details><summary>Preciso de cartão para testar?</summary><p>Não. São 30 dias grátis, sem cartão. Depois do teste, a mensalidade é de R$ 119,00 por mês.</p></details>
+<details><summary>Existe taxa sobre as lavagens?</summary><p>Sim: comissão de 10% do valor das lavagens registradas e pagas pelo sistema. Pix, cartão e boleto pelo Asaas são divididos automaticamente; pagamentos em dinheiro ou maquininha própria entram numa fatura mensal. Está no contrato.</p></details>
+<details><summary>Funciona no celular?</summary><p>Sim. Funciona no navegador do celular e do computador, e os aplicativos para Android e iPhone estão em preparação para as lojas.</p></details>
+<details><summary>Posso mudar os serviços e os preços?</summary><p>Sim. Preço por categoria (Carro, SUV, Utilitários, Vans, Caminhões) e por serviço, e você cria os itens que quiser, inclusive os do checklist.</p></details>
+<details><summary>Como funciona o clube de assinatura?</summary><p>Você define planos semanal, quinzenal, trisemanal ou mensal por categoria. O sistema cobra todo mês, libera a lavagem a cada intervalo e avisa quem está em atraso.</p></details>
+<details><summary>Como funciona o cashback?</summary><p>Você define o percentual. O cliente acumula a cada lavagem paga e usa na próxima. Há opção de adesão à Cashbacksmart.</p></details>
+<details><summary>A nota fiscal sai sozinha?</summary><p>O sistema prepara a nota a cada entrega com os dados do cliente. A emissão automática na prefeitura depende de um provedor fiscal e da sua inscrição municipal; sem isso, você emite no portal da prefeitura e registra o número.</p></details>
+<details><summary>Posso cancelar?</summary><p>A qualquer momento, sem multa. Você exporta todos os seus dados antes de sair.</p></details></div></section>
+
+<section class="final"><div class="wrap"><h2>Organize seu lava-rápido ainda hoje</h2><p style="opacity:.9">30 dias grátis, sem cartão. Depois R$ 119 por mês.</p><p><a class="btn light" href="https://app.lavapos.com.br/?cadastro=1">Criar conta grátis</a></p></div></section>
+</main>
+
+<footer><div class="wrap"><p><b style="color:#fff">LavaPos</b> — um sistema da [RAZÃO SOCIAL DA WMUNDI], CNPJ [CNPJ], Maringá/PR.</p>
+<p><a href="https://app.lavapos.com.br/legal/contrato">Contrato de uso</a> · <a href="https://app.lavapos.com.br/legal/privacidade">Política de privacidade</a> · <a href="https://app.lavapos.com.br/legal/lgpd">Adendo LGPD</a> · Suporte: <a href="mailto:suporte@lavapos.com.br">suporte@lavapos.com.br</a></p>
+<p>Imagens do sistema com dados fictícios de demonstração. Os termos legais são minutas em revisão.</p></div></footer>
+</body>
+</html>

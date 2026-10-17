@@ -1,0 +1,20 @@
+Assunto: Seu lava-rápido com check-in com fotos, agenda e clube (30 dias grátis)
+
+Olá, {{nome}}!
+
+Sou da equipe do LavaPos, um sistema feito para lava-rápido e estética automotiva. Escrevo porque o {{lavacar}} pode ganhar tempo e segurança no dia a dia.
+
+O que o sistema faz:
+
+- Check-in e entrega com fotos e checklist, para acabar com a discussão de "esse risco já estava aí"
+- Agenda online e aviso de carro pronto por WhatsApp, SMS e e-mail
+- Clube de assinatura (semanal, quinzenal, trisemanal e mensal) e cashback
+- Financeiro, estoque, fornecedores e avisos de licenças e alvarás
+
+São 30 dias grátis, sem cartão. Depois, R$ 119,00 por mês. Há também uma comissão de 10% sobre as lavagens pagas pelo sistema (explicada na página, antes de você criar a conta).
+
+Testar 30 dias grátis: {{link_cadastro}}
+
+--
+LavaPos — [RAZÃO SOCIAL DA WMUNDI], CNPJ [CNPJ], Maringá/PR.
+Você recebeu esta mensagem porque o endereço é de contato comercial do seu estabelecimento. Se não quiser receber mais, clique aqui para sair da lista ({{link_descadastro}}).
