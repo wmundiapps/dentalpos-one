@@ -16,7 +16,7 @@ const KEY_LOCK_MS = 15 * 60 * 1000
 
 type Mode = 'ALERT' | 'BLOCK'
 type Visibility = Record<string, string[]>
-type Settings = { enabled: boolean; mode: Mode; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility; lockEvents: Record<string, { day: string; resolved: boolean }> }
+type Settings = { enabled: boolean; mode: Mode; lockDepartments: string[]; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility; lockEvents: Record<string, { day: string; resolved: boolean }> }
 type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[] }
 
 // Quem enxerga cada tipo de pendência, por departamento (código do perfil de acesso). Admin vê tudo sempre.
@@ -42,13 +42,14 @@ function ctx(req: AuthRequest) {
 
 async function loadSettings(clinicId: string): Promise<Settings> {
   const row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: FLAG_KEY } } })
-  const meta = (row?.metadata || {}) as { mode?: string; lockedUserIds?: unknown; keyHash?: string; unlocks?: Record<string, string>; visibility?: Record<string, unknown>; lockEvents?: Record<string, { day: string; resolved: boolean }> }
+  const meta = (row?.metadata || {}) as { lockDepartments?: unknown; mode?: string; lockedUserIds?: unknown; keyHash?: string; unlocks?: Record<string, string>; visibility?: Record<string, unknown>; lockEvents?: Record<string, { day: string; resolved: boolean }> }
   return {
     lockEvents: meta.lockEvents && typeof meta.lockEvents === 'object' ? meta.lockEvents : {},
     // Sem configuração gravada o aviso fica ligado no modo "só alerta".
     enabled: row ? row.enabled : true,
-    // O travamento de tela foi substituído pelo alerta "Você está em risco": o modo é sempre ALERT.
-    mode: 'ALERT',
+    // Travamento diário: só vale para os departamentos marcados pelo gestor; sem departamentos o modo é só alerta.
+    lockDepartments: Array.isArray(meta.lockDepartments) ? meta.lockDepartments.map(v => String(v).toUpperCase().slice(0, 40)) : [],
+    mode: Array.isArray(meta.lockDepartments) && meta.lockDepartments.length ? 'BLOCK' : 'ALERT',
     lockedUserIds: Array.isArray(meta.lockedUserIds) ? meta.lockedUserIds.map(String) : [],
     keyHash: meta.keyHash || null,
     unlocks: meta.unlocks && typeof meta.unlocks === 'object' ? meta.unlocks : {},
@@ -82,6 +83,11 @@ async function notifyManagers(clinicId: string, tenantId: string, subject: strin
   }
 }
 
+async function actorName(userId: string) {
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, email: true } })
+  return u ? `${u.firstName} ${u.lastName}`.trim() || u.email : 'um gestor'
+}
+
 async function trackLockEvent(settings: Settings, clinicId: string, tenantId: string, userId: string, blocked: boolean, pendingGone: boolean, lines: string[]) {
   const today = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10)
   const prev = settings.lockEvents[userId]
@@ -103,7 +109,7 @@ async function trackLockEvent(settings: Settings, clinicId: string, tenantId: st
 async function saveSettings(clinicId: string, tenantId: string, s: Settings) {
   // Limpa liberações vencidas para o registro não crescer.
   const unlocks = Object.fromEntries(Object.entries(s.unlocks).filter(([, until]) => new Date(until).getTime() > Date.now()))
-  const metadata = { mode: s.mode, lockedUserIds: s.lockedUserIds, keyHash: s.keyHash, unlocks, visibility: s.visibility, lockEvents: pruneLockEvents(s.lockEvents) }
+  const metadata = { lockDepartments: s.lockDepartments, mode: s.mode, lockedUserIds: s.lockedUserIds, keyHash: s.keyHash, unlocks, visibility: s.visibility, lockEvents: pruneLockEvents(s.lockEvents) }
   await prisma.tenantFeatureFlag.upsert({
     where: { clinicId_key: { clinicId, key: FLAG_KEY } },
     update: { enabled: s.enabled, metadata },
@@ -194,7 +200,7 @@ export async function show(req: AuthRequest, res: Response) {
     const total = items.reduce((sum, item) => sum + item.count, 0)
     const blockingTotal = items.reduce((sum, item) => sum + (item.blocks ?? item.count), 0)
     // Quem gerencia nunca é travado (precisa conseguir destravar os outros e mexer na configuração).
-    const configured = settings.lockedUserIds.includes(userId) && !canManage
+    const configured = (settings.lockedUserIds.includes(userId) || (profileCodes !== null && profileCodes.some(c => settings.lockDepartments.includes(c)))) && !canManage
     const blocked = settings.enabled && settings.mode === 'BLOCK' && configured && blockingTotal > 0 && !isUnlocked(settings, userId)
 
     if (configured && settings.enabled && settings.mode === 'BLOCK') {
@@ -213,9 +219,9 @@ export async function show(req: AuthRequest, res: Response) {
 
     // Para admin/gestor: quais telas estão travadas agora (cada usuário configurado, com as pendências que ele enxerga).
     let lockedUsers: Array<{ id: string; name: string; count: number }> = []
-    if (canManage && settings.enabled && settings.mode === 'BLOCK' && settings.lockedUserIds.length) {
+    if (canManage && settings.enabled && settings.mode === 'BLOCK') {
       const users = await prisma.user.findMany({
-        where: { id: { in: settings.lockedUserIds }, clinicId, tenantId, isActive: true },
+        where: { clinicId, tenantId, isActive: true, OR: [{ id: { in: settings.lockedUserIds } }, { accessProfiles: { some: { profile: { code: { in: settings.lockDepartments }, isActive: true } } } }] }, take: 200,
         select: { id: true, firstName: true, lastName: true, email: true, role: true }
       })
       for (const user of users) {
@@ -231,7 +237,7 @@ export async function show(req: AuthRequest, res: Response) {
 
     return res.json({
       enabled: settings.enabled, mode: settings.mode, blocked, canManage, total, items, lockedUsers, visibleKeys, blockingLabOrders,
-      settings: canManage ? { lockedUserIds: settings.lockedUserIds, hasKey: Boolean(settings.keyHash), visibility: settings.visibility, categories: ALERT_CATEGORIES, profiles: await prisma.accessProfile.findMany({ where: { clinicId, isActive: true, code: { not: 'ADMIN' } }, select: { code: true, name: true }, orderBy: { code: 'asc' } }) } : undefined
+      settings: canManage ? { lockDepartments: settings.lockDepartments, lockedUserIds: settings.lockedUserIds, hasKey: Boolean(settings.keyHash), visibility: settings.visibility, categories: ALERT_CATEGORIES, profiles: await prisma.accessProfile.findMany({ where: { clinicId, isActive: true, code: { not: 'ADMIN' } }, select: { code: true, name: true }, orderBy: { code: 'asc' } }) } : undefined
     })
   } catch (error) {
     console.error('Erro ao carregar pendências:', error)
@@ -247,6 +253,13 @@ export async function updateSettings(req: AuthRequest, res: Response) {
     const b = req.body || {}
     const next: Settings = { ...current, visibility: { ...current.visibility } }
     if (typeof b.enabled === 'boolean') next.enabled = b.enabled
+    if (Array.isArray(b.lockDepartments)) {
+      const codes = [...new Set((b.lockDepartments as unknown[]).map(v => String(v).toUpperCase().slice(0, 40)))]
+      const valid = await prisma.accessProfile.findMany({ where: { clinicId, isActive: true, code: { in: codes, notIn: ['ADMIN', 'GESTOR'] } }, select: { code: true } })
+      next.lockDepartments = valid.map(p => p.code)
+      next.mode = next.lockDepartments.length ? 'BLOCK' : 'ALERT'
+      await writeAudit({ clinicId, tenantId, actorId: userId, module: 'settings', action: 'PENDING_LOCK_DEPARTMENTS', summary: next.lockDepartments.length ? `Travamento diário ligado para: ${next.lockDepartments.join(', ')}.` : 'Travamento diário desligado.' }).catch((e: unknown) => console.error(e))
+    }
     if (Array.isArray(b.lockedUserIds)) {
       const ids = [...new Set((b.lockedUserIds as unknown[]).map(String))]
       const valid = await prisma.user.findMany({ where: { id: { in: ids }, clinicId, tenantId, isActive: true, role: { not: 'ADMIN' } }, select: { id: true } })
@@ -264,7 +277,6 @@ export async function updateSettings(req: AuthRequest, res: Response) {
       next.keyHash = await bcrypt.hash(key, 10)
       await writeAudit({ clinicId, tenantId, actorId: userId, module: 'settings', action: 'PENDING_LOCK_KEY_CHANGED', summary: 'Chave de desbloqueio das pendências foi definida/alterada.' }).catch((e: unknown) => console.error(e))
     }
-    if (next.mode === 'BLOCK' && !next.keyHash) return res.status(400).json({ error: 'Defina uma chave de desbloqueio antes de ativar o bloqueio.' })
     await saveSettings(clinicId, tenantId, next)
     return res.json({ enabled: next.enabled, mode: next.mode, lockedUserIds: next.lockedUserIds, hasKey: Boolean(next.keyHash), visibility: next.visibility })
   } catch (error) {
@@ -321,6 +333,7 @@ export async function unlockUser(req: AuthRequest, res: Response) {
     await saveSettings(clinicId, tenantId, settings)
     const deadlineLabel = `${m[3]}/${m[2]}/${m[1]}`
     await writeAudit({ clinicId, tenantId, actorId: userId, module: 'settings', action: 'PENDING_UNLOCK_BY_MANAGER', entityType: 'User', entityId: target, afterData: { deadline: m[0], reason }, summary: `Tela de ${user.firstName} ${user.lastName} destravada pelo gestor com novo prazo até ${deadlineLabel}${reason ? ` (${reason})` : ''}.` }).catch((e: unknown) => console.error(e))
+    await notifyManagers(clinicId, tenantId, 'Pendência prorrogada', `A pendência de ${user.firstName} ${user.lastName} foi PROTELADA por ${await actorName(userId)}.\n\nNovo prazo: ${deadlineLabel}${reason ? `\nMotivo: ${reason}` : ''}\n\nSe a pendência persistir depois do prazo, a tela volta a travar.`)
     return res.json({ ok: true })
   } catch (error) {
     console.error('Erro ao destravar usuário:', error)
@@ -345,5 +358,29 @@ export async function resolveLabDelivery(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error('Erro ao dar baixa com código:', error)
     return res.status(500).json({ error: 'Erro ao registrar a entrega.' })
+  }
+}
+
+
+// O departamento trava e não consegue resolver: justifica por escrito. A tela é liberada até o fim do dia e o gestor recebe a justificativa por e-mail.
+export async function justify(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, userId, role } = ctx(req)
+    const text = String(req.body?.text || '').trim().slice(0, 1000)
+    if (text.length < 20) return res.status(400).json({ error: 'Escreva a justificativa (pelo menos 20 caracteres).' })
+    const settings = await loadSettings(clinicId)
+    const codes = role === 'ADMIN' ? null : await getUserPermissionCodes(userId)
+    const profileCodes = role === 'ADMIN' ? null : await getUserProfileCodes(userId)
+    const items = await computeItems(clinicId, tenantId, codes, visibleCategories(settings, profileCodes), true)
+    const lines = items.map(i => `• ${i.label}`)
+    settings.unlocks[userId] = endOfTodayBrt().toISOString()
+    await saveSettings(clinicId, tenantId, settings)
+    const name = await actorName(userId)
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'settings', action: 'PENDING_JUSTIFIED', entityType: 'User', entityId: userId, afterData: { text }, summary: `Pendências justificadas por ${name}: ${text}` }).catch((e: unknown) => console.error(e))
+    await notifyManagers(clinicId, tenantId, 'Pendência justificada', `${name} JUSTIFICOU a pendência e a tela foi liberada até o fim do dia.\n\nJustificativa: ${text}\n\n${lines.join('\n') || 'Sem pendências abertas no momento.'}\n\nSe não for resolvida, a tela volta a travar amanhã.`)
+    return res.json({ ok: true })
+  } catch (error) {
+    console.error('Erro ao justificar pendência:', error)
+    return res.status(500).json({ error: 'Erro ao registrar a justificativa.' })
   }
 }

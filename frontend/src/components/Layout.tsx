@@ -9,6 +9,7 @@ import EvaluationWidget from "./EvaluationWidget";
 import Footer from "./Footer";
 import Header from "./Header";
 import PendingAlertsBar from "./PendingAlertsBar";
+import PendingLockGate from "./PendingLockGate";
 import ToastHost from "./ToastHost";
 import PrintHeader from "./PrintHeader";
 import Sidebar from "./Sidebar";
@@ -60,7 +61,7 @@ export default function Layout({
           }}
         >
           <PrintHeader />
-          {blocked ? <Alert severity="warning" sx={{ maxWidth: 640 }}>Seu departamento não tem acesso a esta tela. Peça ao administrador ou ao gestor para liberar em Configurações &gt; Permissões.</Alert> : children}
+          {blocked ? <Alert severity="warning" sx={{ maxWidth: 640 }}>Seu departamento não tem acesso a esta tela. Peça ao administrador ou ao gestor para liberar em Configurações &gt; Permissões.</Alert> : <PendingLockGate>{children}</PendingLockGate>}
         </Box>
 
         <Footer />
