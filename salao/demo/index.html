@@ -96,6 +96,9 @@ const ROBOS = [
 ];
 
 let mode = 'masc', tab = 'Agenda', clientCount = 0;
+const POL={ret:30,hrs:24}, RESERVAS=[], ASSINATURAS=[];
+const fmtD=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+const addD=(n)=>{const d=new Date();d.setDate(d.getDate()+n);return d};
 let bookings = [
   {pro:0,start:9*60,dur:45,cli:'Marcos',svc:'Corte'},{pro:0,start:11*60,dur:70,cli:'Tiago',svc:'Corte + Barba'},
   {pro:1,start:9*60+30,dur:30,cli:'Edu',svc:'Barba'},{pro:1,start:14*60,dur:120,cli:'Paulo',svc:'Prótese'},
@@ -149,6 +152,43 @@ Agenda(){
   <div class="grid">${PROS[mode].map((p,pi)=>`<div><b>${p[0]}</b> <span class="mut">${p[1]}</span><div class="tl">${
     bookings.filter(b=>b.pro===pi).sort((a,b)=>a.start-b.start).map(b=>`<div class="mut">${hm(b.start)}</div><div class="ev ${b.isNew?'new':''}">${b.cli} · ${b.svc} (${b.dur}min)</div>`).join('')||'<div></div><div class="mut">livre</div>'
   }</div></div>`).join('')}</div></div>`;
+},
+'Reservar online'(){
+  const act=SERVICES[mode].map((x,i)=>x[4]?'':`<option value="${i}">${x[0]} — ${R(x[1])}</option>`).join('');
+  return `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+  <div class="card"><h3>Visão do cliente: agenda aberta para reserva</h3>
+  <div class="row"><select id="rs">${act}</select><select id="rp"><option value="">Qualquer horário</option><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="noite">Fim do dia</option></select>
+  <button class="btn ghost" id="rgo">Ver horários</button></div><div class="slots" id="rslots"></div>
+  <div id="rform" hidden style="margin-top:12px"><div class="row"><input id="rn" placeholder="Seu nome" value="Maria Cliente"><input id="rt" placeholder="WhatsApp" value="(11) 99999-0000"></div>
+  <div class="row" style="margin-top:8px"><label><input type="radio" name="pay" value="Pix" checked> Pix</label><label><input type="radio" name="pay" value="Cartão"> Cartão de crédito</label></div>
+  <div class="card" style="margin-top:10px;border-color:var(--warn)"><b>⚠ Política de reserva</b><div class="mut" id="pol"></div>
+  <label style="display:block;margin-top:6px"><input type="checkbox" id="acc"> Li e concordo com a política de não comparecimento</label></div>
+  <button class="btn" id="rpay" style="margin-top:10px">Pagar e reservar</button></div></div>
+  <div class="card"><h3>Política do salão (configurável)</h3>
+  <div class="row"><label>Retenção por não comparecimento <input id="ret" type="number" min="0" max="100" value="${POL.ret}" style="width:70px"> %</label></div>
+  <div class="row" style="margin-top:6px"><label>Cancelamento sem custo até <input id="hrs" type="number" min="0" value="${POL.hrs}" style="width:70px"> h antes</label></div>
+  <p class="mut">Pagamento antecipado via Asaas (Pix ou cartão). Demonstração: nenhum valor é cobrado.</p></div>
+  <div class="card" style="grid-column:1/-1"><h3>Reservas</h3>${RESERVAS.length?`<div style="overflow-x:auto"><table><tr><th>Cliente</th><th>Serviço</th><th>Horário</th><th>Pago</th><th>Status</th><th>Ações do salão</th></tr>${RESERVAS.map((r,i)=>`<tr><td>${r.cli}</td><td>${r.svc}</td><td>${hm(r.t)} · ${PROS[mode][r.pro]?PROS[mode][r.pro][0]:''}</td><td>${r.pay} ${R(r.val)}</td><td><span class="tag ${r.st.startsWith('Compareceu')?'ok':r.st==='Pago'?'':'warn'}">${r.st}</span></td><td>${r.st==='Pago'?`<button class="btn ghost" data-ra="ok" data-i="${i}">Compareceu</button> <button class="btn ghost" data-ra="no" data-i="${i}">Não compareceu</button> <button class="btn ghost" data-ra="can" data-i="${i}">Cancelou no prazo</button>`:''}</td></tr>`).join('')}</table></div>`:'<p class="mut">Nenhuma reserva ainda. Faça uma pelo painel ao lado.</p>'}</div></div>`;
+},
+Avisos(){
+  const last=RESERVAS[RESERVAS.length-1]||{cli:'Maria',svc:SERVICES[mode][0][0],t:15*60,pro:0,val:SERVICES[mode][0][1]};
+  const nm=PROS[mode][last.pro]?PROS[mode][last.pro][0]:'Rafa';
+  const T=[['Confirmação da reserva','imediato',`Olá, ${last.cli}! Reserva confirmada: ${last.svc} hoje às ${hm(last.t)} com ${nm}. Pagamento de ${R(last.val)} recebido. Atenção: faltar sem avisar retém ${POL.ret}% do valor.`],
+  ['Lembrete 24h','24h antes',`${last.cli}, amanhã às ${hm(last.t)} você tem ${last.svc}. Responda 1 para CONFIRMAR, 2 para REMARCAR ou 3 para CANCELAR (sem custo até ${POL.hrs}h antes).`],
+  ['Lembrete 2h','2h antes',`Daqui a 2 horas: ${last.svc} às ${hm(last.t)}. Te esperamos! Endereço e mapa no link.`],
+  ['Falta registrada','após o horário',`${last.cli}, sentimos sua falta. Conforme a política aceita, ${POL.ret}% foi retido e ${100-POL.ret}% (${R(last.val*(100-POL.ret)/100)}) será devolvido pelo Asaas em até alguns dias.`],
+  ['Pós-atendimento','2h depois',`Obrigado, ${last.cli}! Como foi? Responda de 1 a 5 e ganhe cashback na próxima visita.`],
+  ['Retorno / assinatura','ciclo vencendo',`${last.cli}, seu próximo horário da assinatura é em 3 dias. Quer manter ou trocar?`]];
+  return `<p class="mut">Avisos automáticos por WhatsApp (e SMS/e-mail como reserva), enviados pelo Robô Lembrete. Exemplos com a última reserva.</p><div class="grid">${T.map(t=>`<div class="card"><h3>${t[0]}</h3><span class="tag">${t[1]}</span><p class="mut" style="margin:8px 0 0">${t[2]}</p><label style="display:block;margin-top:8px"><input type="checkbox" checked> ativo</label></div>`).join('')}</div>`;
+},
+Assinatura(){
+  const act=SERVICES[mode].map((x,i)=>x[4]?'':`<option value="${i}">${x[0]} — ${R(x[1])}</option>`).join('');
+  return `<p class="mut">Cliente assina e tem o horário reservado automaticamente no intervalo escolhido, com cobrança antecipada a cada visita.</p>
+  <div class="card"><div class="row"><select id="as">${act}</select>
+  <select id="ai"><option value="7">Semanal (7/7 dias)</option><option value="15">15 em 15 dias</option><option value="30" selected>30 em 30 dias</option><option value="45">45 em 45 dias</option><option value="60">60 em 60 dias</option></select>
+  <select id="ap"><option value="">Qualquer período</option><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="noite">Fim do dia</option></select>
+  <label>Desconto <input id="ad" type="number" min="0" max="50" value="10" style="width:60px"> %</label><button class="btn" id="ago">Simular assinatura</button></div><div id="asim" style="margin-top:12px"></div></div>
+  <div class="card" style="margin-top:12px"><h3>Assinaturas ativas</h3>${ASSINATURAS.length?`<div style="overflow-x:auto"><table><tr><th>Cliente</th><th>Serviço</th><th>Intervalo</th><th>Valor/visita</th><th>Próximas datas</th></tr>${ASSINATURAS.map(a=>`<tr><td>${a.cli}</td><td>${a.svc}</td><td>${a.int===7?'semanal':a.int+'/'+a.int+' dias'}</td><td>${R(a.val)}</td><td>${a.datas.slice(0,4).join(' · ')}</td></tr>`).join('')}</table></div>`:'<p class="mut">Nenhuma ainda.</p>'}</div>`;
 },
 Serviços(){
   const cats=[...new Set(Object.values(SERVICES).flat().map(x=>x[3]))];
@@ -215,6 +255,8 @@ function render(){
   if (tab==='Agenda') bindAgenda();
   if (tab==='Planos') bindPlanos();
   if (tab==='Serviços') bindServicos();
+  if (tab==='Reservar online') bindReserva();
+  if (tab==='Assinatura') bindAssin();
   if (tab==='Robôs') startLog();
 }
 function bindAgenda(){
@@ -235,6 +277,39 @@ function bindServicos(){
   $('#add').onclick=()=>{const n=$('#nn').value.trim();if(!n)return toast('Informe o nome do procedimento');
     SERVICES[mode].push([n,+$('#np').value||0,+$('#nd').value||30,$('#nc').value.trim()||'Outros']);saveSv();toast('Procedimento adicionado');render()};
   $('#reset').onclick=()=>{try{localStorage.removeItem('bp-services')}catch(e){}location.reload()};
+}
+function bindReserva(){
+  let pick=null,res=[];
+  const pol=()=>$('#pol').textContent=`Para garantir o seu horário, o pagamento é antecipado. Cancelando até ${POL.hrs}h antes, devolvemos 100%. Se não comparecer sem avisar, retemos ${POL.ret}% do valor pela reserva do horário e devolvemos ${100-POL.ret}%.`;
+  $('#ret').onchange=e=>{POL.ret=Math.min(100,Math.max(0,+e.target.value||0));toast('Política atualizada');render()};
+  $('#hrs').onchange=e=>{POL.hrs=Math.max(0,+e.target.value||0);toast('Política atualizada');render()};
+  $('#rgo').onclick=()=>{res=suggest(+$('#rs').value,$('#rp').value).slice(0,6);
+    $('#rslots').innerHTML=res.map((r,k)=>`<button class="slot" data-k="${k}"><b>${hm(r.t)}</b><small>${PROS[mode][r.pro][0]}</small></button>`).join('')||'<span class="mut">Sem horário hoje.</span>';
+    document.querySelectorAll('#rslots .slot').forEach(b=>b.onclick=()=>{pick=res[+b.dataset.k];document.querySelectorAll('#rslots .slot').forEach(x=>x.classList.remove('best'));b.classList.add('best');$('#rform').hidden=false;pol()})};
+  $('#rpay').onclick=()=>{
+    if(!pick)return toast('Escolha um horário');
+    if(!$('#acc').checked)return toast('É preciso aceitar a política de não comparecimento');
+    const sv=SERVICES[mode][+$('#rs').value],pay=document.querySelector('input[name=pay]:checked').value,cli=$('#rn').value||'Cliente';
+    RESERVAS.push({cli,svc:sv[0],t:pick.t,pro:pick.pro,val:sv[1],pay,st:'Pago'});
+    bookings.push({pro:pick.pro,start:pick.t,dur:pick.dur,cli,svc:sv[0],isNew:true});
+    toast(`${pay} ${pay==='Pix'?'confirmado (demo)':'aprovado (demo)'} · reserva feita, aviso enviado no WhatsApp`);render()};
+  document.querySelectorAll('[data-ra]').forEach(b=>b.onclick=()=>{const r=RESERVAS[+b.dataset.i],k=b.dataset.ra;
+    if(k==='ok'){r.st='Compareceu · pago integral';toast('Atendimento concluído')}
+    if(k==='no'){const ret=r.val*POL.ret/100;r.st=`Faltou · retido ${R(ret)} · devolvido ${R(r.val-ret)}`;toast(`Retido ${R(ret)} e devolvido ${R(r.val-ret)} (Asaas)`)}
+    if(k==='can'){r.st=`Cancelou no prazo · devolvido ${R(r.val)}`;toast(`Devolvido ${R(r.val)} (Asaas)`)}
+    render()});
+}
+function bindAssin(){
+  let sim=null;
+  $('#ago').onclick=()=>{const sv=SERVICES[mode][+$('#as').value],iv=+$('#ai').value,d=+$('#ad').value||0,res=suggest(+$('#as').value,$('#ap').value)[0];
+    if(!res){$('#asim').innerHTML='<span class="mut">Sem horário livre.</span>';return}
+    const val=sv[1]*(1-d/100),datas=[1,2,3,4,5,6].map(n=>fmtD(addD(n*iv)));
+    sim={cli:'Maria Cliente',svc:sv[0],int:iv,val,datas};
+    $('#asim').innerHTML=`<div class="grid"><div><div class="mut">Horário fixo</div><div class="big">${hm(res.t)}</div><div class="mut">com ${PROS[mode][res.pro][0]}</div></div>
+    <div><div class="mut">Valor por visita</div><div class="big">${R(val)}</div><div class="mut">${d}% de desconto sobre ${R(sv[1])}</div></div>
+    <div><div class="mut">Próximas 6 datas</div><div>${datas.join(' · ')}</div><div class="mut">cobrança antecipada via Asaas (cartão recorrente ou Pix)</div></div></div>
+    <button class="btn" id="asg" style="margin-top:10px">Assinar</button>`;
+    $('#asg').onclick=()=>{ASSINATURAS.push(sim);toast('Assinatura criada · horários reservados (demo)');render()}};
 }
 function bindPlanos(){
   const f=()=>{const n=+$('#n').value||0,pay=n*10;
