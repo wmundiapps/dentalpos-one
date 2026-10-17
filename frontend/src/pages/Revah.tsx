@@ -67,11 +67,11 @@ export default function Revah() {
     <Box>
       <PageHeader
         title="REVAH"
-        description="Relacionamento, automações e campanhas omnichannel do DentalPos."
+        description="Relacionamento, automações e campanhas omnichannel do CompletoDonto."
       />
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        Crie campanhas e automações pelos canais abaixo. O envio é liberado depois que o canal for ativado pela equipe DentalPos e o paciente autorizar o contato (LGPD).
+        Crie campanhas e automações pelos canais abaixo. O envio é liberado depois que o canal for ativado pela equipe CompletoDonto e o paciente autorizar o contato (LGPD).
       </Alert>
 
       <Box

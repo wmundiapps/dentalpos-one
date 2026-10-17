@@ -26,7 +26,7 @@ export interface IntegratedLaboratoryWork {
   priority: LaboratoryPriority;
   hasCadCamFile: boolean;
   observations?: string;
-  source: "Laboratório" | "DentalPos Design" | "Agenda";
+  source: "Laboratório" | "CompletoDonto Design" | "Agenda";
   designJobId?: number;
   updatedAtISO: string;
   impressionType?: "Analógica" | "Digital";

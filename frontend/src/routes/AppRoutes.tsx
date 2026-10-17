@@ -92,7 +92,7 @@ function DemoInDevelopmentPage() {
         Em desenvolvimento
       </Typography>
       <Typography sx={{ color: "text.secondary", maxWidth: 420 }}>
-        Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no DentalPos.
+        Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no CompletoDonto.
       </Typography>
     </Box>
   );

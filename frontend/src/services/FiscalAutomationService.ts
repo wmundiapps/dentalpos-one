@@ -15,7 +15,7 @@ export const fiscalPayments: FiscalPayment[] = !DEMO_DATA_ON ? [] : [
     treatmentReference:
       "Reabilitação implantossuportada",
     issuerType: "Clínica Pessoa Jurídica",
-    issuerName: "DentalPos Clínica",
+    issuerName: "CompletoDonto Clínica",
     issuerDocument: "12.345.678/0001-90",
     payer: {
       name: "Paciente Exemplo 3",
@@ -81,7 +81,7 @@ export const fiscalPayments: FiscalPayment[] = !DEMO_DATA_ON ? [] : [
     paymentCode: "PAG-000843",
     treatmentReference: "Manutenção ortodôntica",
     issuerType: "Clínica Pessoa Jurídica",
-    issuerName: "DentalPos Clínica",
+    issuerName: "CompletoDonto Clínica",
     issuerDocument: "12.345.678/0001-90",
     payer: {
       name: "Paciente Exemplo 5",
@@ -114,7 +114,7 @@ export const fiscalPayments: FiscalPayment[] = !DEMO_DATA_ON ? [] : [
     paymentCode: "PAG-000844",
     treatmentReference: "Cirurgia de implante",
     issuerType: "Clínica Pessoa Jurídica",
-    issuerName: "DentalPos Clínica",
+    issuerName: "CompletoDonto Clínica",
     issuerDocument: "12.345.678/0001-90",
     payer: {
       name: "Empresa Pagadora Ltda.",

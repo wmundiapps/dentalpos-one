@@ -91,10 +91,10 @@ export const navigationGroups:NavigationGroup[] = [
       item("Documentos Clínicos","/documentos-clinicos",<DescriptionIcon/>),
       item("Orçamentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
       item("Equipe","/equipe",<GroupsIcon/>),
-      item("DentalPos AI","/ceo-ia",<AutoAwesomeIcon/>),
+      item("CompletoDonto AI","/ceo-ia",<AutoAwesomeIcon/>),
       item("Assistente de IA","/assistente-ia",<AutoAwesomeIcon/>),
       // DPD oculto do menu em 20/09 por decisao do Robson. Rota e dados preservados.
-            // item("DentalPos Design","/design",<DesignServicesIcon/>),
+            // item("CompletoDonto Design","/design",<DesignServicesIcon/>),
     ])
   },
   {
@@ -161,7 +161,7 @@ export const navigationGroups:NavigationGroup[] = [
     ])
   },
   {
-    label:"DentalPos Sales",
+    label:"CompletoDonto Sales",
     icon:tile(<ShoppingBagIcon/>,"#E0457B"),
     items:alphabetical([
       item("Loja e Vendas","/sales",<PointOfSaleIcon/>),

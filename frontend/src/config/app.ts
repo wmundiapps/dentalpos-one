@@ -1,6 +1,6 @@
 export const appConfig = {
-  name: "DentalPos",
-  shortName: "DentalPos",
+  name: "CompletoDonto",
+  shortName: "CompletoDonto",
   version: "versão 2.0",
   developer: "WMundi Apps",
   environment: "Desenvolvimento",

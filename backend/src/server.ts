@@ -29,7 +29,7 @@ async function startServer() {
 
     server = app.listen(PORT, '0.0.0.0', () => {
       console.log('=================================')
-      console.log('🚀 DentalPos API iniciada')
+      console.log('🚀 CompletoDonto API iniciada')
       console.log(`🌐 Porta: ${PORT}`)
       console.log(`📅 Ambiente: ${process.env.NODE_ENV || 'development'}`)
       console.log(`🚦 Canal: ${process.env.RELEASE_CHANNEL || 'internal'}`)

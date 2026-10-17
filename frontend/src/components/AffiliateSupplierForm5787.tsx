@@ -89,7 +89,7 @@ export default function AffiliateSupplierForm5787() {
 
       <Alert severity="info">
         Ao aceitar a afiliação, as vendas atribuídas a clientes originados pelo
-        DentalPos gerarão comissão de <strong>10%</strong> para o DentalPos
+        CompletoDonto gerarão comissão de <strong>10%</strong> para o CompletoDonto
         One, de responsabilidade do fornecedor, salvo percentual diferente
         configurado em contrato.
       </Alert>

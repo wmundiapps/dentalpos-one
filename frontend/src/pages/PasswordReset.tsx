@@ -69,7 +69,7 @@ export default function PasswordReset() {
     >
       <Paper variant="outlined" sx={{ p: 4, borderRadius: 4, width: "min(460px,100%)" }}>
         <Typography variant="overline" color="primary" sx={{ fontWeight: 900 }}>
-          DENTALPOS
+          COMPLETODONTO
         </Typography>
         <Typography variant="h4" sx={{ fontWeight: 950, mb: 1 }}>
           Nova senha

@@ -1,6 +1,6 @@
 export const DENTALPOS_DESIGN_CONFIG = {
   productName:
-    "DentalPos Design",
+    "CompletoDonto Design",
 
   version:
     "ALPHA",

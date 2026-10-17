@@ -96,7 +96,7 @@ export default function Sales() {
   return (
     <Box>
       <PageHeader
-        title="DentalPos Sales"
+        title="CompletoDonto Sales"
         description="Loja, estoque, fornecedores e visão comercial compartilhando o mesmo CRM do REVAH."
         actionLabel="Novo lead"
         actionIcon={<AddIcon />}
@@ -138,7 +138,7 @@ export default function Sales() {
             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
               <Chip icon={<WhatsAppIcon />} label="WhatsApp • REVAH" color="success" variant="outlined" />
               <Chip icon={<EmailIcon />} label="E-mail • REVAH" variant="outlined" />
-              <Chip icon={<ShoppingCartIcon />} label="Loja virtual • DentalPos Sales" variant="outlined" />
+              <Chip icon={<ShoppingCartIcon />} label="Loja virtual • CompletoDonto Sales" variant="outlined" />
             </Stack>
           </Stack>
         </CardContent>
@@ -458,7 +458,7 @@ function StorePanel() {
   return (
     <Stack spacing={2}>
       <Alert severity="success">
-        <strong>Loja DentalPos:</strong> parâmetros comerciais ficam persistidos por clínica e são auditáveis.
+        <strong>Loja CompletoDonto:</strong> parâmetros comerciais ficam persistidos por clínica e são auditáveis.
       </Alert>
       {message && <Alert severity="success">{message}</Alert>}
       {error && <Alert severity="error">{error}</Alert>}
@@ -510,7 +510,7 @@ function StorePanel() {
           }
         />
         <Box>
-          <Typography sx={{ fontWeight: 700 }}>Integração DentalPos Componentes</Typography>
+          <Typography sx={{ fontWeight: 700 }}>Integração CompletoDonto Componentes</Typography>
           <Typography variant="body2" color="text.secondary">
             Produtos e estoque reutilizam o cadastro comercial já existente, sem criar banco paralelo no navegador.
           </Typography>
