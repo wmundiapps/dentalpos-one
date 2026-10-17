@@ -171,8 +171,10 @@ export function debtorsBody(clinicName: string, list: Debtor[]) {
 
 export function noticeBody(clinicName: string, patientName: string, clinicPhone: string, clinicEmail: string) {
   const first = patientName.trim().split(/\s+/)[0] || 'paciente'
-  const contact = [clinicPhone ? `pelo telefone/WhatsApp ${clinicPhone}` : '', clinicEmail ? `ou pelo e-mail ${clinicEmail}` : ''].filter(Boolean).join(' ')
-  return `Olá, ${first}! A ${clinicName} gostaria de falar com você sobre um assunto do seu interesse. Por favor, entre em contato com a clínica${contact ? ` ${contact}` : ''}, em horário comercial. Obrigado!\n\nSe você já entrou em contato conosco, desconsidere esta mensagem.`
+  const d = clinicPhone.replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')
+  const fmt = d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : clinicPhone
+  const contact = fmt ? `pelo WhatsApp ou telefone ${fmt}` : clinicEmail ? `pelo e-mail ${clinicEmail}` : ''
+  return `Olá, ${first}! A ${clinicName} gostaria de falar com você sobre um assunto do seu interesse. Por favor, retorne ${contact ? `${contact}` : "entrando em contato com a clínica"}, em horário comercial. Obrigado!\n\nSe você já entrou em contato conosco, desconsidere esta mensagem.`
 }
 
 export async function sendWeeklyList(c: Clinic, opts: { force?: boolean; now?: Date } = {}) {
