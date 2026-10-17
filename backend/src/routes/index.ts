@@ -38,6 +38,7 @@ import * as clinicalController from '../controllers/clinicalController'
 import * as laboratoryController from '../controllers/laboratoryController'
 import * as designController from '../controllers/designController'
 import * as hrController from '../controllers/hrController'
+import * as condoSplit from '../controllers/condoSplitController'
 import * as followUp from '../controllers/followUpController'
 import * as hrTime from '../controllers/hrTimeController'
 import * as revahController from '../controllers/revahController'
@@ -147,6 +148,8 @@ router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendi
 router.get('/patients/:id/financial-hold', requirePermission('agenda.view'), financialHoldController.patientHold)
 router.get('/financial-hold/settings', requirePermission('agenda.view'), financialHoldController.settings)
 router.put('/financial-hold/settings', requirePermission('finance.approve'), financialHoldController.updateSettings)
+router.get('/condo-split', requirePermission('finance.view'), condoSplit.show)
+router.put('/condo-split', requirePermission('finance.edit'), condoSplit.save)
 router.get('/followup/unscheduled', requirePermission('patients.view'), followUp.unscheduled)
 router.get('/followup/settings', requirePermission('settings.view'), followUp.show)
 router.put('/followup/settings', requirePermission('settings.edit'), followUp.update)

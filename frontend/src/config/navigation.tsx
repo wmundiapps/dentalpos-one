@@ -130,6 +130,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Gerar financeiro","/pacientes?acao=financeiro",<PaymentsIcon/>),
       item("Recebimentos online","/recebimentos-online",<PaymentsIcon/>),
       item("Digitalizar Financeiro","/financeiro/digitalizar",<ReceiptLongIcon/>),
+      item("Rateio do condomínio","/rateio-condominio",<AccountBalanceIcon/>),
     ]
   },
   {

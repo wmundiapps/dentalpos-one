@@ -105,7 +105,7 @@ const ROUTE_MODULES: Array<[RegExp, string]> = [
   [/^\/(?:prontuario|documentos-clinicos|orcamentos-tratamentos|painel-atendimentos)(?:\/|$)/, "clinical"],
   [/^\/laboratorio(?:\/|$)/, "laboratory"],
   [/^\/design(?:\/|$)/, "design"],
-  [/^\/(?:financeiro|pagamentos|inteligencia-financeira)(?:\/|$)/, "finance"],
+  [/^\/(?:financeiro|pagamentos|inteligencia-financeira|rateio-condominio)(?:\/|$)/, "finance"],
   [/^\/(?:backoffice|contabil-fiscal|automacao-fiscal)(?:\/|$)/, "accounting"],
   [/^\/rh(?:\/|$)/, "hr"],
   [/^\/(?:marketing|revah|revah-chatbot|comunicacoes|recall|avaliacoes-atendimento)(?:\/|$)/, "marketing"],

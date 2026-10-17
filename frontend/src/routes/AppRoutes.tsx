@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 
 const Academic = lazy(() => import("../pages/Academic"));
+const CondoSplit = lazy(() => import("../pages/CondoSplit"));
 const Accounting = lazy(() => import("../pages/Accounting"));
 const Agenda = lazy(() => import("../pages/Agenda"));
 const Backup = lazy(() => import("../pages/Backup"));
@@ -204,6 +205,8 @@ export default function AppRoutes() {
         path="/indice-saude-clinica"
         element={<ClinicHealth />}
       />
+
+      <Route path="/rateio-condominio" element={<CondoSplit />} />
 
       <Route
         path="/inteligencia-financeira"
