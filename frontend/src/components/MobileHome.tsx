@@ -25,7 +25,7 @@ export default function MobileHome({ cards, onNavigate }: { cards: MobileCard[];
       {cards.map((c) => (
         <ButtonBase key={c.titulo} onClick={c.onClick} sx={{ display: "block", textAlign: "center", bgcolor: c.cor, color: "#fff", borderRadius: 3, py: 4, px: 2, boxShadow: 2 }}>
           <Typography sx={{ fontWeight: 800, fontSize: 22 }}>{c.titulo}</Typography>
-          <Typography sx={{ fontWeight: 800, fontSize: 46, mt: 2, opacity: 0.9 }}>{c.valor}</Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: { xs: 34, sm: 46 }, mt: 2, opacity: 0.9, wordBreak: "break-word" }}>{c.valor}</Typography>
         </ButtonBase>
       ))}
       <Paper variant="outlined" sx={{ borderRadius: 3, overflow: "hidden" }}>
