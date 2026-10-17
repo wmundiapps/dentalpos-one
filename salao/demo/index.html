@@ -75,6 +75,8 @@ const SERVICES = {
   ]
 };
 SERVICES.mix = [...SERVICES.masc.slice(0,3), ...SERVICES.fem.slice(0,6), ...SERVICES.fem.slice(7,10), SERVICES.fem[12]];
+try{const sv=JSON.parse(localStorage.getItem('bp-services')||'null');if(sv)for(const k in sv)SERVICES[k]=sv[k]}catch(e){}
+const saveSv=()=>{try{localStorage.setItem('bp-services',JSON.stringify(SERVICES))}catch(e){}};
 const PROS = {
   masc: [['Rafa','Cabelo,Barba,Cor'],['Bruno','Cabelo,Barba,Prótese'],['Dr. Leo','Medicina integrada,Harmonização'],['Carla','Esteticista']],
   fem: [['Ju','Cabelos,Mega Hair,Tintura,Alisamento'],['Paty','Unhas'],['Dra. Ana','Pele,Harmonização'],['Lu','Maquiagem,Noivas,Spa']],
@@ -137,7 +139,7 @@ const views = {
 Agenda(){
   const s = SERVICES[mode];
   return `<div class="card"><h3>Agendamento inteligente</h3>
-  <div class="row"><select id="svc">${s.map((x,i)=>`<option value="${i}">${x[0]} — ${x[2]} min — ${R(x[1])}</option>`).join('')}</select>
+  <div class="row"><select id="svc">${s.map((x,i)=>x[4]?'':`<option value="${i}">${x[0]} — ${x[2]} min — ${R(x[1])}</option>`).join('')}</select>
   <select id="pref"><option value="">Qualquer horário</option><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="noite">Fim do dia</option></select>
   <input id="cli" placeholder="Nome do cliente" value="Cliente Demo">
   <button class="btn" id="go">Sugerir horários</button></div>
@@ -149,7 +151,21 @@ Agenda(){
   }</div></div>`).join('')}</div></div>`;
 },
 Serviços(){
-  return `<p class="mut">Todos os serviços, preços, duração e profissionais são configuráveis por salão.</p><div class="grid">${SERVICES[mode].map(x=>`<div class="card"><span class="tag">${x[3]}</span><h3>${x[0]}</h3><div class="mut">${x[2]} min</div><div class="big">${R(x[1])}</div></div>`).join('')}</div>`;
+  const cats=[...new Set(Object.values(SERVICES).flat().map(x=>x[3]))];
+  return `<p class="mut">Edite nome, valor, duração e categoria. Desative o que não oferece. As mudanças valem na Agenda e ficam salvas neste aparelho.</p>
+  <datalist id="cats">${cats.map(c=>`<option value="${c}">`).join('')}</datalist>
+  <div class="card" style="overflow-x:auto"><table><tr><th>Procedimento</th><th>Categoria</th><th>Valor (R$)</th><th>Minutos</th><th>Ativo</th></tr>
+  ${SERVICES[mode].map((x,i)=>`<tr data-i="${i}" style="${x[4]?'opacity:.5':''}">
+   <td><input data-f="0" value="${x[0].replace(/"/g,'&quot;')}" style="width:100%;min-width:170px"></td>
+   <td><input data-f="3" list="cats" value="${x[3]}" style="width:130px"></td>
+   <td><input data-f="1" type="number" min="0" step="0.01" value="${x[1]}" style="width:90px"></td>
+   <td><input data-f="2" type="number" min="5" step="5" value="${x[2]}" style="width:70px"></td>
+   <td><input data-f="4" type="checkbox" ${x[4]?'':'checked'}></td></tr>`).join('')}</table></div>
+  <div class="card" style="margin-top:12px"><h3>Novo procedimento</h3><div class="row">
+   <input id="nn" placeholder="Nome (ex.: Botox capilar)"><input id="nc" list="cats" placeholder="Categoria" style="width:140px">
+   <input id="np" type="number" min="0" step="0.01" placeholder="Valor" style="width:100px"><input id="nd" type="number" min="5" step="5" placeholder="Minutos" style="width:90px">
+   <button class="btn" id="add">Adicionar</button></div></div>
+  <div class="row" style="margin-top:12px"><button class="btn ghost" id="reset">Restaurar lista original</button></div>`;
 },
 Shop(){
   return `<p class="mut">Loja online do salão: o cliente compra pelo link e retira ou recebe em casa. Estoque baixa sozinho.</p><div class="grid">${SHOP.map((x,i)=>`<div class="card"><h3>${x[0]}</h3><div class="mut">${x[2]} em estoque</div><div class="big">${R(x[1])}</div><button class="btn" onclick="toast('${x[0]} adicionado ao carrinho · cashback 5%')">Comprar</button></div>`).join('')}</div>`;
@@ -198,6 +214,7 @@ function render(){
   $('#view').innerHTML = views[tab]();
   if (tab==='Agenda') bindAgenda();
   if (tab==='Planos') bindPlanos();
+  if (tab==='Serviços') bindServicos();
   if (tab==='Robôs') startLog();
 }
 function bindAgenda(){
@@ -210,6 +227,14 @@ function bindAgenda(){
       toast(`Agendado ${hm(r.t)} com ${PROS[mode][r.pro][0]} · lembrete automático ligado`); render();
     });
   };
+}
+function bindServicos(){
+  $('#view').onchange=e=>{const el=e.target,tr=el.closest('tr');if(!tr||!el.dataset.f)return;const f=+el.dataset.f,x=SERVICES[mode][+tr.dataset.i];
+    if(f===4)x[4]=!el.checked;else if(f===1||f===2)x[f]=Math.max(0,+el.value||0);else x[f]=el.value.trim()||x[f];
+    saveSv();toast('Salvo');if(f===4)render()};
+  $('#add').onclick=()=>{const n=$('#nn').value.trim();if(!n)return toast('Informe o nome do procedimento');
+    SERVICES[mode].push([n,+$('#np').value||0,+$('#nd').value||30,$('#nc').value.trim()||'Outros']);saveSv();toast('Procedimento adicionado');render()};
+  $('#reset').onclick=()=>{try{localStorage.removeItem('bp-services')}catch(e){}location.reload()};
 }
 function bindPlanos(){
   const f=()=>{const n=+$('#n').value||0,pay=n*10;
