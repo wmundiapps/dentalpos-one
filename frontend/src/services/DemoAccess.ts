@@ -92,7 +92,7 @@ export function publicBookingUrl(clinicId?: string | null) {
 
 export function demoSalesUrl() {
   const phone = "5544984535069";
-  const message = "Quero contratar o DentalPos";
+  const message = "Quero contratar o CompletoDonto";
   return (
     import.meta.env.VITE_SALES_URL ||
     `https://wa.me/${phone}?text=${encodeURIComponent(message)}`

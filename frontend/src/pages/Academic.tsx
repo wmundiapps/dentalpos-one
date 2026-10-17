@@ -55,7 +55,7 @@ const operationalAreas: Record<Exclude<AcademicSection, "visao-geral" | "cursos"
   ],
   financeiro: [
     { title: "Mensalidades e parcelas", description: "Integração planejada com o financeiro central para contas a receber, inadimplência e baixa de pagamentos." },
-    { title: "PIX, boleto e cartão", description: "Estrutura compatível com os provedores financeiros já preparados no DentalPos." },
+    { title: "PIX, boleto e cartão", description: "Estrutura compatível com os provedores financeiros já preparados no CompletoDonto." },
     { title: "Visão acadêmico-financeira", description: "Separação por curso, turma, aluno e centro de resultado para análise gerencial." },
   ],
   documentos: [
@@ -83,7 +83,7 @@ export default function Academic() {
   return (
     <Box>
       <PageHeader
-        title="DentalPos Academy"
+        title="CompletoDonto Academy"
         description="Gestão acadêmica, cursos, professores, turmas, alunos, frequência, documentos e financeiro em um único ambiente."
         actionLabel="Cadastrar curso"
         actionIcon={<AddIcon />}

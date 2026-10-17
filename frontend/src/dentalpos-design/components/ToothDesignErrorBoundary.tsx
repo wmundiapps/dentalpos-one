@@ -29,7 +29,7 @@ export default class ToothDesignErrorBoundary extends Component<
       hasError: true,
       message:
         error.message ||
-        "Erro inesperado no DentalPos Design.",
+        "Erro inesperado no CompletoDonto Design.",
     };
   }
 
@@ -38,7 +38,7 @@ export default class ToothDesignErrorBoundary extends Component<
     info: ErrorInfo
   ) {
     console.error(
-      "[DentalPos Design]",
+      "[CompletoDonto Design]",
       error,
       info
     );
@@ -85,7 +85,7 @@ export default class ToothDesignErrorBoundary extends Component<
               marginBottom: 8,
             }}
           >
-            DentalPos Design
+            CompletoDonto Design
           </div>
 
           <div

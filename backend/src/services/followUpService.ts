@@ -10,7 +10,7 @@ import { getDemoAccess } from './demoAccessService'
 export const FLAG_KEY = 'FOLLOWUP_DIGEST'
 export const NOTICE_MARKER = '[PENDENCIA]'
 const DAY = 86400000
-const SENDER = 'DentalPos <contato@dentalpos.com.br>'
+const SENDER = 'CompletoDonto <contato@dentalpos.com.br>'
 const WEEKLY_HOUR_BRT = 8
 const DAILY_HOUR_BRT = 8
 const NOTICE_HOUR_BRT = 9

@@ -102,7 +102,7 @@ app.use('/api', apiLimiter)
 app.get('/health', (_req, res) => {
   return res.json({
     status: 'ok',
-    application: 'DentalPos One',
+    application: 'CompletoDonto',
     version: '1.0.0',
     environment: process.env.APP_ENV || process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString()

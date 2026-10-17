@@ -113,7 +113,7 @@ export default function PublicBooking() {
     <Box sx={{ minHeight: "100vh", bgcolor: "#f6f8fb", display: "grid", placeItems: "center", p: 2 }}>
       <Paper sx={{ maxWidth: 820, width: "100%", p: { xs: 3, md: 5 }, borderRadius: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 900 }}>
-          {config?.clinic.name || "DentalPos"} • Agendamento online
+          {config?.clinic.name || "CompletoDonto"} • Agendamento online
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 1 }}>
           Escolha um dos horários disponibilizados pela clínica.

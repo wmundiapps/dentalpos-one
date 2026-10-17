@@ -11,7 +11,7 @@ export default function ToothDesignPageHeader({
 
   selectedTooth = null,
 
-  status = "DentalPos Design versão 2.0",
+  status = "CompletoDonto Design versão 2.0",
 }: ToothDesignPageHeaderProps) {
   return (
     <header
@@ -61,7 +61,7 @@ export default function ToothDesignPageHeader({
               color: "#38bdf8",
             }}
           >
-            DentalPos Design
+            CompletoDonto Design
           </strong>
 
           <span

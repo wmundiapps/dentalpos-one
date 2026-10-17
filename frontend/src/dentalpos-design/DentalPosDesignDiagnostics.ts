@@ -76,7 +76,7 @@ export function runDentalPosDesignDiagnostics():
     messages.length === 0
   ) {
     messages.push(
-      "DentalPos Design operacional."
+      "CompletoDonto Design operacional."
     );
   }
 

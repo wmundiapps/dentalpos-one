@@ -247,7 +247,7 @@ router.get('/clinical-files/:id/design-handoff', requirePermission('design.view'
 router.delete('/clinical-files/:id', requirePermission('clinical.edit'), clinicalFileController.remove)
 
 // ======================
-// LABORATORY / DENTALPOS DESIGN
+// LABORATORY / COMPLETODONTO DESIGN
 // ======================
 
 router.get('/lab-orders', requirePermission('laboratory.view'), labOrderController.list)

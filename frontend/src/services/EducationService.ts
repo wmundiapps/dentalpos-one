@@ -65,7 +65,7 @@ export const educationalCourses: EducationalCourse[] = !DEMO_DATA_ON ? [] : [
   {
     id: 4,
     title: "Biossegurança na Clínica Odontológica",
-    teacherName: "Equipe DentalPos",
+    teacherName: "Equipe CompletoDonto",
     category: "Biossegurança",
     description:
       "Rotinas, POPs, esterilização, resíduos e prevenção de riscos.",

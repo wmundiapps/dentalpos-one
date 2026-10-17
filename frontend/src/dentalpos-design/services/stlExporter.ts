@@ -37,7 +37,7 @@ export function exportGeometryToSTL(
    */
 
   const header =
-    "DentalPos 3D Core - STL";
+    "CompletoDonto 3D Core - STL";
 
   for (
     let index = 0;

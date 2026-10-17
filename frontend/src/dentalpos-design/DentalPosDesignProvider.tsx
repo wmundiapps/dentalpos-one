@@ -28,7 +28,7 @@ export function DentalPosDesignProvider({
       () => ({
         version: "2.0",
         productName:
-          "DentalPos Design",
+          "CompletoDonto Design",
         environment:
           "alpha",
       }),
