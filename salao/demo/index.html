@@ -241,9 +241,7 @@ Financeiro(){
   <div class="card" style="margin-top:12px"><h3>Estoque</h3><p class="mut">Entradas e saídas por produto, insumos baixados por serviço, alerta de ruptura, inventário.</p></div>`;
 },
 Planos(){
-  return `<div class="grid">${PLANOS.map(p=>`<div class="card"><h3>${p[0]}</h3><div class="big">${typeof p[1]==='number'?R(p[1]):p[1]}<small class="mut">${typeof p[1]==='number'?'/mês':''}</small></div><div class="mut">${p[2]}</div></div>`).join('')}</div>
-  <div class="card" style="margin-top:12px"><h3>Sem mensalidade: R$ 10 por cliente atendido</h3><p class="mut">Prefere não ter custo fixo? Pague só R$ 10 por cliente que usar a plataforma — isenção total da mensalidade.</p>
-  <div class="row"><label>Clientes/mês <input id="n" type="number" value="150" min="0" style="width:90px"></label><div id="cmp" class="mut"></div></div></div>`;
+  return `<div class="grid">${PLANOS.map(p=>`<div class="card"><h3>${p[0]}</h3><div class="big">${typeof p[1]==='number'?R(p[1]):p[1]}<small class="mut">${typeof p[1]==='number'?'/mês':''}</small></div><div class="mut">${p[2]}</div></div>`).join('')}</div>`;
 }
 };
 
@@ -311,12 +309,7 @@ function bindAssin(){
     <button class="btn" id="asg" style="margin-top:10px">Assinar</button>`;
     $('#asg').onclick=()=>{ASSINATURAS.push(sim);toast('Assinatura criada · horários reservados (demo)');render()}};
 }
-function bindPlanos(){
-  const f=()=>{const n=+$('#n').value||0,pay=n*10;
-    const plan=PLANOS.slice(0,4).find(p=>true);
-    $('#cmp').textContent=`Por cliente: ${R(pay)}/mês · Mensalidade Pequeno: ${R(129)} → ${pay<129?'por cliente compensa':'mensalidade compensa'}`};
-  $('#n').oninput=f;f();
-}
+function bindPlanos(){}
 const LOGS=['Agendador: Marcos marcou Corte+Barba 15:30','Lembrete: 6 confirmações enviadas','Retorno: 12 clientes chamados (25 dias)','Encaixe: vaga das 16:00 preenchida pela lista de espera','Fiscal: NFS-e #1042 emitida','Instagram: post "Antes e depois" publicado','Estoque: Óleo de barba abaixo do mínimo','Reputação: avaliação 5★ respondida','Gestor: resumo diário enviado ao dono','Clube: 3 assinaturas renovadas'];
 function startLog(){
   clearInterval(startLog.h);const l=$('#log');let i=0;

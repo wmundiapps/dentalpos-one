@@ -19,7 +19,7 @@ Negativas: grátis download, crack, curso, emprego, vaga, pdf, apostila.
 2. Agenda Inteligente com IA
 3. Teste Grátis por 14 Dias
 4. A partir de R$ 59,90 por mês
-5. Ou Pague R$ 10 por Cliente
+5. Sem Fidelidade, Cancele Quando Quiser
 6. 14 Robôs no WhatsApp
 7. Clube de Assinatura Pronto
 8. Financeiro e NF Automática
@@ -28,7 +28,7 @@ Negativas: grátis download, crack, curso, emprego, vaga, pdf, apostila.
 
 **Descrições (máx. 90 caracteres):**
 1. Agenda sem buracos, robôs de WhatsApp, shop e financeiro. Teste grátis hoje.
-2. Sem mensalidade? Pague só R$ 10 por cliente atendido. Comece em minutos.
+2. Sem fidelidade e com 14 dias grátis. Comece em minutos.
 3. Comissão, split, CLT e arrendamento de cadeira. Tudo em um só sistema.
 4. Instagram, Facebook e WhatsApp no automático. Veja a demonstração.
 

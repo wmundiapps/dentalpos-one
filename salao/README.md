@@ -15,7 +15,7 @@ Produto novo do monorepo. **Nome provisório "BeautyPos"** — trocar em todos o
 | Reserva paga, retenção 30% e assinatura (Asaas) | `docs/INTEGRACAO-ASAAS.md` |
 
 ## Planos
-Smart Individual R$ 59,90 · Pequeno R$ 129 · Médio R$ 249 · Grande R$ 559 · Sob demanda · ou R$ 10 por cliente atendido (sem mensalidade).
+Smart Individual R$ 59,90 · Pequeno R$ 129 · Médio R$ 249 · Grande R$ 559 · Sob demanda.
 
 ## Modos
 ♂ Barbearia (Masculino) · ♀ Studio Hair (Feminino) · ⚥ Misto — catálogo, tema e profissionais mudam pelo seletor.

@@ -16,7 +16,6 @@ Licença de uso, em nuvem (SaaS), do sistema BeautyPos para gestão de salão de
 | Médio | R$ 249,00 |
 | Grande | R$ 559,00 |
 | Sob demanda | conforme proposta |
-| Opção sem mensalidade | R$ 10,00 por cliente atendido no mês |
 
 Valores sujeitos a reajuste anual pelo IPCA, com aviso prévio de 30 dias. Período de teste: 14 dias sem cobrança.
 

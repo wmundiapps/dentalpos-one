@@ -12,7 +12,7 @@
 | Arquivo | Posição | Texto principal |
 |---|---|---|
 | meta-01 | Feed | "Agenda cheia, zero buraco. A IA encaixa cada cliente no melhor horário. Teste 14 dias grátis." |
-| meta-02 | Feed | "A partir de R$ 59,90/mês — ou pague só R$ 10 por cliente atendido, sem mensalidade." |
+| meta-02 | Feed | "A partir de R$ 59,90/mês. Sem fidelidade, teste grátis por 14 dias." |
 | meta-03 | Feed/Reels | "14 robôs cuidando de WhatsApp, Instagram, estoque e nota fiscal enquanto você corta." |
 | meta-04 | Feed | "Clube de assinatura: receita todo mês, cobrança automática." |
 | meta-05 | Stories | Barbearia no piloto automático |
