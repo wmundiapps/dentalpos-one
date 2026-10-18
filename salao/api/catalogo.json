@@ -1,5 +1,0 @@
-{
-  "corte-masculino": { "nome": "Corte masculino", "valor": 40.0 },
-  "barba-completa": { "nome": "Barba completa", "valor": 35.0 },
-  "corte-barba": { "nome": "Corte + Barba", "valor": 65.0 }
-}

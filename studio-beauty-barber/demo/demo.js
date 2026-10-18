@@ -1,0 +1,274 @@
+
+const R = n => 'R$ ' + n.toFixed(2).replace('.', ',');
+const $ = (s, e = document) => e.querySelector(s);
+
+/* ---------- Catálogo configurável (cada salão edita o seu) ---------- */
+const SERVICES = {
+  masc: [
+    ['Corte masculino',40,45,'Cabelo'],['Barba completa',35,30,'Barba'],['Corte + Barba',65,70,'Cabelo'],
+    ['Prótese capilar (aplicação)',350,120,'Prótese'],['Tintura / camuflagem',70,50,'Tinturas'],
+    ['Alisamento masculino',120,90,'Alisamentos'],['Implante capilar (avaliação médica)',200,40,'Medicina integrada'],
+    ['Limpeza de pele',130,60,'Esteticista'],['Harmonização facial (dentista)',900,60,'Harmonização']
+  ],
+  fem: [
+    ['Corte feminino',90,60,'Cabelos'],['Escova',60,45,'Cabelos'],['Hidratação',80,50,'Cabelos'],
+    ['Mega Hair (aplicação)',450,180,'Mega Hair'],['Alisamento',250,150,'Alisamento'],['Permanente',230,150,'Cabelos'],
+    ['Tintura',160,120,'Tintura'],['Maquiagem',150,60,'Maquiagem'],['Manicure (mãos)',40,45,'Unhas'],
+    ['Pedicure (pés)',50,50,'Unhas'],['Limpeza de pele',140,60,'Pele'],['Toxina botulínica',1100,45,'Pele'],
+    ['Massagem relaxante (Spa)',160,60,'Spa'],['Harmonização facial',950,60,'Harmonização'],['Dia da Noiva',1800,360,'Noivas']
+  ]
+};
+SERVICES.mix = [...SERVICES.masc.slice(0,3), ...SERVICES.fem.slice(0,6), ...SERVICES.fem.slice(7,10), SERVICES.fem[12]];
+try{const sv=JSON.parse(localStorage.getItem('bp-services')||'null');if(sv)for(const k in sv)SERVICES[k]=sv[k]}catch(e){}
+const saveSv=()=>{try{localStorage.setItem('bp-services',JSON.stringify(SERVICES))}catch(e){}};
+const PROS = {
+  masc: [['Rafa','Cabelo,Barba,Cor'],['Bruno','Cabelo,Barba,Prótese'],['Dr. Leo','Medicina integrada,Harmonização'],['Carla','Esteticista']],
+  fem: [['Ju','Cabelos,Mega Hair,Tintura,Alisamento'],['Paty','Unhas'],['Dra. Ana','Pele,Harmonização'],['Lu','Maquiagem,Noivas,Spa']],
+  mix: [['Rafa','Cabelo,Barba'],['Ju','Cabelos,Tintura,Alisamento'],['Paty','Unhas'],['Dra. Ana','Pele,Harmonização']]
+};
+const SHOP = [['Pomada modeladora',49.9,12],['Óleo de barba',39.9,20],['Shampoo profissional',69.9,8],['Máscara de hidratação',89.9,6],['Perfume nacional 100ml',189,5],['Kit skincare',229,4]];
+const PUB = [['Chopp artesanal',16,40],['Whisky dose',28,25],['Charuto (unid.)',45,10],['Cachimbo — locação 1h',30,3],['Espresso',8,60],['Salgado',9,30],['Água / refri',6,80]];
+const PLANOS = [['Smart Individual',59.9,'1 profissional · agenda, página de agendamento, lembretes'],['Pequeno',129,'até 3 profissionais · caixa e comissões'],['Médio',249,'até 8 profissionais · robôs, estoque, NF e clube'],['Grande',559,'até 20 profissionais · split, RH e relatórios'],['Sob demanda','—','redes e franquias · proposta sob medida']];
+const ROBOS = [
+ ['🤖 Robô Agendador','Conversa no WhatsApp e fecha o horário sozinho'],['⏰ Robô Lembrete','Confirma 24h/2h antes e reduz faltas'],
+ ['🔁 Robô Retorno','Chama o cliente no ciclo do corte (ex.: 25 dias)'],['🎂 Robô Aniversário','Mimo + cashback no aniversário'],
+ ['💬 Robô Pós-venda','Pede avaliação Google e oferece produto'],['🕳️ Robô Encaixe','Preenche cancelamentos pela lista de espera'],
+ ['📣 Robô Instagram','Gera posts, legendas e stories da semana'],['📘 Robô Facebook','Publica e responde mensagens/comentários'],
+ ['📦 Robô Estoque','Avisa ruptura e sugere compra'],['🧾 Robô Fiscal','Emite NFS-e/NF-e ao receber'],
+ ['💸 Robô Comissão','Calcula split, diária e arrendamento'],['🏆 Robô Clube','Cobra assinatura e gerencia créditos'],
+ ['⭐ Robô Reputação','Responde avaliações com tom da marca'],['🧠 Robô Gestor','Resumo diário no WhatsApp do dono']
+];
+
+let mode = 'masc', tab = 'Agenda', clientCount = 0;
+const POL={ret:30,hrs:24}, RESERVAS=[], ASSINATURAS=[];
+const fmtD=d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+const addD=(n)=>{const d=new Date();d.setDate(d.getDate()+n);return d};
+let bookings = [
+  {pro:0,start:9*60,dur:45,cli:'Marcos',svc:'Corte'},{pro:0,start:11*60,dur:70,cli:'Tiago',svc:'Corte + Barba'},
+  {pro:1,start:9*60+30,dur:30,cli:'Edu',svc:'Barba'},{pro:1,start:14*60,dur:120,cli:'Paulo',svc:'Prótese'},
+  {pro:2,start:10*60,dur:60,cli:'Lia',svc:'Harmonização'},{pro:3,start:13*60,dur:60,cli:'Bia',svc:'Limpeza de pele'}
+];
+const OPEN = 9*60, CLOSE = 19*60, STEP = 15;
+const hm = m => String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+
+/* ---------- Agendamento inteligente ----------
+   Pontua cada horário livre: menos "buracos" na agenda do profissional (encaixa
+   colado em outro atendimento), preferência de horário do cliente, profissional
+   habilitado no serviço e menor fila. Retorna os melhores. */
+function suggest(svcIdx, prefer) {
+  const [name,, dur, cat] = SERVICES[mode][svcIdx];
+  const out = [];
+  PROS[mode].forEach((p, pi) => {
+    if (!p[1].split(',').some(c => cat.includes(c) || c.includes(cat))) return;
+    const mine = bookings.filter(b => b.pro === pi).sort((a,b) => a.start - b.start);
+    for (let t = OPEN; t + dur <= CLOSE; t += STEP) {
+      if (mine.some(b => t < b.start + b.dur && t + dur > b.start)) continue;
+      const prev = mine.filter(b => b.start + b.dur <= t).pop();
+      const next = mine.find(b => b.start >= t + dur);
+      const gapB = prev ? t - (prev.start + prev.dur) : t - OPEN;
+      const gapA = next ? next.start - (t + dur) : CLOSE - (t + dur);
+      let score = 100 - Math.min(gapB, 90) * .5 - Math.min(gapA, 90) * .3 - mine.length * 2;
+      if (prev && gapB === 0) score += 15; if (next && gapA === 0) score += 15;
+      if (gapB > 0 && gapB < 30) score -= 25; if (gapA > 0 && gapA < 30) score -= 25; // evita buracos inúteis
+      if (prefer === 'manha' && t < 12*60) score += 12;
+      if (prefer === 'tarde' && t >= 12*60 && t < 17*60) score += 12;
+      if (prefer === 'noite' && t >= 17*60) score += 12;
+      out.push({pro:pi, t, score, dur, name});
+    }
+  });
+  return out.sort((a,b) => b.score - a.score).slice(0, 8);
+}
+
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>e.style.display='none',2600)}
+
+/* ---------- Telas ---------- */
+const views = {
+Agenda(){
+  const s = SERVICES[mode];
+  return `<div class="card"><h3>Agendamento inteligente</h3>
+  <div class="row"><select id="svc">${s.map((x,i)=>x[4]?'':`<option value="${i}">${x[0]} — ${x[2]} min — ${R(x[1])}</option>`).join('')}</select>
+  <select id="pref"><option value="">Qualquer horário</option><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="noite">Fim do dia</option></select>
+  <input id="cli" placeholder="Nome do cliente" value="Cliente Demo">
+  <button class="btn" id="go">Sugerir horários</button></div>
+  <div class="mut" style="margin-top:6px">A IA escolhe o profissional habilitado e o horário que <b>não deixa buracos</b> na agenda.</div>
+  <div class="slots" id="slots"></div></div>
+  <div class="card" style="margin-top:12px"><h3>Agenda de hoje</h3>
+  <div class="grid">${PROS[mode].map((p,pi)=>`<div><b>${p[0]}</b> <span class="mut">${p[1]}</span><div class="tl">${
+    bookings.filter(b=>b.pro===pi).sort((a,b)=>a.start-b.start).map(b=>`<div class="mut">${hm(b.start)}</div><div class="ev ${b.isNew?'new':''}">${b.cli} · ${b.svc} (${b.dur}min)</div>`).join('')||'<div></div><div class="mut">livre</div>'
+  }</div></div>`).join('')}</div></div>`;
+},
+'Reservar online'(){
+  const act=SERVICES[mode].map((x,i)=>x[4]?'':`<option value="${i}">${x[0]} — ${R(x[1])}</option>`).join('');
+  return `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+  <div class="card"><h3>Visão do cliente: agenda aberta para reserva</h3>
+  <div class="row"><select id="rs">${act}</select><select id="rp"><option value="">Qualquer horário</option><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="noite">Fim do dia</option></select>
+  <button class="btn ghost" id="rgo">Ver horários</button></div><div class="slots" id="rslots"></div>
+  <div id="rform" hidden style="margin-top:12px"><div class="row"><input id="rn" placeholder="Seu nome" value="Maria Cliente"><input id="rt" placeholder="WhatsApp" value="(11) 99999-0000"></div>
+  <div class="row" style="margin-top:8px"><label><input type="radio" name="pay" value="Pix" checked> Pix</label><label><input type="radio" name="pay" value="Cartão"> Cartão de crédito</label></div>
+  <div class="card" style="margin-top:10px;border-color:var(--warn)"><b>⚠ Política de reserva</b><div class="mut" id="pol"></div>
+  <label style="display:block;margin-top:6px"><input type="checkbox" id="acc"> Li e concordo com a política de não comparecimento</label></div>
+  <button class="btn" id="rpay" style="margin-top:10px">Pagar e reservar</button></div></div>
+  <div class="card"><h3>Política do salão (configurável)</h3>
+  <div class="row"><label>Retenção por não comparecimento <input id="ret" type="number" min="0" max="100" value="${POL.ret}" style="width:70px"> %</label></div>
+  <div class="row" style="margin-top:6px"><label>Cancelamento sem custo até <input id="hrs" type="number" min="0" value="${POL.hrs}" style="width:70px"> h antes</label></div>
+  <p class="mut">Pagamento antecipado via Asaas (Pix ou cartão). Demonstração: nenhum valor é cobrado.</p></div>
+  <div class="card" style="grid-column:1/-1"><h3>Reservas</h3>${RESERVAS.length?`<div style="overflow-x:auto"><table><tr><th>Cliente</th><th>Serviço</th><th>Horário</th><th>Pago</th><th>Status</th><th>Ações do salão</th></tr>${RESERVAS.map((r,i)=>`<tr><td>${r.cli}</td><td>${r.svc}</td><td>${hm(r.t)} · ${PROS[mode][r.pro]?PROS[mode][r.pro][0]:''}</td><td>${r.pay} ${R(r.val)}</td><td><span class="tag ${r.st.startsWith('Compareceu')?'ok':r.st==='Pago'?'':'warn'}">${r.st}</span></td><td>${r.st==='Pago'?`<button class="btn ghost" data-ra="ok" data-i="${i}">Compareceu</button> <button class="btn ghost" data-ra="no" data-i="${i}">Não compareceu</button> <button class="btn ghost" data-ra="can" data-i="${i}">Cancelou no prazo</button>`:''}</td></tr>`).join('')}</table></div>`:'<p class="mut">Nenhuma reserva ainda. Faça uma pelo painel ao lado.</p>'}</div></div>`;
+},
+Avisos(){
+  const last=RESERVAS[RESERVAS.length-1]||{cli:'Maria',svc:SERVICES[mode][0][0],t:15*60,pro:0,val:SERVICES[mode][0][1]};
+  const nm=PROS[mode][last.pro]?PROS[mode][last.pro][0]:'Rafa';
+  const T=[['Confirmação da reserva','imediato',`Olá, ${last.cli}! Reserva confirmada: ${last.svc} hoje às ${hm(last.t)} com ${nm}. Pagamento de ${R(last.val)} recebido. Atenção: faltar sem avisar retém ${POL.ret}% do valor.`],
+  ['Lembrete 24h','24h antes',`${last.cli}, amanhã às ${hm(last.t)} você tem ${last.svc}. Responda 1 para CONFIRMAR, 2 para REMARCAR ou 3 para CANCELAR (sem custo até ${POL.hrs}h antes).`],
+  ['Lembrete 2h','2h antes',`Daqui a 2 horas: ${last.svc} às ${hm(last.t)}. Te esperamos! Endereço e mapa no link.`],
+  ['Falta registrada','após o horário',`${last.cli}, sentimos sua falta. Conforme a política aceita, ${POL.ret}% foi retido e ${100-POL.ret}% (${R(last.val*(100-POL.ret)/100)}) será devolvido pelo Asaas em até alguns dias.`],
+  ['Pós-atendimento','2h depois',`Obrigado, ${last.cli}! Como foi? Responda de 1 a 5 e ganhe cashback na próxima visita.`],
+  ['Retorno / assinatura','ciclo vencendo',`${last.cli}, seu próximo horário da assinatura é em 3 dias. Quer manter ou trocar?`]];
+  return `<p class="mut">Avisos automáticos por WhatsApp (e SMS/e-mail como reserva), enviados pelo Robô Lembrete. Exemplos com a última reserva.</p><div class="grid">${T.map(t=>`<div class="card"><h3>${t[0]}</h3><span class="tag">${t[1]}</span><p class="mut" style="margin:8px 0 0">${t[2]}</p><label style="display:block;margin-top:8px"><input type="checkbox" checked> ativo</label></div>`).join('')}</div>`;
+},
+Assinatura(){
+  const act=SERVICES[mode].map((x,i)=>x[4]?'':`<option value="${i}">${x[0]} — ${R(x[1])}</option>`).join('');
+  return `<p class="mut">Cliente assina e tem o horário reservado automaticamente no intervalo escolhido, com cobrança antecipada a cada visita.</p>
+  <div class="card"><div class="row"><select id="as">${act}</select>
+  <select id="ai"><option value="7">Semanal (7/7 dias)</option><option value="15">15 em 15 dias</option><option value="30" selected>30 em 30 dias</option><option value="45">45 em 45 dias</option><option value="60">60 em 60 dias</option></select>
+  <select id="ap"><option value="">Qualquer período</option><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="noite">Fim do dia</option></select>
+  <label>Desconto <input id="ad" type="number" min="0" max="50" value="10" style="width:60px"> %</label><button class="btn" id="ago">Simular assinatura</button></div><div id="asim" style="margin-top:12px"></div></div>
+  <div class="card" style="margin-top:12px"><h3>Assinaturas ativas</h3>${ASSINATURAS.length?`<div style="overflow-x:auto"><table><tr><th>Cliente</th><th>Serviço</th><th>Intervalo</th><th>Valor/visita</th><th>Próximas datas</th></tr>${ASSINATURAS.map(a=>`<tr><td>${a.cli}</td><td>${a.svc}</td><td>${a.int===7?'semanal':a.int+'/'+a.int+' dias'}</td><td>${R(a.val)}</td><td>${a.datas.slice(0,4).join(' · ')}</td></tr>`).join('')}</table></div>`:'<p class="mut">Nenhuma ainda.</p>'}</div>`;
+},
+Serviços(){
+  const cats=[...new Set(Object.values(SERVICES).flat().map(x=>x[3]))];
+  return `<p class="mut">Edite nome, valor, duração e categoria. Desative o que não oferece. As mudanças valem na Agenda e ficam salvas neste aparelho.</p>
+  <datalist id="cats">${cats.map(c=>`<option value="${c}">`).join('')}</datalist>
+  <div class="card" style="overflow-x:auto"><table><tr><th>Procedimento</th><th>Categoria</th><th>Valor (R$)</th><th>Minutos</th><th>Ativo</th></tr>
+  ${SERVICES[mode].map((x,i)=>`<tr data-i="${i}" style="${x[4]?'opacity:.5':''}">
+   <td><input data-f="0" value="${x[0].replace(/"/g,'&quot;')}" style="width:100%;min-width:170px"></td>
+   <td><input data-f="3" list="cats" value="${x[3]}" style="width:130px"></td>
+   <td><input data-f="1" type="number" min="0" step="0.01" value="${x[1]}" style="width:90px"></td>
+   <td><input data-f="2" type="number" min="5" step="5" value="${x[2]}" style="width:70px"></td>
+   <td><input data-f="4" type="checkbox" ${x[4]?'':'checked'}></td></tr>`).join('')}</table></div>
+  <div class="card" style="margin-top:12px"><h3>Novo procedimento</h3><div class="row">
+   <input id="nn" placeholder="Nome (ex.: Botox capilar)"><input id="nc" list="cats" placeholder="Categoria" style="width:140px">
+   <input id="np" type="number" min="0" step="0.01" placeholder="Valor" style="width:100px"><input id="nd" type="number" min="5" step="5" placeholder="Minutos" style="width:90px">
+   <button class="btn" id="add">Adicionar</button></div></div>
+  <div class="row" style="margin-top:12px"><button class="btn ghost" id="reset">Restaurar lista original</button></div>`;
+},
+Shop(){
+  return `<p class="mut">Loja online do salão: o cliente compra pelo link e retira ou recebe em casa. Estoque baixa sozinho.</p><div class="grid">${SHOP.map((x,i)=>`<div class="card"><h3>${x[0]}</h3><div class="mut">${x[2]} em estoque</div><div class="big">${R(x[1])}</div><button class="btn" data-toast="${x[0]} adicionado ao carrinho · cashback 5%">Comprar</button></div>`).join('')}</div>`;
+},
+'Mini Pub'(){
+  if(mode==='fem') return `<div class="card"><h3>Mini Pub</h3><p class="mut">Espumante, café, chá e petiscos servidos durante o atendimento — ative no menu Configurações.</p></div>`;
+  return `<p class="mut">Comanda digital: o cliente consome enquanto espera e paga no fechamento.</p><div class="grid">${PUB.map(x=>`<div class="card"><h3>${x[0]}</h3><div class="mut">${x[2]} em estoque</div><div class="big">${R(x[1])}</div><button class="btn ghost" data-toast="Lançado na comanda">+ comanda</button></div>`).join('')}</div>`;
+},
+Clube(){
+  const c = mode==='fem' ? [['Studio Glow',199,'4 escovas + 1 hidratação/mês'],['Studio Noiva',349,'cabelo + unhas + pele'],['Beauty Total',599,'tudo ilimitado*']] :
+    mode==='masc' ? [['Corte Ilimitado',89,'cortes à vontade'],['Barba & Corte',139,'corte + barba ilimitados'],['Cavalheiro',229,'tudo + 2 drinks/mês']] :
+    [['Essencial',99,'2 serviços/mês'],['Premium',199,'4 serviços + desconto no shop'],['VIP',349,'ilimitado + mini pub']];
+  return `<p class="mut">Clube de assinatura recorrente, cobrado no cartão/Pix automaticamente.</p><div class="grid">${c.map(x=>`<div class="card"><h3>${x[0]}</h3><div class="mut">${x[2]}</div><div class="big">${R(x[1])}<small class="mut">/mês</small></div><button class="btn" data-toast="Assinatura criada">Assinar</button></div>`).join('')}</div>`;
+},
+Marketing(){
+  return `<div class="grid">
+  <div class="card"><h3>WhatsApp · E-mail · SMS</h3><p class="mut">Campanhas segmentadas (sumidos, aniversariantes, VIP).</p><button class="btn" data-toast="Campanha para 128 clientes sumidos agendada">Criar campanha</button></div>
+  <div class="card"><h3>Redes sociais</h3><p class="mut">Calendário de posts gerado por IA (Instagram, Facebook, LinkedIn).</p><button class="btn" data-toast="7 posts da semana gerados">Gerar semana</button></div>
+  <div class="card"><h3>Landing page + Anúncios</h3><p class="mut">Página pronta para Meta Ads e Google Ads com agendamento embutido.</p><button class="btn ghost" data-toast="Landing publicada">Publicar</button></div>
+  <div class="card"><h3>Cashback Smart</h3><p class="mut">5% de volta em serviços e produtos, usado no próximo atendimento (integração Cashbacksmart).</p><button class="btn ghost" data-toast="Cashback ativo">Ativar</button></div></div>`;
+},
+Robôs(){
+  return `<p class="mut">14 robôs trabalhando 24h. Ligue os que quiser.</p><div class="grid">${ROBOS.map((r,i)=>`<div class="card"><h3>${r[0]}</h3><div class="mut">${r[1]}</div><label style="display:block;margin-top:8px"><input type="checkbox" checked data-toggle="Robô"> ativo</label></div>`).join('')}</div>
+  <div class="card" style="margin-top:12px"><h3>Atividade dos robôs (ao vivo)</h3><div class="log" id="log"></div></div>`;
+},
+Financeiro(){
+  const rows=[['Recebimentos hoje',1840],['Comissões a pagar',612],['Aluguel de cadeiras (arrendamento)',900],['Produtos (shop + pub)',470],['Notas fiscais emitidas','23 automáticas']];
+  return `<div class="grid">${rows.map(r=>`<div class="card"><div class="mut">${r[0]}</div><div class="big">${typeof r[1]==='number'?R(r[1]):r[1]}</div></div>`).join('')}</div>
+  <div class="card" style="margin-top:12px"><h3>Parceiros e contratos</h3><table><tr><th>Modelo</th><th>Como funciona</th></tr>
+  <tr><td>CLT</td><td>Salário + encargos, ponto e holerite</td></tr><tr><td>Diária</td><td>Valor fixo por dia trabalhado</td></tr>
+  <tr><td>Comissão</td><td>% por serviço, tabela por profissional</td></tr><tr><td>Split</td><td>Divisão automática no pagamento (Lei do Salão Parceiro)</td></tr>
+  <tr><td>Arrendamento</td><td>Aluguel de cadeira/sala com recibo mensal</td></tr></table></div>
+  <div class="card" style="margin-top:12px"><h3>Estoque</h3><p class="mut">Entradas e saídas por produto, insumos baixados por serviço, alerta de ruptura, inventário.</p></div>`;
+},
+'Painel real'(){
+  const P=[['dashboard','Painel do dono: faturamento, ticket médio, faltas, estoque'],['agenda','Agenda por profissional'],['clube','Clube de assinatura com horário fixo'],['vendas','Vendas, comanda e comissões'],['conversas','Conversas do WhatsApp, Instagram e Facebook num lugar só'],['campanhas','Campanhas com consentimento e opção de sair'],['reserva-cliente','O que o cliente vê ao reservar: pagamento e política de não comparecimento'],['configuracoes','Configuração da reserva paga e retenção por falta'],['leads','Funil de leads']];
+  return `<p class="mut">Capturas do aplicativo real rodando com o salão piloto (dados fictícios).</p><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">${P.map(p=>`<figure class="card shot"><img src="../painel/${p[0]}.png" alt="${p[1]}" loading="lazy"><figcaption class="mut">${p[1]}</figcaption></figure>`).join('')}</div>`;
+},
+Planos(){
+  return `<div class="grid">${PLANOS.map(p=>`<div class="card"><h3>${p[0]}</h3><div class="big">${typeof p[1]==='number'?R(p[1]):p[1]}<small class="mut">${typeof p[1]==='number'?'/mês':''}</small></div><div class="mut">${p[2]}</div></div>`).join('')}</div><p style="margin-top:14px"><a class="btn" href="../#contato">Testar grátis por 14 dias</a></p>`;
+}
+};
+
+/* ---------- Render ---------- */
+function render(){
+  const names = Object.keys(views);
+  $('#tabs').innerHTML = names.map(n=>`<button class="${n===tab?'on':''}" data-t="${n}">${n}</button>`).join('');
+  $('#view').innerHTML = views[tab]();
+  if (tab==='Agenda') bindAgenda();
+  if (tab==='Planos') bindPlanos();
+  if (tab==='Serviços') bindServicos();
+  if (tab==='Reservar online') bindReserva();
+  if (tab==='Assinatura') bindAssin();
+  if (tab==='Robôs') startLog();
+}
+function bindAgenda(){
+  $('#go').onclick = () => {
+    const i = +$('#svc').value, res = suggest(i, $('#pref').value);
+    $('#slots').innerHTML = res.length ? res.map((r,k)=>`<button class="slot ${k===0?'best':''}" data-i="${k}"><b>${hm(r.t)}</b><small>${PROS[mode][r.pro][0]}${k===0?' · ★ melhor encaixe':''}</small></button>`).join('') : '<span class="mut">Sem horário livre hoje.</span>';
+    document.querySelectorAll('.slot').forEach(b=>b.onclick=()=>{
+      const r=res[+b.dataset.i];
+      bookings.push({pro:r.pro,start:r.t,dur:r.dur,cli:$('#cli').value||'Cliente',svc:r.name,isNew:true});
+      toast(`Agendado ${hm(r.t)} com ${PROS[mode][r.pro][0]} · lembrete automático ligado`); render();
+    });
+  };
+}
+function bindServicos(){
+  $('#view').onchange=e=>{const el=e.target,tr=el.closest('tr');if(!tr||!el.dataset.f)return;const f=+el.dataset.f,x=SERVICES[mode][+tr.dataset.i];
+    if(f===4)x[4]=!el.checked;else if(f===1||f===2)x[f]=Math.max(0,+el.value||0);else x[f]=el.value.trim()||x[f];
+    saveSv();toast('Salvo');if(f===4)render()};
+  $('#add').onclick=()=>{const n=$('#nn').value.trim();if(!n)return toast('Informe o nome do procedimento');
+    SERVICES[mode].push([n,+$('#np').value||0,+$('#nd').value||30,$('#nc').value.trim()||'Outros']);saveSv();toast('Procedimento adicionado');render()};
+  $('#reset').onclick=()=>{try{localStorage.removeItem('bp-services')}catch(e){}location.reload()};
+}
+function bindReserva(){
+  let pick=null,res=[];
+  const pol=()=>$('#pol').textContent=`Para garantir o seu horário, o pagamento é antecipado. Cancelando até ${POL.hrs}h antes, devolvemos 100%. Se não comparecer sem avisar, retemos ${POL.ret}% do valor pela reserva do horário e devolvemos ${100-POL.ret}%.`;
+  $('#ret').onchange=e=>{POL.ret=Math.min(100,Math.max(0,+e.target.value||0));toast('Política atualizada');render()};
+  $('#hrs').onchange=e=>{POL.hrs=Math.max(0,+e.target.value||0);toast('Política atualizada');render()};
+  $('#rgo').onclick=()=>{res=suggest(+$('#rs').value,$('#rp').value).slice(0,6);
+    $('#rslots').innerHTML=res.map((r,k)=>`<button class="slot" data-k="${k}"><b>${hm(r.t)}</b><small>${PROS[mode][r.pro][0]}</small></button>`).join('')||'<span class="mut">Sem horário hoje.</span>';
+    document.querySelectorAll('#rslots .slot').forEach(b=>b.onclick=()=>{pick=res[+b.dataset.k];document.querySelectorAll('#rslots .slot').forEach(x=>x.classList.remove('best'));b.classList.add('best');$('#rform').hidden=false;pol()})};
+  $('#rpay').onclick=()=>{
+    if(!pick)return toast('Escolha um horário');
+    if(!$('#acc').checked)return toast('É preciso aceitar a política de não comparecimento');
+    const sv=SERVICES[mode][+$('#rs').value],pay=document.querySelector('input[name=pay]:checked').value,cli=$('#rn').value||'Cliente';
+    RESERVAS.push({cli,svc:sv[0],t:pick.t,pro:pick.pro,val:sv[1],pay,st:'Pago'});
+    bookings.push({pro:pick.pro,start:pick.t,dur:pick.dur,cli,svc:sv[0],isNew:true});
+    toast(`${pay} ${pay==='Pix'?'confirmado (demo)':'aprovado (demo)'} · reserva feita, aviso enviado no WhatsApp`);render()};
+  document.querySelectorAll('[data-ra]').forEach(b=>b.onclick=()=>{const r=RESERVAS[+b.dataset.i],k=b.dataset.ra;
+    if(k==='ok'){r.st='Compareceu · pago integral';toast('Atendimento concluído')}
+    if(k==='no'){const ret=r.val*POL.ret/100;r.st=`Faltou · retido ${R(ret)} · devolvido ${R(r.val-ret)}`;toast(`Retido ${R(ret)} e devolvido ${R(r.val-ret)} (Asaas)`)}
+    if(k==='can'){r.st=`Cancelou no prazo · devolvido ${R(r.val)}`;toast(`Devolvido ${R(r.val)} (Asaas)`)}
+    render()});
+}
+function bindAssin(){
+  let sim=null;
+  $('#ago').onclick=()=>{const sv=SERVICES[mode][+$('#as').value],iv=+$('#ai').value,d=+$('#ad').value||0,res=suggest(+$('#as').value,$('#ap').value)[0];
+    if(!res){$('#asim').innerHTML='<span class="mut">Sem horário livre.</span>';return}
+    const val=sv[1]*(1-d/100),datas=[1,2,3,4,5,6].map(n=>fmtD(addD(n*iv)));
+    sim={cli:'Maria Cliente',svc:sv[0],int:iv,val,datas};
+    $('#asim').innerHTML=`<div class="grid"><div><div class="mut">Horário fixo</div><div class="big">${hm(res.t)}</div><div class="mut">com ${PROS[mode][res.pro][0]}</div></div>
+    <div><div class="mut">Valor por visita</div><div class="big">${R(val)}</div><div class="mut">${d}% de desconto sobre ${R(sv[1])}</div></div>
+    <div><div class="mut">Próximas 6 datas</div><div>${datas.join(' · ')}</div><div class="mut">cobrança antecipada via Asaas (cartão recorrente ou Pix)</div></div></div>
+    <button class="btn" id="asg" style="margin-top:10px">Assinar</button>`;
+    $('#asg').onclick=()=>{ASSINATURAS.push(sim);toast('Assinatura criada · horários reservados (demo)');render()}};
+}
+function bindPlanos(){}
+const LOGS=['Agendador: Marcos marcou Corte+Barba 15:30','Lembrete: 6 confirmações enviadas','Retorno: 12 clientes chamados (25 dias)','Encaixe: vaga das 16:00 preenchida pela lista de espera','Fiscal: NFS-e #1042 emitida','Instagram: post "Antes e depois" publicado','Estoque: Óleo de barba abaixo do mínimo','Reputação: avaliação 5★ respondida','Gestor: resumo diário enviado ao dono','Clube: 3 assinaturas renovadas'];
+function startLog(){
+  clearInterval(startLog.h);const l=$('#log');let i=0;
+  const add=()=>{if(!$('#log'))return clearInterval(startLog.h);l.insertAdjacentHTML('afterbegin',`<div>${new Date().toTimeString().slice(0,8)} ${LOGS[i++%LOGS.length]}</div>`)};
+  add();startLog.h=setInterval(add,1800);
+}
+$('#mode').onclick = e => { const m=e.target.dataset.m; if(!m)return; mode=m; document.body.dataset.mode=m;
+  document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  bookings=bookings.filter(b=>!b.isNew); render(); };
+$('#tabs').onclick = e => { if(e.target.dataset.t){tab=e.target.dataset.t;render();} };
+render();
+
+document.addEventListener('click',e=>{const t=e.target.closest('[data-toast]');if(t)toast(t.dataset.toast)});
+document.addEventListener('change',e=>{const t=e.target.closest('[data-toggle]');if(t)toast(t.checked?t.dataset.toggle+' ligado':t.dataset.toggle+' desligado')});

@@ -1,0 +1,19 @@
+{
+  "name": "studio-beauty-barber",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Studio Beauty Barber - gestão para salões e barbearias (agenda, CRM, WhatsApp, campanhas, cobrança).",
+  "type": "module",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "seed": "node server/seed.js",
+    "test": "node --no-warnings --test tests/*.test.js",
+    "ads": "python3 ads/build_ads.py"
+  },
+  "dependencies": {},
+  "optionalDependencies": {
+    "pg": "^8.13.0"
+  }
+}
