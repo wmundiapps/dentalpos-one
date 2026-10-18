@@ -12,7 +12,7 @@ Produto novo do monorepo. **Nome provisório "BeautyPos"** — trocar em todos o
 | Robôs (14) | `robos/ROBOS.md`, `robos/robos.json` |
 | Skills Facebook, Instagram, WhatsApp | `skills/*/SKILL.md` |
 | Contratos (minutas) | `docs/contratos/` |
-| Reserva paga, retenção 30% e assinatura (Asaas) | `docs/INTEGRACAO-ASAAS.md` |
+| Reserva paga, retenção 30% e assinatura (Asaas) | `docs/INTEGRACAO-ASAAS.md` e código em `api/` |
 
 ## Planos
 Smart Individual R$ 59,90 · Pequeno R$ 129 · Médio R$ 249 · Grande R$ 559 · Sob demanda.
