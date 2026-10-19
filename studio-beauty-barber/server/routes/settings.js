@@ -80,10 +80,9 @@ export default function register(r) {
       await audit(ctx, 'upload_infected', 'salon', ctx.salon.id, { detail: scan.detail });
       throw new HttpError(422, 'Arquivo bloqueado pelo antivírus.');
     }
-    mkdirSync(UPLOAD_DIR, { recursive: true });
+    // A logo fica no banco (a hospedagem serverless não tem disco persistente).
     const name = `${ctx.salon.id}-${uid().slice(0, 8)}.${kind.ext}`;
-    writeFileSync(join(UPLOAD_DIR, name), buf);
-    await db.run('UPDATE salons SET logo_path = ? WHERE id = ?', [name, ctx.salon.id]);
+    await db.run('UPDATE salons SET logo_path = ?, logo_data = ?, logo_mime = ? WHERE id = ?', [name, buf.toString('base64'), kind.mime || `image/${kind.ext === 'jpg' ? 'jpeg' : kind.ext}`, ctx.salon.id]);
     await audit(ctx, 'logo_uploaded', 'salon', ctx.salon.id, { scanned: scan.scanned });
     return { logo: `/uploads/${name}`, scanned: scan.scanned };
   });

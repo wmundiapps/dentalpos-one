@@ -40,7 +40,7 @@ async function login(email = 'piloto@studiobeautybarber.com', password = PW, ext
 }
 
 before(async () => {
-  await initDb({ sqlitePath: ':memory:' });
+  await (await import('./_db.js')).openTestDb(initDb);
   await ensureHq();
   pilot = await seedPilot({ ownerPassword: PW });
   server = createApp({ awaitWebhooks: true });
@@ -212,7 +212,7 @@ test('robô: agenda de ponta a ponta pelo WhatsApp', async () => {
     const b = metaBody(waMessage(from, text, id));
     await call('POST', '/webhooks/meta', { raw: b, headers: { 'content-type': 'application/json', 'x-hub-signature-256': metaSig(b) } });
     const conv = await db.get('SELECT id FROM conversations WHERE external_id = ?', [from]);
-    return (await db.get("SELECT body FROM messages WHERE conversation_id = ? AND sender = 'bot' ORDER BY created_at DESC, rowid DESC LIMIT 1", [conv.id])).body;
+    return (await db.get("SELECT body FROM messages WHERE conversation_id = ? AND sender = 'bot' ORDER BY created_at DESC, " + (db.kind === 'pg' ? 'ctid' : 'rowid') + " DESC LIMIT 1", [conv.id])).body;
   };
   assert.match(await say('quero agendar', 'w1'), /Qual serviço/);
   assert.match(await say('Corte masculino', 'w2'), /Para qual dia/);

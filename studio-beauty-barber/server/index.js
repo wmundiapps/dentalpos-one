@@ -2,12 +2,13 @@
 import http from 'node:http';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
+import { timingSafeEqual } from 'node:crypto';
 import { cfg } from './config.js';
 import { initDb, db } from './db.js';
 import { Router, readBody, clientIp, sendJson, sendText, serveStatic, corsHeaders } from './http.js';
 import { HttpError } from './util.js';
 import { securityHeaders, rateLimit } from './security.js';
-import { startScheduler } from './scheduler.js';
+import { startScheduler, tick } from './scheduler.js';
 import registerAuth from './routes/auth.js';
 import registerCatalog from './routes/catalog.js';
 import registerAgenda from './routes/agenda.js';
@@ -29,14 +30,21 @@ export function buildRouter() {
     await db.get('SELECT 1 AS ok');
     return { ok: true, time: new Date().toISOString() };
   });
+  // Agendador para hospedagem serverless: um serviço externo chama esta rota a cada poucos minutos.
+  r.get('/api/cron/tick', async (ctx) => {
+    const secret = process.env.CRON_SECRET || '';
+    const got = String(ctx.req.headers.authorization || '').replace(/^Bearer /, '');
+    if (!secret || got.length !== secret.length || !timingSafeEqual(Buffer.from(got), Buffer.from(secret))) throw new HttpError(401, 'Não autorizado.');
+    return { ok: true, stats: await tick() };
+  });
   for (const reg of [registerAuth, registerCatalog, registerAgenda, registerCrm, registerSettings, registerClub, registerPublic, registerWebhooks]) reg(r);
   return r;
 }
 
-export function createApp({ awaitWebhooks = false } = {}) {
+export function createHandler({ awaitWebhooks = false } = {}) {
   const router = buildRouter();
 
-  const server = http.createServer(async (req, res) => {
+  const handler = async (req, res) => {
     const started = Date.now();
     const ip = clientIp(req);
     let status = 500;
@@ -63,7 +71,14 @@ export function createApp({ awaitWebhooks = false } = {}) {
         else if (pathname.startsWith('/s/')) ok = serveStatic(req, res, WEB, 'booking.html');
         else if (pathname === '/site' || pathname === '/site/') ok = serveStatic(req, res, LANDING, 'index.html');
         else if (pathname.startsWith('/site/')) ok = serveStatic(req, res, LANDING, pathname.slice(6));
-        else if (pathname.startsWith('/uploads/')) ok = serveStatic(req, res, UPLOAD_DIR, pathname.slice(9), { cache: 'public, max-age=3600' });
+        else if (pathname.startsWith('/uploads/')) {
+          const row = await db.get('SELECT logo_data, logo_mime FROM salons WHERE logo_path = ?', [decodeURIComponent(pathname.slice(9))]);
+          if (row?.logo_data) {
+            const buf = Buffer.from(row.logo_data, 'base64');
+            res.writeHead(200, { 'Content-Type': row.logo_mime, 'Content-Length': buf.length, 'Cache-Control': 'public, max-age=3600', ...securityHeaders() });
+            res.end(req.method === 'HEAD' ? undefined : buf); ok = true;
+          }
+        }
         else if (pathname === '/robots.txt') { sendText(res, 200, 'User-agent: *\nDisallow: /\n'); ok = true; }
         else if (pathname === '/.well-known/security.txt') {
           sendText(res, 200, 'Contact: mailto:seguranca@studiobeautybarber.com\nPreferred-Languages: pt, en\nExpires: 2027-12-31T23:59:00.000Z\n'); ok = true;
@@ -122,8 +137,12 @@ export function createApp({ awaitWebhooks = false } = {}) {
         console.log(`${new Date().toISOString()} ${req.method} ${req.url.split('?')[0]} ${status} ${Date.now() - started}ms`);
       }
     }
-  });
+  };
+  return handler;
+}
 
+export function createApp({ awaitWebhooks = false } = {}) {
+  const server = http.createServer(createHandler({ awaitWebhooks }));
   server.requestTimeout = 30_000;
   server.headersTimeout = 15_000;
   server.keepAliveTimeout = 65_000;

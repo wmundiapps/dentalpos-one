@@ -347,4 +347,11 @@ CREATE TABLE IF NOT EXISTS club_memberships (
 CREATE INDEX IF NOT EXISTS idx_club_salon ON club_memberships(salon_id, status);
 `,
   },
+  {
+    id: 3,
+    sql: `
+ALTER TABLE salons ADD COLUMN logo_data TEXT;
+ALTER TABLE salons ADD COLUMN logo_mime TEXT;
+`,
+  },
 ];

@@ -52,6 +52,10 @@ async function openPg(url) {
     throw new Error('DATABASE_URL definido, mas o pacote "pg" não está instalado. Rode: npm install');
   }
   const Pool = pg.default?.Pool || pg.Pool;
+  // COUNT/SUM voltam como texto no Postgres; o projeto guarda dinheiro em centavos inteiros, então número é seguro.
+  const types = pg.default?.types || pg.types;
+  types.setTypeParser(20, (v) => Number(v));
+  types.setTypeParser(1700, (v) => Number(v));
   const pool = new Pool({
     connectionString: url,
     max: Number(process.env.PG_POOL_MAX || 10),

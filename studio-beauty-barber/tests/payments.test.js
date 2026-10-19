@@ -32,7 +32,7 @@ async function call(method, path, { body, headers = {} } = {}) {
 }
 
 before(async () => {
-  await initDb({ sqlitePath: ':memory:' });
+  await (await import('./_db.js')).openTestDb(initDb);
   await ensureHq();
   pilot = await seedPilot({ ownerPassword: PW });
   server = createApp({ awaitWebhooks: true });
