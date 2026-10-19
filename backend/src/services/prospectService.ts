@@ -260,7 +260,7 @@ async function notifyHotLead(lead: { displayName: string; razaoSocial: string; c
       `Telefone: ${[lead.phone1, lead.phone2].filter(Boolean).join(' / ') || '-'}`,
       `Clicou no e-mail ${step} da sequência.`,
       '',
-      'Sugestão: ligar ainda hoje. Painel: https://app.dentalpos.com.br/prospeccao',
+      'Sugestão: ligar ainda hoje. Painel: https://app.completodonto.com.br/prospeccao',
     ].join('\n')
     await resendSend({
       from: INTERNAL_FROM,

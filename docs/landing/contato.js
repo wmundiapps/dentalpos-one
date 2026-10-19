@@ -92,7 +92,7 @@ export default async function handler(req, res) {
     })
 
     // 2. confirmação e acesso para quem preencheu
-    const linkAcesso = 'https://app.dentalpos.com.br'
+    const linkAcesso = 'https://app.completodonto.com.br'
     const blocoAcesso = canal === 'whatsapp'
       ? '<p style="line-height:1.6">Você pediu para receber o acesso pelo <strong>WhatsApp</strong>. Nossa equipe vai enviar para o número que você informou. Para começar agora, crie seu acesso por aqui: <a href="' + linkAcesso + '" style="color:#B9821F;font-weight:700">' + linkAcesso + '</a>.</p>'
       : '<p style="line-height:1.6">Para <strong>criar o seu acesso agora</strong>, entre em <a href="' + linkAcesso + '" style="color:#B9821F;font-weight:700">' + linkAcesso + '</a> e escolha "Começar gratuito". São 30 dias grátis, sem cartão de crédito.</p>'
