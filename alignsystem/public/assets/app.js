@@ -101,5 +101,37 @@
     else { prompt('Copie:', text); }
   };
 
+  // Botão "Mostrar/Ocultar" em todo campo de senha, inclusive nos que o painel cria depois.
+  A.passwordToggles = function (root) {
+    var list = (root || document).querySelectorAll('input[type="password"]:not([data-eye])');
+    Array.prototype.forEach.call(list, function (inp) {
+      inp.setAttribute('data-eye', '1');
+      var wrap = document.createElement('span');
+      wrap.className = 'pw-wrap';
+      inp.parentNode.insertBefore(wrap, inp);
+      wrap.appendChild(inp);
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pw-eye';
+      b.textContent = 'Mostrar';
+      b.setAttribute('aria-label', 'Mostrar senha');
+      b.addEventListener('click', function () {
+        var show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        b.textContent = show ? 'Ocultar' : 'Mostrar';
+        b.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+        inp.focus();
+      });
+      wrap.appendChild(b);
+      if (inp.form) inp.form.addEventListener('submit', function () { inp.type = 'password'; b.textContent = 'Mostrar'; });
+    });
+  };
+  function watchPasswords() {
+    A.passwordToggles();
+    if (w.MutationObserver) new MutationObserver(function () { A.passwordToggles(); }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchPasswords);
+  else watchPasswords();
+
   w.AS = A;
 })(window);
