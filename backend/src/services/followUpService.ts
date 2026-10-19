@@ -145,7 +145,7 @@ async function sendMail(to: string, subject: string, body: string): Promise<bool
   }
 }
 
-const panelLink = () => `${(String(process.env.PUBLIC_APP_URL || '').trim() || 'https://app.dentalpos.com.br').replace(/\/$/, '')}/painel-atendimentos`
+const panelLink = () => `${(String(process.env.PUBLIC_APP_URL || '').trim() || 'https://app.completodonto.com.br').replace(/\/$/, '')}/painel-atendimentos`
 
 export function weeklyBody(clinicName: string, list: UnscheduledPatient[]) {
   const groups = groupUnscheduled(list)

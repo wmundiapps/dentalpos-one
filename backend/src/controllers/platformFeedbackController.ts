@@ -38,7 +38,7 @@ async function notifyAdmin(row: { id: string; clinicId: string; type: string; ti
       isEvaluation ? 'Sugest\u00e3o:' : 'Descri\u00e7\u00e3o:',
       row.description || '(sem texto)',
       '',
-      'Ver todos: https://app.dentalpos.com.br/sugestoes-problemas',
+      'Ver todos: https://app.completodonto.com.br/sugestoes-problemas',
     ].filter((line): line is string => line !== null).join('\n')
     const subject = isEvaluation
       ? `Avalia\u00e7\u00e3o ${row.rating}/5 \u2014 ${clinic?.name || 'cl\u00ednica'}`

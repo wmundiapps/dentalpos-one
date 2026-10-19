@@ -67,7 +67,7 @@ export async function findCandidates(clinicId: string, tenantId: string, periodD
 }
 
 export function bookingLink(clinicId: string) {
-  const base = String(process.env.PUBLIC_APP_URL || '').trim() || 'https://app.dentalpos.com.br'
+  const base = String(process.env.PUBLIC_APP_URL || '').trim() || 'https://app.completodonto.com.br'
   return `${base.replace(/\/$/, '')}/agendamento-online?clinicId=${encodeURIComponent(clinicId)}`
 }
 
