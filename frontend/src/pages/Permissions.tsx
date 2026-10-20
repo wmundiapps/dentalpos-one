@@ -23,7 +23,7 @@ const MENU_GROUPS = (() => {
 const ALL_ITEMS = MENU_GROUPS.flatMap((g) => g.items);
 const MODULE_NAMES: Record<string, string> = {
   dashboard: "Painel inicial", agenda: "Agenda e painel de atendimentos", patients: "Pacientes", clinical: "Clínico / prontuário", laboratory: "Laboratório",
-  design: "CompletoDonto Design", finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", sales: "Vendas", marketing: "Marketing e Revah",
+  finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", sales: "Vendas", marketing: "Marketing e Revah",
   documents: "Documentos", settings: "Configurações (inclui importar pacientes)", users: "Usuários e permissões", audit: "Auditoria",
 };
 const ACTION_NAMES: Record<string, string> = {

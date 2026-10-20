@@ -69,7 +69,8 @@ const Permissions = lazy(() => import("../pages/Permissions"));
 const OnlineReceipts = lazy(() => import("../pages/OnlineReceipts"));
 const Homologation = lazy(() => import("../pages/Homologation"));
 
-import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
+// Design oculto (sigilo): import preservado para retomar depois.
+// import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
 import {
   getDemoModuleStatus,
   moduleForPath,
@@ -299,7 +300,7 @@ export default function AppRoutes() {
 
       <Route
         path="/design"
-        element={<DentalPosDesign />}
+        element={<Navigate to="/" replace />}
       />
 
       <Route
