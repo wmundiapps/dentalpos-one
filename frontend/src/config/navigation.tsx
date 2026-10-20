@@ -115,6 +115,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Chatbot e IA","/revah-chatbot",<ChatIcon/>),
       item("Leads","/revah-leads",<PeopleAltIcon/>),
       item("Prospecção","/prospeccao",<PeopleAltIcon/>),
+      item("Parceiros de estoque","/parceiros-estoque",<PeopleAltIcon/>),
       item("Recall e Reativação","/recall",<SendIcon/>),
       item("Central de Marketing","/marketing/central",<SendIcon/>),
       item("Disparos locais","/revah",<SendIcon/>),

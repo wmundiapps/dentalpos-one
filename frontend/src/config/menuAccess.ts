@@ -18,7 +18,7 @@ const MODULE_BY_PREFIX: Array<[string, string]> = [
   ["/pacientes", "patients"], ["/jornada-paciente", "patients"], ["/ficha-paciente", "patients"],
   ["/prontuario", "clinical"], ["/documentos-clinicos", "clinical"], ["/orcamentos-tratamentos", "clinical"], ["/corpo-clinico", "clinical"],
   ["/laboratorio", "laboratory"], ["/design", "design"],
-  ["/crm", "marketing"], ["/comunicacoes", "marketing"], ["/revah", "marketing"], ["/prospeccao", "marketing"], ["/recall", "marketing"], ["/marketing", "marketing"], ["/canais-envio", "marketing"],
+  ["/crm", "marketing"], ["/comunicacoes", "marketing"], ["/revah", "marketing"], ["/prospeccao", "marketing"], ["/parceiros-estoque", "marketing"], ["/recall", "marketing"], ["/marketing", "marketing"], ["/canais-envio", "marketing"],
   ["/financeiro", "finance"], ["/pagamentos", "finance"], ["/recebimentos-online", "finance"], ["/inteligencia-financeira", "finance"], ["/rateio-condominio", "finance"], ["/relatorios", "finance"],
   ["/backoffice", "accounting"], ["/contabil-fiscal", "accounting"], ["/automacao-fiscal", "accounting"],
   ["/evidencias-operacionais", "documents"], ["/operacional", "documents"], ["/academico", "documents"],

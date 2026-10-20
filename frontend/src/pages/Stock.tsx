@@ -72,6 +72,8 @@ function statusOf(quantity: number, minimum: number) {
   return "Normal";
 }
 
+import StockPartnersCard from "../components/StockPartnersCard";
+
 export default function Stock() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<SalesProduct5787[]>([]);
@@ -218,6 +220,7 @@ export default function Stock() {
         onAction={() => setOpen(true)}
       />
 
+      <StockPartnersCard />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {critical.length > 0 && (
         <Alert severity="error" sx={{ mb: 2 }}>
