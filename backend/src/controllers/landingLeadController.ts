@@ -2,13 +2,13 @@ import type { Request, Response } from 'express'
 import { dispatchRevah } from '../services/revahProviderService'
 
 const ADMIN_EMAIL = 'contato@dentalpos.com.br'
-const EXPERIENCE_URL = 'https://app.dentalpos.com.br/'
+const EXPERIENCE_URL = 'https://app.completodonto.com.br/'
 
 function resendCredentials() {
   const apiKey = process.env.RESEND_API_KEY || ''
   return {
     apiKey,
-    from: 'DentalPos <contato@dentalpos.com.br>',
+    from: 'CompletoDonto <contato@dentalpos.com.br>',
   }
 }
 
@@ -47,7 +47,7 @@ export async function submitLead(req: Request, res: Response) {
   }
 
   const adminContent = [
-    'Novo interessado pela Landing Page do DentalPos:',
+    'Novo interessado pela Landing Page do CompletoDonto:',
     '',
     `Nome: ${lead.nome}`,
     `Clínica: ${lead.clinica || '(não informado)'}`,
@@ -59,20 +59,20 @@ export async function submitLead(req: Request, res: Response) {
   const welcomeContent = [
     `Olá ${lead.nome},`,
     '',
-    'Ficamos muito felizes com o seu interesse em testar o DentalPos!',
+    'Ficamos muito felizes com o seu interesse em testar o CompletoDonto!',
     '',
     'Seu acesso ao EXPERIENCE — 30 dias completos, sem custo e sem compromisso — já está disponível:',
     EXPERIENCE_URL,
     '',
-    'Nosso objetivo com o DentalPos é que o sistema resolva a maior parte das tarefas do dia a dia da sua clínica — da agenda ao financeiro, do prontuário à comunicação com o paciente — para que você possa dedicar seu tempo ao que realmente importa: o atendimento.',
+    'Nosso objetivo com o CompletoDonto é que o sistema resolva a maior parte das tarefas do dia a dia da sua clínica — da agenda ao financeiro, do prontuário à comunicação com o paciente — para que você possa dedicar seu tempo ao que realmente importa: o atendimento.',
     '',
     'Durante o período de teste, dentro do próprio sistema, na última página do menu você vai encontrar um espaço dedicado exclusivamente para sugestões, elogios ou reclamações. Fique à vontade para nos contar o que funcionou bem, o que faltou, ou qualquer ideia que você tiver — nossa equipe analisa cada mensagem, e o que for aprovado entra em funcionamento em breve.',
     '',
     'Qualquer dúvida, estamos à disposição pelo WhatsApp: (44) 98453-5069.',
     '',
-    'Bem-vindo(a) à experiência DentalPos.',
+    'Bem-vindo(a) à experiência CompletoDonto.',
     '',
-    'Equipe DentalPos',
+    'Equipe CompletoDonto',
     'Você só precisa atender.',
   ].join('\n')
 
@@ -83,7 +83,7 @@ export async function submitLead(req: Request, res: Response) {
     })
     await dispatchRevah('EMAIL', lead.email, welcomeContent, {
       ...credentials,
-      subject: 'Bem-vindo ao DentalPos — seu acesso está liberado',
+      subject: 'Bem-vindo ao CompletoDonto — seu acesso está liberado',
     })
     return res.json({ ok: true })
   } catch (error) {
@@ -105,7 +105,7 @@ export async function submitEvent(req: Request, res: Response) {
   }
 
   const content = [
-    `${label} — DentalPos Landing Page`,
+    `${label} — CompletoDonto Landing Page`,
     '',
     `Nome: ${lead.nome}`,
     `Clínica: ${lead.clinica || '(não informado)'}`,

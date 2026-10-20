@@ -21,7 +21,7 @@ function resendCredentials() {
   const apiKey = process.env.RESEND_API_KEY || ''
   return {
     apiKey,
-    from: 'DentalPos <contato@dentalpos.com.br>',
+    from: 'CompletoDonto <contato@dentalpos.com.br>',
   }
 }
 
@@ -103,7 +103,7 @@ export async function register(req: Request, res: Response) {
       return res.status(409).json({
         code: 'EMAIL_ALREADY_IN_USE',
         error:
-          'Este e-mail já possui acesso ao DentalPos. Use outro e-mail ou entre com a conta existente.',
+          'Este e-mail já possui acesso ao CompletoDonto. Use outro e-mail ou entre com a conta existente.',
       })
     }
 
@@ -247,9 +247,9 @@ export async function register(req: Request, res: Response) {
         const welcomeContent = [
           `Olá ${created.firstName},`,
           '',
-          `Sua demonstração gratuita do DentalPos para a clínica "${clinicName}" está pronta.`,
+          `Sua demonstração gratuita do CompletoDonto para a clínica "${clinicName}" está pronta.`,
           '',
-          `Acesse: https://app.dentalpos.com.br/`,
+          `Acesse: https://app.completodonto.com.br/`,
           `E-mail de login: ${created.email}`,
           `Senha: a que você cadastrou agora`,
           validUntil ? `Demo gratuita válida até: ${validUntil}` : null,
@@ -258,17 +258,17 @@ export async function register(req: Request, res: Response) {
           '',
           'Qualquer dúvida, estamos à disposição pelo WhatsApp: (44) 98453-5069.',
           '',
-          'Equipe DentalPos',
+          'Equipe CompletoDonto',
           'Você só precisa atender.',
         ].filter((line): line is string => line !== null).join('\n')
 
         await dispatchRevah('EMAIL', created.email, welcomeContent, {
           ...credentials,
-          subject: 'Seu acesso à demonstração do DentalPos está pronto',
+          subject: 'Seu acesso à demonstração do CompletoDonto está pronto',
         })
 
         const adminContent = [
-          'Novo demo criado no DentalPos:',
+          'Novo demo criado no CompletoDonto:',
           '',
           `Clínica: ${clinicName}`,
           `Responsável: ${created.firstName} ${created.lastName}`,

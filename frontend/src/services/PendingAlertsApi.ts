@@ -13,7 +13,7 @@ export interface PendingAlerts {
   visibleKeys: string[];
   blockingLabOrders?: Array<{ localId: string; patientName: string; workType: string; dentistName: string | null; dueDate: string | null }>;
   settings?: {
-    lockedUserIds: string[]; hasKey: boolean;
+    lockDepartments: string[]; lockedUserIds: string[]; hasKey: boolean;
     visibility: Record<string, string[]>;
     categories: Array<{ key: string; label: string }>;
     profiles: Array<{ code: string; name: string }>;
@@ -55,7 +55,7 @@ export async function loadPendingAlerts(): Promise<PendingAlerts> {
   return parse(await fetch(`${API}/pending-alerts`, { headers: headers() }));
 }
 
-export async function savePendingAlertsSettings(input: { enabled?: boolean; mode?: "ALERT" | "BLOCK"; lockedUserIds?: string[]; unlockKey?: string; visibility?: Record<string, string[]> }) {
+export async function savePendingAlertsSettings(input: { enabled?: boolean; mode?: "ALERT" | "BLOCK"; lockDepartments?: string[]; lockedUserIds?: string[]; unlockKey?: string; visibility?: Record<string, string[]> }) {
   const result = await parse<unknown>(await fetch(`${API}/pending-alerts/settings`, { method: "PUT", headers: headers(true), body: JSON.stringify(input) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
@@ -78,6 +78,13 @@ export async function unlockUserScreen(userId: string, deadline: string, reason 
 // Destrava resolvendo a pendência: informa a entrega do trabalho com comprovação.
 export async function proveLabDelivery(input: { localId: string; code: string }) {
   const result = await parse<unknown>(await fetch(`${API}/pending-alerts/resolve-lab`, { method: "POST", headers: headers(true), body: JSON.stringify(input) }));
+  window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
+  return result;
+}
+
+// Departamento travado justifica por escrito: a tela abre até o fim do dia e o gestor recebe a justificativa por e-mail.
+export async function justifyPending(text: string) {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/justify`, { method: "POST", headers: headers(true), body: JSON.stringify({ text }) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
 }

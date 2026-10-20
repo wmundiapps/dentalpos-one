@@ -23,12 +23,12 @@ export async function dispatchRevah(channel:RevahChannel,destination:string,cont
  }
  if(channel==='SMS'){
   const apiKey=credentials.apiKey; if(!apiKey)throw new Error('API Key Comtele não configurada.')
-  const d=await parse(await fetch('https://api.comtele.com.br/messages/sms/send',{method:'POST',headers:{'x-api-key':String(apiKey),'Content-Type':'application/json'},body:JSON.stringify({receivers:[Number(digits(destination))],contactGroups:[],message:content,route:Number(credentials.route||17),tag:credentials.tag||'DentalPos-REVAH',custom:'DentalPos'})}))
+  const d=await parse(await fetch('https://api.comtele.com.br/messages/sms/send',{method:'POST',headers:{'x-api-key':String(apiKey),'Content-Type':'application/json'},body:JSON.stringify({receivers:[Number(digits(destination))],contactGroups:[],message:content,route:Number(credentials.route||17),tag:credentials.tag||'DentalPos-REVAH',custom:'CompletoDonto'})}))
   return{provider,simulated:false,providerMessageId:String(d?.object?.id||d?.id||Date.now()),raw:d}
  }
  if(channel==='EMAIL'){
   const apiKey=credentials.apiKey; if(!apiKey)throw new Error('API Key Resend não configurada.')
-  const d=await parse(await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json','Idempotency-Key':String(credentials.idempotencyKey||`dentalpos-${Date.now()}`)},body:JSON.stringify({from:senderAddress||credentials.from,to:[destination],subject:credentials.subject||'DentalPos',html:content.replace(/\n/g,'<br/>'),text:content})}))
+  const d=await parse(await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json','Idempotency-Key':String(credentials.idempotencyKey||`dentalpos-${Date.now()}`)},body:JSON.stringify({from:senderAddress||credentials.from,to:[destination],subject:credentials.subject||'CompletoDonto',html:content.replace(/\n/g,'<br/>'),text:content})}))
   return{provider,simulated:false,providerMessageId:d.id,raw:d}
  }
  if(channel==='TELEGRAM'){

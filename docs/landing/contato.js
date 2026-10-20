@@ -3,7 +3,7 @@
 // Exige a variável RESEND_API_KEY no projeto dentalpos-landing (Vercel)
 
 const DESTINO = 'contato@dentalpos.com.br'
-const REMETENTE = 'DentalPos <contato@dentalpos.com.br>'
+const REMETENTE = 'CompletoDonto <contato@dentalpos.com.br>'
 
 function limpo(v, max) {
   return String(v == null ? '' : v).replace(/[<>]/g, '').trim().slice(0, max || 200)
@@ -92,23 +92,23 @@ export default async function handler(req, res) {
     })
 
     // 2. confirmação e acesso para quem preencheu
-    const linkAcesso = 'https://app.dentalpos.com.br'
+    const linkAcesso = 'https://app.completodonto.com.br'
     const blocoAcesso = canal === 'whatsapp'
       ? '<p style="line-height:1.6">Você pediu para receber o acesso pelo <strong>WhatsApp</strong>. Nossa equipe vai enviar para o número que você informou. Para começar agora, crie seu acesso por aqui: <a href="' + linkAcesso + '" style="color:#B9821F;font-weight:700">' + linkAcesso + '</a>.</p>'
       : '<p style="line-height:1.6">Para <strong>criar o seu acesso agora</strong>, entre em <a href="' + linkAcesso + '" style="color:#B9821F;font-weight:700">' + linkAcesso + '</a> e escolha "Começar gratuito". São 30 dias grátis, sem cartão de crédito.</p>'
     await enviar({
       from: REMETENTE,
       to: [email],
-      subject: canal ? 'Seu acesso ao DentalPos' : 'Recebemos seu contato — DentalPos',
+      subject: canal ? 'Seu acesso ao CompletoDonto' : 'Recebemos seu contato — CompletoDonto',
       html:
         '<div style="font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:560px;color:#1D1D1F">' +
         '<h2 style="margin:0 0 12px">Obrigado, ' + nome + '!</h2>' +
-        '<p style="line-height:1.6">Recebemos seus dados e entraremos em contato em breve para mostrar o DentalPos funcionando com a rotina da sua clínica.</p>' +
+        '<p style="line-height:1.6">Recebemos seus dados e entraremos em contato em breve para mostrar o CompletoDonto funcionando com a rotina da sua clínica.</p>' +
         (canal ? blocoAcesso : '') +
         '<p style="line-height:1.6">Se preferir falar agora, é só chamar no WhatsApp: ' +
         '<a href="https://wa.me/5544984535069" style="color:#B9821F;font-weight:700">(44) 98453-5069</a>.</p>' +
         '<p style="line-height:1.6">O Experience são 30 dias gratuitos, sem cartão de crédito, e tudo o que você registrar fica guardado mesmo que decida não seguir.</p>' +
-        '<p style="margin-top:26px;color:#6B6660;font-size:13.5px">DentalPos · Desenvolvido por WMundi Technologies &amp; Co</p>' +
+        '<p style="margin-top:26px;color:#6B6660;font-size:13.5px">CompletoDonto · Desenvolvido por WMundi Technologies &amp; Co</p>' +
         '</div>'
     })
 

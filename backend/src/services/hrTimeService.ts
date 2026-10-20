@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import { prisma } from '../lib/prisma'
 import { comparePassword } from './userService'
 import { writeAudit } from './auditService'
+import { cleanDataUrl, UploadRejected } from '../lib/uploadSafety'
 
 // Ponto eletrônico: batida com senha, IP e localização; resumo mensal, banco de horas e justificativas de falta.
 // Datas e horas são calculadas no horário de Brasília (UTC-3, sem horário de verão).
@@ -13,7 +14,6 @@ const BRT_MS = 3 * 60 * 60 * 1000
 export const KINDS = ['ENTRADA', 'SAIDA_ALMOCO', 'VOLTA_ALMOCO', 'SAIDA'] as const
 const KIND_LABEL: Record<string, string> = { ENTRADA: 'Entrada', SAIDA_ALMOCO: 'Saída para o almoço', VOLTA_ALMOCO: 'Volta do almoço', SAIDA: 'Saída' }
 const JUSTIFIED_STATUS = ['atestado', 'férias', 'ferias', 'folga', 'falta abonada', 'abonada', 'home office']
-const ATTACH_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 
 export class HrError extends Error {
   status: number
@@ -319,17 +319,22 @@ export async function payrollSuggestions(c: { clinicId: string; tenantId: string
 // ---------- justificativas ----------
 type Attachment = { name: string; mime: string; dataUrl: string }
 
-function cleanAttachments(input: unknown): Attachment[] {
+async function cleanAttachments(input: unknown): Promise<Attachment[]> {
   if (!Array.isArray(input)) return []
-  const list = input.slice(0, 3).map((a: any) => ({ name: String(a?.name || 'arquivo').slice(0, 120), mime: String(a?.mime || ''), dataUrl: String(a?.dataUrl || '') }))
+  const out: Attachment[] = []
   let total = 0
-  for (const a of list) {
-    if (!ATTACH_MIME.includes(a.mime)) throw new HrError(400, 'Anexe apenas foto (JPG, PNG, WEBP) ou PDF.')
-    if (!a.dataUrl.startsWith(`data:${a.mime};base64,`)) throw new HrError(400, 'Anexo inválido.')
-    total += a.dataUrl.length
+  for (const a of input.slice(0, 3)) {
+    try {
+      const clean = await cleanDataUrl({ name: String(a?.name || 'arquivo').slice(0, 120), dataUrl: String(a?.dataUrl || '') })
+      total += clean.dataUrl.length
+      out.push(clean)
+    } catch (e) {
+      if (e instanceof UploadRejected) throw new HrError(400, e.message)
+      throw e
+    }
   }
   if (total > 1_500_000) throw new HrError(400, 'Os anexos estão grandes demais. Envie fotos menores ou um PDF mais leve (até 1 MB no total).')
-  return list
+  return out
 }
 
 export async function createAbsenceRequest(c: TimeCtx, body: any) {
@@ -340,7 +345,7 @@ export async function createAbsenceRequest(c: TimeCtx, body: any) {
   const type = ['FALTA', 'ATRASO', 'ATESTADO', 'OUTRO'].includes(String(body?.type)) ? String(body.type) : 'FALTA'
   const reason = String(body?.reason || '').trim()
   if (reason.length < 5) throw new HrError(400, 'Explique o motivo em poucas palavras.')
-  const attachments = cleanAttachments(body?.attachments)
+  const attachments = await cleanAttachments(body?.attachments)
   const row = await prisma.hRAbsenceRequest.create({ data: { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, employeeId: emp.id, userId: c.userId, absenceDate: date, type, reason: reason.slice(0, 2000), attachments: attachments as any, status: 'PENDENTE' } })
   await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.userId, module: 'hr', action: 'ABSENCE_REQUEST', entityType: 'HRAbsenceRequest', entityId: row.id, summary: `${emp.name} enviou justificativa (${type}) para ${date}.` }).catch(() => undefined)
   return { id: row.id }

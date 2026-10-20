@@ -177,7 +177,7 @@ export default function DentalPosDesign() {
       setDiagnosticOpen(true);
     } catch (error) {
       console.error(
-        "DentalPos Mesh Diagnostic:",
+        "CompletoDonto Mesh Diagnostic:",
         error
       );
 
@@ -275,7 +275,7 @@ export default function DentalPosDesign() {
                 lineHeight: 1.2,
               }}
             >
-              DentalPos Design
+              CompletoDonto Design
             </Typography>
 
             <Typography
@@ -647,7 +647,7 @@ export default function DentalPosDesign() {
                 lineHeight: 1.4,
               }}
             >
-              DENTALPOS
+              COMPLETODONTO
               <br />
               3D ENGINE
             </Typography>
@@ -738,7 +738,7 @@ export default function DentalPosDesign() {
                   "0.04em",
               }}
             >
-              DENTALPOS AI
+              COMPLETODONTO AI
             </Typography>
 
             <Typography

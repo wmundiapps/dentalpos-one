@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addDays, bookingPattern, computeGuestRefund, computePrice, overstayCharge, todayInZone, validateOccurrences, weekdayOf, zonedToUtc } from '../../shared/rules.js';
+import { addDays, bookingPattern, spouseConsentRequired, computeGuestRefund, computePrice, overstayCharge, todayInZone, validateOccurrences, weekdayOf, zonedToUtc } from '../../shared/rules.js';
 import type { Listing } from '../../shared/types.js';
 
 const tz = 'America/Sao_Paulo';
@@ -14,18 +14,19 @@ const listing: Listing = {
 };
 const ctx = { existing: [], guestHoursLast30Days: 0, guestActiveSeries: 0 };
 const d = (n: number) => addDays(todayInZone(tz), n);
+const roundTo = (v: number) => Math.round(v * 100) / 100;
 
 test('fuso horário: São Paulo UTC-3', () => {
   assert.equal(zonedToUtc('2026-03-10', '09:00', tz).toISOString(), '2026-03-10T12:00:00.000Z');
 });
 
-test('preço: base + limpeza + taxa de serviço 15% + ISS 5% sobre a taxa', () => {
+test('preço: base + limpeza + taxa de serviço 15% com tributos incluídos (sem ISS à parte)', () => {
   const p = computePrice(listing, [{ date: d(10), start: '09:00', end: '11:00' }]);
   assert.equal(p.baseAmount, 200);
   assert.equal(p.cleaningFee, 20);
   assert.equal(p.guestServiceFee, 33);
-  assert.equal(p.taxOnServiceFee, 1.65);
-  assert.equal(p.total, 254.65);
+  assert.equal(p.taxOnServiceFee, 0);
+  assert.equal(p.total, 253);
   assert.equal(p.hostPayout, 209);
 });
 
@@ -85,6 +86,29 @@ test('direito de arrependimento no Brasil (7 dias) para consumidor', () => {
   assert.equal(consumer.rule, 'withdrawal');
   const pro = computeGuestRefund({ listing, policy: 'strict', occurrences: occ, price, bookedAt, now, isConsumer: false });
   assert.equal(pro.refundBase, 0);
+});
+
+test('arrependimento com o uso já iniciado: futuras voltam inteiras, a em andamento proporcional, a usada não volta', () => {
+  const occ = [{ date: '2026-10-20', start: '10:00', end: '12:00' }, { date: '2026-10-21', start: '10:00', end: '12:00' }, { date: '2026-10-22', start: '10:00', end: '12:00' }];
+  const price = computePrice(listing, occ); // 3 × (200 + 20 de limpeza)
+  const bookedAt = zonedToUtc('2026-10-19', '09:00', tz);
+  const now = zonedToUtc('2026-10-21', '11:00', tz); // 1ª usada, 2ª pela metade, 3ª futura
+  const r = computeGuestRefund({ listing, policy: 'strict', occurrences: occ, price, bookedAt, now, isConsumer: true });
+  assert.equal(r.rule, 'withdrawal');
+  assert.equal(r.refundBase, 300); // 100 (metade da 2ª) + 200 (3ª)
+  assert.equal(r.refundCleaning, 20); // só a da futura
+  assert.equal(r.refundServiceFee, roundTo(price.guestServiceFee * 300 / 600));
+  // passados os 7 dias, vale a política do anfitrião (estrita: nada da que está perto de começar)
+  const late = computeGuestRefund({ listing, policy: 'strict', occurrences: occ, price, bookedAt: zonedToUtc('2026-10-01', '09:00', tz), now, isConsumer: true });
+  assert.notEqual(late.rule, 'withdrawal');
+});
+
+test('fiador casado precisa da autorização do cônjuge, salvo separação convencional de bens', () => {
+  assert.equal(spouseConsentRequired('married', 'partial'), true);
+  assert.equal(spouseConsentRequired('married', 'separation_mandatory'), true);
+  assert.equal(spouseConsentRequired('married', 'separation_conventional'), false);
+  assert.equal(spouseConsentRequired('single'), false);
+  assert.equal(spouseConsentRequired('stable_union'), false);
 });
 
 test('atraso na saída: tolerância 10 min, depois blocos de 15 min', () => {

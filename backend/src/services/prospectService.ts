@@ -7,7 +7,7 @@ export const PUBLIC_BASE = (process.env.PROSPECT_PUBLIC_BASE || 'https://api.den
 export const LANDING_URL = process.env.PROSPECT_LANDING_URL || 'https://one.dentalpos.com.br/landingpage'
 const ADMIN_EMAIL = process.env.PROSPECT_ADMIN_EMAIL || 'contato@dentalpos.com.br'
 const REPLY_TO = process.env.PROSPECT_REPLY_TO || 'contato@dentalpos.com.br'
-const INTERNAL_FROM = 'DentalPos <contato@dentalpos.com.br>'
+const INTERNAL_FROM = 'CompletoDonto <contato@dentalpos.com.br>'
 const MAX_PER_RUN = 60
 const SEND_DELAY_MS = 650
 
@@ -131,7 +131,7 @@ export async function sentToday() {
   return prisma.prospectEvent.count({ where: { type: 'ENVIO', createdAt: { gte: startOfTodayBrazil() } } })
 }
 
-// Marca como CONVERTIDO quem já criou conta no DentalPos com o mesmo e-mail.
+// Marca como CONVERTIDO quem já criou conta no CompletoDonto com o mesmo e-mail.
 export async function markConversions() {
   const leads = await prisma.prospectLead.findMany({
     where: { email: { not: null }, status: { notIn: FINAL_STATUSES } },
@@ -146,7 +146,7 @@ export async function markConversions() {
     for (const lead of chunk) {
       if (lead.email && found.has(lead.email.toLowerCase())) {
         await prisma.prospectLead.update({ where: { id: lead.id }, data: { status: 'CONVERTIDO' } })
-        await logEvent(lead.id, 'CONVERTIDO', { detail: 'Criou conta no DentalPos com este e-mail.' })
+        await logEvent(lead.id, 'CONVERTIDO', { detail: 'Criou conta no CompletoDonto com este e-mail.' })
         converted += 1
       }
     }
@@ -251,7 +251,7 @@ export async function runSequence(options: { force?: boolean; dryRun?: boolean; 
 async function notifyHotLead(lead: { displayName: string; razaoSocial: string; cnpj: string; email: string | null; phone1: string | null; phone2: string | null; city: string | null; uf: string }, step: number) {
   try {
     const content = [
-      'Lead quente na prospecção do DentalPos (clicou no e-mail):',
+      'Lead quente na prospecção do CompletoDonto (clicou no e-mail):',
       '',
       `Clínica: ${lead.displayName} (${lead.razaoSocial})`,
       `CNPJ: ${lead.cnpj}`,
@@ -260,7 +260,7 @@ async function notifyHotLead(lead: { displayName: string; razaoSocial: string; c
       `Telefone: ${[lead.phone1, lead.phone2].filter(Boolean).join(' / ') || '-'}`,
       `Clicou no e-mail ${step} da sequência.`,
       '',
-      'Sugestão: ligar ainda hoje. Painel: https://app.dentalpos.com.br/prospeccao',
+      'Sugestão: ligar ainda hoje. Painel: https://app.completodonto.com.br/prospeccao',
     ].join('\n')
     await resendSend({
       from: INTERNAL_FROM,

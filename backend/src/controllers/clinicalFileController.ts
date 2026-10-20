@@ -339,7 +339,7 @@ export async function designHandoff(req: AuthRequest, res: Response) {
 
     const ext = row.extension.toLowerCase()
     if (!['stl', 'ply', 'obj'].includes(ext)) {
-      return res.status(400).json({ error: 'A integração com DentalPos Design está disponível para STL, PLY e OBJ.' })
+      return res.status(400).json({ error: 'A integração com CompletoDonto Design está disponível para STL, PLY e OBJ.' })
     }
 
     const fileAccess = row.externalUrl
@@ -347,7 +347,7 @@ export async function designHandoff(req: AuthRequest, res: Response) {
       : await createDownloadAccess({ clinicId, tenantId, storageKey: row.storageKey, fileName: row.originalName })
 
     if (!fileAccess.configured) return res.status(503).json({
-      error: 'Configure o storage clínico para abrir este arquivo no DentalPos Design.',
+      error: 'Configure o storage clínico para abrir este arquivo no CompletoDonto Design.',
       code: 'CLINICAL_STORAGE_NOT_CONFIGURED'
     })
 
@@ -365,7 +365,7 @@ export async function designHandoff(req: AuthRequest, res: Response) {
     })
   } catch (error) {
     console.error(error)
-    return res.status(500).json({ error: 'Erro ao preparar integração com DentalPos Design.' })
+    return res.status(500).json({ error: 'Erro ao preparar integração com CompletoDonto Design.' })
   }
 }
 

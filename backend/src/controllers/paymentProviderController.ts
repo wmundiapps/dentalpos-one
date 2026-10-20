@@ -102,7 +102,7 @@ export async function createIntent(req: AuthRequest, res: Response) {
   const metadata: Record<string, string> = {
     clinicId: req.user.clinicId,
     tenantId: req.user.tenantId,
-    product: 'DENTALPOS',
+    product: 'COMPLETODONTO',
     originId: String(req.body.originId || '')
   }
 
@@ -113,7 +113,7 @@ export async function createIntent(req: AuthRequest, res: Response) {
     const result = await createCharge(config, {
       amount,
       method: String(req.body.method || 'PIX'),
-      description: String(req.body.description || 'Cobrança DentalPos'),
+      description: String(req.body.description || 'Cobrança CompletoDonto'),
       dueDate: req.body.dueDate,
       installments: Number(req.body.installments || 1),
       customer: {

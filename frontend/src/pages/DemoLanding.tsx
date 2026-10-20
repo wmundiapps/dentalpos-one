@@ -134,7 +134,7 @@ export default function DemoLanding() {
   function credentialsText() {
     if (!result) return "";
     return [
-      "DENTALPOS — ACESSO EXPERIENCE",
+      "COMPLETODONTO — ACESSO EXPERIENCE",
       "",
       `Clínica: ${form.clinicName}`,
       `ID da clínica: ${result.clinicId}`,
@@ -187,7 +187,7 @@ export default function DemoLanding() {
         }}
       >
         <Typography variant="overline" color="primary" sx={{ fontWeight: 900 }}>
-          DENTALPOS • EXPERIENCE
+          COMPLETODONTO • EXPERIENCE
         </Typography>
         <Typography variant="h3" sx={{ fontWeight: 950, lineHeight: 1.05, mb: 1 }}>
           Experimente gratuitamente
@@ -319,7 +319,7 @@ export default function DemoLanding() {
                 type="text"
                 value={form.password}
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
-                helperText="Mínimo de 10 caracteres. O DentalPos não exibe esta senha novamente."
+                helperText="Mínimo de 10 caracteres. O CompletoDonto não exibe esta senha novamente."
                 required
                 sx={{ gridColumn: { md: "1/-1" } }}
               />
@@ -358,7 +358,7 @@ export default function DemoLanding() {
                     onChange={(event) => setForm({ ...form, acceptTerms: event.target.checked })}
                   />
                 }
-                label={`Li e aceito as condições da Demo DentalPos — versão ${config?.termsVersion || "vigente"}.`}
+                label={`Li e aceito as condições da Demo CompletoDonto — versão ${config?.termsVersion || "vigente"}.`}
               />
             </Paper>
 

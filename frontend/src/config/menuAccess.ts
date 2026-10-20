@@ -14,12 +14,12 @@ export function menuCode(path: string): string {
 // Módulo cuja permissão "ver" libera o item enquanto o departamento ainda não foi configurado na tela de Permissões.
 // Itens que não aparecem aqui ficam liberados para todos.
 const MODULE_BY_PREFIX: Array<[string, string]> = [
-  ["/agenda", "agenda"], ["/agendamento-online", "agenda"], ["/painel-atendimentos", "agenda"], ["/avaliacoes-atendimento", "agenda"], ["/equipe", "agenda"],
+  ["/agenda", "agenda"], ["/chegada-por-rosto", "agenda"], ["/agendamento-online", "agenda"], ["/painel-atendimentos", "agenda"], ["/avaliacoes-atendimento", "agenda"], ["/equipe", "agenda"],
   ["/pacientes", "patients"], ["/jornada-paciente", "patients"], ["/ficha-paciente", "patients"],
   ["/prontuario", "clinical"], ["/documentos-clinicos", "clinical"], ["/orcamentos-tratamentos", "clinical"], ["/corpo-clinico", "clinical"],
   ["/laboratorio", "laboratory"], ["/design", "design"],
   ["/crm", "marketing"], ["/comunicacoes", "marketing"], ["/revah", "marketing"], ["/prospeccao", "marketing"], ["/recall", "marketing"], ["/marketing", "marketing"], ["/canais-envio", "marketing"],
-  ["/financeiro", "finance"], ["/pagamentos", "finance"], ["/recebimentos-online", "finance"], ["/inteligencia-financeira", "finance"], ["/relatorios", "finance"],
+  ["/financeiro", "finance"], ["/pagamentos", "finance"], ["/recebimentos-online", "finance"], ["/inteligencia-financeira", "finance"], ["/rateio-condominio", "finance"], ["/relatorios", "finance"],
   ["/backoffice", "accounting"], ["/contabil-fiscal", "accounting"], ["/automacao-fiscal", "accounting"],
   ["/evidencias-operacionais", "documents"], ["/operacional", "documents"], ["/academico", "documents"],
   ["/rh", "hr"],

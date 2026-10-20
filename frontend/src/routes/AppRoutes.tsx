@@ -1,70 +1,73 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 
-import Academic from "../pages/Academic";
-import Accounting from "../pages/Accounting";
-import Agenda from "../pages/Agenda";
-import Backup from "../pages/Backup";
-import Backoffice from "../pages/Backoffice";
-import Benchmark from "../pages/Benchmark";
-import BusinessIntelligence from "../pages/BusinessIntelligence";
-import ClinicHealth from "../pages/ClinicHealth";
-import Clinics from "../pages/Clinics";
-import ClinicalDocuments from "../pages/ClinicalDocuments";
-import ClinicalRecord from "../pages/ClinicalRecord";
-import PatientFile from "../pages/PatientFile";
+const Academic = lazy(() => import("../pages/Academic"));
+const FacialReception = lazy(() => import("../pages/FacialReception"));
+const CondoSplit = lazy(() => import("../pages/CondoSplit"));
+const Accounting = lazy(() => import("../pages/Accounting"));
+const Agenda = lazy(() => import("../pages/Agenda"));
+const Backup = lazy(() => import("../pages/Backup"));
+const Backoffice = lazy(() => import("../pages/Backoffice"));
+const Benchmark = lazy(() => import("../pages/Benchmark"));
+const BusinessIntelligence = lazy(() => import("../pages/BusinessIntelligence"));
+const ClinicHealth = lazy(() => import("../pages/ClinicHealth"));
+const Clinics = lazy(() => import("../pages/Clinics"));
+const ClinicalDocuments = lazy(() => import("../pages/ClinicalDocuments"));
+const ClinicalRecord = lazy(() => import("../pages/ClinicalRecord"));
+const PatientFile = lazy(() => import("../pages/PatientFile"));
 import WmundiStaffOnly from "../components/WmundiStaffOnly";
-import ClinicalFiles from "../pages/ClinicalFiles";
-import OdontogramPeriodontogram from "../pages/OdontogramPeriodontogram";
-import SurgeryImplantProsthesis from "../pages/SurgeryImplantProsthesis";
-import SpecializedClinical from "../pages/SpecializedClinical";
-import CommandCenter from "../pages/CommandCenter";
-import Commercial from "../pages/Commercial";
-import Communications from "../pages/Communications";
-import CRM from "../pages/CRM";
-import CRMKanban from "../pages/CRMKanban";
-import Dashboard from "../pages/Dashboard";
-import ExecutiveAssistant from "../pages/ExecutiveAssistant";
-import ExecutiveDashboard from "../pages/ExecutiveDashboard";
-import Feedback from "../pages/Feedback";
-import ClinicalTeam from "../pages/ClinicalTeam";
-import Channels from "../pages/Channels";
-import AiAssistant from "../pages/AiAssistant";
-import Credits from "../pages/Credits";
-import Financial from "../pages/Financial";
-import FinancialScanner from "../pages/FinancialScanner";
-import FiscalAutomation from "../pages/FiscalAutomation";
-import HumanResources from "../pages/HumanResources";
-import MyTimeclock from "../pages/MyTimeclock";
-import Laboratory from "../pages/Laboratory";
-import Marketing from "../pages/Marketing";
-import MarketingHub from "../pages/MarketingHub";
-import Notifications from "../pages/Notifications";
-import Operations from "../pages/Operations";
-import OperationalEvidence from "../pages/OperationalEvidence";
-import PatientFlow from "../pages/PatientFlow";
-import PatientJourney from "../pages/PatientJourney";
-import PaymentCenter from "../pages/PaymentCenter";
-import Revah from "../pages/Revah";
-import RevahChatbot from "../pages/RevahChatbot";
-import Patients from "../pages/Patients";
-import ProfitIntelligence from "../pages/ProfitIntelligence";
-import Recall from "../pages/Recall";
-import Reports from "../pages/Reports";
-import ServiceEvaluations from "../pages/ServiceEvaluations";
-import Sales from "../pages/Sales";
-import Settings from "../pages/Settings";
-import Stock from "../pages/Stock";
-import TreatmentPlanning from "../pages/TreatmentPlanning";
-import PlatformAdministration from "../pages/PlatformAdministration";
-import LeadDiscovery from "../pages/LeadDiscovery";
-import Prospecting from "../pages/Prospecting";
-import Integrations from "../pages/Integrations";
-import ImportPatients from "../pages/ImportPatients";
-import Team from "../pages/Team";
-import Permissions from "../pages/Permissions";
-import OnlineReceipts from "../pages/OnlineReceipts";
-import Homologation from "../pages/Homologation";
+const ClinicalFiles = lazy(() => import("../pages/ClinicalFiles"));
+const OdontogramPeriodontogram = lazy(() => import("../pages/OdontogramPeriodontogram"));
+const SurgeryImplantProsthesis = lazy(() => import("../pages/SurgeryImplantProsthesis"));
+const SpecializedClinical = lazy(() => import("../pages/SpecializedClinical"));
+const CommandCenter = lazy(() => import("../pages/CommandCenter"));
+const Commercial = lazy(() => import("../pages/Commercial"));
+const Communications = lazy(() => import("../pages/Communications"));
+const CRM = lazy(() => import("../pages/CRM"));
+const CRMKanban = lazy(() => import("../pages/CRMKanban"));
+const Dashboard = lazy(() => import("../pages/Dashboard"));
+const ExecutiveAssistant = lazy(() => import("../pages/ExecutiveAssistant"));
+const ExecutiveDashboard = lazy(() => import("../pages/ExecutiveDashboard"));
+const Feedback = lazy(() => import("../pages/Feedback"));
+const ClinicalTeam = lazy(() => import("../pages/ClinicalTeam"));
+const Channels = lazy(() => import("../pages/Channels"));
+const AiAssistant = lazy(() => import("../pages/AiAssistant"));
+const Credits = lazy(() => import("../pages/Credits"));
+const Financial = lazy(() => import("../pages/Financial"));
+const FinancialScanner = lazy(() => import("../pages/FinancialScanner"));
+const FiscalAutomation = lazy(() => import("../pages/FiscalAutomation"));
+const HumanResources = lazy(() => import("../pages/HumanResources"));
+const MyTimeclock = lazy(() => import("../pages/MyTimeclock"));
+const Laboratory = lazy(() => import("../pages/Laboratory"));
+const Marketing = lazy(() => import("../pages/Marketing"));
+const MarketingHub = lazy(() => import("../pages/MarketingHub"));
+const Notifications = lazy(() => import("../pages/Notifications"));
+const Operations = lazy(() => import("../pages/Operations"));
+const OperationalEvidence = lazy(() => import("../pages/OperationalEvidence"));
+const PatientFlow = lazy(() => import("../pages/PatientFlow"));
+const PatientJourney = lazy(() => import("../pages/PatientJourney"));
+const PaymentCenter = lazy(() => import("../pages/PaymentCenter"));
+const Revah = lazy(() => import("../pages/Revah"));
+const RevahChatbot = lazy(() => import("../pages/RevahChatbot"));
+const Patients = lazy(() => import("../pages/Patients"));
+const ProfitIntelligence = lazy(() => import("../pages/ProfitIntelligence"));
+const Recall = lazy(() => import("../pages/Recall"));
+const Reports = lazy(() => import("../pages/Reports"));
+const ServiceEvaluations = lazy(() => import("../pages/ServiceEvaluations"));
+const Sales = lazy(() => import("../pages/Sales"));
+const Settings = lazy(() => import("../pages/Settings"));
+const Stock = lazy(() => import("../pages/Stock"));
+const TreatmentPlanning = lazy(() => import("../pages/TreatmentPlanning"));
+const PlatformAdministration = lazy(() => import("../pages/PlatformAdministration"));
+const LeadDiscovery = lazy(() => import("../pages/LeadDiscovery"));
+const Prospecting = lazy(() => import("../pages/Prospecting"));
+const Integrations = lazy(() => import("../pages/Integrations"));
+const ImportPatients = lazy(() => import("../pages/ImportPatients"));
+const Team = lazy(() => import("../pages/Team"));
+const Permissions = lazy(() => import("../pages/Permissions"));
+const OnlineReceipts = lazy(() => import("../pages/OnlineReceipts"));
+const Homologation = lazy(() => import("../pages/Homologation"));
 
 import DentalPosDesign from "../dentalpos-design/pages/DentalPosDesign";
 import {
@@ -91,7 +94,7 @@ function DemoInDevelopmentPage() {
         Em desenvolvimento
       </Typography>
       <Typography sx={{ color: "text.secondary", maxWidth: 420 }}>
-        Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no DentalPos.
+        Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no CompletoDonto.
       </Typography>
     </Box>
   );
@@ -114,6 +117,7 @@ export default function AppRoutes() {
   }
 
   return (
+    <Suspense fallback={<Box sx={{ p: 4 }}><Typography color="text.secondary">Carregando...</Typography></Box>}>
     <Routes>
       <Route path="/" element={<Dashboard />} />
 
@@ -202,6 +206,9 @@ export default function AppRoutes() {
         path="/indice-saude-clinica"
         element={<ClinicHealth />}
       />
+
+      <Route path="/chegada-por-rosto" element={<FacialReception />} />
+      <Route path="/rateio-condominio" element={<CondoSplit />} />
 
       <Route
         path="/inteligencia-financeira"
@@ -300,5 +307,6 @@ export default function AppRoutes() {
         element={<Navigate to="/" replace />}
       />
     </Routes>
+    </Suspense>
   );
 }

@@ -217,7 +217,7 @@ export async function readiness(req: AuthRequest, res: Response) {
     },
     {
       key: 'stripe-webhook',
-      label: 'Webhook Stripe do DentalPos',
+      label: 'Webhook Stripe do CompletoDonto',
       ok: !stripeActive || Boolean(String(process.env.STRIPE_WEBHOOK_SECRET || '').trim()),
       critical: stripeActive,
       detail: stripeActive
@@ -226,7 +226,7 @@ export async function readiness(req: AuthRequest, res: Response) {
     },
     {
       key: 'asaas-webhook',
-      label: 'Webhook Asaas do DentalPos',
+      label: 'Webhook Asaas do CompletoDonto',
       ok: !asaasActive || Boolean(String(process.env.ASAAS_WEBHOOK_TOKEN || '').trim()),
       critical: asaasActive,
       detail: asaasActive

@@ -16,6 +16,7 @@
     "@mui/material": "^9.2.0",
     "@types/qrcode": "^1.5.6",
     "@types/three": "^0.185.4",
+    "@vladmandic/face-api": "^1.7.15",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "qrcode": "^1.5.4",

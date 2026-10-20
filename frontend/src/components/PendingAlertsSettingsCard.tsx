@@ -8,6 +8,8 @@ import { errorMessage, toast } from "../utils/toast";
 export default function PendingAlertsSettingsCard() {
   const [data, setData] = useState<PendingAlerts | null>(null);
   const [visibility, setVisibility] = useState<Record<string, string[]>>({});
+  const [lockDepartments, setLockDepartments] = useState<string[]>([]);
+  const [unlockKey, setUnlockKey] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -16,6 +18,7 @@ export default function PendingAlertsSettingsCard() {
       const d = await loadPendingAlerts();
       setData(d);
       setVisibility(d.settings?.visibility || {});
+      setLockDepartments(d.settings?.lockDepartments || []);
     } catch { setData(null); }
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -53,8 +56,25 @@ export default function PendingAlertsSettingsCard() {
           <Box sx={{ mt: 1.5, p: 2, border: "1px solid", borderColor: "warning.main", borderRadius: 2 }}>
             <Typography sx={{ fontWeight: 800 }}>Alerta "Você está em risco"</Typography>
             <Typography variant="body2" color="text.secondary">
-              A tela não trava mais. Quem tem pendência vê um triângulo amarelo com a mensagem "VOCÊ ESTÁ EM RISCO". Ao clicar, aparece o prazo de 24 horas, a escala de advertências e a base legal. A aplicação de qualquer penalidade é decisão do gestor.
+              Sem travamento ligado, a tela não trava. Quem tem pendência vê um triângulo amarelo com a mensagem "VOCÊ ESTÁ EM RISCO". Ao clicar, aparece o prazo de 24 horas, a escala de advertências e a base legal. A aplicação de qualquer penalidade é decisão do gestor.
             </Typography>
+          </Box>
+
+          <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "error.main", borderRadius: 2 }}>
+            <Typography sx={{ fontWeight: 800 }}>Travar diariamente o departamento que não resolver</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              Os departamentos marcados ficam travados enquanto houver pendência deles (só abrem as telas para resolver). Para liberar: resolver, justificar por escrito ou usar a chave. Você recebe e-mail quando for resolvido, justificado ou prorrogado. Gestor e administrador nunca são travados.
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", columnGap: 2 }}>
+              {(data.settings?.profiles || []).filter((p) => p.code !== "GESTOR").map((p) => (
+                <FormControlLabel key={p.code} control={<Checkbox size="small" checked={lockDepartments.includes(p.code)} onChange={() => setLockDepartments((cur) => (cur.includes(p.code) ? cur.filter((x) => x !== p.code) : [...cur, p.code]))} />} label={p.name || p.code} />
+              ))}
+            </Box>
+            <Button sx={{ mt: 1 }} variant="contained" color="error" onClick={() => void save({ lockDepartments }, lockDepartments.length ? "Travamento diário ligado." : "Travamento diário desligado.")}>Salvar travamento</Button>
+            <Box sx={{ display: "flex", gap: 1, mt: 2, alignItems: "center", flexWrap: "wrap" }}>
+              <input type="password" value={unlockKey} onChange={(e) => setUnlockKey(e.target.value)} placeholder={data.settings?.hasKey ? "Nova chave de desbloqueio" : "Chave de desbloqueio (opcional)"} style={{ padding: 8, minWidth: 260 }} />
+              <Button disabled={unlockKey.length < 4} onClick={() => { void save({ unlockKey }, "Chave de desbloqueio salva."); setUnlockKey(""); }}>Salvar chave</Button>
+            </Box>
           </Box>
 
           <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>

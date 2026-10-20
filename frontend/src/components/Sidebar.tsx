@@ -202,7 +202,7 @@ export default function Sidebar(){
 
     {demo?.isDemo ? (
       collapsed ? (
-        <Tooltip title={`${daysRemaining} dia${daysRemaining===1?"":"s"} restante${daysRemaining===1?"":"s"} — Assinar DentalPos`} placement="right">
+        <Tooltip title={`${daysRemaining} dia${daysRemaining===1?"":"s"} restante${daysRemaining===1?"":"s"} — Assinar CompletoDonto`} placement="right">
           <IconButton
             onClick={()=>window.open(demoSalesUrl(),"_blank")}
             size="small"
@@ -231,7 +231,7 @@ export default function Sidebar(){
             href={demoSalesUrl()}
             sx={{fontSize:12,fontWeight:800,textTransform:"none"}}
           >
-            Assinar DentalPos
+            Assinar CompletoDonto
           </Button>
         </Box>
       )
@@ -245,7 +245,7 @@ export default function Sidebar(){
     <Dialog open={showInDevelopment} onClose={()=>setShowInDevelopment(false)} maxWidth="xs" fullWidth>
       <DialogTitle sx={{fontWeight:800}}>Em desenvolvimento</DialogTitle>
       <DialogContent>
-        <Typography>Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no DentalPos.</Typography>
+        <Typography>Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no CompletoDonto.</Typography>
       </DialogContent>
       <DialogActions sx={{px:3,pb:2}}>
         <Button onClick={()=>setShowInDevelopment(false)}>Voltar</Button>

@@ -23,7 +23,7 @@ export function isDentalPosDesignReady():
   const messages =
     ready
       ? [
-          "DentalPos Design pronto para iniciar.",
+          "CompletoDonto Design pronto para iniciar.",
         ]
       : diagnostics.messages;
 

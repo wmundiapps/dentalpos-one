@@ -7,16 +7,18 @@ import BusinessIcon from "@mui/icons-material/Business";
 import PageHeader from "../components/PageHeader";
 import PendingAlertsSettingsCard from "../components/PendingAlertsSettingsCard";
 import TwoFactorCard from "../components/TwoFactorCard";
+import FollowUpSettingsCard from "../components/FollowUpSettingsCard";
 import FinancialHoldSettingsCard from "../components/FinancialHoldSettingsCard";
 import DunningSettingsCard from "../components/DunningSettingsCard";
 import { useAppTheme } from "../contexts/AppThemeContext";
-const colors=[["Azul DentalPos","#1565C0"],["Azul Safira","#0B5FFF"],["Ciano Digital","#0891B2"],["Turquesa","#0F766E"],["Verde Clínica","#2E7D32"],["Esmeralda","#059669"],["Roxo Premium","#7B1FA2"],["Violeta","#6D28D9"],["Índigo","#4338CA"],["Magenta","#C026D3"],["Rosa","#DB2777"],["Vermelho","#C62828"],["Coral","#EA580C"],["Laranja Comercial","#EF6C00"],["Âmbar","#D97706"],["Dourado","#9A6700"],["Grafite","#334155"],["Preto Premium","#111827"]];
+const colors=[["Azul CompletoDonto","#1565C0"],["Azul Safira","#0B5FFF"],["Ciano Digital","#0891B2"],["Turquesa","#0F766E"],["Verde Clínica","#2E7D32"],["Esmeralda","#059669"],["Roxo Premium","#7B1FA2"],["Violeta","#6D28D9"],["Índigo","#4338CA"],["Magenta","#C026D3"],["Rosa","#DB2777"],["Vermelho","#C62828"],["Coral","#EA580C"],["Laranja Comercial","#EF6C00"],["Âmbar","#D97706"],["Dourado","#9A6700"],["Grafite","#334155"],["Preto Premium","#111827"]];
 const ID_KEY="dentalpos.clinic.identity.v1";
 export default function Settings(){
  const {mode,primaryColor,toggleMode,setPrimaryColor}=useAppTheme();
- const [identity,setIdentity]=useState(()=>{try{return JSON.parse(localStorage.getItem(ID_KEY)||"null")||{name:"Clínica DentalPos",doctor:"Dr. Exemplo 1",logo:""}}catch{return{name:"Clínica DentalPos",doctor:"Dr. Exemplo 1",logo:""}}});
+ const [identity,setIdentity]=useState(()=>{try{return JSON.parse(localStorage.getItem(ID_KEY)||"null")||{name:"Clínica CompletoDonto",doctor:"Dr. Exemplo 1",logo:""}}catch{return{name:"Clínica CompletoDonto",doctor:"Dr. Exemplo 1",logo:""}}});
  return <Box><PageHeader title="Configurações" description="Identidade da clínica, aparência, cores e preferências do sistema."/>
  <TwoFactorCard/>
+ <FollowUpSettingsCard/>
  <PendingAlertsSettingsCard/>
  <FinancialHoldSettingsCard/>
  <DunningSettingsCard/>

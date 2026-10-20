@@ -658,6 +658,8 @@ export async function remove(req: AuthRequest, res: Response) {
 // (portanto só a fila do consultório dele), sem revalidar horário nem exigir motivo.
 const FLOW_ACTIONS: Record<string, { to: string; from: string[] }> = {
   ARRIVED: { to: 'WAITING', from: ['SCHEDULED', 'CONFIRMED', 'NO_SHOW'] },
+  // Desfaz uma chegada marcada por engano (ex.: reconhecimento facial errado).
+  UNDO_ARRIVAL: { to: 'SCHEDULED', from: ['WAITING'] },
   PREPARE_ROOM: { to: 'ROOM_PREPARATION', from: ['WAITING'] },
   START: { to: 'IN_PROGRESS', from: ['WAITING', 'ROOM_PREPARATION'] },
   FINISH: { to: 'COMPLETED', from: ['IN_PROGRESS'] },

@@ -1,4 +1,7 @@
 import LockedUsersUnlock from "../components/LockedUsersUnlock";
+import { loadFinancialDashboard, type FinancialDashboard } from "../services/FinancialApi";
+import MobileHome from "../components/MobileHome";
+import UnscheduledPatientsCard from "../components/UnscheduledPatientsCard";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -15,6 +18,7 @@ import {
   DialogActions,
   TextField,
   Alert,
+  useMediaQuery,
 } from "@mui/material";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import EventIcon from "@mui/icons-material/Event";
@@ -62,6 +66,9 @@ function severityColor(severity: OperationalAlert["severity"]) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery("(max-width:700px)");
+  const [fin, setFin] = useState<FinancialDashboard | null>(null);
+  useEffect(() => { if (isMobile) loadFinancialDashboard().then(setFin).catch(() => setFin(null)); }, [isMobile]);
   const [appointments, setAppointments] = useState<IntegratedAppointment[]>(getAppointments);
   const [allAlerts, setAlerts] = useState<OperationalAlert[]>(getOperationalAlerts);
   const filterVisible = usePendingVisibility();
@@ -127,17 +134,31 @@ export default function Dashboard() {
     { titulo: "Alertas críticos", valor: String(criticalAlerts), descricao: "Atenção imediata", icone: <WarningAmberIcon />, path: "#CRIT" },
   ];
 
+  const openCard = (path: string) => { if (path.startsWith("#")) { setAlertFilter(path.slice(1) as "FIN" | "CRIT"); document.getElementById("central-alertas")?.scrollIntoView({ behavior: "smooth" }); } else navigate(path); };
+  const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const finValue = (v?: number) => (fin ? brl(v || 0) : "…");
+  const mobileCards = [
+    { titulo: "A receber", valor: finValue(fin?.receivable), cor: "#1976D2", onClick: () => navigate("/financeiro?tipo=Receita") },
+    { titulo: "Em atraso", valor: finValue(fin?.overdue), cor: "#C62828", onClick: () => navigate("/financeiro?tipo=Receita") },
+    { titulo: "Recebido", valor: finValue(fin?.received), cor: "#4CAF50", onClick: () => navigate("/financeiro?tipo=Receita") },
+    { titulo: "Agenda hoje", valor: String(todayAppointments.length), cor: "#EC6725", onClick: () => navigate("/agenda") },
+    { titulo: "Alertas críticos", valor: String(criticalAlerts), cor: "#6D4C41", onClick: () => openCard("#CRIT") },
+  ];
+
   return (
     <Box>
       <LockedUsersUnlock />
+      {isMobile && <Box sx={{ mb: 3 }}><MobileHome cards={mobileCards} onNavigate={navigate} /></Box>}
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Dashboard</Typography>
       <Typography color="text.secondary" sx={{ mb: 4 }}>
-        Visão operacional integrada do DentalPos.
+        Visão operacional integrada do CompletoDonto.
       </Typography>
 
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(4, 1fr)" }, gap: 3 }}>
+      <Box sx={{ display: isMobile ? "none" : "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(4, 1fr)" }, gap: 3 }}>
         {cards.map((card) => <DashboardCard key={card.titulo} {...card} onClick={() => { if (card.path.startsWith("#")) { setAlertFilter(card.path.slice(1) as "FIN" | "CRIT"); document.getElementById("central-alertas")?.scrollIntoView({ behavior: "smooth" }); } else navigate(card.path); }} />)}
       </Box>
+
+      <Box sx={{ mt: 4 }}><UnscheduledPatientsCard /></Box>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1.4fr 1fr" }, gap: 3, mt: 4 }}>
         <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>

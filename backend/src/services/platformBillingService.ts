@@ -70,7 +70,7 @@ export async function createCreditPurchase(input: { clinicId: string; tenantId: 
       billingType,
       value: Number(pkg.priceAmount),
       dueDate: due,
-      description: `DentalPos - ${pkg.name}`,
+      description: `CompletoDonto - ${pkg.name}`,
       externalReference: `credit:${purchase.id}`,
     }),
   })

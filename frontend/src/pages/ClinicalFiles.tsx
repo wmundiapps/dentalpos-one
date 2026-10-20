@@ -90,7 +90,7 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
       sessionStorage.setItem(`dentalpos.design.clinicalFile.${row.id}`, JSON.stringify(handoff.source));
       navigate(handoff.designPath);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível enviar ao DentalPos Design.");
+      setError(e instanceof Error ? e.message : "Não foi possível enviar ao CompletoDonto Design.");
     }
   }
 
@@ -166,7 +166,7 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
             <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
               <Button size="small" startIcon={<OpenInNewIcon />} onClick={() => void openFile(row)}>Visualizar</Button>
               {["STL", "PLY", "OBJ"].includes(row.kind) && (
-                <Button size="small" startIcon={<DesignServicesIcon />} onClick={() => void openDesign(row)}>DentalPos Design</Button>
+                <Button size="small" startIcon={<DesignServicesIcon />} onClick={() => void openDesign(row)}>CompletoDonto Design</Button>
               )}
               <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => void remove(row)}>Arquivar</Button>
             </Stack>
@@ -191,7 +191,7 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
           try {
             const result = await uploadClinicalFile({ patientId, ...data });
             if (!result.upload?.configured) {
-              setStorageWarning("O exame foi registrado, mas o armazenamento de imagens desta clínica ainda está sendo ativado pela equipe DentalPos. O arquivo ficará disponível assim que a ativação for concluída.");
+              setStorageWarning("O exame foi registrado, mas o armazenamento de imagens desta clínica ainda está sendo ativado pela equipe CompletoDonto. O arquivo ficará disponível assim que a ativação for concluída.");
             } else {
               setUploadOpen(false);
             }

@@ -135,6 +135,6 @@ const WEBHOOK_EVENTS = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'PAYMENT_OVERDU
 export async function registerAsaasWebhook(conn: AsaasConn, url: string, authToken: string, email?: string) {
   await asaasCall(conn, '/webhooks', {
     method: 'POST',
-    body: JSON.stringify({ name: 'DentalPos One', url, ...(email ? { email } : {}), enabled: true, interrupted: false, apiVersion: 3, authToken, sendType: 'SEQUENTIALLY', events: WEBHOOK_EVENTS })
+    body: JSON.stringify({ name: 'CompletoDonto', url, ...(email ? { email } : {}), enabled: true, interrupted: false, apiVersion: 3, authToken, sendType: 'SEQUENTIALLY', events: WEBHOOK_EVENTS })
   })
 }

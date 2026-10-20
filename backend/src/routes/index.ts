@@ -39,6 +39,9 @@ import * as laboratoryController from '../controllers/laboratoryController'
 import * as designController from '../controllers/designController'
 import * as hrController from '../controllers/hrController'
 import * as twoFactor from '../controllers/twoFactorController'
+import * as face from '../controllers/faceController'
+import * as condoSplit from '../controllers/condoSplitController'
+import * as followUp from '../controllers/followUpController'
 import * as hrTime from '../controllers/hrTimeController'
 import * as revahController from '../controllers/revahController'
 import * as salesController from '../controllers/salesController'
@@ -153,11 +156,22 @@ router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendi
 router.get('/patients/:id/financial-hold', requirePermission('agenda.view'), financialHoldController.patientHold)
 router.get('/financial-hold/settings', requirePermission('agenda.view'), financialHoldController.settings)
 router.put('/financial-hold/settings', requirePermission('finance.approve'), financialHoldController.updateSettings)
+router.get('/face/status/:patientId', requirePermission('patients.view'), face.status)
+router.post('/face/enroll', requirePermission('patients.edit'), face.enroll)
+router.delete('/face/:patientId', requirePermission('patients.edit'), face.remove)
+router.post('/face/identify', requirePermission('agenda.edit'), face.identify)
+router.get('/condo-split', requirePermission('finance.view'), condoSplit.show)
+router.put('/condo-split', requirePermission('finance.edit'), condoSplit.save)
+router.get('/followup/unscheduled', requirePermission('patients.view'), followUp.unscheduled)
+router.get('/followup/settings', requirePermission('settings.view'), followUp.show)
+router.put('/followup/settings', requirePermission('settings.edit'), followUp.update)
+router.post('/followup/send-now', requirePermission('settings.edit'), followUp.sendNow)
 router.get('/absence-recall', requirePermission('agenda.view'), absenceRecallController.show)
 router.get('/absence-recall/today', requirePermission('agenda.view'), absenceRecallController.today)
 router.put('/absence-recall/settings', requirePermission('agenda.edit'), absenceRecallController.updateSettings)
 router.post('/absence-recall/run', requirePermission('agenda.edit'), absenceRecallController.run)
 router.post('/pending-alerts/resolve-lab', requirePermission('dashboard.view'), pendingAlertController.resolveLabDelivery)
+router.post('/pending-alerts/justify', requirePermission('dashboard.view'), pendingAlertController.justify)
 router.post('/pending-alerts/unlock', requirePermission('dashboard.view'), pendingAlertController.unlock)
 router.post('/pending-alerts/unlock-user', requirePermission('settings.edit'), pendingAlertController.unlockUser)
 router.post('/users/:userId/access-profiles', requirePermission('users.manage'), accessController.assignProfile)
@@ -249,7 +263,7 @@ router.get('/clinical-files/:id/design-handoff', requirePermission('design.view'
 router.delete('/clinical-files/:id', requirePermission('clinical.edit'), clinicalFileController.remove)
 
 // ======================
-// LABORATORY / DENTALPOS DESIGN
+// LABORATORY / COMPLETODONTO DESIGN
 // ======================
 
 router.get('/lab-orders', requirePermission('laboratory.view'), labOrderController.list)

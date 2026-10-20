@@ -51,6 +51,6 @@ export function repairLocalStorageText(): void {
       if (repaired !== raw) localStorage.setItem(key, repaired);
     }
   } catch {
-    // Falha de storage não deve impedir a inicialização do DentalPos.
+    // Falha de storage não deve impedir a inicialização do CompletoDonto.
   }
 }

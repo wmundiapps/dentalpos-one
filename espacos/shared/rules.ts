@@ -7,7 +7,10 @@ import type {
 } from './types.js';
 import { getCountry } from './countries.js';
 
-export const RULES_VERSION = '2026-09-27';
+export const RULES_VERSION = '2026-10-12';
+
+/** Fiador casado precisa da autorização do cônjuge (CC art. 1.647, III), salvo na separação convencional (absoluta) de bens. */
+export const spouseConsentRequired = (m?: string, r?: string) => m === 'married' && r !== 'separation_conventional';
 
 // ───────────── Limites anti-locação de longo prazo ─────────────
 export const BOOKING_LIMITS = {
@@ -388,13 +391,34 @@ export function computeGuestRefund(params: {
   const bookedHoursBefore = (firstStart - params.bookedAt.getTime()) / 3600000;
   const nothingStarted = now.getTime() < firstStart;
 
-  // Janela de cortesia e direito de arrependimento reembolsam tudo
+  // Janela de cortesia e direito de arrependimento antes do início reembolsam tudo
   const grace = nothingStarted && hoursSinceBooking <= GRACE_PERIOD.hoursAfterBooking && bookedHoursBefore >= GRACE_PERIOD.minHoursBeforeStart;
-  const withdrawal = nothingStarted && (params.isConsumer ?? true) && country.withdrawalDays > 0 && hoursSinceBooking <= country.withdrawalDays * 24;
-  if (grace || withdrawal) {
+  const withdrawalWindow = (params.isConsumer ?? true) && country.withdrawalDays > 0 && hoursSinceBooking <= country.withdrawalDays * 24;
+  if (grace || (withdrawalWindow && nothingStarted)) {
     return {
       refundBase: price.baseAmount, refundCleaning: price.cleaningFee, refundServiceFee: price.guestServiceFee,
       refundTax: price.taxOnServiceFee, total: price.total, rule: grace ? 'grace' : 'withdrawal', rate: 1,
+    };
+  }
+  // Arrependimento (CDC art. 49) com o uso já iniciado: ocorrências futuras voltam inteiras, a que está em
+  // andamento volta proporcional ao tempo que falta e as já usadas não voltam (serviço prestado a pedido do consumidor).
+  if (withdrawalWindow) {
+    const perBase = price.baseAmount / occurrences.length;
+    const perCleaning = price.cleaningFee / occurrences.length;
+    let refundBase = 0;
+    let refundCleaning = 0;
+    occurrences.forEach((o, i) => {
+      const start = starts[i];
+      const end = occurrenceEndUtc(listing, o).getTime();
+      if (now.getTime() < start) { refundBase += perBase; refundCleaning += perCleaning; } else if (now.getTime() < end) refundBase += perBase * ((end - now.getTime()) / (end - start));
+    });
+    const share = price.baseAmount ? refundBase / price.baseAmount : 0;
+    const refundServiceFee = price.guestServiceFee * share;
+    const refundTax = price.taxOnServiceFee * share;
+    const total = roundMoney(refundBase + refundCleaning + refundServiceFee + refundTax, cur);
+    return {
+      refundBase: roundMoney(refundBase, cur), refundCleaning: roundMoney(refundCleaning, cur), refundServiceFee: roundMoney(refundServiceFee, cur),
+      refundTax: roundMoney(refundTax, cur), total, rule: 'withdrawal', rate: price.total ? total / price.total : 0,
     };
   }
 
