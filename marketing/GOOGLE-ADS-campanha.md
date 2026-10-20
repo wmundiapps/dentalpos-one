@@ -41,7 +41,7 @@ download, crack, pirata, apostila, curso, vaga, emprego, estágio, faculdade, pd
 Títulos (até 30 caracteres, todos conferidos):
 1. CompletoDonto: gestão clínica
 2. Software para dentista
-3. 30 dias grátis, sem cartão
+3. 60 dias grátis, sem cartão
 4. Agenda e prontuário online
 5. 50% off por 12 meses
 6. Controle financeiro da clínica
@@ -58,14 +58,14 @@ Títulos (até 30 caracteres, todos conferidos):
 Fixar o título 1 na posição 1 (marca).
 
 Descrições (até 90 caracteres, todas conferidas):
-1. Agenda, prontuário, financeiro e retorno de pacientes num só sistema. 30 dias grátis.
+1. Agenda, prontuário, financeiro e retorno de pacientes num só sistema. 60 dias grátis.
 2. Sem cartão de crédito para testar. Depois, 50% de desconto nos 12 primeiros meses.
 3. Pacientes que faltaram ou sumiram voltam para a agenda com lembrete automático.
 4. Sistema completo para clínica odontológica. Comece grátis e cancele quando quiser.
 
 ## Extensões
 - **Sitelinks:** Planos e preços · Teste grátis · Para estudantes · Fale com a equipe
-- **Frases de destaque:** Sem cartão de crédito · 30 dias grátis · Retorno automático · Cancele quando quiser
+- **Frases de destaque:** Sem cartão de crédito · 60 dias grátis · Retorno automático · Cancele quando quiser
 - **Chamada:** (44) 3222-7539
 - **Snippets estruturados (Serviços):** Agenda, Prontuário, Financeiro, Estoque, RH, Comunicação com paciente
 
