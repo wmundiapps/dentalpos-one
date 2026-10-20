@@ -46,7 +46,7 @@ export default function PendingAlertsBar() {
         </Box>
         {expanded && (
           <Box sx={{ mt: 1 }}>
-            <Typography sx={{ fontWeight: 800 }}>Resolva as pendências abaixo em até 24 horas. Os avisos e as filas continuam até serem resolvidos.</Typography>
+            <Typography sx={{ fontWeight: 800 }}>Resolva as pendências abaixo em até 24 horas. Se não forem resolvidas, seu gestor será notificado. Os avisos e as filas continuam até serem resolvidos.</Typography>
             <Box sx={{ display: "grid", gap: 0.5, mt: 0.75 }}>
               {shown.map((item) => (
                 <Box key={item.key}>
