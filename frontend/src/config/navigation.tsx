@@ -1,3 +1,4 @@
+import FaceRetouchingNaturalIcon from "@mui/icons-material/FaceRetouchingNatural";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import AssessmentIcon from "@mui/icons-material/Assessment";
@@ -76,6 +77,7 @@ export const navigationGroups:NavigationGroup[] = [
     items:alphabetical([
       item("Agenda","/agenda",<EventIcon/>),
       item("Agendamento online","/agendamento-online",<EventIcon/>),
+      item("Chegada por rosto","/chegada-por-rosto",<FaceRetouchingNaturalIcon/>),
       item("Equipe","/equipe",<GroupsIcon/>),
       item("Avaliação do Atendimento","/avaliacoes-atendimento",<RateReviewIcon/>),
       item("Painel de Atendimentos","/painel-atendimentos",<GroupsIcon/>),

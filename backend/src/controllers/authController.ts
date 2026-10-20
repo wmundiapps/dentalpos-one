@@ -199,7 +199,7 @@ function hashResetToken(token: string) {
 }
 
 function passwordResetBaseUrl() {
-  const configured = String(process.env.PUBLIC_APP_URL || '').trim() || 'https://app.dentalpos.com.br'
+  const configured = String(process.env.PUBLIC_APP_URL || '').trim() || 'https://app.completodonto.com.br'
   return configured.endsWith('/') ? configured : `${configured}/`
 }
 
