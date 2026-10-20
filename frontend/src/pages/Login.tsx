@@ -19,6 +19,8 @@ export default function Login() {
   const [error, setError] = useState("");
   const [expired, setExpired] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [ticket, setTicket] = useState("");
+  const [code, setCode] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetClinicId, setResetClinicId] = useState("");
@@ -26,8 +28,20 @@ export default function Login() {
   const [resetMessage, setResetMessage] = useState("");
   const [resetError, setResetError] = useState("");
 
+  function finish(data: { token?: string; accessToken?: string; user?: { clinicId?: string }; demo?: unknown }) {
+    const token = data.token || data.accessToken;
+    if (!token) throw new Error("Token não retornado");
+    clearClientSession();
+    localStorage.setItem("dentalpos.token", token);
+    localStorage.setItem("dentalpos.clinicId", data.user?.clinicId || clinicId.trim());
+    writeSessionUser(data.user as never);
+    writeDemoAccess(data.demo as never);
+    window.location.href = appRootUrl();
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (ticket) return confirmCode();
     setBusy(true);
     setError("");
     setExpired(false);
@@ -49,17 +63,37 @@ export default function Login() {
         throw new Error(data.error || "Falha no login");
       }
 
-      const token = data.token || data.accessToken;
-      if (!token) throw new Error("Token não retornado");
-
-      clearClientSession();
-      localStorage.setItem("dentalpos.token", token);
-      localStorage.setItem("dentalpos.clinicId", data.user?.clinicId || clinicId.trim());
-      writeSessionUser(data.user);
-      writeDemoAccess(data.demo);
-      window.location.href = appRootUrl();
+      if (data?.twoFactorRequired && data.ticket) {
+        setTicket(String(data.ticket));
+        setCode("");
+        return;
+      }
+      finish(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no login");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmCode() {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`${API}/auth/login/2fa`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticket, code: code.trim() }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (data?.code === "DEMO_ENDED") setExpired(true);
+        if (response.status === 401 && /expirou/i.test(String(data?.error))) setTicket("");
+        throw new Error(data.error || "Código não confere.");
+      }
+      finish(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha na confirmação.");
     } finally {
       setBusy(false);
     }
@@ -129,6 +163,26 @@ export default function Login() {
           </Alert>
         ) : null}
 
+        {ticket ? (
+          <>
+            <Typography sx={{ mb: 1.5 }}>Digite o código de 6 números do aplicativo autenticador. Se perdeu o celular, use um dos códigos reserva.</Typography>
+            <TextField
+              fullWidth
+              autoFocus
+              label="Código de 2 etapas"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              slotProps={{ htmlInput: { autoComplete: "one-time-code", inputMode: "text" } }}
+              sx={{ mb: 2 }}
+              required
+            />
+            <Button fullWidth size="large" variant="contained" type="submit" disabled={busy || code.trim().length < 6}>
+              {busy ? "Confirmando..." : "Confirmar e entrar"}
+            </Button>
+            <Button fullWidth sx={{ mt: 1 }} onClick={() => { setTicket(""); setCode(""); setError(""); }}>Voltar</Button>
+          </>
+        ) : null}
+        {!ticket ? (<>
         <TextField
           fullWidth
           label="ID da clínica (opcional)"
@@ -158,6 +212,7 @@ export default function Login() {
         <Button fullWidth size="large" variant="contained" type="submit" disabled={busy}>
           {busy ? "Entrando..." : "Entrar"}
         </Button>
+        </>) : null}
 
         {expired ? (
           <Button

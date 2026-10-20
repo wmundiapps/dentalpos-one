@@ -22,6 +22,7 @@ import { blockedKeySet, insideSendWindow, isBlockedBy, whatsappNumber } from '..
 import { whatsappText } from '../services/prospectTemplates'
 import { writeAudit } from '../services/auditService'
 import { verifyGithubToken } from '../services/githubOidc'
+import { twoFactorEnabled } from '../services/twoFactorService'
 
 // ---------- Acesso: só equipe WMundi ----------
 // WMUNDI_STAFF_EMAILS = lista separada por vírgula (ex.: "clinicaravel@gmail.com,contato@dentalpos.com.br").
@@ -35,13 +36,18 @@ function isStaff(req: AuthRequest) {
   return Boolean(email) && allowed.includes(email)
 }
 
-function denyIfNotStaff(req: AuthRequest, res: Response) {
+// A equipe só entra com a verificação em 2 etapas ativa (STAFF_REQUIRE_2FA=0 desliga, para recuperação).
+async function denyIfNotStaff(req: AuthRequest, res: Response) {
   if (!req.user) {
     res.status(401).json({ error: 'Não autenticado.' })
     return true
   }
   if (!isStaff(req)) {
     res.status(403).json({ error: 'Acesso restrito à equipe WMundi.' })
+    return true
+  }
+  if (process.env.STAFF_REQUIRE_2FA !== '0' && !(await twoFactorEnabled(req.user.id))) {
+    res.status(403).json({ code: 'TWO_FACTOR_REQUIRED', error: 'Ative a verificação em 2 etapas (Configurações, Segurança da conta) para usar a prospecção.', action: { to: '/configuracoes#duas-etapas', label: 'Ativar 2 etapas' } })
     return true
   }
   return false
@@ -56,7 +62,7 @@ const digits = (v: unknown) => String(v ?? '').replace(/\D/g, '')
 
 // ---------- Painel ----------
 export async function stats(req: AuthRequest, res: Response) {
-  if (denyIfNotStaff(req, res)) return
+  if (await denyIfNotStaff(req, res)) return
   try {
     const grouped = await prisma.prospectLead.groupBy({ by: ['status'], _count: { _all: true } })
     const byStatus: Record<string, number> = {}
@@ -74,7 +80,7 @@ export async function stats(req: AuthRequest, res: Response) {
 }
 
 export async function list(req: AuthRequest, res: Response) {
-  if (denyIfNotStaff(req, res)) return
+  if (await denyIfNotStaff(req, res)) return
   try {
     const status = txt(req.query.status, 40)
     const q = txt(req.query.q, 120)
@@ -108,7 +114,7 @@ export async function list(req: AuthRequest, res: Response) {
 }
 
 export async function events(req: AuthRequest, res: Response) {
-  if (denyIfNotStaff(req, res)) return
+  if (await denyIfNotStaff(req, res)) return
   try {
     const rows = await prisma.prospectEvent.findMany({ where: { leadId: String(req.params.id) }, orderBy: { createdAt: 'desc' }, take: 100 })
     return res.json(rows)
@@ -119,7 +125,7 @@ export async function events(req: AuthRequest, res: Response) {
 }
 
 export async function updateLead(req: AuthRequest, res: Response) {
-  if (denyIfNotStaff(req, res)) return
+  if (await denyIfNotStaff(req, res)) return
   try {
     const id = String(req.params.id)
     const lead = await prisma.prospectLead.findUnique({ where: { id } })
@@ -149,7 +155,7 @@ export async function updateLead(req: AuthRequest, res: Response) {
 }
 
 export async function updateConfig(req: AuthRequest, res: Response) {
-  if (denyIfNotStaff(req, res)) return
+  if (await denyIfNotStaff(req, res)) return
   try {
     const b = req.body || {}
     const data: ConfigData = {}
@@ -184,7 +190,7 @@ function fixOldMobile(raw: string): string | null {
 
 // Recebe o JSON gerado pelo scripts/receita-prospects.mjs, em lotes (o painel manda de 500 em 500).
 export async function importLeads(req: AuthRequest, res: Response) {
-  if (denyIfNotStaff(req, res)) return
+  if (await denyIfNotStaff(req, res)) return
   try {
     const items = Array.isArray(req.body?.leads) ? (req.body.leads as Array<Record<string, unknown>>) : []
     if (!items.length) return res.status(400).json({ error: 'Nenhum lead no arquivo.' })
@@ -249,7 +255,7 @@ export async function importLeads(req: AuthRequest, res: Response) {
 }
 
 export async function runNow(req: AuthRequest, res: Response) {
-  if (denyIfNotStaff(req, res)) return
+  if (await denyIfNotStaff(req, res)) return
   try {
     const result = await runSequence({ force: req.body?.force === true, dryRun: req.body?.dryRun === true })
     return res.json(result)
@@ -261,7 +267,7 @@ export async function runNow(req: AuthRequest, res: Response) {
 
 // Envia uma etapa para o e-mail informado (o seu), usando um lead real como modelo. Não muda status.
 export async function sendTest(req: AuthRequest, res: Response) {
-  if (denyIfNotStaff(req, res)) return
+  if (await denyIfNotStaff(req, res)) return
   try {
     const to = txt(req.body?.to, 200)
     const step = Math.min(3, Math.max(1, Number(req.body?.step) || 1))
@@ -279,7 +285,7 @@ export async function sendTest(req: AuthRequest, res: Response) {
 // ---------- Excel com WhatsApp de um clique ----------
 // O número da planilha não abre o WhatsApp direto: aponta para /p/w/<token>, que antes confere horário, um convite por pessoa e a lista de bloqueio.
 export async function exportWhatsappSheet(req: AuthRequest, res: Response) {
-  if (denyIfNotStaff(req, res)) return
+  if (await denyIfNotStaff(req, res)) return
   try {
     const limite = Math.min(100, Math.max(1, Math.round(Number(req.query.limite) || 30)))
     const segmento = req.query.segmento === 'LABORATORIO' ? 'LABORATORIO' : req.query.segmento === 'CLINICA' ? 'CLINICA' : null

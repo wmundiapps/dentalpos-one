@@ -38,6 +38,7 @@ import * as clinicalController from '../controllers/clinicalController'
 import * as laboratoryController from '../controllers/laboratoryController'
 import * as designController from '../controllers/designController'
 import * as hrController from '../controllers/hrController'
+import * as twoFactor from '../controllers/twoFactorController'
 import * as face from '../controllers/faceController'
 import * as condoSplit from '../controllers/condoSplitController'
 import * as followUp from '../controllers/followUpController'
@@ -80,6 +81,12 @@ const router = Router()
 
 router.post('/auth/register', authController.register)
 router.post('/auth/login', authController.login)
+router.post('/auth/login/2fa', authController.login2fa)
+router.get('/auth/2fa/status', authMiddleware, twoFactor.status)
+router.post('/auth/2fa/setup', authMiddleware, twoFactor.setup)
+router.post('/auth/2fa/enable', authMiddleware, twoFactor.enable)
+router.post('/auth/2fa/disable', authMiddleware, twoFactor.disable)
+router.post('/auth/2fa/backup-codes', authMiddleware, twoFactor.backupCodes)
 router.post('/auth/password-reset/request', authController.requestPasswordReset)
 router.post('/auth/password-reset/confirm', authController.resetPassword)
 router.get('/demo/config', demoController.config)
