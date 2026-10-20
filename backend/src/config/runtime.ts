@@ -105,9 +105,13 @@ export function assertRuntimeConfiguration() {
   throw new Error(`Configuração insegura para produção:\n${message}`)
 }
 
+// Domínio próprio do CompletoDonto: sempre permitido, além do que estiver em CORS_ORIGIN.
+const OWN_ORIGINS = ['https://app.completodonto.com.br', 'https://completodonto.com.br', 'https://www.completodonto.com.br']
+
 export function allowedCorsOrigins() {
-  return value('CORS_ORIGIN')
+  const configured = value('CORS_ORIGIN')
     .split(',')
     .map(origin => origin.trim())
     .filter(Boolean)
+  return [...new Set([...configured, ...OWN_ORIGINS])]
 }
