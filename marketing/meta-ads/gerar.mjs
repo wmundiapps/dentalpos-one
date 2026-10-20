@@ -12,7 +12,7 @@ const cards = [
   { id: '02-esquecimento', fundo: '#1D1D1F', tinta: '#F7F4EF', destaque: '#E0A83E', titulo: 'Paciente que sumiu <em>volta pra agenda.</em>', texto: 'O CompletoDonto lembra quem faltou, quem cancelou e quem ficou sem retorno. E avisa você toda semana.', selo: 'Retorno automático de pacientes', cta: 'Testar 30 dias grátis' },
   { id: '03-desconto', fundo: '#2E8B6B', tinta: '#FFFFFF', destaque: '#FBEFD7', titulo: '30 dias grátis e <em>50% off</em> por 12 meses.', texto: 'Sem cartão de crédito para testar. Cancele quando quiser.', selo: 'Oferta de lançamento', cta: 'Quero a oferta' },
   { id: '04-tudo-junto', fundo: '#F7F4EF', tinta: '#1D1D1F', destaque: '#2E8B6B', titulo: 'Chega de <em>5 sistemas</em> para tocar a clínica.', texto: 'Agenda, prontuário, financeiro, estoque, RH e comunicação com o paciente no mesmo lugar.', selo: 'Tudo em um só sistema', cta: 'Conhecer o sistema' },
-  { id: '05-estudante', fundo: '#E0A83E', tinta: '#1D1D1F', destaque: '#FFFFFF', titulo: 'Estudante de odontologia <em>usa grátis.</em>', texto: 'Acesso gratuito no último ano da graduação e por mais 90 dias depois de formado.', selo: 'Para acadêmicos', cta: 'Quero meu acesso' },
+  { id: '05-estudante', fundo: '#E0A83E', tinta: '#1D1D1F', destaque: '#FFFFFF', titulo: 'Estudante de odontologia <em>usa grátis.</em>', texto: 'Grátis até a colação de grau e mais 6 meses grátis depois de formado.', selo: 'Para acadêmicos', cta: 'Quero meu acesso' },
 ]
 const formatos = [{ nome: 'feed', w: 1080, h: 1080 }, { nome: 'stories', w: 1080, h: 1920 }]
 const html = (c, f) => `<!doctype html><meta charset="utf-8"><style>
