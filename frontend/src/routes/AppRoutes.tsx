@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
 
 const Academic = lazy(() => import("../pages/Academic"));
+const FacialReception = lazy(() => import("../pages/FacialReception"));
 const CondoSplit = lazy(() => import("../pages/CondoSplit"));
 const Accounting = lazy(() => import("../pages/Accounting"));
 const Agenda = lazy(() => import("../pages/Agenda"));
@@ -206,6 +207,7 @@ export default function AppRoutes() {
         element={<ClinicHealth />}
       />
 
+      <Route path="/chegada-por-rosto" element={<FacialReception />} />
       <Route path="/rateio-condominio" element={<CondoSplit />} />
 
       <Route
