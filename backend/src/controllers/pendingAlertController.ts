@@ -16,7 +16,7 @@ const KEY_LOCK_MS = 15 * 60 * 1000
 
 type Mode = 'ALERT' | 'BLOCK'
 type Visibility = Record<string, string[]>
-type Settings = { enabled: boolean; mode: Mode; lockDepartments: string[]; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility; lockEvents: Record<string, { day: string; resolved: boolean }> }
+type Settings = { enabled: boolean; mode: Mode; lastDigest: string | null; lockDepartments: string[]; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility; lockEvents: Record<string, { day: string; resolved: boolean }> }
 type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[] }
 
 // Quem enxerga cada tipo de pendência, por departamento (código do perfil de acesso). Admin vê tudo sempre.
@@ -42,12 +42,13 @@ function ctx(req: AuthRequest) {
 
 async function loadSettings(clinicId: string): Promise<Settings> {
   const row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: FLAG_KEY } } })
-  const meta = (row?.metadata || {}) as { lockDepartments?: unknown; mode?: string; lockedUserIds?: unknown; keyHash?: string; unlocks?: Record<string, string>; visibility?: Record<string, unknown>; lockEvents?: Record<string, { day: string; resolved: boolean }> }
+  const meta = (row?.metadata || {}) as { lastDigest?: string; lockDepartments?: unknown; mode?: string; lockedUserIds?: unknown; keyHash?: string; unlocks?: Record<string, string>; visibility?: Record<string, unknown>; lockEvents?: Record<string, { day: string; resolved: boolean }> }
   return {
     lockEvents: meta.lockEvents && typeof meta.lockEvents === 'object' ? meta.lockEvents : {},
     // Sem configuração gravada o aviso fica ligado no modo "só alerta".
     enabled: row ? row.enabled : true,
     // Travamento diário: só vale para os departamentos marcados pelo gestor; sem departamentos o modo é só alerta.
+    lastDigest: meta.lastDigest || null,
     lockDepartments: Array.isArray(meta.lockDepartments) ? meta.lockDepartments.map(v => String(v).toUpperCase().slice(0, 40)) : [],
     mode: Array.isArray(meta.lockDepartments) && meta.lockDepartments.length ? 'BLOCK' : 'ALERT',
     lockedUserIds: Array.isArray(meta.lockedUserIds) ? meta.lockedUserIds.map(String) : [],
@@ -109,7 +110,7 @@ async function trackLockEvent(settings: Settings, clinicId: string, tenantId: st
 async function saveSettings(clinicId: string, tenantId: string, s: Settings) {
   // Limpa liberações vencidas para o registro não crescer.
   const unlocks = Object.fromEntries(Object.entries(s.unlocks).filter(([, until]) => new Date(until).getTime() > Date.now()))
-  const metadata = { lockDepartments: s.lockDepartments, mode: s.mode, lockedUserIds: s.lockedUserIds, keyHash: s.keyHash, unlocks, visibility: s.visibility, lockEvents: pruneLockEvents(s.lockEvents) }
+  const metadata = { lastDigest: s.lastDigest, lockDepartments: s.lockDepartments, mode: s.mode, lockedUserIds: s.lockedUserIds, keyHash: s.keyHash, unlocks, visibility: s.visibility, lockEvents: pruneLockEvents(s.lockEvents) }
   await prisma.tenantFeatureFlag.upsert({
     where: { clinicId_key: { clinicId, key: FLAG_KEY } },
     update: { enabled: s.enabled, metadata },
@@ -383,4 +384,20 @@ export async function justify(req: AuthRequest, res: Response) {
     console.error('Erro ao justificar pendência:', error)
     return res.status(500).json({ error: 'Erro ao registrar a justificativa.' })
   }
+}
+
+
+// Todo dia, depois das 9h (Brasília), o gestor recebe por e-mail o que ainda está sem resolver na clínica, por área.
+// É o que cumpre o aviso mostrado aos departamentos: "se as pendências não forem resolvidas, seu gestor será notificado".
+export async function sendManagerDigest(clinicId: string, tenantId: string, now = new Date()) {
+  const settings = await loadSettings(clinicId)
+  const brt = new Date(now.getTime() - 3 * 3600000)
+  const today = brt.toISOString().slice(0, 10)
+  if (!settings.enabled || brt.getUTCHours() < 9 || settings.lastDigest === today) return { skipped: true }
+  const items = await computeItems(clinicId, tenantId, null, ALERT_CATEGORIES.map(c => c.key), false)
+  if (!items.length) return { skipped: true }
+  const lines = items.flatMap(i => [`• ${i.label}`, ...(i.lines || []).slice(0, 5).map(l => `    - ${l}`)])
+  await notifyManagers(clinicId, tenantId, 'Pendências não resolvidas na clínica', `Estas pendências continuam sem resolução:\n\n${lines.join('\n')}\n\nOs departamentos foram avisados de que você é notificado. Acompanhe em Configurações > Avisos de pendências.`)
+  await saveSettings(clinicId, tenantId, { ...settings, lastDigest: today })
+  return { skipped: false, items: items.length }
 }

@@ -46,7 +46,7 @@ export default function PendingLockGate({ children }: { children: ReactNode }) {
       {resolvable ? <>{bar}{children}</> : (
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 3, maxWidth: 720, mx: "auto", mt: 4 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}><LockIcon color="error" /><Typography variant="h5" sx={{ fontWeight: 800 }}>Sistema travado hoje</Typography></Box>
-          <Typography sx={{ mb: 2 }}>O seu departamento não resolveu as pendências abaixo. Resolva-as para liberar o sistema, ou justifique por escrito (o gestor é avisado por e-mail).</Typography>
+          <Typography sx={{ mb: 2 }}>O seu departamento não resolveu as pendências abaixo. Resolva-as para liberar o sistema, ou justifique por escrito. Se não forem resolvidas, seu gestor será notificado por e-mail.</Typography>
           <Box sx={{ display: "grid", gap: 1, mb: 3 }}>
             {data.items.map((i) => (
               <Box key={i.key} sx={{ display: "flex", gap: 2, alignItems: "center", justifyContent: "space-between" }}>
