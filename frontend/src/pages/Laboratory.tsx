@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
   Divider, MenuItem, Paper, TextField, Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import ArchitectureIcon from "@mui/icons-material/Architecture";
 import AssignmentLateIcon from "@mui/icons-material/AssignmentLate";
 import EditIcon from "@mui/icons-material/Edit";
 import HistoryIcon from "@mui/icons-material/History";
@@ -22,7 +20,7 @@ import { labRisk } from "../utils/labRisk";
 import { fetchLabOrders, restoreLabOrder, type LabOrderRow } from "../services/LabOrderApi";
 import { cachedLabNotify, cancelLabNotifications, rememberLabNotify, scheduleLabNotifications, type LabNotifyChoice } from "../services/LabNotifyApi";
 import {
-  createLaboratoryWork, getLaboratoryWorks, sendLaboratoryWorkToDesign,
+  createLaboratoryWork, getLaboratoryWorks,
   removeLaboratoryWork, subscribeOperations, syncLaboratoryWorksWithServer, updateLaboratoryWork, waitLabOrderSync,
 } from "../services/OperationsHubService";
 import type { IntegratedLaboratoryWork } from "../types/operationsHub";
@@ -47,7 +45,6 @@ const daysUntil = (iso?:string) => { if(!iso) return Number.POSITIVE_INFINITY; c
 const priorityColor = (p:LaboratoryPriority) => p==="Urgente" ? "error" as const : p==="Alta" ? "warning" as const : "default" as const;
 
 export default function Laboratory(){
-  const navigate=useNavigate();
   const [works,setWorks]=useState<IntegratedLaboratoryWork[]>(getLaboratoryWorks);
   const [deliveryWork,setDeliveryWork]=useState<{id:number;patientName:string;workType:string}|null>(null);
   const [open,setOpen]=useState(false); const [editing,setEditing]=useState<IntegratedLaboratoryWork|null>(null); const [historyWork,setHistoryWork]=useState<IntegratedLaboratoryWork|null>(null);
@@ -100,12 +97,11 @@ export default function Laboratory(){
       setOpen(false); setEditing(null); setForm(blankForm());
     }catch(e){ const msg=`Erro ao salvar o trabalho: ${errorMessage(e,"tente de novo")}`; setFormError(msg); toast.error(msg); }
   };
-  const sendDesign=(w:IntegratedLaboratoryWork)=>{sendLaboratoryWorkToDesign(w.id);navigate("/design")};
 
   return <Box>
-    <PageHeader title="Laboratório" description="Fila clínica integrada à Agenda e ao CompletoDonto Design, com rastreabilidade e conferência de entrada." actionLabel="Novo trabalho" actionIcon={<AddIcon/>} onAction={openNew}/>
+    <PageHeader title="Laboratório" description="Fila clínica integrada à Agenda, com rastreabilidade e conferência de entrada." actionLabel="Novo trabalho" actionIcon={<AddIcon/>} onAction={openNew}/>
     <Box sx={{display:"grid",gridTemplateColumns:{xs:"1fr",md:"repeat(2,1fr)",xl:"repeat(5,1fr)"},gap:2,mb:3}}>
-      {([["ativos","Trabalhos ativos",works.filter(w=>w.status!=="Entregue").length,<PrecisionManufacturingIcon/>],["design","No Design",works.filter(w=>w.designStatus&&w.designStatus!=="Não enviado").length,<ArchitectureIcon/>],["atrasados","Atrasados",delayedWorks,<AssignmentLateIcon/>],["risco","Em risco",riskWorks,<WarningAmberIcon/>],["entregues","Liberados/entregues",works.filter(w=>["Liberado","Entregue"].includes(w.status)).length,<LocalShippingIcon/>]] as Array<[typeof filtro,string,number,ReactNode]>).map(([chave,titulo,valor,icone])=><Summary key={titulo} title={titulo} value={String(valor)} icon={icone} ativo={filtro===chave} onClick={()=>setFiltro(filtro===chave?"":chave)}/>)}
+      {([["ativos","Trabalhos ativos",works.filter(w=>w.status!=="Entregue").length,<PrecisionManufacturingIcon/>],["atrasados","Atrasados",delayedWorks,<AssignmentLateIcon/>],["risco","Em risco",riskWorks,<WarningAmberIcon/>],["entregues","Liberados/entregues",works.filter(w=>["Liberado","Entregue"].includes(w.status)).length,<LocalShippingIcon/>]] as Array<[typeof filtro,string,number,ReactNode]>).map(([chave,titulo,valor,icone])=><Summary key={titulo} title={titulo} value={String(valor)} icon={icone} ativo={filtro===chave} onClick={()=>setFiltro(filtro===chave?"":chave)}/>)}
     </Box>
     <TextField size="small" placeholder="Buscar paciente, trabalho, código, dentes, cor, dentista ou técnico..." value={search} onChange={e=>setSearch(e.target.value)} sx={{mb:2,minWidth:{xs:"100%",md:500}}}/>
     <Box sx={{display:"inline-block",ml:1,mb:2,verticalAlign:"middle"}}><Button size="small" variant="outlined" sx={{mr:1}} onClick={()=>void openArchive()}>Arquivo (entregues e excluídas)</Button><ExportMenu disabled={!visible.length} build={()=>({title:"Trabalhos de laboratório",fileBase:"laboratorio",headers:["Código","Paciente","Dentista","Trabalho","Dentes","Material","Técnico","Entrada","Prazo","Retorno do paciente","Status","Prioridade"],rows:visible.map(w=>[w.trackingCode,w.patientName,w.dentistName,w.workType,w.teeth||"",w.material,w.responsibleTechnician,formatDate(w.entryDateISO),formatDate(w.dueDateISO),formatDate(w.patientReturnDateISO),w.status,w.priority])})}/></Box>
@@ -120,7 +116,7 @@ export default function Laboratory(){
           <Box><Typography variant="caption" color="text.secondary">Prazo / Retorno</Typography><Typography sx={{fontWeight:700}}>Lab: {formatDate(w.dueDateISO)}</Typography><Typography sx={{fontWeight:700}}>Paciente: {formatDate(w.patientReturnDateISO)}</Typography><Typography variant="caption" color="text.secondary">Próxima ação: {w.nextAction||"Definir"}</Typography></Box>
           <TextField select size="small" label="Status" value={w.status} onChange={e=>{if(["Entregue","Liberado"].includes(e.target.value)){if(!["Entregue","Liberado"].includes(w.status))setDeliveryWork({id:w.id,patientName:w.patientName,workType:w.workType});return}updateLaboratoryWork(w.id,{status:e.target.value as LaboratoryWorkStatus})}}>{statuses.map(s=><MenuItem key={s} value={s}>{s}</MenuItem>)}</TextField>
         </Box>
-        <Box sx={{display:"flex",gap:1,mt:1.4,flexWrap:"wrap"}}><Button size="small" startIcon={<EditIcon/>} onClick={()=>openEdit(w)}>Editar</Button><Button size="small" startIcon={<LocalShippingIcon/>} disabled={["Entregue","Liberado"].includes(w.status)} onClick={()=>setDeliveryWork({id:w.id,patientName:w.patientName,workType:w.workType})}>Entrega (código)</Button><Button size="small" startIcon={<HistoryIcon/>} onClick={()=>setHistoryWork(w)}>Histórico</Button><Button size="small" color="error" onClick={()=>removeWork(w)}>Excluir</Button><Button size="small" variant="contained" startIcon={<ArchitectureIcon/>} disabled={!w.toothShade} onClick={()=>sendDesign(w)}>Abrir no CompletoDonto Design</Button></Box>
+        <Box sx={{display:"flex",gap:1,mt:1.4,flexWrap:"wrap"}}><Button size="small" startIcon={<EditIcon/>} onClick={()=>openEdit(w)}>Editar</Button><Button size="small" startIcon={<LocalShippingIcon/>} disabled={["Entregue","Liberado"].includes(w.status)} onClick={()=>setDeliveryWork({id:w.id,patientName:w.patientName,workType:w.workType})}>Entrega (código)</Button><Button size="small" startIcon={<HistoryIcon/>} onClick={()=>setHistoryWork(w)}>Histórico</Button><Button size="small" color="error" onClick={()=>removeWork(w)}>Excluir</Button></Box>
       </Box>})}
     </Paper>
 
