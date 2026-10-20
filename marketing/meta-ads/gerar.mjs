@@ -34,4 +34,24 @@ for (const c of cards) for (const f of formatos) {
   await p.screenshot({ path: path.join(dir, `${c.id}-${f.nome}.png`) })
   await p.close()
 }
+
+// Card de postagem (Facebook/Instagram): as duas ofertas lado a lado.
+const postHtml = (f) => `<!doctype html><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0}body{width:${f.w}px;height:${f.h}px;background:#1D1D1F;color:#F7F4EF;font-family:"Liberation Sans",Arial,sans-serif;display:flex;flex-direction:column;justify-content:space-between;padding:${f.h > 1500 ? '150px 80px 170px' : f.h > 1200 ? '70px 70px' : '60px 70px'}}
+.marca{display:flex;align-items:center;gap:20px;font-size:42px;font-weight:700}.marca img{width:80px;height:80px;border-radius:50%}.marca b{color:#E0A83E}
+h1{font-family:"Liberation Serif",Georgia,serif;font-size:${f.h > 1500 ? 104 : 80}px;line-height:1.05;margin-top:26px}h1 em{font-style:normal;color:#E0A83E}
+.box{border-radius:28px;padding:28px 34px;margin-top:22px}.box.a{background:#E0A83E;color:#1D1D1F}.box.b{background:#2E8B6B;color:#fff}
+.box small{display:block;font-size:26px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.85}.box strong{display:block;font-size:${f.h > 1500 ? 56 : 46}px;line-height:1.1;margin-top:8px}.box span{display:block;font-size:30px;margin-top:8px}
+.rod{font-size:32px;line-height:1.4}.rod b{color:#E0A83E}</style>
+<div><div class="marca"><img src="${logo}"><span>Completo<b>Donto</b></span></div>
+<h1>Sua clínica <em>completa</em> em um só sistema.</h1>
+<div class="box a"><small>Clínicas e dentistas</small><strong>60 dias grátis</strong><span>+ 12 meses com 50% do valor</span></div>
+<div class="box b"><small>Acadêmicos de odontologia</small><strong>Grátis até a colação de grau</strong><span>+ 6 meses grátis depois de formado</span></div></div>
+<div class="rod">Agenda, prontuário, financeiro e retorno de pacientes.<br><b>Promoção até 04/12.</b> Sem cartão de crédito.<br><b>completodonto.com.br</b></div>`
+for (const f of [{ nome: 'feed', w: 1080, h: 1080 }, { nome: 'retrato', w: 1080, h: 1350 }, { nome: 'stories', w: 1080, h: 1920 }]) {
+  const p = await b.newPage({ viewport: { width: f.w, height: f.h } })
+  await p.setContent(postHtml(f))
+  await p.screenshot({ path: path.join(dir, `06-post-geral-${f.nome}.png`) })
+  await p.close()
+}
 await b.close()
