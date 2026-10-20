@@ -186,6 +186,15 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
 .acesso__card[hidden],.acesso__ok[hidden]{display:none!important}
 .acesso .pergunta{margin-bottom:14px}
 </style>
+<style>
+.contador{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;margin:18px auto 0;font-family:"Nunito Sans",sans-serif}
+.contador__rotulo{font-weight:800;font-size:15px}
+.contador__itens{display:flex;gap:8px}
+.contador__item{min-width:62px;padding:8px 10px;border-radius:12px;background:#1D1D1F;color:#F7F4EF;text-align:center}
+.contador__item b{display:block;font-size:24px;line-height:1.1;color:#E0A83E}
+.contador__item span{font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.contador--fim{font-weight:800}
+</style>
 </head>
 <body>
 
@@ -467,8 +476,34 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
 
     <div class="lancamento">
       <span class="lancamento__selo">Promoção de lançamento</span>
-      <p class="lancamento__titulo"><strong>30 dias grátis</strong> e <strong>50% de desconto nos 12 meses seguintes</strong></p>
-      <p class="lancamento__sub">Teste o sistema inteiro por 30 dias, sem cartão de crédito. Se continuar, você paga metade do valor do plano durante o primeiro ano de assinatura.</p>
+      <p class="lancamento__titulo"><strong>60 dias grátis</strong> e <strong>50% de desconto nos 12 meses seguintes</strong></p>
+      <p class="lancamento__sub">Teste o sistema inteiro por 60 dias, sem cartão de crédito. Se continuar, você paga metade do valor do plano durante o primeiro ano de assinatura.</p>
+      <div class="contador" id="contador-promo" aria-live="polite">
+        <span class="contador__rotulo">Promoção válida até 04/12/2026. Faltam:</span>
+        <div class="contador__itens">
+          <div class="contador__item"><b id="ct-d">--</b><span>dias</span></div>
+          <div class="contador__item"><b id="ct-h">--</b><span>horas</span></div>
+          <div class="contador__item"><b id="ct-m">--</b><span>min</span></div>
+          <div class="contador__item"><b id="ct-s">--</b><span>seg</span></div>
+        </div>
+      </div>
+      <script>
+      (function(){
+        var fim=new Date("2026-12-04T23:59:59-03:00").getTime(),box=document.getElementById("contador-promo");
+        function p(n){return n<10?"0"+n:String(n)}
+        function tick(){
+          var r=fim-Date.now();
+          if(r<=0){box.className="contador contador--fim";box.textContent="Promoção encerrada.";return}
+          var s=Math.floor(r/1000);
+          document.getElementById("ct-d").textContent=Math.floor(s/86400);
+          document.getElementById("ct-h").textContent=p(Math.floor(s%86400/3600));
+          document.getElementById("ct-m").textContent=p(Math.floor(s%3600/60));
+          document.getElementById("ct-s").textContent=p(s%60);
+          setTimeout(tick,1000);
+        }
+        tick();
+      })();
+      </script>
       <a class="btn btn--ouro" href="https://app.completodonto.com.br">Começar gratuito agora</a>
     </div>
 
@@ -541,7 +576,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
 <section class="banda banda--papel acesso" id="acesso">
   <div class="wrap">
     <h2 class="pergunta">Receba o seu acesso agora.</h2>
-    <p class="acesso__lede">Deixe seus dados e vá direto para a página de login. São 30 dias grátis, sem cartão de crédito.</p>
+    <p class="acesso__lede">Deixe seus dados e vá direto para a página de login. São 60 dias grátis, sem cartão de crédito.</p>
     <div class="acesso__card" id="acesso-form">
       <div class="acesso__linha">
         <div><label for="a-nome">Nome</label><input id="a-nome" type="text" autocomplete="name"></div>
@@ -569,7 +604,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
     <div class="exp__leao" role="img" aria-label="Mascote do CompletoDonto"></div>
     <div>
       <h2>CompletoDonto • EXPERIENCE</h2>
-      <p>O sistema inteiro funcionando de verdade, com a sua clínica, por 30 dias gratuitos e sem cartão. Quando o período termina, o acesso continua em modo somente leitura e nada do que você registrou se perde.</p>
+      <p>O sistema inteiro funcionando de verdade, com a sua clínica, por 60 dias gratuitos e sem cartão. Quando o período termina, o acesso continua em modo somente leitura e nada do que você registrou se perde.</p>
       <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:28px">
         <a class="btn btn--ouro" href="https://app.completodonto.com.br">Começar gratuito agora</a>
         <a class="btn btn--linha" href="#planos">Ver os planos</a>
@@ -652,7 +687,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
   <div class="cad-box" role="dialog" aria-modal="true" aria-labelledby="cad-titulo">
     <button type="button" class="cad-x" id="cad-x" aria-label="Fechar">&times;</button>
     <div id="cad-form">
-      <h2 id="cad-titulo">Comece seus 30 dias grátis</h2>
+      <h2 id="cad-titulo">Comece seus 60 dias grátis</h2>
       <p class="cad-sub">Preencha seus dados. Assim que enviar, você já é levado à página de login para entrar. Sem cartão de crédito.</p>
       <div class="cad-grid">
         <div class="cad-full"><label>Eu sou</label>
@@ -699,7 +734,7 @@ a:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
   function perfilAtual(p){perfil=p;var ac=(p==="Acadêmico");document.getElementById("cad-bloco-fac").hidden=!ac;document.getElementById("cad-bloco-ano").hidden=!ac;document.getElementById("cad-bloco-cro").hidden=ac}
   btn.addEventListener("click",function(){
     var canal="agora";
-    var d={perfil:perfil,nome:v("cad-nome"),email:v("cad-email"),zap:v("cad-zap"),cidade:v("cad-cidade"),cro:perfil==="Acadêmico"?"":v("cad-cro"),clinica:v("cad-clinica"),faculdade:perfil==="Acadêmico"?v("cad-fac"):"",anoFormatura:perfil==="Acadêmico"?v("cad-ano"):"",canal:canal,mensagem:"Cadastro para os 30 dias grátis (landing)."};
+    var d={perfil:perfil,nome:v("cad-nome"),email:v("cad-email"),zap:v("cad-zap"),cidade:v("cad-cidade"),cro:perfil==="Acadêmico"?"":v("cad-cro"),clinica:v("cad-clinica"),faculdade:perfil==="Acadêmico"?v("cad-fac"):"",anoFormatura:perfil==="Acadêmico"?v("cad-ano"):"",canal:canal,mensagem:"Cadastro para os 60 dias grátis (landing)."};
     er.hidden=true;
     if(!d.nome){mostra("Informe seu nome completo.");return}
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)){mostra("Informe um e-mail válido.");return}

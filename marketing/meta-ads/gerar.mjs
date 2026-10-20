@@ -8,9 +8,9 @@ const dir = path.dirname(fileURLToPath(import.meta.url))
 const logo = 'data:image/png;base64,' + fs.readFileSync(path.join(dir, '../../frontend/public/brand/logo-leao.png')).toString('base64')
 
 const cards = [
-  { id: '01-atender', fundo: '#FBEFD7', tinta: '#1D1D1F', destaque: '#B9821F', titulo: 'Você só precisa <em>atender.</em>', texto: 'Agenda, prontuário, financeiro e retorno de pacientes em um só sistema.', selo: '30 dias grátis · sem cartão', cta: 'Começar grátis' },
-  { id: '02-esquecimento', fundo: '#1D1D1F', tinta: '#F7F4EF', destaque: '#E0A83E', titulo: 'Paciente que sumiu <em>volta pra agenda.</em>', texto: 'O CompletoDonto lembra quem faltou, quem cancelou e quem ficou sem retorno. E avisa você toda semana.', selo: 'Retorno automático de pacientes', cta: 'Testar 30 dias grátis' },
-  { id: '03-desconto', fundo: '#2E8B6B', tinta: '#FFFFFF', destaque: '#FBEFD7', titulo: '30 dias grátis e <em>50% off</em> por 12 meses.', texto: 'Sem cartão de crédito para testar. Cancele quando quiser.', selo: 'Oferta de lançamento', cta: 'Quero a oferta' },
+  { id: '01-atender', fundo: '#FBEFD7', tinta: '#1D1D1F', destaque: '#B9821F', titulo: 'Você só precisa <em>atender.</em>', texto: 'Agenda, prontuário, financeiro e retorno de pacientes em um só sistema.', selo: '60 dias grátis · sem cartão', cta: 'Começar grátis' },
+  { id: '02-esquecimento', fundo: '#1D1D1F', tinta: '#F7F4EF', destaque: '#E0A83E', titulo: 'Paciente que sumiu <em>volta pra agenda.</em>', texto: 'O CompletoDonto lembra quem faltou, quem cancelou e quem ficou sem retorno. E avisa você toda semana.', selo: 'Retorno automático de pacientes', cta: 'Testar 60 dias grátis' },
+  { id: '03-desconto', fundo: '#2E8B6B', tinta: '#FFFFFF', destaque: '#FBEFD7', titulo: '60 dias grátis e <em>50% off</em> por 12 meses.', texto: 'Sem cartão de crédito para testar. Cancele quando quiser.', selo: 'Oferta de lançamento', cta: 'Quero a oferta' },
   { id: '04-tudo-junto', fundo: '#F7F4EF', tinta: '#1D1D1F', destaque: '#2E8B6B', titulo: 'Chega de <em>5 sistemas</em> para tocar a clínica.', texto: 'Agenda, prontuário, financeiro, estoque, RH e comunicação com o paciente no mesmo lugar.', selo: 'Tudo em um só sistema', cta: 'Conhecer o sistema' },
   { id: '05-estudante', fundo: '#E0A83E', tinta: '#1D1D1F', destaque: '#FFFFFF', titulo: 'Estudante de odontologia <em>usa grátis.</em>', texto: 'Grátis até a colação de grau e mais 6 meses grátis depois de formado.', selo: 'Para acadêmicos', cta: 'Quero meu acesso' },
 ]

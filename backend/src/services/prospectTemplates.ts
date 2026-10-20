@@ -58,7 +58,7 @@ function bodies(lead: TemplateLead, step: number): { subject: string; paragraphs
         isLab
           ? 'Um dos pontos que mais tomam tempo entre clínica e laboratório é cobrar e confirmar prazo. No CompletoDonto a ordem de serviço já nasce com a data de entrega e os lembretes vão sozinhos.'
           : 'O que mais pesa no faturamento de um consultório costuma ser o horário vazio. No CompletoDonto o paciente recebe a confirmação ao agendar, um lembrete na véspera e outro no dia, e a recepção vê na hora quem confirmou.',
-        'Você testa com a sua rotina real durante 30 dias, sem custo e sem compromisso.',
+        'Você testa com a sua rotina real durante 60 dias, sem custo e sem compromisso.',
       ],
       cta: 'Testar 30 dias grátis',
     }
@@ -68,7 +68,7 @@ function bodies(lead: TemplateLead, step: number): { subject: string; paragraphs
     subject: `Última mensagem, ${nome}`,
     paragraphs: [
       'Olá, esta é a minha última mensagem sobre o assunto, para não lotar a sua caixa de entrada.',
-      'Se fizer sentido para você, o teste gratuito de 30 dias e os 50% de desconto no primeiro ano continuam valendo para quem entrar durante o lançamento.',
+      'Se fizer sentido para você, o teste gratuito de 60 dias e os 50% de desconto no primeiro ano continuam valendo para quem entrar durante o lançamento.',
       'E se preferir conversar antes, é só responder este e-mail que eu mesmo respondo.',
     ],
     cta: 'Ativar meu teste gratuito',
