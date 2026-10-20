@@ -54,4 +54,17 @@ for (const f of [{ nome: 'feed', w: 1080, h: 1080 }, { nome: 'retrato', w: 1080,
   await p.screenshot({ path: path.join(dir, `06-post-geral-${f.nome}.png`) })
   await p.close()
 }
+
+// Cartões de divulgação geral (sem citar acadêmicos): feed, retrato (4:5) e stories.
+const gerais = [
+  { id: '07-oferta', fundo: '#1D1D1F', tinta: '#F7F4EF', destaque: '#E0A83E', titulo: '60 dias grátis para testar a sua <em>clínica completa.</em>', texto: 'Depois, 12 meses com 50% do valor. Sem cartão de crédito. Promoção até 04/12.', selo: 'Promoção de lançamento', cta: 'Começar grátis' },
+  { id: '08-retorno', fundo: '#FBEFD7', tinta: '#1D1D1F', destaque: '#B9821F', titulo: 'Paciente que sumiu <em>volta pra agenda.</em>', texto: 'O CompletoDonto lembra quem faltou, quem cancelou e quem ficou sem retorno. E avisa você toda semana.', selo: 'Retorno automático de pacientes', cta: 'Testar 60 dias grátis' },
+  { id: '09-tudo-junto', fundo: '#2E8B6B', tinta: '#FFFFFF', destaque: '#FBEFD7', titulo: 'Agenda, prontuário e financeiro <em>em um só lugar.</em>', texto: 'Gestão completa para a sua clínica odontológica, com 60 dias grátis para testar.', selo: 'Tudo em um só sistema', cta: 'Conhecer o sistema' },
+]
+for (const c of gerais) for (const f of [{ nome: 'feed', w: 1080, h: 1080 }, { nome: 'retrato', w: 1080, h: 1350 }, { nome: 'stories', w: 1080, h: 1920 }]) {
+  const p = await b.newPage({ viewport: { width: f.w, height: f.h } })
+  await p.setContent(html(c, f))
+  await p.screenshot({ path: path.join(dir, `${c.id}-${f.nome}.png`) })
+  await p.close()
+}
 await b.close()
