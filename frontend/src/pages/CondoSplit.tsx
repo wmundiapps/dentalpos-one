@@ -7,9 +7,21 @@ import { type CondoMonth, loadCondoSplit, saveCondoSplit } from "../services/Con
 
 const ITEMS: [string, string][] = [["agua", "Água"], ["luz", "Luz"], ["telefone", "Telefone"], ["internet", "Internet"], ["iptu", "IPTU"], ["condominio", "Condomínio do prédio"], ["limpeza", "Material de limpeza"], ["contador", "Contador"], ["sindico", "Síndico"], ["fundoReserva", "Fundo de reserva"], ["bancarios", "Gastos bancários"], ["consertos", "Consertos"], ["outros", "Outros"]];
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const toNum = (s: string) => { const n = Number(s.replace(/\./g, "").replace(",", ".")); return Number.isFinite(n) && n > 0 ? n : 0; };
+// Aceita "1.250,90", "1250,90" e "1250.90" (ponto como decimal quando há no máximo 2 casas).
+const toNum = (raw: string) => {
+  const t = raw.trim();
+  const norm = t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : /^\d+\.\d{1,2}$/.test(t) ? t : t.replace(/\./g, "");
+  const n = Number(norm);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
 const show = (n: number) => (n ? String(n).replace(".", ",") : "");
 const empty = (): CondoMonth => ({ employees: [], encargosPct: 0, items: {}, outrosDesc: "", condominos: 0 });
+// Campo de valor: guarda o texto como a pessoa digita (vírgula e casas decimais) e só entrega o número ao formulário.
+function MoneyField({ value, onChange, ...rest }: { value: number; onChange: (n: number) => void } & Omit<React.ComponentProps<typeof TextField>, "value" | "onChange">) {
+  const [text, setText] = useState(show(value));
+  useEffect(() => { if (toNum(text) !== value) setText(show(value)); }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <TextField {...rest} value={text} onChange={(e) => { const t = e.target.value.replace(/[^\d.,]/g, ""); setText(t); onChange(toNum(t)); }} onBlur={() => setText(show(value))} />;
+}
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
 export default function CondoSplit() {
@@ -40,8 +52,7 @@ export default function CondoSplit() {
     return { folha, decimo, ferias, encargos, fixas, total, each: data.condominos > 0 ? total / data.condominos : 0 };
   }, [data]);
 
-  const setItem = (k: string, v: string) => setData((d) => ({ ...d, items: { ...d.items, [k]: toNum(v) } }));
-  const setEmp = (i: number, patch: Partial<{ name: string; salary: number }>) => setData((d) => ({ ...d, employees: d.employees.map((e, j) => (j === i ? { ...e, ...patch } : e)) }));
+    const setEmp = (i: number, patch: Partial<{ name: string; salary: number }>) => setData((d) => ({ ...d, employees: d.employees.map((e, j) => (j === i ? { ...e, ...patch } : e)) }));
 
   const save = async () => {
     setBusy(true); setError(""); setMsg("");
@@ -72,7 +83,7 @@ export default function CondoSplit() {
             {data.employees.map((e, i) => (
               <TableRow key={i}>
                 <TableCell><TextField size="small" fullWidth value={e.name} onChange={(ev) => setEmp(i, { name: ev.target.value })} placeholder="Nome do funcionário" /></TableCell>
-                <TableCell align="right"><TextField size="small" value={show(e.salary)} onChange={(ev) => setEmp(i, { salary: toNum(ev.target.value) })} slotProps={{ input: { startAdornment: <InputAdornment position="start">R$</InputAdornment> }, htmlInput: { inputMode: "decimal" } }} /></TableCell>
+                <TableCell align="right"><MoneyField size="small" value={e.salary} onChange={(n) => setEmp(i, { salary: n })} slotProps={{ input: { startAdornment: <InputAdornment position="start">R$</InputAdornment> }, htmlInput: { inputMode: "decimal" } }} /></TableCell>
                 <TableCell><IconButton aria-label="Remover funcionário" onClick={() => setData((d) => ({ ...d, employees: d.employees.filter((_, j) => j !== i) }))}><DeleteIcon /></IconButton></TableCell>
               </TableRow>
             ))}
@@ -80,7 +91,7 @@ export default function CondoSplit() {
         </Table>
         <Button startIcon={<AddIcon />} sx={{ mt: 1 }} onClick={() => setData((d) => ({ ...d, employees: [...d.employees, { name: "", salary: 0 }] }))}>Adicionar funcionário</Button>
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", mt: 2 }}>
-          <TextField label="Encargos (% sobre folha + 13º + férias)" size="small" value={data.encargosPct ? String(data.encargosPct).replace(".", ",") : ""} onChange={(e) => setData({ ...data, encargosPct: Math.min(100, toNum(e.target.value)) })} slotProps={{ input: { endAdornment: <InputAdornment position="end">%</InputAdornment> }, htmlInput: { inputMode: "decimal" } }} sx={{ width: 320 }} />
+          <MoneyField label="Encargos (% sobre folha + 13º + férias)" size="small" value={data.encargosPct} onChange={(n) => setData((d) => ({ ...d, encargosPct: Math.min(100, n) }))} slotProps={{ input: { endAdornment: <InputAdornment position="end">%</InputAdornment> }, htmlInput: { inputMode: "decimal" } }} sx={{ width: 320 }} />
           <Typography variant="body2" color="text.secondary">Previsão de 13º = folha ÷ 12 · Previsão de férias = folha ÷ 12 + 1/3 · calculadas sozinhas.</Typography>
         </Box>
       </Paper>
@@ -89,7 +100,7 @@ export default function CondoSplit() {
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Despesas do mês</Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(3, 1fr)" }, gap: 2 }}>
           {ITEMS.map(([k, label]) => (
-            <TextField key={k} size="small" label={label} value={show(data.items[k] || 0)} onChange={(e) => setItem(k, e.target.value)} slotProps={{ input: { startAdornment: <InputAdornment position="start">R$</InputAdornment> }, htmlInput: { inputMode: "decimal" } }} />
+            <MoneyField key={`${month}-${k}`} size="small" label={label} value={data.items[k] || 0} onChange={(n) => setData((d) => ({ ...d, items: { ...d.items, [k]: n } }))} slotProps={{ input: { startAdornment: <InputAdornment position="start">R$</InputAdornment> }, htmlInput: { inputMode: "decimal" } }} />
           ))}
         </Box>
         <TextField size="small" fullWidth label="Descrição de 'Outros' (opcional)" value={data.outrosDesc} onChange={(e) => setData({ ...data, outrosDesc: e.target.value })} sx={{ mt: 2 }} />

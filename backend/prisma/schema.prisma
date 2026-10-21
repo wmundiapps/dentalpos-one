@@ -2796,3 +2796,24 @@ model StockPartnerNotice {
 
   @@index([clinicId, partnerId, productId, sentAt])
 }
+
+model UserSession {
+  id         String    @id @default(cuid())
+  userId     String
+  clinicId   String
+  tenantId   String
+  ip         String?
+  userAgent  String?
+  city       String?
+  region     String?
+  country    String?
+  lastIp     String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  anomalyAt  DateTime?
+  revokedAt  DateTime?
+  revokedBy  String?
+
+  @@index([userId, createdAt])
+  @@index([clinicId, lastSeenAt])
+}

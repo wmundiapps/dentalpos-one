@@ -9,6 +9,7 @@ import {
   hashPassword
 } from '../services/userService'
 import { writeAudit } from '../services/auditService'
+import { checkNewDevice, createSession } from '../services/securityService'
 import { getDemoAccess } from '../services/demoAccessService'
 import { decryptSecret } from '../services/secretVault'
 import { dispatchRevah } from '../services/revahProviderService'
@@ -31,7 +32,7 @@ function generateToken(user: {
   clinicId: string
   tenantId: string
   role: string
-}) {
+}, sid?: string) {
   const expiresIn = (process.env.JWT_EXPIRES_IN || '8h') as SignOptions['expiresIn']
   return jwt.sign(
     {
@@ -39,7 +40,8 @@ function generateToken(user: {
       email: user.email,
       clinicId: user.clinicId,
       tenantId: user.tenantId,
-      role: user.role
+      role: user.role,
+      ...(sid ? { sid } : {})
     },
     jwtSecret(),
     { expiresIn }
@@ -95,7 +97,7 @@ export async function register(req: Request, res: Response) {
       clinicId: user.clinicId,
       tenantId: user.tenantId,
       role: user.role
-    })
+    }, await createSession({ id: user.id, clinicId: user.clinicId, tenantId: user.tenantId }, req))
 
     return res.status(201).json({
       message: 'Usuário criado com sucesso.',
@@ -110,13 +112,16 @@ export async function register(req: Request, res: Response) {
 
 // Abre a sessão (depois da senha e, se a conta tiver, do código de 2 etapas).
 async function finishLogin(req: Request, res: Response, user: any, demo: unknown) {
+  // O aviso de aparelho novo olha os logins anteriores, por isso vem antes de registrar este.
+  await checkNewDevice({ id: user.id, clinicId: user.clinicId, tenantId: user.tenantId }, req)
+  const sid = await createSession({ id: user.id, clinicId: user.clinicId, tenantId: user.tenantId }, req)
   const token = generateToken({
     id: user.id,
     email: user.email,
     clinicId: user.clinicId,
     tenantId: user.tenantId,
     role: user.role
-  })
+  }, sid)
 
   try {
     await writeAudit({
