@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt, { JwtPayload } from 'jsonwebtoken'
+import { logSensitiveAccess, sessionRevoked } from '../services/securityService'
 
 export interface AuthRequest extends Request {
   user?: {
@@ -8,6 +9,7 @@ export interface AuthRequest extends Request {
     clinicId: string
     tenantId: string
     role: string
+    sid?: string
   }
 }
 
@@ -17,9 +19,10 @@ interface TokenPayload extends JwtPayload {
   clinicId: string
   tenantId: string
   role: string
+  sid?: string
 }
 
-export const authMiddleware = (
+export const authMiddleware = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -50,8 +53,14 @@ export const authMiddleware = (
       email: decoded.email,
       clinicId: decoded.clinicId,
       tenantId: decoded.tenantId,
-      role: decoded.role
+      role: decoded.role,
+      sid: decoded.sid
     }
+
+    if (decoded.sid && (await sessionRevoked(decoded.sid, req, decoded.id))) {
+      return res.status(401).json({ error: 'Sessão encerrada. Entre novamente.' })
+    }
+    logSensitiveAccess(req, req.user)
 
     return next()
   } catch {
