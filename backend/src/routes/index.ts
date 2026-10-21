@@ -39,6 +39,7 @@ import * as laboratoryController from '../controllers/laboratoryController'
 import * as designController from '../controllers/designController'
 import * as hrController from '../controllers/hrController'
 import * as twoFactor from '../controllers/twoFactorController'
+import * as stockPartners from '../controllers/stockPartnerController'
 import * as security from '../controllers/securityController'
 import * as face from '../controllers/faceController'
 import * as condoSplit from '../controllers/condoSplitController'
@@ -161,6 +162,11 @@ router.get('/face/status/:patientId', requirePermission('patients.view'), face.s
 router.post('/face/enroll', requirePermission('patients.edit'), face.enroll)
 router.delete('/face/:patientId', requirePermission('patients.edit'), face.remove)
 router.post('/face/identify', requirePermission('agenda.edit'), face.identify)
+router.get('/stock-partners/status', requirePermission('sales.view'), stockPartners.clinicStatus)
+router.put('/stock-partners/authorize', requirePermission('settings.edit'), stockPartners.authorize)
+router.get('/platform/stock-partners', requireWmundiStaff, stockPartners.listPartners)
+router.post('/platform/stock-partners', requireWmundiStaff, stockPartners.createPartner)
+router.put('/platform/stock-partners/:id', requireWmundiStaff, stockPartners.updatePartner)
 router.get('/security/sessions', authMiddleware, security.list)
 router.post('/security/sessions/revoke-others', authMiddleware, security.revokeOthers)
 router.post('/security/sessions/:id/revoke', authMiddleware, security.revoke)

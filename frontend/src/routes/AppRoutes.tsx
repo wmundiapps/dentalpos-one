@@ -4,6 +4,7 @@ import { Box, Typography } from "@mui/material";
 
 const Academic = lazy(() => import("../pages/Academic"));
 const FacialReception = lazy(() => import("../pages/FacialReception"));
+const StockPartners = lazy(() => import("../pages/StockPartners"));
 const CondoSplit = lazy(() => import("../pages/CondoSplit"));
 const Accounting = lazy(() => import("../pages/Accounting"));
 const Agenda = lazy(() => import("../pages/Agenda"));
@@ -290,6 +291,7 @@ export default function AppRoutes() {
 
       <Route path="/plataforma-saas" element={<PlatformAdministration />} />
       <Route path="/revah-leads" element={<LeadDiscovery />} />
+      <Route path="/parceiros-estoque" element={<WmundiStaffOnly><StockPartners /></WmundiStaffOnly>} />
       <Route path="/prospeccao" element={<WmundiStaffOnly><Prospecting /></WmundiStaffOnly>} />
       <Route path="/integracoes" element={<Integrations />} />
       <Route path="/importar-pacientes" element={<ImportPatients />} />

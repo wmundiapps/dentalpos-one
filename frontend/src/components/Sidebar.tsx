@@ -53,7 +53,7 @@ export default function Sidebar(){
     const seen=new Set<string>();
     return navigationGroups.map(group=>{
       const items=group.items.filter(it=>{
-        if(it.path==="/prospeccao"&&!isWmundiStaff())return false;
+        if((it.path==="/prospeccao"||it.path==="/parceiros-estoque")&&!isWmundiStaff())return false;
         if(!itemAllowed(it,menuAccess))return false;
         const dedupeKey=it.path;
         if(seen.has(dedupeKey))return false;

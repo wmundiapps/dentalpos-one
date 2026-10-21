@@ -2771,6 +2771,32 @@ model PatientFace {
   @@unique([clinicId, patientId])
 }
 
+model StockPartner {
+  id         String               @id @default(cuid())
+  name       String
+  email      String
+  whatsapp   String?
+  categories String[]             @default([])
+  monthlyFee Decimal              @default(0) @db.Decimal(12, 2)
+  status     String               @default("PENDENTE")
+  paidUntil  DateTime?
+  notes      String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  notices    StockPartnerNotice[]
+}
+
+model StockPartnerNotice {
+  id        String       @id @default(cuid())
+  clinicId  String
+  partnerId String
+  partner   StockPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  productId String
+  sentAt    DateTime     @default(now())
+
+  @@index([clinicId, partnerId, productId, sentAt])
+}
+
 model UserSession {
   id         String    @id @default(cuid())
   userId     String

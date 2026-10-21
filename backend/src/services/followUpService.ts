@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma'
 import { dispatchRevah } from './revahProviderService'
 import { getDemoAccess } from './demoAccessService'
 import { sendManagerDigest } from '../controllers/pendingAlertController'
+import { notifyPartners } from './stockPartnerService'
 
 // Acompanhamento de pacientes sem agendar e de pacientes devendo:
 // - lista semanal por e-mail (segunda-feira) e nos painéis da recepção e clínico;
@@ -237,6 +238,7 @@ export async function processFollowUps(now = new Date()) {
       await sendDailyDebtors(c, { now }).catch((e) => console.error('Resumo de devedores:', e))
       await sendDebtorNotices(c, { now }).catch((e) => console.error('Aviso a devedores:', e))
       await sendManagerDigest(c.id, c.tenantId, now).catch((e) => console.error('Resumo de pendências ao gestor:', e))
+      await notifyPartners(c, now).catch((e) => console.error('Aviso a parceiros de estoque:', e))
     }
   } finally { running = false }
 }
