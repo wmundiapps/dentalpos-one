@@ -39,6 +39,7 @@ import * as laboratoryController from '../controllers/laboratoryController'
 import * as designController from '../controllers/designController'
 import * as hrController from '../controllers/hrController'
 import * as twoFactor from '../controllers/twoFactorController'
+import * as security from '../controllers/securityController'
 import * as face from '../controllers/faceController'
 import * as condoSplit from '../controllers/condoSplitController'
 import * as followUp from '../controllers/followUpController'
@@ -160,6 +161,9 @@ router.get('/face/status/:patientId', requirePermission('patients.view'), face.s
 router.post('/face/enroll', requirePermission('patients.edit'), face.enroll)
 router.delete('/face/:patientId', requirePermission('patients.edit'), face.remove)
 router.post('/face/identify', requirePermission('agenda.edit'), face.identify)
+router.get('/security/sessions', authMiddleware, security.list)
+router.post('/security/sessions/revoke-others', authMiddleware, security.revokeOthers)
+router.post('/security/sessions/:id/revoke', authMiddleware, security.revoke)
 router.get('/condo-split', requirePermission('finance.view'), condoSplit.show)
 router.put('/condo-split', requirePermission('finance.edit'), condoSplit.save)
 router.get('/followup/unscheduled', requirePermission('patients.view'), followUp.unscheduled)
