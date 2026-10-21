@@ -109,3 +109,14 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* Acessibilidade (barra em components/AccessibilityTools.tsx): só age quando a pessoa liga uma opção. */
+html.a11y-font-1 { font-size: 112.5%; }
+html.a11y-font-2 { font-size: 125%; }
+html.a11y-font-3 { font-size: 150%; }
+html.a11y-contrast { filter: contrast(1.35); }
+html.a11y-gray { filter: grayscale(1); }
+html.a11y-contrast.a11y-gray { filter: contrast(1.35) grayscale(1); }
+html.a11y-links a { text-decoration: underline !important; }
+html.a11y-spacing body *:not(.a11y-root *) { letter-spacing: 0.04em; line-height: 1.7; }
+@media print { [vw], .a11y-root { display: none !important; } }

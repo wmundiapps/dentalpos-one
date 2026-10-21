@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
+import AccessibilityTools from "./components/AccessibilityTools";
 import { AppThemeProvider } from "./contexts/AppThemeContext";
 import { repairLocalStorageText } from "./utils/textEncoding";
 
@@ -22,6 +23,7 @@ createRoot(rootElement).render(
     <BrowserRouter>
       <AppThemeProvider>
         <App />
+        <AccessibilityTools />
       </AppThemeProvider>
     </BrowserRouter>
   </StrictMode>,
