@@ -8,6 +8,7 @@ import PageHeader from "../components/PageHeader";
 import PendingAlertsSettingsCard from "../components/PendingAlertsSettingsCard";
 import TwoFactorCard from "../components/TwoFactorCard";
 import FollowUpSettingsCard from "../components/FollowUpSettingsCard";
+import SessionsCard from "../components/SessionsCard";
 import FinancialHoldSettingsCard from "../components/FinancialHoldSettingsCard";
 import DunningSettingsCard from "../components/DunningSettingsCard";
 import { useAppTheme } from "../contexts/AppThemeContext";
@@ -18,6 +19,7 @@ export default function Settings(){
  const [identity,setIdentity]=useState(()=>{try{return JSON.parse(localStorage.getItem(ID_KEY)||"null")||{name:"Clínica CompletoDonto",doctor:"Dr. Exemplo 1",logo:""}}catch{return{name:"Clínica CompletoDonto",doctor:"Dr. Exemplo 1",logo:""}}});
  return <Box><PageHeader title="Configurações" description="Identidade da clínica, aparência, cores e preferências do sistema."/>
  <TwoFactorCard/>
+ <SessionsCard/>
  <FollowUpSettingsCard/>
  <PendingAlertsSettingsCard/>
  <FinancialHoldSettingsCard/>
