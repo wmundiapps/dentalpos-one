@@ -1,6 +1,6 @@
 # Segurança do LavaPos — camadas de proteção
 
-Resumo para o Robson: o sistema guarda CPF, telefone, fotos e dinheiro de milhares de pessoas. Foram colocadas **várias barreiras em camadas**: se uma falhar, a próxima segura. Tudo o que está em **"Feito"** já está no código e coberto por teste automático (`npm test`, 11 testes). O que está em **"Falta fazer"** depende de conta, DNS ou decisão sua.
+Resumo para o Robson: o sistema guarda CPF, telefone, fotos e dinheiro de milhares de pessoas. Foram colocadas **várias barreiras em camadas**: se uma falhar, a próxima segura. Tudo o que está em **"Feito"** já está no código e coberto por teste automático (`npm test`, 12 testes). O que está em **"Falta fazer"** depende de conta, DNS ou decisão sua.
 
 ## 1. Contra invasão e roubo de conta ("hackers")
 | Camada | Feito |
@@ -15,7 +15,7 @@ Resumo para o Robson: o sistema guarda CPF, telefone, fotos e dinheiro de milhar
 | Auditoria | login, falhas, CPF visualizado, exportação, pagamento baixado, alteração de configuração, 2 etapas ligada/desligada |
 | Banco | tabelas com RLS ligado e sem acesso para `anon`/`authenticated` (só o servidor acessa) |
 | Cabeçalhos | HSTS, CSP restrita (só o próprio site e a API), proibido embutir em outro site (anti-clickjacking), `nosniff`, sem referer |
-| Webhook | token secreto comparado em tempo constante |
+| Webhook do Asaas | o token secreto é conferido **antes** de ler o corpo (tempo constante; sem token configurado recusa tudo com 401); o Asaas não assina o corpo, então cada "pagamento recebido" é **confirmado no próprio Asaas** (existe, está recebido e tem o mesmo valor) antes de virar pago; mensagem forjada, adulterada ou repetida não muda nada; tentativas recusadas ficam na auditoria |
 | Rotina automática | só executa com `CRON_SECRET` |
 
 ## 2. Contra vírus e malware

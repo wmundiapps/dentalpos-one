@@ -207,3 +207,34 @@ test('proteções extras: JSON obrigatório, corpo gigante, script embutido e li
   const xss = await api('/r/customer', { token: A, body: { name: '<img src=x onerror=alert(1)>Maria', whatsapp: '11911112222' } });
   assert.ok(!xss.json.data.name.includes('<'));
 });
+
+test('webhook do Asaas: token antes do corpo, confirmação no Asaas e sem efeito para mensagem forjada', async () => {
+  process.env.ASAAS_WEBHOOK_TOKEN = 'token-de-teste-webhook-123';
+  const { webhookDeps } = await import('../src/routes/webhooks.js');
+  const hook = (headers: Record<string, string>, body: string) => fetch(base + '/webhooks/asaas', { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body });
+  // 1) sem token e com JSON quebrado: 401 (o corpo nem chegou a ser lido), não 400
+  assert.equal((await hook({}, '{quebrado')).status, 401);
+  assert.equal((await hook({ 'asaas-access-token': 'errado' }, '{"event":"PAYMENT_RECEIVED"}')).status, 401);
+  // 2) token certo e JSON quebrado: 400
+  assert.equal((await hook({ 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN }, '{quebrado')).status, 400);
+  // 3) pagamento pendente de um lava-rápido
+  const t = (await pool.query("SELECT id FROM tenants WHERE slug LIKE 'lava-brilho%'")).rows[0].id;
+  const mk = async (asaasId: string) => (await pool.query("INSERT INTO records (tenant_id, kind, data) VALUES ($1,'payment',$2) RETURNING id", [t, JSON.stringify({ method: 'asaas_pix', amountCents: 5000, status: 'pendente', asaasId, platformFeeCents: 500, feeMode: 'split_automatico', customerName: 'X' })])).rows[0].id as string;
+  const status = async (id: string) => (await pool.query("SELECT data->>'status' AS s FROM records WHERE id = $1", [id])).rows[0].s;
+  const ok = { 'asaas-access-token': process.env.ASAAS_WEBHOOK_TOKEN };
+  const ev = (id: string) => JSON.stringify({ event: 'PAYMENT_RECEIVED', payment: { id } });
+  // 3a) mensagem diz "pago", mas o Asaas não confirma: continua pendente
+  const p1 = await mk('pay_forjado'); webhookDeps.fetchPayment = async () => null;
+  assert.equal((await hook(ok, ev('pay_forjado'))).status, 202); assert.equal(await status(p1), 'pendente');
+  // 3b) Asaas diz que está pendente / valor diferente: continua pendente
+  webhookDeps.fetchPayment = async () => ({ id: 'pay_forjado', status: 'PENDING', value: 50 });
+  assert.equal((await hook(ok, ev('pay_forjado'))).status, 202); assert.equal(await status(p1), 'pendente');
+  webhookDeps.fetchPayment = async () => ({ id: 'pay_forjado', status: 'RECEIVED', value: 1 });
+  assert.equal((await hook(ok, ev('pay_forjado'))).status, 202); assert.equal(await status(p1), 'pendente');
+  // 3c) Asaas confirma recebido e com o mesmo valor: vira pago (e repetir a mensagem não duplica nada)
+  webhookDeps.fetchPayment = async () => ({ id: 'pay_forjado', status: 'RECEIVED', value: 50 });
+  assert.equal((await hook(ok, ev('pay_forjado'))).status, 200); assert.equal(await status(p1), 'pago');
+  assert.equal((await hook(ok, ev('pay_forjado'))).status, 200);
+  // 4) pagamento desconhecido: aceito sem efeito
+  assert.equal((await hook(ok, ev('pay_que_nao_existe'))).status, 200);
+});

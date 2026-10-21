@@ -4,7 +4,7 @@ Sistema de gestão para lava-rápidos e estética automotiva (WMundi). Dono: Rob
 Mesmas regras do repositório (ver `../CLAUDE.md`). Nome do produto na tela: **LavaPos**. "Cobrar" = só cobrança de atraso; criar Pix/boleto/cartão = **"Gerar financeiro"**.
 
 ## Como rodar
-- Banco local: `service postgresql start`; banco `lavapos` (usuário `lavapos`). Testes: `cd lavapos/server && npm test` (11 testes; limpam o banco).
+- Banco local: `service postgresql start`; banco `lavapos` (usuário `lavapos`). Testes: `cd lavapos/server && npm test` (12 testes; limpam o banco).
 - Tipos: `npx tsc --noEmit` em `server/`; `npx tsc -p tsconfig.json` em `web/`. Build da tela: `cd web && npm run build`.
 - Demonstração: `RATE_LIMIT_OFF=1 DEMO_PASSWORD=... npm run seed-demo --workspace server` (banco separado!) e depois `node tools/screenshots.mjs <pasta>`.
 - Lockfiles ficam em `server/` e `web/` (não na raiz): depois de instalar pacote, `npm install --package-lock-only --workspaces=false` dentro da pasta.

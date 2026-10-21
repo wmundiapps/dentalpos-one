@@ -38,10 +38,10 @@ export function createApp() {
     next();
   });
   app.use('/api/photos', loadUser, requireUser, photosRouter); // corpo bruto (imagem) — antes do express.json
+  app.use('/api/webhooks', webhooksRouter); // confere o token ANTES de ler o corpo (tem o próprio express.json, depois da autenticação)
   app.use(express.json({ limit: '200kb' }));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
-  app.use('/api/webhooks', webhooksRouter);
   app.use('/api/public', publicRouter);
   app.use('/api/auth', authRouter);
 

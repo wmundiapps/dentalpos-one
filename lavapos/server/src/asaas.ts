@@ -49,3 +49,10 @@ export async function createPlatformSubscription(p: { name: string; email: strin
   const customerId = await ensureCustomer(c, { name: p.name, cpfCnpj: p.cpfCnpj, email: p.email, externalReference: `tenant:${p.tenantId}` });
   return call(c.apiKey, c.sandbox, 'POST', '/subscriptions', { customer: customerId, billingType: 'UNDEFINED', value: p.valueCents / 100, nextDueDate: p.nextDueDate, cycle: 'MONTHLY', description: 'Mensalidade LavaPos', externalReference: `tenant:${p.tenantId}` });
 }
+
+export interface AsaasPayment { id: string; status: string; value: number; externalReference?: string | null }
+/** Consulta um pagamento no Asaas (usada para confirmar o que o webhook disse). */
+export async function getPayment(c: AsaasCreds, id: string): Promise<AsaasPayment> {
+  const j = await call(c.apiKey, c.sandbox, 'GET', `/payments/${encodeURIComponent(id)}`);
+  return z.object({ id: z.string(), status: z.string(), value: z.number(), externalReference: z.string().nullish() }).parse(j);
+}
