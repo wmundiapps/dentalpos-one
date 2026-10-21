@@ -1,3 +1,4 @@
+import { safeEqual } from '../lib/safeEqual'
 import { Request, Response } from 'express'
 import ExcelJS from 'exceljs'
 import { prisma } from '../lib/prisma'
@@ -420,7 +421,7 @@ export async function cron(req: Request, res: Response) {
 // Webhook do Resend (bounce e reclamação de spam). URL: /p/webhook/resend?key=<RESEND_WEBHOOK_KEY>
 export async function resendWebhook(req: Request, res: Response) {
   const key = process.env.RESEND_WEBHOOK_KEY || ''
-  if (!key || req.query.key !== key) return res.status(401).json({ error: 'Não autorizado.' })
+  if (!key || typeof req.query.key !== 'string' || !safeEqual(req.query.key, key)) return res.status(401).json({ error: 'Não autorizado.' })
   try {
     const type = String(req.body?.type || '')
     const data = req.body?.data || {}
