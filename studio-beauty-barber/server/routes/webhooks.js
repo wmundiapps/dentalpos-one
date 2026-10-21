@@ -18,6 +18,11 @@ async function firstTime(provider, eventId) {
   } catch { return false; }
 }
 
+// Se o processamento falhar, libera o evento para o provedor poder reenviar (senão o pagamento ficaria perdido).
+async function releaseEvent(provider, eventId) {
+  if (eventId) await db.run('DELETE FROM webhook_events WHERE provider = ? AND event_id = ?', [provider, String(eventId).slice(0, 200)]).catch(() => {});
+}
+
 async function salonById(id) { return db.get('SELECT * FROM salons WHERE id = ?', [id]); }
 
 // ---------- Meta ----------
@@ -85,6 +90,7 @@ export default function register(r) {
     const ev = json(ctx.rawBody.toString('utf8'), null);
     if (!ev?.id) throw new HttpError(400, 'Evento inválido.');
     if (!(await firstTime('stripe', ev.id))) return { ok: true, duplicate: true };
+    try {
     const obj = ev.data?.object || {};
     const salonId = obj.metadata?.salon_id || obj.client_reference_id || obj.subscription_details?.metadata?.salon_id || null;
 
@@ -100,6 +106,7 @@ export default function register(r) {
       await db.run("UPDATE salons SET status = 'suspended' WHERE stripe_customer_id = ?", [obj.customer]);
     }
     return { ok: true };
+    } catch (e) { await releaseEvent('stripe', ev.id); throw e; }
   });
 
   // ---------- Asaas: cobrança dos assinantes da plataforma ----------
@@ -107,7 +114,9 @@ export default function register(r) {
     if (!cfg.asaas.webhookToken || !safeEqual(ctx.req.headers['asaas-access-token'] || '', cfg.asaas.webhookToken)) throw new HttpError(401, 'Token inválido.');
     const ev = ctx.body;
     if (!ev?.event) throw new HttpError(400, 'Evento inválido.');
-    if (!(await firstTime('asaas', ev.id || `${ev.event}:${ev.payment?.id}`))) return { ok: true, duplicate: true };
+    const evKey = ev.id || `${ev.event}:${ev.payment?.id}`;
+    if (!(await firstTime('asaas', evKey))) return { ok: true, duplicate: true };
+    try {
     const conf = asaas.platformConf();
     const payId = ev.payment?.id;
     if (!payId || !conf) return { ok: true };
@@ -121,12 +130,16 @@ export default function register(r) {
     }
     if (!sub) return { ok: true };
     if (asaas.PAID_EVENTS.has(ev.event)) {
+      // Só ativa se o pagamento está quitado e cobre o valor do plano.
+      const planCents = cfg.plans[sub.plan]?.cents ?? 0;
+      if (!['RECEIVED', 'CONFIRMED'].includes(pay.status) || Math.round(Number(pay.value) * 100) < planCents) return { ok: true, ignored: true };
       await db.run("UPDATE salons SET status = 'active', plan = ? WHERE id = ?", [cfg.plans[sub.plan] ? sub.plan : 'smart', sub.salon_id]);
       if (sub.id) await db.run("UPDATE subscriptions SET status = 'active' WHERE id = ?", [sub.id]);
     } else if (ev.event === 'PAYMENT_OVERDUE') {
       await db.run("UPDATE salons SET status = 'past_due' WHERE id = ? AND status = 'active'", [sub.salon_id]);
     }
     return { ok: true };
+    } catch (e) { await releaseEvent('asaas', evKey); throw e; }
   });
 
   // ---------- Asaas: Pix/cobranças dos clientes do salão (conta Asaas do próprio salão) ----------
@@ -135,16 +148,27 @@ export default function register(r) {
     if (!conf?.webhookToken || !safeEqual(ctx.req.headers['asaas-access-token'] || '', conf.webhookToken)) throw new HttpError(401, 'Token inválido.');
     const ev = ctx.body;
     if (!ev?.event || !ev.payment?.id) return { ok: true };
-    if (!(await firstTime(`asaas-${ctx.params.salonId}`, ev.id || `${ev.event}:${ev.payment.id}`))) return { ok: true, duplicate: true };
-    if (asaas.PAID_EVENTS.has(ev.event)) {
-      const pay = await asaas.getPayment(conf, ev.payment.id);
-      const sale = pay.externalReference ? await db.get('SELECT * FROM sales WHERE id = ? AND salon_id = ?', [pay.externalReference, ctx.params.salonId]) : null;
-      if (sale) await settleSale(sale.id, { method: 'pix' });
-      else if (String(pay.externalReference || '').startsWith('appt:')) {
-        const salon = await db.get('SELECT * FROM salons WHERE id = ?', [ctx.params.salonId]);
-        if (salon) await confirmApptPayment(salon, pay.externalReference.slice(5), Math.round(Number(pay.value) * 100));
+    const evKey = ev.id || `${ev.event}:${ev.payment.id}`;
+    const provider = `asaas-${ctx.params.salonId}`;
+    if (!(await firstTime(provider, evKey))) return { ok: true, duplicate: true };
+    try {
+      if (asaas.PAID_EVENTS.has(ev.event)) {
+        // Confirma direto na API do Asaas (não confia no corpo recebido) e só aceita pagamento quitado, com o valor certo.
+        const pay = await asaas.getPayment(conf, ev.payment.id);
+        const paidCents = Math.round(Number(pay.value) * 100);
+        const settled = ['RECEIVED', 'CONFIRMED'].includes(pay.status);
+        const sale = pay.externalReference ? await db.get('SELECT * FROM sales WHERE id = ? AND salon_id = ?', [pay.externalReference, ctx.params.salonId]) : null;
+        if (sale) {
+          if (settled && paidCents === sale.total_cents) await settleSale(sale.id, { method: 'pix' });
+          else console.warn('[asaas] venda ignorada: valor ou status não confere', sale.id);
+        } else if (String(pay.externalReference || '').startsWith('appt:')) {
+          const salon = await db.get('SELECT * FROM salons WHERE id = ?', [ctx.params.salonId]);
+          const appt = salon && await db.get('SELECT * FROM appointments WHERE id = ? AND salon_id = ?', [pay.externalReference.slice(5), salon.id]);
+          if (appt && settled && pay.id === appt.pay_ref && paidCents === appt.price_cents) await confirmApptPayment(salon, appt.id, paidCents);
+          else console.warn('[asaas] reserva ignorada: pagamento não confere', pay.externalReference);
+        }
       }
-    }
-    return { ok: true };
+      return { ok: true };
+    } catch (e) { await releaseEvent(provider, evKey); throw e; }
   });
 }

@@ -18,6 +18,7 @@ const PW = 'Piloto-Forte-2026';
 const SLUG = 'studio-beauty-barber-piloto';
 let server, base, pilot, cookie;
 const asaasCalls = [];
+let failNextGet = false;
 const realFetch = globalThis.fetch;
 
 async function call(method, path, { body, headers = {} } = {}) {
@@ -52,7 +53,10 @@ before(async () => {
     if (path.endsWith('/pixQrCode')) return ok({ payload: '000201...', encodedImage: 'AAAA' });
     if (path.endsWith('/refund')) return ok({ status: 'REFUNDED' });
     if (path.startsWith('/payments/') && (opts.method || 'GET') === 'GET') {
+      if (failNextGet) { failNextGet = false; return { ok: false, status: 500, json: async () => ({ errors: [{ description: 'indisponível' }] }) }; }
       const last = [...asaasCalls].reverse().find((c) => c.path === '/payments' && c.method === 'POST');
+      if (path.includes('pay_barato')) return ok({ id: 'pay_barato', externalReference: last.body.externalReference, value: 1, status: 'RECEIVED' });
+      if (path.includes('pay_pendente')) return ok({ id: 'pay_pendente', externalReference: last.body.externalReference, value: last.body.value, status: 'PENDING' });
       return ok({ id: path.split('/')[2], externalReference: last.body.externalReference, value: last.body.value, status: 'RECEIVED' });
     }
     return ok({});
@@ -80,7 +84,7 @@ test('reserva paga: exige aceite, bloqueia o horário, confirma no webhook e ret
   for (let i = 0; i < 10 && !slots.length; i++, date = u.addDays(date, 1)) {
     slots = (await call('GET', `/api/public/salons/${SLUG}/slots?service_id=${svc.id}&date=${date}`)).data.slots;
   }
-  const body = { service_id: svc.id, starts_at: slots[0].startsAt, name: 'Ana Pagante', phone: '(11) 97777-1122', cpf_cnpj: '12345678909', pay_method: 'PIX' };
+  const body = { service_id: svc.id, staff_id: slots[0].staffId, starts_at: slots[0].startsAt, name: 'Ana Pagante', phone: '(11) 97777-1122', cpf_cnpj: '12345678909', pay_method: 'PIX' };
   assert.equal((await call('POST', `/api/public/salons/${SLUG}/book`, { body })).status, 422); // sem aceite da política
   const ok = await call('POST', `/api/public/salons/${SLUG}/book`, { body: { ...body, accept_policy: true } });
   assert.equal(ok.status, 200);
@@ -91,7 +95,7 @@ test('reserva paga: exige aceite, bloqueia o horário, confirma no webhook e ret
   assert.equal((await call('POST', `/api/public/salons/${SLUG}/book`, { body: { ...body, phone: '11966665555', accept_policy: true } })).status, 409);
 
   // webhook do Asaas do salão confirma
-  const hook = { id: 'evt_pay1', event: 'PAYMENT_RECEIVED', payment: { id: 'pay_x' } };
+  const hook = { id: 'evt_pay1', event: 'PAYMENT_RECEIVED', payment: { id: (await db.get('SELECT pay_ref FROM appointments WHERE id = ?', [apptId])).pay_ref } };
   assert.equal((await call('POST', `/webhooks/asaas/${pilot.salonId}`, { body: hook, headers: { 'asaas-access-token': 'tok-salao' } })).status, 200);
   let a = await db.get('SELECT * FROM appointments WHERE id = ?', [apptId]);
   assert.equal(a.status, 'scheduled'); assert.equal(a.pay_status, 'paid'); assert.equal(a.paid_cents, svc.price_cents);
@@ -152,4 +156,36 @@ test('plano limita profissionais ativos depois do teste', async () => {
   assert.equal(r.status, 402);
   assert.match(r.data.error || r.data.message || JSON.stringify(r.data), /plano permite até 1/);
   await db.run("UPDATE salons SET status = 'active', plan = 'medio' WHERE id = ?", [pilot.salonId]);
+});
+
+test('webhook do Asaas: só confirma pagamento quitado, com valor e referência certos, e permite reenvio se falhar', async () => {
+  await db.run('UPDATE salons SET deposit_required = 1 WHERE id = ?', [pilot.salonId]);
+  const pub = (await call('GET', `/api/public/salons/${SLUG}`)).data;
+  const svc = pub.services[1];
+  let date = u.addDays(u.localDate(new Date()), 5), slots = [];
+  for (let i = 0; i < 10 && !slots.length; i++, date = u.addDays(date, 1)) {
+    slots = (await call('GET', `/api/public/salons/${SLUG}/slots?service_id=${svc.id}&date=${date}`)).data.slots;
+  }
+  const body = { service_id: svc.id, starts_at: slots[0].startsAt, name: 'Bia Valores', phone: '(11) 95555-4433', cpf_cnpj: '12345678909', pay_method: 'PIX', accept_policy: true };
+  const ok = await call('POST', `/api/public/salons/${SLUG}/book`, { body });
+  assert.equal(ok.status, 200);
+  const id = ok.data.appointment.id;
+  const hdr = { 'asaas-access-token': 'tok-salao' };
+  const hook = (event, payId) => call('POST', `/webhooks/asaas/${pilot.salonId}`, { body: { id: `evt_${event}_${payId}`, event, payment: { id: payId } }, headers: hdr });
+
+  await hook('PAYMENT_RECEIVED', 'pay_barato');   // valor diferente do combinado
+  await hook('PAYMENT_RECEIVED', 'pay_pendente'); // ainda não quitado
+  assert.equal((await db.get('SELECT status FROM appointments WHERE id = ?', [id])).status, 'pending_payment');
+
+  failNextGet = true; // a consulta ao Asaas falha: precisa devolver erro para o Asaas reenviar
+  const first = await hook('PAYMENT_RECEIVED', 'pay_ok');
+  assert.equal(first.status, 500);
+  const again = await hook('PAYMENT_RECEIVED', 'pay_ok'); // mesmo evento reenviado
+  assert.equal(again.status, 200);
+  assert.notEqual(again.data.duplicate, true);
+  // o id do pagamento precisa ser o da reserva: pay_ok não é o criado, então segue pendente; o correto confirma
+  const real = (await db.get('SELECT pay_ref FROM appointments WHERE id = ?', [id])).pay_ref;
+  assert.equal((await hook('PAYMENT_RECEIVED', real)).status, 200);
+  assert.equal((await db.get('SELECT status, pay_status FROM appointments WHERE id = ?', [id])).pay_status, 'paid');
+  await db.run('UPDATE salons SET deposit_required = 0 WHERE id = ?', [pilot.salonId]);
 });
