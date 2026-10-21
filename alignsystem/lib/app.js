@@ -8,6 +8,7 @@ import {
 import { token, sha256, clean, digits, isEmail, appUrl, brl, validCpf, validCpfCnpj } from './util.js';
 import { sendMail, notifyAddress, layout, button, para, table } from './mail.js';
 import * as asaas from './asaas.js';
+import { timingSafeEqual } from 'node:crypto';
 import { MODEL, quote, pmt, dentistSplitPct, ownPriceDentistPct, breakagePrice } from './pricing.js';
 import * as geo from './geo.js';
 import { payoutDate } from './payout.js';
@@ -2351,21 +2352,27 @@ r('PATCH', '/api/dentist/appointments/:id', async (req, res, { id }) => {
 r('POST', '/api/webhooks/asaas', async (req, res) => {
   const sql = db();
   const expected = process.env.ASAAS_WEBHOOK_TOKEN;
-  if (!expected || req.headers['asaas-access-token'] !== expected) fail(401, 'token inválido');
+  const got = String(req.headers['asaas-access-token'] || '');
+  if (!expected || got.length !== expected.length || !timingSafeEqual(Buffer.from(got), Buffer.from(expected))) fail(401, 'token inválido');
   const b = await readJson(req);
-  const p = b.payment;
   // A conta Asaas é compartilhada com outros negócios: só tratamos (e guardamos) pagamentos de cobranças da AlignSystem.
-  let ch = null;
-  if (p?.id) {
+  const findCharge = async (p) => {
+    if (!p?.id) return null;
     const ref = p.externalReference;
-    [ch] = ref && /^[0-9a-f-]{36}$/i.test(ref) ? await sql`select * from charges where id = ${ref}` : [];
-    if (!ch) [ch] = await sql`select * from charges where asaas_payment_id = ${p.id}
+    let [c] = ref && /^[0-9a-f-]{36}$/i.test(ref) ? await sql`select * from charges where id = ${ref}` : [];
+    if (!c) [c] = await sql`select * from charges where asaas_payment_id = ${p.id}
       or rest_payment_id = ${p.id}
       or (${p.installment || ''} <> '' and (asaas_installment_id = ${p.installment || ''} or rest_installment_id = ${p.installment || ''}))
       or (${p.subscription || ''} <> '' and asaas_subscription_id = ${p.subscription || ''}) limit 1`;
-  }
-  if (!ch) return send(res, 200, { received: true, ignored: true });
-  await sql`insert into webhook_events (provider, event, payload) values ('asaas', ${clean(b.event, 80)}, ${sql.json(b)})`;
+    return c || null;
+  };
+  if (!(await findCharge(b.payment))) return send(res, 200, { received: true, ignored: true });
+  // O Asaas não assina o aviso: em vez de confiar no corpo, a situação e o valor vêm de consulta direta à API.
+  const p = await asaas.getPayment(String(b.payment.id).slice(0, 80));
+  if (!p?.id || p.id !== b.payment.id) fail(400, 'pagamento não encontrado no Asaas');
+  const ch = await findCharge(p);
+  if (!ch) fail(400, 'pagamento não pertence a uma cobrança da AlignSystem');
+  await sql`insert into webhook_events (provider, event, payload) values ('asaas', ${clean(b.event, 80)}, ${sql.json({ ...b, payment: p })})`;
   await upsertPayment(sql, p, ch);
   if (asaas.PAID.has(p.status) && ch.pay_option === 'BOLETO' && p.id === ch.asaas_payment_id) await ensureBoletos(sql, ch.id);
   if (asaas.PAID.has(p.status) && ch.kind === 'escaneamento') {

@@ -287,6 +287,15 @@ test('fluxo completo: paciente, fotos, parecer, contrato, cobrança com split, p
   assert.equal(last.split, undefined);
   const [chRow] = await sql`select asaas_payment_id from alignsystem_test.charges where id = ${ch.data.id}`;
   const before = posts().length;
+  // aviso forjado: o corpo diz pago, mas o Asaas (consultado direto) diz pendente → nada é marcado como pago
+  const forged = await call('POST', '/api/webhooks/asaas', {
+    headers: { 'asaas-access-token': 'wh-token' },
+    body: { event: 'PAYMENT_RECEIVED', payment: { id: chRow.asaas_payment_id, value: 5000, dueDate: '2026-10-01', status: 'RECEIVED', billingType: 'PIX', externalReference: ch.data.id } },
+  });
+  assert.equal(forged.status, 200);
+  assert.equal((await sql`select 1 from alignsystem_test.payments where asaas_payment_id = ${chRow.asaas_payment_id} and paid_at is not null`).length, 0);
+  assert.equal(posts().length, before);
+  assert.equal((await call('POST', '/api/webhooks/asaas', { headers: { 'asaas-access-token': 'wh-tokeX' }, body: { event: 'PAYMENT_RECEIVED' } })).status, 401);
   payStatus[chRow.asaas_payment_id] = 'RECEIVED';
   // webhook: sem token é recusado; entrada paga → gera 12 boletos do saldo com 60% para o dentista
   assert.equal((await call('POST', '/api/webhooks/asaas', { body: { event: 'PAYMENT_RECEIVED' } })).status, 401);
