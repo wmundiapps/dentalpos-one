@@ -3,6 +3,7 @@ import { dispatchRevah } from './revahProviderService'
 import { getDemoAccess } from './demoAccessService'
 import { sendManagerDigest } from '../controllers/pendingAlertController'
 import { notifyPartners } from './stockPartnerService'
+import { sendCashClose } from './dailyCashService'
 
 // Acompanhamento de pacientes sem agendar e de pacientes devendo:
 // - lista semanal por e-mail (segunda-feira) e nos painéis da recepção e clínico;
@@ -135,7 +136,7 @@ export async function debtors(clinicId: string, tenantId: string, now = new Date
 }
 
 // ---------------- e-mails ----------------
-async function sendMail(to: string, subject: string, body: string): Promise<boolean> {
+export async function sendMail(to: string, subject: string, body: string): Promise<boolean> {
   const apiKey = String(process.env.RESEND_API_KEY || '').trim()
   if (!apiKey) return false
   try {
@@ -239,6 +240,7 @@ export async function processFollowUps(now = new Date()) {
       await sendDebtorNotices(c, { now }).catch((e) => console.error('Aviso a devedores:', e))
       await sendManagerDigest(c.id, c.tenantId, now).catch((e) => console.error('Resumo de pendências ao gestor:', e))
       await notifyPartners(c, now).catch((e) => console.error('Aviso a parceiros de estoque:', e))
+      await sendCashClose(c, { now }).catch((e) => console.error('Fechamento de caixa:', e))
     }
   } finally { running = false }
 }
