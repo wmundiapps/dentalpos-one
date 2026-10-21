@@ -305,8 +305,13 @@ export async function syncSubscription(sub: Stripe.Subscription) {
 
 export function constructStripeEvent(raw: Buffer, signature: string | undefined) {
   if (!config.stripe.webhookSecret) throw new HttpError(503, 'STRIPE_WEBHOOK_SECRET não configurado.')
-  if (!signature) throw badRequest('Assinatura Stripe ausente.')
-  return stripe().webhooks.constructEvent(raw, signature, config.stripe.webhookSecret)
+  if (!signature) throw new HttpError(400, 'Assinatura Stripe ausente.', 'INVALID_SIGNATURE')
+  try {
+    return stripe().webhooks.constructEvent(raw, signature, config.stripe.webhookSecret)
+  } catch {
+    // Assinatura inválida, corpo alterado ou evento velho (tolerância de 5 minutos): recusa sem processar.
+    throw new HttpError(400, 'Assinatura Stripe inválida.', 'INVALID_SIGNATURE')
+  }
 }
 
 async function recordEvent(provider: string, eventId: string, type: string, payload: unknown, run: () => Promise<'PROCESSED' | 'IGNORED'>) {
@@ -346,12 +351,41 @@ export async function handleStripeEvent(event: Stripe.Event) {
 }
 
 // Webhook Asaas (header asaas-access-token = ASAAS_WEBHOOK_TOKEN).
+// O Asaas não assina o corpo do webhook (só manda o token do cabeçalho). Por isso, antes de mudar
+// qualquer assinatura, o REVAH confere o pagamento/assinatura direto na API do Asaas: um evento forjado
+// (mesmo com o token vazado) não ativa nem derruba conta.
+async function confirmWithAsaas(event: string, body: any, subId: string): Promise<{ ok: boolean; dueDate?: string }> {
+  if (event.startsWith('PAYMENT_')) {
+    const payId = body?.payment?.id
+    if (!payId || !/^[\w-]+$/.test(String(payId))) return { ok: false }
+    const p = await asaas<any>(`/payments/${payId}`)
+    if (p?.subscription !== subId) return { ok: false }
+    if (['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'].includes(event)) return { ok: ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(p.status), dueDate: p.dueDate }
+    if (event === 'PAYMENT_OVERDUE') return { ok: p.status === 'OVERDUE' }
+    return { ok: false }
+  }
+  if (['SUBSCRIPTION_DELETED', 'SUBSCRIPTION_INACTIVATED'].includes(event)) {
+    const s = await asaas<any>(`/subscriptions/${subId}`)
+    return { ok: Boolean(s?.deleted) || ['INACTIVE', 'EXPIRED'].includes(String(s?.status)) }
+  }
+  return { ok: false }
+}
+
 export async function handleAsaasEvent(body: any) {
   const eventId = `asaas:${body?.id || `${body?.event}:${body?.payment?.id || body?.subscription?.id}`}`
   return recordEvent('ASAAS', eventId, String(body?.event || ''), body, async () => {
     const event = String(body?.event || '')
     const subId: string | undefined = body?.payment?.subscription || body?.subscription?.id
     if (!subId) return 'IGNORED'
+    const relevant = ['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'PAYMENT_OVERDUE', 'SUBSCRIPTION_DELETED', 'SUBSCRIPTION_INACTIVATED'].includes(event)
+    if (!relevant) return 'IGNORED'
+    const known = await prisma.subscription.findFirst({ where: { OR: [{ asaasSubscriptionId: subId }, { asaasLeadsSubscriptionId: subId }] } })
+    if (!known) return 'IGNORED'
+    const check = await confirmWithAsaas(event, body, subId)
+    if (!check.ok) {
+      console.warn('[revah] evento Asaas não confere com a API do Asaas', event, subId)
+      return 'IGNORED'
+    }
 
     // Add-on de leads
     const leadsSub = await prisma.subscription.findUnique({ where: { asaasLeadsSubscriptionId: subId } })
@@ -370,7 +404,8 @@ export async function handleAsaasEvent(body: any) {
     let periodEnd: Date | undefined
     if (['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED'].includes(event)) {
       status = 'active'
-      const due = body.payment?.dueDate ? new Date(`${body.payment.dueDate}T12:00:00-03:00`) : new Date()
+      const dueDate = check.dueDate || body.payment?.dueDate
+      const due = dueDate ? new Date(`${dueDate}T12:00:00-03:00`) : new Date()
       periodEnd = new Date(due)
       periodEnd.setMonth(periodEnd.getMonth() + 1)
     } else if (event === 'PAYMENT_OVERDUE') status = 'past_due'
