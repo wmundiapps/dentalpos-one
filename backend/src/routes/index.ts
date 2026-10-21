@@ -40,6 +40,7 @@ import * as designController from '../controllers/designController'
 import * as hrController from '../controllers/hrController'
 import * as twoFactor from '../controllers/twoFactorController'
 import * as stockPartners from '../controllers/stockPartnerController'
+import * as dailyCash from '../controllers/dailyCashController'
 import * as security from '../controllers/securityController'
 import * as face from '../controllers/faceController'
 import * as condoSplit from '../controllers/condoSplitController'
@@ -170,6 +171,9 @@ router.put('/platform/stock-partners/:id', requireWmundiStaff, stockPartners.upd
 router.get('/security/sessions', authMiddleware, security.list)
 router.post('/security/sessions/revoke-others', authMiddleware, security.revokeOthers)
 router.post('/security/sessions/:id/revoke', authMiddleware, security.revoke)
+router.get('/finance/daily-close', requirePermission('finance.view'), dailyCash.report)
+router.put('/finance/daily-close/settings', requirePermission('finance.edit'), dailyCash.updateSettings)
+router.post('/finance/daily-close/send', requirePermission('finance.view'), dailyCash.sendNow)
 router.get('/condo-split', requirePermission('finance.view'), condoSplit.show)
 router.put('/condo-split', requirePermission('finance.edit'), condoSplit.save)
 router.get('/followup/unscheduled', requirePermission('patients.view'), followUp.unscheduled)
