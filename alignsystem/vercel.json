@@ -54,7 +54,7 @@
       ]
     },
     {
-      "source": "/(painel|minha-avaliacao|contrato|definir-senha|pagamento)(.*)",
+      "source": "/(painel|minha-avaliacao|contrato|definir-senha|pagamento|kit|validar)(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",
