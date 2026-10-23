@@ -8,3 +8,4 @@ export default defineConfig({
     testTimeout: 30000,
   },
 });
+// baseline CI (pode apagar este ramo)
