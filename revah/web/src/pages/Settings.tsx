@@ -390,7 +390,7 @@ function ApiKeysTab() {
         {intLimit !== null && intLimit !== undefined && (
           <p className="small muted">{intLimit === 0 ? 'Integrações ficam disponíveis após ativar o plano.' : `Seu plano permite ${intLimit} chave(s) de integração ativa(s). No PRO não há esse limite.`}</p>
         )}
-        <p className="small muted">Use no cabeçalho <code>Authorization: Bearer &lt;chave&gt;</code> ou <code>X-Api-Key</code> nas rotas /v1 e de integração com o DentalPos One.</p>
+        <p className="small muted">Use no cabeçalho <code>Authorization: Bearer &lt;chave&gt;</code> ou <code>X-Api-Key</code> nas rotas /v1 e de integração com o DentalPos.</p>
       </Card>
       <Card title="Chaves" pad={false}>
         {keys.loading && !keys.data ? (
@@ -495,7 +495,7 @@ function IntegrationTab() {
         </div>
       </Card>
       {s.data?.source === 'DENTALPOS' && (
-        <Alert tone="blue">Esta conta está vinculada ao DentalPos One{s.data.externalRef ? ` (${s.data.externalRef})` : ''}. Agenda, pacientes e cobranças chegam automaticamente.</Alert>
+        <Alert tone="blue">Esta conta está vinculada ao DentalPos{s.data.externalRef ? ` (${s.data.externalRef})` : ''}. Agenda, pacientes e cobranças chegam automaticamente.</Alert>
       )}
     </div>
   )

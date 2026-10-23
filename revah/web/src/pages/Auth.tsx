@@ -316,7 +316,7 @@ export function ResetPassword() {
   )
 }
 
-// Entrada a partir do DentalPos One (aba Marketing).
+// Entrada a partir do DentalPos (aba Marketing).
 export function Sso() {
   const [params] = useSearchParams()
   const { setSession } = useSession()
@@ -348,7 +348,7 @@ export function Sso() {
           <>
             <h1>Não foi possível entrar</h1>
             <Alert tone="red">{error}</Alert>
-            <p className="muted small">Volte ao DentalPos One e abra a aba Marketing novamente.</p>
+            <p className="muted small">Volte ao DentalPos e abra a aba Marketing novamente.</p>
           </>
         ) : (
           <>

@@ -82,7 +82,7 @@ export async function provisionClinic(body: any) {
   if (!owner) {
     await prisma.user.create({ data: { tenantId: tenant.id, email: ownerEmail, name: String(body.ownerName || ownerEmail), role: 'OWNER' } })
   }
-  const apiKey = created || body.rotateApiKey ? await createApiKey(tenant.id, 'DentalPos One') : null
+  const apiKey = created || body.rotateApiKey ? await createApiKey(tenant.id, 'DentalPos') : null
   await audit(tenant.id, null, created ? 'DENTALPOS_PROVISIONED' : 'DENTALPOS_UPDATED', 'Tenant', tenant.id, { clinicId, plan })
   return {
     tenantId: tenant.id,
@@ -126,7 +126,7 @@ export async function ssoExchange(token: string) {
   try {
     claims = jwt.verify(token, secret(), { algorithms: ['HS256'], audience: 'revah', issuer: 'dentalpos-one', maxAge: '5m' }) as SsoClaims
   } catch {
-    throw new HttpError(401, 'Link de acesso inválido ou expirado. Abra o Marketing novamente pelo DentalPos One.', 'UNAUTHENTICATED')
+    throw new HttpError(401, 'Link de acesso inválido ou expirado. Abra o Marketing novamente pelo DentalPos.', 'UNAUTHENTICATED')
   }
   if (!claims.jti) throw new HttpError(401, 'Token sem identificador.', 'UNAUTHENTICATED')
   const tenant = await prisma.tenant.findUnique({ where: { externalRef: `dentalpos:${claims.clinicId}` } })
@@ -181,7 +181,7 @@ async function upsertPatient(tenant: Tenant, patient: any) {
   for (const [k, ch] of Object.entries(OPT_OUT_CHANNELS)) {
     if (!patient.optOut?.[k]) continue
     const value = ch === 'EMAIL' ? contact.email : contact.phone
-    if (value) await suppress(tenant.id, ch, value, 'INTEGRATION', { contactId: contact.id, detail: 'Opt-out registrado no DentalPos One' })
+    if (value) await suppress(tenant.id, ch, value, 'INTEGRATION', { contactId: contact.id, detail: 'Opt-out registrado no DentalPos' })
   }
   return contact
 }
