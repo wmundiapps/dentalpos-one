@@ -798,7 +798,7 @@ export default function Agenda() {
         return;
       }
     } else if (!backendPatient) {
-      window.alert("Digite o nome, CPF ou telefone do paciente. Se não existir, escolha \"Paciente novo\".");
+      window.alert("Digite o nome, CPF ou telefone do paciente. Se não existir, toque no botão \"Paciente novo\" logo abaixo do campo.");
       return;
     }
 
