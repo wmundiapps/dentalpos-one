@@ -1077,10 +1077,12 @@ test('prazos de pagamento: Pix 30 min, cartão 24 h, boleto 3 dias (só com 3 di
   try {
     const l = byTitle('Sala de psicologia');
     const base = { guests: 1, purpose: 'Sessão', acceptRules: true, listingId: l.id };
-    // Amanhã ou depois (o que tiver horário livre): menos de 3 dias, então boleto não pode
+    // Amanhã ou depois (o primeiro dia com horário aberto, inclusive fim de semana): menos de 3 dias, então boleto não pode
     const soonDate = [1, 2].map((i) => addDays(todayInZone(l.timezone), i))
-      .find((dt) => (l.weeklyAvailability[weekdayOf(dt) as 0] ?? []).some((w) => w.start <= '19:00' && w.end >= '20:00'))!;
-    const soon = { ...base, occurrences: [{ date: soonDate, start: '19:00', end: '20:00' }] };
+      .find((dt) => (l.weeklyAvailability[weekdayOf(dt) as 0] ?? []).length > 0)!;
+    const win = l.weeklyAvailability[weekdayOf(soonDate) as 0]![0];
+    const soonEnd = `${String(Number(win.start.slice(0, 2)) + 1).padStart(2, '0')}${win.start.slice(2)}`;
+    const soon = { ...base, occurrences: [{ date: soonDate, start: win.start, end: soonEnd }] };
     await assert.rejects(B.createBooking(guest, { ...soon, paymentMethod: 'boleto' }), /boleto_needs_3_days/);
     const far = { ...base, occurrences: [{ date: nextDateWith(l, 4, 5), start: '19:00', end: '20:00' }] };
     const bol = await B.createBooking(guest, { ...far, paymentMethod: 'boleto' });
