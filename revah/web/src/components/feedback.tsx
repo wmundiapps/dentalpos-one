@@ -126,7 +126,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         }
       >
         <p>{upgrade?.message}</p>
-        {embedded && !isLeads && <p className="muted">Para cadastrar a forma de pagamento ou mudar de plano, fale com o responsável pela conta da clínica no DentalPos One.</p>}
+        {embedded && !isLeads && <p className="muted">Para cadastrar a forma de pagamento ou mudar de plano, fale com o responsável pela conta da clínica no DentalPos.</p>}
         {!embedded && !canManage && !isLeads && <p className="muted">Peça ao proprietário ou administrador da conta para ajustar o plano.</p>}
       </Modal>
     </Ctx.Provider>

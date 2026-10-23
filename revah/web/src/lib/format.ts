@@ -105,7 +105,7 @@ export const SOURCE_LABEL: Record<string, string> = {
   INBOUND: 'Mensagem recebida',
   CAMPAIGN: 'Campanha',
   LEADS: 'Leads',
-  DENTALPOS: 'DentalPos One',
+  DENTALPOS: 'DentalPos',
   API: 'API',
 }
 

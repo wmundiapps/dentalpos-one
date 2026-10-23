@@ -95,7 +95,14 @@ export default function PatientSearchField({ patients, value, onChange, autoFocu
 
   const selected = value?.mode === "registered" ? value.patient : null;
 
+  const startNew = () => {
+    const digits = onlyDigits(input);
+    const looksLikePhone = digits.length >= 8 && digits.length === input.replace(/[\s()+-]/g, "").length;
+    onChange({ mode: "new", fullName: looksLikePhone ? "" : input.trim(), phone: looksLikePhone ? digits : "" });
+  };
+
   return (
+    <Box sx={{ display: "grid", gap: 1 }}>
     <Autocomplete<Option, false, false, false>
       options={[...patients, NEW_OPTION]}
       value={selected}
@@ -148,9 +155,15 @@ export default function PatientSearchField({ patients, value, onChange, autoFocu
           autoFocus={autoFocus}
           label="Paciente"
           placeholder="Digite nome, CPF ou telefone"
-          helperText={selected ? `${formatPhoneBR(selected.phone) || selected.phone}${selected.cpf ? ` • CPF ${selected.cpf}` : ""}` : "Não achou? Escolha “Paciente novo” no fim da lista."}
+          helperText={selected ? `${formatPhoneBR(selected.phone) || selected.phone}${selected.cpf ? ` • CPF ${selected.cpf}` : ""}` : "Não achou? Toque em “Paciente novo” logo abaixo."}
         />
       )}
     />
+    {!selected && (
+      <Button variant="outlined" color="success" startIcon={<PersonAddAlt1Icon />} onClick={startNew} sx={{ justifySelf: "start", fontWeight: 700 }}>
+        Paciente novo
+      </Button>
+    )}
+    </Box>
   );
 }

@@ -1,5 +1,5 @@
 // Proteções da tela (adaptado do ClubeFaz): o painel só roda no endereço oficial e só aparece em moldura (iframe)
-// dentro do DentalPos One. A trava de verdade é o cabeçalho CSP (vercel.json); isto cobre cópias do HTML.
+// dentro do DentalPos. A trava de verdade é o cabeçalho CSP (vercel.json); isto cobre cópias do HTML.
 const APP = 'https://app.revah.com.br'
 const HOSTS = new Set(['app.revah.com.br', 'localhost', '127.0.0.1'])
 // Prévias da Vercel do próprio projeto revah-web.

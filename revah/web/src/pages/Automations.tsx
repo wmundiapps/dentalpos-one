@@ -94,7 +94,7 @@ export default function Automations() {
         actions={
           <>
             <Button variant={isDentalpos ? 'primary' : 'ghost'} icon={<Download size={16} />} onClick={install} loading={installing}>
-              Instalar modelos DentalPos One
+              Instalar modelos DentalPos
             </Button>
             <Button variant={isDentalpos ? 'secondary' : 'primary'} icon={<Plus size={16} />} onClick={() => setEditing({ actions: [], isActive: true })}>
               Nova automação

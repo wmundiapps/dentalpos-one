@@ -1291,7 +1291,7 @@ a.list-row:hover .strong {
   justify-content: space-between;
 }
 
-/* Modo embutido (dentro do DentalPos One): mais compacto */
+/* Modo embutido (dentro do DentalPos): mais compacto */
 .shell-embedded .content {
   padding: 16px;
 }
