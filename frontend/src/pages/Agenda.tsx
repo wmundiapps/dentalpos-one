@@ -32,6 +32,7 @@ import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
 import SmartSchedulingSettingsDialog from "../components/SmartSchedulingSettingsDialog";
 import AgendaAvailabilitySettingsDialog from "../components/AgendaAvailabilitySettingsDialog";
+import AgendaPatientSearch from "../components/AgendaPatientSearch";
 import PatientSearchField, { formatPhoneBR, isValidPhoneBR, type PatientChoice } from "../components/PatientSearchField";
 import DurationSelect from "../components/DurationSelect";
 import { suggestDuration } from "../services/ProcedureDurations";
@@ -976,6 +977,13 @@ export default function Agenda() {
         actionLabel="Novo agendamento"
         actionIcon={<AddIcon />}
         onAction={() => openNew({ dateISO: date })}
+      />
+      <AgendaPatientSearch
+        patients={backendPatients}
+        appointments={items}
+        onSchedule={(patient) => openNew({ patientName: patient.fullName, patientPhone: patient.phone || "", dateISO: date })}
+        onGoToDate={(dateISO) => { setDate(dateISO); setView("day"); }}
+        onOpenFile={(patient) => navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}`)}
       />
       <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
         <Button variant="outlined" onClick={() => setAbsenceOpen(true)}>Pacientes ausentes: convidar para retorno</Button>
