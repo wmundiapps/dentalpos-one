@@ -79,8 +79,10 @@ export function createApp() {
       } : null,
     });
   });
-  // Rotina periódica disparada pelo Vercel Cron (Authorization: Bearer CRON_SECRET)
-  app.get('/api/cron/tick', async (req, res) => {
+  // Rotina periódica disparada pelo Vercel Cron (Authorization: Bearer CRON_SECRET).
+  // De 15 em 15 min de dia (tick) e 1 vez por hora de madrugada (tick-night), para o banco
+  // (Neon, cobrado pelo tempo acordado) poder dormir entre as rodadas.
+  app.get(['/api/cron/tick', '/api/cron/tick-night'], async (req, res) => {
     const secret = process.env.CRON_SECRET;
     if (!secret || req.headers.authorization !== `Bearer ${secret}`) throw new HttpError(401, 'unauthorized');
     res.json(await runJobs());
