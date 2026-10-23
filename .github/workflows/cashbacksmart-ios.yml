@@ -1,0 +1,23 @@
+# Gera o app iOS num Mac da nuvem do GitHub. Requer conta Apple Developer e os segredos de assinatura
+# (CASHBACKSMART_APP_URL, IOS_CERT_P12_BASE64, IOS_CERT_PASSWORD, IOS_PROVISION_PROFILE_BASE64, APPLE_TEAM_ID).
+name: Cashbacksmart iOS
+on: { workflow_dispatch: {} }
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults: { run: { working-directory: cashbacksmart/mobile } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci && npx cap sync ios
+        env: { APP_URL: '${{ secrets.CASHBACKSMART_APP_URL }}' }
+      - uses: apple-actions/import-codesign-certs@v3
+        with: { p12-file-base64: '${{ secrets.IOS_CERT_P12_BASE64 }}', p12-password: '${{ secrets.IOS_CERT_PASSWORD }}' }
+      - name: Perfil de provisionamento
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/cashbacksmart.mobileprovision
+      - run: xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -archivePath build/App.xcarchive archive DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}
+      - uses: actions/upload-artifact@v4
+        with: { name: cashbacksmart-ios, path: cashbacksmart/mobile/build/App.xcarchive }

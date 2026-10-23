@@ -1,0 +1,35 @@
+# Cashbacksmart: agendador dos robôs (cobrança, antifraude, avisos, e-mails e monitoramento).
+# Fica desligado até existir a variável CASHBACKSMART_ATIVO=true (Settings > Secrets and variables > Actions > Variables).
+# Segredos: CASHBACKSMART_APP_URL, CASHBACKSMART_CRON_SECRET, CASHBACKSMART_RESEND_API_KEY, CASHBACKSMART_ALERT_EMAIL
+name: Cashbacksmart Robôs
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # e-mails e monitoramento
+    - cron: '0 11 * * *'     # 8h em Brasília: cobrança, vencimentos, antifraude, lembretes
+  workflow_dispatch:
+jobs:
+  run:
+    if: ${{ vars.CASHBACKSMART_ATIVO == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_URL: ${{ secrets.CASHBACKSMART_APP_URL }}
+      CRON_SECRET: ${{ secrets.CASHBACKSMART_CRON_SECRET }}
+    steps:
+      - name: Executar robôs
+        run: |
+          JOB=emails
+          if [ "${{ github.event.schedule }}" = "0 11 * * *" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then JOB=all; fi
+          curl -fsS --max-time 280 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron?job=$JOB"
+          curl -fsS --max-time 60 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron?job=monitor"
+      - name: Conferir se o app está no ar
+        if: always()
+        run: curl -fsS --max-time 20 "$APP_URL/api/health"
+      - name: Alertar por e-mail se caiu
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.CASHBACKSMART_RESEND_API_KEY }}
+          ALERT_EMAIL: ${{ secrets.CASHBACKSMART_ALERT_EMAIL }}
+        run: |
+          curl -sS https://api.resend.com/emails -H "Authorization: Bearer $RESEND_API_KEY" -H 'Content-Type: application/json' \
+            -d "{\"from\":\"Monitor Cashbacksmart <alertas@cashbacksmart.com.br>\",\"to\":[\"$ALERT_EMAIL\"],\"subject\":\"ALERTA: Cashbacksmart fora do ar ou com falha\",\"text\":\"O monitor não conseguiu acessar $APP_URL/api/health ou rodar os robôs em $(date -u). Veja: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"

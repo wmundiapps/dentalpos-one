@@ -1,0 +1,485 @@
+<title>Cashbacksmart Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --ink: #1B2A6B;
+  --ink-2: #33427F;
+  --ink-soft: #5A6699;
+  --coin: #FFB627;
+  --coin-deep: #E39A00;
+  --green: #12A150;
+  --green-deep: #0B6B35;
+  --green-soft: #E3F5EA;
+  --sky: #EEF3FF;
+  --line: #D9E1F5;
+  --coral: #D93A30;
+  --coral-soft: #FDECEA;
+  --paper: #FFFFFF;
+  --bg: #F6F8FE;
+  --radius: 14px;
+  --display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --body: 'Figtree', system-ui, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+a { color: var(--ink); }
+img, svg { max-width: 100%; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.1; margin: 0 0 .5em; letter-spacing: -0.01em; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.2rem); }
+h2 { font-size: 1.35rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0 0 .8em; }
+small, .muted { color: var(--ink-soft); }
+:focus-visible { outline: 3px solid var(--coin); outline-offset: 2px; border-radius: 6px; }
+
+/* Layout */
+.wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+.narrow { max-width: 520px; }
+.stack > * + * { margin-top: 14px; }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.between { justify-content: space-between; }
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.grid-2 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
+
+/* Cartões */
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+.card.tight { padding: 14px; }
+.card h2, .card h3 { margin-bottom: .35em; }
+
+/* Cupom: borda serrilhada embaixo, usada onde aparece dinheiro voltando */
+.receipt { position: relative; background: var(--paper); border-radius: var(--radius) var(--radius) 0 0; padding: 20px 20px 26px; border: 1px solid var(--line); border-bottom: 0; }
+.receipt::after { content: ''; position: absolute; left: -1px; right: -1px; bottom: -10px; height: 10px;
+  background: linear-gradient(-45deg, transparent 7px, var(--paper) 0) 0 0 / 14px 10px repeat-x, linear-gradient(45deg, transparent 7px, var(--paper) 0) 0 0 / 14px 10px repeat-x; }
+.receipt.ink { background: var(--ink); color: #fff; border-color: var(--ink); }
+.receipt.ink::after { background: linear-gradient(-45deg, transparent 7px, var(--ink) 0) 0 0 / 14px 10px repeat-x, linear-gradient(45deg, transparent 7px, var(--ink) 0) 0 0 / 14px 10px repeat-x; }
+.receipt.ink .muted, .receipt.ink small { color: #BFC8EE; }
+.amount { font-family: var(--display); font-weight: 800; font-size: clamp(2.2rem, 8vw, 3rem); line-height: 1; letter-spacing: -0.02em; }
+.amount.green { color: var(--green); }
+.amount.coin { color: var(--coin); }
+.amount.sm { font-size: 1.6rem; }
+
+/* Botões */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 20px; border-radius: 999px; border: 2px solid transparent;
+  font: 700 1rem var(--body); cursor: pointer; text-decoration: none; background: var(--green); color: #fff; transition: transform .08s, background .15s; }
+.btn:hover { background: var(--green-deep); }
+.btn:active { transform: translateY(1px); }
+.btn[disabled] { opacity: .6; cursor: wait; }
+.btn.coin { background: var(--coin); color: var(--ink); }
+.btn.coin:hover { background: var(--coin-deep); }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn.ghost:hover { border-color: var(--ink); background: transparent; }
+.btn.danger { background: transparent; color: var(--coral); border-color: #F3C3BF; }
+.btn.danger:hover { background: var(--coral-soft); }
+.btn.sm { min-height: 36px; padding: 0 14px; font-size: .9rem; }
+.btn.block { width: 100%; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; font: inherit; }
+
+/* Formulários */
+label { display: block; font-weight: 600; font-size: .92rem; margin-bottom: 6px; }
+.field { margin-bottom: 14px; }
+.field small { display: block; margin-top: 4px; font-size: .82rem; }
+input[type=text], input[type=email], input[type=password], input[type=tel], input[type=number], input[type=date], input:not([type]), select, textarea {
+  width: 100%; min-height: 46px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 12px; font: 1rem var(--body); color: var(--ink); background: #fff; }
+textarea { min-height: 120px; resize: vertical; }
+input:focus, select:focus, textarea:focus { border-color: var(--ink); outline: none; box-shadow: 0 0 0 3px rgba(27,42,107,.12); }
+.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 500; }
+.check input { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--green); }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 999px; padding: 3px; background: #fff; }
+.seg label { margin: 0; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: inline-block; padding: 8px 16px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: .92rem; }
+.seg input:checked + span { background: var(--ink); color: #fff; }
+.seg input:focus-visible + span { outline: 3px solid var(--coin); }
+.days { display: flex; gap: 6px; flex-wrap: wrap; }
+.days label { margin: 0; }
+.days input { position: absolute; opacity: 0; }
+.days span { display: inline-flex; width: 44px; height: 38px; align-items: center; justify-content: center; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; font-weight: 600; font-size: .85rem; }
+.days input:checked + span { background: var(--green-soft); border-color: var(--green); color: var(--green-deep); }
+
+/* Mensagens */
+.alert { padding: 12px 14px; border-radius: 12px; font-weight: 500; }
+.alert.error { background: var(--coral-soft); color: #9B231B; }
+.alert.ok { background: var(--green-soft); color: var(--green-deep); }
+.alert.info { background: var(--sky); color: var(--ink); }
+.alert.warn { background: #FFF4D6; color: #7A5300; }
+
+/* Etiquetas */
+.tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700; background: var(--sky); color: var(--ink); white-space: nowrap; }
+.tag.green { background: var(--green-soft); color: var(--green-deep); }
+.tag.coin { background: #FFF1CC; color: #7A5300; }
+.tag.coral { background: var(--coral-soft); color: #9B231B; }
+
+/* Tabelas */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: .8rem; color: var(--ink-soft); font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Casca do app (consumidor e empresa) */
+.topbar { background: var(--ink); color: #fff; }
+.topbar .wrap { display: flex; align-items: center; justify-content: space-between; min-height: 60px; gap: 12px; }
+.topbar a { color: #fff; }
+.topbar .logo img { height: 30px; display: block; }
+.topnav { display: none; gap: 4px; }
+.topnav a { padding: 8px 12px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: .95rem; color: #C9D1F2; }
+.topnav a[aria-current=page] { background: rgba(255,255,255,.12); color: #fff; }
+.page { padding: 20px 0 110px; }
+.tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; background: #fff; border-top: 1px solid var(--line); display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding-bottom: env(safe-area-inset-bottom); }
+.tabbar a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px 9px; text-decoration: none; font-size: .72rem; font-weight: 600; color: var(--ink-soft); }
+.tabbar a svg { width: 24px; height: 24px; }
+.tabbar a[aria-current=page] { color: var(--ink); }
+.tabbar a[aria-current=page] svg { color: var(--green); }
+@media (min-width: 900px) {
+  .topnav { display: flex; }
+  .tabbar { display: none; }
+  .page { padding-bottom: 48px; }
+}
+
+/* Lojas */
+.store { display: flex; gap: 14px; align-items: center; text-decoration: none; }
+.store .badge { flex: none; width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font: 800 1.2rem var(--display); background: var(--sky); color: var(--ink); }
+.store .offer { margin-left: auto; text-align: right; font: 800 1.15rem var(--display); color: var(--green); white-space: nowrap; }
+.store .offer small { display: block; font: 500 .75rem var(--body); color: var(--ink-soft); }
+.list > * + * { border-top: 1px solid var(--line); }
+.list > * { padding: 12px 0; }
+
+.code-big { font: 800 clamp(2rem, 9vw, 2.8rem) var(--display); letter-spacing: .12em; }
+.qr { background: #fff; padding: 12px; border-radius: 16px; display: inline-block; border: 1px solid var(--line); }
+.qr svg { width: 220px; height: 220px; display: block; }
+
+.stat .v { font: 800 1.6rem var(--display); }
+.stat .l { font-size: .85rem; color: var(--ink-soft); }
+
+/* Autenticação */
+.auth { min-height: 100vh; display: grid; place-items: start center; padding: 32px 16px 48px; }
+.auth .card { width: 100%; max-width: 520px; }
+.auth .logo { display: block; margin: 0 auto 22px; height: 40px; }
+
+.hide-sm { display: none; }
+@media (min-width: 760px) { .hide-sm { display: initial; } }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Atendimento automático */
+.chat { display: flex; flex-direction: column; min-height: calc(100vh - 240px); }
+.chat-log { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 6px 0; }
+.bubble { max-width: 85%; padding: 10px 14px; border-radius: 16px; margin: 0; white-space: pre-line; line-height: 1.45; }
+.bubble.bot { background: #fff; border: 1px solid var(--line); border-bottom-left-radius: 4px; align-self: flex-start; }
+.bubble.me { background: var(--ink); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+.bubble.typing { color: var(--ink-soft); }
+.chat-form { display: flex; gap: 8px; position: sticky; bottom: 76px; background: var(--bg); padding: 10px 0; }
+@media (min-width: 900px) { .chat-form { bottom: 0; } }
+.help-fab { position: fixed; right: 16px; bottom: 84px; z-index: 19; display: inline-flex; align-items: center; gap: 6px; background: var(--coin); color: var(--ink); text-decoration: none;
+  font-weight: 700; padding: 10px 16px; border-radius: 999px; box-shadow: 0 8px 20px -8px rgba(27,42,107,.5); }
+@media (min-width: 900px) { .help-fab { bottom: 24px; } }
+
+:root { color-scheme: light; }
+body { background: var(--bg); }
+.demo-switch { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; background: #FFF4D6; border-bottom: 1px solid #F1D98A; }
+.demo-switch .wrap { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; flex-wrap: wrap; padding-block: 6px; }
+.demo-switch small { color: #7A5300; font-weight: 600; }
+.seg button { border: 0; background: none; font: 600 .92rem var(--body); padding: 8px 16px; border-radius: 999px; cursor: pointer; color: var(--ink); }
+.seg button[aria-pressed=true] { background: var(--ink); color: #fff; }
+.tabbar button, .topnav button { background: none; border: 0; font: inherit; cursor: pointer; }
+.tabbar button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px 9px; font-size: .72rem; font-weight: 600; color: var(--ink-soft); }
+.tabbar button svg { width: 24px; height: 24px; }
+.tabbar button[aria-current=page] { color: var(--ink); }
+.tabbar button[aria-current=page] svg { color: var(--green); }
+.topnav button { padding: 8px 12px; border-radius: 999px; font-weight: 600; font-size: .95rem; color: #C9D1F2; }
+.topnav button[aria-current=page] { background: rgba(255,255,255,.12); color: #fff; }
+.store { cursor: pointer; width: 100%; background: none; border: 0; text-align: left; font: inherit; color: inherit; padding: 0; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.list > .store { padding: 12px 0; }
+.list > .store + .store { border-top: 1px solid var(--line); }
+.toast { white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 999px; font-weight: 600; z-index: 70; box-shadow: 0 10px 30px -10px rgba(0,0,0,.4); }
+.qr svg, .qr img { width: 220px; height: 220px; display: block; }
+</style>
+
+<div class="demo-switch">
+  <div class="wrap">
+    <small>Demonstração: dados de exemplo, nada é salvo</small>
+    <div class="seg" role="group" aria-label="Ver como">
+      <button id="as-cli" aria-pressed="true">Cliente</button>
+      <button id="as-biz" aria-pressed="false">Loja</button>
+    </div>
+  </div>
+</div>
+<header class="topbar">
+  <div class="wrap">
+    <span class="logo"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MjAgMTAwIiB3aWR0aD0iMTI0MCIgaGVpZ2h0PSIyMDAiPgogIDxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxQjJBNkIiLz4KICA8Zz4KICA8cGF0aCBkPSJNIDgxLjE4IDMyLjAwIEEgMzYgMzYgMCAxIDEgMzcuNjkgMTYuMTciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSI5IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNIDQxLjExIDI1LjU3IEwgNDkuOTAgMTEuNzIgTCAzNC4yNyA2Ljc3IFoiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iI0ZGRkZGRiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iMjMiIGZpbGw9IiNGRkI2MjciLz4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSIxNy41IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS1vcGFjaXR5PSIuNTUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxjaXJjbGUgY3g9IjQzIiBjeT0iNDUiIHI9IjIuOCIgZmlsbD0iIzFCMkE2QiIvPjxjaXJjbGUgY3g9IjU3IiBjeT0iNDUiIHI9IjIuOCIgZmlsbD0iIzFCMkE2QiIvPgogIDxwYXRoIGQ9Ik0gNDAuNSA1Mi41IFEgNTAgNjIgNTkuNSA1Mi41IiBmaWxsPSJub25lIiBzdHJva2U9IiMxQjJBNkIiIHN0cm9rZS13aWR0aD0iMy42IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L2c+PHBhdGggdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTEyIDY4KSBzY2FsZSgxKSIgZmlsbD0iI0ZGRkZGRiIgZD0iTTE5LjkwNCAwLjg5NlExNS41NTIgMC44OTYgMTIuMjI0IC0wLjMyUTguODk2IC0xLjUzNiA2LjY1NjAwMDAwMDAwMDAwMSAtMy44MDhRNC40MTYgLTYuMDggMy4yMzIgLTkuMjgwMDAwMDAwMDAwMDAxUTIuMDQ4IC0xMi40OCAyLjA0OCAtMTYuNDQ4UTIuMDQ4IC0yMC41NDQgMy4yMzIgLTIzLjg3MlE0LjQxNiAtMjcuMiA2LjY1NjAwMDAwMDAwMDAwMSAtMjkuNjMxOTk5OTk5OTk5OTk4UTguODk2IC0zMi4wNjQgMTIuMTYgLTMzLjM3NjAwMDAwMDAwMDAwNVExNS40MjQgLTM0LjY4OCAxOS42NDggLTM0LjY4OFEyMy44NzIgLTM0LjY4OCAyNi45NDQwMDAwMDAwMDAwMDMgLTMzLjM0NFEzMC4wMTYwMDAwMDAwMDAwMDIgLTMyLjAgMzEuOTY4MDAwMDAwMDAwMDA0IC0yOS41Njc5OTk5OTk5OTk5OThRMzMuOTIgLTI3LjEzNiAzNC42MjQgLTIzLjkzNkwyNS4wODggLTIwLjczNlEyNC44OTYgLTIyLjg0OCAyNC4wNjQgLTI0LjE5MlEyMy4yMzIgLTI1LjUzNiAyMS45MiAtMjYuMTQ0UTIwLjYwOCAtMjYuNzUyIDE5LjA3MiAtMjYuNzUyUTE3LjQ3MiAtMjYuNzUyIDE2LjI1NiAtMjYuMTEyMDAwMDAwMDAwMDAyUTE1LjA0MDAwMDAwMDAwMDAwMSAtMjUuNDcyIDE0LjIwOCAtMjQuMTkyUTEzLjM3NiAtMjIuOTEyIDEyLjkyOCAtMjEuMDg4UTEyLjQ4IC0xOS4yNjQgMTIuNDggLTE2Ljg5NlExMi40OCAtMTMuNTA0IDEzLjM0NDAwMDAwMDAwMDAwMSAtMTEuMjMyUTE0LjIwOCAtOC45NiAxNS45MDQgLTcuODA4MDAwMDAwMDAwMDAxUTE3LjYgLTYuNjU2MDAwMDAwMDAwMDAxIDIwLjAzMiAtNi42NTYwMDAwMDAwMDAwMDFRMjIuNTI4IC02LjY1NjAwMDAwMDAwMDAwMSAyMy45MzYgLTcuNjgwMDAwMDAwMDAwMDAxUTI1LjM0NCAtOC43MDQgMjUuOTg0IC0xMC4yMDhRMjYuNjI0MDAwMDAwMDAwMDAyIC0xMS43MTIgMjYuNzUyIC0xMy4xODQwMDAwMDAwMDAwMDFMMzUuNzEyIC0xMS4yMDAwMDAwMDAwMDAwMDFRMzUuNDU2IC04LjgzMiAzNC40NjQgLTYuNjI0MDAwMDAwMDAwMDAwNlEzMy40NzIgLTQuNDE2IDMxLjU1MiAtMi43MlEyOS42MzIgLTEuMDI0IDI2Ljc4NCAtMC4wNjRRMjMuOTM2IDAuODk2IDE5LjkwNCAwLjg5NlogTTQ4LjQ0ODAwMDAwMDAwMDAxIDAuODk2UTQ1LjYzMjAwMDAwMDAwMDAwNSAwLjg5NiA0My40NTYgLTAuMjI0MDAwMDAwMDAwMDAwMDNRNDEuMjggLTEuMzQ0IDQwLjA2NDAwMDAwMDAwMDAxIC0zLjQ4OFEzOC44NDgwMDAwMDAwMDAwMDYgLTUuNjMyIDM4Ljg0ODAwMDAwMDAwMDAwNiAtOC43MDRRMzguODQ4MDAwMDAwMDAwMDA2IC0xMS41ODQgMzkuOTY4IC0xMy40NzJRNDEuMDg4MDAwMDAwMDAwMDEgLTE1LjM2IDQzLjIzMjAwMDAwMDAwMDAwNiAtMTYuNDhRNDUuMzc2MDAwMDAwMDAwMDA1IC0xNy42IDQ4LjM4NCAtMTguMzM2UTUxLjM5MiAtMTkuMDcyIDU1LjIzMiAtMTkuNjQ4UTU3LjA4ODAwMDAwMDAwMDAxIC0xOS45NjggNTguMzM2MDAwMDAwMDAwMDA2IC0yMC4yNTZRNTkuNTg0IC0yMC41NDQgNjAuMjI0MDAwMDAwMDAwMDA0IC0yMS4xODRRNjAuODY0MDAwMDAwMDAwMDA0IC0yMS44MjQgNjAuODY0MDAwMDAwMDAwMDA0IC0yMy4wNFE2MC44NjQwMDAwMDAwMDAwMDQgLTI0LjY0IDU5LjcxMiAtMjUuNzkyUTU4LjU2IC0yNi45NDQgNTYuMCAtMjYuOTQ0UTU0LjIwODAwMDAwMDAwMDAwNiAtMjYuOTQ0IDUyLjc2OCAtMjYuMzA0MDAwMDAwMDAwMDAyUTUxLjMyOCAtMjUuNjY0IDUwLjMwNCAtMjQuNDQ4UTQ5LjI4IC0yMy4yMzIgNDguNzY4IC0yMS41MDRMMzkuNjgwMDAwMDAwMDAwMDEgLTI0LjE5MlE0MC41MTIgLTI2Ljg4IDQyLjAxNjAwMDAwMDAwMDAwNSAtMjguODYzOTk5OTk5OTk5OTk3UTQzLjUyIC0zMC44NDggNDUuNjMyMDAwMDAwMDAwMDA1IC0zMi4xNlE0Ny43NDQwMDAwMDAwMDAwMSAtMzMuNDcyIDUwLjQ2NDAwMDAwMDAwMDAwNiAtMzQuMDhRNTMuMTg0MDAwMDAwMDAwMDA1IC0zNC42ODggNTYuMjU2IC0zNC42ODhRNjEuMzc2MDAwMDAwMDAwMDA1IC0zNC42ODggNjQuNjA4IC0zMy4wNTZRNjcuODQgLTMxLjQyNCA2OS40MDggLTI4LjBRNzAuOTc2IC0yNC41NzYgNzAuOTc2IC0xOS4yVi0xNC4wMTZRNzAuOTc2IC0xMS43MTIgNzEuMDcyIC05LjM3NlE3MS4xNjggLTcuMDQgNzEuMzI4IC00LjcwNFE3MS40ODggLTIuMzY4IDcxLjc0NCAwLjBINjIuNjU2MDAwMDAwMDAwMDA2UTYyLjQwMDAwMDAwMDAwMDAwNiAtMS40NzIgNjIuMTQ0MDAwMDAwMDAwMDA1IC0zLjU1MTk5OTk5OTk5OTk5OTZRNjEuODg4MDAwMDAwMDAwMDA1IC01LjYzMiA2MS43NjAwMDAwMDAwMDAwMDUgLTcuODA4SDYwLjU0NDAwMDAwMDAwMDAwNFE1OS42NDggLTUuMzc2IDU3Ljk1MiAtMy4zNjAwMDAwMDAwMDAwMDAzUTU2LjI1NiAtMS4zNDQgNTMuODU2IC0wLjIyNDAwMDAwMDAwMDAwMDAzUTUxLjQ1NiAwLjg5NiA0OC40NDgwMDAwMDAwMDAwMSAwLjg5NlpNNTMuMTIwMDAwMDAwMDAwMDA1IC02LjRRNTQuMjcyMDAwMDAwMDAwMDA2IC02LjQgNTUuNDU2IC02LjgxNjAwMDAwMDAwMDAwMVE1Ni42NCAtNy4yMzIgNTcuNzI4IC03Ljk2OFE1OC44MTYgLTguNzA0IDU5LjcxMiAtOS43OTIwMDAwMDAwMDAwMDJRNjAuNjA4MDAwMDAwMDAwMDA0IC0xMC44OCA2MS4wNTYwMDAwMDAwMDAwMDQgLTEyLjE2TDYwLjkyODAwMDAwMDAwMDAwNCAtMTcuMjE2TDYyLjMzNjAwMDAwMDAwMDAwNiAtMTYuODk2UTYxLjEyMDAwMDAwMDAwMDAwNSAtMTYuMTI4IDU5LjY0OCAtMTUuNjhRNTguMTc2IC0xNS4yMzIwMDAwMDAwMDAwMDEgNTYuNjcyMDAwMDAwMDAwMDA0IC0xNC45NzZRNTUuMTY4MDAwMDAwMDAwMDA2IC0xNC43MiA1My43MjgwMDAwMDAwMDAwMSAtMTQuNDMyUTUyLjI4ODAwMDAwMDAwMDAwNCAtMTQuMTQ0IDUxLjE2ODAwMDAwMDAwMDAwNiAtMTMuNjk2MDAwMDAwMDAwMDAyUTUwLjA0OCAtMTMuMjQ4MDAwMDAwMDAwMDAxIDQ5LjQwOCAtMTIuNDhRNDguNzY4IC0xMS43MTIgNDguNzY4IC0xMC4zNjhRNDguNzY4IC04LjU3NiA0OS45ODQgLTcuNDg4UTUxLjIgLTYuNCA1My4xMjAwMDAwMDAwMDAwMDUgLTYuNFogTTkyLjQxNiAwLjg5NlE4OS4wMjQgMC44OTYgODYuMjcxOTk5OTk5OTk5OTkgMC4yODgwMDAwMDAwMDAwMDAwM1E4My41MiAtMC4zMiA4MS40NzIgLTEuNDcyUTc5LjQyMzk5OTk5OTk5OTk5IC0yLjYyNCA3OC4xMTIgLTQuMjU2UTc2LjggLTUuODg4IDc2LjI4OCAtNy44NzJMODMuOTY3OTk5OTk5OTk5OTkgLTExLjI2NFE4NC40MTYgLTEwLjE3NiA4NS41MzYgLTkuMDU2MDAwMDAwMDAwMDAxUTg2LjY1NTk5OTk5OTk5OTk5IC03LjkzNiA4OC41NDM5OTk5OTk5OTk5OCAtNy4yMzJROTAuNDMxOTk5OTk5OTk5OTkgLTYuNTI4MDAwMDAwMDAwMDAwNSA5My4xMTk5OTk5OTk5OTk5OSAtNi41MjgwMDAwMDAwMDAwMDA1UTk1LjY3OTk5OTk5OTk5OTk5IC02LjUyODAwMDAwMDAwMDAwMDUgOTcuMTIgLTcuMjY0UTk4LjU2IC04LjAgOTguNTYgLTkuNDA4UTk4LjU2IC0xMC40MzIgOTcuNzU5OTk5OTk5OTk5OTkgLTExLjA0UTk2Ljk2IC0xMS42NDggOTUuMzU5OTk5OTk5OTk5OTkgLTEyLjEyOFE5My43NTk5OTk5OTk5OTk5OSAtMTIuNjA4IDkxLjM5MiAtMTMuMDU2MDAwMDAwMDAwMDAxUTg4Ljk2IC0xMy41NjggODYuNDY0IC0xNC4yNFE4My45Njc5OTk5OTk5OTk5OSAtMTQuOTEyIDgxLjc5MiAtMTYuMDk2UTc5LjYxNiAtMTcuMjggNzguMzA0IC0xOS4yMzJRNzYuOTkxOTk5OTk5OTk5OTkgLTIxLjE4NCA3Ni45OTE5OTk5OTk5OTk5OSAtMjQuMTkyUTc2Ljk5MTk5OTk5OTk5OTk5IC0yNy4zMjggNzguNjU1OTk5OTk5OTk5OTkgLTI5LjY2NFE4MC4zMiAtMzIuMCA4My42MTU5OTk5OTk5OTk5OSAtMzMuMzQ0UTg2LjkxMTk5OTk5OTk5OTk5IC0zNC42ODggOTEuNjQ4IC0zNC42ODhROTUuODcyIC0zNC42ODggOTkuMDcyIC0zMy42UTEwMi4yNzE5OTk5OTk5OTk5OSAtMzIuNTEyIDEwNC40MTYgLTMwLjQ5NjAwMDAwMDAwMDAwMlExMDYuNTYgLTI4LjQ4IDEwNy4zOTIgLTI1LjY2NEw5OS4xMzYgLTIyLjcyUTk4LjgxNiAtMjQuMTI4IDk3LjgyNCAtMjUuMTUyUTk2LjgzMiAtMjYuMTc2MDAwMDAwMDAwMDAyIDk1LjMyOCAtMjYuNzJROTMuODI0IC0yNy4yNjQgOTEuNzc2IC0yNy4yNjRRODkuMjggLTI3LjI2NCA4Ny45MDQgLTI2LjQ5NjAwMDAwMDAwMDAwMlE4Ni41Mjc5OTk5OTk5OTk5OSAtMjUuNzI4IDg2LjUyNzk5OTk5OTk5OTk5IC0yNC40NDhRODYuNTI3OTk5OTk5OTk5OTkgLTIzLjQyNCA4Ny40NTU5OTk5OTk5OTk5OSAtMjIuNzUyMDAwMDAwMDAwMDAyUTg4LjM4NCAtMjIuMDgwMDAwMDAwMDAwMDAyIDkwLjExMiAtMjEuNjMyUTkxLjg0IC0yMS4xODQgOTQuMjA4IC0yMC42NzJROTYuNzA0IC0yMC4xNiA5OS4xNjc5OTk5OTk5OTk5OSAtMTkuNDg4UTEwMS42MzE5OTk5OTk5OTk5OSAtMTguODE2IDEwMy42NDggLTE3LjY5NTk5OTk5OTk5OTk5OFExMDUuNjYzOTk5OTk5OTk5OTkgLTE2LjU3NiAxMDYuODQ3OTk5OTk5OTk5OTggLTE0Ljc1MlExMDguMDMyIC0xMi45MjggMTA4LjAzMiAtMTAuMDQ4UTEwOC4wMzIgLTYuNjU2MDAwMDAwMDAwMDAxIDEwNi4yNCAtNC4xOTJRMTA0LjQ0OCAtMS43MjggMTAwLjk2IC0wLjQxNlE5Ny40NzIgMC44OTYgOTIuNDE2IDAuODk2WiBNMTEzLjcyOCAwLjBWLTIxLjUwNFYtNDYuMDhIMTI0LjAzMlYtMzUuNTJRMTI0LjAzMiAtMzQuMjQgMTIzLjkzNTk5OTk5OTk5OTk5IC0zMi44NjQwMDAwMDAwMDAwMDRRMTIzLjgzOTk5OTk5OTk5OTk5IC0zMS40ODggMTIzLjYxNTk5OTk5OTk5OTk5IC0zMC4wNDgwMDAwMDAwMDAwMDJRMTIzLjM5MiAtMjguNjA4IDEyMy4xNjc5OTk5OTk5OTk5OSAtMjcuMTM2MDAwMDAwMDAwMDAzUTEyMi45NDM5OTk5OTk5OTk5OSAtMjUuNjY0IDEyMi42MjQgLTI0LjI1NkgxMjQuMTZRMTI1LjA1NiAtMjcuMzkyIDEyNi40IC0yOS43MjhRMTI3Ljc0NCAtMzIuMDY0IDEyOS45MjAwMDAwMDAwMDAwMiAtMzMuMzc2MDAwMDAwMDAwMDA1UTEzMi4wOTYgLTM0LjY4OCAxMzUuNDg4IC0zNC42ODhRMTQxLjUwNCAtMzQuNjg4IDE0NC40OCAtMzAuNDk2MDAwMDAwMDAwMDAyUTE0Ny40NTYgLTI2LjMwNDAwMDAwMDAwMDAwMiAxNDcuNDU2IC0xNy42VjAuMEgxMzcuMDg4Vi0xNS44NzJRMTM3LjA4OCAtMjEuMDU2IDEzNS41ODQgLTIzLjY0ODAwMDAwMDAwMDAwM1ExMzQuMDc5OTk5OTk5OTk5OTggLTI2LjI0MDAwMDAwMDAwMDAwMiAxMzEuMDA3OTk5OTk5OTk5OTggLTI2LjI0MDAwMDAwMDAwMDAwMlExMjguNjQgLTI2LjI0MDAwMDAwMDAwMDAwMiAxMjcuMTAzOTk5OTk5OTk5OTggLTI0Ljc2OFExMjUuNTY3OTk5OTk5OTk5OTggLTIzLjI5NiAxMjQuNzk5OTk5OTk5OTk5OTggLTIwLjgzMlExMjQuMDMyIC0xOC4zNjgwMDAwMDAwMDAwMDIgMTI0LjAzMiAtMTUuMzZWMC4wWiBNMTc2LjI1NTk5OTk5OTk5OTk3IDAuODk2UTE3My4wNTU5OTk5OTk5OTk5OCAwLjg5NiAxNzAuNjU1OTk5OTk5OTk5OTggLTAuMzJRMTY4LjI1NTk5OTk5OTk5OTk3IC0xLjUzNiAxNjYuNzUxOTk5OTk5OTk5OTggLTMuOTY4UTE2NS4yNDggLTYuNCAxNjQuNzM2IC05Ljk4NEgxNjMuNTE5OTk5OTk5OTk5OThMMTYzLjMyNzk5OTk5OTk5OTk3IDAuMEgxNTQuODc5OTk5OTk5OTk5OTdWLTE2LjU3NlYtNDYuMDhIMTY1LjE4Mzk5OTk5OTk5OTk3Vi0zNC44OFExNjUuMTgzOTk5OTk5OTk5OTcgLTMzLjM0NCAxNjQuOTU5OTk5OTk5OTk5OTggLTMxLjY0ODAwMDAwMDAwMDAwM1ExNjQuNzM2IC0yOS45NTIgMTY0LjM4NCAtMjguMDk2MDAwMDAwMDAwMDA0UTE2NC4wMzE5OTk5OTk5OTk5OCAtMjYuMjQwMDAwMDAwMDAwMDAyIDE2My42NDc5OTk5OTk5OTk5NyAtMjQuMTI4SDE2NS4xMTk5OTk5OTk5OTk5OFExNjYuMDE2IC0yNy41ODQgMTY3LjQ4OCAtMjkuODg3OTk5OTk5OTk5OTk4UTE2OC45NTk5OTk5OTk5OTk5OCAtMzIuMTkyIDE3MS4xNjc5OTk5OTk5OTk5OCAtMzMuMzc2MDAwMDAwMDAwMDA1UTE3My4zNzU5OTk5OTk5OTk5OCAtMzQuNTYgMTc2LjM4NCAtMzQuNTZRMTgwLjYwNzk5OTk5OTk5OTk4IC0zNC41NiAxODMuNzEyIC0zMi4zODRRMTg2LjgxNTk5OTk5OTk5OTk3IC0zMC4yMDgwMDAwMDAwMDAwMDIgMTg4LjU0Mzk5OTk5OTk5OTk4IC0yNi4yMDgwMDAwMDAwMDAwMDJRMTkwLjI3MiAtMjIuMjA4MDAwMDAwMDAwMDAyIDE5MC4yNzIgLTE2LjY0UTE5MC4yNzIgLTExLjI2NCAxODguNTc2IC03LjMyNzk5OTk5OTk5OTk5OVExODYuODggLTMuMzkyIDE4My43NDM5OTk5OTk5OTk5NyAtMS4yNDhRMTgwLjYwNzk5OTk5OTk5OTk4IDAuODk2IDE3Ni4yNTU5OTk5OTk5OTk5NyAwLjg5NlpNMTcyLjQxNTk5OTk5OTk5OTk3IC03LjQyNFExNzQuNTI3OTk5OTk5OTk5OTYgLTcuNDI0IDE3Ni4xMjggLTguNjA4UTE3Ny43Mjc5OTk5OTk5OTk5OCAtOS43OTIgMTc4LjU5MTk5OTk5OTk5OTk4IC0xMS45MzZRMTc5LjQ1NiAtMTQuMDggMTc5LjQ1NiAtMTYuOTZRMTc5LjQ1NiAtMTkuOTA0IDE3OC42MjM5OTk5OTk5OTk5NyAtMjEuOTg0UTE3Ny43OTE5OTk5OTk5OTk5NyAtMjQuMDY0IDE3Ni4yODc5OTk5OTk5OTk5OCAtMjUuMjE2UTE3NC43ODQgLTI2LjM2ODAwMDAwMDAwMDAwMiAxNzIuNjcxOTk5OTk5OTk5OTcgLTI2LjM2ODAwMDAwMDAwMDAwMlExNzEuMjYzOTk5OTk5OTk5OTggLTI2LjM2ODAwMDAwMDAwMDAwMiAxNzAuMDc5OTk5OTk5OTk5OTggLTI1Ljg1NlExNjguODk2IC0yNS4zNDQgMTY4LjAgLTI0LjQ0OFExNjcuMTAzOTk5OTk5OTk5OTggLTIzLjU1MiAxNjYuNDY0IC0yMi40MzIwMDAwMDAwMDAwMDJRMTY1LjgyMzk5OTk5OTk5OTk4IC0yMS4zMTIgMTY1LjUwMzk5OTk5OTk5OTk2IC0yMC4wNjRRMTY1LjE4Mzk5OTk5OTk5OTk3IC0xOC44MTYgMTY1LjE4Mzk5OTk5OTk5OTk3IC0xNy42Vi0xNi4yNTZRMTY1LjE4Mzk5OTk5OTk5OTk3IC0xNC45MTIgMTY1LjU2Nzk5OTk5OTk5OTk4IC0xMy4zNzYwMDAwMDAwMDAwMDFRMTY1Ljk1MTk5OTk5OTk5OTk3IC0xMS44NCAxNjYuODE1OTk5OTk5OTk5OTcgLTEwLjQ5NlExNjcuNjc5OTk5OTk5OTk5OTggLTkuMTUyMDAwMDAwMDAwMDAxIDE2OS4wNTU5OTk5OTk5OTk5OCAtOC4yODhRMTcwLjQzMiAtNy40MjQgMTcyLjQxNTk5OTk5OTk5OTk3IC03LjQyNFogTTIwNC4yODc5OTk5OTk5OTk5OCAwLjg5NlEyMDEuNDcxOTk5OTk5OTk5OTggMC44OTYgMTk5LjI5NiAtMC4yMjQwMDAwMDAwMDAwMDAwM1ExOTcuMTE5OTk5OTk5OTk5OTggLTEuMzQ0IDE5NS45MDQgLTMuNDg4UTE5NC42ODggLTUuNjMyIDE5NC42ODggLTguNzA0UTE5NC42ODggLTExLjU4NCAxOTUuODA4IC0xMy40NzJRMTk2LjkyOCAtMTUuMzYgMTk5LjA3MiAtMTYuNDhRMjAxLjIxNTk5OTk5OTk5OTk4IC0xNy42IDIwNC4yMjQgLTE4LjMzNlEyMDcuMjMyIC0xOS4wNzIgMjExLjA3MTk5OTk5OTk5OTk3IC0xOS42NDhRMjEyLjkyOCAtMTkuOTY4IDIxNC4xNzYgLTIwLjI1NlEyMTUuNDIzOTk5OTk5OTk5OTggLTIwLjU0NCAyMTYuMDYzOTk5OTk5OTk5OTYgLTIxLjE4NFEyMTYuNzAzOTk5OTk5OTk5OTggLTIxLjgyNCAyMTYuNzAzOTk5OTk5OTk5OTggLTIzLjA0UTIxNi43MDM5OTk5OTk5OTk5OCAtMjQuNjQgMjE1LjU1MTk5OTk5OTk5OTk2IC0yNS43OTJRMjE0LjM5OTk5OTk5OTk5OTk4IC0yNi45NDQgMjExLjgzOTk5OTk5OTk5OTk3IC0yNi45NDRRMjEwLjA0OCAtMjYuOTQ0IDIwOC42MDggLTI2LjMwNDAwMDAwMDAwMDAwMlEyMDcuMTY3OTk5OTk5OTk5OTggLTI1LjY2NCAyMDYuMTQzOTk5OTk5OTk5OTggLTI0LjQ0OFEyMDUuMTE5OTk5OTk5OTk5OTggLTIzLjIzMiAyMDQuNjA3OTk5OTk5OTk5OTggLTIxLjUwNEwxOTUuNTE5OTk5OTk5OTk5OTggLTI0LjE5MlExOTYuMzUxOTk5OTk5OTk5OTggLTI2Ljg4IDE5Ny44NTYgLTI4Ljg2Mzk5OTk5OTk5OTk5N1ExOTkuMzU5OTk5OTk5OTk5OTkgLTMwLjg0OCAyMDEuNDcxOTk5OTk5OTk5OTggLTMyLjE2UTIwMy41ODM5OTk5OTk5OTk5NyAtMzMuNDcyIDIwNi4zMDM5OTk5OTk5OTk5NyAtMzQuMDhRMjA5LjAyNCAtMzQuNjg4IDIxMi4wOTU5OTk5OTk5OTk5OCAtMzQuNjg4UTIxNy4yMTU5OTk5OTk5OTk5OCAtMzQuNjg4IDIyMC40NDc5OTk5OTk5OTk5OCAtMzMuMDU2UTIyMy42Nzk5OTk5OTk5OTk5OCAtMzEuNDI0IDIyNS4yNDggLTI4LjBRMjI2LjgxNTk5OTk5OTk5OTk3IC0yNC41NzYgMjI2LjgxNTk5OTk5OTk5OTk3IC0xOS4yVi0xNC4wMTZRMjI2LjgxNTk5OTk5OTk5OTk3IC0xMS43MTIgMjI2LjkxMTk5OTk5OTk5OTk4IC05LjM3NlEyMjcuMDA3OTk5OTk5OTk5OTggLTcuMDQgMjI3LjE2Nzk5OTk5OTk5OTk4IC00LjcwNFEyMjcuMzI3OTk5OTk5OTk5OTcgLTIuMzY4IDIyNy41ODQgMC4wSDIxOC40OTU5OTk5OTk5OTk5OFEyMTguMjM5OTk5OTk5OTk5OTggLTEuNDcyIDIxNy45ODM5OTk5OTk5OTk5OCAtMy41NTE5OTk5OTk5OTk5OTk2UTIxNy43Mjc5OTk5OTk5OTk5OCAtNS42MzIgMjE3LjYgLTcuODA4SDIxNi4zODRRMjE1LjQ4OCAtNS4zNzYgMjEzLjc5MTk5OTk5OTk5OTk3IC0zLjM2MDAwMDAwMDAwMDAwMDNRMjEyLjA5NTk5OTk5OTk5OTk4IC0xLjM0NCAyMDkuNjk1OTk5OTk5OTk5OTcgLTAuMjI0MDAwMDAwMDAwMDAwMDNRMjA3LjI5NiAwLjg5NiAyMDQuMjg3OTk5OTk5OTk5OTggMC44OTZaTTIwOC45NTk5OTk5OTk5OTk5OCAtNi40UTIxMC4xMTIgLTYuNCAyMTEuMjk2IC02LjgxNjAwMDAwMDAwMDAwMVEyMTIuNDggLTcuMjMyIDIxMy41Njc5OTk5OTk5OTk5OCAtNy45NjhRMjE0LjY1NTk5OTk5OTk5OTk4IC04LjcwNCAyMTUuNTUxOTk5OTk5OTk5OTYgLTkuNzkyMDAwMDAwMDAwMDAyUTIxNi40NDc5OTk5OTk5OTk5OCAtMTAuODggMjE2Ljg5NiAtMTIuMTZMMjE2Ljc2Nzk5OTk5OTk5OTk3IC0xNy4yMTZMMjE4LjE3NiAtMTYuODk2UTIxNi45NTk5OTk5OTk5OTk5OCAtMTYuMTI4IDIxNS40ODggLTE1LjY4UTIxNC4wMTYgLTE1LjIzMjAwMDAwMDAwMDAwMSAyMTIuNTEyIC0xNC45NzZRMjExLjAwNzk5OTk5OTk5OTk4IC0xNC43MiAyMDkuNTY3OTk5OTk5OTk5OTggLTE0LjQzMlEyMDguMTI4IC0xNC4xNDQgMjA3LjAwNzk5OTk5OTk5OTk4IC0xMy42OTYwMDAwMDAwMDAwMDJRMjA1Ljg4Nzk5OTk5OTk5OTk4IC0xMy4yNDgwMDAwMDAwMDAwMDEgMjA1LjI0OCAtMTIuNDhRMjA0LjYwNzk5OTk5OTk5OTk4IC0xMS43MTIgMjA0LjYwNzk5OTk5OTk5OTk4IC0xMC4zNjhRMjA0LjYwNzk5OTk5OTk5OTk4IC04LjU3NiAyMDUuODIzOTk5OTk5OTk5OTggLTcuNDg4UTIwNy4wNCAtNi40IDIwOC45NTk5OTk5OTk5OTk5OCAtNi40WiBNMjUwLjM2OCAwLjg5NlEyNDYuMDE2IDAuODk2IDI0Mi42ODggLTAuMzJRMjM5LjM2IC0xLjUzNiAyMzcuMTIgLTMuODA4UTIzNC44OCAtNi4wOCAyMzMuNjk2IC05LjI4MDAwMDAwMDAwMDAwMVEyMzIuNTEyIC0xMi40OCAyMzIuNTEyIC0xNi40NDhRMjMyLjUxMiAtMjAuNTQ0IDIzMy42OTYgLTIzLjg3MlEyMzQuODggLTI3LjIgMjM3LjEyIC0yOS42MzE5OTk5OTk5OTk5OThRMjM5LjM2IC0zMi4wNjQgMjQyLjYyNDAwMDAwMDAwMDAyIC0zMy4zNzYwMDAwMDAwMDAwMDVRMjQ1Ljg4OCAtMzQuNjg4IDI1MC4xMTIgLTM0LjY4OFEyNTQuMzM2IC0zNC42ODggMjU3LjQwOCAtMzMuMzQ0UTI2MC40OCAtMzIuMCAyNjIuNDMyIC0yOS41Njc5OTk5OTk5OTk5OThRMjY0LjM4NCAtMjcuMTM2IDI2NS4wODggLTIzLjkzNkwyNTUuNTUyIC0yMC43MzZRMjU1LjM2IC0yMi44NDggMjU0LjUyODAwMDAwMDAwMDAyIC0yNC4xOTJRMjUzLjY5NiAtMjUuNTM2IDI1Mi4zODQwMDAwMDAwMDAwMSAtMjYuMTQ0UTI1MS4wNzIgLTI2Ljc1MiAyNDkuNTM2IC0yNi43NTJRMjQ3LjkzNiAtMjYuNzUyIDI0Ni43MiAtMjYuMTEyMDAwMDAwMDAwMDAyUTI0NS41MDQgLTI1LjQ3MiAyNDQuNjcyIC0yNC4xOTJRMjQzLjg0IC0yMi45MTIgMjQzLjM5MiAtMjEuMDg4UTI0Mi45NDQgLTE5LjI2NCAyNDIuOTQ0IC0xNi44OTZRMjQyLjk0NCAtMTMuNTA0IDI0My44MDggLTExLjIzMlEyNDQuNjcyIC04Ljk2IDI0Ni4zNjggLTcuODA4MDAwMDAwMDAwMDAxUTI0OC4wNjQgLTYuNjU2MDAwMDAwMDAwMDAxIDI1MC40OTYgLTYuNjU2MDAwMDAwMDAwMDAxUTI1Mi45OTIgLTYuNjU2MDAwMDAwMDAwMDAxIDI1NC4zOTk5OTk5OTk5OTk5OCAtNy42ODAwMDAwMDAwMDAwMDFRMjU1LjgwOCAtOC43MDQgMjU2LjQ0OCAtMTAuMjA4UTI1Ny4wODggLTExLjcxMiAyNTcuMjE2IC0xMy4xODQwMDAwMDAwMDAwMDFMMjY2LjE3NiAtMTEuMjAwMDAwMDAwMDAwMDAxUTI2NS45MiAtOC44MzIgMjY0LjkyOCAtNi42MjQwMDAwMDAwMDAwMDA2UTI2My45MzYgLTQuNDE2IDI2Mi4wMTU5OTk5OTk5OTk5NiAtMi43MlEyNjAuMDk2IC0xLjAyNCAyNTcuMjQ4IC0wLjA2NFEyNTQuNCAwLjg5NiAyNTAuMzY4IDAuODk2WiBNMjcwLjk3NiAwLjBWLTQ2LjE0NEgyODEuMDg3OTk5OTk5OTk5OTdWLTIwLjY3MlEyODIuOTQzOTk5OTk5OTk5OTYgLTIyLjAxNjAwMDAwMDAwMDAwMiAyODQuNTc1OTk5OTk5OTk5OTYgLTIzLjU1MlEyODYuMjA3OTk5OTk5OTk5OTcgLTI1LjA4OCAyODcuNTgzOTk5OTk5OTk5OTUgLTI2Ljc1MjAwMDAwMDAwMDAwMlEyODguOTYgLTI4LjQxNiAyOTAuMDggLTMwLjE3NjAwMDAwMDAwMDAwMlEyOTEuMiAtMzEuOTM2IDI5Mi4wMzIgLTMzLjc5MkgzMDMuODA4UTMwMi45NzYgLTMxLjI5NiAzMDEuNTA0IC0yOC44MzJRMzAwLjAzMiAtMjYuMzY4MDAwMDAwMDAwMDAyIDI5Ny45MTk5OTk5OTk5OTk5NiAtMjQuMjg4MDAwMDAwMDAwMDA0UTI5NS44MDggLTIyLjIwODAwMDAwMDAwMDAwMiAyOTIuODk1OTk5OTk5OTk5OTYgLTIwLjczNlEyODkuOTg0IC0xOS4yNjQgMjg2LjMzNTk5OTk5OTk5OTk2IC0xOC43NTJWLTE3LjZRMjkwLjk0Mzk5OTk5OTk5OTk2IC0xOC40OTYgMjkzLjkxOTk5OTk5OTk5OTk2IC0xNy42MzE5OTk5OTk5OTk5OThRMjk2Ljg5NTk5OTk5OTk5OTk2IC0xNi43NjggMjk4LjY4OCAtMTQuODQ4UTMwMC40Nzk5OTk5OTk5OTk5NiAtMTIuOTI4IDMwMS40Mzk5OTk5OTk5OTk5NCAtMTAuMzY4UTMwMi40IC03LjgwOCAzMDMuMDM5OTk5OTk5OTk5OTYgLTUuMzEyTDMwNC4zODM5OTk5OTk5OTk5NiAwLjBIMjkzLjE4Mzk5OTk5OTk5OTk3TDI5Mi41NDQgLTMuMlEyOTEuOTA0IC02LjMzNiAyOTEuMDM5OTk5OTk5OTk5OTYgLTguNTc2UTI5MC4xNzYgLTEwLjgxNiAyODguNTc2IC0xMi4wNjRRMjg2Ljk3NiAtMTMuMzEyMDAwMDAwMDAwMDAxIDI4My45Njc5OTk5OTk5OTk5NiAtMTMuMzEyMDAwMDAwMDAwMDAxSDI4MS4wODc5OTk5OTk5OTk5N1YwLjBaIi8+PHBhdGggdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDE5LjcyNzk5OTk5OTk5OTk1IDY4KSBzY2FsZSgxKSIgZmlsbD0iI0ZGQjYyNyIgZD0iTTE3Ljc5MiAwLjg5NlExNC40IDAuODk2IDExLjY0OCAwLjI4ODAwMDAwMDAwMDAwMDAzUTguODk2IC0wLjMyIDYuODQ4MDAwMDAwMDAwMDAxIC0xLjQ3MlE0LjggLTIuNjI0IDMuNDg4IC00LjI1NlEyLjE3NiAtNS44ODggMS42NjQwMDAwMDAwMDAwMDAxIC03Ljg3Mkw5LjM0NCAtMTEuMjY0UTkuNzkyIC0xMC4xNzYgMTAuOTExOTk5OTk5OTk5OTk5IC05LjA1NjAwMDAwMDAwMDAwMVExMi4wMzIgLTcuOTM2IDEzLjkyIC03LjIzMlExNS44MDggLTYuNTI4MDAwMDAwMDAwMDAwNSAxOC40OTYgLTYuNTI4MDAwMDAwMDAwMDAwNVEyMS4wNTYgLTYuNTI4MDAwMDAwMDAwMDAwNSAyMi40OTYwMDAwMDAwMDAwMDIgLTcuMjY0UTIzLjkzNiAtOC4wIDIzLjkzNiAtOS40MDhRMjMuOTM2IC0xMC40MzIgMjMuMTM2MDAwMDAwMDAwMDAzIC0xMS4wNFEyMi4zMzYwMDAwMDAwMDAwMDIgLTExLjY0OCAyMC43MzYgLTEyLjEyOFExOS4xMzYgLTEyLjYwOCAxNi43NjggLTEzLjA1NjAwMDAwMDAwMDAwMVExNC4zMzYgLTEzLjU2OCAxMS44NCAtMTQuMjRROS4zNDQgLTE0LjkxMiA3LjE2Nzk5OTk5OTk5OTk5OSAtMTYuMDk2UTQuOTkyIC0xNy4yOCAzLjY3OTk5OTk5OTk5OTk5OTcgLTE5LjIzMlEyLjM2OCAtMjEuMTg0IDIuMzY4IC0yNC4xOTJRMi4zNjggLTI3LjMyOCA0LjAzMiAtMjkuNjY0UTUuNjk2IC0zMi4wIDguOTkyIC0zMy4zNDRRMTIuMjg4IC0zNC42ODggMTcuMDI0IC0zNC42ODhRMjEuMjQ4IC0zNC42ODggMjQuNDQ4IC0zMy42UTI3LjY0OCAtMzIuNTEyIDI5Ljc5MiAtMzAuNDk2MDAwMDAwMDAwMDAyUTMxLjkzNiAtMjguNDggMzIuNzY4IC0yNS42NjRMMjQuNTEyIC0yMi43MlEyNC4xOTIgLTI0LjEyOCAyMy4yMDAwMDAwMDAwMDAwMDMgLTI1LjE1MlEyMi4yMDgwMDAwMDAwMDAwMDIgLTI2LjE3NjAwMDAwMDAwMDAwMiAyMC43MDQgLTI2LjcyUTE5LjIgLTI3LjI2NCAxNy4xNTIgLTI3LjI2NFExNC42NTYgLTI3LjI2NCAxMy4yODAwMDAwMDAwMDAwMDEgLTI2LjQ5NjAwMDAwMDAwMDAwMlExMS45MDQgLTI1LjcyOCAxMS45MDQgLTI0LjQ0OFExMS45MDQgLTIzLjQyNCAxMi44MzIgLTIyLjc1MjAwMDAwMDAwMDAwMlExMy43NiAtMjIuMDgwMDAwMDAwMDAwMDAyIDE1LjQ4OCAtMjEuNjMyUTE3LjIxNiAtMjEuMTg0IDE5LjU4NCAtMjAuNjcyUTIyLjA4MDAwMDAwMDAwMDAwMiAtMjAuMTYgMjQuNTQ0IC0xOS40ODhRMjcuMDA4IC0xOC44MTYgMjkuMDI0IC0xNy42OTU5OTk5OTk5OTk5OThRMzEuMDQgLTE2LjU3NiAzMi4yMjQwMDAwMDAwMDAwMDQgLTE0Ljc1MlEzMy40MDggLTEyLjkyOCAzMy40MDggLTEwLjA0OFEzMy40MDggLTYuNjU2MDAwMDAwMDAwMDAxIDMxLjYxNiAtNC4xOTJRMjkuODI0IC0xLjcyOCAyNi4zMzYgLTAuNDE2UTIyLjg0OCAwLjg5NiAxNy43OTIgMC44OTZaIE0zOS4xMDQgMC4wVi0yMS44MjRWLTMzLjc5Mkg0Ny4yMzJMNDcuMzYgLTIzLjg3Mkg0OC42NFE0OS41MzYgLTI3LjUyIDUxLjAwOCAtMjkuOTJRNTIuNDgwMDAwMDAwMDAwMDA0IC0zMi4zMiA1NC41OTIwMDAwMDAwMDAwMDYgLTMzLjUwNDAwMDAwMDAwMDAwNVE1Ni43MDQwMDAwMDAwMDAwMSAtMzQuNjg4IDU5LjUyIC0zNC42ODhRNjIuNDY0IC0zNC42ODggNjQuNDE2IC0zMy40NFE2Ni4zNjggLTMyLjE5MiA2Ny41MiAtMjkuNzkyUTY4LjY3MiAtMjcuMzkyIDY5LjA1NjAwMDAwMDAwMDAxIC0yMy44NzJINzAuMTQ0UTcxLjE2OCAtMjcuNjQ4IDcyLjgzMjAwMDAwMDAwMDAxIC0zMC4wNDgwMDAwMDAwMDAwMDJRNzQuNDk2MDAwMDAwMDAwMDEgLTMyLjQ0OCA3Ni44MDAwMDAwMDAwMDAwMSAtMzMuNTY4UTc5LjEwNDAwMDAwMDAwMDAxIC0zNC42ODggODEuNzkyIC0zNC42ODhRODQuNjcyIC0zNC42ODggODYuODE2IC0zMy41NjhRODguOTYwMDAwMDAwMDAwMDEgLTMyLjQ0OCA5MC40IC0zMC4yNDAwMDAwMDAwMDAwMDJROTEuODQgLTI4LjAzMiA5Mi41NDQwMDAwMDAwMDAwMSAtMjQuNzM2UTkzLjI0OCAtMjEuNDQgOTMuMjQ4IC0xNy4wODhWMC4wSDgyLjg4Vi0xNS44MDhRODIuODggLTE5LjIgODIuMzM2IC0yMS40Mzk5OTk5OTk5OTk5OThRODEuNzkyIC0yMy42OCA4MC42NCAtMjQuOFE3OS40ODggLTI1LjkyIDc3LjY5NiAtMjUuOTJRNzUuNjQ4IC0yNS45MiA3NC4yMDggLTI0LjU3NlE3Mi43NjggLTIzLjIzMiA3Mi4wIC0yMC44MzJRNzEuMjMyIC0xOC40MzIwMDAwMDAwMDAwMDIgNzEuMjMyIC0xNS40MjRWMC4wSDYxLjEyMDAwMDAwMDAwMDAwNVYtMTUuNjE2UTYxLjEyMDAwMDAwMDAwMDAwNSAtMTkuMTM2IDYwLjUxMiAtMjEuMzc1OTk5OTk5OTk5OTk4UTU5LjkwNCAtMjMuNjE2IDU4LjcyIC0yNC43NjhRNTcuNTM2IC0yNS45MiA1NS43NDQgLTI1LjkyUTUzLjY5NiAtMjUuOTIgNTIuMjg4IC0yNC41NzZRNTAuODggLTIzLjIzMiA1MC4xNDQwMDAwMDAwMDAwMDUgLTIwLjgzMlE0OS40MDggLTE4LjQzMjAwMDAwMDAwMDAwMiA0OS40MDggLTE1LjQyNFYwLjBaIE0xMDguNjcyIDAuODk2UTEwNS44NTYgMC44OTYgMTAzLjY4IC0wLjIyNDAwMDAwMDAwMDAwMDAzUTEwMS41MDQgLTEuMzQ0IDEwMC4yODgwMDAwMDAwMDAwMSAtMy40ODhROTkuMDcyIC01LjYzMiA5OS4wNzIgLTguNzA0UTk5LjA3MiAtMTEuNTg0IDEwMC4xOTIwMDAwMDAwMDAwMSAtMTMuNDcyUTEwMS4zMTIgLTE1LjM2IDEwMy40NTU5OTk5OTk5OTk5OSAtMTYuNDhRMTA1LjYgLTE3LjYgMTA4LjYwOCAtMTguMzM2UTExMS42MTYgLTE5LjA3MiAxMTUuNDU2IC0xOS42NDhRMTE3LjMxMiAtMTkuOTY4IDExOC41NiAtMjAuMjU2UTExOS44MDc5OTk5OTk5OTk5OSAtMjAuNTQ0IDEyMC40NDggLTIxLjE4NFExMjEuMDg4IC0yMS44MjQgMTIxLjA4OCAtMjMuMDRRMTIxLjA4OCAtMjQuNjQgMTE5LjkzNiAtMjUuNzkyUTExOC43ODQgLTI2Ljk0NCAxMTYuMjI0IC0yNi45NDRRMTE0LjQzMiAtMjYuOTQ0IDExMi45OTIgLTI2LjMwNDAwMDAwMDAwMDAwMlExMTEuNTUyIC0yNS42NjQgMTEwLjUyOCAtMjQuNDQ4UTEwOS41MDQgLTIzLjIzMiAxMDguOTkyIC0yMS41MDRMOTkuOTA0IC0yNC4xOTJRMTAwLjczNiAtMjYuODggMTAyLjI0MDAwMDAwMDAwMDAxIC0yOC44NjM5OTk5OTk5OTk5OTdRMTAzLjc0NCAtMzAuODQ4IDEwNS44NTYgLTMyLjE2UTEwNy45NjggLTMzLjQ3MiAxMTAuNjg4IC0zNC4wOFExMTMuNDA4IC0zNC42ODggMTE2LjQ4IC0zNC42ODhRMTIxLjYgLTM0LjY4OCAxMjQuODMyIC0zMy4wNTZRMTI4LjA2NCAtMzEuNDI0IDEyOS42MzIgLTI4LjBRMTMxLjIgLTI0LjU3NiAxMzEuMiAtMTkuMlYtMTQuMDE2UTEzMS4yIC0xMS43MTIgMTMxLjI5NiAtOS4zNzZRMTMxLjM5MiAtNy4wNCAxMzEuNTUyIC00LjcwNFExMzEuNzEyIC0yLjM2OCAxMzEuOTY4MDAwMDAwMDAwMDIgMC4wSDEyMi44OFExMjIuNjI0IC0xLjQ3MiAxMjIuMzY4IC0zLjU1MTk5OTk5OTk5OTk5OTZRMTIyLjExMiAtNS42MzIgMTIxLjk4NDAwMDAwMDAwMDAxIC03LjgwOEgxMjAuNzY4UTExOS44NzIgLTUuMzc2IDExOC4xNzYgLTMuMzYwMDAwMDAwMDAwMDAwM1ExMTYuNDggLTEuMzQ0IDExNC4wODAwMDAwMDAwMDAwMSAtMC4yMjQwMDAwMDAwMDAwMDAwM1ExMTEuNjggMC44OTYgMTA4LjY3MiAwLjg5NlpNMTEzLjM0NCAtNi40UTExNC40OTYwMDAwMDAwMDAwMSAtNi40IDExNS42OCAtNi44MTYwMDAwMDAwMDAwMDFRMTE2Ljg2NCAtNy4yMzIgMTE3Ljk1MiAtNy45NjhRMTE5LjA0IC04LjcwNCAxMTkuOTM2IC05Ljc5MjAwMDAwMDAwMDAwMlExMjAuODMyIC0xMC44OCAxMjEuMjggLTEyLjE2TDEyMS4xNTIgLTE3LjIxNkwxMjIuNTYgLTE2Ljg5NlExMjEuMzQ0IC0xNi4xMjggMTE5Ljg3MiAtMTUuNjhRMTE4LjQgLTE1LjIzMjAwMDAwMDAwMDAwMSAxMTYuODk2IC0xNC45NzZRMTE1LjM5MiAtMTQuNzIgMTEzLjk1MiAtMTQuNDMyUTExMi41MTIgLTE0LjE0NCAxMTEuMzkyIC0xMy42OTYwMDAwMDAwMDAwMDJRMTEwLjI3MiAtMTMuMjQ4MDAwMDAwMDAwMDAxIDEwOS42MzIgLTEyLjQ4UTEwOC45OTIgLTExLjcxMiAxMDguOTkyIC0xMC4zNjhRMTA4Ljk5MiAtOC41NzYgMTEwLjIwOCAtNy40ODhRMTExLjQyNCAtNi40IDExMy4zNDQgLTYuNFogTTEzOC44MTYgMC4wVi0xNS42OFYtMzMuNzkySDE0Ny4yNjRMMTQ3LjQ1NjAwMDAwMDAwMDAyIC0yMi4zMzYwMDAwMDAwMDAwMDJIMTQ4LjczNjAwMDAwMDAwMDAyUTE0OS4xODQwMDAwMDAwMDAwMyAtMjYuODE2IDE1MC40MzIwMDAwMDAwMDAwMiAtMjkuNDcyUTE1MS42OCAtMzIuMTI4IDE1NC4wMTYwMDAwMDAwMDAwMiAtMzMuMzQ0UTE1Ni4zNTIgLTM0LjU2IDE1OS44MDgwMDAwMDAwMDAwMiAtMzQuNTZRMTYwLjMyMDAwMDAwMDAwMDAyIC0zNC41NiAxNjAuOTYwMDAwMDAwMDAwMDQgLTM0LjUyODAwMDAwMDAwMDAwNlExNjEuNjAwMDAwMDAwMDAwMDIgLTM0LjQ5NiAxNjIuNDMyMDAwMDAwMDAwMDIgLTM0LjM2OEwxNjIuMDQ4IC0yMy4zNlExNjEuMDI0IC0yMy44NzIgMTU5Ljg0IC0yNC4wMzJRMTU4LjY1NiAtMjQuMTkyIDE1Ny43NjAwMDAwMDAwMDAwMiAtMjQuMTkyUTE1NS4yNjQgLTI0LjE5MiAxNTMuNDQgLTIzLjIzMlExNTEuNjE2IC0yMi4yNzIwMDAwMDAwMDAwMDIgMTUwLjU2IC0yMC4yODgwMDAwMDAwMDAwMDRRMTQ5LjUwNDAwMDAwMDAwMDAyIC0xOC4zMDQwMDAwMDAwMDAwMDIgMTQ5LjE4NDAwMDAwMDAwMDAzIC0xNS4yOTYwMDAwMDAwMDAwMDFWMC4wWiBNMTgwLjU0NDAwMDAwMDAwMDA0IDAuODMyMDAwMDAwMDAwMDAwMVExNzQuNTkyIDAuODMyMDAwMDAwMDAwMDAwMSAxNzEuNzc2IC0yLjMzNjAwMDAwMDAwMDAwMDNRMTY4Ljk2MDAwMDAwMDAwMDA0IC01LjUwNDAwMDAwMDAwMDAwMDQgMTY4Ljk2MDAwMDAwMDAwMDA0IC0xMi40OFYtMjUuNzI4SDE2NC4xNjAwMDAwMDAwMDAwM0wxNjQuMzUyMDAwMDAwMDAwMDMgLTMzLjcyOEgxNjcuODA4MDAwMDAwMDAwMDJRMTY5Ljg1NjAwMDAwMDAwMDAyIC0zMy43OTIgMTcwLjkxMjAwMDAwMDAwMDAzIC0zNC4zNjhRMTcxLjk2ODAwMDAwMDAwMDAyIC0zNC45NDQgMTcyLjIyNDAwMDAwMDAwMDAyIC0zNi41NDQwMDAwMDAwMDAwMDRMMTczLjA1NiAtNDEuMjhIMTc4Ljg4MDAwMDAwMDAwMDAyVi0zMy43OTJIMTg3LjAwODAwMDAwMDAwMDA0Vi0yNS40MDhIMTc4Ljg4MDAwMDAwMDAwMDAyVi0xMi45MjhRMTc4Ljg4MDAwMDAwMDAwMDAyIC0xMC43NTIgMTc5LjkzNjAwMDAwMDAwMDA0IC05LjcyODAwMDAwMDAwMDAwMlExODAuOTkyMDAwMDAwMDAwMDIgLTguNzA0IDE4My4xNjgwMDAwMDAwMDAwMyAtOC43MDRRMTg0LjM4NDAwMDAwMDAwMDAxIC04LjcwNCAxODUuNDcyMDAwMDAwMDAwMDQgLTguOTZRMTg2LjU2MDAwMDAwMDAwMDAzIC05LjIxNjAwMDAwMDAwMDAwMSAxODcuMjY0IC05LjY2NFYtMC4xMjhRMTg1LjIxNjAwMDAwMDAwMDA0IDAuNTEyIDE4My41MjAwMDAwMDAwMDAwNCAwLjY3MlExODEuODI0IDAuODMyMDAwMDAwMDAwMDAwMSAxODAuNTQ0MDAwMDAwMDAwMDQgMC44MzIwMDAwMDAwMDAwMDAxWiIvPjwvc3ZnPg==" alt="Cashbacksmart"></span>
+    <nav class="topnav" id="topnav" aria-label="Principal"></nav>
+  </div>
+</header>
+<main class="page"><div class="wrap" id="view"></div></main>
+<nav class="tabbar" id="tabbar" aria-label="Principal"></nav>
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+(function () {
+  const brl = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const pct = (bps) => (bps / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%';
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const parseBRL = (s) => { s = String(s || '').replace(/[R$\s]/g, ''); if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); const n = Number(s); return Number.isFinite(n) ? Math.round(n * 100) : NaN; };
+  const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const now = () => new Date();
+  const fmtDT = (d) => d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+  const I = {
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+    store: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l1.5-5h13L20 9M4 9h16M4 9v11h16V9M9 20v-6h6v6"/></svg>',
+    qr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v7h-7M17 21v-4"/></svg>',
+    wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/></svg>',
+    help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/></svg>',
+    chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+    rules: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4L19 6"/><path d="M5 19h14"/></svg>',
+    mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  };
+
+  // ---------- Dados de exemplo ----------
+  const client = { name: 'Carlos Cliente', code: 'T6MUHTLA', cpf: '111.444.777-35', phone: '44977776666', city: 'Maringá' };
+  const shops = [
+    { id: 'pad', name: 'Padaria Trigo Bom', cat: 'Alimentação', bairro: 'Zona 7', rules: [{ id: 'r1', title: 'Cashback em todas as compras', kind: 'percent', value: 1000, min: 0, max: null, days: null, active: true }, { id: 'r2', title: 'Terça em dobro', kind: 'percent', value: 2000, min: 0, max: 2000, days: [2], active: true }] },
+    { id: 'far', name: 'Farmácia Vida', cat: 'Farmácia', bairro: 'Centro', rules: [{ id: 'r3', title: 'Cashback em todas as compras', kind: 'percent', value: 500, min: 0, max: null, days: null, active: true }] },
+    { id: 'sal', name: 'Studio Bela', cat: 'Beleza e estética', bairro: 'Zona 5', rules: [{ id: 'r4', title: 'Cashback fixo por atendimento', kind: 'fixed', value: 700, min: 3000, max: null, days: null, active: true }] },
+    { id: 'mer', name: 'Mercadinho Central', cat: 'Mercado', bairro: 'Vila Operária', rules: [{ id: 'r5', title: 'Cashback em todas as compras', kind: 'percent', value: 300, min: 0, max: null, days: null, active: true }] },
+  ];
+  const myShop = shops[0];
+  const ledger = []; // {id, shop, kind, cents, at, purchaseId}
+  const purchases = []; // loja: {id, shop, customer, amount, redeemed, cashback, fee, at, canceled}
+  const campaigns = [{ id: 'c0', shop: 'mer', subject: 'Sexta da feira: 6% de volta em hortifrúti', body: 'Toda sexta, cashback em dobro nas frutas e verduras.', at: new Date(Date.now() - 86400000) }];
+  let redemption = null; // {code, shop, max, exp}
+  const chat = [];
+
+  function addPurchase(shop, amount, redeemed, at) {
+    const paid = amount - redeemed;
+    const best = bestRule(shop, paid, at);
+    const cb = best ? best.cents : 0;
+    const p = { id: 'p' + (purchases.length + 1), shop: shop.id, customer: client.name, amount, redeemed, cashback: cb, fee: Math.round(redeemed * 0.2), at, canceled: false, rule: best ? best.rule.title : null };
+    purchases.unshift(p);
+    if (redeemed > 0) ledger.unshift({ id: 'l' + ledger.length, shop: shop.id, kind: 'debit', cents: -redeemed, at, purchaseId: p.id });
+    if (cb > 0) ledger.unshift({ id: 'l' + ledger.length, shop: shop.id, kind: 'credit', cents: cb, at, purchaseId: p.id });
+    return p;
+  }
+  function cashbackFor(r, paid, when) {
+    if (!r.active || paid <= 0 || paid < r.min) return 0;
+    if (r.days && !r.days.includes(when.getDay())) return 0;
+    let c = r.kind === 'fixed' ? r.value : Math.floor((paid * r.value) / 10000);
+    if (r.max != null) c = Math.min(c, r.max);
+    return Math.max(0, Math.min(c, paid));
+  }
+  function bestRule(shop, paid, when) {
+    let best = null;
+    for (const r of shop.rules) { const c = cashbackFor(r, paid, when); if (c > 0 && (!best || c > best.cents)) best = { rule: r, cents: c }; }
+    return best;
+  }
+  const balance = (shopId) => ledger.filter((l) => l.shop === shopId).reduce((s, l) => s + l.cents, 0);
+  const total = () => shops.reduce((s, sh) => s + Math.max(0, balance(sh.id)), 0);
+  const shopById = (id) => shops.find((s) => s.id === id);
+  // histórico inicial
+  const d = (h) => new Date(Date.now() - h * 3600000);
+  addPurchase(shops[3], 21430, 0, d(50));
+  addPurchase(shops[1], 8990, 0, d(30));
+  addPurchase(shops[0], 3250, 0, d(5));
+
+  function offerText(sh) {
+    const best = sh.rules.filter((r) => r.active).sort((a, b) => (b.kind === 'percent' ? b.value * 100 : b.value) - (a.kind === 'percent' ? a.value * 100 : a.value))[0];
+    if (!best) return '';
+    const restricted = best.days || best.min > 0;
+    return `${restricted ? '<small>até</small>' : ''}${best.kind === 'percent' ? pct(best.value) : brl(best.value)}<small>de volta</small>`;
+  }
+  function ruleSummary(r) {
+    const p = [r.kind === 'percent' ? `${pct(r.value)} de volta` : `${brl(r.value)} de volta por compra`];
+    if (r.min > 0) p.push(`em compras a partir de ${brl(r.min)}`);
+    if (r.max != null) p.push(`até ${brl(r.max)} por compra`);
+    if (r.days) p.push('só ' + r.days.map((x) => DAYS[x]).join(', '));
+    return p.join(' · ');
+  }
+
+  // ---------- Navegação ----------
+  let mode = 'cli', page = 'home', param = null;
+  const cliNav = [['home', 'Início', I.home], ['lojas', 'Lojas', I.store], ['codigo', 'Meu código', I.qr], ['carteira', 'Carteira', I.wallet], ['ajuda', 'Ajuda', I.help]];
+  const bizNav = [['painel', 'Painel', I.chart], ['lancar', 'Lançar compra', I.plus], ['regras', 'Cashback', I.rules], ['campanhas', 'Campanhas', I.mail]];
+  function go(p, prm) { page = p; param = prm || null; render(); window.scrollTo(0, 0); }
+  function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 2600); }
+  function nav() {
+    const items = mode === 'cli' ? cliNav : bizNav;
+    const active = page === 'loja' ? 'lojas' : page;
+    document.getElementById('tabbar').innerHTML = items.map(([k, l, i]) => `<button data-go="${k}" ${active === k ? 'aria-current="page"' : ''}>${i}${l}</button>`).join('');
+    document.getElementById('topnav').innerHTML = items.map(([k, l]) => `<button data-go="${k}" ${active === k ? 'aria-current="page"' : ''}>${l}</button>`).join('');
+  }
+
+  // ---------- Telas do cliente ----------
+  function storeRow(sh) {
+    return `<button class="store" data-go="loja" data-p="${sh.id}"><span class="badge" aria-hidden="true">${sh.name[0]}</span><span><strong style="display:block">${esc(sh.name)}</strong><small>${sh.cat} · ${sh.bairro}</small></span><span class="offer">${offerText(sh)}</span></button>`;
+  }
+  const V = {};
+  V.home = () => `
+    <div class="stack">
+      <section class="receipt ink" aria-label="Seu saldo">
+        <div class="row between"><span>Olá, Carlos</span><small>Conta grátis</small></div>
+        <p class="muted" style="margin:14px 0 4px">Saldo para usar</p>
+        <div class="amount coin">${brl(total())}</div>
+        <div class="row" style="margin-top:16px"><button class="btn coin sm" data-go="codigo">Mostrar meu código</button><button class="btn sm" data-go="carteira" style="background:transparent;border:2px solid rgba(255,255,255,.35)">Ver carteira</button></div>
+      </section>
+      <section class="card" style="margin-top:24px"><div class="row between"><h2>Cashback em Maringá</h2><button class="linkbtn" data-go="lojas">Ver todas</button></div><div class="list">${shops.map(storeRow).join('')}</div></section>
+      <section class="card"><h2>Ofertas para você</h2><div class="list">${campaigns.map((c) => `<article><small>${esc(shopById(c.shop).name)} · ${c.at.toLocaleDateString('pt-BR')}</small><h3 style="margin:4px 0">${esc(c.subject)}</h3><p style="margin:0;white-space:pre-line">${esc(c.body)}</p></article>`).join('')}</div></section>
+    </div>`;
+  V.lojas = () => `<div class="stack"><h1>Lojas em Maringá</h1><section class="card"><div class="list">${shops.map(storeRow).join('')}</div></section></div>`;
+  V.loja = () => {
+    const sh = shopById(param); const bal = balance(sh.id);
+    const code = redemption && redemption.shop === sh.id && redemption.exp > Date.now() ? redemption : null;
+    return `<div class="stack"><button class="linkbtn" data-go="lojas">← Lojas</button>
+      <div><h1 style="margin-bottom:4px">${esc(sh.name)}</h1><p class="muted">${sh.cat} · ${sh.bairro}, Maringá/PR</p></div>
+      <section class="receipt"><p class="muted" style="margin:0">Seu saldo nesta loja</p><div class="amount green">${brl(Math.max(0, bal))}</div>
+        <div style="margin-top:14px">${code ? `<div class="alert info" role="status"><div>Informe este código no caixa para usar até ${brl(code.max)}:</div><div class="code-big">${code.code}</div><small>Vale por 15 minutos. Na demonstração, troque para "Loja" e use o código em Lançar compra.</small></div>` : bal > 0 ? `<button class="btn coin" data-act="resgate" data-p="${sh.id}">Usar meu saldo nesta loja</button>` : '<p class="muted" style="margin:0">Compre aqui e informe seu código no caixa para ganhar cashback.</p>'}</div>
+      </section>
+      <section class="card" style="margin-top:24px"><h2>Como ganhar cashback aqui</h2><div class="list">${sh.rules.filter((r) => r.active).map((r) => `<div><strong>${esc(r.title)}</strong><p style="margin:2px 0">${ruleSummary(r)}</p><small>Saldo liberado na hora, vale por 180 dias</small></div>`).join('')}</div></section></div>`;
+  };
+  V.codigo = () => {
+    let qrHtml = '';
+    try { const q = qrcode(0, 'M'); q.addData(client.code); q.make(); qrHtml = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true }); } catch (e) { qrHtml = '<p class="muted">QR indisponível</p>'; }
+    return `<div class="stack" style="text-align:center;max-width:460px;margin:0 auto"><h1>Meu código</h1><p class="muted">Mostre no caixa antes de pagar. A loja também pode te achar pelo CPF ou celular.</p><div><div class="qr">${qrHtml}</div></div><div class="code-big">${client.code.slice(0, 4)} ${client.code.slice(4)}</div>
+      <div class="card tight" style="text-align:left"><h3>Indique e ganhe</h3><p style="margin:0">Você e quem você indicar ganham 30 dias de Premium: saldo que não vence.</p></div></div>`;
+  };
+  V.carteira = () => {
+    const KIND = { credit: 'Cashback recebido', debit: 'Saldo usado', reversal: 'Compra cancelada' };
+    return `<div class="stack"><h1>Carteira</h1><section class="receipt"><p class="muted" style="margin:0">Saldo total para usar</p><div class="amount green">${brl(total())}</div><small>O saldo de cada loja é usado na própria loja.</small></section>
+      <section class="card" style="margin-top:24px"><h2>Por loja</h2><div class="list">${shops.filter((s) => balance(s.id) > 0).map((s) => `<button class="store" data-go="loja" data-p="${s.id}"><span class="badge">${s.name[0]}</span><span><strong style="display:block">${esc(s.name)}</strong><small>vale por 180 dias</small></span><span class="offer">${brl(balance(s.id))}</span></button>`).join('') || '<p class="muted">Sem saldo ainda.</p>'}</div></section>
+      <section class="card"><h2>Extrato</h2><div class="table-wrap"><table><thead><tr><th>Data</th><th>Loja</th><th>Movimento</th><th class="num">Valor</th></tr></thead><tbody>${ledger.map((l) => `<tr><td>${fmtDT(l.at)}</td><td>${esc(shopById(l.shop).name)}</td><td>${KIND[l.kind]}</td><td class="num" style="color:${l.cents > 0 ? 'var(--green-deep)' : 'var(--coral)'}">${l.cents > 0 ? '+' : ''}${brl(l.cents)}</td></tr>`).join('')}</tbody></table></div></section></div>`;
+  };
+  V.ajuda = () => `<div class="stack" style="max-width:640px"><h1>Ajuda</h1><div class="chat"><div class="chat-log">${chat.length ? '' : '<p class="bubble bot">Oi! Sou o atendente automático do Cashbacksmart. Pergunte sobre saldo, faturas, lojas ou como usar o app.</p>'}${chat.map((m) => `<p class="bubble ${m.me ? 'me' : 'bot'}">${esc(m.t)}</p>`).join('')}</div>
+    <div class="row" style="gap:8px;margin:10px 0">${['Qual meu saldo?', 'Como uso meu saldo?', 'Quanto custa?', 'Lojas perto de mim'].map((s) => `<button class="btn ghost sm" data-ask="${s}">${s}</button>`).join('')}</div>
+    <form class="chat-form" id="chat-form"><input id="chat-in" aria-label="Mensagem" placeholder="Escreva sua dúvida" autocomplete="off"><button class="btn">Enviar</button></form></div></div>`;
+  function bot(q) {
+    const t = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const has = (...w) => w.some((x) => t.includes(x));
+    if (has('saldo', 'quanto tenho', 'carteira')) return shops.filter((s) => balance(s.id) > 0).map((s) => `${s.name}: ${brl(balance(s.id))} disponível`).join('\n') || 'Sem saldo no momento.';
+    if (has('usar', 'resgat', 'desconto')) return 'Abra a loja no app, toque em "Usar meu saldo nesta loja" e informe no caixa o código de 6 números (vale 15 minutos). O saldo de cada loja só vale nela.';
+    if (has('custa', 'preco', 'fatura', 'assinatura', 'pagar')) return 'Sua conta é grátis. O Premium é opcional: R$ 4/mês (R$ 48 por ano) e o seu saldo nunca vence.';
+    if (has('loja', 'perto', 'onde', 'padaria', 'farmacia')) return shops.map((s) => `${s.name} (${s.cat})`).join('\n');
+    if (has('cancel')) return 'Você cancela em Conta > Cancelar assinatura. O acesso continua até o fim do período pago.';
+    if (has('oi', 'ola', 'bom dia', 'boa tarde', 'boa noite')) return 'Olá! Posso ver seu saldo, faturas, lojas e tirar dúvidas. O que você precisa?';
+    return 'Não entendi bem. Posso ajudar com saldo, faturas, como usar o saldo, lojas e cancelamento.';
+  }
+
+  // ---------- Telas da loja ----------
+  const mine = () => purchases.filter((p) => p.shop === myShop.id);
+  V.painel = () => {
+    const m = mine().filter((p) => !p.canceled);
+    const stats = [['Vendas no mês', brl(m.reduce((s, p) => s + p.amount, 0))], ['Compras no mês', m.length], ['Cashback dado', brl(m.reduce((s, p) => s + p.cashback, 0))], ['Saldo resgatado', brl(m.reduce((s, p) => s + p.redeemed, 0))], ['Taxa de 20% a faturar', brl(m.reduce((s, p) => s + p.fee, 0))]];
+    return `<div class="stack"><div class="row between"><div><h1 style="margin-bottom:2px">${esc(myShop.name)}</h1><small>Sem mensalidade até ${new Date(Date.now() + 172 * 86400000).toLocaleDateString('pt-BR')} · depois R$ 49,90/mês + 20% do cashback usado · fatura no dia 1º, sem multa para cancelar</small></div><button class="btn" data-go="lancar">Lançar compra</button></div>
+      <section class="grid">${stats.map(([l, v]) => `<div class="card tight stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')}</section>
+      <section class="card"><h2>Últimas compras</h2>${mine().length ? `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Cliente</th><th class="num">Compra</th><th class="num">Saldo usado</th><th class="num">Cashback</th><th></th></tr></thead><tbody>${mine().map((p) => `<tr style="${p.canceled ? 'opacity:.55' : ''}"><td>${fmtDT(p.at)}</td><td>${esc(p.customer)}</td><td class="num">${brl(p.amount)}</td><td class="num">${p.redeemed ? brl(p.redeemed) : '—'}</td><td class="num">${brl(p.cashback)}</td><td>${p.canceled ? '<span class="tag">Cancelada</span>' : `<button class="linkbtn" data-act="cancelar" data-p="${p.id}" style="font-size:.85rem">Cancelar</button>`}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nenhuma compra ainda.</p>'}</section></div>`;
+  };
+  let lastResult = null, lastError = null;
+  V.lancar = () => `<div class="stack" style="max-width:560px"><h1>Lançar compra</h1>
+    ${lastResult ? `<section class="receipt" role="status"><p class="muted" style="margin:0">Compra registrada para ${esc(lastResult.customer)}</p><div class="amount green">+${brl(lastResult.cashback)}</div><p style="margin:4px 0 0">de cashback${lastResult.rule ? ` (${esc(lastResult.rule)})` : ''}</p><ul style="margin:10px 0 0;padding-left:18px"><li>Valor da compra: ${brl(lastResult.amount)}</li>${lastResult.redeemed ? `<li>Saldo usado pelo cliente: −${brl(lastResult.redeemed)}</li>` : ''}<li><strong>Cobrar do cliente: ${brl(lastResult.amount - lastResult.redeemed)}</strong></li></ul></section>` : ''}
+    <form class="card" id="buy" novalidate style="${lastResult ? 'margin-top:24px' : ''}">
+      ${lastError ? `<p class="alert error" role="alert" style="margin-bottom:14px">${esc(lastError)}</p>` : ''}
+      <div class="field"><label for="b-cli">Cliente</label><input id="b-cli" placeholder="Código, CPF, celular ou e-mail" autocomplete="off"><small class="muted">Na demonstração use o código ${client.code} ou o CPF ${client.cpf}.</small></div>
+      <div class="field"><label for="b-val">Valor da compra (R$)</label><input id="b-val" inputmode="decimal" placeholder="0,00" style="font-size:1.4rem;font-weight:700"></div>
+      <div class="field"><label class="check"><input type="checkbox" id="b-use"><span>Cliente quer usar o saldo</span></label></div>
+      <div class="field" id="b-code-f" hidden><label for="b-code">Código de resgate (6 números do app do cliente)</label><input id="b-code" inputmode="numeric" maxlength="6"></div>
+      <button class="btn block">Registrar compra</button>
+    </form>
+    <section class="card tight"><h3>Regras ativas</h3><ul style="margin:0;padding-left:18px">${myShop.rules.filter((r) => r.active).map((r) => `<li><strong>${esc(r.title)}:</strong> ${ruleSummary(r)}</li>`).join('')}</ul><small class="muted">Se mais de uma regra valer, o cliente ganha a maior.</small></section></div>`;
+  V.regras = () => `<div class="stack"><h1>Regras de cashback</h1><p class="muted">Cashback em valor fixo ou percentual. Quando mais de uma regra vale, o cliente ganha a maior.</p>
+    <section class="card"><div class="list">${myShop.rules.map((r) => `<div class="row between" style="align-items:flex-start"><div style="flex:1 1 240px"><strong>${esc(r.title)}</strong> ${r.active ? '<span class="tag green">Ativa</span>' : '<span class="tag">Pausada</span>'}<p style="margin:2px 0">${ruleSummary(r)}</p></div><button class="btn ghost sm" data-act="toggle" data-p="${r.id}">${r.active ? 'Pausar' : 'Ativar'}</button></div>`).join('')}</div></section>
+    <section class="card"><h2>Nova regra</h2><form id="rule" novalidate>
+      <div class="field"><label for="r-t">Nome da regra</label><input id="r-t" placeholder="ex.: Sexta em dobro"></div>
+      <div class="field"><span style="display:block;font-weight:600;font-size:.92rem;margin-bottom:6px">Tipo</span><div class="seg" role="radiogroup" aria-label="Tipo"><label><input type="radio" name="k" value="percent" checked><span>% da compra</span></label><label><input type="radio" name="k" value="fixed"><span>Valor fixo R$</span></label></div></div>
+      <div class="grid-2"><div class="field"><label for="r-v">Valor (% ou R$)</label><input id="r-v" inputmode="decimal" placeholder="5 ou 3,00"></div><div class="field"><label for="r-m">Compra mínima (R$, opcional)</label><input id="r-m" inputmode="decimal" placeholder="0,00"></div></div>
+      <fieldset class="field" style="border:0;padding:0"><legend style="font-weight:600;font-size:.92rem;margin-bottom:6px">Dias da semana</legend><div class="days">${DAYS.map((x, i) => `<label><input type="checkbox" name="d" value="${i}" checked><span>${x}</span></label>`).join('')}</div></fieldset>
+      <button class="btn">Salvar regra</button></form></section></div>`;
+  V.campanhas = () => `<div class="stack"><h1>Campanhas de e-mail</h1><div class="grid-2"><div class="card tight stat"><div class="v">${4 - campaigns.filter((c) => c.shop === myShop.id).length} de 4</div><div class="l">campanhas locais inclusas restantes este mês · 1.284 clientes em Maringá</div></div><div class="card tight stat"><div class="v">0</div><div class="l">e-mails nacionais (pacotes a partir de R$ 99 por 10 mil)</div></div></div>
+    <section class="card"><h2>Nova campanha</h2><form id="camp" novalidate><div class="field"><label for="c-s">Assunto</label><input id="c-s" maxlength="120" placeholder="ex.: Sexta tem pão de queijo com 15% de volta"></div><div class="field"><label for="c-b">Mensagem</label><textarea id="c-b" maxlength="4000" placeholder="Conte a oferta, o prazo e onde fica a loja."></textarea><small class="muted">O robô moderador bloqueia golpe, aposta e texto com cara de spam antes de enviar.</small></div><button class="btn">Enviar campanha</button></form></section></div>`;
+
+  // ---------- Render e eventos ----------
+  function render() {
+    if (mode === 'biz' && !bizNav.some((n) => n[0] === page)) page = 'painel';
+    if (mode === 'cli' && !cliNav.some((n) => n[0] === page) && page !== 'loja') page = 'home';
+    document.getElementById('view').innerHTML = V[page]();
+    nav();
+    const use = document.getElementById('b-use');
+    if (use) use.addEventListener('change', () => (document.getElementById('b-code-f').hidden = !use.checked));
+  }
+  document.addEventListener('click', (e) => {
+    const g = e.target.closest('[data-go]');
+    if (g) { e.preventDefault(); if (g.dataset.go === 'lancar') { lastResult = null; lastError = null; } go(g.dataset.go, g.dataset.p); return; }
+    const a = e.target.closest('[data-act]');
+    if (a) {
+      const act = a.dataset.act, p = a.dataset.p;
+      if (act === 'resgate') { redemption = { code: String(Math.floor(100000 + Math.random() * 900000)), shop: p, max: balance(p), exp: Date.now() + 15 * 60000 }; render(); }
+      if (act === 'toggle') { const r = myShop.rules.find((x) => x.id === p); r.active = !r.active; render(); toast(r.active ? 'Regra ativada' : 'Regra pausada'); }
+      if (act === 'cancelar') {
+        const pu = purchases.find((x) => x.id === p); pu.canceled = true;
+        const cr = ledger.find((l) => l.purchaseId === p && l.kind === 'credit');
+        if (cr) ledger.unshift({ id: 'l' + ledger.length, shop: pu.shop, kind: 'reversal', cents: -Math.min(cr.cents, Math.max(0, balance(pu.shop))), at: now(), purchaseId: p });
+        if (pu.redeemed) ledger.unshift({ id: 'l' + ledger.length, shop: pu.shop, kind: 'credit', cents: pu.redeemed, at: now(), purchaseId: p });
+        render(); toast('Compra cancelada e cashback estornado');
+      }
+      return;
+    }
+    const q = e.target.closest('[data-ask]');
+    if (q) { chat.push({ me: true, t: q.dataset.ask }, { me: false, t: bot(q.dataset.ask) }); render(); }
+  });
+  document.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = e.target;
+    if (f.id === 'chat-form') { const v = document.getElementById('chat-in').value.trim(); if (!v) return; chat.push({ me: true, t: v }, { me: false, t: bot(v) }); render(); }
+    if (f.id === 'buy') {
+      lastError = null;
+      const who = document.getElementById('b-cli').value.trim().toUpperCase().replace(/\s/g, '');
+      const digits = who.replace(/\D/g, '');
+      const amount = parseBRL(document.getElementById('b-val').value);
+      if (!(who === client.code || digits === client.cpf.replace(/\D/g, '') || digits === client.phone)) lastError = 'Cliente não encontrado. Confira o código, CPF, celular ou e-mail.';
+      else if (!Number.isFinite(amount) || amount <= 0) lastError = 'Informe o valor da compra, ex.: 45,90';
+      let redeemed = 0;
+      if (!lastError && document.getElementById('b-use').checked) {
+        const code = document.getElementById('b-code').value.trim();
+        if (!redemption || redemption.code !== code || redemption.shop !== myShop.id || redemption.exp < Date.now()) lastError = 'Código de resgate inválido ou vencido. Peça ao cliente para gerar outro no app.';
+        else { redeemed = Math.min(redemption.max, Math.max(0, balance(myShop.id)), amount); redemption = null; }
+      }
+      if (lastError) { lastResult = null; render(); return; }
+      lastResult = addPurchase(myShop, amount, redeemed, now());
+      render(); toast(`+${brl(lastResult.cashback)} para ${client.name.split(' ')[0]}`);
+    }
+    if (f.id === 'rule') {
+      const t = document.getElementById('r-t').value.trim();
+      const kind = f.querySelector('input[name=k]:checked').value;
+      const raw = document.getElementById('r-v').value;
+      const value = kind === 'percent' ? Math.round(Number(raw.replace(',', '.')) * 100) : parseBRL(raw);
+      const min = parseBRL(document.getElementById('r-m').value) || 0;
+      const days = [...f.querySelectorAll('input[name=d]:checked')].map((x) => +x.value);
+      if (t.length < 2 || !Number.isFinite(value) || value <= 0 || (kind === 'percent' && value > 10000)) { toast('Preencha nome e valor válidos'); return; }
+      myShop.rules.push({ id: 'r' + Date.now(), title: t, kind, value, min, max: null, days: days.length === 7 ? null : days, active: true });
+      render(); toast('Regra salva');
+    }
+    if (f.id === 'camp') {
+      const s = document.getElementById('c-s').value.trim(), b = document.getElementById('c-b').value.trim();
+      if (s.length < 4 || b.length < 10) { toast('Escreva assunto e mensagem'); return; }
+      if (/aposta|tigrinho|senha|pix para|bit\.ly/i.test(s + ' ' + b)) { toast('Campanha bloqueada pelo robô moderador'); return; }
+      if (campaigns.filter((c) => c.shop === myShop.id).length >= 4) { toast('As 4 campanhas locais do mês já foram usadas'); return; }
+      campaigns.unshift({ id: 'c' + Date.now(), shop: myShop.id, subject: s, body: b, at: now() });
+      render(); toast('Enviada para 1.284 clientes. Veja em "Cliente" > Início');
+    }
+  });
+  function setMode(m) {
+    mode = m;
+    document.getElementById('as-cli').setAttribute('aria-pressed', m === 'cli');
+    document.getElementById('as-biz').setAttribute('aria-pressed', m === 'biz');
+    page = m === 'cli' ? 'home' : 'painel'; lastResult = null; lastError = null; render(); window.scrollTo(0, 0);
+  }
+  document.getElementById('as-cli').addEventListener('click', () => setMode('cli'));
+  document.getElementById('as-biz').addEventListener('click', () => setMode('biz'));
+  render();
+})();
+</script>

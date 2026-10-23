@@ -1,0 +1,309 @@
+<title>Cashbacksmart Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/*APPCSS*/
+:root { color-scheme: light; }
+body { background: var(--bg); }
+.demo-switch { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; background: #FFF4D6; border-bottom: 1px solid #F1D98A; }
+.demo-switch .wrap { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; flex-wrap: wrap; padding-block: 6px; }
+.demo-switch small { color: #7A5300; font-weight: 600; }
+.seg button { border: 0; background: none; font: 600 .92rem var(--body); padding: 8px 16px; border-radius: 999px; cursor: pointer; color: var(--ink); }
+.seg button[aria-pressed=true] { background: var(--ink); color: #fff; }
+.tabbar button, .topnav button { background: none; border: 0; font: inherit; cursor: pointer; }
+.tabbar button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px 9px; font-size: .72rem; font-weight: 600; color: var(--ink-soft); }
+.tabbar button svg { width: 24px; height: 24px; }
+.tabbar button[aria-current=page] { color: var(--ink); }
+.tabbar button[aria-current=page] svg { color: var(--green); }
+.topnav button { padding: 8px 12px; border-radius: 999px; font-weight: 600; font-size: .95rem; color: #C9D1F2; }
+.topnav button[aria-current=page] { background: rgba(255,255,255,.12); color: #fff; }
+.store { cursor: pointer; width: 100%; background: none; border: 0; text-align: left; font: inherit; color: inherit; padding: 0; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.list > .store { padding: 12px 0; }
+.list > .store + .store { border-top: 1px solid var(--line); }
+.toast { white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 999px; font-weight: 600; z-index: 70; box-shadow: 0 10px 30px -10px rgba(0,0,0,.4); }
+.qr svg, .qr img { width: 220px; height: 220px; display: block; }
+</style>
+
+<div class="demo-switch">
+  <div class="wrap">
+    <small>Demonstração: dados de exemplo, nada é salvo</small>
+    <div class="seg" role="group" aria-label="Ver como">
+      <button id="as-cli" aria-pressed="true">Cliente</button>
+      <button id="as-biz" aria-pressed="false">Loja</button>
+    </div>
+  </div>
+</div>
+<header class="topbar">
+  <div class="wrap">
+    <span class="logo"><img src="data:image/svg+xml;base64,/*LOGONEG*/" alt="Cashbacksmart"></span>
+    <nav class="topnav" id="topnav" aria-label="Principal"></nav>
+  </div>
+</header>
+<main class="page"><div class="wrap" id="view"></div></main>
+<nav class="tabbar" id="tabbar" aria-label="Principal"></nav>
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+(function () {
+  const brl = (c) => (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const pct = (bps) => (bps / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%';
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const parseBRL = (s) => { s = String(s || '').replace(/[R$\s]/g, ''); if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.'); const n = Number(s); return Number.isFinite(n) ? Math.round(n * 100) : NaN; };
+  const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const now = () => new Date();
+  const fmtDT = (d) => d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+  const I = {
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+    store: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l1.5-5h13L20 9M4 9h16M4 9v11h16V9M9 20v-6h6v6"/></svg>',
+    qr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v7h-7M17 21v-4"/></svg>',
+    wallet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/></svg>',
+    help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/></svg>',
+    chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+    rules: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4L19 6"/><path d="M5 19h14"/></svg>',
+    mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  };
+
+  // ---------- Dados de exemplo ----------
+  const client = { name: 'Carlos Cliente', code: 'T6MUHTLA', cpf: '111.444.777-35', phone: '44977776666', city: 'Maringá' };
+  const shops = [
+    { id: 'pad', name: 'Padaria Trigo Bom', cat: 'Alimentação', bairro: 'Zona 7', rules: [{ id: 'r1', title: 'Cashback em todas as compras', kind: 'percent', value: 1000, min: 0, max: null, days: null, active: true }, { id: 'r2', title: 'Terça em dobro', kind: 'percent', value: 2000, min: 0, max: 2000, days: [2], active: true }] },
+    { id: 'far', name: 'Farmácia Vida', cat: 'Farmácia', bairro: 'Centro', rules: [{ id: 'r3', title: 'Cashback em todas as compras', kind: 'percent', value: 500, min: 0, max: null, days: null, active: true }] },
+    { id: 'sal', name: 'Studio Bela', cat: 'Beleza e estética', bairro: 'Zona 5', rules: [{ id: 'r4', title: 'Cashback fixo por atendimento', kind: 'fixed', value: 700, min: 3000, max: null, days: null, active: true }] },
+    { id: 'mer', name: 'Mercadinho Central', cat: 'Mercado', bairro: 'Vila Operária', rules: [{ id: 'r5', title: 'Cashback em todas as compras', kind: 'percent', value: 300, min: 0, max: null, days: null, active: true }] },
+  ];
+  const myShop = shops[0];
+  const ledger = []; // {id, shop, kind, cents, at, purchaseId}
+  const purchases = []; // loja: {id, shop, customer, amount, redeemed, cashback, fee, at, canceled}
+  const campaigns = [{ id: 'c0', shop: 'mer', subject: 'Sexta da feira: 6% de volta em hortifrúti', body: 'Toda sexta, cashback em dobro nas frutas e verduras.', at: new Date(Date.now() - 86400000) }];
+  let redemption = null; // {code, shop, max, exp}
+  const chat = [];
+
+  function addPurchase(shop, amount, redeemed, at) {
+    const paid = amount - redeemed;
+    const best = bestRule(shop, paid, at);
+    const cb = best ? best.cents : 0;
+    const p = { id: 'p' + (purchases.length + 1), shop: shop.id, customer: client.name, amount, redeemed, cashback: cb, fee: Math.round(redeemed * 0.2), at, canceled: false, rule: best ? best.rule.title : null };
+    purchases.unshift(p);
+    if (redeemed > 0) ledger.unshift({ id: 'l' + ledger.length, shop: shop.id, kind: 'debit', cents: -redeemed, at, purchaseId: p.id });
+    if (cb > 0) ledger.unshift({ id: 'l' + ledger.length, shop: shop.id, kind: 'credit', cents: cb, at, purchaseId: p.id });
+    return p;
+  }
+  function cashbackFor(r, paid, when) {
+    if (!r.active || paid <= 0 || paid < r.min) return 0;
+    if (r.days && !r.days.includes(when.getDay())) return 0;
+    let c = r.kind === 'fixed' ? r.value : Math.floor((paid * r.value) / 10000);
+    if (r.max != null) c = Math.min(c, r.max);
+    return Math.max(0, Math.min(c, paid));
+  }
+  function bestRule(shop, paid, when) {
+    let best = null;
+    for (const r of shop.rules) { const c = cashbackFor(r, paid, when); if (c > 0 && (!best || c > best.cents)) best = { rule: r, cents: c }; }
+    return best;
+  }
+  const balance = (shopId) => ledger.filter((l) => l.shop === shopId).reduce((s, l) => s + l.cents, 0);
+  const total = () => shops.reduce((s, sh) => s + Math.max(0, balance(sh.id)), 0);
+  const shopById = (id) => shops.find((s) => s.id === id);
+  // histórico inicial
+  const d = (h) => new Date(Date.now() - h * 3600000);
+  addPurchase(shops[3], 21430, 0, d(50));
+  addPurchase(shops[1], 8990, 0, d(30));
+  addPurchase(shops[0], 3250, 0, d(5));
+
+  function offerText(sh) {
+    const best = sh.rules.filter((r) => r.active).sort((a, b) => (b.kind === 'percent' ? b.value * 100 : b.value) - (a.kind === 'percent' ? a.value * 100 : a.value))[0];
+    if (!best) return '';
+    const restricted = best.days || best.min > 0;
+    return `${restricted ? '<small>até</small>' : ''}${best.kind === 'percent' ? pct(best.value) : brl(best.value)}<small>de volta</small>`;
+  }
+  function ruleSummary(r) {
+    const p = [r.kind === 'percent' ? `${pct(r.value)} de volta` : `${brl(r.value)} de volta por compra`];
+    if (r.min > 0) p.push(`em compras a partir de ${brl(r.min)}`);
+    if (r.max != null) p.push(`até ${brl(r.max)} por compra`);
+    if (r.days) p.push('só ' + r.days.map((x) => DAYS[x]).join(', '));
+    return p.join(' · ');
+  }
+
+  // ---------- Navegação ----------
+  let mode = 'cli', page = 'home', param = null;
+  const cliNav = [['home', 'Início', I.home], ['lojas', 'Lojas', I.store], ['codigo', 'Meu código', I.qr], ['carteira', 'Carteira', I.wallet], ['ajuda', 'Ajuda', I.help]];
+  const bizNav = [['painel', 'Painel', I.chart], ['lancar', 'Lançar compra', I.plus], ['regras', 'Cashback', I.rules], ['campanhas', 'Campanhas', I.mail]];
+  function go(p, prm) { page = p; param = prm || null; render(); window.scrollTo(0, 0); }
+  function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 2600); }
+  function nav() {
+    const items = mode === 'cli' ? cliNav : bizNav;
+    const active = page === 'loja' ? 'lojas' : page;
+    document.getElementById('tabbar').innerHTML = items.map(([k, l, i]) => `<button data-go="${k}" ${active === k ? 'aria-current="page"' : ''}>${i}${l}</button>`).join('');
+    document.getElementById('topnav').innerHTML = items.map(([k, l]) => `<button data-go="${k}" ${active === k ? 'aria-current="page"' : ''}>${l}</button>`).join('');
+  }
+
+  // ---------- Telas do cliente ----------
+  function storeRow(sh) {
+    return `<button class="store" data-go="loja" data-p="${sh.id}"><span class="badge" aria-hidden="true">${sh.name[0]}</span><span><strong style="display:block">${esc(sh.name)}</strong><small>${sh.cat} · ${sh.bairro}</small></span><span class="offer">${offerText(sh)}</span></button>`;
+  }
+  const V = {};
+  V.home = () => `
+    <div class="stack">
+      <section class="receipt ink" aria-label="Seu saldo">
+        <div class="row between"><span>Olá, Carlos</span><small>Conta grátis</small></div>
+        <p class="muted" style="margin:14px 0 4px">Saldo para usar</p>
+        <div class="amount coin">${brl(total())}</div>
+        <div class="row" style="margin-top:16px"><button class="btn coin sm" data-go="codigo">Mostrar meu código</button><button class="btn sm" data-go="carteira" style="background:transparent;border:2px solid rgba(255,255,255,.35)">Ver carteira</button></div>
+      </section>
+      <section class="card" style="margin-top:24px"><div class="row between"><h2>Cashback em Maringá</h2><button class="linkbtn" data-go="lojas">Ver todas</button></div><div class="list">${shops.map(storeRow).join('')}</div></section>
+      <section class="card"><h2>Ofertas para você</h2><div class="list">${campaigns.map((c) => `<article><small>${esc(shopById(c.shop).name)} · ${c.at.toLocaleDateString('pt-BR')}</small><h3 style="margin:4px 0">${esc(c.subject)}</h3><p style="margin:0;white-space:pre-line">${esc(c.body)}</p></article>`).join('')}</div></section>
+    </div>`;
+  V.lojas = () => `<div class="stack"><h1>Lojas em Maringá</h1><section class="card"><div class="list">${shops.map(storeRow).join('')}</div></section></div>`;
+  V.loja = () => {
+    const sh = shopById(param); const bal = balance(sh.id);
+    const code = redemption && redemption.shop === sh.id && redemption.exp > Date.now() ? redemption : null;
+    return `<div class="stack"><button class="linkbtn" data-go="lojas">← Lojas</button>
+      <div><h1 style="margin-bottom:4px">${esc(sh.name)}</h1><p class="muted">${sh.cat} · ${sh.bairro}, Maringá/PR</p></div>
+      <section class="receipt"><p class="muted" style="margin:0">Seu saldo nesta loja</p><div class="amount green">${brl(Math.max(0, bal))}</div>
+        <div style="margin-top:14px">${code ? `<div class="alert info" role="status"><div>Informe este código no caixa para usar até ${brl(code.max)}:</div><div class="code-big">${code.code}</div><small>Vale por 15 minutos. Na demonstração, troque para "Loja" e use o código em Lançar compra.</small></div>` : bal > 0 ? `<button class="btn coin" data-act="resgate" data-p="${sh.id}">Usar meu saldo nesta loja</button>` : '<p class="muted" style="margin:0">Compre aqui e informe seu código no caixa para ganhar cashback.</p>'}</div>
+      </section>
+      <section class="card" style="margin-top:24px"><h2>Como ganhar cashback aqui</h2><div class="list">${sh.rules.filter((r) => r.active).map((r) => `<div><strong>${esc(r.title)}</strong><p style="margin:2px 0">${ruleSummary(r)}</p><small>Saldo liberado na hora, vale por 180 dias</small></div>`).join('')}</div></section></div>`;
+  };
+  V.codigo = () => {
+    let qrHtml = '';
+    try { const q = qrcode(0, 'M'); q.addData(client.code); q.make(); qrHtml = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true }); } catch (e) { qrHtml = '<p class="muted">QR indisponível</p>'; }
+    return `<div class="stack" style="text-align:center;max-width:460px;margin:0 auto"><h1>Meu código</h1><p class="muted">Mostre no caixa antes de pagar. A loja também pode te achar pelo CPF ou celular.</p><div><div class="qr">${qrHtml}</div></div><div class="code-big">${client.code.slice(0, 4)} ${client.code.slice(4)}</div>
+      <div class="card tight" style="text-align:left"><h3>Indique e ganhe</h3><p style="margin:0">Você e quem você indicar ganham 30 dias de Premium: saldo que não vence.</p></div></div>`;
+  };
+  V.carteira = () => {
+    const KIND = { credit: 'Cashback recebido', debit: 'Saldo usado', reversal: 'Compra cancelada' };
+    return `<div class="stack"><h1>Carteira</h1><section class="receipt"><p class="muted" style="margin:0">Saldo total para usar</p><div class="amount green">${brl(total())}</div><small>O saldo de cada loja é usado na própria loja.</small></section>
+      <section class="card" style="margin-top:24px"><h2>Por loja</h2><div class="list">${shops.filter((s) => balance(s.id) > 0).map((s) => `<button class="store" data-go="loja" data-p="${s.id}"><span class="badge">${s.name[0]}</span><span><strong style="display:block">${esc(s.name)}</strong><small>vale por 180 dias</small></span><span class="offer">${brl(balance(s.id))}</span></button>`).join('') || '<p class="muted">Sem saldo ainda.</p>'}</div></section>
+      <section class="card"><h2>Extrato</h2><div class="table-wrap"><table><thead><tr><th>Data</th><th>Loja</th><th>Movimento</th><th class="num">Valor</th></tr></thead><tbody>${ledger.map((l) => `<tr><td>${fmtDT(l.at)}</td><td>${esc(shopById(l.shop).name)}</td><td>${KIND[l.kind]}</td><td class="num" style="color:${l.cents > 0 ? 'var(--green-deep)' : 'var(--coral)'}">${l.cents > 0 ? '+' : ''}${brl(l.cents)}</td></tr>`).join('')}</tbody></table></div></section></div>`;
+  };
+  V.ajuda = () => `<div class="stack" style="max-width:640px"><h1>Ajuda</h1><div class="chat"><div class="chat-log">${chat.length ? '' : '<p class="bubble bot">Oi! Sou o atendente automático do Cashbacksmart. Pergunte sobre saldo, faturas, lojas ou como usar o app.</p>'}${chat.map((m) => `<p class="bubble ${m.me ? 'me' : 'bot'}">${esc(m.t)}</p>`).join('')}</div>
+    <div class="row" style="gap:8px;margin:10px 0">${['Qual meu saldo?', 'Como uso meu saldo?', 'Quanto custa?', 'Lojas perto de mim'].map((s) => `<button class="btn ghost sm" data-ask="${s}">${s}</button>`).join('')}</div>
+    <form class="chat-form" id="chat-form"><input id="chat-in" aria-label="Mensagem" placeholder="Escreva sua dúvida" autocomplete="off"><button class="btn">Enviar</button></form></div></div>`;
+  function bot(q) {
+    const t = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const has = (...w) => w.some((x) => t.includes(x));
+    if (has('saldo', 'quanto tenho', 'carteira')) return shops.filter((s) => balance(s.id) > 0).map((s) => `${s.name}: ${brl(balance(s.id))} disponível`).join('\n') || 'Sem saldo no momento.';
+    if (has('usar', 'resgat', 'desconto')) return 'Abra a loja no app, toque em "Usar meu saldo nesta loja" e informe no caixa o código de 6 números (vale 15 minutos). O saldo de cada loja só vale nela.';
+    if (has('custa', 'preco', 'fatura', 'assinatura', 'pagar')) return 'Sua conta é grátis. O Premium é opcional: R$ 4/mês (R$ 48 por ano) e o seu saldo nunca vence.';
+    if (has('loja', 'perto', 'onde', 'padaria', 'farmacia')) return shops.map((s) => `${s.name} (${s.cat})`).join('\n');
+    if (has('cancel')) return 'Você cancela em Conta > Cancelar assinatura. O acesso continua até o fim do período pago.';
+    if (has('oi', 'ola', 'bom dia', 'boa tarde', 'boa noite')) return 'Olá! Posso ver seu saldo, faturas, lojas e tirar dúvidas. O que você precisa?';
+    return 'Não entendi bem. Posso ajudar com saldo, faturas, como usar o saldo, lojas e cancelamento.';
+  }
+
+  // ---------- Telas da loja ----------
+  const mine = () => purchases.filter((p) => p.shop === myShop.id);
+  V.painel = () => {
+    const m = mine().filter((p) => !p.canceled);
+    const stats = [['Vendas no mês', brl(m.reduce((s, p) => s + p.amount, 0))], ['Compras no mês', m.length], ['Cashback dado', brl(m.reduce((s, p) => s + p.cashback, 0))], ['Saldo resgatado', brl(m.reduce((s, p) => s + p.redeemed, 0))], ['Taxa de 20% a faturar', brl(m.reduce((s, p) => s + p.fee, 0))]];
+    return `<div class="stack"><div class="row between"><div><h1 style="margin-bottom:2px">${esc(myShop.name)}</h1><small>Sem mensalidade até ${new Date(Date.now() + 172 * 86400000).toLocaleDateString('pt-BR')} · depois R$ 49,90/mês + 20% do cashback usado · fatura no dia 1º, sem multa para cancelar</small></div><button class="btn" data-go="lancar">Lançar compra</button></div>
+      <section class="grid">${stats.map(([l, v]) => `<div class="card tight stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')}</section>
+      <section class="card"><h2>Últimas compras</h2>${mine().length ? `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Cliente</th><th class="num">Compra</th><th class="num">Saldo usado</th><th class="num">Cashback</th><th></th></tr></thead><tbody>${mine().map((p) => `<tr style="${p.canceled ? 'opacity:.55' : ''}"><td>${fmtDT(p.at)}</td><td>${esc(p.customer)}</td><td class="num">${brl(p.amount)}</td><td class="num">${p.redeemed ? brl(p.redeemed) : '—'}</td><td class="num">${brl(p.cashback)}</td><td>${p.canceled ? '<span class="tag">Cancelada</span>' : `<button class="linkbtn" data-act="cancelar" data-p="${p.id}" style="font-size:.85rem">Cancelar</button>`}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">Nenhuma compra ainda.</p>'}</section></div>`;
+  };
+  let lastResult = null, lastError = null;
+  V.lancar = () => `<div class="stack" style="max-width:560px"><h1>Lançar compra</h1>
+    ${lastResult ? `<section class="receipt" role="status"><p class="muted" style="margin:0">Compra registrada para ${esc(lastResult.customer)}</p><div class="amount green">+${brl(lastResult.cashback)}</div><p style="margin:4px 0 0">de cashback${lastResult.rule ? ` (${esc(lastResult.rule)})` : ''}</p><ul style="margin:10px 0 0;padding-left:18px"><li>Valor da compra: ${brl(lastResult.amount)}</li>${lastResult.redeemed ? `<li>Saldo usado pelo cliente: −${brl(lastResult.redeemed)}</li>` : ''}<li><strong>Cobrar do cliente: ${brl(lastResult.amount - lastResult.redeemed)}</strong></li></ul></section>` : ''}
+    <form class="card" id="buy" novalidate style="${lastResult ? 'margin-top:24px' : ''}">
+      ${lastError ? `<p class="alert error" role="alert" style="margin-bottom:14px">${esc(lastError)}</p>` : ''}
+      <div class="field"><label for="b-cli">Cliente</label><input id="b-cli" placeholder="Código, CPF, celular ou e-mail" autocomplete="off"><small class="muted">Na demonstração use o código ${client.code} ou o CPF ${client.cpf}.</small></div>
+      <div class="field"><label for="b-val">Valor da compra (R$)</label><input id="b-val" inputmode="decimal" placeholder="0,00" style="font-size:1.4rem;font-weight:700"></div>
+      <div class="field"><label class="check"><input type="checkbox" id="b-use"><span>Cliente quer usar o saldo</span></label></div>
+      <div class="field" id="b-code-f" hidden><label for="b-code">Código de resgate (6 números do app do cliente)</label><input id="b-code" inputmode="numeric" maxlength="6"></div>
+      <button class="btn block">Registrar compra</button>
+    </form>
+    <section class="card tight"><h3>Regras ativas</h3><ul style="margin:0;padding-left:18px">${myShop.rules.filter((r) => r.active).map((r) => `<li><strong>${esc(r.title)}:</strong> ${ruleSummary(r)}</li>`).join('')}</ul><small class="muted">Se mais de uma regra valer, o cliente ganha a maior.</small></section></div>`;
+  V.regras = () => `<div class="stack"><h1>Regras de cashback</h1><p class="muted">Cashback em valor fixo ou percentual. Quando mais de uma regra vale, o cliente ganha a maior.</p>
+    <section class="card"><div class="list">${myShop.rules.map((r) => `<div class="row between" style="align-items:flex-start"><div style="flex:1 1 240px"><strong>${esc(r.title)}</strong> ${r.active ? '<span class="tag green">Ativa</span>' : '<span class="tag">Pausada</span>'}<p style="margin:2px 0">${ruleSummary(r)}</p></div><button class="btn ghost sm" data-act="toggle" data-p="${r.id}">${r.active ? 'Pausar' : 'Ativar'}</button></div>`).join('')}</div></section>
+    <section class="card"><h2>Nova regra</h2><form id="rule" novalidate>
+      <div class="field"><label for="r-t">Nome da regra</label><input id="r-t" placeholder="ex.: Sexta em dobro"></div>
+      <div class="field"><span style="display:block;font-weight:600;font-size:.92rem;margin-bottom:6px">Tipo</span><div class="seg" role="radiogroup" aria-label="Tipo"><label><input type="radio" name="k" value="percent" checked><span>% da compra</span></label><label><input type="radio" name="k" value="fixed"><span>Valor fixo R$</span></label></div></div>
+      <div class="grid-2"><div class="field"><label for="r-v">Valor (% ou R$)</label><input id="r-v" inputmode="decimal" placeholder="5 ou 3,00"></div><div class="field"><label for="r-m">Compra mínima (R$, opcional)</label><input id="r-m" inputmode="decimal" placeholder="0,00"></div></div>
+      <fieldset class="field" style="border:0;padding:0"><legend style="font-weight:600;font-size:.92rem;margin-bottom:6px">Dias da semana</legend><div class="days">${DAYS.map((x, i) => `<label><input type="checkbox" name="d" value="${i}" checked><span>${x}</span></label>`).join('')}</div></fieldset>
+      <button class="btn">Salvar regra</button></form></section></div>`;
+  V.campanhas = () => `<div class="stack"><h1>Campanhas de e-mail</h1><div class="grid-2"><div class="card tight stat"><div class="v">${4 - campaigns.filter((c) => c.shop === myShop.id).length} de 4</div><div class="l">campanhas locais inclusas restantes este mês · 1.284 clientes em Maringá</div></div><div class="card tight stat"><div class="v">0</div><div class="l">e-mails nacionais (pacotes a partir de R$ 99 por 10 mil)</div></div></div>
+    <section class="card"><h2>Nova campanha</h2><form id="camp" novalidate><div class="field"><label for="c-s">Assunto</label><input id="c-s" maxlength="120" placeholder="ex.: Sexta tem pão de queijo com 15% de volta"></div><div class="field"><label for="c-b">Mensagem</label><textarea id="c-b" maxlength="4000" placeholder="Conte a oferta, o prazo e onde fica a loja."></textarea><small class="muted">O robô moderador bloqueia golpe, aposta e texto com cara de spam antes de enviar.</small></div><button class="btn">Enviar campanha</button></form></section></div>`;
+
+  // ---------- Render e eventos ----------
+  function render() {
+    if (mode === 'biz' && !bizNav.some((n) => n[0] === page)) page = 'painel';
+    if (mode === 'cli' && !cliNav.some((n) => n[0] === page) && page !== 'loja') page = 'home';
+    document.getElementById('view').innerHTML = V[page]();
+    nav();
+    const use = document.getElementById('b-use');
+    if (use) use.addEventListener('change', () => (document.getElementById('b-code-f').hidden = !use.checked));
+  }
+  document.addEventListener('click', (e) => {
+    const g = e.target.closest('[data-go]');
+    if (g) { e.preventDefault(); if (g.dataset.go === 'lancar') { lastResult = null; lastError = null; } go(g.dataset.go, g.dataset.p); return; }
+    const a = e.target.closest('[data-act]');
+    if (a) {
+      const act = a.dataset.act, p = a.dataset.p;
+      if (act === 'resgate') { redemption = { code: String(Math.floor(100000 + Math.random() * 900000)), shop: p, max: balance(p), exp: Date.now() + 15 * 60000 }; render(); }
+      if (act === 'toggle') { const r = myShop.rules.find((x) => x.id === p); r.active = !r.active; render(); toast(r.active ? 'Regra ativada' : 'Regra pausada'); }
+      if (act === 'cancelar') {
+        const pu = purchases.find((x) => x.id === p); pu.canceled = true;
+        const cr = ledger.find((l) => l.purchaseId === p && l.kind === 'credit');
+        if (cr) ledger.unshift({ id: 'l' + ledger.length, shop: pu.shop, kind: 'reversal', cents: -Math.min(cr.cents, Math.max(0, balance(pu.shop))), at: now(), purchaseId: p });
+        if (pu.redeemed) ledger.unshift({ id: 'l' + ledger.length, shop: pu.shop, kind: 'credit', cents: pu.redeemed, at: now(), purchaseId: p });
+        render(); toast('Compra cancelada e cashback estornado');
+      }
+      return;
+    }
+    const q = e.target.closest('[data-ask]');
+    if (q) { chat.push({ me: true, t: q.dataset.ask }, { me: false, t: bot(q.dataset.ask) }); render(); }
+  });
+  document.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = e.target;
+    if (f.id === 'chat-form') { const v = document.getElementById('chat-in').value.trim(); if (!v) return; chat.push({ me: true, t: v }, { me: false, t: bot(v) }); render(); }
+    if (f.id === 'buy') {
+      lastError = null;
+      const who = document.getElementById('b-cli').value.trim().toUpperCase().replace(/\s/g, '');
+      const digits = who.replace(/\D/g, '');
+      const amount = parseBRL(document.getElementById('b-val').value);
+      if (!(who === client.code || digits === client.cpf.replace(/\D/g, '') || digits === client.phone)) lastError = 'Cliente não encontrado. Confira o código, CPF, celular ou e-mail.';
+      else if (!Number.isFinite(amount) || amount <= 0) lastError = 'Informe o valor da compra, ex.: 45,90';
+      let redeemed = 0;
+      if (!lastError && document.getElementById('b-use').checked) {
+        const code = document.getElementById('b-code').value.trim();
+        if (!redemption || redemption.code !== code || redemption.shop !== myShop.id || redemption.exp < Date.now()) lastError = 'Código de resgate inválido ou vencido. Peça ao cliente para gerar outro no app.';
+        else { redeemed = Math.min(redemption.max, Math.max(0, balance(myShop.id)), amount); redemption = null; }
+      }
+      if (lastError) { lastResult = null; render(); return; }
+      lastResult = addPurchase(myShop, amount, redeemed, now());
+      render(); toast(`+${brl(lastResult.cashback)} para ${client.name.split(' ')[0]}`);
+    }
+    if (f.id === 'rule') {
+      const t = document.getElementById('r-t').value.trim();
+      const kind = f.querySelector('input[name=k]:checked').value;
+      const raw = document.getElementById('r-v').value;
+      const value = kind === 'percent' ? Math.round(Number(raw.replace(',', '.')) * 100) : parseBRL(raw);
+      const min = parseBRL(document.getElementById('r-m').value) || 0;
+      const days = [...f.querySelectorAll('input[name=d]:checked')].map((x) => +x.value);
+      if (t.length < 2 || !Number.isFinite(value) || value <= 0 || (kind === 'percent' && value > 10000)) { toast('Preencha nome e valor válidos'); return; }
+      myShop.rules.push({ id: 'r' + Date.now(), title: t, kind, value, min, max: null, days: days.length === 7 ? null : days, active: true });
+      render(); toast('Regra salva');
+    }
+    if (f.id === 'camp') {
+      const s = document.getElementById('c-s').value.trim(), b = document.getElementById('c-b').value.trim();
+      if (s.length < 4 || b.length < 10) { toast('Escreva assunto e mensagem'); return; }
+      if (/aposta|tigrinho|senha|pix para|bit\.ly/i.test(s + ' ' + b)) { toast('Campanha bloqueada pelo robô moderador'); return; }
+      if (campaigns.filter((c) => c.shop === myShop.id).length >= 4) { toast('As 4 campanhas locais do mês já foram usadas'); return; }
+      campaigns.unshift({ id: 'c' + Date.now(), shop: myShop.id, subject: s, body: b, at: now() });
+      render(); toast('Enviada para 1.284 clientes. Veja em "Cliente" > Início');
+    }
+  });
+  function setMode(m) {
+    mode = m;
+    document.getElementById('as-cli').setAttribute('aria-pressed', m === 'cli');
+    document.getElementById('as-biz').setAttribute('aria-pressed', m === 'biz');
+    page = m === 'cli' ? 'home' : 'painel'; lastResult = null; lastError = null; render(); window.scrollTo(0, 0);
+  }
+  document.getElementById('as-cli').addEventListener('click', () => setMode('cli'));
+  document.getElementById('as-biz').addEventListener('click', () => setMode('biz'));
+  render();
+})();
+</script>

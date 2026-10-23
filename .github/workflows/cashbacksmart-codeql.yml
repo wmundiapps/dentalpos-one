@@ -1,0 +1,26 @@
+# Cashbacksmart: robô de análise de segurança do código (procura falhas como injeção e XSS)
+name: Cashbacksmart CodeQL
+on:
+  push:
+    branches: [main]
+    paths: ['cashbacksmart/app/**']
+  pull_request:
+    paths: ['cashbacksmart/app/**']
+  schedule: [{ cron: '0 6 * * 1' }]
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions: { security-events: write, contents: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+          config: |
+            paths:
+              - cashbacksmart/app
+            paths-ignore:
+              - cashbacksmart/app/node_modules
+              - cashbacksmart/app/.next
+      - uses: github/codeql-action/analyze@v3

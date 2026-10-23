@@ -1,0 +1,10 @@
+# Atualizações de segurança das dependências do Cashbacksmart
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /cashbacksmart/app
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 10
+  - package-ecosystem: npm
+    directory: /cashbacksmart/mobile
+    schedule: { interval: weekly }

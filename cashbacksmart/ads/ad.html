@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: B; src: url(bg800.woff2) format('woff2'); font-weight: 800; }
+@font-face { font-family: F; src: url(f600.woff2) format('woff2'); font-weight: 600; }
+@font-face { font-family: F; src: url(f700.woff2) format('woff2'); font-weight: 700; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: var(--w); height: var(--h); overflow: hidden; }
+body { font-family: F, sans-serif; color: #1B2A6B; }
+.ad { width: var(--w); height: var(--h); position: relative; display: flex; flex-direction: column; padding: calc(var(--u) * 7); gap: calc(var(--u) * 4); overflow: hidden; }
+.ad.white { background: #fff; }
+.ad.coin { background: #FFB627; }
+.ad.ink { background: #1B2A6B; color: #fff; }
+.logo { height: calc(var(--u) * 7.5); align-self: flex-start; }
+h1 { font-family: B; font-weight: 800; letter-spacing: -0.035em; line-height: .96; font-size: calc(var(--u) * var(--hs, 12)); }
+.sub { font-weight: 600; font-size: calc(var(--u) * 4.4); line-height: 1.3; opacity: .92; }
+.cta { align-self: flex-start; background: #12A150; color: #fff; font-weight: 700; font-size: calc(var(--u) * 4.4); padding: calc(var(--u) * 2.6) calc(var(--u) * 5.5); border-radius: 999px; white-space: nowrap; }
+.ad.ink .cta { background: #FFB627; color: #1B2A6B; }
+.ad.coin .cta { background: #1B2A6B; }
+.price { font-weight: 700; font-size: calc(var(--u) * 4); }
+.grow { flex: 1; min-height: 0; position: relative; }
+.fit { position: absolute; left: 0; transform-origin: left top; display: flex; flex-direction: column; gap: calc(var(--u) * 4); }
+.big { font-size: calc(var(--u) * 30) !important; white-space: nowrap; }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: calc(var(--u) * 3); flex-wrap: wrap; }
+
+/* cupom */
+.ticket { background: #fff; border: calc(var(--u) * .25) solid #D9E1F5; border-bottom: 0; border-radius: calc(var(--u) * 1) calc(var(--u) * 1) 0 0; padding: calc(var(--u) * 4) calc(var(--u) * 4.5) calc(var(--u) * 5.5);
+  position: relative; box-shadow: 0 calc(var(--u) * 5) calc(var(--u) * 9) calc(var(--u) * -5) rgba(27,42,107,.35); transform: rotate(2deg); }
+.ticket::after { content: ''; position: absolute; left: -1px; right: -1px; bottom: calc(var(--u) * -2); height: calc(var(--u) * 2);
+  background: linear-gradient(-45deg, transparent calc(var(--u) * 1.4), #fff 0) 0 0 / calc(var(--u) * 2.8) calc(var(--u) * 2) repeat-x, linear-gradient(45deg, transparent calc(var(--u) * 1.4), #fff 0) 0 0 / calc(var(--u) * 2.8) calc(var(--u) * 2) repeat-x; }
+.tl { display: flex; justify-content: space-between; align-items: baseline; padding: calc(var(--u) * 1.8) 0; border-bottom: calc(var(--u) * .25) dotted #D9E1F5; font-size: calc(var(--u) * 3.8); font-weight: 700; gap: calc(var(--u) * 2); }
+.tl b { font-family: B; color: #12A150; font-size: calc(var(--u) * 4.6); white-space: nowrap; }
+.tt { display: flex; justify-content: space-between; align-items: baseline; padding-top: calc(var(--u) * 2.4); font-size: calc(var(--u) * 3.8); font-weight: 600; }
+.tt b { font-family: B; color: #12A150; font-size: calc(var(--u) * 8.5); letter-spacing: -0.02em; }
+
+/* conta */
+.big { font-family: B; font-size: calc(var(--u) * 34); line-height: .82; letter-spacing: -0.05em; }
+.big small { font-size: .34em; letter-spacing: -0.02em; }
+.vs { background: #fff; border-radius: calc(var(--u) * 3); padding: calc(var(--u) * 3.5) calc(var(--u) * 4.5); font-size: calc(var(--u) * 4.4); font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: calc(var(--u) * 3); }
+.vs b { font-family: B; color: #12A150; font-size: calc(var(--u) * 8); white-space: nowrap; }
+
+/* loja */
+.list { display: flex; flex-direction: column; gap: calc(var(--u) * 2.4); }
+.li { display: flex; gap: calc(var(--u) * 2.6); align-items: flex-start; font-size: calc(var(--u) * 4.4); font-weight: 600; line-height: 1.25; }
+.li::before { content: ''; flex: none; width: calc(var(--u) * 3.4); height: calc(var(--u) * 1.8); margin-top: calc(var(--u) * .9); border-left: calc(var(--u) * .9) solid #FFB627; border-bottom: calc(var(--u) * .9) solid #FFB627; transform: rotate(-45deg); }
+
+/* layouts */
+.wide { flex-direction: row; align-items: center; }
+.wide .col { flex: 1; display: flex; flex-direction: column; gap: calc(var(--u) * 4); min-width: 0; height: 100%; justify-content: center; }
+.wide .col.art { flex: .9; align-items: center; }
+.banner { flex-direction: row; align-items: center; padding: calc(var(--u) * 10) calc(var(--u) * 14); gap: calc(var(--u) * 12); }
+.banner .logo { height: calc(var(--u) * 34); align-self: center; }
+.banner h1 { font-size: calc(var(--u) * 38); flex: 1; letter-spacing: -0.02em; line-height: 1; }
+.banner .cta { font-size: calc(var(--u) * 24); padding: calc(var(--u) * 14) calc(var(--u) * 28); align-self: center; }
+.banner .price { font-size: calc(var(--u) * 22); white-space: nowrap; }
+</style>
+</head>
+<body>
+<script>
+const p = new URLSearchParams(location.search);
+const W = +p.get('w'), H = +p.get('h'), V = p.get('v');
+const r = W / H;
+const mode = r > 3.2 ? 'banner' : r > 1.35 ? 'wide' : 'stack';
+const sky = r < 0.4;
+const u = mode === 'banner' ? H / 100 : mode === 'wide' ? Math.min(H / 100 * 1.25, W / 190) : sky ? W / 58 : Math.min(W / 100, H / 100 * (r < .6 ? 1.0 : .95));
+document.documentElement.style.cssText = `--w:${W}px;--h:${H}px;--u:${u}px`;
+
+const C = {
+  cupom: { bg: 'white', logo: 'logo.svg', h: 'Compra no bairro.<br>Dinheiro de volta.', hb: 'Compra no bairro. Dinheiro de volta.', sub: 'Padaria, farmácia, salão e mercado da sua cidade devolvem parte do que você gasta.', cta: 'Baixar grátis', price: 'Grátis para você',
+    art: `<div class="ticket"><div class="tl"><span>Padaria Trigo Bom</span><b>+ R$ 3,25</b></div><div class="tl"><span>Farmácia Vida</span><b>+ R$ 4,49</b></div><div class="tl"><span>Studio Bela</span><b>+ R$ 7,00</b></div><div class="tl"><span>Mercadinho Central</span><b>+ R$ 6,43</b></div><div class="tt"><span>Voltou no mês</span><b>R$ 21,17</b></div></div>` },
+  conta: { bg: 'coin', logo: 'logo.svg', h: 'Cliente novo ganha até 30% de volta.', hb: 'Cliente novo ganha até 30% de volta.', sub: 'Crie sua conta grátis e aproveite as promoções de boas-vindas das lojas do seu bairro.', cta: 'Criar conta grátis', price: '',
+    art: `<div class="big">30%<small> de volta</small></div><div class="vs"><span>Primeira compra de R$ 50 na padaria</span><b>+ R$ 15,00</b></div>` },
+  loja: { bg: 'ink', logo: 'logo-neg.svg', h: 'APROVEITE: 6 meses<br>de mensalidade grátis.', hb: 'APROVEITE: 6 meses de mensalidade grátis', sub: '', cta: 'Cadastrar minha loja', price: 'Cancele quando quiser, sem multa',
+    art: `<div class="list"><div class="li">Seu cliente volta para usar o cashback</div><div class="li">Kit do caixa com QR: o cliente cadastra a nota</div><div class="li">Contatos de novos clientes no seu WhatsApp</div><div class="li">Depois, R$ 49,90/mês + 20% do cashback usado</div></div>` },
+};
+const c = C[V];
+let html = '';
+if (mode === 'banner') {
+  html = `<div class="ad ${c.bg} banner"><img class="logo" src="${c.logo}"><h1>${c.hb}</h1>${c.price && W > 900 ? `<span class="price">${c.price}</span>` : ''}<span class="cta">${c.cta}</span></div>`;
+} else if (mode === 'wide') {
+  html = `<div class="ad ${c.bg} wide"><div class="col"><img class="logo" src="${c.logo}"><h1 style="--hs:${V === 'loja' ? 8.5 : 10}">${c.h}</h1>${c.sub ? `<p class="sub">${c.sub}</p>` : ''}<div class="foot"><span class="cta">${c.cta}</span>${c.price ? `<span class="price">${c.price}</span>` : ''}</div></div><div class="col art grow" style="height:100%"><div class="fit">${c.art}</div></div></div>`;
+} else {
+  const tall = r < .7, tiny = W < 400;
+  const hs = V === 'loja' ? (tall ? 11 : 9.5) : V === 'conta' ? (tall ? 13 : 10) : tall ? 12 : 9;
+  const showSub = c.sub && !tiny && !sky && (tall || V !== 'cupom');
+  const art = (tiny || sky) && V === 'loja' ? `<div class="list"><div class="li">Cliente volta</div><div class="li">QR no caixa</div><div class="li">Sem multa</div></div>` : c.art;
+  html = `<div class="ad ${c.bg}" style="${sky ? 'padding:calc(var(--u)*6) calc(var(--u)*5)' : tall ? `padding-top:calc(var(--u)*${r < .6 ? 18 : 9});padding-bottom:calc(var(--u)*${r < .6 ? 22 : 9})` : ''}"><img class="logo" src="${c.logo}"><h1 style="--hs:${tiny ? hs * .95 : hs}">${c.h}</h1>${showSub ? `<p class="sub">${c.sub}</p>` : ''}<div class="grow">${art ? `<div class="fit">${art}</div>` : ''}</div><div class="foot"><span class="cta">${c.cta}</span>${c.price && !sky ? `<span class="price">${c.price}</span>` : ''}</div></div>`;
+}
+document.body.innerHTML = html;
+function fit() {
+  const g = document.querySelector('.grow'), f = document.querySelector('.fit');
+  if (!g || !f) return;
+  f.style.width = g.clientWidth + 'px';
+  f.style.transform = 'none';
+  const sc = Math.min(1, g.clientHeight / f.offsetHeight, g.clientWidth / f.scrollWidth);
+  f.style.transform = `scale(${sc})`;
+  f.style.top = Math.max(0, (g.clientHeight - f.offsetHeight * sc) / 2) + 'px';
+  f.style.left = mode === 'wide' ? Math.max(0, (g.clientWidth - f.offsetWidth * sc) / 2) + 'px' : '0px';
+}
+document.fonts.ready.then(() => {
+  // reduz o título até tudo caber
+  const ad = document.querySelector('.ad'), h1 = document.querySelector('h1'), fe = document.querySelector('.fit');
+  if (fe) fe.style.display = 'none';
+  for (let i = 0; i < 25 && (ad.scrollHeight > H + 1 || ad.scrollWidth > W + 1); i++) {
+    const cur = parseFloat(getComputedStyle(h1).fontSize);
+    h1.style.fontSize = cur * 0.93 + 'px';
+  }
+  if (fe) fe.style.display = 'flex';
+  fit();
+  document.body.dataset.ready = '1';
+});
+</script>
+</body>
+</html>
