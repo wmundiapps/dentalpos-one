@@ -450,6 +450,9 @@ function TimeGridView({
             const dayItems = items
               .filter((appointment) => appointment.dateISO === dayISO && appointment.status !== "Cancelado")
               .sort((a, b) => a.time.localeCompare(b.time));
+            // A primeira coluna já fica junto da margem com as horas; nas demais a hora aparece ao lado do nome.
+            const isFirstDay = dayISO === dates[0];
+            const gutter = isFirstDay ? 4 : HOUR_GUTTER;
             return (
               <Box
                 key={dayISO}
@@ -463,7 +466,7 @@ function TimeGridView({
                     "repeating-linear-gradient(to bottom, transparent 0, transparent 29px, rgba(0,0,0,.08) 30px)",
                 }}
               >
-                {hours.map((hour) => (
+                {!isFirstDay && hours.map((hour) => (
                   <Typography
                     key={`h-${dayISO}-${hour}`}
                     variant="caption"
@@ -608,7 +611,7 @@ function TimeGridView({
                       sx={{
                         position: "absolute",
                         top,
-                        left: sunday ? HOUR_GUTTER + 14 : HOUR_GUTTER,
+                        left: sunday ? gutter + 14 : gutter,
                         right: sunday ? 0 : 4,
                         height,
                         p: 0.7,
