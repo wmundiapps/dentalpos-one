@@ -64,3 +64,9 @@ Design/CAD-CAM, Administrativo (permissões + biometria), Gestão (hora clínica
 ## Credenciais e acessos
 
 Ver `HANDOFF-DentalPos-One.md`, entregue separadamente e **nunca commitado neste repositório** (confirmado via `git log --all -- "HANDOFF*"`). O `.gitignore` também bloqueia `HANDOFF*.md`.
+
+### 18. Kit da Clínica (documentos, cartões digitais e lembretes) — status: EM REVISÃO (PR claude/kit-clinica, 23/10/2026)
+- Nova tela `/kit-clinica` (menu Clínico): atestado, receituário, contrato, manual de biossegurança, IT e POP com timbre; cartões da clínica e de cada pessoa da equipe (QR de WhatsApp/contato); cartão de lembrete 4:5 + mensagens por canal (WhatsApp, SMS, e-mail, Instagram). Downloads PNG/PDF/ZIP.
+- Identidade da clínica sai do localStorage e vai para o cadastro `Clinic` (logo, cor, contatos) via `PUT /settings/clinic`; extras em `ClinicBrandKit` (SQL `backend/prisma/manual-migrations/20261023_kit_clinica.sql`, rodar antes de mesclar).
+- Documentos Clínicos impressos passam a sair com o timbre da clínica.
+- Texto do contrato é modelo base: precisa da revisão da Dra. Roberta antes de uso com pacientes.

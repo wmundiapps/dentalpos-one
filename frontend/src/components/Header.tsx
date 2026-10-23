@@ -45,7 +45,10 @@ export default function Header() {
   const { mode, toggleMode } = useAppTheme();
   const demo = readDemoAccess();
   const sessionUser = readSessionUser();
-  const clinicLogo = localStorage.getItem("dentalpos.clinicLogo") || "";
+  const [identityTick, setIdentityTick] = useState(0);
+  useEffect(() => { const on = () => setIdentityTick((n) => n + 1); window.addEventListener("dentalpos:identity", on); return () => window.removeEventListener("dentalpos:identity", on); }, []);
+  // Logo salva no cadastro da clínica (sessão); o localStorage antigo fica como reserva.
+  const clinicLogo = (identityTick >= 0 && (readSessionUser()?.clinic?.logo || localStorage.getItem("dentalpos.clinicLogo"))) || "";
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);

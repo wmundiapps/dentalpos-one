@@ -29,6 +29,7 @@ export interface SessionUser {
   clinic?: {
     name?: string;
     displayName?: string | null;
+    logo?: string | null;
     plan?: string;
   };
 }
@@ -102,7 +103,7 @@ export function demoSalesUrl() {
 const ROUTE_MODULES: Array<[RegExp, string]> = [
   [/^\/(?:agenda|chegada-por-rosto)(?:\/|$)/, "agenda"],
   [/^\/pacientes(?:\/|$)/, "patients"],
-  [/^\/(?:prontuario|documentos-clinicos|orcamentos-tratamentos|painel-atendimentos)(?:\/|$)/, "clinical"],
+  [/^\/(?:prontuario|documentos-clinicos|kit-clinica|orcamentos-tratamentos|painel-atendimentos)(?:\/|$)/, "clinical"],
   [/^\/laboratorio(?:\/|$)/, "laboratory"],
   [/^\/design(?:\/|$)/, "design"],
   [/^\/(?:financeiro|pagamentos|inteligencia-financeira|rateio-condominio|fechamento-caixa)(?:\/|$)/, "finance"],

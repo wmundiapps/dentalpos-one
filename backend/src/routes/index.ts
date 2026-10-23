@@ -193,6 +193,8 @@ router.delete('/users/:userId/access-profiles/:profileId', requirePermission('us
 
 router.get('/settings/clinic', requirePermission('settings.view'), settingsController.show)
 router.put('/settings/clinic', requirePermission('settings.edit'), settingsController.update)
+router.get('/settings/brand-kit', requirePermission('agenda.view'), settingsController.brandKitShow)
+router.put('/settings/brand-kit', requirePermission('settings.edit'), settingsController.brandKitUpdate)
 
 router.get('/audit-logs', requirePermission('audit.view'), auditController.index)
 

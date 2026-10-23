@@ -8,6 +8,8 @@ import PageHeader from "../components/PageHeader";
 import { createClinicalDocument, issueClinicalDocument, listClinicalDocuments, listClinicalDocumentTemplates } from "../services/ClinicalDocumentService";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { readSessionUser } from "../services/DemoAccess";
+import { loadBrandKit } from "../services/BrandKitApi";
+import { KIT_CSS, letterhead } from "../utils/brandKit/templates";
 import type { ClinicalDocument, ClinicalDocumentTemplate, ClinicalDocumentType } from "../types/clinicalDocument";
 
 type Doc = ClinicalDocument & { patientId?: string; content?: string };
@@ -19,12 +21,24 @@ const LABELS: Record<ClinicalDocumentType, string> = {
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 
-function printDoc(doc: Doc, patientName: string) {
+// Impressão com o timbre da clínica (logo, nome, responsável técnico e contatos do Kit da Clínica).
+async function printDoc(doc: Doc, patientName: string) {
   const w = window.open("", "_blank", "width=900,height=1000");
   if (!w) return;
+  w.document.write("<p style=\"font-family:Arial;padding:40px\">Preparando documento…</p>");
+  let head = "";
+  try {
+    const r = await loadBrandKit();
+    const c = r.clinic; const k = r.kit || {};
+    head = letterhead({ name: c.displayName || c.name, tagline: k.tagline || "", logo: c.logo || "", color: c.primaryColor || "#1565C0", rtName: k.rtName || "", rtCro: k.rtCro || "", cnpj: c.cnpj || "", phone: c.phone || "", whatsapp: k.whatsapp || "", email: c.email || "", address: c.address || "", city: [c.city, c.state].filter(Boolean).join(" – "), site: k.site || "", instagram: k.instagram || "" });
+    head = `<div class="bkit"><div style="--b:${esc(c.primaryColor || "#1565C0")}">${head}</div></div>`;
+  } catch { /* sem identidade: imprime sem timbre */ }
   const meta = [LABELS[doc.documentType] || doc.documentType, `Paciente: ${patientName}`, doc.professionalName, new Date(doc.createdAt).toLocaleString("pt-BR"), doc.status === "DRAFT" ? "RASCUNHO" : ""].filter(Boolean).join(" • ");
-  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(doc.title)}</title><style>body{font-family:Arial,sans-serif;margin:40px;color:#111;line-height:1.5}h1{font-size:20px;margin:0 0 4px}.meta{color:#555;font-size:12px;margin-bottom:24px}pre{white-space:pre-wrap;font-family:inherit;font-size:14px}</style></head><body><h1>${esc(doc.title)}</h1><div class="meta">${esc(meta)}</div><pre>${esc(doc.content || "")}</pre></body></html>`);
+  w.document.open();
+  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(doc.title)}</title><style>${KIT_CSS}body{font-family:Arial,sans-serif;margin:40px;color:#111;line-height:1.5}h1{font-size:20px;margin:24px 0 4px}.meta{color:#555;font-size:12px;margin-bottom:24px}pre{white-space:pre-wrap;font-family:inherit;font-size:14px}</style></head><body>${head}<h1>${esc(doc.title)}</h1><div class="meta">${esc(meta)}</div><pre>${esc(doc.content || "")}</pre></body></html>`);
   w.document.close();
+  const imgs = Array.from(w.document.images);
+  await Promise.all(imgs.map((i) => (i.complete ? Promise.resolve() : new Promise<void>((r) => { i.onload = () => r(); i.onerror = () => r(); }))));
   w.focus();
   w.print();
 }
