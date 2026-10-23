@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { signupSource, adClickId, track } from '../tracking';
 import { api, ApiError } from '../api';
@@ -37,6 +37,14 @@ export function Login() {
   const [challenge, setChallenge] = useState<{ challengeId: string; email?: string; method?: 'app' | 'email' } | null>(null);
   const [code, setCode] = useState('');
   const [info, setInfo] = useState('');
+  const [busy, setBusy] = useState(false);
+  // Contador para reenviar o código: no mínimo 30 s entre um envio e outro
+  const [wait, setWait] = useState(0);
+  useEffect(() => {
+    if (wait <= 0) return;
+    const id = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(id);
+  }, [wait]);
   function done(r: { token: string; user: Me }) {
     rememberEmail(r.user.email);
     login(r.token, r.user);
@@ -44,12 +52,13 @@ export function Login() {
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setError('');
+    if (busy) return; // evita dois logins (e dois códigos por e-mail) num clique duplo
+    setError(''); setBusy(true);
     try {
       const r = await api<{ token: string; user: Me } | { twoFactor: true; challengeId: string; email?: string; method?: 'app' | 'email' }>('/auth/login', { body: { email, password } });
-      if ('twoFactor' in r) { setChallenge(r); setCode(''); setInfo(''); return; }
+      if ('twoFactor' in r) { setChallenge(r); setCode(''); setInfo(''); setWait(30); return; }
       done(r);
-    } catch (err) { setError(errorText(err, t)); }
+    } catch (err) { setError(errorText(err, t)); } finally { setBusy(false); }
   }
   async function verify(e: React.FormEvent) {
     e.preventDefault();
@@ -62,7 +71,8 @@ export function Login() {
   }
   async function resend() {
     setError(''); setInfo('');
-    try { await api('/auth/login/resend', { body: { challengeId: challenge!.challengeId } }); setInfo(t('auth.twoFactorResent')); }
+    if (wait > 0) return;
+    try { await api('/auth/login/resend', { body: { challengeId: challenge!.challengeId } }); setInfo(t('auth.twoFactorResent')); setWait(30); }
     catch (err) { setError(errorText(err, t)); }
   }
   if (challenge) return (
@@ -80,7 +90,7 @@ export function Login() {
         {error && <p className="errors" role="alert">{error}</p>}
         {info && <p className="notice small">{info}</p>}
         <button className="btn btn-primary block" disabled={challenge.method === 'app' ? code.replace(/-/g, '').length < 6 : code.length !== 6}>{t('auth.twoFactorConfirm')}</button>
-        <p className="small center">{challenge.method !== 'app' && <><button type="button" className="link-btn" onClick={resend}>{t('auth.twoFactorResend')}</button> · </>}<button type="button" className="link-btn" onClick={() => { setChallenge(null); setError(''); }}>{t('common.back')}</button></p>
+        <p className="small center">{challenge.method !== 'app' && <><button type="button" className="link-btn" disabled={wait > 0} onClick={resend}>{t('auth.twoFactorResend')}{wait > 0 ? ` (${wait}s)` : ''}</button> · </>}<button type="button" className="link-btn" onClick={() => { setChallenge(null); setError(''); }}>{t('common.back')}</button></p>
       </form>
     </div>
   );
@@ -104,7 +114,7 @@ export function Login() {
         <label>{t('form.password')}<input ref={passwordRef} type="password" name="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" autoFocus={!!email} /></label>
         <p className="small right"><Link to={`/esqueci-senha${email ? `?email=${encodeURIComponent(email)}` : ''}`}>{t('auth.forgot')}</Link></p>
         {error && <p className="errors" role="alert">{error}</p>}
-        <button className="btn btn-primary block">{t('auth.login')}</button>
+        <button className="btn btn-primary block" disabled={busy}>{busy ? t('common.wait') : t('auth.login')}</button>
         <p className="small center">{t('auth.noAccount')} <Link to={`/cadastro${params.get('next') ? `?next=${encodeURIComponent(params.get('next')!)}` : ''}`}>{t('auth.register')}</Link></p>
       </form>
       {import.meta.env.DEV && <div className="notice small">
