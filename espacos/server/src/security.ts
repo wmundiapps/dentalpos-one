@@ -58,7 +58,7 @@ export async function pruneSecurity() {
 // ───────────── Verificação em duas etapas (código no e-mail) ─────────────
 const CHALLENGE_MINUTES = 10;
 export const CHALLENGE_MAX_ATTEMPTS = 5;
-const RESEND_SECONDS = 60;
+const RESEND_SECONDS = 30; // reenvio do código e reaproveitamento em clique duplo
 const codeHash = (challengeId: string, code: string) => crypto.createHash('sha256').update(`${challengeId}:${code}`).digest('hex');
 
 /** Administradores sempre; demais contas se ativaram em Perfil. */
@@ -112,6 +112,13 @@ export async function startLoginChallenge(user: User, origin: { ip?: string; use
       [challengeId, user.id, origin.ip ?? null, origin.userAgent?.slice(0, 300) ?? null]);
     return { twoFactor: true as const, challengeId, method: 'app' as const };
   }
+  // Clique duplo em "Entrar" (ou nova tentativa logo em seguida): reaproveita o código que acabou
+  // de ser enviado em vez de mandar um segundo e-mail
+  const recent = await one<{ id: string }>(pool,
+    `SELECT id FROM login_challenges WHERE user_id = $1 AND method = 'email' AND used_at IS NULL AND code_hash <> ''
+       AND attempts = 0 AND expires_at > now() AND created_at > now() - make_interval(secs => $2)
+     ORDER BY created_at DESC LIMIT 1`, [user.id, RESEND_SECONDS]);
+  if (recent) return { twoFactor: true as const, challengeId: recent.id, method: 'email' as const, email: maskEmail(user.email) };
   await pool.query(
     `INSERT INTO login_challenges (id, user_id, code_hash, ip, user_agent, expires_at)
      VALUES ($1,$2,'',$3,$4, now() + make_interval(mins => $5))`,

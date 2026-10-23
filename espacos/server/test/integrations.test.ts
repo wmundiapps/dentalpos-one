@@ -1188,6 +1188,11 @@ test('segurança: bloqueio de senha errada, duas etapas opcionais, conteúdo imp
     assert.equal(ch.twoFactor, true);
     assert.equal(ch.token, undefined, 'sem token antes do código');
     const code = sent.at(-1)!.text.match(/código de acesso: (\d{6})/)![1];
+    // Clique duplo em "Entrar": reaproveita o mesmo código, sem segundo e-mail
+    const again = await (await post('/auth/login', { email: 'seguranca@example.com', password: 'senha-forte-1' })).json() as { challengeId: string };
+    assert.equal(again.challengeId, ch.challengeId);
+    assert.equal(sent.length, 1, 'um e-mail só');
+    assert.equal((await post('/auth/login/resend', { challengeId: ch.challengeId })).status, 429, 'reenvio só depois de 30 s');
     const wrong = await post('/auth/login/verify', { challengeId: ch.challengeId, code: code === '000000' ? '111111' : '000000' });
     assert.equal(wrong.status, 400);
     const ok = await post('/auth/login/verify', { challengeId: ch.challengeId, code });
