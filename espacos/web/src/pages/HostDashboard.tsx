@@ -36,6 +36,7 @@ export default function HostDashboard() {
         <Link to="/anfitriao/novo" className="btn btn-primary">+ {t('nav.newListing')}</Link>
       </div>
       <PayoutAccount />
+      <SecureAccountNudge />
       <div className="tabs">
         <button className={tab === 'requests' ? 'active' : ''} onClick={() => setTab('requests')}>{t('host.requests')} {requests.length > 0 && <span className="count">{requests.length}</span>}</button>
         <button className={tab === 'upcoming' ? 'active' : ''} onClick={() => setTab('upcoming')}>{t('host.upcoming')}</button>
@@ -171,6 +172,31 @@ function PixKeyReminder() {
       <p className="small">{t('pix.why')}</p>
       <ol className="small"><li>{t('pix.s1')}</li><li>{t('pix.s2')}</li><li>{t('pix.s3')}</li><li>{t('pix.s4')}</li></ol>
       <button className="btn btn-primary" onClick={() => { markPixDone(); setDone(true); }}>✅ {t('pix.done')}</button>
+    </div>
+  );
+}
+
+/** Convite para o anfitrião ativar as 2 etapas (protege anúncios e repasses); some quando ativar. */
+function SecureAccountNudge() {
+  const { t } = useI18n();
+  const KEY = 'sh_2fa_nudge_until';
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    let snoozed = false;
+    try { snoozed = Number(localStorage.getItem(KEY) ?? 0) > Date.now(); } catch { /* sem storage */ }
+    if (snoozed) return;
+    api<{ enabled: boolean }>('/me/two-factor').then((r) => setShow(!r.enabled)).catch(() => {});
+  }, []);
+  if (!show) return null;
+  const later = () => { try { localStorage.setItem(KEY, String(Date.now() + 7 * 86400000)); } catch { /* sem storage */ } setShow(false); };
+  return (
+    <div className="notice secure-nudge">
+      <strong>🔐 {t('host.secureTitle')}</strong>
+      <p className="small">{t('host.secureText')}</p>
+      <div className="row gap">
+        <Link to="/perfil#duas-etapas" className="btn btn-primary small">{t('host.secureCta')}</Link>
+        <button type="button" className="link-btn small" onClick={later}>{t('host.secureLater')}</button>
+      </div>
     </div>
   );
 }
