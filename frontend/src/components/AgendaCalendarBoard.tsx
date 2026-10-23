@@ -116,6 +116,8 @@ function statusColor(status: IntegratedAppointment["status"]): "success" | "erro
   return "default";
 }
 
+const HOUR_GUTTER = 44;
+
 function AppointmentCard({
   appointment,
   compact = false,
@@ -450,6 +452,28 @@ function TimeGridView({
                     "repeating-linear-gradient(to bottom, transparent 0, transparent 29px, rgba(0,0,0,.08) 30px)",
                 }}
               >
+                {hours.map((hour) => (
+                  <Typography
+                    key={`h-${dayISO}-${hour}`}
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      position: "absolute",
+                      top: `${((hour * 60 - START_MINUTES) / TOTAL_MINUTES) * 100}%`,
+                      left: 4,
+                      width: HOUR_GUTTER - 6,
+                      zIndex: 2,
+                      fontWeight: 700,
+                      fontSize: 11,
+                      lineHeight: 1,
+                      pointerEvents: "none",
+                      transform: "translateY(-50%)",
+                    }}
+                  >
+                    {String(hour).padStart(2, "0")}:00
+                  </Typography>
+                ))}
+
                 {slotRows(dayISO, dayItems).map((slot) => {
                   const top = ((slot.start - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
                   const height = ((slot.end - slot.start) / TOTAL_MINUTES) * GRID_HEIGHT;
@@ -566,7 +590,7 @@ function TimeGridView({
                       sx={{
                         position: "absolute",
                         top,
-                        left: 4,
+                        left: HOUR_GUTTER,
                         right: 4,
                         height,
                         p: 0.7,
@@ -582,7 +606,7 @@ function TimeGridView({
                       }}
                     >
                       <Typography variant="caption" sx={{ display: "block", fontWeight: 900, lineHeight: 1.15 }}>
-                        {appointment.time}–{endTime(appointment)} • {appointment.patientName}
+                        {appointment.patientName}
                       </Typography>
                       {height >= 48 && badges[0] ? (
                         <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />

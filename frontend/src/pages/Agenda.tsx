@@ -1308,7 +1308,9 @@ export default function Agenda() {
       </Dialog>
 
       <Dialog open={Boolean(edit)} onClose={() => setEdit(null)} fullWidth maxWidth="md">
-        <DialogTitle>{edit?.patientName}</DialogTitle>
+        <DialogTitle sx={{ fontSize: { xs: 28, md: 34 }, fontWeight: 900, lineHeight: 1.15, color: "text.primary", pb: 0.5 }}>
+          {edit?.patientName}
+        </DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
           {edit ? (
             <>
