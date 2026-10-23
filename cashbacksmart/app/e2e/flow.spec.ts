@@ -363,6 +363,7 @@ test('cabeçalhos de segurança e monitor de saúde', async ({ request }) => {
   expect(h['x-frame-options']).toBe('DENY');
   expect(h['strict-transport-security']).toContain('max-age');
   expect(h['x-powered-by']).toBeUndefined();
+  expect(h['content-security-policy']).not.toContain('facebook'); // pixels só liberados quando configurados
   const health = await request.get('/api/health');
   expect(health.status()).toBe(200);
   expect((await health.json()).db).toBe(true);

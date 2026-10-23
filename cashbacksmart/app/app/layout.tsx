@@ -6,6 +6,7 @@ import '@fontsource/figtree/500.css';
 import '@fontsource/figtree/600.css';
 import '@fontsource/figtree/700.css';
 import './globals.css';
+import { Tracking } from '@/components/Tracking';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL || 'http://localhost:3000'),
@@ -20,7 +21,10 @@ export const viewport: Viewport = { themeColor: '#1B2A6B', width: 'device-width'
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Tracking />
+      </body>
     </html>
   );
 }

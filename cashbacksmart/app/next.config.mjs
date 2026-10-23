@@ -2,13 +2,20 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 const dir = path.dirname(fileURLToPath(import.meta.url));
 
+// Medição de anúncios: só libera os domínios dos pixels que estiverem configurados
+const metaPixel = !!process.env.NEXT_PUBLIC_META_PIXEL_ID;
+const tiktokPixel = !!process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID;
+const scriptExtra = [metaPixel && 'https://connect.facebook.net', tiktokPixel && 'https://analytics.tiktok.com'].filter(Boolean).join(' ');
+const imgExtra = [metaPixel && 'https://www.facebook.com', tiktokPixel && 'https://analytics.tiktok.com'].filter(Boolean).join(' ');
+const connectExtra = [metaPixel && 'https://www.facebook.com https://connect.facebook.net', tiktokPixel && 'https://analytics.tiktok.com https://analytics-ipv6.tiktokw.us'].filter(Boolean).join(' ');
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com ${scriptExtra}`.trim(),
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  `img-src 'self' data: blob: ${imgExtra}`.trim(),
   "font-src 'self' data:",
-  "connect-src 'self'",
+  `connect-src 'self' ${connectExtra}`.trim(),
   "frame-src https://challenges.cloudflare.com",
   "media-src 'self' blob:",
   "object-src 'none'",

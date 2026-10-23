@@ -11,7 +11,9 @@
     "e2e": "playwright test",
     "migrate": "tsx scripts/migrate.ts",
     "seed": "tsx scripts/seed.ts",
-    "check-env": "tsx scripts/check-env.ts"
+    "check-env": "tsx scripts/check-env.ts",
+    "smoke": "tsx scripts/smoke.ts",
+    "bundle-sql": "tsx scripts/bundle-sql.ts"
   },
   "keywords": [],
   "author": "",
