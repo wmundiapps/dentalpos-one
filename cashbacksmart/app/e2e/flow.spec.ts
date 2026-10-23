@@ -305,6 +305,35 @@ test.describe.serial('fluxo completo empresa + cliente', () => {
   });
 });
 
+test('LGPD: cliente baixa os dados e exclui a conta', async ({ browser }) => {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  const email = `lgpd${Date.now()}@e2e.com`;
+  await page.goto('/cadastro');
+  await page.getByLabel('Nome completo', { exact: true }).fill('Cliente Lgpd');
+  await page.getByLabel('E-mail', { exact: true }).fill(email);
+  await page.getByLabel('Celular com DDD', { exact: true }).fill('44991230000');
+  await page.getByLabel('CPF', { exact: true }).fill('168.995.350-09');
+  await page.getByLabel('Cidade', { exact: true }).fill('Maringá');
+  await page.getByLabel('Senha', { exact: true }).fill('senha12345');
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: 'Criar conta grátis' }).click();
+  await expect(page).toHaveURL(/\/app/);
+  await page.goto('/app/conta');
+  const res = await page.request.get('/api/conta/exportar');
+  expect(res.status()).toBe(200);
+  expect((await res.json()).conta.email).toBe(email);
+  await page.locator('summary', { hasText: 'Excluir minha conta' }).click();
+  await page.getByLabel('Senha', { exact: true }).fill('senha12345');
+  await page.getByLabel('Digite EXCLUIR para confirmar').fill('EXCLUIR');
+  await page.getByRole('button', { name: 'Excluir minha conta para sempre' }).click();
+  await expect(page).toHaveURL(/\/entrar\?conta=excluida/);
+  await expect(page.getByText('Sua conta foi excluída')).toBeVisible();
+  await login(page, email, 'senha12345');
+  await expect(page.locator('p.alert.error')).toHaveText('E-mail ou senha incorretos');
+  await ctx.close();
+});
+
 test('recuperação de senha por link de uso único', async ({ page }) => {
   await page.goto('/entrar');
   await page.getByRole('link', { name: 'Esqueci minha senha' }).click();

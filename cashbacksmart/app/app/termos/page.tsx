@@ -35,7 +35,7 @@ export default function Termos() {
         momento pelo link no rodapé ou na sua conta, sem perder o acesso às ofertas no app. Avisos do seu cashback (crédito, confirmação de nota e saldo perto de vencer) chegam por
         e-mail e pelo canal que você escolher na conta: WhatsApp ou SMS (ou só e-mail).
       </p>
-      <h2>5. Dados pessoais (LGPD)</h2>
+      <h2 id="privacidade">5. Dados pessoais (LGPD)</h2>
       <p>
         Usamos nome, e-mail, celular, CPF e cidade para identificar você no caixa, calcular o cashback, cobrar a assinatura e mostrar ofertas da sua região. As empresas veem
         apenas seu nome e o histórico de compras feitas nelas. Não vendemos seus dados. Nas páginas de oferta (captação de clientes), quem preenche o formulário

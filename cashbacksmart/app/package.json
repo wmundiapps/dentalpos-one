@@ -10,7 +10,8 @@
     "start": "next start",
     "e2e": "playwright test",
     "migrate": "tsx scripts/migrate.ts",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "check-env": "tsx scripts/check-env.ts"
   },
   "keywords": [],
   "author": "",

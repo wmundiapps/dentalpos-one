@@ -11,8 +11,8 @@ const config: CapacitorConfig = {
   appName: 'Cashbacksmart',
   webDir: 'www',
   server: { url: `${APP_URL}/app`, cleartext: false, errorPath: 'offline.html' },
-  ios: { contentInset: 'automatic', backgroundColor: '#1B2A6B' },
-  android: { backgroundColor: '#1B2A6B' },
+  ios: { contentInset: 'automatic', backgroundColor: '#1B2A6B', appendUserAgent: 'CashbacksmartApp/ios' },
+  android: { backgroundColor: '#1B2A6B', appendUserAgent: 'CashbacksmartApp/android' },
   plugins: {
     SplashScreen: { launchShowDuration: 1200, backgroundColor: '#1B2A6B', showSpinner: false },
     StatusBar: { style: 'DARK', backgroundColor: '#1B2A6B' },

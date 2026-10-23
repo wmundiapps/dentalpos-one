@@ -21,6 +21,7 @@ import { welcome } from '@/lib/services/notify';
 import { pushToUser } from '@/lib/push';
 import { botReply } from '@/lib/services/bot';
 import { resolveFlag } from '@/lib/services/fraud';
+import { deleteConsumerAccount } from '@/lib/services/privacy';
 
 export type ActionState = { error?: string; ok?: string; data?: any } | null;
 
@@ -174,6 +175,18 @@ export async function logoutEverywhereAction() {
 export async function logoutAction() {
   await destroySession();
   redirect('/');
+}
+
+export async function deleteAccountAction(_: ActionState, f: FormData): Promise<ActionState> {
+  const r = await run(async () => {
+    const sess = await requireRole('consumer');
+    if (s(f, 'confirm').toUpperCase() !== 'EXCLUIR') throw new UserError('Para confirmar, digite EXCLUIR');
+    await deleteConsumerAccount(sess.userId, String(f.get('password') || ''));
+    await destroySession();
+    return { ok: 'excluida' };
+  });
+  if (r?.ok === 'excluida') redirect('/entrar?conta=excluida');
+  return r;
 }
 
 export async function signupConsumerAction(_: ActionState, f: FormData): Promise<ActionState> {
@@ -450,6 +463,7 @@ export async function verifyPhoneAction(_: ActionState, f: FormData): Promise<Ac
 export async function premiumAction(_: ActionState, f: FormData): Promise<ActionState> {
   return run(async () => {
     const sess = await requireRole('consumer');
+    if ((await clientMeta()).ua?.includes('CashbacksmartApp/ios')) throw new UserError('O Premium não está disponível neste aplicativo');
     await buyPremium(sess.userId);
     revalidatePath('/app/conta');
     return { ok: 'Fatura do Premium criada. Pague abaixo para ativar: seu saldo deixa de vencer na hora.' };

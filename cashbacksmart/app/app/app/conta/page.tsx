@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import { requireRole } from '@/lib/auth';
 import { getUser } from '@/lib/services/accounts';
 import { invoicesOf } from '@/lib/services/billing';
@@ -6,7 +7,7 @@ import { config, premiumPriceCents } from '@/lib/config';
 import { brl, dateBR } from '@/lib/format';
 import { InvoiceList } from '@/components/Invoices';
 import { ActionForm, Submit } from '@/components/ui';
-import { emailOptinAction, logoutAction, premiumAction, notifyChannelAction } from '@/app/actions';
+import { deleteAccountAction, emailOptinAction, logoutAction, premiumAction, notifyChannelAction } from '@/app/actions';
 import { PhoneVerify } from './PhoneVerify';
 
 export const metadata = { title: 'Conta' };
@@ -19,6 +20,8 @@ export default async function Conta() {
     one<{ premium_until: Date | null; phone_verified_at: Date | null; notify_channel: string }>('select premium_until, phone_verified_at, notify_channel from users where id=$1', [userId]),
   ]);
   const premium = extra?.premium_until && new Date(extra.premium_until) > new Date();
+  // Regra 3.1.1 da Apple: dentro do app do iPhone não se oferece compra de recurso digital fora do pagamento da Apple
+  const inIosApp = ((await headers()).get('user-agent') || '').includes('CashbacksmartApp/ios');
   return (
     <div className="stack">
       <h1>Conta</h1>
@@ -59,6 +62,7 @@ export default async function Conta() {
         </form>
       </section>
 
+      {(!inIosApp || premium) && (
       <section className="card">
         <h2>Premium: seu saldo nunca vence</h2>
         <p className="muted">
@@ -73,6 +77,7 @@ export default async function Conta() {
           </ActionForm>
         )}
       </section>
+      )}
 
       {invoices.length > 0 && (
         <section className="card">
@@ -103,6 +108,31 @@ export default async function Conta() {
         <a href="/seguranca" className="btn ghost sm">
           Abrir segurança da conta
         </a>
+      </section>
+
+      <section className="card">
+        <h2>Seus dados</h2>
+        <p className="muted">Baixe uma cópia de tudo o que guardamos sobre você ou exclua sua conta.</p>
+        <a href="/api/conta/exportar" className="btn ghost sm">
+          Baixar meus dados
+        </a>
+        <details style={{ marginTop: 16 }}>
+          <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Excluir minha conta</summary>
+          <ActionForm action={deleteAccountAction} className="stack">
+            <p className="muted" style={{ marginTop: 12 }}>
+              Seus dados pessoais são apagados e o saldo de cashback de todas as lojas é encerrado (ele não é dinheiro e não pode ser sacado). Não dá para desfazer.
+            </p>
+            <label>
+              Senha
+              <input name="password" type="password" autoComplete="current-password" required />
+            </label>
+            <label>
+              Digite EXCLUIR para confirmar
+              <input name="confirm" autoComplete="off" required />
+            </label>
+            <Submit className="btn danger">Excluir minha conta para sempre</Submit>
+          </ActionForm>
+        </details>
       </section>
 
       <form action={logoutAction}>
