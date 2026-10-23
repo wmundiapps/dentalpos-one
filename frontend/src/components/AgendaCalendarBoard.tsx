@@ -1,4 +1,5 @@
-import { Box, Chip, Paper, Typography } from "@mui/material";
+import { Box, Chip, Paper, Typography, useMediaQuery } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 import type { IntegratedAppointment } from "../types/operationsHub";
 import type { AgendaBlock, BackendSchedule, RecurringBreak } from "../services/ScheduleApi";
 import { getLaboratoryWorks } from "../services/OperationsHubService";
@@ -292,9 +293,14 @@ function TimeGridView({
   materialAlerts,
   financialAlerts,
 }: Omit<Props, "onDateChange">) {
-  const dates = view === "day" ? [dateISO] : weekDates(dateISO);
+  const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
+  const weekAll = view === "day" ? [dateISO] : weekDates(dateISO);
+  // No celular o domingo é sobreposto ao sábado, para os outros dias ganharem largura.
+  const mergeSunday = view === "week" && isMobile;
+  const dates = mergeSunday ? weekAll.slice(0, 6) : weekAll;
+  const sundayISO = mergeSunday ? weekAll[6] : "";
   const hours = Array.from({ length: 15 }, (_, index) => 7 + index);
-  const gridTemplateColumns = `68px repeat(${dates.length}, minmax(${view === "day" ? "620px" : "155px"}, 1fr))`;
+  const gridTemplateColumns = `${HOUR_GUTTER}px repeat(${dates.length}, minmax(${view === "day" ? "620px" : mergeSunday ? "168px" : "155px"}, 1fr))`;
 
   const slotRows = (dayISO: string, dayItems: IntegratedAppointment[]) => {
     const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
@@ -376,7 +382,7 @@ function TimeGridView({
 
   return (
     <Box sx={{ overflowX: "auto" }}>
-      <Box sx={{ minWidth: view === "week" ? 1160 : 760 }}>
+      <Box sx={{ minWidth: view === "week" ? (mergeSunday ? HOUR_GUTTER + 6 * 168 : 1160) : 760 }}>
         <Box sx={{ display: "grid", gridTemplateColumns }}>
           <Box sx={{ borderRight: 1, borderBottom: 1, borderColor: "divider", bgcolor: "action.hover" }} />
           {dates.map((dayISO) => (
@@ -407,6 +413,11 @@ function TimeGridView({
               <Typography variant="caption" sx={{ fontWeight: 900 }}>
                 {shortDate(dayISO)}
               </Typography>
+              {mergeSunday && dayISO === weekAll[5] ? (
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: 10 }}>
+                  + {shortDate(sundayISO)} (tracejado)
+                </Typography>
+              ) : null}
               {view === "week" ? (
                 <Typography variant="caption" color="primary.main" sx={{ display: "block", fontSize: 10 }}>
                   Clique para abrir o dia
@@ -430,7 +441,7 @@ function TimeGridView({
                   transform: "translateY(-50%)",
                 }}
               >
-                {String(hour).padStart(2, "0")}:00
+                {hour}
               </Typography>
             ))}
           </Box>
@@ -470,7 +481,7 @@ function TimeGridView({
                       transform: "translateY(-50%)",
                     }}
                   >
-                    {String(hour).padStart(2, "0")}:00
+                    {hour}
                   </Typography>
                 ))}
 
@@ -571,7 +582,14 @@ function TimeGridView({
                   );
                 })}
 
-                {dayItems.map((appointment) => {
+                {[
+                  ...dayItems.map((appointment) => ({ appointment, sunday: false })),
+                  ...(mergeSunday && dayISO === weekAll[5]
+                    ? items
+                        .filter((appointment) => appointment.dateISO === sundayISO && appointment.status !== "Cancelado")
+                        .map((appointment) => ({ appointment, sunday: true }))
+                    : []),
+                ].map(({ appointment, sunday }) => {
                   const start = minuteOfDay(appointment.time);
                   const duration = Math.max(10, appointment.durationMinutes || 30);
                   if (start >= END_MINUTES || start + duration <= START_MINUTES) return null;
@@ -582,7 +600,7 @@ function TimeGridView({
                   const badges = operationalBadges(appointment, materialAlerts, financialAlerts);
                   return (
                     <Box
-                      key={appointment.id}
+                      key={`${sunday ? "dom-" : ""}${appointment.id}`}
                       onClick={(event) => {
                         event.stopPropagation();
                         onAppointmentClick(appointment);
@@ -590,23 +608,23 @@ function TimeGridView({
                       sx={{
                         position: "absolute",
                         top,
-                        left: HOUR_GUTTER,
-                        right: 4,
+                        left: sunday ? HOUR_GUTTER + 14 : HOUR_GUTTER,
+                        right: sunday ? 0 : 4,
                         height,
                         p: 0.7,
-                        border: 1,
+                        border: sunday ? "1px dashed" : 1,
                         borderColor: "primary.light",
                         borderRadius: 1.5,
                         bgcolor: "background.paper",
                         boxShadow: 1,
                         overflow: "hidden",
                         cursor: "pointer",
-                        zIndex: 2,
+                        zIndex: sunday ? 3 : 2,
                         "&:hover": { boxShadow: 3 },
                       }}
                     >
                       <Typography variant="caption" sx={{ display: "block", fontWeight: 900, lineHeight: 1.15 }}>
-                        {appointment.patientName}
+                        {sunday ? "Dom · " : ""}{appointment.patientName}
                       </Typography>
                       {height >= 48 && badges[0] ? (
                         <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />
