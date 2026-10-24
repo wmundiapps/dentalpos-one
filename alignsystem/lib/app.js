@@ -6,7 +6,7 @@ import {
   currentUser, requireUser, createPasswordToken, consumePasswordToken,
 } from './auth.js';
 import { token, sha256, clean, digits, isEmail, appUrl, brl, validCpf, validCpfCnpj } from './util.js';
-import { sendMail, notifyAddress, layout, button, para, table } from './mail.js';
+import { sendMail, notifyAddress, layout, button, para, table, cashbackUrl, cashbackPromo } from './mail.js';
 import * as asaas from './asaas.js';
 import { timingSafeEqual } from 'node:crypto';
 import { MODEL, quote, pmt, dentistSplitPct, ownPriceDentistPct, breakagePrice } from './pricing.js';
@@ -171,6 +171,7 @@ r('GET', '/api/config', async (req, res) => {
     metaPixelId: digits(process.env.META_PIXEL_ID || ''),
     googleTagId: clean(process.env.GOOGLE_TAG_ID || '', 40).replace(/[^A-Za-z0-9-]/g, ''),
     photoSlots: PHOTO_SLOTS,
+    cashbackUrl: cashbackUrl(),
   }, { 'Cache-Control': 'public, max-age=300' });
 });
 
@@ -219,7 +220,7 @@ r('POST', '/api/leads/paciente', async (req, res) => {
       to: email,
       subject: 'Sua pré-avaliação AlignSystem — envie suas fotos',
       html: layout(`Olá, ${name.split(' ')[0]}!`, para('Recebemos seu contato. Pelo link abaixo você envia as 7 fotos do seu sorriso, acompanha o parecer da nossa equipe, agenda uma teleorientação e vê os próximos passos.') +
-        button(portalUrl(t), 'Enviar minhas fotos') + para('Guarde este e-mail: o link é pessoal e dá acesso à sua avaliação.')),
+        button(portalUrl(t), 'Enviar minhas fotos') + para('Guarde este e-mail: o link é pessoal e dá acesso à sua avaliação.') + cashbackPromo()),
     });
   }
   send(res, 201, { ok: true, token: t, portalUrl: `/minha-avaliacao?t=${t}`, code: c.code });
@@ -1605,7 +1606,7 @@ r('PATCH', '/api/admin/cases/:id', async (req, res, { id }) => {
     await sendMail({
       to: up.email ?? c.email,
       subject: 'Seu parecer AlignSystem está pronto',
-      html: layout(`Olá, ${c.name.split(' ')[0]}!`, para('A equipe AlignSystem analisou suas fotos. Veja o parecer e os próximos passos no seu link pessoal.') + button(portalUrl(c.token), 'Ver meu parecer')),
+      html: layout(`Olá, ${c.name.split(' ')[0]}!`, para('A equipe AlignSystem analisou suas fotos. Veja o parecer e os próximos passos no seu link pessoal.') + button(portalUrl(c.token), 'Ver meu parecer') + cashbackPromo()),
     });
   }
   if (b.dentist_id && b.dentist_id !== c.dentist_id) {
@@ -1667,7 +1668,7 @@ async function addAppointment(sql, u, caseId, b, dentistIdForced) {
       to: c.email,
       subject: kind === 'teleorientacao' ? 'Sua teleorientação AlignSystem está agendada' : 'Seu atendimento AlignSystem está agendado',
       html: layout('Agendamento confirmado', table([['Quando', when], ['Tipo', kind === 'teleorientacao' ? 'Teleorientação por vídeo' : kind === 'documentacao' ? 'Documentação (presencial)' : 'Consulta (presencial)'], ['Local', a.location]]) +
-        (roomUrl ? para('No horário marcado, entre pela sua página da avaliação — o botão da chamada de vídeo aparece lá.') : '') + button(portalUrl(c.token), 'Abrir minha avaliação')),
+        (roomUrl ? para('No horário marcado, entre pela sua página da avaliação — o botão da chamada de vídeo aparece lá.') : '') + button(portalUrl(c.token), 'Abrir minha avaliação') + cashbackPromo()),
     });
   }
   if (dentistId) {
@@ -2373,6 +2374,7 @@ r('POST', '/api/webhooks/asaas', async (req, res) => {
   const ch = await findCharge(p);
   if (!ch) fail(400, 'pagamento não pertence a uma cobrança da AlignSystem');
   await sql`insert into webhook_events (provider, event, payload) values ('asaas', ${clean(b.event, 80)}, ${sql.json({ ...b, payment: p })})`;
+  const [prevPay] = await sql`select paid_at from payments where asaas_payment_id = ${p.id}`;
   await upsertPayment(sql, p, ch);
   if (asaas.PAID.has(p.status) && ch.pay_option === 'BOLETO' && p.id === ch.asaas_payment_id) await ensureBoletos(sql, ch.id);
   if (asaas.PAID.has(p.status) && ch.kind === 'escaneamento') {
@@ -2388,6 +2390,11 @@ r('POST', '/api/webhooks/asaas', async (req, res) => {
     const [c] = await sql`select id, code, name from cases where id = ${ch.case_id}`;
     await logEvent(sql, { caseId: ch.case_id, actor: 'asaas', type: 'pagamento_confirmado', data: { value: p.value, id: p.id } });
     if (b.event === 'PAYMENT_RECEIVED' || b.event === 'PAYMENT_CONFIRMED') {
+      const [pc] = await sql`select email, name, token from cases where id = ${ch.case_id}`;
+      if (pc?.email && !prevPay?.paid_at) await sendMail({
+        to: pc.email, subject: 'Pagamento confirmado — AlignSystem',
+        html: layout(`Olá, ${pc.name.split(' ')[0]}!`, para(`Recebemos seu pagamento de ${brl(p.value)}. Obrigado!`) + button(portalUrl(pc.token), 'Abrir minha avaliação') + cashbackPromo()),
+      });
       await sendMail({
         to: notifyAddress(), subject: `Pagamento confirmado — caso #${c?.code} (${brl(p.value)})`,
         html: layout('Pagamento confirmado', table([['Paciente', c?.name], ['Valor', brl(p.value)], ['Descrição', p.description], ['Forma', p.billingType]])),

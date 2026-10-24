@@ -181,3 +181,19 @@ table.t tr.click:hover td{background:var(--bg-deep);}
   .price-grid th[scope=row] .small{display:inline;margin-left:4px}
   .price-grid td.span{grid-column:1/-1}
 }
+
+/* Cashbacksmart */
+.cb-banner{display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:linear-gradient(135deg,#12233A 0%,#1C3554 100%);color:#F7F2E8;border-radius:16px;padding:20px 22px;margin:0 0 18px;box-shadow:0 10px 28px rgba(18,35,58,.18);}
+.cb-banner h3{margin:4px 0 6px;font-family:var(--serif,Georgia,serif);font-size:20px;color:#fff;}
+.cb-banner p{margin:0;color:#E5DECF;font-size:14.5px;line-height:1.5;max-width:520px;}
+.cb-banner .cb-note{margin-top:6px;font-size:12px;color:#A9B2BF;}
+.cb-tag{display:inline-block;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#E8B65A;}
+.cb-btn{flex:none;background:#E8B65A;color:#1B1408;text-decoration:none;font-weight:700;padding:12px 24px;border-radius:999px;box-shadow:0 4px 14px rgba(232,182,90,.35);}
+.cb-btn:hover{background:#F2C674;}
+#cbPromo{padding-top:0;margin-bottom:28px;}
+.side a.cb-side{display:block;margin:18px 2px 0;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,#E8B65A,#C98A2C);color:#1B1408;text-decoration:none;box-shadow:0 6px 16px rgba(0,0,0,.25);}
+.side a.cb-side b{display:block;font-size:14.5px;}
+.side a.cb-side small{display:block;font-size:12px;opacity:.8;margin-top:2px;}
+.side a.cb-side .cb-ico{float:right;font-size:20px;}
+@media(max-width:720px){.cb-banner{padding:18px;}.cb-btn{width:100%;text-align:center;}}
+main#app:has(+ #cbPromo:not(.hidden)){padding-bottom:12px;}

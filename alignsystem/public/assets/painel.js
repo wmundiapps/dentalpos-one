@@ -5,6 +5,7 @@
   var api = AS.api;
   var root = document.getElementById('root');
   var me = null;
+  var cfg = {};
 
   // ------------------------------------------------------------ helpers de UI
   function $(s, el) { return (el || document).querySelector(s); }
@@ -399,8 +400,23 @@
     return '<div class="mobile-top"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="28"></span><button class="btn btn-sm btn-line" style="color:#fff;border-color:rgba(255,255,255,.4)" id="menuBtn">Menu</button></div>' +
       '<div class="shell"><aside class="side" id="side"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="30"></span>' +
       nav.map(function (n) { return '<a class="nav' + (n[2] === active ? ' on' : '') + '" href="' + n[0] + '">' + esc(n[1]) + '</a>'; }).join('') +
+      cashbackSide() +
       '<div class="who">' + esc(me.name) + '<br>' + esc(me.email) + '<br><a href="#" id="logout" style="color:#6FD1C2">Sair</a></div></aside>' +
-      '<main class="main" id="main">' + content + '</main></div>';
+      '<main class="main" id="main">' + (active === 'inicio' ? cashbackBanner() : '') + content + '</main></div>';
+  }
+
+  // Cashbacksmart (app parceiro): gestores cadastram a empresa
+  function cashbackHref() {
+    return cfg.cashbackUrl ? cfg.cashbackUrl + '/cadastro/empresa?origem=alignsystem&utm_source=alignsystem&utm_medium=painel' : '';
+  }
+  function cashbackSide() {
+    var h = cashbackHref();
+    return h ? '<a class="cb-side" href="' + esc(h) + '" target="_blank" rel="noopener"><span class="cb-ico">💰</span><b>Cashbacksmart</b><small>Fidelize clientes com cashback</small></a>' : '';
+  }
+  function cashbackBanner() {
+    var h = cashbackHref();
+    return h ? '<div class="cb-banner"><div><span class="cb-tag">Novidade</span><h3>💰 Participe do Cashbacksmart</h3><p>Ofereça cashback e faça seus clientes voltarem mais vezes. Cadastro rápido.</p></div>' +
+      '<a class="cb-btn" href="' + esc(h) + '" target="_blank" rel="noopener">Quero participar</a></div>' : '';
   }
   function mount(content, active) {
     root.innerHTML = shell(content, active);
@@ -581,7 +597,8 @@
       var dentistName = (dentists.filter(function (x) { return x.id === c.dentist_id; })[0] || {}).name;
       var evalPhotos = d.photos.filter(function (p) { return p.kind === 'avaliacao'; });
       var otherPhotos = d.photos.filter(function (p) { return p.kind === 'extra' || p.kind === 'documento'; });
-      var portalMsg = 'Olá, ' + c.name.split(' ')[0] + '! Aqui é da AlignSystem. Este é o seu link pessoal da avaliação, onde você envia as fotos e acompanha tudo: ' + c.portalUrl;
+      var portalMsg = 'Olá, ' + c.name.split(' ')[0] + '! Aqui é da AlignSystem. Este é o seu link pessoal da avaliação, onde você envia as fotos e acompanha tudo: ' + c.portalUrl +
+        (cfg.cashbackUrl ? '\n\n💰 Presente para você: participe de graça do Cashbacksmart e ganhe dinheiro de volta nas lojas parceiras da sua cidade: ' + cfg.cashbackUrl + '/cadastro?origem=alignsystem&utm_source=alignsystem&utm_medium=whatsapp' : '');
 
       var html = '<p><a href="#/casos">← Pacientes</a></p>' +
         '<div class="row" style="justify-content:space-between"><div><h1 style="margin:0">' + esc(c.name) + '</h1><p class="muted">Caso nº ' + c.code + ' · ' + esc(c.city) + ' · entrou em ' + esc(AS.date(c.created_at, true)) + '</p></div>' +
@@ -1108,6 +1125,7 @@
   }
 
   function boot() {
+    api('/api/config').then(function (c) { cfg = c || {}; if (me) route(); }).catch(function () { /* sem config: só não mostra o Cashbacksmart */ });
     api('/api/auth/me').then(function (d) {
       me = d.user;
       route();

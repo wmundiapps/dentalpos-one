@@ -22,6 +22,25 @@ ${bodyHtml}
 </div></body></html>`;
 }
 
+// Cashbacksmart (app parceiro): CASHBACKSMART_URL=off desliga a divulgação.
+export const cashbackUrl = () => {
+  const u = (process.env.CASHBACKSMART_URL || 'https://cashbacksmart.com.br').trim();
+  return /^https:\/\//i.test(u) ? u.replace(/\/+$/, '') : '';
+};
+
+export function cashbackPromo(path = '/cadastro') {
+  const base = cashbackUrl();
+  if (!base) return '';
+  const href = `${base}${path}?origem=alignsystem&utm_source=alignsystem&utm_medium=email&utm_campaign=confirmacao`;
+  return `<div style="margin-top:22px;background:#12233A;border-radius:14px;padding:20px 22px;color:#F7F2E8">
+<p style="margin:0 0 4px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#E8B65A;font-weight:700">Presente para você</p>
+<p style="margin:0 0 8px;font-family:Georgia,serif;font-size:19px;line-height:1.3;color:#fff">💰 Ganhe dinheiro de volta nas suas compras</p>
+<p style="margin:0 0 14px;font-size:14px;line-height:1.5;color:#E5DECF">Participe de graça do <b>Cashbacksmart</b> e receba cashback nas lojas parceiras da sua cidade.</p>
+<a href="${escapeHtml(href)}" style="background:#E8B65A;color:#1B1408;text-decoration:none;font-weight:700;padding:11px 22px;border-radius:999px;display:inline-block">Quero participar</a>
+<p style="margin:12px 0 0;font-size:11px;color:#A9B2BF">Programa independente do seu tratamento odontológico.</p>
+</div>`;
+}
+
 export const button = (href, label) =>
   `<p style="margin:22px 0"><a href="${escapeHtml(href)}" style="background:#C98A2C;color:#2A1B04;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:999px;display:inline-block">${escapeHtml(label)}</a></p>`;
 
