@@ -11,6 +11,7 @@ import ChatIcon from "@mui/icons-material/Chat";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import BadgeIcon from "@mui/icons-material/Badge";
 import DescriptionIcon from "@mui/icons-material/Description";
 // import DesignServicesIcon from "@mui/icons-material/DesignServices"; // DPD oculto
 import EventIcon from "@mui/icons-material/Event";
@@ -91,6 +92,7 @@ export const navigationGroups:NavigationGroup[] = [
     items:alphabetical([
       item("Prontuário","/prontuario",<FolderSharedIcon/>),
       item("Documentos Clínicos","/documentos-clinicos",<DescriptionIcon/>),
+      item("Kit da Clínica","/kit-clinica",<BadgeIcon/>),
       item("Orçamentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
       item("Equipe","/equipe",<GroupsIcon/>),
       item("CompletoDonto AI","/ceo-ia",<AutoAwesomeIcon/>),

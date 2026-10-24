@@ -16,6 +16,7 @@ const BusinessIntelligence = lazy(() => import("../pages/BusinessIntelligence"))
 const ClinicHealth = lazy(() => import("../pages/ClinicHealth"));
 const Clinics = lazy(() => import("../pages/Clinics"));
 const ClinicalDocuments = lazy(() => import("../pages/ClinicalDocuments"));
+const BrandKit = lazy(() => import("../pages/BrandKit"));
 const ClinicalRecord = lazy(() => import("../pages/ClinicalRecord"));
 const PatientFile = lazy(() => import("../pages/PatientFile"));
 import WmundiStaffOnly from "../components/WmundiStaffOnly";
@@ -190,6 +191,11 @@ export default function AppRoutes() {
       <Route
         path="/documentos-clinicos"
         element={<ClinicalDocuments />}
+      />
+
+      <Route
+        path="/kit-clinica"
+        element={<BrandKit />}
       />
 
       <Route path="/estoque" element={<Stock />} />
