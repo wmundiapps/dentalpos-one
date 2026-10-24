@@ -6,7 +6,6 @@ import {
   Typography,
 } from "@mui/material";
 
-import AddIcon from "@mui/icons-material/Add";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import ChatIcon from "@mui/icons-material/Chat";
 import EmailIcon from "@mui/icons-material/Email";
@@ -15,6 +14,7 @@ import SendIcon from "@mui/icons-material/Send";
 import SmsIcon from "@mui/icons-material/Sms";
 
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 
 import PageHeader from "../components/PageHeader";
 import {
@@ -62,6 +62,7 @@ function getChannelIcon(
 }
 
 export default function Communications() {
+  const navigate = useNavigate();
   const scheduledMessages = communicationMessages.filter(
     (message) => message.status === "Agendada",
   ).length;
@@ -81,8 +82,9 @@ export default function Communications() {
       <PageHeader
         title="Central de Comunicação"
         description="WhatsApp, SMS, e-mail, Telegram e relacionamento multicanal."
-        actionLabel="Nova mensagem"
-        actionIcon={<AddIcon />}
+        actionLabel="Enviar mensagem de teste"
+        actionIcon={<SendIcon />}
+        onAction={() => navigate("/canais-envio")}
       />
 
       <Box
