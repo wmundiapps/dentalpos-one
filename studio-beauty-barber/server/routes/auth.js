@@ -4,7 +4,7 @@ import { cfg } from '../config.js';
 import { HttpError, validate, uid, nowIso, normalizePhone } from '../util.js';
 import {
   hashPassword, verifyPassword, checkPasswordPolicy, rateLimit, newTotpSecret, verifyTotp, totpUri, sha256,
-  verifyTurnstile,
+  verifyTurnstile, newToken,
 } from '../security.js';
 import { auth, createSession, destroySession, audit } from '../auth.js';
 import { DEFAULT_HOURS } from '../availability.js';
@@ -19,6 +19,45 @@ const MAX_FAILS = 5;
 const LOCK_MIN = 15;
 
 export default function register(r) {
+  // ---------- Esqueci a senha: link por e-mail válido por 30 minutos, uso único ----------
+  r.post('/api/auth/forgot', async (ctx) => {
+    rateLimit(`forgot-ip:${ctx.ip}`, 8, 3600_000);
+    const d = validate(ctx.body, { email: 'email' });
+    rateLimit(`forgot:${d.email}`, 3, 3600_000);
+    const generic = { ok: true, message: 'Se este e-mail estiver cadastrado, enviamos o link para criar uma nova senha. Confira também o spam.' };
+    const u = await db.get('SELECT * FROM users WHERE email = ? AND active = 1', [d.email]);
+    if (!u) return generic; // mesma resposta: ninguém descobre quem tem conta
+    const token = newToken(32);
+    await db.run('INSERT INTO password_resets (id, user_id, token_hash, expires_at, ip, created_at) VALUES (?,?,?,?,?,?)',
+      [uid(), u.id, sha256(token), new Date(Date.now() + 30 * 60_000).toISOString(), ctx.ip, nowIso()]);
+    const link = `${cfg.appUrl}/#/redefinir/${token}`;
+    try {
+      const res = await sendPlatformEmail(u.email, 'Crie uma nova senha no Studio Beauty Barber',
+        `Olá, ${u.name.split(' ')[0]}!\n\nRecebemos um pedido para criar uma nova senha. Use o link abaixo em até 30 minutos:\n\n${link}\n\nSe não foi você, ignore este e-mail: a sua senha continua a mesma.\n\nStudio Beauty Barber · WMundi Technologies`);
+      if (res?.status !== 'sent') console.warn('[senha] e-mail de redefinição não enviado:', res?.status, res?.error || '');
+    } catch (e) { console.error('[senha] falha ao enviar e-mail:', e.message); }
+    ctx.user = u; ctx.salon = { id: u.salon_id };
+    await audit(ctx, 'password_reset_requested', 'user', u.id);
+    return generic;
+  });
+
+  r.post('/api/auth/reset', async (ctx) => {
+    rateLimit(`reset:${ctx.ip}`, 10, 3600_000);
+    const d = validate(ctx.body, { token: 'str:20:100', password: 'str:1:200' });
+    checkPasswordPolicy(d.password);
+    const row = await db.get('SELECT * FROM password_resets WHERE token_hash = ?', [sha256(d.token)]);
+    if (!row || row.used_at || Date.parse(row.expires_at) < Date.now()) throw new HttpError(400, 'Este link venceu ou já foi usado. Peça um novo em "Esqueci minha senha".');
+    const claim = await db.run('UPDATE password_resets SET used_at = ? WHERE id = ? AND used_at IS NULL', [nowIso(), row.id]);
+    if (!claim.changes) throw new HttpError(400, 'Este link venceu ou já foi usado. Peça um novo em "Esqueci minha senha".');
+    const hash = await hashPassword(d.password);
+    await db.run('UPDATE users SET password_hash = ?, failed_logins = 0, locked_until = NULL WHERE id = ?', [hash, row.user_id]);
+    await db.run('DELETE FROM sessions WHERE user_id = ?', [row.user_id]); // desconecta todos os aparelhos
+    const u = await db.get('SELECT * FROM users WHERE id = ?', [row.user_id]);
+    ctx.user = u; ctx.salon = { id: u.salon_id };
+    await audit(ctx, 'password_reset_done', 'user', u.id);
+    return { ok: true };
+  });
+
   // ---------- Cadastro self-service (teste grátis) ----------
   r.post('/api/auth/signup', async (ctx) => {
     rateLimit(`signup:${ctx.ip}`, 5, 3600_000);

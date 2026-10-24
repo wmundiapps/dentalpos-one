@@ -1,4 +1,4 @@
-import { h, get, post, del, clear, toast, fail, fmtDateTime, copyBox, modal } from '../lib.js';
+import { h, get, post, del, clear, toast, fail, fmtDateTime, copyBox, modal, passwordInput } from '../lib.js';
 import { pageHead } from './_ui.js';
 
 export async function render(root, { session }) {
@@ -21,7 +21,7 @@ export async function render(root, { session }) {
         h('tbody', {}, audit.events.map((e) => h('tr', {}, h('td', { class: 'nowrap' }, fmtDateTime(e.created_at, tz)), h('td', {}, e.user_name || '—'), h('td', {}, e.action), h('td', {}, e.ip || '')))))) ) : null);
   }
   function pwForm() {
-    const cur = h('input', { type: 'password', autocomplete: 'current-password' }), nw = h('input', { type: 'password', autocomplete: 'new-password' });
+    const cur = passwordInput({ autocomplete: 'current-password' }), nw = passwordInput({ autocomplete: 'new-password' });
     return h('form', { class: 'stack-sm', onsubmit: async (e) => { e.preventDefault(); try { await post('/api/auth/change-password', { current: cur.value, next: nw.value }); toast('Senha alterada. Outros dispositivos foram desconectados.', 'ok'); cur.value = nw.value = ''; } catch (ex) { fail(ex); } } },
       h('label', { class: 'f' }, 'Senha atual', cur), h('label', { class: 'f' }, 'Nova senha (mín. 10, letras e números)', nw), h('button', { class: 'btn', type: 'submit' }, 'Alterar senha'));
   }
@@ -40,7 +40,7 @@ export async function render(root, { session }) {
   }
   function disable2fa() {
     modal('Desativar 2FA', (b, close) => {
-      const pw = h('input', { type: 'password' }), code = h('input', { inputmode: 'numeric', maxlength: 6 });
+      const pw = passwordInput({}), code = h('input', { inputmode: 'numeric', maxlength: 6 });
       b.append(h('div', { class: 'stack' }, h('label', { class: 'f' }, 'Senha', pw), h('label', { class: 'f' }, 'Código atual do app', code),
         h('button', { class: 'btn danger', onclick: async () => { try { await post('/api/auth/2fa/disable', { password: pw.value, code: code.value }); toast('2FA desativado', 'ok'); close(); load(); } catch (e) { fail(e); } } }, 'Desativar')));
     });

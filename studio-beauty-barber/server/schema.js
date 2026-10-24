@@ -425,4 +425,19 @@ CREATE TABLE IF NOT EXISTS prospect_invites (
 CREATE INDEX IF NOT EXISTS idx_invites_due ON prospect_invites(status, scheduled_at);
 `,
   },
+  {
+    id: 5,
+    sql: `
+CREATE TABLE IF NOT EXISTS password_resets (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
+  ip TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_pwreset_user ON password_resets(user_id, created_at);
+`,
+  },
 ];

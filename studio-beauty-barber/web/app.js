@@ -1,5 +1,5 @@
 // Casca do painel: autenticação, menu e roteamento por hash (#/agenda, #/clientes...).
-import { h, $, clear, icon, get, post, setUnauthorizedHandler, toast, fail, initials } from './lib.js';
+import { h, $, clear, icon, get, post, setUnauthorizedHandler, toast, fail, initials, passwordInput } from './lib.js';
 import { applyBrand } from './theme.js';
 
 const ROUTES = [
@@ -29,6 +29,8 @@ let unread = 0;
 setUnauthorizedHandler(() => { if (session) { session = null; toast('Sessão expirada. Entre novamente.', 'bad'); renderLogin(); } });
 
 async function boot() {
+  const m = location.hash.match(/^#\/redefinir\/([\w-]{20,100})$/);
+  if (m) { history.replaceState(null, '', location.pathname); return renderReset(m[1]); } // tira o código do endereço
   try { session = await get('/api/auth/me'); } catch { session = null; }
   if (!session) return renderLogin();
   applyBrand(session.salon.brand);
@@ -98,6 +100,38 @@ async function logout() {
   session = null; location.hash = ''; renderLogin();
 }
 
+// ---------- Esqueci a senha / criar nova senha ----------
+function authShell(title, sub, body) {
+  clear(root).append(h('div', { class: 'auth' },
+    h('section', { class: 'hero' },
+      h('div', { class: 'brand' }, h('div', { class: 'mark' }, 'S'), h('div', {}, h('b', {}, 'Studio Beauty Barber'), h('span', {}, 'Gestão para salões e barbearias'))),
+      h('p', { class: 'small', style: { color: '#9c9384' } }, '© Studio Beauty Barber · WMundi Technologies')),
+    h('section', { class: 'panel' }, h('div', { style: { width: '100%', maxWidth: '400px' } }, h('h2', { style: { marginBottom: '6px' } }, title), h('p', { class: 'muted', style: { marginBottom: '18px' } }, sub), body))));
+}
+
+function renderForgot() {
+  const email = h('input', { name: 'email', type: 'email', autocomplete: 'username', required: true });
+  const msg = h('p', { class: 'small', role: 'status' }), btn = h('button', { class: 'btn primary block', type: 'submit' }, 'Enviar link');
+  const form = h('form', { class: 'stack', novalidate: true, onsubmit: async (e) => {
+    e.preventDefault(); btn.disabled = true; msg.textContent = '';
+    try { const r = await post('/api/auth/forgot', { email: email.value }); msg.className = 'small'; msg.textContent = r.message; }
+    catch (ex) { msg.className = 'field-error'; msg.textContent = ex.message; } finally { btn.disabled = false; }
+  } }, h('label', { class: 'f' }, 'E-mail da sua conta', email), btn, msg,
+  h('p', { class: 'small', style: { textAlign: 'center' } }, h('a', { href: '#', onclick: (e) => { e.preventDefault(); renderLogin(); } }, 'Voltar para entrar')));
+  authShell('Esqueci minha senha', 'Enviamos um link para criar uma nova senha.', form);
+}
+
+function renderReset(token) {
+  const pw = passwordInput({ name: 'password', autocomplete: 'new-password', required: true });
+  const msg = h('p', { class: 'field-error', role: 'alert' }), btn = h('button', { class: 'btn primary block', type: 'submit' }, 'Salvar nova senha');
+  const form = h('form', { class: 'stack', novalidate: true, onsubmit: async (e) => {
+    e.preventDefault(); btn.disabled = true; msg.textContent = '';
+    try { await post('/api/auth/reset', { token, password: pw.value }); toast('Senha alterada. Entre com a nova senha.', 'ok'); renderLogin(); }
+    catch (ex) { msg.textContent = ex.message; } finally { btn.disabled = false; }
+  } }, h('label', { class: 'f' }, 'Nova senha', pw, h('span', { class: 'small muted' }, 'Mínimo 10 caracteres, com letras e números.')), btn, msg);
+  authShell('Criar nova senha', 'Escolha uma senha que só você saiba.', form);
+}
+
 // ---------- Login / cadastro ----------
 function renderLogin(mode = 'login') {
   let need2fa = false;
@@ -112,7 +146,8 @@ function renderLogin(mode = 'login') {
     if (mode === 'login') {
       fields.append(
         h('label', { class: 'f' }, 'E-mail', h('input', { name: 'email', type: 'email', autocomplete: 'username', required: true })),
-        h('label', { class: 'f' }, 'Senha', h('input', { name: 'password', type: 'password', autocomplete: 'current-password', required: true })),
+        h('label', { class: 'f' }, 'Senha', passwordInput({ name: 'password', autocomplete: 'current-password', required: true })),
+        h('p', { class: 'small', style: { textAlign: 'right', marginTop: '-4px' } }, h('a', { href: '#', onclick: (e) => { e.preventDefault(); renderForgot(); } }, 'Esqueci minha senha')),
         need2fa ? h('label', { class: 'f' }, 'Código do app autenticador (6 dígitos)', h('input', { name: 'code', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6, autofocus: true })) : null);
       btn.textContent = need2fa ? 'Verificar e entrar' : 'Entrar';
       switchLink.textContent = 'Não tem conta? Teste grátis por 14 dias';
@@ -124,7 +159,7 @@ function renderLogin(mode = 'login') {
           h('label', { class: 'f' }, 'WhatsApp (com DDD)', h('input', { name: 'phone', inputmode: 'tel', autocomplete: 'tel', required: true }))),
         h('label', { class: 'f' }, 'Cidade', h('input', { name: 'city', autocomplete: 'address-level2' })),
         h('label', { class: 'f' }, 'E-mail', h('input', { name: 'email', type: 'email', autocomplete: 'email', required: true })),
-        h('label', { class: 'f' }, 'Crie uma senha', h('input', { name: 'password', type: 'password', autocomplete: 'new-password', required: true }), h('span', { class: 'small muted' }, 'Mínimo 10 caracteres, com letras e números.')),
+        h('label', { class: 'f' }, 'Crie uma senha', passwordInput({ name: 'password', autocomplete: 'new-password', required: true }), h('span', { class: 'small muted' }, 'Mínimo 10 caracteres, com letras e números.')),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', name: 'terms' }), h('span', {}, 'Li e aceito os Termos de Uso e a Política de Privacidade (LGPD).')));
       btn.textContent = 'Começar teste grátis';
       switchLink.textContent = 'Já tem conta? Entrar';

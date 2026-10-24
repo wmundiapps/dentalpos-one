@@ -47,6 +47,8 @@ const ICONS = {
   menu: 'M4 6h16M4 12h16M4 18h16',
   check: 'M5 12l5 5L20 7',
   box: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8',
+  eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
+  eyeoff: 'M3 3l18 18M10.6 6.1A10 10 0 0112 5c6.5 0 10 7 10 7a17 17 0 01-3.2 4.1M6.6 6.6A17 17 0 002 12s3.5 7 10 7a10 10 0 004.4-1M9.9 9.9a3 3 0 004.2 4.2',
   repeat: 'M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3',
 };
 export function icon(name) {
@@ -159,3 +161,19 @@ export function copyBox(text) {
   return h('div', { class: 'copy' }, h('code', {}, text), h('button', { class: 'btn sm', onclick: () => copyText(text) }, 'Copiar'));
 }
 export function debounce(fn, ms = 250) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+// Campo de senha com "olhinho" para ver o que foi digitado.
+export function passwordInput(props = {}) {
+  const input = h('input', { ...props, type: 'password' });
+  const btn = h('button', { type: 'button', class: 'pw-eye', 'aria-label': 'Mostrar senha', 'aria-pressed': 'false', title: 'Mostrar senha' }, icon('eye'));
+  btn.addEventListener('click', () => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.setAttribute('aria-pressed', String(show)); btn.setAttribute('aria-label', show ? 'Esconder senha' : 'Mostrar senha'); btn.title = btn.getAttribute('aria-label');
+    clear(btn).append(icon(show ? 'eyeoff' : 'eye'));
+    input.focus();
+  });
+  const wrap = h('span', { class: 'pw' }, input, btn);
+  Object.defineProperty(wrap, 'value', { get: () => input.value, set: (v) => { input.value = v; } }); // quem lê .value continua funcionando
+  return wrap;
+}

@@ -203,3 +203,8 @@ body[data-side="light"] .side .me b { color: var(--ink); }
 .pub-hero h1 { color: var(--gold-2); } .pub-hero p { color: rgba(255,255,255,.78); }
 body[data-side="light"] .pub-hero { color: var(--ink); } body[data-side="light"] .pub-hero h1 { color: var(--gold); } body[data-side="light"] .pub-hero p { color: var(--ink-2); }
 @media (max-width: 560px) { .preview { grid-template-columns: 90px 1fr; } }
+
+/* Campo de senha com olhinho */
+.pw { position: relative; display: block; } .pw input { width: 100%; padding-right: 46px; }
+.pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; display: grid; place-items: center; border: 0; background: transparent; color: var(--ink-3); border-radius: 8px; cursor: pointer; }
+.pw-eye:hover { color: var(--ink); background: var(--gold-soft); } .pw-eye .icon { width: 20px; height: 20px; }

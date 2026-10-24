@@ -1,4 +1,4 @@
-import { h, get, post, patch, api, clear, toast, fail, copyBox, fmtDateTime, modal } from '../lib.js';
+import { h, get, post, patch, api, clear, toast, fail, copyBox, fmtDateTime, modal, passwordInput } from '../lib.js';
 import { pageHead } from './_ui.js';
 import { applyBrand, luminance } from '../theme.js';
 
@@ -82,7 +82,7 @@ export async function render(root, { session }) {
   }
   function newUser() {
     modal('Novo usuário', (b, close) => {
-      const n = h('input'), em = h('input', { type: 'email' }), pw = h('input', { type: 'password', autocomplete: 'new-password' }), role = h('select', {}, ['manager', 'reception', 'staff'].map((r) => h('option', { value: r }, ROLES[r])));
+      const n = h('input'), em = h('input', { type: 'email' }), pw = passwordInput({ autocomplete: 'new-password' }), role = h('select', {}, ['manager', 'reception', 'staff'].map((r) => h('option', { value: r }, ROLES[r])));
       b.append(h('div', { class: 'stack' }, h('label', { class: 'f' }, 'Nome', n), h('label', { class: 'f' }, 'E-mail', em), h('label', { class: 'f' }, 'Senha inicial', pw), h('label', { class: 'f' }, 'Função', role),
         h('button', { class: 'btn primary', onclick: async () => { try { await post('/api/users', { name: n.value, email: em.value, password: pw.value, role: role.value }); toast('Usuário criado', 'ok'); close(); loadUsers(); } catch (ex) { fail(ex); } } }, 'Criar')));
     });
