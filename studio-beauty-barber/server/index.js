@@ -16,6 +16,7 @@ import registerCrm from './routes/crm.js';
 import registerSettings, { UPLOAD_DIR } from './routes/settings.js';
 import registerPublic from './routes/public.js';
 import registerClub from './routes/club.js';
+import registerProspect from './routes/prospect.js';
 import registerWebhooks from './routes/webhooks.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -37,7 +38,7 @@ export function buildRouter() {
     if (!secret || got.length !== secret.length || !timingSafeEqual(Buffer.from(got), Buffer.from(secret))) throw new HttpError(401, 'Não autorizado.');
     return { ok: true, stats: await tick() };
   });
-  for (const reg of [registerAuth, registerCatalog, registerAgenda, registerCrm, registerSettings, registerClub, registerPublic, registerWebhooks]) reg(r);
+  for (const reg of [registerAuth, registerCatalog, registerAgenda, registerCrm, registerSettings, registerClub, registerProspect, registerPublic, registerWebhooks]) reg(r);
   return r;
 }
 
@@ -100,6 +101,8 @@ export function createHandler({ awaitWebhooks = false } = {}) {
         body: null, rawBody: Buffer.alloc(0), awaitWebhooks,
         user: null, salon: null,
         setCookie: (c) => cookies.push(c),
+        csv: (name, content) => { res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${String(name).replace(/[^\w.-]/g, '_')}"`, 'Cache-Control': 'no-store', ...securityHeaders() }); res.end(content); status = 200; return SENT; },
+        html: (body) => { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', ...securityHeaders() }); res.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0;padding:40px 20px;text-align:center">${body}</body>`); status = 200; return SENT; },
         text: (s, t) => { res.writeHead(s, { 'Content-Type': 'text/plain; charset=utf-8', ...securityHeaders() }); res.end(t); status = s; return SENT; },
       };
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {

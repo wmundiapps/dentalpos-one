@@ -15,7 +15,7 @@ export async function render(root, { session }) {
         h('td', {}, h('b', {}, c.name), c.tags ? h('div', { class: 'small muted' }, c.tags) : null),
         h('td', { class: 'nowrap' }, fmtPhone(c.phone)), h('td', {}, c.visits), h('td', {}, brl(c.total_spent_cents)),
         h('td', {}, c.last_visit_at ? fmtDate(c.last_visit_at, tz) : '—'),
-        h('td', {}, c.consent_marketing ? h('span', { class: 'chip ok' }, 'Autorizou') : h('span', { class: 'chip' }, 'Não'))))))) : h('p', { class: 'empty' }, 'Nenhum cliente encontrado.'));
+        h('td', {}, c.consent_marketing ? h('span', { class: 'chip ok' }, 'Autorizou') : h('span', { class: 'chip' }, 'Não'), c.cashback_optin ? h('span', { class: 'chip info', style: { marginLeft: '6px' } }, 'Cashback') : null)))))) : h('p', { class: 'empty' }, 'Nenhum cliente encontrado.'));
   }
   q.addEventListener('input', debounce(() => load().catch(fail)));
 
@@ -27,6 +27,7 @@ export async function render(root, { session }) {
     { name: 'tags', label: 'Etiquetas (separadas por vírgula)', value: c.tags, half: true },
     { name: 'notes', label: 'Observações', value: c.notes, type: 'textarea' },
     { name: 'consent_marketing', label: 'O cliente autorizou receber promoções e lembretes (LGPD)', value: c.consent_marketing, type: 'checkbox' },
+    { name: 'cashback_optin', label: 'O cliente quer participar do Cashbacksmart (cashback nas compras)', value: c.cashback_optin, type: 'checkbox' },
   ];
   const clean = (v) => Object.fromEntries(Object.entries(v).filter(([, x]) => x !== ''));
 

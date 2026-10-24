@@ -1,9 +1,9 @@
 // Reserva paga: cobrança antecipada, política de não comparecimento (retenção) e estornos pelo Asaas do próprio salão.
 import { db } from './db.js';
-import { HttpError, nowIso, localDate, fmtDateTimeBR } from './util.js';
+import { HttpError, nowIso, localDate, fmtDateTimeBR, json } from './util.js';
 import { getIntegration } from './integrations/store.js';
 import * as asaas from './integrations/asaas.js';
-import { ensureConversation, sendOut } from './messaging.js';
+import { ensureConversation, sendOut, saveState } from './messaging.js';
 
 export const fmtBRL = (cents) => `R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
 
@@ -44,7 +44,7 @@ export async function createApptCharge(salon, appt, client, { cpfCnpj, billingTy
   return { payment_id: pay.id, invoice_url: pay.invoiceUrl, pix };
 }
 
-async function notifyClient(salon, appt, body, subject) {
+export async function notifyClient(salon, appt, body, subject) {
   const c = await db.get('SELECT * FROM clients WHERE id = ?', [appt.client_id]);
   if (!c) return;
   const channel = c.phone ? 'whatsapp' : c.email ? 'email' : null;
@@ -105,4 +105,17 @@ export async function expirePendingPayments(now = new Date()) {
     }
   }
   return rows.length;
+}
+
+// Confirmação imediata de agendamento comum (sem pagamento antecipado). O cliente responde 1 para confirmar presença ou 2 para cancelar.
+export async function notifyBooked(salon, appt) {
+  try {
+    if (json(salon.brand_json, {}).automations?.confirmation === false) return;
+    const c = await db.get('SELECT * FROM clients WHERE id = ?', [appt.client_id]);
+    const svc = await db.get('SELECT name FROM services WHERE id = ?', [appt.service_id]);
+    if (!c?.phone) return;
+    const conv = await ensureConversation(salon.id, 'whatsapp', c.phone, { name: c.name, clientId: c.id });
+    await saveState(conv.id, { flow: 'reminder', apptId: appt.id });
+    await sendOut(salon, { channel: 'whatsapp', to: c.phone, body: `Agendamento recebido em ${salon.name}: ${svc?.name || 'atendimento'} em ${fmtDateTimeBR(appt.starts_at, salon.timezone)}. Responda 1 para confirmar presença ou 2 para cancelar.`, kind: 'transactional', conversation: conv, sender: 'system', templateVars: [c.name.split(' ')[0], svc?.name || '', fmtDateTimeBR(appt.starts_at, salon.timezone)] });
+  } catch (e) { console.error('[confirmação]', e.message); }
 }

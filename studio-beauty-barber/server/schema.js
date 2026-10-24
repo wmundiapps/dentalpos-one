@@ -354,4 +354,75 @@ ALTER TABLE salons ADD COLUMN logo_data TEXT;
 ALTER TABLE salons ADD COLUMN logo_mime TEXT;
 `,
   },
+  {
+    id: 4,
+    sql: `
+ALTER TABLE salons ADD COLUMN lifetime INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE services ADD COLUMN recall_days INTEGER;
+ALTER TABLE clients ADD COLUMN cashback_optin INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE clients ADD COLUMN cashback_optin_at TEXT;
+ALTER TABLE club_memberships ADD COLUMN charge INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE leads ADD COLUMN document TEXT;
+ALTER TABLE leads ADD COLUMN category TEXT;
+ALTER TABLE leads ADD COLUMN state TEXT;
+ALTER TABLE leads ADD COLUMN address TEXT;
+
+CREATE TABLE IF NOT EXISTS recall_log (
+  id TEXT PRIMARY KEY,
+  salon_id TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  service_id TEXT NOT NULL,
+  due_since TEXT NOT NULL,
+  sent_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_recall_client ON recall_log(salon_id, client_id, service_id);
+
+CREATE TABLE IF NOT EXISTS company_base (
+  cnpj TEXT PRIMARY KEY,
+  legal_name TEXT,
+  trade_name TEXT,
+  cnae TEXT NOT NULL,
+  uf TEXT,
+  city TEXT,
+  city_norm TEXT,
+  district TEXT,
+  address TEXT,
+  phone TEXT,
+  email TEXT,
+  is_mei INTEGER NOT NULL DEFAULT 0,
+  opened_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_company_search ON company_base(cnae, uf, city_norm);
+
+CREATE TABLE IF NOT EXISTS company_imports (
+  id TEXT PRIMARY KEY,
+  ref_month TEXT,
+  status TEXT NOT NULL,
+  total_rows INTEGER NOT NULL DEFAULT 0,
+  finished_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS lead_blocks (
+  salon_id TEXT NOT NULL,
+  hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (salon_id, hash)
+);
+
+CREATE TABLE IF NOT EXISTS prospect_invites (
+  id TEXT PRIMARY KEY,
+  salon_id TEXT NOT NULL,
+  lead_id TEXT NOT NULL,
+  email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  scheduled_at TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'scheduled',
+  sent_at TEXT,
+  error TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_invites_due ON prospect_invites(status, scheduled_at);
+`,
+  },
 ];

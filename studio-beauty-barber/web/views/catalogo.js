@@ -22,9 +22,10 @@ async function servicos(body, redraw) {
     { name: 'category', label: 'Categoria', value: s.category, half: true },
     { name: 'duration_min', label: 'Duração (min)', value: s.duration_min ?? 30, type: 'number', half: true },
     { name: 'price', label: 'Preço (R$)', value: s.price_cents != null ? moneyInput(s.price_cents) : '', half: true, inputmode: 'decimal' },
+    { name: 'recall_days', label: 'Chamar o cliente para voltar após (dias)', value: s.recall_days ?? '', type: 'number', half: true, hint: 'Ex.: corte 25, barba 18. Vazio = não chama.' },
     { name: 'description', label: 'Descrição', value: s.description, type: 'textarea' },
   ];
-  const pay = (v) => ({ name: v.name, category: v.category || undefined, description: v.description || undefined, duration_min: Number(v.duration_min), price_cents: parseMoney(v.price) });
+  const pay = (v) => ({ name: v.name, category: v.category || undefined, description: v.description || undefined, duration_min: Number(v.duration_min), price_cents: parseMoney(v.price), recall_days: v.recall_days === '' ? 0 : Number(v.recall_days) });
   body.append(h('div', { style: { marginBottom: '12px' } }, h('button', { class: 'btn primary', onclick: () => formModal('Novo serviço', f(), async (v) => { await post('/api/services', pay(v)); toast('Serviço criado', 'ok'); redraw(); }) }, '+ Novo serviço')),
     h('div', { class: 'card scroll-x', style: { padding: 0 } }, h('table', { class: 'table' },
       h('thead', {}, h('tr', {}, ['Serviço', 'Categoria', 'Duração', 'Preço', 'Situação', ''].map((t) => h('th', {}, t)))),

@@ -2,6 +2,10 @@ import { h, get, post, brl, fmtDate, toast, fail, copyText } from '../lib.js';
 import { pageHead } from './_ui.js';
 
 export async function render(root, { session }) {
+  if (session.salon.lifetime) {
+    root.append(pageHead('Assinatura', 'Sua conta tem uso vitalício.'), h('div', { class: 'card stack' }, h('h3', {}, 'Uso vitalício'), h('p', {}, 'Sem mensalidade, sem período de teste e sem limite de profissionais.')));
+    return;
+  }
   const b = await get('/api/billing');
   const tz = session.salon.timezone;
   const statusTxt = { trial: 'Teste grátis', active: 'Ativa', past_due: 'Pagamento em atraso', trial_expired: 'Teste encerrado', suspended: 'Suspensa', cancelled: 'Cancelada' }[b.status] || b.status;

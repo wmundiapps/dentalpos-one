@@ -5,7 +5,8 @@ import { HttpError, validate, nowIso, json, addDays, localDate } from '../util.j
 import { rateLimit, verifyTurnstile } from '../security.js';
 import { getSlots, hoursText, nextAvailableDays } from '../availability.js';
 import { createAppointment, findOrCreateClient, upsertLead } from '../domain.js';
-import { createApptCharge, policyText } from '../payments.js';
+import { createApptCharge, policyText, notifyBooked } from '../payments.js';
+import { publicBrand } from '../brand.js';
 
 async function publicSalon(slug) {
   const s = await db.get('SELECT * FROM salons WHERE slug = ?', [slug]);
@@ -51,7 +52,7 @@ export default function register(r) {
     const staff = await db.all('SELECT id, name, role, color FROM staff WHERE salon_id = ? AND active = 1 ORDER BY name', [s.id]);
     const links = await db.all('SELECT ss.staff_id, ss.service_id FROM staff_services ss JOIN staff st ON st.id = ss.staff_id WHERE st.salon_id = ?', [s.id]);
     return {
-      salon: { name: s.name, city: s.city, address: s.address, phone: s.phone, hours: hoursText(s), deposit_required: !!s.deposit_required, policy: s.deposit_required ? policyText(s) : null, logo: s.logo_path ? `/uploads/${s.logo_path}` : null, timezone: s.timezone },
+      salon: { name: s.name, city: s.city, address: s.address, phone: s.phone, hours: hoursText(s), deposit_required: !!s.deposit_required, policy: s.deposit_required ? policyText(s) : null, logo: s.logo_path ? `/uploads/${s.logo_path}` : null, timezone: s.timezone, brand: publicBrand(s) },
       services,
       staff: staff.map((x) => ({ ...x, service_ids: links.filter((l) => l.staff_id === x.id).map((l) => l.service_id) })),
       turnstile_site_key: cfg.turnstile.siteKey || null,
@@ -90,7 +91,7 @@ export default function register(r) {
     if (ctx.body?.website) return { ok: true };
     if (!(await verifyTurnstile(ctx.body?.turnstile, ctx.ip))) throw new HttpError(400, 'Falha na verificação anti-robô. Tente novamente.');
     const s = await publicSalon(ctx.params.slug);
-    const d = validate(ctx.body, { service_id: 'str:1:60', staff_id: 'str?:0:60', starts_at: 'iso', name: 'str:2:80', phone: 'phone', email: 'email?', consent_marketing: 'bool?', accept_policy: 'bool?', pay_method: 'enum?:PIX,CREDIT_CARD', cpf_cnpj: 'str?:11:18' });
+    const d = validate(ctx.body, { service_id: 'str:1:60', staff_id: 'str?:0:60', starts_at: 'iso', name: 'str:2:80', phone: 'phone', email: 'email?', consent_marketing: 'bool?', cashback_optin: 'bool?', accept_policy: 'bool?', pay_method: 'enum?:PIX,CREDIT_CARD', cpf_cnpj: 'str?:11:18' });
     rateLimit(`book-phone:${d.phone}`, 4, 24 * 3600_000);
 
     // O horário precisa estar entre os disponíveis calculados no servidor (nunca confiar no cliente).
@@ -103,10 +104,12 @@ export default function register(r) {
     const client = await db.tx(async (t) => {
       const c = await findOrCreateClient(t, s.id, { name: d.name, phone: d.phone, email: d.email, source: 'pagina-agendamento' });
       if (d.consent_marketing && !c.consent_marketing) await t.run('UPDATE clients SET consent_marketing = 1, consent_at = ? WHERE id = ?', [nowIso(), c.id]);
+      if (d.cashback_optin && !c.cashback_optin) await t.run('UPDATE clients SET cashback_optin = 1, cashback_optin_at = ? WHERE id = ?', [nowIso(), c.id]);
       return c;
     });
     if (!s.deposit_required) {
       const appt = await createAppointment(s, { clientId: client.id, staffId, serviceId: d.service_id, startsAt: d.starts_at, source: 'pagina-agendamento' });
+      notifyBooked(s, appt); // sem await: a resposta ao cliente não espera o WhatsApp
       return { ok: true, appointment: { id: appt.id, starts_at: appt.starts_at, ends_at: appt.ends_at } };
     }
 

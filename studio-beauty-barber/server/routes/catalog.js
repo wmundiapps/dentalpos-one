@@ -12,10 +12,10 @@ export default function register(r) {
     services: await db.all('SELECT * FROM services WHERE salon_id = ? ORDER BY active DESC, category, name', [ctx.salon.id]),
   }));
   r.post('/api/services', auth('manager'), async (ctx) => {
-    const d = validate(ctx.body, { name: 'str:2:80', category: 'str?:0:40', description: 'str?:0:300', duration_min: 'int:5:480', price_cents: 'int:0:10000000' });
+    const d = validate(ctx.body, { name: 'str:2:80', category: 'str?:0:40', description: 'str?:0:300', duration_min: 'int:5:480', price_cents: 'int:0:10000000', recall_days: 'int?:0:365' });
     const id = uid();
-    await db.run('INSERT INTO services (id, salon_id, name, category, description, duration_min, price_cents, active) VALUES (?,?,?,?,?,?,?,1)',
-      [id, ctx.salon.id, d.name, d.category, d.description, d.duration_min, d.price_cents]);
+    await db.run('INSERT INTO services (id, salon_id, name, category, description, duration_min, price_cents, recall_days, active) VALUES (?,?,?,?,?,?,?,?,1)',
+      [id, ctx.salon.id, d.name, d.category, d.description, d.duration_min, d.price_cents, d.recall_days || null]);
     // por padrão, todos os profissionais ativos realizam o novo serviço
     const staff = await db.all('SELECT id FROM staff WHERE salon_id = ? AND active = 1', [ctx.salon.id]);
     for (const s of staff) await db.run('INSERT INTO staff_services (staff_id, service_id) VALUES (?,?) ON CONFLICT DO NOTHING', [s.id, id]);
@@ -23,12 +23,13 @@ export default function register(r) {
     return { id };
   });
   r.patch('/api/services/:id', auth('manager'), async (ctx) => {
-    const d = validate(ctx.body, { name: 'str?:2:80', category: 'str?:0:40', description: 'str?:0:300', duration_min: 'int?:5:480', price_cents: 'int?:0:10000000', active: 'bool?' });
+    const d = validate(ctx.body, { name: 'str?:2:80', category: 'str?:0:40', description: 'str?:0:300', duration_min: 'int?:5:480', price_cents: 'int?:0:10000000', recall_days: 'int?:0:365', active: 'bool?' });
     const res = await db.run(
       `UPDATE services SET name = COALESCE(?, name), category = COALESCE(?, category), description = COALESCE(?, description),
-         duration_min = COALESCE(?, duration_min), price_cents = COALESCE(?, price_cents), active = COALESCE(?, active)
+         duration_min = COALESCE(?, duration_min), price_cents = COALESCE(?, price_cents), active = COALESCE(?, active),
+         recall_days = CASE WHEN CAST(? AS INTEGER) IS NULL THEN recall_days WHEN CAST(? AS INTEGER) = 0 THEN NULL ELSE CAST(? AS INTEGER) END
        WHERE id = ? AND salon_id = ?`,
-      [d.name, d.category, d.description, d.duration_min, d.price_cents, d.active, ctx.params.id, ctx.salon.id]);
+      [d.name, d.category, d.description, d.duration_min, d.price_cents, d.active, d.recall_days, d.recall_days, d.recall_days, ctx.params.id, ctx.salon.id]);
     if (!res.changes) throw new HttpError(404, 'Serviço não encontrado.');
     await audit(ctx, 'service_updated', 'service', ctx.params.id);
     return { ok: true };
@@ -44,7 +45,7 @@ export default function register(r) {
     const d = validate(ctx.body, { name: 'str:2:80', role: 'str?:0:60', phone: 'phone?', commission_pct: 'int?:0:100' });
     const active = await db.get('SELECT COUNT(*) AS n FROM staff WHERE salon_id = ? AND active = 1', [ctx.salon.id]);
     // Teste grátis libera o limite do plano Médio; depois vale o limite do plano contratado.
-    const limit = ctx.salon.status === 'trial' ? cfg.plans.medio.staff : (cfg.plans[ctx.salon.plan]?.staff ?? 1);
+    const limit = ctx.salon.lifetime ? 9999 : ctx.salon.status === 'trial' ? cfg.plans.medio.staff : (cfg.plans[ctx.salon.plan]?.staff ?? 1);
     if (Number(active.n) >= limit) throw new HttpError(402, `Seu plano permite até ${limit} profissional(is) ativo(s). Faça upgrade em Assinatura para adicionar mais.`);
     const id = uid();
     const count = await db.get('SELECT COUNT(*) AS n FROM staff WHERE salon_id = ?', [ctx.salon.id]);
@@ -127,27 +128,27 @@ export default function register(r) {
     return { client: c, history };
   });
   r.post('/api/clients', auth('reception'), async (ctx) => {
-    const d = validate(ctx.body, { name: 'str:2:80', phone: 'phone?', email: 'email?', birthday: 'date?', notes: 'str?:0:1000', tags: 'str?:0:200', consent_marketing: 'bool?' });
+    const d = validate(ctx.body, { name: 'str:2:80', phone: 'phone?', email: 'email?', birthday: 'date?', notes: 'str?:0:1000', tags: 'str?:0:200', consent_marketing: 'bool?', cashback_optin: 'bool?' });
     if (d.phone && (await db.get('SELECT 1 AS x FROM clients WHERE salon_id = ? AND phone = ? AND deleted_at IS NULL', [ctx.salon.id, d.phone]))) {
       throw new HttpError(409, 'Já existe um cliente com este telefone.');
     }
     const id = uid();
     await db.run(
-      `INSERT INTO clients (id, salon_id, name, phone, email, birthday, notes, tags, consent_marketing, consent_at, source, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [id, ctx.salon.id, d.name, d.phone, d.email, d.birthday, d.notes, d.tags, d.consent_marketing ?? 0, d.consent_marketing ? nowIso() : null, 'painel', nowIso()]);
+      `INSERT INTO clients (id, salon_id, name, phone, email, birthday, notes, tags, consent_marketing, consent_at, source, cashback_optin, cashback_optin_at, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id, ctx.salon.id, d.name, d.phone, d.email, d.birthday, d.notes, d.tags, d.consent_marketing ?? 0, d.consent_marketing ? nowIso() : null, 'painel', d.cashback_optin ? 1 : 0, d.cashback_optin ? nowIso() : null, nowIso()]);
     await audit(ctx, 'client_created', 'client', id);
     return { id };
   });
   r.patch('/api/clients/:id', auth('reception'), async (ctx) => {
-    const d = validate(ctx.body, { name: 'str?:2:80', phone: 'phone?', email: 'email?', birthday: 'date?', notes: 'str?:0:1000', tags: 'str?:0:200', consent_marketing: 'bool?' });
+    const d = validate(ctx.body, { name: 'str?:2:80', phone: 'phone?', email: 'email?', birthday: 'date?', notes: 'str?:0:1000', tags: 'str?:0:200', consent_marketing: 'bool?', cashback_optin: 'bool?' });
     const cur = await db.get('SELECT * FROM clients WHERE id = ? AND salon_id = ? AND deleted_at IS NULL', [ctx.params.id, ctx.salon.id]);
     if (!cur) throw new HttpError(404, 'Cliente não encontrado.');
     const consentChanged = d.consent_marketing !== null && d.consent_marketing !== undefined && d.consent_marketing !== cur.consent_marketing;
     await db.run(
       `UPDATE clients SET name = COALESCE(?, name), phone = COALESCE(?, phone), email = COALESCE(?, email), birthday = COALESCE(?, birthday),
-         notes = COALESCE(?, notes), tags = COALESCE(?, tags), consent_marketing = COALESCE(?, consent_marketing),
+         notes = COALESCE(?, notes), tags = COALESCE(?, tags), consent_marketing = COALESCE(?, consent_marketing), cashback_optin = COALESCE(?, cashback_optin), cashback_optin_at = CASE WHEN ? = 1 THEN COALESCE(cashback_optin_at, ?) WHEN ? = 0 THEN NULL ELSE cashback_optin_at END,
          consent_at = CASE WHEN ? = 1 THEN ? ELSE consent_at END WHERE id = ?`,
-      [d.name, d.phone, d.email, d.birthday, d.notes, d.tags, d.consent_marketing, consentChanged ? 1 : 0, nowIso(), cur.id]);
+      [d.name, d.phone, d.email, d.birthday, d.notes, d.tags, d.consent_marketing, d.cashback_optin, d.cashback_optin, nowIso(), d.cashback_optin, consentChanged ? 1 : 0, nowIso(), cur.id]);
     if (consentChanged) await audit(ctx, d.consent_marketing ? 'consent_given' : 'consent_revoked', 'client', cur.id);
     return { ok: true };
   });

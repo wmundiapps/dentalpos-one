@@ -6,7 +6,7 @@ import { getSlots } from '../availability.js';
 import { createAppointment, findOrCreateClient, settleSale } from '../domain.js';
 import { getIntegration } from '../integrations/store.js';
 import * as asaas from '../integrations/asaas.js';
-import { settleApptMoney } from '../payments.js';
+import { settleApptMoney, notifyBooked } from '../payments.js';
 
 const STATUSES = 'scheduled,confirmed,done,cancelled,noshow,pending_payment';
 
@@ -44,6 +44,7 @@ export default function register(r) {
     }
     const appt = await createAppointment(ctx.salon, { clientId, staffId: d.staff_id, serviceId: d.service_id, startsAt: d.starts_at, source: 'painel', notes: d.notes });
     await audit(ctx, 'appointment_created', 'appointment', appt.id);
+    notifyBooked(ctx.salon, appt);
     return { appointment: appt };
   });
 

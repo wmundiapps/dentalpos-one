@@ -101,9 +101,9 @@ export default function register(r) {
     } else if (ev.type === 'invoice.paid' && obj.customer) {
       await db.run("UPDATE salons SET status = 'active' WHERE stripe_customer_id = ?", [obj.customer]);
     } else if (ev.type === 'invoice.payment_failed' && obj.customer) {
-      await db.run("UPDATE salons SET status = 'past_due' WHERE stripe_customer_id = ?", [obj.customer]);
+      await db.run("UPDATE salons SET status = 'past_due' WHERE lifetime = 0 AND stripe_customer_id = ?", [obj.customer]);
     } else if (ev.type === 'customer.subscription.deleted' && obj.customer) {
-      await db.run("UPDATE salons SET status = 'suspended' WHERE stripe_customer_id = ?", [obj.customer]);
+      await db.run("UPDATE salons SET status = 'suspended' WHERE lifetime = 0 AND stripe_customer_id = ?", [obj.customer]);
     }
     return { ok: true };
     } catch (e) { await releaseEvent('stripe', ev.id); throw e; }
@@ -136,7 +136,7 @@ export default function register(r) {
       await db.run("UPDATE salons SET status = 'active', plan = ? WHERE id = ?", [cfg.plans[sub.plan] ? sub.plan : 'smart', sub.salon_id]);
       if (sub.id) await db.run("UPDATE subscriptions SET status = 'active' WHERE id = ?", [sub.id]);
     } else if (ev.event === 'PAYMENT_OVERDUE') {
-      await db.run("UPDATE salons SET status = 'past_due' WHERE id = ? AND status = 'active'", [sub.salon_id]);
+      await db.run("UPDATE salons SET status = 'past_due' WHERE lifetime = 0 AND id = ? AND status = 'active'", [sub.salon_id]);
     }
     return { ok: true };
     } catch (e) { await releaseEvent('asaas', evKey); throw e; }

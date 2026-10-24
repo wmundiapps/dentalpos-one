@@ -1,5 +1,6 @@
 // Casca do painel: autenticação, menu e roteamento por hash (#/agenda, #/clientes...).
 import { h, $, clear, icon, get, post, setUnauthorizedHandler, toast, fail, initials } from './lib.js';
+import { applyBrand } from './theme.js';
 
 const ROUTES = [
   { path: 'dashboard', label: 'Painel', icon: 'home', mod: './views/dashboard.js' },
@@ -11,6 +12,7 @@ const ROUTES = [
   { sep: true },
   { path: 'leads', label: 'Funil de leads', icon: 'funnel', mod: './views/leads.js' },
   { path: 'conversas', label: 'Conversas', icon: 'chat', mod: './views/conversas.js', badge: 'unread' },
+  { path: 'prospeccao', label: 'Captação', icon: 'search', mod: './views/prospeccao.js', min: 'manager', hq: true },
   { path: 'campanhas', label: 'Campanhas', icon: 'megaphone', mod: './views/campanhas.js', min: 'manager' },
   { sep: true },
   { path: 'integracoes', label: 'Integrações', icon: 'plug', mod: './views/integracoes.js', min: 'manager' },
@@ -29,6 +31,7 @@ setUnauthorizedHandler(() => { if (session) { session = null; toast('Sessão exp
 async function boot() {
   try { session = await get('/api/auth/me'); } catch { session = null; }
   if (!session) return renderLogin();
+  applyBrand(session.salon.brand);
   renderShell();
   route();
   refreshBadge();
@@ -52,12 +55,13 @@ async function refreshBadge() {
 
 function renderShell() {
   listen();
-  const visible = ROUTES.filter((r) => r.sep || !r.min || RANK[session.user.role] >= RANK[r.min]);
+  const visible = ROUTES.filter((r) => (r.sep || !r.min || RANK[session.user.role] >= RANK[r.min]) && (!r.hq || session.salon.is_hq));
   const nav = h('nav', { class: 'nav', 'aria-label': 'Menu principal' },
     visible.map((r) => r.sep ? h('div', { class: 'sep' }) : h('a', { href: `#/${r.path}`, 'data-path': r.path, onclick: closeMenu }, icon(r.icon), r.label,
       r.badge ? h('span', { class: 'badge hidden' }, '0') : null)));
   const side = h('aside', { class: 'side', id: 'side' },
-    h('div', { class: 'brand' }, h('div', { class: 'mark' }, 'S'), h('div', {}, h('b', {}, 'Studio Beauty Barber'), h('span', {}, 'Gestão'))),
+    h('div', { class: 'brand' }, h('div', { class: 'mark' }, session.salon.logo ? h('img', { src: session.salon.logo, alt: '' }) : (session.salon.name || 'S').trim()[0].toUpperCase()),
+      h('div', {}, h('b', {}, session.salon.name), h('span', {}, ({ masc: 'Barbearia', fem: 'Studio', mix: 'Barbearia e Studio' })[session.salon.brand?.mode] || 'Gestão'))),
     nav,
     h('div', { class: 'me' }, h('b', {}, session.user.name), h('span', { class: 'muted' }, session.salon.name),
       h('button', { class: 'btn sm block', onclick: logout }, icon('logout'), 'Sair')));
@@ -140,6 +144,7 @@ function renderLogin(mode = 'login') {
         await post('/api/auth/signup', { ...fd, terms: form.querySelector('[name=terms]').checked });
       }
       session = await get('/api/auth/me');
+      applyBrand(session.salon.brand);
       renderShell(); route(); refreshBadge();
     } catch (ex) {
       err.textContent = ex.fields ? Object.values(ex.fields).join(' · ') + ' — ' + ex.message : ex.message;

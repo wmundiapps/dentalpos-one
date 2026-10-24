@@ -1,5 +1,6 @@
 // Página pública de agendamento: /s/<slug>. Sem login; horários sempre validados no servidor.
 import { h, $, clear, get, post, brl, toast, fail } from './lib.js';
+import { applyBrand, waLink, mapsLink } from './theme.js';
 
 const slug = location.pathname.split('/').filter(Boolean)[1] || '';
 const root = $('#root');
@@ -11,17 +12,35 @@ async function boot() {
     const r = await get(`/api/public/salons/${encodeURIComponent(slug)}`);
     Object.assign(st, { salon: r.salon, services: r.services, staff: r.staff });
     document.title = `Agende em ${r.salon.name}`;
+    applyBrand(r.salon.brand);
     stepService();
   } catch (e) {
     clear(root).append(h('div', { class: 'pub-wrap' }, h('div', { class: 'card' }, h('h2', {}, 'Página não encontrada'), h('p', { class: 'muted' }, 'Confira o link com o salão.'))));
   }
 }
 
+function contactBar() {
+  const c = st.salon.brand?.contact || {};
+  const links = [];
+  if (c.whatsapp) links.push(h('a', { class: 'wa', href: waLink(c.whatsapp, `Olá! Vim pela página de agendamento do ${st.salon.name}.`), target: '_blank', rel: 'noopener noreferrer' }, 'WhatsApp'));
+  if (c.phone) links.push(h('a', { href: `tel:+${String(c.phone).replace(/\D/g, '')}` }, 'Ligar'));
+  if (c.instagram) links.push(h('a', { href: `https://instagram.com/${encodeURIComponent(c.instagram)}`, target: '_blank', rel: 'noopener noreferrer' }, 'Instagram'));
+  if (c.facebook) links.push(h('a', { href: `https://facebook.com/${encodeURIComponent(c.facebook)}`, target: '_blank', rel: 'noopener noreferrer' }, 'Facebook'));
+  if (c.website) links.push(h('a', { href: c.website, target: '_blank', rel: 'noopener noreferrer' }, 'Site'));
+  if (c.address) links.push(h('a', { href: mapsLink(c.address, c.city), target: '_blank', rel: 'noopener noreferrer' }, 'Como chegar'));
+  return links.length ? h('div', { class: 'pub-contact' }, links) : null;
+}
+
 function shell(...content) {
+  const b = st.salon.brand || {};
+  const c = b.contact || {};
   clear(root).append(h('div', { class: 'pub-wrap' },
-    h('header', { class: 'pub-head' }, st.salon.logo ? h('img', { src: st.salon.logo, alt: '', class: 'pub-logo' }) : h('div', { class: 'mark' }, st.salon.name[0]),
-      h('div', {}, h('h1', {}, st.salon.name), h('p', { class: 'muted small' }, [st.salon.address, st.salon.city].filter(Boolean).join(' · ')))),
+    h('header', { class: 'pub-hero' },
+      h('div', { class: 'pub-head', style: { marginBottom: 0 } }, st.salon.logo ? h('img', { src: st.salon.logo, alt: '', class: 'pub-logo' }) : h('div', { class: 'mark' }, st.salon.name[0]),
+        h('div', {}, h('h1', {}, st.salon.name), b.tagline ? h('p', {}, b.tagline) : null, h('p', { class: 'small' }, [c.address, c.city].filter(Boolean).join(' · ')))),
+      contactBar()),
     ...content,
+    b.about ? h('p', { class: 'small muted', style: { marginTop: '22px' } }, b.about) : null,
     h('footer', { class: 'small muted', style: { textAlign: 'center', marginTop: '24px' } }, st.salon.hours ? `Funcionamento: ${st.salon.hours}` : '', h('br'), 'Agendamento por Studio Beauty Barber')));
   window.scrollTo(0, 0);
 }
@@ -65,6 +84,7 @@ async function stepDate() {
 function stepContact() {
   const name = h('input', { autocomplete: 'name', required: true }), phone = h('input', { autocomplete: 'tel', inputmode: 'tel', required: true, placeholder: '(11) 91234-5678' }), email = h('input', { type: 'email', autocomplete: 'email' });
   const consent = h('input', { type: 'checkbox' });
+  const cash = h('input', { type: 'checkbox' });
   const paid = !!st.salon.deposit_required;
   const cpf = h('input', { inputmode: 'numeric', autocomplete: 'off', placeholder: 'CPF ou CNPJ (para o pagamento)' });
   const pixR = h('input', { type: 'radio', name: 'pay', checked: true }), cardR = h('input', { type: 'radio', name: 'pay' });
@@ -77,7 +97,7 @@ function stepContact() {
     if (paid && !accept.checked) return toast('Para reservar, aceite a política de não comparecimento.', 'bad');
     btn.disabled = true;
     try {
-      const r = await post(`/api/public/salons/${encodeURIComponent(slug)}/book`, { service_id: st.service.id, staff_id: st.staffId || undefined, starts_at: st.slot.startsAt, name: name.value, phone: phone.value, email: email.value || undefined, consent_marketing: consent.checked, website: hp.value,
+      const r = await post(`/api/public/salons/${encodeURIComponent(slug)}/book`, { service_id: st.service.id, staff_id: st.staffId || undefined, starts_at: st.slot.startsAt, name: name.value, phone: phone.value, email: email.value || undefined, consent_marketing: consent.checked, cashback_optin: cash.checked, website: hp.value,
         ...(paid ? { accept_policy: accept.checked, cpf_cnpj: cpf.value, pay_method: cardR.checked ? 'CREDIT_CARD' : 'PIX' } : {}) });
       if (r.pending_payment) pay(r); else done();
     } catch (ex) { fail(ex); btn.disabled = false; if (ex.status === 409) stepDate(); }
@@ -85,6 +105,7 @@ function stepContact() {
   h('div', { class: 'card flat' }, h('b', {}, st.service.name), h('div', { class: 'muted small' }, `${d}/${m}/${y} às ${st.slot.time} · ${brl(st.service.price_cents)}`)),
   h('label', { class: 'f' }, 'Seu nome', name), h('label', { class: 'f' }, 'WhatsApp com DDD', phone), h('label', { class: 'f' }, 'E-mail (opcional)', email),
   h('label', { class: 'check' }, consent, h('span', {}, 'Aceito receber lembretes e novidades do salão por WhatsApp (opcional). Posso sair a qualquer momento respondendo PARAR.')),
+  h('label', { class: 'check' }, cash, h('span', {}, 'Quero participar do Cashbacksmart e receber cashback nas minhas compras (opcional).')),
   paid ? h('div', { class: 'card flat' }, h('h3', {}, 'Pagamento antecipado'),
     h('label', { class: 'f' }, 'CPF ou CNPJ', cpf),
     h('div', { class: 'row wrap', style: { gap: '18px' } }, h('label', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, pixR, 'Pix'), h('label', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, cardR, 'Cartão de crédito')),

@@ -14,6 +14,7 @@ import { readBody } from '../http.js';
 import * as stripe from '../integrations/stripe.js';
 import * as asaas from '../integrations/asaas.js';
 import { upsertLead } from '../domain.js';
+import { profileOf, mergeProfile, defaultsFor, MODE_LABEL, STARTER, RECALL_BY_CATEGORY } from '../brand.js';
 
 export const UPLOAD_DIR = join(process.env.UPLOAD_DIR || './data', 'uploads');
 
@@ -40,6 +41,8 @@ export default function register(r) {
         quiet_start: s.quiet_start, quiet_end: s.quiet_end, logo: s.logo_path ? `/uploads/${s.logo_path}` : null,
         automations: automations(s), booking_url: `${cfg.appUrl}/s/${s.slug}`,
         deposit_required: !!s.deposit_required, noshow_retention_pct: s.noshow_retention_pct, free_cancel_hours: s.free_cancel_hours,
+        cashback: (json(s.brand_json, {}).cashback) || { enabled: false },
+        brand: profileOf(s), brand_defaults: { masc: defaultsFor('masc'), fem: defaultsFor('fem'), mix: defaultsFor('mix') }, mode_labels: MODE_LABEL,
       },
     };
   });
@@ -53,7 +56,16 @@ export default function register(r) {
     let brand = json(ctx.salon.brand_json, {});
     if (ctx.body?.automations && typeof ctx.body.automations === 'object') {
       const a = ctx.body.automations;
-      brand = { ...brand, automations: { ...automations(ctx.salon), reminders: !!a.reminders, birthday: !!a.birthday, reactivation: !!a.reactivation } };
+      brand = { ...brand, automations: { ...automations(ctx.salon), reminders: !!a.reminders, confirmation: a.confirmation !== false, recall: !!a.recall, birthday: !!a.birthday, reactivation: !!a.reactivation } };
+    }
+    if (ctx.body?.cashback && typeof ctx.body.cashback === 'object') {
+      const enabled = !!ctx.body.cashback.enabled;
+      const cur = brand.cashback || {};
+      brand = { ...brand, cashback: enabled ? { enabled: true, accepted_at: cur.accepted_at || nowIso(), accepted_by: cur.accepted_by || ctx.user.id, status: cur.status || 'pending' } : { enabled: false } };
+      await audit(ctx, enabled ? 'cashback_optin' : 'cashback_optout', 'salon', ctx.salon.id);
+    }
+    if (ctx.body?.brand && typeof ctx.body.brand === 'object') {
+      brand = { ...brand, profile: mergeProfile(ctx.salon, ctx.body.brand) };
     }
     await db.run(
       `UPDATE salons SET name = COALESCE(?, name), phone = COALESCE(?, phone), email = COALESCE(?, email), address = COALESCE(?, address),
@@ -65,6 +77,25 @@ export default function register(r) {
         hours ? JSON.stringify(hours) : null, JSON.stringify(brand), ctx.salon.id]);
     await audit(ctx, 'settings_updated', 'salon', ctx.salon.id);
     return { ok: true };
+  });
+
+  // Cadastra os serviços sugeridos do tipo de espaço (só os que ainda não existem, pelo nome).
+  r.post('/api/settings/starter-services', auth('manager'), async (ctx) => {
+    const mode = String(ctx.body?.mode || profileOf(ctx.salon).mode);
+    const list = STARTER[mode];
+    if (!list) throw new HttpError(422, 'Tipo de espaço inválido.');
+    const have = new Set((await db.all('SELECT name FROM services WHERE salon_id = ?', [ctx.salon.id])).map((x) => x.name.toLowerCase()));
+    const staff = await db.all('SELECT id FROM staff WHERE salon_id = ? AND active = 1', [ctx.salon.id]);
+    let added = 0;
+    for (const [name, category, duration, price] of list) {
+      if (have.has(name.toLowerCase())) continue;
+      const id = uid();
+      await db.run('INSERT INTO services (id, salon_id, name, category, duration_min, price_cents, recall_days, active) VALUES (?,?,?,?,?,?,?,1)', [id, ctx.salon.id, name, category, duration, price, RECALL_BY_CATEGORY[category] || null]);
+      for (const s of staff) await db.run('INSERT INTO staff_services (staff_id, service_id) VALUES (?,?) ON CONFLICT DO NOTHING', [s.id, id]);
+      added++;
+    }
+    await audit(ctx, 'starter_services', 'salon', ctx.salon.id, { mode, added });
+    return { ok: true, added };
   });
 
   // Upload de logo: valida assinatura do arquivo (PNG/JPG/WEBP), limita tamanho e passa no antivírus (ClamAV) quando configurado.
@@ -122,7 +153,7 @@ export default function register(r) {
   r.get('/api/billing', auth(), async (ctx) => {
     const sub = await db.get('SELECT * FROM subscriptions WHERE salon_id = ? ORDER BY created_at DESC LIMIT 1', [ctx.salon.id]);
     return {
-      status: ctx.salon.status, plan: ctx.salon.plan, trial_ends_at: ctx.salon.trial_ends_at, subscription: sub ?? null,
+      status: ctx.salon.status, plan: ctx.salon.plan, lifetime: !!ctx.salon.lifetime, trial_ends_at: ctx.salon.trial_ends_at, subscription: sub ?? null,
       plans: Object.entries(cfg.plans).map(([key, p]) => ({ key, ...p })),
       providers: { stripe: stripe.stripeEnabled(), asaas: !!asaas.platformConf() },
     };

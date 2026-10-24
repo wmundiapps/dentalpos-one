@@ -35,16 +35,17 @@ export async function render(root, { session }) {
       const fillPro = () => { clear(pro).append(staff.filter((p) => p.active && p.service_ids.includes(sv.value)).map((p) => h('option', { value: p.id }, p.name))); };
       sv.addEventListener('change', fillPro); fillPro();
       const iv = h('select', {}, Object.entries(LABEL).map(([v, l]) => h('option', { value: v, selected: v === '30' }, l)));
+      const chargeBox = h('input', { type: 'checkbox', checked: true });
       const tm = h('input', { type: 'time', value: '10:00' }), ds = h('input', { type: 'number', min: 0, max: 50, value: 10 }), doc = h('input', { inputmode: 'numeric', placeholder: 'Para a cobrança no Asaas' });
       const btn = h('button', { class: 'btn primary', onclick: async () => {
         btn.disabled = true;
         try {
-          const r = await post('/api/club', { client_id: cl.value, service_id: sv.value, staff_id: pro.value, interval_days: Number(iv.value), preferred_time: tm.value, discount_pct: Number(ds.value) || 0, cpf_cnpj: doc.value || undefined });
+          const r = await post('/api/club', { client_id: cl.value, service_id: sv.value, staff_id: pro.value, interval_days: Number(iv.value), preferred_time: tm.value, discount_pct: Number(ds.value) || 0, cpf_cnpj: doc.value || undefined, charge: chargeBox.checked });
           toast(`Assinatura criada: ${r.visits.length} visitas reservadas`, 'ok'); close(); load();
         } catch (e) { fail(e); btn.disabled = false; }
       } }, 'Criar assinatura');
       body.append(h('div', { class: 'stack' }, field('Cliente', cl), field('Serviço', sv), field('Profissional', pro), field('Repetir', iv),
-        h('div', { class: 'grid g2' }, field('Horário preferido', tm), field('Desconto do clube (%)', ds)), field('CPF/CNPJ do cliente', doc), btn,
+        h('div', { class: 'grid g2' }, field('Horário preferido', tm), field('Desconto do clube (%)', ds)), field('CPF/CNPJ do cliente', doc), h('label', { class: 'check' }, chargeBox, h('span', {}, 'Cobrar cada visita pelo Asaas (desmarque para só repetir o horário, sem cobrança)')), btn,
         h('p', { class: 'small muted' }, 'O sistema reserva as próximas 6 visitas no mesmo profissional e perto desse horário, cobra cada uma 7 dias antes pelo Asaas e libera o horário se não for paga até o prazo de cancelamento.')));
     });
   }

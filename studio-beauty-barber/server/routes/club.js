@@ -23,7 +23,7 @@ export default function register(r) {
   r.post('/api/club', auth('manager'), async (ctx) => {
     const d = validate(ctx.body, {
       client_id: 'str:1:60', service_id: 'str:1:60', staff_id: 'str:1:60', interval_days: 'int:7:60',
-      preferred_time: 'str:5:5', discount_pct: 'int?:0:50', cpf_cnpj: 'str?:11:18',
+      preferred_time: 'str:5:5', discount_pct: 'int?:0:50', cpf_cnpj: 'str?:11:18', charge: 'bool?',
     });
     if (!INTERVALS.includes(d.interval_days)) throw new HttpError(422, 'Intervalo permitido: 7, 15, 30, 45 ou 60 dias.');
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(d.preferred_time)) throw new HttpError(422, 'Horário preferido inválido (use HH:MM).');
@@ -35,9 +35,9 @@ export default function register(r) {
     if (doc && doc.length !== 11 && doc.length !== 14) throw new HttpError(422, 'CPF/CNPJ inválido.');
     const id = uid();
     await db.run(
-      `INSERT INTO club_memberships (id, salon_id, client_id, service_id, staff_id, interval_days, preferred_time, discount_pct, cpf_cnpj, status, created_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-      [id, ctx.salon.id, d.client_id, d.service_id, d.staff_id, d.interval_days, d.preferred_time, d.discount_pct ?? 0, doc || null, 'active', nowIso()]);
+      `INSERT INTO club_memberships (id, salon_id, client_id, service_id, staff_id, interval_days, preferred_time, discount_pct, cpf_cnpj, charge, status, created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id, ctx.salon.id, d.client_id, d.service_id, d.staff_id, d.interval_days, d.preferred_time, d.discount_pct ?? 0, doc || null, d.charge === false || d.charge === 0 ? 0 : 1, 'active', nowIso()]);
     const m = await db.get('SELECT * FROM club_memberships WHERE id = ?', [id]);
     const made = await generateVisits(ctx.salon, m);
     await audit(ctx, 'club_created', 'club', id, { interval: d.interval_days });

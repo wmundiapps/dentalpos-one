@@ -1,4 +1,5 @@
 import { db } from '../db.js';
+import { profileOf } from '../brand.js';
 import { cfg } from '../config.js';
 import { HttpError, validate, uid, nowIso, normalizePhone } from '../util.js';
 import {
@@ -100,8 +101,9 @@ export default function register(r) {
   r.get('/api/auth/me', auth(), async (ctx) => ({
     user: { id: ctx.user.id, name: ctx.user.name, email: ctx.user.email, role: ctx.user.role, totp_enabled: !!ctx.user.totp_enabled },
     salon: {
-      id: ctx.salon.id, slug: ctx.salon.slug, name: ctx.salon.name, plan: ctx.salon.plan, status: ctx.salon.status,
+      id: ctx.salon.id, slug: ctx.salon.slug, name: ctx.salon.name, plan: ctx.salon.plan, status: ctx.salon.status, lifetime: !!ctx.salon.lifetime, is_hq: ctx.salon.slug === cfg.hqSlug,
       trial_ends_at: ctx.salon.trial_ends_at, timezone: ctx.salon.timezone,
+      logo: ctx.salon.logo_path ? `/uploads/${ctx.salon.logo_path}` : null, brand: profileOf(ctx.salon),
     },
   }));
 

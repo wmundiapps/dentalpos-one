@@ -54,7 +54,7 @@ export async function chargeClubVisits(salon, now = new Date()) {
   const due = await db.all(
     `SELECT a.*, c.name AS cname, c.phone AS cphone, c.email AS cemail, m.cpf_cnpj FROM appointments a
        JOIN clients c ON c.id = a.client_id JOIN club_memberships m ON m.id = a.club_id
-      WHERE a.salon_id = ? AND a.club_id IS NOT NULL AND a.pay_status = 'none' AND a.status = 'scheduled' AND a.starts_at > ? AND a.starts_at <= ? AND m.status = 'active'`,
+      WHERE a.salon_id = ? AND a.club_id IS NOT NULL AND a.pay_status = 'none' AND a.status = 'scheduled' AND a.starts_at > ? AND a.starts_at <= ? AND m.status = 'active' AND m.charge = 1`,
     [salon.id, now.toISOString(), horizon]);
   let n = 0;
   for (const a of due) {
