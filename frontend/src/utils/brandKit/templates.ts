@@ -235,8 +235,9 @@ export function docHTML(type: DocType, c: KitClinic, d: DocInput) {
 export type Orient = "h" | "v";
 function bizCard(c: KitClinic, o: Orient, x: { eye: string; title: string; sub?: string; badge?: string; lines: [string, string][]; qr?: string; qrcap?: string }) {
   const ls = x.lines.filter((l) => l[1]).map((l) => `<li><span>${esc(l[0])}</span><em>${esc(l[1])}</em></li>`).join("");
+  // Horizontal: QR na faixa colorida, abaixo da logo (o texto fica com a largura toda). Vertical: QR no rodapé.
   const q = x.qr ? `<div class="qr"><img src="${x.qr}" alt=""></div>${o === "v" ? `<div class="qrcap">${esc(x.qrcap || "")}</div>` : ""}` : "";
-  return `<div class="bc ${o}" style="--b:${esc(c.color)}"><div class="side"><div class="lgbox">${logoHTML(c, o === "v" ? 74 : 60)}</div></div><div class="main"><div class="eye">${esc(x.eye)}</div><div class="tt">${esc(x.title)}</div>${x.sub ? `<div class="st">${esc(x.sub)}</div>` : ""}${x.badge ? `<div class="bd">${esc(x.badge)}</div>` : ""}<ul class="ls">${ls}</ul></div>${q}${o === "v" ? '<div class="foot"></div>' : ""}</div>`;
+  return `<div class="bc ${o}" style="--b:${esc(c.color)}"><div class="side"><div class="lgbox">${logoHTML(c, o === "v" ? 66 : 60)}</div>${o === "h" ? q : ""}</div><div class="main"><div class="eye">${esc(x.eye)}</div><div class="tt">${esc(x.title)}</div>${x.sub ? `<div class="st">${esc(x.sub)}</div>` : ""}${x.badge ? `<div class="bd">${esc(x.badge)}</div>` : ""}<ul class="ls">${ls}</ul></div>${o === "v" ? q + '<div class="foot"></div>' : ""}</div>`;
 }
 export const clinicCardQR = (c: KitClinic) => waLink(c.whatsapp || c.phone) || c.site;
 export function clinicCard(c: KitClinic, o: Orient, qr: string) {
@@ -311,6 +312,7 @@ export const KIT_CSS = `
 .bkit .bc{font-family:var(--ui);background:#fff;color:#16202a;overflow:hidden;position:relative}
 .bkit .bc.h{width:350px;height:200px;display:grid;grid-template-columns:96px 1fr}
 .bkit .bc .side{background:var(--b);display:flex;align-items:center;justify-content:center}
+.bkit .bc.h .side{flex-direction:column;gap:14px}
 .bkit .bc .lgbox{background:#fff;border-radius:10px;width:70px;height:70px;display:grid;place-items:center;overflow:hidden}
 .bkit .bc .lgbox img{max-width:62px;max-height:62px}
 .bkit .bc.h .main{padding:16px;display:flex;flex-direction:column;min-width:0;position:relative}
@@ -318,24 +320,24 @@ export const KIT_CSS = `
 .bkit .bc .tt{font-size:15.5px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
 .bkit .bc .st{font-size:9.5px;color:#4d5862;margin-top:2px}
 .bkit .bc .bd{display:inline-block;font-family:var(--mono);font-size:8.5px;font-weight:600;border:1px solid var(--b);color:var(--b);border-radius:4px;padding:1px 5px;margin-top:5px;align-self:flex-start}
-.bkit .bc .ls{list-style:none;margin:auto 0 0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:8.6px;max-width:170px}
+.bkit .bc .ls{list-style:none;margin:auto 0 0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:8.6px}
 .bkit .bc .ls li{display:flex;gap:5px;line-height:1.3}
-.bkit .bc .ls li span{font-size:6.5px;font-weight:800;letter-spacing:.1em;color:var(--b);width:38px;flex:none;padding-top:1px}
-.bkit .bc .ls li em{font-style:normal;word-break:break-word}
-.bkit .bc.h .qr{position:absolute;right:12px;bottom:12px;width:64px;height:64px;padding:3px;background:#fff;border:1px solid #e4e8eb;border-radius:4px}
+.bkit .bc .ls li span{font-size:6.5px;font-weight:800;letter-spacing:.08em;color:var(--b);width:44px;flex:none;padding-top:1px}
+.bkit .bc .ls li em{font-style:normal;overflow-wrap:anywhere;min-width:0}
+.bkit .bc.h .qr{width:60px;height:60px;padding:3px;background:#fff;border-radius:4px;flex:none}
 .bkit .bc .qr img{width:100%;height:100%;display:block}
 .bkit .bc.v{width:270px;height:480px;display:flex;flex-direction:column;align-items:center;text-align:center}
-.bkit .bc.v .side{width:100%;height:112px;align-items:flex-end;flex:none}
-.bkit .bc.v .lgbox{width:84px;height:84px;transform:translateY(42px);box-shadow:0 2px 8px rgba(0,0,0,.15)}
-.bkit .bc.v .lgbox img{max-width:74px;max-height:74px}
-.bkit .bc.v .main{padding:54px 20px 0;display:flex;flex-direction:column;align-items:center;width:100%}
+.bkit .bc.v .side{width:100%;height:96px;align-items:flex-end;flex:none}
+.bkit .bc.v .lgbox{width:76px;height:76px;transform:translateY(38px);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.bkit .bc.v .lgbox img{max-width:66px;max-height:66px}
+.bkit .bc.v .main{padding:46px 18px 0;display:flex;flex-direction:column;align-items:center;width:100%}
 .bkit .bc.v .tt{font-size:18px}
 .bkit .bc.v .bd{align-self:center}
-.bkit .bc.v .ls{margin:12px 0 0;align-items:center;max-width:none}
-.bkit .bc.v .ls li{flex-direction:column;gap:0;align-items:center}
+.bkit .bc.v .ls{margin:10px 0 0;align-items:center;max-width:none;gap:3px}
+.bkit .bc.v .ls li{flex-direction:column;gap:0;align-items:center;line-height:1.25}
 .bkit .bc.v .ls li span{width:auto}
-.bkit .bc.v .qr{margin-top:auto;margin-bottom:22px;width:104px;height:104px;padding:4px;border:1px solid #e4e8eb;border-radius:6px;background:#fff}
-.bkit .bc.v .qrcap{font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:#7a858e;margin:-18px 0 14px}
+.bkit .bc.v .qr{margin-top:auto;margin-bottom:20px;width:92px;height:92px;padding:4px;border:1px solid #e4e8eb;border-radius:6px;background:#fff;flex:none}
+.bkit .bc.v .qrcap{font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:#7a858e;margin:-16px 0 11px}
 .bkit .bc .foot{position:absolute;left:0;right:0;bottom:0;height:5px;background:var(--b)}
 .bkit .rm{width:360px;height:450px;background:#fff;color:#14202a;font-family:var(--ui);display:flex;flex-direction:column;overflow:hidden}
 .bkit .rm .hd{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid #e6eaed}
