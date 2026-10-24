@@ -7,7 +7,7 @@ import { HttpError, rateLimit, stripLinks } from '../security.js';
 import { getRec, insertRec, listRecs, patchRec } from '../repo.js';
 import { parseSettings, getTenant } from '../tenant.js';
 import { createAppointment, durationOf, slotsFor } from '../agenda.js';
-import { notifyCustomer, render } from '../notify.js';
+import { cashbacksmartLink, cashbacksmartUrl, confirmationPromo, notifyCustomer, render } from '../notify.js';
 import { apptVars } from './agenda.js';
 import { sendImage } from './photos.js';
 import { verifyLink, contactHash } from '../secure.js';
@@ -47,6 +47,7 @@ publicRouter.get('/l/:slug', rateLimit('pub', 120, 60), async (req, res) => {
     categories: cats.filter((c) => c.data.active !== false).map((c) => ({ key: c.data.key, name: c.data.name })),
     services: services.filter((x) => x.data.active !== false).map((x) => ({ id: x.id, name: x.data.name, description: x.data.description, durationMin: x.data.durationMin, prices: x.data.prices })),
     showcase: showcase.map((x) => ({ id: x.id, title: x.data.title, serviceName: x.data.serviceName, vehicle: x.data.vehicle, before: x.data.beforePhotoId, after: x.data.afterPhotoId })),
+    cashbacksmart: s.loyalty.enabled && s.loyalty.cashbacksmart.enabled && s.loyalty.cashbacksmart.customerButton && cashbacksmartUrl() ? { url: cashbacksmartLink(t.slug, 'pagina') } : null,
     google: { reviewUrl: s.google.placeId ? `https://search.google.com/local/writereview?placeid=${encodeURIComponent(s.google.placeId)}` : null, ...(await googleReviews(s.google.placeId)) },
   });
 });
@@ -57,6 +58,20 @@ publicRouter.get('/l/:slug/photo/:id', rateLimit('pubphoto', 300, 60), async (re
   const p = await one(pool, 'SELECT data, mime FROM photos WHERE tenant_id = $1 AND id = $2 AND is_public = true', [t.id, req.params.id]).catch(() => undefined);
   if (!p) throw new HttpError(404, 'Foto não encontrada.', 'nao_encontrado');
   sendImage(res, p.data, p.mime, true);
+});
+
+/** Botão "Participar do Cashbacksmart": conta o clique (sem dados pessoais) e leva à página de adesão (CASHBACKSMART_URL, definida por nós — nunca vem do visitante). */
+publicRouter.get('/l/:slug/cashbacksmart', rateLimit('cs', 60, 60), async (req, res) => {
+  const t = await tenantBySlug(req.params.slug as string);
+  const s = parseSettings(t.settings);
+  const base = cashbacksmartUrl();
+  if (!base || !s.loyalty.cashbacksmart.enabled) return void res.redirect(302, `${process.env.APP_URL ?? ''}/l/${t.slug}`);
+  const origem = ['confirmacao', 'pagina', 'agendamento'].includes(String(req.query.o)) ? String(req.query.o) : 'pagina';
+  await insertRec(pool, t.id, 'cashbacksmartClick', { origem }).catch(() => {});
+  const u = new URL(base);
+  u.searchParams.set('utm_source', 'lavapos'); u.searchParams.set('utm_medium', origem); u.searchParams.set('utm_campaign', t.slug);
+  if (s.loyalty.cashbacksmart.merchantId) u.searchParams.set('estabelecimento', s.loyalty.cashbacksmart.merchantId);
+  res.set('Cache-Control', 'no-store').redirect(302, u.toString());
 });
 
 publicRouter.get('/l/:slug/slots', rateLimit('slots', 60, 60), async (req, res) => {
@@ -99,7 +114,7 @@ publicRouter.post('/l/:slug/book', rateLimit('book', 10, 3600, true), async (req
     const a = await createAppointment(tx, t.id, s, { customerId: c.id, vehicleId: v.id, serviceIds: b.serviceIds, start: b.start, source: 'online' });
     return { a, c, v };
   });
-  await notifyCustomer(pool, t.id, s.reminders.bookingConfirmation, out.c.data as any, 'agenda', `Agendamento confirmado — ${t.name}`, render(s.templates.confirmacao, apptVars(out.a.data, out.c.data, out.v.data, t.name)), { dedupe: `conf:${out.a.id}` });
+  await notifyCustomer(pool, t.id, s.reminders.bookingConfirmation, out.c.data as any, 'agenda', `Agendamento confirmado — ${t.name}`, render(s.templates.confirmacao, apptVars(out.a.data, out.c.data, out.v.data, t.name)), { dedupe: `conf:${out.a.id}`, promo: confirmationPromo(t.slug, s) });
   res.status(201).json({ ok: true, start: out.a.data.start, message: 'Agendamento feito! Você recebe a confirmação por WhatsApp.' });
 });
 

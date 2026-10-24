@@ -4,7 +4,7 @@ import { dmy } from '../format';
 import { useMe } from '../App';
 
 export default function Platform() {
-  const { logout } = useMe(); const t = useLoad<any[]>('/platform/tenants'); const [run] = useAction();
+  const { logout } = useMe(); const t = useLoad<any[]>('/platform/tenants'); const cs = useLoad<any[]>('/platform/cashbacksmart'); const [run] = useAction();
   if (!t.data) return <Loading error={t.error} />;
   const sum = (k: string) => t.data!.reduce((a, x) => a + x[k], 0);
   const active = t.data.filter((x) => x.billingStatus === 'ativa'), trial = t.data.filter((x) => x.billingStatus === 'trial');
@@ -16,6 +16,7 @@ export default function Platform() {
       <Card title="Lava-rápidos"><div className="scroll"><table><thead><tr><th>Nome</th><th>Responsável</th><th>Cadastro</th><th>Status</th><th>GMV mês</th><th>Comissão</th><th /></tr></thead><tbody>
         {t.data.map((x) => (<tr key={x.id}><td><b>{x.name}</b><br /><span className="muted small">{x.email}</span></td><td>{x.ownerName}</td><td>{dmy(x.createdAt)}</td><td><Badge tone={x.billingStatus === 'ativa' ? 'ok' : x.billingStatus === 'trial' ? 'info' : 'bad'}>{x.billingStatus}</Badge>{x.billingStatus === 'trial' && <span className="small muted"> até {dmy(x.trialEndsAt)}</span>}</td><td><Money cents={x.gmvMonthCents} /></td><td><Money cents={x.feeMonthCents} /></td>
           <td className="nowrap">{x.billingStatus !== 'ativa' && <button className="sm" onClick={() => set(x.id, 'ativa')}>Ativar</button>} {x.billingStatus !== 'inadimplente' && <button className="sm" onClick={() => set(x.id, 'inadimplente')}>Inadimplente</button>}</td></tr>))}</tbody></table></div></Card>
+      <Card title="Interessados no Cashbacksmart">{!cs.data?.length ? <p className="muted">Ninguém ainda.</p> : <div className="scroll"><table><thead><tr><th>Lava-rápido</th><th>Responsável</th><th>Contato</th><th>Cliques</th><th>Desde</th></tr></thead><tbody>{cs.data.map((x, i) => <tr key={i}><td><b>{x.lavacar}</b></td><td>{x.responsavel}</td><td>{x.email}<br /><span className="muted small">{x.telefone}</span></td><td>{x.cliques}</td><td>{dmy(x.createdAt)}</td></tr>)}</tbody></table></div>}</Card>
     </Page>
   );
 }

@@ -10,12 +10,14 @@ import { validateKey } from '../asaas.js';
 import { passwordProblem, text } from '../validators.js';
 import { decrypt } from '../secure.js';
 import { TERMS_VERSION } from '../legal.js';
+import { cashbacksmartUrl } from '../notify.js';
+import { insertRec } from '../repo.js';
 
 export const settingsRouter = Router();
 
 settingsRouter.get('/', async (req: AuthedRequest, res) => {
   const t = await getTenant(pool, tenantOf(req));
-  res.json({ settings: parseSettings(t.settings), asaasConnected: !!t.secrets && (() => { try { return !!JSON.parse(decrypt(t.secrets!)).asaasApiKey; } catch { return false; } })(), slug: t.slug, termsVersion: t.terms_version, currentTermsVersion: TERMS_VERSION });
+  res.json({ settings: parseSettings(t.settings), asaasConnected: !!t.secrets && (() => { try { return !!JSON.parse(decrypt(t.secrets!)).asaasApiKey; } catch { return false; } })(), cashbacksmart: { urlConfigured: !!cashbacksmartUrl() }, slug: t.slug, termsVersion: t.terms_version, currentTermsVersion: TERMS_VERSION });
 });
 
 settingsRouter.put('/', requireOwner, async (req: AuthedRequest, res) => {
@@ -70,4 +72,19 @@ settingsRouter.post('/close-account', requireOwner, rateLimit('close', 3, 3600, 
   await pool.query("UPDATE tenants SET billing_status = 'cancelada', settings = jsonb_set(settings, '{closeRequestedAt}', to_jsonb(now()::text)) WHERE id = $1", [tenantId]);
   await audit(pool, 'encerramento_solicitado', { tenantId, userId: req.user!.id, ip: clientIp(req) });
   res.json({ ok: true, message: 'Conta encerrada. Seus dados ficam disponíveis para exportação por 30 dias e depois são anonimizados.' });
+});
+
+/** Gestor adere ao Cashbacksmart: liga a opção, registra o interesse (a plataforma vê e acompanha) e devolve o link de cadastro, se já houver. */
+settingsRouter.post('/cashbacksmart/join', requireOwner, rateLimit('cs-join', 10, 3600, true), async (req: AuthedRequest, res) => {
+  const tenantId = tenantOf(req);
+  const [s, t] = [await loadSettings(pool, tenantId), await getTenant(pool, tenantId)];
+  const next = settingsSchema.parse({ ...s, loyalty: { ...s.loyalty, enabled: true, cashbacksmart: { ...s.loyalty.cashbacksmart, enabled: true } } });
+  await pool.query('UPDATE tenants SET settings = $2 WHERE id = $1', [tenantId, JSON.stringify(next)]);
+  const jaTem = await pool.query("SELECT 1 FROM records WHERE tenant_id = $1 AND kind = 'cashbacksmartLead' LIMIT 1", [tenantId]);
+  if (!jaTem.rowCount) await insertRec(pool, tenantId, 'cashbacksmartLead', { lavacar: t.name, responsavel: t.owner_name, email: t.email, telefone: t.phone ?? '', status: 'interesse' });
+  await audit(pool, 'cashbacksmart_adesao', { tenantId, userId: req.user!.id, ip: clientIp(req) });
+  const base = cashbacksmartUrl();
+  let joinUrl: string | null = null;
+  if (base) { const u = new URL(base); u.searchParams.set('utm_source', 'lavapos'); u.searchParams.set('utm_medium', 'gestor'); u.searchParams.set('utm_campaign', t.slug); joinUrl = u.toString(); }
+  res.json({ ok: true, joinUrl });
 });

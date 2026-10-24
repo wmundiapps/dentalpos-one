@@ -11,14 +11,18 @@ export async function getTenant(db: Db, id: string): Promise<TenantRow> {
   return t;
 }
 
-/** Configurações sempre completas: o que faltar no banco vem do padrão. */
+/** Mescla o padrão com o que está salvo, em qualquer profundidade (listas são trocadas inteiras). */
+function deepMerge(base: any, over: any): any {
+  if (Array.isArray(base) || typeof base !== 'object' || base === null) return over === undefined ? base : over;
+  if (typeof over !== 'object' || over === null || Array.isArray(over)) return base;
+  const out: Record<string, any> = { ...base };
+  for (const k of Object.keys(over)) out[k] = k in base ? deepMerge(base[k], over[k]) : over[k];
+  return out;
+}
+
+/** Configurações sempre completas: o que faltar no banco (inclusive campos novos de versões futuras) vem do padrão. */
 export function parseSettings(raw: any): Settings {
-  const d = defaultSettings();
-  const merged = { ...d, ...(raw ?? {}) };
-  for (const k of Object.keys(d) as (keyof Settings)[]) {
-    if (typeof d[k] === 'object' && !Array.isArray(d[k]) && raw?.[k]) (merged as any)[k] = { ...(d[k] as object), ...raw[k] };
-  }
-  return settingsSchema.parse(merged);
+  return settingsSchema.parse(deepMerge(defaultSettings(), raw ?? {}));
 }
 
 export async function loadSettings(db: Db, tenantId: string): Promise<Settings> {

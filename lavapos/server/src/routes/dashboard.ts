@@ -4,7 +4,7 @@ import { tenantOf, type AuthedRequest } from '../auth.js';
 import { listRecs } from '../repo.js';
 import { appointmentsBetween } from '../agenda.js';
 import { addDays, daysBetween, nowLocal } from '../time.js';
-import { getTenant } from '../tenant.js';
+import { getTenant, parseSettings } from '../tenant.js';
 
 export const dashboardRouter = Router();
 
@@ -35,7 +35,7 @@ dashboardRouter.get('/', async (req: AuthedRequest, res) => {
   const names = new Map(custAll.map((c) => [c.id, c.data.name as string])); const plates = new Map(vehAll.map((v) => [v.id, v.data.plate as string]));
   const trialDaysLeft = t.billing_status === 'trial' ? Math.max(0, Math.ceil((new Date(t.trial_ends_at).getTime() - Date.now()) / 86400000)) : null;
   res.json({
-    today, trialDaysLeft, billingStatus: t.billing_status,
+    today, trialDaysLeft, billingStatus: t.billing_status, cashbacksmartEnabled: parseSettings(t.settings).loyalty.cashbacksmart.enabled,
     appointmentsToday: apps.map((a) => ({ id: a.id, ...a.data, customerName: names.get(a.data.customerId) ?? '', plate: plates.get(a.data.vehicleId) ?? '' })),
     inService: open.filter((o) => o.data.status === 'em_servico').length, ready: open.filter((o) => o.data.status === 'pronto').length,
     openOrders: open.map((o) => ({ id: o.id, number: o.data.number, status: o.data.status, plate: o.data.plate, customerName: o.data.customerName, vehicleLabel: o.data.vehicleLabel })),

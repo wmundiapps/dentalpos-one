@@ -6,7 +6,7 @@ import { HttpError } from '../security.js';
 import { getRec, patchRec } from '../repo.js';
 import { loadSettings, getTenant } from '../tenant.js';
 import { appointmentsBetween, createAppointment, durationOf, slotsFor } from '../agenda.js';
-import { notifyCustomer, render } from '../notify.js';
+import { confirmationPromo, notifyCustomer, render } from '../notify.js';
 import { isoDate, isoDateTime, text, uuid } from '../validators.js';
 import { addDays } from '../time.js';
 
@@ -40,7 +40,7 @@ agendaRouter.post('/', async (req: AuthedRequest, res) => {
   const s = await loadSettings(pool, tenantId);
   const a = await withTx((tx) => createAppointment(tx, tenantId, s, { ...b, source: b.subscriptionId ? 'assinatura' : 'painel' }));
   const t = await getTenant(pool, tenantId);
-  await notifyCustomer(pool, tenantId, s.reminders.bookingConfirmation, c.data as any, 'agenda', `Agendamento confirmado — ${t.name}`, render(s.templates.confirmacao, apptVars(a.data, c.data, v.data, t.name)), { dedupe: `conf:${a.id}` });
+  await notifyCustomer(pool, tenantId, s.reminders.bookingConfirmation, c.data as any, 'agenda', `Agendamento confirmado — ${t.name}`, render(s.templates.confirmacao, apptVars(a.data, c.data, v.data, t.name)), { dedupe: `conf:${a.id}`, promo: confirmationPromo(t.slug, s) });
   res.status(201).json({ id: a.id, ...a.data });
 });
 

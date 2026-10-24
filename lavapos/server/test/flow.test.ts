@@ -238,3 +238,60 @@ test('webhook do Asaas: token antes do corpo, confirmação no Asaas e sem efeit
   // 4) pagamento desconhecido: aceito sem efeito
   assert.equal((await hook(ok, ev('pay_que_nao_existe'))).status, 200);
 });
+
+test('Cashbacksmart: gestor adere, convite vai no rodapé da confirmação e o clique é contado', async () => {
+  const { migrate: m } = await import('../src/db.js'); void m;
+  const r = await reg('Lava Cash', 'cash@teste.com'); const t = r.json.token; const slug = r.json.slug;
+  const info = () => api(`/public/l/${slug}`);
+  const book = async (n: number) => {
+    const pub = await info(); const sid = pub.json.services.find((s: any) => s.name === 'Lavagem só externa').id;
+    let date = addDays(nowLocal().date, 1); while (new Date(date + 'T12:00:00Z').getUTCDay() === 0) date = addDays(date, 1);
+    const sl = await api(`/public/l/${slug}/slots?date=${date}&serviceIds=${sid}`);
+    return api(`/public/l/${slug}/book`, { body: { name: 'Cliente Cash', whatsapp: `1190000000${n}`, email: `c${n}@x.com`, plate: `ABC1D2${n}`, brand: 'Fiat', model: 'Argo', year: 2021, categoryKey: 'carro', serviceIds: [sid], start: sl.json.slots[n].start, consentMarketing: false, acceptTerms: true } });
+  };
+  const outbox = async () => (await pool.query("SELECT channel, body, html FROM outbox WHERE topic = 'agenda' AND tenant_id = (SELECT id FROM tenants WHERE slug = $1) ORDER BY created_at", [slug])).rows;
+  // sem o link da Cashbacksmart configurado e sem adesão: nenhum convite
+  delete process.env.CASHBACKSMART_URL;
+  assert.equal(info && (await info()).json.cashbacksmart, null);
+  assert.equal((await book(1)).status, 201);
+  assert.ok((await outbox()).every((o: any) => !o.body.includes('Cashbacksmart')));
+  // gestor adere (sem link ainda): registra o interesse
+  const join = await api('/settings/cashbacksmart/join', { token: t, body: {} });
+  assert.equal(join.status, 200); assert.equal(join.json.joinUrl, null);
+  assert.equal((await pool.query("SELECT 1 FROM records WHERE kind = 'cashbacksmartLead'")).rowCount! >= 1, true);
+  assert.equal((await book(2)).status, 201);
+  assert.ok((await outbox()).slice(-2).every((o: any) => !o.body.includes('Cashbacksmart')), 'sem link configurado, o convite não sai');
+  // com o link configurado: convite no WhatsApp/e-mail (texto) e no HTML do e-mail; página pública mostra o botão
+  process.env.CASHBACKSMART_URL = 'https://cashbacksmart.exemplo.com.br/cadastro';
+  assert.match((await info()).json.cashbacksmart.url, /\/api\/public\/l\/.+\/cashbacksmart\?o=pagina$/);
+  assert.equal((await book(3)).status, 201);
+  const rows = (await outbox()).slice(-2);
+  assert.ok(rows.every((o: any) => o.body.includes('Cashbacksmart') && o.body.includes(`/api/public/l/${slug}/cashbacksmart?o=confirmacao`)));
+  assert.ok(rows.find((o: any) => o.channel === 'email').html.includes('Quero participar'));
+  assert.equal(rows.find((o: any) => o.channel === 'whatsapp').html, null);
+  // gestor desliga o convite: não vai mais
+  const cur = (await api('/settings', { token: t })).json.settings;
+  await api('/settings', { token: t, method: 'PUT', body: { loyalty: { ...cur.loyalty, cashbacksmart: { ...cur.loyalty.cashbacksmart, promoInConfirmation: false } } } });
+  assert.equal((await book(4)).status, 201);
+  assert.ok((await outbox()).slice(-2).every((o: any) => !o.body.includes('Cashbacksmart')));
+  // clique: redireciona para o endereço definido por nós, com origem, e conta sem dados pessoais
+  const click = await fetch(`${base}/public/l/${slug}/cashbacksmart?o=confirmacao`, { redirect: 'manual' });
+  assert.equal(click.status, 302);
+  const loc = new URL(click.headers.get('location')!);
+  assert.equal(loc.host, 'cashbacksmart.exemplo.com.br'); assert.equal(loc.searchParams.get('utm_medium'), 'confirmacao');
+  assert.equal(Number((await pool.query("SELECT count(*) FROM records WHERE kind = 'cashbacksmartClick'")).rows[0].count), 1);
+  // destino nunca vem do visitante
+  const evil = await fetch(`${base}/public/l/${slug}/cashbacksmart?o=confirmacao&url=https://golpe.example`, { redirect: 'manual' });
+  assert.equal(new URL(evil.headers.get('location')!).host, 'cashbacksmart.exemplo.com.br');
+  delete process.env.CASHBACKSMART_URL;
+});
+
+test('configurações antigas (sem campos novos) continuam funcionando', async () => {
+  const { parseSettings } = await import('../src/tenant.js');
+  const velho = { bays: 5, loyalty: { enabled: true, cashbackPercent: 8, minRedeemCents: 100, cashbacksmart: { enabled: true, merchantId: 'X1' } }, reminders: { washReminderDays: 30 } };
+  const s = parseSettings(velho);
+  assert.equal(s.bays, 5); assert.equal(s.loyalty.cashbackPercent, 8);
+  assert.equal(s.loyalty.cashbacksmart.merchantId, 'X1'); assert.equal(s.loyalty.cashbacksmart.promoInConfirmation, true); // veio do padrão
+  assert.equal(s.reminders.washReminderDays, 30); assert.equal(s.reminders.readyNotice.whatsapp, true);
+  assert.equal(s.hours.length, 7);
+});

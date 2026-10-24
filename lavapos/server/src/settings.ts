@@ -15,7 +15,7 @@ export const settingsSchema = z.object({
   publicBooking: z.object({ enabled: z.boolean(), message: text(300), minNoticeHours: z.number().int().min(0).max(72), maxDaysAhead: z.number().int().min(1).max(120) }),
   loyalty: z.object({
     enabled: z.boolean(), cashbackPercent: z.number().min(0).max(30), minRedeemCents: z.number().int().min(0).max(100000),
-    cashbacksmart: z.object({ enabled: z.boolean(), merchantId: text(80) }),
+    cashbacksmart: z.object({ enabled: z.boolean(), merchantId: text(80), promoInConfirmation: z.boolean(), customerButton: z.boolean() }),
   }),
   reminders: z.object({
     washReminderDays: z.number().int().min(7).max(120), washReminder: channels,
@@ -36,7 +36,7 @@ export function defaultSettings(): Settings {
     hours: [day(true), day(), day(), day(), day(), day(), { closed: false, open: '08:00', close: '14:00' }],
     slotMinutes: 30, bays: 2,
     publicBooking: { enabled: true, message: 'Agende seu horário. Você recebe a confirmação por WhatsApp.', minNoticeHours: 2, maxDaysAhead: 30 },
-    loyalty: { enabled: true, cashbackPercent: 5, minRedeemCents: 500, cashbacksmart: { enabled: false, merchantId: '' } },
+    loyalty: { enabled: true, cashbackPercent: 5, minRedeemCents: 500, cashbacksmart: { enabled: false, merchantId: '', promoInConfirmation: true, customerButton: true } },
     reminders: {
       washReminderDays: 21, washReminder: { whatsapp: true, sms: false, email: true },
       appointmentReminderHours: 24, appointmentReminder: { whatsapp: true, sms: true, email: true },

@@ -13,6 +13,7 @@ export default function Dashboard() {
       {d.trialDaysLeft !== null && d.trialDaysLeft > 0 && <div className="alert info">Teste grátis: faltam <b>{d.trialDaysLeft} dias</b>. Depois, mensalidade de {(me.tenant!.monthlyFeeCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.</div>}
       {d.billingStatus === 'inadimplente' && <div className="alert bad"><b>VOCÊ ESTÁ EM RISCO:</b> há mensalidade do LavaPos em atraso. Regularize para não perder recursos.</div>}
       {d.complianceAlerts.length > 0 && <div className="alert warn"><b>Atenção:</b> {d.complianceAlerts.slice(0, 3).map((a: any) => `${a.title} (${a.daysLeft < 0 ? `venceu há ${-a.daysLeft}d` : a.daysLeft === 0 ? 'vence hoje' : `em ${a.daysLeft}d`})`).join(' · ')} — <Link to="/lembretes">ver tudo</Link></div>}
+      {me.user.role === 'owner' && d.cashbacksmartEnabled === false && (<div className="cs-card"><div className="cs-kicker">NOVIDADE</div><h2>Cashback para seus clientes</h2><p>Participe do Cashbacksmart e faça seus clientes voltarem mais.</p><Link className="btn-cs" to="/marketing">💚 Quero participar do Cashbacksmart</Link></div>)}
       <div className="grid g4" style={{ marginBottom: 14 }}>
         <Kpi label="Carros em serviço" value={d.inService} /><Kpi label="Prontos para retirar" value={d.ready} tone={d.ready ? 'ok' : undefined} />
         <Kpi label="Recebido hoje" value={<Money cents={d.revenueTodayCents} />} /><Kpi label="Recebido no mês" value={<Money cents={d.revenueMonthCents} />} />

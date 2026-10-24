@@ -22,6 +22,8 @@ export default function PublicPage() {
         {g?.rating && <p><span className="stars">{'★'.repeat(Math.round(g.rating))}</span> {g.rating.toFixed(1)} · {g.count} avaliações no Google</p>}
         <div className="row"><a className="btn primary" href="#agendar">📅 Agendar agora</a>{g?.reviewUrl && <a className="btn" href={g.reviewUrl} target="_blank" rel="noreferrer">⭐ Avaliar no Google</a>}</div></header>
 
+      {d.cashbacksmart && <CashbackCard url={d.cashbacksmart.url} />}
+
       <Card title="Serviços e valores">
         <div className="chips" style={{ marginBottom: 10 }}>{d.categories.map((c: any) => <Chip key={c.key} on={cat === c.key} onClick={() => setCat(c.key)}>{c.name}</Chip>)}</div>
         {d.services.map((s: any) => <div key={s.id} className="row between check-row"><span><b>{s.name}</b><br /><span className="muted small">{s.description} · {s.durationMin} min</span></span><b>{brl(s.prices[cat])}</b></div>)}
@@ -31,7 +33,7 @@ export default function PublicPage() {
 
       {g?.reviews?.length > 0 && <Card title="O que dizem no Google">{g.reviews.map((r: any, i: number) => <div key={i} className="check-row"><span className="stars">{'★'.repeat(r.rating)}</span> <b>{r.author}</b> <span className="muted small">{r.when}</span><p className="small">{r.text}</p></div>)}<p className="muted small">Avaliações do Google Maps.</p></Card>}
 
-      {d.bookingEnabled && vc ? <Booking slug={slug!} d={d} vc={vc} initialCat={cat} /> : <Card title="Agendamento"><p>Fale com a gente{d.phone ? <>: <b>{maskPhone(d.phone)}</b></> : '.'}</p></Card>}
+      {d.bookingEnabled && vc ? <Booking slug={slug!} d={d} vc={vc} initialCat={cat} cashUrl={d.cashbacksmart?.url} /> : <Card title="Agendamento"><p>Fale com a gente{d.phone ? <>: <b>{maskPhone(d.phone)}</b></> : '.'}</p></Card>}
 
       <Card title="Horários">{d.hours.map((h: any, i: number) => <div key={i} className="row between small"><span>{DAY[i]}</span><span>{h.closed ? 'Fechado' : `${h.open} às ${h.close}`}</span></div>)}</Card>
       <p className="notice-foot">Página criada com LavaPos · <a href="/legal/privacidade">Privacidade</a>. Nunca pedimos senha ou dados de cartão por mensagem.</p>
@@ -39,7 +41,11 @@ export default function PublicPage() {
   );
 }
 
-function Booking({ slug, d, vc, initialCat }: { slug: string; d: any; vc: any; initialCat: string }) {
+function CashbackCard({ url }: { url: string }) {
+  return (<div className="cs-card"><div className="cs-kicker">CASHBACKSMART</div><h2>Ganhe dinheiro de volta nas lavagens</h2><p>Participe do programa de cashback e acumule a cada serviço.</p><a className="btn-cs" href={url} target="_blank" rel="noreferrer">💚 Quero participar</a></div>);
+}
+
+function Booking({ slug, d, vc, initialCat, cashUrl }: { slug: string; d: any; vc: any; initialCat: string; cashUrl?: string }) {
   const [f, setF] = useState({ name: '', whatsapp: '', email: '', plate: '', brand: '', model: '', year: '', categoryKey: initialCat });
   const [ids, setIds] = useState<string[]>([]); const [date, setDate] = useState(todayIso()); const [slots, setSlots] = useState<any[] | null>(null); const [start, setStart] = useState('');
   const [mk, setMk] = useState(false); const [accept, setAccept] = useState(false); const [website, setWebsite] = useState(''); const [done, setDone] = useState(''); const [run, busy] = useAction();
@@ -48,7 +54,7 @@ function Booking({ slug, d, vc, initialCat }: { slug: string; d: any; vc: any; i
   const days = Array.from({ length: Math.min(d.maxDaysAhead, 14) }, (_, i) => addDaysIso(todayIso(), i));
   useEffect(() => { setStart(''); if (!ids.length) { setSlots(null); return; } api<any>(`/public/l/${slug}/slots?date=${date}&serviceIds=${ids.join(',')}`).then((r) => setSlots(r.slots)).catch(() => setSlots([])); }, [ids, date, slug]);
   const price = d.services.filter((s: any) => ids.includes(s.id)).reduce((a: number, s: any) => a + s.prices[f.categoryKey], 0);
-  if (done) return <Card title="Agendamento feito! ✅"><p>{done}</p></Card>;
+  if (done) return <><Card title="Agendamento feito! ✅"><p>{done}</p></Card>{cashUrl && <CashbackCard url={cashUrl.replace('o=pagina', 'o=agendamento')} />}</>;
   const ok = f.name.length > 1 && f.whatsapp.replace(/\D/g, '').length >= 10 && f.plate.length === 7 && f.brand && f.model && f.year && ids.length && start && accept;
   return (
     <Card title="Agende seu horário"><div id="agendar" />

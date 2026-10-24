@@ -27,3 +27,10 @@ platformRouter.post('/tenants/:id/billing', async (req: AuthedRequest, res) => {
 });
 
 platformRouter.get('/audit', async (_req, res) => res.json(await rows(pool, 'SELECT id, tenant_id AS "tenantId", user_id AS "userId", action, detail, ip, created_at AS "createdAt" FROM audit_log ORDER BY id DESC LIMIT 300')));
+
+/** Lava-rápidos que pediram para participar do Cashbacksmart (para a equipe acompanhar a adesão). */
+platformRouter.get('/cashbacksmart', async (_req, res) => {
+  res.json(await rows(pool, `SELECT r.created_at AS "createdAt", r.data->>'lavacar' AS lavacar, r.data->>'responsavel' AS responsavel, r.data->>'email' AS email, r.data->>'telefone' AS telefone, r.data->>'status' AS status,
+    (SELECT count(*)::int FROM records c WHERE c.tenant_id = r.tenant_id AND c.kind = 'cashbacksmartClick') AS cliques
+    FROM records r WHERE r.kind = 'cashbacksmartLead' ORDER BY r.created_at DESC LIMIT 1000`));
+});

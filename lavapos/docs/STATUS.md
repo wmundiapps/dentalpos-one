@@ -10,7 +10,7 @@ Legenda: ✅ pronto e testado · 🟡 pronto no código, depende de conta/chave/
 | Fotos de entrada e saída | ✅ | câmera do celular; regravadas sem GPS |
 | Valores por categoria e por procedimento; itens configuráveis | ✅ | 9 serviços de exemplo (todos os que você listou) |
 | Antes e depois em destaque + Google | ✅ / 🟡 | vitrine ✅; nota e avaliações do Google 🟡 precisam da chave `GOOGLE_PLACES_API_KEY` e do Place ID |
-| Fidelização e cashback | ✅ | cashback próprio. **Cashbacksmart** 🟡: adesão e marcação prontas; a ligação com a API deles precisa da documentação e das credenciais |
+| Fidelização e cashback | ✅ | cashback próprio. **Cashbacksmart** ✅/🟡: botão de adesão para o gestor (painel e Fidelidade) e para o cliente (página pública e rodapé das confirmações por WhatsApp, SMS e e-mail) prontos e testados. 🟡 Falta o **endereço de cadastro da Cashbacksmart** (`CASHBACKSMART_URL`): sem ele o convite não sai. A sincronização do saldo via API deles depende da documentação e das credenciais |
 | Clube de assinatura (semanal, quinzenal, trisemanal, mensal) | ✅ | "trisemanal" = a cada 21 dias (confirme) |
 | Pagamentos Asaas com 10% para a plataforma | 🟡 | código pronto (divisão automática); **não testado no Asaas real** — precisa de conta/sandbox e `PLATFORM_ASAAS_WALLET_ID` |
 | Marketing: lembrar de agendar; aviso de pronto; aviso de horário | ✅ / 🟡 | regras e fila ✅; envio real: e-mail (SMTP) e WhatsApp/SMS (provedor por webhook) 🟡 |
