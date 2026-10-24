@@ -36,6 +36,8 @@ export const cfg = {
 
   sessionDays: Number(env.SESSION_DAYS || 7),
   hqSlug: env.HQ_SLUG || 'studiobeautybarber-hq',
+  // Código de recuperação do dono da plataforma (definido por ele na Vercel). Permite criar nova senha sem e-mail.
+  recoveryCode: env.RECOVERY_CODE || '',
 
   // Integrações globais (da plataforma, para cobrar os assinantes)
   asaas: {

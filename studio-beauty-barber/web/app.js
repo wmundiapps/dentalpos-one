@@ -130,7 +130,21 @@ function renderForgot() {
     catch (ex) { msg.className = 'field-error'; msg.textContent = ex.message; } finally { btn.disabled = false; }
   } }, h('label', { class: 'f' }, 'E-mail da sua conta', email), btn, msg,
   h('p', { class: 'small', style: { textAlign: 'center' } }, h('a', { href: '#', onclick: (e) => { e.preventDefault(); renderLogin(); } }, 'Voltar para entrar')));
-  authShell('Esqueci minha senha', 'Enviamos um link para criar uma nova senha.', form);
+  authShell('Esqueci minha senha', 'Enviamos um link para criar uma nova senha.', h('div', { class: 'stack' }, form,
+    h('p', { class: 'small', style: { textAlign: 'center' } }, h('a', { href: '#', onclick: (e) => { e.preventDefault(); renderRecover(); } }, 'Sou o dono da plataforma e tenho o código de recuperação'))));
+}
+
+function renderRecover() {
+  const email = h('input', { name: 'email', type: 'email', autocomplete: 'username', required: true });
+  const code = passwordInput({ autocomplete: 'off', required: true }), pw = passwordInput({ autocomplete: 'new-password', required: true });
+  const msg = h('p', { class: 'field-error', role: 'alert' }), btn = h('button', { class: 'btn primary block', type: 'submit' }, 'Salvar nova senha');
+  const form = h('form', { class: 'stack', novalidate: true, onsubmit: async (e) => {
+    e.preventDefault(); btn.disabled = true; msg.textContent = '';
+    try { await post('/api/auth/recover', { email: email.value, code: code.value, password: pw.value }); toast('Senha alterada. Entre com a nova senha.', 'ok'); renderLogin(); }
+    catch (ex) { msg.textContent = ex.message; } finally { btn.disabled = false; }
+  } }, h('label', { class: 'f' }, 'E-mail da conta', email), h('label', { class: 'f' }, 'Código de recuperação', code), h('label', { class: 'f' }, 'Nova senha', pw, h('span', { class: 'small muted' }, 'Mínimo 10 caracteres, com letras e números.')), btn, msg,
+  h('p', { class: 'small', style: { textAlign: 'center' } }, h('a', { href: '#', onclick: (e) => { e.preventDefault(); renderLogin(); } }, 'Voltar para entrar')));
+  authShell('Recuperar com código', 'Use o código que você gravou nas configurações da plataforma.', form);
 }
 
 function renderReset(token) {

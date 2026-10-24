@@ -4,7 +4,7 @@ import { cfg } from '../config.js';
 import { HttpError, validate, uid, nowIso, normalizePhone } from '../util.js';
 import {
   hashPassword, verifyPassword, checkPasswordPolicy, rateLimit, newTotpSecret, verifyTotp, totpUri, sha256,
-  verifyTurnstile, newToken,
+  verifyTurnstile, newToken, safeEqual,
 } from '../security.js';
 import { auth, createSession, destroySession, audit } from '../auth.js';
 import { DEFAULT_HOURS } from '../availability.js';
@@ -39,6 +39,23 @@ export default function register(r) {
     ctx.user = u; ctx.salon = { id: u.salon_id };
     await audit(ctx, 'password_reset_requested', 'user', u.id);
     return generic;
+  });
+
+  // Recuperação do dono da plataforma sem e-mail: só vale para o dono do salão comercial e exige o código que ele mesmo gravou na Vercel.
+  r.post('/api/auth/recover', async (ctx) => {
+    rateLimit(`recover:${ctx.ip}`, 6, 3600_000);
+    const d = validate(ctx.body, { email: 'email', code: 'str:1:200', password: 'str:1:200' });
+    rateLimit(`recover-email:${sha256(d.email)}`, 5, 3600_000);
+    const secret = cfg.recoveryCode;
+    const u = await db.get("SELECT u.* FROM users u JOIN salons s ON s.id = u.salon_id WHERE u.email = ? AND u.active = 1 AND u.role = 'owner' AND s.slug = ?", [d.email, cfg.hqSlug]);
+    const codeOk = secret.length >= 16 && safeEqual(sha256(d.code), sha256(secret));
+    if (!u || !codeOk) throw new HttpError(401, 'E-mail ou código de recuperação incorretos.');
+    checkPasswordPolicy(d.password);
+    await db.run('UPDATE users SET password_hash = ?, failed_logins = 0, locked_until = NULL WHERE id = ?', [await hashPassword(d.password), u.id]);
+    await db.run('DELETE FROM sessions WHERE user_id = ?', [u.id]);
+    ctx.user = u; ctx.salon = { id: u.salon_id };
+    await audit(ctx, 'password_recovery_code', 'user', u.id);
+    return { ok: true };
   });
 
   r.post('/api/auth/reset', async (ctx) => {

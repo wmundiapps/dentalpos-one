@@ -4,6 +4,8 @@ process.env.LOG_REQUESTS = 'false';
 process.env.TRUST_PROXY = 'false';
 process.env.RESEND_API_KEY = 're_teste';
 process.env.APP_URL = 'https://app.studiobeautybarber.com';
+process.env.RECOVERY_CODE = 'codigo-de-teste-bem-longo-123';
+process.env.HQ_SLUG = 'studio-beauty-barber-piloto';
 
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -31,7 +33,7 @@ const tokenFromLastEmail = () => /#\/redefinir\/([\w-]+)/.exec(emails.at(-1).tex
 
 before(async () => {
   await (await import('./_db.js')).openTestDb(initDb);
-  await ensureHq(); await seedPilot({ ownerPassword: PW });
+  await seedPilot({ ownerPassword: PW }); await ensureHq();
   server = createApp({ awaitWebhooks: true });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -83,4 +85,13 @@ test('senha colada com espaço no começo ou no fim entra do mesmo jeito (cadast
     assert.equal((await post('/api/auth/login', { email, password: 'Senha-Forte-2027' })).status, 401);
     sec.resetRateLimits();
   }
+});
+
+test('código de recuperação: só o dono do salão comercial, com o código certo e senha forte', async () => {
+  const ok = { email: EMAIL, code: 'codigo-de-teste-bem-longo-123', password: 'Senha-Do-Codigo-2026' };
+  assert.equal((await post('/api/auth/recover', { ...ok, code: 'errado-errado-errado' })).status, 401);
+  assert.equal((await post('/api/auth/recover', { ...ok, email: 'espaco0@exemplo.com' })).status, 401); // não é o salão comercial
+  assert.equal((await post('/api/auth/recover', { ...ok, password: 'curta' })).status, 422);
+  assert.equal((await post('/api/auth/recover', ok)).status, 200);
+  assert.equal((await post('/api/auth/login', { email: EMAIL, password: 'Senha-Do-Codigo-2026' })).status, 200);
 });
