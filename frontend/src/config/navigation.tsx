@@ -35,6 +35,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import PrivacyTipIcon from "@mui/icons-material/PrivacyTip";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import WorkIcon from "@mui/icons-material/Work";
@@ -226,6 +227,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Integrações","/integracoes",<HubIcon/>),
       item("Importar Pacientes","/importar-pacientes",<UploadFileIcon/>),
       item("Permissões","/permissoes",<AdminPanelSettingsIcon/>),
+      item("Central LGPD","/edu/lgpd",<PrivacyTipIcon/>),
       item("Segurança da conta","/seguranca",<AdminPanelSettingsIcon/>),
       item("Eventos de segurança","/seguranca/eventos",<AdminPanelSettingsIcon/>),
       item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),
