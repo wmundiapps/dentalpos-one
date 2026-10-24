@@ -73,3 +73,14 @@ test('link vencido ou inventado é recusado', async () => {
   assert.equal((await post('/api/auth/reset', { token, password: 'Mais-Uma-Senha-2026' })).status, 400);
   assert.equal((await post('/api/auth/reset', { token: 'x'.repeat(43), password: 'Mais-Uma-Senha-2026' })).status, 400);
 });
+
+test('senha colada com espaço no começo ou no fim entra do mesmo jeito (cadastro guarda a senha limpa)', async () => {
+  for (const [i, pw] of ['Senha-Forte-2026 ', '  Senha-Forte-2026', 'Senha-Forte-2026'].entries()) {
+    const email = `espaco${i}@exemplo.com`;
+    const s = await post('/api/auth/signup', { salon_name: `Salão ${i}`, owner_name: 'Dono Teste', phone: '44999990000', email, password: 'Senha-Forte-2026 ', terms: true });
+    assert.equal(s.status, 200);
+    assert.equal((await post('/api/auth/login', { email, password: pw })).status, 200, JSON.stringify(pw));
+    assert.equal((await post('/api/auth/login', { email, password: 'Senha-Forte-2027' })).status, 401);
+    sec.resetRateLimits();
+  }
+});

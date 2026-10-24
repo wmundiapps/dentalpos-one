@@ -7,7 +7,7 @@ import {
 import net from 'node:net';
 import { promisify } from 'node:util';
 import { cfg } from './config.js';
-import { HttpError } from './util.js';
+import { HttpError, cleanText } from './util.js';
 
 const scrypt = promisify(_scrypt);
 
@@ -28,7 +28,15 @@ export async function hashPassword(pw) {
   return `scrypt$${N}$${r}$${p}$${salt.toString('base64')}$${key.toString('base64')}`;
 }
 
+// O cadastro e a troca de senha gravam a senha já "limpa" (sem espaços nas pontas nem caracteres de controle).
+// Por isso a conferência tenta a senha como digitada e, se for diferente, a versão limpa: quem colou a senha com um espaço no fim entra do mesmo jeito.
 export async function verifyPassword(pw, stored) {
+  if (await verifyPasswordExact(pw, stored)) return true;
+  const cleaned = cleanText(pw);
+  return cleaned !== pw && cleaned.length > 0 ? verifyPasswordExact(cleaned, stored) : false;
+}
+
+async function verifyPasswordExact(pw, stored) {
   try {
     const [alg, N, r, p, saltB64, keyB64] = String(stored).split('$');
     if (alg !== 'scrypt') return false;
