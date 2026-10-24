@@ -15,7 +15,7 @@ import { loadTeamMembers, TEAM_ROLE_LABELS, type TeamMember } from "../services/
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { loadBackendAppointments, type BackendAppointment } from "../services/AppointmentApi";
 import {
-  KIT_CSS, KIT_FONTS, DEFAULT_TEXTS, DOC_LABELS, REMINDER_LABELS, clinicCard, clinicCardQR, docHTML, personCard, qrData, reminderCard, reminderMessages, slug, todayISO, vcard,
+  KIT_CSS, KIT_FONTS, DEFAULT_TEXTS, DOC_LABELS, REMINDER_LABELS, cardMessage, clinicCard, clinicCardQR, docHTML, personCard, qrData, reminderCard, reminderMessages, slug, todayISO, vcard,
 } from "../utils/brandKit/templates";
 import type { DocInput, DocType, KitClinic, KitPerson, Orient, ReminderInput, ReminderKind } from "../utils/brandKit/templates";
 import { exportAll, exportItem, saveText, type ExportItem } from "../utils/brandKit/exporter";
@@ -23,7 +23,7 @@ import { errorMessage, toast } from "../utils/toast";
 
 type TabKey = "identidade" | "documentos" | "cartoes" | "lembretes";
 const TABS: [TabKey, string][] = [["identidade", "Identidade"], ["documentos", "Documentos"], ["cartoes", "Cartões digitais"], ["lembretes", "Lembretes"]];
-interface PreviewItem extends ExportItem { label: string; html: string }
+interface PreviewItem extends ExportItem { label: string; html: string; message?: string }
 
 const croOf = (d: Doctor) => (d.cro ? `CRO-${d.croState || ""} ${d.cro}`.replace("CRO- ", "CRO ") : "");
 const nameOf = (d: Doctor) => `${d.user?.firstName || ""} ${d.user?.lastName || ""}`.trim();
@@ -156,8 +156,8 @@ export default function BrandKit() {
       if (tab === "documentos") out = [{ id: "bk-doc", label: DOC_LABELS[docType], html: docHTML(docType, clinic, docInput), width: 794, doc: true, file: `${slug(DOC_LABELS[docType])}${docInput.paciente && ["atestado", "receita", "contrato"].includes(docType) ? "-" + slug(docInput.paciente) : ""}` }];
       if (tab === "cartoes" || tab === "identidade") {
         const cq = cardQR ? await qrData(clinicCardQR(clinic)) : "";
-        out = [{ id: "bk-card-clinica", label: "Cartão da clínica", html: clinicCard(clinic, tab === "identidade" ? "h" : orient, cq), width: tab === "identidade" ? 350 : W, file: `cartao-${slug(clinic.name)}` }];
-        if (tab === "cartoes") for (const p of visiblePeople) out.push({ id: `bk-card-${slug(p.key)}`, label: p.name || "Sem nome", html: personCard(clinic, p, orient, cardQR ? await qrData(vcard(p, clinic)) : ""), width: W, file: `cartao-${slug(p.name)}` });
+        out = [{ id: "bk-card-clinica", label: "Cartão da clínica", html: clinicCard(clinic, tab === "identidade" ? "h" : orient, cq), width: tab === "identidade" ? 350 : W, file: `cartao-${slug(clinic.name)}`, message: cardMessage(clinic, null) }];
+        if (tab === "cartoes") for (const p of visiblePeople) out.push({ id: `bk-card-${slug(p.key)}`, label: p.name || "Sem nome", html: personCard(clinic, p, orient, cardQR ? await qrData(vcard(p, clinic)) : ""), width: W, file: `cartao-${slug(p.name)}`, message: cardMessage(clinic, p) });
       }
       if (tab === "lembretes") out = [{ id: "bk-rem", label: "Cartão de lembrete", html: reminderCard(clinic, remInput), width: 360, file: `lembrete-${slug(remInput.paciente || "paciente")}-${remInput.data}` }];
       if (alive) setItems(out);
@@ -359,6 +359,7 @@ export default function BrandKit() {
         <Paper variant="outlined" sx={{ p: 2, display: "flex", flexDirection: "column", gap: 1.5, borderRadius: 3, minWidth: 0 }}>{form}</Paper>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+          {tab === "cartoes" && <Alert severity="info">Quem recebe o cartão no celular não consegue escanear o QR na própria tela. Envie a imagem junto com o texto com link: no WhatsApp, o link abre a conversa com um toque. No PDF, telefone, WhatsApp, e-mail, endereço e site já são clicáveis.</Alert>}
           <Box sx={{ display: "grid", gridTemplateColumns: tab === "cartoes" ? { xs: "minmax(0,1fr)", md: "repeat(auto-fill,minmax(360px,1fr))" } : "minmax(0,1fr)", gap: 3 }}>
             {items.map((it) => (
               <Box key={it.id} sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
@@ -369,6 +370,12 @@ export default function BrandKit() {
                   ))}
                 </Box>
                 <FitPreview id={it.id} width={it.width} html={it.html} />
+                {it.message && tab === "cartoes" && (
+                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                    <Button size="small" startIcon={<ContentCopyIcon />} onClick={() => copy(it.message || "")}>Copiar texto com link</Button>
+                    <Button size="small" component="a" href={`https://wa.me/?text=${encodeURIComponent(it.message)}`} target="_blank" rel="noopener">Enviar texto pelo WhatsApp</Button>
+                  </Box>
+                )}
               </Box>
             ))}
           </Box>
