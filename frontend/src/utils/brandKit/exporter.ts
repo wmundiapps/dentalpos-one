@@ -4,9 +4,11 @@ import { jsPDF } from "jspdf";
 import { zipSync } from "fflate";
 
 export interface ExportItem { id: string; file: string; width: number; doc?: boolean }
+interface LinkBox { x: number; y: number; w: number; h: number; url: string }
+type Shot = HTMLCanvasElement & { links?: LinkBox[] }
 
 // Copia o elemento para uma área fora da tela, sem a escala da prévia, e fotografa.
-export async function capture(id: string, scale: number): Promise<HTMLCanvasElement> {
+export async function capture(id: string, scale: number): Promise<Shot> {
   const el = document.getElementById(id);
   const stage = document.getElementById("bkit-stage");
   if (!el || !stage) throw new Error("Prévia não encontrada.");
@@ -19,7 +21,12 @@ export async function capture(id: string, scale: number): Promise<HTMLCanvasElem
   try {
     await document.fonts.ready;
     await Promise.all(Array.from(clone.querySelectorAll("img")).map((img) => (img.complete ? Promise.resolve() : new Promise<void>((r) => { img.onload = () => r(); img.onerror = () => r(); }))));
-    return await html2canvas(clone, { scale, backgroundColor: null, useCORS: true, logging: false });
+    // Guarda a posição dos contatos (em px da prévia) para virarem links clicáveis no PDF.
+    const box = clone.getBoundingClientRect();
+    const links: LinkBox[] = Array.from(clone.querySelectorAll<HTMLElement>("[data-href]")).map((el) => { const r = el.getBoundingClientRect(); return { x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height, url: el.dataset.href || "" }; }).filter((l) => l.url && l.w > 0);
+    const cv: Shot = await html2canvas(clone, { scale, backgroundColor: null, useCORS: true, logging: false });
+    cv.links = links;
+    return cv;
   } finally {
     stage.removeChild(clone);
   }
@@ -27,7 +34,7 @@ export async function capture(id: string, scale: number): Promise<HTMLCanvasElem
 
 const toBlob = (cv: HTMLCanvasElement) => new Promise<Blob>((res, rej) => cv.toBlob((b) => (b ? res(b) : rej(new Error("Falha ao gerar imagem."))), "image/png"));
 
-function pdfFromCanvas(it: ExportItem, cv: HTMLCanvasElement): Blob {
+function pdfFromCanvas(it: ExportItem, cv: Shot): Blob {
   if (it.doc) {
     // A4: fatia a imagem em páginas de 794 × 1123 px (proporção do A4).
     const pdf = new jsPDF({ unit: "mm", format: "a4" });
@@ -48,6 +55,8 @@ function pdfFromCanvas(it: ExportItem, cv: HTMLCanvasElement): Blob {
   const w = it.width * 0.254; const h = (w * cv.height) / cv.width;
   const pdf = new jsPDF({ unit: "mm", format: [w, h], orientation: w > h ? "landscape" : "portrait" });
   pdf.addImage(cv.toDataURL("image/png"), "PNG", 0, 0, w, h);
+  const k = w / it.width;
+  for (const l of cv.links || []) pdf.link(l.x * k, l.y * k, l.w * k, l.h * k, { url: l.url });
   return pdf.output("blob");
 }
 

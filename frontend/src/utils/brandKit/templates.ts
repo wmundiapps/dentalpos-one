@@ -233,18 +233,33 @@ export function docHTML(type: DocType, c: KitClinic, d: DocInput) {
 
 /* ---------- cartões de visita ---------- */
 export type Orient = "h" | "v";
-function bizCard(c: KitClinic, o: Orient, x: { eye: string; title: string; sub?: string; badge?: string; lines: [string, string][]; qr?: string; qrcap?: string }) {
-  const ls = x.lines.filter((l) => l[1]).map((l) => `<li><span>${esc(l[0])}</span><em>${esc(l[1])}</em></li>`).join("");
+// Links que ficam clicáveis no PDF (o PNG é só imagem; para ele vale a mensagem com link, abaixo).
+const telLink = (n: string) => { const d = String(n || "").replace(/\D/g, ""); return d ? `tel:+${d.length <= 11 ? "55" + d : d}` : ""; };
+const siteLink = (s: string) => { const t = String(s || "").trim(); if (!t) return ""; if (/^https?:\/\//i.test(t)) return t; if (t.startsWith("@")) return `https://instagram.com/${t.slice(1)}`; return `https://${t}`; };
+type Line = [string, string, string?];
+function bizCard(c: KitClinic, o: Orient, x: { eye: string; title: string; sub?: string; badge?: string; lines: Line[]; qr?: string; qrHref?: string; qrcap?: string }) {
+  const ls = x.lines.filter((l) => l[1]).map((l) => `<li${l[2] ? ` data-href="${esc(l[2])}"` : ""}><span>${esc(l[0])}</span><em>${esc(l[1])}</em></li>`).join("");
   // Horizontal: QR na faixa colorida, abaixo da logo (o texto fica com a largura toda). Vertical: QR no rodapé.
-  const q = x.qr ? `<div class="qr"><img src="${x.qr}" alt=""></div>${o === "v" ? `<div class="qrcap">${esc(x.qrcap || "")}</div>` : ""}` : "";
+  const q = x.qr ? `<div class="qr"${x.qrHref ? ` data-href="${esc(x.qrHref)}"` : ""}><img src="${x.qr}" alt=""></div>${o === "v" ? `<div class="qrcap">${esc(x.qrcap || "")}</div>` : ""}` : "";
   return `<div class="bc ${o}" style="--b:${esc(c.color)}"><div class="side"><div class="lgbox">${logoHTML(c, o === "v" ? 66 : 60)}</div>${o === "h" ? q : ""}</div><div class="main"><div class="eye">${esc(x.eye)}</div><div class="tt">${esc(x.title)}</div>${x.sub ? `<div class="st">${esc(x.sub)}</div>` : ""}${x.badge ? `<div class="bd">${esc(x.badge)}</div>` : ""}<ul class="ls">${ls}</ul></div>${o === "v" ? q + '<div class="foot"></div>' : ""}</div>`;
 }
 export const clinicCardQR = (c: KitClinic) => waLink(c.whatsapp || c.phone) || c.site;
 export function clinicCard(c: KitClinic, o: Orient, qr: string) {
-  return bizCard(c, o, { eye: c.tagline || "Odontologia", title: c.name, sub: [c.rtName, c.rtCro].filter(Boolean).join(" · "), lines: [["TEL", c.phone], ["WHATSAPP", c.whatsapp], ["E-MAIL", c.email], ["ENDEREÇO", [c.address, c.city].filter(Boolean).join(" · ")], ["SITE", c.site || c.instagram]], qr, qrcap: "Fale no WhatsApp" });
+  const wa = waLink(c.whatsapp || c.phone);
+  return bizCard(c, o, { eye: c.tagline || "Odontologia", title: c.name, sub: [c.rtName, c.rtCro].filter(Boolean).join(" · "), lines: [["TEL", c.phone, telLink(c.phone)], ["WHATSAPP", c.whatsapp, waLink(c.whatsapp)], ["E-MAIL", c.email, c.email ? `mailto:${c.email}` : ""], ["ENDEREÇO", [c.address, c.city].filter(Boolean).join(" · "), c.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([c.name, c.address, c.city].filter(Boolean).join(", "))}` : ""], ["SITE", c.site || c.instagram, siteLink(c.site || c.instagram)]], qr, qrHref: wa || siteLink(c.site), qrcap: "Fale no WhatsApp" });
 }
 export function personCard(c: KitClinic, p: KitPerson, o: Orient, qr: string) {
-  return bizCard(c, o, { eye: c.name, title: p.name, sub: p.role, badge: p.cro, lines: [["TEL", p.phone], ["E-MAIL", p.email], ["CLÍNICA", c.phone], ["ENDEREÇO", o === "v" ? [c.address, c.city].filter(Boolean).join(" · ") : ""]], qr, qrcap: "Salvar contato" });
+  return bizCard(c, o, { eye: c.name, title: p.name, sub: p.role, badge: p.cro, lines: [["TEL", p.phone, telLink(p.phone)], ["E-MAIL", p.email, p.email ? `mailto:${p.email}` : ""], ["CLÍNICA", c.phone, waLink(c.whatsapp) || telLink(c.phone)], ["ENDEREÇO", o === "v" ? [c.address, c.city].filter(Boolean).join(" · ") : ""]], qr, qrHref: waLink(p.phone), qrcap: "Salvar contato" });
+}
+
+// Texto para mandar junto com a imagem do cartão: no WhatsApp os links ficam clicáveis,
+// então quem recebe no celular não precisa escanear o QR.
+export function cardMessage(c: KitClinic, p: KitPerson | null) {
+  const wa = waLink(c.whatsapp || c.phone);
+  const lines = p
+    ? [`${p.name}${p.role ? ` – ${p.role}` : ""}`, c.name, p.phone ? `Celular: ${p.phone}` : "", p.email ? `E-mail: ${p.email}` : "", wa ? `WhatsApp da clínica: ${wa}` : ""]
+    : [c.name, c.tagline, wa ? `Fale conosco no WhatsApp: ${wa}` : "", c.phone ? `Telefone: ${c.phone}` : "", [c.address, c.city].filter(Boolean).join(", "), c.site ? siteLink(c.site) : c.instagram ? siteLink(c.instagram) : ""];
+  return lines.filter(Boolean).join("\n");
 }
 
 /* ---------- lembretes ---------- */
@@ -322,6 +337,7 @@ export const KIT_CSS = `
 .bkit .bc .bd{display:inline-block;font-family:var(--mono);font-size:8.5px;font-weight:600;border:1px solid var(--b);color:var(--b);border-radius:4px;padding:1px 5px;margin-top:5px;align-self:flex-start}
 .bkit .bc .ls{list-style:none;margin:auto 0 0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:8.6px}
 .bkit .bc .ls li{display:flex;gap:5px;line-height:1.3}
+.bkit .bc .ls li[data-href] em{text-decoration:underline;text-decoration-color:rgba(0,0,0,.18);text-underline-offset:1.5px}
 .bkit .bc .ls li span{font-size:6.5px;font-weight:800;letter-spacing:.08em;color:var(--b);width:44px;flex:none;padding-top:1px}
 .bkit .bc .ls li em{font-style:normal;overflow-wrap:anywhere;min-width:0}
 .bkit .bc.h .qr{width:60px;height:60px;padding:3px;background:#fff;border-radius:4px;flex:none}
