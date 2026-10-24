@@ -14,6 +14,7 @@ import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
 import { itemAllowed, useMenuAccess } from "../config/menuAccess";
+import { gameItemVisible, useGameMenuAccess } from "../services/TrainingApi";
 import {
   getDemoModuleStatus,
   readDemoAccess,
@@ -46,6 +47,8 @@ export default function Sidebar(){
     return saved===null ? true : saved==="1"; // compacto por padrão
   });
   const [showInDevelopment,setShowInDevelopment]=useState(false);
+  // Game: o gestor sempre vê; a equipe só quando ele libera (e cada departamento vê só o seu módulo).
+  const gameAccess=useGameMenuAccess();
 
   // No EXPERIENCE, nenhum item deve desaparecer do menu — apenas deduplicado.
   const menuAccess=useMenuAccess();
@@ -55,6 +58,7 @@ export default function Sidebar(){
       const items=group.items.filter(it=>{
         if((it.path==="/prospeccao"||it.path==="/parceiros-estoque")&&!isWmundiStaff())return false;
         if(!itemAllowed(it,menuAccess))return false;
+        if(gameItemVisible(it.path,gameAccess)===false)return false;
         const dedupeKey=it.path;
         if(seen.has(dedupeKey))return false;
         seen.add(dedupeKey);
@@ -62,7 +66,7 @@ export default function Sidebar(){
       });
       return {...group,items};
     }).filter(g=>g.items.length>0);
-  },[menuAccess]);
+  },[menuAccess,gameAccess]);
 
   const activeGroup=useMemo(
     ()=>visibleGroups.find(g=>g.items.some(it=>pathMatches(it.path,location.pathname,location.search)))?.label,

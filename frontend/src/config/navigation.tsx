@@ -40,6 +40,9 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import WorkIcon from "@mui/icons-material/Work";
 import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
+import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import { Box } from "@mui/material";
 import { createSvgIcon } from "@mui/material/utils";
 import type { ReactNode } from "react";
@@ -185,6 +188,16 @@ export const navigationGroups:NavigationGroup[] = [
       item("Financeiro acadêmico","/academico?secao=financeiro",<PaymentsIcon/>),
       item("Frequência e documentos","/academico?secao=documentos",<DescriptionIcon/>),
     ])
+  },
+  {
+    // Game Odonto Odisseia: só o gestor vê, até ele liberar para a equipe em "Gestão do game".
+    label:"Game",
+    icon:tile(<SportsEsportsIcon/>,"#0F8B8D"),
+    items:[
+      item("Carreira do dentista","/game/carreira",<SportsEsportsIcon/>),
+      item("Job Rotation","/game/job-rotation",<SyncAltIcon/>),
+      item("Gestão do game","/game/gestao",<EmojiEventsIcon/>),
+    ]
   },
   {
     label:"Configurações",
