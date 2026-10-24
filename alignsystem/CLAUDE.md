@@ -8,9 +8,9 @@ O usuário prefere respostas curtas em português, um passo por vez, com blocos 
 - Código no branch `claude/dental-consultation-platform-k5mei7`, pasta `alignsystem/` (não existe no `main`).
 - Node + rotas serverless em `lib/app.js`; Postgres Neon (migrações rodam no build); front em `public/` (`painel.js`, `minha-avaliacao.html`, `app.js`).
 - Vercel: projeto `prj_elmKLBSm90z3BNcUY7AnIfCbXy7h`, time `team_PPjPjgAfw8CsUSGsPPPop241`, domínio alignsystem.com.br.
-- Deploy só por comando ou pela rotina de 2 em 2 dias: `POST https://api.vercel.com/v13/deployments` com `gitSource` (repoId 1345488314, ref do branch, sha). **Sempre** rodar os testes antes: `npm test` precisa terminar com `# fail 0`.
+- Deploy só por comando ou pela rotina de 2 em 2 dias: `POST https://api.vercel.com/v13/deployments` com `gitSource` (repoId 1345488314, ref do branch, sha) **e** `"projectSettings":{"rootDirectory":"alignsystem","commandForIgnoringBuildStep":"exit 1"}`. **Sempre** rodar os testes antes: `npm test` precisa terminar com `# fail 0`.
+- O projeto na Vercel fica de propósito com Root Directory vazio e Ignored Build Step `exit 0`: os pushes de outros apps no repositório viram CANCELED, sem e-mail de falha. Não desfazer (o dono pediu).
 - Testes locais: Postgres em /tmp/pgas/data, porta 5433 (`TEST_DATABASE_URL=postgres://alignsystem_app:dev@127.0.0.1:5433/asdev npm test`).
-- Os e-mails "Root Directory alignsystem does not exist" vêm de pushes de outros apps no mesmo repositório; não custam nada. Solução pendente: desconectar o Git do projeto na Vercel (Settings → Git → Disconnect).
 
 ## Regras de negócio já implementadas
 - Pré-avaliação por 7 fotos → parecer → escaneamento (valor único, descontado do tratamento) → plano com até 3 marcas por grau → contrato → pagamento Asaas com split.
