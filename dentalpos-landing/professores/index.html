@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Professores DentalPos — publique seus cursos</title>
+<meta name="description" content="Publique cursos e conteúdos para dentistas na DentalPos. Você define o preço e recebe 80% de cada venda direto na sua conta.">
+<link rel="icon" href="/professores/leao.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --preto:#1D1D1F;--preto-2:#2C2C2F;--fundo:#F7F4EF;--papel:#FFFFFF;--creme:#FBEFD7;
+  --ouro:#E0A83E;--ouro-esc:#B9821F;--verde:#2E8B6B;--vermelho:#A8452F;
+  --texto:#1D1D1F;--texto-suave:#6B6660;--linha:#E6DFD4;--inv:#F7F4EF;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--fundo);color:var(--texto);font-family:"Nunito Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.1;letter-spacing:-.012em;margin:0}
+a{color:var(--ouro-esc)}
+.wrap{width:min(1140px,92vw);margin:0 auto}
+.estreito{width:min(820px,92vw);margin:0 auto}
+.banda{padding:72px 0}
+.banda--papel{background:var(--papel)}
+.banda--escura{background:var(--preto);color:var(--inv)}
+.topo{position:sticky;top:0;z-index:40;background:rgba(247,244,239,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--linha)}
+.topo__in{display:flex;align-items:center;gap:16px;height:72px}
+.marca{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit;white-space:nowrap}
+.marca img{width:44px;height:44px}
+.marca__nome{font-family:"Fraunces",serif;font-size:21px;font-weight:600;line-height:1.05}
+.marca__nome b{color:var(--ouro-esc);font-weight:600}
+.topo nav{margin-left:auto;display:flex;align-items:center;gap:22px;font-size:15.5px}
+.topo nav a{text-decoration:none;color:var(--texto-suave);white-space:nowrap}
+@media(max-width:720px){.topo nav a.some{display:none}.marca__nome{font-size:18px}}
+@media(max-width:520px){.marca__nome b{display:none}.marca img{width:38px;height:38px}.topo nav .btn--peq{padding:9px 14px;font-size:14px}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:15px 28px;border-radius:999px;font-size:16.5px;font-weight:700;text-decoration:none;border:2px solid transparent;cursor:pointer;font-family:inherit;transition:transform .12s ease,box-shadow .15s ease}
+.btn--ouro{background:var(--ouro);color:#2A1E06;box-shadow:0 5px 0 var(--ouro-esc)}
+.btn--ouro:hover{transform:translateY(-2px);box-shadow:0 7px 0 var(--ouro-esc)}
+.btn--ouro:disabled{opacity:.6;cursor:wait;transform:none}
+.btn--peq{padding:10px 18px;font-size:15px;box-shadow:0 4px 0 var(--ouro-esc)}
+.btn--zap{background:#1FA855;color:#fff;box-shadow:0 5px 0 #15773B}
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--ouro-esc);outline-offset:3px}
+.hero{padding:56px 0 48px}
+.hero h1{font-size:clamp(38px,6vw,68px);max-width:15ch}
+.hero .sub{font-size:clamp(18px,2.1vw,21px);max-width:52ch;margin-top:20px;color:var(--texto-suave)}
+.hero .acoes{margin-top:30px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.selo{display:inline-block;background:var(--creme);color:#6A4A10;border-radius:999px;padding:6px 14px;font-size:14.5px;font-weight:700;margin-bottom:18px}
+.titulo{font-size:clamp(28px,4vw,42px);max-width:22ch}
+.lead{color:var(--texto-suave);max-width:60ch;margin:14px 0 0}
+.passos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:34px;padding:0;counter-reset:p}
+.passos li{list-style:none;background:var(--fundo);border:1px solid var(--linha);border-radius:18px;padding:22px;position:relative;counter-increment:p}
+.passos li::before{content:counter(p);display:inline-flex;width:34px;height:34px;border-radius:50%;background:var(--ouro);color:#2A1E06;font-weight:700;align-items:center;justify-content:center;margin-bottom:10px}
+.passos h3{font-size:19px;margin-bottom:6px}
+.passos p{margin:0;color:var(--texto-suave);font-size:15.5px}
+.tipos{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;padding:0}
+.tipos li{list-style:none;background:var(--papel);border:1px solid var(--linha);border-radius:999px;padding:8px 16px;font-size:15px}
+.conta{margin-top:30px;background:var(--papel);border:1px solid var(--linha);border-radius:18px;overflow:hidden;max-width:560px}
+.conta div{display:flex;justify-content:space-between;gap:16px;padding:14px 20px;border-bottom:1px solid var(--linha);font-size:16px}
+.conta div:last-child{border-bottom:0}
+.conta .voce{background:#EAF5EF;font-weight:700;color:#1F5E48}
+.nota{font-size:14.5px;color:var(--texto-suave);margin-top:12px;max-width:62ch}
+.banda--escura .nota,.banda--escura .lead{color:#B9B3AA}
+.form{background:var(--papel);border:1px solid var(--linha);border-radius:22px;padding:30px;margin-top:30px}
+.grade{display:grid;grid-template-columns:1fr 1fr;gap:16px 18px}
+.grade .inteiro{grid-column:1/-1}
+@media(max-width:640px){.grade{grid-template-columns:1fr}.form{padding:20px}}
+label{display:block;font-weight:700;font-size:15px;margin-bottom:6px}
+label small{font-weight:400;color:var(--texto-suave)}
+input[type=text],input[type=email],input[type=tel],input[type=url],select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--linha);border-radius:12px;font:inherit;font-size:16px;background:#FCFAF7;color:var(--texto)}
+textarea{min-height:110px;resize:vertical}
+fieldset{border:0;padding:0;margin:0}
+legend{font-weight:700;font-size:15px;margin-bottom:8px;padding:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--linha);background:#FCFAF7;border-radius:999px;padding:8px 14px;font-size:15px;cursor:pointer;font-weight:600}
+.chip input{accent-color:var(--preto)}
+.aceite{display:flex;gap:12px;align-items:flex-start;font-weight:400;font-size:15.5px;margin-top:12px}
+.aceite input{margin-top:5px;width:18px;height:18px;flex:none;accent-color:var(--preto)}
+.termo{background:var(--fundo);border:1px solid var(--linha);border-radius:16px;padding:6px 20px;margin-top:22px}
+.termo summary{cursor:pointer;font-weight:700;padding:12px 0}
+.termo ol{padding-left:22px;font-size:15px;color:#3A3733}
+.termo li{margin-bottom:10px}
+.erro{background:#FBEAE5;color:var(--vermelho);border-radius:12px;padding:12px 16px;margin-top:16px;font-weight:600;display:none}
+.ok{display:none;text-align:center;padding:30px 10px}
+.ok img{width:96px;height:96px}
+.ok h3{font-size:28px;margin:10px 0}
+.oculto{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.faq details{border-bottom:1px solid #3A3A3D;padding:16px 0}
+.faq summary{cursor:pointer;font-weight:700;font-size:17px}
+.faq p{color:#C9C3BA;margin:10px 0 0}
+.rodape{background:var(--preto);color:#9A958D;font-size:14.5px;padding:34px 0 44px;border-top:1px solid #2C2C2F}
+.rodape a{color:inherit}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="wrap topo__in">
+    <a class="marca" href="/">
+      <img src="/professores/leao.png" alt="" width="44" height="44">
+      <span class="marca__nome">DentalPos <b>Professores</b></span>
+    </a>
+    <nav>
+      <a class="some" href="#como">Como funciona</a>
+      <a class="some" href="#ganhos">Quanto você recebe</a>
+      <a class="btn btn--ouro btn--peq" href="#credenciamento">Credenciar</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="wrap">
+    <span class="selo">Credenciamento de professores</span>
+    <h1>Seu curso na frente de quem atende.</h1>
+    <p class="sub">Publique cursos, aulas e conteúdos para dentistas na DentalPos. Você define o preço e recebe <b>80% de cada venda</b> direto na sua conta. A DentalPos fica com 20% pela hospedagem, divulgação e cobrança.</p>
+    <div class="acoes">
+      <a class="btn btn--ouro" href="#credenciamento">Quero me credenciar</a>
+      <span class="nota" style="margin:0">Sem mensalidade e sem taxa de adesão.</span>
+    </div>
+  </div>
+</section>
+
+<section class="banda banda--papel" id="como">
+  <div class="wrap">
+    <h2 class="titulo">Como funciona</h2>
+    <ol class="passos">
+      <li><h3>Envie seu credenciamento</h3><p>Preencha o formulário abaixo com seus dados e o curso que quer publicar.</p></li>
+      <li><h3>Análise da equipe</h3><p>Conferimos currículo e conteúdo. Respondemos em até 5 dias úteis pelo e-mail e WhatsApp.</p></li>
+      <li><h3>Termo e conta de recebimento</h3><p>Você assina o termo de credenciamento e cadastra a conta que recebe sua parte.</p></li>
+      <li><h3>Publicação e vendas</h3><p>Seu curso entra na plataforma. A cada venda, o pagamento já é dividido automaticamente.</p></li>
+    </ol>
+    <h3 style="margin-top:44px;font-size:22px">O que você pode publicar</h3>
+    <ul class="tipos">
+      <li>Cursos online gravados</li><li>Aulas e webinars ao vivo</li><li>Cursos presenciais e hands-on</li>
+      <li>Mentorias</li><li>E-books, protocolos e materiais</li><li>Imersões e eventos</li>
+    </ul>
+  </div>
+</section>
+
+<section class="banda" id="ganhos">
+  <div class="wrap">
+    <h2 class="titulo">Quanto você recebe</h2>
+    <p class="lead">A divisão acontece no momento do pagamento: sua parte cai direto na sua conta, sem esperar repasse.</p>
+    <div class="conta" role="table" aria-label="Exemplo de divisão de uma venda de R$ 1.000">
+      <div role="row"><span>Venda de um curso</span><b>R$ 1.000,00</b></div>
+      <div role="row" class="voce"><span>Você recebe (80%)</span><span>R$ 800,00</span></div>
+      <div role="row"><span>DentalPos (20%)</span><span>R$ 200,00</span></div>
+    </div>
+    <p class="nota">Exemplo antes da tarifa do meio de pagamento. A divisão de 80% e 20% é feita sobre o valor líquido de cada venda, depois dessa tarifa. Cada parte emite a própria nota fiscal sobre o que recebe.</p>
+  </div>
+</section>
+
+<section class="banda banda--papel" id="credenciamento">
+  <div class="estreito">
+    <h2 class="titulo">Credenciamento</h2>
+    <p class="lead">Leva uns 5 minutos. Os campos com * são obrigatórios.</p>
+
+    <form class="form" id="form" novalidate>
+      <div id="campos">
+      <div class="grade">
+        <div class="inteiro"><label for="nome">Nome completo *</label><input id="nome" name="nome" type="text" autocomplete="name" maxlength="120" required></div>
+        <div><label for="doc">CPF ou CNPJ *</label><input id="doc" name="doc" type="text" inputmode="numeric" maxlength="18" required></div>
+        <div><label for="cro">CRO / UF <small>(se for dentista)</small></label><input id="cro" name="cro" type="text" maxlength="30" placeholder="12345 / PR"></div>
+        <div><label for="email">E-mail *</label><input id="email" name="email" type="email" autocomplete="email" maxlength="160" required></div>
+        <div><label for="zap">WhatsApp com DDD *</label><input id="zap" name="zap" type="tel" autocomplete="tel" maxlength="20" required></div>
+        <div><label for="cidade">Cidade / UF *</label><input id="cidade" name="cidade" type="text" maxlength="80" placeholder="Maringá / PR" required></div>
+        <div><label for="titulacao">Titulação e especialidade *</label><input id="titulacao" name="titulacao" type="text" maxlength="160" placeholder="Mestre em Ortodontia" required></div>
+        <div class="inteiro"><label for="curriculo">Mini-currículo *</label><textarea id="curriculo" name="curriculo" maxlength="1500" placeholder="Formação, onde leciona, experiência clínica e docente." required></textarea></div>
+        <div class="inteiro"><label for="links">Lattes, site ou Instagram profissional <small>(opcional)</small></label><input id="links" name="links" type="text" maxlength="300"></div>
+
+        <fieldset class="inteiro"><legend>O que você quer publicar? *</legend>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" name="tipos" value="Curso online gravado"> Curso online gravado</label>
+            <label class="chip"><input type="checkbox" name="tipos" value="Aula ou webinar ao vivo"> Aula ou webinar ao vivo</label>
+            <label class="chip"><input type="checkbox" name="tipos" value="Curso presencial / hands-on"> Curso presencial / hands-on</label>
+            <label class="chip"><input type="checkbox" name="tipos" value="Mentoria"> Mentoria</label>
+            <label class="chip"><input type="checkbox" name="tipos" value="E-book / material"> E-book / material</label>
+            <label class="chip"><input type="checkbox" name="tipos" value="Imersão / evento"> Imersão / evento</label>
+          </div>
+        </fieldset>
+        <div class="inteiro"><label for="curso">Título do curso ou conteúdo principal *</label><input id="curso" name="curso" type="text" maxlength="160" required></div>
+        <div class="inteiro"><label for="descricao">Descrição e público-alvo *</label><textarea id="descricao" name="descricao" maxlength="2000" placeholder="O que o aluno aprende, para quem é, pré-requisitos." required></textarea></div>
+        <div><label for="carga">Carga horária <small>(opcional)</small></label><input id="carga" name="carga" type="text" maxlength="40" placeholder="12 horas"></div>
+        <div><label for="preco">Preço pretendido <small>(opcional)</small></label><input id="preco" name="preco" type="text" inputmode="decimal" maxlength="20" placeholder="R$ 497,00"></div>
+        <div class="inteiro"><label for="amostra">Link de uma aula ou material de amostra <small>(opcional, ex.: vídeo não listado)</small></label><input id="amostra" name="amostra" type="url" maxlength="300" placeholder="https://"></div>
+        <div class="oculto" aria-hidden="true"><label for="site">Não preencha</label><input id="site" name="site" type="text" tabindex="-1" autocomplete="off"></div>
+      </div>
+
+      <details class="termo" id="termo">
+        <summary>Condições de credenciamento (versão 2026-10-12)</summary>
+        <ol>
+          <li><b>Partes.</b> A plataforma DentalPos é operada pelo Instituto Ravel de Ensino Superior Ltda., CNPJ 03.162.275/0001-10 ("DentalPos").</li>
+          <li><b>Pré-credenciamento.</b> Este envio é um pedido de credenciamento para publicar e vender cursos e conteúdos na DentalPos. O credenciamento só passa a valer depois da análise da equipe e da assinatura do Termo de Credenciamento que enviaremos por e-mail.</li>
+          <li><b>Preço e divisão.</b> O(a) professor(a) define o preço de cada conteúdo. Em cada venda, a DentalPos retém 20% (vinte por cento) do valor líquido recebido, pela hospedagem, divulgação, cobrança e suporte ao aluno. Os 80% (oitenta por cento) restantes vão direto para a conta de recebimento do(a) professor(a), por divisão automática no momento do pagamento. Não há mensalidade nem taxa de adesão.</li>
+          <li><b>Reembolso.</b> O aluno que compra pela internet pode desistir em até 7 dias (Código de Defesa do Consumidor, art. 49). Havendo reembolso, a divisão da venda é desfeita na mesma proporção.</li>
+          <li><b>Direitos autorais.</b> O(a) professor(a) declara ser titular dos direitos do conteúdo, ou ter autorização para usá-lo, e concede à DentalPos licença não exclusiva para hospedar, exibir e divulgar o conteúdo enquanto durar o credenciamento. O conteúdo pode ser retirado com aviso de 30 dias, mantido o acesso de quem já comprou pelo prazo contratado.</li>
+          <li><b>Ética e responsabilidade técnica.</b> O conteúdo técnico e científico é de responsabilidade do(a) professor(a), que se compromete a seguir o Código de Ética Odontológica e as normas de publicidade do CFO, sem promessa de resultado e sem exibir paciente identificável sem autorização por escrito.</li>
+          <li><b>Curadoria.</b> A DentalPos pode recusar, pedir ajustes ou suspender conteúdo que contrarie a lei, a ética profissional ou o padrão de qualidade da plataforma.</li>
+          <li><b>Dados pessoais.</b> Os dados deste formulário são usados só para analisar o credenciamento e falar com você sobre ele (LGPD). Para corrigir ou apagar seus dados, escreva para contato@dentalpos.com.br.</li>
+        </ol>
+      </details>
+
+      <label class="aceite"><input type="checkbox" id="aceite" required> <span>Li e concordo com as condições de credenciamento, inclusive a retenção de 20% pela DentalPos em cada venda. *</span></label>
+      <label class="aceite"><input type="checkbox" id="direitos" required> <span>Declaro que sou titular dos direitos do conteúdo que vou publicar, ou que tenho autorização para usá-lo. *</span></label>
+      <label class="aceite"><input type="checkbox" id="novidades"> <span>Quero receber novidades da DentalPos por e-mail e WhatsApp (opcional).</span></label>
+
+      <div class="erro" id="erro" role="alert"></div>
+      <div style="margin-top:24px"><button class="btn btn--ouro" id="enviar" type="submit">Enviar credenciamento</button></div>
+      </div>
+
+      <div class="ok" id="ok" role="status">
+        <img src="/professores/leao.png" alt="">
+        <h3>Recebemos seu credenciamento!</h3>
+        <p>Enviamos uma confirmação para o seu e-mail. A equipe analisa e responde em até 5 dias úteis.</p>
+        <p><a class="btn btn--zap" href="https://wa.me/5544984535069?text=Ol%C3%A1!%20Enviei%20meu%20credenciamento%20de%20professor%20na%20DentalPos." target="_blank" rel="noopener">Falar no WhatsApp</a></p>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="banda banda--escura">
+  <div class="estreito faq">
+    <h2 class="titulo" style="margin-bottom:16px">Dúvidas frequentes</h2>
+    <details><summary>Preciso ser dentista?</summary><p>Não. Aceitamos professores de áreas ligadas à odontologia, como gestão, marketing, radiologia e prótese. O conteúdo clínico precisa ser ministrado por profissional habilitado.</p></details>
+    <details><summary>Quem define o preço do curso?</summary><p>Você. Podemos sugerir faixas de preço com base no que vende na plataforma, mas a decisão é sua.</p></details>
+    <details><summary>Quando recebo?</summary><p>Sua parte é separada no momento do pagamento e cai na sua conta de recebimento no prazo do meio de pagamento: Pix no mesmo dia, cartão conforme as parcelas.</p></details>
+    <details><summary>Posso vender o mesmo curso em outros lugares?</summary><p>Pode. A licença é não exclusiva.</p></details>
+    <details><summary>E se eu quiser sair?</summary><p>Avise com 30 dias de antecedência. Quem já comprou mantém o acesso pelo prazo contratado.</p></details>
+  </div>
+</section>
+</main>
+
+<footer class="rodape">
+  <div class="wrap">DentalPos · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · Desenvolvido por WMundi Technologies &amp; Co · <a href="/">página inicial</a> · <a href="mailto:contato@dentalpos.com.br">contato@dentalpos.com.br</a></div>
+</footer>
+
+<script>
+(function(){
+  var form = document.getElementById('form');
+  var erro = document.getElementById('erro');
+  var botao = document.getElementById('enviar');
+  function v(id){ return (document.getElementById(id).value || '').trim(); }
+  function mostrarErro(msg, campo){
+    erro.textContent = msg; erro.style.display = 'block';
+    if (campo) { var el = document.getElementById(campo); if (el) el.focus(); }
+  }
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    erro.style.display = 'none';
+    var tipos = Array.prototype.map.call(form.querySelectorAll('input[name=tipos]:checked'), function(i){ return i.value; });
+    var obrig = [['nome','Informe seu nome.'],['doc','Informe seu CPF ou CNPJ.'],['email','Informe seu e-mail.'],['zap','Informe seu WhatsApp com DDD.'],['cidade','Informe sua cidade.'],['titulacao','Informe sua titulação e especialidade.'],['curriculo','Conte um pouco do seu currículo.'],['curso','Informe o título do curso ou conteúdo.'],['descricao','Descreva o curso e o público-alvo.']];
+    for (var i = 0; i < obrig.length; i++) if (!v(obrig[i][0])) return mostrarErro(obrig[i][1], obrig[i][0]);
+    if (!tipos.length) return mostrarErro('Marque o que você quer publicar.');
+    if (!document.getElementById('aceite').checked) { document.getElementById('termo').open = true; return mostrarErro('Para enviar, leia e aceite as condições de credenciamento.', 'aceite'); }
+    if (!document.getElementById('direitos').checked) return mostrarErro('Confirme que tem os direitos do conteúdo.', 'direitos');
+    var dados = { nome:v('nome'), doc:v('doc'), cro:v('cro'), email:v('email'), zap:v('zap'), cidade:v('cidade'), titulacao:v('titulacao'), curriculo:v('curriculo'), links:v('links'), tipos:tipos, curso:v('curso'), descricao:v('descricao'), carga:v('carga'), preco:v('preco'), amostra:v('amostra'), site:v('site'), aceite:true, direitos:true, novidades:document.getElementById('novidades').checked, versao:'2026-10-12' };
+    botao.disabled = true; botao.textContent = 'Enviando…';
+    fetch('/api/professor', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(dados) })
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return { ok:r.ok, j:j }; }); })
+      .then(function(res){
+        if (!res.ok) throw new Error(res.j.erro || 'Não foi possível enviar agora. Tente de novo em instantes.');
+        document.getElementById('campos').style.display = 'none';
+        document.getElementById('ok').style.display = 'block';
+        form.scrollIntoView({ behavior:'smooth', block:'start' });
+      })
+      .catch(function(err){ mostrarErro(err.message); botao.disabled = false; botao.textContent = 'Enviar credenciamento'; });
+  });
+})();
+</script>
+</body>
+</html>
