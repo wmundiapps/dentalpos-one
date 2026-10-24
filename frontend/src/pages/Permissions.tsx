@@ -25,10 +25,12 @@ const MODULE_NAMES: Record<string, string> = {
   dashboard: "Painel inicial", agenda: "Agenda e painel de atendimentos", patients: "Pacientes", clinical: "Clínico / prontuário", laboratory: "Laboratório",
   finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", sales: "Vendas", marketing: "Marketing e Revah",
   documents: "Documentos", settings: "Configurações (inclui importar pacientes)", users: "Usuários e permissões", audit: "Auditoria",
+  training: "Game (Odonto Odisseia)",
 };
 const ACTION_NAMES: Record<string, string> = {
   view: "Ver", create: "Criar", edit: "Editar", cancel: "Cancelar", approve: "Aprovar", values: "Ver valores", sensitive: "Dados sensíveis",
   send: "Enviar", portal: "Portal do contador", manage: "Gerenciar",
+  clinical: "Jogar: carreira do dentista", jobrotation: "Jogar: Job Rotation da equipe",
 };
 
 const profileName = (p: AccessProfile) => PROFILE_NAMES[p.code] || p.name;

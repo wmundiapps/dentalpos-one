@@ -28,6 +28,7 @@ import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
 import { itemAllowed, useMenuAccess } from "../config/menuAccess";
+import { gameItemVisible, useGameMenuAccess } from "../services/TrainingApi";
 import { useAppTheme } from "../contexts/AppThemeContext";
 import { notifications } from "../services/NotificationService";
 import {
@@ -53,9 +54,10 @@ export default function Header() {
   const unreadCount = notifications.filter((notification) => !notification.lida).length;
 
   const menuAccess = useMenuAccess();
+  const gameAccess = useGameMenuAccess();
   const searchableItems = useMemo(() => {
     const entries = navigationGroups.flatMap((group) =>
-      group.items.filter((item) => itemAllowed(item, menuAccess)).map((item) => ({ ...item, group: group.label })),
+      group.items.filter((item) => itemAllowed(item, menuAccess) && gameItemVisible(item.path, gameAccess) !== false).map((item) => ({ ...item, group: group.label })),
     );
 
     if (!demo?.isDemo) return entries;
@@ -69,7 +71,7 @@ export default function Header() {
       seen.add(entry.path);
       return true;
     });
-  }, [demo?.isDemo, demo?.modules.join("|"), menuAccess]);
+  }, [demo?.isDemo, demo?.modules.join("|"), menuAccess, gameAccess]);
 
   const results = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR");

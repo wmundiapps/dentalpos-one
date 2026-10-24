@@ -18,6 +18,8 @@ const Clinics = lazy(() => import("../pages/Clinics"));
 const ClinicalDocuments = lazy(() => import("../pages/ClinicalDocuments"));
 const ClinicalRecord = lazy(() => import("../pages/ClinicalRecord"));
 const PatientFile = lazy(() => import("../pages/PatientFile"));
+const Training = lazy(() => import("../pages/Training"));
+const TrainingAdmin = lazy(() => import("../pages/TrainingAdmin"));
 import WmundiStaffOnly from "../components/WmundiStaffOnly";
 const ClinicalFiles = lazy(() => import("../pages/ClinicalFiles"));
 const OdontogramPeriodontogram = lazy(() => import("../pages/OdontogramPeriodontogram"));
@@ -125,6 +127,10 @@ export default function AppRoutes() {
       <Route path="/" element={<Dashboard />} />
 
       <Route path="/academico" element={<Academic />} />
+
+      <Route path="/game/gestao" element={<TrainingAdmin />} />
+
+      <Route path="/game/:modulo" element={<Training />} />
 
       <Route path="/agenda" element={<Agenda />} />
 
