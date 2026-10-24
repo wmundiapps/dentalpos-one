@@ -136,7 +136,7 @@ export function businessCardSVG({ orient = 'h', eyebrow, name, role, badge, line
     return `${svgOpen(W, H)}<rect width="${W}" height="${H}" fill="${COLORS.cream}"/><rect width="${W}" height="330" fill="${COLORS.navy}"/>${logoImg('branca', 165, 130, 480)}
 <text x="${W / 2}" y="470" text-anchor="middle" font-family="${SANS}" font-size="20" font-weight="800" letter-spacing="4" fill="${COLORS.emerald}">${esc(fit(String(eyebrow || '').toUpperCase(), 700, 20, 0.72))}</text>
 <text x="${W / 2}" y="560" text-anchor="middle" font-family="${SANS}" font-size="58" font-weight="800" fill="${COLORS.navy}">${esc(fit(name, 720, 58))}</text>
-<text x="${W / 2}" y="620" text-anchor="middle" font-family="${SANS}" font-size="30" fill="${COLORS.ink60}">${esc(fit(role, 720, 30))}</text>
+<text x="${W / 2}" y="620" text-anchor="middle" font-family="${SANS}" font-size="${String(role || '').length > 40 ? 26 : 30}" fill="${COLORS.ink60}">${esc(fit(role, 740, String(role || '').length > 40 ? 26 : 30, 0.5))}</text>
 ${badge ? `<rect x="${W / 2 - 170}" y="650" width="340" height="52" rx="10" fill="none" stroke="${COLORS.emerald}" stroke-width="2"/><text x="${W / 2}" y="686" text-anchor="middle" font-family="${MONO}" font-size="26" font-weight="600" fill="${COLORS.emerald}">${esc(fit(badge, 320, 26, 0.6))}</text>` : ''}
 ${rows}
 ${qrSvg ? `<rect x="${W / 2 - 110}" y="${H - 300}" width="220" height="220" rx="14" fill="#fff" stroke="${COLORS.line}"/>${qrAt(qrSvg, W / 2 - 92, H - 282, 184)}<text x="${W / 2}" y="${H - 48}" text-anchor="middle" font-family="${SANS}" font-size="18" font-weight="700" letter-spacing="3" fill="${COLORS.ink60}">${esc(String(qrCaption || '').toUpperCase())}</text>` : ''}
@@ -148,7 +148,7 @@ ${qrSvg ? `<rect x="${W / 2 - 110}" y="${H - 300}" width="220" height="220" rx="
 ${logoImg('branca', 30, 270, 240)}
 <text x="360" y="110" font-family="${SANS}" font-size="18" font-weight="800" letter-spacing="4" fill="${COLORS.emerald}">${esc(fit(String(eyebrow || '').toUpperCase(), 640, 18, 0.72))}</text>
 <text x="360" y="180" font-family="${SANS}" font-size="50" font-weight="800" fill="${COLORS.navy}">${esc(fit(name, 640, 50))}</text>
-<text x="360" y="228" font-family="${SANS}" font-size="27" fill="${COLORS.ink60}">${esc(fit(role, 640, 27))}</text>
+<text x="360" y="228" font-family="${SANS}" font-size="27" fill="${COLORS.ink60}">${esc(fit(role, 660, 27, 0.5))}</text>
 ${badge ? `<rect x="360" y="252" width="${Math.min(420, 28 + badge.length * 16)}" height="44" rx="8" fill="none" stroke="${COLORS.emerald}" stroke-width="2"/><text x="374" y="282" font-family="${MONO}" font-size="23" font-weight="600" fill="${COLORS.emerald}">${esc(fit(badge, 390, 23, 0.6))}</text>` : ''}
 ${rows}
 ${qrSvg ? `<rect x="${W - 222}" y="${H - 222}" width="186" height="186" rx="12" fill="#fff" stroke="${COLORS.line}"/>${qrAt(qrSvg, W - 207, H - 207, 156)}` : ''}
