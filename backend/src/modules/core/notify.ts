@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma'
+import { redigirLog } from '../lgpd/mascara'
 
 // Enfileira uma mensagem na caixa de saída única. O despacho real pelos canais
 // (WhatsApp, e-mail, SMS, voz, Telegram) é feito por modules/comunicacao.
@@ -38,7 +39,7 @@ export async function notify(input: NotifyInput) {
 export async function audit(params: { tenantId: string; userId?: string; modulo: string; acao: string; refType?: string; refId?: string; detalhes?: unknown }) {
   try {
     await prisma.eduAuditEvent.create({
-      data: { tenantId: params.tenantId, userId: params.userId, modulo: params.modulo, acao: params.acao, refType: params.refType, refId: params.refId, detalhes: params.detalhes as any },
+      data: { tenantId: params.tenantId, userId: params.userId, modulo: params.modulo, acao: params.acao, refType: params.refType, refId: params.refId, detalhes: (params.detalhes === undefined ? undefined : redigirLog(params.detalhes)) as any },
     })
   } catch (e) {
     console.error('[edu-audit]', e)

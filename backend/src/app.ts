@@ -10,6 +10,7 @@ import routes from './routes'
 import { ContextRequest, requestContext } from './middleware/requestContext'
 import { prisma } from './lib/prisma'
 import { apiSecurityHeaders, origemPermitida, originGuard } from './modules/seguranca/origem'
+import { instalarLogSeguro, sanitizarUrl } from './modules/lgpd/mascara'
 
 dotenv.config()
 
@@ -50,6 +51,11 @@ app.use(
 // Cabeçalhos extras da API (depois do helmet para prevalecerem sobre os padrões dele).
 app.use('/api', apiSecurityHeaders)
 app.use(compression())
+// LGPD: o log de acesso HTTP nunca registra token/senha/CPF completo (query string e caminho são sanitizados) e
+// qualquer console.* passa por redação (JWT, Bearer, senha=..., CPF formatado).
+instalarLogSeguro()
+morgan.token('url', (req) => sanitizarUrl(String((req as any).originalUrl || req.url || '')))
+morgan.token('referrer', (req) => sanitizarUrl(String(req.headers.referer || req.headers.referrer || '')) || undefined as any)
 app.use(morgan(isProduction ? 'combined' : 'dev'))
 
 app.use(

@@ -1,5 +1,6 @@
 import type { Request } from 'express'
 import { prisma } from '../../lib/prisma'
+import { redigirTexto } from '../lgpd/mascara'
 
 // ============================================================
 // Log de segurança (SegEvento). NUNCA lança erro: se a tabela ainda não existe
@@ -24,7 +25,7 @@ const CHAVE_SENSIVEL = /(senha|password|secret|segredo|token|authorization|cooki
 /** Remove valores de chaves sensíveis e trunca textos longos. */
 export function redigir(valor: unknown, profundidade = 0): unknown {
   if (valor == null) return valor
-  if (typeof valor === 'string') return valor.length > 300 ? valor.slice(0, 300) + '…' : valor
+  if (typeof valor === 'string') return redigirTexto(valor.length > 300 ? valor.slice(0, 300) + '…' : valor)
   if (typeof valor === 'number' || typeof valor === 'boolean') return valor
   if (profundidade > 3) return '[...]'
   if (Array.isArray(valor)) return valor.slice(0, 20).map((v) => redigir(v, profundidade + 1))
