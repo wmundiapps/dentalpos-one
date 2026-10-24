@@ -1,4 +1,5 @@
 import { isWmundiStaff } from "./WmundiStaffOnly";
+import GerenciadorWmundiButton from "./GerenciadorWmundiButton";
 import {
   Avatar, Box, Collapse, Divider, IconButton, List, ListItemButton, ListItemIcon,
   ListItemText, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button
@@ -137,6 +138,7 @@ export default function Sidebar(){
         <Typography sx={{color:"#94A3B8",fontSize:11}}>{roleLabel}</Typography>
       </>}
     </Box>
+    <GerenciadorWmundiButton collapsed={collapsed}/>
     <Divider sx={{borderColor:"#334155"}}/>
 
     <List sx={{mt:.5,px:collapsed?.4:.7}}>
