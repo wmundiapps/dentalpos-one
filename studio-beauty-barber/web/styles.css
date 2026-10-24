@@ -208,3 +208,8 @@ body[data-side="light"] .pub-hero { color: var(--ink); } body[data-side="light"]
 .pw { position: relative; display: block; } .pw input { width: 100%; padding-right: 46px; }
 .pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; display: grid; place-items: center; border: 0; background: transparent; color: var(--ink-3); border-radius: 8px; cursor: pointer; }
 .pw-eye:hover { color: var(--ink); background: var(--gold-soft); } .pw-eye .icon { width: 20px; height: 20px; }
+
+/* Troca rápida do tipo de espaço no menu */
+.modesw { margin: 14px 4px 4px; padding: 10px; border-radius: 12px; background: var(--night-2); } .modesw > span { display: block; margin-bottom: 6px; opacity: .75; }
+.modesw-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; } .modesw-btns button { padding: 8px 2px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: inherit; font-size: 12px; font-weight: 600; }
+.modesw-btns button.on { background: var(--gold); color: var(--on-accent, #fff); } .modesw-btns button:not(.on):hover { border-color: var(--gold-2); }

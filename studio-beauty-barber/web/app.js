@@ -1,5 +1,5 @@
 // Casca do painel: autenticação, menu e roteamento por hash (#/agenda, #/clientes...).
-import { h, $, clear, icon, get, post, setUnauthorizedHandler, toast, fail, initials, passwordInput } from './lib.js';
+import { h, $, clear, icon, get, post, patch, setUnauthorizedHandler, toast, fail, initials, passwordInput } from './lib.js';
 import { applyBrand } from './theme.js';
 
 const ROUTES = [
@@ -65,6 +65,7 @@ function renderShell() {
     h('div', { class: 'brand' }, h('div', { class: 'mark' }, session.salon.logo ? h('img', { src: session.salon.logo, alt: '' }) : (session.salon.name || 'S').trim()[0].toUpperCase()),
       h('div', {}, h('b', {}, session.salon.name), h('span', {}, ({ masc: 'Barbearia', fem: 'Studio', mix: 'Barbearia e Studio' })[session.salon.brand?.mode] || 'Gestão'))),
     nav,
+    modeSwitch(),
     h('div', { class: 'me' }, h('b', {}, session.user.name), h('span', { class: 'muted' }, session.salon.name),
       h('button', { class: 'btn sm block', onclick: logout }, icon('logout'), 'Sair')));
   const scrim = h('div', { class: 'scrim hidden', id: 'scrim', onclick: closeMenu });
@@ -72,6 +73,17 @@ function renderShell() {
     h('button', { class: 'btn sm', onclick: openMenu, 'aria-label': 'Abrir menu' }, icon('menu')),
     h('span', { class: 't' }, session.salon.name));
   clear(root).append(h('div', { class: 'app' }, side, h('div', {}, top, h('main', { class: 'main', id: 'main', tabindex: '-1' }))), scrim);
+}
+// Troca rápida do tipo de espaço (Barbearia, Studio feminino ou os dois): muda cores e textos do painel e da página de agendamento.
+function modeSwitch() {
+  if (RANK[session.user.role] < RANK.manager) return null;
+  const cur = session.salon.brand?.mode || 'masc';
+  const opts = [['masc', 'Barbearia'], ['fem', 'Studio'], ['mix', 'Ambos']];
+  return h('div', { class: 'modesw', role: 'group', 'aria-label': 'Tipo de espaço' }, h('span', { class: 'small' }, 'Tipo de espaço'),
+    h('div', { class: 'modesw-btns' }, opts.map(([k, l]) => h('button', { type: 'button', class: k === cur ? 'on' : '', 'aria-pressed': String(k === cur), onclick: async () => {
+      if (k === cur) return;
+      try { await patch('/api/settings', { brand: { mode: k } }); toast('Tipo de espaço alterado. Atualizando…', 'ok'); setTimeout(() => location.reload(), 500); } catch (e) { fail(e); }
+    } }, l))));
 }
 const openMenu = () => { $('#side').classList.add('open'); $('#scrim').classList.remove('hidden'); };
 const closeMenu = () => { $('#side')?.classList.remove('open'); $('#scrim')?.classList.add('hidden'); };
