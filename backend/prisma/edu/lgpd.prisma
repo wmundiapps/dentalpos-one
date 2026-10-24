@@ -1,0 +1,381 @@
+// ============================================================
+// EDUMASTER PRO — LGPD (Lei 13.709/2018)
+// Prefixo Lgp. Somente tabelas NOVAS (nenhuma tabela existente é alterada).
+// Referências a Student/AdmCandidato/ApoEgresso/User = String ids sem @relation (o titular pode ser
+// anonimizado/eliminado sem quebrar integridade referencial).
+// ============================================================
+
+enum LgpTipoSolicitacao {
+  CONFIRMACAO              // art. 18, I   - confirmação da existência de tratamento
+  ACESSO                   // art. 18, II  - acesso aos dados
+  CORRECAO                 // art. 18, III - correção de dados incompletos, inexatos ou desatualizados
+  ANONIMIZACAO             // art. 18, IV  - anonimização/bloqueio de dados desnecessários
+  ELIMINACAO               // art. 18, VI  - eliminação de dados tratados com consentimento
+  PORTABILIDADE            // art. 18, V   - portabilidade
+  INFO_COMPARTILHAMENTO    // art. 18, VII - informação sobre compartilhamento
+  REVOGACAO_CONSENTIMENTO  // art. 18, IX / art. 8, §5
+  OPOSICAO                 // art. 18, §2  - oposição a tratamento
+  REVISAO_AUTOMATIZADA     // art. 20      - revisão de decisão automatizada
+}
+
+enum LgpStatusSolicitacao {
+  ABERTA
+  EM_ANALISE
+  AGUARDANDO_TITULAR
+  ATENDIDA
+  ATENDIDA_PARCIALMENTE
+  NEGADA
+  CANCELADA
+}
+
+enum LgpSeveridadeIncidente {
+  BAIXA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+enum LgpStatusIncidente {
+  ABERTO
+  EM_CONTENCAO
+  EM_AVALIACAO
+  COMUNICADO
+  ENCERRADO
+}
+
+// Contador sequencial (protocolos) por tenant+chave.
+model LgpContador {
+  id       String @id @default(uuid())
+  tenantId String
+  chave    String
+  valor    Int    @default(0)
+
+  @@unique([tenantId, chave])
+}
+
+// Trilha de auditoria append-only das ações LGPD (nunca guarda segredo nem CPF completo).
+model LgpTrilha {
+  id        String   @id @default(uuid())
+  tenantId  String
+  refType   String             // Solicitacao | Consentimento | Incidente | Ropa | Retencao | Dpo | Pacote ...
+  refId     String
+  acao      String
+  userId    String?
+  ator      String?            // TITULAR | DPO | SISTEMA | <papel>
+  detalhe   Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, refType, refId])
+  @@index([tenantId, createdAt])
+}
+
+// ---------------------------------------------------------------- 1) Consentimentos
+// Texto de consentimento versionado (o que foi mostrado ao titular). Sem registro no banco vale o texto-modelo do código.
+model LgpTextoConsentimento {
+  id           String   @id @default(uuid())
+  tenantId     String
+  finalidade   String
+  versao       String
+  titulo       String
+  texto        String
+  baseLegal    String   @default("CONSENTIMENTO")
+  textoHash    String
+  ativo        Boolean  @default(true)
+  vigenteDesde DateTime @default(now())
+  criadoPorId  String?
+  createdAt    DateTime @default(now())
+
+  @@unique([tenantId, finalidade, versao])
+  @@index([tenantId, finalidade, ativo])
+}
+
+// Responsável legal (art. 14, §1): pai/mãe/tutor que consente em nome de menor de 18 anos.
+model LgpResponsavel {
+  id             String   @id @default(uuid())
+  tenantId       String
+  titularTipo    String             // ALUNO | CANDIDATO | EGRESSO | VISITANTE
+  titularId      String?
+  titularNome    String?
+  nome           String
+  parentesco     String
+  email          String?
+  telefone       String?
+  docHash        String?            // HMAC do CPF (comparação) - o número completo não é guardado
+  docMascarado   String?
+  verificadoEm   DateTime?
+  anonimizadoEm  DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, titularTipo, titularId])
+  @@index([tenantId, docHash])
+}
+
+// Cada concessão de consentimento. A revogação preenche revogadoEm (a linha nunca é apagada: é prova).
+model LgpConsentimento {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  titularTipo         String             // ALUNO | CANDIDATO | EGRESSO | RESPONSAVEL | VISITANTE | OUTRO
+  titularId           String?
+  titularRef          String?            // identificador anônimo do navegador (cookies)
+  titularNome         String?
+  titularEmail        String?
+  titularDocHash      String?
+  titularDocMascarado String?
+  finalidade          String
+  baseLegal           String    @default("CONSENTIMENTO")
+  versaoTexto         String
+  textoHash           String
+  concedido           Boolean   @default(true)
+  status              String    @default("ATIVO")   // ATIVO | REVOGADO
+  concedidoEm         DateTime  @default(now())
+  revogadoEm          DateTime?
+  motivoRevogacao     String?
+  canal               String    @default("PORTAL")  // PORTAL | COOKIE_BANNER | PRESENCIAL | FORMULARIO | API
+  sensivel            Boolean   @default(false)
+  menor               Boolean   @default(false)
+  responsavelId       String?
+  ipHash              String?
+  uaHash              String?
+  reciboHash          String?            // hash do segredo de revogação entregue ao titular
+  registradoPorId     String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([tenantId, finalidade, status])
+  @@index([tenantId, titularTipo, titularId])
+  @@index([tenantId, titularEmail])
+  @@index([tenantId, titularDocHash])
+  @@index([tenantId, titularRef])
+}
+
+// ---------------------------------------------------------------- 2) Direitos do titular (art. 18)
+model LgpSolicitacao {
+  id                     String               @id @default(uuid())
+  tenantId               String
+  protocolo              String
+  tipo                   LgpTipoSolicitacao
+  status                 LgpStatusSolicitacao @default(ABERTA)
+  titularTipo            String?              // vínculo com o cadastro (preenchido pelo DPO ou por sugestão)
+  titularId              String?
+  nome                   String
+  email                  String
+  telefone               String?
+  docHash                String?
+  docMascarado           String?
+  descricao              String?
+  dados                  Json?                // ex.: correção solicitada
+  canal                  String               @default("PORTAL")
+  menor                  Boolean              @default(false)
+  responsavelNome        String?
+  responsavelParentesco  String?
+  prazoEm                DateTime             // 15 dias (art. 19, II)
+  prorrogadoEm           DateTime?
+  atribuidoAId           String?
+  identidadeVerificadaEm DateTime?
+  identidadeMetodo       String?
+  identidadeVerificadaPor String?
+  resposta               String?
+  respondidaEm           DateTime?
+  justificativaNegativa  String?
+  executadoEm            DateTime?
+  resultadoExecucao      Json?
+  pacoteGeradoEm         DateTime?
+  pacoteHash             String?
+  senhaHash              String
+  senhaSalt              String
+  consultaFalhas         Int                  @default(0)
+  consultaBloqueadaAte   DateTime?
+  ipHash                 String?
+  alertadoEm             DateTime?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  @@unique([tenantId, protocolo])
+  @@index([tenantId, status, prazoEm])
+  @@index([tenantId, titularTipo, titularId])
+  @@index([tenantId, docHash])
+}
+
+// ---------------------------------------------------------------- 3) Inventário de tratamento (ROPA, art. 37)
+model LgpAtividadeTratamento {
+  id                      String    @id @default(uuid())
+  tenantId                String
+  codigo                  String
+  atividade               String
+  area                    String?
+  sistema                 String?             // módulo do EduMaster
+  descricao               String?
+  categoriasTitulares     String[]
+  categoriasDados         String[]
+  dadosSensiveis          Boolean   @default(false)
+  dadosMenores            Boolean   @default(false)
+  finalidade              String
+  baseLegal               String
+  baseLegalDetalhe        String?
+  retencao                String?
+  retencaoMeses           Int?
+  compartilhamento        Json?               // [{ destinatario, finalidade, baseLegal }]
+  operadores              Json?               // [{ nome, pais, funcao }]
+  transferenciaInternacional Boolean @default(false)
+  medidasSeguranca        String?
+  responsavel             String?
+  status                  String    @default("ATIVA")   // ATIVA | EM_REVISAO | DESCONTINUADA
+  origem                  String    @default("MANUAL")  // MANUAL | SEED
+  revisadoEm              DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status])
+}
+
+// ---------------------------------------------------------------- 4) Retenção
+model LgpRetencaoPolitica {
+  id          String   @id @default(uuid())
+  tenantId    String
+  alvo        String             // chave do alvo suportado (ver modules/lgpd/retencao.ts)
+  nome        String
+  descricao   String?
+  prazoMeses  Int
+  acao        String   @default("ANONIMIZAR")   // ANONIMIZAR | ELIMINAR (conforme o alvo suportar)
+  baseLegal   String?
+  ativa       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, alvo])
+}
+
+model LgpRetencaoExecucao {
+  id           String    @id @default(uuid())
+  tenantId     String
+  politicaId   String?
+  alvo         String
+  dryRun       Boolean   @default(true)
+  origem       String    @default("JOB")     // JOB | MANUAL
+  acao         String
+  prazoMeses   Int
+  corte        DateTime
+  afetados     Int       @default(0)
+  detalhes     Json?                         // ids amostrados (nunca dados pessoais)
+  erro         String?
+  executadoPor String?
+  iniciadoEm   DateTime  @default(now())
+  concluidoEm  DateTime?
+
+  @@index([tenantId, iniciadoEm])
+}
+
+// ---------------------------------------------------------------- 5) Incidentes de segurança (art. 48)
+model LgpIncidente {
+  id                    String                 @id @default(uuid())
+  tenantId              String
+  numero                String
+  titulo                String
+  descricao             String
+  severidade            LgpSeveridadeIncidente @default(MEDIA)
+  status                LgpStatusIncidente     @default(ABERTO)
+  ocorridoEm            DateTime?
+  ciencia               DateTime               @default(now())   // quando o controlador tomou conhecimento
+  categoriasDados       String[]
+  dadosSensiveis        Boolean                @default(false)
+  envolveMenores        Boolean                @default(false)
+  titularesAfetados     Int?
+  riscoRelevante        Boolean                @default(false)   // risco ou dano relevante => comunicação obrigatória
+  prazoComunicacaoEm    DateTime                                 // 3 dias úteis a partir da ciência
+  comunicadoAnpdEm      DateTime?
+  anpdProtocolo         String?
+  comunicadoTitularesEm DateTime?
+  meioComunicacaoTitulares String?
+  causa                 String?
+  medidasContencao      String?
+  medidasCorretivas     String?
+  checklist             Json                   @default("[]")
+  responsavelId         String?
+  encerradoEm           DateTime?
+  alertadoEm            DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  eventos               LgpIncidenteEvento[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+}
+
+model LgpIncidenteEvento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  incidenteId String
+  tipo        String             // DETECCAO | CONTENCAO | AVALIACAO | COMUNICACAO_ANPD | COMUNICACAO_TITULARES | NOTA | ENCERRAMENTO | CHECKLIST
+  descricao   String
+  userId      String?
+  ocorridoEm  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  incidente   LgpIncidente @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, incidenteId, ocorridoEm])
+}
+
+// ---------------------------------------------------------------- 6) Encarregado (DPO)
+model LgpDpo {
+  id               String    @id @default(uuid())
+  tenantId         String
+  nome             String
+  email            String
+  telefone         String?
+  cargo            String?
+  tipo             String    @default("INTERNO")   // INTERNO | TERCEIRIZADO
+  empresa          String?
+  cnpj             String?
+  userId           String?                          // usuário do sistema que atua como DPO (acesso à Central LGPD)
+  ato              String?                          // ato de designação
+  designadoEm      DateTime?
+  horarioAtendimento String?
+  endereco         String?
+  canalUrl         String?
+  ativo            Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([tenantId, ativo])
+}
+
+// ---------------------------------------------------------------- 7) Dados sensíveis
+// Marcação de campos sensíveis (art. 5, II e art. 11) - complementa o catálogo do código.
+model LgpCampoSensivel {
+  id         String   @id @default(uuid())
+  tenantId   String
+  modelo     String
+  campo      String
+  categoria  String             // SAUDE | DEFICIENCIA | BIOMETRIA | ORIGEM_RACIAL | CONVICCAO | SOCIOECONOMICO | MENOR | DISCIPLINAR
+  mascarar   Boolean  @default(true)
+  observacao String?
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, modelo, campo])
+}
+
+// Quem viu o quê: acesso a dados sensíveis (leitura de prontuário de apoio, laudos, pacote do titular...).
+model LgpAcessoSensivel {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String?
+  papel       String?
+  recurso     String             // ex.: apoio/atendimentos
+  recursoId   String?
+  categoria   String
+  acao        String   @default("LEITURA")
+  metodo      String?
+  titularTipo String?
+  titularId   String?
+  motivo      String?
+  ipHash      String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, titularTipo, titularId])
+}

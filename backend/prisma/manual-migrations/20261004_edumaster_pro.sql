@@ -10952,3 +10952,424 @@ ALTER TABLE "SupVendaItem" ADD CONSTRAINT "SupVendaItem_vendaId_fkey" FOREIGN KE
 -- AddForeignKey
 ALTER TABLE "SupDevolucao" ADD CONSTRAINT "SupDevolucao_vendaId_fkey" FOREIGN KEY ("vendaId") REFERENCES "SupVenda"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+
+-- ==== LGPD:BEGIN (módulo LGPD, prefixo Lgp - gerado por prisma migrate diff; somente CRIA) ====
+-- CreateEnum
+CREATE TYPE "LgpTipoSolicitacao" AS ENUM ('CONFIRMACAO', 'ACESSO', 'CORRECAO', 'ANONIMIZACAO', 'ELIMINACAO', 'PORTABILIDADE', 'INFO_COMPARTILHAMENTO', 'REVOGACAO_CONSENTIMENTO', 'OPOSICAO', 'REVISAO_AUTOMATIZADA');
+
+-- CreateEnum
+CREATE TYPE "LgpStatusSolicitacao" AS ENUM ('ABERTA', 'EM_ANALISE', 'AGUARDANDO_TITULAR', 'ATENDIDA', 'ATENDIDA_PARCIALMENTE', 'NEGADA', 'CANCELADA');
+
+-- CreateEnum
+CREATE TYPE "LgpSeveridadeIncidente" AS ENUM ('BAIXA', 'MEDIA', 'ALTA', 'CRITICA');
+
+-- CreateEnum
+CREATE TYPE "LgpStatusIncidente" AS ENUM ('ABERTO', 'EM_CONTENCAO', 'EM_AVALIACAO', 'COMUNICADO', 'ENCERRADO');
+
+-- CreateTable
+CREATE TABLE "LgpContador" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "valor" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "LgpContador_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpTrilha" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "refType" TEXT NOT NULL,
+    "refId" TEXT NOT NULL,
+    "acao" TEXT NOT NULL,
+    "userId" TEXT,
+    "ator" TEXT,
+    "detalhe" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "LgpTrilha_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpTextoConsentimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "finalidade" TEXT NOT NULL,
+    "versao" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "texto" TEXT NOT NULL,
+    "baseLegal" TEXT NOT NULL DEFAULT 'CONSENTIMENTO',
+    "textoHash" TEXT NOT NULL,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "vigenteDesde" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "LgpTextoConsentimento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpResponsavel" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "titularTipo" TEXT NOT NULL,
+    "titularId" TEXT,
+    "titularNome" TEXT,
+    "nome" TEXT NOT NULL,
+    "parentesco" TEXT NOT NULL,
+    "email" TEXT,
+    "telefone" TEXT,
+    "docHash" TEXT,
+    "docMascarado" TEXT,
+    "verificadoEm" TIMESTAMP(3),
+    "anonimizadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LgpResponsavel_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpConsentimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "titularTipo" TEXT NOT NULL,
+    "titularId" TEXT,
+    "titularRef" TEXT,
+    "titularNome" TEXT,
+    "titularEmail" TEXT,
+    "titularDocHash" TEXT,
+    "titularDocMascarado" TEXT,
+    "finalidade" TEXT NOT NULL,
+    "baseLegal" TEXT NOT NULL DEFAULT 'CONSENTIMENTO',
+    "versaoTexto" TEXT NOT NULL,
+    "textoHash" TEXT NOT NULL,
+    "concedido" BOOLEAN NOT NULL DEFAULT true,
+    "status" TEXT NOT NULL DEFAULT 'ATIVO',
+    "concedidoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "revogadoEm" TIMESTAMP(3),
+    "motivoRevogacao" TEXT,
+    "canal" TEXT NOT NULL DEFAULT 'PORTAL',
+    "sensivel" BOOLEAN NOT NULL DEFAULT false,
+    "menor" BOOLEAN NOT NULL DEFAULT false,
+    "responsavelId" TEXT,
+    "ipHash" TEXT,
+    "uaHash" TEXT,
+    "reciboHash" TEXT,
+    "registradoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LgpConsentimento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpSolicitacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "protocolo" TEXT NOT NULL,
+    "tipo" "LgpTipoSolicitacao" NOT NULL,
+    "status" "LgpStatusSolicitacao" NOT NULL DEFAULT 'ABERTA',
+    "titularTipo" TEXT,
+    "titularId" TEXT,
+    "nome" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "telefone" TEXT,
+    "docHash" TEXT,
+    "docMascarado" TEXT,
+    "descricao" TEXT,
+    "dados" JSONB,
+    "canal" TEXT NOT NULL DEFAULT 'PORTAL',
+    "menor" BOOLEAN NOT NULL DEFAULT false,
+    "responsavelNome" TEXT,
+    "responsavelParentesco" TEXT,
+    "prazoEm" TIMESTAMP(3) NOT NULL,
+    "prorrogadoEm" TIMESTAMP(3),
+    "atribuidoAId" TEXT,
+    "identidadeVerificadaEm" TIMESTAMP(3),
+    "identidadeMetodo" TEXT,
+    "identidadeVerificadaPor" TEXT,
+    "resposta" TEXT,
+    "respondidaEm" TIMESTAMP(3),
+    "justificativaNegativa" TEXT,
+    "executadoEm" TIMESTAMP(3),
+    "resultadoExecucao" JSONB,
+    "pacoteGeradoEm" TIMESTAMP(3),
+    "pacoteHash" TEXT,
+    "senhaHash" TEXT NOT NULL,
+    "senhaSalt" TEXT NOT NULL,
+    "consultaFalhas" INTEGER NOT NULL DEFAULT 0,
+    "consultaBloqueadaAte" TIMESTAMP(3),
+    "ipHash" TEXT,
+    "alertadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LgpSolicitacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpAtividadeTratamento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "atividade" TEXT NOT NULL,
+    "area" TEXT,
+    "sistema" TEXT,
+    "descricao" TEXT,
+    "categoriasTitulares" TEXT[],
+    "categoriasDados" TEXT[],
+    "dadosSensiveis" BOOLEAN NOT NULL DEFAULT false,
+    "dadosMenores" BOOLEAN NOT NULL DEFAULT false,
+    "finalidade" TEXT NOT NULL,
+    "baseLegal" TEXT NOT NULL,
+    "baseLegalDetalhe" TEXT,
+    "retencao" TEXT,
+    "retencaoMeses" INTEGER,
+    "compartilhamento" JSONB,
+    "operadores" JSONB,
+    "transferenciaInternacional" BOOLEAN NOT NULL DEFAULT false,
+    "medidasSeguranca" TEXT,
+    "responsavel" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ATIVA',
+    "origem" TEXT NOT NULL DEFAULT 'MANUAL',
+    "revisadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LgpAtividadeTratamento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpRetencaoPolitica" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "alvo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "descricao" TEXT,
+    "prazoMeses" INTEGER NOT NULL,
+    "acao" TEXT NOT NULL DEFAULT 'ANONIMIZAR',
+    "baseLegal" TEXT,
+    "ativa" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LgpRetencaoPolitica_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpRetencaoExecucao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "politicaId" TEXT,
+    "alvo" TEXT NOT NULL,
+    "dryRun" BOOLEAN NOT NULL DEFAULT true,
+    "origem" TEXT NOT NULL DEFAULT 'JOB',
+    "acao" TEXT NOT NULL,
+    "prazoMeses" INTEGER NOT NULL,
+    "corte" TIMESTAMP(3) NOT NULL,
+    "afetados" INTEGER NOT NULL DEFAULT 0,
+    "detalhes" JSONB,
+    "erro" TEXT,
+    "executadoPor" TEXT,
+    "iniciadoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "concluidoEm" TIMESTAMP(3),
+
+    CONSTRAINT "LgpRetencaoExecucao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpIncidente" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "severidade" "LgpSeveridadeIncidente" NOT NULL DEFAULT 'MEDIA',
+    "status" "LgpStatusIncidente" NOT NULL DEFAULT 'ABERTO',
+    "ocorridoEm" TIMESTAMP(3),
+    "ciencia" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "categoriasDados" TEXT[],
+    "dadosSensiveis" BOOLEAN NOT NULL DEFAULT false,
+    "envolveMenores" BOOLEAN NOT NULL DEFAULT false,
+    "titularesAfetados" INTEGER,
+    "riscoRelevante" BOOLEAN NOT NULL DEFAULT false,
+    "prazoComunicacaoEm" TIMESTAMP(3) NOT NULL,
+    "comunicadoAnpdEm" TIMESTAMP(3),
+    "anpdProtocolo" TEXT,
+    "comunicadoTitularesEm" TIMESTAMP(3),
+    "meioComunicacaoTitulares" TEXT,
+    "causa" TEXT,
+    "medidasContencao" TEXT,
+    "medidasCorretivas" TEXT,
+    "checklist" JSONB NOT NULL DEFAULT '[]',
+    "responsavelId" TEXT,
+    "encerradoEm" TIMESTAMP(3),
+    "alertadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LgpIncidente_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpIncidenteEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "incidenteId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "userId" TEXT,
+    "ocorridoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "LgpIncidenteEvento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpDpo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "telefone" TEXT,
+    "cargo" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'INTERNO',
+    "empresa" TEXT,
+    "cnpj" TEXT,
+    "userId" TEXT,
+    "ato" TEXT,
+    "designadoEm" TIMESTAMP(3),
+    "horarioAtendimento" TEXT,
+    "endereco" TEXT,
+    "canalUrl" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LgpDpo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpCampoSensivel" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "modelo" TEXT NOT NULL,
+    "campo" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL,
+    "mascarar" BOOLEAN NOT NULL DEFAULT true,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "LgpCampoSensivel_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "LgpAcessoSensivel" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT,
+    "papel" TEXT,
+    "recurso" TEXT NOT NULL,
+    "recursoId" TEXT,
+    "categoria" TEXT NOT NULL,
+    "acao" TEXT NOT NULL DEFAULT 'LEITURA',
+    "metodo" TEXT,
+    "titularTipo" TEXT,
+    "titularId" TEXT,
+    "motivo" TEXT,
+    "ipHash" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "LgpAcessoSensivel_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "LgpContador_tenantId_chave_key" ON "LgpContador"("tenantId", "chave");
+
+-- CreateIndex
+CREATE INDEX "LgpTrilha_tenantId_refType_refId_idx" ON "LgpTrilha"("tenantId", "refType", "refId");
+
+-- CreateIndex
+CREATE INDEX "LgpTrilha_tenantId_createdAt_idx" ON "LgpTrilha"("tenantId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "LgpTextoConsentimento_tenantId_finalidade_ativo_idx" ON "LgpTextoConsentimento"("tenantId", "finalidade", "ativo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "LgpTextoConsentimento_tenantId_finalidade_versao_key" ON "LgpTextoConsentimento"("tenantId", "finalidade", "versao");
+
+-- CreateIndex
+CREATE INDEX "LgpResponsavel_tenantId_titularTipo_titularId_idx" ON "LgpResponsavel"("tenantId", "titularTipo", "titularId");
+
+-- CreateIndex
+CREATE INDEX "LgpResponsavel_tenantId_docHash_idx" ON "LgpResponsavel"("tenantId", "docHash");
+
+-- CreateIndex
+CREATE INDEX "LgpConsentimento_tenantId_finalidade_status_idx" ON "LgpConsentimento"("tenantId", "finalidade", "status");
+
+-- CreateIndex
+CREATE INDEX "LgpConsentimento_tenantId_titularTipo_titularId_idx" ON "LgpConsentimento"("tenantId", "titularTipo", "titularId");
+
+-- CreateIndex
+CREATE INDEX "LgpConsentimento_tenantId_titularEmail_idx" ON "LgpConsentimento"("tenantId", "titularEmail");
+
+-- CreateIndex
+CREATE INDEX "LgpConsentimento_tenantId_titularDocHash_idx" ON "LgpConsentimento"("tenantId", "titularDocHash");
+
+-- CreateIndex
+CREATE INDEX "LgpConsentimento_tenantId_titularRef_idx" ON "LgpConsentimento"("tenantId", "titularRef");
+
+-- CreateIndex
+CREATE INDEX "LgpSolicitacao_tenantId_status_prazoEm_idx" ON "LgpSolicitacao"("tenantId", "status", "prazoEm");
+
+-- CreateIndex
+CREATE INDEX "LgpSolicitacao_tenantId_titularTipo_titularId_idx" ON "LgpSolicitacao"("tenantId", "titularTipo", "titularId");
+
+-- CreateIndex
+CREATE INDEX "LgpSolicitacao_tenantId_docHash_idx" ON "LgpSolicitacao"("tenantId", "docHash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "LgpSolicitacao_tenantId_protocolo_key" ON "LgpSolicitacao"("tenantId", "protocolo");
+
+-- CreateIndex
+CREATE INDEX "LgpAtividadeTratamento_tenantId_status_idx" ON "LgpAtividadeTratamento"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "LgpAtividadeTratamento_tenantId_codigo_key" ON "LgpAtividadeTratamento"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "LgpRetencaoPolitica_tenantId_alvo_key" ON "LgpRetencaoPolitica"("tenantId", "alvo");
+
+-- CreateIndex
+CREATE INDEX "LgpRetencaoExecucao_tenantId_iniciadoEm_idx" ON "LgpRetencaoExecucao"("tenantId", "iniciadoEm");
+
+-- CreateIndex
+CREATE INDEX "LgpIncidente_tenantId_status_idx" ON "LgpIncidente"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "LgpIncidente_tenantId_numero_key" ON "LgpIncidente"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX "LgpIncidenteEvento_tenantId_incidenteId_ocorridoEm_idx" ON "LgpIncidenteEvento"("tenantId", "incidenteId", "ocorridoEm");
+
+-- CreateIndex
+CREATE INDEX "LgpDpo_tenantId_ativo_idx" ON "LgpDpo"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "LgpCampoSensivel_tenantId_modelo_campo_key" ON "LgpCampoSensivel"("tenantId", "modelo", "campo");
+
+-- CreateIndex
+CREATE INDEX "LgpAcessoSensivel_tenantId_createdAt_idx" ON "LgpAcessoSensivel"("tenantId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "LgpAcessoSensivel_tenantId_userId_createdAt_idx" ON "LgpAcessoSensivel"("tenantId", "userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "LgpAcessoSensivel_tenantId_titularTipo_titularId_idx" ON "LgpAcessoSensivel"("tenantId", "titularTipo", "titularId");
+
+-- AddForeignKey
+ALTER TABLE "LgpIncidenteEvento" ADD CONSTRAINT "LgpIncidenteEvento_incidenteId_fkey" FOREIGN KEY ("incidenteId") REFERENCES "LgpIncidente"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- ==== LGPD:END ====
