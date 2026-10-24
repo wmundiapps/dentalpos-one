@@ -6,6 +6,10 @@ import Login from "./pages/Login";
 import PublicBooking from "./pages/PublicBooking";
 import DemoLanding from "./pages/DemoLanding";
 import PasswordReset from "./pages/PasswordReset";
+import CookieBanner from "./lgpd/CookieBanner";
+import PoliticaPrivacidade from "./lgpd/PoliticaPrivacidade";
+import TermosDeUso from "./lgpd/TermosDeUso";
+import PortalTitular from "./lgpd/PortalTitular";
 import {
   clearClientSession,
   demoSalesUrl,
@@ -16,6 +20,8 @@ import {
 } from "./services/DemoAccess";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+const PUBLIC_LGPD = ["/privacidade", "/termos", "/portal-titular"];
 
 type SessionState = "checking" | "valid" | "invalid" | "unavailable" | "expired";
 
@@ -32,7 +38,7 @@ function clearSession() {
   clearClientSession();
 }
 
-export default function App() {
+function AppShell() {
   const appPath = currentAppPath().replace(/\/$/, "") || "/";
   const [session, setSession] = useState<SessionState>(() =>
     localStorage.getItem("dentalpos.token") ? "checking" : "invalid",
@@ -87,7 +93,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/redefinir-senha") void validateSession();
+    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/redefinir-senha" && !PUBLIC_LGPD.includes(appPath)) void validateSession();
   }, [appPath]);
 
   if (appPath === "/agendamento-online") {
@@ -101,6 +107,11 @@ export default function App() {
   if (appPath === "/redefinir-senha") {
     return <PasswordReset />;
   }
+
+  // Páginas públicas de privacidade (LGPD): sem login.
+  if (appPath === "/privacidade") return <PoliticaPrivacidade />;
+  if (appPath === "/termos") return <TermosDeUso />;
+  if (appPath === "/portal-titular") return <PortalTitular />;
 
   if (session === "invalid") return <Login />;
 
@@ -192,5 +203,15 @@ export default function App() {
     <Layout>
       <AppRoutes />
     </Layout>
+  );
+}
+
+/** Aviso de cookies (LGPD) em todas as telas: nada pré-marcado; cookies opcionais só com escolha do visitante. */
+export default function App() {
+  return (
+    <>
+      <AppShell />
+      <CookieBanner />
+    </>
   );
 }

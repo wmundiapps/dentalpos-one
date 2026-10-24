@@ -384,6 +384,9 @@ export default function Login() {
         </Button>
           </>
         ) : null}
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2, textAlign: "center" }}>
+          <a href="/privacidade">Política de Privacidade</a> · <a href="/termos">Termos de Uso</a> · <a href="/portal-titular">Portal do Titular (LGPD)</a>
+        </Typography>
       </Paper>
 
       <Dialog open={resetOpen} onClose={resetBusy ? undefined : () => setResetOpen(false)} fullWidth maxWidth="xs">
