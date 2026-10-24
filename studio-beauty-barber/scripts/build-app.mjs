@@ -29,6 +29,8 @@ const security = [
 ];
 writeFileSync(join(out, 'vercel.json'), JSON.stringify({
   functions: { 'api/index.js': { maxDuration: 30 } },
+  // Agendador: lembretes, recall, cobranças do clube e convites. A Vercel envia o CRON_SECRET no cabeçalho Authorization.
+  crons: [{ path: '/api/cron/tick', schedule: '*/5 * * * *' }],
   rewrites: [
     { source: '/s/:slug', destination: '/booking.html' },
     { source: '/api/:path*', destination: '/api/index' },
