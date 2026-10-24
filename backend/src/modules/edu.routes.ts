@@ -21,10 +21,14 @@ import bibliotecaRouter, { publicRouter as bibliotecaPublic } from './biblioteca
 import jornadasRouter, { publicRouter as jornadasPublic } from './jornadas/routes'
 import modalidadesRouter, { publicRouter as modalidadesPublic } from './modalidades/routes'
 import reitoriaRouter, { publicRouter as reitoriaPublic } from './reitoria/routes'
+import lgpdRouter, { publicRouter as lgpdPublic } from './lgpd/routes'
+import { acessoSensivelLog } from './lgpd/sensiveis'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
 const router = Router()
 router.use(eduContext)
+// LGPD: registra quem acessa dados sensíveis (apoio/atendimentos, AEE, ocorrências, bolsas) - não altera a resposta.
+router.use(acessoSensivelLog)
 
 router.use('/core', coreRouter)
 router.use('/academico', academicoRouter)
@@ -47,6 +51,7 @@ router.use('/biblioteca', bibliotecaRouter)
 router.use('/jornadas', jornadasRouter)
 router.use('/modalidades', modalidadesRouter)
 router.use('/reitoria', reitoriaRouter)
+router.use('/lgpd', lgpdRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.
 router.use(academicErrorHandler)
 
@@ -71,4 +76,5 @@ eduPublicRouter.use('/biblioteca', bibliotecaPublic)
 eduPublicRouter.use('/jornadas', jornadasPublic)
 eduPublicRouter.use('/modalidades', modalidadesPublic)
 eduPublicRouter.use('/reitoria', reitoriaPublic)
+eduPublicRouter.use('/lgpd', lgpdPublic)
 eduPublicRouter.use(academicErrorHandler)
