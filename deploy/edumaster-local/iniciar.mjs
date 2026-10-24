@@ -47,6 +47,7 @@ console.log('Banco local pronto.')
 const env = {
   ...process.env,
   NODE_ENV: 'development',
+  PRISMA_QUIET: '1',
   APP_ENV: 'development',
   PORT: String(API_PORT),
   DATABASE_URL: URL_EXTERNA || `postgresql://edumaster:edumaster-local@localhost:${PG_PORT}/edumaster?schema=public`,

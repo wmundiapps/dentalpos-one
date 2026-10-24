@@ -44,7 +44,7 @@ export const prisma =
         }
       : {}),
     log:
-      process.env.NODE_ENV === 'development'
+      process.env.NODE_ENV === 'development' && process.env.PRISMA_QUIET !== '1'
         ? ['query', 'info', 'warn', 'error']
         : ['error'],
   })
