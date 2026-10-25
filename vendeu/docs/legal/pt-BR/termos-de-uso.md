@@ -1,8 +1,8 @@
 # Termos de Uso
-<!-- versao: 2026-10-25 -->
+<!-- versao: 2026-10-26 -->
 > MINUTA — aguardando aprovação do Robson e revisão da Dra. Roberta antes de entrar em vigor.
 
-Versão 2026-10-25
+Versão 2026-10-26
 
 ## 1. Quem somos e o que é o Vendeu
 
@@ -25,7 +25,7 @@ Versão 2026-10-25
 - (d) garante o produto, a qualidade, a quantidade, a procedência, a origem lícita, o preço, a documentação nem a boa-fé de nenhum usuário;
 - (e) avalia previamente o conteúdo dos anúncios, embora use triagem automática e moderação (cláusula 9).
 
-2.4. A única cobrança do Vendeu é a **taxa de sucesso** paga pelo anunciante, como remuneração pelo serviço de anúncio e divulgação, descrita na cláusula 6 e na Política de Taxas.
+2.4. As únicas cobranças do Vendeu são a **taxa de sucesso** e a **taxa de retirada**, pagas pelo anunciante como remuneração pelo serviço de anúncio e divulgação, descritas na cláusula 6 e na Política de Taxas. O comprador ou interessado nunca paga nada ao Vendeu.
 
 ## 3. Quem pode usar
 
@@ -39,7 +39,7 @@ Versão 2026-10-25
 
 4.1. **Compradores e interessados** informam nome, e-mail e telefone, ambos verificados por código enviado ao próprio usuário. O CPF é opcional.
 
-4.2. **Anunciantes** informam nome completo, CPF ou CNPJ, data de nascimento, e-mail e telefone (verificados por código) e endereço com CEP, e passam pela **verificação de identidade**: foto do RG ou da CNH (frente e verso), selfie segurando o documento, comprovante de endereço e, para empresas, o cartão CNPJ. Sem a verificação aprovada, o anunciante não pode publicar anúncios.
+4.2. **Anunciantes** informam nome completo, CPF ou CNPJ, data de nascimento, e-mail e telefone (verificados por código) e endereço com CEP, e passam pela **verificação de identidade**: foto do RG ou da CNH (frente e verso), selfie segurando o documento, comprovante de endereço e, para empresas, o cartão CNPJ. Sem a verificação aprovada e sem meio de pagamento cadastrado (cláusula 5.7), o anunciante não pode publicar anúncios.
 
 4.3. Os dados devem ser verdadeiros, completos e atualizados. Informar dado falso é motivo de bloqueio e pode gerar responsabilidade civil e criminal.
 
@@ -47,7 +47,7 @@ Versão 2026-10-25
 
 ## 5. Como funcionam os anúncios
 
-5.1. **Anunciar é grátis.** Não há cobrança para criar, publicar, editar ou manter anúncios.
+5.1. **Anunciar não tem custo. Você paga só quando vende (taxa de sucesso) ou R$ 10,00 se retirar o anúncio sem vender.** Não há cobrança para criar, publicar, editar, pausar, retomar ou manter anúncios. As cobranças estão na cláusula 6 e na Política de Taxas.
 
 5.2. O anunciante é o **único responsável** pelo anúncio: texto, fotos, preço, estado do bem, documentos, origem e disponibilidade. Deve cumprir as Regras de Anúncio.
 
@@ -59,17 +59,29 @@ Versão 2026-10-25
 
 5.6. Contatos como telefone e e-mail **não aparecem** no anúncio. A conversa acontece pelas mensagens do Vendeu.
 
-## 6. Taxa de sucesso (resumo)
+5.7. **Meio de pagamento obrigatório para anunciar.** Para publicar um anúncio, o anunciante precisa ter cadastrado um **meio de pagamento**: cartão de crédito [de sua titularidade, a confirmar], cadastrado por meio do **Mercado Pago** [ou conta Mercado Pago, a confirmar]. O cartão é **tokenizado** pelo Mercado Pago: o Vendeu **não armazena o número do cartão nem o código de segurança (CVV)** e guarda apenas a referência do Mercado Pago, a bandeira e os 4 últimos dígitos.
 
-6.1. O anunciante só paga quando **vende ou aluga e retira o anúncio** pelo Vendeu. A tabela, os exemplos, os prazos e as regras completas estão na **Política de Taxas**, que integra estes Termos.
+5.8. No cadastro do meio de pagamento, o anunciante dá a **autorização expressa** para o Vendeu cobrar nesse meio a **taxa de sucesso** ou a **taxa de retirada** devidas (cláusula 6). **Cadastrar o meio de pagamento não gera nenhuma cobrança.**
+
+5.9. O anunciante pode **trocar** o meio de pagamento a qualquer momento, mas **não pode removê-lo** enquanto tiver anúncio no ar ou taxa pendente. Se a conta for eliminada, a referência do meio de pagamento é apagada (Política de Privacidade).
+
+## 6. Taxa de sucesso e taxa de retirada (resumo)
+
+6.1. O anunciante só paga em duas situações: (a) quando **vende ou aluga e encerra o anúncio** pelo Vendeu (**taxa de sucesso**); ou (b) quando **retira (encerra) um anúncio já publicado sem ter vendido ou alugado** (**taxa de retirada**, de **R$ 10,00** fixos, em qualquer faixa de preço). A tabela, os exemplos, os prazos e as regras completas estão na **Política de Taxas**, que integra estes Termos.
 
 6.2. A taxa é calculada sobre o **valor efetivamente fechado**, declarado pelo anunciante ao encerrar o anúncio. O comprador ou locatário pode confirmar ou contestar o valor. Valor declarado abaixo de 70% do maior preço anunciado exige justificativa e passa por análise.
 
-6.3. O pagamento da taxa é feito por Pix ou cartão, por meio do Mercado Pago, em até **7 dias**. Atraso de **3 dias** bloqueia a criação de novos anúncios. A taxa também é devida se o negócio for fechado fora do Vendeu depois de um contato iniciado pelo Vendeu.
+6.3. O pagamento da taxa (de sucesso ou de retirada) é feito pelo meio de pagamento cadastrado, ou por Pix ou cartão, por meio do Mercado Pago, em até **7 dias**. Atraso de **3 dias** bloqueia a criação de novos anúncios. A taxa de sucesso também é devida se o negócio for fechado fora do Vendeu depois de um contato iniciado pelo Vendeu.
 
-6.4. Retirar o anúncio **sem ter vendido ou alugado** é grátis. São permitidas até **2 desistências de venda em 90 dias**; acima disso, a conta pode ser restringida.
+6.4. Se o anunciante vendeu ou alugou, paga **somente a taxa de sucesso** da tabela; a taxa de retirada **não é somada**. Se retirou o anúncio **sem ter vendido ou alugado**, paga a taxa de retirada de R$ 10,00. **Não há cobrança** de nenhuma taxa em: rascunho nunca publicado; anúncio recusado pela triagem; anúncio retirado pela moderação, por denúncia procedente ou por bloqueio de conta; e pausar e retomar o anúncio.
 
-6.5. Mudanças na tabela valem **apenas para anúncios futuros**, com aviso prévio.
+6.5. São permitidas até **2 desistências de venda em 90 dias**; acima disso, a conta pode ser restringida.
+
+6.6. **Cobrança no meio cadastrado.** O Vendeu cobra a taxa devida no meio de pagamento cadastrado, conforme a autorização da cláusula 5.8. Se a cobrança falhar, o anunciante recebe um Pix ou link de pagamento e a taxa segue o prazo normal de 7 dias.
+
+6.7. A taxa de retirada é de R$ 10,00 e pode ser alterada pela [RAZÃO SOCIAL DA OPERADORA] com aviso prévio, nas mesmas condições da tabela da taxa de sucesso.
+
+6.8. Mudanças na tabela e no valor da taxa de retirada valem **apenas para anúncios futuros**, com aviso prévio.
 
 ## 7. Mensagens e conduta
 
@@ -128,7 +140,7 @@ Versão 2026-10-25
 
 ## 13. Serviços de terceiros
 
-13.1. Recursos que dependem de terceiros (pagamento da taxa pelo Mercado Pago, e-mail, SMS, hospedagem e banco de dados) estão sujeitos às regras, preços e à disponibilidade desses terceiros, e podem ter condições próprias de uso.
+13.1. O **Mercado Pago** é operador de pagamento independente e suboperador de dados no cadastro do meio de pagamento e na cobrança das taxas; ele tem termos e política de privacidade próprios. Recursos que dependem de terceiros (cadastro do meio de pagamento e pagamento das taxas pelo Mercado Pago, e-mail, SMS, hospedagem e banco de dados) estão sujeitos às regras, preços e à disponibilidade desses terceiros, e podem ter condições próprias de uso.
 
 ## 14. Proteção de dados
 
@@ -140,7 +152,7 @@ Versão 2026-10-25
 
 15.1. O Vendeu pode advertir, restringir, suspender ou bloquear contas e anúncios, sem aviso prévio quando houver risco de fraude, indício de origem ilícita, ordem de autoridade ou descumprimento grave destes Termos. Nos demais casos, o usuário será avisado e poderá se manifestar.
 
-15.2. O usuário pode eliminar a conta a qualquer momento, no próprio aplicativo, informando a senha. Obrigações pendentes (como taxa de sucesso devida) permanecem, e os dados que a lei obrigue a guardar são mantidos pelo prazo legal.
+15.2. O usuário pode eliminar a conta a qualquer momento, no próprio aplicativo, informando a senha. Obrigações pendentes (como taxa de sucesso ou de retirada devida) permanecem, e os dados que a lei obrigue a guardar são mantidos pelo prazo legal.
 
 ## 16. Propriedade intelectual e conteúdo do usuário
 

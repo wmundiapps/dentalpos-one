@@ -1,8 +1,8 @@
 # Termo de Responsabilidade do Anunciante sobre a Origem dos Bens
-<!-- versao: 2026-10-25 -->
+<!-- versao: 2026-10-26 -->
 > MINUTA — aguardando aprovação do Robson e revisão da Dra. Roberta antes de entrar em vigor.
 
-Versão 2026-10-25
+Versão 2026-10-26
 
 ## 1. Objetivo
 
@@ -25,7 +25,9 @@ Versão 2026-10-25
 - (f) informará a **placa** (automóveis) e a **matrícula** (imóveis) corretas;
 - (g) não usará o Vendeu para colocar no mercado bens de origem ilícita.
 
-3.2. Os dados pessoais e documentos do anunciante devem ser verdadeiros. É vedado o uso de documento ou conta de terceiros, de "laranjas" ou de identidade falsa.
+3.2. O anunciante cadastra meio de pagamento válido para publicar e autoriza o Vendeu a cobrar nele a taxa de sucesso ou a taxa de retirada vigentes (Política de Taxas). Cadastrar o meio de pagamento não gera cobrança.
+
+3.3. Os dados pessoais e documentos do anunciante devem ser verdadeiros. É vedado o uso de documento ou conta de terceiros, de "laranjas" ou de identidade falsa.
 
 ## 4. Isenção de responsabilidade da plataforma
 
@@ -89,7 +91,7 @@ Declaro, sob as penas da lei, que:
 4. As fotos são do bem real e as informações são verdadeiras.
 5. Entendi que o Vendeu é só uma plataforma de anúncios, não participa da negociação, não garante o bem nem a boa-fé de ninguém e não responde por produtos clandestinos ou de origem duvidosa; a responsabilidade é exclusivamente minha.
 6. Autorizo o registro e a guarda do meu IP, e-mail, telefone e dados do dispositivo e o fornecimento a autoridades mediante ordem judicial ou requisição legal.
-7. Sei que, ao vender ou alugar, devo encerrar o anúncio pelo Vendeu e pagar a taxa de sucesso vigente.
+7. Sei que, ao vender ou alugar, devo encerrar o anúncio pelo Vendeu e pagar a taxa de sucesso vigente; e que, se retirar o anúncio sem vender, pago a taxa de retirada vigente (R$ 10,00). Autorizo a cobrança no meio de pagamento cadastrado.
 
 Assinatura eletrônica (nome completo): ______________________
 

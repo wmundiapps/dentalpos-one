@@ -1,12 +1,12 @@
 # Regras de Anúncio
-<!-- versao: 2026-10-25 -->
+<!-- versao: 2026-10-26 -->
 > MINUTA — aguardando aprovação do Robson e revisão da Dra. Roberta antes de entrar em vigor.
 
-Versão 2026-10-25
+Versão 2026-10-26
 
 ## 1. Princípios
 
-1.1. Estas regras integram os Termos de Uso. Anunciar é grátis, mas o anúncio precisa ser **verdadeiro, legal e seguro**.
+1.1. Estas regras integram os Termos de Uso. **Anunciar não tem custo. Você paga só quando vende (taxa de sucesso) ou R$ 10,00 se retirar o anúncio sem vender.** Seja como for, o anúncio precisa ser **verdadeiro, legal e seguro**.
 
 1.2. O anunciante é o único responsável pelo que publica. O Vendeu é plataforma de anúncios e não participa do negócio.
 
@@ -21,6 +21,8 @@ Versão 2026-10-25
 2.4. Cada anúncio deve ser de **um bem** (ou de um conjunto claramente descrito). Não publique o mesmo bem várias vezes.
 
 2.5. Em cada anúncio, assine a **declaração de origem lícita** e informe a **origem** do bem. Em **automóveis**, informe a **placa**; em **imóveis**, a **matrícula**.
+
+2.6. Para publicar, você precisa ter cadastrado um **meio de pagamento** (cartão de crédito, pelo Mercado Pago) e autorizado o Vendeu a cobrar nele a taxa de sucesso ou a taxa de retirada. Cadastrar o cartão não gera cobrança. O Vendeu não guarda número de cartão nem CVV.
 
 ## 3. O que é proibido
 
@@ -102,9 +104,15 @@ Versão 2026-10-25
 
 ## 8. Antes de vender ou alugar
 
-8.1. Ao concretizar o negócio, **encerre o anúncio** pelo Vendeu, informando o valor fechado e pagando a taxa vigente.
+8.1. Ao concretizar o negócio, **encerre o anúncio** pelo Vendeu, informando o valor fechado e pagando a taxa de sucesso vigente.
 
-8.2. Se não vendeu, pode **retirar o anúncio sem custo**. Cada conta pode ter até 2 desistências de venda em 90 dias.
+8.2. Se **não vendeu** e retirar (encerrar) um anúncio já publicado, paga a **taxa de retirada de R$ 10,00**, em qualquer faixa de preço. Se vendeu, paga só a taxa de sucesso (não soma os R$ 10,00). Cada conta pode ter até 2 desistências de venda em 90 dias.
+
+8.3. **Não há cobrança** para: rascunho nunca publicado; anúncio recusado pela triagem; anúncio retirado pela moderação, por denúncia procedente ou por bloqueio de conta; pausar e retomar o anúncio.
+
+8.4. O prazo de pagamento das taxas é de 7 dias e 3 dias de atraso bloqueiam novos anúncios (Política de Taxas). Se a cobrança no cartão cadastrado falhar, você recebe Pix ou link de pagamento.
+
+8.5. Você pode trocar o meio de pagamento a qualquer momento, mas não pode removê-lo enquanto houver anúncio no ar ou taxa pendente.
 
 ## 9. Denúncias e remoção
 

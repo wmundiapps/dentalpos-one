@@ -1,8 +1,8 @@
 # Política de Cookies
-<!-- versao: 2026-10-25 -->
+<!-- versao: 2026-10-26 -->
 > MINUTA — aguardando aprovação do Robson e revisão da Dra. Roberta antes de entrar em vigor.
 
-Versão 2026-10-25
+Versão 2026-10-26
 
 ## 1. O que são cookies
 
@@ -15,6 +15,8 @@ Versão 2026-10-25
 | Sessão (*httpOnly*) | Manter você conectado e identificar sua conta com segurança | Até o fim da sessão ou até [30] dias, se escolher continuar conectado | Essencial |
 | Proteção CSRF | Impedir que outros sites enviem ações em seu nome | Sessão | Essencial |
 | Preferências básicas (ex.: idioma, aviso já lido) | Lembrar escolhas simples | Até [12] meses | Essencial |
+
+| Mercado Pago (tela de cadastro de cartão) | Se o SDK/tela do Mercado Pago usar cookies ou identificador de dispositivo antifraude: segurança do pagamento | [a confirmar com o Mercado Pago] | [a confirmar com o Mercado Pago] |
 
 [Ajustar a lista aos nomes reais dos cookies após a implementação.]
 
@@ -35,6 +37,8 @@ Versão 2026-10-25
 ## 6. Dispositivo e segurança
 
 6.1. Para prevenção à fraude, o Vendeu gera um **identificador de dispositivo em forma de código *hash***, associado ao registro de origem de ações relevantes (veja a Política de Privacidade, cláusula 4). Ele serve à segurança, não à publicidade.
+
+6.2. O SDK do Mercado Pago, na tela de cadastro de cartão, pode usar cookies ou identificador de dispositivo antifraude controlados pelo próprio Mercado Pago, sujeitos à política dele [a confirmar com o Mercado Pago].
 
 ## 7. Contato
 

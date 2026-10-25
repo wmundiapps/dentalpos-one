@@ -28,6 +28,12 @@ let SITE;
         const got = (await p.textContent('#r-fee')).replace(/\s/g, ' ');
         if (got !== exp.replace(/\s/g, ' ')) errors.push(`calculadora ${v}: esperado ${exp}, veio ${got}`); else console.log('ok', v, '->', got);
       }
+      // Retirar sem vender: R$ 10,00 fixo, igual para qualquer preço (e também com valor inválido).
+      for (const v of ['120', '800', '3500', '4000.01', 'abc']) {
+        await p.fill('#preco', v);
+        const wd = (await p.textContent('#r-withdraw')).replace(/\s/g, ' ');
+        if (wd !== 'R$ 10,00') errors.push(`retirada ${v}: esperado R$ 10,00, veio ${wd}`); else console.log('ok retirada', v, '->', wd);
+      }
       await p.fill('#preco', 'abc'); if ((await p.textContent('#r-fee')) !== '—') errors.push('valor inválido deveria mostrar —');
       console.log('selftest interno:', await p.evaluate(() => window.__feeSelfTest()));
       await p.fill('#preco', '800');

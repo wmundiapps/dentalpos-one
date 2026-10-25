@@ -1,8 +1,8 @@
 # Segurança e Anti-golpe
-<!-- versao: 2026-10-25 -->
+<!-- versao: 2026-10-26 -->
 > MINUTA — aguardando aprovação do Robson e revisão da Dra. Roberta antes de entrar em vigor.
 
-Versão 2026-10-25
+Versão 2026-10-26
 
 Este guia é para você que compra, vende ou aluga pelo Vendeu. Leia antes do primeiro negócio.
 
@@ -13,10 +13,10 @@ Lembre-se: o Vendeu é uma plataforma de anúncios. Não recebe o dinheiro do ne
 - Sua **senha**.
 - **Códigos** que chegam por SMS, e-mail ou WhatsApp.
 - **Pix antecipado**, sinal ou "taxa de liberação".
-- Dados completos do seu **cartão** por mensagem.
+- Dados completos do seu **cartão** por mensagem, e-mail, WhatsApp ou qualquer lugar. O Vendeu **nunca pede dados de cartão fora da tela de cadastro de pagamento do Mercado Pago**.
 - Para conversar ou pagar **fora do aplicativo**.
 
-A única cobrança do Vendeu é a taxa de sucesso, paga pelo **vendedor**, dentro do aplicativo (Pix ou cartão, pelo Mercado Pago), depois de vender ou alugar. O comprador **nunca** paga nada ao Vendeu.
+As únicas cobranças do Vendeu são a taxa de sucesso (depois de vender ou alugar) e a taxa de retirada de R$ 10,00 (se retirar o anúncio sem vender), pagas pelo **vendedor**, dentro do aplicativo, no cartão que ele cadastrou (pelo Mercado Pago) ou por Pix. Cadastrar o cartão não gera cobrança. O comprador **nunca** paga nada ao Vendeu.
 
 Se alguém dizendo ser do Vendeu pedir qualquer item acima, é golpe. Denuncie.
 
@@ -36,7 +36,7 @@ Se alguém dizendo ser do Vendeu pedir qualquer item acima, é golpe. Denuncie.
 3. **Não faça Pix para "liberar saldo", "desbloquear" valor ou "pagar taxa" do comprador.**
 4. **Não clique em links** de pagamento enviados por quem você não conhece.
 5. **Encontre o comprador em local seguro** (seção 4).
-6. **Ao vender, encerre o anúncio** e pague a taxa dentro do Vendeu.
+6. **Ao vender, encerre o anúncio** e pague a taxa dentro do Vendeu. Se retirar sem vender, a taxa é de R$ 10,00.
 
 ## 3. Os golpes mais comuns
 
@@ -48,7 +48,7 @@ Se alguém dizendo ser do Vendeu pedir qualquer item acima, é golpe. Denuncie.
 
 **Frete falso.** Pedem Pix do frete antes do envio, ou dizem que o motoboy/transportadora só vai com o valor pago. *Prefira retirar pessoalmente.*
 
-**Link de pagamento falso.** Link que imita banco, Mercado Pago ou o próprio Vendeu para roubar dados. *Não clique; o Vendeu não manda links de pagamento nas mensagens.*
+**Link de pagamento falso.** Link que imita banco, Mercado Pago ou o próprio Vendeu para roubar dados. *Não clique; o Vendeu não manda links de pagamento nas mensagens entre usuários. Se a cobrança no seu cartão falhar, o Pix ou link de pagamento aparece dentro do aplicativo logado [e no e-mail da conta, a confirmar]; confira o endereço antes de pagar.*
 
 **"Paguei em dobro".** O golpista diz que pagou valor maior por engano e pede a devolução da diferença antes que o dinheiro caia. *Se o valor não está na sua conta, nada foi pago. Se caiu, devolva só pelo mecanismo do banco.*
 

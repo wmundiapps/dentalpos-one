@@ -1,8 +1,8 @@
 # Política de Privacidade
-<!-- versao: 2026-10-25 -->
+<!-- versao: 2026-10-26 -->
 > MINUTA — aguardando aprovação do Robson e revisão da Dra. Roberta antes de entrar em vigor.
 
-Versão 2026-10-25
+Versão 2026-10-26
 
 ## 1. Quem somos
 
@@ -23,7 +23,8 @@ Versão 2026-10-25
 | Declarações e aceites | Texto aceito (com *hash*), nome digitado, IP, data e hora, versão | Titular e Vendeu |
 | Mensagens | Conteúdo das conversas entre comprador e vendedor dentro do Vendeu | Usuários |
 | Denúncias | Anúncio, motivo, texto, identificação de quem denunciou | Usuários |
-| Vendas e taxas | Valor fechado, data, contestações, situação do pagamento da taxa, identificador do pagamento no Mercado Pago | Anunciante, comprador e Mercado Pago |
+| Vendas e taxas | Valor fechado, data, contestações, situação do pagamento da taxa (de sucesso ou de retirada), identificador do pagamento no Mercado Pago | Anunciante, comprador e Mercado Pago |
+| Meio de pagamento (anunciantes) | Referência do cartão no Mercado Pago (*token*), bandeira e 4 últimos dígitos [conta Mercado Pago: a confirmar]. **Não guardamos o número do cartão nem o CVV** | Anunciante e Mercado Pago |
 | **Registro de origem** | IP (e cadeia de proxies), e-mail, telefone, navegador (*user-agent*), idioma e identificador de dispositivo (*hash*), data e hora, ação realizada | Coleta automática |
 | Técnicos e de segurança | Registros de acesso, tentativas de login, alertas de golpe e de palavras de risco | Coleta automática |
 
@@ -32,6 +33,8 @@ Versão 2026-10-25
 2.2. **Contatos.** O telefone e o e-mail do anunciante **não são exibidos** no anúncio. A conversa ocorre pelas mensagens do Vendeu.
 
 2.3. **Fotos.** As fotos enviadas são regravadas no servidor, sem metadados (como localização GPS).
+
+2.4. **Meio de pagamento.** Os dados do cartão são digitados diretamente na tela do Mercado Pago [confirmar com a implementação], que os tokeniza. Recebemos e guardamos só a referência, a bandeira e os 4 últimos dígitos. Cadastrar o meio de pagamento não gera cobrança.
 
 ## 3. Para que usamos os dados e em qual base legal
 
@@ -43,7 +46,8 @@ Versão 2026-10-25
 | Guardar aceites, declarações de origem e provas de manifestação de vontade | Execução de contrato (art. 7º, V); exercício regular de direitos (art. 7º, VI) |
 | Triagem automática de palavras proibidas, detecção de fotos repetidas e alertas de golpe nas mensagens | Legítimo interesse (art. 7º, IX) |
 | Analisar denúncias, retirar anúncios, bloquear contas | Execução de contrato; exercício regular de direitos; legítimo interesse |
-| Cobrar e confirmar a taxa de sucesso; tratar contestações; emitir comprovantes e documentos fiscais | Execução de contrato (art. 7º, V); cumprimento de obrigação legal (art. 7º, II) |
+| Cobrar e confirmar a taxa de sucesso e a taxa de retirada; tratar contestações; emitir comprovantes e documentos fiscais | Execução de contrato (art. 7º, V); cumprimento de obrigação legal (art. 7º, II) |
+| **Cadastrar o meio de pagamento** (exigido para publicar anúncios) e cobrar nele as taxas autorizadas | Execução de contrato (art. 7º, V) |
 | Responder a ordens judiciais e requisições legais de autoridades | Cumprimento de obrigação legal ou regulatória (art. 7º, II); exercício regular de direitos (art. 7º, VI) |
 | Enviar comunicações de serviço (códigos, avisos de segurança, taxas) | Execução de contrato (art. 7º, V) |
 | Suporte e atendimento de pedidos do titular | Execução de contrato; cumprimento de obrigação legal (art. 7º, II) |
@@ -66,7 +70,7 @@ Versão 2026-10-25
 5.1. **Suboperadores (prestadores que tratam dados em nosso nome):**
 - hospedagem: Vercel;
 - banco de dados: Supabase;
-- pagamento da taxa de sucesso: Mercado Pago;
+- cadastro do meio de pagamento e cobrança das taxas (de sucesso e de retirada): Mercado Pago;
 - envio de e-mail e SMS: provedores a definir [atualizar quando contratados].
 
 Eles só tratam os dados para prestar o serviço, sob contrato. Alguns podem armazenar dados fora do Brasil; nesse caso, a transferência observa o Capítulo V da LGPD e as salvaguardas contratuais [confirmar cláusulas e localização dos servidores].
@@ -85,6 +89,7 @@ Eles só tratam os dados para prestar o serviço, sob contrato. Alguns podem arm
 | Registros de acesso a aplicações (Marco Civil, art. 15) | no mínimo 6 meses (cobertos pelo prazo de 5 anos acima) |
 | Aceites de termos e declarações por anúncio | 5 anos |
 | Vendas, taxas e pagamentos | 5 anos (obrigação fiscal) |
+| Referência do meio de pagamento (*token*, bandeira, 4 últimos dígitos) | Enquanto a conta existir e o meio estiver cadastrado; apagada quando a conta é eliminada. Não pode ser removido enquanto houver anúncio no ar ou taxa pendente. Ao trocar o meio, a referência anterior é apagada [confirmar com a implementação] |
 | Documentos de verificação (documento, selfie, comprovante, cartão CNPJ) | cifrados (AES-256-GCM); eliminados quando a conta é eliminada [ou em prazo menor a definir] |
 | Dados de cadastro e anúncios | enquanto a conta existir |
 | Mensagens | enquanto a conta existir; anonimizadas quando a conta é eliminada |
@@ -98,6 +103,7 @@ Eles só tratam os dados para prestar o serviço, sob contrato. Alguns podem arm
 - senhas guardadas com *hash* (bcrypt) e bloqueio por tentativas;
 - proteção contra CSRF e cookies de sessão *httpOnly*;
 - fotos regravadas sem metadados e sem GPS;
+- número do cartão e CVV **não passam nem são guardados** pelo Vendeu (tokenização pelo Mercado Pago);
 - documentos de verificação **cifrados** (AES-256-GCM);
 - documentos vistos **somente pela moderação**, com **registro de auditoria de cada acesso**;
 - registros de origem que não podem ser alterados;
@@ -117,11 +123,11 @@ Eles só tratam os dados para prestar o serviço, sob contrato. Alguns podem arm
 
 ## 9. Cookies
 
-9.1. Usamos **apenas cookies essenciais** (sessão e segurança). Não usamos cookies de publicidade no aplicativo. Veja a Política de Cookies.
+9.1. Usamos **apenas cookies essenciais** (sessão e segurança). Não usamos cookies de publicidade no aplicativo. A tela de cadastro de cartão do Mercado Pago pode usar tecnologias próprias de antifraude [a confirmar com o Mercado Pago]. Veja a Política de Cookies.
 
 ## 10. Links e serviços de terceiros
 
-10.1. O Mercado Pago, quando você paga a taxa, tem política de privacidade própria. Links para sites externos também têm regras próprias.
+10.1. O **Mercado Pago** atua como suboperador/operador de pagamento independente quando você cadastra o meio de pagamento ou paga uma taxa, e tem política de privacidade própria; leia-a antes de cadastrar o cartão. Links para sites externos também têm regras próprias.
 
 ## 11. Alterações
 
