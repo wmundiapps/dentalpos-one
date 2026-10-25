@@ -127,7 +127,7 @@ export function Register() {
             <span aria-hidden="true">🛒</span><strong>Quero comprar</strong><span className="muted">Cadastro rápido: nome, e-mail, telefone e senha.</span>
           </button>
           <button className="track" onClick={() => setSp({ tipo: 'anunciante' })}>
-            <span aria-hidden="true">🏷️</span><strong>Quero anunciar</strong><span className="muted">Anunciar é grátis. Pede CPF/CNPJ e endereço para proteger todo mundo.</span>
+            <span aria-hidden="true">🏷️</span><strong>Quero anunciar</strong><span className="muted">Anunciar não custa nada. Pede CPF/CNPJ e endereço para proteger todo mundo.</span>
           </button>
         </div>
         <p className="small">Já tem conta? <Link to="/entrar">Entrar</Link></p>
@@ -158,7 +158,7 @@ export function Register() {
 
   return (
     <form className="auth-wide stack-l" onSubmit={submit} noValidate id="form-top">
-      <PageHead title={seller ? 'Cadastro de anunciante' : 'Cadastro de comprador'} sub={<>Anunciar é grátis. <button type="button" className="linklike" onClick={() => setSp({ tipo: seller ? 'comprador' : 'anunciante' })}>{seller ? 'Só quero comprar' : 'Quero anunciar também'}</button></>} />
+      <PageHead title={seller ? 'Cadastro de anunciante' : 'Cadastro de comprador'} sub={<>Anunciar não custa nada. A comissão só existe quando a venda se concluir. <button type="button" className="linklike" onClick={() => setSp({ tipo: seller ? 'comprador' : 'anunciante' })}>{seller ? 'Só quero comprar' : 'Quero anunciar também'}</button></>} />
       <fieldset className="fieldset">
         <legend>Seus dados</legend>
         <div className="form-grid">
@@ -269,7 +269,7 @@ export function BecomeSeller() {
   };
   return (
     <form className="auth-wide stack-l" onSubmit={submit} noValidate>
-      <PageHead title="Virar anunciante" sub="Informe seu CPF ou CNPJ e seu endereço. Anunciar é grátis; você só paga a taxa quando vender." />
+      <PageHead title="Virar anunciante" sub="Informe seu CPF ou CNPJ e seu endereço. Anunciar não custa nada. A comissão só existe quando a venda se concluir." />
       {user.accountType === 'anunciante' && <Alert tone="info">Você já é anunciante. Se salvar de novo, os dados serão atualizados e a verificação de identidade pode ser pedida de novo.</Alert>}
       <IdentityFields v={idt} set={(p) => setIdt({ ...idt, ...p })} errors={errors} />
       <ErrorAlert error={act.error} />

@@ -8,7 +8,7 @@ import { moneyToCents } from '../lib/format';
 import { ErrorState, Loading, PageHead } from '../components/ui';
 import { MoneyField } from '../components/fields';
 
-interface FeesResp { table: { label: string; feeCents: number }[]; capCents: number; rule: string }
+interface FeesResp { table: { label: string; feeCents: number }[]; capCents: number; removalFeeCents: number; rule: string }
 
 export function FeeTableView() {
   const t = useAsync(() => api.get<FeesResp>('/fees'), []);
@@ -18,31 +18,34 @@ export function FeeTableView() {
   return (
     <div className="table-wrap">
       <table className="fee-table">
-        <caption className="sr-only">Taxa de sucesso por faixa de valor</caption>
-        <thead><tr><th scope="col">Valor do negócio</th><th scope="col">Taxa</th></tr></thead>
+        <caption className="sr-only">Comissão por faixa de valor da venda</caption>
+        <thead><tr><th scope="col">Valor da venda (ou do aluguel)</th><th scope="col">Comissão</th></tr></thead>
         <tbody>
           {rows.map((r) => <tr key={r.label}><th scope="row">{r.label}{r === rows[rows.length - 1] ? ' (R$ 100 + R$ 50 a cada R$ 1.000 ou fração)' : ''}</th><td>{r.label.startsWith('Acima') ? `a partir de ${formatBRL(r.feeCents)}` : formatBRL(r.feeCents)}</td></tr>)}
+          <tr className="removal-row"><th scope="row">Retirar anúncio já publicado sem vender (taxa fixa)</th><td>{formatBRL(t.data?.removalFeeCents ?? 1000)}</td></tr>
         </tbody>
       </table>
-      {t.data && t.data.capCents > 0 && <p className="small muted">Teto da taxa: {formatBRL(t.data.capCents)}.</p>}
+      {t.data && t.data.capCents > 0 && <p className="small muted">Teto da comissão: {formatBRL(t.data.capCents)}.</p>}
     </div>
   );
 }
 
 const FAQ: [string, string][] = [
-  ['Anunciar custa algo?', 'Não. Criar e manter anúncios no Vendeu é grátis, sem mensalidade e sem limite de tempo.'],
-  ['E se eu não vender?', 'Retire grátis. Em "Meus anúncios", use "Retirar" e escolha "Não vendi". Nenhuma taxa é cobrada.'],
-  ['Quando eu pago?', 'Ao marcar como vendido. Você informa o valor fechado, o anúncio sai do ar na hora e você paga a taxa por Pix ou cartão no prazo indicado no checkout.'],
-  ['E na locação?', 'Funciona igual: a taxa é calculada sobre o valor do aluguel fechado e cobrada quando você marca como alugado e retira o anúncio.'],
-  ['E se eu atrasar o pagamento?', 'Depois do vencimento, a criação de novos anúncios fica bloqueada até a taxa ser paga. Seus anúncios atuais continuam no ar. Pagou, liberou.'],
-  ['O comprador paga alguma coisa ao Vendeu?', 'Nunca. Quem compra não paga nada ao Vendeu. O dinheiro do negócio vai direto de você para o comprador, sem passar pelo Vendeu.'],
-  ['Posso contestar um valor ou uma cobrança?', 'Sim. Se houver erro ou se o comprador discordar do valor informado, o caso é analisado pela equipe. Escreva para suporte@vendeu.app com o número do recibo.'],
-  ['Posso informar um valor menor para pagar menos?', 'Não. O valor informado precisa ser verdadeiro. Valores muito abaixo do anunciado vão para análise, e o comprador também pode confirmar ou contestar o valor.'],
+  ['Anunciar custa algo?', 'Não. Anunciar não custa nada: sem mensalidade, sem plano e sem taxa para publicar. A comissão só existe quando a venda se concluir.'],
+  ['Quando recebo?', 'O comprador paga pelo Vendeu (Pix, via Mercado Pago) e o dinheiro fica retido. Você envia o produto (ou entrega em mãos, com o código de retirada). Quando o comprador recebe, começa o prazo de devolução de 7 dias. Passado o prazo sem devolução, o valor é repassado para a sua conta Mercado Pago, menos a comissão. Se o comprador não confirmar em 10 dias depois do envio, o recebimento é considerado automaticamente.'],
+  ['E se o comprador devolver?', 'Dentro dos 7 dias ele pode pedir a devolução. Quando você confirma que o produto voltou, o Mercado Pago devolve 100% ao comprador e ninguém paga nada, nem comissão. O anúncio volta à vitrine. Se você não confirmar em 10 dias, a moderação decide.'],
+  ['Por que não vejo o contato do comprador?', 'Para proteger os dois lados, a negociação acontece toda dentro do Vendeu. Telefone, e-mail e links são ocultados no chat e só aparecem no pedido depois do recebimento. Combinar ou pagar por fora tira a proteção do pagamento retido.'],
+  ['E se eu retirar o anúncio?', 'Rascunho, anúncio recusado ou retirado pela moderação saem sem custo, e pausar/retomar também é de graça. Retirar um anúncio que já foi publicado, sem vender, tem taxa fixa de R$ 10,00 (Pix ou cartão, em até 7 dias). Não dá para retirar enquanto há pedido em andamento.'],
+  ['E na locação?', 'Funciona igual: a comissão é calculada sobre o valor do aluguel combinado, uma vez, e descontada do repasse.'],
+  ['E se eu atrasar a taxa de retirada?', 'Depois de 3 dias de atraso, a criação de novos anúncios fica bloqueada até a taxa ser paga. Seus anúncios atuais continuam no ar. Pagou, liberou.'],
+  ['O comprador paga alguma taxa?', 'Não. O comprador paga só o preço combinado. Se devolver no prazo, o dinheiro volta integral.'],
+  ['E se houver um problema?', 'Qualquer lado pode abrir uma disputa no pedido. O dinheiro continua retido e a moderação decide, com base nas informações do pedido, entre devolver ao comprador ou liberar ao vendedor.'],
 ];
 
 export function Fees() {
   usePageTitle('Quanto custa vender?');
   const { config } = useApp();
+  const removal = formatBRL(config?.removalFeeCents ?? 1000);
   const [price, setPrice] = useState('');
   const cents = moneyToCents(price);
   let fee = 0;
@@ -51,28 +54,29 @@ export function Fees() {
 
   return (
     <div className="stack-l narrow">
-      <PageHead title="Quanto custa vender?" sub="Anunciar é grátis. Você só paga uma taxa de sucesso quando vende ou aluga e retira o anúncio." />
+      <PageHead title="Quanto custa vender?" sub="Anunciar não custa nada. A comissão só existe quando a venda se concluir." />
 
       <section className="panel calc" aria-labelledby="calc-t">
         <h2 id="calc-t">Calculadora</h2>
-        <MoneyField label="Por quanto você vai vender (ou alugar)?" value={price} onChange={setPrice} />
+        <MoneyField label="Por quanto você vai vender (ou alugar)? Valor combinado do pedido" value={price} onChange={setPrice} />
         <div className="fee-live" aria-live="polite">
           {fee ? (<>
-            <div>Taxa do Vendeu: <strong>{formatBRL(fee)}</strong></div>
-            <div>Você recebe: <strong>{formatBRL(cents - fee)}</strong></div>
-          </>) : <div className="muted">Digite um valor para ver a taxa.</div>}
+            <div>Comissão se a venda se concluir: <strong>{formatBRL(fee)}</strong></div>
+            <div>Você recebe: <strong>{formatBRL(cents - fee)}</strong> <span className="small muted">(depois do recebimento e dos 7 dias de devolução)</span></div>
+          </>) : <div className="muted">Digite um valor para ver a comissão e quanto você recebe.</div>}
         </div>
       </section>
 
       <section aria-labelledby="tab-t">
         <h2 id="tab-t">Tabela completa</h2>
+        <p className="muted">Retirar um anúncio já publicado sem vender: <strong>{removal}</strong>, taxa fixa.</p>
         <FeeTableView />
       </section>
 
       <section aria-labelledby="ex-t">
         <h2 id="ex-t">Exemplos</h2>
         <ul className="examples">
-          {examples.map((e) => <li key={e}>Vendeu por <strong>{formatBRL(e)}</strong> → taxa <strong>{formatBRL(calcFeeCents(e, config?.feeCapCents ?? 0))}</strong>, você recebe {formatBRL(e - calcFeeCents(e, config?.feeCapCents ?? 0))}</li>)}
+          {examples.map((e) => <li key={e}>Venda de <strong>{formatBRL(e)}</strong> → comissão <strong>{formatBRL(calcFeeCents(e, config?.feeCapCents ?? 0))}</strong>, você recebe {formatBRL(e - calcFeeCents(e, config?.feeCapCents ?? 0))}</li>)}
         </ul>
       </section>
 
@@ -84,7 +88,7 @@ export function Fees() {
         <p>Detalhes completos na <Link to="/legal/politica-de-taxas">Política de Taxas</Link>.</p>
       </section>
 
-      <div className="row wrap"><Link to="/venda/anunciar" className="btn btn-accent btn-lg">Anunciar grátis</Link><Link to="/venda" className="btn btn-outline btn-lg">Ir ao painel</Link></div>
+      <div className="row wrap"><Link to="/venda/anunciar" className="btn btn-accent btn-lg">Anunciar</Link><Link to="/venda" className="btn btn-outline btn-lg">Ir ao painel</Link></div>
     </div>
   );
 }

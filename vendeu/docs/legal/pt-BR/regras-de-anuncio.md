@@ -6,9 +6,9 @@ Versão 2026-10-26
 
 ## 1. Princípios
 
-1.1. Estas regras integram os Termos de Uso. **Anunciar não tem custo. Você paga só quando vende (taxa de sucesso) ou R$ 10,00 se retirar o anúncio sem vender.** Seja como for, o anúncio precisa ser **verdadeiro, legal e seguro**.
+1.1. Estas regras integram os Termos de Uso. **Anunciar não custa nada. Você só paga comissão quando a venda ou locação se conclui, e R$ 10,00 se tirar do ar um anúncio já publicado sem vender.** Seja como for, o anúncio precisa ser **verdadeiro, legal e seguro**.
 
-1.2. O anunciante é o único responsável pelo que publica. O Vendeu é plataforma de anúncios e não participa do negócio.
+1.2. O anunciante é o único responsável pelo que publica. O Vendeu é plataforma de anúncios e organiza o fluxo do pedido (pagamento retido no Mercado Pago, recebimento, prazo de devolução e repasse), mas não é parte do negócio e não garante o produto.
 
 ## 2. Como organizar o anúncio
 
@@ -22,7 +22,7 @@ Versão 2026-10-26
 
 2.5. Em cada anúncio, assine a **declaração de origem lícita** e informe a **origem** do bem. Em **automóveis**, informe a **placa**; em **imóveis**, a **matrícula**.
 
-2.6. Para publicar, você precisa ter cadastrado um **meio de pagamento** (cartão de crédito, pelo Mercado Pago) e autorizado o Vendeu a cobrar nele a taxa de sucesso ou a taxa de retirada. Cadastrar o cartão não gera cobrança. O Vendeu não guarda número de cartão nem CVV.
+2.6. Para publicar, você precisa ter: e-mail e telefone verificados; identidade verificada; **conta Mercado Pago conectada** (é por ela que você recebe); e a declaração de origem assinada. A conexão é feita pelo login do próprio Mercado Pago (OAuth): o Vendeu não vê sua senha nem seus dados bancários e **não cobra cartão**. Ao conectar, você dá a autorização expressa descrita nos Termos de Uso (cláusulas 5.7 a 5.9).
 
 ## 3. O que é proibido
 
@@ -78,9 +78,9 @@ Versão 2026-10-26
 
 5.2. Em **locação**, informe o **valor do aluguel mensal** (ou o período a que o preço se refere) e eventuais encargos.
 
-5.3. Se o valor fechado for muito menor que o anunciado, a Política de Taxas exige justificativa (abaixo de 70% do maior preço anunciado).
+5.3. O comprador pode enviar **proposta de, no mínimo, 50% do preço anunciado**; você tem 48 horas para aceitar ou recusar. Anuncie um preço que você aceita receber: o pedido pelo preço cheio é aceito automaticamente.
 
-5.4. É proibido alterar o preço de forma abusiva para manipular a taxa ou a busca.
+5.4. É proibido alterar o preço de forma abusiva para manipular a comissão ou a busca, ou mudá-lo depois que um comprador já iniciou o pedido.
 
 ## 6. Descrição
 
@@ -94,25 +94,33 @@ Versão 2026-10-26
 
 6.5. O sistema faz **triagem automática de palavras proibidas e de risco**. Se o anúncio for bloqueado ou enviado à revisão, ajuste o texto ou aguarde a análise da moderação.
 
-## 7. Contato fora da plataforma e taxa
+## 7. Negociar e pagar só dentro do Vendeu
 
-7.1. É **proibido** combinar contato fora do Vendeu, com o interessado que você encontrou pelo Vendeu, **para fugir da taxa de sucesso**, ou pedir para o interessado fazê-lo.
+7.1. A venda e o pagamento devem acontecer **dentro do Vendeu**. É **proibido** negociar, combinar entrega ou **receber pagamento fora do Vendeu**, ou pedir/oferecer contato externo (telefone, e-mail, redes sociais, links, @usuário) **antes do recebimento do produto**. O sistema oculta esses dados nas mensagens.
 
-7.2. Se vender fora da plataforma depois de contato iniciado pelo Vendeu, a **taxa também é devida** (Política de Taxas).
+7.2. Quem negociar ou pagar fora do Vendeu **perde a proteção do fluxo** (pagamento retido, prazo de devolução e moderação de disputas) e pode ter anúncios retirados e a conta **suspensa ou bloqueada**.
 
-7.3. É proibido pedir **pagamento antecipado, sinal ou "reserva"** a quem não se conhece, e pedir **códigos** recebidos por SMS, e-mail ou WhatsApp.
+7.3. É proibido pedir **pagamento antecipado, sinal ou "reserva"** fora do pedido, e pedir **códigos** recebidos por SMS, e-mail ou WhatsApp. O **código de retirada** de 6 dígitos só pode ser pedido ao comprador **quando ele já estiver com o produto em mãos**.
 
-## 8. Antes de vender ou alugar
+7.4. **Contato liberado.** Depois do recebimento, o Vendeu mostra a você o nome, telefone e e-mail do comprador (e a ele os seus), só para combinar devolução e garantia. Não use esses dados para outra finalidade.
 
-8.1. Ao concretizar o negócio, **encerre o anúncio** pelo Vendeu, informando o valor fechado e pagando a taxa de sucesso vigente.
+## 8. Como a venda acontece e quanto custa
 
-8.2. Se **não vendeu** e retirar (encerrar) um anúncio já publicado, paga a **taxa de retirada de R$ 10,00**, em qualquer faixa de preço. Se vendeu, paga só a taxa de sucesso (não soma os R$ 10,00). Cada conta pode ter até 2 desistências de venda em 90 dias.
+8.1. **Pedido.** O comprador clica em Comprar ou Alugar (preço cheio) ou envia proposta de, no mínimo, 50%. O anúncio fica **reservado**. O comprador tem 24 horas para pagar; o pagamento fica **retido no Mercado Pago**.
 
-8.3. **Não há cobrança** para: rascunho nunca publicado; anúncio recusado pela triagem; anúncio retirado pela moderação, por denúncia procedente ou por bloqueio de conta; pausar e retomar o anúncio.
+8.2. **Envio ou retirada.** Com pagamento confirmado, envie em até **5 dias** e informe o rastreio (senão o valor é devolvido automaticamente ao comprador), ou combine a retirada e digite o código de 6 dígitos quando o comprador receber o produto. **Envie o que anunciou**, bem embalado, e guarde comprovantes e fotos do envio.
 
-8.4. O prazo de pagamento das taxas é de 7 dias e 3 dias de atraso bloqueiam novos anúncios (Política de Taxas). Se a cobrança no cartão cadastrado falhar, você recebe Pix ou link de pagamento.
+8.3. **Recebimento e devolução.** Depois do recebimento, o comprador tem **7 dias** para devolver. Passado o prazo sem devolução, o valor é repassado à sua conta Mercado Pago **menos a comissão** (Política de Taxas). Se houver devolução, o comprador recebe 100% de volta e **ninguém paga comissão**; o anúncio volta à vitrine quando você confirma que o produto voltou.
 
-8.5. Você pode trocar o meio de pagamento a qualquer momento, mas não pode removê-lo enquanto houver anúncio no ar ou taxa pendente.
+8.4. **Retirar um anúncio já publicado sem vender** custa a **taxa de retirada de R$ 10,00**, em qualquer faixa de preço. Se vendeu, paga só a comissão (não soma os R$ 10,00). **Não dá para retirar enquanto houver pedido em andamento.**
+
+8.5. **Não há cobrança** para: rascunho nunca publicado; anúncio recusado pela triagem; anúncio retirado pela moderação, por denúncia procedente ou por bloqueio de conta; pausar e retomar o anúncio.
+
+8.6. O prazo de pagamento da taxa de retirada é de 7 dias, por Pix ou link do Mercado Pago, e 3 dias de atraso bloqueiam novos anúncios (Política de Taxas).
+
+8.7. Você pode trocar a conta Mercado Pago a qualquer momento, mas não pode desconectá-la enquanto houver anúncio no ar, pedido em andamento ou taxa pendente.
+
+8.8. Fraudes de vendedor (enviar produto diferente do anunciado, enviar caixa vazia ou falso rastreio, não enviar, pedir pagamento por fora) e de comprador (alegar falsamente que não recebeu, devolver produto diferente ou danificado) levam a decisão da moderação contra quem fraudou e a restrição ou bloqueio da conta.
 
 ## 9. Denúncias e remoção
 
@@ -128,9 +136,9 @@ Versão 2026-10-26
 - (a) pedir correção do anúncio;
 - (b) retirar o anúncio;
 - (c) advertir a conta;
-- (d) bloquear novos anúncios, inclusive por atraso na taxa (3 dias);
+- (d) bloquear novos anúncios, inclusive por atraso na taxa de retirada (3 dias);
 - (e) suspender ou **bloquear a conta** e impedir novo cadastro;
-- (f) cobrar a taxa devida sobre o valor correto;
+- (f) decidir contra o infrator o destino do valor retido, em disputa;
 - (g) guardar os registros e **comunicar autoridades**, fornecendo dados mediante ordem judicial ou requisição legal;
 - (h) exercer o **direito de regresso** por danos causados à plataforma.
 

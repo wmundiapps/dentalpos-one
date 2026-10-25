@@ -17,6 +17,6 @@ Vendeu (nome provisório; troque em `shared/brand.ts`): classificados de Compra,
 - **Texto legal** (`docs/legal`, `docs/lgpd`) só muda com aprovação do Robson e revisão da Dra. Roberta. Versão em `<!-- versao: -->`; mudou o texto → nova versão (gera novo aceite).
 - **Registro de origem** (`origin_records`) é imutável por trigger; só a rotina de retenção apaga.
 - **Documentos de verificação:** cifrados, vistos só pelo admin, cada acesso vai para `audit_log`.
-- **Marketing:** sem lista de contatos de terceiros; nunca prometer "100% seguro"; Vendeu não participa do pagamento da compra.
+- **Marketing:** sem lista de contatos de terceiros; nunca prometer "100% seguro"; o pagamento é processado e retido pelo Mercado Pago (o Vendeu não guarda o dinheiro); nada de "garantia absoluta".
 - **Commits e PRs:** sem identificador de modelo de IA, em português.
 - **O que depende do Robson:** SQL no Supabase, chaves (Mercado Pago, SMTP, SMS), domínio, textos jurídicos.

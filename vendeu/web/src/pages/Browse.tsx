@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAsync, usePageTitle } from '../lib/hooks';
 import { CATEGORIES, CONDITIONS, CONDITION_LABEL, type Condition, type Operation } from '@shared/catalog';
-import { Empty, ErrorState, ListingCard, Loading, Pager, type ListingCardData } from '../components/ui';
+import { Empty, ErrorState, ListingCard, Loading, Pager, PromiseStrip, type ListingCardData } from '../components/ui';
 import { MoneyField, SelectField, TextField } from '../components/fields';
 import { centsToMasked, moneyToCents, STATES } from '../lib/format';
 
@@ -60,8 +60,9 @@ export function Browse({ operation }: { operation: Operation }) {
           <h1>{isRent ? 'Alugue' : 'Compre'} {CONDITION_LABEL[condition].toLowerCase()}</h1>
           <p className="muted">{isRent ? 'Imóveis, carros e objetos para alugar perto de você.' : 'Produtos novos e usados de vendedores da sua região.'}</p>
         </div>
-        <Link to="/venda/anunciar" className="btn btn-accent">Anunciar grátis</Link>
+        <Link to="/venda/anunciar" className="btn btn-accent">Anunciar</Link>
       </div>
+      <PromiseStrip />
 
       <div className="segmented" role="group" aria-label="Condição do produto">
         {CONDITIONS.map((c) => (

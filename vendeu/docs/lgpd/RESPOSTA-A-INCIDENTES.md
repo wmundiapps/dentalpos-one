@@ -2,9 +2,9 @@
 
 > MINUTA — aguardando aprovação do Robson e revisão da Dra. Roberta antes de entrar em vigor.
 
-Documento interno. Versão 2026-10-25.
+Documento interno. Versão 2026-10-26.
 
-**Incidente** = qualquer evento que possa causar acesso não autorizado, perda, alteração, divulgação ou destruição de dados pessoais (vazamento de documentos, banco acessado, conta de moderador invadida, chave exposta, e-mail enviado ao destinatário errado etc.).
+**Incidente** = qualquer evento que possa causar acesso não autorizado, perda, alteração, divulgação ou destruição de dados pessoais (vazamento de documentos, banco acessado, conta de moderador invadida, chave exposta, e-mail enviado ao destinatário errado, **exposição de endereços de entrega, de contatos antes do recebimento ou de *tokens* da conta Mercado Pago**, liberação indevida ou devolução indevida de valor retido etc.).
 
 **Prazo de referência:** comunicar a ANPD e os titulares afetados em até **3 dias úteis** do conhecimento do incidente, quando houver risco ou dano relevante (art. 48 da LGPD; Resolução CD/ANPD nº 15/2024).
 
@@ -29,11 +29,15 @@ Documento interno. Versão 2026-10-25.
 2. Preservar evidências (logs, horários, prints).
 3. Acionar o suboperador afetado (Vercel, Supabase, Mercado Pago, provedor de e-mail/SMS), se for o caso.
 4. Se documentos de verificação puderam ser acessados, verificar se a chave de cifra está segura; se a chave vazou, trocá-la e recifrar.
+5. **Tokens da conta Mercado Pago ou credenciais da aplicação no Mercado Pago:** se puderam ser expostos, **revogar as autorizações e trocar as credenciais** no painel do Mercado Pago (feito pelo Robson, direto na tela do Mercado Pago, sem enviar segredos por chat), pedir aos vendedores afetados que reconectem a conta, e verificar se houve repasse ou devolução fora das regras. Avisar o Mercado Pago pelo canal do parceiro.
+6. **Endereço de entrega:** se a chave de cifra vazou, trocá-la e recifrar; verificar se algum endereço ficou visível para vendedor depois do recebimento.
+7. **Contato liberado antes do recebimento (falha da regra de ocultação):** corrigir a regra, identificar pedidos afetados, avaliar se houve contato fora da plataforma e orientar as partes.
+8. **Pagamento retido:** se o incidente afetar a confirmação de pagamento, o recebimento ou o repasse (por exemplo, repasse indevido, devolução em duplicidade, falso "pago"), **suspender a rotina automática de pedidos**, conferir cada pedido afetado com o extrato do Mercado Pago e tratar como disputa. Prazos de devolução e de repasse não devem correr contra o usuário durante a indisponibilidade.
 
 ## Passo 3 — Avaliar (até 24 horas)
 
 Responder:
-- Quais dados? (documentos, selfie = sensível; registros de origem; mensagens; cadastro)
+- Quais dados? (documentos, selfie = sensível; registros de origem; mensagens; cadastro; **endereços de entrega; contatos liberados; pedidos e histórico; *tokens* da conta Mercado Pago**)
 - Quantos titulares? Quais (anunciantes, compradores)?
 - Os dados estavam cifrados? A chave foi exposta?
 - Houve acesso, cópia, alteração ou perda?
@@ -43,13 +47,13 @@ Responder:
 |---|---|---|
 | Baixo | Sem dado pessoal ou dado cifrado sem chave exposta | Registrar; sem comunicação externa |
 | Médio | Dado pessoal comum, poucos titulares, risco limitado | Decidir com o(a) Encarregado(a) e o jurídico; registrar |
-| Alto | Documento, selfie, muitos titulares, risco de fraude | **Comunicar ANPD e titulares** |
+| Alto | Documento, selfie, muitos titulares, risco de fraude, **endereço de entrega, *tokens* do Mercado Pago ou dados do pedido de muitos titulares** | **Comunicar ANPD e titulares** |
 
 ## Passo 4 — Comunicar (até 3 dias úteis)
 
 1. **ANPD:** o(a) Encarregado(a), com o jurídico, preenche o formulário de comunicação de incidente no site da ANPD (gov.br/anpd). Conteúdo mínimo: natureza do incidente; dados e titulares afetados; medidas técnicas e de segurança; riscos; medidas adotadas; motivos de eventual atraso; contato do(a) Encarregado(a).
 2. **Titulares:** e-mail e aviso no aplicativo, em linguagem simples (modelo abaixo).
-3. **Outros:** se houver crime, boletim de ocorrência; avisar parceiros/suboperadores conforme o caso.
+3. **Outros:** se houver crime, boletim de ocorrência; avisar parceiros/suboperadores conforme o caso. Incidente que envolva o **Mercado Pago** (ou que tenha origem nele) exige também aviso ao Mercado Pago e, se houver valores em risco, aos vendedores e compradores afetados com orientação sobre seus pedidos.
 4. Se os dados informados ainda estiverem sendo apurados, fazer uma **comunicação preliminar** e complementar depois.
 
 ## Passo 5 — Corrigir e prevenir
@@ -92,7 +96,7 @@ Informamos que, em [data], identificamos um incidente de segurança que pode ter
 
 **O que já fizemos:** [ex.: bloqueamos o acesso, trocamos chaves de segurança, estamos investigando com apoio dos nossos fornecedores].
 
-**O que recomendamos que você faça:** [ex.: desconfie de mensagens pedindo códigos ou Pix; troque sua senha; ative a verificação em duas etapas]. O Vendeu nunca pede sua senha, códigos ou Pix antecipado.
+**O que recomendamos que você faça:** [ex.: desconfie de mensagens pedindo códigos ou Pix; troque sua senha; ative a verificação em duas etapas; reconecte sua conta Mercado Pago]. O Vendeu nunca pede sua senha, códigos, Pix fora do pedido nem o código de retirada.
 
 **Riscos possíveis:** [ex.: tentativas de golpe usando seus dados].
 

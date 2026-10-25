@@ -10,11 +10,15 @@ export interface Me {
 }
 export interface AppConfig {
   brand: { name: string; supportEmail: string; privacyEmail: string };
-  feeDueDays: number; feeCapCents: number; publishRequiresKyc: boolean;
+  feeDueDays: number; feeCapCents: number; publishRequiresKyc: boolean; removalFeeCents: number; returnDays: number;
+}
+export interface PayInfo {
+  method: { kind: string; connected: boolean; since: string } | null; provider: 'mock' | 'mercadopago';
+  authorization: { version: string; text: string }; removalFeeCents: number;
 }
 
 interface Ctx {
-  user: Me | null; ready: boolean; feesDueCents: number; feesDueCount: number; unread: number; config: AppConfig | null;
+  user: Me | null; ready: boolean; feesDueCents: number; feesDueCount: number; unread: number; config: AppConfig | null; pay: PayInfo | null; refreshPay: () => Promise<void>;
   refresh: () => Promise<Me | null>; refreshUnread: () => void; logout: () => Promise<void>;
 }
 const AppCtx = createContext<Ctx>(null as unknown as Ctx);
@@ -26,19 +30,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [due, setDue] = useState({ cents: 0, n: 0 });
   const [unread, setUnread] = useState(0);
   const [config, setConfig] = useState<AppConfig | null>(null);
+  const [pay, setPay] = useState<PayInfo | null>(null);
   const userId = useRef<string | null>(null);
+  const refreshPay = useCallback(async () => {
+    try { setPay(await api.get<PayInfo>('/payment-method')); } catch { setPay(null); }
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
       const r = await api.get<{ user: Me; feesDueCents: number | string; feesDueCount: number }>('/me');
       setUser(r.user); userId.current = r.user.id;
+      void refreshPay();
       setDue({ cents: Number(r.feesDueCents), n: r.feesDueCount });
       return r.user;
     } catch (e) {
-      if (!(e instanceof ApiError) || e.status === 401 || e.status === 403) { setUser(null); userId.current = null; setDue({ cents: 0, n: 0 }); setUnread(0); }
+      if (!(e instanceof ApiError) || e.status === 401 || e.status === 403) { setUser(null); userId.current = null; setDue({ cents: 0, n: 0 }); setUnread(0); setPay(null); }
       return null;
     } finally { setReady(true); }
-  }, []);
+  }, [refreshPay]);
 
   const refreshUnread = useCallback(() => {
     if (!userId.current) return;
@@ -60,6 +69,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUser(null); userId.current = null; setUnread(0); setDue({ cents: 0, n: 0 });
   }, []);
 
-  const value = useMemo(() => ({ user, ready, feesDueCents: due.cents, feesDueCount: due.n, unread, config, refresh, refreshUnread, logout }), [user, ready, due, unread, config, refresh, refreshUnread, logout]);
+  const value = useMemo(() => ({ user, ready, feesDueCents: due.cents, feesDueCount: due.n, unread, config, pay, refreshPay, refresh, refreshUnread, logout }), [user, ready, due, unread, config, pay, refreshPay, refresh, refreshUnread, logout]);
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

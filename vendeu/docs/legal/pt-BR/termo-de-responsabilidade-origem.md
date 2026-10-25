@@ -12,7 +12,7 @@ Versão 2026-10-26
 
 ## 2. O que o Vendeu é
 
-2.1. O Vendeu é apenas uma **plataforma de anúncios**. Não participa da negociação, não recebe nem repassa o valor do negócio, não entrega o bem, não garante o produto, a procedência, o preço nem a boa-fé de ninguém.
+2.1. O Vendeu é uma **plataforma de anúncios** e de intermediação do fluxo do pedido. O pagamento é processado e **retido pelo Mercado Pago**, e não passa por conta do Vendeu; o Vendeu não detém os valores e apenas instrui a liberação ou a devolução conforme os Termos de Uso. O Vendeu não é parte do contrato entre vendedor e comprador, não entrega o bem e não garante o produto, a procedência, o preço nem a boa-fé de ninguém.
 
 ## 3. Declarações e compromissos do anunciante
 
@@ -25,9 +25,11 @@ Versão 2026-10-26
 - (f) informará a **placa** (automóveis) e a **matrícula** (imóveis) corretas;
 - (g) não usará o Vendeu para colocar no mercado bens de origem ilícita.
 
-3.2. O anunciante cadastra meio de pagamento válido para publicar e autoriza o Vendeu a cobrar nele a taxa de sucesso ou a taxa de retirada vigentes (Política de Taxas). Cadastrar o meio de pagamento não gera cobrança.
+3.2. O anunciante conecta a sua **conta Mercado Pago** (por OAuth) para publicar, e é por ela que recebe. Ele declara que a conta é de sua titularidade (ou da empresa que representa) e autoriza que as vendas e locações dos seus anúncios sejam pagas por ela, com pagamento retido até o recebimento e o prazo de devolução de 7 dias, repasse menos a comissão vigente e taxa de retirada de R$ 10,00 se retirar do ar um anúncio publicado sem vender (Política de Taxas). Conectar a conta não gera cobrança.
 
-3.3. Os dados pessoais e documentos do anunciante devem ser verdadeiros. É vedado o uso de documento ou conta de terceiros, de "laranjas" ou de identidade falsa.
+3.3. O anunciante deve **enviar ou entregar o bem anunciado**, no prazo e nas condições do pedido, e **não negociar nem receber pagamento fora do Vendeu**.
+
+3.4. Os dados pessoais e documentos do anunciante devem ser verdadeiros. É vedado o uso de documento ou conta de terceiros, de "laranjas" ou de identidade falsa.
 
 ## 4. Isenção de responsabilidade da plataforma
 
@@ -52,6 +54,8 @@ Versão 2026-10-26
 - **declaração por anúncio**, com nome digitado idêntico ao do cadastro;
 - informação da **origem** do bem, e da **placa** e **matrícula** quando aplicável;
 - **verificação de identidade** (RG/CNH frente e verso, selfie com o documento, comprovante de endereço e cartão CNPJ para empresas);
+- **conta Mercado Pago** do vendedor, **pagamento retido** até o recebimento, **contato liberado só depois do recebimento** e prazo de **devolução de 7 dias**;
+- **moderação de disputas** com base nas informações do pedido;
 - **triagem automática** de palavras proibidas e de risco;
 - **detecção de foto repetida** entre anunciantes;
 - **denúncias** (3 denúncias abertas tiram o anúncio do ar até a revisão);
@@ -61,7 +65,7 @@ Versão 2026-10-26
 
 ## 7. Registro de origem e fornecimento a autoridades
 
-7.1. O anunciante **autoriza** o registro e a guarda, de forma que não possa ser alterada, de seu **IP (e cadeia de proxies), e-mail, telefone, navegador, idioma e identificador do dispositivo (hash)** a cada cadastro, login, criação e publicação de anúncio, mensagem, denúncia, envio de verificação e encerramento de venda.
+7.1. O anunciante **autoriza** o registro e a guarda, de forma que não possa ser alterada, de seu **IP (e cadeia de proxies), e-mail, telefone, navegador, idioma e identificador do dispositivo (hash)** a cada cadastro, login, criação e publicação de anúncio, mensagem, denúncia, envio de verificação e ação relevante do pedido (inclusive a conexão da conta Mercado Pago).
 
 7.2. Esses registros são tratados com base no legítimo interesse (prevenção à fraude e segurança), no cumprimento de obrigação legal (Marco Civil da Internet, art. 15) e no exercício regular de direitos, conforme a Política de Privacidade, e guardados por **5 anos** (prazo configurável).
 
@@ -91,7 +95,7 @@ Declaro, sob as penas da lei, que:
 4. As fotos são do bem real e as informações são verdadeiras.
 5. Entendi que o Vendeu é só uma plataforma de anúncios, não participa da negociação, não garante o bem nem a boa-fé de ninguém e não responde por produtos clandestinos ou de origem duvidosa; a responsabilidade é exclusivamente minha.
 6. Autorizo o registro e a guarda do meu IP, e-mail, telefone e dados do dispositivo e o fornecimento a autoridades mediante ordem judicial ou requisição legal.
-7. Sei que, ao vender ou alugar, devo encerrar o anúncio pelo Vendeu e pagar a taxa de sucesso vigente; e que, se retirar o anúncio sem vender, pago a taxa de retirada vigente (R$ 10,00). Autorizo a cobrança no meio de pagamento cadastrado.
+7. Sei que a venda e o pagamento devem ocorrer dentro do Vendeu; que o pagamento fica retido até o recebimento e o prazo de devolução de 7 dias; que a comissão vigente é descontada do repasse; e que, se retirar um anúncio publicado sem vender, pago a taxa de retirada de R$ 10,00.
 
 Assinatura eletrônica (nome completo): ______________________
 

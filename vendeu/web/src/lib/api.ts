@@ -1,4 +1,6 @@
 // Cliente da API. Cookie de sessão do servidor (same-origin); nenhum segredo no navegador.
+import { formatBRL } from '@shared/fees';
+
 const DEVICE_KEY = 'vendeu.deviceId';
 let memoryDevice = '';
 
@@ -104,8 +106,8 @@ const MESSAGES: Record<string, string> = {
   already_verified: 'Sua identidade já foi verificada.',
   identity_required: 'Informe seu CPF/CNPJ e endereço para virar anunciante.',
   seller_account_required: 'Para anunciar, complete seu cadastro de anunciante (CPF/CNPJ e endereço).',
-  fee_overdue: 'Você tem taxa de venda em atraso. Pague a taxa pendente para voltar a anunciar.',
-  pending_fees: 'Você tem taxas pendentes. Pague para continuar.',
+  fee_overdue: 'Você tem taxa de retirada em atraso. Pague a taxa pendente para voltar a anunciar.',
+  pending_fees: 'Você tem taxa de retirada pendente. Pague antes de eliminar a conta.',
   not_a_company: 'O cartão CNPJ só é pedido para empresas.',
   documents_missing: 'Faltam documentos. Envie todos os itens da lista antes de enviar para análise.',
   invalid_document_type: 'Formato não aceito. Envie uma foto (JPG, PNG ou WebP) ou um PDF.',
@@ -122,23 +124,36 @@ const MESSAGES: Record<string, string> = {
   listing_closed: 'Este anúncio já foi encerrado e não pode mais ser alterado.',
   locked_fields: 'Depois de publicado, não dá para mudar operação, categoria nem condição (novo/usado), porque a declaração assinada cobre esses dados.',
   rent_period_required: 'Informe o período do aluguel (dia, semana ou mês).',
-  invalid_status: 'Esta ação não está disponível para o estado atual do anúncio ou da venda.',
-  under_declared_needs_note: 'O valor fechado está muito abaixo do anunciado. Explique o motivo (mínimo 10 caracteres).',
-  buyer_not_in_conversations: 'O comprador escolhido não conversou com você sobre este anúncio.',
-  declared_price_required: 'Informe o valor fechado.',
-  buyer_confirmed: 'O comprador já confirmou este negócio, então não dá mais para desistir.',
-  too_many_cancellations: 'Você já desistiu de 2 vendas nos últimos 90 dias. Para evitar fuga da taxa, não é possível desistir de novo agora.',
-  own_listing: 'Este anúncio é seu.',
+  invalid_status: 'Esta ação não está disponível para o estado atual do anúncio ou do pedido. Atualize a página.',
+  own_listing: 'Este anúncio é seu: você não pode comprar ou conversar com você mesmo.',
+  listing_unavailable: 'Este anúncio acabou de ficar indisponível (reservado por outra pessoa ou retirado).',
+  seller_cannot_receive: 'O vendedor ainda não pode receber por este anúncio (conta Mercado Pago desconectada). Tente de novo mais tarde.',
+  ship_to_required: 'Para receber em casa, informe o endereço de entrega.',
+  return_window_closed: 'O prazo de devolução de 7 dias já terminou. Se houver um problema grave, fale com o suporte.',
+  payment_method_required: 'Conecte sua conta Mercado Pago para publicar: é por ela que você recebe.',
+  method_in_use: 'Não dá para desconectar agora: você tem anúncio no ar, pedido em andamento ou taxa a pagar. Retire os anúncios e conclua os pedidos primeiro.',
+  order_in_progress: 'Este anúncio tem um pedido em andamento. Conclua ou cancele o pedido antes de retirá-lo.',
+  orders_in_progress: 'Você tem pedido em andamento (compra ou venda). Conclua os pedidos antes de eliminar a conta.',
+  sale_only_through_platform: 'A venda só acontece pelos pedidos do Vendeu. Não há mais "Vendi": o comprador faz o pedido e paga pelo app.',
+  pix_only: 'Por enquanto o pagamento do pedido é só por Pix.',
+  use_mock_connect: 'Ambiente de teste: use a conexão simulada.',
+  mercadopago_not_configured: 'A conexão com o Mercado Pago ainda não foi configurada neste ambiente. Fale com o suporte.',
+  invalid_state: 'A conexão com o Mercado Pago expirou. Tente conectar de novo.',
+  handover_code_invalid: 'Código incorreto.',
   payment_provider_error: 'O serviço de pagamento não respondeu. Tente de novo em instantes.',
-  amount_mismatch: 'O valor do pagamento não confere com a taxa.',
   listing_required: 'Escolha o anúncio a denunciar.',
   reason_required: 'Informe o motivo.',
   filter_required: 'Informe ao menos um filtro para consultar.',
   invalid_status_admin: 'Esta decisão não é possível no estado atual.',
 };
 
-export function errorMessage(e: unknown, fallback = 'Não foi possível concluir. Tente de novo.'): string {
+export function errorMessage(e: unknown, fallback = 'Não foi possível concluir. Tente de novo.', overrides: Record<string, string> = {}): string {
   if (!(e instanceof ApiError)) return fallback;
+  if (overrides[e.code]) return overrides[e.code];
+  if (e.code === 'offer_out_of_range') {
+    const d = (e.detail ?? {}) as { minCents?: number; maxCents?: number };
+    return d.minCents && d.maxCents ? `A proposta precisa ficar entre ${formatBRL(d.minCents)} (50% do preço) e ${formatBRL(d.maxCents)}.` : 'A proposta precisa ser de no mínimo 50% do preço anunciado e no máximo o preço anunciado.';
+  }
   if (e.code === 'validation_error' && Array.isArray(e.detail) && e.detail.length) {
     const msgs = (e.detail as { message?: string }[]).map((d) => d.message).filter(Boolean) as string[];
     // mensagens do servidor já vêm em português quando são regras de negócio; as técnicas do zod ficam genéricas

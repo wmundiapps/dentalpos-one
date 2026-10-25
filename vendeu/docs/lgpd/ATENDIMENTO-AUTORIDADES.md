@@ -2,9 +2,9 @@
 
 > MINUTA — aguardando aprovação do Robson e revisão da Dra. Roberta antes de entrar em vigor.
 
-Documento interno. Versão 2026-10-25.
+Documento interno. Versão 2026-10-26.
 
-Objetivo: responder com rapidez e segurança a pedidos de dados sobre quem publicou um anúncio (por exemplo, produto furtado ou golpe), **sem entregar mais do que a lei exige** e **sem recusar o que a lei manda entregar**.
+Objetivo: responder com rapidez e segurança a pedidos de dados sobre quem publicou um anúncio ou participou de um pedido (por exemplo, produto furtado, golpe de comprador ou de vendedor), **sem entregar mais do que a lei exige** e **sem recusar o que a lei manda entregar**.
 
 ## 1. Onde chega
 
@@ -30,7 +30,9 @@ Pedidos podem chegar por ofício, e-mail (suporte@vendeu.app, privacidade@vendeu
 | Pedido de **particular**, advogado ou vítima sem ordem judicial | **Não.** Orientar a registrar boletim de ocorrência ou ajuizar medida judicial (inclusive pedido de fornecimento de registros, art. 22 do Marco Civil) |
 | Pedido de autoridade estrangeira | Não diretamente; encaminhar ao jurídico (cooperação internacional) |
 | Pedido genérico, sem identificar anúncio, conta ou período | Pedir esclarecimento à autoridade |
-| Preservação de dados (guarda cautelar) | Sim: preservar os dados pelo prazo pedido, sem entregar, até haver ordem |
+| Preservação de dados (guarda cautelar) | Sim: preservar os dados pelo prazo pedido, sem entregar, até haver ordem. Inclui pedidos, histórico, mensagens e anexos de disputa, e **suspender a eliminação** do endereço de entrega se o pedido ainda existir |
+| Pedido de **bloqueio ou retenção de valores** de um pedido | O Vendeu **não detém** valores: eles estão retidos no **Mercado Pago**. Havendo **ordem judicial**, o jurídico avalia (a) manter o pedido em disputa para impedir a liberação ou a devolução automáticas e (b) informar à autoridade que a ordem de bloqueio de valores deve ser dirigida também ao Mercado Pago |
+| Pedido de **dados de pagamento** (cartão, conta bancária) | Informar que o Vendeu não os possui; indicar o Mercado Pago |
 
 Em dúvida, o jurídico decide. **Não** entregar dados por simples e-mail de "delegado" ou "advogado" não verificado.
 
@@ -58,11 +60,18 @@ Apenas o que o pedido ou a lei especifica. Em regra:
 
 **Conteúdo do anúncio:** texto, fotos, preço, categoria, data de criação e retirada.
 
+**Dados do pedido (quando pedidos):** número do pedido, datas, valor, comissão, forma de entrega, rastreio, situação, histórico de eventos (incluindo recebimento e devolução), identificador do pagamento, da devolução e do repasse no Mercado Pago, e a conta Mercado Pago (apenas o **identificador**) do vendedor.
+
+**Dados da contraparte:** nome, CPF/CNPJ e contato cadastrados do comprador ou do vendedor do pedido, **se** o pedido da autoridade os abranger.
+
 Preservar a integridade: exportar em arquivo, gerar *hash* do arquivo (SHA-256) e informar na resposta.
 
 ## 6. O que NÃO fornecer sem ordem judicial
 
 - **Conteúdo das mensagens** entre usuários (comunicações privadas): só por ordem judicial (art. 22 e art. 7º, II e III, do Marco Civil; Constituição, art. 5º, XII).
+- **Endereço de entrega** do comprador: só com ordem judicial específica, ou, no caso de requisição de autoridade com poder próprio, quando o pedido tratar de **dados cadastrais** e o jurídico entender que está abrangido; entregar o mínimo.
+- **Mensagens e anexos de disputa** (provas enviadas pelas partes): só por ordem judicial.
+- **Tokens de acesso** da conta Mercado Pago: **nunca** (não são dado entregável; a autoridade deve dirigir-se ao Mercado Pago).
 - **Registros de acesso a aplicações e de conexão**, quando o pedido vier sem ordem judicial e a autoridade não tiver poder legal para requisitar (IP é registro: tratar com ordem judicial).
 - **Documentos de verificação** (RG/CNH, selfie, comprovante de endereço, cartão CNPJ) e outros dados pessoais além do pedido: somente com ordem judicial específica; entregar o mínimo.
 - Dados de **outros usuários** não indicados na ordem.
@@ -109,7 +118,7 @@ Prezado(a) Senhor(a),
 
 A [RAZÃO SOCIAL DA OPERADORA], operadora da plataforma de anúncios Vendeu, em resposta ao ofício em referência, recebido em [data], informa:
 
-1. **Natureza do serviço.** O Vendeu é plataforma de anúncios; não participa da negociação, não recebe nem repassa o valor do negócio e não entrega bens.
+1. **Natureza do serviço.** O Vendeu é plataforma de anúncios e de intermediação do fluxo do pedido; o pagamento é processado e retido pelo Mercado Pago (instituição de pagamento autorizada) e não passa por conta do Vendeu, que não detém os valores e apenas instrui a liberação ou a devolução; o Vendeu não é parte do negócio e não entrega bens. Informações e ordens sobre valores devem ser dirigidas também ao Mercado Pago.
 
 2. **Anúncio/conta.** Em relação ao anúncio [identificador/URL] e à conta [identificador], foram localizados os dados abaixo, fornecidos nos limites da [ordem / requisição legal / art. __ da Lei __]:
 
@@ -121,10 +130,11 @@ A [RAZÃO SOCIAL DA OPERADORA], operadora da plataforma de anúncios Vendeu, em 
 | IP de login(s), se solicitado | [ ] |
 | Navegador / idioma / dispositivo (*hash*) | [ ] |
 | Declaração de origem (versão, data/hora, IP) | [ ] |
+| Pedido(s): número, datas, valor, situação, rastreio, identificadores de pagamento no Mercado Pago | [ ] |
 
 3. **Integridade.** Os dados constam do arquivo anexo, cujo *hash* SHA-256 é [hash].
 
-4. **Dados não fornecidos.** [Conteúdo de mensagens, documentos de verificação e demais dados não abrangidos] não foram fornecidos por não constarem na ordem / dependerem de ordem judicial específica (art. 22 da Lei 12.965/2014). Colocamo-nos à disposição para cumprir nova determinação.
+4. **Dados não fornecidos.** [Conteúdo de mensagens, anexos de disputa, endereço de entrega, documentos de verificação e demais dados não abrangidos] não foram fornecidos por não constarem na ordem / dependerem de ordem judicial específica (art. 22 da Lei 12.965/2014). Colocamo-nos à disposição para cumprir nova determinação.
 
 5. **Preservação.** Os dados do anúncio e da conta foram preservados pelo prazo de [__] dias, a contar desta data.
 

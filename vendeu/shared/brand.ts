@@ -1,7 +1,7 @@
 // Nome de trabalho do produto. Para trocar a marca, mude aqui, em web/index.html e em docs/marca.
 export const BRAND = {
   name: 'Vendeu',
-  tagline: 'Anunciar é grátis. Você só paga quando vende.',
+  tagline: 'Compra protegida: o dinheiro fica retido até você receber.',
   domain: 'vendeu.app',
   supportEmail: 'suporte@vendeu.app',
   privacyEmail: 'privacidade@vendeu.app',

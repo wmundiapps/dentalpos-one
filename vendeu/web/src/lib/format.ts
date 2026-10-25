@@ -12,6 +12,7 @@ export const LISTING_STATUS: Record<string, { label: string; tone: 'ok' | 'warn'
   pending_review: { label: 'Em análise', tone: 'warn' },
   rejected: { label: 'Recusado', tone: 'bad' },
   removed: { label: 'Retirado', tone: 'muted' },
+  reserved: { label: 'Reservado (pedido em andamento)', tone: 'info' },
   pending_checkout: { label: 'Aguardando pagamento da taxa', tone: 'warn' },
   sold: { label: 'Vendido / alugado', tone: 'ok' },
 };
@@ -77,3 +78,16 @@ export function passwordStrength(p: string): { score: number; label: string } {
 }
 
 export const STATES = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+
+export const PROMISE = 'Pagamento retido até você receber · contato só depois do recebimento · 7 dias para devolver';
+
+/** Tempo que falta até uma data, em texto curto ("2 d 4 h", "35 min"). */
+export function remaining(v?: string | null, now = Date.now()): { text: string; late: boolean } {
+  if (!v) return { text: '', late: false };
+  const ms = new Date(v).getTime() - now;
+  if (ms <= 0) return { text: 'prazo encerrado', late: true };
+  const m = Math.floor(ms / 60000), h = Math.floor(m / 60), d = Math.floor(h / 24);
+  if (d >= 1) return { text: `${d} d ${h % 24} h`, late: false };
+  if (h >= 1) return { text: `${h} h ${m % 60} min`, late: false };
+  return { text: `${Math.max(1, m)} min`, late: false };
+}

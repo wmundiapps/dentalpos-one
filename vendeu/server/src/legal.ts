@@ -37,7 +37,7 @@ export function getLegal(key: string): LegalDoc {
 export const legalIndex = () => LEGAL_KEYS.map((k) => { const d = getLegal(k); return { key: d.key, title: d.title, version: d.version }; });
 
 /** Declaração de origem lícita assinada em cada anúncio. O texto exato (com os dados do anúncio) é o que vira hash. */
-export const DECLARATION_VERSION = '2026-10-25';
+export const DECLARATION_VERSION = '2026-10-26';
 export function declarationText(p: { signerName: string; listingTitle: string; originLabel: string; assetRef?: string | null }) {
   return [
     `Eu, ${p.signerName}, declaro sob as penas da lei que:`,
@@ -47,7 +47,7 @@ export function declarationText(p: { signerName: string; listingTitle: string; o
     '4. As fotos são do bem real e as informações são verdadeiras.',
     '5. Entendi que o Vendeu é apenas uma plataforma de anúncios, não participa da negociação, não garante o bem nem a boa-fé de ninguém, e não responde por produtos clandestinos ou de origem duvidosa; a responsabilidade é exclusivamente minha.',
     '6. Autorizo o registro e a guarda do meu IP, e-mail, telefone e dados do dispositivo, e o fornecimento deles a autoridades mediante ordem judicial ou requisição legal.',
-    '7. Sei que a venda ou locação e o pagamento devem acontecer dentro do Vendeu; que o pagamento fica retido até o recebimento e o prazo de devolução de 7 dias; que a comissão vigente é descontada do repasse; e que, se eu retirar um anúncio publicado sem vender, pago a taxa de retirada vigente (R$ 10,00).',
+    '7. Sei que a venda e o pagamento devem ocorrer dentro do Vendeu; que o pagamento fica retido até o recebimento e o prazo de devolução de 7 dias; que a comissão vigente é descontada do repasse; e que, se retirar um anúncio publicado sem vender, pago a taxa de retirada de R$ 10,00.',
   ].join('\n');
 }
 

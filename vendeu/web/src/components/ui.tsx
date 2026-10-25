@@ -39,7 +39,7 @@ export function Alert({ tone = 'info', children, title }: { tone?: 'info' | 'ok'
     </div>
   );
 }
-export const ErrorAlert = ({ error, fallback }: { error: unknown; fallback?: string }) => (error ? <Alert tone="bad">{errorMessage(error, fallback)}</Alert> : null);
+export const ErrorAlert = ({ error, fallback, overrides }: { error: unknown; fallback?: string; overrides?: Record<string, string> }) => (error ? <Alert tone="bad">{errorMessage(error, fallback, overrides)}</Alert> : null);
 
 export function Badge({ tone = 'muted', children }: { tone?: 'ok' | 'warn' | 'bad' | 'info' | 'muted'; children: ReactNode }) {
   return <span className={`badge badge-${tone}`}>{children}</span>;
@@ -138,18 +138,32 @@ export function ListingCard({ l, to }: { l: ListingCardData; to?: string }) {
 }
 
 export const SAFETY_TIPS = [
-  'Nunca pague antes de ver o produto. O Vendeu não pede Pix antecipado, sinal nem "taxa de liberação".',
+  'Nunca negocie nem pague fora do Vendeu. Pagou por fora, você perde a retenção do pagamento e os 7 dias para devolver.',
+  'Só confirme "Recebi" com o produto em suas mãos. Depois disso o dinheiro segue para o vendedor após o prazo de devolução.',
+  'Na retirada em mãos, só passe o código de 6 dígitos ao vendedor depois de receber o produto.',
   'Nunca informe códigos recebidos por SMS ou WhatsApp. Golpistas usam esses códigos para invadir contas.',
-  'Combine o encontro em local público e movimentado, de preferência de dia e acompanhado.',
-  'Desconfie de preço muito abaixo do mercado, pressa exagerada e quem foge de encontro presencial.',
-  'Confirme o dinheiro na sua conta antes de entregar. Comprovante enviado não é pagamento.',
-  'Fique no chat do Vendeu: fora dele você perde o registro e os avisos de segurança.',
+  'Desconfie de preço muito abaixo do mercado, pressa exagerada e quem pede para sair do chat do Vendeu.',
+  'Combine a retirada em local público e movimentado, de preferência de dia e acompanhado.',
 ];
+
+/** Faixa curta com a promessa do modelo (Compra, Locação, detalhe). */
+export function PromiseStrip({ compact }: { compact?: boolean }) {
+  const items: [string, string, string][] = [
+    ['🔒', 'Pagamento retido', 'O dinheiro fica retido no Mercado Pago até você receber.'],
+    ['🤝', 'Contato só depois do recebimento', 'Telefone e e-mail ficam ocultos até o produto chegar.'],
+    ['↩️', '7 dias para devolver', 'Devolveu? O valor volta integral para você.'],
+  ];
+  return (
+    <ul className={`promise${compact ? ' promise-compact' : ''}`} aria-label="Como funciona a compra no Vendeu">
+      {items.map(([i, t, d]) => <li key={t}><span aria-hidden="true">{i}</span><div><strong>{t}</strong>{!compact && <span className="small muted">{d}</span>}</div></li>)}
+    </ul>
+  );
+}
 
 export function SafetyBox({ compact }: { compact?: boolean }) {
   return (
     <aside className="safety" aria-label="Dicas anti-golpe">
-      <h3><span aria-hidden="true">🛡️</span> Compre e venda com segurança</h3>
+      <h3><span aria-hidden="true">🛡️</span> Dicas anti-golpe</h3>
       <ul>{(compact ? SAFETY_TIPS.slice(0, 3) : SAFETY_TIPS).map((t) => <li key={t}>{t}</li>)}</ul>
       <Link to="/seguranca">Ver o guia completo anti-golpe</Link>
     </aside>

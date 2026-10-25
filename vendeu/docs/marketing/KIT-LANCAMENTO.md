@@ -1,173 +1,152 @@
 # Vendeu: kit de lançamento
 
-> Nome (Vendeu) e domínio (vendeu.app; app em app.vendeu.app) são **provisórios**. Texto marcado com [COLCHETES] precisa ser preenchido antes de usar.
-> Regras de ouro da divulgação: só usar os fatos do produto; nada de números inventados, depoimentos, prêmios ou prazos; sem urgência falsa; sem citar concorrentes; sem prometer ganhos; respeitar CONAR, CDC e LGPD.
-> Mensagem de WhatsApp e e-mail **só para quem deu consentimento** (opt-in). Nunca monte nem compre lista de contatos de terceiros.
+> Fonte de verdade: `docs/MODELO-DE-NEGOCIO.md`. Mensagem-mestra: compra protegida pela plataforma (pagamento retido no Mercado Pago até o recebimento, contato só depois, 7 dias para devolver); anunciar não custa nada; comissão só quando a venda se conclui; retirar anúncio publicado sem vender custa R$ 10.
+> Nome e domínio provisórios (Vendeu, vendeu.app). Campos em [COLCHETES] precisam ser preenchidos antes de enviar (razão social, CNPJ, endereço, data, cidade).
+> Regras: nunca "100% seguro", "compra garantida", "sem golpes" nem "o Vendeu garante o produto"; nunca "grátis" sozinho; não citar concorrentes; não prometer cartão do comprador; não prometer nada específico sobre imóveis e automóveis. Sempre que falar de pagamento ou devolução, diga que o pagamento é processado pelo Mercado Pago e que a moderação decide disputas.
+> Sem lista de contatos de terceiros: copiamos textos, nunca listas.
 
 ---
 
 ## 1. WhatsApp (3 versões curtas, só para quem deu opt-in)
 
-Sempre termine com o botão/aviso de sair. Envie um por vez, sem repetir a mesma mensagem para a mesma pessoa.
+Envie apenas para quem pediu para ser avisado (formulário, QR do cartaz, cadastro) e sempre ofereça saída ("Para não receber mais, responda SAIR").
 
-**Versão 1 (direta)**
+**Versão A (curta)**
 ```
-Oi, [NOME]! Aqui é o Vendeu. 💚
-Você pediu para receber novidades nossas: já dá para anunciar de graça em vendeu.app. Você só paga uma taxa quando vende e retira o anúncio.
-Para não receber mais mensagens, responda SAIR.
-```
-
-**Versão 2 (conta clara)**
-```
-Oi, [NOME]! Vendeu por R$ 800? A taxa de sucesso é R$ 30. Não vendeu? É R$ 0. 
-Anuncie sem pagar nada em vendeu.app.
-Quer sair da lista? Responda SAIR.
+Olá, [Nome]! Aqui é o Vendeu. Você pediu para ser avisado: já dá para comprar, vender e alugar com o pagamento retido até você receber e 7 dias para devolver. Anunciar não custa nada. Conheça: vendeu.app
+Para não receber mais, responda SAIR.
 ```
 
-**Versão 3 (segurança)**
+**Versão B (com a promessa-mestra)**
 ```
-Oi, [NOME]! Quem anuncia no Vendeu passa por verificação de identidade, e você conversa pelo app, sem mostrar seu telefone. Anunciar é grátis: vendeu.app
-Para parar de receber, responda SAIR.
+Compre e venda sem dar seu telefone. 💚 No Vendeu o dinheiro fica retido no Mercado Pago até você receber, e o contato só aparece depois do recebimento. Anunciar não custa nada; a comissão só existe quando a venda se conclui. vendeu.app
+Para não receber mais, responda SAIR.
 ```
 
-Boas práticas: guarde a data e a forma do consentimento de cada pessoa; atenda o "SAIR" no mesmo dia; não envie fora do horário comercial.
+**Versão C (para quem quer vender)**
+```
+Tem algo parado em casa? Anuncie no Vendeu sem mostrar seu telefone. A comissão (a partir de R$ 15) só existe quando a venda se conclui e é descontada do repasse; o comprador tem 7 dias para devolver. Simule em vendeu.app
+Para não receber mais, responda SAIR.
+```
 
 ---
 
 ## 2. E-mail de lançamento
 
-**Remetente:** Vendeu <suporte@vendeu.app>  ·  **Para:** apenas quem deu consentimento
+**Assunto (3 opções para teste)**
+1. `Compre e venda sem dar seu telefone`
+2. `Seu dinheiro fica retido até você receber`
+3. `Chegou o Vendeu: receba, confira, 7 dias para devolver`
 
-**Assunto (3 opções para teste):**
-1. `Anunciar é grátis: você só paga quando vende`
-2. `Tem algo parado em casa? Anuncie sem pagar`
-3. `Vendeu por R$ 800? A taxa é R$ 30`
+**Pré-cabeçalho:** `Anunciar não custa nada. A comissão só existe quando a venda se conclui.`
 
-**Pré-cabeçalho:** `Sem mensalidade. Não vendeu? Retire o anúncio de graça.`
-
-**Corpo:**
+**Corpo**
 ```
-Olá, [NOME],
+Olá, [Nome],
 
-O Vendeu já está no ar para você comprar, vender e alugar perto de casa.
+Você pediu para saber quando o Vendeu estivesse no ar. Chegou a hora. [Confirme que está no ar antes de enviar.]
 
-O que muda para você:
-• Anunciar é grátis. Você só paga uma taxa de sucesso quando vende (ou aluga) e retira o anúncio.
-• Não vendeu? Retire o anúncio sem custo.
-• Vitrines de Novos e Usados separadas.
-• Categorias: Móveis, Imóveis, Brinquedos, Automóveis, Utilidades para o lar e Outros.
+O Vendeu é uma plataforma de Compra, Venda e Locação (móveis, imóveis, brinquedos, automóveis, utilidades para o lar e mais), com vitrines de Novos e Usados separadas. A diferença é que a negociação acontece toda dentro da plataforma:
 
-Quanto custa vender? Alguns exemplos da tabela:
-• Vendeu por R$ 120: taxa de R$ 15
-• Vendeu por R$ 800: taxa de R$ 30
-• Vendeu por R$ 3.500: taxa de R$ 150
+• Pagamento retido: você paga por Pix dentro do Vendeu e o dinheiro fica retido no Mercado Pago até o produto ser recebido.
+• Contato só depois: telefone e e-mail ficam ocultos até o recebimento.
+• 7 dias para devolver: devolveu, o dinheiro volta integralmente e ninguém paga nada; não devolveu, o valor é repassado ao vendedor, menos a comissão.
 
-Segurança: os anunciantes são verificados, você conversa dentro do app (seu telefone não aparece no anúncio) e temos orientações anti-golpe. O Vendeu é uma plataforma de anúncios: não participa da negociação nem recebe o dinheiro da compra.
+Anunciar não custa nada. A comissão só existe quando a venda se conclui (a partir de R$ 15) e é descontada do repasse. Retirar um anúncio já publicado sem vender custa R$ 10.
 
-[BOTÃO] Quero anunciar grátis → https://app.vendeu.app/venda
-[LINK] Quero comprar → https://app.vendeu.app/cadastrar
+Conheça e simule quanto você recebe: https://vendeu.app
 
-Um abraço,
+O Vendeu é uma plataforma de anúncios e não garante o produto anunciado. O pagamento é processado pelo Mercado Pago e a moderação decide disputas com base nas informações do pedido.
+
 Equipe Vendeu
 suporte@vendeu.app
 
-—
-Você recebeu este e-mail porque se cadastrou para receber novidades do Vendeu em [DATA/ORIGEM DO CONSENTIMENTO], usando o e-mail [EMAIL]. Controlador dos dados: [RAZÃO SOCIAL], CNPJ [CNPJ], [ENDEREÇO]. Seus direitos (LGPD): privacidade@vendeu.app.
-Não quer mais receber? [Descadastrar com um clique] ou responda "SAIR".
-Política de Privacidade: https://app.vendeu.app/legal/politica-de-privacidade
+Você recebeu este e-mail porque pediu para ser avisado. Para não receber mais, [link de descadastro]. Controlador dos dados: [razão social], CNPJ [CNPJ], [endereço]. Privacidade: privacidade@vendeu.app.
 ```
 
 ---
 
 ## 3. Release de imprensa
 
-**TÍTULO:** Vendeu chega para facilitar a compra, venda e locação de produtos usados: anunciar é grátis, taxa só quando vende
+```
+PARA DIVULGAÇÃO IMEDIATA [ajuste a data e só publique quando estiver no ar]
 
-**Subtítulo:** Plataforma da WMundi cobra apenas uma taxa de sucesso, a partir de R$ 15, depois que o anunciante vende ou aluga e retira o anúncio.
+Vendeu chega com compra e venda dentro da plataforma: pagamento retido até o recebimento e 7 dias para devolver
 
-[CIDADE], [DATA]. A WMundi apresenta o **Vendeu**, plataforma de anúncios para comprar, vender e alugar perto de casa. O diferencial é o modelo de cobrança: **anunciar é grátis** e o anunciante só paga quando vende (ou aluga) e retira o anúncio. Quem não vende retira o anúncio sem custo.
+[Cidade], [data] — O Vendeu, plataforma de anúncios de Compra, Venda e Locação, está disponível em vendeu.app. O diferencial é que a negociação acontece toda dentro da plataforma: comprador e vendedor não trocam contato até o produto ser recebido.
 
-A taxa de sucesso é um valor fixo por faixa do preço fechado: R$ 15 até R$ 150; R$ 20 de R$ 150,01 a R$ 500; R$ 30 de R$ 500,01 a R$ 1.000; R$ 50 de R$ 1.000,01 a R$ 1.500; R$ 80 de R$ 1.500,01 a R$ 2.000; R$ 100 de R$ 2.000,01 a R$ 3.000. Acima de R$ 3.000, a taxa é R$ 100 mais R$ 50 a cada R$ 1.000 (ou fração). O pagamento é feito por Pix ou cartão, pelo Mercado Pago, em até 7 dias.
+Como funciona: o comprador faz o pedido e paga por Pix dentro do Vendeu; o dinheiro fica retido no Mercado Pago até o recebimento. Depois de receber, o comprador tem 7 dias para devolver. Se devolver, o dinheiro volta integralmente e ninguém paga nada. Se não devolver, o valor é repassado ao vendedor, menos a comissão do Vendeu. Disputas são decididas pela moderação com base nas informações do pedido.
 
-**Como funciona.** A plataforma tem as abas Compra, Venda e Locação e as categorias Móveis, Imóveis, Brinquedos, Automóveis, Utilidades para o lar e Outros. As vitrines têm abas separadas para produtos Novos e Usados, que nunca se misturam. Na categoria Outros, quando um mesmo produto aparece com frequência, o sistema cria grupos automáticos.
+Anunciar não custa nada. A comissão só existe quando a venda ou locação se conclui, de R$ 15 (até R$ 150) em diante, conforme tabela pública. Retirar um anúncio já publicado sem vender custa R$ 10. O comprador paga apenas o preço combinado.
 
-**Segurança e privacidade.** Os anunciantes são verificados (documento com foto, selfie com o documento, comprovante de endereço e CPF ou CNPJ) e cada anúncio traz uma declaração de origem lícita assinada. A conversa acontece dentro do aplicativo, sem exibir telefone ou e-mail no anúncio, com alertas automáticos nas mensagens e denúncia. As fotos são tratadas sem dados de localização. Em conformidade com a LGPD, o usuário pode exportar e eliminar seus dados na conta, e o app não usa cookies de publicidade.
+Os vendedores passam por verificação de e-mail, telefone e identidade, conectam a conta Mercado Pago e assinam declaração de origem. As vitrines separam produtos Novos e Usados.
 
-O Vendeu é uma plataforma de anúncios: não participa da negociação e não recebe o dinheiro da compra, que é combinado entre comprador e vendedor. A empresa também oferece orientações anti-golpe aos usuários.
+Sobre o Vendeu: plataforma de anúncios de Compra, Venda e Locação. O Vendeu não garante o produto anunciado; o pagamento é processado pelo Mercado Pago.
 
-[ESPAÇO PARA DECLARAÇÃO DO PORTA-VOZ: só incluir se o porta-voz escrever e aprovar o texto.]
+Contato de imprensa: [nome], [e-mail], [telefone]
+Site: https://vendeu.app
 
-**Serviço:** https://vendeu.app · suporte@vendeu.app
-**Contato de imprensa:** [NOME] · [E-MAIL] · [TELEFONE]
-**Imagens para download:** pasta `docs/marketing/cards/` (logo e capas).
+[Sem declaração de porta-voz até que o texto seja escrito e aprovado.]
+```
 
 ---
 
 ## 4. Google Ads (rede de pesquisa)
 
-Limites: títulos até **30 caracteres**; descrições até **90**. Todos já foram contados.
-URL final: https://vendeu.app?utm_source=google&utm_medium=cpc&utm_campaign=lancamento
+Limites: título até 30 caracteres, descrição até 90. Todos os textos abaixo respeitam os limites. Sem citar concorrentes.
 
 ### Grupo 1: "como vender usado"
-Palavras-chave (correspondência de frase): "como vender usado", "como vender coisas usadas", "onde vender usados".
-Títulos:
-- `Venda usados sem pagar` 
-- `Anunciar é grátis`
-- `Só paga quando vende`
-- `Anuncie seu usado no Vendeu`
-- `Não vendeu? Retire de graça`
+Palavras-chave (correspondência de frase): "como vender usado", "vender coisas usadas", "onde vender usados".
+
+| Título 1 | Título 2 | Título 3 |
+|---|---|---|
+| `Venda usados no Vendeu` (22) | `Anunciar não custa nada` (23) | `Contato só depois de receber` (28) |
 
 Descrições:
-- `Anuncie de graça e só pague uma taxa quando vender. Sem mensalidade. Conheça o Vendeu.`
-- `Taxa a partir de R$ 15, só depois da venda. Anunciantes verificados e dicas anti-golpe.`
+- `Pagamento retido até o comprador receber. Comissão só quando a venda se conclui.` (80)
+- `Receba pelo que não usa mais, sem mostrar seu telefone. Simule em vendeu.app.` (77)
 
 ### Grupo 2: "vender móveis"
-Palavras-chave: "vender móveis usados", "vender sofá usado", "vender móveis".
-Títulos:
-- `Venda seus móveis usados`
-- `Anunciar móveis é grátis`
-- `Sofá, mesa, cama: anuncie`
-- `Só paga se vender`
-- `Vitrines Novos e Usados`
+Palavras-chave: "vender móveis usados", "vender sofá usado", "vender guarda-roupa".
+
+| Título 1 | Título 2 | Título 3 |
+|---|---|---|
+| `Venda seus móveis usados` (24) | `Pagamento retido até receber` (28) | `7 dias para devolver` (20) |
 
 Descrições:
-- `Anuncie seus móveis sem pagar para publicar. A taxa só vale quando você vende.`
-- `Converse pelo app, sem mostrar seu telefone. Anunciantes verificados. Crie sua conta.`
+- `Anuncie sem mostrar seu telefone. Comissão a partir de R$ 15, só se a venda concluir.` (85)
+- `Novos e Usados em abas separadas. Pagamento processado pelo Mercado Pago.` (73)
 
-### Grupo 3: "alugar apartamento anunciar"
-Palavras-chave: "anunciar apartamento para alugar", "alugar apartamento anunciar", "anunciar imóvel para alugar".
-Títulos:
-- `Anuncie seu imóvel p/ alugar`
-- `Anunciar aluguel é grátis`
-- `Taxa só ao fechar o aluguel`
-- `Aba Locação no Vendeu`
-- `Sem pagar para anunciar`
+### Grupo 3: "alugar anunciar"
+Palavras-chave: "anunciar aluguel", "alugar meu imóvel", "anunciar para alugar".
+
+| Título 1 | Título 2 | Título 3 |
+|---|---|---|
+| `Anuncie para alugar` (19) | `Anunciar não custa nada` (23) | `Contato só depois de receber` (28) |
 
 Descrições:
-- `Anuncie para alugar de graça. A taxa de sucesso só existe quando você fecha o aluguel.`
-- `Taxa calculada sobre o aluguel mensal, uma única vez. Veja a tabela no site.`
+- `Aba Locação com pagamento retido no Mercado Pago. Comissão só quando o aluguel fecha.` (85)
+- `Sem mostrar seu telefone no anúncio. Veja a tabela de comissão em vendeu.app.` (77)
 
-Palavras-chave negativas sugeridas: grátis para baixar, emprego, vaga, curso, concorrentes (liste os nomes na própria conta do Google Ads, não nos textos). Lembre que "grátis" nos anúncios se refere a **anunciar**, e isso deve ficar claro: a taxa de sucesso existe e está na página de destino.
+Observações: não afirmar condições especiais para imóveis ou automóveis; imóveis podem exigir categoria especial de política de anúncios.
+Palavras-chave negativas: grátis, gratuito, sem custo, de graça (para não atrair a promessa errada).
 
 ---
 
 ## 5. Post de LinkedIn
 
 ```
-Apresentamos o Vendeu, nova plataforma da WMundi para comprar, vender e alugar perto de casa.
+Lançamos o Vendeu: uma plataforma de Compra, Venda e Locação em que a negociação acontece toda dentro do app.
 
-A ideia é simples: anunciar é grátis, e você só paga uma taxa de sucesso quando vende (ou aluga) e retira o anúncio. Se não vender, retira sem custo. A taxa é um valor fixo por faixa de preço, começando em R$ 15, e a tabela completa é pública.
+A ideia nasceu de um problema simples: muito golpe começa quando comprador e vendedor trocam telefone antes de o produto chegar. No Vendeu, o contato só aparece depois do recebimento, o pagamento fica retido no Mercado Pago até lá e o comprador tem 7 dias para devolver.
 
-Alguns cuidados que colocamos no produto desde o início:
-• anunciantes verificados (documento, selfie e comprovante de endereço);
-• declaração de origem lícita assinada em cada anúncio;
-• conversa dentro do app, sem expor telefone no anúncio;
-• alertas automáticos e orientações anti-golpe;
-• LGPD: o usuário exporta e elimina os dados na própria conta.
+• Devolveu: dinheiro integral de volta, ninguém paga nada.
+• Não devolveu: o valor é repassado ao vendedor, menos a comissão.
+• Anunciar não custa nada; a comissão só existe quando a venda se conclui.
 
-O Vendeu é uma plataforma de anúncios: não participa da negociação nem recebe o dinheiro da compra.
+Nenhuma plataforma elimina todos os riscos, mas acreditamos que tirar o contato direto do caminho ajuda. O pagamento é processado pelo Mercado Pago e a moderação decide disputas.
 
-Conheça: https://vendeu.app
+Conheça: vendeu.app
 
 #vendeu #marketplace #empreendedorismo #inovacao #classificados #LGPD
 ```
@@ -176,135 +155,123 @@ Conheça: https://vendeu.app
 
 ## 6. Mensagem para grupos de bairro (Facebook/WhatsApp/Telegram)
 
-**Regras antes de postar**
-1. Leia as regras do grupo. Se divulgação for proibida, **não poste**.
-2. Peça licença à administração (mensagem privada) antes de publicar. Só publique com autorização.
-3. Uma publicação por grupo, sem repetir e sem comentar em todo post dos outros.
-4. Seja transparente: fale que faz parte da equipe do Vendeu.
-5. Não adicione ninguém a grupos e não envie mensagem privada para membros sem consentimento.
+Só poste onde as regras do grupo permitirem divulgação, ou peça autorização ao administrador. Nada de spam e nada de lista de contatos.
 
-**Mensagem para a administração**
 ```
-Olá, [NOME DO ADMIN]! Sou [SEU NOME], da equipe do Vendeu, uma plataforma de anúncios para comprar, vender e alugar perto de casa. Posso fazer uma única publicação no grupo para apresentar o projeto? Se não for permitido, tudo bem, respeito as regras do grupo. Obrigado!
-```
+Oi, pessoal do [bairro]! 👋 Tem coisa parada em casa? Estamos lançando o Vendeu, para comprar, vender e alugar aqui perto.
 
-**Texto da publicação (só com autorização)**
-```
-Olá, vizinhos! 👋 Sou [SEU NOME], da equipe do Vendeu (aviso que faço parte do projeto).
+Como funciona: o pagamento fica retido no Mercado Pago até o comprador receber, o telefone só aparece depois da entrega e dá 7 dias para devolver. Anunciar não custa nada; a comissão só existe quando a venda se conclui.
 
-É uma plataforma para comprar, vender e alugar perto de casa. Anunciar é grátis: só se paga uma taxa quando o item é vendido e o anúncio retirado. Se não vender, retira de graça.
-
-Quem anuncia é verificado e a conversa é pelo app. Se a administração permitir, deixo o site aqui: vendeu.app
-
-Dúvidas? É só perguntar. 😊
+Se quiser conhecer: vendeu.app. (Se a administração preferir que eu não divulgue aqui, é só avisar que apago.)
 ```
 
 ---
 
 ## 7. Argumentos de venda para parcerias
 
-Condições comerciais (comissão, cupom, destaque) **ainda não existem**: não prometa nada além do que está aprovado. Use a conversa para entender o interesse e levar à diretoria.
+Para brechós, lojas de móveis usados, condomínios, associações de moradores, mercadinhos de bairro e imobiliárias pequenas.
 
-**Condomínios (síndicos e administradoras)**
-- Os moradores já vendem e doam móveis e itens em grupos; o Vendeu organiza isso em um lugar com anunciantes verificados e conversa dentro do app.
-- Anunciar é grátis; só paga quem vende.
-- Ajuda em mudanças, quando muita gente quer se desfazer de móveis.
-- Material de apoio: cartaz A4 e santinho A6 (pasta `impressos/`), a serem fixados somente com autorização do condomínio.
-
-**Lojas de móveis usados**
-- Canal adicional para mostrar o estoque, com vitrine de Usados separada de Novos.
-- Pequenos comerciantes são bem-vindos: o anúncio é grátis e a taxa só vale quando vende.
-- Anunciantes verificados e declaração de origem em cada anúncio ajudam a mostrar seriedade.
-- Aviso: o Vendeu não recebe o dinheiro da venda; a loja combina o pagamento com o cliente.
-
-**Brechós e pequenos comerciantes**
-- Podem anunciar na categoria Outros (que cria grupos automáticos quando um produto aparece muito) ou nas categorias que fizerem sentido.
-- Sem mensalidade: custo só quando houver venda.
-- Selo "Vendedor verificado Vendeu" (arquivo `impressos/selo-vendedor-verificado.png`) para quem completar a verificação. Só usar após o processo de verificação estar valendo.
+- **Para o parceiro:** anunciar não custa nada e a comissão só existe quando a venda se conclui, então não há risco de mensalidade.
+- **Para os clientes do parceiro:** negociação dentro do app, pagamento retido até o recebimento, contato só depois e 7 dias para devolver.
+- **O que oferecemos:** cartaz A4 e santinho A6 com QR code (`impressos/`), selo "Vendedor verificado" (apenas para quem de fato estiver verificado), cards para divulgar nas redes dele.
+- **O que pedimos:** divulgação para a base **dele**, com consentimento dele e dos clientes. Não pedimos lista de contatos.
+- **O que não prometemos:** vendas, volume, nem condições especiais para categorias específicas.
 
 ---
 
 ## 8. FAQ de suporte (respostas prontas)
 
-| Pergunta | Resposta |
-|---|---|
-| Anunciar custa? | Não. Criar e manter anúncios é grátis. Você só paga a taxa de sucesso quando vende (ou aluga) e retira o anúncio. |
-| Qual é a taxa? | Até R$ 150 = R$ 15; R$ 150,01 a R$ 500 = R$ 20; R$ 500,01 a R$ 1.000 = R$ 30; R$ 1.000,01 a R$ 1.500 = R$ 50; R$ 1.500,01 a R$ 2.000 = R$ 80; R$ 2.000,01 a R$ 3.000 = R$ 100; acima de R$ 3.000 = R$ 100 + R$ 50 a cada R$ 1.000 (ou fração). |
-| Como pago a taxa? | Pelo próprio app, por Pix ou cartão (Mercado Pago), em até 7 dias depois de retirar o anúncio. |
-| Não vendi, e agora? | Retire o anúncio quando quiser. Não há cobrança. |
-| Vocês recebem o dinheiro da compra? | Não. O Vendeu é uma plataforma de anúncios. O pagamento da compra é combinado entre comprador e vendedor. |
-| Por que pedem documentos? | Para verificar o anunciante: documento com foto, selfie com o documento, comprovante de endereço e CPF ou CNPJ. |
-| Por que não vejo o telefone no anúncio? | Os contatos não aparecem no anúncio. A conversa acontece no app, com alertas automáticos. |
-| Fui abordado por golpe. O que faço? | Não pague nada. Denuncie o anúncio no botão "Denunciar" e escreva para suporte@vendeu.app com o link e prints. |
-| Pediram código por SMS/WhatsApp | É golpe. O Vendeu nunca pede senha nem código. Não passe e denuncie. |
-| Como excluo meus dados? | Na sua conta há as opções de exportar e eliminar dados. Dúvidas: privacidade@vendeu.app. |
-| Posso anunciar um carro? | Sim, na categoria Automóveis, com a placa e a declaração de origem. |
-| Posso anunciar um imóvel para alugar? | Sim, na aba Locação. A taxa é calculada sobre o valor mensal do aluguel, uma única vez. |
-| O produto que vendo não está nas categorias | Use "Outros". Se muitos anunciantes colocarem o mesmo produto, o sistema cria um grupo automático. |
+**Anunciar custa alguma coisa?**
+Não. Anunciar não custa nada. A comissão só existe quando a venda ou locação se conclui e é descontada do repasse. Retirar um anúncio já publicado sem vender custa R$ 10,00.
 
-Se uma resposta depender de algo que ainda não foi definido, responda "vamos verificar e retornamos por e-mail" e escale para a equipe.
+**Quanto é a comissão?**
+Até R$ 150 = R$ 15; R$ 150,01 a R$ 500 = R$ 20; R$ 500,01 a R$ 1.000 = R$ 30; R$ 1.000,01 a R$ 1.500 = R$ 50; R$ 1.500,01 a R$ 2.000 = R$ 80; R$ 2.000,01 a R$ 3.000 = R$ 100; acima de R$ 3.000, R$ 100 + R$ 50 a cada R$ 1.000 (ou fração). Na locação, sobre o valor do aluguel combinado, uma vez.
+
+**Quando eu, vendedor, recebo?**
+Depois que o comprador confirma o recebimento (ou o prazo de 10 dias após o envio passa) e os 7 dias de devolução terminam sem pedido de devolução. O valor é repassado, menos a comissão.
+
+**O comprador pediu devolução. E agora?**
+Combine a devolução com ele pelo pedido. Quando você confirmar que o produto voltou, o Mercado Pago devolve 100% ao comprador, ninguém paga comissão e o anúncio volta à vitrine. Se você não confirmar em 10 dias, a moderação decide.
+
+**Por que não vejo o telefone do comprador/vendedor?**
+Porque o contato só é liberado depois do recebimento. Antes disso, o chat do Vendeu oculta telefone, e-mail, links e @usuário.
+
+**Como funciona a retirada em mãos?**
+O comprador vê no app um código de 6 dígitos e só o passa ao vendedor quando já estiver com o produto. O vendedor digita o código (5 tentativas) e isso confirma o recebimento.
+
+**O vendedor não enviou. O que faço?**
+O vendedor tem até 5 dias após o pagamento para enviar. Se não enviar, o valor é devolvido automaticamente. Também é possível cancelar depois de pago e antes do envio, com devolução total. Persistindo o problema, abra uma disputa no pedido.
+
+**O comprador diz que não recebeu, mas o rastreio mostra entrega.**
+Qualquer lado pode abrir disputa. A moderação decide, com base nas informações do pedido, entre devolver ao comprador ou liberar ao vendedor.
+
+**Preciso de conta Mercado Pago?**
+Para vender, sim: é por ela que você recebe. A conexão é feita pelo login do próprio Mercado Pago; o Vendeu não vê senha nem dados bancários. O comprador paga por Pix dentro do Vendeu.
+
+**Posso negociar por fora?**
+Não. O pagamento retido, os 7 dias e a moderação só valem dentro do Vendeu. Para negociar o preço, o comprador pode enviar uma proposta (mínimo de 50% do preço; o vendedor tem 48 horas para responder).
+
+**Posso retirar o anúncio?**
+Pode, exceto se houver pedido em andamento. Retirar um anúncio já publicado sem vender custa R$ 10 (cobrado por Pix ou link, com prazo de 7 dias; atraso superior a 3 dias bloqueia novos anúncios). Pausar e retomar, rascunho nunca publicado, anúncio recusado ou retirado pela moderação: sem cobrança.
+
+**O Vendeu garante o produto?**
+Não. É uma plataforma de anúncios. O pagamento é processado e retido pelo Mercado Pago e a moderação decide disputas.
+
+**Perguntas sobre LGPD (exportar ou eliminar dados)**
+Na conta, em Privacidade. Dúvidas: privacidade@vendeu.app.
 
 ---
 
 ## 9. Glossário de marca
 
-**Nome:** Vendeu (provisório). Sempre com V maiúsculo, sem "One", sem sufixos. Domínio vendeu.app.
-**Slogan:** "Anunciar é grátis. Você só paga quando vende."
-**Cores:** verde #0B7A4B, amarelo #FFB703, tinta #102A43, fundo #F6F8F7. Fonte: Poppins. Logo e símbolo em `brand/` (não redesenhar; usar a versão branca em fundo escuro).
-
-**Tom de voz:** simples, direto, brasileiro, amigável. Frases curtas. Explica o preço sem rodeio. Sem gíria exagerada.
-
-| Pode falar | Não pode falar |
+| Use | Evite |
 |---|---|
-| "Anunciar é grátis" | "Tudo grátis" (existe taxa de sucesso) |
-| "Você só paga quando vende" | "Sem taxas" |
-| "Mais segurança", "anunciantes verificados" | "100% seguro", "sem golpes", "compra garantida" |
-| "Orientações anti-golpe" | "Garantimos o seu dinheiro" |
-| "Plataforma de anúncios" | "Nós vendemos para você" |
-| "O pagamento da compra é entre comprador e vendedor" | "Pague pelo Vendeu" (não recebemos a compra) |
-| "A partir de R$ 15" | "Ganhe dinheiro fácil" (promessa de ganho) |
-| "Novos e Usados em abas separadas" | Citar celulares/eletrônicos como categoria |
-| Nome Vendeu | Nomes de concorrentes |
-| "Perto de você" | Números de usuários, anúncios ou depoimentos sem prova |
+| Vendeu | Vendeu.app como nome, "Vendeu One", versões em caixa alta |
+| Compra protegida pela plataforma | Compra garantida, 100% seguro, sem golpes |
+| Pagamento retido no Mercado Pago | "O Vendeu guarda o seu dinheiro", "cofre do Vendeu" |
+| Contato só depois do recebimento | "Anonimato total" |
+| 7 dias para devolver | "Devolução garantida", "satisfação garantida" |
+| Anunciar não custa nada | "Grátis" sozinho |
+| Comissão (só quando a venda se conclui) | Taxa de sucesso, mensalidade |
+| Retirar anúncio publicado sem vender: R$ 10 | "Cancelar", "multa" |
+| Você recebe (preço menos comissão) | "Lucro", "ganhe dinheiro fácil" |
+| Moderação decide disputas | "Nós resolvemos tudo" |
+| Vendedor verificado | "Vendedor garantido", "confiável" |
+| Comprar, vender e alugar | Citar concorrentes ou compará-los |
 
 ---
 
 ## 10. Checklist de lançamento
 
-**Infraestrutura**
-- [ ] Decidir o nome definitivo (hoje provisório) e conferir disponibilidade de domínio e de marca (INPI)
-- [ ] Registrar/transferir o domínio e apontar DNS (site: vendeu.app; app: app.vendeu.app)
-- [ ] Publicar o site (pasta `vendeu/site`) e conferir sitemap/robots
-- [ ] Criar as caixas suporte@vendeu.app e privacidade@vendeu.app e testar recebimento e resposta
-- [ ] Configurar SPF, DKIM e DMARC do domínio de e-mail
-
-**Pagamentos**
-- [ ] Conta Mercado Pago da empresa e credenciais de produção (sem expor chaves no chat)
-- [ ] Testar o pagamento da taxa por Pix e por cartão
-- [ ] Definir se haverá teto de taxa (a Política de Taxas prevê essa possibilidade)
+**Pagamentos e produto**
+- [ ] Conta Mercado Pago do marketplace com **Pagamentos Avançados habilitado**
+- [ ] Teste no sandbox do Mercado Pago: pagamento, retenção, repasse, devolução integral, cancelamento antes do envio, expiração em 24 h
+- [ ] Teste do fluxo completo: pedido → pagamento → envio/rastreio → recebi → 7 dias → repasse; e devolução
+- [ ] Teste da retirada em mãos com código de 6 dígitos (5 tentativas)
+- [ ] Teste do chat com ocultação de telefone, e-mail, links e @usuário
+- [ ] Cobrança dos R$ 10 de retirada por Pix/link funcionando
+- [ ] Decisão do Robson sobre imóveis e automóveis de valor alto registrada (até lá, sem promessa nas peças)
 
 **Jurídico**
-- [ ] Termos de Uso, Política de Privacidade, Política de Taxas, Regras de Anúncio, Segurança e Anti-golpe, Termo de Responsabilidade de Origem e Política de Cookies **aprovados pelo Robson e revisados pela Dra. Roberta** (hoje são minutas)
-- [ ] Preencher razão social, CNPJ e endereço da operadora nos documentos e nos rodapés
-- [ ] Revisar com a advogada todas as afirmações de marketing (lista no final do LEIA-ME)
-- [ ] Confirmar RIPD/ROPA e canal de atendimento ao titular
-- [ ] Definir regras para os anunciantes verificados e quando usar o selo
+- [ ] Textos legais aprovados pelo Robson e revisados pela Dra. Roberta (Termos, Política de Taxas, Regras, Segurança, Origem, Privacidade, Cookies)
+- [ ] Afirmações do `LEIA-ME.md` (seção "Afirmações para revisão jurídica") revisadas
+- [ ] Disponibilidade do nome "Vendeu" consultada no INPI
+- [ ] Razão social, CNPJ e endereço preenchidos nos e-mails e no rodapé
 
-**Produto**
-- [ ] Rotas /cadastrar, /venda e /legal/... no app (a landing aponta para elas)
-- [ ] Teste de ponta a ponta: cadastro, verificação, anúncio, conversa, retirada e pagamento da taxa
-- [ ] Moderação e denúncias funcionando, com responsável definido
+**Site e marca**
+- [ ] Landing publicada com `site/` como raiz; domínio vendeu.app e app.vendeu.app apontando certo
+- [ ] `APP_URL` conferida; links "Quero comprar" e "Quero anunciar" abrindo o app
+- [ ] `testar-landing.cjs` passando (calculadora, FAQ, prévias 390 px e 1280 px)
+- [ ] `og-image.png` atualizada em `site/assets` e prévia conferida ao compartilhar o link
+- [ ] suporte@vendeu.app e privacidade@vendeu.app recebendo e-mail
+- [ ] Perfis criados (Instagram, Facebook) com foto, capa e bio de `REDES-SOCIAIS.md`
 
-**Marketing**
-- [ ] Conta Meta Business, página do Facebook e perfil do Instagram (foto de perfil e capa em `cards/`)
-- [ ] Verificar o domínio na Meta e decidir sobre o pixel (só com aviso de cookies e consentimento)
-- [ ] Conta Google Ads (títulos e descrições na seção 4)
-- [ ] WhatsApp Business com opt-in registrado e botão "SAIR"
-- [ ] Ferramenta de e-mail com descadastro em um clique
-- [ ] Imprimir cartaz A4 e santinhos A6 (só distribuir onde for permitido)
-- [ ] Definir cidade/região inicial e verba
-
-**Depois do lançamento**
-- [ ] Acompanhar cadastros, anúncios criados e retiradas
-- [ ] Responder comentários e mensagens em até 1 dia útil (respostas em `REDES-SOCIAIS.md`)
-- [ ] Revisar o calendário editorial a cada semana
+**Divulgação**
+- [ ] Lista de opt-in (WhatsApp e e-mail) com registro de consentimento e descadastro
+- [ ] UTM por canal definidas
+- [ ] Meta Ads: textos, títulos e descrições conferidos; política de categorias especiais verificada
+- [ ] Google Ads: limites 30/90 conferidos; palavras negativas ("grátis", "gratuito") cadastradas
+- [ ] Release só publicado com o produto no ar e sem declaração de porta-voz não aprovada
+- [ ] Impressos (cartaz A4, santinho A6) impressos com a versão atual e QR testado
+- [ ] Calendário de 30 dias agendado
+- [ ] Equipe de suporte com o FAQ da seção 8 e canal para disputas da moderação

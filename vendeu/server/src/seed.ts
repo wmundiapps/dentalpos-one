@@ -54,6 +54,11 @@ const items: [string, string, string, string, number, string, number][] = [
   ['locacao', 'utilidades-lar', 'usado', 'Cadeiras e mesas para festas', 120, 'Aluguel de 10 mesas e 40 cadeiras para festas, entrega e retirada combinadas.', 330],
   ['locacao', 'brinquedos', 'novo', 'Pula-pula inflável para festas', 180, 'Pula-pula inflável novo para festas infantis, diária, instalação inclusa na cidade.', 10],
 ];
+// conta Mercado Pago simulada (obrigatória para publicar e para receber pedidos)
+if (!(await one(pool, "SELECT 1 FROM payment_methods WHERE user_id = $1 AND status = 'active'", [seller]))) {
+  await pool.query("INSERT INTO payment_methods (id, user_id, kind, provider, mp_user_id, auth_text_hash, status) VALUES ($1,$2,'mercadopago','mock',$3,'demo','active')", [id('pmt'), seller, `mock_mp_${seller}`]);
+}
+
 const asset: Record<string, string> = { automoveis: 'ABC1D23', imoveis: 'Matrícula 12345 - 4º RI' };
 for (const [op, cat, cond, title, price, desc, hue] of items) {
   if (await one(pool, 'SELECT 1 FROM listings WHERE title = $1 AND seller_id = $2', [title, seller])) continue;

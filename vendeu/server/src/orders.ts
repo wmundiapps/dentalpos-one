@@ -77,7 +77,7 @@ export async function respondOrder(sellerId: string, orderId: string, accept: bo
     if (accept) {
       await c.query("UPDATE orders SET status='awaiting_payment', pay_expires_at = now() + make_interval(hours => $2), updated_at = now() WHERE id = $1", [orderId, config.escrow.payHours]);
     } else {
-      await c.query("UPDATE orders SET status='declined', updated_at = now() WHERE id = $1", [orderId]);
+      await c.query("UPDATE orders SET status='declined', ship_to_enc = NULL, updated_at = now() WHERE id = $1", [orderId]);
       await reopenListing(c, o.listing_id);
     }
     await ev(c, orderId, sellerId, accept ? 'offer_accepted' : 'offer_declined');
@@ -215,7 +215,7 @@ export async function cancelOrder(userId: string, orderId: string) {
   if (o.status === 'awaiting_payment' && o.seller_id === userId) throw new HttpError(409, 'invalid_status');
   await tx(async (c) => {
     await lockOrder(c, orderId);
-    await c.query("UPDATE orders SET status='cancelled', updated_at=now() WHERE id=$1 AND status IN ('offered','awaiting_payment')", [orderId]);
+    await c.query("UPDATE orders SET status='cancelled', ship_to_enc = NULL, updated_at=now() WHERE id=$1 AND status IN ('offered','awaiting_payment')", [orderId]);
     await reopenListing(c, o.listing_id);
     await ev(c, orderId, userId, 'cancelled');
   });
@@ -267,7 +267,7 @@ export async function processOrders(): Promise<Record<string, number>> {
     const expire = async (status: 'offered' | 'awaiting_payment', col: string, key: 'expiredOffers' | 'expiredUnpaid') => {
       for (const o of await many(pool, `SELECT id, listing_id FROM orders WHERE status = $1 AND ${col} < now()`, [status])) {
         await tx(async (c) => {
-          const r = await c.query("UPDATE orders SET status='expired', updated_at=now() WHERE id=$1 AND status=$2", [o.id, status]);
+          const r = await c.query("UPDATE orders SET status='expired', ship_to_enc = NULL, updated_at=now() WHERE id=$1 AND status=$2", [o.id, status]);
           if (r.rowCount) { await reopenListing(c, o.listing_id); await ev(c, o.id, null, 'expired'); out[key]++; }
         });
       }

@@ -9,7 +9,10 @@ import { memberSince, priceLabel } from '../lib/format';
 import { RISK_FLAG_LABEL } from '../lib/api';
 import { Alert, Badge, copyText, Empty, ErrorAlert, ErrorState, Loading, Modal, SafetyBox, StatusBadge, VerifiedBadge } from '../components/ui';
 import { SelectField, TextAreaField } from '../components/fields';
-import { CloseModal } from '../components/CloseModal';
+import { BuyPanel } from '../components/BuyPanel';
+import { WithdrawModal } from '../components/WithdrawModal';
+import type { Order } from '../components/OrderParts';
+
 
 interface Detail {
   id: string; title: string; description: string; priceCents: number; rentPeriod: string | null; operation: Operation; condition: 'novo' | 'usado';
@@ -35,6 +38,7 @@ export function ListingDetail() {
   const [closing, setClosing] = useState(false);
   const [shared, setShared] = useState('');
   const pauseAct = useAction();
+  const orders = useAsync(() => api.get<{ items: Order[] }>('/orders'), [id, d.data?.status], { enabled: !!d.data?.isOwner && d.data?.status === 'reserved' });
 
   if (d.loading && !d.data) return <Loading />;
   if (d.error) {
@@ -67,7 +71,7 @@ export function ListingDetail() {
           {l.reviewNote ? ` Observação da equipe: ${l.reviewNote}` : ''}
         </Alert>
       )}
-      {!l.isOwner && l.status !== 'active' && <Alert tone="warn">Este anúncio não está no ar (visível só para você como administrador).</Alert>}
+      {!l.isOwner && !['active', 'reserved'].includes(l.status) && <Alert tone="warn">Este anúncio não está no ar (visível só para você como administrador).</Alert>}
 
       <div className="detail-grid">
         <section aria-label="Fotos e descrição" className="detail-main">
@@ -93,7 +97,7 @@ export function ListingDetail() {
             </>)}
             <h2>Local</h2>
             <p>{l.district ? `${l.district}, ` : ''}{l.city}/{l.state}</p>
-            <p className="small muted">O endereço exato só é combinado na conversa, nunca é público.</p>
+            <p className="small muted">O endereço exato do vendedor nunca é público.</p>
           </div>
         </section>
 
@@ -125,43 +129,53 @@ export function ListingDetail() {
               <div className="row gap-s"><StatusBadge status={l.status} /><span className="small muted">{l.views} visualizações</span></div>
               {(l.riskFlags?.length ?? 0) > 0 && <p className="small muted">Pontos de atenção: {l.riskFlags!.map((f) => RISK_FLAG_LABEL[f] ?? f).join(', ')}.</p>}
               <div className="row wrap gap-s">
-                {!['sold', 'pending_checkout', 'removed'].includes(l.status) && <Link className="btn btn-outline" to={`/venda/anuncio/${l.id}/editar`}>Editar</Link>}
+                {!['sold', 'pending_checkout', 'removed', 'reserved'].includes(l.status) && <Link className="btn btn-outline" to={`/venda/anuncio/${l.id}/editar`}>Editar</Link>}
                 {l.status === 'active' && <button className="btn btn-outline" disabled={pauseAct.busy} onClick={async () => { await pauseAct.run(() => api.post(`/listings/${l.id}/pause`)); d.reload(); }}>Pausar</button>}
                 {l.status === 'paused' && <button className="btn btn-outline" disabled={pauseAct.busy} onClick={async () => { await pauseAct.run(() => api.post(`/listings/${l.id}/resume`)); d.reload(); }}>Retomar</button>}
-                {['active', 'paused', 'pending_review'].includes(l.status) && <button className="btn btn-primary" onClick={() => setClosing(true)}>{l.operation === 'locacao' ? 'Aluguei' : 'Vendi'} — retirar anúncio</button>}
+                {l.status === 'reserved' && (() => { const ord = orders.data?.items.find((o) => o.listing.id === l.id && o.role === 'seller' && !['released', 'refunded', 'declined', 'expired', 'cancelled'].includes(o.status)); return ord ? <Link className="btn btn-primary" to={`/pedidos/${ord.id}`}>Ver pedido</Link> : <Link className="btn btn-primary" to="/pedidos">Ver pedidos</Link>; })()}
+                {['active', 'paused', 'pending_review', 'draft', 'rejected'].includes(l.status) && <button className="btn btn-outline" onClick={() => setClosing(true)}>Retirar anúncio</button>}
               </div>
               <ErrorAlert error={pauseAct.error} />
             </div>
-          ) : l.status === 'active' ? (
+          ) : l.status === 'reserved' ? (
+            <div className="panel stack reserved-box">
+              <h2>Reservado — em negociação</h2>
+              <p>Outra pessoa está comprando este anúncio. Se o pedido não for concluído, ele volta à vitrine. <Link to="/compra">Ver outros anúncios</Link></p>
+            </div>
+          ) : l.status === 'active' ? (<>
+            <BuyPanel listingId={l.id} priceCents={l.priceCents} operation={l.operation} rentPeriod={l.rentPeriod} />
             <ContactForm listingId={l.id} ready={ready} />
-          ) : null}
+          </>) : null}
 
           <SafetyBox />
         </aside>
       </div>
 
       <ReportModal open={report} onClose={() => setReport(false)} listingId={l.id} />
-      <CloseModal target={closing ? { id: l.id, title: l.title, priceCents: l.priceCents, operation: l.operation } : null} onClose={() => setClosing(false)} onDone={() => { setClosing(false); d.reload(); }} />
+      <WithdrawModal target={closing ? { id: l.id, title: l.title, status: l.status, publishedAt: l.publishedAt } : null} onClose={() => setClosing(false)} onDone={() => { setClosing(false); d.reload(); }}
+        onPause={async (pid) => { await pauseAct.run(() => api.post(`/listings/${pid}/pause`)); d.reload(); }} />
     </div>
   );
 }
 
-const statusText = (s: string) => ({ draft: 'rascunho', paused: 'pausado', pending_review: 'em análise', rejected: 'recusado', removed: 'retirado', pending_checkout: 'aguardando pagamento da taxa', sold: 'vendido/alugado' } as Record<string, string>)[s] ?? s;
+const statusText = (s: string) => ({ reserved: 'reservado (pedido em andamento)', draft: 'rascunho', paused: 'pausado', pending_review: 'em análise', rejected: 'recusado', removed: 'retirado', pending_checkout: 'aguardando pagamento da taxa', sold: 'vendido/alugado' } as Record<string, string>)[s] ?? s;
 
 function ContactForm({ listingId, ready }: { listingId: string; ready: boolean }) {
   const { user, refreshUnread } = useApp();
   const [body, setBody] = useState('');
   const [result, setResult] = useState<{ conversationId: string; warnings: string[] } | null>(null);
   const act = useAction();
+  const notice = <p className="small chat-notice"><span aria-hidden="true">🔒</span> Telefone, e-mail, links e @usuário são <strong>ocultados automaticamente</strong> e só são liberados depois do recebimento do produto.</p>;
 
   if (!ready) return null;
   if (!user) {
     return (
       <div className="panel stack">
-        <h2>Fale com o vendedor</h2>
-        <p>Para enviar mensagem, entre na sua conta ou crie uma (é grátis).</p>
+        <h2>Tirar dúvida pelo chat do Vendeu</h2>
+        {notice}
+        <p>Entre na sua conta para conversar com o vendedor pelo chat.</p>
         <div className="row wrap gap-s">
-          <Link className="btn btn-primary" to={`/entrar?volta=${encodeURIComponent(`/anuncio/${listingId}`)}`}>Entrar</Link>
+          <Link className="btn btn-outline" to={`/entrar?volta=${encodeURIComponent(`/anuncio/${listingId}`)}`}>Entrar</Link>
           <Link className="btn btn-outline" to="/cadastrar">Cadastrar</Link>
         </div>
       </div>
@@ -170,8 +184,8 @@ function ContactForm({ listingId, ready }: { listingId: string; ready: boolean }
   if (!user.emailVerified) {
     return (
       <div className="panel stack">
-        <h2>Fale com o vendedor</h2>
-        <Alert tone="warn">Confirme seu e-mail para enviar mensagens. É rápido: enviamos um código de 6 dígitos.</Alert>
+        <h2>Tirar dúvida pelo chat do Vendeu</h2>
+        <Alert tone="warn">Confirme seu e-mail para usar o chat. É rápido: enviamos um código de 6 dígitos.</Alert>
         <Link className="btn btn-primary" to="/conta/confirmar">Confirmar e-mail</Link>
       </div>
     );
@@ -184,7 +198,7 @@ function ContactForm({ listingId, ready }: { listingId: string; ready: boolean }
   if (result) {
     return (
       <div className="panel stack">
-        <Alert tone="ok" title="Mensagem enviada!">O vendedor vai responder pelo Vendeu. Você será avisado.</Alert>
+        <Alert tone="ok" title="Mensagem enviada!">O vendedor vai responder pelo chat do Vendeu. Você será avisado.</Alert>
         {result.warnings.length > 0 && (
           <Alert tone="warn" title="Atenção ao seu texto">
             <ul>{result.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
@@ -196,12 +210,13 @@ function ContactForm({ listingId, ready }: { listingId: string; ready: boolean }
   }
   return (
     <form className="panel stack" onSubmit={send}>
-      <h2>Enviar mensagem ao vendedor</h2>
-      <TextAreaField label="Sua mensagem" value={body} onChange={(e) => setBody(e.target.value)} rows={4} maxLength={2000} required
-        placeholder="Olá! Ainda está disponível? Posso ver o produto pessoalmente?"
-        hint="Não envie senhas, códigos nem dados do cartão. Combine o encontro em local público." />
+      <h2>Tirar dúvida pelo chat do Vendeu</h2>
+      {notice}
+      <TextAreaField label="Sua pergunta" value={body} onChange={(e) => setBody(e.target.value)} rows={3} maxLength={2000} required
+        placeholder="Olá! Qual o estado de conservação? Acompanha acessórios?"
+        hint="Não envie senhas, códigos nem dados do cartão. Negociar ou pagar fora do Vendeu tira a proteção da compra." />
       <ErrorAlert error={act.error} />
-      <button className="btn btn-primary" disabled={act.busy || !body.trim()}>{act.busy ? 'Enviando…' : 'Enviar mensagem'}</button>
+      <button className="btn btn-outline" disabled={act.busy || !body.trim()}>{act.busy ? 'Enviando…' : 'Enviar pergunta'}</button>
     </form>
   );
 }

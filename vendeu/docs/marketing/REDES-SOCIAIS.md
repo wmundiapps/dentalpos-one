@@ -1,7 +1,11 @@
 # Vendeu: textos para Facebook e Instagram
 
-> Nome e domínio provisórios (Vendeu, vendeu.app). Se o nome mudar, troque em todo o material.
-> Tom: simples, direto, brasileiro, amigável. Nunca prometer ganho, nunca usar urgência falsa, nunca citar concorrentes, nunca escrever "100% seguro", "sem golpes" ou "compra garantida". Use "mais seguro", "verificado", "orientações anti-golpe".
+> Fonte de verdade: `docs/MODELO-DE-NEGOCIO.md`. Nome e domínio provisórios (Vendeu, vendeu.app); se mudarem, troque em todo o material.
+> Mensagem-mestra: **compra protegida pela plataforma.** Tudo acontece dentro do Vendeu, sem contato entre comprador e vendedor até o produto ser recebido; o pagamento fica retido no Mercado Pago; o comprador tem 7 dias para devolver; anunciar não custa nada e a comissão só existe quando a venda se conclui.
+> Tom: simples, direto, brasileiro, amigável.
+> **Pode dizer:** "pagamento retido até você receber", "contato só depois do recebimento", "7 dias para devolver", "dinheiro devolvido integralmente se devolver", "anunciar não custa nada".
+> **Não pode dizer:** "100% seguro", "compra garantida", "sem golpes", "o Vendeu garante o produto". Nunca use "grátis" sozinho (junte "só paga comissão quando a venda se conclui"). Nunca cite concorrentes. Não prometa pagamento por cartão do comprador. Não prometa nada específico sobre imóveis e automóveis.
+> Sempre que a peça falar de pagamento ou devolução, deixe claro (na legenda ou no card) que **o pagamento é processado pelo Mercado Pago e a moderação decide disputas.**
 > Link da bio e dos anúncios: https://vendeu.app (acrescente UTM por canal, por exemplo `?utm_source=instagram&utm_medium=organico&utm_campaign=lancamento`).
 > Os cards ficam em `docs/marketing/cards/` (veja o LEIA-ME).
 
@@ -13,409 +17,359 @@ Use como primeira linha da legenda (ou como texto do primeiro card). Teste uma p
 
 | | Gancho |
 |---|---|
-| A (direto) | **Anunciar é grátis. Você só paga quando vende.** |
-| B (pergunta) | **Tem algo parado em casa que ninguém usa mais?** |
-| C (conta clara) | **Vendeu por R$ 800? A taxa é R$ 30. Não vendeu? É R$ 0.** |
+| A (promessa) | **Compre e venda sem dar seu telefone. Seu dinheiro fica retido até você receber.** |
+| B (pergunta) | **E se o seu dinheiro só chegasse ao vendedor depois que você recebesse o produto?** |
+| C (conta clara) | **Receba, confira, 7 dias para devolver. Devolveu? O dinheiro volta inteiro.** |
 
 ---
 
 ## 2. Legendas prontas
 
-### L1. Carrossel "Anunciar é grátis, você só paga quando vende" (8 cards)
-Arquivos: `cards/carrossel-anunciar-gratis/1.png` a `8.png`
+### L1. Carrossel "Compra protegida" (8 cards)
+Arquivos: `cards/carrossel-compra-protegida/1.png` a `8.png`
 
 ```
-Anunciar é grátis. Você só paga quando vende. 💚
+Compre e venda sem dar seu telefone. Seu dinheiro fica retido até você receber. 💚
 
-No Vendeu você anuncia sem pagar nada. Se vender (ou alugar), retira o anúncio e paga uma taxa de sucesso a partir de R$ 15, por Pix ou cartão, em até 7 dias. Se não vender, retira de graça.
+No Vendeu a negociação acontece toda dentro da plataforma: o pagamento fica retido no Mercado Pago, telefone e e-mail só aparecem depois do recebimento e o comprador tem 7 dias para devolver. Devolveu? O dinheiro volta integralmente. Não devolveu? O valor vai para o vendedor, menos a comissão.
 
-👉 Passe os cards e veja como funciona, a tabela de taxas e como cuidamos da segurança.
+Anunciar não custa nada. A comissão só existe quando a venda se conclui.
+
+👉 Passe os cards e veja o passo a passo.
 
 🛋️ Móveis · 🏠 Imóveis · 🧸 Brinquedos · 🚗 Automóveis · 🍳 Utilidades para o lar · 📦 Outros
 Compra, Venda e Locação, com vitrines de Novos e Usados separadas.
 
+Pagamento processado pelo Mercado Pago. Em caso de disputa, a moderação do Vendeu decide com base nas informações do pedido.
+
 Comece agora: vendeu.app (link na bio)
 
-#vendeu #anunciargratis #vendausados #comprarperto #desapega #usados #brecho #moveisusados #aluguel #marketplace #classificados
+#vendeu #compraprotegida #pagamentoretido #comprarperto #vendausados #desapega #usados #antigolpe #moveisusados #aluguel #classificados
 ```
 
-### L2. Carrossel "Quanto custa vender?" (5 cards)
-Arquivos: `cards/carrossel-quanto-custa/1.png` a `5.png`
+### L2. Carrossel "Quanto custa vender?" (6 cards)
+Arquivos: `cards/carrossel-quanto-custa/1.png` a `6.png`
 
 ```
-Quanto custa vender no Vendeu? 🤔
+Quanto custa vender no Vendeu? 🧮
 
-Anunciar não custa nada. A taxa de sucesso só existe quando você vende:
-✅ Vendeu por R$ 120 → taxa de R$ 15
-✅ Vendeu por R$ 800 → taxa de R$ 30
-✅ Vendeu por R$ 3.500 → taxa de R$ 150 (R$ 100 + R$ 50 pelo bloco de R$ 1.000 acima de R$ 3.000)
+Anunciar não custa nada. A comissão só existe quando a venda se conclui e é descontada do valor repassado a você:
 
-Não vendeu? Retire o anúncio de graça.
+• Vendeu por R$ 120 → comissão R$ 15 → você recebe R$ 105
+• Vendeu por R$ 800 → comissão R$ 30 → você recebe R$ 770
+• Vendeu por R$ 3.500 → comissão R$ 150 → você recebe R$ 3.350
 
-Quer simular o seu preço? Tem calculadora em vendeu.app (link na bio).
+Se o comprador devolver dentro dos 7 dias, o dinheiro volta integralmente a ele e ninguém paga nada, nem comissão. Retirar um anúncio já publicado sem vender custa R$ 10.
 
-*O Vendeu é uma plataforma de anúncios: o pagamento da compra é combinado entre comprador e vendedor.
+Exemplos ilustrativos da tabela, sem promessa de venda. Tabela completa em vendeu.app (link na bio).
 
-#vendeu #quantocustavender #taxa #anunciargratis #vendausados #desapega #moveisusados #comprarperto #classificados #marketplace
+#vendeu #quantocustavender #comissao #vendausados #desapega #moveisusados #comprarperto #classificados #compraprotegida #usados
 ```
 
 ### L3. Carrossel "5 dicas anti-golpe" (6 cards)
 Arquivos: `cards/carrossel-5-dicas-anti-golpe/1.png` a `6.png`
 
 ```
-5 dicas para comprar e vender com mais segurança 🛡️
+5 dicas anti-golpe para comprar e vender 🛡️
 
-1️⃣ Veja o produto antes de pagar. Nada de Pix de sinal para quem você não conhece.
-2️⃣ Confirme o Pix no app do seu banco, não pelo print.
-3️⃣ Nunca passe códigos de SMS ou WhatsApp. O Vendeu nunca pede senha nem código.
-4️⃣ Converse pelo app: os alertas automáticos só funcionam lá. Desconfie de preço bom demais.
-5️⃣ Encontre-se em local público e movimentado, de dia, de preferência acompanhado.
+1. Nunca negocie fora do app.
+2. Só confirme "Recebi" com o produto na mão.
+3. Nunca passe códigos de SMS ou WhatsApp.
+4. Desconfie de pressa, pedido de telefone, link ou Pix antecipado.
+5. Retirada em local público e movimentado, de preferência de dia.
 
-Viu algo estranho? Denuncie o anúncio.
+No Vendeu, o pagamento fica retido no Mercado Pago e o contato só aparece depois do recebimento. Mesmo assim, nenhuma plataforma elimina todos os riscos: use sempre o bom senso. Salve este post. 💾
 
-Salve este post e compartilhe com quem vende ou compra pela internet. 💬
-
-#antigolpe #segurancaonline #golpedopix #dicasdeseguranca #vendeu #comprarcomseguranca #vendausados #desapega #educacaodigital #pix
+#antigolpe #segurancaonline #golpedopix #dicasdeseguranca #vendeu #compraprotegida #vendausados #desapega #educacaodigital #pix
 ```
 
 ### L4. Posts por categoria (1080×1080)
+Arquivos: `cards/posts-categorias/*.png`
 
-**Móveis** (`cards/posts-categorias/moveis.png`)
+**Móveis**
 ```
-Aquele sofá ou guarda-roupa que não cabe mais? 🛋️
+Aquele sofá ou guarda-roupa que não cabe mais? 🛋️ Anuncie no Vendeu sem mostrar seu telefone. Anunciar não custa nada; a comissão só existe quando a venda se conclui, e o pagamento fica retido no Mercado Pago até o recebimento.
 
-Anuncie no Vendeu: é grátis, e você só paga se vender. Vitrines de Novos e Usados separadas, para cada pessoa achar o que procura.
+Novos e Usados em abas separadas. vendeu.app (link na bio)
 
-👉 vendeu.app (link na bio)
-
-#vendeu #moveis #moveisusados #decoracao #desapega #mudanca #vendermoveis #casa #anunciargratis #usados
-```
-
-**Imóveis** (`cards/posts-categorias/imoveis.png`)
-```
-Vai vender ou alugar um imóvel? 🏠
-
-Anunciar no Vendeu é grátis. A taxa só vem depois do negócio fechado: e na locação ela é calculada sobre o valor mensal do aluguel, uma única vez.
-
-Compra, Venda e Locação em um só lugar.
-👉 vendeu.app (link na bio)
-
-#vendeu #imoveis #alugar #aluguel #vendaimoveis #apartamento #casa #anunciargratis #corretor #imoveisparaalugar
+#vendeu #moveis #moveisusados #decoracao #desapega #mudanca #vendermoveis #casa #compraprotegida #usados
 ```
 
-**Brinquedos** (`cards/posts-categorias/brinquedos.png`)
+**Imóveis**
 ```
-O brinquedo ficou pequeno pra criança? 🧸
+Tem um imóvel para vender ou alugar? 🏠 Anuncie na aba Compra, Venda ou Locação. Seu telefone não aparece no anúncio. Anunciar não custa nada; a comissão só existe quando a venda ou locação se conclui.
 
-Ele pode alegrar outra. Anuncie no Vendeu de graça e só pague se vender.
+vendeu.app (link na bio)
 
-👉 vendeu.app (link na bio)
-
-#vendeu #brinquedos #brinquedosusados #maternidade #desapega #criancas #brinquedoseducativos #anunciargratis #economia #usados
+#vendeu #imoveis #alugar #aluguel #vendaimoveis #apartamento #casa #imoveisparaalugar #classificados #locacao
 ```
 
-**Automóveis** (`cards/posts-categorias/automoveis.png`)
+**Brinquedos**
 ```
-Vai vender o carro ou a moto? 🚗
+O brinquedo que ficou pequeno pode alegrar outra criança. 🧸 Anuncie sem mostrar seu telefone: anunciar não custa nada e a comissão só existe quando a venda se conclui. Quem compra tem 7 dias para devolver.
 
-Anunciar no Vendeu é grátis e a taxa de sucesso só vale se você vender. Para automóveis, pedimos a placa e a declaração de origem em cada anúncio.
+vendeu.app (link na bio)
 
-👉 vendeu.app (link na bio)
-
-#vendeu #carrosusados #motos #automoveis #vendercarro #seminovos #anunciargratis #carros #usados #compraevenda
+#vendeu #brinquedos #brinquedosusados #maternidade #desapega #criancas #brinquedoseducativos #compraprotegida #economia #usados
 ```
 
-**Utilidades para o lar** (`cards/posts-categorias/utilidades-lar.png`)
+**Automóveis**
 ```
-Itens da casa parados no armário? 🍳
+Vai anunciar seu carro ou moto? 🚗 Seu telefone não aparece no anúncio e cada anúncio leva declaração de origem. Anunciar não custa nada; a comissão só existe quando a venda se conclui.
 
-Dê nova vida a eles: anuncie no Vendeu sem pagar para publicar. Você só paga se vender.
+vendeu.app (link na bio)
 
-👉 vendeu.app (link na bio)
-
-#vendeu #utilidadesdomesticas #casa #cozinha #desapega #organizacao #usados #anunciargratis #decoracao #economia
+#vendeu #carrosusados #motos #automoveis #vendercarro #seminovos #carros #usados #compraevenda #classificados
 ```
 
-**Outros** (`cards/posts-categorias/outros.png`)
+**Utilidades para o lar**
 ```
-Não achou a categoria? Anuncie em Outros. 📦
+Itens parados no armário? 🍳 Dê nova vida a eles e receba pelo Vendeu. O pagamento fica retido no Mercado Pago até o comprador receber, e anunciar não custa nada.
 
-E tem um detalhe: quando um mesmo produto aparece muito em Outros, o Vendeu cria automaticamente um grupo só para ele, para ficar mais fácil de achar.
+vendeu.app (link na bio)
 
-Anunciar é grátis. Você só paga quando vende.
-👉 vendeu.app (link na bio)
+#vendeu #utilidadesdomesticas #casa #cozinha #desapega #organizacao #usados #decoracao #compraprotegida #economia
+```
 
-#vendeu #outros #desapega #usados #anunciargratis #marketplace #classificados #compraevenda #novidade #comprarperto
+**Outros**
+```
+Não achou a categoria? 📦 Anuncie em Outros. Quando um mesmo produto aparece muito, o Vendeu cria automaticamente um grupo só para ele. Anunciar não custa nada; a comissão só existe quando a venda se conclui.
+
+vendeu.app (link na bio)
+
+#vendeu #outros #desapega #usados #marketplace #classificados #compraevenda #novidade #comprarperto #compraprotegida
 ```
 
 ### L5. Stories (1080×1920)
-Em Stories o texto vai no card; use figurinhas de link para https://vendeu.app e estes textos curtos.
+Arquivos: `cards/stories/`
 
-| Story | Arquivo | Figurinha/enquete | Texto curto |
-|---|---|---|---|
-| Chegou o Vendeu | `stories/lancamento.png` | Link: "Anunciar grátis" | Anunciar é grátis. Você só paga quando vende. |
-| Taxa | `stories/taxa.png` | Enquete: "Você já vendeu algo usado pela internet?" Sim / Ainda não | Vendeu por R$ 800? Taxa de R$ 30. Tabela completa no site. |
-| Anti-golpe | `stories/anti-golpe.png` | Caixa de perguntas: "Qual golpe você já viu?" | Pix antecipado? Nunca. Veja antes de pagar. |
-| Vendeu? Retire e pague | `stories/vendeu-retire.png` | Link: "Ver como funciona" | Vendeu? Retire o anúncio e pague só agora. Não vendeu? É grátis retirar. |
+| Story | Arquivo | Texto de apoio / figurinha |
+|---|---|---|
+| Lançamento | `lancamento.png` | Link: vendeu.app. Enquete: "Você já quase caiu em golpe de Pix?" |
+| Seu dinheiro fica retido | `dinheiro-retido.png` | Caixa de perguntas: "O que você quer saber sobre o pagamento retido?" |
+| Contato só depois de receber | `contato-depois.png` | Link: seção "Como funciona" da landing |
+| 7 dias para devolver | `sete-dias.png` | Link: vendeu.app + figurinha "Salve" |
 
 ### L6. Textos educativos extras (para o calendário)
-Use com um card simples (reaproveite os cards de categoria ou o carrossel) ou com foto própria.
 
-**E1. Boas fotos**
+**Como tirar boas fotos**
 ```
-Anúncio com boa foto é mais fácil de entender. 📸
+Boas fotos vendem mais. 📸 Luz natural, fundo limpo, ângulos diferentes e um close nos detalhes (marcas, riscos). No Vendeu as fotos ficam sem dados de localização (GPS).
 
-3 dicas simples: luz natural, fundo limpo e uma foto de cada ângulo (inclusive de detalhes e defeitos). Mostrar o defeito evita dor de cabeça na hora da entrega.
+Anunciar não custa nada; a comissão só existe quando a venda se conclui.
 
-No Vendeu, as fotos ficam sem dados de localização (GPS).
-
-#vendeu #dicasdevenda #fotosdeproduto #desapega #vendausados #anunciargratis #organizacao #economia #comprarperto #usados
+#vendeu #fotosdeproduto #dicasdevenda #desapega #vendausados #organizacao #economia #comprarperto #usados #compraprotegida
 ```
 
-**E2. Como pensar no preço**
+**Como definir o preço**
 ```
-Como definir o preço de um usado? 💭
+Quanto cobrar pelo usado? 💡 Pesquise itens parecidos, desconte o desgaste, seja honesto sobre defeitos. Lembre que a comissão é descontada do repasse: use a calculadora em vendeu.app para ver quanto você recebe.
 
-Olhe anúncios parecidos, considere o estado do produto e deixe uma pequena margem para conversa. E lembre: no Vendeu a taxa só existe se você vender, e está na tabela do site, sem surpresa.
-
-Calcule em vendeu.app (link na bio).
-
-#vendeu #precificacao #dicasdevenda #vendausados #desapega #usados #anunciargratis #economia #compraevenda #classificados
+#vendeu #precificacao #dicasdevenda #vendausados #desapega #usados #economia #compraevenda #classificados #comissao
 ```
 
-**E3. Novos x Usados**
+**Novos e Usados nunca se misturam**
 ```
-Novos e Usados em abas separadas. ✨♻️
+No Vendeu, Novos e Usados têm abas separadas. ✨♻️ Você sempre sabe o que está vendo, e uma busca nunca mistura as duas.
 
-No Vendeu, cada busca mostra um lado por vez. Você sabe exatamente o que está vendo, sem misturar.
-
-#vendeu #novosousados #usados #comprarperto #marketplace #vendausados #desapega #anunciargratis #classificados #compraevenda
+#vendeu #novosousados #usados #comprarperto #marketplace #vendausados #desapega #classificados #compraevenda #compraprotegida
 ```
 
-**E4. Verificação**
+**Por que verificamos quem anuncia**
 ```
-Quem anuncia no Vendeu é verificado. 🪪
+Quem anuncia no Vendeu passa por verificação de e-mail, telefone e identidade, conecta a conta Mercado Pago e assina a declaração de origem. Isso ajuda a deixar o ambiente mais confiável, mas nenhuma plataforma elimina todos os riscos. 🪪
 
-Pedimos documento com foto, selfie com o documento e comprovante de endereço, além de CPF ou CNPJ. E cada anúncio leva uma declaração de origem lícita assinada pelo anunciante.
-
-Nenhuma plataforma elimina todos os riscos: por isso também damos orientações anti-golpe e botão de denúncia.
-
-#vendeu #verificacao #antigolpe #segurancaonline #vendausados #comprarcomseguranca #marketplace #classificados #lgpd #desapega
+#vendeu #verificacao #antigolpe #segurancaonline #vendausados #compraprotegida #marketplace #classificados #lgpd #desapega
 ```
 
-**E5. Privacidade**
+**LGPD**
 ```
-Seu telefone não aparece no anúncio. 🔒
+Seus dados, seu controle. 🔐 No Vendeu você exporta e elimina seus dados quando quiser, e seu telefone e e-mail só aparecem para a outra parte do pedido depois do recebimento. O app não usa cookies de publicidade.
 
-A conversa acontece pelo app do Vendeu. Na sua conta você pode exportar e eliminar seus dados (LGPD) e o app não usa cookies de publicidade.
-
-#vendeu #lgpd #privacidade #protecaodedados #segurancaonline #marketplace #vendausados #anunciargratis #classificados #desapega
+#vendeu #lgpd #privacidade #protecaodedados #segurancaonline #marketplace #vendausados #classificados #desapega #compraprotegida
 ```
 
-**E6. Locação**
+**Locação**
 ```
-Tem imóvel ou outro bem para alugar? 🗝️
+Tem algo para alugar? 🔑 A aba Locação segue o mesmo fluxo: pagamento retido no Mercado Pago, contato só depois do recebimento e 7 dias para devolver. A comissão é sobre o valor do aluguel combinado, uma única vez.
 
-Anuncie na aba Locação do Vendeu, de graça. A taxa só vale quando você fechar o aluguel e retirar o anúncio, calculada sobre o valor mensal, uma vez só.
-
-#vendeu #locacao #alugar #aluguel #imoveis #anunciargratis #proprietario #alugarimovel #classificados #marketplace
+#vendeu #locacao #alugar #aluguel #imoveis #proprietario #alugarimovel #classificados #marketplace #compraprotegida
 ```
 
-**E7. "E se eu não vender?"**
+**Retirada em mãos e código**
 ```
-E se eu não vender? 🤷
+Retirada em mãos? 🔢 No app, o comprador vê um código de 6 dígitos e só o passa ao vendedor quando já estiver com o produto. O vendedor digita o código e isso confirma o recebimento. Sem o produto na mão, não passe o código.
 
-Sem problema: retire o anúncio quando quiser e você não paga nada. A taxa de sucesso só existe quando o negócio acontece.
-
-#vendeu #anunciargratis #vendausados #desapega #semmensalidade #compraevenda #classificados #marketplace #usados #economia
+#vendeu #retiradaemmaos #antigolpe #compraprotegida #vendausados #desapega #comprarperto #usados #dicasdeseguranca #classificados
 ```
 
-**E8. Vizinhança**
+**Por que não vejo o contato?**
 ```
-Comprar perto de casa é mais prático. 📍
+"Por que não vejo o telefone do vendedor?" 📵 De propósito. Até o produto ser recebido, a conversa fica dentro do Vendeu e o chat oculta telefone, e-mail, links e @usuário. Depois do recebimento, o contato aparece para os dois.
 
-Menos frete, menos espera e mais facilidade para ver o produto antes de pagar (que é a nossa dica número 1).
-
-Dê uma olhada nas vitrines em vendeu.app (link na bio).
-
-#vendeu #comprarperto #vizinhanca #usados #desapega #marketplace #vendausados #anunciargratis #bairro #economia
+#vendeu #antigolpe #compraprotegida #privacidade #segurancaonline #vendausados #desapega #comprarperto #classificados #usados
 ```
 
-**E9. Chamada final / lembrete de gratuidade**
+**Vizinhança**
 ```
-Anunciar no Vendeu é grátis. 💚
-Você só paga a taxa de sucesso quando vende e retira o anúncio, por Pix ou cartão, em até 7 dias.
+Comprar perto de casa é prático e sustentável. 🏘️ Procure no Vendeu o que você precisa antes de comprar novo.
 
-Crie sua conta: vendeu.app (link na bio)
+#vendeu #comprarperto #vizinhanca #usados #desapega #marketplace #vendausados #bairro #economia #compraprotegida
+```
 
-#vendeu #anunciargratis #vendausados #desapega #classificados #marketplace #compraevenda #usados #comprarperto #economia
+**Chamada geral**
+```
+Tem algo parado em casa? 💚 Anuncie no Vendeu: anunciar não custa nada, o pagamento fica retido até o comprador receber e a comissão só existe quando a venda se conclui.
+
+#vendeu #vendausados #desapega #compraprotegida #classificados #marketplace #compraevenda #usados #comprarperto #economia
 ```
 
 ---
 
 ## 3. Bio do Instagram e descrição da página do Facebook
 
-**Nome:** Vendeu | Compra, venda e locação
-
-**Bio do Instagram (até 150 caracteres):**
+**Bio do Instagram (até 150 caracteres)**
 ```
-Anunciar é grátis. Você só paga quando vende. 💚
-Compra · Venda · Locação
-👇 Crie seu anúncio
-```
-(Link: https://vendeu.app)
-
-**Descrição curta do Facebook (até 255 caracteres):**
-```
-Compra, venda e locação perto de você. Anunciar é grátis: você só paga a taxa de sucesso quando vende e retira o anúncio. Anunciantes verificados e orientações anti-golpe.
+Compre e venda sem dar seu telefone 💚 Dinheiro retido até você receber · 7 dias p/ devolver · Anunciar não custa nada 👇
 ```
 
-**Sobre (descrição longa do Facebook):**
+**Variações**
 ```
-O Vendeu é uma plataforma de anúncios para comprar, vender e alugar perto de você.
+Compra, venda e locação com pagamento retido no Mercado Pago. Anunciar não custa nada; comissão só quando a venda se conclui.
+```
+```
+Receba, confira, 7 dias para devolver. Contato só depois do recebimento. 👇 vendeu.app
+```
 
-• Anunciar é grátis. Você só paga quando vende (ou aluga) e retira o anúncio. Se não vender, retira de graça.
-• Categorias: Móveis, Imóveis, Brinquedos, Automóveis, Utilidades para o lar e Outros.
-• Vitrines de Novos e Usados separadas.
-• Anunciantes verificados, conversa dentro do app e orientações anti-golpe.
+**Descrição curta da página do Facebook (até 255 caracteres)**
+```
+Compra, venda e locação dentro da plataforma: pagamento retido no Mercado Pago até você receber, contato só depois do recebimento e 7 dias para devolver. Anunciar não custa nada; comissão só quando a venda se conclui.
+```
 
-O Vendeu não participa da negociação nem recebe o dinheiro da compra: o pagamento é combinado entre comprador e vendedor.
+**Descrição longa da página**
+```
+O Vendeu é uma plataforma de anúncios de Compra, Venda e Locação (móveis, imóveis, brinquedos, automóveis, utilidades para o lar e outros), com vitrines de Novos e Usados separadas.
 
-Site: https://vendeu.app · Suporte: suporte@vendeu.app
+Como funciona: o comprador faz o pedido e paga por Pix dentro do Vendeu; o dinheiro fica retido no Mercado Pago até o produto ser recebido. Telefone e e-mail só aparecem depois do recebimento. O comprador tem 7 dias para devolver: se devolver, recebe 100% de volta e ninguém paga nada; se não devolver, o valor é repassado ao vendedor, menos a comissão.
+
+Anunciar não custa nada. A comissão só existe quando a venda se conclui (a partir de R$ 15). Retirar um anúncio publicado sem vender custa R$ 10.
+
+O Vendeu é uma plataforma de anúncios e não garante o produto anunciado. O pagamento é processado pelo Mercado Pago e a moderação decide disputas com base nas informações do pedido.
+
+vendeu.app · suporte@vendeu.app
 ```
 
 ---
 
 ## 4. Anúncios pagos (Meta Ads)
 
-**Objetivo sugerido:** tráfego para o site (cliques no link) no começo; depois conversões (cadastro), quando o app tiver o evento configurado.
-**Destino:** https://vendeu.app?utm_source=meta&utm_medium=paid&utm_campaign=lancamento
-**Criativos:** carrossel L1 (`carrossel-anunciar-gratis`), carrossel L2, stories e posts por categoria.
-**Atenção às políticas da Meta:** divulgamos a plataforma, não anúncios individuais. Se a Meta classificar como categoria especial (imóveis/habitação), siga as restrições de segmentação exigidas.
+Objetivo sugerido: tráfego para o site (landing). Formatos: carrossel (L1), imagem única (`og-image.png` ou card 1 do carrossel) e stories.
 
 ### 3 textos principais
-1. `Tem algo parado em casa? Anuncie no Vendeu de graça e só pague quando vender. Sem mensalidade. Se não vender, retire o anúncio sem custo.`
-2. `Vendeu por R$ 800? A taxa é R$ 30. Não vendeu? É R$ 0. Conheça o Vendeu: compra, venda e locação perto de você, com anunciantes verificados.`
-3. `Comprar e vender usados com mais segurança: anunciantes verificados, conversa dentro do app e orientações anti-golpe. Anunciar é grátis.`
+1. `Compre e venda sem dar seu telefone. No Vendeu o pagamento fica retido no Mercado Pago até você receber, e você tem 7 dias para devolver. Anunciar não custa nada; comissão só quando a venda se conclui.`
+2. `Tem algo parado em casa? Anuncie no Vendeu sem mostrar seu telefone. O dinheiro só vai para você depois que o comprador receber e passar o prazo de devolução. Pagamento processado pelo Mercado Pago.`
+3. `Cansado de dar o seu WhatsApp para estranho? No Vendeu o contato só aparece depois do recebimento. Receba, confira, 7 dias para devolver.`
 
 ### 3 títulos (até 40 caracteres)
-1. `Anunciar é grátis` (17)
-2. `Só paga quando vende` (20)
-3. `Compra, venda e locação` (23)
+1. `Compre e venda sem dar seu telefone`
+2. `Dinheiro retido até você receber`
+3. `7 dias para devolver. Experimente.`
 
 ### 3 descrições (até 30 caracteres)
-1. `Sem mensalidade` (15)
-2. `Anunciantes verificados` (23)
-3. `Taxa só ao vender` (17)
+1. `Anunciar não custa nada`
+2. `Contato só depois de receber`
+3. `Comissão só se a venda fechar`
 
 ### Botão de chamada: "Saiba mais" ou "Cadastre-se"
 
 ### Públicos sugeridos (sem dados pessoais, só interesses e localização)
-Comece com 2 a 3 conjuntos e compare. Use a cidade/região do lançamento (a definir) com raio de 20 a 30 km.
+- 25 a 55 anos, raio de 15 a 30 km das cidades de lançamento; interesses: decoração, mudança, maternidade, usados/brechó, aluguel de imóveis.
+- Evite segmentação por dados sensíveis. Anúncios de imóveis e automóveis podem ter restrições de segmentação na Meta (categoria especial): confira antes.
+- Não use lista de contatos de terceiros. Para remarketing, só com aviso de cookies e consentimento (hoje a landing não usa pixel).
 
-| Público | Localização | Idade | Interesses (exemplos) |
-|---|---|---|---|
-| 1. Quem quer desapegar | Cidade-alvo + raio | 25 a 55 | Venda de garagem, Decoração de interiores, Organização da casa, Mudança de casa |
-| 2. Quem compra usados | Cidade-alvo + raio | 22 a 55 | Compras online, Mobiliário, Brechós e itens de segunda mão, Economia doméstica |
-| 3. Famílias | Cidade-alvo + raio | 25 a 45 | Pais e mães, Brinquedos, Itens infantis |
-| 4. Locação e imóveis | Cidade-alvo + raio | 28 a 60 | Imóveis, Aluguel de imóveis, Corretores (como interesse) |
-
-Regras: **não** suba listas de contatos de terceiros; **não** use públicos personalizados com dados que não tenham consentimento. Remarketing apenas com o pixel e somente se o aviso de cookies e a Política de Privacidade tiverem sido aprovados e o consentimento for coletado.
+### Orçamento de teste
+R$ 20 a R$ 30 por dia, 3 variações de texto × 1 card, por 5 dias. Mantenha a que tiver menor custo por clique no link.
 
 ---
 
 ## 5. Roteiros de Reels/TikTok (15 a 30 s)
 
-### Roteiro 1: "Quanto custa vender?" (20 s)
-| Cena | Imagem | Fala / texto na tela |
-|---|---|---|
-| 1 (0–3 s) | Pessoa segurando um objeto de casa, olhando para a câmera | "Quanto custa vender no Vendeu?" |
-| 2 (3–8 s) | Texto grande "Anunciar: R$ 0" sobre fundo verde | "Anunciar é grátis." |
-| 3 (8–15 s) | Tela do site com a calculadora; digitar 800 | "Vendeu por 800? A taxa é 30 reais." |
-| 4 (15–20 s) | Card final com QR/URL | "Não vendeu? Retire de graça. vendeu.app" |
+### Roteiro 1: "Compra protegida em 20 segundos" (20 s)
+- 0–3 s (texto na tela + fala): "Vender usado sem passar o seu telefone? Dá."
+- 3–8 s: mostre o app: pedido, Pix, "pagamento retido". Fala: "Aqui o pagamento fica retido no Mercado Pago até o comprador receber."
+- 8–14 s: mostre o chat com telefone oculto. Fala: "O contato só aparece depois do recebimento."
+- 14–18 s: card dos 7 dias. Fala: "E ainda tem 7 dias para devolver. Devolveu? O dinheiro volta inteiro."
+- 18–20 s: "Anunciar não custa nada. Vendeu ponto app." Legenda na tela: "Pagamento processado pelo Mercado Pago."
 
-**Legenda:** `Anunciar é grátis e você só paga quando vende. Simule o seu preço na calculadora: vendeu.app (link na bio) #vendeu #anunciargratis #vendausados #desapega #quantocustavender #comprarperto #classificados #marketplace #usados #dicasdevenda`
-
-### Roteiro 2: "Pix antecipado? Nunca." (25 s)
-| Cena | Imagem | Fala / texto na tela |
-|---|---|---|
-| 1 (0–3 s) | Mensagem de conversa (fictícia, sem dados reais) pedindo "sinal" | "Pediram Pix antes de mostrar o produto?" |
-| 2 (3–10 s) | Texto "Veja antes de pagar" | "Dica 1: veja o produto antes de pagar." |
-| 3 (10–17 s) | Celular abrindo o app do banco | "Dica 2: confirme o Pix no app do banco, não pelo print." |
-| 4 (17–22 s) | Texto "Nunca passe códigos" | "Dica 3: nunca passe códigos de SMS ou WhatsApp." |
-| 5 (22–25 s) | Logo e URL | "Mais dicas no carrossel. Vendeu: anunciar é grátis." |
-
-**Legenda:** `3 dicas rápidas para não cair em golpe de compra e venda. Salve e mande para quem vende pela internet. #antigolpe #golpedopix #segurancaonline #dicasdeseguranca #vendeu #vendausados #pix #comprarcomseguranca`
+### Roteiro 2: "Nunca negocie fora do app" (25 s)
+- 0–3 s: "Sabe o que todo golpista pede? O seu WhatsApp."
+- 3–10 s: encenação: mensagem "me chama no zap que eu fecho por fora".
+- 10–17 s: "Fora do app, não tem pagamento retido, não tem 7 dias, não tem moderação."
+- 17–23 s: "Só confirme 'Recebi' com o produto na mão, e nunca passe códigos."
+- 23–25 s: "Salve esse vídeo. Nenhuma plataforma elimina todos os riscos, mas aqui o contato fica oculto até a entrega."
 
 ### Roteiro 3: "O que eu tenho parado em casa" (30 s)
-| Cena | Imagem | Fala / texto na tela |
-|---|---|---|
-| 1 (0–4 s) | Armário/canto da casa com coisas paradas | "Olha o que eu tenho parado aqui." |
-| 2 (4–12 s) | Cortes rápidos: cadeira, brinquedo, panela | "Cadeira, brinquedo, panela… tudo isso pode virar dinheiro." |
-| 3 (12–20 s) | Celular fazendo o anúncio no app (use a tela real do app quando estiver pronta) | "No Vendeu eu anuncio de graça, com foto e preço." |
-| 4 (20–26 s) | Texto "Só paga se vender" | "Só pago uma taxa quando vendo. Se não vender, retiro sem custo." |
-| 5 (26–30 s) | URL | "Anuncie o seu: vendeu.app" |
-
-Obs.: "pode virar dinheiro" é só ilustrativo; não prometa valores. Se preferir, troque por "pode ganhar uma nova casa".
-
-**Legenda:** `Anunciar é grátis e você só paga quando vende. Qual é o primeiro item que você vai anunciar? 👇 #vendeu #desapega #anunciargratis #vendausados #organizacao #moveisusados #usados #classificados #economia`
+- 0–4 s: "Eu achei R$ 800 parados na minha sala." (mostre a mesa)
+- 4–12 s: tour rápido por 4 objetos (mesa, bicicleta, brinquedos, panelas).
+- 12–20 s: "Anunciei no Vendeu. Anunciar não custa nada e a comissão só existe quando a venda se conclui. Para R$ 800, são R$ 30: eu receberia R$ 770."
+- 20–27 s: "O comprador paga, o dinheiro fica retido, ele recebe e tem 7 dias para devolver. Só depois eu recebo."
+- 27–30 s: "Link na bio." Legenda: "Exemplo ilustrativo da tabela, sem promessa de venda."
 
 ---
 
 ## 6. Respostas-padrão (comentários e mensagens)
 
-| Situação | Resposta |
+| Pergunta | Resposta |
 |---|---|
-| Preço / "quanto custa?" | Anunciar no Vendeu é grátis! Você só paga uma taxa quando vende (ou aluga) e retira o anúncio. Ela começa em R$ 15 e depende do valor da venda. A tabela e uma calculadora estão em vendeu.app. 💚 |
-| Taxa / "qual a porcentagem?" | A taxa não é percentual: é um valor fixo por faixa. Ex.: vendeu por R$ 120, taxa de R$ 15; por R$ 800, R$ 30. Acima de R$ 3.000: R$ 100 + R$ 50 a cada R$ 1.000 (ou fração). Veja a tabela completa em vendeu.app. |
-| Segurança | Os anunciantes são verificados (documento, selfie e comprovante de endereço), a conversa é dentro do app com alertas automáticos e tem denúncia em cada anúncio. Nenhuma plataforma elimina todos os riscos, então também temos orientações anti-golpe: veja o produto antes de pagar e confirme o Pix no app do banco. |
-| "E se eu não vender?" | Sem problema: você retira o anúncio quando quiser e não paga nada. |
-| "Vocês recebem o dinheiro?" | Não. O Vendeu é uma plataforma de anúncios: o pagamento da compra é combinado entre comprador e vendedor. A única cobrança nossa é a taxa de sucesso, paga pelo vendedor. |
-| "Quando pago a taxa?" | Depois de vender e retirar o anúncio, por Pix ou cartão (Mercado Pago), em até 7 dias. |
-| "Tem celular/eletrônicos?" | Por enquanto as categorias são Móveis, Imóveis, Brinquedos, Automóveis, Utilidades para o lar e Outros. Em Outros você pode anunciar o que não cabe nas demais. |
-| "Já foi lançado? Onde baixo?" | Acesse vendeu.app para criar sua conta e começar. (Atualize esta resposta quando houver app nas lojas; hoje não prometemos isso.) |
-| Reclamação / problema | Sentimos muito! Pode nos escrever em suporte@vendeu.app com o link do anúncio? Vamos analisar. (Nunca peça senha, código ou dados de cartão pelas redes.) |
-| Suspeita de golpe | Obrigado por avisar. Use o botão "Denunciar" no anúncio ou escreva para suporte@vendeu.app. Não faça nenhum pagamento antecipado. |
-| Pedido de privacidade/dados | Escreva para privacidade@vendeu.app. Na sua conta também dá para exportar e eliminar seus dados. |
-| Elogio | Que bom! Obrigado pelo carinho. 💚 |
+| Quanto custa? | Anunciar não custa nada. A comissão só existe quando a venda se conclui, de R$ 15 (até R$ 150) em diante, e é descontada do repasse. A tabela e a calculadora estão em vendeu.app. |
+| E se o comprador devolver? | Ele tem 7 dias depois de receber. Se devolver, o dinheiro volta 100% ao comprador e ninguém paga nada, nem comissão. |
+| Quando o vendedor recebe? | Depois que o comprador confirma o recebimento e passam os 7 dias sem devolução, o valor é repassado, menos a comissão. |
+| Por que não aparece o telefone? | De propósito: o contato só aparece depois do recebimento. Antes, a conversa é pelo chat do Vendeu, que oculta telefone, e-mail e links. |
+| Posso combinar por fora? | Não recomendamos: o pagamento retido, os 7 dias e a moderação só valem dentro do Vendeu. |
+| É seguro? | Fazemos o possível para deixar o negócio mais protegido (pagamento retido no Mercado Pago, contato oculto, verificação de vendedores), mas nenhuma plataforma elimina todos os riscos. Veja as dicas anti-golpe em vendeu.app. |
+| O Vendeu garante o produto? | Não. O Vendeu é uma plataforma de anúncios. Se algo der errado, abra uma disputa no pedido; a moderação decide com base nas informações do pedido. |
+| Precisa de Mercado Pago? | Para vender, sim: o vendedor conecta a conta (login do próprio Mercado Pago; o Vendeu não vê senha nem dados bancários). O comprador paga por Pix dentro do Vendeu. |
+| Funciona para aluguel? | Sim, o fluxo é o mesmo. A comissão é sobre o valor do aluguel combinado, uma única vez. |
+| Posso pagar com cartão? | Por enquanto o pagamento é por Pix. (Não prometa outras formas até estarem no ar.) |
+| E se eu não vender? | Mantenha o anúncio ou pause sem custo. Retirar um anúncio publicado sem vender custa R$ 10. |
+| Quando abre na minha cidade? | Responda só com o que for verdade no dia; sem data confirmada, diga "em breve, siga a página para saber primeiro". |
+| Comentário negativo ou reclamação | Agradeça, peça os dados por mensagem privada (nunca senha, código ou documento) e encaminhe para suporte@vendeu.app. |
 
 ---
 
 ## 7. Calendário editorial: 30 dias
 
-Frequência: 1 publicação por dia (feed, Reels ou Stories). Stories diários podem repetir os 4 cards, alternando. O "Dia 1" é o dia de abertura da campanha (data a definir). Não marque datas de lançamento antes de confirmar o checklist do `KIT-LANCAMENTO.md`.
+Frequência: 1 post por dia no feed (ou 5 por semana) + stories 3 a 4 vezes por semana. Todos os posts levam o link da bio.
 
-| Dia | Formato | Tema | Legenda / referência |
-|---|---|---|---|
-| 1 | Carrossel + Stories | Abertura: anunciar é grátis | L1 (gancho A) + Story "lancamento" |
-| 2 | Story + enquete | Taxa de R$ 800 | Story "taxa" |
-| 3 | Post único | Categoria Móveis | L4 Móveis |
-| 4 | Reels | Quanto custa vender? | Roteiro 1 |
-| 5 | Carrossel | Quanto custa vender? (3 exemplos) | L2 |
-| 6 | Post único | Categoria Brinquedos | L4 Brinquedos |
-| 7 | Stories | Caixa de perguntas | Story "anti-golpe" |
-| 8 | Carrossel | 5 dicas anti-golpe | L3 |
-| 9 | Post único | Categoria Automóveis | L4 Automóveis |
-| 10 | Post/foto própria | Boas fotos | E1 |
-| 11 | Reels | Pix antecipado? Nunca | Roteiro 2 |
-| 12 | Post único | Categoria Utilidades para o lar | L4 Utilidades |
-| 13 | Post/Story | Novos x Usados | E3 |
-| 14 | Stories | Vendeu? Retire e pague | Story "vendeu-retire" |
-| 15 | Carrossel (reenvio) | Anunciar é grátis (gancho B) | L1 (gancho B) |
-| 16 | Post único | Categoria Imóveis | L4 Imóveis |
-| 17 | Post | Como pensar no preço | E2 |
-| 18 | Reels | O que eu tenho parado em casa | Roteiro 3 |
-| 19 | Post único | Categoria Outros | L4 Outros |
-| 20 | Post | Quem anuncia é verificado | E4 |
-| 21 | Stories | Enquete: "Você já vendeu usado online?" | Story "taxa" |
-| 22 | Post | Locação | E6 |
-| 23 | Carrossel (reenvio) | 5 dicas anti-golpe | L3 |
-| 24 | Post | Privacidade | E5 |
-| 25 | Post | E se eu não vender? | E7 |
-| 26 | Reels (reenvio) | Quanto custa vender? | Roteiro 1 com nova capa |
-| 27 | Post | Comprar perto de casa | E8 |
-| 28 | Carrossel (reenvio) | Quanto custa vender? (gancho C) | L2 (gancho C) |
-| 29 | Stories | Respostas aos comentários da semana | Use as respostas-padrão (seção 6) |
-| 30 | Post | Lembrete de gratuidade + chamada final | E9 |
-
-**Medição:** compare por semana cliques no link, cadastros e anúncios criados. Mantenha o que funcionou e substitua o que não deu resultado. Não divulgue números de usuários ou de anúncios sem dados reais e conferidos.
+| Dia | Formato | Peça |
+|---|---|---|
+| 1 | Carrossel | L1 Compra protegida |
+| 2 | Story | Lançamento |
+| 3 | Reels | Roteiro 1 |
+| 4 | Post | Móveis |
+| 5 | Story | Seu dinheiro fica retido |
+| 6 | Post | Texto: por que não vejo o contato |
+| 7 | Post | Utilidades para o lar |
+| 8 | Carrossel | L2 Quanto custa vender? |
+| 9 | Story | 7 dias para devolver |
+| 10 | Post | Brinquedos |
+| 11 | Reels | Roteiro 2 |
+| 12 | Post | Texto: retirada em mãos e código |
+| 13 | Story | Contato só depois de receber |
+| 14 | Post | Imóveis |
+| 15 | Carrossel | L3 5 dicas anti-golpe |
+| 16 | Post | Texto: como tirar boas fotos |
+| 17 | Story | Caixa de perguntas |
+| 18 | Post | Automóveis |
+| 19 | Post | Texto: Novos e Usados nunca se misturam |
+| 20 | Reels | Roteiro 3 |
+| 21 | Post | Outros |
+| 22 | Post | Texto: como definir o preço |
+| 23 | Story | Enquete: "o que você tem parado em casa?" |
+| 24 | Post | Texto: por que verificamos quem anuncia |
+| 25 | Post | Texto: locação |
+| 26 | Carrossel | Reprise L1 (outro horário) |
+| 27 | Post | Texto: LGPD |
+| 28 | Post | Texto: vizinhança |
+| 29 | Story | Respostas às perguntas da semana |
+| 30 | Post | Chamada geral |

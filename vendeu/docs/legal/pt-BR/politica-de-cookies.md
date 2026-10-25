@@ -6,7 +6,7 @@ Versão 2026-10-26
 
 ## 1. O que são cookies
 
-1.1. Cookies são pequenos arquivos guardados no seu navegador. O Vendeu usa **somente cookies essenciais**, sem os quais o aplicativo não funciona com segurança.
+1.1. Cookies são pequenos arquivos guardados no seu navegador. O Vendeu usa **somente cookies essenciais**, sem os quais o aplicativo não funciona com segurança. Na tela de pagamento, o Mercado Pago pode usar tecnologia própria de segurança (cláusula 6.2).
 
 ## 2. O que usamos
 
@@ -15,14 +15,13 @@ Versão 2026-10-26
 | Sessão (*httpOnly*) | Manter você conectado e identificar sua conta com segurança | Até o fim da sessão ou até [30] dias, se escolher continuar conectado | Essencial |
 | Proteção CSRF | Impedir que outros sites enviem ações em seu nome | Sessão | Essencial |
 | Preferências básicas (ex.: idioma, aviso já lido) | Lembrar escolhas simples | Até [12] meses | Essencial |
-
-| Mercado Pago (tela de cadastro de cartão) | Se o SDK/tela do Mercado Pago usar cookies ou identificador de dispositivo antifraude: segurança do pagamento | [a confirmar com o Mercado Pago] | [a confirmar com o Mercado Pago] |
+| Identificador antifraude do Mercado Pago (tela de pagamento do pedido e conexão da conta do vendedor) | Segurança do pagamento, controlado pelo Mercado Pago | [a confirmar com o Mercado Pago] | [a confirmar com o Mercado Pago] |
 
 [Ajustar a lista aos nomes reais dos cookies após a implementação.]
 
 ## 3. O que NÃO usamos
 
-3.1. **Não usamos cookies de publicidade**, de rastreamento entre sites nem de venda de perfil no aplicativo. Por isso não exibimos faixa de consentimento para cookies não essenciais.
+3.1. **Não usamos cookies de publicidade**, de rastreamento entre sites nem de venda de perfil no aplicativo. O Vendeu não usa pixels de anúncios nem ferramentas de remarketing. Por isso não exibimos faixa de consentimento para cookies não essenciais.
 
 3.2. Se, no futuro, usarmos cookies de análise ou publicidade, pediremos seu **consentimento** antes e atualizaremos esta Política.
 
@@ -38,7 +37,7 @@ Versão 2026-10-26
 
 6.1. Para prevenção à fraude, o Vendeu gera um **identificador de dispositivo em forma de código *hash***, associado ao registro de origem de ações relevantes (veja a Política de Privacidade, cláusula 4). Ele serve à segurança, não à publicidade.
 
-6.2. O SDK do Mercado Pago, na tela de cadastro de cartão, pode usar cookies ou identificador de dispositivo antifraude controlados pelo próprio Mercado Pago, sujeitos à política dele [a confirmar com o Mercado Pago].
+6.2. A tela de pagamento do Mercado Pago (onde o comprador paga o pedido e o vendedor conecta a conta por login) pode usar cookies ou identificador de dispositivo antifraude controlados pelo próprio Mercado Pago, sujeitos à política dele [a confirmar com o Mercado Pago]. Eles não são usados para publicidade pelo Vendeu.
 
 ## 7. Contato
 

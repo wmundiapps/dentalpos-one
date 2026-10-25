@@ -6,7 +6,7 @@ export function NotFound() {
   usePageTitle('Página não encontrada');
   return (
     <Empty icon="🧭" title="Página não encontrada">
-      O endereço pode estar errado ou a página mudou de lugar. <Link to="/compra">Ir para a vitrine</Link> ou <Link to="/venda">anunciar grátis</Link>.
+      O endereço pode estar errado ou a página mudou de lugar. <Link to="/compra">Ir para a vitrine</Link> ou <Link to="/venda">anunciar</Link>.
     </Empty>
   );
 }
