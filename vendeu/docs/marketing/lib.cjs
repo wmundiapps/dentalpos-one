@@ -55,7 +55,7 @@ p.sub{font-size:40px;line-height:1.35;margin-top:30px;font-weight:400;opacity:.9
 .step b{display:block;font-size:44px;line-height:1.15;font-weight:700}
 .step span{display:block;font-size:32px;line-height:1.3;opacity:.9;margin-top:6px}
 table.fees{width:100%;border-collapse:separate;border-spacing:0 10px;margin-top:26px}
-.fees td{font-size:36px;font-weight:600;padding:16px 28px;background:rgba(255,255,255,.14)}
+.fees td{font-size:36px;font-weight:600;padding:11px 28px;background:rgba(255,255,255,.14)}
 .fees td:first-child{border-radius:18px 0 0 18px}.fees td:last-child{border-radius:0 18px 18px 0;text-align:right;font-weight:800;color:#FFB703;font-size:40px;white-space:nowrap}
 .light .fees td{background:#fff}.light .fees td:last-child{color:#0B7A4B}
 .btn{display:inline-block;background:#FFB703;color:#102A43;font-weight:800;font-size:46px;padding:28px 52px;border-radius:24px;box-shadow:0 12px 30px rgba(0,0,0,.25)}

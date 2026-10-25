@@ -41,7 +41,7 @@ const FEES = [
     (n, t) => card('', n, t, `<div class="kicker">Taxa de sucesso</div><h1>Quanto custa <em>vender</em>?</h1><p class="sub">Anunciar é grátis. Veja 3 exemplos reais da tabela e descubra quanto você paga.</p>`),
     ex('R$ 120', 'R$ 15', 'R$ 105', 'Um brinquedo usado', 'até R$ 150'),
     ex('R$ 800', 'R$ 30', 'R$ 770', 'Uma mesa de jantar', 'R$ 500,01 a R$ 1.000'),
-    ex('R$ 3.500', 'R$ 150', 'R$ 3.350', 'Uma moto usada', 'acima de R$ 3.000: R$ 100 + R$ 50 pelo bloco de R$ 1.000'),
+    ex('R$ 3.500', 'R$ 150', 'R$ 3.350', 'Uma moto usada', 'acima de R$&nbsp;3.000: R$&nbsp;100 + R$&nbsp;50 pelo bloco de R$&nbsp;1.000'),
     (n, t) => card('yellow', n, t, `<h1>Não vendeu? <em>Retire de graça.</em></h1><p class="sub">Anuncie sem custo e só pague quando fechar negócio.</p>${cta('Anunciar grátis')}`, true, false),
   ];
   for (const [i, f] of B.entries()) await render(f(i + 1, B.length), 1080, 1350, out('carrossel-quanto-custa', `${i + 1}.png`));
@@ -73,8 +73,8 @@ const FEES = [
   // (e) Stories 1080x1920 (zonas seguras: 250 topo / 340 base)
   const st = (cls, inner, dark = true) => `<div class="c ${cls}" style="padding:250px 80px 340px">${blobs}<div style="position:absolute;left:80px;top:110px;z-index:2">${logo(70, dark)}</div><div class="body">${inner}</div></div>`;
   const stories = [
-    ['lancamento', st('', `<div class="kicker">Chegou o Vendeu</div><h1 style="font-size:104px">Anunciar é <em>grátis</em>.<br>Você só paga quando <em>vende</em>.</h1><p class="sub">O marketplace para comprar, vender e alugar perto de você.</p><div><span class="btn" style="margin-top:50px">Anunciar grátis</span></div><div class="url">${SHOW_URL}</div>`)],
-    ['taxa', st('light', `<div class="kicker">Taxa de sucesso</div><h1 style="font-size:96px;color:#102A43">Vendeu por <em>R$ 800</em>?</h1><div class="card" style="margin-top:50px;text-align:center"><div style="font-size:36px;font-weight:600;opacity:.7">Taxa</div><div style="font-size:150px;font-weight:800;color:#0B7A4B;line-height:1.1">R$ 30</div></div><p class="sub" style="color:#102A43">Anunciar é grátis. A taxa só vale quando você vende. Tabela completa em ${SHOW_URL}</p>`, false)],
+    ['lancamento', st('', `<div class="kicker">Chegou o Vendeu</div><h1 style="font-size:92px">Anunciar é <em>grátis</em>.<br>Você só paga quando <em>vende</em>.</h1><p class="sub">O marketplace para comprar, vender e alugar perto de você.</p><div><span class="btn" style="margin-top:50px">Anunciar grátis</span></div><div class="url">${SHOW_URL}</div>`)],
+    ['taxa', st('light', `<div class="kicker">Taxa de sucesso</div><h1 style="font-size:96px;color:#102A43">Vendeu por <em>R$&nbsp;800</em>?</h1><div class="card" style="margin-top:50px;text-align:center"><div style="font-size:36px;font-weight:600;opacity:.7">Taxa</div><div style="font-size:150px;font-weight:800;color:#0B7A4B;line-height:1.1">R$ 30</div></div><p class="sub" style="color:#102A43">Anunciar é grátis. A taxa só vale quando você vende. Tabela completa em ${SHOW_URL}</p>`, false)],
     ['anti-golpe', st('ink', `<div class="kicker">Anti-golpe</div><h1 style="font-size:96px">Pix antecipado? <em>Nunca.</em></h1><div class="list"><div><b>✅</b>Veja o produto antes de pagar</div><div><b>🏦</b>Confirme o Pix no app do banco</div><div><b>🔐</b>Nunca passe códigos</div><div><b>💬</b>Converse pelo app</div></div>`)],
     ['vendeu-retire', st('yellow', `<div class="kicker">Vendeu?</div><h1 style="font-size:104px">Retire o anúncio e <em>pague só agora</em>.</h1><p class="sub">Pix ou cartão, em até 7 dias. Não vendeu? Retirar é grátis.</p><div style="margin-top:50px"><div class="qrbox" style="box-shadow:0 10px 30px rgba(0,0,0,.15)"><img src="${qrImg}" width="260" height="260"></div></div><div class="url">${SHOW_URL}</div>`, false)],
   ];
