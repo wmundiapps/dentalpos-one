@@ -97,6 +97,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Equipe","/equipe",<GroupsIcon/>),
       item("CompletoDonto AI","/ceo-ia",<AutoAwesomeIcon/>),
       item("Assistente de IA","/assistente-ia",<AutoAwesomeIcon/>),
+      item("Estúdio de Marketing","/estudio-marketing",<AutoAwesomeIcon/>),
       // DPD oculto do menu em 20/09 por decisao do Robson. Rota e dados preservados.
             // item("CompletoDonto Design","/design",<DesignServicesIcon/>),
     ])

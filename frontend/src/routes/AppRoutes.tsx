@@ -36,6 +36,7 @@ const Feedback = lazy(() => import("../pages/Feedback"));
 const ClinicalTeam = lazy(() => import("../pages/ClinicalTeam"));
 const Channels = lazy(() => import("../pages/Channels"));
 const AiAssistant = lazy(() => import("../pages/AiAssistant"));
+const MarketingStudio = lazy(() => import("../pages/MarketingStudio"));
 const Credits = lazy(() => import("../pages/Credits"));
 const Financial = lazy(() => import("../pages/Financial"));
 const FinancialScanner = lazy(() => import("../pages/FinancialScanner"));
@@ -284,6 +285,7 @@ export default function AppRoutes() {
       <Route path="/corpo-clinico" element={<ClinicalTeam />} />
       <Route path="/canais-envio" element={<Channels />} />
         <Route path="/assistente-ia" element={<AiAssistant />} />
+        <Route path="/estudio-marketing" element={<MarketingStudio />} />
         <Route path="/creditos" element={<Credits />} />
       <Route path="/recall" element={<Recall />} />
 

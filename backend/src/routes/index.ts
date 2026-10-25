@@ -51,6 +51,7 @@ import * as salesController from '../controllers/salesController'
 import * as platformController from '../controllers/platformController'
 import * as revahSenderController from '../controllers/revahSenderController'
 import * as aiController from '../controllers/aiController'
+import * as marketingStudioController from '../controllers/marketingStudioController'
 import * as platformBillingController from '../controllers/platformBillingController'
 import * as revahChatbotController from '../controllers/revahChatbotController'
 import * as revahBridgeController from '../controllers/revahBridgeController'
@@ -478,6 +479,11 @@ router.get('/platform/storage', requirePermission('settings.view'), platformCont
 router.get('/platform/readiness', requireWmundiStaff, platformReadinessController.readiness)
 router.put('/platform/storage', requirePermission('settings.edit'), platformController.setStorage)
 router.get('/revah/senders', requirePermission('marketing.view'), revahSenderController.index)
+router.post('/marketing-studio/content', requirePermission('marketing.send'), marketingStudioController.content)
+router.get('/marketing-studio/avatar', requirePermission('marketing.view'), marketingStudioController.avatarShow)
+router.put('/marketing-studio/avatar', requirePermission('settings.edit'), marketingStudioController.avatarSave)
+router.post('/marketing-studio/video', requirePermission('marketing.send'), marketingStudioController.videoCreate)
+router.get('/marketing-studio/video/:id', requirePermission('marketing.send'), marketingStudioController.videoShow)
 router.get('/ai/balance', requirePermission('dashboard.view'), aiController.balance)
 router.get('/ai/statement', requirePermission('dashboard.view'), aiController.statement)
 router.post('/ai/run', requirePermission('dashboard.view'), aiController.run)
