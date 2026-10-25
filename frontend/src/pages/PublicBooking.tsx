@@ -1,3 +1,4 @@
+import CashbacksmartButton from "../components/CashbacksmartButton";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -131,6 +132,9 @@ export default function PublicBooking() {
           >
             Solicitação registrada na agenda da clínica. A confirmação será enviada automaticamente por WhatsApp.
           </Alert>
+        ) : null}
+        {sent ? (
+          <Box sx={{ mt: 2 }}><CashbacksmartButton audience="paciente" /></Box>
         ) : (
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
             <TextField

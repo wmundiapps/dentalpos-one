@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma'
 import { decryptSecret } from './secretVault'
 import { dispatchRevah, type RevahChannel } from './revahProviderService'
 import { processDunning } from './dunningService'
+import { cashbacksmartFooter } from './cashbacksmartPromo'
 import { processDailyLabRisk, processDueLabNotifications } from './labNotificationService'
 
 const AUTOMATIC_CHANNELS = ['WHATSAPP', 'SMS', 'TELEGRAM'] as const
@@ -193,7 +194,8 @@ export async function processDueAppointmentReminders() {
           ? `${message}\n\nAviso: há uma pendência financeira em aberto no seu cadastro. Para poder marcar novos horários, regularize com a clínica (reemissão de boleto, Pix ou cartão).`
           : message
 
-        const result = await dispatchRevah(channel, destination, text, credentials, sender?.address)
+        const finalText = text + cashbacksmartFooter(channel, reminder.type, appointment.status)
+        const result = await dispatchRevah(channel, destination, finalText, credentials, sender?.address)
 
         if (result.simulated) {
           await postponeWithError(reminder.id, `O provedor ${result.provider} está em modo simulado.`)
