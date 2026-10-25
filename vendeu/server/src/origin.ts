@@ -5,7 +5,7 @@ import { id, pool, type Db } from './db.js';
 import { clientIp, ipChain } from './http.js';
 import { hmac } from './secure.js';
 
-export type OriginEvent = 'signup' | 'login' | 'listing_create' | 'listing_publish' | 'message' | 'sale_close' | 'kyc_submit' | 'report';
+export type OriginEvent = 'signup' | 'login' | 'listing_create' | 'listing_publish' | 'message' | 'order' | 'sale_close' | 'kyc_submit' | 'report';
 
 export async function recordOrigin(req: Request, event: OriginEvent, who: { userId?: string; listingId?: string; email?: string | null; phone?: string | null }, db: Db = pool) {
   const device = req.headers['x-device-id'];

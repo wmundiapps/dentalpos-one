@@ -2,6 +2,7 @@
 import { config } from './config.js';
 import { many, pool } from './db.js';
 import { sendMail } from './mailer.js';
+import { processOrders } from './orders.js';
 import { refreshOutrosGroups } from './outros.js';
 import { formatBRL } from '../../shared/fees.js';
 
@@ -17,6 +18,8 @@ export async function runDaily() {
   // 2) trava novos anúncios de quem está com taxa vencida há mais de N dias
   const blocked = await pool.query(`UPDATE users SET fee_blocked_at = now() WHERE fee_blocked_at IS NULL AND id IN (
     SELECT seller_id FROM sales WHERE status = 'awaiting_payment' AND due_at + make_interval(days => $1) < now())`, [config.feeBlockAfterDays]);
+  // 2b) pedidos: expirar, receber automático, devolver sem envio, liberar repasse
+  const orders = await processOrders();
   // 3) grupos de "Outros"
   const outros = await refreshOutrosGroups();
   // 4) retenção: apaga registros de origem além do prazo e códigos/limites antigos
@@ -30,5 +33,5 @@ export async function runDaily() {
   } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
   await pool.query("DELETE FROM verification_codes WHERE created_at < now() - interval '2 days'");
   await pool.query("DELETE FROM rate_limits WHERE window_start < now() - interval '2 days'");
-  return { reminders: due.length, newlyBlocked: blocked.rowCount ?? 0, outros, purgedOriginRecords: purged };
+  return { reminders: due.length, newlyBlocked: blocked.rowCount ?? 0, outros, orders, purgedOriginRecords: purged };
 }

@@ -111,7 +111,8 @@ meRouter.use(requireAuth);
 meRouter.get('/', wrap(async (req, res) => {
   const u = await one(pool, 'SELECT * FROM users WHERE id = $1', [req.user!.id]);
   const owed = await one(pool, `SELECT COALESCE(sum(fee_cents),0)::bigint AS total, count(*)::int AS n FROM sales WHERE seller_id = $1 AND status = 'awaiting_payment'`, [u.id]);
-  res.json({ user: profileOf(u), feesDueCents: owed.total, feesDueCount: owed.n });
+  const pm = await one(pool, "SELECT kind FROM payment_methods WHERE user_id = $1 AND status = 'active'", [u.id]);
+  res.json({ user: profileOf(u), feesDueCents: owed.total, feesDueCount: owed.n, paymentMethod: pm ? { kind: pm.kind, connected: true } : null });
 }));
 
 meRouter.patch('/', wrap(async (req, res) => {

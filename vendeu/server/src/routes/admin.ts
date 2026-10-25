@@ -9,6 +9,7 @@ import { audit } from '../origin.js';
 import { outrosStats, refreshOutrosGroups } from '../outros.js';
 import { decryptBuffer, decryptText } from '../secure.js';
 import { markPaid } from '../sales.js';
+import { orderView, resolveDispute } from '../orders.js';
 
 export const adminRouter = Router();
 adminRouter.use(requireAdmin);
@@ -21,6 +22,9 @@ adminRouter.get('/dashboard', wrap(async (_req, res) => {
     reportsOpen: await q("SELECT count(*)::int AS n FROM reports WHERE status = 'open'"),
     dataRequestsOpen: await q("SELECT count(*)::int AS n FROM data_requests WHERE status = 'open'"),
     activeListings: await q("SELECT count(*)::int AS n FROM listings WHERE status = 'active'"),
+    ordersDisputed: await q("SELECT count(*)::int AS n FROM orders WHERE status = 'disputed'"),
+    heldCents: await q("SELECT COALESCE(sum(price_cents),0)::bigint AS n FROM orders WHERE status IN ('paid','shipped','received','return_requested','disputed')"),
+    commissionReleasedCents: await q("SELECT COALESCE(sum(commission_cents),0)::bigint AS n FROM orders WHERE status = 'released'"),
     salesFlagged: await q("SELECT count(*)::int AS n FROM sales WHERE flagged AND status IN ('awaiting_payment','paid')"),
     feesPaidCents: await q("SELECT COALESCE(sum(fee_cents),0)::bigint AS n FROM sales WHERE status = 'paid'"),
     feesPendingCents: await q("SELECT COALESCE(sum(fee_cents),0)::bigint AS n FROM sales WHERE status = 'awaiting_payment'"),
@@ -132,7 +136,7 @@ adminRouter.post('/sales/:id/waive', wrap(async (req, res) => {
   const s = await one(pool, "SELECT * FROM sales WHERE id = $1 AND status = 'awaiting_payment'", [req.params.id]);
   if (!s) throw new HttpError(404, 'not_found');
   await pool.query("UPDATE sales SET status = 'waived' WHERE id = $1", [s.id]);
-  await pool.query("UPDATE listings SET status = 'sold' WHERE id = $1", [s.listing_id]);
+  if (s.kind === 'success') await pool.query("UPDATE listings SET status = 'sold' WHERE id = $1", [s.listing_id]);
   await audit(req.user!.id, 'admin.sale.waive', 'sale', s.id, b, req);
   res.json({ ok: true });
 }));
@@ -142,6 +146,26 @@ adminRouter.post('/sales/:id/mark-paid', wrap(async (req, res) => {
   if (!s) throw new HttpError(404, 'not_found');
   await markPaid(String(req.params.id), s.fee_cents, { manual: true, by: req.user!.id });
   await audit(req.user!.id, 'admin.sale.mark_paid', 'sale', String(req.params.id), b, req);
+  res.json({ ok: true });
+}));
+
+// ---- pedidos (compra pela plataforma) ----
+adminRouter.get('/orders', wrap(async (req, res) => {
+  const status = z.enum(['disputed', 'return_requested', 'paid', 'shipped', 'received', 'released', 'refunded']).default('disputed').parse(req.query.status);
+  res.json({ items: await many(pool, `SELECT o.id, o.status, o.price_cents, o.commission_cents, o.delivery_mode, o.dispute_reason, o.dispute_by, o.return_reason, o.created_at, o.disputed_at, l.title,
+      b.full_name AS buyer_name, s.full_name AS seller_name FROM orders o JOIN listings l ON l.id = o.listing_id JOIN users b ON b.id = o.buyer_id JOIN users s ON s.id = o.seller_id
+      WHERE o.status = $1 ORDER BY o.created_at LIMIT 100`, [status]) });
+}));
+adminRouter.get('/orders/:id', wrap(async (req, res) => {
+  const o = await one(pool, 'SELECT * FROM orders WHERE id = $1', [req.params.id]);
+  if (!o) throw new HttpError(404, 'not_found');
+  await audit(req.user!.id, 'admin.order.view', 'order', o.id, {}, req);
+  res.json({ order: await orderView(o, req.user!.id, true), events: (await pool.query('SELECT event, note, actor_id, created_at FROM order_events WHERE order_id = $1 ORDER BY created_at', [o.id])).rows });
+}));
+adminRouter.post('/orders/:id/resolve', wrap(async (req, res) => {
+  const b = parse(z.object({ outcome: z.enum(['refund', 'release']), note: z.string().trim().min(5).max(500) }), req.body);
+  await resolveDispute(req.user!.id, String(req.params.id), b.outcome, b.note);
+  await audit(req.user!.id, 'admin.order.resolve', 'order', String(req.params.id), b, req);
   res.json({ ok: true });
 }));
 

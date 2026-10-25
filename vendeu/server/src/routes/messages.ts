@@ -5,11 +5,12 @@ import { id, many, one, pool } from '../db.js';
 import { HttpError, parse, wrap } from '../http.js';
 import { limit } from '../ratelimit.js';
 import { recordOrigin } from '../origin.js';
-import { scanMessage } from '../risk.js';
+import { maskContacts, scanMessage } from '../risk.js';
 
 export const messagesRouter = Router();
 messagesRouter.use(requireAuth);
 
+const MASK_NOTE = 'Contato ocultado: telefone, e-mail e links só são liberados depois que o comprador receber o produto. Negociar e pagar fora do Vendeu tira a proteção da compra.';
 const body = z.object({ body: z.string().trim().min(1).max(2000) });
 
 // Comprador abre conversa pelo anúncio
@@ -22,8 +23,10 @@ messagesRouter.post('/start/:listingId', limit('msg-start', 20, 3600, (r) => r.u
   const existing = await one(pool, 'SELECT id FROM conversations WHERE listing_id = $1 AND buyer_id = $2', [l.id, req.user!.id]);
   const convId = existing?.id ?? id('cnv');
   if (!existing) await pool.query('INSERT INTO conversations (id, listing_id, buyer_id, seller_id) VALUES ($1,$2,$3,$4)', [convId, l.id, req.user!.id, l.seller_id]);
+  const { text, masked } = maskContacts(b.body);
   const scan = scanMessage(b.body);
-  await pool.query('INSERT INTO messages (id, conversation_id, sender_id, body, flagged, flag_reason) VALUES ($1,$2,$3,$4,$5,$6)', [id('msg'), convId, req.user!.id, b.body, scan.flagged, scan.reasons.join(' | ') || null]);
+  if (masked) scan.reasons.push(MASK_NOTE);
+  await pool.query('INSERT INTO messages (id, conversation_id, sender_id, body, flagged, flag_reason) VALUES ($1,$2,$3,$4,$5,$6)', [id('msg'), convId, req.user!.id, text, scan.reasons.length > 0, scan.reasons.join(' | ') || null]);
   await pool.query('UPDATE conversations SET last_message_at = now() WHERE id = $1', [convId]);
   await recordOrigin(req, 'message', { userId: req.user!.id, listingId: l.id, email: req.user!.email });
   res.status(201).json({ conversationId: convId, warnings: scan.reasons });
@@ -55,8 +58,10 @@ messagesRouter.get('/:id', wrap(async (req, res) => {
 messagesRouter.post('/:id', limit('msg', 60, 3600, (r) => r.user!.id), wrap(async (req, res) => {
   const c = await mine(req);
   const b = parse(body, req.body);
+  const { text, masked } = maskContacts(b.body);
   const scan = scanMessage(b.body);
-  await pool.query('INSERT INTO messages (id, conversation_id, sender_id, body, flagged, flag_reason) VALUES ($1,$2,$3,$4,$5,$6)', [id('msg'), c.id, req.user!.id, b.body, scan.flagged, scan.reasons.join(' | ') || null]);
+  if (masked) scan.reasons.push(MASK_NOTE);
+  await pool.query('INSERT INTO messages (id, conversation_id, sender_id, body, flagged, flag_reason) VALUES ($1,$2,$3,$4,$5,$6)', [id('msg'), c.id, req.user!.id, text, scan.reasons.length > 0, scan.reasons.join(' | ') || null]);
   await pool.query('UPDATE conversations SET last_message_at = now() WHERE id = $1', [c.id]);
   res.status(201).json({ warnings: scan.reasons });
 }));

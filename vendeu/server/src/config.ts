@@ -10,6 +10,18 @@ export const config = {
   /** Origens aceitas em requisições que alteram dados (proteção contra CSRF). */
   allowedOrigins: (env.ALLOWED_ORIGINS ?? env.APP_URL ?? 'http://localhost:5173,http://localhost:4100').split(',').map((s) => s.trim()).filter(Boolean),
   /** Teto opcional da taxa em centavos (0 = sem teto). Decisão comercial: ver README. */
+  /** Taxa fixa para retirar anúncio publicado sem vender (centavos). */
+  removalFeeCents: num(env.REMOVAL_FEE_CENTS, 1000),
+  /** Compra pela plataforma (dinheiro retido até o recebimento). */
+  escrow: {
+    returnDays: num(env.RETURN_DAYS, 7),                       // prazo de devolução depois do recebimento
+    offerHours: num(env.OFFER_HOURS, 48),                      // vendedor responde à proposta
+    payHours: num(env.PAY_HOURS, 24),                          // comprador paga depois de aceita a proposta
+    shipDays: num(env.SHIP_DAYS, 5),                           // vendedor envia depois do pagamento
+    autoReceiveDays: num(env.AUTO_RECEIVE_DAYS, 10),           // sem resposta do comprador depois do envio = recebido
+    returnConfirmDays: num(env.RETURN_CONFIRM_DAYS, 10),       // vendedor confirma a devolução; sem resposta = disputa
+    minOfferRatio: num(env.MIN_OFFER_RATIO, 0.5),
+  },
   feeCapCents: num(env.FEE_CAP_CENTS, 0),
   /** Dias para pagar a taxa depois de marcar como vendido. */
   feeDueDays: num(env.FEE_DUE_DAYS, 7),
@@ -36,6 +48,8 @@ export const config = {
     provider: (env.PAYMENT_PROVIDER ?? (env.MP_ACCESS_TOKEN ? 'mercadopago' : 'mock')) as 'mock' | 'mercadopago',
     mpToken: env.MP_ACCESS_TOKEN ?? '',
     mpWebhookSecret: env.MP_WEBHOOK_SECRET ?? '',
+    mpClientId: env.MP_CLIENT_ID ?? '',     // aplicativo Mercado Pago (marketplace) para o vendedor conectar a conta
+    mpClientSecret: env.MP_CLIENT_SECRET ?? '',
   },
   smtp: { host: env.SMTP_HOST ?? '', port: num(env.SMTP_PORT, 587), user: env.SMTP_USER ?? '', pass: env.SMTP_PASS ?? '', from: env.MAIL_FROM ?? 'Vendeu <nao-responda@vendeu.app>' },
   blobToken: env.BLOB_READ_WRITE_TOKEN ?? '',

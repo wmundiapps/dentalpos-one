@@ -19,6 +19,8 @@ export async function exportUserData(userId: string) {
     mensagens: await q('SELECT m.body, m.created_at, c.listing_id FROM messages m JOIN conversations c ON c.id = m.conversation_id WHERE m.sender_id = $1 ORDER BY m.created_at'),
     vendasETaxas: await q('SELECT id, listing_id, declared_price_cents, fee_cents, status, receipt_number, created_at, paid_at FROM sales WHERE seller_id = $1'),
     documentosDeVerificacao: await q('SELECT kind, mime, size, created_at FROM kyc_documents WHERE user_id = $1'),
+    meioDeRecebimento: await q('SELECT kind, status, created_at FROM payment_methods WHERE user_id = $1 ORDER BY created_at'),
+    pedidos: await q('SELECT id, listing_id, price_cents, commission_cents, status, delivery_mode, created_at, received_at, released_at, refunded_at FROM orders WHERE buyer_id = $1 OR seller_id = $1 ORDER BY created_at'),
     solicitacoes: await q('SELECT kind, details, status, created_at, resolved_at FROM data_requests WHERE user_id = $1'),
   };
 }
@@ -31,9 +33,13 @@ export async function exportUserData(userId: string) {
 export async function deleteAccount(userId: string) {
   const owed = await one(pool, "SELECT count(*)::int AS n FROM sales WHERE seller_id = $1 AND status = 'awaiting_payment'", [userId]);
   if (owed.n > 0) throw new HttpError(409, 'pending_fees');
+  const open = await one(pool, "SELECT count(*)::int AS n FROM orders WHERE (buyer_id = $1 OR seller_id = $1) AND status IN ('offered','awaiting_payment','paid','shipped','received','return_requested','disputed')", [userId]);
+  if (open.n > 0) throw new HttpError(409, 'orders_in_progress');
   await tx(async (c) => {
     await c.query("UPDATE listings SET status = 'removed', removed_reason = 'conta eliminada', closed_at = now() WHERE seller_id = $1 AND status NOT IN ('sold','removed')", [userId]);
     await c.query('DELETE FROM kyc_documents WHERE user_id = $1', [userId]);
+    await c.query("UPDATE payment_methods SET status = 'removed', removed_at = now(), access_token_enc = NULL, refresh_token_enc = NULL WHERE user_id = $1 AND status = 'active'", [userId]);
+    await c.query('UPDATE orders SET ship_to_enc = NULL WHERE buyer_id = $1', [userId]);
     await c.query("UPDATE messages SET body = '[mensagem removida a pedido do titular]', flagged = false WHERE sender_id = $1", [userId]);
     await c.query("DELETE FROM uploads WHERE owner_id = $1 AND kind = 'photo' AND id NOT IN (SELECT upload_id FROM listing_photos lp JOIN listings l ON l.id = lp.listing_id WHERE l.status = 'sold')", [userId]);
     await c.query(

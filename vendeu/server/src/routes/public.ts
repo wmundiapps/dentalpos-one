@@ -15,10 +15,10 @@ import { recordOrigin } from '../origin.js';
 export const publicRouter = Router();
 
 publicRouter.get('/config', (_req, res) => {
-  res.json({ brand: BRAND, operations: OPERATIONS, conditions: CONDITIONS, categories: CATEGORIES, feeCapCents: config.feeCapCents, company: config.company, feeDueDays: config.feeDueDays, publishRequiresKyc: !config.allowUnverifiedPublish });
+  res.json({ brand: BRAND, operations: OPERATIONS, conditions: CONDITIONS, categories: CATEGORIES, feeCapCents: config.feeCapCents, removalFeeCents: config.removalFeeCents, returnDays: config.escrow.returnDays, company: config.company, feeDueDays: config.feeDueDays, publishRequiresKyc: !config.allowUnverifiedPublish });
 });
 
-publicRouter.get('/fees', (_req, res) => { res.json({ table: feeTable(), capCents: config.feeCapCents, rule: 'Anunciar é grátis. A taxa é cobrada só quando você vende (ou aluga) e retira o anúncio. Acima de R$ 3.000, a taxa de R$ 100 sobe R$ 50 a cada R$ 1.000 (ou fração).' }); });
+publicRouter.get('/fees', (_req, res) => { res.json({ table: feeTable(), capCents: config.feeCapCents, removalFeeCents: config.removalFeeCents, rule: 'Anunciar não custa nada. A comissão só existe quando a venda (ou aluguel) se conclui: ela é descontada do repasse ao vendedor depois do recebimento e do prazo de devolução. Se retirar um anúncio publicado sem vender, a taxa de retirada é fixa. Acima de R$ 3.000, a taxa de R$ 100 sobe R$ 50 a cada R$ 1.000 (ou fração).' }); });
 publicRouter.get('/fees/calc', wrap(async (req, res) => {
   const { priceCents } = parse(z.object({ priceCents: z.coerce.number().int().min(MIN_PRICE_CENTS).max(MAX_PRICE_CENTS) }), req.query);
   const feeCents = calcFeeCents(priceCents, config.feeCapCents);

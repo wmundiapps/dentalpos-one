@@ -50,3 +50,10 @@ export function declarationText(p: { signerName: string; listingTitle: string; o
     '7. Sei que, ao vender ou alugar, devo encerrar o anúncio pelo Vendeu e pagar a taxa de sucesso da tabela vigente.',
   ].join('\n');
 }
+
+/** Autorização do vendedor: receber pelo Mercado Pago, retenção até o recebimento + devolução, comissão e taxa de retirada. */
+export const PAYMENT_AUTH_VERSION = '2026-10-26';
+export const PAYMENT_AUTH_TEXT = [
+  'Conecto minha conta do Mercado Pago ao Vendeu e autorizo que as vendas e locações dos meus anúncios sejam pagas por ela. O pagamento fica retido no Mercado Pago até o comprador receber o produto e passar o prazo de devolução de 7 dias; depois o valor é repassado a mim, descontada a comissão da tabela vigente. Se houver devolução, o valor é devolvido ao comprador e nenhuma comissão é devida.',
+  'Se eu retirar um anúncio publicado sem ter vendido, pago a taxa de retirada de R$ 10,00. Os dados de contato do comprador só são liberados depois do recebimento, e eu não devo combinar pagamento ou entrega fora do Vendeu.',
+].join('\n');

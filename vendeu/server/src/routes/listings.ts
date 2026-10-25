@@ -11,6 +11,7 @@ import { evaluateListing, norm } from '../risk.js';
 import { recordOrigin } from '../origin.js';
 import { DECLARATION_VERSION, declarationText, SELLER_TERMS } from '../legal.js';
 import { hasAccepted, recordAcceptance } from '../accounts.js';
+import { activeMethod } from './paymentMethod.js';
 import { refreshOutrosGroups } from '../outros.js';
 import { sha256 } from '../secure.js';
 import { CATEGORY_SLUGS, CONDITIONS, MAX_PHOTOS, MIN_PHOTOS, OPERATIONS, ORIGIN_KINDS, ORIGIN_KIND_VALUES, REGISTERED_ASSET } from '../../../shared/catalog.js';
@@ -75,7 +76,7 @@ listingsRouter.get('/:id', wrap(async (req, res) => {
     FROM listings l JOIN users u ON u.id = l.seller_id WHERE l.id = $1`, [req.params.id]);
   const isOwner = !!l && req.user?.id === l.seller_id;
   const isAdmin = req.user?.role === 'admin';
-  if (!l || (l.status !== 'active' && !isOwner && !isAdmin)) throw new HttpError(404, 'not_found');
+  if (!l || (!['active', 'reserved'].includes(l.status) && !isOwner && !isAdmin)) throw new HttpError(404, 'not_found');
   if (!isOwner) await pool.query('UPDATE listings SET views = views + 1 WHERE id = $1', [l.id]);
   const photos = await many(pool, `SELECT p.id, u.url FROM listing_photos p JOIN uploads u ON u.id = p.upload_id WHERE p.listing_id = $1 ORDER BY p.position, p.created_at`, [l.id]);
   res.json({
@@ -215,6 +216,7 @@ listingsRouter.post('/:id/publish', requireAuth, limit('publish', 30, 3600, (r) 
   if (!['draft', 'rejected', 'paused'].includes(l.status)) throw new HttpError(409, 'invalid_status');
   if (!u.email_verified_at || !u.phone_verified_at) throw new HttpError(422, 'contact_not_verified');
   if (u.kyc_status !== 'verified' && !config.allowUnverifiedPublish) throw new HttpError(403, 'kyc_required', { kycStatus: u.kyc_status });
+  if (!(await activeMethod(u.id))) throw new HttpError(402, 'payment_method_required');
   const b = parse(publishSchema, req.body);
   if (!sameName(b.signerName, u.full_name)) throw new HttpError(422, 'signer_name_mismatch');
   const asset = REGISTERED_ASSET[l.category as keyof typeof REGISTERED_ASSET];

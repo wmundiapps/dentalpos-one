@@ -59,3 +59,15 @@ export function scanMessage(body: string): { flagged: boolean; reasons: string[]
   const reasons = MSG.filter(([re]) => re.test(t)).map(([, m]) => m);
   return { flagged: reasons.length > 0, reasons };
 }
+
+/** Esconde telefone, e-mail, link e @usuário nas mensagens: o contato só é liberado depois do recebimento. */
+export function maskContacts(body: string): { text: string; masked: boolean } {
+  let masked = false;
+  const hide = (re: RegExp) => { body = body.replace(re, () => { masked = true; return '[contato oculto]'; }); };
+  hide(/[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+/gi);
+  hide(/(https?:\/\/|www\.)\S+/gi);
+  hide(/(\+?55\s?)?\(?\d{2}\)?[\s.-]?9?\d{4}[\s.-]?\d{4}/g);
+  hide(/(?<![\w])@[a-z0-9_.]{3,}/gi);
+  hide(/\b(?:\d[\s.-]?){9,}\b/g);
+  return { text: body, masked };
+}

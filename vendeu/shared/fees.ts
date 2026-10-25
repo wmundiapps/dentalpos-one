@@ -19,6 +19,9 @@ export const FEE_STEP_INCREMENT_CENTS = 50_00;
 export const FEE_BASE_ABOVE_CENTS = 100_00;
 export const FEE_TOP_TIER_LIMIT_CENTS = 3_000_00;
 
+/** Retirar um anúncio já publicado sem ter vendido/alugado: taxa fixa (centavos). */
+export const REMOVAL_FEE_CENTS = 10_00;
+
 /** Valor mínimo/máximo aceito para anúncio (evita R$ 0 e erros de digitação). */
 export const MIN_PRICE_CENTS = 1_00;
 export const MAX_PRICE_CENTS = 100_000_000_00;

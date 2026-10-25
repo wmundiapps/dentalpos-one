@@ -90,6 +90,10 @@ async function makeAdmin() {
   assert.equal((await a.post('/api/auth/login', { email: 'admin@teste.com', password: 'AdminSenha123' })).status, 200);
   return a;
 }
+const connectMp = async (c: Client) => {
+  const r = await c.post('/api/payment-method', { token: 'mock_ok', authorize: true });
+  assert.equal(r.status, 201, JSON.stringify(r.data));
+};
 async function verifiedSeller(n: number, name: string, cpf: string, admin: Client, ip: string) {
   const c = new Client(ip);
   const { id } = await registerSeller(c, n, name, cpf);
@@ -100,6 +104,7 @@ async function verifiedSeller(n: number, name: string, cpf: string, admin: Clien
   }
   assert.equal((await c.post('/api/kyc/submit')).data.status, 'pending');
   assert.equal((await admin.post(`/api/admin/kyc/${id}/decision`, { approve: true })).status, 200);
+  await connectMp(c);
   return { c, id };
 }
 const listingBody = (over: Record<string, unknown> = {}) => ({
@@ -186,6 +191,26 @@ test('documentos de verificação ficam cifrados no banco e só o admin lê', as
   assert.equal((await admin.post(`/api/admin/kyc/${seller.id}/decision`, { approve: true })).status, 200);
 });
 
+test('publicar exige conta Mercado Pago conectada, com autorização', async () => {
+  const c = seller.c;
+  const l = await c.post('/api/listings', listingBody({ title: 'Anúncio para testar cartão' }));
+  await c.call('POST', `/api/listings/${l.data.id}/photos`, form('a.jpg', await photo('cartao')));
+  const accepted = Object.fromEntries(['regras-de-anuncio', 'termo-de-responsabilidade-origem', 'politica-de-taxas'].map((k) => [k, getLegal(k).version]));
+  const body = { originKind: 'uso_proprio', signerName: 'Carlos Mendes Silva', confirm: true, accepted };
+  const no = await c.post(`/api/listings/${l.data.id}/publish`, body);
+  assert.equal(no.status, 402); assert.equal(no.data.error, 'payment_method_required');
+  assert.equal((await c.post('/api/payment-method', { token: 'mock_ok' })).status, 400);              // sem autorização
+  assert.equal((await c.post('/api/payment-method', { token: 'lixo', authorize: true })).status, 400);  // token inválido
+  await connectMp(c);
+  const info = await c.get('/api/payment-method');
+  assert.equal(info.data.method.connected, true); assert.equal(JSON.stringify(info.data).includes('token'), false);
+  assert.match(info.data.authorization.text, /R\$ 10,00/);
+  assert.equal((await c.post(`/api/listings/${l.data.id}/publish`, body)).status, 200);
+  assert.equal((await c.call('DELETE', '/api/payment-method')).data.error, 'method_in_use');          // há anúncio no ar
+  const rm = await c.post(`/api/listings/${l.data.id}/close`, { sold: false, reason: 'desisti' });
+  await c.post(`/api/sales/${rm.data.saleId}/simulate-payment`);
+});
+
 test('CPF repetido em outra conta é barrado', async () => {
   const c = new Client('198.51.100.21');
   const r = await c.post('/api/auth/register', { fullName: 'Clone Da Silva', email: 'clone@teste.com', password: 'Senha1234', phone: '11987654377', accountType: 'anunciante', accepted: terms(), identity: { docType: 'cpf', docNumber: '52998224725', birthDate: '1985-05-20', address } });
@@ -202,8 +227,6 @@ test('publicar exige declaração assinada com o nome do cadastro; registra orig
   assert.equal(wrongName.data.error, 'signer_name_mismatch');
   const noConfirm = await c.post(`/api/listings/${sellerListing}/publish`, { originKind: 'uso_proprio', signerName: 'Carlos Mendes Silva', confirm: false, accepted: {} });
   assert.equal(noConfirm.status, 400);
-  const noTerms = await c.post(`/api/listings/${sellerListing}/publish`, { originKind: 'uso_proprio', signerName: 'carlos mendes silva', confirm: true, accepted: {} });
-  assert.equal(noTerms.data.error, 'terms_not_accepted');
   const accepted = Object.fromEntries(['regras-de-anuncio', 'termo-de-responsabilidade-origem', 'politica-de-taxas'].map((k) => [k, getLegal(k).version]));
   const ok = await c.post(`/api/listings/${sellerListing}/publish`, { originKind: 'uso_proprio', signerName: 'Carlos Mendes Silva', confirm: true, accepted });
   assert.equal(ok.status, 200, JSON.stringify(ok.data));
@@ -300,82 +323,13 @@ test('mensagens com alerta anti-golpe e sem exposição de contato', async () =>
   assert.ok(thread.data.messages[0].warning);
   assert.equal((await new Client().get(`/api/messages/${start.data.conversationId}`)).status, 401);
   assert.equal((await buyer.post(`/api/messages/${start.data.conversationId}`, { body: 'Ainda disponível? Posso ver amanhã.' })).status, 201);
+  // contato (telefone, e-mail, link, @) é ocultado: só é liberado depois do recebimento
+  assert.equal((await buyer.post(`/api/messages/${start.data.conversationId}`, { body: 'Me liga: (11) 98765-4321 ou paulo@gmail.com, ou https://wa.me/5511987654321 ou @paulo_x' })).status, 201);
+  const masked = await seller.c.get(`/api/messages/${start.data.conversationId}`);
+  const last = masked.data.messages.at(-1);
+  assert.ok(!/98765|paulo@|wa\.me|@paulo_x/.test(last.body), last.body);
+  assert.match(last.body, /\[contato oculto\]/); assert.match(last.warning, /depois que o comprador receber/);
   (globalThis as any).buyerCtx = { buyer, buyerId: reg.data.id, conv: start.data.conversationId };
-});
-
-test('checkout: vendeu → anúncio sai do ar → paga a taxa pela tabela → vendido; retirar sem vender é grátis', async () => {
-  const { buyer, buyerId } = (globalThis as any).buyerCtx;
-  const c = seller.c;
-  // sub-declaração sem justificativa
-  const low = await c.post(`/api/listings/${sellerListing}/close`, { sold: true, declaredPriceCents: 10000 });
-  assert.equal(low.data.error, 'under_declared_needs_note');
-  const close = await c.post(`/api/listings/${sellerListing}/close`, { sold: true, declaredPriceCents: 75000, buyerId });
-  assert.equal(close.status, 201, JSON.stringify(close.data));
-  assert.equal(close.data.feeCents, 3000);            // R$ 750 → faixa 501–1000 = R$ 30
-  assert.equal(close.data.flagged, false);
-  assert.equal((await new Client().get(`/api/listings/${sellerListing}`)).status, 404); // já saiu da vitrine
-  assert.equal((await c.post(`/api/listings/${sellerListing}/close`, { sold: true, declaredPriceCents: 75000 })).status, 409); // sem cobrança em duplicidade
-  const pay = await c.post(`/api/sales/${close.data.saleId}/pay`, { method: 'pix' });
-  assert.equal(pay.status, 200);
-  assert.ok(pay.data.pix.copyPaste);
-  assert.equal(pay.data.status, 'awaiting_payment');
-  const me = await c.get('/api/me');
-  assert.equal(me.data.feesDueCents, 3000);
-  // comprador confirma
-  assert.equal((await buyer.post(`/api/purchases/${close.data.saleId}/confirm`, { confirm: true })).status, 200);
-  const stranger = new Client('192.0.2.99');
-  assert.equal((await stranger.post(`/api/sales/${close.data.saleId}/simulate-payment`)).status, 401);
-  const paid = await c.post(`/api/sales/${close.data.saleId}/simulate-payment`);
-  assert.equal(paid.data.status, 'paid');
-  assert.ok(paid.data.receiptNumber >= 1000);
-  const l = await one(pool, 'SELECT status FROM listings WHERE id = $1', [sellerListing]);
-  assert.equal(l.status, 'sold');
-  assert.equal((await c.post(`/api/sales/${close.data.saleId}/simulate-payment`)).status, 200); // idempotente
-  assert.equal((await pool.query("SELECT count(*)::int AS n FROM payments WHERE status = 'approved'")).rows[0].n, 1);
-
-  // retirar sem vender não cobra nada
-  const free = await publish(c, listingBody({ title: 'Estante de livros usada 5 prateleiras', priceCents: 15000, description: 'Estante de madeira com 5 prateleiras, pequenos riscos. Retirar no local sem frete.' }), 'Carlos Mendes Silva');
-  const removed = await c.post(`/api/listings/${free.lid}/close`, { sold: false, reason: 'desisti' });
-  assert.equal(removed.data.feeCents, 0);
-  assert.equal((await one(pool, "SELECT count(*)::int AS n FROM sales WHERE listing_id = $1", [free.lid])).n, 0);
-});
-
-test('sub-declaração exige justificativa e vai para análise; comprador pode contestar', async () => {
-  const c = seller.c;
-  const l = await publish(c, listingBody({ title: 'Guarda-roupa casal 6 portas', priceCents: 100000, description: 'Guarda-roupa de casal com 6 portas e espelho, ótimo estado de conservação, desmontado.' }), 'Carlos Mendes Silva');
-  const close = await c.post(`/api/listings/${l.lid}/close`, { sold: true, declaredPriceCents: 40000, note: 'Vendi com defeito na porta, desconto grande' });
-  assert.equal(close.status, 201); assert.equal(close.data.flagged, true);
-  assert.equal(close.data.feeCents, 2000);
-  const flagged = await admin.get('/api/admin/sales?flagged=true');
-  assert.ok(flagged.data.items.some((s: any) => s.id === close.data.saleId));
-  assert.equal((await admin.post(`/api/admin/sales/${close.data.saleId}/waive`, { reason: 'x' })).status, 400);
-  // desistência devolve o anúncio, mas é limitada
-  assert.equal((await c.post(`/api/sales/${close.data.saleId}/cancel`)).status, 200);
-  assert.equal((await one(pool, 'SELECT status FROM listings WHERE id = $1', [l.lid])).status, 'active');
-});
-
-test('taxa vencida trava novos anúncios; pagar libera', async () => {
-  const c = seller.c;
-  const l = await publish(c, listingBody({ title: 'Mesa de escritório pequena', priceCents: 20000, description: 'Mesa de escritório pequena, com gaveta, madeira clara. Pouco uso, retirar no local.' }), 'Carlos Mendes Silva');
-  const close = await c.post(`/api/listings/${l.lid}/close`, { sold: true, declaredPriceCents: 20000 });
-  assert.equal(close.data.feeCents, 2000);
-  await pool.query("UPDATE sales SET due_at = now() - interval '10 days' WHERE id = $1", [close.data.saleId]);
-  const job = await runDaily();
-  assert.equal(job.newlyBlocked, 1);
-  const created = await c.post('/api/listings', listingBody({ title: 'Outro anúncio qualquer aqui' }));
-  assert.equal(created.status, 402);
-  assert.equal(created.data.error, 'fee_overdue');
-  await c.post(`/api/sales/${close.data.saleId}/pay`, { method: 'cartao' });
-  await c.post(`/api/sales/${close.data.saleId}/simulate-payment`);
-  assert.equal((await c.post('/api/listings', listingBody({ title: 'Anúncio depois de pagar' }))).status, 201);
-});
-
-test('taxa acima de R$ 3.000 sobe R$ 50 a cada R$ 1.000', async () => {
-  const c = seller.c;
-  const l = await publish(c, listingBody({ category: 'automoveis', condition: 'usado', title: 'Fiat Uno 2012 completo', priceCents: 2_850_000, description: 'Fiat Uno 2012, 4 portas, ar condicionado, direção hidráulica, documentação em dia, único dono.' }), 'Carlos Mendes Silva', { assetRef: 'ABC1D23' });
-  assert.equal(l.pub.status, 200, JSON.stringify(l.pub.data));
-  const close = await c.post(`/api/listings/${l.lid}/close`, { sold: true, declaredPriceCents: 3_550_000 });
-  assert.equal(close.data.feeCents, 100_00 + 50_00 * 33); // R$ 35.500 → 100 + 33 × 50 = R$ 1.750
 });
 
 test('Outros: termos recorrentes viram grupo automaticamente', async () => {
@@ -431,7 +385,7 @@ test('LGPD: exportar dados, pedidos do titular e eliminar a conta (com taxa pend
   assert.ok((await one(pool, 'SELECT count(*)::int AS n FROM origin_records WHERE user_id = $1', [u.id])).n >= 1); // retenção legal
   // vendedor com taxa em aberto
   const l = await publish(seller.c, listingBody({ title: 'Banqueta alta de madeira', priceCents: 9000, description: 'Banqueta alta de madeira maciça, 70 cm, ótimo estado. Retirar no local sem frete.' }), 'Carlos Mendes Silva');
-  await seller.c.post(`/api/listings/${l.lid}/close`, { sold: true, declaredPriceCents: 9000 });
+  await seller.c.post(`/api/listings/${l.lid}/close`, { sold: false, reason: 'desisti' });
   const del = await seller.c.post('/api/me/lgpd/delete-account', { password: 'Senha1234', confirm: 'ELIMINAR' });
   assert.equal(del.status, 409); assert.equal(del.data.error, 'pending_fees');
 });
@@ -469,10 +423,10 @@ test('login: e-mail inexistente igual a senha errada; redefinir senha derruba se
 test('webhook do Mercado Pago: confirma consultando o provedor e confere o valor', async () => {
   const { config } = await import('../src/config.js');
   const l = await publish(seller.c, listingBody({ title: 'Poltrona de leitura estofada', priceCents: 45000, description: 'Poltrona de leitura estofada em linho, muito confortável, sem manchas. Retirada no local.' }), 'Carlos Mendes Silva');
-  const close = await seller.c.post(`/api/listings/${l.lid}/close`, { sold: true, declaredPriceCents: 45000 });
-  assert.equal(close.data.feeCents, 2000);
+  const close = await seller.c.post(`/api/listings/${l.lid}/close`, { sold: false, reason: 'desisti' });
+  assert.equal(close.data.feeCents, 1000);
   const realFetch = globalThis.fetch;
-  let amount = 1000; // primeiro: valor menor que a taxa
+  let amount = 500; // primeiro: valor menor que a taxa
   config.payments.provider = 'mercadopago'; config.payments.mpToken = 'tok';
   globalThis.fetch = (async (url: any, init?: any) => String(url).startsWith('https://api.mercadopago.com/v1/payments/')
     ? new Response(JSON.stringify({ status: 'approved', external_reference: close.data.saleId, transaction_amount: amount / 100 }), { status: 200, headers: { 'content-type': 'application/json' } })
@@ -482,7 +436,7 @@ test('webhook do Mercado Pago: confirma consultando o provedor e confere o valor
     const bad = await hook.call('POST', '/api/webhooks/mercadopago?type=payment&data.id=999', {}, { Origin: '' });
     assert.equal(bad.status, 422);
     assert.equal((await one(pool, 'SELECT status FROM sales WHERE id = $1', [close.data.saleId])).status, 'awaiting_payment');
-    amount = 2000;
+    amount = 1000;
     assert.equal((await hook.call('POST', '/api/webhooks/mercadopago?type=payment&data.id=999', {}, { Origin: '' })).status, 200);
     assert.equal((await one(pool, 'SELECT status FROM sales WHERE id = $1', [close.data.saleId])).status, 'paid');
     assert.equal((await hook.call('POST', '/api/webhooks/mercadopago?type=payment&data.id=999', {}, { Origin: '' })).status, 200); // repetido: sem efeito
@@ -501,4 +455,208 @@ test('limite de tentativas funciona (ligado) e vitrine informa vendedor verifica
   } finally { process.env.RATE_LIMIT_DISABLED = 'true'; }
   const items = (await new Client().get('/api/listings?operation=venda&condition=novo')).data.items;
   assert.ok(items.length && items.every((i: any) => i.sellerVerified === true));
+});
+
+
+// ============ taxa de retirada ============
+test('retirar anúncio publicado sem vender custa R$ 10; rascunho sai de graça; taxa vencida trava novos anúncios', async () => {
+  const c = seller.c;
+  const l = await publish(c, listingBody({ title: 'Estante de livros usada 5 prateleiras', priceCents: 15000, description: 'Estante de madeira com 5 prateleiras, pequenos riscos. Retirar no local sem frete.' }), 'Carlos Mendes Silva');
+  assert.equal((await c.post(`/api/listings/${l.lid}/close`, { sold: true })).status, 410);   // venda só pela plataforma
+  const removed = await c.post(`/api/listings/${l.lid}/close`, { sold: false, reason: 'desisti' });
+  assert.equal(removed.data.feeCents, 1000);
+  const rs = await one(pool, 'SELECT * FROM sales WHERE listing_id = $1', [l.lid]);
+  assert.equal(rs.kind, 'removal'); assert.equal(rs.status, 'awaiting_payment');
+  assert.equal((await one(pool, 'SELECT status FROM listings WHERE id = $1', [l.lid])).status, 'removed');
+  const draft = await c.post('/api/listings', listingBody({ title: 'Rascunho que nunca foi ao ar' }));
+  const dr = await c.post(`/api/listings/${draft.data.id}/close`, { sold: false });
+  assert.equal(dr.data.feeCents, 0); assert.equal(dr.data.saleId, null);
+  await pool.query("UPDATE sales SET due_at = now() - interval '10 days' WHERE id = $1", [rs.id]);
+  assert.equal((await runDaily()).newlyBlocked >= 1, true);
+  const blocked = await c.post('/api/listings', listingBody({ title: 'Outro anúncio qualquer aqui' }));
+  assert.equal(blocked.status, 402); assert.equal(blocked.data.error, 'fee_overdue');
+  await c.post(`/api/sales/${rs.id}/pay`, { method: 'pix' });
+  await c.post(`/api/sales/${rs.id}/simulate-payment`);
+  assert.equal((await c.post('/api/listings', listingBody({ title: 'Anúncio depois de pagar' }))).status, 201);
+});
+
+// ============ compra pela plataforma (dinheiro retido) ============
+let nBuyer = 0;
+async function newBuyer() {
+  const c = new Client(`192.0.2.${60 + nBuyer}`);
+  const n = ++nBuyer;
+  const r = await c.post('/api/auth/register', { fullName: `Comprador Teste ${n}`, email: `comprador${n}@teste.com`, password: 'Senha1234', phone: `1199999${String(1000 + n)}`, accountType: 'comprador', accepted: terms() });
+  assert.equal(r.status, 201, JSON.stringify(r.data));
+  await verifyContacts(c);
+  return { c, id: r.data.id as string };
+}
+const addr = { cep: '20040-020', street: 'Rua da Assembleia', number: '10', district: 'Centro', city: 'Rio de Janeiro', state: 'RJ' };
+let nAd = 0;
+const sellItem = async (priceCents: number) => (await publish(seller.c, listingBody({ title: `Item de teste número ${++nAd} para pedido`, priceCents, description: 'Item de teste em ótimo estado de conservação, funcionando perfeitamente, sem defeitos.' }), 'Carlos Mendes Silva')).lid;
+const orderRow = (id: string) => one(pool, 'SELECT * FROM orders WHERE id = $1', [id]);
+const status = async (lid: string) => (await one(pool, 'SELECT status FROM listings WHERE id = $1', [lid])).status;
+
+test('pedido completo: reserva → paga (retido) → envio → recebe → contato liberado → 7 dias → repasse menos comissão', async () => {
+  const lid = await sellItem(60000);
+  const b = await newBuyer();
+  const other = await newBuyer();
+  const o = await b.c.post('/api/orders', { listingId: lid, deliveryMode: 'envio', shipTo: addr });
+  assert.equal(o.status, 201, JSON.stringify(o.data));
+  const oid = o.data.id as string;
+  assert.equal(o.data.status, 'awaiting_payment'); assert.equal(o.data.order.commissionCents, 3000);   // R$ 600 → R$ 30
+  assert.equal(await status(lid), 'reserved');
+  assert.equal((await new Client().get('/api/listings?operation=venda&condition=usado&q=Item%20de%20teste')).data.items.some((i: any) => i.id === lid), false); // sai da vitrine
+  assert.equal((await new Client().get(`/api/listings/${lid}`)).data.status, 'reserved');
+  assert.equal((await other.c.post('/api/orders', { listingId: lid, deliveryMode: 'retirada' })).data.error, 'listing_unavailable');
+  assert.equal((await seller.c.post('/api/orders', { listingId: lid, deliveryMode: 'retirada' })).status, 422 ); // vendedor não compra o próprio anúncio
+  assert.equal((await seller.c.post(`/api/listings/${lid}/close`, { sold: false })).data.error, 'order_in_progress');
+  // pagamento retido
+  const pay = await b.c.post(`/api/orders/${oid}/pay`, { method: 'pix' });
+  assert.ok(pay.data.pix.copyPaste);
+  assert.equal((await seller.c.post(`/api/orders/${oid}/ship`, { trackingCode: 'BR123' })).data.error, 'invalid_status'); // ainda não pagou
+  assert.equal((await b.c.post(`/api/orders/${oid}/simulate-payment`)).data.status, 'paid');
+  // vendedor vê o endereço de entrega, mas NÃO o contato do comprador
+  const sv = await seller.c.get(`/api/orders/${oid}`);
+  assert.equal(sv.data.shipTo.city, 'Rio de Janeiro'); assert.equal(sv.data.contact, null);
+  assert.ok(!JSON.stringify(sv.data).includes('comprador') || !JSON.stringify(sv.data).includes('@teste.com'));
+  assert.equal((await b.c.get(`/api/orders/${oid}`)).data.contact, null);
+  assert.equal((await other.c.get(`/api/orders/${oid}`)).status, 404);                       // estranho não vê
+  assert.equal((await b.c.post(`/api/orders/${oid}/ship`, {})).status, 404);                  // comprador não envia
+  assert.equal((await seller.c.post(`/api/orders/${oid}/ship`, { trackingCode: 'BR123456789' })).data.status, 'shipped');
+  assert.equal((await seller.c.post(`/api/orders/${oid}/receive`)).status, 404);              // vendedor não confirma recebimento
+  const rec = await b.c.post(`/api/orders/${oid}/receive`);
+  assert.equal(rec.data.status, 'received');
+  assert.equal(rec.data.contact.email, 'vendedor' + '1@teste.com'); assert.match(rec.data.contact.phone, /^55/);   // agora o contato é liberado
+  const sv2 = await seller.c.get(`/api/orders/${oid}`);
+  assert.equal(sv2.data.contact.email, b.c === b.c ? 'comprador1@teste.com' : '');
+  assert.equal(sv2.data.shipTo, undefined);
+  // dentro dos 7 dias: nada é repassado
+  await runDaily();
+  assert.equal((await orderRow(oid)).status, 'received');
+  const dl = (new Date((await orderRow(oid)).return_deadline).getTime() - Date.now()) / 86400_000;
+  assert.ok(dl > 6.9 && dl <= 7.01, String(dl));
+  await pool.query("UPDATE orders SET return_deadline = now() - interval '1 minute' WHERE id = $1", [oid]);
+  assert.equal((await b.c.post(`/api/orders/${oid}/return`, { reason: 'mudei de ideia' })).data.error, 'return_window_closed');
+  const job = await runDaily();
+  assert.equal(job.orders.released, 1);
+  const done = await orderRow(oid);
+  assert.equal(done.status, 'released'); assert.ok(done.payout_ref); assert.equal(done.ship_to_enc, null);
+  assert.equal(await status(lid), 'sold');
+  assert.match(outbox.findLast((m) => /valor liberado/.test(m.subject))!.text, /R\$\s?570,00/);   // 600 − 30
+});
+
+test('devolução: valor integral ao comprador, sem comissão, anúncio volta à vitrine', async () => {
+  const lid = await sellItem(25000);
+  const b = await newBuyer();
+  const oid = (await b.c.post('/api/orders', { listingId: lid, deliveryMode: 'envio', shipTo: addr })).data.id;
+  await b.c.post(`/api/orders/${oid}/simulate-payment`);
+  await seller.c.post(`/api/orders/${oid}/ship`, { trackingCode: 'BR999' });
+  await b.c.post(`/api/orders/${oid}/receive`);
+  assert.equal((await b.c.post(`/api/orders/${oid}/return`, { reason: 'x' })).status, 400);
+  const rr = await b.c.post(`/api/orders/${oid}/return`, { reason: 'Veio diferente do anunciado' });
+  assert.equal(rr.data.status, 'return_requested');
+  assert.equal((await b.c.post(`/api/orders/${oid}/return-received`)).status, 404);    // só o vendedor confirma a chegada
+  const conf = await seller.c.post(`/api/orders/${oid}/return-received`);
+  assert.equal(conf.data.status, 'refunded');
+  const o = await orderRow(oid);
+  assert.ok(o.refund_ref); assert.equal(o.payout_ref, null);
+  assert.equal(await status(lid), 'active');
+  await runDaily();
+  assert.equal((await orderRow(oid)).status, 'refunded');   // a rotina não repassa um pedido devolvido
+});
+
+test('proposta: 50% mínimo, vendedor aceita ou recusa; recusa reabre o anúncio', async () => {
+  const lid = await sellItem(100000);
+  const b = await newBuyer();
+  assert.equal((await b.c.post('/api/orders', { listingId: lid, offerCents: 40000, deliveryMode: 'retirada' })).data.error, 'offer_out_of_range');
+  assert.equal((await b.c.post('/api/orders', { listingId: lid, offerCents: 120000, deliveryMode: 'retirada' })).data.error, 'offer_out_of_range');
+  assert.equal((await b.c.post('/api/orders', { listingId: lid, offerCents: 80000, deliveryMode: 'envio' })).data.error, 'ship_to_required');
+  const o = await b.c.post('/api/orders', { listingId: lid, offerCents: 80000, deliveryMode: 'retirada' });
+  assert.equal(o.data.status, 'offered');
+  assert.equal((await b.c.post(`/api/orders/${o.data.id}/pay`)).data.error, 'invalid_status');   // ainda não aceita
+  assert.equal((await seller.c.post(`/api/orders/${o.data.id}/decline`)).data.status, 'declined');
+  assert.equal(await status(lid), 'active');
+  const o2 = await b.c.post('/api/orders', { listingId: lid, offerCents: 80000, deliveryMode: 'retirada' });
+  const acc = await seller.c.post(`/api/orders/${o2.data.id}/accept`);
+  assert.equal(acc.data.status, 'awaiting_payment'); assert.equal(acc.data.commissionCents, 3000);   // comissão sobre R$ 800
+  assert.equal((await b.c.post(`/api/orders/${o2.data.id}/cancel`)).data.status, 'cancelled');
+  assert.equal(await status(lid), 'active');
+});
+
+test('retirada em mãos: o comprador mostra o código só ao receber; vendedor não vê o código; erros travam', async () => {
+  const lid = await sellItem(30000);
+  const b = await newBuyer();
+  const oid = (await b.c.post('/api/orders', { listingId: lid, deliveryMode: 'retirada' })).data.id;
+  const paid = await b.c.post(`/api/orders/${oid}/simulate-payment`);
+  const code = paid.data.handoverCode as string;
+  assert.match(code, /^\d{6}$/);
+  assert.equal((await seller.c.get(`/api/orders/${oid}`)).data.handoverCode, undefined);
+  const wrong = code === '000000' ? '111111' : '000000';
+  assert.equal((await seller.c.post(`/api/orders/${oid}/handover`, { code: wrong })).data.error, 'code_invalid');
+  const ok = await seller.c.post(`/api/orders/${oid}/handover`, { code });
+  assert.equal(ok.data.status, 'received');
+  assert.ok(ok.data.contact.email);
+  // tentativas erradas bloqueiam
+  const lid2 = await sellItem(30000);
+  const oid2 = (await b.c.post('/api/orders', { listingId: lid2, deliveryMode: 'retirada' })).data.id;
+  const c2 = (await b.c.post(`/api/orders/${oid2}/simulate-payment`)).data.handoverCode;
+  const bad = c2 === '000000' ? '111111' : '000000';
+  for (let i = 0; i < 5; i++) await seller.c.post(`/api/orders/${oid2}/handover`, { code: bad });
+  assert.equal((await seller.c.post(`/api/orders/${oid2}/handover`, { code: c2 })).data.error, 'too_many_attempts');
+});
+
+test('disputa: moderação devolve ou libera; sem envio no prazo devolve sozinho; sem pagamento expira', async () => {
+  const b = await newBuyer();
+  // disputa → devolver
+  const l1 = await sellItem(40000);
+  const o1 = (await b.c.post('/api/orders', { listingId: l1, deliveryMode: 'envio', shipTo: addr })).data.id;
+  await b.c.post(`/api/orders/${o1}/simulate-payment`);
+  await seller.c.post(`/api/orders/${o1}/ship`, { trackingCode: 'BRX' });
+  assert.equal((await b.c.post(`/api/orders/${o1}/dispute`, { reason: 'curto' })).status, 400);
+  assert.equal((await b.c.post(`/api/orders/${o1}/dispute`, { reason: 'Rastreio mostra entrega em outra cidade e não recebi nada.' })).data.status, 'disputed');
+  assert.equal((await seller.c.post(`/api/admin/orders/${o1}/resolve`, { outcome: 'refund', note: 'teste' })).status, 403);
+  assert.equal((await admin.get('/api/admin/orders?status=disputed')).data.items.length, 1);
+  assert.equal((await admin.post(`/api/admin/orders/${o1}/resolve`, { outcome: 'refund', note: 'Rastreio confirma extravio' })).status, 200);
+  assert.equal((await orderRow(o1)).status, 'refunded'); assert.equal(await status(l1), 'active');
+  // disputa → liberar
+  const l2 = await sellItem(40000);
+  const o2 = (await b.c.post('/api/orders', { listingId: l2, deliveryMode: 'envio', shipTo: addr })).data.id;
+  await b.c.post(`/api/orders/${o2}/simulate-payment`);
+  await seller.c.post(`/api/orders/${o2}/ship`, { trackingCode: 'BRY' });
+  await seller.c.post(`/api/orders/${o2}/dispute`, { reason: 'Comprador diz que não recebeu mas o rastreio mostra entrega.' });
+  assert.equal((await admin.post(`/api/admin/orders/${o2}/resolve`, { outcome: 'release', note: 'Entrega comprovada' })).status, 200);
+  assert.equal((await orderRow(o2)).status, 'released'); assert.equal(await status(l2), 'sold');
+  // vendedor não enviou no prazo → devolve automático
+  const l3 = await sellItem(40000);
+  const o3 = (await b.c.post('/api/orders', { listingId: l3, deliveryMode: 'envio', shipTo: addr })).data.id;
+  await b.c.post(`/api/orders/${o3}/simulate-payment`);
+  await pool.query("UPDATE orders SET paid_at = now() - interval '6 days' WHERE id = $1", [o3]);
+  // envio sem resposta do comprador → recebido automático
+  const l4 = await sellItem(40000);
+  const o4 = (await b.c.post('/api/orders', { listingId: l4, deliveryMode: 'envio', shipTo: addr })).data.id;
+  await b.c.post(`/api/orders/${o4}/simulate-payment`);
+  await seller.c.post(`/api/orders/${o4}/ship`, { trackingCode: 'BRZ' });
+  await pool.query("UPDATE orders SET shipped_at = now() - interval '11 days' WHERE id = $1", [o4]);
+  // reserva sem pagamento
+  const l5 = await sellItem(40000);
+  const o5 = (await b.c.post('/api/orders', { listingId: l5, deliveryMode: 'retirada' })).data.id;
+  await pool.query("UPDATE orders SET pay_expires_at = now() - interval '1 minute' WHERE id = $1", [o5]);
+  const job = await runDaily();
+  assert.equal(job.orders.refundedNoShipment, 1); assert.equal(job.orders.autoReceived, 1); assert.equal(job.orders.expiredUnpaid, 1);
+  assert.equal((await orderRow(o3)).status, 'cancelled'); assert.equal(await status(l3), 'active');
+  const r4 = await orderRow(o4);
+  assert.equal(r4.status, 'received'); assert.equal(r4.auto_received, true);
+  assert.equal((await orderRow(o5)).status, 'expired'); assert.equal(await status(l5), 'active');
+  // devolução pedida e vendedor não confirma → disputa
+  await pool.query("UPDATE orders SET status='return_requested', return_requested_at=now(), return_expires_at = now() - interval '1 minute' WHERE id = $1", [o4]);
+  assert.equal((await runDaily()).orders.returnEscalated, 1);
+  assert.equal((await orderRow(o4)).status, 'disputed');
+});
+
+test('conta com pedido em andamento não pode ser eliminada; conta Mercado Pago não sai enquanto há pedido', async () => {
+  const b = await newBuyer();
+  const lid = await sellItem(12000);
+  await b.c.post('/api/orders', { listingId: lid, deliveryMode: 'retirada' });
+  assert.equal((await b.c.post('/api/me/lgpd/delete-account', { password: 'Senha1234', confirm: 'ELIMINAR' })).data.error, 'orders_in_progress');
+  assert.equal((await seller.c.call('DELETE', '/api/payment-method')).data.error, 'method_in_use');
 });

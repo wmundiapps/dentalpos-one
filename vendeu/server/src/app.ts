@@ -8,9 +8,11 @@ import { authRouter, meRouter } from './routes/auth.js';
 import { kycRouter } from './routes/kyc.js';
 import { lgpdRouter } from './routes/lgpd.js';
 import { listingsRouter } from './routes/listings.js';
+import { ordersRouter } from './routes/orders.js';
+import { paymentMethodRouter } from './routes/paymentMethod.js';
 import { messagesRouter } from './routes/messages.js';
 import { publicRouter } from './routes/public.js';
-import { closeRouter, purchasesRouter, salesRouter, webhookRouter } from './routes/sales.js';
+import { closeRouter, salesRouter, webhookRouter } from './routes/sales.js';
 
 export function createApp() {
   const app = express();
@@ -30,11 +32,12 @@ export function createApp() {
   app.use('/api/me', meRouter);
   app.use('/api/me/lgpd', lgpdRouter);
   app.use('/api/kyc', kycRouter);
+  app.use('/api/payment-method', paymentMethodRouter);
   app.use('/api/listings', listingsRouter);
   app.use('/api/listings', closeRouter);
   app.use('/api/messages', messagesRouter);
+  app.use('/api/orders', ordersRouter);
   app.use('/api/sales', salesRouter);
-  app.use('/api/purchases', purchasesRouter);
   app.use('/api/webhooks', webhookRouter);
   app.use('/api/admin', adminRouter);
   app.get('/api/cron/daily', wrap(async (req, res) => {
