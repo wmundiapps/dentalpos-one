@@ -19,12 +19,12 @@ import { MAX_PRICE_CENTS, MIN_PRICE_CENTS } from '../../../shared/fees.js';
 export const listingsRouter = Router();
 
 const PHOTO_SQL = `(SELECT u.url FROM listing_photos p JOIN uploads u ON u.id = p.upload_id WHERE p.listing_id = l.id ORDER BY p.position, p.created_at LIMIT 1)`;
-const CARD_COLS = `l.id, l.title, l.price_cents, l.rent_period, l.operation, l.condition, l.category, l.city, l.state, l.district, l.published_at, l.group_token, l.status, ${PHOTO_SQL} AS photo`;
+const CARD_COLS = `l.id, l.title, l.price_cents, l.rent_period, l.operation, l.condition, l.category, l.city, l.state, l.district, l.published_at, l.group_token, l.status, ${PHOTO_SQL} AS photo, (SELECT kyc_status = 'verified' FROM users su WHERE su.id = l.seller_id) AS seller_verified`;
 
 const card = (r: any) => ({
   id: r.id, title: r.title, priceCents: r.price_cents, rentPeriod: r.rent_period, operation: r.operation, condition: r.condition,
   category: r.category, city: r.city, state: r.state, district: r.district, publishedAt: r.published_at, groupToken: r.group_token,
-  status: r.status, photo: r.photo,
+  status: r.status, photo: r.photo, sellerVerified: !!r.seller_verified,
 });
 
 // ---------- vitrine pública ----------

@@ -12,10 +12,11 @@ import { BecomeSeller, Login, Recover, Register, VerifyContacts } from './pages/
 import { Kyc } from './pages/Kyc';
 import { Account } from './pages/Account';
 import { Fees } from './pages/Fees';
-import { Safety } from './pages/Safety';
-import { LegalIndex, LegalReader } from './pages/Legal';
 import { NotFound } from './pages/NotFound';
 
+const Safety = lazy(() => import('./pages/Safety').then((m) => ({ default: m.Safety })));
+const LegalIndex = lazy(() => import('./pages/Legal').then((m) => ({ default: m.LegalIndex })));
+const LegalReader = lazy(() => import('./pages/Legal').then((m) => ({ default: m.LegalReader })));
 const Admin = lazy(() => import('./pages/Admin').then((m) => ({ default: m.Admin })));
 
 export function App() {
@@ -40,9 +41,9 @@ export function App() {
         <Route path="conta/verificacao" element={<RequireAuth><Kyc /></RequireAuth>} />
         <Route path="conta" element={<RequireAuth><Account /></RequireAuth>} />
         <Route path="taxas" element={<Fees />} />
-        <Route path="seguranca" element={<Safety />} />
-        <Route path="legal" element={<LegalIndex />} />
-        <Route path="legal/:key" element={<LegalReader />} />
+        <Route path="seguranca" element={<Suspense fallback={<Loading />}><Safety /></Suspense>} />
+        <Route path="legal" element={<Suspense fallback={<Loading />}><LegalIndex /></Suspense>} />
+        <Route path="legal/:key" element={<Suspense fallback={<Loading />}><LegalReader /></Suspense>} />
         <Route path="admin" element={<RequireAuth admin><Suspense fallback={<Loading />}><Admin /></Suspense></RequireAuth>} />
         <Route path="*" element={<NotFound />} />
       </Route>

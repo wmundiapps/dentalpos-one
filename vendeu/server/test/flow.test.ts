@@ -491,3 +491,14 @@ test('webhook do Mercado Pago: confirma consultando o provedor e confere o valor
     globalThis.fetch = realFetch; config.payments.provider = 'mock'; config.payments.mpToken = '';
   }
 });
+
+test('limite de tentativas funciona (ligado) e vitrine informa vendedor verificado', async () => {
+  const { hit } = await import('../src/ratelimit.js');
+  process.env.RATE_LIMIT_DISABLED = 'false';
+  try {
+    for (let i = 0; i < 3; i++) await hit('teste-limite', 3, 60);
+    await assert.rejects(hit('teste-limite', 3, 60), /too_many_requests/);
+  } finally { process.env.RATE_LIMIT_DISABLED = 'true'; }
+  const items = (await new Client().get('/api/listings?operation=venda&condition=novo')).data.items;
+  assert.ok(items.length && items.every((i: any) => i.sellerVerified === true));
+});

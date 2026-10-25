@@ -272,7 +272,7 @@ function StepData({ f, set, errors, locked, onNext, busy, error }: { f: Form; se
           )}
         </div>
         <div className="fee-live" aria-live="polite">
-          {fee ? <>Se {rent ? 'alugar' : 'vender'} por este valor, a taxa será <strong>{formatBRL(fee)}</strong> (você recebe <strong>{formatBRL(cents - fee)}</strong>). Só paga quando {rent ? 'alugar' : 'vender'}.</> : 'Digite o preço para ver a taxa. Anunciar é grátis.'}
+          <div>{fee ? <>Se {rent ? 'alugar' : 'vender'} por este valor, a taxa será <strong>{formatBRL(fee)}</strong> (você recebe <strong>{formatBRL(cents - fee)}</strong>). Só paga quando {rent ? 'alugar' : 'vender'}.</> : 'Digite o preço para ver a taxa. Anunciar é grátis.'}</div>
         </div>
       </fieldset>
 

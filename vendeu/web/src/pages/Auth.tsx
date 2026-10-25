@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useApp } from '../lib/app';
@@ -113,10 +113,11 @@ export function Register() {
   const [terms, setTerms] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [created, setCreated] = useState(false);
   const legal = useAsync(() => api.get<LegalIdx>('/legal'), []);
   const act = useAction();
 
-  if (user) return <Navigate to="/venda" replace />;
+  if (user && !created) return <Navigate to="/venda" replace />;
   if (!track) {
     return (
       <div className="auth-wide stack-l">
@@ -152,7 +153,7 @@ export function Register() {
       ...(seller ? { identity: identityPayload(idt) } : {}),
       accepted: { 'termos-de-uso': vt, 'politica-de-privacidade': vp }, marketingOptIn: marketing,
     }));
-    if (r) { await refresh(); nav(`/conta/confirmar?novo=1${seller ? '&kyc=1' : ''}`, { replace: true }); }
+    if (r) { setCreated(true); await refresh(); nav(`/conta/confirmar?novo=1${seller ? '&kyc=1' : ''}`, { replace: true }); }
   };
 
   return (
@@ -228,8 +229,6 @@ export function VerifyContacts() {
   usePageTitle('Confirmar e-mail e telefone');
   const { user } = useApp();
   const [sp] = useSearchParams();
-  const [, setTick] = useState(0);
-  useEffect(() => { setTick(1); }, []);
   if (!user) return <Loading />;
   const all = user.emailVerified && user.phoneVerified;
   const seller = user.accountType === 'anunciante';

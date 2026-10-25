@@ -70,7 +70,7 @@ export function ListingDetail() {
       {!l.isOwner && l.status !== 'active' && <Alert tone="warn">Este anúncio não está no ar (visível só para você como administrador).</Alert>}
 
       <div className="detail-grid">
-        <section aria-label="Fotos">
+        <section aria-label="Fotos e descrição" className="detail-main">
           <div className="gallery">
             {photos.length ? <img className="gallery-main" src={photos[photo]?.url} alt={`Foto ${photo + 1} de ${photos.length}: ${l.title}`} />
               : <div className="gallery-main gallery-empty" aria-hidden="true">{cat?.icon}</div>}
