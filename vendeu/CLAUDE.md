@@ -1,6 +1,6 @@
 # Vendeu — regras para quem mexe neste código
 
-Vendeu (nome provisório; troque em `shared/brand.ts`): classificados de Compra, Venda e Locação. **Anunciar é grátis; a taxa só é cobrada quando o anunciante vende/aluga e retira o anúncio.** Dono: Robson (não técnico: um passo curto por vez, com link/comando em bloco de copiar).
+Vendeu (nome provisório; troque em `shared/brand.ts`): classificados de Compra, Venda e Locação. **Compra toda pela plataforma: pagamento retido no Mercado Pago, contato só depois do recebimento, 7 dias de devolução, comissão só quando a venda se conclui, R$ 10 para retirar anúncio publicado sem vender.** Fonte: `docs/MODELO-DE-NEGOCIO.md`. Dono: Robson (não técnico: um passo curto por vez, com link/comando em bloco de copiar).
 
 ## Como rodar
 - Banco local: `service postgresql start`; bancos `vendeu` e `vendeu_test` (role `vendeu`/`vendeu`).
@@ -10,7 +10,8 @@ Vendeu (nome provisório; troque em `shared/brand.ts`): classificados de Compra,
 - Migrações: `server/migrations/NNN_nome.sql`, aplicadas no build (`vercel-build`). Nunca edite uma já publicada. Toda tabela nova nasce com RLS ligado e sem acesso para `anon`/`authenticated`.
 
 ## Regras que não mudam
-- **Taxa:** única fonte em `shared/fees.ts` (centavos). Mudou a tabela → atualizar teste, `docs/legal/pt-BR/politica-de-taxas.md`, landing (`site/`) e cards.
+- **Comissão/taxas:** única fonte em `shared/fees.ts` (centavos) e `REMOVAL_FEE_CENTS`. Mudou valor ou prazo → atualizar testes, `docs/MODELO-DE-NEGOCIO.md`, `docs/legal/pt-BR/politica-de-taxas.md`, landing (`site/`) e cards.
+- **Dinheiro:** nunca passa por conta do Vendeu; retenção, repasse e devolução são do Mercado Pago (`payments.ts`). Contato (telefone/e-mail) só é mostrado depois de `received_at`.
 - **Novos e usados nunca se misturam:** a API de vitrine exige `condition`.
 - **Segredos:** nunca pedir/mostrar senha, chave ou token no chat. Variáveis em `.env.example`. Guarde cópia de `DOCUMENT_ENCRYPTION_KEY` (sem ela os documentos de verificação não abrem).
 - **Texto legal** (`docs/legal`, `docs/lgpd`) só muda com aprovação do Robson e revisão da Dra. Roberta. Versão em `<!-- versao: -->`; mudou o texto → nova versão (gera novo aceite).
