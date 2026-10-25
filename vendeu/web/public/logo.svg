@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 64" role="img" aria-label="Vendeu">
+  <rect width="64" height="64" rx="16" fill="#0B7A4B"/>
+  <path d="M18 14h17.5c1.6 0 3.1.6 4.2 1.8l9 9.1c2.2 2.3 2.2 5.9 0 8.2L37.4 45.4c-2.3 2.3-6 2.3-8.3 0L17.8 34.100A6 6 0 0 1 16 29.900V16a2 2 0 0 1 2-2Z" fill="#fff"/>
+  <circle cx="25" cy="22" r="3.2" fill="#0B7A4B"/>
+  <path d="M26.5 33.500l5 5 10-11" fill="none" stroke="#FFB703" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="80" y="45" font-family="Poppins, 'Segoe UI', Arial, sans-serif" font-size="38" font-weight="800" fill="#102A43" letter-spacing="-0.5">Vendeu</text>
+</svg>

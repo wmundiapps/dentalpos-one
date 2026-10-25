@@ -1,0 +1,39 @@
+{
+  "name": "vendeu-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json --noEmit",
+    "migrate": "tsx -e \"import('./src/db.ts').then(async (m) => { await m.migrate(); await m.pool.end(); })\"",
+    "seed": "tsx src/seed.ts",
+    "create-admin": "tsx src/createAdmin.ts",
+    "test": "node --import tsx --test --test-concurrency=1 test/*.test.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.13",
+    "pg": "^8.16.3",
+    "sharp": "^0.33.5",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.10.2",
+    "@types/nodemailer": "^7.0.1",
+    "@types/pg": "^8.15.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

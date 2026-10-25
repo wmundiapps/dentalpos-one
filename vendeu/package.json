@@ -1,0 +1,16 @@
+{
+  "name": "vendeu",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Vendeu — classificados de compra, venda e locação. Anunciar é grátis; a taxa só é cobrada quando vende.",
+  "type": "module",
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "dev": "npm run dev --workspace server & npm run dev --workspace web",
+    "build": "npm run typecheck --workspace server && npm run build --workspace web",
+    "typecheck": "npm run typecheck --workspace server && npm run typecheck --workspace web",
+    "test": "npm test --workspace server",
+    "seed": "npm run seed --workspace server",
+    "vercel-build": "npm run migrate --workspace server && npm run build --workspace web"
+  }
+}
