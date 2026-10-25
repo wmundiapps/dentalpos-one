@@ -1,0 +1,217 @@
+<title>Painel Maestro Wmundi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: faixa de resumo, fila "precisa de você" ao lado do feed, grade de setores abaixo. */
+:root{
+  --bg:#f3f4f8;--surface:#ffffff;--surface2:#eceef5;--line:#d9dce8;
+  --fg:#12162b;--muted:#5b6285;
+  --accent:#3b3fd8;--accent-soft:#e3e4fb;
+  --ok:#0f8a5f;--ok-soft:#dcf3e9;--warn:#b45309;--warn-soft:#fdeccf;--off:#8a90ad;
+  --display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1022;--surface:#141a33;--surface2:#1b2242;--line:#283058;
+  --fg:#eceffc;--muted:#97a0c8;
+  --accent:#8b8eff;--accent-soft:#232a5c;
+  --ok:#43d39c;--ok-soft:#10382c;--warn:#f5b64d;--warn-soft:#3d2d0d;--off:#6b7399;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1022;--surface:#141a33;--surface2:#1b2242;--line:#283058;
+  --fg:#eceffc;--muted:#97a0c8;
+  --accent:#8b8eff;--accent-soft:#232a5c;
+  --ok:#43d39c;--ok-soft:#10382c;--warn:#f5b64d;--warn-soft:#3d2d0d;--off:#6b7399;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,4vw,2.2rem);margin:0;letter-spacing:-.02em;text-wrap:balance}
+h1 span{color:var(--accent)}
+h2{font-family:var(--display);font-weight:600;font-size:1.1rem;margin:0}
+.demo{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;background:var(--warn-soft);color:var(--warn);padding:5px 10px;border-radius:6px}
+.sub{color:var(--muted);margin:4px 0 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.kpi small{display:block;color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
+.kpi b{display:block;font-family:var(--display);font-size:1.9rem;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi i{font-style:normal;color:var(--muted);font-size:.78rem}
+.two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+@media(max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.panel p.hint{margin:0;color:var(--muted);font-size:.82rem}
+.ask{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--surface2)}
+.ask .tag{font-family:var(--mono);font-size:.7rem;color:var(--warn);text-transform:uppercase;letter-spacing:.05em}
+.ask .who{color:var(--muted);font-size:.8rem}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:7px 14px;font-weight:500}
+button.p{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] button.p{color:#0c1022}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.p{color:#0c1022}}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.empty{color:var(--ok);background:var(--ok-soft);padding:12px;border-radius:8px;font-weight:500}
+.feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:360px;overflow-y:auto}
+.feed li{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:.86rem}
+.feed time{font-family:var(--mono);color:var(--muted);font-size:.76rem}
+.feed b{font-weight:600}
+.feed li.new{animation:in .5s ease}
+@keyframes in{from{background:var(--accent-soft)}to{background:transparent}}
+@media(prefers-reduced-motion:reduce){.feed li.new{animation:none}}
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+input[type=search]{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);min-width:0;flex:1 1 200px;max-width:320px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.sectors{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.sec.off{opacity:.62}
+.sec header{align-items:flex-start;flex-wrap:nowrap;gap:8px}
+.sec h3{font-family:var(--display);font-size:1rem;margin:0;font-weight:600}
+.sec .mgr{color:var(--muted);font-size:.78rem}
+.pill{font-size:.72rem;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.off{background:var(--surface2);color:var(--off)}.pill.wait{background:var(--warn-soft);color:var(--warn)}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nums div{min-width:0}.nums small{display:block;color:var(--muted);font-size:.7rem}
+.nums b{font-family:var(--mono);font-weight:500;font-size:.95rem;font-variant-numeric:tabular-nums}
+svg.spark{width:100%;height:34px;display:block}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.8rem;color:var(--muted)}
+.sw button{padding:4px 12px;font-size:.78rem}
+.rules{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padding-top:14px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Maestro <span>Wmundi</span></h1>
+      <p class="sub">Resumo do dia de todos os setores. Poucas pessoas decidem, os robôs executam.</p>
+    </div>
+    <span class="demo">Demonstração · dados fictícios</span>
+  </header>
+
+  <section class="kpis" aria-label="Resumo">
+    <div class="kpi"><small>Robôs ativos</small><b id="k-robos">0</b><i id="k-ratio">—</i></div>
+    <div class="kpi"><small>Tarefas hoje</small><b id="k-tarefas">0</b><i>feitas por robôs</i></div>
+    <div class="kpi"><small>Sem ajuda humana</small><b id="k-auto">0%</b><i>meta: 90%</i></div>
+    <div class="kpi"><small>Esperando você</small><b id="k-fila">0</b><i>aprovações pendentes</i></div>
+    <div class="kpi"><small>Custo de IA hoje</small><b id="k-custo">R$ 0</b><i>simulado</i></div>
+  </section>
+
+  <div class="two">
+    <section class="panel" aria-labelledby="t-fila">
+      <h2 id="t-fila">Precisa de você</h2>
+      <p class="hint">Robô propõe, humano aprova: banco, cobrança, segredo, acesso e texto legal nunca andam sozinhos.</p>
+      <div id="fila" style="display:flex;flex-direction:column;gap:10px"></div>
+    </section>
+    <section class="panel" aria-labelledby="t-feed">
+      <h2 id="t-feed">O que os robôs fizeram agora</h2>
+      <ul class="feed" id="feed" aria-live="off"></ul>
+    </section>
+  </div>
+
+  <section style="display:flex;flex-direction:column;gap:12px" aria-labelledby="t-set">
+    <div class="tools">
+      <h2 id="t-set">Setores (19)</h2>
+      <input type="search" id="busca" placeholder="Buscar setor ou robô" aria-label="Buscar setor">
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="sectors" id="sectors"></div>
+  </section>
+
+  <p class="rules">Regras de todos os robôs: dono humano, registro de tudo que fazem, limite de gasto e botão de desligar. Nunca apagam, só corrigem ou adicionam. Esta página é uma simulação para mostrar a ideia; nenhum número é real.</p>
+</div>
+
+<script>
+var S=[
+["Diretoria e estratégia","Maestro","Robson",12,9,92,38],
+["Produto","Gerente de Produto","Líder de produto",34,41,88,120],
+["Engenharia","Gerente de Engenharia","Dev sênior",58,214,94,410],
+["Estúdio de apps","Gerente do Estúdio","Dev mobile",26,63,86,190],
+["IA e dados","Gerente de IA","Líder de IA",21,88,91,260],
+["Marketing","Gerente de Marketing","Marketing",72,330,89,150],
+["Comercial e vendas","Gerente Comercial","Comercial",64,280,83,170],
+["Parcerias e revendas","Gerente de Parcerias","Parcerias",18,47,85,60],
+["Atendimento e sucesso","Gerente de CS","CS",210,1480,93,320],
+["Financeiro","Gerente Financeiro","Financeiro",44,390,96,90],
+["Jurídico e conformidade","Gerente Jurídico","Dra. Roberta",9,22,78,45],
+["Pessoas (RH)","Gerente de RH","RH",15,76,90,40],
+["Educação","Gerente Acadêmico","Coordenação",95,620,92,210],
+["Saúde (DentalPos)","Gerente de Saúde","Clínico responsável",260,1920,91,380],
+["Serviços e espaços","Gerente de Serviços","Operações",38,205,87,85],
+["Automação","Gerente de Automação","Automação",47,310,95,140],
+["Infra e segurança","Gerente de Segurança","Segurança",16,540,97,110],
+["Internacional","Gerente Internacional","Diretor regional",11,33,84,55],
+["Comunidade e marca","Gerente de Comunidade","Marketing",29,118,88,50]
+].map(function(r,i){return{id:i,nome:r[0],ger:r[1],hum:r[2],robos:r[3],tar:r[4]*1,auto:r[5],custo:r[6],on:true}});
+// reordena colunas: [nome, gerente, humano, robos, tarefas/10, auto, custo] -> usa tarefas reais
+S.forEach(function(s){var v=[12,9,92,38];});
+var RAW=[[12,9],[34,41],[58,214],[26,63],[21,88],[72,330],[64,280],[18,47],[210,1480],[44,390],[9,22],[15,76],[95,620],[260,1920],[38,205],[47,310],[16,540],[11,33],[29,118]];
+S.forEach(function(s,i){s.robos=RAW[i][0];s.tar=RAW[i][1];});
+var AUTO=[92,88,94,86,91,89,83,85,93,96,78,90,92,91,87,95,97,84,88],CUSTO=[38,120,410,190,260,150,170,60,320,90,45,40,210,380,85,140,110,55,50];
+S.forEach(function(s,i){s.auto=AUTO[i];s.custo=CUSTO[i];});
+
+var FILA=[
+{tag:"Banco de dados",t:"Gerador de migrações propõe criar a tabela nova de agentes (RLS ligado, sem acesso anon).",who:"Engenharia · SQL para colar no projeto DentalPos One"},
+{tag:"Cobrança",t:"Cobrança de atraso quer enviar lembrete a 37 clínicas com mensalidade vencida há mais de 5 dias.",who:"Financeiro · mensagem pronta para revisão"},
+{tag:"Texto legal",t:"Aplicador das cláusulas-padrão sugere incluir a cláusula C1 no termo do SpaceHour.",who:"Jurídico · precisa de aprovação do Robson e revisão da Dra. Roberta"},
+{tag:"Segredo",t:"Monitor de segurança pede troca programada de uma chave de integração.",who:"Infra e segurança · você digita a nova chave direto na tela de destino"},
+{tag:"Envio em massa",t:"Redator de conteúdo preparou 1 e-mail para 2.400 contatos de acadêmicos.",who:"Marketing · prévia anexa"}
+];
+var EV=[
+[8,"Atendente respondeu 14 e-mails de clínicas e abriu 2 chamados."],
+[13,"Agenda confirmou 63 consultas de amanhã e remarcou 4 faltas."],
+[9,"Conciliação baixou 28 pagamentos de assinaturas."],
+[2,"Revisor de código aprovou 3 alterações pequenas e pediu ajuste em 1."],
+[5,"Redator agendou 4 posts e 1 roteiro de vídeo curto."],
+[6,"Qualificador separou 11 leads quentes e enviou propostas."],
+[16,"Monitor de uptime verificou 6 serviços: tudo no ar."],
+[12,"Tutor de IA corrigiu 40 exercícios de estudantes."],
+[14,"Reservas: 9 espaços confirmados e 3 check-ins feitos."],
+[15,"Integrador reconectou 1 fluxo de WhatsApp que tinha falhado."],
+[3,"Conferidor de regras revisou o texto da loja de um app."],
+[17,"Tradutor preparou a página de preços em inglês."],
+[11,"Controle de contratos avisou 2 prazos a vencer em 30 dias."],
+[4,"Avaliador de agentes achou 1 resposta fraca e sugeriu correção."],
+[0,"Resumo diário preparado para Robson."]
+];
+var $=function(i){return document.getElementById(i)},nf=new Intl.NumberFormat("pt-BR");
+var filtro="todos",termo="",fila=FILA.slice(),feed=[];
+function spark(id,on){var p=[],x,v=(id*7+3)%11+8;for(x=0;x<16;x++){v=Math.max(3,Math.min(30,v+((x*13+id*5)%7)-3));p.push(v)}
+  var d=p.map(function(y,i){return(i?"L":"M")+(i*(100/15)).toFixed(1)+" "+(34-y)}).join(" ");
+  var c=on?"var(--accent)":"var(--off)";
+  return '<svg class="spark" viewBox="0 0 100 34" preserveAspectRatio="none" aria-hidden="true"><path d="'+d+' L100 34 L0 34Z" fill="'+c+'" fill-opacity=".12"/><path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>'}
+function status(s){return !s.on?["off","Desligado"]:(s.id===10||s.id===9)&&fila.length?["wait","Aguardando você"]:["ok","Ativo"]}
+function totals(){var r=0,t=0,a=0,c=0,h=0;S.forEach(function(s){if(s.on){r+=s.robos;t+=s.tar;a+=s.tar*s.auto;c+=s.custo}});
+  a=t?Math.round(a/t):0;
+  $("k-robos").textContent=nf.format(r);$("k-tarefas").textContent=nf.format(t);$("k-auto").textContent=a+"%";
+  $("k-fila").textContent=fila.length;$("k-custo").textContent="R$ "+nf.format(c);
+  $("k-ratio").textContent="1 pessoa para "+nf.format(Math.round(r/12))+" robôs (12 pessoas)"}
+function drawFila(){var h="";if(!fila.length)h='<div class="empty">Nada esperando você. Os robôs seguem trabalhando.</div>';
+  fila.forEach(function(f,i){h+='<div class="ask"><span class="tag">'+f.tag+'</span><div>'+f.t+'</div><div class="who">'+f.who+'</div><div class="row"><button class="p" data-a="ok" data-i="'+i+'">Aprovar</button><button data-a="no" data-i="'+i+'">Recusar</button></div></div>'});
+  $("fila").innerHTML=h;totals();drawSectors()}
+function drawFeed(){$("feed").innerHTML=feed.map(function(e,i){return'<li'+(i===0&&e.n?' class="new"':'')+'><time>'+e.h+'</time><span><b>'+S[e.s].nome+'</b> · '+e.t+'</span></li>'}).join("")}
+function drawSectors(){var q=termo.toLowerCase(),h="";
+  S.forEach(function(s){
+    if(filtro==="on"&&!s.on||filtro==="off"&&s.on)return;
+    if(q&&(s.nome+" "+s.ger).toLowerCase().indexOf(q)<0)return;
+    var st=status(s);
+    h+='<article class="sec'+(s.on?"":" off")+'"><header><div><h3>'+s.nome+'</h3><div class="mgr">'+s.ger+' · supervisão: '+s.hum+'</div></div><span class="pill '+st[0]+'">'+st[1]+'</span></header>'
+     +'<div class="nums"><div><small>Robôs</small><b>'+nf.format(s.robos)+'</b></div><div><small>Tarefas hoje</small><b>'+nf.format(s.tar)+'</b></div><div><small>Sem humano</small><b>'+s.auto+'%</b></div></div>'
+     +spark(s.id,s.on)
+     +'<div class="sw"><span>Custo hoje: R$ '+s.custo+'</span><button data-t="'+s.id+'" aria-pressed="'+s.on+'">'+(s.on?"Desligar setor":"Ligar setor")+'</button></div></article>'});
+  $("sectors").innerHTML=h||'<p class="hint">Nenhum setor encontrado.</p>'}
+function hora(){var d=new Date();return d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
+function tick(){var k=EV[Math.floor(Math.random()*EV.length)],s=S[k[0]];if(!s.on)return;
+  s.tar+=1+Math.floor(Math.random()*4);feed.unshift({h:hora(),s:k[0],t:k[1],n:1});feed=feed.slice(0,30);drawFeed();totals();
+  if(filtro!=="off"&&!termo)drawSectors()}
+$("fila").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var f=fila.splice(+b.dataset.i,1)[0];
+  feed.unshift({h:hora(),s:f.tag==="Cobrança"?9:f.tag==="Texto legal"?10:f.tag==="Banco de dados"?2:f.tag==="Segredo"?16:5,t:(b.dataset.a==="ok"?"Aprovado por Robson: ":"Recusado por Robson: ")+f.tag.toLowerCase()+". Robô executa e registra.",n:1});drawFeed();drawFila()});
+$("sectors").addEventListener("click",function(e){var b=e.target.closest("button[data-t]");if(!b)return;var s=S[+b.dataset.t];s.on=!s.on;
+  feed.unshift({h:hora(),s:s.id,t:s.on?"Setor ligado por Robson.":"Setor desligado por Robson. Pendências ficam guardadas na fila.",n:1});drawFeed();totals();drawSectors()});
+$("busca").addEventListener("input",function(e){termo=e.target.value;drawSectors()});
+var ops=[["todos","Todos"],["on","Ativos"],["off","Desligados"]];
+function drawChips(){$("chips").innerHTML=ops.map(function(o){return'<button data-f="'+o[0]+'" aria-pressed="'+(filtro===o[0])+'">'+o[1]+'</button>'}).join("")}
+$("chips").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;filtro=b.dataset.f;drawChips();drawSectors()});
+feed=[{h:"08:00:00",s:0,t:"Resumo diário preparado para Robson.",n:0},{h:"07:45:12",s:16,t:"Backup noturno concluído e restauração testada.",n:0},{h:"07:30:41",s:9,t:"Conciliação baixou 112 pagamentos da noite.",n:0}];
+drawChips();drawFeed();drawFila();
+setInterval(tick,3500);
+</script>
