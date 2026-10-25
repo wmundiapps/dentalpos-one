@@ -5,15 +5,17 @@ import { RISK_FLAG_LABEL } from '../lib/api';
 import { useAction, useAsync, usePageTitle } from '../lib/hooks';
 import { CATEGORIES } from '@shared/catalog';
 import { fmtDate, fmtDateTime, formatBRL, SALE_STATUS } from '../lib/format';
+import { ContactCard, EVENT_LABEL, MoneyBanner, nextStep, OrderBadge, OrderTimeline, ShipToCard, ValuesBox, type Order } from '../components/OrderParts';
 import { Alert, Badge, Empty, ErrorAlert, ErrorState, Loading, PageHead, StatusBadge } from '../components/ui';
 import { SelectField, TextField } from '../components/fields';
 
 interface Dash {
   kycPending: number; listingsInReview: number; reportsOpen: number; dataRequestsOpen: number; activeListings: number; salesFlagged: number;
   feesPaidCents: number | string; feesPendingCents: number | string; users: number;
+  ordersDisputed: number; heldCents: number | string; commissionReleasedCents: number | string;
 }
 const TABS = [
-  ['kyc', 'Verificações'], ['anuncios', 'Anúncios em revisão'], ['denuncias', 'Denúncias'], ['vendas', 'Vendas e taxas'],
+  ['kyc', 'Verificações'], ['anuncios', 'Anúncios em revisão'], ['denuncias', 'Denúncias'], ['pedidos', 'Pedidos e disputas'], ['vendas', 'Taxas de retirada'],
   ['outros', 'Outros'], ['origem', 'Origem'], ['lgpd', 'Pedidos LGPD'], ['usuarios', 'Usuários'],
 ] as const;
 type Tab = (typeof TABS)[number][0];
@@ -23,22 +25,24 @@ export function Admin() {
   const [tab, setTab] = useState<Tab>('kyc');
   const dash = useAsync(() => api.get<Dash>('/admin/dashboard'), []);
   const d = dash.data;
-  const counts: Partial<Record<Tab, number | undefined>> = { kyc: d?.kycPending, anuncios: d?.listingsInReview, denuncias: d?.reportsOpen, vendas: d?.salesFlagged, lgpd: d?.dataRequestsOpen };
+  const counts: Partial<Record<Tab, number | undefined>> = { kyc: d?.kycPending, anuncios: d?.listingsInReview, denuncias: d?.reportsOpen, pedidos: d?.ordersDisputed, vendas: d?.salesFlagged, lgpd: d?.dataRequestsOpen };
 
   return (
     <div className="stack-l">
-      <PageHead title="Administração" sub="Moderação, vendas e privacidade. Tudo o que você vê de dado sensível fica registrado no log de auditoria." />
+      <PageHead title="Administração" sub="Moderação, pedidos e privacidade. Tudo o que você vê de dado sensível fica registrado no log de auditoria." />
       {dash.error ? <ErrorState error={dash.error} onRetry={dash.reload} /> : d && (
         <div className="stat-grid">
           <Stat label="Verificações pendentes" value={d.kycPending} onClick={() => setTab('kyc')} />
           <Stat label="Anúncios em revisão" value={d.listingsInReview} onClick={() => setTab('anuncios')} />
           <Stat label="Denúncias abertas" value={d.reportsOpen} onClick={() => setTab('denuncias')} />
           <Stat label="Pedidos LGPD" value={d.dataRequestsOpen} onClick={() => setTab('lgpd')} />
-          <Stat label="Vendas sinalizadas" value={d.salesFlagged} onClick={() => setTab('vendas')} />
+          <Stat label="Pedidos em disputa" value={d.ordersDisputed} onClick={() => setTab('pedidos')} />
+          <Stat label="Dinheiro retido (Mercado Pago)" text={formatBRL(Number(d.heldCents))} onClick={() => setTab('pedidos')} />
+          <Stat label="Comissão já liberada" text={formatBRL(Number(d.commissionReleasedCents))} />
           <Stat label="Anúncios no ar" value={d.activeListings} />
           <Stat label="Usuários" value={d.users} onClick={() => setTab('usuarios')} />
-          <Stat label="Taxas pagas" text={formatBRL(Number(d.feesPaidCents))} />
-          <Stat label="Taxas a receber" text={formatBRL(Number(d.feesPendingCents))} />
+          <Stat label="Taxas de retirada pagas" text={formatBRL(Number(d.feesPaidCents))} />
+          <Stat label="Taxas de retirada a receber" text={formatBRL(Number(d.feesPendingCents))} />
         </div>
       )}
       <div className="admin-tabs" role="tablist" aria-label="Áreas da administração">
@@ -52,6 +56,7 @@ export function Admin() {
         {tab === 'kyc' && <KycTab onChange={dash.reload} />}
         {tab === 'anuncios' && <ListingsTab onChange={dash.reload} />}
         {tab === 'denuncias' && <ReportsTab onChange={dash.reload} />}
+        {tab === 'pedidos' && <OrdersTab onChange={dash.reload} />}
         {tab === 'vendas' && <SalesTab onChange={dash.reload} />}
         {tab === 'outros' && <OutrosTab />}
         {tab === 'origem' && <OriginTab />}
@@ -173,7 +178,7 @@ function ListingsTab({ onChange }: { onChange: () => void }) {
   return (
     <div className="stack">
       <SelectField label="Mostrar" value={status} onChange={(e) => setStatus(e.target.value)}>
-        <option value="pending_review">Em revisão</option><option value="active">No ar</option><option value="rejected">Recusados</option><option value="removed">Removidos</option><option value="pending_checkout">Aguardando taxa</option><option value="sold">Vendidos</option>
+        <option value="pending_review">Em revisão</option><option value="active">No ar</option><option value="rejected">Recusados</option><option value="removed">Removidos</option><option value="sold">Vendidos</option>
       </SelectField>
       <ListState q={list} empty="">{(d) => d.items.length === 0 ? <Empty icon="✅" title="Nada por aqui" /> : (
         <ul className="rows">{d.items.map((l) => (
@@ -224,22 +229,78 @@ function ReportRow({ r, done }: { r: AdminReport; done: () => void }) {
   );
 }
 
-// ---------- vendas ----------
-interface AdminSale { id: string; status: string; fee_cents: number; declared_price_cents: number; max_listed_price_cents: number; flagged: boolean; flag_reason: string | null; buyer_confirmation: string; due_at: string; paid_at: string | null; receipt_number: string; title: string; seller_name: string }
-function SalesTab({ onChange }: { onChange: () => void }) {
-  const [flagged, setFlagged] = useState(true);
-  const list = useAsync(() => api.get<{ items: AdminSale[] }>('/admin/sales', { flagged: flagged ? 'true' : undefined }), [flagged]);
+// ---------- pedidos e disputas ----------
+interface AdminOrder { id: string; status: string; price_cents: number; commission_cents: number; delivery_mode: string; dispute_reason: string | null; dispute_by: string | null; return_reason: string | null; created_at: string; disputed_at: string | null; title: string; buyer_name: string; seller_name: string }
+const ORDER_FILTERS: [string, string][] = [['disputed', 'Em disputa'], ['return_requested', 'Devolução pedida'], ['paid', 'Pagos (dinheiro retido)'], ['shipped', 'Enviados'], ['received', 'Recebidos (prazo de 7 dias)'], ['released', 'Concluídos'], ['refunded', 'Devolvidos']];
+function OrdersTab({ onChange }: { onChange: () => void }) {
+  const [status, setStatus] = useState('disputed');
+  const [sel, setSel] = useState<string | null>(null);
+  const list = useAsync(() => api.get<{ items: AdminOrder[] }>('/admin/orders', { status }), [status]);
   return (
     <div className="stack">
-      <label className="check"><input type="checkbox" checked={flagged} onChange={(e) => setFlagged(e.target.checked)} /> Mostrar só vendas sinalizadas</label>
-      <ListState q={list} empty="">{(d) => d.items.length === 0 ? <Empty icon="🧾" title="Nenhuma venda" /> : (
+      <SelectField label="Mostrar pedidos" value={status} onChange={(e) => { setStatus(e.target.value); setSel(null); }}>
+        {ORDER_FILTERS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+      </SelectField>
+      <div className="split">
+        <div>
+          <ListState q={list} empty="">{(d) => d.items.length === 0 ? <Empty icon="✅" title="Nenhum pedido neste estado" /> : (
+            <ul className="rows compact">{d.items.map((i) => (
+              <li key={i.id}><button className={`row-card btn-card${sel === i.id ? ' on' : ''}`} onClick={() => setSel(i.id)}>
+                <div className="row-main"><strong>{i.title}</strong><span className="small muted">{i.buyer_name} (comprador) × {i.seller_name} (vendedor)</span>
+                  <span className="small muted">{formatBRL(i.price_cents)} · {i.delivery_mode === 'envio' ? 'envio' : 'retirada'} · {fmtDateTime(i.disputed_at ?? i.created_at)}</span>
+                  {(i.dispute_reason || i.return_reason) && <span className="small">{i.dispute_reason ?? i.return_reason}</span>}</div>
+              </button></li>
+            ))}</ul>
+          )}</ListState>
+        </div>
+        <div>{sel ? <AdminOrderView key={sel} id={sel} onDone={() => { list.reload(); onChange(); }} /> : <p className="muted">Escolha um pedido na lista para ver as etapas e decidir.</p>}</div>
+      </div>
+    </div>
+  );
+}
+
+function AdminOrderView({ id, onDone }: { id: string; onDone: () => void }) {
+  const q = useAsync(() => api.get<{ order: Order; events: { event: string; note: string | null; actor_id: string | null; created_at: string }[] }>(`/admin/orders/${id}`), [id]);
+  if (q.loading && !q.data) return <Loading />;
+  if (q.error) return <ErrorState error={q.error} onRetry={q.reload} />;
+  const { order: o, events } = q.data!;
+  return (
+    <div className="panel stack">
+      <div className="row between wrap"><h3><Link to={`/anuncio/${o.listing.id}`}>{o.listing.title}</Link></h3><OrderBadge status={o.status} /></div>
+      <p className="small muted">{o.buyerFirstName} (comprador) × {o.sellerFirstName} (vendedor) · {o.deliveryMode === 'envio' ? 'envio' : 'retirada em mãos'}{o.trackingCode ? ` · rastreio ${o.trackingCode}` : ''} · {nextStep(o)}</p>
+      <MoneyBanner o={o} />
+      {o.disputeReason && <Alert tone="bad" title="Disputa aberta">{o.disputeReason}</Alert>}
+      {o.returnReason && <Alert tone="warn" title="Motivo da devolução">{o.returnReason}</Alert>}
+      <ValuesBox o={o} />
+      <OrderTimeline o={o} />
+      {o.shipTo && <ShipToCard a={o.shipTo} />}
+      <ContactCard o={o} />
+      <h4>Histórico</h4>
+      <ul className="events">{events.map((e, i) => <li key={i}><span className="small muted">{fmtDateTime(e.created_at)}</span><div>{EVENT_LABEL[e.event] ?? e.event}{e.note ? <span className="muted"> — {e.note}</span> : ''}</div></li>)}</ul>
+      {o.status === 'disputed' ? (
+        <Decision min={5} placeholder="Justificativa da decisão (mínimo 5 caracteres; fica registrada)" actions={[
+          { label: 'Devolver ao comprador (reembolso integral)', tone: 'danger', run: async (n) => { await api.post(`/admin/orders/${o.id}/resolve`, { outcome: 'refund', note: n }); q.reload(); onDone(); } },
+          { label: 'Liberar ao vendedor (menos a comissão)', tone: 'primary', run: async (n) => { await api.post(`/admin/orders/${o.id}/resolve`, { outcome: 'release', note: n }); q.reload(); onDone(); } },
+        ]} />
+      ) : <Alert tone="info">Só pedidos em disputa têm decisão da moderação. Este pedido segue o fluxo normal.</Alert>}
+    </div>
+  );
+}
+
+// ---------- taxas de retirada ----------
+interface AdminSale { id: string; status: string; fee_cents: number; due_at: string; paid_at: string | null; receipt_number: string; title: string; seller_name: string }
+function SalesTab({ onChange }: { onChange: () => void }) {
+  const list = useAsync(() => api.get<{ items: AdminSale[] }>('/admin/sales'), []);
+  return (
+    <div className="stack">
+      <p className="muted small">Taxa fixa de retirada de anúncio já publicado sem venda. A comissão de vendas é descontada do repasse e aparece em Pedidos.</p>
+      <ListState q={list} empty="">{(d) => d.items.length === 0 ? <Empty icon="🧾" title="Nenhuma taxa de retirada" /> : (
         <ul className="rows">{d.items.map((s) => {
           const st = SALE_STATUS[s.status] ?? { label: s.status, tone: 'muted' as const };
           return (
             <li key={s.id} className="row-card col">
-              <div className="row between wrap"><strong>{s.title}</strong><span className="row gap-s"><Badge tone={st.tone}>{st.label}</Badge>{s.flagged && <Badge tone="warn">Sinalizada</Badge>}</span></div>
-              <div className="small muted">Vendedor {s.seller_name} · fechado {formatBRL(s.declared_price_cents)} (anunciado até {formatBRL(s.max_listed_price_cents)}) · taxa {formatBRL(s.fee_cents)} · vence {fmtDate(s.due_at)} · recibo {s.receipt_number} · comprador: {s.buyer_confirmation}</div>
-              {s.flag_reason && <Alert tone="warn">{s.flag_reason}</Alert>}
+              <div className="row between wrap"><strong>{s.title}</strong><Badge tone={st.tone}>{st.label}</Badge></div>
+              <div className="small muted">Vendedor {s.seller_name} · taxa {formatBRL(s.fee_cents)} · vence {fmtDate(s.due_at)} · recibo {s.receipt_number}{s.paid_at ? ` · paga em ${fmtDate(s.paid_at)}` : ''}</div>
               {s.status === 'awaiting_payment' && (
                 <Decision min={5} placeholder="Motivo (mínimo 5 caracteres)" actions={[
                   { label: 'Marcar como pago', tone: 'primary', run: async (n) => { await api.post(`/admin/sales/${s.id}/mark-paid`, { reason: n }); list.reload(); onChange(); } },

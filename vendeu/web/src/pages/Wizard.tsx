@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiError, blockReasonLabel, errorMessage } from '../lib/api';
 import { useApp } from '../lib/app';
-import { useAction, useAsync, usePageTitle } from '../lib/hooks';
+import { useAction, useAsync, useDebounced, usePageTitle } from '../lib/hooks';
 import { CATEGORIES, CONDITION_LABEL, CONDITIONS, MAX_PHOTOS, MIN_PHOTOS, OPERATION_LABEL, OPERATIONS, ORIGIN_KINDS, REGISTERED_ASSET, type CategorySlug, type Condition, type Operation } from '@shared/catalog';
 import { calcFeeCents, formatBRL } from '@shared/fees';
 import { ATTR_DEFS } from '../lib/attrs';
 import { centsToMasked, moneyToCents, STATES } from '../lib/format';
-import { declarationText } from '../lib/declaration';
 import { Alert, ErrorAlert, ErrorState, Loading, PageHead, SafetyBox } from '../components/ui';
 import { MoneyField, SelectField, TextAreaField, TextField } from '../components/fields';
+import { PaymentAccount } from '../components/PaymentAccount';
 
 interface Detail {
   id: string; title: string; description: string; priceCents: number; rentPeriod: 'dia' | 'semana' | 'mes' | null; operation: Operation; condition: Condition;
@@ -158,7 +158,7 @@ export function Wizard() {
     return (
       <div className="narrow stack">
         <PageHead title="Anunciar" />
-        <Alert tone="warn" title="Complete seu cadastro de anunciante">Para anunciar, informe seu CPF ou CNPJ e seu endereço. É rápido e anunciar é grátis.</Alert>
+        <Alert tone="warn" title="Complete seu cadastro de anunciante">Para anunciar, informe seu CPF ou CNPJ e seu endereço. É rápido e anunciar não custa nada.</Alert>
         <Link to="/conta/anunciante" className="btn btn-primary btn-lg">Virar anunciante</Link>
       </div>
     );
@@ -167,7 +167,7 @@ export function Wizard() {
     return (
       <div className="narrow stack">
         <PageHead title="Anunciar" />
-        <Alert tone="bad" title="Novos anúncios bloqueados">Você tem taxa de venda em atraso. Pague a taxa pendente para voltar a anunciar.</Alert>
+        <Alert tone="bad" title="Novos anúncios bloqueados">Você tem taxa de retirada em atraso. Pague a taxa pendente para voltar a anunciar.</Alert>
         <Link to="/venda" className="btn btn-primary btn-lg">Ver minhas taxas</Link>
       </div>
     );
@@ -177,7 +177,7 @@ export function Wizard() {
 
   return (
     <div className="narrow stack-l" id="wizard-top">
-      <PageHead title={editing ? 'Editar anúncio' : 'Novo anúncio'} sub="Anunciar é grátis. Você só paga quando vender e retirar o anúncio." />
+      <PageHead title={editing ? 'Editar anúncio' : 'Novo anúncio'} sub="Anunciar não custa nada. A comissão só existe quando a venda se concluir." />
       <ol className="stepper" aria-label="Etapas">
         {STEPS.map((s, i) => (
           <li key={s} className={i === step ? 'on' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}>
@@ -211,7 +211,7 @@ function Done({ status, id }: { status: string; id: string }) {
       ) : status === 'paused' ? (
         <Alert tone="ok">Alterações salvas. O anúncio continua pausado.</Alert>
       ) : (
-        <Alert tone="ok" title="Seu anúncio está salvo e no ar!">Compartilhe o link e responda rápido às mensagens. Quando vender, volte aqui e use "Vendi — retirar anúncio".</Alert>
+        <Alert tone="ok" title="Seu anúncio está salvo e no ar!">Compartilhe o link e responda rápido às dúvidas no chat. Quando alguém comprar, alugar ou fizer uma proposta, você é avisado por e-mail e o pedido aparece em Venda &gt; Pedidos recebidos.</Alert>
       )}
       <div className="row wrap">
         <Link className="btn btn-primary" to={`/anuncio/${id}`}>Ver anúncio</Link>
@@ -258,7 +258,7 @@ function StepData({ f, set, errors, locked, onNext, busy, error }: { f: Form; se
         </div>
         <TextField label="Título" value={f.title} onChange={(e) => set({ title: e.target.value })} maxLength={90} error={errors.title} required hint="Seja claro: o que é, marca/modelo e estado." />
         <TextAreaField label="Descrição" value={f.description} onChange={(e) => set({ description: e.target.value })} rows={6} maxLength={4000} error={errors.description} required
-          hint="Estado, tempo de uso, defeitos, o que acompanha. Não coloque telefone, e-mail nem links: a conversa é pelo Vendeu." />
+          hint="Estado, tempo de uso, defeitos, o que acompanha. Não coloque telefone, e-mail nem links: a negociação é toda pelo Vendeu." />
       </fieldset>
 
       <fieldset className="fieldset">
@@ -272,7 +272,7 @@ function StepData({ f, set, errors, locked, onNext, busy, error }: { f: Form; se
           )}
         </div>
         <div className="fee-live" aria-live="polite">
-          <div>{fee ? <>Se {rent ? 'alugar' : 'vender'} por este valor, a taxa será <strong>{formatBRL(fee)}</strong> (você recebe <strong>{formatBRL(cents - fee)}</strong>). Só paga quando {rent ? 'alugar' : 'vender'}.</> : 'Digite o preço para ver a taxa. Anunciar é grátis.'}</div>
+          <div>{fee ? <>Comissão se {rent ? 'o aluguel' : 'a venda'} se concluir: <strong>{formatBRL(fee)}</strong> — você recebe <strong>{formatBRL(cents - fee)}</strong>. Anunciar não custa nada.</> : 'Digite o preço para ver a comissão e quanto você recebe. Anunciar não custa nada.'}</div>
         </div>
       </fieldset>
 
@@ -286,7 +286,7 @@ function StepData({ f, set, errors, locked, onNext, busy, error }: { f: Form; se
           <TextField label="Bairro" value={f.district} onChange={(e) => set({ district: e.target.value })} maxLength={80} />
         </div>
         <TextField label="Endereço exato (opcional, NÃO fica público)" value={f.addressPrivate} onChange={(e) => set({ addressPrivate: e.target.value })} maxLength={200}
-          hint="Só você e a moderação veem. Combine o ponto de encontro pela conversa, de preferência em local público." />
+          hint="Só você e a moderação veem. Nunca é mostrado a compradores." />
       </fieldset>
 
       {defs.length > 0 && (
@@ -395,7 +395,7 @@ function StepPhotos({ listingId, photos, reload, onBack, onNext, locked }: { lis
 }
 
 function StepSign({ listingId, form, onBack, onDone }: { listingId: string; form: Form; onBack: () => void; onDone: (status: string) => void }) {
-  const { user, config } = useApp();
+  const { user, config, pay, refreshPay } = useApp();
   const legal = useAsync(() => api.get<{ documents: { key: string; version: string }[] }>('/legal'), []);
   const [origin, setOrigin] = useState('');
   const [assetRef, setAssetRef] = useState('');
@@ -404,16 +404,18 @@ function StepSign({ listingId, form, onBack, onDone }: { listingId: string; form
   const [signer, setSigner] = useState('');
   const act = useAction();
   const asset = form.category ? REGISTERED_ASSET[form.category] : undefined;
-  const originLabel = ORIGIN_KINDS.find((o) => o.value === origin)?.label ?? '[escolha a origem do bem]';
-  const text = useMemo(() => declarationText({ signerName: user!.fullName, listingTitle: form.title.trim(), originLabel, assetRef: assetRef.trim() || null }), [user, form.title, originLabel, assetRef]);
+  const assetDeb = useDebounced(assetRef.trim(), 400);
+  const preview = useAsync(() => api.get<{ text: string; version: string }>(`/listings/${listingId}/declaration-preview`, { originKind: origin, assetRef: assetDeb || undefined }), [listingId, origin, assetDeb], { enabled: !!origin });
+  const text = preview.data?.text ?? '';
   const version = (k: string) => legal.data?.documents.find((d) => d.key === k)?.version;
   const sellerDocs: [string, string][] = [['regras-de-anuncio', 'Regras de Anúncio'], ['termo-de-responsabilidade-origem', 'Termo de Responsabilidade de Origem'], ['politica-de-taxas', 'Política de Taxas']];
   const needKyc = !!config?.publishRequiresKyc && user!.kycStatus !== 'verified';
   const needContacts = !user!.emailVerified || !user!.phoneVerified;
+  const needPay = !pay?.method?.connected;
   const [blocked, setBlocked] = useState<string[] | null>(null);
 
   const nameOk = signer.trim().length >= 5;
-  const canPublish = !!origin && (!asset || assetRef.trim().length >= 3) && read && terms && nameOk && !!legal.data && !needKyc && !needContacts && !act.busy;
+  const canPublish = !!origin && (!asset || assetRef.trim().length >= 3) && read && terms && nameOk && !!legal.data && !needKyc && !needContacts && !needPay && !!text && !preview.loading && !act.busy;
 
   const publish = async () => {
     setBlocked(null);
@@ -438,6 +440,13 @@ function StepSign({ listingId, form, onBack, onDone }: { listingId: string; form
           Para publicar, precisamos verificar sua identidade{user!.kycStatus === 'pending' ? ' (seus documentos estão em análise; avisaremos por e-mail)' : ''}. Seu anúncio fica salvo como rascunho. <Link to="/conta/verificacao">Ir para a verificação</Link>
         </Alert>
       )}
+      {needPay && (
+        <fieldset className="fieldset">
+          <legend>Conta Mercado Pago</legend>
+          <p className="small muted">Para publicar é preciso ter uma conta Mercado Pago conectada: é por ela que você recebe quando a venda se concluir. Depois de conectar pelo Mercado Pago você volta ao painel; seu anúncio fica salvo como rascunho.</p>
+          <PaymentAccount onChanged={() => void refreshPay()} />
+        </fieldset>
+      )}
       <fieldset className="fieldset">
         <legend>Origem do bem</legend>
         <SelectField label="Como este bem chegou até você?" value={origin} onChange={(e) => setOrigin(e.target.value)} required>
@@ -451,8 +460,12 @@ function StepSign({ listingId, form, onBack, onDone }: { listingId: string; form
         <legend>Declaração e assinatura</legend>
         <p className="small muted">Leia com atenção. Este texto será assinado digitalmente, com registro do seu IP, aparelho e data.</p>
         <div className="declaration" tabIndex={0} role="region" aria-label="Texto da declaração de origem">
-          {text.split('\n').map((l, i) => <p key={i}>{l}</p>)}
+          {!origin ? <p className="muted">Escolha acima como o bem chegou até você para ver o texto que será assinado.</p>
+            : preview.loading && !preview.data ? <p className="muted">Carregando o texto…</p>
+            : preview.error ? <p className="text-bad">Não foi possível carregar o texto da declaração. Tente de novo.</p>
+            : text.split('\n').map((l, i) => <p key={i}>{l}</p>)}
         </div>
+        {preview.data && <p className="small muted">Texto gerado pelo servidor (versão {preview.data.version}): é exatamente este que fica registrado com a sua assinatura.</p>}
         <label className="check"><input type="checkbox" checked={read} onChange={(e) => setRead(e.target.checked)} /><span><strong>Li e declaro</strong> que tudo o que está escrito acima é verdadeiro.</span></label>
         <label className="check">
           <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} />
@@ -470,8 +483,9 @@ function StepSign({ listingId, form, onBack, onDone }: { listingId: string; form
         </Alert>
       )}
       {err && err.code === 'kyc_required' && <Alert tone="warn" title="Verificação de identidade necessária">Envie seus documentos para publicar. <Link to="/conta/verificacao">Verificar agora</Link></Alert>}
+      {err && err.code === 'payment_method_required' && <Alert tone="warn">Conecte sua conta Mercado Pago (acima) para publicar.</Alert>}
       {err && err.code === 'contact_not_verified' && <Alert tone="warn">Confirme e-mail e telefone antes de publicar. <Link to="/conta/confirmar">Confirmar</Link></Alert>}
-      {err && !['listing_blocked', 'kyc_required', 'contact_not_verified'].includes(err.code) && <ErrorAlert error={err} />}
+      {err && !['listing_blocked', 'kyc_required', 'contact_not_verified', 'payment_method_required'].includes(err.code) && <ErrorAlert error={err} />}
 
       <SafetyBox compact />
       <div className="row wrap">

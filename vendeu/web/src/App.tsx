@@ -7,6 +7,7 @@ import { ListingDetail } from './pages/ListingDetail';
 import { Sell } from './pages/Sell';
 import { Wizard } from './pages/Wizard';
 import { Checkout } from './pages/Checkout';
+import { OrderDetail, Orders } from './pages/Orders';
 import { Messages } from './pages/Messages';
 import { BecomeSeller, Login, Recover, Register, VerifyContacts } from './pages/Auth';
 import { Kyc } from './pages/Kyc';
@@ -31,6 +32,8 @@ export function App() {
         <Route path="venda/anunciar" element={<RequireAuth><Wizard /></RequireAuth>} />
         <Route path="venda/anuncio/:id/editar" element={<RequireAuth><Wizard /></RequireAuth>} />
         <Route path="venda/taxa/:saleId" element={<RequireAuth><Checkout /></RequireAuth>} />
+        <Route path="pedidos" element={<RequireAuth><Orders /></RequireAuth>} />
+        <Route path="pedidos/:id" element={<RequireAuth><OrderDetail /></RequireAuth>} />
         <Route path="mensagens" element={<RequireAuth><Messages /></RequireAuth>} />
         <Route path="mensagens/:id" element={<RequireAuth><Messages /></RequireAuth>} />
         <Route path="cadastrar" element={<Register />} />

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useApp } from '../lib/app';
 import { useAction, useAsync, usePageTitle } from '../lib/hooks';
-import { fmtDate, formatBRL, priceLabel } from '../lib/format';
+import { fmtDate, formatBRL } from '../lib/format';
 import { Alert, copyText, Empty, ErrorAlert, ErrorState, Loading, Modal, PageHead } from '../components/ui';
 import { TextAreaField, TextField } from '../components/fields';
 import {
@@ -307,4 +307,3 @@ function Help({ o, call, busy, has }: PanelProps) {
   );
 }
 
-export { priceLabel };

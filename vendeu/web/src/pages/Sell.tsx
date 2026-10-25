@@ -88,7 +88,7 @@ function Panel() {
       to: '/conta/verificacao', cta: u.kycStatus === 'pending' ? 'Ver andamento' : u.kycStatus === 'rejected' ? 'Enviar de novo' : 'Verificar identidade', tone: u.kycStatus === 'rejected' ? 'bad' : u.kycStatus === 'pending' ? 'warn' : undefined,
     },
     {
-      done: mpDone, title: 'Conta Mercado Pago conectada', text: mpDone ? 'É por ela que você recebe suas vendas.' : 'Obrigatória para publicar: é por ela que você recebe. O Vendeu não vê sua senha nem seus dados bancários.',
+      done: mpDone, title: 'Conta Mercado Pago', text: mpDone ? 'Conectada: é por ela que você recebe suas vendas.' : 'Obrigatória para publicar: é por ela que você recebe. O Vendeu não vê sua senha nem seus dados bancários.',
       node: !mpDone ? <PaymentAccount /> : undefined,
     },
   ];

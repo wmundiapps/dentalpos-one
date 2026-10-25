@@ -62,7 +62,7 @@ export function Checkout() {
 
   return (
     <div className="narrow stack-l">
-      <PageHead title="Pagar a taxa de retirada" sub="O anúncio já saiu do ar. A taxa de retirada é fixa e não é comissão: comissão só existe quando uma venda se conclui."} />
+      <PageHead title="Pagar a taxa de retirada" sub="O anúncio já saiu do ar. A taxa de retirada é fixa e não é comissão: comissão só existe quando uma venda se conclui." />
       <section className="panel stack" aria-label="Resumo">
         <div className="row between wrap"><strong>{v.listingTitle}</strong><Badge tone={st.tone}>{st.label}</Badge></div>
         <dl className="attrs">

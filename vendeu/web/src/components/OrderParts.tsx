@@ -87,7 +87,7 @@ export function Countdown({ to, label }: { to?: string | null; label: string }) 
   const now = useNow();
   if (!to) return null;
   const r = remaining(to, now);
-  return <span className={`countdown${r.late ? ' late' : ''}`}><span aria-hidden="true">⏳</span> {label}: <strong>{r.late ? r.text : r.text}</strong></span>;
+  return <span className={`countdown${r.late ? ' late' : ''}`}><span aria-hidden="true">⏳</span> {label}: <strong>{r.text}</strong></span>;
 }
 
 type StepState = 'done' | 'now' | 'todo' | 'skip' | 'bad';
@@ -100,7 +100,6 @@ export function buildSteps(o: Order): TStep[] {
   const closed = ['declined', 'expired'].includes(s) || (s === 'cancelled' && !o.paidAt);
   const retired = s === 'refunded' || (s === 'cancelled' && !!o.paidAt);
   const received = !!o.receivedAt;
-  const after = (...a: string[]) => a.includes(s);
 
   const steps: TStep[] = [];
   const offerLike = o.listedPriceCents !== o.priceCents;
@@ -136,7 +135,6 @@ export function buildSteps(o: Order): TStep[] {
     extra: s === 'received' ? <Countdown to={o.returnDeadline} label="faltam" /> : undefined });
   steps.push({ key: 'done', title: rent ? 'Concluído (aluguel)' : 'Concluído', date: o.releasedAt, state: s === 'released' ? 'done' : 'todo',
     money: s === 'released' ? `Liberado ao vendedor: ${formatBRL(o.sellerReceivesCents)} (preço menos comissão de ${formatBRL(o.commissionCents)}).` : 'Depois do prazo, o valor é liberado ao vendedor, menos a comissão.' });
-  void after;
   return steps;
 }
 

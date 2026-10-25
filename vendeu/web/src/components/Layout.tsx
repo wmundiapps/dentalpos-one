@@ -49,6 +49,7 @@ function AccountMenu() {
         <div className="menu-list" role="menu">
           <div className="menu-user"><strong>{user.fullName}</strong><span className="muted small">{user.email}</span></div>
           <Link role="menuitem" to="/conta">Minha conta</Link>
+          <Link role="menuitem" to="/pedidos">Meus pedidos</Link>
           <Link role="menuitem" to="/venda">Painel do anunciante{feesDueCount > 0 ? ' (taxa pendente)' : ''}</Link>
           <Link role="menuitem" to="/mensagens">Mensagens</Link>
           {user.accountType === 'anunciante' && <Link role="menuitem" to="/conta/verificacao">Verificação de identidade</Link>}
@@ -98,6 +99,11 @@ export function Layout() {
           </form>
           <div className="header-actions">
             {user && (
+              <Link to="/pedidos" className="icon-link icon-link-text" aria-label="Meus pedidos">
+                <span aria-hidden="true">📦</span><span className="hide-sm">Pedidos</span>
+              </Link>
+            )}
+            {user && (
               <Link to="/mensagens" className="icon-link" aria-label={unread ? `Mensagens, ${unread} não lidas` : 'Mensagens'}>
                 <span aria-hidden="true">💬</span>
                 {unread > 0 && <span className="count" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
@@ -119,7 +125,7 @@ export function Layout() {
         </nav>
         {feesDueCount > 0 && !loc.pathname.startsWith('/venda') && (
           <div className="banner-warn">
-            <div className="container">Você tem {formatBRL(feesDueCents)} em taxa de venda para pagar. <Link to="/venda">Ver minhas vendas e taxas</Link></div>
+            <div className="container">Você tem {formatBRL(feesDueCents)} em taxa de retirada para pagar. <Link to="/venda#taxas">Ver minhas taxas</Link></div>
           </div>
         )}
       </header>
@@ -130,7 +136,7 @@ export function Layout() {
         <div className="container footer-grid">
           <div>
             <Logo />
-            <p className="muted small">Anunciar é grátis. Você só paga quando vender.</p>
+            <p className="muted small">Anunciar não custa nada. A comissão só existe quando a venda se concluir.</p>
           </div>
           <div>
             <h2 className="footer-title">Documentos</h2>
@@ -142,6 +148,7 @@ export function Layout() {
           <div>
             <h2 className="footer-title">Ajuda</h2>
             <ul className="plain">
+              <li><Link to="/pedidos">Meus pedidos</Link></li>
               <li><Link to="/taxas">Quanto custa vender?</Link></li>
               <li><Link to="/seguranca">Segurança e anti-golpe</Link></li>
               <li>Suporte: <a href="mailto:suporte@vendeu.app">suporte@vendeu.app</a></li>
@@ -150,7 +157,7 @@ export function Layout() {
           </div>
         </div>
         <div className="container small muted footer-note">
-          O Vendeu é uma plataforma de anúncios: não participa da negociação, não recebe o dinheiro do negócio e não garante o produto. © {new Date().getFullYear()} Vendeu.
+          O Vendeu é uma plataforma de anúncios. O pagamento é processado e retido pelo Mercado Pago (o dinheiro não passa por conta do Vendeu) e a moderação decide disputas com base nas informações dos pedidos. © {new Date().getFullYear()} Vendeu.
         </div>
       </footer>
 

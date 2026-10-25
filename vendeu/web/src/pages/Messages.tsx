@@ -79,7 +79,7 @@ function ThreadView({ id, conv }: { id: string; conv?: Conv }) {
           <div className="small"><Link to={`/anuncio/${t.data!.listingId}`}>{conv?.title ?? 'Ver anúncio'}</Link> {conv && <StatusBadge status={conv.listingStatus} />}</div>
         </div>
       </div>
-      <div className="safety-strip" role="note"><span aria-hidden="true">🛡️</span> Nunca pague antes de ver o produto. Nunca informe códigos recebidos por SMS/WhatsApp.</div>
+      <div className="safety-strip" role="note"><span aria-hidden="true">🔒</span> Telefone, e-mail, links e @usuário são ocultados aqui e só são liberados depois do recebimento do produto. Negocie e pague só pelo Vendeu; nunca informe códigos de SMS/WhatsApp.</div>
       <div className="bubbles" role="log" aria-live="polite" aria-label="Mensagens">
         {msgs.map((m) => (
           <div key={m.id} className={`bubble-wrap ${m.mine ? 'mine' : 'theirs'}`}>
@@ -87,7 +87,7 @@ function ThreadView({ id, conv }: { id: string; conv?: Conv }) {
               <p className="pre">{m.body}</p>
               <span className="bubble-time">{fmtDateTime(m.createdAt)}</span>
             </div>
-            {m.warning && <div className="bubble-warn" role="alert"><strong>⚠️ Atenção:</strong> {m.warning.split(' | ').join(' ')}</div>}
+            {m.warning && <div className="bubble-warn" role="alert"><strong>🔒 Nota do Vendeu:</strong> {m.warning.split(' | ').join(' ')}</div>}
           </div>
         ))}
         <div ref={endRef} />

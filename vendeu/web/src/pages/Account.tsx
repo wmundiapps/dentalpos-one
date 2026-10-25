@@ -7,6 +7,7 @@ import { normalizePhoneBR } from '@shared/documents';
 import { fmtDate, fmtDateTime, fmtPhone, maskPhoneInput } from '../lib/format';
 import { Alert, Badge, Empty, ErrorAlert, ErrorState, Loading, PageHead } from '../components/ui';
 import { AddressFields, validateIdentity, type Identity, emptyIdentity } from '../components/IdentityForm';
+import { PaymentAccount } from '../components/PaymentAccount';
 import { SelectField, TextAreaField, TextField } from '../components/fields';
 
 const DOC_LABEL: Record<string, string> = {
@@ -26,6 +27,7 @@ export function Account() {
       <PageHead title="Minha conta" />
       <DataSection />
       <AddressSection />
+      {user.accountType === 'anunciante' && <PaymentSection />}
       <PhoneSection />
       <PrefsSection />
       <PrivacySection />
@@ -49,6 +51,15 @@ function DataSection() {
         {u.accountType === 'anunciante' && <div><dt>Verificação de identidade</dt><dd>{KYC_LABEL[u.kycStatus]} · <Link to="/conta/verificacao">{u.kycStatus === 'verified' ? 'ver' : 'abrir'}</Link></dd></div>}
       </dl>
       {u.accountType !== 'anunciante' && <p><Link to="/conta/anunciante" className="btn btn-outline">Quero anunciar (virar anunciante)</Link></p>}
+    </section>
+  );
+}
+
+function PaymentSection() {
+  return (
+    <section className="panel stack" aria-labelledby="mp">
+      <h2 id="mp">Conta Mercado Pago</h2>
+      <PaymentAccount />
     </section>
   );
 }
@@ -162,7 +173,7 @@ function PrivacySection() {
     e.preventDefault();
     if (await delAct.run(() => api.post('/me/lgpd/delete-account', { password: pw, confirm: 'ELIMINAR' }))) { setPw(''); await logout(); nav('/', { replace: true }); }
   };
-  const delErr = delAct.error instanceof ApiError && delAct.error.code === 'pending_fees' ? 'Você tem taxa de venda pendente. Pague antes de eliminar a conta.' : null;
+  const delErr = delAct.error instanceof ApiError && delAct.error.code === 'pending_fees' ? 'Você tem taxa de retirada pendente. Pague antes de eliminar a conta.' : delAct.error instanceof ApiError && delAct.error.code === 'orders_in_progress' ? 'Você tem pedido em andamento (compra ou venda). Conclua, cancele ou devolva os pedidos antes de eliminar a conta.' : null;
 
   return (
     <section className="panel stack-l" aria-labelledby="lgpd">
@@ -173,7 +184,7 @@ function PrivacySection() {
 
       <div className="stack">
         <h3>Baixar meus dados</h3>
-        <p className="small muted">Um arquivo com os dados que temos sobre você (conta, anúncios, mensagens, aceites, vendas). Limite de 5 downloads por hora.</p>
+        <p className="small muted">Um arquivo com os dados que temos sobre você (conta, anúncios, mensagens, aceites, pedidos). Limite de 5 downloads por hora.</p>
         <ErrorAlert error={exp.error} />
         <div><button className="btn btn-outline" disabled={exp.busy} onClick={() => exp.run(() => downloadJson('/me/lgpd/export', 'meus-dados-vendeu.json'))}>{exp.busy ? 'Gerando…' : 'Baixar meus dados (JSON)'}</button></div>
       </div>
@@ -214,8 +225,8 @@ function PrivacySection() {
         <h3>Eliminar minha conta</h3>
         <div className="small">
           <p><strong>O que é apagado:</strong> seus dados pessoais (nome, e-mail, telefone, CPF/CNPJ, endereço), os documentos e a selfie da verificação, suas fotos de anúncios, e suas mensagens são substituídas. Seus anúncios ativos saem do ar.</p>
-          <p><strong>O que a lei nos obriga a manter:</strong> registros de acesso e de origem (Marco Civil da Internet e prevenção a fraude), os aceites de termos e as declarações de origem assinadas (prova e defesa em processos) e os registros de vendas e pagamentos (obrigação fiscal), com acesso restrito e pelo prazo legal.</p>
-          <p>Se houver taxa de venda pendente, pague antes. Esta ação não pode ser desfeita.</p>
+          <p><strong>O que a lei nos obriga a manter:</strong> registros de acesso e de origem (Marco Civil da Internet e prevenção a fraude), os aceites de termos e as declarações de origem assinadas (prova e defesa em processos) e os registros de pedidos, vendas e pagamentos (obrigação fiscal), com acesso restrito e pelo prazo legal.</p>
+          <p>Se houver taxa de retirada pendente ou pedido em andamento, resolva antes. Esta ação não pode ser desfeita.</p>
         </div>
         {!del ? <div><button className="btn btn-danger-outline" onClick={() => setDel(true)}>Quero eliminar minha conta</button></div> : (
           <form className="stack" onSubmit={removeAccount}>
