@@ -254,6 +254,15 @@ listingsRouter.post('/:id/publish', requireAuth, limit('publish', 30, 3600, (r) 
   res.json({ status, riskFlags: risk.flags, declaration: text });
 }));
 
+// prévia do texto que será assinado (a tela mostra exatamente o texto do servidor)
+listingsRouter.get('/:id/declaration-preview', requireAuth, wrap(async (req, res) => {
+  const l = await ownListing(req);
+  const { originKind, assetRef } = parse(z.object({ originKind: z.enum(ORIGIN_KIND_VALUES), assetRef: z.string().trim().max(40).optional() }), req.query);
+  const u = await one(pool, 'SELECT full_name FROM users WHERE id = $1', [req.user!.id]);
+  const origin = ORIGIN_KINDS.find((o) => o.value === originKind)!;
+  res.json({ text: declarationText({ signerName: u.full_name, listingTitle: l.title, originLabel: origin.label, assetRef }), version: DECLARATION_VERSION, requiresAsset: REGISTERED_ASSET[l.category as keyof typeof REGISTERED_ASSET] ?? null });
+}));
+
 listingsRouter.get('/:id/declaration', requireAuth, wrap(async (req, res) => {
   const l = await ownListing(req);
   const d = await one(pool, 'SELECT * FROM listing_declarations WHERE listing_id = $1 ORDER BY created_at DESC LIMIT 1', [l.id]);

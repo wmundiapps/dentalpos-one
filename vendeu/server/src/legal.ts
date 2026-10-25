@@ -47,7 +47,7 @@ export function declarationText(p: { signerName: string; listingTitle: string; o
     '4. As fotos são do bem real e as informações são verdadeiras.',
     '5. Entendi que o Vendeu é apenas uma plataforma de anúncios, não participa da negociação, não garante o bem nem a boa-fé de ninguém, e não responde por produtos clandestinos ou de origem duvidosa; a responsabilidade é exclusivamente minha.',
     '6. Autorizo o registro e a guarda do meu IP, e-mail, telefone e dados do dispositivo, e o fornecimento deles a autoridades mediante ordem judicial ou requisição legal.',
-    '7. Sei que, ao vender ou alugar, devo encerrar o anúncio pelo Vendeu e pagar a taxa de sucesso da tabela vigente.',
+    '7. Sei que a venda ou locação e o pagamento devem acontecer dentro do Vendeu; que o pagamento fica retido até o recebimento e o prazo de devolução de 7 dias; que a comissão vigente é descontada do repasse; e que, se eu retirar um anúncio publicado sem vender, pago a taxa de retirada vigente (R$ 10,00).',
   ].join('\n');
 }
 
