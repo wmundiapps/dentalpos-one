@@ -480,6 +480,7 @@ router.put('/platform/storage', requirePermission('settings.edit'), platformCont
 router.get('/revah/senders', requirePermission('marketing.view'), revahSenderController.index)
 router.get('/ai/balance', requirePermission('dashboard.view'), aiController.balance)
 router.get('/ai/statement', requirePermission('dashboard.view'), aiController.statement)
+router.post('/ai/help', requirePermission('dashboard.view'), aiController.help)
 router.post('/ai/run', requirePermission('dashboard.view'), aiController.run)
 router.get('/credits/packages', requirePermission('dashboard.view'), platformBillingController.packages)
 router.get('/credits/purchases', requirePermission('dashboard.view'), platformBillingController.purchases)
