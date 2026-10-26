@@ -15,6 +15,6 @@ O vídeo de cada item será colocado no sistema, no canto da tela, perto do bot�
 9. Marketing: V60 CRM · V61 Comunicações · V62 Chatbot e IA · V63 Leads · V65 Recall e Reativação · V66 Central de Marketing · V67 Disparos locais · V68 Canais de Envio
 10. Vendas e estoque: V80 Loja e Vendas · V81 Estoque (inclui parcerias de reposição)
 11. Acadêmico (módulo de cursos): V90 Visão geral · V91 Alunos · V92 Cursos · V93 Professores · V94 Turmas · V95 Financeiro acadêmico · V96 Frequência e documentos
-12. Suporte: V99 Sugestões e Problemas
+12. Suporte: V98 Ajuda com IA · V99 Sugestões e Problemas
 
 Fora dos tutoriais públicos (uso interno da equipe WMundi ou recurso oculto): Prospecção, Parceiros de estoque, CompletoDonto Design e CAD/CAM.
