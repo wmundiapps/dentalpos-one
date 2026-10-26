@@ -9,6 +9,7 @@
 | 04-financeiro.md | V40 a V47 (visão geral, receber, pagar, cobranças, gerar financeiro, recebimentos online, digitalizar, rateio do condomínio) |
 | 05-administrativo-e-gestao.md | V50 a V56 (administrativo, RH, meu ponto) e V70 a V78 (painéis de gestão e avisos de pendências) |
 | 06-marketing-vendas-academico.md | V60 a V68 (marketing), V80 e V81 (vendas e estoque), V90 a V96 (acadêmico) |
+| 07-ajuda-com-ia.md | V98 Ajuda com IA (o robô de dúvidas no canto da tela) |
 
 Cada vídeo tem: roteiro para narrar (em cenas), ficha rápida (o que faz, como aplicar, frequência de uso e de alimentação, quem tem acesso, o que acontece se não alimentar, onde impacta), abas e seções, trilha (assistir antes e depois) e texto para YouTube, Instagram e TikTok.
 
