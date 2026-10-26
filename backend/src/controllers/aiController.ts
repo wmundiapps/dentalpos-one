@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth'
 import { prisma } from '../lib/prisma'
 import { runAiTask, type AiTask } from '../services/aiService'
 import { getWallet } from '../services/creditService'
+import { HELP_SYSTEM } from '../services/helpKnowledge'
 
 const ctx = (req: AuthRequest) => ({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId })
 
@@ -83,5 +84,47 @@ export async function run(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao executar a tarefa de IA.' })
+  }
+}
+
+// Chat de ajuda: instruções fixas no servidor; o navegador só manda a pergunta e as últimas mensagens da conversa.
+const helpUse = new Map<string, number[]>()
+
+export async function help(req: AuthRequest, res: Response) {
+  try {
+    const c = ctx(req)
+    const message = String(req.body?.message || '').trim().slice(0, 800)
+    if (!message) return res.status(400).json({ error: 'Escreva a sua dúvida.' })
+
+    const now = Date.now()
+    const recent = (helpUse.get(req.user!.id) || []).filter((t) => now - t < 3600000)
+    if (recent.length >= 30) return res.status(429).json({ error: 'Muitas perguntas seguidas. Aguarde alguns minutos e tente de novo.' })
+    helpUse.set(req.user!.id, [...recent, now])
+
+    const raw = Array.isArray(req.body?.history) ? req.body.history : []
+    const history = raw
+      .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-8)
+      .map((m: any) => ({ role: m.role as 'user' | 'assistant', content: String(m.content).slice(0, 1500) }))
+    const page = String(req.body?.page || '').slice(0, 80)
+
+    const r = await runAiTask({
+      clinicId: c.clinicId,
+      tenantId: c.tenantId,
+      actorId: req.user!.id,
+      task: 'AJUDA',
+      system: `${HELP_SYSTEM}${page ? `\n\nO usuário está agora na tela: ${page}.` : ''}`,
+      prompt: message,
+      history,
+      maxTokens: 600,
+    })
+    if (!r.ok) {
+      const status = r.reason === 'SEM_SALDO' ? 402 : 409
+      return res.status(status).json({ error: MOTIVOS[r.reason || ''] || 'Não foi possível usar a ajuda agora.', code: r.reason })
+    }
+    return res.json({ texto: r.text })
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao consultar a ajuda.' })
   }
 }
