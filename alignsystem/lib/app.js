@@ -17,6 +17,7 @@ import { sanitizeImage, sanitizeSignature } from './images.js';
 import * as prospects from './prospects.js';
 import * as scan from './scan.js';
 import QRCode from 'qrcode';
+import * as kit from './kit.js';
 import { patientContract, partnerContract, contractsReviewed, PARTNER_DEFAULTS } from './contracts.js';
 import { ensureTcle, currentConsent, TCLE_KIND, TCLE_VERSION } from './tcle.js';
 import {
@@ -2346,6 +2347,166 @@ r('PATCH', '/api/dentist/appointments/:id', async (req, res, { id }) => {
   if (!['agendado', 'realizado', 'cancelado', 'faltou'].includes(b.status)) fail(400, 'Status inválido.');
   await sql`update appointments set status = ${b.status} where id = ${id} and dentist_id = ${u.dentist_id}`;
   send(res, 200, { ok: true });
+});
+
+// ------------------------------------------------------------------ kit da rede (cartões, lembretes, validação)
+
+const ACTIVE_CASE = new Set(['contrato_assinado', 'em_tratamento']);
+const kitOrg = () => ({
+  name: 'AlignSystem',
+  company: process.env.PUBLIC_RAZAO_SOCIAL || process.env.COMPANY_NAME || 'Instituto Ravel de Ensino Superior Ltda',
+  rt: process.env.PUBLIC_RESPONSAVEL_TECNICO || '',
+  whatsapp: digits(process.env.PUBLIC_WHATSAPP || ''),
+  email: process.env.PUBLIC_CONTACT_EMAIL || 'contato@alignsystem.com.br',
+  address: process.env.COMPANY_ADDRESS || '',
+  site: appUrl().replace(/^https?:\/\//, ''),
+});
+const fmtPhone = (d) => { const x = digits(d).replace(/^55(?=\d{10,11}$)/, ''); return x.length === 11 ? `(${x.slice(0, 2)}) ${x.slice(2, 7)}-${x.slice(7)}` : x.length === 10 ? `(${x.slice(0, 2)}) ${x.slice(2, 6)}-${x.slice(6)}` : d || ''; };
+const croOf = (d) => (d?.cro ? `CRO-${d.cro_uf || d.state || ''} ${d.cro}`.replace('CRO- ', 'CRO ') : '');
+const qrSvg = (text) => QRCode.toString(text, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' });
+const validarUrl = (code) => `${appUrl()}/validar?c=${encodeURIComponent(code)}`;
+const defaultValidity = () => { const d = new Date(); d.setMonth(d.getMonth() + 12); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+const sendSvg = (res, svg) => send(res, 200, Buffer.from(svg, 'utf8'), { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Cache-Control': 'private, no-store' });
+const vcardOf = (p) => ['BEGIN:VCARD', 'VERSION:3.0', `FN:${p.name}`, `N:${p.name};;;;`, 'ORG:AlignSystem', `TITLE:${[p.role, p.cro].filter(Boolean).join(' - ')}`,
+  p.phone ? `TEL;TYPE=CELL:${p.phone}` : '', p.email ? `EMAIL:${p.email}` : '', `URL:${appUrl()}`, 'END:VCARD'].filter(Boolean).join('\n');
+
+async function kitUser(sql, req) {
+  const u = await requireUser(sql, req);
+  if (u.role !== 'admin' && !(u.role === 'dentist' && u.dentist_id)) fail(403, 'Acesso não permitido.');
+  return u;
+}
+async function kitCase(sql, u, id) {
+  const [c] = u.role === 'admin' ? await sql`select * from cases where id = ${id}` : await sql`select * from cases where id = ${id} and dentist_id = ${u.dentist_id}`;
+  if (!c) fail(404, 'Paciente não encontrado.');
+  return c;
+}
+async function patientCardSvg(sql, c, ym) {
+  const d = c.dentist_id ? await dentistById(sql, c.dentist_id) : null;
+  const code = kit.makeCode('ASP', kit.patientRef(c.code), ym);
+  const p = kit.parseCode(code);
+  return kit.networkCardSVG({ kind: 'ASP', name: c.name, lines: [[c.plan?.brand, c.city].filter(Boolean).join(' · '), d ? `Credenciado: ${d.name}` : ''], code, validUntil: p.validUntil, qrSvg: await qrSvg(validarUrl(code)), footnote: 'Apresente em qualquer clínica da rede' });
+}
+
+// Dados para a tela do kit (painel): o que cada perfil pode gerar.
+r('GET', '/api/kit/bootstrap', async (req, res) => {
+  const sql = db();
+  const u = await kitUser(sql, req);
+  const admin = u.role === 'admin';
+  const cases = admin
+    ? await sql`select id, code, name, city, status, whatsapp from cases where status <> 'perdido' order by updated_at desc limit 500`
+    : await sql`select id, code, name, city, status, whatsapp from cases where dentist_id = ${u.dentist_id} order by updated_at desc limit 500`;
+  const dentists = admin
+    ? await sql`select id, name, cro, cro_uf, state, phone, email, city, status from dentists where status in ('aprovado','ativo') order by name`
+    : await sql`select id, name, cro, cro_uf, state, phone, email, city, status from dentists where id = ${u.dentist_id}`;
+  const team = admin ? await sql`select id, name, email from users where role = 'admin' and active order by name` : [];
+  const appts = admin
+    ? await sql`select a.id, a.kind, a.starts_at, a.location, a.room_url, a.status, c.name as patient, c.whatsapp, d.name as dentist, d.cro, d.cro_uf, d.state
+        from appointments a join cases c on c.id = a.case_id left join dentists d on d.id = a.dentist_id
+        where a.status = 'agendado' and a.starts_at > now() - interval '2 hours' order by a.starts_at limit 200`
+    : await sql`select a.id, a.kind, a.starts_at, a.location, a.room_url, a.status, c.name as patient, c.whatsapp, d.name as dentist, d.cro, d.cro_uf, d.state
+        from appointments a join cases c on c.id = a.case_id left join dentists d on d.id = a.dentist_id
+        where a.dentist_id = ${u.dentist_id} and a.status = 'agendado' and a.starts_at > now() - interval '2 hours' order by a.starts_at limit 200`;
+  send(res, 200, {
+    role: u.role, org: kitOrg(), defaultValidity: defaultValidity(),
+    cases: cases.map((c) => ({ ...c, active: ACTIVE_CASE.has(c.status) })),
+    dentists: dentists.map((d) => ({ id: d.id, name: d.name, cro: croOf(d), phone: fmtPhone(d.phone), email: d.email, city: d.city, status: d.status })),
+    team: team.map((t) => ({ id: t.id, name: t.name, email: t.email })),
+    appointments: appts.map((a) => ({ id: a.id, kind: a.kind, startsAt: a.starts_at, place: a.kind === 'teleorientacao' ? 'Por vídeo (o link chega no seu portal)' : a.location || '', patient: a.patient, whatsapp: a.whatsapp, dentist: a.dentist || '', cro: croOf(a) })),
+    labels: { CASE_STATUS, appt: kit.APPT_KINDS, reminder: kit.REMINDER_KINDS },
+  }, { 'Cache-Control': 'private, no-store' });
+});
+
+// Cartão do paciente da rede (com QR de validação).
+r('GET', '/api/kit/paciente/:id', async (req, res, { id }) => {
+  const sql = db();
+  const u = await kitUser(sql, req);
+  const c = await kitCase(sql, u, id);
+  const ym = new URL(req.url, 'http://x').searchParams.get('ate') || defaultValidity();
+  if (!kit.yymmOf(ym)) fail(400, 'Validade inválida (use AAAA-MM).');
+  sendSvg(res, await patientCardSvg(sql, c, ym));
+});
+
+// Cartão de profissional credenciado.
+r('GET', '/api/kit/credenciado/:id', async (req, res, { id }) => {
+  const sql = db();
+  const u = await kitUser(sql, req);
+  if (u.role !== 'admin' && id !== u.dentist_id) fail(403, 'Você só pode gerar o seu cartão.');
+  const d = await dentistById(sql, id);
+  if (!d || !['aprovado', 'ativo'].includes(d.status)) fail(404, 'Credenciado não encontrado ou não aprovado.');
+  const ym = new URL(req.url, 'http://x').searchParams.get('ate') || defaultValidity();
+  if (!kit.yymmOf(ym)) fail(400, 'Validade inválida (use AAAA-MM).');
+  const code = kit.makeCode('ASC', kit.dentistRef(d.id), ym);
+  const extra = Array.isArray(d.extra_cities) ? d.extra_cities.length : 0;
+  sendSvg(res, kit.networkCardSVG({ kind: 'ASC', name: d.name, lines: [croOf(d), `${d.city}${d.state ? ' – ' + d.state : ''}${extra ? ` e mais ${extra} cidade${extra > 1 ? 's' : ''}` : ''}`], code, validUntil: kit.parseCode(code).validUntil, qrSvg: await qrSvg(validarUrl(code)), footnote: 'Confira o credenciamento' }));
+});
+
+// Cartões de visita digitais: rede (org), equipe AlignSystem (user) e parceiros (dentista).
+r('GET', '/api/kit/visita/:kind/:id', async (req, res, { kind, id }) => {
+  const sql = db();
+  const u = await kitUser(sql, req);
+  const orient = new URL(req.url, 'http://x').searchParams.get('formato') === 'v' ? 'v' : 'h';
+  const o = kitOrg();
+  let card;
+  if (kind === 'rede') {
+    const wa = o.whatsapp ? `https://wa.me/${o.whatsapp}` : appUrl();
+    card = { eyebrow: 'Rede de ortodontia com alinhadores', name: 'AlignSystem', role: o.rt, lines: [['WHATSAPP', fmtPhone(o.whatsapp)], ['E-MAIL', o.email], ['SITE', o.site], ['SEDE', o.address || 'Maringá – PR']], qr: wa, qrCaption: 'Fale no WhatsApp' };
+  } else if (kind === 'equipe') {
+    if (u.role !== 'admin') fail(403, 'Acesso não permitido.');
+    const [t] = await sql`select name, email from users where id = ${id} and role = 'admin'`;
+    if (!t) fail(404, 'Pessoa não encontrada.');
+    const role = clean(new URL(req.url, 'http://x').searchParams.get('cargo'), 60) || 'Equipe AlignSystem';
+    const phone = clean(new URL(req.url, 'http://x').searchParams.get('tel'), 30);
+    const p = { name: t.name, role, email: t.email, phone };
+    card = { eyebrow: 'AlignSystem', name: p.name, role, lines: [['TEL', phone], ['E-MAIL', t.email], ['WHATSAPP', fmtPhone(o.whatsapp)], ['SITE', o.site]], qr: vcardOf(p), qrCaption: 'Salvar contato' };
+  } else if (kind === 'dentista') {
+    if (u.role !== 'admin' && id !== u.dentist_id) fail(403, 'Você só pode gerar o seu cartão.');
+    const d = await dentistById(sql, id);
+    if (!d || !['aprovado', 'ativo'].includes(d.status)) fail(404, 'Credenciado não encontrado ou não aprovado.');
+    const p = { name: d.name, role: 'Dentista credenciado AlignSystem', cro: croOf(d), phone: fmtPhone(d.phone), email: d.email || '' };
+    card = { eyebrow: 'Credenciado AlignSystem', name: d.name, role: `Ortodontia com alinhadores · ${d.city}`, badge: p.cro, lines: [['TEL', p.phone], ['E-MAIL', p.email], ['REDE', o.site]], qr: vcardOf(p), qrCaption: 'Salvar contato' };
+  } else fail(404, 'Tipo de cartão desconhecido.');
+  sendSvg(res, kit.businessCardSVG({ orient, ...card, qrSvg: card.qr ? await qrSvg(card.qr) : '' }));
+});
+
+// Cartão de lembrete de um agendamento.
+r('GET', '/api/kit/lembrete/:id', async (req, res, { id }) => {
+  const sql = db();
+  const u = await kitUser(sql, req);
+  const [a] = await sql`select a.*, c.name as patient, d.name as dentist, d.cro, d.cro_uf, d.state from appointments a join cases c on c.id = a.case_id left join dentists d on d.id = a.dentist_id where a.id = ${id}`;
+  if (!a || (u.role !== 'admin' && a.dentist_id !== u.dentist_id)) fail(404, 'Agendamento não encontrado.');
+  const tipo = new URL(req.url, 'http://x').searchParams.get('tipo');
+  const o = kitOrg();
+  sendSvg(res, kit.reminderSVG({ tipo: kit.REMINDER_KINDS[tipo] ? tipo : 'confirmacao', patient: a.patient, startsAt: a.starts_at, apptKind: a.kind, dentist: [a.dentist, croOf(a)].filter(Boolean).join(' · '), place: a.kind === 'teleorientacao' ? 'Por vídeo (link no seu portal)' : a.location, contact: [o.whatsapp ? `WhatsApp ${fmtPhone(o.whatsapp)}` : '', o.site].filter(Boolean).join(' · ') }));
+});
+
+// O próprio paciente baixa o cartão no portal enquanto o tratamento está ativo.
+r('GET', '/api/portal/:token/cartao', async (req, res, { token: t }) => {
+  const sql = db();
+  const c = await caseByToken(sql, t);
+  if (!ACTIVE_CASE.has(c.status)) fail(404, 'O cartão da rede fica disponível após a assinatura do contrato.');
+  sendSvg(res, await patientCardSvg(sql, c, defaultValidity()));
+});
+
+// Validação pública (QR ou código digitado). Mostra só o mínimo (LGPD).
+r('GET', '/api/public/cartao', async (req, res) => {
+  const sql = db();
+  await rateLimit(sql, `cartao:${clientIp(req)}`, 60, 10);
+  const p = kit.parseCode(new URL(req.url, 'http://x').searchParams.get('c'));
+  const no = (msg) => send(res, 200, { valid: false, message: msg }, { 'Cache-Control': 'no-store' });
+  if (!p) return no('Código não reconhecido. Confira as letras e números do cartão.');
+  if (!p.valid) return no('Este cartão não foi emitido pela AlignSystem ou foi alterado.');
+  if (p.expired) return no(`Cartão vencido em ${p.validUntil}. Peça um cartão atualizado.`);
+  if (p.type === 'ASP') {
+    const [c] = await sql`select c.name, c.city, c.status, c.plan, d.name as dentist from cases c left join dentists d on d.id = c.dentist_id where c.code = ${Number(p.ref)}`;
+    if (!c) return no('Paciente não encontrado na rede.');
+    if (!ACTIVE_CASE.has(c.status)) return no(c.status === 'finalizado' ? 'Tratamento concluído: este cartão não está mais ativo.' : 'Sem tratamento ativo na rede no momento.');
+    return send(res, 200, { valid: true, type: kit.CARD_TYPES.ASP, name: kit.maskName(c.name), city: c.city, detail: c.dentist ? `Credenciado responsável: ${c.dentist}` : '', validUntil: p.validUntil, status: 'Tratamento ativo' }, { 'Cache-Control': 'no-store' });
+  }
+  const [d] = await sql`select name, cro, cro_uf, state, city, status, extra_cities from dentists where upper(replace(id::text, '-', '')) like ${p.ref + '%'} limit 2`.then((rows) => (rows.length === 1 ? rows : [null]));
+  if (!d) return no('Credenciado não encontrado na rede.');
+  if (d.status !== 'ativo') return no('Credenciamento não está ativo no momento.');
+  const extra = Array.isArray(d.extra_cities) ? d.extra_cities.length : 0;
+  send(res, 200, { valid: true, type: kit.CARD_TYPES.ASC, name: d.name, city: `${d.city}${d.state ? ' – ' + d.state : ''}${extra ? ` e mais ${extra}` : ''}`, detail: croOf(d), validUntil: p.validUntil, status: 'Credenciamento ativo' }, { 'Cache-Control': 'no-store' });
 });
 
 // ------------------------------------------------------------------ webhook Asaas

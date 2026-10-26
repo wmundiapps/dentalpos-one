@@ -96,6 +96,14 @@
       (state.dentist ? '<p class="small muted" style="margin-top:10px">Dentista responsável: <b>' + esc(state.dentist.name) + '</b> · CRO-' + esc(state.dentist.croUf || '') + ' ' + esc(state.dentist.cro) + '</p>' : '') +
       '</div>';
 
+    // Cartão da rede: liberado depois do contrato assinado, para apresentar em qualquer clínica credenciada.
+    if (c.status === 'contrato_assinado' || c.status === 'em_tratamento') {
+      var cardUrl = '/api/portal/' + encodeURIComponent(T) + '/cartao';
+      html += '<div class="card"><h2>Seu cartão da rede</h2><p class="muted small">Apresente este cartão em qualquer clínica credenciada AlignSystem. O QR confirma o seu tratamento.</p>' +
+        '<img src="' + cardUrl + '" alt="Cartão do paciente AlignSystem" style="width:100%;max-width:520px;height:auto;border-radius:12px;margin:8px 0 12px;box-shadow:0 8px 24px rgba(18,35,58,.14)">' +
+        '<p><button class="btn btn-green btn-sm" type="button" id="saveCard">Salvar imagem do cartão</button></p></div>';
+    }
+
     // Termo de consentimento (obrigatório antes do atendimento a distância)
     if (state.tcle) {
       html += '<div class="card" id="tcle"><h2>Antes de começar: termo de consentimento</h2>' +
@@ -508,6 +516,20 @@
         .catch(function (err) { btn.disabled = false; document.getElementById('teleMsg').innerHTML = '<div class="msg err">' + esc(err.message) + '</div>'; });
     });
   }
+
+  document.addEventListener('click', function (e) {
+    if (!e.target || e.target.id !== 'saveCard') return;
+    var b = e.target; b.disabled = true;
+    fetch('/api/portal/' + encodeURIComponent(T) + '/cartao').then(function (r) { if (!r.ok) throw new Error(); return r.text(); }).then(function (svg) {
+      return new Promise(function (res, rej) {
+        var u = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })), img = new Image();
+        img.onload = function () { var c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0); URL.revokeObjectURL(u); c.toBlob(res, 'image/png'); };
+        img.onerror = rej; img.src = u;
+      });
+    }).then(function (blob) {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'meu-cartao-alignsystem.png'; document.body.appendChild(a); a.click(); a.remove();
+    }).catch(function () { alert('Não foi possível salvar agora. Tente de novo em instantes.'); }).then(function () { b.disabled = false; });
+  });
 
   load();
 })();

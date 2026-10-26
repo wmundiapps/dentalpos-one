@@ -395,8 +395,8 @@
   // ------------------------------------------------------------ layout
   function shell(content, active) {
     var nav = me.role === 'admin'
-      ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/cobertura', 'Cobertura e marketing', 'cobertura'], ['#/captacao', 'Captação de dentistas', 'captacao'], ['#/precos', 'Preços', 'precos'], ['#/equipe', 'Equipe', 'equipe'], ['#/conta', 'Minha conta', 'conta']]
-      : [['#/', 'Meus casos', 'inicio'], ['#/meus-precos', 'Meus preços', 'precos'], ['#/negociacao', 'Negociação', 'negociacao'], ['#/conta', 'Minha conta', 'conta']];
+      ? [['#/', 'Início', 'inicio'], ['#/casos', 'Pacientes', 'casos'], ['#/parceiros', 'Dentistas parceiros', 'parceiros'], ['#/cobertura', 'Cobertura e marketing', 'cobertura'], ['#/captacao', 'Captação de dentistas', 'captacao'], ['#/precos', 'Preços', 'precos'], ['#/equipe', 'Equipe', 'equipe'], ['/kit', 'Cartões e lembretes', 'kit'], ['#/conta', 'Minha conta', 'conta']]
+      : [['#/', 'Meus casos', 'inicio'], ['#/meus-precos', 'Meus preços', 'precos'], ['#/negociacao', 'Negociação', 'negociacao'], ['/kit', 'Cartões e lembretes', 'kit'], ['#/conta', 'Minha conta', 'conta']];
     return '<div class="mobile-top"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="28"></span><button class="btn btn-sm btn-line" style="color:#fff;border-color:rgba(255,255,255,.4)" id="menuBtn">Menu</button></div>' +
       '<div class="shell"><aside class="side" id="side"><span class="logo"><img src="/assets/logo-branca.svg" alt="AlignSystem" height="30"></span>' +
       nav.map(function (n) { return '<a class="nav' + (n[2] === active ? ' on' : '') + '" href="' + n[0] + '">' + esc(n[1]) + '</a>'; }).join('') +

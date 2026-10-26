@@ -23,6 +23,12 @@ O usuário prefere respostas curtas em português, um passo por vez, com blocos 
 - Webhook Asaas: token comparado em tempo constante e pagamento conferido direto na API do Asaas.
 - Publicidade (regras do CRO): sem preço, sem "avaliação grátis", sem promessa de resultado; sempre com RT e CRO.
 
+## Cartões e lembretes (kit da rede)
+- Painel → "Cartões e lembretes" (`/kit`): cartão do paciente da rede, cartão de credenciado, cartões de visita (rede, equipe, dentistas) e lembretes de consulta com mensagens por canal. Downloads PNG/PDF/SVG feitos no navegador (sem bibliotecas: o servidor desenha em SVG, `lib/kit.js`).
+- Código do cartão: `ASP-<caso>-<AAMM>-<assinatura>` (paciente) e `ASC-<id>-<AAMM>-<assinatura>` (credenciado), assinado com HMAC (`CARD_SECRET`, ou `SESSION_SECRET` se não houver). Trocar o segredo invalida todos os cartões.
+- QR leva a `/validar?c=…` (público, com limite de tentativas): paciente válido só com contrato assinado ou em tratamento; credenciado só com status ativo. Mostra o mínimo (primeiro nome + iniciais).
+- O paciente baixa o próprio cartão no portal (`/minha-avaliacao`) depois do contrato assinado.
+
 ## Pendências
 - Revisão jurídica dos contratos (Dra. Roberta) e reenvio do pacote Word.
 - Pixel do Meta (variável META_PIXEL_ID na Vercel) e campanha de conversão no site (fase 2).
