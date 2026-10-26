@@ -32,6 +32,14 @@ As 3 demos foram publicadas como artefatos privados na conta do Robson (links fu
 
 Em outra conta, republique os HTML de `demos/` (são arquivos de página sem `<head>`/`<body>`, prontos para o Artifact). **Nenhuma demo foi aberta em navegador para conferência visual.**
 
+## 2.1 Atualização de 26/10/2026 — site reformulado
+O Robson mandou 7 imagens de um carrossel do Instagram (prompts para criar site: planta, primeira dobra, movimento, texto, plano de construção, auditoria de conversão, plano de lançamento) e pediu para aplicar ao site, analisando antes, e para incluir **amostras grátis no próprio site** (resposta de WhatsApp, criação de reels, agendamento automático). Feito:
+- `site/index.html` reescrito: hero com celular, 7 áreas, laboratório com as 3 amostras (simulações em regras e modelos, **sem IA real e sem chave**), como funciona, produtos (DentalPos com preços do `CLAUDE.md`, REVAH, SpaceHour), confiança, FAQ, formulário. Testado em navegador (1280 e 390 px): sem rolagem lateral, sem erros de console, amostras funcionando.
+- `SITE-DECISOES-E-LANCAMENTO.md`: decisão por prompt, plano de construção, auditoria de conversão, plano de 30 dias, 3 experimentos, critério de parar.
+- Prévia privada (conta do Robson): https://claude.ai/artifact/AsgSQkiZTdz1txe4Mvba2m. O arquivo para republicar está em `demos/site-previa.html`.
+- **Continuam em pausa por ordem do Robson:** nome dele em destaque e "desenvolvedores Apple/Google Play" (o site só diz "apps para iPhone e Android" na área de apps). Sem depoimentos nem números inventados.
+- Pendências do site: conferir `CONFIG.email` (`info@wmundi.com` veio do repositório, não confirmado), confirmar que preços e "30 dias grátis" podem ir ao público, confirmar "Brasil e Europa", ligar o formulário a um servidor real, política de privacidade e termos (aprovação do Robson e Dra. Roberta), e decidir sobre amostras com IA real (endpoint no backend, chave só no servidor, limite de uso; isso vira PR).
+
 ## 3. Decisões do Robson e pendências abertas
 - **Site da Wmundi:** não está neste repositório. Ele não sabe se está no GoDaddy, WordPress ou Wix. Passo dele: abrir wmundi.com, "Exibir código-fonte", procurar `wp-content` (WordPress), `wixstatic` (Wix) ou `godaddy`. Depois adaptar a página à plataforma.
 - **Nome em evidência e "desenvolvedores Apple e Android":** discutido e **o Robson mandou não fazer nada por enquanto. Deixar como está.** Proposta que ficou aguardando: nome e título dele em destaque, frase "Apps para iPhone e Android" (verdadeira se a equipe entrega), e deixar prontos mas desligados os selos App Store/Google Play e "Desenvolvedor Apple e Google Play" até existirem as contas de desenvolvedor da empresa (Apple exige D-U-N-S, leva semanas) e o primeiro app publicado. Nunca dizer "certificado pela Apple" ou "parceiro Google". Faltam dele: como quer nome e título, e quem abre as contas Apple e Google.

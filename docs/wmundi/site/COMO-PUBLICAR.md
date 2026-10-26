@@ -23,3 +23,11 @@ Dica: faça primeiro em uma página nova **não publicada** e confira no celular
 - Trocar o e-mail de contato se houver um da Wmundi (hoje usa o do DentalPos).
 - Conferir que nada de preço ou promessa não aprovada esteja no texto.
 - Texto legal (privacidade/termos) só com aprovação do Robson e revisão da Dra. Roberta.
+
+## Atualização (26/10/2026): o site agora tem amostras que rodam com JavaScript
+O arquivo `index.html` agora contém um `<script>` com as 3 amostras e o formulário. Cuidados por plataforma:
+- **WordPress:** o bloco "HTML personalizado" só mantém scripts para quem tem permissão de administrador (usuários sem essa permissão têm o script removido). Cole como administrador, ou use uma página em branco sem tema. Se o tema aplicar estilos próprios, as cores podem mudar: teste.
+- **Wix:** use **Incorporar código > Código HTML** (roda dentro de um quadro isolado). Defina a altura do quadro grande o bastante para a página, ou publique só as seções (hero e amostras) e mantenha o resto no editor do Wix.
+- **GoDaddy (construtor):** use a seção **HTML/Código personalizado**; alguns planos limitam scripts. Se bloquear, hospede o arquivo e coloque um link.
+- Em qualquer plataforma: troque `CONFIG.email` no fim do arquivo e conecte o formulário a um formulário real da plataforma antes de anunciar.
+- Decisões e plano de lançamento: `../SITE-DECISOES-E-LANCAMENTO.md`.
