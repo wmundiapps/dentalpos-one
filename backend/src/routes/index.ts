@@ -50,6 +50,7 @@ import * as followUp from '../controllers/followUpController'
 import * as hrTime from '../controllers/hrTimeController'
 import * as revahController from '../controllers/revahController'
 import * as salesController from '../controllers/salesController'
+import * as stockController from '../controllers/stockController'
 import * as platformController from '../controllers/platformController'
 import * as revahSenderController from '../controllers/revahSenderController'
 import * as aiController from '../controllers/aiController'
@@ -471,6 +472,12 @@ router.put('/sales/leads/:id', requirePermission('sales.edit'), salesController.
 router.get('/sales/leads/:id/journey', requirePermission('sales.view'), salesController.journey)
 router.get('/sales/products', requirePermission('sales.view'), salesController.products)
 router.get('/sales/critical-stock', requirePermission('sales.view'), salesController.criticalStock)
+router.get('/stock/alerts', requirePermission('sales.view'), stockController.alerts)
+router.get('/stock/rules', requirePermission('sales.view'), stockController.rules)
+router.post('/stock/rules/import', requirePermission('sales.edit'), stockController.importRules)
+router.delete('/stock/rules/:id', requirePermission('sales.edit'), stockController.removeRule)
+router.get('/stock/:productId/history', requirePermission('sales.view'), stockController.history)
+router.post('/stock/:productId/movement', requirePermission('sales.edit'), stockController.movement)
 router.put('/sales/products', requirePermission('sales.edit'), salesController.upsertProduct)
 router.get('/sales/store-config', requirePermission('sales.view'), salesController.storeConfig)
 router.put('/sales/store-config', requirePermission('sales.edit'), salesController.updateStoreConfig)

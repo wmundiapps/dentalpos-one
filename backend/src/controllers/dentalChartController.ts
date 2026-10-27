@@ -1,4 +1,5 @@
 import { confirmTreatment } from '../services/treatmentStageService'
+import { consumeForProcedure } from '../services/stockUsageService'
 import { randomUUID } from 'crypto'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
@@ -175,7 +176,7 @@ export async function saveEntry(req: AuthRequest, res: Response) {
 
     if (clinicalState === 'COMPLETED' && req.body.evolutionNotes) {
       const professionalName = String(req.body.professionalName || 'Profissional responsável')
-      await prisma.clinicalEvolution.create({
+      const chartEvolution = await prisma.clinicalEvolution.create({
         data: {
           clinicId, tenantId, patientId,
           professionalId: req.body.professionalId ? String(req.body.professionalId) : null,
@@ -186,6 +187,7 @@ export async function saveEntry(req: AuthRequest, res: Response) {
           nextAppointmentCreated: false
         }
       })
+      await consumeForProcedure({ clinicId, tenantId }, { evolutionId: chartEvolution.id, patientId, procedure: findingLabel, teethCount: 1 })
     }
     if (clinicalState === 'COMPLETED') await confirmTreatment({ clinicId, tenantId, actorId: actorUserId }, patientId, 'primeiro procedimento executado')
 

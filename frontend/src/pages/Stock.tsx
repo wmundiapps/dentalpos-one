@@ -73,12 +73,17 @@ function statusOf(quantity: number, minimum: number) {
 }
 
 import StockPartnersCard from "../components/StockPartnersCard";
+import StockRulesCard from "../components/StockRulesCard";
+import StockHistoryDialog, { type StockDialogMode } from "../components/StockHistoryDialog";
+import { StockApi, type StockAlertRow } from "../services/StockApi";
 
 export default function Stock() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<SalesProduct5787[]>([]);
   const [loading, setLoading] = useState(true);
   const [busySku, setBusySku] = useState<string | null>(null);
+  const [alertRows, setAlertRows] = useState<StockAlertRow[]>([]);
+  const [dialog, setDialog] = useState<{ mode: StockDialogMode; row: StockRow } | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -106,8 +111,10 @@ export default function Stock() {
     }
   };
 
+  const loadAlerts = () => { StockApi.alerts().then(setAlertRows).catch(() => undefined); };
   useEffect(() => {
     void load();
+    loadAlerts();
   }, []);
 
   const rows = useMemo<StockRow[]>(
@@ -222,6 +229,10 @@ export default function Stock() {
 
       <StockPartnersCard />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {alertRows.filter((a) => a.level === "predicted").map((a) => (
+        <Alert key={a.productId} severity="warning" sx={{ mb: 1 }}><strong>{a.name}:</strong> {a.message}</Alert>
+      ))}
+      <StockRulesCard onChanged={loadAlerts} />
       {critical.length > 0 && (
         <Alert severity="error" sx={{ mb: 2 }}>
           <strong>{critical.length} item(ns) precisam de reposição.</strong>{" "}
@@ -341,6 +352,11 @@ export default function Stock() {
                     +1 entrada
                   </Button>
                 </Stack>
+                <Stack direction="row" spacing={1} sx={{ gridColumn: { md: "1 / -1" }, flexWrap: "wrap", rowGap: 1 }}>
+                  <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => setDialog({ mode: "RESTOCK", row })}>Registrar reposição</Button>
+                  <Button size="small" variant="outlined" disabled={busy} onClick={() => setDialog({ mode: "UNIT_USED", row })}>Terminou uma unidade</Button>
+                  <Button size="small" disabled={busy} onClick={() => setDialog({ mode: "HISTORY", row })}>Ver histórico de duração</Button>
+                </Stack>
               </Box>
             );
           })}
@@ -357,6 +373,18 @@ export default function Stock() {
           Abrir loja e vendas
         </Button>
       </Box>
+
+      {dialog && (
+        <StockHistoryDialog
+          open
+          mode={dialog.mode}
+          productId={dialog.row.product.id}
+          productName={dialog.row.product.name}
+          unit={dialog.row.meta.unit || "unidades"}
+          onClose={() => setDialog(null)}
+          onDone={() => { void load(); loadAlerts(); }}
+        />
+      )}
 
       <Dialog
         open={open}
