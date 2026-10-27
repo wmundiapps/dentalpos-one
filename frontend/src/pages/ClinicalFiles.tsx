@@ -10,6 +10,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 // Design oculto (sigilo)
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PageHeader from "../components/PageHeader";
+import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import {
   archiveClinicalFile, clinicalFileAccess,
   listClinicalFileCategories, listClinicalFiles, listClinicalPatients, uploadClinicalFile
@@ -103,6 +104,7 @@ export default function ClinicalFiles({ fixedPatientId }: { fixedPatientId?: str
 
   return (
     <Box>
+      {!fixedPatientId && <PatientAlertBanner patientId={patientId} />}
       <PageHeader
         title="Arquivos e Exames Clínicos"
         description="Fotografias, radiografias, tomografias, DICOM, PDFs, exames laboratoriais e arquivos odontológicos 3D."

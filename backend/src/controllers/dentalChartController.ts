@@ -29,6 +29,14 @@ const DEFAULT_FINDINGS = [
   ['PROSTHESIS','Prótese','PROSTHETIC','#5e35b1'],
   ['LESION','Lesão','PATHOLOGY','#ad1457'],
   ['MISSING','Ausente','CURRENT','#616161'],
+  ['CLEANING','Profilaxia / limpeza','PREVENTIVE','#2e7d32'],
+  ['SCALING','Raspagem','PERIODONTAL','#00838f'],
+  ['WHITENING','Clareamento','AESTHETIC','#f9a825'],
+  ['FACET','Faceta / lente de contato','AESTHETIC','#8e24aa'],
+  ['POST_CORE','Núcleo / pino','RESTORATIVE','#1976d2'],
+  ['ORTHO','Ortodontia / manutenção do aparelho','ORTHODONTIC','#3949ab'],
+  ['SUTURE_REMOVAL','Remoção de pontos','SURGICAL','#546e7a'],
+  ['OTHER_PROCEDURE','Outro procedimento','OTHER','#455a64'],
 ] as const
 
 function context(req: AuthRequest) {

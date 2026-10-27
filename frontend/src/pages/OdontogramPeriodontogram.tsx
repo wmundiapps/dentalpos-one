@@ -7,6 +7,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import OdontogramBoard, { DONE_COLOR, OdontogramLegend, TODO_COLOR, isDone } from '../components/OdontogramBoard'
 import PageHeader from '../components/PageHeader'
+import PatientAlertBanner from '../components/patient/PatientAlertBanner'
 import PatientPicker from '../components/patient/PatientPicker'
 import { DentalChartService } from '../services/DentalChartService'
 import type {
@@ -18,7 +19,7 @@ const SITES: PeriodontalSite[] = ['MB','B','DB','ML','L','DL']
 const SURFACES: ToothSurface[] = ['M','D','O','V','L']
 const stateLabel: Record<ClinicalState,string> = { CURRENT:'A fazer (marcado)', PLANNED:'A fazer (planejado)', COMPLETED:'Concluído' }
 
-export default function OdontogramPeriodontogram({ startFullscreen = false }: { startFullscreen?: boolean }) {
+export default function OdontogramPeriodontogram({ startFullscreen = false, embedded = false }: { startFullscreen?: boolean; embedded?: boolean }) {
   const params = new URLSearchParams(window.location.search)
   const patientId = params.get('patientId') || ''
   const patientName = params.get('patient') || 'Paciente'
@@ -39,6 +40,14 @@ export default function OdontogramPeriodontogram({ startFullscreen = false }: { 
   const [professionalName,setProfessionalName] = useState('')
   const [examNotes,setExamNotes] = useState('')
   const [records,setRecords] = useState<Record<string,PeriodontalSiteRecord>>({})
+  const [procTeeth,setProcTeeth] = useState<number[]>([])
+  const [procFaces,setProcFaces] = useState<ToothSurface[]>([])
+  const [procFinding,setProcFinding] = useState('')
+  const [procNotes,setProcNotes] = useState('')
+  const [procPro,setProcPro] = useState(()=>params.get('profissional') || (()=>{try{return localStorage.getItem('completodonto.lastProfessional')||''}catch{return ''}})())
+  const [procNext,setProcNext] = useState('')
+  const [procBusy,setProcBusy] = useState(false)
+  const [procOk,setProcOk] = useState('')
 
   async function load() {
     if (!patientId) return
@@ -75,6 +84,51 @@ export default function OdontogramPeriodontogram({ startFullscreen = false }: { 
       setNotes(''); await load()
     } catch(e:any){setError(e.message)}
   }
+
+  // Registro do que foi feito no paciente: cada dente/face entra no odontograma como CONCLUÍDO e a evolução clínica fica no prontuário.
+  async function saveProcedure() {
+    const finding = findings.find(f=>f.code===procFinding)
+    if (!patientId || !finding || !procTeeth.length || procNotes.trim().length<3 || procPro.trim().length<2) return
+    setProcBusy(true); setError(''); setProcOk('')
+    try {
+      const faces: Array<ToothSurface|null> = procFaces.length ? procFaces : [null]
+      let first = true
+      for (const tooth of procTeeth) for (const face of faces) {
+        await DentalChartService.saveEntry(patientId,{
+          dentition,tooth,surface:face,findingCode:finding.code,findingLabel:finding.label,clinicalState:'COMPLETED',notes:procNotes,
+          ...(first ? { evolutionNotes:`Dente(s) ${procTeeth.join(', ')}${procFaces.length?` — face(s) ${procFaces.join('')}`:''}: ${procNotes}`, professionalName:procPro, nextProcedure:procNext||undefined } : {})
+        })
+        first = false
+      }
+      try { localStorage.setItem('completodonto.lastProfessional', procPro) } catch { /* sem armazenamento */ }
+      setProcOk(`Procedimento registrado em ${procTeeth.length} dente(s) e incluído no histórico do prontuário.`)
+      setProcTeeth([]); setProcFaces([]); setProcNotes(''); setProcNext('')
+      await load()
+    } catch(e:any){ setError(e.message) } finally { setProcBusy(false) }
+  }
+
+  const procedureCard = (
+    <Paper variant="outlined" sx={{p:2,borderRadius:3,mb:2,borderColor:'primary.main',borderWidth:2}}>
+      <Typography variant="h6" sx={{ fontWeight:900 }}>Registrar procedimento realizado hoje</Typography>
+      <Typography variant="body2" color="text.secondary">Escolha os dentes, o procedimento e anote o que foi feito. O dente passa para concluído (preto) no odontograma e o registro vai para o histórico do prontuário.</Typography>
+      {procOk && <Alert severity="success" sx={{mt:1}} onClose={()=>setProcOk('')}>{procOk}</Alert>}
+      <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'1fr 1fr 1fr'},gap:1.5,mt:2}}>
+        <FormControl><InputLabel>Dente(s) FDI</InputLabel><Select multiple value={procTeeth} label="Dente(s) FDI" onChange={e=>setProcTeeth((e.target.value as number[]).map(Number))} renderValue={(v)=>(v as number[]).join(', ')}>
+          {teeth.map(t=><MenuItem key={t} value={t}>{t}</MenuItem>)}
+        </Select></FormControl>
+        <FormControl><InputLabel>Face(s) (opcional)</InputLabel><Select multiple value={procFaces} label="Face(s) (opcional)" onChange={e=>setProcFaces(e.target.value as ToothSurface[])} renderValue={(v)=>(v as string[]).join(' ')}>
+          {SURFACES.map(s=><MenuItem key={s} value={s}>{s}</MenuItem>)}
+        </Select></FormControl>
+        <FormControl><InputLabel>Procedimento realizado</InputLabel><Select value={procFinding} label="Procedimento realizado" onChange={e=>setProcFinding(e.target.value)}>
+          {findings.map(f=><MenuItem key={f.id} value={f.code}>{f.label}</MenuItem>)}
+        </Select></FormControl>
+        <TextField sx={{gridColumn:{md:'1/-1'}}} multiline minRows={2} required label="O que foi feito (descrição do procedimento)" value={procNotes} onChange={e=>setProcNotes(e.target.value)}/>
+        <TextField required label="Profissional" value={procPro} onChange={e=>setProcPro(e.target.value)}/>
+        <TextField label="Próxima conduta (opcional)" value={procNext} onChange={e=>setProcNext(e.target.value)}/>
+        <Button variant="contained" size="large" disabled={procBusy||!procFinding||!procTeeth.length||procNotes.trim().length<3||procPro.trim().length<2} onClick={()=>void saveProcedure()}>{procBusy?'Salvando...':'Salvar procedimento realizado'}</Button>
+      </Box>
+    </Paper>
+  )
 
   async function setEntryState(e:DentalChartEntry,state:ClinicalState){
     try{
@@ -118,6 +172,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false }: { 
 
   return <Box>
     <PageHeader title={`Odontograma e Periodontograma • ${patientName}`} description="FDI adulto/infantil, histórico longitudinal, plano de tratamento e auditoria integrados." />
+    {!embedded && <PatientAlertBanner patientId={patientId}/>}
     {!patientId && <Alert severity="warning" sx={{mb:2}}>Abra este módulo a partir de um paciente para informar o patientId.</Alert>}
     {error && <Alert severity="error" sx={{mb:2}} onClose={()=>setError('')}>{error}</Alert>}
 
@@ -137,8 +192,9 @@ export default function OdontogramPeriodontogram({ startFullscreen = false }: { 
     </Tabs>
 
     {tab===0 && <>
+      {procedureCard}
       <Paper variant="outlined" sx={{p:2,borderRadius:3,mb:2}}>
-        <Typography variant="h6" sx={{ fontWeight:900 }}>Registrar achado</Typography>
+        <Typography variant="h6" sx={{ fontWeight:900 }}>Registrar achado ou planejar tratamento</Typography>
         <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'repeat(5,1fr)'},gap:1.5,mt:2}}>
           <FormControl><InputLabel>Dente FDI</InputLabel><Select value={selectedTooth} label="Dente FDI" onChange={e=>setSelectedTooth(Number(e.target.value))}>
             {teeth.map(t=><MenuItem key={t} value={t}>{t}</MenuItem>)}
@@ -250,6 +306,8 @@ export default function OdontogramPeriodontogram({ startFullscreen = false }: { 
       </AppBar>
       <Box sx={{p:{xs:1.5,md:3},display:'grid',gap:3}}>
         {error && <Alert severity="error" onClose={()=>setError('')}>{error}</Alert>}
+        <PatientAlertBanner patientId={patientId}/>
+        {procedureCard}
         <Box sx={{display:'flex',gap:4,flexDirection:{xs:'column',lg:'row'}}}>
           <Box sx={{flex:1,minWidth:0}}><OdontogramBoard big entries={entries} dentition={dentition} onToothClick={openTooth}/></Box>
           <Paper variant="outlined" sx={{p:2,borderRadius:3,alignSelf:'flex-start'}}><OdontogramLegend entries={entries.filter(e=>e.dentition===dentition)}/></Paper>

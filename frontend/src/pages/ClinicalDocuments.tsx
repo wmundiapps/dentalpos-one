@@ -5,6 +5,7 @@ import AddIcon from "@mui/icons-material/Add";
 import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PageHeader from "../components/PageHeader";
+import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import { createClinicalDocument, issueClinicalDocument, listClinicalDocuments, listClinicalDocumentTemplates } from "../services/ClinicalDocumentService";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { readSessionUser } from "../services/DemoAccess";
@@ -101,6 +102,7 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
 
   return (
     <Box>
+      {!fixedPatientId && <PatientAlertBanner patientId={filterPatient} />}
       <PageHeader title="Documentos e Contratos" description={"Receitas, atestados, declarações, encaminhamentos, pedidos de exame, termos e contratos com autoria e histórico."} actionLabel="Novo documento" actionIcon={<AddIcon />} onAction={openNew} />
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
       {!fixedPatientId && (

@@ -16,6 +16,7 @@ import QuickScheduleDialog from "../components/QuickScheduleDialog";
 import type { ReactNode } from "react";
 import PageHeader from "../components/PageHeader";
 import PatientHeader, { type ClinicalAlerts } from "../components/patient/PatientHeader";
+import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import MedicalHistoryTab from "../components/patient/MedicalHistoryTab";
 import PatientDataTab from "../components/patient/PatientDataTab";
 import PatientBillingTab from "../components/patient/PatientBillingTab";
@@ -123,8 +124,9 @@ export default function PatientFile() {
   const [patient, setPatient] = useState<BackendPatient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState(["cobranca", "financeiro"].includes(searchParams.get("aba") || "") ? "cobranca" : "resumo");
-  const [clinicalSub, setClinicalSub] = useState("ficha");
+  const abaInicial = (): string => { const a = searchParams.get("aba") || ""; return ["cobranca", "financeiro"].includes(a) ? "cobranca" : ["odontograma", "prontuario"].includes(a) ? "prontuario" : a === "historico" ? "historico" : "resumo"; };
+  const [tab, setTab] = useState(abaInicial());
+  const [clinicalSub, setClinicalSub] = useState(["odontograma", "prontuario"].includes(searchParams.get("aba") || "") ? "odontograma" : "ficha");
   const [record, setRecord] = useState<ClinicalRecordData | null>(null);
   const [recordLoading, setRecordLoading] = useState(true);
   const [appts, setAppts] = useState<BackendAppointment[]>([]);
@@ -141,7 +143,7 @@ export default function PatientFile() {
   useEffect(() => {
     let active = true;
     if (!patientId) { setError("Selecione um paciente para abrir a ficha."); setLoading(false); return; }
-    setLoading(true); setError(""); setTab(["cobranca", "financeiro"].includes(searchParams.get("aba") || "") ? "cobranca" : "resumo");
+    setLoading(true); setError(""); setTab(abaInicial());
     loadBackendPatient(patientId)
       .then((d) => { if (active) setPatient(d); })
       .catch((e) => { if (active) setError(e instanceof Error ? e.message : "Erro ao carregar paciente."); })
@@ -211,6 +213,7 @@ export default function PatientFile() {
 
   return (
     <Box>
+      <PatientAlertBanner patientId={patient.id} />
       <PatientHeader patient={patient} alerts={alerts} />
       <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
         <Typography variant="body2" color="text.secondary">
@@ -248,9 +251,9 @@ export default function PatientFile() {
               <Tab value="exames" label="Fotos, etiquetas, exames, DICOM e STL" />
               <Tab value="documentos" label="Documentos" />
             </Tabs>
-            {clinicalSub === "ficha" && <ClinicalRecord />}
+            {clinicalSub === "ficha" && <ClinicalRecord embedded />}
             {clinicalSub === "plano" && <TreatmentPlanning initialPatientId={patient.id} />}
-            {clinicalSub === "odontograma" && <OdontogramPeriodontogram startFullscreen />}
+            {clinicalSub === "odontograma" && <OdontogramPeriodontogram startFullscreen embedded />}
             {clinicalSub === "exames" && <ClinicalFiles fixedPatientId={patient.id} />}
             {clinicalSub === "documentos" && <ClinicalDocuments fixedPatientId={patient.id} />}
           </Box>
