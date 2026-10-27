@@ -20,6 +20,7 @@ export interface ImportWizardProps {
   optionsPanel?: ReactNode;
   extraReady?: boolean;
   unit: string;
+  verbs?: { preview: string; done: string; button: string };
 }
 
 function autoMap(headers: string[], aliases: Record<string, string[]>): Mapping {
@@ -34,7 +35,7 @@ function autoMap(headers: string[], aliases: Record<string, string[]>): Mapping 
 }
 
 export default function ImportWizard(props: ImportWizardProps) {
-  const { kind, title, help, targets, aliases, required, buildRows, options = {}, optionsPanel, extraReady = true, unit } = props;
+  const { kind, title, help, targets, aliases, required, buildRows, options = {}, optionsPanel, extraReady = true, unit, verbs = { preview: "podem ser importados", done: "importado(s) com sucesso", button: "Importar" } } = props;
   const [grid, setGrid] = useState<Grid | null>(null);
   const [mapping, setMapping] = useState<Mapping>({});
   const [fileName, setFileName] = useState("");
@@ -129,13 +130,13 @@ export default function ImportWizard(props: ImportWizardProps) {
             {preview && (
               <Box sx={{ mt: 2 }}>
                 <Alert severity={preview.createdCount ? "success" : "warning"}>
-                  {`${preview.createdCount} ${unit}(s) podem ser importados${preview.total ? `, somando ${money(preview.total)}` : ""}${preview.overdue ? ` (${money(preview.overdue)} já vencidos)` : ""}. ${preview.skipped.length} ficam de fora.`}
+                  {`${preview.createdCount} ${unit}(s) ${verbs.preview}${preview.total ? `, somando ${money(preview.total)}` : ""}${preview.overdue ? ` (${money(preview.overdue)} já vencidos)` : ""}. ${preview.skipped.length} ficam de fora.`}
                 </Alert>
                 {reasons(preview.skipped).length > 0 && (
                   <List dense>{reasons(preview.skipped).map(([reason, n]) => <ListItem key={reason}><ListItemText primary={`${n} linha(s): ${reason}`} /></ListItem>)}</List>
                 )}
                 <Button sx={{ mt: 1 }} variant="contained" disabled={busy || preview.createdCount === 0} onClick={() => void run(false)}>
-                  {busy ? `Importando... ${Math.min(100, progress)}%` : `Importar ${preview.createdCount} ${unit}(s) agora`}
+                  {busy ? `Importando... ${Math.min(100, progress)}%` : `${verbs.button} ${preview.createdCount} ${unit}(s) agora`}
                 </Button>
               </Box>
             )}
@@ -145,7 +146,7 @@ export default function ImportWizard(props: ImportWizardProps) {
 
       {result && (
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
-          <Alert severity="success" sx={{ mb: 2 }}>{result.createdCount} {unit}(s) importado(s) com sucesso.</Alert>
+          <Alert severity="success" sx={{ mb: 2 }}>{result.createdCount} {unit}(s) {verbs.done}.</Alert>
           {result.skipped.length > 0 && (
             <>
               <Typography sx={{ fontWeight: 900, mb: 1 }}>{result.skipped.length} linha(s) ignorada(s)</Typography>

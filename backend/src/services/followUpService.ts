@@ -1,3 +1,4 @@
+import { importedOriginsToSkip } from './importedHold'
 import { prisma } from '../lib/prisma'
 import { dispatchRevah } from './revahProviderService'
 import { getDemoAccess } from './demoAccessService'
@@ -31,6 +32,7 @@ export type FollowUpSettings = {
   weeklyList: boolean
   dailyDebtors: boolean
   debtorNotice: boolean
+  skipImported: boolean
   emails: string[]
   lastWeekly: string | null
   lastDaily: string | null
@@ -43,6 +45,7 @@ export async function loadSettings(clinicId: string): Promise<FollowUpSettings> 
     weeklyList: m.weeklyList !== false,
     dailyDebtors: m.dailyDebtors !== false,
     debtorNotice: m.debtorNotice !== false,
+    skipImported: m.skipImported !== false,
     emails: Array.isArray(m.emails) ? m.emails.map((e) => String(e).trim().toLowerCase()).filter((e) => EMAIL_RE.test(e)).slice(0, 10) : [],
     lastWeekly: m.lastWeekly || null,
     lastDaily: m.lastDaily || null,
@@ -113,8 +116,9 @@ export function groupUnscheduled(list: UnscheduledPatient[]) {
 export type Debtor = { patientId: string; name: string; phone: string; email: string | null; total: number; count: number; oldestISO: string; daysOverdue: number }
 
 export async function debtors(clinicId: string, tenantId: string, now = new Date()): Promise<Debtor[]> {
+  const skip = await importedOriginsToSkip(clinicId)
   const entries = await prisma.financialEntry.findMany({
-    where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, patientId: { not: null }, dueDate: { lt: now } },
+    where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, patientId: { not: null }, dueDate: { lt: now }, ...(skip.length ? { origin: { notIn: skip } } : {}) },
     select: { patientId: true, amount: true, dueDate: true, patient: { select: { fullName: true, phone: true, email: true, isActive: true } } },
     take: 3000,
   })
