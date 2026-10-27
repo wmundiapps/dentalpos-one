@@ -1125,11 +1125,8 @@ export default function Agenda() {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns:
-            view === "day"
-              ? "minmax(0,1fr)"
-              : { xs: "1fr", lg: "minmax(0,2.2fr) minmax(320px,1fr)" },
-          gap: view === "day" ? 0 : 2,
+          gridTemplateColumns: "minmax(0,1fr)",
+          gap: 2,
           width: "100%",
         }}
       >
@@ -1199,12 +1196,16 @@ export default function Agenda() {
             onNew={(prefill) => openNew(prefill)}
           />
         </Paper>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, display: view === "day" ? "none" : "block" }}>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
           <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório e agenda ficam visíveis para a equipe.</Typography>
-          {alerts.length === 0 ? <Alert severity="success">Nenhuma pendência crítica agora.</Alert> : alerts.map((alert) => (
-            <Alert key={alert.id} severity={alert.severity} sx={{ mb: 1 }}><b>{alert.title}</b><br />{alert.description}</Alert>
-          ))}
+          {alerts.length === 0 ? <Alert severity="success">Nenhuma pendência crítica agora.</Alert> : (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" }, gap: 1, maxHeight: 420, overflow: "auto" }}>
+              {alerts.map((alert) => (
+                <Alert key={alert.id} severity={alert.severity}><b>{alert.title}</b><br />{alert.description}</Alert>
+              ))}
+            </Box>
+          )}
         </Paper>
       </Box>
 
