@@ -23,7 +23,7 @@ const ALIASES: Record<Target, string[]> = {
   email: ["email", "e-mail"],
   address: ["endereco", "logradouro", "rua", "address"],
   city: ["cidade", "city", "municipio"],
-  state: ["estado", "uf"],
+  state: ["estado", "uf", "state"],
   zipCode: ["cep", "zip"],
   notes: ["observacao", "observacoes", "obs", "notes"],
 };
