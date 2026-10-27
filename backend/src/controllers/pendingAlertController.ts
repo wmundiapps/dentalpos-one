@@ -179,6 +179,21 @@ async function computeItems(clinicId: string, tenantId: string, codes: string[] 
       if (blockMode && overdue) label += ' Se os atrasados não forem resolvidos, o sistema será bloqueado.'
       items.push({ key: 'laboratory', label, count: queue.length, blocks: overdue, lines, path: '/laboratorio' })
     }
+    // Ordens de serviço enviadas ao laboratório: recebimento pendente, recusas, erros em aberto e entregas atrasadas (só aviso, não travam).
+    const orders = await prisma.labServiceOrder.findMany({
+      where: { clinicId, tenantId, createdAt: { gte: new Date(today.getTime() - 120 * DAY) } },
+      select: { protocol: true, patientName: true, laboratoryName: true, status: true, dueAt: true, refusalReason: true, errors: true },
+      orderBy: { createdAt: 'desc' }, take: 400
+    }).catch(() => [])
+    const line = (o: { protocol: string; patientName: string; laboratoryName: string }, extra = '') => `${o.protocol} · ${o.patientName} · ${o.laboratoryName}${extra}`
+    const unreceived = orders.filter(o => o.status === 'SENT')
+    if (unreceived.length) items.push({ key: 'lab-os-receipt', label: `${unreceived.length} ordem(ns) de serviço enviada(s) ao laboratório sem confirmação de recebimento`, count: unreceived.length, blocks: 0, lines: unreceived.slice(0, 6).map(o => line(o)), path: '/ordens-laboratorio' })
+    const refused = orders.filter(o => o.status === 'REFUSED')
+    if (refused.length) items.push({ key: 'lab-os-refused', label: `${refused.length} ordem(ns) de serviço RECUSADA(S) pelo laboratório: resolver o motivo e reenviar`, count: refused.length, blocks: 0, lines: refused.slice(0, 6).map(o => line(o, ` · motivo: ${o.refusalReason || 'não informado'}`)), path: '/ordens-laboratorio' })
+    const withErrors = orders.filter(o => Array.isArray(o.errors) && (o.errors as Array<{ resolved?: boolean }>).some(e => !e.resolved))
+    if (withErrors.length) items.push({ key: 'lab-os-errors', label: `${withErrors.length} ordem(ns) de serviço com erro em aberto (tratar com o responsável)`, count: withErrors.length, blocks: 0, lines: withErrors.slice(0, 6).map(o => line(o)), path: '/ordens-laboratorio' })
+    const late = orders.filter(o => o.status === 'RECEIVED' && o.dueAt < today)
+    if (late.length) items.push({ key: 'lab-os-late', label: `${late.length} ordem(ns) de serviço com entrega do laboratório atrasada`, count: late.length, blocks: 0, lines: late.slice(0, 6).map(o => line(o)), path: '/ordens-laboratorio' })
   }
   return items
 }

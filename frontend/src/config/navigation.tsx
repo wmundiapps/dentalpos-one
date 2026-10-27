@@ -106,6 +106,7 @@ export const navigationGroups:NavigationGroup[] = [
     icon:tile(<BiotechIcon/>,"#8B5CF6"),
     items:[
       item("Laboratório","/laboratorio",<BiotechIcon/>),
+      item("Ordens do laboratório","/ordens-laboratorio",<BiotechIcon/>),
     ]
   },
   {

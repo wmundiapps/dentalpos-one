@@ -68,6 +68,7 @@ const Prospecting = lazy(() => import("../pages/Prospecting"));
 const Integrations = lazy(() => import("../pages/Integrations"));
 const ImportPatients = lazy(() => import("../pages/ImportPatients"));
 const ImportData = lazy(() => import("../pages/ImportData"));
+const LabServiceOrders = lazy(() => import("../pages/LabServiceOrders"));
 const Team = lazy(() => import("../pages/Team"));
 const Permissions = lazy(() => import("../pages/Permissions"));
 const OnlineReceipts = lazy(() => import("../pages/OnlineReceipts"));
@@ -305,6 +306,7 @@ export default function AppRoutes() {
       <Route path="/integracoes" element={<Integrations />} />
       <Route path="/importar-pacientes" element={<ImportPatients />} />
       <Route path="/importar-dados" element={<ImportData />} />
+      <Route path="/ordens-laboratorio" element={<LabServiceOrders />} />
       <Route path="/equipe" element={<Team />} />
       <Route path="/permissoes" element={<Permissions />} />
       <Route path="/recebimentos-online" element={<OnlineReceipts />} />

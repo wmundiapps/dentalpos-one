@@ -29,6 +29,7 @@ import * as financialPlanningController from '../controllers/financialPlanningCo
 import * as paymentProviderController from '../controllers/paymentProviderController'
 import * as feedbackController from '../controllers/feedbackController'
 import * as importController from '../controllers/importController'
+import * as labServiceOrderController from '../controllers/labServiceOrderController'
 import * as cronController from '../controllers/cronController'
 import * as platformFeedbackController from '../controllers/platformFeedbackController'
 import * as accessController from '../controllers/accessController'
@@ -292,6 +293,12 @@ router.post('/lab-orders/:localId/delivery-code', requirePermission('laboratory.
 router.post('/lab-orders/:localId/deliver', requirePermission('laboratory.edit'), labOrderController.deliver)
 router.delete('/lab-orders/:localId', requirePermission('laboratory.edit'), labOrderController.remove)
 router.post('/lab-orders/:localId/restore', requirePermission('laboratory.edit'), labOrderController.restore)
+router.get('/lab-service-orders', requirePermission('laboratory.view'), labServiceOrderController.list)
+router.post('/lab-service-orders', requirePermission('laboratory.create'), labServiceOrderController.create)
+router.post('/lab-service-orders/:id/receipt', requirePermission('laboratory.edit'), labServiceOrderController.receipt)
+router.post('/lab-service-orders/:id/errors', requirePermission('laboratory.edit'), labServiceOrderController.reportError)
+router.post('/lab-service-orders/:id/errors/:errorId/resolve', requirePermission('laboratory.edit'), labServiceOrderController.resolveError)
+router.post('/lab-service-orders/:id/deliver', requirePermission('laboratory.edit'), labServiceOrderController.deliver)
 router.get('/lab-notifications', requirePermission('laboratory.view'), labNotificationController.list)
 router.post('/lab-notifications/schedule', requirePermission('laboratory.create'), labNotificationController.schedule)
 router.post('/lab-notifications/cancel', requirePermission('laboratory.edit'), labNotificationController.cancel)
