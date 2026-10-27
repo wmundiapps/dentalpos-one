@@ -15,17 +15,17 @@ const TARGETS: Array<[Target, string]> = [
 
 const ALIASES: Record<Target, string[]> = {
   fullName: ["nome", "nome completo", "paciente", "name", "nome do paciente"],
-  phone: ["telefone", "celular", "whatsapp", "fone", "phone", "tel"],
-  cpf: ["cpf"],
+  phone: ["telefone", "celular", "whatsapp", "fone", "phone", "tel", "mobilephone", "landline"],
+  cpf: ["cpf", "documentid"],
   rg: ["rg"],
   birthDate: ["nascimento", "data de nascimento", "data nascimento", "dt nascimento", "birthdate", "aniversario"],
-  gender: ["sexo", "genero"],
+  gender: ["sexo", "genero", "sex"],
   email: ["email", "e-mail"],
-  address: ["endereco", "logradouro", "rua"],
+  address: ["endereco", "logradouro", "rua", "address"],
   city: ["cidade", "city", "municipio"],
   state: ["estado", "uf"],
-  zipCode: ["cep"],
-  notes: ["observacao", "observacoes", "obs"],
+  zipCode: ["cep", "zip"],
+  notes: ["observacao", "observacoes", "obs", "notes"],
 };
 
 const normalize = (h: string) => h.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
@@ -114,16 +114,20 @@ const emptyBuilt = (): Built => ({ fullName: "", phone: "", cpf: "", rg: "", bir
 const digits = (v: string) => v.replace(/\D/g, "");
 
 function buildRows(grid: Grid, mapping: Record<number, Target | "">): Built[] {
-  return grid.rows.map((cells) => {
+  // Exportações do Clinicorp trazem uma coluna "Deleted" (X = paciente apagado): essas linhas não entram.
+  const deletedCol = grid.headers.findIndex((h) => normalize(h) === "deleted");
+  return grid.rows.filter((cells) => deletedCol < 0 || (cells[deletedCol] || "").trim().toUpperCase() !== "X").map((cells) => {
     const out = emptyBuilt();
     const phones: string[] = [];
     grid.headers.forEach((_, index) => {
       const target = mapping[index];
       const value = (cells[index] || "").trim();
       if (!target || !value) return;
-      if (target === "phone") phones.push(value);
+      if (target === "phone") { if (normalize(grid.headers[index]) === "landline") phones.push(value); else phones.unshift(value); }
       else if (!out[target]) out[target] = value;
     });
+    // Data ISO com hora (2000-01-31T00:00:00.000Z): fica só a data, sem deslocar o dia pelo fuso.
+    if (/^\d{4}-\d{2}-\d{2}T/.test(out.birthDate)) out.birthDate = out.birthDate.slice(0, 10);
     out.phone = phones.find((p) => digits(p).length >= 10) || phones[0] || "";
     // Excel guarda CPF como número e perde o zero à esquerda.
     if (out.cpf && digits(out.cpf).length >= 9 && digits(out.cpf).length < 11) out.cpf = digits(out.cpf).padStart(11, "0");
