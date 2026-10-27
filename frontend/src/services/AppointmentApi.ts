@@ -193,11 +193,11 @@ export async function appointmentFlowAction(id: string, action: FlowAction) {
   return response.json() as Promise<BackendAppointment>;
 }
 
-export async function cancelBackendAppointment(id: string, reason: string, requestedBy = "PATIENT") {
+export async function cancelBackendAppointment(id: string, reason: string, requestedBy = "PATIENT", unscheduled = false) {
   const response = await fetch(`${API}/appointment/${id}`, {
     method: "DELETE",
     headers: headers(true),
-    body: JSON.stringify({ reason, requestedBy }),
+    body: JSON.stringify({ reason, requestedBy, unscheduled }),
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null);

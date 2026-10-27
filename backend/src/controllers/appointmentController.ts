@@ -604,6 +604,7 @@ export async function remove(req: AuthRequest, res: Response) {
     const id = String(req.params.id)
     const reason = String(req.body?.reason || '').trim()
     if (!reason) return res.status(400).json({ error: 'Informe o motivo do cancelamento.' })
+    const unscheduled = req.body?.unscheduled === true
     const existing = await prisma.appointment.findFirst({
       where: { id, clinicId: req.user.clinicId, tenantId: req.user.tenantId },
       include: { reminders: { orderBy: { scheduledFor: 'asc' } } }
@@ -611,14 +612,14 @@ export async function remove(req: AuthRequest, res: Response) {
     if (!existing) return res.status(404).json({ error: 'Agendamento não encontrado.' })
 
     const appointment = await prisma.$transaction(async tx => {
-      const updated = await tx.appointment.update({ where: { id }, data: { status: 'CANCELLED' } })
+      const updated = await tx.appointment.update({ where: { id }, data: { status: 'CANCELLED', ...(unscheduled ? { confirmation: 'UNSCHEDULED' } : {}) } })
       await tx.appointmentHistory.create({
         data: {
           clinicId: req.user!.clinicId,
           tenantId: req.user!.tenantId,
           appointmentId: id,
           actorId: req.user!.id,
-          action: 'CANCELLED',
+          action: unscheduled ? 'UNSCHEDULED' : 'CANCELLED',
           requestedBy: req.body?.requestedBy ? String(req.body.requestedBy) : 'CLINIC',
           reason,
           previousScheduledAt: existing.scheduledAt,

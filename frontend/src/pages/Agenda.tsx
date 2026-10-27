@@ -1454,13 +1454,13 @@ export default function Agenda() {
                   Compareceu
                 </Button>
               ) : null}
-              {edit.backendId && ["Aguardando", "Sala em preparação", "Em atendimento"].includes(edit.status) ? (
+              {edit.backendId && ["Agendado", "Confirmado", "Aguardando", "Sala em preparação", "Em atendimento", "Faltou"].includes(edit.status) ? (
                 <Button
                   color="success"
                   variant="outlined"
                   onClick={async () => {
                     try {
-                      // Saiu = atendimento finalizado: sai da fila do Painel de Atendimento.
+                      // Atendido = paciente já foi embora: finaliza o atendimento, sai da fila do Painel e resolve a pendência da agenda.
                       await appointmentFlowAction(edit.backendId!, "ATTENDED");
                       await refreshAfterQuickAction();
                       toast.success("Atendimento finalizado.");
@@ -1469,17 +1469,17 @@ export default function Agenda() {
                     }
                   }}
                 >
-                  Saiu / finalizar
+                  Atendido
                 </Button>
               ) : null}
-              {edit.backendId && edit.status !== "Cancelado" ? (
+              {edit.backendId && edit.status !== "Cancelado" && edit.status !== "Desmarcado" ? (
                 <Button
                   color="error"
                   variant="outlined"
                   onClick={async () => {
                     if (!window.confirm(`Confirmar que ${edit.patientName} desmarcou a consulta?`)) return;
                     try {
-                      await cancelBackendAppointment(edit.backendId!, editReason.trim() || "Paciente desmarcou", "PATIENT");
+                      await cancelBackendAppointment(edit.backendId!, editReason.trim() || "Paciente desmarcou", "PATIENT", true);
                       await refreshAfterQuickAction();
                       toast.success("Consulta desmarcada e registrada no histórico.");
                     } catch (error) {
