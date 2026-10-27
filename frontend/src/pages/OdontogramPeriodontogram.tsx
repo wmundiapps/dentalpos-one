@@ -7,7 +7,8 @@ import CloseIcon from '@mui/icons-material/Close'
 import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import { useNavigate } from 'react-router-dom'
 import OdontogramBoard, { OdontogramLegend, isDone } from '../components/OdontogramBoard'
-import { DONE_PALETTE, PLANNED_PALETTE, saveOdontogramColors, useOdontogramColors } from '../config/odontogramColors'
+import { DEFAULT_DONE, DEFAULT_PLANNED, DONE_PALETTE, PLANNED_PALETTE, saveOdontogramColors, useOdontogramColors } from '../config/odontogramColors'
+import { PENDING_ALERTS_EVENT } from '../services/PendingAlertsApi'
 import PageHeader from '../components/PageHeader'
 import PatientAlertBanner from '../components/patient/PatientAlertBanner'
 import PatientPicker from '../components/patient/PatientPicker'
@@ -56,6 +57,8 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
   const [procNext,setProcNext] = useState('')
   const [procBusy,setProcBusy] = useState(false)
   const [procOk,setProcOk] = useState('')
+  const [unplannedMsg,setUnplannedMsg] = useState('')
+  const [planMsg,setPlanMsg] = useState('')
 
   async function load() {
     if (!patientId) return
@@ -87,31 +90,45 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
     try {
       let pro = procPro
       if (!pro) { try { pro = localStorage.getItem('completodonto.lastProfessional') || '' } catch { pro = '' } }
-      await DentalChartService.saveEntry(patientId,{
+      if (clinicalState==='COMPLETED' && pro.trim().length<2) { setError('Informe o profissional no quadro "Registrar procedimento realizado" antes de concluir.'); return }
+      const saved = await DentalChartService.saveEntry(patientId,{
         dentition,tooth:Number(selectedTooth),surface:surface||null,
         findingCode:activeFinding.code,findingLabel:activeFinding.label,clinicalState,notes,
         // Concluído: o que foi feito (mesmo sem observação) vai para os procedimentos executados da ficha do paciente.
-        ...(clinicalState==='COMPLETED' ? { evolutionNotes: `Dente ${selectedTooth}${surface?` — face ${surface}`:''}: ${notes.trim() || `${activeFinding.label} realizado`}`, professionalName: pro || 'Profissional responsável' } : {})
+        ...(clinicalState==='COMPLETED' ? { evolutionNotes: `Dente ${selectedTooth}${surface?` — face ${surface}`:''}: ${notes.trim() || `${activeFinding.label} realizado`}`, professionalName: pro.trim() } : {})
       })
+      if (saved.unplanned) await handleUnplanned([{ tooth: Number(selectedTooth), procedure: activeFinding.label }], pro.trim())
+      if (clinicalState==='PLANNED') setPlanMsg(`Planejado: dente ${selectedTooth} — ${activeFinding.label}. O procedimento já entrou no plano de tratamento para o orçamento.`)
       setNotes(''); await load()
     } catch(e:any){setError(e.message)}
+  }
+
+  // Procedimento concluído que não estava no plano: avisa o gestor por e-mail e deixa a pendência na tela para passar orçamento.
+  async function handleUnplanned(list: Array<{ tooth: number; procedure: string }>, professional: string) {
+    if (!list.length) return
+    try { await DentalChartService.notifyUnplanned(patientId, list, professional) } catch { /* o aviso na tela vale mesmo se o e-mail falhar */ }
+    window.dispatchEvent(new Event(PENDING_ALERTS_EVENT))
+    setUnplannedMsg(`Novo procedimento fora do plano (${list.map(i=>`dente ${i.tooth}: ${i.procedure}`).join('; ')}). O gestor foi avisado por e-mail: passar o orçamento ao paciente.`)
   }
 
   // Registro do que foi feito no paciente: cada dente/face entra no odontograma como CONCLUÍDO e a evolução clínica fica no prontuário.
   async function saveProcedure() {
     const finding = findings.find(f=>f.code===procFinding)
-    if (!patientId || !finding || !procTeeth.length) return
-    setProcBusy(true); setError(''); setProcOk('')
+    if (!patientId || !finding || !procTeeth.length || procPro.trim().length<2 || procNext.trim().length<3) return
+    setProcBusy(true); setError(''); setProcOk(''); setUnplannedMsg('')
     try {
       const faces: Array<ToothSurface|null> = procFaces.length ? procFaces : [null]
       let first = true
+      const unplannedList: Array<{ tooth: number; procedure: string }> = []
       for (const tooth of procTeeth) for (const face of faces) {
-        await DentalChartService.saveEntry(patientId,{
+        const saved = await DentalChartService.saveEntry(patientId,{
           dentition,tooth,surface:face,findingCode:finding.code,findingLabel:finding.label,clinicalState:'COMPLETED',notes:procNotes.trim(),
-          ...(first ? { evolutionNotes:`Dente(s) ${procTeeth.join(', ')}${procFaces.length?` — face(s) ${procFaces.join('')}`:''}: ${procNotes.trim() || `${finding.label} realizado`}`, professionalName:procPro.trim() || 'Profissional responsável', nextProcedure:procNext||undefined } : {})
+          ...(first ? { evolutionNotes:`Dente(s) ${procTeeth.join(', ')}${procFaces.length?` — face(s) ${procFaces.join('')}`:''}: ${procNotes.trim() || `${finding.label} realizado`}`, professionalName:procPro.trim(), nextProcedure:procNext.trim() } : {})
         })
         first = false
+        if (saved.unplanned && !unplannedList.some(u=>u.tooth===tooth)) unplannedList.push({ tooth, procedure: finding.label })
       }
+      await handleUnplanned(unplannedList, procPro.trim())
       try { localStorage.setItem('completodonto.lastProfessional', procPro) } catch { /* sem armazenamento */ }
       setProcOk(`Procedimento registrado em ${procTeeth.length} dente(s) e incluído no histórico do prontuário.`)
       setProcTeeth([]); setProcFaces([]); setProcNotes(''); setProcNext('')
@@ -124,6 +141,8 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
       <Typography variant="h6" sx={{ fontWeight:900 }}>Registrar procedimento realizado hoje</Typography>
       <Typography variant="body2" color="text.secondary">Escolha os dentes, o procedimento e anote o que foi feito. O dente fica na cor escura (concluído) no odontograma e o registro vai para Procedimentos executados na ficha do paciente. Planejado fica na cor clara escolhida em Configurar cores.</Typography>
       {procOk && <Alert severity="success" sx={{mt:1}} onClose={()=>setProcOk('')}>{procOk}</Alert>}
+      {unplannedMsg && <Alert severity="warning" sx={{mt:1}} onClose={()=>setUnplannedMsg('')} action={<Button size="small" onClick={()=>navigate(`/orcamentos-tratamentos?patientId=${encodeURIComponent(patientId)}`)}>Ir para o orçamento</Button>}>{unplannedMsg}</Alert>}
+      {planMsg && <Alert severity="info" sx={{mt:1}} onClose={()=>setPlanMsg('')} action={<Button size="small" onClick={()=>navigate(`/orcamentos-tratamentos?patientId=${encodeURIComponent(patientId)}`)}>Abrir orçamento</Button>}>{planMsg}</Alert>}
       <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'1fr 1fr 1fr'},gap:1.5,mt:2}}>
         <FormControl><InputLabel>Dente(s) FDI</InputLabel><Select multiple value={procTeeth} label="Dente(s) FDI" onChange={e=>setProcTeeth((e.target.value as number[]).map(Number))} renderValue={(v)=>(v as number[]).join(', ')}>
           {teeth.map(t=><MenuItem key={t} value={t}>{t}</MenuItem>)}
@@ -135,9 +154,9 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
           {findings.map(f=><MenuItem key={f.id} value={f.code}>{f.label}</MenuItem>)}
         </Select></FormControl>
         <TextField sx={{gridColumn:{md:'1/-1'}}} multiline minRows={2} label="Observações — o que foi feito (opcional)" value={procNotes} onChange={e=>setProcNotes(e.target.value)}/>
-        <TextField label="Profissional (opcional)" value={procPro} onChange={e=>setProcPro(e.target.value)}/>
-        <TextField label="Próxima conduta (opcional)" value={procNext} onChange={e=>setProcNext(e.target.value)}/>
-        <Button variant="contained" size="large" disabled={procBusy||!procFinding||!procTeeth.length} onClick={()=>void saveProcedure()}>{procBusy?'Salvando...':'Salvar procedimento realizado'}</Button>
+        <TextField required label="Profissional" value={procPro} onChange={e=>setProcPro(e.target.value)} error={procTeeth.length>0&&procPro.trim().length<2}/>
+        <TextField required label="Próxima conduta / próxima consulta" value={procNext} onChange={e=>setProcNext(e.target.value)} placeholder="Ex.: retorno em 15 dias para prova" error={procTeeth.length>0&&procNext.trim().length<3}/>
+        <Button variant="contained" size="large" disabled={procBusy||!procFinding||!procTeeth.length||procPro.trim().length<2||procNext.trim().length<3} onClick={()=>void saveProcedure()}>{procBusy?'Salvando...':'Salvar procedimento realizado'}</Button>
       </Box>
     </Paper>
   )
@@ -284,7 +303,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
         <Typography variant="caption" color="text.secondary">As cores ficam salvas neste navegador. Planejado e concluído nunca usam a mesma cor.</Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={()=>{saveOdontogramColors(PLANNED_PALETTE[0].value,DONE_PALETTE[0].value);setColorsOpen(false)}}>Voltar ao padrão</Button>
+        <Button onClick={()=>{saveOdontogramColors(DEFAULT_PLANNED.value,DEFAULT_DONE.value);setColorsOpen(false)}}>Voltar ao padrão</Button>
         <Button onClick={()=>setColorsOpen(false)}>Cancelar</Button>
         <Button variant="contained" disabled={pickTodo===pickDone} onClick={()=>{if(saveOdontogramColors(pickTodo,pickDone))setColorsOpen(false)}}>Salvar cores</Button>
       </DialogActions>

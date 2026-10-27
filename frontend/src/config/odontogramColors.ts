@@ -23,13 +23,16 @@ export const DONE_PALETTE = [
 export type OdontogramColors = { todo: string; todoText: string; done: string };
 const KEY = "completodonto.odontogramColors";
 const EVENT = "odontogram-colors-changed";
-const DEFAULTS: OdontogramColors = { todo: PLANNED_PALETTE[0].value, todoText: PLANNED_PALETTE[0].text, done: DONE_PALETTE[0].value };
+// Padrão: laranja claro para planejado e verde escuro para concluído (claras = planejado, escuras = realizado).
+export const DEFAULT_PLANNED = PLANNED_PALETTE[1];
+export const DEFAULT_DONE = DONE_PALETTE[1];
+const DEFAULTS: OdontogramColors = { todo: DEFAULT_PLANNED.value, todoText: DEFAULT_PLANNED.text, done: DEFAULT_DONE.value };
 
 export function loadOdontogramColors(): OdontogramColors {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || "null") as { todo?: string; done?: string } | null;
-    const planned = PLANNED_PALETTE.find((c) => c.value === raw?.todo) || PLANNED_PALETTE[0];
-    const done = DONE_PALETTE.find((c) => c.value === raw?.done) || DONE_PALETTE[0];
+    const planned = PLANNED_PALETTE.find((c) => c.value === raw?.todo) || DEFAULT_PLANNED;
+    const done = DONE_PALETTE.find((c) => c.value === raw?.done) || DEFAULT_DONE;
     return { todo: planned.value, todoText: planned.text, done: done.value };
   } catch {
     return DEFAULTS;

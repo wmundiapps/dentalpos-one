@@ -35,9 +35,12 @@ export const DentalChartService = {
     findingCode: string; findingLabel: string; clinicalState: ClinicalState; notes?: string;
     evolutionNotes?: string; professionalId?: string; professionalName?: string; nextProcedure?: string;
   }) {
-    return request<{id:string}>(`/patients/${encodeURIComponent(patientId)}/dental-chart/entries`, {
+    return request<{id:string; unplanned?: boolean}>(`/patients/${encodeURIComponent(patientId)}/dental-chart/entries`, {
       method: 'PUT', body: JSON.stringify(entry)
     })
+  },
+  notifyUnplanned(patientId: string, items: Array<{ tooth: number; procedure: string }>, professional: string) {
+    return request<{ sent: number }>(`/patients/${encodeURIComponent(patientId)}/unplanned-procedures`, { method: 'POST', body: JSON.stringify({ items, professional }) })
   },
   removeEntry(patientId: string, id: string) {
     return request<void>(`/patients/${encodeURIComponent(patientId)}/dental-chart/entries/${encodeURIComponent(id)}`, { method: 'DELETE' })
