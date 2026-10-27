@@ -24,12 +24,14 @@ type Item = { key: string; label: string; count: number; path: string; blocks?: 
 export const ALERT_CATEGORIES: Array<{ key: string; label: string }> = [
   { key: 'appointments', label: 'Agendamentos sem desfecho' },
   { key: 'receivables', label: 'Recebimentos vencidos / pacientes em atraso' },
-  { key: 'laboratory', label: 'Fila de trabalhos do laboratório (até a entrega)' }
+  { key: 'laboratory', label: 'Fila de trabalhos do laboratório (até a entrega)' },
+  { key: 'budget', label: 'Procedimentos novos para passar orçamento ao paciente' }
 ]
 const DEFAULT_VISIBILITY: Visibility = {
   appointments: ['GESTOR', 'RECEPCAO', 'DENTISTA', 'AUXILIAR', 'ADMINISTRACAO'],
   receivables: ['GESTOR', 'RECEPCAO', 'FINANCEIRO', 'DENTISTA', 'ADMINISTRACAO'],
-  laboratory: ['GESTOR', 'LABORATORIO', 'DENTISTA', 'RECEPCAO', 'ADMINISTRACAO']
+  laboratory: ['GESTOR', 'LABORATORIO', 'DENTISTA', 'RECEPCAO', 'ADMINISTRACAO'],
+  budget: ['GESTOR', 'RECEPCAO', 'FINANCEIRO', 'ADMINISTRACAO']
 }
 
 // Tentativas erradas de chave (em memória, por usuário): 5 erros trava novas tentativas por 15 minutos.
@@ -157,6 +159,25 @@ async function computeItems(clinicId: string, tenantId: string, codes: string[] 
       where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: today } }
     })
     if (count) items.push({ key: 'receivables', label: `${count} recebimento(s) vencido(s) (paciente em atraso: a régua de cobrança acompanha)`, count, path: '/financeiro' })
+  }
+  if (can('finance.view', 'budget')) {
+    // Procedimento feito fora do plano: some da lista quando o paciente ganha um orçamento novo depois do lançamento. Só aviso (não trava a tela).
+    const fresh = await prisma.treatmentItem.findMany({
+      where: { clinicId, tenantId, origin: 'ODONTOGRAM_NAO_PLANEJADO', createdAt: { gte: new Date(today.getTime() - 90 * DAY) } },
+      select: { patientId: true, tooth: true, procedure: true, createdAt: true, patient: { select: { fullName: true } } },
+      orderBy: { createdAt: 'desc' }, take: 200
+    }).catch(() => [])
+    let open = fresh
+    if (fresh.length) {
+      const budgets = await prisma.budget.findMany({ where: { clinicId, tenantId, patientId: { in: [...new Set(fresh.map(f => f.patientId))] } }, select: { patientId: true, createdAt: true } }).catch(() => [])
+      open = fresh.filter(f => !budgets.some(b => b.patientId === f.patientId && b.createdAt >= f.createdAt))
+    }
+    if (open.length) {
+      const byPatient = new Map<string, string[]>()
+      for (const f of open) byPatient.set(f.patient.fullName, [...(byPatient.get(f.patient.fullName) || []), `dente ${f.tooth ?? '—'} ${f.procedure}`])
+      const lines = [...byPatient.entries()].slice(0, 8).map(([name, procs]) => `${name}: ${procs.join(', ')}`)
+      items.push({ key: 'budget', label: `${open.length} procedimento(s) novo(s) fora do plano: passar orçamento ao paciente`, count: open.length, blocks: 0, lines, path: '/orcamentos-tratamentos' })
+    }
   }
   if (can('laboratory.view', 'laboratory')) {
     // Fila diária do laboratório: todo trabalho não excluído e ainda não entregue ao dentista/clínica.

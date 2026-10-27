@@ -3,6 +3,7 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { notifyManagersUnplanned, UNPLANNED_ORIGIN } from '../services/unplannedProcedureService'
 
 const FDI_ADULT = [
   18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28,
@@ -116,6 +117,16 @@ export async function saveEntry(req: AuthRequest, res: Response) {
     if (!findingCode || !findingLabel) return res.status(400).json({ error: 'Achado clínico obrigatório.' })
 
     const completedAt = clinicalState === 'COMPLETED' ? new Date() : null
+    // Concluído sem ter sido planejado antes (odontograma ou plano de tratamento) = procedimento novo, ainda sem orçamento.
+    let unplanned = false
+    if (clinicalState === 'COMPLETED') {
+      const planned = await prisma.$queryRaw<any[]>`
+        SELECT 1 FROM "DentalChartEntry"
+        WHERE "clinicId"=${clinicId} AND "patientId"=${patientId} AND "status"='ACTIVE' AND "clinicalState" IN ('PLANNED','CURRENT')
+          AND (("id"=${id}) OR ("tooth"=${tooth} AND "findingCode"=${findingCode})) LIMIT 1`
+      const inPlan = planned.length ? null : await prisma.treatmentItem.findFirst({ where: { clinicId, tenantId, patientId, tooth, procedure: findingLabel, status: { in: ['PLANNED', 'APPROVED', 'IN_PROGRESS'] } }, select: { id: true } })
+      unplanned = !planned.length && !inPlan
+    }
     await prisma.$executeRaw`
       INSERT INTO "DentalChartEntry"
         ("id","clinicId","tenantId","patientId","dentition","tooth","surface","findingCode","findingLabel","clinicalState","status","notes","completedAt","createdBy","createdAt","updatedAt")
@@ -154,7 +165,7 @@ export async function saveEntry(req: AuthRequest, res: Response) {
           surfaces: surface ? [surface] : [],
           procedure: findingLabel,
           status: clinicalState === 'COMPLETED' ? 'COMPLETED' : 'PLANNED',
-          origin: 'ODONTOGRAM',
+          origin: unplanned ? UNPLANNED_ORIGIN : 'ODONTOGRAM',
           odontogramMarkId: legacyMark.id,
           completedAt
         }
@@ -181,10 +192,26 @@ export async function saveEntry(req: AuthRequest, res: Response) {
       action: 'DENTAL_CHART_ENTRY_UPSERT', entityType: 'DentalChartEntry', entityId: id,
       metadata: { patientId, dentition, tooth, surface, findingCode, clinicalState }
     })
-    return res.status(200).json({ id })
+    return res.status(200).json({ id, unplanned })
   } catch (error: any) {
     console.error(error)
     return res.status(400).json({ error: error?.message || 'Erro ao salvar odontograma.' })
+  }
+}
+
+export async function notifyUnplanned(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorUserId } = context(req)
+    const patientId = String(req.params.patientId)
+    const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId, tenantId }, select: { fullName: true } })
+    if (!patient) return res.status(404).json({ error: 'Paciente não encontrado.' })
+    const items = (Array.isArray(req.body?.items) ? req.body.items : []).slice(0, 40).map((i: any) => ({ tooth: Number(i?.tooth) || 0, procedure: String(i?.procedure || '').trim().slice(0, 120) })).filter((i: { tooth: number; procedure: string }) => i.tooth && i.procedure)
+    if (!items.length) return res.status(400).json({ error: 'Nenhum procedimento informado.' })
+    const result = await notifyManagersUnplanned({ clinicId, tenantId, actorId: actorUserId, patientId, patientName: patient.fullName, professional: String(req.body?.professional || '').trim().slice(0, 120), items })
+    return res.json(result)
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao avisar o gestor.' })
   }
 }
 
