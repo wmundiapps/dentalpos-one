@@ -6,7 +6,7 @@ import PageHeader from "../components/PageHeader";
 import { bulkImportPatients } from "../services/PatientApi";
 
 type Target = "fullName" | "phone" | "cpf" | "rg" | "birthDate" | "gender" | "email" | "address" | "city" | "state" | "zipCode" | "notes";
-type Grid = { headers: string[]; rows: string[][] };
+export type Grid = { headers: string[]; rows: string[][] };
 
 const TARGETS: Array<[Target, string]> = [
   ["fullName", "Nome do paciente"], ["phone", "Telefone / celular"], ["cpf", "CPF"], ["rg", "RG"], ["birthDate", "Data de nascimento"],
@@ -28,7 +28,7 @@ const ALIASES: Record<Target, string[]> = {
   notes: ["observacao", "observacoes", "obs", "notes"],
 };
 
-const normalize = (h: string) => h.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+export const normalize = (h: string) => h.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
 const EXCLUDED = /(mae|pai|responsavel|conjuge|indicacao|profissional|empresa|trabalho|comercial)/;
 
 function autoMap(headers: string[]): Record<number, Target | ""> {
@@ -92,7 +92,7 @@ function cellToString(value: unknown): string {
   return String(value).trim();
 }
 
-async function readFileGrid(file: File): Promise<Grid> {
+export async function readFileGrid(file: File): Promise<Grid> {
   const name = file.name.toLowerCase();
   let matrix: string[][];
   if (name.endsWith(".xlsx")) {
@@ -137,7 +137,7 @@ function buildRows(grid: Grid, mapping: Record<number, Target | "">): Built[] {
 
 const BATCH = 1000;
 
-export default function ImportPatients() {
+export default function ImportPatients({ embedded = false }: { embedded?: boolean } = {}) {
   const [grid, setGrid] = useState<Grid | null>(null);
   const [mapping, setMapping] = useState<Record<number, Target | "">>({});
   const [fileName, setFileName] = useState("");
@@ -189,10 +189,12 @@ export default function ImportPatients() {
 
   return (
     <Box>
-      <PageHeader
-        title="Importar pacientes de outro sistema"
-        description="Traga o cadastro dos seus pacientes de outro sistema. Somente dados cadastrais são importados — financeiro, recebimentos e agenda permanecem no sistema de origem."
-      />
+      {!embedded && (
+        <PageHeader
+          title="Importar pacientes de outro sistema"
+          description="Traga o cadastro dos seus pacientes de outro sistema. Para agenda e financeiro, use as outras abas da tela Importar dados."
+        />
+      )}
 
       <Alert severity="info" sx={{ mb: 2 }}>
         No sistema de origem, procure o relatório ou a exportação de pacientes para Excel (.xlsx) ou CSV e envie aqui. Você confere e ajusta quais colunas correspondem a cada campo antes de importar. Pacientes sem telefone com DDD não são importados (aparecem na lista de ignorados). Pacientes já cadastrados — mesmo nome e telefone, ou mesmo CPF — são ignorados, então é seguro reenviar o arquivo.

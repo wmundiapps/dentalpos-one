@@ -195,7 +195,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Configurações","/configuracoes",<SettingsIcon/>),
       item("Clínicas e unidades","/clinicas",<LocalHospitalIcon/>),
       item("Integrações","/integracoes",<HubIcon/>),
-      item("Importar Pacientes","/importar-pacientes",<UploadFileIcon/>),
+      item("Importar dados","/importar-dados",<UploadFileIcon/>),
       item("Permissões","/permissoes",<AdminPanelSettingsIcon/>),
       item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),
     ])
