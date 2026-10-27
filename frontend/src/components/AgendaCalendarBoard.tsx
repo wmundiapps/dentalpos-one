@@ -149,7 +149,7 @@ function operationalBadges(
 
 function statusColor(status: IntegratedAppointment["status"]): "success" | "error" | "warning" | "default" {
   if (status === "Confirmado" || status === "Finalizado") return "success";
-  if (status === "Faltou" || status === "Cancelado") return "error";
+  if (status === "Faltou" || status === "Cancelado" || status === "Desmarcado") return "error";
   if (status === "Aguardando" || status === "Em atendimento" || status === "Sala em preparação") return "warning";
   return "default";
 }
@@ -229,7 +229,7 @@ function MonthView({
     return day >= 1 && day <= daysInMonth ? day : null;
   });
   const selectedItems = items
-    .filter((appointment) => appointment.dateISO === dateISO && appointment.status !== "Cancelado")
+    .filter((appointment) => appointment.dateISO === dateISO && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado")
     .sort((a, b) => a.time.localeCompare(b.time));
   const weekLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -250,7 +250,7 @@ function MonthView({
           }
           const cellISO = iso(new Date(year, month, day, 12));
           const dayItems = items
-            .filter((appointment) => appointment.dateISO === cellISO && appointment.status !== "Cancelado")
+            .filter((appointment) => appointment.dateISO === cellISO && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado")
             .sort((a, b) => a.time.localeCompare(b.time));
           const selected = cellISO === dateISO;
           return (
@@ -489,7 +489,7 @@ function TimeGridView({
 
           {dates.map((dayISO) => {
             const dayItems = items
-              .filter((appointment) => appointment.dateISO === dayISO && appointment.status !== "Cancelado")
+              .filter((appointment) => appointment.dateISO === dayISO && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado")
               .sort((a, b) => a.time.localeCompare(b.time));
             // A primeira coluna já fica junto da margem com as horas; nas demais a hora aparece ao lado do nome.
             const isFirstDay = dayISO === dates[0];
@@ -631,7 +631,7 @@ function TimeGridView({
                   ...dayItems.map((appointment) => ({ appointment, sunday: false })),
                   ...(mergeSunday && dayISO === weekAll[5]
                     ? items
-                        .filter((appointment) => appointment.dateISO === sundayISO && appointment.status !== "Cancelado")
+                        .filter((appointment) => appointment.dateISO === sundayISO && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado")
                         .map((appointment) => ({ appointment, sunday: true }))
                     : []),
                 ].map(({ appointment, sunday }) => {

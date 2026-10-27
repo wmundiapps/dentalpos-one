@@ -24,7 +24,7 @@ export default function AgendaPatientSearch({ patients, appointments, onSchedule
     if (!selected) return [];
     const name = norm(selected.fullName);
     return appointments
-      .filter((a) => (a.patientId ? a.patientId === selected.id : norm(a.patientName) === name) && a.status !== "Cancelado")
+      .filter((a) => (a.patientId ? a.patientId === selected.id : norm(a.patientName) === name) && a.status !== "Cancelado" && a.status !== "Desmarcado")
       .sort((a, b) => `${b.dateISO} ${b.time}`.localeCompare(`${a.dateISO} ${a.time}`));
   }, [selected, appointments]);
 

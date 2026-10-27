@@ -399,7 +399,10 @@ export async function update(req: AuthRequest, res: Response) {
 
     const newScheduledAt = req.body.scheduledAt ? parseDate(req.body.scheduledAt) : existing.scheduledAt
     if (!newScheduledAt) return res.status(400).json({ error: 'Data/hora inválida.' })
-    const newStatus = req.body.status ? String(req.body.status) : existing.status
+    // "Desmarcado" é um cancelamento marcado em confirmation: o horário é liberado e o paciente entra na lista de quem precisa reagendar.
+    const wantUnscheduled = String(req.body.status || '') === 'UNSCHEDULED'
+    const wasUnscheduled = existing.status === 'CANCELLED' && existing.confirmation === 'UNSCHEDULED'
+    const newStatus = wantUnscheduled ? 'CANCELLED' : req.body.status ? String(req.body.status) : existing.status
     const normalizedReminderChannel = normalizeReminderChannel(req.body.reminderChannel || existing.confirmChannel || 'WHATSAPP')
     const reminderSelectionProvided = req.body.reminders && typeof req.body.reminders === 'object'
     const lifecycleTypes = ['ON_BOOKING', 'ONE_DAY_BEFORE', 'ON_DAY']
@@ -416,7 +419,7 @@ export async function update(req: AuthRequest, res: Response) {
     const newDurationMinutes = Math.round(parsedDuration)
     const changedSchedule = newScheduledAt.getTime() !== existing.scheduledAt.getTime()
     const changedDuration = newDurationMinutes !== existing.durationMinutes
-    const changedStatus = newStatus !== existing.status
+    const changedStatus = newStatus !== existing.status || (newStatus === 'CANCELLED' && wantUnscheduled !== wasUnscheduled)
     let newAssistantId = existing.assistantId
     if (req.body.assistantId !== undefined) {
       newAssistantId = req.body.assistantId ? String(req.body.assistantId) : null
@@ -496,7 +499,7 @@ export async function update(req: AuthRequest, res: Response) {
           scheduledAt: newScheduledAt,
           durationMinutes: newDurationMinutes,
           status: newStatus,
-          confirmation: newStatus === 'CONFIRMED' ? 'CONFIRMED' : newStatus === 'CANCELLED' ? 'CANCELLED' : existing.confirmation,
+          confirmation: newStatus === 'CONFIRMED' ? 'CONFIRMED' : newStatus === 'CANCELLED' ? (wantUnscheduled ? 'UNSCHEDULED' : 'CANCELLED') : ['CANCELLED', 'UNSCHEDULED'].includes(existing.confirmation || '') ? 'PENDING' : existing.confirmation,
           confirmChannel: normalizedReminderChannel,
           procedure: req.body.procedure !== undefined ? String(req.body.procedure) : existing.procedure,
           nextProcedure: req.body.nextProcedure !== undefined ? String(req.body.nextProcedure || '') || null : existing.nextProcedure,
@@ -506,7 +509,7 @@ export async function update(req: AuthRequest, res: Response) {
         }
       })
       if (changedSchedule || changedStatus || req.body.reason) {
-        const action = newStatus === 'CANCELLED' ? 'CANCELLED' : newStatus === 'NO_SHOW' ? 'NO_SHOW' : changedSchedule ? 'RESCHEDULED' : 'UPDATED'
+        const action = newStatus === 'CANCELLED' ? (wantUnscheduled ? 'UNSCHEDULED' : 'CANCELLED') : newStatus === 'NO_SHOW' ? 'NO_SHOW' : changedSchedule ? 'RESCHEDULED' : 'UPDATED'
         await tx.appointmentHistory.create({
           data: {
             clinicId: req.user!.clinicId,
