@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma'
+import { importedOriginsToSkip } from './importedHold'
 import { decryptSecret } from './secretVault'
 import { dispatchRevah, type RevahChannel } from './revahProviderService'
 
@@ -84,8 +85,9 @@ type Candidate = { entryId: string; patientId: string; patientName: string; phon
 export async function dunningCandidates(clinicId: string, tenantId: string, settings: DunningSettings, now = new Date(), channels: RevahChannel[] = settings.channels, multi = true): Promise<Candidate[]> {
   const today = brtDay(now)
   const from = new Date(now.getTime() - (LEGAL_UNTIL + 3) * DAY)
+  const skip = await importedOriginsToSkip(clinicId)
   const entries = await prisma.financialEntry.findMany({
-    where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, patientId: { not: null }, dueDate: { gte: from, lt: now } },
+    where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, patientId: { not: null }, dueDate: { gte: from, lt: now }, ...(skip.length ? { origin: { notIn: skip } } : {}) },
     select: { id: true, patientId: true, amount: true, dueDate: true, patient: { select: { fullName: true, phone: true, email: true } } },
     take: 1000
   })

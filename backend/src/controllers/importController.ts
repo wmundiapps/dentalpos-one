@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
 import { loadSettings, saveSettings } from '../services/followUpService'
+import { IMPORTED_ORIGINS } from '../services/importedHold'
 
 // Importação de agenda e financeiro vindos de outro sistema (ex.: Clinicorp).
 // As linhas chegam já lidas da planilha e com as colunas escolhidas pelo usuário; "dryRun" só confere, sem gravar.
@@ -131,6 +132,45 @@ export async function importFinancial(req: AuthRequest, res: Response) {
     const onlyOpen = req.body?.mode !== 'ALL'
     if (!rows.length) return res.status(400).json({ error: 'Nenhuma linha para importar.' })
     if (rows.length > MAX_ROWS) return res.status(400).json({ error: `Máximo de ${MAX_ROWS} linhas por envio.` })
+
+    // Baixa pela planilha: parcelas já importadas que o sistema de origem mostra como pagas passam a recebidas aqui.
+    if (req.body?.mode === 'SETTLE') {
+      const wanted = [...new Set(rows.map((r) => String(r.sourceId || '').trim().replace(/^IMP:/, '')).filter(Boolean))]
+      const found = wanted.length ? await prisma.financialEntry.findMany({
+        where: { clinicId, tenantId, origin: { in: IMPORTED_ORIGINS }, originId: { in: [...wanted, ...wanted.map((w) => `IMP:${w}`)] } },
+        select: { id: true, originId: true, status: true, amount: true, notes: true, paymentMethod: true }
+      }) : []
+      const byId = new Map(found.map((f) => [String(f.originId).replace(/^IMP:/, ''), f]))
+      const skippedSettle: Skipped[] = []
+      const updates: Array<{ id: string; paidAt: Date; paymentMethod: string | null; notes: string | null; amount: number }> = []
+      const seen = new Set<string>()
+      let sum = 0
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i] || {}
+        const paidDay = parseDay(r.paidDate)
+        if (!(truthy(r.paid) || paidDay)) { skippedSettle.push({ row: i + 1, reason: 'Parcela ainda em aberto no sistema de origem.' }); continue }
+        const sourceId = String(r.sourceId || '').trim().replace(/^IMP:/, '')
+        if (!sourceId) { skippedSettle.push({ row: i + 1, reason: 'Linha sem código da parcela para localizar no sistema.' }); continue }
+        const entry = byId.get(sourceId)
+        if (!entry) { skippedSettle.push({ row: i + 1, reason: 'Parcela não encontrada aqui (importe antes).' }); continue }
+        if (entry.status !== 'PENDING' || seen.has(entry.id)) { skippedSettle.push({ row: i + 1, reason: 'Parcela já baixada ou cancelada aqui.' }); continue }
+        seen.add(entry.id)
+        const day = paidDay || todayBrt()
+        const note = `Baixa pela planilha do sistema anterior (pago em ${day.split('-').reverse().join('/')}).`
+        updates.push({ id: entry.id, paidAt: new Date(`${day}T12:00:00.000Z`), paymentMethod: String(r.paymentMethod || '').trim().slice(0, 40) || entry.paymentMethod, notes: entry.notes ? `${entry.notes}\n${note}` : note, amount: entry.amount })
+        sum += entry.amount
+      }
+      let settled = 0
+      if (!dryRun) {
+        for (let i = 0; i < updates.length; i += 100) {
+          const batch = updates.slice(i, i + 100)
+          await prisma.$transaction(batch.map((u) => prisma.financialEntry.update({ where: { id: u.id }, data: { status: 'PAID', paidAt: u.paidAt, paymentMethod: u.paymentMethod, notes: u.notes } })))
+          settled += batch.length
+        }
+        if (settled) await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_BULK_SETTLE', entityType: 'FinancialEntry', entityId: 'bulk', summary: `Baixa pela planilha: ${settled} parcela(s) marcadas como recebidas.` }).catch((e: unknown) => console.error(e))
+      }
+      return res.status(dryRun ? 200 : 201).json({ dryRun, createdCount: dryRun ? updates.length : settled, total: Math.round(sum * 100) / 100, overdue: 0, skipped: skippedSettle })
+    }
 
     const patients = await prisma.patient.findMany({ where: { clinicId, tenantId }, select: { id: true, fullName: true, phone: true }, orderBy: { createdAt: 'asc' } })
     const byName = new Map<string, typeof patients>()

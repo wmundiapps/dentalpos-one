@@ -29,7 +29,7 @@ function pickColumn(grid: Grid, names: string[]) {
 }
 
 export default function ImportFinancial() {
-  const [mode, setMode] = useState<"OPEN" | "ALL">("OPEN");
+  const [mode, setMode] = useState<"OPEN" | "ALL" | "SETTLE">("OPEN");
   const [pause, setPause] = useState(true);
   const [codes, setCodes] = useState<Map<string, string>>(new Map());
   const [deletedHeaders, setDeletedHeaders] = useState<Set<string>>(new Set());
@@ -77,20 +77,22 @@ export default function ImportFinancial() {
     <ImportWizard
       kind="financial"
       unit="parcela"
+      verbs={mode === "SETTLE" ? { preview: "serão baixadas como recebidas", done: "baixada(s) como recebida(s)", button: "Dar baixa em" } : undefined}
       title="Planilha do financeiro (parcelas a receber)"
       help="Envie a exportação das parcelas do outro sistema (.xlsx ou .csv). Importe os pacientes antes: cada parcela é ligada ao paciente pelo nome. Parcelas canceladas não entram, e parcelas já importadas (mesmo código) são ignoradas, então é seguro reenviar."
       targets={TARGETS}
       aliases={ALIASES}
       required={["amount", "dueDate"]}
       buildRows={buildRows}
-      options={{ mode, pauseDebtorNotices: pause }}
+      options={{ mode, pauseDebtorNotices: mode === "SETTLE" ? false : pause }}
       optionsPanel={
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2, display: "grid", gap: 2 }}>
           <Box>
             <Typography sx={{ fontWeight: 900, mb: 1 }}>O que importar</Typography>
-            <TextField select size="small" value={mode} onChange={(e) => setMode(e.target.value as "OPEN" | "ALL")} sx={{ minWidth: 320 }}>
+            <TextField select size="small" value={mode} onChange={(e) => setMode(e.target.value as "OPEN" | "ALL" | "SETTLE")} sx={{ minWidth: 320 }}>
               <MenuItem value="OPEN">Só o que está a receber (recomendado)</MenuItem>
               <MenuItem value="ALL">Tudo, incluindo parcelas já pagas</MenuItem>
+              <MenuItem value="SETTLE">Dar baixa: marcar como recebidas as parcelas que o sistema antigo já mostra como pagas</MenuItem>
             </TextField>
           </Box>
           <FormControlLabel control={<Checkbox checked={pause} onChange={(e) => setPause(e.target.checked)} />}

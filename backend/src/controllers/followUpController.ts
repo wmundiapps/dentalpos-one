@@ -24,7 +24,7 @@ export async function show(req: AuthRequest, res: Response) {
   const { clinicId, tenantId } = ctx(req)
   const s = await loadSettings(clinicId)
   const [owners, debt] = await Promise.all([ownerEmails(clinicId, tenantId, s), debtors(clinicId, tenantId).catch(() => [])])
-  return res.json({ weeklyList: s.weeklyList, dailyDebtors: s.dailyDebtors, debtorNotice: s.debtorNotice, emails: s.emails, effectiveEmails: owners, debtorCount: debt.length })
+  return res.json({ weeklyList: s.weeklyList, dailyDebtors: s.dailyDebtors, debtorNotice: s.debtorNotice, skipImported: s.skipImported, emails: s.emails, effectiveEmails: owners, debtorCount: debt.length })
 }
 
 export async function update(req: AuthRequest, res: Response) {
@@ -40,6 +40,7 @@ export async function update(req: AuthRequest, res: Response) {
     weeklyList: b.weeklyList === undefined ? cur.weeklyList : Boolean(b.weeklyList),
     dailyDebtors: b.dailyDebtors === undefined ? cur.dailyDebtors : Boolean(b.dailyDebtors),
     debtorNotice: b.debtorNotice === undefined ? cur.debtorNotice : Boolean(b.debtorNotice),
+    skipImported: b.skipImported === undefined ? cur.skipImported : Boolean(b.skipImported),
     emails: clean.slice(0, 10),
   })
   await writeAudit({ clinicId, tenantId, actorId: req.user!.id, module: 'settings', action: 'FOLLOWUP_SETTINGS', summary: 'Resumos e avisos automáticos atualizados.' }).catch(() => undefined)
