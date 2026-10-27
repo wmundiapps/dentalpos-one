@@ -710,7 +710,7 @@ export default function Agenda() {
 
   const statusMetrics = useMemo(
     () => ({
-      total: baseFiltered.length,
+      total: baseFiltered.filter((appointment) => appointment.status !== "Desmarcado").length,
       confirmed: baseFiltered.filter((appointment) => appointment.status === "Confirmado").length,
       waiting: baseFiltered.filter((appointment) => appointment.status === "Aguardando").length,
       inCare: baseFiltered.filter((appointment) => appointment.status === "Em atendimento").length,
