@@ -182,13 +182,15 @@ function AppointmentCard({
         borderRadius: 1.5,
         cursor: "pointer",
         overflow: "hidden",
-        bgcolor: "background.paper",
+        bgcolor: appointment.status === "Desmarcado" ? "action.disabledBackground" : "background.paper",
+        opacity: appointment.status === "Desmarcado" ? 0.8 : 1,
         "&:hover": { boxShadow: 2 },
       }}
     >
-      <Typography variant={compact ? "caption" : "body2"} sx={{ fontWeight: 900, lineHeight: 1.2 }}>
+      <Typography variant={compact ? "caption" : "body2"} sx={{ fontWeight: 900, lineHeight: 1.2, ...(appointment.status === "Desmarcado" ? { color: "text.disabled", textDecoration: "line-through" } : {}) }}>
         {appointment.time}–{endTime(appointment)} • {appointment.patientName}
       </Typography>
+      {appointment.status === "Desmarcado" ? <Typography variant="caption" sx={{ display: "block", fontWeight: 800, color: "text.secondary" }}>Desmarcou</Typography> : null}
       {!compact ? (
         <>
           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", my: 0.6 }}>
@@ -229,7 +231,7 @@ function MonthView({
     return day >= 1 && day <= daysInMonth ? day : null;
   });
   const selectedItems = items
-    .filter((appointment) => appointment.dateISO === dateISO && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado")
+    .filter((appointment) => appointment.dateISO === dateISO && appointment.status !== "Cancelado")
     .sort((a, b) => a.time.localeCompare(b.time));
   const weekLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -250,7 +252,7 @@ function MonthView({
           }
           const cellISO = iso(new Date(year, month, day, 12));
           const dayItems = items
-            .filter((appointment) => appointment.dateISO === cellISO && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado")
+            .filter((appointment) => appointment.dateISO === cellISO && appointment.status !== "Cancelado")
             .sort((a, b) => a.time.localeCompare(b.time));
           const selected = cellISO === dateISO;
           return (
@@ -488,13 +490,15 @@ function TimeGridView({
           </Box>
 
           {dates.map((dayISO) => {
-            const dayItems = items
-              .filter((appointment) => appointment.dateISO === dayISO && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado")
+            // Desmarcados continuam visíveis (em cinza), mas não ocupam o horário: slots e capacidade usam só os ativos.
+            const shownItems = items
+              .filter((appointment) => appointment.dateISO === dayISO && appointment.status !== "Cancelado")
               .sort((a, b) => a.time.localeCompare(b.time));
+            const dayItems = shownItems.filter((appointment) => appointment.status !== "Desmarcado");
             // A primeira coluna já fica junto da margem com as horas; nas demais a hora aparece ao lado do nome.
             const isFirstDay = dayISO === dates[0];
             const gutter = isFirstDay ? 4 : HOUR_GUTTER;
-            const lanes = computeLanes(dayItems);
+            const lanes = computeLanes(shownItems);
             return (
               <Box
                 key={dayISO}
@@ -628,10 +632,10 @@ function TimeGridView({
                 })}
 
                 {[
-                  ...dayItems.map((appointment) => ({ appointment, sunday: false })),
+                  ...shownItems.map((appointment) => ({ appointment, sunday: false })),
                   ...(mergeSunday && dayISO === weekAll[5]
                     ? items
-                        .filter((appointment) => appointment.dateISO === sundayISO && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado")
+                        .filter((appointment) => appointment.dateISO === sundayISO && appointment.status !== "Cancelado")
                         .map((appointment) => ({ appointment, sunday: true }))
                     : []),
                 ].map(({ appointment, sunday }) => {
@@ -654,7 +658,10 @@ function TimeGridView({
                         position: "absolute",
                         top,
                         ...(sunday || !lanes.get(appointment.id) || lanes.get(appointment.id)!.count < 2
-                          ? { left: sunday ? gutter + 14 : gutter, right: sunday ? 0 : 4 }
+                          ? appointment.status === "Desmarcado" && !sunday
+                            // Sozinho no horário: ocupa só parte da largura para o horário continuar livre para novo agendamento.
+                            ? { left: gutter, width: `calc((100% - ${gutter + 4}px) * 0.58)` }
+                            : { left: sunday ? gutter + 14 : gutter, right: sunday ? 0 : 4 }
                           : {
                               left: `calc(${gutter}px + (100% - ${gutter + 4}px) * ${lanes.get(appointment.id)!.lane} / ${lanes.get(appointment.id)!.count})`,
                               width: `calc((100% - ${gutter + 4}px) / ${lanes.get(appointment.id)!.count} - 2px)`,
@@ -662,10 +669,12 @@ function TimeGridView({
                         height,
                         p: 0.7,
                         border: sunday ? "1px dashed" : 1,
-                        borderColor: colorOf(appointment.professionalName),
-                        borderLeft: `6px solid ${colorOf(appointment.professionalName)}`,
+                        borderColor: appointment.status === "Desmarcado" ? "#9e9e9e" : colorOf(appointment.professionalName),
+                        borderLeft: `6px solid ${appointment.status === "Desmarcado" ? "#9e9e9e" : colorOf(appointment.professionalName)}`,
+                        borderStyle: appointment.status === "Desmarcado" ? "dashed" : undefined,
                         borderRadius: 1.5,
-                        bgcolor: `${colorOf(appointment.professionalName)}1f`,
+                        bgcolor: appointment.status === "Desmarcado" ? "action.disabledBackground" : `${colorOf(appointment.professionalName)}1f`,
+                        opacity: appointment.status === "Desmarcado" ? 0.85 : 1,
                         boxShadow: 1,
                         overflow: "hidden",
                         cursor: "pointer",
@@ -673,9 +682,12 @@ function TimeGridView({
                         "&:hover": { boxShadow: 3 },
                       }}
                     >
-                      <Typography variant="caption" sx={{ display: "block", fontWeight: 900, lineHeight: 1.15 }}>
+                      <Typography variant="caption" sx={{ display: "block", fontWeight: 900, lineHeight: 1.15, ...(appointment.status === "Desmarcado" ? { color: "text.disabled", textDecoration: "line-through" } : {}) }}>
                         {sunday ? "Dom · " : ""}{appointment.patientName}
                       </Typography>
+                      {appointment.status === "Desmarcado" ? (
+                        <Typography variant="caption" sx={{ display: "block", fontWeight: 800, lineHeight: 1.15, color: "text.secondary" }}>Desmarcou</Typography>
+                      ) : null}
                       {height >= 48 && badges[0] ? (
                         <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />
                       ) : null}
