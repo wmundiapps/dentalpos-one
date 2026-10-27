@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import PageHeader from "../components/PageHeader";
 import PatientHeader, { type ClinicalAlerts } from "../components/patient/PatientHeader";
 import PatientAlertBanner from "../components/patient/PatientAlertBanner";
+import ExecutedProcedures from "../components/patient/ExecutedProcedures";
 import MedicalHistoryTab from "../components/patient/MedicalHistoryTab";
 import PatientDataTab from "../components/patient/PatientDataTab";
 import PatientBillingTab from "../components/patient/PatientBillingTab";
@@ -124,7 +125,7 @@ export default function PatientFile() {
   const [patient, setPatient] = useState<BackendPatient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const abaInicial = (): string => { const a = searchParams.get("aba") || ""; return ["cobranca", "financeiro"].includes(a) ? "cobranca" : ["odontograma", "prontuario"].includes(a) ? "prontuario" : a === "historico" ? "historico" : "resumo"; };
+  const abaInicial = (): string => { const a = searchParams.get("aba") || ""; return ["cobranca", "financeiro"].includes(a) ? "cobranca" : ["odontograma", "prontuario"].includes(a) ? "prontuario" : a === "historico" ? "historico" : a === "executados" ? "executados" : "resumo"; };
   const [tab, setTab] = useState(abaInicial());
   const [clinicalSub, setClinicalSub] = useState(["odontograma", "prontuario"].includes(searchParams.get("aba") || "") ? "odontograma" : "ficha");
   const [record, setRecord] = useState<ClinicalRecordData | null>(null);
@@ -197,6 +198,7 @@ export default function PatientFile() {
     { key: "cobranca", label: "Financeiro", icon: <PaymentsIcon /> },
     { key: "laboratorio", label: "Laboratório", icon: <BiotechIcon /> },
     { key: "prontuario", label: "Prontuário clínico", icon: <AssignmentIndIcon /> },
+    { key: "executados", label: "Procedimentos executados", icon: <GridOnIcon /> },
     { key: "historico", label: "Histórico Médico", icon: <MonitorHeartIcon /> },
     { key: "atendimentos", label: "Atendimentos", icon: <EventIcon /> },
   ];
@@ -225,7 +227,7 @@ export default function PatientFile() {
         </Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}><Button variant="contained" startIcon={<PaymentsIcon />} onClick={() => setTab("cobranca")}>Gerar financeiro</Button><Button variant="contained" color="success" startIcon={<EventAvailableIcon />} onClick={agendar}>Agendar consulta</Button></Box>
       </Paper>
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", sm: "repeat(4,1fr)", lg: "repeat(7,1fr)" }, gap: 1, mb: 2 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", sm: "repeat(4,1fr)", lg: "repeat(8,1fr)" }, gap: 1, mb: 2 }}>
         {abas.map((a) => {
           const ativo = tab === a.key;
           return (
@@ -258,6 +260,7 @@ export default function PatientFile() {
             {clinicalSub === "documentos" && <ClinicalDocuments fixedPatientId={patient.id} />}
           </Box>
         )}
+        {tab === "executados" && <ExecutedProcedures patientId={patient.id} />}
         {tab === "historico" && <MedicalHistoryTab patient={patient} data={record} loading={recordLoading} />}
         {tab === "atendimentos" && <Consultas rows={appts} loading={apptsLoading} agendar={agendar} />}
       </Paper>

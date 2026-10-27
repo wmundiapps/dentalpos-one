@@ -5,7 +5,8 @@ import {
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import FullscreenIcon from '@mui/icons-material/Fullscreen'
-import OdontogramBoard, { DONE_COLOR, OdontogramLegend, TODO_COLOR, isDone } from '../components/OdontogramBoard'
+import { useNavigate } from 'react-router-dom'
+import OdontogramBoard, { DONE_COLOR, OdontogramLegend, TODO_COLOR, TODO_TEXT, isDone } from '../components/OdontogramBoard'
 import PageHeader from '../components/PageHeader'
 import PatientAlertBanner from '../components/patient/PatientAlertBanner'
 import PatientPicker from '../components/patient/PatientPicker'
@@ -17,9 +18,10 @@ import type {
 
 const SITES: PeriodontalSite[] = ['MB','B','DB','ML','L','DL']
 const SURFACES: ToothSurface[] = ['M','D','O','V','L']
-const stateLabel: Record<ClinicalState,string> = { CURRENT:'A fazer (marcado)', PLANNED:'A fazer (planejado)', COMPLETED:'Concluído' }
+const stateLabel: Record<ClinicalState,string> = { CURRENT:'A fazer (rosa)', PLANNED:'Planejado (rosa)', COMPLETED:'Concluído (preto)' }
 
 export default function OdontogramPeriodontogram({ startFullscreen = false, embedded = false }: { startFullscreen?: boolean; embedded?: boolean }) {
+  const navigate = useNavigate()
   const params = new URLSearchParams(window.location.search)
   const patientId = params.get('patientId') || ''
   const patientName = params.get('patient') || 'Paciente'
@@ -35,7 +37,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
   const [selectedTooth,setSelectedTooth] = useState<number | ''>('')
   const [surface,setSurface] = useState<ToothSurface | ''>('')
   const [findingCode,setFindingCode] = useState('CARIES')
-  const [clinicalState,setClinicalState] = useState<ClinicalState>('CURRENT')
+  const [clinicalState,setClinicalState] = useState<ClinicalState>('PLANNED')
   const [notes,setNotes] = useState('')
   const [professionalName,setProfessionalName] = useState('')
   const [examNotes,setExamNotes] = useState('')
@@ -77,9 +79,13 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
   async function saveMark() {
     if (!patientId || !selectedTooth || !activeFinding) return
     try {
+      let pro = procPro
+      if (!pro) { try { pro = localStorage.getItem('completodonto.lastProfessional') || '' } catch { pro = '' } }
       await DentalChartService.saveEntry(patientId,{
         dentition,tooth:Number(selectedTooth),surface:surface||null,
-        findingCode:activeFinding.code,findingLabel:activeFinding.label,clinicalState,notes
+        findingCode:activeFinding.code,findingLabel:activeFinding.label,clinicalState,notes,
+        // Concluído: o que foi feito (mesmo sem observação) vai para os procedimentos executados da ficha do paciente.
+        ...(clinicalState==='COMPLETED' ? { evolutionNotes: `Dente ${selectedTooth}${surface?` — face ${surface}`:''}: ${notes.trim() || `${activeFinding.label} realizado`}`, professionalName: pro || 'Profissional responsável' } : {})
       })
       setNotes(''); await load()
     } catch(e:any){setError(e.message)}
@@ -88,15 +94,15 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
   // Registro do que foi feito no paciente: cada dente/face entra no odontograma como CONCLUÍDO e a evolução clínica fica no prontuário.
   async function saveProcedure() {
     const finding = findings.find(f=>f.code===procFinding)
-    if (!patientId || !finding || !procTeeth.length || procNotes.trim().length<3 || procPro.trim().length<2) return
+    if (!patientId || !finding || !procTeeth.length) return
     setProcBusy(true); setError(''); setProcOk('')
     try {
       const faces: Array<ToothSurface|null> = procFaces.length ? procFaces : [null]
       let first = true
       for (const tooth of procTeeth) for (const face of faces) {
         await DentalChartService.saveEntry(patientId,{
-          dentition,tooth,surface:face,findingCode:finding.code,findingLabel:finding.label,clinicalState:'COMPLETED',notes:procNotes,
-          ...(first ? { evolutionNotes:`Dente(s) ${procTeeth.join(', ')}${procFaces.length?` — face(s) ${procFaces.join('')}`:''}: ${procNotes}`, professionalName:procPro, nextProcedure:procNext||undefined } : {})
+          dentition,tooth,surface:face,findingCode:finding.code,findingLabel:finding.label,clinicalState:'COMPLETED',notes:procNotes.trim(),
+          ...(first ? { evolutionNotes:`Dente(s) ${procTeeth.join(', ')}${procFaces.length?` — face(s) ${procFaces.join('')}`:''}: ${procNotes.trim() || `${finding.label} realizado`}`, professionalName:procPro.trim() || 'Profissional responsável', nextProcedure:procNext||undefined } : {})
         })
         first = false
       }
@@ -110,7 +116,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
   const procedureCard = (
     <Paper variant="outlined" sx={{p:2,borderRadius:3,mb:2,borderColor:'primary.main',borderWidth:2}}>
       <Typography variant="h6" sx={{ fontWeight:900 }}>Registrar procedimento realizado hoje</Typography>
-      <Typography variant="body2" color="text.secondary">Escolha os dentes, o procedimento e anote o que foi feito. O dente passa para concluído (preto) no odontograma e o registro vai para o histórico do prontuário.</Typography>
+      <Typography variant="body2" color="text.secondary">Escolha os dentes, o procedimento e anote o que foi feito. O dente fica preto (concluído) no odontograma e o registro vai para Procedimentos executados na ficha do paciente. Planejado fica em rosa claro.</Typography>
       {procOk && <Alert severity="success" sx={{mt:1}} onClose={()=>setProcOk('')}>{procOk}</Alert>}
       <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'1fr 1fr 1fr'},gap:1.5,mt:2}}>
         <FormControl><InputLabel>Dente(s) FDI</InputLabel><Select multiple value={procTeeth} label="Dente(s) FDI" onChange={e=>setProcTeeth((e.target.value as number[]).map(Number))} renderValue={(v)=>(v as number[]).join(', ')}>
@@ -122,10 +128,10 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
         <FormControl><InputLabel>Procedimento realizado</InputLabel><Select value={procFinding} label="Procedimento realizado" onChange={e=>setProcFinding(e.target.value)}>
           {findings.map(f=><MenuItem key={f.id} value={f.code}>{f.label}</MenuItem>)}
         </Select></FormControl>
-        <TextField sx={{gridColumn:{md:'1/-1'}}} multiline minRows={2} required label="O que foi feito (descrição do procedimento)" value={procNotes} onChange={e=>setProcNotes(e.target.value)}/>
-        <TextField required label="Profissional" value={procPro} onChange={e=>setProcPro(e.target.value)}/>
+        <TextField sx={{gridColumn:{md:'1/-1'}}} multiline minRows={2} label="Observações — o que foi feito (opcional)" value={procNotes} onChange={e=>setProcNotes(e.target.value)}/>
+        <TextField label="Profissional (opcional)" value={procPro} onChange={e=>setProcPro(e.target.value)}/>
         <TextField label="Próxima conduta (opcional)" value={procNext} onChange={e=>setProcNext(e.target.value)}/>
-        <Button variant="contained" size="large" disabled={procBusy||!procFinding||!procTeeth.length||procNotes.trim().length<3||procPro.trim().length<2} onClick={()=>void saveProcedure()}>{procBusy?'Salvando...':'Salvar procedimento realizado'}</Button>
+        <Button variant="contained" size="large" disabled={procBusy||!procFinding||!procTeeth.length} onClick={()=>void saveProcedure()}>{procBusy?'Salvando...':'Salvar procedimento realizado'}</Button>
       </Box>
     </Paper>
   )
@@ -182,7 +188,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
           <MenuItem value="ADULT">Adulto • FDI</MenuItem><MenuItem value="CHILD">Infantil • FDI</MenuItem>
         </Select></FormControl>
         <Stack direction="row" spacing={1} sx={{ flexWrap:"wrap" }}>
-          <Chip label="Vermelho: a fazer" sx={{bgcolor:TODO_COLOR,color:'#fff',fontWeight:700}}/><Chip label="Preto: concluído" sx={{bgcolor:DONE_COLOR,color:'#fff',fontWeight:700}}/>
+          <Chip label="Rosa claro: planejado / a fazer" sx={{bgcolor:TODO_COLOR,color:'#4a0d25',fontWeight:700}}/><Chip label="Preto: concluído" sx={{bgcolor:DONE_COLOR,color:'#fff',fontWeight:700}}/>
         </Stack>
       </Stack>
     </Paper>
@@ -276,17 +282,18 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
         </Stack>
         <Typography sx={{fontWeight:900,mb:1}}>Adicionar procedimento neste dente</Typography>
         <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',sm:'1fr 1fr'},gap:1.5}}>
-          <FormControl size="small"><InputLabel>Face</InputLabel><Select value={surface} label="Face" onChange={e=>setSurface(e.target.value as ToothSurface|'')}>
-            <MenuItem value="">Dente inteiro</MenuItem>{SURFACES.map(x=><MenuItem key={x} value={x}>{x}</MenuItem>)}
-          </Select></FormControl>
-          <FormControl size="small"><InputLabel>Achado / procedimento</InputLabel><Select value={findingCode} label="Achado / procedimento" onChange={e=>setFindingCode(e.target.value)}>
+          <FormControl size="small" sx={{gridColumn:{sm:'1/-1'}}}><InputLabel>Procedimento (implante, coroa, núcleo, extração, intrusão...)</InputLabel><Select value={findingCode} label="Procedimento (implante, coroa, núcleo, extração, intrusão...)" onChange={e=>setFindingCode(e.target.value)}>
             {findings.map(f=><MenuItem key={f.id} value={f.code}>{f.label}</MenuItem>)}
           </Select></FormControl>
           <FormControl size="small"><InputLabel>Situação</InputLabel><Select value={clinicalState} label="Situação" onChange={e=>setClinicalState(e.target.value as ClinicalState)}>
-            {(['PLANNED','CURRENT','COMPLETED'] as ClinicalState[]).map(x=><MenuItem key={x} value={x}>{stateLabel[x]}</MenuItem>)}
+            {(['PLANNED','COMPLETED'] as ClinicalState[]).map(x=><MenuItem key={x} value={x}>{stateLabel[x]}</MenuItem>)}
           </Select></FormControl>
-          <TextField size="small" label="Observações" value={notes} onChange={e=>setNotes(e.target.value)}/>
+          <FormControl size="small"><InputLabel>Face (opcional)</InputLabel><Select value={surface} label="Face (opcional)" onChange={e=>setSurface(e.target.value as ToothSurface|'')}>
+            <MenuItem value="">Dente inteiro</MenuItem>{SURFACES.map(x=><MenuItem key={x} value={x}>{x}</MenuItem>)}
+          </Select></FormControl>
+          <TextField size="small" sx={{gridColumn:{sm:'1/-1'}}} label="Observações — o que foi feito neste dente (opcional)" value={notes} onChange={e=>setNotes(e.target.value)}/>
         </Box>
+        <Button sx={{mt:1.5}} size="small" onClick={()=>navigate(`/ficha-paciente?patientId=${encodeURIComponent(patientId)}&aba=executados`)}>Ver procedimentos executados na ficha do paciente</Button>
       </DialogContent>
       <DialogActions>
         <Button onClick={()=>setToothOpen(null)}>Fechar</Button>
@@ -313,7 +320,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
           <Paper variant="outlined" sx={{p:2,borderRadius:3,alignSelf:'flex-start'}}><OdontogramLegend entries={entries.filter(e=>e.dentition===dentition)}/></Paper>
         </Box>
         <Paper variant="outlined" sx={{p:2,borderRadius:3}}>
-          <Typography sx={{fontWeight:900,mb:1,color:TODO_COLOR}}>O que falta fazer ({todoList.length})</Typography>
+          <Typography sx={{fontWeight:900,mb:1,color:TODO_TEXT}}>O que falta fazer ({todoList.length})</Typography>
           {todoList.length===0
             ? <Typography color="text.secondary">Nada pendente neste odontograma.</Typography>
             : <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'repeat(2,1fr)',xl:'repeat(3,1fr)'},gap:1}}>
