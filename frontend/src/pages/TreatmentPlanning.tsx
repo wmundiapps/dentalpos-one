@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, LinearProgress, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PageHeader from "../components/PageHeader";
+import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { createTreatmentItem, getTreatmentPlan, importOdontogram, updateTreatmentItem, type TreatmentPlanItem } from "../services/TreatmentPlanApi";
 import { approveBudget, cancelBudget, createBudget, listBudgets, type BudgetRow } from "../services/BudgetApi";
@@ -217,6 +218,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
 
   return (
     <Box>
+      {!initialPatientId && <PatientAlertBanner patientId={patientId} />}
       <PageHeader title={"Plano de Tratamento e Orçamento"} description={"Procedimentos por dente e região, orçamento com condições de pagamento e contrato do paciente."} actionLabel="Novo procedimento" actionIcon={<AddIcon />} onAction={() => { if (patientId) openItem(); }} />
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
       {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}

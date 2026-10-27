@@ -32,6 +32,7 @@ import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
 import SmartSchedulingSettingsDialog from "../components/SmartSchedulingSettingsDialog";
 import AgendaAvailabilitySettingsDialog from "../components/AgendaAvailabilitySettingsDialog";
+import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import LabServiceOrderDialog, { type LabOrderPrefill } from "../components/LabServiceOrderDialog";
 import { printLabLabels, printLabOrder } from "../utils/labOrderPrint";
 import AgendaPatientSearch from "../components/AgendaPatientSearch";
@@ -1374,6 +1375,7 @@ export default function Agenda() {
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
           {edit ? (
             <>
+              <PatientAlertBanner patientId={edit.patientId} compact />
               <Typography><b>{edit.dateISO} às {edit.time}</b> • {edit.professionalName}</Typography>
               <Typography>{edit.procedure}</Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
@@ -1483,7 +1485,7 @@ export default function Agenda() {
             const patient = backendPatients.find((item) => item.fullName.toLowerCase() === edit.patientName.toLowerCase());
             return (
               <>
-                <Button variant="contained" disabled={!patient} onClick={() => patient && navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}`)}>Ficha do paciente</Button><Button color="success" variant="contained" disabled={!patient} onClick={() => patient && navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}&aba=cobranca`)}>Gerar financeiro</Button><Button disabled={!patient} onClick={() => patient && navigate(`/prontuario?patientId=${encodeURIComponent(patient.id)}`)}>Prontuário</Button>
+                <Button variant="contained" disabled={!patient} onClick={() => patient && navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}`)}>Ficha do paciente</Button><Button color="success" variant="contained" disabled={!patient} onClick={() => patient && navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}&aba=cobranca`)}>Gerar financeiro</Button><Button variant="contained" color="secondary" disabled={!patient} onClick={() => patient && navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}&aba=odontograma&profissional=${encodeURIComponent(edit.professionalName || "")}`)}>Prontuário e odontograma (registrar procedimento)</Button><Button disabled={!patient} onClick={() => patient && navigate(`/prontuario?patientId=${encodeURIComponent(patient.id)}`)}>Ficha clínica</Button>
                 <Button onClick={() => navigate(`/financeiro?paciente=${encodeURIComponent(edit.patientName)}`)}>Financeiro</Button><Button startIcon={<AddIcon />} onClick={() => { const current = edit; setEdit(null); if (current) openNew({ patientName: current.patientName, patientPhone: current.patientPhone || "", professionalName: current.professionalName, dateISO: date }); }}>Agendar novo</Button>
               </>
             );
