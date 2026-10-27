@@ -1135,6 +1135,7 @@ export default function Agenda() {
             items={filtered}
             professional={professional}
             professionalId={selectedBackendDoctorId}
+            professionalNames={professionals}
             scheduleBlocks={scheduleBlocks}
             agendaBlocks={agendaBlocks}
             recurringBreaks={recurringBreaks}

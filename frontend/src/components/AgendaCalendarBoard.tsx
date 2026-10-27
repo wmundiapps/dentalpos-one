@@ -20,6 +20,7 @@ interface Props {
   items: IntegratedAppointment[];
   professional: string;
   professionalId?: string;
+  professionalNames?: string[];
   scheduleBlocks?: BackendSchedule[];
   agendaBlocks?: AgendaBlock[];
   recurringBreaks?: RecurringBreak[];
@@ -41,9 +42,45 @@ function iso(date: Date) {
   return copy.toISOString().slice(0, 10);
 }
 
+const PROFESSIONAL_COLORS = ["#1976d2", "#2e7d32", "#ed6c02", "#9c27b0", "#d32f2f", "#00838f", "#6d4c41", "#c2185b", "#5e35b1", "#827717"];
+// Cada dentista tem sempre a mesma cor: a posição dele na lista em ordem alfabética.
+function professionalColorMap(names: string[]) {
+  const sorted = Array.from(new Set(names.map((n) => n.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const map = new Map<string, string>();
+  sorted.forEach((name, index) => map.set(name, PROFESSIONAL_COLORS[index % PROFESSIONAL_COLORS.length]));
+  return map;
+}
+
 function minuteOfDay(time: string) {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
+}
+
+// Atendimentos que se sobrepõem no mesmo dia ficam lado a lado (encaixe: até 2 por horário).
+function computeLanes(list: IntegratedAppointment[]) {
+  const lanes = new Map<string | number, { lane: number; count: number }>();
+  const sorted = list
+    .map((a) => ({ id: a.id as string | number, start: minuteOfDay(a.time), end: minuteOfDay(a.time) + Math.max(10, a.durationMinutes || 30) }))
+    .sort((x, y) => x.start - y.start || x.end - y.end);
+  let cluster: typeof sorted = [];
+  let clusterEnd = -1;
+  const flush = () => {
+    const laneEnds: number[] = [];
+    for (const it of cluster) {
+      let lane = laneEnds.findIndex((e) => e <= it.start);
+      if (lane < 0) { lane = laneEnds.length; laneEnds.push(it.end); } else laneEnds[lane] = it.end;
+      lanes.set(it.id, { lane, count: 0 });
+    }
+    for (const it of cluster) lanes.get(it.id)!.count = laneEnds.length;
+    cluster = [];
+  };
+  for (const it of sorted) {
+    if (cluster.length && it.start >= clusterEnd) { flush(); clusterEnd = -1; }
+    cluster.push(it);
+    clusterEnd = Math.max(clusterEnd, it.end);
+  }
+  if (cluster.length) flush();
+  return lanes;
 }
 
 function timeFromMinutes(value: number) {
@@ -284,6 +321,7 @@ function TimeGridView({
   items,
   professional,
   professionalId,
+  professionalNames = [],
   scheduleBlocks = [],
   agendaBlocks = [],
   recurringBreaks = [],
@@ -294,6 +332,8 @@ function TimeGridView({
   financialAlerts,
 }: Omit<Props, "onDateChange">) {
   const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
+  const colors = professionalColorMap([...professionalNames, ...items.map((item) => item.professionalName)]);
+  const colorOf = (name: string) => colors.get(name.trim()) || "#1976d2";
   const weekAll = view === "day" ? [dateISO] : weekDates(dateISO);
   // No celular o domingo é sobreposto ao sábado, para os outros dias ganharem largura.
   const mergeSunday = view === "week" && isMobile;
@@ -347,13 +387,14 @@ function TimeGridView({
         });
         if (eventualBlock) continue;
 
-        const occupied = dayItems.some((appointment) => {
+        // Com um profissional selecionado cabem 2 atendimentos por horário (encaixe); em "Todos" segue 1.
+        const overlapping = dayItems.filter((appointment) => {
           const appointmentStart = minuteOfDay(appointment.time);
           const appointmentEnd =
             appointmentStart + Math.max(10, appointment.durationMinutes || 30);
           return appointmentStart < slotEnd && appointmentEnd > cursor;
-        });
-        if (occupied) continue;
+        }).length;
+        if (overlapping >= (professionalId ? 2 : 1)) continue;
 
         rows.push({ start: cursor, end: slotEnd, step: period.step });
       }
@@ -453,6 +494,7 @@ function TimeGridView({
             // A primeira coluna já fica junto da margem com as horas; nas demais a hora aparece ao lado do nome.
             const isFirstDay = dayISO === dates[0];
             const gutter = isFirstDay ? 4 : HOUR_GUTTER;
+            const lanes = computeLanes(dayItems);
             return (
               <Box
                 key={dayISO}
@@ -611,14 +653,19 @@ function TimeGridView({
                       sx={{
                         position: "absolute",
                         top,
-                        left: sunday ? gutter + 14 : gutter,
-                        right: sunday ? 0 : 4,
+                        ...(sunday || !lanes.get(appointment.id) || lanes.get(appointment.id)!.count < 2
+                          ? { left: sunday ? gutter + 14 : gutter, right: sunday ? 0 : 4 }
+                          : {
+                              left: `calc(${gutter}px + (100% - ${gutter + 4}px) * ${lanes.get(appointment.id)!.lane} / ${lanes.get(appointment.id)!.count})`,
+                              width: `calc((100% - ${gutter + 4}px) / ${lanes.get(appointment.id)!.count} - 2px)`,
+                            }),
                         height,
                         p: 0.7,
                         border: sunday ? "1px dashed" : 1,
-                        borderColor: "primary.light",
+                        borderColor: colorOf(appointment.professionalName),
+                        borderLeft: `6px solid ${colorOf(appointment.professionalName)}`,
                         borderRadius: 1.5,
-                        bgcolor: "background.paper",
+                        bgcolor: `${colorOf(appointment.professionalName)}1f`,
                         boxShadow: 1,
                         overflow: "hidden",
                         cursor: "pointer",
@@ -644,6 +691,14 @@ function TimeGridView({
             );
           })}
         </Box>
+      </Box>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.2, px: 1, pt: 1 }}>
+        {Array.from(new Set(items.map((item) => item.professionalName.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR")).map((name) => (
+          <Box key={`cor-${name}`} sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
+            <Box sx={{ width: 12, height: 12, borderRadius: 0.5, bgcolor: colorOf(name) }} />
+            <Typography variant="caption" sx={{ fontWeight: 700 }}>{name}</Typography>
+          </Box>
+        ))}
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", p: 1 }}>
         Toda a faixa livre é clicável na Semana e no Dia. Intervalos fixos aparecem bloqueados na grade com o motivo e horário. Em "Todos", selecione um profissional para visualizar os intervalos dele.
@@ -675,6 +730,7 @@ export default function AgendaCalendarBoard(props: Props) {
       items={props.items}
       professional={props.professional}
       professionalId={props.professionalId}
+      professionalNames={props.professionalNames}
       scheduleBlocks={props.scheduleBlocks}
       agendaBlocks={props.agendaBlocks}
       recurringBreaks={props.recurringBreaks}

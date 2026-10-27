@@ -87,6 +87,18 @@ const includeDetails = {
   reminders: { orderBy: { scheduledFor: 'asc' as const } }
 }
 
+// Quantos atendimentos podem se sobrepor para o mesmo profissional (padrão 2: encaixe quando o dentista precisar).
+const MAX_PER_SLOT = Math.max(1, Math.floor(Number(process.env.APPOINTMENT_MAX_PER_SLOT) || 2))
+function overCapacity(items: Array<{ scheduledAt: Date; durationMinutes: number }>, start: number, end: number) {
+  const overlapping = items.filter(item => {
+    const itemStart = item.scheduledAt.getTime()
+    return itemStart < end && itemStart + item.durationMinutes * 60000 > start
+  })
+  // Só os inícios dentro da janela mudam a contagem de sobreposição.
+  const points = [start, ...overlapping.map(item => item.scheduledAt.getTime()).filter(t => t > start && t < end)]
+  return points.some(t => overlapping.filter(item => item.scheduledAt.getTime() <= t && item.scheduledAt.getTime() + item.durationMinutes * 60000 > t).length + 1 > MAX_PER_SLOT)
+}
+
 export async function index(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
@@ -176,11 +188,7 @@ export async function availability(req: AuthRequest, res: Response) {
 
         const candidateStart = candidate.getTime()
         const candidateEnd = candidateStart + durationMinutes * 60000
-        const conflict = appointments.some(item => {
-          const itemStart = item.scheduledAt.getTime()
-          const itemEnd = itemStart + item.durationMinutes * 60000
-          return itemStart < candidateEnd && itemEnd > candidateStart
-        })
+        const conflict = overCapacity(appointments, candidateStart, candidateEnd)
         const blocked = isAgendaBlocked(
           agendaBlocks,
           doctorId,
@@ -308,13 +316,8 @@ export async function store(req: AuthRequest, res: Response) {
       },
       select: { id: true, scheduledAt: true, durationMinutes: true }
     })
-    const conflict = possibleConflicts.find(item => {
-      const itemStart = item.scheduledAt.getTime()
-      const itemEnd = itemStart + item.durationMinutes * 60000
-      return itemStart < incomingEnd && itemEnd > incomingStart
-    })
-    if (conflict) {
-      return res.status(409).json({ error: 'Este profissional já possui um agendamento neste horário.' })
+    if (overCapacity(possibleConflicts, incomingStart, incomingEnd)) {
+      return res.status(409).json({ error: `Este profissional já tem ${MAX_PER_SLOT} agendamento(s) neste horário.` })
     }
 
     const appointment = await prisma.$transaction(async tx => {
@@ -481,14 +484,8 @@ export async function update(req: AuthRequest, res: Response) {
         },
         select: { id: true, scheduledAt: true, durationMinutes: true }
       })
-      const conflict = possibleConflicts.find(item => {
-        const itemStart = item.scheduledAt.getTime()
-        const itemEnd = itemStart + item.durationMinutes * 60000
-        return itemStart < incomingEnd && itemEnd > incomingStart
-      })
-
-      if (conflict) {
-        return res.status(409).json({ error: 'Este profissional já possui um agendamento neste horário.' })
+      if (overCapacity(possibleConflicts, incomingStart, incomingEnd)) {
+        return res.status(409).json({ error: `Este profissional já tem ${MAX_PER_SLOT} agendamento(s) neste horário.` })
       }
     }
 
