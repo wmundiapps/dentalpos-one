@@ -665,7 +665,9 @@ const FLOW_ACTIONS: Record<string, { to: string; from: string[] }> = {
   START: { to: 'IN_PROGRESS', from: ['WAITING', 'ROOM_PREPARATION'] },
   FINISH: { to: 'COMPLETED', from: ['IN_PROGRESS'] },
   // Agenda: recepção confirma que o paciente compareceu (também corrige uma falta marcada por engano).
-  ATTENDED: { to: 'COMPLETED', from: ['SCHEDULED', 'CONFIRMED', 'WAITING', 'ROOM_PREPARATION', 'IN_PROGRESS', 'NO_SHOW'] }
+  ATTENDED: { to: 'COMPLETED', from: ['SCHEDULED', 'CONFIRMED', 'WAITING', 'ROOM_PREPARATION', 'IN_PROGRESS', 'NO_SHOW'] },
+  // Agenda: marca a falta direto, sem passar pelo formulário (o paciente não veio).
+  NO_SHOW: { to: 'NO_SHOW', from: ['SCHEDULED', 'CONFIRMED', 'WAITING', 'ROOM_PREPARATION'] }
 }
 
 export async function flowAction(req: AuthRequest, res: Response) {
@@ -696,7 +698,7 @@ export async function flowAction(req: AuthRequest, res: Response) {
           tenantId: req.user!.tenantId,
           appointmentId: id,
           actorId: req.user!.id,
-          action: 'UPDATED',
+          action: action.to === 'NO_SHOW' ? 'NO_SHOW' : 'UPDATED',
           reason: `Painel de atendimentos: ${action.to}`,
           previousScheduledAt: existing.scheduledAt,
           newScheduledAt: existing.scheduledAt,
@@ -704,6 +706,7 @@ export async function flowAction(req: AuthRequest, res: Response) {
           newStatus: action.to
         }
       })
+      if (action.to === 'NO_SHOW') await tx.appointmentReminder.updateMany({ where: { appointmentId: id, status: 'PENDING' }, data: { status: 'CANCELLED' } })
       return updated
     })
     return res.status(200).json(appointment)

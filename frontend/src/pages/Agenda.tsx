@@ -60,6 +60,8 @@ import { isFinancialHold, createBackendAppointment, loadBackendAppointments, loa
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import {
+  createAgendaBlock,
+  deleteAgendaBlock,
   loadAgendaBlocks,
   loadBackendSchedules,
   loadRecurringBreaks,
@@ -442,6 +444,34 @@ export default function Agenda() {
     loadBackendDoctors().then(setBackendDoctors).catch(() => setBackendDoctors([]));
     loadTeamMembers().then((rows) => setAssistants(rows.filter((m) => (m.role === "ASB" || m.role === "TSB") && m.showInAgenda))).catch(() => setAssistants([]));
   }, []);
+
+  // Fechar a agenda de um dentista no dia em que ele não atende (bloqueio do dia inteiro; reabrir remove o bloqueio).
+  const closedDayBlock = (doctorId?: string) => {
+    if (!doctorId) return undefined;
+    const dayStart = new Date(`${date}T00:00:00`).getTime();
+    const dayEnd = dayStart + 24 * 3600000;
+    return agendaBlocks.find((block) => block.doctorId === doctorId && new Date(block.startAt).getTime() <= dayStart && new Date(block.endAt).getTime() >= dayEnd);
+  };
+  const toggleCloseDay = async (doctorId: string) => {
+    const existing = closedDayBlock(doctorId);
+    try {
+      if (existing) {
+        await deleteAgendaBlock(existing.id);
+        toast.success("Agenda reaberta para este dia.");
+      } else {
+        const booked = items.filter((a) => a.dateISO === date && a.professionalName === professional && !["Cancelado", "Desmarcado"].includes(a.status)).length;
+        const note = booked ? `\n\nAtenção: já existem ${booked} consulta(s) marcada(s) neste dia. Elas não serão canceladas; remarque ou desmarque cada uma.` : "";
+        if (!window.confirm(`Fechar a agenda de ${professional} em ${date.split("-").reverse().join("/")}? Nenhum horário novo poderá ser marcado nesse dia.${note}`)) return;
+        const start = new Date(`${date}T00:00:00`);
+        const end = new Date(start.getTime() + 24 * 3600000);
+        await createAgendaBlock({ doctorId, startAt: start.toISOString(), endAt: end.toISOString(), reason: "Dentista não atende neste dia" });
+        toast.success("Agenda fechada para este dia.");
+      }
+      await refreshAgendaConfiguration();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível alterar o fechamento do dia.");
+    }
+  };
 
   const refreshAgendaConfiguration = async () => {
     const [schedules, blocks, breaks] = await Promise.all([
@@ -1042,6 +1072,17 @@ export default function Agenda() {
             <ToggleButton value="week">Semana</ToggleButton>
             <ToggleButton value="month">Mês</ToggleButton>
           </ToggleButtonGroup>
+          {view === "day" && selectedBackendDoctorId ? (
+            <Button
+              size="small"
+              variant={closedDayBlock(selectedBackendDoctorId) ? "contained" : "outlined"}
+              color="warning"
+              sx={{ justifySelf: "center" }}
+              onClick={() => void toggleCloseDay(selectedBackendDoctorId)}
+            >
+              {closedDayBlock(selectedBackendDoctorId) ? "Reabrir agenda do dia" : "Fechar agenda do dia"}
+            </Button>
+          ) : null}
 
           <TextField
             size="small"
@@ -1490,7 +1531,25 @@ export default function Agenda() {
                   Desmarcou
                 </Button>
               ) : null}
-              <Button color="warning" onClick={() => setEdit({ ...edit, status: "Faltou" })}>Marcar falta</Button>
+              <Button
+                color="warning"
+                onClick={async () => {
+                  // Com o agendamento já gravado, a falta é registrada na hora (como o Atendido), sem precisar salvar.
+                  if (!edit.backendId || !["Agendado", "Confirmado", "Aguardando", "Sala em preparação"].includes(edit.status)) {
+                    setEdit({ ...edit, status: "Faltou" });
+                    return;
+                  }
+                  try {
+                    await appointmentFlowAction(edit.backendId, "NO_SHOW");
+                    await refreshAfterQuickAction();
+                    toast.success("Falta registrada.");
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : "Não foi possível registrar a falta.");
+                  }
+                }}
+              >
+                Marcar falta
+              </Button>
               <Button color="error" onClick={() => setEdit({ ...edit, status: "Cancelado" })}>Cancelar consulta</Button>
             </>
           ) : null}
