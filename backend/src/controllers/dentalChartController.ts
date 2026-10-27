@@ -1,4 +1,5 @@
 import { confirmTreatment } from '../services/treatmentStageService'
+import { consumeForProcedure } from '../services/stockUsageService'
 import { randomUUID } from 'crypto'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
@@ -189,6 +190,7 @@ export async function saveEntry(req: AuthRequest, res: Response) {
         }
       })
       evolutionId = created.id
+      await consumeForProcedure({ clinicId, tenantId }, { evolutionId: created.id, patientId, procedure: findingLabel, teethCount: 1 })
     }
     if (clinicalState === 'COMPLETED') await confirmTreatment({ clinicId, tenantId, actorId: actorUserId }, patientId, 'primeiro procedimento executado')
 
