@@ -2569,6 +2569,47 @@ model LabNotification {
   @@index([status, scheduledFor])
 }
 
+// Ordem de serviço enviada ao laboratório de prótese (protocolo impresso, recebimento e relato de erros).
+model LabServiceOrder {
+  id              String    @id @default(cuid())
+  clinicId        String
+  tenantId        String
+  protocol        String
+  patientId       String?
+  appointmentId   String?
+  patientName     String
+  patientContact  String
+  dentistName     String
+  dentistContact  String
+  assistantName   String
+  laboratoryName  String
+  service         String
+  shade           String
+  elements        String
+  sentAt          DateTime
+  dueAt           DateTime
+  scanUpper       Boolean   @default(false)
+  scanLower       Boolean   @default(false)
+  scanBite        Boolean   @default(false)
+  impressionUpper Boolean   @default(false)
+  impressionLower Boolean   @default(false)
+  waxBite         Boolean   @default(false)
+  status          String    @default("SENT")
+  receivedAt      DateTime?
+  receivedByName  String?
+  refusalReason   String?
+  deliveredAt     DateTime?
+  errors          Json      @default("[]")
+  createdById     String?
+  createdByName   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([clinicId, protocol])
+  @@index([clinicId, status])
+  @@index([tenantId])
+}
+
 model LabOrder {
   id                String    @id @default(cuid())
   clinicId          String

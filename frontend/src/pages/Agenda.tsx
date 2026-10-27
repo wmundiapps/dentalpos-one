@@ -32,6 +32,8 @@ import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
 import SmartSchedulingSettingsDialog from "../components/SmartSchedulingSettingsDialog";
 import AgendaAvailabilitySettingsDialog from "../components/AgendaAvailabilitySettingsDialog";
+import LabServiceOrderDialog, { type LabOrderPrefill } from "../components/LabServiceOrderDialog";
+import { printLabLabels, printLabOrder } from "../utils/labOrderPrint";
 import AgendaPatientSearch from "../components/AgendaPatientSearch";
 import PatientSearchField, { formatPhoneBR, isValidPhoneBR, type PatientChoice } from "../components/PatientSearchField";
 import DurationSelect from "../components/DurationSelect";
@@ -321,6 +323,7 @@ export default function Agenda() {
     toast.success("Agenda atualizada.");
   };
   const [absenceOpen, setAbsenceOpen] = useState(false);
+  const [labOrderPrefill, setLabOrderPrefill] = useState<LabOrderPrefill | null>(null);
   const [holdTarget, setHoldTarget] = useState<{ id: string; name: string } | null>(null);
   const [editReason, setEditReason] = useState("");
   const [editRequestedBy, setEditRequestedBy] = useState<"Paciente" | "Clínica" | "Dentista" | "Outro">("Paciente");
@@ -1209,6 +1212,17 @@ export default function Agenda() {
         </Paper>
       </Box>
 
+      <LabServiceOrderDialog
+        open={Boolean(labOrderPrefill)}
+        prefill={labOrderPrefill || undefined}
+        onClose={() => setLabOrderPrefill(null)}
+        onCreated={(order) => {
+          setLabOrderPrefill(null);
+          toast.success(`Ordem ${order.protocol} gerada e enviada às pendências do laboratório.`);
+          printLabOrder(order);
+          if (window.confirm(`Imprimir também as etiquetas do protocolo ${order.protocol} para colar nas moldeiras e na mordida em cera?`)) printLabLabels(order);
+        }}
+      />
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>Novo agendamento</DialogTitle>
         <DialogContent sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2, pt: "12px!important" }}>
@@ -1503,9 +1517,13 @@ export default function Agenda() {
                   onClick={async () => {
                     try {
                       // Atendido = paciente já foi embora: finaliza o atendimento, sai da fila do Painel e resolve a pendência da agenda.
+                      const attended = edit;
                       await appointmentFlowAction(edit.backendId!, "ATTENDED");
                       await refreshAfterQuickAction();
                       toast.success("Atendimento finalizado.");
+                      if (window.confirm("Este atendimento gerou trabalho para o laboratório? Abrir a ordem de serviço agora.")) {
+                        setLabOrderPrefill({ patientId: attended.patientId, patientName: attended.patientName, patientContact: attended.patientPhone, dentistName: attended.professionalName, appointmentId: attended.backendId });
+                      }
                     } catch (error) {
                       toast.error(error instanceof Error ? error.message : "Não foi possível finalizar o atendimento.");
                     }
@@ -1552,6 +1570,7 @@ export default function Agenda() {
                 Marcar falta
               </Button>
               <Button color="error" onClick={() => setEdit({ ...edit, status: "Cancelado" })}>Cancelar consulta</Button>
+              <Button onClick={() => setLabOrderPrefill({ patientId: edit.patientId, patientName: edit.patientName, patientContact: edit.patientPhone, dentistName: edit.professionalName, appointmentId: edit.backendId })}>Ordem para o laboratório</Button>
             </>
           ) : null}
           <Button onClick={() => setEdit(null)}>Fechar</Button>

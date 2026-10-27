@@ -17,7 +17,7 @@ const MODULE_BY_PREFIX: Array<[string, string]> = [
   ["/agenda", "agenda"], ["/chegada-por-rosto", "agenda"], ["/agendamento-online", "agenda"], ["/painel-atendimentos", "agenda"], ["/avaliacoes-atendimento", "agenda"], ["/equipe", "agenda"],
   ["/pacientes", "patients"], ["/jornada-paciente", "patients"], ["/ficha-paciente", "patients"],
   ["/prontuario", "clinical"], ["/documentos-clinicos", "clinical"], ["/kit-clinica", "clinical"], ["/orcamentos-tratamentos", "clinical"], ["/corpo-clinico", "clinical"],
-  ["/laboratorio", "laboratory"], ["/design", "design"],
+  ["/laboratorio", "laboratory"], ["/ordens-laboratorio", "laboratory"], ["/design", "design"],
   ["/crm", "marketing"], ["/comunicacoes", "marketing"], ["/revah", "marketing"], ["/prospeccao", "marketing"], ["/parceiros-estoque", "marketing"], ["/recall", "marketing"], ["/marketing", "marketing"], ["/canais-envio", "marketing"],
   ["/financeiro", "finance"], ["/pagamentos", "finance"], ["/recebimentos-online", "finance"], ["/inteligencia-financeira", "finance"], ["/rateio-condominio", "finance"], ["/fechamento-caixa", "finance"], ["/relatorios", "finance"],
   ["/backoffice", "accounting"], ["/contabil-fiscal", "accounting"], ["/automacao-fiscal", "accounting"],
