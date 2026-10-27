@@ -1,7 +1,8 @@
 import { Box, Typography } from '@mui/material'
 import type { ClinicalState, DentalChartEntry, ToothSurface } from '../types/dentalChart'
 
-export const TODO_COLOR = '#d32f2f'
+export const TODO_COLOR = '#f48fb1' // rosa claro: planejado / a fazer
+export const TODO_TEXT = '#ad1457'
 export const DONE_COLOR = '#111111'
 const EMPTY_COLOR = '#ffffff'
 
@@ -12,7 +13,7 @@ const LOWER = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38]
 const UPPER_CHILD = [55,54,53,52,51,61,62,63,64,65]
 const LOWER_CHILD = [85,84,83,82,81,71,72,73,74,75]
 
-// vermelho (a fazer) tem prioridade sobre preto (concluído) na mesma face
+// rosa (planejado / a fazer) tem prioridade sobre preto (concluído) na mesma face
 function faceColor(list: DentalChartEntry[], surface: ToothSurface) {
   const own = list.filter(e => e.surface === surface)
   const whole = list.filter(e => !e.surface)
@@ -39,7 +40,7 @@ export function OdontogramLegend({ entries }: { entries: DentalChartEntry[] }) {
   return (
     <Box sx={{ display: 'grid', gap: 1.8, minWidth: 190 }}>
       <Typography sx={{ fontWeight: 900 }}>Legenda</Typography>
-      {item(TODO_COLOR, 'Vermelho: a fazer', s.todo)}
+      {item(TODO_COLOR, 'Rosa claro: planejado / a fazer', s.todo)}
       {item(DONE_COLOR, 'Preto: concluído', s.done)}
       {item(EMPTY_COLOR, 'Branco: sem marcação', 0, true)}
       <Typography variant="caption" color="text.secondary">Clique no dente para ver o que falta, concluir ou adicionar um procedimento.</Typography>
@@ -55,14 +56,14 @@ function Tooth({ tooth, list, size, onClick }: { tooth: number; list: DentalChar
   const todo = list.filter(e => !isDone(e.clinicalState))
   return (
     <Box onClick={() => onClick(tooth)} sx={{ textAlign: 'center', cursor: 'pointer', p: 0.5, borderRadius: 1.5, '&:hover': { bgcolor: 'action.hover' } }}>
-      <Typography sx={{ fontWeight: 900, fontSize: 14, color: todo.length ? TODO_COLOR : 'text.primary' }}>{tooth}</Typography>
+      <Typography sx={{ fontWeight: 900, fontSize: 14, color: todo.length ? TODO_TEXT : 'text.primary' }}>{tooth}</Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(3,${cell}px)`, gridTemplateRows: `repeat(3,${cell}px)`, justifyContent: 'center', my: 0.4, outline: wholeColor ? `3px solid ${wholeColor}` : 'none', outlineOffset: 2, borderRadius: 1 }}>
         {faces.map(([s, c, r]) => (
           <Box key={s} sx={{ gridColumn: c, gridRow: r, bgcolor: faceColor(list, s), border: '1px solid #555' }} />
         ))}
       </Box>
       {whole.slice(0, 2).map(e => (
-        <Typography key={e.id} sx={{ fontSize: 10, fontWeight: 800, lineHeight: 1.15, color: isDone(e.clinicalState) ? DONE_COLOR : TODO_COLOR }}>{e.findingLabel}</Typography>
+        <Typography key={e.id} sx={{ fontSize: 10, fontWeight: 800, lineHeight: 1.15, color: isDone(e.clinicalState) ? DONE_COLOR : TODO_TEXT }}>{e.findingLabel}</Typography>
       ))}
     </Box>
   )
