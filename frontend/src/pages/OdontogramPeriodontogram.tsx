@@ -6,7 +6,8 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import { useNavigate } from 'react-router-dom'
-import OdontogramBoard, { DONE_COLOR, OdontogramLegend, TODO_COLOR, TODO_TEXT, isDone } from '../components/OdontogramBoard'
+import OdontogramBoard, { OdontogramLegend, isDone } from '../components/OdontogramBoard'
+import { DONE_PALETTE, PLANNED_PALETTE, saveOdontogramColors, useOdontogramColors } from '../config/odontogramColors'
 import PageHeader from '../components/PageHeader'
 import PatientAlertBanner from '../components/patient/PatientAlertBanner'
 import PatientPicker from '../components/patient/PatientPicker'
@@ -18,10 +19,15 @@ import type {
 
 const SITES: PeriodontalSite[] = ['MB','B','DB','ML','L','DL']
 const SURFACES: ToothSurface[] = ['M','D','O','V','L']
-const stateLabel: Record<ClinicalState,string> = { CURRENT:'A fazer (rosa)', PLANNED:'Planejado (rosa)', COMPLETED:'Concluído (preto)' }
+const stateLabel: Record<ClinicalState,string> = { CURRENT:'A fazer (cor clara)', PLANNED:'Planejado (cor clara)', COMPLETED:'Concluído (cor escura)' }
 
 export default function OdontogramPeriodontogram({ startFullscreen = false, embedded = false }: { startFullscreen?: boolean; embedded?: boolean }) {
   const navigate = useNavigate()
+  const oc = useOdontogramColors()
+  const TODO_COLOR = oc.todo, TODO_TEXT = oc.todoText, DONE_COLOR = oc.done
+  const [colorsOpen,setColorsOpen] = useState(false)
+  const [pickTodo,setPickTodo] = useState(oc.todo)
+  const [pickDone,setPickDone] = useState(oc.done)
   const params = new URLSearchParams(window.location.search)
   const patientId = params.get('patientId') || ''
   const patientName = params.get('patient') || 'Paciente'
@@ -116,7 +122,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
   const procedureCard = (
     <Paper variant="outlined" sx={{p:2,borderRadius:3,mb:2,borderColor:'primary.main',borderWidth:2}}>
       <Typography variant="h6" sx={{ fontWeight:900 }}>Registrar procedimento realizado hoje</Typography>
-      <Typography variant="body2" color="text.secondary">Escolha os dentes, o procedimento e anote o que foi feito. O dente fica preto (concluído) no odontograma e o registro vai para Procedimentos executados na ficha do paciente. Planejado fica em rosa claro.</Typography>
+      <Typography variant="body2" color="text.secondary">Escolha os dentes, o procedimento e anote o que foi feito. O dente fica na cor escura (concluído) no odontograma e o registro vai para Procedimentos executados na ficha do paciente. Planejado fica na cor clara escolhida em Configurar cores.</Typography>
       {procOk && <Alert severity="success" sx={{mt:1}} onClose={()=>setProcOk('')}>{procOk}</Alert>}
       <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'1fr 1fr 1fr'},gap:1.5,mt:2}}>
         <FormControl><InputLabel>Dente(s) FDI</InputLabel><Select multiple value={procTeeth} label="Dente(s) FDI" onChange={e=>setProcTeeth((e.target.value as number[]).map(Number))} renderValue={(v)=>(v as number[]).join(', ')}>
@@ -188,7 +194,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
           <MenuItem value="ADULT">Adulto • FDI</MenuItem><MenuItem value="CHILD">Infantil • FDI</MenuItem>
         </Select></FormControl>
         <Stack direction="row" spacing={1} sx={{ flexWrap:"wrap" }}>
-          <Chip label="Rosa claro: planejado / a fazer" sx={{bgcolor:TODO_COLOR,color:'#4a0d25',fontWeight:700}}/><Chip label="Preto: concluído" sx={{bgcolor:DONE_COLOR,color:'#fff',fontWeight:700}}/>
+          <Chip label="Cor clara: planejado / a fazer" sx={{bgcolor:TODO_COLOR,color:TODO_TEXT,fontWeight:700}}/><Chip label="Cor escura: concluído" sx={{bgcolor:DONE_COLOR,color:'#fff',fontWeight:700}}/><Button size="small" onClick={()=>{setPickTodo(oc.todo);setPickDone(oc.done);setColorsOpen(true)}}>Configurar cores</Button>
         </Stack>
       </Stack>
     </Paper>
@@ -264,6 +270,25 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
           <Typography color="text.secondary">{exam.sites.length} sítio(s) registrados • {exam.notes||'Sem observações gerais'}</Typography>
         </Paper>)}
     </Stack>}
+    <Dialog open={colorsOpen} onClose={()=>setColorsOpen(false)} fullWidth maxWidth="xs">
+      <DialogTitle sx={{fontWeight:900}}>Cores do odontograma</DialogTitle>
+      <DialogContent>
+        <Typography sx={{fontWeight:800,mb:1}}>Planejado / a fazer (cores claras)</Typography>
+        <Box sx={{display:'flex',gap:1,flexWrap:'wrap',mb:2.5}}>
+          {PLANNED_PALETTE.map(c=><Box key={c.value} title={c.name} onClick={()=>setPickTodo(c.value)} sx={{width:40,height:40,borderRadius:'50%',bgcolor:c.value,cursor:'pointer',border:pickTodo===c.value?'4px solid #111':'2px solid #bbb'}}/>)}
+        </Box>
+        <Typography sx={{fontWeight:800,mb:1}}>Concluído (cores escuras)</Typography>
+        <Box sx={{display:'flex',gap:1,flexWrap:'wrap',mb:2}}>
+          {DONE_PALETTE.map(c=><Box key={c.value} title={c.name} onClick={()=>setPickDone(c.value)} sx={{width:40,height:40,borderRadius:'50%',bgcolor:c.value,cursor:'pointer',border:pickDone===c.value?'4px solid #f9a825':'2px solid #bbb'}}/>)}
+        </Box>
+        <Typography variant="caption" color="text.secondary">As cores ficam salvas neste navegador. Planejado e concluído nunca usam a mesma cor.</Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={()=>{saveOdontogramColors(PLANNED_PALETTE[0].value,DONE_PALETTE[0].value);setColorsOpen(false)}}>Voltar ao padrão</Button>
+        <Button onClick={()=>setColorsOpen(false)}>Cancelar</Button>
+        <Button variant="contained" disabled={pickTodo===pickDone} onClick={()=>{if(saveOdontogramColors(pickTodo,pickDone))setColorsOpen(false)}}>Salvar cores</Button>
+      </DialogActions>
+    </Dialog>
     <Dialog open={toothOpen!==null} onClose={()=>setToothOpen(null)} fullWidth maxWidth="sm">
       <DialogTitle sx={{fontWeight:900}}>Dente {toothOpen}</DialogTitle>
       <DialogContent>

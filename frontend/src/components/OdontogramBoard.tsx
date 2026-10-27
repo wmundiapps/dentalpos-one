@@ -1,7 +1,9 @@
 import { Box, Typography } from '@mui/material'
 import type { ClinicalState, DentalChartEntry, ToothSurface } from '../types/dentalChart'
+import { useOdontogramColors, type OdontogramColors } from '../config/odontogramColors'
 
-export const TODO_COLOR = '#f48fb1' // rosa claro: planejado / a fazer
+// Valores padrão (as cores escolhidas pelo usuário vêm de useOdontogramColors).
+export const TODO_COLOR = '#f48fb1'
 export const TODO_TEXT = '#ad1457'
 export const DONE_COLOR = '#111111'
 const EMPTY_COLOR = '#ffffff'
@@ -14,12 +16,12 @@ const UPPER_CHILD = [55,54,53,52,51,61,62,63,64,65]
 const LOWER_CHILD = [85,84,83,82,81,71,72,73,74,75]
 
 // rosa (planejado / a fazer) tem prioridade sobre preto (concluído) na mesma face
-function faceColor(list: DentalChartEntry[], surface: ToothSurface) {
+function faceColor(list: DentalChartEntry[], surface: ToothSurface, c: OdontogramColors) {
   const own = list.filter(e => e.surface === surface)
   const whole = list.filter(e => !e.surface)
   const all = [...own, ...whole]
   if (!all.length) return EMPTY_COLOR
-  return all.some(e => !isDone(e.clinicalState)) ? TODO_COLOR : DONE_COLOR
+  return all.some(e => !isDone(e.clinicalState)) ? c.todo : c.done
 }
 
 export function summarize(entries: DentalChartEntry[]) {
@@ -30,6 +32,7 @@ export function summarize(entries: DentalChartEntry[]) {
 }
 
 export function OdontogramLegend({ entries }: { entries: DentalChartEntry[] }) {
+  const c = useOdontogramColors()
   const s = summarize(entries)
   const item = (color: string, label: string, n: number, border?: boolean) => (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
@@ -40,30 +43,30 @@ export function OdontogramLegend({ entries }: { entries: DentalChartEntry[] }) {
   return (
     <Box sx={{ display: 'grid', gap: 1.8, minWidth: 190 }}>
       <Typography sx={{ fontWeight: 900 }}>Legenda</Typography>
-      {item(TODO_COLOR, 'Rosa claro: planejado / a fazer', s.todo)}
-      {item(DONE_COLOR, 'Preto: concluído', s.done)}
+      {item(c.todo, 'Cor clara: planejado / a fazer', s.todo)}
+      {item(c.done, 'Cor escura: concluído', s.done)}
       {item(EMPTY_COLOR, 'Branco: sem marcação', 0, true)}
       <Typography variant="caption" color="text.secondary">Clique no dente para ver o que falta, concluir ou adicionar um procedimento.</Typography>
     </Box>
   )
 }
 
-function Tooth({ tooth, list, size, onClick }: { tooth: number; list: DentalChartEntry[]; size: number; onClick: (t: number) => void }) {
+function Tooth({ tooth, list, size, onClick, c }: { tooth: number; list: DentalChartEntry[]; size: number; onClick: (t: number) => void; c: OdontogramColors }) {
   const cell = size / 3
   const faces: [ToothSurface, number, number][] = [['V', 2, 1], ['M', 1, 2], ['O', 2, 2], ['D', 3, 2], ['L', 2, 3]]
   const whole = list.filter(e => !e.surface)
-  const wholeColor = whole.length ? (whole.some(e => !isDone(e.clinicalState)) ? TODO_COLOR : DONE_COLOR) : undefined
+  const wholeColor = whole.length ? (whole.some(e => !isDone(e.clinicalState)) ? c.todo : c.done) : undefined
   const todo = list.filter(e => !isDone(e.clinicalState))
   return (
     <Box onClick={() => onClick(tooth)} sx={{ textAlign: 'center', cursor: 'pointer', p: 0.5, borderRadius: 1.5, '&:hover': { bgcolor: 'action.hover' } }}>
-      <Typography sx={{ fontWeight: 900, fontSize: 14, color: todo.length ? TODO_TEXT : 'text.primary' }}>{tooth}</Typography>
+      <Typography sx={{ fontWeight: 900, fontSize: 14, color: todo.length ? c.todoText : 'text.primary' }}>{tooth}</Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(3,${cell}px)`, gridTemplateRows: `repeat(3,${cell}px)`, justifyContent: 'center', my: 0.4, outline: wholeColor ? `3px solid ${wholeColor}` : 'none', outlineOffset: 2, borderRadius: 1 }}>
-        {faces.map(([s, c, r]) => (
-          <Box key={s} sx={{ gridColumn: c, gridRow: r, bgcolor: faceColor(list, s), border: '1px solid #555' }} />
+        {faces.map(([s, col, r]) => (
+          <Box key={s} sx={{ gridColumn: col, gridRow: r, bgcolor: faceColor(list, s, c), border: '1px solid #555' }} />
         ))}
       </Box>
       {whole.slice(0, 2).map(e => (
-        <Typography key={e.id} sx={{ fontSize: 10, fontWeight: 800, lineHeight: 1.15, color: isDone(e.clinicalState) ? DONE_COLOR : TODO_TEXT }}>{e.findingLabel}</Typography>
+        <Typography key={e.id} sx={{ fontSize: 10, fontWeight: 800, lineHeight: 1.15, color: isDone(e.clinicalState) ? c.done : c.todoText }}>{e.findingLabel}</Typography>
       ))}
     </Box>
   )
@@ -72,13 +75,14 @@ function Tooth({ tooth, list, size, onClick }: { tooth: number; list: DentalChar
 export default function OdontogramBoard({ entries, dentition, onToothClick, big }: {
   entries: DentalChartEntry[]; dentition: 'ADULT' | 'CHILD'; onToothClick: (tooth: number) => void; big?: boolean
 }) {
+  const c = useOdontogramColors()
   const upper = dentition === 'CHILD' ? UPPER_CHILD : UPPER
   const lower = dentition === 'CHILD' ? LOWER_CHILD : LOWER
   const size = big ? 54 : 36
   const byTooth = (t: number) => entries.filter(e => e.tooth === t && e.dentition === dentition && e.status === 'ACTIVE')
   const row = (teeth: number[]) => (
     <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${teeth.length}, minmax(0,1fr))`, gap: big ? 1 : 0.5 }}>
-      {teeth.map(t => <Tooth key={t} tooth={t} list={byTooth(t)} size={size} onClick={onToothClick} />)}
+      {teeth.map(t => <Tooth key={t} tooth={t} list={byTooth(t)} size={size} onClick={onToothClick} c={c} />)}
     </Box>
   )
   return (
