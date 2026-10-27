@@ -244,6 +244,10 @@ model Patient {
 
   recordNumber Int?
 
+  // Fase na ficha: BUDGET (só orçamento) ou TREATMENT (tratamento confirmado). Vazio = ainda não definida.
+  treatmentStage   String?
+  treatmentStageAt DateTime?
+
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())

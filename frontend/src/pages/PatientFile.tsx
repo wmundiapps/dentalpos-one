@@ -17,6 +17,8 @@ import type { ReactNode } from "react";
 import PageHeader from "../components/PageHeader";
 import PatientHeader, { type ClinicalAlerts } from "../components/patient/PatientHeader";
 import PatientAlertBanner from "../components/patient/PatientAlertBanner";
+import TreatmentStageSwitch from "../components/patient/TreatmentStageSwitch";
+import { PATIENT_STAGE_EVENT } from "./TreatmentPlanning";
 import ExecutedProcedures from "../components/patient/ExecutedProcedures";
 import MedicalHistoryTab from "../components/patient/MedicalHistoryTab";
 import PatientDataTab from "../components/patient/PatientDataTab";
@@ -166,6 +168,13 @@ export default function PatientFile() {
     return () => { active = false; };
   }, [patientId]);
 
+  // Aprovar o orçamento ou gerar o contrato muda a fase no servidor: recarrega o paciente para a chave refletir.
+  useEffect(() => {
+    const reload = () => { if (patientId) loadBackendPatient(patientId).then(setPatient).catch(() => undefined); };
+    window.addEventListener(PATIENT_STAGE_EVENT, reload);
+    return () => window.removeEventListener(PATIENT_STAGE_EVENT, reload);
+  }, [patientId]);
+
   const nome = patient?.fullName || "";
   useEffect(() => {
     if (!patient) return;
@@ -219,6 +228,7 @@ export default function PatientFile() {
       <PatientAlertBanner patientId={patient.id} />
       <PatientHeader patient={patient} alerts={alerts} />
       <PatientOriginCard patientId={patient.id} />
+      <TreatmentStageSwitch patient={patient} onSaved={setPatient} onOpenBudget={() => ir("plano")} />
       <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
         <Typography variant="body2" color="text.secondary">
           {(() => {

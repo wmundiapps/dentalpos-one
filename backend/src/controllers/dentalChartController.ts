@@ -1,3 +1,4 @@
+import { confirmTreatment } from '../services/treatmentStageService'
 import { randomUUID } from 'crypto'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
@@ -189,6 +190,7 @@ export async function saveEntry(req: AuthRequest, res: Response) {
       })
       evolutionId = created.id
     }
+    if (clinicalState === 'COMPLETED') await confirmTreatment({ clinicId, tenantId, actorId: actorUserId }, patientId, 'primeiro procedimento executado')
 
     await writeAudit({
       clinicId, tenantId, actorId: actorUserId, module: 'clinical',
