@@ -125,7 +125,9 @@ export async function bulkImport(req: AuthRequest, res: Response) {
     const norm = (v: unknown) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
     const existing = await prisma.patient.findMany({ where: { clinicId, tenantId }, select: { fullName: true, phone: true, cpf: true } })
     // Familiares costumam dividir o mesmo telefone: a duplicidade é telefone + nome, ou CPF.
-    const existingKeys = new Set(existing.map((p) => `${p.phone.replace(/\D/g, '')}|${norm(p.fullName)}`))
+    // Telefone comparado sem o código do país (+55): o mesmo número pode vir com ou sem ele.
+    const phoneKey = (v: unknown) => { const d = String(v || '').replace(/\D/g, ''); return d.length >= 12 && d.startsWith('55') ? d.slice(2) : d }
+    const existingKeys = new Set(existing.map((p) => `${phoneKey(p.phone)}|${norm(p.fullName)}`))
     const existingCpfs = new Set(existing.map((p) => (p.cpf || '').replace(/\D/g, '')).filter(Boolean))
 
     const toCreate: Array<Record<string, unknown>> = []
@@ -135,7 +137,7 @@ export async function bulkImport(req: AuthRequest, res: Response) {
       const built = buildPatientData(rows[i] || {}, false)
       if ('error' in built) { skipped.push({ row: i + 1, reason: built.error as string }); continue }
       const data = built.data as { fullName: string; phone: string; cpf?: string | null }
-      const key = `${String(data.phone || '').replace(/\D/g, '')}|${norm(data.fullName)}`
+      const key = `${phoneKey(data.phone)}|${norm(data.fullName)}`
       const cpfDigits = String(data.cpf || '').replace(/\D/g, '')
       if (existingKeys.has(key)) { skipped.push({ row: i + 1, reason: 'Paciente já cadastrado (mesmo nome e telefone).' }); continue }
       if (cpfDigits && existingCpfs.has(cpfDigits)) { skipped.push({ row: i + 1, reason: 'CPF já cadastrado.' }); continue }
