@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { isStage } from '../services/treatmentStageService'
 
 function ctx(req: AuthRequest) {
   if (!req.user) throw new Error('Usu\u00e1rio n\u00e3o autenticado')
@@ -41,6 +42,13 @@ function buildPatientData(body: Record<string, unknown>, partial: boolean) {
     const parsed = parseBirthDate(body.birthDate)
     if (parsed === 'invalid') return { error: 'Data de nascimento inv\u00e1lida.' }
     data.birthDate = parsed
+  }
+  if ('treatmentStage' in body) {
+    const stage = body.treatmentStage
+    if (stage === null || stage === '') data.treatmentStage = null
+    else if (isStage(stage)) data.treatmentStage = stage
+    else return { error: 'Fase inválida. Use BUDGET (orçamento) ou TREATMENT (tratamento confirmado).' }
+    data.treatmentStageAt = new Date()
   }
   if ('isActive' in body && typeof body.isActive === 'boolean') data.isActive = body.isActive
   for (const list of ['photos', 'xrays'] as const) {
