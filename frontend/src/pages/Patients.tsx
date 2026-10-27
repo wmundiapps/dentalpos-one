@@ -153,7 +153,7 @@ export default function Patients() {
     overdue: patients.filter(p=>isOverdue(p.fullName)).length,
     newMonth: patients.filter(p=>(p.createdAt||"").slice(0,7)===currentMonth).length,
     finished: patients.filter(p=>isFinished(p.id)).length,
-    attendedMonth: new Set(appointments.filter(a=>a.dateISO.slice(0,7)===currentMonth && !["Cancelado","Faltou"].includes(a.status)).map(a=>a.patientName.toLowerCase())).size,
+    attendedMonth: new Set(appointments.filter(a=>a.dateISO.slice(0,7)===currentMonth && !["Cancelado","Desmarcado","Faltou"].includes(a.status)).map(a=>a.patientName.toLowerCase())).size,
   };
   const filtered = useMemo(() => patients.filter((patient) => {
     const text=`${patient.fullName} ${patient.phone} ${patient.cpf || ""}`.toLowerCase();

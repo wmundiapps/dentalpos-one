@@ -51,7 +51,7 @@ export interface IntegratedLaboratoryWork {
 export interface AppointmentHistoryEvent {
   id: number;
   atISO: string;
-  action: "Criado" | "Remarcado" | "Cancelado" | "Faltou" | "Alterado";
+  action: "Criado" | "Remarcado" | "Cancelado" | "Desmarcado" | "Faltou" | "Alterado";
   requestedBy?: "Paciente" | "Clínica" | "Dentista" | "Outro";
   reason?: string;
   previousDateISO?: string;

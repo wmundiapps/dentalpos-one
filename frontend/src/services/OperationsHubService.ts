@@ -303,7 +303,7 @@ export interface AgendaFillSuggestion {
 export async function getAgendaFillSuggestions(limit = 8): Promise<AgendaFillSuggestion[]> {
   const appointments = getAppointments();
   const activeFuture = appointments.filter((a) =>
-    !["Cancelado", "Faltou", "Finalizado"].includes(a.status) &&
+    !["Cancelado", "Desmarcado", "Faltou", "Finalizado"].includes(a.status) &&
     a.dateISO >= todayISO()
   );
 
@@ -392,11 +392,11 @@ export function changeAppointmentWithHistory(id: number, input: {
   if (!original) return;
 
   const dateChanged = Boolean(input.dateISO && input.dateISO !== original.dateISO) || Boolean(input.time && input.time !== original.time);
-  const action = input.status === "Cancelado" ? "Cancelado" : input.status === "Faltou" ? "Faltou" : dateChanged ? "Remarcado" : "Alterado";
+  const action = input.status === "Cancelado" ? "Cancelado" : input.status === "Desmarcado" ? "Desmarcado" : input.status === "Faltou" ? "Faltou" : dateChanged ? "Remarcado" : "Alterado";
   const event = {
     id: Date.now(),
     atISO: new Date().toISOString(),
-    action: action as "Remarcado" | "Cancelado" | "Faltou" | "Alterado",
+    action: action as "Remarcado" | "Cancelado" | "Desmarcado" | "Faltou" | "Alterado",
     requestedBy: input.requestedBy,
     reason: input.reason,
     previousDateISO: original.dateISO,
@@ -521,12 +521,12 @@ export function getOperationalAlerts(): OperationalAlert[] {
   const agendaRows = getAppointments();
   agendaRows.forEach((appointment) => {
     const days = daysBetween(appointment.dateISO);
-    if (days === 0 && appointment.status !== "Cancelado" && appointment.status !== "Finalizado") {
+    if (days === 0 && appointment.status !== "Cancelado" && appointment.status !== "Desmarcado" && appointment.status !== "Finalizado") {
       alerts.push({ id: `agenda-today-${appointment.id}`, area: "Agenda", severity: "info", title: "Consulta hoje", description: `${appointment.time} • ${appointment.patientName} • ${appointment.procedure}. Próximo: ${appointment.nextProcedure}`, dueISO: appointment.dateISO, route: "/agenda" });
     } else if (days === 1 && appointment.reminders.oneDayBefore) {
       alerts.push({ id: `agenda-tomorrow-${appointment.id}`, area: "Agenda", severity: "info", title: "Lembrete de consulta para amanhã", description: `${appointment.patientName} às ${appointment.time}.`, dueISO: appointment.dateISO, route: "/agenda" });
     }
-    const futureForPatient = agendaRows.some(a=>a.patientName.toLowerCase()===appointment.patientName.toLowerCase() && a.dateISO>todayISO() && !["Cancelado","Faltou"].includes(a.status));
+    const futureForPatient = agendaRows.some(a=>a.patientName.toLowerCase()===appointment.patientName.toLowerCase() && a.dateISO>todayISO() && !["Cancelado","Desmarcado","Faltou"].includes(a.status));
     if (appointment.status === "Faltou" && days <= 0 && !futureForPatient) {
       alerts.push({ id:`agenda-noshow-${appointment.id}`, area:"Pacientes", severity:"warning", title:"Falta ainda não remarcada", description:`${appointment.patientName} faltou em ${appointment.dateISO.split("-").reverse().join("/")} e ainda não possui novo agendamento.`, dueISO:appointment.dateISO, route:"/agenda" });
     }

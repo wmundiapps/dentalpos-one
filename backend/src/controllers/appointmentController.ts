@@ -399,7 +399,10 @@ export async function update(req: AuthRequest, res: Response) {
 
     const newScheduledAt = req.body.scheduledAt ? parseDate(req.body.scheduledAt) : existing.scheduledAt
     if (!newScheduledAt) return res.status(400).json({ error: 'Data/hora inválida.' })
-    const newStatus = req.body.status ? String(req.body.status) : existing.status
+    // "Desmarcado" é um cancelamento marcado em confirmation: o horário é liberado e o paciente entra na lista de quem precisa reagendar.
+    const wantUnscheduled = String(req.body.status || '') === 'UNSCHEDULED'
+    const wasUnscheduled = existing.status === 'CANCELLED' && existing.confirmation === 'UNSCHEDULED'
+    const newStatus = wantUnscheduled ? 'CANCELLED' : req.body.status ? String(req.body.status) : existing.status
     const normalizedReminderChannel = normalizeReminderChannel(req.body.reminderChannel || existing.confirmChannel || 'WHATSAPP')
     const reminderSelectionProvided = req.body.reminders && typeof req.body.reminders === 'object'
     const lifecycleTypes = ['ON_BOOKING', 'ONE_DAY_BEFORE', 'ON_DAY']
@@ -416,7 +419,7 @@ export async function update(req: AuthRequest, res: Response) {
     const newDurationMinutes = Math.round(parsedDuration)
     const changedSchedule = newScheduledAt.getTime() !== existing.scheduledAt.getTime()
     const changedDuration = newDurationMinutes !== existing.durationMinutes
-    const changedStatus = newStatus !== existing.status
+    const changedStatus = newStatus !== existing.status || (newStatus === 'CANCELLED' && wantUnscheduled !== wasUnscheduled)
     let newAssistantId = existing.assistantId
     if (req.body.assistantId !== undefined) {
       newAssistantId = req.body.assistantId ? String(req.body.assistantId) : null
@@ -496,7 +499,7 @@ export async function update(req: AuthRequest, res: Response) {
           scheduledAt: newScheduledAt,
           durationMinutes: newDurationMinutes,
           status: newStatus,
-          confirmation: newStatus === 'CONFIRMED' ? 'CONFIRMED' : newStatus === 'CANCELLED' ? 'CANCELLED' : existing.confirmation,
+          confirmation: newStatus === 'CONFIRMED' ? 'CONFIRMED' : newStatus === 'CANCELLED' ? (wantUnscheduled ? 'UNSCHEDULED' : 'CANCELLED') : ['CANCELLED', 'UNSCHEDULED'].includes(existing.confirmation || '') ? 'PENDING' : existing.confirmation,
           confirmChannel: normalizedReminderChannel,
           procedure: req.body.procedure !== undefined ? String(req.body.procedure) : existing.procedure,
           nextProcedure: req.body.nextProcedure !== undefined ? String(req.body.nextProcedure || '') || null : existing.nextProcedure,
@@ -506,7 +509,7 @@ export async function update(req: AuthRequest, res: Response) {
         }
       })
       if (changedSchedule || changedStatus || req.body.reason) {
-        const action = newStatus === 'CANCELLED' ? 'CANCELLED' : newStatus === 'NO_SHOW' ? 'NO_SHOW' : changedSchedule ? 'RESCHEDULED' : 'UPDATED'
+        const action = newStatus === 'CANCELLED' ? (wantUnscheduled ? 'UNSCHEDULED' : 'CANCELLED') : newStatus === 'NO_SHOW' ? 'NO_SHOW' : changedSchedule ? 'RESCHEDULED' : 'UPDATED'
         await tx.appointmentHistory.create({
           data: {
             clinicId: req.user!.clinicId,
@@ -601,6 +604,7 @@ export async function remove(req: AuthRequest, res: Response) {
     const id = String(req.params.id)
     const reason = String(req.body?.reason || '').trim()
     if (!reason) return res.status(400).json({ error: 'Informe o motivo do cancelamento.' })
+    const unscheduled = req.body?.unscheduled === true
     const existing = await prisma.appointment.findFirst({
       where: { id, clinicId: req.user.clinicId, tenantId: req.user.tenantId },
       include: { reminders: { orderBy: { scheduledFor: 'asc' } } }
@@ -608,14 +612,14 @@ export async function remove(req: AuthRequest, res: Response) {
     if (!existing) return res.status(404).json({ error: 'Agendamento não encontrado.' })
 
     const appointment = await prisma.$transaction(async tx => {
-      const updated = await tx.appointment.update({ where: { id }, data: { status: 'CANCELLED' } })
+      const updated = await tx.appointment.update({ where: { id }, data: { status: 'CANCELLED', ...(unscheduled ? { confirmation: 'UNSCHEDULED' } : {}) } })
       await tx.appointmentHistory.create({
         data: {
           clinicId: req.user!.clinicId,
           tenantId: req.user!.tenantId,
           appointmentId: id,
           actorId: req.user!.id,
-          action: 'CANCELLED',
+          action: unscheduled ? 'UNSCHEDULED' : 'CANCELLED',
           requestedBy: req.body?.requestedBy ? String(req.body.requestedBy) : 'CLINIC',
           reason,
           previousScheduledAt: existing.scheduledAt,

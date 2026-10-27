@@ -170,7 +170,8 @@ function backendAppointmentId(value: string) {
   return -Math.abs(hash || 1);
 }
 
-function backendStatus(status: string): AppointmentStatus {
+function backendStatus(status: string, confirmation?: string | null): AppointmentStatus {
+  if (status === "CANCELLED" && confirmation === "UNSCHEDULED") return "Desmarcado";
   const map: Record<string, AppointmentStatus> = {
     SCHEDULED: "Agendado",
     CONFIRMED: "Confirmado",
@@ -193,8 +194,9 @@ function backendChannel(value: Channel) {
   return ({ WhatsApp: "WHATSAPP", SMS: "SMS", "E-mail": "EMAIL", Telegram: "TELEGRAM", Voz: "VOICE" } as const)[value];
 }
 
-function historyAction(value: string): "Criado" | "Remarcado" | "Cancelado" | "Faltou" | "Alterado" {
+function historyAction(value: string): "Criado" | "Remarcado" | "Cancelado" | "Desmarcado" | "Faltou" | "Alterado" {
   if (value === "RESCHEDULED") return "Remarcado";
+  if (value === "UNSCHEDULED") return "Desmarcado";
   if (value === "CANCELLED") return "Cancelado";
   if (value === "NO_SHOW") return "Faltou";
   if (value === "CREATED" || value === "ONLINE_REQUEST") return "Criado";
@@ -218,6 +220,7 @@ function backendStatusValue(status: AppointmentStatus): string {
     "Em atendimento": "IN_PROGRESS",
     "Finalizado": "COMPLETED",
     "Cancelado": "CANCELLED",
+    "Desmarcado": "UNSCHEDULED",
     "Faltou": "NO_SHOW",
   };
   return map[status];
@@ -240,7 +243,7 @@ function mapBackendAppointment(appointment: BackendAppointment): IntegratedAppoi
     dateISO: iso(scheduled),
     time: scheduled.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", hour12: false }),
     room: appointment.room || "A definir",
-    status: backendStatus(appointment.status),
+    status: backendStatus(appointment.status, appointment.confirmation),
     source: "Interno",
     category: "1ª consulta",
     durationMinutes: appointment.durationMinutes || 30,
@@ -1324,7 +1327,7 @@ export default function Agenda() {
                   value={edit.status}
                   onChange={(event) => setEdit({ ...edit, status: event.target.value as AppointmentStatus })}
                 >
-                  {["Agendado", "Confirmado", "Aguardando", "Sala em preparação", "Em atendimento", "Finalizado", "Cancelado", "Faltou"].map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+                  {["Agendado", "Confirmado", "Aguardando", "Sala em preparação", "Em atendimento", "Finalizado", "Desmarcado", "Cancelado", "Faltou"].map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
                 </TextField>
                 <DurationSelect
                   value={edit.durationMinutes || 30}
@@ -1451,13 +1454,13 @@ export default function Agenda() {
                   Compareceu
                 </Button>
               ) : null}
-              {edit.backendId && ["Aguardando", "Sala em preparação", "Em atendimento"].includes(edit.status) ? (
+              {edit.backendId && ["Agendado", "Confirmado", "Aguardando", "Sala em preparação", "Em atendimento", "Faltou"].includes(edit.status) ? (
                 <Button
                   color="success"
                   variant="outlined"
                   onClick={async () => {
                     try {
-                      // Saiu = atendimento finalizado: sai da fila do Painel de Atendimento.
+                      // Atendido = paciente já foi embora: finaliza o atendimento, sai da fila do Painel e resolve a pendência da agenda.
                       await appointmentFlowAction(edit.backendId!, "ATTENDED");
                       await refreshAfterQuickAction();
                       toast.success("Atendimento finalizado.");
@@ -1466,17 +1469,17 @@ export default function Agenda() {
                     }
                   }}
                 >
-                  Saiu / finalizar
+                  Atendido
                 </Button>
               ) : null}
-              {edit.backendId && edit.status !== "Cancelado" ? (
+              {edit.backendId && edit.status !== "Cancelado" && edit.status !== "Desmarcado" ? (
                 <Button
                   color="error"
                   variant="outlined"
                   onClick={async () => {
                     if (!window.confirm(`Confirmar que ${edit.patientName} desmarcou a consulta?`)) return;
                     try {
-                      await cancelBackendAppointment(edit.backendId!, editReason.trim() || "Paciente desmarcou", "PATIENT");
+                      await cancelBackendAppointment(edit.backendId!, editReason.trim() || "Paciente desmarcou", "PATIENT", true);
                       await refreshAfterQuickAction();
                       toast.success("Consulta desmarcada e registrada no histórico.");
                     } catch (error) {
