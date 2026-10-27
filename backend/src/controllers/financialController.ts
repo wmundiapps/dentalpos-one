@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { AsaasError, cancelAsaasPayment, loadAsaasConn } from '../services/asaasService'
 import { resolveFinancialAlertFromOperation } from '../services/financialAlertResolutionService'
 import { ensureRecurringEntries } from '../services/financialPlanningService'
 
@@ -89,8 +90,24 @@ export async function remove(req: AuthRequest, res: Response) {
     const { clinicId, tenantId, actorId } = context(req); const id = String(req.params.id)
     const existing = await prisma.financialEntry.findFirst({ where: { id, clinicId, tenantId } })
     if (!existing) return res.status(404).json({ error: 'Lançamento não encontrado.' })
-    const row = await prisma.financialEntry.update({ where: { id }, data: { status: 'CANCELLED' } })
-    await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_CANCEL', entityType: 'FinancialEntry', entityId: id, beforeData: existing, afterData: row, summary: `Lançamento cancelado: ${row.description}` })
+    if (existing.status === 'PAID') return res.status(409).json({ error: 'Lançamento já recebido/pago: não pode ser cancelado.' })
+    const reasonText = String(req.body?.reason || '').trim().slice(0, 500)
+    // Cobrança (boleto/Pix) em aberto no Asaas é cancelada junto, para o paciente não pagar um boleto que o sistema já considera cancelado.
+    const openCharges = await prisma.receivableCharge.findMany({ where: { clinicId, financialEntryId: id, status: { notIn: ['PAGO', 'CANCELADO'] } } })
+    if (openCharges.length) {
+      const conn = await loadAsaasConn(clinicId)
+      if (!conn) return res.status(409).json({ error: 'Há boleto/Pix em aberto no Asaas e a conta Asaas não está conectada. Cancele a cobrança antes.' })
+      for (const charge of openCharges) {
+        try { await cancelAsaasPayment(conn, charge.externalId, charge.installmentId) }
+        catch (error) { if (!(error instanceof AsaasError && error.status === 404)) return res.status(422).json({ error: error instanceof Error ? error.message : 'Falha ao cancelar o boleto no Asaas.' }) }
+        await prisma.receivableCharge.update({ where: { id: charge.id }, data: { status: 'CANCELADO' } })
+        await prisma.paymentSplitLine.updateMany({ where: { chargeId: charge.id }, data: { status: 'CANCELADO' } }).catch(() => undefined)
+      }
+    }
+    const who = await prisma.user.findUnique({ where: { id: actorId }, select: { firstName: true, lastName: true, email: true } })
+    const stamp = `Cancelado em ${new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10).split('-').reverse().join('/')} por ${who ? `${who.firstName} ${who.lastName}`.trim() || who.email : 'usuário'}${reasonText ? `. Motivo: ${reasonText}` : ''}`
+    const row = await prisma.financialEntry.update({ where: { id }, data: { status: 'CANCELLED', notes: existing.notes ? `${existing.notes}\n${stamp}` : stamp } })
+    await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_CANCEL', entityType: 'FinancialEntry', entityId: id, beforeData: existing, afterData: row, summary: `Lançamento cancelado: ${row.description}${reasonText ? ` — ${reasonText}` : ''}` })
     const resolution = await resolveFinancialAlertFromOperation({clinicId,tenantId,actorId,ipAddress:req.ip,userAgent:req.get('user-agent')},{sourceEntityType:'FinancialEntry',sourceEntityId:id,action:'CANCELLATION',reason:String(req.body?.reason||'Cancelado no fluxo financeiro.')})
     return res.json({ ...row, resolutionProtocol:(resolution as any).protocol || null })
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao cancelar lançamento.' }) }
