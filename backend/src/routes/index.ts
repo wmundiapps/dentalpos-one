@@ -28,6 +28,7 @@ import * as financialController from '../controllers/financialController'
 import * as financialPlanningController from '../controllers/financialPlanningController'
 import * as paymentProviderController from '../controllers/paymentProviderController'
 import * as feedbackController from '../controllers/feedbackController'
+import * as importController from '../controllers/importController'
 import * as cronController from '../controllers/cronController'
 import * as platformFeedbackController from '../controllers/platformFeedbackController'
 import * as accessController from '../controllers/accessController'
@@ -239,6 +240,8 @@ router.get('/patients', requirePermission('patients.view'), patientController.in
 router.get('/patient/:id', requirePermission('patients.view'), patientController.show)
 router.post('/patients', requirePermission('patients.create'), patientController.store)
 router.post('/patients/bulk-import', requirePermission('settings.edit'), patientController.bulkImport)
+router.post('/import/appointments', requirePermission('settings.edit'), importController.importAppointments)
+router.post('/import/financial', requirePermission('settings.edit'), importController.importFinancial)
 router.put('/patient/:id', requirePermission('patients.edit'), patientController.update)
 router.delete('/patient/:id', requirePermission('patients.edit'), patientController.remove)
 
