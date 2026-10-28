@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-// Reconhecimento facial no navegador (códigos do rosto; nenhuma foto sai do aparelho).
+// Reconhecimento facial no navegador (o código do rosto é calculado aqui; no ponto, uma foto pequena é enviada como comprovante).
 export type FaceApiModule = typeof import("@vladmandic/face-api");
 let apiPromise: Promise<FaceApiModule> | null = null;
 export function loadFaceApi() {
@@ -44,4 +44,14 @@ export async function describeFace(faceapi: FaceApiModule, video: HTMLVideoEleme
   const found = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.6 })).withFaceLandmarks(true).withFaceDescriptors();
   if (found.length !== 1) return { count: found.length, descriptor: null as number[] | null };
   return { count: 1, descriptor: Array.from(found[0].descriptor) };
+}
+
+// Foto reduzida (largura 320, JPEG) do quadro atual da câmera, já espelhada como o colaborador se vê.
+export function snapshot(video: HTMLVideoElement) {
+  const w = 320;
+  const h = Math.round((video.videoHeight / (video.videoWidth || 1)) * w) || 240;
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  canvas.getContext("2d")?.drawImage(video, 0, 0, w, h);
+  return canvas.toDataURL("image/jpeg", 0.65);
 }

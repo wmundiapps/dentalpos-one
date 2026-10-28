@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma'
 import { comparePassword } from './userService'
 import { writeAudit } from './auditService'
 import { cleanDataUrl, UploadRejected } from '../lib/uploadSafety'
-import { matchEmployee } from './hrFaceService'
+import { verifyByCpf, savePunchPhoto } from './hrFaceService'
 
 // Ponto eletrônico: batida com senha, IP e localização; resumo mensal, banco de horas e justificativas de falta.
 // Datas e horas são calculadas no horário de Brasília (UTC-3, sem horário de verão).
@@ -173,15 +173,28 @@ async function recordPunch(emp: { id: string; name: string }, c: { clinicId: str
   return { id: row.id, kind, label: KIND_LABEL[kind], time: hhmm(now), insideWorkplace: inside, note }
 }
 
-// Ponto pelo rosto, no celular/tablet fixo da clínica: o aparelho (usuário logado) reconhece quem está na câmera e registra a batida dessa pessoa.
+// Ponto pelo rosto, no celular/tablet fixo da clínica: o colaborador digita o CPF, a câmera confere o rosto com o cadastro e a foto fica como comprovante.
+const faceFailures = new Map<string, { count: number; until: number }>()
 export async function facePunch(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any) {
-  const m = await matchEmployee(c.clinicId, c.tenantId, body?.descriptor)
+  const key = `${c.clinicId}:${String(body?.cpf || '').replace(/\D/g, '')}`
+  const lock = faceFailures.get(key)
+  if (lock && lock.until > Date.now()) throw new HrError(429, 'Muitas tentativas. Aguarde alguns minutos ou fale com o RH.')
+  const m = await verifyByCpf(c.clinicId, c.tenantId, body?.cpf, body?.descriptor)
+  if (m.status === 'CPF') throw new HrError(400, 'Digite o CPF com 11 números.')
   if (m.status === 'INVALID') throw new HrError(400, 'Captura do rosto inválida. Tente de novo.')
-  if (m.status === 'NONE') throw new HrError(404, 'Rosto não reconhecido. Aproxime-se da câmera ou fale com o RH para cadastrar seu rosto.')
-  if (m.status === 'AMBIGUOUS') throw new HrError(409, 'Não tenho certeza de quem é. Olhe de frente para a câmera, com boa luz.')
-  const emp = await prisma.hREmployee.findFirst({ where: { id: m.employeeId, clinicId: c.clinicId, tenantId: c.tenantId } })
-  if (!emp || ['TERMINATED', 'Desligado'].includes(emp.status)) throw new HrError(404, 'Colaborador não encontrado ou desligado.')
-  const result = await recordPunch(emp, c, meta, body, 'FACE', `rosto reconhecido (distância ${m.distance.toFixed(2)})`)
+  if (m.status === 'NOT_FOUND') throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores.')
+  if (m.status === 'NO_FACE') throw new HrError(404, 'Seu rosto ainda não foi cadastrado. Fale com o RH.')
+  if (m.status === 'MISMATCH') {
+    const f = faceFailures.get(key) || { count: 0, until: 0 }
+    f.count += 1
+    if (f.count >= 6) { f.until = Date.now() + 10 * 60 * 1000; f.count = 0 }
+    faceFailures.set(key, f)
+    throw new HrError(401, 'O rosto não confere com o CPF informado. Olhe de frente para a câmera, com boa luz.')
+  }
+  faceFailures.delete(key)
+  const emp = m.employee
+  const result = await recordPunch(emp, c, meta, body, 'FACE', `rosto conferido com o CPF (distância ${m.distance.toFixed(2)})`)
+  await savePunchPhoto(c, result.id, emp.id, body?.photo)
   return { ...result, employeeName: emp.name }
 }
 
@@ -312,7 +325,7 @@ export async function employeeMonth(c: { clinicId: string; tenantId: string }, e
     where: { employeeId, punchedAt: { gte: dayStartUtc(`${ref}-01`), lt: new Date(dayStartUtc(`${ref}-${String(monthRange(ref).last).padStart(2, '0')}`).getTime() + 86400000) } },
     orderBy: { punchedAt: 'asc' },
   })
-  return { ref, employee: { id: emp.id, name: emp.name, position: emp.position }, ...m, audit: punches.map((p) => ({ date: dayKey(p.punchedAt), time: hhmm(p.punchedAt), kind: KIND_LABEL[p.kind] || p.kind, ip: p.ip, inside: p.insideWorkplace, note: p.workplaceNote, latitude: p.latitude, longitude: p.longitude })) }
+  return { ref, employee: { id: emp.id, name: emp.name, position: emp.position }, ...m, audit: punches.map((p) => ({ id: p.id, method: p.method, date: dayKey(p.punchedAt), time: hhmm(p.punchedAt), kind: KIND_LABEL[p.kind] || p.kind, ip: p.ip, inside: p.insideWorkplace, note: p.workplaceNote, latitude: p.latitude, longitude: p.longitude })) }
 }
 
 // Sugestões para a folha. O RH confere e lança; nada é lançado sozinho.
