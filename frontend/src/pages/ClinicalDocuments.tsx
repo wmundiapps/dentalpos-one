@@ -126,6 +126,19 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
       setError(e instanceof Error ? e.message : "Erro ao criar documento.");
     } finally { setSaving(false); }
   };
+  const issueAndPrint = async () => {
+    if (saving) return;
+    setSaving(true); setError("");
+    try {
+      const created = await createClinicalDocument({ ...form, templateId: form.templateId || undefined, professionalId: form.professionalId || undefined, status: "DRAFT" });
+      const issued = await issueClinicalDocument(created.id);
+      setOpen(false);
+      await load();
+      void printDoc({ ...created, ...issued, content: form.content } as Doc, nameOf(form.patientId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao emitir documento.");
+    } finally { setSaving(false); }
+  };
   const issue = async (id: string) => {
     try { await issueClinicalDocument(id); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Erro ao emitir documento."); }
@@ -205,13 +218,14 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
             {Object.entries(LABELS).map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}
           </TextField>
           <TextField required label={"Título"} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <RichTextEditor label="Conteúdo *" value={form.content} onChange={(html) => setForm((v) => ({ ...v, content: html }))} helperText="Salvo como rascunho. Ao emitir, fica registrado com autoria, data e versão." />
+          <RichTextEditor label="Conteúdo *" value={form.content} onChange={(html) => setForm((v) => ({ ...v, content: html }))} helperText="Ao emitir, o documento fica registrado com autoria, data e versão e já abre para imprimir." />
         </DialogContent>
         <DialogActions>
           <Button disabled={!form.title.trim() || !richToText(form.content).trim()} onClick={() => void saveAsModel()}>Salvar como modelo</Button>
           <Box sx={{ flex: 1 }} />
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant="contained" disabled={!canSave || saving} onClick={() => void save()}>{saving ? "Salvando..." : "Salvar rascunho"}</Button>
+          <Button disabled={!canSave || saving} onClick={() => void save()}>Salvar rascunho</Button>
+          <Button variant="contained" disabled={!canSave || saving} onClick={() => void issueAndPrint()}>{saving ? "Emitindo..." : "Emitir e imprimir"}</Button>
         </DialogActions>
       </Dialog>
 
