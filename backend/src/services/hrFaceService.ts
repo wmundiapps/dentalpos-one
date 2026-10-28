@@ -63,7 +63,7 @@ export async function verifyByCpf(clinicId: string, tenantId: string, cpf: unkno
   const digits = onlyDigits(cpf)
   if (digits.length !== 11) return { status: 'CPF' as const }
   if (!validVector(descriptor)) return { status: 'INVALID' as const }
-  const emps = await prisma.hREmployee.findMany({ where: { clinicId, tenantId, cpf: { not: null } }, select: { id: true, name: true, status: true, cpf: true }, take: 2000 })
+  const emps = await prisma.hREmployee.findMany({ where: { clinicId, tenantId, cpf: { not: null } }, select: { id: true, name: true, status: true, cpf: true, email: true }, take: 2000 })
   const emp = emps.find((e) => onlyDigits(e.cpf) === digits)
   if (!emp || ['TERMINATED', 'Desligado'].includes(emp.status)) return { status: 'NOT_FOUND' as const }
   const face = await prisma.hREmployeeFace.findUnique({ where: { clinicId_employeeId: { clinicId, employeeId: emp.id } }, select: { samples: true } })

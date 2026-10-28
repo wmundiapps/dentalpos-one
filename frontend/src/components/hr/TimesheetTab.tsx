@@ -66,7 +66,7 @@ export default function TimesheetTab({ employees, canEdit }: { employees: Employ
             </Box>
             {sheet.employees.map((r) => (
               <Box key={r.employeeId} onClick={() => void openDetail(r.employeeId)} sx={{ display: "grid", gridTemplateColumns: "2fr repeat(6,1fr)", gap: 1, py: 1.1, borderTop: "1px solid", borderColor: "divider", cursor: "pointer", alignItems: "center", "&:hover": { bgcolor: "action.hover" } }}>
-                <Box><Typography sx={{ fontWeight: 700 }}>{r.name}</Typography><Typography variant="caption" color={r.email ? "text.secondary" : "error.main"}>{r.email ? r.position : "Sem e-mail de login"}</Typography></Box>
+                <Box><Typography sx={{ fontWeight: 700 }}>{r.name}</Typography><Typography variant="caption" color={r.email ? "text.secondary" : "error.main"}>{r.email ? r.position : "Sem e-mail (sem comprovante)"}</Typography></Box>
                 <Typography variant="body2">{fmtMin(r.totals.workedMin)}</Typography>
                 <Typography variant="body2">{fmtMin(r.totals.expectedMin)}</Typography>
                 <Typography variant="body2" color={r.totals.balanceMin < 0 ? "error.main" : "text.primary"}>{fmtMin(r.totals.balanceMin)}</Typography>

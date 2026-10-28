@@ -4,6 +4,7 @@ import { comparePassword } from './userService'
 import { writeAudit } from './auditService'
 import { cleanDataUrl, UploadRejected } from '../lib/uploadSafety'
 import { verifyByCpf, savePunchPhoto } from './hrFaceService'
+import { dispatchRevah } from './revahProviderService'
 
 // Ponto eletrônico: batida com senha, IP e localização; resumo mensal, banco de horas e justificativas de falta.
 // Datas e horas são calculadas no horário de Brasília (UTC-3, sem horário de verão).
@@ -175,6 +176,17 @@ async function recordPunch(emp: { id: string; name: string }, c: { clinicId: str
 
 // Ponto pelo rosto, no celular/tablet fixo da clínica: o colaborador digita o CPF, a câmera confere o rosto com o cadastro e a foto fica como comprovante.
 const faceFailures = new Map<string, { count: number; until: number }>()
+// Comprovante da batida por e-mail para o colaborador (se tiver e-mail no cadastro). Falha de envio nunca impede o ponto.
+async function emailConfirmation(clinicId: string, emp: { name: string; email: string | null }, r: { label: string; time: string; insideWorkplace: boolean | null }) {
+  const to = String(emp.email || '').trim()
+  const apiKey = String(process.env.RESEND_API_KEY || '').trim()
+  if (!to || !apiKey) return
+  const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { name: true } }).catch(() => null)
+  const date = dayKey(new Date()).split('-').reverse().join('/')
+  const message = `Olá, ${emp.name.split(' ')[0]}!\n\nSeu ponto foi registrado:\n${r.label} em ${date} às ${r.time}${r.insideWorkplace === false ? ' (fora do local da clínica)' : ''}.\n\nSe você não reconhece esta batida, avise o RH.`
+  await dispatchRevah('EMAIL', to, message, { apiKey, subject: `Ponto registrado: ${r.label} às ${r.time}${clinic?.name ? ` — ${clinic.name}` : ''}` }, 'CompletoDonto <contato@dentalpos.com.br>').catch((e: unknown) => console.error('Comprovante de ponto falhou:', e))
+}
+
 export async function facePunch(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any) {
   const key = `${c.clinicId}:${String(body?.cpf || '').replace(/\D/g, '')}`
   const lock = faceFailures.get(key)
@@ -195,6 +207,7 @@ export async function facePunch(c: { clinicId: string; tenantId: string; userId:
   const emp = m.employee
   const result = await recordPunch(emp, c, meta, body, 'FACE', `rosto conferido com o CPF (distância ${m.distance.toFixed(2)})`)
   await savePunchPhoto(c, result.id, emp.id, body?.photo)
+  await emailConfirmation(c.clinicId, emp, result)
   return { ...result, employeeName: emp.name }
 }
 
