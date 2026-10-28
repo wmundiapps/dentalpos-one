@@ -24,6 +24,13 @@ const LABELS: Record<ClinicalDocumentType, string> = {
   EXAM_REQUEST: "Solicitação de exame", REPORT: "Relatório", CONSENT: "Termo de consentimento", CLINICAL_CONTRACT: "Contrato clínico", REFUSAL: "Termo de recusa", POST_OP_INSTRUCTIONS: "Orientações pós-operatórias",
 };
 
+// Busca sem acento/maiúscula e só mostra os 30 primeiros resultados (a lista de pacientes é grande).
+const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const filterPatients = (opts: BackendPatient[], state: { inputValue: string }) => {
+  const q = norm(state.inputValue.trim());
+  return (q ? opts.filter((o) => norm(o.fullName).includes(q)) : opts).slice(0, 30);
+};
+
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 
 // Impressão com o timbre da clínica (logo, nome, responsável técnico e contatos do Kit da Clínica).
@@ -88,7 +95,7 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
     if (!window.confirm("Remover este modelo? Os documentos já criados não mudam.")) return;
     try { await updateClinicalDocumentTemplate(id, { isActive: false }); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível remover."); }
   };
-  const emptyForm = () => ({ patientId: filterPatient, professionalName: sessionName, documentType: "PRESCRIPTION" as ClinicalDocumentType, title: "", content: "", templateId: "", professionalId: "" });
+  const emptyForm = () => ({ patientId: filterPatient, professionalName: "", documentType: "PRESCRIPTION" as ClinicalDocumentType, title: "", content: "", templateId: "", professionalId: "" });
   const [form, setForm] = useState(emptyForm);
 
   const load = async () => {
@@ -156,10 +163,17 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
       </Box>
       {!fixedPatientId && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 3 }}>
-          <TextField select fullWidth label="Paciente" value={filterPatient} onChange={(e) => setFilterPatient(e.target.value)}>
-            <MenuItem value="">Todos os pacientes</MenuItem>
-            {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.fullName}</MenuItem>)}
-          </TextField>
+          <Autocomplete
+            fullWidth
+            options={patients}
+            value={patients.find((p) => p.id === filterPatient) || null}
+            onChange={(_, v) => setFilterPatient(v?.id || "")}
+            getOptionLabel={(p) => p.fullName}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            filterOptions={filterPatients}
+            noOptionsText="Nenhum paciente encontrado"
+            renderInput={(params) => <TextField {...params} label="Paciente" placeholder="Digite o nome para buscar (vazio = todos os pacientes)" />}
+          />
         </Paper>
       )}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", lg: "repeat(4,1fr)" }, gap: 2, mb: 3 }}>
@@ -197,18 +211,26 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
           {fixedPatientId ? (
             <Typography>{`Paciente: ${nameOf(fixedPatientId)}`}</Typography>
           ) : (
-            <TextField select required label="Paciente" value={form.patientId} onChange={(e) => setForm({ ...form, patientId: e.target.value })}>
-              {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.fullName}</MenuItem>)}
-            </TextField>
+            <Autocomplete
+              options={patients}
+              value={patients.find((p) => p.id === form.patientId) || null}
+              onChange={(_, v) => setForm({ ...form, patientId: v?.id || "" })}
+              getOptionLabel={(p) => p.fullName}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              filterOptions={filterPatients}
+              noOptionsText="Nenhum paciente encontrado"
+              renderInput={(params) => <TextField {...params} required label="Paciente" placeholder="Digite o nome para buscar" />}
+            />
           )}
           <Autocomplete
             freeSolo
+            openOnFocus
             options={activeDoctors}
             getOptionLabel={(o) => (typeof o === "string" ? o : doctorLabel(o))}
             inputValue={form.professionalName}
             onInputChange={(_, v, reason) => { if (reason !== "reset") setForm((f) => ({ ...f, professionalName: v, professionalId: "" })); }}
             onChange={(_, v) => { if (v && typeof v !== "string") setForm((f) => ({ ...f, professionalName: doctorLabel(v), professionalId: v.id })); }}
-            renderInput={(params) => <TextField {...params} required label="Profissional responsável" helperText="Escolha o dentista na lista (com o CRO) ou digite outro nome." />}
+            renderInput={(params) => <TextField {...params} required label="Profissional responsável" helperText="Clique para abrir a lista de dentistas (com o CRO) ou digite outro nome." />}
           />
           <TextField select label={"Modelo da clínica"} value={form.templateId} onChange={(e) => chooseTemplate(e.target.value)}>
             <MenuItem value="">Sem modelo</MenuItem>
