@@ -2586,6 +2586,17 @@ model HREmployeeFace {
   @@index([tenantId])
 }
 
+// Senha individual do colaborador para a área "Meu ponto" (CPF + senha). Fica fora de HREmployee para nunca vazar nas listagens do RH.
+model HREmployeePortal {
+  employeeId   String   @id
+  clinicId     String
+  tenantId     String
+  passwordHash String
+  updatedAt    DateTime @updatedAt
+
+  @@index([clinicId])
+}
+
 // Foto tirada no momento da batida pelo rosto (comprovação), consultada pelo RH no detalhe da folha.
 model HRTimePunchPhoto {
   punchId    String   @id

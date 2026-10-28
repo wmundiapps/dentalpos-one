@@ -19,3 +19,4 @@ export const removeEmployeeFace = (employeeId: string) => call<{ ok: boolean }>(
 export const facePunch = (cpf: string, descriptor: number[], photo: string, geo: { latitude?: number; longitude?: number; accuracy?: number }) => call<FacePunchResult>("/hr/timeclock/face-punch", { method: "POST", body: { cpf, descriptor, photo, ...geo } });
 export const punchPhoto = (punchId: string) => call<{ photo: string | null }>(`/hr/timeclock/punches/${encodeURIComponent(punchId)}/photo`);
 export const employeeFacePhoto = (employeeId: string) => call<{ photo: string | null }>(`/hr/employees/${encodeURIComponent(employeeId)}/face-photo`);
+export const setEmployeePortalPassword = (employeeId: string, password: string) => call<{ ok: boolean }>(`/hr/employees/${encodeURIComponent(employeeId)}/portal-password`, { method: "PUT", body: { password } });

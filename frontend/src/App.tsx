@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import PublicBooking from "./pages/PublicBooking";
 import DemoLanding from "./pages/DemoLanding";
 import PasswordReset from "./pages/PasswordReset";
+import EmployeePortal from "./pages/EmployeePortal";
 import {
   clearClientSession,
   demoSalesUrl,
@@ -87,8 +88,12 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/redefinir-senha") void validateSession();
+    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/redefinir-senha" && appPath !== "/colaborador") void validateSession();
   }, [appPath]);
+
+  if (appPath === "/colaborador") {
+    return <EmployeePortal />;
+  }
 
   if (appPath === "/agendamento-online") {
     return <PublicBooking />;

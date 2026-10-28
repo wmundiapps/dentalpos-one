@@ -9,7 +9,7 @@ import { dispatchRevah } from './revahProviderService'
 // Ponto eletrônico: batida com senha, IP e localização; resumo mensal, banco de horas e justificativas de falta.
 // Datas e horas são calculadas no horário de Brasília (UTC-3, sem horário de verão).
 
-export type TimeCtx = { clinicId: string; tenantId: string; userId: string; email: string }
+export type TimeCtx = { clinicId: string; tenantId: string; userId: string; email: string; employeeId?: string }
 
 const FLAG_KEY = 'HR_TIMECLOCK'
 const BRT_MS = 3 * 60 * 60 * 1000
@@ -107,6 +107,10 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 // ---------- vínculo usuário -> colaborador (pelo e-mail de login) ----------
 export async function employeeForUser(c: TimeCtx) {
+  if (c.employeeId) {
+    const own = await prisma.hREmployee.findFirst({ where: { id: c.employeeId, clinicId: c.clinicId, tenantId: c.tenantId } })
+    return own && !['TERMINATED', 'Desligado'].includes(own.status) ? own : null
+  }
   const rows = await prisma.hREmployee.findMany({ where: { clinicId: c.clinicId, tenantId: c.tenantId, email: { equals: c.email, mode: 'insensitive' } } })
   return rows.find((e) => !['TERMINATED', 'Desligado'].includes(e.status)) || null
 }

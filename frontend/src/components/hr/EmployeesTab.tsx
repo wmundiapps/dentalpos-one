@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { setEmployeePortalPassword } from "../../services/HrFaceApi";
 import EmployeeFaceDialog from "./EmployeeFaceDialog";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Typography } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -17,6 +18,10 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
   const [form, setForm] = useState(blank);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pwdFor, setPwdFor] = useState<{ id: string; name: string } | null>(null);
+  const [pwd, setPwd] = useState("");
+  const [pwdMsg, setPwdMsg] = useState("");
+  const savePwd = async () => { if (!pwdFor) return; try { await setEmployeePortalPassword(pwdFor.id, pwd); setPwdMsg("Senha salva. Passe ao colaborador o endereço app.completodonto.com.br/colaborador."); setPwd(""); } catch (e) { setPwdMsg(e instanceof Error ? e.message : "Não foi possível salvar."); } };
   const [faceFor, setFaceFor] = useState<{ id: string; name: string } | null>(null);
   const set = (k: keyof typeof blank) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
@@ -59,7 +64,7 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
           <Typography>{e.position}</Typography>
           <Chip size="small" label={e.employmentModel} />
           <Box><Typography>{money(e.baseSalary)}</Typography><Chip size="small" label={label(e.status)} color={e.status === "ACTIVE" ? "success" : e.status === "EXPERIENCE" ? "warning" : "default"} /></Box>
-          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}><Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(e)}>Editar</Button><Button size="small" onClick={() => setFaceFor({ id: e.id, name: e.name })}>Rosto do ponto</Button></Box>
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}><Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(e)}>Editar</Button><Button size="small" onClick={() => setFaceFor({ id: e.id, name: e.name })}>Rosto do ponto</Button><Button size="small" onClick={() => { setPwdMsg(""); setPwd(""); setPwdFor({ id: e.id, name: e.name }); }}>Senha</Button></Box>
         </Box>
       ))}
       <Dialog open={open} onClose={() => !busy && setOpen(false)} fullWidth maxWidth="md">
@@ -84,6 +89,15 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
           <TextField label="Observações" multiline minRows={2} value={form.notes} onChange={set("notes")} />
         </DialogContent>
         <DialogActions><Button disabled={busy} onClick={() => setOpen(false)}>Cancelar</Button><Button variant="contained" disabled={busy} onClick={() => void save()}>Salvar colaborador</Button></DialogActions>
+      </Dialog>
+      <Dialog open={Boolean(pwdFor)} onClose={() => { setPwdFor(null); setPwd(""); setPwdMsg(""); }} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ fontWeight: 900 }}>Senha de {pwdFor?.name}</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          <Typography variant="body2" color="text.secondary">Com o CPF e esta senha o colaborador consulta só o próprio ponto, em /colaborador. Ele não vê cargo, salário ou dados de outras pessoas. Salvar de novo troca a senha.</Typography>
+          <TextField label="Nova senha (mínimo 6 caracteres)" type="text" value={pwd} onChange={(e) => setPwd(e.target.value)} />
+          {pwdMsg && <Alert severity={pwdMsg.startsWith("Senha salva") ? "success" : "error"}>{pwdMsg}</Alert>}
+        </DialogContent>
+        <DialogActions><Button onClick={() => { setPwdFor(null); setPwd(""); setPwdMsg(""); }}>Fechar</Button><Button variant="contained" disabled={pwd.length < 6} onClick={() => void savePwd()}>Salvar senha</Button></DialogActions>
       </Dialog>
       <EmployeeFaceDialog employee={faceFor} onClose={() => setFaceFor(null)} />
     </Box>

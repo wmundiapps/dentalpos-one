@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import * as hr from '../services/hrTimeService'
 import * as hrFace from '../services/hrFaceService'
+import * as hrPortal from '../services/hrPortalService'
 
 type AuthedReq = Request & { user?: { id: string; email: string; clinicId: string; tenantId: string; role: string } }
 
@@ -79,3 +80,19 @@ export const listDiscipline = wrap(async (req, res) => {
   const c = orgCtx(req)
   res.json(await prisma.hRDisciplinaryAction.findMany({ where: { clinicId: c.clinicId, tenantId: c.tenantId }, orderBy: { date: 'desc' }, take: 200, include: { employee: { select: { name: true } } } }))
 })
+
+// ---- área do colaborador (CPF + senha individual; só os próprios dados) ----
+export const portalSetPassword = wrap(async (req, res) => {
+  const r = await hrPortal.setPortalPassword(orgCtx(req), idOf(req), req.body?.password) as { error?: string; status?: number }
+  if (r.error) return res.status(r.status || 400).json({ error: r.error })
+  return res.json({ ok: true })
+})
+export const portalLogin = wrap(async (req, res) => {
+  const r = await hrPortal.portalLogin(req.body?.cpf, req.body?.password, clientIp(req)) as { error?: string; status?: number; token?: string; name?: string }
+  if (r.error) return res.status(r.status || 400).json({ error: r.error })
+  return res.json({ token: r.token, name: r.name })
+})
+const portalCtx = (req: Request): hr.TimeCtx => { const p = (req as hrPortal.PortalReq).portal!; return { clinicId: p.clinicId, tenantId: p.tenantId, userId: `colaborador:${p.employeeId}`, email: '', employeeId: p.employeeId } }
+export const portalToday = wrap(async (req, res) => res.json(await hr.myToday(portalCtx(req))))
+export const portalMonth = wrap(async (req, res) => res.json(await hr.myMonth(portalCtx(req), refOf(req))))
+export const portalRequests = wrap(async (req, res) => res.json(await hr.myRequests(portalCtx(req))))
