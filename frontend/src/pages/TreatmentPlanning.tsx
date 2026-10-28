@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, LinearProgress, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, LinearProgress, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PageHeader from "../components/PageHeader";
 import PatientAlertBanner from "../components/patient/PatientAlertBanner";
@@ -12,8 +12,12 @@ import { readSessionUser } from "../services/DemoAccess";
 import { formatBRL, money, parseBRL } from "../utils/money";
 import ExportMenu from "../components/ExportMenu";
 import { buildBudgetPdf, downloadBlob, printPdf, sharePdf } from "../utils/budgetPdf";
+import { BUDGET_SCOPES, RECOMMENDATION_NOTICE, scopeTitle, type BudgetAlternative, type BudgetScope } from "../utils/budgetScope";
 
-type BudgetExtra = BudgetRow & { entryAmount?: number; paymentMethod?: string; discountPercent?: number; validUntil?: string; optionsJson?: { treatmentItemIds?: unknown } | null };
+export const PATIENT_STAGE_EVENT = "dentalpos:patient-stage";
+const urgent = (i: TreatmentPlanItem) => ["URGENT", "HIGH"].includes(String(((i.planningData || {}) as Record<string, unknown>).priority || ""));
+
+type BudgetExtra = BudgetRow & { entryAmount?: number; paymentMethod?: string; discountPercent?: number; validUntil?: string; optionsJson?: { treatmentItemIds?: unknown; scope?: string } | null };
 type Planning = Record<string, unknown>;
 
 const ITEM_STATUS: Record<string, string> = { PLANNED: "Planejado", APPROVED: "Aprovado", IN_PROGRESS: "Em andamento", COMPLETED: "Concluído", CANCELLED: "Cancelado" };
@@ -97,12 +101,27 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
   const [form, setForm] = useState(EMPTY_ITEM);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [terms, setTerms] = useState(EMPTY_TERMS);
+  const [scope, setScope] = useState<BudgetScope>("FULL");
+  const [picked, setPicked] = useState<string[]>([]);
+  const [ack, setAck] = useState(false);
 
   const patient = patients.find((p) => p.id === patientId);
   const activeItems = useMemo(() => items.filter((i) => i.status !== "CANCELLED"), [items]);
   const total = useMemo(() => activeItems.reduce((s, i) => s + Number(((i.planningData || {}) as Planning).unitValue || 0), 0), [activeItems]);
+  const sumOf = (list: TreatmentPlanItem[]) => list.reduce((s, i) => s + Number(((i.planningData || {}) as Planning).unitValue || 0), 0);
+  const chosenItems = useMemo(() => (scope === "FULL" ? activeItems : activeItems.filter((i) => picked.includes(i.id))), [scope, activeItems, picked]);
+  const budgetTotal = sumOf(chosenItems);
+  const alternatives: BudgetAlternative[] = useMemo(() => {
+    const urgentItems = activeItems.filter(urgent);
+    return [
+      { scope: "FULL", title: scopeTitle("FULL"), count: activeItems.length, total: sumOf(activeItems) },
+      { scope: "PARTIAL", title: scopeTitle("PARTIAL"), count: urgentItems.length, total: sumOf(urgentItems) },
+      ...(scope === "COMPLAINT" || scope === "SINGLE" ? [{ scope, title: scopeTitle(scope), count: chosenItems.length, total: budgetTotal } as BudgetAlternative] : []),
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeItems, scope, chosenItems, budgetTotal]);
   const discount = Math.min(100, Math.max(0, Number(terms.discountPercent.replace(",", ".")) || 0));
-  const finalTotal = Math.round(total * (1 - discount / 100) * 100) / 100;
+  const finalTotal = Math.round(budgetTotal * (1 - discount / 100) * 100) / 100;
   const entry = Math.min(finalTotal, parseBRL(terms.entryAmount) || 0);
   const installments = Math.max(1, Number(terms.installments) || 1);
   const installmentValue = Math.round(((finalTotal - entry) / installments) * 100) / 100;
@@ -151,12 +170,22 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
     return r.imported ? `${r.imported} procedimento(s) importado(s) do odontograma.` : "Nenhum achado novo para importar do odontograma.";
   });
 
+  const chooseScope = (next: BudgetScope) => {
+    setScope(next);
+    setAck(false);
+    setPicked(next === "PARTIAL" ? activeItems.filter(urgent).map((i) => i.id) : []);
+  };
+  const togglePick = (id: string) => setPicked((cur) => scope === "SINGLE" ? [id] : cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]);
+  const openBudget = () => { setScope("FULL"); setPicked([]); setAck(false); setBudgetOpen(true); };
+  const limited = scope !== "FULL";
+  const canCreate = finalTotal > 0 && chosenItems.length > 0 && (!limited || ack);
+
   const createProposal = () => run(async () => {
     const valid = new Date();
     valid.setDate(valid.getDate() + (Number(terms.validDays) || 30));
     await createBudget({
       patientId,
-      description: `Plano de tratamento • ${patient?.fullName || "Paciente"}`,
+      description: `Plano de tratamento${scope === "FULL" ? "" : ` (${scopeTitle(scope).toLowerCase()})`} • ${patient?.fullName || "Paciente"}`,
       totalAmount: finalTotal,
       installments,
       installmentValue,
@@ -166,10 +195,11 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
       paymentMethod: terms.paymentMethod,
       paymentProvider: "MANUAL",
       validUntil: valid.toISOString(),
-      optionsJson: { treatmentItemIds: activeItems.map((i) => i.id), grossTotal: total, versioned: true },
+      optionsJson: { treatmentItemIds: chosenItems.map((i) => i.id), grossTotal: budgetTotal, versioned: true, scope, alternatives, limitedPlanAcknowledged: limited ? ack : undefined },
     });
     setBudgetOpen(false);
     setTerms(EMPTY_TERMS);
+    setScope("FULL"); setPicked([]); setAck(false);
   }, "Orçamento gerado.");
 
   const generateContract = (row: BudgetRow) => run(async () => {
@@ -186,6 +216,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
       templateId: undefined,
       status: "DRAFT",
     });
+    window.dispatchEvent(new Event(PATIENT_STAGE_EVENT));
     return "Contrato gerado como rascunho na aba Documentos e Contratos. Revise o texto com a assessoria jurídica da clínica antes de emitir.";
   });
 
@@ -242,7 +273,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                 <Button variant="outlined" startIcon={<AddIcon />} disabled={busy} onClick={openItem}>Novo procedimento</Button>
                 <Button disabled={busy} onClick={() => void importFromOdontogram()}>Importar odontograma</Button>
-                <Button variant="contained" disabled={busy || !activeItems.length} onClick={() => setBudgetOpen(true)}>{"Gerar orçamento"}</Button>
+                <Button variant="contained" disabled={busy || !activeItems.length} onClick={openBudget}>{"Gerar orçamento"}</Button>
                 <ExportMenu
                   label="Baixar plano"
                   disabled={!items.length}
@@ -272,7 +303,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
                     <Typography sx={{ fontWeight: 800 }}>{i.procedure}</Typography>
                     <Typography variant="body2" color="text.secondary">{info}</Typography>
                   </Box>
-                  <TextField select size="small" label="Status" value={i.status} disabled={busy} onChange={(e) => void run(() => updateTreatmentItem(i.id, { status: e.target.value, planningData: i.planningData }), "Status atualizado.")} sx={{ minWidth: 170 }}>
+                  <TextField select size="small" label="Status" value={i.status} disabled={busy} onChange={(e) => void run(async () => { await updateTreatmentItem(i.id, { status: e.target.value, planningData: i.planningData }); window.dispatchEvent(new Event(PATIENT_STAGE_EVENT)); }, "Status atualizado.")} sx={{ minWidth: 170 }}>
                     {Object.entries(ITEM_STATUS).map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}
                   </TextField>
                 </Box>
@@ -295,7 +326,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
                   </Box>
                   <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                     <Chip size="small" label={BUDGET_STATUS[b.status] || b.status} color={b.status === "APPROVED" ? "success" : b.status === "CANCELLED" ? "default" : "warning"} />
-                    {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => void run(() => approveBudget(b.id), "Orçamento aprovado.")}>Aprovar</Button>}
+                    {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => void run(async () => { await approveBudget(b.id); window.dispatchEvent(new Event(PATIENT_STAGE_EVENT)); }, "Orçamento aprovado. O paciente passou para Tratamento confirmado.")}>Aprovar</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "share")}>Enviar PDF</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "download")}>Baixar PDF</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "print")}>Imprimir</Button>}
@@ -332,11 +363,51 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
         </DialogActions>
       </Dialog>
 
-      <Dialog open={budgetOpen} onClose={() => { if (!busy) setBudgetOpen(false); }} maxWidth="sm" fullWidth>
+      <Dialog open={budgetOpen} onClose={() => { if (!busy) setBudgetOpen(false); }} maxWidth="md" fullWidth>
         <DialogTitle>{"Gerar orçamento"}</DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
-          <Typography>{`Soma dos procedimentos: ${money(total)}`}</Typography>
-          {total <= 0 && <Alert severity="warning">{"Informe o valor dos procedimentos para gerar o orçamento."}</Alert>}
+          <Typography sx={{ fontWeight: 800 }}>O que será orçado?</Typography>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1 }}>
+            {BUDGET_SCOPES.map((o) => {
+              const alt = alternatives.find((a) => a.scope === o.id);
+              const active = scope === o.id;
+              return (
+                <Paper key={o.id} variant="outlined" role="button" tabIndex={0} onClick={() => chooseScope(o.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); chooseScope(o.id); } }}
+                  sx={{ p: 1.5, cursor: "pointer", borderWidth: 2, borderColor: active ? "primary.main" : "divider", bgcolor: active ? "action.selected" : "background.paper" }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, alignItems: "center" }}>
+                    <Typography sx={{ fontWeight: 800 }}>{o.title}</Typography>
+                    {o.id === "FULL" && <Chip size="small" color="success" label="Recomendado" />}
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">{o.hint}</Typography>
+                  <Typography sx={{ fontWeight: 900, mt: 0.5 }}>{alt ? `${money(alt.total)} • ${alt.count} procedimento(s)` : "Escolha os procedimentos"}</Typography>
+                </Paper>
+              );
+            })}
+          </Box>
+          {limited && (
+            <>
+              {scope === "COMPLAINT" && patient?.mainComplaint && <Alert severity="info">{`Queixa principal: ${patient.mainComplaint}`}</Alert>}
+              <Typography variant="body2" color="text.secondary">{scope === "SINGLE" ? "Marque o serviço escolhido pelo paciente." : "Marque os procedimentos que entram neste orçamento."}</Typography>
+              <Box sx={{ display: "grid", gap: 0.5, maxHeight: 220, overflow: "auto" }}>
+                {activeItems.map((i) => (
+                  <Box key={i.id} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Checkbox size="small" checked={picked.includes(i.id)} onChange={() => togglePick(i.id)} />
+                    <Typography variant="body2" sx={{ flex: 1 }}>{`${i.procedure}${i.tooth ? ` (dente ${i.tooth})` : ""}`}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>{money(Number(((i.planningData || {}) as Planning).unitValue || 0))}</Typography>
+                  </Box>
+                ))}
+              </Box>
+              <Alert severity="warning">
+                {RECOMMENDATION_NOTICE}
+                <Box sx={{ display: "flex", alignItems: "center", mt: 0.5 }}>
+                  <Checkbox size="small" checked={ack} onChange={(e) => setAck(e.target.checked)} />
+                  <Typography variant="body2">O paciente foi informado e está ciente.</Typography>
+                </Box>
+              </Alert>
+            </>
+          )}
+          <Typography>{`Soma dos procedimentos orçados: ${money(budgetTotal)}`}</Typography>
+          {budgetTotal <= 0 && <Alert severity="warning">{"Informe o valor dos procedimentos para gerar o orçamento."}</Alert>}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
             <TextField label="Desconto (%)" value={terms.discountPercent} onChange={(e) => setTerms({ ...terms, discountPercent: e.target.value.replace(/[^\d.,]/g, "") })} slotProps={{ htmlInput: { inputMode: "decimal" } }} />
             <TextField label="Entrada (R$)" placeholder="0,00" value={terms.entryAmount} onChange={(e) => setTerms({ ...terms, entryAmount: e.target.value.replace(/[^\d.,]/g, "") })} onBlur={() => setTerms((t) => ({ ...t, entryAmount: formatBRL(t.entryAmount) }))} slotProps={{ htmlInput: { inputMode: "decimal" }, input: { startAdornment: <InputAdornment position="start">R$</InputAdornment> } }} />
@@ -357,7 +428,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
         </DialogContent>
         <DialogActions>
           <Button disabled={busy} onClick={() => setBudgetOpen(false)}>Cancelar</Button>
-          <Button variant="contained" disabled={busy || finalTotal <= 0} onClick={() => void createProposal()}>{busy ? "Gerando..." : "Gerar orçamento"}</Button>
+          <Button variant="contained" disabled={busy || !canCreate} onClick={() => void createProposal()}>{busy ? "Gerando..." : "Gerar orçamento"}</Button>
         </DialogActions>
       </Dialog>
     </Box>

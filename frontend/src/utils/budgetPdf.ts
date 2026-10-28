@@ -2,9 +2,10 @@ import type { BackendPatient } from "../services/PatientApi";
 import type { TreatmentPlanItem } from "../services/TreatmentPlanApi";
 import type { BudgetRow } from "../services/BudgetApi";
 import { money } from "./money";
+import { RECOMMENDATION_NOTICE, scopeTitle, type BudgetOptionsMeta } from "./budgetScope";
 
 export interface BudgetPdfInput {
-  budget: BudgetRow & { entryAmount?: number; paymentMethod?: string; discountPercent?: number; validUntil?: string };
+  budget: BudgetRow & { entryAmount?: number; paymentMethod?: string; discountPercent?: number; validUntil?: string; optionsJson?: unknown };
   patient?: BackendPatient;
   items: TreatmentPlanItem[];
   clinicName: string;
@@ -103,8 +104,37 @@ export async function buildBudgetPdf(input: BudgetPdfInput): Promise<{ blob: Blo
     },
   });
 
+  // Opções apresentadas ao paciente e ciência de plano diferente do recomendado.
+  const meta = (b.optionsJson || {}) as BudgetOptionsMeta;
+  let after = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? lastY + 80;
+  if (meta.alternatives && meta.alternatives.length > 1) {
+    autoTable(doc, {
+      startY: after + 18,
+      head: [["Opções de tratamento apresentadas", "Procedimentos", "Valor"]],
+      body: meta.alternatives.map((a) => [`${a.title}${a.scope === "FULL" ? " (recomendado)" : ""}${a.scope === meta.scope ? "  < escolhido" : ""}`, String(a.count), money(a.total)]),
+      theme: "grid",
+      headStyles: { fillColor: [71, 85, 105], textColor: 255 },
+      styles: { fontSize: 9.5, cellPadding: 5 },
+      columnStyles: { 1: { halign: "center", cellWidth: 80 }, 2: { halign: "right", cellWidth: 90 } },
+      margin: { left: margin, right: margin },
+    });
+    after = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? after + 60;
+  }
+  if (meta.scope && meta.scope !== "FULL") {
+    if (after > pageH - 220) { doc.addPage(); after = 40; }
+    doc.setFontSize(9.5);
+    doc.setTextColor(146, 64, 14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Plano escolhido: ${scopeTitle(meta.scope)}`, margin, after + 22);
+    doc.setFont("helvetica", "normal");
+    const warn = doc.splitTextToSize(RECOMMENDATION_NOTICE, pageW - margin * 2);
+    doc.text(warn, margin, after + 36);
+    after += 36 + warn.length * 12;
+    doc.setTextColor(71, 85, 105);
+  }
+
   // Rodapé: validade, observações e assinatura
-  let fy = ((doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? lastY + 80) + 28;
+  let fy = after + 28;
   if (fy > pageH - 150) { doc.addPage(); fy = 60; }
   doc.setFontSize(9.5);
   doc.setTextColor(71, 85, 105);

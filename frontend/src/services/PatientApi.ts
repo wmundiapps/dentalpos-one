@@ -25,6 +25,7 @@ export interface BackendPatient {
   medicalHistory?: string | null;
   notes?: string | null;
   isActive?: boolean;
+  treatmentStage?: "BUDGET" | "TREATMENT" | null;
   createdAt?: string;
 }
 

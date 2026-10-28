@@ -2,6 +2,7 @@ import LockedUsersUnlock from "../components/LockedUsersUnlock";
 import { loadFinancialDashboard, type FinancialDashboard } from "../services/FinancialApi";
 import MobileHome from "../components/MobileHome";
 import CashbacksmartButton from "../components/CashbacksmartButton";
+import StockLowAlert from "../components/StockLowAlert";
 import UnscheduledPatientsCard from "../components/UnscheduledPatientsCard";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
 import { useEffect, useMemo, useState } from "react";
@@ -149,6 +150,7 @@ export default function Dashboard() {
   return (
     <Box>
       <LockedUsersUnlock />
+      <StockLowAlert />
       {isMobile && <Box sx={{ mb: 3 }}><MobileHome cards={mobileCards} onNavigate={navigate} /></Box>}
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Dashboard</Typography>
       <Typography color="text.secondary" sx={{ mb: 4 }}>

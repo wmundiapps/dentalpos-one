@@ -244,6 +244,10 @@ model Patient {
 
   recordNumber Int?
 
+  // Fase na ficha: BUDGET (só orçamento) ou TREATMENT (tratamento confirmado). Vazio = ainda não definida.
+  treatmentStage   String?
+  treatmentStageAt DateTime?
+
   isActive Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -2869,4 +2873,57 @@ model ClinicBrandKit {
   updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
+}
+
+// Estoque: ligação entre procedimento e consumo de material, uso registrado e histórico de duração por reposição.
+model StockProcedureRule {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  procedureKey   String
+  procedureLabel String
+  productId      String
+  mode           String   @default("DEBIT")
+  quantity       Float    @default(1)
+  perTooth       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([clinicId, procedureKey, productId])
+  @@index([clinicId, procedureKey])
+  @@index([tenantId])
+}
+
+model StockUsageEvent {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  productId      String
+  procedureLabel String
+  evolutionId    String
+  patientId      String?
+  mode           String
+  quantity       Float
+  cycleId        String?
+  createdAt      DateTime @default(now())
+
+  @@unique([evolutionId, productId])
+  @@index([clinicId, productId, cycleId])
+  @@index([tenantId])
+}
+
+model StockCycle {
+  id             String   @id @default(cuid())
+  clinicId       String
+  tenantId       String
+  productId      String
+  startedAt      DateTime
+  endedAt        DateTime
+  procedureCount Int
+  unitsDebited   Float    @default(0)
+  reason         String   @default("RESTOCK")
+  createdAt      DateTime @default(now())
+
+  @@index([clinicId, productId, endedAt])
+  @@index([tenantId])
 }

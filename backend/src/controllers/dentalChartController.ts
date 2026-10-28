@@ -1,3 +1,5 @@
+import { confirmTreatment } from '../services/treatmentStageService'
+import { consumeForProcedure } from '../services/stockUsageService'
 import { randomUUID } from 'crypto'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
@@ -50,6 +52,24 @@ const DEFAULT_FINDINGS = [
   ['GINGIVOPLASTY','Gengivoplastia','PERIODONTAL','#00838f'],
   ['REMOVABLE','Prótese removível','PROSTHETIC','#5e35b1'],
   ['SPLINT','Placa / contenção','OTHER','#455a64'],
+  ['IMPLANT_REOPENING','Reabertura','IMPLANT','#455a64'],
+  ['SCANNING','Escaneamento','DIAGNOSTIC','#455a64'],
+  ['EXAM_REQUEST','Solicitação de exames','DIAGNOSTIC','#455a64'],
+  ['ZIRCONIA_PROSTHESIS_INSTALL','Instalação de prótese de zircônia','PROSTHETIC','#7b1fa2'],
+  ['PROVISIONAL_PROSTHESIS_INSTALL','Instalação de prótese provisória','PROSTHETIC','#ed6c02'],
+  ['METAL_CERAMIC_PROSTHESIS_INSTALL','Instalação de prótese metal e cerâmica','PROSTHETIC','#7b1fa2'],
+  ['RPD_INSTALL','Instalação de prótese parcial removível','PROSTHETIC','#5e35b1'],
+  ['ORTHO_BONDING','Colagem de aparelho ortodôntico','ORTHODONTIC','#3949ab'],
+  ['ORTHO_PLANNING','Planejamento ortodôntico','ORTHODONTIC','#3949ab'],
+  ['ORTHO_REPAIR','Conserto de aparelho ortodôntico','ORTHODONTIC','#3949ab'],
+  ['ORTHO_MAINTENANCE','Manutenção de aparelho ortodôntico','ORTHODONTIC','#3949ab'],
+  ['ORTHO_REMOVABLE_INSTALL','Instalação de aparelho removível','ORTHODONTIC','#3949ab'],
+  ['ORTHO_ORTHOPEDIC_INSTALL','Instalação de aparelho ortopédico','ORTHODONTIC','#3949ab'],
+  ['SPACE_MAINTAINER_INSTALL','Instalação de mantenedor','ORTHODONTIC','#3949ab'],
+  ['AEB_PLATE_TPB_INSTALL','Instalação de AEB / placa / barra transpalatina','ORTHODONTIC','#3949ab'],
+  ['ATTACHMENT_INSTALL','Instalação de attachment','ORTHODONTIC','#3949ab'],
+  ['ORTHO_REMOVAL','Remoção de aparelho ortodôntico','ORTHODONTIC','#3949ab'],
+  ['ORTHO_RETENTION','Contenção ortodôntica','ORTHODONTIC','#3949ab'],
   ['OTHER_PROCEDURE','Outro procedimento','OTHER','#455a64'],
 ] as const
 
@@ -174,7 +194,7 @@ export async function saveEntry(req: AuthRequest, res: Response) {
 
     if (clinicalState === 'COMPLETED' && req.body.evolutionNotes) {
       const professionalName = String(req.body.professionalName || 'Profissional responsável')
-      await prisma.clinicalEvolution.create({
+      const chartEvolution = await prisma.clinicalEvolution.create({
         data: {
           clinicId, tenantId, patientId,
           professionalId: req.body.professionalId ? String(req.body.professionalId) : null,
@@ -185,7 +205,9 @@ export async function saveEntry(req: AuthRequest, res: Response) {
           nextAppointmentCreated: false
         }
       })
+      await consumeForProcedure({ clinicId, tenantId }, { evolutionId: chartEvolution.id, patientId, procedure: findingLabel, teethCount: 1 })
     }
+    if (clinicalState === 'COMPLETED') await confirmTreatment({ clinicId, tenantId, actorId: actorUserId }, patientId, 'primeiro procedimento executado')
 
     await writeAudit({
       clinicId, tenantId, actorId: actorUserId, module: 'clinical',
@@ -249,7 +271,8 @@ export async function findings(req: AuthRequest, res: Response) {
       ORDER BY "label"
     `
     const defaults = DEFAULT_FINDINGS.map(([code,label,category,color]) => ({ id: code, code, label, category, color, isActive: true, system: true }))
-    return res.json([...defaults, ...custom])
+    // Ordem alfabética (português) para a lista de procedimentos.
+    return res.json([...defaults, ...custom].sort((x, y) => String(x.label).localeCompare(String(y.label), 'pt-BR', { sensitivity: 'base' })))
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao carregar achados configuráveis.' })

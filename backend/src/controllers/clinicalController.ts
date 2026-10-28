@@ -1,3 +1,5 @@
+import { confirmTreatment } from '../services/treatmentStageService'
+import { consumeForProcedure } from '../services/stockUsageService'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
@@ -48,6 +50,8 @@ export async function createEvolution(req: AuthRequest, res: Response) {
       await tx.treatmentItem.updateMany({where:{patientId,clinicId,tenantId,odontogramMarkId:{in:completedMarkIds}},data:{status:'COMPLETED',completedAt:new Date()}})
       return row
     })
+    await confirmTreatment({clinicId,tenantId,actorId:actorUserId},patientId,'primeiro procedimento executado')
+    await consumeForProcedure({clinicId,tenantId},{evolutionId:evolution.id,patientId,procedure:String(procedure),teethCount:Array.isArray(teeth)?teeth.length:0})
     await writeAudit({clinicId,tenantId,actorId:actorUserId,module:'clinical',action:'CLINICAL_EVOLUTION_CREATE',entityType:'ClinicalEvolution',entityId:evolution.id,metadata:{patientId,procedure,nextProcedure,completedMarkIds}})
     return res.status(201).json(evolution)
   }catch(error){console.error(error);return res.status(500).json({error:'Erro ao registrar evolução clínica.'})}
