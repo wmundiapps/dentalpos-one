@@ -11,8 +11,8 @@ const PROFILE_NAMES: Record<string, string> = {
   LABORATORIO: "Laboratório", CONTADOR: "Contabilidade", JURIDICO: "Jurídico", GESTOR: "Gestor", RH: "Recursos Humanos", ADMIN: "Administrador (Master)",
   MARKETING: "Marketing", VENDAS: "Vendas", MARKETPLACE: "Marketplace", COMPRAS: "Compras e estoque", EDUCACIONAL: "Educacional",
 };
-PROFILE_NAMES.DENTISTA = "Clínico (dentistas)"; PROFILE_NAMES.ADMINISTRACAO = "Administração / Escritório";
-const PROFILE_ORDER = ["ADMIN", "GESTOR", "ADMINISTRACAO", "RH", "RECEPCAO", "DENTISTA", "AUXILIAR", "LABORATORIO", "FINANCEIRO", "CONTADOR", "JURIDICO", "MARKETING", "VENDAS", "MARKETPLACE", "COMPRAS", "EDUCACIONAL"];
+PROFILE_NAMES.PONTO = "Aparelho do ponto (só bate ponto)"; PROFILE_NAMES.DENTISTA = "Clínico (dentistas)"; PROFILE_NAMES.ADMINISTRACAO = "Administração / Escritório";
+const PROFILE_ORDER = ["ADMIN", "GESTOR", "ADMINISTRACAO", "RH", "RECEPCAO", "DENTISTA", "AUXILIAR", "LABORATORIO", "FINANCEIRO", "CONTADOR", "JURIDICO", "MARKETING", "VENDAS", "MARKETPLACE", "COMPRAS", "EDUCACIONAL", "PONTO"];
 
 // Itens do menu na mesma ordem do menu lateral (um item que aparece em dois grupos entra só no primeiro).
 const MENU_GROUPS = (() => {
@@ -23,7 +23,7 @@ const MENU_GROUPS = (() => {
 const ALL_ITEMS = MENU_GROUPS.flatMap((g) => g.items);
 const MODULE_NAMES: Record<string, string> = {
   dashboard: "Painel inicial", agenda: "Agenda e painel de atendimentos", patients: "Pacientes", clinical: "Clínico / prontuário", laboratory: "Laboratório",
-  finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", sales: "Vendas", marketing: "Marketing e Revah",
+  finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", timeclock: "Ponto por rosto (aparelho da clínica)", sales: "Vendas", marketing: "Marketing e Revah",
   documents: "Documentos", settings: "Configurações (inclui importar pacientes)", users: "Usuários e permissões", audit: "Auditoria",
 };
 const ACTION_NAMES: Record<string, string> = {
