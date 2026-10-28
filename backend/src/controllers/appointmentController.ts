@@ -233,7 +233,7 @@ export async function show(req: AuthRequest, res: Response) {
 export async function store(req: AuthRequest, res: Response) {
   try {
     if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
-    const { patientId, doctorId, procedure, nextProcedure, scheduledAt, room, notes, source, budgetId, reminderChannel } = req.body
+    const { evolutionId, patientId, doctorId, procedure, nextProcedure, scheduledAt, room, notes, source, budgetId, reminderChannel } = req.body
     if (!patientId || !doctorId || !procedure || !scheduledAt) {
       return res.status(400).json({ error: 'Paciente, profissional, procedimento e data/hora são obrigatórios.' })
     }
@@ -379,6 +379,7 @@ export async function store(req: AuthRequest, res: Response) {
       userAgent: req.get('user-agent')
     })
 
+    if (evolutionId) await prisma.clinicalEvolution.updateMany({ where: { id: String(evolutionId), clinicId: req.user!.clinicId, patientId: patient.id }, data: { nextAppointmentCreated: true, appointmentId: appointment.id } }).catch(() => undefined)
     const full = await prisma.appointment.findUnique({ where: { id: appointment.id }, include: includeDetails })
     return res.status(201).json(full)
   } catch (error) {

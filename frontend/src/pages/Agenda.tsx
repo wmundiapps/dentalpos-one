@@ -32,6 +32,7 @@ import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
 import SmartSchedulingSettingsDialog from "../components/SmartSchedulingSettingsDialog";
 import AgendaAvailabilitySettingsDialog from "../components/AgendaAvailabilitySettingsDialog";
+import NextProcedureHint from "../components/NextProcedureHint";
 import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import LabServiceOrderDialog, { type LabOrderPrefill } from "../components/LabServiceOrderDialog";
 import { printLabLabels, printLabOrder } from "../utils/labOrderPrint";
@@ -59,7 +60,7 @@ import { loadPatientHold } from "../services/FinancialHoldApi";
 import AbsenceRecallDialog from "../components/AbsenceRecallDialog";
 import AbsenceRecallBanner from "../components/AbsenceRecallBanner";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
-import { isFinancialHold, createBackendAppointment, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
+import { isFinancialHold, createBackendAppointment, loadNextProcedureHint, type NextProcedureHint as NextProcedureHintData, loadBackendAppointments, loadBackendDoctors, loadBackendAvailability, updateBackendAppointment, appointmentFlowAction, cancelBackendAppointment, updateDoctorConsultationValue, type BackendAppointment, type BackendDoctor, type ReminderSelection } from "../services/AppointmentApi";
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
 import { loadOnlineBookingSettings, saveOnlineBookingSettings, type OnlineBookingSettings } from "../services/PublicBookingApi";
 import {
@@ -750,6 +751,19 @@ export default function Agenda() {
       ? backendPatients.find((patient) => patient.fullName.trim().toLowerCase() === normalizedPatientName)
       : undefined;
 
+  const [nextHint, setNextHint] = useState<NextProcedureHintData | null>(null);
+  useEffect(() => {
+    setNextHint(null);
+    if (!selectedPatient?.id) return;
+    let alive = true;
+    loadNextProcedureHint(selectedPatient.id).then((h) => {
+      if (!alive || !h) return;
+      setNextHint(h);
+      setForm((cur) => (!cur.procedure.trim() || cur.procedure === "Consulta inicial / avaliação" ? { ...cur, procedure: h.nextProcedure, durationMinutes: suggestDuration(h.nextProcedure, cur.durationMinutes) } : cur));
+    }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [selectedPatient?.id]);
+
   const openNew = (prefill?: Partial<AppointmentForm>) => {
     setSmartSuggestion(null);
     setReminderSelection({ onBooking: true, oneDayBefore: true, onDay: true });
@@ -860,6 +874,7 @@ export default function Agenda() {
     let backendCreated: BackendAppointment;
     try {
       backendCreated = await createBackendAppointment({
+        evolutionId: nextHint && form.procedure.trim() === nextHint.nextProcedure ? nextHint.evolutionId : undefined,
         patientId: backendPatient.id,
         doctorId: backendDoctor.id,
         procedure: form.procedure,
@@ -1297,7 +1312,8 @@ export default function Agenda() {
             procedure={form.procedure}
             onChange={(minutes) => setForm((current) => ({ ...current, durationMinutes: minutes }))}
           />
-          <Box sx={{ gridColumn: { md: "1/-1" } }}>
+          <Box sx={{ gridColumn: { md: "1/-1" }, display: "grid", gap: 1 }}>
+            <NextProcedureHint hint={nextHint} current={form.procedure} onUse={() => nextHint && setForm((cur) => ({ ...cur, procedure: nextHint.nextProcedure, durationMinutes: suggestDuration(nextHint.nextProcedure, cur.durationMinutes) }))} />
             <ProcedurePicker
               value={form.procedure}
               onChange={(name) => setForm((current) => ({ ...current, procedure: name, durationMinutes: suggestDuration(name, current.durationMinutes) }))}

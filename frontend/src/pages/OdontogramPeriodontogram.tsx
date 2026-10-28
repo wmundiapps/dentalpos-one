@@ -155,7 +155,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
         </Select></FormControl>
         <TextField sx={{gridColumn:{md:'1/-1'}}} multiline minRows={2} label="Observações — o que foi feito (opcional)" value={procNotes} onChange={e=>setProcNotes(e.target.value)}/>
         <TextField required label="Profissional" value={procPro} onChange={e=>setProcPro(e.target.value)} error={procTeeth.length>0&&procPro.trim().length<2}/>
-        <TextField required label="Próxima conduta / próxima consulta" value={procNext} onChange={e=>setProcNext(e.target.value)} placeholder="Ex.: retorno em 15 dias para prova" error={procTeeth.length>0&&procNext.trim().length<3}/>
+        <TextField required label="Procedimento da próxima consulta (vai para a agenda)" value={procNext} onChange={e=>setProcNext(e.target.value)} placeholder="Ex.: Prova da coroa do 36 / Restauração do 14" error={procTeeth.length>0&&procNext.trim().length<3}/>
         <Button variant="contained" size="large" disabled={procBusy||!procFinding||!procTeeth.length||procPro.trim().length<2||procNext.trim().length<3} onClick={()=>void saveProcedure()}>{procBusy?'Salvando...':'Salvar procedimento realizado'}</Button>
       </Box>
     </Paper>

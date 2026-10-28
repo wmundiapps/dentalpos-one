@@ -126,7 +126,15 @@ export async function loadBackendAvailability(input: {
   return body.slots || [];
 }
 
+export interface NextProcedureHint { evolutionId: string; nextProcedure: string; fromProcedure: string; professionalName: string; teeth: string[]; createdAt: string }
+export async function loadNextProcedureHint(patientId: string): Promise<NextProcedureHint | null> {
+  const response = await fetch(`${API}/patients/${encodeURIComponent(patientId)}/next-procedure`, { headers: headers() });
+  if (!response.ok) return null;
+  return ((await response.json()) as { hint: NextProcedureHint | null }).hint;
+}
+
 export async function createBackendAppointment(input: {
+  evolutionId?: string;
   patientId: string;
   doctorId: string;
   procedure: string;
