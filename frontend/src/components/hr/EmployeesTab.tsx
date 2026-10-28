@@ -49,13 +49,13 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
         <Box sx={{ flex: 1 }} />
         <Button variant="contained" onClick={openNew}>Novo colaborador</Button>
       </Box>
-      <Alert severity="info" sx={{ mx: 2, mb: 1 }}>Para o colaborador bater o ponto, cadastre o <b>mesmo e-mail</b> que ele usa para entrar no sistema.</Alert>
+      <Alert severity="info" sx={{ mx: 2, mb: 1 }}>Para bater o ponto pelo rosto o colaborador só precisa do <b>CPF</b> e do <b>rosto cadastrado</b> (sem login próprio). Cadastre o <b>e-mail</b> dele para receber o comprovante de cada batida.</Alert>
       {list.length === 0 && <Typography color="text.secondary" sx={{ p: 2 }}>Nenhum colaborador cadastrado.</Typography>}
       {list.map((e) => (
         <Box key={e.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1.3fr 1fr 1fr auto" }, gap: 2, p: 2, borderTop: "1px solid", borderColor: "divider", alignItems: "center" }}>
           <Box><Typography sx={{ fontWeight: 800 }}>{e.name}</Typography><Typography variant="body2" color="text.secondary">{e.employeeCode} • {e.department}</Typography>
             {e.experienceEndDate && <Typography variant="caption" color="warning.main">Experiência até {fmtDate(e.experienceEndDate)}</Typography>}
-            {!e.email && <Typography variant="caption" color="error.main" sx={{ display: "block" }}>Sem e-mail: não consegue bater ponto</Typography>}</Box>
+            {!e.email && <Typography variant="caption" color="error.main" sx={{ display: "block" }}>Sem e-mail: não recebe o comprovante</Typography>}</Box>
           <Typography>{e.position}</Typography>
           <Chip size="small" label={e.employmentModel} />
           <Box><Typography>{money(e.baseSalary)}</Typography><Chip size="small" label={label(e.status)} color={e.status === "ACTIVE" ? "success" : e.status === "EXPERIENCE" ? "warning" : "default"} /></Box>
@@ -79,7 +79,7 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
           <TextField label="Supervisor" value={form.supervisor} onChange={set("supervisor")} />
           <TextField label="CPF" value={form.cpf} onChange={set("cpf")} />
           <TextField label="Telefone" value={form.phone} onChange={set("phone")} />
-          <TextField label="E-mail de login do sistema" value={form.email} onChange={set("email")} helperText="Precisa ser o mesmo e-mail com que a pessoa entra no sistema." />
+          <TextField label="E-mail do colaborador" value={form.email} onChange={set("email")} helperText="Recebe o comprovante de cada batida. Só precisa ser o e-mail de login se a pessoa também usar a tela Meu ponto." />
           <TextField label="Chave PIX" value={form.pixKey} onChange={set("pixKey")} />
           <TextField label="Observações" multiline minRows={2} value={form.notes} onChange={set("notes")} />
         </DialogContent>
