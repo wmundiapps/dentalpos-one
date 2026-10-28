@@ -55,6 +55,17 @@ export async function listCharges(req: AuthRequest, res: Response) {
   }
 }
 
+// Dados do paciente do lançamento para pré-preencher a cobrança online (CPF, e-mail e telefone do cadastro).
+export async function customerData(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const entry = await prisma.financialEntry.findFirst({ where: { id: String(req.params.id), clinicId, tenantId }, include: { patient: { select: { fullName: true, cpf: true, email: true, phone: true } } } })
+    if (!entry) return res.status(404).json({ error: 'Lançamento não encontrado.' })
+    const p = entry.patient
+    return res.json({ name: p?.fullName || entry.personName, cpfCnpj: String(p?.cpf || '').replace(/\D/g, ''), email: p?.email || '', phone: p?.phone || '', fromRegistry: Boolean(p) })
+  } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao buscar os dados do paciente.' }) }
+}
+
 // Gera a cobrança real no Asaas da clínica para um lançamento a receber, com divisão automática (split) opcional.
 export async function createForEntry(req: AuthRequest, res: Response) {
   try {
@@ -119,6 +130,19 @@ export async function createForEntry(req: AuthRequest, res: Response) {
     } catch (error) {
       const status = error instanceof AsaasError && error.status >= 400 && error.status < 500 ? 422 : 502
       return res.status(status).json({ error: error instanceof Error ? error.message : 'Falha ao criar cobrança no Asaas.' })
+    }
+
+    // Dados corrigidos na cobrança voltam para o cadastro do paciente (só preenche o que estava vazio ou inválido).
+    if (patient && b.customer) {
+      try {
+        const upd: Record<string, string> = {}
+        const doc = String(b.customer.cpfCnpj || '').replace(/\D/g, '')
+        const curDoc = String(patient.cpf || '').replace(/\D/g, '')
+        if (doc && doc !== curDoc && curDoc.length !== 11 && curDoc.length !== 14) upd.cpf = doc
+        if (b.customer.email && !patient.email) upd.email = String(b.customer.email).trim()
+        if (b.customer.phone && !patient.phone) upd.phone = String(b.customer.phone).trim()
+        if (Object.keys(upd).length) await prisma.patient.update({ where: { id: patient.id }, data: upd })
+      } catch (e) { console.error('Não foi possível atualizar o cadastro do paciente:', e) }
     }
 
     try {

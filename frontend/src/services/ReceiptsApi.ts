@@ -68,6 +68,7 @@ export interface PayoutRow { id: string; doctorId: string; doctorName: string; d
 export interface PayoutTotal { doctorId: string; doctorName: string; pending: number; confirmed: number; refunded: number }
 
 export const ReceiptsApi = {
+  chargeCustomer: async (entryId: string) => parse<{ name: string; cpfCnpj: string; email: string; phone: string; fromRegistry: boolean }>(await fetch(`${API}/financial-entries/${encodeURIComponent(entryId)}/charge-customer`, { headers: headers() })),
   readiness: async () => parse<{ ready: boolean; environment: string | null }>(await fetch(`${API}/receivable-charges/readiness`, { headers: headers() })),
   asaasStatus: async () => parse<AsaasStatus>(await fetch(`${API}/asaas/status`, { headers: headers() })),
   connect: async (input: { apiKey?: string; environment: "SANDBOX" | "PRODUCTION"; isActive?: boolean }) =>

@@ -47,6 +47,7 @@ export default function ChargeDialog({ entry, existing, onClose, onChanged, init
     if (!entry) return;
     setError(""); setNeedData(false); setCpfCnpj(""); setCustEmail(""); setCustPhone(entry.phone || ""); setEmailState(null); setCharge(existing || null); setBillingType(initialBillingType || "ESCOLHER"); setInstallments("1"); setDoctorId(""); setMode("RULE"); setValue("");
     setDueDate(new Date(entry.dueDate).toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }));
+    ReceiptsApi.chargeCustomer(entry.id).then((c) => { setCpfCnpj(c.cpfCnpj || ""); setCustEmail(c.email || ""); if (c.phone) setCustPhone(c.phone); }).catch(() => undefined);
     ReceiptsApi.readiness().then((r) => setReady(r.ready)).catch(() => setReady(false));
     ReceiptsApi.accounts().then(setAccounts).catch(() => setAccounts([]));
     // Só reinicia ao trocar de lançamento (a lista do Financeiro recarrega e recria os objetos enquanto o diálogo está aberto).

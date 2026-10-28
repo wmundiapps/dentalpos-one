@@ -388,6 +388,7 @@ router.delete('/payment/:id', requirePermission('finance.approve'), paymentContr
 router.get('/financial-entries', requirePermission('finance.view'), financialController.index)
 router.post('/financial-entries', requirePermission('finance.create'), financialController.store)
 router.put('/financial-entries/:id', requirePermission('finance.edit'), financialController.update)
+router.get('/financial-entries/:id/charge-customer', requirePermission('finance.view'), chargeController.customerData)
 router.get('/receivable-charges/readiness', requirePermission('finance.view'), chargeController.readiness)
 router.get('/receivable-charges', requirePermission('finance.view'), chargeController.listCharges)
 router.post('/receivable-charges/:id/send-email', requirePermission('finance.create'), chargeController.sendEmail)
