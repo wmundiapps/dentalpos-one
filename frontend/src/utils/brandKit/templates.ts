@@ -7,6 +7,7 @@ export interface KitClinic {
   rtName: string; rtCro: string; cnpj: string;
   phone: string; whatsapp: string; email: string;
   address: string; city: string; site: string; instagram: string;
+  logoMm?: number;
 }
 export interface KitPerson { key: string; name: string; role: string; cro: string; phone: string; email: string }
 
@@ -194,13 +195,16 @@ function md(t: string, c: KitClinic, d: DocInput) {
   }
   close(); return h;
 }
+// Padrão de todos os documentos: logo centralizada no topo e os dados da clínica no rodapé.
 export function letterhead(c: KitClinic) {
+  return `<div class="dh" style="--lw:${Math.min(90, Math.max(15, c.logoMm || 35))}mm"><div class="lg">${logoHTML(c, 72)}</div></div>`;
+}
+export const footer = (c: KitClinic) => {
   const l2 = [c.rtName, c.rtCro, c.cnpj ? "CNPJ " + c.cnpj : ""].filter(Boolean).map(esc).join(" · ");
   const l3 = [c.address, c.city].filter(Boolean).map(esc).join(" · ");
-  const l4 = [c.phone, c.whatsapp ? "WhatsApp " + c.whatsapp : "", c.email].filter(Boolean).map(esc).join(" · ");
-  return `<div class="dh"><div class="lg">${logoHTML(c, 72)}</div><div class="who"><b>${esc(c.name)}</b>${l2 ? `<span>${l2}</span>` : ""}${l3 ? `<span>${l3}</span>` : ""}${l4 ? `<span>${l4}</span>` : ""}</div></div>`;
-}
-const footer = (c: KitClinic) => `<div class="df">${[c.name, c.address, c.city, c.phone, c.site].filter(Boolean).map(esc).join(" · ")}</div>`;
+  const l4 = [c.phone, c.whatsapp ? "WhatsApp " + c.whatsapp : "", c.email, c.site].filter(Boolean).map(esc).join(" · ");
+  return `<div class="df"><b>${esc(c.name)}</b>${[l2, l3, l4].filter(Boolean).map((l) => `<span>${l}</span>`).join("")}</div>`;
+};
 function sig(p: { name?: string; role?: string; cro?: string } | null) { p = p || {}; return `<div class="sig"><div class="ln"></div><b>${esc(p.name || "")}</b>${p.role ? `<span>${esc(p.role)}</span>` : ""}${p.cro ? `<span class="cro">${esc(p.cro)}</span>` : ""}</div>`; }
 function extenso(n: string) { const u = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove", "vinte"]; const x = Number(n); return x >= 0 && x <= 20 ? u[x] : x === 30 ? "trinta" : String(n); }
 
@@ -297,9 +301,9 @@ export const KIT_CSS = `
 .bkit *{box-sizing:border-box}
 .bkit .mono{display:grid;place-items:center;border-radius:50%;color:#fff;font-weight:800;font-family:var(--ui)}
 .bkit .a4{width:794px;min-height:1123px;background:#fff;color:#1a1a1a;font-family:var(--doc);font-size:13.5px;line-height:1.6;padding:56px 64px 48px;display:flex;flex-direction:column}
-.bkit .dh{display:flex;align-items:center;gap:18px;padding-bottom:16px;border-bottom:2px solid var(--b)}
-.bkit .dh .lg{width:78px;height:78px;display:grid;place-items:center;flex:none}
-.bkit .dh .lg img{max-width:78px;max-height:78px}
+.bkit .dh{display:flex;justify-content:center;padding-bottom:6px}
+.bkit .dh .lg{display:grid;place-items:center}
+.bkit .dh .lg img{width:var(--lw,35mm);max-width:100%;max-height:60mm;height:auto}
 .bkit .dh .who{flex:1;min-width:0}
 .bkit .dh .who b{font-family:var(--ui);font-size:19px;color:var(--b);display:block;line-height:1.2}
 .bkit .dh .who span{display:block;font-family:var(--ui);font-size:11px;color:#555;line-height:1.5}
@@ -323,7 +327,9 @@ export const KIT_CSS = `
 .bkit .sigs .sig{margin-top:0}
 .bkit .sigs .sig .ln{width:240px}
 .bkit .place{text-align:right;margin-top:28px}
-.bkit .df{margin-top:28px;padding-top:10px;border-top:1px solid #ccc;font-family:var(--ui);font-size:10px;color:#666;text-align:center}
+.bkit .df{margin-top:28px;font-family:var(--ui);font-size:10.5px;color:#555;text-align:center;line-height:1.5}
+.bkit .df b{display:block;font-size:13px;color:var(--b)}
+.bkit .df span{display:block}
 .bkit .bc{font-family:var(--ui);background:#fff;color:#16202a;overflow:hidden;position:relative}
 .bkit .bc.h{width:350px;height:200px;display:grid;grid-template-columns:96px 1fr}
 .bkit .bc .side{background:var(--b);display:flex;align-items:center;justify-content:center}

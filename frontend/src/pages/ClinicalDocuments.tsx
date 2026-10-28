@@ -11,7 +11,7 @@ import { createClinicalDocument, createClinicalDocumentTemplate, updateClinicalD
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { readSessionUser } from "../services/DemoAccess";
 import { loadBrandKit } from "../services/BrandKitApi";
-import { KIT_CSS, letterhead } from "../utils/brandKit/templates";
+import { KIT_CSS, footer, letterhead } from "../utils/brandKit/templates";
 import type { ClinicalDocument, ClinicalDocumentTemplate, ClinicalDocumentType } from "../types/clinicalDocument";
 
 type Doc = ClinicalDocument & { patientId?: string; content?: string };
@@ -24,29 +24,29 @@ const LABELS: Record<ClinicalDocumentType, string> = {
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 
 // Impressão com o timbre da clínica (logo, nome, responsável técnico e contatos do Kit da Clínica).
-async function printDoc(doc: Doc, patientName: string) {
+async function printDoc(doc: Doc, patientName: string, previewOnly = false) {
   const w = window.open("", "_blank", "width=900,height=1000");
   if (!w) return;
   w.document.write("<p style=\"font-family:Arial;padding:40px\">Preparando documento…</p>");
   let head = "";
-  let logoMm = 35;
+  let foot = "";
   try {
     const r = await loadBrandKit();
     const c = r.clinic; const k = r.kit || {};
-    head = letterhead({ name: c.displayName || c.name, tagline: k.tagline || "", logo: c.logo || "", color: c.primaryColor || "#1565C0", rtName: k.rtName || "", rtCro: k.rtCro || "", cnpj: c.cnpj || "", phone: c.phone || "", whatsapp: k.whatsapp || "", email: c.email || "", address: c.address || "", city: [c.city, c.state].filter(Boolean).join(" – "), site: k.site || "", instagram: k.instagram || "" });
-    logoMm = Math.min(90, Math.max(15, Number(k.logoWidthMm) || 35));
-    head = `<div class="bkit"><div style="--b:${esc(c.primaryColor || "#1565C0")}">${head}</div></div>`;
+    const kc = { name: c.displayName || c.name, tagline: k.tagline || "", logo: c.logo || "", color: c.primaryColor || "#1565C0", rtName: k.rtName || "", rtCro: k.rtCro || "", cnpj: c.cnpj || "", phone: c.phone || "", whatsapp: k.whatsapp || "", email: c.email || "", address: c.address || "", city: [c.city, c.state].filter(Boolean).join(" – "), site: k.site || "", instagram: k.instagram || "", logoMm: k.logoWidthMm };
+    head = `<div class="bkit"><div style="--b:${esc(kc.color)}">${letterhead(kc)}</div></div>`;
+    foot = `<div class="bkit rodape"><div style="--b:${esc(kc.color)}">${footer(kc)}</div></div>`;
   } catch { /* sem identidade: imprime sem timbre */ }
   const when = new Date(doc.issuedAt || doc.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
   const pro = doc.professionalName ? (/^(dr|dra|dr\.|dra\.)\s/i.test(doc.professionalName.trim()) ? doc.professionalName : `Dr(a). ${doc.professionalName}`) : "";
   const meta = `<div class="pat">${esc(patientName)}</div>${pro ? `<div class="pro">${esc(pro)}</div>` : ""}<div class="when">${doc.status === "DRAFT" ? "Rascunho" : "Emitido"} em ${esc(when)}</div>`;
   w.document.open();
-  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(doc.title)}</title><style>${KIT_CSS}.bkit .dh .lg{width:auto!important;height:auto!important}.bkit .dh .lg img{width:${logoMm}mm!important;max-width:100%!important;height:auto!important;max-height:60mm!important}body{font-family:Arial,sans-serif;margin:40px;color:#111;line-height:1.5}.dh{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:6px!important}.dh .who,.dh .who span{text-align:center!important;display:block}.dh .lg{margin:0 auto!important}h1{font-size:20px;margin:24px 0 8px;text-align:center}body{text-align:center}.meta{margin-bottom:24px}.pat{font-size:22px;font-weight:800}.pro{font-size:15px;margin-top:2px}.when{font-size:13px;color:#555;margin-top:2px}pre{white-space:pre-wrap;font-family:inherit;font-size:14px;text-align:center}</style></head><body>${head}<h1>${esc(doc.title)}</h1><div class="meta">${meta}</div><pre>${esc(doc.content || "")}</pre></body></html>`);
+  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(doc.title)}</title><style>${KIT_CSS}.rodape{position:fixed;left:0;right:0;bottom:0;background:#fff;padding:6px 40px 10px}.rodape .df{margin-top:0}body{padding-bottom:36mm}h1{font-size:20px;margin:24px 0 8px;text-align:center}body{text-align:center}.meta{margin-bottom:24px}.pat{font-size:22px;font-weight:800}.pro{font-size:15px;margin-top:2px}.when{font-size:13px;color:#555;margin-top:2px}pre{white-space:pre-wrap;font-family:inherit;font-size:14px;text-align:center}</style></head><body>${foot}${head}<h1>${esc(doc.title)}</h1><div class="meta">${meta}</div><pre>${esc(doc.content || "")}</pre></body></html>`);
   w.document.close();
   const imgs = Array.from(w.document.images);
   await Promise.all(imgs.map((i) => (i.complete ? Promise.resolve() : new Promise<void>((r) => { i.onload = () => r(); i.onerror = () => r(); }))));
   w.focus();
-  w.print();
+  if (!previewOnly) w.print();
 }
 
 export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?: string } = {}) {
@@ -68,6 +68,14 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
   const [notice, setNotice] = useState("");
   const saveAsModel = async () => {
     try { await createClinicalDocumentTemplate({ documentType: form.documentType, title: form.title, content: form.content }); setNotice("Modelo salvo. Ele aparece em “Modelo da clínica” nos próximos documentos."); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar o modelo."); }
+  };
+  const [editModel, setEditModel] = useState<{ id: string; title: string; content: string; documentType: ClinicalDocumentType } | null>(null);
+  const previewModel = (t: { title: string; content: string; documentType: ClinicalDocumentType }) =>
+    void printDoc({ id: "modelo", patientId: "", professionalName: sessionName || "Nome do profissional", documentType: t.documentType, title: t.title, content: t.content, status: "ISSUED", issuedAt: new Date().toISOString(), authoredBy: "", contentHash: "", version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as Doc, "Nome do paciente", true);
+  const saveModel = async () => {
+    if (!editModel) return;
+    try { await updateClinicalDocumentTemplate(editModel.id, { title: editModel.title, content: editModel.content }); setEditModel(null); setNotice("Modelo atualizado."); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar o modelo."); }
   };
   const removeModel = async (id: string) => {
@@ -205,12 +213,28 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
 
       <ClinicLetterheadDialog open={kitOpen} onClose={() => setKitOpen(false)} onSaved={() => setNotice("Dados da clínica salvos. Os próximos documentos impressos já saem com eles.")} />
 
+      <Dialog open={Boolean(editModel)} onClose={() => setEditModel(null)} fullWidth maxWidth="md">
+        <DialogTitle sx={{ fontWeight: 900 }}>Editar modelo — {editModel ? LABELS[editModel.documentType] : ""}</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          <TextField label="Título" value={editModel?.title || ""} onChange={(e) => setEditModel((m) => (m ? { ...m, title: e.target.value } : m))} />
+          <TextField label="Conteúdo" multiline minRows={12} value={editModel?.content || ""} onChange={(e) => setEditModel((m) => (m ? { ...m, content: e.target.value } : m))} helperText="Use “Ver impresso” para conferir como sai no papel, com a logo e os dados da clínica." />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => editModel && previewModel(editModel)}>Ver impresso</Button>
+          <Box sx={{ flex: 1 }} />
+          <Button onClick={() => setEditModel(null)}>Cancelar</Button>
+          <Button variant="contained" disabled={!editModel?.title.trim() || !editModel?.content.trim()} onClick={() => void saveModel()}>Salvar modelo</Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={modelsOpen} onClose={() => setModelsOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle sx={{ fontWeight: 900 }}>Meus modelos de documento</DialogTitle>
         <DialogContent dividers>
           {templates.length === 0 ? <Typography color="text.secondary">Nenhum modelo ainda. Ao criar um documento, use “Salvar como modelo”.</Typography> : templates.map((t) => (
             <Box key={t.id} sx={{ display: "flex", alignItems: "center", gap: 1, py: 1, borderBottom: "1px solid", borderColor: "divider" }}>
               <Box sx={{ flex: 1 }}><Typography sx={{ fontWeight: 700 }}>{t.title}</Typography><Typography variant="caption" color="text.secondary">{LABELS[t.documentType] || t.documentType}</Typography></Box>
+              <Button size="small" onClick={() => previewModel(t)}>Ver impresso</Button>
+              <Button size="small" onClick={() => setEditModel({ id: t.id, title: t.title, content: t.content, documentType: t.documentType })}>Editar</Button>
               <Button size="small" color="error" onClick={() => void removeModel(t.id)}>Remover</Button>
             </Box>
           ))}

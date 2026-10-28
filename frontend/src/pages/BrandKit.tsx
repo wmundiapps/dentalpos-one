@@ -93,7 +93,7 @@ export default function BrandKit() {
   const clinic: KitClinic = useMemo(() => ({
     name: identity.displayName || identity.name || "Sua clínica", tagline: kit.tagline || "", logo: identity.logo || "", color: identity.primaryColor || "#1565C0",
     rtName: kit.rtName || "", rtCro: kit.rtCro || "", cnpj: identity.cnpj || "", phone: identity.phone || "", whatsapp: kit.whatsapp || "", email: identity.email || "",
-    address: identity.address || "", city: [identity.city, identity.state].filter(Boolean).join(" – "), site: kit.site || "", instagram: kit.instagram || "",
+    address: identity.address || "", city: [identity.city, identity.state].filter(Boolean).join(" – "), site: kit.site || "", instagram: kit.instagram || "", logoMm: kit.logoWidthMm,
   }), [identity, kit]);
 
   const people: KitPerson[] = useMemo(() => {
