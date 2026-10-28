@@ -58,6 +58,11 @@ export interface FinancialEntryInput {
   provider?: string;
   notes?: string;
   issuerEntity?: IssuerEntity;
+  origin?: string;
+  barcode?: string;
+  digitableLine?: string;
+  supplier?: string;
+  accountingMode?: string;
 }
 
 export interface FinancialDashboard {
