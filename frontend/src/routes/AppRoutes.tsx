@@ -42,6 +42,7 @@ const FinancialScanner = lazy(() => import("../pages/FinancialScanner"));
 const FiscalAutomation = lazy(() => import("../pages/FiscalAutomation"));
 const HumanResources = lazy(() => import("../pages/HumanResources"));
 const MyTimeclock = lazy(() => import("../pages/MyTimeclock"));
+const FacePunchKiosk = lazy(() => import("../pages/FacePunchKiosk"));
 const Laboratory = lazy(() => import("../pages/Laboratory"));
 const Marketing = lazy(() => import("../pages/Marketing"));
 const MarketingHub = lazy(() => import("../pages/MarketingHub"));
@@ -293,6 +294,7 @@ export default function AppRoutes() {
 
       <Route path="/rh" element={<HumanResources />} />
       <Route path="/meu-ponto" element={<MyTimeclock />} />
+      <Route path="/ponto-facial" element={<FacePunchKiosk />} />
 
       <Route
         path="/sugestoes-problemas"

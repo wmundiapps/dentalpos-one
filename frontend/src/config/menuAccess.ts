@@ -25,7 +25,7 @@ const MODULE_BY_PREFIX: Array<[string, string]> = [
   ["/rh", "hr"],
   ["/sales", "sales"], ["/estoque", "sales"],
   ["/painel-executivo", "settings"], ["/centro-de-comando", "settings"], ["/centro-de-inteligencia", "settings"], ["/indice-saude-clinica", "settings"], ["/benchmark", "settings"],
-  ["/configuracoes", "settings"], ["/clinicas", "settings"], ["/integracoes", "settings"], ["/importar-pacientes", "settings"], ["/importar-dados", "settings"],
+  ["/configuracoes", "settings"], ["/clinicas", "settings"], ["/integracoes", "settings"], ["/importar-pacientes", "settings"], ["/ponto-facial", "agenda"], ["/importar-dados", "settings"],
   ["/permissoes", "users"],
 ];
 

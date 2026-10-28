@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma'
 import { comparePassword } from './userService'
 import { writeAudit } from './auditService'
 import { cleanDataUrl, UploadRejected } from '../lib/uploadSafety'
+import { matchEmployee } from './hrFaceService'
 
 // Ponto eletrônico: batida com senha, IP e localização; resumo mensal, banco de horas e justificativas de falta.
 // Datas e horas são calculadas no horário de Brasília (UTC-3, sem horário de verão).
@@ -132,6 +133,11 @@ export async function punch(c: TimeCtx, meta: { ip: string; userAgent: string },
   }
   failures.delete(c.userId)
 
+  return recordPunch(emp, c, meta, body, 'PASSWORD')
+}
+
+// Registra a batida (senha ou rosto): confere local/IP, ordem das 4 batidas e intervalo mínimo.
+async function recordPunch(emp: { id: string; name: string }, c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, method: 'PASSWORD' | 'FACE', extraNote?: string) {
   const s = await getTimeSettings(c.clinicId)
   const lat = body?.latitude === undefined || body?.latitude === null ? null : Number(body.latitude)
   const lng = body?.longitude === undefined || body?.longitude === null ? null : Number(body.longitude)
@@ -150,7 +156,7 @@ export async function punch(c: TimeCtx, meta: { ip: string; userAgent: string },
   const note = [
     ipOk === null ? null : `IP ${ipOk ? 'autorizado' : 'fora da lista'}`,
     geoOk === null ? (s.latitude === null ? null : 'sem localização') : `${Math.round(distance as number)} m do local (${geoOk ? 'dentro' : 'fora'} do raio)`,
-  ].filter(Boolean).join(' · ') || null
+  ].concat(extraNote ? [extraNote] : []).filter(Boolean).join(' · ') || null
   if (s.blockOutside && inside === false) throw new HrError(403, 'O ponto só pode ser registrado no ambiente de trabalho.')
 
   const now = new Date()
@@ -161,10 +167,22 @@ export async function punch(c: TimeCtx, meta: { ip: string; userAgent: string },
   if (last && now.getTime() - last.punchedAt.getTime() < 60000) throw new HrError(409, 'Ponto registrado há instantes. Aguarde 1 minuto.')
   const kind = KINDS[todays.length]
   const row = await prisma.hRTimePunch.create({
-    data: { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, employeeId: emp.id, userId: c.userId, kind, punchedAt: now, ip: meta.ip || null, latitude: hasGeo ? lat : null, longitude: hasGeo ? lng : null, accuracyMeters: body?.accuracy !== undefined && Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null, insideWorkplace: inside, workplaceNote: note, method: 'PASSWORD', userAgent: meta.userAgent.slice(0, 200) },
+    data: { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, employeeId: emp.id, userId: c.userId, kind, punchedAt: now, ip: meta.ip || null, latitude: hasGeo ? lat : null, longitude: hasGeo ? lng : null, accuracyMeters: body?.accuracy !== undefined && Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null, insideWorkplace: inside, workplaceNote: note, method, userAgent: meta.userAgent.slice(0, 200) },
   })
   await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.userId, module: 'hr', action: 'TIME_PUNCH', entityType: 'HRTimePunch', entityId: row.id, summary: `${emp.name}: ${KIND_LABEL[kind]} às ${hhmm(now)}${inside === false ? ' (fora do local)' : ''}.` }).catch(() => undefined)
   return { id: row.id, kind, label: KIND_LABEL[kind], time: hhmm(now), insideWorkplace: inside, note }
+}
+
+// Ponto pelo rosto, no celular/tablet fixo da clínica: o aparelho (usuário logado) reconhece quem está na câmera e registra a batida dessa pessoa.
+export async function facePunch(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any) {
+  const m = await matchEmployee(c.clinicId, c.tenantId, body?.descriptor)
+  if (m.status === 'INVALID') throw new HrError(400, 'Captura do rosto inválida. Tente de novo.')
+  if (m.status === 'NONE') throw new HrError(404, 'Rosto não reconhecido. Aproxime-se da câmera ou fale com o RH para cadastrar seu rosto.')
+  if (m.status === 'AMBIGUOUS') throw new HrError(409, 'Não tenho certeza de quem é. Olhe de frente para a câmera, com boa luz.')
+  const emp = await prisma.hREmployee.findFirst({ where: { id: m.employeeId, clinicId: c.clinicId, tenantId: c.tenantId } })
+  if (!emp || ['TERMINATED', 'Desligado'].includes(emp.status)) throw new HrError(404, 'Colaborador não encontrado ou desligado.')
+  const result = await recordPunch(emp, c, meta, body, 'FACE', `rosto reconhecido (distância ${m.distance.toFixed(2)})`)
+  return { ...result, employeeName: emp.name }
 }
 
 export async function myToday(c: TimeCtx) {

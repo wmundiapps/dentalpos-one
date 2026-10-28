@@ -1,4 +1,5 @@
 import { useState } from "react";
+import EmployeeFaceDialog from "./EmployeeFaceDialog";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Typography } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import { HrApi, fmtDate, money, type Employee } from "../../services/HrApi";
@@ -16,6 +17,7 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
   const [form, setForm] = useState(blank);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [faceFor, setFaceFor] = useState<{ id: string; name: string } | null>(null);
   const set = (k: keyof typeof blank) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
   const openNew = () => { setEditing(null); setForm(blank); setError(""); setOpen(true); };
@@ -57,7 +59,7 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
           <Typography>{e.position}</Typography>
           <Chip size="small" label={e.employmentModel} />
           <Box><Typography>{money(e.baseSalary)}</Typography><Chip size="small" label={label(e.status)} color={e.status === "ACTIVE" ? "success" : e.status === "EXPERIENCE" ? "warning" : "default"} /></Box>
-          <Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(e)}>Editar</Button>
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}><Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(e)}>Editar</Button><Button size="small" onClick={() => setFaceFor({ id: e.id, name: e.name })}>Rosto do ponto</Button></Box>
         </Box>
       ))}
       <Dialog open={open} onClose={() => !busy && setOpen(false)} fullWidth maxWidth="md">
@@ -83,6 +85,7 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
         </DialogContent>
         <DialogActions><Button disabled={busy} onClick={() => setOpen(false)}>Cancelar</Button><Button variant="contained" disabled={busy} onClick={() => void save()}>Salvar colaborador</Button></DialogActions>
       </Dialog>
+      <EmployeeFaceDialog employee={faceFor} onClose={() => setFaceFor(null)} />
     </Box>
   );
 }

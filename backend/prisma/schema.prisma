@@ -2569,6 +2569,22 @@ model LabNotification {
   @@index([status, scheduledFor])
 }
 
+// Rosto do colaborador para bater o ponto (códigos numéricos do rosto, nunca a foto), com consentimento.
+model HREmployeeFace {
+  id          String   @id @default(cuid())
+  clinicId    String
+  tenantId    String
+  employeeId  String
+  samples     Json
+  consentAt   DateTime
+  consentById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([clinicId, employeeId])
+  @@index([tenantId])
+}
+
 // Ordem de serviço enviada ao laboratório de prótese (protocolo impresso, recebimento e relato de erros).
 model LabServiceOrder {
   id              String    @id @default(cuid())
