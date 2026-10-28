@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Avatar, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from "@mui/material";
+import { Alert, Avatar, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Slider, TextField, Typography } from "@mui/material";
 import { loadBrandKit, prepareLogo, saveBrandKit, saveClinicIdentity, type BrandKitData } from "../services/BrandKitApi";
 
 const blank = { displayName: "", cnpj: "", phone: "", email: "", address: "", city: "", state: "", zipCode: "", logo: "", rtName: "", rtCro: "", tagline: "", whatsapp: "", site: "", instagram: "" };
@@ -8,6 +8,7 @@ const blank = { displayName: "", cnpj: "", phone: "", email: "", address: "", ci
 export default function ClinicLetterheadDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved?: () => void }) {
   const [f, setF] = useState(blank);
   const [kit, setKit] = useState<BrandKitData>({});
+  const [logoMm, setLogoMm] = useState(35);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const file = useRef<HTMLInputElement>(null);
@@ -19,6 +20,7 @@ export default function ClinicLetterheadDialog({ open, onClose, onSaved }: { ope
     loadBrandKit().then((r) => {
       const c = r.clinic; const k = r.kit || {};
       setKit(k);
+      setLogoMm(Math.min(90, Math.max(15, Number(k.logoWidthMm) || 35)));
       setF({ displayName: c.displayName || c.name || "", cnpj: c.cnpj || "", phone: c.phone || "", email: c.email || "", address: c.address || "", city: c.city || "", state: c.state || "", zipCode: c.zipCode || "", logo: c.logo || "", rtName: k.rtName || "", rtCro: k.rtCro || "", tagline: k.tagline || "", whatsapp: k.whatsapp || "", site: k.site || "", instagram: k.instagram || "" });
     }).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível carregar os dados."));
   }, [open]);
@@ -34,7 +36,7 @@ export default function ClinicLetterheadDialog({ open, onClose, onSaved }: { ope
     setBusy(true); setError("");
     try {
       await saveClinicIdentity({ displayName: f.displayName, cnpj: f.cnpj, phone: f.phone, email: f.email, address: f.address, city: f.city, state: f.state, zipCode: f.zipCode, logo: f.logo || null });
-      await saveBrandKit({ ...kit, rtName: f.rtName, rtCro: f.rtCro, tagline: f.tagline, whatsapp: f.whatsapp, site: f.site, instagram: f.instagram });
+      await saveBrandKit({ ...kit, rtName: f.rtName, rtCro: f.rtCro, logoWidthMm: logoMm, tagline: f.tagline, whatsapp: f.whatsapp, site: f.site, instagram: f.instagram });
       onSaved?.(); onClose();
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar."); } finally { setBusy(false); }
   };
@@ -54,6 +56,23 @@ export default function ClinicLetterheadDialog({ open, onClose, onSaved }: { ope
             <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>PNG, JPG ou SVG, até 5 MB. Fundo transparente fica melhor.</Typography>
           </Box>
         </Box>
+        {f.logo && (
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 240px" }, gap: 3, alignItems: "center" }}>
+            <Box>
+              <Typography sx={{ fontWeight: 700 }}>Tamanho da logo na impressão: {logoMm} mm de largura</Typography>
+              <Slider min={15} max={90} step={1} value={logoMm} onChange={(_, v) => setLogoMm(v as number)} valueLabelDisplay="auto" valueLabelFormat={(v) => `${v} mm`} />
+              <Typography variant="caption" color="text.secondary">Papel A4 (210 mm de largura). A prévia ao lado mostra a folha em tamanho reduzido e fiel às proporções.</Typography>
+            </Box>
+            <Box sx={{ width: 240, height: 339, bgcolor: "#fff", border: "1px solid", borderColor: "divider", boxShadow: 2, p: "14px", boxSizing: "border-box", overflow: "hidden", textAlign: "center", justifySelf: "center" }}>
+              <img src={f.logo} alt="Prévia da logo" style={{ width: `${(logoMm / 210) * 212}px`, maxWidth: "100%", maxHeight: `${(60 / 297) * 311}px`, height: "auto" }} />
+              <Box sx={{ fontSize: 9, fontWeight: 800, color: "#222", mt: 0.5 }}>{f.displayName || "Nome da clínica"}</Box>
+              <Box sx={{ fontSize: 6, color: "#777" }}>{[f.cnpj && `CNPJ ${f.cnpj}`, f.phone].filter(Boolean).join(" · ")}</Box>
+              <Box sx={{ borderTop: "1px solid #333", mt: 0.8, mb: 1.2 }} />
+              <Box sx={{ fontSize: 10, fontWeight: 800, color: "#222" }}>RECEITUÁRIO</Box>
+              {[90, 80, 85, 60].map((w, i) => <Box key={i} sx={{ height: 4, bgcolor: "#ddd", width: `${w}%`, mx: "auto", mt: 0.8, borderRadius: 1 }} />)}
+            </Box>
+          </Box>
+        )}
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
           <TextField label="Nome da clínica" value={f.displayName} onChange={set("displayName")} />
           <TextField label="Frase / especialidade (opcional)" value={f.tagline} onChange={set("tagline")} />

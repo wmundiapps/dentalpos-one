@@ -25,6 +25,7 @@ export interface ControlledText { titulo: string; codigo: string; rev: string; e
 export interface BrandKitData {
   tagline?: string; whatsapp?: string; site?: string; instagram?: string;
   rtName?: string; rtCro?: string;
+  logoWidthMm?: number;
   cardOrient?: "h" | "v"; cardQR?: boolean;
   people?: Record<string, KitPersonOverride>;
   extraPeople?: KitExtraPerson[];
