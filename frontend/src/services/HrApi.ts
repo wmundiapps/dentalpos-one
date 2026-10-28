@@ -40,6 +40,8 @@ export const HrApi = {
   timesheet: (ref: string) => req<{ ref: string; settings: TimeSettings; employees: Array<{ employeeId: string; name: string; position: string; department: string; email: string | null; totals: Totals }> }>(`/hr/timesheet?ref=${ref}`),
   employeeMonth: (id: string, ref: string) => req<{ ref: string; employee: { id: string; name: string; position: string }; days: DayRow[]; totals: Totals; audit: Array<{ date: string; time: string; kind: string; ip: string | null; inside: boolean | null; note: string | null }> }>(`/hr/timesheet/${id}?ref=${ref}`),
   settings: () => req<TimeSettings>("/hr/timeclock/settings"),
+  accessStatus: () => req<Record<string, "OK" | "SEM_EMAIL" | "SEM_LOGIN" | "LOGIN_INATIVO">>("/hr/timeclock/access"),
+  grantAccess: (id: string, email: string) => req<{ created: boolean; emailSent: boolean; email: string; existingRole: string }>(`/hr/employees/${id}/timeclock-access`, { method: "POST", json: { email } }),
   saveSettings: (b: Omit<Partial<TimeSettings>, "allowedIps"> & { allowedIps?: string[] | string }) => req<TimeSettings>("/hr/timeclock/settings", { method: "PUT", json: b }),
   suggestions: (ref: string) => req<Suggestion[]>(`/hr/payroll-suggestions?ref=${ref}`),
   payrollEntries: (reference?: string) => req<Array<{ id: string; reference: string; type: string; description: string; value: number | string; employee?: { name: string } }>>(`/hr/payroll-entries${reference ? `?reference=${encodeURIComponent(reference)}` : ""}`),

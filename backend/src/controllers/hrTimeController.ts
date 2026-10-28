@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import * as hr from '../services/hrTimeService'
+import * as access from '../services/hrTimeclockAccessService'
 
 type AuthedReq = Request & { user?: { id: string; email: string; clinicId: string; tenantId: string; role: string } }
 
@@ -66,3 +67,7 @@ export const listDiscipline = wrap(async (req, res) => {
   const c = orgCtx(req)
   res.json(await prisma.hRDisciplinaryAction.findMany({ where: { clinicId: c.clinicId, tenantId: c.tenantId }, orderBy: { date: 'desc' }, take: 200, include: { employee: { select: { name: true } } } }))
 })
+
+// ---- acesso ao ponto (RH cria o login do colaborador; ele mesmo cria a senha pelo e-mail) ----
+export const accessStatus = wrap(async (req, res) => res.json(await access.accessStatus(orgCtx(req))))
+export const grantAccess = wrap(async (req, res) => res.json(await access.grantAccess(orgCtx(req), idOf(req), req.body)))
