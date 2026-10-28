@@ -72,7 +72,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
         DentalChartService.periodontalHistory(patientId)
       ])
       setEntries(chart.entries.filter(x=>x.status==='ACTIVE'))
-      setFindings(findingRows)
+      setFindings([...findingRows].sort((x,y)=>x.label.localeCompare(y.label,'pt-BR',{sensitivity:'base'})))
       setExams(history.exams)
       setTeeth(dentition === 'CHILD' ? chart.childTeeth : chart.adultTeeth)
     } catch (e:any) { setError(e.message) }

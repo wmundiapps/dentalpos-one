@@ -1,6 +1,9 @@
 import { Autocomplete, TextField } from "@mui/material";
 import { cbhpoProcedures, procedureLabel, type DentalProcedure } from "../data/cbhpoProcedures";
 
+// Ordem alfabética: por área e, dentro dela, pelo nome do procedimento.
+const sortedProcedures = [...cbhpoProcedures].sort((a, b) => a.category.localeCompare(b.category, "pt-BR") || a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
+
 export default function ProcedurePicker({
   label = "Procedimento",
   value,
@@ -17,7 +20,7 @@ export default function ProcedurePicker({
   return (
     <Autocomplete
       freeSolo
-      options={cbhpoProcedures}
+      options={sortedProcedures}
       value={selected}
       inputValue={value}
       getOptionLabel={(option) =>
