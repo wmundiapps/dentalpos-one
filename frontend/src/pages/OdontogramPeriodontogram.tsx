@@ -144,10 +144,10 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
       {unplannedMsg && <Alert severity="warning" sx={{mt:1}} onClose={()=>setUnplannedMsg('')} action={<Button size="small" onClick={()=>navigate(`/orcamentos-tratamentos?patientId=${encodeURIComponent(patientId)}`)}>Ir para o orçamento</Button>}>{unplannedMsg}</Alert>}
       {planMsg && <Alert severity="info" sx={{mt:1}} onClose={()=>setPlanMsg('')} action={<Button size="small" onClick={()=>navigate(`/orcamentos-tratamentos?patientId=${encodeURIComponent(patientId)}`)}>Abrir orçamento</Button>}>{planMsg}</Alert>}
       <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'1fr 1fr 1fr'},gap:1.5,mt:2}}>
-        <FormControl><InputLabel>Dente(s) FDI</InputLabel><Select multiple value={procTeeth} label="Dente(s) FDI" onChange={e=>setProcTeeth((e.target.value as number[]).map(Number))} renderValue={(v)=>(v as number[]).join(', ')}>
+        <FormControl><InputLabel>Dente(s) FDI</InputLabel><Select multiple value={procTeeth} label="Dente(s) FDI" onChange={e=>setProcTeeth((e.target.value as number[]).map(Number))} renderValue={(v)=><Box sx={{display:'flex',flexWrap:'wrap',gap:0.5}}>{(v as number[]).map(t=><Chip key={t} size="small" label={t} onMouseDown={e=>e.stopPropagation()} onDelete={()=>setProcTeeth(procTeeth.filter(x=>x!==t))}/>)}</Box>} endAdornment={procTeeth.length?<Button size="small" color="error" sx={{mr:3,minWidth:0}} onMouseDown={e=>e.stopPropagation()} onClick={()=>setProcTeeth([])}>Limpar</Button>:undefined}>
           {teeth.map(t=><MenuItem key={t} value={t}>{t}</MenuItem>)}
         </Select></FormControl>
-        <FormControl><InputLabel>Face(s) (opcional)</InputLabel><Select multiple value={procFaces} label="Face(s) (opcional)" onChange={e=>setProcFaces(e.target.value as ToothSurface[])} renderValue={(v)=>(v as string[]).join(' ')}>
+        <FormControl><InputLabel>Face(s) (opcional)</InputLabel><Select multiple value={procFaces} label="Face(s) (opcional)" onChange={e=>setProcFaces(e.target.value as ToothSurface[])} renderValue={(v)=><Box sx={{display:'flex',flexWrap:'wrap',gap:0.5}}>{(v as string[]).map(f=><Chip key={f} size="small" label={f} onMouseDown={e=>e.stopPropagation()} onDelete={()=>setProcFaces(procFaces.filter(x=>x!==f))}/>)}</Box>}>
           {SURFACES.map(s=><MenuItem key={s} value={s}>{s}</MenuItem>)}
         </Select></FormControl>
         <FormControl><InputLabel>Procedimento realizado</InputLabel><Select value={procFinding} label="Procedimento realizado" onChange={e=>setProcFinding(e.target.value)}>
