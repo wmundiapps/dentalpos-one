@@ -31,6 +31,13 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
   const [cancelRow, setCancelRow] = useState<Row | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
+  const [filter, setFilter] = useState<"" | "Recebido" | "Atrasado" | "A vencer" | "A pagar ao paciente">("");
+  const matches = (r: Row) => {
+    if (!filter) return true;
+    const s = situation(r).label;
+    if (filter === "A pagar ao paciente") return r.type === "EXPENSE" && s !== "Pago" && s !== "Cancelado";
+    return r.type !== "EXPENSE" && s === filter;
+  };
 
   const load = useCallback(() => {
     loadFinancialEntries()
@@ -81,7 +88,7 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4,1fr)" }, gap: 2 }}>
         {([["Recebido", totals.received, "success.main"], ["Atrasado", totals.overdue, "error.main"], ["A vencer", totals.open, "warning.main"], ["A pagar ao paciente", totals.payable, "text.primary"]] as const).map(([t, v, c]) => (
-          <Paper key={t} variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+          <Paper key={t} variant="outlined" onClick={() => setFilter((cur) => (cur === t ? "" : t))} sx={{ p: 2, borderRadius: 3, cursor: "pointer", borderColor: filter === t ? c : "divider", borderWidth: filter === t ? 2 : 1, bgcolor: filter === t ? "action.hover" : "background.paper", "&:hover": { borderColor: c } }}>
             <Typography variant="body2" color="text.secondary">{t}</Typography>
             <Typography variant="h6" sx={{ fontWeight: 900, color: c }}>{brl(v)}</Typography>
           </Paper>
@@ -90,11 +97,12 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
         <Typography variant="h6" sx={{ fontWeight: 800 }}>Histórico financeiro (contas a receber e a pagar)</Typography>
+        {filter && <Chip color="primary" label={`Filtrando: ${filter} (${rows.filter(matches).length}) — limpar`} onClick={() => setFilter("")} onDelete={() => setFilter("")} />}
         <Button size="small" variant="outlined" onClick={() => navigate(`/financeiro?paciente=${encodeURIComponent(patient.fullName)}`)}>Abrir financeiro completo</Button>
       </Box>
-      {rows.length === 0 ? <Typography color="text.secondary">Nenhum lançamento para este paciente ainda. Use os botões acima para gerar o primeiro financeiro.</Typography> : (
+      {rows.length > 0 && rows.filter(matches).length === 0 ? <Typography color="text.secondary">Nenhum lançamento nesta situação. Clique no quadro de novo para ver todos.</Typography> : rows.length === 0 ? <Typography color="text.secondary">Nenhum lançamento para este paciente ainda. Use os botões acima para gerar o primeiro financeiro.</Typography> : (
         <Box sx={{ display: "grid", gap: 1 }}>
-          {rows.map((r) => {
+          {rows.filter(matches).map((r) => {
             const s = situation(r);
             const open = r.status === "PENDING" && r.type === "INCOME";
             const other = r.personName && r.personName.trim().toLowerCase() !== patient.fullName.trim().toLowerCase();
