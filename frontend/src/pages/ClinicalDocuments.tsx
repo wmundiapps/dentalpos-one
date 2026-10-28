@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Autocomplete, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -10,6 +10,7 @@ import RichTextEditor from "../components/RichTextEditor";
 import { richToText, toRichHtml } from "../utils/richText";
 import ClinicLetterheadDialog from "../components/ClinicLetterheadDialog";
 import { createClinicalDocument, createClinicalDocumentTemplate, updateClinicalDocumentTemplate, issueClinicalDocument, listClinicalDocuments, listClinicalDocumentTemplates } from "../services/ClinicalDocumentService";
+import { loadDoctors, type Doctor } from "../services/DoctorApi";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { readSessionUser } from "../services/DemoAccess";
 import { loadBrandKit } from "../services/BrandKitApi";
@@ -58,6 +59,9 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
   const [rows, setRows] = useState<Doc[]>([]);
   const [templates, setTemplates] = useState<ClinicalDocumentTemplate[]>([]);
   const [patients, setPatients] = useState<BackendPatient[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const doctorLabel = (d: Doctor) => { const n = `${d.user?.firstName || ""} ${d.user?.lastName || ""}`.trim() || d.user?.email || "Dentista"; return d.cro ? `${n} – CRO${d.croState ? `-${d.croState}` : ""} ${d.cro}` : n; };
+  const activeDoctors = useMemo(() => doctors.filter((d) => d.isActive !== false), [doctors]);
   const [filterPatient, setFilterPatient] = useState(fixedPatientId || searchParams.get("patientId") || "");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -84,7 +88,7 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
     if (!window.confirm("Remover este modelo? Os documentos já criados não mudam.")) return;
     try { await updateClinicalDocumentTemplate(id, { isActive: false }); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível remover."); }
   };
-  const emptyForm = () => ({ patientId: filterPatient, professionalName: sessionName, documentType: "PRESCRIPTION" as ClinicalDocumentType, title: "", content: "", templateId: "" });
+  const emptyForm = () => ({ patientId: filterPatient, professionalName: sessionName, documentType: "PRESCRIPTION" as ClinicalDocumentType, title: "", content: "", templateId: "", professionalId: "" });
   const [form, setForm] = useState(emptyForm);
 
   const load = async () => {
@@ -92,6 +96,7 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
     try {
       const [docs, tpls, pts] = await Promise.all([listClinicalDocuments(), listClinicalDocumentTemplates(), loadBackendPatients()]);
       setRows(docs as Doc[]); setTemplates(tpls); setPatients(pts);
+      loadDoctors().then(setDoctors).catch(() => undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao carregar documentos.");
     } finally {
@@ -114,7 +119,7 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
     setSaving(true);
     setError("");
     try {
-      await createClinicalDocument({ ...form, templateId: form.templateId || undefined, status: "DRAFT" });
+      await createClinicalDocument({ ...form, templateId: form.templateId || undefined, professionalId: form.professionalId || undefined, status: "DRAFT" });
       setOpen(false);
       await load();
     } catch (e) {
@@ -183,7 +188,15 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
               {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.fullName}</MenuItem>)}
             </TextField>
           )}
-          <TextField required label={"Profissional responsável"} value={form.professionalName} onChange={(e) => setForm({ ...form, professionalName: e.target.value })} />
+          <Autocomplete
+            freeSolo
+            options={activeDoctors}
+            getOptionLabel={(o) => (typeof o === "string" ? o : doctorLabel(o))}
+            inputValue={form.professionalName}
+            onInputChange={(_, v, reason) => { if (reason !== "reset") setForm((f) => ({ ...f, professionalName: v, professionalId: "" })); }}
+            onChange={(_, v) => { if (v && typeof v !== "string") setForm((f) => ({ ...f, professionalName: doctorLabel(v), professionalId: v.id })); }}
+            renderInput={(params) => <TextField {...params} required label="Profissional responsável" helperText="Escolha o dentista na lista (com o CRO) ou digite outro nome." />}
+          />
           <TextField select label={"Modelo da clínica"} value={form.templateId} onChange={(e) => chooseTemplate(e.target.value)}>
             <MenuItem value="">Sem modelo</MenuItem>
             {templates.map((t) => <MenuItem key={t.id} value={t.id}>{t.title}</MenuItem>)}
