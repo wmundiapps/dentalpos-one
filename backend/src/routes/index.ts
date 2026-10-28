@@ -533,6 +533,9 @@ router.put('/fiscal/documents/:id', requirePermission('accounting.edit'), fiscal
 router.post('/fiscal/documents/:id/issue', requirePermission('accounting.edit'), fiscalController.issue)
 router.post('/fiscal/documents/:id/send', requirePermission('accounting.edit'), fiscalController.send)
 router.post('/fiscal/documents/:id/conclude', requirePermission('accounting.edit'), fiscalController.conclude)
+router.get('/fiscal/receita-saude/professionals', requirePermission('accounting.view'), fiscalController.receitaSaudeProfessionals)
+router.get('/fiscal/receita-saude/pending', requirePermission('accounting.view'), fiscalController.receitaSaudePending)
+router.post('/fiscal/receita-saude/export', requirePermission('accounting.edit'), fiscalController.receitaSaudeExport)
 
 // ======================
 // FEEDBACKS
