@@ -75,7 +75,7 @@ export default function FinancialPlanningPanel({ reloadKey, onChanged }: { reloa
                   <Box><Typography sx={{ fontWeight: 800 }}>{d.name}</Typography><Typography variant="body2" color="text.secondary">{`${d.count} parcela(s) \u2022 mais antiga ${brDate(d.oldestDueDate)}${d.phone ? ` \u2022 ${d.phone}` : ""}`}</Typography></Box>
                   <Typography sx={{ fontWeight: 800 }} color="error.main">{money(d.total)}</Typography>
                   <Chip size="small" color={d.daysOverdue > 60 ? "error" : d.daysOverdue > 30 ? "warning" : "default"} label={`${d.daysOverdue} dia(s) de atraso`} />
-                  <Box sx={{ display: "flex", gap: 0.5 }}><Button size="small" onClick={() => goTo(d.name)}>{"Lan\u00e7amentos"}</Button>{wa && <Button size="small" href={wa} target="_blank" rel="noopener">WhatsApp</Button>}</Box>
+                  <Box sx={{ display: "flex", gap: 0.5 }}>{d.patientId && <Button size="small" variant="outlined" onClick={() => navigate(`/ficha-paciente?patientId=${encodeURIComponent(d.patientId as string)}&aba=financeiro`)}>Painel do paciente</Button>}<Button size="small" onClick={() => goTo(d.name)}>{"Lan\u00e7amentos"}</Button>{wa && <Button size="small" href={wa} target="_blank" rel="noopener">WhatsApp</Button>}</Box>
                 </Box>);
             })}
           </>}
