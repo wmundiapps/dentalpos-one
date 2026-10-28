@@ -20,6 +20,16 @@ export default function FacePunchKiosk() {
   const [geoMsg, setGeoMsg] = useState("");
   const geo = useRef<Geo>({});
 
+  // Atalho na tela inicial: troca o manifesto do app só nesta tela, para abrir direto no ponto.
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "manifest"; link.href = "/manifest-ponto.webmanifest";
+    document.head.appendChild(link);
+    const prev = document.title;
+    document.title = "Ponto";
+    return () => { link.remove(); document.title = prev; };
+  }, []);
+
   useEffect(() => {
     if (!navigator.geolocation) { setGeoMsg("Este aparelho não informa a localização."); return; }
     const id = navigator.geolocation.watchPosition(
