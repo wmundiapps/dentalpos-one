@@ -176,6 +176,9 @@ export async function update(req: AuthRequest, res: Response) {
         data.consultationValue = parsed
       }
     }
+    const firstName = typeof req.body.firstName === 'string' ? req.body.firstName.trim().slice(0, 80) : ''
+    const lastName = typeof req.body.lastName === 'string' ? req.body.lastName.trim().slice(0, 80) : ''
+    if (firstName) await prisma.user.updateMany({ where: { id: existing.userId, clinicId, tenantId }, data: { firstName, lastName } })
     const doctor = await prisma.doctor.update({
       where: { id },
       data: { ...data, ...doctorExtra(req.body) },

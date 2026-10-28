@@ -14,6 +14,7 @@ const ESPECIALIDADES = ["Clínica geral","Implantodontia","Prótese","Ortodontia
 const TIPOS_DOC: Array<[string, string]> = [["RG_CPF","RG / CPF"],["ENDERECO","Comprovante de endereço"],["DIPLOMA","Diploma"],["CRO","Carteira do CRO"],["CRO_REGULARIDADE","Certidão de regularidade do CRO"],["ESPECIALIZACAO","Título de especialista"],["CNPJ","Cartão CNPJ"],["CONTRATO_SOCIAL","Contrato social"],["ALVARA","Alvará de funcionamento"],["ALVARA_SANITARIO","Alvará sanitário"],["RESP_TECNICA","Responsabilidade técnica"],["CONTRATO_PRESTACAO","Contrato de prestação de serviço"],["SEGURO","Seguro de responsabilidade civil"],["OUTRO","Outro"]];
 
 const VAZIO = {
+  firstName: "", lastName: "",
   userId:"", cro:"", croState:"", rqe:"", specialty:"", specialties:[] as string[], contractType:"CLINICA", documentIssuer:"CLINICA",
   revenueModel:"HONORARIO", revenuePercent:"", revenueBase:"BRUTO", materialSplit:"RATEADO", labSplit:"RATEADO", cardFeeSplit:"RATEADO",
   cpf:"", rg:"", birthDate:"", personalAddress:"", personalCity:"", personalState:"", personalZipCode:"",
@@ -54,7 +55,7 @@ export default function ClinicalTeam() {
   const abrirNovo = () => { setEditId(null); setForm(VAZIO); setNovoUsuario(NOVO_USUARIO); setAba(0); setError(""); setOpen(true); };
   const abrirEdicao = (d: Doctor) => {
     setEditId(d.id);
-    setForm({ ...VAZIO, userId:d.userId, cro:d.cro||"", croState:d.croState||"", rqe:d.rqe||"", specialty:d.specialty||"", specialties:d.specialties||[],
+    setForm({ ...VAZIO, firstName:d.user?.firstName||"", lastName:d.user?.lastName||"", userId:d.userId, cro:d.cro||"", croState:d.croState||"", rqe:d.rqe||"", specialty:d.specialty||"", specialties:d.specialties||[],
       contractType:d.contractType||"CLINICA", documentIssuer:d.documentIssuer||"CLINICA",
       revenueModel:d.revenueModel||"HONORARIO", revenuePercent:d.revenuePercent!=null?String(d.revenuePercent):"", revenueBase:d.revenueBase||"BRUTO",
       materialSplit:d.materialSplit||"RATEADO", labSplit:d.labSplit||"RATEADO", cardFeeSplit:d.cardFeeSplit||"RATEADO",
@@ -72,7 +73,9 @@ export default function ClinicalTeam() {
     setBusy(true); setError("");
     try {
       const payload: Record<string, unknown> = { ...form, specialty: form.specialty || form.specialties[0] || "Clínica geral" };
-      if (editId) { delete payload.userId; await updateDoctor(editId, payload); }
+      if (editId) {
+        if (!form.firstName.trim()) { setError("Informe o nome do profissional."); setBusy(false); return; }
+        delete payload.userId; await updateDoctor(editId, payload); }
       else {
         if (!form.cro.trim()) { setError("Informe o CRO."); setBusy(false); return; }
         if (novoUsuario.aberto) {
@@ -163,6 +166,10 @@ export default function ClinicalTeam() {
           </Tabs>
           {aba === 0 && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+              {editId && (<>
+                <TextField required label="Nome" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+                <TextField required label="Sobrenome" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} helperText="Aparece nos documentos, agenda e relatórios." />
+              </>)}
               {!editId && (
                 <Box sx={{ gridColumn: { md: "1/-1" }, display: "grid", gap: 1.5 }}>
                   {!novoUsuario.aberto && (
