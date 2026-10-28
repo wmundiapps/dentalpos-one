@@ -21,10 +21,13 @@ import { useNavigate } from "react-router-dom";
 import ProcedurePicker from "./ProcedurePicker";
 import DurationSelect from "./DurationSelect";
 import { loadTeamMembers, type TeamMember } from "../services/TeamApi";
+import NextProcedureHint from "./NextProcedureHint";
 import PatientSearchField, { formatPhoneBR, isValidPhoneBR, onlyDigits, type PatientChoice } from "./PatientSearchField";
 import { createBackendPatient, loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import {
   createBackendAppointment,
+  loadNextProcedureHint,
+  type NextProcedureHint as NextHint,
   isFinancialHold,
   loadBackendAvailability,
   loadBackendDoctors,
@@ -80,6 +83,21 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
   const [breaks, setBreaks] = useState<RecurringBreak[]>([]);
   const [choice, setChoice] = useState<PatientChoice>(null);
   const [procedure, setProcedure] = useState(DEFAULT_PROCEDURE);
+  const [nextHint, setNextHint] = useState<NextHint | null>(null);
+  const registeredId = choice?.mode === "registered" ? choice.patient.id : "";
+  const useHint = (h: NextHint) => { setProcedure(h.nextProcedure); setDuration(suggestDuration(h.nextProcedure)); };
+  useEffect(() => {
+    setNextHint(null);
+    if (!registeredId) return;
+    let alive = true;
+    loadNextProcedureHint(registeredId).then((h) => {
+      if (!alive || !h) return;
+      setNextHint(h);
+      setProcedure((cur) => (!cur.trim() || cur === DEFAULT_PROCEDURE || cur === prefill?.procedure ? h.nextProcedure : cur));
+    }).catch(() => undefined);
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registeredId]);
   const [duration, setDuration] = useState(30);
   const [doctorId, setDoctorId] = useState("");
   const [assistants, setAssistants] = useState<TeamMember[]>([]);
@@ -181,6 +199,7 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
       setHoldPatient({ id: patient.id, name: patient.fullName });
       const scheduledAt = new Date(`${dateISO}T${time}:00`);
       await createBackendAppointment({
+        evolutionId: nextHint && procedure.trim() === nextHint.nextProcedure ? nextHint.evolutionId : undefined,
         patientId: patient.id,
         doctorId,
         procedure: procedure.trim() || DEFAULT_PROCEDURE,
@@ -222,6 +241,7 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
               <PatientSearchField patients={patients} value={choice} onChange={setChoice} autoFocus />
             )}
 
+            <NextProcedureHint hint={nextHint} current={procedure} onUse={() => nextHint && useHint(nextHint)} />
             <ProcedurePicker
               value={procedure}
               onChange={(name) => {

@@ -24,6 +24,7 @@ import * as publicBookingController from '../controllers/publicBookingController
 import * as scheduleController from '../controllers/scheduleController'
 import * as budgetController from '../controllers/budgetController'
 import * as paymentController from '../controllers/paymentController'
+import * as nextProcedureController from '../controllers/nextProcedureController'
 import * as financialController from '../controllers/financialController'
 import * as financialPlanningController from '../controllers/financialPlanningController'
 import * as paymentProviderController from '../controllers/paymentProviderController'
@@ -165,6 +166,7 @@ router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.
 router.delete('/team-member/:id', requirePermission('agenda.edit'), teamController.remove)
 router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
 router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendingAlertController.updateSettings)
+router.get('/patients/:id/next-procedure', requirePermission('agenda.view'), nextProcedureController.hint)
 router.get('/patients/:id/financial-hold', requirePermission('agenda.view'), financialHoldController.patientHold)
 router.get('/financial-hold/settings', requirePermission('agenda.view'), financialHoldController.settings)
 router.put('/financial-hold/settings', requirePermission('finance.approve'), financialHoldController.updateSettings)
