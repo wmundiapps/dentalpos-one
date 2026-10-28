@@ -6,7 +6,8 @@ import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PageHeader from "../components/PageHeader";
 import PatientAlertBanner from "../components/patient/PatientAlertBanner";
-import { createClinicalDocument, issueClinicalDocument, listClinicalDocuments, listClinicalDocumentTemplates } from "../services/ClinicalDocumentService";
+import ClinicLetterheadDialog from "../components/ClinicLetterheadDialog";
+import { createClinicalDocument, createClinicalDocumentTemplate, updateClinicalDocumentTemplate, issueClinicalDocument, listClinicalDocuments, listClinicalDocumentTemplates } from "../services/ClinicalDocumentService";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { readSessionUser } from "../services/DemoAccess";
 import { loadBrandKit } from "../services/BrandKitApi";
@@ -58,6 +59,17 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
   const [saving, setSaving] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState("");
   const [view, setView] = useState<Doc | null>(null);
+  const [kitOpen, setKitOpen] = useState(false);
+  const [modelsOpen, setModelsOpen] = useState(false);
+  const [notice, setNotice] = useState("");
+  const saveAsModel = async () => {
+    try { await createClinicalDocumentTemplate({ documentType: form.documentType, title: form.title, content: form.content }); setNotice("Modelo salvo. Ele aparece em “Modelo da clínica” nos próximos documentos."); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar o modelo."); }
+  };
+  const removeModel = async (id: string) => {
+    if (!window.confirm("Remover este modelo? Os documentos já criados não mudam.")) return;
+    try { await updateClinicalDocumentTemplate(id, { isActive: false }); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível remover."); }
+  };
   const emptyForm = () => ({ patientId: filterPatient, professionalName: sessionName, documentType: "PRESCRIPTION" as ClinicalDocumentType, title: "", content: "", templateId: "" });
   const [form, setForm] = useState(emptyForm);
 
@@ -105,6 +117,11 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
       {!fixedPatientId && <PatientAlertBanner patientId={filterPatient} />}
       <PageHeader title="Documentos e Contratos" description={"Receitas, atestados, declarações, encaminhamentos, pedidos de exame, termos e contratos com autoria e histórico."} actionLabel="Novo documento" actionIcon={<AddIcon />} onAction={openNew} />
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
+      {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
+      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
+        <Button variant="outlined" onClick={() => setKitOpen(true)}>Dados da clínica e logo</Button>
+        <Button variant="outlined" onClick={() => setModelsOpen(true)}>{`Meus modelos (${templates.length})`}</Button>
+      </Box>
       {!fixedPatientId && (
         <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 3 }}>
           <TextField select fullWidth label="Paciente" value={filterPatient} onChange={(e) => setFilterPatient(e.target.value)}>
@@ -164,6 +181,8 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
           <TextField required label={"Conteúdo"} multiline minRows={10} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} helperText={"Salvo como rascunho. Ao emitir, fica registrado com autoria, data e versão."} />
         </DialogContent>
         <DialogActions>
+          <Button disabled={!form.title.trim() || !form.content.trim()} onClick={() => void saveAsModel()}>Salvar como modelo</Button>
+          <Box sx={{ flex: 1 }} />
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
           <Button variant="contained" disabled={!canSave || saving} onClick={() => void save()}>{saving ? "Salvando..." : "Salvar rascunho"}</Button>
         </DialogActions>
@@ -178,6 +197,21 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
           {view && <Button startIcon={<LocalPrintshopIcon />} onClick={() => printDoc(view, nameOf(view.patientId))}>Imprimir</Button>}
           <Button onClick={() => setView(null)}>Fechar</Button>
         </DialogActions>
+      </Dialog>
+
+      <ClinicLetterheadDialog open={kitOpen} onClose={() => setKitOpen(false)} onSaved={() => setNotice("Dados da clínica salvos. Os próximos documentos impressos já saem com eles.")} />
+
+      <Dialog open={modelsOpen} onClose={() => setModelsOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 900 }}>Meus modelos de documento</DialogTitle>
+        <DialogContent dividers>
+          {templates.length === 0 ? <Typography color="text.secondary">Nenhum modelo ainda. Ao criar um documento, use “Salvar como modelo”.</Typography> : templates.map((t) => (
+            <Box key={t.id} sx={{ display: "flex", alignItems: "center", gap: 1, py: 1, borderBottom: "1px solid", borderColor: "divider" }}>
+              <Box sx={{ flex: 1 }}><Typography sx={{ fontWeight: 700 }}>{t.title}</Typography><Typography variant="caption" color="text.secondary">{LABELS[t.documentType] || t.documentType}</Typography></Box>
+              <Button size="small" color="error" onClick={() => void removeModel(t.id)}>Remover</Button>
+            </Box>
+          ))}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setModelsOpen(false)}>Fechar</Button></DialogActions>
       </Dialog>
     </Box>
   );
