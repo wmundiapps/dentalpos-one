@@ -29,17 +29,19 @@ async function printDoc(doc: Doc, patientName: string) {
   if (!w) return;
   w.document.write("<p style=\"font-family:Arial;padding:40px\">Preparando documento…</p>");
   let head = "";
+  let logoMm = 35;
   try {
     const r = await loadBrandKit();
     const c = r.clinic; const k = r.kit || {};
     head = letterhead({ name: c.displayName || c.name, tagline: k.tagline || "", logo: c.logo || "", color: c.primaryColor || "#1565C0", rtName: k.rtName || "", rtCro: k.rtCro || "", cnpj: c.cnpj || "", phone: c.phone || "", whatsapp: k.whatsapp || "", email: c.email || "", address: c.address || "", city: [c.city, c.state].filter(Boolean).join(" – "), site: k.site || "", instagram: k.instagram || "" });
+    logoMm = Math.min(90, Math.max(15, Number(k.logoWidthMm) || 35));
     head = `<div class="bkit"><div style="--b:${esc(c.primaryColor || "#1565C0")}">${head}</div></div>`;
   } catch { /* sem identidade: imprime sem timbre */ }
   const when = new Date(doc.issuedAt || doc.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
   const pro = doc.professionalName ? (/^(dr|dra|dr\.|dra\.)\s/i.test(doc.professionalName.trim()) ? doc.professionalName : `Dr(a). ${doc.professionalName}`) : "";
   const meta = `<div class="pat">${esc(patientName)}</div>${pro ? `<div class="pro">${esc(pro)}</div>` : ""}<div class="when">${doc.status === "DRAFT" ? "Rascunho" : "Emitido"} em ${esc(when)}</div>`;
   w.document.open();
-  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(doc.title)}</title><style>${KIT_CSS}body{font-family:Arial,sans-serif;margin:40px;color:#111;line-height:1.5}.dh{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:6px!important}.dh .who,.dh .who span{text-align:center!important;display:block}.dh .lg{margin:0 auto!important}h1{font-size:20px;margin:24px 0 8px;text-align:center}body{text-align:center}.meta{margin-bottom:24px}.pat{font-size:22px;font-weight:800}.pro{font-size:15px;margin-top:2px}.when{font-size:13px;color:#555;margin-top:2px}pre{white-space:pre-wrap;font-family:inherit;font-size:14px;text-align:center}</style></head><body>${head}<h1>${esc(doc.title)}</h1><div class="meta">${meta}</div><pre>${esc(doc.content || "")}</pre></body></html>`);
+  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(doc.title)}</title><style>${KIT_CSS}.bkit .dh .lg{width:auto!important;height:auto!important}.bkit .dh .lg img{width:${logoMm}mm!important;max-width:100%!important;height:auto!important;max-height:60mm!important}body{font-family:Arial,sans-serif;margin:40px;color:#111;line-height:1.5}.dh{flex-direction:column!important;align-items:center!important;text-align:center!important;gap:6px!important}.dh .who,.dh .who span{text-align:center!important;display:block}.dh .lg{margin:0 auto!important}h1{font-size:20px;margin:24px 0 8px;text-align:center}body{text-align:center}.meta{margin-bottom:24px}.pat{font-size:22px;font-weight:800}.pro{font-size:15px;margin-top:2px}.when{font-size:13px;color:#555;margin-top:2px}pre{white-space:pre-wrap;font-family:inherit;font-size:14px;text-align:center}</style></head><body>${head}<h1>${esc(doc.title)}</h1><div class="meta">${meta}</div><pre>${esc(doc.content || "")}</pre></body></html>`);
   w.document.close();
   const imgs = Array.from(w.document.images);
   await Promise.all(imgs.map((i) => (i.complete ? Promise.resolve() : new Promise<void>((r) => { i.onload = () => r(); i.onerror = () => r(); }))));
