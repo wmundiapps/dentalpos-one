@@ -5,6 +5,7 @@ import ChargeDialog, { type ChargeEntry } from "../ChargeDialog";
 import NewChargeDialog, { type ChargeMethod } from "./NewChargeDialog";
 import { cancelFinancialEntry, loadFinancialEntries, settleFinancialEntry, type FinancialEntry } from "../../services/FinancialApi";
 import type { BackendPatient } from "../../services/PatientApi";
+import { printDebtReport } from "../../utils/debtReport";
 import { errorMessage, toast } from "../../utils/toast";
 
 type Row = FinancialEntry & { fiscalDocumentType?: string | null; documentNumber?: string | null };
@@ -31,6 +32,10 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
   const [cancelRow, setCancelRow] = useState<Row | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
+  const [debtOpen, setDebtOpen] = useState(false);
+  const [debtInterest, setDebtInterest] = useState(false);
+  const [debtFine, setDebtFine] = useState("2");
+  const [debtRate, setDebtRate] = useState("1");
   const [filter, setFilter] = useState<"" | "Recebido" | "Atrasado" | "A vencer" | "A pagar ao paciente">("");
   const matches = (r: Row) => {
     if (!filter) return true;
@@ -97,6 +102,7 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
         <Typography variant="h6" sx={{ fontWeight: 800 }}>Histórico financeiro (contas a receber e a pagar)</Typography>
+        {(rows || []).some((r) => r.type !== "EXPENSE" && situation(r).label === "Atrasado") && <Button size="small" variant="outlined" color="error" onClick={() => setDebtOpen(true)}>Relatório de débitos (cartório)</Button>}
         {filter && <Chip color="primary" label={`Filtrando: ${filter} (${rows.filter(matches).length}) — limpar`} onClick={() => setFilter("")} onDelete={() => setFilter("")} />}
         <Button size="small" variant="outlined" onClick={() => navigate(`/financeiro?paciente=${encodeURIComponent(patient.fullName)}`)}>Abrir financeiro completo</Button>
       </Box>
@@ -152,6 +158,27 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
         </DialogActions>
       </Dialog>
       <NewChargeDialog patient={patient} open={Boolean(newMethod)} initialMethod={newMethod || undefined} onClose={() => setNewMethod(null)} onDone={load} />
+      <Dialog open={debtOpen} onClose={() => setDebtOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ fontWeight: 900 }}>Relatório de débitos — cartório</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          <Typography variant="body2" color="text.secondary">Gera uma folha para imprimir com os dados da clínica e do paciente, as parcelas vencidas mês a mês e o total devido.</Typography>
+          <Box component="label" sx={{ display: "flex", alignItems: "center", gap: 1, cursor: "pointer" }}><input type="checkbox" checked={debtInterest} onChange={(e) => setDebtInterest(e.target.checked)} /> Incluir multa e juros (valor atualizado)</Box>
+          {debtInterest && (<Box sx={{ display: "flex", gap: 2 }}>
+            <TextField size="small" label="Multa (%)" value={debtFine} onChange={(e) => setDebtFine(e.target.value)} />
+            <TextField size="small" label="Juros (% ao mês)" value={debtRate} onChange={(e) => setDebtRate(e.target.value)} />
+          </Box>)}
+          {!patient.cpf && <Alert severity="warning">Este paciente está sem CPF no cadastro. O cartório exige o CPF: complete em Dados pessoais antes de imprimir.</Alert>}
+          <Typography variant="caption" color="text.secondary">Confira com seu advogado ou o cartório os percentuais e documentos exigidos para protesto/cobrança. Os juros aqui são simples, proporcionais aos dias de atraso.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDebtOpen(false)}>Fechar</Button>
+          <Button variant="contained" onClick={async () => {
+            const overdue = (rows || []).filter((r) => r.type !== "EXPENSE" && situation(r).label === "Atrasado");
+            const ok = await printDebtReport(patient, overdue, { withInterest: debtInterest, finePercent: Number(debtFine.replace(",", ".")) || 0, monthlyInterestPercent: Number(debtRate.replace(",", ".")) || 0 });
+            if (!ok) toast.error("O navegador bloqueou a janela. Permita pop-ups para este site."); else setDebtOpen(false);
+          }}>Gerar relatório</Button>
+        </DialogActions>
+      </Dialog>
       <ChargeDialog entry={charging} onClose={() => setCharging(null)} onChanged={load} />
     </Box>
   );
