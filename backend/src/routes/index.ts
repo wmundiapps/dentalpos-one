@@ -45,6 +45,7 @@ import * as stockPartners from '../controllers/stockPartnerController'
 import * as dailyCash from '../controllers/dailyCashController'
 import * as security from '../controllers/securityController'
 import * as face from '../controllers/faceController'
+import { portalAuth } from '../services/hrPortalService'
 import * as condoSplit from '../controllers/condoSplitController'
 import * as followUp from '../controllers/followUpController'
 import * as hrTime from '../controllers/hrTimeController'
@@ -110,6 +111,12 @@ router.all('/cron/reminders', cronController.reminders)
 router.all('/cron/revah-sync', revahBridgeController.cronSync)
 router.use(prospectPublicRouter)
 router.post('/revah-bridge/webhook/:clinicId', revahBridgeController.webhook)
+
+// ÁREA DO COLABORADOR (CPF + senha individual)
+router.post('/public/colaborador/login', hrTime.portalLogin)
+router.get('/public/colaborador/hoje', portalAuth, hrTime.portalToday)
+router.get('/public/colaborador/mes', portalAuth, hrTime.portalMonth)
+router.get('/public/colaborador/justificativas', portalAuth, hrTime.portalRequests)
 
 // PUBLIC BOOKING
 router.get('/public/booking/:clinicId', publicBookingController.config)
@@ -425,6 +432,7 @@ router.post('/hr/vacations', requirePermission('hr.edit'), hrController.createVa
 router.post('/hr/documents', requirePermission('hr.sensitive'), hrController.createDocument)
 router.post('/hr/disciplinary-actions', requirePermission('hr.sensitive'), hrController.createDiscipline)
 // Ponto eletrônico e justificativas: o funcionário só acessa os próprios dados (sem permissão de RH).
+router.put('/hr/employees/:id/portal-password', requirePermission('hr.edit'), hrTime.portalSetPassword)
 router.post('/hr/timeclock/face-punch', requirePermission('timeclock.view'), hrTime.facePunch)
 router.get('/hr/employees/:id/face', requirePermission('hr.view'), hrTime.faceStatus)
 router.get('/hr/employees/:id/face-photo', requirePermission('hr.view'), hrTime.faceReference)
