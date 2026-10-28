@@ -5,6 +5,7 @@ import { getDemoAccess } from './demoAccessService'
 import { sendManagerDigest } from '../controllers/pendingAlertController'
 import { notifyPartners } from './stockPartnerService'
 import { sendCashClose } from './dailyCashService'
+import { sendMissingPunchAlerts } from './hrTimeAlertService'
 
 // Acompanhamento de pacientes sem agendar e de pacientes devendo:
 // - lista semanal por e-mail (segunda-feira) e nos painéis da recepção e clínico;
@@ -245,6 +246,7 @@ export async function processFollowUps(now = new Date()) {
       await sendManagerDigest(c.id, c.tenantId, now).catch((e) => console.error('Resumo de pendências ao gestor:', e))
       await notifyPartners(c, now).catch((e) => console.error('Aviso a parceiros de estoque:', e))
       await sendCashClose(c, { now }).catch((e) => console.error('Fechamento de caixa:', e))
+      await sendMissingPunchAlerts(c, { now }).catch((e) => console.error('Aviso de ponto:', e))
     }
   } finally { running = false }
 }

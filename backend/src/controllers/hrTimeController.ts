@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import * as hr from '../services/hrTimeService'
+import * as hrFace from '../services/hrFaceService'
 
 type AuthedReq = Request & { user?: { id: string; email: string; clinicId: string; tenantId: string; role: string } }
 
@@ -29,6 +30,16 @@ export const meMonth = wrap(async (req, res) => res.json(await hr.myMonth(timeCt
 export const meRequests = wrap(async (req, res) => res.json(await hr.myRequests(timeCtx(req))))
 export const meRequest = wrap(async (req, res) => res.json(await hr.myRequest(timeCtx(req), idOf(req))))
 export const meCreateRequest = wrap(async (req, res) => res.status(201).json(await hr.createAbsenceRequest(timeCtx(req), req.body)))
+
+// ---- ponto pelo rosto (aparelho fixo da clínica) ----
+export const facePunch = wrap(async (req, res) => res.json(await hr.facePunch({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, userId: req.user!.id }, { ip: clientIp(req), userAgent: String(req.headers['user-agent'] || '') }, req.body)))
+export const faceStatus = wrap(async (req, res) => res.json(await hrFace.faceStatus(req.user!.clinicId, idOf(req))))
+export const faceEnroll = wrap(async (req, res) => {
+  const r = await hrFace.enrollFace(orgCtx(req), idOf(req), req.body) as { error?: string; status?: number; ok?: boolean }
+  if (r.error) return res.status(r.status || 400).json({ error: r.error })
+  return res.json({ ok: true })
+})
+export const faceRemove = wrap(async (req, res) => res.json(await hrFace.removeFace(orgCtx(req), idOf(req))))
 
 // ---- RH, administração e gestor ----
 export const settingsGet = wrap(async (req, res) => res.json(await hr.getTimeSettings(req.user!.clinicId)))

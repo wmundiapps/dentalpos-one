@@ -21,6 +21,16 @@ export default function TimesheetTab({ employees, canEdit }: { employees: Employ
   }, [ref]);
   useEffect(() => { void load(); }, [load]);
 
+  const printMirror = () => {
+    if (!detail) return;
+    const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
+    const rows = detail.days.map((d) => `<tr><td>${fmtDate(d.date)}</td><td>${esc(STATUS_LABEL[d.status] || d.status)}</td><td>${esc(d.punches.map((p) => p.time).join(" · ") || d.note || "—")}</td><td>${fmtMin(d.workedMin)}</td><td>${d.expectedMin ? fmtMin(d.diffMin) : ""}</td></tr>`).join("");
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(`<html><head><title>Espelho de ponto</title><style>body{font-family:Arial,sans-serif;padding:24px;font-size:12px}h2{margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #999;padding:4px 6px;text-align:left}.sig{display:flex;gap:40px;margin-top:60px}.sig div{flex:1;border-top:1px solid #000;text-align:center;padding-top:4px}</style></head><body><h2>Espelho de ponto — ${esc(detail.employee.name)}</h2><div>Competência ${ref.split("-").reverse().join("/")}</div><table><thead><tr><th>Data</th><th>Situação</th><th>Batidas</th><th>Trabalhadas</th><th>Saldo</th></tr></thead><tbody>${rows}</tbody></table><p><b>Trabalhadas:</b> ${fmtMin(detail.totals.workedMin)} &nbsp; <b>Banco de horas:</b> ${fmtMin(detail.totals.balanceMin)} &nbsp; <b>Faltas:</b> ${detail.totals.faltas} &nbsp; <b>Atrasos:</b> ${detail.totals.atrasos}</p><div class="sig"><div>Colaborador</div><div>Responsável</div></div></body></html>`);
+    w.document.close();
+    w.print();
+  };
   const openDetail = async (id: string) => { try { setDetail(await HrApi.employeeMonth(id, ref)); } catch (e) { setError(e instanceof Error ? e.message : "Erro."); } };
   const openSettings = async () => { try { const s = await HrApi.settings(); setSettings({ ...s, allowedIps: s.allowedIps.join(", ") }); } catch (e) { setError(e instanceof Error ? e.message : "Erro."); } };
   const saveSettings = async () => {
@@ -106,7 +116,7 @@ export default function TimesheetTab({ employees, canEdit }: { employees: Employ
             </>)}
           </>)}
         </DialogContent>
-        <DialogActions><Button onClick={() => setDetail(null)}>Fechar</Button></DialogActions>
+        <DialogActions><Button onClick={printMirror}>Imprimir espelho</Button><Button onClick={() => setDetail(null)}>Fechar</Button></DialogActions>
       </Dialog>
 
       <Dialog open={Boolean(settings)} onClose={() => setSettings(null)} fullWidth maxWidth="sm">
