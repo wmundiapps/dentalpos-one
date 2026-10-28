@@ -5,7 +5,9 @@ import ChargeDialog, { type ChargeEntry } from "../ChargeDialog";
 import NewChargeDialog, { type ChargeMethod } from "./NewChargeDialog";
 import { cancelFinancialEntry, loadFinancialEntries, settleFinancialEntry, type FinancialEntry } from "../../services/FinancialApi";
 import type { BackendPatient } from "../../services/PatientApi";
-import { printDebtReport } from "../../utils/debtReport";
+import { printDebtReport, type ExecutedLine, type PlanLine } from "../../utils/debtReport";
+import { getTreatmentPlan } from "../../services/TreatmentPlanApi";
+import { loadClinicalRecord } from "../../services/ClinicalAnamnesisApi";
 import { errorMessage, toast } from "../../utils/toast";
 
 type Row = FinancialEntry & { fiscalDocumentType?: string | null; documentNumber?: string | null };
@@ -33,6 +35,16 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
   const [debtOpen, setDebtOpen] = useState(false);
+  const [evidence, setEvidence] = useState<{ plan: PlanLine[]; executed: ExecutedLine[] } | null>(null);
+  useEffect(() => {
+    if (!debtOpen) return;
+    setEvidence(null);
+    Promise.all([getTreatmentPlan(patient.id).catch(() => ({ items: [] })), loadClinicalRecord(patient.id).catch(() => ({ evolutions: [] }))]).then(([tp, rec]) => {
+      const plan: PlanLine[] = tp.items.filter((i) => i.status !== "CANCELLED").map((i) => ({ procedure: i.procedure, tooth: i.tooth, value: Number(i.planningData?.unitValue || 0), executed: i.status === "COMPLETED", executedAt: i.status === "COMPLETED" ? i.updatedAt : null, professional: i.planningData?.professionalName || null }));
+      const executed: ExecutedLine[] = [...rec.evolutions].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((e) => ({ date: e.createdAt, procedure: e.procedure, professional: e.professionalName, notes: e.notes }));
+      setEvidence({ plan, executed });
+    });
+  }, [debtOpen, patient.id]);
   const [debtInterest, setDebtInterest] = useState(false);
   const [debtFine, setDebtFine] = useState("2");
   const [debtRate, setDebtRate] = useState("1");
@@ -161,12 +173,18 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
       <Dialog open={debtOpen} onClose={() => setDebtOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle sx={{ fontWeight: 900 }}>Relatório de débitos — cartório</DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
-          <Typography variant="body2" color="text.secondary">Gera uma folha para imprimir com os dados da clínica e do paciente, as parcelas vencidas mês a mês e o total devido.</Typography>
+          <Typography variant="body2" color="text.secondary">Gera uma folha para imprimir com os dados da clínica e do paciente, as parcelas vencidas mês a mês, o total devido e os procedimentos do orçamento que foram executados.</Typography>
           <Box component="label" sx={{ display: "flex", alignItems: "center", gap: 1, cursor: "pointer" }}><input type="checkbox" checked={debtInterest} onChange={(e) => setDebtInterest(e.target.checked)} /> Incluir multa e juros (valor atualizado)</Box>
           {debtInterest && (<Box sx={{ display: "flex", gap: 2 }}>
             <TextField size="small" label="Multa (%)" value={debtFine} onChange={(e) => setDebtFine(e.target.value)} />
             <TextField size="small" label="Juros (% ao mês)" value={debtRate} onChange={(e) => setDebtRate(e.target.value)} />
           </Box>)}
+          {evidence && evidence.executed.length === 0 && !evidence.plan.some((p) => p.executed) && <Alert severity="error">Não há nenhum procedimento executado registrado para este paciente no sistema. Só se cobra o que foi executado: registre os procedimentos realizados (odontograma ou prontuário) antes de levar ao cartório.</Alert>}
+          {evidence && evidence.plan.length > 0 && (() => {
+            const exec = evidence.plan.filter((p) => p.executed).reduce((a, p) => a + p.value, 0);
+            const total = (rows || []).filter((r) => r.type !== "EXPENSE" && situation(r).label === "Atrasado").reduce((a, r) => a + r.amount, 0);
+            return exec > 0 && total > exec ? <Alert severity="warning">O valor em atraso ({brl(total)}) é maior que o valor dos procedimentos executados ({brl(exec)}). Confira para cobrar apenas o que foi realizado.</Alert> : null;
+          })()}
           {!patient.cpf && <Alert severity="warning">Este paciente está sem CPF no cadastro. O cartório exige o CPF: complete em Dados pessoais antes de imprimir.</Alert>}
           <Typography variant="caption" color="text.secondary">Confira com seu advogado ou o cartório os percentuais e documentos exigidos para protesto/cobrança. Os juros aqui são simples, proporcionais aos dias de atraso.</Typography>
         </DialogContent>
@@ -174,7 +192,7 @@ export default function PatientBillingTab({ patient, startMethod }: { patient: B
           <Button onClick={() => setDebtOpen(false)}>Fechar</Button>
           <Button variant="contained" onClick={async () => {
             const overdue = (rows || []).filter((r) => r.type !== "EXPENSE" && situation(r).label === "Atrasado");
-            const ok = await printDebtReport(patient, overdue, { withInterest: debtInterest, finePercent: Number(debtFine.replace(",", ".")) || 0, monthlyInterestPercent: Number(debtRate.replace(",", ".")) || 0 });
+            const ok = await printDebtReport(patient, overdue, { withInterest: debtInterest, finePercent: Number(debtFine.replace(",", ".")) || 0, monthlyInterestPercent: Number(debtRate.replace(",", ".")) || 0 }, evidence?.plan || [], evidence?.executed || []);
             if (!ok) toast.error("O navegador bloqueou a janela. Permita pop-ups para este site."); else setDebtOpen(false);
           }}>Gerar relatório</Button>
         </DialogActions>

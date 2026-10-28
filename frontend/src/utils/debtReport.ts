@@ -11,10 +11,12 @@ const ymKey = (iso: string) => new Date(iso).toLocaleDateString("sv-SE", { timeZ
 const monthName = (key: string) => { const [y, m] = key.split("-"); const n = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"][Number(m) - 1]; return `${n}/${y}`; };
 const maskCpf = (v?: string | null) => { const d = String(v || "").replace(/\D/g, ""); return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : d.length === 14 ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5") : v || "não informado"; };
 
+export interface PlanLine { procedure: string; tooth?: number | null; value: number; executed: boolean; executedAt?: string | null; professional?: string | null }
+export interface ExecutedLine { date: string; procedure: string; professional: string; notes?: string }
 export interface DebtReportOptions { withInterest: boolean; finePercent: number; monthlyInterestPercent: number }
 
 // Relatório de débitos para cartório/cobrança: dados do devedor, parcelas vencidas mês a mês e total.
-export async function printDebtReport(patient: BackendPatient, rows: DebtRow[], opt: DebtReportOptions) {
+export async function printDebtReport(patient: BackendPatient, rows: DebtRow[], opt: DebtReportOptions, plan: PlanLine[] = [], executed: ExecutedLine[] = []) {
   const w = window.open("", "_blank", "width=900,height=1000");
   if (!w) return false;
   w.document.write('<p style="font-family:Arial;padding:40px">Preparando relatório…</p>');
@@ -51,12 +53,15 @@ export async function printDebtReport(patient: BackendPatient, rows: DebtRow[], 
       `<tr class="sub"><td colspan="${cols - 1}">Subtotal de ${esc(monthName(key))} (${list.length} parcela${list.length > 1 ? "s" : ""})</td><td class="n">${brl(sub)}</td></tr>`;
   }).join("");
 
+  const execValue = plan.filter((p) => p.executed).reduce((a, p) => a + p.value, 0);
+  const planHtml = plan.length ? `<h3>Procedimentos do orçamento e situação de execução</h3><table><thead><tr><th>Procedimento</th><th>Dente</th><th class="n">Valor</th><th>Situação</th></tr></thead><tbody>${plan.map((p) => `<tr><td>${esc(p.procedure)}</td><td>${p.tooth || "—"}</td><td class="n">${brl(p.value)}</td><td>${p.executed ? `<b>EXECUTADO</b>${p.executedAt ? ` em ${dmy(p.executedAt)}` : ""}${p.professional ? ` — ${esc(p.professional)}` : ""}` : "Não executado (não cobrado)"}</td></tr>`).join("")}</tbody></table><p>Valor dos procedimentos executados: <b>${brl(execValue)}</b></p>` : "";
+  const execHtml = executed.length ? `<h3>Procedimentos realizados (prontuário do paciente)</h3><table><thead><tr><th>Data</th><th>Procedimento</th><th>Profissional</th><th>Observações</th></tr></thead><tbody>${executed.map((e) => `<tr><td>${dmy(e.date)}</td><td>${esc(e.procedure)}</td><td>${esc(e.professional)}</td><td>${esc(e.notes || "")}</td></tr>`).join("")}</tbody></table>` : "";
   const addr = [patient.address, patient.city, patient.state, patient.zipCode ? `CEP ${patient.zipCode}` : ""].filter(Boolean).join(", ");
   w.document.open();
   w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de débitos — ${esc(patient.fullName)}</title><style>${KIT_CSS}
 .rodape{position:fixed;left:0;right:0;bottom:0;background:#fff;padding:6px 40px 10px}.rodape .df{margin-top:0}
 body{font-family:Arial,sans-serif;margin:40px;color:#111;line-height:1.45;padding-bottom:36mm;font-size:12px}
-h1{font-size:18px;text-align:center;margin:18px 0 4px}.sub-t{text-align:center;color:#555;margin-bottom:16px}
+h3{font-size:13px;margin:18px 0 0;text-transform:uppercase;letter-spacing:.04em}h1{font-size:18px;text-align:center;margin:18px 0 4px}.sub-t{text-align:center;color:#555;margin-bottom:16px}
 .box{border:1px solid #bbb;border-radius:6px;padding:10px 14px;margin:10px 0}.box h2{font-size:13px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em}
 .box p{margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #999;padding:4px 6px;text-align:left}th{background:#eee}
 td.n,th.n{text-align:right;white-space:nowrap}tr.mes td{background:#f3f3f3;font-weight:700}tr.sub td{font-weight:700;text-align:right}tr.sub td:first-child{text-align:right}
@@ -68,7 +73,7 @@ td.n,th.n{text-align:right;white-space:nowrap}tr.mes td{background:#f3f3f3;font-
 <div class="box"><h2>Devedor</h2><p><b>${esc(patient.fullName)}</b></p><p>CPF: ${esc(maskCpf(patient.cpf))}${patient.rg ? ` &nbsp; RG: ${esc(patient.rg)}` : ""}${patient.birthDate ? ` &nbsp; Nascimento: ${dmy(patient.birthDate)}` : ""}</p><p>Endereço: ${esc(addr || "não informado")}</p><p>Telefone: ${esc(patient.phone || "não informado")}${patient.email ? ` &nbsp; E-mail: ${esc(patient.email)}` : ""}</p></div>
 <table><thead><tr><th>Descrição</th><th>Vencimento</th><th>Dias em atraso</th><th class="n">Valor original</th>${opt.withInterest ? `<th class="n">Multa ${opt.finePercent}%</th><th class="n">Juros ${opt.monthlyInterestPercent}% a.m.</th>` : ""}<th class="n">${opt.withInterest ? "Total atualizado" : "Valor"}</th></tr></thead><tbody>${body}</tbody></table>
 <div class="total">Parcelas vencidas: <b>${calc.length}</b> &nbsp;|&nbsp; Valor original: <b>${brl(principal)}</b>${opt.withInterest ? ` &nbsp;|&nbsp; Total atualizado até ${today.toLocaleDateString("pt-BR")}: <b>${brl(grand)}</b>` : ""}</div>
-<p style="margin-top:14px">Declaro que os valores acima correspondem a serviços odontológicos prestados e não quitados até a data de emissão deste relatório (${todayKey.split("-").reverse().join("/")}).${opt.withInterest ? " Multa e juros calculados de forma simples, proporcional aos dias de atraso, conforme percentuais indicados." : ""}</p>
+${planHtml}${execHtml}<p style="margin-top:14px">Declaro que os valores acima correspondem a serviços odontológicos efetivamente executados e não quitados até a data de emissão deste relatório (${todayKey.split("-").reverse().join("/")}).${opt.withInterest ? " Multa e juros calculados de forma simples, proporcional aos dias de atraso, conforme percentuais indicados." : ""}</p>
 <div class="sig"><div>${esc(clinicName || "Credor")}<br><span style="font-size:11px">Responsável</span></div></div>
 </body></html>`);
   w.document.close();
