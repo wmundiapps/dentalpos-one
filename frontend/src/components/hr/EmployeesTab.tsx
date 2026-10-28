@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Typography } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
+import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import { HrApi, fmtDate, money, type Employee } from "../../services/HrApi";
 
 const CATEGORIES = ["Cirurgião-dentista", "ASB", "TSB", "Técnico em Prótese Dentária", "Auxiliar de Laboratório", "Recepção", "Administrativo", "Financeiro", "Comercial", "Marketing", "Zeladoria", "Manutenção", "Professor", "Tutor", "Representante", "Estagiário", "Outro"];
@@ -16,6 +17,25 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
   const [form, setForm] = useState(blank);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [acesso, setAcesso] = useState<Record<string, string>>({});
+  const [liberar, setLiberar] = useState<Employee | null>(null);
+  const [liberarEmail, setLiberarEmail] = useState("");
+  const [liberarMsg, setLiberarMsg] = useState("");
+  const carregarAcesso = useCallback(() => { HrApi.accessStatus().then(setAcesso).catch(() => setAcesso({})); }, []);
+  useEffect(() => { carregarAcesso(); }, [carregarAcesso, employees]);
+  const abrirLiberar = (e: Employee) => { setLiberar(e); setLiberarEmail(e.email || ""); setLiberarMsg(""); setError(""); };
+  const confirmarLiberar = async () => {
+    if (!liberar) return;
+    setBusy(true); setError("");
+    try {
+      const r = await HrApi.grantAccess(liberar.id, liberarEmail.trim().toLowerCase());
+      setLiberarMsg(r.emailSent
+        ? `Pronto. Enviamos para ${r.email} o link para ${liberar.name.split(" ")[0]} criar a senha. Depois é só entrar e abrir "Meu ponto".`
+        : `Acesso criado, mas o e-mail não saiu. Peça para ${liberar.name.split(" ")[0]} usar "Esqueci minha senha" na tela de login com ${r.email}.`);
+      carregarAcesso(); onChanged();
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível liberar o ponto."); }
+    finally { setBusy(false); }
+  };
   const set = (k: keyof typeof blank) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
   const openNew = () => { setEditing(null); setForm(blank); setError(""); setOpen(true); };
@@ -47,19 +67,34 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
         <Box sx={{ flex: 1 }} />
         <Button variant="contained" onClick={openNew}>Novo colaborador</Button>
       </Box>
-      <Alert severity="info" sx={{ mx: 2, mb: 1 }}>Para o colaborador bater o ponto, cadastre o <b>mesmo e-mail</b> que ele usa para entrar no sistema.</Alert>
+      <Alert severity="info" sx={{ mx: 2, mb: 1 }}>Clique em <b>Liberar ponto</b>: o colaborador recebe um e-mail para criar a senha e passa a registrar o ponto em "Meu ponto".</Alert>
       {list.length === 0 && <Typography color="text.secondary" sx={{ p: 2 }}>Nenhum colaborador cadastrado.</Typography>}
       {list.map((e) => (
         <Box key={e.id} sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1.3fr 1fr 1fr auto" }, gap: 2, p: 2, borderTop: "1px solid", borderColor: "divider", alignItems: "center" }}>
           <Box><Typography sx={{ fontWeight: 800 }}>{e.name}</Typography><Typography variant="body2" color="text.secondary">{e.employeeCode} • {e.department}</Typography>
             {e.experienceEndDate && <Typography variant="caption" color="warning.main">Experiência até {fmtDate(e.experienceEndDate)}</Typography>}
-            {!e.email && <Typography variant="caption" color="error.main" sx={{ display: "block" }}>Sem e-mail: não consegue bater ponto</Typography>}</Box>
+            {acesso[e.id] === "OK" ? <Chip size="small" color="success" icon={<FingerprintIcon />} label="Ponto liberado" sx={{ mt: 0.5 }} />
+              : acesso[e.id] && e.status !== "TERMINATED" && <Button size="small" variant="outlined" color="warning" startIcon={<FingerprintIcon />} sx={{ mt: 0.5 }} onClick={() => abrirLiberar(e)}>{acesso[e.id] === "LOGIN_INATIVO" ? "Login inativo" : "Liberar ponto"}</Button>}</Box>
           <Typography>{e.position}</Typography>
           <Chip size="small" label={e.employmentModel} />
           <Box><Typography>{money(e.baseSalary)}</Typography><Chip size="small" label={label(e.status)} color={e.status === "ACTIVE" ? "success" : e.status === "EXPERIENCE" ? "warning" : "default"} /></Box>
           <Button size="small" startIcon={<EditIcon />} onClick={() => openEdit(e)}>Editar</Button>
         </Box>
       ))}
+      <Dialog open={Boolean(liberar)} onClose={() => !busy && setLiberar(null)} fullWidth maxWidth="sm">
+        <DialogTitle>{liberar ? `Liberar ponto — ${liberar.name}` : ""}</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          {liberarMsg ? <Alert severity="success">{liberarMsg}</Alert> : <>
+            <Typography variant="body2" color="text.secondary">O colaborador recebe um link para criar a própria senha (vale 72 horas). Com esse login ele só acessa "Meu ponto".</Typography>
+            <TextField autoFocus label="E-mail do colaborador" type="email" value={liberarEmail} onChange={(ev) => setLiberarEmail(ev.target.value)} />
+          </>}
+          {error && <Alert severity="error">{error}</Alert>}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={busy} onClick={() => setLiberar(null)}>{liberarMsg ? "Fechar" : "Cancelar"}</Button>
+          {!liberarMsg && <Button variant="contained" disabled={busy || !liberarEmail.trim()} onClick={() => void confirmarLiberar()}>{busy ? "Enviando..." : "Liberar e enviar e-mail"}</Button>}
+        </DialogActions>
+      </Dialog>
       <Dialog open={open} onClose={() => !busy && setOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>{editing ? "Editar colaborador" : "Novo colaborador"}</DialogTitle>
         <DialogContent sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2,1fr)" }, gap: 2, pt: "12px!important" }}>

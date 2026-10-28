@@ -80,6 +80,7 @@ import {
   getDemoModuleStatus,
   moduleForPath,
   readDemoAccess,
+  readSessionUser,
 } from "../services/DemoAccess";
 
 function DemoInDevelopmentPage() {
@@ -109,6 +110,9 @@ function DemoInDevelopmentPage() {
 export default function AppRoutes() {
   const location = useLocation();
   const demo = readDemoAccess();
+
+  // Login criado em "Liberar ponto" (perfil PONTO) só usa o próprio ponto.
+  if (readSessionUser()?.role === "PONTO" && location.pathname !== "/meu-ponto") return <Navigate to="/meu-ponto" replace />;
 
   if (demo?.isDemo) {
     const moduleName = moduleForPath(location.pathname);
