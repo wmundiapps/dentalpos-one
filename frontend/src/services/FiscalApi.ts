@@ -6,6 +6,10 @@ export interface FiscalSendRow { id: string; fiscalDocumentId: string; channel: 
 export interface FiscalSummaryData { confirmedPayments: number; pendingDocuments: number; issuedDocuments: number; deliveryFailures: number; pendingTaxValue: number; }
 export interface FiscalRuleData { autoProcess: boolean; issueDelayMinutes: number; defaultKindPJ: string; defaultKindPF: string; sendChannels: string; requireAccountantApproval: boolean; serviceCode?: string | null; issRate?: number | null; accountantEmail?: string | null; adminEmail?: string | null; }
 
+export interface RsProfessional { id: string; name: string; cro: string; cpfOk: boolean; }
+export interface RsPending { id: string; payerName: string; payerDocument?: string | null; description?: string | null; amount: number; paymentDate?: string | null; year: number | null; exported: boolean; problem: string | null; }
+export interface RsExport { filename: string; csv: string; incluidos: number; ignorados: { id: string; payerName: string; motivo: string }[]; }
+
 function headers(json = false) {
   const token = localStorage.getItem("dentalpos.token") || "";
   const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
@@ -29,5 +33,8 @@ export const FiscalApi = {
   update: (id: string, b: Record<string, unknown>) => req<FiscalDoc>(`/fiscal/documents/${id}`, { method: "PUT", body: JSON.stringify(b) }),
   issue: (id: string, b: Record<string, unknown>) => req<{ ok: boolean }>(`/fiscal/documents/${id}/issue`, { method: "POST", body: JSON.stringify(b) }),
   send: (id: string) => req<FiscalSendRow[]>(`/fiscal/documents/${id}/send`, { method: "POST", body: "{}" }),
+  rsProfessionals: () => req<RsProfessional[]>("/fiscal/receita-saude/professionals"),
+  rsPending: () => req<RsPending[]>("/fiscal/receita-saude/pending"),
+  rsExport: (b: { doctorId: string; ids: string[]; professionalRegistry?: string }) => req<RsExport>("/fiscal/receita-saude/export", { method: "POST", body: JSON.stringify(b) }),
   conclude: (id: string) => req<{ ok: boolean }>(`/fiscal/documents/${id}/conclude`, { method: "POST", body: "{}" }),
 };
