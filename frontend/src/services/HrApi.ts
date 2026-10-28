@@ -38,7 +38,7 @@ export const HrApi = {
   employees: () => req<Employee[]>("/hr/employees"),
   saveEmployee: (id: string | null, body: Record<string, unknown>) => id ? req<Employee>(`/hr/employees/${id}`, { method: "PUT", json: body }) : req<Employee>("/hr/employees", { method: "POST", json: body }),
   timesheet: (ref: string) => req<{ ref: string; settings: TimeSettings; employees: Array<{ employeeId: string; name: string; position: string; department: string; email: string | null; totals: Totals }> }>(`/hr/timesheet?ref=${ref}`),
-  employeeMonth: (id: string, ref: string) => req<{ ref: string; employee: { id: string; name: string; position: string }; days: DayRow[]; totals: Totals; audit: Array<{ date: string; time: string; kind: string; ip: string | null; inside: boolean | null; note: string | null }> }>(`/hr/timesheet/${id}?ref=${ref}`),
+  employeeMonth: (id: string, ref: string) => req<{ ref: string; employee: { id: string; name: string; position: string }; days: DayRow[]; totals: Totals; audit: Array<{ id: string; method: string; date: string; time: string; kind: string; ip: string | null; inside: boolean | null; note: string | null }> }>(`/hr/timesheet/${id}?ref=${ref}`),
   settings: () => req<TimeSettings>("/hr/timeclock/settings"),
   saveSettings: (b: Omit<Partial<TimeSettings>, "allowedIps"> & { allowedIps?: string[] | string }) => req<TimeSettings>("/hr/timeclock/settings", { method: "PUT", json: b }),
   suggestions: (ref: string) => req<Suggestion[]>(`/hr/payroll-suggestions?ref=${ref}`),

@@ -14,6 +14,8 @@ async function call<T>(path: string, init: { method?: string; body?: unknown } =
 
 export interface FacePunchResult { id: string; kind: string; label: string; time: string; insideWorkplace: boolean | null; note: string | null; employeeName: string }
 export const employeeFaceStatus = (employeeId: string) => call<{ enrolled: boolean; consentAt: string | null }>(`/hr/employees/${encodeURIComponent(employeeId)}/face`);
-export const enrollEmployeeFace = (employeeId: string, samples: number[][]) => call<{ ok: boolean }>(`/hr/employees/${encodeURIComponent(employeeId)}/face`, { method: "POST", body: { samples, consent: true } });
+export const enrollEmployeeFace = (employeeId: string, samples: number[][], photo?: string) => call<{ ok: boolean }>(`/hr/employees/${encodeURIComponent(employeeId)}/face`, { method: "POST", body: { samples, photo, consent: true } });
 export const removeEmployeeFace = (employeeId: string) => call<{ ok: boolean }>(`/hr/employees/${encodeURIComponent(employeeId)}/face`, { method: "DELETE" });
-export const facePunch = (descriptor: number[], geo: { latitude?: number; longitude?: number; accuracy?: number }) => call<FacePunchResult>("/hr/timeclock/face-punch", { method: "POST", body: { descriptor, ...geo } });
+export const facePunch = (cpf: string, descriptor: number[], photo: string, geo: { latitude?: number; longitude?: number; accuracy?: number }) => call<FacePunchResult>("/hr/timeclock/face-punch", { method: "POST", body: { cpf, descriptor, photo, ...geo } });
+export const punchPhoto = (punchId: string) => call<{ photo: string | null }>(`/hr/timeclock/punches/${encodeURIComponent(punchId)}/photo`);
+export const employeeFacePhoto = (employeeId: string) => call<{ photo: string | null }>(`/hr/employees/${encodeURIComponent(employeeId)}/face-photo`);

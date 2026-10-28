@@ -39,6 +39,8 @@ export const faceEnroll = wrap(async (req, res) => {
   if (r.error) return res.status(r.status || 400).json({ error: r.error })
   return res.json({ ok: true })
 })
+export const punchPhoto = wrap(async (req, res) => res.json(await hrFace.punchPhoto(req.user!.clinicId, idOf(req))))
+export const faceReference = wrap(async (req, res) => res.json(await hrFace.referencePhoto(req.user!.clinicId, idOf(req))))
 export const faceRemove = wrap(async (req, res) => res.json(await hrFace.removeFace(orgCtx(req), idOf(req))))
 
 // ---- RH, administração e gestor ----

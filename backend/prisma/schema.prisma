@@ -2576,6 +2576,7 @@ model HREmployeeFace {
   tenantId    String
   employeeId  String
   samples     Json
+  photo       String?
   consentAt   DateTime
   consentById String?
   createdAt   DateTime @default(now())
@@ -2583,6 +2584,18 @@ model HREmployeeFace {
 
   @@unique([clinicId, employeeId])
   @@index([tenantId])
+}
+
+// Foto tirada no momento da batida pelo rosto (comprovação), consultada pelo RH no detalhe da folha.
+model HRTimePunchPhoto {
+  punchId    String   @id
+  clinicId   String
+  tenantId   String
+  employeeId String
+  photo      String
+  createdAt  DateTime @default(now())
+
+  @@index([clinicId, employeeId])
 }
 
 // Ordem de serviço enviada ao laboratório de prótese (protocolo impresso, recebimento e relato de erros).

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, MenuItem, TextField, Typography } from "@mui/material";
 import { HrApi, STATUS_LABEL, fmtDate, fmtMin, type Employee, type TimeSettings } from "../../services/HrApi";
+import { punchPhoto } from "../../services/HrFaceApi";
 
 type Sheet = Awaited<ReturnType<typeof HrApi.timesheet>>;
 type Detail = Awaited<ReturnType<typeof HrApi.employeeMonth>>;
@@ -21,6 +22,8 @@ export default function TimesheetTab({ employees, canEdit }: { employees: Employ
   }, [ref]);
   useEffect(() => { void load(); }, [load]);
 
+  const [photo, setPhoto] = useState<string | null | undefined>(undefined);
+  const showPhoto = async (id: string) => { try { setPhoto((await punchPhoto(id)).photo); } catch { setPhoto(null); } };
   const printMirror = () => {
     if (!detail) return;
     const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
@@ -112,11 +115,17 @@ export default function TimesheetTab({ employees, canEdit }: { employees: Employ
             ))}
             {detail.audit.length > 0 && (<>
               <Typography sx={{ fontWeight: 800, mt: 2, mb: 0.5 }}>Registros de batida (IP e local)</Typography>
-              {detail.audit.map((a, i) => <Typography key={i} variant="caption" sx={{ display: "block" }}>{`${fmtDate(a.date)} ${a.time} • ${a.kind} • IP ${a.ip || "—"}${a.note ? ` • ${a.note}` : ""}${a.inside === false ? " • FORA DO LOCAL" : ""}`}</Typography>)}
+              {detail.audit.map((a, i) => <Typography key={i} variant="caption" sx={{ display: "block" }}>{`${fmtDate(a.date)} ${a.time} • ${a.kind} • IP ${a.ip || "—"}${a.note ? ` • ${a.note}` : ""}${a.inside === false ? " • FORA DO LOCAL" : ""}`}{a.method === "FACE" && <Button size="small" sx={{ ml: 1, py: 0, minWidth: 0 }} onClick={() => void showPhoto(a.id)}>ver foto</Button>}</Typography>)}
             </>)}
           </>)}
         </DialogContent>
         <DialogActions><Button onClick={printMirror}>Imprimir espelho</Button><Button onClick={() => setDetail(null)}>Fechar</Button></DialogActions>
+      </Dialog>
+
+      <Dialog open={photo !== undefined} onClose={() => setPhoto(undefined)}>
+        <DialogTitle sx={{ fontWeight: 900 }}>Foto da batida</DialogTitle>
+        <DialogContent>{photo ? <img src={photo} alt="Foto da batida" style={{ width: "100%", maxWidth: 360, borderRadius: 8 }} /> : <Typography>Sem foto para esta batida.</Typography>}</DialogContent>
+        <DialogActions><Button onClick={() => setPhoto(undefined)}>Fechar</Button></DialogActions>
       </Dialog>
 
       <Dialog open={Boolean(settings)} onClose={() => setSettings(null)} fullWidth maxWidth="sm">
