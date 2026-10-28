@@ -6,6 +6,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import { useNavigate } from 'react-router-dom'
+import TeethPicker from '../components/odontogram/TeethPicker'
 import OdontogramBoard, { OdontogramLegend, isDone } from '../components/OdontogramBoard'
 import { DEFAULT_DONE, DEFAULT_PLANNED, DONE_PALETTE, PLANNED_PALETTE, saveOdontogramColors, useOdontogramColors } from '../config/odontogramColors'
 import { PENDING_ALERTS_EVENT } from '../services/PendingAlertsApi'
@@ -42,6 +43,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
   const [teeth,setTeeth] = useState<number[]>([])
   const [error,setError] = useState('')
   const [selectedTooth,setSelectedTooth] = useState<number | ''>('')
+  const [markTeeth,setMarkTeeth] = useState<number[]>([])
   const [surface,setSurface] = useState<ToothSurface | ''>('')
   const [findingCode,setFindingCode] = useState('CARIES')
   const [clinicalState,setClinicalState] = useState<ClinicalState>('PLANNED')
@@ -81,24 +83,33 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
     const child=[55,54,53,52,51,61,62,63,64,65,85,84,83,82,81,71,72,73,74,75]
     setTeeth(dentition==='CHILD'?child:adult)
     setSelectedTooth('')
+    setMarkTeeth([]); setProcTeeth([])
   },[dentition])
 
   const activeFinding = findings.find(f=>f.code===findingCode)
 
+  // Marca um ou vários dentes de uma vez (boca toda, arcada ou dentes escolhidos), com a mesma face, achado e estado.
   async function saveMark() {
-    if (!patientId || !selectedTooth || !activeFinding) return
+    const targets = markTeeth.length ? markTeeth : (selectedTooth ? [Number(selectedTooth)] : [])
+    if (!patientId || !targets.length || !activeFinding) return
     try {
       let pro = procPro
       if (!pro) { try { pro = localStorage.getItem('completodonto.lastProfessional') || '' } catch { pro = '' } }
       if (clinicalState==='COMPLETED' && pro.trim().length<2) { setError('Informe o profissional no quadro "Registrar procedimento realizado" antes de concluir.'); return }
-      const saved = await DentalChartService.saveEntry(patientId,{
-        dentition,tooth:Number(selectedTooth),surface:surface||null,
-        findingCode:activeFinding.code,findingLabel:activeFinding.label,clinicalState,notes,
-        // Concluído: o que foi feito (mesmo sem observação) vai para os procedimentos executados da ficha do paciente.
-        ...(clinicalState==='COMPLETED' ? { evolutionNotes: `Dente ${selectedTooth}${surface?` — face ${surface}`:''}: ${notes.trim() || `${activeFinding.label} realizado`}`, professionalName: pro.trim() } : {})
-      })
-      if (saved.unplanned) await handleUnplanned([{ tooth: Number(selectedTooth), procedure: activeFinding.label }], pro.trim())
-      if (clinicalState==='PLANNED') setPlanMsg(`Planejado: dente ${selectedTooth} — ${activeFinding.label}. O procedimento já entrou no plano de tratamento para o orçamento.`)
+      const unplannedList: Array<{ tooth: number; procedure: string }> = []
+      let first = true
+      for (const tooth of targets) {
+        const saved = await DentalChartService.saveEntry(patientId,{
+          dentition,tooth,surface:surface||null,
+          findingCode:activeFinding.code,findingLabel:activeFinding.label,clinicalState,notes,
+          // Concluído: o que foi feito (mesmo sem observação) vai para os procedimentos executados da ficha do paciente (uma evolução para todos os dentes).
+          ...(clinicalState==='COMPLETED' && first ? { evolutionNotes: `Dente${targets.length>1?'s':''} ${targets.join(', ')}${surface?` — face ${surface}`:''}: ${notes.trim() || `${activeFinding.label} realizado`}`, professionalName: pro.trim() } : {})
+        })
+        first = false
+        if (saved.unplanned) unplannedList.push({ tooth, procedure: activeFinding.label })
+      }
+      if (unplannedList.length) await handleUnplanned(unplannedList, pro.trim())
+      if (clinicalState==='PLANNED') setPlanMsg(`Planejado: ${targets.length>1?`${targets.length} dentes (${targets.join(', ')})`:`dente ${targets[0]}`} — ${activeFinding.label}. O procedimento já entrou no plano de tratamento para o orçamento.`)
       setNotes(''); await load()
     } catch(e:any){setError(e.message)}
   }
@@ -144,9 +155,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
       {unplannedMsg && <Alert severity="warning" sx={{mt:1}} onClose={()=>setUnplannedMsg('')} action={<Button size="small" onClick={()=>navigate(`/orcamentos-tratamentos?patientId=${encodeURIComponent(patientId)}`)}>Ir para o orçamento</Button>}>{unplannedMsg}</Alert>}
       {planMsg && <Alert severity="info" sx={{mt:1}} onClose={()=>setPlanMsg('')} action={<Button size="small" onClick={()=>navigate(`/orcamentos-tratamentos?patientId=${encodeURIComponent(patientId)}`)}>Abrir orçamento</Button>}>{planMsg}</Alert>}
       <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'1fr 1fr 1fr'},gap:1.5,mt:2}}>
-        <FormControl><InputLabel>Dente(s) FDI</InputLabel><Select multiple value={procTeeth} label="Dente(s) FDI" onChange={e=>setProcTeeth((e.target.value as number[]).map(Number))} renderValue={(v)=>(v as number[]).join(', ')}>
-          {teeth.map(t=><MenuItem key={t} value={t}>{t}</MenuItem>)}
-        </Select></FormControl>
+        <Box sx={{gridColumn:{md:'1/-1'}}}><TeethPicker teeth={teeth} value={procTeeth} onChange={setProcTeeth} label="Dentes"/></Box>
         <FormControl><InputLabel>Face(s) (opcional)</InputLabel><Select multiple value={procFaces} label="Face(s) (opcional)" onChange={e=>setProcFaces(e.target.value as ToothSurface[])} renderValue={(v)=>(v as string[]).join(' ')}>
           {SURFACES.map(s=><MenuItem key={s} value={s}>{s}</MenuItem>)}
         </Select></FormControl>
@@ -174,7 +183,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
     if(!window.confirm('Remover esta marcação do odontograma?'))return
     try{await DentalChartService.removeEntry(patientId,e.id);await load()}catch(err:any){setError(err.message)}
   }
-  function openTooth(t:number){ setToothOpen(t); setSelectedTooth(t) }
+  function openTooth(t:number){ setToothOpen(t); setSelectedTooth(t); setMarkTeeth([t]) }
   const toothEntries = toothOpen ? entries.filter(e=>e.tooth===toothOpen && e.dentition===dentition) : []
   const todoList = entries.filter(e=>e.dentition===dentition && !isDone(e.clinicalState)).sort((a,b)=>a.tooth-b.tooth)
 
@@ -226,10 +235,8 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
       {procedureCard}
       <Paper variant="outlined" sx={{p:2,borderRadius:3,mb:2}}>
         <Typography variant="h6" sx={{ fontWeight:900 }}>Registrar achado ou planejar tratamento</Typography>
-        <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'repeat(5,1fr)'},gap:1.5,mt:2}}>
-          <FormControl><InputLabel>Dente FDI</InputLabel><Select value={selectedTooth} label="Dente FDI" onChange={e=>setSelectedTooth(Number(e.target.value))}>
-            {teeth.map(t=><MenuItem key={t} value={t}>{t}</MenuItem>)}
-          </Select></FormControl>
+        <Box sx={{mt:2}}><TeethPicker teeth={teeth} value={markTeeth} onChange={setMarkTeeth} label="Dentes a marcar ou planejar"/></Box>
+        <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'repeat(4,1fr)'},gap:1.5,mt:2}}>
           <FormControl><InputLabel>Face</InputLabel><Select value={surface} label="Face" onChange={e=>setSurface(e.target.value as ToothSurface|'')}>
             <MenuItem value="">Dente/região</MenuItem>{SURFACES.map(s=><MenuItem key={s} value={s}>{s}</MenuItem>)}
           </Select></FormControl>
@@ -239,7 +246,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
           <FormControl><InputLabel>Estado</InputLabel><Select value={clinicalState} label="Estado" onChange={e=>setClinicalState(e.target.value as ClinicalState)}>
             {(['CURRENT','PLANNED','COMPLETED'] as ClinicalState[]).map(s=><MenuItem key={s} value={s}>{stateLabel[s]}</MenuItem>)}
           </Select></FormControl>
-          <Button variant="contained" disabled={!selectedTooth||!activeFinding} onClick={()=>void saveMark()}>Salvar</Button>
+          <Button variant="contained" disabled={!markTeeth.length||!activeFinding} onClick={()=>void saveMark()}>{markTeeth.length>1?`Salvar em ${markTeeth.length} dentes`:'Salvar'}</Button>
         </Box>
         <TextField fullWidth label="Observações" value={notes} onChange={e=>setNotes(e.target.value)} sx={{mt:1.5}}/>
       </Paper>
@@ -324,7 +331,8 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
             <Button size="small" color="error" onClick={()=>void removeEntry(e)}>Remover</Button>
           </Paper>)}
         </Stack>
-        <Typography sx={{fontWeight:900,mb:1}}>Adicionar procedimento neste dente</Typography>
+        <Typography sx={{fontWeight:900,mb:1}}>Adicionar procedimento</Typography>
+        <Box sx={{mb:1.5}}><TeethPicker teeth={teeth} value={markTeeth} onChange={setMarkTeeth} label="Repetir em outros dentes (opcional)"/></Box>
         <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',sm:'1fr 1fr'},gap:1.5}}>
           <FormControl size="small" sx={{gridColumn:{sm:'1/-1'}}}><InputLabel>Procedimento (implante, coroa, núcleo, extração, intrusão...)</InputLabel><Select value={findingCode} label="Procedimento (implante, coroa, núcleo, extração, intrusão...)" onChange={e=>setFindingCode(e.target.value)}>
             {findings.map(f=><MenuItem key={f.id} value={f.code}>{f.label}</MenuItem>)}
@@ -341,7 +349,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
       </DialogContent>
       <DialogActions>
         <Button onClick={()=>setToothOpen(null)}>Fechar</Button>
-        <Button variant="contained" disabled={!activeFinding} onClick={()=>void saveMark()}>Adicionar</Button>
+        <Button variant="contained" disabled={!activeFinding||!markTeeth.length} onClick={()=>void saveMark()}>{markTeeth.length>1?`Adicionar em ${markTeeth.length} dentes`:'Adicionar'}</Button>
       </DialogActions>
     </Dialog>
 
