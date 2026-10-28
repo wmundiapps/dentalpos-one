@@ -6,6 +6,8 @@ import LocalPrintshopIcon from "@mui/icons-material/LocalPrintshop";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import PageHeader from "../components/PageHeader";
 import PatientAlertBanner from "../components/patient/PatientAlertBanner";
+import RichTextEditor from "../components/RichTextEditor";
+import { richToText, toRichHtml } from "../utils/richText";
 import ClinicLetterheadDialog from "../components/ClinicLetterheadDialog";
 import { createClinicalDocument, createClinicalDocumentTemplate, updateClinicalDocumentTemplate, issueClinicalDocument, listClinicalDocuments, listClinicalDocumentTemplates } from "../services/ClinicalDocumentService";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
@@ -41,7 +43,7 @@ async function printDoc(doc: Doc, patientName: string, previewOnly = false) {
   const pro = doc.professionalName ? (/^(dr|dra|dr\.|dra\.)\s/i.test(doc.professionalName.trim()) ? doc.professionalName : `Dr(a). ${doc.professionalName}`) : "";
   const meta = `<div class="pat">${esc(patientName)}</div>${pro ? `<div class="pro">${esc(pro)}</div>` : ""}<div class="when">${doc.status === "DRAFT" ? "Rascunho" : "Emitido"} em ${esc(when)}</div>`;
   w.document.open();
-  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(doc.title)}</title><style>${KIT_CSS}.rodape{position:fixed;left:0;right:0;bottom:0;background:#fff;padding:6px 40px 10px}.rodape .df{margin-top:0}body{padding-bottom:36mm}h1{font-size:20px;margin:24px 0 8px;text-align:center}body{text-align:center}.meta{margin-bottom:24px}.pat{font-size:22px;font-weight:800}.pro{font-size:15px;margin-top:2px}.when{font-size:13px;color:#555;margin-top:2px}pre{white-space:pre-wrap;font-family:inherit;font-size:14px;text-align:center}</style></head><body>${foot}${head}<h1>${esc(doc.title)}</h1><div class="meta">${meta}</div><pre>${esc(doc.content || "")}</pre></body></html>`);
+  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(doc.title)}</title><style>${KIT_CSS}.rodape{position:fixed;left:0;right:0;bottom:0;background:#fff;padding:6px 40px 10px}.rodape .df{margin-top:0}body{padding-bottom:36mm}h1{font-size:20px;margin:24px 0 8px;text-align:center}body{text-align:center}.meta{margin-bottom:24px}.pat{font-size:22px;font-weight:800}.pro{font-size:15px;margin-top:2px}.when{font-size:13px;color:#555;margin-top:2px}.corpo{font-size:12pt;text-align:center;line-height:1.6}.corpo ul,.corpo ol{text-align:left;display:inline-block}</style></head><body>${foot}${head}<h1>${esc(doc.title)}</h1><div class="meta">${meta}</div><div class="corpo">${toRichHtml(doc.content || "")}</div></body></html>`);
   w.document.close();
   const imgs = Array.from(w.document.images);
   await Promise.all(imgs.map((i) => (i.complete ? Promise.resolve() : new Promise<void>((r) => { i.onload = () => r(); i.onerror = () => r(); }))));
@@ -105,7 +107,7 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
   const statLabels: Record<string, string> = { total: "Total", issued: "Emitidos", drafts: "Rascunhos", cancelled: "Cancelados" };
   const chooseTemplate = (id: string) => { const t = templates.find((x) => x.id === id); setForm((v) => ({ ...v, templateId: id, ...(t ? { documentType: t.documentType, title: t.title, content: t.content } : {}) })); };
   const openNew = () => { setForm(emptyForm()); setOpen(true); };
-  const canSave = Boolean(form.patientId && form.professionalName.trim().length >= 2 && form.title.trim() && form.content.trim());
+  const canSave = Boolean(form.patientId && form.professionalName.trim().length >= 2 && form.title.trim() && richToText(form.content).trim());
 
   const save = async () => {
     if (saving) return;
@@ -190,10 +192,10 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
             {Object.entries(LABELS).map(([v, l]) => <MenuItem key={v} value={v}>{l}</MenuItem>)}
           </TextField>
           <TextField required label={"Título"} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <TextField required label={"Conteúdo"} multiline minRows={10} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} helperText={"Salvo como rascunho. Ao emitir, fica registrado com autoria, data e versão."} />
+          <RichTextEditor label="Conteúdo *" value={form.content} onChange={(html) => setForm((v) => ({ ...v, content: html }))} helperText="Salvo como rascunho. Ao emitir, fica registrado com autoria, data e versão." />
         </DialogContent>
         <DialogActions>
-          <Button disabled={!form.title.trim() || !form.content.trim()} onClick={() => void saveAsModel()}>Salvar como modelo</Button>
+          <Button disabled={!form.title.trim() || !richToText(form.content).trim()} onClick={() => void saveAsModel()}>Salvar como modelo</Button>
           <Box sx={{ flex: 1 }} />
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
           <Button variant="contained" disabled={!canSave || saving} onClick={() => void save()}>{saving ? "Salvando..." : "Salvar rascunho"}</Button>
@@ -203,7 +205,7 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
       <Dialog open={Boolean(view)} onClose={() => setView(null)} fullWidth maxWidth="md">
         <DialogTitle>{view?.title}</DialogTitle>
         <DialogContent dividers>
-          <Typography sx={{ whiteSpace: "pre-wrap" }}>{view?.content || ""}</Typography>
+          <Box sx={{ textAlign: "center", lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: toRichHtml(view?.content || "") }} />
         </DialogContent>
         <DialogActions>
           {view && <Button startIcon={<LocalPrintshopIcon />} onClick={() => printDoc(view, nameOf(view.patientId))}>Imprimir</Button>}
@@ -217,13 +219,13 @@ export default function ClinicalDocuments({ fixedPatientId }: { fixedPatientId?:
         <DialogTitle sx={{ fontWeight: 900 }}>Editar modelo — {editModel ? LABELS[editModel.documentType] : ""}</DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
           <TextField label="Título" value={editModel?.title || ""} onChange={(e) => setEditModel((m) => (m ? { ...m, title: e.target.value } : m))} />
-          <TextField label="Conteúdo" multiline minRows={12} value={editModel?.content || ""} onChange={(e) => setEditModel((m) => (m ? { ...m, content: e.target.value } : m))} helperText="Use “Ver impresso” para conferir como sai no papel, com a logo e os dados da clínica." />
+          <RichTextEditor label="Conteúdo" value={editModel?.content || ""} onChange={(html) => setEditModel((m) => (m ? { ...m, content: html } : m))} helperText="Use “Ver impresso” para conferir como sai no papel, com a logo e os dados da clínica." />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => editModel && previewModel(editModel)}>Ver impresso</Button>
           <Box sx={{ flex: 1 }} />
           <Button onClick={() => setEditModel(null)}>Cancelar</Button>
-          <Button variant="contained" disabled={!editModel?.title.trim() || !editModel?.content.trim()} onClick={() => void saveModel()}>Salvar modelo</Button>
+          <Button variant="contained" disabled={!editModel?.title.trim() || !richToText(editModel?.content || "").trim()} onClick={() => void saveModel()}>Salvar modelo</Button>
         </DialogActions>
       </Dialog>
 
