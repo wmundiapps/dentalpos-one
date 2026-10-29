@@ -22,6 +22,7 @@ export interface Employee {
   id: string; employeeCode: string; name: string; category: string; department: string; position: string; employmentModel: string; status: string;
   admissionDate: string; experienceEndDate?: string | null; baseSalary: number | string; monthlyWorkload: number; supervisor?: string | null;
   email?: string | null; phone?: string | null; cpf?: string | null; pixKey?: string | null; notes?: string | null;
+  workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null;
 }
 export interface Totals { workedMin: number; expectedMin: number; balanceMin: number; overtimeMin: number; faltas: number; atrasos: number; lateMin: number; incompletos: number; abonadas: number }
 export interface DayRow { date: string; status: string; punches: Array<{ kind: string; time: string; inside: boolean | null }>; workedMin: number; expectedMin: number; diffMin: number; lateMin: number; note?: string }
