@@ -219,7 +219,7 @@ export function mountConciliacao(router: Router) {
         prisma.tesExtratoItem.aggregate({ where: { tenantId, contaId: c.id, status: 'PENDENTE' }, _count: true, _sum: { valor: true } }),
         prisma.tesExtratoItem.count({ where: { tenantId, contaId: c.id, status: 'CONCILIADO' } }),
         prisma.tesMovimento.aggregate({ where: { tenantId, contaId: c.id, conciliado: false }, _count: true, _sum: { valor: true } }),
-        prisma.tesExtrato.findFirst({ where: { tenantId, contaId: c.id }, orderBy: { periodoFim: 'desc' } }),
+        prisma.tesExtrato.findFirst({ where: { tenantId, contaId: c.id, saldoFinal: { not: null } }, orderBy: { periodoFim: 'desc' } }),
       ])
       out.push({ contaId: c.id, nome: c.nome, saldoSistema: await saldoDaConta(tenantId, c), itensPendentes: pend._count, valorPendente: r2(pend._sum.valor ?? 0), itensConciliados: conc, movimentosSistemaSemExtrato: movPend._count, valorSistemaSemExtrato: r2(movPend._sum.valor ?? 0), ultimoExtratoFim: ultimo?.periodoFim ?? null, saldoExtrato: ultimo?.saldoFinal ?? null })
     }

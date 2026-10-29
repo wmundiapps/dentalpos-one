@@ -171,6 +171,7 @@ export function mountNotas(router: Router) {
   router.post('/notas/:id/cancelar', requireRole(...OPERA), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = tid(req), id = String(req.params.id)
     const { motivo } = parseBody(z.object({ motivo: z.string().min(5).max(300) }), req.body)
+    if (!(await prisma.tesNotaFiscal.findFirst({ where: { id, tenantId }, select: { id: true } }))) throw httpError(404, 'Nota não encontrada.')
     const c = await prisma.tesNotaFiscal.updateMany({ where: { id, tenantId, status: 'LANCADA' }, data: { status: 'CANCELADA', canceladaEm: new Date(), motivoCancelamento: motivo } })
     if (c.count === 0) throw httpError(409, 'Nota não encontrada ou já cancelada.')
     await prisma.tesTitulo.updateMany({ where: { tenantId, notaFiscalId: id }, data: { notaFiscalId: null } })

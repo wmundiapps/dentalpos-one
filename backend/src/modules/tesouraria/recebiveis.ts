@@ -267,7 +267,7 @@ export function mountRecebiveis(router: Router) {
         divergencias.push({
           receivableId: r.id, descricao: r.descricao, vencimento: r.dataVencimento, aluno: mS.get(r.studentId) ?? { id: r.studentId },
           bolsaEsperada: esperado.valor, bolsaAplicada: aplicado, diferenca: r2(esperado.valor - aplicado),
-          motivo: !aj ? 'Concessão vigente sem bolsa aplicada na mensalidade' : esperado.valor === 0 ? 'Bolsa aplicada sem concessão vigente (encerrada/suspensa)' : 'Valor da bolsa difere da concessão vigente',
+          motivo: aplicado === 0 ? 'Concessão vigente sem bolsa aplicada na mensalidade' : esperado.valor === 0 ? 'Bolsa aplicada sem concessão vigente (encerrada/suspensa)' : 'Valor da bolsa difere da concessão vigente',
         })
       } else ok++
     }

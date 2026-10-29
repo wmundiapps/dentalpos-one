@@ -151,7 +151,7 @@ export function mountFolha(router: Router) {
     const tenantId = tid(req)
     const { competencia, contaBancariaId, vencimentoPadrao } = parseBody(z.object({ competencia: z.string().refine(competenciaValida, 'competência deve ser AAAA-MM'), contaBancariaId: z.string().optional(), vencimentoPadrao: dateISO().optional() }), req.body)
     const gerar = await carregarGeradorRh()
-    if (!gerar) throw httpError(501, 'O módulo de RH ainda não expõe gerarLancamentosFolha. Importe os lançamentos por POST /folha/importar (contrato em GET /folha/contrato).', { code: 'RH_INDISPONIVEL' })
+    if (!gerar) throw httpError(424, 'O módulo de RH ainda não expõe gerarLancamentosFolha. Importe os lançamentos por POST /folha/importar (contrato em GET /folha/contrato).', { code: 'RH_INDISPONIVEL' })
     const out = await gerar(tenantId, competencia)
     const lista: any[] = Array.isArray(out) ? out : out?.lancamentos
     if (!Array.isArray(lista) || !lista.length) throw httpError(404, `O RH não retornou lançamentos para ${competencia}.`)

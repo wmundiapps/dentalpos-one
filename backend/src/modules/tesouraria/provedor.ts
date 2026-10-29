@@ -55,6 +55,6 @@ export function registrarProvedor(p: ProvedorBancario) { registro.set(p.nome.toU
 
 export function obterProvedor(nome: string | null | undefined): ProvedorBancario {
   const p = registro.get(String(nome || 'SIMULADO').toUpperCase())
-  if (!p) throw httpError(501, `Provedor bancário "${nome}" não está configurado. Integrações reais exigem credenciais, certificado e homologação com o banco; use SIMULADO ou baixe o arquivo CNAB e envie pelo internet banking.`, { code: 'PROVEDOR_NAO_CONFIGURADO' })
+  if (!p) throw httpError(424, `Provedor bancário "${nome}" não está configurado. Integrações reais exigem credenciais, certificado e homologação com o banco; use SIMULADO ou baixe o arquivo CNAB e envie pelo internet banking.`, { code: 'PROVEDOR_NAO_CONFIGURADO' })
   return p
 }
