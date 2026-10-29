@@ -42,6 +42,7 @@ export interface FinancialEntry {
   paymentReceipt?: string | null;
   notes?: string | null;
   issuerEntity?: IssuerEntity | null;
+  costCenter?: string | null;
 }
 
 export interface FinancialEntryInput {
@@ -63,6 +64,7 @@ export interface FinancialEntryInput {
   digitableLine?: string;
   supplier?: string;
   accountingMode?: string;
+  costCenter?: string;
 }
 
 export interface FinancialDashboard {
