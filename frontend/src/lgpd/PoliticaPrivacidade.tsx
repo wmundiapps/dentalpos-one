@@ -11,7 +11,7 @@ export default function PoliticaPrivacidade() {
     <PublicShell titulo="Política de Privacidade" subtitulo="Como tratamos os dados pessoais de alunos, candidatos, egressos, responsáveis e usuários (Lei nº 13.709/2018 — LGPD)." instituicao={inst?.nome}>
       {erro && <Alert severity="info" sx={{ mb: 2 }}>{erro} A parte geral desta política continua válida.</Alert>}
       <H>1. Quem somos (controlador)</H>
-      <P>{nome}{inst?.cnpj ? `, CNPJ ${inst.cnpj}` : ""}{inst?.endereco ? `, ${inst.endereco}` : ""}, é a controladora dos dados pessoais tratados neste sistema. A plataforma de gestão é fornecida pela WMundi (DentalPos One / EduMaster Pro), que atua como <b>operadora</b>, tratando os dados apenas conforme as instruções da instituição.</P>
+      <P>{nome}{inst?.cnpj ? `, CNPJ ${inst.cnpj}` : ""}{inst?.endereco ? `, ${inst.endereco}` : ""}, é a controladora dos dados pessoais tratados neste sistema. A plataforma de gestão é fornecida pela WMundi (EduMaster Pro), que atua como <b>operadora</b>, tratando os dados apenas conforme as instruções da instituição.</P>
       <H>2. Encarregado pelo tratamento de dados (DPO)</H>
       {dpo ? (
         <P><b>{dpo.nome}</b>{dpo.cargo ? ` — ${dpo.cargo}` : ""}. E-mail: <b>{dpo.email}</b>{dpo.telefone ? ` · Telefone: ${dpo.telefone}` : ""}{dpo.horarioAtendimento ? ` · Atendimento: ${dpo.horarioAtendimento}` : ""}.</P>

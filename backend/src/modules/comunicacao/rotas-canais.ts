@@ -177,8 +177,8 @@ router.get(
       revahConfigurado: revahConfigured(),
       canaisDelegados: delegados,
       orientacao: revahConfigured()
-        ? 'REVAH ativo no ambiente. Para NÃO duplicar envio próprio, marque delegarRevah=true no canal: o despachante deste módulo deixa de enviar por ele e as mensagens permanecem PENDENTES na caixa de saída para o REVAH consumir.'
-        : 'REVAH não configurado (REVAH_API_URL/REVAH_SHARED_SECRET). O envio é feito pelos adapters próprios deste módulo.',
+        ? 'Provedor externo de mensagens ativo no ambiente. Para NÃO duplicar envio próprio, marque delegarRevah=true no canal: o despachante deste módulo deixa de enviar por ele e as mensagens permanecem PENDENTES na caixa de saída para o REVAH consumir.'
+        : 'Provedor externo de mensagens não configurado. O envio é feito pelos adapters próprios deste módulo.',
     })
   }),
 )

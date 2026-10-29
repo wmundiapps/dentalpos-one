@@ -1,4 +1,4 @@
-# Módulo Segurança (EduMaster Pro / DentalPos One)
+# Módulo Segurança (EduMaster Pro)
 
 Camadas de segurança do backend: **2FA TOTP**, **bloqueio progressivo de login**, **barreira de origem**,
 **varredura de uploads** (anti-malware / anti-pornografia / SSRF), **moderação de texto**, **log de segurança**
@@ -43,7 +43,7 @@ pode ser reutilizado (guarda-se o último passo). Comparações em tempo constan
 |---|---|---|
 | `SECURITY_ENC_KEY` | (deriva de `JWT_SECRET`) | Chave dos segredos 2FA: 64 hex ou texto ≥ 16 caracteres. **Defina antes de ativar 2FA em produção** para poder rotacionar `JWT_SECRET` sem perder os segredos (segredos antigos continuam decifráveis pela chave derivada do JWT). Em produção sem nenhuma das duas, o 2FA falha com mensagem clara |
 | `REQUIRE_2FA_ROLES` | vazio | Lista (`ADMIN,OWNER,RECTOR`) de papéis obrigados a ter 2FA. Vazio = ninguém é obrigado |
-| `SECURITY_TOTP_ISSUER` | `DentalPos One` | Nome exibido no app autenticador |
+| `SECURITY_TOTP_ISSUER` | `EduMaster Pro` | Nome exibido no app autenticador |
 | `ALLOWED_ORIGINS` | — | Origens extras (separadas por vírgula) aceitas pelo CORS e pelo `originGuard` |
 | `APP_ALLOWED_HOSTS` | — | Hosts extras (sem esquema); vira `https://host` e `http://host` |
 | `CORS_ORIGIN`, `PUBLIC_APP_URL` | (já existentes) | Também entram na allowlist de origem |

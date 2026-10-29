@@ -57,7 +57,7 @@ const env = {
   CORS_ORIGIN: `http://localhost:${WEB_PORT}`,
   ALLOWED_ORIGINS: `http://localhost:${WEB_PORT}`,
   PUBLIC_APP_URL: `http://localhost:${WEB_PORT}`,
-  SECURITY_TOTP_ISSUER: 'EduMaster Pro (teste)',
+  SECURITY_TOTP_ISSUER: 'EduMaster Pro',
   API_URL: `http://localhost:${API_PORT}/api`,
 }
 const roda = (cmd, args, cwd, extra = {}) => spawnSync(cmd, args, { cwd, env: { ...env, ...extra }, stdio: 'inherit', shell: win })
@@ -95,6 +95,6 @@ if (primeira) {
 }
 sobe(npx, ['vite', '--port', String(WEB_PORT), '--strictPort'], frontend, { VITE_API_URL: `http://localhost:${API_PORT}/api` })
 
-console.log(`\nPRONTO. Abra: http://localhost:${WEB_PORT}\nLogin: admin@ravel.edu.br  |  Senha: Ravel@2026  (aluno: aluno@ravel.edu.br / Aluno@2026)\nPara parar: Ctrl+C\n`)
+console.log(`\nPRONTO. Abra: http://localhost:${WEB_PORT}\nLogin: admin@suainstituicao.edu.br  |  Senha: Demo@2026  (aluno: aluno@suainstituicao.edu.br / Aluno@2026)\nPara parar: Ctrl+C\n`)
 const parar = async () => { for (const p of filhos) try { p.kill() } catch {} ; try { await pg.stop() } catch {} ; process.exit(0) }
 process.on('SIGINT', parar); process.on('SIGTERM', parar)

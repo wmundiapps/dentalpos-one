@@ -1,8 +1,8 @@
 // Fixtures do monitor do DOU (testes e demo): NÃO dependem de rede.
-// Instituição fictícia: "Instituto Ravel de Ensino Superior" (CNPJ 12.345.678/0001-90, e-MEC 4321).
+// Instituição fictícia: "SUA INSTITUIÇÃO" (CNPJ 12.345.678/0001-90, e-MEC 4321).
 
 export const DOU_PALAVRAS_DEMO = [
-  { termo: 'Instituto Ravel de Ensino Superior', tipo: 'INSTITUICAO', peso: 10 },
+  { termo: 'SUA INSTITUIÇÃO', tipo: 'INSTITUICAO', peso: 10 },
   { termo: '12.345.678/0001-90', tipo: 'CNPJ', peso: 10 },
   { termo: '4321', tipo: 'EMEC', peso: 8 },
   { termo: 'Odontologia', tipo: 'CURSO', peso: 6 },
@@ -15,7 +15,7 @@ export const DOU_XML_INLABS = `<?xml version="1.0" encoding="UTF-8"?>
 <body>
 <Identifica><![CDATA[PORTARIA Nº 812, DE 27 DE OUTUBRO DE 2026]]></Identifica>
 <Data><![CDATA[28/10/2026]]></Data>
-<Ementa><![CDATA[Reconhece o curso de Odontologia, bacharelado, ministrado pelo Instituto Ravel de Ensino Superior, CNPJ 12.345.678/0001-90, e-MEC 4321, em Ribeirão Preto/SP.]]></Ementa>
+<Ementa><![CDATA[Reconhece o curso de Odontologia, bacharelado, ministrado pelo SUA INSTITUIÇÃO, CNPJ 12.345.678/0001-90, e-MEC 4321, em Ribeirão Preto/SP.]]></Ementa>
 <Titulo/>
 <SubTitulo/>
 <Texto><![CDATA[<p>O SECRETÁRIO DE REGULAÇÃO E SUPERVISÃO DA EDUCAÇÃO SUPERIOR resolve:</p><p>Art. 1º Fica reconhecido o curso de Odontologia, 120 vagas anuais. Art. 2º A instituição deverá protocolar o aditamento no prazo de 30 (trinta) dias.</p>]]></Texto>
@@ -67,7 +67,7 @@ export const DOU_RSS = `<?xml version="1.0" encoding="UTF-8"?>
 export const DOU_TEXTO_COLADO = `Diário Oficial da União - Seção 1 - 29/10/2026
 MINISTÉRIO DA EDUCAÇÃO
 PORTARIA Nº 1.234, DE 28 DE OUTUBRO DE 2026
-Aplica medida cautelar de suspensão de ingresso de novos estudantes nos cursos de Enfermagem do Instituto Ravel de Ensino Superior, com prazo de 15 (quinze) dias para manifestação.
+Aplica medida cautelar de suspensão de ingresso de novos estudantes nos cursos de Enfermagem do SUA INSTITUIÇÃO, com prazo de 15 (quinze) dias para manifestação.
 Art. 1º Fica suspenso o ingresso.
 ---
 Diário Oficial da União - Seção 1 - 29/10/2026

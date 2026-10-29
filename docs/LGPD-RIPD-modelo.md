@@ -6,7 +6,7 @@
 |---|---|
 | Instituição (controladora) | [razão social, CNPJ, endereço] |
 | Encarregado (DPO) | [nome, e-mail, telefone] |
-| Operadora da plataforma | WMundi (DentalPos One / EduMaster Pro) — ver `LGPD-CONTRATO-DPA-modelo.md` |
+| Operadora da plataforma | WMundi (EduMaster Pro) — ver `LGPD-CONTRATO-DPA-modelo.md` |
 | Versão / data / responsável pela elaboração | [v1.0, dd/mm/aaaa, nome] |
 | Próxima revisão | [máx. 12 meses ou a cada mudança relevante] |
 

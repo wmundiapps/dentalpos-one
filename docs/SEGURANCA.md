@@ -1,4 +1,4 @@
-# Segurança do backend — DentalPos One + EduMaster Pro
+# Segurança do backend — EduMaster Pro
 
 Este documento resume as proteções adicionadas ao backend e, com a mesma ênfase, **o que elas não conseguem garantir**.
 Detalhes técnicos, endpoints e operação: `backend/src/modules/seguranca/README.md`.

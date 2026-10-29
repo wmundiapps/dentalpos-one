@@ -1,3 +1,4 @@
+import { APP_NAME, EDU_ONLY } from "../config/appMode";
 // Dissuasão de inspeção/engenharia reversa casual (F12, "Ver código-fonte", self-XSS).
 // Modos (VITE_DEVTOOLS_MODE): off | deter (padrão) | block. Só age em produção.
 //
@@ -44,7 +45,7 @@ function avisarNoConsole() {
       "color:#d32f2f;font-size:20px;font-weight:700",
     );
     c.log(
-      "%cQuem pede para você colar algo neste console pode roubar sua conta e os dados dos pacientes. Se você não é desenvolvedor da DentalPos, feche esta janela.",
+      `%cQuem pede para você colar algo neste console pode roubar sua conta e os dados dos ${EDU_ONLY ? "alunos" : "pacientes"}. Se você não é desenvolvedor do ${APP_NAME}, feche esta janela.`,
       "font-size:15px",
     );
   } catch {

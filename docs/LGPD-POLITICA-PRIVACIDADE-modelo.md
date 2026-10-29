@@ -5,7 +5,7 @@
 **Última atualização:** [dd/mm/aaaa] · **Versão:** [1.0]
 
 ## 1. Quem é o controlador
-[Razão social], CNPJ [..], com sede em [endereço] ("Instituição"), é a controladora dos dados pessoais tratados nos sistemas acadêmicos e administrativos. A plataforma é fornecida pela WMundi (DentalPos One / EduMaster Pro), que atua como **operadora**, tratando dados apenas conforme as instruções da Instituição.
+[Razão social], CNPJ [..], com sede em [endereço] ("Instituição"), é a controladora dos dados pessoais tratados nos sistemas acadêmicos e administrativos. A plataforma é fornecida pela WMundi (EduMaster Pro), que atua como **operadora**, tratando dados apenas conforme as instruções da Instituição.
 
 ## 2. Encarregado pelo tratamento de dados (DPO)
 [Nome], [e-mail], [telefone], [horário de atendimento]. Canal do titular: [URL do Portal do Titular].

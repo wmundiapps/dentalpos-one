@@ -8,7 +8,7 @@
 - **Encarregados:** Instituição — [nome, e-mail]; WMundi — [nome, e-mail].
 
 ## 1. Objeto
-A WMundi fornece à Instituição a plataforma DentalPos One / EduMaster Pro (gestão acadêmica, financeira, comunicação e apoio ao estudante), nos termos do contrato principal [nº/data]. Este DPA disciplina o tratamento de dados pessoais realizado pela WMundi em nome da Instituição.
+A WMundi fornece à Instituição a plataforma EduMaster Pro (gestão acadêmica, financeira, comunicação e apoio ao estudante), nos termos do contrato principal [nº/data]. Este DPA disciplina o tratamento de dados pessoais realizado pela WMundi em nome da Instituição.
 
 ## 2. Papéis
 2.1. A Instituição é **controladora**: decide finalidades e meios essenciais, define bases legais, informa os titulares e responde pelas instruções que dá.

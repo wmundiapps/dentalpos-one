@@ -1,7 +1,7 @@
 /**
  * Seed de demonstração do módulo JURÍDICO (EduMaster Pro). Usa a API REAL com token ADMIN, no estilo de scripts/edu-demo-seed.ts.
  * Uso a partir do edu-demo-seed (sem editá-lo):  import { seedJuridico } from './seeds/juridico'  ->  await seedJuridico(c.api, c)
- * Uso isolado:  DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/juridico.ts   (login admin@ravel.edu.br / Ravel@2026)
+ * Uso isolado:  DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/juridico.ts   (login admin@suainstituicao.edu.br / Demo@2026)
  * Todos os textos, números de processo e valores são FICTÍCIOS (números CNJ com dígito verificador válido, mas inexistentes). Rodar em banco limpo.
  */
 import { gerarCnj } from '../../src/modules/juridico/logic'
@@ -23,14 +23,14 @@ export async function seedJuridico(api: Api, ctx: SeedCtx = {}) {
   const ok = <T,>(x: T | null | undefined, tag: string): T => { if (!x) ctx.failures?.push(`seedJuridico: falhou ${tag}`); return x as T }
 
   // equipe jurídica
-  if (ctx.mk) await ctx.mk('juridico@ravel.edu.br', 'Ravel@2026', 'Renata', 'Siqueira', 'LEGAL')
+  if (ctx.mk) await ctx.mk('juridico@suainstituicao.edu.br', 'Demo@2026', 'Renata', 'Siqueira', 'LEGAL')
 
   // ---------------------------------------------------------------- escritórios e advogados
   const e1 = ok(await post('/escritorios', { nome: 'Siqueira & Moraes Advogados Associados', cnpj: '11.222.333/0001-44', contatoNome: 'Dr. Paulo Moraes', email: 'contato@siqueiramoraes.example', telefone: '(11) 3000-1000', honorarios: 'Êxito de 10% + pro labore mensal' }), 'escritorio1')
   const e2 = ok(await post('/escritorios', { nome: 'Barros Lima Advocacia Trabalhista', cnpj: '55.666.777/0001-88', contatoNome: 'Dra. Helena Lima', email: 'helena@barroslima.example', telefone: '(11) 3000-2000' }), 'escritorio2')
   const a1 = ok(await post('/advogados', { nome: 'Paulo Moraes', oab: 'OAB/SP 123.456', tipo: 'EXTERNO', escritorioId: e1?.id, email: 'paulo@siqueiramoraes.example' }), 'adv1')
   const a2 = ok(await post('/advogados', { nome: 'Helena Lima', oab: 'OAB/SP 234.567', tipo: 'EXTERNO', escritorioId: e2?.id }), 'adv2')
-  const a3 = ok(await post('/advogados', { nome: 'Renata Siqueira', oab: 'OAB/SP 345.678', tipo: 'INTERNO', email: 'juridico@ravel.edu.br' }), 'adv3')
+  const a3 = ok(await post('/advogados', { nome: 'Renata Siqueira', oab: 'OAB/SP 345.678', tipo: 'INTERNO', email: 'juridico@suainstituicao.edu.br' }), 'adv3')
   S.adv = [a1, a2, a3]
 
   // ---------------------------------------------------------------- acervo documental
@@ -75,18 +75,18 @@ export async function seedJuridico(api: Api, ctx: SeedCtx = {}) {
   const im4 = ok(await post('/imoveis', { apelido: 'Terreno para expansão (em negociação)', tipo: 'TERRENO', propriedade: 'EM_NEGOCIACAO', cidade: 'São Paulo', uf: 'SP', areaM2: 6000 }), 'imovel4')
   S.imoveis = [im1, im2, im3, im4]
   if (im2) {
-    const l = await post('/locacoes', { imovelId: im2.id, natureza: 'LOCACAO_PAGA', locadorNome: 'Imobiliária Centro Antigo Ltda', locadorDoc: '22.333.444/0001-55', locatarioNome: 'Instituto Ravel de Ensino Superior', valorMensal: 42000, diaVencimento: 10, indiceReajuste: 'IGPM', mesReajuste: 6, vigenciaInicio: ymd(-150), vigenciaFim: ymd(580), garantiaTipo: 'CAUCAO', garantiaValor: 126000, garantiaDetalhe: '3 aluguéis em depósito', multaRescisoria: '3 aluguéis proporcionais ao prazo restante' })
+    const l = await post('/locacoes', { imovelId: im2.id, natureza: 'LOCACAO_PAGA', locadorNome: 'Imobiliária Centro Antigo Ltda', locadorDoc: '22.333.444/0001-55', locatarioNome: 'SUA INSTITUIÇÃO', valorMensal: 42000, diaVencimento: 10, indiceReajuste: 'IGPM', mesReajuste: 6, vigenciaInicio: ymd(-150), vigenciaFim: ymd(580), garantiaTipo: 'CAUCAO', garantiaValor: 126000, garantiaDetalhe: '3 aluguéis em depósito', multaRescisoria: '3 aluguéis proporcionais ao prazo restante' })
     if (l) { await post(`/locacoes/${l.id}/ativar`, {}); await post(`/locacoes/${l.id}/parcelas/gerar`, {}); S.locacao1 = l }
   }
   if (im3) {
-    const l = await post('/locacoes', { imovelId: im3.id, natureza: 'LOCACAO_PAGA', locadorNome: 'Marta Coelho Imóveis', locatarioNome: 'Instituto Ravel de Ensino Superior', valorMensal: 6800, diaVencimento: 5, indiceReajuste: 'IPCA', vigenciaInicio: ymd(-400), vigenciaFim: ymd(62), garantiaTipo: 'FIADOR', garantiaDetalhe: 'Fiador: Sr. Antônio Coelho (imóvel quitado)' })
+    const l = await post('/locacoes', { imovelId: im3.id, natureza: 'LOCACAO_PAGA', locadorNome: 'Marta Coelho Imóveis', locatarioNome: 'SUA INSTITUIÇÃO', valorMensal: 6800, diaVencimento: 5, indiceReajuste: 'IPCA', vigenciaInicio: ymd(-400), vigenciaFim: ymd(62), garantiaTipo: 'FIADOR', garantiaDetalhe: 'Fiador: Sr. Antônio Coelho (imóvel quitado)' })
     if (l) { await post(`/locacoes/${l.id}/ativar`, {}); await post(`/locacoes/${l.id}/parcelas/gerar`, {}); S.locacao2 = l }
   }
   if (im1) {
-    const l = await post('/locacoes', { imovelId: im1.id, natureza: 'LOCACAO_RECEBIDA', locadorNome: 'Instituto Ravel de Ensino Superior', locatarioNome: 'Cantina Sabor & Arte ME', valorMensal: 3500, diaVencimento: 15, indiceReajuste: 'FIXO', percentualFixo: 5, vigenciaInicio: ymd(-30), vigenciaFim: ymd(700), garantiaTipo: 'SEGURO_FIANCA', garantiaDetalhe: 'Apólice de seguro-fiança vinculada ao contrato' })
+    const l = await post('/locacoes', { imovelId: im1.id, natureza: 'LOCACAO_RECEBIDA', locadorNome: 'SUA INSTITUIÇÃO', locatarioNome: 'Cantina Sabor & Arte ME', valorMensal: 3500, diaVencimento: 15, indiceReajuste: 'FIXO', percentualFixo: 5, vigenciaInicio: ymd(-30), vigenciaFim: ymd(700), garantiaTipo: 'SEGURO_FIANCA', garantiaDetalhe: 'Apólice de seguro-fiança vinculada ao contrato' })
     if (l) { await post(`/locacoes/${l.id}/ativar`, {}); await post(`/locacoes/${l.id}/parcelas/gerar`, {}) }
   }
-  if (im4) await post('/locacoes', { imovelId: im4.id, natureza: 'COMPRA', locadorNome: 'Espólio de J. Almeida', locatarioNome: 'Instituto Ravel de Ensino Superior', valorMensal: 0, vigenciaInicio: ymd(0), vigenciaFim: ymd(180), emNegociacao: true, condicoes: 'Proposta de compra em análise; due diligence da matrícula pendente.' })
+  if (im4) await post('/locacoes', { imovelId: im4.id, natureza: 'COMPRA', locadorNome: 'Espólio de J. Almeida', locatarioNome: 'SUA INSTITUIÇÃO', valorMensal: 0, vigenciaInicio: ymd(0), vigenciaFim: ymd(180), emNegociacao: true, condicoes: 'Proposta de compra em análise; due diligence da matrícula pendente.' })
   // quita as parcelas já vencidas da locação 1 e deixa 2 em atraso
   for (const loc of [S.locacao1, S.locacao2]) {
     if (!loc) continue
@@ -147,7 +147,7 @@ export async function seedJuridico(api: Api, ctx: SeedCtx = {}) {
 
   if (pc1) {
     await post(`/processos/${pc1.id}/partes`, { nome: 'Lucas Ferreira Andrade', documento: '529.982.247-25', tipo: 'AUTOR', polo: 'ATIVO' })
-    await post(`/processos/${pc1.id}/partes`, { nome: 'Instituto Ravel de Ensino Superior', documento: '12.345.678/0001-90', tipo: 'REU', polo: 'PASSIVO' })
+    await post(`/processos/${pc1.id}/partes`, { nome: 'SUA INSTITUIÇÃO', documento: '12.345.678/0001-90', tipo: 'REU', polo: 'PASSIVO' })
     await post(`/processos/${pc1.id}/andamentos`, { data: day(-38), tipo: 'DESPACHO', descricao: 'Citação da ré para contestar em 15 dias úteis.' })
     await post(`/processos/${pc1.id}/andamentos`, { data: day(-10), tipo: 'PETICAO', descricao: 'Contestação protocolada com documentos de baixa dos pagamentos.' })
     await post(`/processos/${pc1.id}/prazos`, { titulo: 'Réplica do autor — acompanhar e manifestar', tipo: 'MANIFESTACAO', dataFatal: day(4), fatal: true, advogadoId: a1?.id })
@@ -210,9 +210,9 @@ if (require.main === module) {
   const API = process.env.API_URL || 'http://localhost:3000/api'
   ;(async () => {
     const { prisma } = await import('../../src/lib/prisma')
-    const clinic = await prisma.clinic.findFirst({ where: { tenantId: 'ravel-ies' } })
-    if (!clinic) throw new Error('Rode antes scripts/edu-demo-seed.ts (cria a instituição ravel-ies).')
-    const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: clinic.id, email: 'admin@ravel.edu.br', password: 'Ravel@2026' }) })
+    const clinic = await prisma.clinic.findFirst({ where: { tenantId: 'sua-instituicao' } })
+    if (!clinic) throw new Error('Rode antes scripts/edu-demo-seed.ts (cria a instituição sua-instituicao).')
+    const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: clinic.id, email: 'admin@suainstituicao.edu.br', password: 'Demo@2026' }) })
     const token = ((await r.json()) as any).token as string
     const failures: string[] = []
     const api: Api = async (method, path, body) => {
@@ -221,7 +221,7 @@ if (require.main === module) {
       if (!x.ok) { failures.push(`${method} ${path} -> ${x.status} ${t.slice(0, 160)}`); return null }
       return j
     }
-    await seedJuridico(api, { tenantId: 'ravel-ies', failures })
+    await seedJuridico(api, { tenantId: 'sua-instituicao', failures })
     console.log(failures.length ? `${failures.length} chamadas falharam:\n - ${failures.join('\n - ')}` : 'Seed jurídico concluído.')
     await prisma.$disconnect()
   })().catch((e) => { console.error(e); process.exit(1) })

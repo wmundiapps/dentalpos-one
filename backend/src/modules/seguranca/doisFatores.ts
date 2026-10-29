@@ -6,7 +6,7 @@ import { gerarSegredoBase32, otpauthUri, verificarTotp } from './totp'
 // Serviço de 2FA (TOTP). Regras de negócio puras de acesso a dados; HTTP fica em routes.ts.
 // ============================================================
 
-export const EMISSOR = process.env.SECURITY_TOTP_ISSUER || 'DentalPos One'
+export const EMISSOR = process.env.SECURITY_TOTP_ISSUER || 'EduMaster Pro'
 export const QTD_CODIGOS_RECUPERACAO = 8
 
 interface CodigoGuardado { h: string; usadoEm: string | null }

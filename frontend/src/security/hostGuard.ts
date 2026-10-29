@@ -1,3 +1,4 @@
+import { APP_NAME, EDU_ONLY } from "../config/appMode";
 // Guarda de domínio: o app só monta em hosts autorizados (evita clonagem/hospedagem em outro site)
 // e recusa ser exibido dentro de um frame de terceiros (clickjacking).
 //
@@ -44,7 +45,7 @@ export function hostAutorizado(hostname: string, lista: string[] = hostsPermitid
 
 function telaDeBloqueio(titulo: string, texto: string) {
   const alvo = document.getElementById("root") || document.body;
-  document.title = "DentalPos One";
+  document.title = APP_NAME;
   alvo.innerHTML = "";
   const caixa = document.createElement("main");
   caixa.setAttribute("role", "alert");
@@ -58,12 +59,15 @@ function telaDeBloqueio(titulo: string, texto: string) {
   const p = document.createElement("p");
   p.textContent = texto;
   p.style.cssText = "margin:0 0 20px;line-height:1.5;opacity:.88";
-  const a = document.createElement("a");
-  a.href = "https://one.dentalpos.com.br";
-  a.rel = "noopener noreferrer";
-  a.textContent = "Acessar o endereço oficial do DentalPos One";
-  a.style.cssText = "color:#7fb3ff;font-weight:600";
-  interno.append(h1, p, a);
+  interno.append(h1, p);
+  if (!EDU_ONLY) {
+    const a = document.createElement("a");
+    a.href = "https://one.dentalpos.com.br";
+    a.rel = "noopener noreferrer";
+    a.textContent = "Acessar o endereço oficial do DentalPos One";
+    a.style.cssText = "color:#7fb3ff;font-weight:600";
+    interno.append(a);
+  }
   caixa.append(interno);
   alvo.append(caixa);
 }
@@ -87,7 +91,7 @@ export function runHostGuard(): boolean {
     }
     telaDeBloqueio(
       "Conteúdo bloqueado",
-      "Por segurança, o DentalPos One não pode ser exibido dentro de outro site. Abra-o diretamente no endereço oficial.",
+      `Por segurança, o ${APP_NAME} não pode ser exibido dentro de outro site. Abra-o diretamente no endereço oficial.`,
     );
     return false;
   }
@@ -95,7 +99,7 @@ export function runHostGuard(): boolean {
   if (!hostAutorizado(window.location.hostname)) {
     telaDeBloqueio(
       "Endereço não autorizado",
-      "Este endereço não é um ambiente oficial do DentalPos One. Para proteger seus dados, não informe senhas aqui.",
+      `Este endereço não é um ambiente oficial do ${APP_NAME}. Para proteger seus dados, não informe senhas aqui.`,
     );
     return false;
   }

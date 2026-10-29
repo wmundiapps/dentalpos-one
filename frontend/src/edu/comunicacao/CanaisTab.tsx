@@ -102,7 +102,7 @@ function Canais({ toast }: { toast: (t: Toast) => void }) {
                   <Chip size="small" color={c.ativo ? "success" : "default"} label={c.ativo ? "Ativo" : "Desativado"} />
                   <Chip size="small" color={c.configurado ? "success" : "warning"} label={c.configurado ? "Credenciais OK" : "Sem credenciais"} />
                   {c.ultimoTesteOk != null ? <Chip size="small" color={c.ultimoTesteOk ? "success" : "error"} label={c.ultimoTesteOk ? "Teste OK" : "Teste falhou"} /> : null}
-                  {c.delegarRevah ? <Chip size="small" label="Delegado ao REVAH" /> : null}
+                  {c.delegarRevah ? <Chip size="small" label="Delegado ao provedor externo" /> : null}
                 </Box>
                 <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 1 }}>
                   Limites: {c.limiteHora}/hora · {c.limiteDia}/dia{c.restringirHorario ? " · só em horário comercial" : ""}

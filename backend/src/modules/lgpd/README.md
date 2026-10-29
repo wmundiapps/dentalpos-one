@@ -1,4 +1,4 @@
-# Módulo LGPD (EduMaster Pro / DentalPos One)
+# Módulo LGPD (EduMaster Pro)
 
 Consentimentos versionados, direitos do titular (art. 18), inventário de tratamento (ROPA, art. 37), retenção com expurgo,
 incidentes (art. 48), encarregado (DPO), dados sensíveis/menores e mascaramento/redação de logs. Prefixo de modelos: `Lgp`

@@ -2,21 +2,21 @@
  * Seed de demonstração do EduMaster Pro (usa a API REAL com token ADMIN; contas via Prisma).
  * Uso:  DATABASE_URL=... npx tsx scripts/edu-demo-seed.ts   (backend rodando em API_URL, padrão http://localhost:3000/api)
  * Etapas: SEED_STEPS=a,b (só essas) ou SEED_SKIP=marca (pula; use para ver a tela tracejada sem logo e depois rode SEED_STEPS=marca). Rodar em banco limpo.
- * Login: admin@ravel.edu.br / Ravel@2026  ·  aluno: aluno@ravel.edu.br / Aluno@2026 (clinicId impresso ao final).
+ * Login: admin@suainstituicao.edu.br / Demo@2026  ·  aluno: aluno@suainstituicao.edu.br / Aluno@2026 (clinicId impresso ao final).
  */
 import bcrypt from 'bcryptjs'
 import { prisma } from '../src/lib/prisma'
 
 const API = process.env.API_URL || 'http://localhost:3000/api'
-const TENANT = 'ravel-ies'
-export const ADMIN = { email: 'admin@ravel.edu.br', password: 'Ravel@2026' }
-export const ALUNO = { email: 'aluno@ravel.edu.br', password: 'Aluno@2026' }
+const TENANT = 'sua-instituicao'
+export const ADMIN = { email: 'admin@suainstituicao.edu.br', password: 'Demo@2026' }
+export const ALUNO = { email: 'aluno@suainstituicao.edu.br', password: 'Aluno@2026' }
 
 async function contas() {
   let clinic = await prisma.clinic.findFirst({ where: { tenantId: TENANT } })
   if (!clinic) {
     clinic = await prisma.clinic.create({
-      data: { tenantId: TENANT, name: 'Instituto Ravel de Ensino Superior', displayName: 'Instituto Ravel de Ensino Superior', email: 'contato@ravel.edu.br', phone: '(11) 4002-8922', cnpj: '12.345.678/0001-90', plan: 'ENTERPRISE' } as any,
+      data: { tenantId: TENANT, name: 'SUA INSTITUIÇÃO', displayName: 'SUA INSTITUIÇÃO', email: 'contato@suainstituicao.edu.br', phone: '(11) 4002-8922', cnpj: '12.345.678/0001-90', plan: 'ENTERPRISE' } as any,
     })
   }
   const mk = async (email: string, password: string, firstName: string, lastName: string, role: string) => {
@@ -24,7 +24,7 @@ async function contas() {
     if (ex) return ex
     return prisma.user.create({ data: { clinicId: clinic!.id, tenantId: TENANT, email, password: await bcrypt.hash(password, 10), firstName, lastName, role, isActive: true } as any })
   }
-  const admin = await mk(ADMIN.email, ADMIN.password, 'Helena', 'Ravel', 'ADMIN')
+  const admin = await mk(ADMIN.email, ADMIN.password, 'Helena', 'Souza', 'ADMIN')
   return { clinic, admin, mk }
 }
 
@@ -46,7 +46,7 @@ type Ctx = {
 
 const MODULOS = ['admissoes', 'secretaria', 'calendario', 'notas', 'infraestrutura', 'suprimentos', 'regulatorio', 'governanca', 'desempenho', 'pesquisa', 'apoio', 'comunicacao', 'biblioteca', 'jornadas', 'modalidades', 'reitoria']
 
-const ALUNO_EMAIL = 'aluno@ravel.edu.br'
+const ALUNO_EMAIL = 'aluno@suainstituicao.edu.br'
 const ALUNO_SENHA = 'Aluno@2026'
 
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [
@@ -68,14 +68,14 @@ const NOMES = ['Ana Beatriz Lima', 'Bruno Carvalho', 'Camila Duarte', 'Diego Fer
 
 async function equipe(c: Ctx) {
   const defs: [string, string, string, string][] = [
-    ['coord.odonto@ravel.edu.br', 'Marcos', 'Albuquerque', 'COORDINATOR'], ['secretaria@ravel.edu.br', 'Patrícia', 'Moreira', 'SECRETARY'],
-    ['prof.anatomia@ravel.edu.br', 'Ricardo', 'Menezes', 'TEACHER'], ['prof.histologia@ravel.edu.br', 'Luciana', 'Prado', 'TEACHER'],
-    ['prof.direito@ravel.edu.br', 'Fernando', 'Castro', 'TEACHER'], ['prof.civil@ravel.edu.br', 'Adriana', 'Tavares', 'TEACHER'],
-    ['biblioteca@ravel.edu.br', 'Sônia', 'Barbosa', 'LIBRARIAN'], ['infra@ravel.edu.br', 'Jorge', 'Pacheco', 'FACILITIES'],
-    ['admissoes@ravel.edu.br', 'Carla', 'Siqueira', 'ADMISSIONS'], ['apoio@ravel.edu.br', 'Teresa', 'Lopes', 'SUPPORT'],
+    ['coord.odonto@suainstituicao.edu.br', 'Marcos', 'Albuquerque', 'COORDINATOR'], ['secretaria@suainstituicao.edu.br', 'Patrícia', 'Moreira', 'SECRETARY'],
+    ['prof.anatomia@suainstituicao.edu.br', 'Ricardo', 'Menezes', 'TEACHER'], ['prof.histologia@suainstituicao.edu.br', 'Luciana', 'Prado', 'TEACHER'],
+    ['prof.direito@suainstituicao.edu.br', 'Fernando', 'Castro', 'TEACHER'], ['prof.civil@suainstituicao.edu.br', 'Adriana', 'Tavares', 'TEACHER'],
+    ['biblioteca@suainstituicao.edu.br', 'Sônia', 'Barbosa', 'LIBRARIAN'], ['infra@suainstituicao.edu.br', 'Jorge', 'Pacheco', 'FACILITIES'],
+    ['admissoes@suainstituicao.edu.br', 'Carla', 'Siqueira', 'ADMISSIONS'], ['apoio@suainstituicao.edu.br', 'Teresa', 'Lopes', 'SUPPORT'],
   ]
   S.users = {}
-  for (const [e, f, l, r] of defs) S.users[e.split('@')[0]] = await c.mk(e, 'Ravel@2026', f, l, r)
+  for (const [e, f, l, r] of defs) S.users[e.split('@')[0]] = await c.mk(e, 'Demo@2026', f, l, r)
 }
 
 async function academico(c: Ctx) {
@@ -104,7 +104,7 @@ async function academico(c: Ctx) {
   // alunos
   S.students = []
   for (let i = 0; i < NOMES.length; i++) {
-    const email = i === 0 ? ALUNO_EMAIL : `aluno${i + 1}@ravel.edu.br`
+    const email = i === 0 ? ALUNO_EMAIL : `aluno${i + 1}@suainstituicao.edu.br`
     const user = await c.mk(email, i === 0 ? ALUNO_SENHA : 'Aluno@2026', NOMES[i].split(' ')[0], NOMES[i].split(' ').slice(1).join(' '), 'STUDENT')
     const st = await c.api('POST', '/edu/academico/students', { userId: user.id, ra: `2026${String(1000 + i)}`, nomeCompleto: NOMES[i], cpf: `${String(111111111 + i * 7919).slice(0, 9)}${String(10 + i).slice(-2)}`, dataNascimento: `${2000 + (i % 6)}-0${1 + (i % 9)}-1${i % 9}` })
     if (!st) continue
@@ -124,7 +124,7 @@ async function espacos(c: Ctx) {
   const tipos: [string, string, string, number, string][] = [
     ['A-101', 'Sala 101', 'SALA_AULA', 50, 'A'], ['A-102', 'Sala 102', 'SALA_AULA', 45, 'A'], ['A-201', 'Sala 201', 'SALA_AULA', 60, 'A'], ['B-101', 'Sala 301 (EaD Síncrona)', 'SALA_AULA', 80, 'B'],
     ['LAB-ANA', 'Laboratório de Anatomia', 'LABORATORIO', 30, 'C'], ['LAB-HIS', 'Laboratório de Histologia', 'LABORATORIO', 24, 'C'], ['CLI-1', 'Clínica-Escola de Odontologia', 'CLINICA_ESCOLA', 40, 'D'],
-    ['AUD-1', 'Auditório Ravel', 'AUDITORIO', 220, 'E'], ['BIB-1', 'Biblioteca Central', 'BIBLIOTECA', 120, 'F'], ['PAT-1', 'Pátio de Convivência', 'PATIO', 300, 'G'], ['EST-1', 'Estacionamento Principal', 'ESTACIONAMENTO', 180, 'H'],
+    ['AUD-1', 'Auditório Principal', 'AUDITORIO', 220, 'E'], ['BIB-1', 'Biblioteca Central', 'BIBLIOTECA', 120, 'F'], ['PAT-1', 'Pátio de Convivência', 'PATIO', 300, 'G'], ['EST-1', 'Estacionamento Principal', 'ESTACIONAMENTO', 180, 'H'],
   ]
   S.spaces = []
   for (const [codigo, nome, tipo, capacidade, bloco] of tipos) {
@@ -243,7 +243,7 @@ async function secretaria(c: Ctx) {
   const ml: any[] = Array.isArray(modelos) ? modelos : modelos?.items ?? []
   if (ml[0]) {
     for (let i = 0; i < 4; i++) await c.api('POST', '/edu/secretaria/certificados', { modeloId: ml[0].id, studentId: S.students[i]?.id, tituloEvento: 'Semana Acadêmica de Odontologia 2026', cargaHoraria: 20, periodo: '15 a 19/09/2026' })
-    await c.api('POST', '/edu/secretaria/certificados/lote', { modeloId: ml[Math.min(1, ml.length - 1)].id, nomeLote: 'Palestrantes — Congresso Ravel', tituloEvento: 'Congresso Ravel de Saúde e Direito', cargaHoraria: 12, destinatarios: [{ nome: 'Dra. Cecília Fontes', cpf: cpfValido(901) }, { nome: 'Prof. Armando Vilela', cpf: cpfValido(902) }, { nome: 'Dr. Túlio Brandão', cpf: cpfValido(903) }] })
+    await c.api('POST', '/edu/secretaria/certificados/lote', { modeloId: ml[Math.min(1, ml.length - 1)].id, nomeLote: 'Palestrantes — Congresso Acadêmico', tituloEvento: 'Congresso Acadêmico de Saúde e Direito', cargaHoraria: 12, destinatarios: [{ nome: 'Dra. Cecília Fontes', cpf: cpfValido(901) }, { nome: 'Prof. Armando Vilela', cpf: cpfValido(902) }, { nome: 'Dr. Túlio Brandão', cpf: cpfValido(903) }] })
   }
 }
 
@@ -408,7 +408,7 @@ async function regulatorio(c: Ctx) {
 
 async function governanca(c: Ctx) {
   const G = '/edu/governanca'
-  const pdi = await c.api('POST', `${G}/pdis`, { titulo: 'PDI 2026–2030 — Ravel 2030', anoInicio: 2026, anoFim: 2030 })
+  const pdi = await c.api('POST', `${G}/pdis`, { titulo: 'PDI 2026–2030 — Horizonte 2030', anoInicio: 2026, anoFim: 2030 })
   if (pdi) {
     const eixos = ['Ensino e Aprendizagem', 'Pesquisa e Extensão', 'Gestão e Sustentabilidade', 'Infraestrutura']
     const metas: any[] = []
@@ -442,7 +442,7 @@ async function governanca(c: Ctx) {
   if (nde) for (const [n, t, r] of [['Marcos Albuquerque', 'DOUTOR', 'INTEGRAL'], ['Ricardo Menezes', 'DOUTOR', 'PARCIAL'], ['Luciana Prado', 'MESTRE', 'PARCIAL'], ['Silvia Aranha', 'DOUTOR', 'INTEGRAL'], ['Tiago Mendes', 'ESPECIALISTA', 'HORISTA']]) await c.api('POST', `${G}/nde-membros`, { ndeId: nde.id, docenteId: 'd-' + n, nome: n, titulacao: t, regime: r, inicio: day(-400) })
   const org = await c.api('POST', `${G}/orgaos`, { tipo: 'CONSUP', nome: 'Conselho Superior (CONSUP)', quorumPercent: 50 })
   if (org) {
-    for (let i = 1; i <= 5; i++) await c.api('POST', `${G}/orgao-membros`, { orgaoId: org.id, nome: ['Helena Ravel', 'Marcos Albuquerque', 'Patrícia Moreira', 'Fernando Castro', 'Representante discente'][i - 1], cargo: i === 1 ? 'presidente' : 'membro', inicioMandato: day(-100), fimMandato: day(500), temVoto: true })
+    for (let i = 1; i <= 5; i++) await c.api('POST', `${G}/orgao-membros`, { orgaoId: org.id, nome: ['Helena Souza', 'Marcos Albuquerque', 'Patrícia Moreira', 'Fernando Castro', 'Representante discente'][i - 1], cargo: i === 1 ? 'presidente' : 'membro', inicioMandato: day(-100), fimMandato: day(500), temVoto: true })
     const reu = await c.api('POST', `${G}/reunioes`, { orgaoId: org.id, data: day(6), tipo: 'ORDINARIA' })
     if (reu) await c.api('POST', `${G}/deliberacoes`, { orgaoId: org.id, reuniaoId: reu.id, titulo: 'Aprovar orçamento 2027', texto: 'Aprovação do orçamento anual da instituição.' })
   }
@@ -505,7 +505,7 @@ async function apoio(c: Ctx) {
 async function comunicacao(c: Ctx) {
   const C = '/edu/comunicacao'
   await c.api('POST', `${C}/canais`, { tipo: 'WHATSAPP', nome: 'WhatsApp Secretaria', provedor: 'META_CLOUD', config: { accessToken: 'demo', phoneNumberId: '100', appSecret: 'demo' } })
-  await c.api('POST', `${C}/canais`, { tipo: 'EMAIL', nome: 'E-mail institucional', provedor: 'RESEND', config: { apiKey: 're_demo', from: 'no-reply@ravel.edu.br', webhookSecret: 'whsec_ZGVtbw==' } })
+  await c.api('POST', `${C}/canais`, { tipo: 'EMAIL', nome: 'E-mail institucional', provedor: 'RESEND', config: { apiKey: 're_demo', from: 'no-reply@suainstituicao.edu.br', webhookSecret: 'whsec_ZGVtbw==' } })
   await c.api('POST', `${C}/canais`, { tipo: 'SITE_CHAT', nome: 'Chat do site', provedor: 'PROPRIO' })
   await c.api('POST', `${C}/contatos/sincronizar`, { origem: 'ALUNOS' })
   const tpls = lst(await c.api('GET', `${C}/templates?pageSize=50`))
@@ -538,9 +538,9 @@ async function pesquisa(c: Ctx) {
   const P = '/edu/pesquisa'
   const prof = S.users['prof.anatomia']
   const pubs: [string, string, number, string, string][] = [
-    ['Avaliação de resinas bulk-fill em restaurações posteriores', 'ARTIGO', 2026, 'a2', '10.1000/ravel.2025.001'], ['Responsabilidade civil do cirurgião-dentista: panorama jurisprudencial', 'ARTIGO', 2026, 'b1', '10.1000/ravel.2025.002'],
-    ['Realidade aumentada no ensino de anatomia', 'ARTIGO', 2024, 'a1', '10.1000/ravel.2024.003'], ['Evasão no ensino superior privado: um estudo de caso', 'ARTIGO', 2024, 'b2', '10.1000/ravel.2024.004'],
-    ['Manual de Semiologia Odontológica', 'LIVRO', 2023, 'b3', '10.1000/ravel.2023.005'],
+    ['Avaliação de resinas bulk-fill em restaurações posteriores', 'ARTIGO', 2026, 'a2', '10.1000/exemplo.2025.001'], ['Responsabilidade civil do cirurgião-dentista: panorama jurisprudencial', 'ARTIGO', 2026, 'b1', '10.1000/exemplo.2025.002'],
+    ['Realidade aumentada no ensino de anatomia', 'ARTIGO', 2024, 'a1', '10.1000/exemplo.2024.003'], ['Evasão no ensino superior privado: um estudo de caso', 'ARTIGO', 2024, 'b2', '10.1000/exemplo.2024.004'],
+    ['Manual de Semiologia Odontológica', 'LIVRO', 2023, 'b3', '10.1000/exemplo.2023.005'],
   ]
   for (const [titulo, tipo, ano, qualis, doi] of pubs) await c.api('POST', `${P}/publicacoes`, { tipo, titulo, ano, qualis, doi, autores: [{ tipo: 'EXTERNO', nome: 'Dra. Cecília Fontes', orcid: '0000-0002-1825-0097' }] })
   const g = await c.api('POST', `${P}/grupos`, { nome: 'Grupo de Pesquisa em Biomateriais e Dentística', liderUserId: prof.id })
@@ -558,7 +558,7 @@ async function pesquisa(c: Ctx) {
   }
   if (pj2) await c.api('POST', `${P}/projetos-etapas`, { projetoId: pj2.id, titulo: 'Revisão da literatura', inicioPrevisto: ymd(11), fimPrevisto: ymd(100) })
   for (const [i, tipo] of ['TCC', 'TCC', 'DISSERTACAO'].entries()) await c.api('POST', `${P}/trabalhos`, { tipo, titulo: ['Percepção de estudantes sobre a clínica-escola', 'Contratos eletrônicos e proteção de dados', 'Educação a distância e permanência estudantil'][i], studentId: S.students[i + 3].id, orientadorUserId: prof.id })
-  const per = await c.api('POST', `${P}/periodicos`, { nome: 'Revista Ravel de Ciências da Saúde e do Direito', issn: '0378-5955', editorChefeUserId: prof.id, doiPrefixo: '10.1234', ativo: true })
+  const per = await c.api('POST', `${P}/periodicos`, { nome: 'Revista Acadêmica de Ciências da Saúde e do Direito', issn: '0378-5955', editorChefeUserId: prof.id, doiPrefixo: '10.1234', ativo: true })
   void per
 }
 
@@ -642,16 +642,16 @@ async function mesa(c: Ctx) {
 
 async function marca(c: Ctx) {
   await c.api('PUT', '/edu/core/instituicao', {
-    nome: 'Instituto Ravel de Ensino Superior', nomeFantasia: 'Instituto Ravel', sigla: 'IRES', mantenedora: 'Ravel Educacional Ltda.', cnpj: '12.345.678/0001-90', codigoEmec: '24819',
-    categoria: 'Centro Universitário', organizacao: 'Privada com fins lucrativos', email: 'contato@ravel.edu.br', telefone: '(11) 4002-8922', site: 'https://www.ravel.edu.br',
+    nome: 'SUA INSTITUIÇÃO', nomeFantasia: 'SUA INSTITUIÇÃO', sigla: 'SUAINST', mantenedora: 'Mantenedora de Exemplo Ltda.', cnpj: '12.345.678/0001-90', codigoEmec: '24819',
+    categoria: 'Centro Universitário', organizacao: 'Privada com fins lucrativos', email: 'contato@suainstituicao.edu.br', telefone: '(11) 4002-8922', site: 'https://www.suainstituicao.edu.br',
     endereco: 'Av. das Acácias, 1200 — Jardim Universitário', cidade: 'São Paulo', uf: 'SP', corPrimaria: '#1F3A8A', corSecundaria: '#0B1F4D', corDestaque: '#D4A017',
-    reitorNome: 'Profa. Dra. Helena Ravel', reitorCargo: 'Reitora', lema: 'Ciência, ética e cuidado', portariaCredenciamento: 'Portaria MEC nº 412/2023',
+    reitorNome: 'Profa. Dra. Helena Souza', reitorCargo: 'Reitora', lema: 'Ciência, ética e cuidado', portariaCredenciamento: 'Portaria MEC nº 412/2023',
   })
   const svg = (fundo: string, tipo: 'principal' | 'brasao' | 'escura') => {
     const cor = tipo === 'escura' ? '#FFFFFF' : '#1F3A8A'
     const ouro = '#D4A017'
     if (tipo === 'brasao') return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="200" height="240"><path d="M20 20h160v110c0 52-40 84-80 98-40-14-80-46-80-98z" fill="#1F3A8A" stroke="${ouro}" stroke-width="8"/><path d="M36 36h128v94c0 42-32 68-64 80-32-12-64-38-64-80z" fill="#0B1F4D"/><text x="100" y="118" text-anchor="middle" font-family="Georgia,serif" font-size="64" font-weight="700" fill="${ouro}">IR</text><path d="M60 148h80M70 166h60" stroke="${ouro}" stroke-width="4" stroke-linecap="round"/><path d="M100 44l8 16h-16z" fill="${ouro}"/></svg>`
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="520" height="160"><circle cx="80" cy="80" r="66" fill="${tipo === 'escura' ? 'none' : '#1F3A8A'}" stroke="${ouro}" stroke-width="6"/><text x="80" y="102" text-anchor="middle" font-family="Georgia,serif" font-size="62" font-weight="700" fill="${tipo === 'escura' ? '#FFFFFF' : ouro}">IR</text><text x="170" y="74" font-family="Georgia,serif" font-size="46" font-weight="700" fill="${cor}">Instituto Ravel</text><text x="172" y="108" font-family="Arial,sans-serif" font-size="19" letter-spacing="3" fill="${tipo === 'escura' ? '#E5E7EB' : '#4B5563'}">ENSINO SUPERIOR</text><rect x="172" y="120" width="120" height="4" fill="${ouro}"/></svg>`
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="520" height="160"><circle cx="80" cy="80" r="66" fill="${tipo === 'escura' ? 'none' : '#1F3A8A'}" stroke="${ouro}" stroke-width="6"/><text x="80" y="102" text-anchor="middle" font-family="Georgia,serif" font-size="62" font-weight="700" fill="${tipo === 'escura' ? '#FFFFFF' : ouro}">IR</text><text x="170" y="74" font-family="Georgia,serif" font-size="46" font-weight="700" fill="${cor}">SUA INSTITUIÇÃO</text><text x="172" y="108" font-family="Arial,sans-serif" font-size="19" letter-spacing="3" fill="${tipo === 'escura' ? '#E5E7EB' : '#4B5563'}">ENSINO SUPERIOR</text><rect x="172" y="120" width="120" height="4" fill="${ouro}"/></svg>`
   }
   void svg
   const du = (x: string) => 'data:image/svg+xml;base64,' + Buffer.from(x).toString('base64')

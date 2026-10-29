@@ -17,7 +17,7 @@ export const BASES_LEGAIS = [
 // Bases que a LGPD NÃO admite para dado sensível (art. 11)
 const NAO_PARA_SENSIVEL = new Set(['LEGITIMO_INTERESSE', 'PROTECAO_CREDITO', 'EXECUCAO_CONTRATO'])
 
-const OPERADORA = { nome: 'WMundi (plataforma DentalPos One / EduMaster Pro)', funcao: 'Operadora: hospedagem e processamento do sistema', pais: 'Brasil' }
+const OPERADORA = { nome: 'WMundi Technologies (plataforma EduMaster Pro)', funcao: 'Operadora: hospedagem e processamento do sistema', pais: 'Brasil' }
 const NUVEM = { nome: 'Provedor de infraestrutura em nuvem (hospedagem/banco de dados) [confirmar contrato e região]', funcao: 'Suboperador de armazenamento', pais: 'Conforme contrato' }
 
 interface Seed {

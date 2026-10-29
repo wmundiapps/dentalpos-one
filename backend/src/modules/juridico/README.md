@@ -1,4 +1,4 @@
-# Módulo Jurídico (EduMaster Pro / DentalPos One)
+# Módulo Jurídico (EduMaster Pro)
 
 Acervo documental, contratos, imóveis e aluguéis, contratos de polos EAD, processos judiciais/administrativos, inteligência de
 processos sofridos (recorrência, causa raiz, prevenção), riscos e seguros, painel e integrações leves com Reitoria e Financeiro.
@@ -46,7 +46,7 @@ A situação (`status`) de contratos, locações, contratos de polo e seguros **
 - **Uploads**: o corpo passa pelo `uploadGuard` global (executáveis/scripts recusados com 422, URLs só https sem rede interna). O arquivo em `dataUrl` fica em `JurAnexo.dataUrl` (listagens nunca o devolvem; download com `attachment` + `nosniff`).
 
 ## Seed e testes
-- Seed: `scripts/seeds/juridico.ts` → `seedJuridico(api, ctx)` (estilo do `edu-demo-seed.ts`, que **não** foi alterado). Pode ser chamado de dentro do seed principal (`await seedJuridico(c.api, c)`) ou isolado: `DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/juridico.ts`. Dados fictícios (números CNJ com dígito válido, mas inexistentes). Cria usuário `juridico@ravel.edu.br` (papel `LEGAL`, senha `Ravel@2026`).
+- Seed: `scripts/seeds/juridico.ts` → `seedJuridico(api, ctx)` (estilo do `edu-demo-seed.ts`, que **não** foi alterado). Pode ser chamado de dentro do seed principal (`await seedJuridico(c.api, c)`) ou isolado: `DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/juridico.ts`. Dados fictícios (números CNJ com dígito válido, mas inexistentes). Cria usuário `juridico@suainstituicao.edu.br` (papel `LEGAL`, senha `Demo@2026`).
 - E2E: `DATABASE_URL=postgresql://USUARIO:SENHA@127.0.0.1:5432/jur npx tsx scripts/e2e/juridico.ts` (banco local próprio com `prisma db push`; 333 verificações: funções puras, permissões, sigilo, isolamento por tenant, upload guard, ciclos, processos, inteligência, riscos/seguros, painel, jobs, seed).
 - Validação de tipos: `bash scripts/edu-check.sh juridico`.
 

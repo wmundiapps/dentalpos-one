@@ -54,8 +54,8 @@ export async function seedTesouraria(api: SeedApi, ctx: SeedCtx = {}): Promise<R
     { nome: 'Coordenação/financeiro até R$ 25.000', valorAte: 25000, papeis: ['COORDINATOR', 'FINANCE'], aprovacoes: 1 },
     { nome: 'Diretoria acima de R$ 25.000', valorAte: null, papeis: ['RECTOR', 'ADMIN', 'OWNER', 'BOARD'], aprovacoes: 1 },
   ] })
-  const itau = await api('POST', `${T}/contas`, { tipo: 'BANCO', nome: 'Itaú Principal', bancoCodigo: '341', bancoNome: 'Itaú Unibanco', agencia: '0912', numeroConta: '45871', digito: '3', titularNome: 'Instituto Ravel de Ensino Superior', titularDocumento: CNPJ_INSTITUICAO, convenio: 'RAVEL001', saldoInicial: 250000, padraoPagamento: true })
-  const bb = await api('POST', `${T}/contas`, { tipo: 'BANCO', nome: 'Banco do Brasil — Reserva', bancoCodigo: '001', bancoNome: 'Banco do Brasil', agencia: '3456', numeroConta: '99871', digito: 'X', titularNome: 'Instituto Ravel de Ensino Superior', titularDocumento: CNPJ_INSTITUICAO, saldoInicial: 80000 })
+  const itau = await api('POST', `${T}/contas`, { tipo: 'BANCO', nome: 'Itaú Principal', bancoCodigo: '341', bancoNome: 'Itaú Unibanco', agencia: '0912', numeroConta: '45871', digito: '3', titularNome: 'SUA INSTITUIÇÃO', titularDocumento: CNPJ_INSTITUICAO, convenio: 'DEMO001', saldoInicial: 250000, padraoPagamento: true })
+  const bb = await api('POST', `${T}/contas`, { tipo: 'BANCO', nome: 'Banco do Brasil — Reserva', bancoCodigo: '001', bancoNome: 'Banco do Brasil', agencia: '3456', numeroConta: '99871', digito: 'X', titularNome: 'SUA INSTITUIÇÃO', titularDocumento: CNPJ_INSTITUICAO, saldoInicial: 80000 })
   const caixa = await api('POST', `${T}/contas`, { tipo: 'CAIXA', nome: 'Caixa da Tesouraria', saldoInicial: 1500 })
   if (!itau || !bb || !caixa) { falha('contas não criadas'); return r }
   r.contas = 3
@@ -122,7 +122,7 @@ export async function seedTesouraria(api: SeedApi, ctx: SeedCtx = {}): Promise<R
     lancamentos: [
       { tipo: 'SALARIO', favorecidoNome: 'Marcos Albuquerque (Coordenação)', documento: cpf(11), funcionarioId: 'seed-f1', bruto: 9800, inss: 876.97, irrf: 1190.5, chavePix: cpf(11), tipoChavePix: 'CPF' },
       { tipo: 'SALARIO', favorecidoNome: 'Patrícia Moreira (Secretaria)', documento: cpf(12), funcionarioId: 'seed-f2', bruto: 4200, inss: 378, irrf: 118.2, chavePix: cpf(12), tipoChavePix: 'CPF' },
-      { tipo: 'PROLABORE', favorecidoNome: 'Helena Ravel (Mantenedora)', documento: cpf(13), funcionarioId: 'seed-s1', bruto: 15000, chavePix: cpf(13), tipoChavePix: 'CPF' },
+      { tipo: 'PROLABORE', favorecidoNome: 'Helena Souza (Mantenedora)', documento: cpf(13), funcionarioId: 'seed-s1', bruto: 15000, chavePix: cpf(13), tipoChavePix: 'CPF' },
       { tipo: 'RPA', favorecidoNome: 'Dr. Ricardo Menezes (palestrante convidado)', documento: cpf(14), bruto: 2500, issAliquota: 5, chavePix: 'ricardo.menezes@exemplo.com', tipoChavePix: 'EMAIL', referencia: 'Semana Acadêmica' },
       { tipo: 'PJ', favorecidoNome: 'Eletro Manutenção ME', documento: CNPJ_INSTITUICAO, bruto: 3200, retemTributos: true, issAliquota: 2, chavePix: CNPJ_INSTITUICAO, tipoChavePix: 'CNPJ', referencia: 'NF 5521 — manutenção elétrica' },
     ],

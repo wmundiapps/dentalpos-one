@@ -1,4 +1,4 @@
-# Segurança do frontend (DentalPos One + EduMaster Pro)
+# Segurança do frontend (EduMaster Pro)
 
 Princípio: **tudo o que chega ao navegador é visível para quem o usa.** O que protege de verdade é manter segredos,
 regras de negócio e autorização no servidor. As camadas abaixo reduzem superfície de ataque e dificultam abuso casual.

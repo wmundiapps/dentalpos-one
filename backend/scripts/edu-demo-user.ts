@@ -1,6 +1,6 @@
 /**
  * Cria/atualiza o usuário de apresentação do ambiente de demonstração (idempotente).
- * Variáveis: DEMO_USER_EMAIL, DEMO_USER_PASSWORD (obrigatórias), DEMO_USER_NAME, DEMO_USER_ROLE (padrão ADMIN), DEMO_TENANT (padrão ravel-ies).
+ * Variáveis: DEMO_USER_EMAIL, DEMO_USER_PASSWORD (obrigatórias), DEMO_USER_NAME, DEMO_USER_ROLE (padrão ADMIN), DEMO_TENANT (padrão sua-instituicao).
  */
 import bcrypt from 'bcryptjs'
 import { prisma } from '../src/lib/prisma'
@@ -9,7 +9,7 @@ async function main() {
   const email = String(process.env.DEMO_USER_EMAIL || '').trim().toLowerCase()
   const password = String(process.env.DEMO_USER_PASSWORD || '')
   if (!email || !password) { console.log('[demo-user] DEMO_USER_EMAIL/DEMO_USER_PASSWORD ausentes; nada a fazer.'); return }
-  const tenantId = process.env.DEMO_TENANT || 'ravel-ies'
+  const tenantId = process.env.DEMO_TENANT || 'sua-instituicao'
   const clinic = await prisma.clinic.findFirst({ where: { tenantId } })
   if (!clinic) { console.log(`[demo-user] instituição ${tenantId} não encontrada; rode o seed antes.`); return }
   const [firstName, ...rest] = String(process.env.DEMO_USER_NAME || 'Apresentação EduMaster').split(' ')

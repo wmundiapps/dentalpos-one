@@ -217,7 +217,7 @@ async function main() {
   check('reclassificar uma publicação', rec.status === 200 && rec.body.reclassificadas === 1)
   const recAll = await admin('POST', `${R}/dou/reclassificar`, {})
   check('reclassificar em lote', recAll.status === 200 && recAll.body.reclassificadas >= 1)
-  const man = await admin('POST', `${R}/dou/publicacoes`, { dataPublicacao: iso(-1), titulo: 'PORTARIA Nº 4.000, DE 1º DE OUTUBRO DE 2026', ementa: 'Autoriza o funcionamento do curso de Enfermagem do Instituto Ravel de Ensino Superior.', orgao: 'Ministério da Educação', tipo: 'Portaria', numero: '4.000', secao: 1, pagina: '10' })
+  const man = await admin('POST', `${R}/dou/publicacoes`, { dataPublicacao: iso(-1), titulo: 'PORTARIA Nº 4.000, DE 1º DE OUTUBRO DE 2026', ementa: 'Autoriza o funcionamento do curso de Enfermagem do SUA INSTITUIÇÃO.', orgao: 'Ministério da Educação', tipo: 'Portaria', numero: '4.000', secao: 1, pagina: '10' })
   check('cadastro manual classifica (AUTORIZACAO/ALTA)', man.status === 201 && man.body.tema === 'AUTORIZACAO' && man.body.relevancia === 'ALTA' && man.body.fonte === 'MANUAL', man.body)
   check('cadastro manual duplicado 409', (await admin('POST', `${R}/dou/publicacoes`, { dataPublicacao: iso(-1), titulo: 'PORTARIA Nº 4.000, DE 1º DE OUTUBRO DE 2026', orgao: 'Ministério da Educação', tipo: 'Portaria', numero: '4.000', secao: 1 })).status === 409)
   const mk = await admin('POST', `${R}/dou/publicacoes/${man.body.id}/criar-ato`, { cursoNome: 'Enfermagem', programId: prog2.id })
@@ -670,7 +670,7 @@ async function main() {
   // ============================================================
   console.log('# Seed (tenant B) e idempotência')
   const convA = await prisma.reiConvenio.count({ where: { tenantId: T } }), palA = await prisma.reiDouPalavra.count({ where: { tenantId: T } })
-  await adminB('PUT', '/edu/core/instituicao', { nome: 'Instituto Ravel de Ensino Superior', sigla: 'IRES', cnpj: '12.345.678/0001-90', codigoEmec: '24819', uf: 'SP', cidade: 'São Paulo' })
+  await adminB('PUT', '/edu/core/instituicao', { nome: 'SUA INSTITUIÇÃO', sigla: 'SUAINST', cnpj: '12.345.678/0001-90', codigoEmec: '24819', uf: 'SP', cidade: 'São Paulo' })
   const discsB = [] as any[]
   for (const nome of ['Anatomia Geral', 'Histologia Básica', 'Patologia']) discsB.push(await prisma.discipline.create({ data: { tenantId: TB, nome, cargaHoraria: 60 } }))
   const falhas: string[] = []

@@ -135,7 +135,7 @@ export async function seedReitoria(api: SeedApi, ctx: SeedCtx = {}): Promise<Res
   }
   const csv = [
     'CO_IES;NO_IES;NU_ANO_CENSO;CPC_CONTINUO;IGC_CONTINUO;ENADE_CONTINUO;MENSALIDADE;QT_CURSO;QT_MAT',
-    '24819;Instituto Ravel de Ensino Superior;2023;3,41;3,52;3,38;1480;18;4200', '24819;Instituto Ravel de Ensino Superior;2024;3,66;3,60;3,57;1560;20;4650', '24819;Instituto Ravel de Ensino Superior;2025;3,92;3,71;3,81;1640;22;5100',
+    '24819;SUA INSTITUIÇÃO;2023;3,41;3,52;3,38;1480;18;4200', '24819;SUA INSTITUIÇÃO;2024;3,66;3,60;3,57;1560;20;4650', '24819;SUA INSTITUIÇÃO;2025;3,92;3,71;3,81;1640;22;5100',
     '1121;Centro Universitário Horizonte;2023;3,70;3,80;3,65;1720;40;14000', '1121;Centro Universitário Horizonte;2024;3,75;3,84;3,70;1790;41;14600', '1121;Centro Universitário Horizonte;2025;3,88;3,90;3,84;1850;43;15200',
     '2234;Faculdade Atlântica de Ciências;2023;3,05;3,10;3,02;990;9;2100', '2234;Faculdade Atlântica de Ciências;2024;3,20;3,15;3,18;1020;10;2300', '2234;Faculdade Atlântica de Ciências;2025;3,34;3,22;3,30;1090;11;2450',
     '55;Universidade Estadual Paulista Central;2023;4,40;4,52;4,35;0;120;38000', '55;Universidade Estadual Paulista Central;2024;4,42;4,55;4,40;0;121;38400', '55;Universidade Estadual Paulista Central;2025;4,46;4,57;4,44;0;122;38900',
