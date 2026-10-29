@@ -151,7 +151,6 @@ export const navigationGroups:NavigationGroup[] = [
       item("Gestão Operacional","/operacional",<CleaningServicesIcon/>),
       item("Corpo Clínico","/corpo-clinico",<MedicalInformationIcon/>),
       item("RH e Gestão de Pessoas","/rh",<WorkIcon/>),
-      item("Meu ponto","/meu-ponto",<FingerprintIcon/>),
       item("Ponto por rosto (aparelho da clínica)","/ponto-facial",<FingerprintIcon/>),
     ])
   },
