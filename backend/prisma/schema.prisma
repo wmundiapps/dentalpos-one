@@ -6082,6 +6082,380 @@ model CalFeed {
   @@index([tenantId, escopo])
 }
 
+// ---- edu/cobranca.prisma ----
+// ============================================================
+// EDUMASTER PRO — COBRANÇA / INADIMPLÊNCIA (prefixo Cob)
+// Somente tabelas NOVAS. O contas a receber (AccountReceivable) continua sendo a fonte da verdade
+// dos títulos; aqui ficam política, régua com recorrência, acordos, promessas, histórico de
+// contatos (conformidade), recebimentos e escalonamento (jurídico).
+// Referências a Student/AccountReceivable = String ids sem @relation (nada do financeiro é alterado).
+// Valores monetários em Float com 2 casas (mesmo padrão do AccountReceivable).
+// ============================================================
+
+// Política de cobrança por segmento: multa, juros, correção, descontos, tolerância e limites de contato.
+model CobPolitica {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  nome                  String
+  segmento              String   @default("TODOS")      // TODOS | GRADUACAO | POS | EAD
+  ativa                 Boolean  @default(true)
+  multaPct              Float    @default(2)             // multa moratória única (CDC art. 52 §1º: máx. 2%)
+  jurosTipo             String   @default("MENSAL")      // MENSAL | DIARIO
+  jurosPct              Float    @default(1)             // % ao mês (MENSAL) ou % ao dia (DIARIO)
+  jurosComposto         Boolean  @default(false)
+  correcaoPctAnual      Float    @default(0)             // correção monetária anual (índice informado), pro rata die
+  correcaoIndice        String   @default("NENHUM")      // NENHUM | IPCA | IGPM | INPC | FIXO (rótulo)
+  toleranciaDias        Int      @default(0)             // sem encargos até N dias após o vencimento
+  descontoQuitacaoEncargosPct Float @default(0)          // desconto sobre multa+juros+correção na quitação à vista
+  descontoQuitacaoPrincipalPct Float @default(0)         // desconto sobre o principal na quitação à vista
+  descontoMaxPct        Float    @default(30)            // alçada: acima disso só gestor aprova (sobre o débito total)
+  bloqueiaDescontoComBolsa Boolean @default(true)        // sem desconto de quitação no principal se há bolsa ativa
+  entradaMinPct         Float    @default(10)
+  parcelasMax           Int      @default(12)
+  parcelaMinima         Float    @default(50)
+  jurosParcelamentoPct  Float    @default(0)             // % a.m. sobre o saldo parcelado (0 = sem juros)
+  validadePropostaDias  Int      @default(7)
+  toleranciaQuebraDias  Int      @default(5)             // dias de atraso da parcela do acordo até a quebra automática
+  aplicarEncargosAcordo Boolean  @default(true)          // multa/juros sobre parcela de acordo paga em atraso
+  pausaComPromessa      Boolean  @default(true)
+  // Conformidade (CDC art. 42; LGPD art. 7º, V e VI)
+  baseLegal             String   @default("EXECUCAO_CONTRATO")   // LGPD: EXECUCAO_CONTRATO | EXERCICIO_REGULAR_DIREITOS | PROTECAO_CREDITO
+  janelaInicio          String   @default("08:00")
+  janelaFim             String   @default("20:00")
+  diasContato           Int[]    @default([1, 2, 3, 4, 5])      // 0=dom ... 6=sáb
+  bloqueiaFeriados      Boolean  @default(true)
+  limiteContatosDia     Int      @default(1)
+  limiteContatosSemana  Int      @default(4)
+  diasAvisoPrevio       Int      @default(10)            // prazo entre a notificação extrajudicial e protesto/negativação
+  valorMinimoExecucao   Float    @default(200)           // abaixo disso não se gera solicitação ao jurídico
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([tenantId, ativa])
+  @@index([tenantId, segmento])
+}
+
+// Régua de cobrança configurável (etapas por dias de atraso, canal por etapa, recorrência, escalonamento).
+model CobRegua {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  segmento      String   @default("TODOS")
+  ativa         Boolean  @default(true)
+  prioridade    Int      @default(0)
+  toleranciaDias Int     @default(3)                    // etapa nova só dispara até N dias após o gatilho (evita rajada ao importar atrasos)
+  descricao     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  etapas        CobReguaEtapa[]
+
+  @@index([tenantId, ativa])
+}
+
+// acao: MENSAGEM | NOTIFICACAO_EXTRAJUDICIAL | NEGATIVACAO | PROTESTO | JURIDICO
+// canal (MENSAGEM): SMS | WHATSAPP | TELEGRAM | EMAIL | VOZ_IA
+model CobReguaEtapa {
+  id              String   @id @default(uuid())
+  tenantId        String
+  reguaId         String
+  ordem           Int      @default(0)
+  nome            String
+  diaAtraso       Int                                   // dias de atraso (do título mais antigo em aberto) que disparam a etapa
+  acao            String   @default("MENSAGEM")
+  canal           String   @default("WHATSAPP")
+  canalFallback   String?
+  assunto         String?
+  mensagem        String?                               // variáveis: {{nome}} {{valor}} {{saldo}} {{vencimento}} {{dias_atraso}} {{titulos}} {{curso}}
+  repetirACadaDias Int?                                 // recorrência até quitar/acordo; vazio = executa uma única vez
+  maxRepeticoes   Int?                                  // vazio = sem limite (até a resolução)
+  continuaAposProxima Boolean @default(false)           // false: a recorrência cessa quando a etapa seguinte entra em vigor
+  exigeAprovacao  Boolean  @default(false)              // escalonamentos: gera pendência de aprovação humana
+  ativa           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  regua           CobRegua @relation(fields: [reguaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, reguaId])
+}
+
+// Caso de cobrança = um devedor (aluno) com o ciclo de cobrança vigente.
+model CobCaso {
+  id                String   @id @default(uuid())
+  tenantId          String
+  studentId         String
+  status            String   @default("EM_COBRANCA")     // EM_COBRANCA | EM_ACORDO | PROMESSA | JURIDICO | QUITADO | ENCERRADO
+  ciclo             Int      @default(1)
+  responsavelUserId String?
+  reguaId           String?
+  pausadoAte        DateTime?
+  pausaMotivo       String?
+  naoContatar       Boolean  @default(false)             // bloqueio manual (pedido do aluno, reclamação, advogado constituído)
+  naoContatarMotivo String?
+  ultimoContatoEm   DateTime?
+  ultimoContatoCanal String?
+  ultimoContatoResultado String?
+  observacoes       String?
+  abertoEm          DateTime @default(now())
+  resolvidoEm       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId, status])
+  @@index([tenantId, responsavelUserId])
+}
+
+// Estado da recorrência: uma linha por (caso, ciclo, etapa).
+model CobExecucao {
+  id           String   @id @default(uuid())
+  tenantId     String
+  casoId       String
+  ciclo        Int      @default(1)
+  etapaId      String
+  ocorrencias  Int      @default(0)
+  ultimaEm     DateTime?
+  resultado    String   @default("EXECUTADA")             // EXECUTADA | SUPERADA | AGUARDANDO_PRE_REQUISITO
+  encerrada    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([casoId, ciclo, etapaId])
+  @@index([tenantId, casoId])
+}
+
+// Histórico de interações e registro de CADA tentativa de contato (prova de conformidade).
+// tipo: MENSAGEM | LIGACAO | VISITA | EMAIL | NOTA | VOZ_IA
+// resultado: ENFILEIRADO | ENVIADO | ENTREGUE | LIDO | FALHA | SIMULADO | BLOQUEADO_OPTOUT | BLOQUEADO_JANELA |
+//            BLOQUEADO_LIMITE | BLOQUEADO_NAO_CONTATAR | SEM_DESTINO | ATENDEU | NAO_ATENDEU | PROMESSA | ACORDO | REGISTRADO
+model CobContato {
+  id            String   @id @default(uuid())
+  tenantId      String
+  casoId        String?
+  studentId     String
+  tipo          String   @default("MENSAGEM")
+  direcao       String   @default("SAIDA")                // SAIDA | ENTRADA
+  canal         String                                    // SMS | WHATSAPP | TELEGRAM | EMAIL | VOZ_IA | TELEFONE | PRESENCIAL | SISTEMA
+  automatico    Boolean  @default(false)
+  resultado     String   @default("REGISTRADO")
+  etapaId       String?
+  acordoId      String?
+  notificationId String?
+  baseLegal     String?
+  finalidade    String   @default("COBRANCA")
+  destino       String?                                   // mascarado
+  assunto       String?
+  mensagem      String?
+  observacao    String?
+  usuarioId     String?
+  erro          String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, studentId, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, casoId, createdAt])
+  @@index([tenantId, notificationId])
+}
+
+// Promessa de pagamento com data.
+model CobPromessa {
+  id            String   @id @default(uuid())
+  tenantId      String
+  casoId        String
+  studentId     String
+  receivableId  String?
+  valor         Float
+  dataPrometida DateTime
+  canal         String?                                  // por onde foi feita
+  status        String   @default("ABERTA")              // ABERTA | CUMPRIDA | QUEBRADA | CANCELADA
+  observacao    String?
+  registradaPorId String?
+  resolvidaEm   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, casoId])
+  @@index([tenantId, status, dataPrometida])
+}
+
+// Acordo / negociação. Os termos correntes ficam aqui; a história inteira (proposta, contraproposta...) em CobAcordoEvento.
+model CobAcordo {
+  id                String   @id @default(uuid())
+  tenantId          String
+  casoId            String
+  studentId         String
+  numero            String                                // ACD-AAAA-NNNNN
+  status            String   @default("PROPOSTA")         // PROPOSTA | CONTRAPROPOSTA | ATIVO | QUITADO | QUEBRADO | RENEGOCIADO | CANCELADO
+  politicaId        String?
+  valorOriginal     Float                                 // principal dos títulos incluídos
+  encargos          Float    @default(0)                  // multa + juros + correção na data do cálculo
+  desconto          Float    @default(0)
+  valorNegociado    Float                                 // total a pagar (entrada + parcelas, com juros de parcelamento)
+  entrada           Float    @default(0)
+  numeroParcelas    Int      @default(1)                  // sem contar a entrada
+  jurosParcelamentoPct Float @default(0)
+  primeiroVencimento DateTime
+  dataCalculo       DateTime @default(now())
+  validadeAte       DateTime?
+  origem            String   @default("INSTITUICAO")      // quem fez a última proposta: INSTITUICAO | ALUNO
+  acordoAnteriorId  String?
+  criadoPorId       String?
+  aprovadoPorId     String?
+  // aceite / assinatura (registro)
+  aceiteEm          DateTime?
+  aceiteCanal       String?                               // PRESENCIAL | PORTAL | WHATSAPP | EMAIL | TELEFONE | ASSINATURA_DIGITAL
+  aceitePor         String?                               // nome de quem aceitou
+  aceiteDocumento   String?                               // CPF mascarado
+  aceiteIp          String?
+  aceiteHash        String?                               // SHA-256 dos termos aceitos
+  termoTexto        String?
+  quebradoEm        DateTime?
+  motivoQuebra      String?
+  quitadoEm         DateTime?
+  observacao        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, casoId])
+}
+
+// Títulos do contas a receber cobertos pelo acordo (enquanto ATIVO deixam de ser cobrados).
+model CobAcordoTitulo {
+  id            String   @id @default(uuid())
+  tenantId      String
+  acordoId      String
+  receivableId  String
+  principal     Float
+  encargos      Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  @@unique([acordoId, receivableId])
+  @@index([tenantId, receivableId])
+}
+
+// Tabela de parcelas do acordo (numero 0 = entrada).
+model CobParcela {
+  id            String   @id @default(uuid())
+  tenantId      String
+  acordoId      String
+  numero        Int
+  valor         Float
+  vencimento    DateTime
+  valorPago     Float    @default(0)
+  status        String   @default("ABERTA")              // ABERTA | PARCIAL | PAGA | CANCELADA
+  pagoEm        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([acordoId, numero])
+  @@index([tenantId, status, vencimento])
+}
+
+// Linha do tempo do acordo.
+model CobAcordoEvento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  acordoId    String
+  tipo        String                                      // PROPOSTA | CONTRAPROPOSTA | AJUSTE | ACEITE | PAGAMENTO | QUEBRA | REABERTURA | RENEGOCIACAO | CANCELAMENTO | QUITACAO
+  autor       String   @default("INSTITUICAO")
+  usuarioId   String?
+  dados       Json?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, acordoId, createdAt])
+}
+
+// Dinheiro recebido (baixa direta de título, parcela de acordo ou quitação).
+model CobRecebimento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  casoId        String?
+  studentId     String
+  origem        String                                    // BAIXA_TITULO | ACORDO_PARCELA | GATEWAY | CONCILIACAO
+  receivableId  String?
+  acordoId      String?
+  parcelaId     String?
+  valor         Float                                     // dinheiro efetivamente recebido
+  principal     Float    @default(0)
+  encargos      Float    @default(0)
+  desconto      Float    @default(0)
+  forma         String   @default("PIX")
+  dataPagamento DateTime @default(now())
+  transacaoId   String?                                   // PaymentTransaction gerada (lançamento contábil)
+  status        String   @default("ATIVO")                // ATIVO | ESTORNADO
+  registradoPorId String?
+  observacao    String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, dataPagamento])
+  @@index([tenantId, studentId])
+  @@index([tenantId, receivableId])
+}
+
+// Abatimentos aplicados a um título (pagamento parcial, desconto de quitação ou crédito de acordo quebrado).
+model CobAlocacao {
+  id                String   @id @default(uuid())
+  tenantId          String
+  receivableId      String
+  recebimentoId     String?
+  acordoId          String?
+  origem            String                                 // PAGAMENTO | DESCONTO | CREDITO_QUEBRA
+  principal         Float    @default(0)
+  encargos          Float    @default(0)
+  descontoPrincipal Float    @default(0)
+  descontoEncargos  Float    @default(0)
+  createdAt         DateTime @default(now())
+
+  @@index([tenantId, receivableId])
+  @@index([tenantId, acordoId])
+}
+
+// Escalonamento: notificação extrajudicial, negativação/protesto (simulados) e solicitação de execução ao Jurídico.
+// tipo: NOTIFICACAO_EXTRAJUDICIAL | NEGATIVACAO | PROTESTO | JURIDICO
+// status: AGUARDANDO_APROVACAO | GERADO | ENVIADO | ACEITO | DEVOLVIDO | CONCLUIDO | CANCELADO
+model CobEncaminhamento {
+  id              String   @id @default(uuid())
+  tenantId        String
+  casoId          String
+  studentId       String
+  numero          String                                  // ENC-AAAA-NNNNN
+  tipo            String
+  status          String   @default("GERADO")
+  simulado        Boolean  @default(false)                // negativação/protesto: sem integração real com bureau/cartório
+  automatico      Boolean  @default(false)
+  etapaId         String?
+  valorDebito     Float
+  payload         Json?                                   // contrato SolicitacaoExecucaoV1 (JURIDICO) ou dados do documento
+  documentoHtml   String?
+  protocoloExterno String?                                // nº do processo/protocolo informado pelo Jurídico/cartório
+  retornoMotivo   String?
+  geradoPorId     String?
+  aprovadoPorId   String?
+  enviadoEm       DateTime?
+  retornoEm       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, tipo, status])
+  @@index([tenantId, casoId])
+}
+
+// Contador sequencial por tenant/ano (acordos, encaminhamentos).
+model CobSequencia {
+  id        String @id @default(uuid())
+  tenantId  String
+  chave     String
+  ano       Int
+  valor     Int    @default(0)
+
+  @@unique([tenantId, chave, ano])
+}
+
 // ---- edu/comunicacao.prisma ----
 // ============================================================
 // EDUMASTER PRO — COMUNICAÇÃO OMNICHANNEL (prefixo Com)

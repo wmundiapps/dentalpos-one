@@ -14470,3 +14470,442 @@ CREATE INDEX "RhePagamentoTerceiro_tenantId_competencia_status_idx" ON "RhePagam
 CREATE INDEX "RhePagamentoTerceiro_tenantId_terceiroId_idx" ON "RhePagamentoTerceiro"("tenantId", "terceiroId");
 
 -- ==== RHE:END ====
+
+-- ==== COB:BEGIN (módulo Cobrança, prefixo Cob - gerado por prisma migrate diff; somente CRIA) ====
+-- CreateTable
+CREATE TABLE "CobPolitica" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "segmento" TEXT NOT NULL DEFAULT 'TODOS',
+    "ativa" BOOLEAN NOT NULL DEFAULT true,
+    "multaPct" DOUBLE PRECISION NOT NULL DEFAULT 2,
+    "jurosTipo" TEXT NOT NULL DEFAULT 'MENSAL',
+    "jurosPct" DOUBLE PRECISION NOT NULL DEFAULT 1,
+    "jurosComposto" BOOLEAN NOT NULL DEFAULT false,
+    "correcaoPctAnual" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "correcaoIndice" TEXT NOT NULL DEFAULT 'NENHUM',
+    "toleranciaDias" INTEGER NOT NULL DEFAULT 0,
+    "descontoQuitacaoEncargosPct" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "descontoQuitacaoPrincipalPct" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "descontoMaxPct" DOUBLE PRECISION NOT NULL DEFAULT 30,
+    "bloqueiaDescontoComBolsa" BOOLEAN NOT NULL DEFAULT true,
+    "entradaMinPct" DOUBLE PRECISION NOT NULL DEFAULT 10,
+    "parcelasMax" INTEGER NOT NULL DEFAULT 12,
+    "parcelaMinima" DOUBLE PRECISION NOT NULL DEFAULT 50,
+    "jurosParcelamentoPct" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "validadePropostaDias" INTEGER NOT NULL DEFAULT 7,
+    "toleranciaQuebraDias" INTEGER NOT NULL DEFAULT 5,
+    "aplicarEncargosAcordo" BOOLEAN NOT NULL DEFAULT true,
+    "pausaComPromessa" BOOLEAN NOT NULL DEFAULT true,
+    "baseLegal" TEXT NOT NULL DEFAULT 'EXECUCAO_CONTRATO',
+    "janelaInicio" TEXT NOT NULL DEFAULT '08:00',
+    "janelaFim" TEXT NOT NULL DEFAULT '20:00',
+    "diasContato" INTEGER[] DEFAULT ARRAY[1, 2, 3, 4, 5]::INTEGER[],
+    "bloqueiaFeriados" BOOLEAN NOT NULL DEFAULT true,
+    "limiteContatosDia" INTEGER NOT NULL DEFAULT 1,
+    "limiteContatosSemana" INTEGER NOT NULL DEFAULT 4,
+    "diasAvisoPrevio" INTEGER NOT NULL DEFAULT 10,
+    "valorMinimoExecucao" DOUBLE PRECISION NOT NULL DEFAULT 200,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CobPolitica_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobRegua" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "segmento" TEXT NOT NULL DEFAULT 'TODOS',
+    "ativa" BOOLEAN NOT NULL DEFAULT true,
+    "prioridade" INTEGER NOT NULL DEFAULT 0,
+    "toleranciaDias" INTEGER NOT NULL DEFAULT 3,
+    "descricao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CobRegua_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobReguaEtapa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "reguaId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "nome" TEXT NOT NULL,
+    "diaAtraso" INTEGER NOT NULL,
+    "acao" TEXT NOT NULL DEFAULT 'MENSAGEM',
+    "canal" TEXT NOT NULL DEFAULT 'WHATSAPP',
+    "canalFallback" TEXT,
+    "assunto" TEXT,
+    "mensagem" TEXT,
+    "repetirACadaDias" INTEGER,
+    "maxRepeticoes" INTEGER,
+    "continuaAposProxima" BOOLEAN NOT NULL DEFAULT false,
+    "exigeAprovacao" BOOLEAN NOT NULL DEFAULT false,
+    "ativa" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CobReguaEtapa_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobCaso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'EM_COBRANCA',
+    "ciclo" INTEGER NOT NULL DEFAULT 1,
+    "responsavelUserId" TEXT,
+    "reguaId" TEXT,
+    "pausadoAte" TIMESTAMP(3),
+    "pausaMotivo" TEXT,
+    "naoContatar" BOOLEAN NOT NULL DEFAULT false,
+    "naoContatarMotivo" TEXT,
+    "ultimoContatoEm" TIMESTAMP(3),
+    "ultimoContatoCanal" TEXT,
+    "ultimoContatoResultado" TEXT,
+    "observacoes" TEXT,
+    "abertoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resolvidoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CobCaso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobExecucao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT NOT NULL,
+    "ciclo" INTEGER NOT NULL DEFAULT 1,
+    "etapaId" TEXT NOT NULL,
+    "ocorrencias" INTEGER NOT NULL DEFAULT 0,
+    "ultimaEm" TIMESTAMP(3),
+    "resultado" TEXT NOT NULL DEFAULT 'EXECUTADA',
+    "encerrada" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CobExecucao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobContato" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT,
+    "studentId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'MENSAGEM',
+    "direcao" TEXT NOT NULL DEFAULT 'SAIDA',
+    "canal" TEXT NOT NULL,
+    "automatico" BOOLEAN NOT NULL DEFAULT false,
+    "resultado" TEXT NOT NULL DEFAULT 'REGISTRADO',
+    "etapaId" TEXT,
+    "acordoId" TEXT,
+    "notificationId" TEXT,
+    "baseLegal" TEXT,
+    "finalidade" TEXT NOT NULL DEFAULT 'COBRANCA',
+    "destino" TEXT,
+    "assunto" TEXT,
+    "mensagem" TEXT,
+    "observacao" TEXT,
+    "usuarioId" TEXT,
+    "erro" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CobContato_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobPromessa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "receivableId" TEXT,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "dataPrometida" TIMESTAMP(3) NOT NULL,
+    "canal" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "observacao" TEXT,
+    "registradaPorId" TEXT,
+    "resolvidaEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CobPromessa_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobAcordo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PROPOSTA',
+    "politicaId" TEXT,
+    "valorOriginal" DOUBLE PRECISION NOT NULL,
+    "encargos" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "desconto" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorNegociado" DOUBLE PRECISION NOT NULL,
+    "entrada" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "numeroParcelas" INTEGER NOT NULL DEFAULT 1,
+    "jurosParcelamentoPct" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "primeiroVencimento" TIMESTAMP(3) NOT NULL,
+    "dataCalculo" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "validadeAte" TIMESTAMP(3),
+    "origem" TEXT NOT NULL DEFAULT 'INSTITUICAO',
+    "acordoAnteriorId" TEXT,
+    "criadoPorId" TEXT,
+    "aprovadoPorId" TEXT,
+    "aceiteEm" TIMESTAMP(3),
+    "aceiteCanal" TEXT,
+    "aceitePor" TEXT,
+    "aceiteDocumento" TEXT,
+    "aceiteIp" TEXT,
+    "aceiteHash" TEXT,
+    "termoTexto" TEXT,
+    "quebradoEm" TIMESTAMP(3),
+    "motivoQuebra" TEXT,
+    "quitadoEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CobAcordo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobAcordoTitulo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "acordoId" TEXT NOT NULL,
+    "receivableId" TEXT NOT NULL,
+    "principal" DOUBLE PRECISION NOT NULL,
+    "encargos" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CobAcordoTitulo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobParcela" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "acordoId" TEXT NOT NULL,
+    "numero" INTEGER NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "vencimento" TIMESTAMP(3) NOT NULL,
+    "valorPago" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "pagoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CobParcela_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobAcordoEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "acordoId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "autor" TEXT NOT NULL DEFAULT 'INSTITUICAO',
+    "usuarioId" TEXT,
+    "dados" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CobAcordoEvento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobRecebimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT,
+    "studentId" TEXT NOT NULL,
+    "origem" TEXT NOT NULL,
+    "receivableId" TEXT,
+    "acordoId" TEXT,
+    "parcelaId" TEXT,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "principal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "encargos" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "desconto" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "forma" TEXT NOT NULL DEFAULT 'PIX',
+    "dataPagamento" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "transacaoId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ATIVO',
+    "registradoPorId" TEXT,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CobRecebimento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobAlocacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "receivableId" TEXT NOT NULL,
+    "recebimentoId" TEXT,
+    "acordoId" TEXT,
+    "origem" TEXT NOT NULL,
+    "principal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "encargos" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "descontoPrincipal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "descontoEncargos" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CobAlocacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobEncaminhamento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'GERADO',
+    "simulado" BOOLEAN NOT NULL DEFAULT false,
+    "automatico" BOOLEAN NOT NULL DEFAULT false,
+    "etapaId" TEXT,
+    "valorDebito" DOUBLE PRECISION NOT NULL,
+    "payload" JSONB,
+    "documentoHtml" TEXT,
+    "protocoloExterno" TEXT,
+    "retornoMotivo" TEXT,
+    "geradoPorId" TEXT,
+    "aprovadoPorId" TEXT,
+    "enviadoEm" TIMESTAMP(3),
+    "retornoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CobEncaminhamento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CobSequencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "ano" INTEGER NOT NULL,
+    "valor" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "CobSequencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "CobPolitica_tenantId_ativa_idx" ON "CobPolitica"("tenantId", "ativa");
+
+-- CreateIndex
+CREATE INDEX "CobPolitica_tenantId_segmento_idx" ON "CobPolitica"("tenantId", "segmento");
+
+-- CreateIndex
+CREATE INDEX "CobRegua_tenantId_ativa_idx" ON "CobRegua"("tenantId", "ativa");
+
+-- CreateIndex
+CREATE INDEX "CobReguaEtapa_tenantId_reguaId_idx" ON "CobReguaEtapa"("tenantId", "reguaId");
+
+-- CreateIndex
+CREATE INDEX "CobCaso_tenantId_status_idx" ON "CobCaso"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "CobCaso_tenantId_responsavelUserId_idx" ON "CobCaso"("tenantId", "responsavelUserId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CobCaso_tenantId_studentId_key" ON "CobCaso"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX "CobExecucao_tenantId_casoId_idx" ON "CobExecucao"("tenantId", "casoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CobExecucao_casoId_ciclo_etapaId_key" ON "CobExecucao"("casoId", "ciclo", "etapaId");
+
+-- CreateIndex
+CREATE INDEX "CobContato_tenantId_studentId_createdAt_idx" ON "CobContato"("tenantId", "studentId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "CobContato_tenantId_createdAt_idx" ON "CobContato"("tenantId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "CobContato_tenantId_casoId_createdAt_idx" ON "CobContato"("tenantId", "casoId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "CobContato_tenantId_notificationId_idx" ON "CobContato"("tenantId", "notificationId");
+
+-- CreateIndex
+CREATE INDEX "CobPromessa_tenantId_casoId_idx" ON "CobPromessa"("tenantId", "casoId");
+
+-- CreateIndex
+CREATE INDEX "CobPromessa_tenantId_status_dataPrometida_idx" ON "CobPromessa"("tenantId", "status", "dataPrometida");
+
+-- CreateIndex
+CREATE INDEX "CobAcordo_tenantId_status_idx" ON "CobAcordo"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "CobAcordo_tenantId_studentId_idx" ON "CobAcordo"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX "CobAcordo_tenantId_casoId_idx" ON "CobAcordo"("tenantId", "casoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CobAcordo_tenantId_numero_key" ON "CobAcordo"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX "CobAcordoTitulo_tenantId_receivableId_idx" ON "CobAcordoTitulo"("tenantId", "receivableId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CobAcordoTitulo_acordoId_receivableId_key" ON "CobAcordoTitulo"("acordoId", "receivableId");
+
+-- CreateIndex
+CREATE INDEX "CobParcela_tenantId_status_vencimento_idx" ON "CobParcela"("tenantId", "status", "vencimento");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CobParcela_acordoId_numero_key" ON "CobParcela"("acordoId", "numero");
+
+-- CreateIndex
+CREATE INDEX "CobAcordoEvento_tenantId_acordoId_createdAt_idx" ON "CobAcordoEvento"("tenantId", "acordoId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "CobRecebimento_tenantId_dataPagamento_idx" ON "CobRecebimento"("tenantId", "dataPagamento");
+
+-- CreateIndex
+CREATE INDEX "CobRecebimento_tenantId_studentId_idx" ON "CobRecebimento"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX "CobRecebimento_tenantId_receivableId_idx" ON "CobRecebimento"("tenantId", "receivableId");
+
+-- CreateIndex
+CREATE INDEX "CobAlocacao_tenantId_receivableId_idx" ON "CobAlocacao"("tenantId", "receivableId");
+
+-- CreateIndex
+CREATE INDEX "CobAlocacao_tenantId_acordoId_idx" ON "CobAlocacao"("tenantId", "acordoId");
+
+-- CreateIndex
+CREATE INDEX "CobEncaminhamento_tenantId_tipo_status_idx" ON "CobEncaminhamento"("tenantId", "tipo", "status");
+
+-- CreateIndex
+CREATE INDEX "CobEncaminhamento_tenantId_casoId_idx" ON "CobEncaminhamento"("tenantId", "casoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CobEncaminhamento_tenantId_numero_key" ON "CobEncaminhamento"("tenantId", "numero");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CobSequencia_tenantId_chave_ano_key" ON "CobSequencia"("tenantId", "chave", "ano");
+
+-- AddForeignKey
+ALTER TABLE "CobReguaEtapa" ADD CONSTRAINT "CobReguaEtapa_reguaId_fkey" FOREIGN KEY ("reguaId") REFERENCES "CobRegua"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- ==== COB:END ====

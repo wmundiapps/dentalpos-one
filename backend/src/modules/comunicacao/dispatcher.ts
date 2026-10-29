@@ -4,6 +4,7 @@ import { audit } from '../core/notify'
 import { sendVia } from './adapters'
 import { checarConsentimento, contatoDaNotificacao, getConfig, lerCfg, webhookUrl } from './store'
 import { decidirRetentativa, dentroDaJanela, pickDestino, proximaJanela } from './pure'
+import { cobrancaSuprimida } from '../cobranca/contato'
 
 const db = prisma as any
 const TIPOS_DESPACHO = ['EMAIL', 'WHATSAPP', 'SMS', 'TELEGRAM', 'VOZ', 'INSTAGRAM', 'FACEBOOK']
@@ -56,7 +57,7 @@ async function contador(ctx: TenantCtx, canal: string, now: Date) {
 }
 
 async function finalidadeDe(n: { tenantId: string; refType: string | null; refId: string | null }): Promise<string> {
-  if (n.refType === 'ComReguaExec') return 'COBRANCA'
+  if (n.refType === 'ComReguaExec' || n.refType === 'CobContato') return 'COBRANCA'
   if (n.refType === 'ComCampanha' && n.refId) {
     const c = await prisma.comCampanha.findFirst({ where: { id: n.refId, tenantId: n.tenantId }, select: { finalidade: true } })
     return c?.finalidade ?? 'MARKETING'
@@ -108,6 +109,12 @@ export async function despacharNotificacao(n: NonNullable<Notif>, ctx: TenantCtx
   const finalidade = await finalidadeDe(n)
   const consent = await checarConsentimento(n.tenantId, alvo.contato?.id, tipo, finalidade)
   if (!consent.ok) return falhar(consent.motivo ?? 'Opt-out do contato.', 'CANCELADA')
+
+  // cobrança (módulo Cobrança): caso quitado/em acordo/pausado/"não contatar" -> não sai
+  {
+    const motivo = await cobrancaSuprimida(n, now)
+    if (motivo) return falhar(motivo, 'CANCELADA')
+  }
 
   // cobrança: não cobrar título já quitado
   if (n.refType === 'ComReguaExec' && n.refId) {

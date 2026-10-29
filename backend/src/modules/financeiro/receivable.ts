@@ -15,6 +15,7 @@ import {
   webhookSchema,
 } from './validators';
 import { registrarBaixaComLancamento } from './accounting.helpers';
+import { aoReceberTitulo } from '../cobranca/integracao';
 
 const router = Router();
 
@@ -187,6 +188,7 @@ router.post(
     }
     const { transacao, lancamento } = baixa;
     const updated = await prisma.accountReceivable.findUniqueOrThrow({ where: { id } });
+    await aoReceberTitulo(tenantId, id); // cobrança: encerra caso/promessa se o aluno estava em cobrança
 
     res.json({ receivable: updated, transacao, lancamento });
   }),
@@ -234,6 +236,7 @@ router.post(
       throw e;
     }
     const updated = await prisma.accountReceivable.findUniqueOrThrow({ where: { id: receivable.id } });
+    await aoReceberTitulo(receivable.tenantId, receivable.id);
 
     res.json({ receivable: updated, transacao: baixa.transacao, lancamento: baixa.lancamento });
   }),
