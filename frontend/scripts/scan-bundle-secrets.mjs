@@ -91,9 +91,11 @@ for (const f of ['.env', '.env.local', '.env.production', '.env.production.local
 const varsVite = Object.keys(ambiente).filter((k) => k.startsWith('VITE_')).sort()
 const sensiveis = varsVite.filter((k) => NOME_SENSIVEL.test(k))
 for (const k of sensiveis) achados.push({ regra: 'Variável VITE_* com nome sensível (seria pública)', rel: 'ambiente', trecho: k })
+// Lista de domínios (ex.: VITE_ALLOWED_HOSTS) é configuração pública, não segredo.
+const ehListaDeHosts = (v) => v.split(',').every((h) => /^\s*(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+\s*$/i.test(h))
 for (const k of varsVite) {
   const v = ambiente[k] || ''
-  if (v.length >= 16 && !/^https?:\/\//.test(v) && arquivos.some((a) => readFileSync(a, 'utf8').includes(v))) {
+  if (v.length >= 16 && !/^https?:\/\//.test(v) && !ehListaDeHosts(v) && arquivos.some((a) => readFileSync(a, 'utf8').includes(v))) {
     if (!sensiveis.includes(k)) achados.push({ regra: 'Valor de VITE_* longo e não-URL encontrado no bundle (confira se é público)', rel: 'ambiente', trecho: k })
   }
 }
