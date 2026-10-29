@@ -27,3 +27,5 @@ Atenciosamente,
 [Seu nome]
 WMundi Technologies
 [telefone] · [e-mail]
+
+**Proposta comercial (resumo):** 90 dias de implementação e 3 meses de teste gratuito. Depois: R$ 42.000,00 + R$ 1,90 por aluno. Tokens de IA, Meta (WhatsApp) e SMS são pagos diretamente às empresas contratadas. Detalhes na página 4 do PDF.

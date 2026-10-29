@@ -70,6 +70,17 @@ li { font-size: 12.5px; line-height: 1.45; margin: 3px 0 }
   <p style="font-size:11px;color:#64748b;margin-top:14px">Ambiente de demonstração com dados fictícios. Os textos legais (política de privacidade, termos e contrato de operador) são modelos a validar com assessoria jurídica da instituição.</p>
   <div class="rod"><span>${esc(c.produto.completo)}</span><span>${esc(c.wmundi.nome)}</span></div>
 </section>
+<section class="pag">
+  <h2 class="t">${esc(c.proposta.titulo)}</h2>
+  <div class="grid">
+    <div class="card"><h3>Implementação</h3><p style="font-size:22px;font-weight:800;margin:6px 0">${esc(c.proposta.implantacao)}</p></div>
+    <div class="card"><h3>Teste gratuito</h3><p style="font-size:22px;font-weight:800;margin:6px 0">${esc(c.proposta.teste)}</p></div>
+  </div>
+  <div class="dest" style="margin-top:14px"><h3 style="margin:0 0 6px;color:#0b2a5b">Investimento após o período de teste</h3><p style="font-size:26px;font-weight:800;margin:4px 0">${esc(c.proposta.valorFixo)} <span style="font-size:16px;font-weight:600">+</span> ${esc(c.proposta.valorAluno)}</p></div>
+  <div class="card"><h3>Condições</h3>${lista(c.proposta.itens)}<p style="font-size:12.5px;margin:10px 0 0"><b>${esc(c.proposta.terceiros)}</b></p></div>
+  ${temContato ? `<div class="card" style="margin-top:14px"><h3>Contato</h3><p style="margin:0;font-size:13px">${esc([c.contato.nome, c.contato.email, c.contato.telefone].filter(Boolean).join(' · '))}</p></div>` : ''}
+  <div class="rod"><span>${esc(c.produto.completo)}</span><span>${esc(c.wmundi.nome)}</span></div>
+</section>
 </body></html>`
 
 const htmlPath = join(aqui, 'apresentacao.html')

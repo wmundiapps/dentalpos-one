@@ -6,14 +6,74 @@
     "subtitulo": "Graduação e pós-graduação (lato e stricto sensu), presencial e EAD, para faculdades, centros universitários e universidades."
   },
   "pilares": [
-    { "titulo": "Acadêmico", "itens": ["Secretaria, matrículas, contratos e documentos", "Matriz curricular e fluxograma por módulos, bimestres, semestres e anos", "Salas, turnos e horários sem conflito", "Notas, diário de classe e frequência", "Pesquisa, extensão, ligas e centros acadêmicos"] },
-    { "titulo": "Portais do aluno e do professor", "itens": ["Notas, frequência, requerimentos e revisões", "Materiais, biblioteca online e carteirinha digital", "Diário, avaliações e relatórios de turma para o professor"] },
-    { "titulo": "Atendimento ao aluno", "itens": ["Multiatendimento, protocolo e jornada do documento com rastreio", "Assistente de IA para a maioria das demandas", "Certificados, diplomas, declarações e termos com QR de verificação"] },
-    { "titulo": "Financeiro e cobrança", "itens": ["Contas a receber e a pagar com conferência e autorização", "Boleto, Pix, cartão, dinheiro, permuta e bolsas", "Folha, pró-labore e pagamentos de terceiros", "Cobrança automática por SMS, WhatsApp, Telegram, e-mail e voz, com régua configurável"] },
-    { "titulo": "Administrativo", "itens": ["RH: ponto, banco de horas, férias, atestados, avaliações", "Compras com 3 cotações, almoxarifado e conferência de recebimento", "Patrimônio com etiqueta QR, fotos, responsável e inventário", "Infraestrutura, manutenção e frota"] },
-    { "titulo": "Jurídico e riscos", "itens": ["Contratos, convênios, imóveis e polos EAD", "Processos, prazos e inteligência de recorrência", "Gestão de riscos e seguros"] },
-    { "titulo": "Reitoria", "itens": ["Agenda executiva e Diário Oficial da União", "Indicadores financeiros, acadêmicos e de infraestrutura", "Comparativo com outras instituições"] },
-    { "titulo": "Marketing e captação", "itens": ["Calendário de campanhas e funil de leads", "E-mail, SMS, WhatsApp, Telegram e redes sociais", "Respeito total à LGPD, com descadastro em um clique"] }
+    {
+      "titulo": "Acadêmico",
+      "itens": [
+        "Secretaria, matrículas, contratos e documentos",
+        "Matriz curricular e fluxograma por módulos, bimestres, semestres e anos",
+        "Salas, turnos e horários sem conflito",
+        "Notas, diário de classe e frequência",
+        "Pesquisa, extensão, ligas e centros acadêmicos"
+      ]
+    },
+    {
+      "titulo": "Portais do aluno e do professor",
+      "itens": [
+        "Notas, frequência, requerimentos e revisões",
+        "Materiais, biblioteca online e carteirinha digital",
+        "Diário, avaliações e relatórios de turma para o professor"
+      ]
+    },
+    {
+      "titulo": "Atendimento ao aluno",
+      "itens": [
+        "Multiatendimento, protocolo e jornada do documento com rastreio",
+        "Assistente de IA para a maioria das demandas",
+        "Certificados, diplomas, declarações e termos com QR de verificação"
+      ]
+    },
+    {
+      "titulo": "Financeiro e cobrança",
+      "itens": [
+        "Contas a receber e a pagar com conferência e autorização",
+        "Boleto, Pix, cartão, dinheiro, permuta e bolsas",
+        "Folha, pró-labore e pagamentos de terceiros",
+        "Cobrança automática por SMS, WhatsApp, Telegram, e-mail e voz, com régua configurável"
+      ]
+    },
+    {
+      "titulo": "Administrativo",
+      "itens": [
+        "RH: ponto, banco de horas, férias, atestados, avaliações",
+        "Compras com 3 cotações, almoxarifado e conferência de recebimento",
+        "Patrimônio com etiqueta QR, fotos, responsável e inventário",
+        "Infraestrutura, manutenção e frota"
+      ]
+    },
+    {
+      "titulo": "Jurídico e riscos",
+      "itens": [
+        "Contratos, convênios, imóveis e polos EAD",
+        "Processos, prazos e inteligência de recorrência",
+        "Gestão de riscos e seguros"
+      ]
+    },
+    {
+      "titulo": "Reitoria",
+      "itens": [
+        "Agenda executiva e Diário Oficial da União",
+        "Indicadores financeiros, acadêmicos e de infraestrutura",
+        "Comparativo com outras instituições"
+      ]
+    },
+    {
+      "titulo": "Marketing e captação",
+      "itens": [
+        "Calendário de campanhas e funil de leads",
+        "E-mail, SMS, WhatsApp, Telegram e redes sociais",
+        "Respeito total à LGPD, com descadastro em um clique"
+      ]
+    }
   ],
   "seguranca": {
     "titulo": "Segurança em primeiro lugar",
@@ -29,12 +89,23 @@
   },
   "lgpd": {
     "titulo": "Feito para a LGPD",
-    "itens": ["Consentimentos versionados e revogáveis", "Portal do Titular com os direitos do art. 18 e prazo de 15 dias", "Inventário de tratamento (ROPA), retenção e anonimização", "Gestão de incidentes e encarregado (DPO)", "Dados sensíveis e de menores com proteção reforçada"]
+    "itens": [
+      "Consentimentos versionados e revogáveis",
+      "Portal do Titular com os direitos do art. 18 e prazo de 15 dias",
+      "Inventário de tratamento (ROPA), retenção e anonimização",
+      "Gestão de incidentes e encarregado (DPO)",
+      "Dados sensíveis e de menores com proteção reforçada"
+    ]
   },
   "wmundi": {
     "nome": "WMundi Technologies",
     "resumo": "A WMundi Technologies é uma desenvolvedora de software especializada em aplicativos para Apple (iOS) e Android, além de sistemas web e plataformas em nuvem. Criamos produtos sob medida, com foco em usabilidade, segurança e desempenho.",
-    "itens": ["Aplicativos nativos e multiplataforma para Apple e Android", "Plataformas web e sistemas de gestão em nuvem", "Inteligência artificial aplicada ao atendimento e à gestão", "Segurança, privacidade e conformidade com a LGPD desde o projeto"]
+    "itens": [
+      "Aplicativos nativos e multiplataforma para Apple e Android",
+      "Plataformas web e sistemas de gestão em nuvem",
+      "Inteligência artificial aplicada ao atendimento e à gestão",
+      "Segurança, privacidade e conformidade com a LGPD desde o projeto"
+    ]
   },
   "curriculo": {
     "nome": "",
@@ -42,6 +113,26 @@
     "resumo": "",
     "itens": []
   },
-  "contato": { "nome": "", "email": "", "telefone": "" },
-  "demo": { "instituicao": "SUA INSTITUIÇÃO" }
+  "contato": {
+    "nome": "",
+    "email": "",
+    "telefone": ""
+  },
+  "demo": {
+    "instituicao": "SUA INSTITUIÇÃO"
+  },
+  "proposta": {
+    "titulo": "Proposta comercial",
+    "implantacao": "90 dias de implementação",
+    "teste": "3 meses de teste gratuito",
+    "valorFixo": "R$ 42.000,00",
+    "valorAluno": "R$ 1,90 por aluno",
+    "terceiros": "Tokens de IA, Meta (WhatsApp) e SMS são pagos diretamente às empresas contratadas, sem repasse nem margem da WMundi.",
+    "itens": [
+      "Implantação e migração de dados acompanhadas pela equipe da WMundi em até 90 dias",
+      "3 meses de teste gratuito, sem compromisso, com todos os módulos",
+      "Após o teste: R$ 42.000,00 + R$ 1,90 por aluno",
+      "Custos de IA, Meta (WhatsApp) e SMS contratados e pagos direto aos fornecedores"
+    ]
+  }
 }
