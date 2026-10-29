@@ -6,6 +6,8 @@ import PageHeader from "../components/PageHeader";
 import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { createTreatmentItem, getTreatmentPlan, importOdontogram, updateTreatmentItem, type TreatmentPlanItem } from "../services/TreatmentPlanApi";
+import { buildContractHtml } from "../utils/contractTemplate";
+import { loadBrandKit } from "../services/BrandKitApi";
 import { printPromissories } from "../utils/promissory";
 import { approveBudget, cancelBudget, createBudget, listBudgets, type BudgetRow } from "../services/BudgetApi";
 import { createClinicalDocument } from "../services/ClinicalDocumentService";
@@ -25,61 +27,19 @@ const EMPTY_ITEM = { procedure: "", tooth: "", region: "", phase: "1", priority:
 const EMPTY_TERMS = { discountPercent: "0", entryAmount: "", installments: "1", paymentMethod: "PIX", validDays: "30" };
 const txt = (v: unknown) => (v === undefined || v === null ? "" : String(v));
 
-function buildContract(p: BackendPatient | undefined, b: BudgetExtra, list: TreatmentPlanItem[], professional: string) {
+type PaymentLine = { installment: number; amount: number; dueDate: string };
+async function buildContract(p: BackendPatient | undefined, b: BudgetExtra, list: TreatmentPlanItem[], payments?: PaymentLine[]) {
   const pa = (p || {}) as BackendPatient & { address?: string | null; city?: string | null; state?: string | null };
-  const ident = [pa.fullName || "Paciente", pa.cpf ? `CPF ${pa.cpf}` : "", pa.phone ? `telefone ${pa.phone}` : "", [pa.address, pa.city, pa.state].filter(Boolean).join(", ")].filter(Boolean).join(", ");
-  const lines = list.map((i) => {
-    const pd = (i.planningData || {}) as Planning;
-    return `- ${i.procedure}${i.tooth ? ` (dente ${i.tooth})` : ""}${pd.region ? ` — ${txt(pd.region)}` : ""}: ${money(Number(pd.unitValue || 0))}`;
+  const r = await loadBrandKit().catch(() => null);
+  const c = r?.clinic; const k = r?.kit || {};
+  const items = list.map((i) => { const pd = (i.planningData || {}) as Planning; return { procedure: i.procedure, tooth: i.tooth, region: pd.region ? txt(pd.region) : null, value: Number(pd.unitValue || 0) }; });
+  const dueDates = (payments || []).filter((x) => x.installment >= 1).sort((x, y) => x.installment - y.installment).map((x) => x.dueDate);
+  return buildContractHtml({
+    clinic: { name: c?.displayName || c?.name || "CONTRATADA", cnpj: c?.cnpj || "", address: c?.address || "", city: c?.city || "", state: c?.state || "", rtName: k.rtName, rtCro: k.rtCro },
+    patient: { name: pa.fullName || "Paciente", cpf: pa.cpf || "", rg: pa.rg || "", address: pa.address || "", city: pa.city || "", state: pa.state || "", phone: pa.phone || "" },
+    items, discountPercent: Number(b.discountPercent || 0), entryAmount: Number(b.entryAmount || 0), installments: Number(b.installments || 1), installmentValue: Number(b.installmentValue || 0),
+    paymentMethod: String(b.paymentMethod || "—"), dueDates: dueDates.length ? dueDates : undefined,
   });
-  const entry = Number(b.entryAmount || 0);
-  const disc = Number(b.discountPercent || 0);
-  const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
-  return [
-    "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ODONTOLÓGICOS",
-    "",
-    `CONTRATANTE (PACIENTE): ${ident}.`,
-    `CONTRATADA: a clínica responsável por este atendimento, representada pelo(a) profissional ${professional}.`,
-    "",
-    "1. OBJETO",
-    "A CONTRATADA prestará ao CONTRATANTE os procedimentos abaixo, conforme o plano de tratamento apresentado e aprovado:",
-    ...(lines.length ? lines : [`- Conforme o orçamento: ${b.description}`]),
-    "",
-    "2. VALOR E FORMA DE PAGAMENTO",
-    `Valor total: ${money(b.totalAmount)}${disc > 0 ? ` (com desconto de ${disc.toLocaleString("pt-BR")}%)` : ""}.`,
-    entry > 0 ? `Entrada: ${money(entry)}.` : "Sem entrada.",
-    `Saldo: ${b.installments}x de ${money(b.installmentValue)}${b.paymentMethod ? `, via ${b.paymentMethod}` : ""}.`,
-    "O atraso no pagamento poderá ser cobrado com os acréscimos permitidos em lei.",
-    "",
-    "3. OBRIGAÇÕES DO CONTRATANTE",
-    "Comparecer às consultas agendadas, seguir as orientações clínicas, informar alterações de saúde e de medicamentos e efetuar os pagamentos nas datas combinadas.",
-    "",
-    "4. OBRIGAÇÕES DA CONTRATADA",
-    "Executar os procedimentos com técnica adequada, manter o prontuário atualizado, esclarecer dúvidas e informar riscos, alternativas e cuidados de cada etapa.",
-    "",
-    "5. FALTAS E REMARCAÇÕES",
-    "Faltas e remarcações devem ser comunicadas com antecedência mínima de 24 horas. Faltas sem aviso podem alterar o cronograma do tratamento.",
-    "",
-    "6. RESULTADOS E ALTERAÇÕES DO PLANO",
-    "O resultado depende também da resposta biológica e da colaboração do CONTRATANTE. Qualquer alteração no plano ou nos valores será apresentada previamente e só será executada com a concordância do CONTRATANTE.",
-    "",
-    "7. RESCISÃO",
-    "Qualquer das partes pode rescindir este contrato mediante aviso, ficando devidos os procedimentos já realizados.",
-    "",
-    "8. PROTEÇÃO DE DADOS",
-    "Os dados pessoais e de saúde do CONTRATANTE são tratados conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018), exclusivamente para a prestação dos serviços e o cumprimento de obrigações legais.",
-    "",
-    "9. FORO",
-    "Fica eleito o foro do domicílio do CONTRATANTE.",
-    "",
-    `${pa.city ? `${pa.city}, ` : ""}${today}.`,
-    "",
-    "______________________________________",
-    `CONTRATANTE: ${pa.fullName || ""}`,
-    "",
-    "______________________________________",
-    `CONTRATADA: ${professional}`,
-  ].join("\n");
 }
 
 export default function TreatmentPlanning({ initialPatientId }: { initialPatientId?: string } = {}) {
@@ -190,14 +150,14 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
     const pre = wantsNotes ? window.open("", "_blank", "width=900,height=1000") : null;
     pre?.document.write('<p style="font-family:Arial;padding:40px">Preparando promissórias…</p>');
     let approved: (BudgetExtra & { payments?: Array<{ installment: number; amount: number; dueDate: string }> }) | null = null;
-    await run(async () => { approved = (await approveBudget(b.id)) as typeof approved; if (wantsNotes) await generateContractQuiet(b); }, wantsNotes ? "Orçamento aprovado. Contrato gerado como rascunho em Documentos e Contratos e promissórias abertas para impressão." : "Orçamento aprovado.");
+    await run(async () => { approved = (await approveBudget(b.id)) as typeof approved; if (wantsNotes) await generateContractQuiet({ ...b, ...(approved as object) } as BudgetExtra); }, wantsNotes ? "Orçamento aprovado. Contrato gerado como rascunho em Documentos e Contratos e promissórias abertas para impressão." : "Orçamento aprovado.");
     if (wantsNotes && approved) await printNotes(approved, pre); else pre?.close();
   };
   const generateContractQuiet = async (b: BudgetExtra) => {
     const ids = Array.isArray(b.optionsJson?.treatmentItemIds) ? (b.optionsJson?.treatmentItemIds as string[]) : [];
     const list = ids.length ? items.filter((i) => ids.includes(i.id)) : activeItems;
     const professional = sessionName || "Profissional responsável";
-    await createClinicalDocument({ patientId: b.patientId, professionalName: professional, documentType: "CLINICAL_CONTRACT", title: `Contrato • ${patient?.fullName || "Paciente"}`, content: buildContract(patient, b, list, professional), templateId: undefined, status: "DRAFT" });
+    await createClinicalDocument({ patientId: b.patientId, professionalName: professional, documentType: "CLINICAL_CONTRACT", title: `Contrato • ${patient?.fullName || "Paciente"}`, content: await buildContract(patient, b, list, (b as BudgetExtra & { payments?: PaymentLine[] }).payments), templateId: undefined, status: "DRAFT" });
   };
 
   const generateContract = (row: BudgetRow) => run(async () => {
@@ -210,7 +170,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
       professionalName: professional,
       documentType: "CLINICAL_CONTRACT",
       title: `Contrato • ${patient?.fullName || "Paciente"}`,
-      content: buildContract(patient, b, list, professional),
+      content: await buildContract(patient, b, list, (b as BudgetExtra & { payments?: PaymentLine[] }).payments),
       templateId: undefined,
       status: "DRAFT",
     });
