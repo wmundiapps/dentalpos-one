@@ -4,6 +4,7 @@
 import zlib from 'zlib'
 import { prisma } from '../../src/lib/prisma'
 import { setup, check, summary, failures } from './qa4-lib'
+import { seedComprasPatrimonio, type Papel } from '../seeds/compras-patrimonio'
 
 // PNG mínimo válido (cor sólida variável) para os testes de upload.
 function png(cor: number): Buffer {
@@ -745,6 +746,29 @@ async function main() {
   r = await call('SUPPLIES', 'POST', `${S}/pedidos/${pedLeg2.id}/receber`, { itens: [{ pedidoItemId: pedLeg2.itens[0].id, quantidadeRecebida: 1 }] })
   check(r.status === 409 && /conferência/.test(r.json.error), 'com a política, recebimento direto exige conferência')
   await call('FINANCE', 'PUT', `${S}/politica-compras`, { exigirConferencia: false })
+
+  // =====================================================================
+  console.log('# seed de demonstração (tenant 2, via API)')
+  const seedErros: string[] = []
+  const apiDe = (role: string) => async (m: string, p: string, b?: any) => {
+    const x = await call(role, m, p, b, true)
+    if (x.status >= 400) { seedErros.push(`${role} ${m} ${p} -> ${x.status} ${x.json?.error ?? ''}`); return null }
+    return x.json
+  }
+  const ctxSeed = { tenantId: c.tenant2, failures: seedErros, apiAs: (papel: Papel) => apiDe(papel) }
+  const rs = await seedComprasPatrimonio(apiDe('ADMIN'), ctxSeed)
+  if (seedErros.length) console.log('  avisos do seed:', seedErros.slice(0, 8))
+  check(seedErros.length === 0, 'seed sem nenhuma chamada recusada', seedErros.slice(0, 5))
+  check(rs.departamentos === 4 && rs.fornecedores === 5, 'seed: departamentos e fornecedores', rs)
+  check(rs.compras === 2 && rs.contasPagarRascunho === 3 && rs.excecoes === 1, 'seed: compras (uma aprovada com 3 rascunhos, uma aguardando) e exceção', rs)
+  check(rs.conferencias === 1 && rs.devolucoes === 1, 'seed: conferência com devolução', rs)
+  check(rs.bens === 12 && rs.fotos >= 8 && rs.termos === 5 && rs.transferencias === 2, 'seed: bens, fotos, termos e transferências', rs)
+  check(rs.leituras >= 2 && rs.inventariosPatrimonio === 1 && rs.pontosReposicao === 3 && rs.layouts === 4, 'seed: inventário QR, pontos de reposição e layouts', rs)
+  check((await prisma.cppTermoResponsabilidade.count({ where: { tenantId: c.tenant2, status: 'VIGENTE' } })) >= 3, 'seed: termos aceitos pelos responsáveis')
+  check((await prisma.cppContaPagar.count({ where: { tenantId: c.tenant2, situacao: 'RASCUNHO' } })) === 3, 'seed: contas a pagar em rascunho')
+  check((await prisma.cppCompra.count({ where: { tenantId: c.tenant2, status: 'AGUARDANDO_APROVACAO' } })) === 1, 'seed: uma compra aguardando aprovação para a tela de Aprovações')
+  const rs2 = await seedComprasPatrimonio(apiDe('ADMIN'), ctxSeed)
+  check(Object.values(rs2).every((v) => v === 0) && (await prisma.cppDepartamento.count({ where: { tenantId: c.tenant2 } })) === 4, 'seed idempotente (segunda execução não cria nada)', rs2)
 
   // 5xx
   check(!failures.some((f) => f.startsWith('5xx')), 'nenhuma resposta 5xx no fluxo')
