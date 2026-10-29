@@ -26,6 +26,7 @@ const EduPortalAluno = lazy(() => import("../pages/edu/EduPortalAluno"));
 const EduLgpd = lazy(() => import("../pages/edu/EduLgpd"));
 const EduFinanceiro = lazy(() => import("../pages/edu/EduFinanceiro"));
 const EduJuridico = lazy(() => import("../pages/edu/EduJuridico"));
+const EduFeedback = lazy(() => import("../pages/edu/EduFeedback"));
 const EduCobranca = lazy(() => import("../pages/edu/EduCobranca"));
 const EduRh = lazy(() => import("../pages/edu/EduRh"));
 const AccountSecurity = lazy(() => import("../pages/AccountSecurity"));
@@ -171,6 +172,7 @@ export default function AppRoutes() {
       <Route path="/edu/rh" element={<EduRh />} />
       <Route path="/edu/financeiro" element={<EduFinanceiro />} />
       <Route path="/edu/juridico" element={<EduJuridico />} />
+      <Route path="/edu/feedback" element={<EduFeedback />} />
       <Route path="/edu/cobranca" element={<EduCobranca />} />
       <Route path="/seguranca" element={<AccountSecurity />} />
       <Route path="/seguranca/eventos" element={<SecurityEvents />} />

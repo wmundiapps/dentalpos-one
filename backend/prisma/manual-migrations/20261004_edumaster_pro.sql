@@ -14909,3 +14909,793 @@ CREATE UNIQUE INDEX "CobSequencia_tenantId_chave_ano_key" ON "CobSequencia"("ten
 ALTER TABLE "CobReguaEtapa" ADD CONSTRAINT "CobReguaEtapa_reguaId_fkey" FOREIGN KEY ("reguaId") REFERENCES "CobRegua"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- ==== COB:END ====
+
+-- ==== INF2:BEGIN (Infraestrutura 2 e Feedback, prefixos Inf2 e Fbk - gerado por prisma migrate diff; somente CRIA, idempotente) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Contador" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "valor" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "Inf2Contador_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Anexo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "refType" TEXT NOT NULL,
+    "refId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "url" TEXT,
+    "dataUrl" TEXT,
+    "mime" TEXT,
+    "tamanhoBytes" INTEGER,
+    "descricao" TEXT,
+    "enviadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inf2Anexo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2AgendaItem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "area" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "anotacoes" TEXT,
+    "departamentoId" TEXT,
+    "departamentoNome" TEXT,
+    "spaceId" TEXT,
+    "local" TEXT,
+    "responsavelUserId" TEXT,
+    "responsavelNome" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3),
+    "recorrenciaDias" INTEGER,
+    "status" TEXT NOT NULL DEFAULT 'PLANEJADO',
+    "prioridade" TEXT NOT NULL DEFAULT 'MEDIA',
+    "custoPrevisto" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "custoReal" DOUBLE PRECISION,
+    "concluidoEm" TIMESTAMP(3),
+    "concluidoPorId" TEXT,
+    "origemId" TEXT,
+    "proximaId" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2AgendaItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2AgendaNota" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "itemId" TEXT NOT NULL,
+    "userId" TEXT,
+    "autorNome" TEXT,
+    "texto" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inf2AgendaNota_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2QrLocal" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "spaceId" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inf2QrLocal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Solicitacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'OUTROS',
+    "titulo" TEXT NOT NULL,
+    "relatorio" TEXT NOT NULL,
+    "local" TEXT,
+    "spaceId" TEXT,
+    "qrLocalId" TEXT,
+    "origem" TEXT NOT NULL DEFAULT 'APP',
+    "prioridade" TEXT NOT NULL DEFAULT 'MEDIA',
+    "status" TEXT NOT NULL DEFAULT 'NOVA',
+    "solicitanteUserId" TEXT NOT NULL,
+    "solicitanteNome" TEXT,
+    "triadoPorId" TEXT,
+    "triadoEm" TIMESTAMP(3),
+    "motivoRejeicao" TEXT,
+    "responsavelUserId" TEXT,
+    "responsavelNome" TEXT,
+    "prazo" TIMESTAMP(3),
+    "custoEstimado" DOUBLE PRECISION,
+    "custoFinal" DOUBLE PRECISION,
+    "resolvidoEm" TIMESTAMP(3),
+    "fechadoEm" TIMESTAMP(3),
+    "avaliacaoNota" INTEGER,
+    "avaliacaoComentario" TEXT,
+    "avaliadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2Solicitacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2SolicitacaoComentario" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "solicitacaoId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "autorNome" TEXT,
+    "texto" TEXT NOT NULL,
+    "interno" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inf2SolicitacaoComentario_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2OrdemServico" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "solicitacaoId" TEXT,
+    "agendaItemId" TEXT,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'CORRETIVA',
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "prioridade" TEXT NOT NULL DEFAULT 'MEDIA',
+    "responsavelUserId" TEXT,
+    "responsavelNome" TEXT,
+    "equipeExterna" TEXT,
+    "prazo" TIMESTAMP(3),
+    "iniciadaEm" TIMESTAMP(3),
+    "concluidaEm" TIMESTAMP(3),
+    "custoPrevisto" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "custoReal" DOUBLE PRECISION,
+    "relatorioExecucao" TEXT,
+    "noPrazo" BOOLEAN,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2OrdemServico_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Veiculo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "placa" TEXT NOT NULL,
+    "apelido" TEXT,
+    "marca" TEXT NOT NULL,
+    "modelo" TEXT NOT NULL,
+    "ano" INTEGER,
+    "tipo" TEXT NOT NULL DEFAULT 'CARRO',
+    "combustivel" TEXT NOT NULL DEFAULT 'FLEX',
+    "chassi" TEXT,
+    "renavam" TEXT,
+    "capacidade" INTEGER,
+    "status" TEXT NOT NULL DEFAULT 'ATIVO',
+    "odometroKm" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "responsavelUserId" TEXT,
+    "responsavelNome" TEXT,
+    "departamentoNome" TEXT,
+    "bemId" TEXT,
+    "valorAquisicao" DOUBLE PRECISION,
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2Veiculo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Motorista" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "userId" TEXT,
+    "colaboradorId" TEXT,
+    "cnhCifrada" TEXT,
+    "cnhFinal" TEXT,
+    "cnhCategoria" TEXT,
+    "cnhValidade" TIMESTAMP(3),
+    "telefone" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2Motorista_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2FrotaRegistro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "veiculoId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "km" DOUBLE PRECISION NOT NULL,
+    "litros" DOUBLE PRECISION,
+    "valor" DOUBLE PRECISION,
+    "combustivel" TEXT,
+    "posto" TEXT,
+    "tanqueCheio" BOOLEAN NOT NULL DEFAULT true,
+    "motoristaId" TEXT,
+    "motoristaNome" TEXT,
+    "registradoPorId" TEXT,
+    "registradoPorNome" TEXT,
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inf2FrotaRegistro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Multa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "veiculoId" TEXT NOT NULL,
+    "motoristaId" TEXT,
+    "motoristaNome" TEXT,
+    "autoInfracao" TEXT,
+    "dataInfracao" TIMESTAMP(3) NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "local" TEXT,
+    "pontos" INTEGER NOT NULL DEFAULT 0,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "vencimento" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'REGISTRADA',
+    "responsavelUserId" TEXT,
+    "responsavelNome" TEXT,
+    "tratamento" TEXT NOT NULL DEFAULT 'A_DEFINIR',
+    "valorRessarcir" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorRessarcido" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "ressarcimentoEm" TIMESTAMP(3),
+    "pagaEm" TIMESTAMP(3),
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2Multa_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Seguro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "veiculoId" TEXT NOT NULL,
+    "apolice" TEXT NOT NULL,
+    "seguradora" TEXT NOT NULL,
+    "cobertura" TEXT,
+    "vigenciaInicio" TIMESTAMP(3) NOT NULL,
+    "vigenciaFim" TIMESTAMP(3) NOT NULL,
+    "premio" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "franquia" DOUBLE PRECISION,
+    "corretor" TEXT,
+    "responsavelNome" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'VIGENTE',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2Seguro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2FrotaManutencao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "veiculoId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "km" DOUBLE PRECISION,
+    "custo" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "oficina" TEXT,
+    "responsavelUserId" TEXT,
+    "responsavelNome" TEXT,
+    "proximaKm" DOUBLE PRECISION,
+    "proximaData" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'CONCLUIDA',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2FrotaManutencao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2FrotaDoc" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "veiculoId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "numero" TEXT,
+    "exercicio" INTEGER,
+    "emissao" TIMESTAMP(3),
+    "validade" TIMESTAMP(3),
+    "valor" DOUBLE PRECISION,
+    "responsavelNome" TEXT,
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2FrotaDoc_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Reserva" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "veiculoId" TEXT NOT NULL,
+    "motoristaId" TEXT,
+    "motoristaNome" TEXT,
+    "solicitanteUserId" TEXT NOT NULL,
+    "solicitanteNome" TEXT,
+    "finalidade" TEXT NOT NULL,
+    "destino" TEXT NOT NULL,
+    "passageiros" INTEGER NOT NULL DEFAULT 1,
+    "saidaPrevista" TIMESTAMP(3) NOT NULL,
+    "retornoPrevisto" TIMESTAMP(3) NOT NULL,
+    "saidaReal" TIMESTAMP(3),
+    "retornoReal" TIMESTAMP(3),
+    "kmSaida" DOUBLE PRECISION,
+    "kmChegada" DOUBLE PRECISION,
+    "status" TEXT NOT NULL DEFAULT 'SOLICITADA',
+    "decididoPorId" TEXT,
+    "decididoPorNome" TEXT,
+    "motivoDecisao" TEXT,
+    "ocorrencias" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2Reserva_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Posto" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "spaceId" TEXT,
+    "efetivoMinimo" INTEGER NOT NULL DEFAULT 1,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inf2Posto_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Agente" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "cargo" TEXT NOT NULL,
+    "userId" TEXT,
+    "colaboradorId" TEXT,
+    "matricula" TEXT,
+    "terceirizado" BOOLEAN NOT NULL DEFAULT false,
+    "empresa" TEXT,
+    "telefone" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2Agente_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Escala" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "postoId" TEXT NOT NULL,
+    "agenteId" TEXT NOT NULL,
+    "turno" TEXT NOT NULL,
+    "inicio" TEXT NOT NULL,
+    "fim" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PREVISTA',
+    "entradaEm" TIMESTAMP(3),
+    "saidaEm" TIMESTAMP(3),
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inf2Escala_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Checkpoint" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "postoId" TEXT,
+    "nome" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "spaceId" TEXT,
+    "ordem" INTEGER NOT NULL DEFAULT 1,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inf2Checkpoint_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Ronda" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "agenteId" TEXT NOT NULL,
+    "postoId" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "fim" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'EM_ANDAMENTO',
+    "esperados" INTEGER NOT NULL DEFAULT 0,
+    "lidos" INTEGER NOT NULL DEFAULT 0,
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inf2Ronda_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2RondaLeitura" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "rondaId" TEXT NOT NULL,
+    "checkpointId" TEXT NOT NULL,
+    "lidoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "observacao" TEXT,
+    "anormalidade" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "Inf2RondaLeitura_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2OcorrenciaSeg" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "gravidade" TEXT NOT NULL DEFAULT 'MEDIA',
+    "descricao" TEXT NOT NULL,
+    "local" TEXT,
+    "spaceId" TEXT,
+    "postoId" TEXT,
+    "agenteId" TEXT,
+    "registradoPorId" TEXT,
+    "ocorridaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "encaminhamento" TEXT,
+    "encerradaEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Inf2OcorrenciaSeg_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "Inf2Passagem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "postoId" TEXT NOT NULL,
+    "deAgenteId" TEXT NOT NULL,
+    "paraAgenteId" TEXT NOT NULL,
+    "resumo" TEXT NOT NULL,
+    "pendencias" TEXT,
+    "chaves" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'AGUARDANDO_CIENCIA',
+    "cienteEm" TIMESTAMP(3),
+    "cienteObs" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Inf2Passagem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "FbkContador" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "valor" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "FbkContador_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "FbkItem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'OUTRO',
+    "prioridade" TEXT NOT NULL DEFAULT 'MEDIA',
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "passosReproduzir" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'NOVO',
+    "rota" TEXT,
+    "tela" TEXT,
+    "versaoApp" TEXT,
+    "perfil" TEXT,
+    "navegador" TEXT,
+    "plataforma" TEXT,
+    "viewport" TEXT,
+    "idioma" TEXT,
+    "logsConsole" TEXT,
+    "autorUserId" TEXT NOT NULL,
+    "autorNome" TEXT,
+    "anonimo" BOOLEAN NOT NULL DEFAULT false,
+    "responsavelUserId" TEXT,
+    "responsavelNome" TEXT,
+    "duplicadoDeId" TEXT,
+    "respostaAutor" TEXT,
+    "respondidoEm" TIMESTAMP(3),
+    "respondidoPorId" TEXT,
+    "resolvidoEm" TIMESTAMP(3),
+    "atendimentoRef" TEXT,
+    "votos" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "FbkItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "FbkComentario" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "itemId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "autorNome" TEXT,
+    "texto" TEXT NOT NULL,
+    "interno" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "FbkComentario_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "FbkVoto" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "itemId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "FbkVoto_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "FbkAnexo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "itemId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "mime" TEXT,
+    "dataUrl" TEXT NOT NULL,
+    "tamanhoBytes" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "FbkAnexo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2Contador_tenantId_chave_key" ON "Inf2Contador"("tenantId", "chave");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Anexo_tenantId_refType_refId_idx" ON "Inf2Anexo"("tenantId", "refType", "refId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2AgendaItem_tenantId_status_inicio_idx" ON "Inf2AgendaItem"("tenantId", "status", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2AgendaItem_tenantId_tipo_idx" ON "Inf2AgendaItem"("tenantId", "tipo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2AgendaItem_tenantId_responsavelUserId_idx" ON "Inf2AgendaItem"("tenantId", "responsavelUserId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2AgendaItem_tenantId_codigo_key" ON "Inf2AgendaItem"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2AgendaNota_tenantId_itemId_idx" ON "Inf2AgendaNota"("tenantId", "itemId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2QrLocal_token_key" ON "Inf2QrLocal"("token");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2QrLocal_tenantId_idx" ON "Inf2QrLocal"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Solicitacao_tenantId_status_idx" ON "Inf2Solicitacao"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Solicitacao_tenantId_solicitanteUserId_idx" ON "Inf2Solicitacao"("tenantId", "solicitanteUserId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Solicitacao_tenantId_responsavelUserId_idx" ON "Inf2Solicitacao"("tenantId", "responsavelUserId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2Solicitacao_tenantId_numero_key" ON "Inf2Solicitacao"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2SolicitacaoComentario_tenantId_solicitacaoId_idx" ON "Inf2SolicitacaoComentario"("tenantId", "solicitacaoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2OrdemServico_tenantId_status_idx" ON "Inf2OrdemServico"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2OrdemServico_tenantId_responsavelUserId_idx" ON "Inf2OrdemServico"("tenantId", "responsavelUserId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2OrdemServico_tenantId_numero_key" ON "Inf2OrdemServico"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Veiculo_tenantId_status_idx" ON "Inf2Veiculo"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2Veiculo_tenantId_placa_key" ON "Inf2Veiculo"("tenantId", "placa");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Motorista_tenantId_ativo_idx" ON "Inf2Motorista"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Motorista_tenantId_userId_idx" ON "Inf2Motorista"("tenantId", "userId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2FrotaRegistro_tenantId_veiculoId_data_idx" ON "Inf2FrotaRegistro"("tenantId", "veiculoId", "data");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Multa_tenantId_veiculoId_idx" ON "Inf2Multa"("tenantId", "veiculoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Multa_tenantId_status_idx" ON "Inf2Multa"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Multa_tenantId_motoristaId_idx" ON "Inf2Multa"("tenantId", "motoristaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Seguro_tenantId_veiculoId_idx" ON "Inf2Seguro"("tenantId", "veiculoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Seguro_tenantId_vigenciaFim_idx" ON "Inf2Seguro"("tenantId", "vigenciaFim");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2Seguro_tenantId_apolice_key" ON "Inf2Seguro"("tenantId", "apolice");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2FrotaManutencao_tenantId_veiculoId_data_idx" ON "Inf2FrotaManutencao"("tenantId", "veiculoId", "data");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2FrotaManutencao_tenantId_status_proximaData_idx" ON "Inf2FrotaManutencao"("tenantId", "status", "proximaData");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2FrotaDoc_tenantId_veiculoId_idx" ON "Inf2FrotaDoc"("tenantId", "veiculoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2FrotaDoc_tenantId_validade_idx" ON "Inf2FrotaDoc"("tenantId", "validade");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Reserva_tenantId_veiculoId_saidaPrevista_idx" ON "Inf2Reserva"("tenantId", "veiculoId", "saidaPrevista");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Reserva_tenantId_status_idx" ON "Inf2Reserva"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2Reserva_tenantId_numero_key" ON "Inf2Reserva"("tenantId", "numero");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2Posto_tenantId_codigo_key" ON "Inf2Posto"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Agente_tenantId_ativo_idx" ON "Inf2Agente"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Agente_tenantId_userId_idx" ON "Inf2Agente"("tenantId", "userId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Escala_tenantId_data_idx" ON "Inf2Escala"("tenantId", "data");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Escala_tenantId_agenteId_idx" ON "Inf2Escala"("tenantId", "agenteId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2Escala_tenantId_data_postoId_agenteId_turno_key" ON "Inf2Escala"("tenantId", "data", "postoId", "agenteId", "turno");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2Checkpoint_token_key" ON "Inf2Checkpoint"("token");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Checkpoint_tenantId_postoId_idx" ON "Inf2Checkpoint"("tenantId", "postoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Ronda_tenantId_agenteId_inicio_idx" ON "Inf2Ronda"("tenantId", "agenteId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2RondaLeitura_tenantId_rondaId_idx" ON "Inf2RondaLeitura"("tenantId", "rondaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2RondaLeitura_rondaId_checkpointId_key" ON "Inf2RondaLeitura"("rondaId", "checkpointId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2OcorrenciaSeg_tenantId_status_idx" ON "Inf2OcorrenciaSeg"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2OcorrenciaSeg_tenantId_agenteId_idx" ON "Inf2OcorrenciaSeg"("tenantId", "agenteId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Inf2OcorrenciaSeg_tenantId_numero_key" ON "Inf2OcorrenciaSeg"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "Inf2Passagem_tenantId_postoId_createdAt_idx" ON "Inf2Passagem"("tenantId", "postoId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "FbkContador_tenantId_chave_key" ON "FbkContador"("tenantId", "chave");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "FbkItem_tenantId_status_createdAt_idx" ON "FbkItem"("tenantId", "status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "FbkItem_tenantId_autorUserId_idx" ON "FbkItem"("tenantId", "autorUserId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "FbkItem_tenantId_tipo_idx" ON "FbkItem"("tenantId", "tipo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "FbkItem_tenantId_numero_key" ON "FbkItem"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "FbkComentario_tenantId_itemId_idx" ON "FbkComentario"("tenantId", "itemId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "FbkVoto_tenantId_itemId_idx" ON "FbkVoto"("tenantId", "itemId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "FbkVoto_itemId_userId_key" ON "FbkVoto"("itemId", "userId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "FbkAnexo_tenantId_itemId_idx" ON "FbkAnexo"("tenantId", "itemId");
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "Inf2AgendaNota" ADD CONSTRAINT "Inf2AgendaNota_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Inf2AgendaItem"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "Inf2SolicitacaoComentario" ADD CONSTRAINT "Inf2SolicitacaoComentario_solicitacaoId_fkey" FOREIGN KEY ("solicitacaoId") REFERENCES "Inf2Solicitacao"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "Inf2OrdemServico" ADD CONSTRAINT "Inf2OrdemServico_solicitacaoId_fkey" FOREIGN KEY ("solicitacaoId") REFERENCES "Inf2Solicitacao"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "Inf2RondaLeitura" ADD CONSTRAINT "Inf2RondaLeitura_rondaId_fkey" FOREIGN KEY ("rondaId") REFERENCES "Inf2Ronda"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "FbkComentario" ADD CONSTRAINT "FbkComentario_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "FbkItem"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ==== INF2:END ====

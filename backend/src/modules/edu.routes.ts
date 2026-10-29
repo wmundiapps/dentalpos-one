@@ -27,6 +27,7 @@ import tesourariaRouter from './tesouraria/routes'
 import cobrancaRouter from './cobranca/routes'
 import { acessoSensivelLog } from './lgpd/sensiveis'
 import juridicoRouter from './juridico/routes'
+import feedbackRouter from './feedback/routes'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
 const router = Router()
@@ -58,6 +59,7 @@ router.use('/reitoria', reitoriaRouter)
 router.use('/lgpd', lgpdRouter)
 router.use('/rh', rhRouter)
 router.use('/juridico', juridicoRouter)
+router.use('/feedback', feedbackRouter)
 router.use('/tesouraria', tesourariaRouter)
 router.use('/cobranca', cobrancaRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.

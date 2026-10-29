@@ -237,6 +237,10 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Apoio, ouvidoria e egressos","/edu/apoio",<SupportAgentIcon/>),
       item("Comunicação omnichannel","/edu/comunicacao",<ChatIcon/>),
       item("Infraestrutura e patrimônio","/edu/infraestrutura",<CleaningServicesIcon/>),
+      item("Agenda de infraestrutura","/edu/infraestrutura?secao=agenda",<EventIcon/>),
+      item("Solicitações e OS (com fotos)","/edu/infraestrutura?secao=solicitacoes",<BugReportIcon/>),
+      item("Frota","/edu/infraestrutura?secao=frota",<WorkIcon/>),
+      item("Segurança patrimonial","/edu/infraestrutura?secao=seguranca",<ShieldIcon/>),
       item("Compras, estoque e vendas","/edu/suprimentos",<Inventory2Icon/>),
     ]
   },
@@ -311,6 +315,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Segurança da conta","/seguranca",<AdminPanelSettingsIcon/>),
       item("Eventos de segurança","/seguranca/eventos",<AdminPanelSettingsIcon/>),
       item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),
+      item("Central de feedback (EduMaster)","/edu/feedback",<BugReportIcon/>),
     ])
   }
 ];

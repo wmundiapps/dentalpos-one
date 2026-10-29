@@ -16291,4 +16291,634 @@ model TesNotaFiscal {
   @@index([tenantId, conciliacaoFiscal])
 }
 
+// ---- edu/infra2.prisma ----
+// ============================================================
+// EDUMASTER PRO — INFRAESTRUTURA 2 (prefixo Inf2): agenda de infraestrutura, solicitações/OS com fotos,
+// frota (veículos, motoristas, multas, seguros, manutenção, documentos, reservas) e segurança patrimonial.
+// Somente tabelas NOVAS. Status/tipos são String validados na API (zod). Referências a User, EduSpace,
+// CppDepartamento, RheColaborador = String ids sem @relation (nenhum módulo trava o outro).
+// ============================================================
+
+model Inf2Contador {
+  id       String @id @default(uuid())
+  tenantId String
+  chave    String
+  valor    Int    @default(0)
+
+  @@unique([tenantId, chave])
+}
+
+// Anexos/fotos de qualquer registro Inf2 (refType: Solicitacao | Ordem | Agenda | Veiculo | Multa | Seguro | FrotaDoc | OcorrenciaSeg ...).
+// Entram pelo uploadGuard global (tipo real, malware, moderação de imagem): dataUrl (até ~2,8 MB) ou url https.
+model Inf2Anexo {
+  id           String   @id @default(uuid())
+  tenantId     String
+  refType      String
+  refId        String
+  nome         String
+  url          String?
+  dataUrl      String?
+  mime         String?
+  tamanhoBytes Int?
+  descricao    String?
+  enviadoPorId String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, refType, refId])
+}
+
+// ---------------------------------------------------------------- 1) agenda de infraestrutura
+model Inf2AgendaItem {
+  id               String   @id @default(uuid())
+  tenantId         String
+  codigo           String
+  tipo             String          // PREVENTIVA | EVENTUAL | AQUISICAO | EXPANSAO | SEGURANCA | AVISO | SINALIZACAO | IDENTIDADE_VISUAL | MOBILIARIO
+  area             String          // EQUIPAMENTOS | TELHADO | BANHEIRO | JARDIM | ELETRICA | HIDRAULICA | PINTURA | CALCAMENTO | INSPECAO | EXTINTOR | CIPA | EPI | SIMULADO | COMUNICACAO | MOBILIARIO | OUTRO
+  titulo           String
+  descricao        String?
+  anotacoes        String?
+  departamentoId   String?
+  departamentoNome String?
+  spaceId          String?
+  local            String?
+  responsavelUserId String?
+  responsavelNome  String?
+  inicio           DateTime
+  fim              DateTime?
+  recorrenciaDias  Int?            // preventivas e itens de segurança recorrentes: ao concluir, gera a próxima ocorrência
+  status           String   @default("PLANEJADO")  // PLANEJADO | EM_ANDAMENTO | CONCLUIDO | CANCELADO
+  prioridade       String   @default("MEDIA")      // BAIXA | MEDIA | ALTA | URGENTE
+  custoPrevisto    Float    @default(0)
+  custoReal        Float?
+  concluidoEm      DateTime?
+  concluidoPorId   String?
+  origemId         String?          // item de origem (série recorrente)
+  proximaId        String?          // próxima ocorrência gerada
+  criadoPorId      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  notas            Inf2AgendaNota[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status, inicio])
+  @@index([tenantId, tipo])
+  @@index([tenantId, responsavelUserId])
+}
+
+model Inf2AgendaNota {
+  id        String   @id @default(uuid())
+  tenantId  String
+  itemId    String
+  userId    String?
+  autorNome String?
+  texto     String
+  createdAt DateTime @default(now())
+
+  item      Inf2AgendaItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, itemId])
+}
+
+// ---------------------------------------------------------------- 2) solicitações (problemas/implementações) e ordens de serviço
+// QR da sala: token público aleatório que leva ao formulário já com o local preenchido (a abertura exige login).
+model Inf2QrLocal {
+  id        String   @id @default(uuid())
+  tenantId  String
+  token     String   @unique
+  nome      String
+  spaceId   String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model Inf2Solicitacao {
+  id                String   @id @default(uuid())
+  tenantId          String
+  numero            String
+  tipo              String   // PROBLEMA | IMPLEMENTACAO
+  categoria         String   @default("OUTROS")  // ELETRICA | HIDRAULICA | TELHADO | BANHEIRO | JARDIM | PINTURA | CALCAMENTO | EQUIPAMENTO | MOBILIARIO | LIMPEZA | SEGURANCA | TI | OUTROS
+  titulo            String
+  relatorio         String   // relato detalhado do solicitante
+  local             String?
+  spaceId           String?
+  qrLocalId         String?
+  origem            String   @default("APP")   // APP | QR | PORTAL
+  prioridade        String   @default("MEDIA") // BAIXA | MEDIA | ALTA | URGENTE
+  status            String   @default("NOVA")  // NOVA | EM_TRIAGEM | OS_GERADA | EM_ANDAMENTO | AGUARDANDO | RESOLVIDA | FECHADA | REJEITADA | CANCELADA
+  solicitanteUserId String
+  solicitanteNome   String?
+  triadoPorId       String?
+  triadoEm          DateTime?
+  motivoRejeicao    String?
+  responsavelUserId String?
+  responsavelNome   String?
+  prazo             DateTime?
+  custoEstimado     Float?
+  custoFinal        Float?
+  resolvidoEm       DateTime?
+  fechadoEm         DateTime?
+  avaliacaoNota     Int?
+  avaliacaoComentario String?
+  avaliadoEm        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  comentarios       Inf2SolicitacaoComentario[]
+  ordens            Inf2OrdemServico[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, solicitanteUserId])
+  @@index([tenantId, responsavelUserId])
+}
+
+model Inf2SolicitacaoComentario {
+  id            String   @id @default(uuid())
+  tenantId      String
+  solicitacaoId String
+  userId        String
+  autorNome     String?
+  texto         String
+  interno       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  solicitacao   Inf2Solicitacao @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, solicitacaoId])
+}
+
+model Inf2OrdemServico {
+  id                String   @id @default(uuid())
+  tenantId          String
+  numero            String
+  solicitacaoId     String?
+  agendaItemId      String?
+  titulo            String
+  descricao         String?
+  tipo              String   @default("CORRETIVA")  // CORRETIVA | PREVENTIVA | IMPLEMENTACAO
+  status            String   @default("ABERTA")     // ABERTA | EM_EXECUCAO | AGUARDANDO_MATERIAL | CONCLUIDA | CANCELADA
+  prioridade        String   @default("MEDIA")
+  responsavelUserId String?
+  responsavelNome   String?
+  equipeExterna     String?
+  prazo             DateTime?
+  iniciadaEm        DateTime?
+  concluidaEm       DateTime?
+  custoPrevisto     Float    @default(0)
+  custoReal         Float?
+  relatorioExecucao String?
+  noPrazo           Boolean?   // preenchido ao concluir
+  criadoPorId       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  solicitacao       Inf2Solicitacao? @relation(fields: [solicitacaoId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, responsavelUserId])
+}
+
+// ---------------------------------------------------------------- 3) frota
+model Inf2Veiculo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  placa            String
+  apelido          String?
+  marca            String
+  modelo           String
+  ano              Int?
+  tipo             String   @default("CARRO")   // CARRO | VAN | ONIBUS | MICROONIBUS | UTILITARIO | MOTO | CAMINHAO
+  combustivel      String   @default("FLEX")    // GASOLINA | ETANOL | FLEX | DIESEL | ELETRICO | GNV
+  chassi           String?
+  renavam          String?
+  capacidade       Int?
+  status           String   @default("ATIVO")   // ATIVO | EM_MANUTENCAO | INDISPONIVEL | BAIXADO
+  odometroKm       Float    @default(0)
+  responsavelUserId String?
+  responsavelNome  String?
+  departamentoNome String?
+  bemId            String?     // vínculo opcional com o patrimônio (InfBem) — apenas consumo
+  valorAquisicao   Float?
+  observacoes      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, placa])
+  @@index([tenantId, status])
+}
+
+model Inf2Motorista {
+  id             String   @id @default(uuid())
+  tenantId       String
+  nome           String
+  userId         String?
+  colaboradorId  String?     // RheColaborador.id (RH) quando existir
+  cnhCifrada     String?
+  cnhFinal       String?     // 3 últimos dígitos (conferência sem expor o número)
+  cnhCategoria   String?
+  cnhValidade    DateTime?
+  telefone       String?
+  ativo          Boolean  @default(true)
+  observacoes    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, ativo])
+  @@index([tenantId, userId])
+}
+
+// Quilometragem e abastecimento. Custo por km = (abastecimentos + manutenções + multas + seguro rateado) / km rodados.
+model Inf2FrotaRegistro {
+  id            String   @id @default(uuid())
+  tenantId      String
+  veiculoId     String
+  tipo          String   // ABASTECIMENTO | QUILOMETRAGEM
+  data          DateTime
+  km            Float
+  litros        Float?
+  valor         Float?
+  combustivel   String?
+  posto         String?
+  tanqueCheio   Boolean  @default(true)
+  motoristaId   String?
+  motoristaNome String?
+  registradoPorId String?
+  registradoPorNome String?
+  observacoes   String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, veiculoId, data])
+}
+
+model Inf2Multa {
+  id              String   @id @default(uuid())
+  tenantId        String
+  veiculoId       String
+  motoristaId     String?
+  motoristaNome   String?
+  autoInfracao    String?
+  dataInfracao    DateTime
+  descricao       String
+  local           String?
+  pontos          Int      @default(0)
+  valor           Float
+  vencimento      DateTime?
+  status          String   @default("REGISTRADA")   // REGISTRADA | EM_RECURSO | PAGA | CANCELADA
+  responsavelUserId String?
+  responsavelNome String?       // quem responde pela multa
+  tratamento      String   @default("A_DEFINIR")    // A_DEFINIR | INSTITUICAO | RESSARCIMENTO | DESCONTO_FOLHA
+  valorRessarcir  Float    @default(0)
+  valorRessarcido Float    @default(0)
+  ressarcimentoEm DateTime?
+  pagaEm          DateTime?
+  observacoes     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, veiculoId])
+  @@index([tenantId, status])
+  @@index([tenantId, motoristaId])
+}
+
+model Inf2Seguro {
+  id            String   @id @default(uuid())
+  tenantId      String
+  veiculoId     String
+  apolice       String
+  seguradora    String
+  cobertura     String?
+  vigenciaInicio DateTime
+  vigenciaFim   DateTime
+  premio        Float    @default(0)
+  franquia      Float?
+  corretor      String?
+  responsavelNome String?
+  status        String   @default("VIGENTE")   // VIGENTE | ENCERRADA | CANCELADA
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, apolice])
+  @@index([tenantId, veiculoId])
+  @@index([tenantId, vigenciaFim])
+}
+
+model Inf2FrotaManutencao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  veiculoId     String
+  tipo          String   // REVISAO | PREVENTIVA | CORRETIVA | PNEUS | LAVAGEM | FUNILARIA
+  descricao     String
+  data          DateTime
+  km            Float?
+  custo         Float    @default(0)
+  oficina       String?
+  responsavelUserId String?
+  responsavelNome String?
+  proximaKm     Float?
+  proximaData   DateTime?
+  status        String   @default("CONCLUIDA")  // AGENDADA | CONCLUIDA | CANCELADA
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, veiculoId, data])
+  @@index([tenantId, status, proximaData])
+}
+
+model Inf2FrotaDoc {
+  id          String   @id @default(uuid())
+  tenantId    String
+  veiculoId   String
+  tipo        String   // CRLV | LICENCIAMENTO | IPVA | DPVAT | VISTORIA | AUTORIZACAO | OUTRO
+  numero      String?
+  exercicio   Int?
+  emissao     DateTime?
+  validade    DateTime?
+  valor       Float?
+  responsavelNome String?
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, veiculoId])
+  @@index([tenantId, validade])
+}
+
+model Inf2Reserva {
+  id                String   @id @default(uuid())
+  tenantId          String
+  numero            String
+  veiculoId         String
+  motoristaId       String?
+  motoristaNome     String?
+  solicitanteUserId String
+  solicitanteNome   String?
+  finalidade        String
+  destino           String
+  passageiros       Int      @default(1)
+  saidaPrevista     DateTime
+  retornoPrevisto   DateTime
+  saidaReal         DateTime?
+  retornoReal       DateTime?
+  kmSaida           Float?
+  kmChegada         Float?
+  status            String   @default("SOLICITADA")  // SOLICITADA | APROVADA | EM_CURSO | CONCLUIDA | NEGADA | CANCELADA
+  decididoPorId     String?
+  decididoPorNome   String?
+  motivoDecisao     String?
+  ocorrencias       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, veiculoId, saidaPrevista])
+  @@index([tenantId, status])
+}
+
+// ---------------------------------------------------------------- 5) segurança patrimonial (seguranças, coordenadores de salas/pátio/estacionamento/portaria)
+model Inf2Posto {
+  id         String   @id @default(uuid())
+  tenantId   String
+  codigo     String
+  nome       String
+  tipo       String   // PORTARIA | PATIO | ESTACIONAMENTO | SALAS | RONDA_MOVEL
+  spaceId    String?
+  efetivoMinimo Int   @default(1)
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, codigo])
+}
+
+model Inf2Agente {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  cargo         String   // SEGURANCA | COORDENADOR_SALAS | COORDENADOR_PATIO | COORDENADOR_ESTACIONAMENTO | PORTEIRO | COORDENADOR_PORTARIA
+  userId        String?
+  colaboradorId String?     // RheColaborador.id (RH); sem RH, userId/nome identificam a pessoa
+  matricula     String?
+  terceirizado  Boolean  @default(false)
+  empresa       String?
+  telefone      String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, ativo])
+  @@index([tenantId, userId])
+}
+
+model Inf2Escala {
+  id         String   @id @default(uuid())
+  tenantId   String
+  data       DateTime       // dia (00:00 UTC)
+  postoId    String
+  agenteId   String
+  turno      String   // MANHA | TARDE | NOITE | INTEGRAL | PLANTAO_12X36
+  inicio     String   // HH:MM
+  fim        String
+  status     String   @default("PREVISTA")   // PREVISTA | CUMPRIDA | FALTA | TROCA | ATRASO
+  entradaEm  DateTime?
+  saidaEm    DateTime?
+  observacoes String?
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, data, postoId, agenteId, turno])
+  @@index([tenantId, data])
+  @@index([tenantId, agenteId])
+}
+
+model Inf2Checkpoint {
+  id        String   @id @default(uuid())
+  tenantId  String
+  postoId   String?
+  nome      String
+  token     String   @unique    // conteúdo do QR fixado no ponto
+  spaceId   String?
+  ordem     Int      @default(1)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, postoId])
+}
+
+model Inf2Ronda {
+  id          String   @id @default(uuid())
+  tenantId    String
+  agenteId    String
+  postoId     String?
+  inicio      DateTime @default(now())
+  fim         DateTime?
+  status      String   @default("EM_ANDAMENTO")  // EM_ANDAMENTO | CONCLUIDA | INCOMPLETA
+  esperados   Int      @default(0)
+  lidos       Int      @default(0)
+  observacoes String?
+  createdAt   DateTime @default(now())
+
+  leituras    Inf2RondaLeitura[]
+
+  @@index([tenantId, agenteId, inicio])
+}
+
+model Inf2RondaLeitura {
+  id            String   @id @default(uuid())
+  tenantId      String
+  rondaId       String
+  checkpointId  String
+  lidoEm        DateTime @default(now())
+  observacao    String?
+  anormalidade  Boolean  @default(false)
+
+  ronda         Inf2Ronda @relation(fields: [rondaId], references: [id], onDelete: Cascade)
+
+  @@unique([rondaId, checkpointId])
+  @@index([tenantId, rondaId])
+}
+
+model Inf2OcorrenciaSeg {
+  id          String   @id @default(uuid())
+  tenantId    String
+  numero      String
+  tipo        String   // FURTO | DANO | ACESSO_INDEVIDO | BRIGA | INCENDIO | ACIDENTE | VEICULO | ALARME | OUTRO
+  gravidade   String   @default("MEDIA")   // BAIXA | MEDIA | ALTA | CRITICA
+  descricao   String
+  local       String?
+  spaceId     String?
+  postoId     String?
+  agenteId    String?
+  registradoPorId String?
+  ocorridaEm  DateTime @default(now())
+  status      String   @default("ABERTA")  // ABERTA | EM_APURACAO | ENCAMINHADA | ENCERRADA
+  encaminhamento String?
+  encerradaEm DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, agenteId])
+}
+
+model Inf2Passagem {
+  id           String   @id @default(uuid())
+  tenantId     String
+  postoId      String
+  deAgenteId   String
+  paraAgenteId String
+  resumo       String
+  pendencias   String?
+  chaves       String?
+  status       String   @default("AGUARDANDO_CIENCIA")  // AGUARDANDO_CIENCIA | RECEBIDA
+  cienteEm     DateTime?
+  cienteObs    String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, postoId, createdAt])
+}
+
+// ---- edu/feedback.prisma ----
+// ============================================================
+// EDUMASTER PRO — CAIXA DE SUGESTÕES / BUGS (prefixo Fbk). Somente tabelas NOVAS.
+// LGPD: o contexto técnico (rota, versão, navegador, logs de console) passa por redação no servidor; o autor é
+// guardado por userId (nome só aparece para a triagem) e pode ser anônimo para os demais usuários.
+// ============================================================
+
+model FbkContador {
+  id       String @id @default(uuid())
+  tenantId String
+  chave    String
+  valor    Int    @default(0)
+
+  @@unique([tenantId, chave])
+}
+
+model FbkItem {
+  id               String   @id @default(uuid())
+  tenantId         String
+  numero           String
+  tipo             String   // SUGESTAO | MELHORIA | ERRO | BUG | DUVIDA
+  categoria        String   @default("OUTRO")   // ACADEMICO | FINANCEIRO | SECRETARIA | PORTAL | INFRAESTRUTURA | RH | DESEMPENHO | DESIGN | OUTRO
+  prioridade       String   @default("MEDIA")   // BAIXA | MEDIA | ALTA | CRITICA
+  titulo           String
+  descricao        String
+  passosReproduzir String?
+  status           String   @default("NOVO")    // NOVO | EM_TRIAGEM | PLANEJADO | EM_ANDAMENTO | RESOLVIDO | RECUSADO | DUPLICADO
+  // contexto capturado automaticamente (sanitizado)
+  rota             String?
+  tela             String?
+  versaoApp        String?
+  perfil           String?
+  navegador        String?
+  plataforma       String?
+  viewport         String?
+  idioma           String?
+  logsConsole      String?
+  // autoria
+  autorUserId      String
+  autorNome        String?
+  anonimo          Boolean  @default(false)
+  // triagem
+  responsavelUserId String?
+  responsavelNome  String?
+  duplicadoDeId    String?
+  respostaAutor    String?
+  respondidoEm     DateTime?
+  respondidoPorId  String?
+  resolvidoEm      DateTime?
+  atendimentoRef   String?     // protocolo/ID no módulo Atendimento/Apoio, quando houver
+  votos            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  comentarios      FbkComentario[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, autorUserId])
+  @@index([tenantId, tipo])
+}
+
+model FbkComentario {
+  id        String   @id @default(uuid())
+  tenantId  String
+  itemId    String
+  userId    String
+  autorNome String?
+  texto     String
+  interno   Boolean  @default(true)    // nota da triagem (não aparece ao autor)
+  createdAt DateTime @default(now())
+
+  item      FbkItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, itemId])
+}
+
+model FbkVoto {
+  id        String   @id @default(uuid())
+  tenantId  String
+  itemId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([itemId, userId])
+  @@index([tenantId, itemId])
+}
+
+model FbkAnexo {
+  id           String   @id @default(uuid())
+  tenantId     String
+  itemId       String
+  nome         String
+  mime         String?
+  dataUrl      String
+  tamanhoBytes Int?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, itemId])
+}
+
 // ==== EDUMASTER:END ====
