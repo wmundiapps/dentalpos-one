@@ -1,3 +1,4 @@
+import EduCapa from "../edu/apresentacao/EduCapa";
 import { EDU_ONLY } from "../config/appMode";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
@@ -190,8 +191,10 @@ export default function Login() {
         p: 2,
         background:
           "radial-gradient(circle at 15% 15%, rgba(21,101,192,.24), transparent 35%), linear-gradient(135deg,#07111f,#102a43 55%,#0b5fff)",
+        ...(EDU_ONLY ? { gridTemplateColumns: { xs: "1fr", md: "minmax(0,1fr) 460px" }, columnGap: 6, justifyContent: "center", maxWidth: 1180, mx: "auto", width: "100%" } : {}),
       }}
     >
+      {EDU_ONLY ? <EduCapa /> : null}
       <Paper
         component="form"
         onSubmit={etapa === "codigo" ? verificarCodigo : etapa === "credenciais" ? submit : (e: FormEvent) => e.preventDefault()}
@@ -210,7 +213,7 @@ export default function Login() {
           Bem-vindo
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Acesso seguro e individualizado da sua clínica.
+          {EDU_ONLY ? "Acesso seguro e individualizado da sua instituição." : "Acesso seguro e individualizado da sua clínica."}
         </Typography>
 
         {aviso && etapa === "credenciais" ? <Alert severity="info" sx={{ mb: 2 }}>{aviso}</Alert> : null}
@@ -313,10 +316,10 @@ export default function Login() {
           <>
         <TextField
           fullWidth
-          label="ID da clínica (opcional)"
+          label={EDU_ONLY ? "ID da instituição (opcional)" : "ID da clínica (opcional)"}
           value={clinicId}
           onChange={(event) => setClinicId(event.target.value)}
-          helperText="Só é necessário quando o mesmo e-mail pertence a mais de uma clínica."
+          helperText={EDU_ONLY ? "Só é necessário quando o mesmo e-mail pertence a mais de uma instituição." : "Só é necessário quando o mesmo e-mail pertence a mais de uma clínica."}
           sx={{ mb: 2 }}
         />
         <TextField
@@ -407,10 +410,10 @@ export default function Login() {
           />
           <TextField
             fullWidth
-            label="ID da clínica (opcional)"
+            label={EDU_ONLY ? "ID da instituição (opcional)" : "ID da clínica (opcional)"}
             value={resetClinicId}
             onChange={(event) => setResetClinicId(event.target.value)}
-            helperText="Informe apenas quando o mesmo e-mail pertence a mais de uma clínica."
+            helperText={EDU_ONLY ? "Informe apenas quando o mesmo e-mail pertence a mais de uma instituição." : "Informe apenas quando o mesmo e-mail pertence a mais de uma clínica."}
           />
         </DialogContent>
         <DialogActions>

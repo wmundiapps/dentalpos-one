@@ -1,3 +1,4 @@
+import { APP_NAME } from "./config/appMode";
 import { useEffect, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, Typography } from "@mui/material";
 import Layout from "./components/Layout";
@@ -18,6 +19,9 @@ import {
   writeDemoAccess,
   writeSessionUser,
 } from "./services/DemoAccess";
+
+import Apresentacao from "./edu/apresentacao/Apresentacao";
+import { EDU_ONLY } from "./config/appMode";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -108,6 +112,9 @@ function AppShell() {
     return <PasswordReset />;
   }
 
+  // Apresentação pública do EduMaster (modo EduMaster): sem login.
+  if (EDU_ONLY && appPath === "/apresentacao") return <Apresentacao />;
+
   // Páginas públicas de privacidade (LGPD): sem login.
   if (appPath === "/privacidade") return <PoliticaPrivacidade />;
   if (appPath === "/termos") return <TermosDeUso />;
@@ -147,7 +154,7 @@ function AppShell() {
             Pacientes, agenda e histórico não são apagados automaticamente pelo vencimento do EXPERIENCE.
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Para reativar o acesso e continuar utilizando o DentalPos One, solicite uma proposta comercial.
+            Para reativar o acesso e continuar utilizando o {APP_NAME}, solicite uma proposta comercial.
           </Typography>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
             <Button
@@ -177,7 +184,7 @@ function AppShell() {
     return (
       <Box sx={{ minHeight: "100vh", display: "grid", placeItems: "center", p: 2 }}>
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 4, width: "min(520px,100%)" }}>
-          <Alert severity="warning" sx={{ mb: 2 }}>A API do DentalPos One não respondeu. Nenhum dado foi alterado.</Alert>
+          <Alert severity="warning" sx={{ mb: 2 }}>A API do {APP_NAME} não respondeu. Nenhum dado foi alterado.</Alert>
           <Typography variant="h6" sx={{ fontWeight: 900 }}>Ambiente indisponível</Typography>
           <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
             Verifique o backend e tente novamente. Em homologação pública, esta tela evita operar com uma sessão não validada.

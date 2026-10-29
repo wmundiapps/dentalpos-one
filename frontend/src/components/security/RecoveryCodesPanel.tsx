@@ -1,3 +1,4 @@
+import { APP_NAME } from "../../config/appMode";
 import { useState } from "react";
 import { Alert, Box, Button, Checkbox, FormControlLabel, Paper, Stack, Typography } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -21,7 +22,7 @@ export default function RecoveryCodesPanel({ codes, onDone, doneLabel = "Conclui
   }
 
   function download() {
-    const body = `DentalPos One — códigos de recuperação do 2FA\nCada código vale uma única vez. Guarde em local seguro.\n\n${text}\n`;
+    const body = `${APP_NAME} — códigos de recuperação do 2FA\nCada código vale uma única vez. Guarde em local seguro.\n\n${text}\n`;
     const url = URL.createObjectURL(new Blob([body], { type: "text/plain;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
