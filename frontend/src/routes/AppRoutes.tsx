@@ -1,3 +1,4 @@
+import { EDU_ONLY } from "../config/appMode";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
@@ -140,7 +141,7 @@ export default function AppRoutes() {
   return (
     <Suspense fallback={<Box sx={{ p: 4 }}><Typography color="text.secondary">Carregando…</Typography></Box>}>
     <Routes>
-      <Route path="/" element={<Dashboard />} />
+      <Route path="/" element={EDU_ONLY ? <Navigate to="/edu" replace /> : <Dashboard />} />
 
       <Route path="/academico" element={<Academic />} />
       <Route path="/edu" element={<EduReitoria />} />

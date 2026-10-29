@@ -6,10 +6,12 @@ import App from "./App";
 import { AppThemeProvider } from "./contexts/AppThemeContext";
 import { repairLocalStorageText } from "./utils/textEncoding";
 
+import { APP_NAME, EDU_ONLY } from "./config/appMode";
 import "./index.css";
 import "./print.css";
 
 repairLocalStorageText();
+if (EDU_ONLY) document.title = APP_NAME;
 
 const rootElement = document.getElementById("root");
 

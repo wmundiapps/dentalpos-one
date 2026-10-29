@@ -1,3 +1,4 @@
+import { APP_NAME, EDU_ONLY } from "../config/appMode";
 import {
   AppBar,
   Avatar,
@@ -136,7 +137,11 @@ export default function Header() {
             </IconButton>
           </Tooltip>
         )}
-        <Box component="img" src={`${import.meta.env.BASE_URL}brand/logo-leao.png`} alt="DentalPos One" sx={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)" }} />
+        {EDU_ONLY ? (
+          <Box aria-label={APP_NAME} sx={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)", display: "grid", placeItems: "center", color: "#fff", fontWeight: 800, fontSize: 16, background: "linear-gradient(135deg,#0F5FDB,#6366F1)" }}>EM</Box>
+        ) : (
+          <Box component="img" src={`${import.meta.env.BASE_URL}brand/logo-leao.png`} alt="DentalPos One" sx={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, boxShadow: "0 2px 8px rgba(15,23,42,.18)" }} />
+        )}
         <Box sx={{ display: { xs: "none", lg: "block" } }}>
           <Typography variant="h6" sx={{ fontWeight: 700, color: "primary.main", lineHeight: 1.2, whiteSpace: "nowrap" }}>
             <BrandName />

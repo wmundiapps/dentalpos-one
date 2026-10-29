@@ -1,3 +1,4 @@
+import { EDU_ONLY } from "./appMode";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import AssessmentIcon from "@mui/icons-material/Assessment";
@@ -76,7 +77,7 @@ const tile = (icon: ReactNode, color: string): ReactNode => (
  * - Laboratorio e um botao proprio no menu (visivel, sem submenu); Design fica so em Clinico;
  * - Relatorios ficam so em Gestao.
  */
-export const navigationGroups:NavigationGroup[] = [
+const allNavigationGroups:NavigationGroup[] = [
   {
     label:"Recepção",
     icon:tile(<SupportAgentIcon/>,"#3B6FE0"),
@@ -268,5 +269,10 @@ export const navigationGroups:NavigationGroup[] = [
     ])
   }
 ];
+
+// No modo EduMaster só aparecem os grupos cujos itens apontam para /edu.
+export const navigationGroups:NavigationGroup[] = EDU_ONLY
+  ? allNavigationGroups.filter(g=>g.items.some(i=>i.path.startsWith("/edu")))
+  : allNavigationGroups;
 
 export const navigationItems = navigationGroups.flatMap(g=>g.items);

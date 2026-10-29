@@ -1,3 +1,4 @@
+import { APP_NAME, APP_SHORT_NAME } from "../config/appMode";
 import type { HTMLAttributes } from "react";
 
 interface BrandNameProps
@@ -15,7 +16,7 @@ export default function BrandName({
       className="notranslate"
       {...props}
     >
-      {short ? "DentalPos" : "DentalPos One"}
+      {short ? APP_SHORT_NAME : APP_NAME}
     </span>
   );
 }

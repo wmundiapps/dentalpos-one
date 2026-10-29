@@ -1,3 +1,4 @@
+import { EDU_ONLY } from "../config/appMode";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, TextField, Typography } from "@mui/material";
@@ -353,6 +354,7 @@ export default function Login() {
           </Button>
         ) : null}
 
+        {!EDU_ONLY ? (
         <Box sx={{ mt: 3, pt: 2.5, borderTop: "1px solid", borderColor: "divider" }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Ainda não usa o DentalPos One? O EXPERIENCE é gratuito, temporário e informa claramente
@@ -368,6 +370,7 @@ export default function Login() {
             Conhecer o EXPERIENCE
           </Button>
         </Box>
+        ) : null}
 
         <Button
           fullWidth
