@@ -199,6 +199,7 @@ router.get('/absence-recall/today', requirePermission('agenda.view'), absenceRec
 router.put('/absence-recall/settings', requirePermission('agenda.edit'), absenceRecallController.updateSettings)
 router.post('/absence-recall/run', requirePermission('agenda.edit'), absenceRecallController.run)
 router.post('/pending-alerts/resolve-lab', requirePermission('dashboard.view'), pendingAlertController.resolveLabDelivery)
+router.post('/pending-alerts/unplanned/resolve', requirePermission('dashboard.view'), pendingAlertController.resolveUnplanned)
 router.post('/pending-alerts/justify', requirePermission('dashboard.view'), pendingAlertController.justify)
 router.post('/pending-alerts/unlock', requirePermission('dashboard.view'), pendingAlertController.unlock)
 router.post('/pending-alerts/unlock-user', requirePermission('settings.edit'), pendingAlertController.unlockUser)
