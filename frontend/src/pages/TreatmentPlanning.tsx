@@ -6,6 +6,7 @@ import PageHeader from "../components/PageHeader";
 import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import { loadBackendPatients, type BackendPatient } from "../services/PatientApi";
 import { createTreatmentItem, getTreatmentPlan, importOdontogram, updateTreatmentItem, type TreatmentPlanItem } from "../services/TreatmentPlanApi";
+import { printPromissories } from "../utils/promissory";
 import { approveBudget, cancelBudget, createBudget, listBudgets, type BudgetRow } from "../services/BudgetApi";
 import { createClinicalDocument } from "../services/ClinicalDocumentService";
 import { readSessionUser } from "../services/DemoAccess";
@@ -172,6 +173,33 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
     setTerms(EMPTY_TERMS);
   }, "Orçamento gerado.");
 
+  // Parcelas do orçamento aprovado (sem a entrada) para as promissórias.
+  const installmentLines = (b: BudgetExtra & { payments?: Array<{ installment: number; amount: number; dueDate: string }> }) =>
+    (b.payments || []).filter((p) => p.installment >= 1).sort((a, c) => a.installment - c.installment).map((p) => ({ installment: p.installment, amount: Number(p.amount), dueDate: p.dueDate }));
+  const printNotes = async (b: BudgetExtra, preOpened: Window | null = null) => {
+    let full = b as BudgetExtra & { payments?: Array<{ installment: number; amount: number; dueDate: string }> };
+    if (!full.payments) { const all = (await listBudgets()) as typeof full[]; full = all.find((x) => x.id === b.id) || full; }
+    const lines = installmentLines(full);
+    if (!lines.length || !patient) { preOpened?.close(); setError("Este orçamento não tem parcelas para gerar promissórias."); return; }
+    const ok = await printPromissories(preOpened, patient, lines);
+    if (!ok) setError("O navegador bloqueou a janela. Permita pop-ups para este site e tente de novo.");
+  };
+  // Aprovação com boleto/promissória: gera o contrato (rascunho) e abre as promissórias de cada parcela para imprimir e assinar.
+  const approveAndPrepare = async (b: BudgetExtra) => {
+    const wantsNotes = ["Boleto", "Promissória"].includes(String(b.paymentMethod || "")) && b.installments > 0;
+    const pre = wantsNotes ? window.open("", "_blank", "width=900,height=1000") : null;
+    pre?.document.write('<p style="font-family:Arial;padding:40px">Preparando promissórias…</p>');
+    let approved: (BudgetExtra & { payments?: Array<{ installment: number; amount: number; dueDate: string }> }) | null = null;
+    await run(async () => { approved = (await approveBudget(b.id)) as typeof approved; if (wantsNotes) await generateContractQuiet(b); }, wantsNotes ? "Orçamento aprovado. Contrato gerado como rascunho em Documentos e Contratos e promissórias abertas para impressão." : "Orçamento aprovado.");
+    if (wantsNotes && approved) await printNotes(approved, pre); else pre?.close();
+  };
+  const generateContractQuiet = async (b: BudgetExtra) => {
+    const ids = Array.isArray(b.optionsJson?.treatmentItemIds) ? (b.optionsJson?.treatmentItemIds as string[]) : [];
+    const list = ids.length ? items.filter((i) => ids.includes(i.id)) : activeItems;
+    const professional = sessionName || "Profissional responsável";
+    await createClinicalDocument({ patientId: b.patientId, professionalName: professional, documentType: "CLINICAL_CONTRACT", title: `Contrato • ${patient?.fullName || "Paciente"}`, content: buildContract(patient, b, list, professional), templateId: undefined, status: "DRAFT" });
+  };
+
   const generateContract = (row: BudgetRow) => run(async () => {
     const b = row as BudgetExtra;
     const ids = Array.isArray(b.optionsJson?.treatmentItemIds) ? (b.optionsJson?.treatmentItemIds as string[]) : [];
@@ -295,7 +323,8 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
                   </Box>
                   <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                     <Chip size="small" label={BUDGET_STATUS[b.status] || b.status} color={b.status === "APPROVED" ? "success" : b.status === "CANCELLED" ? "default" : "warning"} />
-                    {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => void run(() => approveBudget(b.id), "Orçamento aprovado.")}>Aprovar</Button>}
+                    {b.status !== "APPROVED" && b.status !== "CANCELLED" && <Button size="small" variant="contained" color="success" disabled={busy} onClick={() => void approveAndPrepare(b)}>Aprovar</Button>}
+                    {b.status === "APPROVED" && <Button size="small" disabled={busy} onClick={() => void printNotes(b)}>Imprimir promissórias</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "share")}>Enviar PDF</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "download")}>Baixar PDF</Button>}
                     {b.status !== "CANCELLED" && <Button size="small" variant="outlined" disabled={busy} onClick={() => void budgetPdf(b, "print")}>Imprimir</Button>}
