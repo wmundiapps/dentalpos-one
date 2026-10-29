@@ -35,14 +35,12 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
     if (!form.name.trim() || !form.position.trim()) { setError("Informe nome e cargo."); return; }
     setBusy(true); setError("");
     try {
-      const saved = await HrApi.saveEmployee(editing?.id || null, {
+      await HrApi.saveEmployee(editing?.id || null, {
         ...form, employeeCode: editing?.employeeCode || `DP-${String(employees.length + 1).padStart(4, "0")}-${Date.now().toString(36).slice(-3).toUpperCase()}`,
         department: form.department.trim() || "Geral", baseSalary: Number(form.baseSalary) || 0, monthlyWorkload: Number(form.monthlyWorkload) || 220,
         email: form.email.trim().toLowerCase() || null, experienceEndDate: form.experienceEndDate || null,
       });
       setOpen(false); onChanged();
-      // Colaborador novo: já abre a captura do rosto (foto) para o ponto.
-      if (!editing && saved?.id) setFaceFor({ id: saved.id, name: saved.name || form.name });
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar."); }
     finally { setBusy(false); }
   };
@@ -90,7 +88,7 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
           <TextField label="Chave PIX" value={form.pixKey} onChange={set("pixKey")} />
           <TextField label="Observações" multiline minRows={2} value={form.notes} onChange={set("notes")} />
         </DialogContent>
-        {!editing && <Alert severity="info" sx={{ mx: 3, mb: 1 }}>Depois de salvar, vai abrir a câmera para cadastrar o <b>rosto (foto)</b> do colaborador, usado no ponto. Tenha o colaborador ao lado e preencha o CPF.</Alert>}
+        {!editing && <Alert severity="info" sx={{ mx: 3, mb: 1 }}>O RH não precisa tirar a foto: no <b>primeiro acesso</b> ao ponto, o colaborador digita o CPF e o próprio sistema tira a foto para reconhecê-lo nas próximas vezes. Basta preencher o <b>CPF</b> aqui.</Alert>}
         <DialogActions><Button disabled={busy} onClick={() => setOpen(false)}>Cancelar</Button><Button variant="contained" disabled={busy} onClick={() => void save()}>Salvar colaborador</Button></DialogActions>
       </Dialog>
       <Dialog open={Boolean(pwdFor)} onClose={() => { setPwdFor(null); setPwd(""); setPwdMsg(""); }} fullWidth maxWidth="xs">

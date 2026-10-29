@@ -10,7 +10,7 @@ async function call<T>(path: string, init: { method?: string; body?: unknown } =
   const r = await fetch(`${API}${path}`, { method: init.method || "GET", headers: headers(init.body !== undefined), body: init.body !== undefined ? JSON.stringify(init.body) : undefined });
   const d = await r.json().catch(() => ({}));
   if (r.status === 423) { sessionStorage.removeItem("completodonto.rhVault"); window.dispatchEvent(new Event("completodonto:rh-locked")); }
-  if (!r.ok) throw new Error(d?.error || `Erro ${r.status}`);
+  if (!r.ok) throw Object.assign(new Error(d?.error || `Erro ${r.status}`), { code: d?.code as string | undefined, employeeName: d?.employeeName as string | undefined });
   return d as T;
 }
 
@@ -22,3 +22,4 @@ export const facePunch = (cpf: string, descriptor: number[], photo: string, geo:
 export const punchPhoto = (punchId: string) => call<{ photo: string | null }>(`/hr/timeclock/punches/${encodeURIComponent(punchId)}/photo`);
 export const employeeFacePhoto = (employeeId: string) => call<{ photo: string | null }>(`/hr/employees/${encodeURIComponent(employeeId)}/face-photo`);
 export const setEmployeePortalPassword = (employeeId: string, password: string) => call<{ ok: boolean }>(`/hr/employees/${encodeURIComponent(employeeId)}/portal-password`, { method: "PUT", body: { password } });
+export const firstFaceEnroll = (cpf: string, samples: number[][], photo: string, geo: { latitude?: number; longitude?: number; accuracy?: number }) => call<FacePunchResult & { enrolled: boolean }>("/hr/timeclock/face-first-enroll", { method: "POST", body: { cpf, samples, photo, consent: true, ...geo } });
