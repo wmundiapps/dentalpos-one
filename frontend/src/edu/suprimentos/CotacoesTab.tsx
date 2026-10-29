@@ -4,8 +4,11 @@ import { useState } from "react";
 import { StatusChip } from "../EduResourcePage";
 import { eduApi } from "../../services/EduApi";
 import ListTable from "../infraestrutura/ListTable";
-import { Async, FormDialog, Stat, StatGrid, Tag, brl, fmtDate, label, num, useApi, useToast, type Field } from "../infraestrutura/kit";
+import { Async, FormDialog, Stat, StatGrid, Tag, brl, fmtDate, label, num, useApi, useSupplierOptions, useToast, type Field } from "../infraestrutura/kit";
 import { useAlmoxarifados } from "./lookups";
+import { abrirArquivo } from "../infraestrutura/cppKit";
+import { FORMAS } from "./AprovacoesTab";
+import { Alert } from "@mui/material";
 
 const bestSx = { bgcolor: "success.light", color: "success.contrastText", fontWeight: 800 } as const;
 
@@ -14,9 +17,14 @@ function Mapa({ row, onClose, onChanged }: { row: any; onClose: () => void; onCh
   const [prop, setProp] = useState<any | null>(null);
   const [enc, setEnc] = useState(false);
   const [ped, setPed] = useState(false);
+  const [exc, setExc] = useState(false);
+  const [cmp, setCmp] = useState(false);
+  const [conv, setConv] = useState(false);
+  const exig = useApi<any>(`/suprimentos/cotacoes/${row.id}/mapa-comparativo`);
+  const fornOpts = useSupplierOptions();
   const almox = useAlmoxarifados();
   const toast = useToast();
-  const after = () => { st.reload(); onChanged(); };
+  const after = () => { st.reload(); exig.reload(); onChanged(); };
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="lg">
       <DialogTitle sx={{ fontWeight: 800 }}>Mapa comparativo — {row.numero}</DialogTitle>
@@ -36,6 +44,14 @@ function Mapa({ row, onClose, onChanged }: { row: any; onClose: () => void; onCh
             ];
             return (
               <Box sx={{ display: "grid", gap: 2 }}>
+                {exig.data && (
+                  <Alert severity={exig.data.exigencia.atende ? "success" : exig.data.exigencia.liberadoPorExcecao ? "info" : "warning"}>
+                    Cotações respondidas: <b>{exig.data.exigencia.respondidas}</b> de {exig.data.exigencia.convidados} convidados (mínimo exigido {exig.data.exigencia.minimo}).{" "}
+                    {exig.data.exigencia.atende ? "Exigência atendida." : exig.data.exigencia.liberadoPorExcecao ? `Liberado pela exceção ${exig.data.exigencia.excecao.numero}.` : "Sem o mínimo não é possível encerrar: registre mais propostas ou solicite uma exceção formal justificada."}
+                    {exig.data.excecao && !exig.data.exigencia.excecao && <> Exceção {exig.data.excecao.numero}: {label(exig.data.excecao.status)}.</>}
+                  </Alert>
+                )}
+                {exig.data?.escolha && <Alert severity="success">Escolhido: <b>{exig.data.escolha.fornecedor}</b>{exig.data.escolha.justificativa ? ` — ${exig.data.escolha.justificativa}` : ""}{exig.data.compra ? ` · Compra ${exig.data.compra.numero} (${label(exig.data.compra.status)})` : ""}</Alert>}
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
                   <StatusChip value={m.cotacao?.status} /><Tag text={`Critério: ${label(m.cotacao?.criterio)}`} />
                   {m.semProposta && <Tag text="Nenhuma proposta recebida" tone="warning" />}
@@ -83,7 +99,11 @@ function Mapa({ row, onClose, onChanged }: { row: any; onClose: () => void; onCh
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                   {aberta && <Button variant="contained" color="success" disabled={!completos.length} onClick={() => setEnc(true)}>Encerrar e escolher vencedor</Button>}
                   {aberta && <Button color="error" onClick={() => toast.run(() => eduApi.post(`/suprimentos/cotacoes/${row.id}/cancelar`, {}), "Cotação cancelada.", () => { after(); onClose(); }, "Cancelar esta cotação? A requisição volta para APROVADA.")}>Cancelar cotação</Button>}
-                  {m.cotacao?.status === "ENCERRADA" && <Button variant="contained" onClick={() => setPed(true)}>Gerar pedido de compra</Button>}
+                  {aberta && <Button onClick={() => setConv(true)}>Convidar fornecedor</Button>}
+                  {aberta && exig.data && !exig.data.exigencia.atende && !exig.data.exigencia.liberadoPorExcecao && <Button color="warning" onClick={() => setExc(true)}>Solicitar exceção</Button>}
+                  <Button onClick={() => toast.run(() => abrirArquivo("GET", `/suprimentos/cotacoes/${row.id}/mapa-comparativo?format=html`), "Mapa aberto para impressão.")}>Imprimir mapa</Button>
+                  {m.cotacao?.status === "ENCERRADA" && !exig.data?.compra && <Button variant="contained" onClick={() => setCmp(true)}>Enviar para aprovação (valor e pagamento)</Button>}
+                  {m.cotacao?.status === "ENCERRADA" && exig.data?.compra?.status === "APROVADA" && <Button variant="contained" onClick={() => setPed(true)}>Gerar pedido de compra</Button>}
                 </Box>
                 <FormDialog open={!!prop} title={`Proposta — ${prop?.razaoSocial || ""}`} fields={propostaFields()} onClose={() => setProp(null)}
                   onSubmit={async (b) => {
@@ -96,6 +116,15 @@ function Mapa({ row, onClose, onChanged }: { row: any; onClose: () => void; onCh
                   initial={{ fornecedorId: m.vencedor }}
                   fields={[{ key: "fornecedorId", label: "Fornecedor escolhido", type: "select", options: completos, required: true, helper: "Só fornecedores com proposta completa" }, { key: "justificativa", label: "Justificativa (obrigatória se diferente do vencedor sugerido)", type: "textarea" }]}
                   onSubmit={async (b) => { await eduApi.post(`/suprimentos/cotacoes/${row.id}/encerrar`, b); toast.ok("Cotação encerrada."); after(); }} />
+                <FormDialog open={conv} title="Convidar fornecedor" onClose={() => setConv(false)} fields={[{ key: "fornecedorId", label: "Fornecedor", type: "select", options: fornOpts, required: true }]}
+                  onSubmit={async (b) => { await eduApi.post(`/suprimentos/cotacoes/${row.id}/fornecedores`, { fornecedorIds: [b.fornecedorId] }); toast.ok("Fornecedor convidado."); after(); }} />
+                <FormDialog open={exc} title="Exceção ao mínimo de cotações" submitLabel="Solicitar" onClose={() => setExc(false)}
+                  fields={[{ key: "motivo", label: "Motivo", type: "select", required: true, options: ["FORNECEDOR_UNICO", "EXCLUSIVIDADE", "URGENCIA", "MERCADO_RESTRITO", "VALOR_BAIXO", "OUTRO"] }, { key: "justificativa", label: "Justificativa formal (mín. 30 caracteres)", type: "textarea", required: true, full: true }]}
+                  onSubmit={async (b) => { await eduApi.post("/suprimentos/excecoes-cotacao", { ...b, requisicaoId: exig.data.requisicao.id, valorEstimado: exig.data.requisicao.valorEstimado }); toast.ok("Exceção solicitada: aguarda aprovação na aba Aprovações."); after(); }} />
+                <FormDialog open={cmp} title="Aprovação do valor e da forma de pagamento" submitLabel="Enviar para aprovação" onClose={() => setCmp(false)}
+                  intro={<Typography variant="body2" sx={{ mb: 2 }}>Valor escolhido: <b>{brl(m.totalVencedor)}</b>. A alçada aprova o valor e a forma de pagamento; ao aprovar, a conta a pagar é lançada em rascunho.</Typography>}
+                  fields={[{ key: "formaPagamento", label: "Forma de pagamento", type: "select", options: FORMAS, required: true, def: "PARCELADO" }, { key: "parcelas", label: "Parcelas", type: "number", def: 1 }, { key: "intervaloParcelasDias", label: "Intervalo (dias)", type: "number", def: 30 }, { key: "entrada", label: "Entrada (R$)", type: "number" }, { key: "primeiroVencimentoEm", label: "1º vencimento", type: "date" }, { key: "observacao", label: "Observação", type: "textarea", full: true }]}
+                  onSubmit={async (b) => { await eduApi.post("/suprimentos/compras", { ...b, cotacaoId: row.id }); toast.ok("Compra enviada para aprovação."); after(); }} />
                 <FormDialog open={ped} title="Gerar pedido de compra" submitLabel="Gerar pedido" onClose={() => setPed(false)}
                   fields={[{ key: "almoxarifadoId", label: "Almoxarifado de destino", type: "select", options: almox }, { key: "previsaoEntrega", label: "Previsão de entrega", type: "date" }, { key: "parcelas", label: "Parcelas", type: "number", def: 1 }, { key: "intervaloParcelasDias", label: "Intervalo entre parcelas (dias)", type: "number", def: 30 }]}
                   onSubmit={async (b) => { await eduApi.post(`/suprimentos/cotacoes/${row.id}/gerar-pedido`, b); toast.ok("Pedido gerado. Veja a aba Pedidos."); after(); }} />

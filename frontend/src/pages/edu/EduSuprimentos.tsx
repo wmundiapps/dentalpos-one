@@ -17,13 +17,22 @@ import PainelSup from "../../edu/suprimentos/PainelSup";
 import PedidosTab from "../../edu/suprimentos/PedidosTab";
 import RequisicoesTab from "../../edu/suprimentos/RequisicoesTab";
 import VendasTab from "../../edu/suprimentos/VendasTab";
+import AprovacoesTab from "../../edu/suprimentos/AprovacoesTab";
+import ConferenciaTab from "../../edu/suprimentos/ConferenciaTab";
+import AlmoxarifadoTab from "../../edu/suprimentos/AlmoxarifadoTab";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+import RuleIcon from "@mui/icons-material/Rule";
+import WarehouseIcon from "@mui/icons-material/Warehouse";
 
 const TABS: Array<{ label: string; icon: ReactElement; render: () => ReactNode }> = [
   { label: "Painel", icon: <DashboardIcon />, render: () => <PainelSup /> },
   { label: "Fornecedores", icon: <StoreIcon />, render: () => <FornecedoresTab /> },
   { label: "Requisições", icon: <AssignmentIcon />, render: () => <RequisicoesTab /> },
   { label: "Cotações", icon: <GavelIcon />, render: () => <CotacoesTab /> },
+  { label: "Aprovações", icon: <RuleIcon />, render: () => <AprovacoesTab /> },
   { label: "Pedidos", icon: <ShoppingCartIcon />, render: () => <PedidosTab /> },
+  { label: "Conferência", icon: <FactCheckIcon />, render: () => <ConferenciaTab /> },
+  { label: "Almoxarifado", icon: <WarehouseIcon />, render: () => <AlmoxarifadoTab /> },
   { label: "Estoque", icon: <InventoryIcon />, render: () => <EstoqueTab /> },
   { label: "Vendas e PDV", icon: <PointOfSaleIcon />, render: () => <VendasTab /> },
   { label: "Catálogo", icon: <LibraryBooksIcon />, render: () => <CatalogoTab /> },
