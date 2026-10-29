@@ -14,4 +14,6 @@ if node -e "const {PrismaClient}=require('@prisma/client');const p=new PrismaCli
   echo 'Banco vazio: carregando demonstração...'
   API_URL="http://127.0.0.1:${PORT:-3000}/api" npx tsx scripts/edu-demo-seed.ts || echo 'Seed terminou com avisos'
 fi
+# Usuário de apresentação (se configurado por variável de ambiente)
+npx tsx scripts/edu-demo-user.ts || true
 wait $SERVER
