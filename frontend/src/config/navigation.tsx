@@ -42,6 +42,7 @@ import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import PrivacyTipIcon from "@mui/icons-material/PrivacyTip";
+import RequestPageIcon from "@mui/icons-material/RequestPage";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import WorkIcon from "@mui/icons-material/Work";
@@ -258,6 +259,15 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Recibos","/edu/financeiro?secao=recibos",<ReceiptLongIcon/>),
       item("Permutas e bolsas","/edu/financeiro?secao=permutas",<PeopleAltIcon/>),
       item("Remessas bancárias","/edu/financeiro?secao=remessas",<SendIcon/>),
+    label:"EduMaster · Cobrança",
+    icon:tile(<RequestPageIcon/>,"#B91C1C"),
+    items:[
+      item("Painel","/edu/cobranca?aba=painel",<SpaceDashboardIcon/>),
+      item("Inadimplentes","/edu/cobranca?aba=inadimplentes",<PeopleAltIcon/>),
+      item("Acordos e Negociações","/edu/cobranca?aba=acordos",<DescriptionIcon/>),
+      item("Régua e Políticas","/edu/cobranca?aba=regua",<SettingsIcon/>),
+      item("Histórico de Contatos","/edu/cobranca?aba=historico",<ChatIcon/>),
+      item("Recebimentos","/edu/cobranca?aba=recebimentos",<PaymentsIcon/>),
     ]
   },
   {
