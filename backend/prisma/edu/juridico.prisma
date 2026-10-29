@@ -1,0 +1,551 @@
+// ============================================================
+// EDUMASTER PRO — JURÍDICO (prefixo Jur). Somente tabelas NOVAS; nenhuma tabela existente é alterada.
+// Status/tipos são String validados na API (zod) para evoluir sem migração de enum.
+// Referências a ModPolo, InfBem, User = String ids sem @relation (o jurídico não pode travar outros módulos).
+// Valores monetários em Float (como no restante do EduMaster), arredondados a centavos na API.
+// ============================================================
+
+// Contador sequencial por tenant+chave (códigos JUR-DOC-2026-0001 etc.).
+model JurContador {
+  id       String @id @default(uuid())
+  tenantId String
+  chave    String
+  valor    Int    @default(0)
+
+  @@unique([tenantId, chave])
+}
+
+// Anexos de qualquer registro jurídico (refType: Documento | DocumentoVersao | Contrato | Locacao | ContratoPolo | Processo | Andamento | Seguro | Sinistro ...).
+// Entram pelo uploadGuard (varredura de tipo/malware): arquivoUrl (https) ou dataUrl (até ~2 MB).
+model JurAnexo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  refType     String
+  refId       String
+  nome        String
+  url         String?
+  dataUrl     String?
+  mime        String?
+  tamanhoBytes Int?
+  descricao   String?
+  enviadoPorId String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, refType, refId])
+}
+
+// ---------------------------------------------------------------- 1) acervo documental
+model JurDocumento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String
+  categoria     String          // INTERNO | PARCERIA | CONVENIO | FISCAL | TRABALHISTA | COOPERACAO | CONTRATO | OUTRO
+  titulo        String
+  descricao     String?
+  partes        String?
+  status        String   @default("RASCUNHO")   // RASCUNHO | VIGENTE | ENCERRADO | CANCELADO
+  vigenciaInicio DateTime?
+  vigenciaFim   DateTime?
+  responsavelUserId String?
+  responsavelNome String?
+  confidencial  Boolean  @default(false)
+  tags          String[]
+  versaoAtual   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  versoes       JurDocumentoVersao[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, categoria])
+  @@index([tenantId, status, vigenciaFim])
+}
+
+model JurDocumentoVersao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  documentoId   String
+  versao        Int
+  resumoAlteracoes String?
+  conteudo      String?
+  status        String   @default("VIGENTE")   // VIGENTE | SUBSTITUIDA
+  vigenciaInicio DateTime?
+  vigenciaFim   DateTime?
+  criadoPorId   String?
+  createdAt     DateTime @default(now())
+
+  documento     JurDocumento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+
+  @@unique([documentoId, versao])
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------------- contratos em geral
+model JurContrato {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String
+  tipo          String          // PRESTACAO_SERVICOS | FORNECIMENTO | TRABALHO | PARCERIA | CONVENIO | COOPERACAO | TECNOLOGIA | OUTRO
+  objeto        String
+  contraparteNome String
+  contraparteDoc  String?
+  valor         Float?
+  periodicidade String?         // MENSAL | ANUAL | UNICO | POR_DEMANDA
+  indiceReajuste String?        // IPCA | IGPM | INPC | FIXO | NENHUM
+  reajusteMes   Int?
+  dataAssinatura DateTime?
+  vigenciaInicio DateTime
+  vigenciaFim   DateTime?
+  renovacaoAutomatica Boolean @default(false)
+  avisoPrevioDias Int?
+  multaRescisoria String?
+  garantias     String?
+  status        String   @default("RASCUNHO")  // RASCUNHO | VIGENTE | ENCERRADO | RESCINDIDO
+  rescindidoEm  DateTime?
+  motivoRescisao String?
+  responsavelUserId String?
+  responsavelNome String?
+  documentoId   String?
+  observacoes   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  aditivos      JurContratoAditivo[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, tipo])
+  @@index([tenantId, status, vigenciaFim])
+}
+
+model JurContratoAditivo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  contratoId  String
+  numero      Int
+  data        DateTime
+  descricao   String
+  novoValor   Float?
+  novaVigenciaFim DateTime?
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+
+  contrato    JurContrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+
+  @@unique([contratoId, numero])
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------------- 2) imóveis e aluguéis
+model JurImovel {
+  id            String   @id @default(uuid())
+  tenantId      String
+  apelido       String
+  tipo          String   @default("PREDIO")   // PREDIO | TERRENO | SALA | POLO | GALPAO | OUTRO
+  propriedade   String   @default("ALUGADO")  // PROPRIO | ALUGADO | CEDIDO | EM_NEGOCIACAO
+  logradouro    String?
+  numero        String?
+  bairro        String?
+  cidade        String?
+  uf            String?
+  cep           String?
+  matricula     String?
+  inscricaoIptu String?
+  areaM2        Float?
+  spaceId       String?
+  observacoes   String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  locacoes      JurLocacao[]
+
+  @@index([tenantId, propriedade])
+}
+
+model JurLocacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String
+  imovelId      String
+  natureza      String   @default("LOCACAO_PAGA")  // LOCACAO_PAGA (instituição é locatária) | LOCACAO_RECEBIDA | COMPRA | VENDA | COMODATO
+  locadorNome   String
+  locadorDoc    String?
+  locatarioNome String
+  locatarioDoc  String?
+  valorMensal   Float
+  diaVencimento Int      @default(10)
+  indiceReajuste String  @default("IGPM")   // IGPM | IPCA | INPC | FIXO | NENHUM
+  percentualFixo Float?
+  mesReajuste   Int?
+  ultimoReajusteEm DateTime?
+  vigenciaInicio DateTime
+  vigenciaFim   DateTime
+  garantiaTipo  String   @default("NENHUMA") // CAUCAO | FIADOR | SEGURO_FIANCA | TITULO_CAPITALIZACAO | NENHUMA
+  garantiaValor Float?
+  garantiaDetalhe String?
+  multaRescisoria String?
+  condicoes     String?
+  status        String   @default("RASCUNHO")  // RASCUNHO | VIGENTE | ENCERRADO | RESCINDIDO | EM_NEGOCIACAO
+  documentoId   String?
+  responsavelNome String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  imovel        JurImovel @relation(fields: [imovelId], references: [id])
+  parcelas      JurParcela[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status, vigenciaFim])
+  @@index([imovelId])
+}
+
+model JurParcela {
+  id          String   @id @default(uuid())
+  tenantId    String
+  locacaoId   String
+  competencia String          // YYYY-MM
+  vencimento  DateTime
+  valor       Float
+  status      String   @default("ABERTA")   // ABERTA | PAGA | CANCELADA  (ATRASADA = ABERTA vencida, calculada)
+  pagoEm      DateTime?
+  valorPago   Float?
+  observacao  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  locacao     JurLocacao @relation(fields: [locacaoId], references: [id], onDelete: Cascade)
+
+  @@unique([locacaoId, competencia])
+  @@index([tenantId, status, vencimento])
+}
+
+// ---------------------------------------------------------------- 3) polos EAD (gestores de polo)
+model JurContratoPolo {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String
+  poloId        String          // ModPolo (validado no tenant na API)
+  gestorNome    String
+  gestorDoc     String?
+  gestorEmail   String?
+  gestorTelefone String?
+  objeto        String?
+  condicoes     String?
+  patrimonioCedido Json?        // [{descricao, tombamento?, bemId?, valor?, estado?}]
+  direitosInstituicao String?
+  deveresInstituicao  String?
+  direitosGestor      String?
+  deveresGestor       String?
+  comissionamentoTipo String @default("PERCENTUAL_MENSALIDADE") // PERCENTUAL_MENSALIDADE | VALOR_POR_ALUNO | FIXO_MENSAL | MISTO | NENHUM
+  comissionamentoPercentual Float?
+  comissionamentoValor Float?
+  comissionamentoObs  String?
+  vigenciaInicio DateTime
+  vigenciaFim   DateTime
+  prazoMeses    Int?
+  renovacaoAutomatica Boolean @default(false)
+  avisoPrevioDias Int?
+  rescisaoCondicoes String?
+  multaRescisoria String?
+  status        String   @default("RASCUNHO")  // RASCUNHO | VIGENTE | ENCERRADO | RESCINDIDO
+  rescindidoEm  DateTime?
+  motivoRescisao String?
+  documentoId   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, poloId])
+  @@index([tenantId, status, vigenciaFim])
+}
+
+// ---------------------------------------------------------------- 4) processos judiciais
+model JurEscritorio {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  cnpj        String?
+  contatoNome String?
+  email       String?
+  telefone    String?
+  honorarios  String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  advogados   JurAdvogado[]
+
+  @@index([tenantId])
+}
+
+model JurAdvogado {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  oab         String?
+  tipo        String   @default("EXTERNO")   // INTERNO | EXTERNO
+  escritorioId String?
+  email       String?
+  telefone    String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  escritorio  JurEscritorio? @relation(fields: [escritorioId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+}
+
+model JurProcesso {
+  id            String   @id @default(uuid())
+  tenantId      String
+  numeroCnj     String
+  area          String          // CIVEL | CRIMINAL | TRABALHISTA | ADMINISTRATIVO | TRIBUTARIO | CONSUMIDOR | OUTRO
+  classe        String?
+  assunto       String
+  vara          String?
+  comarca       String?
+  tribunal      String?
+  uf            String?
+  posicao       String   @default("REU")   // AUTOR | REU | TERCEIRO | INVESTIGADO | VITIMA | ASSISTENTE
+  sofrido       Boolean  @default(true)    // instituição é ré/investigada (processo "sofrido")
+  valorCausa    Float?
+  valorCondenacao Float?
+  risco         String   @default("POSSIVEL")  // PROVAVEL | POSSIVEL | REMOTO
+  provisaoValor Float    @default(0)
+  provisaoAtualizadaEm DateTime?
+  status        String   @default("EM_ANDAMENTO") // EM_ANDAMENTO | SUSPENSO | ARQUIVADO | ENCERRADO
+  resultado     String?         // GANHO | PERDIDO | ACORDO | PARCIAL
+  dataDistribuicao DateTime?
+  dataEncerramento DateTime?
+  causaRaiz     String?
+  setorOrigem   String?
+  tipoOrigem    String?
+  segredoJustica Boolean @default(false)
+  advogadoId    String?
+  escritorioId  String?
+  resumo        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  partes        JurProcessoParte[]
+  andamentos    JurAndamento[]
+  prazos        JurPrazo[]
+  audiencias    JurAudiencia[]
+  provisoes     JurProvisaoHist[]
+
+  @@unique([tenantId, numeroCnj])
+  @@index([tenantId, area, status])
+  @@index([tenantId, causaRaiz])
+  @@index([tenantId, risco])
+}
+
+model JurProcessoParte {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String
+  nome        String
+  documento   String?
+  tipo        String   @default("OUTRO")    // AUTOR | REU | TERCEIRO | TESTEMUNHA | ADVOGADO_CONTRARIO | PERITO | OUTRO
+  polo        String   @default("OUTRO")    // ATIVO | PASSIVO | OUTRO
+  observacao  String?
+  createdAt   DateTime @default(now())
+
+  processo    JurProcesso @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, processoId])
+}
+
+model JurAndamento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String
+  data        DateTime
+  tipo        String   @default("OUTRO")   // PETICAO | DECISAO | DESPACHO | SENTENCA | ACORDAO | AUDIENCIA | PUBLICACAO | RECURSO | OUTRO
+  descricao   String
+  registradoPorId String?
+  createdAt   DateTime @default(now())
+
+  processo    JurProcesso @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, processoId, data])
+}
+
+model JurPrazo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String
+  titulo      String
+  tipo        String   @default("OUTRO")   // CONTESTACAO | RECURSO | MANIFESTACAO | CUMPRIMENTO | PAGAMENTO | OUTRO
+  dataFatal   DateTime
+  fatal       Boolean  @default(true)
+  status      String   @default("ABERTO")  // ABERTO | CUMPRIDO | PERDIDO | CANCELADO
+  advogadoId  String?
+  responsavelUserId String?
+  cumpridoEm  DateTime?
+  observacao  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  processo    JurProcesso @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, dataFatal])
+  @@index([processoId])
+}
+
+model JurAudiencia {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String
+  tipo        String   @default("CONCILIACAO")  // CONCILIACAO | INSTRUCAO | JULGAMENTO | UNA | CUSTODIA | OUTRA
+  dataHora    DateTime
+  local       String?
+  modalidade  String   @default("PRESENCIAL")   // PRESENCIAL | VIRTUAL
+  prepostoNome String?
+  advogadoId  String?
+  status      String   @default("AGENDADA")     // AGENDADA | REALIZADA | ADIADA | CANCELADA
+  resultado   String?
+  observacao  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  processo    JurProcesso @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, dataHora])
+  @@index([processoId])
+}
+
+// Histórico de provisão/risco (alimenta o Financeiro).
+model JurProvisaoHist {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String
+  data        DateTime @default(now())
+  risco       String
+  valor       Float
+  valorAnterior Float?
+  motivo      String?
+  usuarioId   String?
+
+  processo    JurProcesso @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, processoId, data])
+}
+
+// ---------------------------------------------------------------- 5) prevenção (inteligência de processos sofridos)
+model JurPlanoPrevencao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  titulo      String
+  causaRaiz   String
+  setor       String?
+  descricao   String?
+  prioridade  String   @default("MEDIA")   // BAIXA | MEDIA | ALTA
+  responsavelUserId String?
+  responsavelNome String?
+  prazo       DateTime?
+  status      String   @default("PLANEJADO") // PLANEJADO | EM_ANDAMENTO | CONCLUIDO | CANCELADO
+  meta        String?
+  ocorrenciasBase Int?         // ocorrências da causa nos 12 meses anteriores à criação
+  concluidoEm DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  acoes       JurPlanoAcao[]
+
+  @@index([tenantId, causaRaiz])
+  @@index([tenantId, status])
+}
+
+model JurPlanoAcao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  planoId     String
+  descricao   String
+  responsavelNome String?
+  prazo       DateTime?
+  status      String   @default("PENDENTE")  // PENDENTE | EM_ANDAMENTO | CONCLUIDA | CANCELADA
+  concluidoEm DateTime?
+  createdAt   DateTime @default(now())
+
+  plano       JurPlanoPrevencao @relation(fields: [planoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, planoId])
+}
+
+// ---------------------------------------------------------------- 6) riscos e seguros
+model JurRisco {
+  id          String   @id @default(uuid())
+  tenantId    String
+  codigo      String
+  titulo      String
+  descricao   String?
+  categoria   String          // PATRIMONIAL | PESSOAL | RESPONSABILIDADE_CIVIL | TRABALHISTA | REGULATORIO | REPUTACIONAL | OPERACIONAL | CIBERNETICO | AMBIENTAL | FINANCEIRO
+  setor       String?
+  probabilidade Int           // 1..5
+  impacto     Int             // 1..5
+  score       Int
+  nivel       String          // BAIXO | MEDIO | ALTO | CRITICO
+  probabilidadeResidual Int?
+  impactoResidual Int?
+  controles   String?
+  planoTratamento String?
+  responsavelNome String?
+  responsavelUserId String?
+  seguroId    String?
+  status      String   @default("IDENTIFICADO") // IDENTIFICADO | EM_TRATAMENTO | MITIGADO | ACEITO | ENCERRADO
+  revisaoEm   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, nivel])
+  @@index([tenantId, categoria])
+}
+
+model JurSeguro {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tipo        String          // PATRIMONIAL | PESSOAL | RESPONSABILIDADE_CIVIL | DANOS_MORAIS | ACIDENTES_ALUNOS | VIDA_COLABORADORES | CIBERNETICO | EQUIPAMENTOS | OUTRO
+  apolice     String
+  seguradora  String
+  corretor    String?
+  coberturas  Json?           // [{descricao, limite, franquia}]
+  limiteTotal Float?
+  premio      Float
+  premioPeriodicidade String @default("ANUAL")  // MENSAL | ANUAL | UNICO
+  vigenciaInicio DateTime
+  vigenciaFim DateTime
+  bensSegurados String?
+  renovacaoAutomatica Boolean @default(false)
+  responsavelNome String?
+  status      String   @default("VIGENTE")   // VIGENTE | CANCELADO | RENOVADO | ENCERRADO
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sinistros   JurSinistro[]
+
+  @@unique([tenantId, apolice])
+  @@index([tenantId, status, vigenciaFim])
+}
+
+model JurSinistro {
+  id          String   @id @default(uuid())
+  tenantId    String
+  seguroId    String
+  dataOcorrencia DateTime
+  descricao   String
+  valorEstimado Float?
+  valorIndenizado Float?
+  protocoloSeguradora String?
+  comunicadoEm DateTime?
+  status      String   @default("COMUNICADO")  // COMUNICADO | EM_ANALISE | NEGADO | INDENIZADO | ENCERRADO
+  processoId  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  seguro      JurSeguro @relation(fields: [seguroId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, seguroId])
+}

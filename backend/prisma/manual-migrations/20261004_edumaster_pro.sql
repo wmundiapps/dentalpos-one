@@ -12005,3 +12005,667 @@ ALTER TABLE "TesExtratoItem" ADD CONSTRAINT "TesExtratoItem_extratoId_fkey" FORE
 
 
 -- ==== TES:END ====
+
+
+-- ==== JUR:BEGIN (módulo Jurídico, prefixo Jur - gerado por prisma migrate diff; somente CRIA) ====
+-- CreateTable
+CREATE TABLE "JurContador" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "valor" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "JurContador_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurAnexo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "refType" TEXT NOT NULL,
+    "refId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "url" TEXT,
+    "dataUrl" TEXT,
+    "mime" TEXT,
+    "tamanhoBytes" INTEGER,
+    "descricao" TEXT,
+    "enviadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "JurAnexo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurDocumento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "partes" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "vigenciaInicio" TIMESTAMP(3),
+    "vigenciaFim" TIMESTAMP(3),
+    "responsavelUserId" TEXT,
+    "responsavelNome" TEXT,
+    "confidencial" BOOLEAN NOT NULL DEFAULT false,
+    "tags" TEXT[],
+    "versaoAtual" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurDocumento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurDocumentoVersao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "documentoId" TEXT NOT NULL,
+    "versao" INTEGER NOT NULL,
+    "resumoAlteracoes" TEXT,
+    "conteudo" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'VIGENTE',
+    "vigenciaInicio" TIMESTAMP(3),
+    "vigenciaFim" TIMESTAMP(3),
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "JurDocumentoVersao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurContrato" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "objeto" TEXT NOT NULL,
+    "contraparteNome" TEXT NOT NULL,
+    "contraparteDoc" TEXT,
+    "valor" DOUBLE PRECISION,
+    "periodicidade" TEXT,
+    "indiceReajuste" TEXT,
+    "reajusteMes" INTEGER,
+    "dataAssinatura" TIMESTAMP(3),
+    "vigenciaInicio" TIMESTAMP(3) NOT NULL,
+    "vigenciaFim" TIMESTAMP(3),
+    "renovacaoAutomatica" BOOLEAN NOT NULL DEFAULT false,
+    "avisoPrevioDias" INTEGER,
+    "multaRescisoria" TEXT,
+    "garantias" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "rescindidoEm" TIMESTAMP(3),
+    "motivoRescisao" TEXT,
+    "responsavelUserId" TEXT,
+    "responsavelNome" TEXT,
+    "documentoId" TEXT,
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurContrato_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurContratoAditivo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "contratoId" TEXT NOT NULL,
+    "numero" INTEGER NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "novoValor" DOUBLE PRECISION,
+    "novaVigenciaFim" TIMESTAMP(3),
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "JurContratoAditivo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurImovel" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "apelido" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'PREDIO',
+    "propriedade" TEXT NOT NULL DEFAULT 'ALUGADO',
+    "logradouro" TEXT,
+    "numero" TEXT,
+    "bairro" TEXT,
+    "cidade" TEXT,
+    "uf" TEXT,
+    "cep" TEXT,
+    "matricula" TEXT,
+    "inscricaoIptu" TEXT,
+    "areaM2" DOUBLE PRECISION,
+    "spaceId" TEXT,
+    "observacoes" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurImovel_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurLocacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "imovelId" TEXT NOT NULL,
+    "natureza" TEXT NOT NULL DEFAULT 'LOCACAO_PAGA',
+    "locadorNome" TEXT NOT NULL,
+    "locadorDoc" TEXT,
+    "locatarioNome" TEXT NOT NULL,
+    "locatarioDoc" TEXT,
+    "valorMensal" DOUBLE PRECISION NOT NULL,
+    "diaVencimento" INTEGER NOT NULL DEFAULT 10,
+    "indiceReajuste" TEXT NOT NULL DEFAULT 'IGPM',
+    "percentualFixo" DOUBLE PRECISION,
+    "mesReajuste" INTEGER,
+    "ultimoReajusteEm" TIMESTAMP(3),
+    "vigenciaInicio" TIMESTAMP(3) NOT NULL,
+    "vigenciaFim" TIMESTAMP(3) NOT NULL,
+    "garantiaTipo" TEXT NOT NULL DEFAULT 'NENHUMA',
+    "garantiaValor" DOUBLE PRECISION,
+    "garantiaDetalhe" TEXT,
+    "multaRescisoria" TEXT,
+    "condicoes" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "documentoId" TEXT,
+    "responsavelNome" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurLocacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurParcela" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "locacaoId" TEXT NOT NULL,
+    "competencia" TEXT NOT NULL,
+    "vencimento" TIMESTAMP(3) NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "pagoEm" TIMESTAMP(3),
+    "valorPago" DOUBLE PRECISION,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurParcela_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurContratoPolo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "poloId" TEXT NOT NULL,
+    "gestorNome" TEXT NOT NULL,
+    "gestorDoc" TEXT,
+    "gestorEmail" TEXT,
+    "gestorTelefone" TEXT,
+    "objeto" TEXT,
+    "condicoes" TEXT,
+    "patrimonioCedido" JSONB,
+    "direitosInstituicao" TEXT,
+    "deveresInstituicao" TEXT,
+    "direitosGestor" TEXT,
+    "deveresGestor" TEXT,
+    "comissionamentoTipo" TEXT NOT NULL DEFAULT 'PERCENTUAL_MENSALIDADE',
+    "comissionamentoPercentual" DOUBLE PRECISION,
+    "comissionamentoValor" DOUBLE PRECISION,
+    "comissionamentoObs" TEXT,
+    "vigenciaInicio" TIMESTAMP(3) NOT NULL,
+    "vigenciaFim" TIMESTAMP(3) NOT NULL,
+    "prazoMeses" INTEGER,
+    "renovacaoAutomatica" BOOLEAN NOT NULL DEFAULT false,
+    "avisoPrevioDias" INTEGER,
+    "rescisaoCondicoes" TEXT,
+    "multaRescisoria" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "rescindidoEm" TIMESTAMP(3),
+    "motivoRescisao" TEXT,
+    "documentoId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurContratoPolo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurEscritorio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "cnpj" TEXT,
+    "contatoNome" TEXT,
+    "email" TEXT,
+    "telefone" TEXT,
+    "honorarios" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurEscritorio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurAdvogado" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "oab" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'EXTERNO',
+    "escritorioId" TEXT,
+    "email" TEXT,
+    "telefone" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurAdvogado_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurProcesso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numeroCnj" TEXT NOT NULL,
+    "area" TEXT NOT NULL,
+    "classe" TEXT,
+    "assunto" TEXT NOT NULL,
+    "vara" TEXT,
+    "comarca" TEXT,
+    "tribunal" TEXT,
+    "uf" TEXT,
+    "posicao" TEXT NOT NULL DEFAULT 'REU',
+    "sofrido" BOOLEAN NOT NULL DEFAULT true,
+    "valorCausa" DOUBLE PRECISION,
+    "valorCondenacao" DOUBLE PRECISION,
+    "risco" TEXT NOT NULL DEFAULT 'POSSIVEL',
+    "provisaoValor" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "provisaoAtualizadaEm" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'EM_ANDAMENTO',
+    "resultado" TEXT,
+    "dataDistribuicao" TIMESTAMP(3),
+    "dataEncerramento" TIMESTAMP(3),
+    "causaRaiz" TEXT,
+    "setorOrigem" TEXT,
+    "tipoOrigem" TEXT,
+    "segredoJustica" BOOLEAN NOT NULL DEFAULT false,
+    "advogadoId" TEXT,
+    "escritorioId" TEXT,
+    "resumo" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurProcesso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurProcessoParte" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "documento" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'OUTRO',
+    "polo" TEXT NOT NULL DEFAULT 'OUTRO',
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "JurProcessoParte_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurAndamento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'OUTRO',
+    "descricao" TEXT NOT NULL,
+    "registradoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "JurAndamento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurPrazo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'OUTRO',
+    "dataFatal" TIMESTAMP(3) NOT NULL,
+    "fatal" BOOLEAN NOT NULL DEFAULT true,
+    "status" TEXT NOT NULL DEFAULT 'ABERTO',
+    "advogadoId" TEXT,
+    "responsavelUserId" TEXT,
+    "cumpridoEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurPrazo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurAudiencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'CONCILIACAO',
+    "dataHora" TIMESTAMP(3) NOT NULL,
+    "local" TEXT,
+    "modalidade" TEXT NOT NULL DEFAULT 'PRESENCIAL',
+    "prepostoNome" TEXT,
+    "advogadoId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'AGENDADA',
+    "resultado" TEXT,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurAudiencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurProvisaoHist" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "risco" TEXT NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "valorAnterior" DOUBLE PRECISION,
+    "motivo" TEXT,
+    "usuarioId" TEXT,
+
+    CONSTRAINT "JurProvisaoHist_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurPlanoPrevencao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "causaRaiz" TEXT NOT NULL,
+    "setor" TEXT,
+    "descricao" TEXT,
+    "prioridade" TEXT NOT NULL DEFAULT 'MEDIA',
+    "responsavelUserId" TEXT,
+    "responsavelNome" TEXT,
+    "prazo" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'PLANEJADO',
+    "meta" TEXT,
+    "ocorrenciasBase" INTEGER,
+    "concluidoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurPlanoPrevencao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurPlanoAcao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "planoId" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "responsavelNome" TEXT,
+    "prazo" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "concluidoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "JurPlanoAcao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurRisco" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "categoria" TEXT NOT NULL,
+    "setor" TEXT,
+    "probabilidade" INTEGER NOT NULL,
+    "impacto" INTEGER NOT NULL,
+    "score" INTEGER NOT NULL,
+    "nivel" TEXT NOT NULL,
+    "probabilidadeResidual" INTEGER,
+    "impactoResidual" INTEGER,
+    "controles" TEXT,
+    "planoTratamento" TEXT,
+    "responsavelNome" TEXT,
+    "responsavelUserId" TEXT,
+    "seguroId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'IDENTIFICADO',
+    "revisaoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurRisco_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurSeguro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "apolice" TEXT NOT NULL,
+    "seguradora" TEXT NOT NULL,
+    "corretor" TEXT,
+    "coberturas" JSONB,
+    "limiteTotal" DOUBLE PRECISION,
+    "premio" DOUBLE PRECISION NOT NULL,
+    "premioPeriodicidade" TEXT NOT NULL DEFAULT 'ANUAL',
+    "vigenciaInicio" TIMESTAMP(3) NOT NULL,
+    "vigenciaFim" TIMESTAMP(3) NOT NULL,
+    "bensSegurados" TEXT,
+    "renovacaoAutomatica" BOOLEAN NOT NULL DEFAULT false,
+    "responsavelNome" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'VIGENTE',
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurSeguro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "JurSinistro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "seguroId" TEXT NOT NULL,
+    "dataOcorrencia" TIMESTAMP(3) NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "valorEstimado" DOUBLE PRECISION,
+    "valorIndenizado" DOUBLE PRECISION,
+    "protocoloSeguradora" TEXT,
+    "comunicadoEm" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'COMUNICADO',
+    "processoId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "JurSinistro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurContador_tenantId_chave_key" ON "JurContador"("tenantId", "chave");
+
+-- CreateIndex
+CREATE INDEX "JurAnexo_tenantId_refType_refId_idx" ON "JurAnexo"("tenantId", "refType", "refId");
+
+-- CreateIndex
+CREATE INDEX "JurDocumento_tenantId_categoria_idx" ON "JurDocumento"("tenantId", "categoria");
+
+-- CreateIndex
+CREATE INDEX "JurDocumento_tenantId_status_vigenciaFim_idx" ON "JurDocumento"("tenantId", "status", "vigenciaFim");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurDocumento_tenantId_codigo_key" ON "JurDocumento"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX "JurDocumentoVersao_tenantId_idx" ON "JurDocumentoVersao"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurDocumentoVersao_documentoId_versao_key" ON "JurDocumentoVersao"("documentoId", "versao");
+
+-- CreateIndex
+CREATE INDEX "JurContrato_tenantId_tipo_idx" ON "JurContrato"("tenantId", "tipo");
+
+-- CreateIndex
+CREATE INDEX "JurContrato_tenantId_status_vigenciaFim_idx" ON "JurContrato"("tenantId", "status", "vigenciaFim");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurContrato_tenantId_codigo_key" ON "JurContrato"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX "JurContratoAditivo_tenantId_idx" ON "JurContratoAditivo"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurContratoAditivo_contratoId_numero_key" ON "JurContratoAditivo"("contratoId", "numero");
+
+-- CreateIndex
+CREATE INDEX "JurImovel_tenantId_propriedade_idx" ON "JurImovel"("tenantId", "propriedade");
+
+-- CreateIndex
+CREATE INDEX "JurLocacao_tenantId_status_vigenciaFim_idx" ON "JurLocacao"("tenantId", "status", "vigenciaFim");
+
+-- CreateIndex
+CREATE INDEX "JurLocacao_imovelId_idx" ON "JurLocacao"("imovelId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurLocacao_tenantId_codigo_key" ON "JurLocacao"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX "JurParcela_tenantId_status_vencimento_idx" ON "JurParcela"("tenantId", "status", "vencimento");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurParcela_locacaoId_competencia_key" ON "JurParcela"("locacaoId", "competencia");
+
+-- CreateIndex
+CREATE INDEX "JurContratoPolo_tenantId_poloId_idx" ON "JurContratoPolo"("tenantId", "poloId");
+
+-- CreateIndex
+CREATE INDEX "JurContratoPolo_tenantId_status_vigenciaFim_idx" ON "JurContratoPolo"("tenantId", "status", "vigenciaFim");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurContratoPolo_tenantId_codigo_key" ON "JurContratoPolo"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX "JurEscritorio_tenantId_idx" ON "JurEscritorio"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "JurAdvogado_tenantId_idx" ON "JurAdvogado"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "JurProcesso_tenantId_area_status_idx" ON "JurProcesso"("tenantId", "area", "status");
+
+-- CreateIndex
+CREATE INDEX "JurProcesso_tenantId_causaRaiz_idx" ON "JurProcesso"("tenantId", "causaRaiz");
+
+-- CreateIndex
+CREATE INDEX "JurProcesso_tenantId_risco_idx" ON "JurProcesso"("tenantId", "risco");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurProcesso_tenantId_numeroCnj_key" ON "JurProcesso"("tenantId", "numeroCnj");
+
+-- CreateIndex
+CREATE INDEX "JurProcessoParte_tenantId_processoId_idx" ON "JurProcessoParte"("tenantId", "processoId");
+
+-- CreateIndex
+CREATE INDEX "JurAndamento_tenantId_processoId_data_idx" ON "JurAndamento"("tenantId", "processoId", "data");
+
+-- CreateIndex
+CREATE INDEX "JurPrazo_tenantId_status_dataFatal_idx" ON "JurPrazo"("tenantId", "status", "dataFatal");
+
+-- CreateIndex
+CREATE INDEX "JurPrazo_processoId_idx" ON "JurPrazo"("processoId");
+
+-- CreateIndex
+CREATE INDEX "JurAudiencia_tenantId_status_dataHora_idx" ON "JurAudiencia"("tenantId", "status", "dataHora");
+
+-- CreateIndex
+CREATE INDEX "JurAudiencia_processoId_idx" ON "JurAudiencia"("processoId");
+
+-- CreateIndex
+CREATE INDEX "JurProvisaoHist_tenantId_processoId_data_idx" ON "JurProvisaoHist"("tenantId", "processoId", "data");
+
+-- CreateIndex
+CREATE INDEX "JurPlanoPrevencao_tenantId_causaRaiz_idx" ON "JurPlanoPrevencao"("tenantId", "causaRaiz");
+
+-- CreateIndex
+CREATE INDEX "JurPlanoPrevencao_tenantId_status_idx" ON "JurPlanoPrevencao"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "JurPlanoAcao_tenantId_planoId_idx" ON "JurPlanoAcao"("tenantId", "planoId");
+
+-- CreateIndex
+CREATE INDEX "JurRisco_tenantId_nivel_idx" ON "JurRisco"("tenantId", "nivel");
+
+-- CreateIndex
+CREATE INDEX "JurRisco_tenantId_categoria_idx" ON "JurRisco"("tenantId", "categoria");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurRisco_tenantId_codigo_key" ON "JurRisco"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX "JurSeguro_tenantId_status_vigenciaFim_idx" ON "JurSeguro"("tenantId", "status", "vigenciaFim");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "JurSeguro_tenantId_apolice_key" ON "JurSeguro"("tenantId", "apolice");
+
+-- CreateIndex
+CREATE INDEX "JurSinistro_tenantId_seguroId_idx" ON "JurSinistro"("tenantId", "seguroId");
+
+-- AddForeignKey
+ALTER TABLE "JurDocumentoVersao" ADD CONSTRAINT "JurDocumentoVersao_documentoId_fkey" FOREIGN KEY ("documentoId") REFERENCES "JurDocumento"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurContratoAditivo" ADD CONSTRAINT "JurContratoAditivo_contratoId_fkey" FOREIGN KEY ("contratoId") REFERENCES "JurContrato"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurLocacao" ADD CONSTRAINT "JurLocacao_imovelId_fkey" FOREIGN KEY ("imovelId") REFERENCES "JurImovel"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurParcela" ADD CONSTRAINT "JurParcela_locacaoId_fkey" FOREIGN KEY ("locacaoId") REFERENCES "JurLocacao"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurAdvogado" ADD CONSTRAINT "JurAdvogado_escritorioId_fkey" FOREIGN KEY ("escritorioId") REFERENCES "JurEscritorio"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurProcessoParte" ADD CONSTRAINT "JurProcessoParte_processoId_fkey" FOREIGN KEY ("processoId") REFERENCES "JurProcesso"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurAndamento" ADD CONSTRAINT "JurAndamento_processoId_fkey" FOREIGN KEY ("processoId") REFERENCES "JurProcesso"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurPrazo" ADD CONSTRAINT "JurPrazo_processoId_fkey" FOREIGN KEY ("processoId") REFERENCES "JurProcesso"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurAudiencia" ADD CONSTRAINT "JurAudiencia_processoId_fkey" FOREIGN KEY ("processoId") REFERENCES "JurProcesso"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurProvisaoHist" ADD CONSTRAINT "JurProvisaoHist_processoId_fkey" FOREIGN KEY ("processoId") REFERENCES "JurProcesso"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurPlanoAcao" ADD CONSTRAINT "JurPlanoAcao_planoId_fkey" FOREIGN KEY ("planoId") REFERENCES "JurPlanoPrevencao"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "JurSinistro" ADD CONSTRAINT "JurSinistro_seguroId_fkey" FOREIGN KEY ("seguroId") REFERENCES "JurSeguro"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+-- ==== JUR:END ====
