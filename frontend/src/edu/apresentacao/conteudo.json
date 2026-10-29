@@ -105,7 +105,8 @@
       "Plataformas web e sistemas de gestão em nuvem",
       "Inteligência artificial aplicada ao atendimento e à gestão",
       "Segurança, privacidade e conformidade com a LGPD desde o projeto"
-    ]
+    ],
+    "logo": "/wmundi-logo.svg"
   },
   "curriculo": {
     "nome": "",
@@ -115,8 +116,11 @@
   },
   "contato": {
     "nome": "",
-    "email": "",
-    "telefone": ""
+    "email": "info@wmundi.com",
+    "telefone": "(44) 99946-6451",
+    "site": "www.wmundi.com",
+    "endereco": "Av. XV de Novembro, 255 · Maringá – PR",
+    "whatsapp": "https://wa.me/5544999466451"
   },
   "demo": {
     "instituicao": "SUA INSTITUIÇÃO"

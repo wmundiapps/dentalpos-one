@@ -6,6 +6,7 @@ import {
 
 import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
+import { EDU_ONLY } from "../config/appMode";
 
 export default function Footer() {
   return (
@@ -39,6 +40,15 @@ export default function Footer() {
           {appConfig.developer}
         </span>
       </Typography>
+
+      {EDU_ONLY && (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap", justifyContent: "center" }}>
+          <Box component="img" src="/wmundi-logo.svg" alt="WMundi Technologies" sx={{ height: 24 }} />
+          <Typography variant="caption" color="text.secondary">
+            www.wmundi.com · info@wmundi.com · WhatsApp (44) 99946-6451 · Av. XV de Novembro, 255 · Maringá – PR
+          </Typography>
+        </Box>
+      )}
 
       <Chip
         size="small"

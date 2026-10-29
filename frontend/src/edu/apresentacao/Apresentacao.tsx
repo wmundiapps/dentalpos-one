@@ -28,7 +28,8 @@ export default function Apresentacao() {
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Paper sx={{ p: 3, borderRadius: 4, mb: 3 }}>
           <Typography variant="overline" color="text.secondary">Desenvolvido por</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>{wmundi.nome}</Typography>
+          <Box component="img" src="/wmundi-logo.svg" alt="WMundi Technologies" sx={{ height: 40, bgcolor: "#fff", borderRadius: 1.5, px: 1.5, py: 0.5, mb: 1 }} />
+        <Typography variant="h5" sx={{ fontWeight: 800 }}>{wmundi.nome}</Typography>
           <Typography sx={{ mt: 1 }}>{wmundi.resumo}</Typography>
           <Box component="ul" sx={{ pl: 2.5, mt: 1.5, mb: 0 }}>{wmundi.itens.map((i) => <li key={i}><Typography variant="body2">{i}</Typography></li>)}</Box>
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>
@@ -65,7 +66,7 @@ export default function Apresentacao() {
         {temContato ? (
           <Paper sx={{ p: 3, borderRadius: 4 }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Contato</Typography>
-            <Typography variant="body2">{[contato.nome, contato.email, contato.telefone].filter(Boolean).join(" · ")}</Typography>
+            <Typography variant="body2">{[contato.site, contato.email, `WhatsApp ${contato.telefone}`, contato.endereco].filter(Boolean).join(" · ")}</Typography>
           </Paper>
         ) : null}
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 3, textAlign: "center" }}>

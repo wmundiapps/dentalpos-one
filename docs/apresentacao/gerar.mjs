@@ -12,6 +12,9 @@ const esc = (s) => String(s ?? '').replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<'
 const lista = (itens) => `<ul>${itens.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>`
 const temCv = Boolean(c.curriculo.nome || c.curriculo.resumo || c.curriculo.itens.length)
 const temContato = Boolean(c.contato.email || c.contato.telefone)
+const logoSvg = readFileSync(join(raiz, 'frontend/public/wmundi-logo.svg'), 'utf8')
+const logo = (h = 30) => `<span class="wl" style="height:${h}px">${logoSvg}</span>`
+const contatoLinha = [c.contato.site, c.contato.email, 'WhatsApp ' + c.contato.telefone, c.contato.endereco].filter(Boolean).join(' · ')
 
 const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(c.produto.completo)}</title>
 <style>
@@ -36,7 +39,8 @@ h2.t { font-size: 24px; margin: 0 0 14px; color: #0b2a5b }
 ul { margin: 6px 0 0; padding-left: 18px }
 li { font-size: 12.5px; line-height: 1.45; margin: 3px 0 }
 .dest { border-left: 6px solid #0F5FDB; background: #f1f6ff; border-radius: 10px; padding: 14px 18px; margin-bottom: 14px }
-.rod { position: absolute; left: 16mm; right: 16mm; bottom: 10mm; font-size: 10px; color: #64748b; display: flex; justify-content: space-between }
+.rod { position: absolute; left: 16mm; right: 16mm; bottom: 8mm; font-size: 8.5px; gap: 8px; align-items: center; color: #64748b; display: flex; justify-content: space-between }
+.wl { display: inline-block } .wl svg { height: 100%; width: auto } .capa .wl { background: #fff; border-radius: 10px; padding: 6px 12px }
 .cv h3 { margin: 0 0 4px }
 </style></head><body>
 
@@ -45,7 +49,7 @@ li { font-size: 12.5px; line-height: 1.45; margin: 3px 0 }
   <h2>${esc(c.produto.tagline)}</h2>
   <p>${esc(c.produto.subtitulo)}</p>
   <div class="box">
-    <small>Desenvolvido por</small>
+    <small>Desenvolvido por</small><div style="margin:8px 0">${logo(46)}</div>
     <h3>${esc(c.wmundi.nome)}</h3>
     <p style="margin:0;font-size:13.5px">${esc(c.wmundi.resumo)}</p>
     <div class="tags"><span>Apple · iOS</span><span>Android</span><span>Web e nuvem</span><span>IA aplicada</span></div>
@@ -59,16 +63,16 @@ li { font-size: 12.5px; line-height: 1.45; margin: 3px 0 }
   ${temCv ? `<div class="card cv" style="margin-top:14px"><h3>${esc(c.curriculo.nome)}${c.curriculo.cargo ? ' · ' + esc(c.curriculo.cargo) : ''}</h3>${c.curriculo.resumo ? `<p style="margin:0;font-size:13px;line-height:1.5">${esc(c.curriculo.resumo)}</p>` : ''}${c.curriculo.itens.length ? lista(c.curriculo.itens) : ''}</div>` : ''}
   <h2 class="t" style="margin-top:22px">O que o ${esc(c.produto.nome)} entrega</h2>
   <div class="grid">${c.pilares.slice(0, 4).map((p) => `<div class="card"><h3>${esc(p.titulo)}</h3>${lista(p.itens)}</div>`).join('')}</div>
-  <div class="rod"><span>${esc(c.produto.completo)}</span><span>${esc(c.wmundi.nome)}</span></div>
+  <div class="rod"><span>${esc(c.produto.completo)}</span><span>${esc(contatoLinha)}</span>${logo(22)}</div>
 </section>
 
 <section class="pag">
   <div class="grid">${c.pilares.slice(4).map((p) => `<div class="card"><h3>${esc(p.titulo)}</h3>${lista(p.itens)}</div>`).join('')}</div>
   <div class="dest" style="margin-top:16px"><h3 style="margin:0 0 6px;color:#0b2a5b">🔒 ${esc(c.seguranca.titulo)}</h3>${lista(c.seguranca.itens)}</div>
   <div class="card"><h3>${esc(c.lgpd.titulo)}</h3>${lista(c.lgpd.itens)}</div>
-  ${temContato ? `<div class="card" style="margin-top:14px"><h3>Contato</h3><p style="margin:0;font-size:13px">${esc([c.contato.nome, c.contato.email, c.contato.telefone].filter(Boolean).join(' · '))}</p></div>` : ''}
+  <div class="card" style="margin-top:14px"><h3>Contato · ${esc(c.wmundi.nome)}</h3><p style="margin:0;font-size:13px;line-height:1.6">${esc(c.contato.site)}<br>${esc(c.contato.email)}<br>WhatsApp ${esc(c.contato.telefone)}<br>${esc(c.contato.endereco)}</p></div>
   <p style="font-size:11px;color:#64748b;margin-top:14px">Ambiente de demonstração com dados fictícios. Os textos legais (política de privacidade, termos e contrato de operador) são modelos a validar com assessoria jurídica da instituição.</p>
-  <div class="rod"><span>${esc(c.produto.completo)}</span><span>${esc(c.wmundi.nome)}</span></div>
+  <div class="rod"><span>${esc(c.produto.completo)}</span><span>${esc(contatoLinha)}</span>${logo(22)}</div>
 </section>
 <section class="pag">
   <h2 class="t">${esc(c.proposta.titulo)}</h2>
@@ -78,8 +82,8 @@ li { font-size: 12.5px; line-height: 1.45; margin: 3px 0 }
   </div>
   <div class="dest" style="margin-top:14px"><h3 style="margin:0 0 6px;color:#0b2a5b">Investimento após o período de teste</h3><p style="font-size:26px;font-weight:800;margin:4px 0">${esc(c.proposta.valorFixo)} <span style="font-size:16px;font-weight:600">+</span> ${esc(c.proposta.valorAluno)}</p></div>
   <div class="card"><h3>Condições</h3>${lista(c.proposta.itens)}<p style="font-size:12.5px;margin:10px 0 0"><b>${esc(c.proposta.terceiros)}</b></p></div>
-  ${temContato ? `<div class="card" style="margin-top:14px"><h3>Contato</h3><p style="margin:0;font-size:13px">${esc([c.contato.nome, c.contato.email, c.contato.telefone].filter(Boolean).join(' · '))}</p></div>` : ''}
-  <div class="rod"><span>${esc(c.produto.completo)}</span><span>${esc(c.wmundi.nome)}</span></div>
+  <div class="card" style="margin-top:14px"><h3>Contato · ${esc(c.wmundi.nome)}</h3><p style="margin:0;font-size:13px;line-height:1.6">${esc(c.contato.site)}<br>${esc(c.contato.email)}<br>WhatsApp ${esc(c.contato.telefone)}<br>${esc(c.contato.endereco)}</p></div>
+  <div class="rod"><span>${esc(c.produto.completo)}</span><span>${esc(contatoLinha)}</span>${logo(22)}</div>
 </section>
 </body></html>`
 

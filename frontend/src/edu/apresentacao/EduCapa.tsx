@@ -18,6 +18,7 @@ export default function EduCapa() {
 
       <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)", mb: 2.5 }}>
         <Typography variant="overline" sx={{ opacity: 0.8, letterSpacing: 1.2 }}>Desenvolvido por</Typography>
+        <Box component="img" src="/wmundi-logo.svg" alt="WMundi Technologies" sx={{ height: 40, bgcolor: "#fff", borderRadius: 1.5, px: 1.5, py: 0.5, mb: 1 }} />
         <Typography variant="h6" sx={{ fontWeight: 800 }}>{wmundi.nome}</Typography>
         <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>{wmundi.resumo}</Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>
