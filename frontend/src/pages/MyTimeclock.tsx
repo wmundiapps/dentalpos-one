@@ -98,7 +98,7 @@ export default function MyTimeclock() {
 
   if (today && !today.linked) {
     return <Box><PageHeader title="Meu ponto" description="Registre sua entrada e saída e envie justificativas." />
-      <Alert severity="warning">Seu e-mail de login ainda não está cadastrado no RH. Peça ao RH para cadastrar você como colaborador com o mesmo e-mail que usa para entrar no sistema.</Alert></Box>;
+      <Alert severity="info">Esta tela é para quem tem usuário próprio no sistema. Na clínica, o ponto é batido no celular da clínica (CPF + rosto). Para consultar o seu ponto, abra <b>app.completodonto.com.br/colaborador</b> e entre com o seu CPF e a senha criada pelo RH.</Alert></Box>;
   }
 
   const t = month?.totals;
