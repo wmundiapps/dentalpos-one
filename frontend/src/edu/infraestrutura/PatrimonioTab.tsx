@@ -6,6 +6,8 @@ import EduResourcePage, { StatusChip } from "../EduResourcePage";
 import { eduApi } from "../../services/EduApi";
 import ListTable from "./ListTable";
 import InventarioPanel from "./InventarioPanel";
+import GaleriaFotos from "./GaleriaFotos";
+import { useDepartamentos, usePessoas } from "./cppKit";
 import { Async, type Field, FormDialog, ProgressBar, Stat, StatGrid, SubNav, Tag, brl, fmtDate, fmtDateTime, label, nameOf, openHtml, useApi, useSpaces, useToast } from "./kit";
 
 const ESTADOS = ["NOVO", "BOM", "REGULAR", "RUIM", "INSERVIVEL"];
@@ -73,7 +75,10 @@ export default function PatrimonioTab() {
   const [key, setKey] = useState(0);
   const [form, setForm] = useState<{ kind: "novo" | "editar" | "transferir" | "estado" | "baixar"; row?: any } | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
+  const [fotos, setFotos] = useState<any | null>(null);
   const spaces = useSpaces();
+  const deps = useDepartamentos();
+  const pessoas = usePessoas();
   const cats = useApi<any>("/infraestrutura/categorias-bem?pageSize=200");
   const toast = useToast();
   const catOpts = (cats.data?.items || []).map((c: any) => ({ value: c.id, label: c.nome }));
@@ -89,7 +94,9 @@ export default function PatrimonioTab() {
     { key: "vidaUtilMeses", label: "Vida útil (meses)", type: "number", helper: "Em branco: usa a da categoria" },
     { key: "valorResidual", label: "Valor residual (R$)", type: "number" },
     ...(novo ? [
-      { key: "spaceId", label: "Local (espaço)", type: "select", options: spaces } as Field,
+      { key: "spaceId", label: "Local (prédio/sala)", type: "select", options: spaces } as Field,
+      { key: "departamentoId", label: "Departamento", type: "select", options: deps } as Field,
+      { key: "responsavelUserId", label: "Responsável", type: "select", options: pessoas } as Field,
       { key: "estado", label: "Estado", type: "select", options: ESTADOS, def: "NOVO" } as Field,
     ] : []),
     { key: "criticidade", label: "Criticidade", type: "select", options: CRITICIDADES, def: "NORMAL" },
@@ -111,7 +118,7 @@ export default function PatrimonioTab() {
   const fieldsFor = (): Field[] => {
     switch (form?.kind) {
       case "transferir": return [
-        { key: "spaceId", label: "Novo local", type: "select", options: spaces }, { key: "responsavelUserId", label: "Novo responsável (ID do usuário)" },
+        { key: "spaceId", label: "Novo local", type: "select", options: spaces }, { key: "departamentoId", label: "Novo departamento", type: "select", options: deps }, { key: "responsavelUserId", label: "Novo responsável", type: "select", options: pessoas },
         { key: "motivo", label: "Motivo", required: true, full: true }, { key: "documento", label: "Documento (termo/ofício)" }];
       case "estado": return [{ key: "estado", label: "Novo estado", type: "select", options: ESTADOS, required: true }, { key: "motivo", label: "Motivo", full: true }];
       case "baixar": return [{ key: "motivo", label: "Motivo da baixa", required: true, full: true, type: "textarea" }, { key: "documento", label: "Documento" }, { key: "data", label: "Data da baixa", type: "date" }];
@@ -139,6 +146,8 @@ export default function PatrimonioTab() {
             { key: "tombamento", label: "Tombamento" }, { key: "descricao", label: "Descrição" },
             { key: "categoria", label: "Categoria", render: (r) => r.categoria?.nome || "—" },
             { key: "spaceId", label: "Local", render: (r) => nameOf(spaces, r.spaceId) },
+            { key: "departamentoId", label: "Departamento", render: (r) => nameOf(deps, r.departamentoId) },
+            { key: "responsavelUserId", label: "Responsável", render: (r) => nameOf(pessoas, r.responsavelUserId).replace(/ \(.*\)$/, "") },
             { key: "estado", label: "Estado", render: (r) => <Tag text={label(r.estado)} tone={estadoTone(r.estado)} /> },
             { key: "status", label: "Situação", render: (r) => <StatusChip value={r.status} /> },
             { key: "valorAquisicao", label: "Aquisição", align: "right", render: (r) => brl(r.valorAquisicao) },
@@ -147,6 +156,7 @@ export default function PatrimonioTab() {
           actions={(r) => (
             <>
               <Button size="small" onClick={() => setDetail(r.id)}>Ficha</Button>
+              <Button size="small" onClick={() => setFotos(r)}>Fotos</Button>
               {r.status !== "BAIXADO" && <Button size="small" onClick={() => setForm({ kind: "editar", row: r })}>Editar</Button>}
               {r.status !== "BAIXADO" && <Button size="small" onClick={() => setForm({ kind: "transferir", row: r })}>Transferir</Button>}
               {r.status !== "BAIXADO" && <Button size="small" onClick={() => setForm({ kind: "estado", row: r })}>Estado</Button>}
@@ -168,6 +178,7 @@ export default function PatrimonioTab() {
       )}
       <FormDialog open={!!form} title={form ? titleFor[form.kind] : ""} fields={fieldsFor()} initial={form?.kind === "editar" ? form.row : null} onClose={() => setForm(null)} onSubmit={submit} />
       {detail && <BemDetalhe id={detail} onClose={() => setDetail(null)} />}
+      {fotos && <GaleriaFotos bemId={fotos.id} titulo={`${fotos.tombamento} — ${fotos.descricao}`} onClose={() => setFotos(null)} />}
       {toast.node}
     </Box>
   );

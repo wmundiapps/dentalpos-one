@@ -19,10 +19,19 @@ import MelhoriasTab from "../../edu/infraestrutura/MelhoriasTab";
 import PainelTab from "../../edu/infraestrutura/PainelTab";
 import PatioTab from "../../edu/infraestrutura/PatioTab";
 import PatrimonioTab from "../../edu/infraestrutura/PatrimonioTab";
+import EtiquetasTab from "../../edu/infraestrutura/EtiquetasTab";
+import TransferenciasTab from "../../edu/infraestrutura/TransferenciasTab";
+import InventarioQrTab from "../../edu/infraestrutura/InventarioQrTab";
+import LabelIcon from "@mui/icons-material/QrCode2";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
 
 const TABS: Array<{ key: string; label: string; icon: ReactElement; render: () => ReactNode }> = [
   { key: "painel", label: "Painel", icon: <DashboardIcon />, render: () => <PainelTab /> },
   { key: "patrimonio", label: "Patrimônio", icon: <Inventory2Icon />, render: () => <PatrimonioTab /> },
+  { key: "etiquetas", label: "Etiquetas", icon: <LabelIcon />, render: () => <EtiquetasTab /> },
+  { key: "transferencias", label: "Transferências", icon: <SwapHorizIcon />, render: () => <TransferenciasTab /> },
+  { key: "inventarioqr", label: "Inventário (QR)", icon: <FactCheckIcon />, render: () => <InventarioQrTab /> },
   { key: "manutencao", label: "Manutenção e OS", icon: <BuildIcon />, render: () => <ManutencaoTab /> },
   { key: "chamados", label: "Chamados", icon: <ConfirmationNumberIcon />, render: () => <ChamadosTab /> },
   { key: "melhorias", label: "Melhorias 5W2H", icon: <EngineeringIcon />, render: () => <MelhoriasTab /> },
