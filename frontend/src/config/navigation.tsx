@@ -34,6 +34,8 @@ import GppGoodIcon from "@mui/icons-material/GppGood";
 import LocationCityIcon from "@mui/icons-material/LocationCity";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
+import AgricultureIcon from "@mui/icons-material/Agriculture";
+import PetsIcon from "@mui/icons-material/Pets";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
@@ -241,6 +243,20 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Presença e acesso","/edu/presenca",<HowToRegIcon/>),
       item("Pesquisa e revista","/edu/pesquisa",<BiotechIcon/>),
       item("Portal do aluno","/edu/portal-aluno",<SchoolIcon/>),
+    ]
+  },
+  {
+    label:"EduMaster · Campos de prática",
+    icon:tile(<LocalHospitalIcon/>,"#047857"),
+    items:[
+      item("Painel de campos de prática","/edu/campos-pratica?secao=painel",<SpaceDashboardIcon/>),
+      item("Estágios","/edu/campos-pratica?secao=estagios",<WorkIcon/>),
+      item("Convênios e vagas","/edu/campos-pratica?secao=convenios",<HandshakeIcon/>),
+      item("Agenda das clínicas-escola","/edu/campos-pratica?secao=agenda",<EventIcon/>),
+      item("Pacientes e LGPD","/edu/campos-pratica?secao=pacientes",<PrivacyTipIcon/>),
+      item("Escalas e unidades","/edu/campos-pratica?secao=clinicas",<LocalHospitalIcon/>),
+      item("Agronomia","/edu/campos-pratica?secao=agro",<AgricultureIcon/>),
+      item("Núcleo animal","/edu/campos-pratica?secao=animal",<PetsIcon/>),
     ]
   },
   {

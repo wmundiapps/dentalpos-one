@@ -10,7 +10,7 @@ import { jobLembretesConsultas, mountAgenda } from './agenda'
 import { jobLembretesVacina, mountAnimal } from './animal'
 import { alertasEstagios, jobAlertasEstagios, mountEstagios } from './estagios'
 import { mountPacientes } from './pacientes'
-import { DIA, GESTAO, LEITURA, getConfig } from './servico'
+import { DIA, GESTAO, LEITURA, OPERACAO, getConfig } from './servico'
 
 // Módulo "campos-pratica" (prefixo Cpr): estágios, clínicas-escola, núcleo de agronomia e núcleo animal.
 // Rotas autenticadas em /api/edu/campos-pratica. Ver README.md.
@@ -26,6 +26,12 @@ router.put('/config', requireRole(...GESTAO), asyncHandler(async (req: Authentic
     antecedenciaLembreteHoras: z.number().int().min(1).max(168), diasAlertaColheita: z.number().int().min(1).max(90), diasLembreteVacina: z.number().int().min(1).max(60),
   }).partial(), req.body)
   res.json(await prisma.cprConfig.update({ where: { tenantId }, data: b }))
+}))
+
+// Professores e coordenadores (para escolher orientador/supervisor nas telas).
+router.get('/equipe', requireRole(...OPERACAO), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const us = await prisma.user.findMany({ where: { tenantId: getTenantId(req), role: { in: ['TEACHER', 'COORDINATOR'] }, isActive: true }, select: { id: true, firstName: true, lastName: true, role: true }, orderBy: { firstName: 'asc' }, take: 300 })
+  res.json({ items: us.map((u) => ({ id: u.id, nome: `${u.firstName} ${u.lastName}`.trim(), papel: u.role })) })
 }))
 
 mountEstagios(router)
