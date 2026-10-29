@@ -689,13 +689,13 @@ function TimeGridView({
                       {appointment.status === "Desmarcado" ? (
                         <Typography variant="caption" sx={{ display: "block", fontWeight: 800, lineHeight: 1.15, color: "text.secondary" }}>Desmarcou</Typography>
                       ) : null}
-                      {height >= 48 && badges[0] ? (
-                        <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />
-                      ) : null}
-                      {height >= 72 ? (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.15, mt: 0.3 }}>
+                      {height >= 34 ? (
+                        <Typography variant="caption" sx={{ display: "block", lineHeight: 1.15, mt: 0.3, fontWeight: 800, color: "text.primary", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: height >= 72 ? "normal" : "nowrap" }}>
                           {appointment.procedure}
                         </Typography>
+                      ) : null}
+                      {height >= 48 && badges[0] ? (
+                        <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />
                       ) : null}
                     </Box>
                   );
