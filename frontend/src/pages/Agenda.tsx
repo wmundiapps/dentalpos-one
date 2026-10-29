@@ -1415,7 +1415,10 @@ export default function Agenda() {
             <>
               <PatientAlertBanner patientId={edit.patientId} compact />
               <Typography><b>{edit.dateISO} às {edit.time}</b> • {edit.professionalName}</Typography>
-              <Typography>{edit.procedure}</Typography>
+              <Box sx={{ p: 1.5, borderRadius: 2, borderLeft: "6px solid", borderColor: "primary.main", bgcolor: "action.hover" }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: ".08em", color: "text.secondary" }}>O QUE O PACIENTE VAI FAZER NESTA CONSULTA</Typography>
+                <Typography sx={{ fontSize: { xs: 22, md: 26 }, fontWeight: 900, lineHeight: 1.2 }}>{edit.procedure || "Procedimento não informado"}</Typography>
+              </Box>
               {edit.backendId && <AgendaMarkerPicker appointmentId={edit.backendId} defs={markerDefs} selected={markerLinks.get(edit.backendId) || []} onChange={(ids) => setMarkerLinks((cur) => new Map(cur).set(edit.backendId as string, ids))} onDefsChanged={() => void loadMarkerDefs()} />}
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
                 <TextField
