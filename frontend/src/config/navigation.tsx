@@ -259,6 +259,9 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Recibos","/edu/financeiro?secao=recibos",<ReceiptLongIcon/>),
       item("Permutas e bolsas","/edu/financeiro?secao=permutas",<PeopleAltIcon/>),
       item("Remessas bancárias","/edu/financeiro?secao=remessas",<SendIcon/>),
+    ]
+  },
+  {
     label:"EduMaster · Cobrança",
     icon:tile(<RequestPageIcon/>,"#B91C1C"),
     items:[
