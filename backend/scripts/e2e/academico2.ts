@@ -374,6 +374,7 @@ async function main() {
 
   // ---------------------------------------------------------------- salas e horários
   secao('Salas e horários: turnos, sugestão e conflitos')
+  check('apoio à tela: espaços e períodos listáveis', lst((await call(coord, 'GET', '/edu/core/espacos?pageSize=200')).json).length >= 3 && lst((await call(coord, 'GET', `${A}/terms`)).json).length >= 2)
   const tn = (await call(coord, 'GET', `${A}/salas/turnos`)).json
   check('turnos padrão incluem finais de semana', tn.items.some((t: any) => t.codigo === 'FIM_DE_SEMANA' && t.dias.includes(6)) && tn.items.length === 4)
   check('turno personalizado', (await call(coord, 'PUT', `${A}/salas/turnos/NOITE`, { nome: 'Noite', inicioMin: 1140, fimMin: 1380, dias: [1, 2, 3, 4, 5] })).status === 200)

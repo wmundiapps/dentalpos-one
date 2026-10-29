@@ -194,6 +194,11 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Turmas","/academico?secao=turmas",<EventIcon/>),
       item("Financeiro acadêmico","/edu/financeiro",<PaymentsIcon/>),
       item("Frequência e documentos","/academico?secao=documentos",<DescriptionIcon/>),
+      item("Alunos · secretaria","/edu/academico/alunos",<PeopleAltIcon/>),
+      item("Matrizes e fluxograma","/edu/academico/matrizes",<HubIcon/>),
+      item("Salas e horários","/edu/academico/salas",<EventIcon/>),
+      item("Programas de desenvolvimento","/edu/academico/desenvolvimento",<TrendingUpIcon/>),
+      item("Pesquisa, extensão e ligas","/edu/academico/pesquisa-extensao",<BiotechIcon/>),
     ])
   },
   {
