@@ -1,6 +1,6 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-export interface PendingAlertItem { key: string; label: string; count: number; path: string; lines?: string[] }
+export interface PendingAlertItem { key: string; label: string; count: number; path: string; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string }> }
 export interface LockedUser { id: string; name: string; count: number }
 export interface PendingAlerts {
   enabled: boolean;
@@ -85,6 +85,13 @@ export async function proveLabDelivery(input: { localId: string; code: string })
 // Departamento travado justifica por escrito: a tela abre até o fim do dia e o gestor recebe a justificativa por e-mail.
 export async function justifyPending(text: string) {
   const result = await parse<unknown>(await fetch(`${API}/pending-alerts/justify`, { method: "POST", headers: headers(true), body: JSON.stringify({ text }) }));
+  window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
+  return result;
+}
+
+// "Já estava no tratamento": confirma que os procedimentos lançados fora do plano deste paciente não são novos.
+export async function confirmUnplannedExisting(patientId: string) {
+  const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unplanned/resolve`, { method: "POST", headers: headers(true), body: JSON.stringify({ patientId }) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
 }

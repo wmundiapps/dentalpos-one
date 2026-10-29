@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Box, Link, Typography } from "@mui/material";
+import { Box, Button, Link, Typography } from "@mui/material";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import RiskPolicyDialog, { RISK_YELLOW } from "./RiskPolicyDialog";
 import { Link as RouterLink, useLocation } from "react-router-dom";
-import { loadPendingAlerts, PENDING_ALERTS_EVENT, type PendingAlerts } from "../services/PendingAlertsApi";
+import { confirmUnplannedExisting, loadPendingAlerts, PENDING_ALERTS_EVENT, type PendingAlerts } from "../services/PendingAlertsApi";
 
 export default function PendingAlertsBar() {
   const [data, setData] = useState<PendingAlerts | null>(null);
@@ -51,7 +51,13 @@ export default function PendingAlertsBar() {
               {shown.map((item) => (
                 <Box key={item.key}>
                   <Link component={RouterLink} to={item.path} sx={{ color: "inherit", fontWeight: 700, textDecoration: "underline" }}>{item.label}</Link>
-                  {(item.lines || []).map((line, i) => <Typography key={i} variant="caption" sx={{ display: "block" }}>{`• ${line}`}</Typography>)}
+                  {item.rows?.length ? item.rows.map((r) => (
+                    <Box key={r.patientId} sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", my: 0.4 }}>
+                      <Typography variant="caption" sx={{ flex: "1 1 320px", minWidth: 0 }}>{`• ${r.patientName}: ${r.summary}`}</Typography>
+                      <Button size="small" variant="contained" color="inherit" sx={{ color: "error.main", fontWeight: 800, py: 0 }} onClick={async () => { if (window.confirm(`Confirmar que os procedimentos de ${r.patientName} já estavam incluídos no tratamento (não são novos)?`)) { try { await confirmUnplannedExisting(r.patientId); } catch (e) { window.alert(e instanceof Error ? e.message : "Não foi possível confirmar."); } } }}>Já estava no tratamento</Button>
+                      <Button size="small" component={RouterLink} to={`/orcamentos-tratamentos?patientId=${encodeURIComponent(r.patientId)}`} sx={{ color: "#fff", textDecoration: "underline", py: 0 }}>É novo: passar orçamento</Button>
+                    </Box>
+                  )) : (item.lines || []).map((line, i) => <Typography key={i} variant="caption" sx={{ display: "block" }}>{`• ${line}`}</Typography>)}
                 </Box>
               ))}
             </Box>

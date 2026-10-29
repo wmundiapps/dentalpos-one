@@ -17,7 +17,7 @@ const KEY_LOCK_MS = 15 * 60 * 1000
 type Mode = 'ALERT' | 'BLOCK'
 type Visibility = Record<string, string[]>
 type Settings = { enabled: boolean; mode: Mode; lastDigest: string | null; lockDepartments: string[]; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility; lockEvents: Record<string, { day: string; resolved: boolean }> }
-type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[] }
+type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string }> }
 
 // Quem enxerga cada tipo de pendência, por departamento (código do perfil de acesso). Admin vê tudo sempre.
 // Se o gestor não configurou nada, vale este padrão: cobrança vai para recepção, financeiro e clínico; laboratório não vê cobrança.
@@ -173,10 +173,11 @@ async function computeItems(clinicId: string, tenantId: string, codes: string[] 
       open = fresh.filter(f => !budgets.some(b => b.patientId === f.patientId && b.createdAt >= f.createdAt))
     }
     if (open.length) {
-      const byPatient = new Map<string, string[]>()
-      for (const f of open) byPatient.set(f.patient.fullName, [...(byPatient.get(f.patient.fullName) || []), `dente ${f.tooth ?? '—'} ${f.procedure}`])
-      const lines = [...byPatient.entries()].slice(0, 8).map(([name, procs]) => `${name}: ${procs.join(', ')}`)
-      items.push({ key: 'budget', label: `${open.length} procedimento(s) novo(s) fora do plano: passar orçamento ao paciente`, count: open.length, blocks: 0, lines, path: '/orcamentos-tratamentos' })
+      const byPatient = new Map<string, { id: string; procs: string[] }>()
+      for (const f of open) { const cur = byPatient.get(f.patient.fullName) || { id: f.patientId, procs: [] }; cur.procs.push(`dente ${f.tooth ?? '—'} ${f.procedure}`); byPatient.set(f.patient.fullName, cur) }
+      const lines = [...byPatient.entries()].slice(0, 8).map(([name, v]) => `${name}: ${v.procs.join(', ')}`)
+      const rows = [...byPatient.entries()].slice(0, 40).map(([name, v]) => ({ patientId: v.id, patientName: name, summary: v.procs.join(', ') }))
+      items.push({ key: 'budget', label: `${open.length} procedimento(s) novo(s) fora do plano: passar orçamento ao paciente`, count: open.length, blocks: 0, lines, rows, path: '/orcamentos-tratamentos' })
     }
   }
   if (can('laboratory.view', 'laboratory')) {
@@ -436,4 +437,19 @@ export async function sendManagerDigest(clinicId: string, tenantId: string, now 
   await notifyManagers(clinicId, tenantId, 'Pendências não resolvidas na clínica', `Estas pendências continuam sem resolução:\n\n${lines.join('\n')}\n\nOs departamentos foram avisados de que você é notificado. Acompanhe em Configurações > Avisos de pendências.`)
   await saveSettings(clinicId, tenantId, { ...settings, lastDigest: today })
   return { skipped: false, items: items.length }
+}
+
+// "Já estava no tratamento": a equipe confirma que o procedimento lançado fora do plano na verdade já fazia parte do tratamento do paciente; sai da lista.
+export async function resolveUnplanned(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, id: actorId } = req.user!
+    const patientId = String(req.body?.patientId || '')
+    if (!patientId) return res.status(400).json({ error: 'Informe o paciente.' })
+    const r = await prisma.treatmentItem.updateMany({ where: { clinicId, tenantId, patientId, origin: 'ODONTOGRAM_NAO_PLANEJADO' }, data: { origin: 'ODONTOGRAM_JA_NO_TRATAMENTO' } })
+    await writeAudit({ clinicId, tenantId, actorId, module: 'clinical', action: 'UNPLANNED_CONFIRMED_EXISTING', entityType: 'Patient', entityId: patientId, summary: `${r.count} procedimento(s) confirmados como já incluídos no tratamento (não são novos).` }).catch(() => undefined)
+    return res.json({ ok: true, updated: r.count })
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Não foi possível confirmar.' })
+  }
 }
