@@ -13246,4 +13246,603 @@ model SupSequencia {
   @@unique([tenantId, chave])
 }
 
+// ---- edu/tesouraria.prisma ----
+// ============================================================
+// EDUMASTER PRO — TESOURARIA / FINANCEIRO EDU
+// Prefixo Tes. Somente tabelas NOVAS (nenhuma tabela existente é alterada):
+// referências a AccountPayable/AccountReceivable/ChartOfAccount/EduCostCenter/Student/ApoConcessaoBolsa
+// são String ids sem @relation (mantém o financeiro legado intacto).
+// ============================================================
+
+enum TesTipoConta {
+  BANCO
+  CAIXA
+  APLICACAO
+}
+
+enum TesFormaRecebimento {
+  BOLETO
+  PIX
+  CARTAO
+  DINHEIRO
+  TRANSFERENCIA
+  PERMUTA
+}
+
+enum TesFormaPagamento {
+  PIX
+  TED
+  BOLETO
+  CREDITO_CONTA
+  DINHEIRO
+}
+
+enum TesStatusTitulo {
+  RASCUNHO
+  CONFERIDO
+  AUTORIZADO
+  ENVIADO_BANCO
+  PAGO
+  CONCILIADO
+  REJEITADO
+  CANCELADO
+}
+
+enum TesOrigemTitulo {
+  MANUAL
+  FOLHA
+  PROLABORE
+  TERCEIRO
+  COMPRA
+  CONTRATO
+  NOTA_FISCAL
+  IMPOSTO
+}
+
+enum TesTipoRemessa {
+  CNAB240
+  PIX_LOTE
+}
+
+enum TesStatusRemessa {
+  GERADA
+  ENVIADA
+  PROCESSADA
+  CANCELADA
+  ERRO
+}
+
+enum TesStatusExtratoItem {
+  PENDENTE
+  CONCILIADO
+  IGNORADO
+}
+
+enum TesNotaDirecao {
+  ENTRADA
+  SAIDA
+}
+
+enum TesNotaModelo {
+  NFSE
+  NFE
+  OUTRA
+}
+
+enum TesNotaStatus {
+  LANCADA
+  CANCELADA
+}
+
+enum TesConciliacaoFiscal {
+  PENDENTE
+  OK
+  DIVERGENTE
+}
+
+enum TesStatusPermuta {
+  RASCUNHO
+  APROVADA
+  LIQUIDADA
+  CANCELADA
+}
+
+enum TesStatusRecibo {
+  EMITIDO
+  CANCELADO
+}
+
+// ---------- configuração e alçadas ----------
+
+model TesConfig {
+  id                    String   @id @default(uuid())
+  tenantId              String   @unique
+  regimeTributario      String   @default("IMUNE_ISENTA")  // IMUNE_ISENTA, SIMPLES, LUCRO_PRESUMIDO, LUCRO_REAL
+  serieRecibo           String   @default("A")
+  limiteDuplaAprovacao  Float    @default(20000)           // acima disto: 2 aprovadores distintos
+  exige2faAcima         Float?                              // reautenticação 2FA para autorizar/enviar acima deste valor
+  conferenteNaoAutoriza Boolean  @default(false)           // true: quem conferiu não pode autorizar
+  toleranciaDiasConciliacao Int  @default(5)
+  inssPercentualRpa     Float    @default(11)
+  tetoInss              Float    @default(8475.55)
+  issPercentualPadrao   Float    @default(5)
+  tabelaIrrf            Json?                               // [{ate, aliquota, deduzir}] (modelo; validar com contador)
+  sistemaContabil       String?                             // sistema de destino da exportação
+  layoutExportacao      String   @default("GENERICO")
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+}
+
+model TesAlcada {
+  id          String   @id @default(uuid())
+  tenantId    String
+  ordem       Int
+  nome        String
+  valorAte    Float?                // null = sem limite
+  papeis      String[]              // papéis que podem autorizar nesta faixa (ADMIN/OWNER/RECTOR/BOARD sempre podem)
+  aprovacoes  Int      @default(1)  // 2 = dupla aprovação
+  exige2fa    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, ordem])
+  @@index([tenantId])
+}
+
+model TesSequencia {
+  id        String @id @default(uuid())
+  tenantId  String
+  chave     String
+  ultimo    Int    @default(0)
+
+  @@unique([tenantId, chave])
+}
+
+// ---------- bancos e caixa ----------
+
+model TesContaBancaria {
+  id                 String       @id @default(uuid())
+  tenantId           String
+  tipo               TesTipoConta @default(BANCO)
+  nome               String
+  bancoCodigo        String?
+  bancoNome          String?
+  agencia            String?
+  numeroConta        String?
+  digito             String?
+  titularNome        String?
+  titularDocumento   String?
+  convenio           String?
+  provedor           String       @default("SIMULADO")
+  saldoInicial       Float        @default(0)
+  saldoInicialData   DateTime     @default(now())
+  ativa              Boolean      @default(true)
+  padraoPagamento    Boolean      @default(false)
+  contaContabilId    String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([tenantId, ativa])
+}
+
+model TesMovimento {
+  id             String   @id @default(uuid())
+  tenantId       String
+  contaId        String
+  data           DateTime
+  valor          Float                    // positivo = entrada, negativo = saída
+  tipo           String                   // RECEBIMENTO, PAGAMENTO, TRANSFERENCIA, TARIFA, RENDIMENTO, AJUSTE
+  descricao      String
+  refTipo        String?
+  refId          String?
+  grupoId        String?                  // par de uma transferência
+  extratoItemId  String?
+  conciliado     Boolean  @default(false)
+  criadoPorId    String?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, contaId, data])
+  @@index([tenantId, refTipo, refId])
+}
+
+// ---------- recebimentos, bolsas e recibos ----------
+
+model TesRecebivelAjuste {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  receivableId        String
+  studentId           String
+  valorOriginal       Float
+  bolsaPercentual     Float    @default(0)
+  bolsaValor          Float    @default(0)
+  concessaoId         String?
+  programaNome        String?
+  descontoPercentual  Float    @default(0)
+  descontoValor       Float    @default(0)
+  descontoMotivo      String?
+  valorLiquido        Float
+  origem              String   @default("AUTOMATICO")   // AUTOMATICO | MANUAL
+  conferencia         String   @default("OK")           // OK | DIVERGENTE
+  conferenciaDetalhe  String?
+  aplicadoPorId       String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([tenantId, receivableId])
+  @@index([tenantId, studentId])
+}
+
+model TesRecebimento {
+  id                   String              @id @default(uuid())
+  tenantId             String
+  receivableId         String
+  studentId            String?
+  forma                TesFormaRecebimento
+  valorOriginal        Float
+  bolsa                Float               @default(0)
+  desconto             Float               @default(0)
+  juros                Float               @default(0)
+  multa                Float               @default(0)
+  valorRecebido        Float
+  contaId              String?
+  data                 DateTime
+  reciboId             String?
+  permutaId            String?
+  paymentTransactionId String?
+  movimentoId          String?
+  observacao           String?
+  recebidoPorId        String?
+  conciliado           Boolean             @default(false)
+  createdAt            DateTime            @default(now())
+
+  @@unique([tenantId, receivableId])
+  @@index([tenantId, data])
+}
+
+model TesRecibo {
+  id                 String          @id @default(uuid())
+  tenantId           String
+  serie              String
+  numero             Int
+  status             TesStatusRecibo @default(EMITIDO)
+  pagadorNome        String
+  pagadorDocumento   String?
+  valor              Float
+  valorExtenso       String
+  descricao          String
+  forma              String?
+  receivableId       String?
+  recebimentoId      String?
+  studentId          String?
+  emitidoPorId       String?
+  emitidoEm          DateTime        @default(now())
+  vias               Int             @default(1)
+  canceladoEm        DateTime?
+  canceladoPorId     String?
+  motivoCancelamento String?
+  hash               String
+  createdAt          DateTime        @default(now())
+
+  viasEmitidas       TesReciboVia[]
+
+  @@unique([tenantId, serie, numero])
+  @@index([tenantId, status])
+}
+
+model TesReciboVia {
+  id          String    @id @default(uuid())
+  tenantId    String
+  reciboId    String
+  via         Int
+  emitidaPorId String?
+  motivo      String?
+  createdAt   DateTime  @default(now())
+
+  recibo      TesRecibo @relation(fields: [reciboId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, reciboId])
+}
+
+model TesPermuta {
+  id                String           @id @default(uuid())
+  tenantId          String
+  numero            String
+  sentido           String                                   // RECEBER (bem/serviço quita recebível) | PAGAR (quita título a pagar)
+  parteNome         String
+  parteDocumento    String?
+  tipoContrapartida String           @default("SERVICO")     // BEM, SERVICO, CESSAO_ESPACO, PUBLICIDADE, OUTRO
+  descricao         String
+  valorEquivalente  Float
+  documentoTipo     String                                   // CONTRATO, NOTA_FISCAL, TERMO, RECIBO
+  documentoNumero   String
+  documentoUrl      String?
+  notaFiscalId      String?
+  receivableId      String?
+  tituloId          String?
+  dataAcordo        DateTime
+  status            TesStatusPermuta @default(RASCUNHO)
+  contaDebitoId     String?                                  // ChartOfAccount
+  contaCreditoId    String?
+  lancamentoId      String?                                  // AccountingEntry gerado na liquidação
+  aprovadoPorId     String?
+  aprovadoEm        DateTime?
+  liquidadaEm       DateTime?
+  canceladaEm       DateTime?
+  motivoCancelamento String?
+  criadoPorId       String?
+  observacao        String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+}
+
+// ---------- contas a pagar com fluxo de conferência/autorização ----------
+
+model TesTitulo {
+  id                 String            @id @default(uuid())
+  tenantId           String
+  numero             String
+  status             TesStatusTitulo   @default(RASCUNHO)
+  origem             TesOrigemTitulo   @default(MANUAL)
+  origemRef          String?                                   // chave de idempotência (ex.: folha:2026-10:func-1)
+  folhaLoteId        String?
+  descricao          String
+  fornecedor         String
+  fornecedorDocumento String?
+  fornecedorId       String?                                   // SupFornecedor
+  categoria          String?
+  centroCustoId      String?
+  contaContabilId    String?
+  contaBancariaId    String?                                   // conta pagadora
+  formaPagamento     TesFormaPagamento @default(PIX)
+  favorecidoBanco    String?
+  favorecidoAgencia  String?
+  favorecidoConta    String?
+  favorecidoTipoConta String?
+  chavePix           String?
+  tipoChavePix       String?
+  codigoBarras       String?
+  valorBruto         Float
+  retencaoInss       Float             @default(0)
+  retencaoIrrf       Float             @default(0)
+  retencaoIss        Float             @default(0)
+  retencaoOutras     Float             @default(0)
+  valorLiquido       Float
+  vencimento         DateTime
+  competencia        String?
+  notaFiscalId       String?
+  pedidoId           String?
+  contratoId         String?
+  accountPayableId   String?
+  aprovacoesNecessarias Int            @default(1)
+  aprovacoesFeitas   Int               @default(0)
+  hashAutorizado     String?
+  criadoPorId        String
+  conferidoPorId     String?
+  conferidoEm        DateTime?
+  autorizadoPorId    String?
+  autorizadoEm       DateTime?
+  remessaId          String?
+  enviadoEm          DateTime?
+  pagoEm             DateTime?
+  pagoValor          Float?
+  pagoContaId        String?
+  comprovante        String?
+  conciliadoEm       DateTime?
+  extratoItemId      String?
+  motivoRejeicao     String?
+  ultimoErroBanco    String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  eventos            TesTituloEvento[]
+  aprovacoes         TesAprovacao[]
+
+  @@unique([tenantId, numero])
+  @@unique([tenantId, origemRef])
+  @@index([tenantId, status])
+  @@index([tenantId, vencimento])
+}
+
+model TesTituloEvento {
+  id        String    @id @default(uuid())
+  tenantId  String
+  tituloId  String
+  acao      String
+  de        String?
+  para      String?
+  userId    String?
+  papel     String?
+  detalhe   Json?
+  createdAt DateTime  @default(now())
+
+  titulo    TesTitulo @relation(fields: [tituloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, tituloId])
+}
+
+model TesAprovacao {
+  id           String    @id @default(uuid())
+  tenantId     String
+  tituloId     String
+  tipo         String                       // CONFERENCIA | AUTORIZACAO
+  nivel        Int       @default(1)
+  userId       String
+  papel        String
+  valor        Float
+  usou2fa      Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  titulo       TesTitulo @relation(fields: [tituloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, tituloId])
+}
+
+model TesFolhaLote {
+  id               String   @id @default(uuid())
+  tenantId         String
+  competencia      String
+  tipo             String   @default("FOLHA")       // FOLHA, PROLABORE, TERCEIROS, MISTO
+  origem           String   @default("IMPORTACAO")  // RH | IMPORTACAO
+  chave            String
+  qtd              Int      @default(0)
+  qtdIgnorados     Int      @default(0)
+  valorBruto       Float    @default(0)
+  valorRetencoes   Float    @default(0)
+  valorLiquido     Float    @default(0)
+  importadoPorId   String?
+  createdAt        DateTime @default(now())
+
+  @@unique([tenantId, chave])
+  @@index([tenantId, competencia])
+}
+
+// ---------- remessas (arquivo de pagamento) ----------
+
+model TesRemessa {
+  id              String           @id @default(uuid())
+  tenantId        String
+  numero          Int
+  tipo            TesTipoRemessa   @default(CNAB240)
+  status          TesStatusRemessa @default(GERADA)
+  contaId         String
+  dataPagamento   DateTime
+  nomeArquivo     String
+  conteudo        String
+  hash            String
+  qtd             Int
+  valorTotal      Float
+  provedor        String           @default("SIMULADO")
+  protocolo       String?
+  geradaPorId     String
+  enviadaPorId    String?
+  enviadaEm       DateTime?
+  retornoEm       DateTime?
+  retornoConteudo String?
+  canceladaEm     DateTime?
+  createdAt       DateTime         @default(now())
+
+  itens           TesRemessaItem[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+}
+
+model TesRemessaItem {
+  id          String     @id @default(uuid())
+  tenantId    String
+  remessaId   String
+  tituloId    String
+  valor       Float
+  idPagamento String                      // identificador fim-a-fim enviado ao banco
+  status      String     @default("INCLUIDO")   // INCLUIDO, PAGO, REJEITADO
+  motivo      String?
+
+  remessa     TesRemessa @relation(fields: [remessaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, remessaId])
+  @@index([tenantId, tituloId])
+}
+
+// ---------- extrato e conciliação ----------
+
+model TesExtrato {
+  id              String   @id @default(uuid())
+  tenantId        String
+  contaId         String
+  formato         String                      // OFX | CSV
+  nomeArquivo     String?
+  hash            String
+  periodoInicio   DateTime?
+  periodoFim      DateTime?
+  saldoFinal      Float?
+  qtd             Int      @default(0)
+  qtdNovos        Int      @default(0)
+  importadoPorId  String?
+  createdAt       DateTime @default(now())
+
+  itens           TesExtratoItem[]
+
+  @@unique([tenantId, contaId, hash])
+  @@index([tenantId, contaId])
+}
+
+model TesExtratoItem {
+  id              String               @id @default(uuid())
+  tenantId        String
+  extratoId       String
+  contaId         String
+  data            DateTime
+  valor           Float                // positivo = crédito
+  descricao       String
+  documento       String?              // FITID / nº documento
+  hash            String
+  status          TesStatusExtratoItem @default(PENDENTE)
+  matchTipo       String?              // TITULO | RECEBIMENTO | MOVIMENTO | RECEBIVEL
+  matchId         String?
+  metodo          String?              // AUTO | MANUAL
+  score           Float?
+  conciliadoPorId String?
+  conciliadoEm    DateTime?
+  createdAt       DateTime             @default(now())
+
+  extrato         TesExtrato           @relation(fields: [extratoId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, contaId, hash])
+  @@index([tenantId, contaId, status])
+}
+
+// ---------- notas fiscais ----------
+
+model TesNotaFiscal {
+  id                  String               @id @default(uuid())
+  tenantId            String
+  direcao             TesNotaDirecao
+  modelo              TesNotaModelo        @default(NFSE)
+  numero              String
+  serie               String               @default("1")
+  chave               String?
+  emissao             DateTime
+  competencia         String?
+  participanteNome    String
+  participanteDocumento String?
+  descricao           String?
+  valorServicos       Float                @default(0)
+  valorProdutos       Float                @default(0)
+  valorDescontos      Float                @default(0)
+  valorTotal          Float
+  issAliquota         Float                @default(0)
+  issValor            Float                @default(0)
+  issRetido           Boolean              @default(false)
+  retencaoIrrf        Float                @default(0)
+  retencaoPis         Float                @default(0)
+  retencaoCofins      Float                @default(0)
+  retencaoCsll        Float                @default(0)
+  retencaoInss        Float                @default(0)
+  retencaoOutras      Float                @default(0)
+  totalRetencoes      Float                @default(0)
+  valorLiquido        Float
+  status              TesNotaStatus        @default(LANCADA)
+  conciliacaoFiscal   TesConciliacaoFiscal @default(PENDENTE)
+  diferenca           Float                @default(0)
+  tituloId            String?
+  receivableId        String?
+  pedidoId            String?
+  contratoId          String?
+  centroCustoId       String?
+  contaContabilId     String?
+  arquivoUrl          String?
+  observacao          String?
+  criadoPorId         String?
+  canceladaEm         DateTime?
+  motivoCancelamento  String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@unique([tenantId, direcao, modelo, serie, numero, participanteDocumento])
+  @@index([tenantId, direcao, emissao])
+  @@index([tenantId, conciliacaoFiscal])
+}
+
 // ==== EDUMASTER:END ====

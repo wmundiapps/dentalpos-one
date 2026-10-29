@@ -22,6 +22,7 @@ import jornadasRouter, { publicRouter as jornadasPublic } from './jornadas/route
 import modalidadesRouter, { publicRouter as modalidadesPublic } from './modalidades/routes'
 import reitoriaRouter, { publicRouter as reitoriaPublic } from './reitoria/routes'
 import lgpdRouter, { publicRouter as lgpdPublic } from './lgpd/routes'
+import tesourariaRouter from './tesouraria/routes'
 import { acessoSensivelLog } from './lgpd/sensiveis'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
@@ -52,6 +53,7 @@ router.use('/jornadas', jornadasRouter)
 router.use('/modalidades', modalidadesRouter)
 router.use('/reitoria', reitoriaRouter)
 router.use('/lgpd', lgpdRouter)
+router.use('/tesouraria', tesourariaRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.
 router.use(academicErrorHandler)
 

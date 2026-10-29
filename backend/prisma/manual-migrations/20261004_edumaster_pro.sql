@@ -11373,3 +11373,635 @@ CREATE INDEX "LgpAcessoSensivel_tenantId_titularTipo_titularId_idx" ON "LgpAcess
 ALTER TABLE "LgpIncidenteEvento" ADD CONSTRAINT "LgpIncidenteEvento_incidenteId_fkey" FOREIGN KEY ("incidenteId") REFERENCES "LgpIncidente"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- ==== LGPD:END ====
+
+
+-- ==== TES:BEGIN (módulo Tesouraria/Financeiro Edu, prefixo Tes - gerado por prisma migrate diff; somente CRIA) ====
+-- CreateEnum
+CREATE TYPE "TesTipoConta" AS ENUM ('BANCO', 'CAIXA', 'APLICACAO');
+
+-- CreateEnum
+CREATE TYPE "TesFormaRecebimento" AS ENUM ('BOLETO', 'PIX', 'CARTAO', 'DINHEIRO', 'TRANSFERENCIA', 'PERMUTA');
+
+-- CreateEnum
+CREATE TYPE "TesFormaPagamento" AS ENUM ('PIX', 'TED', 'BOLETO', 'CREDITO_CONTA', 'DINHEIRO');
+
+-- CreateEnum
+CREATE TYPE "TesStatusTitulo" AS ENUM ('RASCUNHO', 'CONFERIDO', 'AUTORIZADO', 'ENVIADO_BANCO', 'PAGO', 'CONCILIADO', 'REJEITADO', 'CANCELADO');
+
+-- CreateEnum
+CREATE TYPE "TesOrigemTitulo" AS ENUM ('MANUAL', 'FOLHA', 'PROLABORE', 'TERCEIRO', 'COMPRA', 'CONTRATO', 'NOTA_FISCAL', 'IMPOSTO');
+
+-- CreateEnum
+CREATE TYPE "TesTipoRemessa" AS ENUM ('CNAB240', 'PIX_LOTE');
+
+-- CreateEnum
+CREATE TYPE "TesStatusRemessa" AS ENUM ('GERADA', 'ENVIADA', 'PROCESSADA', 'CANCELADA', 'ERRO');
+
+-- CreateEnum
+CREATE TYPE "TesStatusExtratoItem" AS ENUM ('PENDENTE', 'CONCILIADO', 'IGNORADO');
+
+-- CreateEnum
+CREATE TYPE "TesNotaDirecao" AS ENUM ('ENTRADA', 'SAIDA');
+
+-- CreateEnum
+CREATE TYPE "TesNotaModelo" AS ENUM ('NFSE', 'NFE', 'OUTRA');
+
+-- CreateEnum
+CREATE TYPE "TesNotaStatus" AS ENUM ('LANCADA', 'CANCELADA');
+
+-- CreateEnum
+CREATE TYPE "TesConciliacaoFiscal" AS ENUM ('PENDENTE', 'OK', 'DIVERGENTE');
+
+-- CreateEnum
+CREATE TYPE "TesStatusPermuta" AS ENUM ('RASCUNHO', 'APROVADA', 'LIQUIDADA', 'CANCELADA');
+
+-- CreateEnum
+CREATE TYPE "TesStatusRecibo" AS ENUM ('EMITIDO', 'CANCELADO');
+
+-- CreateTable
+CREATE TABLE "TesConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "regimeTributario" TEXT NOT NULL DEFAULT 'IMUNE_ISENTA',
+    "serieRecibo" TEXT NOT NULL DEFAULT 'A',
+    "limiteDuplaAprovacao" DOUBLE PRECISION NOT NULL DEFAULT 20000,
+    "exige2faAcima" DOUBLE PRECISION,
+    "conferenteNaoAutoriza" BOOLEAN NOT NULL DEFAULT false,
+    "toleranciaDiasConciliacao" INTEGER NOT NULL DEFAULT 5,
+    "inssPercentualRpa" DOUBLE PRECISION NOT NULL DEFAULT 11,
+    "tetoInss" DOUBLE PRECISION NOT NULL DEFAULT 8475.55,
+    "issPercentualPadrao" DOUBLE PRECISION NOT NULL DEFAULT 5,
+    "tabelaIrrf" JSONB,
+    "sistemaContabil" TEXT,
+    "layoutExportacao" TEXT NOT NULL DEFAULT 'GENERICO',
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesAlcada" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL,
+    "nome" TEXT NOT NULL,
+    "valorAte" DOUBLE PRECISION,
+    "papeis" TEXT[],
+    "aprovacoes" INTEGER NOT NULL DEFAULT 1,
+    "exige2fa" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesAlcada_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesSequencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "ultimo" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "TesSequencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesContaBancaria" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" "TesTipoConta" NOT NULL DEFAULT 'BANCO',
+    "nome" TEXT NOT NULL,
+    "bancoCodigo" TEXT,
+    "bancoNome" TEXT,
+    "agencia" TEXT,
+    "numeroConta" TEXT,
+    "digito" TEXT,
+    "titularNome" TEXT,
+    "titularDocumento" TEXT,
+    "convenio" TEXT,
+    "provedor" TEXT NOT NULL DEFAULT 'SIMULADO',
+    "saldoInicial" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "saldoInicialData" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ativa" BOOLEAN NOT NULL DEFAULT true,
+    "padraoPagamento" BOOLEAN NOT NULL DEFAULT false,
+    "contaContabilId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TesContaBancaria_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesMovimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "contaId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "refTipo" TEXT,
+    "refId" TEXT,
+    "grupoId" TEXT,
+    "extratoItemId" TEXT,
+    "conciliado" BOOLEAN NOT NULL DEFAULT false,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesMovimento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesRecebivelAjuste" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "receivableId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "valorOriginal" DOUBLE PRECISION NOT NULL,
+    "bolsaPercentual" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "bolsaValor" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "concessaoId" TEXT,
+    "programaNome" TEXT,
+    "descontoPercentual" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "descontoValor" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "descontoMotivo" TEXT,
+    "valorLiquido" DOUBLE PRECISION NOT NULL,
+    "origem" TEXT NOT NULL DEFAULT 'AUTOMATICO',
+    "conferencia" TEXT NOT NULL DEFAULT 'OK',
+    "conferenciaDetalhe" TEXT,
+    "aplicadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TesRecebivelAjuste_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesRecebimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "receivableId" TEXT NOT NULL,
+    "studentId" TEXT,
+    "forma" "TesFormaRecebimento" NOT NULL,
+    "valorOriginal" DOUBLE PRECISION NOT NULL,
+    "bolsa" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "desconto" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "juros" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "multa" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorRecebido" DOUBLE PRECISION NOT NULL,
+    "contaId" TEXT,
+    "data" TIMESTAMP(3) NOT NULL,
+    "reciboId" TEXT,
+    "permutaId" TEXT,
+    "paymentTransactionId" TEXT,
+    "movimentoId" TEXT,
+    "observacao" TEXT,
+    "recebidoPorId" TEXT,
+    "conciliado" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesRecebimento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesRecibo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "serie" TEXT NOT NULL,
+    "numero" INTEGER NOT NULL,
+    "status" "TesStatusRecibo" NOT NULL DEFAULT 'EMITIDO',
+    "pagadorNome" TEXT NOT NULL,
+    "pagadorDocumento" TEXT,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "valorExtenso" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "forma" TEXT,
+    "receivableId" TEXT,
+    "recebimentoId" TEXT,
+    "studentId" TEXT,
+    "emitidoPorId" TEXT,
+    "emitidoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "vias" INTEGER NOT NULL DEFAULT 1,
+    "canceladoEm" TIMESTAMP(3),
+    "canceladoPorId" TEXT,
+    "motivoCancelamento" TEXT,
+    "hash" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesRecibo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesReciboVia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "reciboId" TEXT NOT NULL,
+    "via" INTEGER NOT NULL,
+    "emitidaPorId" TEXT,
+    "motivo" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesReciboVia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesPermuta" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "sentido" TEXT NOT NULL,
+    "parteNome" TEXT NOT NULL,
+    "parteDocumento" TEXT,
+    "tipoContrapartida" TEXT NOT NULL DEFAULT 'SERVICO',
+    "descricao" TEXT NOT NULL,
+    "valorEquivalente" DOUBLE PRECISION NOT NULL,
+    "documentoTipo" TEXT NOT NULL,
+    "documentoNumero" TEXT NOT NULL,
+    "documentoUrl" TEXT,
+    "notaFiscalId" TEXT,
+    "receivableId" TEXT,
+    "tituloId" TEXT,
+    "dataAcordo" TIMESTAMP(3) NOT NULL,
+    "status" "TesStatusPermuta" NOT NULL DEFAULT 'RASCUNHO',
+    "contaDebitoId" TEXT,
+    "contaCreditoId" TEXT,
+    "lancamentoId" TEXT,
+    "aprovadoPorId" TEXT,
+    "aprovadoEm" TIMESTAMP(3),
+    "liquidadaEm" TIMESTAMP(3),
+    "canceladaEm" TIMESTAMP(3),
+    "motivoCancelamento" TEXT,
+    "criadoPorId" TEXT,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TesPermuta_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesTitulo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "status" "TesStatusTitulo" NOT NULL DEFAULT 'RASCUNHO',
+    "origem" "TesOrigemTitulo" NOT NULL DEFAULT 'MANUAL',
+    "origemRef" TEXT,
+    "folhaLoteId" TEXT,
+    "descricao" TEXT NOT NULL,
+    "fornecedor" TEXT NOT NULL,
+    "fornecedorDocumento" TEXT,
+    "fornecedorId" TEXT,
+    "categoria" TEXT,
+    "centroCustoId" TEXT,
+    "contaContabilId" TEXT,
+    "contaBancariaId" TEXT,
+    "formaPagamento" "TesFormaPagamento" NOT NULL DEFAULT 'PIX',
+    "favorecidoBanco" TEXT,
+    "favorecidoAgencia" TEXT,
+    "favorecidoConta" TEXT,
+    "favorecidoTipoConta" TEXT,
+    "chavePix" TEXT,
+    "tipoChavePix" TEXT,
+    "codigoBarras" TEXT,
+    "valorBruto" DOUBLE PRECISION NOT NULL,
+    "retencaoInss" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "retencaoIrrf" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "retencaoIss" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "retencaoOutras" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorLiquido" DOUBLE PRECISION NOT NULL,
+    "vencimento" TIMESTAMP(3) NOT NULL,
+    "competencia" TEXT,
+    "notaFiscalId" TEXT,
+    "pedidoId" TEXT,
+    "contratoId" TEXT,
+    "accountPayableId" TEXT,
+    "aprovacoesNecessarias" INTEGER NOT NULL DEFAULT 1,
+    "aprovacoesFeitas" INTEGER NOT NULL DEFAULT 0,
+    "hashAutorizado" TEXT,
+    "criadoPorId" TEXT NOT NULL,
+    "conferidoPorId" TEXT,
+    "conferidoEm" TIMESTAMP(3),
+    "autorizadoPorId" TEXT,
+    "autorizadoEm" TIMESTAMP(3),
+    "remessaId" TEXT,
+    "enviadoEm" TIMESTAMP(3),
+    "pagoEm" TIMESTAMP(3),
+    "pagoValor" DOUBLE PRECISION,
+    "pagoContaId" TEXT,
+    "comprovante" TEXT,
+    "conciliadoEm" TIMESTAMP(3),
+    "extratoItemId" TEXT,
+    "motivoRejeicao" TEXT,
+    "ultimoErroBanco" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TesTitulo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesTituloEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tituloId" TEXT NOT NULL,
+    "acao" TEXT NOT NULL,
+    "de" TEXT,
+    "para" TEXT,
+    "userId" TEXT,
+    "papel" TEXT,
+    "detalhe" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesTituloEvento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesAprovacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tituloId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "nivel" INTEGER NOT NULL DEFAULT 1,
+    "userId" TEXT NOT NULL,
+    "papel" TEXT NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "usou2fa" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesAprovacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesFolhaLote" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "competencia" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'FOLHA',
+    "origem" TEXT NOT NULL DEFAULT 'IMPORTACAO',
+    "chave" TEXT NOT NULL,
+    "qtd" INTEGER NOT NULL DEFAULT 0,
+    "qtdIgnorados" INTEGER NOT NULL DEFAULT 0,
+    "valorBruto" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorRetencoes" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorLiquido" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "importadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesFolhaLote_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesRemessa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" INTEGER NOT NULL,
+    "tipo" "TesTipoRemessa" NOT NULL DEFAULT 'CNAB240',
+    "status" "TesStatusRemessa" NOT NULL DEFAULT 'GERADA',
+    "contaId" TEXT NOT NULL,
+    "dataPagamento" TIMESTAMP(3) NOT NULL,
+    "nomeArquivo" TEXT NOT NULL,
+    "conteudo" TEXT NOT NULL,
+    "hash" TEXT NOT NULL,
+    "qtd" INTEGER NOT NULL,
+    "valorTotal" DOUBLE PRECISION NOT NULL,
+    "provedor" TEXT NOT NULL DEFAULT 'SIMULADO',
+    "protocolo" TEXT,
+    "geradaPorId" TEXT NOT NULL,
+    "enviadaPorId" TEXT,
+    "enviadaEm" TIMESTAMP(3),
+    "retornoEm" TIMESTAMP(3),
+    "retornoConteudo" TEXT,
+    "canceladaEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesRemessa_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesRemessaItem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "remessaId" TEXT NOT NULL,
+    "tituloId" TEXT NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "idPagamento" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'INCLUIDO',
+    "motivo" TEXT,
+
+    CONSTRAINT "TesRemessaItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesExtrato" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "contaId" TEXT NOT NULL,
+    "formato" TEXT NOT NULL,
+    "nomeArquivo" TEXT,
+    "hash" TEXT NOT NULL,
+    "periodoInicio" TIMESTAMP(3),
+    "periodoFim" TIMESTAMP(3),
+    "saldoFinal" DOUBLE PRECISION,
+    "qtd" INTEGER NOT NULL DEFAULT 0,
+    "qtdNovos" INTEGER NOT NULL DEFAULT 0,
+    "importadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesExtrato_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesExtratoItem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "extratoId" TEXT NOT NULL,
+    "contaId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "documento" TEXT,
+    "hash" TEXT NOT NULL,
+    "status" "TesStatusExtratoItem" NOT NULL DEFAULT 'PENDENTE',
+    "matchTipo" TEXT,
+    "matchId" TEXT,
+    "metodo" TEXT,
+    "score" DOUBLE PRECISION,
+    "conciliadoPorId" TEXT,
+    "conciliadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TesExtratoItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TesNotaFiscal" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "direcao" "TesNotaDirecao" NOT NULL,
+    "modelo" "TesNotaModelo" NOT NULL DEFAULT 'NFSE',
+    "numero" TEXT NOT NULL,
+    "serie" TEXT NOT NULL DEFAULT '1',
+    "chave" TEXT,
+    "emissao" TIMESTAMP(3) NOT NULL,
+    "competencia" TEXT,
+    "participanteNome" TEXT NOT NULL,
+    "participanteDocumento" TEXT,
+    "descricao" TEXT,
+    "valorServicos" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorProdutos" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorDescontos" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorTotal" DOUBLE PRECISION NOT NULL,
+    "issAliquota" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "issValor" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "issRetido" BOOLEAN NOT NULL DEFAULT false,
+    "retencaoIrrf" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "retencaoPis" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "retencaoCofins" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "retencaoCsll" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "retencaoInss" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "retencaoOutras" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "totalRetencoes" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorLiquido" DOUBLE PRECISION NOT NULL,
+    "status" "TesNotaStatus" NOT NULL DEFAULT 'LANCADA',
+    "conciliacaoFiscal" "TesConciliacaoFiscal" NOT NULL DEFAULT 'PENDENTE',
+    "diferenca" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "tituloId" TEXT,
+    "receivableId" TEXT,
+    "pedidoId" TEXT,
+    "contratoId" TEXT,
+    "centroCustoId" TEXT,
+    "contaContabilId" TEXT,
+    "arquivoUrl" TEXT,
+    "observacao" TEXT,
+    "criadoPorId" TEXT,
+    "canceladaEm" TIMESTAMP(3),
+    "motivoCancelamento" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TesNotaFiscal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesConfig_tenantId_key" ON "TesConfig"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "TesAlcada_tenantId_idx" ON "TesAlcada"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesAlcada_tenantId_ordem_key" ON "TesAlcada"("tenantId", "ordem");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesSequencia_tenantId_chave_key" ON "TesSequencia"("tenantId", "chave");
+
+-- CreateIndex
+CREATE INDEX "TesContaBancaria_tenantId_ativa_idx" ON "TesContaBancaria"("tenantId", "ativa");
+
+-- CreateIndex
+CREATE INDEX "TesMovimento_tenantId_contaId_data_idx" ON "TesMovimento"("tenantId", "contaId", "data");
+
+-- CreateIndex
+CREATE INDEX "TesMovimento_tenantId_refTipo_refId_idx" ON "TesMovimento"("tenantId", "refTipo", "refId");
+
+-- CreateIndex
+CREATE INDEX "TesRecebivelAjuste_tenantId_studentId_idx" ON "TesRecebivelAjuste"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesRecebivelAjuste_tenantId_receivableId_key" ON "TesRecebivelAjuste"("tenantId", "receivableId");
+
+-- CreateIndex
+CREATE INDEX "TesRecebimento_tenantId_data_idx" ON "TesRecebimento"("tenantId", "data");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesRecebimento_tenantId_receivableId_key" ON "TesRecebimento"("tenantId", "receivableId");
+
+-- CreateIndex
+CREATE INDEX "TesRecibo_tenantId_status_idx" ON "TesRecibo"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesRecibo_tenantId_serie_numero_key" ON "TesRecibo"("tenantId", "serie", "numero");
+
+-- CreateIndex
+CREATE INDEX "TesReciboVia_tenantId_reciboId_idx" ON "TesReciboVia"("tenantId", "reciboId");
+
+-- CreateIndex
+CREATE INDEX "TesPermuta_tenantId_status_idx" ON "TesPermuta"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesPermuta_tenantId_numero_key" ON "TesPermuta"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX "TesTitulo_tenantId_status_idx" ON "TesTitulo"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "TesTitulo_tenantId_vencimento_idx" ON "TesTitulo"("tenantId", "vencimento");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesTitulo_tenantId_numero_key" ON "TesTitulo"("tenantId", "numero");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesTitulo_tenantId_origemRef_key" ON "TesTitulo"("tenantId", "origemRef");
+
+-- CreateIndex
+CREATE INDEX "TesTituloEvento_tenantId_tituloId_idx" ON "TesTituloEvento"("tenantId", "tituloId");
+
+-- CreateIndex
+CREATE INDEX "TesAprovacao_tenantId_tituloId_idx" ON "TesAprovacao"("tenantId", "tituloId");
+
+-- CreateIndex
+CREATE INDEX "TesFolhaLote_tenantId_competencia_idx" ON "TesFolhaLote"("tenantId", "competencia");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesFolhaLote_tenantId_chave_key" ON "TesFolhaLote"("tenantId", "chave");
+
+-- CreateIndex
+CREATE INDEX "TesRemessa_tenantId_status_idx" ON "TesRemessa"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesRemessa_tenantId_numero_key" ON "TesRemessa"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX "TesRemessaItem_tenantId_remessaId_idx" ON "TesRemessaItem"("tenantId", "remessaId");
+
+-- CreateIndex
+CREATE INDEX "TesRemessaItem_tenantId_tituloId_idx" ON "TesRemessaItem"("tenantId", "tituloId");
+
+-- CreateIndex
+CREATE INDEX "TesExtrato_tenantId_contaId_idx" ON "TesExtrato"("tenantId", "contaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesExtrato_tenantId_contaId_hash_key" ON "TesExtrato"("tenantId", "contaId", "hash");
+
+-- CreateIndex
+CREATE INDEX "TesExtratoItem_tenantId_contaId_status_idx" ON "TesExtratoItem"("tenantId", "contaId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesExtratoItem_tenantId_contaId_hash_key" ON "TesExtratoItem"("tenantId", "contaId", "hash");
+
+-- CreateIndex
+CREATE INDEX "TesNotaFiscal_tenantId_direcao_emissao_idx" ON "TesNotaFiscal"("tenantId", "direcao", "emissao");
+
+-- CreateIndex
+CREATE INDEX "TesNotaFiscal_tenantId_conciliacaoFiscal_idx" ON "TesNotaFiscal"("tenantId", "conciliacaoFiscal");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TesNotaFiscal_tenantId_direcao_modelo_serie_numero_particip_key" ON "TesNotaFiscal"("tenantId", "direcao", "modelo", "serie", "numero", "participanteDocumento");
+
+-- AddForeignKey
+ALTER TABLE "TesReciboVia" ADD CONSTRAINT "TesReciboVia_reciboId_fkey" FOREIGN KEY ("reciboId") REFERENCES "TesRecibo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TesTituloEvento" ADD CONSTRAINT "TesTituloEvento_tituloId_fkey" FOREIGN KEY ("tituloId") REFERENCES "TesTitulo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TesAprovacao" ADD CONSTRAINT "TesAprovacao_tituloId_fkey" FOREIGN KEY ("tituloId") REFERENCES "TesTitulo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TesRemessaItem" ADD CONSTRAINT "TesRemessaItem_remessaId_fkey" FOREIGN KEY ("remessaId") REFERENCES "TesRemessa"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TesExtratoItem" ADD CONSTRAINT "TesExtratoItem_extratoId_fkey" FOREIGN KEY ("extratoId") REFERENCES "TesExtrato"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+-- ==== TES:END ====
