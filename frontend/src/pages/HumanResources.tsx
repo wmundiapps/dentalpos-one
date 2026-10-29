@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import PageHeader from "../components/PageHeader";
+import HrVaultGate from "../components/hr/HrVaultGate";
 import EmployeesTab from "../components/hr/EmployeesTab";
 import TimesheetTab from "../components/hr/TimesheetTab";
 import RequestsTab from "../components/hr/RequestsTab";
@@ -9,7 +10,7 @@ import RecordsTab from "../components/hr/RecordsTab";
 import { HrApi, money, type Employee } from "../services/HrApi";
 
 // RH, administração e gestor. O colaborador comum não chega aqui: ele usa "Meu ponto" e só vê os próprios dados.
-export default function HumanResources() {
+function HumanResourcesContent() {
   const [tab, setTab] = useState(0);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [error, setError] = useState("");
@@ -50,4 +51,8 @@ export default function HumanResources() {
       </Paper>
     </Box>
   );
+}
+
+export default function HumanResources() {
+  return <HrVaultGate><HumanResourcesContent /></HrVaultGate>;
 }

@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma'
 import * as hr from '../services/hrTimeService'
 import * as hrFace from '../services/hrFaceService'
 import * as hrPortal from '../services/hrPortalService'
+import * as hrVault from '../services/hrVaultService'
 
 type AuthedReq = Request & { user?: { id: string; email: string; clinicId: string; tenantId: string; role: string } }
 
@@ -96,3 +97,12 @@ const portalCtx = (req: Request): hr.TimeCtx => { const p = (req as hrPortal.Por
 export const portalToday = wrap(async (req, res) => res.json(await hr.myToday(portalCtx(req))))
 export const portalMonth = wrap(async (req, res) => res.json(await hr.myMonth(portalCtx(req), refOf(req))))
 export const portalRequests = wrap(async (req, res) => res.json(await hr.myRequests(portalCtx(req))))
+
+// ---- acesso exclusivo do RH (login e senha próprios) ----
+const vaultCtx = (req: AuthedReq) => ({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, userId: req.user!.id })
+const vaultReply = (res: Response, r: { error?: string; status?: number }) => (r.error ? res.status(r.status || 400).json({ error: r.error }) : res.json(r))
+export const vaultStatus = wrap(async (req, res) => res.json(await hrVault.status(vaultCtx(req), req as never)))
+export const vaultSetup = wrap(async (req, res) => vaultReply(res, await hrVault.setup(vaultCtx(req), req.body) as never))
+export const vaultUnlock = wrap(async (req, res) => vaultReply(res, await hrVault.unlock(vaultCtx(req), req.body) as never))
+export const vaultResetRequest = wrap(async (req, res) => vaultReply(res, await hrVault.requestReset(vaultCtx(req)) as never))
+export const vaultResetConfirm = wrap(async (req, res) => vaultReply(res, await hrVault.confirmReset(vaultCtx(req), req.body) as never))

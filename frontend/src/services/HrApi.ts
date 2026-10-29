@@ -3,7 +3,8 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 function headers(json = false) {
   const token = localStorage.getItem("dentalpos.token") || "";
   const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
-  return { Authorization: `Bearer ${token}`, ...(clinicId ? { "X-Clinic-ID": clinicId } : {}), ...(json ? { "Content-Type": "application/json" } : {}) };
+  const vault = sessionStorage.getItem("completodonto.rhVault") || "";
+  return { Authorization: `Bearer ${token}`, ...(vault ? { "X-HR-Vault": vault } : {}), ...(clinicId ? { "X-Clinic-ID": clinicId } : {}), ...(json ? { "Content-Type": "application/json" } : {}) };
 }
 
 async function req<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
@@ -11,6 +12,7 @@ async function req<T>(path: string, init?: RequestInit & { json?: unknown }): Pr
   const response = await fetch(`${API}${path}`, { ...rest, headers: { ...headers(json !== undefined), ...(rest.headers || {}) }, body: json !== undefined ? JSON.stringify(json) : rest.body });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
+    if (response.status === 423) { sessionStorage.removeItem("completodonto.rhVault"); window.dispatchEvent(new Event("completodonto:rh-locked")); }
     throw new Error(body?.error || `Erro ${response.status}`);
   }
   return response.json() as Promise<T>;
