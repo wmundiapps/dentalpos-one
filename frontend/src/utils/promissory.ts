@@ -1,6 +1,7 @@
 import { loadBrandKit } from "../services/BrandKitApi";
 import { KIT_CSS, footer, letterhead } from "./brandKit/templates";
 import type { BackendPatient } from "../services/PatientApi";
+import { reaisPorExtenso } from "./extenso";
 
 export interface PromissoryLine { installment: number; amount: number; dueDate: string }
 
@@ -8,36 +9,6 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const longDate = (d: Date) => d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric", timeZone: "America/Sao_Paulo" });
 const maskDoc = (v?: string | null) => { const d = String(v || "").replace(/\D/g, ""); return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : d.length === 14 ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5") : v || "______________"; };
-
-const UN = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
-const DE = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
-const CE = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
-function ate999(n: number): string {
-  if (n === 0) return "";
-  if (n === 100) return "cem";
-  const c = Math.floor(n / 100), r = n % 100;
-  const parts: string[] = [];
-  if (c) parts.push(CE[c]);
-  if (r) parts.push(r < 20 ? UN[r] : DE[Math.floor(r / 10)] + (r % 10 ? ` e ${UN[r % 10]}` : ""));
-  return parts.join(" e ");
-}
-function inteiro(n: number): string {
-  if (n === 0) return "zero";
-  const milhoes = Math.floor(n / 1_000_000), milhares = Math.floor((n % 1_000_000) / 1000), resto = n % 1000;
-  const out: string[] = [];
-  if (milhoes) out.push(`${ate999(milhoes)} ${milhoes === 1 ? "milhão" : "milhões"}`);
-  if (milhares) out.push(milhares === 1 ? "mil" : `${ate999(milhares)} mil`);
-  if (resto) out.push(ate999(resto));
-  return out.reduce((acc, p, i) => (i === 0 ? p : acc + (i === out.length - 1 && (resto && resto < 100 || resto % 100 === 0) ? " e " : ", ") + p), "");
-}
-/** 1234.5 → "mil, duzentos e trinta e quatro reais e cinquenta centavos" */
-export function reaisPorExtenso(v: number): string {
-  const cents = Math.round(v * 100);
-  const reais = Math.floor(cents / 100), cent = cents % 100;
-  const r = reais ? `${inteiro(reais)}${reais % 1_000_000 === 0 ? " de" : ""} ${reais === 1 ? "real" : "reais"}` : "";
-  const c = cent ? `${inteiro(cent)} ${cent === 1 ? "centavo" : "centavos"}` : "";
-  return [r, c].filter(Boolean).join(" e ") || "zero real";
-}
 
 // Uma nota promissória por parcela (3 por folha A4), para imprimir e o paciente assinar.
 export async function printPromissories(win: Window | null, patient: BackendPatient, lines: PromissoryLine[]) {
