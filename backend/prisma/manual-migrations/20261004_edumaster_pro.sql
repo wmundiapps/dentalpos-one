@@ -13612,3 +13612,861 @@ ALTER TABLE "CppContaPagar" ADD CONSTRAINT "CppContaPagar_compraId_fkey" FOREIGN
 ALTER TABLE "CppConferenciaItem" ADD CONSTRAINT "CppConferenciaItem_conferenciaId_fkey" FOREIGN KEY ("conferenciaId") REFERENCES "CppConferencia"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- ==== CPP:END ====
+
+
+-- ==== RHE:BEGIN (módulo RH, prefixo Rhe - gerado por prisma migrate diff; somente CRIA) ====
+-- CreateTable
+CREATE TABLE "RheConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "toleranciaMarcacaoMin" INTEGER NOT NULL DEFAULT 5,
+    "toleranciaDiariaMin" INTEGER NOT NULL DEFAULT 10,
+    "divisorHoras" DOUBLE PRECISION NOT NULL DEFAULT 220,
+    "adicionalNoturnoPct" DOUBLE PRECISION NOT NULL DEFAULT 20,
+    "horaNoturnaReduzida" BOOLEAN NOT NULL DEFAULT true,
+    "noturnoInicio" TEXT NOT NULL DEFAULT '22:00',
+    "noturnoFim" TEXT NOT NULL DEFAULT '05:00',
+    "he50Pct" DOUBLE PRECISION NOT NULL DEFAULT 50,
+    "he100Pct" DOUBLE PRECISION NOT NULL DEFAULT 100,
+    "he50LimiteDiarioMin" INTEGER NOT NULL DEFAULT 120,
+    "excedenteCem" BOOLEAN NOT NULL DEFAULT true,
+    "bancoValidadeMeses" INTEGER NOT NULL DEFAULT 6,
+    "bancoFator100" DOUBLE PRECISION NOT NULL DEFAULT 2,
+    "periodicidadeExameMeses" INTEGER NOT NULL DEFAULT 12,
+    "alertaFeriasDias" INTEGER NOT NULL DEFAULT 90,
+    "alertaExameDias" INTEGER NOT NULL DEFAULT 30,
+    "diasUteisSemana" JSONB,
+    "descontaDsrFalta" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheDepartamento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "centroCusto" TEXT,
+    "responsavelId" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheDepartamento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheCargo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "cbo" TEXT,
+    "categoria" TEXT NOT NULL DEFAULT 'TECNICO_ADMINISTRATIVO',
+    "faixaMin" DOUBLE PRECISION,
+    "faixaMax" DOUBLE PRECISION,
+    "descricao" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheCargo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheJornada" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'FIXA_SEMANAL',
+    "dias" JSONB NOT NULL,
+    "baseData" TIMESTAMP(3),
+    "cargaSemanalMin" INTEGER NOT NULL DEFAULT 2640,
+    "bancoHoras" BOOLEAN NOT NULL DEFAULT false,
+    "descontaIntervaloAuto" BOOLEAN NOT NULL DEFAULT true,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheJornada_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheColaborador" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "matricula" TEXT NOT NULL,
+    "userId" TEXT,
+    "nome" TEXT NOT NULL,
+    "email" TEXT,
+    "telefone" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'TECNICO_ADMINISTRATIVO',
+    "vinculo" TEXT NOT NULL DEFAULT 'CLT',
+    "status" TEXT NOT NULL DEFAULT 'ATIVO',
+    "cargoId" TEXT,
+    "departamentoId" TEXT,
+    "gestorId" TEXT,
+    "jornadaId" TEXT,
+    "centroCusto" TEXT,
+    "salarioBase" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorHora" DOUBLE PRECISION,
+    "cargaMensalHoras" DOUBLE PRECISION,
+    "dependentesIrrf" INTEGER NOT NULL DEFAULT 0,
+    "dataNascimento" TIMESTAMP(3),
+    "dataAdmissao" TIMESTAMP(3),
+    "dataDesligamento" TIMESTAMP(3),
+    "cpfHash" TEXT,
+    "cpfCifrado" TEXT,
+    "cpfFinal" TEXT,
+    "cnpjPj" TEXT,
+    "banco" TEXT,
+    "agencia" TEXT,
+    "contaCifrada" TEXT,
+    "pixCifrado" TEXT,
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheColaborador_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheMarcacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "dataHora" TIMESTAMP(3) NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "origem" TEXT NOT NULL DEFAULT 'WEB',
+    "ipHash" TEXT,
+    "ajusteId" TEXT,
+    "observacao" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheMarcacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheAjustePonto" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "marcacoes" JSONB,
+    "justificativa" TEXT NOT NULL,
+    "anexoUrl" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "solicitanteId" TEXT,
+    "decididoPorId" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "motivoDecisao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheAjustePonto_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheFechamentoPonto" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "competencia" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'FECHADO',
+    "resumo" JSONB NOT NULL,
+    "espelho" JSONB NOT NULL,
+    "fechadoPorId" TEXT,
+    "fechadoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "reabertoPorId" TEXT,
+    "reabertoEm" TIMESTAMP(3),
+    "motivoReabertura" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheFechamentoPonto_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheBancoLanc" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "minutos" INTEGER NOT NULL,
+    "venceEm" TIMESTAMP(3),
+    "competencia" TEXT,
+    "origem" TEXT NOT NULL DEFAULT 'MANUAL',
+    "observacao" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheBancoLanc_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheFeriado" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "nome" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheFeriado_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheAtestado" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'MEDICO',
+    "dataInicio" TIMESTAMP(3) NOT NULL,
+    "dias" INTEGER NOT NULL DEFAULT 1,
+    "dataFim" TIMESTAMP(3) NOT NULL,
+    "cidCifrado" TEXT,
+    "cidGrupo" TEXT,
+    "medico" TEXT,
+    "crmCifrado" TEXT,
+    "afastamento" BOOLEAN NOT NULL DEFAULT false,
+    "abonaPonto" BOOLEAN NOT NULL DEFAULT true,
+    "anexoUrl" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'REGISTRADO',
+    "validadoPorId" TEXT,
+    "validadoEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "registradoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheAtestado_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheLicenca" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3) NOT NULL,
+    "dias" INTEGER NOT NULL,
+    "remunerada" BOOLEAN NOT NULL DEFAULT true,
+    "empresaCidada" BOOLEAN NOT NULL DEFAULT false,
+    "status" TEXT NOT NULL DEFAULT 'SOLICITADA',
+    "motivoDecisao" TEXT,
+    "decididoPorId" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheLicenca_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheExame" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'AGENDADO',
+    "agendadoPara" TIMESTAMP(3),
+    "realizadoEm" TIMESTAMP(3),
+    "venceEm" TIMESTAMP(3),
+    "resultado" TEXT,
+    "restricoesCifradas" TEXT,
+    "medico" TEXT,
+    "clinica" TEXT,
+    "anexoUrl" TEXT,
+    "dispensado" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheExame_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheFeriasPeriodo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "aquisitivoInicio" TIMESTAMP(3) NOT NULL,
+    "aquisitivoFim" TIMESTAMP(3) NOT NULL,
+    "concessivoFim" TIMESTAMP(3) NOT NULL,
+    "diasDireito" INTEGER NOT NULL DEFAULT 30,
+    "faltasInjustificadas" INTEGER NOT NULL DEFAULT 0,
+    "diasGozados" INTEGER NOT NULL DEFAULT 0,
+    "diasVendidos" INTEGER NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'EM_AQUISICAO',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheFeriasPeriodo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheFeriasProg" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "periodoId" TEXT NOT NULL,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3) NOT NULL,
+    "dias" INTEGER NOT NULL,
+    "diasAbono" INTEGER NOT NULL DEFAULT 0,
+    "adiantaDecimo" BOOLEAN NOT NULL DEFAULT false,
+    "status" TEXT NOT NULL DEFAULT 'PROGRAMADA',
+    "valores" JSONB,
+    "decididoPorId" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheFeriasProg_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RhePlanoCarreira" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'TECNICO_ADMINISTRATIVO',
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RhePlanoCarreira_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheNivelCarreira" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "planoId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL,
+    "nome" TEXT NOT NULL,
+    "cargoId" TEXT,
+    "salarioBase" DOUBLE PRECISION NOT NULL,
+    "intersticioMeses" INTEGER NOT NULL DEFAULT 12,
+    "requisitos" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheNivelCarreira_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheMovimentacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "dataEfetiva" TIMESTAMP(3) NOT NULL,
+    "cargoDeId" TEXT,
+    "cargoParaId" TEXT,
+    "salarioDe" DOUBLE PRECISION,
+    "salarioPara" DOUBLE PRECISION,
+    "departamentoDeId" TEXT,
+    "departamentoParaId" TEXT,
+    "nivelParaId" TEXT,
+    "motivo" TEXT,
+    "aprovadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheMovimentacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheBonificacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "competencia" TEXT NOT NULL,
+    "incideEncargos" BOOLEAN NOT NULL DEFAULT true,
+    "status" TEXT NOT NULL DEFAULT 'PROPOSTA',
+    "motivo" TEXT,
+    "aprovadoPorId" TEXT,
+    "aprovadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheBonificacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheAdvertencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "nivel" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "motivo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "diasSuspensao" INTEGER,
+    "justificativaSalto" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'REGISTRADA',
+    "cienteEm" TIMESTAMP(3),
+    "cienteIpHash" TEXT,
+    "testemunha" TEXT,
+    "contestacao" TEXT,
+    "contestadaEm" TIMESTAMP(3),
+    "registradoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheAdvertencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheChecklistItem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "fluxo" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "obrigatorio" BOOLEAN NOT NULL DEFAULT true,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "observacao" TEXT,
+    "concluidoEm" TIMESTAMP(3),
+    "concluidoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheChecklistItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheDesligamento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "dataComunicacao" TIMESTAMP(3) NOT NULL,
+    "dataDesligamento" TIMESTAMP(3) NOT NULL,
+    "avisoTipo" TEXT NOT NULL DEFAULT 'NAO_APLICA',
+    "avisoDias" INTEGER NOT NULL DEFAULT 0,
+    "motivo" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'INICIADO',
+    "exameId" TEXT,
+    "rescisao" JSONB,
+    "rescisaoEm" TIMESTAMP(3),
+    "acertoStatus" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "acertoConferidoPorId" TEXT,
+    "concluidoEm" TIMESTAMP(3),
+    "concluidoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheDesligamento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheCiclo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "pesoAuto" DOUBLE PRECISION NOT NULL DEFAULT 30,
+    "pesoGestor" DOUBLE PRECISION NOT NULL DEFAULT 70,
+    "escalaMax" INTEGER NOT NULL DEFAULT 5,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheCiclo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheCriterio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "cicloId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "descricao" TEXT,
+    "peso" DOUBLE PRECISION NOT NULL DEFAULT 1,
+    "categoria" TEXT NOT NULL DEFAULT 'COMPETENCIA',
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheCriterio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheAvaliacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "cicloId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "avaliadorId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "notas" JSONB NOT NULL DEFAULT '{}',
+    "notaAuto" DOUBLE PRECISION,
+    "notaGestor" DOUBLE PRECISION,
+    "notaFinal" DOUBLE PRECISION,
+    "classificacao" TEXT,
+    "parecer" TEXT,
+    "planoAcao" JSONB NOT NULL DEFAULT '[]',
+    "concluidaEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheAvaliacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheTabelaFiscal" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "vigenciaInicio" TIMESTAMP(3) NOT NULL,
+    "descricao" TEXT,
+    "faixas" JSONB,
+    "parametros" JSONB,
+    "modeloAValidar" BOOLEAN NOT NULL DEFAULT true,
+    "fonte" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheTabelaFiscal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheEventoFolha" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "incideInss" BOOLEAN NOT NULL DEFAULT true,
+    "incideIrrf" BOOLEAN NOT NULL DEFAULT true,
+    "incideFgts" BOOLEAN NOT NULL DEFAULT true,
+    "sistema" BOOLEAN NOT NULL DEFAULT false,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheEventoFolha_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheLancamentoFolha" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "competencia" TEXT NOT NULL,
+    "eventoCodigo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "referencia" DOUBLE PRECISION,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheLancamentoFolha_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheFolha" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "competencia" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'MENSAL',
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "totais" JSONB,
+    "avisos" JSONB,
+    "calculadaEm" TIMESTAMP(3),
+    "calculadaPorId" TEXT,
+    "fechadaEm" TIMESTAMP(3),
+    "fechadaPorId" TEXT,
+    "lancamentosEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheFolha_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheHolerite" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "folhaId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "vinculo" TEXT NOT NULL,
+    "itens" JSONB NOT NULL,
+    "bruto" DOUBLE PRECISION NOT NULL,
+    "descontos" DOUBLE PRECISION NOT NULL,
+    "liquido" DOUBLE PRECISION NOT NULL,
+    "inss" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "irrf" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "fgts" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "baseInss" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "baseIrrf" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "patronal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheHolerite_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheSocio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "userId" TEXT,
+    "participacaoPct" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "proLaboreMensal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "dependentesIrrf" INTEGER NOT NULL DEFAULT 0,
+    "cpfHash" TEXT,
+    "cpfCifrado" TEXT,
+    "cpfFinal" TEXT,
+    "desde" TIMESTAMP(3),
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheSocio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheProLabore" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "folhaId" TEXT NOT NULL,
+    "socioId" TEXT NOT NULL,
+    "competencia" TEXT NOT NULL,
+    "bruto" DOUBLE PRECISION NOT NULL,
+    "inss" DOUBLE PRECISION NOT NULL,
+    "irrf" DOUBLE PRECISION NOT NULL,
+    "liquido" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RheProLabore_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RheTerceiro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "cpfHash" TEXT,
+    "documentoCifrado" TEXT,
+    "documentoFinal" TEXT,
+    "email" TEXT,
+    "servico" TEXT,
+    "pixCifrado" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RheTerceiro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RhePagamentoTerceiro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "terceiroId" TEXT NOT NULL,
+    "competencia" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "bruto" DOUBLE PRECISION NOT NULL,
+    "inss" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "irrf" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "iss" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "outrasRetencoes" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "liquido" DOUBLE PRECISION NOT NULL,
+    "patronal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "notaFiscal" TEXT,
+    "dataPrevista" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "aprovadoPorId" TEXT,
+    "aprovadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RhePagamentoTerceiro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheConfig_tenantId_key" ON "RheConfig"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "RheDepartamento_tenantId_ativo_idx" ON "RheDepartamento"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheDepartamento_tenantId_codigo_key" ON "RheDepartamento"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX "RheCargo_tenantId_ativo_idx" ON "RheCargo"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheCargo_tenantId_nome_key" ON "RheCargo"("tenantId", "nome");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheJornada_tenantId_nome_key" ON "RheJornada"("tenantId", "nome");
+
+-- CreateIndex
+CREATE INDEX "RheColaborador_tenantId_status_idx" ON "RheColaborador"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "RheColaborador_tenantId_userId_idx" ON "RheColaborador"("tenantId", "userId");
+
+-- CreateIndex
+CREATE INDEX "RheColaborador_tenantId_departamentoId_idx" ON "RheColaborador"("tenantId", "departamentoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheColaborador_tenantId_matricula_key" ON "RheColaborador"("tenantId", "matricula");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheColaborador_tenantId_cpfHash_key" ON "RheColaborador"("tenantId", "cpfHash");
+
+-- CreateIndex
+CREATE INDEX "RheMarcacao_tenantId_colaboradorId_dataHora_idx" ON "RheMarcacao"("tenantId", "colaboradorId", "dataHora");
+
+-- CreateIndex
+CREATE INDEX "RheAjustePonto_tenantId_status_idx" ON "RheAjustePonto"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "RheAjustePonto_tenantId_colaboradorId_data_idx" ON "RheAjustePonto"("tenantId", "colaboradorId", "data");
+
+-- CreateIndex
+CREATE INDEX "RheFechamentoPonto_tenantId_competencia_idx" ON "RheFechamentoPonto"("tenantId", "competencia");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheFechamentoPonto_tenantId_colaboradorId_competencia_key" ON "RheFechamentoPonto"("tenantId", "colaboradorId", "competencia");
+
+-- CreateIndex
+CREATE INDEX "RheBancoLanc_tenantId_colaboradorId_data_idx" ON "RheBancoLanc"("tenantId", "colaboradorId", "data");
+
+-- CreateIndex
+CREATE INDEX "RheBancoLanc_tenantId_competencia_origem_idx" ON "RheBancoLanc"("tenantId", "competencia", "origem");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheFeriado_tenantId_data_key" ON "RheFeriado"("tenantId", "data");
+
+-- CreateIndex
+CREATE INDEX "RheAtestado_tenantId_colaboradorId_dataInicio_idx" ON "RheAtestado"("tenantId", "colaboradorId", "dataInicio");
+
+-- CreateIndex
+CREATE INDEX "RheAtestado_tenantId_status_idx" ON "RheAtestado"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "RheLicenca_tenantId_colaboradorId_inicio_idx" ON "RheLicenca"("tenantId", "colaboradorId", "inicio");
+
+-- CreateIndex
+CREATE INDEX "RheLicenca_tenantId_status_idx" ON "RheLicenca"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "RheExame_tenantId_colaboradorId_tipo_idx" ON "RheExame"("tenantId", "colaboradorId", "tipo");
+
+-- CreateIndex
+CREATE INDEX "RheExame_tenantId_venceEm_idx" ON "RheExame"("tenantId", "venceEm");
+
+-- CreateIndex
+CREATE INDEX "RheFeriasPeriodo_tenantId_status_concessivoFim_idx" ON "RheFeriasPeriodo"("tenantId", "status", "concessivoFim");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheFeriasPeriodo_tenantId_colaboradorId_aquisitivoInicio_key" ON "RheFeriasPeriodo"("tenantId", "colaboradorId", "aquisitivoInicio");
+
+-- CreateIndex
+CREATE INDEX "RheFeriasProg_tenantId_colaboradorId_inicio_idx" ON "RheFeriasProg"("tenantId", "colaboradorId", "inicio");
+
+-- CreateIndex
+CREATE INDEX "RheFeriasProg_tenantId_periodoId_idx" ON "RheFeriasProg"("tenantId", "periodoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RhePlanoCarreira_tenantId_nome_key" ON "RhePlanoCarreira"("tenantId", "nome");
+
+-- CreateIndex
+CREATE INDEX "RheNivelCarreira_tenantId_planoId_idx" ON "RheNivelCarreira"("tenantId", "planoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheNivelCarreira_planoId_ordem_key" ON "RheNivelCarreira"("planoId", "ordem");
+
+-- CreateIndex
+CREATE INDEX "RheMovimentacao_tenantId_colaboradorId_dataEfetiva_idx" ON "RheMovimentacao"("tenantId", "colaboradorId", "dataEfetiva");
+
+-- CreateIndex
+CREATE INDEX "RheBonificacao_tenantId_competencia_status_idx" ON "RheBonificacao"("tenantId", "competencia", "status");
+
+-- CreateIndex
+CREATE INDEX "RheBonificacao_tenantId_colaboradorId_idx" ON "RheBonificacao"("tenantId", "colaboradorId");
+
+-- CreateIndex
+CREATE INDEX "RheAdvertencia_tenantId_colaboradorId_data_idx" ON "RheAdvertencia"("tenantId", "colaboradorId", "data");
+
+-- CreateIndex
+CREATE INDEX "RheChecklistItem_tenantId_colaboradorId_fluxo_idx" ON "RheChecklistItem"("tenantId", "colaboradorId", "fluxo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheChecklistItem_tenantId_colaboradorId_fluxo_codigo_key" ON "RheChecklistItem"("tenantId", "colaboradorId", "fluxo", "codigo");
+
+-- CreateIndex
+CREATE INDEX "RheDesligamento_tenantId_colaboradorId_idx" ON "RheDesligamento"("tenantId", "colaboradorId");
+
+-- CreateIndex
+CREATE INDEX "RheDesligamento_tenantId_status_idx" ON "RheDesligamento"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "RheCiclo_tenantId_status_idx" ON "RheCiclo"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "RheCriterio_tenantId_cicloId_idx" ON "RheCriterio"("tenantId", "cicloId");
+
+-- CreateIndex
+CREATE INDEX "RheAvaliacao_tenantId_cicloId_status_idx" ON "RheAvaliacao"("tenantId", "cicloId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheAvaliacao_cicloId_colaboradorId_key" ON "RheAvaliacao"("cicloId", "colaboradorId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheTabelaFiscal_tenantId_tipo_vigenciaInicio_key" ON "RheTabelaFiscal"("tenantId", "tipo", "vigenciaInicio");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheEventoFolha_tenantId_codigo_key" ON "RheEventoFolha"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX "RheLancamentoFolha_tenantId_competencia_colaboradorId_idx" ON "RheLancamentoFolha"("tenantId", "competencia", "colaboradorId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheFolha_tenantId_competencia_tipo_key" ON "RheFolha"("tenantId", "competencia", "tipo");
+
+-- CreateIndex
+CREATE INDEX "RheHolerite_tenantId_colaboradorId_idx" ON "RheHolerite"("tenantId", "colaboradorId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheHolerite_folhaId_colaboradorId_key" ON "RheHolerite"("folhaId", "colaboradorId");
+
+-- CreateIndex
+CREATE INDEX "RheSocio_tenantId_ativo_idx" ON "RheSocio"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheSocio_tenantId_cpfHash_key" ON "RheSocio"("tenantId", "cpfHash");
+
+-- CreateIndex
+CREATE INDEX "RheProLabore_tenantId_competencia_idx" ON "RheProLabore"("tenantId", "competencia");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheProLabore_folhaId_socioId_key" ON "RheProLabore"("folhaId", "socioId");
+
+-- CreateIndex
+CREATE INDEX "RheTerceiro_tenantId_ativo_idx" ON "RheTerceiro"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RheTerceiro_tenantId_cpfHash_key" ON "RheTerceiro"("tenantId", "cpfHash");
+
+-- CreateIndex
+CREATE INDEX "RhePagamentoTerceiro_tenantId_competencia_status_idx" ON "RhePagamentoTerceiro"("tenantId", "competencia", "status");
+
+-- CreateIndex
+CREATE INDEX "RhePagamentoTerceiro_tenantId_terceiroId_idx" ON "RhePagamentoTerceiro"("tenantId", "terceiroId");
+
+-- ==== RHE:END ====

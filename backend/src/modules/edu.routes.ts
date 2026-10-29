@@ -21,6 +21,7 @@ import bibliotecaRouter, { publicRouter as bibliotecaPublic } from './biblioteca
 import jornadasRouter, { publicRouter as jornadasPublic } from './jornadas/routes'
 import modalidadesRouter, { publicRouter as modalidadesPublic } from './modalidades/routes'
 import reitoriaRouter, { publicRouter as reitoriaPublic } from './reitoria/routes'
+import rhRouter from './rh/routes'
 import lgpdRouter, { publicRouter as lgpdPublic } from './lgpd/routes'
 import tesourariaRouter from './tesouraria/routes'
 import { acessoSensivelLog } from './lgpd/sensiveis'
@@ -54,6 +55,7 @@ router.use('/jornadas', jornadasRouter)
 router.use('/modalidades', modalidadesRouter)
 router.use('/reitoria', reitoriaRouter)
 router.use('/lgpd', lgpdRouter)
+router.use('/rh', rhRouter)
 router.use('/juridico', juridicoRouter)
 router.use('/tesouraria', tesourariaRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.

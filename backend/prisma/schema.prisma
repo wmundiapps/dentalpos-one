@@ -12792,6 +12792,698 @@ model ReiConsultaIA {
   @@index([tenantId, createdAt])
 }
 
+// ---- edu/rh.prisma ----
+// ============================================================
+// EDUMASTER PRO — RH (prefixo Rhe): colaboradores (docentes e técnico-administrativos), ponto e banco de horas,
+// atestados/licenças/férias, carreira, advertências, admissão/desligamento, avaliação de desempenho,
+// folha (modelo simplificado), pró-labore e terceiros.
+// Somente tabelas NOVAS. Referências a User/outros módulos = String ids SEM @relation (o titular pode ser
+// anonimizado/eliminado sem quebrar integridade). Valores monetários em Float (2 casas, arredondados no código);
+// minutos em Int. Status/tipos são String validados no backend (zod). Dados de saúde (CID, ASO, atestados)
+// e CPF ficam cifrados (AES-256-GCM, módulo segurança) e só aparecem para o RH com log de acesso.
+// ============================================================
+
+// ---------------------------------------------------------------- parâmetros
+model RheConfig {
+  id                    String   @id @default(uuid())
+  tenantId              String   @unique
+  toleranciaMarcacaoMin Int      @default(5)      // CLT art. 58 §1º: variação por marcação
+  toleranciaDiariaMin   Int      @default(10)     // ... e no total do dia
+  divisorHoras          Float    @default(220)    // horas/mês para valor-hora
+  adicionalNoturnoPct   Float    @default(20)
+  horaNoturnaReduzida   Boolean  @default(true)   // 52min30s
+  noturnoInicio         String   @default("22:00")
+  noturnoFim            String   @default("05:00")
+  he50Pct               Float    @default(50)
+  he100Pct              Float    @default(100)
+  he50LimiteDiarioMin   Int      @default(120)    // acima disso, o excedente vai a 100% (parametrizável por CCT)
+  excedenteCem          Boolean  @default(true)
+  bancoValidadeMeses    Int      @default(6)      // 6 (acordo individual) a 12 (coletivo)
+  bancoFator100         Float    @default(2)      // horas a 100% creditadas em dobro no banco
+  periodicidadeExameMeses Int    @default(12)
+  alertaFeriasDias      Int      @default(90)
+  alertaExameDias       Int      @default(30)
+  diasUteisSemana       Json?
+  descontaDsrFalta      Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------- estrutura
+model RheDepartamento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  codigo        String
+  nome          String
+  centroCusto   String?
+  responsavelId String?     // RheColaborador
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, ativo])
+}
+
+model RheCargo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  cbo         String?
+  categoria   String   @default("TECNICO_ADMINISTRATIVO")   // DOCENTE | TECNICO_ADMINISTRATIVO | GESTAO
+  faixaMin    Float?
+  faixaMax    Float?
+  descricao   String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, nome])
+  @@index([tenantId, ativo])
+}
+
+// Jornada/escala. dias = { "1": {"entrada":"08:00","saida":"17:00","intervaloMin":60}, ... } (0=domingo..6=sábado).
+// tipo FIXA_SEMANAL usa "dias"; ESCALA_12X36 usa "dias.escala" (entrada/saida) e "baseData" (dia trabalhado de referência).
+model RheJornada {
+  id              String   @id @default(uuid())
+  tenantId        String
+  nome            String
+  tipo            String   @default("FIXA_SEMANAL")
+  dias            Json
+  baseData        DateTime?
+  cargaSemanalMin Int      @default(2640)
+  bancoHoras      Boolean  @default(false)
+  descontaIntervaloAuto Boolean @default(true)
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, nome])
+}
+
+model RheColaborador {
+  id               String   @id @default(uuid())
+  tenantId         String
+  matricula        String
+  userId           String?
+  nome             String
+  email            String?
+  telefone         String?
+  tipo             String   @default("TECNICO_ADMINISTRATIVO")   // DOCENTE | TECNICO_ADMINISTRATIVO
+  vinculo          String   @default("CLT")                       // CLT | PJ | ESTAGIARIO | PROFESSOR_HORISTA
+  status           String   @default("ATIVO")                     // EM_ADMISSAO | ATIVO | AFASTADO | FERIAS | DESLIGADO
+  cargoId          String?
+  departamentoId   String?
+  gestorId         String?
+  jornadaId        String?
+  centroCusto      String?
+  salarioBase      Float    @default(0)      // mensal; PJ = valor do contrato; estagiário = bolsa
+  valorHora        Float?                    // horista
+  cargaMensalHoras Float?                    // horista (horas/mês contratadas)
+  dependentesIrrf  Int      @default(0)
+  dataNascimento   DateTime?
+  dataAdmissao     DateTime?
+  dataDesligamento DateTime?
+  cpfHash          String?                   // HMAC (unicidade sem expor CPF)
+  cpfCifrado       String?
+  cpfFinal         String?                   // 2 últimos dígitos para conferência
+  cnpjPj           String?
+  banco            String?
+  agencia          String?
+  contaCifrada     String?
+  pixCifrado       String?
+  observacoes      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, matricula])
+  @@unique([tenantId, cpfHash])
+  @@index([tenantId, status])
+  @@index([tenantId, userId])
+  @@index([tenantId, departamentoId])
+}
+
+// ---------------------------------------------------------------- ponto
+model RheMarcacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  dataHora      DateTime
+  tipo          String   // ENTRADA | SAIDA_INTERVALO | RETORNO_INTERVALO | SAIDA
+  origem        String   @default("WEB")   // WEB | APP | IMPORTACAO | AJUSTE
+  ipHash        String?
+  ajusteId      String?
+  observacao    String?
+  criadoPorId   String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, colaboradorId, dataHora])
+}
+
+model RheAjustePonto {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  data          DateTime            // dia local (00:00 UTC do dia)
+  tipo          String   // INCLUIR_MARCACOES | ABONO_FALTA | JUSTIFICAR_ATRASO
+  marcacoes     Json?    // [{tipo, hora:"HH:MM"}]
+  justificativa String
+  anexoUrl      String?
+  status        String   @default("PENDENTE")   // PENDENTE | APROVADO | REJEITADO | CANCELADO
+  solicitanteId String?
+  decididoPorId String?
+  decididoEm    DateTime?
+  motivoDecisao String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, colaboradorId, data])
+}
+
+model RheFechamentoPonto {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  competencia   String   // YYYY-MM
+  status        String   @default("FECHADO")   // FECHADO | REABERTO
+  resumo        Json
+  espelho       Json
+  fechadoPorId  String?
+  fechadoEm     DateTime @default(now())
+  reabertoPorId String?
+  reabertoEm    DateTime?
+  motivoReabertura String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, colaboradorId, competencia])
+  @@index([tenantId, competencia])
+}
+
+// Lançamentos do banco de horas. Saldo e consumo (FIFO) são DERIVADOS da repetição do razão (ver rh/banco.ts).
+model RheBancoLanc {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  data          DateTime
+  tipo          String   // CREDITO | DEBITO | COMPENSACAO | PAGAMENTO | AJUSTE
+  minutos       Int      // + crédito / − débito
+  venceEm       DateTime?
+  competencia   String?
+  origem        String   @default("MANUAL")   // FECHAMENTO | FOLHA | MANUAL
+  observacao    String?
+  criadoPorId   String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, colaboradorId, data])
+  @@index([tenantId, competencia, origem])
+}
+
+model RheFeriado {
+  id        String   @id @default(uuid())
+  tenantId  String
+  data      DateTime
+  nome      String
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, data])
+}
+
+// ---------------------------------------------------------------- saúde: atestados, licenças, exames
+model RheAtestado {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  tipo          String   @default("MEDICO")   // MEDICO | COMPARECIMENTO | ACOMPANHAMENTO_FAMILIAR | ODONTOLOGICO
+  dataInicio    DateTime
+  dias          Int      @default(1)
+  dataFim       DateTime
+  cidCifrado    String?              // CID: dado sensível de saúde (opcional)
+  cidGrupo      String?              // capítulo/grupo (ex.: "M") sem diagnóstico, usado em estatística agregada
+  medico        String?
+  crmCifrado    String?
+  afastamento   Boolean  @default(false)   // > 15 dias: afastamento previdenciário (INSS) a partir do 16º dia
+  abonaPonto    Boolean  @default(true)
+  anexoUrl      String?
+  status        String   @default("REGISTRADO")   // REGISTRADO | VALIDADO | REJEITADO
+  validadoPorId String?
+  validadoEm    DateTime?
+  observacao    String?
+  registradoPorId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, colaboradorId, dataInicio])
+  @@index([tenantId, status])
+}
+
+model RheLicenca {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  tipo          String   // MATERNIDADE | PATERNIDADE | MEDICA | NOJO | GALA | SEM_VENCIMENTO | OUTRA
+  inicio        DateTime
+  fim           DateTime
+  dias          Int
+  remunerada    Boolean  @default(true)
+  empresaCidada Boolean  @default(false)
+  status        String   @default("SOLICITADA")   // SOLICITADA | APROVADA | REJEITADA | CANCELADA | ENCERRADA
+  motivoDecisao String?
+  decididoPorId String?
+  decididoEm    DateTime?
+  observacao    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, colaboradorId, inicio])
+  @@index([tenantId, status])
+}
+
+model RheExame {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  tipo          String   // ADMISSIONAL | PERIODICO | RETORNO_TRABALHO | MUDANCA_FUNCAO | DEMISSIONAL
+  status        String   @default("AGENDADO")   // AGENDADO | REALIZADO | CANCELADO
+  agendadoPara  DateTime?
+  realizadoEm   DateTime?
+  venceEm       DateTime?
+  resultado     String?             // APTO | INAPTO | APTO_COM_RESTRICAO  (dado de saúde)
+  restricoesCifradas String?
+  medico        String?
+  clinica       String?
+  anexoUrl      String?
+  dispensado    Boolean  @default(false)   // demissional dispensado (art. 168 §4º NR-7: exame < 90/135 dias)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, colaboradorId, tipo])
+  @@index([tenantId, venceEm])
+}
+
+// ---------------------------------------------------------------- férias
+model RheFeriasPeriodo {
+  id             String   @id @default(uuid())
+  tenantId       String
+  colaboradorId  String
+  aquisitivoInicio DateTime
+  aquisitivoFim  DateTime
+  concessivoFim  DateTime
+  diasDireito    Int      @default(30)
+  faltasInjustificadas Int @default(0)
+  diasGozados    Int      @default(0)
+  diasVendidos   Int      @default(0)
+  status         String   @default("EM_AQUISICAO")   // EM_AQUISICAO | DISPONIVEL | PARCIAL | GOZADO | VENCIDO
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, colaboradorId, aquisitivoInicio])
+  @@index([tenantId, status, concessivoFim])
+}
+
+model RheFeriasProg {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  periodoId     String
+  inicio        DateTime
+  fim           DateTime
+  dias          Int
+  diasAbono     Int      @default(0)    // venda de até 1/3
+  adiantaDecimo Boolean  @default(false)
+  status        String   @default("PROGRAMADA")   // PROGRAMADA | APROVADA | EM_GOZO | CONCLUIDA | CANCELADA | REJEITADA
+  valores       Json?
+  decididoPorId String?
+  decididoEm    DateTime?
+  observacao    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, colaboradorId, inicio])
+  @@index([tenantId, periodoId])
+}
+
+// ---------------------------------------------------------------- carreira
+model RhePlanoCarreira {
+  id        String   @id @default(uuid())
+  tenantId  String
+  nome      String
+  categoria String   @default("TECNICO_ADMINISTRATIVO")
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, nome])
+}
+
+model RheNivelCarreira {
+  id          String   @id @default(uuid())
+  tenantId    String
+  planoId     String
+  ordem       Int
+  nome        String
+  cargoId     String?
+  salarioBase Float
+  intersticioMeses Int @default(12)
+  requisitos  String?
+  createdAt   DateTime @default(now())
+
+  @@unique([planoId, ordem])
+  @@index([tenantId, planoId])
+}
+
+model RheMovimentacao {
+  id             String   @id @default(uuid())
+  tenantId       String
+  colaboradorId  String
+  tipo           String   // ADMISSAO | PROMOCAO | PROGRESSAO | MERITO | ENQUADRAMENTO | TRANSFERENCIA | REAJUSTE | DESLIGAMENTO
+  dataEfetiva    DateTime
+  cargoDeId      String?
+  cargoParaId    String?
+  salarioDe      Float?
+  salarioPara    Float?
+  departamentoDeId   String?
+  departamentoParaId String?
+  nivelParaId    String?
+  motivo         String?
+  aprovadoPorId  String?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, colaboradorId, dataEfetiva])
+}
+
+model RheBonificacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  tipo          String   // BONUS | PREMIO | PLR | COMISSAO | RECONHECIMENTO
+  descricao     String
+  valor         Float
+  competencia   String   // YYYY-MM em que entra na folha
+  incideEncargos Boolean @default(true)
+  status        String   @default("PROPOSTA")   // PROPOSTA | APROVADA | PAGA | CANCELADA
+  motivo        String?
+  aprovadoPorId String?
+  aprovadoEm    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, competencia, status])
+  @@index([tenantId, colaboradorId])
+}
+
+// ---------------------------------------------------------------- disciplina
+model RheAdvertencia {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  nivel         String   // ORIENTACAO | ADVERTENCIA_VERBAL | ADVERTENCIA_ESCRITA | SUSPENSAO | JUSTA_CAUSA
+  data          DateTime
+  motivo        String
+  descricao     String
+  diasSuspensao Int?
+  justificativaSalto String?     // obrigatória ao pular o escalonamento
+  status        String   @default("REGISTRADA")   // REGISTRADA | CIENTE | RECUSOU_CIENCIA | CONTESTADA | CANCELADA
+  cienteEm      DateTime?
+  cienteIpHash  String?
+  testemunha    String?
+  contestacao   String?
+  contestadaEm  DateTime?
+  registradoPorId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, colaboradorId, data])
+}
+
+// ---------------------------------------------------------------- admissão / desligamento
+model RheChecklistItem {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  fluxo         String   // ADMISSAO | DESLIGAMENTO
+  codigo        String
+  titulo        String
+  obrigatorio   Boolean  @default(true)
+  status        String   @default("PENDENTE")   // PENDENTE | RECEBIDO | DISPENSADO
+  observacao    String?
+  concluidoEm   DateTime?
+  concluidoPorId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, colaboradorId, fluxo, codigo])
+  @@index([tenantId, colaboradorId, fluxo])
+}
+
+model RheDesligamento {
+  id               String   @id @default(uuid())
+  tenantId         String
+  colaboradorId    String
+  tipo             String   // SEM_JUSTA_CAUSA | JUSTA_CAUSA | PEDIDO_DEMISSAO | ACORDO | TERMINO_CONTRATO | APOSENTADORIA | TERMINO_ESTAGIO
+  dataComunicacao  DateTime
+  dataDesligamento DateTime
+  avisoTipo        String   @default("NAO_APLICA")   // TRABALHADO | INDENIZADO | DISPENSADO | NAO_APLICA
+  avisoDias        Int      @default(0)
+  motivo           String?
+  status           String   @default("INICIADO")   // INICIADO | AGUARDANDO_EXAME | AGUARDANDO_DEVOLUCAO | ACERTO | CONCLUIDO | CANCELADO
+  exameId          String?
+  rescisao         Json?            // SIMULAÇÃO do termo de rescisão (modelo a validar)
+  rescisaoEm       DateTime?
+  acertoStatus     String   @default("PENDENTE")   // PENDENTE | CONFERIDO | PAGO
+  acertoConferidoPorId String?
+  concluidoEm      DateTime?
+  concluidoPorId   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId, colaboradorId])
+  @@index([tenantId, status])
+}
+
+// ---------------------------------------------------------------- avaliação de desempenho
+model RheCiclo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  inicio      DateTime
+  fim         DateTime
+  status      String   @default("RASCUNHO")   // RASCUNHO | ABERTO | ENCERRADO
+  pesoAuto    Float    @default(30)
+  pesoGestor  Float    @default(70)
+  escalaMax   Int      @default(5)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model RheCriterio {
+  id        String   @id @default(uuid())
+  tenantId  String
+  cicloId   String
+  nome      String
+  descricao String?
+  peso      Float    @default(1)
+  categoria String   @default("COMPETENCIA")   // COMPETENCIA | RESULTADO | VALORES
+  ordem     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, cicloId])
+}
+
+model RheAvaliacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  cicloId       String
+  colaboradorId String
+  avaliadorId   String?          // RheColaborador (gestor)
+  status        String   @default("PENDENTE")   // PENDENTE | AUTO_ENVIADA | GESTOR_ENVIADA | CONCLUIDA
+  notas         Json     @default("{}")         // { criterioId: { auto, gestor, comentarioAuto, comentarioGestor } }
+  notaAuto      Float?
+  notaGestor    Float?
+  notaFinal     Float?
+  classificacao String?          // INSUFICIENTE | EM_DESENVOLVIMENTO | ADEQUADO | EXCELENTE
+  parecer       String?
+  planoAcao     Json     @default("[]")         // [{acao, prazo, responsavel, status}]
+  concluidaEm   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([cicloId, colaboradorId])
+  @@index([tenantId, cicloId, status])
+}
+
+// ---------------------------------------------------------------- folha
+model RheTabelaFiscal {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tipo            String   // INSS | IRRF | FGTS | ENCARGOS
+  vigenciaInicio  DateTime
+  descricao       String?
+  faixas          Json?    // [{ate, aliquota, deducao?}]
+  parametros      Json?    // teto, deducaoDependente, desconto simplificado, redutor...
+  modeloAValidar  Boolean  @default(true)
+  fonte           String?
+  criadoPorId     String?
+  createdAt       DateTime @default(now())
+
+  @@unique([tenantId, tipo, vigenciaInicio])
+}
+
+model RheEventoFolha {
+  id          String   @id @default(uuid())
+  tenantId    String
+  codigo      String
+  nome        String
+  tipo        String   // PROVENTO | DESCONTO
+  incideInss  Boolean  @default(true)
+  incideIrrf  Boolean  @default(true)
+  incideFgts  Boolean  @default(true)
+  sistema     Boolean  @default(false)
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, codigo])
+}
+
+model RheLancamentoFolha {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  competencia   String
+  eventoCodigo  String
+  descricao     String?
+  valor         Float
+  referencia    Float?
+  criadoPorId   String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, competencia, colaboradorId])
+}
+
+model RheFolha {
+  id            String   @id @default(uuid())
+  tenantId      String
+  competencia   String   // YYYY-MM
+  tipo          String   @default("MENSAL")   // MENSAL | DECIMO_1A | DECIMO_2A
+  status        String   @default("RASCUNHO")   // RASCUNHO | CALCULADA | FECHADA
+  totais        Json?
+  avisos        Json?
+  calculadaEm   DateTime?
+  calculadaPorId String?
+  fechadaEm     DateTime?
+  fechadaPorId  String?
+  lancamentosEm DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, competencia, tipo])
+}
+
+model RheHolerite {
+  id            String   @id @default(uuid())
+  tenantId      String
+  folhaId       String
+  colaboradorId String
+  vinculo       String
+  itens         Json
+  bruto         Float
+  descontos     Float
+  liquido       Float
+  inss          Float    @default(0)
+  irrf          Float    @default(0)
+  fgts          Float    @default(0)
+  baseInss      Float    @default(0)
+  baseIrrf      Float    @default(0)
+  patronal      Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  @@unique([folhaId, colaboradorId])
+  @@index([tenantId, colaboradorId])
+}
+
+model RheSocio {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  userId        String?
+  participacaoPct Float  @default(0)
+  proLaboreMensal Float  @default(0)
+  dependentesIrrf Int    @default(0)
+  cpfHash       String?
+  cpfCifrado    String?
+  cpfFinal      String?
+  desde         DateTime?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, cpfHash])
+  @@index([tenantId, ativo])
+}
+
+model RheProLabore {
+  id          String   @id @default(uuid())
+  tenantId    String
+  folhaId     String
+  socioId     String
+  competencia String
+  bruto       Float
+  inss        Float
+  irrf        Float
+  liquido     Float
+  createdAt   DateTime @default(now())
+
+  @@unique([folhaId, socioId])
+  @@index([tenantId, competencia])
+}
+
+model RheTerceiro {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tipo        String   // RPA | PJ
+  nome        String
+  cpfHash     String?
+  documentoCifrado String?
+  documentoFinal   String?
+  email       String?
+  servico     String?
+  pixCifrado  String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, cpfHash])
+  @@index([tenantId, ativo])
+}
+
+model RhePagamentoTerceiro {
+  id            String   @id @default(uuid())
+  tenantId      String
+  terceiroId    String
+  competencia   String
+  descricao     String
+  bruto         Float
+  inss          Float    @default(0)
+  irrf          Float    @default(0)
+  iss           Float    @default(0)
+  outrasRetencoes Float  @default(0)
+  liquido       Float
+  patronal      Float    @default(0)      // INSS patronal 20% sobre RPA (custo da instituição, informativo)
+  notaFiscal    String?                    // obrigatória para PJ
+  dataPrevista  DateTime?
+  status        String   @default("RASCUNHO")   // RASCUNHO | APROVADO | PAGO | CANCELADO
+  aprovadoPorId String?
+  aprovadoEm    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, competencia, status])
+  @@index([tenantId, terceiroId])
+}
+
 // ---- edu/secretaria.prisma ----
 // ============================================================
 // EDUMASTER PRO — SECRETARIA ACADÊMICA (prefixo Sec)
