@@ -19,6 +19,11 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
 import HubIcon from "@mui/icons-material/Hub";
 import InsightsIcon from "@mui/icons-material/Insights";
+import GavelIcon from "@mui/icons-material/Gavel";
+import HandshakeIcon from "@mui/icons-material/Handshake";
+import HomeWorkIcon from "@mui/icons-material/HomeWork";
+import ShieldIcon from "@mui/icons-material/Shield";
+import LocationCityIcon from "@mui/icons-material/LocationCity";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
@@ -216,6 +221,20 @@ export const navigationGroups:NavigationGroup[] = [
       item("Comunicação omnichannel","/edu/comunicacao",<ChatIcon/>),
       item("Infraestrutura e patrimônio","/edu/infraestrutura",<CleaningServicesIcon/>),
       item("Compras, estoque e vendas","/edu/suprimentos",<Inventory2Icon/>),
+    ]
+  },
+  {
+    label:"EduMaster · Jurídico",
+    icon:tile(<GavelIcon/>,"#7C2D12"),
+    items:[
+      item("Painel","/edu/juridico?secao=painel",<SpaceDashboardIcon/>),
+      item("Documentos","/edu/juridico?secao=documentos",<DescriptionIcon/>),
+      item("Contratos","/edu/juridico?secao=contratos",<HandshakeIcon/>),
+      item("Imóveis","/edu/juridico?secao=imoveis",<HomeWorkIcon/>),
+      item("Polos","/edu/juridico?secao=polos",<LocationCityIcon/>),
+      item("Processos","/edu/juridico?secao=processos",<GavelIcon/>),
+      item("Inteligência","/edu/juridico?secao=inteligencia",<InsightsIcon/>),
+      item("Riscos e Seguros","/edu/juridico?secao=riscos",<ShieldIcon/>),
     ]
   },
   {
