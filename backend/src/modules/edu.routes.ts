@@ -27,6 +27,7 @@ import tesourariaRouter from './tesouraria/routes'
 import cobrancaRouter from './cobranca/routes'
 import { acessoSensivelLog } from './lgpd/sensiveis'
 import juridicoRouter from './juridico/routes'
+import marketingRouter, { publicRouter as marketingPublic } from './marketing/routes'
 import feedbackRouter from './feedback/routes'
 import portal2Router, { publicRouter as portal2Public, ambienteContext } from './portal2/routes'
 import presencaRouter from './presenca/routes'
@@ -66,6 +67,7 @@ router.use('/reitoria', reitoriaRouter)
 router.use('/lgpd', lgpdRouter)
 router.use('/rh', rhRouter)
 router.use('/juridico', juridicoRouter)
+router.use('/marketing', marketingRouter)
 router.use('/feedback', feedbackRouter)
 router.use('/portal2', portal2Router)
 router.use('/presenca', presencaRouter)
@@ -96,5 +98,6 @@ eduPublicRouter.use('/jornadas', jornadasPublic)
 eduPublicRouter.use('/modalidades', modalidadesPublic)
 eduPublicRouter.use('/reitoria', reitoriaPublic)
 eduPublicRouter.use('/lgpd', lgpdPublic)
+eduPublicRouter.use('/marketing', marketingPublic)
 eduPublicRouter.use('/portal2', portal2Public)
 eduPublicRouter.use(academicErrorHandler)

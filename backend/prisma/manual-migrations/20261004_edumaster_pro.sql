@@ -16543,6 +16543,80 @@ CREATE TABLE IF NOT EXISTS "AcaOrientacao" (
     "encaminhadoPara" TEXT,
     "prazo" TIMESTAMP(3),
     "concluidoEm" TIMESTAMP(3),
+
+-- ==== MKT:BEGIN (Marketing e Captação, prefixo Mkt - gerado por prisma migrate diff; só CRIA tabelas/índices, idempotente) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "janelaInicio" TEXT NOT NULL DEFAULT '08:00',
+    "janelaFim" TEXT NOT NULL DEFAULT '20:00',
+    "diasPermitidos" INTEGER[] DEFAULT ARRAY[1, 2, 3, 4, 5, 6]::INTEGER[],
+    "limiteDia" INTEGER NOT NULL DEFAULT 2,
+    "limiteSemana" INTEGER NOT NULL DEFAULT 5,
+    "baseLegalPadrao" TEXT NOT NULL DEFAULT 'CONSENTIMENTO',
+    "remetenteNome" TEXT,
+    "remetenteEndereco" TEXT,
+    "contatoDpo" TEXT,
+    "slaPrimeiroContatoMin" INTEGER NOT NULL DEFAULT 60,
+    "ticketMedio" DOUBLE PRECISION NOT NULL DEFAULT 10800,
+    "metaCustoLead" DOUBLE PRECISION,
+    "limiteAprovacaoOrcamento" DOUBLE PRECISION NOT NULL DEFAULT 5000,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktConsultor" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT,
+    "nome" TEXT NOT NULL,
+    "email" TEXT,
+    "telefone" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "peso" INTEGER NOT NULL DEFAULT 1,
+    "cursos" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "origens" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "ultimaAtribuicaoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktConsultor_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktCampanha" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT,
+    "nome" TEXT NOT NULL,
+    "objetivo" TEXT,
+    "briefing" TEXT,
+    "canais" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "cursoId" TEXT,
+    "cursoNome" TEXT,
+    "publico" TEXT,
+    "vestibularId" TEXT,
+    "responsavelId" TEXT,
+    "responsavelNome" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3) NOT NULL,
+    "orcamentoPrevisto" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "orcamentoRealizado" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "baseLegal" TEXT NOT NULL DEFAULT 'CONSENTIMENTO',
+    "finalidade" TEXT NOT NULL DEFAULT 'MARKETING',
+    "metaLeads" INTEGER NOT NULL DEFAULT 0,
+    "metaMatriculas" INTEGER NOT NULL DEFAULT 0,
+    "cor" TEXT,
+    "utmCampaign" TEXT,
+    "admCampanhaId" TEXT,
+    "aprovadoPorId" TEXT,
+    "aprovadoEm" TIMESTAMP(3),
+    "motivoRejeicao" TEXT,
     "criadoPorId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -16979,3 +17053,783 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 -- ==== ACA:END ====
+    CONSTRAINT "MktCampanha_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktHistorico" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "refType" TEXT NOT NULL,
+    "refId" TEXT NOT NULL,
+    "acao" TEXT NOT NULL,
+    "userId" TEXT,
+    "nota" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MktHistorico_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktCusto" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "campanhaId" TEXT,
+    "origem" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'MIDIA',
+    "valor" DOUBLE PRECISION NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "descricao" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MktCusto_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktFormulario" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "descricao" TEXT,
+    "campos" JSONB NOT NULL,
+    "origemPadrao" TEXT NOT NULL DEFAULT 'SITE',
+    "campanhaId" TEXT,
+    "cursoNome" TEXT,
+    "finalidade" TEXT NOT NULL DEFAULT 'MARKETING',
+    "textoConsentimento" TEXT NOT NULL,
+    "versaoTexto" TEXT NOT NULL DEFAULT '1.0',
+    "mensagemSucesso" TEXT NOT NULL DEFAULT 'Recebemos seus dados. Em breve um consultor entrará em contato.',
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "envios" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktFormulario_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktLead" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "email" TEXT,
+    "emailNorm" TEXT,
+    "telefone" TEXT,
+    "cpfHash" TEXT,
+    "cursoInteresse" TEXT,
+    "cursoId" TEXT,
+    "origem" TEXT NOT NULL DEFAULT 'SITE',
+    "detalheOrigem" TEXT,
+    "utmSource" TEXT,
+    "utmMedium" TEXT,
+    "utmCampaign" TEXT,
+    "utmContent" TEXT,
+    "utmTerm" TEXT,
+    "campanhaId" TEXT,
+    "formularioId" TEXT,
+    "paginaId" TEXT,
+    "cupom" TEXT,
+    "midiaOfflineId" TEXT,
+    "indicacaoCodigo" TEXT,
+    "convenio" TEXT,
+    "etapa" TEXT NOT NULL DEFAULT 'NOVO',
+    "score" INTEGER NOT NULL DEFAULT 0,
+    "temperatura" TEXT NOT NULL DEFAULT 'FRIO',
+    "consultorId" TEXT,
+    "consultorNome" TEXT,
+    "atribuidoEm" TIMESTAMP(3),
+    "proximoContatoEm" TIMESTAMP(3),
+    "primeiroContatoEm" TIMESTAMP(3),
+    "ultimaInteracaoEm" TIMESTAMP(3),
+    "candidatoId" TEXT,
+    "contatoId" TEXT,
+    "valorEstimado" DOUBLE PRECISION,
+    "matriculadoEm" TIMESTAMP(3),
+    "motivoPerda" TEXT,
+    "consentimentoMarketing" BOOLEAN NOT NULL DEFAULT false,
+    "consentimentoEm" TIMESTAMP(3),
+    "menor" BOOLEAN NOT NULL DEFAULT false,
+    "ipHash" TEXT,
+    "extras" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktLead_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktLeadEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "leadId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "pontos" INTEGER NOT NULL DEFAULT 0,
+    "descricao" TEXT,
+    "dados" JSONB,
+    "dedupe" TEXT,
+    "userId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MktLeadEvento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktScoreRegra" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "evento" TEXT NOT NULL,
+    "pontos" INTEGER NOT NULL,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "MktScoreRegra_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktConsentimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "leadId" TEXT,
+    "contatoId" TEXT,
+    "email" TEXT,
+    "emailHash" TEXT,
+    "telefoneHash" TEXT,
+    "titularNome" TEXT,
+    "finalidade" TEXT NOT NULL DEFAULT 'MARKETING',
+    "canais" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "baseLegal" TEXT NOT NULL DEFAULT 'CONSENTIMENTO',
+    "textoVersao" TEXT NOT NULL,
+    "textoHash" TEXT NOT NULL,
+    "textoExibido" TEXT NOT NULL,
+    "origem" TEXT NOT NULL DEFAULT 'FORMULARIO',
+    "url" TEXT,
+    "ipHash" TEXT,
+    "uaHash" TEXT,
+    "concedido" BOOLEAN NOT NULL DEFAULT true,
+    "revogadoEm" TIMESTAMP(3),
+    "motivoRevogacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MktConsentimento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktSupressao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "chaveHash" TEXT NOT NULL,
+    "mascarado" TEXT NOT NULL,
+    "motivo" TEXT NOT NULL DEFAULT 'DESCADASTRO',
+    "canalOrigem" TEXT,
+    "leadId" TEXT,
+    "contatoId" TEXT,
+    "observacao" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "removidoEm" TIMESTAMP(3),
+    "removidoPorId" TEXT,
+    "motivoRemocao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MktSupressao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktSegmento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "base" TEXT NOT NULL DEFAULT 'LEADS',
+    "filtros" JSONB,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktSegmento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktDisparo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "campanhaId" TEXT,
+    "nome" TEXT NOT NULL,
+    "canal" TEXT NOT NULL,
+    "segmentoId" TEXT,
+    "base" TEXT NOT NULL DEFAULT 'LEADS',
+    "filtros" JSONB,
+    "assunto" TEXT,
+    "corpo" TEXT NOT NULL,
+    "finalidade" TEXT NOT NULL DEFAULT 'MARKETING',
+    "baseLegal" TEXT NOT NULL DEFAULT 'CONSENTIMENTO',
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "agendadoPara" TIMESTAMP(3),
+    "executadoEm" TIMESTAMP(3),
+    "totalAlvo" INTEGER NOT NULL DEFAULT 0,
+    "totalEnviado" INTEGER NOT NULL DEFAULT 0,
+    "totalBloqueado" INTEGER NOT NULL DEFAULT 0,
+    "totalAgendado" INTEGER NOT NULL DEFAULT 0,
+    "totalFalha" INTEGER NOT NULL DEFAULT 0,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktDisparo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktEnvio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "disparoId" TEXT,
+    "cadenciaExecId" TEXT,
+    "eventoInscricaoId" TEXT,
+    "campanhaId" TEXT,
+    "leadId" TEXT,
+    "contatoId" TEXT,
+    "canal" TEXT NOT NULL,
+    "destino" TEXT NOT NULL,
+    "destinoHash" TEXT,
+    "assunto" TEXT,
+    "corpo" TEXT NOT NULL,
+    "finalidade" TEXT NOT NULL DEFAULT 'MARKETING',
+    "status" TEXT NOT NULL DEFAULT 'AGENDADO',
+    "motivo" TEXT,
+    "provedor" TEXT,
+    "simulado" BOOLEAN NOT NULL DEFAULT true,
+    "externalId" TEXT,
+    "tokenDescadastro" TEXT NOT NULL,
+    "agendadoPara" TIMESTAMP(3),
+    "enviadoEm" TIMESTAMP(3),
+    "lidoEm" TIMESTAMP(3),
+    "cliqueEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MktEnvio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktCadencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "gatilho" TEXT NOT NULL DEFAULT 'LEAD_NOVO',
+    "origens" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "ativa" BOOLEAN NOT NULL DEFAULT true,
+    "campanhaId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktCadencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktCadenciaPasso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "cadenciaId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL,
+    "atrasoHoras" INTEGER NOT NULL DEFAULT 0,
+    "canal" TEXT NOT NULL DEFAULT 'EMAIL',
+    "assunto" TEXT,
+    "corpo" TEXT NOT NULL,
+    "finalidade" TEXT NOT NULL DEFAULT 'MARKETING',
+
+    CONSTRAINT "MktCadenciaPasso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktCadenciaExecucao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "cadenciaId" TEXT NOT NULL,
+    "leadId" TEXT NOT NULL,
+    "passoAtual" INTEGER NOT NULL DEFAULT 0,
+    "proximaEm" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'ATIVA',
+    "motivo" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktCadenciaExecucao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktMidiaOffline" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "campanhaId" TEXT,
+    "tipo" TEXT NOT NULL,
+    "veiculo" TEXT NOT NULL,
+    "praca" TEXT,
+    "descricao" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3),
+    "cupom" TEXT,
+    "qrToken" TEXT NOT NULL,
+    "telefoneExclusivo" TEXT,
+    "urlDestino" TEXT,
+    "custoTotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'PLANEJADA',
+    "scans" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktMidiaOffline_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktMidiaInsercao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "midiaId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "quantidade" INTEGER NOT NULL DEFAULT 1,
+    "custo" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "horario" TEXT,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MktMidiaInsercao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktMarca" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT,
+    "corPrimaria" TEXT,
+    "corSecundaria" TEXT,
+    "corDestaque" TEXT,
+    "tomDeVoz" TEXT NOT NULL DEFAULT 'acolhedor e profissional',
+    "slogan" TEXT,
+    "assinatura" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktMarca_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktPeca" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "campanhaId" TEXT,
+    "tipo" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "canal" TEXT,
+    "formato" TEXT,
+    "conteudo" JSONB,
+    "texto" TEXT,
+    "svg" TEXT,
+    "briefing" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "simulado" BOOLEAN NOT NULL DEFAULT true,
+    "versao" INTEGER NOT NULL DEFAULT 1,
+    "grupo" TEXT,
+    "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "aprovadoPorId" TEXT,
+    "aprovadoEm" TIMESTAMP(3),
+    "motivoRejeicao" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktPeca_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktPublicacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "campanhaId" TEXT,
+    "pecaId" TEXT,
+    "rede" TEXT NOT NULL,
+    "texto" TEXT NOT NULL,
+    "midiaUrl" TEXT,
+    "agendadoPara" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "publicadoEm" TIMESTAMP(3),
+    "externalId" TEXT,
+    "urlPublica" TEXT,
+    "simulado" BOOLEAN NOT NULL DEFAULT true,
+    "erro" TEXT,
+    "metricas" JSONB,
+    "aprovadoPorId" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktPublicacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktSite" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "descricao" TEXT,
+    "corPrimaria" TEXT,
+    "corSecundaria" TEXT,
+    "logoUrl" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "chatAtivo" BOOLEAN NOT NULL DEFAULT true,
+    "whatsapp" TEXT,
+    "rodape" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktSite_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktPagina" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'LANDING',
+    "blocos" JSONB NOT NULL DEFAULT '[]',
+    "seoTitulo" TEXT,
+    "seoDescricao" TEXT,
+    "campanhaId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "publicadoEm" TIMESTAMP(3),
+    "visitas" INTEGER NOT NULL DEFAULT 0,
+    "conversoes" INTEGER NOT NULL DEFAULT 0,
+    "noMenu" BOOLEAN NOT NULL DEFAULT false,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktPagina_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktAtendimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "canal" TEXT NOT NULL DEFAULT 'SITE',
+    "sessao" TEXT NOT NULL,
+    "leadId" TEXT,
+    "nome" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'IA',
+    "consultorId" TEXT,
+    "consultorNome" TEXT,
+    "motivoEscalonamento" TEXT,
+    "primeiraRespostaMs" INTEGER,
+    "ultimaMensagemEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktAtendimento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktAtendimentoMsg" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "atendimentoId" TEXT NOT NULL,
+    "autor" TEXT NOT NULL,
+    "texto" TEXT NOT NULL,
+    "intencao" TEXT,
+    "confianca" DOUBLE PRECISION,
+    "simulado" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MktAtendimentoMsg_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'PALESTRA',
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3),
+    "local" TEXT,
+    "online" BOOLEAN NOT NULL DEFAULT false,
+    "linkOnline" TEXT,
+    "vagas" INTEGER NOT NULL DEFAULT 0,
+    "publico" BOOLEAN NOT NULL DEFAULT true,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "campanhaId" TEXT,
+    "custo" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "checkinToken" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktEvento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktEventoInscricao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "eventoId" TEXT NOT NULL,
+    "leadId" TEXT,
+    "nome" TEXT NOT NULL,
+    "email" TEXT,
+    "telefone" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'INSCRITO',
+    "qrToken" TEXT NOT NULL,
+    "checkinEm" TIMESTAMP(3),
+    "lembreteEnviadoEm" TIMESTAMP(3),
+    "aceitaLembretes" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MktEventoInscricao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktPrograma" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "publicoAlvo" TEXT NOT NULL DEFAULT 'ALUNOS',
+    "descricao" TEXT,
+    "recompensa" TEXT NOT NULL,
+    "valorRecompensa" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "regras" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3),
+    "metaIndicacoes" INTEGER NOT NULL DEFAULT 0,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktPrograma_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktIndicador" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "programaId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'ALUNO',
+    "userId" TEXT,
+    "studentId" TEXT,
+    "codigo" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MktIndicador_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktIndicacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "programaId" TEXT NOT NULL,
+    "indicadorId" TEXT NOT NULL,
+    "leadId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "recompensaEm" TIMESTAMP(3),
+    "recompensaPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktIndicacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktConfig_tenantId_key" ON "MktConfig"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktConsultor_tenantId_ativo_idx" ON "MktConsultor"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktCampanha_tenantId_status_idx" ON "MktCampanha"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktCampanha_tenantId_inicio_fim_idx" ON "MktCampanha"("tenantId", "inicio", "fim");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktCampanha_tenantId_utmCampaign_idx" ON "MktCampanha"("tenantId", "utmCampaign");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktHistorico_tenantId_refType_refId_idx" ON "MktHistorico"("tenantId", "refType", "refId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktCusto_tenantId_campanhaId_idx" ON "MktCusto"("tenantId", "campanhaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktCusto_tenantId_origem_data_idx" ON "MktCusto"("tenantId", "origem", "data");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktFormulario_tenantId_slug_key" ON "MktFormulario"("tenantId", "slug");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktLead_tenantId_etapa_idx" ON "MktLead"("tenantId", "etapa");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktLead_tenantId_origem_createdAt_idx" ON "MktLead"("tenantId", "origem", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktLead_tenantId_emailNorm_idx" ON "MktLead"("tenantId", "emailNorm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktLead_tenantId_telefone_idx" ON "MktLead"("tenantId", "telefone");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktLead_tenantId_campanhaId_idx" ON "MktLead"("tenantId", "campanhaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktLead_tenantId_consultorId_etapa_idx" ON "MktLead"("tenantId", "consultorId", "etapa");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktLead_tenantId_candidatoId_idx" ON "MktLead"("tenantId", "candidatoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktLeadEvento_tenantId_leadId_createdAt_idx" ON "MktLeadEvento"("tenantId", "leadId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktLeadEvento_tenantId_tipo_createdAt_idx" ON "MktLeadEvento"("tenantId", "tipo", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktLeadEvento_leadId_dedupe_key" ON "MktLeadEvento"("leadId", "dedupe");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktScoreRegra_tenantId_evento_key" ON "MktScoreRegra"("tenantId", "evento");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktConsentimento_tenantId_emailHash_idx" ON "MktConsentimento"("tenantId", "emailHash");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktConsentimento_tenantId_telefoneHash_idx" ON "MktConsentimento"("tenantId", "telefoneHash");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktConsentimento_tenantId_leadId_idx" ON "MktConsentimento"("tenantId", "leadId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktSupressao_tenantId_ativo_idx" ON "MktSupressao"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktSupressao_tenantId_tipo_chaveHash_key" ON "MktSupressao"("tenantId", "tipo", "chaveHash");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktSegmento_tenantId_base_idx" ON "MktSegmento"("tenantId", "base");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktDisparo_tenantId_status_idx" ON "MktDisparo"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktEnvio_tenantId_disparoId_idx" ON "MktEnvio"("tenantId", "disparoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktEnvio_tenantId_leadId_idx" ON "MktEnvio"("tenantId", "leadId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktEnvio_tenantId_status_agendadoPara_idx" ON "MktEnvio"("tenantId", "status", "agendadoPara");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktEnvio_tenantId_destinoHash_createdAt_idx" ON "MktEnvio"("tenantId", "destinoHash", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktEnvio_tokenDescadastro_key" ON "MktEnvio"("tokenDescadastro");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktCadencia_tenantId_ativa_idx" ON "MktCadencia"("tenantId", "ativa");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktCadenciaPasso_tenantId_cadenciaId_idx" ON "MktCadenciaPasso"("tenantId", "cadenciaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktCadenciaPasso_cadenciaId_ordem_key" ON "MktCadenciaPasso"("cadenciaId", "ordem");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktCadenciaExecucao_tenantId_status_proximaEm_idx" ON "MktCadenciaExecucao"("tenantId", "status", "proximaEm");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktCadenciaExecucao_cadenciaId_leadId_key" ON "MktCadenciaExecucao"("cadenciaId", "leadId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktMidiaOffline_tenantId_tipo_idx" ON "MktMidiaOffline"("tenantId", "tipo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktMidiaOffline_tenantId_cupom_idx" ON "MktMidiaOffline"("tenantId", "cupom");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktMidiaOffline_qrToken_key" ON "MktMidiaOffline"("qrToken");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktMidiaInsercao_tenantId_midiaId_idx" ON "MktMidiaInsercao"("tenantId", "midiaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktMarca_tenantId_key" ON "MktMarca"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktPeca_tenantId_tipo_status_idx" ON "MktPeca"("tenantId", "tipo", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktPeca_tenantId_campanhaId_idx" ON "MktPeca"("tenantId", "campanhaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktPublicacao_tenantId_status_agendadoPara_idx" ON "MktPublicacao"("tenantId", "status", "agendadoPara");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktPublicacao_tenantId_campanhaId_idx" ON "MktPublicacao"("tenantId", "campanhaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktSite_tenantId_key" ON "MktSite"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktSite_slug_key" ON "MktSite"("slug");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktPagina_tenantId_status_idx" ON "MktPagina"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktPagina_tenantId_slug_key" ON "MktPagina"("tenantId", "slug");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktAtendimento_tenantId_status_ultimaMensagemEm_idx" ON "MktAtendimento"("tenantId", "status", "ultimaMensagemEm");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktAtendimento_tenantId_canal_sessao_key" ON "MktAtendimento"("tenantId", "canal", "sessao");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktAtendimentoMsg_tenantId_atendimentoId_createdAt_idx" ON "MktAtendimentoMsg"("tenantId", "atendimentoId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktEvento_tenantId_status_inicio_idx" ON "MktEvento"("tenantId", "status", "inicio");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktEvento_tenantId_slug_key" ON "MktEvento"("tenantId", "slug");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktEventoInscricao_tenantId_eventoId_status_idx" ON "MktEventoInscricao"("tenantId", "eventoId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktEventoInscricao_qrToken_key" ON "MktEventoInscricao"("qrToken");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktPrograma_tenantId_ativo_idx" ON "MktPrograma"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktIndicador_tenantId_programaId_idx" ON "MktIndicador"("tenantId", "programaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktIndicador_tenantId_codigo_key" ON "MktIndicador"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MktIndicacao_tenantId_indicadorId_status_idx" ON "MktIndicacao"("tenantId", "indicadorId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MktIndicacao_tenantId_leadId_key" ON "MktIndicacao"("tenantId", "leadId");
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "MktCadenciaPasso" ADD CONSTRAINT "MktCadenciaPasso_cadenciaId_fkey" FOREIGN KEY ("cadenciaId") REFERENCES "MktCadencia"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "MktAtendimentoMsg" ADD CONSTRAINT "MktAtendimentoMsg_atendimentoId_fkey" FOREIGN KEY ("atendimentoId") REFERENCES "MktAtendimento"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ==== MKT:END ====

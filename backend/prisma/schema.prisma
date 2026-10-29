@@ -11270,6 +11270,674 @@ model LgpAcessoSensivel {
   @@index([tenantId, titularTipo, titularId])
 }
 
+// ---- edu/marketing.prisma ----
+// ============================================================
+// Módulo MARKETING E CAPTAÇÃO (EduMaster Pro) — prefixo Mkt.
+// Sem relações com modelos de outros módulos (ids como texto) para manter a migration puramente aditiva.
+// ============================================================
+
+model MktConfig {
+  id                  String   @id @default(uuid())
+  tenantId            String   @unique
+  janelaInicio        String   @default("08:00")     // horário de Brasília
+  janelaFim           String   @default("20:00")
+  diasPermitidos      Int[]    @default([1, 2, 3, 4, 5, 6])   // 0=dom..6=sáb
+  limiteDia           Int      @default(2)            // marketing por pessoa/dia (todos os canais)
+  limiteSemana        Int      @default(5)            // marketing por pessoa/semana
+  baseLegalPadrao     String   @default("CONSENTIMENTO")
+  remetenteNome       String?
+  remetenteEndereco   String?
+  contatoDpo          String?
+  slaPrimeiroContatoMin Int    @default(60)
+  ticketMedio         Float    @default(10800)        // receita estimada por aluno matriculado
+  metaCustoLead       Float?
+  limiteAprovacaoOrcamento Float @default(5000)       // acima disso a campanha exige aprovação de gestor
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model MktConsultor {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String?
+  nome        String
+  email       String?
+  telefone    String?
+  ativo       Boolean  @default(true)
+  peso        Int      @default(1)
+  cursos      String[] @default([])        // vazio = todos
+  origens     String[] @default([])        // vazio = todas
+  ultimaAtribuicaoEm DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, ativo])
+}
+
+model MktCampanha {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  codigo             String?
+  nome               String
+  objetivo           String?
+  briefing           String?
+  canais             String[] @default([])
+  cursoId            String?
+  cursoNome          String?
+  publico            String?                       // ex.: EGRESSOS, ALUNOS, LEADS, ENSINO_MEDIO, EMPRESAS
+  vestibularId       String?                       // AdmProcessoSeletivo
+  responsavelId      String?
+  responsavelNome    String?
+  inicio             DateTime
+  fim                DateTime
+  orcamentoPrevisto  Float    @default(0)
+  orcamentoRealizado Float    @default(0)
+  status             String   @default("RASCUNHO") // RASCUNHO | EM_APROVACAO | APROVADA | REJEITADA | ATIVA | PAUSADA | CONCLUIDA | CANCELADA
+  baseLegal          String   @default("CONSENTIMENTO")
+  finalidade         String   @default("MARKETING")
+  metaLeads          Int      @default(0)
+  metaMatriculas     Int      @default(0)
+  cor                String?
+  utmCampaign        String?
+  admCampanhaId      String?
+  aprovadoPorId      String?
+  aprovadoEm         DateTime?
+  motivoRejeicao     String?
+  criadoPorId        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, inicio, fim])
+  @@index([tenantId, utmCampaign])
+}
+
+model MktHistorico {
+  id        String   @id @default(uuid())
+  tenantId  String
+  refType   String
+  refId     String
+  acao      String
+  userId    String?
+  nota      String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, refType, refId])
+}
+
+model MktCusto {
+  id          String   @id @default(uuid())
+  tenantId    String
+  campanhaId  String?
+  origem      String?                     // canal/origem para ROI
+  tipo        String   @default("MIDIA")  // MIDIA | PRODUCAO | EQUIPE | EVENTO | OUTROS
+  valor       Float
+  data        DateTime @default(now())
+  descricao   String?
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, campanhaId])
+  @@index([tenantId, origem, data])
+}
+
+model MktFormulario {
+  id             String   @id @default(uuid())
+  tenantId       String
+  slug           String
+  nome           String
+  descricao      String?
+  campos         Json                      // [{chave,rotulo,tipo,obrigatorio,opcoes}]
+  origemPadrao   String   @default("SITE")
+  campanhaId     String?
+  cursoNome      String?
+  finalidade     String   @default("MARKETING")
+  textoConsentimento String
+  versaoTexto    String   @default("1.0")
+  mensagemSucesso String  @default("Recebemos seus dados. Em breve um consultor entrará em contato.")
+  ativo          Boolean  @default(true)
+  envios         Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, slug])
+}
+
+model MktLead {
+  id               String   @id @default(uuid())
+  tenantId         String
+  nome             String
+  email            String?
+  emailNorm        String?
+  telefone         String?                  // normalizado (somente dígitos, com 55)
+  cpfHash          String?
+  cursoInteresse   String?
+  cursoId          String?
+  origem           String   @default("SITE")
+  detalheOrigem    String?
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  utmContent       String?
+  utmTerm          String?
+  campanhaId       String?
+  formularioId     String?
+  paginaId         String?
+  cupom            String?
+  midiaOfflineId   String?
+  indicacaoCodigo  String?
+  convenio         String?
+  etapa            String   @default("NOVO")  // NOVO | CONTATO | QUALIFICADO | INSCRITO | MATRICULADO | PERDIDO
+  score            Int      @default(0)
+  temperatura      String   @default("FRIO")  // FRIO | MORNO | QUENTE
+  consultorId      String?
+  consultorNome    String?
+  atribuidoEm      DateTime?
+  proximoContatoEm DateTime?
+  primeiroContatoEm DateTime?
+  ultimaInteracaoEm DateTime?
+  candidatoId      String?
+  contatoId        String?
+  valorEstimado    Float?
+  matriculadoEm    DateTime?
+  motivoPerda      String?
+  consentimentoMarketing Boolean @default(false)
+  consentimentoEm  DateTime?
+  menor            Boolean  @default(false)
+  ipHash           String?
+  extras           Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId, etapa])
+  @@index([tenantId, origem, createdAt])
+  @@index([tenantId, emailNorm])
+  @@index([tenantId, telefone])
+  @@index([tenantId, campanhaId])
+  @@index([tenantId, consultorId, etapa])
+  @@index([tenantId, candidatoId])
+}
+
+model MktLeadEvento {
+  id        String   @id @default(uuid())
+  tenantId  String
+  leadId    String
+  tipo      String
+  pontos    Int      @default(0)
+  descricao String?
+  dados     Json?
+  dedupe    String?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@unique([leadId, dedupe])
+  @@index([tenantId, leadId, createdAt])
+  @@index([tenantId, tipo, createdAt])
+}
+
+model MktScoreRegra {
+  id       String  @id @default(uuid())
+  tenantId String
+  evento   String
+  pontos   Int
+  ativo    Boolean @default(true)
+
+  @@unique([tenantId, evento])
+}
+
+model MktConsentimento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  leadId        String?
+  contatoId     String?
+  email         String?
+  emailHash     String?
+  telefoneHash  String?
+  titularNome   String?
+  finalidade    String   @default("MARKETING")
+  canais        String[] @default([])
+  baseLegal     String   @default("CONSENTIMENTO")
+  textoVersao   String
+  textoHash     String
+  textoExibido  String
+  origem        String   @default("FORMULARIO")   // FORMULARIO | LANDING | EVENTO | CHAT | IMPORTACAO | ATENDENTE | INDICACAO
+  url           String?
+  ipHash        String?
+  uaHash        String?
+  concedido     Boolean  @default(true)
+  revogadoEm    DateTime?
+  motivoRevogacao String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, emailHash])
+  @@index([tenantId, telefoneHash])
+  @@index([tenantId, leadId])
+}
+
+// Lista de supressão GLOBAL: vale para todos os canais e campanhas. Guarda apenas hash do identificador + máscara.
+model MktSupressao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tipo        String                       // EMAIL | TELEFONE | TELEGRAM | DOCUMENTO
+  chaveHash   String
+  mascarado   String
+  motivo      String   @default("DESCADASTRO")   // DESCADASTRO | SAIR | RECLAMACAO | SOLICITACAO_TITULAR | BOUNCE | IMPORTACAO | ATENDENTE
+  canalOrigem String?
+  leadId      String?
+  contatoId   String?
+  observacao  String?
+  ativo       Boolean  @default(true)
+  removidoEm  DateTime?
+  removidoPorId String?
+  motivoRemocao String?
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, tipo, chaveHash])
+  @@index([tenantId, ativo])
+}
+
+model MktSegmento {
+  id        String   @id @default(uuid())
+  tenantId  String
+  nome      String
+  base      String   @default("LEADS")      // LEADS | ALUNOS | EX_ALUNOS | CONTATOS
+  filtros   Json?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, base])
+}
+
+model MktDisparo {
+  id            String   @id @default(uuid())
+  tenantId      String
+  campanhaId    String?
+  nome          String
+  canal         String                      // EMAIL | SMS | TELEGRAM | WHATSAPP | VOZ
+  segmentoId    String?
+  base          String   @default("LEADS")
+  filtros       Json?
+  assunto       String?
+  corpo         String
+  finalidade    String   @default("MARKETING")   // MARKETING | TRANSACIONAL
+  baseLegal     String   @default("CONSENTIMENTO")
+  status        String   @default("RASCUNHO")    // RASCUNHO | AGENDADO | ENVIANDO | CONCLUIDO | CANCELADO
+  agendadoPara  DateTime?
+  executadoEm   DateTime?
+  totalAlvo     Int      @default(0)
+  totalEnviado  Int      @default(0)
+  totalBloqueado Int     @default(0)
+  totalAgendado Int      @default(0)
+  totalFalha    Int      @default(0)
+  criadoPorId   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model MktEnvio {
+  id           String   @id @default(uuid())
+  tenantId     String
+  disparoId    String?
+  cadenciaExecId String?
+  eventoInscricaoId String?
+  campanhaId   String?
+  leadId       String?
+  contatoId    String?
+  canal        String
+  destino      String
+  destinoHash  String?
+  assunto      String?
+  corpo        String
+  finalidade   String   @default("MARKETING")
+  status       String   @default("AGENDADO")   // AGENDADO | ENVIADO | ENTREGUE | LIDO | FALHA | BLOQUEADO | CANCELADO
+  motivo       String?
+  provedor     String?
+  simulado     Boolean  @default(true)
+  externalId   String?
+  tokenDescadastro String
+  agendadoPara DateTime?
+  enviadoEm    DateTime?
+  lidoEm       DateTime?
+  cliqueEm     DateTime?
+  createdAt    DateTime @default(now())
+
+  @@unique([tokenDescadastro])
+  @@index([tenantId, disparoId])
+  @@index([tenantId, leadId])
+  @@index([tenantId, status, agendadoPara])
+  @@index([tenantId, destinoHash, createdAt])
+}
+
+model MktCadencia {
+  id         String   @id @default(uuid())
+  tenantId   String
+  nome       String
+  gatilho    String   @default("LEAD_NOVO")    // LEAD_NOVO | LEAD_QUENTE | MANUAL
+  origens    String[] @default([])              // vazio = todas
+  ativa      Boolean  @default(true)
+  campanhaId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  passos     MktCadenciaPasso[]
+
+  @@index([tenantId, ativa])
+}
+
+model MktCadenciaPasso {
+  id          String   @id @default(uuid())
+  tenantId    String
+  cadenciaId  String
+  ordem       Int
+  atrasoHoras Int      @default(0)
+  canal       String   @default("EMAIL")
+  assunto     String?
+  corpo       String
+  finalidade  String   @default("MARKETING")
+
+  cadencia    MktCadencia @relation(fields: [cadenciaId], references: [id], onDelete: Cascade)
+
+  @@unique([cadenciaId, ordem])
+  @@index([tenantId, cadenciaId])
+}
+
+model MktCadenciaExecucao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  cadenciaId  String
+  leadId      String
+  passoAtual  Int      @default(0)
+  proximaEm   DateTime?
+  status      String   @default("ATIVA")     // ATIVA | CONCLUIDA | PARADA
+  motivo      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([cadenciaId, leadId])
+  @@index([tenantId, status, proximaEm])
+}
+
+model MktMidiaOffline {
+  id            String   @id @default(uuid())
+  tenantId      String
+  campanhaId    String?
+  tipo          String                      // RADIO | TV | OUTDOOR | PANFLETAGEM | JORNAL | EVENTO_PRESENCIAL | CARRO_DE_SOM | OUTRO
+  veiculo       String
+  praca         String?
+  descricao     String?
+  inicio        DateTime
+  fim           DateTime?
+  cupom         String?
+  qrToken       String
+  telefoneExclusivo String?
+  urlDestino    String?
+  custoTotal    Float    @default(0)
+  status        String   @default("PLANEJADA")   // PLANEJADA | EM_VEICULACAO | ENCERRADA | CANCELADA
+  scans         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([qrToken])
+  @@index([tenantId, tipo])
+  @@index([tenantId, cupom])
+}
+
+model MktMidiaInsercao {
+  id         String   @id @default(uuid())
+  tenantId   String
+  midiaId    String
+  data       DateTime
+  quantidade Int      @default(1)
+  custo      Float    @default(0)
+  horario    String?
+  observacao String?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, midiaId])
+}
+
+model MktMarca {
+  id          String   @id @default(uuid())
+  tenantId    String   @unique
+  nome        String?
+  corPrimaria String?
+  corSecundaria String?
+  corDestaque String?
+  tomDeVoz    String   @default("acolhedor e profissional")
+  slogan      String?
+  assinatura  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MktPeca {
+  id          String   @id @default(uuid())
+  tenantId    String
+  campanhaId  String?
+  tipo        String                     // COPY | ANUNCIO | ROTEIRO_VIDEO | LEGENDA | EMAIL | IMAGEM
+  titulo      String
+  canal       String?
+  formato     String?                    // FEED_1080 | STORY_1080x1920 | BANNER_1200x628
+  conteudo    Json?
+  texto       String?
+  svg         String?
+  briefing    String?
+  status      String   @default("RASCUNHO")   // RASCUNHO | EM_APROVACAO | APROVADA | REJEITADA | ARQUIVADA
+  simulado    Boolean  @default(true)
+  versao      Int      @default(1)
+  grupo       String?
+  tags        String[] @default([])
+  aprovadoPorId String?
+  aprovadoEm  DateTime?
+  motivoRejeicao String?
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, tipo, status])
+  @@index([tenantId, campanhaId])
+}
+
+model MktPublicacao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  campanhaId  String?
+  pecaId      String?
+  rede        String                     // INSTAGRAM | FACEBOOK | LINKEDIN | TIKTOK | THREADS
+  texto       String
+  midiaUrl    String?
+  agendadoPara DateTime?
+  status      String   @default("RASCUNHO")   // RASCUNHO | EM_APROVACAO | APROVADA | AGENDADA | PUBLICADA | FALHA | CANCELADA
+  publicadoEm DateTime?
+  externalId  String?
+  urlPublica  String?
+  simulado    Boolean  @default(true)
+  erro        String?
+  metricas    Json?
+  aprovadoPorId String?
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, status, agendadoPara])
+  @@index([tenantId, campanhaId])
+}
+
+model MktSite {
+  id          String   @id @default(uuid())
+  tenantId    String   @unique
+  slug        String   @unique
+  nome        String
+  descricao   String?
+  corPrimaria String?
+  corSecundaria String?
+  logoUrl     String?
+  ativo       Boolean  @default(true)
+  chatAtivo   Boolean  @default(true)
+  whatsapp    String?
+  rodape      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MktPagina {
+  id          String   @id @default(uuid())
+  tenantId    String
+  slug        String
+  titulo      String
+  tipo        String   @default("LANDING")   // HOME | LANDING | CURSO | EVENTO | FAQ
+  blocos      Json     @default("[]")
+  seoTitulo   String?
+  seoDescricao String?
+  campanhaId  String?
+  status      String   @default("RASCUNHO")   // RASCUNHO | PUBLICADA
+  publicadoEm DateTime?
+  visitas     Int      @default(0)
+  conversoes  Int      @default(0)
+  noMenu      Boolean  @default(false)
+  ordem       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+}
+
+model MktAtendimento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  canal       String   @default("SITE")   // SITE | WHATSAPP | INSTAGRAM | FACEBOOK | TELEGRAM | EMAIL | LINKEDIN | TIKTOK | THREADS
+  sessao      String
+  leadId      String?
+  nome        String?
+  status      String   @default("IA")     // IA | ESCALONADO | ENCERRADO
+  consultorId String?
+  consultorNome String?
+  motivoEscalonamento String?
+  primeiraRespostaMs Int?
+  ultimaMensagemEm DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  mensagens   MktAtendimentoMsg[]
+
+  @@unique([tenantId, canal, sessao])
+  @@index([tenantId, status, ultimaMensagemEm])
+}
+
+model MktAtendimentoMsg {
+  id            String   @id @default(uuid())
+  tenantId      String
+  atendimentoId String
+  autor         String                    // VISITANTE | IA | CONSULTOR
+  texto         String
+  intencao      String?
+  confianca     Float?
+  simulado      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  atendimento   MktAtendimento @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, atendimentoId, createdAt])
+}
+
+model MktEvento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  slug        String
+  titulo      String
+  descricao   String?
+  tipo        String   @default("PALESTRA")
+  inicio      DateTime
+  fim         DateTime?
+  local       String?
+  online      Boolean  @default(false)
+  linkOnline  String?
+  vagas       Int      @default(0)           // 0 = ilimitado
+  publico     Boolean  @default(true)
+  status      String   @default("RASCUNHO")  // RASCUNHO | PUBLICADO | ENCERRADO | CANCELADO
+  campanhaId  String?
+  custo       Float    @default(0)
+  checkinToken String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status, inicio])
+}
+
+model MktEventoInscricao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  eventoId    String
+  leadId      String?
+  nome        String
+  email       String?
+  telefone    String?
+  status      String   @default("INSCRITO")   // INSCRITO | LISTA_ESPERA | PRESENTE | CANCELADO
+  qrToken     String
+  checkinEm   DateTime?
+  lembreteEnviadoEm DateTime?
+  aceitaLembretes Boolean @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([qrToken])
+  @@index([tenantId, eventoId, status])
+}
+
+model MktPrograma {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  publicoAlvo String   @default("ALUNOS")   // ALUNOS | PROFESSORES | EQUIPE | COMUNIDADE
+  descricao   String?
+  recompensa  String
+  valorRecompensa Float @default(0)
+  regras      String?
+  inicio      DateTime
+  fim         DateTime?
+  metaIndicacoes Int   @default(0)
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, ativo])
+}
+
+model MktIndicador {
+  id          String   @id @default(uuid())
+  tenantId    String
+  programaId  String
+  nome        String
+  tipo        String   @default("ALUNO")   // ALUNO | PROFESSOR | FUNCIONARIO | COMUNIDADE
+  userId      String?
+  studentId   String?
+  codigo      String
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, programaId])
+}
+
+model MktIndicacao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  programaId  String
+  indicadorId String
+  leadId      String
+  status      String   @default("PENDENTE")   // PENDENTE | CONVERTIDA | RECOMPENSADA | INVALIDA
+  recompensaEm DateTime?
+  recompensaPorId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, leadId])
+  @@index([tenantId, indicadorId, status])
+}
+
 // ---- edu/modalidades.prisma ----
 // ============================================================
 // EDUMASTER PRO — MODALIDADES (presencial, semipresencial, EAD, híbrido,
