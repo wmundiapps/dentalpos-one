@@ -1,3 +1,4 @@
+import { whereTurma, wherePrograma, whereAluno } from '../portal2/ambientes'
 import { Router, Response } from 'express'
 import { prisma } from '../../lib/prisma'
 import { AuthenticatedRequest, asyncHandler, getTenantId, requireRole } from '../academico/middleware'
@@ -58,7 +59,7 @@ export function mountSituacao(router: Router) {
     const tenantId = getTenantId(req)
     const { skip, take, page, pageSize } = pageParams(req.query)
     const q = qs(req.query.q)
-    const where: any = { tenantId }
+    const where: any = { tenantId, ...whereAluno(req) } // respeita o ambiente de ensino atual
     if (q) where.OR = [{ nomeCompleto: { contains: q, mode: 'insensitive' } }, { ra: { contains: q } }, { cpf: { contains: q.replace(/\D/g, '') || q } }]
     const status = qs(req.query.status)
     if (status) where.status = status

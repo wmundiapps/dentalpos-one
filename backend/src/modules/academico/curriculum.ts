@@ -1,3 +1,4 @@
+import { whereTurma, wherePrograma, whereAluno } from '../portal2/ambientes'
 import { Router, Response } from 'express';
 import { prisma } from '../../lib/prisma'; // AJUSTE: caminho real do seu cliente Prisma
 import {
@@ -39,7 +40,7 @@ router.get(
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req);
     const programs = await prisma.academicProgram.findMany({
-      where: { tenantId },
+      where: { tenantId, ...wherePrograma(req) }, // respeita o ambiente de ensino atual
       include: { disciplinas: { include: { discipline: true } } },
       orderBy: { nome: 'asc' },
     });

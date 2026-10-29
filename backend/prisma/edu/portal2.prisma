@@ -1,0 +1,402 @@
+// ============================================================
+// EDUMASTER PRO — AMBIENTES DE ENSINO + PORTAL DO ALUNO + PORTAL DO PROFESSOR + SALA VIRTUAL EAD
+// Prefixo Por. Referências a outros módulos = String sem @relation. Estados e tipos como String
+// (validados em src/modules/portal2/common.ts) para manter a migration aditiva e simples.
+// ============================================================
+
+// ---------- Ambientes de ensino ----------
+// nivel: GRADUACAO | POS_LATO | POS_STRICTO | CURSO_LIVRE ; modalidade: PRESENCIAL | EAD | HIBRIDO
+model PorAmbiente {
+  id          String   @id @default(uuid())
+  tenantId    String
+  codigo      String
+  nome        String
+  nivel       String
+  modalidade  String   @default("PRESENCIAL")
+  variante    String?              // ex.: "Unidades", "+A"
+  unidade     String?              // polo/unidade (texto livre)
+  campusId    String?
+  poloId      String?
+  cor         String?
+  descricao   String?
+  ordem       Int      @default(0)
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, ativo])
+}
+
+// Cursos (AcademicProgram) que pertencem a cada ambiente. É o que filtra as listas do sistema.
+model PorAmbienteCurso {
+  id          String   @id @default(uuid())
+  tenantId    String
+  ambienteId  String
+  programId   String
+  createdAt   DateTime @default(now())
+
+  @@unique([ambienteId, programId])
+  @@index([tenantId, programId])
+}
+
+// Contexto persistido: ambiente atual de cada usuário.
+model PorContexto {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String
+  ambienteId  String
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, userId])
+}
+
+// ---------- Currículo / fluxograma ----------
+// tipoPeriodo: SEMESTRE | BIMESTRE | TRIMESTRE | MODULO | ANO ; periodosPorAno = quantos "períodos" cabem em um ano
+model PorCursoConfig {
+  id               String   @id @default(uuid())
+  tenantId         String
+  programId        String
+  tipoPeriodo      String   @default("SEMESTRE")
+  periodosPorAno   Int      @default(2)
+  rotuloPeriodo    String?
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, programId])
+}
+
+model PorPreRequisito {
+  id                   String   @id @default(uuid())
+  tenantId             String
+  programId            String
+  disciplineId         String
+  requisitoDisciplineId String
+
+  @@unique([programId, disciplineId, requisitoDisciplineId])
+  @@index([tenantId, programId])
+}
+
+// ---------- Materiais, trilhas, atividades e entregas ----------
+// tipo: ARQUIVO | VIDEO | LINK | TEXTO | ATIVIDADE | AULA_GRAVADA | AULA_AO_VIVO ; status: RASCUNHO | PUBLICADO | ARQUIVADO
+model PorMaterial {
+  id             String   @id @default(uuid())
+  tenantId       String
+  classSectionId String
+  autorUserId    String
+  tipo           String
+  trilha         String?              // nome da trilha/módulo de aprendizagem
+  ordem          Int      @default(0)
+  titulo         String
+  descricao      String?
+  url            String?
+  arquivoNome    String?
+  conteudo       String?
+  status         String   @default("PUBLICADO")
+  visivelDe      DateTime?
+  visivelAte     DateTime?
+  inicioEm       DateTime?            // aula ao vivo / data de abertura da atividade
+  duracaoMin     Int?
+  aceitaEntrega  Boolean  @default(false)
+  prazoEntrega   DateTime?
+  notaMaxima     Float?
+  componenteId   String?              // NtComponente que recebe a nota (opcional)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, classSectionId, status])
+}
+
+// status: ENVIADA | CORRIGIDA | DEVOLVIDA
+model PorEntrega {
+  id            String   @id @default(uuid())
+  tenantId      String
+  materialId    String
+  classSectionId String
+  studentId     String
+  texto         String?
+  url           String?
+  arquivoNome   String?
+  status        String   @default("ENVIADA")
+  atrasada      Boolean  @default(false)
+  nota          Float?
+  feedback      String?
+  enviadaEm     DateTime @default(now())
+  corrigidaEm   DateTime?
+  corrigidaPor  String?
+  versao        Int      @default(1)
+
+  @@unique([materialId, studentId])
+  @@index([tenantId, classSectionId, status])
+}
+
+model PorProgresso {
+  id             String   @id @default(uuid())
+  tenantId       String
+  materialId     String
+  classSectionId String
+  studentId      String
+  concluido      Boolean  @default(false)
+  percentual     Float    @default(0)
+  acessos        Int      @default(0)
+  primeiroAcessoEm DateTime @default(now())
+  ultimoAcessoEm DateTime @default(now())
+
+  @@unique([materialId, studentId])
+  @@index([tenantId, classSectionId, studentId])
+}
+
+// Log de acessos à sala virtual (EAD): tipo = SALA | MATERIAL | AULA | FORUM | ENTREGA | CHAMADA_QR
+model PorAcesso {
+  id             String   @id @default(uuid())
+  tenantId       String
+  studentId      String
+  classSectionId String?
+  materialId     String?
+  tipo           String
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, studentId, createdAt])
+  @@index([tenantId, classSectionId, createdAt])
+}
+
+model PorForumTopico {
+  id             String   @id @default(uuid())
+  tenantId       String
+  classSectionId String
+  autorUserId    String
+  autorNome      String
+  autorPapel     String
+  titulo         String
+  corpo          String
+  fixado         Boolean  @default(false)
+  fechado        Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, classSectionId, createdAt])
+}
+
+model PorForumResposta {
+  id          String   @id @default(uuid())
+  tenantId    String
+  topicoId    String
+  autorUserId String
+  autorNome   String
+  autorPapel  String
+  corpo       String
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, topicoId, createdAt])
+}
+
+model PorRecado {
+  id             String   @id @default(uuid())
+  tenantId       String
+  classSectionId String
+  autorUserId    String
+  autorNome      String
+  titulo         String
+  mensagem       String
+  fixado         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, classSectionId, createdAt])
+}
+
+// ---------- Frequência: justificativa, chamada por QR, conteúdo ministrado ----------
+// status: PENDENTE | DEFERIDA | INDEFERIDA | CANCELADA
+model PorJustificativa {
+  id             String   @id @default(uuid())
+  tenantId       String
+  studentId      String
+  classSectionId String?
+  dataInicio     DateTime
+  dataFim        DateTime
+  motivo         String
+  anexoUrl       String?
+  anexoNome      String?
+  status         String   @default("PENDENTE")
+  parecer        String?
+  decididoPor    String?
+  decididoEm     DateTime?
+  prazoEm        DateTime?
+  faltasAbonadas Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, studentId, status])
+  @@index([tenantId, classSectionId, status])
+}
+
+model PorChamadaQr {
+  id             String   @id @default(uuid())
+  tenantId       String
+  classSessionId String
+  classSectionId String
+  token          String   @unique
+  expiraEm       DateTime
+  criadoPor      String
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, classSessionId])
+}
+
+model PorDiarioConteudo {
+  id             String   @id @default(uuid())
+  tenantId       String
+  classSessionId String
+  classSectionId String
+  conteudo       String
+  metodologia    String?
+  tarefa         String?
+  registradoPor  String
+  updatedAt      DateTime @updatedAt
+
+  @@unique([classSessionId])
+  @@index([tenantId, classSectionId])
+}
+
+// ---------- Processos internos do aluno ----------
+// tipo: TRANCAMENTO | DESTRANCAMENTO | TRANSFERENCIA | APROVEITAMENTO | CANCELAMENTO
+// status: ABERTO | EM_ANALISE | PENDENCIA | DEFERIDO | INDEFERIDO | CONCLUIDO | CANCELADO
+model PorProcesso {
+  id          String   @id @default(uuid())
+  tenantId    String
+  numero      String
+  studentId   String
+  tipo        String
+  status      String   @default("ABERTO")
+  justificativa String?
+  dados       Json?
+  prazoEm     DateTime?
+  decisao     String?
+  decididoPor String?
+  decididoEm  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, studentId, status])
+}
+
+// status: PENDENTE | EM_ANDAMENTO | CONCLUIDA | REJEITADA
+model PorProcessoEtapa {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String
+  ordem       Int
+  nome        String
+  setor       String?
+  status      String   @default("PENDENTE")
+  observacao  String?
+  concluidaEm DateTime?
+  concluidaPor String?
+
+  @@index([tenantId, processoId, ordem])
+}
+
+model PorProcessoEvento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String
+  autorUserId String?
+  autorNome   String?
+  tipo        String
+  texto       String
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, processoId, createdAt])
+}
+
+// ---------- Financeiro do aluno: acordos ----------
+// status: SOLICITADO | APROVADO | RECUSADO | CANCELADO
+model PorAcordo {
+  id             String   @id @default(uuid())
+  tenantId       String
+  studentId      String
+  receivableIds  Json
+  valorOriginal  Float
+  desconto       Float    @default(0)
+  entrada        Float    @default(0)
+  parcelas       Int
+  valorParcela   Float
+  primeiroVencimento DateTime
+  observacao     String?
+  status         String   @default("SOLICITADO")
+  parecer        String?
+  decididoPor    String?
+  decididoEm     DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, studentId, status])
+}
+
+// ---------- Carteirinha digital ----------
+model PorCarteirinha {
+  id          String   @id @default(uuid())
+  tenantId    String
+  studentId   String
+  codigo      String   @unique
+  validade    DateTime
+  status      String   @default("ATIVA")      // ATIVA | REVOGADA
+  emitidaEm   DateTime @default(now())
+
+  @@index([tenantId, studentId])
+}
+
+// ---------- Privacidade (LGPD) do titular ----------
+model PorConsentimento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String
+  studentId   String?
+  finalidade  String
+  concedido   Boolean  @default(false)
+  baseLegal   String?
+  historico   Json?
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, userId, finalidade])
+}
+
+// ---------- Portal do professor ----------
+model PorProfessorPerfil {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  userId              String
+  regime              String?                 // HORISTA | PARCIAL | INTEGRAL
+  cargaContratualHoras Int      @default(0)
+  titulacao           String?
+  observacao          String?
+  updatedAt           DateTime @updatedAt
+
+  @@unique([tenantId, userId])
+}
+
+// tipo: DISPONIVEL | INDISPONIVEL
+model PorDisponibilidade {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String
+  diaSemana   Int
+  inicioMin   Int
+  fimMin      Int
+  tipo        String   @default("DISPONIVEL")
+  observacao  String?
+
+  @@index([tenantId, userId])
+}
+
+// Avaliação docente respondida pelo aluno (anônima para o professor).
+model PorAvaliacaoDocente {
+  id             String   @id @default(uuid())
+  tenantId       String
+  classSectionId String
+  professorUserId String
+  studentId      String
+  notas          Json
+  media          Float
+  comentario     String?
+  createdAt      DateTime @default(now())
+
+  @@unique([classSectionId, studentId])
+  @@index([tenantId, professorUserId])
+}

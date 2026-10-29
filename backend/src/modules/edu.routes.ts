@@ -28,10 +28,15 @@ import cobrancaRouter from './cobranca/routes'
 import { acessoSensivelLog } from './lgpd/sensiveis'
 import juridicoRouter from './juridico/routes'
 import feedbackRouter from './feedback/routes'
+import portal2Router, { publicRouter as portal2Public, ambienteContext } from './portal2/routes'
+import presencaRouter from './presenca/routes'
+import { academico2Router, desenvolvimentoRouter } from './academico2/routes'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
 const router = Router()
 router.use(eduContext)
+// Ambiente de ensino atual (cabeçalho X-Edu-Ambiente ou contexto salvo): filtra listas por curso. Ver modules/portal2/README.md.
+router.use(ambienteContext)
 // LGPD: registra quem acessa dados sensíveis (apoio/atendimentos, AEE, ocorrências, bolsas) - não altera a resposta.
 router.use(acessoSensivelLog)
 
@@ -60,6 +65,8 @@ router.use('/lgpd', lgpdRouter)
 router.use('/rh', rhRouter)
 router.use('/juridico', juridicoRouter)
 router.use('/feedback', feedbackRouter)
+router.use('/portal2', portal2Router)
+router.use('/presenca', presencaRouter)
 router.use('/tesouraria', tesourariaRouter)
 router.use('/cobranca', cobrancaRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.
@@ -87,4 +94,5 @@ eduPublicRouter.use('/jornadas', jornadasPublic)
 eduPublicRouter.use('/modalidades', modalidadesPublic)
 eduPublicRouter.use('/reitoria', reitoriaPublic)
 eduPublicRouter.use('/lgpd', lgpdPublic)
+eduPublicRouter.use('/portal2', portal2Public)
 eduPublicRouter.use(academicErrorHandler)

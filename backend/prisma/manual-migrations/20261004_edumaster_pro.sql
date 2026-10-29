@@ -15699,3 +15699,427 @@ DO $$ BEGIN
   ALTER TABLE "FbkComentario" ADD CONSTRAINT "FbkComentario_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "FbkItem"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- ==== INF2:END ====
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "PreFrequencia" ADD CONSTRAINT "PreFrequencia_chamadaId_fkey" FOREIGN KEY ("chamadaId") REFERENCES "PreChamada"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "PreInventarioLeitura" ADD CONSTRAINT "PreInventarioLeitura_inventarioId_fkey" FOREIGN KEY ("inventarioId") REFERENCES "PreInventario"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ==== PRE:END ====
+
+-- ==== POR:BEGIN (ambientes de ensino, portal do aluno/professor e sala virtual, prefixo Por - gerado por prisma migrate diff; somente CRIA) ====
+CREATE TABLE IF NOT EXISTS "PorAmbiente" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "nivel" TEXT NOT NULL,
+    "modalidade" TEXT NOT NULL DEFAULT 'PRESENCIAL',
+    "variante" TEXT,
+    "unidade" TEXT,
+    "campusId" TEXT,
+    "poloId" TEXT,
+    "cor" TEXT,
+    "descricao" TEXT,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "PorAmbiente_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorAmbienteCurso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "ambienteId" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorAmbienteCurso_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorContexto" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "ambienteId" TEXT NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "PorContexto_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorCursoConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "tipoPeriodo" TEXT NOT NULL DEFAULT 'SEMESTRE',
+    "periodosPorAno" INTEGER NOT NULL DEFAULT 2,
+    "rotuloPeriodo" TEXT,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "PorCursoConfig_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorPreRequisito" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "disciplineId" TEXT NOT NULL,
+    "requisitoDisciplineId" TEXT NOT NULL,
+    CONSTRAINT "PorPreRequisito_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorMaterial" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "autorUserId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "trilha" TEXT,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "url" TEXT,
+    "arquivoNome" TEXT,
+    "conteudo" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PUBLICADO',
+    "visivelDe" TIMESTAMP(3),
+    "visivelAte" TIMESTAMP(3),
+    "inicioEm" TIMESTAMP(3),
+    "duracaoMin" INTEGER,
+    "aceitaEntrega" BOOLEAN NOT NULL DEFAULT false,
+    "prazoEntrega" TIMESTAMP(3),
+    "notaMaxima" DOUBLE PRECISION,
+    "componenteId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "PorMaterial_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorEntrega" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "materialId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "texto" TEXT,
+    "url" TEXT,
+    "arquivoNome" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ENVIADA',
+    "atrasada" BOOLEAN NOT NULL DEFAULT false,
+    "nota" DOUBLE PRECISION,
+    "feedback" TEXT,
+    "enviadaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "corrigidaEm" TIMESTAMP(3),
+    "corrigidaPor" TEXT,
+    "versao" INTEGER NOT NULL DEFAULT 1,
+    CONSTRAINT "PorEntrega_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorProgresso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "materialId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "concluido" BOOLEAN NOT NULL DEFAULT false,
+    "percentual" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "acessos" INTEGER NOT NULL DEFAULT 0,
+    "primeiroAcessoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ultimoAcessoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorProgresso_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorAcesso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "classSectionId" TEXT,
+    "materialId" TEXT,
+    "tipo" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorAcesso_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorForumTopico" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "autorUserId" TEXT NOT NULL,
+    "autorNome" TEXT NOT NULL,
+    "autorPapel" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "corpo" TEXT NOT NULL,
+    "fixado" BOOLEAN NOT NULL DEFAULT false,
+    "fechado" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorForumTopico_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorForumResposta" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "topicoId" TEXT NOT NULL,
+    "autorUserId" TEXT NOT NULL,
+    "autorNome" TEXT NOT NULL,
+    "autorPapel" TEXT NOT NULL,
+    "corpo" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorForumResposta_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorRecado" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "autorUserId" TEXT NOT NULL,
+    "autorNome" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "mensagem" TEXT NOT NULL,
+    "fixado" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorRecado_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorJustificativa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "classSectionId" TEXT,
+    "dataInicio" TIMESTAMP(3) NOT NULL,
+    "dataFim" TIMESTAMP(3) NOT NULL,
+    "motivo" TEXT NOT NULL,
+    "anexoUrl" TEXT,
+    "anexoNome" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "parecer" TEXT,
+    "decididoPor" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "prazoEm" TIMESTAMP(3),
+    "faltasAbonadas" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorJustificativa_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorChamadaQr" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "classSessionId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "expiraEm" TIMESTAMP(3) NOT NULL,
+    "criadoPor" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorChamadaQr_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorDiarioConteudo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "classSessionId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "conteudo" TEXT NOT NULL,
+    "metodologia" TEXT,
+    "tarefa" TEXT,
+    "registradoPor" TEXT NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "PorDiarioConteudo_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorProcesso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ABERTO',
+    "justificativa" TEXT,
+    "dados" JSONB,
+    "prazoEm" TIMESTAMP(3),
+    "decisao" TEXT,
+    "decididoPor" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "PorProcesso_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorProcessoEtapa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL,
+    "nome" TEXT NOT NULL,
+    "setor" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "observacao" TEXT,
+    "concluidaEm" TIMESTAMP(3),
+    "concluidaPor" TEXT,
+    CONSTRAINT "PorProcessoEtapa_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorProcessoEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "autorUserId" TEXT,
+    "autorNome" TEXT,
+    "tipo" TEXT NOT NULL,
+    "texto" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorProcessoEvento_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorAcordo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "receivableIds" JSONB NOT NULL,
+    "valorOriginal" DOUBLE PRECISION NOT NULL,
+    "desconto" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "entrada" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "parcelas" INTEGER NOT NULL,
+    "valorParcela" DOUBLE PRECISION NOT NULL,
+    "primeiroVencimento" TIMESTAMP(3) NOT NULL,
+    "observacao" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'SOLICITADO',
+    "parecer" TEXT,
+    "decididoPor" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorAcordo_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorCarteirinha" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "validade" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ATIVA',
+    "emitidaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorCarteirinha_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorConsentimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "studentId" TEXT,
+    "finalidade" TEXT NOT NULL,
+    "concedido" BOOLEAN NOT NULL DEFAULT false,
+    "baseLegal" TEXT,
+    "historico" JSONB,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "PorConsentimento_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorProfessorPerfil" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "regime" TEXT,
+    "cargaContratualHoras" INTEGER NOT NULL DEFAULT 0,
+    "titulacao" TEXT,
+    "observacao" TEXT,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "PorProfessorPerfil_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorDisponibilidade" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "diaSemana" INTEGER NOT NULL,
+    "inicioMin" INTEGER NOT NULL,
+    "fimMin" INTEGER NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'DISPONIVEL',
+    "observacao" TEXT,
+    CONSTRAINT "PorDisponibilidade_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "PorAvaliacaoDocente" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "professorUserId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "notas" JSONB NOT NULL,
+    "media" DOUBLE PRECISION NOT NULL,
+    "comentario" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PorAvaliacaoDocente_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "PorAmbiente_tenantId_ativo_idx" ON "PorAmbiente"("tenantId", "ativo");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorAmbiente_tenantId_codigo_key" ON "PorAmbiente"("tenantId", "codigo");
+
+CREATE INDEX IF NOT EXISTS "PorAmbienteCurso_tenantId_programId_idx" ON "PorAmbienteCurso"("tenantId", "programId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorAmbienteCurso_ambienteId_programId_key" ON "PorAmbienteCurso"("ambienteId", "programId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorContexto_tenantId_userId_key" ON "PorContexto"("tenantId", "userId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorCursoConfig_tenantId_programId_key" ON "PorCursoConfig"("tenantId", "programId");
+
+CREATE INDEX IF NOT EXISTS "PorPreRequisito_tenantId_programId_idx" ON "PorPreRequisito"("tenantId", "programId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorPreRequisito_programId_disciplineId_requisitoDisciplineI_key" ON "PorPreRequisito"("programId", "disciplineId", "requisitoDisciplineId");
+
+CREATE INDEX IF NOT EXISTS "PorMaterial_tenantId_classSectionId_status_idx" ON "PorMaterial"("tenantId", "classSectionId", "status");
+
+CREATE INDEX IF NOT EXISTS "PorEntrega_tenantId_classSectionId_status_idx" ON "PorEntrega"("tenantId", "classSectionId", "status");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorEntrega_materialId_studentId_key" ON "PorEntrega"("materialId", "studentId");
+
+CREATE INDEX IF NOT EXISTS "PorProgresso_tenantId_classSectionId_studentId_idx" ON "PorProgresso"("tenantId", "classSectionId", "studentId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorProgresso_materialId_studentId_key" ON "PorProgresso"("materialId", "studentId");
+
+CREATE INDEX IF NOT EXISTS "PorAcesso_tenantId_studentId_createdAt_idx" ON "PorAcesso"("tenantId", "studentId", "createdAt");
+
+CREATE INDEX IF NOT EXISTS "PorAcesso_tenantId_classSectionId_createdAt_idx" ON "PorAcesso"("tenantId", "classSectionId", "createdAt");
+
+CREATE INDEX IF NOT EXISTS "PorForumTopico_tenantId_classSectionId_createdAt_idx" ON "PorForumTopico"("tenantId", "classSectionId", "createdAt");
+
+CREATE INDEX IF NOT EXISTS "PorForumResposta_tenantId_topicoId_createdAt_idx" ON "PorForumResposta"("tenantId", "topicoId", "createdAt");
+
+CREATE INDEX IF NOT EXISTS "PorRecado_tenantId_classSectionId_createdAt_idx" ON "PorRecado"("tenantId", "classSectionId", "createdAt");
+
+CREATE INDEX IF NOT EXISTS "PorJustificativa_tenantId_studentId_status_idx" ON "PorJustificativa"("tenantId", "studentId", "status");
+
+CREATE INDEX IF NOT EXISTS "PorJustificativa_tenantId_classSectionId_status_idx" ON "PorJustificativa"("tenantId", "classSectionId", "status");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorChamadaQr_token_key" ON "PorChamadaQr"("token");
+
+CREATE INDEX IF NOT EXISTS "PorChamadaQr_tenantId_classSessionId_idx" ON "PorChamadaQr"("tenantId", "classSessionId");
+
+CREATE INDEX IF NOT EXISTS "PorDiarioConteudo_tenantId_classSectionId_idx" ON "PorDiarioConteudo"("tenantId", "classSectionId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorDiarioConteudo_classSessionId_key" ON "PorDiarioConteudo"("classSessionId");
+
+CREATE INDEX IF NOT EXISTS "PorProcesso_tenantId_studentId_status_idx" ON "PorProcesso"("tenantId", "studentId", "status");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorProcesso_tenantId_numero_key" ON "PorProcesso"("tenantId", "numero");
+
+CREATE INDEX IF NOT EXISTS "PorProcessoEtapa_tenantId_processoId_ordem_idx" ON "PorProcessoEtapa"("tenantId", "processoId", "ordem");
+
+CREATE INDEX IF NOT EXISTS "PorProcessoEvento_tenantId_processoId_createdAt_idx" ON "PorProcessoEvento"("tenantId", "processoId", "createdAt");
+
+CREATE INDEX IF NOT EXISTS "PorAcordo_tenantId_studentId_status_idx" ON "PorAcordo"("tenantId", "studentId", "status");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorCarteirinha_codigo_key" ON "PorCarteirinha"("codigo");
+
+CREATE INDEX IF NOT EXISTS "PorCarteirinha_tenantId_studentId_idx" ON "PorCarteirinha"("tenantId", "studentId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorConsentimento_tenantId_userId_finalidade_key" ON "PorConsentimento"("tenantId", "userId", "finalidade");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorProfessorPerfil_tenantId_userId_key" ON "PorProfessorPerfil"("tenantId", "userId");
+
+CREATE INDEX IF NOT EXISTS "PorDisponibilidade_tenantId_userId_idx" ON "PorDisponibilidade"("tenantId", "userId");
+
+CREATE INDEX IF NOT EXISTS "PorAvaliacaoDocente_tenantId_professorUserId_idx" ON "PorAvaliacaoDocente"("tenantId", "professorUserId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PorAvaliacaoDocente_classSectionId_studentId_key" ON "PorAvaliacaoDocente"("classSectionId", "studentId");
+-- ==== POR:END ====

@@ -1,3 +1,4 @@
+import { whereTurma, wherePrograma, whereAluno } from '../portal2/ambientes'
 import { Router, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
@@ -18,7 +19,7 @@ const PROF = ['TEACHER', 'COORDINATOR', 'SECRETARY'] as const
 router.get('/turmas', requireRole(...PROF), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
   const { skip, take, page, pageSize } = pageParams(req.query)
-  const where: any = { tenantId }
+  const where: any = { tenantId, ...whereTurma(req) } // respeita o ambiente de ensino atual
   if (role(req) === 'TEACHER') where.professorUserId = getUserId(req)
   else if (qs(req.query.professorUserId)) where.professorUserId = qs(req.query.professorUserId)
   if (qs(req.query.termId)) where.termId = qs(req.query.termId)

@@ -1,3 +1,4 @@
+import { whereTurma, wherePrograma, whereAluno } from '../portal2/ambientes'
 import { Router, Response } from 'express';
 import { prisma } from '../../lib/prisma'; // AJUSTE: caminho real do seu cliente Prisma
 import {
@@ -48,7 +49,7 @@ router.get(
     const tenantId = getTenantId(req);
     const { termId, disciplineId, professorUserId } = req.query as Record<string, string>;
 
-    const where: any = { tenantId };
+    const where: any = { tenantId, ...whereTurma(req) }; // respeita o ambiente de ensino atual
     if (termId) where.termId = termId;
     if (disciplineId) where.disciplineId = disciplineId;
     if (professorUserId) where.professorUserId = professorUserId;
