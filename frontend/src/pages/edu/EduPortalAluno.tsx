@@ -17,13 +17,14 @@ import PortalFluxograma from "../../edu/portal/PortalFluxograma";
 import PortalRequerimentos from "../../edu/portal/PortalRequerimentos";
 import PortalFinanceiro from "../../edu/portal/PortalFinanceiro";
 import PortalBiblioteca from "../../edu/portal/PortalBiblioteca";
+import PortalServicos from "../../edu/atendimento/PortalServicos";
 import { PortalAvaliacaoDocente, PortalCarteirinha, PortalMensagens, PortalPrivacidade } from "../../edu/portal/PortalPessoal";
 import { qsOf } from "../../services/EduApi";
 import { Feedback, StudentSearch, fmtNum, useLoad } from "../../edu/secretaria/util";
 
 const ABAS: Array<[string, string]> = [
   ["geral", "Visão geral"], ["notas", "Notas e boletim"], ["frequencia", "Frequência"], ["salas", "Salas e materiais"], ["horario", "Horários"], ["fluxograma", "Fluxograma"],
-  ["requerimentos", "Requerimentos e processos"], ["financeiro", "Financeiro"], ["biblioteca", "Biblioteca"], ["mensagens", "Mensagens"], ["documentos", "Documentos"],
+  ["requerimentos", "Requerimentos e processos"], ["servicos", "Serviços e atendimento"], ["financeiro", "Financeiro"], ["biblioteca", "Biblioteca"], ["mensagens", "Mensagens"], ["documentos", "Documentos"],
   ["carteirinha", "Carteirinha"], ["privacidade", "Privacidade (LGPD)"], ["avaliacao", "Avaliação docente"],
 ];
 
@@ -86,6 +87,7 @@ export default function EduPortalAluno() {
           {aba === "salas" && <SalasDoAluno studentId={sidAlvo} podeAgir={podeAgir} />}
           {aba === "horario" && <PortalHorario studentId={sidAlvo} />}
           {aba === "fluxograma" && <PortalFluxograma studentId={sidAlvo} />}
+          {aba === "servicos" && (podeAgir ? <PortalServicos /> : <Alert severity="info">Os serviços de autoatendimento são usados pelo próprio aluno logado.</Alert>)}
           {aba === "requerimentos" && <PortalRequerimentos studentId={sidAlvo} podeAgir={podeAgir} onNovoRequerimento={() => setNovo(true)} />}
           {aba === "financeiro" && <PortalFinanceiro studentId={sidAlvo} podeAgir={podeAgir} />}
           {aba === "biblioteca" && <PortalBiblioteca podeAgir={podeAgir} />}

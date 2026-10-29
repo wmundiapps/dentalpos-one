@@ -28,6 +28,7 @@ const EduInicio = lazy(() => import("../pages/edu/EduInicio"));
 const EduLgpd = lazy(() => import("../pages/edu/EduLgpd"));
 const EduFinanceiro = lazy(() => import("../pages/edu/EduFinanceiro"));
 const EduJuridico = lazy(() => import("../pages/edu/EduJuridico"));
+const EduAtendimento = lazy(() => import("../pages/edu/EduAtendimento"));
 const EduMarketing = lazy(() => import("../pages/edu/EduMarketing"));
 const EduFeedback = lazy(() => import("../pages/edu/EduFeedback"));
 const EduCobranca = lazy(() => import("../pages/edu/EduCobranca"));
@@ -183,6 +184,7 @@ export default function AppRoutes() {
       <Route path="/edu/rh" element={<EduRh />} />
       <Route path="/edu/financeiro" element={<EduFinanceiro />} />
       <Route path="/edu/juridico" element={<EduJuridico />} />
+      <Route path="/edu/atendimento" element={<EduAtendimento />} />
       <Route path="/edu/marketing" element={<EduMarketing />} />
       <Route path="/edu/feedback" element={<EduFeedback />} />
       <Route path="/edu/cobranca" element={<EduCobranca />} />

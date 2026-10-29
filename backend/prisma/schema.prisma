@@ -3501,6 +3501,666 @@ model AIGenerationLog {
   @@index([tenantId])
 }
 
+// ---- edu/academico2.prisma ----
+// ============================================================
+// EDUMASTER PRO — ACADÊMICO AVANÇADO (prefixo Aca)
+// Secretaria de alunos (perfil, matrícula estendida, contratos, documentos), matrizes/fluxograma,
+// salas e turnos, programas de desenvolvimento do aluno, avaliação global, orientação,
+// ligas/centros acadêmicos, extramuros e horas complementares.
+// Referências a models de outros módulos = String ids sem @relation (Student, Enrollment, AcademicProgram, Discipline, ClassSection, DesExame...).
+// Estados são String (validados por zod nas rotas) para manter a migration aditiva simples.
+// ============================================================
+
+// ---------- perfil do curso ----------
+model AcaCursoPerfil {
+  id          String   @id @default(uuid())
+  tenantId    String
+  programId   String
+  nivel       String   @default("GRADUACAO")        // GRADUACAO, TECNOLOGO, POS_LATO, POS_STRICTO, LIVRE, TECNICO
+  regime      String   @default("SERIADO_SEMESTRAL") // SERIADO_ANUAL, SERIADO_SEMESTRAL, BIMESTRAL, MODULAR, CREDITOS, LIVRE
+  turnos      String[] @default([])
+  duracaoPeriodos Int?
+  codigoEmec  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, programId])
+}
+
+// ---------- secretaria de alunos ----------
+model AcaAlunoPerfil {
+  id             String   @id @default(uuid())
+  tenantId       String
+  studentId      String
+  email          String?
+  telefone       String?
+  rg             String?
+  rgOrgao        String?
+  sexo           String?
+  nomeSocial     String?
+  fotoUrl        String?
+  poloId         String?
+  cidade         String?
+  uf             String?
+  responsavelNome String?          // menores de idade (LGPD art. 14)
+  nee            Boolean  @default(false)       // necessidade educacional especial (dado sensível: só o indicador na listagem)
+  neeCategoria   String?                         // detalhe restrito (ficha, perfil com permissão)
+  neeBaseLegal   String?
+  neeConsentimentoEm DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId, nee])
+  @@index([tenantId, poloId])
+}
+
+model AcaMatriculaExt {
+  id             String   @id @default(uuid())
+  tenantId       String
+  enrollmentId   String
+  studentId      String
+  numero         String?
+  turno          String?                          // MANHA, TARDE, NOITE, FIM_DE_SEMANA, INTEGRAL, EAD
+  ingresso       String   @default("VESTIBULAR")  // VESTIBULAR, ENEM, TRANSFERENCIA, PORTADOR_DIPLOMA, REINGRESSO, OUTRO
+  matriculaNova  Boolean  @default(false)
+  statusCurso    String   @default("CURSANDO")    // CURSANDO, FORMANDO, FORMADO, TRANCADO, JUBILADO, TRANSFERIDO, EVADIDO
+  poloId         String?
+  anoLetivo      Int?
+  periodoLetivo  Int?
+  periodoAtual   Int?                              // série/semestre/módulo em que o aluno está
+  matrizId       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, enrollmentId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, anoLetivo, periodoLetivo])
+  @@index([tenantId, statusCurso])
+  @@index([tenantId, matriculaNova])
+}
+
+model AcaContrato {
+  id               String   @id @default(uuid())
+  tenantId         String
+  studentId        String
+  enrollmentId     String?
+  numero           String
+  status           String   @default("PENDENTE_ASSINATURA")  // RASCUNHO, PENDENTE_ASSINATURA, ASSINADO, RESCINDIDO, ENCERRADO, CANCELADO
+  valorMensalidade Float    @default(0)
+  parcelas         Int      @default(6)
+  diaVencimento    Int      @default(10)
+  descontoPercent  Float    @default(0)
+  assinadoEm       DateTime?
+  vigenciaInicio   DateTime?
+  vigenciaFim      DateTime?
+  observacao       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, studentId])
+  @@index([tenantId, status])
+}
+
+model AcaDocumentoAluno {
+  id           String   @id @default(uuid())
+  tenantId     String
+  studentId    String
+  tipo         String                              // RG, CPF, HISTORICO_ESCOLAR, CERTIFICADO_ENSINO_MEDIO, COMPROVANTE_RESIDENCIA, FOTO_3X4, TERMO_ESTAGIO, LAUDO...
+  status       String   @default("PENDENTE")       // PENDENTE, ENTREGUE, VALIDADO, REJEITADO, DISPENSADO
+  obrigatorio  Boolean  @default(true)
+  entregueEm   DateTime?
+  validadeEm   DateTime?
+  observacao   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId, studentId])
+  @@index([tenantId, status])
+}
+
+// ---------- matriz curricular / fluxograma ----------
+model AcaMatriz {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  programId          String
+  nome               String
+  versao             String   @default("1.0")
+  regime             String   @default("SERIADO_SEMESTRAL")   // SERIADO_ANUAL, SERIADO_SEMESTRAL, BIMESTRAL, MODULAR, CREDITOS, LIVRE
+  status             String   @default("RASCUNHO")            // RASCUNHO, VIGENTE, ARQUIVADA
+  vigenciaInicio     DateTime?
+  cargaHorariaTotal  Int      @default(0)
+  creditosTotal      Int      @default(0)
+  horasComplementaresMin Int  @default(0)
+  observacao         String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  periodos           AcaMatrizPeriodo[]
+  itens              AcaMatrizItem[]
+
+  @@unique([tenantId, programId, versao])
+  @@index([tenantId, programId])
+}
+
+model AcaMatrizPeriodo {
+  id        String   @id @default(uuid())
+  tenantId  String
+  matrizId  String
+  ordem     Int
+  tipo      String   @default("SEMESTRE")   // MODULO, BIMESTRE, TRIMESTRE, SEMESTRE, ANO, PERIODO
+  rotulo    String
+  createdAt DateTime @default(now())
+
+  matriz    AcaMatriz @relation(fields: [matrizId], references: [id], onDelete: Cascade)
+  itens     AcaMatrizItem[]
+
+  @@unique([matrizId, ordem])
+  @@index([tenantId, matrizId])
+}
+
+model AcaMatrizItem {
+  id            String   @id @default(uuid())
+  tenantId      String
+  matrizId      String
+  periodoId     String
+  disciplineId  String
+  tipo          String   @default("OBRIGATORIA")  // OBRIGATORIA, OPTATIVA, ELETIVA, ESTAGIO, TCC, ATIVIDADE_COMPLEMENTAR, EXTENSAO
+  cargaHoraria  Int      @default(60)
+  creditos      Int      @default(0)
+  ordem         Int      @default(0)
+  grupoOptativas String?
+  createdAt     DateTime @default(now())
+
+  matriz        AcaMatriz        @relation(fields: [matrizId], references: [id], onDelete: Cascade)
+  periodo       AcaMatrizPeriodo @relation(fields: [periodoId], references: [id], onDelete: Cascade)
+
+  @@unique([matrizId, disciplineId])
+  @@index([tenantId, matrizId])
+  @@index([tenantId, periodoId])
+}
+
+model AcaPreRequisito {
+  id               String   @id @default(uuid())
+  tenantId         String
+  matrizId         String
+  itemId           String
+  requisitoItemId  String?
+  tipo             String   @default("PRE")   // PRE (aprovação anterior), CO (cursar junto), CARGA_MIN (carga horária integralizada mínima)
+  cargaMinima      Int?
+  createdAt        DateTime @default(now())
+
+  @@unique([itemId, requisitoItemId, tipo])
+  @@index([tenantId, matrizId])
+}
+
+model AcaEquivalencia {
+  id             String   @id @default(uuid())
+  tenantId       String
+  disciplineId   String
+  equivalenteId  String
+  percentual     Int      @default(100)
+  bidirecional   Boolean  @default(true)
+  observacao     String?
+  createdAt      DateTime @default(now())
+
+  @@unique([tenantId, disciplineId, equivalenteId])
+  @@index([tenantId, equivalenteId])
+}
+
+// ---------- salas, turnos e perfil de turma ----------
+model AcaTurno {
+  id         String   @id @default(uuid())
+  tenantId   String
+  codigo     String                       // MANHA, TARDE, NOITE, FIM_DE_SEMANA, INTEGRAL
+  nome       String
+  inicioMin  Int
+  fimMin     Int
+  dias       Int[]    @default([])        // 1=seg ... 7=dom
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+}
+
+model AcaTurmaPerfil {
+  id               String   @id @default(uuid())
+  tenantId         String
+  classSectionId   String
+  nivel            String   @default("GRADUACAO")   // GRADUACAO, POS, LIVRE, TECNICO
+  turno            String   @default("NOITE")       // MANHA, TARDE, NOITE, FIM_DE_SEMANA, INTEGRAL
+  programId        String?
+  alunosEstimados  Int?
+  recursosExigidos String[] @default([])
+  observacao       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, classSectionId])
+  @@index([tenantId, nivel, turno])
+}
+
+// ---------- programas de incentivo e desenvolvimento ----------
+model AcaPrograma {
+  id               String   @id @default(uuid())
+  tenantId         String
+  codigo           String
+  nome             String
+  tipo             String   @default("PREPARATORIO")  // PREPARATORIO, DIDATICO, PEDAGOGICO, DESENVOLVIMENTO_PESSOAL, MENTORIA, NIVELAMENTO
+  alvo             String?                            // ENADE, ENAMED, OAB, MESTRADO, DOUTORADO, CONCURSO, OUTRO
+  exameId          String?                            // DesExame (banco de questões/simulados do módulo desempenho)
+  programId        String?
+  descricao        String?
+  inicio           DateTime?
+  fim              DateTime?
+  vagas            Int?
+  status           String   @default("RASCUNHO")      // RASCUNHO, ABERTO, EM_ANDAMENTO, ENCERRADO
+  rankingAtivo     Boolean  @default(false)
+  metaPercentual   Float    @default(60)
+  cargaHoraria     Int      @default(0)
+  responsavelUserId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, tipo, status])
+}
+
+model AcaProgramaInscricao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  programaId    String
+  studentId     String
+  status        String   @default("ATIVA")   // ATIVA, CONCLUIDA, DESISTENTE, LISTA_ESPERA
+  rankingOptIn  Boolean  @default(false)     // o aluno só aparece no ranking se consentir
+  metaPercentual Float?
+  progresso     Float    @default(0)
+  inscritoEm    DateTime @default(now())
+  concluidoEm   DateTime?
+
+  @@unique([programaId, studentId])
+  @@index([tenantId, studentId])
+}
+
+model AcaProgramaAtividade {
+  id            String   @id @default(uuid())
+  tenantId      String
+  programaId    String
+  ordem         Int      @default(0)
+  tipo          String   @default("AULA")   // AULA, SIMULADO, TRILHA, LEITURA, ENCONTRO, ENTREGA, MENTORIA, OFICINA
+  titulo        String
+  descricao     String?
+  dataPrevista  DateTime?
+  duracaoMin    Int      @default(60)
+  simuladoId    String?                      // DesSimulado
+  eixoId        String?                      // DesEixo (área)
+  obrigatoria   Boolean  @default(true)
+  calEventoId   String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, programaId])
+}
+
+model AcaAtividadeRegistro {
+  id            String   @id @default(uuid())
+  tenantId      String
+  atividadeId   String
+  programaId    String
+  studentId     String
+  status        String   @default("CONCLUIDA")  // PENDENTE, CONCLUIDA, FALTOU
+  nota          Float?
+  concluidaEm   DateTime @default(now())
+
+  @@unique([atividadeId, studentId])
+  @@index([tenantId, programaId, studentId])
+}
+
+model AcaCompetencia {
+  id         String   @id @default(uuid())
+  tenantId   String
+  codigo     String
+  nome       String
+  dominio    String   @default("AUTORREGULACAO")  // AUTOCONHECIMENTO, AUTORREGULACAO, CONSCIENCIA_SOCIAL, RELACIONAMENTO, TOMADA_DECISAO, COMUNICACAO, LIDERANCA, PENSAMENTO_CRITICO
+  descricao  String?
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, codigo])
+}
+
+model AcaAvaliacaoCompetencia {
+  id             String   @id @default(uuid())
+  tenantId       String
+  studentId      String
+  competenciaId  String
+  periodo        String                          // ex.: 2026/2
+  origem         String   @default("AUTO")       // AUTO, PROFESSOR, MENTOR, PAR
+  nota           Int                              // 1 a 5
+  evidencia      String?
+  avaliadorId    String?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, studentId, periodo])
+}
+
+model AcaPlanoIndividual {
+  id              String   @id @default(uuid())
+  tenantId        String
+  studentId       String
+  titulo          String
+  objetivo        String?
+  mentorUserId    String?
+  programaId      String?
+  status          String   @default("ATIVO")   // RASCUNHO, ATIVO, CONCLUIDO, CANCELADO
+  vigenciaInicio  DateTime?
+  vigenciaFim     DateTime?
+  visivelAoAluno  Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  metas           AcaPlanoMeta[]
+
+  @@index([tenantId, studentId])
+}
+
+model AcaPlanoMeta {
+  id          String   @id @default(uuid())
+  tenantId    String
+  planoId     String
+  descricao   String
+  area        String   @default("ACADEMICA")   // ACADEMICA, PROFISSIONAL, PESSOAL, SOCIOEMOCIONAL, SAUDE
+  prazo       DateTime?
+  indicador   String?
+  status      String   @default("ABERTA")      // ABERTA, EM_ANDAMENTO, ATINGIDA, NAO_ATINGIDA
+  progresso   Int      @default(0)
+  evidencia   String?
+  createdAt   DateTime @default(now())
+
+  plano       AcaPlanoIndividual @relation(fields: [planoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, planoId])
+}
+
+model AcaAcompanhamento {
+  id             String   @id @default(uuid())
+  tenantId       String
+  studentId      String
+  tipo           String   @default("DIDATICO")   // DIDATICO, PEDAGOGICO
+  disciplineId   String?
+  classSectionId String?
+  autorUserId    String
+  data           DateTime @default(now())
+  resumo         String
+  dificuldades   String?
+  estrategias    String?
+  resultado      String?
+  proximoPassoEm DateTime?
+  sigilo         String   @default("NORMAL")     // NORMAL, RESTRITO
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, studentId, data])
+  @@index([tenantId, tipo])
+}
+
+model AcaAvaliacaoGlobal {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  studentId          String
+  periodo            String                      // ex.: 2026/2
+  termId             String?
+  notaAcademica      Float?                      // média das médias finais (0-10)
+  frequenciaPct      Float?
+  engajamento        Float?                      // 0-100
+  financeiroScore    Float?                      // 0-100 (100 = adimplente)
+  ocorrencias        Int      @default(0)
+  horasPesquisaExtensao Float @default(0)
+  horasComplementares Float   @default(0)
+  scoreGlobal        Float                       // 0-100
+  faixa              String                      // OTIMO, BOM, ATENCAO, RISCO
+  componentes        Json?
+  alertas            Json?
+  parecer            String?
+  parecerPorId       String?
+  geradaPorId        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([tenantId, studentId, periodo])
+  @@index([tenantId, faixa])
+}
+
+model AcaOrientacao {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  studentId          String
+  tipo               String   @default("PLANO_ACAO")    // ALERTA_RISCO, PLANO_ACAO, ENCAMINHAMENTO, ATENDIMENTO
+  titulo             String
+  descricao          String?                              // sob confidencialidade
+  origem             String   @default("MANUAL")          // AVALIACAO_GLOBAL, MANUAL, PROFESSOR, COORDENACAO, APOIO
+  avaliacaoId        String?
+  prioridade         String   @default("MEDIA")           // BAIXA, MEDIA, ALTA, URGENTE
+  status             String   @default("ABERTA")          // ABERTA, EM_ACOMPANHAMENTO, ENCAMINHADA, CONCLUIDA, CANCELADA
+  confidencialidade  String   @default("RESTRITO")        // NORMAL, RESTRITO, SIGILOSO
+  baseLegal          String   @default("EXECUCAO_CONTRATO")  // LGPD art. 7/11: EXECUCAO_CONTRATO, TUTELA_SAUDE, CONSENTIMENTO, LEGITIMO_INTERESSE
+  consentimentoAlunoEm DateTime?
+  responsavelUserId  String?
+  encaminhadoPara    String?                              // APOIO, PSICOLOGIA, FINANCEIRO, COORDENACAO, SECRETARIA, NAPNE
+  prazo              DateTime?
+  concluidoEm        DateTime?
+  criadoPorId        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  registros          AcaOrientacaoRegistro[]
+
+  @@index([tenantId, studentId])
+  @@index([tenantId, status, prioridade])
+}
+
+model AcaOrientacaoRegistro {
+  id              String   @id @default(uuid())
+  tenantId        String
+  orientacaoId    String
+  tipo            String   @default("NOTA")    // NOTA, ATENDIMENTO, ENCAMINHAMENTO, RETORNO, CONCLUSAO
+  texto           String
+  autorUserId     String
+  confidencialidade String @default("RESTRITO")  // NORMAL, RESTRITO, SIGILOSO
+  data            DateTime @default(now())
+
+  orientacao      AcaOrientacao @relation(fields: [orientacaoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, orientacaoId])
+}
+
+// ---------- ligas, centros acadêmicos, extramuros e horas complementares ----------
+model AcaLiga {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  tipo               String   @default("LIGA_ACADEMICA")  // LIGA_ACADEMICA, CENTRO_ACADEMICO, ATLETICA, EMPRESA_JUNIOR, GRUPO_ESTUDOS
+  nome               String
+  sigla              String?
+  areaConhecimento   String?
+  programId          String?
+  descricao          String?
+  estatutoUrl        String?
+  orientadorUserId   String?
+  orientadorNome     String?
+  fundacao           DateTime?
+  status             String   @default("EM_CRIACAO")      // EM_CRIACAO, ATIVA, SUSPENSA, ENCERRADA
+  cargaHorariaMaxAluno Int    @default(60)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  membros            AcaLigaMembro[]
+  planos             AcaLigaPlano[]
+  atividades         AcaLigaAtividade[]
+
+  @@index([tenantId, tipo, status])
+}
+
+model AcaLigaMembro {
+  id          String   @id @default(uuid())
+  tenantId    String
+  ligaId      String
+  studentId   String?
+  userId      String?
+  nome        String
+  papel       String   @default("MEMBRO")   // PRESIDENTE, VICE, DIRETOR, TESOUREIRO, SECRETARIO, MEMBRO, ORIENTADOR, PROFESSOR_COLABORADOR
+  entrada     DateTime @default(now())
+  saida       DateTime?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  liga        AcaLiga  @relation(fields: [ligaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, ligaId])
+  @@index([tenantId, studentId])
+}
+
+model AcaLigaPlano {
+  id          String   @id @default(uuid())
+  tenantId    String
+  ligaId      String
+  periodo     String                       // ex.: 2026/2 ou 2026
+  objetivos   String?
+  metas       String?
+  orcamento   Float    @default(0)
+  status      String   @default("RASCUNHO")   // RASCUNHO, ENVIADO, APROVADO, REPROVADO
+  parecer     String?
+  decididoPorId String?
+  decididoEm  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  liga        AcaLiga  @relation(fields: [ligaId], references: [id], onDelete: Cascade)
+
+  @@unique([ligaId, periodo])
+  @@index([tenantId, ligaId])
+}
+
+model AcaLigaAtividade {
+  id            String   @id @default(uuid())
+  tenantId      String
+  ligaId        String
+  planoId       String?
+  tipo          String   @default("REUNIAO")   // REUNIAO, AULA, CONGRESSO, EVENTO, ACAO_SOCIAL, PESQUISA, EXTENSAO, EXTRAMUROS, CAMPEONATO
+  titulo        String
+  descricao     String?
+  local         String?
+  inicio        DateTime
+  fim           DateTime?
+  cargaHoraria  Float    @default(0)
+  status        String   @default("PLANEJADA")   // PLANEJADA, REALIZADA, CANCELADA
+  publicoEstimado Int?
+  relatorio     String?
+  calEventoId   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  liga          AcaLiga  @relation(fields: [ligaId], references: [id], onDelete: Cascade)
+  presencas     AcaLigaPresenca[]
+
+  @@index([tenantId, ligaId, inicio])
+}
+
+model AcaLigaPresenca {
+  id           String   @id @default(uuid())
+  tenantId     String
+  atividadeId  String
+  studentId    String
+  presente     Boolean  @default(true)
+  horas        Float    @default(0)
+
+  atividade    AcaLigaAtividade @relation(fields: [atividadeId], references: [id], onDelete: Cascade)
+
+  @@unique([atividadeId, studentId])
+  @@index([tenantId, studentId])
+}
+
+model AcaExtramuros {
+  id               String   @id @default(uuid())
+  tenantId         String
+  codigo           String
+  titulo           String
+  tipo             String   @default("VISITA_TECNICA")  // VISITA_TECNICA, ACAO_COMUNITARIA, AULA_CAMPO, ESTAGIO_CAMPO, MUTIRAO, SAUDE_COMUNIDADE
+  local            String
+  cidade           String?
+  inicio           DateTime
+  fim              DateTime?
+  responsavelUserId String?
+  programId        String?
+  disciplineId     String?
+  projetoId        String?                               // PesProjeto (pesquisa/extensão)
+  ligaId           String?
+  vagas            Int?
+  transporte       Boolean  @default(false)
+  seguro           Boolean  @default(false)
+  termoAutorizacao Boolean  @default(true)
+  riscoNivel       String   @default("BAIXO")            // BAIXO, MEDIO, ALTO
+  cargaHoraria     Float    @default(0)
+  status           String   @default("PLANEJADA")        // PLANEJADA, APROVADA, REALIZADA, CANCELADA
+  relatorio        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  participantes    AcaExtramurosParticipante[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status, inicio])
+}
+
+model AcaExtramurosParticipante {
+  id            String   @id @default(uuid())
+  tenantId      String
+  extramurosId  String
+  studentId     String
+  status        String   @default("INSCRITO")   // INSCRITO, CONFIRMADO, PRESENTE, AUSENTE
+  termoAssinadoEm DateTime?
+  horas         Float    @default(0)
+
+  extramuros    AcaExtramuros @relation(fields: [extramurosId], references: [id], onDelete: Cascade)
+
+  @@unique([extramurosId, studentId])
+  @@index([tenantId, studentId])
+}
+
+model AcaHoraComplementar {
+  id             String   @id @default(uuid())
+  tenantId       String
+  studentId      String
+  categoria      String   @default("ENSINO")   // ENSINO, PESQUISA, EXTENSAO, CULTURA, MONITORIA, LIGA, EVENTO, ESTAGIO_NAO_OBRIGATORIO, VOLUNTARIADO, OUTRO
+  descricao      String
+  data           DateTime?
+  horasInformadas Float
+  horasValidadas Float    @default(0)
+  origemTipo     String   @default("MANUAL")   // MANUAL, LIGA, EXTRAMUROS, PROJETO, EVENTO
+  origemId       String?
+  comprovanteUrl String?
+  status         String   @default("PENDENTE") // PENDENTE, APROVADA, PARCIAL, REJEITADA
+  validadoPorId  String?
+  validadoEm     DateTime?
+  parecer        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, studentId, status])
+  @@index([tenantId, origemTipo, origemId])
+}
+
+model AcaHoraRegra {
+  id          String   @id @default(uuid())
+  tenantId    String
+  programId   String?
+  categoria   String
+  maxHoras    Float
+  fator       Float    @default(1)
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, programId, categoria])
+}
+
 // ---- edu/admissoes.prisma ----
 // ============================================================
 // EDUMASTER PRO — ADMISSÕES (prefixo Adm): captação, vestibular,
@@ -5029,6 +5689,492 @@ model ApoEventoParticipante {
 
   @@unique([eventoId, egressoId])
   @@index([tenantId, egressoId])
+}
+
+// ---- edu/atendimento.prisma ----
+// ============================================================
+// EDUMASTER PRO — CENTRAL DE ATENDIMENTO AO ALUNO (prefixo Atd)
+// Multiatendimento omnichannel (reaproveita ComContato/ComConversa), protocolo
+// numerado, recebimento/conferência de documentos, jornada com rastreio público,
+// assistente de IA (base de conhecimento), emissão de documentos com QR/PDF e
+// catálogo de serviços de autoatendimento. Valores de status/tipo são texto livre
+// validado no código (facilita evoluir sem migration).
+// ============================================================
+
+// Contador atômico por tenant/chave (nº de atendimento, protocolo, documento...).
+model AtdContador {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  valor     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+// ---------- SETORES / FILAS ----------
+
+model AtdSetor {
+  id                     String   @id @default(uuid())
+  tenantId               String
+  codigo                 String
+  nome                   String
+  descricao              String?
+  distribuicao           String   @default("RODIZIO")   // MANUAL | RODIZIO | MENOR_CARGA
+  slaPrimeiraRespostaMin Int      @default(60)
+  slaResolucaoMin        Int      @default(1440)
+  palavrasChave          String[] @default([])          // usadas na classificação/roteamento
+  ativo                  Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  membros                AtdSetorMembro[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, ativo])
+}
+
+model AtdSetorMembro {
+  id          String   @id @default(uuid())
+  tenantId    String
+  setorId     String
+  userId      String
+  ativo       Boolean  @default(true)
+  capacidade  Int      @default(8)                      // atendimentos simultâneos
+  ultimaAtribuicaoEm DateTime?
+  createdAt   DateTime @default(now())
+
+  setor       AtdSetor @relation(fields: [setorId], references: [id], onDelete: Cascade)
+
+  @@unique([setorId, userId])
+  @@index([tenantId, userId])
+}
+
+// ---------- ATENDIMENTO (CAIXA ÚNICA) ----------
+
+model AtdAtendimento {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  numero                String                          // ATD-2026-00001
+  canal                 String                          // BALCAO | TELEFONE | WHATSAPP | EMAIL | CHAT_PORTAL | INSTAGRAM | FACEBOOK
+  assunto               String
+  categoria             String?                         // classificação (IA ou manual)
+  status                String   @default("NOVO")       // NOVO | EM_FILA | EM_ATENDIMENTO | AGUARDANDO_SOLICITANTE | RESOLVIDO | FECHADO
+  prioridade            String   @default("NORMAL")     // BAIXA | NORMAL | ALTA | URGENTE
+  setorId               String?
+  atribuidoAId          String?
+  solicitanteNome       String
+  solicitanteContato    String?                         // e-mail / telefone / @perfil informado
+  studentId             String?
+  contatoId             String?                         // ComContato
+  conversaId            String?                         // ComConversa (espelho da caixa de comunicação)
+  protocoloId           String?
+  origem                String   @default("ATENDENTE")  // ATENDENTE | PORTAL | CANAL | IA
+  iaAtendeu             Boolean  @default(false)        // houve resposta automática
+  iaConfianca           Float?
+  resumoIa              String?
+  tags                  String[] @default([])
+  naoLidas              Int      @default(0)
+  slaPrimeiraRespostaEm DateTime?
+  slaResolucaoEm        DateTime?
+  primeiraRespostaEm    DateTime?
+  resolvidoEm           DateTime?
+  ultimaInteracaoEm     DateTime @default(now())
+  csatNota              Int?
+  csatComentario        String?
+  csatEm                DateTime?
+  csatToken             String?  @unique
+  criadoPorId           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  mensagens             AtdMensagem[]
+  transferencias        AtdTransferencia[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status, ultimaInteracaoEm])
+  @@index([tenantId, setorId, status])
+  @@index([tenantId, atribuidoAId, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, canal])
+}
+
+model AtdMensagem {
+  id             String   @id @default(uuid())
+  tenantId       String
+  atendimentoId  String
+  direcao        String                                  // ENTRADA | SAIDA | NOTA_INTERNA
+  autorTipo      String                                  // SOLICITANTE | ATENDENTE | IA | SISTEMA
+  autorId        String?
+  conteudo       String
+  status         String   @default("REGISTRADA")         // REGISTRADA | ENVIADA_SIMULADA | ENFILEIRADA | FALHA
+  sugeridaPorIa  Boolean  @default(false)
+  confianca      Float?
+  createdAt      DateTime @default(now())
+
+  atendimento    AtdAtendimento @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, atendimentoId, createdAt])
+}
+
+model AtdTransferencia {
+  id             String   @id @default(uuid())
+  tenantId       String
+  atendimentoId  String
+  deSetorId      String?
+  paraSetorId    String?
+  deUserId       String?
+  paraUserId     String?
+  motivo         String
+  porUserId      String?
+  createdAt      DateTime @default(now())
+
+  atendimento    AtdAtendimento @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, atendimentoId])
+}
+
+// ---------- CATÁLOGO DE SERVIÇOS / AUTOATENDIMENTO ----------
+
+model AtdServico {
+  id              String   @id @default(uuid())
+  tenantId        String
+  codigo          String
+  nome            String
+  descricao       String?
+  categoria       String   @default("GERAL")             // ACADEMICO | DOCUMENTO | FINANCEIRO | CADASTRO | GERAL
+  publicoAlvo     String   @default("ALUNO")             // ALUNO | EGRESSO | PUBLICO
+  autoatendimento Boolean  @default(false)               // aparece no portal e resolve sozinho (quando há automação)
+  automacao       String   @default("NENHUMA")           // NENHUMA | EMITIR_DOCUMENTO | SEGUNDA_VIA_BOLETO | TRANCAMENTO | CONSULTA_FINANCEIRA
+  modeloId        String?                                // AtdModeloDocumento emitido (EMITIR_DOCUMENTO)
+  taxa            Float    @default(0)
+  prazoDias       Int      @default(5)
+  setorId         String?
+  etapas          Json?                                  // [{codigo,nome,prazoDias,setorCodigo?}] — modelo da jornada
+  exigeAssinatura Boolean  @default(false)
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  documentos      AtdServicoDocumento[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, ativo, autoatendimento])
+}
+
+model AtdServicoDocumento {
+  id           String   @id @default(uuid())
+  tenantId     String
+  servicoId    String
+  ordem        Int      @default(0)
+  titulo       String
+  descricao    String?
+  obrigatorio  Boolean  @default(true)
+  validadeDias Int?
+  createdAt    DateTime @default(now())
+
+  servico      AtdServico @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, servicoId])
+}
+
+// ---------- PROTOCOLO E JORNADA ----------
+
+model AtdProtocolo {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  numero             String                              // ANO/SEQ  ex.: 2026/000123
+  ano                Int
+  seq                Int
+  codigoRastreio     String   @unique                    // código público (sem dados pessoais)
+  servicoId          String?
+  servicoNome        String
+  assunto            String
+  descricao          String?
+  status             String   @default("ABERTO")         // ABERTO | EM_ANDAMENTO | PENDENTE_SOLICITANTE | CONCLUIDO | INDEFERIDO | CANCELADO
+  prioridade         String   @default("NORMAL")
+  canal              String   @default("BALCAO")
+  studentId          String?
+  solicitanteNome    String
+  solicitanteEmail   String?
+  solicitanteTelefone String?
+  atendimentoId      String?
+  setorId            String?
+  responsavelId      String?
+  etapaAtualCodigo   String?
+  prazoEm            DateTime
+  slaDias            Int      @default(5)
+  taxaValor          Float    @default(0)
+  taxaStatus         String   @default("ISENTA")         // ISENTA | PENDENTE | PAGA | CANCELADA
+  receivableId       String?
+  notificar          Boolean  @default(true)             // false quando o solicitante deu opt-out
+  resultado          Json?                               // dados da automação / decisão
+  documentoEmitidoId String?
+  decisao            String?
+  decisaoMotivo      String?
+  concluidoEm        DateTime?
+  abertoPorId        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  etapas             AtdEtapa[]
+  eventos            AtdEvento[]
+  documentos         AtdDocumento[]
+  pendencias         AtdPendencia[]
+
+  @@unique([tenantId, ano, seq])
+  @@index([tenantId, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, prazoEm])
+  @@index([tenantId, setorId, status])
+}
+
+model AtdEtapa {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  protocoloId        String
+  ordem              Int
+  codigo             String                              // RECEBIDO | CONFERENCIA | ANALISE | ASSINATURA | PRONTO | ENTREGUE | ...
+  nome               String
+  setorId            String?
+  responsavelId      String?
+  prazoEm            DateTime?
+  status             String   @default("PENDENTE")       // PENDENTE | EM_ANDAMENTO | CONCLUIDA | PULADA
+  iniciadaEm         DateTime?
+  concluidaEm        DateTime?
+  observacao         String?                             // interna
+  createdAt          DateTime @default(now())
+
+  protocolo          AtdProtocolo @relation(fields: [protocoloId], references: [id], onDelete: Cascade)
+
+  @@unique([protocoloId, ordem])
+  @@index([tenantId, protocoloId])
+}
+
+// Configuração POR INSTITUIÇÃO: quais etapas ficam visíveis ao solicitante e o texto público.
+model AtdEtapaConfig {
+  id               String   @id @default(uuid())
+  tenantId         String
+  codigo           String
+  nome             String
+  visivelSolicitante Boolean @default(true)
+  mensagemPublica  String?
+  notificar        Boolean  @default(true)               // notifica o solicitante ao entrar nesta etapa
+  ordem            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+}
+
+model AtdEvento {
+  id              String   @id @default(uuid())
+  tenantId        String
+  protocoloId     String
+  tipo            String                                 // ABERTURA | ETAPA | DOCUMENTO | PENDENCIA | COMENTARIO | TAXA | DECISAO | NOTIFICACAO | ATRIBUICAO | EMISSAO
+  titulo          String
+  descricao       String?
+  etapaCodigo     String?
+  usuarioId       String?
+  usuarioNome     String?
+  visivelSolicitante Boolean @default(false)
+  createdAt       DateTime @default(now())
+
+  protocolo       AtdProtocolo @relation(fields: [protocoloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, protocoloId, createdAt])
+}
+
+// Notificações de mudança de etapa (canal simulado quando não há provedor configurado).
+model AtdNotificacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  protocoloId   String
+  canal         String                                  // EMAIL | WHATSAPP | SMS | IN_APP
+  destino       String?                                 // mascarado
+  assunto       String
+  mensagem      String
+  etapaCodigo   String?
+  status        String                                  // ENVIADA_SIMULADA | ENFILEIRADA | BLOQUEADA_OPTOUT | SEM_DESTINO
+  motivo        String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, protocoloId, createdAt])
+}
+
+// ---------- DOCUMENTOS RECEBIDOS E PENDÊNCIAS ----------
+
+model AtdDocumento {
+  id              String   @id @default(uuid())
+  tenantId        String
+  protocoloId     String
+  itemId          String?                                // AtdServicoDocumento (checklist)
+  titulo          String
+  obrigatorio     Boolean  @default(true)
+  validadeDias    Int?
+  status          String   @default("PENDENTE")          // PENDENTE | RECEBIDO | APROVADO | REJEITADO
+  arquivoNome     String?
+  mime            String?
+  tamanho         Int?
+  dataUrl         String?
+  url             String?
+  origem          String?                                // BALCAO | PORTAL | EMAIL | WHATSAPP
+  motivo          String?                                // motivo da rejeição
+  dataDocumento   DateTime?
+  recebidoEm      DateTime?
+  recebidoPorId   String?
+  conferidoPorId  String?
+  conferidoEm     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  protocolo       AtdProtocolo @relation(fields: [protocoloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, protocoloId])
+  @@index([tenantId, status])
+}
+
+model AtdPendencia {
+  id             String   @id @default(uuid())
+  tenantId       String
+  protocoloId    String
+  tipo           String   @default("DOCUMENTO")          // DOCUMENTO | INFORMACAO | PAGAMENTO
+  descricao      String
+  documentoId    String?
+  prazoEm        DateTime
+  status         String   @default("ABERTA")             // ABERTA | ATENDIDA | VENCIDA | CANCELADA
+  criadoPorId    String?
+  resolvidaEm    DateTime?
+  createdAt      DateTime @default(now())
+
+  protocolo      AtdProtocolo @relation(fields: [protocoloId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, protocoloId])
+  @@index([tenantId, status, prazoEm])
+}
+
+// ---------- IA: BASE DE CONHECIMENTO, CONFIGURAÇÃO E REGISTRO DE USO ----------
+
+model AtdConhecimento {
+  id             String   @id @default(uuid())
+  tenantId       String
+  categoria      String   @default("GERAL")
+  titulo         String
+  pergunta       String
+  resposta       String
+  palavrasChave  String[] @default([])
+  setorId        String?
+  servicoId      String?                                 // sugere abrir este serviço
+  publico        Boolean  @default(true)                 // pode ser usada na resposta automática
+  usos           Int      @default(0)
+  util           Int      @default(0)
+  naoUtil        Int      @default(0)
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, ativo, categoria])
+}
+
+model AtdIaConfig {
+  id                  String   @id @default(uuid())
+  tenantId            String   @unique
+  iaAtiva             Boolean  @default(true)
+  respostaAutomatica  Boolean  @default(false)
+  confiancaMinima     Float    @default(0.75)
+  canaisAutomaticos   String[] @default(["CHAT_PORTAL", "WHATSAPP"])
+  enviarDadosPessoais Boolean  @default(false)           // LGPD: padrão minimiza (mascara) tudo
+  baseLegal           String   @default("Execução de contrato / procedimentos preliminares (art. 7º, V, LGPD)")
+  limiteDiarioAuto    Int      @default(200)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// Registro de uso da IA (SEM o conteúdo bruto: só hash, tamanhos e contagem de redações).
+model AtdIaUso {
+  id             String   @id @default(uuid())
+  tenantId       String
+  tipo           String                                  // CLASSIFICAR | SUGERIR_RESPOSTA | RESPOSTA_AUTOMATICA | RESUMIR | CONSULTA_PORTAL
+  atendimentoId  String?
+  provedor       String                                  // SIMULADO | ANTHROPIC | OPENAI
+  confianca      Float?
+  escalonado     Boolean  @default(false)
+  bloqueadoSensivel Boolean @default(false)
+  campoRedigidos Int      @default(0)
+  entradaHash    String?
+  entradaChars   Int      @default(0)
+  conhecimentoId String?
+  userId         String?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, tipo])
+}
+
+// ---------- EMISSÃO DE DOCUMENTOS ----------
+
+model AtdModeloDocumento {
+  id              String   @id @default(uuid())
+  tenantId        String
+  codigo          String
+  nome            String
+  tipo            String                                 // CERTIFICADO | DIPLOMA | DECLARACAO | ATESTADO | TERMO
+  titulo          String
+  texto           String                                 // com {{campos}} dinâmicos
+  campos          String[] @default([])                  // campos usados (informativo/validação)
+  orientacao      String   @default("portrait")
+  validadeDias    Int?
+  taxa            Float    @default(0)
+  exigeAssinatura Boolean  @default(true)
+  exigeConclusao  Boolean  @default(false)               // só para alunos concluintes (diploma/certificado de conclusão)
+  exigeMatriculaAtiva Boolean @default(false)
+  solicitavelPortal Boolean @default(true)
+  assinante       String?                                // nome de quem assina
+  cargoAssinante  String?
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, tipo, ativo])
+}
+
+model AtdDocumentoEmitido {
+  id                String   @id @default(uuid())
+  tenantId          String
+  modeloId          String
+  tipo              String
+  numero            String                               // DOC-2026-000001
+  codigo            String   @unique                     // verificação pública (QR)
+  hash              String                               // SHA-256 do conteúdo canônico
+  status            String   @default("EMITIDO")         // EMITIDO | REVOGADO | CANCELADO | SUBSTITUIDO
+  via               Int      @default(1)
+  origemId          String?                              // documento original (2ª via)
+  studentId         String?
+  destinatarioNome  String
+  titulo            String
+  conteudo          String                               // texto final renderizado
+  dados             Json?                                // campos dinâmicos usados
+  protocoloId       String?
+  assinaturaTipo    String?                              // SIMULADA_ICP | ICP_BRASIL
+  assinaturaSerie   String?
+  assinaturaHash    String?
+  assinadoEm        DateTime?
+  assinadoPor       String?
+  validoAte         DateTime?
+  taxaValor         Float    @default(0)
+  receivableId      String?
+  emitidoPorId      String?
+  emitidoEm         DateTime @default(now())
+  revogadoEm        DateTime?
+  revogadoPorId     String?
+  motivoRevogacao   String?
+  createdAt         DateTime @default(now())
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, studentId])
+  @@index([tenantId, status])
+  @@index([tenantId, modeloId])
 }
 
 // ---- edu/biblioteca.prisma ----

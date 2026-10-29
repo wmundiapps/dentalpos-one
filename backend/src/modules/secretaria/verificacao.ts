@@ -66,6 +66,28 @@ export async function verificarCodigo(codigoBruto: string, hashInformado?: strin
       hashConfere: hashInformado ? hashInformado.toLowerCase() === doc.hash : sha256(doc.html) === doc.hash ? true : undefined,
     }
   }
+  // Documentos emitidos pela Central de Atendimento (modelos com campos dinâmicos, 2ª via, revogação).
+  const atd = await prisma.atdDocumentoEmitido.findUnique({ where: { codigo } })
+  if (atd) {
+    const inst = await prisma.eduInstitution.findUnique({ where: { tenantId: atd.tenantId }, select: { nome: true } })
+    const st = atd.studentId ? await prisma.student.findFirst({ where: { id: atd.studentId, tenantId: atd.tenantId }, select: { cpf: true } }) : null
+    const vencido = atd.validoAte ? atd.validoAte < new Date() : false
+    return {
+      valido: atd.status === 'EMITIDO' && !vencido,
+      tipo: 'DOCUMENTO_ATENDIMENTO',
+      situacao: atd.status === 'EMITIDO' && vencido ? 'VALIDADE_EXPIRADA' : atd.status,
+      motivo: atd.status === 'EMITIDO' ? undefined : atd.motivoRevogacao ?? undefined,
+      instituicao: inst?.nome,
+      documento: atd.via > 1 ? `${atd.titulo} (${atd.via}ª via)` : atd.titulo,
+      numero: atd.numero,
+      destinatario: atd.destinatarioNome,
+      cpf: mascararCpf(st?.cpf),
+      emitidoEm: atd.emitidoEm,
+      validoAte: atd.validoAte,
+      assinatura: atd.assinaturaTipo === 'ICP_BRASIL' ? 'ICP-Brasil' : atd.assinaturaTipo ? 'Assinatura eletrônica simulada (sem validade ICP-Brasil)' : undefined,
+      hashConfere: hashInformado ? hashInformado.toLowerCase() === atd.hash : undefined,
+    }
+  }
   const dip = await prisma.secDiploma.findUnique({ where: { codigoVerificacao: codigo } })
   if (dip) {
     const [inst, st, prog, livro] = await Promise.all([

@@ -265,6 +265,19 @@ const allNavigationGroups:NavigationGroup[] = [
     ]
   },
   {
+    label:"EduMaster · Atendimento",
+    icon:tile(<SupportAgentIcon/>,"#0E7490"),
+    items:[
+      item("Central / caixa","/edu/atendimento?secao=central",<ChatIcon/>),
+      item("Protocolos e jornada","/edu/atendimento?secao=protocolos",<AssignmentIcon/>),
+      item("Documentos recebidos","/edu/atendimento?secao=documentos",<FolderSharedIcon/>),
+      item("Base de conhecimento e IA","/edu/atendimento?secao=conhecimento",<InsightsIcon/>),
+      item("Emissão de documentos","/edu/atendimento?secao=emissao",<DescriptionIcon/>),
+      item("Catálogo de serviços","/edu/atendimento?secao=catalogo",<Inventory2Icon/>),
+      item("Painel / SLA","/edu/atendimento?secao=painel",<SpaceDashboardIcon/>),
+    ]
+  },
+  {
     label:"EduMaster · Jurídico",
     icon:tile(<GavelIcon/>,"#7C2D12"),
     items:[

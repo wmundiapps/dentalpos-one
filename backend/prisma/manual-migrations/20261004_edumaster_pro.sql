@@ -17837,3 +17837,608 @@ DO $$ BEGIN
   ALTER TABLE "MktAtendimentoMsg" ADD CONSTRAINT "MktAtendimentoMsg_atendimentoId_fkey" FOREIGN KEY ("atendimentoId") REFERENCES "MktAtendimento"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- ==== MKT:END ====
+
+
+
+-- ==== ATD:BEGIN (Central de Atendimento ao Aluno, prefixo Atd - gerado por prisma migrate diff; somente CRIA, idempotente) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdContador" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "valor" INTEGER NOT NULL DEFAULT 0,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AtdContador_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdSetor" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "descricao" TEXT,
+    "distribuicao" TEXT NOT NULL DEFAULT 'RODIZIO',
+    "slaPrimeiraRespostaMin" INTEGER NOT NULL DEFAULT 60,
+    "slaResolucaoMin" INTEGER NOT NULL DEFAULT 1440,
+    "palavrasChave" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AtdSetor_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdSetorMembro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "setorId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "capacidade" INTEGER NOT NULL DEFAULT 8,
+    "ultimaAtribuicaoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AtdSetorMembro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdAtendimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "canal" TEXT NOT NULL,
+    "assunto" TEXT NOT NULL,
+    "categoria" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'NOVO',
+    "prioridade" TEXT NOT NULL DEFAULT 'NORMAL',
+    "setorId" TEXT,
+    "atribuidoAId" TEXT,
+    "solicitanteNome" TEXT NOT NULL,
+    "solicitanteContato" TEXT,
+    "studentId" TEXT,
+    "contatoId" TEXT,
+    "conversaId" TEXT,
+    "protocoloId" TEXT,
+    "origem" TEXT NOT NULL DEFAULT 'ATENDENTE',
+    "iaAtendeu" BOOLEAN NOT NULL DEFAULT false,
+    "iaConfianca" DOUBLE PRECISION,
+    "resumoIa" TEXT,
+    "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "naoLidas" INTEGER NOT NULL DEFAULT 0,
+    "slaPrimeiraRespostaEm" TIMESTAMP(3),
+    "slaResolucaoEm" TIMESTAMP(3),
+    "primeiraRespostaEm" TIMESTAMP(3),
+    "resolvidoEm" TIMESTAMP(3),
+    "ultimaInteracaoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "csatNota" INTEGER,
+    "csatComentario" TEXT,
+    "csatEm" TIMESTAMP(3),
+    "csatToken" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AtdAtendimento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdMensagem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "atendimentoId" TEXT NOT NULL,
+    "direcao" TEXT NOT NULL,
+    "autorTipo" TEXT NOT NULL,
+    "autorId" TEXT,
+    "conteudo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'REGISTRADA',
+    "sugeridaPorIa" BOOLEAN NOT NULL DEFAULT false,
+    "confianca" DOUBLE PRECISION,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AtdMensagem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdTransferencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "atendimentoId" TEXT NOT NULL,
+    "deSetorId" TEXT,
+    "paraSetorId" TEXT,
+    "deUserId" TEXT,
+    "paraUserId" TEXT,
+    "motivo" TEXT NOT NULL,
+    "porUserId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AtdTransferencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdServico" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "descricao" TEXT,
+    "categoria" TEXT NOT NULL DEFAULT 'GERAL',
+    "publicoAlvo" TEXT NOT NULL DEFAULT 'ALUNO',
+    "autoatendimento" BOOLEAN NOT NULL DEFAULT false,
+    "automacao" TEXT NOT NULL DEFAULT 'NENHUMA',
+    "modeloId" TEXT,
+    "taxa" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "prazoDias" INTEGER NOT NULL DEFAULT 5,
+    "setorId" TEXT,
+    "etapas" JSONB,
+    "exigeAssinatura" BOOLEAN NOT NULL DEFAULT false,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AtdServico_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdServicoDocumento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "servicoId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "obrigatorio" BOOLEAN NOT NULL DEFAULT true,
+    "validadeDias" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AtdServicoDocumento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdProtocolo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "ano" INTEGER NOT NULL,
+    "seq" INTEGER NOT NULL,
+    "codigoRastreio" TEXT NOT NULL,
+    "servicoId" TEXT,
+    "servicoNome" TEXT NOT NULL,
+    "assunto" TEXT NOT NULL,
+    "descricao" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ABERTO',
+    "prioridade" TEXT NOT NULL DEFAULT 'NORMAL',
+    "canal" TEXT NOT NULL DEFAULT 'BALCAO',
+    "studentId" TEXT,
+    "solicitanteNome" TEXT NOT NULL,
+    "solicitanteEmail" TEXT,
+    "solicitanteTelefone" TEXT,
+    "atendimentoId" TEXT,
+    "setorId" TEXT,
+    "responsavelId" TEXT,
+    "etapaAtualCodigo" TEXT,
+    "prazoEm" TIMESTAMP(3) NOT NULL,
+    "slaDias" INTEGER NOT NULL DEFAULT 5,
+    "taxaValor" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "taxaStatus" TEXT NOT NULL DEFAULT 'ISENTA',
+    "receivableId" TEXT,
+    "notificar" BOOLEAN NOT NULL DEFAULT true,
+    "resultado" JSONB,
+    "documentoEmitidoId" TEXT,
+    "decisao" TEXT,
+    "decisaoMotivo" TEXT,
+    "concluidoEm" TIMESTAMP(3),
+    "abertoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AtdProtocolo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdEtapa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "protocoloId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "setorId" TEXT,
+    "responsavelId" TEXT,
+    "prazoEm" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "iniciadaEm" TIMESTAMP(3),
+    "concluidaEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AtdEtapa_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdEtapaConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "visivelSolicitante" BOOLEAN NOT NULL DEFAULT true,
+    "mensagemPublica" TEXT,
+    "notificar" BOOLEAN NOT NULL DEFAULT true,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AtdEtapaConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "protocoloId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "etapaCodigo" TEXT,
+    "usuarioId" TEXT,
+    "usuarioNome" TEXT,
+    "visivelSolicitante" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AtdEvento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdNotificacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "protocoloId" TEXT NOT NULL,
+    "canal" TEXT NOT NULL,
+    "destino" TEXT,
+    "assunto" TEXT NOT NULL,
+    "mensagem" TEXT NOT NULL,
+    "etapaCodigo" TEXT,
+    "status" TEXT NOT NULL,
+    "motivo" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AtdNotificacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdDocumento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "protocoloId" TEXT NOT NULL,
+    "itemId" TEXT,
+    "titulo" TEXT NOT NULL,
+    "obrigatorio" BOOLEAN NOT NULL DEFAULT true,
+    "validadeDias" INTEGER,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "arquivoNome" TEXT,
+    "mime" TEXT,
+    "tamanho" INTEGER,
+    "dataUrl" TEXT,
+    "url" TEXT,
+    "origem" TEXT,
+    "motivo" TEXT,
+    "dataDocumento" TIMESTAMP(3),
+    "recebidoEm" TIMESTAMP(3),
+    "recebidoPorId" TEXT,
+    "conferidoPorId" TEXT,
+    "conferidoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AtdDocumento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdPendencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "protocoloId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'DOCUMENTO',
+    "descricao" TEXT NOT NULL,
+    "documentoId" TEXT,
+    "prazoEm" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "criadoPorId" TEXT,
+    "resolvidaEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AtdPendencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdConhecimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'GERAL',
+    "titulo" TEXT NOT NULL,
+    "pergunta" TEXT NOT NULL,
+    "resposta" TEXT NOT NULL,
+    "palavrasChave" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "setorId" TEXT,
+    "servicoId" TEXT,
+    "publico" BOOLEAN NOT NULL DEFAULT true,
+    "usos" INTEGER NOT NULL DEFAULT 0,
+    "util" INTEGER NOT NULL DEFAULT 0,
+    "naoUtil" INTEGER NOT NULL DEFAULT 0,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AtdConhecimento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdIaConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "iaAtiva" BOOLEAN NOT NULL DEFAULT true,
+    "respostaAutomatica" BOOLEAN NOT NULL DEFAULT false,
+    "confiancaMinima" DOUBLE PRECISION NOT NULL DEFAULT 0.75,
+    "canaisAutomaticos" TEXT[] DEFAULT ARRAY['CHAT_PORTAL', 'WHATSAPP']::TEXT[],
+    "enviarDadosPessoais" BOOLEAN NOT NULL DEFAULT false,
+    "baseLegal" TEXT NOT NULL DEFAULT 'Execução de contrato / procedimentos preliminares (art. 7º, V, LGPD)',
+    "limiteDiarioAuto" INTEGER NOT NULL DEFAULT 200,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AtdIaConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdIaUso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "atendimentoId" TEXT,
+    "provedor" TEXT NOT NULL,
+    "confianca" DOUBLE PRECISION,
+    "escalonado" BOOLEAN NOT NULL DEFAULT false,
+    "bloqueadoSensivel" BOOLEAN NOT NULL DEFAULT false,
+    "campoRedigidos" INTEGER NOT NULL DEFAULT 0,
+    "entradaHash" TEXT,
+    "entradaChars" INTEGER NOT NULL DEFAULT 0,
+    "conhecimentoId" TEXT,
+    "userId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AtdIaUso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdModeloDocumento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "texto" TEXT NOT NULL,
+    "campos" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "orientacao" TEXT NOT NULL DEFAULT 'portrait',
+    "validadeDias" INTEGER,
+    "taxa" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "exigeAssinatura" BOOLEAN NOT NULL DEFAULT true,
+    "exigeConclusao" BOOLEAN NOT NULL DEFAULT false,
+    "exigeMatriculaAtiva" BOOLEAN NOT NULL DEFAULT false,
+    "solicitavelPortal" BOOLEAN NOT NULL DEFAULT true,
+    "assinante" TEXT,
+    "cargoAssinante" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AtdModeloDocumento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AtdDocumentoEmitido" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "modeloId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "hash" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'EMITIDO',
+    "via" INTEGER NOT NULL DEFAULT 1,
+    "origemId" TEXT,
+    "studentId" TEXT,
+    "destinatarioNome" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "conteudo" TEXT NOT NULL,
+    "dados" JSONB,
+    "protocoloId" TEXT,
+    "assinaturaTipo" TEXT,
+    "assinaturaSerie" TEXT,
+    "assinaturaHash" TEXT,
+    "assinadoEm" TIMESTAMP(3),
+    "assinadoPor" TEXT,
+    "validoAte" TIMESTAMP(3),
+    "taxaValor" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "receivableId" TEXT,
+    "emitidoPorId" TEXT,
+    "emitidoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "revogadoEm" TIMESTAMP(3),
+    "revogadoPorId" TEXT,
+    "motivoRevogacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AtdDocumentoEmitido_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdContador_tenantId_chave_key" ON "AtdContador"("tenantId", "chave");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdSetor_tenantId_ativo_idx" ON "AtdSetor"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdSetor_tenantId_codigo_key" ON "AtdSetor"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdSetorMembro_tenantId_userId_idx" ON "AtdSetorMembro"("tenantId", "userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdSetorMembro_setorId_userId_key" ON "AtdSetorMembro"("setorId", "userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdAtendimento_csatToken_key" ON "AtdAtendimento"("csatToken");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdAtendimento_tenantId_status_ultimaInteracaoEm_idx" ON "AtdAtendimento"("tenantId", "status", "ultimaInteracaoEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdAtendimento_tenantId_setorId_status_idx" ON "AtdAtendimento"("tenantId", "setorId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdAtendimento_tenantId_atribuidoAId_status_idx" ON "AtdAtendimento"("tenantId", "atribuidoAId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdAtendimento_tenantId_studentId_idx" ON "AtdAtendimento"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdAtendimento_tenantId_canal_idx" ON "AtdAtendimento"("tenantId", "canal");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdAtendimento_tenantId_numero_key" ON "AtdAtendimento"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdMensagem_tenantId_atendimentoId_createdAt_idx" ON "AtdMensagem"("tenantId", "atendimentoId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdTransferencia_tenantId_atendimentoId_idx" ON "AtdTransferencia"("tenantId", "atendimentoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdServico_tenantId_ativo_autoatendimento_idx" ON "AtdServico"("tenantId", "ativo", "autoatendimento");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdServico_tenantId_codigo_key" ON "AtdServico"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdServicoDocumento_tenantId_servicoId_idx" ON "AtdServicoDocumento"("tenantId", "servicoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdProtocolo_codigoRastreio_key" ON "AtdProtocolo"("codigoRastreio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdProtocolo_tenantId_status_idx" ON "AtdProtocolo"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdProtocolo_tenantId_studentId_idx" ON "AtdProtocolo"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdProtocolo_tenantId_prazoEm_idx" ON "AtdProtocolo"("tenantId", "prazoEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdProtocolo_tenantId_setorId_status_idx" ON "AtdProtocolo"("tenantId", "setorId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdProtocolo_tenantId_ano_seq_key" ON "AtdProtocolo"("tenantId", "ano", "seq");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdEtapa_tenantId_protocoloId_idx" ON "AtdEtapa"("tenantId", "protocoloId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdEtapa_protocoloId_ordem_key" ON "AtdEtapa"("protocoloId", "ordem");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdEtapaConfig_tenantId_codigo_key" ON "AtdEtapaConfig"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdEvento_tenantId_protocoloId_createdAt_idx" ON "AtdEvento"("tenantId", "protocoloId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdNotificacao_tenantId_protocoloId_createdAt_idx" ON "AtdNotificacao"("tenantId", "protocoloId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdDocumento_tenantId_protocoloId_idx" ON "AtdDocumento"("tenantId", "protocoloId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdDocumento_tenantId_status_idx" ON "AtdDocumento"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdPendencia_tenantId_protocoloId_idx" ON "AtdPendencia"("tenantId", "protocoloId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdPendencia_tenantId_status_prazoEm_idx" ON "AtdPendencia"("tenantId", "status", "prazoEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdConhecimento_tenantId_ativo_categoria_idx" ON "AtdConhecimento"("tenantId", "ativo", "categoria");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdIaConfig_tenantId_key" ON "AtdIaConfig"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdIaUso_tenantId_createdAt_idx" ON "AtdIaUso"("tenantId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdIaUso_tenantId_tipo_idx" ON "AtdIaUso"("tenantId", "tipo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdModeloDocumento_tenantId_tipo_ativo_idx" ON "AtdModeloDocumento"("tenantId", "tipo", "ativo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdModeloDocumento_tenantId_codigo_key" ON "AtdModeloDocumento"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdDocumentoEmitido_codigo_key" ON "AtdDocumentoEmitido"("codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdDocumentoEmitido_tenantId_studentId_idx" ON "AtdDocumentoEmitido"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdDocumentoEmitido_tenantId_status_idx" ON "AtdDocumentoEmitido"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AtdDocumentoEmitido_tenantId_modeloId_idx" ON "AtdDocumentoEmitido"("tenantId", "modeloId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AtdDocumentoEmitido_tenantId_numero_key" ON "AtdDocumentoEmitido"("tenantId", "numero");
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AtdSetorMembro" ADD CONSTRAINT "AtdSetorMembro_setorId_fkey" FOREIGN KEY ("setorId") REFERENCES "AtdSetor"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AtdMensagem" ADD CONSTRAINT "AtdMensagem_atendimentoId_fkey" FOREIGN KEY ("atendimentoId") REFERENCES "AtdAtendimento"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AtdTransferencia" ADD CONSTRAINT "AtdTransferencia_atendimentoId_fkey" FOREIGN KEY ("atendimentoId") REFERENCES "AtdAtendimento"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AtdServicoDocumento" ADD CONSTRAINT "AtdServicoDocumento_servicoId_fkey" FOREIGN KEY ("servicoId") REFERENCES "AtdServico"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AtdEtapa" ADD CONSTRAINT "AtdEtapa_protocoloId_fkey" FOREIGN KEY ("protocoloId") REFERENCES "AtdProtocolo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AtdEvento" ADD CONSTRAINT "AtdEvento_protocoloId_fkey" FOREIGN KEY ("protocoloId") REFERENCES "AtdProtocolo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AtdDocumento" ADD CONSTRAINT "AtdDocumento_protocoloId_fkey" FOREIGN KEY ("protocoloId") REFERENCES "AtdProtocolo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AtdPendencia" ADD CONSTRAINT "AtdPendencia_protocoloId_fkey" FOREIGN KEY ("protocoloId") REFERENCES "AtdProtocolo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ==== ATD:END ====

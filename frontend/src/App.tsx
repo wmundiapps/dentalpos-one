@@ -11,6 +11,7 @@ import CookieBanner from "./lgpd/CookieBanner";
 import PoliticaPrivacidade from "./lgpd/PoliticaPrivacidade";
 import TermosDeUso from "./lgpd/TermosDeUso";
 import PortalTitular from "./lgpd/PortalTitular";
+import RastreioPublico from "./pages/edu/RastreioPublico";
 import SitePublico from "./pages/public/SitePublico";
 import Descadastro from "./pages/public/Descadastro";
 import {
@@ -27,7 +28,7 @@ import { EDU_ONLY } from "./config/appMode";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-const PUBLIC_LGPD = ["/privacidade", "/termos", "/portal-titular"];
+const PUBLIC_LGPD = ["/privacidade", "/termos", "/portal-titular", "/rastreio"];
 // Marketing: site institucional/landing pages e descadastro em 1 clique (sem login).
 const isPublicMkt = (p: string) => p.startsWith("/site/") || p.startsWith("/descadastro/");
 
@@ -120,6 +121,8 @@ function AppShell() {
   if (EDU_ONLY && appPath === "/apresentacao") return <Apresentacao />;
 
   // Páginas públicas de privacidade (LGPD): sem login.
+  // Rastreio público de protocolos (Central de Atendimento): sem login.
+  if (appPath === "/rastreio") return <RastreioPublico />;
   if (appPath === "/privacidade") return <PoliticaPrivacidade />;
   if (appPath === "/termos") return <TermosDeUso />;
   if (appPath === "/portal-titular") return <PortalTitular />;
