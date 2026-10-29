@@ -1,6 +1,6 @@
-import { findBoletoInText, findPayee, parseBoleto, type BoletoInfo } from "./boleto";
+import { findBoletoInText, findLabeledAmount, findMoneyInText, findPayee, parseBoleto, type BoletoInfo } from "./boleto";
 
-export interface BoletoRead { info: BoletoInfo | null; payee: string }
+export interface BoletoRead { info: BoletoInfo | null; payee: string; textAmounts: number[]; labeledAmount: number | null }
 
 type Detector = { detect: (img: CanvasImageSource) => Promise<Array<{ rawValue: string }>> };
 const detector = (): Detector | null => {
@@ -37,7 +37,7 @@ export async function readBoletoFile(file: File): Promise<BoletoRead> {
       await page.render({ canvasContext: canvas.getContext("2d") as CanvasRenderingContext2D, viewport }).promise;
       info = (await fromCanvas(canvas)) || info;
     }
-    return { info, payee: findPayee(text) };
+    return { info, payee: findPayee(text), textAmounts: findMoneyInText(text), labeledAmount: findLabeledAmount(text) };
   }
   const img = new Image();
   img.src = URL.createObjectURL(file);
@@ -46,5 +46,5 @@ export async function readBoletoFile(file: File): Promise<BoletoRead> {
   canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
   canvas.getContext("2d")?.drawImage(img, 0, 0);
   URL.revokeObjectURL(img.src);
-  return { info: await fromCanvas(canvas), payee: "" };
+  return { info: await fromCanvas(canvas), payee: "", textAmounts: [], labeledAmount: null };
 }
