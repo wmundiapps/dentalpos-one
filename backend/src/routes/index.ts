@@ -48,6 +48,7 @@ import * as dailyCash from '../controllers/dailyCashController'
 import * as security from '../controllers/securityController'
 import * as face from '../controllers/faceController'
 import { portalAuth } from '../services/hrPortalService'
+import { requireHrVault } from '../services/hrVaultService'
 import * as condoSplit from '../controllers/condoSplitController'
 import * as followUp from '../controllers/followUpController'
 import * as hrTime from '../controllers/hrTimeController'
@@ -427,6 +428,12 @@ router.post('/payment-intents', requirePermission('finance.create'), paymentProv
 // HUMAN RESOURCES
 // ======================
 
+router.use('/hr', requireHrVault)
+router.get('/hr/vault/status', requirePermission('hr.view'), hrTime.vaultStatus)
+router.post('/hr/vault/setup', requirePermission('hr.view'), hrTime.vaultSetup)
+router.post('/hr/vault/unlock', requirePermission('hr.view'), hrTime.vaultUnlock)
+router.post('/hr/vault/reset/request', requirePermission('hr.view'), hrTime.vaultResetRequest)
+router.post('/hr/vault/reset/confirm', requirePermission('hr.view'), hrTime.vaultResetConfirm)
 router.get('/hr/dashboard', requirePermission('hr.view'), hrController.dashboard)
 router.get('/hr/employees', requirePermission('hr.view'), hrController.employees)
 router.post('/hr/employees', requirePermission('hr.create'), hrController.createEmployee)

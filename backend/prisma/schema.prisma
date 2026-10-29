@@ -2620,6 +2620,21 @@ model ClinicalEvolutionSignature {
   @@index([clinicId, patientId])
 }
 
+// Acesso exclusivo do RH (login e senha próprios), porque toda a clínica usa o mesmo login do sistema.
+model HRVault {
+  clinicId       String    @id
+  tenantId       String
+  login          String
+  passwordHash   String
+  recoveryEmail  String
+  failedCount    Int       @default(0)
+  lockedUntil    DateTime?
+  resetCodeHash  String?
+  resetExpiresAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
 // Foto tirada no momento da batida pelo rosto (comprovação), consultada pelo RH no detalhe da folha.
 model HRTimePunchPhoto {
   punchId    String   @id
