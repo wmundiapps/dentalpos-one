@@ -16543,80 +16543,6 @@ CREATE TABLE IF NOT EXISTS "AcaOrientacao" (
     "encaminhadoPara" TEXT,
     "prazo" TIMESTAMP(3),
     "concluidoEm" TIMESTAMP(3),
-
--- ==== MKT:BEGIN (Marketing e Captação, prefixo Mkt - gerado por prisma migrate diff; só CRIA tabelas/índices, idempotente) ====
--- CreateTable
-CREATE TABLE IF NOT EXISTS "MktConfig" (
-    "id" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
-    "janelaInicio" TEXT NOT NULL DEFAULT '08:00',
-    "janelaFim" TEXT NOT NULL DEFAULT '20:00',
-    "diasPermitidos" INTEGER[] DEFAULT ARRAY[1, 2, 3, 4, 5, 6]::INTEGER[],
-    "limiteDia" INTEGER NOT NULL DEFAULT 2,
-    "limiteSemana" INTEGER NOT NULL DEFAULT 5,
-    "baseLegalPadrao" TEXT NOT NULL DEFAULT 'CONSENTIMENTO',
-    "remetenteNome" TEXT,
-    "remetenteEndereco" TEXT,
-    "contatoDpo" TEXT,
-    "slaPrimeiroContatoMin" INTEGER NOT NULL DEFAULT 60,
-    "ticketMedio" DOUBLE PRECISION NOT NULL DEFAULT 10800,
-    "metaCustoLead" DOUBLE PRECISION,
-    "limiteAprovacaoOrcamento" DOUBLE PRECISION NOT NULL DEFAULT 5000,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "MktConfig_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE IF NOT EXISTS "MktConsultor" (
-    "id" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
-    "userId" TEXT,
-    "nome" TEXT NOT NULL,
-    "email" TEXT,
-    "telefone" TEXT,
-    "ativo" BOOLEAN NOT NULL DEFAULT true,
-    "peso" INTEGER NOT NULL DEFAULT 1,
-    "cursos" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "origens" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "ultimaAtribuicaoEm" TIMESTAMP(3),
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "MktConsultor_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE IF NOT EXISTS "MktCampanha" (
-    "id" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
-    "codigo" TEXT,
-    "nome" TEXT NOT NULL,
-    "objetivo" TEXT,
-    "briefing" TEXT,
-    "canais" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "cursoId" TEXT,
-    "cursoNome" TEXT,
-    "publico" TEXT,
-    "vestibularId" TEXT,
-    "responsavelId" TEXT,
-    "responsavelNome" TEXT,
-    "inicio" TIMESTAMP(3) NOT NULL,
-    "fim" TIMESTAMP(3) NOT NULL,
-    "orcamentoPrevisto" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "orcamentoRealizado" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
-    "baseLegal" TEXT NOT NULL DEFAULT 'CONSENTIMENTO',
-    "finalidade" TEXT NOT NULL DEFAULT 'MARKETING',
-    "metaLeads" INTEGER NOT NULL DEFAULT 0,
-    "metaMatriculas" INTEGER NOT NULL DEFAULT 0,
-    "cor" TEXT,
-    "utmCampaign" TEXT,
-    "admCampanhaId" TEXT,
-    "aprovadoPorId" TEXT,
-    "aprovadoEm" TIMESTAMP(3),
-    "motivoRejeicao" TEXT,
     "criadoPorId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -17053,6 +16979,84 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 -- ==== ACA:END ====
+
+-- ==== MKT:BEGIN (Marketing e Captação, prefixo Mkt - gerado por prisma migrate diff; só CRIA tabelas/índices, idempotente) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "janelaInicio" TEXT NOT NULL DEFAULT '08:00',
+    "janelaFim" TEXT NOT NULL DEFAULT '20:00',
+    "diasPermitidos" INTEGER[] DEFAULT ARRAY[1, 2, 3, 4, 5, 6]::INTEGER[],
+    "limiteDia" INTEGER NOT NULL DEFAULT 2,
+    "limiteSemana" INTEGER NOT NULL DEFAULT 5,
+    "baseLegalPadrao" TEXT NOT NULL DEFAULT 'CONSENTIMENTO',
+    "remetenteNome" TEXT,
+    "remetenteEndereco" TEXT,
+    "contatoDpo" TEXT,
+    "slaPrimeiroContatoMin" INTEGER NOT NULL DEFAULT 60,
+    "ticketMedio" DOUBLE PRECISION NOT NULL DEFAULT 10800,
+    "metaCustoLead" DOUBLE PRECISION,
+    "limiteAprovacaoOrcamento" DOUBLE PRECISION NOT NULL DEFAULT 5000,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktConsultor" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT,
+    "nome" TEXT NOT NULL,
+    "email" TEXT,
+    "telefone" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "peso" INTEGER NOT NULL DEFAULT 1,
+    "cursos" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "origens" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "ultimaAtribuicaoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MktConsultor_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MktCampanha" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT,
+    "nome" TEXT NOT NULL,
+    "objetivo" TEXT,
+    "briefing" TEXT,
+    "canais" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "cursoId" TEXT,
+    "cursoNome" TEXT,
+    "publico" TEXT,
+    "vestibularId" TEXT,
+    "responsavelId" TEXT,
+    "responsavelNome" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3) NOT NULL,
+    "orcamentoPrevisto" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "orcamentoRealizado" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "baseLegal" TEXT NOT NULL DEFAULT 'CONSENTIMENTO',
+    "finalidade" TEXT NOT NULL DEFAULT 'MARKETING',
+    "metaLeads" INTEGER NOT NULL DEFAULT 0,
+    "metaMatriculas" INTEGER NOT NULL DEFAULT 0,
+    "cor" TEXT,
+    "utmCampaign" TEXT,
+    "admCampanhaId" TEXT,
+    "aprovadoPorId" TEXT,
+    "aprovadoEm" TIMESTAMP(3),
+    "motivoRejeicao" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
     CONSTRAINT "MktCampanha_pkey" PRIMARY KEY ("id")
 );
 
