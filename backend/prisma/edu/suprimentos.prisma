@@ -375,6 +375,7 @@ model SupRequisicao {
   necessarioEm    DateTime?
   valorEstimado   Float    @default(0)
   motivoReprovacao String?
+  departamentoId  String?       // CppDepartamento (requisição por departamento) — sem @relation
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -384,6 +385,7 @@ model SupRequisicao {
 
   @@unique([tenantId, numero])
   @@index([tenantId, status])
+  @@index([tenantId, departamentoId])
 }
 
 model SupRequisicaoItem {
@@ -500,6 +502,7 @@ model SupPedido {
   observacao      String?
   criadoPorId     String?
   payableIds      String[]      // AccountPayable gerados no recebimento
+  formaPagamento  String?       // forma aprovada na alçada (CppCompra): A_VISTA | PARCELADO | BOLETO | PIX | CARTAO | PRAZO
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

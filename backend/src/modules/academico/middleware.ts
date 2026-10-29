@@ -104,5 +104,5 @@ export function academicErrorHandler(err: any, _req: Request, res: Response, nex
   }
   status = status || 500
   if (status >= 500) console.error('[edu]', err)
-  res.status(status).json({ error: status >= 500 && !err?.status ? 'Erro interno do servidor.' : message || 'Erro.' })
+  res.status(status).json({ error: status >= 500 && !err?.status ? 'Erro interno do servidor.' : message || 'Erro.', ...(status < 500 && typeof err?.codigo === 'string' ? { codigo: err.codigo } : {}) })
 }

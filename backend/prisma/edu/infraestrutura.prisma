@@ -77,6 +77,8 @@ model InfBem {
   observacoes     String?
   baixadoEm       DateTime?
   motivoBaixa     String?
+  departamentoId  String?       // CppDepartamento (compras-patrimônio) — sem @relation
+  fotoPrincipalId String?       // CppBemFoto principal (galeria)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -87,6 +89,7 @@ model InfBem {
   @@index([tenantId, categoriaId])
   @@index([tenantId, spaceId])
   @@index([tenantId, status])
+  @@index([tenantId, departamentoId])
 }
 
 enum InfTipoMovimentacao {

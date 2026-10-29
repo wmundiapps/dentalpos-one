@@ -110,6 +110,11 @@ async function main() {
   check(r.status === 200 && r.json.fornecedorVencedorId === forn[1].id, 'encerrar', r)
   check((await call('SUPPLIES', 'PUT', `/edu/suprimentos/cotacoes/${cid}/propostas/${forn[0].id}`, { precos: price(1) })).status === 409, 'editar proposta após encerrar 409')
   check((await call('SUPPLIES', 'POST', `/edu/suprimentos/cotacoes/${cid}/gerar-pedido`, {})).status === 400, 'pedido sem almox 400')
+  // Aprovação do valor e da forma de pagamento pela alçada (compras): obrigatória antes do pedido.
+  check((await call('SUPPLIES', 'POST', `/edu/suprimentos/cotacoes/${cid}/gerar-pedido`, { almoxarifadoId: almCentral.id })).status === 409, 'pedido sem compra aprovada 409')
+  const cmp = (await call('SUPPLIES', 'POST', '/edu/suprimentos/compras', { cotacaoId: cid, formaPagamento: 'PARCELADO', parcelas: 3 })).json
+  await call('COORDINATOR', 'POST', `/edu/suprimentos/compras/${cmp.id}/decidir`, { decisao: 'APROVADO' })
+  check((await call('FINANCE', 'POST', `/edu/suprimentos/compras/${cmp.id}/decidir`, { decisao: 'APROVADO' })).json.status === 'APROVADA', 'compra aprovada pela alçada')
   r = await call('SUPPLIES', 'POST', `/edu/suprimentos/cotacoes/${cid}/gerar-pedido`, { almoxarifadoId: almCentral.id, parcelas: 3 })
   check(r.status === 201, 'gerar pedido', r)
   const ped = r.json

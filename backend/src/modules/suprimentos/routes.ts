@@ -7,6 +7,10 @@ import { registerVendas } from './vendas'
 import { registerRelatorios } from './relatorios'
 import { registerBootstrap } from './bootstrap'
 import { registerSuprimentosJobs } from './jobs'
+import { registerCotacaoRegras } from './cotacao-regra'
+import { registerComprasAprovacao } from './compras-aprovacao'
+import { registerConferencia } from './conferencia'
+import { registerAlmoxarifado } from './almoxarifado'
 
 // Módulo "suprimentos" — compras, estoque, insumos, contratos e vendas.
 // Rotas autenticadas (montadas em /api/edu/suprimentos).
@@ -15,6 +19,10 @@ const router = Router()
 registerBootstrap(router)
 registerCatalogo(router)
 registerCompras(router)
+registerCotacaoRegras(router)
+registerComprasAprovacao(router)
+registerConferencia(router)
+registerAlmoxarifado(router)
 registerEstoque(router)
 registerVendas(router)
 registerRelatorios(router)

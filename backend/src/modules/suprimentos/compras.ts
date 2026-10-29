@@ -8,6 +8,9 @@ import { audit, notify } from '../core/notify'
 import { LEITURA, GESTAO } from './catalogo'
 import { alcadasNecessarias, compararCotacoes, parcelar, podeTransitar, proximoNivelPendente, PEDIDO_TRANSICOES, REQ_TRANSICOES, round2, round3, DAY } from './logic'
 import { checarEstoqueMinimo, movimentarTx, proximoNumero } from './stock'
+import { exigirCotacoes, montarMapaCotacao, carregarCotacaoCompleta } from './cotacao-regra'
+import { cancelarRascunhos, contasDaCompraDoPedido, exigirCompraAprovada, vincularCompraAoPedido } from './compras-aprovacao'
+import { getPolitica } from './cpp'
 
 const SUPER = ['ADMIN', 'OWNER', 'RECTOR', 'BOARD']
 const SOLICITANTES = ['TEACHER', 'COORDINATOR', 'SUPPLIES', 'FACILITIES', 'STAFF', 'FINANCE'] as const
@@ -49,7 +52,7 @@ const itemReqSchema = z.object({
 const reqSchema = z.object({
   tipo: z.enum(['COMPRA', 'INSUMO']).default('COMPRA'),
   cursoId: z.string().optional().nullable(), laboratorioId: z.string().optional().nullable(), centroCustoId: z.string().optional().nullable(),
-  classSectionId: z.string().optional().nullable(), almoxarifadoId: z.string().optional().nullable(),
+  classSectionId: z.string().optional().nullable(), almoxarifadoId: z.string().optional().nullable(), departamentoId: z.string().optional().nullable(),
   justificativa: z.string().optional().nullable(), urgencia: z.enum(['BAIXA', 'NORMAL', 'ALTA', 'URGENTE']).default('NORMAL'),
   necessarioEm: dateISO().optional().nullable(),
   itens: z.array(itemReqSchema).min(1, 'Informe ao menos um item'),
@@ -92,7 +95,7 @@ export function registerCompras(router: Router) {
     const tenantId = getTenantId(req)
     const { skip, take, page, pageSize } = pageParams(req.query)
     const where: any = { tenantId }
-    for (const f of ['status', 'tipo', 'cursoId', 'laboratorioId', 'centroCustoId']) { const v = qs((req.query as any)[f]); if (v) where[f] = v }
+    for (const f of ['status', 'tipo', 'cursoId', 'laboratorioId', 'centroCustoId', 'departamentoId']) { const v = qs((req.query as any)[f]); if (v) where[f] = v }
     const role = roleOf(req)
     if (!SUPER.includes(role) && !['SUPPLIES', 'FINANCE', 'COORDINATOR'].includes(role)) where.solicitanteUserId = getUserId(req)
     if (qs(req.query.minhas) === 'true') where.solicitanteUserId = getUserId(req)
@@ -118,8 +121,13 @@ export function registerCompras(router: Router) {
     const tenantId = getTenantId(req)
     const d = parseBody(reqSchema, req.body)
     await validarOrigem(tenantId, d)
+    if (d.departamentoId) {
+      const dep = await prisma.cppDepartamento.findFirst({ where: { id: d.departamentoId, tenantId, ativo: true } })
+      if (!dep) throw httpErr(404, 'Departamento não encontrado.')
+      if (!d.cursoId && !d.laboratorioId && !d.centroCustoId && dep.centroCustoId) d.centroCustoId = dep.centroCustoId
+    }
     if (d.tipo === 'INSUMO' && !d.almoxarifadoId) throw httpErr(400, 'Requisição de insumo exige o almoxarifado de origem.')
-    if (!d.cursoId && !d.laboratorioId && !d.centroCustoId) throw httpErr(400, 'Informe curso, laboratório ou centro de custo para apropriar o gasto.')
+    if (!d.cursoId && !d.laboratorioId && !d.centroCustoId) throw httpErr(400, 'Informe curso, laboratório, centro de custo ou um departamento com centro de custo para apropriar o gasto.')
     const itens = await montarItens(tenantId, d.itens)
     if (d.tipo === 'INSUMO' && itens.some((i) => !i.itemId)) throw httpErr(400, 'Insumo deve referenciar itens do catálogo.')
     const created = await prisma.$transaction(async (tx) => {
@@ -340,6 +348,9 @@ export function registerCompras(router: Router) {
     if (c.status !== 'ABERTA') throw httpErr(409, 'Cotação já encerrada/cancelada.')
     const m = await mapa(tenantId, c)
     if (m.semProposta || !m.vencedor) throw httpErr(409, 'Nenhuma proposta completa (cobrindo todos os itens) foi registrada.')
+    // Regra obrigatória: mínimo de cotações respondidas (política) ou exceção formal aprovada.
+    const exigencia = await exigirCotacoes(tenantId, c)
+    if (exigencia.liberadoPorExcecao && (d.justificativa ?? '').trim().length < 10) throw httpErr(400, 'Encerramento com exceção aprovada exige a justificativa da escolha do fornecedor.')
     let escolhido = m.vencedor
     if (d.fornecedorId && d.fornecedorId !== m.vencedor) {
       const linha = m.linhas.find((l) => l.fornecedorId === d.fornecedorId)
@@ -352,10 +363,17 @@ export function registerCompras(router: Router) {
     await prisma.$transaction(async (tx) => {
       await tx.supCotacao.update({ where: { id: c.id }, data: { status: 'ENCERRADA', fornecedorVencedorId: escolhido, justificativaEscolha: d.justificativa, valorEscolhido: total, economia, encerradaEm: new Date() } })
       await tx.supRequisicao.update({ where: { id: c.requisicaoId }, data: { status: 'COTADA' } })
+      // Mapa comparativo congelado (auditoria): propostas, escolha e justificativa.
+      const mapaCompleto = await montarMapaCotacao(tenantId, await carregarCotacaoCompleta(tenantId, c.id))
+      await tx.cppMapaCotacao.upsert({
+        where: { tenantId_cotacaoId: { tenantId, cotacaoId: c.id } },
+        create: { tenantId, cotacaoId: c.id, requisicaoId: c.requisicaoId, criterio: c.criterio, minimoExigido: exigencia.minimo, propostasRespondidas: exigencia.respondidas, excecaoId: exigencia.excecao?.id ?? null, sugeridoFornecedorId: m.vencedor, fornecedorEscolhidoId: escolhido, justificativa: d.justificativa ?? null, valorEscolhido: total, referencia: m.referencia, economia, snapshot: JSON.parse(JSON.stringify({ ...mapaCompleto, exigencia })), geradoPorId: getUserId(req) },
+        update: { propostasRespondidas: exigencia.respondidas, excecaoId: exigencia.excecao?.id ?? null, fornecedorEscolhidoId: escolhido, justificativa: d.justificativa ?? null, valorEscolhido: total, referencia: m.referencia, economia, snapshot: JSON.parse(JSON.stringify({ ...mapaCompleto, exigencia })), geradoPorId: getUserId(req) },
+      })
     })
     await completeReminders({ tenantId, refType: 'SupCotacao', refId: c.id })
     await audit({ tenantId, userId: getUserId(req), modulo: mod, acao: 'ENCERRAR_COTACAO', refType: 'SupCotacao', refId: c.id, detalhes: { escolhido, total, economia } })
-    res.json({ fornecedorVencedorId: escolhido, valorEscolhido: total, economia, referencia: m.referencia })
+    res.json({ fornecedorVencedorId: escolhido, valorEscolhido: total, economia, referencia: m.referencia, exigencia })
   }))
 
   router.post('/cotacoes/:id/cancelar', requireRole(...GESTAO), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -379,6 +397,9 @@ export function registerCompras(router: Router) {
     const almox = d.almoxarifadoId ?? c.requisicao.almoxarifadoId
     if (!almox) throw httpErr(400, 'Informe o almoxarifado de destino.')
     await validarOrigem(tenantId, { almoxarifadoId: almox })
+    // Aprovação do valor e da forma de pagamento pela alçada (CppCompra) é pré-requisito do pedido.
+    const compra = await exigirCompraAprovada(tenantId, c.id)
+    if (compra && ((d.parcelas !== undefined && d.parcelas !== compra.parcelas) || (d.intervaloParcelasDias !== undefined && d.intervaloParcelasDias !== compra.intervaloParcelasDias))) throw httpErr(400, `Parcelas/intervalo divergem da forma de pagamento aprovada na compra ${compra.numero} (${compra.parcelas}x a cada ${compra.intervaloParcelasDias} dias).`)
     const forn = await prisma.supFornecedor.findFirst({ where: { id: prop.fornecedorId, tenantId } })
     const itens = c.requisicao.itens.map((ri) => {
       const pr = prop.precos.find((x) => x.requisicaoItemId === ri.id)
@@ -391,11 +412,13 @@ export function registerCompras(router: Router) {
       const p = await tx.supPedido.create({ data: {
         tenantId, numero, fornecedorId: prop.fornecedorId, requisicaoId: c.requisicaoId, cotacaoId: c.id, almoxarifadoId: almox,
         centroCustoId: c.requisicao.centroCustoId, cursoId: c.requisicao.cursoId, laboratorioId: c.requisicao.laboratorioId,
-        valorItens, frete: prop.frete, valorTotal: round2(valorItens + prop.frete), parcelas: d.parcelas ?? prop.parcelas,
-        intervaloParcelasDias: d.intervaloParcelasDias ?? Math.max(1, forn?.prazoPagamentoDias ?? 30),
+        valorItens, frete: prop.frete, valorTotal: round2(valorItens + prop.frete), parcelas: compra?.parcelas ?? d.parcelas ?? prop.parcelas,
+        intervaloParcelasDias: compra ? Math.max(1, compra.intervaloParcelasDias) : d.intervaloParcelasDias ?? Math.max(1, forn?.prazoPagamentoDias ?? 30),
+        primeiroVencimentoEm: compra?.primeiroVencimentoEm ?? undefined, formaPagamento: compra?.formaPagamento,
         previsaoEntrega: d.previsaoEntrega ?? (prop.prazoEntregaDias != null ? new Date(Date.now() + prop.prazoEntregaDias * DAY) : null),
         criadoPorId: getUserId(req), itens: { create: itens } }, include: { itens: true } })
       await tx.supRequisicao.update({ where: { id: c.requisicaoId }, data: { status: 'PEDIDO_EMITIDO' } })
+      if (compra) await vincularCompraAoPedido(tx, compra, p)
       return p
     })
     res.status(201).json(pedido)
@@ -407,6 +430,7 @@ export function registerCompras(router: Router) {
     frete: z.coerce.number().min(0).default(0), parcelas: z.coerce.number().int().min(1).max(36).default(1), intervaloParcelasDias: z.coerce.number().int().min(1).max(180).default(30),
     primeiroVencimentoEm: dateISO().optional().nullable(), previsaoEntrega: dateISO().optional().nullable(), observacao: z.string().optional().nullable(),
     itens: z.array(z.object({ itemId: z.string(), quantidade: z.coerce.number().positive(), precoUnitario: z.coerce.number().min(0) })).min(1),
+    excecaoId: z.string().optional(),   // exceção formal aprovada (pedido direto sem cotação acima do limite de dispensa)
   })
   router.post('/pedidos', requireRole(...GESTAO), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
     const tenantId = getTenantId(req)
@@ -417,10 +441,27 @@ export function registerCompras(router: Router) {
     const itensDb = await prisma.supItem.findMany({ where: { tenantId, id: { in: d.itens.map((i) => i.itemId) }, ativo: true } })
     if (itensDb.length !== new Set(d.itens.map((i) => i.itemId)).size) throw httpErr(404, 'Há itens inexistentes ou inativos.')
     const valorItens = round2(d.itens.reduce((s, i) => s + i.quantidade * i.precoUnitario, 0))
-    const { itens, ...cab } = d
+    const { itens, excecaoId, ...cab } = d
+    // Pedido direto (sem cotação) só abaixo do limite de dispensa da política; acima exige exceção formal aprovada.
+    const totalPedido = round2(valorItens + d.frete)
+    const pol = await getPolitica(tenantId)
+    let excecao: { id: string } | null = null
+    if (totalPedido >= pol.valorDispensaCotacao) {
+      if (!excecaoId) throw Object.assign(httpErr(409, `Pedido direto de R$ ${totalPedido.toFixed(2)} exige cotações (limite de dispensa R$ ${pol.valorDispensaCotacao.toFixed(2)}): abra uma requisição/cotação ou informe a exceção aprovada (excecaoId).`), { codigo: 'PEDIDO_DIRETO_EXIGE_COTACAO' })
+      const ex = await prisma.cppExcecaoCotacao.findFirst({ where: { id: excecaoId, tenantId, tipo: 'PEDIDO_DIRETO', status: 'APROVADA' } })
+      if (!ex) throw httpErr(409, 'Exceção inexistente, não aprovada ou de outro tipo.')
+      if (ex.usadaEm) throw httpErr(409, 'Esta exceção já foi utilizada em outro pedido.')
+      if (totalPedido > ex.valorEstimado * 1.1 + 0.01) throw httpErr(409, `O valor do pedido excede em mais de 10% o valor da exceção aprovada (R$ ${ex.valorEstimado.toFixed(2)}).`)
+      excecao = ex
+    }
     const p = await prisma.$transaction(async (tx) => {
       const numero = await proximoNumero(tx, tenantId, 'PC')
-      return tx.supPedido.create({ data: { ...cab, tenantId, numero, valorItens, valorTotal: round2(valorItens + d.frete), criadoPorId: getUserId(req), itens: { create: itens.map((i) => ({ ...i, tenantId })) } }, include: { itens: true } })
+      const criado = await tx.supPedido.create({ data: { ...cab, tenantId, numero, valorItens, valorTotal: totalPedido, criadoPorId: getUserId(req), itens: { create: itens.map((i) => ({ ...i, tenantId })) } }, include: { itens: true } })
+      if (excecao) {
+        const claim = await tx.cppExcecaoCotacao.updateMany({ where: { id: excecao.id, usadaEm: null }, data: { usadaEm: new Date(), usadaPorId: criado.id } })
+        if (claim.count === 0) throw httpErr(409, 'Esta exceção já foi utilizada em outro pedido.')
+      }
+      return criado
     })
     res.status(201).json(p)
   }))
@@ -461,6 +502,9 @@ export function registerCompras(router: Router) {
     if (!podeTransitar(PEDIDO_TRANSICOES, p.status, 'CANCELADO')) throw httpErr(409, `Pedido em ${p.status} não pode ser cancelado.`)
     if (p.status === 'PARCIALMENTE_RECEBIDO') throw httpErr(409, 'Pedido já tem recebimentos: encerre o saldo pendente em vez de cancelar.')
     await prisma.supPedido.update({ where: { id: p.id }, data: { status: 'CANCELADO' } })
+    // A compra aprovada vinculada é cancelada e as contas a pagar ainda em rascunho são canceladas junto.
+    const cmp = await prisma.cppCompra.findFirst({ where: { tenantId, pedidoId: p.id, status: { in: ['APROVADA', 'AGUARDANDO_APROVACAO'] } } })
+    if (cmp) { await cancelarRascunhos(prisma, tenantId, cmp.id); await prisma.cppCompra.update({ where: { id: cmp.id }, data: { status: 'CANCELADA' } }) }
     if (p.requisicaoId) await prisma.supRequisicao.updateMany({ where: { id: p.requisicaoId, tenantId, status: 'PEDIDO_EMITIDO' }, data: { status: 'APROVADA' } })
     await cancelReminders({ tenantId, refType: 'SupPedido', refId: p.id })
     res.json({ ok: true })
@@ -481,6 +525,9 @@ export function registerCompras(router: Router) {
       const p = await tx.supPedido.findFirst({ where: { id: String(req.params.id), tenantId }, include: { itens: true, fornecedor: true } })
       if (!p) throw httpErr(404, 'Pedido não encontrado.')
       if (!['EMITIDO', 'PARCIALMENTE_RECEBIDO'].includes(p.status)) throw httpErr(409, `Pedido em ${p.status} não aceita recebimento.`)
+      const emConferencia = await tx.cppConferencia.findFirst({ where: { tenantId, pedidoId: p.id, status: 'EM_CONFERENCIA' }, select: { numero: true } })
+      if (emConferencia) throw httpErr(409, `Há uma conferência em andamento (${emConferencia.numero}) para este pedido: conclua-a ou cancele-a.`)
+      if ((await getPolitica(tenantId, tx)).exigirConferencia) throw httpErr(409, 'A política exige conferência do recebimento: use POST /conferencias.')
       const linhas = d.itens.filter((l) => l.quantidadeRecebida > 0 || l.quantidadeRejeitada > 0)
       if (linhas.length === 0) throw httpErr(400, 'Nenhuma quantidade informada.')
       let valorRecebidoItens = 0
@@ -512,7 +559,10 @@ export function registerCompras(router: Router) {
       const novoStatus = completo ? 'RECEBIDO' : 'PARCIALMENTE_RECEBIDO'
       // Contas a pagar com parcelas
       const payableIds: string[] = []
-      if (d.gerarContasPagar && valorRec > 0) {
+      // Contas a pagar já lançadas (rascunho) na aprovação da compra: reaproveita em vez de duplicar.
+      const jaLancadas = await contasDaCompraDoPedido(tx, tenantId, p.id)
+      if (jaLancadas.contas.length) { if (d.gerarContasPagar) payableIds.push(...jaLancadas.contas.map((c) => c.accountPayableId)) }
+      else if (d.gerarContasPagar && valorRec > 0) {
         let ccId: string | null = null
         if (p.centroCustoId) ccId = (await tx.eduCostCenter.findFirst({ where: { id: p.centroCustoId, tenantId }, select: { id: true } }))?.id ?? null
         const cat = await tx.supItem.findFirst({ where: { id: p.itens[0].itemId }, include: { categoria: true } })
@@ -523,7 +573,7 @@ export function registerCompras(router: Router) {
           payableIds.push(ap.id)
         }
       }
-      await tx.supPedido.update({ where: { id: p.id }, data: { status: novoStatus, recebidoEm: completo ? new Date() : null, payableIds: { push: payableIds } } })
+      await tx.supPedido.update({ where: { id: p.id }, data: { status: novoStatus, recebidoEm: completo ? new Date() : null, payableIds: { push: payableIds.filter((id) => !p.payableIds.includes(id)) } } })
       if (completo && p.requisicaoId) {
         await tx.supRequisicao.update({ where: { id: p.requisicaoId }, data: { status: 'ATENDIDA' } })
       }

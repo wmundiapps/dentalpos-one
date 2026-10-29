@@ -1,0 +1,434 @@
+// ============================================================
+// EDUMASTER PRO — COMPRAS e PATRIMÔNIO (modelos auxiliares, prefixo Cpp)
+// Estende os módulos suprimentos (Sup*) e infraestrutura (Inf*) sem criar módulo novo:
+//   - 3 cotações obrigatórias + exceção formal + mapa comparativo persistido;
+//   - aprovação de VALOR e FORMA DE PAGAMENTO pela alçada + contas a pagar em rascunho;
+//   - conferência de recebimento (divergências, aceite parcial, devolução);
+//   - ponto de reposição por almoxarifado;
+//   - departamentos, etiquetas (layouts), fotos, termos de responsabilidade, transferências com aceite
+//     e decisões/leituras de inventário por QR.
+// Referências a modelos Sup*/Inf*/User/AccountPayable = String ids SEM @relation (não trava os demais módulos).
+// Status/tipos são String validados na API (zod) para evoluir sem migração de enum.
+// Alterações em modelos existentes (somente colunas opcionais): InfBem.departamentoId/fotoPrincipalId,
+// SupRequisicao.departamentoId, SupPedido.formaPagamento.
+// ============================================================
+
+model CppSequencia {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  valor     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+// Política por instituição (uma linha por tenant; sem linha = padrões).
+model CppPolitica {
+  id                        String   @id @default(uuid())
+  tenantId                  String   @unique
+  minCotacoes               Int      @default(3)
+  valorDispensaCotacao      Float    @default(1000)   // pedido direto (sem cotação) só abaixo deste valor, ou com exceção aprovada
+  exigirAprovacaoCompra     Boolean  @default(true)   // gerar pedido exige CppCompra aprovada (valor + forma de pagamento)
+  exigirConferencia         Boolean  @default(false)  // receber direto fica bloqueado: só via conferência
+  toleranciaPrecoPct        Float    @default(1)      // divergência de preço nota x pedido tolerada (%)
+  exigirAceiteTransferencia Boolean  @default(true)
+  prazoAceiteDias           Int      @default(7)
+  updatedById               String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+model CppDepartamento {
+  id                String   @id @default(uuid())
+  tenantId          String
+  codigo            String
+  nome              String
+  responsavelUserId String?
+  centroCustoId     String?
+  campusId          String?
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, ativo])
+}
+
+// ---------- COMPRAS: cotações obrigatórias ----------
+
+// Exceção formal ao mínimo de cotações (fornecedor único, urgência...) — exige aprovação.
+model CppExcecaoCotacao {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  numero              String
+  tipo                String    @default("REQUISICAO")   // REQUISICAO | PEDIDO_DIRETO
+  requisicaoId        String?
+  motivo              String                            // FORNECEDOR_UNICO | EXCLUSIVIDADE | URGENCIA | MERCADO_RESTRITO | VALOR_BAIXO | OUTRO
+  justificativa       String
+  valorEstimado       Float     @default(0)
+  fornecedorSugeridoId String?
+  anexoUrl            String?
+  status              String    @default("SOLICITADA")   // SOLICITADA | APROVADA | REPROVADA | CANCELADA
+  papelAprovador      String?
+  solicitadoPorId     String
+  decididoPorId       String?
+  decididoEm          DateTime?
+  parecer             String?
+  usadaEm             DateTime?
+  usadaPorId          String?                           // pedido (PEDIDO_DIRETO) ou cotação que consumiu a exceção
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, requisicaoId])
+}
+
+// Mapa comparativo congelado no encerramento da cotação (escolha + justificativa).
+model CppMapaCotacao {
+  id                   String   @id @default(uuid())
+  tenantId             String
+  cotacaoId            String
+  requisicaoId         String
+  criterio             String
+  minimoExigido        Int
+  propostasRespondidas Int
+  excecaoId            String?
+  sugeridoFornecedorId String?                // vencedor pelo critério
+  fornecedorEscolhidoId String
+  justificativa        String?
+  valorEscolhido       Float
+  referencia           Float?
+  economia             Float?
+  snapshot             Json
+  geradoPorId          String
+  createdAt            DateTime @default(now())
+
+  @@unique([tenantId, cotacaoId])
+  @@index([tenantId, requisicaoId])
+}
+
+// ---------- COMPRAS: aprovação de valor + forma de pagamento ----------
+
+model CppCompra {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  numero              String
+  requisicaoId        String
+  cotacaoId           String
+  fornecedorId        String
+  valorItens          Float     @default(0)
+  frete               Float     @default(0)
+  valorTotal          Float
+  formaPagamento      String                           // A_VISTA | PARCELADO | BOLETO | PIX | CARTAO | PRAZO
+  parcelas            Int       @default(1)
+  intervaloParcelasDias Int     @default(30)
+  primeiroVencimentoEm DateTime?
+  entrada             Float     @default(0)
+  observacao          String?
+  status              String    @default("AGUARDANDO_APROVACAO")   // AGUARDANDO_APROVACAO | APROVADA | REPROVADA | CANCELADA
+  solicitadoPorId     String
+  aprovadaEm          DateTime?
+  motivoReprovacao    String?
+  pedidoId            String?
+  contasGeradasEm     DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  niveis              CppCompraAprovacao[]
+  contas              CppContaPagar[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, cotacaoId])
+  @@index([tenantId, pedidoId])
+}
+
+model CppCompraAprovacao {
+  id            String    @id @default(uuid())
+  tenantId      String
+  compraId      String
+  nivel         Int
+  papel         String
+  motivoNivel   String?                                // ALCADA_VALOR | FORMA_PAGAMENTO
+  status        String    @default("PENDENTE")         // PENDENTE | APROVADO | REPROVADO
+  decididoPorId String?
+  decididoEm    DateTime?
+  parecer       String?
+
+  compra        CppCompra @relation(fields: [compraId], references: [id], onDelete: Cascade)
+
+  @@unique([compraId, nivel])
+  @@index([tenantId, status, papel])
+}
+
+// Elo entre a compra aprovada e o AccountPayable (módulo financeiro) lançado como RASCUNHO para conferência.
+model CppContaPagar {
+  id               String    @id @default(uuid())
+  tenantId         String
+  compraId         String
+  accountPayableId String
+  parcela          Int
+  totalParcelas    Int
+  valor            Float
+  valorOriginal    Float
+  vencimento       DateTime
+  formaPagamento   String
+  situacao         String    @default("RASCUNHO")   // RASCUNHO | CONFERIDA | CANCELADA
+  divergencia      Boolean   @default(false)
+  observacao       String?
+  conferidoPorId   String?
+  conferidoEm      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  compra           CppCompra @relation(fields: [compraId], references: [id], onDelete: Cascade)
+
+  @@unique([accountPayableId])
+  @@index([tenantId, compraId])
+  @@index([tenantId, situacao])
+}
+
+// ---------- COMPRAS: conferência de recebimento ----------
+
+model CppConferencia {
+  id               String    @id @default(uuid())
+  tenantId         String
+  numero           String
+  pedidoId         String
+  notaFiscal       String?
+  chaveNfe         String?
+  dataNota         DateTime?
+  valorNota        Float?
+  freteNota        Float?
+  status           String    @default("EM_CONFERENCIA")   // EM_CONFERENCIA | CONCLUIDA | CANCELADA
+  conferenteId     String
+  observacao       String?
+  temDivergencia   Boolean   @default(false)
+  valorConferido   Float?
+  recebimentoId    String?
+  justificativa    String?
+  finalizadaPorId  String?
+  finalizadaEm     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  itens            CppConferenciaItem[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, pedidoId])
+  @@index([tenantId, status])
+}
+
+model CppConferenciaItem {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  conferenciaId      String
+  pedidoItemId       String
+  itemId             String
+  quantidadePendente Float
+  quantidadeNota     Float?
+  quantidadeContada  Float
+  quantidadeAceita   Float    @default(0)
+  quantidadeRejeitada Float   @default(0)
+  precoPedido        Float
+  precoNota          Float?
+  aceitarPrecoNota   Boolean  @default(false)
+  qualidadeOk        Boolean  @default(true)
+  qualidadeObs       String?
+  divergencias       String[]                       // QUANTIDADE_NOTA | EXCESSO | FALTA | VALOR | QUALIDADE
+  decisao            String?                        // ACEITAR | ACEITE_PARCIAL | RECUSAR
+  destinoRejeitado   String?                        // DEVOLVER | DESCARTAR | AGUARDAR_REPOSICAO
+  loteNumero         String?
+  validade           DateTime?
+  motivo             String?
+
+  conferencia        CppConferencia @relation(fields: [conferenciaId], references: [id], onDelete: Cascade)
+
+  @@unique([conferenciaId, pedidoItemId])
+  @@index([tenantId, conferenciaId])
+}
+
+model CppDevolucaoFornecedor {
+  id              String   @id @default(uuid())
+  tenantId        String
+  numero          String
+  conferenciaId   String?
+  pedidoId        String
+  fornecedorId    String
+  itemId          String
+  quantidade      Float
+  valor           Float    @default(0)
+  motivo          String
+  origem          String   @default("CONFERENCIA")      // CONFERENCIA | POS_ENTRADA
+  status          String   @default("SOLICITADA")       // SOLICITADA | ENVIADA | CREDITADA | CANCELADA
+  notaDevolucao   String?
+  movimentacaoId  String?
+  solicitadoPorId String
+  atualizadoPorId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, pedidoId])
+}
+
+// ---------- ALMOXARIFADO ----------
+
+model CppPontoReposicao {
+  id             String   @id @default(uuid())
+  tenantId       String
+  almoxarifadoId String
+  itemId         String
+  minimo         Float    @default(0)
+  pontoPedido    Float    @default(0)
+  maximo         Float?
+  updatedById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([almoxarifadoId, itemId])
+  @@index([tenantId, itemId])
+}
+
+// ---------- PATRIMÔNIO ----------
+
+// Layout de etiqueta configurável (A4 em colunas ou rolo térmico).
+model CppEtiquetaLayout {
+  id             String   @id @default(uuid())
+  tenantId       String
+  nome           String
+  formato        String   @default("A4_COLUNAS")   // A4_COLUNAS | ROLO
+  larguraMm      Float    @default(63.5)
+  alturaMm       Float    @default(33.9)
+  colunas        Int      @default(3)
+  linhas         Int      @default(8)
+  margemSupMm    Float    @default(10)
+  margemEsqMm    Float    @default(7)
+  gapXMm         Float    @default(2.5)
+  gapYMm         Float    @default(0)
+  campos         String[]                          // instituicao | codigo | nome | departamento | local | responsavel | categoria
+  mostrarQr      Boolean  @default(true)
+  mostrarBarras  Boolean  @default(true)
+  qrPosicao      String   @default("ESQUERDA")      // ESQUERDA | DIREITA
+  fonteBasePt    Float    @default(7)
+  borda          Boolean  @default(true)
+  padrao         Boolean  @default(false)
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, nome])
+  @@index([tenantId, ativo])
+}
+
+model CppBemFoto {
+  id          String   @id @default(uuid())
+  tenantId    String
+  bemId       String
+  nome        String
+  mime        String
+  tamanho     Int
+  sha256      String
+  dados       Bytes
+  principal   Boolean  @default(false)
+  ordem       Int      @default(0)
+  legenda     String?
+  enviadoPorId String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, bemId])
+}
+
+model CppTermoResponsabilidade {
+  id                 String    @id @default(uuid())
+  tenantId           String
+  numero             String
+  bemId              String
+  responsavelUserId  String
+  departamentoId     String?
+  spaceId            String?
+  status             String    @default("PENDENTE_ACEITE")   // PENDENTE_ACEITE | VIGENTE | RECUSADO | ENCERRADO | CANCELADO
+  texto              String
+  valorBem           Float     @default(0)
+  estadoBem          String?
+  transferenciaId    String?
+  emitidoPorId       String
+  emitidoEm          DateTime  @default(now())
+  aceitoEm           DateTime?
+  aceiteIp           String?
+  aceiteHash         String?
+  recusadoMotivo     String?
+  encerradoEm        DateTime?
+  motivoEncerramento String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, bemId])
+  @@index([tenantId, responsavelUserId, status])
+}
+
+model CppTransferencia {
+  id                    String    @id @default(uuid())
+  tenantId              String
+  numero                String
+  bemId                 String
+  status                String    @default("AGUARDANDO_ACEITE")   // AGUARDANDO_ACEITE | CONCLUIDA | RECUSADA | CANCELADA | EXPIRADA
+  origemSpaceId         String?
+  origemDepartamentoId  String?
+  origemResponsavelId   String?
+  destinoSpaceId        String?
+  destinoDepartamentoId String?
+  destinoResponsavelId  String?
+  motivo                String
+  documento             String?
+  solicitadoPorId       String
+  expiraEm              DateTime?
+  aceitoPorId           String?
+  aceitoEm              DateTime?
+  recusaMotivo          String?
+  concluidaEm           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, bemId])
+  @@index([tenantId, status])
+  @@index([tenantId, destinoResponsavelId, status])
+}
+
+// Decisão sobre divergência do inventário físico (ajustar local, manter, baixar, investigar).
+model CppInventarioDecisao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  inventarioId  String
+  itemId        String
+  bemId         String?
+  acao          String                            // AJUSTAR_LOCAL | MANTER | BAIXAR | INVESTIGAR | REGULARIZAR
+  motivo        String
+  decididoPorId String
+  createdAt     DateTime @default(now())
+
+  @@unique([itemId])
+  @@index([tenantId, inventarioId])
+}
+
+// Trilha de cada leitura de QR/código de barras no inventário físico.
+model CppLeituraInventario {
+  id           String   @id @default(uuid())
+  tenantId     String
+  inventarioId String
+  bemId        String?
+  payload      String
+  tombamento   String?
+  spaceLidoId  String?
+  resultado    String                              // CONTADO | RECONTADO | SOBRA | BAIXADO | NAO_RECONHECIDO
+  lidoPorId    String
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, inventarioId, createdAt])
+}
