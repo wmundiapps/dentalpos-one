@@ -197,7 +197,7 @@ export function mountCiclo(router: Router) {
       await tx.rheBonificacao.updateMany({ where: { tenantId, colaboradorId: c.id, status: 'PROPOSTA' }, data: { status: 'CANCELADA' } })
       await tx.rheAjustePonto.updateMany({ where: { tenantId, colaboradorId: c.id, status: 'PENDENTE' }, data: { status: 'CANCELADO' } })
       if (c.userId) await tx.user.updateMany({ where: { id: c.userId, tenantId }, data: { isActive: false } })
-    })
+    }, { timeout: 30000, maxWait: 15000 })
     await auditar(req, 'CONCLUIR_DESLIGAMENTO', 'RheDesligamento', d.id, { tipo: d.tipo })
     res.json({ id: d.id, status: 'CONCLUIDO', acessoRevogado: !!c.userId })
   }))

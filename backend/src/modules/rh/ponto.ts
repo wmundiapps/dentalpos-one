@@ -184,7 +184,7 @@ export function mountPonto(router: Router) {
         }
         const dados = { status: 'FECHADO', resumo: ap.resumo as any, espelho: ap.dias as any, fechadoPorId: uid(req), fechadoEm: new Date(), reabertoEm: null, reabertoPorId: null, motivoReabertura: null }
         await tx.rheFechamentoPonto.upsert({ where: { tenantId_colaboradorId_competencia: { tenantId, colaboradorId: c.id, competencia: b.competencia } }, create: { tenantId, colaboradorId: c.id, competencia: b.competencia, ...dados }, update: dados })
-      })
+      }, { timeout: 30000, maxWait: 15000 })
       fechados.push(c.id)
     }
     await auditar(req, 'FECHAR_PONTO', 'RheFechamentoPonto', undefined, { competencia: b.competencia, fechados: fechados.length })

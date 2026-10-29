@@ -46,6 +46,14 @@ import RequestPageIcon from "@mui/icons-material/RequestPage";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import WorkIcon from "@mui/icons-material/Work";
+import BadgeIcon from "@mui/icons-material/Badge";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+import BeachAccessIcon from "@mui/icons-material/BeachAccess";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
+import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
 import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
 import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
 import { Box } from "@mui/material";
@@ -244,6 +252,23 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Processos","/edu/juridico?secao=processos",<GavelIcon/>),
       item("Inteligência","/edu/juridico?secao=inteligencia",<InsightsIcon/>),
       item("Riscos e Seguros","/edu/juridico?secao=riscos",<ShieldIcon/>),
+    ]
+  },
+  {
+    label:"EduMaster · RH",
+    icon:tile(<BadgeIcon/>,"#9D174D"),
+    items:[
+      item("RH: Painel","/edu/rh?secao=painel",<SpaceDashboardIcon/>),
+      item("Colaboradores","/edu/rh?secao=colaboradores",<PeopleAltIcon/>),
+      item("Ponto e Banco de Horas","/edu/rh?secao=ponto",<AccessTimeIcon/>),
+      item("Atestados e Licenças","/edu/rh?secao=saude",<MedicalServicesIcon/>),
+      item("Férias","/edu/rh?secao=ferias",<BeachAccessIcon/>),
+      item("Carreira e Bonificações","/edu/rh?secao=carreira",<TrendingUpIcon/>),
+      item("Advertências","/edu/rh?secao=advertencias",<ReportProblemIcon/>),
+      item("Admissão e Desligamento","/edu/rh?secao=ciclo",<PersonAddAlt1Icon/>),
+      item("Avaliações","/edu/rh?secao=avaliacoes",<FactCheckIcon/>),
+      item("Folha","/edu/rh?secao=folha",<RequestQuoteIcon/>),
+      item("Pró-labore e Terceiros","/edu/rh?secao=socios",<AccountBalanceWalletIcon/>),
     ]
   },
   {

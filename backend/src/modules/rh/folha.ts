@@ -109,7 +109,7 @@ export async function calcularFolha(tenantId: string, competencia: string, tipo:
     await tx.rheProLabore.deleteMany({ where: { folhaId: folha.id } })
     if (holerites.length) await tx.rheHolerite.createMany({ data: holerites })
     if (prolab.length) await tx.rheProLabore.createMany({ data: prolab })
-  })
+  }, { timeout: 30000, maxWait: 15000 })
   const totais = {
     colaboradores: holerites.length, bruto: r2(tot.bruto), descontos: r2(tot.descontos), liquido: r2(tot.liquido), inss: r2(tot.inss), irrf: r2(tot.irrf), fgts: r2(tot.fgts), patronalEstimado: r2(tot.patronal),
     proLabore: { socios: prolab.length, bruto: r2(prolab.reduce((a, p) => a + p.bruto, 0)), liquido: r2(prolab.reduce((a, p) => a + p.liquido, 0)), inss: r2(prolab.reduce((a, p) => a + p.inss, 0)), irrf: r2(prolab.reduce((a, p) => a + p.irrf, 0)) },
@@ -250,19 +250,22 @@ export function mountFolha(router: Router) {
     const semNf = f.tipo === 'MENSAL' ? await prisma.rhePagamentoTerceiro.count({ where: { tenantId, competencia: f.competencia, status: 'APROVADO' } }) : 0
     void semNf
     if (pend.length) return res.status(422).json({ error: 'Folha com pendências: feche o ponto dos colaboradores.', pendencias: pend.slice(0, 50) })
+    const pagBanco: any[] = []
+    if (f.tipo === 'MENSAL') {
+      for (const h of await prisma.rheHolerite.findMany({ where: { tenantId, folhaId: f.id }, select: { colaboradorId: true, itens: true } })) {
+        const bh = (h.itens as any[]).find((i) => i.codigo === 'BH_VENCIDO')
+        // banco de horas vencido pago como hora extra: baixa os créditos (PAGAMENTO), uma única vez por competência
+        if (bh?.referencia > 0) pagBanco.push({ tenantId, colaboradorId: h.colaboradorId, data: diaDate(mesFim(f.competencia)), tipo: 'PAGAMENTO', minutos: -Math.round(bh.referencia * 60), competencia: f.competencia, origem: 'FOLHA', observacao: `Banco vencido pago na folha ${f.competencia}`, criadoPorId: uid(req) })
+      }
+    }
     await prisma.$transaction(async (tx) => {
       if (f.tipo === 'MENSAL') {
         await tx.rheBonificacao.updateMany({ where: { tenantId, competencia: f.competencia, status: 'APROVADA' }, data: { status: 'PAGA' } })
-        // banco de horas vencido pago como hora extra: baixa os créditos (PAGAMENTO), uma única vez por competência
         await tx.rheBancoLanc.deleteMany({ where: { tenantId, competencia: f.competencia, origem: 'FOLHA' } })
-        const itens = await tx.rheHolerite.findMany({ where: { tenantId, folhaId: f.id } })
-        for (const h of itens) {
-          const bh = (h.itens as any[]).find((i) => i.codigo === 'BH_VENCIDO')
-          if (bh?.referencia > 0) await tx.rheBancoLanc.create({ data: { tenantId, colaboradorId: h.colaboradorId, data: diaDate(mesFim(f.competencia)), tipo: 'PAGAMENTO', minutos: -Math.round(bh.referencia * 60), competencia: f.competencia, origem: 'FOLHA', observacao: `Banco vencido pago na folha ${f.competencia}`, criadoPorId: uid(req) } })
-        }
+        if (pagBanco.length) await tx.rheBancoLanc.createMany({ data: pagBanco })
       }
       await tx.rheFolha.update({ where: { id: f.id }, data: { status: 'FECHADA', fechadaEm: new Date(), fechadaPorId: uid(req) } })
-    })
+    }, { timeout: 30000, maxWait: 15000 })
     let lancamentos: any[] = []; let integ: any = null
     try {
       lancamentos = await gerarLancamentosFolha(tenantId, f.competencia)
