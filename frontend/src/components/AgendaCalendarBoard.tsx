@@ -1,3 +1,4 @@
+import { MarkerDots } from "../contexts/AgendaMarkers";
 import { Box, Chip, Paper, Typography, useMediaQuery } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import type { IntegratedAppointment } from "../types/operationsHub";
@@ -188,7 +189,7 @@ function AppointmentCard({
       }}
     >
       <Typography variant={compact ? "caption" : "body2"} sx={{ fontWeight: 900, lineHeight: 1.2, ...(appointment.status === "Desmarcado" ? { color: "text.disabled", textDecoration: "line-through" } : {}) }}>
-        {appointment.time}–{endTime(appointment)} • {appointment.patientName}
+        {appointment.time}–{endTime(appointment)} • {appointment.patientName}<MarkerDots backendId={appointment.backendId} />
       </Typography>
       {appointment.status === "Desmarcado" ? <Typography variant="caption" sx={{ display: "block", fontWeight: 800, color: "text.secondary" }}>Desmarcou</Typography> : null}
       {!compact ? (
@@ -683,7 +684,7 @@ function TimeGridView({
                       }}
                     >
                       <Typography variant="caption" sx={{ display: "block", fontWeight: 900, lineHeight: 1.15, ...(appointment.status === "Desmarcado" ? { color: "text.disabled", textDecoration: "line-through" } : {}) }}>
-                        {sunday ? "Dom · " : ""}{appointment.patientName}
+                        {sunday ? "Dom · " : ""}{appointment.patientName}<MarkerDots backendId={appointment.backendId} />
                       </Typography>
                       {appointment.status === "Desmarcado" ? (
                         <Typography variant="caption" sx={{ display: "block", fontWeight: 800, lineHeight: 1.15, color: "text.secondary" }}>Desmarcou</Typography>
