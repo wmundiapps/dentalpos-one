@@ -1620,6 +1620,10 @@ export default function Agenda() {
               variant="contained"
               onClick={async () => {
                 if (edit.backendId) {
+                  // Só marcador (ou nada alterado): não há o que justificar nem o que salvar; o marcador já foi gravado ao escolher.
+                  const original = items.find((i) => i.id === edit.id);
+                  const changed = !original || (["dateISO", "time", "professionalName", "procedure", "nextProcedure", "room", "status", "durationMinutes", "category"] as const).some((k) => String(original[k] ?? "") !== String(edit[k] ?? ""));
+                  if (!changed) { setEdit(null); return; }
                   if (!editReason.trim()) {
                     window.alert("Informe o motivo da alteração, remarcação, cancelamento ou falta.");
                     return;
