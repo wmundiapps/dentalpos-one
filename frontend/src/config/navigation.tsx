@@ -231,6 +231,15 @@ const allNavigationGroups:NavigationGroup[] = [
     ]
   },
   {
+    label:"EduMaster · Portais e ambientes",
+    icon:tile(<SchoolIcon/>,"#0E7490"),
+    items:[
+      item("Início e ambientes de ensino","/edu/inicio",<SpaceDashboardIcon/>),
+      item("Portal do aluno","/edu/portal-aluno",<SchoolIcon/>),
+      item("Portal do professor","/edu/portal-professor",<GroupsIcon/>),
+    ]
+  },
+  {
     label:"EduMaster · Operação",
     icon:tile(<WorkIcon/>,"#B45309"),
     items:[

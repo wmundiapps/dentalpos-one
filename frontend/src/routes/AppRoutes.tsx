@@ -23,6 +23,8 @@ const EduPesquisa = lazy(() => import("../pages/edu/EduPesquisa"));
 const EduApoio = lazy(() => import("../pages/edu/EduApoio"));
 const EduComunicacao = lazy(() => import("../pages/edu/EduComunicacao"));
 const EduPortalAluno = lazy(() => import("../pages/edu/EduPortalAluno"));
+const EduPortalProfessor = lazy(() => import("../pages/edu/EduPortalProfessor"));
+const EduInicio = lazy(() => import("../pages/edu/EduInicio"));
 const EduLgpd = lazy(() => import("../pages/edu/EduLgpd"));
 const EduFinanceiro = lazy(() => import("../pages/edu/EduFinanceiro"));
 const EduJuridico = lazy(() => import("../pages/edu/EduJuridico"));
@@ -167,6 +169,9 @@ export default function AppRoutes() {
       <Route path="/edu/apoio" element={<EduApoio />} />
       <Route path="/edu/comunicacao" element={<EduComunicacao />} />
       <Route path="/edu/portal-aluno" element={<EduPortalAluno />} />
+      <Route path="/edu/portal-professor" element={<EduPortalProfessor />} />
+      <Route path="/edu/inicio" element={<EduInicio />} />
+      <Route path="/edu/ambientes" element={<EduInicio />} />
       <Route path="/edu/identidade" element={<EduIdentity />} />
       <Route path="/edu/lgpd" element={<EduLgpd />} />
       <Route path="/edu/rh" element={<EduRh />} />

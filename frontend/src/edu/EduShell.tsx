@@ -1,6 +1,7 @@
 import { Box, Paper, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 import InstitutionLogo, { useBranding } from "./InstitutionLogo";
+import { AmbienteChip } from "./ambiente/useAmbiente";
 
 interface Props {
   title: string;
@@ -32,7 +33,10 @@ export default function EduShell({ title, subtitle, actions, children, hero = tr
             <InstitutionLogo variant="hero" onPlaceholderClick={onLogoClick} />
           </Box>
           <Box sx={{ flex: 1, minWidth: { xs: 0, md: 220 }, flexBasis: { xs: "100%", md: "auto" } }}>
-            <Typography variant="overline" sx={{ opacity: 0.8, fontWeight: 800 }}>{b?.nome || "EduMaster Pro"}</Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
+              <Typography variant="overline" sx={{ opacity: 0.8, fontWeight: 800 }}>{b?.nome || "EduMaster Pro"}</Typography>
+              <AmbienteChip />
+            </Box>
             <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.1 }}>{title}</Typography>
             {subtitle ? <Typography sx={{ opacity: 0.9, mt: 0.5 }}>{subtitle}</Typography> : null}
           </Box>

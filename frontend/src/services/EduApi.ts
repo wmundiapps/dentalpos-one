@@ -14,7 +14,10 @@ export class EduApiError extends Error {
 
 function headers(extra?: Record<string, string>) {
   const token = localStorage.getItem("dentalpos.token") || "";
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...extra };
+  // Ambiente de ensino escolhido nesta aba (ver edu/ambiente/useAmbiente): todas as listas do EduMaster respeitam o ambiente.
+  let ambiente = "";
+  try { ambiente = sessionStorage.getItem("edu.ambiente") || ""; } catch { /* armazenamento indisponível */ }
+  return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(ambiente ? { "X-Edu-Ambiente": ambiente } : {}), ...extra };
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
