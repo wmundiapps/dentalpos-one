@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma'
 import { comparePassword } from './userService'
 import { writeAudit } from './auditService'
 import { cleanDataUrl, UploadRejected } from '../lib/uploadSafety'
-import { verifyByCpf, savePunchPhoto } from './hrFaceService'
+import { verifyByCpf, savePunchPhoto, enrollFace, findByCpf, hasFace, validVector } from './hrFaceService'
 import { dispatchRevah } from './revahProviderService'
 
 // Ponto eletrônico: batida com senha, IP e localização; resumo mensal, banco de horas e justificativas de falta.
@@ -19,7 +19,8 @@ const JUSTIFIED_STATUS = ['atestado', 'férias', 'ferias', 'folga', 'falta abona
 
 export class HrError extends Error {
   status: number
-  constructor(status: number, message: string) { super(message); this.status = status }
+  extra?: Record<string, unknown>
+  constructor(status: number, message: string, extra?: Record<string, unknown>) { super(message); this.status = status; this.extra = extra }
 }
 
 export type TimeSettings = {
@@ -199,7 +200,7 @@ export async function facePunch(c: { clinicId: string; tenantId: string; userId:
   if (m.status === 'CPF') throw new HrError(400, 'Digite o CPF com 11 números.')
   if (m.status === 'INVALID') throw new HrError(400, 'Captura do rosto inválida. Tente de novo.')
   if (m.status === 'NOT_FOUND') throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores.')
-  if (m.status === 'NO_FACE') throw new HrError(404, 'Seu rosto ainda não foi cadastrado. Fale com o RH.')
+  if (m.status === 'NO_FACE') throw new HrError(404, 'Primeiro acesso: vamos cadastrar o seu rosto.', { code: 'NO_FACE', employeeName: m.employee.name })
   if (m.status === 'MISMATCH') {
     const f = faceFailures.get(key) || { count: 0, until: 0 }
     f.count += 1
@@ -454,4 +455,24 @@ export async function decideRequest(c: { clinicId: string; tenantId: string; act
   }
   await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.actorId, module: 'hr', action: `ABSENCE_${decision}`, entityType: 'HRAbsenceRequest', entityId: id, summary: `Justificativa de ${r.absenceDate}: ${status}.` }).catch(() => undefined)
   return { ok: true, status }
+}
+
+// Primeiro acesso no aparelho da clínica: o próprio colaborador (que digitou o CPF) cadastra o rosto, com consentimento, e já bate o ponto.
+const enrollFailures = new Map<string, { count: number; until: number }>()
+export async function firstFaceEnroll(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any) {
+  const key = `${c.clinicId}:${String(body?.cpf || '').replace(/\D/g, '')}`
+  const lock = enrollFailures.get(key)
+  if (lock && lock.until > Date.now()) throw new HrError(429, 'Muitas tentativas. Aguarde alguns minutos ou fale com o RH.')
+  enrollFailures.set(key, { count: (lock?.count || 0) + 1, until: (lock?.count || 0) + 1 >= 5 ? Date.now() + 10 * 60 * 1000 : 0 })
+  const emp = await findByCpf(c.clinicId, c.tenantId, body?.cpf)
+  if (!emp) throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores. Fale com o RH.')
+  if (await hasFace(c.clinicId, emp.id)) throw new HrError(409, 'Seu rosto já está cadastrado. Volte e bata o ponto normalmente; se mudou muito, fale com o RH.')
+  const samples = body?.samples
+  if (!Array.isArray(samples) || samples.length < 3 || samples.length > 5 || !samples.every(validVector)) throw new HrError(400, 'Captura do rosto inválida. Tente de novo, olhando de frente, com boa luz.')
+  if (typeof body?.photo !== 'string' || !body.photo) throw new HrError(400, 'Não foi possível guardar a foto. Tente de novo.')
+  const r = await enrollFace({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.userId }, emp.id, { consent: body?.consent === true, samples, photo: body.photo }) as { error?: string; status?: number }
+  if (r.error) throw new HrError(r.status || 400, r.error)
+  enrollFailures.delete(key)
+  const result = await facePunch(c, meta, { ...body, descriptor: samples[0] })
+  return { ...result, enrolled: true }
 }

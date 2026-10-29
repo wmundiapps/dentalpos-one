@@ -67,7 +67,7 @@ export async function verifyByCpf(clinicId: string, tenantId: string, cpf: unkno
   const emp = emps.find((e) => onlyDigits(e.cpf) === digits)
   if (!emp || ['TERMINATED', 'Desligado'].includes(emp.status)) return { status: 'NOT_FOUND' as const }
   const face = await prisma.hREmployeeFace.findUnique({ where: { clinicId_employeeId: { clinicId, employeeId: emp.id } }, select: { samples: true } })
-  if (!face) return { status: 'NO_FACE' as const }
+  if (!face) return { status: 'NO_FACE' as const, employee: emp }
   const distance = Math.min(...(face.samples as number[][]).filter(validVector).map((x) => dist(descriptor, x)))
   if (!Number.isFinite(distance) || distance > FACE_VERIFY_MAX) return { status: 'MISMATCH' as const }
   return { status: 'MATCH' as const, employee: emp, distance }
@@ -90,3 +90,12 @@ export async function referencePhoto(clinicId: string, employeeId: string) {
   const r = await prisma.hREmployeeFace.findUnique({ where: { clinicId_employeeId: { clinicId, employeeId } }, select: { photo: true } })
   return { photo: r?.photo || null }
 }
+
+export async function findByCpf(clinicId: string, tenantId: string, cpf: unknown) {
+  const digits = onlyDigits(cpf)
+  if (digits.length !== 11) return null
+  const emps = await prisma.hREmployee.findMany({ where: { clinicId, tenantId, cpf: { not: null } }, select: { id: true, name: true, status: true, cpf: true }, take: 2000 })
+  const emp = emps.find((e) => onlyDigits(e.cpf) === digits)
+  return emp && !['TERMINATED', 'Desligado'].includes(emp.status) ? emp : null
+}
+export const hasFace = async (clinicId: string, employeeId: string) => Boolean(await prisma.hREmployeeFace.findUnique({ where: { clinicId_employeeId: { clinicId, employeeId } }, select: { employeeId: true } }))

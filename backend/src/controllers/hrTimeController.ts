@@ -16,7 +16,7 @@ function wrap(fn: (req: AuthedReq, res: Response) => Promise<unknown>) {
   return async (req: Request, res: Response) => {
     try { await fn(req as AuthedReq, res) }
     catch (e) {
-      if (e instanceof hr.HrError) return res.status(e.status).json({ error: e.message })
+      if (e instanceof hr.HrError) return res.status(e.status).json({ error: e.message, ...(e.extra || {}) })
       console.error('Falha no RH/ponto:', e)
       return res.status(500).json({ error: 'Não foi possível concluir a operação.' })
     }
@@ -35,6 +35,7 @@ export const meCreateRequest = wrap(async (req, res) => res.status(201).json(awa
 
 // ---- ponto pelo rosto (aparelho fixo da clínica) ----
 export const facePunch = wrap(async (req, res) => res.json(await hr.facePunch({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, userId: req.user!.id }, { ip: clientIp(req), userAgent: String(req.headers['user-agent'] || '') }, req.body)))
+export const faceFirstEnroll = wrap(async (req, res) => res.json(await hr.firstFaceEnroll({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, userId: req.user!.id }, { ip: clientIp(req), userAgent: String(req.headers['user-agent'] || '') }, req.body)))
 export const faceStatus = wrap(async (req, res) => res.json(await hrFace.faceStatus(req.user!.clinicId, idOf(req))))
 export const faceEnroll = wrap(async (req, res) => {
   const r = await hrFace.enrollFace(orgCtx(req), idOf(req), req.body) as { error?: string; status?: number; ok?: boolean }
