@@ -447,6 +447,7 @@ router.post('/hr/disciplinary-actions', requirePermission('hr.sensitive'), hrCon
 // Ponto eletrônico e justificativas: o funcionário só acessa os próprios dados (sem permissão de RH).
 router.put('/hr/employees/:id/portal-password', requirePermission('hr.edit'), hrTime.portalSetPassword)
 router.post('/hr/timeclock/face-punch', requirePermission('timeclock.view'), hrTime.facePunch)
+router.post('/hr/timeclock/cpf-check', requirePermission('timeclock.view'), hrTime.cpfCheck)
 router.post('/hr/timeclock/face-first-enroll', requirePermission('timeclock.view'), hrTime.faceFirstEnroll)
 router.get('/hr/employees/:id/face', requirePermission('hr.view'), hrTime.faceStatus)
 router.get('/hr/employees/:id/face-photo', requirePermission('hr.view'), hrTime.faceReference)

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, TextField, Typography } from "@mui/material";
 import PageHeader from "../components/PageHeader";
 import { describeFace, loadFaceApi, snapshot, useCamera } from "../utils/faceCamera";
-import { facePunch, firstFaceEnroll, type FacePunchResult } from "../services/HrFaceApi";
+import { cpfCheck, facePunch, firstFaceEnroll, type FacePunchResult } from "../services/HrFaceApi";
 import { Button as MuiButton, Checkbox, FormControlLabel } from "@mui/material";
 
 type Geo = { latitude?: number; longitude?: number; accuracy?: number };
@@ -17,6 +17,7 @@ export default function FacePunchKiosk() {
   const [cpf, setCpf] = useState("");
   const [step, setStep] = useState<"cpf" | "camera" | "enroll">("cpf");
   const [firstName, setFirstName] = useState("");
+  const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<FacePunchResult | null>(null);
   const [problem, setProblem] = useState("");
   const [geoMsg, setGeoMsg] = useState("");
@@ -52,6 +53,16 @@ export default function FacePunchKiosk() {
   }, [result, reset]);
 
   const cpfDigits = cpf.replace(/\D/g, "");
+  // Já na digitação do CPF: se não há rosto cadastrado, vai direto para o primeiro acesso; senão abre a câmera para conferir.
+  const proceed = async () => {
+    if (checking || cpfDigits.length !== 11) return;
+    setChecking(true); setProblem("");
+    try {
+      const c = await cpfCheck(cpfDigits);
+      if (c.hasFace) setStep("camera"); else { setFirstName(c.employeeName); setStep("enroll"); }
+    } catch (e) { setProblem(e instanceof Error ? e.message : "Não foi possível verificar o CPF."); }
+    finally { setChecking(false); }
+  };
   return (
     <Box>
       <PageHeader title="Ponto por rosto" description="Digite o CPF, olhe para a câmera e o ponto é registrado com a hora, o local e a foto." />
@@ -65,9 +76,9 @@ export default function FacePunchKiosk() {
         </Paper>
       ) : step === "cpf" ? (
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, maxWidth: 420, mx: "auto", display: "grid", gap: 2 }}>
-          <TextField autoFocus label="CPF" value={cpf} onChange={(e) => setCpf(maskCpf(e.target.value))} slotProps={{ htmlInput: { inputMode: "numeric", style: { fontSize: 28, textAlign: "center" } } }} onKeyDown={(e) => { if (e.key === "Enter" && cpfDigits.length === 11) { setProblem(""); setStep("camera"); } }} />
+          <TextField autoFocus label="CPF" value={cpf} onChange={(e) => setCpf(maskCpf(e.target.value))} slotProps={{ htmlInput: { inputMode: "numeric", style: { fontSize: 28, textAlign: "center" } } }} onKeyDown={(e) => { if (e.key === "Enter" && cpfDigits.length === 11) void proceed(); }} />
           {problem && <Alert severity="error">{problem}</Alert>}
-          <Button variant="contained" size="large" disabled={cpfDigits.length !== 11} onClick={() => { setProblem(""); setStep("camera"); }}>Continuar</Button>
+          <Button variant="contained" size="large" disabled={cpfDigits.length !== 11 || checking} onClick={() => void proceed()}>{checking ? "Verificando…" : "Continuar"}</Button>
         </Paper>
       ) : step === "enroll" ? (
         <EnrollStep cpf={cpfDigits} name={firstName} geo={geo} onDone={(r) => { setResult(r); speak(`${r.employeeName.split(" ")[0]}, rosto cadastrado e ${r.label} registrada às ${r.time}`); }} onFail={(m) => { setProblem(m); setStep("cpf"); }} onCancel={reset} />

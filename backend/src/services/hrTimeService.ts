@@ -476,3 +476,18 @@ export async function firstFaceEnroll(c: { clinicId: string; tenantId: string; u
   const result = await facePunch(c, meta, { ...body, descriptor: samples[0] })
   return { ...result, enrolled: true }
 }
+
+// Primeira tela do ponto: o CPF já diz se a pessoa existe e se o rosto está cadastrado (evita abrir a câmera à toa).
+const cpfChecks = new Map<string, { count: number; reset: number }>()
+export async function cpfCheck(c: { clinicId: string; tenantId: string }, ip: string, body: any) {
+  const k = `${c.clinicId}:${ip}`
+  const cur = cpfChecks.get(k)
+  const now = Date.now()
+  const st = cur && cur.reset > now ? cur : { count: 0, reset: now + 10 * 60 * 1000 }
+  st.count += 1
+  cpfChecks.set(k, st)
+  if (st.count > 60) throw new HrError(429, 'Muitas consultas. Aguarde alguns minutos.')
+  const emp = await findByCpf(c.clinicId, c.tenantId, body?.cpf)
+  if (!emp) throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores. Fale com o RH.')
+  return { found: true, employeeName: emp.name, hasFace: await hasFace(c.clinicId, emp.id) }
+}
