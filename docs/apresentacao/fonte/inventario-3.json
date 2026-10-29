@@ -1,0 +1,2075 @@
+[
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Painel financeiro",
+  "rota": "/edu/financeiro",
+  "titulo_chamada": "Todo o caixa da instituição em uma única tela",
+  "descricao": "O painel financeiro reúne em uma só página o que o diretor financeiro precisa saber ao abrir o sistema: saldo em bancos e caixa, contas a receber e a pagar vencidas ou a vencer em 7 dias, o que está na fila de conferência, remessas em andamento, extratos ainda não conciliados e notas fiscais pendentes. Cada cartão leva direto à tela onde o problema se resolve.\n\nAbaixo dos indicadores, o sistema monta o fluxo de caixa projetado (realizado mais previsto, agrupado por dia, semana ou mês) e o DRE gerencial em regime de caixa, com bolsas e descontos como dedução, receitas de permuta e despesas por origem (folha, terceiros, compras, notas). Tudo calculado a partir dos lançamentos reais, sem planilha paralela.\n\nÉ uma tela de leitura rápida: períodos com um clique, alertas em destaque e nenhum comando a decorar. A informação chega até você, em vez de depender de memória ou de relatórios pedidos à equipe.",
+  "funcionalidades": [
+   "Saldo consolidado de bancos e caixa",
+   "Contas a receber e a pagar vencidas e a vencer em 7 dias",
+   "Recebido e pago no mês",
+   "Indicadores da fila de conferência, remessas, extratos a conciliar e notas pendentes",
+   "Fluxo de caixa projetado (dia, semana ou mês) com saldo inicial e saldo projetado",
+   "DRE gerencial em regime de caixa com bolsas, descontos e permutas",
+   "Saídas previstas por origem (folha, pró-labore, terceiros, compras, notas)",
+   "Tributos retidos a recolher",
+   "Alertas com atalho para a tela que resolve cada pendência"
+  ],
+  "automacoes": [
+   "Cálculo automático de fluxo de caixa e DRE a cada consulta",
+   "Mudança de status para ATRASADO nas contas vencidas (job financeiro.marcar-atrasados no cron do EduMaster)",
+   "Permutas aprovadas aparecem automaticamente fora do caixa",
+   "Alertas gerados a partir das pendências reais"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Regime de caixa para o DRE (documentado no módulo)"
+  ],
+  "limites": [
+   "Cálculos fiscais, retenções e prazos são modelos parametrizáveis que devem ser validados pelo contador da instituição.",
+   "O DRE e o fluxo são gerenciais; não substituem a contabilidade oficial."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/financeiro",
+    "legenda": "Painel com saldos, alertas e cartões de pendências"
+   },
+   {
+    "rota": "/edu/financeiro?secao=painel",
+    "legenda": "Fluxo de caixa projetado e DRE gerencial do período"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Contas a receber",
+  "rota": "/edu/financeiro?secao=receber",
+  "titulo_chamada": "Mensalidades geradas, bolsas aplicadas, baixa em um clique",
+  "descricao": "Gere o carnê completo de um aluno informando valor da parcela, quantidade e dia de vencimento. O sistema cria cada mensalidade e já aplica as bolsas e descontos vigentes na data do vencimento, de acordo com o que foi concedido no módulo de Apoio ao Estudante, sem ninguém precisar calcular de cabeça.\n\nNa hora de receber, basta escolher a forma (boleto, Pix, cartão, dinheiro, transferência ou permuta), a conta de destino e, se for o caso, aplicar encargos de atraso. O sistema baixa o título, lança a receita líquida, registra a dedução da bolsa, movimenta o saldo da conta e emite o recibo numerado.\n\nA tela mostra o valor devido líquido de cada aluno e sugere multa e juros pro rata quando há atraso. Um botão reaplica as bolsas em todas as mensalidades em aberto, útil quando uma concessão muda no meio do semestre.",
+  "funcionalidades": [
+   "Gerar mensalidades (carnê) por aluno com dia de vencimento",
+   "Recebível avulso",
+   "Bolsa e desconto por mensalidade (percentual mais valor fixo, limitados ao valor)",
+   "Reaplicar bolsas em todas as mensalidades em aberto",
+   "Baixa com forma de recebimento, conta de destino, data e desconto adicional",
+   "Encargos de atraso sugeridos (multa 2% e juros 1% a.m. pro rata, modelo parametrizável)",
+   "Emissão automática de recibo numerado na baixa",
+   "Quitação por permuta aprovada com valor equivalente exato",
+   "Motivo obrigatório e auditado em descontos"
+  ],
+  "automacoes": [
+   "Bolsas das concessões vigentes aplicadas automaticamente ao gerar ou criar mensalidades",
+   "Baixa atômica: evita pagamento duplicado do mesmo título",
+   "Lançamento contábil de receita, dedução de bolsa e entrada em conta a cada recebimento",
+   "Baixa avisa o módulo de Cobrança, que encerra caso e promessa",
+   "Trilha de auditoria global (módulo tesouraria) em cada ação"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CDC art. 52 §1º (multa de até 2%) citado no módulo de Cobrança que compartilha o cálculo de encargos"
+  ],
+  "limites": [
+   "Gateways de cobrança (Asaas/Stripe) conectam por webhook do sistema legado; a integração depende de configuração e contas do cliente.",
+   "Cálculos fiscais, retenções e prazos são modelos parametrizáveis que devem ser validados pelo contador da instituição."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/financeiro?secao=receber",
+    "legenda": "Lista de mensalidades com bolsa aplicada e valor devido líquido"
+   },
+   {
+    "rota": "/edu/financeiro?secao=receber",
+    "legenda": "Diálogo de recebimento com forma, conta e recibo"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Contas a pagar",
+  "rota": "/edu/financeiro?secao=pagar",
+  "titulo_chamada": "Contas a pagar com trilha completa e proteção contra erro",
+  "descricao": "Cada despesa nasce como rascunho e percorre um caminho claro: conferido, autorizado, enviado ao banco, pago e conciliado. O lançamento aceita fornecedor, funcionário ou prestador autônomo, dados de pagamento (Pix, TED, conta, linha digitável) e as retenções de INSS, IRRF, ISS e outras, calculando o líquido.\n\nAs regras de controle interno estão no sistema, e não na boa vontade das pessoas: quem lançou não confere nem autoriza o próprio título; valores acima de cada faixa exigem o papel adequado; acima de um limite configurável exige-se segunda aprovação de outra pessoa. Ao autorizar, o conteúdo é congelado com uma assinatura (hash); qualquer alteração posterior bloqueia a remessa e pede nova autorização.\n\nO histórico completo de cada título (quem fez o quê, quando e com qual papel) fica visível na própria tela. Para a diretoria, é segurança antifraude sem burocracia de papel.",
+  "funcionalidades": [
+   "Novo título com fornecedor, funcionário ou autônomo",
+   "Dados de pagamento: chave Pix, banco, agência, conta, linha digitável",
+   "Retenções INSS, IRRF, ISS e outras com cálculo do líquido",
+   "Ações: conferir, rejeitar, devolver ao rascunho, cancelar, editar",
+   "Baixa manual de pagamento",
+   "Painel de alçada e aprovações (quem já aprovou, quantas faltam)",
+   "Trilha de auditoria por título",
+   "Importação de lançamentos de Folha, pró-labore e terceiros como rascunhos",
+   "Aviso de integridade quando o título muda após a autorização"
+  ],
+  "automacoes": [
+   "Conferência valida CPF/CNPJ, chave Pix, dados bancários e linha digitável e lista as pendências",
+   "Segregação de funções aplicada pelo sistema (códigos SEGREGACAO, ALCADA, DUPLA_APROVACAO)",
+   "Congelamento do conteúdo autorizado por hash e criação da conta a pagar no fluxo de caixa/DRE",
+   "Reautenticação por 2FA em pagamentos acima de um valor configurável",
+   "Cada transição grava evento na trilha do título e auditoria global"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Retenções INSS, IRRF, ISS, PIS/COFINS/CSLL tratadas como modelos parametrizáveis (módulo Tesouraria)"
+  ],
+  "limites": [
+   "Cálculos fiscais, retenções e prazos são modelos parametrizáveis que devem ser validados pelo contador da instituição.",
+   "Lançamento de folha depende de a folha estar fechada no RH."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/financeiro?secao=pagar",
+    "legenda": "Lista de títulos por status com formulário de novo título"
+   },
+   {
+    "rota": "/edu/financeiro?secao=pagar",
+    "legenda": "Detalhe do título com alçada, aprovações e trilha de auditoria"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Conferência e autorização",
+  "rota": "/edu/financeiro?secao=fila",
+  "titulo_chamada": "Fila de aprovação: cada pagamento passa por duas mãos",
+  "descricao": "A coordenação ou a diretoria encontra aqui, numa fila única, tudo que espera conferência ou autorização. Basta marcar \"mostrar só o que posso agir\" para ver apenas os títulos que o seu papel pode tratar naquele momento, com o valor, o favorecido e o detalhe de cada um.\n\nÉ possível conferir ou autorizar vários títulos de uma vez; cada item continua passando individualmente pelas mesmas regras de alçada, segregação e dupla aprovação. Se algo estiver incompleto ou errado, o título é rejeitado com motivo e volta ao responsável.\n\nA tela foi desenhada para quem aprova pouco tempo por dia: poucos botões, informação suficiente para decidir e nenhuma possibilidade de burlar as regras por desatenção.",
+  "funcionalidades": [
+   "Fila única com contadores \"A conferir\" e \"A autorizar\"",
+   "Filtro \"Para você agora\" conforme o papel do usuário",
+   "Conferir e autorizar em lote",
+   "Rejeição com motivo",
+   "Detalhes completos do título antes de decidir",
+   "Alçadas por valor (padrão: até R$ 5.000 coordenação/financeiro, até R$ 20.000 financeiro, acima disso diretoria com duas aprovações)",
+   "Segunda aprovação obrigatória por outra pessoa acima do limite configurado"
+  ],
+  "automacoes": [
+   "Cada item do lote passa pelas mesmas validações individuais",
+   "Impedimento automático de o lançador conferir ou autorizar o próprio título",
+   "Exigência de código 2FA quando o valor ultrapassa o limite configurado",
+   "Registro automático na trilha do título e na auditoria"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Segregação de funções como controle interno (documentada no módulo)"
+  ],
+  "limites": [
+   "As alçadas padrão podem ser personalizadas apenas pela diretoria; os valores padrão são sugestão."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/financeiro?secao=fila",
+    "legenda": "Fila de conferência e autorização com filtros por papel"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Bancos e conciliação",
+  "rota": "/edu/financeiro?secao=bancos",
+  "titulo_chamada": "Extrato bancário conciliado quase sozinho",
+  "descricao": "Cadastre as contas bancárias e o caixa da instituição, importe o extrato em OFX ou CSV e deixe o sistema sugerir a quem pertence cada lançamento. Para cada linha do extrato aparecem candidatos pontuados por valor, proximidade de data, semelhança do nome e número do título: títulos pagos ou enviados, recebimentos, movimentos internos e mensalidades em aberto.\n\nA conciliação automática só age quando existe um candidato claramente melhor que os demais; mensalidades nunca são baixadas sozinhas. O restante vai para conciliação manual com um clique, e qualquer conciliação pode ser desfeita. Arquivos e linhas repetidas são detectados e ignorados.\n\nA mesma tela guarda as configurações do financeiro: alçadas, dupla aprovação, limite para exigir 2FA, regime tributário, série dos recibos, provedor bancário e tolerância de datas na conciliação.",
+  "funcionalidades": [
+   "Cadastro de contas bancárias e caixa com saldo inicial e convênio",
+   "Importação de extrato OFX 1.x/2.x e CSV (separadores variados, números 1.234,56)",
+   "Sugestões de conciliação com pontuação",
+   "Conciliação automática segura",
+   "Conciliação manual, ignorar e desfazer",
+   "Baixar e conciliar mensalidade em aberto direto do extrato",
+   "Lançamento de tarifas, ajustes e transferências entre contas",
+   "Alçadas e política de aprovação configuráveis",
+   "Regime tributário e sistema contábil de destino"
+  ],
+  "automacoes": [
+   "Deduplicação de extrato por hash do arquivo e de linhas por FITID ou data+valor+histórico",
+   "Pontuação automática de candidatos (valor 0,5, data até 0,3, nome 0,2)",
+   "Conciliação automática apenas com score >= 0,8 e folga de 0,1 sobre o segundo",
+   "Conciliar título enviado ao banco confirma o pagamento e o leva a CONCILIADO"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "OFX e CSV como formatos de extrato",
+   "Layout Febraban para remessas (modelo)"
+  ],
+  "limites": [
+   "Integração bancária real (envio e consulta de retorno) exige credenciais, certificado e homologação com o banco: hoje existe apenas o provedor SIMULADO e arquivos-modelo Febraban.",
+   "Não há leitura automática do extrato via API bancária; a importação é por arquivo."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/financeiro?secao=bancos",
+    "legenda": "Extrato importado com sugestões de conciliação"
+   },
+   {
+    "rota": "/edu/financeiro?secao=bancos",
+    "legenda": "Contas, alçadas e configurações do financeiro"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Notas fiscais",
+  "rota": "/edu/financeiro?secao=notas",
+  "titulo_chamada": "Notas de entrada e saída casadas com o dinheiro",
+  "descricao": "Registre as notas fiscais de serviço e de mercadoria de entrada e de saída com número, série, chave de acesso de 44 dígitos, ISS e retenções. O sistema valida o dígito verificador da chave e confere se o CNPJ da chave bate com o emitente, e impede lançar a mesma nota duas vezes.\n\nCada nota de entrada pode gerar o título a pagar já com as retenções preenchidas; cada nota de saída se vincula ao recebimento. A conciliação fiscal aponta notas sem vínculo, notas divergentes de valor, pagamentos sem nota e recebimentos sem NFS-e, para o fechamento do mês não ter surpresas.\n\nPara o contador, a tela exporta em CSV o plano de contas, centros de custo, lançamentos em partidas dobradas e notas, em layout genérico.",
+  "funcionalidades": [
+   "Lançamento de nota de entrada e saída (NFS-e/NF-e)",
+   "Validação da chave de 44 dígitos (módulo 11 e CNPJ)",
+   "Retenções IRRF, PIS, COFINS, CSLL, INSS e ISS com líquido",
+   "Gerar título a pagar a partir da nota de entrada",
+   "Conciliação fiscal: sem vínculo, divergentes, pagamentos sem nota, recebimentos sem NFS-e",
+   "Exportação CSV para o sistema contábil (plano, centros de custo, lançamentos, notas)",
+   "Livros de entrada e saída",
+   "Regime tributário configurável (imune/isenta, Simples, presumido, real)"
+  ],
+  "automacoes": [
+   "Bloqueio automático de duplicidade por chave e por número/série/participante",
+   "Recálculo da conciliação fiscal sob demanda",
+   "Espelho contábil gerado a partir dos lançamentos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Notas fiscais eletrônicas NFS-e/NF-e (conferência da chave)",
+   "Retenções IRRF/PIS/COFINS/CSLL/INSS (modelos)"
+  ],
+  "limites": [
+   "O módulo registra e confere notas; não emite NFS-e junto à prefeitura nem à SEFAZ. Cálculos fiscais, retenções e prazos são modelos parametrizáveis que devem ser validados pelo contador da instituição.",
+   "A exportação contábil usa layout genérico, não o de um ERP específico."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/financeiro?secao=notas",
+    "legenda": "Notas lançadas e painel de conciliação fiscal"
+   },
+   {
+    "rota": "/edu/financeiro?secao=notas",
+    "legenda": "Exportação contábil em CSV"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Recibos",
+  "rota": "/edu/financeiro?secao=recibos",
+  "titulo_chamada": "Recibos numerados, sem lacunas escondidas",
+  "descricao": "Cada recebimento gera um recibo com numeração sequencial por série. A tela lista os recibos emitidos, quantas segundas vias foram pedidas, quais foram cancelados e, principalmente, se há lacunas na numeração, um ponto clássico de auditoria.\n\nO documento é imprimível, com o valor por extenso e o cabeçalho da instituição. Também é possível emitir recibo avulso. A segunda via fica contada e registrada; o cancelamento exige motivo e não estorna o recebimento.\n\nSimples de usar: um clique para imprimir, um para pedir segunda via. A numeração e os controles são automáticos.",
+  "funcionalidades": [
+   "Numeração série-000001 sem lacunas silenciosas",
+   "Indicadores: emitidos, segundas vias, cancelados, lacunas",
+   "Impressão do documento com valor por extenso",
+   "Segunda via com contador e log",
+   "Cancelamento com motivo",
+   "Recibo avulso"
+  ],
+  "automacoes": [
+   "Emissão automática de recibo ao dar baixa em recebimento",
+   "Detecção automática de lacunas de numeração",
+   "Registro de cada segunda via e cancelamento"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Recibo é documento gerencial; não substitui nota fiscal."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/financeiro?secao=recibos",
+    "legenda": "Gestão de recibos com indicadores de lacunas e segundas vias"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Permutas e bolsas",
+  "rota": "/edu/financeiro?secao=permutas",
+  "titulo_chamada": "Bolsas conferidas e permutas com contrapartida contábil",
+  "descricao": "Duas rotinas delicadas numa só tela. Em Permutas, a instituição registra acordos em que paga ou recebe com bens e serviços: o documento de suporte é obrigatório, a aprovação precisa ser de outra pessoa e o valor equivalente tem de ser exatamente o do título quitado. A contrapartida contábil é lançada sem movimentar caixa.\n\nEm Bolsas, o sistema confronta o que foi aplicado nas mensalidades com as concessões vigentes do módulo de Apoio ao Estudante e mostra divergências, com valor esperado e aplicado. Um botão corrige aplicando de novo.\n\nO gestor enxerga conformes, divergentes e mensalidades analisadas em números simples, sem precisar abrir aluno por aluno.",
+  "funcionalidades": [
+   "Nova permuta (receber ou pagar com bem/serviço) com documento de suporte",
+   "Aprovação por pessoa diferente de quem registrou",
+   "Liquidação de mensalidade ou título com valor equivalente exato",
+   "Contrapartida contábil automática (bens/serviços em permuta e receitas de permuta)",
+   "Conferência de bolsas: concessões ativas, conformes, divergentes",
+   "Aplicar ou corrigir bolsas em lote",
+   "Cancelamento de permuta"
+  ],
+  "automacoes": [
+   "Aplicação automática de bolsas na geração de mensalidades",
+   "Conferência automática entre mensalidades e concessões",
+   "Permutas ficam fora do caixa e entram no DRE ao serem liquidadas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Plano de contas com contas de permuta (1.2.9, 3.1.1, 3.1.9) conforme documentação do módulo"
+  ],
+  "limites": [
+   "Cálculos fiscais, retenções e prazos são modelos parametrizáveis que devem ser validados pelo contador da instituição.",
+   "Depende do módulo de Apoio ao Estudante para as concessões."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/financeiro?secao=permutas",
+    "legenda": "Permutas registradas e conferência de bolsas com divergências"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Remessas bancárias",
+  "rota": "/edu/financeiro?secao=remessas",
+  "titulo_chamada": "Arquivo de pagamento ao banco gerado em segundos",
+  "descricao": "Com os títulos autorizados em mãos, escolha a conta pagadora e o tipo de arquivo: CNAB 240 no padrão Febraban (segmentos A, B e J, com Pix, TED, crédito em conta e boleto) ou Pix em lote em CSV. O sistema reserva os títulos, monta o arquivo e permite baixá-lo ou enviá-lo ao provedor bancário configurado.\n\nO retorno do banco pode ser consultado ou colado na tela; os pagos viram baixa com lançamento contábil e saída na conta, e os rejeitados voltam para autorizados com o motivo. Se o conteúdo de um título mudou depois da autorização, a remessa é bloqueada.\n\nNa prática: três passos (gerar, enviar, processar retorno), sem digitar linha de arquivo à mão.",
+  "funcionalidades": [
+   "Geração de CNAB 240 (Febraban) com segmentos A, B (Pix) e J (boleto, linha digitável 47 dígitos)",
+   "Pix em lote em CSV",
+   "Download do arquivo",
+   "Envio pelo provedor bancário da conta",
+   "Consulta de retorno ou retorno manual (CNAB 240 ou CSV)",
+   "Cancelamento de remessa gerada liberando os títulos",
+   "Resumo: itens, valor total, protocolo, data de pagamento"
+  ],
+  "automacoes": [
+   "Reserva automática dos títulos autorizados da conta",
+   "Baixa, lançamento contábil e saída bancária automáticos ao processar pagos",
+   "Rejeitados voltam a AUTORIZADO com o motivo do banco",
+   "Bloqueio por integridade se o título mudou após autorização",
+   "2FA exigido acima do limite configurado"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CNAB 240 Febraban (layout-modelo)"
+  ],
+  "limites": [
+   "Integração bancária real (envio e consulta de retorno) exige credenciais, certificado e homologação com o banco: hoje existe apenas o provedor SIMULADO e arquivos-modelo Febraban. O envio feito hoje vai a um banco simulado e nenhum pagamento real ocorre.",
+   "Layouts variam por banco; o arquivo precisa ser homologado antes do uso real."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/financeiro?secao=remessas",
+    "legenda": "Remessa gerada com itens e botão de envio"
+   },
+   {
+    "rota": "/edu/financeiro?secao=remessas",
+    "legenda": "Processamento de retorno do banco"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Cobrança: Painel",
+  "rota": "/edu/cobranca?aba=painel",
+  "titulo_chamada": "Inadimplência sob controle, com a régua trabalhando",
+  "descricao": "O painel da cobrança mostra a taxa de inadimplência, o saldo vencido já atualizado com multa e juros, quanto foi recebido nos últimos 30 dias, o aging por faixa de atraso (a vencer, 1-30, 31-60, 61-90 e mais de 90 dias) e a situação dos casos: em cobrança, em acordo, no jurídico.\n\nTambém exibe o que acontece com os contatos: quantos foram feitos hoje, quantos foram adiados por estar fora da janela de horário, bloqueados por limite diário ou semanal ou por opt-out. O gestor vê que a cobrança está acontecendo de forma regular e dentro da lei.\n\nUm botão executa a régua na hora e outro cria as políticas e réguas padrão em um clique, para a instituição começar a cobrar organizada no primeiro dia.",
+  "funcionalidades": [
+   "Taxa de inadimplência e saldo vencido atualizado",
+   "Aging por faixa de atraso",
+   "Casos por situação e acordos/promessas em aberto",
+   "Recebido nos últimos 30 dias",
+   "Contatos de hoje, adiados e bloqueados (janela, limite, opt-out)",
+   "Parcelas de acordo a vencer em 7 dias e acordos quebrados em 30 dias",
+   "Executar régua agora",
+   "Criar políticas e régua padrão"
+  ],
+  "automacoes": [
+   "Job cobranca.motor (cron do EduMaster) quebra e expira acordos, marca promessas vencidas e executa a régua",
+   "Cálculo \"ao vivo\" de multa, juros e correção sobre o contas a receber",
+   "Atualização automática dos contadores de conformidade"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CDC art. 42 (conduta de cobrança)",
+   "CDC art. 52 §1º (multa máxima de 2%)",
+   "CDC art. 43 §2º (comunicação prévia de negativação, citada na notificação)",
+   "LGPD (base legal registrada em cada contato)"
+  ],
+  "limites": [
+   "Negativação e protesto são SIMULADOS: não há integração com Serasa, SPC ou cartório.",
+   "WhatsApp, SMS, e-mail e Telegram só saem se o canal estiver configurado em Comunicação; sem canal a falha fica registrada.",
+   "Textos, prazos e limites são modelos de apoio e precisam de validação jurídica."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/cobranca?aba=painel",
+    "legenda": "Painel com inadimplência, aging e conformidade de contatos"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Inadimplentes",
+  "rota": "/edu/cobranca?aba=inadimplentes",
+  "titulo_chamada": "Lista de devedores com ação certa ao alcance",
+  "descricao": "A planilha de inadimplentes lista cada aluno em atraso com saldo atualizado, dias de atraso e situação do caso, com filtros por curso, turma, polo e canal. Ao abrir um aluno, a atendente vê o histórico de contatos, os acordos e promessas, e pode agir ali mesmo: enviar mensagem, registrar contato, registrar promessa de pagamento, baixar título, abrir acordo ou escalar.\n\nO sistema respeita o aluno e a lei: contatos bloqueados por opt-out ou fora da janela são recusados com o motivo; a promessa registrada pausa a régua até a data; o aluno bolsista é avisado de que não recebe desconto sobre o principal.\n\nO escalonamento é guiado: notificação extrajudicial gerada em modelo pronto, encaminhamento ao Jurídico com aprovação humana. Exportação CSV auditada para quem precisa de planilha.",
+  "funcionalidades": [
+   "Filtros por curso, turma, polo, canal e situação",
+   "Saldo atualizado com multa, juros e correção por título",
+   "Registrar contato e enviar mensagem pela caixa de saída",
+   "Registrar promessa de pagamento (régua pausada até a data)",
+   "Opt-out por canal e pausa da régua",
+   "Baixa de título com lançamento no contas a receber",
+   "Gerar notificação extrajudicial",
+   "Encaminhar ao Jurídico (solicitação de execução)",
+   "Exportar CSV"
+  ],
+  "automacoes": [
+   "Pausa automática da régua com acordo ativo, promessa vigente, caso no jurídico ou pausa manual",
+   "Verificação de conformidade antes de cada saída (janela, limite, opt-out, texto)",
+   "Encerramento do caso quando o pagamento total chega, inclusive por baixa feita no financeiro",
+   "Exportação CSV com neutralização de injeção de fórmula"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CDC art. 42 (conduta de cobrança)",
+   "CDC art. 52 §1º (multa máxima de 2%)",
+   "CDC art. 43 §2º (comunicação prévia de negativação, citada na notificação)",
+   "LGPD (base legal registrada em cada contato)"
+  ],
+  "limites": [
+   "Negativação e protesto são SIMULADOS: não há integração com Serasa, SPC ou cartório.",
+   "WhatsApp, SMS, e-mail e Telegram só saem se o canal estiver configurado em Comunicação; sem canal a falha fica registrada.",
+   "Textos, prazos e limites são modelos de apoio e precisam de validação jurídica.",
+   "Aceite do aluno é registrado pela atendente; não há portal de aceite nem assinatura digital qualificada."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/cobranca?aba=inadimplentes",
+    "legenda": "Lista de inadimplentes com filtros e saldos"
+   },
+   {
+    "rota": "/edu/cobranca?aba=inadimplentes",
+    "legenda": "Ficha do aluno com histórico de contatos e escalonamento"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Acordos e Negociações",
+  "rota": "/edu/cobranca?aba=acordos",
+  "titulo_chamada": "Acordos simulados, aprovados e acompanhados parcela a parcela",
+  "descricao": "Monte uma proposta de acordo simulando entrada, número de parcelas, juros de parcelamento e descontos sobre encargos e sobre o principal. O sistema calcula as parcelas (tabela Price quando há juros; a última parcela absorve o arredondamento) e confere os descontos contra a alçada: acima do limite, somente gestor aprova.\n\nO aluno pode fazer contraproposta, que é registrada, analisada e aprovada. Com o aceite registrado (canal, nome, CPF mascarado, IP e hash dos termos), o acordo vira ativo, os títulos saem do saldo vencido e a régua pausa. Se uma parcela vence sem pagamento, o acordo quebra e o débito original é restabelecido, abatendo o que já foi pago.\n\nTudo tem histórico de negociação, termo imprimível e atalhos para renegociar, reabrir ou cancelar.",
+  "funcionalidades": [
+   "Simulação de acordo: entrada, parcelas, juros de parcelamento, descontos",
+   "Alçada de desconto com aprovação de gestor",
+   "Contraproposta do aluno, ajuste de termos e aprovação",
+   "Aceite com registro de canal, nome, CPF mascarado, IP e hash dos termos",
+   "Pagamento de parcelas, quebra, reabertura e renegociação",
+   "Promessas de pagamento: cumprida ou quebrada",
+   "Histórico da negociação e termo do acordo",
+   "Quitação do acordo baixa os títulos no contas a receber"
+  ],
+  "automacoes": [
+   "Acordo ativo cobre os títulos (saem do saldo vencido e não podem ser baixados direto)",
+   "Quebra automática por dias de atraso configurados, com crédito do já pago e reabertura do débito original",
+   "Promessas vencidas marcadas pelo job cobranca.motor",
+   "Régua pausada durante acordo e retomada em novo ciclo ao quebrar"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CDC art. 42 (conduta de cobrança)",
+   "CDC art. 52 §1º (multa máxima de 2%)",
+   "CDC art. 43 §2º (comunicação prévia de negativação, citada na notificação)",
+   "LGPD (base legal registrada em cada contato)"
+  ],
+  "limites": [
+   "Negativação e protesto são SIMULADOS: não há integração com Serasa, SPC ou cartório.",
+   "WhatsApp, SMS, e-mail e Telegram só saem se o canal estiver configurado em Comunicação; sem canal a falha fica registrada.",
+   "Textos, prazos e limites são modelos de apoio e precisam de validação jurídica.",
+   "Pagamento parcial de parcela de acordo não é aceito.",
+   "Correção monetária usa percentual anual informado, sem busca automática de IPCA/IGP-M."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/cobranca?aba=acordos",
+    "legenda": "Acordos com status, parcelas e ações"
+   },
+   {
+    "rota": "/edu/cobranca?aba=acordos",
+    "legenda": "Simulação de acordo com entrada e parcelas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Régua e Políticas",
+  "rota": "/edu/cobranca?aba=regua",
+  "titulo_chamada": "Régua de cobrança que se repete até o problema acabar",
+  "descricao": "Aqui a instituição define a política de cobrança uma vez e o sistema a executa sempre: tolerância de dias, multa (até 2%), juros mensais ou diários, simples ou compostos, correção anual, descontos de quitação, entrada mínima do acordo, janela de contato (padrão de 8h às 20h em dias úteis, limitada a 7h-21h) e limites de contatos por dia e por semana.\n\nA régua é uma sequência de etapas por dias de atraso: mensagens por SMS, WhatsApp, Telegram, e-mail ou voz com IA, com canal alternativo e repetição a cada N dias até o pagamento ou acordo; e etapas de escalonamento (notificação extrajudicial, negativação, protesto, Jurídico) com aprovação humana opcional e aviso prévio após a entrega da notificação. As mensagens usam variáveis como nome, saldo, vencimento e dias de atraso.\n\nO texto é validado automaticamente: o sistema recusa ofensa, ameaça, exposição a terceiros e termos como \"devedor\" na mensagem.",
+  "funcionalidades": [
+   "Política: tolerância, multa, juros, correção, descontos, alçada, entrada mínima, prazo de quebra",
+   "Janela de contato (dias, horário, feriados nacionais) e limites diário e semanal",
+   "Etapas de mensagem por canal com canal alternativo e repetição",
+   "Etapas de escalonamento com aprovação e aviso prévio",
+   "Variáveis de mensagem {{nome}} {{saldo}} {{vencimento}} {{dias_atraso}} {{titulos}} {{curso}}",
+   "Validação de texto da mensagem",
+   "Simulação e execução da régua",
+   "Base legal LGPD por etapa",
+   "Fila de encaminhamentos com confirmação de envio"
+  ],
+  "automacoes": [
+   "Motor da régua por caso usa o maior atraso e dispara no gatilho, repetindo até quitar ou acordo",
+   "Máximo de uma mensagem por caso por execução; etapas muito atrasadas ficam SUPERADAS",
+   "Contato fora da janela ou do limite é adiado automaticamente",
+   "Pausa automática por acordo, promessa, jurídico ou pagamento total",
+   "Envio via notificações e dispatcher da Comunicação"
+  ],
+  "ia": [
+   "Voz IA: ligação de cobrança por provedor de voz; sem provedor é simulada (resultado SIMULADO). O provedor devolve atendeu, promessa, opt-out e transcrição."
+  ],
+  "base_normativa_literatura": [
+   "CDC art. 42 (conduta de cobrança)",
+   "CDC art. 52 §1º (multa máxima de 2%)",
+   "CDC art. 43 §2º (comunicação prévia de negativação, citada na notificação)",
+   "LGPD (base legal registrada em cada contato)"
+  ],
+  "limites": [
+   "Negativação e protesto são SIMULADOS: não há integração com Serasa, SPC ou cartório.",
+   "WhatsApp, SMS, e-mail e Telegram só saem se o canal estiver configurado em Comunicação; sem canal a falha fica registrada.",
+   "Textos, prazos e limites são modelos de apoio e precisam de validação jurídica.",
+   "Voz IA é simulada sem provedor plugado."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/cobranca?aba=regua",
+    "legenda": "Políticas de cobrança e etapas da régua"
+   },
+   {
+    "rota": "/edu/cobranca?aba=regua",
+    "legenda": "Etapas por dias de atraso com canal e repetição"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Histórico de Contatos",
+  "rota": "/edu/cobranca?aba=historico",
+  "titulo_chamada": "Prova de cada contato feito, com canal e base legal",
+  "descricao": "Todo contato de cobrança, automático ou manual, fica registrado: canal, resultado, base legal da LGPD, destino mascarado e quem o fez (usuário ou régua). A tela filtra por período, canal, origem e resultado e mostra também as tentativas bloqueadas e o motivo.\n\nPara a instituição, isso é defesa em caso de reclamação: dá para provar quando, como e com qual fundamento o aluno foi contatado, e que o horário e os limites foram respeitados. Também é a base para medir qual canal funciona melhor.\n\nExportação em CSV auditada, com um clique.",
+  "funcionalidades": [
+   "Registro de canal, resultado, base legal e destino mascarado",
+   "Filtros por data, canal, origem (automático ou manual) e resultado",
+   "Registro de tentativas bloqueadas com motivo (BLOQUEADO_*)",
+   "Conteúdo ou motivo de cada contato",
+   "Exportar CSV"
+  ],
+  "automacoes": [
+   "Gravação automática de toda tentativa de contato",
+   "Sincronização do status de entrega com o histórico quando o canal falha",
+   "Exportação auditada"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (base legal por contato)",
+   "CDC art. 42"
+  ],
+  "limites": [
+   "Negativação e protesto são SIMULADOS: não há integração com Serasa, SPC ou cartório.",
+   "WhatsApp, SMS, e-mail e Telegram só saem se o canal estiver configurado em Comunicação; sem canal a falha fica registrada."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/cobranca?aba=historico",
+    "legenda": "Histórico de contatos com filtros"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Recebimentos (Cobrança)",
+  "rota": "/edu/cobranca?aba=recebimentos",
+  "titulo_chamada": "Quanto a cobrança recuperou, e por quê",
+  "descricao": "O relatório de recebimentos responde à pergunta do diretor financeiro: quanto entrou, quanto foi pago no prazo e quanto foi recuperado em atraso, quanto veio de encargos e quanto foi concedido em descontos. Mostra também o ranking de inadimplência por curso, turma, polo ou segmento.\n\nOs números separam o que entrou via cobrança (baixas e acordos) do que entrou espontaneamente, permitindo avaliar o resultado real do trabalho da equipe e da régua.\n\nAgrupamento e período escolhidos em dois cliques; exportação CSV disponível.",
+  "funcionalidades": [
+   "Entrada em caixa, pagos no prazo, recuperado em atraso",
+   "Encargos arrecadados e descontos concedidos",
+   "Via cobrança (baixas e acordos)",
+   "Ranking de inadimplência por curso, turma, polo ou segmento",
+   "Filtro de período e agrupamento",
+   "Exportar CSV"
+  ],
+  "automacoes": [
+   "Consolidação automática das baixas, acordos e encargos recebidos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CDC art. 52 §1º (multa) nos cálculos de encargos"
+  ],
+  "limites": [
+   "Correção monetária usa percentual informado, não índice automático."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/cobranca?aba=recebimentos",
+    "legenda": "Recebimentos e ranking de inadimplência"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "RH: Painel",
+  "rota": "/edu/rh?secao=painel",
+  "titulo_chamada": "O RH inteiro em uma tela, com o que exige atenção",
+  "descricao": "O painel do RH resume o quadro de pessoal, as admissões e desligamentos em andamento e, principalmente, as pendências que não podem ser esquecidas: ajustes de ponto a aprovar, atestados a validar, licenças solicitadas, exames ocupacionais vencidos ou a vencer, férias em risco ou vencidas, banco de horas a vencer, avaliações pendentes, advertências sem ciência e bonificações propostas.\n\nCada cartão leva direto à tela onde a pendência é resolvida. O colaborador que tem usuário vinculado vê também o seu próprio resumo e registra o ponto do dia ali mesmo.\n\nÉ a forma de o RH deixar de depender de agenda de papel e de memória: o sistema aponta o que está vencendo.",
+  "funcionalidades": [
+   "Quadro de pessoal e aniversariantes do mês",
+   "Pendências: ajustes de ponto, atestados, licenças, avaliações, advertências, bonificações",
+   "Alertas de exames vencidos/ausentes, férias em risco ou vencidas e banco de horas a vencer",
+   "Admissões e desligamentos em andamento",
+   "Holerites e folha com atalho",
+   "Meu resumo e registrar ponto para o colaborador vinculado",
+   "Resumo agregado para a Reitoria sem nomes, CPF, salários individuais ou CID"
+  ],
+  "automacoes": [
+   "Jobs rh:ferias, rh:saude e rh:banco-horas no cron do EduMaster reavaliam alertas",
+   "Alertas calculados automaticamente a partir do cadastro",
+   "Resumo da Reitoria com supressão de grupos com menos de 3 pessoas (k-anonimato)"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CLT (regras de ponto, férias e banco de horas), conforme README do módulo",
+   "LGPD (dados sensíveis cifrados e log de acesso)"
+  ],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar.",
+   "Sem integração com eSocial, SEFIP ou DCTFWeb e sem leitura de relógio de ponto/AFD real (há importação simplificada de marcações)."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=painel",
+    "legenda": "Painel do RH com pendências e quadro de pessoal"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Colaboradores",
+  "rota": "/edu/rh?secao=colaboradores",
+  "titulo_chamada": "Cadastro de pessoas com dados sensíveis protegidos",
+  "descricao": "Cadastre docentes e técnico-administrativos com vínculo (CLT, PJ, estagiário, horista), cargo, departamento, centro de custo, jornada, data de admissão, salário ou valor-hora, dependentes para o IRRF e dados bancários. O sistema vincula o colaborador ao seu login para que ele registre o ponto e use o autoatendimento.\n\nOs dados mais delicados são tratados com cuidado: CPF, conta bancária e chave Pix são guardados cifrados (AES-256-GCM), as listas mostram apenas os dois últimos dígitos do CPF e a consulta completa exige motivo e fica registrada em log de acesso.\n\nNa tela, formulário curto, busca por nome, matrícula ou e-mail e filtros por status e vínculo.",
+  "funcionalidades": [
+   "Cadastro com cargo, departamento, centro de custo, jornada e vínculo",
+   "Busca por nome, matrícula ou e-mail e filtros por status e vínculo",
+   "Vínculo do colaborador ao usuário do sistema (ponto e autoatendimento)",
+   "CPF mascarado em listas e consulta completa com motivo e log",
+   "Dados bancários e chave Pix cifrados",
+   "Dependentes para IRRF",
+   "Histórico de carreira do colaborador"
+  ],
+  "automacoes": [
+   "Cifra automática de CPF, conta, Pix, CID e CRM (AES-256-GCM)",
+   "CPF também por HMAC para garantir unicidade sem expor",
+   "Log de acesso a dado sensível em cada consulta",
+   "Gestor enxerga apenas a própria equipe, sem salário, CID ou CPF"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (dados cifrados, log de acesso, finalidade)",
+   "CLT (tipos de vínculo)"
+  ],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=colaboradores",
+    "legenda": "Lista de colaboradores com CPF mascarado"
+   },
+   {
+    "rota": "/edu/rh?secao=colaboradores",
+    "legenda": "Formulário de novo colaborador"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Ponto e Banco de Horas",
+  "rota": "/edu/rh?secao=ponto",
+  "titulo_chamada": "Ponto, espelho e banco de horas calculados pelo sistema",
+  "descricao": "O colaborador registra entrada, intervalos e saída direto no sistema; o RH também pode importar marcações. O espelho de ponto mostra atrasos, abonos e horas extras de cada dia, e ajustes passam por justificativa e aprovação do gestor ou do RH. Ao final do mês o ponto é fechado e, se necessário, reaberto com motivo.\n\nO banco de horas é controlado por créditos com validade (padrão de 6 meses, máximo de 12) consumidos pelo mais antigo primeiro (FIFO). Crédito vencido é pago como hora extra de 50% na folha. O sistema aplica tolerância de 10 minutos, adicional noturno com hora reduzida, hora extra de 50% e 100%, DSR e escala 12x36.\n\nGestor e colaborador têm visões próprias; quem aprova nunca é a própria pessoa.",
+  "funcionalidades": [
+   "Marcação de ponto e consulta do dia",
+   "Espelho de ponto com atrasos, abonos e horas extras",
+   "Importação de marcações em lote (uma por linha)",
+   "Solicitação e decisão de ajustes com justificativa mínima de 10 caracteres",
+   "Fechamento e reabertura do ponto com motivo",
+   "Banco de horas: saldo, vencimentos e lançamentos",
+   "Alertas de intervalo curto e hora extra excedente",
+   "Impressão do espelho"
+  ],
+  "automacoes": [
+   "Apuração automática: tolerância (CLT art. 58 §1º), noturno 22h-5h, HE 50%/100%, DSR, feriados",
+   "Razão do banco de horas derivado por FIFO; crédito vencido pago como HE 50% na folha",
+   "Fechamento do ponto lança no banco; a reabertura desfaz",
+   "Job rh:banco-horas avisa créditos a vencer",
+   "Segregação: ninguém aprova ajuste sobre si mesmo"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CLT art. 58 §1º (tolerância de 10 minutos)",
+   "CLT (hora extra, adicional noturno, DSR, banco de horas), conforme README"
+  ],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar.",
+   "Sem integração com eSocial, SEFIP ou DCTFWeb e sem leitura de relógio de ponto/AFD real (há importação simplificada de marcações)."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=ponto",
+    "legenda": "Espelho de ponto com ajustes pendentes"
+   },
+   {
+    "rota": "/edu/rh?secao=ponto",
+    "legenda": "Banco de horas com saldo e vencimentos"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Atestados e Licenças",
+  "rota": "/edu/rh?secao=saude",
+  "titulo_chamada": "Saúde ocupacional organizada e confidencial",
+  "descricao": "Registre atestados médicos, solicite licenças e controle os exames ocupacionais (ASO) de cada colaborador. O CID é opcional, validado no formato e fica cifrado. Licenças como maternidade, paternidade (inclusive Empresa Cidadã) e outras têm duração fixa conferida pelo sistema; atestados são validados ou rejeitados pelo RH.\n\nO controle de exames mostra quem está em dia, a vencer ou vencido, e o lançamento do resultado fica restrito. O gestor enxerga apenas a situação do exame, nunca o resultado, o médico, o CID ou anexos.\n\nTudo gera log de acesso, atendendo ao princípio da necessidade da LGPD.",
+  "funcionalidades": [
+   "Registro e validação de atestados com CID opcional validado",
+   "Solicitação, aprovação e cancelamento de licenças com duração fixa conferida",
+   "Empresa Cidadã na licença-maternidade/paternidade",
+   "Controle de exames ocupacionais (ASO) com vencimentos",
+   "Lançamento restrito do resultado",
+   "Estatísticas de atestados",
+   "Afastamento a partir do 16º dia refletido na folha"
+  ],
+  "automacoes": [
+   "Job rh:saude avisa exames a vencer e vencidos",
+   "CID, médico e resultado do ASO cifrados e ocultos para gestor e financeiro",
+   "Log de acesso a dado de saúde em cada consulta",
+   "Impedimento de aprovar licença sobre si mesmo"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (dado de saúde, log de acesso)",
+   "CLT (licenças e exames), conforme README"
+  ],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=saude",
+    "legenda": "Atestados, licenças e exames ocupacionais"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Férias",
+  "rota": "/edu/rh?secao=ferias",
+  "titulo_chamada": "Férias programadas dentro das regras, sem risco de dobra",
+  "descricao": "O sistema gera os períodos aquisitivos e concessivos de cada colaborador e calcula o direito a dias conforme as faltas injustificadas (30, 24, 18, 12 ou nenhum). A programação aceita até três parcelas, venda de até um terço e antecipação da primeira parcela do 13º, e confere as regras de duração mínima e de início antes de feriado ou DSR.\n\nO gestor aprova e o RH conclui. Um simulador mostra o valor das férias incluindo a média das variáveis e o terço constitucional. Quando o período concessivo está perto do fim, o alerta aparece; férias vencidas são sinalizadas como pagamento em dobro, em nível crítico.\n\nO departamento deixa de depender de planilha: o sistema avisa antes de o prazo virar prejuízo.",
+  "funcionalidades": [
+   "Atualização de períodos aquisitivos e saldo",
+   "Programação de férias em até 3 parcelas, abono e adiantamento de 13º",
+   "Aprovação, rejeição, cancelamento e conclusão",
+   "Alertas de vencimento de férias",
+   "Simulador de valor (30 dias) com média de variáveis e 1/3",
+   "Regras aplicadas visíveis na tela"
+  ],
+  "automacoes": [
+   "Job rh:ferias reavalia períodos e alertas",
+   "Direito calculado automaticamente por faltas injustificadas",
+   "Alerta crítico de férias vencidas (pagamento em dobro)",
+   "Bloqueio de início de férias nos 2 dias antes de feriado ou DSR"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CLT (férias, abono de 1/3, parcelas, dobra), conforme README"
+  ],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar.",
+   "Valores de férias em dobro e rescisão são estimativas."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=ferias",
+    "legenda": "Períodos aquisitivos, saldos e programação de férias"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Carreira e Bonificações",
+  "rota": "/edu/rh?secao=carreira",
+  "titulo_chamada": "Planos de carreira e bonificações com aprovação",
+  "descricao": "Crie planos de carreira com níveis e interstício mínimo, registre promoções, progressões e reajustes por mérito no histórico de cargo e salário de cada colaborador e proponha bonificações e premiações com competência definida.\n\nO sistema respeita o interstício, exigindo justificativa para forçar uma movimentação antes do prazo. Bonificações aprovadas entram como proventos na folha da competência, com opção de incidir ou não encargos (PLR sem INSS/FGTS).\n\nO gestor propõe, o RH aprova, e tudo fica no histórico.",
+  "funcionalidades": [
+   "Planos de carreira e níveis com interstício",
+   "Nova movimentação (promoção, progressão, mérito) com histórico de cargo e salário",
+   "Bonificações e premiações propostas e decididas",
+   "Incidência de encargos configurável",
+   "Competência AAAA-MM de pagamento"
+  ],
+  "automacoes": [
+   "Verificação automática do interstício",
+   "Bonificação aprovada vira provento na folha da competência",
+   "Gestor não aprova a própria bonificação"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=carreira",
+    "legenda": "Planos de carreira, histórico e bonificações"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Advertências",
+  "rota": "/edu/rh?secao=advertencias",
+  "titulo_chamada": "Medidas disciplinares registradas com ciência e prova",
+  "descricao": "Registre orientação, advertência escrita e suspensão com descrição dos fatos, testemunha e dias de suspensão. O sistema sugere o nível adequado conforme o histórico do colaborador e exige justificativa para pular etapas em falta grave.\n\nO colaborador é notificado, dá ciência ou recusa (com testemunha) e pode contestar. Registros podem ser cancelados com motivo. Cada acesso a registro disciplinar fica gravado no log de dados sensíveis.\n\nProcesso claro e documentado protege a instituição e o colaborador.",
+  "funcionalidades": [
+   "Registro de advertência com fatos, testemunha e suspensão",
+   "Sugestão do nível sugerido conforme histórico",
+   "Ciência, recusa e contestação do colaborador",
+   "Cancelamento com motivo",
+   "Justificativa obrigatória para pular nível"
+  ],
+  "automacoes": [
+   "Notificação ao colaborador ao criar o registro",
+   "Log de acesso DISCIPLINAR a cada consulta",
+   "Sugestão automática de nível"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (dado disciplinar com log)",
+   "CLT (medidas disciplinares), conforme README"
+  ],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar.",
+   "Não substitui orientação do jurídico trabalhista."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=advertencias",
+    "legenda": "Registros disciplinares com status de ciência"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Admissão e Desligamento",
+  "rota": "/edu/rh?secao=ciclo",
+  "titulo_chamada": "Entrada e saída de pessoas com checklist e acerto conferido",
+  "descricao": "Na admissão, o sistema acompanha o checklist de documentos e o exame admissional (ASO) até a conclusão. No desligamento, inicia automaticamente o exame demissional e o checklist de devolução de patrimônio, simula o termo de rescisão (saldo, aviso proporcional, 13º e férias proporcionais, multa do FGTS) e controla a conferência do acerto e o pagamento por pessoas diferentes.\n\nAo concluir o desligamento, o acesso do usuário vinculado é desativado automaticamente, evitando contas esquecidas ativas.\n\nO fluxo é guiado por etapas, sem depender de lembrar o que falta.",
+  "funcionalidades": [
+   "Checklist de admissão e ASO admissional",
+   "Conclusão da admissão",
+   "Início do desligamento com exame demissional e checklist",
+   "Dispensa de exame demissional (último ASO até 135 dias)",
+   "Simulação de termo de rescisão",
+   "Conferência de acerto e registro de pagamento (pessoas diferentes)",
+   "Devolução de patrimônio",
+   "Concluir desligamento revoga o acesso"
+  ],
+  "automacoes": [
+   "Criação automática de checklist e exame demissional",
+   "Desativação do usuário vinculado ao concluir o desligamento",
+   "Segregação: quem conferiu o acerto não registra o pagamento"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CLT (aviso prévio proporcional, férias e 13º proporcionais, multa FGTS 40%/20%), conforme README"
+  ],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar.",
+   "A simulação nunca substitui o TRCT oficial.",
+   "Sem integração com eSocial, SEFIP ou DCTFWeb e sem leitura de relógio de ponto/AFD real (há importação simplificada de marcações)."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=ciclo",
+    "legenda": "Checklist de admissão e fluxo de desligamento"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Avaliações",
+  "rota": "/edu/rh?secao=avaliacoes",
+  "titulo_chamada": "Avaliação de desempenho 360 simples e sem papel",
+  "descricao": "O RH cria ciclos de avaliação com critérios e pesos para a autoavaliação e para o gestor. Ao abrir o ciclo, as avaliações são geradas automaticamente; o colaborador faz a autoavaliação, o gestor registra o parecer e, se o resultado for baixo, é obrigatório um plano de ação.\n\nA Reitoria vê apenas um resumo por departamento, sem nomes nem notas individuais e com supressão de grupos com menos de 3 avaliações concluídas, protegendo a privacidade.\n\nColaborador vê as suas avaliações e o gestor vê a lista de quem aguarda parecer.",
+  "funcionalidades": [
+   "Ciclos e critérios com escala e pesos",
+   "Abertura do ciclo gera as avaliações",
+   "Autoavaliação e parecer do gestor",
+   "Plano de ação obrigatório para resultado baixo",
+   "Classificação do resultado",
+   "Minhas avaliações e avaliações da equipe",
+   "Resumo para a Reitoria"
+  ],
+  "automacoes": [
+   "Geração automática das avaliações ao abrir o ciclo",
+   "Supressão automática de grupos pequenos (k-anonimato)",
+   "Log de acesso AVALIACAO"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (log de acesso e minimização no resumo da Reitoria)"
+  ],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=avaliacoes",
+    "legenda": "Ciclos de avaliação e avaliações da equipe"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Folha",
+  "rota": "/edu/rh?secao=folha",
+  "titulo_chamada": "Folha calculada, holerite pronto, pagamento lançado no financeiro",
+  "descricao": "A folha calcula proventos e descontos por evento: faltas e DSR, horas extras, adicional noturno, férias, 13º salário (duas parcelas), INSS progressivo com teto, IRRF pela tabela vigente com redutor e FGTS de 8%, além do custo patronal estimado. Eventos manuais complementam o que o modelo não cobre. Colaboradores PJ e estagiários seguem regras próprias.\n\nAo fechar a folha, os lançamentos a pagar são gerados com chave de idempotência e seguem para conferência e autorização no Financeiro, sem digitar nada de novo. O colaborador consulta seus holerites fechados; as tabelas fiscais por vigência ficam editáveis.\n\nTudo com status visível: calculada, fechada, reaberta (com motivo).",
+  "funcionalidades": [
+   "Cálculo de folha com INSS, IRRF, FGTS e custo patronal estimado",
+   "13º salário em duas parcelas",
+   "Eventos manuais de provento e desconto",
+   "Fechamento e reabertura com motivo",
+   "Holerites e Meus holerites com impressão",
+   "Tabelas fiscais por vigência",
+   "Pró-labore líquido incluído",
+   "Lançamentos a pagar para o Financeiro"
+  ],
+  "automacoes": [
+   "Fechamento gera lançamentos a pagar para conferência no Financeiro (contrato idempotente)",
+   "Cálculo automático de INSS, IRRF (Lei 15.270/2025, tabela 2026) e FGTS",
+   "Integração com ponto, banco de horas, férias e bonificações",
+   "Log de acesso REMUNERACAO"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CLT",
+   "Lei 15.270/2025 (IRRF, tabela 2026) conforme README",
+   "LGPD (dados sensíveis cifrados e log de acesso)"
+  ],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar.",
+   "Sem integração com eSocial, SEFIP ou DCTFWeb e sem leitura de relógio de ponto/AFD real (há importação simplificada de marcações).",
+   "Sem cálculo de salário-família, vale-transporte automático, pensão, insalubridade/periculosidade ou regras de convenção coletiva (use eventos manuais)."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=folha",
+    "legenda": "Folha de pagamento com totais"
+   },
+   {
+    "rota": "/edu/rh?secao=folha",
+    "legenda": "Lançamentos a pagar gerados para o Financeiro"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Pró-labore e Terceiros",
+  "rota": "/edu/rh?secao=socios",
+  "titulo_chamada": "Sócios e prestadores pagos com retenção correta",
+  "descricao": "Cadastre sócios com pró-labore e participação, e terceiros (autônomos RPA e pessoas jurídicas) com chave Pix cifrada. O simulador de pró-labore calcula INSS de 11% limitado ao teto e IRRF. Para RPA calcula INSS e IRRF; para PJ exige nota fiscal.\n\nPagamentos a terceiros passam por aprovação, e quem aprova não dá baixa. Pró-labore e terceiros alimentam a fila de contas a pagar do Financeiro como rascunhos prontos para conferência.\n\nA tela é objetiva: cadastro, simulação e pagamento em poucos cliques.",
+  "funcionalidades": [
+   "Cadastro de sócios com pró-labore e participação",
+   "Simulador de pró-labore (INSS 11% e IRRF)",
+   "Cadastro de terceiros RPA e PJ",
+   "Pagamentos a terceiros com aprovação, cancelamento e baixa",
+   "Exigência de nota fiscal para PJ",
+   "Pró-labore processado na folha"
+  ],
+  "automacoes": [
+   "Retenções calculadas automaticamente por tipo",
+   "Segregação entre aprovação e baixa",
+   "Geração de lançamentos para o Financeiro"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CLT/previdência: INSS e IRRF conforme tabelas do módulo (modelo)",
+   "LGPD (dados sensíveis cifrados e log de acesso)"
+  ],
+  "limites": [
+   "Cálculos trabalhistas e tributários são MODELOS SIMPLIFICADOS e parametrizáveis a validar por contador ou advogado trabalhista; as tabelas padrão ficam marcadas como modelo a validar.",
+   "Financeiro vê sócios sem valores."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/rh?secao=socios",
+    "legenda": "Sócios, pró-labore e pagamentos a terceiros"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Jurídico: Painel",
+  "rota": "/edu/juridico?secao=painel",
+  "titulo_chamada": "Contratos, processos e riscos num painel executivo",
+  "descricao": "O painel do jurídico apresenta o que a diretoria precisa ver: documentos e contratos vigentes, processos em andamento, audiências nos próximos 30 dias, aluguéis a pagar e em atraso, renovação de seguros nos próximos 90 dias e riscos críticos ou altos. Mostra também a provisão contábil (risco provável) e o passivo contingente (risco possível).\n\nA lista de alertas de vencimento mostra o que vence em 30, 60 e 90 dias e o que já venceu. Integra-se ao Financeiro com as provisões e obrigações e à Reitoria com indicadores em semáforo.\n\nSem planilha de prazos: o sistema agenda os lembretes por conta própria.",
+  "funcionalidades": [
+   "Indicadores de documentos, contratos, processos, audiências, aluguéis e seguros",
+   "Provisão contábil e passivo contingente",
+   "Riscos críticos e altos",
+   "Alertas de vencimento 30/60/90 dias e vencidos",
+   "Integração com o Financeiro (provisões e obrigações)",
+   "Indicadores para a Reitoria com nível ok/atenção/crítico"
+  ],
+  "automacoes": [
+   "Jobs juridico.vencimentos e juridico.prazos reavaliam lembretes todos os dias",
+   "Lembretes com dedupeKey (sem duplicar) agendados ao salvar",
+   "Prazos processuais avisam 7/3/1 dias, audiências 7/1, planos de prevenção 30/7, aluguel 5/1",
+   "Vencido vira lembrete CRÍTICO"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CPC 25 (provisão apenas para risco provável)",
+   "LGPD (log de acesso a dado judicial)",
+   "Numeração única CNJ com dígito verificador mod 97"
+  ],
+  "limites": [
+   "Textos, catálogos, prazos e regras contábeis (CPC 25) são modelos de apoio e devem ser validados por advogado e contador; o módulo não consulta tribunais, não gera peças processuais e não substitui assinatura eletrônica."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/juridico?secao=painel",
+    "legenda": "Visão geral do jurídico com alertas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Jurídico: Documentos",
+  "rota": "/edu/juridico?secao=documentos",
+  "titulo_chamada": "Acervo jurídico com versões e vencimentos vigiados",
+  "descricao": "Guarde estatutos, regimentos, certidões, procurações, licenças e demais documentos da instituição com código automático, categoria, partes envolvidas e período de vigência. Cada documento tem versões: a nova versão torna a anterior substituída e herda a vigência.\n\nDocumentos confidenciais ficam restritos à equipe jurídica e à reitoria. Anexos aceitam arquivo de até 2 MB ou link seguro; todo upload passa pelo scanner de segurança. O fim da vigência dispara alertas automáticos em 30, 60 e 90 dias.\n\nBusca por categoria, status, tags e vencimento.",
+  "funcionalidades": [
+   "Código automático JUR-DOC-AAAA-NNNN",
+   "Categoria, partes, tags, vigência e fim de vigência",
+   "Versões com substituição automática da anterior",
+   "Documentos confidenciais restritos",
+   "Anexos de até 2 MB ou link https",
+   "Encerramento cancela os alertas",
+   "Filtros por vencimento 30/60/90 e vencido"
+  ],
+  "automacoes": [
+   "Alertas de vencimento 30/60/90 dias agendados ao salvar e reavaliados diariamente",
+   "Varredura de segurança em todo anexo (uploadGuard)",
+   "Auditoria de criação e alteração"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (acesso restrito a confidenciais)"
+  ],
+  "limites": [
+   "Textos, catálogos, prazos e regras contábeis (CPC 25) são modelos de apoio e devem ser validados por advogado e contador; o módulo não consulta tribunais, não gera peças processuais e não substitui assinatura eletrônica."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/juridico?secao=documentos",
+    "legenda": "Acervo documental com versões e vigência"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Jurídico: Contratos",
+  "rota": "/edu/juridico?secao=contratos",
+  "titulo_chamada": "Ciclo de vida de contratos sem prazo perdido",
+  "descricao": "Cadastre contratos com contraparte, objeto, valor, vigência, responsável interno, aviso prévio, multa rescisória, mês de reajuste e renovação automática. A situação só muda por ações próprias: ativar, encerrar, rescindir ou renovar com aditivo, preservando o histórico.\n\nOs alertas de vencimento avisam com 30, 60 e 90 dias de antecedência, dando tempo de renegociar. A numeração é automática.\n\nSimples de operar e difícil de esquecer.",
+  "funcionalidades": [
+   "Cadastro com valor, vigência, aviso prévio, multa e reajuste",
+   "Ativar, encerrar, rescindir e renovar/prorrogar com aditivo",
+   "Histórico de aditivos",
+   "Responsável interno",
+   "Renovação automática sinalizada",
+   "Anexos"
+  ],
+  "automacoes": [
+   "Alertas 30/60/90 dias antes do vencimento",
+   "Situação protegida: não muda por edição simples, só por ação dedicada",
+   "Auditoria de cada ação"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Textos, catálogos, prazos e regras contábeis (CPC 25) são modelos de apoio e devem ser validados por advogado e contador; o módulo não consulta tribunais, não gera peças processuais e não substitui assinatura eletrônica."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/juridico?secao=contratos",
+    "legenda": "Lista de contratos com situação e vigência"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Jurídico: Imóveis",
+  "rota": "/edu/juridico?secao=imoveis",
+  "titulo_chamada": "Imóveis e aluguéis com parcelas e reajuste controlados",
+  "descricao": "Cadastre imóveis próprios e alugados e as locações, pagas (instituição locatária) ou recebidas. O sistema gera as parcelas mensais da vigência, controla pagamentos e atrasos e permite renovar, encerrar ou rescindir.\n\nO reajuste usa o índice acumulado informado pelo usuário, recalcula as parcelas em aberto e bloqueia novo reajuste antes de 12 meses. Dados de garantia, IPTU e cláusulas relevantes ficam anexados ao contrato.\n\nAs parcelas a pagar geram lembrete ao financeiro 5 dias antes e no vencimento.",
+  "funcionalidades": [
+   "Cadastro de imóveis com inscrição de IPTU",
+   "Locação paga ou recebida, garantia e cláusulas",
+   "Geração idempotente de parcelas mensais da vigência",
+   "Pagar e cancelar parcelas",
+   "Reajuste com índice informado e bloqueio de reajuste em menos de 12 meses",
+   "Renovar, encerrar e rescindir locação",
+   "Resumo dos imóveis"
+  ],
+  "automacoes": [
+   "Lembretes de parcela de aluguel 5 dias e 1 dia antes (job juridico.prazos)",
+   "Alertas de vencimento da locação 30/60/90",
+   "Recálculo automático das parcelas em aberto no reajuste"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CPC 25 apenas em processos; índice econômico é informado manualmente"
+  ],
+  "limites": [
+   "Textos, catálogos, prazos e regras contábeis (CPC 25) são modelos de apoio e devem ser validados por advogado e contador; o módulo não consulta tribunais, não gera peças processuais e não substitui assinatura eletrônica.",
+   "O índice de reajuste (IGP-M, IPCA etc.) é informado pelo usuário; não há consulta externa."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/juridico?secao=imoveis",
+    "legenda": "Imóveis, locações e parcelas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Jurídico: Polos",
+  "rota": "/edu/juridico?secao=polos",
+  "titulo_chamada": "Contratos de polos EAD com minuta e comissão estimada",
+  "descricao": "A tela cruza os polos cadastrados em Modalidades, EAD e pós com os contratos com gestores de polo e com os alunos ativos de cada polo. Mostra polos credenciados sem contrato, contratos vencidos ou com polo suspenso e estima a comissão (fixa ou por aluno).\n\nCada contrato registra direitos e deveres de ambas as partes, condições de rescisão, comissionamento e patrimônio cedido. Só é possível ativar com essas informações preenchidas e sem sobreposição de vigências no mesmo polo. O sistema gera uma minuta em HTML para revisão do advogado.\n\nO alerta de vencimento chega antes de o contrato expirar.",
+  "funcionalidades": [
+   "Situação dos polos × contrato vigente × alunos ativos",
+   "Contrato de polo com direitos, deveres, rescisão e comissão",
+   "Patrimônio cedido com tombamento, valor e estado",
+   "Ativação com validações e bloqueio de sobreposição",
+   "Minuta do contrato em HTML (modelo)",
+   "Comissão estimada fixa ou por aluno",
+   "Renovar, encerrar e rescindir"
+  ],
+  "automacoes": [
+   "Alertas de polo credenciado sem contrato e contrato com polo suspenso",
+   "Alertas de vencimento 30/60/90",
+   "Validação automática de campos obrigatórios para ativar"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Textos, catálogos, prazos e regras contábeis (CPC 25) são modelos de apoio e devem ser validados por advogado e contador; o módulo não consulta tribunais, não gera peças processuais e não substitui assinatura eletrônica.",
+   "A minuta é um modelo e precisa de revisão jurídica."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/juridico?secao=polos",
+    "legenda": "Polos com contrato, alunos e comissão estimada"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Jurídico: Processos",
+  "rota": "/edu/juridico?secao=processos",
+  "titulo_chamada": "Processos, prazos e audiências em uma agenda confiável",
+  "descricao": "Cadastre processos judiciais e administrativos com número CNJ validado (20 dígitos e dígito verificador), partes, advogado e escritório, valor da causa, risco e andamentos. Cada processo tem prazos, com data fatal, e audiências, com agenda própria.\n\nA provisão contábil só é lançada para risco provável (CPC 25); possível é passivo contingente e remoto não gera nada. Mudar a classificação reverte a provisão e grava histórico. Encerrar um processo cancela prazos e audiências abertos.\n\nAcesso a partes e dados sensíveis é registrado em log, e processos criminais ou em segredo de justiça ficam restritos à equipe jurídica e à reitoria.",
+  "funcionalidades": [
+   "Número CNJ validado e único por tenant",
+   "Partes, andamentos, prazos fatais e audiências",
+   "Agenda de prazos e audiências",
+   "Escritórios e advogados com modelo de honorários",
+   "Classificação de risco e provisão (CPC 25) com histórico",
+   "Encerrar e reabrir com motivo",
+   "Processo sofrido (instituição ré) alimenta a inteligência",
+   "Anexos com scanner de segurança"
+  ],
+  "automacoes": [
+   "Lembretes de prazo 7/3/1 dias e audiência 7/1 dia",
+   "Cálculo da provisão conforme risco",
+   "Cancelamento de prazos e audiências ao encerrar",
+   "Log de acesso a dado judicial e antecedentes penais"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CPC 25 (provisão apenas para risco provável)",
+   "LGPD (log de acesso a dado judicial)",
+   "Numeração única CNJ com dígito verificador mod 97"
+  ],
+  "limites": [
+   "Textos, catálogos, prazos e regras contábeis (CPC 25) são modelos de apoio e devem ser validados por advogado e contador; o módulo não consulta tribunais, não gera peças processuais e não substitui assinatura eletrônica.",
+   "Não consulta tribunais (CNJ/PJe) automaticamente."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/juridico?secao=processos",
+    "legenda": "Processos com risco, provisão e prazos"
+   },
+   {
+    "rota": "/edu/juridico?secao=processos",
+    "legenda": "Agenda de prazos e audiências"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Jurídico: Inteligência",
+  "rota": "/edu/juridico?secao=inteligencia",
+  "titulo_chamada": "Descubra por que a instituição é processada e previna",
+  "descricao": "A inteligência analisa os processos sofridos e mostra o ranking de causas por volume, valor, recorrência e tendência (alta, estável, queda ou nova), o setor mais afetado e o cruzamento de duas dimensões, por exemplo setor por tipo. Uma causa é recorrente com 3 ou mais casos em 12 meses ou 2 nos últimos 90 dias.\n\nPara cada causa recorrente, o sistema sugere causa provável e recomendações a partir de um catálogo de regras. A instituição transforma isso em plano de prevenção com responsável, ações e meta, e acompanha a efetividade do plano.\n\nÉ gestão preventiva em vez de apagar incêndio.",
+  "funcionalidades": [
+   "Ranking de causas por volume, valor, recorrência e tendência",
+   "Cruzamento por setor, tipo e outras dimensões",
+   "Causas recorrentes sem plano de prevenção",
+   "Recomendações por catálogo de causas",
+   "Plano de prevenção com ações, responsável e meta",
+   "Efetividade do plano",
+   "Indicadores e catálogo"
+  ],
+  "automacoes": [
+   "Cálculo automático de recorrência e tendência (12 meses × 12 anteriores)",
+   "Lembretes de plano de prevenção 30/7 dias antes do prazo",
+   "Planos só concluem com todas as ações concluídas"
+  ],
+  "ia": [
+   "Não usa IA: causas e recomendações vêm de regras e catálogo (CATALOGO_CAUSAS), estatística simples sobre o que foi cadastrado."
+  ],
+  "base_normativa_literatura": [],
+  "limites": [
+   "A qualidade depende da classificação da causa raiz feita pelo usuário.",
+   "Textos, catálogos, prazos e regras contábeis (CPC 25) são modelos de apoio e devem ser validados por advogado e contador; o módulo não consulta tribunais, não gera peças processuais e não substitui assinatura eletrônica."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/juridico?secao=inteligencia",
+    "legenda": "Ranking de causas e planos de prevenção"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Riscos e Seguros",
+  "rota": "/edu/juridico?secao=riscos",
+  "titulo_chamada": "Matriz de riscos com apólices e sinistros",
+  "descricao": "Cadastre os riscos da instituição com probabilidade e impacto de 1 a 5. O sistema calcula o score (baixo, médio, alto, crítico), exige responsável para riscos altos e críticos e controla o risco residual após os controles, sem permitir que ele supere o inerente.\n\nApólices de seguro registram vigência, limite de cobertura, prêmio e bens segurados e se associam aos riscos. A tela aponta riscos seguráveis de nível alto ou crítico sem cobertura. Sinistros só são aceitos dentro da vigência e a indenização não pode passar do limite.\n\nA renovação cria nova apólice, marca a antiga como renovada e reaponta os riscos.",
+  "funcionalidades": [
+   "Matriz de riscos probabilidade × impacto e residual",
+   "Riscos sem cobertura de seguro",
+   "Apólices com vigência, limite, prêmio, periodicidade e bens",
+   "Sinistros com protocolo e valores",
+   "Renovar e cancelar apólice",
+   "Plano de tratamento e próxima revisão"
+  ],
+  "automacoes": [
+   "Score e nível calculados automaticamente",
+   "Alertas de renovação de seguro 30/60/90",
+   "Validações: sinistro dentro da vigência e indenização ≤ limite"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Textos, catálogos, prazos e regras contábeis (CPC 25) são modelos de apoio e devem ser validados por advogado e contador; o módulo não consulta tribunais, não gera peças processuais e não substitui assinatura eletrônica."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/juridico?secao=riscos",
+    "legenda": "Matriz de riscos e apólices"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Marketing: Painel",
+  "rota": "/edu/marketing?secao=painel",
+  "titulo_chamada": "Funil, custo por aluno e ROI em tempo real",
+  "descricao": "O painel de marketing mostra o funil completo da captação (lead, inscrito, matriculado), o custo por lead, o custo de aquisição por aluno (CAC) e o retorno sobre o investimento por canal e por campanha, somando custos lançados, mídia offline e eventos. A conversão por consultor e os leads quentes ainda sem contato aparecem em destaque.\n\nA integração com Admissões é automática: quem se inscreve ou se matricula volta ao funil sozinho, e a receita da matrícula é calculada pela mensalidade da oferta. Também aparecem orçamento previsto e realizado, próximos eventos e publicações e quantos contatos estão na lista de supressão.\n\nSem digitar nada: os números se atualizam conforme o funil anda.",
+  "funcionalidades": [
+   "Funil de captação lead → inscrito → matriculado",
+   "Custo por lead, CAC e ROI por canal e por campanha",
+   "Leads quentes abertos para priorizar o contato",
+   "Conversão por consultor",
+   "Orçamento previsto × realizado",
+   "Próximos eventos e publicações",
+   "Contatos na lista de supressão",
+   "Relatórios por canal, campanha, consultor, funil, publicações e disparos (exportáveis em CSV)"
+  ],
+  "automacoes": [
+   "Sincronização com Admissões a cada consulta, por botão e pelo job marketing.sync-admissoes",
+   "Cálculo automático de CPL, CAC e ROI",
+   "Pontuação (scoring) de leads de 0 a 100: quente ≥ 60, morno ≥ 30"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (opt-in, supressão global, prova de consentimento, base legal)",
+   "Janela de horário e limites de frequência por pessoa configuráveis"
+  ],
+  "limites": [
+   "Textos de consentimento e bases legais são modelos a validar com advogado ou DPO.",
+   "O ROI depende de os custos serem lançados e da receita estimada ou do ticket médio configurado."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/marketing?secao=painel",
+    "legenda": "Painel com funil, CAC e ROI por canal"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Calendário",
+  "rota": "/edu/marketing?secao=calendario",
+  "titulo_chamada": "Calendário único de campanhas, publicações e eventos",
+  "descricao": "Visualize em mês ou semana tudo que está planejado: campanhas, publicações em redes sociais, disparos e eventos, com filtros por canal, curso, público e vestibular. A lista do período complementa a grade.\n\nO calendário evita choques de comunicação e mostra de relance se há semanas sem ação ou excesso de mensagens para o mesmo público.\n\nNavegação simples por botões de período anterior e próximo.",
+  "funcionalidades": [
+   "Visão por mês ou semana",
+   "Filtros por canal, curso, público e vestibular",
+   "Lista do período",
+   "Campanhas, publicações, disparos e eventos no mesmo calendário",
+   "Alternância rápida entre períodos anterior e próximo"
+  ],
+  "automacoes": [
+   "Itens aparecem automaticamente ao agendar campanha, publicação, disparo ou evento"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Todos os canais (e-mail, SMS, WhatsApp, Telegram, voz) e redes (Instagram, Facebook, LinkedIn, TikTok, Threads) funcionam em modo SIMULADO até que provedores reais e credenciais sejam configurados."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/marketing?secao=calendario",
+    "legenda": "Calendário mensal de marketing"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Campanhas",
+  "rota": "/edu/marketing?secao=campanhas",
+  "titulo_chamada": "Campanhas aprovadas, rastreadas e com orçamento",
+  "descricao": "Planeje campanhas com canais, orçamento previsto, meta de matrículas, público, curso e base legal LGPD. A campanha passa por aprovação: quem criou não aprova (exceto a gestão), e orçamentos acima de um valor configurável exigem aprovação.\n\nAo vincular ao funil de Admissões o sistema gera as UTMs, e todo lead que chegar por elas é atribuído à campanha. Custos lançados ao longo do tempo alimentam o comparativo entre orçamento realizado e previsto.\n\nO histórico de aprovação fica visível, com ações de enviar, aprovar, rejeitar, ativar, pausar, concluir e cancelar.",
+  "funcionalidades": [
+   "Cadastro com canais, orçamento, meta de matrículas, público e base legal",
+   "Fluxo de aprovação: enviar, aprovar, rejeitar, ativar, pausar, concluir, cancelar",
+   "Vínculo ao funil de Admissões com UTM gerada",
+   "Lançamento de custos e comparativo realizado × previsto",
+   "Histórico e aprovação",
+   "Contagem de leads por campanha"
+  ],
+  "automacoes": [
+   "Geração automática de UTM ao vincular",
+   "Atribuição automática de leads à campanha por utm_campaign",
+   "Segregação: criador não aprova"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (opt-in, supressão global, prova de consentimento, base legal)",
+   "Janela de horário e limites de frequência por pessoa configuráveis"
+  ],
+  "limites": [
+   "Textos de consentimento e bases legais são modelos a validar com advogado ou DPO."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/marketing?secao=campanhas",
+    "legenda": "Campanhas com status e orçamento"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Leads e Funil",
+  "rota": "/edu/marketing?secao=leads",
+  "titulo_chamada": "Leads qualificados, distribuídos e acompanhados até a matrícula",
+  "descricao": "Leads chegam de formulários, landing pages, eventos, atendente, importação, indicação e cupom de mídia offline. O sistema evita duplicidade por e-mail ou telefone, identifica a origem (site, Instagram, Facebook, Google Ads, rádio, TV, convênios e outras) e atribui um consultor com menor carga, respeitando curso e origem.\n\nCada lead tem pontuação, linha do tempo de eventos, mensagens enviadas e a prova do consentimento. Todo lead cria um candidato em Admissões, e a etapa (inscrito, matriculado, desistente) volta ao funil automaticamente.\n\nImportação de listas só habilita marketing com base legal e comprovante, e a exportação CSV está disponível.",
+  "funcionalidades": [
+   "Captura por formulário, landing, evento, atendente, importação, indicação e cupom",
+   "Deduplicação por e-mail e telefone",
+   "Distribuição por consultor e redistribuição",
+   "Pontuação de 0 a 100 e etiquetas quente/morno",
+   "Linha do tempo, mensagens enviadas e prova de consentimento",
+   "Funil com taxas de conversão",
+   "Importar lista com comprovante de consentimento",
+   "Sincronizar com Admissões",
+   "Exportar CSV"
+  ],
+  "automacoes": [
+   "Distribuição automática ao consultor de menor carga ponderada",
+   "SLA do primeiro contato monitorado",
+   "Cadências automáticas de mensagens (job marketing.cadencias)",
+   "Sincronização de etapas com Admissões",
+   "Descadastro cancela envios e cadências"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (opt-in, supressão global, prova de consentimento, base legal)",
+   "Janela de horário e limites de frequência por pessoa configuráveis"
+  ],
+  "limites": [
+   "Textos de consentimento e bases legais são modelos a validar com advogado ou DPO.",
+   "Atribuição de origem é por último toque."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/marketing?secao=leads",
+    "legenda": "Lista de leads com pontuação e origem"
+   },
+   {
+    "rota": "/edu/marketing?secao=leads",
+    "legenda": "Funil lead → inscrito → matrícula"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Canais e Disparos",
+  "rota": "/edu/marketing?secao=canais",
+  "titulo_chamada": "Disparos por todos os canais com conformidade embutida",
+  "descricao": "Crie segmentos, prévia de quem receberia e dispare por e-mail, SMS, WhatsApp, Telegram ou voz, com mensagens personalizadas por nome, curso e consultor. A prévia mostra quantos estão aptos, quantos sem opt-in, sem destino no canal ou na lista de supressão.\n\nTodo envio passa pela mesma checagem de conformidade, inclusive os adiados: lista de supressão global, opt-out da Comunicação, opt-in obrigatório para marketing, limites de frequência e janela de horário. Mensagens fora da janela ficam agendadas para a próxima. Cada mensagem tem rodapé de descadastro em um clique, e SAIR em qualquer canal suprime a pessoa em todos.\n\nO módulo também agenda publicações em redes sociais e cadências em dois passos.",
+  "funcionalidades": [
+   "Segmentos e prévia de público (aptos, sem opt-in, suprimidos, sem destino)",
+   "Disparos por e-mail, SMS, WhatsApp, Telegram e voz",
+   "Variáveis {{nome}}, {{curso}}, {{consultor}}",
+   "Cadências de duas etapas",
+   "Publicações nas redes com aprovação e agendamento",
+   "Registro de cada envio com destino mascarado e motivo de bloqueio",
+   "Aprovação do disparo",
+   "Provedores em modo simulado até configurar"
+  ],
+  "automacoes": [
+   "Job marketing.disparos-e-envios executa disparos agendados e reavalia envios adiados",
+   "Job marketing.publicacoes publica o que foi agendado",
+   "Checagem de supressão, opt-in, limites e janela em todo envio",
+   "Descadastro por link ou palavra SAIR propaga o opt-out para toda a base"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (opt-in, supressão global, prova de consentimento, base legal)",
+   "Janela de horário e limites de frequência por pessoa configuráveis"
+  ],
+  "limites": [
+   "Todos os canais (e-mail, SMS, WhatsApp, Telegram, voz) e redes (Instagram, Facebook, LinkedIn, TikTok, Threads) funcionam em modo SIMULADO até que provedores reais e credenciais sejam configurados.",
+   "Textos de consentimento e bases legais são modelos a validar com advogado ou DPO."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/marketing?secao=canais",
+    "legenda": "Disparo com prévia de público apto"
+   },
+   {
+    "rota": "/edu/marketing?secao=canais",
+    "legenda": "Registro de envios com motivos de bloqueio"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Mídia offline",
+  "rota": "/edu/marketing?secao=offline",
+  "titulo_chamada": "Rádio, TV e outdoor também medidos por QR e cupom",
+  "descricao": "Cadastre veículos de mídia tradicional (rádio, TV, outdoor, panfletagem) e registre cada inserção com horário e custo. Cada mídia recebe um cupom, um telefone exclusivo e um QR code que leva ao site com UTM e cupom, de modo que o lead gerado volte atribuído à mídia certa.\n\nO relatório mostra o resultado por tipo de mídia, incluindo custo por lead e por aluno.\n\nAssim, o que antes era \"achismo\" passa a ter número.",
+  "funcionalidades": [
+   "Cadastro de mídia com cupom e telefone exclusivo",
+   "QR code para imprimir na peça com leituras contadas",
+   "Registro de inserções com veículo, horário e custo",
+   "Resultado por tipo de mídia",
+   "Impressão do QR na peça com leitura que leva ao site com UTM e cupom"
+  ],
+  "automacoes": [
+   "Atribuição automática do lead à mídia pelo cupom ou QR",
+   "Custos das inserções somados ao CAC por canal"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Todos os canais (e-mail, SMS, WhatsApp, Telegram, voz) e redes (Instagram, Facebook, LinkedIn, TikTok, Threads) funcionam em modo SIMULADO até que provedores reais e credenciais sejam configurados."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/marketing?secao=offline",
+    "legenda": "Mídias offline com QR code e resultados"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Gerador IA",
+  "rota": "/edu/marketing?secao=ia",
+  "titulo_chamada": "Peças de campanha geradas por IA a partir de um briefing",
+  "descricao": "Escreva o briefing (objetivo, público, diferenciais e restrições), escolha curso, canal, chamada para ação e número de variações, e o gerador produz textos para campanha. As peças são salvas na biblioteca como rascunho, passam por aprovação e podem ser usadas em disparos e publicações.\n\nQuando não há chave de IA configurada, o sistema usa uma geração simulada determinística para demonstração. As imagens são placeholders em SVG com a marca da instituição.\n\nO resultado exibe a copy principal e as variações, com botões para enviar à aprovação.",
+  "funcionalidades": [
+   "Briefing, curso, público, chamada para ação e variações de 1 a 5",
+   "Geração de copy por IA",
+   "Imagens em SVG placeholder com a marca",
+   "Biblioteca de ativos com status",
+   "Envio para aprovação, aprovação e rejeição com motivo",
+   "Marca da instituição aplicada"
+  ],
+  "automacoes": [
+   "Geração simulada determinística quando não há chave de IA",
+   "Fluxo de aprovação de peças"
+  ],
+  "ia": [
+   "Gerador de peças e copy usa o cliente de IA compartilhado (Anthropic ou OpenAI via chave); sem chave, cai em geração simulada",
+   "Atendimento do site e das conversas usa IA para classificar intenção e responder, com escalonamento a consultor"
+  ],
+  "base_normativa_literatura": [
+   "LGPD (campanhas continuam sujeitas a opt-in no envio)"
+  ],
+  "limites": [
+   "Sem chave de IA o texto é gerado de forma simulada; a geração de imagens por IA não está disponível (as imagens são SVG com a marca).",
+   "IA exige revisão humana antes do uso."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/marketing?secao=ia",
+    "legenda": "Gerador de peças com briefing e variações"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Site e Landing pages",
+  "rota": "/edu/marketing?secao=site",
+  "titulo_chamada": "Site de captação com formulário, simulador e chat",
+  "descricao": "Crie o site público da instituição com endereço próprio, páginas de captação compostas por blocos (vitrine de cursos, formulário, perguntas frequentes, depoimentos, simulador de mensalidade) e publique ou despublique com um clique. As páginas têm HTML renderizado no servidor para SEO e um sitemap.\n\nOs formulários coletam o consentimento LGPD com o texto exibido, a versão e o hash, e criam o lead automaticamente com origem e UTM. O chat com IA responde dúvidas de mensalidade e cursos e escala a um consultor quando necessário; os atendimentos podem ser assumidos e encerrados na própria tela.\n\nO acesso público tem limite de requisições por IP e proteção honeypot.",
+  "funcionalidades": [
+   "Site com slug próprio e páginas por blocos",
+   "Publicar e despublicar",
+   "Formulários de captação com consentimento LGPD",
+   "Simulador de mensalidade",
+   "Vitrine de cursos e FAQ",
+   "Chat com IA e atendimentos com escalonamento ao consultor",
+   "SEO no servidor e sitemap.xml",
+   "Link curto e QR (/r/token)"
+  ],
+  "automacoes": [
+   "Lead criado automaticamente com UTM e origem",
+   "Rate limit por IP e honeypot nos endpoints públicos",
+   "Moderação de texto nos formulários públicos",
+   "Prova de consentimento gravada com hash de IP e user agent"
+  ],
+  "ia": [
+   "Chat do site: IA classifica a intenção (saudação, mensalidade, cursos, saída etc.) e responde; sem chave de IA responde de forma simulada com escalonamento"
+  ],
+  "base_normativa_literatura": [
+   "LGPD (consentimento versionado e descadastro)"
+  ],
+  "limites": [
+   "Todos os canais (e-mail, SMS, WhatsApp, Telegram, voz) e redes (Instagram, Facebook, LinkedIn, TikTok, Threads) funcionam em modo SIMULADO até que provedores reais e credenciais sejam configurados.",
+   "O limite de requisições dos endpoints públicos é por processo; com várias instâncias o limite efetivo se multiplica."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/marketing?secao=site",
+    "legenda": "Editor do site e páginas de captação"
+   },
+   {
+    "rota": "/site/exemplo",
+    "legenda": "Site público de captação (exemplo de slug)"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Eventos",
+  "rota": "/edu/marketing?secao=eventos",
+  "titulo_chamada": "Eventos, inscrições, check-in por QR e indicação premiada",
+  "descricao": "Crie eventos com vagas, publique no site e receba inscrições que viram leads com consentimento. No dia, o check-in por QR (ou código digitado) registra a presença. Lembretes são enviados antes do evento como mensagens transacionais.\n\nO programa de indicação permite criar indicadores com código, acompanhar indicações recebidas, metas e liberar recompensas, com ranking e indicadores por programa.\n\nTudo ligado ao funil: quem participou ou indicou entra com a origem correta.",
+  "funcionalidades": [
+   "Eventos com vagas e publicação",
+   "Inscrições com criação de lead",
+   "Check-in por QR ou código",
+   "Lembretes aos inscritos",
+   "Programas de incentivo e indicadores com código",
+   "Indicações recebidas, ranking e liberação de recompensa"
+  ],
+  "automacoes": [
+   "Job marketing.lembretes-eventos envia lembretes",
+   "Lead criado a cada inscrição com origem EVENTO",
+   "Custos do evento somados ao CAC"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (opt-in, supressão global, prova de consentimento, base legal)",
+   "Janela de horário e limites de frequência por pessoa configuráveis"
+  ],
+  "limites": [
+   "Todos os canais (e-mail, SMS, WhatsApp, Telegram, voz) e redes (Instagram, Facebook, LinkedIn, TikTok, Threads) funcionam em modo SIMULADO até que provedores reais e credenciais sejam configurados.",
+   "A leitura do QR por câmera fica a cargo do dispositivo; há campo manual para o código."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/marketing?secao=eventos",
+    "legenda": "Eventos e check-in por QR"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Conformidade LGPD (Marketing)",
+  "rota": "/edu/marketing?secao=lgpd",
+  "titulo_chamada": "Marketing dentro da lei: bloqueios automáticos e prova de consentimento",
+  "descricao": "A tela de conformidade mostra tudo que o sistema impediu de sair e por quê: contatos suprimidos, sem opt-in, fora da janela de horário, acima do limite de frequência. A lista de supressão global vale para todos os canais e guarda somente hash e máscara; pode receber importação de listas e só libera um contato com justificativa de pelo menos 15 caracteres, auditada.\n\nAqui também se configuram o endereço do remetente, o contato do encarregado (DPO), a janela de envio, os limites por pessoa, a meta de custo por lead e o orçamento que exige aprovação. Relatório CSV de conformidade disponível.\n\nA conformidade é automática: o operador não precisa lembrar de checar listas antes de enviar.",
+  "funcionalidades": [
+   "Painel de pendências e motivos de bloqueio",
+   "Lista de supressão global com importação",
+   "Remoção com justificativa e novo opt-in",
+   "Janela de envio e limites por pessoa por dia e semana",
+   "Descadastro em um clique em todas as mensagens",
+   "Prova de consentimento por lead",
+   "Relatório CSV de conformidade",
+   "Contato do DPO e endereço do remetente"
+  ],
+  "automacoes": [
+   "Supressão propaga o opt-out para a Comunicação e o módulo LGPD",
+   "Bloqueio automático de transacionais para suprimidos",
+   "Reavaliação de envios adiados no momento da saída"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (opt-in, supressão global, prova de consentimento, base legal)",
+   "Janela de horário e limites de frequência por pessoa configuráveis",
+   "Janela e limites seguem a política configurada"
+  ],
+  "limites": [
+   "Textos de consentimento e bases legais são modelos a validar com advogado ou DPO."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/marketing?secao=lgpd",
+    "legenda": "Painel de conformidade e lista de supressão"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Central LGPD: Painel",
+  "rota": "/edu/lgpd",
+  "titulo_chamada": "A conformidade com a LGPD em uma só visão",
+  "descricao": "A Central LGPD é o ponto de trabalho do encarregado (DPO) e da administração. O painel resume solicitações abertas e vencidas, consentimentos ativos, atividades no inventário (ROPA), incidentes abertos e quantas atividades tratam dados sensíveis ou de menores.\n\nO sistema orienta o próximo passo: designar o encarregado, preparar os modelos de ROPA e retenção, revisar o inventário e tratar a fila dentro de 15 dias. Em incidentes, lembra que o relógio de 3 dias úteis começa na ciência.\n\nPara quem não é especialista, é um roteiro; para o especialista, um painel de controle.",
+  "funcionalidades": [
+   "Indicadores de solicitações, consentimentos, ROPA e incidentes",
+   "Contagem de dados sensíveis e de menores",
+   "Guia \"Como usar esta central\"",
+   "Preparação de modelos de ROPA e retenção com um clique",
+   "Aviso de encarregado não designado (art. 41)",
+   "Atalhos para cada aba"
+  ],
+  "automacoes": [
+   "Jobs lgpd:prazos-solicitacoes e lgpd:prazos-incidentes monitoram prazos",
+   "Job lgpd:retencao roda em dry-run",
+   "Semáforo de prazo na fila"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018), com artigos citados nos módulos: arts. 6º III, 15, 16, 18, 19, 37, 41 e 48",
+   "Resolução CD/ANPD nº 15/2024 (comunicação de incidente em 3 dias úteis)"
+  ],
+  "limites": [
+   "Textos, prazos de guarda e bases legais são modelos a validar por advogado.",
+   "Não há envio de e-mail próprio: avisos ao titular entram na fila de notificações e dependem do módulo Comunicação configurado."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/lgpd",
+    "legenda": "Painel da Central LGPD com indicadores"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Central LGPD: Solicitações dos titulares",
+  "rota": "/edu/lgpd",
+  "titulo_chamada": "Direitos do titular atendidos no prazo e com segurança",
+  "descricao": "O titular pede acesso, correção, anonimização, eliminação, portabilidade, informação sobre compartilhamento, revogação de consentimento ou oposição pelo Portal do Titular público ou presencialmente. Cada pedido recebe protocolo, entra na fila do DPO com semáforo de prazo (15 dias corridos, prorrogáveis uma vez com justificativa) e tem trilha completa.\n\nO fluxo exige verificar a identidade antes de gerar o pacote de dados, corrigir ou executar. A execução de anonimização ou eliminação é simulada por padrão (dry-run) e só roda de verdade com confirmação; registros que a lei obriga a guardar (histórico escolar, notas, diplomas, financeiro, estágio e ocorrências disciplinares) são mantidos, com o fundamento do art. 16 explicado.\n\nA resposta é registrada em linguagem simples e fica visível ao titular pelo protocolo.",
+  "funcionalidades": [
+   "Registro presencial e recebimento pelo portal público",
+   "Protocolo, atribuição e semáforo de prazo",
+   "Vinculação do titular a aluno, candidato, egresso, conta ou contato",
+   "Verificação de identidade obrigatória",
+   "Pacote de dados em JSON (acesso e portabilidade)",
+   "Correção em campos permitidos",
+   "Anonimização/eliminação com dry-run e confirmação",
+   "Prorrogação com justificativa, resposta e cancelamento"
+  ],
+  "automacoes": [
+   "Prazos e alertas avaliados pelo job lgpd:prazos-solicitacoes",
+   "Plano de execução mostra o que será mantido (art. 16) e o que será alterado",
+   "Bloqueio do portal após 5 erros de código",
+   "Trilha de cada passo"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018), com artigos citados nos módulos: arts. 6º III, 15, 16, 18, 19, 37, 41 e 48",
+   "Resolução CD/ANPD nº 15/2024 (comunicação de incidente em 3 dias úteis)"
+  ],
+  "limites": [
+   "Textos, prazos de guarda e bases legais são modelos a validar por advogado.",
+   "Não há envio de e-mail próprio: avisos ao titular entram na fila de notificações e dependem do módulo Comunicação configurado.",
+   "A localização do titular usa vínculos existentes; texto livre e anexos não são varridos.",
+   "A verificação de identidade é registrada, não automatizada."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/lgpd",
+    "legenda": "Fila de solicitações com semáforo de prazo"
+   },
+   {
+    "rota": "/edu/lgpd",
+    "legenda": "Detalhe da solicitação com pacote e execução em dry-run"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Central LGPD: Consentimentos",
+  "rota": "/edu/lgpd",
+  "titulo_chamada": "Consentimentos versionados e imutáveis, com prova",
+  "descricao": "Cada consentimento guarda a finalidade, a versão do texto lido pelo titular, o texto exato exibido, a origem e a data, além de revogação com motivo. Os textos são versionados e, uma vez publicados, não podem ser alterados; novas versões são publicadas à parte. Consentimentos presenciais podem ser lançados na tela.\n\nPara menores de 18 anos, o consentimento exige declaração do responsável legal nas finalidades marcadas. A lista de menores sem responsável é apontada em pendências.\n\nO titular também pode gerir cookies e revogar consentimento pelo Portal do Titular.",
+  "funcionalidades": [
+   "Consentimentos por finalidade com versão do texto",
+   "Textos de consentimento versionados e imutáveis",
+   "Registro de consentimento presencial",
+   "Revogação com motivo",
+   "Menores com responsável legal",
+   "Filtros por finalidade, situação e menor de idade",
+   "Cookies de preferências com consentimento"
+  ],
+  "automacoes": [
+   "Revogação propaga para os módulos que dependem do consentimento",
+   "Pendências de menores listadas automaticamente"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018), com artigos citados nos módulos: arts. 6º III, 15, 16, 18, 19, 37, 41 e 48",
+   "Resolução CD/ANPD nº 15/2024 (comunicação de incidente em 3 dias úteis)"
+  ],
+  "limites": [
+   "Textos, prazos de guarda e bases legais são modelos a validar por advogado.",
+   "Não há envio de e-mail próprio: avisos ao titular entram na fila de notificações e dependem do módulo Comunicação configurado."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/lgpd",
+    "legenda": "Consentimentos registrados com versão e finalidade"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Central LGPD: Inventário (ROPA)",
+  "rota": "/edu/lgpd",
+  "titulo_chamada": "Inventário de tratamento pronto para o art. 37",
+  "descricao": "O registro das operações de tratamento (ROPA) já vem pré-populado com as atividades do EduMaster: finalidade, base legal, categorias de dados e de titulares, compartilhamento, transferência internacional, retenção e medidas de segurança. A instituição revisa cada atividade e marca como ativa.\n\nO inventário aponta quais atividades tratam dados sensíveis ou de menores e exporta em CSV para atender solicitações da ANPD. Atividades descontinuadas não são apagadas, apenas marcadas.\n\nÉ um trabalho que costuma levar semanas e aqui começa pronto.",
+  "funcionalidades": [
+   "Atividades pré-preenchidas",
+   "Base legal, categorias, compartilhamento, transferência internacional",
+   "Marcação de dado sensível e de menores",
+   "Prazo e regra de retenção",
+   "Medidas de segurança",
+   "Marcar como revisada",
+   "Exportar CSV",
+   "Nova atividade"
+  ],
+  "automacoes": [
+   "Seed automático de atividades-modelo",
+   "Atualização dos modelos sob demanda"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018), com artigos citados nos módulos: arts. 6º III, 15, 16, 18, 19, 37, 41 e 48",
+   "Resolução CD/ANPD nº 15/2024 (comunicação de incidente em 3 dias úteis)"
+  ],
+  "limites": [
+   "Textos, prazos de guarda e bases legais são modelos a validar por advogado.",
+   "Não há envio de e-mail próprio: avisos ao titular entram na fila de notificações e dependem do módulo Comunicação configurado."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/lgpd",
+    "legenda": "Inventário de atividades de tratamento (ROPA)"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Central LGPD: Incidentes",
+  "rota": "/edu/lgpd",
+  "titulo_chamada": "Incidente de segurança com relógio de 3 dias úteis",
+  "descricao": "Registre um incidente com data de ciência, descrição, categorias e quantidade de titulares afetados, medidas de contenção e se envolve dados sensíveis ou risco relevante. O sistema calcula o prazo de 3 dias úteis a partir da ciência (excluindo fins de semana e feriados nacionais) e acompanha um checklist com ações como acionar o DPO.\n\nSão registradas a comunicação à ANPD (com protocolo) e aos titulares, a linha do tempo de eventos e a reavaliação de risco. Se não houver comunicação, a justificativa fica documentada.\n\nO sistema lembra o prazo; ninguém precisa contar dias úteis de cabeça.",
+  "funcionalidades": [
+   "Registro de incidente com severidade e titulares afetados",
+   "Prazo de comunicação em dias úteis",
+   "Checklist de resposta",
+   "Comunicação à ANPD com protocolo",
+   "Comunicação aos titulares",
+   "Linha do tempo de eventos",
+   "Reavaliar risco e encerrar"
+  ],
+  "automacoes": [
+   "Cálculo de dias úteis com feriados nacionais incluindo Sexta-feira Santa",
+   "Job lgpd:prazos-incidentes alerta prazos",
+   "Notificação ao titular sem dado pessoal no corpo"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018), com artigos citados nos módulos: arts. 6º III, 15, 16, 18, 19, 37, 41 e 48",
+   "Resolução CD/ANPD nº 15/2024 (comunicação de incidente em 3 dias úteis)"
+  ],
+  "limites": [
+   "Textos, prazos de guarda e bases legais são modelos a validar por advogado.",
+   "Não há envio de e-mail próprio: avisos ao titular entram na fila de notificações e dependem do módulo Comunicação configurado.",
+   "Feriados locais não entram no cálculo.",
+   "A comunicação à ANPD é feita no formulário da ANPD; aqui se registra o protocolo."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/lgpd",
+    "legenda": "Incidentes com prazo de comunicação e checklist"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Central LGPD: Retenção",
+  "rota": "/edu/lgpd",
+  "titulo_chamada": "Retenção e expurgo com simulação antes de apagar",
+  "descricao": "Cada tipo de dado tem uma política de retenção com prazo configurável respeitando um mínimo por alvo: candidatos não matriculados, contatos inativos, mensagens, eventos de segurança, acessos sensíveis, risco de evasão, manifestações, atendimentos de apoio e solicitações LGPD. A ação é anonimizar ou eliminar.\n\nO job periódico roda em simulação (dry-run) por padrão e só executa de verdade quando a variável de ambiente é habilitada ou quando o gestor confirma na tela. Cada execução registra apenas contagens, nunca dado pessoal.\n\nHistórico escolar, diplomas, notas, frequência e dados fiscais nunca entram no expurgo.",
+  "funcionalidades": [
+   "Políticas por alvo com prazo mínimo",
+   "Simular expurgo (dry-run)",
+   "Executar agora com confirmação",
+   "Registro do que foi feito",
+   "Última execução por política"
+  ],
+  "automacoes": [
+   "Job lgpd:retencao em dry-run por padrão",
+   "Execução real só com LGPD_RETENCAO_EXECUTAR=true ou confirmação manual"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018), com artigos citados nos módulos: arts. 6º III, 15, 16, 18, 19, 37, 41 e 48",
+   "Resolução CD/ANPD nº 15/2024 (comunicação de incidente em 3 dias úteis)"
+  ],
+  "limites": [
+   "Textos, prazos de guarda e bases legais são modelos a validar por advogado.",
+   "Não há envio de e-mail próprio: avisos ao titular entram na fila de notificações e dependem do módulo Comunicação configurado."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/lgpd",
+    "legenda": "Políticas de retenção e registro de execuções"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Central LGPD: Encarregado e sensíveis",
+  "rota": "/edu/lgpd",
+  "titulo_chamada": "Encarregado designado e quem viu cada dado sensível",
+  "descricao": "Designe o encarregado (DPO), interno ou terceirizado, com canal do titular e horário de atendimento, e vincule-o a um usuário do sistema para dar acesso à Central. As páginas públicas de Política de Privacidade, Termos de Uso e Portal do Titular ficam prontas para divulgar.\n\nMarque campos como sensíveis ou de menores, por categoria (saúde, deficiência, biometria, origem racial, socioeconômico, disciplinar, menor), e veja a lista \"quem viu o quê\": cada acesso a dado sensível registra usuário, papel, recurso e titular.\n\nA transparência de acessos ajuda a investigar e a prevenir abusos internos.",
+  "funcionalidades": [
+   "Designação do encarregado com ato, contato e horário",
+   "Vínculo ao usuário do sistema",
+   "Links públicos de Política, Termos e Portal do Titular",
+   "Marcação de campos sensíveis por categoria",
+   "Log \"quem viu o quê\" nos acessos a dados sensíveis",
+   "Pendências de menores"
+  ],
+  "automacoes": [
+   "Middleware acessoSensivelLog grava acessos nas rotas de apoio, atendimentos, AEE, ocorrências e bolsas",
+   "Redação automática de CPF, e-mail, telefone e tokens em logs"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018), com artigos citados nos módulos: arts. 6º III, 15, 16, 18, 19, 37, 41 e 48",
+   "Resolução CD/ANPD nº 15/2024 (comunicação de incidente em 3 dias úteis)"
+  ],
+  "limites": [
+   "Textos, prazos de guarda e bases legais são modelos a validar por advogado.",
+   "Não há envio de e-mail próprio: avisos ao titular entram na fila de notificações e dependem do módulo Comunicação configurado."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/lgpd",
+    "legenda": "Encarregado (DPO) e log de acessos sensíveis"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Portal do Titular",
+  "rota": "/portal-titular",
+  "titulo_chamada": "Canal público para o titular exercer seus direitos",
+  "descricao": "Página pública, sem login, em que alunos, candidatos e familiares abrem solicitações LGPD, consultam o andamento com protocolo e código, respondem pedidos de informação, revogam consentimentos e acessam o contato do encarregado e a política de privacidade da instituição.\n\nO acesso é protegido por código, com bloqueio após 5 erros, limite por IP e proteção honeypot. A resposta ao titular usa linguagem simples e o prazo é acompanhado pelo sistema.\n\nPolítica de Privacidade, Termos de Uso e banner de cookies completam a camada pública.",
+  "funcionalidades": [
+   "Abertura de solicitação sem login",
+   "Consulta por protocolo e código",
+   "Resposta a pedidos de informação",
+   "Revogação de consentimento por recibo ou referência do navegador",
+   "Contato do encarregado (DPO)",
+   "Textos de consentimento e política publicados",
+   "Banner de cookies"
+  ],
+  "automacoes": [
+   "Geração de protocolo e código de consulta",
+   "Bloqueio por tentativas inválidas",
+   "Limite por IP e honeypot"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018), com artigos citados nos módulos: arts. 6º III, 15, 16, 18, 19, 37, 41 e 48",
+   "Resolução CD/ANPD nº 15/2024 (comunicação de incidente em 3 dias úteis)"
+  ],
+  "limites": [
+   "Textos, prazos de guarda e bases legais são modelos a validar por advogado.",
+   "Não há envio de e-mail próprio: avisos ao titular entram na fila de notificações e dependem do módulo Comunicação configurado."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/portal-titular",
+    "legenda": "Portal público do titular de dados"
+   },
+   {
+    "rota": "/privacidade",
+    "legenda": "Política de privacidade pública"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Segurança da conta",
+  "rota": "/seguranca",
+  "titulo_chamada": "Verificação em duas etapas em minutos",
+  "descricao": "Cada usuário ativa a verificação em duas etapas com qualquer aplicativo autenticador: escaneia o QR, confirma com o código de 6 dígitos e recebe 8 códigos de recuperação, exibidos uma única vez. Para desativar ou gerar novos códigos é preciso senha e um código válido.\n\nA instituição pode tornar o 2FA obrigatório por perfil (por exemplo reitoria e administração): quem não tiver recebe um acesso restrito apenas para configurar. A tela informa se a verificação é exigida para o perfil do usuário.\n\nO login com 2FA pede código após a senha, com bloqueio progressivo após tentativas erradas.",
+  "funcionalidades": [
+   "Ativação por QR e app autenticador (TOTP)",
+   "8 códigos de recuperação de uso único",
+   "Desativar e regenerar códigos com senha e código",
+   "Indicação de 2FA exigido pelo perfil",
+   "Atalho para eventos de segurança"
+  ],
+  "automacoes": [
+   "Códigos de recuperação guardados apenas como hash",
+   "Segredo cifrado com AES-256-GCM",
+   "Bloqueio após 5 erros no 2FA por 15 minutos",
+   "Reaproveitamento do mesmo código bloqueado"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "RFC 6238 (TOTP) e RFC 4226 (HOTP), conforme README e testes",
+   "LGPD (segurança, art. 6º VII)"
+  ],
+  "limites": [
+   "2FA protege contra roubo de senha, não contra phishing em tempo real nem malware no aparelho.",
+   "A obrigatoriedade por perfil depende de configuração (REQUIRE_2FA_ROLES); por padrão ninguém é obrigado."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/seguranca",
+    "legenda": "Tela de segurança da conta com 2FA"
+   },
+   {
+    "rota": "/login",
+    "legenda": "Login com segunda etapa"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Eventos de segurança",
+  "rota": "/seguranca/eventos",
+  "titulo_chamada": "Quem entrou, quem errou e o que foi barrado",
+  "descricao": "Os administradores consultam o registro de eventos de segurança do próprio tenant: logins falhos e bloqueados, eventos de 2FA, uploads bloqueados, origens negadas, moderação de textos e imagens. Os filtros cobrem tipo, severidade, usuário, IP e período.\n\nEm caso de suspeita, o administrador identifica o padrão em segundos. Se um usuário perdeu o aparelho e os códigos, o administrador remove o 2FA dele por uma ação auditada de severidade crítica.\n\nDados pessoais nos eventos passam por redação.",
+  "funcionalidades": [
+   "Lista paginada de eventos com severidade",
+   "Filtros por tipo, severidade, usuário, IP, período",
+   "Eventos de login, 2FA, upload, origem e moderação",
+   "Reset administrativo de 2FA auditado",
+   "Acesso restrito a administração"
+  ],
+  "automacoes": [
+   "Registro automático de cada evento relevante",
+   "Limpeza periódica de tentativas antigas (job seguranca.limpar-tentativas)",
+   "Redação de dados pessoais nos eventos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (segurança e prestação de contas)"
+  ],
+  "limites": [
+   "Depende de a migração das tabelas Seg* estar aplicada; sem ela o login continua, mas sem registro."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/seguranca/eventos",
+    "legenda": "Eventos de segurança com filtros"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Minha mesa e lembretes",
+  "rota": "/edu/minha-mesa",
+  "titulo_chamada": "Nada cai no esquecimento: tudo na sua mesa",
+  "descricao": "A Minha mesa reúne, para cada usuário, as pendências, aprovações, lembretes e notificações de todos os módulos. Chips mostram quantas pendências, atrasadas, críticas e aprovações existem. Cada lembrete pode ser concluído ou adiado de 1 a 30 dias, e o usuário também cria lembretes próprios.\n\nOs módulos jurídico, RH, LGPD, cobrança e outros agendam lembretes sozinhos, com antecedência, sem duplicar. Atrasados escalam para crítico automaticamente e podem repetir.\n\nEnquanto o sistema lembra, a pessoa só precisa decidir.",
+  "funcionalidades": [
+   "Pendências, lembretes e notificações em abas",
+   "Resumo com atrasadas, críticas e aprovações",
+   "Concluir e adiar lembretes",
+   "Lembretes pessoais",
+   "Marcar notificações como lidas"
+  ],
+  "automacoes": [
+   "Lembretes agendados pelos módulos com dedupeKey",
+   "Processamento de lembretes vencidos gera notificação, repete recorrentes e escala atrasados para CRÍTICO",
+   "Caixa de saída única despacha pelos canais configurados"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Envio por WhatsApp, SMS e e-mail depende dos canais configurados em Comunicação."
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/minha-mesa",
+    "legenda": "Minha mesa com pendências e aprovações"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Identidade e logomarcas",
+  "rota": "/edu/identidade",
+  "titulo_chamada": "Sua marca em todo documento e tela",
+  "descricao": "Cadastre nome, sigla, CNPJ, código e-MEC, endereço, cores e as variações da logomarca (principal, horizontal, fundo escuro, preto e branco, brasão e assinatura do reitor). A identidade aparece automaticamente no portal do aluno, certificados, históricos e relatórios impressos.\n\nO cabeçalho padrão com logomarca é gerado em um único lugar, mantendo o padrão de todos os documentos. Quando existir marca do campus, ela prevalece sobre a geral.\n\nUma configuração única, aplicada em tudo.",
+  "funcionalidades": [
+   "Dados institucionais, cores e reitor",
+   "Variações de logomarca e assinatura",
+   "Marca por campus",
+   "Cabeçalho padrão em documentos",
+   "Portaria de credenciamento"
+  ],
+  "automacoes": [
+   "Aplicação automática da marca em documentos e portais",
+   "Fallback para dados da clínica quando a marca não está cadastrada"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/identidade",
+    "legenda": "Identidade e logomarcas da instituição"
+   }
+  ]
+ }
+]

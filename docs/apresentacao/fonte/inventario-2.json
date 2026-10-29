@@ -1,0 +1,2056 @@
+[
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Início e ambientes de ensino",
+  "rota": "/edu/inicio",
+  "titulo_chamada": "Cada curso no seu ambiente, sem confusão",
+  "descricao": "A tela inicial do EduMaster deixa a instituição organizar o ensino em ambientes: Graduação Presencial, Graduação EAD, Pós Lato Sensu (presencial, EAD e unidades parceiras), Stricto Sensu e Cursos Livres. Cada ambiente reúne os cursos que lhe pertencem, com cor própria, nível, modalidade, unidade ou polo.\n\nAo escolher o ambiente, todas as telas passam a mostrar apenas os cursos, turmas e alunos daquele contexto. O aluno enxerga só os ambientes dos cursos em que está matriculado e o professor, só os das suas turmas. A gestão pode ver todos de uma vez. Quando há mais de um ambiente disponível e nenhum escolhido, o sistema abre sozinho a janela de escolha, sem depender de ninguém lembrar.\n\nÉ intuitivo: cartões coloridos, um clique para trocar e atalhos diretos para o Portal do Aluno, o Portal do Professor e o Painel executivo conforme o perfil de quem entrou.",
+  "funcionalidades": [
+   "Cartões de ambientes de ensino com nível (graduação, pós lato, stricto, curso livre), modalidade (presencial, EAD, híbrido), unidade/polo e variante",
+   "Seleção de ambiente por usuário, lembrada entre acessos; a gestão pode escolher Ver todos",
+   "Filtro automático de cursos, turmas e alunos pelo ambiente escolhido em todo o portal e em módulos acadêmicos que usam o filtro",
+   "Chip de ambiente atual na faixa superior do EduMaster e diálogo de escolha que abre sozinho quando há 2 ou mais ambientes sem seleção",
+   "Cadastro e edição de ambientes pela gestão, com vínculo de cursos, cor, descrição e ativação",
+   "Criação com um clique dos 7 ambientes padrão (Graduação Presencial e EAD, Lato Presencial, EAD e Unidades +A, Stricto, Cursos Livres)",
+   "Atalhos de acordo com o perfil: Portal do Aluno, Portal do Professor e Painel executivo"
+  ],
+  "automacoes": [
+   "O diálogo de escolha de ambiente abre sozinho quando o usuário tem 2 ou mais ambientes e ainda não escolheu",
+   "A lista de ambientes de cada usuário é calculada pelo papel: aluno pelos cursos matriculados, professor pelos cursos das suas turmas, gestão todos",
+   "O filtro por ambiente é aplicado no servidor a cada requisição, sem o usuário precisar reaplicar filtros"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O filtro por ambiente está aplicado em todo o portal2 e em alguns módulos acadêmicos (cursos, turmas, notas e secretaria); módulos que não foram ligados ao filtro continuam mostrando todos os registros"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/inicio",
+    "legenda": "Cartões dos ambientes de ensino e atalhos para os portais"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Portal do aluno",
+  "rota": "/edu/portal-aluno",
+  "titulo_chamada": "Tudo da vida acadêmica em um só lugar",
+  "descricao": "O Portal do Aluno reúne em 16 abas tudo o que o estudante precisa: visão geral, notas e boletim, frequência, salas e materiais, horários, fluxograma do curso, requerimentos e processos, serviços e atendimento, financeiro, biblioteca, mensagens, documentos, carteirinha, presença facial e QR, privacidade (LGPD) e avaliação docente.\n\nA visão geral abre com quatro indicadores (coeficiente de rendimento, frequência média, situação financeira e avisos novos) e cartões com as próximas provas e aulas, o financeiro, os avisos e os requerimentos em andamento. O visual assume as cores da instituição (e a logomarca na carteirinha).\n\nO aluno não precisa decorar caminhos nem pedir informações: o portal mostra o que importa, avisa o que mudou e leva a ação a um clique. A gestão também pode abrir o portal de qualquer aluno para dar suporte, em modo de consulta.",
+  "funcionalidades": [
+   "Visão geral com coeficiente de rendimento, frequência média, situação financeira e avisos não lidos",
+   "Cartões de próximas provas e aulas (calendário de avaliações, provas da sala virtual e datas previstas do diário), financeiro, avisos e requerimentos",
+   "Notas e boletim por disciplina e período, com histórico escolar e pedido de revisão de nota ao professor",
+   "Frequência por disciplina, horários, fluxograma curricular e salas virtuais",
+   "Requerimentos, processos internos, serviços de autoatendimento e documentos com código de verificação",
+   "Financeiro com 2ª via de boleto e Pix, carteirinha digital com QR, biblioteca e mensagens",
+   "Privacidade LGPD com consentimentos por finalidade e avaliação docente anônima",
+   "Modo consulta para a gestão: busca de qualquer aluno e visualização do portal dele, sem permitir ações em nome do aluno"
+  ],
+  "automacoes": [
+   "Indicadores e alertas de risco por disciplina calculados automaticamente a partir de notas e frequência",
+   "A nota necessária na próxima avaliação para aprovação é calculada pelo sistema e exibida ao aluno",
+   "Lembretes de avaliação 7 dias e 1 dia antes chegam como avisos no portal (veja o item de provas na aba de mensagens)",
+   "Avisos da instituição e recados de professores aparecem com contador de não lidos, sem depender de e-mail"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018): consentimento por finalidade, exportação dos dados e histórico de consentimentos"
+  ],
+  "limites": [
+   "Boleto e Pix são gerados por provedor simulado (sem banco real conectado) e o próprio portal avisa isso",
+   "Anexos de justificativas e requerimentos são links http(s), não upload de arquivo",
+   "O portal do aluno só ganha dados se houver aluno matriculado, notas e turmas cadastrados no restante do sistema"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-aluno",
+    "legenda": "Visão geral do aluno com indicadores, próximas provas, financeiro e avisos"
+   },
+   {
+    "rota": "/edu/portal-aluno?aba=notas",
+    "legenda": "Boletim com médias, frequência e nota necessária para aprovação"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Portal do aluno · Sala virtual e materiais (EAD)",
+  "rota": "/edu/portal-aluno?aba=salas",
+  "titulo_chamada": "Uma sala virtual para cada disciplina",
+  "descricao": "Para cada disciplina do aluno existe uma sala virtual com trilhas de conteúdo: arquivos, vídeos, links, textos, atividades, aulas gravadas e aulas ao vivo. O aluno vê o seu progresso por disciplina e marca o que já estudou.\n\nAs atividades têm prazo, aceitam entrega e reenvio, e voltam corrigidas com nota e comentário do professor. Há fórum por turma e recados do professor, que chegam como aviso ao aluno. Quando a atividade está ligada a um componente de nota, a nota corrigida já vai para o diário de classe.\n\nÉ simples de usar, no celular ou no computador, e o professor não precisa lançar a nota duas vezes.",
+  "funcionalidades": [
+   "Lista de salas virtuais por disciplina com percentual de progresso e itens concluídos",
+   "Materiais em trilhas ou módulos: arquivo, vídeo, link, texto, atividade, aula gravada e aula ao vivo por link",
+   "Entrega de trabalhos com reenvio, indicação de atraso, correção, devolução para refazer e nota",
+   "Fórum da turma com tópicos e respostas, e recados do professor",
+   "Visibilidade de materiais por data, rascunho e arquivamento pelo professor",
+   "Registro de acessos aos materiais e progresso por aluno",
+   "Painel do professor com progresso e acessos por aluno, destacando inativos há mais de 7 dias"
+  ],
+  "automacoes": [
+   "Ao publicar material ou recado, os alunos da turma são avisados automaticamente",
+   "Ao corrigir ou devolver uma atividade, o aluno recebe aviso automático com a nota",
+   "Nota de atividade ligada a um componente do diário é lançada automaticamente no diário de notas",
+   "Entrega após o prazo é marcada como atrasada pelo sistema; alunos inativos há mais de 7 dias são destacados ao professor"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Aulas ao vivo funcionam por link externo (Meet, Teams, Zoom etc.); o sistema não transmite vídeo por conta própria",
+   "Arquivos de materiais e entregas são informados por link (nuvem, Drive etc.), sem armazenamento próprio de arquivos nesta tela"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-aluno?aba=salas",
+    "legenda": "Salas virtuais do aluno com progresso por disciplina"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Portal do aluno · Frequência e justificativas",
+  "rota": "/edu/portal-aluno?aba=frequencia",
+  "titulo_chamada": "Frequência clara e justificativa sem papelada",
+  "descricao": "O aluno acompanha a frequência de cada disciplina com a lista de chamadas aula a aula, quantas faltas já tem e quantas ainda pode ter sem passar do mínimo da disciplina. Quem está em risco é destacado.\n\nSe faltar por motivo justo, o aluno envia a justificativa pelo próprio portal em até 30 dias e acompanha a decisão. Se deferida, as faltas do período são abonadas na frequência. A presença também pode ser registrada na hora pelo código QR mostrado pelo professor.\n\nTudo é automático: o aluno não depende de ir à secretaria nem de lembrar prazos, porque o portal mostra o prazo de resposta e avisa a decisão.",
+  "funcionalidades": [
+   "Frequência por disciplina com aulas, presenças, faltas, justificadas, mínimo exigido e quantas faltas ainda podem ocorrer",
+   "Lista de chamadas aula a aula com situação (presente, falta, falta justificada)",
+   "Justificativa de faltas com período, motivo e link de comprovante, com cancelamento enquanto pendente",
+   "Resposta do professor ou coordenação com parecer e número de faltas abonadas",
+   "Registro de presença por código QR da aula",
+   "Indicação visual de disciplinas em risco de reprovação por falta"
+  ],
+  "automacoes": [
+   "O prazo de 30 dias para justificar é verificado pelo sistema",
+   "Ao deferir, as faltas do período são abonadas automaticamente na frequência",
+   "O aluno é avisado da decisão sobre a justificativa",
+   "O cálculo de margem de faltas usa a frequência mínima configurada em cada disciplina"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O código do QR é lido pela câmera do celular fora do sistema e colado no portal; não há leitor de câmera embutido nesta tela",
+   "O comprovante é informado por link, não por upload"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-aluno?aba=frequencia",
+    "legenda": "Frequência por disciplina, lista de chamadas e justificativas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Portal do aluno · Financeiro e acordos",
+  "rota": "/edu/portal-aluno?aba=financeiro",
+  "titulo_chamada": "Mensalidades, 2ª via e acordo em poucos cliques",
+  "descricao": "O aluno vê situação financeira, valor em aberto, valor vencido já com encargos e o próximo vencimento. Cada mensalidade mostra o valor e, se atrasada, a multa de 2% e os juros de 1% ao mês calculados pelo sistema.\n\nPode gerar a 2ª via do boleto com linha digitável ou o Pix copia e cola e copiar o código com um toque. Para parcelas vencidas, simula e solicita acordo parcelado, com entrada opcional; o pedido segue para aprovação do financeiro.\n\nNão há conta de cabeça nem ligação para a secretaria: o portal calcula, mostra o total e registra o pedido.",
+  "funcionalidades": [
+   "Resumo financeiro com situação (em dia ou pendente), total em aberto, vencido com encargos e próximo vencimento",
+   "Lista de mensalidades e cobranças com valor, status, data de pagamento e encargos por dias de atraso",
+   "2ª via de boleto com linha digitável e Pix copia e cola com botões de copiar",
+   "Simulação e solicitação de acordo para parcelas vencidas, com entrada e número de parcelas",
+   "Acompanhamento do status do acordo e cancelamento enquanto solicitado"
+  ],
+  "automacoes": [
+   "Multa de 2% e juros de 1% ao mês são calculados automaticamente conforme os dias de atraso",
+   "Na simulação de acordo, os encargos são perdoados em até 3x e reduzidos pela metade de 4x a 6x",
+   "O acordo vai para aprovação do financeiro e as parcelas originais só são substituídas após a aprovação"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Boleto e Pix são gerados por provedor simulado; a tela informa isso. Para cobrança real é preciso integrar um banco ou gateway",
+   "Os percentuais de multa, juros e a política de acordo são os definidos no código e devem ser validados pela instituição"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-aluno?aba=financeiro",
+    "legenda": "Financeiro do aluno com parcelas, 2ª via, Pix e acordo"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Portal do aluno · Requerimentos e processos",
+  "rota": "/edu/portal-aluno?aba=requerimentos",
+  "titulo_chamada": "Trancamento, transferência e mais, sem balcão",
+  "descricao": "O aluno abre e acompanha pelo portal requerimentos e processos internos: trancamento, destrancamento, transferência, aproveitamento de disciplinas e cancelamento. Cada processo tem etapas, histórico, comentários e decisão com parecer.\n\nO sistema mostra prazos, a resposta recebida e o andamento. Quando o processo é deferido, o efeito é aplicado na matrícula, como no caso do trancamento. Pedidos de revisão de nota e requerimentos à secretaria aparecem na mesma lista consolidada.\n\nSimples de preencher, sem depender de formulário em papel: o aluno informa o que precisa e acompanha cada passo.",
+  "funcionalidades": [
+   "Abertura de processos internos: trancamento, destrancamento, transferência, aproveitamento e cancelamento, com campos específicos de cada tipo",
+   "Etapas do processo, histórico e troca de comentários entre aluno e instituição",
+   "Lista consolidada de requerimentos à secretaria, revisões de nota e processos, com prazo e resposta",
+   "Cancelamento de processo pelo próprio aluno enquanto em andamento",
+   "Decisão pela gestão com parecer, que o aluno recebe como aviso",
+   "Fluxograma curricular com pré-requisitos e status de cada disciplina (aprovada, cursando, reprovada, bloqueada, pendente)"
+  ],
+  "automacoes": [
+   "Ao deferir um processo, o efeito é aplicado na matrícula do aluno",
+   "O aluno é avisado automaticamente de novas mensagens e da decisão do processo",
+   "O status de cada disciplina no fluxograma é calculado pelas notas e pelos pré-requisitos cadastrados"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Links de ementa e histórico são informados como endereço, sem upload de arquivo",
+   "O fluxograma depende da configuração de períodos e pré-requisitos do curso feita pela gestão"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-aluno?aba=requerimentos",
+    "legenda": "Requerimentos e processos do aluno com etapas e histórico"
+   },
+   {
+    "rota": "/edu/portal-aluno?aba=fluxograma",
+    "legenda": "Fluxograma curricular com pré-requisitos"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Portal do aluno · Biblioteca",
+  "rota": "/edu/portal-aluno?aba=biblioteca",
+  "titulo_chamada": "Biblioteca física e digital na palma da mão",
+  "descricao": "O aluno vê seus empréstimos e reservas, renova com um clique, busca livros no acervo físico por título, autor ou assunto, reserva exemplares e acessa o acervo digital contratado pela instituição.\n\nO portal avisa quando o empréstimo está bloqueado, mostra a posição na fila de reserva e informa multas em aberto. Tudo respeita as regras da biblioteca: prazos, limite de empréstimos e de renovações por perfil.\n\nÉ a biblioteca que acompanha o aluno, sem ir ao balcão para saber a data de devolução.",
+  "funcionalidades": [
+   "Meus empréstimos com data de devolução e botão de renovar",
+   "Minhas reservas com posição na fila e cancelamento",
+   "Busca no acervo físico por título, autor ou assunto, com exemplares disponíveis e botão de reservar",
+   "Acervo digital com acesso direto aos recursos permitidos ao aluno",
+   "Aviso de empréstimos bloqueados e de multas em aberto"
+  ],
+  "automacoes": [
+   "Reservas expiram e passam para o próximo da fila automaticamente quando o exemplar não é retirado no prazo",
+   "Lembretes recorrentes de atraso e cálculo da multa prevista rodam todos os dias",
+   "A permissão de acesso a cada recurso digital é verificada na hora (vigência, assinatura e adesão do aluno)"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O conteúdo depende do acervo físico e dos recursos digitais cadastrados pela biblioteca",
+   "O acesso ao acervo digital abre o endereço do provedor contratado; o sistema controla a permissão, mas não hospeda os livros"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-aluno?aba=biblioteca",
+    "legenda": "Biblioteca do aluno: empréstimos, reservas, busca e acervo digital"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Portal do aluno · Mensagens, privacidade e avaliação docente",
+  "rota": "/edu/portal-aluno?aba=mensagens",
+  "titulo_chamada": "Avisos, privacidade e voz do aluno",
+  "descricao": "Em Mensagens, o aluno recebe os avisos da instituição e os recados dos professores, com contador de não lidos e marcação de leitura. É também aqui que chegam os lembretes automáticos de avaliações próximas.\n\nEm Privacidade (LGPD), ele escolhe quais finalidades autoriza, vê o histórico e baixa uma cópia dos seus dados em um arquivo. Em Avaliação docente, responde de forma anônima, com notas por critério e comentário opcional.\n\nTudo em linguagem simples, com um interruptor por finalidade e estrelas para avaliar, sem formulários complicados.",
+  "funcionalidades": [
+   "Caixa de mensagens com avisos da instituição e recados de professores, contador de não lidos e Marcar todas como lidas",
+   "Privacidade LGPD: seis finalidades com interruptor de consentimento, base legal exibida e data da última alteração",
+   "Exportação dos próprios dados em arquivo JSON",
+   "Lista dos tratamentos necessários que não dependem de consentimento",
+   "Avaliação docente anônima por turma com notas por critério e comentário opcional",
+   "Carteirinha digital com QR de validação (aba própria do portal)"
+  ],
+  "automacoes": [
+   "Lembretes de avaliação 7 dias e 1 dia antes são enviados automaticamente como aviso no portal",
+   "Cada mudança de consentimento é registrada no histórico",
+   "Comentários de avaliação docente só são mostrados ao professor quando há 3 ou mais respostas, preservando o anonimato"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (Lei 13.709/2018): consentimentos por finalidade, direitos do titular e exportação dos dados",
+   "LGPD art. 7º: bases legais exibidas ao titular"
+  ],
+  "limites": [
+   "Os avisos automáticos de provas são gravados como mensagem dentro do portal; o envio por WhatsApp, e-mail ou SMS depende de configurar canais no módulo de Comunicação e de outra regra de envio"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-aluno?aba=mensagens",
+    "legenda": "Mensagens e avisos do aluno"
+   },
+   {
+    "rota": "/edu/portal-aluno?aba=privacidade",
+    "legenda": "Preferências de privacidade e exportação de dados"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Portal do aluno · Serviços e atendimento",
+  "rota": "/edu/portal-aluno?aba=servicos",
+  "titulo_chamada": "Peça documentos e serviços sem sair de casa",
+  "descricao": "O aluno escolhe um serviço do catálogo da instituição, como declaração de matrícula, histórico escolar, 2ª via de boleto ou trancamento, e o sistema cuida do resto. Quando o serviço é automático e não exige documentos, o resultado sai na hora, em PDF com código de verificação.\n\nServiços com análise abrem um protocolo com número, etapas e prazo, e o aluno acompanha pelo portal, envia os documentos pedidos e conversa com um assistente de dúvidas. Se algum documento for rejeitado, o aluno vê o motivo e o prazo para reenviar.\n\nÉ o balcão de atendimento aberto 24 horas, sem fila.",
+  "funcionalidades": [
+   "Catálogo de serviços de autoatendimento com descrição, prazo e taxa",
+   "Solicitação de serviço com protocolo, etapas visíveis e acompanhamento",
+   "Envio dos documentos exigidos por serviço e acompanhamento de pendências com prazo",
+   "Documentos emitidos do aluno, com baixar PDF e verificação por QR",
+   "Assistente de dúvidas do portal baseado na base de conhecimento da instituição"
+  ],
+  "automacoes": [
+   "Serviços com automação resolvem na hora: emissão de declaração, 2ª via de boleto e consulta financeira",
+   "Trancamento abre jornada de análise e, ao ser deferido, tranca a matrícula automaticamente",
+   "Serviço com taxa gera cobrança no financeiro; a automação roda quando a taxa é paga ou isentada",
+   "Rejeição de documento cria pendência com prazo e avisa o solicitante"
+  ],
+  "ia": [
+   "Assistente do portal responde dúvidas a partir da base de conhecimento da instituição; se houver chave de IA configurada, o texto pode ser reescrito pelo provedor com dados pessoais mascarados"
+  ],
+  "base_normativa_literatura": [
+   "LGPD: identificadores são mascarados antes de qualquer provedor de IA e textos com dado sensível não são enviados"
+  ],
+  "limites": [
+   "Sem chave de IA, o assistente usa apenas a base de conhecimento local (motor simulado, sem modelo de linguagem)",
+   "A assinatura eletrônica dos documentos é simulada e o PDF avisa que não tem validade jurídica; assinatura ICP-Brasil é uma interface a integrar"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-aluno?aba=servicos",
+    "legenda": "Serviços e atendimento do aluno: catálogo, protocolos e documentos"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Minha biometria e carteirinha",
+  "rota": "/edu/minha-biometria",
+  "titulo_chamada": "Seu rosto só com o seu consentimento",
+  "descricao": "Aqui alunos, docentes e colaboradores leem o termo, dão ou revogam o consentimento e cadastram o rosto para chamada e controle de acesso. Quem prefere não usar o rosto simplesmente ignora e usa a carteirinha digital com QR.\n\nO cadastro pede para piscar ou virar a cabeça, para provar que há uma pessoa diante da câmera. A imagem não sai do aparelho: só um vetor matemático é enviado e guardado cifrado. Revogar o consentimento apaga o cadastro facial na hora.\n\nO passo a passo é guiado, com orientações simples como ficar em local iluminado, sem óculos escuros ou boné.",
+  "funcionalidades": [
+   "Termo de consentimento com versão e aceite explícito para biometria facial",
+   "Cadastro do rosto com câmera e desafio de vivacidade (piscar ou virar a cabeça)",
+   "Refazer o cadastro facial e revogar o consentimento com exclusão do rosto",
+   "Carteirinha digital com QR como alternativa ao reconhecimento facial",
+   "Geração de novo código da carteirinha (o anterior deixa de valer)",
+   "Declaração de responsável legal quando o titular é menor"
+  ],
+  "automacoes": [
+   "Revogar o consentimento exclui os templates faciais imediatamente",
+   "Templates sem consentimento ativo são ignorados em qualquer comparação",
+   "Jobs de expurgo apagam biometria de desligados, de cadastros sem uso e logs antigos"
+  ],
+  "ia": [
+   "Reconhecimento facial por rede neural executada no navegador do usuário (biblioteca face-api); não usa serviço de IA externo"
+  ],
+  "base_normativa_literatura": [
+   "LGPD: consentimento específico para dado biométrico, com revogação",
+   "Documento interno de RIPD da biometria (docs/LGPD-RIPD-biometria.md)"
+  ],
+  "limites": [
+   "A câmera exige conexão segura (HTTPS)",
+   "A vivacidade é verificada no navegador e não resiste a vídeo ou máscara; a precisão depende de câmera, luz e população, e exige teste de campo na instituição"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/minha-biometria",
+    "legenda": "Consentimento, cadastro facial e carteirinha com QR"
+   },
+   {
+    "rota": "/edu/portal-aluno?aba=carteirinha",
+    "legenda": "Carteirinha digital do aluno com QR de validação"
+   }
+  ]
+ },
+ {
+  "nucleo": "Docente",
+  "modulo": "Portal do professor",
+  "rota": "/edu/portal-professor",
+  "titulo_chamada": "O dia do professor organizado numa tela",
+  "descricao": "O Portal do Professor abre com um painel do que importa hoje: turmas, aulas dos próximos 30 dias, itens para corrigir, revisões de nota pendentes, alunos em risco e a média da avaliação docente. Em dez abas ficam turmas e diário, horários, notas, provas e banco de questões, revisões, justificativas, risco de evasão, avaliações recebidas e disponibilidade e carga horária.\n\nO professor lança conteúdo, chamada e notas respeitando a regra de cada disciplina, sem planilha paralela. O sistema avisa pendências e destaca quem precisa de atenção.\n\nFeito para ser aprendido em minutos: cada aba tem uma tarefa clara e o painel inicial leva o professor direto ao que está pendente.",
+  "funcionalidades": [
+   "Painel com turmas, aulas dos próximos 30 dias, itens a corrigir, revisões pendentes, alunos em risco e avaliação docente",
+   "Minhas turmas e diário de classe com aulas, chamada e conteúdo ministrado",
+   "Horários e grade semanal",
+   "Lançamento de notas por componente, respeitando pesos, médias, recuperação e prazo de lançamento",
+   "Provas e banco de questões, revisões de nota recebidas e justificativas de faltas",
+   "Risco de evasão por turma e avaliações docentes recebidas",
+   "Disponibilidade semanal, regime, titulação e carga horária contratual"
+  ],
+  "automacoes": [
+   "O painel soma automaticamente pendências de correção, revisões e justificativas",
+   "O prazo de lançamento de notas é aplicado pela regra da disciplina",
+   "Atividades da sala virtual podem alimentar o diário automaticamente"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O painel só traz dados de turmas já atribuídas ao professor e de períodos letivos cadastrados"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-professor",
+    "legenda": "Painel do professor com pendências, próximas aulas e risco de evasão"
+   }
+  ]
+ },
+ {
+  "nucleo": "Docente",
+  "modulo": "Portal do professor · Turmas, diário e chamada",
+  "rota": "/edu/portal-professor?aba=turmas",
+  "titulo_chamada": "Diário e chamada em poucos toques",
+  "descricao": "Em cada turma o professor registra as aulas, faz a chamada e anota o conteúdo ministrado, a metodologia e a tarefa. A chamada pode ser por lista, manual ou por QR Code: o professor mostra o código e o aluno registra presença pelo portal.\n\nA turma traz ainda o desempenho: média, frequência, distribuição das médias parciais em gráfico e a lista de alunos por risco de evasão. A sala virtual e os materiais ficam na mesma tela.\n\nO risco é calculado pelo sistema a partir de notas, frequência, acessos, atividades atrasadas e inadimplência prolongada, e serve para acolher o aluno cedo, não para punir.",
+  "funcionalidades": [
+   "Lista de turmas do professor com abertura do diário",
+   "Cadastro de aulas com tema, local, conteúdo ministrado, metodologia e tarefa",
+   "Chamada em modos Lista, Manual e QR, com código gerado para a aula",
+   "Desempenho da turma: média, frequência média, risco alto e médio e gráfico de distribuição das médias parciais",
+   "Alunos por risco de evasão, com motivos",
+   "Sala virtual e materiais da turma na mesma tela"
+  ],
+  "automacoes": [
+   "O código QR da aula é gerado pelo sistema e pode ser renovado",
+   "O risco de evasão por aluno é calculado automaticamente com notas, frequência, acessos à sala virtual, atividades atrasadas e inadimplência acima de 30 dias",
+   "A frequência alimenta o boletim e o portal do aluno imediatamente"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O índice de risco é uma heurística com pesos definidos no código; deve ser usado como apoio e não como decisão automática",
+   "A chamada por reconhecimento facial fica no módulo Presença e acesso, não nesta tela"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-professor?aba=turmas",
+    "legenda": "Turmas do professor, diário e chamada"
+   }
+  ]
+ },
+ {
+  "nucleo": "Docente",
+  "modulo": "Portal do professor · Provas e banco de questões",
+  "rota": "/edu/portal-professor?aba=provas",
+  "titulo_chamada": "Provas montadas a partir do seu banco de questões",
+  "descricao": "O professor consulta o banco de questões da disciplina com busca no enunciado e filtros, escolhe as questões que quer e monta a prova para a turma, definindo abertura e fechamento. As questões escolhidas são copiadas para a prova e o banco original não muda.\n\nHá também a geração de prova com apoio de IA a partir de um conteúdo-base da disciplina, com quantidade de questões de múltipla escolha e dissertativas. O professor sempre revisa as questões antes de aplicar. Provas podem ter correção de respostas dissertativas por IA, quando ativada.\n\nA lista Minhas provas e atividades avaliativas mostra o que já foi criado, com indicação de correção por IA.",
+  "funcionalidades": [
+   "Lista das minhas provas e atividades avaliativas com indicação de correção por IA",
+   "Banco de questões da disciplina com busca por enunciado, disciplina e tipo",
+   "Montagem de prova a partir de questões selecionadas, com título, turma, tipo e janela de abertura e fechamento",
+   "Geração de prova com IA a partir de conteúdo-base, com quantidade de questões de múltipla escolha e dissertativas",
+   "Aviso permanente de revisar as questões geradas antes de aplicar"
+  ],
+  "automacoes": [
+   "Questões copiadas para a prova mantêm o banco original intacto e só aceitam questões da disciplina da turma",
+   "Quando a correção por IA está ativada na prova, as respostas dissertativas dos alunos são corrigidas automaticamente; sem ela, ficam aguardando correção manual"
+  ],
+  "ia": [
+   "Geração de questões (múltipla escolha e dissertativas) a partir do texto do conteúdo, pelo cliente de IA compartilhado",
+   "Correção automática de respostas dissertativas, opcional por prova"
+  ],
+  "base_normativa_literatura": [],
+  "limites": [
+   "A geração e a correção por IA exigem chave de IA configurada (Anthropic ou OpenAI). Sem chave, o servidor responde que a IA não está configurada e orienta a montar a prova manualmente; o aviso da tela fala em provedor simulado, mas no servidor não há geração simulada",
+   "O conteúdo-base precisa ter texto resumido; PDF ou vídeo sem transcrição não são usados para gerar questões"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-professor?aba=provas",
+    "legenda": "Provas e banco de questões do professor"
+   }
+  ]
+ },
+ {
+  "nucleo": "Docente",
+  "modulo": "Portal do professor · Risco de evasão, justificativas e avaliações",
+  "rota": "/edu/portal-professor?aba=alertas",
+  "titulo_chamada": "Alunos em risco aparecem antes de sumir",
+  "descricao": "O professor vê a lista dos alunos em risco nas suas turmas, com os motivos: notas baixas, frequência, pouco acesso à sala virtual, atividades atrasadas e inadimplência prolongada. O objetivo é agir cedo e acolher o aluno.\n\nAs justificativas de faltas dos alunos chegam à mesma área, com o comprovante informado, para o professor deferir ou indeferir com parecer. Em Minhas avaliações, ele consulta a média recebida e os comentários dos alunos, preservando o anonimato (comentários só com 3 ou mais respostas).\n\nTudo em listas objetivas com ações diretas, sem precisar pedir relatório à coordenação.",
+  "funcionalidades": [
+   "Lista de alunos em risco de evasão por turma, com motivos",
+   "Justificativas de faltas com período, motivo e comprovante, e decisão com parecer obrigatório",
+   "Avaliações docentes recebidas com média e comentários anônimos",
+   "Revisões de nota recebidas dentro do prazo, com parecer",
+   "Disponibilidade semanal por janelas, regime, titulação e carga contratual"
+  ],
+  "automacoes": [
+   "O risco de cada aluno é recalculado pelo sistema com os dados mais recentes de notas, frequência e acessos",
+   "Ao deferir uma justificativa, as faltas são abonadas automaticamente e o aluno é avisado",
+   "Comentários de avaliação docente só aparecem quando há 3 ou mais respostas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O risco é heurística ponderada; inadimplência só entra se houver financeiro cadastrado para o aluno"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-professor?aba=alertas",
+    "legenda": "Alunos em risco de evasão nas turmas do professor"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Presença e acesso",
+  "rota": "/edu/presenca",
+  "titulo_chamada": "Presença, portaria e empréstimos num só painel",
+  "descricao": "O módulo Presença e acesso reúne em sete abas a chamada por reconhecimento facial, o controle de entrada e saída de espaços, os empréstimos de materiais e equipamentos, os relatórios de frequência, a gestão da biometria com LGPD e a configuração das regras. O Painel mostra, em números, as chamadas do dia, presentes, atrasos, faltas, divergências com o diário, pessoas nos espaços, empréstimos ativos e alertas abertos.\n\nOs alertas (capacidade excedida, acesso indevido, tentativas de reconhecimento e atrasos) aparecem para resolver com um clique. Um botão abre o Quiosque em tela cheia para tablets e celulares.\n\nO sistema aplica sozinho as regras de tolerância e de atraso, concilia a chamada com o diário e dispara alertas, sem depender de alguém conferir planilhas.",
+  "funcionalidades": [
+   "Painel com chamadas do dia, presentes, atrasos, faltas, divergências com o diário, pessoas nos espaços, empréstimos ativos e alertas",
+   "Lista de alertas abertos com resolução em um clique",
+   "Atalho para abrir o Quiosque em tela cheia (tablet ou celular)",
+   "Relatório de frequência por turma e período, exportável em CSV, e relatório por aluno",
+   "Configuração de regras de presença, horários programados por turma e dia, e cadastro de dispositivos",
+   "Gestão da biometria com LGPD (consentimentos, painel e log de consultas)"
+  ],
+  "automacoes": [
+   "Presente até 10 min após o início, atraso até 40 min e depois falta; saída antecipada e intervalo excedido são sinalizados (valores padrão ajustáveis)",
+   "Chamadas esquecidas são fechadas e conciliadas automaticamente por rotina diária",
+   "Saída automática de espaços e alertas de atraso em empréstimos rodam por rotinas agendadas",
+   "Expurgo automático de biometria de desligados, em desuso e logs antigos"
+  ],
+  "ia": [
+   "Reconhecimento facial por rede neural no navegador (face-api), sem serviço de IA externo"
+  ],
+  "base_normativa_literatura": [
+   "LGPD: consentimento para biometria facial, revogação com exclusão imediata e consultas administrativas registradas como acesso a dado sensível",
+   "Documento interno RIPD da biometria (docs/LGPD-RIPD-biometria.md)"
+  ],
+  "limites": [
+   "Precisão do reconhecimento depende da câmera, da luz e da população; exige teste de campo e ajuste do limiar",
+   "Catraca e hardware físico não são integrados; há registro manual, por QR, código ou pelo quiosque web"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/presenca",
+    "legenda": "Painel de Presença e acesso com indicadores e alertas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Docente",
+  "modulo": "Presença e acesso · Chamada por reconhecimento facial",
+  "rota": "/edu/presenca",
+  "titulo_chamada": "A chamada se faz sozinha: o aluno olha e pronto",
+  "descricao": "O professor ou a secretaria abre a chamada da aula do dia e o aluno é identificado pela câmera de um tablet ou celular. O sistema reconhece o rosto e marca presença, atraso ou falta conforme as tolerâncias, sem ninguém precisar chamar nome por nome.\n\nQuem não quer ou não consegue usar o rosto marca presença por QR da carteirinha, por código ou manualmente com justificativa registrada e auditada. Ao encerrar, a chamada é conciliada com o diário: se houver diferença, não sobrescreve o que o professor lançou, mas abre uma divergência para o professor resolver, com justificativa.\n\nO professor só atua nas próprias turmas e toda correção manual deixa trilha de quem alterou, de quê para quê e por quê.",
+  "funcionalidades": [
+   "Agenda de aulas do dia e abertura da chamada da aula",
+   "Reconhecimento facial 1 para N no tablet ou celular, com prova de vivacidade (piscar ou virar a cabeça)",
+   "Alternativas sem biometria: QR da carteirinha, código ou marcação manual com justificativa",
+   "Lista de presentes, atrasos, faltas e divergentes durante e depois da chamada",
+   "Encerrar, conciliar com o diário e reabrir chamada",
+   "Correção de frequência com justificativa de ao menos 10 caracteres e histórico de correções",
+   "Painel de divergências entre reconhecimento e diário, resolvidas a favor de um dos lados com justificativa",
+   "Horários programados por turma e dia, com tolerâncias de entrada, intervalo e saída"
+  ],
+  "automacoes": [
+   "Classificação automática em presente, atraso ou falta pelas tolerâncias configuradas",
+   "Marcações repetidas em poucos segundos são ignoradas",
+   "Limite de tentativas falhas por dispositivo e operador, com bloqueio e alerta",
+   "Chamadas esquecidas são fechadas e conciliadas por rotina agendada",
+   "Divergências com o diário são geradas automaticamente ao fechar a chamada"
+  ],
+  "ia": [
+   "Reconhecimento facial por rede neural executada no navegador; apenas o vetor de 128 números vai ao servidor, onde é comparado com templates cifrados"
+  ],
+  "base_normativa_literatura": [
+   "LGPD: só quem tem consentimento ativo é comparado; revogação exclui o cadastro",
+   "Distância euclidiana de embeddings de 128 dimensões, com limiar 0,5 e margem de ambiguidade 0,04 (parâmetros do código)"
+  ],
+  "limites": [
+   "Vivacidade é verificada no navegador e não resiste a vídeo ou máscara",
+   "A comparação 1 para N é linear por instituição, adequada a milhares de templates; acima disso é preciso escopo por turma ou índice",
+   "Exige câmera e conexão segura (HTTPS); a precisão deve ser validada em campo"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/presenca",
+    "legenda": "Aba Chamada: aulas do dia e lista de presença"
+   },
+   {
+    "rota": "/edu/presenca/quiosque",
+    "legenda": "Quiosque em tela cheia para chamada facial"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Presença e acesso · Acesso e ocupação de espaços",
+  "rota": "/edu/presenca",
+  "titulo_chamada": "Quem está em cada sala, em tempo real",
+  "descricao": "A instituição define, espaço por espaço, o modo de acesso: livre, com credencial ou restrito a certos perfis, além de capacidade máxima e horário de funcionamento. A entrada e a saída são registradas por reconhecimento facial, QR, código, manualmente ou como visitante.\n\nA ocupação aparece em tempo real, com o histórico por pessoa e por espaço. Quando a lotação é atingida o sistema pode negar a entrada e gera alerta, e o mesmo ocorre com acesso indevido ou fora do horário. O painel da portaria mostra quem está dentro, inclusive visitantes.\n\nTudo é registrado automaticamente, sem caderno de portaria.",
+  "funcionalidades": [
+   "Configuração de espaços controlados: modo LIVRE, CREDENCIAL ou RESTRITO, capacidade, horário e perfis permitidos",
+   "Registro de entrada e saída por face, QR, código, manual ou visitante (nome e documento mascarado)",
+   "Ocupação em tempo real por espaço e painel da portaria",
+   "Histórico de acessos por pessoa e por espaço",
+   "Alertas de capacidade, acesso indevido e tentativas de reconhecimento, com reconhecer e resolver",
+   "Esvaziar espaço (saída em lote)",
+   "Opção Negar entrada ao lotar"
+  ],
+  "automacoes": [
+   "Saída automática de quem esqueceu de registrar a saída, por rotina agendada",
+   "Alertas gerados sozinhos quando a lotação excede a capacidade ou há acesso fora das regras",
+   "Documento do visitante é guardado apenas mascarado"
+  ],
+  "ia": [
+   "Reconhecimento facial por rede neural no navegador, sem serviço de IA externo"
+  ],
+  "base_normativa_literatura": [
+   "LGPD: biometria somente com consentimento ativo; histórico administrativo gera registro de acesso a dado sensível"
+  ],
+  "limites": [
+   "Sem catraca ou controlador de hardware integrado; o controle é feito pelo quiosque web ou lançamento manual",
+   "Precisão do reconhecimento depende de câmera e luz e exige teste de campo"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/presenca",
+    "legenda": "Aba Acesso e ocupação com lotação por espaço"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Presença e acesso · Empréstimos de materiais e equipamentos",
+  "rota": "/edu/presenca",
+  "titulo_chamada": "Empréstimo de equipamento com um código lido",
+  "descricao": "Livros, materiais e equipamentos são emprestados e devolvidos lendo o código do item. O mesmo campo serve para livro ou item patrimonial. Bens do patrimônio podem ser tornados emprestáveis com um clique.\n\nO sistema controla prazo, renovações, multas por atraso, bloqueio de leitores com pendência, reservas e inventário de itens. Atrasos geram alertas e as reservas expiram sozinhas.\n\nO balcão e o quiosque seguem o mesmo fluxo: ler o item, ler a pessoa, confirmar.",
+  "funcionalidades": [
+   "Cadastro de itens emprestáveis, inclusive a partir de bens do patrimônio",
+   "Retirada e devolução por código/QR do item, com registro do estado do item",
+   "Renovação e registro de item perdido",
+   "Multas, bloqueios e reservas",
+   "Inventário de itens",
+   "Relatório de empréstimos e painel de atrasos"
+  ],
+  "automacoes": [
+   "Rotina agendada atualiza atrasos, dispara alertas e expira reservas",
+   "Prazo padrão, limite de renovações e regras de multa vêm da configuração"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Complementa a Biblioteca: o acervo bibliográfico completo é gerido no módulo Biblioteca; aqui o foco são itens e equipamentos"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/presenca",
+    "legenda": "Aba Empréstimos: itens, retiradas e multas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Segurança e LGPD",
+  "modulo": "Presença e acesso · Biometria (LGPD)",
+  "rota": "/edu/presenca",
+  "titulo_chamada": "Biometria com consentimento, auditoria e exclusão",
+  "descricao": "A gestão acompanha quantos consentimentos de biometria facial estão ativos ou revogados, quantas comparações ocorreram nas últimas 24 horas, quantos bloqueios por tentativas e quantas carteirinhas alternativas existem. Pode registrar o consentimento presencial quando o titular é atendido na secretaria, lendo o termo versionado.\n\nO modelo foi pensado para minimizar risco: a imagem do rosto nunca sai do aparelho, o modelo matemático é cifrado com AES-256-GCM e amarrado à instituição e à pessoa, e consultas administrativas viram registro de acesso a dado sensível. Revogar apaga na hora.\n\nA instituição não precisa lembrar de apagar dados: as rotinas de expurgo fazem isso.",
+  "funcionalidades": [
+   "Painel de consentimentos ativos e revogados, comparações em 24 horas e bloqueios",
+   "Registro presencial de consentimento com leitura do termo e opção de responsável legal para menores",
+   "Cadastro e remoção da biometria de uma pessoa por usuário autorizado",
+   "Log das operações de biometria",
+   "Emissão e troca de credencial alternativa (QR/código)",
+   "Termo de consentimento versionado"
+  ],
+  "automacoes": [
+   "Revogação de consentimento exclui os templates na hora, inclusive a partir da Central LGPD",
+   "Expurgo agendado de biometria de desligados, desuso e logs",
+   "Templates sem consentimento ativo são ignorados na comparação"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD, com RIPD específico da biometria (docs/LGPD-RIPD-biometria.md)",
+   "Cifra AES-256-GCM dos templates"
+  ],
+  "limites": [
+   "O texto do termo e o RIPD são modelos e devem ser validados pelo jurídico e pelo encarregado (DPO) da instituição"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/presenca",
+    "legenda": "Aba Biometria (LGPD) com consentimentos e log"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Quiosque de presença (tela cheia)",
+  "rota": "/edu/presenca/quiosque",
+  "titulo_chamada": "Um tablet na parede vira chamada, portaria e balcão",
+  "descricao": "O Quiosque é uma tela cheia pensada para tablets e celulares, com três modos: chamada da aula, portaria de espaços e empréstimos. Na chamada, escolhe-se a aula de hoje e cada aluno se identifica pelo rosto, pela carteirinha ou pelo código. Na portaria, escolhe-se o espaço e o sentido de entrada ou saída, e há registro de visitante. Nos empréstimos, lê-se o item e a pessoa.\n\nO quiosque pode ser vinculado a um dispositivo cadastrado, que tem limite de tentativas e pode ser desbloqueado pela gestão. A interface é grande, simples e autoexplicativa.\n\nNão exige treinar o aluno: ele olha para a câmera.",
+  "funcionalidades": [
+   "Modo Chamada da aula com escolha da aula do dia e resultado imediato",
+   "Modo Portaria de espaços com sentido de entrada ou saída e registro de visitante",
+   "Modo Empréstimos com abas Retirar e Devolver, leitura do código do item e estado do item",
+   "Identificação por rosto, QR da carteirinha, código ou busca manual com justificativa",
+   "Vínculo opcional a um dispositivo cadastrado",
+   "Alternância de tela cheia"
+  ],
+  "automacoes": [
+   "Bloqueio automático do dispositivo após excesso de tentativas falhas",
+   "Classificação automática de presente, atraso ou falta pelas tolerâncias"
+  ],
+  "ia": [
+   "Reconhecimento facial por rede neural no navegador"
+  ],
+  "base_normativa_literatura": [
+   "LGPD: consentimento prévio; quem não consentiu usa carteirinha"
+  ],
+  "limites": [
+   "Requer HTTPS para acessar a câmera e passa por teste de campo de desempenho",
+   "Esta rota não aparece no menu lateral; é aberta pelo botão do painel de Presença"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/presenca/quiosque",
+    "legenda": "Quiosque em tela cheia"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Biblioteca",
+  "rota": "/edu/biblioteca",
+  "titulo_chamada": "Acervo e circulação com regras que se aplicam sozinhas",
+  "descricao": "A Biblioteca cuida do acervo físico, da circulação, do inventário e da catalogação. O painel resume o dia, a aba Acervo traz consulta, obras com catalogação, exemplares, importação em lote e inventário, e a aba Circulação tem balcão, empréstimos, reservas, multas e leitores.\n\nO balcão empresta e devolve por código de barras, e as regras de prazo, limite de empréstimos, renovações, multa por dia, bloqueio por atraso e retirada de reserva são configuradas por perfil (aluno, professor, funcionário e externo). O sistema calcula prazos, multas e fila de reservas sozinho, inclusive com opção de contar só dias úteis e feriados.\n\nÉ fácil de operar: poucos campos, leitura de código e cálculos automáticos.",
+  "funcionalidades": [
+   "Painel da biblioteca com indicadores e relatórios (mais emprestados, ociosos, giro, atrasos, usuários ativos, acervo por área)",
+   "Catalogação de obras com ISBN, ISSN, CDD, CDU, Cutter, assuntos e idioma, e exemplares com tombo e código de barras",
+   "Importação de obras por CSV ou JSON com simulação prévia (dry run)",
+   "Balcão de empréstimo e devolução, renovação e registro de perdido",
+   "Reservas com fila e prazo de retirada",
+   "Multas com baixa: pagar, isentar, cancelar ou enviar para cobrança no contas a receber",
+   "Cadastro de leitores a partir de aluno ou usuário, situação do leitor e bloqueio manual",
+   "Inventário por leitura de código com escopo por espaço ou estante, e baixa de exemplares com termo de descarte",
+   "Políticas por perfil e configuração de dias úteis e feriados"
+  ],
+  "automacoes": [
+   "Atrasos atualizam dias e multa prevista todos os dias, com lembretes recorrentes",
+   "Reservas vencidas expiram e a fila avança sozinha",
+   "Multas em cobrança são sincronizadas com o contas a receber quando pagas",
+   "Validação de ISBN e cálculo de prazo, renovação e multa feitos pelo sistema"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "ABNT/AACR2: ficha catalográfica gerada a partir da catalogação",
+   "Código Cutter simplificado como aproximação da tabela Cutter-Sanborn"
+  ],
+  "limites": [
+   "O conteúdo depende do acervo cadastrado pela biblioteca; sem leitor de código de barras, é possível digitar o código",
+   "O Cutter gerado é uma aproximação, não a tabela Cutter-Sanborn completa"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/biblioteca",
+    "legenda": "Painel da Biblioteca"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Biblioteca · Biblioteca virtual e repositório institucional",
+  "rota": "/edu/biblioteca",
+  "titulo_chamada": "Acervo digital e produção da instituição em um lugar",
+  "descricao": "A biblioteca virtual cataloga e-books, periódicos, bases de dados e vídeos de provedores contratados, com tipo de acesso (assinatura institucional, URL pessoal ou acesso livre) e vigência. O aluno acessa pelo portal, e o sistema confere se a assinatura está vigente e se há adesão individual quando o provedor exige.\n\nO repositório institucional guarda trabalhos de conclusão, dissertações e teses em um fluxo de revisão: o autor submete, a biblioteca revisa, devolve ou publica, com embargo, restrição de acesso, licença, ficha catalográfica e metadados em Dublin Core. A consulta pública ao catálogo e ao repositório tem rotas próprias.\n\nA publicação só ocorre depois que os metadados mínimos estão completos, o que evita registros pela metade.",
+  "funcionalidades": [
+   "Catálogo virtual com tipos EBOOK, PERIÓDICO, BASE DE DADOS, VÍDEO e OUTRO, busca e permissão calculada por usuário",
+   "Gestão de recursos e provedores, com alunos com acesso e uso",
+   "Repositório com fluxo submissão, revisão, devolução, publicação e retirada",
+   "Embargo até data, acesso restrito à comunidade, licença (ex.: CC BY-NC 4.0), orientador, coorientador, banca e abstract",
+   "Anexo de arquivo PDF, ficha catalográfica automática e exportação em Dublin Core (XML)",
+   "Contagem de downloads e consulta pública do catálogo e do repositório"
+  ],
+  "automacoes": [
+   "Assinaturas vencidas são inativadas e alertadas por rotina agendada",
+   "Embargo e restrição calculam o acesso (aberto, restrito, embargado ou indisponível) automaticamente",
+   "Ficha catalográfica e código Cutter são gerados na publicação"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Dublin Core (oai_dc) para metadados do repositório",
+   "Ficha catalográfica segundo AACR2/ABNT"
+  ],
+  "limites": [
+   "O acesso aos livros digitais abre o endereço do provedor; a plataforma controla a permissão mas não hospeda o conteúdo licenciado",
+   "As rotas públicas existem no servidor; não há página pública de catálogo na interface atual, apenas as telas internas"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/biblioteca",
+    "legenda": "Abas Biblioteca virtual e Repositório"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Biblioteca · Adequação da bibliografia",
+  "rota": "/edu/biblioteca",
+  "titulo_chamada": "Bibliografia do curso conferida automaticamente",
+  "descricao": "O coordenador vincula a bibliografia básica e complementar a cada disciplina e o sistema confere se o acervo atende: quantidade mínima de títulos e número de exemplares em relação às vagas. Cada disciplina recebe status adequada, parcial ou inadequada e um índice de 0 a 100, com a lista das lacunas e o que falta comprar.\n\nTítulos com acesso virtual ativo contam como atendidos. A partir das lacunas o sistema gera sugestões de aquisição, que seguem um fluxo de decisão, compra e recebimento. Alunos e professores também podem sugerir títulos.\n\nÉ um verificador pronto para a preparação de visitas de avaliação, sem planilha.",
+  "funcionalidades": [
+   "Cadastro de bibliografia básica e complementar por disciplina",
+   "Cálculo de adequação por curso e disciplina com status e índice 0 a 100",
+   "Lista de lacunas por título e por quantidade de exemplares",
+   "Geração de sugestões de aquisição a partir das lacunas",
+   "Fluxo de sugestão: decidir, comprar e receber, com criação da obra ao receber",
+   "Sugestões feitas por aluno, professor e coordenação"
+  ],
+  "automacoes": [
+   "Cálculo automático de lacunas: mínimo de títulos básicos e complementares e exemplares por vagas (parâmetros configuráveis na biblioteca)",
+   "Títulos com recurso virtual ativo são considerados atendidos",
+   "Geração automática de sugestões de aquisição a partir das lacunas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Os parâmetros (mínimo de títulos e exemplares por vaga) são definidos no sistema e devem refletir o instrumento de avaliação adotado pela instituição; o código não cita um instrumento do MEC"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/biblioteca",
+    "legenda": "Aba Adequação com status por disciplina e lacunas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Apoio, ouvidoria e egressos · Atendimentos (NAE e NAPNE)",
+  "rota": "/edu/apoio",
+  "titulo_chamada": "Acolhimento ao estudante com sigilo de verdade",
+  "descricao": "O núcleo de apoio registra atendimentos psicopedagógicos, psicológicos, sociais, de saúde, de acessibilidade e de orientação acadêmica, com agenda e histórico. O aluno pode solicitar um atendimento pelo sistema.\n\nO sigilo é tratado no próprio registro: atendimentos psicológicos e de saúde são sigilosos por padrão, restritos à equipe de apoio ou somente a quem atendeu. Isso vale para a equipe e para a coordenação.\n\nFeito para o dia a dia da equipe: agendar, atender, registrar, reagendar e acompanhar, sem depender de fichas em papel.",
+  "funcionalidades": [
+   "Agenda e lista de atendimentos com filtros",
+   "Registro de atendimento por tipo (psicopedagógico, psicológico, social, saúde, acessibilidade, orientação acadêmica e outros)",
+   "Nível de sigilo NORMAL, RESTRITO ou SIGILOSO, com padrão por tipo",
+   "Reagendamento e atualização do registro"
+  ],
+  "automacoes": [
+   "Sigilo padrão definido automaticamente pelo tipo do atendimento",
+   "Acesso aos registros filtrado pelo nível de sigilo e pelo papel do usuário"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD: dados sensíveis de saúde tratados com sigilo reforçado"
+  ],
+  "limites": [
+   "A API prevê também planos de AEE (adaptações para estudantes com deficiência), mentoria, monitoria e turmas de nivelamento, mas essas telas ainda não existem na interface do módulo",
+   "Esta tela é uma agenda e um registro; não há prontuário clínico próprio nem agenda por curso",
+   "A API permite ao aluno solicitar atendimento, mas não há tela para isso no portal do aluno"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/apoio",
+    "legenda": "Aba Atendimentos do núcleo de apoio"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Apoio, ouvidoria e egressos · Risco de evasão",
+  "rota": "/edu/apoio",
+  "titulo_chamada": "Evasão prevista antes de virar desistência",
+  "descricao": "O sistema calcula para cada aluno um índice de risco de evasão de 0 a 100 a partir de faltas, notas, situação financeira, engajamento e histórico de trancamento. A lista de alunos em risco pode ser filtrada por nível, com plano de ação, contatos feitos e encerramento, além de um relatório de efetividade das ações.\n\nQuando faltam dados de alguma dimensão, os pesos são redistribuídos e a confiança do índice diminui; nada é inventado. O sistema define o prazo do próximo contato conforme a gravidade.\n\nA equipe vê quem precisa de contato hoje, sem montar planilhas.",
+  "funcionalidades": [
+   "Lista de alunos em risco com nível mínimo, score e motivos",
+   "Avaliação individual do aluno e recálculo geral",
+   "Planos de ação com contatos registrados e encerramento",
+   "Relatório de efetividade das ações de retenção"
+  ],
+  "automacoes": [
+   "Cálculo de risco com pesos fixos (faltas 25, notas 25, financeiro 20, engajamento 20, trancamento 10), renormalizados quando falta dado",
+   "Rotina agendada de recálculo de risco de evasão",
+   "Prazo do próximo contato calculado pelo nível de risco",
+   "Leitura automática de notas, frequência, avaliações, progresso de conteúdo e financeiro de outros módulos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "É uma heurística com pesos definidos no código, não um modelo estatístico treinado; serve como apoio à decisão humana",
+   "Depende de os módulos de notas, frequência e financeiro estarem preenchidos"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/apoio",
+    "legenda": "Aba Risco de evasão com lista e planos de ação"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Apoio, ouvidoria e egressos · Bolsas e assistência estudantil",
+  "rota": "/edu/apoio",
+  "titulo_chamada": "Bolsas classificadas com critério e transparência",
+  "descricao": "A instituição abre programas de bolsa (institucional, mérito, socioeconômica, permanência, monitoria, esporte, cultura e outros, inclusive registro de ProUni e FIES), recebe inscrições e classifica os candidatos por pontuação, com desempate pela menor renda per capita. A decisão pode ser registrada com parecer, e as concessões podem ser renovadas, encerradas ou reativadas.\n\nA renda per capita é calculada pelo sistema a partir da renda familiar e do número de membros, comparada ao salário mínimo de referência.\n\nO processo fica documentado e auditável, e o resumo mostra o que foi concedido e o que está perto de vencer.",
+  "funcionalidades": [
+   "Cadastro de programas de bolsa com critérios, vagas e período de inscrição",
+   "Inscrições com avaliação automática de elegibilidade e pontuação",
+   "Classificação em deferidos e lista de espera, com decisão e parecer",
+   "Concessões com renovação, encerramento e reativação, e filtro por vencimento",
+   "Resumo de bolsas concedidas"
+  ],
+  "automacoes": [
+   "Cálculo de renda per capita e elegibilidade a partir dos critérios do programa",
+   "Classificação com desempate pela menor renda per capita e depois pela inscrição mais antiga",
+   "Rotina agendada que acompanha vencimento e janela de renovação das bolsas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O salário mínimo de referência do cálculo está fixo no código (R$ 1.621) e pode ser sobrescrito por parâmetro; deve ser conferido a cada ano",
+   "ProUni e FIES aparecem como tipos de programa para controle; não há integração com os sistemas do governo"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/apoio",
+    "legenda": "Aba Bolsas com programas, inscrições e concessões"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Apoio, ouvidoria e egressos · Ouvidoria",
+  "rota": "/edu/apoio",
+  "titulo_chamada": "Ouvidoria com protocolo, prazo e resposta rastreável",
+  "descricao": "Qualquer pessoa pode registrar uma manifestação, de forma anônima ou identificada, e recebe um protocolo e uma senha de acompanhamento. A equipe tria, encaminha a setores com responsáveis, responde, prorroga e arquiva, e o manifestante pode avaliar a resposta.\n\nO prazo padrão é de 30 dias, prorrogável por mais 30, e o sistema acompanha o SLA com estados de no prazo, atenção e vencido, com escalonamento por atraso. Há relatório da ouvidoria e relatório anual em HTML.\n\nA consulta pública por protocolo e senha tem limite de tentativas e bloqueio após 5 falhas, protegendo o manifestante.",
+  "funcionalidades": [
+   "Cadastro de setores da ouvidoria com responsáveis",
+   "Manifestações com triagem, encaminhamento, resposta, prorrogação, reabertura, arquivamento e nota interna",
+   "Protocolo e senha de acompanhamento geradas pelo sistema (senha guardada com hash)",
+   "Responsável do setor responde ao encaminhamento",
+   "Avaliação da resposta pelo manifestante",
+   "Relatório da ouvidoria e relatório anual em HTML",
+   "Consulta pública por protocolo e senha, anônima ou identificada"
+  ],
+  "automacoes": [
+   "Rotina agendada acompanha o SLA e aciona escalonamento",
+   "Prazo de 30 dias e prorrogação de 30 dias calculados em dias",
+   "Bloqueio da consulta pública após 5 senhas erradas e limite de requisições"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Lei 13.460/2017 (Código de Defesa do Usuário do Serviço Público): prazo de 30 dias e prorrogação, citados no código da ouvidoria"
+  ],
+  "limites": [
+   "As rotas públicas de manifestação existem no servidor, mas a interface atual traz apenas a tela interna de gestão da ouvidoria; a página pública precisa ser publicada pelo site da instituição"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/apoio",
+    "legenda": "Aba Ouvidoria com manifestações, prazos e relatório anual"
+   }
+  ]
+ },
+ {
+  "nucleo": "Docente",
+  "modulo": "Apoio, ouvidoria e egressos · Apoio ao docente",
+  "rota": "/edu/apoio",
+  "titulo_chamada": "Formação, materiais e suporte para quem ensina",
+  "descricao": "Esta aba reúne três serviços para o professor: um catálogo de formações com inscrição, conclusão e certificado com a logomarca da instituição; uma biblioteca de materiais de apoio pedagógico com moderação, avaliação e registro de acessos; e um helpdesk de chamados com comentários, atribuição, status e avaliação do atendimento, com relatório.\n\nO professor pede ajuda e acompanha a solução. A coordenação publica formações e a equipe de apoio atende os chamados com prazos controlados.\n\nTudo em listas simples, com um botão por ação.",
+  "funcionalidades": [
+   "Formações com vagas, inscrição, cancelamento, conclusão e certificado em HTML com logomarca",
+   "Materiais pedagógicos com envio, moderação, avaliação e contagem de acessos",
+   "Helpdesk de chamados com comentários, atribuição, mudança de status e avaliação",
+   "Relatório de chamados"
+  ],
+  "automacoes": [
+   "Rotina agendada acompanha os prazos dos chamados",
+   "Certificado de formação gerado automaticamente ao concluir"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O certificado é um documento HTML com logomarca; não há assinatura digital qualificada"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/apoio",
+    "legenda": "Aba Apoio docente com formações, materiais e chamados"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Apoio, ouvidoria e egressos · Egressos",
+  "rota": "/edu/apoio",
+  "titulo_chamada": "Egressos que continuam na história da instituição",
+  "descricao": "O cadastro de egressos é alimentado com a importação de concluintes e mantido com a trajetória profissional de cada um. O painel de indicadores resume empregabilidade, atualização cadastral e participação, em formato útil para a autoavaliação institucional.\n\nO sistema identifica egressos com cadastro desatualizado e permite solicitar a atualização em lote. Há também eventos para egressos com presença e a anonimização do cadastro sob pedido do titular.\n\nA instituição mantém o vínculo sem planilhas e sem esquecer ninguém.",
+  "funcionalidades": [
+   "Cadastro de egressos com importação de concluintes",
+   "Trajetória profissional e edição do perfil",
+   "Indicadores de egressos para CPA e uso regulatório",
+   "Lista de recall de cadastros desatualizados e solicitação de atualização em lote",
+   "Anonimização do cadastro",
+   "Eventos para egressos (encontros, palestras, networking) com participantes e presença"
+  ],
+  "automacoes": [
+   "Rotina agendada sincroniza concluintes como egressos",
+   "Seleção automática de egressos sem atualização há determinado número de dias",
+   "A lista de egressos alimenta campanhas do módulo de Comunicação"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD: anonimização do cadastro do egresso",
+   "O código rotula os indicadores como CPA e regulatório (Comissão Própria de Avaliação)"
+  ],
+  "limites": [
+   "A pesquisa de egressos por convite existe apenas na API pública, sem tela dedicada; depende de configurar instrumentos"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/apoio",
+    "legenda": "Aba Egressos com indicadores e recall"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Central / caixa",
+  "rota": "/edu/atendimento?secao=central",
+  "titulo_chamada": "Todos os canais numa caixa de entrada só",
+  "descricao": "A Central de Atendimento reúne em uma caixa única as demandas que chegam por WhatsApp, e-mail, chat do portal e outros canais. Cada atendimento tem solicitante, canal, setor, prioridade, SLA e histórico de mensagens, e pode ser assumido, atribuído, transferido, resolvido e reaberto. Notas internas ficam separadas das respostas ao aluno.\n\nO atendente tem uma caixa pessoal e uma fila sem dono. A distribuição pode ser manual, em rodízio ou por menor carga, respeitando a capacidade de cada pessoa. Ao final, o solicitante pode dar uma nota de satisfação (CSAT).\n\nO sistema sugere resposta, resume a conversa e indica o setor adequado, mas só responde sozinho se a instituição ativar essa opção e com um nível mínimo de confiança. Fácil de aprender: lista, conversa, botão de ação.",
+  "funcionalidades": [
+   "Caixa única com filtros por situação, setor, canal, SLA e Minha caixa, e busca",
+   "Abertura de atendimento, conversa com mensagens e notas internas",
+   "Assumir, atribuir, distribuir (manual, rodízio ou menor carga), transferir, resolver e reabrir",
+   "Abrir protocolo formal a partir do atendimento",
+   "Sugestão de resposta e resumo da conversa por assistente",
+   "Indicador de atendimentos em que a IA respondeu",
+   "Avaliação de satisfação (CSAT) pelo solicitante",
+   "Botão Simular entrada de canal para demonstração e testes"
+  ],
+  "automacoes": [
+   "Classificação por palavras-chave da demanda em setor e serviço (Secretaria, Financeiro, Coordenação, TI e Ouvidoria vêm pré-cadastrados)",
+   "SLA de primeira resposta e de resolução calculado por setor e prioridade, com marcação de atenção e estouro",
+   "Distribuição automática por rodízio ou menor carga",
+   "Resposta automática da IA somente se ativada pela instituição e com confiança acima do mínimo; abaixo disso escalona para humano e deixa a sugestão como nota interna",
+   "Texto com dado sensível (saúde, deficiência, menores, biometria) nunca é enviado à IA e vai direto a um atendente"
+  ],
+  "ia": [
+   "Sugestão de resposta, resumo e classificação a partir da base de conhecimento da instituição",
+   "Com chave de IA (Anthropic, ou OpenAI no adaptador legado), o provedor consolida a resposta com texto minimizado; sem chave, usa ranqueamento local da base de conhecimento e regras de classificação"
+  ],
+  "base_normativa_literatura": [
+   "LGPD: identificadores (CPF, e-mail, telefone, cartão, RA e nomes) são mascarados antes de qualquer provedor; o registro de uso guarda só hash e contagens; base legal exibida"
+  ],
+  "limites": [
+   "Sem credenciais de canal em Comunicação, as respostas ficam marcadas como ENVIADA_SIMULADA, sem entrega real ao solicitante",
+   "A resposta automática vem desligada por padrão",
+   "Sem chave de IA, o assistente é um motor simulado local, sem modelo de linguagem"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/atendimento?secao=central",
+    "legenda": "Caixa única de atendimento com filas, SLA e canais"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Protocolos e jornada",
+  "rota": "/edu/atendimento?secao=protocolos",
+  "titulo_chamada": "Cada pedido com número, etapas e rastreio público",
+  "descricao": "Todo pedido formal vira protocolo com número no formato ANO/SEQ e um código de rastreio imprevisível. O protocolo percorre uma jornada de etapas definida para cada serviço, com prazos, responsáveis por setor e histórico de tudo o que ocorreu.\n\nO solicitante acompanha em uma página pública, sem login, digitando o código. A página mostra serviço, etapas visíveis e datas, sem CPF, e-mail, telefone ou documentos. A instituição escolhe quais etapas aparecem ao solicitante; etapas internas, como parecer da coordenação, ficam ocultas e não geram notificação.\n\nO processo é automático: avançar etapa, pedir documento, deferir ou indeferir, e o sistema avisa quem precisa saber.",
+  "funcionalidades": [
+   "Lista de protocolos com número, solicitante, serviço, etapa atual e situação",
+   "Avançar etapa, concluir (deferir ou indeferir) e cancelar com motivo",
+   "Pendências com prazo ligadas ao protocolo",
+   "Visibilidade das etapas para o solicitante, configurável por instituição",
+   "Rastreio público por código em página sem login",
+   "Opt-out de notificações pelo solicitante e avaliação do atendimento por link",
+   "Taxa do serviço gerando cobrança no financeiro e sincronização do pagamento"
+  ],
+  "automacoes": [
+   "Numeração ANO/SEQ e código de rastreio de 12 caracteres sem ambiguidade, gerados pelo sistema",
+   "Notificação do solicitante a cada etapa visível, respeitando opt-out e preferências de contato, com destino mascarado no registro",
+   "Taxa maior que zero gera conta a receber e a automação roda quando o pagamento é confirmado ou a taxa é isentada",
+   "Trancamento deferido tranca a matrícula automaticamente"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD: página de rastreio minimizada, com limite de requisições por IP e sem cache"
+  ],
+  "limites": [
+   "O envio das notificações por WhatsApp ou e-mail depende de canais configurados em Comunicação; sem eles, ficam registradas sem entrega real"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/atendimento?secao=protocolos",
+    "legenda": "Protocolos e visibilidade das etapas"
+   },
+   {
+    "rota": "/rastreio",
+    "legenda": "Página pública de rastreio do pedido"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Documentos recebidos",
+  "rota": "/edu/atendimento?secao=documentos",
+  "titulo_chamada": "Documentos conferidos com prazo e pendência automáticos",
+  "descricao": "Cada serviço define o checklist de documentos exigidos, e o aluno envia pelo portal. A secretaria vê uma fila de conferência, baixa o arquivo, aprova ou rejeita. Rejeitar exige o motivo e cria automaticamente uma pendência com prazo de reenvio, que o solicitante enxerga.\n\nTodos os arquivos recebidos passam por verificação de segurança do sistema: tipo real do arquivo e checagem de malware, antes de chegarem ao atendente.\n\nO sistema guarda o histórico de quem conferiu, quando e por quê, e acompanha pendências vencidas.",
+  "funcionalidades": [
+   "Fila de documentos recebidos filtrada por situação (pendente, recebido, aprovado, rejeitado) e busca",
+   "Download do arquivo, aprovação e rejeição com motivo e prazo de reenvio em dias úteis",
+   "Lista de pendências com prazo e botão Resolver",
+   "Checklist de documentos por serviço com obrigatoriedade e validade"
+  ],
+  "automacoes": [
+   "Rejeição cria pendência com prazo e notifica o solicitante",
+   "Verificação automática de tipo real e malware em todo arquivo enviado",
+   "Pendências vencidas são sinalizadas pelo sistema"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Não há leitura automática do conteúdo (OCR) nem classificação por IA do tipo de documento: a conferência é feita por uma pessoa",
+   "A verificação de malware e a moderação de imagem dependem da configuração do módulo de segurança; a moderação de imagem por IA exige chave da Anthropic"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/atendimento?secao=documentos",
+    "legenda": "Fila de conferência de documentos e pendências"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Base de conhecimento e IA",
+  "rota": "/edu/atendimento?secao=conhecimento",
+  "titulo_chamada": "Um robô que só responde o que a instituição ensinou",
+  "descricao": "A instituição cadastra perguntas e respostas por categoria (geral, financeiro, acadêmico, documentos, TI, ouvidoria e interno), públicas ou internas. O assistente usa essa base para sugerir respostas aos atendentes, classificar demandas e responder o aluno no portal.\n\nOs controles de IA ficam na mesma tela: ativar ou desativar, liberar resposta automática, definir a confiança mínima, escolher canais automáticos e decidir se nomes podem ser enviados ao provedor (padrão: não). Um teste permite digitar uma pergunta e ver exatamente o texto minimizado que iria ao provedor, e o uso dos últimos 30 dias é mostrado em indicadores.\n\nÉ transparente por construção: o robô cita a base, escalona quando não tem certeza e nunca inventa prazo ou valor.",
+  "funcionalidades": [
+   "Artigos de conhecimento com categoria, pergunta, resposta, palavras-chave, público ou interno e contagem de usos",
+   "Controles de IA: IA ativa, resposta automática, confiança mínima, canais automáticos e envio de nomes",
+   "Testador de pergunta mostrando se escalonaria, a resposta, a confiança e o texto minimizado",
+   "Painel de uso da IA nos últimos 30 dias e lista dos controles de LGPD aplicados",
+   "Base pública de conhecimento por instituição para consulta sem login (rota pública)"
+  ],
+  "automacoes": [
+   "Ranqueamento da pergunta contra a base e escolha da melhor resposta com nível de confiança",
+   "Escalonamento para humano quando a confiança está abaixo do mínimo",
+   "Mascaramento de CPF, CNPJ, e-mail, telefone, cartão, RA e nomes antes de qualquer provedor externo",
+   "Bloqueio de texto com dado sensível, que nunca sai do servidor",
+   "Registro de uso com hash e contagens, sem guardar o texto bruto"
+  ],
+  "ia": [
+   "Assistente de atendimento: com chave de IA configurada reescreve a resposta apenas a partir dos artigos da base, em até 5 linhas, e devolve confiança de 0 a 1",
+   "Classificação de demanda por setor e serviço e resumo de conversa (motor local por regras)"
+  ],
+  "base_normativa_literatura": [
+   "LGPD: base legal padrão exibida (art. 7º, V) e minimização de dados"
+  ],
+  "limites": [
+   "Sem ANTHROPIC_API_KEY (ou chave OpenAI no adaptador legado), o provedor é SIMULADO: usa apenas a base de conhecimento local",
+   "A qualidade das respostas depende de a instituição manter a base de conhecimento atualizada"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/atendimento?secao=conhecimento",
+    "legenda": "Base de conhecimento e controles de IA com LGPD"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Emissão de documentos",
+  "rota": "/edu/atendimento?secao=emissao",
+  "titulo_chamada": "Declarações e certificados em PDF com QR de verificação",
+  "descricao": "A secretaria mantém um catálogo de modelos de documentos (declaração de matrícula, vínculo e frequência, atestado, histórico escolar, certificado de conclusão, diploma em via digital e termo de ciência) com texto e campos variáveis preenchidos pelos dados do aluno. O documento sai em PDF com número, código de verificação, QR Code e impressão digital SHA-256.\n\nQualquer pessoa pode conferir a autenticidade pelo link de verificação. Há segunda via, revogação e cancelamento com motivo obrigatório, tudo auditado. Alguns modelos exigem matrícula ativa ou conclusão do curso, e o sistema barra a emissão quando a condição não é atendida.\n\nO aluno pode emitir sozinho os serviços automáticos pelo portal.",
+  "funcionalidades": [
+   "Catálogo de modelos editável com tipo, título, validade, assinante e cargo",
+   "Emissão de documento para um aluno com PDF, número DOC-ANO-SEQ, código de verificação e QR",
+   "Segunda via que substitui o original, revogação e cancelamento com motivo",
+   "Cópia do link de verificação pública",
+   "Lista dos documentos emitidos, com busca"
+  ],
+  "automacoes": [
+   "Preenchimento automático dos campos com dados do aluno (nome, CPF, RA, curso, frequência média, coeficiente, carga horária)",
+   "Verificação de pré-condições: matrícula ativa ou conclusão do curso",
+   "Numeração, código de verificação e SHA-256 gerados pelo sistema; o QR é validado contra a biblioteca qrcode"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "A assinatura é SIMULADA: o PDF e a página de verificação avisam que não têm validade jurídica. Assinatura ICP-Brasil é uma interface a integrar com provedor",
+   "Os textos-padrão dos modelos são sugestões e precisam ser revisados pela secretaria e pelo jurídico da instituição"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/atendimento?secao=emissao",
+    "legenda": "Catálogo de modelos e documentos emitidos"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Catálogo de serviços",
+  "rota": "/edu/atendimento?secao=catalogo",
+  "titulo_chamada": "Monte seus serviços e a jornada de cada um",
+  "descricao": "A instituição cadastra os serviços que oferece, como declarações, 2ª via de boleto, trancamento e 2ª via de diploma, escolhendo categoria, público (aluno, egresso ou público externo), setor responsável, prazo, taxa, modelo de documento e se o serviço está disponível no portal de autoatendimento.\n\nCada serviço define as etapas da sua jornada, uma por linha, com código, nome e prazo, e a lista de documentos exigidos. Já vem com um conjunto padrão pronto para uso.\n\nO serviço configurado funciona sem programação: o aluno solicita, o sistema abre o protocolo e acompanha os prazos.",
+  "funcionalidades": [
+   "Cadastro de serviços com categoria, público, setor, prazo, taxa e modelo de documento",
+   "Jornada de etapas por serviço e checklist de documentos exigidos",
+   "Opção de disponibilizar no portal do aluno (autoatendimento)",
+   "Automação por serviço: emitir documento, 2ª via de boleto, trancamento ou consulta financeira",
+   "Regras como Exige matrícula ativa e Exige conclusão do curso",
+   "Serviços padrão instalados na primeira abertura"
+  ],
+  "automacoes": [
+   "Cadastro inicial automático de setores, modelos, etapas e oito serviços padrão na primeira vez",
+   "Serviço com automação e sem documentos exigidos resolve na hora",
+   "Validação da jornada: ao menos duas etapas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "A taxa de 2ª via de diploma e os prazos dos serviços padrão são valores de exemplo e devem ser ajustados pela instituição"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/atendimento?secao=catalogo",
+    "legenda": "Catálogo de serviços com automação, taxa e jornada"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Painel / SLA",
+  "rota": "/edu/atendimento?secao=painel",
+  "titulo_chamada": "Prazo, volume e satisfação à vista do gestor",
+  "descricao": "O painel do atendente mostra a minha caixa, a fila sem atendente e quantos atendimentos estão com SLA estourado. O painel do gestor traz, para 7, 30 ou 90 dias, os atendimentos abertos, os sem atendente, o SLA estourado, o tempo médio de primeira resposta e de resolução, a satisfação (CSAT) com distribuição de notas, o volume por dia e por canal, a participação da IA e o desempenho de setores e equipe.\n\nNão é preciso montar relatório: os números são calculados a partir da operação do dia a dia.",
+  "funcionalidades": [
+   "Meu painel de atendente: minha caixa, fila sem dono e SLA estourado",
+   "Painel do gestor com período de 7, 30 ou 90 dias",
+   "Indicadores de abertos, sem atendente e SLA estourado",
+   "Tempo médio de primeira resposta e de resolução e percentual de SLA cumprido",
+   "CSAT médio, distribuição de notas e taxa de resposta",
+   "Volume por dia e por canal, uso da IA, setores e equipe"
+  ],
+  "automacoes": [
+   "Indicadores calculados na hora a partir dos atendimentos, sem lançamentos manuais"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Os números só refletem atendimentos registrados na Central; contatos fora do sistema não entram"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/atendimento?secao=painel",
+    "legenda": "Painel do gestor com SLA, CSAT e volume por canal"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Comunicação omnichannel",
+  "rota": "/edu/comunicacao",
+  "titulo_chamada": "WhatsApp, e-mail, SMS, voz e redes em um só lugar",
+  "descricao": "O módulo de Comunicação conecta os canais da instituição: WhatsApp (Meta Cloud ou Twilio), Telegram, e-mail (Resend), SMS e voz (Twilio), Instagram e Facebook (mensagens) e chat do site. Em oito abas ficam o painel, o atendimento (inbox), templates e contatos, campanhas, régua de cobrança, chatbot e FAQ, redes sociais e canais.\n\nAs mensagens saem por uma caixa de saída única, com fila, tentativas, limites por hora e por dia, janela de horário comercial e respeito às preferências de contato. Tudo o que o sistema avisa (cobrança, lembretes, protocolos) passa por ela.\n\nA instituição configura uma vez e o sistema envia sozinho, no horário certo e sem insistir com quem pediu para sair.",
+  "funcionalidades": [
+   "Painel com visão geral, atendimento e SLA, desempenho e caixa de saída dos últimos 30 dias",
+   "Inbox de conversas com atribuição, status, etiquetas, notas internas e métricas",
+   "Cadastro de contatos com sincronização de alunos, egressos e candidatos e preferências por canal e finalidade",
+   "Canais com credenciais cifradas, teste de conexão e informações de webhook",
+   "Caixa de saída com reenviar e cancelar, e envio de mensagem avulsa",
+   "Configuração de janela comercial, dias úteis e limites de envio",
+   "Voz com URA configurável e registro de chamadas"
+  ],
+  "automacoes": [
+   "Despachante: envia a fila, com claim otimista, janela comercial, limite por hora e por dia e novas tentativas com espera crescente",
+   "Opt-out por mensagem: SAIR, PARAR ou STOP bloqueiam mensagens de marketing e VOLTAR reativa",
+   "Cobrança é suprimida automaticamente se o título já foi pago",
+   "Fora do horário, a resposta automática informa que o atendimento humano é em horário comercial",
+   "Webhooks com assinatura obrigatória (Telegram, Meta, Twilio, Resend)"
+  ],
+  "ia": [
+   "Chatbot com resposta por IA como terceira camada (veja Chatbot e FAQ); requer chave de IA"
+  ],
+  "base_normativa_literatura": [
+   "LGPD: preferências de contato por canal e finalidade, opt-out e credenciais cifradas"
+  ],
+  "limites": [
+   "Sem credenciais do canal, a notificação fica como FALHA explicativa; nada é fingido",
+   "Cada canal exige conta e credenciais próprias do provedor (Meta, Twilio, Resend, Telegram), que a instituição contrata e informa",
+   "Somente administradores cadastram canais e contas sociais"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/comunicacao",
+    "legenda": "Painel da Comunicação omnichannel"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Comunicação · Templates e campanhas",
+  "rota": "/edu/comunicacao",
+  "titulo_chamada": "Campanhas segmentadas com prévia antes de disparar",
+  "descricao": "A equipe cria templates com variáveis como nome, valor, vencimento e curso, e monta campanhas para segmentos prontos: inadimplentes, a vencer, rematrícula pendente, candidatos por etapa, egressos, alunos ativos, contatos e listas. Antes de disparar, uma prévia mostra quantas pessoas serão atingidas e quantas ficam de fora por falta de destino ou por opt-out.\n\nA campanha pode ser agendada ou disparada na hora, acompanhada por destinatário e cancelada. Já vêm pré-cadastrados modelos de cobrança (3 dias antes, no dia, 3 e 10 dias de atraso), boas-vindas, rematrícula pendente, candidato e egresso.\n\nO sistema respeita a preferência de cada contato: quem não quer marketing não recebe.",
+  "funcionalidades": [
+   "Biblioteca de templates por categoria com variáveis e pré-visualização",
+   "Campanhas por segmento com filtros, canal e finalidade",
+   "Prévia da campanha com alcance e bloqueios",
+   "Agendamento, disparo imediato e cancelamento, com lista de destinatários e status",
+   "Templates pré-cadastrados de cobrança, boas-vindas, rematrícula, candidato e egressos"
+  ],
+  "automacoes": [
+   "Rotina agendada dispara campanhas no horário marcado",
+   "Opt-out e preferências por finalidade são aplicados no envio",
+   "Variáveis do template são preenchidas por contato"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD: finalidade da mensagem (cobrança, marketing, acadêmico) e preferências por canal"
+  ],
+  "limites": [
+   "Envio real depende de canais configurados",
+   "A campanha de captação de mídia paga e o funil de leads de marketing ficam no módulo EduMaster · Marketing, não neste"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/comunicacao",
+    "legenda": "Abas Templates e Campanhas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Comunicação · Régua de cobrança",
+  "rota": "/edu/comunicacao",
+  "titulo_chamada": "Cobrança amigável que lembra no dia certo",
+  "descricao": "A régua de cobrança define etapas antes e depois do vencimento: por exemplo 3 dias antes, no dia, 3 e 10 dias depois. Cada etapa escolhe o template, o canal e um canal alternativo. A linha do tempo mostra a posição de cada etapa em relação ao vencimento.\n\nO sistema lê as mensalidades em aberto do contas a receber e enfileira a mensagem certa na hora certa, uma única vez por etapa e título. Há um simulador que mostra o que seria enviado, sem enviar nada, e o histórico de execuções. Se o título é pago, a cobrança é suprimida.\n\nA cobrança acontece sem depender da memória de ninguém e sem constranger o aluno com mensagens repetidas.",
+  "funcionalidades": [
+   "Cadastro de réguas com etapas, deslocamento em dias, template, canal e canal alternativo",
+   "Linha do tempo visual das etapas em relação ao vencimento",
+   "Simulação sem envio e execução manual",
+   "Histórico de execuções por etapa e título",
+   "Tolerância em dias para recuperar etapas perdidas"
+  ],
+  "automacoes": [
+   "Rotina diária executa as réguas ativas sobre títulos em aberto",
+   "Cada etapa dispara uma única vez por título; se várias caírem no mesmo dia, só a mais recente é enviada",
+   "Cobrança é suprimida automaticamente se o título foi pago; opt-out de cobrança é respeitado",
+   "Canal alternativo é usado quando o contato não tem o canal principal"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Opt-out e finalidade COBRANCA conforme preferências LGPD"
+  ],
+  "limites": [
+   "Depende de títulos no contas a receber e de contatos com telefone ou e-mail; sem destino, a etapa é registrada como SEM_DESTINO",
+   "Envio real exige canal configurado e janela de horário comercial para WhatsApp, SMS e voz"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/comunicacao",
+    "legenda": "Aba Régua de cobrança com linha do tempo e simulador"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Comunicação · Chatbot e FAQ",
+  "rota": "/edu/comunicacao",
+  "titulo_chamada": "Robô de atendimento que consulta boleto, notas e calendário",
+  "descricao": "O chatbot atende pelos canais de mensagem (exceto e-mail) com um menu inicial: boletos e pagamentos, notas e frequência, calendário acadêmico, dúvidas frequentes e falar com atendente. Os fluxos são montados pela equipe como nós e opções com gatilhos, validados antes de salvar e testados no simulador sem enviar nada.\n\nPara consultas pessoais, o robô primeiro confirma a identidade pedindo os 4 primeiros dígitos do CPF, e então informa as cobranças em aberto, o desempenho recente ou os próximos eventos. Quando não entende, tenta a FAQ, depois a IA e, por fim, transfere a conversa para um atendente com uma nota explicando o motivo.\n\nÉ um robô de verdade: atende sozinho o que sabe e passa para uma pessoa o que não sabe.",
+  "funcionalidades": [
+   "Editor de fluxos do chatbot com gatilhos, prioridade e validação",
+   "Perguntas frequentes (FAQ) por categoria com palavras-chave e contagem de uso",
+   "Simulador para testar fluxos e FAQ sem enviar mensagens",
+   "Menu padrão com boleto, notas, calendário, dúvidas e atendente",
+   "Consultas autenticadas por CPF parcial: cobranças em aberto, notas e frequência, calendário",
+   "Transferência para humano (handoff) com nota interna e lembrete de SLA"
+  ],
+  "automacoes": [
+   "Ordem de resposta: fluxo por gatilho, FAQ, IA e transferência para atendente",
+   "Confirmação de identidade renovada a cada 15 minutos nas consultas pessoais",
+   "Limite diário de respostas da IA por conversa (padrão 5) e transferência quando excedido",
+   "Fora do horário, o handoff avisa que o atendimento humano é em horário comercial"
+  ],
+  "ia": [
+   "Quando fluxo e FAQ não resolvem e a IA está ativa, o robô consulta o cliente de IA usando só a FAQ como base (resposta em até 5 linhas, sem inventar prazos ou valores); [HANDOFF] transfere ao humano"
+  ],
+  "base_normativa_literatura": [
+   "LGPD: consultas de dados pessoais só após confirmação de identidade e sem pedir dados sensíveis"
+  ],
+  "limites": [
+   "A resposta por IA exige chave configurada; sem ela, o robô trabalha apenas com fluxos e FAQ",
+   "O robô de WhatsApp e Instagram só opera com canal real configurado e webhooks apontados para o sistema"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/comunicacao",
+    "legenda": "Aba Chatbot e FAQ com fluxos e simulador"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Comunicação · Redes sociais",
+  "rota": "/edu/comunicacao",
+  "titulo_chamada": "Calendário editorial, aprovação e moderação das redes",
+  "descricao": "O módulo guarda as contas de redes sociais (Instagram, Facebook, LinkedIn, TikTok, YouTube e X), um calendário editorial e o fluxo de aprovação de posts: rascunho, aprovação, aprovado e publicado, com rejeição e devolução. O sistema valida o limite de caracteres e a exigência de mídia de cada rede.\n\nPara Facebook e Instagram com token configurado, o post aprovado é publicado automaticamente no horário agendado e as métricas e comentários são importados. Nas demais redes, o sistema cria um lembrete para publicar manualmente e nunca finge publicação.\n\nA moderação de comentários classifica spam por padrões e alerta sobre palavras sensíveis; a equipe então aprova, oculta, marca como spam ou responde, e a resposta é publicada na rede quando há integração.",
+  "funcionalidades": [
+   "Contas de redes com sincronização de seguidores, métricas e comentários",
+   "Calendário editorial mensal e posts com texto, mídia e agendamento",
+   "Fluxo de aprovação: enviar, aprovar, rejeitar, devolver, cancelar e publicar",
+   "Validação de limites por rede (ex.: Instagram 2.200 caracteres, X 280) e exigência de mídia",
+   "Métricas por post e por conta, com registro manual e taxa de engajamento",
+   "Moderação de interações: aprovar, ocultar, spam e responder, com triagem automática"
+  ],
+  "automacoes": [
+   "Rotina agendada publica posts aprovados no horário, com até 3 tentativas em falhas transitórias",
+   "Sem token ou rede suportada, o post vira MANUAL e gera lembrete para o marketing",
+   "Comentários importados são triados: spam por padrões e alerta por palavras como golpe, fraude, procon, advogado e assédio, criando lembrete em 4 horas",
+   "Ocultar e responder são enviados à rede quando há token"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Publicação, métricas e moderação automáticas funcionam apenas para Facebook e Instagram, e exigem token e ID da página fornecidos pela instituição; LinkedIn, TikTok, YouTube e X só têm calendário e publicação manual",
+   "Não há robô que responda comentários de redes sociais automaticamente: a resposta é escrita por uma pessoa; a triagem de spam e alerta é por regras de palavras, sem IA",
+   "Mensagens diretas (DM) de Instagram e Facebook entram na inbox e podem ser atendidas pelo chatbot, desde que o canal esteja configurado"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/comunicacao",
+    "legenda": "Aba Redes sociais com calendário editorial e moderação"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Comunicação · Canais e envios",
+  "rota": "/edu/comunicacao",
+  "titulo_chamada": "Cada canal conectado com credenciais protegidas",
+  "descricao": "Aqui o administrador cria os canais: WhatsApp pela Meta Cloud API ou Twilio, Telegram por bot, e-mail pelo Resend, SMS e voz pelo Twilio, Instagram e Facebook pela Meta Graph e chat do site. Os campos exigidos de cada combinação são validados, as credenciais são cifradas e nunca mais exibidas, e há teste de conexão e instruções de webhook.\n\nA seção de regras gerais define janela de envio, dias, limites por hora e por dia, mensagem de fora do horário e dados do chatbot. A caixa de saída mostra cada mensagem, com status e erro explicado.\n\nA equipe vê o que foi enviado, o que falhou e por quê, sem planilhas de controle.",
+  "funcionalidades": [
+   "Criação de canais por tipo e provedor com campos obrigatórios validados",
+   "Credenciais cifradas e nunca exibidas após salvar",
+   "Teste de conexão e informações de webhook por canal",
+   "Regras gerais de envio: horário, dias úteis, limites, mensagem fora de horário e mensagem de boas-vindas",
+   "Caixa de saída com status, reenviar e cancelar"
+  ],
+  "automacoes": [
+   "Webhooks aceitam apenas chamadas com assinatura válida do provedor",
+   "Retentativas com espera crescente em falha transitória",
+   "Mensagens de canal sem credencial viram FALHA explicativa"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "A instituição precisa contratar e configurar cada provedor; o sistema não fornece números de WhatsApp, SMS ou e-mail",
+   "O despacho respeita a janela comercial para WhatsApp, SMS e voz"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/comunicacao",
+    "legenda": "Aba Canais e envios"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Admissões e vestibular",
+  "rota": "/edu/admissoes",
+  "titulo_chamada": "Processo seletivo do edital à classificação",
+  "descricao": "Em oito abas, a Admissões cuida de todo o ciclo de entrada: painel, processos e ofertas, campanhas e ROI, funil de candidatos, classificação e chamadas, matrícula, bolsas e rematrícula. Esta tela trata dos processos seletivos (vestibular tradicional ou agendado, ENEM, transferência externa, portador de diploma, pós lato sensu e stricto sensu) e das ofertas de vagas por curso, turno, modalidade e polo.\n\nDepois das inscrições, o sistema lança as notas por candidato, aplica pesos e critérios de desempate, aloca cada candidato na primeira opção com vaga (ou na segunda), forma lista de espera e gera chamadas de convocação. É possível simular a classificação sem gravar nada.\n\nA classificação é automática e determinística: o mesmo resultado, sem planilha e sem favorecimento.",
+  "funcionalidades": [
+   "Processos seletivos com edital, link do edital, janelas de inscrição, prova, divulgação e matrícula",
+   "Ofertas por curso, turno, modalidade, polo e número de vagas",
+   "Lançamento de notas em lote por componente (prova, redação, ENEM, entrevista, histórico, análise curricular, projeto)",
+   "Classificação por nota final de 0 a 100 com pesos, nota mínima e critérios de desempate (ex.: redação, prova, idade, data de inscrição)",
+   "Simulação da classificação sem gravar",
+   "Chamadas de convocação com prazo de matrícula, renúncia e lista de espera",
+   "Painel e relatórios de funil, vagas, campanhas"
+  ],
+  "automacoes": [
+   "Classificação automática com segunda opção e lista de espera",
+   "Próxima chamada preenche as vagas livres com os próximos da fila, uma convocação por candidato por chamada",
+   "Rotina diária encerra processos vencidos e expira convocações sem matrícula",
+   "Validação de CPF e geração de protocolo e senha provisória pelo sistema"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Critério de desempate por idade citado no código como praxe de vestibular (Estatuto do Idoso)"
+  ],
+  "limites": [
+   "Os endpoints públicos de inscrição, lead e consulta existem no servidor, mas a interface traz apenas as telas internas; a inscrição pública precisa ser ligada ao site da instituição",
+   "Não há aplicação de provas online do vestibular neste módulo: as notas são lançadas pela equipe"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/admissoes",
+    "legenda": "Painel de Admissões"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Admissões · Campanhas, ROI e funil de candidatos",
+  "rota": "/edu/admissoes",
+  "titulo_chamada": "Quanto custa cada matrícula, por canal",
+  "descricao": "As campanhas de captação registram orçamento, canal, metas de inscritos e de matrículas e os gastos lançados. O sistema calcula o retorno por campanha e por canal, e mostra o funil de candidatos, de lead a inscrito, prova, aprovado, convocado e matriculado, com desistentes e reprovados à parte.\n\nCada candidato tem histórico de interações (ligação, WhatsApp, e-mail, visita, nota) com agendamento de follow-up. Leads podem ser importados em lote.\n\nA equipe vê onde os candidatos estão parando, quem precisa de contato e qual canal rende mais.",
+  "funcionalidades": [
+   "Cadastro de campanhas com orçamento, canal, metas e lançamentos de gasto",
+   "Métricas e ROI por campanha e visão por canal de marketing",
+   "Funil de candidatos por etapa, com taxa de conversão",
+   "Cadastro de candidatos e leads, importação de leads e histórico de interações",
+   "Agendamento de follow-ups e lista de pendentes",
+   "Mudança de status com regras de transição permitidas"
+  ],
+  "automacoes": [
+   "Transições de status validadas (ex.: Lead vai a Inscrito ou Desistente)",
+   "Rotina diária lembra leads parados, matrículas paradas e orçamento de campanha excedido",
+   "Métricas e custo por matrícula calculados automaticamente"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "A origem dos leads depende de importação, lançamento manual ou integração com o módulo de Marketing; não há captação automática de anúncios nesta tela"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/admissoes",
+    "legenda": "Abas Campanhas e ROI e Funil de candidatos"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Admissões · Matrícula",
+  "rota": "/edu/admissoes",
+  "titulo_chamada": "Do candidato aprovado ao aluno matriculado",
+  "descricao": "Para cada convocado, a matrícula é iniciada com checklist de documentos, contrato de prestação de serviços educacionais gerado com a marca da instituição e aceite, e só depois efetivada. Ao efetivar, o sistema cria o aluno, atribui o RA e reatribui a taxa de inscrição ao novo aluno.\n\nA equipe revisa cada documento, pode lembrar o candidato de enviar os que faltam e cancelar a matrícula quando necessário.\n\nO fluxo guia a secretaria passo a passo e evita matrículas incompletas.",
+  "funcionalidades": [
+   "Início de matrícula para candidatos convocados",
+   "Checklist de documentos com envio e revisão (aprovar ou rejeitar)",
+   "Contrato de prestação de serviços educacionais em HTML com cabeçalho da instituição e aceite",
+   "Efetivação da matrícula e cancelamento",
+   "Lembrete de documentos pendentes",
+   "Cobrança e isenção da taxa de inscrição"
+  ],
+  "automacoes": [
+   "Efetivação cria o aluno e gera o RA no formato ano + sequencial",
+   "A taxa de inscrição, vinculada ao candidato, é transferida para o aluno na matrícula",
+   "Rotina diária sincroniza taxas pagas e lembra matrículas paradas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Contrato modelo cita multa de 2%, juros de 1% ao mês e a Lei 9.870/1999 (anuidades escolares)"
+  ],
+  "limites": [
+   "O contrato é um modelo e deve ser validado pelo jurídico da instituição; aceite é registro interno, sem assinatura qualificada"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/admissoes",
+    "legenda": "Aba Matrícula com checklist e contrato"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Admissões · Bolsas e descontos",
+  "rota": "/edu/admissoes",
+  "titulo_chamada": "Descontos e convênios calculados sem erro",
+  "descricao": "Cadastro de bolsas, convênios e descontos com percentual ou valor fixo, regras de elegibilidade e limite de concessões. O simulador mostra, para uma mensalidade, o desconto combinado: o maior benefício vale e os marcados como cumulativos somam, com teto de 100%.\n\nAs concessões por candidato ficam registradas e podem ser consultadas por bolsa, com data limite de desconto para antecipação.\n\nO financeiro e a captação enxergam o mesmo cálculo, sem divergência entre o que foi prometido e o que foi cobrado.",
+  "funcionalidades": [
+   "Cadastro de bolsas com percentual de desconto, cumulatividade, limite e convênio",
+   "Simulador de mensalidade com benefícios combinados",
+   "Concessão de bolsa ao candidato e consulta das concessões por bolsa",
+   "Elegibilidade por regras de contexto"
+  ],
+  "automacoes": [
+   "Combinação automática: o benefício de maior percentual sempre vale, os cumulativos somam e o total é limitado a 100%",
+   "Bolsas padrão criadas por bootstrap idempotente"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Esta bolsa é de captação (desconto na mensalidade); programas de assistência estudantil por critério socioeconômico ficam em Apoio · Bolsas"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/admissoes",
+    "legenda": "Aba Bolsas com simulador"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Admissões · Rematrícula",
+  "rota": "/edu/admissoes",
+  "titulo_chamada": "Rematrícula com lembretes que se agendam sozinhos",
+  "descricao": "A campanha de rematrícula gera a lista de alunos elegíveis, avalia cada um (elegível, pendente financeiro, pendente acadêmico ou trancado) e acompanha a confirmação. O aluno pode confirmar a sua rematrícula pelo sistema. A taxa de retenção é calculada sobre a base elegível, excluindo trancados e formandos.\n\nOs lembretes escalonados são agendados sozinhos em D-30, D-15, D-7 e D-1 antes do fim da janela, e a campanha tem relatório por curso.\n\nA instituição não precisa lembrar de cobrar a rematrícula: o calendário de avisos já está armado.",
+  "funcionalidades": [
+   "Campanhas de rematrícula com janela, desconto de antecipação e data limite",
+   "Geração da lista de alunos, abrir e encerrar a campanha",
+   "Avaliação de pendências financeiras e acadêmicas, recalcular, confirmar e marcar não renovou",
+   "Relatório de rematrícula e retenção por curso",
+   "Aluno confirma a própria rematrícula"
+  ],
+  "automacoes": [
+   "Lembretes agendados em D-30, D-15, D-7 e D-1 antes do fim da janela",
+   "Reavaliação automática pelas rotinas diárias e encerramento das janelas vencidas",
+   "Cálculo do desconto de antecipação até a data limite"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "A leitura de pendências financeiras e acadêmicas depende de financeiro e notas preenchidos nos outros módulos"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/admissoes",
+    "legenda": "Aba Rematrícula com retenção por curso"
+   }
+  ]
+ },
+ {
+  "nucleo": "Relacionamento e Captação",
+  "modulo": "Central de feedback (sugestões e problemas)",
+  "rota": "/edu/feedback",
+  "titulo_chamada": "Um botão em toda tela para sugerir ou relatar problema",
+  "descricao": "Em todas as telas logadas há um botão flutuante discreto, também acessível por Alt+Shift+F, para enviar sugestão, melhoria, erro, bug ou dúvida. O usuário descreve o caso, vê o que será enviado, pode desmarcar o contexto técnico e os registros do console, anexar captura de tela e até enviar de forma anônima.\n\nA equipe vê tudo na Central de feedback: painel e fila de triagem com prioridade, status, responsável, resposta ao autor e votos nas sugestões. Cada envio recebe um número no formato FBK-ano-sequência e o sistema avisa sozinho possíveis itens similares.\n\nDados sensíveis são removidos antes do envio: tokens, CPF, e-mail, telefone, cartão e senhas viram marcadores.",
+  "funcionalidades": [
+   "Botão flutuante em todas as telas autenticadas com atalho Alt+Shift+F",
+   "Envio de sugestão, melhoria, erro, bug ou dúvida, com prioridade e passos para reproduzir",
+   "Captura automática e opcional de tela, versão, perfil, navegador e últimos erros do console, sempre com prévia ao usuário",
+   "Anexo de captura de tela (arquivo ou captura da aba) e envio anônimo",
+   "Meus envios, lista de sugestões com votação e aviso de itens similares",
+   "Central da equipe com painel, fila filtrável, atribuição, status, resposta ao autor, duplicidade, notas internas e exportação CSV",
+   "Encaminhamento do item para a Central de Atendimento"
+  ],
+  "automacoes": [
+   "Sanitização no navegador e repetida no servidor: JWT, tokens, chaves de API, CPF, e-mail, telefone, cartão, UUID e dados longos viram marcadores",
+   "Limite de 15 envios por hora por usuário",
+   "Notificação ao autor a cada mudança de status ou resposta; bugs e itens críticos notificam administração e suporte",
+   "Votos migram para o item principal quando um duplicado é marcado",
+   "Rotina apaga logs e capturas de itens encerrados há mais de 180 dias"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD: minimização de dados e retenção limitada"
+  ],
+  "limites": [
+   "A captura de tela do navegador depende de permissão e suporte do navegador",
+   "Se a Central de Atendimento não estiver instalada, o encaminhamento abre um chamado no Apoio ao docente"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/feedback",
+    "legenda": "Central de feedback com painel e fila de triagem"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Infraestrutura e patrimônio",
+  "rota": "/edu/infraestrutura",
+  "titulo_chamada": "Prédios, bens, manutenção e custos sob controle",
+  "descricao": "O módulo de Infraestrutura reúne em 17 abas a agenda, as solicitações e ordens de serviço, a frota, a segurança patrimonial, os indicadores de pessoas, o patrimônio com etiquetas, transferências e inventário por QR, a manutenção, os chamados, as melhorias 5W2H, o estacionamento, o pátio, a energia e a adequação por curso. O Painel resume o que exige atenção.\n\nOs indicadores calculam ordens de serviço abertas por prioridade, vencidas, idade média, SLA cumprido, tempo médio de reparo, disponibilidade, custo por metro quadrado e os bens que mais geram corretivas.\n\nAs rotinas agendadas geram manutenções preventivas, avisam OS vencidas, projetos atrasados e reservas, sem depender de memória.",
+  "funcionalidades": [
+   "Painel com indicadores de manutenção, SLA, custos e bens com mais corretivas",
+   "17 abas navegáveis por link (parâmetro secao)",
+   "Categorias de bens com vida útil e valor residual pré-cadastradas (mobiliário, TI, laboratório, cadeiras odontológicas, manequins, veículos e outras)",
+   "Modelos de checklist preventivo (ar-condicionado, extintor, elevador, gerador, caixa-d'água, SPDA, autoclave, laboratório, TI)",
+   "Regras de uso de áreas comuns e ações de eficiência energética pré-cadastradas"
+  ],
+  "automacoes": [
+   "Rotinas agendadas: planos preventivos, OS vencidas, projetos atrasados, reservas, estacionamento e energia/iluminação",
+   "Cálculo automático de depreciação linear e SLA por prioridade"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Valores e prazos padrão são modelos a validar pela instituição",
+   "Sem integração com sistemas externos de manutenção ou telemetria"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/infraestrutura",
+    "legenda": "Painel de Infraestrutura"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Agenda de infraestrutura",
+  "rota": "/edu/infraestrutura?secao=agenda",
+  "titulo_chamada": "Extintor, CIPA e telhado: nada cai no esquecimento",
+  "descricao": "A agenda reúne tudo o que a infraestrutura precisa fazer: preventivas, eventuais, aquisições, expansões, segurança, avisos, sinalização, identidade visual e mobiliário, por área (elétrica, hidráulica, telhado, jardim, extintor, CIPA, EPI, simulado e outras), com responsável, departamento e sala.\n\nItens de manutenção preventiva e de segurança podem se repetir em intervalo de dias: ao concluir, o sistema cria a próxima ocorrência com o mesmo responsável. Atrasos aparecem em destaque e cada item tem anotações.\n\nO responsável é lembrado automaticamente, sem agenda paralela.",
+  "funcionalidades": [
+   "Itens por 9 tipos e 16 áreas, com filtros por tipo, área, status, responsável, departamento, período e atrasados",
+   "Iniciar, concluir e cancelar, e anotações por item",
+   "Recorrência em dias para preventivas e itens de segurança",
+   "Resumo e catálogo de tipos e áreas",
+   "Lista de pessoas para escolher responsáveis sem expor e-mail ou telefone"
+  ],
+  "automacoes": [
+   "Ao concluir um item recorrente, a próxima ocorrência é criada sozinha",
+   "Lembretes ao responsável e rotina agendada de acompanhamento da agenda"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "A agenda é uma lista com filtros e recorrência; não há visão de calendário gráfico nem agenda por curso"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/infraestrutura?secao=agenda",
+    "legenda": "Agenda de infraestrutura"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Solicitações e OS (com fotos)",
+  "rota": "/edu/infraestrutura?secao=solicitacoes",
+  "titulo_chamada": "Leia o QR da sala, fotografe e abra o chamado",
+  "descricao": "Qualquer pessoa logada, inclusive alunos, abre solicitação de problema ou implementação com relato, local e até 6 fotos. O QR Code fixado na sala preenche o local sozinho. A gestão triageia, define responsável, prazo, custo estimado e prioridade e gera a ordem de serviço.\n\nA OS só é concluída com relatório de execução e custo real, e registra se foi no prazo. Ao concluir a última OS, o solicitante é avisado e avalia o atendimento de 1 a 5 estrelas.\n\nO prazo padrão é automático por prioridade: urgente 1 dia, alta 3, média 7 e baixa 15.",
+  "funcionalidades": [
+   "Abertura com tipo, categoria, título, relato, local, prioridade e fotos",
+   "QR Code por local com geração e impressão pela gestão",
+   "Triagem, geração de OS, resolução, reabertura, cancelamento e rejeição com motivo",
+   "OS com iniciar, concluir e cancelar, e relatório de execução",
+   "Avaliação do solicitante, comentários e painel",
+   "Anexos com verificação de segurança (tipo real e malware)"
+  ],
+  "automacoes": [
+   "Prazo padrão por prioridade",
+   "Solicitante notificado quando a solicitação é resolvida",
+   "Rotina agendada avisa prazos vencidos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Leitura do QR pela câmera usa o recurso nativo do navegador (Chrome, Android, Edge); em outros, digitar o código ou usar leitor USB",
+   "Foto é limitada em tamanho e quantidade"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/infraestrutura?secao=solicitacoes",
+    "legenda": "Solicitações e OS"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Frota",
+  "rota": "/edu/infraestrutura?secao=frota",
+  "titulo_chamada": "Veículos, motoristas, multas e custo por km",
+  "descricao": "A frota cadastra veículos com placa (padrão Mercosul ou antiga), odômetro que não regride, motoristas com CNH cifrada e alerta de validade, abastecimentos, revisões, seguros, documentos (CRLV, IPVA e outros), multas e reservas de viagem.\n\nA reserva é aprovada com motorista de CNH válida e conflito de horário bloqueado. Multas têm tratamento: pela instituição, ressarcimento ou desconto em folha, com pagamentos parciais.\n\nO sistema calcula o custo por km e o consumo, e mostra alertas de vencimentos em faixas de 30, 60 e 90 dias.",
+  "funcionalidades": [
+   "Cadastro de veículos, motoristas, seguros e documentos",
+   "Registros de quilometragem e abastecimento",
+   "Multas com responsável, tratamento, ressarcimento parcial, recurso e pagamento",
+   "Manutenções e revisões que atualizam o odômetro e agendam a próxima",
+   "Reservas e viagens com aprovação, início e conclusão com km",
+   "Painel, ficha do veículo, custo por km e relatório de multas em CSV"
+  ],
+  "automacoes": [
+   "Alertas de documentos, seguros, CNH, revisões e multas por vencer",
+   "Rotina agendada cria lembretes de vencimento",
+   "Custo por km = combustível + manutenção + multas líquidas + seguro rateado, dividido pelos km rodados em 12 meses"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Menções ao Código de Trânsito (pontos na CNH) e à placa Mercosul no código"
+  ],
+  "limites": [
+   "Sem GPS, telemetria ou integração com Detran ou seguradora: os dados são cadastrados manualmente",
+   "Desconto em folha é apenas registrado; o RH ou Financeiro efetiva o lançamento"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/infraestrutura?secao=frota",
+    "legenda": "Frota com alertas e custo por km"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Segurança patrimonial",
+  "rota": "/edu/infraestrutura?secao=seguranca",
+  "titulo_chamada": "Escalas, rondas por QR e passagem de serviço",
+  "descricao": "Cadastra postos (portaria, pátio, estacionamento, salas e ronda móvel) com efetivo mínimo, agentes próprios ou terceirizados vinculados ao RH, e escalas, inclusive plantão 12x36. Conflito de horário do mesmo agente, mesmo cruzando a meia-noite, é barrado.\n\nA cobertura do dia mostra postos descobertos. O agente registra ponto de entrada e saída e as rondas são feitas lendo QR de checkpoints; uma anormalidade gera ocorrência. Ocorrências de gravidade alta e crítica notificam a gestão. A passagem de serviço exige a ciência de quem assume.",
+  "funcionalidades": [
+   "Postos, agentes e escalas em lote, com troca e falta",
+   "Cobertura por data",
+   "Ponto do agente com atraso após 10 minutos",
+   "Checkpoints com QR e rondas concluídas ou incompletas",
+   "Ocorrências com encaminhamento obrigatório ao encerrar",
+   "Passagem de serviço com ciência"
+  ],
+  "automacoes": [
+   "Conflito de escala detectado e bloqueado",
+   "Atraso calculado pelo ponto",
+   "Notificação automática de ocorrências altas e críticas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O QR é lido pela câmera do celular; a leitura do checkpoint também aceita digitar o código"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/infraestrutura?secao=seguranca",
+    "legenda": "Segurança patrimonial"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Infraestrutura · Indicadores de pessoas",
+  "rota": "/edu/infraestrutura?secao=pessoas",
+  "titulo_chamada": "Dados objetivos da operação para apoiar o RH",
+  "descricao": "Para cada pessoa que não é aluno, o módulo calcula indicadores de manutenção (cumprimento de prazo, avaliação dos solicitantes), frota (viagens, km, multas, pontos da CNH) e segurança patrimonial (assiduidade, rondas, ocorrências) e um índice de 0 a 100.\n\nÉ subsídio objetivo para o RH. A decisão avaliativa é humana, em respeito ao art. 20 da LGPD. O acesso é limitado ao RH e à administração, com auditoria; cada funcionário vê os próprios.",
+  "funcionalidades": [
+   "Indicadores por pessoa e em lote por perfil",
+   "Índice de infraestrutura de 0 a 100 a partir dos componentes disponíveis",
+   "Acesso do próprio funcionário aos seus indicadores"
+  ],
+  "automacoes": [
+   "Cálculo automático em período padrão de 12 meses a partir de OS, agenda, frota e segurança"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD art. 20 (decisão automatizada): indicador é subsídio, decisão é humana"
+  ],
+  "limites": [
+   "Só tem dados de quem usa os módulos de infraestrutura"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/infraestrutura?secao=pessoas",
+    "legenda": "Indicadores de pessoas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Patrimônio, etiquetas, transferências e inventário por QR",
+  "rota": "/edu/infraestrutura?secao=patrimonio",
+  "titulo_chamada": "Cada bem com etiqueta, responsável e inventário em minutos",
+  "descricao": "O patrimônio cadastra bens com tombamento, categoria, local, departamento, fotos (até 12) e depreciação linear mensal. O sistema gera etiquetas com QR Code e Code 128 em PDF vetorial, SVG e HTML imprimível, em layouts A4 em colunas ou rolo, e instala layouts prontos.\n\nO termo de responsabilidade só vale com o aceite do responsável (data, IP e hash). Transferências de responsável exigem o aceite dele, com prazo. O inventário físico é feito lendo os QR com a câmera ou leitor, inclusive em lote offline, e as divergências são decididas depois.",
+  "funcionalidades": [
+   "Cadastro, transferência, baixa e reativação de bens, com histórico",
+   "Fotos do bem, localização por prédio, andar e sala",
+   "Etiquetas em lote (até 2.000) com layouts configuráveis",
+   "Termos de responsabilidade e transferências com aceite",
+   "Inventário por QR com divergências, decisões (ajustar, manter, baixar, investigar, regularizar) e relatório CSV"
+  ],
+  "automacoes": [
+   "Depreciação calculada pelo sistema",
+   "Transferências sem resposta expiram por rotina agendada",
+   "Baixa do bem encerra termos e cancela transferências pendentes"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "QR Code ISO/IEC 18004 e Code 128 gerados sem dependências externas"
+  ],
+  "limites": [
+   "Câmera usa o leitor nativo do navegador; sem ele, digitar o tombamento ou usar leitor USB",
+   "A etiqueta não inclui logotipo; o PDF usa fonte padrão Helvetica"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/infraestrutura?secao=patrimonio",
+    "legenda": "Patrimônio"
+   },
+   {
+    "rota": "/edu/infraestrutura?secao=etiquetas",
+    "legenda": "Etiquetas com QR"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Infraestrutura · Manutenção, chamados e melhorias 5W2H",
+  "rota": "/edu/infraestrutura?secao=manutencao",
+  "titulo_chamada": "Preventiva automática e projetos de melhoria 5W2H",
+  "descricao": "Planos preventivos com checklist geram ordens de serviço automaticamente na periodicidade definida. A OS controla peças, custos e SLA. Chamados simples ficam em aba própria. Projetos de melhoria seguem o formato 5W2H, com etapas e evidências.",
+  "funcionalidades": [
+   "Planos preventivos e ordens de serviço com peças, checklist e histórico por bem ou sala",
+   "Chamados com comentários, atendimento, geração de OS e resolução",
+   "Projetos de melhoria 5W2H com etapas, evidências e painel"
+  ],
+  "automacoes": [
+   "Rotina gera OS dos planos preventivos e avisa OS vencidas e projetos atrasados"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Método 5W2H"
+  ],
+  "limites": [
+   "Existe sobreposição com a aba Solicitações e OS, mais recente"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/infraestrutura?secao=manutencao",
+    "legenda": "Manutenção e OS"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Infraestrutura · Estacionamento, pátio e energia",
+  "rota": "/edu/infraestrutura?secao=estacionamento",
+  "titulo_chamada": "Vagas, eventos no pátio e consumo de energia",
+  "descricao": "Áreas e vagas de estacionamento com credenciais, entrada e saída, ocupação e ocorrências. O pátio recebe reservas de áreas comuns com regras de uso e aprovação. A aba de energia controla pontos de luz, medidores, leituras de consumo e ações de eficiência.",
+  "funcionalidades": [
+   "Estacionamento: áreas, vagas em lote, veículos, acessos e ocorrências",
+   "Pátio: regras de uso, reservas com aprovação e disponibilidade",
+   "Energia: pontos de iluminação, medidores, leituras, consumo e ações de eficiência"
+  ],
+  "automacoes": [
+   "Rotinas agendadas de estacionamento, reservas e energia",
+   "Reporte de lâmpada defeituosa abre chamado automaticamente"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Sem integração a cancelas ou medidores inteligentes: leituras são lançadas"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/infraestrutura?secao=estacionamento",
+    "legenda": "Estacionamento"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Infraestrutura · Adequação por curso",
+  "rota": "/edu/infraestrutura?secao=adequacao",
+  "titulo_chamada": "O que o curso exige e o que a estrutura tem",
+  "descricao": "Cada curso recebe requisitos de espaços e equipamentos, por quantidade mínima ou por número de vagas. O sistema compara com salas e bens existentes e mostra exigido, existente, lacuna, cobertura e custo estimado, com relatório em HTML e geração de projetos de melhoria a partir das lacunas.",
+  "funcionalidades": [
+   "Requisitos por curso com referência ao MEC informada pela instituição e cópia entre cursos",
+   "Cálculo de adequação por vagas informadas ou matrículas ativas",
+   "Relatório e geração de projetos das lacunas"
+  ],
+  "automacoes": [
+   "Comparação automática com espaços e bens cadastrados"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Os requisitos são cadastrados pela instituição; o sistema não traz tabelas oficiais do MEC prontas"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/infraestrutura?secao=adequacao",
+    "legenda": "Adequação por curso"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Compras: requisições, cotações, pedidos e conferência",
+  "rota": "/edu/suprimentos",
+  "titulo_chamada": "Compra só com três cotações ou exceção justificada",
+  "descricao": "Da requisição ao recebimento, o fluxo é guiado: a requisição passa pela alçada de aprovação por valor, vai à cotação com fornecedores, e o encerramento é bloqueado sem ao menos 3 propostas de fornecedores distintos, salvo exceção formal justificada e aprovada. O mapa comparativo é congelado.\n\nA compra, com forma de pagamento, também passa pela alçada. O pedido só nasce de compra aprovada. Na conferência, contagem, pedido e nota são comparados, as divergências tratadas e só o aceito entra no estoque. Contas a pagar são geradas em rascunho para o financeiro conferir.",
+  "funcionalidades": [
+   "Requisições com departamento e envio para aprovação",
+   "Cotações com mapa comparativo e critério",
+   "Exceções de cotação com justificativa mínima de 30 caracteres",
+   "Aprovações por alçada (padrão 0, R$ 2.000 e R$ 10.000)",
+   "Pedidos, recebimento e conferência com devolução ao fornecedor",
+   "Contas a pagar em rascunho"
+  ],
+  "automacoes": [
+   "Bloqueio automático de encerramento sem cotações suficientes",
+   "Rotina acompanha prazos de compras",
+   "Redução proporcional das parcelas se o recebimento vier menor"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Papéis e alçadas usam os papéis existentes; valores padrão devem ser ajustados",
+   "Conta a pagar em rascunho é marcada pelo sistema, pois o financeiro não tem estado rascunho nativo"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/suprimentos",
+    "legenda": "Suprimentos: painel, requisições e cotações"
+   }
+  ]
+ },
+ {
+  "nucleo": "Infraestrutura",
+  "modulo": "Almoxarifado e estoque",
+  "rota": "/edu/suprimentos",
+  "titulo_chamada": "Estoque com mínimo, validade e curva ABC",
+  "descricao": "Controle de saldos por almoxarifado, lotes e validade, movimentações, inventário com contagem cega, curva ABC, consumo por departamento e kits de insumos para aulas práticas. A reposição sugere o que comprar quando o saldo atinge o ponto de pedido.",
+  "funcionalidades": [
+   "Saldos, lotes, movimentações e custo médio",
+   "Inventário e contagem cega com recontagem",
+   "Sugestão de reposição e geração de requisição",
+   "Kits de insumos por aula",
+   "Relatórios de posição, consumo, itens parados e divergências"
+  ],
+  "automacoes": [
+   "Rotinas agendadas de estoque mínimo, validade de lotes e kits de aulas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Reposição é heurística de ponto de pedido, não previsão estatística"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/suprimentos",
+    "legenda": "Aba Estoque"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Vendas e PDV",
+  "rota": "/edu/suprimentos",
+  "titulo_chamada": "Ponto de venda com caixa e recibo",
+  "descricao": "Produtos de venda, abertura e fechamento de caixa com sangria e suprimento, vendas à vista ou lançadas ao aluno, devoluções e recibo em HTML. O fechamento compara o dinheiro esperado com o contado.",
+  "funcionalidades": [
+   "Produtos e PDV",
+   "Caixa com movimentos e fechamento com diferença",
+   "Vendas, devoluções, recibo e relatório"
+  ],
+  "automacoes": [
+   "Cálculo do dinheiro esperado e bloqueio de sangria acima do saldo"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Sem emissão fiscal nem maquininha integrada"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/suprimentos",
+    "legenda": "Aba Vendas e PDV"
+   }
+  ]
+ },
+ {
+  "nucleo": "Administrativo e Financeiro",
+  "modulo": "Fornecedores e catálogo",
+  "rota": "/edu/suprimentos",
+  "titulo_chamada": "Fornecedores, certidões e contratos em dia",
+  "descricao": "Cadastro de fornecedores com documentos e certidões com validade, avaliações e contratos com reajuste e renovação. O catálogo guarda itens e categorias.",
+  "funcionalidades": [
+   "Fornecedores, documentos e avaliações",
+   "Contratos com reajuste e renovação",
+   "Catálogo de itens e categorias"
+  ],
+  "automacoes": [
+   "Rotinas atualizam status de documentos e contratos, renovam automaticamente os marcados e criam lembretes"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Não consulta certidões em órgãos públicos; a validade é informada"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/suprimentos",
+    "legenda": "Aba Fornecedores"
+   }
+  ]
+ }
+]

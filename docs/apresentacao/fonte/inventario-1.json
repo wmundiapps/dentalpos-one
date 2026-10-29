@@ -1,0 +1,1987 @@
+[
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Painel executivo",
+  "rota": "/edu",
+  "titulo_chamada": "A instituição inteira em um painel, com semáforo",
+  "descricao": "O Painel executivo reúne, em uma única tela, os principais indicadores da universidade: matrículas, evasão, inadimplência, receita e despesa, ocupação de salas, requerimentos, prazos regulatórios, produção científica, acervo da biblioteca e muitos outros. Cada indicador mostra o valor atual, a variação em relação à última medição, a tendência e um semáforo verde, amarelo ou vermelho. Ao clicar no indicador, abre-se o detalhe e o caminho direto para a tela que resolve o problema.\n\nA tela é pensada para quem não tem tempo: o reitor escolhe um perfil (reitoria, administração, coordenação, secretaria, professor, biblioteca, infraestrutura ou admissões) e vê somente o que importa para aquele papel. Não é preciso montar relatório, pedir planilha nem lembrar de conferir nada: os números são calculados pelo próprio sistema a partir do que a equipe já registra no dia a dia.\n\nAbaixo dos indicadores ficam as Metas e OKRs da instituição e o Assistente executivo, no qual o gestor pergunta em linguagem comum, por exemplo \"Como está a evasão?\", e recebe uma resposta baseada nos números do painel.",
+  "funcionalidades": [
+   "8 perfis de painel (reitoria, administração, coordenação, secretaria, professor, biblioteca, infraestrutura e admissões); cada papel só enxerga o seu",
+   "43 indicadores no catálogo, com valor, valor anterior, variação %, tendência, semáforo, meta e link para a tela de origem",
+   "Filtro por curso (o perfil professor vê apenas as suas turmas)",
+   "Histórico de cada indicador (foto diária) para ver a evolução",
+   "Metas e OKRs: objetivos com resultados-chave, painel de progresso e registro de check-in com comentário e nível de confiança",
+   "Resultado-chave ligado a um indicador é atualizado automaticamente (modo \"Automática\")",
+   "Relatório executivo imprimível (HTML), com exportação também em JSON e CSV",
+   "Assistente executivo com perguntas sugeridas e briefing diário \"o que merece minha atenção hoje?\""
+  ],
+  "automacoes": [
+   "Foto diária de todos os indicadores (job reitoria:snapshot-indicadores) para calcular variação e histórico",
+   "Manutenção diária dos OKRs: sincroniza resultados-chave ligados a indicadores, recalcula a confiança e escala check-ins atrasados à reitoria",
+   "Lembrete de check-in para cada resultado-chave manual, aviso de fim de ciclo (D-7) e alerta de resultado-chave em risco",
+   "Cache de 60 segundos por indicador: o painel abre rápido e uma falha em um módulo não derruba os demais",
+   "Modelos de OKR prontos (retenção, saúde financeira, qualidade regulatória, experiência e eficiência) criados em rascunho pelo bootstrap"
+  ],
+  "ia": [
+   "Assistente executivo: responde perguntas sobre os indicadores usando IA generativa, citando indicador e valor; limite de 12 perguntas por minuto por usuário e registro de cada consulta",
+   "Resumo executivo do relatório pode ser redigido por IA (opção ia=true)",
+   "Sem IA configurada, o sistema devolve um resumo automático por regras (modo HEURÍSTICO), que cita os mesmos indicadores"
+  ],
+  "base_normativa_literatura": [
+   "Semáforo VERDE/AMARELO/VERMELHO e metas por indicador (definição própria do produto)",
+   "OKR (Objectives and Key Results) como método de metas, com check-ins periódicos",
+   "Indicadores alinhados ao que o MEC acompanha: ENADE, evasão, prontidão regulatória, execução do PDI"
+  ],
+  "limites": [
+   "A IA do assistente depende de chave configurada (ANTHROPIC_API_KEY ou OPENAI_API_KEY); sem chave o resumo é por regras",
+   "Indicador sem dado no módulo de origem aparece vazio com aviso, nunca com número inventado",
+   "Cadastro e ativação de objetivos de OKR é feito por API/bootstrap; a tela exibe o painel e permite o check-in",
+   "A foto diária e a manutenção de OKR exigem o agendador externo chamando /api/cron/edu"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu",
+    "legenda": "Painel com semáforos por indicador, perfil selecionado e botão Atualizar"
+   },
+   {
+    "rota": "/edu",
+    "legenda": "Aba Metas e OKRs com progresso e check-in"
+   },
+   {
+    "rota": "/edu",
+    "legenda": "Aba Assistente executivo respondendo a uma pergunta e citando indicadores"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Minha mesa e lembretes",
+  "rota": "/edu/minha-mesa",
+  "titulo_chamada": "Nada cai no esquecimento: tudo o que você precisa fazer, em ordem",
+  "descricao": "A Minha mesa é a caixa de entrada de trabalho de cada pessoa da instituição. Ela junta pendências de vários módulos, aprovações aguardando decisão, lembretes pessoais e avisos, e ordena tudo por urgência. Quem acessa vê de imediato o que está atrasado e o que vence nos próximos dias.\n\nO diferencial é que ninguém precisa lembrar de cadastrar tarefa: o sistema cria o lembrete sozinho quando algo gera prazo, como uma diligência do MEC, uma revisão de nota esperando parecer, um diário sem lançamento ou uma reserva de sala pendente. O usuário só conclui ou adia.",
+  "funcionalidades": [
+   "Três abas: Pendências, Lembretes e Notificações",
+   "Filtros por tipo, módulo, severidade e \"somente atrasados\"",
+   "Fontes consolidadas: lembretes, aprovações (suprimentos, secretaria, revisão de nota, progressão de carreira, reserva de espaço), tarefas (ordens de serviço, follow-up de candidatos, diário), etapas de jornadas e notificações",
+   "Criar lembrete pessoal com título, data, descrição e severidade",
+   "Concluir lembrete ou adiar o aviso de 1 a 30 dias",
+   "Marcar notificação como lida, uma a uma ou todas",
+   "Sino com resumo de pendências no topo do sistema",
+   "Panorama de vencidos por módulo e por responsável para a coordenação"
+  ],
+  "automacoes": [
+   "Lembretes gerados automaticamente por prazos de todos os módulos (regulatório, notas, calendário, jornadas, convênios, DOU e outros), com escalonamento de severidade",
+   "Lembretes com chave de deduplicação: o mesmo prazo não gera avisos repetidos",
+   "Jornadas escalam para o gestor quando a etapa vence"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "As notificações por WhatsApp, e-mail ou SMS dependem dos canais configurados no módulo de comunicação; sem canal, o aviso aparece apenas dentro do sistema",
+   "Os lembretes são processados pelo agendador externo (/api/cron/edu)"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/minha-mesa",
+    "legenda": "Pendências ordenadas por severidade, com atrasados em destaque"
+   },
+   {
+    "rota": "/edu/minha-mesa",
+    "legenda": "Aba Lembretes com botão Novo lembrete"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Agenda da Reitoria",
+  "rota": "/edu/reitoria/agenda",
+  "titulo_chamada": "Toda a agenda do reitor, inclusive prazos do MEC, em um só lugar",
+  "descricao": "A Agenda da Reitoria mostra, por dia, semana ou mês, os compromissos do reitor e da equipe junto com tudo o que impacta a gestão: calendário acadêmico, prazos regulatórios, diligências, publicações do DOU, fim de vigência de convênios, reuniões de colegiados, CIPA, prazos e audiências do jurídico e aniversariantes do RH. Em vez de cinco agendas diferentes, uma só.\n\nCada compromisso pode ter convidados que respondem sozinhos (aceitar ou recusar com justificativa), pauta, ata e link de videoconferência. Depois de aprovada, a ata fica imutável, com documento imprimível. Os lembretes saem automaticamente, sem depender de secretária ou de memória.",
+  "funcionalidades": [
+   "Visões de dia, semana e mês, com filtros por origem e tipo",
+   "Compromissos com local, dia inteiro, link de videoconferência, recorrência semanal, mensal ou anual e lembretes antes do evento",
+   "Convites com resposta do próprio convidado, recusa com justificativa e registro de presença",
+   "Pauta em lista e ata com decisões; aprovação da ata a torna imutável",
+   "Aviso de conflito de horário (não bloqueia)",
+   "Compromisso privado visível só ao organizador e aos convidados",
+   "Exportação em iCalendar (.ics) e em CSV; documento imprimível de pauta e ata",
+   "Efemérides acadêmicas (10 datas) criadas com um clique",
+   "Fontes externas pluggáveis: outros módulos registram novas fontes sem alterar a agenda"
+  ],
+  "automacoes": [
+   "Lembretes de compromisso (ex.: 1 hora e 1 dia antes) criados e reagendados pelo job reitoria:agenda-lembretes",
+   "Decisões da ata com prazo viram lembretes automaticamente",
+   "Prazos de protocolo, avaliação in loco prevista, decisão prevista, diligências e vencimento de atos aparecem sozinhos vindos do Regulatório"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Aniversariantes do RH exibem apenas nome e dia/mês",
+   "As fontes Jurídico e RH aparecem somente se esses módulos estiverem ativos na instalação (caso contrário a agenda indica módulo opcional ausente)"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/reitoria/agenda",
+    "legenda": "Visão mensal com compromissos, prazos do MEC e feriados"
+   },
+   {
+    "rota": "/edu/reitoria/agenda",
+    "legenda": "Compromisso aberto com convidados, pauta e ata"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Diário Oficial (DOU)",
+  "rota": "/edu/reitoria/dou",
+  "titulo_chamada": "O Diário Oficial vigiado por você, sem ler uma página",
+  "descricao": "O monitor do Diário Oficial da União separa, entre milhares de publicações, aquelas que dizem respeito à sua instituição: portarias do MEC, resoluções do CNE, atos da SERES, do INEP e da CAPES. A instituição cadastra suas palavras-chave (nome, CNPJ, código e-MEC, cursos) e o sistema classifica cada publicação por órgão, tipo de ato, tema e relevância.\n\nPara cada publicação relevante, o sistema identifica o prazo de ação (por exemplo, \"prazo de 30 dias\"), cria o lembrete, define um responsável e acompanha o tratamento até a conclusão. Quando o ato já existe no Regulatório, o vínculo é feito automaticamente; quando não existe, um clique cria o ato.",
+  "funcionalidades": [
+   "Palavras-chave por tipo (instituição, CNPJ, e-MEC, curso, órgão) com peso de 1 a 10, e sugestão automática a partir da Identidade e dos cursos",
+   "Importação por XML do INLABS, RSS/Atom ou texto colado, com modo \"apenas simular\"",
+   "Fontes cadastradas com coleta manual (\"coletar agora\") e automática",
+   "Classificação por órgão (MEC, INEP, CNE, SERES, CAPES), tipo de ato, tema (autorização, reconhecimento, renovação, credenciamento, ENADE/CPC, FIES/ProUni, EAD, supervisão, penalidade, regulamentação) e relevância ALTA/MÉDIA/BAIXA",
+   "Fluxo de tratamento: nova, em análise, em tratamento, concluída ou descartada, com responsável e observações",
+   "Criar ou vincular ato no Regulatório com um clique",
+   "Filtros por status, relevância, tema, órgão, período, atrasadas e sem responsável; exportação em CSV",
+   "Reclassificação em lote quando as palavras-chave mudam"
+  ],
+  "automacoes": [
+   "Coleta diária das fontes ativas com URL (job reitoria:dou-coleta)",
+   "Extração automática do prazo de ação do texto, com padrão por tema quando o texto não informa",
+   "Publicação de relevância ALTA gera lembrete CRÍTICO",
+   "Deduplicação por identificador externo ou hash; publicações sem relevância não são gravadas",
+   "Vínculo automático com atos já cadastrados (mesmo tipo e número)"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Órgãos e temas do MEC: MEC, INEP, CNE, SERES, CAPES",
+   "INLABS (Imprensa Nacional) como fonte de XML",
+   "Portarias, resoluções e pareceres como tipos de ato"
+  ],
+  "limites": [
+   "Não há login nem download do ZIP do INLABS: a coleta lê o XML já descompactado (por URL ou colagem)",
+   "A classificação é por palavras-chave e regras, não é interpretação jurídica: a revisão humana é obrigatória no tratamento",
+   "Coleta por URL aceita somente https e hosts públicos; falha da fonte fica registrada na própria fonte"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/reitoria/dou",
+    "legenda": "Lista de publicações com relevância, prazo e responsável"
+   },
+   {
+    "rota": "/edu/reitoria/dou",
+    "legenda": "Aba Importar com XML do INLABS e botão Simular"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Painéis executivos",
+  "rota": "/edu/reitoria/paineis",
+  "titulo_chamada": "Finanças, infraestrutura e cursos novos em painéis prontos",
+  "descricao": "Esta área reúne painéis gerenciais temáticos para o reitor e o pró-reitor: financeiro (receita, inadimplência, DRE gerencial e fluxo de caixa realizado e projetado), infraestrutura, implantação de cursos, investimentos por disciplina, CIPA, professores, provas, vestibular e publicações. Cada painel segue o mesmo formato: indicadores, gráficos e tabelas, com exportação em CSV.\n\nO painel de implantação de cursos mostra o funil de autorização, reconhecimento e renovação, com prazos e atos vigentes. Já o de investimentos rateia melhorias, equipamentos, reformas e software entre as disciplinas beneficiadas e mostra o valor investido por aluno, informação difícil de obter sem sistema.",
+  "funcionalidades": [
+   "Painel financeiro com receita, inadimplência, DRE gerencial por regime de caixa e fluxo realizado e projetado",
+   "Painel de implantação de cursos (funil de processos e prazos)",
+   "Painel de investimentos por disciplina, com rateio percentual (sem percentual, divisão igual) e R$ por aluno",
+   "Importação de projetos e bens da Infraestrutura para o painel de investimentos (idempotente)",
+   "Painéis de infraestrutura, CIPA, professores, provas, vestibular e publicações",
+   "Seleção de período (3, 6, 12 ou 24 meses) nos painéis financeiros",
+   "Exportação de KPIs e tabelas em CSV",
+   "15 painéis no total no catálogo, incluindo os de nível de ensino"
+  ],
+  "automacoes": [
+   "Os painéis se atualizam sozinhos a partir dos módulos de origem; não há digitação",
+   "Falha em uma fonte de dados vira aviso no painel, sem derrubar a tela"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O DRE é gerencial (regime de caixa sobre contas a pagar e a receber), não é demonstração contábil",
+   "Acesso restrito aos papéis de gestão; coordenação lê painéis selecionados"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/reitoria/paineis",
+    "legenda": "Painel financeiro com DRE gerencial e fluxo de caixa"
+   },
+   {
+    "rota": "/edu/reitoria/paineis",
+    "legenda": "Painel de implantação de cursos e investimentos por disciplina"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Acordos e convênios",
+  "rota": "/edu/reitoria/convenios",
+  "titulo_chamada": "Convênios com alerta de vencimento antes que seja tarde",
+  "descricao": "O cadastro executivo de acordos e convênios guarda tipo, parte e CNPJ, objeto, vigência, renovação automática, valor e responsável. O sistema calcula a situação de cada instrumento: vigente, vencendo, vencido, sem prazo ou inativo.\n\nOs avisos de vencimento chegam sozinhos em 90, 60 e 30 dias, e aditivos e renovações ficam registrados no histórico do convênio. Quem já usa o módulo Jurídico ou o de Apoio ao estudante importa os contratos e os convênios de estágio com um clique, sem redigitar.",
+  "funcionalidades": [
+   "Cadastro com abrangência nacional ou internacional (país), CNPJ, objeto, vigência, vigência indeterminada e renovação automática",
+   "Situação calculada: VIGENTE, VENCENDO, VENCIDO, SEM_PRAZO ou INATIVO",
+   "Aditivos e renovações com histórico (renovação exige nova data final maior)",
+   "Encerramento de convênio",
+   "Importar do Jurídico (convênios, cooperações e parcerias) e importar convênios de estágio",
+   "Painel de convênios e filtros por situação e busca"
+  ],
+  "automacoes": [
+   "Alertas de vencimento por faixas de aviso (padrão 90, 60 e 30 dias) pelo job reitoria:convenios-alertas",
+   "Fim de vigência aparece automaticamente na Agenda da Reitoria"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Importações dependem de os módulos Jurídico e Apoio estarem ativos; sem eles a resposta é \"indisponível\"",
+   "O cadastro guarda a referência ao jurídico, não o contrato assinado em si"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/reitoria/convenios",
+    "legenda": "Lista de convênios com situação e dias para vencer"
+   },
+   {
+    "rota": "/edu/reitoria/convenios",
+    "legenda": "Histórico de aditivos e renovação de um convênio"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Pessoas e avaliações",
+  "rota": "/edu/reitoria/pessoas",
+  "titulo_chamada": "Clima e desempenho por setor, sem expor ninguém",
+  "descricao": "Esta tela mostra a avaliação de funcionários de forma agregada por setor, grupo e ciclo, apenas com resumos como número de avaliados, avaliações concluídas e nota média. Nunca aparece a nota individual de uma pessoa, o que protege o colaborador e respeita a LGPD.\n\nGrupos com menos de 3 avaliados são suprimidos automaticamente para impedir que alguém seja identificado. Se o módulo de RH está ativo, um clique traz os resultados dos ciclos de avaliação do RH já agrupados por departamento.",
+  "funcionalidades": [
+   "Lançamento de resumo por ciclo, setor e grupo (avaliados, concluídas, nota média)",
+   "Atualização por reenvio do mesmo ciclo, setor ou grupo",
+   "Botão \"Trazer do RH\" para sincronizar avaliações do módulo de RH por departamento",
+   "Painel de pessoas nos painéis executivos"
+  ],
+  "automacoes": [
+   "Supressão automática de grupos com menos de 3 avaliados"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD: apenas dados agregados, nunca nota individual"
+  ],
+  "limites": [
+   "A integração com o RH só traz dados se o módulo de RH estiver ativo e tiver ciclos de avaliação",
+   "Os resumos são lançados ou sincronizados; a avaliação em si ocorre no módulo de RH"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/reitoria/pessoas",
+    "legenda": "Formulário de resumo por ciclo e botão Trazer do RH"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Graduação e pós",
+  "rota": "/edu/reitoria/niveis",
+  "titulo_chamada": "Graduação, lato e stricto sensu lado a lado",
+  "descricao": "Painel executivo por nível de ensino, com matrículas, evasão, conclusão e produção, separado em consolidado, graduação, pós-graduação lato sensu e pós-graduação stricto sensu. O reitor enxerga o peso de cada nível na instituição sem montar planilha.\n\nOs números vêm do cadastro acadêmico, do módulo de pós-graduação e da produção científica, e se atualizam sozinhos.",
+  "funcionalidades": [
+   "Quatro abas: consolidado, graduação, pós lato sensu e pós stricto sensu",
+   "Indicadores, séries e tabelas no formato único dos painéis executivos",
+   "Exportação em CSV"
+  ],
+  "automacoes": [
+   "Atualização automática a partir dos módulos de origem"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CAPES citada como referência da pós stricto sensu"
+  ],
+  "limites": [
+   "Mostra o que existe cadastrado nos módulos; instalações sem pós-graduação cadastrada exibem os painéis vazios"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/reitoria/niveis",
+    "legenda": "Aba consolidado com KPIs por nível de ensino"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Comparativo com outras IES",
+  "rota": "/edu/reitoria/comparativo",
+  "titulo_chamada": "Sua posição frente à concorrência, com dados do INEP",
+  "descricao": "O comparativo permite cadastrar instituições concorrentes ou de referência e confrontar indicadores oficiais como CPC, CC, IGC, ENADE e IDD, além de mensalidade, número de cursos, alunos e docentes, percentual de doutores, ingressantes e concluintes. O sistema calcula a posição da sua instituição, a diferença para a média e para a melhor.\n\nOs dados podem ser lançados à mão ou importados dos microdados públicos do INEP em CSV: o sistema reconhece os nomes de colunas mais comuns, explica linha a linha o que não conseguiu ler e permite reimportar sem duplicar.",
+  "funcionalidades": [
+   "Cadastro de IES concorrentes ou de referência, com CNPJ validado, código e-MEC e UF",
+   "Cadastro da própria instituição a partir da Identidade institucional",
+   "Indicadores CPC, CC, IGC, ENADE, IDD, mensalidade, cursos, alunos, docentes, % de doutores, ingressantes e concluintes, por ano e por curso",
+   "Importação de CSV do INEP (formato largo ou longo) com simulação e criação automática de IES",
+   "Ranking, posição da própria IES e diferença para o melhor e para a média",
+   "Evolução histórica por indicador",
+   "Exportação em CSV"
+  ],
+  "automacoes": [
+   "Ao consultar, a própria IES é completada automaticamente com cursos, alunos e mensalidade internos quando faltam",
+   "Reimportação atualiza valores existentes sem duplicar"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Microdados públicos do INEP / Censo",
+   "CPC, CC, IGC, ENADE e IDD (escala 0 a 5)",
+   "e-MEC (código da IES)"
+  ],
+  "limites": [
+   "Arquivos com layout muito diferente do reconhecido voltam com erro explicando os cabeçalhos lidos",
+   "Os dados dos concorrentes são os que a instituição importa ou digita; o sistema não os baixa sozinho"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/reitoria/comparativo",
+    "legenda": "Ranking de indicadores com a posição da própria instituição"
+   },
+   {
+    "rota": "/edu/reitoria/comparativo",
+    "legenda": "Importação do CSV do INEP com simulação"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Jornadas e fluxogramas",
+  "rota": "/edu/jornadas",
+  "titulo_chamada": "O caminho de cada pessoa na instituição, desenhado e acompanhado",
+  "descricao": "Jornadas transforma os processos da universidade em fluxogramas vivos. O sistema já traz 8 jornadas completas prontas: aluno (do vestibular ao diploma), candidato, professor, coordenador, funcionário, diretoria, reitoria e egresso. Cada etapa tem responsável, prazo, checklist e documentos esperados.\n\nQuando uma pessoa entra em uma jornada, o sistema acompanha cada etapa sozinho: cria lembrete, avisa o responsável, marca o atraso e escala para o gestor se o prazo estourar. O painel mostra onde cada pessoa está, o funil da jornada e os gargalos. Nada depende de alguém lembrar de cobrar.",
+  "funcionalidades": [
+   "8 jornadas padrão publicadas, com 164 etapas no conjunto (aluno 38, professor 24, funcionário 23, coordenador 19, reitoria 16, candidato e diretoria 15, egresso 14)",
+   "Fluxograma desenhado automaticamente (horizontal ou vertical) e exportável em Mermaid",
+   "Tipos de etapa: início, tarefa, aprovação, espera de evento, decisão (gateway com condições), marco e fim",
+   "Jornadas por pessoa: iniciar, avançar etapa, marcar checklist, registrar atraso, pular com justificativa, reatribuir, pausar, retomar ou cancelar",
+   "Disparo de eventos (ex.: \"matricula.confirmada\") que destravam etapas que aguardam",
+   "Painel de gargalos: etapas com mais atrasos, tempo médio, funil por etapa e atrasos por responsável",
+   "Modelos versionados: criar, validar, publicar, arquivar e gerar nova versão",
+   "Cada aluno só vê a própria jornada"
+  ],
+  "automacoes": [
+   "Cada etapa com prazo (SLA) cria lembrete automático na Minha mesa do responsável",
+   "Job jornadas.atrasos marca etapas vencidas como atrasadas",
+   "Escalonamento em dois níveis: ao vencer, avisa o gestor (nível 1); depois de N dias de atraso, a diretoria (nível 2), com lembrete crítico e histórico",
+   "Validação automática do grafo (etapas sem saída, laços, etapas inalcançáveis)",
+   "Permissões por papel: só o responsável da etapa, o papel indicado ou o administrador atua"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Notação de fluxograma e exportação Mermaid",
+   "Base regulatória das etapas: ENADE, e-MEC, CPA e PDI aparecem como etapas das jornadas de aluno, coordenador e reitoria"
+  ],
+  "limites": [
+   "Atalhos de módulo nas etapas apontam para rotas padrão que podem diferir das telas da instalação",
+   "O tempo de cada etapa (SLA) é sugestão do modelo padrão; a instituição ajusta nos seus modelos",
+   "Sem rotas públicas: o acesso é interno"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/jornadas",
+    "legenda": "Fluxograma da jornada do aluno do vestibular ao diploma"
+   },
+   {
+    "rota": "/edu/jornadas",
+    "legenda": "Aba Gargalos e atrasos com funil e atrasos por responsável"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Regulatório MEC · Painel e atos",
+  "rota": "/edu/regulatorio",
+  "titulo_chamada": "Atos, portarias e prazos do MEC sob controle, curso a curso",
+  "descricao": "O Painel Regulatório responde, em segundos, à pergunta mais temida da gestão: quais cursos e atos estão em risco? Para cada curso, mostra o ato vigente (autorização, reconhecimento ou renovação), a data de vencimento, a prontidão dos checklists, as diligências abertas e um semáforo de risco com os motivos.\n\nO repositório de atos guarda portarias, resoluções e pareceres. A partir da data de vencimento, o sistema agenda sozinho os avisos para o reitor e o coordenador a 180, 90, 60, 30, 15 e 7 dias, e ainda sugere a abertura do processo de renovação na janela correta.",
+  "funcionalidades": [
+   "Painel por curso: ato vigente, vencimento, prontidão, diligências abertas e vencidas, próximo prazo e risco (baixo, médio, alto ou crítico) com motivos",
+   "Resumo institucional: atos por situação (vigente, renovação aberta, vencendo, vencido, sem prazo), processos abertos e prontidão média",
+   "Repositório de atos (portarias de credenciamento, recredenciamento, autorização, reconhecimento, renovação, aditamento, resoluções e pareceres) com data de publicação, referência do DOU, vigência, vencimento e vagas autorizadas",
+   "Reavaliação de todos os prazos com um clique",
+   "Relatório de situação em HTML com a logomarca da instituição",
+   "Botão \"Preparar modelos padrão\" que cria os checklists e indicadores prontos (idempotente)",
+   "Próximos prazos consolidados (lembretes, diligências e protocolos)"
+  ],
+  "automacoes": [
+   "Job regulatorio:reavaliar-atos reavalia atos com vencimento e cria lembretes escalonados a 180, 90, 60, 30, 15 e 7 dias para RECTOR e COORDINATOR, com severidade crescente",
+   "Sugere abertura de processo de renovação quando a janela de 180 dias é atingida",
+   "Marca diligências vencidas e reforça prazos de protocolo",
+   "Classificação de risco calculada sozinha (ato vencido, diligência vencida, prazo próximo, prontidão baixa, obrigatórios pendentes)"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Decreto 9.235/2017 (citado no código como referência dos parâmetros)",
+   "Portarias do MEC e notas técnicas do INEP",
+   "Ciclo avaliativo trienal do SINAES (parametrizável por ato)",
+   "e-MEC"
+  ],
+  "limites": [
+   "Os parâmetros (janela de renovação de 180 dias, faixas de aviso, ciclo trienal) são padrões a conferir com a norma vigente, que muda por portaria",
+   "Os atos são cadastrados pela equipe ou criados a partir do DOU/processo; o sistema não consulta o e-MEC automaticamente"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/regulatorio",
+    "legenda": "Painel com semáforo de risco por curso e próximos prazos"
+   },
+   {
+    "rota": "/edu/regulatorio",
+    "legenda": "Aba Atos e portarias com vencimentos"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Regulatório MEC · Processos e diligências",
+  "rota": "/edu/regulatorio",
+  "titulo_chamada": "Credenciamento, recredenciamento e reconhecimento, etapa por etapa",
+  "descricao": "Cada processo no MEC (credenciamento, recredenciamento, autorização, reconhecimento e renovação de curso, aditamentos de vagas, endereço ou polo EAD e transferência de mantença) é acompanhado em um quadro por etapa: preparação, protocolado, em análise, diligência, avaliação in loco, decisão e publicado. O sistema só deixa avançar na ordem correta e exige o número do protocolo e-MEC e o checklist em dia.\n\nAs diligências recebidas do MEC ficam registradas com as exigências, o prazo e o responsável, e a equipe responde dentro da própria tela. Ao publicar um deferimento, a portaria já pode ser registrada no repositório de atos, fechando o ciclo.",
+  "funcionalidades": [
+   "Quadro por etapa e tabela de cadastro com filtros por tipo, etapa, resultado, curso e responsável",
+   "10 tipos de processo: credenciamento, recredenciamento, autorização, reconhecimento, renovação de reconhecimento, aditamentos (vagas, endereço, polo EAD), transferência de mantença e outro",
+   "Máquina de estados com transições válidas e histórico completo de cada mudança",
+   "Datas de prazo de protocolo, avaliação in loco prevista e decisão prevista",
+   "Registro de conceito obtido (1 a 5) e resultado (deferido ou indeferido, com observação)",
+   "Diligências: registro com exigências, resposta, cumprimento ou cancelamento",
+   "Ao publicar, registro do ato (portaria) com vigência, vencimento e ciclo avaliativo",
+   "Cálculo da janela legal de reconhecimento (50% a 75% da carga horária da 1ª turma), via API"
+  ],
+  "automacoes": [
+   "Lembretes automáticos de prazo para protocolar (escalonados), de avaliação in loco prevista (15 dias antes: \"preparar a IES, comissão interna e evidências para a visita\") e de decisão prevista",
+   "Lembretes de diligência por faixa de prazo e alerta CRÍTICO recorrente para diligência vencida, direcionado ao reitor",
+   "O protocolo e-MEC é obrigatório para sair da preparação; o checklist obrigatório precisa estar atendido",
+   "Aviso quando a janela de reconhecimento está encerrando"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Decreto 9.235/2017 e etapas do processo e-MEC",
+   "Janela de reconhecimento entre 50% e 75% da carga horária (parametrizável)",
+   "Avaliação in loco como etapa do processo"
+  ],
+  "limites": [
+   "O sistema acompanha o processo, mas não o protocola no e-MEC: o número do protocolo é informado pela equipe",
+   "Não há cadastro dos avaliadores do MEC nem da agenda da visita in loco: existe a etapa AVALIAÇÃO IN LOCO, a data prevista e o lembrete de preparação",
+   "O cálculo da janela de reconhecimento está disponível na API e é alimentado pelo cadastro do curso; a tela principal não traz um formulário específico para ele",
+   "Parâmetros padrão a conferir com a norma vigente"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/regulatorio",
+    "legenda": "Quadro de processos por etapa"
+   },
+   {
+    "rota": "/edu/regulatorio",
+    "legenda": "Cartão do processo com histórico, diligências e checklists vinculados"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Regulatório MEC · Checklists de prontidão",
+  "rota": "/edu/regulatorio",
+  "titulo_chamada": "Checklists oficiais prontos para recredenciamento e reconhecimento",
+  "descricao": "Os checklists de prontidão transformam as exigências do MEC em listas de verificação com responsável, prazo e evidência. A instituição escolhe um modelo e o sistema monta o checklist com os prazos já calculados: credenciamento e recredenciamento institucional, autorização de curso, reconhecimento de curso, renovação de reconhecimento, aditamentos de vagas, de endereço e de polo EAD, e transferência de mantença.\n\nCada item tem peso, dimensão (organização didático-pedagógica, corpo docente e tutorial, infraestrutura, documental, gestão institucional) e prazo. O percentual de prontidão é recalculado a cada alteração e alimenta o semáforo do painel. Um item obrigatório só é marcado como atendido com evidência anexa.",
+  "funcionalidades": [
+   "8 modelos padrão: credenciamento/recredenciamento, autorização, reconhecimento, renovação, aditamento de vagas, de endereço, de polo EAD e transferência de mantença",
+   "Itens com título, descrição, dimensão, peso, obrigatoriedade, responsável, prazo e status (pendente, em andamento, atendido, não aplicável)",
+   "Evidências por item: arquivo, URL ou descrição (até 20 por item)",
+   "Percentual de prontidão geral e por dimensão",
+   "Modelos editáveis: a instituição acrescenta ou remove itens",
+   "Vínculo do checklist ao processo ou ao curso",
+   "Conferência de documento contra o requisito (cole o texto do documento e receba o parecer)",
+   "Exemplos de itens: relatório da CPA, PDI vigente, laudos de bombeiros e acessibilidade, portaria do NDE, extensão curricularizada de 10%, bibliografia por vaga"
+  ],
+  "automacoes": [
+   "Cada item com prazo cria lembrete para o responsável (ou para o coordenador) 5 dias antes",
+   "Ao concluir um item, o lembrete é encerrado sozinho",
+   "A prontidão é recalculada automaticamente (EM_ANDAMENTO conta 30% do peso)",
+   "Os prazos dos itens saem do modelo (dias após a criação), limitados pelo prazo geral"
+  ],
+  "ia": [
+   "Conferência de evidência: a IA lê o texto do documento e diz se atende, atende parcialmente ou não atende, citando trechos e lacunas",
+   "Sem IA, a conferência é feita por correspondência de termos (modo HEURÍSTICO) com aviso de revisão humana obrigatória",
+   "A conferência só marca o item como atendido se o usuário pedir e o resultado for positivo"
+  ],
+  "base_normativa_literatura": [
+   "Eixos e dimensões dos instrumentos de avaliação do INEP (institucional, autorização, reconhecimento e renovação de curso)",
+   "DCN dos cursos",
+   "Currículo Lattes (item de docentes)",
+   "CPA e NDE como evidências"
+  ],
+  "limites": [
+   "O texto dos modelos é inspirado nos instrumentos do INEP e deve ser conferido com o instrumento vigente",
+   "A conferência por IA analisa o texto colado, não lê PDF ou imagem sozinha (não há OCR)",
+   "Os checklists não são exibidos em uma visão de calendário própria: os prazos aparecem na Minha mesa, no painel e na Agenda da Reitoria"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/regulatorio",
+    "legenda": "Checklist de reconhecimento de curso com prontidão por dimensão"
+   },
+   {
+    "rota": "/edu/regulatorio",
+    "legenda": "Conferência de um documento contra um requisito"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Regulatório MEC · Autoavaliação por instrumento",
+  "rota": "/edu/regulatorio",
+  "titulo_chamada": "Autoavaliação nota a nota, com plano de melhoria obrigatório",
+  "descricao": "A aba de Autoavaliação permite que o curso ou a instituição se avalie, indicador por indicador, antes que o MEC chegue. O sistema gera os indicadores padrão: 17 do curso (organização didático-pedagógica, corpo docente e infraestrutura) e 5 eixos institucionais.\n\nAs regras protegem a qualidade: todo conceito de 1 a 5 exige justificativa, e conceito 1 ou 2 exige plano de melhoria com prazo, que vira lembrete automático para o responsável.",
+  "funcionalidades": [
+   "Geração dos indicadores padrão de curso (1.1 a 3.4) e institucionais (eixos E1 a E5)",
+   "Conceito de 1 a 5 com justificativa obrigatória",
+   "Plano de melhoria, responsável e prazo exigidos para conceito 1 ou 2",
+   "Resumo da autoavaliação institucional",
+   "Alimenta o simulador de Conceito de Curso com a média por dimensão"
+  ],
+  "automacoes": [
+   "Plano de melhoria com prazo cria lembrete 7 dias antes para o responsável ou para o coordenador",
+   "O lembrete é encerrado quando o conceito sobe acima de 2"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Eixos do SINAES e dimensões dos instrumentos do INEP",
+   "Os códigos dos indicadores são próprios do produto e não substituem o instrumento oficial"
+  ],
+  "limites": [
+   "Os indicadores são uma síntese própria e não substituem o instrumento oficial do INEP"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/regulatorio",
+    "legenda": "Lista de indicadores com conceito e plano de melhoria"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Regulatório MEC · Simuladores CPC e CC",
+  "rota": "/edu/regulatorio",
+  "titulo_chamada": "Simule seu CPC e descubra o que falta para subir de faixa",
+  "descricao": "Os simuladores calculam o Conceito Preliminar de Curso (CPC) e o Conceito de Curso (CC) a partir das notas informadas e mostram, de forma visual, quanto cada componente contribui e quanto ainda poderia render. O gestor vê o que falta para chegar à próxima faixa e qual caminho é viável.\n\nCom isso, a coordenação decide onde investir: elevar o IDD, contratar doutores, melhorar a infraestrutura ou o regime de trabalho. As simulações podem ser salvas com um rótulo e comparadas ao longo do tempo.",
+  "funcionalidades": [
+   "Simulador de CPC com 8 componentes (ENADE, IDD, mestres, doutores, regime, organização didático-pedagógica, infraestrutura e oportunidades)",
+   "Simulador de CC com 3 dimensões (organização didático-pedagógica, corpo docente e tutorial, infraestrutura)",
+   "Contribuição e ganho potencial de cada componente",
+   "\"Para subir\": distância até a próxima faixa, nota necessária isolada por componente e caminho sugerido",
+   "Alerta de conceito insatisfatório (1 ou 2) no CC",
+   "Histórico de simulações salvas com rótulo",
+   "Pesos e cortes parametrizáveis"
+  ],
+  "automacoes": [
+   "Cálculo instantâneo, sem digitação de fórmula",
+   "Pré-preenchimento do CC a partir da autoavaliação do curso"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "CPC e CC conforme metodologia do INEP (pesos padrão: ENADE 20%, IDD 35%, mestres 7,5%, doutores 15%, regime 7,5%, organização 7,5%, infraestrutura 5%, oportunidades 2,5%)",
+   "Faixas contínuas de CPC (0,945; 1,945; 2,945; 3,945)"
+  ],
+  "limites": [
+   "É uma SIMULAÇÃO estimativa, sem valor oficial; cada resultado exibe o aviso. Pesos, faixas e regras devem ser conferidos com a nota técnica vigente do INEP",
+   "O simulador usa as notas que a instituição informa; não busca o CPC oficial do INEP"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/regulatorio",
+    "legenda": "Simulador de CPC com contribuição por componente"
+   },
+   {
+    "rota": "/edu/regulatorio",
+    "legenda": "Resultado com \"o que falta para subir de faixa\""
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Regulatório MEC · Análise de documentos por IA",
+  "rota": "/edu/regulatorio",
+  "titulo_chamada": "Cole o ofício do MEC e receba prazos e tarefas prontos",
+  "descricao": "Ao receber uma portaria, ofício, parecer ou diligência, a equipe cola o texto na tela e o sistema devolve um resumo, os prazos identificados (em datas e em dias), as exigências e as tarefas sugeridas. Com um clique, as tarefas viram lembretes com responsável e prazo.\n\nIsso reduz o risco de perder um prazo escondido no meio de um texto longo e dispensa a leitura linha a linha por quem já está sobrecarregado.",
+  "funcionalidades": [
+   "Entrada por texto do documento (mín. 30 caracteres), tipo, título e processo vinculado",
+   "Resumo, número do ato, prazos em data e em dias, exigências e tarefas sugeridas com severidade",
+   "Criação de lembretes a partir das tarefas selecionadas",
+   "Histórico de análises anteriores"
+  ],
+  "automacoes": [
+   "Tarefas sugeridas viram lembretes com prazo e severidade (na análise heurística, prazo de até 15 dias vira CRÍTICO)"
+  ],
+  "ia": [
+   "Análise do texto por IA generativa com saída estruturada",
+   "Sem IA, análise heurística por expressões regulares (datas dd/mm/aaaa, \"prazo de N dias\", verbos de exigência), claramente identificada como heurística"
+  ],
+  "base_normativa_literatura": [
+   "Portarias e ofícios do MEC, SERES e INEP como tipos de documento"
+  ],
+  "limites": [
+   "Analisa texto colado; não extrai texto de PDF ou imagem",
+   "IA depende de chave configurada; a heurística não substitui a leitura jurídica"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/regulatorio",
+    "legenda": "Texto de portaria colado e resultado com prazos e tarefas sugeridas"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Governança e PDI · PDI (execução e estrutura)",
+  "rota": "/edu/governanca",
+  "titulo_chamada": "O PDI deixa de ser um PDF engavetado e vira um painel vivo",
+  "descricao": "O Plano de Desenvolvimento Institucional é montado em eixos estratégicos, objetivos, metas, indicadores e ações, alinhados aos 5 eixos do SINAES. O painel de execução mostra o percentual de cumprimento geral e por eixo, com semáforo que compara o realizado com o que era esperado pelo tempo decorrido.\n\nA coleta dos indicadores é cobrada sozinha: cada meta tem periodicidade (mensal a anual) e, quando chega a data, o responsável recebe o lembrete. O reitor imprime o relatório do PDI com um clique, sem esperar compilação manual.",
+  "funcionalidades": [
+   "PDI com ano de início e fim (máximo de 5 anos), ativação e encerramento (um único PDI vigente)",
+   "Eixos estratégicos ligados aos eixos e dimensões do SINAES, objetivos, metas e ações",
+   "Metas com linha de base, valor-meta, sentido (maior ou menor é melhor), periodicidade e orçamento",
+   "Medições registradas com data e valor apurado; remoção de medição",
+   "Execução geral e por eixo com semáforo (verde, amarelo, vermelho, cinza)",
+   "Fila de coletas de indicadores pendentes (próximos 15 dias)",
+   "Ações com prazo, responsável e orçamento",
+   "Relatório do PDI em HTML"
+  ],
+  "automacoes": [
+   "Job governanca.pdi garante os lembretes de coleta e de prazo das ações do PDI vigente",
+   "Cálculo automático de percentual de atingimento da meta e semáforo comparado ao esperado linear pelo tempo",
+   "O bootstrap cria um PDI em rascunho com os eixos do SINAES"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "SINAES: 5 eixos e 10 dimensões",
+   "PDI como documento exigido nos processos de credenciamento e recredenciamento (checklist do Regulatório)"
+  ],
+  "limites": [
+   "As metas e medições são lançadas por responsáveis; a ligação automática de indicadores do sistema a metas do PDI depende de cadastro",
+   "O relatório é gerado em HTML para impressão"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/governanca",
+    "legenda": "Execução do PDI por eixo com semáforo"
+   },
+   {
+    "rota": "/edu/governanca",
+    "legenda": "Estrutura do PDI: eixos, objetivos, metas e ações"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Governança e PDI · PPC e documentos institucionais",
+  "rota": "/edu/governanca",
+  "titulo_chamada": "Regimento e PPC com versões, vigência e histórico",
+  "descricao": "Guarda o regimento, o estatuto, o PPI, os projetos pedagógicos de curso (PPC), políticas e manuais com controle de versões. Cada versão passa por rascunho, publicação e revogação, e o sistema sempre sabe qual está vigente em qualquer data.\n\nQuando uma nova versão é publicada, a anterior é marcada como substituída. É possível comparar duas versões e registrar a deliberação do colegiado que aprovou a mudança, o que facilita muito a prestação de contas ao MEC.",
+  "funcionalidades": [
+   "Tipos: regimento, estatuto, PPI, PPC (vinculado ao curso), política, manual e outros",
+   "Versões em rascunho, vigente, substituída e revogada, com resumo das alterações",
+   "Nova versão a partir da anterior (copia o conteúdo)",
+   "Consulta da versão vigente em uma data qualquer e comparação entre versões",
+   "Vínculo opcional da versão à deliberação aprovada de um colegiado",
+   "URL do arquivo e início e fim da vigência",
+   "Consulta do PPC vigente por curso"
+  ],
+  "automacoes": [
+   "Ao publicar uma versão, a vigente é automaticamente substituída"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Regimento, estatuto, PPI e PPC como documentos exigidos nos processos de autorização e reconhecimento"
+  ],
+  "limites": [
+   "O arquivo é referenciado por link; o texto pode ser digitado em HTML ou texto na própria tela, sem upload de arquivo"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/governanca",
+    "legenda": "Documento com versão vigente e histórico de versões"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Governança e PDI · CPA (Comissão Própria de Avaliação)",
+  "rota": "/edu/governanca",
+  "titulo_chamada": "CPA completa: composição, pesquisa anônima, relatório e plano de ação",
+  "descricao": "O módulo da Comissão Própria de Avaliação cuida de todo o ciclo da autoavaliação institucional. Registra a composição da comissão, cria ciclos de autoavaliação, aplica questionários anônimos a docentes, discentes, técnicos e sociedade civil, apura os resultados por eixo do SINAES e gera os relatórios parcial e anual.\n\nAs fragilidades encontradas viram plano de ação com um clique, e o plano segue acompanhado com responsável e prazo. A anonimidade é garantida: cada respondente recebe um código único e células com poucas respostas não são divulgadas.",
+  "funcionalidades": [
+   "Composição da CPA com mandatos e verificação automática (todos os segmentos representados e nenhum com maioria absoluta)",
+   "Ciclos de autoavaliação com as fases planejamento, coleta, análise, relatório e concluído",
+   "Modelos de questionário por segmento (docente, discente, técnico-administrativo e sociedade civil) com perguntas Likert de 1 a 5, sim/não e texto",
+   "Geração de convites com código anônimo (os códigos aparecem uma única vez) e acompanhamento de convites usados",
+   "Resultados por eixo e dimensão do SINAES, por segmento e por curso, com índice 0 a 100 e conceito (muito satisfatório, satisfatório, regular, crítico)",
+   "Mínimo de respostas para divulgar configurável (3 a 100) como proteção de anonimato",
+   "Relatório parcial e anual em HTML",
+   "Geração do plano de ação a partir das fragilidades, com acompanhamento"
+  ],
+  "automacoes": [
+   "Job governanca.cpa avisa a coordenação (CRÍTICO) quando a coleta terminou e o ciclo não foi avançado",
+   "Job governanca.mandatos avisa 60 dias antes do fim do mandato dos membros da CPA",
+   "Agregação anônima e normalização automáticas, com supressão de células abaixo do mínimo",
+   "Fragilidades (índice abaixo de 60) identificadas sozinhas e transformadas em plano de ação"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Lei 10.861/2004 (SINAES), art. 11: composição da CPA",
+   "SINAES: 5 eixos e 10 dimensões (planejamento e avaliação, desenvolvimento institucional, políticas acadêmicas, políticas de gestão, infraestrutura)",
+   "Escala Likert de 5 pontos"
+  ],
+  "limites": [
+   "A resposta anônima por código está disponível na API pública (/api/public/edu/governanca/cpa/responder/:token); no front-end atual não há página web pública para o respondente",
+   "A distribuição do código ao respondente (e-mail, WhatsApp) depende do canal configurado ou de entrega manual",
+   "O relatório é gerado em HTML; a redação final é da comissão"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/governanca",
+    "legenda": "Ciclo da CPA com resultados por eixo SINAES"
+   },
+   {
+    "rota": "/edu/governanca",
+    "legenda": "Composição da comissão e geração de códigos anônimos"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Governança e PDI · NDE",
+  "rota": "/edu/governanca",
+  "titulo_chamada": "Núcleo Docente Estruturante sempre em conformidade",
+  "descricao": "O sistema acompanha o NDE de cada curso e confere, sozinho, se ele cumpre os requisitos: número mínimo de docentes, percentual com mestrado ou doutorado, percentual em tempo integral, presidente designado e mandatos em dia. Qualquer desvio aparece como violação, com a mensagem pronta para o coordenador resolver.\n\nO painel de NDEs não conformes é um alerta valioso antes de uma avaliação do MEC, e a verificação é refeita todo dia, sem ninguém pedir.",
+  "funcionalidades": [
+   "Cadastro do NDE por curso, membros (docente, titulação, regime, mandato, portaria de designação) e reuniões",
+   "Validação: mínimo de 5 docentes, 60% stricto sensu, 20% em tempo integral, presidente e mandatos vencidos ou a vencer",
+   "Aviso de renovação em bloco (mais de 50% dos mandatos terminando em 180 dias) para manter a renovação parcial",
+   "Painel de NDEs ativos e não conformes; botão \"Revalidar agora\"",
+   "Conformidade disponível ao módulo Regulatório"
+  ],
+  "automacoes": [
+   "Job governanca.nde reverifica todos os NDEs ativos diariamente",
+   "Violações classificadas em ERRO e AVISO com texto explicativo"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Resolução CONAES nº 1/2010 (requisitos do NDE)"
+  ],
+  "limites": [
+   "Os parâmetros (5 membros, 60%, 20%, mandato de 36 meses) são padrões ajustáveis na verificação",
+   "O docente é informado pelo identificador do cadastro de docentes"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/governanca",
+    "legenda": "NDE por curso com métricas de titulação e regime e violações"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Governança e PDI · Colegiados e atas",
+  "rota": "/edu/governanca",
+  "titulo_chamada": "CONSUP, CONSEPE e colegiados com pauta, quórum, votação e ata",
+  "descricao": "Organiza os órgãos colegiados da instituição (CONSUP, CONSEPE, colegiados de curso, congregação e outros), seus membros, mandatos e reuniões. A reunião é convocada com pauta (podendo partir de pautas-modelo), a presença é registrada e o sistema só permite realizar a reunião se houver quórum.\n\nAs deliberações são votadas na própria tela, com apuração automática do resultado (aprovada, rejeitada, empate ou sem quórum), voto de qualidade e geração da resolução numerada e da ata para impressão.",
+  "funcionalidades": [
+   "Órgãos colegiados com composição e verificação de presidente vigente",
+   "Reuniões ordinárias e extraordinárias, convocação, lista de presença e verificação de quórum",
+   "Pautas-modelo prontas (CONSUP, CONSEPE, colegiado de curso, NDE, CIPA)",
+   "Deliberações com votação aberta, registro de votos (a favor, contra, abstenção) e apuração por maioria simples ou absoluta",
+   "Resolução em HTML com numeração automática (ex.: 003/2026) e ata da reunião",
+   "Registro do documento aprovado ligado à deliberação"
+  ],
+  "automacoes": [
+   "Quórum e apuração calculados automaticamente (a decisão só sai quando o resultado é irreversível ou todos votaram)",
+   "Job governanca.mandatos avisa 60 dias antes do fim do mandato dos membros dos colegiados",
+   "Numeração sequencial de deliberações por ano"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Atas e resoluções como práticas de colegiados universitários; CONSUP e CONSEPE como órgãos típicos"
+  ],
+  "limites": [
+   "As regras de quórum e de maioria são configuradas por órgão na instalação"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/governanca",
+    "legenda": "Reunião com pauta, presença e verificação de quórum"
+   },
+   {
+    "rota": "/edu/governanca",
+    "legenda": "Deliberação com votos e resolução gerada"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Governança e PDI · CIPA e SST",
+  "rota": "/edu/governanca",
+  "titulo_chamada": "CIPA, mapa de riscos e acidentes sem planilha",
+  "descricao": "Cuida da Comissão Interna de Prevenção de Acidentes: gestão anual com composição paritária, reuniões mensais, mapa de riscos, inspeções de segurança, acidentes, emissão da CAT, SIPAT e plano de ação. O sistema valida a composição antes de ativar a gestão e cobra as reuniões que faltam.\n\nO mapa de riscos usa a matriz gravidade por probabilidade; riscos altos ou críticos criam sozinhos uma ação no plano. Para acidentes, o sistema calcula se a CAT é obrigatória e o prazo para emiti-la.",
+  "funcionalidades": [
+   "Gestões da CIPA com mandato de 1 ano e ativação condicionada à composição conforme",
+   "Membros, representação (empregador ou empregados), cargos e suplentes",
+   "Reuniões ordinárias mensais com ata",
+   "Mapa de riscos com gravidade e probabilidade (1 a 5), nível e medida de controle",
+   "Inspeções de segurança, SIPAT e plano de ação SST",
+   "Acidentes com tipo, gravidade, dias de afastamento e registro da emissão da CAT",
+   "Painel com acidentes dos últimos 12 meses, CAT pendentes e riscos abertos por nível"
+  ],
+  "automacoes": [
+   "Job governanca.cipa identifica reuniões mensais faltantes e encerra gestões vencidas há mais de 30 dias",
+   "Riscos ALTO ou CRÍTICO geram automaticamente ação no plano",
+   "Cálculo do prazo da CAT (próximo dia útil; imediato em caso de morte)"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "NR-5 (CIPA): representação paritária, presidente indicado pelo empregador e vice eleito pelos empregados",
+   "CAT: obrigatória para acidente típico, de trajeto ou doença ocupacional de empregado; incidente sem lesão não gera CAT"
+  ],
+  "limites": [
+   "A CAT é registrada no sistema; a emissão oficial é feita no sistema da Previdência",
+   "As regras refletem a NR-5 em termos gerais e devem ser conferidas com o dimensionamento legal da instituição"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/governanca",
+    "legenda": "Gestão vigente da CIPA com situação NR-5"
+   },
+   {
+    "rota": "/edu/governanca",
+    "legenda": "Mapa de riscos com matriz gravidade x probabilidade"
+   }
+  ]
+ },
+ {
+  "nucleo": "PDI e Gestão Institucional",
+  "modulo": "Governança e PDI · Plano de carreira",
+  "rota": "/edu/governanca",
+  "titulo_chamada": "Progressão de carreira simulada antes de ser pedida",
+  "descricao": "Permite cadastrar planos de carreira docente e técnico-administrativa com níveis, interstício, titulação mínima, pontuação e avaliação mínimas e salário base. Para cada servidor, o sistema simula a progressão: mostra quais critérios já foram cumpridos, o que falta, a data em que o interstício se completa e o impacto mensal no salário.\n\nO processo de progressão só pode ser aberto depois da simulação e segue um fluxo com parecer da comissão, deferimento e efetivação, que move o servidor para o novo nível.",
+  "funcionalidades": [
+   "Planos e níveis (ex.: Auxiliar, Assistente, Adjunto, Associado e Titular para docentes)",
+   "Enquadramento do servidor no nível, com data de início",
+   "Simulação com critérios (interstício, titulação, pontuação de produção, avaliação), faltantes, data de elegibilidade e impacto salarial em R$ e %",
+   "Lista de servidores elegíveis por plano",
+   "Processos de progressão: solicitada, em análise, deferida ou indeferida e efetivada, com parecer obrigatório",
+   "Acesso a dados salariais restrito à secretaria e ao financeiro"
+  ],
+  "automacoes": [
+   "Job governanca.carreira varre a elegibilidade e avisa quem já pode progredir",
+   "Progressões pendentes de análise aparecem na Minha mesa"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Estrutura de classes e interstício de carreira docente (modelo de exemplo criado pelo bootstrap)"
+  ],
+  "limites": [
+   "Os planos de exemplo (valores de salário e interstício) são modelos para a instituição ajustar à sua política",
+   "A efetivação move o nível no sistema; a folha de pagamento é tratada em outro módulo"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/governanca",
+    "legenda": "Simulação de progressão com critérios atendidos e impacto salarial"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Acadêmico (visão geral, cursos, professores, turmas, frequência e documentos)",
+  "rota": "/academico",
+  "titulo_chamada": "Porta de entrada acadêmica do menu clássico",
+  "descricao": "A página Acadêmico do menu clássico (DentalPos Academy) organiza a jornada acadêmica em seções: visão geral, alunos, cursos, professores, turmas, financeiro acadêmico e frequência e documentos. Ela serve de mapa de navegação para a operação acadêmica.\n\nAs telas operacionais completas estão nos itens EduMaster (alunos, matrizes, salas, notas, secretaria). Esta página é, em grande parte, institucional e de catálogo, por isso recomenda-se destacar no material comercial as telas EduMaster.",
+  "funcionalidades": [
+   "Navegação por seções (visão geral, alunos, cursos, professores, turmas, documentos)",
+   "Catálogo de cursos com cartões (título, professor, carga, preço, avaliação)",
+   "Resumo de cursos publicados e alunos",
+   "Por trás dela, o núcleo acadêmico (API) cuida de cursos, disciplinas, períodos, turmas, matrículas, aulas práticas com vagas limitadas e frequência"
+  ],
+  "automacoes": [
+   "Núcleo acadêmico: aluno só agenda para si, respeita vagas por horário prático, impede duplicidade, lançar frequência marca a aula como realizada e sincroniza presença/falta"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "As seções alunos, professores, turmas, financeiro e documentos exibem descrições de áreas (\"estrutura para...\", \"integração planejada\"), não telas operacionais",
+   "O catálogo de cursos usa dados de demonstração; marketplace de professores e pagamentos internacionais são apresentação, sem fluxo ativo"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/academico",
+    "legenda": "Página acadêmica com seções e catálogo"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Alunos · secretaria",
+  "rota": "/edu/academico/alunos",
+  "titulo_chamada": "Ficha completa do aluno e relatórios em Excel em segundos",
+  "descricao": "A secretaria encontra qualquer aluno por nome, RA, CPF, RG, telefone ou e-mail (mesmo digitando com máscara) e filtra por ano, período, curso, turma, polo, turno, situação, contrato, inadimplência, necessidades especiais e documentos pendentes. A ficha reúne dados, matrículas, contratos, notas, financeiro, documentos, ocorrências e horas.\n\nRelatórios prontos (lista de alunos, matriculados por curso e turma, novos, NEE, contratos, inadimplentes, aniversariantes, carômetro imprimível, pendências de documentos) saem em tela, HTML ou planilha Excel verdadeira, sem digitar nada.",
+  "funcionalidades": [
+   "Busca e 15+ filtros com paginação",
+   "Exportação .xlsx com os mesmos filtros (gerador próprio, protegido contra injeção de fórmulas)",
+   "Ficha do aluno: matrículas, contratos, notas, financeiro, documentos, ocorrências e horas",
+   "Contratos (criar, assinar, vigência, mensalidade, vencimento) e documentos (incluir como pendente, atualizar)",
+   "Matrícula com dados de ingresso e ingressante novo",
+   "Necessidades especiais com categoria, base legal e consentimento",
+   "Relatórios: carômetro, aniversariantes do mês, pendências de documentos e mais"
+  ],
+  "automacoes": [
+   "Acesso a dado sensível (NEE, ocorrências) registrado automaticamente em log de acesso",
+   "CPF mascarado exceto para secretaria e administração"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD art. 11 (dados sensíveis: NEE exige base legal)"
+  ],
+  "limites": [
+   "Foto do aluno é informada por link (sem upload de arquivo)"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/academico/alunos",
+    "legenda": "Lista filtrada com botão Exportar Excel"
+   },
+   {
+    "rota": "/edu/academico/alunos",
+    "legenda": "Ficha do aluno com abas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Matrizes e fluxograma",
+  "rota": "/edu/academico/matrizes",
+  "titulo_chamada": "Matriz curricular visual, com simulador de formatura",
+  "descricao": "Monta a matriz de cada curso por período, com disciplinas obrigatórias, optativas e eletivas, e desenha o fluxograma com pré-requisitos, co-requisitos e carga mínima. O sistema bloqueia ciclos e pré-requisito em período posterior, e valida a matriz antes de publicá-la.\n\nO simulador de integralização responde ao aluno e à coordenação: o que falta para formar, o que acontece se passar em determinada disciplina e como distribuir os períodos restantes respeitando a carga máxima.",
+  "funcionalidades": [
+   "Regimes seriado anual ou semestral, bimestral, modular, por créditos e livre",
+   "Fluxograma em colunas com arestas e caminho crítico",
+   "Pré-requisitos (PRE), co-requisitos (CO) e carga mínima; validação de ciclos",
+   "Publicar (arquiva a vigente) e duplicar matriz",
+   "Equivalências entre disciplinas, com percentual de aproveitamento e sentido único ou duplo",
+   "Simulador de integralização por aluno: \"e se eu passar?\", plano de períodos e horas complementares"
+  ],
+  "automacoes": [
+   "Equivalências aplicadas automaticamente no simulador (aprovação vale pela disciplina equivalente a partir de 75%)",
+   "Validação automática da matriz"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "As equivalências são cadastradas pela coordenação; não há comparação automática de ementas"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/academico/matrizes",
+    "legenda": "Fluxograma curricular"
+   },
+   {
+    "rota": "/edu/academico/matrizes",
+    "legenda": "Simulador de integralização"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Salas e horários",
+  "rota": "/edu/academico/salas",
+  "titulo_chamada": "Sugere sala e horário sem choque e avisa conflitos",
+  "descricao": "Aloca aulas em salas e turnos com sugestões automáticas e verificação de conflitos de sala, professor, turma, capacidade, recurso e turno. Se há choque, o sistema informa o motivo e só grava mediante confirmação explícita.\n\nO cronograma pode ser visto por sala, turma, professor, dia, turno ou curso, com agenda de datas concretas considerando feriados e recessos e versão para impressão.",
+  "funcionalidades": [
+   "Turnos (manhã, tarde, noite, fins de semana) e perfil da turma (nível, recursos exigidos)",
+   "Sugerir horários e salas sem gravar; alocar com sugestões ou manualmente",
+   "Alocação com conflito apenas com \"forçar\", que fica registrado",
+   "Relatório de conflitos e de ocupação",
+   "Agenda com eventos e feriados; impressão em HTML/PDF"
+  ],
+  "automacoes": [
+   "Verificação automática de conflitos em cada alocação",
+   "A grade aparece no módulo de Calendário"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Sugestão é algoritmo de regras, não otimização global (o gerador automático está no Calendário)"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/academico/salas",
+    "legenda": "Sugestão de salas e horários"
+   },
+   {
+    "rota": "/edu/academico/salas",
+    "legenda": "Cronograma por sala"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Programas de desenvolvimento",
+  "rota": "/edu/academico/desenvolvimento",
+  "titulo_chamada": "Preparatórios, mentoria e orientação do aluno em um só lugar",
+  "descricao": "Reúne programas preparatórios (ENADE, ENAMED, OAB, mestrado, doutorado, concursos), apoio didático, pedagógico e pessoal e mentoria. O aluno se inscreve, com lista de espera, e o cronograma é publicado no calendário acadêmico.\n\nA avaliação global combina nota, frequência, engajamento, financeiro, ocorrências e participação em pesquisa e extensão em um escore com faixa e alertas. As ações de orientação têm níveis de confidencialidade e registro de consentimento.",
+  "funcionalidades": [
+   "Programas com inscrição, lista de espera, cronograma e painel por área",
+   "Ranking opcional, apenas de quem consentiu",
+   "Simulado montado do banco de questões e importação de questões de provas",
+   "Competências socioemocionais e plano individual com metas",
+   "Avaliação global com escore, faixa e alertas",
+   "Ações de orientação NORMAL, RESTRITO ou SIGILOSO, com base legal LGPD, consentimento e log de acesso",
+   "Indicadores agregados para coordenação e reitoria"
+  ],
+  "automacoes": [
+   "Escore e alertas calculados automaticamente",
+   "Cronograma publicado no calendário"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD (base legal e consentimento)",
+   "ENADE, ENAMED e OAB como programas-alvo"
+  ],
+  "limites": [
+   "O escore é indicador interno de apoio, não nota oficial"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/academico/desenvolvimento",
+    "legenda": "Programa preparatório com inscritos"
+   },
+   {
+    "rota": "/edu/academico/desenvolvimento",
+    "legenda": "Avaliação global do aluno"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Pesquisa, extensão e ligas",
+  "rota": "/edu/academico/pesquisa-extensao",
+  "titulo_chamada": "Ligas, extramuros e horas complementares sob controle",
+  "descricao": "Gerencia ligas e centros acadêmicos (membros, plano de atividades com aprovação, atividades e presença que gera horas), atividades extramuros e horas complementares com teto por categoria e curso.\n\nAtividades extramuros só são aprovadas com termo de autorização e seguro. O relatório consolidado sai em planilha ou HTML.",
+  "funcionalidades": [
+   "Ligas e centros acadêmicos com membros e orientador",
+   "Plano de atividades enviado e aprovado ou reprovado com justificativa",
+   "Realização com presença e geração automática de horas",
+   "Extramuros com termo, seguro e transporte",
+   "Horas complementares com fator de aproveitamento e teto",
+   "Relatório consolidado em xlsx/HTML"
+  ],
+  "automacoes": [
+   "Horas geradas pela presença",
+   "Teto de horas aplicado automaticamente"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Comprovantes são links https, sem upload"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/academico/pesquisa-extensao",
+    "legenda": "Ligas e atividades"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Secretaria e certificados · Requerimentos e documentos acadêmicos",
+  "rota": "/edu/secretaria",
+  "titulo_chamada": "Requerimentos com prazo e histórico escolar em um clique",
+  "descricao": "O aluno abre requerimentos pelo portal e a secretaria acompanha cada protocolo com prazo (SLA), taxa, trâmites e anexos. Há 20 tipos prontos, como declaração de matrícula, histórico escolar, trancamento, transferência, segunda chamada, revisão de nota e aproveitamento de estudos.\n\nDocumentos como declarações, histórico escolar e comprovante de conclusão saem em HTML imprimível com logomarca, código de verificação e QR, e podem ser conferidos publicamente.",
+  "funcionalidades": [
+   "Protocolos com status, atribuição, comentários, anexos e isenção de taxa",
+   "20 tipos de requerimento e 6 checklists (matrícula, transferência, aproveitamento, estágio, diploma, colação)",
+   "Documentos: declaração de matrícula, de vínculo e frequência, histórico escolar e comprovante de conclusão",
+   "Aproveitamento de estudos com checklist e análise de equivalência pela coordenação",
+   "Situação completa do aluno",
+   "Verificação pública por código"
+  ],
+  "automacoes": [
+   "Job secretaria.protocolos: escalonamento de SLA, cancelamento por falta de reenvio e sincronização de taxa",
+   "Código e hash de verificação gerados em cada documento"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Portaria MEC nº 1.224/2013 (temporalidade, sugerida)"
+  ],
+  "limites": [
+   "Documentos em HTML imprimível, sem assinatura digital ICP-Brasil",
+   "O histórico lê as notas do módulo Notas quando existe"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/secretaria",
+    "legenda": "Fila de requerimentos"
+   },
+   {
+    "rota": "/edu/secretaria",
+    "legenda": "Aba Documentos acadêmicos"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Secretaria e certificados · Análise de documentos",
+  "rota": "/edu/secretaria",
+  "titulo_chamada": "Conferência de documentos do aluno com apoio de IA",
+  "descricao": "A conferência documental monta, para cada processo, a lista de documentos exigidos e verifica cada um quanto a validade, nome e legibilidade. A secretaria cola o texto do documento e recebe um parecer de aprovado, pendente ou rejeitado, com inconsistências e confiança.\n\nO aluno recebe a solicitação de reenvio quando falta algo e pode reenviar pelo portal.",
+  "funcionalidades": [
+   "Conferências por processo (matrícula, transferência, diploma etc.)",
+   "Parecer por item com decisão humana final",
+   "Solicitação de reenvio ao aluno",
+   "Reenvio pelo portal que retoma o protocolo"
+  ],
+  "automacoes": [
+   "Checagem determinística de validade e nome prevalece sobre a IA",
+   "Protocolo volta a EM_ANALISE quando os documentos pendentes são reenviados"
+  ],
+  "ia": [
+   "IA analisa o texto do documento e retorna parecer estruturado; o texto é tratado como dado, não como instrução",
+   "Sem IA, análise heurística"
+  ],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Não há OCR: a análise usa o texto digitado ou colado",
+   "Decisão final é humana"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/secretaria",
+    "legenda": "Conferência de documentos de um aluno"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Secretaria e certificados · Certificados",
+  "rota": "/edu/secretaria",
+  "titulo_chamada": "Certificados em lote com QR e verificação pública",
+  "descricao": "Emite certificados de curso, extensão, evento, pós-graduação, monitoria e participação a partir de modelos com a logomarca, assinaturas e selo. É possível emitir em lote por lista, turma ou curso.\n\nCada certificado recebe número, código e QR; qualquer pessoa confere a autenticidade em página pública. Erros são corrigidos com revogação e reemissão, mantendo o histórico.",
+  "funcionalidades": [
+   "6 modelos padrão editáveis, com variáveis",
+   "Emissão individual e em lote",
+   "Revogar e reemitir (motivo obrigatório)",
+   "Verificação pública por código com limite de consultas",
+   "Certificados do aluno no portal"
+  ],
+  "automacoes": [
+   "Número, código e hash gerados automaticamente"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Sem assinatura digital qualificada; QR gerado no navegador"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/secretaria",
+    "legenda": "Lista de certificados e emissão em lote"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Secretaria e certificados · Diplomas e colação",
+  "rota": "/edu/secretaria",
+  "titulo_chamada": "Do aluno apto ao diploma registrado, com livro e ata",
+  "descricao": "Acompanha a colação de grau e o diploma: apuração automática de aptidão (carga horária, pendências, situação, financeiro e conferência documental), lista de formandos, ata e livros de registro. O diploma passa por etapas até o registro e a entrega.\n\nSegunda via exige diploma original registrado.",
+  "funcionalidades": [
+   "Colações com formandos e reavaliação de aptidão",
+   "Livros e atas com termo de encerramento",
+   "Diplomas com fluxo, registro e termo",
+   "2ª via"
+  ],
+  "automacoes": [
+   "Aptidão avaliada automaticamente",
+   "Job secretaria.colacoes e secretaria.diplomas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Não emite diploma digital XML do MEC nem assinatura ICP-Brasil"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/secretaria",
+    "legenda": "Colação com formandos aptos"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Secretaria e certificados · Arquivo e temporalidade",
+  "rota": "/edu/secretaria",
+  "titulo_chamada": "Arquivo acadêmico com tabela de temporalidade",
+  "descricao": "Classifica o arquivo acadêmico por tabela de temporalidade (guarda permanente ou eliminação), marca o que está elegível ao descarte e exige aprovação do coordenador, diferente de quem solicitou.\n\nReduz risco de descartar documento obrigatório.",
+  "funcionalidades": [
+   "Tabela de temporalidade com 10 tipos",
+   "Itens de arquivo, suspensão e retomada",
+   "Descartes com aprovação",
+   "Termo de descarte"
+  ],
+  "automacoes": [
+   "Job secretaria.arquivo reclassifica elegibilidade ao descarte"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Portaria MEC nº 1.224/2013 (prazos sugeridos, conferir com a CPAD)"
+  ],
+  "limites": [
+   "Prazos são sugestão; validar com a comissão de arquivo"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/secretaria",
+    "legenda": "Arquivo com itens elegíveis"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Calendário e salas · Calendário acadêmico",
+  "rota": "/edu/calendario",
+  "titulo_chamada": "Calendário letivo pronto, com feriados e iCal",
+  "descricao": "Calendário acadêmico com categorias padrão (feriados, recessos, matrícula, avaliações, prazos, colação etc.), feriados nacionais (inclusive móveis) e dias letivos. Um clique gera o calendário do período com modelo e prazos.\n\nCada pessoa tem seu calendário pessoal (aluno: aulas e provas; professor: aulas, fiscalizações e prazos) exportável em iCal.",
+  "funcionalidades": [
+   "Eventos com recorrência e lembretes",
+   "11 categorias",
+   "Importar feriados nacionais",
+   "Gerar calendário do período",
+   "Feeds iCal por token e arquivo .ics",
+   "Relatório HTML do calendário"
+  ],
+  "automacoes": [
+   "Job calendario.eventos-lembretes"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "iCalendar (RFC 5545)",
+   "Feriados móveis a partir da Páscoa"
+  ],
+  "limites": [
+   "Fuso fixo UTC-3; feriados estaduais e municipais são cadastrados manualmente"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/calendario",
+    "legenda": "Calendário mensal"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Calendário e salas · Grade horária e gerador automático",
+  "rota": "/edu/calendario",
+  "titulo_chamada": "Gerador monta a grade inteira sem choques",
+  "descricao": "O gerador de cronograma recebe turmas, professores (disponibilidade e preferências), espaços e carga horária e devolve a grade sem choques, listando como pendência o que não coube, com o motivo. Pode simular antes de aplicar e desfazer depois.\n\nA grade valida choques de professor, sala e turma da mesma coorte.",
+  "funcionalidades": [
+   "Diagnóstico, simulação, aplicação, descarte e desfazer",
+   "Disponibilidade e limites do professor",
+   "Preservar aulas manuais",
+   "Cobertura e conflitos da grade",
+   "Impressão e iCal"
+  ],
+  "automacoes": [
+   "Busca com backtracking priorizando o mais restrito",
+   "Job de varredura diária de conflitos",
+   "Professores notificados da nova grade"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "É heurística com orçamento de tempo; pode deixar pendências para resolução humana"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/calendario",
+    "legenda": "Gerador com resultado e pendências"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Calendário e salas · Provas, fiscais e avisos",
+  "rota": "/edu/calendario",
+  "titulo_chamada": "Provas agendadas, fiscais escalados e alunos avisados",
+  "descricao": "Agenda avaliações por turma, com sala, fiscais e segunda chamada, e impede duas provas da mesma turma no mesmo dia, sala duplicada ou fiscal em dois lugares.\n\nOs alunos recebem aviso 7 dias e 1 dia antes; fiscais e professores também são lembrados.",
+  "funcionalidades": [
+   "Provas com status, sala e fiscais",
+   "Segunda chamada",
+   "Confirmação de fiscal",
+   "Conflitos de prova"
+  ],
+  "automacoes": [
+   "Aviso aos alunos D-7 e D-1",
+   "Lembrete ao professor 3 dias antes e ao fiscal 1 dia antes",
+   "Notificação de remarcação"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O envio externo depende dos canais de comunicação configurados"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/calendario",
+    "legenda": "Provas com choques"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Calendário e salas · Prazos de notas",
+  "rota": "/edu/calendario",
+  "titulo_chamada": "Prazo de lançamento de notas cobrado sozinho",
+  "descricao": "Define prazos de lançamento de notas por período, com prorrogação geral e exceções individuais. Os professores são avisados e a coordenação, escalonada.\n\nO lançamento no diário encerra os lembretes automaticamente.",
+  "funcionalidades": [
+   "Prazos, prorrogação e pendências",
+   "Meus prazos (professor)"
+  ],
+  "automacoes": [
+   "Avisos D-7, D-3 e D-1",
+   "Escalonamento à coordenação e, após 3 dias, à reitoria"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/calendario",
+    "legenda": "Prazos com pendências"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Calendário e salas · Reservas e ocupação",
+  "rota": "/edu/calendario",
+  "titulo_chamada": "Reserva de espaços com aprovação e mapa de ocupação",
+  "descricao": "Qualquer servidor solicita reserva (pontual ou série) e o setor responsável aprova ou rejeita. O sistema consulta espaços livres e mostra ocupação.\n\nSolicitações sem decisão expiram sozinhas.",
+  "funcionalidades": [
+   "Reservas pontuais e em série",
+   "Fila de aprovação",
+   "Bloqueios",
+   "Espaços livres e disponibilidade",
+   "Relatórios de ocupação"
+  ],
+  "automacoes": [
+   "Job calendario.reservas expira pendentes e avisa o solicitante"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/calendario",
+    "legenda": "Ocupação dos espaços"
+   }
+  ]
+ },
+ {
+  "nucleo": "Docente",
+  "modulo": "Notas e diário · Diário e lançamento",
+  "rota": "/edu/notas",
+  "titulo_chamada": "Diário de classe e notas com regra aplicada automaticamente",
+  "descricao": "O professor lança notas numa planilha onde cada componente segue a regra de avaliação da disciplina (pesos, média, recuperação, exame e arredondamento). Médias e situação são calculadas sozinhas.\n\nA coordenação fecha o diário; depois disso só a secretaria corrige, com justificativa e trilha.",
+  "funcionalidades": [
+   "Planilha de notas com importação CSV e simulação",
+   "Importar nota de prova eletrônica",
+   "Frequência por turma",
+   "Fechar e reabrir com justificativa",
+   "Trilha de alterações e ata imprimível"
+  ],
+  "automacoes": [
+   "Recalcula resultados a cada lançamento",
+   "Job notas:pendencias-professores"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Depende de regras criadas (botão de regras padrão)"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/notas",
+    "legenda": "Planilha de notas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Notas e diário · Boletim, histórico e revisões",
+  "rota": "/edu/notas",
+  "titulo_chamada": "Boletim, histórico e pedido de revisão de nota",
+  "descricao": "O boletim mostra notas, frequência, CR e integralização do curso. O aluno pode pedir revisão de nota; o professor emite parecer em prazo e a coordenação decide.\n\nParecer atrasado gera alerta.",
+  "funcionalidades": [
+   "Boletim e histórico imprimível",
+   "CR e disciplinas obrigatórias pendentes",
+   "Revisão com parecer e decisão"
+  ],
+  "automacoes": [
+   "Job notas:revisoes-atrasadas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/notas",
+    "legenda": "Boletim e histórico"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Notas e diário · Gestão e risco",
+  "rota": "/edu/notas",
+  "titulo_chamada": "Alunos em risco antes da reprovação",
+  "descricao": "Mostra taxa de aprovação por turma, ranking por CR, pendências de lançamento e alunos em risco por nota projetada e frequência, com a nota necessária para passar.\n\nO aluno em risco é avisado automaticamente.",
+  "funcionalidades": [
+   "Visão do curso",
+   "Ranking por CR",
+   "Pendências",
+   "Risco acadêmico com semáforo"
+  ],
+  "automacoes": [
+   "Job notas:alunos-em-risco recalcula e avisa o aluno"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "O risco é estimativa interna"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/notas",
+    "legenda": "Alunos em risco"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Notas e diário · Regras de avaliação",
+  "rota": "/edu/notas",
+  "titulo_chamada": "Regras de avaliação configuráveis por curso ou turma",
+  "descricao": "Define como a média é calculada: aritmética ou ponderada, recuperação, exame, frequência mínima, abono de faltas justificadas e arredondamento, com herança turma, curso e padrão.\n\nModelos prontos para graduação, EAD, pós e saúde.",
+  "funcionalidades": [
+   "Regra padrão da instituição",
+   "Escopo por curso ou turma",
+   "Modelos prontos"
+  ],
+  "automacoes": [
+   "Aplicação automática às turmas"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Os valores padrão são sugestão a ajustar ao regimento"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/notas",
+    "legenda": "Regras de avaliação"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Modalidades, EAD e pós · Conformidade",
+  "rota": "/edu/modalidades",
+  "titulo_chamada": "Cada curso confere sozinho seus limites de EAD",
+  "descricao": "Calcula, para cada curso, a divisão entre carga presencial e online e confere com os limites configurados da modalidade (presencial, semipresencial, EAD, híbrido), apontando alertas.\n\nTambém confere a relação aluno por tutor.",
+  "funcionalidades": [
+   "Conformidade por curso",
+   "Simulador",
+   "Relatório HTML",
+   "Regras configuráveis"
+  ],
+  "automacoes": [
+   "Alertas por severidade"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Parâmetros padrão: 40% EAD em presencial, mínimo de 40% presencial em semipresencial, 50 alunos por tutor em EAD"
+  ],
+  "limites": [
+   "Limites são parâmetros a conferir com a norma vigente"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/modalidades",
+    "legenda": "Conformidade por curso"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Modalidades, EAD e pós · Ofertas e práticas",
+  "rota": "/edu/modalidades",
+  "titulo_chamada": "Aulas ao vivo, práticas e estágios com horas validadas",
+  "descricao": "Gerencia ofertas, encontros presenciais, aulas ao vivo com presença calculada por entrada e saída, agendas de práticas e estágios com horas validadas.\n\nA presença da aula ao vivo é consolidada automaticamente.",
+  "funcionalidades": [
+   "Ofertas e encontros",
+   "Lives com presença",
+   "Práticas com inscrição",
+   "Estágios e horas"
+  ],
+  "automacoes": [
+   "Job modalidades.lives-pendentes"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [
+   "A aula ao vivo é por link externo, sem videoconferência embutida"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/modalidades",
+    "legenda": "Ofertas e práticas"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Modalidades, EAD e pós · Polos",
+  "rota": "/edu/modalidades",
+  "titulo_chamada": "Polos de apoio credenciados e monitorados",
+  "descricao": "Cadastra polos com checklist de credenciamento, alunos, ofertas e indicadores, e avisa sobre vencimento de atos.\n\nHá consulta pública de polos credenciados.",
+  "funcionalidades": [
+   "Credenciar e suspender",
+   "Checklist do polo",
+   "Indicadores por polo"
+  ],
+  "automacoes": [
+   "Job modalidades.atos-polos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/modalidades",
+    "legenda": "Polos"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Modalidades, EAD e pós · Tutoria e engajamento AVA",
+  "rota": "/edu/modalidades",
+  "titulo_chamada": "Tutoria com prazo de resposta e alerta de aluno sumido",
+  "descricao": "Atendimentos de tutoria têm prazo de resposta (SLA) e escalonamento. O engajamento no ambiente virtual gera risco por dias sem acesso, com alertas de inatividade.\n\nTutores são avaliados pelos alunos.",
+  "funcionalidades": [
+   "Tutores e alocações",
+   "Atendimentos com mensagens",
+   "Avaliação do tutor",
+   "Engajamento e alertas"
+  ],
+  "automacoes": [
+   "Job modalidades.sla-tutoria",
+   "Job modalidades.inatividade-ava (7 e 14 dias)"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/modalidades",
+    "legenda": "Engajamento AVA"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Modalidades, EAD e pós · Pós-graduação",
+  "rota": "/edu/modalidades",
+  "titulo_chamada": "Lato e stricto sensu com prazos, bancas e bolsas",
+  "descricao": "Gerencia programas de pós, áreas, linhas, módulos, docentes, turmas, alunos, bancas, bolsas e ofertas publicadas. Valida carga mínima de lato e calcula prazos de stricto.\n\nEmite certificado de conclusão em HTML.",
+  "funcionalidades": [
+   "Programas e alunos",
+   "Prazos de qualificação e defesa",
+   "Bancas e bolsas",
+   "Ofertas publicadas"
+  ],
+  "automacoes": [
+   "Job modalidades.prazos-pos com lembretes escalonados"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Res. CNE/CES 1/2018 (mínimo de 360h no lato)",
+   "CAPES"
+  ],
+  "limites": [
+   "Prazos padrão são configuráveis"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/modalidades",
+    "legenda": "Pós-graduação"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "ENADE, OAB e desempenho · Painel e exames",
+  "rota": "/edu/desempenho",
+  "titulo_chamada": "Preparação para ENADE, OAB e residência com dados",
+  "descricao": "O painel mostra desempenho por eixo, mapa de lacunas, alunos em risco para o exame e estimativas de conceito ou aprovação. O catálogo traz exames prontos: OAB 1ª e 2ª fase, ENADE por área, ENAMED, residência e Revalida.\n\nInscrições e datas geram lembretes.",
+  "funcionalidades": [
+   "Catálogo de exames",
+   "Edições e inscrições",
+   "Painel por curso, turma e aluno",
+   "Relatório regulatório"
+  ],
+  "automacoes": [
+   "Jobs desempenho.* (simulados, edições, estatísticas, alertas)"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "ENADE",
+   "OAB",
+   "ENAMED",
+   "Residência",
+   "Revalida",
+   "INEP"
+  ],
+  "limites": [
+   "Projeções são estimativas internas"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/desempenho",
+    "legenda": "Painel analítico"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "ENADE, OAB e desempenho · Banco de questões e simulados",
+  "rota": "/edu/desempenho",
+  "titulo_chamada": "Banco de questões com IA e simulados por eixo",
+  "descricao": "Banco de questões com revisão e estatísticas, geração de rascunhos por IA e montagem de simulados pelos pesos dos eixos do exame.\n\nResultados alimentam o painel.",
+  "funcionalidades": [
+   "Questões com revisão e publicação",
+   "Montagem de simulado",
+   "Resultados por eixo"
+  ],
+  "automacoes": [
+   "Correção automática por tempo esgotado"
+  ],
+  "ia": [
+   "Geração de questões por IA entra como rascunho para revisão"
+  ],
+  "base_normativa_literatura": [],
+  "limites": [
+   "Não há tela para o aluno responder simulado; a participação do aluno está na API"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/desempenho",
+    "legenda": "Simulados"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "ENADE, OAB e desempenho · Atividades e trilhas",
+  "rota": "/edu/desempenho",
+  "titulo_chamada": "Plano de estudo individual para o exame",
+  "descricao": "Professores montam kits de atividades, com opção de rascunho por IA, e atribuem às turmas. Trilhas de preparação geram plano semanal conforme lacunas.\n\nO sistema lembra os itens da trilha.",
+  "funcionalidades": [
+   "Kits e atribuições",
+   "Correção de entregas",
+   "Trilhas com regeneração"
+  ],
+  "automacoes": [
+   "Job desempenho.trilhas e desempenho.atividades"
+  ],
+  "ia": [
+   "Kit gerado por IA como rascunho privado"
+  ],
+  "base_normativa_literatura": [],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/desempenho",
+    "legenda": "Trilha de preparação"
+   }
+  ]
+ },
+ {
+  "nucleo": "Docente",
+  "modulo": "Provas com correção por IA",
+  "rota": "/edu/portal-professor",
+  "titulo_chamada": "Prova montada e dissertativas corrigidas com rubrica",
+  "descricao": "O professor gera uma prova a partir do resumo de aula, com questões de múltipla escolha e dissertativas e rubrica. A múltipla escolha é corrigida na hora e a dissertativa pela IA, com nota e feedback.\n\nTambém monta provas a partir do banco de questões.",
+  "funcionalidades": [
+   "Gerar prova com IA",
+   "Montar do banco",
+   "Correção automática",
+   "Correção manual"
+  ],
+  "automacoes": [
+   "Tentativa finaliza sozinha quando todas as questões têm nota"
+  ],
+  "ia": [
+   "Geração de questões e correção de dissertativas"
+  ],
+  "base_normativa_literatura": [
+   "ENADE como foco opcional"
+  ],
+  "limites": [
+   "Exige chave de IA; sem ela, monta-se manualmente",
+   "Não há tela para o aluno fazer a prova; apenas API",
+   "Gera a partir de resumo de texto, não de PDF ou vídeo"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-professor",
+    "legenda": "Provas e banco de questões"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Conteúdo, videoaulas, PDFs e flashcards",
+  "rota": "/edu/portal-aluno",
+  "titulo_chamada": "Videoaulas e PDFs por disciplina com progresso do aluno",
+  "descricao": "Conteúdos por disciplina (PDF, vídeo, resumo) com progresso, flashcards de repetição espaçada e provedores de biblioteca. Na Sala virtual, o professor publica materiais, aulas gravadas ou ao vivo e atividades.\n\nA coordenação acompanha o engajamento.",
+  "funcionalidades": [
+   "Materiais em trilhas",
+   "Aulas gravadas e ao vivo",
+   "Atividades com entrega",
+   "Fórum e recados",
+   "Flashcards SM-2",
+   "Assinatura de biblioteca com cobrança"
+  ],
+  "automacoes": [
+   "Aluno é avisado ao publicar",
+   "Cobrança automática de assinatura individual"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "SM-2 (SuperMemo 2)"
+  ],
+  "limites": [
+   "Não há upload nem armazenamento de vídeo ou PDF: os materiais são links externos",
+   "Flashcards e conteúdo por API"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-aluno",
+    "legenda": "Salas e materiais"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Pesquisa e revista · Produção científica",
+  "rota": "/edu/pesquisa",
+  "titulo_chamada": "Produção científica com indicadores e Qualis",
+  "descricao": "Importa publicações em BibTeX com validação de DOI, ISSN e ORCID, e calcula indicadores por docente, curso e grupo, incluindo Qualis e coautoria discente.\n\nAlimenta o regulatório e a carreira.",
+  "funcionalidades": [
+   "Importar BibTeX",
+   "Indicadores",
+   "Pontuação"
+  ],
+  "automacoes": [
+   "Deduplicação"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Qualis",
+   "ORCID",
+   "ISSN",
+   "DOI",
+   "BibTeX"
+  ],
+  "limites": [
+   "Importa o que o usuário fornece; não consulta Lattes"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/pesquisa",
+    "legenda": "Indicadores"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Pesquisa e revista · Projetos e bolsas",
+  "rota": "/edu/pesquisa",
+  "titulo_chamada": "Projetos de pesquisa com cronograma, orçamento e bolsas",
+  "descricao": "Projetos com etapas, rubricas, gastos, relatórios e bolsas com pagamentos mensais.\n\nO sistema valida pendências antes de avançar.",
+  "funcionalidades": [
+   "Quadro de projetos",
+   "Orçamento por rubrica",
+   "Bolsas e liberação"
+  ],
+  "automacoes": [
+   "Job pesquisa:projetos-atrasos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "PIBIC e PIBITI",
+   "CAPES",
+   "CEP e CEUA"
+  ],
+  "limites": [
+   "Editais e eventos científicos existem na API, sem telas"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/pesquisa",
+    "legenda": "Projetos"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Pesquisa e revista · TCC, dissertações e bancas",
+  "rota": "/edu/pesquisa",
+  "titulo_chamada": "TCC e dissertações com banca, similaridade e depósito",
+  "descricao": "Acompanha trabalhos de conclusão por fases, com versões, banca, ata e depósito. Verifica similaridade pela base interna.\n\nPrazos viram lembretes.",
+  "funcionalidades": [
+   "Linha do tempo",
+   "Banca e convite",
+   "Similaridade",
+   "Ata",
+   "Depósito"
+  ],
+  "automacoes": [
+   "Job pesquisa:trabalhos-prazos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Similaridade por trechos repetidos"
+  ],
+  "limites": [
+   "Não substitui ferramenta antiplágio externa"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/pesquisa",
+    "legenda": "TCC"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Pesquisa e revista · Periódico científico",
+  "rota": "/edu/pesquisa",
+  "titulo_chamada": "Sua própria revista científica, com revisão por pares",
+  "descricao": "Periódico institucional no estilo OJS: submissão, triagem, pareceristas com duplo-cego, decisão, editoração e publicação de edições com DOI.\n\nHá API pública com metadados Dublin Core e JSON-LD.",
+  "funcionalidades": [
+   "Periódicos e equipe",
+   "Submissão",
+   "Revisão duplo-cego",
+   "Edições",
+   "Estatísticas"
+  ],
+  "automacoes": [
+   "Job pesquisa:periodico-prazos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "Dublin Core",
+   "JSON-LD",
+   "DOI",
+   "ISSN",
+   "ORCID"
+  ],
+  "limites": [
+   "O DOI é montado com prefixo informado, sem registro em agência",
+   "Portal público é API JSON, sem página web"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/pesquisa",
+    "legenda": "Periódico"
+   }
+  ]
+ },
+ {
+  "nucleo": "Discente",
+  "modulo": "Portal do aluno",
+  "rota": "/edu/portal-aluno",
+  "titulo_chamada": "Tudo do aluno em um só lugar",
+  "descricao": "O ambiente do aluno reúne notas, frequência, salas e materiais, horários, fluxograma, requerimentos, financeiro, biblioteca, mensagens, documentos, carteirinha e privacidade.\n\nOs avisos de prova aparecem no painel.",
+  "funcionalidades": [
+   "16 abas",
+   "Avisos",
+   "Requerimentos",
+   "Documentos"
+  ],
+  "automacoes": [
+   "Avisos automáticos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [
+   "LGPD"
+  ],
+  "limites": [
+   "Boleto e Pix são simulados"
+  ],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-aluno",
+    "legenda": "Visão geral"
+   }
+  ]
+ },
+ {
+  "nucleo": "Docente",
+  "modulo": "Portal do professor",
+  "rota": "/edu/portal-professor",
+  "titulo_chamada": "Diário, notas e provas do professor",
+  "descricao": "Reúne turmas, chamada, notas, provas, revisões e alertas de risco de evasão.\n\nTudo calculado pelo sistema.",
+  "funcionalidades": [
+   "Painel",
+   "Diário",
+   "Provas",
+   "Risco de evasão"
+  ],
+  "automacoes": [
+   "Alertas automáticos"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/portal-professor",
+    "legenda": "Painel"
+   }
+  ]
+ },
+ {
+  "nucleo": "Pedagógico",
+  "modulo": "Início e ambientes de ensino",
+  "rota": "/edu/inicio",
+  "titulo_chamada": "Escolha o ambiente e veja só o seu curso",
+  "descricao": "Ambientes de ensino filtram as telas por nível e modalidade.\n\nA escolha vale para todo o sistema.",
+  "funcionalidades": [
+   "Ambientes padrão",
+   "Troca de ambiente"
+  ],
+  "automacoes": [
+   "Filtro automático"
+  ],
+  "ia": [],
+  "base_normativa_literatura": [],
+  "limites": [],
+  "telas_para_print": [
+   {
+    "rota": "/edu/inicio",
+    "legenda": "Ambientes"
+   }
+  ]
+ }
+]

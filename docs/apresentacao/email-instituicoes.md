@@ -16,7 +16,7 @@ Apresento o **EduMaster Pro**, plataforma de gestão para instituições de ensi
 
 **Acesse a demonstração (dados fictícios):**
 https://web-production-5398c.up.railway.app
-Login: apresentacao@uminga.br
+Login: apresentacao@uninga.br
 Senha: Uninga@2026
 
 Em anexo, uma apresentação resumida em PDF. O sistema foi desenvolvido pela **WMundi Technologies**, desenvolvedora de aplicativos Apple (iOS) e Android e de plataformas web.

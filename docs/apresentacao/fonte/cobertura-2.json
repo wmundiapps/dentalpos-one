@@ -1,0 +1,79 @@
+[
+ {
+  "item": "Ambiente do aluno (todas as abas)",
+  "existe": "SIM",
+  "modulo": "Portal do aluno",
+  "rota": "/edu/portal-aluno",
+  "como_funciona": "16 abas: visão geral, notas e boletim, frequência, salas e materiais, horários, fluxograma, requerimentos e processos, serviços e atendimento, financeiro, biblioteca, mensagens, documentos, carteirinha, presença facial e QR, privacidade LGPD e avaliação docente; boleto/Pix são simulados."
+ },
+ {
+  "item": "Robôs para atendimento",
+  "existe": "SIM (parcial, depende de chave de IA e canais)",
+  "modulo": "Comunicação · Chatbot e FAQ; Atendimento · Base de conhecimento e IA",
+  "rota": "/edu/comunicacao ; /edu/atendimento?secao=conhecimento",
+  "como_funciona": "Chatbot por fluxos/menu + FAQ + IA opcional, com consultas de boleto, notas e calendário após confirmar CPF e transferência a humano; a Central sugere respostas e só responde sozinha se ativado; canais reais exigem credenciais, senão é simulado."
+ },
+ {
+  "item": "Robô para responder redes sociais",
+  "existe": "PARCIAL",
+  "modulo": "Comunicação · Redes sociais e Chatbot",
+  "rota": "/edu/comunicacao",
+  "como_funciona": "Mensagens diretas de Instagram e Facebook entram na inbox e são atendidas pelo chatbot se o canal Meta estiver configurado; comentários públicos têm triagem de spam e alerta por palavras e resposta manual publicada via Graph API, mas NÃO há robô que responda comentários automaticamente."
+ },
+ {
+  "item": "Leitura e arquivo de documentos (OCR/classificação por IA)",
+  "existe": "NÃO EXISTE",
+  "modulo": "Atendimento · Documentos recebidos",
+  "rota": "/edu/atendimento?secao=documentos",
+  "como_funciona": "Há recebimento, checklist por serviço, verificação de tipo real/malware, conferência humana e arquivo; não há OCR nem classificação de documentos por IA (a IA classifica apenas o texto de demandas). Visão por IA só modera imagens enviadas, com chave Anthropic."
+ },
+ {
+  "item": "Biblioteca",
+  "existe": "SIM",
+  "modulo": "Biblioteca; Portal do aluno · Biblioteca",
+  "rota": "/edu/biblioteca ; /edu/portal-aluno?aba=biblioteca",
+  "como_funciona": "Acervo, circulação com multas e reservas, inventário, adequação da bibliografia, biblioteca virtual, repositório institucional com Dublin Core e autosserviço do aluno."
+ },
+ {
+  "item": "Avisos de provas ao aluno",
+  "existe": "SIM (no portal)",
+  "modulo": "Calendário (job) e Portal do aluno",
+  "rota": "/edu/portal-aluno",
+  "como_funciona": "Job envia aviso 7 dias e 1 dia antes de cada avaliação aos alunos da turma, gravado como mensagem no portal; o card Próximas provas mostra calendário, provas da sala virtual e datas do diário; envio por WhatsApp/e-mail não é automático para esse aviso."
+ },
+ {
+  "item": "Áreas de estágio",
+  "existe": "PARCIAL",
+  "modulo": "Apoio (API de empregabilidade e termos de estágio) e Modalidades (tela de Estágios, fora do meu conjunto)",
+  "rota": "/edu/apoio (sem tela de estágio) ; /edu/modalidades",
+  "como_funciona": "Backend de Apoio tem empresas, vagas, termos de estágio validados pela Lei 11.788/2008 e relatórios parciais/final, mas SEM tela; a tela de Estágios com horas exigidas e validação está em Modalidades."
+ },
+ {
+  "item": "Agendas por curso (psicologia, biomedicina, fonoaudiologia, medicina veterinária, odontologia, medicina)",
+  "existe": "NÃO EXISTE",
+  "modulo": "Nenhum no meu conjunto",
+  "rota": "—",
+  "como_funciona": "Não há agenda por curso nem clínica-escola por especialidade. Existem agenda de infraestrutura, atendimentos NAE com tipo psicológico, tipo de espaço CLINICA_ESCOLA e categorias de bens odontológicos; o menu Agenda/Clínico é do DentalPos One (odontologia), fora do EduMaster."
+ },
+ {
+  "item": "Núcleos de agronomia/controle de culturas",
+  "existe": "NÃO EXISTE",
+  "modulo": "—",
+  "rota": "—",
+  "como_funciona": "Nenhuma ocorrência de agronomia ou culturas no código."
+ },
+ {
+  "item": "Áreas de pequenos animais",
+  "existe": "NÃO EXISTE",
+  "modulo": "—",
+  "rota": "—",
+  "como_funciona": "Nenhuma ocorrência no código (apenas um processo de autorização de Medicina Veterinária no seed de demonstração)."
+ },
+ {
+  "item": "Áreas de grandes animais",
+  "existe": "NÃO EXISTE",
+  "modulo": "—",
+  "rota": "—",
+  "como_funciona": "Nenhuma ocorrência no código."
+ }
+]
