@@ -11,6 +11,8 @@ import CookieBanner from "./lgpd/CookieBanner";
 import PoliticaPrivacidade from "./lgpd/PoliticaPrivacidade";
 import TermosDeUso from "./lgpd/TermosDeUso";
 import PortalTitular from "./lgpd/PortalTitular";
+import SitePublico from "./pages/public/SitePublico";
+import Descadastro from "./pages/public/Descadastro";
 import {
   clearClientSession,
   demoSalesUrl,
@@ -26,6 +28,8 @@ import { EDU_ONLY } from "./config/appMode";
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const PUBLIC_LGPD = ["/privacidade", "/termos", "/portal-titular"];
+// Marketing: site institucional/landing pages e descadastro em 1 clique (sem login).
+const isPublicMkt = (p: string) => p.startsWith("/site/") || p.startsWith("/descadastro/");
 
 type SessionState = "checking" | "valid" | "invalid" | "unavailable" | "expired";
 
@@ -97,7 +101,7 @@ function AppShell() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/redefinir-senha" && !PUBLIC_LGPD.includes(appPath)) void validateSession();
+    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/redefinir-senha" && !PUBLIC_LGPD.includes(appPath) && !isPublicMkt(appPath)) void validateSession();
   }, [appPath]);
 
   if (appPath === "/agendamento-online") {
@@ -119,6 +123,8 @@ function AppShell() {
   if (appPath === "/privacidade") return <PoliticaPrivacidade />;
   if (appPath === "/termos") return <TermosDeUso />;
   if (appPath === "/portal-titular") return <PortalTitular />;
+  if (appPath.startsWith("/site/")) return <SitePublico />;
+  if (appPath.startsWith("/descadastro/")) return <Descadastro />;
 
   if (session === "invalid") return <Login />;
 

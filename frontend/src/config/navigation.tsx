@@ -24,6 +24,12 @@ import GavelIcon from "@mui/icons-material/Gavel";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import HomeWorkIcon from "@mui/icons-material/HomeWork";
 import ShieldIcon from "@mui/icons-material/Shield";
+import CampaignIcon from "@mui/icons-material/Campaign";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
+import PublicIcon from "@mui/icons-material/Public";
+import RadioIcon from "@mui/icons-material/Radio";
+import GppGoodIcon from "@mui/icons-material/GppGood";
 import LocationCityIcon from "@mui/icons-material/LocationCity";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
@@ -314,6 +320,22 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Régua e Políticas","/edu/cobranca?aba=regua",<SettingsIcon/>),
       item("Histórico de Contatos","/edu/cobranca?aba=historico",<ChatIcon/>),
       item("Recebimentos","/edu/cobranca?aba=recebimentos",<PaymentsIcon/>),
+    ]
+  },
+  {
+    label:"EduMaster · Marketing",
+    icon:tile(<CampaignIcon/>,"#C026D3"),
+    items:[
+      item("Painel","/edu/marketing?secao=painel",<SpaceDashboardIcon/>),
+      item("Calendário","/edu/marketing?secao=calendario",<CalendarMonthIcon/>),
+      item("Campanhas","/edu/marketing?secao=campanhas",<CampaignIcon/>),
+      item("Leads e Funil","/edu/marketing?secao=leads",<FilterAltIcon/>),
+      item("Canais e Disparos","/edu/marketing?secao=canais",<SendIcon/>),
+      item("Mídia offline","/edu/marketing?secao=offline",<RadioIcon/>),
+      item("Gerador IA","/edu/marketing?secao=ia",<AutoAwesomeIcon/>),
+      item("Site e Landing pages","/edu/marketing?secao=site",<PublicIcon/>),
+      item("Eventos","/edu/marketing?secao=eventos",<EventIcon/>),
+      item("Conformidade LGPD","/edu/marketing?secao=lgpd",<GppGoodIcon/>),
     ]
   },
   {
