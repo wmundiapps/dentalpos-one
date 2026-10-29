@@ -18,17 +18,23 @@ export default function FinancialScanner() {
   const nextKey = () => seqRef.current++;
   const patch = (key: number, p: Partial<Row>) => setRows((r) => r.map((x) => (x.key === key ? { ...x, ...p } : x)));
 
-  const fromInfo = (fileName: string, info: ReturnType<typeof parseBoleto>, payee: string): Row => ({
-    key: nextKey(), fileName, line: info?.digitableLine || info?.barcode || "", payee, description: payee ? `Boleto ${payee}` : "", amount: info?.amount ? String(info.amount) : "", dueDate: info?.dueDate || "", bank: info?.bank || "", valid: info ? info.valid : null, status: "novo",
-    message: info ? (info.valid ? "" : "A linha digitável não confere (dígito verificador). Confira os números com o boleto.") : "Não encontrei o código no arquivo. Cole a linha digitável abaixo ou preencha à mão.",
-  });
+  const fromInfo = (fileName: string, info: ReturnType<typeof parseBoleto>, payee: string, textAmounts: number[] = [], labeled: number | null = null): Row => {
+    // Confere o valor do código com os valores escritos no documento; se não bater, prefere o "Valor do documento" lido no texto.
+    let amount = info?.amount ?? null; let warn = "";
+    if (amount && textAmounts.length && !textAmounts.some((v) => Math.abs(v - (amount as number)) < 0.005)) { if (labeled) { warn = `O valor do código (${amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}) não aparece no documento; usei o “Valor do documento” (${labeled.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}). Confira.`; amount = labeled; } else { warn = "O valor do código não aparece no documento. Confira o valor antes de lançar."; amount = null; } }
+    else if (amount && amount > 200000) warn = "Valor muito alto para um boleto: confira o valor antes de lançar.";
+    return {
+    key: nextKey(), fileName, line: info?.digitableLine || info?.barcode || "", payee, description: payee ? `Boleto ${payee}` : "", amount: amount ? String(amount) : "", dueDate: info?.dueDate || "", bank: info?.bank || "", valid: info ? info.valid : null, status: "novo",
+    message: info ? (info.valid ? warn : `A linha digitável não confere (dígito verificador ou moeda). Confira os números com o boleto.${warn ? " " + warn : ""}`) : "Não encontrei o código no arquivo. Cole a linha digitável abaixo ou preencha à mão.",
+  };
+  };
 
   const onFiles = async (files: FileList | null) => {
     if (!files?.length) return;
     setBusy(true); setNotice("");
     const added: Row[] = [];
     for (const f of Array.from(files)) {
-      try { const r = await readBoletoFile(f); added.push(fromInfo(f.name, r.info, r.payee)); }
+      try { const r = await readBoletoFile(f); added.push(fromInfo(f.name, r.info, r.payee, r.textAmounts, r.labeledAmount)); }
       catch (e) { added.push({ ...fromInfo(f.name, null, ""), message: e instanceof Error ? e.message : "Não consegui abrir o arquivo." }); }
     }
     setRows((r) => [...added, ...r]); setBusy(false);
