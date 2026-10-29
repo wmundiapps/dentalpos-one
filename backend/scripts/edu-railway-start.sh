@@ -4,7 +4,10 @@ set -e
 FLAGS="--skip-generate"
 [ "$EDU_ALLOW_DATA_LOSS" = "1" ] && FLAGS="$FLAGS --accept-data-loss"
 # EDU_RESET=1: recria o banco de demonstração do zero (apaga TODOS os dados deste ambiente de teste).
-[ "$EDU_RESET" = "1" ] && FLAGS="$FLAGS --force-reset --accept-data-loss"
+if [ "$EDU_RESET" = "1" ]; then
+  npx tsx scripts/edu-reset-db.ts
+  FLAGS="$FLAGS --accept-data-loss"
+fi
 npx prisma db push $FLAGS
 node dist/server.js &
 SERVER=$!
