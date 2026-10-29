@@ -24,6 +24,7 @@ import reitoriaRouter, { publicRouter as reitoriaPublic } from './reitoria/route
 import lgpdRouter, { publicRouter as lgpdPublic } from './lgpd/routes'
 import tesourariaRouter from './tesouraria/routes'
 import { acessoSensivelLog } from './lgpd/sensiveis'
+import juridicoRouter from './juridico/routes'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
 const router = Router()
@@ -53,6 +54,7 @@ router.use('/jornadas', jornadasRouter)
 router.use('/modalidades', modalidadesRouter)
 router.use('/reitoria', reitoriaRouter)
 router.use('/lgpd', lgpdRouter)
+router.use('/juridico', juridicoRouter)
 router.use('/tesouraria', tesourariaRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.
 router.use(academicErrorHandler)
