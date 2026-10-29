@@ -31,7 +31,7 @@ export function readVaultToken(req: AuthRequest): { ok: boolean } {
 // Barra todas as rotas do RH que não tenham o token do cofre (exceto bater ponto, tela pessoal e o próprio cofre).
 export function requireHrVault(req: AuthRequest, res: Response, next: NextFunction) {
   const p = req.path
-  if (p.startsWith('/me/') || p.startsWith('/vault') || p === '/timeclock/face-punch' || p === '/timeclock/face-first-enroll') return next()
+  if (p.startsWith('/me/') || p.startsWith('/vault') || p === '/timeclock/face-punch' || p === '/timeclock/face-first-enroll' || p === '/timeclock/cpf-check') return next()
   if (readVaultToken(req).ok) return next()
   return res.status(423).json({ code: 'HR_VAULT_LOCKED', error: 'Área exclusiva do RH. Entre com o login e a senha do RH.' })
 }

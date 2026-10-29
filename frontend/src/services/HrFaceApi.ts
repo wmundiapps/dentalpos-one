@@ -23,3 +23,4 @@ export const punchPhoto = (punchId: string) => call<{ photo: string | null }>(`/
 export const employeeFacePhoto = (employeeId: string) => call<{ photo: string | null }>(`/hr/employees/${encodeURIComponent(employeeId)}/face-photo`);
 export const setEmployeePortalPassword = (employeeId: string, password: string) => call<{ ok: boolean }>(`/hr/employees/${encodeURIComponent(employeeId)}/portal-password`, { method: "PUT", body: { password } });
 export const firstFaceEnroll = (cpf: string, samples: number[][], photo: string, geo: { latitude?: number; longitude?: number; accuracy?: number }) => call<FacePunchResult & { enrolled: boolean }>("/hr/timeclock/face-first-enroll", { method: "POST", body: { cpf, samples, photo, consent: true, ...geo } });
+export const cpfCheck = (cpf: string) => call<{ found: boolean; employeeName: string; hasFace: boolean }>("/hr/timeclock/cpf-check", { method: "POST", body: { cpf } });
