@@ -17,14 +17,13 @@ export async function sendMissingPunchAlerts(c: { id: string; tenantId: string; 
   if (!(expectedToday > 0)) return { skipped: 'dia sem expediente' }
   const brt = new Date(now.getTime() - BRT_MS)
   const nowMin = brt.getUTCHours() * 60 + brt.getUTCMinutes()
-  const limit = toMin(s.startTime) + s.toleranceMinutes + 30
-  if (nowMin < limit || nowMin > 20 * 60) return { skipped: 'fora da janela' }
+  if (nowMin > 20 * 60) return { skipped: 'fora da janela' }
 
   const dayStart = new Date(`${today}T03:00:00.000Z`)
   const dayEnd = new Date(dayStart.getTime() + 86400000)
   const emps = await prisma.hREmployee.findMany({
     where: { clinicId: c.id, tenantId: c.tenantId, status: { notIn: ['TERMINATED', 'Desligado'] }, admissionDate: { lt: dayEnd }, OR: [{ terminationDate: null }, { terminationDate: { gte: dayStart } }] },
-    select: { id: true, name: true },
+    select: { id: true, name: true, workStart: true },
   })
   if (!emps.length) return { skipped: 'sem colaboradores' }
   const ids = emps.map((e) => e.id)
@@ -37,7 +36,9 @@ export async function sendMissingPunchAlerts(c: { id: string; tenantId: string; 
   const handled = new Set<string>()
   for (const a of attendance) if (a.date.toISOString().slice(0, 10) === today && (a.clockIn || JUSTIFIED.includes(String(a.status).toLowerCase()))) handled.add(a.employeeId)
   for (const r of requests) handled.add(r.employeeId)
-  const missing = emps.filter((e) => !punched.has(e.id) && !handled.has(e.id))
+  // Cada colaborador tem o seu horário de entrada (ou o da clínica): só entra na lista depois da entrada + tolerância + 30 min.
+  const due = (e: { workStart: string | null }) => (e.workStart ? toMin(e.workStart) : toMin(s.startTime)) + s.toleranceMinutes + 30
+  const missing = emps.filter((e) => nowMin >= due(e) && !punched.has(e.id) && !handled.has(e.id))
   if (!missing.length) return { skipped: 'ninguém faltando' }
 
   const row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId: c.id, key: ALERT_KEY } } })

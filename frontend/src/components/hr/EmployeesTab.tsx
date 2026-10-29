@@ -9,7 +9,7 @@ const CATEGORIES = ["Cirurgião-dentista", "ASB", "TSB", "Técnico em Prótese D
 const MODELS = ["CLT", "PJ", "Autônomo", "Estágio", "Diária", "Percentual", "Locação de espaço", "Terceirizado"];
 export const STATUS_OPTIONS: Array<[string, string]> = [["ACTIVE", "Ativo"], ["EXPERIENCE", "Experiência"], ["VACATION", "Férias"], ["LEAVE", "Afastado"], ["NOTICE", "Aviso-prévio"], ["TERMINATED", "Desligado"]];
 const today = () => new Date().toISOString().slice(0, 10);
-const blank = { name: "", category: "Outro", position: "", department: "", employmentModel: "CLT", status: "ACTIVE", admissionDate: today(), experienceEndDate: "", baseSalary: "", monthlyWorkload: "220", supervisor: "", phone: "", email: "", cpf: "", pixKey: "", notes: "" };
+const blank = { name: "", category: "Outro", position: "", department: "", employmentModel: "CLT", status: "ACTIVE", admissionDate: today(), experienceEndDate: "", baseSalary: "", monthlyWorkload: "220", supervisor: "", phone: "", email: "", cpf: "", pixKey: "", notes: "", workStart: "", lunchStart: "", lunchEnd: "", workEnd: "" };
 
 export default function EmployeesTab({ employees, onChanged }: { employees: Employee[]; onChanged: () => void }) {
   const [search, setSearch] = useState("");
@@ -28,7 +28,7 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
   const openNew = () => { setEditing(null); setForm(blank); setError(""); setOpen(true); };
   const openEdit = (e: Employee) => {
     setEditing(e); setError("");
-    setForm({ name: e.name, category: e.category, position: e.position, department: e.department, employmentModel: e.employmentModel, status: e.status, admissionDate: e.admissionDate.slice(0, 10), experienceEndDate: (e.experienceEndDate || "").slice(0, 10), baseSalary: String(e.baseSalary ?? ""), monthlyWorkload: String(e.monthlyWorkload), supervisor: e.supervisor || "", phone: e.phone || "", email: e.email || "", cpf: e.cpf || "", pixKey: e.pixKey || "", notes: e.notes || "" });
+    setForm({ name: e.name, category: e.category, position: e.position, department: e.department, employmentModel: e.employmentModel, status: e.status, admissionDate: e.admissionDate.slice(0, 10), experienceEndDate: (e.experienceEndDate || "").slice(0, 10), baseSalary: String(e.baseSalary ?? ""), monthlyWorkload: String(e.monthlyWorkload), supervisor: e.supervisor || "", phone: e.phone || "", email: e.email || "", cpf: e.cpf || "", pixKey: e.pixKey || "", notes: e.notes || "", workStart: e.workStart || "", lunchStart: e.lunchStart || "", lunchEnd: e.lunchEnd || "", workEnd: e.workEnd || "" });
     setOpen(true);
   };
   const save = async () => {
@@ -80,6 +80,16 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
           <TextField type="date" label="Admissão" value={form.admissionDate} onChange={set("admissionDate")} slotProps={{ inputLabel: { shrink: true } }} />
           <TextField type="date" label="Fim da experiência" value={form.experienceEndDate} onChange={set("experienceEndDate")} slotProps={{ inputLabel: { shrink: true } }} />
           <TextField label="Salário-base mensal" type="number" value={form.baseSalary} onChange={set("baseSalary")} />
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            <Typography sx={{ fontWeight: 800, mb: 0.5 }}>Horário de trabalho do colaborador</Typography>
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 1.5 }}>
+              <TextField type="time" label="Entrada" value={form.workStart} onChange={set("workStart")} slotProps={{ inputLabel: { shrink: true } }} />
+              <TextField type="time" label="Saída para o almoço" value={form.lunchStart} onChange={set("lunchStart")} slotProps={{ inputLabel: { shrink: true } }} />
+              <TextField type="time" label="Volta do almoço" value={form.lunchEnd} onChange={set("lunchEnd")} slotProps={{ inputLabel: { shrink: true } }} />
+              <TextField type="time" label="Saída (ir embora)" value={form.workEnd} onChange={set("workEnd")} slotProps={{ inputLabel: { shrink: true } }} />
+            </Box>
+            <Typography variant="caption" color="text.secondary">Usado no ponto: atraso, horas esperadas por dia (segunda a sexta) e aviso de quem não bateu a entrada. Em branco, vale o horário geral da clínica.</Typography>
+          </Box>
           <TextField label="Carga mensal (h)" type="number" value={form.monthlyWorkload} onChange={set("monthlyWorkload")} />
           <TextField label="Supervisor" value={form.supervisor} onChange={set("supervisor")} />
           <TextField label="CPF" value={form.cpf} onChange={set("cpf")} />

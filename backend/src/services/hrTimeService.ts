@@ -245,7 +245,7 @@ function monthRange(ref: string) {
 
 export function currentRef() { return dayKey(new Date()).slice(0, 7) }
 
-async function buildMonth(emp: { id: string; admissionDate: Date; terminationDate: Date | null }, ref: string, s: TimeSettings, clinicId: string) {
+async function buildMonth(emp: { id: string; admissionDate: Date; terminationDate: Date | null; workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null }, ref: string, s: TimeSettings, clinicId: string) {
   const { last } = monthRange(ref)
   const first = `${ref}-01`
   const from = dayStartUtc(first)
@@ -264,7 +264,10 @@ async function buildMonth(emp: { id: string; admissionDate: Date; terminationDat
   const now = new Date()
   const today = dayKey(now)
   const nowMin = minutesOfDay(now)
-  const startMin = toMin(s.startTime) ?? 480
+  // Jornada do próprio colaborador (entrada, almoço, volta, saída); sem ela vale a regra geral da clínica.
+  const ws = toMin(emp.workStart || ''), ls = toMin(emp.lunchStart || ''), le = toMin(emp.lunchEnd || ''), we = toMin(emp.workEnd || '')
+  const ownDayMin = ws !== null && ls !== null && le !== null && we !== null && ls > ws && le >= ls && we > le ? (ls - ws) + (we - le) : null
+  const startMin = ws ?? toMin(s.startTime) ?? 480
   const admission = dayKey(emp.admissionDate)
   const termination = emp.terminationDate ? dayKey(emp.terminationDate) : null
   const days: DayRow[] = []
@@ -274,7 +277,7 @@ async function buildMonth(emp: { id: string; admissionDate: Date; terminationDat
     const key = `${ref}-${String(d).padStart(2, '0')}`
     if (key > today) break
     const wd = weekday(key)
-    let expected = wd === 0 ? 0 : wd === 6 ? Math.round(s.saturdayHours * 60) : Math.round(s.dailyHours * 60)
+    let expected = wd === 0 ? 0 : wd === 6 ? Math.round(s.saturdayHours * 60) : ownDayMin ?? Math.round(s.dailyHours * 60)
     if (key < admission || (termination && key > termination)) expected = 0
     const ps = byDay.get(key) || []
     const att = attByDay.get(key)
