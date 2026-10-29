@@ -6,6 +6,7 @@ import { Box, Typography } from "@mui/material";
 import Academic from "../pages/Academic";
 const EduReitoria = lazy(() => import("../pages/edu/EduReitoria"));
 const EduMinhaMesa = lazy(() => import("../pages/edu/EduMinhaMesa"));
+const EduReitoriaGestao = lazy(() => import("../pages/edu/EduReitoriaGestao"));
 const EduJornadas = lazy(() => import("../pages/edu/EduJornadas"));
 const EduAdmissoes = lazy(() => import("../pages/edu/EduAdmissoes"));
 const EduSecretaria = lazy(() => import("../pages/edu/EduSecretaria"));
@@ -146,6 +147,7 @@ export default function AppRoutes() {
       <Route path="/academico" element={<Academic />} />
       <Route path="/edu" element={<EduReitoria />} />
       <Route path="/edu/minha-mesa" element={<EduMinhaMesa />} />
+      {(["agenda", "dou", "paineis", "convenios", "pessoas", "niveis", "comparativo"] as const).map((s) => <Route key={s} path={`/edu/reitoria/${s}`} element={<EduReitoriaGestao secao={s} />} />)}
       <Route path="/edu/jornadas" element={<EduJornadas />} />
       <Route path="/edu/admissoes" element={<EduAdmissoes />} />
       <Route path="/edu/secretaria" element={<EduSecretaria />} />

@@ -193,6 +193,13 @@ const allNavigationGroups:NavigationGroup[] = [
     items:[
       item("Painel executivo","/edu",<SpaceDashboardIcon/>),
       item("Minha mesa e lembretes","/edu/minha-mesa",<AssignmentIcon/>),
+      item("Agenda da Reitoria","/edu/reitoria/agenda",<EventIcon/>),
+      item("Diário Oficial (DOU)","/edu/reitoria/dou",<DescriptionIcon/>),
+      item("Painéis executivos","/edu/reitoria/paineis",<BarChartIcon/>),
+      item("Acordos e convênios","/edu/reitoria/convenios",<AccountBalanceIcon/>),
+      item("Pessoas e avaliações","/edu/reitoria/pessoas",<PeopleAltIcon/>),
+      item("Graduação e pós","/edu/reitoria/niveis",<SchoolIcon/>),
+      item("Comparativo com outras IES","/edu/reitoria/comparativo",<InsightsIcon/>),
       item("Jornadas e fluxogramas","/edu/jornadas",<HubIcon/>),
       item("Regulatório MEC","/edu/regulatorio",<HealthAndSafetyIcon/>),
       item("Governança e PDI","/edu/governanca",<AdminPanelSettingsIcon/>),
