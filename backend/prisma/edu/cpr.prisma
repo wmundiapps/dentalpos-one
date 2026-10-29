@@ -1,0 +1,624 @@
+// ============================================================
+// EDUMASTER PRO - CAMPOS DE PRÁTICA (prefixo Cpr)
+// Estágios (concedentes, convênios, vagas, termo, horas, relatórios, avaliação), clínicas-escola e agendas por curso,
+// núcleo de agronomia (talhões, ciclos, atividades de campo) e núcleo animal (pequenos e grandes animais).
+// Referências a Student/User/AcademicProgram/ClassSection/Discipline/SupItem = String ids sem @relation.
+// Dados de saúde: campos *Cifrado usam o cofre do módulo seguranca (AES-256-GCM).
+// ============================================================
+
+model CprConfig {
+  id                       String   @id @default(uuid())
+  tenantId                 String   @unique
+  diasAlertaConvenio       Int      @default(60)
+  diasAlertaSeguro         Int      @default(30)
+  diasAlertaFimEstagio     Int      @default(30)
+  diasHorasPendentes       Int      @default(7)      // horas aguardando validação há mais de X dias geram alerta
+  horasMaxDia              Float    @default(6)
+  horasMaxSemanaPadrao     Float    @default(30)
+  notaMinimaEstagio        Float    @default(6)
+  maxFaltasConsecutivas    Int      @default(3)      // clínicas: acima disso novo agendamento exige liberação da coordenação
+  antecedenciaLembreteHoras Int     @default(24)
+  consentimentoVersao      String   @default("2026.1")
+  diasAlertaColheita       Int      @default(15)
+  diasLembreteVacina       Int      @default(7)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+// ------------------------------------------------------------ ESTÁGIOS
+model CprConcedente {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  cnpj        String?
+  tipo        String   @default("EMPRESA")   // EMPRESA | ORGAO_PUBLICO | HOSPITAL | CLINICA | ONG | ESCOLA | FAZENDA | OUTRO
+  cidade      String?
+  uf          String?
+  endereco    String?
+  contatoNome String?
+  contatoEmail String?
+  contatoTelefone String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([tenantId, ativo])
+}
+
+model CprConvenio {
+  id            String   @id @default(uuid())
+  tenantId      String
+  concedenteId  String
+  numero        String
+  objeto        String?
+  inicio        DateTime
+  fim           DateTime
+  documentoUrl  String?
+  status        String   @default("ATIVO")   // ATIVO | ENCERRADO | SUSPENSO
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@unique([tenantId, numero])
+  @@index([tenantId, concedenteId])
+  @@index([tenantId, fim])
+}
+
+model CprCampoEstagio {
+  id            String   @id @default(uuid())
+  tenantId      String
+  concedenteId  String
+  convenioId    String?
+  nome          String
+  area          String?
+  local         String?
+  supervisorNome String?
+  supervisorEmail String?
+  supervisorCargo String?
+  supervisorRegistro String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@index([tenantId, concedenteId])
+}
+
+model CprVaga {
+  id           String   @id @default(uuid())
+  tenantId     String
+  campoId      String
+  programId    String
+  quantidade   Int      @default(1)
+  inicio       DateTime?
+  fim          DateTime?
+  requisitos   String?
+  ativa        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@index([tenantId, campoId])
+  @@index([tenantId, programId])
+}
+
+model CprEstagio {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  studentId           String
+  programId           String
+  campoId             String
+  vagaId              String
+  convenioId          String?
+  orientadorUserId    String
+  supervisorCampoNome String?
+  supervisorCampoEmail String?
+  tipo                String   @default("OBRIGATORIO")   // OBRIGATORIO | NAO_OBRIGATORIO
+  inicio              DateTime
+  fim                 DateTime
+  cargaHorariaTotal   Float
+  horasSemana         Float    @default(20)
+  planoAtividades     String?
+  termoAssinadoEm     DateTime?
+  seguroApolice       String?
+  seguroValidade      DateTime?
+  status              String   @default("AGUARDANDO_DOCUMENTOS")   // AGUARDANDO_DOCUMENTOS | EM_ANDAMENTO | ENCERRADO | CANCELADO
+  resultado           String?  // APROVADO | REPROVADO
+  notaFinal           Float?
+  encerradoEm         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  @@index([tenantId, studentId])
+  @@index([tenantId, programId, status])
+  @@index([tenantId, orientadorUserId])
+  @@index([tenantId, vagaId])
+}
+
+model CprEstagioDocumento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  estagioId   String
+  tipo        String   // TERMO_COMPROMISSO | PLANO_ATIVIDADES | SEGURO | CONVENIO | OUTRO
+  obrigatorio Boolean  @default(true)
+  status      String   @default("PENDENTE")   // PENDENTE | ENTREGUE | VALIDADO | REJEITADO
+  url         String?
+  numero      String?
+  validade    DateTime?
+  motivo      String?
+  validadoPorId String?
+  validadoEm  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@unique([estagioId, tipo])
+  @@index([tenantId, estagioId])
+}
+
+model CprEstagioHora {
+  id          String   @id @default(uuid())
+  tenantId    String
+  estagioId   String
+  data        DateTime
+  horas       Float
+  atividade   String
+  status      String   @default("PENDENTE")   // PENDENTE | VALIDADA | REJEITADA
+  motivo      String?
+  registradoPorId String?
+  validadoPorId String?
+  validadoEm  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([tenantId, estagioId, status])
+  @@index([tenantId, status, createdAt])
+}
+
+model CprEstagioRelatorio {
+  id          String   @id @default(uuid())
+  tenantId    String
+  estagioId   String
+  tipo        String   // PARCIAL | FINAL
+  periodoInicio DateTime?
+  periodoFim  DateTime?
+  texto       String
+  status      String   @default("RASCUNHO")   // RASCUNHO | ENTREGUE | APROVADO | DEVOLVIDO
+  parecer     String?
+  entregueEm  DateTime?
+  avaliadoPorId String?
+  avaliadoEm  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([tenantId, estagioId])
+}
+
+model CprEstagioAvaliacao {
+  id          String   @id @default(uuid())
+  tenantId    String
+  estagioId   String
+  avaliador   String   // ORIENTADOR | SUPERVISOR_CAMPO | AUTOAVALIACAO
+  criterios   Json
+  nota        Float
+  parecer     String?
+  registradoPorId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@unique([estagioId, avaliador])
+  @@index([tenantId, estagioId])
+}
+
+// ------------------------------------------------------------ CLÍNICAS-ESCOLA / HOSPITAL VETERINÁRIO
+model CprUnidade {
+  id        String   @id @default(uuid())
+  tenantId  String
+  nome      String
+  tipo      String   @default("CLINICA_ESCOLA")   // CLINICA_ESCOLA | AMBULATORIO | HOSPITAL_VET | LABORATORIO
+  area      String   // PSICOLOGIA | BIOMEDICINA | FONOAUDIOLOGIA | VETERINARIA | ODONTOLOGIA | MEDICINA
+  programId String?
+  endereco  String?
+  telefone  String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([tenantId, area])
+}
+
+model CprConsultorio {
+  id        String   @id @default(uuid())
+  tenantId  String
+  unidadeId String
+  nome      String
+  tipo      String   @default("CONSULTORIO")   // CONSULTORIO | SALA_ATENDIMENTO | CENTRO_CIRURGICO | A_CAMPO
+  capacidade Int     @default(1)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([tenantId, unidadeId])
+}
+
+model CprEscala {
+  id                   String   @id @default(uuid())
+  tenantId             String
+  unidadeId            String
+  programId            String
+  supervisorUserId     String
+  consultorioId        String?
+  inicio               DateTime
+  fim                  DateTime
+  capacidadeSimultanea Int      @default(3)   // atendimentos simultâneos que o supervisor acompanha
+  supervisorPresenteEm DateTime?
+  status               String   @default("ATIVA")   // ATIVA | CANCELADA
+  observacao           String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  @@index([tenantId, unidadeId, inicio])
+  @@index([tenantId, supervisorUserId, inicio])
+}
+
+model CprEscalaAluno {
+  id        String   @id @default(uuid())
+  tenantId  String
+  escalaId  String
+  studentId String
+  createdAt DateTime @default(now())
+  @@unique([escalaId, studentId])
+  @@index([tenantId, studentId])
+}
+
+// Paciente (pessoa atendida) ou tutor/responsável (núcleo animal). Identificadores e dados de saúde cifrados.
+model CprPaciente {
+  id               String   @id @default(uuid())
+  tenantId         String
+  tipo             String   @default("PACIENTE")   // PACIENTE | TUTOR
+  nome             String
+  cpfHash          String?
+  cpfCifrado       String?
+  cpfFinal         String?  // 2 últimos dígitos, para conferência
+  telefoneCifrado  String?
+  emailCifrado     String?
+  saudeCifrado     String?  // queixa/histórico resumido (dado de saúde, art. 11)
+  dataNascimento   DateTime?
+  menor            Boolean  @default(false)
+  responsavelNome  String?
+  responsavelCpfCifrado String?
+  consentimentoStatus String @default("PENDENTE")   // ATIVO | REVOGADO | PENDENTE
+  consentimentoVersao String?
+  consentimentoFinalidade String?
+  consentimentoEm  DateTime?
+  consentimentoRevogadoEm DateTime?
+  baseLegal        String?
+  faltasConsecutivas Int    @default(0)
+  faltasTotal      Int      @default(0)
+  anonimizadoEm    DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  @@unique([tenantId, cpfHash])
+  @@index([tenantId, tipo])
+}
+
+model CprConsulta {
+  id               String   @id @default(uuid())
+  tenantId         String
+  unidadeId        String
+  consultorioId    String
+  programId        String
+  pacienteId       String
+  animalId         String?
+  supervisorUserId String
+  alunoStudentId   String?
+  escalaId         String?
+  inicio           DateTime
+  fim              DateTime
+  categoria        String   @default("CONSULTA")   // TRIAGEM | CONSULTA | RETORNO | AVALIACAO | PROCEDIMENTO | VACINACAO | CIRURGIA
+  status           String   @default("AGENDADO")   // AGENDADO | CONFIRMADO | CHEGOU | EM_ATENDIMENTO | REALIZADO | FALTOU | CANCELADO | REMARCADO
+  filaId           String?
+  remarcadoDeId    String?
+  local            String?
+  confirmadoEm     DateTime?
+  chegouEm         DateTime?
+  iniciadoEm       DateTime?
+  finalizadoEm     DateTime?
+  lembreteEnviadoEm DateTime?
+  motivoCancelamento String?
+  criadoPorId      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  @@index([tenantId, unidadeId, inicio])
+  @@index([tenantId, consultorioId, inicio])
+  @@index([tenantId, supervisorUserId, inicio])
+  @@index([tenantId, alunoStudentId, inicio])
+  @@index([tenantId, pacienteId, inicio])
+  @@index([tenantId, status, inicio])
+}
+
+model CprFila {
+  id         String   @id @default(uuid())
+  tenantId   String
+  pacienteId String
+  animalId   String?
+  unidadeId  String?
+  programId  String
+  prioridade String   @default("NORMAL")   // NORMAL | ALTA | URGENTE
+  categoria  String   @default("CONSULTA")
+  status     String   @default("AGUARDANDO")   // AGUARDANDO | CHAMADO | AGENDADO | DESISTIU
+  chamadoEm  DateTime?
+  consultaId String?
+  observacao String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([tenantId, programId, status])
+}
+
+// Registro resumido do atendimento: o conteúdo é cifrado e só aparece conforme o nível de confidencialidade.
+model CprRegistroAtendimento {
+  id               String   @id @default(uuid())
+  tenantId         String
+  consultaId       String
+  pacienteId       String
+  autorUserId      String
+  autorStudentId   String?
+  nivel            String   @default("NORMAL")   // NORMAL | RESTRITO | SIGILOSO
+  resumoCifrado    String
+  conduta          String?
+  revisadoPorId    String?
+  revisadoEm       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  @@index([tenantId, consultaId])
+  @@index([tenantId, pacienteId])
+}
+
+model CprAcessoLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  userId     String
+  papel      String
+  recurso    String
+  recursoId  String?
+  pacienteId String?
+  acao       String   @default("LEITURA")   // LEITURA | ESCRITA | QUEBRA_SIGILO | NEGADO
+  motivo     String?
+  createdAt  DateTime @default(now())
+  @@index([tenantId, pacienteId, createdAt])
+  @@index([tenantId, userId, createdAt])
+}
+
+// ------------------------------------------------------------ NÚCLEO DE AGRONOMIA
+model CprArea {
+  id        String   @id @default(uuid())
+  tenantId  String
+  nome      String
+  tipo      String   @default("CAMPO_EXPERIMENTAL")   // CAMPO_EXPERIMENTAL | HORTA | POMAR | ESTUFA | PASTAGEM | VIVEIRO
+  hectares  Float    @default(0)
+  localizacao String?
+  latitude  Float?
+  longitude Float?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([tenantId])
+}
+
+model CprTalhao {
+  id        String   @id @default(uuid())
+  tenantId  String
+  areaId    String
+  nome      String
+  hectares  Float
+  solo      String?
+  irrigado  Boolean  @default(false)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([tenantId, areaId])
+}
+
+model CprCultura {
+  id               String   @id @default(uuid())
+  tenantId         String
+  nome             String
+  especie          String?
+  cicloDias        Int      @default(120)
+  mesPlantioInicio Int      @default(1)   // janela de plantio (1-12); se início > fim a janela cruza o ano
+  mesPlantioFim    Int      @default(12)
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  @@unique([tenantId, nome])
+}
+
+model CprCultivar {
+  id        String   @id @default(uuid())
+  tenantId  String
+  culturaId String
+  nome      String
+  cicloDias Int?
+  obtentor  String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([tenantId, culturaId])
+}
+
+model CprCiclo {
+  id                String   @id @default(uuid())
+  tenantId          String
+  talhaoId          String
+  culturaId         String
+  cultivarId        String?
+  safra             String
+  areaHa            Float
+  status            String   @default("PLANEJADO")   // PLANEJADO | PLANTADO | EM_MANEJO | COLHIDO | CANCELADO
+  plantioPrevisto   DateTime
+  colheitaPrevista  DateTime
+  plantioReal       DateTime?
+  colheitaReal      DateTime?
+  responsavelUserId String?
+  classSectionId    String?
+  disciplineId      String?
+  producaoKg        Float?
+  produtividadeKgHa Float?
+  custoTotal        Float    @default(0)
+  foraDaJanela      Boolean  @default(false)
+  observacao        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  @@index([tenantId, talhaoId, status])
+  @@index([tenantId, safra])
+}
+
+model CprAtividadeCampo {
+  id              String   @id @default(uuid())
+  tenantId        String
+  cicloId         String
+  tipo            String   // PREPARO_SOLO | ADUBACAO | PLANTIO | APLICACAO_DEFENSIVO | IRRIGACAO | CAPINA | COLHEITA | OUTRO
+  data            DateTime
+  insumo          String?
+  supItemId       String?
+  quantidade      Float?
+  unidade         String?
+  custoUnitario   Float?
+  custo           Float    @default(0)
+  responsavelUserId String?
+  classSectionId  String?
+  carenciaDias    Int?
+  carenciaAte     DateTime?
+  observacao      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([tenantId, cicloId, data])
+  @@index([tenantId, carenciaAte])
+}
+
+model CprMonitoramento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  cicloId     String
+  data        DateTime
+  tipo        String   // PRAGA | DOENCA | PLANTA_DANINHA | CLIMA | ESTADO_FENOLOGICO | OBSERVACAO
+  descricao   String
+  severidade  String   @default("BAIXA")   // BAIXA | MEDIA | ALTA
+  fotoUrl     String?
+  acao        String?
+  resolvido   Boolean  @default(false)
+  responsavelUserId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([tenantId, cicloId, data])
+}
+
+// ------------------------------------------------------------ NÚCLEO ANIMAL
+model CprPropriedade {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tutorId   String
+  nome      String
+  municipio String?
+  uf        String?
+  hectares  Float?
+  exploracao String?   // BOVINOCULTURA_CORTE | LEITE | EQUINOCULTURA | OVINOCAPRINO | SUINOCULTURA | AVICULTURA | MISTA
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([tenantId, tutorId])
+}
+
+model CprAnimal {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  grupo         String   @default("PEQUENO")   // PEQUENO | GRANDE
+  especie       String   // CAO | GATO | COELHO | AVE | BOVINO | EQUINO | OVINO | CAPRINO | SUINO | OUTRO
+  raca          String?
+  sexo          String?  // M | F
+  nascimento    DateTime?
+  pelagem       String?
+  identificacao String?  // microchip, brinco ou tatuagem
+  tutorId       String
+  propriedadeId String?
+  pesoAtualKg   Float?
+  status        String   @default("ATIVO")   // ATIVO | OBITO | TRANSFERIDO
+  observacoes   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@index([tenantId, tutorId])
+  @@index([tenantId, grupo])
+}
+
+model CprBaia {
+  id         String   @id @default(uuid())
+  tenantId   String
+  unidadeId  String
+  nome       String
+  tipo       String   @default("BAIA")   // BAIA | PIQUETE | CANIL | GATIL | ISOLAMENTO
+  grupo      String   @default("GRANDE")   // PEQUENO | GRANDE (animais admitidos)
+  capacidade Int      @default(1)
+  status     String   @default("ATIVA")   // ATIVA | MANUTENCAO
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([tenantId, unidadeId])
+}
+
+model CprInternacao {
+  id               String   @id @default(uuid())
+  tenantId         String
+  animalId         String
+  baiaId           String
+  supervisorUserId String
+  alunoStudentId   String?
+  entradaEm        DateTime
+  saidaEm          DateTime?
+  motivo           String
+  status           String   @default("INTERNADO")   // INTERNADO | ALTA | OBITO | TRANSFERIDO
+  desfecho         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  @@index([tenantId, status])
+  @@index([tenantId, animalId])
+  @@index([tenantId, baiaId, status])
+}
+
+// Vacinação e vermifugação (profilaxia) com lembrete da próxima dose.
+model CprProfilaxia {
+  id               String   @id @default(uuid())
+  tenantId         String
+  animalId         String
+  tipo             String   // VACINA | VERMIFUGO | ANTIPARASITARIO
+  produto          String
+  lote             String?
+  aplicadaEm       DateTime
+  proximaDose      DateTime?
+  aplicadoPorStudentId String?
+  supervisorUserId String?
+  supItemId        String?
+  lembreteEnviadoEm DateTime?
+  observacao       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  @@index([tenantId, animalId])
+  @@index([tenantId, proximaDose])
+}
+
+model CprManejo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  animalId    String
+  internacaoId String?
+  tipo        String   // PESAGEM | CASCOS | TOSQUIA | EXAME_CLINICO | EVOLUCAO | ALIMENTACAO | REPRODUTIVO | OUTRO
+  data        DateTime
+  pesoKg      Float?
+  descricao   String?
+  responsavelUserId String?
+  alunoStudentId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([tenantId, animalId, data])
+}
+
+// Uso de medicamento veterinário: referencia o item do módulo suprimentos (sem movimentar o estoque aqui).
+model CprUsoMedicamento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  animalId    String
+  internacaoId String?
+  consultaId  String?
+  supItemId   String
+  nomeItem    String
+  quantidade  Float
+  unidade     String?
+  data        DateTime
+  aplicadoPorId String?
+  observacao  String?
+  createdAt   DateTime @default(now())
+  @@index([tenantId, animalId])
+  @@index([tenantId, supItemId, data])
+}

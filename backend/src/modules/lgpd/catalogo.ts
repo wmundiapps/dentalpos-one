@@ -110,6 +110,8 @@ export const CATALOGO: Entidade[] = [
   { model: 'preEmprestimo', titulo: 'Empréstimos de equipamentos e materiais', categoria: 'BIBLIOTECA', onde: [{ ref: 'student', campo: 'studentId' }, { ref: 'user', campo: 'userId' }], acao: 'MANTER', base: 'Prestação de contas do patrimônio e exercício regular de direitos (art. 7º, VI)' },
   { model: 'preMulta', titulo: 'Multas de empréstimo', categoria: 'FINANCEIRO', onde: [{ ref: 'student', campo: 'studentId' }, { ref: 'user', campo: 'userId' }], acao: 'MANTER', base: BASE_FISCAL },
   { model: 'preReservaItem', titulo: 'Reservas de equipamentos', categoria: 'BIBLIOTECA', onde: [{ ref: 'student', campo: 'studentId' }, { ref: 'user', campo: 'userId' }], acao: 'ELIMINAR' },
+  { model: 'cprEstagio', titulo: 'Estágios supervisionados (campos de prática)', categoria: 'ACADEMICO', onde: A(), acao: 'MANTER', base: BASE_ACAD },
+  { model: 'cprEstagioHora', titulo: 'Horas de estágio (via estágio)', categoria: 'ACADEMICO', onde: [], acao: 'MANTER', base: BASE_ACAD },
   // ---- registros do próprio módulo LGPD (prova de consentimento e de atendimento: pseudonimizados, não apagados)
   { model: 'lgpConsentimento', titulo: 'Consentimentos registrados', categoria: 'IDENTIFICACAO', onde: [{ ref: 'student', campo: 'titularId' }, { ref: 'candidato', campo: 'titularId' }, { ref: 'egresso', campo: 'titularId' }], acao: 'ANONIMIZAR',
     campos: { titularNome: ANON, titularEmail: null, titularDocHash: null, titularDocMascarado: null, titularId: null },

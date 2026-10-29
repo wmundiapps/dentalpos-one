@@ -19027,3 +19027,831 @@ DO $$ BEGIN
   ALTER TABLE "PreInventarioLeitura" ADD CONSTRAINT "PreInventarioLeitura_inventarioId_fkey" FOREIGN KEY ("inventarioId") REFERENCES "PreInventario"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- ==== PRE:END ====
+-- ==== CPR:BEGIN (Campos de prática, prefixo Cpr - gerado por prisma migrate diff; só CRIA tabelas/índices, idempotente) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "diasAlertaConvenio" INTEGER NOT NULL DEFAULT 60,
+    "diasAlertaSeguro" INTEGER NOT NULL DEFAULT 30,
+    "diasAlertaFimEstagio" INTEGER NOT NULL DEFAULT 30,
+    "diasHorasPendentes" INTEGER NOT NULL DEFAULT 7,
+    "horasMaxDia" DOUBLE PRECISION NOT NULL DEFAULT 6,
+    "horasMaxSemanaPadrao" DOUBLE PRECISION NOT NULL DEFAULT 30,
+    "notaMinimaEstagio" DOUBLE PRECISION NOT NULL DEFAULT 6,
+    "maxFaltasConsecutivas" INTEGER NOT NULL DEFAULT 3,
+    "antecedenciaLembreteHoras" INTEGER NOT NULL DEFAULT 24,
+    "consentimentoVersao" TEXT NOT NULL DEFAULT '2026.1',
+    "diasAlertaColheita" INTEGER NOT NULL DEFAULT 15,
+    "diasLembreteVacina" INTEGER NOT NULL DEFAULT 7,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprConcedente" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "cnpj" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'EMPRESA',
+    "cidade" TEXT,
+    "uf" TEXT,
+    "endereco" TEXT,
+    "contatoNome" TEXT,
+    "contatoEmail" TEXT,
+    "contatoTelefone" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprConcedente_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprConvenio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "concedenteId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "objeto" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3) NOT NULL,
+    "documentoUrl" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ATIVO',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprConvenio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprCampoEstagio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "concedenteId" TEXT NOT NULL,
+    "convenioId" TEXT,
+    "nome" TEXT NOT NULL,
+    "area" TEXT,
+    "local" TEXT,
+    "supervisorNome" TEXT,
+    "supervisorEmail" TEXT,
+    "supervisorCargo" TEXT,
+    "supervisorRegistro" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprCampoEstagio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprVaga" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "campoId" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "quantidade" INTEGER NOT NULL DEFAULT 1,
+    "inicio" TIMESTAMP(3),
+    "fim" TIMESTAMP(3),
+    "requisitos" TEXT,
+    "ativa" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprVaga_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprEstagio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "campoId" TEXT NOT NULL,
+    "vagaId" TEXT NOT NULL,
+    "convenioId" TEXT,
+    "orientadorUserId" TEXT NOT NULL,
+    "supervisorCampoNome" TEXT,
+    "supervisorCampoEmail" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'OBRIGATORIO',
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3) NOT NULL,
+    "cargaHorariaTotal" DOUBLE PRECISION NOT NULL,
+    "horasSemana" DOUBLE PRECISION NOT NULL DEFAULT 20,
+    "planoAtividades" TEXT,
+    "termoAssinadoEm" TIMESTAMP(3),
+    "seguroApolice" TEXT,
+    "seguroValidade" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'AGUARDANDO_DOCUMENTOS',
+    "resultado" TEXT,
+    "notaFinal" DOUBLE PRECISION,
+    "encerradoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprEstagio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprEstagioDocumento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "estagioId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "obrigatorio" BOOLEAN NOT NULL DEFAULT true,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "url" TEXT,
+    "numero" TEXT,
+    "validade" TIMESTAMP(3),
+    "motivo" TEXT,
+    "validadoPorId" TEXT,
+    "validadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprEstagioDocumento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprEstagioHora" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "estagioId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "horas" DOUBLE PRECISION NOT NULL,
+    "atividade" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "motivo" TEXT,
+    "registradoPorId" TEXT,
+    "validadoPorId" TEXT,
+    "validadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprEstagioHora_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprEstagioRelatorio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "estagioId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "periodoInicio" TIMESTAMP(3),
+    "periodoFim" TIMESTAMP(3),
+    "texto" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "parecer" TEXT,
+    "entregueEm" TIMESTAMP(3),
+    "avaliadoPorId" TEXT,
+    "avaliadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprEstagioRelatorio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprEstagioAvaliacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "estagioId" TEXT NOT NULL,
+    "avaliador" TEXT NOT NULL,
+    "criterios" JSONB NOT NULL,
+    "nota" DOUBLE PRECISION NOT NULL,
+    "parecer" TEXT,
+    "registradoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprEstagioAvaliacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprUnidade" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'CLINICA_ESCOLA',
+    "area" TEXT NOT NULL,
+    "programId" TEXT,
+    "endereco" TEXT,
+    "telefone" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprUnidade_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprConsultorio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "unidadeId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'CONSULTORIO',
+    "capacidade" INTEGER NOT NULL DEFAULT 1,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprConsultorio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprEscala" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "unidadeId" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "supervisorUserId" TEXT NOT NULL,
+    "consultorioId" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3) NOT NULL,
+    "capacidadeSimultanea" INTEGER NOT NULL DEFAULT 3,
+    "supervisorPresenteEm" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'ATIVA',
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprEscala_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprEscalaAluno" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "escalaId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CprEscalaAluno_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprPaciente" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'PACIENTE',
+    "nome" TEXT NOT NULL,
+    "cpfHash" TEXT,
+    "cpfCifrado" TEXT,
+    "cpfFinal" TEXT,
+    "telefoneCifrado" TEXT,
+    "emailCifrado" TEXT,
+    "saudeCifrado" TEXT,
+    "dataNascimento" TIMESTAMP(3),
+    "menor" BOOLEAN NOT NULL DEFAULT false,
+    "responsavelNome" TEXT,
+    "responsavelCpfCifrado" TEXT,
+    "consentimentoStatus" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "consentimentoVersao" TEXT,
+    "consentimentoFinalidade" TEXT,
+    "consentimentoEm" TIMESTAMP(3),
+    "consentimentoRevogadoEm" TIMESTAMP(3),
+    "baseLegal" TEXT,
+    "faltasConsecutivas" INTEGER NOT NULL DEFAULT 0,
+    "faltasTotal" INTEGER NOT NULL DEFAULT 0,
+    "anonimizadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprPaciente_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprConsulta" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "unidadeId" TEXT NOT NULL,
+    "consultorioId" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "pacienteId" TEXT NOT NULL,
+    "animalId" TEXT,
+    "supervisorUserId" TEXT NOT NULL,
+    "alunoStudentId" TEXT,
+    "escalaId" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3) NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'CONSULTA',
+    "status" TEXT NOT NULL DEFAULT 'AGENDADO',
+    "filaId" TEXT,
+    "remarcadoDeId" TEXT,
+    "local" TEXT,
+    "confirmadoEm" TIMESTAMP(3),
+    "chegouEm" TIMESTAMP(3),
+    "iniciadoEm" TIMESTAMP(3),
+    "finalizadoEm" TIMESTAMP(3),
+    "lembreteEnviadoEm" TIMESTAMP(3),
+    "motivoCancelamento" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprConsulta_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprFila" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "pacienteId" TEXT NOT NULL,
+    "animalId" TEXT,
+    "unidadeId" TEXT,
+    "programId" TEXT NOT NULL,
+    "prioridade" TEXT NOT NULL DEFAULT 'NORMAL',
+    "categoria" TEXT NOT NULL DEFAULT 'CONSULTA',
+    "status" TEXT NOT NULL DEFAULT 'AGUARDANDO',
+    "chamadoEm" TIMESTAMP(3),
+    "consultaId" TEXT,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprFila_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprRegistroAtendimento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "consultaId" TEXT NOT NULL,
+    "pacienteId" TEXT NOT NULL,
+    "autorUserId" TEXT NOT NULL,
+    "autorStudentId" TEXT,
+    "nivel" TEXT NOT NULL DEFAULT 'NORMAL',
+    "resumoCifrado" TEXT NOT NULL,
+    "conduta" TEXT,
+    "revisadoPorId" TEXT,
+    "revisadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprRegistroAtendimento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprAcessoLog" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "papel" TEXT NOT NULL,
+    "recurso" TEXT NOT NULL,
+    "recursoId" TEXT,
+    "pacienteId" TEXT,
+    "acao" TEXT NOT NULL DEFAULT 'LEITURA',
+    "motivo" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CprAcessoLog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprArea" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'CAMPO_EXPERIMENTAL',
+    "hectares" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "localizacao" TEXT,
+    "latitude" DOUBLE PRECISION,
+    "longitude" DOUBLE PRECISION,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprArea_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprTalhao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "areaId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "hectares" DOUBLE PRECISION NOT NULL,
+    "solo" TEXT,
+    "irrigado" BOOLEAN NOT NULL DEFAULT false,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprTalhao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprCultura" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "especie" TEXT,
+    "cicloDias" INTEGER NOT NULL DEFAULT 120,
+    "mesPlantioInicio" INTEGER NOT NULL DEFAULT 1,
+    "mesPlantioFim" INTEGER NOT NULL DEFAULT 12,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprCultura_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprCultivar" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "culturaId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "cicloDias" INTEGER,
+    "obtentor" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprCultivar_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprCiclo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "talhaoId" TEXT NOT NULL,
+    "culturaId" TEXT NOT NULL,
+    "cultivarId" TEXT,
+    "safra" TEXT NOT NULL,
+    "areaHa" DOUBLE PRECISION NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PLANEJADO',
+    "plantioPrevisto" TIMESTAMP(3) NOT NULL,
+    "colheitaPrevista" TIMESTAMP(3) NOT NULL,
+    "plantioReal" TIMESTAMP(3),
+    "colheitaReal" TIMESTAMP(3),
+    "responsavelUserId" TEXT,
+    "classSectionId" TEXT,
+    "disciplineId" TEXT,
+    "producaoKg" DOUBLE PRECISION,
+    "produtividadeKgHa" DOUBLE PRECISION,
+    "custoTotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "foraDaJanela" BOOLEAN NOT NULL DEFAULT false,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprCiclo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprAtividadeCampo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "cicloId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "insumo" TEXT,
+    "supItemId" TEXT,
+    "quantidade" DOUBLE PRECISION,
+    "unidade" TEXT,
+    "custoUnitario" DOUBLE PRECISION,
+    "custo" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "responsavelUserId" TEXT,
+    "classSectionId" TEXT,
+    "carenciaDias" INTEGER,
+    "carenciaAte" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprAtividadeCampo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprMonitoramento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "cicloId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "severidade" TEXT NOT NULL DEFAULT 'BAIXA',
+    "fotoUrl" TEXT,
+    "acao" TEXT,
+    "resolvido" BOOLEAN NOT NULL DEFAULT false,
+    "responsavelUserId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprMonitoramento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprPropriedade" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tutorId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "municipio" TEXT,
+    "uf" TEXT,
+    "hectares" DOUBLE PRECISION,
+    "exploracao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprPropriedade_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprAnimal" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "grupo" TEXT NOT NULL DEFAULT 'PEQUENO',
+    "especie" TEXT NOT NULL,
+    "raca" TEXT,
+    "sexo" TEXT,
+    "nascimento" TIMESTAMP(3),
+    "pelagem" TEXT,
+    "identificacao" TEXT,
+    "tutorId" TEXT NOT NULL,
+    "propriedadeId" TEXT,
+    "pesoAtualKg" DOUBLE PRECISION,
+    "status" TEXT NOT NULL DEFAULT 'ATIVO',
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprAnimal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprBaia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "unidadeId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'BAIA',
+    "grupo" TEXT NOT NULL DEFAULT 'GRANDE',
+    "capacidade" INTEGER NOT NULL DEFAULT 1,
+    "status" TEXT NOT NULL DEFAULT 'ATIVA',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprBaia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprInternacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "animalId" TEXT NOT NULL,
+    "baiaId" TEXT NOT NULL,
+    "supervisorUserId" TEXT NOT NULL,
+    "alunoStudentId" TEXT,
+    "entradaEm" TIMESTAMP(3) NOT NULL,
+    "saidaEm" TIMESTAMP(3),
+    "motivo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'INTERNADO',
+    "desfecho" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprInternacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprProfilaxia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "animalId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "produto" TEXT NOT NULL,
+    "lote" TEXT,
+    "aplicadaEm" TIMESTAMP(3) NOT NULL,
+    "proximaDose" TIMESTAMP(3),
+    "aplicadoPorStudentId" TEXT,
+    "supervisorUserId" TEXT,
+    "supItemId" TEXT,
+    "lembreteEnviadoEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprProfilaxia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprManejo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "animalId" TEXT NOT NULL,
+    "internacaoId" TEXT,
+    "tipo" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "pesoKg" DOUBLE PRECISION,
+    "descricao" TEXT,
+    "responsavelUserId" TEXT,
+    "alunoStudentId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CprManejo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CprUsoMedicamento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "animalId" TEXT NOT NULL,
+    "internacaoId" TEXT,
+    "consultaId" TEXT,
+    "supItemId" TEXT NOT NULL,
+    "nomeItem" TEXT NOT NULL,
+    "quantidade" DOUBLE PRECISION NOT NULL,
+    "unidade" TEXT,
+    "data" TIMESTAMP(3) NOT NULL,
+    "aplicadoPorId" TEXT,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CprUsoMedicamento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CprConfig_tenantId_key" ON "CprConfig"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprConcedente_tenantId_ativo_idx" ON "CprConcedente"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprConvenio_tenantId_concedenteId_idx" ON "CprConvenio"("tenantId", "concedenteId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprConvenio_tenantId_fim_idx" ON "CprConvenio"("tenantId", "fim");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CprConvenio_tenantId_numero_key" ON "CprConvenio"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprCampoEstagio_tenantId_concedenteId_idx" ON "CprCampoEstagio"("tenantId", "concedenteId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprVaga_tenantId_campoId_idx" ON "CprVaga"("tenantId", "campoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprVaga_tenantId_programId_idx" ON "CprVaga"("tenantId", "programId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEstagio_tenantId_studentId_idx" ON "CprEstagio"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEstagio_tenantId_programId_status_idx" ON "CprEstagio"("tenantId", "programId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEstagio_tenantId_orientadorUserId_idx" ON "CprEstagio"("tenantId", "orientadorUserId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEstagio_tenantId_vagaId_idx" ON "CprEstagio"("tenantId", "vagaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEstagioDocumento_tenantId_estagioId_idx" ON "CprEstagioDocumento"("tenantId", "estagioId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CprEstagioDocumento_estagioId_tipo_key" ON "CprEstagioDocumento"("estagioId", "tipo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEstagioHora_tenantId_estagioId_status_idx" ON "CprEstagioHora"("tenantId", "estagioId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEstagioHora_tenantId_status_createdAt_idx" ON "CprEstagioHora"("tenantId", "status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEstagioRelatorio_tenantId_estagioId_idx" ON "CprEstagioRelatorio"("tenantId", "estagioId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEstagioAvaliacao_tenantId_estagioId_idx" ON "CprEstagioAvaliacao"("tenantId", "estagioId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CprEstagioAvaliacao_estagioId_avaliador_key" ON "CprEstagioAvaliacao"("estagioId", "avaliador");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprUnidade_tenantId_area_idx" ON "CprUnidade"("tenantId", "area");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprConsultorio_tenantId_unidadeId_idx" ON "CprConsultorio"("tenantId", "unidadeId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEscala_tenantId_unidadeId_inicio_idx" ON "CprEscala"("tenantId", "unidadeId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEscala_tenantId_supervisorUserId_inicio_idx" ON "CprEscala"("tenantId", "supervisorUserId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprEscalaAluno_tenantId_studentId_idx" ON "CprEscalaAluno"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CprEscalaAluno_escalaId_studentId_key" ON "CprEscalaAluno"("escalaId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprPaciente_tenantId_tipo_idx" ON "CprPaciente"("tenantId", "tipo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CprPaciente_tenantId_cpfHash_key" ON "CprPaciente"("tenantId", "cpfHash");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprConsulta_tenantId_unidadeId_inicio_idx" ON "CprConsulta"("tenantId", "unidadeId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprConsulta_tenantId_consultorioId_inicio_idx" ON "CprConsulta"("tenantId", "consultorioId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprConsulta_tenantId_supervisorUserId_inicio_idx" ON "CprConsulta"("tenantId", "supervisorUserId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprConsulta_tenantId_alunoStudentId_inicio_idx" ON "CprConsulta"("tenantId", "alunoStudentId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprConsulta_tenantId_pacienteId_inicio_idx" ON "CprConsulta"("tenantId", "pacienteId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprConsulta_tenantId_status_inicio_idx" ON "CprConsulta"("tenantId", "status", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprFila_tenantId_programId_status_idx" ON "CprFila"("tenantId", "programId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprRegistroAtendimento_tenantId_consultaId_idx" ON "CprRegistroAtendimento"("tenantId", "consultaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprRegistroAtendimento_tenantId_pacienteId_idx" ON "CprRegistroAtendimento"("tenantId", "pacienteId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprAcessoLog_tenantId_pacienteId_createdAt_idx" ON "CprAcessoLog"("tenantId", "pacienteId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprAcessoLog_tenantId_userId_createdAt_idx" ON "CprAcessoLog"("tenantId", "userId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprArea_tenantId_idx" ON "CprArea"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprTalhao_tenantId_areaId_idx" ON "CprTalhao"("tenantId", "areaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CprCultura_tenantId_nome_key" ON "CprCultura"("tenantId", "nome");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprCultivar_tenantId_culturaId_idx" ON "CprCultivar"("tenantId", "culturaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprCiclo_tenantId_talhaoId_status_idx" ON "CprCiclo"("tenantId", "talhaoId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprCiclo_tenantId_safra_idx" ON "CprCiclo"("tenantId", "safra");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprAtividadeCampo_tenantId_cicloId_data_idx" ON "CprAtividadeCampo"("tenantId", "cicloId", "data");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprAtividadeCampo_tenantId_carenciaAte_idx" ON "CprAtividadeCampo"("tenantId", "carenciaAte");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprMonitoramento_tenantId_cicloId_data_idx" ON "CprMonitoramento"("tenantId", "cicloId", "data");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprPropriedade_tenantId_tutorId_idx" ON "CprPropriedade"("tenantId", "tutorId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprAnimal_tenantId_tutorId_idx" ON "CprAnimal"("tenantId", "tutorId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprAnimal_tenantId_grupo_idx" ON "CprAnimal"("tenantId", "grupo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprBaia_tenantId_unidadeId_idx" ON "CprBaia"("tenantId", "unidadeId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprInternacao_tenantId_status_idx" ON "CprInternacao"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprInternacao_tenantId_animalId_idx" ON "CprInternacao"("tenantId", "animalId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprInternacao_tenantId_baiaId_status_idx" ON "CprInternacao"("tenantId", "baiaId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprProfilaxia_tenantId_animalId_idx" ON "CprProfilaxia"("tenantId", "animalId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprProfilaxia_tenantId_proximaDose_idx" ON "CprProfilaxia"("tenantId", "proximaDose");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprManejo_tenantId_animalId_data_idx" ON "CprManejo"("tenantId", "animalId", "data");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprUsoMedicamento_tenantId_animalId_idx" ON "CprUsoMedicamento"("tenantId", "animalId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CprUsoMedicamento_tenantId_supItemId_data_idx" ON "CprUsoMedicamento"("tenantId", "supItemId", "data");
+-- ==== CPR:END ====
