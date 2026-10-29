@@ -70,7 +70,7 @@ li { font-size: 12.5px; line-height: 1.45; margin: 3px 0 }
   <div class="grid">${c.pilares.slice(4).map((p) => `<div class="card"><h3>${esc(p.titulo)}</h3>${lista(p.itens)}</div>`).join('')}</div>
   <div class="dest" style="margin-top:16px"><h3 style="margin:0 0 6px;color:#0b2a5b">🔒 ${esc(c.seguranca.titulo)}</h3>${lista(c.seguranca.itens)}</div>
   <div class="card"><h3>${esc(c.lgpd.titulo)}</h3>${lista(c.lgpd.itens)}</div>
-  <div class="card" style="margin-top:14px"><h3>Contato · ${esc(c.wmundi.nome)}</h3><p style="margin:0;font-size:13px;line-height:1.6">${esc(c.contato.site)}<br>${esc(c.contato.email)}<br>WhatsApp ${esc(c.contato.telefone)}<br>${esc(c.contato.endereco)}</p></div>
+  
   <p style="font-size:11px;color:#64748b;margin-top:14px">Ambiente de demonstração com dados fictícios. Os textos legais (política de privacidade, termos e contrato de operador) são modelos a validar com assessoria jurídica da instituição.</p>
   <div class="rod"><span>${esc(c.produto.completo)}</span><span>${esc(contatoLinha)}</span>${logo(22)}</div>
 </section>

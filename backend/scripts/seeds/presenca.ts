@@ -3,7 +3,7 @@
  * Usa a API REAL com token ADMIN, no estilo de scripts/edu-demo-seed.ts. Requer turmas/alunos/espaços já criados (etapas
  * "academico" e "espacos" do edu-demo-seed).
  * Uso a partir do edu-demo-seed (sem editá-lo):  import { seedPresenca } from './seeds/presenca'  ->  await seedPresenca(c.api, c)
- * Uso isolado:  API_URL=http://localhost:3000/api DATABASE_URL=... npx tsx scripts/seeds/presenca.ts   (login admin@ravel.edu.br / Ravel@2026)
+ * Uso isolado:  API_URL=http://localhost:3000/api DATABASE_URL=... npx tsx scripts/seeds/presenca.ts   (login admin@suainstituicao.edu.br / Demo@2026)
  *
  * ATENÇÃO: os "rostos" cadastrados aqui são vetores SINTÉTICOS (nenhuma imagem). Servem para demonstrar a API; um quiosque real só
  * reconhece quem fizer o cadastro facial pelo portal (ou na secretaria) com a câmera. Para a demonstração sem câmera use o QR/código.
@@ -28,7 +28,7 @@ export async function seedPresenca(api: Api, ctx: SeedCtx = {}) {
   const ok = <T,>(x: T | null | undefined, tag: string): T => { if (!x) falha(tag); return x as T }
   const lista = (r: any): any[] => (Array.isArray(r) ? r : r?.items ?? [])
 
-  if (ctx.mk) await ctx.mk('portaria@ravel.edu.br', 'Ravel@2026', 'Marcos', 'Portaria', 'STAFF')
+  if (ctx.mk) await ctx.mk('portaria@suainstituicao.edu.br', 'Demo@2026', 'Marcos', 'Portaria', 'STAFF')
 
   const secoes = lista(await api('GET', '/edu/academico/class-sections')).slice(0, 3)
   if (!secoes.length) { falha('sem turmas (rode a etapa academico do edu-demo-seed antes)'); return S }
@@ -157,7 +157,7 @@ export async function seedPresenca(api: Api, ctx: SeedCtx = {}) {
 if (require.main === module) {
   ;(async () => {
     const API = process.env.API_URL || 'http://localhost:3000/api'
-    const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: process.env.CLINIC_ID, email: 'admin@ravel.edu.br', password: 'Ravel@2026' }) })
+    const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: process.env.CLINIC_ID, email: 'admin@suainstituicao.edu.br', password: 'Demo@2026' }) })
     const j: any = await r.json()
     if (!r.ok) throw new Error('login: ' + JSON.stringify(j))
     const api: Api = async (method, path, body) => {

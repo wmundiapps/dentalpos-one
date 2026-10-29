@@ -13,7 +13,7 @@ import { COMPETENCIAS_PADRAO, calcularGlobal, prioridadeDosAlertas, rankear } fr
 const TIPOS_PROG = ['PREPARATORIO', 'DIDATICO', 'PEDAGOGICO', 'DESENVOLVIMENTO_PESSOAL', 'MENTORIA', 'NIVELAMENTO'] as const
 const ALVOS = ['ENADE', 'ENAMED', 'OAB', 'MESTRADO', 'DOUTORADO', 'CONCURSO', 'OUTRO'] as const
 const CONF = ['NORMAL', 'RESTRITO', 'SIGILOSO'] as const
-const REITORIA = ['ADMIN', 'OWNER', 'RECTOR', 'BOARD']
+const REITORIA = ['ADMIN', 'OWNER', 'RECTOR', 'BOARD'] as any[]
 
 const meuId = (req: AuthenticatedRequest) => (roleOf(req) === 'STUDENT' ? req.user?.studentId ?? null : null)
 function exigirProprioOuStaff(req: AuthenticatedRequest, studentId: string) {
@@ -458,8 +458,8 @@ export function registerDesenvolvimento(router: Router) {
       ids = uniq((await prisma.enrollment.findMany({ where: w, select: { studentId: true }, take: 5000 })).map((e) => e.studentId))
     }
     if (!ids.length) fail(404, 'Nenhum aluno encontrado para avaliar.')
-    const out = []
-    for (const id of ids) out.push(await gerarUma(tenantId, id, periodo, uid(req), b.termId))
+    const out: any[] = []
+    for (const id of ids) out.push(await gerarUma(tenantId, id, periodo, uid(req), b.termId ?? undefined))
     await audit({ tenantId, userId: uid(req), modulo: MOD, acao: 'AVALIACAO_GLOBAL', refType: 'AcaAvaliacaoGlobal', detalhes: { alunos: ids.length, periodo } })
     const faixas: Record<string, number> = {}
     for (const o of out) faixas[o.faixa] = (faixas[o.faixa] ?? 0) + 1
@@ -634,7 +634,7 @@ export function registerDesenvolvimento(router: Router) {
     const tenantId = tid(req)
     const geral = await agregados(tenantId, { periodo: qs(req.query.periodo) })
     const cursos = await prisma.academicProgram.findMany({ where: { tenantId }, select: { id: true, nome: true } })
-    const porCurso = []
+    const porCurso: any[] = []
     for (const c of cursos) { const a = await agregados(tenantId, { programId: c.id, periodo: qs(req.query.periodo) }); if (a.alunosAvaliados) porCurso.push({ cursoId: c.id, curso: c.nome, alunosAvaliados: a.alunosAvaliados, scoreMedio: a.scoreMedio, risco: a.risco, faixas: a.faixas }) }
     const periodos = await prisma.acaAvaliacaoGlobal.groupBy({ by: ['periodo'], where: { tenantId }, _avg: { scoreGlobal: true }, _count: { _all: true } })
     const programas = await prisma.acaPrograma.groupBy({ by: ['tipo', 'status'], where: { tenantId }, _count: { _all: true } })

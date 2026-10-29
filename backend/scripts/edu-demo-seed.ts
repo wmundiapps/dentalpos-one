@@ -6,6 +6,18 @@
  */
 import bcrypt from 'bcryptjs'
 import { prisma } from '../src/lib/prisma'
+import { seedTesouraria } from './seeds/tesouraria'
+import { seedJuridico } from './seeds/juridico'
+import { seedComprasPatrimonio } from './seeds/compras-patrimonio'
+import { seedReitoria } from './seeds/reitoria'
+import { seedRh } from './seeds/rh'
+import { seedCobranca } from './seeds/cobranca'
+import { seedInfra2, seedFeedback } from './seeds/infra2'
+import { seedAcademico2 } from './seeds/academico2'
+import { seedPortal } from './seeds/portal'
+import { seedAtendimento } from './seeds/atendimento'
+import { seedMarketing } from './seeds/marketing'
+import { seedPresenca } from './seeds/presenca'
 
 const API = process.env.API_URL || 'http://localhost:3000/api'
 const TENANT = 'sua-instituicao'
@@ -49,10 +61,43 @@ const MODULOS = ['admissoes', 'secretaria', 'calendario', 'notas', 'infraestrutu
 const ALUNO_EMAIL = 'aluno@suainstituicao.edu.br'
 const ALUNO_SENHA = 'Aluno@2026'
 
+// ----- módulos da segunda onda (cada seed é idempotente e vem de scripts/seeds/*) -----
+const apiComToken = (c: Ctx, token: string) => async (method: string, path: string, body?: any): Promise<any> => {
+  const r = await fetch(`${API}${path}`, { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: body !== undefined ? JSON.stringify(body) : undefined })
+  const t = await r.text()
+  let j: any = null
+  try { j = JSON.parse(t) } catch { /* texto */ }
+  if (!r.ok) { c.failures.push(`${method} ${path} -> ${r.status} ${t.slice(0, 160)}`); return null }
+  return j
+}
+const apiAsDe = (c: Ctx) => async (papel: string) => {
+  if (papel === 'ADMIN') return c.api
+  const email = `${papel.toLowerCase()}@suainstituicao.edu.br`
+  await c.mk(email, 'Demo@2026', papel.charAt(0) + papel.slice(1).toLowerCase(), 'Demonstração', papel)
+  return apiComToken(c, await c.loginAs({ email, password: 'Demo@2026' }))
+}
+const sCtx = (c: Ctx) => ({ tenantId: c.tenantId, clinicId: c.clinicId, mk: c.mk, failures: c.failures, apiAs: apiAsDe(c) as any })
+const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
+  ['rh', (c) => seedRh(c.api, sCtx(c))],
+  ['tesouraria', (c) => seedTesouraria(c.api, sCtx(c))],
+  ['juridico', (c) => seedJuridico(c.api, sCtx(c))],
+  ['compras', (c) => seedComprasPatrimonio(c.api, sCtx(c))],
+  ['reitoria2', (c) => seedReitoria(c.api, sCtx(c))],
+  ['cobranca', (c) => seedCobranca(c.api, sCtx(c))],
+  ['infra2', (c) => seedInfra2(c.api, sCtx(c))],
+  ['feedback', (c) => seedFeedback(c.api, sCtx(c))],
+  ['academico2', (c) => seedAcademico2(c.api, sCtx(c))],
+  ['portal', (c) => seedPortal(c.api, sCtx(c) as any)],
+  ['atendimento', (c) => seedAtendimento(c.api, sCtx(c))],
+  ['marketing', (c) => seedMarketing(c.api, { ...sCtx(c), siteSlug: 'sua-instituicao' })],
+  ['presenca', (c) => seedPresenca(c.api, sCtx(c))],
+]
+
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [
   ['equipe', equipe],
   ['bootstrap', async (c) => { for (const m of MODULOS) await c.api('POST', `/edu/${m}/bootstrap`, {}) }],
   ['academico', academico], ['espacos', espacos], ['admissoes', admissoes], ['financeiro', financeiro], ['secretaria', secretaria], ['calendario', calendario], ['notas', notas], ['infraestrutura', infraestrutura], ['suprimentos', suprimentos], ['regulatorio', regulatorio], ['governanca', governanca], ['biblioteca', biblioteca], ['apoio', apoio], ['comunicacao', comunicacao], ['modalidades', modalidades], ['pesquisa', pesquisa], ['desempenho', desempenho], ['jornadas', jornadas], ['reitoria', reitoria], ['mesa', mesa], ['marca', marca],
+  ...ONDA2.map(([n, f]) => [n, async (c: Ctx) => { await f(c) }] as [string, (c: Ctx) => Promise<void>]),
 ]
 
 

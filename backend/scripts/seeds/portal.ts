@@ -5,7 +5,7 @@
  *   import { seedPortal } from './seeds/portal'
  *   const r = await seedPortal(api, { tenantId, clinicId })    // api(method, path, body?) -> JSON ou null em caso de erro (token ADMIN)
  *
- * Cria os logins de demonstração (senha única Portal@2026), cursos/disciplinas/turmas por ambiente, histórico fechado do período
+ * Cria os logins de demonstração (senha única Demo@2026), cursos/disciplinas/turmas por ambiente, histórico fechado do período
  * anterior (para boletim, histórico e fluxograma), aulas com chamada, materiais/trilhas/aulas ao vivo/atividades, fórum, entregas,
  * financeiro (com parcelas vencidas para 2ª via e acordo), justificativa e processo em andamento, avaliações docentes e consentimentos.
  * Não edita edu-demo-seed.ts: o seed principal (ou o e2e) chama esta função.
@@ -17,13 +17,13 @@ import { prisma } from '../../src/lib/prisma'
 export type SeedApi = (method: string, path: string, body?: any) => Promise<any>
 export interface SeedCtx { tenantId: string; clinicId?: string; failures?: string[]; senha?: string }
 
-export const SENHA_DEMO = 'Portal@2026'
+export const SENHA_DEMO = 'Demo@2026'
 export const LOGINS_DEMO = [
-  { perfil: 'Aluno de Graduação Presencial', email: 'aluno.presencial@ravel.edu.br' },
-  { perfil: 'Aluno de Graduação EAD', email: 'aluno.ead@ravel.edu.br' },
-  { perfil: 'Aluno de Pós-graduação (Lato Sensu presencial + curso livre)', email: 'aluno.pos@ravel.edu.br' },
-  { perfil: 'Professor', email: 'professor@ravel.edu.br' },
-  { perfil: 'Coordenador', email: 'coordenador@ravel.edu.br' },
+  { perfil: 'Aluno de Graduação Presencial', email: 'aluno.presencial@suainstituicao.edu.br' },
+  { perfil: 'Aluno de Graduação EAD', email: 'aluno.ead@suainstituicao.edu.br' },
+  { perfil: 'Aluno de Pós-graduação (Lato Sensu presencial + curso livre)', email: 'aluno.pos@suainstituicao.edu.br' },
+  { perfil: 'Professor', email: 'professor@suainstituicao.edu.br' },
+  { perfil: 'Coordenador', email: 'coordenador@suainstituicao.edu.br' },
 ] as const
 
 const DAY = 86_400_000
@@ -56,12 +56,12 @@ export async function seedPortal(api: SeedApi, ctx: SeedCtx): Promise<ResumoSeed
   }
 
   // ------------------------------------------------------------------ contas
-  const prof = await mkUser('professor@ravel.edu.br', 'Marcos', 'Vieira Lopes', 'TEACHER')
-  const prof2 = await mkUser('professora.ead@ravel.edu.br', 'Beatriz', 'Nogueira Prado', 'TEACHER')
-  await mkUser('coordenador@ravel.edu.br', 'Cláudia', 'Ferraz Monteiro', 'COORDINATOR')
-  const uPres = await mkUser('aluno.presencial@ravel.edu.br', 'Rafael', 'Almeida Souza', 'STUDENT')
-  const uEad = await mkUser('aluno.ead@ravel.edu.br', 'Juliana', 'Campos Ribeiro', 'STUDENT')
-  const uPos = await mkUser('aluno.pos@ravel.edu.br', 'Eduardo', 'Matos Tavares', 'STUDENT')
+  const prof = await mkUser('professor@suainstituicao.edu.br', 'Marcos', 'Vieira Lopes', 'TEACHER')
+  const prof2 = await mkUser('professora.ead@suainstituicao.edu.br', 'Beatriz', 'Nogueira Prado', 'TEACHER')
+  await mkUser('coordenador@suainstituicao.edu.br', 'Cláudia', 'Ferraz Monteiro', 'COORDINATOR')
+  const uPres = await mkUser('aluno.presencial@suainstituicao.edu.br', 'Rafael', 'Almeida Souza', 'STUDENT')
+  const uEad = await mkUser('aluno.ead@suainstituicao.edu.br', 'Juliana', 'Campos Ribeiro', 'STUDENT')
+  const uPos = await mkUser('aluno.pos@suainstituicao.edu.br', 'Eduardo', 'Matos Tavares', 'STUDENT')
 
   // ------------------------------------------------------------------ ambientes
   await api('POST', '/edu/portal2/ambientes/bootstrap', {})
@@ -136,7 +136,7 @@ export async function seedPortal(api: SeedApi, ctx: SeedCtx): Promise<ResumoSeed
   const colegas: any[] = []
   const nomesCol = ['Ana Beatriz Lima', 'Bruno Carvalho Dias', 'Camila Teixeira Rocha', 'Diego Fernandes Melo', 'Elisa Barbosa Nunes', 'Felipe Araújo Castro', 'Gabriela Moreira Pinto', 'Henrique Duarte Gomes']
   for (const [i, n] of nomesCol.entries()) {
-    const u = await mkUser(`colega${i + 1}.${suf.toLowerCase()}@ravel.edu.br`, n.split(' ')[0], n.split(' ').slice(1).join(' '), 'STUDENT', false)
+    const u = await mkUser(`colega${i + 1}.${suf.toLowerCase()}@suainstituicao.edu.br`, n.split(' ')[0], n.split(' ').slice(1).join(' '), 'STUDENT', false)
     colegas.push(await mkAluno(u, `PRC${suf}${String(i).padStart(2, '0')}`, n, ''))
   }
   r.alunos = 3 + colegas.length

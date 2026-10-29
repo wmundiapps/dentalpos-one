@@ -374,7 +374,7 @@ export function registerSalas(router: Router) {
     slots = slots.filter((s) => (!turno || s.turno === turno) && (!nivel || s.nivel === nivel))
     const key = (s: any) => visao === 'sala' ? [s.spaceId, s.sala] : visao === 'turma' ? [s.classSectionId, s.turma] : [s.professorUserId, s.professor]
     const grupos = new Map<string, { r: string; l: any[] }>()
-    for (const s of slots) { const [k, r] = key(s); if (!k || (id && k !== id)) continue; const g = grupos.get(k) ?? { r: r ?? '—', l: [] }; g.l.push(s); grupos.set(k, g) }
+    for (const s of slots) { const [k, r] = key(s); if (!k || (id && k !== id)) continue; const g: { r: string; l: any[] } = grupos.get(k) ?? { r: r ?? '—', l: [] as any[] }; g.l.push(s); grupos.set(k, g) }
     const corpo = [...grupos.values()].sort((a, b) => a.r.localeCompare(b.r)).map((g) => grade(`${visao === 'sala' ? 'Sala' : visao === 'turma' ? 'Turma' : 'Professor'}: ${g.r}`, g.l)).join('') || '<p>Sem aulas alocadas.</p>'
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.send(paginaHtml(`Horários por ${visao}`, `Período ${term.codigo}${turno ? ' · turno ' + turno : ''}${nivel ? ' · nível ' + nivel : ''}`, corpo))

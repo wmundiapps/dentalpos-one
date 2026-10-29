@@ -1,11 +1,11 @@
 /**
  * Seed de demonstração do RH do EduMaster Pro. Usa a API REAL com token ADMIN, no estilo de scripts/edu-demo-seed.ts.
  * Uso a partir do edu-demo-seed (sem editá-lo):  import { seedRh } from './seeds/rh'  ->  await seedRh(c.api, c)
- * Uso isolado:  DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/rh.ts   (login admin@ravel.edu.br / Ravel@2026)
+ * Uso isolado:  DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/rh.ts   (login admin@suainstituicao.edu.br / Demo@2026)
  * Pessoas, CPFs (válidos, mas fictícios), salários e valores são FICTÍCIOS. Cálculos trabalhistas/tributários são MODELO a validar por contador.
  * Cria: parâmetros, departamentos, cargos, plano de carreira, 9 colaboradores (docentes e técnico-administrativos), ponto do mês anterior fechado,
  * banco de horas, atestado, licença, férias, bonificação, advertência, avaliação de desempenho, sócios, terceiros e a folha do mês anterior (fechada).
- * Usuário RH de demonstração: rh@ravel.edu.br / Ravel@2026 (papel HR).
+ * Usuário RH de demonstração: rh@suainstituicao.edu.br / Demo@2026 (papel HR).
  */
 export interface SeedCtx {
   tenantId?: string
@@ -32,10 +32,10 @@ export async function seedRh(api: Api, ctx: SeedCtx = {}) {
   // usuários de demonstração (RH, gestor e dois colaboradores)
   const users: Record<string, any> = {}
   if (ctx.mk) {
-    users.rh = await ctx.mk('rh@ravel.edu.br', 'Ravel@2026', 'Rita', 'Almeida', 'HR')
-    users.gestor = await ctx.mk('gestor.rh@ravel.edu.br', 'Ravel@2026', 'Marcos', 'Teixeira', 'COORDINATOR')
-    users.func = await ctx.mk('colaborador@ravel.edu.br', 'Ravel@2026', 'Camila', 'Duarte', 'STAFF')
-    users.prof = await ctx.mk('professor.rh@ravel.edu.br', 'Ravel@2026', 'Renato', 'Carvalho', 'TEACHER')
+    users.rh = await ctx.mk('rh@suainstituicao.edu.br', 'Demo@2026', 'Rita', 'Almeida', 'HR')
+    users.gestor = await ctx.mk('gestor.rh@suainstituicao.edu.br', 'Demo@2026', 'Marcos', 'Teixeira', 'COORDINATOR')
+    users.func = await ctx.mk('colaborador@suainstituicao.edu.br', 'Demo@2026', 'Camila', 'Duarte', 'STAFF')
+    users.prof = await ctx.mk('professor.rh@suainstituicao.edu.br', 'Demo@2026', 'Renato', 'Carvalho', 'TEACHER')
   }
 
   ok(await post('/bootstrap', {}), 'bootstrap')
@@ -147,8 +147,8 @@ export async function seedRh(api: Api, ctx: SeedCtx = {}) {
   }
 
   // ---------------------------------------------------------------- sócios, pró-labore e terceiros
-  await post('/socios', { nome: 'Dra. Helena Ravel', cpf: cpf('295379955'), participacaoPct: 60, proLaboreMensal: 12000, dependentesIrrf: 2 })
-  await post('/socios', { nome: 'Dr. Augusto Ravel', cpf: cpf('862288680'), participacaoPct: 40, proLaboreMensal: 8000 })
+  await post('/socios', { nome: 'Dra. Helena Duarte', cpf: cpf('295379955'), participacaoPct: 60, proLaboreMensal: 12000, dependentesIrrf: 2 })
+  await post('/socios', { nome: 'Dr. Augusto Duarte', cpf: cpf('862288680'), participacaoPct: 40, proLaboreMensal: 8000 })
   const tRpa = await post('/terceiros', { tipo: 'RPA', nome: 'Prof. Convidado Dr. Lucas Brandão', documento: cpf('047538490'), servico: 'Palestras e bancas' })
   const tPj = await post('/terceiros', { tipo: 'PJ', nome: 'Consultoria Pedagógica Alfa LTDA', documento: '11.222.333/0001-81', servico: 'Consultoria de projeto pedagógico' })
   if (tRpa) { const p = await post('/terceiros/pagamentos', { terceiroId: tRpa.id, competencia: comp, descricao: 'Palestra magna - semana acadêmica', bruto: 3500 }); if (p) await post(`/terceiros/pagamentos/${p.id}/aprovar`, {}) }
@@ -159,7 +159,7 @@ export async function seedRh(api: Api, ctx: SeedCtx = {}) {
   const folha = ok(await post('/folha/calcular', { competencia: comp }), 'folha')
   if (folha) await post(`/folha/${folha.id}/fechar`, {})
 
-  return { departamentos: 4, cargos: 5, colaboradores: todos.length + (novo ? 1 : 0), competencia: comp, folhaId: folha?.id, logins: { rh: 'rh@ravel.edu.br', gestor: 'gestor.rh@ravel.edu.br', colaborador: 'colaborador@ravel.edu.br' } }
+  return { departamentos: 4, cargos: 5, colaboradores: todos.length + (novo ? 1 : 0), competencia: comp, folhaId: folha?.id, logins: { rh: 'rh@suainstituicao.edu.br', gestor: 'gestor.rh@suainstituicao.edu.br', colaborador: 'colaborador@suainstituicao.edu.br' } }
 }
 
 // Execução isolada
@@ -168,9 +168,9 @@ if (require.main === module) {
     const API = process.env.API_URL || 'http://localhost:3000/api'
     const { prisma } = await import('../../src/lib/prisma')
     const bcrypt = (await import('bcryptjs')).default
-    const clinic = await prisma.clinic.findFirst({ where: { tenantId: 'ravel-ies' } })
-    if (!clinic) throw new Error('Rode antes o scripts/edu-demo-seed.ts (cria a instituição ravel-ies).')
-    const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: clinic.id, email: 'admin@ravel.edu.br', password: 'Ravel@2026' }) })
+    const clinic = await prisma.clinic.findFirst({ where: { tenantId: 'sua-instituicao' } })
+    if (!clinic) throw new Error('Rode antes o scripts/edu-demo-seed.ts (cria a instituição sua-instituicao).')
+    const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: clinic.id, email: 'admin@suainstituicao.edu.br', password: 'Demo@2026' }) })
     const token = ((await r.json()) as any).token
     const failures: string[] = []
     const api: Api = async (method, path, body) => {
@@ -182,9 +182,9 @@ if (require.main === module) {
     const mk = async (email: string, password: string, firstName: string, lastName: string, role: string) => {
       const ex = await prisma.user.findFirst({ where: { clinicId: clinic.id, email } })
       if (ex) return ex
-      return prisma.user.create({ data: { clinicId: clinic.id, tenantId: 'ravel-ies', email, password: await bcrypt.hash(password, 10), firstName, lastName, role, isActive: true } as any })
+      return prisma.user.create({ data: { clinicId: clinic.id, tenantId: 'sua-instituicao', email, password: await bcrypt.hash(password, 10), firstName, lastName, role, isActive: true } as any })
     }
-    const out = await seedRh(api, { tenantId: 'ravel-ies', mk, failures })
+    const out = await seedRh(api, { tenantId: 'sua-instituicao', mk, failures })
     console.log(JSON.stringify(out, null, 2))
     if (failures.length) console.log('FALHAS:\n' + failures.join('\n'))
     await prisma.$disconnect()

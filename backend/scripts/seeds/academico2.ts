@@ -233,9 +233,9 @@ if (require.main === module) {
   const API = process.env.API_URL || 'http://localhost:3000/api'
   ;(async () => {
     const { prisma } = await import('../../src/lib/prisma')
-    const clinic = await prisma.clinic.findFirst({ where: { tenantId: 'ravel-ies' } })
-    if (!clinic) throw new Error('Rode antes o edu-demo-seed.ts (tenant ravel-ies).')
-    const lr = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: clinic.id, email: 'admin@ravel.edu.br', password: 'Ravel@2026' }) })
+    const clinic = await prisma.clinic.findFirst({ where: { tenantId: 'sua-instituicao' } })
+    if (!clinic) throw new Error('Rode antes o edu-demo-seed.ts (tenant sua-instituicao).')
+    const lr = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: clinic.id, email: 'admin@suainstituicao.edu.br', password: 'Demo@2026' }) })
     const token = ((await lr.json()) as any).token
     const failures: string[] = []
     const api: SeedApi = async (method, path, body) => {

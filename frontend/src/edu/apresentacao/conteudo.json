@@ -13,7 +13,8 @@
         "Matriz curricular e fluxograma por módulos, bimestres, semestres e anos",
         "Salas, turnos e horários sem conflito",
         "Notas, diário de classe e frequência",
-        "Pesquisa, extensão, ligas e centros acadêmicos"
+        "Pesquisa, extensão, ligas e centros acadêmicos",
+        "Presença por reconhecimento facial (com consentimento LGPD), QR e controle de acesso a espaços"
       ]
     },
     {
@@ -29,7 +30,8 @@
       "itens": [
         "Multiatendimento, protocolo e jornada do documento com rastreio",
         "Assistente de IA para a maioria das demandas",
-        "Certificados, diplomas, declarações e termos com QR de verificação"
+        "Certificados, diplomas, declarações e termos com QR de verificação",
+        "Botão de sugestões e bugs em todas as telas, com triagem pela gestão"
       ]
     },
     {
@@ -47,7 +49,8 @@
         "RH: ponto, banco de horas, férias, atestados, avaliações",
         "Compras com 3 cotações, almoxarifado e conferência de recebimento",
         "Patrimônio com etiqueta QR, fotos, responsável e inventário",
-        "Infraestrutura, manutenção e frota"
+        "Infraestrutura, manutenção e frota",
+        "RH completo (ponto, banco de horas, folha, férias, avaliação) e infraestrutura, frota e segurança patrimonial"
       ]
     },
     {

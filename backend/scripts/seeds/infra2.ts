@@ -2,7 +2,7 @@
  * Seed de demonstração de INFRAESTRUTURA 2 (agenda, solicitações/OS com fotos, frota, segurança patrimonial) e da CAIXA DE FEEDBACK.
  * Usa a API REAL com token ADMIN (estilo scripts/edu-demo-seed.ts).
  * Uso a partir do edu-demo-seed (sem editá-lo):  import { seedInfra2, seedFeedback } from './seeds/infra2'  ->  await seedInfra2(c.api, c); await seedFeedback(c.api, c)
- * Uso isolado: DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/infra2.ts   (login admin@ravel.edu.br / Ravel@2026)
+ * Uso isolado: DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/infra2.ts   (login admin@suainstituicao.edu.br / Demo@2026)
  * Pessoas, placas, apólices e valores são FICTÍCIOS. Rodar em banco limpo.
  */
 export interface SeedCtx {
@@ -25,10 +25,10 @@ export async function seedInfra2(api: Api, ctx: SeedCtx = {}) {
 
   // ---------------------------------------------------------------- equipe
   if (ctx.mk) {
-    await ctx.mk('infra@ravel.edu.br', 'Ravel@2026', 'Marcos', 'Tavares', 'FACILITIES')
-    await ctx.mk('seguranca1@ravel.edu.br', 'Ravel@2026', 'Jorge', 'Almeida', 'STAFF')
-    await ctx.mk('seguranca2@ravel.edu.br', 'Ravel@2026', 'Rita', 'Cavalcanti', 'STAFF')
-    await ctx.mk('motorista@ravel.edu.br', 'Ravel@2026', 'Antônio', 'Pereira', 'STAFF')
+    await ctx.mk('infra@suainstituicao.edu.br', 'Demo@2026', 'Marcos', 'Tavares', 'FACILITIES')
+    await ctx.mk('seguranca1@suainstituicao.edu.br', 'Demo@2026', 'Jorge', 'Almeida', 'STAFF')
+    await ctx.mk('seguranca2@suainstituicao.edu.br', 'Demo@2026', 'Rita', 'Cavalcanti', 'STAFF')
+    await ctx.mk('motorista@suainstituicao.edu.br', 'Demo@2026', 'Antônio', 'Pereira', 'STAFF')
   }
   const pessoas: any[] = (await api('GET', `${I}/pessoas`))?.items ?? []
   const uid = (nome: string) => pessoas.find((p) => p.nome.startsWith(nome))?.id as string | undefined
@@ -182,7 +182,7 @@ export async function seedFeedback(api: Api, ctx: SeedCtx = {}) {
 if (process.argv[1] && /seeds[\\/]infra2\.ts$/.test(process.argv[1])) {
   const API = process.env.API_URL || 'http://localhost:3000/api'
   ;(async () => {
-    const login = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'admin@ravel.edu.br', password: 'Ravel@2026' }) }).then((r) => r.json())
+    const login = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'admin@suainstituicao.edu.br', password: 'Demo@2026' }) }).then((r) => r.json())
     const api: Api = async (method, path, body) => {
       const r = await fetch(API + path, { method, headers: { 'content-type': 'application/json', authorization: `Bearer ${login.token}` }, body: body === undefined ? undefined : JSON.stringify(body) })
       const t = await r.text(); try { return r.ok ? JSON.parse(t || 'null') : (console.log('falhou', method, path, t.slice(0, 160)), null) } catch { return null }

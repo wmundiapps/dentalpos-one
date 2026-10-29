@@ -1,7 +1,7 @@
 /**
  * Seed de demonstração do módulo MARKETING E CAPTAÇÃO (EduMaster Pro). Usa SOMENTE a API (token ADMIN), no estilo de scripts/edu-demo-seed.ts.
  *   import { seedMarketing } from './seeds/marketing';  await seedMarketing(c.api, c)
- * Uso isolado: DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/marketing.ts  (login admin@ravel.edu.br / Ravel@2026)
+ * Uso isolado: DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/marketing.ts  (login admin@suainstituicao.edu.br / Demo@2026)
  * Todos os dados são FICTÍCIOS (domínios .example). Provedores de canais/redes/IA rodam SIMULADOS. Idempotente: se o site já existe, não duplica.
  * Respeita a LGPD: só leads com opt-in marcado recebem marketing; há contatos sem opt-in e na lista de supressão para demonstrar os bloqueios.
  */
@@ -13,14 +13,14 @@ const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString()
 
 export async function seedMarketing(api: Api, ctx: SeedCtx = {}) {
   const S: Record<string, any> = {}
-  const slug = ctx.siteSlug ?? 'ravel'
+  const slug = ctx.siteSlug ?? 'sua-instituicao'
   const ok = <T,>(x: T | null | undefined, tag: string): T => { if (!x) ctx.failures?.push(`seedMarketing: falhou ${tag}`); return x as T }
   const post = (p: string, b?: any) => api('POST', `${M}${p}`, b ?? {})
 
   const ja = await api('GET', `${M}/site`)
   if (ja?.site) return { jaExistia: true }
 
-  await api('PUT', `${M}/config`, { janelaInicio: '08:00', janelaFim: '21:00', diasPermitidos: [1, 2, 3, 4, 5, 6], limiteDia: 2, limiteSemana: 5, remetenteNome: 'Instituto Ravel de Ensino', remetenteEndereco: 'Av. Paulista, 1000 - São Paulo/SP', contatoDpo: 'dpo@ravel.example', slaPrimeiroContatoMin: 60, ticketMedio: 10800, metaCustoLead: 45, limiteAprovacaoOrcamento: 5000 })
+  await api('PUT', `${M}/config`, { janelaInicio: '08:00', janelaFim: '21:00', diasPermitidos: [1, 2, 3, 4, 5, 6], limiteDia: 2, limiteSemana: 5, remetenteNome: 'SUA INSTITUIÇÃO', remetenteEndereco: 'Av. Paulista, 1000 - São Paulo/SP', contatoDpo: 'dpo@ravel.example', slaPrimeiroContatoMin: 60, ticketMedio: 10800, metaCustoLead: 45, limiteAprovacaoOrcamento: 5000 })
   await api('PUT', `${M}/marca`, { tomDeVoz: 'acolhedor, motivador e profissional', slogan: 'Aprender muda tudo.' })
 
   // consultores
@@ -37,7 +37,7 @@ export async function seedMarketing(api: Api, ctx: SeedCtx = {}) {
   S.ofertas = ofertas
 
   // site e formulários
-  ok(await api('PUT', `${M}/site`, { slug, nome: 'Instituto Ravel de Ensino', descricao: 'Graduação, pós e cursos EAD com acolhimento e tecnologia.', whatsapp: '(11) 99999-0000', rodape: 'Instituto Ravel de Ensino · Credenciada pelo MEC (dados fictícios de demonstração)', chatAtivo: true }), 'site')
+  ok(await api('PUT', `${M}/site`, { slug, nome: 'SUA INSTITUIÇÃO', descricao: 'Graduação, pós e cursos EAD com acolhimento e tecnologia.', whatsapp: '(11) 99999-0000', rodape: 'SUA INSTITUIÇÃO · Credenciada pelo MEC (dados fictícios de demonstração)', chatAtivo: true }), 'site')
   const f1 = ok(await post('/formularios', { nome: 'Quero conhecer os cursos', slug: 'quero-conhecer', origemPadrao: 'SITE', campos: [{ chave: 'nome', rotulo: 'Nome completo', tipo: 'texto', obrigatorio: true }, { chave: 'email', rotulo: 'E-mail', tipo: 'email', obrigatorio: true }, { chave: 'telefone', rotulo: 'WhatsApp', tipo: 'telefone', obrigatorio: false }, { chave: 'curso', rotulo: 'Curso de interesse', tipo: 'curso' }] }), 'formulario1')
   await post('/formularios', { nome: 'Convênio com empresas', slug: 'convenio-empresas', origemPadrao: 'CONVENIO_EMPRESA', campos: [{ chave: 'nome', rotulo: 'Nome', tipo: 'texto', obrigatorio: true }, { chave: 'email', rotulo: 'E-mail corporativo', tipo: 'email', obrigatorio: true }, { chave: 'empresa', rotulo: 'Empresa', tipo: 'texto' }] })
   S.formulario = f1
@@ -46,7 +46,7 @@ export async function seedMarketing(api: Api, ctx: SeedCtx = {}) {
   const mk = async (b: any) => ok(await post('/campanhas', b), `campanha ${b.nome}`)
   const c1 = await mk({ nome: 'Vestibular 2027/1 — Odontologia', objetivo: 'Preencher 60 vagas', briefing: 'Foco em egressos do ensino médio e profissionais da saúde. Mensagem: tradição e clínica-escola.', canais: ['INSTAGRAM', 'GOOGLE_ADS', 'EMAIL', 'RADIO'], cursoNome: 'Odontologia', publico: 'ENSINO_MEDIO', responsavelNome: 'Camila Duarte', inicio: day(-20), fim: day(40), orcamentoPrevisto: 18000, metaLeads: 400, metaMatriculas: 60, utmCampaign: 'vest-odonto-2027' })
   const c2 = await mk({ nome: 'EAD Administração — Matrícula aberta', canais: ['FACEBOOK', 'TIKTOK', 'EMAIL', 'WHATSAPP'], cursoNome: 'Administração EAD', publico: 'PROFISSIONAIS', responsavelNome: 'Rafael Nogueira', inicio: day(-5), fim: day(60), orcamentoPrevisto: 4200, metaLeads: 250, metaMatriculas: 40, utmCampaign: 'ead-adm-2027' })
-  const c3 = await mk({ nome: 'Open Day Ravel', canais: ['EVENTO', 'INSTAGRAM', 'PANFLETAGEM'], publico: 'COMUNIDADE', inicio: day(5), fim: day(20), orcamentoPrevisto: 7000, metaLeads: 150 })
+  const c3 = await mk({ nome: 'Open Day SUA INSTITUIÇÃO', canais: ['EVENTO', 'INSTAGRAM', 'PANFLETAGEM'], publico: 'COMUNIDADE', inicio: day(5), fim: day(20), orcamentoPrevisto: 7000, metaLeads: 150 })
   const c4 = await mk({ nome: 'Pós-graduação — Egressos', canais: ['EMAIL', 'LINKEDIN'], publico: 'EGRESSOS', inicio: day(-60), fim: day(-5), orcamentoPrevisto: 2500, metaLeads: 80 })
   if (c1) { await post(`/campanhas/${c1.id}/enviar-aprovacao`); await post(`/campanhas/${c1.id}/aprovar`, { nota: 'Orçamento dentro da meta trimestral.' }); await post(`/campanhas/${c1.id}/ativar`); await post(`/campanhas/${c1.id}/vincular-admissoes`) }
   if (c2) { await post(`/campanhas/${c2.id}/ativar`); await post(`/campanhas/${c2.id}/vincular-admissoes`) }
@@ -108,13 +108,13 @@ export async function seedMarketing(api: Api, ctx: SeedCtx = {}) {
   }
 
   // site: páginas
-  const home = ok(await post('/paginas', { slug: 'inicio', titulo: 'Início', tipo: 'HOME', noMenu: true, ordem: 0, seoTitulo: 'Instituto Ravel — graduação, pós e EAD', seoDescricao: 'Conheça cursos de graduação, pós-graduação e EAD do Instituto Ravel. Inscreva-se e simule sua mensalidade.', blocos: [{ tipo: 'HERO', titulo: 'Seu futuro começa aqui', texto: 'Graduação, pós-graduação e cursos EAD com acolhimento.', botaoRotulo: 'Quero conhecer', botaoUrl: '#formulario' }, { tipo: 'CURSOS', titulo: 'Nossos cursos' }, { tipo: 'SIMULADOR', titulo: 'Simule sua mensalidade' }, { tipo: 'EVENTOS', titulo: 'Próximos eventos' }, { tipo: 'FAQ', titulo: 'Perguntas frequentes' }, { tipo: 'FORM', titulo: 'Fale com um consultor', formularioSlug: 'quero-conhecer' }, { tipo: 'CHAT' }] }), 'pagina home')
+  const home = ok(await post('/paginas', { slug: 'inicio', titulo: 'Início', tipo: 'HOME', noMenu: true, ordem: 0, seoTitulo: 'SUA INSTITUIÇÃO — graduação, pós e EAD', seoDescricao: 'Conheça cursos de graduação, pós-graduação e EAD do SUA INSTITUIÇÃO. Inscreva-se e simule sua mensalidade.', blocos: [{ tipo: 'HERO', titulo: 'Seu futuro começa aqui', texto: 'Graduação, pós-graduação e cursos EAD com acolhimento.', botaoRotulo: 'Quero conhecer', botaoUrl: '#formulario' }, { tipo: 'CURSOS', titulo: 'Nossos cursos' }, { tipo: 'SIMULADOR', titulo: 'Simule sua mensalidade' }, { tipo: 'EVENTOS', titulo: 'Próximos eventos' }, { tipo: 'FAQ', titulo: 'Perguntas frequentes' }, { tipo: 'FORM', titulo: 'Fale com um consultor', formularioSlug: 'quero-conhecer' }, { tipo: 'CHAT' }] }), 'pagina home')
   if (home) await post(`/paginas/${home.id}/publicar`)
-  const lp = ok(await post('/paginas', { slug: 'ead-administracao', titulo: 'Administração EAD', tipo: 'LANDING', noMenu: true, ordem: 1, seoTitulo: 'Administração EAD — Instituto Ravel', seoDescricao: 'Gradue-se em Administração 100% online, com tutoria próxima e bolsas. Matrículas abertas.', campanhaId: c2?.id, blocos: [{ tipo: 'HERO', titulo: 'Administração EAD', texto: 'Estude onde e quando quiser.', botaoRotulo: 'Matricule-se', botaoUrl: '#formulario' }, { tipo: 'TEXTO', titulo: 'Por que estudar conosco', texto: 'Tutoria próxima, material atualizado e certificado reconhecido pelo MEC.' }, { tipo: 'FORM', titulo: 'Receba o contato de um consultor', formularioSlug: 'quero-conhecer' }] }), 'pagina landing')
+  const lp = ok(await post('/paginas', { slug: 'ead-administracao', titulo: 'Administração EAD', tipo: 'LANDING', noMenu: true, ordem: 1, seoTitulo: 'Administração EAD — SUA INSTITUIÇÃO', seoDescricao: 'Gradue-se em Administração 100% online, com tutoria próxima e bolsas. Matrículas abertas.', campanhaId: c2?.id, blocos: [{ tipo: 'HERO', titulo: 'Administração EAD', texto: 'Estude onde e quando quiser.', botaoRotulo: 'Matricule-se', botaoUrl: '#formulario' }, { tipo: 'TEXTO', titulo: 'Por que estudar conosco', texto: 'Tutoria próxima, material atualizado e certificado reconhecido pelo MEC.' }, { tipo: 'FORM', titulo: 'Receba o contato de um consultor', formularioSlug: 'quero-conhecer' }] }), 'pagina landing')
   if (lp) await post(`/paginas/${lp.id}/publicar`)
 
   // eventos
-  const ev = ok(await post('/eventos', { titulo: 'Open Day Ravel', slug: 'open-day', descricao: 'Conheça o campus, laboratórios e converse com coordenadores.', tipo: 'OPEN_DAY', inicio: day(7), fim: day(7.3), local: 'Campus Paulista', vagas: 120, campanhaId: c3?.id, custo: 2500 }), 'evento')
+  const ev = ok(await post('/eventos', { titulo: 'Open Day SUA INSTITUIÇÃO', slug: 'open-day', descricao: 'Conheça o campus, laboratórios e converse com coordenadores.', tipo: 'OPEN_DAY', inicio: day(7), fim: day(7.3), local: 'Campus Paulista', vagas: 120, campanhaId: c3?.id, custo: 2500 }), 'evento')
   if (ev) { await post(`/eventos/${ev.id}/publicar`); for (const [n, e] of [['Helena Prado', 'helena.prado@exemplo.example'], ['Otávio Brandão', 'otavio.brandao@exemplo.example']]) await api('POST', `/public/edu/marketing/site/${slug}/eventos/open-day/inscricao`, { nome: n, email: e, consentimentoContato: true, aceitaLembretes: true, consentimentoMarketing: true }) }
   const ev2 = await post('/eventos', { titulo: 'Aula aberta: Saúde Bucal', slug: 'aula-aberta-saude-bucal', tipo: 'AULA_ABERTA', inicio: day(14), online: true, linkOnline: 'https://meet.example/aula-aberta', vagas: 300 }); if (ev2) await post(`/eventos/${ev2.id}/publicar`)
 
@@ -133,7 +133,7 @@ export async function seedMarketing(api: Api, ctx: SeedCtx = {}) {
 if (require.main === module) {
   ;(async () => {
     const API = process.env.API_URL || 'http://localhost:3000/api'
-    const login = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: process.env.SEED_EMAIL || 'admin@ravel.edu.br', password: process.env.SEED_PASSWORD || 'Ravel@2026' }) })
+    const login = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: process.env.SEED_EMAIL || 'admin@suainstituicao.edu.br', password: process.env.SEED_PASSWORD || 'Demo@2026' }) })
     const t = (await login.json().catch(() => ({}))) as any
     const token = t.token || t.accessToken
     if (!token) { console.error('Login falhou'); process.exit(1) }

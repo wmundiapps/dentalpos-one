@@ -81,7 +81,7 @@ async function main() {
   const admin = await t1.mk('ADMIN'), sup1 = await t1.mk('SUPPORT'), sup2 = await t1.mk('SUPPORT'), sec = await t1.mk('SECRETARY'), fin = await t1.mk('FINANCE'), prof = await t1.mk('TEACHER'), coord = await t1.mk('COORDINATOR')
   const aluno = await t1.mk('STUDENT', true), aluno2 = await t1.mk('STUDENT', true), alunoSemMat = await t1.mk('STUDENT', true), concluinte = await t1.mk('STUDENT', true)
   const admin2 = await t2.mk('ADMIN'), aluno_t2 = await t2.mk('STUDENT', true)
-  await prisma.eduInstitution.create({ data: { tenantId: T, nome: 'Instituto Ravel de Teste', sigla: `RAV${Math.floor(Math.random() * 9000 + 1000)}` } as any }).catch(() => undefined)
+  await prisma.eduInstitution.create({ data: { tenantId: T, nome: 'SUA INSTITUIÇÃO de Teste', sigla: `RAV${Math.floor(Math.random() * 9000 + 1000)}` } as any }).catch(() => undefined)
   const prog = await prisma.academicProgram.create({ data: { tenantId: T, nome: 'Odontologia', modalidade: 'PRESENCIAL', cargaHorariaTotal: 4000 } })
   const term = await prisma.academicTerm.create({ data: { tenantId: T, codigo: '2026/2', dataInicio: new Date('2026-08-03T03:00:00Z'), dataFim: new Date('2026-12-18T03:00:00Z') } })
   const mat1 = await prisma.enrollment.create({ data: { studentId: aluno.studentId!, programId: prog.id, termId: term.id } })

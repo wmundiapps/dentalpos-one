@@ -89,13 +89,13 @@ async function main() {
     who[l.email] = t
   }
   // login real pela API (JWT emitido pelo servidor) para um dos perfis
-  const lr = await c.raw('', 'POST', '/auth/login', { clinicId: c.A.clinic.id, email: 'aluno.ead@ravel.edu.br', password: SENHA_DEMO })
+  const lr = await c.raw('', 'POST', '/auth/login', { clinicId: c.A.clinic.id, email: 'aluno.ead@suainstituicao.edu.br', password: SENHA_DEMO })
   check('login real pela API com a senha de demonstração', lr.status === 200 && !!lr.body.token, lr.body)
-  const lr2 = await c.raw('', 'POST', '/auth/login', { clinicId: c.A.clinic.id, email: 'aluno.ead@ravel.edu.br', password: 'errada' })
+  const lr2 = await c.raw('', 'POST', '/auth/login', { clinicId: c.A.clinic.id, email: 'aluno.ead@suainstituicao.edu.br', password: 'errada' })
   check('senha errada recusada', lr2.status === 401)
   const eu = (email: string) => c.rawAs(who[email].token)
-  const pres = eu('aluno.presencial@ravel.edu.br'), ead = eu('aluno.ead@ravel.edu.br'), pos = eu('aluno.pos@ravel.edu.br'), prof = eu('professor@ravel.edu.br'), coord = eu('coordenador@ravel.edu.br')
-  const prof2 = c.rawAs((await tokenDe('professora.ead@ravel.edu.br'))!.token)
+  const pres = eu('aluno.presencial@suainstituicao.edu.br'), ead = eu('aluno.ead@suainstituicao.edu.br'), pos = eu('aluno.pos@suainstituicao.edu.br'), prof = eu('professor@suainstituicao.edu.br'), coord = eu('coordenador@suainstituicao.edu.br')
+  const prof2 = c.rawAs((await tokenDe('professora.ead@suainstituicao.edu.br'))!.token)
   const colU = (await prisma.user.findFirst({ where: { clinicId: c.A.clinic.id, email: { startsWith: 'colega1.' } } }))!
   const colega = c.rawAs(jwt.sign({ id: colU.id, email: colU.email, clinicId: c.A.clinic.id, tenantId: T, role: 'STUDENT' }, process.env.JWT_SECRET!))
 
@@ -147,11 +147,11 @@ async function main() {
   r = await coord('GET', '/edu/notas/turmas')
   check('diário (notas/turmas) filtrado pelo ambiente', r.status === 200 && r.body.items.length === nEad, [r.body.items?.length, nEad])
   r = await coord('GET', '/edu/academico/programs', undefined)
-  r = await c.rawAs(who['coordenador@ravel.edu.br'].token)('GET', '/edu/academico/programs', undefined, { 'x-edu-ambiente': ambCoord['GRAD-PRES'] })
+  r = await c.rawAs(who['coordenador@suainstituicao.edu.br'].token)('GET', '/edu/academico/programs', undefined, { 'x-edu-ambiente': ambCoord['GRAD-PRES'] })
   check('cabeçalho X-Edu-Ambiente sobrescreve o contexto por aba', r.body.length === 1 && /Administração/.test(r.body[0].nome), r.body.map((p: any) => p.nome))
-  r = await c.rawAs(who['coordenador@ravel.edu.br'].token)('GET', '/edu/academico/programs', undefined, { 'x-edu-ambiente': 'todos' })
+  r = await c.rawAs(who['coordenador@suainstituicao.edu.br'].token)('GET', '/edu/academico/programs', undefined, { 'x-edu-ambiente': 'todos' })
   check('cabeçalho "todos" remove o filtro', r.body.length === todosProgs)
-  r = await c.rawAs(who['coordenador@ravel.edu.br'].token)('GET', '/edu/academico/programs', undefined, { 'x-edu-ambiente': 'id-inexistente' })
+  r = await c.rawAs(who['coordenador@suainstituicao.edu.br'].token)('GET', '/edu/academico/programs', undefined, { 'x-edu-ambiente': 'id-inexistente' })
   check('ambiente inexistente no cabeçalho é ignorado', r.status === 200 && r.body.length === todosProgs)
   r = await coord('POST', `${P}/ambientes/selecionar`, { ambienteId: null })
   check('coordenador limpa o ambiente (todos)', r.status === 200 && r.body.atual === null)
@@ -356,7 +356,7 @@ async function main() {
   check('resposta do aluno devolve o processo para análise', r.body.status === 'EM_ANALISE')
   r = await coord('POST', `${P}/processos/${pTr}/decisao`, { status: 'DEFERIDO', parecer: 'Trancamento deferido pelo colegiado.' })
   check('deferimento efetiva o trancamento', r.status === 200 && r.body.efeito === 'Matrícula trancada.', r.body)
-  check('aluno ficou TRANCADO e matrícula TRANCADA', (await prisma.student.findFirst({ where: { userId: (await prisma.user.findFirst({ where: { clinicId: c.A.clinic.id, email: 'aluno.presencial@ravel.edu.br' } }))!.id } }))?.status === 'TRANCADO')
+  check('aluno ficou TRANCADO e matrícula TRANCADA', (await prisma.student.findFirst({ where: { userId: (await prisma.user.findFirst({ where: { clinicId: c.A.clinic.id, email: 'aluno.presencial@suainstituicao.edu.br' } }))!.id } }))?.status === 'TRANCADO')
   r = await pres('GET', `${P}/aluno/carteirinha`)
   check('carteirinha indisponível para matrícula trancada (409)', r.status === 409)
   r = await pres('POST', `${P}/processos/${pTr}/comentarios`, { texto: 'Comentário após encerrado.' })
@@ -366,7 +366,7 @@ async function main() {
   const pDes = r.body.id
   for (const e of (await coord('GET', `${P}/processos/${pDes}`)).body.etapas) await coord('POST', `${P}/processos/${pDes}/etapas/${e.id}`, { status: 'CONCLUIDA' })
   r = await coord('POST', `${P}/processos/${pDes}/decisao`, { status: 'DEFERIDO', parecer: 'Retorno autorizado.' })
-  check('destrancamento reativa a matrícula', r.status === 200 && (await prisma.student.findFirst({ where: { userId: (await prisma.user.findFirst({ where: { clinicId: c.A.clinic.id, email: 'aluno.presencial@ravel.edu.br' } }))!.id } }))?.status === 'ATIVO')
+  check('destrancamento reativa a matrícula', r.status === 200 && (await prisma.student.findFirst({ where: { userId: (await prisma.user.findFirst({ where: { clinicId: c.A.clinic.id, email: 'aluno.presencial@suainstituicao.edu.br' } }))!.id } }))?.status === 'ATIVO')
   r = await pres('POST', `${P}/aluno/processos`, { tipo: 'TRANCAMENTO', justificativa: 'Mais um trancamento, para cancelar depois.' })
   const pCan = r.body.id
   r = await pres('POST', `${P}/aluno/processos/${pCan}/cancelar`)

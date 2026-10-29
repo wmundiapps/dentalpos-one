@@ -183,7 +183,7 @@ export function registerMatrizes(router: Router) {
     const b = parseBody(z.object({ tipo: z.enum(TIPOS_PERIODO).default('SEMESTRE'), rotulo: z.string().min(1).max(60).optional(), ordem: z.number().int().min(1).max(200).optional(), quantidade: z.number().int().min(1).max(60).optional() }), req.body)
     const ult = await prisma.acaMatrizPeriodo.findFirst({ where: { tenantId, matrizId: m.id }, orderBy: { ordem: 'desc' } })
     const qt = b.quantidade ?? 1
-    const criados = []
+    const criados: any[] = []
     for (let i = 0; i < qt; i++) {
       const ordem = (b.quantidade ? (ult?.ordem ?? 0) + i + 1 : b.ordem ?? (ult?.ordem ?? 0) + 1)
       if (await prisma.acaMatrizPeriodo.findFirst({ where: { matrizId: m.id, ordem } })) fail(409, `Já existe o período de ordem ${ordem}.`)

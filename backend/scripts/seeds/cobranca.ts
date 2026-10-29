@@ -76,10 +76,10 @@ export async function seedCobranca(api: Api, ctx: SeedCtx) {
 if (require.main === module) {
   ;(async () => {
     const API = process.env.API_URL || 'http://localhost:3000/api'
-    const tenant = process.env.TENANT || 'ravel-ies'
+    const tenant = process.env.TENANT || 'sua-instituicao'
     const clinic = await prisma.clinic.findFirst({ where: { tenantId: tenant } })
     if (!clinic) throw new Error('clínica/tenant não encontrado')
-    const lg = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: clinic.id, email: 'admin@ravel.edu.br', password: 'Ravel@2026' }) })
+    const lg = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: clinic.id, email: 'admin@suainstituicao.edu.br', password: 'Demo@2026' }) })
     const token = ((await lg.json()) as any).token
     const api: Api = async (method, path, body) => {
       const res = await fetch(API + path, { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) })

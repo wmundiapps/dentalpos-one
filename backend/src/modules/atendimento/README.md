@@ -26,7 +26,7 @@ Papéis: atendem `SUPPORT, SECRETARY, ADMISSIONS, FINANCE, COORDINATOR, STAFF` (
 - **Autoatendimento**: serviço com automação e sem documentos exigidos resolve na hora (`EMITIR_DOCUMENTO`, `SEGUNDA_VIA_BOLETO`, `CONSULTA_FINANCEIRA`); `TRANCAMENTO` abre jornada e, ao deferir, tranca a matrícula. Taxa > 0 gera `AccountReceivable`; a automação roda quando o recebível está `PAGO` (`sincronizar-taxa`) ou após isenção pela gestão.
 
 ## Como ver na demo
-Seed: `import { seedAtendimento } from './seeds/atendimento'` (ou `npx tsx scripts/seeds/atendimento.ts` após o seed acadêmico). Login `admin@ravel.edu.br / Ravel@2026` → menu **EduMaster · Atendimento**. Aluno (`aluno@ravel.edu.br`) → Portal do Aluno › **Serviços e atendimento**. Página pública: `/rastreio?c=<código>` (o código aparece no protocolo).
+Seed: `import { seedAtendimento } from './seeds/atendimento'` (ou `npx tsx scripts/seeds/atendimento.ts` após o seed acadêmico). Login `admin@suainstituicao.edu.br / Demo@2026` → menu **EduMaster · Atendimento**. Aluno (`aluno@suainstituicao.edu.br`) → Portal do Aluno › **Serviços e atendimento**. Página pública: `/rastreio?c=<código>` (o código aparece no protocolo).
 
 ## Testes
 `DATABASE_URL=postgresql://USER:PASS@127.0.0.1:5432/BANCO_LOCAL npx tsx scripts/e2e/atendimento.ts` (300+ verificações; usa só banco local).

@@ -1,9 +1,9 @@
 /**
  * Seed de demonstração da CENTRAL DE ATENDIMENTO (EduMaster Pro). Usa a API REAL com token ADMIN, no estilo de scripts/edu-demo-seed.ts.
  * Uso a partir do edu-demo-seed (sem editá-lo):  import { seedAtendimento } from './seeds/atendimento'  ->  await seedAtendimento(c.api, c)
- * Uso isolado:  DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/atendimento.ts   (login admin@ravel.edu.br / Ravel@2026)
+ * Uso isolado:  DATABASE_URL=... API_URL=http://localhost:3000/api npx tsx scripts/seeds/atendimento.ts   (login admin@suainstituicao.edu.br / Demo@2026)
  * Pré-requisito: alunos cadastrados (seed acadêmico). Todos os textos e contatos são FICTÍCIOS. Rodar em banco limpo.
- * Equipe criada (senha Ravel@2026): atendimento@ravel.edu.br e atendimento2@ravel.edu.br (SUPPORT).
+ * Equipe criada (senha Demo@2026): atendimento@suainstituicao.edu.br e atendimento2@suainstituicao.edu.br (SUPPORT).
  */
 export interface SeedCtx {
   tenantId?: string
@@ -21,8 +21,8 @@ export async function seedAtendimento(api: Api, ctx: SeedCtx = {}) {
   const ok = <T,>(x: T | null | undefined, tag: string): T => { if (!x) ctx.failures?.push(`seedAtendimento: falhou ${tag}`); return x as T }
 
   // equipe
-  const u1 = ctx.mk ? await ctx.mk('atendimento@ravel.edu.br', 'Ravel@2026', 'Juliana', 'Prado', 'SUPPORT') : null
-  const u2 = ctx.mk ? await ctx.mk('atendimento2@ravel.edu.br', 'Ravel@2026', 'Marcos', 'Teixeira', 'SUPPORT') : null
+  const u1 = ctx.mk ? await ctx.mk('atendimento@suainstituicao.edu.br', 'Demo@2026', 'Juliana', 'Prado', 'SUPPORT') : null
+  const u2 = ctx.mk ? await ctx.mk('atendimento2@suainstituicao.edu.br', 'Demo@2026', 'Marcos', 'Teixeira', 'SUPPORT') : null
   await post('/bootstrap')
   const setores: any[] = (await api('GET', `${A}/setores`)) ?? []
   const set = (c: string) => setores.find((s) => s.codigo === c)
@@ -134,9 +134,9 @@ if (require.main === module) {
     const API = process.env.API_URL || 'http://localhost:3000/api'
     const { prisma } = await import('../../src/lib/prisma')
     const bcrypt = await import('bcryptjs')
-    const clinic = await prisma.clinic.findFirst({ where: { tenantId: 'ravel-ies' } })
-    if (!clinic) throw new Error('Clínica ravel-ies não encontrada: rode o edu-demo-seed antes.')
-    const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: clinic.id, email: 'admin@ravel.edu.br', password: 'Ravel@2026' }) })
+    const clinic = await prisma.clinic.findFirst({ where: { tenantId: 'sua-instituicao' } })
+    if (!clinic) throw new Error('Clínica sua-instituicao não encontrada: rode o edu-demo-seed antes.')
+    const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId: clinic.id, email: 'admin@suainstituicao.edu.br', password: 'Demo@2026' }) })
     const j: any = await r.json()
     if (!r.ok) throw new Error('login: ' + JSON.stringify(j))
     const api: Api = async (method, path, body) => { const x = await fetch(API + path, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${j.token}` }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await x.json().catch(() => null); if (!x.ok) console.log('!!', method, path, x.status, JSON.stringify(t)?.slice(0, 200)); return x.ok ? t : null }
