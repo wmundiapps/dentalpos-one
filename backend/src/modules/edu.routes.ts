@@ -42,6 +42,8 @@ router.use(acessoSensivelLog)
 
 router.use('/core', coreRouter)
 router.use('/academico', academicoRouter)
+router.use('/academico', academico2Router)
+router.use('/desenvolvimento', desenvolvimentoRouter)
 router.use('/financeiro', financeiroRouter)
 router.use('/conteudo', conteudoRouter)
 router.use('/provas', provasRouter)

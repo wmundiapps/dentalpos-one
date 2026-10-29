@@ -15712,6 +15712,191 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ==== POR:BEGIN (ambientes de ensino, portal do aluno/professor e sala virtual, prefixo Por - gerado por prisma migrate diff; somente CRIA) ====
 CREATE TABLE IF NOT EXISTS "PorAmbiente" (
+
+-- ==== ACA:BEGIN (módulo Acadêmico avançado, prefixo Aca - gerado por prisma migrate diff; somente CRIA, idempotente) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaCursoPerfil" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "nivel" TEXT NOT NULL DEFAULT 'GRADUACAO',
+    "regime" TEXT NOT NULL DEFAULT 'SERIADO_SEMESTRAL',
+    "turnos" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "duracaoPeriodos" INTEGER,
+    "codigoEmec" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaCursoPerfil_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaAlunoPerfil" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "email" TEXT,
+    "telefone" TEXT,
+    "rg" TEXT,
+    "rgOrgao" TEXT,
+    "sexo" TEXT,
+    "nomeSocial" TEXT,
+    "fotoUrl" TEXT,
+    "poloId" TEXT,
+    "cidade" TEXT,
+    "uf" TEXT,
+    "responsavelNome" TEXT,
+    "nee" BOOLEAN NOT NULL DEFAULT false,
+    "neeCategoria" TEXT,
+    "neeBaseLegal" TEXT,
+    "neeConsentimentoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaAlunoPerfil_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaMatriculaExt" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "enrollmentId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "numero" TEXT,
+    "turno" TEXT,
+    "ingresso" TEXT NOT NULL DEFAULT 'VESTIBULAR',
+    "matriculaNova" BOOLEAN NOT NULL DEFAULT false,
+    "statusCurso" TEXT NOT NULL DEFAULT 'CURSANDO',
+    "poloId" TEXT,
+    "anoLetivo" INTEGER,
+    "periodoLetivo" INTEGER,
+    "periodoAtual" INTEGER,
+    "matrizId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaMatriculaExt_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaContrato" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "enrollmentId" TEXT,
+    "numero" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE_ASSINATURA',
+    "valorMensalidade" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "parcelas" INTEGER NOT NULL DEFAULT 6,
+    "diaVencimento" INTEGER NOT NULL DEFAULT 10,
+    "descontoPercent" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "assinadoEm" TIMESTAMP(3),
+    "vigenciaInicio" TIMESTAMP(3),
+    "vigenciaFim" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaContrato_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaDocumentoAluno" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "obrigatorio" BOOLEAN NOT NULL DEFAULT true,
+    "entregueEm" TIMESTAMP(3),
+    "validadeEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaDocumentoAluno_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaMatriz" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "versao" TEXT NOT NULL DEFAULT '1.0',
+    "regime" TEXT NOT NULL DEFAULT 'SERIADO_SEMESTRAL',
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "vigenciaInicio" TIMESTAMP(3),
+    "cargaHorariaTotal" INTEGER NOT NULL DEFAULT 0,
+    "creditosTotal" INTEGER NOT NULL DEFAULT 0,
+    "horasComplementaresMin" INTEGER NOT NULL DEFAULT 0,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaMatriz_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaMatrizPeriodo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "matrizId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'SEMESTRE',
+    "rotulo" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaMatrizPeriodo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaMatrizItem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "matrizId" TEXT NOT NULL,
+    "periodoId" TEXT NOT NULL,
+    "disciplineId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'OBRIGATORIA',
+    "cargaHoraria" INTEGER NOT NULL DEFAULT 60,
+    "creditos" INTEGER NOT NULL DEFAULT 0,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "grupoOptativas" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaMatrizItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaPreRequisito" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "matrizId" TEXT NOT NULL,
+    "itemId" TEXT NOT NULL,
+    "requisitoItemId" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'PRE',
+    "cargaMinima" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaPreRequisito_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaEquivalencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "disciplineId" TEXT NOT NULL,
+    "equivalenteId" TEXT NOT NULL,
+    "percentual" INTEGER NOT NULL DEFAULT 100,
+    "bidirecional" BOOLEAN NOT NULL DEFAULT true,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaEquivalencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaTurno" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "codigo" TEXT NOT NULL,
@@ -16123,3 +16308,674 @@ CREATE INDEX IF NOT EXISTS "PorAvaliacaoDocente_tenantId_professorUserId_idx" ON
 
 CREATE UNIQUE INDEX IF NOT EXISTS "PorAvaliacaoDocente_classSectionId_studentId_key" ON "PorAvaliacaoDocente"("classSectionId", "studentId");
 -- ==== POR:END ====
+    "inicioMin" INTEGER NOT NULL,
+    "fimMin" INTEGER NOT NULL,
+    "dias" INTEGER[] DEFAULT ARRAY[]::INTEGER[],
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaTurno_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaTurmaPerfil" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "nivel" TEXT NOT NULL DEFAULT 'GRADUACAO',
+    "turno" TEXT NOT NULL DEFAULT 'NOITE',
+    "programId" TEXT,
+    "alunosEstimados" INTEGER,
+    "recursosExigidos" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaTurmaPerfil_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaPrograma" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'PREPARATORIO',
+    "alvo" TEXT,
+    "exameId" TEXT,
+    "programId" TEXT,
+    "descricao" TEXT,
+    "inicio" TIMESTAMP(3),
+    "fim" TIMESTAMP(3),
+    "vagas" INTEGER,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "rankingAtivo" BOOLEAN NOT NULL DEFAULT false,
+    "metaPercentual" DOUBLE PRECISION NOT NULL DEFAULT 60,
+    "cargaHoraria" INTEGER NOT NULL DEFAULT 0,
+    "responsavelUserId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaPrograma_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaProgramaInscricao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "programaId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ATIVA',
+    "rankingOptIn" BOOLEAN NOT NULL DEFAULT false,
+    "metaPercentual" DOUBLE PRECISION,
+    "progresso" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "inscritoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "concluidoEm" TIMESTAMP(3),
+
+    CONSTRAINT "AcaProgramaInscricao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaProgramaAtividade" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "programaId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "tipo" TEXT NOT NULL DEFAULT 'AULA',
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "dataPrevista" TIMESTAMP(3),
+    "duracaoMin" INTEGER NOT NULL DEFAULT 60,
+    "simuladoId" TEXT,
+    "eixoId" TEXT,
+    "obrigatoria" BOOLEAN NOT NULL DEFAULT true,
+    "calEventoId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaProgramaAtividade_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaAtividadeRegistro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "atividadeId" TEXT NOT NULL,
+    "programaId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'CONCLUIDA',
+    "nota" DOUBLE PRECISION,
+    "concluidaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaAtividadeRegistro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaCompetencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "dominio" TEXT NOT NULL DEFAULT 'AUTORREGULACAO',
+    "descricao" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaCompetencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaAvaliacaoCompetencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "competenciaId" TEXT NOT NULL,
+    "periodo" TEXT NOT NULL,
+    "origem" TEXT NOT NULL DEFAULT 'AUTO',
+    "nota" INTEGER NOT NULL,
+    "evidencia" TEXT,
+    "avaliadorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaAvaliacaoCompetencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaPlanoIndividual" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "objetivo" TEXT,
+    "mentorUserId" TEXT,
+    "programaId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ATIVO',
+    "vigenciaInicio" TIMESTAMP(3),
+    "vigenciaFim" TIMESTAMP(3),
+    "visivelAoAluno" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaPlanoIndividual_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaPlanoMeta" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "planoId" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "area" TEXT NOT NULL DEFAULT 'ACADEMICA',
+    "prazo" TIMESTAMP(3),
+    "indicador" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "progresso" INTEGER NOT NULL DEFAULT 0,
+    "evidencia" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaPlanoMeta_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaAcompanhamento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'DIDATICO',
+    "disciplineId" TEXT,
+    "classSectionId" TEXT,
+    "autorUserId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resumo" TEXT NOT NULL,
+    "dificuldades" TEXT,
+    "estrategias" TEXT,
+    "resultado" TEXT,
+    "proximoPassoEm" TIMESTAMP(3),
+    "sigilo" TEXT NOT NULL DEFAULT 'NORMAL',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaAcompanhamento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaAvaliacaoGlobal" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "periodo" TEXT NOT NULL,
+    "termId" TEXT,
+    "notaAcademica" DOUBLE PRECISION,
+    "frequenciaPct" DOUBLE PRECISION,
+    "engajamento" DOUBLE PRECISION,
+    "financeiroScore" DOUBLE PRECISION,
+    "ocorrencias" INTEGER NOT NULL DEFAULT 0,
+    "horasPesquisaExtensao" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "horasComplementares" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "scoreGlobal" DOUBLE PRECISION NOT NULL,
+    "faixa" TEXT NOT NULL,
+    "componentes" JSONB,
+    "alertas" JSONB,
+    "parecer" TEXT,
+    "parecerPorId" TEXT,
+    "geradaPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaAvaliacaoGlobal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaOrientacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'PLANO_ACAO',
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "origem" TEXT NOT NULL DEFAULT 'MANUAL',
+    "avaliacaoId" TEXT,
+    "prioridade" TEXT NOT NULL DEFAULT 'MEDIA',
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "confidencialidade" TEXT NOT NULL DEFAULT 'RESTRITO',
+    "baseLegal" TEXT NOT NULL DEFAULT 'EXECUCAO_CONTRATO',
+    "consentimentoAlunoEm" TIMESTAMP(3),
+    "responsavelUserId" TEXT,
+    "encaminhadoPara" TEXT,
+    "prazo" TIMESTAMP(3),
+    "concluidoEm" TIMESTAMP(3),
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaOrientacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaOrientacaoRegistro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "orientacaoId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'NOTA',
+    "texto" TEXT NOT NULL,
+    "autorUserId" TEXT NOT NULL,
+    "confidencialidade" TEXT NOT NULL DEFAULT 'RESTRITO',
+    "data" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaOrientacaoRegistro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaLiga" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'LIGA_ACADEMICA',
+    "nome" TEXT NOT NULL,
+    "sigla" TEXT,
+    "areaConhecimento" TEXT,
+    "programId" TEXT,
+    "descricao" TEXT,
+    "estatutoUrl" TEXT,
+    "orientadorUserId" TEXT,
+    "orientadorNome" TEXT,
+    "fundacao" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'EM_CRIACAO',
+    "cargaHorariaMaxAluno" INTEGER NOT NULL DEFAULT 60,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaLiga_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaLigaMembro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "ligaId" TEXT NOT NULL,
+    "studentId" TEXT,
+    "userId" TEXT,
+    "nome" TEXT NOT NULL,
+    "papel" TEXT NOT NULL DEFAULT 'MEMBRO',
+    "entrada" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "saida" TIMESTAMP(3),
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaLigaMembro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaLigaPlano" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "ligaId" TEXT NOT NULL,
+    "periodo" TEXT NOT NULL,
+    "objetivos" TEXT,
+    "metas" TEXT,
+    "orcamento" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "parecer" TEXT,
+    "decididoPorId" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaLigaPlano_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaLigaAtividade" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "ligaId" TEXT NOT NULL,
+    "planoId" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'REUNIAO',
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "local" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3),
+    "cargaHoraria" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'PLANEJADA',
+    "publicoEstimado" INTEGER,
+    "relatorio" TEXT,
+    "calEventoId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaLigaAtividade_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaLigaPresenca" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "atividadeId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "presente" BOOLEAN NOT NULL DEFAULT true,
+    "horas" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "AcaLigaPresenca_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaExtramuros" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'VISITA_TECNICA',
+    "local" TEXT NOT NULL,
+    "cidade" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3),
+    "responsavelUserId" TEXT,
+    "programId" TEXT,
+    "disciplineId" TEXT,
+    "projetoId" TEXT,
+    "ligaId" TEXT,
+    "vagas" INTEGER,
+    "transporte" BOOLEAN NOT NULL DEFAULT false,
+    "seguro" BOOLEAN NOT NULL DEFAULT false,
+    "termoAutorizacao" BOOLEAN NOT NULL DEFAULT true,
+    "riscoNivel" TEXT NOT NULL DEFAULT 'BAIXO',
+    "cargaHoraria" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'PLANEJADA',
+    "relatorio" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaExtramuros_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaExtramurosParticipante" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "extramurosId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'INSCRITO',
+    "termoAssinadoEm" TIMESTAMP(3),
+    "horas" DOUBLE PRECISION NOT NULL DEFAULT 0,
+
+    CONSTRAINT "AcaExtramurosParticipante_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaHoraComplementar" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'ENSINO',
+    "descricao" TEXT NOT NULL,
+    "data" TIMESTAMP(3),
+    "horasInformadas" DOUBLE PRECISION NOT NULL,
+    "horasValidadas" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "origemTipo" TEXT NOT NULL DEFAULT 'MANUAL',
+    "origemId" TEXT,
+    "comprovanteUrl" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "validadoPorId" TEXT,
+    "validadoEm" TIMESTAMP(3),
+    "parecer" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcaHoraComplementar_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcaHoraRegra" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "programId" TEXT,
+    "categoria" TEXT NOT NULL,
+    "maxHoras" DOUBLE PRECISION NOT NULL,
+    "fator" DOUBLE PRECISION NOT NULL DEFAULT 1,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcaHoraRegra_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaCursoPerfil_tenantId_programId_key" ON "AcaCursoPerfil"("tenantId", "programId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaAlunoPerfil_tenantId_nee_idx" ON "AcaAlunoPerfil"("tenantId", "nee");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaAlunoPerfil_tenantId_poloId_idx" ON "AcaAlunoPerfil"("tenantId", "poloId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaAlunoPerfil_tenantId_studentId_key" ON "AcaAlunoPerfil"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaMatriculaExt_tenantId_studentId_idx" ON "AcaMatriculaExt"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaMatriculaExt_tenantId_anoLetivo_periodoLetivo_idx" ON "AcaMatriculaExt"("tenantId", "anoLetivo", "periodoLetivo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaMatriculaExt_tenantId_statusCurso_idx" ON "AcaMatriculaExt"("tenantId", "statusCurso");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaMatriculaExt_tenantId_matriculaNova_idx" ON "AcaMatriculaExt"("tenantId", "matriculaNova");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaMatriculaExt_tenantId_enrollmentId_key" ON "AcaMatriculaExt"("tenantId", "enrollmentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaContrato_tenantId_studentId_idx" ON "AcaContrato"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaContrato_tenantId_status_idx" ON "AcaContrato"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaContrato_tenantId_numero_key" ON "AcaContrato"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaDocumentoAluno_tenantId_studentId_idx" ON "AcaDocumentoAluno"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaDocumentoAluno_tenantId_status_idx" ON "AcaDocumentoAluno"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaMatriz_tenantId_programId_idx" ON "AcaMatriz"("tenantId", "programId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaMatriz_tenantId_programId_versao_key" ON "AcaMatriz"("tenantId", "programId", "versao");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaMatrizPeriodo_tenantId_matrizId_idx" ON "AcaMatrizPeriodo"("tenantId", "matrizId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaMatrizPeriodo_matrizId_ordem_key" ON "AcaMatrizPeriodo"("matrizId", "ordem");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaMatrizItem_tenantId_matrizId_idx" ON "AcaMatrizItem"("tenantId", "matrizId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaMatrizItem_tenantId_periodoId_idx" ON "AcaMatrizItem"("tenantId", "periodoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaMatrizItem_matrizId_disciplineId_key" ON "AcaMatrizItem"("matrizId", "disciplineId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaPreRequisito_tenantId_matrizId_idx" ON "AcaPreRequisito"("tenantId", "matrizId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaPreRequisito_itemId_requisitoItemId_tipo_key" ON "AcaPreRequisito"("itemId", "requisitoItemId", "tipo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaEquivalencia_tenantId_equivalenteId_idx" ON "AcaEquivalencia"("tenantId", "equivalenteId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaEquivalencia_tenantId_disciplineId_equivalenteId_key" ON "AcaEquivalencia"("tenantId", "disciplineId", "equivalenteId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaTurno_tenantId_codigo_key" ON "AcaTurno"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaTurmaPerfil_tenantId_nivel_turno_idx" ON "AcaTurmaPerfil"("tenantId", "nivel", "turno");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaTurmaPerfil_tenantId_classSectionId_key" ON "AcaTurmaPerfil"("tenantId", "classSectionId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaPrograma_tenantId_tipo_status_idx" ON "AcaPrograma"("tenantId", "tipo", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaPrograma_tenantId_codigo_key" ON "AcaPrograma"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaProgramaInscricao_tenantId_studentId_idx" ON "AcaProgramaInscricao"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaProgramaInscricao_programaId_studentId_key" ON "AcaProgramaInscricao"("programaId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaProgramaAtividade_tenantId_programaId_idx" ON "AcaProgramaAtividade"("tenantId", "programaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaAtividadeRegistro_tenantId_programaId_studentId_idx" ON "AcaAtividadeRegistro"("tenantId", "programaId", "studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaAtividadeRegistro_atividadeId_studentId_key" ON "AcaAtividadeRegistro"("atividadeId", "studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaCompetencia_tenantId_codigo_key" ON "AcaCompetencia"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaAvaliacaoCompetencia_tenantId_studentId_periodo_idx" ON "AcaAvaliacaoCompetencia"("tenantId", "studentId", "periodo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaPlanoIndividual_tenantId_studentId_idx" ON "AcaPlanoIndividual"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaPlanoMeta_tenantId_planoId_idx" ON "AcaPlanoMeta"("tenantId", "planoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaAcompanhamento_tenantId_studentId_data_idx" ON "AcaAcompanhamento"("tenantId", "studentId", "data");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaAcompanhamento_tenantId_tipo_idx" ON "AcaAcompanhamento"("tenantId", "tipo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaAvaliacaoGlobal_tenantId_faixa_idx" ON "AcaAvaliacaoGlobal"("tenantId", "faixa");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaAvaliacaoGlobal_tenantId_studentId_periodo_key" ON "AcaAvaliacaoGlobal"("tenantId", "studentId", "periodo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaOrientacao_tenantId_studentId_idx" ON "AcaOrientacao"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaOrientacao_tenantId_status_prioridade_idx" ON "AcaOrientacao"("tenantId", "status", "prioridade");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaOrientacaoRegistro_tenantId_orientacaoId_idx" ON "AcaOrientacaoRegistro"("tenantId", "orientacaoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaLiga_tenantId_tipo_status_idx" ON "AcaLiga"("tenantId", "tipo", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaLigaMembro_tenantId_ligaId_idx" ON "AcaLigaMembro"("tenantId", "ligaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaLigaMembro_tenantId_studentId_idx" ON "AcaLigaMembro"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaLigaPlano_tenantId_ligaId_idx" ON "AcaLigaPlano"("tenantId", "ligaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaLigaPlano_ligaId_periodo_key" ON "AcaLigaPlano"("ligaId", "periodo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaLigaAtividade_tenantId_ligaId_inicio_idx" ON "AcaLigaAtividade"("tenantId", "ligaId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaLigaPresenca_tenantId_studentId_idx" ON "AcaLigaPresenca"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaLigaPresenca_atividadeId_studentId_key" ON "AcaLigaPresenca"("atividadeId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaExtramuros_tenantId_status_inicio_idx" ON "AcaExtramuros"("tenantId", "status", "inicio");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaExtramuros_tenantId_codigo_key" ON "AcaExtramuros"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaExtramurosParticipante_tenantId_studentId_idx" ON "AcaExtramurosParticipante"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaExtramurosParticipante_extramurosId_studentId_key" ON "AcaExtramurosParticipante"("extramurosId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaHoraComplementar_tenantId_studentId_status_idx" ON "AcaHoraComplementar"("tenantId", "studentId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcaHoraComplementar_tenantId_origemTipo_origemId_idx" ON "AcaHoraComplementar"("tenantId", "origemTipo", "origemId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcaHoraRegra_tenantId_programId_categoria_key" ON "AcaHoraRegra"("tenantId", "programId", "categoria");
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AcaMatrizPeriodo" ADD CONSTRAINT "AcaMatrizPeriodo_matrizId_fkey" FOREIGN KEY ("matrizId") REFERENCES "AcaMatriz"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AcaMatrizItem" ADD CONSTRAINT "AcaMatrizItem_matrizId_fkey" FOREIGN KEY ("matrizId") REFERENCES "AcaMatriz"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AcaMatrizItem" ADD CONSTRAINT "AcaMatrizItem_periodoId_fkey" FOREIGN KEY ("periodoId") REFERENCES "AcaMatrizPeriodo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AcaPlanoMeta" ADD CONSTRAINT "AcaPlanoMeta_planoId_fkey" FOREIGN KEY ("planoId") REFERENCES "AcaPlanoIndividual"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AcaOrientacaoRegistro" ADD CONSTRAINT "AcaOrientacaoRegistro_orientacaoId_fkey" FOREIGN KEY ("orientacaoId") REFERENCES "AcaOrientacao"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AcaLigaMembro" ADD CONSTRAINT "AcaLigaMembro_ligaId_fkey" FOREIGN KEY ("ligaId") REFERENCES "AcaLiga"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AcaLigaPlano" ADD CONSTRAINT "AcaLigaPlano_ligaId_fkey" FOREIGN KEY ("ligaId") REFERENCES "AcaLiga"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AcaLigaAtividade" ADD CONSTRAINT "AcaLigaAtividade_ligaId_fkey" FOREIGN KEY ("ligaId") REFERENCES "AcaLiga"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AcaLigaPresenca" ADD CONSTRAINT "AcaLigaPresenca_atividadeId_fkey" FOREIGN KEY ("atividadeId") REFERENCES "AcaLigaAtividade"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "AcaExtramurosParticipante" ADD CONSTRAINT "AcaExtramurosParticipante_extramurosId_fkey" FOREIGN KEY ("extramurosId") REFERENCES "AcaExtramuros"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+-- ==== ACA:END ====

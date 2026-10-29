@@ -27,8 +27,12 @@ export const CAMPOS_SENSIVEIS_PADRAO: CampoSensivelDef[] = [
   { modelo: 'apoInscricaoBolsa', campo: 'condicoes', categoria: 'SOCIOECONOMICO' },
   { modelo: 'apoOcorrencia', campo: 'descricao', categoria: 'DISCIPLINAR' },
   { modelo: 'apoOcorrencia', campo: 'defesa', categoria: 'DISCIPLINAR' },
+  { modelo: 'acaAlunoPerfil', campo: 'neeCategoria', categoria: 'DEFICIENCIA', observacao: 'Acadêmico avançado: categoria da necessidade educacional especial' },
+  { modelo: 'acaOrientacao', campo: 'descricao', categoria: 'SAUDE', observacao: 'Ações de orientação (pode conter dados de saúde/psicossociais)' },
+  { modelo: 'acaOrientacaoRegistro', campo: 'texto', categoria: 'SAUDE' },
   { modelo: 'student', campo: 'dataNascimento', categoria: 'MENOR', observacao: 'Define o tratamento de menores (art. 14)' },
   { modelo: 'student', campo: 'cpf', categoria: 'IDENTIFICACAO' },
+  { modelo: 'preTemplateFacial', campo: 'cifrado', categoria: 'BIOMETRIA', observacao: 'Vetor facial cifrado (art. 5º, II e art. 11): somente presença/acesso, com consentimento destacado' },
   { modelo: 'admCandidato', campo: 'cota', categoria: 'ORIGEM_RACIAL', observacao: 'Cotas raciais/PCD/renda revelam origem racial/saúde' },
 ]
 
