@@ -2597,6 +2597,29 @@ model HREmployeePortal {
   @@index([clinicId])
 }
 
+// Assinatura (na tela) do paciente e do dentista confirmando o procedimento realizado; fica como comprovante em eventual cobrança.
+model ClinicalEvolutionSignature {
+  id                 String    @id @default(cuid())
+  clinicId           String
+  tenantId           String
+  patientId          String
+  evolutionId        String    @unique
+  contentHash        String
+  patientSignature   String?
+  patientSignerName  String?
+  patientSignedAt    DateTime?
+  patientIp          String?
+  patientUserAgent   String?
+  dentistSignature   String?
+  dentistSignerName  String?
+  dentistSignedAt    DateTime?
+  dentistIp          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([clinicId, patientId])
+}
+
 // Foto tirada no momento da batida pelo rosto (comprovação), consultada pelo RH no detalhe da folha.
 model HRTimePunchPhoto {
   punchId    String   @id

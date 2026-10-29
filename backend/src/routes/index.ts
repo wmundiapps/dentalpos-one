@@ -24,6 +24,7 @@ import * as publicBookingController from '../controllers/publicBookingController
 import * as scheduleController from '../controllers/scheduleController'
 import * as budgetController from '../controllers/budgetController'
 import * as paymentController from '../controllers/paymentController'
+import * as evolutionSignatureController from '../controllers/evolutionSignatureController'
 import * as nextProcedureController from '../controllers/nextProcedureController'
 import * as financialController from '../controllers/financialController'
 import * as financialPlanningController from '../controllers/financialPlanningController'
@@ -258,6 +259,8 @@ router.delete('/patient/:id', requirePermission('patients.edit'), patientControl
 // CLINICAL RECORD / ODONTOGRAM / TREATMENT PLAN
 router.get('/patients/:patientId/clinical', requirePermission('clinical.view'), clinicalController.patientClinical)
 router.post('/patients/:patientId/odontogram', requirePermission('clinical.edit'), clinicalController.upsertOdontogramMark)
+router.post('/evolutions/:id/signature', requirePermission('clinical.edit'), evolutionSignatureController.sign)
+router.get('/patients/:patientId/evolution-signatures', requirePermission('clinical.view'), evolutionSignatureController.list)
 router.post('/patients/:patientId/evolutions', requirePermission('clinical.edit'), clinicalController.createEvolution)
 router.get('/patients/:patientId/treatment-plan', requirePermission('clinical.view'), clinicalController.treatmentPlan)
 

@@ -172,11 +172,13 @@ export async function saveEntry(req: AuthRequest, res: Response) {
       })
     }
 
+    let evolutionId: string | undefined
     if (clinicalState === 'COMPLETED' && req.body.evolutionNotes) {
       const professionalName = String(req.body.professionalName || 'Profissional responsável')
-      await prisma.clinicalEvolution.create({
+      const created = await prisma.clinicalEvolution.create({
         data: {
           clinicId, tenantId, patientId,
+          teeth: [String(tooth)],
           professionalId: req.body.professionalId ? String(req.body.professionalId) : null,
           professionalName,
           procedure: findingLabel,
@@ -185,6 +187,7 @@ export async function saveEntry(req: AuthRequest, res: Response) {
           nextAppointmentCreated: false
         }
       })
+      evolutionId = created.id
     }
 
     await writeAudit({
@@ -192,7 +195,7 @@ export async function saveEntry(req: AuthRequest, res: Response) {
       action: 'DENTAL_CHART_ENTRY_UPSERT', entityType: 'DentalChartEntry', entityId: id,
       metadata: { patientId, dentition, tooth, surface, findingCode, clinicalState }
     })
-    return res.status(200).json({ id, unplanned })
+    return res.status(200).json({ id, unplanned, evolutionId })
   } catch (error: any) {
     console.error(error)
     return res.status(400).json({ error: error?.message || 'Erro ao salvar odontograma.' })
