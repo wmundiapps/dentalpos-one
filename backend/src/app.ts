@@ -48,7 +48,7 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'X-Clinic-ID', 'X-Tenant-ID', 'X-Request-ID', 'Idempotency-Key']
+    allowedHeaders: ['Authorization', 'Content-Type', 'X-Clinic-ID', 'X-Tenant-ID', 'X-Request-ID', 'Idempotency-Key', 'X-HR-Vault']
   })
 )
 
