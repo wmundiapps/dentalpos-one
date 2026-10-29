@@ -151,6 +151,11 @@ export async function revogar(tenantId: string, id: string, motivo: string, ator
   if (c.finalidade === 'COMUNICACAO_MARKETING') {
     await sincronizarMarketing(tenantId, { email: c.titularEmail, telefones: [], docDigits: [] }, false)
   }
+  if (c.finalidade === 'BIOMETRIA_FACIAL') {
+    // revogação do consentimento biométrico: o template facial é excluído imediatamente (módulo presenca)
+    const n = await prisma.preTemplateFacial.deleteMany({ where: { tenantId, consentimentoId: id } })
+    await trilha({ tenantId, refType: 'Consentimento', refId: id, acao: 'TEMPLATE_BIOMETRICO_EXCLUIDO', userId: ator.userId, ator: ator.titular ? 'TITULAR' : 'EQUIPE', detalhe: { templates: n.count } })
+  }
   return r
 }
 

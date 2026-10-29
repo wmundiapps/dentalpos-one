@@ -2,6 +2,7 @@ import { EDU_ONLY } from "./appMode";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import BarChartIcon from "@mui/icons-material/BarChart";
@@ -237,6 +238,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Modalidades, EAD e pós","/edu/modalidades",<GroupsIcon/>),
       item("ENADE, OAB e desempenho","/edu/desempenho",<InsightsIcon/>),
       item("Biblioteca","/edu/biblioteca",<FolderSharedIcon/>),
+      item("Presença e acesso","/edu/presenca",<HowToRegIcon/>),
       item("Pesquisa e revista","/edu/pesquisa",<BiotechIcon/>),
       item("Portal do aluno","/edu/portal-aluno",<SchoolIcon/>),
     ]
@@ -248,6 +250,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Início e ambientes de ensino","/edu/inicio",<SpaceDashboardIcon/>),
       item("Portal do aluno","/edu/portal-aluno",<SchoolIcon/>),
       item("Portal do professor","/edu/portal-professor",<GroupsIcon/>),
+      item("Minha biometria e carteirinha","/edu/minha-biometria",<HowToRegIcon/>),
     ]
   },
   {

@@ -99,6 +99,17 @@ export const CATALOGO: Entidade[] = [
   { model: 'apoEgresso', titulo: 'Cadastro de egresso', categoria: 'EGRESSO', onde: [{ ref: 'egresso', campo: 'id' }, { ref: 'student', campo: 'studentId' }], acao: 'ANONIMIZAR',
     campos: { nome: ANON, email: null, telefone: null, cpf: null, cidade: null, uf: null, empregadorAtual: null, cargoAtual: null, faixaSalarial: null, linkedin: null, consenteContato: false } },
   { model: 'apoEgressoTrajetoria', titulo: 'Trajetória profissional do egresso', categoria: 'EGRESSO', onde: [{ ref: 'egresso', campo: 'egressoId' }], acao: 'ELIMINAR' },
+  // ---- presença / acesso / empréstimos (módulo presenca)
+  { model: 'preTemplateFacial', titulo: 'Template facial (biometria, vetor cifrado)', categoria: 'SAUDE', sensivel: true, onde: [{ ref: 'student', campo: 'studentId' }, { ref: 'user', campo: 'userId' }], acao: 'ELIMINAR' },
+  { model: 'preCredencial', titulo: 'Credencial da carteirinha (QR/código)', categoria: 'IDENTIFICACAO', onde: [{ ref: 'student', campo: 'studentId' }, { ref: 'user', campo: 'userId' }], acao: 'ELIMINAR' },
+  { model: 'preMarcacao', titulo: 'Marcações de presença (chamada)', categoria: 'ACADEMICO', onde: A(), acao: 'MANTER', base: BASE_ACAD },
+  { model: 'preFrequencia', titulo: 'Frequência consolidada por aula', categoria: 'ACADEMICO', onde: A(), acao: 'MANTER', base: BASE_ACAD },
+  { model: 'preCorrecao', titulo: 'Trilha de correções de frequência', categoria: 'ACADEMICO', onde: A(), acao: 'MANTER', base: BASE_ACAD },
+  { model: 'preAcesso', titulo: 'Registros de entrada e saída em espaços', categoria: 'IDENTIFICACAO', onde: [{ ref: 'student', campo: 'studentId' }, { ref: 'user', campo: 'userId' }], acao: 'ANONIMIZAR', campos: { pessoaKey: 'anonimizado', studentId: null, userId: null, visitanteNome: null, visitanteDoc: null } },
+  { model: 'preVisita', titulo: 'Permanência em espaços', categoria: 'IDENTIFICACAO', onde: [{ ref: 'student', campo: 'studentId' }, { ref: 'user', campo: 'userId' }], acao: 'ANONIMIZAR', campos: { pessoaKey: 'anonimizado', studentId: null, userId: null, visitanteNome: null, visitanteDoc: null } },
+  { model: 'preEmprestimo', titulo: 'Empréstimos de equipamentos e materiais', categoria: 'BIBLIOTECA', onde: [{ ref: 'student', campo: 'studentId' }, { ref: 'user', campo: 'userId' }], acao: 'MANTER', base: 'Prestação de contas do patrimônio e exercício regular de direitos (art. 7º, VI)' },
+  { model: 'preMulta', titulo: 'Multas de empréstimo', categoria: 'FINANCEIRO', onde: [{ ref: 'student', campo: 'studentId' }, { ref: 'user', campo: 'userId' }], acao: 'MANTER', base: BASE_FISCAL },
+  { model: 'preReservaItem', titulo: 'Reservas de equipamentos', categoria: 'BIBLIOTECA', onde: [{ ref: 'student', campo: 'studentId' }, { ref: 'user', campo: 'userId' }], acao: 'ELIMINAR' },
   // ---- registros do próprio módulo LGPD (prova de consentimento e de atendimento: pseudonimizados, não apagados)
   { model: 'lgpConsentimento', titulo: 'Consentimentos registrados', categoria: 'IDENTIFICACAO', onde: [{ ref: 'student', campo: 'titularId' }, { ref: 'candidato', campo: 'titularId' }, { ref: 'egresso', campo: 'titularId' }], acao: 'ANONIMIZAR',
     campos: { titularNome: ANON, titularEmail: null, titularDocHash: null, titularDocMascarado: null, titularId: null },

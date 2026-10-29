@@ -17,6 +17,7 @@ import PortalFluxograma from "../../edu/portal/PortalFluxograma";
 import PortalRequerimentos from "../../edu/portal/PortalRequerimentos";
 import PortalFinanceiro from "../../edu/portal/PortalFinanceiro";
 import PortalBiblioteca from "../../edu/portal/PortalBiblioteca";
+import MinhaBiometria from "../../edu/presenca/MinhaBiometria";
 import PortalServicos from "../../edu/atendimento/PortalServicos";
 import { PortalAvaliacaoDocente, PortalCarteirinha, PortalMensagens, PortalPrivacidade } from "../../edu/portal/PortalPessoal";
 import { qsOf } from "../../services/EduApi";
@@ -25,7 +26,7 @@ import { Feedback, StudentSearch, fmtNum, useLoad } from "../../edu/secretaria/u
 const ABAS: Array<[string, string]> = [
   ["geral", "Visão geral"], ["notas", "Notas e boletim"], ["frequencia", "Frequência"], ["salas", "Salas e materiais"], ["horario", "Horários"], ["fluxograma", "Fluxograma"],
   ["requerimentos", "Requerimentos e processos"], ["servicos", "Serviços e atendimento"], ["financeiro", "Financeiro"], ["biblioteca", "Biblioteca"], ["mensagens", "Mensagens"], ["documentos", "Documentos"],
-  ["carteirinha", "Carteirinha"], ["privacidade", "Privacidade (LGPD)"], ["avaliacao", "Avaliação docente"],
+  ["carteirinha", "Carteirinha"], ["biometria", "Presença facial e QR"], ["privacidade", "Privacidade (LGPD)"], ["avaliacao", "Avaliação docente"],
 ];
 
 export default function EduPortalAluno() {
@@ -91,6 +92,7 @@ export default function EduPortalAluno() {
           {aba === "requerimentos" && <PortalRequerimentos studentId={sidAlvo} podeAgir={podeAgir} onNovoRequerimento={() => setNovo(true)} />}
           {aba === "financeiro" && <PortalFinanceiro studentId={sidAlvo} podeAgir={podeAgir} />}
           {aba === "biblioteca" && <PortalBiblioteca podeAgir={podeAgir} />}
+          {aba === "biometria" && (podeAgir ? <MinhaBiometria /> : <Alert severity="info">O cadastro facial é feito pelo próprio aluno logado ou na secretaria (Presença e acesso → Biometria).</Alert>)}
           {aba === "mensagens" && <PortalMensagens studentId={sidAlvo} podeAgir={podeAgir} onMudou={reload} />}
           {aba === "documentos" && <Card title="Declarações e certificados" accent={cor}>{podeAgir ? <MeusDocumentos /> : <Alert severity="info">Documentos pessoais ficam disponíveis apenas para o próprio aluno.</Alert>}</Card>}
           {aba === "carteirinha" && <PortalCarteirinha studentId={sidAlvo} podeAgir={podeAgir} />}

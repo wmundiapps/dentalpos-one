@@ -36,6 +36,10 @@ export const FINALIDADES: FinalidadeDef[] = [
     texto: 'Consinto, de forma específica e destacada, com o tratamento de dados sobre minha saúde ou deficiência (laudos, necessidades de acessibilidade e atendimento psicopedagógico) exclusivamente para planejar apoios e adaptações pedagógicas. Esses dados têm acesso restrito e registrado e não serão usados para marketing. Posso revogar o consentimento; o atendimento já realizado e registros que a lei obriga a manter não serão apagados.',
   },
   {
+    codigo: 'BIOMETRIA_FACIAL', titulo: 'Reconhecimento facial para presença e controle de acesso (dado biométrico sensível)', baseLegal: 'CONSENTIMENTO_DESTACADO', sensivel: true, exigeResponsavelMenor: true,
+    texto: 'Consinto, de forma específica e destacada, com o tratamento do meu dado biométrico facial (um vetor numérico calculado no meu próprio aparelho a partir do meu rosto; a instituição NÃO guarda fotos nem vídeos do meu rosto) exclusivamente para registrar minha presença em aulas e meu acesso e retirada de materiais em espaços da instituição. O vetor é guardado criptografado, só é comparado para essas finalidades e nunca é usado para vigilância, marketing, avaliação de desempenho ou compartilhado com terceiros. Posso recusar sem qualquer prejuízo: terei sempre uma alternativa sem biometria (QR da carteirinha, código ou chamada manual). Posso revogar a qualquer momento, de forma gratuita, e o vetor será excluído imediatamente; os registros de presença já consolidados (obrigação acadêmica) são mantidos sem o dado biométrico.',
+  },
+  {
     codigo: 'COOKIES_PREFERENCIAS', titulo: 'Cookies de preferências', baseLegal: 'CONSENTIMENTO', sensivel: false, exigeResponsavelMenor: false, cookie: true,
     texto: 'Permitir cookies que lembram suas escolhas (idioma, tema e filtros) para personalizar a experiência. Não são necessários ao funcionamento básico.',
   },

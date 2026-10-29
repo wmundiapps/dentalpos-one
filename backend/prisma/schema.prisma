@@ -19139,4 +19139,472 @@ model TesNotaFiscal {
   @@index([tenantId, conciliacaoFiscal])
 }
 
+// ---- presenca.prisma ----
+// ============================================================
+// EDUMASTER PRO — PRESENÇA, CONTROLE DE ACESSO E EMPRÉSTIMOS (prefixo Pre)
+// Reconhecimento facial NO DISPOSITIVO (o servidor só recebe o vetor/embedding, nunca imagem),
+// chamada por turma/sala com tolerâncias, controle de entrada/saída de espaços e empréstimo de equipamentos.
+// Referências a Student/User/EduSpace/ClassSession/InfBem = String ids sem @relation.
+// pessoaKey = "ALUNO:<studentId>" | "USUARIO:<userId>".
+// ============================================================
+
+// Configuração por instituição (regras de tolerância, limiares de biometria e retenção).
+model PreConfig {
+  id                     String   @id @default(uuid())
+  tenantId               String   @unique
+  toleranciaAtrasoMin    Int      @default(10)     // até X min após o início = PRESENTE
+  limiteFaltaMin         Int      @default(40)     // entrada depois disso = FALTA (presença não computada)
+  antecedenciaMin        Int      @default(30)     // janela de marcação antes do início
+  toleranciaSaidaMin     Int      @default(10)     // saída até X min antes do fim ainda é normal
+  toleranciaIntervaloMin Int      @default(5)      // retorno do intervalo
+  debounceSegundos       Int      @default(60)     // ignora marcação repetida da mesma pessoa
+  limiarDistancia        Float    @default(0.5)    // distância euclidiana máxima (embeddings de 128 dimensões)
+  margemAmbiguidade      Float    @default(0.04)   // diferença mínima p/ o 2º colocado (pessoa diferente)
+  livenessObrigatorio    Boolean  @default(true)
+  maxTentativas          Int      @default(5)      // falhas por dispositivo+janela antes do bloqueio
+  janelaTentativasMin    Int      @default(5)
+  bloqueioMin            Int      @default(10)
+  retencaoLogDias        Int      @default(90)     // log de reconhecimento/acesso
+  retencaoTemplateDias   Int      @default(365)    // template sem uso é excluído
+  emprestimoMaxSimultaneos Int    @default(3)
+  multaDiaItem           Float    @default(2)
+  multaMaximaItem        Float    @default(60)
+  bloqueioAposAtrasoDias Int      @default(7)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+// Quiosque / ponto de leitura (tablet, celular, catraca).
+model PreDispositivo {
+  id            String   @id @default(uuid())
+  tenantId      String
+  nome          String
+  finalidade    String   @default("CHAMADA")   // CHAMADA | PORTARIA | BIBLIOTECA | LABORATORIO | AUDIOVISUAL
+  spaceId       String?
+  modo          String   @default("AUTO")      // AUTO | ENTRADA | SAIDA | INTERVALO
+  ativo         Boolean  @default(true)
+  bloqueadoAte  DateTime?
+  ultimoUsoEm   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId, finalidade])
+  @@index([tenantId, spaceId])
+}
+
+// ---------- BIOMETRIA (dado sensível, LGPD art. 5º II e 11) ----------
+
+// Template facial: vetor CIFRADO (AES-256-GCM, cofre do módulo de segurança). Nunca guarda imagem.
+model PreTemplateFacial {
+  id            String   @id @default(uuid())
+  tenantId      String
+  pessoaKey     String
+  studentId     String?
+  userId        String?
+  cifrado       String
+  dimensao      Int
+  modelo        String                         // identificador/versão do modelo que gerou o vetor
+  qualidade     Float?
+  consentimentoId String                       // LgpConsentimento ATIVO que autoriza o uso
+  cadastradoPorId String?
+  canal         String   @default("PORTAL")    // PORTAL | PRESENCIAL
+  ultimoUsoEm   DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, pessoaKey])
+  @@index([tenantId, consentimentoId])
+  @@index([tenantId, studentId])
+}
+
+// Desafio de liveness (nonce de uso único, assinado) para impedir replay.
+model PreDesafio {
+  id         String   @id @default(uuid())
+  tenantId   String
+  nonce      String   @unique
+  acao       String                            // PISCAR | VIRAR_CABECA
+  expiraEm   DateTime
+  usadoEm    DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, expiraEm])
+}
+
+// Log de acesso/uso da biometria (quem, quando, resultado) — sem vetor e sem imagem.
+model PreLogBiometrico {
+  id            String   @id @default(uuid())
+  tenantId      String
+  acao          String                         // CADASTRO | COMPARACAO | REVOGACAO | EXCLUSAO | EXPURGO | ADMIN_CONSULTA | BLOQUEIO
+  resultado     String?                        // OK | NAO_RECONHECIDO | AMBIGUO | LIVENESS_FALHOU | BLOQUEADO | SEM_CONSENTIMENTO
+  pessoaKey     String?
+  dispositivoId String?
+  finalidade    String?                        // PRESENCA | ACESSO | EMPRESTIMO
+  distancia     Float?
+  userId        String?
+  detalhe       Json?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, pessoaKey, createdAt])
+  @@index([tenantId, dispositivoId, resultado, createdAt])
+}
+
+// Credenciais alternativas (sem biometria): QR da carteirinha e código.
+model PreCredencial {
+  id          String   @id @default(uuid())
+  tenantId    String
+  pessoaKey   String
+  studentId   String?
+  userId      String?
+  tipo        String   @default("CARTEIRINHA")   // CARTEIRINHA (QR + código impresso)
+  codigo      String                              // código curto impresso na carteirinha
+  ativo       Boolean  @default(true)
+  validadeAte DateTime?
+  revogadoEm  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, pessoaKey, ativo])
+}
+
+// ---------- CHAMADA ----------
+
+// Horário programado por turma/sala e dia da semana.
+model PreHorario {
+  id                String   @id @default(uuid())
+  tenantId          String
+  classSectionId    String
+  spaceId           String?
+  diaSemana         Int                          // 0=domingo ... 6=sábado
+  horaEntrada       String                       // HH:mm
+  inicioIntervalo   String?
+  fimIntervalo      String?
+  horaSaida         String
+  toleranciaAtrasoMin Int?
+  toleranciaSaidaMin  Int?
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tenantId, classSectionId])
+  @@index([tenantId, spaceId])
+}
+
+// Chamada de uma aula concreta (ClassSession).
+model PreChamada {
+  id               String   @id @default(uuid())
+  tenantId         String
+  classSessionId   String
+  classSectionId   String
+  horarioId        String?
+  dispositivoId    String?
+  status           String   @default("ABERTA")   // ABERTA | FECHADA | CONCILIADA
+  inicioEsperado   DateTime
+  fimEsperado      DateTime
+  intervaloInicio  DateTime?
+  intervaloFim     DateTime?
+  toleranciaAtrasoMin Int   @default(10)
+  limiteFaltaMin   Int      @default(40)
+  toleranciaSaidaMin Int    @default(10)
+  abertaPorId      String?
+  fechadaPorId     String?
+  abertaEm         DateTime @default(now())
+  fechadaEm        DateTime?
+  conciliadaEm     DateTime?
+  createdAt        DateTime @default(now())
+
+  marcacoes        PreMarcacao[]
+  frequencias      PreFrequencia[]
+
+  @@unique([tenantId, classSessionId])
+  @@index([tenantId, status])
+  @@index([tenantId, classSectionId])
+}
+
+model PreMarcacao {
+  id             String   @id @default(uuid())
+  tenantId       String
+  chamadaId      String
+  studentId      String
+  tipo           String                       // ENTRADA | INTERVALO_SAIDA | INTERVALO_VOLTA | SAIDA
+  em             DateTime @default(now())
+  metodo         String                       // FACIAL | QR | CODIGO | MANUAL
+  dispositivoId  String?
+  distancia      Float?
+  operadorId     String?
+  justificativa  String?
+  createdAt      DateTime @default(now())
+
+  chamada        PreChamada @relation(fields: [chamadaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, chamadaId, studentId])
+  @@index([tenantId, studentId, em])
+}
+
+// Resultado consolidado por aluno na chamada.
+model PreFrequencia {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  chamadaId          String
+  classSessionId     String
+  studentId          String
+  status             String   @default("FALTA")   // PRESENTE | ATRASO | SAIDA_ANTECIPADA | ATRASO_SAIDA_ANTECIPADA | FALTA | JUSTIFICADA
+  entradaEm          DateTime?
+  saidaEm            DateTime?
+  minutosAtraso      Int      @default(0)
+  minutosSaidaAntecipada Int  @default(0)
+  minutosForaIntervalo Int    @default(0)
+  intervaloExcedido  Boolean  @default(false)
+  origem             String   @default("AUTO")    // AUTO | MANUAL
+  justificativa      String?
+  divergente         Boolean  @default(false)     // difere do lançamento do diário do professor
+  diarioPresente     Boolean?                     // o que o diário tinha antes da conciliação
+  conciliadoEm       DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  chamada            PreChamada @relation(fields: [chamadaId], references: [id], onDelete: Cascade)
+
+  @@unique([chamadaId, studentId])
+  @@index([tenantId, studentId, createdAt])
+  @@index([tenantId, divergente])
+}
+
+// Trilha de auditoria das correções (append-only).
+model PreCorrecao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  frequenciaId  String
+  chamadaId     String
+  studentId     String?
+  de            Json
+  para          Json
+  justificativa String
+  userId        String
+  papel         String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, frequenciaId])
+  @@index([tenantId, chamadaId])
+}
+
+// ---------- CONTROLE DE ACESSO A ESPAÇOS ----------
+
+model PreEspacoConfig {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  spaceId            String
+  modoAcesso         String   @default("LIVRE")    // LIVRE (registra) | CREDENCIAL (identificação obrigatória) | RESTRITO (perfis/lista)
+  capacidadeMax      Int?                          // sobrescreve EduSpace.capacidade
+  alertaCapacidadePct Int     @default(90)
+  bloquearNaCapacidade Boolean @default(false)
+  perfisPermitidos   Json?                         // ["STUDENT","TEACHER",...]
+  horaAbertura       String?                       // HH:mm
+  horaFechamento     String?
+  ativo              Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([tenantId, spaceId])
+}
+
+// Evento bruto de acesso (inclui negados).
+model PreAcesso {
+  id             String   @id @default(uuid())
+  tenantId       String
+  spaceId        String
+  pessoaKey      String
+  pessoaTipo     String   @default("ALUNO")      // ALUNO | USUARIO | VISITANTE
+  studentId      String?
+  userId         String?
+  visitanteNome  String?
+  visitanteDoc   String?                          // mascarado
+  sentido        String                           // ENTRADA | SAIDA
+  metodo         String                           // FACIAL | QR | CODIGO | MANUAL | CATRACA
+  resultado      String   @default("LIBERADO")    // LIBERADO | NEGADO
+  motivo         String?
+  dispositivoId  String?
+  operadorId     String?
+  distancia      Float?
+  em             DateTime @default(now())
+
+  @@index([tenantId, spaceId, em])
+  @@index([tenantId, pessoaKey, em])
+  @@index([tenantId, resultado, em])
+}
+
+// Permanência (entrada pareada com saída). saidaEm nulo = está no espaço agora.
+model PreVisita {
+  id             String   @id @default(uuid())
+  tenantId       String
+  spaceId        String
+  pessoaKey      String
+  pessoaTipo     String   @default("ALUNO")
+  studentId      String?
+  userId         String?
+  visitanteNome  String?
+  visitanteDoc   String?
+  entradaEm      DateTime @default(now())
+  saidaEm        DateTime?
+  metodoEntrada  String
+  metodoSaida    String?
+  saidaAutomatica Boolean @default(false)
+
+  @@index([tenantId, spaceId, saidaEm])
+  @@index([tenantId, pessoaKey, entradaEm])
+}
+
+model PreAlerta {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tipo         String                              // CAPACIDADE | ACESSO_INDEVIDO | TENTATIVAS | DISPOSITIVO_BLOQUEADO | ATRASO_DEVOLUCAO | DIVERGENCIA
+  severidade   String   @default("ATENCAO")        // INFO | ATENCAO | CRITICO
+  spaceId      String?
+  pessoaKey    String?
+  dispositivoId String?
+  mensagem     String
+  status       String   @default("ABERTO")         // ABERTO | RECONHECIDO | RESOLVIDO
+  dedupeKey    String?
+  resolvidoPorId String?
+  resolvidoEm  DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, dedupeKey, status])
+}
+
+// ---------- EMPRÉSTIMOS (equipamentos, materiais, audiovisual, laboratório) ----------
+// Livros usam o módulo biblioteca (BibEmprestimo); aqui entram os demais itens.
+
+model PreItem {
+  id              String   @id @default(uuid())
+  tenantId        String
+  codigo          String                           // código/QR do item
+  descricao       String
+  categoria       String   @default("EQUIPAMENTO") // EQUIPAMENTO | MATERIAL | AUDIOVISUAL | LABORATORIO | OUTRO
+  setor           String   @default("LABORATORIO") // BIBLIOTECA | LABORATORIO | AUDIOVISUAL | OUTRO
+  bemId           String?                          // InfBem (patrimônio)
+  spaceId         String?
+  status          String   @default("DISPONIVEL")  // DISPONIVEL | EMPRESTADO | RESERVADO | MANUTENCAO | BAIXADO | PERDIDO
+  prazoPadraoHoras Int     @default(24)
+  maxRenovacoes   Int      @default(1)
+  exigeTermo      Boolean  @default(false)
+  observacoes     String?
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status])
+  @@index([tenantId, bemId])
+  @@index([tenantId, setor])
+}
+
+model PreEmprestimo {
+  id               String   @id @default(uuid())
+  tenantId         String
+  itemId           String
+  pessoaKey        String
+  studentId        String?
+  userId           String?
+  retiradaEm       DateTime @default(now())
+  previstaEm       DateTime
+  devolucaoEm      DateTime?
+  renovacoes       Int      @default(0)
+  status           String   @default("ATIVO")      // ATIVO | DEVOLVIDO | PERDIDO
+  metodoRetirada   String                          // FACIAL | QR | CODIGO | MANUAL
+  metodoDevolucao  String?
+  estadoRetirada   String?
+  estadoDevolucao  String?
+  observacoes      String?
+  operadorId       String?
+  devolvidoPorId   String?
+  diasAtraso       Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId, status, previstaEm])
+  @@index([tenantId, pessoaKey, status])
+  @@index([tenantId, itemId, status])
+}
+
+model PreMulta {
+  id            String   @id @default(uuid())
+  tenantId      String
+  emprestimoId  String
+  pessoaKey     String
+  studentId     String?
+  userId        String?
+  valor         Float
+  diasAtraso    Int
+  status        String   @default("ABERTA")        // ABERTA | PAGA | ISENTA
+  motivo        String?
+  baixadaPorId  String?
+  baixadaEm     DateTime?
+  createdAt     DateTime @default(now())
+
+  @@unique([emprestimoId])
+  @@index([tenantId, pessoaKey, status])
+}
+
+model PreBloqueio {
+  id          String   @id @default(uuid())
+  tenantId    String
+  pessoaKey   String
+  motivo      String
+  ate         DateTime?
+  ativo       Boolean  @default(true)
+  origem      String   @default("AUTOMATICO")      // AUTOMATICO | MANUAL
+  criadoPorId String?
+  liberadoEm  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, pessoaKey, ativo])
+}
+
+model PreReservaItem {
+  id          String   @id @default(uuid())
+  tenantId    String
+  itemId      String
+  pessoaKey   String
+  studentId   String?
+  userId      String?
+  status      String   @default("AGUARDANDO")      // AGUARDANDO | DISPONIVEL | ATENDIDA | CANCELADA | EXPIRADA
+  expiraEm    DateTime?
+  createdAt   DateTime @default(now())
+  concluidaEm DateTime?
+
+  @@index([tenantId, itemId, status])
+  @@index([tenantId, pessoaKey, status])
+}
+
+model PreInventario {
+  id          String   @id @default(uuid())
+  tenantId    String
+  setor       String?
+  spaceId     String?
+  status      String   @default("ABERTO")          // ABERTO | CONCLUIDO | CANCELADO
+  iniciadoPorId String?
+  iniciadoEm  DateTime @default(now())
+  concluidoEm DateTime?
+  resultado   Json?
+
+  leituras    PreInventarioLeitura[]
+
+  @@index([tenantId, status])
+}
+
+model PreInventarioLeitura {
+  id            String   @id @default(uuid())
+  tenantId      String
+  inventarioId  String
+  itemId        String?
+  codigo        String
+  lidoEm        DateTime @default(now())
+  via           String   @default("QR")
+
+  inventario    PreInventario @relation(fields: [inventarioId], references: [id], onDelete: Cascade)
+
+  @@unique([inventarioId, codigo])
+}
+
 // ==== EDUMASTER:END ====

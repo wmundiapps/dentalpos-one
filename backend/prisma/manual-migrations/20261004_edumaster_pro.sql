@@ -18442,3 +18442,588 @@ DO $$ BEGIN
   ALTER TABLE "AtdPendencia" ADD CONSTRAINT "AtdPendencia_protocoloId_fkey" FOREIGN KEY ("protocoloId") REFERENCES "AtdProtocolo"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- ==== ATD:END ====
+
+-- ==== PRE:BEGIN (Presença, controle de acesso e empréstimos, prefixo Pre - gerado por prisma migrate diff; só CRIA tabelas/índices, idempotente) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "toleranciaAtrasoMin" INTEGER NOT NULL DEFAULT 10,
+    "limiteFaltaMin" INTEGER NOT NULL DEFAULT 40,
+    "antecedenciaMin" INTEGER NOT NULL DEFAULT 30,
+    "toleranciaSaidaMin" INTEGER NOT NULL DEFAULT 10,
+    "toleranciaIntervaloMin" INTEGER NOT NULL DEFAULT 5,
+    "debounceSegundos" INTEGER NOT NULL DEFAULT 60,
+    "limiarDistancia" DOUBLE PRECISION NOT NULL DEFAULT 0.5,
+    "margemAmbiguidade" DOUBLE PRECISION NOT NULL DEFAULT 0.04,
+    "livenessObrigatorio" BOOLEAN NOT NULL DEFAULT true,
+    "maxTentativas" INTEGER NOT NULL DEFAULT 5,
+    "janelaTentativasMin" INTEGER NOT NULL DEFAULT 5,
+    "bloqueioMin" INTEGER NOT NULL DEFAULT 10,
+    "retencaoLogDias" INTEGER NOT NULL DEFAULT 90,
+    "retencaoTemplateDias" INTEGER NOT NULL DEFAULT 365,
+    "emprestimoMaxSimultaneos" INTEGER NOT NULL DEFAULT 3,
+    "multaDiaItem" DOUBLE PRECISION NOT NULL DEFAULT 2,
+    "multaMaximaItem" DOUBLE PRECISION NOT NULL DEFAULT 60,
+    "bloqueioAposAtrasoDias" INTEGER NOT NULL DEFAULT 7,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PreConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreDispositivo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "finalidade" TEXT NOT NULL DEFAULT 'CHAMADA',
+    "spaceId" TEXT,
+    "modo" TEXT NOT NULL DEFAULT 'AUTO',
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "bloqueadoAte" TIMESTAMP(3),
+    "ultimoUsoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PreDispositivo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreTemplateFacial" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "pessoaKey" TEXT NOT NULL,
+    "studentId" TEXT,
+    "userId" TEXT,
+    "cifrado" TEXT NOT NULL,
+    "dimensao" INTEGER NOT NULL,
+    "modelo" TEXT NOT NULL,
+    "qualidade" DOUBLE PRECISION,
+    "consentimentoId" TEXT NOT NULL,
+    "cadastradoPorId" TEXT,
+    "canal" TEXT NOT NULL DEFAULT 'PORTAL',
+    "ultimoUsoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreTemplateFacial_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreDesafio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nonce" TEXT NOT NULL,
+    "acao" TEXT NOT NULL,
+    "expiraEm" TIMESTAMP(3) NOT NULL,
+    "usadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreDesafio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreLogBiometrico" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "acao" TEXT NOT NULL,
+    "resultado" TEXT,
+    "pessoaKey" TEXT,
+    "dispositivoId" TEXT,
+    "finalidade" TEXT,
+    "distancia" DOUBLE PRECISION,
+    "userId" TEXT,
+    "detalhe" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreLogBiometrico_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreCredencial" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "pessoaKey" TEXT NOT NULL,
+    "studentId" TEXT,
+    "userId" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'CARTEIRINHA',
+    "codigo" TEXT NOT NULL,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "validadeAte" TIMESTAMP(3),
+    "revogadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreCredencial_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreHorario" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "spaceId" TEXT,
+    "diaSemana" INTEGER NOT NULL,
+    "horaEntrada" TEXT NOT NULL,
+    "inicioIntervalo" TEXT,
+    "fimIntervalo" TEXT,
+    "horaSaida" TEXT NOT NULL,
+    "toleranciaAtrasoMin" INTEGER,
+    "toleranciaSaidaMin" INTEGER,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PreHorario_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreChamada" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "classSessionId" TEXT NOT NULL,
+    "classSectionId" TEXT NOT NULL,
+    "horarioId" TEXT,
+    "dispositivoId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "inicioEsperado" TIMESTAMP(3) NOT NULL,
+    "fimEsperado" TIMESTAMP(3) NOT NULL,
+    "intervaloInicio" TIMESTAMP(3),
+    "intervaloFim" TIMESTAMP(3),
+    "toleranciaAtrasoMin" INTEGER NOT NULL DEFAULT 10,
+    "limiteFaltaMin" INTEGER NOT NULL DEFAULT 40,
+    "toleranciaSaidaMin" INTEGER NOT NULL DEFAULT 10,
+    "abertaPorId" TEXT,
+    "fechadaPorId" TEXT,
+    "abertaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "fechadaEm" TIMESTAMP(3),
+    "conciliadaEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreChamada_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreMarcacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chamadaId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "metodo" TEXT NOT NULL,
+    "dispositivoId" TEXT,
+    "distancia" DOUBLE PRECISION,
+    "operadorId" TEXT,
+    "justificativa" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreMarcacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreFrequencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chamadaId" TEXT NOT NULL,
+    "classSessionId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'FALTA',
+    "entradaEm" TIMESTAMP(3),
+    "saidaEm" TIMESTAMP(3),
+    "minutosAtraso" INTEGER NOT NULL DEFAULT 0,
+    "minutosSaidaAntecipada" INTEGER NOT NULL DEFAULT 0,
+    "minutosForaIntervalo" INTEGER NOT NULL DEFAULT 0,
+    "intervaloExcedido" BOOLEAN NOT NULL DEFAULT false,
+    "origem" TEXT NOT NULL DEFAULT 'AUTO',
+    "justificativa" TEXT,
+    "divergente" BOOLEAN NOT NULL DEFAULT false,
+    "diarioPresente" BOOLEAN,
+    "conciliadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PreFrequencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreCorrecao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "frequenciaId" TEXT NOT NULL,
+    "chamadaId" TEXT NOT NULL,
+    "studentId" TEXT,
+    "de" JSONB NOT NULL,
+    "para" JSONB NOT NULL,
+    "justificativa" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "papel" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreCorrecao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreEspacoConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "spaceId" TEXT NOT NULL,
+    "modoAcesso" TEXT NOT NULL DEFAULT 'LIVRE',
+    "capacidadeMax" INTEGER,
+    "alertaCapacidadePct" INTEGER NOT NULL DEFAULT 90,
+    "bloquearNaCapacidade" BOOLEAN NOT NULL DEFAULT false,
+    "perfisPermitidos" JSONB,
+    "horaAbertura" TEXT,
+    "horaFechamento" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PreEspacoConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreAcesso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "spaceId" TEXT NOT NULL,
+    "pessoaKey" TEXT NOT NULL,
+    "pessoaTipo" TEXT NOT NULL DEFAULT 'ALUNO',
+    "studentId" TEXT,
+    "userId" TEXT,
+    "visitanteNome" TEXT,
+    "visitanteDoc" TEXT,
+    "sentido" TEXT NOT NULL,
+    "metodo" TEXT NOT NULL,
+    "resultado" TEXT NOT NULL DEFAULT 'LIBERADO',
+    "motivo" TEXT,
+    "dispositivoId" TEXT,
+    "operadorId" TEXT,
+    "distancia" DOUBLE PRECISION,
+    "em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreAcesso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreVisita" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "spaceId" TEXT NOT NULL,
+    "pessoaKey" TEXT NOT NULL,
+    "pessoaTipo" TEXT NOT NULL DEFAULT 'ALUNO',
+    "studentId" TEXT,
+    "userId" TEXT,
+    "visitanteNome" TEXT,
+    "visitanteDoc" TEXT,
+    "entradaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "saidaEm" TIMESTAMP(3),
+    "metodoEntrada" TEXT NOT NULL,
+    "metodoSaida" TEXT,
+    "saidaAutomatica" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "PreVisita_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreAlerta" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "severidade" TEXT NOT NULL DEFAULT 'ATENCAO',
+    "spaceId" TEXT,
+    "pessoaKey" TEXT,
+    "dispositivoId" TEXT,
+    "mensagem" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ABERTO',
+    "dedupeKey" TEXT,
+    "resolvidoPorId" TEXT,
+    "resolvidoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreAlerta_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreItem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'EQUIPAMENTO',
+    "setor" TEXT NOT NULL DEFAULT 'LABORATORIO',
+    "bemId" TEXT,
+    "spaceId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'DISPONIVEL',
+    "prazoPadraoHoras" INTEGER NOT NULL DEFAULT 24,
+    "maxRenovacoes" INTEGER NOT NULL DEFAULT 1,
+    "exigeTermo" BOOLEAN NOT NULL DEFAULT false,
+    "observacoes" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PreItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreEmprestimo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "itemId" TEXT NOT NULL,
+    "pessoaKey" TEXT NOT NULL,
+    "studentId" TEXT,
+    "userId" TEXT,
+    "retiradaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "previstaEm" TIMESTAMP(3) NOT NULL,
+    "devolucaoEm" TIMESTAMP(3),
+    "renovacoes" INTEGER NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'ATIVO',
+    "metodoRetirada" TEXT NOT NULL,
+    "metodoDevolucao" TEXT,
+    "estadoRetirada" TEXT,
+    "estadoDevolucao" TEXT,
+    "observacoes" TEXT,
+    "operadorId" TEXT,
+    "devolvidoPorId" TEXT,
+    "diasAtraso" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PreEmprestimo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreMulta" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "emprestimoId" TEXT NOT NULL,
+    "pessoaKey" TEXT NOT NULL,
+    "studentId" TEXT,
+    "userId" TEXT,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "diasAtraso" INTEGER NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "motivo" TEXT,
+    "baixadaPorId" TEXT,
+    "baixadaEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreMulta_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreBloqueio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "pessoaKey" TEXT NOT NULL,
+    "motivo" TEXT NOT NULL,
+    "ate" TIMESTAMP(3),
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "origem" TEXT NOT NULL DEFAULT 'AUTOMATICO',
+    "criadoPorId" TEXT,
+    "liberadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PreBloqueio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreReservaItem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "itemId" TEXT NOT NULL,
+    "pessoaKey" TEXT NOT NULL,
+    "studentId" TEXT,
+    "userId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'AGUARDANDO',
+    "expiraEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "concluidaEm" TIMESTAMP(3),
+
+    CONSTRAINT "PreReservaItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreInventario" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "setor" TEXT,
+    "spaceId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'ABERTO',
+    "iniciadoPorId" TEXT,
+    "iniciadoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "concluidoEm" TIMESTAMP(3),
+    "resultado" JSONB,
+
+    CONSTRAINT "PreInventario_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PreInventarioLeitura" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "inventarioId" TEXT NOT NULL,
+    "itemId" TEXT,
+    "codigo" TEXT NOT NULL,
+    "lidoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "via" TEXT NOT NULL DEFAULT 'QR',
+
+    CONSTRAINT "PreInventarioLeitura_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PreConfig_tenantId_key" ON "PreConfig"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreDispositivo_tenantId_finalidade_idx" ON "PreDispositivo"("tenantId", "finalidade");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreDispositivo_tenantId_spaceId_idx" ON "PreDispositivo"("tenantId", "spaceId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreTemplateFacial_tenantId_pessoaKey_idx" ON "PreTemplateFacial"("tenantId", "pessoaKey");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreTemplateFacial_tenantId_consentimentoId_idx" ON "PreTemplateFacial"("tenantId", "consentimentoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreTemplateFacial_tenantId_studentId_idx" ON "PreTemplateFacial"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PreDesafio_nonce_key" ON "PreDesafio"("nonce");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreDesafio_tenantId_expiraEm_idx" ON "PreDesafio"("tenantId", "expiraEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreLogBiometrico_tenantId_createdAt_idx" ON "PreLogBiometrico"("tenantId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreLogBiometrico_tenantId_pessoaKey_createdAt_idx" ON "PreLogBiometrico"("tenantId", "pessoaKey", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreLogBiometrico_tenantId_dispositivoId_resultado_createdAt_idx" ON "PreLogBiometrico"("tenantId", "dispositivoId", "resultado", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreCredencial_tenantId_pessoaKey_ativo_idx" ON "PreCredencial"("tenantId", "pessoaKey", "ativo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PreCredencial_tenantId_codigo_key" ON "PreCredencial"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreHorario_tenantId_classSectionId_idx" ON "PreHorario"("tenantId", "classSectionId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreHorario_tenantId_spaceId_idx" ON "PreHorario"("tenantId", "spaceId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreChamada_tenantId_status_idx" ON "PreChamada"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreChamada_tenantId_classSectionId_idx" ON "PreChamada"("tenantId", "classSectionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PreChamada_tenantId_classSessionId_key" ON "PreChamada"("tenantId", "classSessionId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreMarcacao_tenantId_chamadaId_studentId_idx" ON "PreMarcacao"("tenantId", "chamadaId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreMarcacao_tenantId_studentId_em_idx" ON "PreMarcacao"("tenantId", "studentId", "em");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreFrequencia_tenantId_studentId_createdAt_idx" ON "PreFrequencia"("tenantId", "studentId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreFrequencia_tenantId_divergente_idx" ON "PreFrequencia"("tenantId", "divergente");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PreFrequencia_chamadaId_studentId_key" ON "PreFrequencia"("chamadaId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreCorrecao_tenantId_frequenciaId_idx" ON "PreCorrecao"("tenantId", "frequenciaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreCorrecao_tenantId_chamadaId_idx" ON "PreCorrecao"("tenantId", "chamadaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PreEspacoConfig_tenantId_spaceId_key" ON "PreEspacoConfig"("tenantId", "spaceId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreAcesso_tenantId_spaceId_em_idx" ON "PreAcesso"("tenantId", "spaceId", "em");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreAcesso_tenantId_pessoaKey_em_idx" ON "PreAcesso"("tenantId", "pessoaKey", "em");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreAcesso_tenantId_resultado_em_idx" ON "PreAcesso"("tenantId", "resultado", "em");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreVisita_tenantId_spaceId_saidaEm_idx" ON "PreVisita"("tenantId", "spaceId", "saidaEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreVisita_tenantId_pessoaKey_entradaEm_idx" ON "PreVisita"("tenantId", "pessoaKey", "entradaEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreAlerta_tenantId_status_createdAt_idx" ON "PreAlerta"("tenantId", "status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreAlerta_tenantId_dedupeKey_status_idx" ON "PreAlerta"("tenantId", "dedupeKey", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreItem_tenantId_status_idx" ON "PreItem"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreItem_tenantId_bemId_idx" ON "PreItem"("tenantId", "bemId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreItem_tenantId_setor_idx" ON "PreItem"("tenantId", "setor");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PreItem_tenantId_codigo_key" ON "PreItem"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreEmprestimo_tenantId_status_previstaEm_idx" ON "PreEmprestimo"("tenantId", "status", "previstaEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreEmprestimo_tenantId_pessoaKey_status_idx" ON "PreEmprestimo"("tenantId", "pessoaKey", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreEmprestimo_tenantId_itemId_status_idx" ON "PreEmprestimo"("tenantId", "itemId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreMulta_tenantId_pessoaKey_status_idx" ON "PreMulta"("tenantId", "pessoaKey", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PreMulta_emprestimoId_key" ON "PreMulta"("emprestimoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreBloqueio_tenantId_pessoaKey_ativo_idx" ON "PreBloqueio"("tenantId", "pessoaKey", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreReservaItem_tenantId_itemId_status_idx" ON "PreReservaItem"("tenantId", "itemId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreReservaItem_tenantId_pessoaKey_status_idx" ON "PreReservaItem"("tenantId", "pessoaKey", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PreInventario_tenantId_status_idx" ON "PreInventario"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PreInventarioLeitura_inventarioId_codigo_key" ON "PreInventarioLeitura"("inventarioId", "codigo");
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "PreMarcacao" ADD CONSTRAINT "PreMarcacao_chamadaId_fkey" FOREIGN KEY ("chamadaId") REFERENCES "PreChamada"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "PreFrequencia" ADD CONSTRAINT "PreFrequencia_chamadaId_fkey" FOREIGN KEY ("chamadaId") REFERENCES "PreChamada"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "PreInventarioLeitura" ADD CONSTRAINT "PreInventarioLeitura_inventarioId_fkey" FOREIGN KEY ("inventarioId") REFERENCES "PreInventario"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ==== PRE:END ====
