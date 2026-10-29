@@ -1,3 +1,4 @@
+import { useLabPendingCount } from "./LabReceiptNotices";
 import {
   AppBar,
   Avatar,
@@ -53,7 +54,8 @@ export default function Header() {
   const [searchFocused, setSearchFocused] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
-  const unreadCount = notifications.filter((notification) => !notification.lida).length;
+  const labPending = useLabPendingCount();
+  const unreadCount = notifications.filter((notification) => !notification.lida).length + labPending;
 
   const menuAccess = useMenuAccess();
   const searchableItems = useMemo(() => {
