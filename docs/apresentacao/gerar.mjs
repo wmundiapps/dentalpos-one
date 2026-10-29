@@ -12,8 +12,8 @@ const esc = (s) => String(s ?? '').replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<'
 const lista = (itens) => `<ul>${itens.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>`
 const temCv = Boolean(c.curriculo.nome || c.curriculo.resumo || c.curriculo.itens.length)
 const temContato = Boolean(c.contato.email || c.contato.telefone)
-const logoSvg = readFileSync(join(raiz, 'frontend/public/wmundi-logo.svg'), 'utf8')
-const logo = (h = 30) => `<span class="wl" style="height:${h}px">${logoSvg}</span>`
+const logoB64 = readFileSync(join(raiz, 'frontend/public/wmundi-logo.png')).toString('base64')
+const logo = (h = 30) => `<img class="wl" style="height:${h}px" src="data:image/png;base64,${logoB64}">`
 const contatoLinha = [c.contato.site, c.contato.email, 'WhatsApp ' + c.contato.telefone, c.contato.endereco].filter(Boolean).join(' · ')
 
 const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(c.produto.completo)}</title>
@@ -40,7 +40,7 @@ ul { margin: 6px 0 0; padding-left: 18px }
 li { font-size: 12.5px; line-height: 1.45; margin: 3px 0 }
 .dest { border-left: 6px solid #0F5FDB; background: #f1f6ff; border-radius: 10px; padding: 14px 18px; margin-bottom: 14px }
 .rod { position: absolute; left: 16mm; right: 16mm; bottom: 8mm; font-size: 8.5px; gap: 8px; align-items: center; color: #64748b; display: flex; justify-content: space-between }
-.wl { display: inline-block } .wl svg { height: 100%; width: auto } .capa .wl { background: #fff; border-radius: 10px; padding: 6px 12px }
+.wl { display: inline-block; border-radius: 6px }
 .cv h3 { margin: 0 0 4px }
 </style></head><body>
 
@@ -82,6 +82,7 @@ li { font-size: 12.5px; line-height: 1.45; margin: 3px 0 }
   </div>
   <div class="dest" style="margin-top:14px"><h3 style="margin:0 0 6px;color:#0b2a5b">Investimento após o período de teste</h3><p style="font-size:26px;font-weight:800;margin:4px 0">${esc(c.proposta.valorFixo)} <span style="font-size:16px;font-weight:600">+</span> ${esc(c.proposta.valorAluno)}</p></div>
   <div class="card"><h3>Condições</h3>${lista(c.proposta.itens)}<p style="font-size:12.5px;margin:10px 0 0"><b>${esc(c.proposta.terceiros)}</b></p></div>
+  <div class="card" style="margin-top:14px"><h3>${esc(c.proposta.app.titulo)}</h3>${lista(c.proposta.app.itens)}</div>
   <div class="card" style="margin-top:14px"><h3>Contato · ${esc(c.wmundi.nome)}</h3><p style="margin:0;font-size:13px;line-height:1.6">${esc(c.contato.site)}<br>${esc(c.contato.email)}<br>WhatsApp ${esc(c.contato.telefone)}<br>${esc(c.contato.endereco)}</p></div>
   <div class="rod"><span>${esc(c.produto.completo)}</span><span>${esc(contatoLinha)}</span>${logo(22)}</div>
 </section>

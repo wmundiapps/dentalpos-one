@@ -28,6 +28,8 @@ Atenciosamente,
 WMundi Technologies
 [telefone] · [e-mail]
 
-**Proposta comercial (resumo):** 90 dias de implementação e 3 meses de teste gratuito. Depois: R$ 42.000,00 + R$ 1,90 por aluno. Tokens de IA, Meta (WhatsApp) e SMS são pagos diretamente às empresas contratadas. Detalhes na página 4 do PDF.
+**Proposta comercial (resumo):** 90 dias de implementação e 3 meses de teste gratuito. Depois: R$ 42.000,00 por mês + R$ 1,90 por aluno por mês. Tokens de IA, Meta (WhatsApp) e SMS são pagos diretamente às empresas contratadas.
+
+**Aplicativos Apple e Android (opcional):** R$ 50.000,00 em 10x de R$ 5.000,00. Hospedagem, banco de dados e servidores: R$ 1.690,00 mensais + R$ 1,02 por aplicativo baixado, por mês. Atualizações a combinar, conforme telas e funcionalidades, a pedido da instituição e com orçamento prévio aprovado pelas partes. Detalhes na página 4 do PDF.
 
 **Contato WMundi Technologies:** www.wmundi.com · info@wmundi.com · WhatsApp (44) 99946-6451 · Av. XV de Novembro, 255 · Maringá – PR
