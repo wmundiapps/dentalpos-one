@@ -32,6 +32,9 @@ import ProcedurePicker from "../components/ProcedurePicker";
 import SmartSchedulingAssistant from "../components/SmartSchedulingAssistant";
 import SmartSchedulingSettingsDialog from "../components/SmartSchedulingSettingsDialog";
 import AgendaAvailabilitySettingsDialog from "../components/AgendaAvailabilitySettingsDialog";
+import AgendaMarkerPicker from "../components/AgendaMarkerPicker";
+import { AgendaMarkersContext, type MarkerDot } from "../contexts/AgendaMarkers";
+import { AppointmentMarkerApi, type AppointmentMarker } from "../services/AppointmentMarkerApi";
 import NextProcedureHint from "../components/NextProcedureHint";
 import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import LabServiceOrderDialog, { type LabOrderPrefill } from "../components/LabServiceOrderDialog";
@@ -751,6 +754,23 @@ export default function Agenda() {
       ? backendPatients.find((patient) => patient.fullName.trim().toLowerCase() === normalizedPatientName)
       : undefined;
 
+  const [markerDefs, setMarkerDefs] = useState<AppointmentMarker[]>([]);
+  const [markerLinks, setMarkerLinks] = useState<Map<string, string[]>>(new Map());
+  const loadMarkerDefs = () => AppointmentMarkerApi.list().then(setMarkerDefs).catch(() => undefined);
+  useEffect(() => { void loadMarkerDefs(); }, []);
+  const markerIdsKey = (filtered as Array<{ backendId?: string }>).map((a) => a.backendId || "").filter(Boolean).join(",");
+  useEffect(() => {
+    const ids = markerIdsKey ? markerIdsKey.split(",") : [];
+    if (!ids.length) { setMarkerLinks(new Map()); return; }
+    let alive = true;
+    AppointmentMarkerApi.links(ids).then((rows) => { if (!alive) return; const m = new Map<string, string[]>(); rows.forEach((r) => m.set(r.appointmentId, [...(m.get(r.appointmentId) || []), r.markerId])); setMarkerLinks(m); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [markerIdsKey]);
+  const markerDots = useMemo(() => {
+    const out = new Map<string, MarkerDot[]>();
+    for (const [apptId, ids] of markerLinks) out.set(apptId, ids.map((id) => markerDefs.find((d) => d.id === id)).filter(Boolean).map((d) => ({ name: (d as AppointmentMarker).name, color: (d as AppointmentMarker).color })));
+    return out;
+  }, [markerDefs, markerLinks]);
   const [nextHint, setNextHint] = useState<NextProcedureHintData | null>(null);
   useEffect(() => {
     setNextHint(null);
@@ -1189,6 +1209,7 @@ export default function Agenda() {
               </Button>
             ) : null}
           </Box>
+          <AgendaMarkersContext.Provider value={markerDots}>
           <AgendaCalendarBoard
             view={view}
             dateISO={date}
@@ -1214,6 +1235,7 @@ export default function Agenda() {
             }}
             onNew={(prefill) => openNew(prefill)}
           />
+          </AgendaMarkersContext.Provider>
         </Paper>
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
@@ -1394,6 +1416,7 @@ export default function Agenda() {
               <PatientAlertBanner patientId={edit.patientId} compact />
               <Typography><b>{edit.dateISO} às {edit.time}</b> • {edit.professionalName}</Typography>
               <Typography>{edit.procedure}</Typography>
+              {edit.backendId && <AgendaMarkerPicker appointmentId={edit.backendId} defs={markerDefs} selected={markerLinks.get(edit.backendId) || []} onChange={(ids) => setMarkerLinks((cur) => new Map(cur).set(edit.backendId as string, ids))} onDefsChanged={() => void loadMarkerDefs()} />}
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
                 <TextField
                   select

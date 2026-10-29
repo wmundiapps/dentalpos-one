@@ -25,6 +25,7 @@ import * as scheduleController from '../controllers/scheduleController'
 import * as budgetController from '../controllers/budgetController'
 import * as paymentController from '../controllers/paymentController'
 import * as evolutionSignatureController from '../controllers/evolutionSignatureController'
+import * as appointmentMarkerController from '../controllers/appointmentMarkerController'
 import * as nextProcedureController from '../controllers/nextProcedureController'
 import * as financialController from '../controllers/financialController'
 import * as financialPlanningController from '../controllers/financialPlanningController'
@@ -428,6 +429,11 @@ router.post('/payment-intents', requirePermission('finance.create'), paymentProv
 // HUMAN RESOURCES
 // ======================
 
+router.get('/appointment-markers', requirePermission('agenda.view'), appointmentMarkerController.list)
+router.post('/appointment-markers', requirePermission('agenda.edit'), appointmentMarkerController.create)
+router.put('/appointment-markers/:id', requirePermission('agenda.edit'), appointmentMarkerController.update)
+router.post('/appointment-markers/links', requirePermission('agenda.view'), appointmentMarkerController.links)
+router.put('/appointments/:id/markers', requirePermission('agenda.edit'), appointmentMarkerController.setForAppointment)
 router.use('/hr', requireHrVault)
 router.get('/hr/vault/status', requirePermission('hr.view'), hrTime.vaultStatus)
 router.post('/hr/vault/setup', requirePermission('hr.view'), hrTime.vaultSetup)

@@ -2639,6 +2639,29 @@ model HRVault {
   updatedAt      DateTime  @updatedAt
 }
 
+// Marcadores coloridos da agenda (ex.: LABORATÓRIO FAZER = vermelho, LABORATÓRIO FEITO = verde).
+model AppointmentMarker {
+  id        String   @id @default(cuid())
+  clinicId  String
+  tenantId  String
+  name      String
+  color     String   @default("#9E9E9E")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([clinicId])
+}
+
+model AppointmentMarkerLink {
+  appointmentId String
+  markerId      String
+  clinicId      String
+  createdAt     DateTime @default(now())
+
+  @@id([appointmentId, markerId])
+  @@index([clinicId, appointmentId])
+}
+
 // Foto tirada no momento da batida pelo rosto (comprovação), consultada pelo RH no detalhe da folha.
 model HRTimePunchPhoto {
   punchId    String   @id
