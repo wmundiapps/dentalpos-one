@@ -11,6 +11,7 @@ import { DEFAULT_DONE, DEFAULT_PLANNED, DONE_PALETTE, PLANNED_PALETTE, saveOdont
 import { PENDING_ALERTS_EVENT } from '../services/PendingAlertsApi'
 import PageHeader from '../components/PageHeader'
 import PatientAlertBanner from '../components/patient/PatientAlertBanner'
+import EvolutionSignDialog, { type SignTarget } from '../components/patient/EvolutionSignDialog'
 import PatientPicker from '../components/patient/PatientPicker'
 import { DentalChartService } from '../services/DentalChartService'
 import type {
@@ -57,6 +58,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
   const [procNext,setProcNext] = useState('')
   const [procBusy,setProcBusy] = useState(false)
   const [procOk,setProcOk] = useState('')
+  const [signTarget,setSignTarget] = useState<SignTarget|null>(null)
   const [unplannedMsg,setUnplannedMsg] = useState('')
   const [planMsg,setPlanMsg] = useState('')
 
@@ -119,6 +121,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
     try {
       const faces: Array<ToothSurface|null> = procFaces.length ? procFaces : [null]
       let first = true
+      let evolutionId = ''
       const unplannedList: Array<{ tooth: number; procedure: string }> = []
       for (const tooth of procTeeth) for (const face of faces) {
         const saved = await DentalChartService.saveEntry(patientId,{
@@ -126,11 +129,13 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
           ...(first ? { evolutionNotes:`Dente(s) ${procTeeth.join(', ')}${procFaces.length?` — face(s) ${procFaces.join('')}`:''}: ${procNotes.trim() || `${finding.label} realizado`}`, professionalName:procPro.trim(), nextProcedure:procNext.trim() } : {})
         })
         first = false
+        if (saved.evolutionId && !evolutionId) evolutionId = saved.evolutionId
         if (saved.unplanned && !unplannedList.some(u=>u.tooth===tooth)) unplannedList.push({ tooth, procedure: finding.label })
       }
       await handleUnplanned(unplannedList, procPro.trim())
       try { localStorage.setItem('completodonto.lastProfessional', procPro) } catch { /* sem armazenamento */ }
       setProcOk(`Procedimento registrado em ${procTeeth.length} dente(s) e incluído no histórico do prontuário.`)
+      if (evolutionId) setSignTarget({ evolutionId, procedure: finding.label, detail: `Dente(s) ${procTeeth.join(', ')}${procFaces.length?` — face(s) ${procFaces.join('')}`:''}${procNotes.trim()?`: ${procNotes.trim()}`:''}`, patientName: patientName==='Paciente'?'':patientName, dentistName: procPro.trim() })
       setProcTeeth([]); setProcFaces([]); setProcNotes(''); setProcNext('')
       await load()
     } catch(e:any){ setError(e.message) } finally { setProcBusy(false) }
@@ -140,6 +145,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
     <Paper variant="outlined" sx={{p:2,borderRadius:3,mb:2,borderColor:'primary.main',borderWidth:2}}>
       <Typography variant="h6" sx={{ fontWeight:900 }}>Registrar procedimento realizado hoje</Typography>
       <Typography variant="body2" color="text.secondary">Escolha os dentes, o procedimento e anote o que foi feito. O dente fica na cor escura (concluído) no odontograma e o registro vai para Procedimentos executados na ficha do paciente. Planejado fica na cor clara escolhida em Configurar cores.</Typography>
+      <EvolutionSignDialog target={signTarget} onClose={()=>setSignTarget(null)} onDone={()=>setProcOk('Procedimento confirmado com a assinatura do paciente.')} />
       {procOk && <Alert severity="success" sx={{mt:1}} onClose={()=>setProcOk('')}>{procOk}</Alert>}
       {unplannedMsg && <Alert severity="warning" sx={{mt:1}} onClose={()=>setUnplannedMsg('')} action={<Button size="small" onClick={()=>navigate(`/orcamentos-tratamentos?patientId=${encodeURIComponent(patientId)}`)}>Ir para o orçamento</Button>}>{unplannedMsg}</Alert>}
       {planMsg && <Alert severity="info" sx={{mt:1}} onClose={()=>setPlanMsg('')} action={<Button size="small" onClick={()=>navigate(`/orcamentos-tratamentos?patientId=${encodeURIComponent(patientId)}`)}>Abrir orçamento</Button>}>{planMsg}</Alert>}
