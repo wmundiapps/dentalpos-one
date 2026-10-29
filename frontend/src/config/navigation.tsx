@@ -182,7 +182,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Cursos","/academico?secao=cursos",<SchoolIcon/>),
       item("Professores","/academico?secao=professores",<GroupsIcon/>),
       item("Turmas","/academico?secao=turmas",<EventIcon/>),
-      item("Financeiro acadêmico","/academico?secao=financeiro",<PaymentsIcon/>),
+      item("Financeiro acadêmico","/edu/financeiro",<PaymentsIcon/>),
       item("Frequência e documentos","/academico?secao=documentos",<DescriptionIcon/>),
     ])
   },
@@ -235,6 +235,21 @@ export const navigationGroups:NavigationGroup[] = [
       item("Processos","/edu/juridico?secao=processos",<GavelIcon/>),
       item("Inteligência","/edu/juridico?secao=inteligencia",<InsightsIcon/>),
       item("Riscos e Seguros","/edu/juridico?secao=riscos",<ShieldIcon/>),
+    ]
+  },
+  {
+    label:"EduMaster · Financeiro",
+    icon:tile(<AccountBalanceWalletIcon/>,"#0E7490"),
+    items:[
+      item("Painel financeiro","/edu/financeiro",<SpaceDashboardIcon/>),
+      item("Contas a receber","/edu/financeiro?secao=receber",<PaymentsIcon/>),
+      item("Contas a pagar","/edu/financeiro?secao=pagar",<ReceiptLongIcon/>),
+      item("Conferência e autorização","/edu/financeiro?secao=fila",<AssignmentIcon/>),
+      item("Bancos e conciliação","/edu/financeiro?secao=bancos",<AccountBalanceIcon/>),
+      item("Notas fiscais","/edu/financeiro?secao=notas",<DescriptionIcon/>),
+      item("Recibos","/edu/financeiro?secao=recibos",<ReceiptLongIcon/>),
+      item("Permutas e bolsas","/edu/financeiro?secao=permutas",<PeopleAltIcon/>),
+      item("Remessas bancárias","/edu/financeiro?secao=remessas",<SendIcon/>),
     ]
   },
   {
