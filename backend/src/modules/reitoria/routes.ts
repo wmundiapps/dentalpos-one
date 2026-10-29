@@ -13,6 +13,7 @@ import { PERFIS, Perfil, perfilDoPapel, podeVerPerfil, progressoKR } from './log
 import { coletarMesa, limparResumoSino, panoramaPendencias, resumoSino } from './mesa'
 import { okrManutencao, registerOkr } from './okr'
 import { montarPainel } from './painel'
+import { registerReitoria2 } from './routes2'
 import { montarRelatorio, relatorioCsv, relatorioHtml, renderRelatorioHtml } from './relatorio'
 
 // Módulo "reitoria" — visão executiva consolidada (/api/edu/reitoria).
@@ -306,6 +307,8 @@ registerEduJob('reitoria:snapshot-indicadores', async () => {
 
 // Sincroniza KRs ligados a indicadores, recalcula confiança e escala check-ins atrasados.
 registerEduJob('reitoria:okr-manutencao', () => okrManutencao())
+
+registerReitoria2(router)
 
 router.use(academicErrorHandler)
 
