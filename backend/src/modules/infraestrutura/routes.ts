@@ -10,12 +10,20 @@ import { mountAdequacao } from './adequacao'
 import { mountIndicadores } from './indicadores'
 import { mountBootstrap } from './bootstrap'
 import { registerInfraJobs } from './jobs'
+import { mountEtiquetas } from './patrimonio-etiquetas'
+import { mountFotos } from './patrimonio-fotos'
+import { mountResponsabilidade } from './patrimonio-responsabilidade'
+import { mountInventarioQr } from './patrimonio-inventario'
 
 // Módulo "infraestrutura" — montado em /api/edu/infraestrutura.
 const router = Router()
 
 mountBootstrap(router)
 mountPatrimonio(router)
+mountEtiquetas(router)
+mountFotos(router)
+mountResponsabilidade(router)
+mountInventarioQr(router)
 mountManutencao(router)
 mountMelhorias(router)
 mountEstacionamento(router)

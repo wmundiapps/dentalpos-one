@@ -27,6 +27,13 @@ export async function ensureSpace(tenantId: string, spaceId?: string | null) {
   return s
 }
 
+export async function ensureDepartamento(tenantId: string, departamentoId?: string | null) {
+  if (!departamentoId) return null
+  const d = await prisma.cppDepartamento.findFirst({ where: { id: departamentoId, tenantId, ativo: true } })
+  if (!d) fail(400, 'Departamento (departamentoId) não encontrado ou inativo.')
+  return d
+}
+
 export async function ensureBem(tenantId: string, bemId?: string | null) {
   if (!bemId) return null
   const b = await prisma.infBem.findFirst({ where: { id: bemId, tenantId } })

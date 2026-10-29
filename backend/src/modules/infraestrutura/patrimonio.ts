@@ -7,7 +7,7 @@ import { audit } from '../core/notify'
 import { getBranding, brandHeaderHtml, escapeHtml as esc } from '../core/branding'
 import { scheduleReminder, completeReminders } from '../core/reminders'
 import { depreciacaoLinear, classificarDivergencia, resumoInventario } from './calc'
-import { GESTAO, LEITURA, MODULO, ensureSpace, fail, money, nextSeq, parseDateQ } from './util'
+import { GESTAO, LEITURA, MODULO, ensureDepartamento, ensureSpace, fail, money, nextSeq, parseDateQ } from './util'
 
 const ESTADOS = ['NOVO', 'BOM', 'REGULAR', 'RUIM', 'INSERVIVEL'] as const
 
@@ -23,8 +23,27 @@ export function depreciacaoDoBem(bem: any, categoria: any, ref = new Date()) {
   })
 }
 
-async function registrarMov(tenantId: string, bemId: string, userId: string, data: any) {
+export async function registrarMov(tenantId: string, bemId: string, userId: string, data: any) {
   return prisma.infMovimentacaoBem.create({ data: { tenantId, bemId, userId, ...data } })
+}
+
+/** Baixa um bem (usada pelo endpoint e pelo inventário físico): encerra planos, OS abertas, termos e transferências pendentes. */
+export async function baixarBem(tenantId: string, userId: string, id: string, d: { motivo: string; documento?: string; data?: Date }) {
+  const cur = await prisma.infBem.findFirst({ where: { id, tenantId }, include: { categoria: true } })
+  if (!cur) return null
+  if (cur.status === 'BAIXADO') fail(409, 'Bem já está baixado.')
+  const abertas = await prisma.infOrdemServico.count({ where: { tenantId, bemId: id, status: { in: ['ABERTA', 'AGENDADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA'] } } })
+  const quando = d.data ?? new Date()
+  const bem = await prisma.infBem.update({ where: { id }, data: { status: 'BAIXADO', baixadoEm: quando, motivoBaixa: d.motivo } })
+  await registrarMov(tenantId, id, userId, { tipo: 'BAIXA', origemSpaceId: cur.spaceId, estadoAnterior: cur.estado, motivo: d.motivo, documento: d.documento })
+  // planos preventivos do bem deixam de gerar OS; OS abertas são canceladas
+  await prisma.infPlanoPreventivo.updateMany({ where: { tenantId, bemId: id, ativo: true }, data: { ativo: false } })
+  const canceladas = abertas > 0 ? (await prisma.infOrdemServico.updateMany({ where: { tenantId, bemId: id, status: { in: ['ABERTA', 'AGENDADA'] } }, data: { status: 'CANCELADA' } })).count : 0
+  await prisma.cppTermoResponsabilidade.updateMany({ where: { tenantId, bemId: id, status: { in: ['VIGENTE', 'PENDENTE_ACEITE'] } }, data: { status: 'ENCERRADO', encerradoEm: new Date(), motivoEncerramento: 'Baixa do bem' } })
+  await prisma.cppTransferencia.updateMany({ where: { tenantId, bemId: id, status: 'AGUARDANDO_ACEITE' }, data: { status: 'CANCELADA' } })
+  await completeReminders({ tenantId, refType: 'InfBem', refId: id, userId })
+  await audit({ tenantId, userId, modulo: MODULO, acao: 'BEM_BAIXADO', refType: 'InfBem', refId: id, detalhes: { motivo: d.motivo, valorContabil: depreciacaoDoBem(cur, cur.categoria, quando).valorContabil } })
+  return { ...bem, depreciacao: depreciacaoDoBem(bem, cur.categoria), osAbertasRestantes: Math.max(0, abertas - canceladas) }
 }
 
 export function mountPatrimonio(router: Router) {
@@ -61,6 +80,7 @@ export function mountPatrimonio(router: Router) {
     vidaUtilMeses: z.number().int().min(1).optional().nullable(),
     valorResidual: z.number().min(0).optional().nullable(),
     spaceId: z.string().optional().nullable(),
+    departamentoId: z.string().optional().nullable(),
     responsavelUserId: z.string().optional().nullable(),
     estado: z.enum(ESTADOS).default('NOVO'),
     criticidade: z.enum(['BAIXA', 'NORMAL', 'ALTA', 'CRITICA']).default('NORMAL'),
@@ -79,6 +99,7 @@ export function mountPatrimonio(router: Router) {
       const cat = await prisma.infCategoriaBem.findFirst({ where: { id: d.categoriaId, tenantId } })
       if (!cat) fail(400, 'Categoria não encontrada.')
       await ensureSpace(tenantId, d.spaceId)
+      await ensureDepartamento(tenantId, d.departamentoId)
       if (d.dataAquisicao.getTime() > Date.now() + 86_400_000) fail(400, 'Data de aquisição no futuro.')
       let tombamento = d.tombamento?.trim()
       if (!tombamento) tombamento = `PAT-${String(await nextSeq(tenantId, 'PAT')).padStart(6, '0')}`
@@ -104,7 +125,7 @@ export function mountPatrimonio(router: Router) {
       const tenantId = getTenantId(req)
       const { skip, take, page, pageSize } = pageParams(req.query)
       const where: any = { tenantId }
-      for (const f of ['categoriaId', 'spaceId', 'status', 'estado', 'responsavelUserId', 'criticidade']) {
+      for (const f of ['categoriaId', 'spaceId', 'status', 'estado', 'responsavelUserId', 'criticidade', 'departamentoId']) {
         const v = qs((req.query as any)[f])
         if (v) where[f] = v
       }
@@ -135,7 +156,7 @@ export function mountPatrimonio(router: Router) {
     }),
   )
 
-  const bemPatch = bemCreate.partial().omit({ tombamento: true, spaceId: true, responsavelUserId: true, estado: true })
+  const bemPatch = bemCreate.partial().omit({ tombamento: true, spaceId: true, departamentoId: true, responsavelUserId: true, estado: true })
   router.patch(
     '/bens/:id',
     requireRole(...GESTAO),
@@ -156,7 +177,7 @@ export function mountPatrimonio(router: Router) {
     }),
   )
 
-  const transfer = z.object({ spaceId: z.string().optional().nullable(), responsavelUserId: z.string().optional().nullable(), motivo: z.string().min(3), documento: z.string().optional() })
+  const transfer = z.object({ spaceId: z.string().optional().nullable(), departamentoId: z.string().optional().nullable(), responsavelUserId: z.string().optional().nullable(), motivo: z.string().min(3), documento: z.string().optional() })
   router.post(
     '/bens/:id/transferir',
     requireRole(...GESTAO),
@@ -168,20 +189,22 @@ export function mountPatrimonio(router: Router) {
       const cur = await prisma.infBem.findFirst({ where: { id, tenantId } })
       if (!cur) return res.status(404).json({ error: 'Bem não encontrado.' })
       if (cur.status === 'BAIXADO') fail(409, 'Bem baixado não pode ser transferido.')
-      if (d.spaceId === undefined && d.responsavelUserId === undefined) fail(400, 'Informe spaceId e/ou responsavelUserId.')
+      if (d.spaceId === undefined && d.responsavelUserId === undefined && d.departamentoId === undefined) fail(400, 'Informe spaceId, departamentoId e/ou responsavelUserId.')
       await ensureSpace(tenantId, d.spaceId)
+      await ensureDepartamento(tenantId, d.departamentoId)
       const mudouLocal = d.spaceId !== undefined && d.spaceId !== cur.spaceId
       const mudouResp = d.responsavelUserId !== undefined && d.responsavelUserId !== cur.responsavelUserId
-      if (!mudouLocal && !mudouResp) fail(400, 'Nada a transferir: destino igual à situação atual.')
+      const mudouDepto = d.departamentoId !== undefined && d.departamentoId !== cur.departamentoId
+      if (!mudouLocal && !mudouResp && !mudouDepto) fail(400, 'Nada a transferir: destino igual à situação atual.')
       const bem = await prisma.infBem.update({
         where: { id },
-        data: { ...(mudouLocal ? { spaceId: d.spaceId } : {}), ...(mudouResp ? { responsavelUserId: d.responsavelUserId } : {}) },
+        data: { ...(mudouLocal ? { spaceId: d.spaceId } : {}), ...(mudouResp ? { responsavelUserId: d.responsavelUserId } : {}), ...(mudouDepto ? { departamentoId: d.departamentoId } : {}) },
       })
       await registrarMov(tenantId, id, userId, {
-        tipo: mudouLocal ? 'TRANSFERENCIA' : 'MUDANCA_RESPONSAVEL',
+        tipo: mudouLocal || (mudouDepto && !mudouResp) ? 'TRANSFERENCIA' : 'MUDANCA_RESPONSAVEL',
         origemSpaceId: cur.spaceId, destinoSpaceId: bem.spaceId,
         origemResponsavelId: cur.responsavelUserId, destinoResponsavelId: bem.responsavelUserId,
-        motivo: d.motivo, documento: d.documento,
+        motivo: mudouDepto ? `${d.motivo} (departamento: ${cur.departamentoId ?? '—'} → ${d.departamentoId ?? '—'})` : d.motivo, documento: d.documento,
       })
       await audit({ tenantId, userId, modulo: MODULO, acao: 'BEM_TRANSFERIDO', refType: 'InfBem', refId: id, detalhes: { de: cur.spaceId, para: bem.spaceId } })
       res.json(bem)
@@ -213,19 +236,9 @@ export function mountPatrimonio(router: Router) {
       const userId = getUserId(req)
       const id = String(req.params.id)
       const d = parseBody(z.object({ motivo: z.string().min(5), documento: z.string().optional(), data: dateISO().optional() }), req.body)
-      const cur = await prisma.infBem.findFirst({ where: { id, tenantId }, include: { categoria: true } })
-      if (!cur) return res.status(404).json({ error: 'Bem não encontrado.' })
-      if (cur.status === 'BAIXADO') fail(409, 'Bem já está baixado.')
-      const abertas = await prisma.infOrdemServico.count({ where: { tenantId, bemId: id, status: { in: ['ABERTA', 'AGENDADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA'] } } })
-      const quando = d.data ?? new Date()
-      const bem = await prisma.infBem.update({ where: { id }, data: { status: 'BAIXADO', baixadoEm: quando, motivoBaixa: d.motivo } })
-      await registrarMov(tenantId, id, userId, { tipo: 'BAIXA', origemSpaceId: cur.spaceId, estadoAnterior: cur.estado, motivo: d.motivo, documento: d.documento })
-      // planos preventivos do bem deixam de gerar OS; OS abertas são canceladas
-      await prisma.infPlanoPreventivo.updateMany({ where: { tenantId, bemId: id, ativo: true }, data: { ativo: false } })
-      const canceladas = abertas > 0 ? (await prisma.infOrdemServico.updateMany({ where: { tenantId, bemId: id, status: { in: ['ABERTA', 'AGENDADA'] } }, data: { status: 'CANCELADA' } })).count : 0
-      await completeReminders({ tenantId, refType: 'InfBem', refId: id, userId })
-      await audit({ tenantId, userId, modulo: MODULO, acao: 'BEM_BAIXADO', refType: 'InfBem', refId: id, detalhes: { motivo: d.motivo, valorContabil: depreciacaoDoBem(cur, cur.categoria, quando).valorContabil } })
-      res.json({ ...bem, depreciacao: depreciacaoDoBem(bem, cur.categoria), osAbertasRestantes: Math.max(0, abertas - canceladas) })
+      const r = await baixarBem(tenantId, userId, id, d)
+      if (!r) return res.status(404).json({ error: 'Bem não encontrado.' })
+      res.json(r)
     }),
   )
 
