@@ -1,0 +1,99 @@
+// ============================================================
+// EDUMASTER PRO — CAIXA DE SUGESTÕES / BUGS (prefixo Fbk). Somente tabelas NOVAS.
+// LGPD: o contexto técnico (rota, versão, navegador, logs de console) passa por redação no servidor; o autor é
+// guardado por userId (nome só aparece para a triagem) e pode ser anônimo para os demais usuários.
+// ============================================================
+
+model FbkContador {
+  id       String @id @default(uuid())
+  tenantId String
+  chave    String
+  valor    Int    @default(0)
+
+  @@unique([tenantId, chave])
+}
+
+model FbkItem {
+  id               String   @id @default(uuid())
+  tenantId         String
+  numero           String
+  tipo             String   // SUGESTAO | MELHORIA | ERRO | BUG | DUVIDA
+  categoria        String   @default("OUTRO")   // ACADEMICO | FINANCEIRO | SECRETARIA | PORTAL | INFRAESTRUTURA | RH | DESEMPENHO | DESIGN | OUTRO
+  prioridade       String   @default("MEDIA")   // BAIXA | MEDIA | ALTA | CRITICA
+  titulo           String
+  descricao        String
+  passosReproduzir String?
+  status           String   @default("NOVO")    // NOVO | EM_TRIAGEM | PLANEJADO | EM_ANDAMENTO | RESOLVIDO | RECUSADO | DUPLICADO
+  // contexto capturado automaticamente (sanitizado)
+  rota             String?
+  tela             String?
+  versaoApp        String?
+  perfil           String?
+  navegador        String?
+  plataforma       String?
+  viewport         String?
+  idioma           String?
+  logsConsole      String?
+  // autoria
+  autorUserId      String
+  autorNome        String?
+  anonimo          Boolean  @default(false)
+  // triagem
+  responsavelUserId String?
+  responsavelNome  String?
+  duplicadoDeId    String?
+  respostaAutor    String?
+  respondidoEm     DateTime?
+  respondidoPorId  String?
+  resolvidoEm      DateTime?
+  atendimentoRef   String?     // protocolo/ID no módulo Atendimento/Apoio, quando houver
+  votos            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  comentarios      FbkComentario[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, autorUserId])
+  @@index([tenantId, tipo])
+}
+
+model FbkComentario {
+  id        String   @id @default(uuid())
+  tenantId  String
+  itemId    String
+  userId    String
+  autorNome String?
+  texto     String
+  interno   Boolean  @default(true)    // nota da triagem (não aparece ao autor)
+  createdAt DateTime @default(now())
+
+  item      FbkItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, itemId])
+}
+
+model FbkVoto {
+  id        String   @id @default(uuid())
+  tenantId  String
+  itemId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([itemId, userId])
+  @@index([tenantId, itemId])
+}
+
+model FbkAnexo {
+  id           String   @id @default(uuid())
+  tenantId     String
+  itemId       String
+  nome         String
+  mime         String?
+  dataUrl      String
+  tamanhoBytes Int?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, itemId])
+}

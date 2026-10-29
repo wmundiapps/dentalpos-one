@@ -14,6 +14,7 @@ import { mountEtiquetas } from './patrimonio-etiquetas'
 import { mountFotos } from './patrimonio-fotos'
 import { mountResponsabilidade } from './patrimonio-responsabilidade'
 import { mountInventarioQr } from './patrimonio-inventario'
+import { mountInfra2 } from './inf2/routes'
 
 // Módulo "infraestrutura" — montado em /api/edu/infraestrutura.
 const router = Router()
@@ -32,6 +33,7 @@ mountEnergia(router)
 mountAdequacao(router)
 mountIndicadores(router)
 registerInfraJobs()
+mountInfra2(router)
 
 router.use(academicErrorHandler)
 
@@ -46,3 +48,4 @@ export { calcularIndicadores } from './indicadores'
 export { abrirChamado, criarOrdemServico } from './manutencao'
 export { depreciacaoDoBem } from './patrimonio'
 export { depreciacaoLinear } from './calc'
+export { indicadoresPessoaInfra, indicadoresInfraLote } from './inf2/routes'

@@ -9,6 +9,7 @@ import Header from "./Header";
 import PendingAlertsBar from "./PendingAlertsBar";
 import ToastHost from "./ToastHost";
 import PrintHeader from "./PrintHeader";
+import FeedbackButton from "../edu/feedback/FeedbackButton";
 import Sidebar from "./Sidebar";
 
 interface LayoutProps {
@@ -58,6 +59,7 @@ export default function Layout({
         >
           <PrintHeader />
           {children}
+          <FeedbackButton />
         </Box>
 
         <Footer />

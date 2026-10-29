@@ -40,3 +40,5 @@ QR Code ISO 18004 (modo byte, correção M, versões 1–15, máscaras avaliadas
 `POST /inventarios/:id/leitura {payload, spaceId?, estado?}` (CONTADO/RECONTADO/SOBRA/BAIXADO/NAO_RECONHECIDO), `POST /inventarios/:id/leituras-lote` (offline, até 500), `GET /inventarios/:id/leituras|divergencias`, `POST /inventarios/:id/itens/:itemId/decidir {acao: AJUSTAR_LOCAL|MANTER|BAIXAR|INVESTIGAR|REGULARIZAR, motivo}` (após fechar), `GET /inventarios/:id/relatorio[?format=html|csv]`.
 ## Limites
 Sem OCR/leitura de QR no servidor (a câmera usa `BarcodeDetector` do navegador; leitor USB e digitação funcionam em qualquer um). A etiqueta não inclui logotipo. Fonte do PDF é a Helvetica padrão (sem fontes embutidas).
+
+> Extensão Inf2 (agenda, solicitações/OS com fotos, frota, segurança patrimonial, indicadores para o RH): ver `README-INF2.md`.
