@@ -22,6 +22,7 @@ export default function LabServiceOrders() {
   const [filter, setFilter] = useState("OPEN");
   const [error, setError] = useState("");
   const [newOpen, setNewOpen] = useState(false);
+  const [rcCode, setRcCode] = useState("");
   const [receipt, setReceipt] = useState<{ order: LabServiceOrder; outcome: "RECEIVED" | "REFUSED" } | null>(null);
   const [rcName, setRcName] = useState("");
   const [rcReason, setRcReason] = useState("");
@@ -86,11 +87,12 @@ export default function LabServiceOrders() {
                 </Alert>
               ))}
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>
+                {o.receiptCode && o.status === "SENT" && <Chip size="small" color="warning" label={`Código de recebimento: ${o.receiptCode}`} sx={{ fontWeight: 900 }} />}
                 <Button size="small" variant="outlined" onClick={() => printLabOrder(o)}>Imprimir ordem de serviço</Button>
                 <Button size="small" variant="outlined" onClick={() => printLabLabels(o)}>Imprimir etiquetas do protocolo</Button>
                 {o.status === "SENT" && <>
-                  <Button size="small" color="success" variant="contained" disabled={busy} onClick={() => { setReceipt({ order: o, outcome: "RECEIVED" }); setRcName(""); setRcReason(""); }}>Laboratório recebeu</Button>
-                  <Button size="small" color="error" variant="outlined" disabled={busy} onClick={() => { setReceipt({ order: o, outcome: "REFUSED" }); setRcName(""); setRcReason(""); }}>Laboratório recusou</Button>
+                  <Button size="small" color="success" variant="contained" disabled={busy} onClick={() => { setReceipt({ order: o, outcome: "RECEIVED" }); setRcCode(""); setRcName(""); setRcReason(""); }}>Laboratório recebeu</Button>
+                  <Button size="small" color="error" variant="outlined" disabled={busy} onClick={() => { setReceipt({ order: o, outcome: "REFUSED" }); setRcCode(""); setRcName(""); setRcReason(""); }}>Laboratório recusou</Button>
                 </>}
                 {o.status === "RECEIVED" && <Button size="small" color="success" variant="outlined" disabled={busy} onClick={() => { if (window.confirm("Confirmar que o trabalho voltou do laboratório para a clínica?")) void act(() => deliverLabOrder(o.id)); }}>Registrar entrega à clínica</Button>}
                 <Button size="small" color="warning" variant="outlined" onClick={() => { setErrOrder(o); setErrType(""); setErrName(""); setErrText(""); }}>Registrar erro</Button>
@@ -105,13 +107,14 @@ export default function LabServiceOrders() {
       <Dialog open={Boolean(receipt)} onClose={() => setReceipt(null)} fullWidth maxWidth="sm">
         <DialogTitle sx={{ fontWeight: 900 }}>{receipt?.outcome === "RECEIVED" ? "Laboratório recebeu o trabalho" : "Laboratório recusou o trabalho"} — {receipt?.order.protocol}</DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          <TextField label="Código de recebimento (impresso na ordem de serviço)" value={rcCode} onChange={(e) => setRcCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required slotProps={{ htmlInput: { inputMode: "numeric" } }} />
           <TextField label="Nome de quem recebeu / recusou no laboratório" value={rcName} onChange={(e) => setRcName(e.target.value)} required />
           {receipt?.outcome === "REFUSED" && <TextField label="Motivo da recusa" value={rcReason} onChange={(e) => setRcReason(e.target.value)} multiline minRows={3} required />}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReceipt(null)}>Cancelar</Button>
-          <Button variant="contained" disabled={busy || !rcName.trim() || (receipt?.outcome === "REFUSED" && !rcReason.trim())}
-            onClick={() => receipt && void act(async () => { await registerLabReceipt(receipt.order.id, receipt.outcome, rcName.trim(), rcReason.trim()); setReceipt(null); })}>Registrar</Button>
+          <Button variant="contained" disabled={busy || !rcName.trim() || rcCode.length < 6 || (receipt?.outcome === "REFUSED" && !rcReason.trim())}
+            onClick={() => receipt && void act(async () => { await registerLabReceipt(receipt.order.id, receipt.outcome, rcName.trim(), rcReason.trim(), rcCode.trim()); setReceipt(null); })}>Registrar</Button>
         </DialogActions>
       </Dialog>
 

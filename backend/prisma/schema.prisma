@@ -2702,6 +2702,7 @@ model LabServiceOrder {
   status          String    @default("SENT")
   receivedAt      DateTime?
   receivedByName  String?
+  receiptCode     String?
   refusalReason   String?
   deliveredAt     DateTime?
   errors          Json      @default("[]")

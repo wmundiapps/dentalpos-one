@@ -20,7 +20,7 @@ export interface LabServiceOrder {
   service: string; shade: string; elements: string; sentAt: string; dueAt: string;
   scanUpper: boolean; scanLower: boolean; scanBite: boolean; impressionUpper: boolean; impressionLower: boolean; waxBite: boolean;
   status: LabOrderStatus; receivedAt: string | null; receivedByName: string | null; refusalReason: string | null; deliveredAt: string | null;
-  errors: LabOrderError[]; createdByName: string | null; createdAt: string;
+  errors: LabOrderError[]; createdByName: string | null; createdAt: string; receiptCode?: string | null;
 }
 export type LabServiceOrderInput = Pick<LabServiceOrder, "patientName" | "patientContact" | "dentistName" | "dentistContact" | "assistantName" | "laboratoryName" | "service" | "shade" | "elements" | "scanUpper" | "scanLower" | "scanBite" | "impressionUpper" | "impressionLower" | "waxBite"> & { sentAt: string; dueAt: string; patientId?: string | null; appointmentId?: string | null };
 
@@ -35,7 +35,9 @@ async function call<T>(path: string, method = "GET", body?: unknown): Promise<T>
 
 export const loadLabServiceOrders = () => call<LabServiceOrder[]>("/lab-service-orders");
 export const createLabServiceOrder = (input: LabServiceOrderInput) => call<LabServiceOrder>("/lab-service-orders", "POST", input);
-export const registerLabReceipt = (id: string, outcome: "RECEIVED" | "REFUSED", receivedByName: string, reason?: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/receipt`, "POST", { outcome, receivedByName, reason });
+export const registerLabReceipt = (id: string, outcome: "RECEIVED" | "REFUSED", receivedByName: string, reason?: string, code?: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/receipt`, "POST", { outcome, receivedByName, reason, code });
+// Ordens novas aguardando o laboratório (só quem tem a função de laboratório consegue consultar; os demais recebem 403).
+export const loadPendingLabReceipts = () => call<LabServiceOrder[]>("/lab-service-orders/pending-receipt");
 export const reportLabOrderError = (id: string, responsibleType: ErrorResponsible, responsibleName: string, description: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/errors`, "POST", { responsibleType, responsibleName, description });
 export const resolveLabOrderError = (id: string, errorId: string, resolution: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/errors/${errorId}/resolve`, "POST", { resolution });
 export const deliverLabOrder = (id: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/deliver`, "POST", {});

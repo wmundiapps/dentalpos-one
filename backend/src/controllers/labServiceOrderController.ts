@@ -1,9 +1,10 @@
 import { Response } from 'express'
-import { randomUUID } from 'crypto'
+import { randomInt, randomUUID } from 'crypto'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
 import { writeAudit } from '../services/auditService'
+import { getUserPermissionCodes } from '../services/permissionService'
 
 // Ordem de serviço do laboratório: todos os campos são obrigatórios e geram um protocolo impresso nas moldeiras e na OS.
 const RESPONSIBLES = ['AUXILIAR', 'DENTISTA', 'RECEPCAO', 'LABORATORIO']
@@ -19,6 +20,14 @@ const parseDay = (v: unknown) => {
 }
 const phoneOk = (v: string) => v.replace(/\D/g, '').length >= 10
 
+// Quem só tem a função de laboratório (não é administrador) não enxerga o código: ele vem impresso na ordem que acompanha o trabalho.
+async function labOnly(req: AuthRequest) {
+  if (req.user!.role === 'ADMIN') return false
+  return (await getUserPermissionCodes(req.user!.id)).includes('laboratory.receive')
+}
+const hide = <T extends { receiptCode?: string | null }>(o: T) => ({ ...o, receiptCode: undefined })
+const attempts = new Map<string, { n: number; until: number }>()
+
 async function userName(userId: string) {
   const u = await prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, email: true } })
   return u ? `${u.firstName} ${u.lastName}`.trim() || u.email : null
@@ -32,7 +41,7 @@ export async function list(req: AuthRequest, res: Response) {
       where: { clinicId, tenantId, ...(status ? { status } : {}) },
       orderBy: { createdAt: 'desc' }, take: 500
     })
-    return res.json(rows)
+    return res.json((await labOnly(req)) ? rows.map(hide) : rows)
   } catch (error) {
     console.error('Erro ao listar ordens do laboratório:', error)
     return res.status(500).json({ error: 'Erro ao listar as ordens de serviço.' })
@@ -79,7 +88,7 @@ export async function create(req: AuthRequest, res: Response) {
       const protocol = `OS-${year}-${String(count + 1 + attempt).padStart(4, '0')}`
       try {
         order = await prisma.labServiceOrder.create({
-          data: { clinicId, tenantId, protocol, patientId, appointmentId: b.appointmentId ? text(b.appointmentId, 60) : null, ...data, sentAt, dueAt, ...flags, createdById: userId, createdByName }
+          data: { clinicId, tenantId, protocol, patientId, appointmentId: b.appointmentId ? text(b.appointmentId, 60) : null, ...data, sentAt, dueAt, ...flags, createdById: userId, createdByName, receiptCode: String(randomInt(100000, 1000000)) }
         })
       } catch (error) {
         if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) throw error
@@ -87,7 +96,7 @@ export async function create(req: AuthRequest, res: Response) {
     }
     if (!order) return res.status(409).json({ error: 'Não foi possível gerar o número de protocolo. Tente novamente.' })
     await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: 'LAB_ORDER_CREATE', entityType: 'LabServiceOrder', entityId: order.id, summary: `Ordem ${order.protocol} enviada a ${order.laboratoryName} (${order.patientName}).` }).catch((e: unknown) => console.error(e))
-    return res.status(201).json(order)
+    return res.status(201).json((await labOnly(req)) ? hide(order) : order)
   } catch (error) {
     console.error('Erro ao criar ordem do laboratório:', error)
     return res.status(500).json({ error: 'Erro ao criar a ordem de serviço.' })
@@ -106,6 +115,14 @@ export async function receipt(req: AuthRequest, res: Response) {
     const order = await loadOrder(req)
     if (!order) return res.status(404).json({ error: 'Ordem de serviço não encontrada.' })
     if (order.status !== 'SENT') return res.status(409).json({ error: 'Esta ordem já teve o recebimento registrado.' })
+    const lock = attempts.get(order.id)
+    if (lock && lock.until > Date.now()) return res.status(429).json({ error: 'Muitas tentativas com código errado. Aguarde alguns minutos.' })
+    if (order.receiptCode && String(req.body?.code ?? '').replace(/\D/g, '') !== order.receiptCode) {
+      const n = (lock?.n || 0) + 1
+      attempts.set(order.id, { n: n >= 5 ? 0 : n, until: n >= 5 ? Date.now() + 10 * 60 * 1000 : 0 })
+      return res.status(400).json({ error: 'Código de recebimento incorreto. Confira o código impresso na ordem de serviço.' })
+    }
+    attempts.delete(order.id)
     const outcome = String(req.body?.outcome || '').toUpperCase()
     if (!['RECEIVED', 'REFUSED'].includes(outcome)) return res.status(400).json({ error: 'Informe se o laboratório recebeu ou recusou.' })
     const name = text(req.body?.receivedByName, 120)
@@ -117,7 +134,7 @@ export async function receipt(req: AuthRequest, res: Response) {
       data: { status: outcome, receivedAt: new Date(), receivedByName: name, refusalReason: outcome === 'REFUSED' ? reason : null }
     })
     await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: outcome === 'RECEIVED' ? 'LAB_ORDER_RECEIVED' : 'LAB_ORDER_REFUSED', entityType: 'LabServiceOrder', entityId: order.id, summary: `${order.protocol}: ${outcome === 'RECEIVED' ? 'recebido' : 'recusado'} por ${name}${reason ? ` — ${reason}` : ''}.` }).catch((e: unknown) => console.error(e))
-    return res.json(updated)
+    return res.json(hide(updated))
   } catch (error) {
     console.error('Erro ao registrar recebimento:', error)
     return res.status(500).json({ error: 'Erro ao registrar o recebimento.' })
@@ -176,5 +193,17 @@ export async function deliver(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error('Erro ao registrar entrega:', error)
     return res.status(500).json({ error: 'Erro ao registrar a entrega.' })
+  }
+}
+
+// Ordens novas aguardando o laboratório confirmar o recebimento (aparecem como notificação para quem tem a função de laboratório).
+export async function pendingReceipt(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId } = ctx(req)
+    const rows = await prisma.labServiceOrder.findMany({ where: { clinicId, tenantId, status: 'SENT' }, orderBy: { createdAt: 'desc' }, take: 100 })
+    return res.json(rows.map(hide))
+  } catch (error) {
+    console.error('Erro ao listar ordens pendentes:', error)
+    return res.status(500).json({ error: 'Erro ao listar as ordens pendentes.' })
   }
 }
