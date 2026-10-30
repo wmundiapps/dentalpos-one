@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import PageHeader from "../components/PageHeader";
+import WorkplacesTab from "../components/hr/WorkplacesTab";
 import HrVaultGate from "../components/hr/HrVaultGate";
 import EmployeesTab from "../components/hr/EmployeesTab";
 import TimesheetTab from "../components/hr/TimesheetTab";
@@ -39,7 +40,7 @@ function HumanResourcesContent() {
       </Box>
       <Paper sx={{ borderRadius: 3, overflow: "hidden" }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable">
-          <Tab label="Colaboradores" /><Tab label="Ponto e banco de horas" /><Tab label={`Justificativas${pending ? ` (${pending})` : ""}`} /><Tab label="Folha" /><Tab label="Férias" /><Tab label="Documentos" /><Tab label="Ocorrências" />
+          <Tab label="Colaboradores" /><Tab label="Ponto e banco de horas" /><Tab label={`Justificativas${pending ? ` (${pending})` : ""}`} /><Tab label="Folha" /><Tab label="Férias" /><Tab label="Documentos" /><Tab label="Ocorrências" /><Tab label="Polos (ponto)" />
         </Tabs>
         {tab === 0 && <EmployeesTab employees={employees} onChanged={() => void load()} />}
         {tab === 1 && <TimesheetTab employees={employees} canEdit />}
@@ -48,6 +49,7 @@ function HumanResourcesContent() {
         {tab === 4 && <RecordsTab kind="vacations" employees={active} />}
         {tab === 5 && <RecordsTab kind="documents" employees={active} />}
         {tab === 6 && <RecordsTab kind="discipline" employees={active} />}
+        {tab === 7 && <WorkplacesTab />}
       </Paper>
     </Box>
   );

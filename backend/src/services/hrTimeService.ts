@@ -143,8 +143,17 @@ export async function punch(c: TimeCtx, meta: { ip: string; userAgent: string },
 }
 
 // Registra a batida (senha ou rosto): confere local/IP, ordem das 4 batidas e intervalo mínimo.
-async function recordPunch(emp: { id: string; name: string }, c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, method: 'PASSWORD' | 'FACE', extraNote?: string) {
-  const s = await getTimeSettings(c.clinicId)
+export type Place = { id: string; name: string; latitude: number; longitude: number; radiusMeters: number }
+// Polo: o ponto só vale dentro do raio do local cadastrado do polo (localização obrigatória e bloqueio fora do raio).
+function assertWorkplace(emp: { workplaceId?: string | null }, place?: Place) {
+  if (place) { if (emp.workplaceId !== place.id) throw new HrError(403, `Você não está cadastrado no polo ${place.name}. Fale com o RH.`) }
+  else if (emp.workplaceId) throw new HrError(403, 'O seu ponto é registrado no celular do seu polo, pelo link do polo. Fale com o RH se precisar de ajuda.')
+}
+
+async function recordPunch(emp: { id: string; name: string }, c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, method: 'PASSWORD' | 'FACE', extraNote?: string, place?: Place) {
+  const base = await getTimeSettings(c.clinicId)
+  const s = place ? { ...base, latitude: place.latitude, longitude: place.longitude, radiusMeters: place.radiusMeters, requireLocation: true, blockOutside: true, allowedIps: [] as string[] } : base
+  if (place && Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > 150) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
   const lat = body?.latitude === undefined || body?.latitude === null ? null : Number(body.latitude)
   const lng = body?.longitude === undefined || body?.longitude === null ? null : Number(body.longitude)
   const hasGeo = lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng)
@@ -162,8 +171,8 @@ async function recordPunch(emp: { id: string; name: string }, c: { clinicId: str
   const note = [
     ipOk === null ? null : `IP ${ipOk ? 'autorizado' : 'fora da lista'}`,
     geoOk === null ? (s.latitude === null ? null : 'sem localização') : `${Math.round(distance as number)} m do local (${geoOk ? 'dentro' : 'fora'} do raio)`,
-  ].concat(extraNote ? [extraNote] : []).filter(Boolean).join(' · ') || null
-  if (s.blockOutside && inside === false) throw new HrError(403, 'O ponto só pode ser registrado no ambiente de trabalho.')
+  ].concat(place ? [`Polo ${place.name}`] : []).concat(extraNote ? [extraNote] : []).filter(Boolean).join(' · ') || null
+  if (s.blockOutside && inside === false) throw new HrError(403, place ? `Você está a ${Math.round(distance ?? 0)} m do polo ${place.name}. O ponto só pode ser batido a até ${place.radiusMeters} m do polo.` : 'O ponto só pode ser registrado no ambiente de trabalho.')
 
   const now = new Date()
   const today = dayKey(now)
@@ -192,7 +201,7 @@ async function emailConfirmation(clinicId: string, emp: { name: string; email: s
   await dispatchRevah('EMAIL', to, message, { apiKey, subject: `Ponto registrado: ${r.label} às ${r.time}${clinic?.name ? ` — ${clinic.name}` : ''}` }, 'CompletoDonto <contato@dentalpos.com.br>').catch((e: unknown) => console.error('Comprovante de ponto falhou:', e))
 }
 
-export async function facePunch(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any) {
+export async function facePunch(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, place?: Place) {
   const key = `${c.clinicId}:${String(body?.cpf || '').replace(/\D/g, '')}`
   const lock = faceFailures.get(key)
   if (lock && lock.until > Date.now()) throw new HrError(429, 'Muitas tentativas. Aguarde alguns minutos ou fale com o RH.')
@@ -200,6 +209,7 @@ export async function facePunch(c: { clinicId: string; tenantId: string; userId:
   if (m.status === 'CPF') throw new HrError(400, 'Digite o CPF com 11 números.')
   if (m.status === 'INVALID') throw new HrError(400, 'Captura do rosto inválida. Tente de novo.')
   if (m.status === 'NOT_FOUND') throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores.')
+  assertWorkplace(m.employee, place)
   if (m.status === 'NO_FACE') throw new HrError(404, 'Primeiro acesso: vamos cadastrar o seu rosto.', { code: 'NO_FACE', employeeName: m.employee.name })
   if (m.status === 'MISMATCH') {
     const f = faceFailures.get(key) || { count: 0, until: 0 }
@@ -210,7 +220,7 @@ export async function facePunch(c: { clinicId: string; tenantId: string; userId:
   }
   faceFailures.delete(key)
   const emp = m.employee
-  const result = await recordPunch(emp, c, meta, body, 'FACE', `rosto conferido com o CPF (distância ${m.distance.toFixed(2)})`)
+  const result = await recordPunch(emp, c, meta, body, 'FACE', `rosto conferido com o CPF (distância ${m.distance.toFixed(2)})`, place)
   await savePunchPhoto(c, result.id, emp.id, body?.photo)
   await emailConfirmation(c.clinicId, emp, result)
   return { ...result, employeeName: emp.name }
@@ -462,13 +472,14 @@ export async function decideRequest(c: { clinicId: string; tenantId: string; act
 
 // Primeiro acesso no aparelho da clínica: o próprio colaborador (que digitou o CPF) cadastra o rosto, com consentimento, e já bate o ponto.
 const enrollFailures = new Map<string, { count: number; until: number }>()
-export async function firstFaceEnroll(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any) {
+export async function firstFaceEnroll(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, place?: Place) {
   const key = `${c.clinicId}:${String(body?.cpf || '').replace(/\D/g, '')}`
   const lock = enrollFailures.get(key)
   if (lock && lock.until > Date.now()) throw new HrError(429, 'Muitas tentativas. Aguarde alguns minutos ou fale com o RH.')
   enrollFailures.set(key, { count: (lock?.count || 0) + 1, until: (lock?.count || 0) + 1 >= 5 ? Date.now() + 10 * 60 * 1000 : 0 })
   const emp = await findByCpf(c.clinicId, c.tenantId, body?.cpf)
   if (!emp) throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores. Fale com o RH.')
+  assertWorkplace(emp, place)
   if (await hasFace(c.clinicId, emp.id)) throw new HrError(409, 'Seu rosto já está cadastrado. Volte e bata o ponto normalmente; se mudou muito, fale com o RH.')
   const samples = body?.samples
   if (!Array.isArray(samples) || samples.length < 3 || samples.length > 5 || !samples.every(validVector)) throw new HrError(400, 'Captura do rosto inválida. Tente de novo, olhando de frente, com boa luz.')
@@ -476,13 +487,13 @@ export async function firstFaceEnroll(c: { clinicId: string; tenantId: string; u
   const r = await enrollFace({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.userId }, emp.id, { consent: body?.consent === true, samples, photo: body.photo }) as { error?: string; status?: number }
   if (r.error) throw new HrError(r.status || 400, r.error)
   enrollFailures.delete(key)
-  const result = await facePunch(c, meta, { ...body, descriptor: samples[0] })
+  const result = await facePunch(c, meta, { ...body, descriptor: samples[0] }, place)
   return { ...result, enrolled: true }
 }
 
 // Primeira tela do ponto: o CPF já diz se a pessoa existe e se o rosto está cadastrado (evita abrir a câmera à toa).
 const cpfChecks = new Map<string, { count: number; reset: number }>()
-export async function cpfCheck(c: { clinicId: string; tenantId: string }, ip: string, body: any) {
+export async function cpfCheck(c: { clinicId: string; tenantId: string }, ip: string, body: any, place?: Place) {
   const k = `${c.clinicId}:${ip}`
   const cur = cpfChecks.get(k)
   const now = Date.now()
@@ -492,5 +503,6 @@ export async function cpfCheck(c: { clinicId: string; tenantId: string }, ip: st
   if (st.count > 60) throw new HrError(429, 'Muitas consultas. Aguarde alguns minutos.')
   const emp = await findByCpf(c.clinicId, c.tenantId, body?.cpf)
   if (!emp) throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores. Fale com o RH.')
+  assertWorkplace(emp, place)
   return { found: true, employeeName: emp.name, hasFace: await hasFace(c.clinicId, emp.id) }
 }

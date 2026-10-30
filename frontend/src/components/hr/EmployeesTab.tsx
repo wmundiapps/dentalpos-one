@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { setEmployeePortalPassword } from "../../services/HrFaceApi";
 import EmployeeFaceDialog from "./EmployeeFaceDialog";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Typography } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
-import { HrApi, fmtDate, money, type Employee } from "../../services/HrApi";
+import { HrApi, type Workplace, fmtDate, money, type Employee } from "../../services/HrApi";
 
 const CATEGORIES = ["Cirurgião-dentista", "ASB", "TSB", "Técnico em Prótese Dentária", "Auxiliar de Laboratório", "Recepção", "Administrativo", "Financeiro", "Comercial", "Marketing", "Zeladoria", "Manutenção", "Professor", "Tutor", "Representante", "Estagiário", "Outro"];
 const MODELS = ["CLT", "PJ", "Autônomo", "Estágio", "Diária", "Percentual", "Locação de espaço", "Terceirizado"];
 export const STATUS_OPTIONS: Array<[string, string]> = [["ACTIVE", "Ativo"], ["EXPERIENCE", "Experiência"], ["VACATION", "Férias"], ["LEAVE", "Afastado"], ["NOTICE", "Aviso-prévio"], ["TERMINATED", "Desligado"]];
 const today = () => new Date().toISOString().slice(0, 10);
-const blank = { name: "", category: "Outro", position: "", department: "", employmentModel: "CLT", status: "ACTIVE", admissionDate: today(), experienceEndDate: "", baseSalary: "", monthlyWorkload: "220", supervisor: "", phone: "", email: "", cpf: "", pixKey: "", notes: "", workStart: "", lunchStart: "", lunchEnd: "", workEnd: "" };
+const blank = { name: "", category: "Outro", position: "", department: "", employmentModel: "CLT", status: "ACTIVE", admissionDate: today(), experienceEndDate: "", baseSalary: "", monthlyWorkload: "220", supervisor: "", phone: "", email: "", cpf: "", pixKey: "", notes: "", workStart: "", lunchStart: "", lunchEnd: "", workEnd: "", workplaceId: "" };
 
 export default function EmployeesTab({ employees, onChanged }: { employees: Employee[]; onChanged: () => void }) {
   const [search, setSearch] = useState("");
@@ -22,13 +22,15 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
   const [pwd, setPwd] = useState("");
   const [pwdMsg, setPwdMsg] = useState("");
   const savePwd = async () => { if (!pwdFor) return; try { await setEmployeePortalPassword(pwdFor.id, pwd); setPwdMsg("Senha salva. Passe ao colaborador o endereço app.completodonto.com.br/colaborador."); setPwd(""); } catch (e) { setPwdMsg(e instanceof Error ? e.message : "Não foi possível salvar."); } };
+  const [places, setPlaces] = useState<Workplace[]>([]);
+  useEffect(() => { HrApi.workplaces().then(setPlaces).catch(() => undefined); }, []);
   const [faceFor, setFaceFor] = useState<{ id: string; name: string } | null>(null);
   const set = (k: keyof typeof blank) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
   const openNew = () => { setEditing(null); setForm(blank); setError(""); setOpen(true); };
   const openEdit = (e: Employee) => {
     setEditing(e); setError("");
-    setForm({ name: e.name, category: e.category, position: e.position, department: e.department, employmentModel: e.employmentModel, status: e.status, admissionDate: e.admissionDate.slice(0, 10), experienceEndDate: (e.experienceEndDate || "").slice(0, 10), baseSalary: String(e.baseSalary ?? ""), monthlyWorkload: String(e.monthlyWorkload), supervisor: e.supervisor || "", phone: e.phone || "", email: e.email || "", cpf: e.cpf || "", pixKey: e.pixKey || "", notes: e.notes || "", workStart: e.workStart || "", lunchStart: e.lunchStart || "", lunchEnd: e.lunchEnd || "", workEnd: e.workEnd || "" });
+    setForm({ name: e.name, category: e.category, position: e.position, department: e.department, employmentModel: e.employmentModel, status: e.status, admissionDate: e.admissionDate.slice(0, 10), experienceEndDate: (e.experienceEndDate || "").slice(0, 10), baseSalary: String(e.baseSalary ?? ""), monthlyWorkload: String(e.monthlyWorkload), supervisor: e.supervisor || "", phone: e.phone || "", email: e.email || "", cpf: e.cpf || "", pixKey: e.pixKey || "", notes: e.notes || "", workStart: e.workStart || "", lunchStart: e.lunchStart || "", lunchEnd: e.lunchEnd || "", workEnd: e.workEnd || "", workplaceId: e.workplaceId || "" });
     setOpen(true);
   };
   const save = async () => {
@@ -80,6 +82,10 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
           <TextField type="date" label="Admissão" value={form.admissionDate} onChange={set("admissionDate")} slotProps={{ inputLabel: { shrink: true } }} />
           <TextField type="date" label="Fim da experiência" value={form.experienceEndDate} onChange={set("experienceEndDate")} slotProps={{ inputLabel: { shrink: true } }} />
           <TextField label="Salário-base mensal" type="number" value={form.baseSalary} onChange={set("baseSalary")} />
+          <TextField select label="Polo / unidade onde bate o ponto" value={form.workplaceId} onChange={set("workplaceId")} sx={{ gridColumn: "1 / -1" }} helperText="Em branco: bate o ponto no celular da clínica. Com polo: só bate pelo link do polo, dentro do raio do polo.">
+            <MenuItem value="">Clínica (celular da clínica)</MenuItem>
+            {places.filter((p) => p.isActive).map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
+          </TextField>
           <Box sx={{ gridColumn: "1 / -1" }}>
             <Typography sx={{ fontWeight: 800, mb: 0.5 }}>Horário de trabalho do colaborador</Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 1.5 }}>

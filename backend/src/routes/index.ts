@@ -50,6 +50,7 @@ import * as security from '../controllers/securityController'
 import * as face from '../controllers/faceController'
 import { portalAuth } from '../services/hrPortalService'
 import { requireHrVault } from '../services/hrVaultService'
+import { poloAuth } from '../services/hrWorkplaceService'
 import * as condoSplit from '../controllers/condoSplitController'
 import * as followUp from '../controllers/followUpController'
 import * as hrTime from '../controllers/hrTimeController'
@@ -115,6 +116,13 @@ router.all('/cron/reminders', cronController.reminders)
 router.all('/cron/revah-sync', revahBridgeController.cronSync)
 router.use(prospectPublicRouter)
 router.post('/revah-bridge/webhook/:clinicId', revahBridgeController.webhook)
+
+// PONTO DO POLO (celular do polo: PIN do aparelho + CPF + rosto, só dentro do raio do polo)
+router.get('/public/ponto/:slug', hrTime.poloInfo)
+router.post('/public/ponto/:slug/unlock', hrTime.poloUnlock)
+router.post('/public/ponto/:slug/cpf-check', poloAuth, hrTime.poloCpfCheck)
+router.post('/public/ponto/:slug/face-punch', poloAuth, hrTime.poloFacePunch)
+router.post('/public/ponto/:slug/face-first-enroll', poloAuth, hrTime.poloFirstEnroll)
 
 // ÁREA DO COLABORADOR (CPF + senha individual)
 router.post('/public/colaborador/login', hrTime.portalLogin)
@@ -442,6 +450,10 @@ router.post('/hr/vault/setup', requirePermission('hr.view'), hrTime.vaultSetup)
 router.post('/hr/vault/unlock', requirePermission('hr.view'), hrTime.vaultUnlock)
 router.post('/hr/vault/reset/request', requirePermission('hr.view'), hrTime.vaultResetRequest)
 router.post('/hr/vault/reset/confirm', requirePermission('hr.view'), hrTime.vaultResetConfirm)
+router.get('/hr/workplaces', requirePermission('hr.view'), hrTime.workplaceList)
+router.post('/hr/workplaces', requirePermission('hr.edit'), hrTime.workplaceSave)
+router.put('/hr/workplaces/:id', requirePermission('hr.edit'), hrTime.workplaceSave)
+router.put('/hr/workplaces/:id/pin', requirePermission('hr.edit'), hrTime.workplacePin)
 router.get('/hr/dashboard', requirePermission('hr.view'), hrController.dashboard)
 router.get('/hr/employees', requirePermission('hr.view'), hrController.employees)
 router.post('/hr/employees', requirePermission('hr.create'), hrController.createEmployee)

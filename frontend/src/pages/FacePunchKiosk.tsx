@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Paper, TextField, Typography } from "@mui/material";
 import PageHeader from "../components/PageHeader";
 import { describeFace, loadFaceApi, snapshot, useCamera } from "../utils/faceCamera";
-import { cpfCheck, facePunch, firstFaceEnroll, type FacePunchResult } from "../services/HrFaceApi";
+import { clinicPunchApi, type FacePunchResult, type PunchApi } from "../services/HrFaceApi";
 import { Button as MuiButton, Checkbox, FormControlLabel } from "@mui/material";
 
 type Geo = { latitude?: number; longitude?: number; accuracy?: number };
@@ -13,7 +13,7 @@ const maskCpf = (v: string) => {
 };
 
 // Ponto no celular/tablet fixo da clínica: o colaborador digita o CPF, a câmera confere o rosto com o cadastro e a foto fica como comprovante.
-export default function FacePunchKiosk() {
+export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto por rosto", description = "Digite o CPF, olhe para a câmera e o ponto é registrado com a hora, o local e a foto.", embedded = false }: { api?: PunchApi; title?: string; description?: string; embedded?: boolean } = {}) {
   const [cpf, setCpf] = useState("");
   const [step, setStep] = useState<"cpf" | "camera" | "enroll">("cpf");
   const [firstName, setFirstName] = useState("");
@@ -58,14 +58,15 @@ export default function FacePunchKiosk() {
     if (checking || cpfDigits.length !== 11) return;
     setChecking(true); setProblem("");
     try {
-      const c = await cpfCheck(cpfDigits);
+      const c = await api.cpfCheck(cpfDigits);
       if (c.hasFace) setStep("camera"); else { setFirstName(c.employeeName); setStep("enroll"); }
     } catch (e) { setProblem(e instanceof Error ? e.message : "Não foi possível verificar o CPF."); }
     finally { setChecking(false); }
   };
   return (
     <Box>
-      <PageHeader title="Ponto por rosto" description="Digite o CPF, olhe para a câmera e o ponto é registrado com a hora, o local e a foto." />
+      {embedded ? <Typography variant="h5" sx={{ fontWeight: 900, textAlign: "center", mb: 0.5 }}>{title}</Typography> : <PageHeader title={title} description={description} />}
+      {embedded && <Typography color="text.secondary" sx={{ textAlign: "center", mb: 2 }}>{description}</Typography>}
       {geoMsg && <Alert severity="warning" sx={{ mb: 2 }}>{geoMsg}</Alert>}
       {result ? (
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 3, textAlign: "center", maxWidth: 520, mx: "auto" }}>
@@ -81,15 +82,15 @@ export default function FacePunchKiosk() {
           <Button variant="contained" size="large" disabled={cpfDigits.length !== 11 || checking} onClick={() => void proceed()}>{checking ? "Verificando…" : "Continuar"}</Button>
         </Paper>
       ) : step === "enroll" ? (
-        <EnrollStep cpf={cpfDigits} name={firstName} geo={geo} onDone={(r) => { setResult(r); speak(`${r.employeeName.split(" ")[0]}, rosto cadastrado e ${r.label} registrada às ${r.time}`); }} onFail={(m) => { setProblem(m); setStep("cpf"); }} onCancel={reset} />
+        <EnrollStep api={api} cpf={cpfDigits} name={firstName} geo={geo} onDone={(r) => { setResult(r); speak(`${r.employeeName.split(" ")[0]}, rosto cadastrado e ${r.label} registrada às ${r.time}`); }} onFail={(m) => { setProblem(m); setStep("cpf"); }} onCancel={reset} />
       ) : (
-        <CameraStep cpf={cpfDigits} geo={geo} onDone={(r) => { setResult(r); speak(`${r.employeeName.split(" ")[0]}, ${r.label} registrada às ${r.time}`); }} onFail={(m, code, name) => { if (code === "NO_FACE") { setFirstName(name || ""); setStep("enroll"); return; } setProblem(m); setStep("cpf"); }} onCancel={reset} />
+        <CameraStep api={api} cpf={cpfDigits} geo={geo} onDone={(r) => { setResult(r); speak(`${r.employeeName.split(" ")[0]}, ${r.label} registrada às ${r.time}`); }} onFail={(m, code, name) => { if (code === "NO_FACE") { setFirstName(name || ""); setStep("enroll"); return; } setProblem(m); setStep("cpf"); }} onCancel={reset} />
       )}
     </Box>
   );
 }
 
-function CameraStep({ cpf, geo, onDone, onFail, onCancel }: { cpf: string; geo: React.MutableRefObject<Geo>; onDone: (r: FacePunchResult) => void; onFail: (m: string, code?: string, name?: string) => void; onCancel: () => void }) {
+function CameraStep({ api, cpf, geo, onDone, onFail, onCancel }: { api: PunchApi; cpf: string; geo: React.MutableRefObject<Geo>; onDone: (r: FacePunchResult) => void; onFail: (m: string, code?: string, name?: string) => void; onCancel: () => void }) {
   const { videoRef, ready, error: camError } = useCamera(true);
   const [hint, setHint] = useState("Carregando o reconhecimento…");
 
@@ -111,7 +112,7 @@ function CameraStep({ cpf, geo, onDone, onFail, onCancel }: { cpf: string; geo: 
           if (d.count > 1) setHint("Uma pessoa por vez, por favor.");
           else if (d.descriptor) {
             setHint("Conferindo…");
-            try { onDone(await facePunch(cpf, d.descriptor, snapshot(videoRef.current), geo.current)); }
+            try { onDone(await api.facePunch(cpf, d.descriptor, snapshot(videoRef.current), geo.current)); }
             catch (e) { const x = e as Error & { code?: string; employeeName?: string }; onFail(x instanceof Error ? x.message : "Não foi possível registrar o ponto.", x.code, x.employeeName); }
             return;
           } else setHint("Olhe de frente para a câmera.");
@@ -138,7 +139,7 @@ function CameraStep({ cpf, geo, onDone, onFail, onCancel }: { cpf: string; geo: 
 }
 
 // Primeiro acesso: o colaborador confirma que é ele, aceita o uso do rosto e o sistema tira as fotos para reconhecer nas próximas vezes.
-function EnrollStep({ cpf, name, geo, onDone, onFail, onCancel }: { cpf: string; name: string; geo: React.MutableRefObject<Geo>; onDone: (r: FacePunchResult) => void; onFail: (m: string) => void; onCancel: () => void }) {
+function EnrollStep({ api, cpf, name, geo, onDone, onFail, onCancel }: { api: PunchApi; cpf: string; name: string; geo: React.MutableRefObject<Geo>; onDone: (r: FacePunchResult) => void; onFail: (m: string) => void; onCancel: () => void }) {
   const [agree, setAgree] = useState(false);
   const [started, setStarted] = useState(false);
   const [hint, setHint] = useState("");
@@ -165,7 +166,7 @@ function EnrollStep({ cpf, name, geo, onDone, onFail, onCancel }: { cpf: string;
       }
       if (stop || samples.length < 3) return;
       setHint("Salvando o seu cadastro…");
-      try { onDone(await firstFaceEnroll(cpf, samples, photo, geo.current)); }
+      try { onDone(await api.firstFaceEnroll(cpf, samples, photo, geo.current)); }
       catch (e) { onFail(e instanceof Error ? e.message : "Não foi possível cadastrar o rosto."); }
     })();
     return () => { stop = true; };

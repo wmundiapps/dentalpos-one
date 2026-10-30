@@ -4,6 +4,7 @@ import * as hr from '../services/hrTimeService'
 import * as hrFace from '../services/hrFaceService'
 import * as hrPortal from '../services/hrPortalService'
 import * as hrVault from '../services/hrVaultService'
+import * as hrWorkplace from '../services/hrWorkplaceService'
 
 type AuthedReq = Request & { user?: { id: string; email: string; clinicId: string; tenantId: string; role: string } }
 
@@ -108,3 +109,16 @@ export const vaultSetup = wrap(async (req, res) => vaultReply(res, await hrVault
 export const vaultUnlock = wrap(async (req, res) => vaultReply(res, await hrVault.unlock(vaultCtx(req), req.body) as never))
 export const vaultResetRequest = wrap(async (req, res) => vaultReply(res, await hrVault.requestReset(vaultCtx(req)) as never))
 export const vaultResetConfirm = wrap(async (req, res) => vaultReply(res, await hrVault.confirmReset(vaultCtx(req), req.body) as never))
+
+// ---- polos (RH) e ponto público do celular do polo ----
+const wpReply = (res: Response, r: { error?: string; status?: number }) => (r.error ? res.status(r.status || 400).json({ error: r.error }) : res.json(r))
+export const workplaceList = wrap(async (req, res) => res.json(await hrWorkplace.list(req.user!.clinicId)))
+export const workplaceSave = wrap(async (req, res) => wpReply(res, await hrWorkplace.save(orgCtx(req), (req.params.id as string) || null, req.body) as never))
+export const workplacePin = wrap(async (req, res) => wpReply(res, await hrWorkplace.setPin(orgCtx(req), idOf(req), req.body?.pin) as never))
+export const poloInfo = wrap(async (req, res) => { const r = await hrWorkplace.publicInfo(String(req.params.slug)); return r ? res.json(r) : res.status(404).json({ error: 'Polo não encontrado.' }) })
+export const poloUnlock = wrap(async (req, res) => wpReply(res, await hrWorkplace.unlock(String(req.params.slug), req.body?.pin, clientIp(req)) as never))
+const poloCtx = (req: Request) => (req as hrWorkplace.PoloReq).polo!
+const meta = (req: Request) => ({ ip: clientIp(req), userAgent: String(req.headers['user-agent'] || '') })
+export const poloCpfCheck = wrap(async (req, res) => { const p = poloCtx(req); res.json(await hr.cpfCheck({ clinicId: p.clinicId, tenantId: p.tenantId }, clientIp(req), req.body, p.place)) })
+export const poloFacePunch = wrap(async (req, res) => { const p = poloCtx(req); res.json(await hr.facePunch({ clinicId: p.clinicId, tenantId: p.tenantId, userId: `polo:${p.place.id}` }, meta(req), req.body, p.place)) })
+export const poloFirstEnroll = wrap(async (req, res) => { const p = poloCtx(req); res.json(await hr.firstFaceEnroll({ clinicId: p.clinicId, tenantId: p.tenantId, userId: `polo:${p.place.id}` }, meta(req), req.body, p.place)) })

@@ -1127,6 +1127,7 @@ model HREmployee {
   pixKey              String?
   notes               String?
   createdAt           DateTime               @default(now())
+  workplaceId         String?
   workStart           String?
   lunchStart          String?
   lunchEnd            String?
@@ -2660,6 +2661,26 @@ model AppointmentMarkerLink {
 
   @@id([appointmentId, markerId])
   @@index([clinicId, appointmentId])
+}
+
+// Polo/unidade onde o colaborador bate o ponto (celular do polo, com a localização exata e o raio permitido).
+model HRWorkplace {
+  id           String   @id @default(cuid())
+  clinicId     String
+  tenantId     String
+  name         String
+  slug         String
+  address      String?
+  latitude     Float
+  longitude    Float
+  radiusMeters Int      @default(150)
+  pinHash      String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([clinicId, slug])
+  @@index([slug])
 }
 
 // Foto tirada no momento da batida pelo rosto (comprovação), consultada pelo RH no detalhe da folha.
