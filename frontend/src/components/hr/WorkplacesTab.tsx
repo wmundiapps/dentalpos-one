@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from "@mui/material";
 import { HrApi, type Workplace } from "../../services/HrApi";
 
-const blank = { name: "", address: "", latitude: "", longitude: "", radiusMeters: "150", maps: "" };
+const blank = { name: "", address: "", latitude: "", longitude: "", radiusMeters: "150", maps: "", remote: false };
 const linkOf = (w: Workplace) => `${window.location.origin}/ponto/${w.slug}`;
 
 // Polos/unidades: local exato (para ninguém bater ponto fora do polo), raio permitido, PIN do aparelho e link do ponto de cada polo.
@@ -23,7 +23,7 @@ export default function WorkplacesTab() {
   const set = (k: keyof typeof blank) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const openNew = () => { setEditing(null); setForm(blank); setAccuracy(null); setError(""); setOpen(true); };
-  const openEdit = (w: Workplace) => { setEditing(w); setForm({ name: w.name, address: w.address || "", latitude: String(w.latitude), longitude: String(w.longitude), radiusMeters: String(w.radiusMeters), maps: "" }); setAccuracy(null); setError(""); setOpen(true); };
+  const openEdit = (w: Workplace) => { setEditing(w); setForm({ name: w.name, address: w.address || "", latitude: String(w.latitude), longitude: String(w.longitude), radiusMeters: String(w.radiusMeters), maps: "", remote: false }); setAccuracy(null); setError(""); setOpen(true); };
 
   const capture = () => {
     if (!navigator.geolocation) { setError("Este aparelho não informa a localização."); return; }
@@ -41,7 +41,7 @@ export default function WorkplacesTab() {
 
   const save = async () => {
     setBusy(true); setError("");
-    try { await HrApi.saveWorkplace(editing?.id || null, { name: form.name, address: form.address, latitude: form.latitude, longitude: form.longitude, radiusMeters: form.radiusMeters }); setOpen(false); await load(); setNotice("Polo salvo."); }
+    try { await HrApi.saveWorkplace(editing?.id || null, { name: form.name, address: form.address, latitude: form.latitude, longitude: form.longitude, radiusMeters: form.radiusMeters, pendingCalibration: form.remote }); setOpen(false); await load(); setNotice("Polo salvo."); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar."); } finally { setBusy(false); }
   };
   const savePin = async () => {
@@ -69,10 +69,13 @@ export default function WorkplacesTab() {
           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
             <Chip size="small" label={`${w.employees} colaborador(es)`} />
             <Chip size="small" color={w.hasPin ? "success" : "warning"} label={w.hasPin ? "PIN definido" : "Sem PIN"} />
+            {w.pending ? <Chip size="small" color="error" label="Local ainda não definido" /> : w.calibratedAt ? <Chip size="small" color="success" variant="outlined" label={`Local confirmado no polo ±${w.calibratedAccuracy ?? "?"} m em ${new Date(w.calibratedAt).toLocaleDateString("pt-BR")}`} /> : null}
+            {w.calibrating && <Chip size="small" color="warning" label="Local será definido no próximo primeiro acesso" />}
           </Box>
           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
             <Button size="small" onClick={() => { void navigator.clipboard?.writeText(linkOf(w)); setNotice(`Link do polo ${w.name} copiado.`); }}>Copiar link</Button>
             <Button size="small" onClick={() => { setPinFor(w); setPin(""); }}>PIN</Button>
+            <Button size="small" color={w.calibrating ? "inherit" : "warning"} onClick={async () => { try { await HrApi.setWorkplaceCalibration(w.id, !w.calibrating); await load(); setNotice(w.calibrating ? "Calibragem encerrada." : `Calibragem liberada. O próximo primeiro acesso de colaborador no polo ${w.name} (dentro do polo) define o novo local.`); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível alterar a calibragem."); } }}>{w.calibrating ? "Cancelar refazer local" : "Refazer o local no próximo acesso"}</Button>
             <Button size="small" onClick={() => openEdit(w)}>Editar</Button>
           </Box>
         </Box>
@@ -83,6 +86,7 @@ export default function WorkplacesTab() {
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
           <TextField label="Nome do polo" value={form.name} onChange={set("name")} required />
           <TextField label="Endereço (referência)" value={form.address} onChange={set("address")} />
+          {!editing && <Box component="label" sx={{ display: "flex", alignItems: "flex-start", gap: 1, cursor: "pointer" }}><input type="checkbox" checked={form.remote} onChange={(e) => setForm((f) => ({ ...f, remote: e.target.checked }))} style={{ marginTop: 4 }} /><span><b>O polo é em outra cidade:</b> o local será definido no primeiro acesso de um colaborador, dentro do polo. Você cria o polo e o PIN; o primeiro colaborador a bater o ponto lá, com a localização ligada, define o local do polo.</span></Box>}
           <Alert severity="info">Para ninguém bater ponto fora do polo, o local precisa ser exato. O jeito mais preciso: <b>quem está no polo</b> abre esta tela no celular do polo, fica na recepção e clica em “Capturar a localização deste aparelho”.</Alert>
           <Button variant="outlined" onClick={capture}>Capturar a localização deste aparelho</Button>
           {accuracy !== null && <Alert severity={accuracy <= 50 ? "success" : "warning"}>Localização capturada com precisão de ±{accuracy} m.{accuracy > 50 ? " Está imprecisa: vá para perto de uma janela e capture de novo." : ""}</Alert>}
@@ -95,7 +99,7 @@ export default function WorkplacesTab() {
           {form.latitude && form.longitude && <Button size="small" href={`https://www.google.com/maps?q=${form.latitude},${form.longitude}`} target="_blank" rel="noopener">Conferir no mapa</Button>}
           {error && <Alert severity="error">{error}</Alert>}
         </DialogContent>
-        <DialogActions><Button disabled={busy} onClick={() => setOpen(false)}>Cancelar</Button><Button variant="contained" disabled={busy || form.name.trim().length < 3 || !form.latitude || !form.longitude} onClick={() => void save()}>Salvar polo</Button></DialogActions>
+        <DialogActions><Button disabled={busy} onClick={() => setOpen(false)}>Cancelar</Button><Button variant="contained" disabled={busy || form.name.trim().length < 3 || (!form.remote && (!form.latitude || !form.longitude))} onClick={() => void save()}>Salvar polo</Button></DialogActions>
       </Dialog>
 
       <Dialog open={Boolean(pinFor)} onClose={() => setPinFor(null)} fullWidth maxWidth="xs">

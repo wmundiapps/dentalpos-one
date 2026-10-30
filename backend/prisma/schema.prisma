@@ -2676,6 +2676,9 @@ model HRWorkplace {
   radiusMeters Int      @default(150)
   pinHash      String?
   isActive     Boolean  @default(true)
+  calibrating  Boolean  @default(false)
+  calibratedAt DateTime?
+  calibratedAccuracy Int?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
