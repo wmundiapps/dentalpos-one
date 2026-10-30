@@ -9,7 +9,7 @@ const CATEGORIES = ["Cirurgião-dentista", "ASB", "TSB", "Técnico em Prótese D
 const MODELS = ["CLT", "PJ", "Autônomo", "Estágio", "Diária", "Percentual", "Locação de espaço", "Terceirizado"];
 export const STATUS_OPTIONS: Array<[string, string]> = [["ACTIVE", "Ativo"], ["EXPERIENCE", "Experiência"], ["VACATION", "Férias"], ["LEAVE", "Afastado"], ["NOTICE", "Aviso-prévio"], ["TERMINATED", "Desligado"]];
 const today = () => new Date().toISOString().slice(0, 10);
-const blank = { name: "", category: "Outro", position: "", department: "", employmentModel: "CLT", status: "ACTIVE", admissionDate: today(), experienceEndDate: "", baseSalary: "", monthlyWorkload: "220", supervisor: "", phone: "", email: "", cpf: "", pixKey: "", notes: "", workStart: "", lunchStart: "", lunchEnd: "", workEnd: "", workplaceId: "" };
+const blank = { name: "", category: "Outro", position: "", department: "", employmentModel: "CLT", status: "ACTIVE", admissionDate: today(), experienceEndDate: "", baseSalary: "", monthlyWorkload: "220", supervisor: "", phone: "", email: "", cpf: "", pixKey: "", notes: "", workStart: "", lunchStart: "", lunchEnd: "", workEnd: "", workplaceId: "CLINICA" };
 
 export default function EmployeesTab({ employees, onChanged }: { employees: Employee[]; onChanged: () => void }) {
   const [search, setSearch] = useState("");
@@ -30,7 +30,7 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
   const openNew = () => { setEditing(null); setForm(blank); setError(""); setOpen(true); };
   const openEdit = (e: Employee) => {
     setEditing(e); setError("");
-    setForm({ name: e.name, category: e.category, position: e.position, department: e.department, employmentModel: e.employmentModel, status: e.status, admissionDate: e.admissionDate.slice(0, 10), experienceEndDate: (e.experienceEndDate || "").slice(0, 10), baseSalary: String(e.baseSalary ?? ""), monthlyWorkload: String(e.monthlyWorkload), supervisor: e.supervisor || "", phone: e.phone || "", email: e.email || "", cpf: e.cpf || "", pixKey: e.pixKey || "", notes: e.notes || "", workStart: e.workStart || "", lunchStart: e.lunchStart || "", lunchEnd: e.lunchEnd || "", workEnd: e.workEnd || "", workplaceId: e.workplaceId || "" });
+    setForm({ name: e.name, category: e.category, position: e.position, department: e.department, employmentModel: e.employmentModel, status: e.status, admissionDate: e.admissionDate.slice(0, 10), experienceEndDate: (e.experienceEndDate || "").slice(0, 10), baseSalary: String(e.baseSalary ?? ""), monthlyWorkload: String(e.monthlyWorkload), supervisor: e.supervisor || "", phone: e.phone || "", email: e.email || "", cpf: e.cpf || "", pixKey: e.pixKey || "", notes: e.notes || "", workStart: e.workStart || "", lunchStart: e.lunchStart || "", lunchEnd: e.lunchEnd || "", workEnd: e.workEnd || "", workplaceId: e.workplaceId || "CLINICA" });
     setOpen(true);
   };
   const save = async () => {
@@ -38,7 +38,7 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
     setBusy(true); setError("");
     try {
       await HrApi.saveEmployee(editing?.id || null, {
-        ...form, employeeCode: editing?.employeeCode || `DP-${String(employees.length + 1).padStart(4, "0")}-${Date.now().toString(36).slice(-3).toUpperCase()}`,
+        ...form, workplaceId: form.workplaceId === "CLINICA" ? null : form.workplaceId, employeeCode: editing?.employeeCode || `DP-${String(employees.length + 1).padStart(4, "0")}-${Date.now().toString(36).slice(-3).toUpperCase()}`,
         department: form.department.trim() || "Geral", baseSalary: Number(form.baseSalary) || 0, monthlyWorkload: Number(form.monthlyWorkload) || 220,
         email: form.email.trim().toLowerCase() || null, experienceEndDate: form.experienceEndDate || null,
       });
@@ -73,6 +73,7 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
         <DialogTitle>{editing ? "Editar colaborador" : "Novo colaborador"}</DialogTitle>
         <DialogContent sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2,1fr)" }, gap: 2, pt: "12px!important" }}>
           {error && <Alert severity="error" sx={{ gridColumn: "1/-1" }}>{error}</Alert>}
+          {!editing && <Alert severity="info" sx={{ gridColumn: "1 / -1" }}>O RH não precisa tirar a foto: no <b>primeiro acesso</b> ao ponto, o colaborador digita o CPF e o próprio sistema tira a foto para reconhecê-lo nas próximas vezes. Basta preencher o <b>CPF</b> aqui.</Alert>}
           <TextField required label="Nome" value={form.name} onChange={set("name")} />
           <TextField select label="Categoria" value={form.category} onChange={set("category")}>{CATEGORIES.map((x) => <MenuItem key={x} value={x}>{x}</MenuItem>)}</TextField>
           <TextField required label="Cargo" value={form.position} onChange={set("position")} />
@@ -82,8 +83,8 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
           <TextField type="date" label="Admissão" value={form.admissionDate} onChange={set("admissionDate")} slotProps={{ inputLabel: { shrink: true } }} />
           <TextField type="date" label="Fim da experiência" value={form.experienceEndDate} onChange={set("experienceEndDate")} slotProps={{ inputLabel: { shrink: true } }} />
           <TextField label="Salário-base mensal" type="number" value={form.baseSalary} onChange={set("baseSalary")} />
-          <TextField select label="Polo / unidade onde bate o ponto" value={form.workplaceId} onChange={set("workplaceId")} sx={{ gridColumn: "1 / -1" }} helperText="Em branco: bate o ponto no celular da clínica. Com polo: só bate pelo link do polo, dentro do raio do polo.">
-            <MenuItem value="">Clínica (celular da clínica)</MenuItem>
+          <TextField select label="Polo / unidade onde bate o ponto" value={form.workplaceId} onChange={set("workplaceId")} sx={{ gridColumn: "1 / -1" }} helperText="Clínica: bate o ponto no celular da clínica. Com polo: só bate pelo link do polo, dentro do raio do polo.">
+            <MenuItem value="CLINICA">Clínica (celular da clínica)</MenuItem>
             {places.filter((p) => p.isActive).map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
           </TextField>
           <Box sx={{ gridColumn: "1 / -1" }}>
@@ -104,7 +105,6 @@ export default function EmployeesTab({ employees, onChanged }: { employees: Empl
           <TextField label="Chave PIX" value={form.pixKey} onChange={set("pixKey")} />
           <TextField label="Observações" multiline minRows={2} value={form.notes} onChange={set("notes")} />
         </DialogContent>
-        {!editing && <Alert severity="info" sx={{ mx: 3, mb: 1 }}>O RH não precisa tirar a foto: no <b>primeiro acesso</b> ao ponto, o colaborador digita o CPF e o próprio sistema tira a foto para reconhecê-lo nas próximas vezes. Basta preencher o <b>CPF</b> aqui.</Alert>}
         <DialogActions><Button disabled={busy} onClick={() => setOpen(false)}>Cancelar</Button><Button variant="contained" disabled={busy} onClick={() => void save()}>Salvar colaborador</Button></DialogActions>
       </Dialog>
       <Dialog open={Boolean(pwdFor)} onClose={() => { setPwdFor(null); setPwd(""); setPwdMsg(""); }} fullWidth maxWidth="xs">
