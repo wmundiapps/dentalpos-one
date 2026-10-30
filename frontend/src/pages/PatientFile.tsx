@@ -18,6 +18,9 @@ import PageHeader from "../components/PageHeader";
 import PatientHeader, { type ClinicalAlerts } from "../components/patient/PatientHeader";
 import PatientAlertBanner from "../components/patient/PatientAlertBanner";
 import TreatmentStageSwitch from "../components/patient/TreatmentStageSwitch";
+import ScanFolderView from "../components/ScanFolderView";
+import { isScanFile, listClinicalFiles } from "../services/ClinicalFileService";
+import FolderIcon from "@mui/icons-material/Folder";
 import { PATIENT_STAGE_EVENT } from "./TreatmentPlanning";
 import ExecutedProcedures from "../components/patient/ExecutedProcedures";
 import MedicalHistoryTab from "../components/patient/MedicalHistoryTab";
@@ -127,9 +130,12 @@ export default function PatientFile() {
   const [patient, setPatient] = useState<BackendPatient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const abaInicial = (): string => { const a = searchParams.get("aba") || ""; return ["cobranca", "financeiro"].includes(a) ? "cobranca" : ["odontograma", "prontuario"].includes(a) ? "prontuario" : a === "historico" ? "historico" : a === "executados" ? "executados" : "resumo"; };
+  const abaInicial = (): string => { const a = searchParams.get("aba") || ""; return ["cobranca", "financeiro"].includes(a) ? "cobranca" : ["odontograma", "prontuario"].includes(a) ? "prontuario" : a === "historico" ? "historico" : a === "executados" ? "executados" : a === "escaneamentos" ? "prontuario" : "resumo"; };
   const [tab, setTab] = useState(abaInicial());
-  const [clinicalSub, setClinicalSub] = useState(["odontograma", "prontuario"].includes(searchParams.get("aba") || "") ? "odontograma" : "ficha");
+  const [clinicalSub, setClinicalSub] = useState(searchParams.get("aba") === "escaneamentos" ? "escaneamentos" : ["odontograma", "prontuario"].includes(searchParams.get("aba") || "") ? "odontograma" : "ficha");
+  const [scanCount, setScanCount] = useState<number | null>(null);
+  const loadScanCount = useCallback(() => { if (patientId) listClinicalFiles(patientId).then((r) => setScanCount(r.filter(isScanFile).length)).catch(() => setScanCount(null)); }, [patientId]);
+  useEffect(() => { loadScanCount(); }, [loadScanCount]);
   const [record, setRecord] = useState<ClinicalRecordData | null>(null);
   const [recordLoading, setRecordLoading] = useState(true);
   const [appts, setAppts] = useState<BackendAppointment[]>([]);
@@ -194,7 +200,7 @@ export default function PatientFile() {
 
   const ir = useCallback((k: string) => {
     // Atalhos antigos levam para a aba certa do caderno.
-    if (["ficha", "plano", "odontograma", "exames", "documentos"].includes(k)) { setTab("prontuario"); setClinicalSub(k); return; }
+    if (["ficha", "plano", "odontograma", "exames", "documentos", "escaneamentos"].includes(k)) { setTab("prontuario"); setClinicalSub(k); return; }
     if (k === "prontuario") { setTab("prontuario"); setClinicalSub("odontograma"); return; }
     if (k === "financeiro") { setTab("cobranca"); return; }
     setTab(k);
@@ -235,7 +241,7 @@ export default function PatientFile() {
             return proxima ? `Próximo atendimento: ${dataHora(proxima.scheduledAt)} • ${proxima.procedure}` : "Nenhum atendimento futuro agendado.";
           })()}
         </Typography>
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}><Button variant="contained" startIcon={<PaymentsIcon />} onClick={() => setTab("cobranca")}>Gerar financeiro</Button><Button variant="contained" color="success" startIcon={<EventAvailableIcon />} onClick={agendar}>Agendar consulta</Button></Box>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}><Button variant="contained" startIcon={<PaymentsIcon />} onClick={() => setTab("cobranca")}>Gerar financeiro</Button><Button variant="contained" color="success" startIcon={<EventAvailableIcon />} onClick={agendar}>Agendar consulta</Button><Button variant="outlined" startIcon={<FolderIcon />} onClick={() => { setTab("prontuario"); setClinicalSub("escaneamentos"); }}>{`Pasta de escaneamentos${scanCount ? ` (${scanCount})` : ""}`}</Button></Box>
       </Paper>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,1fr)", sm: "repeat(4,1fr)", lg: "repeat(8,1fr)" }, gap: 1, mb: 2 }}>
         {abas.map((a) => {
@@ -262,12 +268,14 @@ export default function PatientFile() {
               <Tab value="odontograma" label="Odontograma" />
               <Tab value="exames" label="Fotos, etiquetas, exames, DICOM e STL" />
               <Tab value="documentos" label="Documentos" />
+              <Tab value="escaneamentos" label={`Escaneamentos${scanCount ? ` (${scanCount})` : ""}`} />
             </Tabs>
             {clinicalSub === "ficha" && <ClinicalRecord embedded />}
             {clinicalSub === "plano" && <TreatmentPlanning initialPatientId={patient.id} />}
             {clinicalSub === "odontograma" && <OdontogramPeriodontogram startFullscreen embedded />}
             {clinicalSub === "exames" && <ClinicalFiles fixedPatientId={patient.id} />}
             {clinicalSub === "documentos" && <ClinicalDocuments fixedPatientId={patient.id} />}
+            {clinicalSub === "escaneamentos" && <ScanFolderView patientId={patient.id} onChanged={loadScanCount} />}
           </Box>
         )}
         {tab === "executados" && <ExecutedProcedures patientId={patient.id} />}

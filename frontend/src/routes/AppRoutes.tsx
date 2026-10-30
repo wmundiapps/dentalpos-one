@@ -21,6 +21,7 @@ const ClinicalRecord = lazy(() => import("../pages/ClinicalRecord"));
 const PatientFile = lazy(() => import("../pages/PatientFile"));
 import WmundiStaffOnly from "../components/WmundiStaffOnly";
 const ClinicalFiles = lazy(() => import("../pages/ClinicalFiles"));
+const Scans = lazy(() => import("../pages/Scans"));
 const OdontogramPeriodontogram = lazy(() => import("../pages/OdontogramPeriodontogram"));
 const SurgeryImplantProsthesis = lazy(() => import("../pages/SurgeryImplantProsthesis"));
 const SpecializedClinical = lazy(() => import("../pages/SpecializedClinical"));
@@ -280,6 +281,7 @@ export default function AppRoutes() {
       />
       <Route path="/odontograma-periodontograma" element={<OdontogramPeriodontogram />} />
       <Route path="/arquivos-exames-clinicos" element={<ClinicalFiles />} />
+      <Route path="/escaneamentos" element={<Scans />} />
       <Route path="/cirurgia-implantes-protese" element={<SurgeryImplantProsthesis />} />
       <Route path="/clinico-especializado" element={<SpecializedClinical />} />
 

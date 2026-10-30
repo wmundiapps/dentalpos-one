@@ -273,6 +273,7 @@ router.get('/clinical-documents/:id/history', requirePermission('clinical.view')
 router.post('/clinical-documents/:id/signature', requirePermission('clinical.edit'), clinicalDocumentController.requestSignature)
 
 // CLINICAL FILES / EXAMS — Chat 5
+router.get('/clinical-files/scan-folders', requirePermission('clinical.view'), clinicalFileController.scanFolders)
 router.get('/clinical-files/categories', requirePermission('clinical.view'), clinicalFileController.categories)
 router.post('/clinical-files/categories', requirePermission('clinical.edit'), clinicalFileController.createCategory)
 router.get('/patients/:patientId/clinical-files', requirePermission('clinical.view'), clinicalFileController.index)

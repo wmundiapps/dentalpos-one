@@ -17,6 +17,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import EventIcon from "@mui/icons-material/Event";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
+import ThreeDRotationIcon from "@mui/icons-material/ThreeDRotation";
 import GroupsIcon from "@mui/icons-material/Groups";
 import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
 import HubIcon from "@mui/icons-material/Hub";
@@ -92,6 +93,7 @@ export const navigationGroups:NavigationGroup[] = [
     items:alphabetical([
       item("Prontuário","/prontuario",<FolderSharedIcon/>),
       item("Documentos Clínicos","/documentos-clinicos",<DescriptionIcon/>),
+      item("Escaneamentos","/escaneamentos",<ThreeDRotationIcon/>),
       item("Kit da Clínica","/kit-clinica",<BadgeIcon/>),
       item("Orçamentos e Tratamentos","/orcamentos-tratamentos",<RequestQuoteIcon/>),
       item("Equipe","/equipe",<GroupsIcon/>),
