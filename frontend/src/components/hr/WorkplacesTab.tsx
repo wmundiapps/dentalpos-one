@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Typography } from "@mui/material";
 import { HrApi, type Workplace } from "../../services/HrApi";
 
-const blank = { name: "", address: "", latitude: "", longitude: "", radiusMeters: "150", maps: "", remote: false };
+const blank = { name: "", address: "", latitude: "", longitude: "", radiusMeters: "150", maps: "", remote: false, tz: "-180" };
 const linkOf = (w: Workplace) => `${window.location.origin}/ponto/${w.slug}`;
 
 // Polos/unidades: local exato (para ninguém bater ponto fora do polo), raio permitido, PIN do aparelho e link do ponto de cada polo.
@@ -23,7 +23,7 @@ export default function WorkplacesTab() {
   const set = (k: keyof typeof blank) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const openNew = () => { setEditing(null); setForm(blank); setAccuracy(null); setError(""); setOpen(true); };
-  const openEdit = (w: Workplace) => { setEditing(w); setForm({ name: w.name, address: w.address || "", latitude: String(w.latitude), longitude: String(w.longitude), radiusMeters: String(w.radiusMeters), maps: "", remote: false }); setAccuracy(null); setError(""); setOpen(true); };
+  const openEdit = (w: Workplace) => { setEditing(w); setForm({ name: w.name, address: w.address || "", latitude: String(w.latitude), longitude: String(w.longitude), radiusMeters: String(w.radiusMeters), maps: "", remote: false, tz: String(w.utcOffsetMinutes) }); setAccuracy(null); setError(""); setOpen(true); };
 
   const capture = () => {
     if (!navigator.geolocation) { setError("Este aparelho não informa a localização."); return; }
@@ -41,7 +41,7 @@ export default function WorkplacesTab() {
 
   const save = async () => {
     setBusy(true); setError("");
-    try { await HrApi.saveWorkplace(editing?.id || null, { name: form.name, address: form.address, latitude: form.latitude, longitude: form.longitude, radiusMeters: form.radiusMeters, pendingCalibration: form.remote }); setOpen(false); await load(); setNotice("Polo salvo."); }
+    try { await HrApi.saveWorkplace(editing?.id || null, { name: form.name, address: form.address, latitude: form.latitude, longitude: form.longitude, radiusMeters: form.radiusMeters, pendingCalibration: form.remote, utcOffsetMinutes: Number(form.tz) }); setOpen(false); await load(); setNotice("Polo salvo."); }
     catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar."); } finally { setBusy(false); }
   };
   const savePin = async () => {
@@ -68,6 +68,7 @@ export default function WorkplacesTab() {
           </Box>
           <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
             <Chip size="small" label={`${w.employees} colaborador(es)`} />
+            {w.utcOffsetMinutes !== -180 && <Chip size="small" variant="outlined" label={`Fuso UTC${w.utcOffsetMinutes / 60}`} />}
             <Chip size="small" color={w.hasPin ? "success" : "warning"} label={w.hasPin ? "PIN definido" : "Sem PIN"} />
             {w.pending ? <Chip size="small" color="error" label="Local ainda não definido" /> : w.calibratedAt ? <Chip size="small" color="success" variant="outlined" label={`Local confirmado no polo ±${w.calibratedAccuracy ?? "?"} m em ${new Date(w.calibratedAt).toLocaleDateString("pt-BR")}`} /> : null}
             {w.calibrating && <Chip size="small" color="warning" label="Local será definido no próximo primeiro acesso" />}
@@ -86,6 +87,7 @@ export default function WorkplacesTab() {
         <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
           <TextField label="Nome do polo" value={form.name} onChange={set("name")} required />
           <TextField label="Endereço (referência)" value={form.address} onChange={set("address")} />
+          <TextField select label="Fuso horário do polo" value={form.tz} onChange={set("tz")} helperText="Os horários do ponto (entrada, atraso, espelho) valem no relógio local do polo."><MenuItem value="-180">Brasília (PR, SP...) — UTC-3</MenuItem><MenuItem value="-240">Mato Grosso do Sul, Mato Grosso, Amazonas — UTC-4</MenuItem><MenuItem value="-300">Acre — UTC-5</MenuItem><MenuItem value="-120">Fernando de Noronha — UTC-2</MenuItem></TextField>
           {!editing && <Box component="label" sx={{ display: "flex", alignItems: "flex-start", gap: 1, cursor: "pointer" }}><input type="checkbox" checked={form.remote} onChange={(e) => setForm((f) => ({ ...f, remote: e.target.checked }))} style={{ marginTop: 4 }} /><span><b>O polo é em outra cidade:</b> o local será definido no primeiro acesso de um colaborador, dentro do polo. Você cria o polo e o PIN; o primeiro colaborador a bater o ponto lá, com a localização ligada, define o local do polo.</span></Box>}
           <Alert severity="info">Para ninguém bater ponto fora do polo, o local precisa ser exato. O jeito mais preciso: <b>quem está no polo</b> abre esta tela no celular do polo, fica na recepção e clica em “Capturar a localização deste aparelho”.</Alert>
           <Button variant="outlined" onClick={capture}>Capturar a localização deste aparelho</Button>

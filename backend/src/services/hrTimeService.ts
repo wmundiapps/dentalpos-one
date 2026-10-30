@@ -93,10 +93,22 @@ export async function saveTimeSettings(c: { clinicId: string; tenantId: string; 
 }
 
 // ---------- datas (Brasília) ----------
-export const dayKey = (d: Date) => new Date(d.getTime() - BRT_MS).toISOString().slice(0, 10)
-const dayStartUtc = (key: string) => new Date(`${key}T03:00:00.000Z`)
-const minutesOfDay = (d: Date) => { const b = new Date(d.getTime() - BRT_MS); return b.getUTCHours() * 60 + b.getUTCMinutes() }
-const hhmm = (d: Date) => { const b = new Date(d.getTime() - BRT_MS); return `${String(b.getUTCHours()).padStart(2, '0')}:${String(b.getUTCMinutes()).padStart(2, '0')}` }
+// Datas e horas no fuso do colaborador: Brasília (-180 min) por padrão; polos de outros fusos (ex.: Mato Grosso do Sul, -240) usam o horário local do polo.
+const BRT_OFF = -180
+export const dayKey = (d: Date, off = BRT_OFF) => new Date(d.getTime() + off * 60000).toISOString().slice(0, 10)
+const dayStartUtc = (key: string, off = BRT_OFF) => new Date(new Date(`${key}T00:00:00.000Z`).getTime() - off * 60000)
+const minutesOfDay = (d: Date, off = BRT_OFF) => { const b = new Date(d.getTime() + off * 60000); return b.getUTCHours() * 60 + b.getUTCMinutes() }
+const hhmm = (d: Date, off = BRT_OFF) => { const b = new Date(d.getTime() + off * 60000); return `${String(b.getUTCHours()).padStart(2, '0')}:${String(b.getUTCMinutes()).padStart(2, '0')}` }
+const offCache = new Map<string, { off: number; until: number }>()
+export async function offsetOf(workplaceId?: string | null): Promise<number> {
+  if (!workplaceId) return BRT_OFF
+  const hit = offCache.get(workplaceId)
+  if (hit && hit.until > Date.now()) return hit.off
+  const w = await prisma.hRWorkplace.findUnique({ where: { id: workplaceId }, select: { utcOffsetMinutes: true } })
+  const off = w?.utcOffsetMinutes ?? BRT_OFF
+  offCache.set(workplaceId, { off, until: Date.now() + 60000 })
+  return off
+}
 const toMin = (t?: string | null) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null }
 const weekday = (key: string) => new Date(`${key}T12:00:00Z`).getUTCDay()
 
@@ -143,7 +155,7 @@ export async function punch(c: TimeCtx, meta: { ip: string; userAgent: string },
 }
 
 // Registra a batida (senha ou rosto): confere local/IP, ordem das 4 batidas e intervalo mínimo.
-export type Place = { id: string; name: string; latitude: number; longitude: number; radiusMeters: number; pending?: boolean; calibrating?: boolean }
+export type Place = { id: string; name: string; latitude: number; longitude: number; radiusMeters: number; pending?: boolean; calibrating?: boolean; utcOffsetMinutes?: number }
 // Polo: o ponto só vale dentro do raio do local cadastrado do polo (localização obrigatória e bloqueio fora do raio).
 function assertWorkplace(emp: { workplaceId?: string | null }, place?: Place) {
   if (place) { if (emp.workplaceId !== place.id) throw new HrError(403, `Você não está cadastrado no polo ${place.name}. Fale com o RH.`) }
@@ -176,8 +188,9 @@ async function recordPunch(emp: { id: string; name: string }, c: { clinicId: str
   if (s.blockOutside && inside === false) throw new HrError(403, place ? `Você está a ${Math.round(distance ?? 0)} m do polo ${place.name}. O ponto só pode ser batido a até ${place.radiusMeters} m do polo.` : 'O ponto só pode ser registrado no ambiente de trabalho.')
 
   const now = new Date()
-  const today = dayKey(now)
-  const todays = await prisma.hRTimePunch.findMany({ where: { employeeId: emp.id, punchedAt: { gte: dayStartUtc(today), lt: new Date(dayStartUtc(today).getTime() + 86400000) } }, orderBy: { punchedAt: 'asc' } })
+  const off = place?.utcOffsetMinutes ?? BRT_OFF
+  const today = dayKey(now, off)
+  const todays = await prisma.hRTimePunch.findMany({ where: { employeeId: emp.id, punchedAt: { gte: dayStartUtc(today, off), lt: new Date(dayStartUtc(today, off).getTime() + 86400000) } }, orderBy: { punchedAt: 'asc' } })
   if (todays.length >= KINDS.length) throw new HrError(409, 'As 4 batidas de hoje já foram registradas. Para corrigir, peça ajuste ao RH.')
   const last = todays[todays.length - 1]
   if (last && now.getTime() - last.punchedAt.getTime() < 60000) throw new HrError(409, 'Ponto registrado há instantes. Aguarde 1 minuto.')
@@ -185,19 +198,19 @@ async function recordPunch(emp: { id: string; name: string }, c: { clinicId: str
   const row = await prisma.hRTimePunch.create({
     data: { id: randomUUID(), clinicId: c.clinicId, tenantId: c.tenantId, employeeId: emp.id, userId: c.userId, kind, punchedAt: now, ip: meta.ip || null, latitude: hasGeo ? lat : null, longitude: hasGeo ? lng : null, accuracyMeters: body?.accuracy !== undefined && Number.isFinite(Number(body.accuracy)) ? Number(body.accuracy) : null, insideWorkplace: inside, workplaceNote: note, method, userAgent: meta.userAgent.slice(0, 200) },
   })
-  await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.userId, module: 'hr', action: 'TIME_PUNCH', entityType: 'HRTimePunch', entityId: row.id, summary: `${emp.name}: ${KIND_LABEL[kind]} às ${hhmm(now)}${inside === false ? ' (fora do local)' : ''}.` }).catch(() => undefined)
-  return { id: row.id, kind, label: KIND_LABEL[kind], time: hhmm(now), insideWorkplace: inside, note }
+  await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.userId, module: 'hr', action: 'TIME_PUNCH', entityType: 'HRTimePunch', entityId: row.id, summary: `${emp.name}: ${KIND_LABEL[kind]} às ${hhmm(now, off)}${inside === false ? ' (fora do local)' : ''}.` }).catch(() => undefined)
+  return { id: row.id, kind, label: KIND_LABEL[kind], time: hhmm(now, off), insideWorkplace: inside, note }
 }
 
 // Ponto pelo rosto, no celular/tablet fixo da clínica: o colaborador digita o CPF, a câmera confere o rosto com o cadastro e a foto fica como comprovante.
 const faceFailures = new Map<string, { count: number; until: number }>()
 // Comprovante da batida por e-mail para o colaborador (se tiver e-mail no cadastro). Falha de envio nunca impede o ponto.
-async function emailConfirmation(clinicId: string, emp: { name: string; email: string | null }, r: { label: string; time: string; insideWorkplace: boolean | null }) {
+async function emailConfirmation(clinicId: string, emp: { name: string; email: string | null }, r: { label: string; time: string; insideWorkplace: boolean | null }, off = BRT_OFF) {
   const to = String(emp.email || '').trim()
   const apiKey = String(process.env.RESEND_API_KEY || '').trim()
   if (!to || !apiKey) return
   const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { name: true } }).catch(() => null)
-  const date = dayKey(new Date()).split('-').reverse().join('/')
+  const date = dayKey(new Date(), off).split('-').reverse().join('/')
   const message = `Olá, ${emp.name.split(' ')[0]}!\n\nSeu ponto foi registrado:\n${r.label} em ${date} às ${r.time}${r.insideWorkplace === false ? ' (fora do local da clínica)' : ''}.\n\nSe você não reconhece esta batida, avise o RH.`
   await dispatchRevah('EMAIL', to, message, { apiKey, subject: `Ponto registrado: ${r.label} às ${r.time}${clinic?.name ? ` — ${clinic.name}` : ''}` }, 'CompletoDonto <contato@dentalpos.com.br>').catch((e: unknown) => console.error('Comprovante de ponto falhou:', e))
 }
@@ -223,21 +236,22 @@ export async function facePunch(c: { clinicId: string; tenantId: string; userId:
   const emp = m.employee
   const result = await recordPunch(emp, c, meta, body, 'FACE', `rosto conferido com o CPF (distância ${m.distance.toFixed(2)})`, place)
   await savePunchPhoto(c, result.id, emp.id, body?.photo)
-  await emailConfirmation(c.clinicId, emp, result)
+  await emailConfirmation(c.clinicId, emp, result, place?.utcOffsetMinutes)
   return { ...result, employeeName: emp.name }
 }
 
 export async function myToday(c: TimeCtx) {
   const emp = await employeeForUser(c)
   if (!emp) return { linked: false as const }
-  const today = dayKey(new Date())
-  const start = dayStartUtc(today)
+  const off = await offsetOf(emp.workplaceId)
+  const today = dayKey(new Date(), off)
+  const start = dayStartUtc(today, off)
   const rows = await prisma.hRTimePunch.findMany({ where: { employeeId: emp.id, punchedAt: { gte: start, lt: new Date(start.getTime() + 86400000) } }, orderBy: { punchedAt: 'asc' } })
   return {
     linked: true as const,
     employee: { id: emp.id, name: emp.name, position: emp.position },
     today,
-    punches: rows.map((r) => ({ id: r.id, kind: r.kind, label: KIND_LABEL[r.kind] || r.kind, time: hhmm(r.punchedAt), insideWorkplace: r.insideWorkplace })),
+    punches: rows.map((r) => ({ id: r.id, kind: r.kind, label: KIND_LABEL[r.kind] || r.kind, time: hhmm(r.punchedAt, off), insideWorkplace: r.insideWorkplace })),
     nextKind: rows.length < KINDS.length ? KINDS[rows.length] : null,
     nextLabel: rows.length < KINDS.length ? KIND_LABEL[KINDS[rows.length]] : null,
   }
@@ -256,25 +270,26 @@ function monthRange(ref: string) {
 
 export function currentRef() { return dayKey(new Date()).slice(0, 7) }
 
-async function buildMonth(emp: { id: string; admissionDate: Date; terminationDate: Date | null; workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null }, ref: string, s: TimeSettings, clinicId: string) {
+async function buildMonth(emp: { id: string; admissionDate: Date; terminationDate: Date | null; workplaceId?: string | null; workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null }, ref: string, s: TimeSettings, clinicId: string) {
   const { last } = monthRange(ref)
+  const off = await offsetOf(emp.workplaceId)
   const first = `${ref}-01`
-  const from = dayStartUtc(first)
-  const to = new Date(dayStartUtc(`${ref}-${String(last).padStart(2, '0')}`).getTime() + 86400000)
+  const from = dayStartUtc(first, off)
+  const to = new Date(dayStartUtc(`${ref}-${String(last).padStart(2, '0')}`, off).getTime() + 86400000)
   const [punches, attendance, requests] = await Promise.all([
     prisma.hRTimePunch.findMany({ where: { employeeId: emp.id, punchedAt: { gte: from, lt: to } }, orderBy: { punchedAt: 'asc' } }),
     prisma.hRAttendance.findMany({ where: { employeeId: emp.id, clinicId, date: { gte: new Date(from.getTime() - 86400000), lt: to } } }),
     prisma.hRAbsenceRequest.findMany({ where: { employeeId: emp.id, absenceDate: { startsWith: ref }, status: 'ABONADA' } }),
   ])
   const byDay = new Map<string, typeof punches>()
-  for (const p of punches) { const k = dayKey(p.punchedAt); byDay.set(k, [...(byDay.get(k) || []), p]) }
+  for (const p of punches) { const k = dayKey(p.punchedAt, off); byDay.set(k, [...(byDay.get(k) || []), p]) }
   const attByDay = new Map<string, (typeof attendance)[number]>()
   for (const a of attendance) { const k = a.date.toISOString().slice(0, 10); if (k.startsWith(ref)) attByDay.set(k, a) }
   const abonados = new Set(requests.map((r) => r.absenceDate))
 
   const now = new Date()
-  const today = dayKey(now)
-  const nowMin = minutesOfDay(now)
+  const today = dayKey(now, off)
+  const nowMin = minutesOfDay(now, off)
   // Jornada do próprio colaborador (entrada, almoço, volta, saída); sem ela vale a regra geral da clínica.
   const ws = toMin(emp.workStart || ''), ls = toMin(emp.lunchStart || ''), le = toMin(emp.lunchEnd || ''), we = toMin(emp.workEnd || '')
   const ownDayMin = ws !== null && ls !== null && le !== null && we !== null && ls > ws && le >= ls && we > le ? (ls - ws) + (we - le) : null
@@ -294,10 +309,10 @@ async function buildMonth(emp: { id: string; admissionDate: Date; terminationDat
     const att = attByDay.get(key)
     const attStatus = String(att?.status || '').toLowerCase()
     const justified = abonados.has(key) || JUSTIFIED_STATUS.includes(attStatus)
-    const row: DayRow = { date: key, status: 'OK', punches: ps.map((p) => ({ kind: p.kind, time: hhmm(p.punchedAt), inside: p.insideWorkplace })), workedMin: 0, expectedMin: expected, diffMin: 0, lateMin: 0 }
+    const row: DayRow = { date: key, status: 'OK', punches: ps.map((p) => ({ kind: p.kind, time: hhmm(p.punchedAt, off), inside: p.insideWorkplace })), workedMin: 0, expectedMin: expected, diffMin: 0, lateMin: 0 }
 
     if (ps.length) {
-      const m = ps.map((p) => minutesOfDay(p.punchedAt))
+      const m = ps.map((p) => minutesOfDay(p.punchedAt, off))
       let worked = 0
       if (ps.length >= 4) worked = (m[1] - m[0]) + (m[3] - m[2])
       else if (ps.length === 2) worked = m[1] - m[0]
@@ -306,7 +321,7 @@ async function buildMonth(emp: { id: string; admissionDate: Date; terminationDat
       if (ps.length % 2 === 1 && !(key === today)) { row.status = 'INCOMPLETO'; t.incompletos++ }
       const firstEntry = ps.find((p) => p.kind === 'ENTRADA')
       if (firstEntry && expected > 0 && !justified) {
-        const late = minutesOfDay(firstEntry.punchedAt) - startMin
+        const late = minutesOfDay(firstEntry.punchedAt, off) - startMin
         if (late > s.toleranceMinutes) { row.lateMin = late; if (row.status === 'OK') row.status = 'ATRASO'; t.atrasos++; t.lateMin += late }
       }
     } else if (att && toMin(att.clockIn) !== null && toMin(att.clockOut) !== null && !JUSTIFIED_STATUS.includes(attStatus) && attStatus !== 'falta') {
@@ -353,11 +368,12 @@ export async function employeeMonth(c: { clinicId: string; tenantId: string }, e
   if (!emp) throw new HrError(404, 'Colaborador não encontrado.')
   const s = await getTimeSettings(c.clinicId)
   const m = await buildMonth(emp, ref, s, c.clinicId)
+  const off = await offsetOf(emp.workplaceId)
   const punches = await prisma.hRTimePunch.findMany({
-    where: { employeeId, punchedAt: { gte: dayStartUtc(`${ref}-01`), lt: new Date(dayStartUtc(`${ref}-${String(monthRange(ref).last).padStart(2, '0')}`).getTime() + 86400000) } },
+    where: { employeeId, punchedAt: { gte: dayStartUtc(`${ref}-01`, off), lt: new Date(dayStartUtc(`${ref}-${String(monthRange(ref).last).padStart(2, '0')}`, off).getTime() + 86400000) } },
     orderBy: { punchedAt: 'asc' },
   })
-  return { ref, employee: { id: emp.id, name: emp.name, position: emp.position }, ...m, audit: punches.map((p) => ({ id: p.id, method: p.method, date: dayKey(p.punchedAt), time: hhmm(p.punchedAt), kind: KIND_LABEL[p.kind] || p.kind, ip: p.ip, inside: p.insideWorkplace, note: p.workplaceNote, latitude: p.latitude, longitude: p.longitude })) }
+  return { ref, employee: { id: emp.id, name: emp.name, position: emp.position }, ...m, audit: punches.map((p) => ({ id: p.id, method: p.method, date: dayKey(p.punchedAt, off), time: hhmm(p.punchedAt, off), kind: KIND_LABEL[p.kind] || p.kind, ip: p.ip, inside: p.insideWorkplace, note: p.workplaceNote, latitude: p.latitude, longitude: p.longitude })) }
 }
 
 // Sugestões para a folha. O RH confere e lança; nada é lançado sozinho.
