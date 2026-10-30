@@ -18,11 +18,12 @@ async function req<T>(path: string, init?: RequestInit & { json?: unknown }): Pr
   return response.json() as Promise<T>;
 }
 
+export interface Workplace { id: string; name: string; slug: string; address: string | null; latitude: number; longitude: number; radiusMeters: number; hasPin: boolean; isActive: boolean; employees: number }
 export interface Employee {
   id: string; employeeCode: string; name: string; category: string; department: string; position: string; employmentModel: string; status: string;
   admissionDate: string; experienceEndDate?: string | null; baseSalary: number | string; monthlyWorkload: number; supervisor?: string | null;
   email?: string | null; phone?: string | null; cpf?: string | null; pixKey?: string | null; notes?: string | null;
-  workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null;
+  workStart?: string | null; lunchStart?: string | null; lunchEnd?: string | null; workEnd?: string | null; workplaceId?: string | null;
 }
 export interface Totals { workedMin: number; expectedMin: number; balanceMin: number; overtimeMin: number; faltas: number; atrasos: number; lateMin: number; incompletos: number; abonadas: number }
 export interface DayRow { date: string; status: string; punches: Array<{ kind: string; time: string; inside: boolean | null }>; workedMin: number; expectedMin: number; diffMin: number; lateMin: number; note?: string }
@@ -39,6 +40,9 @@ export interface Suggestion { key: string; employeeId: string; employeeName: str
 
 export const HrApi = {
   employees: () => req<Employee[]>("/hr/employees"),
+  workplaces: () => req<Workplace[]>("/hr/workplaces"),
+  saveWorkplace: (id: string | null, body: Record<string, unknown>) => id ? req<{ workplace: Workplace }>(`/hr/workplaces/${id}`, { method: "PUT", json: body }) : req<{ workplace: Workplace }>("/hr/workplaces", { method: "POST", json: body }),
+  setWorkplacePin: (id: string, pin: string) => req<{ ok: boolean }>(`/hr/workplaces/${id}/pin`, { method: "PUT", json: { pin } }),
   saveEmployee: (id: string | null, body: Record<string, unknown>) => id ? req<Employee>(`/hr/employees/${id}`, { method: "PUT", json: body }) : req<Employee>("/hr/employees", { method: "POST", json: body }),
   timesheet: (ref: string) => req<{ ref: string; settings: TimeSettings; employees: Array<{ employeeId: string; name: string; position: string; department: string; email: string | null; totals: Totals }> }>(`/hr/timesheet?ref=${ref}`),
   employeeMonth: (id: string, ref: string) => req<{ ref: string; employee: { id: string; name: string; position: string }; days: DayRow[]; totals: Totals; audit: Array<{ id: string; method: string; date: string; time: string; kind: string; ip: string | null; inside: boolean | null; note: string | null }> }>(`/hr/timesheet/${id}?ref=${ref}`),

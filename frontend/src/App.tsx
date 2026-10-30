@@ -7,6 +7,7 @@ import PublicBooking from "./pages/PublicBooking";
 import DemoLanding from "./pages/DemoLanding";
 import PasswordReset from "./pages/PasswordReset";
 import EmployeePortal from "./pages/EmployeePortal";
+import PoloPunch from "./pages/PoloPunch";
 import {
   clearClientSession,
   demoSalesUrl,
@@ -88,8 +89,12 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/redefinir-senha" && appPath !== "/colaborador") void validateSession();
+    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/redefinir-senha" && appPath !== "/colaborador" && !appPath.startsWith("/ponto/")) void validateSession();
   }, [appPath]);
+
+  if (appPath.startsWith("/ponto/")) {
+    return <PoloPunch slug={decodeURIComponent(appPath.slice("/ponto/".length)).toLowerCase()} />;
+  }
 
   if (appPath === "/colaborador") {
     return <EmployeePortal />;
