@@ -15,12 +15,12 @@ async function call<T>(path: string, token: string | null, body?: unknown): Prom
 export default function PoloPunch({ slug }: { slug: string }) {
   const keyName = `completodonto.polo.${slug}`;
   const [token, setToken] = useState(() => { try { return localStorage.getItem(keyName); } catch { return null; } });
-  const [info, setInfo] = useState<{ name: string; ready: boolean } | null | undefined>(undefined);
+  const [info, setInfo] = useState<{ name: string; ready: boolean; calibrating?: boolean; pending?: boolean } | null | undefined>(undefined);
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { call<{ name: string; ready: boolean }>(slug, null).then(setInfo).catch(() => setInfo(null)); }, [slug]);
+  useEffect(() => { call<{ name: string; ready: boolean; calibrating?: boolean; pending?: boolean }>(slug, null).then(setInfo).catch(() => setInfo(null)); }, [slug]);
 
   const lockOut = () => { try { localStorage.removeItem(keyName); } catch { /* sem armazenamento */ } setToken(null); };
   const api: PunchApi = useMemo(() => {
@@ -54,7 +54,9 @@ export default function PoloPunch({ slug }: { slug: string }) {
                 <Button variant="contained" size="large" disabled={busy || pin.length !== 6} onClick={() => void unlock()}>Liberar este aparelho</Button>
               </>}
             </Paper>
-          ) : <FacePunchKiosk embedded api={api} title={`Ponto — ${info.name}`} description="Digite o CPF e olhe para a câmera. O ponto só vale dentro do polo, com a localização do aparelho ligada." />}
+          ) : info.pending && !info.calibrating ? (
+            <Alert severity="warning">O local deste polo ainda não foi definido. Peça ao RH para liberar a confirmação do local e tente de novo.</Alert>
+          ) : <FacePunchKiosk embedded api={api} title={`Ponto — ${info.name}`} description={info.pending ? "PRIMEIRO ACESSO DO POLO: o seu primeiro ponto, feito agora dentro do polo, define o local do polo. Ligue a localização do aparelho e fique na recepção." : "Digite o CPF e olhe para a câmera. O ponto só vale dentro do polo, com a localização do aparelho ligada."} />}
       </Box>
     </Box>
   );

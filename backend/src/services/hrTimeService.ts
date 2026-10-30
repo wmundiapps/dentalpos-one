@@ -143,7 +143,7 @@ export async function punch(c: TimeCtx, meta: { ip: string; userAgent: string },
 }
 
 // Registra a batida (senha ou rosto): confere local/IP, ordem das 4 batidas e intervalo mínimo.
-export type Place = { id: string; name: string; latitude: number; longitude: number; radiusMeters: number }
+export type Place = { id: string; name: string; latitude: number; longitude: number; radiusMeters: number; pending?: boolean; calibrating?: boolean }
 // Polo: o ponto só vale dentro do raio do local cadastrado do polo (localização obrigatória e bloqueio fora do raio).
 function assertWorkplace(emp: { workplaceId?: string | null }, place?: Place) {
   if (place) { if (emp.workplaceId !== place.id) throw new HrError(403, `Você não está cadastrado no polo ${place.name}. Fale com o RH.`) }
@@ -151,6 +151,7 @@ function assertWorkplace(emp: { workplaceId?: string | null }, place?: Place) {
 }
 
 async function recordPunch(emp: { id: string; name: string }, c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, method: 'PASSWORD' | 'FACE', extraNote?: string, place?: Place) {
+  if (place?.pending) throw new HrError(409, `O local do polo ${place.name} ainda não foi definido. A pessoa responsável pelo polo precisa confirmar o local pelo celular do polo (calibragem liberada pelo RH).`)
   const base = await getTimeSettings(c.clinicId)
   const s = place ? { ...base, latitude: place.latitude, longitude: place.longitude, radiusMeters: place.radiusMeters, requireLocation: true, blockOutside: true, allowedIps: [] as string[] } : base
   if (place && Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > 150) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)

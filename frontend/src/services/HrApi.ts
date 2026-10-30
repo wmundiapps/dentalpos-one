@@ -18,7 +18,7 @@ async function req<T>(path: string, init?: RequestInit & { json?: unknown }): Pr
   return response.json() as Promise<T>;
 }
 
-export interface Workplace { id: string; name: string; slug: string; address: string | null; latitude: number; longitude: number; radiusMeters: number; hasPin: boolean; isActive: boolean; employees: number }
+export interface Workplace { id: string; name: string; slug: string; address: string | null; latitude: number; longitude: number; radiusMeters: number; hasPin: boolean; isActive: boolean; employees: number; calibrating: boolean; pending: boolean; calibratedAt: string | null; calibratedAccuracy: number | null }
 export interface Employee {
   id: string; employeeCode: string; name: string; category: string; department: string; position: string; employmentModel: string; status: string;
   admissionDate: string; experienceEndDate?: string | null; baseSalary: number | string; monthlyWorkload: number; supervisor?: string | null;
@@ -42,6 +42,7 @@ export const HrApi = {
   employees: () => req<Employee[]>("/hr/employees"),
   workplaces: () => req<Workplace[]>("/hr/workplaces"),
   saveWorkplace: (id: string | null, body: Record<string, unknown>) => id ? req<{ workplace: Workplace }>(`/hr/workplaces/${id}`, { method: "PUT", json: body }) : req<{ workplace: Workplace }>("/hr/workplaces", { method: "POST", json: body }),
+  setWorkplaceCalibration: (id: string, on: boolean) => req<{ ok: boolean }>(`/hr/workplaces/${id}/calibration`, { method: "PUT", json: { on } }),
   setWorkplacePin: (id: string, pin: string) => req<{ ok: boolean }>(`/hr/workplaces/${id}/pin`, { method: "PUT", json: { pin } }),
   saveEmployee: (id: string | null, body: Record<string, unknown>) => id ? req<Employee>(`/hr/employees/${id}`, { method: "PUT", json: body }) : req<Employee>("/hr/employees", { method: "POST", json: body }),
   timesheet: (ref: string) => req<{ ref: string; settings: TimeSettings; employees: Array<{ employeeId: string; name: string; position: string; department: string; email: string | null; totals: Totals }> }>(`/hr/timesheet?ref=${ref}`),

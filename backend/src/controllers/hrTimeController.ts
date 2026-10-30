@@ -119,6 +119,15 @@ export const poloInfo = wrap(async (req, res) => { const r = await hrWorkplace.p
 export const poloUnlock = wrap(async (req, res) => wpReply(res, await hrWorkplace.unlock(String(req.params.slug), req.body?.pin, clientIp(req)) as never))
 const poloCtx = (req: Request) => (req as hrWorkplace.PoloReq).polo!
 const meta = (req: Request) => ({ ip: clientIp(req), userAgent: String(req.headers['user-agent'] || '') })
+// Polo ainda sem local: o primeiro acesso de um colaborador, dentro do polo, confirma o local pelo GPS do aparelho (só se o RH deixou a calibragem liberada).
+async function autoCalibrate(p: { place: hrWorkplace.Place }, body: any) {
+  if (!p.place.pending && !p.place.calibrating) return
+  const r = await hrWorkplace.calibrate(p.place, body) as { error?: string; status?: number }
+  if (r.error) throw new hr.HrError(r.status || 400, r.error)
+  p.place.latitude = Number(body.latitude); p.place.longitude = Number(body.longitude); p.place.pending = false; p.place.calibrating = false
+}
 export const poloCpfCheck = wrap(async (req, res) => { const p = poloCtx(req); res.json(await hr.cpfCheck({ clinicId: p.clinicId, tenantId: p.tenantId }, clientIp(req), req.body, p.place)) })
-export const poloFacePunch = wrap(async (req, res) => { const p = poloCtx(req); res.json(await hr.facePunch({ clinicId: p.clinicId, tenantId: p.tenantId, userId: `polo:${p.place.id}` }, meta(req), req.body, p.place)) })
-export const poloFirstEnroll = wrap(async (req, res) => { const p = poloCtx(req); res.json(await hr.firstFaceEnroll({ clinicId: p.clinicId, tenantId: p.tenantId, userId: `polo:${p.place.id}` }, meta(req), req.body, p.place)) })
+export const poloFacePunch = wrap(async (req, res) => { const p = poloCtx(req); await autoCalibrate(p, req.body); res.json(await hr.facePunch({ clinicId: p.clinicId, tenantId: p.tenantId, userId: `polo:${p.place.id}` }, meta(req), req.body, p.place)) })
+export const poloFirstEnroll = wrap(async (req, res) => { const p = poloCtx(req); await autoCalibrate(p, req.body); res.json(await hr.firstFaceEnroll({ clinicId: p.clinicId, tenantId: p.tenantId, userId: `polo:${p.place.id}` }, meta(req), req.body, p.place)) })
+export const workplaceCalibration = wrap(async (req, res) => wpReply(res, await hrWorkplace.setCalibration(orgCtx(req), idOf(req), req.body?.on !== false) as never))
+export const poloCalibrate = wrap(async (req, res) => wpReply(res, await hrWorkplace.calibrate(poloCtx(req).place, req.body) as never))
