@@ -329,6 +329,61 @@ Revise sempre antes de enviar.
 **Hashtags:** #inteligenciaartificial #odontologia #marketingodontologico #dentista #gestaodeclinica
 
 ---
+## V25 — Escaneamentos
+**Duração sugerida:** 3 a 4 minutos · **Onde fica no sistema:** Menu > Clínico > Escaneamentos (/escaneamentos) e, na ficha do paciente, o botão "Pasta de escaneamentos" e a aba Prontuário clínico > Escaneamentos
+
+### Roteiro para narrar
+**Cena 1 — Abertura.** Olá! Neste vídeo você vai conhecer a tela de Escaneamentos do CompletoDonto. Ela guarda, numa pasta para cada paciente, os arquivos dos escaneamentos da boca, para você achar tudo rápido e sem procurar em vários lugares.
+
+**Cena 2 — Onde abrir.** No menu da esquerda, toque em Clínico e depois em Escaneamentos. A tela mostra uma pasta por paciente. Em cada pasta aparecem o nome, o número da ficha, a data do último escaneamento e quantos arquivos ela tem.
+
+**Cena 3 — Ordem alfabética.** No alto da tela há três modos de procurar. O primeiro é Ordem alfabética. É o que abre primeiro e mostra as pastas de A a Z.
+
+**Cena 4 — Por nome.** Toque em Por nome e digite o nome do paciente ou o número da ficha. A lista se reduz enquanto você digita.
+
+**Cena 5 — Por data.** Toque em Por data. Escolha a data inicial, no campo De, e a data final, no campo Até. As pastas aparecem das mais recentes para as mais antigas. Se quiser o contrário, toque no botão ao lado para ver as mais antigas primeiro. Para voltar ao normal, toque em Limpar datas.
+
+**Cena 6 — Abrindo uma pasta.** Toque na pasta do paciente. Os arquivos aparecem do mais novo para o mais antigo, com data, nome do arquivo e tamanho. Toque em Abrir para ver ou baixar um arquivo.
+
+**Cena 7 — Adicionando um escaneamento.** Dentro da pasta, toque em Adicionar escaneamento e escolha os arquivos. Você pode enviar vários de uma vez. Entram arquivos STL, PLY e OBJ, que são os formatos mais comuns dos escaneadores. Outros formatos só entram se vierem compactados em ZIP.
+
+**Cena 8 — Pela ficha do paciente.** Você também chega à pasta pela ficha do paciente. No alto da ficha há o botão Pasta de escaneamentos, com o número de arquivos. Toque nele e a pasta abre na hora. Ela também está na aba Prontuário clínico, em Escaneamentos.
+
+**Cena 9 — Resumo.** Para lembrar: um, cada paciente tem a própria pasta de escaneamentos. Dois, procure por ordem alfabética, por nome ou por data. Três, na ficha do paciente o botão Pasta de escaneamentos leva direto para ela.
+
+### Ficha rápida
+- **O que faz:** reúne em uma pasta por paciente os arquivos dos escaneamentos (STL, PLY e OBJ) e deixa procurar por ordem alfabética, por nome ou por data.
+- **Como aplicar (passo a passo):**
+  1. Abra Menu > Clínico > Escaneamentos.
+  2. Escolha como procurar: Ordem alfabética, Por nome ou Por data.
+  3. Toque na pasta do paciente.
+  4. Toque em Adicionar escaneamento e escolha os arquivos.
+  5. Toque em Abrir para ver ou baixar um arquivo.
+  6. Pela ficha do paciente, use o botão Pasta de escaneamentos.
+- **Com que frequência usar:** a cada escaneamento feito no paciente.
+- **Quem tem acesso:** módulo Clínico; ver exige a permissão de ver o clínico e enviar arquivos exige a de editar. O gestor libera ou bloqueia em Permissões.
+- **Com que frequência precisa ser alimentado:** a cada novo escaneamento.
+- **O que acontece se não for alimentado:** a pasta do paciente fica vazia e o escaneamento fica espalhado em computadores e pendrives, difícil de achar depois.
+- **Onde impacta (interação com outros itens):** Ficha do paciente e Prontuário clínico; Arquivos e Exames (os arquivos 3D também aparecem lá); Laboratório (enviar o escaneamento para a prótese).
+- **Erros comuns e dicas:** arquivo em formato fechado do escaneador (compacte em ZIP); armazenamento de arquivos da clínica não configurado (o arquivo fica como "Envio pendente"); procurar por data sem preencher o campo De ou Até.
+
+### Abas e seções deste item
+- **Modos de procura:** Ordem alfabética, Por nome e Por data.
+- **Pastas:** uma por paciente, com ficha, último escaneamento e total de arquivos.
+- **Dentro da pasta:** lista de arquivos, botão Abrir e botão Adicionar escaneamento.
+- **Na ficha do paciente:** botão Pasta de escaneamentos e aba Escaneamentos no Prontuário clínico.
+
+### Trilha de vídeos
+- **Assistir antes:** V14 Pacientes; V20 Prontuário.
+- **Assistir depois:** V30 Laboratório (enviar o escaneamento para a prótese); V22 Orçamentos e Tratamentos.
+- **Onde encontrar:** dentro do sistema, no ícone de vídeo no canto da tela de cada item; e na playlist com o mesmo título.
+
+### Texto para publicar (YouTube, Instagram e TikTok)
+**Escaneamentos no CompletoDonto: uma pasta para cada paciente**
+Guarde os escaneamentos da boca em pastas por paciente e ache tudo por ordem alfabética, nome ou data.
+#CompletoDonto #Escaneamento #OdontologiaDigital #GestaoOdontologica #Dentista
+
+---
 ## V30 — Laboratório
 **Duração sugerida:** 9 a 12 minutos · **Onde fica no sistema:** Menu > Laboratório > Laboratório (cartões de filtro, busca, fila de trabalhos, Novo trabalho, Entrega com código, Histórico, Arquivo)
 

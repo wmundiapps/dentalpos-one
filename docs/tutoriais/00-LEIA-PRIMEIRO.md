@@ -5,7 +5,7 @@
 |---|---|
 | 01-base-e-configuracoes.md | V00 Visão geral, V01 Entrar/2 etapas/acessibilidade, V02 Configurações, V03 Clínicas e unidades, V04 Integrações, V05 Permissões, V06 Importar pacientes, V07 Corpo Clínico, V08 Equipe, V99 Sugestões e Problemas |
 | 02-recepcao.md | V10 Agenda, V11 Agendamento online, V12 Chegada por rosto, V13 Painel de Atendimentos, V14 Pacientes, V15 Jornada do Paciente, V16 Avaliação do Atendimento, V17 Retorno de pacientes |
-| 03-clinico-e-laboratorio.md | V20 Prontuário, V21 Documentos Clínicos, V22 Orçamentos e Tratamentos, V23 CompletoDonto AI, V24 Assistente de IA, V30 Laboratório |
+| 03-clinico-e-laboratorio.md | V20 Prontuário, V21 Documentos Clínicos, V22 Orçamentos e Tratamentos, V23 CompletoDonto AI, V24 Assistente de IA, V25 Escaneamentos, V30 Laboratório |
 | 04-financeiro.md | V40 a V47 (visão geral, receber, pagar, cobranças, gerar financeiro, recebimentos online, digitalizar, rateio do condomínio) |
 | 05-administrativo-e-gestao.md | V50 a V56 (administrativo, RH, meu ponto) e V70 a V78 (painéis de gestão e avisos de pendências) |
 | 06-marketing-vendas-academico.md | V60 a V68 (marketing), V80 e V81 (vendas e estoque), V90 a V96 (acadêmico) |
