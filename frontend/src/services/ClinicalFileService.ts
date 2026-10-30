@@ -126,3 +126,18 @@ export function clinicalFileDesignHandoff(id: string) {
 export function archiveClinicalFile(id: string, reason: string) {
   return request<void>(`/clinical-files/${encodeURIComponent(id)}`, { method: "DELETE", body: JSON.stringify({ reason }) });
 }
+
+export interface ScanFolder { patientId: string; patientName: string; recordNumber?: number | null; fileCount: number; firstAt: string; lastAt: string; totalBytes: number }
+
+// Pastas de escaneamentos (uma por paciente). sort: alpha (A a Z), name (busca por nome) ou date (por data).
+export function listScanFolders(params: { sort: "alpha" | "name" | "date"; search?: string; from?: string; to?: string; order?: "asc" | "desc" }) {
+  const q = new URLSearchParams({ sort: params.sort });
+  if (params.search) q.set("search", params.search);
+  if (params.from) q.set("from", params.from);
+  if (params.to) q.set("to", params.to);
+  if (params.order) q.set("order", params.order);
+  return request<ScanFolder[]>(`/clinical-files/scan-folders?${q.toString()}`);
+}
+
+export const SCAN_TAG = "escaneamento";
+export const isScanFile = (f: { kind: string; tags?: string[] }) => ["STL", "PLY", "OBJ"].includes(f.kind) || (f.tags || []).includes(SCAN_TAG);
