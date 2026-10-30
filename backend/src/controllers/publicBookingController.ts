@@ -1,3 +1,4 @@
+import { formatPersonName } from '../lib/personName'
 import { getHold } from '../services/financialHoldService'
 import { nextRecordNumber } from './patientController'
 import type { Request, Response } from 'express'
@@ -415,7 +416,7 @@ export async function store(req: Request, res: Response) {
             data: {
               clinicId,
               tenantId: clinic.tenantId,
-              fullName: patientName,
+              fullName: formatPersonName(patientName),
               phone: String(patientPhone).trim(),
               recordNumber: await nextRecordNumber(clinicId),
               ...(parsedBirthDate ? { birthDate: parsedBirthDate } : {}),

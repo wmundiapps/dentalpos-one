@@ -1,3 +1,4 @@
+import { formatPersonName } from '../lib/personName'
 import { Response } from 'express'
 import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma'
@@ -46,6 +47,7 @@ function buildPatientData(body: Record<string, unknown>, partial: boolean) {
   for (const list of ['photos', 'xrays'] as const) {
     if (Array.isArray(body[list])) data[list] = (body[list] as unknown[]).map(String)
   }
+  if (typeof data.fullName === 'string') data.fullName = formatPersonName(data.fullName)
   if (!partial || 'fullName' in data) {
     if (!data.fullName || String(data.fullName).length < 2) return { error: 'Informe o nome do paciente.' }
   }
