@@ -14,8 +14,8 @@ const num = (v: unknown) => (v === '' || v === null || v === undefined ? NaN : N
 const isPending = (w: { latitude: number; longitude: number }) => w.latitude === 0 && w.longitude === 0
 type Org = { clinicId: string; tenantId: string; actorId: string }
 
-const publicRow = (w: { id: string; name: string; slug: string; address: string | null; latitude: number; longitude: number; radiusMeters: number; pinHash: string | null; isActive: boolean; calibrating: boolean; calibratedAt: Date | null; calibratedAccuracy: number | null }) =>
-  ({ id: w.id, name: w.name, slug: w.slug, address: w.address, latitude: w.latitude, longitude: w.longitude, radiusMeters: w.radiusMeters, hasPin: Boolean(w.pinHash), isActive: w.isActive, calibrating: w.calibrating, pending: isPending(w), calibratedAt: w.calibratedAt, calibratedAccuracy: w.calibratedAccuracy })
+const publicRow = (w: { id: string; name: string; slug: string; address: string | null; latitude: number; longitude: number; radiusMeters: number; pinHash: string | null; isActive: boolean; calibrating: boolean; calibratedAt: Date | null; calibratedAccuracy: number | null; utcOffsetMinutes: number }) =>
+  ({ id: w.id, name: w.name, slug: w.slug, address: w.address, latitude: w.latitude, longitude: w.longitude, radiusMeters: w.radiusMeters, hasPin: Boolean(w.pinHash), isActive: w.isActive, calibrating: w.calibrating, pending: isPending(w), calibratedAt: w.calibratedAt, calibratedAccuracy: w.calibratedAccuracy, utcOffsetMinutes: w.utcOffsetMinutes })
 
 export async function list(clinicId: string) {
   const rows = await prisma.hRWorkplace.findMany({ where: { clinicId }, orderBy: { name: 'asc' } })
@@ -31,6 +31,8 @@ export async function save(c: Org, id: string | null, body: any) {
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return { error: 'Informe a localização exata do polo (latitude e longitude). Use “Capturar localização deste aparelho” estando no polo.' }
   const radiusMeters = Math.round(num(body?.radiusMeters || 150))
   if (!(radiusMeters >= 30 && radiusMeters <= 1000)) return { error: 'O raio permitido deve ficar entre 30 e 1000 metros.' }
+  const tz = Math.round(num(body?.utcOffsetMinutes ?? -180))
+  if (![-120, -180, -240, -300].includes(tz)) return { error: 'Fuso horário inválido.' }
   const address = body?.address ? String(body.address).trim().slice(0, 200) : null
   let slug = slugify(String(body?.slug || name))
   if (!slug) return { error: 'Nome inválido.' }
@@ -39,11 +41,11 @@ export async function save(c: Org, id: string | null, body: any) {
   if (id) {
     const cur = await prisma.hRWorkplace.findFirst({ where: { id, clinicId: c.clinicId } })
     if (!cur) return { error: 'Polo não encontrado.', status: 404 }
-    const row = await prisma.hRWorkplace.update({ where: { id }, data: { name, slug: body?.slug ? slug : cur.slug, address, latitude, longitude, radiusMeters, ...(body?.isActive !== undefined ? { isActive: Boolean(body.isActive) } : {}), ...(remote ? { calibrating: true } : (latitude !== cur.latitude || longitude !== cur.longitude) ? { calibrating: false } : {}) } })
+    const row = await prisma.hRWorkplace.update({ where: { id }, data: { name, slug: body?.slug ? slug : cur.slug, address, latitude, longitude, radiusMeters, utcOffsetMinutes: tz, ...(body?.isActive !== undefined ? { isActive: Boolean(body.isActive) } : {}), ...(remote ? { calibrating: true } : (latitude !== cur.latitude || longitude !== cur.longitude) ? { calibrating: false } : {}) } })
     await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.actorId, module: 'hr', action: 'WORKPLACE_UPDATE', entityType: 'HRWorkplace', entityId: id, summary: `Polo ${name} atualizado (${latitude.toFixed(5)}, ${longitude.toFixed(5)}, raio ${radiusMeters} m).` }).catch(() => undefined)
     return { ok: true, workplace: publicRow(row) }
   }
-  const row = await prisma.hRWorkplace.create({ data: { clinicId: c.clinicId, tenantId: c.tenantId, name, slug, address, latitude, longitude, radiusMeters, calibrating: remote } })
+  const row = await prisma.hRWorkplace.create({ data: { clinicId: c.clinicId, tenantId: c.tenantId, name, slug, address, latitude, longitude, radiusMeters, utcOffsetMinutes: tz, calibrating: remote } })
   await writeAudit({ clinicId: c.clinicId, tenantId: c.tenantId, actorId: c.actorId, module: 'hr', action: 'WORKPLACE_CREATE', entityType: 'HRWorkplace', entityId: row.id, summary: `Polo ${name} criado.` }).catch(() => undefined)
   return { ok: true, workplace: publicRow(row) }
 }
@@ -101,7 +103,7 @@ export async function poloAuth(req: PoloReq, res: Response, next: NextFunction) 
     if (p.kind !== 'polo') throw new Error('tipo')
     const w = await prisma.hRWorkplace.findFirst({ where: { id: p.workplaceId, slug: String(req.params.slug).toLowerCase(), isActive: true } })
     if (!w || !w.pinHash || w.pinHash.slice(-8) !== p.v) throw new Error('polo')
-    req.polo = { clinicId: w.clinicId, tenantId: w.tenantId, place: { id: w.id, name: w.name, latitude: w.latitude, longitude: w.longitude, radiusMeters: w.radiusMeters, pending: isPending(w), calibrating: w.calibrating } }
+    req.polo = { clinicId: w.clinicId, tenantId: w.tenantId, place: { id: w.id, name: w.name, latitude: w.latitude, longitude: w.longitude, radiusMeters: w.radiusMeters, pending: isPending(w), calibrating: w.calibrating, utcOffsetMinutes: w.utcOffsetMinutes } }
     return next()
   } catch { return res.status(401).json({ code: 'POLO_LOCKED', error: 'Aparelho não liberado. Digite o PIN do polo.' }) }
 }

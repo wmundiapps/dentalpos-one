@@ -23,8 +23,9 @@ export async function sendMissingPunchAlerts(c: { id: string; tenantId: string; 
   const dayEnd = new Date(dayStart.getTime() + 86400000)
   const emps = await prisma.hREmployee.findMany({
     where: { clinicId: c.id, tenantId: c.tenantId, status: { notIn: ['TERMINATED', 'Desligado'] }, admissionDate: { lt: dayEnd }, OR: [{ terminationDate: null }, { terminationDate: { gte: dayStart } }] },
-    select: { id: true, name: true, workStart: true },
+    select: { id: true, name: true, workStart: true, workplaceId: true },
   })
+  const offs = new Map((await prisma.hRWorkplace.findMany({ where: { clinicId: c.id }, select: { id: true, utcOffsetMinutes: true } })).map((w) => [w.id, w.utcOffsetMinutes]))
   if (!emps.length) return { skipped: 'sem colaboradores' }
   const ids = emps.map((e) => e.id)
   const [punches, attendance, requests] = await Promise.all([
@@ -37,8 +38,10 @@ export async function sendMissingPunchAlerts(c: { id: string; tenantId: string; 
   for (const a of attendance) if (a.date.toISOString().slice(0, 10) === today && (a.clockIn || JUSTIFIED.includes(String(a.status).toLowerCase()))) handled.add(a.employeeId)
   for (const r of requests) handled.add(r.employeeId)
   // Cada colaborador tem o seu horário de entrada (ou o da clínica): só entra na lista depois da entrada + tolerância + 30 min.
+  // O relógio de cada polo pode estar atrasado em relação a Brasília (ex.: Mato Grosso do Sul, -1 h).
+  const localNow = (e: { workplaceId: string | null }) => nowMin + ((e.workplaceId ? offs.get(e.workplaceId) ?? -180 : -180) + 180)
   const due = (e: { workStart: string | null }) => (e.workStart ? toMin(e.workStart) : toMin(s.startTime)) + s.toleranceMinutes + 30
-  const missing = emps.filter((e) => nowMin >= due(e) && !punched.has(e.id) && !handled.has(e.id))
+  const missing = emps.filter((e) => localNow(e) >= due(e) && !punched.has(e.id) && !handled.has(e.id))
   if (!missing.length) return { skipped: 'ninguém faltando' }
 
   const row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId: c.id, key: ALERT_KEY } } })

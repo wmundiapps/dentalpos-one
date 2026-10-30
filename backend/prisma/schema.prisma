@@ -2676,6 +2676,7 @@ model HRWorkplace {
   radiusMeters Int      @default(150)
   pinHash      String?
   isActive     Boolean  @default(true)
+  utcOffsetMinutes Int  @default(-180)
   calibrating  Boolean  @default(false)
   calibratedAt DateTime?
   calibratedAccuracy Int?

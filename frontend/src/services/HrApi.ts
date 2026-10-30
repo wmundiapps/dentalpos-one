@@ -18,7 +18,7 @@ async function req<T>(path: string, init?: RequestInit & { json?: unknown }): Pr
   return response.json() as Promise<T>;
 }
 
-export interface Workplace { id: string; name: string; slug: string; address: string | null; latitude: number; longitude: number; radiusMeters: number; hasPin: boolean; isActive: boolean; employees: number; calibrating: boolean; pending: boolean; calibratedAt: string | null; calibratedAccuracy: number | null }
+export interface Workplace { id: string; name: string; slug: string; address: string | null; latitude: number; longitude: number; radiusMeters: number; hasPin: boolean; isActive: boolean; employees: number; calibrating: boolean; pending: boolean; calibratedAt: string | null; calibratedAccuracy: number | null; utcOffsetMinutes: number }
 export interface Employee {
   id: string; employeeCode: string; name: string; category: string; department: string; position: string; employmentModel: string; status: string;
   admissionDate: string; experienceEndDate?: string | null; baseSalary: number | string; monthlyWorkload: number; supervisor?: string | null;
