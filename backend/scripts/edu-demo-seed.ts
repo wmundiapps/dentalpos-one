@@ -18,6 +18,7 @@ import { seedPortal } from './seeds/portal'
 import { seedAtendimento } from './seeds/atendimento'
 import { seedMarketing } from './seeds/marketing'
 import { seedPresenca } from './seeds/presenca'
+import { seedCamposPratica } from './seeds/campos-pratica'
 
 const API = process.env.API_URL || 'http://localhost:3000/api'
 const TENANT = 'sua-instituicao'
@@ -91,6 +92,7 @@ const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
   ['atendimento', (c) => seedAtendimento(c.api, sCtx(c))],
   ['marketing', (c) => seedMarketing(c.api, { ...sCtx(c), siteSlug: 'sua-instituicao' })],
   ['presenca', (c) => seedPresenca(c.api, sCtx(c))],
+  ['campos-pratica', (c) => seedCamposPratica(c.api, sCtx(c))],
 ]
 
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [
