@@ -32,7 +32,7 @@
 - Botão: Cadastre-se
 
 **A — Agenda** (`agenda_*`)
-- Texto principal: Sua agenda cheia, sem planilha e sem perder tempo no WhatsApp. O Studio Beauty Barber reúne agenda online, caixa, comissões e clientes em um só lugar. Teste grátis por 30 dias, sem cartão.
+- Texto principal: Sua agenda cheia, sem planilha e sem perder tempo no WhatsApp. O Studio Beauty Barber reúne agenda online, caixa, comissões e clientes em um só lugar. Teste grátis por 30 dias. Cadastre o cartão para começar e cancele antes do fim sem pagar nada.
 - Título: Gestão para salões e barbearias
 - Descrição: Teste grátis por 30 dias
 - Botão: Cadastre-se
