@@ -42,6 +42,7 @@ export default function register(r) {
         automations: automations(s), booking_url: `${cfg.appUrl}/s/${s.slug}`,
         deposit_required: !!s.deposit_required, noshow_retention_pct: s.noshow_retention_pct, free_cancel_hours: s.free_cancel_hours,
         cashback: (json(s.brand_json, {}).cashback) || { enabled: false },
+        finder: (json(s.brand_json, {}).finder) || { enabled: false },
         brand: profileOf(s), brand_defaults: { masc: defaultsFor('masc'), fem: defaultsFor('fem'), mix: defaultsFor('mix') }, mode_labels: MODE_LABEL,
       },
     };
@@ -63,6 +64,13 @@ export default function register(r) {
       const cur = brand.cashback || {};
       brand = { ...brand, cashback: enabled ? { enabled: true, accepted_at: cur.accepted_at || nowIso(), accepted_by: cur.accepted_by || ctx.user.id, status: cur.status || 'pending' } : { enabled: false } };
       await audit(ctx, enabled ? 'cashback_optin' : 'cashback_optout', 'salon', ctx.salon.id);
+    }
+    if (ctx.body?.finder && typeof ctx.body.finder === 'object') {
+      const enabled = !!ctx.body.finder.enabled;
+      const cur = brand.finder || {};
+      if (enabled && !(d.city || ctx.salon.city)) throw new HttpError(422, 'Preencha a cidade do salão antes de aparecer no indicador de profissionais.');
+      brand = { ...brand, finder: enabled ? { enabled: true, accepted_at: cur.accepted_at || nowIso(), accepted_by: cur.accepted_by || ctx.user.id } : { enabled: false } };
+      await audit(ctx, enabled ? 'finder_optin' : 'finder_optout', 'salon', ctx.salon.id);
     }
     if (ctx.body?.brand && typeof ctx.body.brand === 'object') {
       brand = { ...brand, profile: mergeProfile(ctx.salon, ctx.body.brand) };

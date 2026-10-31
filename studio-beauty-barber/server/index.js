@@ -15,6 +15,7 @@ import registerAgenda from './routes/agenda.js';
 import registerCrm from './routes/crm.js';
 import registerSettings, { UPLOAD_DIR } from './routes/settings.js';
 import registerPublic from './routes/public.js';
+import registerFinder from './routes/finder.js';
 import registerClub from './routes/club.js';
 import registerProspect from './routes/prospect.js';
 import registerWebhooks from './routes/webhooks.js';
@@ -38,7 +39,7 @@ export function buildRouter() {
     if (!secret || got.length !== secret.length || !timingSafeEqual(Buffer.from(got), Buffer.from(secret))) throw new HttpError(401, 'Não autorizado.');
     return { ok: true, stats: await tick() };
   });
-  for (const reg of [registerAuth, registerCatalog, registerAgenda, registerCrm, registerSettings, registerClub, registerProspect, registerPublic, registerWebhooks]) reg(r);
+  for (const reg of [registerAuth, registerCatalog, registerAgenda, registerCrm, registerSettings, registerClub, registerProspect, registerPublic, registerFinder, registerWebhooks]) reg(r);
   return r;
 }
 
@@ -70,6 +71,7 @@ export function createHandler({ awaitWebhooks = false } = {}) {
         let ok = false;
         if (pathname === '/') ok = serveStatic(req, res, WEB, 'index.html');
         else if (pathname.startsWith('/s/')) ok = serveStatic(req, res, WEB, 'booking.html');
+        else if (pathname === '/profissionais' || pathname === '/profissionais/') ok = serveStatic(req, res, WEB, 'profissionais.html');
         else if (pathname === '/site' || pathname === '/site/') ok = serveStatic(req, res, LANDING, 'index.html');
         else if (pathname.startsWith('/site/')) ok = serveStatic(req, res, LANDING, pathname.slice(6));
         else if (pathname.startsWith('/uploads/')) {

@@ -33,6 +33,7 @@ writeFileSync(join(out, 'vercel.json'), JSON.stringify({
   crons: [{ path: '/api/cron/tick', schedule: '*/5 * * * *' }],
   rewrites: [
     { source: '/s/:slug', destination: '/booking.html' },
+    { source: '/profissionais', destination: '/profissionais.html' },
     { source: '/api/:path*', destination: '/api/index' },
     { source: '/webhooks/:path*', destination: '/api/index' },
     { source: '/healthz', destination: '/api/index' },

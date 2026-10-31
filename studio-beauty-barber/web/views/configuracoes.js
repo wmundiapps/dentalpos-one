@@ -16,6 +16,7 @@ export async function render(root, { session }) {
   const A = s.automations || {};
   const aConf = h('input', { type: 'checkbox', checked: A.confirmation !== false }), aRec = h('input', { type: 'checkbox', checked: A.recall });
   const cb = h('input', { type: 'checkbox', checked: !!s.cashback?.enabled });
+  const fd = h('input', { type: 'checkbox', checked: !!s.finder?.enabled });
   const aRem = h('input', { type: 'checkbox', checked: A.reminders }), aBd = h('input', { type: 'checkbox', checked: A.birthday }), aRe = h('input', { type: 'checkbox', checked: A.reactivation });
   const hoursRows = DAYS.map((d, i) => {
     const v = s.hours?.[i]; const on = h('input', { type: 'checkbox', checked: !!v });
@@ -64,6 +65,7 @@ export async function render(root, { session }) {
         brand: { mode, colors, tagline: tagline.value, about: about.value, whatsapp: wa.value, instagram: ig.value, facebook: fb.value, website: site.value },
         allowed_domains: domains.value, quiet_start: Number(qs.value), quiet_end: Number(qe.value), deposit_required: dep.checked, noshow_retention_pct: Number(ret.value), free_cancel_hours: Number(fch.value), bot_enabled: bot.checked, hours,
         cashback: { enabled: cb.checked },
+        finder: { enabled: fd.checked },
         automations: { confirmation: aConf.checked, recall: aRec.checked, reminders: aRem.checked, birthday: aBd.checked, reactivation: aRe.checked } });
       toast('Configurações salvas', 'ok');
       if (!session.salon.brand || session.salon.brand.mode !== mode || JSON.stringify(session.salon.brand.colors) !== JSON.stringify(colors) || session.salon.name !== name.value) setTimeout(() => location.reload(), 700);
@@ -113,6 +115,10 @@ export async function render(root, { session }) {
         h('p', { class: 'small muted' }, 'Programa de cashback: o cliente ganha parte do valor de volta para usar no seu espaço. Marque para o seu salão participar. Cada cliente também escolhe participar na página de agendamento ou no cadastro.'),
         chk(cb, 'Quero que o meu salão participe do Cashbacksmart'),
         s.cashback?.enabled ? h('p', { class: 'small' }, `Adesão registrada em ${new Date(s.cashback.accepted_at).toLocaleDateString('pt-BR')}. A liberação do saldo acontece quando a integração com o Cashbacksmart for concluída.`) : null),
+      h('div', { class: 'card stack' }, h('h3', {}, 'Indicador de profissionais'),
+        h('p', { class: 'small muted' }, 'Clientes que procuram um serviço na sua cidade podem encontrar o seu salão. Só aparecem o nome do salão, a cidade e os serviços; telefone, e-mail e endereço nunca são mostrados. O cliente pede contato e você recebe um aviso automático por e-mail (e por WhatsApp ou SMS, se estiverem conectados). O contato do cliente fica em Leads.'),
+        chk(fd, 'Quero aparecer no indicador de profissionais da minha cidade'),
+        s.finder?.enabled ? h('p', { class: 'small' }, `Participação registrada em ${new Date(s.finder.accepted_at).toLocaleDateString('pt-BR')}. Confira se a cidade do salão está preenchida e se os serviços estão cadastrados.`) : null),
       h('div', { class: 'card' }, h('h3', {}, 'Proteção contra golpes (anti-phishing)'), f('Domínios permitidos em mensagens enviadas', domains), h('p', { class: 'small muted' }, 'Links para outros endereços, encurtadores e domínios suspeitos são bloqueados antes do envio.')),
       h('div', { class: 'row', style: { justifyContent: 'flex-end' } }, h('button', { class: 'btn primary', type: 'submit' }, 'Salvar alterações'))),
     h('div', { class: 'card', style: { marginTop: '14px' } }, h('div', { class: 'row spread' }, h('h3', {}, 'Usuários e permissões'), isOwner ? h('button', { class: 'btn sm primary', onclick: newUser }, '+ Novo usuário') : null), users));

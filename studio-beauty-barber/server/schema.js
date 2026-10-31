@@ -440,4 +440,35 @@ CREATE TABLE IF NOT EXISTS password_resets (
 CREATE INDEX IF NOT EXISTS idx_pwreset_user ON password_resets(user_id, created_at);
 `,
   },
+  {
+    id: 6,
+    // Indicador de profissionais: buscas de clientes e pedidos de contato (tudo intermediado pelo sistema).
+    rls: ['finder_requests', 'finder_contacts'],
+    sql: `
+CREATE TABLE IF NOT EXISTS finder_requests (
+  id TEXT PRIMARY KEY,
+  token_hash TEXT NOT NULL,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  service TEXT NOT NULL,
+  city_key TEXT,
+  city_label TEXT,
+  consent_at TEXT NOT NULL,
+  ip TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_finder_req_phone ON finder_requests(phone, created_at);
+
+CREATE TABLE IF NOT EXISTS finder_contacts (
+  id TEXT PRIMARY KEY,
+  request_id TEXT NOT NULL,
+  salon_id TEXT NOT NULL,
+  lead_id TEXT,
+  notified TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE (request_id, salon_id)
+);
+CREATE INDEX IF NOT EXISTS idx_finder_contacts_salon ON finder_contacts(salon_id, created_at);
+`,
+  },
 ];

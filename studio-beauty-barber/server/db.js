@@ -95,6 +95,8 @@ export async function initDb({ sqlitePath, databaseUrl } = {}) {
     const done = await impl.get('SELECT id FROM schema_migrations WHERE id = ?', [m.id]);
     if (done) continue;
     await impl.exec(m.sql);
+    // Tabelas novas nascem com RLS ligado e sem política: só o servidor (papel do banco) acessa.
+    if (impl.kind === 'pg') for (const t of m.rls || []) await impl.exec(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`);
     await impl.run('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)', [m.id, nowIso()]);
   }
   return db;
