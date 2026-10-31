@@ -217,6 +217,9 @@ export async function handleWhatsappWebhook(body: any) {
     for (const change of entry?.changes || []) {
       const value = change?.value || {}
       const phoneNumberId = String(value?.metadata?.phone_number_id || process.env.META_PHONE_NUMBER_ID || '')
+      // So atende o numero de vendas: respostas de outros numeros da conta (ex.: lembretes de agenda) nao entram no robo.
+      const salesId = String(process.env.META_PHONE_NUMBER_ID || '')
+      if (salesId && phoneNumberId !== salesId) continue
       const names = new Map<string, string>((value?.contacts || []).map((c: any) => [String(c.wa_id), String(c.profile?.name || '')]))
       for (const msg of value?.messages || []) {
         try {
