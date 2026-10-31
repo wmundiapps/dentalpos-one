@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import { PRODUCTS } from '../services/marketingProducts'
 import { MarketingError, captureLead, handleWhatsappWebhook, salesWhatsappNumber, verifyMetaSignature } from '../services/salesBotService'
 
 const seen = new Map<string, number[]>()
@@ -10,7 +11,7 @@ function tooMany(ip: string) {
   return recent.length > 12
 }
 
-export const config = (_req: Request, res: Response) => res.json({ whatsapp: salesWhatsappNumber() })
+export const config = (_req: Request, res: Response) => res.json({ whatsapp: salesWhatsappNumber(), products: PRODUCTS.map(p => ({ key: p.key, name: p.name.replace(/ \(.*\)/, '') })) })
 
 export async function lead(req: Request, res: Response) {
   try {

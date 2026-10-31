@@ -3109,6 +3109,7 @@ model MarketingLead {
   clinicName    String?
   city          String?
   source        String?
+  product       String?
   utm           Json      @default("{}")
   consentAt     DateTime? @db.Timestamp(3)
   status        String    @default("NOVO")
