@@ -14,7 +14,7 @@ Monorepo: `frontend/` (React + Vite + MUI), `backend/` (Express + Prisma, Postgr
 
 ## Palavras e regras de produto
 - "Cobrar" é só para cobrança de atraso. A ação que cria boleto, Pix, cartão, cheque ou dinheiro chama-se **"Gerar financeiro"**.
-- Planos: Basic R$ 197, Intermedium R$ 397, Plenum R$ 597 por mês. Profissionais: 60 dias grátis sem cartão e 50% de desconto nos 12 meses seguintes (promoção de lançamento até 04/12/2026, com contador na landing). Acadêmicos: gratuito até a colação de grau e mais 6 meses grátis depois da formatura (regra de 19/10/2026; concedida manualmente na conta, sem automação no sistema), depois mensalidade reduzida (50%, a confirmar) por 12 meses. Estudantes (My Students): R$ 23 por mês (a confirmar).
+- Planos: Basic R$ 197, Intermedium R$ 397, Plenum R$ 597 por mês. Profissionais: 30 dias grátis sem cartão e 50% de desconto nos 12 meses seguintes (Black Friday 2026, campanha em `marketing/black-friday/`; promoção de lançamento até 04/12/2026, com contador na landing). Hoje o sistema não aplica o teste nem o desconto sozinho: é concedido manualmente na conta e na cobrança). Acadêmicos: gratuito até a colação de grau e mais 6 meses grátis depois da formatura (regra de 19/10/2026; concedida manualmente na conta, sem automação no sistema), depois mensalidade reduzida (50%, a confirmar) por 12 meses. Estudantes (My Students): R$ 23 por mês (a confirmar).
 - Pendências, filas e avisos nunca somem; o travamento de tela foi trocado pelo alerta "VOCÊ ESTÁ EM RISCO".
 - O funcionário só vê os próprios dados de RH; RH, administração e gestor veem tudo.
 
