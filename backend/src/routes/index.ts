@@ -36,6 +36,7 @@ import * as labServiceOrderController from '../controllers/labServiceOrderContro
 import * as cronController from '../controllers/cronController'
 import * as subscriptionController from '../controllers/subscriptionController'
 import * as finderController from '../controllers/finderController'
+import * as marketingController from '../controllers/marketingController'
 import * as platformFeedbackController from '../controllers/platformFeedbackController'
 import * as accessController from '../controllers/accessController'
 import * as auditController from '../controllers/auditController'
@@ -102,6 +103,10 @@ router.post('/auth/2fa/disable', authMiddleware, twoFactor.disable)
 router.post('/auth/2fa/backup-codes', authMiddleware, twoFactor.backupCodes)
 router.post('/auth/password-reset/request', authController.requestPasswordReset)
 router.post('/auth/password-reset/confirm', authController.resetPassword)
+router.get('/marketing/config', marketingController.config)
+router.post('/marketing/lead', marketingController.lead)
+router.get('/webhooks/whatsapp-sales', marketingController.whatsappVerify)
+router.post('/webhooks/whatsapp-sales', marketingController.whatsappInbound)
 router.get('/finder/options', finderController.options)
 router.post('/finder/lead', finderController.lead)
 router.post('/finder/cities/:citySlug/professionals', finderController.reveal)
