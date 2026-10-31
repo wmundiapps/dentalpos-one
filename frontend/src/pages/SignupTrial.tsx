@@ -121,6 +121,7 @@ export default function SignupTrial() {
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
           O cartão é enviado direto ao processador de pagamentos (Asaas). O DentalPos não guarda o número do cartão.
         </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>Veja nossa <a href="/privacidade" target="_blank" rel="noreferrer">política de privacidade</a>.</Typography>
       </Paper>
     </Box>
   );

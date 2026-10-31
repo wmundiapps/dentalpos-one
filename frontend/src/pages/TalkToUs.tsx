@@ -61,6 +61,7 @@ export default function TalkToUs() {
             <Button size="large" variant="contained" startIcon={<WhatsAppIcon />} disabled={busy || !form.consent} onClick={submit}>{busy ? "Aguarde..." : "Conversar no WhatsApp"}</Button>
           </Box>
         )}
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>Veja nossa <a href="/privacidade" target="_blank" rel="noreferrer">política de privacidade</a>.</Typography>
       </Paper>
     </Box>
   );

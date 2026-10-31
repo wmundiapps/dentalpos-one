@@ -41,7 +41,7 @@ Botão: **Saiba mais**.
 ## Passo a passo na Meta
 1. `business.facebook.com` → **Gerenciador de Anúncios** → **Criar**.
 2. Objetivo: **Tráfego**. Local de conversão: **Site**. Otimizar por **Visualizações da página de destino**.
-3. Público: Brasil, 25–60 anos, interesses Odontologia, Cirurgião-dentista, Clínica odontológica. Orçamento R$ 40/dia, de 16/11 a 31/12.
+3. Público: Brasil, 25–60 anos, interesses Odontologia, Cirurgião-dentista, Clínica odontológica. Orçamento **R$ 40/dia**, início **01/11 às 18h (horário de São Paulo)**, fim 31/12. Identidade do anúncio: página do Facebook **WMundi** e Instagram **wmundimkt**.
 4. Anúncio: formato **Carrossel**, 6 cards (`01.png` a `06.png`), título e descrição da tabela, o link acima em todos, texto principal acima.
 5. Publicar. Acompanhe os leads em `Configurações` do sistema > (lista de leads no banco, tabela `MarketingLead`).
 
