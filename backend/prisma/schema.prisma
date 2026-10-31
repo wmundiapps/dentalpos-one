@@ -3023,6 +3023,8 @@ model PlatformSubscription {
   asaasSubscriptionId String?
   cardBrand           String?
   cardLast4           String?
+  cardTokenEnc        String?
+  debtAtCancel        Decimal   @default(0) @db.Decimal(12, 2)
   reminderSentAt      DateTime? @db.Timestamp(3)
   canceledAt          DateTime? @db.Timestamp(3)
   termsAcceptedAt     DateTime  @db.Timestamp(3)

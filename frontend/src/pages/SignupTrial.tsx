@@ -3,6 +3,16 @@ import { Alert, Box, Button, Checkbox, CircularProgress, FormControlLabel, MenuI
 import { appRootUrl } from "../services/DemoAccess";
 import { brDate, brl, getOffer, signupTrial, type Offer, type SignupResult } from "../services/SubscriptionApi";
 
+function useCountdown(untilIso?: string) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  if (!untilIso) return null;
+  const left = new Date(untilIso).getTime() - now;
+  if (!(left > 0)) return null;
+  const s = Math.floor(left / 1000);
+  return { days: Math.floor(s / 86400), hours: Math.floor((s % 86400) / 3600), minutes: Math.floor((s % 3600) / 60), seconds: s % 60 };
+}
+
 const emptyCard = { holderName: "", number: "", expiryMonth: "", expiryYear: "", ccv: "" };
 
 // Cadastro com teste grátis de 30 dias: o cartão fica no Asaas e a cobrança começa sozinha depois do teste.
@@ -21,6 +31,7 @@ export default function SignupTrial() {
     try { const p = new URLSearchParams(window.location.search).get("plano"); if (p) setPlan(p.toUpperCase()); } catch { /* sem parâmetro */ }
   }, []);
 
+  const countdown = useCountdown(offer?.promoActive ? offer.promoUntil : undefined);
   const chosen = useMemo(() => offer?.plans.find((p) => p.key === plan) || offer?.plans[0], [offer, plan]);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setC = (k: keyof typeof card) => (e: React.ChangeEvent<HTMLInputElement>) => setCard((c) => ({ ...c, [k]: e.target.value }));
@@ -66,6 +77,19 @@ export default function SignupTrial() {
         <Typography color="text.secondary" sx={{ mt: 1, mb: 3 }}>
           {offer?.promoActive ? `Depois, ${offer.promoPercent}% de desconto nos ${offer.promoCycles} meses seguintes. ` : ""}Sem fidelidade, cancele quando quiser.
         </Typography>
+        {countdown && offer && (
+          <Box role="timer" aria-label="Tempo restante da promoção" sx={{ mb: 3, p: 2, borderRadius: 3, bgcolor: "primary.main", color: "primary.contrastText", textAlign: "center" }}>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>{offer.promoPercent}% de desconto por {offer.promoCycles} meses. A promoção termina em {brDate(offer.promoUntil)}:</Typography>
+            <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 1 }}>
+              {([["dias", countdown.days], ["horas", countdown.hours], ["min", countdown.minutes], ["seg", countdown.seconds]] as const).map(([label, value]) => (
+                <Box key={label} sx={{ minWidth: 56 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 950, lineHeight: 1 }}>{String(value).padStart(2, "0")}</Typography>
+                  <Typography variant="caption">{label}</Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" } }}>
           <TextField select label="Plano" value={plan} onChange={(e) => setPlan(e.target.value)} sx={{ gridColumn: { md: "1 / -1" } }}>

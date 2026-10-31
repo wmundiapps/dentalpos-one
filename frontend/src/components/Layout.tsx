@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from "react";
 import { syncProcedureDurations } from "../services/ProcedureDurations";
 
 import DemoBanner from "./DemoBanner";
+import SubscriptionBanner from "./SubscriptionBanner";
 import EvaluationWidget from "./EvaluationWidget";
 import Footer from "./Footer";
 import Header from "./Header";
@@ -47,6 +48,7 @@ export default function Layout({
       >
         <Header />
         <Box className="no-print"><DemoBanner /></Box>
+        <Box className="no-print"><SubscriptionBanner /></Box>
         <Box className="no-print"><PendingAlertsBar /></Box>
         <ToastHost />
 

@@ -5,6 +5,7 @@ import { hashPassword } from './userService'
 import { createStarterClinic } from './clinicProvisionService'
 import { call, ensureCustomer } from './platformBillingService'
 import { dispatchRevah } from './revahProviderService'
+import { decryptSecret, encryptSecret } from './secretVault'
 
 // Assinatura da clinica com a WMundi (mensalidade do DentalPos).
 // Regra: 30 dias de teste com cartao cadastrado, depois cobranca mensal automatica com 50% de desconto
@@ -39,8 +40,8 @@ const brDate = (d: Date) => d.toLocaleDateString('pt-BR', { timeZone: 'America/S
 const isoBrDate = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
 
 function promoUntil() {
-  const d = new Date(process.env.SUBSCRIPTION_PROMO_UNTIL || '2026-12-04T23:59:59-03:00')
-  return Number.isNaN(d.getTime()) ? new Date('2026-12-04T23:59:59-03:00') : d
+  const d = new Date(process.env.SUBSCRIPTION_PROMO_UNTIL || '2026-12-31T23:59:59-03:00')
+  return Number.isNaN(d.getTime()) ? new Date('2026-12-31T23:59:59-03:00') : d
 }
 const promoActive = (now = new Date()) => now <= promoUntil()
 
@@ -96,6 +97,23 @@ function chargeLine(promoPrice: number, fullPrice: number, promoCycles: number) 
   return promoCycles > 0
     ? `${brl(promoPrice)} por mês nos primeiros ${promoCycles} meses (50% de desconto) e ${brl(fullPrice)} por mês a partir do mês ${promoCycles + 1}`
     : `${brl(fullPrice)} por mês`
+}
+
+// Token do cartao (fica criptografado; so serve com a chave do Asaas da plataforma). Permite reativar sem digitar o cartao de novo.
+function sealToken(token: unknown) {
+  const t = text(token)
+  if (!t) return null
+  try { return encryptSecret({ token: t }) } catch { return null }
+}
+function openToken(sealed?: string | null) {
+  try { return decryptSecret<{ token?: string }>(sealed)?.token || null } catch { return null }
+}
+
+// Mensalidades vencidas e nao pagas no Asaas (cliente da clinica).
+async function overduePayments(customerId: string | null) {
+  if (!customerId) return [] as { id: string; value: number; invoiceUrl?: string }[]
+  const r = await call(`/payments?customer=${encodeURIComponent(customerId)}&status=OVERDUE&limit=100`)
+  return ((r?.data || []) as any[]).map(p => ({ id: String(p.id), value: Number(p.value || 0), invoiceUrl: p.invoiceUrl ? String(p.invoiceUrl) : undefined }))
 }
 
 // ---------- cadastro com teste de 30 dias ----------
@@ -201,6 +219,7 @@ export async function startTrial(input: TrialSignupInput, remoteIp: string) {
           status: 'TESTE', asaasCustomerId: customer, asaasSubscriptionId,
           cardBrand: sub.creditCard?.creditCardBrand ? String(sub.creditCard.creditCardBrand) : null,
           cardLast4: sub.creditCard?.creditCardNumber ? digits(sub.creditCard.creditCardNumber).slice(-4) : cardNumber.slice(-4),
+          cardTokenEnc: sealToken(sub.creditCard?.creditCardToken),
           lastEvent: 'TESTE_INICIADO', updatedAt: new Date(),
         },
       }),
@@ -254,6 +273,13 @@ export async function getSubscriptionView(clinicId: string) {
   const sub = await prisma.platformSubscription.findUnique({ where: { clinicId } })
   if (!sub || sub.status === 'PENDENTE' || sub.status === 'FALHOU') return { exists: false as const }
   const now = Date.now()
+  let overdue: { total: number; invoiceUrl: string | null } | null = null
+  if (sub.status === 'ATRASADA') {
+    try {
+      const list = await overduePayments(sub.asaasCustomerId)
+      if (list.length) overdue = { total: round2(list.reduce((a, p) => a + p.value, 0)), invoiceUrl: list[0].invoiceUrl || null }
+    } catch { /* o aviso aparece mesmo sem o link */ }
+  }
   const inPromo = sub.promoCycles > 0 && sub.cyclesPaid < sub.promoCycles
   const accessUntil = sub.accessUntil
   return {
@@ -272,6 +298,10 @@ export async function getSubscriptionView(clinicId: string) {
     canceledAt: sub.canceledAt?.toISOString() || null,
     accessUntil: accessUntil ? accessUntil.toISOString() : null,
     pastDue: sub.status === 'ATRASADA',
+    overdue,
+    readOnly: Boolean(sub.status === 'CANCELADA' && accessUntil && accessUntil.getTime() < now),
+    hasSavedCard: Boolean(sub.cardTokenEnc),
+    debtAtCancel: Number(sub.debtAtCancel),
     minimumCommitment: false,
   }
 }
@@ -280,6 +310,10 @@ export async function cancelSubscription(clinicId: string) {
   const sub = await prisma.platformSubscription.findUnique({ where: { clinicId } })
   if (!sub || sub.status === 'PENDENTE' || sub.status === 'FALHOU') throw new SubscriptionError('Esta clínica não tem assinatura ativa.', 404)
   if (sub.status === 'CANCELADA') return getSubscriptionView(clinicId)
+
+  // Guarda o que estava vencido: cancelar nao apaga a divida (ela e cobrada na reativacao).
+  let debt = 0
+  try { debt = round2((await overduePayments(sub.asaasCustomerId)).reduce((a, p) => a + p.value, 0)) } catch { /* segue; a reativacao consulta o Asaas de novo */ }
 
   if (sub.asaasSubscriptionId) {
     try {
@@ -294,7 +328,7 @@ export async function cancelSubscription(clinicId: string) {
     }
   }
 
-  await prisma.platformSubscription.update({ where: { id: sub.id }, data: { status: 'CANCELADA', canceledAt: new Date(), lastEvent: 'CANCELADA_PELO_CLIENTE', updatedAt: new Date() } })
+  await prisma.platformSubscription.update({ where: { id: sub.id }, data: { status: 'CANCELADA', canceledAt: new Date(), debtAtCancel: debt, lastEvent: 'CANCELADA_PELO_CLIENTE', updatedAt: new Date() } })
   blockCache.delete(clinicId)
 
   const admin = await prisma.user.findFirst({ where: { clinicId, role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, select: { email: true, firstName: true } })
@@ -305,6 +339,114 @@ export async function cancelSubscription(clinicId: string) {
       '',
       'Sua assinatura do DentalPos foi cancelada e nenhuma nova cobrança será feita.',
       `Você continua com acesso completo até ${until}. Depois disso, seus dados ficam preservados e a conta passa a ser somente leitura.`,
+      SIGN,
+    ].join('\n'))
+  }
+  return getSubscriptionView(clinicId)
+}
+
+// ---------- reativar assinatura cancelada ----------
+
+export interface ReactivateInput {
+  useNewCard?: boolean
+  postalCode?: unknown
+  addressNumber?: unknown
+  card?: { holderName?: unknown; number?: unknown; expiryMonth?: unknown; expiryYear?: unknown; ccv?: unknown }
+}
+
+// Reativa so com tudo em dia: cobra no cartao o que estava vencido e depois cria a nova assinatura (sem novo teste).
+export async function reactivateSubscription(clinicId: string, input: ReactivateInput, remoteIp: string) {
+  const sub = await prisma.platformSubscription.findUnique({ where: { clinicId } })
+  if (!sub || sub.status !== 'CANCELADA' || !sub.asaasCustomerId) throw new SubscriptionError('Só dá para reativar uma assinatura cancelada.', 409)
+  const customer = sub.asaasCustomerId
+  const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { email: true, phone: true, cnpj: true, name: true } })
+  const admin = await prisma.user.findFirst({ where: { clinicId, role: 'ADMIN' }, orderBy: { createdAt: 'asc' }, select: { email: true, firstName: true } })
+  if (!clinic) throw new SubscriptionError('Clínica não encontrada.', 404)
+
+  // 1) Cartao: o guardado ou um novo (que vira token no Asaas).
+  let token = openToken(sub.cardTokenEnc)
+  let cardBrand = sub.cardBrand
+  let cardLast4 = sub.cardLast4
+  if (input.useNewCard || !token) {
+    const c = input.card || {}
+    const number = digits(c.number)
+    const holderName = text(c.holderName)
+    const expiryMonth = digits(c.expiryMonth).padStart(2, '0')
+    const expiryYear = digits(c.expiryYear)
+    const ccv = digits(c.ccv)
+    const postalCode = digits(input.postalCode)
+    const addressNumber = text(input.addressNumber)
+    if (!holderName || number.length < 13 || number.length > 19 || !luhn(number)) throw new SubscriptionError('Informe o cartão para reativar.')
+    if (!/^(0[1-9]|1[0-2])$/.test(expiryMonth) || expiryYear.length !== 4 || ccv.length < 3 || ccv.length > 4) throw new SubscriptionError('Confira a validade e o código de segurança do cartão.')
+    if (postalCode.length !== 8 || !addressNumber) throw new SubscriptionError('Informe o CEP e o número do endereço de cobrança.')
+    try {
+      const t = await call('/creditCard/tokenizeCreditCard', {
+        method: 'POST',
+        body: JSON.stringify({
+          customer,
+          creditCard: { holderName, number, expiryMonth, expiryYear, ccv },
+          creditCardHolderInfo: { name: holderName, email: admin?.email || clinic.email, cpfCnpj: digits(clinic.cnpj), postalCode, addressNumber, mobilePhone: digits(clinic.phone) },
+          remoteIp,
+        }),
+      })
+      token = text(t.creditCardToken)
+      cardBrand = t.creditCardBrand ? String(t.creditCardBrand) : cardBrand
+      cardLast4 = t.creditCardNumber ? digits(t.creditCardNumber).slice(-4) : number.slice(-4)
+    } catch (error) {
+      console.error('Falha ao validar cartao na reativacao:', error instanceof Error ? error.message : 'erro')
+      throw new SubscriptionError(`Não foi possível validar o cartão${error instanceof Error && error.message ? `: ${error.message}` : '.'}`, 402)
+    }
+    if (!token) throw new SubscriptionError('Não foi possível validar o cartão. Tente de novo.', 402)
+  }
+
+  // 2) Tudo em dia: paga o que estava vencido (cobrancas abertas e a divida guardada no cancelamento).
+  const open = await overduePayments(customer)
+  const today = isoBrDate(new Date())
+  try {
+    if (open.length) {
+      for (const p of open) await call(`/payments/${p.id}/payWithCreditCard`, { method: 'POST', body: JSON.stringify({ creditCardToken: token, remoteIp }) })
+    } else if (Number(sub.debtAtCancel) > 0) {
+      await call('/payments', {
+        method: 'POST',
+        body: JSON.stringify({ customer, billingType: 'CREDIT_CARD', value: Number(sub.debtAtCancel), dueDate: today, description: 'DentalPos - mensalidade em atraso', externalReference: `debt:${sub.id}`, creditCardToken: token, remoteIp }),
+      })
+    }
+  } catch (error) {
+    console.error('Falha ao cobrar pendencia na reativacao:', error instanceof Error ? error.message : 'erro')
+    throw new SubscriptionError('Não conseguimos cobrar o valor em atraso no cartão. Use outro cartão para reativar.', 402)
+  }
+
+  // 3) Nova assinatura, cobrando agora. Desconto so se a promocao ainda vale e ainda restam meses dele.
+  const discounted = promoActive() && sub.cyclesPaid < sub.promoCycles
+  const value = discounted ? Number(sub.promoPrice) : Number(sub.fullPrice)
+  let created: any
+  try {
+    created = await call('/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify({ customer, billingType: 'CREDIT_CARD', value, nextDueDate: today, cycle: 'MONTHLY', description: `DentalPos - plano ${PLANS[sub.plan]?.name || sub.plan}`, externalReference: `sub:${sub.id}`, creditCardToken: token, remoteIp }),
+    })
+  } catch (error) {
+    console.error('Falha ao criar assinatura na reativacao:', error instanceof Error ? error.message : 'erro')
+    throw new SubscriptionError(`Não foi possível reativar: ${error instanceof Error && error.message ? error.message : 'cartão recusado.'}`, 402)
+  }
+
+  await prisma.platformSubscription.update({
+    where: { id: sub.id },
+    data: {
+      status: 'ATIVA', asaasSubscriptionId: String(created.id), canceledAt: null, debtAtCancel: 0,
+      accessUntil: new Date(Date.now() + 33 * DAY_MS), cardBrand, cardLast4, cardTokenEnc: sealToken(token),
+      ...(discounted ? {} : { promoCycles: sub.cyclesPaid, fullPriceAppliedAt: new Date() }),
+      lastEvent: 'REATIVADA', updatedAt: new Date(),
+    },
+  })
+  blockCache.delete(clinicId)
+
+  if (admin) {
+    await sendMailWithSubject(admin.email, 'Assinatura do DentalPos reativada', [
+      `Olá ${admin.firstName},`,
+      '',
+      `Sua assinatura do DentalPos foi reativada. Cobramos ${brl(value)} no cartão final ${cardLast4 || '----'} e as próximas mensalidades seguem todo mês.`,
+      'Sem fidelidade: você pode cancelar de novo a qualquer momento em Configurações > Minha assinatura.',
       SIGN,
     ].join('\n'))
   }

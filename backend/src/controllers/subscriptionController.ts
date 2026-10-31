@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
 import type { AuthRequest } from '../middleware/auth'
-import { SubscriptionError, cancelSubscription, getSubscriptionView, publicOffer, startTrial } from '../services/subscriptionService'
+import { SubscriptionError, cancelSubscription, getSubscriptionView, publicOffer, reactivateSubscription, startTrial } from '../services/subscriptionService'
 
 // Limite simples por IP para o cadastro com cartao (evita teste de cartoes roubados).
 const attempts = new Map<string, number[]>()
@@ -45,5 +45,19 @@ export async function cancel(req: AuthRequest, res: Response) {
     if (error instanceof SubscriptionError) return res.status(error.status).json({ error: error.message })
     console.error(error)
     return res.status(500).json({ error: 'Não foi possível cancelar agora.' })
+  }
+}
+
+// Reativar vale mesmo com a conta somente leitura, por isso nao passa por requirePermission.
+export async function reactivate(req: AuthRequest, res: Response) {
+  try {
+    if (req.user!.role !== 'ADMIN') return res.status(403).json({ error: 'Só o administrador da clínica pode reativar a assinatura.' })
+    const ip = req.ip || req.socket.remoteAddress || 'unknown'
+    if (tooMany(`re:${ip}`)) return res.status(429).json({ error: 'Muitas tentativas. Tente de novo em alguns minutos.' })
+    return res.json(await reactivateSubscription(req.user!.clinicId, req.body || {}, ip))
+  } catch (error) {
+    if (error instanceof SubscriptionError) return res.status(error.status).json({ error: error.message })
+    console.error('Erro ao reativar assinatura:', error instanceof Error ? error.message : 'erro')
+    return res.status(500).json({ error: 'Não foi possível reativar agora.' })
   }
 }

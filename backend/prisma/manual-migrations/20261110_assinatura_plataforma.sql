@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS "PlatformSubscription" (
   "asaasSubscriptionId" TEXT,
   "cardBrand" TEXT,
   "cardLast4" TEXT,
+  "cardTokenEnc" TEXT,
+  "debtAtCancel" NUMERIC(12,2) NOT NULL DEFAULT 0,
   "reminderSentAt" TIMESTAMP(3),
   "canceledAt" TIMESTAMP(3),
   "termsAcceptedAt" TIMESTAMP(3) NOT NULL,

@@ -37,12 +37,20 @@ export interface SubscriptionView {
   exists: boolean; status?: string; planName?: string; trialEndsAt?: string; trialDaysLeft?: number; nextChargeAmount?: number;
   fullPrice?: number; promoCyclesLeft?: number; cardBrand?: string | null; cardLast4?: string | null; canceled?: boolean;
   accessUntil?: string | null; pastDue?: boolean;
+  overdue?: { total: number; invoiceUrl: string | null } | null; readOnly?: boolean; hasSavedCard?: boolean; debtAtCancel?: number;
+}
+
+export interface ReactivatePayload {
+  useNewCard: boolean; postalCode?: string; addressNumber?: string;
+  card?: { holderName: string; number: string; expiryMonth: string; expiryYear: string; ccv: string };
 }
 
 export const getOffer = () => call<Offer>("/billing/offer");
 export const signupTrial = (body: SignupPayload) => call<SignupResult>("/billing/signup", { method: "POST", body });
 export const getMySubscription = () => call<SubscriptionView>("/billing/subscription", { auth: true });
 export const cancelMySubscription = () => call<SubscriptionView>("/billing/subscription/cancel", { method: "POST", body: {}, auth: true });
+
+export const reactivateMySubscription = (body: ReactivatePayload) => call<SubscriptionView>("/billing/subscription/reactivate", { method: "POST", body, auth: true });
 
 export const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export const brDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—");

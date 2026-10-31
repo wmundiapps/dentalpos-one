@@ -13,7 +13,7 @@ const cards = [
   { id: '03-whatsapp', fundo: '#2E8B6B', tinta: '#FFFFFF', destaque: '#FBEFD7', selo: 'WhatsApp do seu consultório', titulo: 'Use o <em>seu próprio número.</em> É só configurar.', texto: 'Lembretes, confirmações e retorno de pacientes saindo do WhatsApp da sua clínica.', cta: 'Quero configurar' },
   { id: '04-documentos', fundo: '#F7F4EF', tinta: '#1D1D1F', destaque: '#2E8B6B', selo: 'Papelaria e documentos inclusos', titulo: 'Documento novo? <em>Você não paga nada a mais.</em>', texto: 'Receitas, atestados, termos e contratos já vêm no sistema, prontos para usar.', cta: 'Conhecer o sistema' },
   { id: '05-migracao', fundo: '#E0A83E', tinta: '#1D1D1F', destaque: '#FFFFFF', selo: 'Migração automática', titulo: 'Trocar de sistema <em>ficou simples.</em>', texto: 'Traga pacientes e histórico do sistema atual sem digitar nada de novo.', cta: 'Migrar sem dor' },
-  { id: '06-ultimas-horas', fundo: '#8C1D2B', tinta: '#FFFFFF', destaque: '#FBEFD7', selo: 'Últimos dias · Black Friday', titulo: 'A oferta <em>acaba em 30/11.</em>', texto: '30 dias grátis, 50% de desconto por 12 meses e migração automática.', cta: 'Garantir agora' },
+  { id: '06-ultimas-horas', fundo: '#8C1D2B', tinta: '#FFFFFF', destaque: '#FBEFD7', selo: 'Últimos dias · Black Friday', titulo: 'A oferta <em>acaba em 31/12.</em>', texto: '30 dias grátis, 50% de desconto por 12 meses e migração automática.', cta: 'Garantir agora' },
 ]
 const formatos = [{ nome: 'feed', w: 1080, h: 1080 }, { nome: 'stories', w: 1080, h: 1920 }]
 const html = (c, f) => `<!doctype html><meta charset="utf-8"><style>
