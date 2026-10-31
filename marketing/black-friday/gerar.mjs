@@ -8,7 +8,7 @@ const dir = path.dirname(fileURLToPath(import.meta.url))
 const logo = 'data:image/png;base64,' + fs.readFileSync(path.join(dir, '../../frontend/public/brand/logo-leao.png')).toString('base64')
 
 const cards = [
-  { id: '01-oferta', fundo: '#1D1D1F', tinta: '#F7F4EF', destaque: '#E0A83E', selo: 'BLACK FRIDAY DENTALPOS', titulo: '30 dias grátis e <em>50% off</em> por 12 meses.', texto: 'Sem cartão para testar. Cancele quando quiser.', cta: 'Quero a oferta' },
+  { id: '01-oferta', fundo: '#1D1D1F', tinta: '#F7F4EF', destaque: '#E0A83E', selo: 'BLACK FRIDAY DENTALPOS', titulo: '30 dias grátis e <em>50% off</em> por 12 meses.', texto: 'Cobrança só depois dos 30 dias. Sem fidelidade, cancele quando quiser.', cta: 'Quero a oferta' },
   { id: '02-automatico', fundo: '#FBEFD7', tinta: '#1D1D1F', destaque: '#B9821F', selo: 'Automação de verdade', titulo: 'Centenas de processos <em>rodando sozinhos.</em>', texto: 'Sem depender de funcionário. Você configura uma vez e o sistema trabalha todo dia.', cta: 'Testar 30 dias grátis' },
   { id: '03-whatsapp', fundo: '#2E8B6B', tinta: '#FFFFFF', destaque: '#FBEFD7', selo: 'WhatsApp do seu consultório', titulo: 'Use o <em>seu próprio número.</em> É só configurar.', texto: 'Lembretes, confirmações e retorno de pacientes saindo do WhatsApp da sua clínica.', cta: 'Quero configurar' },
   { id: '04-documentos', fundo: '#F7F4EF', tinta: '#1D1D1F', destaque: '#2E8B6B', selo: 'Papelaria e documentos inclusos', titulo: 'Documento novo? <em>Você não paga nada a mais.</em>', texto: 'Receitas, atestados, termos e contratos já vêm no sistema, prontos para usar.', cta: 'Conhecer o sistema' },
@@ -26,7 +26,7 @@ p{font-size:${f.h > 1500 ? 46 : 38}px;line-height:1.35;margin-top:34px;opacity:.
 .url{font-size:32px;opacity:.75;margin-top:22px}</style>
 <div class="marca"><img src="${logo}"><span>Dental<b>Pos</b></span></div>
 <div><div class="selo">${c.selo}</div><h1>${c.titulo}</h1><p>${c.texto}</p></div>
-<div><div class="cta">${c.cta}</div><div class="url">app.dentalpos.com.br</div></div>`
+<div><div class="cta">${c.cta}</div><div class="url">app.dentalpos.com.br/cadastro</div></div>`
 
 const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' })
 for (const c of cards) for (const f of formatos) {

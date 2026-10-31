@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { hashPassword } from '../services/userService'
+import { createStarterClinic } from '../services/clinicProvisionService'
 import { dispatchRevah } from '../services/revahProviderService'
 import {
   createDemoMetadata,
@@ -21,24 +22,8 @@ function resendCredentials() {
   const apiKey = process.env.RESEND_API_KEY || ''
   return {
     apiKey,
-    from: 'CompletoDonto <contato@dentalpos.com.br>',
+    from: 'DentalPos <contato@dentalpos.com.br>',
   }
-}
-
-function defaultOnlineTimes() {
-  const values: string[] = []
-  const lunchStart = 12 * 60
-  const lunchEnd = 14 * 60
-
-  for (let cursor = 8 * 60; cursor + 30 <= 18 * 60; cursor += 30) {
-    const slotEnd = cursor + 30
-    if (cursor < lunchEnd && slotEnd > lunchStart) continue
-    values.push(
-      `${String(Math.floor(cursor / 60)).padStart(2, '0')}:${String(cursor % 60).padStart(2, '0')}`,
-    )
-  }
-
-  return values
 }
 
 export async function config(_req: Request, res: Response) {
@@ -103,7 +88,7 @@ export async function register(req: Request, res: Response) {
       return res.status(409).json({
         code: 'EMAIL_ALREADY_IN_USE',
         error:
-          'Este e-mail já possui acesso ao CompletoDonto. Use outro e-mail ou entre com a conta existente.',
+          'Este e-mail já possui acesso ao DentalPos. Use outro e-mail ou entre com a conta existente.',
       })
     }
 
@@ -116,125 +101,23 @@ export async function register(req: Request, res: Response) {
       modules: options.modules,
       termsVersion: options.termsVersion,
     })
-    const onlineTimes = defaultOnlineTimes()
-
-    const created = await prisma.$transaction(async tx => {
-      const clinic = await tx.clinic.create({
-        data: {
-          tenantId,
-          name: clinicName,
-          displayName: clinicName,
-          email,
-          phone,
-          cnpj,
-          plan: 'DEMO',
-          language: 'pt-BR',
-          timezone: 'America/Sao_Paulo',
-          maxDoctors: 1,
-          maxPatients: 500,
-          isActive: true,
-        },
-      })
-
-      const user = await tx.user.create({
-        data: {
-          clinicId: clinic.id,
-          tenantId,
-          email,
-          password: passwordHash,
-          firstName,
-          lastName,
-          phone,
-          role: 'ADMIN',
-          isActive: true,
-        },
-      })
-
-      const doctor = await tx.doctor.create({
-        data: {
-          clinicId: clinic.id,
-          tenantId,
-          userId: user.id,
-          cro: cro || `DEMO-${randomUUID().slice(0, 8).toUpperCase()}`,
-          specialty,
-          isActive: true,
-        },
-      })
-
-      await tx.schedule.createMany({
-        data: [1, 2, 3, 4, 5].map(dayOfWeek => ({
-          clinicId: clinic.id,
-          tenantId,
-          userId: user.id,
-          doctorId: doctor.id,
-          dayOfWeek,
-          startTime: '08:00',
-          endTime: '18:00',
-          slotDuration: 30,
-        })),
-      })
-
-      await tx.tenantFeatureFlag.create({
-        data: {
-          clinicId: clinic.id,
-          tenantId,
-          key: 'DEMO_ACCESS',
-          enabled: true,
-          rolloutStage: 'PILOT',
-          metadata,
-        },
-      })
-
-      await tx.tenantFeatureFlag.create({
-        data: {
-          clinicId: clinic.id,
-          tenantId,
-          key: 'AGENDA_RECURRING_BREAKS',
-          enabled: true,
-          rolloutStage: 'PILOT',
-          metadata: {
-            version: 1,
-            breaks: [1, 2, 3, 4, 5].map(dayOfWeek => ({
-              id: randomUUID(),
-              doctorId: doctor.id,
-              dayOfWeek,
-              startTime: '12:00',
-              endTime: '14:00',
-              reason: 'Almoço',
-            })),
-          },
-        },
-      })
-
-      const slots = Object.fromEntries(
-        [1, 2, 3, 4, 5].map(day => [String(day), onlineTimes]),
-      )
-
-      await tx.tenantFeatureFlag.create({
-        data: {
-          clinicId: clinic.id,
-          tenantId,
-          key: 'ONLINE_BOOKING_SLOTS',
-          enabled: true,
-          rolloutStage: 'PILOT',
-          metadata: {
-            version: 1,
-            slots: {
-              [doctor.id]: slots,
-            },
-          },
-        },
-      })
-
-      return {
-        clinicId: clinic.id,
+    const created = await prisma.$transaction(tx =>
+      createStarterClinic(tx, {
         tenantId,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        doctorId: doctor.id,
-      }
-    })
+        clinicName,
+        firstName,
+        lastName,
+        phone,
+        email,
+        passwordHash,
+        cnpj,
+        cro: cro || `DEMO-${randomUUID().slice(0, 8).toUpperCase()}`,
+        specialty,
+        plan: 'DEMO',
+        maxPatients: 500,
+        demoMetadata: metadata,
+      }),
+    )
 
     const demo = await getDemoAccess(created.clinicId)
 
@@ -247,9 +130,9 @@ export async function register(req: Request, res: Response) {
         const welcomeContent = [
           `Olá ${created.firstName},`,
           '',
-          `Sua demonstração gratuita do CompletoDonto para a clínica "${clinicName}" está pronta.`,
+          `Sua demonstração gratuita do DentalPos para a clínica "${clinicName}" está pronta.`,
           '',
-          `Acesse: https://app.completodonto.com.br/`,
+          `Acesse: https://app.dentalpos.com.br/`,
           `E-mail de login: ${created.email}`,
           `Senha: a que você cadastrou agora`,
           validUntil ? `Demo gratuita válida até: ${validUntil}` : null,
@@ -258,17 +141,17 @@ export async function register(req: Request, res: Response) {
           '',
           'Qualquer dúvida, estamos à disposição pelo WhatsApp: (44) 98453-5069.',
           '',
-          'Equipe CompletoDonto',
+          'Equipe DentalPos',
           'Você só precisa atender.',
         ].filter((line): line is string => line !== null).join('\n')
 
         await dispatchRevah('EMAIL', created.email, welcomeContent, {
           ...credentials,
-          subject: 'Seu acesso à demonstração do CompletoDonto está pronto',
+          subject: 'Seu acesso à demonstração do DentalPos está pronto',
         })
 
         const adminContent = [
-          'Novo demo criado no CompletoDonto:',
+          'Novo demo criado no DentalPos:',
           '',
           `Clínica: ${clinicName}`,
           `Responsável: ${created.firstName} ${created.lastName}`,

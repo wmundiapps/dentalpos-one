@@ -9,6 +9,7 @@ import PendingAlertsSettingsCard from "../components/PendingAlertsSettingsCard";
 import TwoFactorCard from "../components/TwoFactorCard";
 import FollowUpSettingsCard from "../components/FollowUpSettingsCard";
 import SessionsCard from "../components/SessionsCard";
+import SubscriptionCard from "../components/SubscriptionCard";
 import FinancialHoldSettingsCard from "../components/FinancialHoldSettingsCard";
 import DunningSettingsCard from "../components/DunningSettingsCard";
 import { useAppTheme } from "../contexts/AppThemeContext";
@@ -17,6 +18,7 @@ export default function Settings(){
  const {mode,primaryColor,toggleMode,setPrimaryColor}=useAppTheme();
  const navigate=useNavigate();
  return <Box><PageHeader title="Configurações" description="Identidade da clínica, aparência, cores e preferências do sistema."/>
+ <SubscriptionCard/>
  <TwoFactorCard/>
  <SessionsCard/>
  <FollowUpSettingsCard/>

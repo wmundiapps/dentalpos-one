@@ -229,8 +229,8 @@ export default function Login() {
 
         <Box sx={{ mt: 3, pt: 2.5, borderTop: "1px solid", borderColor: "divider" }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Ainda não usa o CompletoDonto? O EXPERIENCE é gratuito, temporário e informa claramente
-            a data de encerramento.
+            Ainda não usa o DentalPos? Teste grátis por 30 dias com o cartão cadastrado. A cobrança só
+            começa depois do teste, com 50% de desconto nos 12 meses seguintes. Sem fidelidade.
           </Typography>
           <Button
             fullWidth
@@ -239,7 +239,7 @@ export default function Login() {
               window.location.href = demoRegistrationUrl();
             }}
           >
-            Conhecer o EXPERIENCE
+            Começar 30 dias grátis
           </Button>
         </Box>
 

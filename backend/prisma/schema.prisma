@@ -3001,3 +3001,36 @@ model ClinicBrandKit {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 }
+
+// Assinatura da clinica com a WMundi: teste de 30 dias com cartao, depois cobranca mensal
+// (50% nos primeiros 12 meses, depois valor cheio). Cartao fica so no Asaas (nunca aqui).
+model PlatformSubscription {
+  id                  String    @id
+  clinicId            String    @unique
+  tenantId            String
+  plan                String
+  status              String    @default("PENDENTE")
+  fullPrice           Decimal   @db.Decimal(12, 2)
+  promoPrice          Decimal   @db.Decimal(12, 2)
+  promoCycles         Int       @default(12)
+  cyclesPaid          Int       @default(0)
+  paidPaymentIds      Json      @default("[]")
+  trialDays           Int       @default(30)
+  trialEndsAt         DateTime  @db.Timestamp(3)
+  accessUntil         DateTime? @db.Timestamp(3)
+  fullPriceAppliedAt  DateTime? @db.Timestamp(3)
+  asaasCustomerId     String?
+  asaasSubscriptionId String?
+  cardBrand           String?
+  cardLast4           String?
+  reminderSentAt      DateTime? @db.Timestamp(3)
+  canceledAt          DateTime? @db.Timestamp(3)
+  termsAcceptedAt     DateTime  @db.Timestamp(3)
+  termsVersion        String
+  lastEvent           String?
+  createdAt           DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt           DateTime  @default(now()) @db.Timestamp(3)
+
+  @@index([status, trialEndsAt])
+  @@index([asaasSubscriptionId])
+}

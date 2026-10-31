@@ -1,12 +1,12 @@
 # Campanha Black Friday — DentalPos
 
-**Oferta:** 30 dias grátis (sem cartão) + 50% de desconto nos 12 meses seguintes.
+**Oferta:** 30 dias grátis (cartão cadastrado no início, cobrança só depois dos 30 dias) + 50% de desconto nos 12 meses seguintes. Sem fidelidade: cancela quando quiser.
 **Validade sugerida:** 16/11 a 30/11/2026 (Black Friday é 27/11; Cyber Monday 30/11).
-**Link de destino:** `https://app.dentalpos.com.br` (troque pela página de cadastro se for outra).
+**Link de destino:** `https://app.dentalpos.com.br/cadastro` (cadastro com cartão e teste de 30 dias, já no ar neste repositório).
 **Planos com 50%:** Basic R$ 98,50 · Intermedium R$ 198,50 · Plenum R$ 298,50 por mês (de R$ 197 / 397 / 597).
 
 ## Conferir antes de colocar no ar
-1. O cadastro precisa realmente dar **30 dias** e aplicar **50% por 12 meses**. O CLAUDE.md do repositório diz 60 dias grátis na promoção de lançamento. Se o sistema continuar dando 60, o anúncio promete menos do que entrega (pode, mas confirme).
+1. O cadastro com cartão, os 30 dias de teste, a cobrança automática com 50% por 12 meses e o cancelamento já estão no sistema (`/cadastro`). Antes de anunciar, faça 1 cadastro de teste em ambiente de testes do Asaas (ASAAS_ENV=SANDBOX) e confira a primeira cobrança.
 2. "Centenas de processos automatizados": confirme o número que você quer sustentar. Os textos dizem "centenas", sem número exato.
 3. Texto de oferta é comunicação comercial. Mostre à Dra. Roberta se quiser validar as regras do desconto (quem é elegível, o que acontece no mês 13).
 
@@ -40,7 +40,7 @@ Para regerar: `cd marketing/black-friday && node gerar.mjs`.
 ```
 BLACK FRIDAY DENTALPOS 🖤
 
-30 dias grátis, sem cartão.
+30 dias grátis. A cobrança só começa depois do teste e você cancela quando quiser, sem fidelidade.
 E 50% de desconto nos 12 meses seguintes.
 
 Agenda, prontuário, financeiro, estoque e retorno de pacientes em um só sistema.
@@ -137,7 +137,7 @@ Processos 100% automáticos
 Use o WhatsApp da clínica
 Documentos sem custo extra
 Migração automática
-Sem cartão para testar
+Cobrança só após 30 dias
 Gestão para Clínica Odonto
 Agenda e Prontuário Online
 Oferta até 30/11
@@ -148,12 +148,12 @@ Oferta até 30/11
 30 dias grátis e 50% de desconto por 12 meses. Migre seus dados sem digitar nada.
 Centenas de processos automáticos. Configure uma vez e o sistema trabalha por você.
 WhatsApp do seu consultório, receitas e documentos inclusos. Sem custo por documento.
-Teste sem cartão de crédito. Cancele quando quiser. Black Friday até 30/11.
+Cobrança só após os 30 dias. Sem fidelidade, cancele quando quiser. Até 30/11.
 ```
 
 ## Extensões (ativos)
 - **Sitelinks:** "Planos e preços", "Migração automática", "Falar no WhatsApp", "Entrar".
-- **Frases de destaque:** `Sem cartão`, `Migração automática`, `Documentos inclusos`, `WhatsApp do consultório`.
+- **Frases de destaque:** `Sem fidelidade`, `Migração automática`, `Documentos inclusos`, `WhatsApp do consultório`.
 - **Imagens:** use as `-feed.png`.
 
 ## Passo a passo (Google)
@@ -210,14 +210,14 @@ Black Friday DentalPos: 30 dias grátis + 50% off por 12 meses. Automação, Wha
 ```
 Olá, Dr(a). {nome}! Aqui é do DentalPos.
 
-Na Black Friday liberamos 30 dias grátis, sem cartão, e 50% de desconto nos 12 meses seguintes.
+Na Black Friday liberamos 30 dias grátis (a cobrança só começa depois do teste e não há fidelidade) e 50% de desconto nos 12 meses seguintes.
 
 ✔ Centenas de processos automáticos, sem depender de funcionário
 ✔ Use o WhatsApp do seu consultório
 ✔ Papelaria e documentos inclusos
 ✔ Migração automática do seu sistema atual
 
-Quer testar? Cadastro em: https://app.dentalpos.com.br
+Quer testar? Cadastro em: https://app.dentalpos.com.br/cadastro
 ```
 
 **Mensagem 2 — lembrete (3 dias depois, só quem não respondeu)**
@@ -227,7 +227,7 @@ Dr(a). {nome}, a oferta de Black Friday do DentalPos vai até 30/11. São 30 dia
 
 **Mensagem 3 — último dia (30/11)**
 ```
-Hoje é o último dia: 30 dias grátis + 50% de desconto por 12 meses no DentalPos. https://app.dentalpos.com.br
+Hoje é o último dia: 30 dias grátis + 50% de desconto por 12 meses no DentalPos. https://app.dentalpos.com.br/cadastro
 ```
 
 **Status do WhatsApp:** poste as gravuras `-stories.png` 1, 3 e 6 (uma por dia).
