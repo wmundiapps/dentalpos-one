@@ -78,7 +78,7 @@ export const cfg = {
     medio: { name: 'Médio', cents: 24900, staff: 8 },
     grande: { name: 'Grande', cents: 55900, staff: 20 },
   },
-  trialDays: Number(env.TRIAL_DAYS || 14),
+  trialDays: Number(env.TRIAL_DAYS || 30),
 
   // Limites
   maxBodyBytes: 1_000_000,

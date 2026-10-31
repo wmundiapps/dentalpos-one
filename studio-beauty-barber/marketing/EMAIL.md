@@ -4,7 +4,7 @@ Remetente sugerido: contato@studiobeautybarber.com (criar a caixa no e-mail prof
 
 ## 1. Prospecção de donos de salão e barbearia
 **Assunto:** A agenda do seu salão no piloto automático
-**Pré-cabeçalho:** Agenda online, robô no WhatsApp e reserva paga. Teste grátis por 14 dias.
+**Pré-cabeçalho:** Agenda online, robô no WhatsApp e reserva paga. Teste grátis por 30 dias.
 
 Olá, [nome],
 
@@ -16,7 +16,7 @@ Você ainda controla a agenda no caderno ou numa planilha? O Studio Beauty Barbe
 - clube de assinatura com horário fixo (semanal, 15, 30, 45 ou 60 dias);
 - caixa, comissões, estoque, shop e mini pub.
 
-Planos a partir de R$ 59,90 por mês, 14 dias grátis e sem fidelidade.
+Planos a partir de R$ 59,90 por mês, 30 dias grátis e sem fidelidade.
 
 Veja a demonstração: https://studiobeautybarber.com/demo/
 
@@ -30,7 +30,7 @@ Se não quiser mais receber, responda este e-mail com SAIR.
 ## 2. Boas-vindas ao teste grátis
 **Assunto:** Seu teste grátis do Studio Beauty Barber começou
 
-Olá, [nome], seu teste de 14 dias começou. Em 3 passos o seu salão já recebe agendamentos:
+Olá, [nome], seu teste de 30 dias começou. Em 3 passos o seu salão já recebe agendamentos:
 1. Cadastre serviços, profissionais e horários (Serviços e equipe).
 2. Copie o link da página de agendamento (Configurações) e coloque na bio do Instagram e no WhatsApp.
 3. Conecte o WhatsApp e, se quiser reserva paga, o seu Asaas (Integrações).

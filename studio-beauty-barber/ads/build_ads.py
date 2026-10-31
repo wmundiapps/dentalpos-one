@@ -23,7 +23,7 @@ CARDS = [
  dict(id='agenda', icon='cal', eyebrow='Para salões e barbearias', head='A agenda cheia, <em>sem</em> perder a elegância.', sub='Agenda online, caixa e clientes em um só lugar.', cta='Teste grátis por 30 dias'),
  dict(id='robo', icon='chat', eyebrow='Atendimento 24 horas', head='Seu robô agenda no <em>WhatsApp</em> enquanto você atende.', sub='Também no Instagram e no Facebook.', cta='Conheça o Studio Beauty Barber'),
  dict(id='faltas', icon='bell', eyebrow='Menos furos na agenda', head='Lembretes automáticos que <em>reduzem faltas</em>.', sub='24h e 2h antes, sem você digitar nada.', cta='Teste grátis por 30 dias'),
- dict(id='gratis', icon='gift', eyebrow='30 dias para testar', head='Organize seu salão em <em>um dia</em>. 30 dias grátis.', sub='Cadastre o cartão e comece. Cancele antes e não paga nada.', cta='Começar agora'),
+ dict(id='gratis', icon='gift', eyebrow='30 dias para testar', head='Organize seu salão em <em>um dia</em>. 30 dias grátis.', sub='Sem fidelidade. Cancele quando quiser.', cta='Começar agora'),
  dict(id='reserva', icon='card', eyebrow='Reserva paga, agenda protegida', head='Faltou sem avisar? Você <em>retém 30%</em>.', sub='O cliente paga no Pix ou cartão para reservar e aceita a regra antes.', cta='Veja como funciona'),
  dict(id='clube', icon='repeat', eyebrow='Receita todo mês', head='Clube de assinatura com <em>horário fixo</em>.', sub='Semanal, 15, 30, 45 ou 60 dias, com cobrança automática.', cta='Conheça o clube'),
  dict(id='preco', icon='tag', eyebrow='Planos para todo tamanho', head='A partir de <em>R$ 59,90</em> por mês.', sub='30 dias grátis. Sem fidelidade. Cancele quando quiser.', cta='Teste grátis agora'),

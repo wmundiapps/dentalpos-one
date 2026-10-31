@@ -10,14 +10,14 @@ Regras: só enviar para quem já conhece você ou autorizou o contato; sempre of
 > [nome], você sabe quanto o [salão] perde por mês com cliente que falta? No Studio Beauty Barber o cliente paga para reservar e, se faltar sem avisar, você retém 30% e devolve 70%. Tem demonstração aqui: https://studiobeautybarber.com/demo/ . Posso te mostrar ao vivo em 10 minutos?
 
 **Segunda mensagem (3 dias depois, sem resposta)**
-> Oi [nome]! Só lembrando da demonstração do Studio Beauty Barber. Planos a partir de R$ 59,90 por mês e 14 dias grátis, sem cartão. Se não fizer sentido agora, é só me dizer que eu não insisto 🙂
+> Oi [nome]! Só lembrando da demonstração do Studio Beauty Barber. Planos a partir de R$ 59,90 por mês e 30 dias grátis. Se não fizer sentido agora, é só me dizer que eu não insisto 🙂
 
 **Fechamento**
-> Combinado, [nome]! Vou criar seu teste grátis de 14 dias e te mando o acesso. Me confirma: nome do salão, cidade e quantos profissionais atendem?
+> Combinado, [nome]! Vou criar seu teste grátis de 30 dias e te mando o acesso. Me confirma: nome do salão, cidade e quantos profissionais atendem?
 
 ## 2. Respostas para objeções
-- **"Quanto custa?"** Smart Individual R$ 59,90 (1 profissional), Pequeno R$ 129 (até 3), Médio R$ 249 (até 8), Grande R$ 559 (até 20) e sob demanda para redes. 14 dias grátis, sem fidelidade.
-- **"Já uso outro sistema."** Dá para testar em paralelo por 14 dias. O diferencial: reserva paga com retenção, clube de assinatura com horário fixo e robôs no WhatsApp, Instagram e Facebook.
+- **"Quanto custa?"** Smart Individual R$ 59,90 (1 profissional), Pequeno R$ 129 (até 3), Médio R$ 249 (até 8), Grande R$ 559 (até 20) e sob demanda para redes. 30 dias grátis, sem fidelidade.
+- **"Já uso outro sistema."** Dá para testar em paralelo por 30 dias. O diferencial: reserva paga com retenção, clube de assinatura com horário fixo e robôs no WhatsApp, Instagram e Facebook.
 - **"Meus clientes não gostam de pagar antes."** A reserva paga é opcional. Você liga só para os serviços e horários que mais sofrem com falta, e o cliente que cancela no prazo recebe tudo de volta.
 - **"Quem paga o WhatsApp?"** Os créditos de WhatsApp, SMS e ligações são pagos direto por você à operadora, sem passar pela WMundi.
 - **"É seguro?"** Senhas protegidas, verificação em duas etapas, bloqueio de links suspeitos e LGPD.

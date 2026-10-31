@@ -176,7 +176,7 @@ function renderLogin(mode = 'login') {
         h('p', { class: 'small', style: { textAlign: 'right', marginTop: '-4px' } }, h('a', { href: '#', onclick: (e) => { e.preventDefault(); renderForgot(); } }, 'Esqueci minha senha')),
         need2fa ? h('label', { class: 'f' }, 'Código do app autenticador (6 dígitos)', h('input', { name: 'code', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6, autofocus: true })) : null);
       btn.textContent = need2fa ? 'Verificar e entrar' : 'Entrar';
-      switchLink.textContent = 'Não tem conta? Teste grátis por 14 dias';
+      switchLink.textContent = 'Não tem conta? Teste grátis por 30 dias';
     } else {
       fields.append(
         h('label', { class: 'f' }, 'Nome do salão ou barbearia', h('input', { name: 'salon_name', required: true, maxlength: 80 })),
@@ -220,7 +220,7 @@ function renderLogin(mode = 'login') {
       h('p', { class: 'small', style: { color: '#9c9384' } }, '© Studio Beauty Barber · WMundi Technologies')),
     h('section', { class: 'panel' }, h('div', { style: { width: '100%', maxWidth: '400px' } },
       h('h2', { style: { marginBottom: '6px' } }, mode === 'login' ? 'Bem-vindo de volta' : 'Crie sua conta'),
-      h('p', { class: 'muted', style: { marginBottom: '18px' } }, mode === 'login' ? 'Entre para gerenciar o seu salão.' : '14 dias grátis, sem cartão de crédito.'),
+      h('p', { class: 'muted', style: { marginBottom: '18px' } }, mode === 'login' ? 'Entre para gerenciar o seu salão.' : '30 dias grátis. Cancele quando quiser.'),
       form))));
 }
 

@@ -32,7 +32,7 @@
 - Botão: Cadastre-se
 
 **A — Agenda** (`agenda_*`)
-- Texto principal: Sua agenda cheia, sem planilha e sem perder tempo no WhatsApp. O Studio Beauty Barber reúne agenda online, caixa, comissões e clientes em um só lugar. Teste grátis por 30 dias. Cadastre o cartão para começar e cancele antes do fim sem pagar nada.
+- Texto principal: Sua agenda cheia, sem planilha e sem perder tempo no WhatsApp. O Studio Beauty Barber reúne agenda online, caixa, comissões e clientes em um só lugar. Teste grátis por 30 dias..
 - Título: Gestão para salões e barbearias
 - Descrição: Teste grátis por 30 dias
 - Botão: Cadastre-se
@@ -50,9 +50,9 @@
 - Botão: Cadastre-se
 
 **D — Oferta** (`gratis_*`)
-- Texto principal: Organize seu salão ou barbearia em um dia. Agenda online, caixa e campanhas. 30 dias grátis e sem fidelidade. Cadastre o cartão para começar; cancele antes do fim e não paga nada.
+- Texto principal: Organize seu salão ou barbearia em um dia. Agenda online, caixa e campanhas. 30 dias grátis e sem fidelidade.
 - Título: Teste grátis por 30 dias
-- Descrição: Cancele antes e não paga nada
+- Descrição: Cancele quando quiser
 - Botão: Cadastre-se
 
 ## Regras e cuidados (políticas da Meta)

@@ -1,6 +1,6 @@
 # TikTok Ads — Studio Beauty Barber
 
-**Oferta:** 30 dias grátis. Cartão cadastrado para começar; cancelando antes do fim do teste, nada é cobrado.
+**Oferta:** 30 dias grátis, sem fidelidade. Cancele quando quiser.
 **Planos:** a partir de R$ 59,90 por mês. Sem fidelidade.
 **Objetivo da campanha:** Geração de leads (formulário no site) ou Tráfego para a landing.
 **Público:** Brasil, 22 a 55 anos, interesses em beleza, barbearia, empreendedorismo; dono de salão. Orçamento inicial sugerido: R$ 30 a R$ 50 por dia por 7 dias, depois manter só o anúncio com menor custo por lead.
