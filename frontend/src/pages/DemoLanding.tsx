@@ -76,6 +76,7 @@ export default function DemoLanding() {
     specialty: "",
     password: "",
     acceptTerms: false,
+    marketingChannels: { whatsapp: false, sms: false, email: false, phone: false },
   });
 
   useEffect(() => {
@@ -260,6 +261,7 @@ export default function DemoLanding() {
                     specialty: "",
                     password: "",
                     acceptTerms: false,
+                    marketingChannels: { whatsapp: false, sms: false, email: false, phone: false },
                   });
                 }}
               >
@@ -360,6 +362,26 @@ export default function DemoLanding() {
                 }
                 label={`Li e aceito as condições da Demo CompletoDonto — versão ${config?.termsVersion || "vigente"}.`}
               />
+              <Typography variant="body2" sx={{ mt: 2, opacity: 0.8 }}>
+                Opcional: autorizo a WMundi Technologies e seus sistemas (DentalPos e demais) a entrar em contato
+                comigo, com ofertas, novidades e avisos, pelos canais marcados. Posso retirar a autorização quando
+                quiser.
+              </Typography>
+              {([["whatsapp", "WhatsApp"], ["sms", "SMS"], ["email", "E-mail"], ["phone", "Telefone"]] as const).map(([key, label]) => (
+                <FormControlLabel
+                  key={key}
+                  sx={{ mr: 2 }}
+                  control={
+                    <Checkbox
+                      checked={form.marketingChannels[key]}
+                      onChange={(event) =>
+                        setForm({ ...form, marketingChannels: { ...form.marketingChannels, [key]: event.target.checked } })
+                      }
+                    />
+                  }
+                  label={label}
+                />
+              ))}
             </Paper>
 
             <Button

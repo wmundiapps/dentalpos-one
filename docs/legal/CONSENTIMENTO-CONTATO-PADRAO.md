@@ -26,3 +26,11 @@ A chave é criada em *Contatos autorizados > Conectar outros sistemas* (aparece 
 
 ## Dados de clientes de salões parceiros
 Cadastros captados dentro da página de um salão pertencem ao salão. A WMundi só usa esses cadastros se o contrato com o salão disser isso (cláusula a redigir pela Dra. Roberta).
+
+## Sistemas já ligados
+| Sistema | Onde captura | Variável de ambiente (segredo do sistema) |
+|---|---|---|
+| Studio Beauty Barber | indicador de profissionais, landing | grava direto na base |
+| DentalPos One | cadastro da demonstração (`/demo/register`) | `CONSENT_INGEST_KEY` (e, se precisar, `CONSENT_INGEST_URL`) |
+
+Sem `CONSENT_INGEST_KEY` o DentalPos não envia nada e o cadastro funciona normalmente. O envio nunca derruba o cadastro.

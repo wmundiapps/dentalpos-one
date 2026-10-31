@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { hashPassword } from '../services/userService'
 import { dispatchRevah } from '../services/revahProviderService'
+import { forwardConsent } from '../services/consentService'
 import {
   createDemoMetadata,
   demoOptions,
@@ -287,6 +288,16 @@ export async function register(req: Request, res: Response) {
     } catch (emailError) {
       console.error('Falha ao enviar e-mail de boas-vindas do demo:', emailError)
     }
+
+    void forwardConsent({
+      name: `${firstName} ${lastName}`.trim(),
+      phone,
+      email,
+      channels: req.body?.marketingChannels,
+      source: 'demo-cadastro',
+      ip: req.ip,
+      userAgent: String(req.headers['user-agent'] || ''),
+    })
 
     return res.status(201).json({
       clinicId: created.clinicId,
