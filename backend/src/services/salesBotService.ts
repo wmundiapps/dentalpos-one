@@ -38,7 +38,7 @@ export class MarketingError extends Error {
 }
 
 export function salesWhatsappNumber() {
-  return digits(process.env.SALES_WHATSAPP_NUMBER) || '5544984535069'
+  return digits(process.env.SALES_WHATSAPP_NUMBER) || '554488681471'
 }
 
 export async function captureLead(input: any) {
