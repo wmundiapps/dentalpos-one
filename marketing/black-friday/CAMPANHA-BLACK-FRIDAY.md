@@ -7,7 +7,7 @@
 
 ## Conferir antes de colocar no ar
 1. O cadastro precisa realmente dar **30 dias** e aplicar **50% por 12 meses**. O CLAUDE.md do repositório diz 60 dias grátis na promoção de lançamento. Se o sistema continuar dando 60, o anúncio promete menos do que entrega (pode, mas confirme).
-2. "Milhares de processos automatizados": confirme o número que você quer sustentar. Os textos dizem "milhares", sem número exato.
+2. "Centenas de processos automatizados": confirme o número que você quer sustentar. Os textos dizem "centenas", sem número exato.
 3. Texto de oferta é comunicação comercial. Mostre à Dra. Roberta se quiser validar as regras do desconto (quem é elegível, o que acontece no mês 13).
 
 ## Gravuras (pasta `marketing/black-friday/`)
@@ -16,7 +16,7 @@ Feed/Instagram/Facebook = `*-feed.png` (1080×1080). Stories, Reels e TikTok = `
 | Nº | Arquivo | Mensagem |
 |---|---|---|
 | 1 | `01-oferta` | 30 dias grátis e 50% off por 12 meses |
-| 2 | `02-automatico` | Milhares de processos rodando sozinhos |
+| 2 | `02-automatico` | Centenas de processos rodando sozinhos |
 | 3 | `03-whatsapp` | Use o WhatsApp do seu consultório |
 | 4 | `04-documentos` | Papelaria e documentos inclusos |
 | 5 | `05-migracao` | Migração automática simples |
@@ -52,7 +52,7 @@ Válido até 30/11. Teste agora.
 ```
 Quantas tarefas da sua clínica dependem de alguém lembrar de fazer?
 
-No DentalPos, milhares de processos rodam sozinhos: lembrete de consulta, aviso de retorno, cobrança de atraso, relatórios. Você só configura uma vez.
+No DentalPos, centenas de processos rodam sozinhos: lembrete de consulta, aviso de retorno, cobrança de atraso, relatórios. Você só configura uma vez.
 
 Menos dependência de funcionário. Mais tempo para atender.
 
@@ -146,7 +146,7 @@ Oferta até 30/11
 ## Descrições (máx. 90 caracteres)
 ```
 30 dias grátis e 50% de desconto por 12 meses. Migre seus dados sem digitar nada.
-Milhares de processos automáticos. Configure uma vez e o sistema trabalha por você.
+Centenas de processos automáticos. Configure uma vez e o sistema trabalha por você.
 WhatsApp do seu consultório, receitas e documentos inclusos. Sem custo por documento.
 Teste sem cartão de crédito. Cancele quando quiser. Black Friday até 30/11.
 ```
@@ -175,7 +175,7 @@ Teste sem cartão de crédito. Cancele quando quiser. Black Friday até 30/11.
 **Vídeo 1 — "Funcionário faltou?"** (gancho de automação)
 - 0–3 s (fala): "Funcionário faltou e a agenda virou bagunça?"
 - 3–12 s (tela): lembretes, confirmações e retornos saindo sozinhos.
-- 12–20 s: "No DentalPos milhares de processos rodam sozinhos. Você só configura."
+- 12–20 s: "No DentalPos centenas de processos rodam sozinhos. Você só configura."
 - 20–25 s: "30 dias grátis e 50% off por 12 meses. Link na bio."
 
 **Vídeo 2 — "Seu número no WhatsApp"**
@@ -212,7 +212,7 @@ Olá, Dr(a). {nome}! Aqui é do DentalPos.
 
 Na Black Friday liberamos 30 dias grátis, sem cartão, e 50% de desconto nos 12 meses seguintes.
 
-✔ Milhares de processos automáticos, sem depender de funcionário
+✔ Centenas de processos automáticos, sem depender de funcionário
 ✔ Use o WhatsApp do seu consultório
 ✔ Papelaria e documentos inclusos
 ✔ Migração automática do seu sistema atual
