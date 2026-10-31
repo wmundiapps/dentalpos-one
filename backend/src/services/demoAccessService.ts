@@ -55,15 +55,16 @@ function boundedInt(value: unknown, fallback: number, min: number, max: number) 
 }
 
 export function demoOptions() {
-  const durationDays = boundedInt(process.env.DEMO_DEFAULT_DAYS, 30, 1, 365)
+  // O teste e sempre de 30 dias (oferta unica). A variavel DEMO_DEFAULT_DAYS antiga (60) nao vale mais.
+  const durationDays = 30
   const graceDays = boundedInt(process.env.DEMO_GRACE_DAYS, 7, 0, 90)
   const modules = normalizeModules(
     String(process.env.DEMO_DEFAULT_MODULES || 'agenda,patients').split(','),
   )
   const termsVersion = String(process.env.DEMO_TERMS_VERSION || '2026-10-15').trim()
-  const enabled =
-    process.env.ENABLE_DEMO_REGISTRATION === 'true' ||
-    (process.env.NODE_ENV !== 'production' && process.env.ENABLE_DEMO_REGISTRATION !== 'false')
+  // Cadastro sem cartao encerrado: quem quer testar usa /cadastro (30 dias com cartao, cobranca so depois).
+  // Demos que ja existem continuam funcionando normalmente.
+  const enabled = false
 
   return {
     enabled,
