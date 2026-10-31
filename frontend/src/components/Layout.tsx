@@ -4,6 +4,7 @@ import { syncProcedureDurations } from "../services/ProcedureDurations";
 
 import DemoBanner from "./DemoBanner";
 import EvaluationWidget from "./EvaluationWidget";
+import SuggestionBox from "./SuggestionBox";
 import Footer from "./Footer";
 import Header from "./Header";
 import PendingAlertsBar from "./PendingAlertsBar";
@@ -59,6 +60,7 @@ export default function Layout({
         >
           <PrintHeader />
           {children}
+          <SuggestionBox />
           <FeedbackButton />
         </Box>
 

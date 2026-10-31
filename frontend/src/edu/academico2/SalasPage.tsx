@@ -18,7 +18,7 @@ export default function SalasPage() {
   const lt = Array.isArray(terms.data) ? terms.data : itemsOf(terms.data);
   useEffect(() => { if (!termId && lt.length) setTermId(lt.find((t: any) => t.codigo?.startsWith(String(new Date().getFullYear())))?.id ?? lt[0].id); }, [lt, termId]);
   const reload = () => setRev((x) => x + 1);
-  const T = ["Cronograma", "Alocar com sugestões", "Conflitos", "Agenda e calendário", "Turnos e turmas"];
+  const T = ["Fluxograma e avisos", "Cronograma", "Alocar com sugestões", "Conflitos", "Agenda e calendário", "Turnos e turmas"];
   return (
     <Box>
       {node}
@@ -29,11 +29,12 @@ export default function SalasPage() {
       {!termId ? <Alert severity="info">Cadastre um período letivo para organizar salas e horários.</Alert> : (
         <>
           <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}>{T.map((t) => <Tab key={t} label={t} />)}</Tabs>
-          {tab === 0 && <Cronograma termId={termId} rev={rev} reload={reload} toast={toast} />}
-          {tab === 1 && <Alocar termId={termId} rev={rev} reload={reload} toast={toast} />}
-          {tab === 2 && <Conflitos termId={termId} rev={rev} />}
-          {tab === 3 && <Agenda termId={termId} />}
-          {tab === 4 && <TurnosTurmas termId={termId} rev={rev} reload={reload} toast={toast} />}
+          {tab === 0 && <Fluxograma termId={termId} rev={rev} reload={reload} toast={toast} />}
+          {tab === 1 && <Cronograma termId={termId} rev={rev} reload={reload} toast={toast} />}
+          {tab === 2 && <Alocar termId={termId} rev={rev} reload={reload} toast={toast} />}
+          {tab === 3 && <Conflitos termId={termId} rev={rev} />}
+          {tab === 4 && <Agenda termId={termId} />}
+          {tab === 5 && <TurnosTurmas termId={termId} rev={rev} reload={reload} toast={toast} />}
         </>
       )}
     </Box>
@@ -252,5 +253,75 @@ function TurnosTurmas({ termId, rev, reload, toast }: { termId: string; rev: num
       <FormDialog open={!!edM} title="Perfil da turma" maxWidth="sm" fields={[{ key: "nivel", label: "Nível", type: "select", options: NIVEIS, required: true }, { key: "turno", label: "Turno", type: "select", options: TURNOS, required: true }, { key: "alunosEstimados", label: "Alunos estimados", type: "number" }, { key: "recursosExigidos", label: "Recursos exigidos", type: "list", helper: "Ex.: Projetor, Bancadas, Ar-condicionado" }]} initial={edM ?? {}} onClose={() => setEdM(null)}
         onSubmit={async (b) => { await call("PUT", `/academico/salas/turmas/${edM.id}/perfil`, b); toast({ type: "success", text: "Perfil salvo." }); reload(); }} />
     </Box>
+  );
+}
+
+function Fluxograma({ termId, rev, reload, toast }: { termId: string; rev: number; reload: () => void; toast: Toast }) {
+  const [turmaId, setTurmaId] = useState("");
+  const [semanas, setSemanas] = useState("8");
+  const [busy, setBusy] = useState("");
+  const [sim, setSim] = useState<any>(null);
+  const turmas = useApi<any>(`/academico/salas/turmas?termId=${termId}`, [rev]);
+  const f = useApi<any>(`/academico/salas/fluxograma?${qsOf({ termId, semanas, classSectionId: turmaId })}`, [rev]);
+  const r = f.data;
+  const gerar = async (aplicar: boolean) => {
+    setBusy(aplicar ? "aplicar" : "simular");
+    try {
+      const x: any = await eduApi.post(`/calendario/gerador/${aplicar ? "aplicar" : "simular"}`, { termId, ...(sim?.execucaoId && aplicar ? { execucaoId: sim.execucaoId } : {}) });
+      if (aplicar) { toast({ type: "success", text: `Grade gerada: ${x.slotsCriados} aulas alocadas${x.pendencias?.length ? `, ${x.pendencias.length} pendência(s)` : ""}.` }); setSim(null); reload(); f.reload(); }
+      else setSim(x);
+    } catch (e: any) { toast({ type: "error", text: e.message }); } finally { setBusy(""); }
+  };
+  const avisar = async () => {
+    setBusy("avisar");
+    try { const x: any = await eduApi.post("/academico/salas/avisar-alunos", { termId, dias: 7, ...(turmaId ? { classSectionId: turmaId } : {}) }); toast({ type: "success", text: `${x.enviados} aluno(s) avisados (${x.jaAvisados} já tinham o aviso desta semana).` }); }
+    catch (e: any) { toast({ type: "error", text: e.message }); } finally { setBusy(""); }
+  };
+  return (
+    <Section title="Fluxograma das aulas e avisos aos alunos">
+      <Alert severity="info" sx={{ mb: 2 }}>O fluxograma é montado sozinho a partir das salas, laboratórios, turnos, dias e horários cadastrados: o gerador distribui as aulas sem choque de sala, professor ou turma, e o sistema desenha semana a semana (já descontando feriados e recessos). Cada aluno recebe o aviso das suas aulas.</Alert>
+      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
+        <Button variant="outlined" disabled={!!busy} onClick={() => gerar(false)}>{busy === "simular" ? "Simulando…" : "1. Simular geração automática"}</Button>
+        <Button variant="contained" disabled={!!busy || !sim} onClick={() => gerar(true)}>{busy === "aplicar" ? "Aplicando…" : "2. Aplicar na grade"}</Button>
+        <Button variant="outlined" color="success" disabled={!!busy} onClick={avisar}>{busy === "avisar" ? "Enviando…" : "Avisar alunos das aulas da semana"}</Button>
+      </Box>
+      {sim && <Alert severity={sim.metricas?.pendentes ? "warning" : "success"} sx={{ mb: 2 }}>Simulação pronta: {sim.metricas?.alocadas} de {sim.metricas?.totalAulas} aulas alocadas{sim.metricas?.pendentes ? `, ${sim.metricas.pendentes} sem horário disponível` : ""}. Nada foi gravado ainda; confira e aplique.</Alert>}
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" }, gap: 1.5, mb: 2 }}>
+        <Pick label="Turma" value={turmaId} onChange={setTurmaId} all="Todas as turmas" minWidth={0} options={itemsOf(turmas.data).map((x: any) => ({ value: x.id, label: `${x.nome} — ${x.disciplina ?? ""}` }))} />
+        <Pick label="Semanas à frente" value={semanas} onChange={setSemanas} minWidth={0} options={["4", "8", "12", "20"].map((v) => ({ value: v, label: `${v} semanas` }))} />
+      </Box>
+      <LoadBox loading={f.loading} error={f.error} empty={!r?.semanas?.length} emptyText="Ainda não há aulas na grade. Use a simulação acima para gerar o fluxograma automaticamente." onRetry={f.reload}>
+        <KpiRow>
+          <Kpi title="Semanas com aula" value={r?.resumo?.semanas ?? 0} />
+          <Kpi title="Aulas no período" value={r?.resumo?.aulas ?? 0} />
+          <Kpi title="Aulas práticas (laboratório/clínica)" value={r?.resumo?.aulasPraticas ?? 0} />
+        </KpiRow>
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", mt: 2 }}>
+          {(r?.semanas ?? []).map((sm: any, i: number) => (
+            <Box key={sm.de} sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              {i > 0 && <Box sx={{ width: 2, height: 22, bgcolor: "primary.main", position: "relative", "&::after": { content: '""', position: "absolute", bottom: -2, left: -4, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "7px solid", borderTopColor: "primary.main" } }} />}
+              <Paper variant="outlined" sx={{ width: "100%", p: 1.5, borderRadius: 3, borderColor: "primary.main", mt: i > 0 ? 0.5 : 0 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                  <Typography sx={{ fontWeight: 800 }}>{`Semana ${sm.numero} · ${sm.rotulo}`}</Typography>
+                  <Chip size="small" label={`${sm.totalAulas} aula(s)`} />
+                </Box>
+                {sm.dias.map((d: any) => (
+                  <Box key={d.data} sx={{ mb: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>{d.rotulo}</Typography>
+                    {d.suspenso ? <Alert severity="warning" sx={{ py: 0 }}>Sem aulas: {d.suspenso}</Alert> : d.aulas.map((a: any) => (
+                      <Box key={a.slotId + d.data} sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap", p: 1, mt: 0.5, borderRadius: 2, bgcolor: a.pratica ? "success.50" : "action.hover", borderLeft: 4, borderColor: COR_TURNO[a.turno] ?? "#64748b" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, minWidth: 92 }}>{a.horario}</Typography>
+                        <Typography variant="body2" sx={{ flex: 1, minWidth: 140 }}>{a.disciplina}{a.professor ? ` · ${a.professor}` : ""}</Typography>
+                        <Chip size="small" color={a.pratica ? "success" : "default"} label={`${a.pratica ? "Laboratório/clínica · " : ""}${a.sala ?? "Online"}`} />
+                      </Box>
+                    ))}
+                  </Box>
+                ))}
+              </Paper>
+            </Box>
+          ))}
+        </Box>
+      </LoadBox>
+    </Section>
   );
 }

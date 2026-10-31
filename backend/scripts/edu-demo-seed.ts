@@ -93,6 +93,14 @@ const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
   ['marketing', (c) => seedMarketing(c.api, { ...sCtx(c), siteSlug: 'sua-instituicao' })],
   ['presenca', (c) => seedPresenca(c.api, sCtx(c))],
   ['campos-pratica', (c) => seedCamposPratica(c.api, sCtx(c))],
+  // fluxograma automático: gera a grade de cada período (salas, laboratórios, dias e horários) e avisa os alunos
+  ['fluxograma', async (c) => {
+    const ts: any = await c.api('GET', '/edu/academico/terms')
+    for (const t of (Array.isArray(ts) ? ts : ts?.items ?? [])) {
+      await c.api('POST', '/edu/calendario/gerador/aplicar', { termId: t.id })
+      await c.api('POST', '/edu/academico/salas/avisar-alunos', { termId: t.id, dias: 7 })
+    }
+  }],
 ]
 
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [

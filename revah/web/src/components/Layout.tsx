@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import SuggestionBox from './SuggestionBox'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   Bot,
@@ -123,6 +124,7 @@ export function Layout() {
         </header>
         <main className="content">
           <Outlet />
+          <SuggestionBox />
         </main>
       </div>
 

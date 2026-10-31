@@ -3,6 +3,7 @@ import { academicErrorHandler } from '../academico/middleware'
 import { registerAlunos } from './alunos'
 import { registerMatrizes } from './matrizes'
 import { registerSalas } from './salas'
+import { registerFluxograma } from './fluxograma'
 import { registerLigas } from './ligas'
 import { registerDesenvolvimento } from './desenvolvimento'
 
@@ -12,6 +13,7 @@ export const academico2Router = Router()
 registerAlunos(academico2Router)
 registerMatrizes(academico2Router)
 registerSalas(academico2Router)
+registerFluxograma(academico2Router)
 registerLigas(academico2Router)
 academico2Router.use(academicErrorHandler)
 

@@ -46,7 +46,7 @@ interface Ctx {
   programas: Map<string, string>
 }
 
-async function carregarCtx(tenantId: string, termId: string): Promise<Ctx> {
+export async function carregarCtx(tenantId: string, termId: string): Promise<Ctx> {
   const slots = await prisma.calSlot.findMany({ where: { tenantId, termId, ativo: true }, orderBy: [{ diaSemana: 'asc' }, { inicioMin: 'asc' }] })
   const secoes = await prisma.classSection.findMany({ where: { tenantId, termId } })
   const info = await resolverTurmas(tenantId, secoes)
@@ -66,7 +66,7 @@ async function carregarCtx(tenantId: string, termId: string): Promise<Ctx> {
   }
 }
 
-function enriquecer(ctx: Ctx, s: any, choqueIds: Set<string>) {
+export function enriquecer(ctx: Ctx, s: any, choqueIds: Set<string>) {
   const t = ctx.turmas.get(s.classSectionId)
   const perfil = ctx.perfis.get(s.classSectionId)
   const e = s.spaceId ? ctx.espacos.get(s.spaceId) : null
