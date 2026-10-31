@@ -18,7 +18,7 @@ Pasta `marketing/black-friday/carrossel/`: `01.png` a `06.png`. Para regerar: `c
 
 ## Link de destino (o mesmo em todos os cards)
 ```
-https://app.dentalpos.com.br/falar?utm_source=meta&utm_medium=cpc&utm_campaign=bf2026&utm_content=carrossel
+https://app.dentalpos.com.br/falar?produto=dentalpos&utm_source=meta&utm_medium=cpc&utm_campaign=bf2026&utm_content=carrossel
 ```
 
 ## Texto principal do anúncio
@@ -61,3 +61,12 @@ Sem `ANTHROPIC_API_KEY` o atendimento responde só uma mensagem fixa com o link 
 - Só responde dentro de 24 h depois que a pessoa escreve (mensagem iniciada por você exige modelo aprovado).
 - Se apresenta como assistente virtual (IA) e é específico do DentalPos (assistente de vendas do próprio negócio, não um assistente geral).
 - Respeita pedido de SAIR e limita 60 mensagens por pessoa por dia.
+
+## Antes de ligar a campanha (checklist)
+Não deixe o anúncio começar antes de tudo isto estar verde, senão o lead abre o WhatsApp e ninguém responde:
+- [ ] Número +55 44 9946-6451 **Conectado** na Meta (hoje Offline).
+- [ ] App DentalposWPP **publicado** (precisa da política de privacidade publicada em `/privacidade`).
+- [ ] Webhook cadastrado e verificado na Meta.
+- [ ] Variáveis de segredo na Vercel: `ANTHROPIC_API_KEY`, `META_APP_SECRET`, `META_VERIFY_TOKEN`, `META_ACCESS_TOKEN` (`SALES_WHATSAPP_NUMBER` e `META_PHONE_NUMBER_ID` já estão criadas).
+- [ ] Deploy refeito depois das variáveis.
+- [ ] Teste: escrever para o número e receber a resposta do robô; conferir o lead em `MarketingLead`.
