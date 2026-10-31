@@ -13,6 +13,7 @@ const ROUTES = [
   { path: 'leads', label: 'Funil de leads', icon: 'funnel', mod: './views/leads.js' },
   { path: 'conversas', label: 'Conversas', icon: 'chat', mod: './views/conversas.js', badge: 'unread' },
   { path: 'prospeccao', label: 'Captação', icon: 'search', mod: './views/prospeccao.js', min: 'manager', hq: true },
+  { path: 'contatos', label: 'Contatos autorizados', icon: 'shield', mod: './views/contatos.js', min: 'manager', hq: true },
   { path: 'campanhas', label: 'Campanhas', icon: 'megaphone', mod: './views/campanhas.js', min: 'manager' },
   { sep: true },
   { path: 'integracoes', label: 'Integrações', icon: 'plug', mod: './views/integracoes.js', min: 'manager' },

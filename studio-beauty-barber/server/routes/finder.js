@@ -8,6 +8,7 @@ import { rateLimit, verifyTurnstile, newToken, sha256 } from '../security.js';
 import { upsertLead } from '../domain.js';
 import { sendPlatformEmail } from '../integrations/channels.js';
 import { sendOut } from '../messaging.js';
+import { recordConsent, CONSENT_TEXT } from '../consents.js';
 
 const REQUEST_TTL_MS = 24 * 3600_000;
 const MAX_CONTACTS = 3;
@@ -64,6 +65,10 @@ export default function register(r) {
       const e = byCity.get(k) || { key: k, label: String(s.city).split(/\s*[-/,]\s*/)[0].trim(), count: 0 };
       e.count += 1; byCity.set(k, e);
     }
+    // Autorização opcional para a WMundi falar com a pessoa depois (por canal). Sem nenhum canal marcado, nada é guardado.
+    const lang = ctx.body?.lang === 'en' ? 'en' : 'pt';
+    await recordConsent({ company: 'Studio Beauty Barber', source: 'indicador', name: d.name, phone: d.phone, channels: ctx.body?.marketing,
+      textVersion: CONSENT_TEXT.version, text: CONSENT_TEXT[lang], lang, ip: ctx.ip, userAgent: ctx.req.headers['user-agent'] });
     const token = newToken(24), id = uid();
     await db.run('INSERT INTO finder_requests (id, token_hash, name, phone, service, consent_at, ip, created_at) VALUES (?,?,?,?,?,?,?,?)',
       [id, sha256(token), d.name, normalizePhone(d.phone), d.service, nowIso(), ctx.ip ?? null, nowIso()]);

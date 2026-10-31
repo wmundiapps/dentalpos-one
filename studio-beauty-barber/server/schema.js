@@ -471,4 +471,40 @@ CREATE TABLE IF NOT EXISTS finder_contacts (
 CREATE INDEX IF NOT EXISTS idx_finder_contacts_salon ON finder_contacts(salon_id, created_at);
 `,
   },
+  {
+    id: 7,
+    // Base central de autorizações de contato (LGPD/EUA): quem autorizou, por quais canais, com qual texto, quando e de onde.
+    rls: ['contact_consents', 'consent_sources'],
+    sql: `
+CREATE TABLE IF NOT EXISTS contact_consents (
+  id TEXT PRIMARY KEY,
+  company TEXT NOT NULL,
+  source TEXT,
+  name TEXT,
+  phone TEXT,
+  email TEXT,
+  channels_json TEXT NOT NULL,
+  text_version TEXT,
+  text_shown TEXT,
+  lang TEXT,
+  ip TEXT,
+  user_agent TEXT,
+  consent_at TEXT NOT NULL,
+  revoked_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_consents_company ON contact_consents(company, consent_at);
+CREATE INDEX IF NOT EXISTS idx_consents_phone ON contact_consents(phone);
+CREATE INDEX IF NOT EXISTS idx_consents_email ON contact_consents(email);
+
+CREATE TABLE IF NOT EXISTS consent_sources (
+  id TEXT PRIMARY KEY,
+  company TEXT NOT NULL,
+  key_hash TEXT NOT NULL UNIQUE,
+  last4 TEXT,
+  created_at TEXT NOT NULL,
+  revoked_at TEXT
+);
+`,
+  },
 ];

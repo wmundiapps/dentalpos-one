@@ -7,6 +7,7 @@ import { getSlots, hoursText, nextAvailableDays } from '../availability.js';
 import { createAppointment, findOrCreateClient, upsertLead } from '../domain.js';
 import { createApptCharge, policyText, notifyBooked } from '../payments.js';
 import { publicBrand } from '../brand.js';
+import { recordConsent } from '../consents.js';
 
 async function publicSalon(slug) {
   const s = await db.get('SELECT * FROM salons WHERE slug = ?', [slug]);
@@ -42,6 +43,9 @@ export default function register(r) {
       ...d, source: String(ctx.body?.source || 'landing').slice(0, 40), utm: cleanUtm(ctx.body?.utm), consent: true, consentIp: ctx.ip,
       notes: ctx.body?.message ? String(ctx.body.message).slice(0, 500) : null,
     });
+    // O texto da landing cita telefone, WhatsApp e e-mail: é exatamente isso que fica registrado.
+    await recordConsent({ company: 'Studio Beauty Barber', source: 'landing', name: d.name, phone: d.phone, email: d.email, channels: { whatsapp: true, phone: true, email: !!d.email },
+      textVersion: 'landing-2026-10', text: 'Autorizo o Studio Beauty Barber a entrar em contato pelo telefone, WhatsApp ou e-mail informados. Posso retirar a autorização quando quiser.', lang: 'pt', ip: ctx.ip, userAgent: ctx.req.headers['user-agent'] }).catch(() => {});
     return { ok: true, created };
   });
 

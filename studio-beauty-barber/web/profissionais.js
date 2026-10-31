@@ -2,6 +2,9 @@
 // O contato com o profissional acontece só pelo sistema; esta página nunca recebe telefone, e-mail ou endereço dele.
 import { h, $, clear, get, post, brl, toast, fail, field } from './lib.js';
 
+const CH = [['whatsapp', 'WhatsApp'], ['sms', 'SMS'], ['email', 'E-mail'], ['phone', 'Telefone']];
+const MKT_TEXT = 'Também autorizo a WMundi Technologies (Studio Beauty Barber e demais sistemas) a entrar em contato comigo, com ofertas e novidades, pelos canais marcados. Posso retirar a autorização quando quiser. (Opcional)';
+
 const root = $('#root');
 const st = { requestId: null, token: null, cities: [], pros: [], remaining: 3, city: null };
 
@@ -22,18 +25,21 @@ async function stepForm() {
   const service = h('select', { name: 'service' }, services.map((s) => h('option', { value: s }, s)));
   const consent = h('input', { type: 'checkbox', required: true });
   const trap = h('input', { name: 'website', tabindex: '-1', autocomplete: 'off', style: { position: 'absolute', left: '-9999px' }, 'aria-hidden': 'true' });
+  const mk = Object.fromEntries(CH.map(([k]) => [k, h('input', { type: 'checkbox' })]));
+  const mkBox = h('div', { class: 'stack-sm' }, h('p', { class: 'small muted' }, MKT_TEXT),
+    h('div', { class: 'row wrap' }, CH.map(([k, l]) => h('label', { class: 'check small' }, mk[k], h('span', {}, l)))));
   const btn = h('button', { class: 'btn primary', type: 'submit' }, 'Ver cidades com profissionais');
   const form = h('form', { class: 'card stack', onsubmit: async (e) => {
     e.preventDefault(); btn.disabled = true;
     try {
-      const r = await post('/api/public/finder/search', { name: name.value, phone: phone.value, service: service.value, consent: consent.checked, website: trap.value });
+      const r = await post('/api/public/finder/search', { name: name.value, phone: phone.value, service: service.value, consent: consent.checked, website: trap.value, lang: 'pt', marketing: Object.fromEntries(CH.map(([k]) => [k, mk[k].checked])) });
       Object.assign(st, { requestId: r.request_id, token: r.token, cities: r.cities });
       stepCities();
     } catch (ex) { fail(ex); btn.disabled = false; }
   } },
   field('Seu nome', name), field('Seu WhatsApp', phone), field('Que serviço você procura?', service), trap,
   h('label', { class: 'check small' }, consent, h('span', {}, 'Autorizo o uso do meu nome e WhatsApp para me conectar aos profissionais que eu escolher (LGPD). Posso pedir a exclusão a qualquer momento.')),
-  btn);
+  mkBox, btn);
   shell(h('h2', {}, 'Conte o que você procura'), h('p', { class: 'muted small' }, 'Você escolhe a cidade e só os profissionais dela aparecem. O contato é feito pelo sistema.'), form);
 }
 
