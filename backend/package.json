@@ -23,6 +23,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@prisma/client": "^5.22.0",
     "@revah/dentalpos-one-adapter": "file:../revah/packages/dentalpos-one-adapter",
     "bcryptjs": "^2.4.3",

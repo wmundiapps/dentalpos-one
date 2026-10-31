@@ -3099,3 +3099,35 @@ model ProfessionalLeadContact {
   @@unique([leadId, listingId])
   @@index([clinicId, createdAt])
 }
+
+// Leads e conversas do atendimento automatico de vendas do DentalPos (WhatsApp).
+model MarketingLead {
+  id            String    @id
+  whatsapp      String    @unique
+  name          String?
+  email         String?
+  clinicName    String?
+  city          String?
+  source        String?
+  product       String?
+  utm           Json      @default("{}")
+  consentAt     DateTime? @db.Timestamp(3)
+  status        String    @default("NOVO")
+  optOut        Boolean   @default(false)
+  lastMessageAt DateTime? @db.Timestamp(3)
+  createdAt     DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt     DateTime  @default(now()) @db.Timestamp(3)
+
+  @@index([status, createdAt])
+}
+
+model MarketingMessage {
+  id          String   @id
+  phone       String
+  role        String
+  text        String
+  waMessageId String?  @unique
+  createdAt   DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([phone, createdAt])
+}
