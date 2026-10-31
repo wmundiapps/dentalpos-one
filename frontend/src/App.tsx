@@ -5,6 +5,7 @@ import AppRoutes from "./routes/AppRoutes";
 import Login from "./pages/Login";
 import PublicBooking from "./pages/PublicBooking";
 import SignupTrial from "./pages/SignupTrial";
+import ProfessionalFinder from "./pages/ProfessionalFinder";
 import PasswordReset from "./pages/PasswordReset";
 import EmployeePortal from "./pages/EmployeePortal";
 import PoloPunch from "./pages/PoloPunch";
@@ -89,7 +90,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/cadastro" && appPath !== "/redefinir-senha" && appPath !== "/colaborador" && !appPath.startsWith("/ponto/")) void validateSession();
+    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/cadastro" && appPath !== "/profissionais" && appPath !== "/redefinir-senha" && appPath !== "/colaborador" && !appPath.startsWith("/ponto/")) void validateSession();
   }, [appPath]);
 
   if (appPath.startsWith("/ponto/")) {
@@ -106,6 +107,10 @@ export default function App() {
 
   if (appPath === "/demo" || appPath === "/experience" || appPath === "/cadastro") {
     return <SignupTrial />;
+  }
+
+  if (appPath === "/profissionais") {
+    return <ProfessionalFinder />;
   }
 
   if (appPath === "/redefinir-senha") {

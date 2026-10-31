@@ -3036,3 +3036,66 @@ model PlatformSubscription {
   @@index([status, trialEndsAt])
   @@index([asaasSubscriptionId])
 }
+
+// Indicador profissional: o paciente se identifica, escolhe a cidade e so ali ve os nomes.
+// O contato do profissional nunca e exposto: o aviso vai por mensagem automatica do sistema.
+model ProfessionalListing {
+  id          String    @id
+  clinicId    String    @unique
+  tenantId    String
+  active      Boolean   @default(false)
+  displayName String
+  specialty   String?
+  city        String
+  citySlug    String
+  state       String
+  services    Json      @default("[]")
+  about       String?
+  channels    Json      @default("{}")
+  consentAt   DateTime? @db.Timestamp(3)
+  createdAt   DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt   DateTime  @default(now()) @db.Timestamp(3)
+
+  @@index([active, citySlug])
+}
+
+model ProfessionalLead {
+  id             String   @id
+  name           String
+  whatsapp       String
+  city           String
+  citySlug       String
+  state          String?
+  service        String
+  tokenHash      String   @unique
+  consentAt      DateTime @db.Timestamp(3)
+  consentVersion String
+  ipHash         String?
+  createdAt      DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([whatsapp, createdAt])
+  @@index([ipHash, createdAt])
+}
+
+model ProfessionalLeadReveal {
+  id        String   @id
+  leadId    String
+  citySlug  String
+  createdAt DateTime @default(now()) @db.Timestamp(3)
+
+  @@unique([leadId, citySlug])
+}
+
+model ProfessionalLeadContact {
+  id        String   @id
+  leadId    String
+  listingId String
+  clinicId  String
+  tenantId  String
+  status    String   @default("ENVIADO")
+  channels  Json     @default("{}")
+  createdAt DateTime @default(now()) @db.Timestamp(3)
+
+  @@unique([leadId, listingId])
+  @@index([clinicId, createdAt])
+}

@@ -10,6 +10,7 @@ import TwoFactorCard from "../components/TwoFactorCard";
 import FollowUpSettingsCard from "../components/FollowUpSettingsCard";
 import SessionsCard from "../components/SessionsCard";
 import SubscriptionCard from "../components/SubscriptionCard";
+import FinderListingCard from "../components/FinderListingCard";
 import FinancialHoldSettingsCard from "../components/FinancialHoldSettingsCard";
 import DunningSettingsCard from "../components/DunningSettingsCard";
 import { useAppTheme } from "../contexts/AppThemeContext";
@@ -19,6 +20,7 @@ export default function Settings(){
  const navigate=useNavigate();
  return <Box><PageHeader title="Configurações" description="Identidade da clínica, aparência, cores e preferências do sistema."/>
  <SubscriptionCard/>
+ <FinderListingCard/>
  <TwoFactorCard/>
  <SessionsCard/>
  <FollowUpSettingsCard/>

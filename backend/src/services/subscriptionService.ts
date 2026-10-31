@@ -463,7 +463,8 @@ export async function subscriptionBlock(clinicId: string, action: string) {
   let blocked: boolean
   if (hit && hit.until > Date.now()) blocked = hit.blocked
   else {
-    const sub = await prisma.platformSubscription.findUnique({ where: { clinicId }, select: { status: true, accessUntil: true } })
+    // Se a tabela ainda nao existir (SQL nao rodou), nao bloqueia ninguem.
+    const sub = await prisma.platformSubscription.findUnique({ where: { clinicId }, select: { status: true, accessUntil: true } }).catch(() => null)
     blocked = Boolean(sub && sub.status === 'CANCELADA' && sub.accessUntil && sub.accessUntil.getTime() < Date.now())
     blockCache.set(clinicId, { until: Date.now() + 60_000, blocked })
   }
