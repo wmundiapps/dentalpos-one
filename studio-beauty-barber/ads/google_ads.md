@@ -7,7 +7,7 @@
 ### Títulos (máx. 30)
 - Gestão para Salão e Barbearia (29)
 - Agenda Online para Salões (25)
-- Teste Grátis por 14 Dias (24)
+- Teste Grátis por 30 Dias (24)
 - Sistema para Barbearia (22)
 - Robô de Agendamento WhatsApp (28)
 - Reduza Faltas com Lembretes (27)
@@ -22,8 +22,8 @@
 - Atenda Mais, Digite Menos (25)
 
 ### Descrições (máx. 90)
-- Agenda online, robô no WhatsApp, caixa e comissões. Teste grátis por 14 dias. (77)
-- Seu cliente agenda sozinho 24h e recebe lembretes automáticos. Sem cartão para começar. (87)
+- Agenda online, robô no WhatsApp, caixa e comissões. Teste grátis por 30 dias. (77)
+- Cliente agenda sozinho 24h e recebe lembretes. 30 dias grátis, cancele quando quiser. (85)
 - Organize clientes, serviços e equipe em um só lugar. Simples no celular e no computador. (88)
 - Reserva paga: faltou sem avisar, você retém 30%. Clube de assinatura e planos de R$ 59,90. (90)
 

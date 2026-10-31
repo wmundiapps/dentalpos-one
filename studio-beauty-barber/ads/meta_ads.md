@@ -16,7 +16,7 @@
 **E — Reserva paga** (`reserva_*`)
 - Texto principal: Cliente que falta sem avisar custa caro. Com a reserva paga, ele garante o horário no Pix ou cartão e aceita a regra: faltou sem avisar, você retém 30% e devolve 70%. Cancelou no prazo, devolve tudo. Tudo automático.
 - Título: Acabe com o prejuízo das faltas
-- Descrição: Teste grátis por 14 dias
+- Descrição: Teste grátis por 30 dias
 - Botão: Saiba mais
 
 **F — Clube** (`clube_*`)
@@ -26,33 +26,33 @@
 - Botão: Cadastre-se
 
 **G — Preço** (`preco_*`)
-- Texto principal: Sistema completo para o seu salão a partir de R$ 59,90 por mês. Planos de R$ 59,90, R$ 129, R$ 249 e R$ 559, conforme o tamanho da equipe. 14 dias grátis, sem fidelidade.
+- Texto principal: Sistema completo para o seu salão a partir de R$ 59,90 por mês. Planos de R$ 59,90, R$ 129, R$ 249 e R$ 559, conforme o tamanho da equipe. 30 dias grátis, sem fidelidade.
 - Título: A partir de R$ 59,90 por mês
-- Descrição: 14 dias grátis
+- Descrição: 30 dias grátis
 - Botão: Cadastre-se
 
 **A — Agenda** (`agenda_*`)
-- Texto principal: Sua agenda cheia, sem planilha e sem perder tempo no WhatsApp. O Studio Beauty Barber reúne agenda online, caixa, comissões e clientes em um só lugar. Teste grátis por 14 dias, sem cartão.
+- Texto principal: Sua agenda cheia, sem planilha e sem perder tempo no WhatsApp. O Studio Beauty Barber reúne agenda online, caixa, comissões e clientes em um só lugar. Teste grátis por 30 dias, sem cartão.
 - Título: Gestão para salões e barbearias
-- Descrição: Teste grátis por 14 dias
+- Descrição: Teste grátis por 30 dias
 - Botão: Cadastre-se
 
 **B — Robô** (`robo_*`)
 - Texto principal: Cliente chamando às 22h? O robô responde preços e horários e agenda por você no WhatsApp, Instagram e Facebook. Você assume a conversa quando quiser.
 - Título: Robô de agendamento para salões
-- Descrição: Teste grátis por 14 dias
+- Descrição: Teste grátis por 30 dias
 - Botão: Saiba mais
 
 **C — Faltas** (`faltas_*`)
 - Texto principal: Cliente que esquece o horário é dinheiro perdido. Lembretes automáticos 24h e 2h antes ajudam a manter a agenda cheia. Simples de configurar.
 - Título: Menos faltas, mais faturamento
-- Descrição: 14 dias grátis, sem fidelidade
+- Descrição: 30 dias grátis, sem fidelidade
 - Botão: Cadastre-se
 
 **D — Oferta** (`gratis_*`)
-- Texto principal: Organize seu salão ou barbearia em um dia. Agenda online, caixa e campanhas. 14 dias grátis, sem cartão e sem fidelidade.
-- Título: Teste grátis por 14 dias
-- Descrição: Sem cartão de crédito
+- Texto principal: Organize seu salão ou barbearia em um dia. Agenda online, caixa e campanhas. 30 dias grátis e sem fidelidade. Cadastre o cartão para começar; cancele antes do fim e não paga nada.
+- Título: Teste grátis por 30 dias
+- Descrição: Cancele antes e não paga nada
 - Botão: Cadastre-se
 
 ## Regras e cuidados (políticas da Meta)
