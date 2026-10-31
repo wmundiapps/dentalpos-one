@@ -10,7 +10,7 @@ function shell(...content) {
     h('header', { class: 'pub-hero' }, h('div', { class: 'pub-head', style: { marginBottom: 0 } }, h('div', { class: 'mark' }, 'S'),
       h('div', {}, h('h1', {}, 'Encontre um profissional'), h('p', {}, 'Salões e barbearias da sua cidade')))),
     ...content,
-    h('footer', { class: 'small muted', style: { textAlign: 'center', marginTop: '24px' } }, 'Studio Beauty Barber · seus dados são usados só para conectar você ao profissional que escolher.'));
+    h('footer', { class: 'small muted', style: { textAlign: 'center', marginTop: '24px' } }, 'Studio Beauty Barber · seus dados são usados só para conectar você ao profissional que escolher.')));
   window.scrollTo(0, 0);
 }
 
