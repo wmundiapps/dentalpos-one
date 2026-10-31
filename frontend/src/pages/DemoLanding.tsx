@@ -197,7 +197,7 @@ export default function DemoLanding() {
         </Typography>
 
         <Alert severity="info" sx={{ mt: 3 }}>
-          <strong>EXPERIENCE gratuito por {config?.durationDays || 60} dias.</strong>{" "}
+          <strong>EXPERIENCE gratuito por {config?.durationDays || 30} dias.</strong>{" "}
           O acesso é temporário. Ao final do período, será necessária a contratação de um plano para
           continuar utilizando o sistema. O vencimento da demo não apaga automaticamente os dados cadastrados.
         </Alert>
@@ -343,7 +343,7 @@ export default function DemoLanding() {
               <Typography sx={{ fontWeight: 900, mb: 1 }}>Condições do EXPERIENCE</Typography>
               <Typography variant="body2" color="text.secondary">
                 O acesso é gratuito, temporário e faz parte do programa Early Access. A demonstração
-                terá duração de {config?.durationDays || 60} dias a partir do cadastro. Novos módulos
+                terá duração de {config?.durationDays || 30} dias a partir do cadastro. Novos módulos
                 poderão ser liberados durante o programa. Após o término, o sistema poderá permanecer
                 por até {config?.graceDays || 7} dias em modo somente leitura e, depois, o uso operacional
                 ficará bloqueado até contratação. O término da demo não apaga automaticamente pacientes,
@@ -370,7 +370,7 @@ export default function DemoLanding() {
               disabled={busy || !form.acceptTerms}
               onClick={() => void register()}
             >
-              {busy ? "Criando ambiente..." : `Criar meu EXPERIENCE gratuito de ${config?.durationDays || 60} dias`}
+              {busy ? "Criando ambiente..." : `Criar meu EXPERIENCE gratuito de ${config?.durationDays || 30} dias`}
             </Button>
 
             <Button fullWidth sx={{ mt: 1 }} onClick={() => { window.location.href = loginUrl; }}>

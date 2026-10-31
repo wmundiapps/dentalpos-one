@@ -1,11 +1,11 @@
-# Campanha Google Ads — CompletoDonto
+# Campanha Google Ads — DentalPos
 
 Tipo: **Pesquisa (Search)**, só rede de pesquisa (desmarcar Display e parceiros de pesquisa no começo).
 Objetivo: **Leads / Cadastros** (conversão = cadastro iniciado ou formulário da landing enviado).
 Local: Brasil (para gastar menos, começar por Paraná, São Paulo e Santa Catarina). Idioma: português.
 Orçamento sugerido: **R$ 50/dia** nos primeiros 14 dias; lances **Maximizar conversões**, depois **CPA desejado** com ~30 conversões.
 Agenda: seg–sáb, 7h–21h.
-URL final: `https://completodonto.com.br` (landing). Caminho de exibição: `/software` `/dentista`.
+URL final: `https://app.dentalpos.com.br/cadastro` (landing). Caminho de exibição: `/software` `/dentista`.
 
 ## Grupo 1 — Software para clínica odontológica (fundo de funil)
 Correspondência de frase e exata:
@@ -39,9 +39,9 @@ download, crack, pirata, apostila, curso, vaga, emprego, estágio, faculdade, pd
 
 ## Anúncio responsivo de pesquisa (usar nos grupos 1 a 3)
 Títulos (até 30 caracteres, todos conferidos):
-1. CompletoDonto: gestão clínica
+1. DentalPos: gestão clínica
 2. Software para dentista
-3. 60 dias grátis, sem cartão
+3. 30 dias grátis, sem fidelidade
 4. Agenda e prontuário online
 5. 50% off por 12 meses
 6. Controle financeiro da clínica
@@ -58,14 +58,14 @@ Títulos (até 30 caracteres, todos conferidos):
 Fixar o título 1 na posição 1 (marca).
 
 Descrições (até 90 caracteres, todas conferidas):
-1. Agenda, prontuário, financeiro e retorno de pacientes num só sistema. 60 dias grátis.
-2. Sem cartão de crédito para testar. Depois, 50% de desconto nos 12 primeiros meses.
+1. Agenda, prontuário, financeiro e retorno de pacientes num só sistema. 30 dias grátis.
+2. Cobrança só depois dos 30 dias. Depois, 50% de desconto nos 12 primeiros meses.
 3. Pacientes que faltaram ou sumiram voltam para a agenda com lembrete automático.
 4. Sistema completo para clínica odontológica. Comece grátis e cancele quando quiser.
 
 ## Extensões
 - **Sitelinks:** Planos e preços · Teste grátis · Para estudantes · Fale com a equipe
-- **Frases de destaque:** Sem cartão de crédito · 60 dias grátis · Retorno automático · Cancele quando quiser
+- **Frases de destaque:** Sem fidelidade · 30 dias grátis · Retorno automático · Cancele quando quiser
 - **Chamada:** (44) 3222-7539
 - **Snippets estruturados (Serviços):** Agenda, Prontuário, Financeiro, Estoque, RH, Comunicação com paciente
 

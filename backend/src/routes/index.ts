@@ -34,6 +34,8 @@ import * as feedbackController from '../controllers/feedbackController'
 import * as importController from '../controllers/importController'
 import * as labServiceOrderController from '../controllers/labServiceOrderController'
 import * as cronController from '../controllers/cronController'
+import * as subscriptionController from '../controllers/subscriptionController'
+import * as finderController from '../controllers/finderController'
 import * as platformFeedbackController from '../controllers/platformFeedbackController'
 import * as accessController from '../controllers/accessController'
 import * as auditController from '../controllers/auditController'
@@ -100,6 +102,12 @@ router.post('/auth/2fa/disable', authMiddleware, twoFactor.disable)
 router.post('/auth/2fa/backup-codes', authMiddleware, twoFactor.backupCodes)
 router.post('/auth/password-reset/request', authController.requestPasswordReset)
 router.post('/auth/password-reset/confirm', authController.resetPassword)
+router.get('/finder/options', finderController.options)
+router.post('/finder/lead', finderController.lead)
+router.post('/finder/cities/:citySlug/professionals', finderController.reveal)
+router.post('/finder/contact', finderController.contact)
+router.get('/billing/offer', subscriptionController.offer)
+router.post('/billing/signup', subscriptionController.signup)
 router.get('/demo/config', demoController.config)
 router.post('/demo/register', demoController.register)
 router.get('/debug/demo-clinics', debugDemoController.list)
@@ -546,6 +554,12 @@ router.post('/ai/run', requirePermission('dashboard.view'), aiController.run)
 router.get('/credits/packages', requirePermission('dashboard.view'), platformBillingController.packages)
 router.get('/credits/purchases', requirePermission('dashboard.view'), platformBillingController.purchases)
 router.post('/credits/purchase', requirePermission('dashboard.view'), platformBillingController.purchase)
+router.get('/finder/listing', requirePermission('settings.view'), finderController.mine)
+router.put('/finder/listing', requirePermission('settings.edit'), finderController.save)
+router.get('/finder/received', requirePermission('settings.view'), finderController.received)
+router.get('/billing/subscription', subscriptionController.mine)
+router.post('/billing/subscription/cancel', requirePermission('settings.edit'), subscriptionController.cancel)
+router.post('/billing/subscription/reactivate', subscriptionController.reactivate)
 router.put('/revah/senders', requirePermission('marketing.send'), revahSenderController.upsert)
 router.get('/revah-bridge/status', requirePermission('marketing.view'), revahBridgeController.status)
 router.post('/revah-bridge/sso', requirePermission('marketing.view'), revahBridgeController.sso)

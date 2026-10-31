@@ -55,7 +55,7 @@ function boundedInt(value: unknown, fallback: number, min: number, max: number) 
 }
 
 export function demoOptions() {
-  const durationDays = boundedInt(process.env.DEMO_DEFAULT_DAYS, 60, 1, 365)
+  const durationDays = boundedInt(process.env.DEMO_DEFAULT_DAYS, 30, 1, 365)
   const graceDays = boundedInt(process.env.DEMO_GRACE_DAYS, 7, 0, 90)
   const modules = normalizeModules(
     String(process.env.DEMO_DEFAULT_MODULES || 'agenda,patients').split(','),

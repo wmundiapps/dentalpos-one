@@ -8,9 +8,9 @@ const dir = path.dirname(fileURLToPath(import.meta.url))
 const logo = 'data:image/png;base64,' + fs.readFileSync(path.join(dir, '../../frontend/public/brand/logo-leao.png')).toString('base64')
 
 const cards = [
-  { id: '01-atender', fundo: '#FBEFD7', tinta: '#1D1D1F', destaque: '#B9821F', titulo: 'Você só precisa <em>atender.</em>', texto: 'Agenda, prontuário, financeiro e retorno de pacientes em um só sistema.', selo: '60 dias grátis · sem cartão', cta: 'Começar grátis' },
-  { id: '02-esquecimento', fundo: '#1D1D1F', tinta: '#F7F4EF', destaque: '#E0A83E', titulo: 'Paciente que sumiu <em>volta pra agenda.</em>', texto: 'O CompletoDonto lembra quem faltou, quem cancelou e quem ficou sem retorno. E avisa você toda semana.', selo: 'Retorno automático de pacientes', cta: 'Testar 60 dias grátis' },
-  { id: '03-desconto', fundo: '#2E8B6B', tinta: '#FFFFFF', destaque: '#FBEFD7', titulo: '60 dias grátis e <em>50% off</em> por 12 meses.', texto: 'Sem cartão de crédito para testar. Cancele quando quiser.', selo: 'Oferta de lançamento', cta: 'Quero a oferta' },
+  { id: '01-atender', fundo: '#FBEFD7', tinta: '#1D1D1F', destaque: '#B9821F', titulo: 'Você só precisa <em>atender.</em>', texto: 'Agenda, prontuário, financeiro e retorno de pacientes em um só sistema.', selo: '30 dias grátis · sem fidelidade', cta: 'Começar grátis' },
+  { id: '02-esquecimento', fundo: '#1D1D1F', tinta: '#F7F4EF', destaque: '#E0A83E', titulo: 'Paciente que sumiu <em>volta pra agenda.</em>', texto: 'O DentalPos lembra quem faltou, quem cancelou e quem ficou sem retorno. E avisa você toda semana.', selo: 'Retorno automático de pacientes', cta: 'Testar 30 dias grátis' },
+  { id: '03-desconto', fundo: '#2E8B6B', tinta: '#FFFFFF', destaque: '#FBEFD7', titulo: '30 dias grátis e <em>50% off</em> por 12 meses.', texto: 'Cobrança só depois dos 30 dias. Cancele quando quiser.', selo: 'Oferta de lançamento', cta: 'Quero a oferta' },
   { id: '04-tudo-junto', fundo: '#F7F4EF', tinta: '#1D1D1F', destaque: '#2E8B6B', titulo: 'Chega de <em>5 sistemas</em> para tocar a clínica.', texto: 'Agenda, prontuário, financeiro, estoque, RH e comunicação com o paciente no mesmo lugar.', selo: 'Tudo em um só sistema', cta: 'Conhecer o sistema' },
   { id: '05-estudante', fundo: '#E0A83E', tinta: '#1D1D1F', destaque: '#FFFFFF', titulo: 'Estudante de odontologia <em>usa grátis.</em>', texto: 'Grátis até a colação de grau e mais 6 meses grátis depois de formado.', selo: 'Para acadêmicos', cta: 'Quero meu acesso' },
 ]
@@ -23,9 +23,9 @@ h1{font-family:"Liberation Serif",Georgia,serif;font-size:${f.h > 1500 ? 124 : 9
 p{font-size:${f.h > 1500 ? 46 : 38}px;line-height:1.35;margin-top:34px;opacity:.92;max-width:900px}
 .cta{align-self:flex-start;background:${c.destaque};color:${c.fundo === '#E0A83E' ? '#1D1D1F' : c.fundo};font-size:42px;font-weight:700;padding:26px 54px;border-radius:999px}
 .url{font-size:32px;opacity:.75;margin-top:22px}</style>
-<div class="marca"><img src="${logo}"><span>Completo<b>Donto</b></span></div>
+<div class="marca"><img src="${logo}"><span>Dental<b>Pos</b></span></div>
 <div><div class="selo">${c.selo}</div><h1>${c.titulo}</h1><p>${c.texto}</p></div>
-<div><div class="cta">${c.cta}</div><div class="url">completodonto.com.br</div></div>`
+<div><div class="cta">${c.cta}</div><div class="url">app.dentalpos.com.br/cadastro</div></div>`
 
 const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' })
 for (const c of cards) for (const f of formatos) {

@@ -15,7 +15,7 @@ function asaas() {
   }
 }
 
-async function call(path: string, init: RequestInit = {}) {
+export async function call(path: string, init: RequestInit = {}) {
   const { base, headers } = asaas()
   const r = await fetch(`${base}${path}`, { ...init, headers: { ...headers, ...(init.headers || {}) } })
   const t = await r.text()
@@ -28,7 +28,7 @@ async function call(path: string, init: RequestInit = {}) {
 const digits = (v: string) => String(v || "").replace(/\D/g, "")
 
 // Um cliente Asaas por clinica, reaproveitado pela referencia externa.
-async function ensureCustomer(clinicId: string) {
+export async function ensureCustomer(clinicId: string) {
   const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { id: true, name: true, email: true, phone: true, cnpj: true } })
   if (!clinic) throw new Error("Clinica nao encontrada.")
   const found = await call(`/customers?externalReference=${encodeURIComponent(clinic.id)}`)
@@ -70,7 +70,7 @@ export async function createCreditPurchase(input: { clinicId: string; tenantId: 
       billingType,
       value: Number(pkg.priceAmount),
       dueDate: due,
-      description: `CompletoDonto - ${pkg.name}`,
+      description: `DentalPos - ${pkg.name}`,
       externalReference: `credit:${purchase.id}`,
     }),
   })
@@ -90,6 +90,11 @@ export async function createCreditPurchase(input: { clinicId: string; tenantId: 
 export async function handlePlatformWebhook(body: any) {
   const event = String(body?.event || "")
   const payment = body?.payment || {}
+  // Mensalidade da clinica (assinatura) tem fluxo proprio.
+  if (payment?.subscription || event.startsWith("SUBSCRIPTION_")) {
+    const { handleSubscriptionWebhook } = await import("./subscriptionService")
+    return handleSubscriptionWebhook(body)
+  }
   const ref = String(payment?.externalReference || "")
   if (!ref.startsWith("credit:")) return { handled: false, reason: "NAO_E_CREDITO" }
 
