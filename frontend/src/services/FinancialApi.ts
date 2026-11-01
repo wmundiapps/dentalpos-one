@@ -134,6 +134,8 @@ export interface SettleFinancialEntryInput {
   paidAt?: string;
   paymentReceipt?: string;
   settlementNote?: string;
+  cashDestination?: string;
+  destinationAccount?: string;
 }
 
 export async function settleFinancialEntry(id: string, input: SettleFinancialEntryInput = {}): Promise<FinancialEntry> {
@@ -167,4 +169,10 @@ export async function purgeCancelledEntries(ids?: string[]): Promise<{ deleted: 
     body: JSON.stringify(ids ? { ids } : {}),
   });
   return parse<{ deleted: number; keptFiscal: number }>(response);
+}
+
+// Depois de recebido: registra que o valor foi enviado a uma conta (ou ficou no caixa).
+export async function setEntryDestination(id: string, input: { cashDestination: "CAIXA" | "CONTA"; destinationAccount?: string }): Promise<{ ok: boolean }> {
+  const response = await fetch(`${API}/financial-entries/${encodeURIComponent(id)}/destination`, { method: "PUT", headers: headers(true), body: JSON.stringify(input) });
+  return parse<{ ok: boolean }>(response);
 }

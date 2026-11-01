@@ -65,6 +65,14 @@ export async function update(req: AuthRequest, res: Response) {
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao atualizar lançamento.' }) }
 }
 
+
+// Destino do dinheiro recebido: "CAIXA" (ficou no caixa) ou "CONTA" (enviado a uma conta). Sem informar: dinheiro fica no caixa, o resto vai para conta.
+export function cashDestinationOf(value: unknown, method: string | null | undefined) {
+  const v = String(value || '').toUpperCase()
+  if (v === 'CAIXA' || v === 'CONTA') return v
+  return /dinheiro|cash/i.test(String(method || '')) ? 'CAIXA' : 'CONTA'
+}
+
 export async function settle(req: AuthRequest, res: Response) {
   try {
     const { clinicId, tenantId, actorId } = context(req); const id = String(req.params.id)
@@ -81,6 +89,9 @@ export async function settle(req: AuthRequest, res: Response) {
     const row = await prisma.financialEntry.update({ where: { id }, data: {
       status: 'PAID', paidAt, settledById: actorId, settledByName,
       paymentMethod: typeof b.paymentMethod === 'string' && b.paymentMethod.trim() ? b.paymentMethod.trim().slice(0, 40) : existing.paymentMethod,
+      cashDestination: cashDestinationOf(b.cashDestination, typeof b.paymentMethod === 'string' && b.paymentMethod.trim() ? b.paymentMethod : existing.paymentMethod),
+      destinationAccount: typeof b.destinationAccount === 'string' && b.destinationAccount.trim() ? b.destinationAccount.trim().slice(0, 80) : null,
+      destinationAt: paidAt,
       paymentReceipt: typeof b.paymentReceipt === 'string' && b.paymentReceipt.trim() ? b.paymentReceipt.trim().slice(0, 120) : null,
       ...(note ? { notes: `${existing.notes ? existing.notes + '\n' : ''}[Baixa] ${note}` } : {}),
     } })
@@ -147,4 +158,21 @@ export async function purgeCancelled(req: AuthRequest, res: Response) {
     }
     return res.json({ deleted: removable.length, keptFiscal: blocked.size })
   } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao excluir lançamentos cancelados.' }) }
+}
+
+// Depois de recebido: registra que o valor foi enviado a uma conta (ex.: deposito do dinheiro) ou que voltou/ficou no caixa.
+export async function setDestination(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, actorId } = context(req); const id = String(req.params.id)
+    const existing = await prisma.financialEntry.findFirst({ where: { id, clinicId, tenantId } })
+    if (!existing || existing.status !== 'PAID') return res.status(404).json({ error: 'Lançamento pago não encontrado.' })
+    const b = req.body || {}
+    const dest = String(b.cashDestination || '').toUpperCase()
+    if (dest !== 'CAIXA' && dest !== 'CONTA') return res.status(400).json({ error: 'Informe se o valor ficou no caixa ou foi enviado para uma conta.' })
+    const account = typeof b.destinationAccount === 'string' && b.destinationAccount.trim() ? b.destinationAccount.trim().slice(0, 80) : null
+    if (dest === 'CONTA' && !account) return res.status(400).json({ error: 'Informe o nome da conta que recebeu o valor.' })
+    const row = await prisma.financialEntry.update({ where: { id }, data: { cashDestination: dest, destinationAccount: dest === 'CONTA' ? account : null, destinationAt: new Date() } })
+    await writeAudit({ clinicId, tenantId, actorId, module: 'finance', action: 'FINANCIAL_ENTRY_DESTINATION', entityType: 'FinancialEntry', entityId: id, beforeData: { cashDestination: existing.cashDestination, destinationAccount: existing.destinationAccount }, afterData: { cashDestination: row.cashDestination, destinationAccount: row.destinationAccount }, summary: `Destino do valor: ${row.description}` })
+    return res.json({ ok: true })
+  } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao registrar o destino do valor.' }) }
 }

@@ -3,6 +3,7 @@ import { Alert, Box, Button, FormControlLabel, Paper, Switch, Table, TableBody, 
 import PrintIcon from "@mui/icons-material/Print";
 import PageHeader from "../components/PageHeader";
 import { loadCashReport, saveCashSettings, sendCashNow, type CashResponse } from "../services/DailyCashApi";
+import { setEntryDestination } from "../services/FinancialApi";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const today = () => new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);
@@ -26,7 +27,7 @@ export default function DailyCash() {
 
   return (
     <Box>
-      <PageHeader title="Fechamento de caixa" description="Entradas e saídas pagas no dia, por profissional. Dá para imprimir e receber por e-mail todos os dias." />
+      <PageHeader title="Fechamento de caixa" description="Entradas e saídas pagas no dia, por profissional: quem pagou, a forma de pagamento, quem recebeu e se o valor ficou no caixa ou foi para uma conta. Dá para imprimir e receber por e-mail todos os dias." />
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert>}
       {msg && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg("")}>{msg}</Alert>}
 
@@ -53,6 +54,13 @@ export default function DailyCash() {
             </Paper>
           )}
 
+          {r.byDestination.length > 0 && (
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 3 }}>
+              <Typography sx={{ fontWeight: 800, mb: 1 }}>Para onde foi o dinheiro recebido</Typography>
+              <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>{r.byDestination.map((d) => <Typography key={d.destination} variant="body2"><b>{d.destination}:</b> {brl(d.total)}</Typography>)}</Box>
+            </Paper>
+          )}
+
           {!r.groups.length && <Alert severity="info" sx={{ mb: 3 }}>Nenhum lançamento pago neste dia.</Alert>}
 
           {r.groups.length > 0 && (
@@ -68,12 +76,32 @@ export default function DailyCash() {
                         <TableCell align="right" sx={{ fontWeight: 700 }}>{brl(g.exits)}</TableCell>
                         <TableCell align="right" sx={{ fontWeight: 800 }}>{brl(g.balance)}</TableCell>
                       </TableRow>
-                      {g.lines.map((l, i) => (
-                        <TableRow key={`${g.key}-${i}`}>
-                          <TableCell colSpan={2} sx={{ pl: 4 }}><Typography variant="body2">{l.time} · {l.who} · {l.description} <i>({l.method})</i></Typography></TableCell>
-                          <TableCell colSpan={2} align="right" sx={{ color: l.kind === "ENTRADA" ? "success.main" : "error.main", fontWeight: 700 }}>{l.kind === "ENTRADA" ? "+" : "−"} {brl(l.amount)}</TableCell>
+                      {g.lines.length > 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} sx={{ p: 0, border: 0 }}>
+                            <Table size="small">
+                              <TableHead><TableRow><TableCell>Hora</TableCell><TableCell>Quem pagou</TableCell><TableCell>Forma</TableCell><TableCell>Quem recebeu</TableCell><TableCell>Destino</TableCell><TableCell align="right">Valor</TableCell><TableCell sx={{ "@media print": { display: "none" } }} /></TableRow></TableHead>
+                              <TableBody>
+                                {g.lines.map((l) => (
+                                  <TableRow key={`${g.key}-${l.id}-${l.amount}`}>
+                                    <TableCell>{l.time}</TableCell>
+                                    <TableCell>{l.kind === "ENTRADA" ? l.payer : <>Clínica <i>(pago a {l.who})</i></>}<Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>{l.description}</Typography></TableCell>
+                                    <TableCell>{l.method}</TableCell>
+                                    <TableCell>{l.receivedBy}</TableCell>
+                                    <TableCell>{l.kind === "ENTRADA" ? <>{l.destinationLabel}{l.destinationInferred && <i> (presumido)</i>}</> : "—"}</TableCell>
+                                    <TableCell align="right" sx={{ color: l.kind === "ENTRADA" ? "success.main" : "error.main", fontWeight: 700 }}>{l.kind === "ENTRADA" ? "+" : "−"} {brl(l.amount)}</TableCell>
+                                    <TableCell sx={{ "@media print": { display: "none" } }}>
+                                      {l.kind === "ENTRADA" && l.destination === "CAIXA" && (
+                                        <Button size="small" disabled={busy} onClick={() => { const account = window.prompt("Para qual conta o valor foi enviado? (ex.: Banco Inter)"); if (account && account.trim()) void act(() => setEntryDestination(l.id, { cashDestination: "CONTA", destinationAccount: account.trim() }), "Destino registrado."); }}>Enviado para conta</Button>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableCell>
                         </TableRow>
-                      ))}
+                      )}
                     </Fragment>
                   ))}
                 </TableBody>

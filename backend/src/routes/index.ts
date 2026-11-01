@@ -37,6 +37,7 @@ import * as cronController from '../controllers/cronController'
 import * as subscriptionController from '../controllers/subscriptionController'
 import * as finderController from '../controllers/finderController'
 import * as marketingController from '../controllers/marketingController'
+import * as dueRemindersController from '../controllers/dueRemindersController'
 import * as platformFeedbackController from '../controllers/platformFeedbackController'
 import * as accessController from '../controllers/accessController'
 import * as auditController from '../controllers/auditController'
@@ -190,6 +191,12 @@ router.post('/team-members', requirePermission('agenda.edit'), teamController.st
 router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.update)
 router.delete('/team-member/:id', requirePermission('agenda.edit'), teamController.remove)
 router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
+router.get('/due-reminders', requirePermission('dashboard.view'), dueRemindersController.overview)
+router.get('/due-reminders/settings', requirePermission('settings.view'), dueRemindersController.settings)
+router.put('/due-reminders/settings', requirePermission('settings.edit'), dueRemindersController.saveSettingsHandler)
+router.post('/due-reminders/custom', requirePermission('settings.edit'), dueRemindersController.create)
+router.put('/due-reminders/custom/:id', requirePermission('settings.edit'), dueRemindersController.update)
+router.post('/due-reminders/custom/:id/done', requirePermission('settings.edit'), dueRemindersController.done)
 router.put('/pending-alerts/settings', requirePermission('settings.edit'), pendingAlertController.updateSettings)
 router.get('/patients/:id/next-procedure', requirePermission('agenda.view'), nextProcedureController.hint)
 router.get('/patients/:id/financial-hold', requirePermission('agenda.view'), financialHoldController.patientHold)
@@ -432,6 +439,7 @@ router.put('/payout-accounts/:doctorId', requirePermission('finance.approve'), p
 router.get('/payouts', requirePermission('finance.view'), payoutController.statement)
 router.post('/financial-entries/purge-cancelled', requirePermission('finance.approve'), financialController.purgeCancelled)
 router.post('/financial-entries/:id/settle', requirePermission('finance.approve'), financialController.settle)
+router.put('/financial-entries/:id/destination', requirePermission('finance.edit'), financialController.setDestination)
 router.delete('/financial-entries/:id', requirePermission('finance.approve'), financialController.remove)
 router.get('/financial-dashboard', requirePermission('finance.view'), financialController.dashboard)
 router.get('/financial-import-rules', requirePermission('finance.view'), financialController.importRules)

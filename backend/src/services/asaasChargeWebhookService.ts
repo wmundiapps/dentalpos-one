@@ -36,7 +36,7 @@ export async function applyChargeEvent(clinicScope: string | null, eventType: st
       if (entry && entry.status !== 'PAID') {
         await prisma.financialEntry.update({
           where: { id: entry.id },
-          data: { status: 'PAID', paidAt: new Date(), settledByName: 'Asaas (automático)', paymentMethod: METHOD[String(payment?.billingType || charge.billingType)] || entry.paymentMethod, paymentReceipt: paymentId }
+          data: { status: 'PAID', paidAt: new Date(), settledByName: 'Asaas (automático)', cashDestination: 'CONTA', destinationAccount: 'Conta Asaas', destinationAt: new Date(), paymentMethod: METHOD[String(payment?.billingType || charge.billingType)] || entry.paymentMethod, paymentReceipt: paymentId }
         })
       }
       for (const line of charge.splits) {

@@ -3,6 +3,7 @@ import { loadFinancialDashboard, type FinancialDashboard } from "../services/Fin
 import MobileHome from "../components/MobileHome";
 import CashbacksmartButton from "../components/CashbacksmartButton";
 import UnscheduledPatientsCard from "../components/UnscheduledPatientsCard";
+import DueRemindersCard from "../components/DueRemindersCard";
 import { usePendingVisibility } from "../hooks/usePendingVisibility";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -155,6 +156,7 @@ export default function Dashboard() {
         Visão operacional integrada do CompletoDonto.
       </Typography>
       <Box sx={{ mb: 3 }}><CashbacksmartButton audience="gestor" /></Box>
+      <DueRemindersCard />
 
       <Box sx={{ display: isMobile ? "none" : "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(4, 1fr)" }, gap: 3 }}>
         {cards.map((card) => <DashboardCard key={card.titulo} {...card} onClick={() => { if (card.path.startsWith("#")) { setAlertFilter(card.path.slice(1) as "FIN" | "CRIT"); document.getElementById("central-alertas")?.scrollIntoView({ behavior: "smooth" }); } else navigate(card.path); }} />)}
