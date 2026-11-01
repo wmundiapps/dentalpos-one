@@ -3131,3 +3131,31 @@ model MarketingMessage {
 
   @@index([phone, createdAt])
 }
+
+// Lembretes de vencimento cadastrados pela clinica (alvara, teste da autoclave, impostos, recibos da Receita Saude...).
+model DueReminder {
+  id         String    @id
+  clinicId   String
+  tenantId   String
+  kind       String
+  title      String
+  dueDate    DateTime  @db.Date
+  recurrence String    @default("NONE")
+  notes      String?
+  active     Boolean   @default(true)
+  lastDoneAt DateTime? @db.Timestamp(3)
+  createdAt  DateTime  @default(now()) @db.Timestamp(3)
+  updatedAt  DateTime  @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, active, dueDate])
+}
+
+// Registro dos e-mails de vencimento ja enviados (nunca repete o mesmo aviso).
+model DueReminderLog {
+  id       String   @id
+  clinicId String
+  key      String   @unique
+  sentAt   DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, sentAt])
+}

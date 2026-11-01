@@ -5,6 +5,7 @@ import { processDueAppointmentReminders } from '../services/appointmentReminderS
 import { processDunning } from '../services/dunningService'
 import { processDailyLabRisk, processDueLabNotifications } from '../services/labNotificationService'
 import { processFollowUps } from '../services/followUpService'
+import { processDueReminders } from '../services/dueRemindersService'
 import { processSubscriptionJobs } from '../services/subscriptionService'
 import { verifyGithubToken } from '../services/githubOidc'
 
@@ -26,6 +27,7 @@ export async function reminders(req: Request, res: Response) {
     await processDailyLabRisk().then(() => processDueLabNotifications()).catch((e) => console.error('Avisos do laboratório:', e))
     await processDunning().catch((e) => console.error('Régua de cobrança:', e))
     await processAbsenceRecalls().catch((e) => console.error('Retorno de pacientes ausentes:', e))
+    await processDueReminders().catch((e) => console.error('Lembretes de vencimento:', e))
     await processSubscriptionJobs().catch((e) => console.error('Assinaturas:', e))
     await processFollowUps().catch((e) => console.error('Acompanhamento de pacientes:', e))
     return res.json({ ok: true, ms: Date.now() - started })
