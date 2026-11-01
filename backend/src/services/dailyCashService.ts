@@ -11,11 +11,23 @@ export const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency',
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\b(dr|dra|dr\.|dra\.)\b/g, '').replace(/\s+/g, ' ').trim()
 const brtDayOf = (d: Date) => new Date(d.getTime() - 3 * 3600000).toISOString().slice(0, 10)
 const brtHourOf = (d: Date) => new Date(d.getTime() - 3 * 3600000).getUTCHours()
+// Nomes claros para a forma de pagamento (o sistema guarda varios jeitos de escrever).
+export function methodLabel(raw: string | null | undefined) {
+  const m = String(raw || '').trim().toLowerCase()
+  if (!m) return 'Não informado'
+  if (/dinheiro|cash|esp[eé]cie/.test(m)) return 'Dinheiro'
+  if (/cart|card|cr[eé]dito|d[eé]bito/.test(m)) return /d[eé]bito|debit/.test(m) ? 'Cartão de débito' : /cr[eé]dito|credit/.test(m) ? 'Cartão de crédito' : 'Cartão'
+  if (/boleto|bank_slip/.test(m)) return 'Boleto'
+  if (/pix/.test(m)) return 'Pix'
+  if (/transfer|ted|doc/.test(m)) return 'Transferência'
+  if (/cheque|check/.test(m)) return 'Cheque'
+  return String(raw).trim()
+}
 const hhmm = (d: Date) => new Date(d.getTime() - 3 * 3600000).toISOString().slice(11, 16)
 
-export type CashLine = { time: string; kind: 'ENTRADA' | 'SAIDA'; who: string; description: string; method: string; amount: number }
+export type CashLine = { id: string; time: string; kind: 'ENTRADA' | 'SAIDA'; who: string; payer: string; receivedBy: string; description: string; method: string; destination: 'CAIXA' | 'CONTA'; destinationLabel: string; destinationInferred: boolean; amount: number }
 export type CashGroup = { key: string; name: string; entries: number; exits: number; balance: number; lines: CashLine[] }
-export type CashReport = { date: string; groups: CashGroup[]; entries: number; exits: number; balance: number; byMethod: Array<{ method: string; total: number }>; count: number }
+export type CashReport = { date: string; groups: CashGroup[]; entries: number; exits: number; balance: number; byMethod: Array<{ method: string; total: number }>; byDestination: Array<{ destination: string; total: number }>; count: number }
 
 export type CashSettings = { enabled: boolean; emails: string[]; lastSent: string | null }
 
@@ -61,11 +73,17 @@ export async function buildCashReport(clinicId: string, tenantId: string, dayISO
     g.lines.push(line)
   }
   const methods = new Map<string, number>()
+  const destinations = new Map<string, number>()
 
   for (const e of entries) {
     const kind = e.type === 'INCOME' ? 'ENTRADA' : 'SAIDA'
-    const method = e.paymentMethod || 'Não informado'
-    const base = { time: hhmm(e.paidAt as Date), kind: kind as CashLine['kind'], who: e.personName, description: e.description, method }
+    const method = methodLabel(e.paymentMethod)
+    // Destino: o que foi registrado na baixa; em lancamentos antigos, dinheiro = caixa e o resto = conta (marcado como presumido).
+    const inferred = !e.cashDestination
+    const destination: 'CAIXA' | 'CONTA' = e.cashDestination === 'CAIXA' || e.cashDestination === 'CONTA' ? e.cashDestination : (method === 'Dinheiro' ? 'CAIXA' : 'CONTA')
+    const destinationLabel = destination === 'CAIXA' ? 'Ficou no caixa' : `Enviado para ${e.destinationAccount || 'conta'}`
+    const base = { id: e.id, time: hhmm(e.paidAt as Date), kind: kind as CashLine['kind'], who: e.personName, payer: kind === 'ENTRADA' ? e.personName : 'Clínica', receivedBy: kind === 'ENTRADA' ? (e.settledByName || 'Não informado') : (e.personName || 'Não informado'), description: e.description, method, destination, destinationLabel, destinationInferred: inferred }
+    if (kind === 'ENTRADA') destinations.set(destination, (destinations.get(destination) || 0) + e.amount)
     if (kind === 'ENTRADA') methods.set(method, (methods.get(method) || 0) + e.amount)
     if (kind === 'ENTRADA') {
       const splits = splitsByEntry.get(e.id) || []
@@ -94,7 +112,7 @@ export async function buildCashReport(clinicId: string, tenantId: string, dayISO
   const list = [...groups.values()].sort((a, b) => (a.key === 'clinic' ? 1 : b.key === 'clinic' ? -1 : a.name.localeCompare(b.name)))
   const total = (k: 'entries' | 'exits') => Math.round(list.reduce((s, g) => s + g[k], 0) * 100) / 100
   const ent = total('entries'), ex = total('exits')
-  return { date: dayISO, groups: list, entries: ent, exits: ex, balance: Math.round((ent - ex) * 100) / 100, byMethod: [...methods.entries()].map(([method, t]) => ({ method, total: Math.round(t * 100) / 100 })).sort((a, b) => b.total - a.total), count: entries.length }
+  return { date: dayISO, groups: list, entries: ent, exits: ex, balance: Math.round((ent - ex) * 100) / 100, byMethod: [...methods.entries()].map(([method, t]) => ({ method, total: Math.round(t * 100) / 100 })).sort((a, b) => b.total - a.total), byDestination: [...destinations.entries()].map(([destination, t]) => ({ destination: destination === 'CAIXA' ? 'Ficou no caixa' : 'Enviado para conta', total: Math.round(t * 100) / 100 })), count: entries.length }
 }
 
 const dmy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
@@ -102,10 +120,11 @@ const dmy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice
 export function cashEmailBody(clinicName: string, r: CashReport) {
   const lines: string[] = [`Fechamento de caixa de ${dmy(r.date)} — ${clinicName}`, '', `Entradas: ${brl(r.entries)}`, `Saídas:   ${brl(r.exits)}`, `Saldo do dia: ${brl(r.balance)}`, '']
   if (r.byMethod.length) { lines.push('Entradas por forma de pagamento:'); for (const m of r.byMethod) lines.push(`• ${m.method}: ${brl(m.total)}`); lines.push('') }
+  if (r.byDestination.length) { lines.push('Destino do dinheiro recebido:'); for (const d of r.byDestination) lines.push(`• ${d.destination}: ${brl(d.total)}`); lines.push('') }
   lines.push('Por profissional:')
   for (const g of r.groups) {
     lines.push(`\n${g.name}: entradas ${brl(g.entries)} · saídas ${brl(g.exits)} · saldo ${brl(g.balance)}`)
-    for (const l of g.lines.slice(0, 40)) lines.push(`  ${l.time} ${l.kind === 'ENTRADA' ? '+' : '-'} ${brl(l.amount)}  ${l.who} · ${l.description} (${l.method})`)
+    for (const l of g.lines.slice(0, 40)) lines.push(`  ${l.time} ${l.kind === 'ENTRADA' ? '+' : '-'} ${brl(l.amount)} · ${l.kind === 'ENTRADA' ? 'Pagou' : 'Pago a'}: ${l.who} · ${l.description} · ${l.method} · Recebido por: ${l.receivedBy} · ${l.destinationLabel}${l.destinationInferred ? ' (presumido)' : ''}`)
     if (g.lines.length > 40) lines.push(`  … e mais ${g.lines.length - 40} lançamentos (veja no sistema).`)
   }
   lines.push('', 'A divisão por profissional segue o atendimento do paciente no dia ou a divisão da cobrança; o que não tem profissional aparece em "Clínica".', 'Veja e imprima em Financeiro > Fechamento de caixa.')

@@ -60,7 +60,7 @@ export default function Financial(){
  const [open,setOpen]=useState(false);
  const [saving,setSaving]=useState(false);const [planKey,setPlanKey]=useState(0);
 const [settleTarget,setSettleTarget]=useState<FinancialEntry|null>(null);
-const [settleForm,setSettleForm]=useState({paymentMethod:"PIX",paidAt:"",paymentReceipt:"",note:""});
+const [settleForm,setSettleForm]=useState({paymentMethod:"PIX",paidAt:"",paymentReceipt:"",note:"",cashDestination:"AUTO",destinationAccount:""});
 const [settleBusy,setSettleBusy]=useState(false);
 const [settleError,setSettleError]=useState("");
 const receiptOptional=["Dinheiro","Permuta"].includes(settleForm.paymentMethod);
@@ -158,7 +158,7 @@ const add=async()=>{
      await refresh();
    }catch(e){setError(e instanceof Error?e.message:"Erro ao atualizar lançamento.")}
  };
- const openSettle=(entry:FinancialEntry)=>{setSettleTarget(entry);setSettleForm({paymentMethod:entry.paymentMethod||"PIX",paidAt:new Date().toLocaleDateString("sv-SE"),paymentReceipt:"",note:""});setSettleError("");};
+ const openSettle=(entry:FinancialEntry)=>{setSettleTarget(entry);setSettleForm({paymentMethod:entry.paymentMethod||"PIX",paidAt:new Date().toLocaleDateString("sv-SE"),paymentReceipt:"",note:"",cashDestination:"AUTO",destinationAccount:""});setSettleError("");};
 const confirmSettle=async()=>{
   if(!settleTarget)return;
   const today=new Date().toLocaleDateString("sv-SE");
@@ -167,7 +167,7 @@ const confirmSettle=async()=>{
   if(!receiptOptional&&!settleForm.paymentReceipt.trim()){setSettleError("Informe o número do comprovante.");return;}
   setSettleBusy(true);setSettleError("");
   try{
-    await settleFinancialEntry(settleTarget.id,{paymentMethod:settleForm.paymentMethod,paidAt:`${settleForm.paidAt}T12:00:00-03:00`,paymentReceipt:settleForm.paymentReceipt.trim()||undefined,settlementNote:settleForm.note.trim()||undefined});
+    await settleFinancialEntry(settleTarget.id,{paymentMethod:settleForm.paymentMethod,paidAt:`${settleForm.paidAt}T12:00:00-03:00`,paymentReceipt:settleForm.paymentReceipt.trim()||undefined,settlementNote:settleForm.note.trim()||undefined,cashDestination:settleForm.cashDestination==="AUTO"?undefined:settleForm.cashDestination,destinationAccount:settleForm.cashDestination==="CONTA"?settleForm.destinationAccount.trim()||undefined:undefined});
     setSettleTarget(null);
     await refresh();
   }catch(e){setSettleError(e instanceof Error?e.message:"Erro ao dar baixa.")}
@@ -197,6 +197,8 @@ const remove=async(entry:FinancialEntry)=>{
 <TextField select label="Forma de pagamento" value={settleForm.paymentMethod} onChange={e=>setSettleForm({...settleForm,paymentMethod:e.target.value})}>{["PIX","Cartão","Boleto","Transferência","Dinheiro","Promissória","Permuta","Cheque"].map(x=><MenuItem key={x} value={x}>{x}</MenuItem>)}</TextField>
 <TextField required label="Data do pagamento" type="date" value={settleForm.paidAt} onChange={e=>setSettleForm({...settleForm,paidAt:e.target.value})} slotProps={{inputLabel:{shrink:true},htmlInput:{max:new Date().toLocaleDateString("sv-SE")}}}/>
 <TextField required={!receiptOptional} label={"Número do comprovante"} placeholder={"Ex.: ID da transação PIX, NSU do cartão"} value={settleForm.paymentReceipt} onChange={e=>setSettleForm({...settleForm,paymentReceipt:e.target.value})} helperText={receiptOptional?"Opcional para dinheiro e permuta.":"Obrigatório para conferência."}/>
+<TextField select label="Para onde foi o valor?" value={settleForm.cashDestination} onChange={e=>setSettleForm({...settleForm,cashDestination:e.target.value})} helperText={"Aparece no fechamento de caixa."}><MenuItem value="AUTO">Automático (dinheiro fica no caixa; o resto vai para conta)</MenuItem><MenuItem value="CAIXA">Ficou no caixa</MenuItem><MenuItem value="CONTA">Foi enviado para uma conta</MenuItem></TextField>
+{settleForm.cashDestination==="CONTA"&&<TextField label="Nome da conta" placeholder="Ex.: Banco Inter, Asaas, Caixa Econômica" value={settleForm.destinationAccount} onChange={e=>setSettleForm({...settleForm,destinationAccount:e.target.value})}/>}
 <TextField multiline minRows={2} label={"Observação (opcional)"} value={settleForm.note} onChange={e=>setSettleForm({...settleForm,note:e.target.value})}/>
 {settleError&&<Alert severity="error">{settleError}</Alert>}
 </DialogContent>

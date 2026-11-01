@@ -13,9 +13,9 @@ async function call<T>(path: string, init: { method?: string; body?: unknown } =
   return d as T;
 }
 
-export interface CashLine { time: string; kind: "ENTRADA" | "SAIDA"; who: string; description: string; method: string; amount: number }
+export interface CashLine { id: string; time: string; kind: "ENTRADA" | "SAIDA"; who: string; payer: string; receivedBy: string; description: string; method: string; destination: "CAIXA" | "CONTA"; destinationLabel: string; destinationInferred: boolean; amount: number }
 export interface CashGroup { key: string; name: string; entries: number; exits: number; balance: number; lines: CashLine[] }
-export interface CashReport { date: string; groups: CashGroup[]; entries: number; exits: number; balance: number; byMethod: Array<{ method: string; total: number }>; count: number }
+export interface CashReport { date: string; groups: CashGroup[]; entries: number; exits: number; balance: number; byMethod: Array<{ method: string; total: number }>; byDestination: Array<{ destination: string; total: number }>; count: number }
 export interface CashResponse { report: CashReport; settings: { enabled: boolean; emails: string[] } }
 
 export const loadCashReport = (date: string) => call<CashResponse>(`/finance/daily-close?date=${date}`);

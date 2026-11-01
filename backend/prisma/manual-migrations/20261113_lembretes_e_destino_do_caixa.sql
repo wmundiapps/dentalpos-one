@@ -1,4 +1,4 @@
--- Lembretes de vencimento (alvara, autoclave, impostos, recibos da Receita Saude...) e registro dos e-mails enviados.
+-- Lembretes de vencimento (alvara, autoclave, impostos, recibos da Receita Saude...), registro dos e-mails enviados e destino do dinheiro no caixa diario.
 -- Rodar no editor SQL do projeto DentalPos One (lfeqfzvmasqnnmqvkjyg). Confira o nome do projeto no canto da tela.
 CREATE TABLE IF NOT EXISTS "DueReminder" (
   "id" TEXT PRIMARY KEY,
@@ -27,3 +27,8 @@ CREATE INDEX IF NOT EXISTS "DueReminderLog_clinicId_sentAt_idx" ON "DueReminderL
 ALTER TABLE "DueReminder" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "DueReminderLog" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE "DueReminder", "DueReminderLog" FROM anon, authenticated;
+
+-- Caixa diario: para onde o valor recebido foi (ficou no caixa ou foi enviado para uma conta).
+ALTER TABLE "FinancialEntry" ADD COLUMN IF NOT EXISTS "cashDestination" TEXT;
+ALTER TABLE "FinancialEntry" ADD COLUMN IF NOT EXISTS "destinationAccount" TEXT;
+ALTER TABLE "FinancialEntry" ADD COLUMN IF NOT EXISTS "destinationAt" TIMESTAMP(3);

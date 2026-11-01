@@ -439,6 +439,7 @@ router.put('/payout-accounts/:doctorId', requirePermission('finance.approve'), p
 router.get('/payouts', requirePermission('finance.view'), payoutController.statement)
 router.post('/financial-entries/purge-cancelled', requirePermission('finance.approve'), financialController.purgeCancelled)
 router.post('/financial-entries/:id/settle', requirePermission('finance.approve'), financialController.settle)
+router.put('/financial-entries/:id/destination', requirePermission('finance.edit'), financialController.setDestination)
 router.delete('/financial-entries/:id', requirePermission('finance.approve'), financialController.remove)
 router.get('/financial-dashboard', requirePermission('finance.view'), financialController.dashboard)
 router.get('/financial-import-rules', requirePermission('finance.view'), financialController.importRules)

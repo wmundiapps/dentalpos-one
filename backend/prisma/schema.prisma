@@ -565,6 +565,9 @@ model FinancialEntry {
   issuerEntity        String             @default("INSTITUTO_RAVEL")
   approvedAt          DateTime?
   sourceDocumentHash  String?
+  cashDestination     String?
+  destinationAccount  String?
+  destinationAt       DateTime?
   taxObligation       TaxObligation?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
