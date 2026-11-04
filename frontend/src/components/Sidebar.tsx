@@ -1,10 +1,14 @@
 import { isWmundiStaff } from "./WmundiStaffOnly";
 import {
   Avatar, Box, Collapse, Divider, IconButton, List, ListItemButton, ListItemIcon,
-  ListItemText, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button
+  ListItemText, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button, Snackbar, Alert
 } from "@mui/material";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import LockResetIcon from "@mui/icons-material/LockReset";
+import { canSeeManager, MANAGER_URL } from "./DentalPosManagerButton";
+import { openManagerReset } from "./ManagerResetLink";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
@@ -25,6 +29,9 @@ import {
 const OPEN_GROUPS_KEY = "dentalpos.navigation.open-groups.v2";
 const COLLAPSED_KEY = "dentalpos.navigation.collapsed.v2";
 const AGENDAMENTO_ONLINE_PATH = "/agendamento-online";
+// Atalhos (não são rotas): abrem o DentalPos Manager e o link de nova senha dele.
+const MANAGER_PATH = "#manager";
+const MANAGER_RESET_PATH = "#manager-reset";
 
 function pathMatches(target:string, pathname:string, search:string){
   const [targetPath,query=""]=target.split("?");
@@ -46,6 +53,7 @@ export default function Sidebar(){
     return saved===null ? true : saved==="1"; // compacto por padrão
   });
   const [showInDevelopment,setShowInDevelopment]=useState(false);
+  const [managerMsg,setManagerMsg]=useState<{type:"success"|"error";text:string}|null>(null);
 
   // No EXPERIENCE, nenhum item deve desaparecer do menu — apenas deduplicado.
   const menuAccess=useMenuAccess();
@@ -61,8 +69,16 @@ export default function Sidebar(){
         return true;
       });
       return {...group,items};
-    }).filter(g=>g.items.length>0);
-  },[menuAccess]);
+    }).filter(g=>g.items.length>0).flatMap(g=>{
+      // Atalhos do DentalPos Manager logo depois do grupo Sales (só para o e-mail autorizado).
+      if(g.label!=="CompletoDonto Sales"||!canSeeManager(sessionUser?.email))return [g];
+      return [
+        g,
+        {label:"DentalPos Manager",icon:<StorefrontIcon/>,items:[{label:"DentalPos Manager",path:MANAGER_PATH,icon:<StorefrontIcon/>}]},
+        {label:"Redefinir senha do Manager",icon:<LockResetIcon/>,items:[{label:"Redefinir senha do Manager",path:MANAGER_RESET_PATH,icon:<LockResetIcon/>}]},
+      ];
+    });
+  },[menuAccess,sessionUser?.email]);
 
   const activeGroup=useMemo(
     ()=>visibleGroups.find(g=>g.items.some(it=>pathMatches(it.path,location.pathname,location.search)))?.label,
@@ -93,6 +109,14 @@ export default function Sidebar(){
   }
 
   function handleItemClick(path:string){
+    if(path===MANAGER_PATH){
+      window.open(MANAGER_URL,"_blank","noopener,noreferrer");
+      return;
+    }
+    if(path===MANAGER_RESET_PATH){
+      openManagerReset().then(err=>setManagerMsg(err?{type:"error",text:err}:{type:"success",text:"Link aberto em nova aba. Vale 10 minutos e só uma vez."}));
+      return;
+    }
     // Rota pública tratada fora do React Router (ver App.tsx) — precisa de navegação de
     // página inteira, com o clinicId incluído na URL para a página pública saber qual clínica.
     if(path.split("?")[0]===AGENDAMENTO_ONLINE_PATH){
@@ -241,6 +265,10 @@ export default function Sidebar(){
           <Typography sx={{fontSize:10.5}}><BrandName/> • {appConfig.version}</Typography>}
       </Box>
     )}
+
+    <Snackbar open={Boolean(managerMsg)} autoHideDuration={7000} onClose={()=>setManagerMsg(null)} anchorOrigin={{vertical:"bottom",horizontal:"center"}}>
+      {managerMsg?<Alert severity={managerMsg.type} onClose={()=>setManagerMsg(null)}>{managerMsg.text}</Alert>:undefined}
+    </Snackbar>
 
     <Dialog open={showInDevelopment} onClose={()=>setShowInDevelopment(false)} maxWidth="xs" fullWidth>
       <DialogTitle sx={{fontWeight:800}}>Em desenvolvimento</DialogTitle>
