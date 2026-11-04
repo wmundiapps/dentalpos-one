@@ -7,8 +7,8 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import LockResetIcon from "@mui/icons-material/LockReset";
-import { canSeeManager, MANAGER_URL } from "./DentalPosManagerButton";
-import { openManagerReset } from "./ManagerResetLink";
+import { MANAGER_URL } from "./DentalPosManagerButton";
+import { fetchManagerAccess, openManagerReset, type ManagerAccess } from "./ManagerResetLink";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import MenuIcon from "@mui/icons-material/Menu";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
@@ -55,6 +55,9 @@ export default function Sidebar(){
   const [showInDevelopment,setShowInDevelopment]=useState(false);
   const [managerMsg,setManagerMsg]=useState<{type:"success"|"error";text:string}|null>(null);
 
+  const [managerAccess,setManagerAccess]=useState<ManagerAccess>({canOpen:false,canReset:false});
+  useEffect(()=>{let live=true;fetchManagerAccess().then(a=>{if(live)setManagerAccess(a)});return()=>{live=false}},[sessionUser?.email]);
+
   // No EXPERIENCE, nenhum item deve desaparecer do menu — apenas deduplicado.
   const menuAccess=useMenuAccess();
   const visibleGroups=useMemo(()=>{
@@ -71,14 +74,14 @@ export default function Sidebar(){
       return {...group,items};
     }).filter(g=>g.items.length>0).flatMap(g=>{
       // Atalhos do DentalPos Manager logo depois do grupo Sales (só para o e-mail autorizado).
-      if(g.label!=="CompletoDonto Sales"||!canSeeManager(sessionUser?.email))return [g];
+      if(g.label!=="CompletoDonto Sales"||!managerAccess.canOpen)return [g];
       return [
         g,
         {label:"DentalPos Manager",icon:<StorefrontIcon/>,items:[{label:"DentalPos Manager",path:MANAGER_PATH,icon:<StorefrontIcon/>}]},
-        {label:"Redefinir senha do Manager",icon:<LockResetIcon/>,items:[{label:"Redefinir senha do Manager",path:MANAGER_RESET_PATH,icon:<LockResetIcon/>}]},
+        ...(managerAccess.canReset?[{label:"Redefinir senha do Manager",icon:<LockResetIcon/>,items:[{label:"Redefinir senha do Manager",path:MANAGER_RESET_PATH,icon:<LockResetIcon/>}]}]:[]),
       ];
     });
-  },[menuAccess,sessionUser?.email]);
+  },[menuAccess,managerAccess]);
 
   const activeGroup=useMemo(
     ()=>visibleGroups.find(g=>g.items.some(it=>pathMatches(it.path,location.pathname,location.search)))?.label,

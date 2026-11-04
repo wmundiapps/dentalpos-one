@@ -5,10 +5,6 @@
 
 const ALLOWED_EMAILS = ['clinicaravel@gmail.com'];
 
-export function canSeeManager(email?: string | null): boolean {
-  return !!email && ALLOWED_EMAILS.includes(email.trim().toLowerCase());
-}
-
 // Endereço do Manager. Quando o domínio próprio estiver ativo, troque para:
 // https://erp.dentalposmanager.com.br  (ou defina VITE_DENTALPOS_MANAGER_URL no ambiente)
 export const MANAGER_URL: string =

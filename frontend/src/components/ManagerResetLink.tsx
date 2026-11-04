@@ -1,9 +1,19 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-// Só mostra o item de menu para o e-mail autorizado; quem decide de verdade é o servidor (confere o e-mail no banco).
-const ALLOWED_EMAILS = ["clinicaravel@gmail.com"];
 
-export function canUseManagerReset(email?: string | null): boolean {
-  return !!email && ALLOWED_EMAILS.includes(email.trim().toLowerCase());
+export type ManagerAccess = { canOpen: boolean; canReset: boolean };
+
+// Quem vê os atalhos é definido no servidor (variáveis MANAGER_ACCESS_EMAILS e MANAGER_RESET_EMAILS).
+export async function fetchManagerAccess(): Promise<ManagerAccess> {
+  try {
+    const token = localStorage.getItem("dentalpos.token") || "";
+    const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
+    const r = await fetch(`${API}/manager/access`, { headers: { Authorization: `Bearer ${token}`, ...(clinicId ? { "X-Clinic-ID": clinicId } : {}) } });
+    if (!r.ok) return { canOpen: false, canReset: false };
+    const d = await r.json();
+    return { canOpen: !!d.canOpen, canReset: !!d.canReset };
+  } catch {
+    return { canOpen: false, canReset: false };
+  }
 }
 
 // Gera um link de uso único (10 min) para redefinir a senha do administrador do DentalPos Manager

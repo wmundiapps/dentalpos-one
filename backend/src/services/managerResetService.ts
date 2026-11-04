@@ -9,6 +9,8 @@ export const RESET_TTL_SEC = 10 * 60
 
 export const managerBaseUrl = () => String(process.env.MANAGER_URL || 'https://dentalpos-manager-production.up.railway.app').replace(/\/$/, '')
 export const resetAllowedEmails = () => String(process.env.MANAGER_RESET_EMAILS || 'clinicaravel@gmail.com').split(',').map(x => x.trim().toLowerCase()).filter(Boolean)
+// Quem vê o atalho do Manager no menu (só aparece; quem protege é o login do próprio Manager).
+export const managerAccessEmails = () => String(process.env.MANAGER_ACCESS_EMAILS || 'clinicaravel@gmail.com').split(',').map(x => x.trim().toLowerCase()).filter(Boolean)
 export const resetEnabled = () => String(process.env.MANAGER_RESET_SECRET || '').length >= 32
 
 export function signManagerResetToken(email: string, now = Date.now()) {

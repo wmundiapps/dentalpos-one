@@ -192,6 +192,7 @@ router.post('/team-members', requirePermission('agenda.edit'), teamController.st
 router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.update)
 router.delete('/team-member/:id', requirePermission('agenda.edit'), teamController.remove)
 router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
+router.get('/manager/access', managerResetController.access)
 router.post('/manager/reset-link', managerResetController.link)
 router.get('/due-reminders', requirePermission('dashboard.view'), dueRemindersController.overview)
 router.get('/due-reminders/settings', requirePermission('settings.view'), dueRemindersController.settings)
