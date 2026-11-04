@@ -1,10 +1,23 @@
 import type { Response } from 'express'
 import type { AuthRequest } from '../middleware/auth'
 import { prisma } from '../lib/prisma'
-import { managerResetUrl, resetAllowedEmails, resetEnabled, signManagerResetToken } from '../services/managerResetService'
+import { managerAccessEmails, managerResetUrl, resetAllowedEmails, resetEnabled, signManagerResetToken } from '../services/managerResetService'
 import { writeAudit } from '../services/auditService'
 
 const tries = new Map<string, number[]>()
+
+// Diz ao menu se este usuário vê os atalhos do Manager (lista em MANAGER_ACCESS_EMAILS) e se pode redefinir a senha.
+export async function access(req: AuthRequest, res: Response) {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
+    const user = await prisma.user.findFirst({ where: { id: req.user.id, isActive: true }, select: { email: true } })
+    const email = String(user?.email || '').trim().toLowerCase()
+    const canReset = !!email && resetAllowedEmails().includes(email)
+    return res.json({ canOpen: !!email && (managerAccessEmails().includes(email) || canReset), canReset })
+  } catch {
+    return res.json({ canOpen: false, canReset: false })
+  }
+}
 
 // Só o e-mail autorizado, logado, recebe o link. O e-mail vem do banco, nunca do corpo da requisição.
 export async function link(req: AuthRequest, res: Response) {

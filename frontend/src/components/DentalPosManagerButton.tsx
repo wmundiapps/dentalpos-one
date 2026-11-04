@@ -7,7 +7,7 @@ const ALLOWED_EMAILS = ['clinicaravel@gmail.com'];
 
 // Endereço do Manager. Quando o domínio próprio estiver ativo, troque para:
 // https://erp.dentalposmanager.com.br  (ou defina VITE_DENTALPOS_MANAGER_URL no ambiente)
-const MANAGER_URL: string =
+export const MANAGER_URL: string =
   (import.meta as any).env?.VITE_DENTALPOS_MANAGER_URL ||
   'https://dentalpos-manager-production.up.railway.app';
 
