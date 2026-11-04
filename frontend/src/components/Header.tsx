@@ -22,6 +22,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import FeedbackDialog from "./FeedbackDialog";
+import DentalPosManagerButton from "./DentalPosManagerButton";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -211,6 +212,9 @@ export default function Header() {
         </Box>
 
         <Box sx={{ flexGrow: 1 }} />
+
+        {/* Só aparece para o e-mail autorizado em DentalPosManagerButton; abre o Manager em nova aba. */}
+        <Box sx={{ mr: 1 }}><DentalPosManagerButton email={sessionUser?.email} /></Box>
 
         <Tooltip title={"Imprimir esta tela (ou salvar como PDF)"}>
           <IconButton onClick={() => window.print()}>
