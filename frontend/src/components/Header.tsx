@@ -23,6 +23,7 @@ import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import FeedbackDialog from "./FeedbackDialog";
 import DentalPosManagerButton from "./DentalPosManagerButton";
+import ManagerResetLink from "./ManagerResetLink";
 import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -215,6 +216,7 @@ export default function Header() {
 
         {/* Só aparece para o e-mail autorizado em DentalPosManagerButton; abre o Manager em nova aba. */}
         <Box sx={{ mr: 1 }}><DentalPosManagerButton email={sessionUser?.email} /></Box>
+        <ManagerResetLink email={sessionUser?.email} />
 
         <Tooltip title={"Imprimir esta tela (ou salvar como PDF)"}>
           <IconButton onClick={() => window.print()}>

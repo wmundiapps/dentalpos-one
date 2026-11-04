@@ -38,6 +38,7 @@ import * as subscriptionController from '../controllers/subscriptionController'
 import * as finderController from '../controllers/finderController'
 import * as marketingController from '../controllers/marketingController'
 import * as dueRemindersController from '../controllers/dueRemindersController'
+import * as managerResetController from '../controllers/managerResetController'
 import * as platformFeedbackController from '../controllers/platformFeedbackController'
 import * as accessController from '../controllers/accessController'
 import * as auditController from '../controllers/auditController'
@@ -191,6 +192,7 @@ router.post('/team-members', requirePermission('agenda.edit'), teamController.st
 router.put('/team-member/:id', requirePermission('agenda.edit'), teamController.update)
 router.delete('/team-member/:id', requirePermission('agenda.edit'), teamController.remove)
 router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
+router.post('/manager/reset-link', managerResetController.link)
 router.get('/due-reminders', requirePermission('dashboard.view'), dueRemindersController.overview)
 router.get('/due-reminders/settings', requirePermission('settings.view'), dueRemindersController.settings)
 router.put('/due-reminders/settings', requirePermission('settings.edit'), dueRemindersController.saveSettingsHandler)
