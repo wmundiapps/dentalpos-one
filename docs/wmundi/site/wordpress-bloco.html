@@ -156,6 +156,46 @@ details p{margin-top:10px;color:var(--mt)}
 #resumo{white-space:pre-wrap;background:var(--paper);border:1px dashed var(--blue);border-radius:12px;padding:14px;font-size:.92rem;margin-top:12px}
 footer{padding-block:34px;color:var(--mt);font-size:.88rem}
 footer .w{display:flex;flex-wrap:wrap;gap:10px 28px;justify-content:space-between}
+
+/* ===== Ajustes para rodar dentro do tema do WordPress (largura total e cores fixas) ===== */
+html{overflow-x:clip}
+#wmundi-site{width:100vw;max-width:100vw;position:relative;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;padding:0;font-family:var(--body);font-size:16px;line-height:1.55;color:var(--tx);text-align:left;background:var(--paper);overflow:hidden}
+#wmundi-site *{box-sizing:border-box}
+#wmundi-site h1,#wmundi-site h2,#wmundi-site h3{color:inherit!important;font-family:var(--display)!important;line-height:1.1!important;letter-spacing:-.02em!important;margin:0!important;padding:0!important;text-transform:none!important;text-align:left}
+#wmundi-site h1{font-size:clamp(2.2rem,6vw,4rem)!important;font-weight:800!important}
+#wmundi-site h2{font-size:clamp(1.7rem,4vw,2.5rem)!important;font-weight:800!important}
+#wmundi-site h3{font-size:1.15rem!important;font-weight:600!important}
+#wmundi-site .panel h3{margin-bottom:14px!important}
+#wmundi-site .hero h1{margin-bottom:18px!important}
+#wmundi-site .hero h1 em{color:var(--sun)!important}
+#wmundi-site p,#wmundi-site li,#wmundi-site span,#wmundi-site summary,#wmundi-site label{font-family:var(--body)}
+#wmundi-site .top,#wmundi-site .hero,#wmundi-site .lab,#wmundi-site .final{color:#fff}
+#wmundi-site .hero .lead,#wmundi-site .lab .lead,#wmundi-site .final .lead{color:#c3cdee!important}
+#wmundi-site .panel{color:var(--tx)}
+#wmundi-site .card p,#wmundi-site .card ul,#wmundi-site .hint,#wmundi-site details p,#wmundi-site .tg span{color:var(--mt)!important}
+#wmundi-site a{text-decoration:none!important;box-shadow:none!important}
+#wmundi-site a.btn{color:#fff!important}
+#wmundi-site a.btn.line{color:var(--tx)!important}
+#wmundi-site .logo{color:#fff!important}
+#wmundi-site .logo b{color:var(--sun)!important}
+#wmundi-site .top nav a:not(.btn){color:#fff!important}
+#wmundi-site .card .go{color:var(--blue)!important}
+#wmundi-site .eyebrow{color:var(--blue)}
+#wmundi-site .lab .eyebrow,#wmundi-site .hero .eyebrow,#wmundi-site .final .eyebrow{color:var(--sun)!important}
+#wmundi-site ul,#wmundi-site ol{margin-bottom:0}
+#wmundi-site .top{top:var(--wp-admin--admin-bar--height,0px)}
+#wmundi-site button{font-family:var(--body)}
+#wmundi-site .tabs button{color:#fff}
+#wmundi-site .tabs button[aria-selected=true]{color:var(--ink)}
+#wmundi-site .qr button{color:var(--blue)}
+#wmundi-site .slots button{color:var(--tx)}
+#wmundi-site .slots button[aria-pressed=true]{color:#fff}
+#wmundi-site input,#wmundi-site select,#wmundi-site textarea{color:var(--tx);background:#fff;font-family:var(--body);height:auto;margin:0}
+#wmundi-site .scr,#wmundi-site .scr *{color:#111}
+#wmundi-site .scr .bar,#wmundi-site .scr .bar *{color:#fff}
+#wmundi-site .scr .bar .av{color:var(--ink)}
+#wmundi-site .b .tag{color:#0a7a62}
+#wmundi-site .typing{color:#667}
 </style>
 <div id="wmundi-site"><a class="skip" href="#lab">Ir para os testes</a>
 
