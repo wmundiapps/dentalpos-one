@@ -85,6 +85,7 @@ export function Layout() {
         <Brand name={productName} />
         {nav}
         <div className="sidebar-foot">
+          <div className="muted" style={{ fontSize: 11, lineHeight: 1.4, marginBottom: 8 }}>WMundi Technologies &amp; Co® · operado por Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10</div>
           <div className="user-chip">
             <div className="user-name">{session.user.name}</div>
             <div className="user-mail">{session.user.email}</div>
@@ -150,6 +151,7 @@ export function Layout() {
             </div>
             {nav}
             <div className="sidebar-foot">
+          <div className="muted" style={{ fontSize: 11, lineHeight: 1.4, marginBottom: 8 }}>WMundi Technologies &amp; Co® · operado por Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10</div>
               <div className="user-chip">
                 <div className="user-name">{session.user.name}</div>
                 <div className="user-mail">{session.user.email}</div>

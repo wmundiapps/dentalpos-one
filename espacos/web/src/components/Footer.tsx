@@ -36,7 +36,7 @@ export function Footer() {
         </div>
       </div>
       <div className="container footer-bottom">
-        © {new Date().getFullYear()} SpaceHour · {OPERATOR.short} · CNPJ {OPERATOR.cnpj} · {OPERATOR.city} · <a href="mailto:support@space-hour.com">support@space-hour.com</a>
+        © {new Date().getFullYear()} SpaceHour · produto WMundi Technologies &amp; Co® · operado por Instituto Ravel de Ensino Superior Ltda. · CNPJ {OPERATOR.cnpj} · {OPERATOR.city} · <a href="mailto:support@space-hour.com">support@space-hour.com</a>
         {' · '}<Link to="/regras/privacy">{t('legal.privacy')} / LGPD</Link>
         <br />{t('footer.legalNote')}
       </div>

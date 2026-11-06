@@ -18,7 +18,7 @@ function AuthShell({ title, subtitle, children, footer }: { title: string; subti
         {children}
         {footer && <div className="auth-foot">{footer}</div>}
       </div>
-      <p className="auth-legal muted">REVAH® é um produto WMundi · revah.com.br</p>
+      <p className="auth-legal muted">REVAH® é um produto WMundi Technologies &amp; Co® · operado por Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · Maringá/PR · revah.com.br</p>
     </div>
   )
 }

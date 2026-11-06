@@ -27,18 +27,27 @@ export default function Footer() {
         gap: 1,
       }}
     >
-      <Typography
-        variant="body2"
-        color="text.secondary"
-      >
-        © 2026 <BrandName /> •{" "}
-        <span
-          translate="no"
-          className="notranslate"
+      <Box>
+        <Typography
+          variant="body2"
+          color="text.secondary"
         >
-          {appConfig.developer}
-        </span>
-      </Typography>
+          © 2026 <BrandName /> •{" "}
+          <span
+            translate="no"
+            className="notranslate"
+          >
+            {appConfig.developer}®
+          </span>
+        </Typography>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block" }}
+        >
+          {appConfig.developer}® · operado por {appConfig.legalEntity.name} · CNPJ {appConfig.legalEntity.cnpj} · {appConfig.legalEntity.city}
+        </Typography>
+      </Box>
 
       <Chip
         size="small"
