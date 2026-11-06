@@ -1,7 +1,7 @@
 # REVAH®
 
 Plataforma de mensageria multicanal com CRM, campanhas, inbox unificado, chatbot com IA, agente de voz e captação de leads.
-Produto independente da WMundi Technology & Co — domínio **revah.com.br**.
+Produto independente da WMundi Technologies & Co — domínio **revah.com.br**.
 
 Esta pasta é autossuficiente: **não importa nada do DentalPos One** e usa **banco de dados próprio**.
 Pode virar um repositório separado a qualquer momento (ver "Separar em repositório próprio").

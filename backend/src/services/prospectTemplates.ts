@@ -17,7 +17,7 @@ export interface TemplateLinks {
 
 const SENDER_LINE =
   process.env.PROSPECT_SENDER_ID ||
-  'CompletoDonto · WMundi Technologies · Maringá/PR · contato@dentalpos.com.br'
+  'CompletoDonto · WMundi Technologies & Co · Maringá/PR · contato@dentalpos.com.br'
 
 function formatCnpj(cnpj: string) {
   const d = cnpj.replace(/\D/g, '').padStart(14, '0')

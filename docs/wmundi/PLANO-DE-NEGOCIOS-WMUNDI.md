@@ -19,7 +19,7 @@ Ordem de prioridade (recomendada): **1) IA dentro dos produtos que já existem �
 
 ## 3. Ponto de partida (o que já existe no repositório)
 - **DentalPos** — gestão odontológica (clínicas, laboratórios, acadêmicos). Planos Basic R$ 197, Intermedium R$ 397, Plenum R$ 597/mês.
-- **REVAH** — marketing e vendas (produto independente da WMundi Technology & Co, revah.com.br).
+- **REVAH** — marketing e vendas (produto independente da WMundi Technologies & Co, revah.com.br).
 - **SpaceHour** (`espacos/`) — gestão de espaços.
 - **ClubeFaz** (repositório `wmundiapps/ifaco`) e **AlignSystem** — citados nas cláusulas-padrão.
 - Cláusulas-padrão para todos os sistemas: `docs/legal/CLAUSULAS-PADRAO-WMUNDI.md`.
