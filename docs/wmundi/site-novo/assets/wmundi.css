@@ -253,3 +253,15 @@ nav a.parc{background:var(--sun);color:var(--ink)!important;opacity:1;font-weigh
 .facts b{display:block;color:var(--tx)}
 .facts span{color:var(--mt);font-size:.93rem}
 @media(max-width:560px){.logo img{height:38px}.top .w{height:auto}}
+
+/* ===== Agentes ===== */
+.agc .conv{background:var(--paper);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.bub{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:.9rem;max-width:92%;align-self:flex-start}
+.bub.ag{background:var(--mint-soft);border-color:transparent;align-self:flex-end}
+.agc .btn{margin-top:auto;align-self:flex-start}
+.custom{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(18px,4vw,44px);align-items:start}
+@media(max-width:860px){.custom{grid-template-columns:minmax(0,1fr)}}
+.bigicon{width:132px;height:132px;border-radius:32px;background:linear-gradient(160deg,var(--blue),#1d3fd0);display:grid;place-items:center;box-shadow:0 18px 40px rgba(47,91,255,.35);margin-bottom:18px}
+.apps{display:flex;flex-wrap:wrap;gap:8px}
+.apps span{padding:7px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:.9rem}
+.apps span b{color:var(--blue)}

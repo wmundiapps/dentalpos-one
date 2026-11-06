@@ -1,0 +1,6 @@
+export * from './types.ts'
+export * from './barreiras.ts'
+export * from './catalogo.ts'
+export * from './apps.ts'
+export * from './motor.ts'
+export * from './adaptadores/simulado.ts'

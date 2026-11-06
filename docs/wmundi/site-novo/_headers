@@ -1,2 +1,4 @@
 /*
   X-Robots-Tag: noindex, nofollow
+/assets/*
+  Access-Control-Allow-Origin: *

@@ -1,0 +1,10 @@
+{
+  "name": "wmundi-agentes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Núcleo dos agentes de IA da WMundi: catálogo, barreiras de segurança, motor de execução e ícone de pedido de agente sob medida.",
+  "scripts": {
+    "test": "node --experimental-strip-types --no-warnings --test core/test/*.test.ts"
+  }
+}
