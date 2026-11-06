@@ -2,7 +2,7 @@
  * WMundi: mostra o site novo (hospedado no Netlify) no endereço do wmundi.com, sem mexer no resto do WordPress.
  *
  * Como funciona:
- *  - Só assume a página inicial e 3 endereços novos: /portfolio/, /agentes-ia/ e /seja-parceiro/.
+ *  - Só assume a página inicial e 5 endereços novos: /portfolio/, /agentes-ia/, /seja-parceiro/, /proposta/ e /obrigado/.
  *    Tudo o mais (loja, contato, termos, painel do gestor) continua do WordPress.
  *  - Os endereços novos só entram se o WordPress ainda não tiver uma página ali.
  *  - Se o site novo não responder, o WordPress mostra a página inicial antiga (nada quebra).
@@ -21,8 +21,10 @@ if ( ! function_exists( 'wmundi_site_config' ) ) {
 				'/portfolio/'    => '/produtos/',
 				'/agentes-ia/'   => '/agentes/',
 				'/seja-parceiro/' => '/parceiros/',
+				'/proposta/'     => '/proposta/',
+				'/obrigado/'     => '/obrigado/',
 			),
-			'formularios' => array( 'contato', 'pedido-produto', 'candidatura-parceiro', 'pedido-agente' ),
+			'formularios' => array( 'contato', 'pedido-produto', 'candidatura-parceiro', 'pedido-agente', 'proposta' ),
 			'cache'       => 300,
 		);
 	}

@@ -5,10 +5,18 @@
       e.preventDefault();err.hidden=true;
       var body=new URLSearchParams(new FormData(form)).toString();
       fetch("/",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body})
-        .then(function(r){if(!r.ok)throw new Error("x");form.hidden=true;ok.hidden=false;ok.scrollIntoView({block:"center"})})
+        .then(function(r){if(!r.ok)throw new Error("x");form.hidden=true;ok.hidden=false;ok.scrollIntoView({block:"center"});var d=form.getAttribute("data-redirect");if(d)setTimeout(function(){location.href=d+"?f="+encodeURIComponent(form.getAttribute("name"))},900)})
         .catch(function(){err.hidden=false});
     });
   }
+  /* origem do contato: guarda UTM e identificadores de clique do primeiro acesso da sessão */
+  var CH=["utm_source","utm_medium","utm_campaign","utm_content","utm_term","gclid","fbclid","ttclid"];
+  try{var qs=new URLSearchParams(location.search);CH.forEach(function(k){var v=qs.get(k);if(v&&!sessionStorage.getItem("wm_"+k))sessionStorage.setItem("wm_"+k,v.slice(0,120))})}catch(e){}
+  Array.prototype.forEach.call(document.querySelectorAll("input[data-utm]"),function(i){
+    var k=i.getAttribute("data-utm");
+    if(k==="pagina"){i.value=location.pathname;return}
+    try{i.value=sessionStorage.getItem("wm_"+k)||""}catch(e){}
+  });
   Array.prototype.forEach.call(document.querySelectorAll("form[data-wm-form]"),onForm);
   var fp=document.getElementById("ptab");if(fp&&(location.pathname.indexOf("/parceiros")===0||location.pathname.indexOf("/seja-parceiro")===0))fp.remove();
   /* botões "Quero este produto" preenchem o pedido */
