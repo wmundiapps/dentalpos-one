@@ -28,6 +28,9 @@ function normalize(value: string) {
 
 // Ordem importa: a primeira regra que bater vale.
 const DEFAULT_RULES: Array<{ pattern: RegExp; minutes: number; label: string }> = [
+  { pattern: /(^prova|cimentar|entrega placa)/, minutes: 30, label: "Provas e cimentações" },
+  { pattern: /(preparo para coroa|colagem de braquetes)/, minutes: 60, label: "Preparos de coroa e colagem de braquetes" },
+  { pattern: /(raspagem|remocao aparelho|instalacao conten)/, minutes: 45, label: "Raspagem, remoção de aparelho e contenção" },
   { pattern: /(tirar pontos|retirada de pontos|remocao de (pontos|sutura)|pontos)/, minutes: 15, label: "Tirar pontos" },
   { pattern: /(revis|retorno|controle|manutencao)/, minutes: 15, label: "Revisões / retornos" },
   { pattern: /(endodont|canal|pulpect|pulpot)/, minutes: 60, label: "Endodontia" },

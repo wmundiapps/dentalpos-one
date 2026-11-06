@@ -6,11 +6,13 @@ export default function ProcedurePicker({
   value,
   onChange,
   required = false,
+  placeholder = "Digite para pesquisar na CBHPO",
 }: {
   label?: string;
   value: string;
   onChange: (name: string, procedure?: DentalProcedure) => void;
   required?: boolean;
+  placeholder?: string;
 }) {
   const selected = cbhpoProcedures.find((procedure) => procedure.name === value) || null;
 
@@ -48,7 +50,7 @@ export default function ProcedurePicker({
           {...params}
           required={required}
           label={label}
-          placeholder="Digite para pesquisar na CBHPO"
+          placeholder={placeholder}
         />
       )}
     />
