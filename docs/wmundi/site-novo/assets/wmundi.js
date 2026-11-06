@@ -10,7 +10,7 @@
     });
   }
   Array.prototype.forEach.call(document.querySelectorAll("form[data-wm-form]"),onForm);
-  var fp=document.getElementById("floatp");if(fp&&location.pathname.indexOf("/parceiros")===0)fp.remove();
+  var fp=document.getElementById("ptab");if(fp&&location.pathname.indexOf("/parceiros")===0)fp.remove();
   /* botões "Quero este produto" preenchem o pedido */
   Array.prototype.forEach.call(document.querySelectorAll("[data-produto]"),function(a){
     a.addEventListener("click",function(){var s=document.getElementById("produto");if(s){s.value=a.getAttribute("data-produto")}});

@@ -210,3 +210,11 @@ nav a.parc{background:var(--sun);color:var(--ink)!important;opacity:1;font-weigh
 .floatp:hover{transform:translateY(-2px)}
 .cta-band .btn{background:var(--sun);color:var(--ink)}
 .cta-band .btn:hover{background:#ffd877}
+
+/* ===== Aba discreta de parceiros (rodapé) ===== */
+.ptab{background:var(--card);border-top:1px solid var(--line)}
+.ptab .w{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;padding-block:22px}
+.ptab p{margin:0;color:var(--mt);font-size:.98rem}
+.ptab p b{color:var(--tx);font-family:var(--display);font-size:1.1rem}
+.ptab a{font-weight:700;color:var(--blue);text-decoration:none;border-bottom:2px solid var(--blue);padding-bottom:2px}
+.ptab a:hover{color:var(--ink);border-color:var(--ink)}
