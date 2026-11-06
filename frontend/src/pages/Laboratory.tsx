@@ -1,4 +1,5 @@
 import ProcedurePicker from "../components/ProcedurePicker";
+import { labQueue, printLabQueue, printLabWorkOrder, whatToDo } from "../utils/labWorkPrint";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -11,6 +12,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import HistoryIcon from "@mui/icons-material/History";
 import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
+import PrintIcon from "@mui/icons-material/Print";
+import ListAltIcon from "@mui/icons-material/ListAlt";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import PageHeader from "../components/PageHeader";
 import LabNotifyFields from "../components/LabNotifyFields";
@@ -50,6 +53,7 @@ export default function Laboratory(){
   const [deliveryWork,setDeliveryWork]=useState<{id:number;patientName:string;workType:string}|null>(null);
   const [open,setOpen]=useState(false); const [editing,setEditing]=useState<IntegratedLaboratoryWork|null>(null); const [historyWork,setHistoryWork]=useState<IntegratedLaboratoryWork|null>(null);
   const [formError,setFormError]=useState("");
+  const [queueOpen,setQueueOpen]=useState(false);
   useEffect(()=>{setFormError("")},[open]);
   const [search,setSearch]=useState(""); const [form,setForm]=useState<LabForm>(blankForm());
   const [notify,setNotify]=useState<LabNotifyChoice>({labMemberId:"",channels:[]});
@@ -105,7 +109,7 @@ export default function Laboratory(){
       {([["ativos","Trabalhos ativos",works.filter(w=>w.status!=="Entregue").length,<PrecisionManufacturingIcon/>],["atrasados","Atrasados",delayedWorks,<AssignmentLateIcon/>],["risco","Em risco",riskWorks,<WarningAmberIcon/>],["entregues","Liberados/entregues",works.filter(w=>["Liberado","Entregue"].includes(w.status)).length,<LocalShippingIcon/>]] as Array<[typeof filtro,string,number,ReactNode]>).map(([chave,titulo,valor,icone])=><Summary key={titulo} title={titulo} value={String(valor)} icon={icone} ativo={filtro===chave} onClick={()=>setFiltro(filtro===chave?"":chave)}/>)}
     </Box>
     <TextField size="small" placeholder="Buscar paciente, trabalho, código, dentes, cor, dentista ou técnico..." value={search} onChange={e=>setSearch(e.target.value)} sx={{mb:2,minWidth:{xs:"100%",md:500}}}/>
-    <Box sx={{display:"inline-block",ml:1,mb:2,verticalAlign:"middle"}}><Button size="small" variant="outlined" sx={{mr:1}} onClick={()=>void openArchive()}>Arquivo (entregues e excluídas)</Button><ExportMenu disabled={!visible.length} build={()=>({title:"Trabalhos de laboratório",fileBase:"laboratorio",headers:["Código","Paciente","Dentista","Trabalho","Dentes","Material","Técnico","Entrada","Prazo","Retorno do paciente","Status","Prioridade"],rows:visible.map(w=>[w.trackingCode,w.patientName,w.dentistName,w.workType,w.teeth||"",w.material,w.responsibleTechnician,formatDate(w.entryDateISO),formatDate(w.dueDateISO),formatDate(w.patientReturnDateISO),w.status,w.priority])})}/></Box>
+    <Box sx={{display:"inline-block",ml:1,mb:2,verticalAlign:"middle"}}><Button size="small" variant="contained" startIcon={<ListAltIcon/>} sx={{mr:1}} onClick={()=>setQueueOpen(true)}>Resumo da fila</Button><Button size="small" variant="outlined" startIcon={<PrintIcon/>} sx={{mr:1}} onClick={()=>printLabQueue(works)}>Imprimir fila</Button><Button size="small" variant="outlined" sx={{mr:1}} onClick={()=>void openArchive()}>Arquivo (entregues e excluídas)</Button><ExportMenu disabled={!visible.length} build={()=>({title:"Trabalhos de laboratório",fileBase:"laboratorio",headers:["Código","Paciente","Dentista","Trabalho","Dentes","Material","Técnico","Entrada","Prazo","Retorno do paciente","Status","Prioridade"],rows:visible.map(w=>[w.trackingCode,w.patientName,w.dentistName,w.workType,w.teeth||"",w.material,w.responsibleTechnician,formatDate(w.entryDateISO),formatDate(w.dueDateISO),formatDate(w.patientReturnDateISO),w.status,w.priority])})}/></Box>
     {filtro&&<Chip sx={{ml:1,mb:2}} color="primary" label={`Filtro: ${({ativos:"Trabalhos ativos",design:"No Design",atrasados:"Atrasados",risco:"Em risco",entregues:"Liberados/entregues"} as Record<string,string>)[filtro]} • ${visible.length}`} onDelete={()=>setFiltro("")}/>}
     <Paper elevation={0} sx={{borderRadius:3,border:"1px solid",borderColor:"divider",overflow:"hidden"}}>
       {visible.length===0&&<Typography sx={{p:3}} color="text.secondary">{filtro?"Nenhum trabalho neste filtro.":"Nenhum trabalho laboratorial cadastrado. Use “Novo trabalho” para começar."}</Typography>}
@@ -117,9 +121,17 @@ export default function Laboratory(){
           <Box><Typography variant="caption" color="text.secondary">Prazo / Retorno</Typography><Typography sx={{fontWeight:700}}>Lab: {formatDate(w.dueDateISO)}</Typography><Typography sx={{fontWeight:700}}>Paciente: {formatDate(w.patientReturnDateISO)}</Typography><Typography variant="caption" color="text.secondary">Próxima ação: {w.nextAction||"Definir"}</Typography></Box>
           <TextField select size="small" label="Status" value={w.status} onChange={e=>{if(["Entregue","Liberado"].includes(e.target.value)){if(!["Entregue","Liberado"].includes(w.status))setDeliveryWork({id:w.id,patientName:w.patientName,workType:w.workType});return}updateLaboratoryWork(w.id,{status:e.target.value as LaboratoryWorkStatus})}}>{statuses.map(s=><MenuItem key={s} value={s}>{s}</MenuItem>)}</TextField>
         </Box>
-        <Box sx={{display:"flex",gap:1,mt:1.4,flexWrap:"wrap"}}><Button size="small" startIcon={<EditIcon/>} onClick={()=>openEdit(w)}>Editar</Button><Button size="small" startIcon={<LocalShippingIcon/>} disabled={["Entregue","Liberado"].includes(w.status)} onClick={()=>setDeliveryWork({id:w.id,patientName:w.patientName,workType:w.workType})}>Entrega (código)</Button><Button size="small" startIcon={<HistoryIcon/>} onClick={()=>setHistoryWork(w)}>Histórico</Button><Button size="small" color="error" onClick={()=>removeWork(w)}>Excluir</Button></Box>
+        <Box sx={{display:"flex",gap:1,mt:1.4,flexWrap:"wrap"}}><Button size="small" startIcon={<EditIcon/>} onClick={()=>openEdit(w)}>Editar</Button><Button size="small" startIcon={<LocalShippingIcon/>} disabled={["Entregue","Liberado"].includes(w.status)} onClick={()=>setDeliveryWork({id:w.id,patientName:w.patientName,workType:w.workType})}>Entrega (código)</Button><Button size="small" startIcon={<PrintIcon/>} onClick={()=>printLabWorkOrder(w)}>Imprimir OS</Button><Button size="small" startIcon={<HistoryIcon/>} onClick={()=>setHistoryWork(w)}>Histórico</Button><Button size="small" color="error" onClick={()=>removeWork(w)}>Excluir</Button></Box>
       </Box>})}
     </Paper>
+
+    <Dialog open={queueOpen} onClose={()=>setQueueOpen(false)} maxWidth="lg" fullWidth>
+      <DialogTitle sx={{fontWeight:800}}>Fila do laboratório — resumo</DialogTitle>
+      <DialogContent dividers>
+        {labQueue([...works]).length===0?<Typography color="text.secondary">Nenhum trabalho em andamento.</Typography>:<Box sx={{overflowX:"auto"}}><table style={{borderCollapse:"collapse",width:"100%",fontSize:14}}><thead><tr>{["Entrega","Paciente","Dentista","O que fazer","Status"].map(h=><th key={h} style={{textAlign:"left",padding:"6px 8px",borderBottom:"2px solid #ccc"}}>{h}</th>)}</tr></thead><tbody>{labQueue([...works]).map(w=>{const late=daysUntil(w.dueDateISO)<0;return <tr key={w.id}><td style={{padding:"6px 8px",borderBottom:"1px solid #e5e5e5",fontWeight:800,color:late?"#c62828":undefined,whiteSpace:"nowrap"}}>{formatDate(w.dueDateISO)}{late?" (atrasado)":""}</td><td style={{padding:"6px 8px",borderBottom:"1px solid #e5e5e5"}}>{w.patientName}</td><td style={{padding:"6px 8px",borderBottom:"1px solid #e5e5e5"}}>{w.dentistName}</td><td style={{padding:"6px 8px",borderBottom:"1px solid #e5e5e5"}}>{whatToDo(w)}{w.nextAction?<div style={{fontSize:12,color:"#666"}}>Próxima ação: {w.nextAction}</div>:null}</td><td style={{padding:"6px 8px",borderBottom:"1px solid #e5e5e5"}}>{w.status}</td></tr>})}</tbody></table></Box>}
+      </DialogContent>
+      <DialogActions sx={{px:3,py:2}}><Button startIcon={<PrintIcon/>} variant="contained" onClick={()=>printLabQueue(works)}>Imprimir fila</Button><Button onClick={()=>setQueueOpen(false)}>Fechar</Button></DialogActions>
+    </Dialog>
 
     <LabDeliveryDialog work={deliveryWork} onClose={()=>setDeliveryWork(null)} onDelivered={id=>{updateLaboratoryWork(id,{status:"Entregue"});void cancelLabNotifications(String(id)).catch(()=>undefined)}}/>
 
