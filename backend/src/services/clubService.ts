@@ -305,7 +305,8 @@ export async function computeMonth(clinicId: string, tenantId: string, month: st
   const bonus = goalHit && delinquencyOk ? round2(subtotal * config.delinquencyBonusPct / 100) : 0
   const total = round2(subtotal + bonus)
   const team = await teamUsers(clinicId)
-  const split = config.splitCount > 0 ? config.splitCount : team.length
+  // Caixa da Equipe e dos funcionarios: sem configuracao, divide entre os usuarios ativos que nao sao ADMIN (dono).
+  const split = config.splitCount > 0 ? config.splitCount : team.filter((u) => u.role !== 'ADMIN').length
   const perPerson = split > 0 ? round2(total / split) : 0
 
   // Ranking do melhor vendedor: contratos pagos; desempate pelo valor de tratamentos da campanha.
@@ -502,6 +503,9 @@ export function weekKey(dateISO = todayBR()) {
   return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`
 }
 
+// Funcionarios avaliaveis por colegas (o dono/ADMIN fica de fora).
+const peerPool = (team: Array<{ id: string; role: string }>) => team.filter((u) => u.role !== 'ADMIN').map((u) => u.id)
+
 // Colegas sorteados da semana para cada pessoa (sorteio fixo por semana, sem banco).
 function peersFor(userId: string, team: string[], week: string, count: number) {
   const others = team.filter((id) => id !== userId)
@@ -513,7 +517,7 @@ export async function myWeek(clinicId: string, tenantId: string, userId: string)
   const { config } = await getSettings(clinicId, tenantId)
   const week = weekKey()
   const team = await teamUsers(clinicId)
-  const peers = peersFor(userId, team.map((u) => u.id), week, config.peersPerWeek)
+  const peers = peersFor(userId, peerPool(team), week, config.peersPerWeek)
   const done = await prisma.teamEvaluation.findMany({ where: { clinicId, weekKey: week, evaluatorUserId: userId }, select: { evaluatedUserId: true } })
   const doneSet = new Set(done.map((d) => d.evaluatedUserId))
   const uName = new Map(team.map((u) => [u.id, fullName(u)]))
@@ -532,7 +536,7 @@ export async function submitTeamEvaluation(clinicId: string, tenantId: string, u
   const kind = body.kind === 'PEER' ? 'PEER' : 'SELF'
   const team = await teamUsers(clinicId)
   const evaluated = kind === 'SELF' ? userId : String(body.evaluatedUserId || '')
-  if (kind === 'PEER' && !peersFor(userId, team.map((u) => u.id), week, config.peersPerWeek).includes(evaluated)) throw new Error('Este colega não está na sua lista desta semana.')
+  if (kind === 'PEER' && !peersFor(userId, peerPool(team), week, config.peersPerWeek).includes(evaluated)) throw new Error('Este colega não está na sua lista desta semana.')
   const answers: Record<string, string> = {}
   for (const q of TEAM_QUESTIONS) {
     const a = String(body.answers?.[q.id] || '').toUpperCase()
