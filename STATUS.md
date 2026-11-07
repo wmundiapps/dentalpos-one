@@ -71,7 +71,7 @@ Ver `HANDOFF-DentalPos-One.md`, entregue separadamente e **nunca commitado neste
 - Documentos Clínicos impressos passam a sair com o timbre da clínica.
 - Texto do contrato é modelo base: precisa da revisão da Dra. Roberta antes de uso com pacientes.
 
-### 19. Clube da clínica (campanha da equipe, cashback e avaliações) — status: EM REVISÃO (PR claude/clube-campanha-equipe, 07/11/2026)
+### 19. Clube da clínica (campanha da equipe, cashback e avaliações) — status: **CONCLUÍDA** (PR #236 mesclado e SQL rodado em 07/11/2026)
 - Tela `/clube` (menu Recepção): painel da meta só em números (contratos X de 30, % da meta de vendas, inadimplência dentro/acima), formulário de venda (paciente, tipo, valor pago, captação, quem participou, responsável), cashback, avaliação semanal da equipe; para o gestor (`settings.edit`): relatório com valores, Caixa da Equipe, avaliações e configurações.
 - Origem do paciente na ficha (`PatientOriginCard`): só "Campanha dos funcionários" entra na comissão de tratamentos; contrato de manutenção vendido pela equipe sempre conta; adesão e mensalidades nunca entram na meta. Origem registrada só muda pelo gestor.
 - Premiação: meta batida = 1ª parcela + R$ 100 por R$ 10 mil + 20% se inadimplência < 10%; sem meta = 1ª parcela + R$ 99 por R$ 10 mil. Tudo configurável em Configurações do Clube. Só pagamento confirmado (`finance.edit`) conta.
