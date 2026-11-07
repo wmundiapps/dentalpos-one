@@ -70,3 +70,11 @@ Ver `HANDOFF-DentalPos-One.md`, entregue separadamente e **nunca commitado neste
 - Identidade da clínica sai do localStorage e vai para o cadastro `Clinic` (logo, cor, contatos) via `PUT /settings/clinic`; extras em `ClinicBrandKit` (SQL `backend/prisma/manual-migrations/20261023_kit_clinica.sql`, rodar antes de mesclar).
 - Documentos Clínicos impressos passam a sair com o timbre da clínica.
 - Texto do contrato é modelo base: precisa da revisão da Dra. Roberta antes de uso com pacientes.
+
+### 19. Clube da clínica (campanha da equipe, cashback e avaliações) — status: EM REVISÃO (PR claude/clube-campanha-equipe, 07/11/2026)
+- Tela `/clube` (menu Recepção): painel da meta só em números (contratos X de 30, % da meta de vendas, inadimplência dentro/acima), formulário de venda (paciente, tipo, valor pago, captação, quem participou, responsável), cashback, avaliação semanal da equipe; para o gestor (`settings.edit`): relatório com valores, Caixa da Equipe, avaliações e configurações.
+- Origem do paciente na ficha (`PatientOriginCard`): só "Campanha dos funcionários" entra na comissão de tratamentos; contrato de manutenção vendido pela equipe sempre conta; adesão e mensalidades nunca entram na meta. Origem registrada só muda pelo gestor.
+- Premiação: meta batida = 1ª parcela + R$ 100 por R$ 10 mil + 20% se inadimplência < 10%; sem meta = 1ª parcela + R$ 99 por R$ 10 mil. Tudo configurável em Configurações do Clube. Só pagamento confirmado (`finance.edit`) conta.
+- Cashback: % configurável (padrão 5%) sobre tratamento pago de participante, validade 6 meses, uso só na clínica; transferência de 1 pessoa para 1 pessoa, exceto pais e filhos (podem juntar).
+- Avaliação da equipe: toda semana, autoavaliação + 2 colegas sorteados, SIM/NÃO + nota 1–5 + comentário; vai só para o e-mail do gestor. Avaliação do paciente: link público `/avaliar/<token>`, anônima ou identificada; nota 1–2 avisa o gestor.
+- SQL: `backend/prisma/manual-migrations/20261114_clube_campanha_equipe.sql` (só cria tabelas, RLS ligado). Rodar antes de mesclar.

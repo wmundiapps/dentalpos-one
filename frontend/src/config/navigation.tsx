@@ -81,6 +81,7 @@ export const navigationGroups:NavigationGroup[] = [
       item("Chegada por rosto","/chegada-por-rosto",<FaceRetouchingNaturalIcon/>),
       item("Equipe","/equipe",<GroupsIcon/>),
       item("Avaliação do Atendimento","/avaliacoes-atendimento",<RateReviewIcon/>),
+      item("Clube da clínica","/clube",<MonetizationOnIcon/>),
       item("Painel de Atendimentos","/painel-atendimentos",<GroupsIcon/>),
       item("Pacientes","/pacientes",<PeopleAltIcon/>),
       item("Jornada do Paciente","/jornada-paciente",<HubIcon/>),

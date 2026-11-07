@@ -28,6 +28,7 @@ import TreatmentPlanning from "./TreatmentPlanning";
 import ClinicalFiles from "./ClinicalFiles";
 import ClinicalDocuments from "./ClinicalDocuments";
 import { loadBackendPatient, type BackendPatient } from "../services/PatientApi";
+import PatientOriginCard from "../components/PatientOriginCard";
 import { loadBackendAppointments, type BackendAppointment } from "../services/AppointmentApi";
 import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadClinicalRecord } from "../services/ClinicalAnamnesisApi";
@@ -217,6 +218,7 @@ export default function PatientFile() {
     <Box>
       <PatientAlertBanner patientId={patient.id} />
       <PatientHeader patient={patient} alerts={alerts} />
+      <PatientOriginCard patientId={patient.id} />
       <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
         <Typography variant="body2" color="text.secondary">
           {(() => {

@@ -6,6 +6,7 @@ const Academic = lazy(() => import("../pages/Academic"));
 const FacialReception = lazy(() => import("../pages/FacialReception"));
 const StockPartners = lazy(() => import("../pages/StockPartners"));
 const DailyCash = lazy(() => import("../pages/DailyCash"));
+const Club = lazy(() => import("../pages/Club"));
 const CondoSplit = lazy(() => import("../pages/CondoSplit"));
 const Accounting = lazy(() => import("../pages/Accounting"));
 const Agenda = lazy(() => import("../pages/Agenda"));
@@ -221,6 +222,7 @@ export default function AppRoutes() {
 
       <Route path="/chegada-por-rosto" element={<FacialReception />} />
       <Route path="/fechamento-caixa" element={<DailyCash />} />
+      <Route path="/clube" element={<Club />} />
       <Route path="/rateio-condominio" element={<CondoSplit />} />
 
       <Route
