@@ -392,7 +392,7 @@ function SettingsTab() {
           {n("bandValueMiss", "Valor por faixa sem meta (R$)")}
           {n("delinquencyLimitPct", "Inadimplência máxima para o bônus (%)")}
           {n("delinquencyBonusPct", "Bônus de inadimplência (%)")}
-          {n("splitCount", "Dividir entre quantas pessoas", "0 = todos os usuários ativos")}
+          {n("splitCount", "Dividir entre quantas pessoas", "0 = todos os usuários ativos, menos o administrador")}
           <TextField size="small" label="Prêmio do melhor vendedor" value={c.bestSellerPrize} onChange={(e) => setC({ ...c, bestSellerPrize: e.target.value })} />
         </Box>
       </Section>
