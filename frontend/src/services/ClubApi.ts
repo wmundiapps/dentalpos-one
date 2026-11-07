@@ -1,6 +1,6 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-function headers(json = false) {
+function headers(json = false): Record<string, string> {
   const token = localStorage.getItem("dentalpos.token") || "";
   const clinicId = localStorage.getItem("dentalpos.clinicId") || "";
   return { Authorization: `Bearer ${token}`, ...(clinicId ? { "X-Clinic-ID": clinicId } : {}), ...(json ? { "Content-Type": "application/json" } : {}) };
@@ -8,7 +8,7 @@ function headers(json = false) {
 
 async function call<T>(path: string, init: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<T> {
   const json = init.body !== undefined;
-  const h = init.auth === false ? (json ? { "Content-Type": "application/json" } : {}) : headers(json);
+  const h: Record<string, string> = init.auth === false ? (json ? { "Content-Type": "application/json" } : {}) : headers(json);
   const r = await fetch(`${API}${path}`, { method: init.method || "GET", headers: h, body: json ? JSON.stringify(init.body) : undefined });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d?.error || `Erro ${r.status}`);

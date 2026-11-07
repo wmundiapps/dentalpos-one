@@ -114,7 +114,7 @@ function SaleTab({ opts, patients, month }: { opts: ClubOptions; patients: Backe
             {Object.entries(opts.kinds).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
           </TextField>
           <TextField size="small" label="Valor pago pelo paciente (R$)" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} inputMode="decimal" />
-          <TextField size="small" type="date" label="Data" InputLabelProps={{ shrink: true }} value={f.saleDate} onChange={(e) => setF({ ...f, saleDate: e.target.value })} />
+          <TextField size="small" type="date" label="Data" slotProps={{ inputLabel: { shrink: true } }} value={f.saleDate} onChange={(e) => setF({ ...f, saleDate: e.target.value })} />
           <TextField select size="small" label="Mecanismo de captação" value={f.captureChannel} onChange={(e) => setF({ ...f, captureChannel: e.target.value })}>
             {Object.entries(opts.channels).map(([k, v]) => <MenuItem key={k} value={k}>{v}</MenuItem>)}
           </TextField>
@@ -433,7 +433,7 @@ export default function Club() {
             <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ flex: 1 }}>
               {tabs.map(([k, l]) => <Tab key={k} value={k} label={l} />)}
             </Tabs>
-            {["painel", "venda", "relatorio", "resultados"].includes(tab) && <TextField size="small" type="month" label="Mês" InputLabelProps={{ shrink: true }} value={month} onChange={(e) => setMonth(e.target.value || currentMonth())} />}
+            {["painel", "venda", "relatorio", "resultados"].includes(tab) && <TextField size="small" type="month" label="Mês" slotProps={{ inputLabel: { shrink: true } }} value={month} onChange={(e) => setMonth(e.target.value || currentMonth())} />}
           </Box>
           {tab === "painel" && <PanelTab month={month} />}
           {tab === "venda" && <SaleTab opts={opts} patients={patients} month={month} />}
