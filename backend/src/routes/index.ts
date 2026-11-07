@@ -38,6 +38,7 @@ import * as subscriptionController from '../controllers/subscriptionController'
 import * as finderController from '../controllers/finderController'
 import * as marketingController from '../controllers/marketingController'
 import * as dueRemindersController from '../controllers/dueRemindersController'
+import * as clubController from '../controllers/clubController'
 import * as managerResetController from '../controllers/managerResetController'
 import * as platformFeedbackController from '../controllers/platformFeedbackController'
 import * as accessController from '../controllers/accessController'
@@ -133,6 +134,9 @@ router.use(prospectPublicRouter)
 router.post('/revah-bridge/webhook/:clinicId', revahBridgeController.webhook)
 
 // PONTO DO POLO (celular do polo: PIN do aparelho + CPF + rosto, só dentro do raio do polo)
+// Avaliacao do paciente pelo link publico da clinica (Clube).
+router.get('/public/avaliacao/:token', clubController.publicSurvey)
+router.post('/public/avaliacao/:token', clubController.publicSurveySubmit)
 router.get('/public/ponto/:slug', hrTime.poloInfo)
 router.post('/public/ponto/:slug/unlock', hrTime.poloUnlock)
 router.post('/public/ponto/:slug/cpf-check', poloAuth, hrTime.poloCpfCheck)
@@ -194,6 +198,27 @@ router.delete('/team-member/:id', requirePermission('agenda.edit'), teamControll
 router.get('/pending-alerts', requirePermission('dashboard.view'), pendingAlertController.show)
 router.get('/manager/access', managerResetController.access)
 router.post('/manager/reset-link', managerResetController.link)
+// Clube da clinica: campanha da equipe, cashback e avaliacoes. Valores em reais so para o gestor (settings.edit).
+router.get('/club/options', requirePermission('dashboard.view'), clubController.options)
+router.get('/club/panel', requirePermission('dashboard.view'), clubController.panel)
+router.get('/club/report', requirePermission('settings.edit'), clubController.report)
+router.get('/club/settings', requirePermission('settings.edit'), clubController.getSettings)
+router.put('/club/settings', requirePermission('settings.edit'), clubController.saveSettings)
+router.get('/club/origin/:patientId', requirePermission('patients.view'), clubController.getOrigin)
+router.put('/club/origin/:patientId', requirePermission('patients.edit'), clubController.setOrigin)
+router.get('/club/sales', requirePermission('dashboard.view'), clubController.listSales)
+router.post('/club/sales', requirePermission('patients.view'), clubController.createSale)
+router.post('/club/sales/:id/confirm', requirePermission('finance.edit'), clubController.confirmSale)
+router.post('/club/sales/:id/cancel', requirePermission('settings.edit'), clubController.cancelSale)
+router.get('/club/cashback/members', requirePermission('patients.view'), clubController.members)
+router.post('/club/cashback/members', requirePermission('patients.edit'), clubController.addMember)
+router.get('/club/cashback/:patientId', requirePermission('patients.view'), clubController.statement)
+router.post('/club/cashback/use', requirePermission('finance.edit'), clubController.useCashback)
+router.post('/club/cashback/transfer', requirePermission('patients.edit'), clubController.transfer)
+router.get('/club/evaluation/week', requirePermission('dashboard.view'), clubController.myWeek)
+router.post('/club/evaluation', requirePermission('dashboard.view'), clubController.submitEvaluation)
+router.get('/club/evaluation/results', requirePermission('settings.edit'), clubController.evaluations)
+router.get('/club/surveys', requirePermission('settings.edit'), clubController.surveys)
 router.get('/due-reminders', requirePermission('dashboard.view'), dueRemindersController.overview)
 router.get('/due-reminders/settings', requirePermission('settings.view'), dueRemindersController.settings)
 router.put('/due-reminders/settings', requirePermission('settings.edit'), dueRemindersController.saveSettingsHandler)

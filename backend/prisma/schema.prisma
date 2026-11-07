@@ -3162,3 +3162,137 @@ model DueReminderLog {
 
   @@index([clinicId, sentAt])
 }
+
+// ---------------- Clube da clinica (SQL: manual-migrations/20261114_clube_campanha_equipe.sql) ----------------
+
+// Configuracao da campanha da equipe por clinica: meta, premiacao, cashback, e-mails do gestor.
+model ClubSettings {
+  id          String   @id
+  clinicId    String   @unique
+  tenantId    String
+  data        Json     @default("{}")
+  surveyToken String   @unique
+  updatedAt   DateTime @default(now()) @db.Timestamp(3)
+}
+
+// Origem do paciente: so "CAMPANHA_FUNCIONARIOS" entra na comissao de tratamentos.
+model PatientOrigin {
+  id          String   @id
+  clinicId    String
+  tenantId    String
+  patientId   String   @unique
+  origin      String
+  detail      String?
+  setByUserId String?
+  createdAt   DateTime @default(now()) @db.Timestamp(3)
+  updatedAt   DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, origin])
+}
+
+// Vendas e pagamentos do Clube. kind: MANUTENCAO | MENSALIDADE | ADESAO | TRATAMENTO.
+model ClubSale {
+  id                 String    @id
+  clinicId           String
+  tenantId           String
+  patientId          String
+  kind               String
+  amount             Float
+  saleDate           DateTime  @db.Date
+  captureChannel     String
+  sellerIds          String[]  @default([])
+  mainSellerId       String?
+  notes              String?
+  paymentConfirmed   Boolean   @default(false)
+  paymentConfirmedAt DateTime? @db.Timestamp(3)
+  paymentConfirmedBy String?
+  cancelledAt        DateTime? @db.Timestamp(3)
+  createdBy          String
+  createdAt          DateTime  @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, saleDate])
+  @@index([clinicId, patientId])
+}
+
+// Participante do cashback (Cashbacksmart da clinica).
+model CashbackMember {
+  id        String    @id
+  clinicId  String
+  tenantId  String
+  patientId String    @unique
+  consentAt DateTime  @db.Timestamp(3)
+  freeUntil DateTime? @db.Date
+  active    Boolean   @default(true)
+  createdBy String
+  createdAt DateTime  @default(now()) @db.Timestamp(3)
+}
+
+// Lote de cashback com saldo e validade (6 meses por padrao).
+model CashbackLot {
+  id            String   @id
+  clinicId      String
+  tenantId      String
+  patientId     String
+  origin        String
+  amount        Float
+  remaining     Float
+  expiresAt     DateTime @db.Date
+  saleId        String?
+  fromPatientId String?
+  createdAt     DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, patientId, expiresAt])
+}
+
+// Extrato de cashback. kind: CREDITO | USO | TRANSFERENCIA_ENVIADA | TRANSFERENCIA_RECEBIDA.
+model CashbackMove {
+  id                   String   @id
+  clinicId             String
+  tenantId             String
+  patientId            String
+  kind                 String
+  amount               Float
+  counterpartPatientId String?
+  relation             String?
+  saleId               String?
+  note                 String?
+  createdBy            String
+  createdAt            DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, patientId])
+}
+
+// Avaliacao semanal da equipe (SELF ou PEER). So o gestor le.
+model TeamEvaluation {
+  id              String   @id
+  clinicId        String
+  tenantId        String
+  weekKey         String
+  kind            String
+  evaluatorUserId String
+  evaluatedUserId String
+  answers         Json
+  score           Int
+  comment         String?
+  createdAt       DateTime @default(now()) @db.Timestamp(3)
+
+  @@unique([clinicId, weekKey, evaluatorUserId, evaluatedUserId])
+  @@index([clinicId, weekKey])
+}
+
+// Avaliacao do paciente pelo link publico (anonima ou identificada).
+model PatientSurvey {
+  id             String   @id
+  clinicId       String
+  tenantId       String
+  anonymous      Boolean  @default(true)
+  name           String?
+  phone          String?
+  answers        Json
+  recommend      Int
+  highlightStaff String?
+  comment        String?
+  createdAt      DateTime @default(now()) @db.Timestamp(3)
+
+  @@index([clinicId, createdAt])
+}

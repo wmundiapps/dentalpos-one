@@ -11,6 +11,7 @@ import Privacy from "./pages/Privacy";
 import PasswordReset from "./pages/PasswordReset";
 import EmployeePortal from "./pages/EmployeePortal";
 import PoloPunch from "./pages/PoloPunch";
+import PatientSurveyPublic from "./pages/PatientSurveyPublic";
 import {
   clearClientSession,
   demoSalesUrl,
@@ -92,8 +93,12 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/cadastro" && appPath !== "/profissionais" && appPath !== "/falar" && appPath !== "/privacidade" && appPath !== "/redefinir-senha" && appPath !== "/colaborador" && !appPath.startsWith("/ponto/")) void validateSession();
+    if (appPath !== "/agendamento-online" && appPath !== "/demo" && appPath !== "/experience" && appPath !== "/cadastro" && appPath !== "/profissionais" && appPath !== "/falar" && appPath !== "/privacidade" && appPath !== "/redefinir-senha" && appPath !== "/colaborador" && !appPath.startsWith("/ponto/") && !appPath.startsWith("/avaliar/")) void validateSession();
   }, [appPath]);
+
+  if (appPath.startsWith("/avaliar/")) {
+    return <PatientSurveyPublic token={decodeURIComponent(appPath.slice("/avaliar/".length))} />;
+  }
 
   if (appPath.startsWith("/ponto/")) {
     return <PoloPunch slug={decodeURIComponent(appPath.slice("/ponto/".length)).toLowerCase()} />;
