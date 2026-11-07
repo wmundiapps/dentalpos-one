@@ -10,7 +10,7 @@ Produção em lote **1 vez por semana (segunda, 2 horas)**; o resto é agendado.
 | Qua | Stories: bastidores | Card `sites` | | | Post `sites` |
 | Qui | Reels (roteiro 1) | | Roteiro "Bastidores" | Post `marca` | Post `marca` |
 | Sex | Card `sites` | Card `marca` | | | Post `sites` |
-| **Sem. 2: redes sociais** | | | | | |
+| **Sem. 2: automação de redes sociais** | | | | | |
 | Seg | Card `redes` | Card `redes` | Roteiro "Presença digital" | Post `redes` | Post `redes` |
 | Ter | Stories: enquete "qual rede?" | | | | Post `redes` |
 | Qua | Card `redes` | Card `redes` | Roteiro "3 erros" | Post `redes` | Post `redes` |

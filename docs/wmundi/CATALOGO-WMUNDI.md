@@ -15,7 +15,7 @@ Profissionais autônomos · Clínicas e consultórios · Laboratórios · Empres
 
 ## 2. Marketing digital para empresas
 - ✅ REVAH (marketing e vendas): captação, funil, campanhas, convite por e-mail agendado.
-- Gestão de redes sociais e conteúdo feita por agentes, com aprovação humana.
+- Automação de redes sociais para o cliente gerenciar as próprias contas: agendamento, conteúdo criado por IA com aprovação, respostas supervisionadas e relatórios. A WMundi não administra as contas dos clientes.
 - Google Ads e Meta Ads gerenciados (modelos em `marketing/`).
 - Sites e landing pages, SEO, blog automático.
 - E-mail marketing, WhatsApp marketing (respeitando LGPD e regras das plataformas).

@@ -37,9 +37,9 @@ const TEMAS = {
     arte: 'site',
   },
   redes: {
-    olho: 'Gestão de redes sociais',
-    titulo: 'Presença digital que <em>gera resultado</em>.',
-    sub: 'Planejamento, conteúdo e anúncios, com relatórios claros.',
+    olho: 'Automação de redes sociais',
+    titulo: 'Automação para as suas <em>redes sociais</em>.',
+    sub: 'Agende, crie com IA e responda com supervisão. As suas contas, sob o seu controle.',
     arte: 'redes',
   },
   agentes: {

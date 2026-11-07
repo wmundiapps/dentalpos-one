@@ -4,7 +4,7 @@
 
 ## 1. Dois caminhos de venda
 **A. Compra direta (produto com preço fixo)**: vitrine → "Contratar agora" → pagamento → boas-vindas → liberação. Nenhuma pessoa participa.
-**B. Proposta (sites, apps, agentes sob medida, redes sociais)**: formulário → resposta automática → conversa curta → proposta com link de pagamento → pagamento → onboarding. A pessoa só entra na conversa e na proposta.
+**B. Proposta (sites, apps, agentes sob medida, automação de redes sociais)**: formulário → resposta automática → conversa curta → proposta com link de pagamento → pagamento → onboarding. A pessoa só entra na conversa e na proposta.
 
 ## 2. Fluxo A em detalhe (o que já existe e o que falta)
 | Etapa | Como funciona | Status |

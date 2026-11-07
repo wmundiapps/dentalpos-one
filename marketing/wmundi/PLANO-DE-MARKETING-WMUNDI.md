@@ -7,7 +7,7 @@ Tom da marca: sofisticado, polido, prosperidade e exclusividade, **sem promessa 
 | Ordem | Oferta | Por quê | Como vende |
 |---|---|---|---|
 | 1 | **Sites e soluções personalizadas** | Demanda constante, entrega controlada, proposta rápida | Google Ads + Google Meu Negócio + landing `/proposta/` |
-| 2 | **Gestão de redes sociais** (Instagram, Facebook, Google, TikTok, LinkedIn, X) | Receita recorrente; a própria WMundi é a vitrine | Conteúdo orgânico + LinkedIn + indicação |
+| 2 | **Automação de redes sociais** (Instagram, Facebook, Google, TikTok, LinkedIn, X): agendamento, conteúdo por IA com aprovação, respostas supervisionadas e relatórios. **A WMundi não administra as contas dos clientes** | Escalável e sem equipe: o cliente opera, a automação trabalha | Conteúdo orgânico + LinkedIn + indicação |
 | 3 | **Agentes de IA** (5 prontos + sob medida) | Diferencial e margem; roda nos nossos aplicativos | Vitrine `/agentes/` + ícone "Peça o seu agente" |
 | 4 | **Aplicativos** (iPhone, iPad e Android) | Ticket maior, ciclo mais longo | Proposta consultiva; cards de apps |
 | 5 | **Portfólio de 30 soluções** (Completodonto, REVAH, SpaceHour, etc.) | Venda direta por produto quando houver preço e link de pagamento | `/produtos/` com `precos.json` |

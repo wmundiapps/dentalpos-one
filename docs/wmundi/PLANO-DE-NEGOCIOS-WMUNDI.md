@@ -69,7 +69,7 @@ Princípio: **toda tarefa repetível vira um agente; toda pessoa supervisiona ag
 1. **Assinaturas SaaS** (DentalPos e novos sistemas) — base recorrente.
 2. **Agentes de IA por assinatura** — "contrate um funcionário-robô": atendimento, vendas, cobrança de atraso, agenda. Preço por agente/mês + volume.
 3. **Apps sob encomenda** (projeto + manutenção mensal).
-4. **Marketing gerenciado por robôs** (pacotes mensais, via REVAH).
+4. **Automação de marketing e de redes sociais** (fluxos configurados pela WMundi; o cliente opera as próprias contas; via REVAH).
 5. **Educação** (My Students, cursos, certificados, acadêmicos pós-formatura).
 6. **Marketplace e parceiros** — revendas, integradores, comissão sobre vendas de terceiros (caminho TOTVS).
 7. **API e white-label** — outras empresas usam a plataforma de agentes com a própria marca.

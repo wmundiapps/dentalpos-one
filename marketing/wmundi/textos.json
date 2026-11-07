@@ -1,17 +1,17 @@
 {
   "bios": {
-    "Instagram": "Tecnologia que faz o seu negócio prosperar. Sites, aplicativos, IA e redes sociais. Maringá-PR. Peça a sua proposta no link.",
-    "Facebook (descrição curta)": "Sites, aplicativos, agentes de IA e gestão de redes sociais para negócios que querem prosperar. Maringá-PR.",
+    "Instagram": "Tecnologia que faz o seu negócio prosperar. Sites, aplicativos, IA e automação de redes sociais. Maringá-PR. Peça a sua proposta.",
+    "Facebook (descrição curta)": "Sites, aplicativos, agentes de IA e automação de redes sociais para negócios que querem prosperar. Maringá-PR.",
     "TikTok": "Sites, apps e IA para o seu negócio prosperar. Maringá-PR.",
     "LinkedIn (slogan)": "Sites, aplicativos e agentes de IA para negócios que querem crescer. Maringá-PR.",
-    "X": "Sites, aplicativos, agentes de IA e gestão de redes sociais para o seu negócio prosperar. Maringá-PR. Peça a sua proposta."
+    "X": "Sites, aplicativos, agentes de IA e automação de redes sociais para o seu negócio prosperar. Maringá-PR. Peça a sua proposta."
   },
-  "sobre": "A WMundi desenvolve sites, aplicativos e sistemas sob medida, gerencia redes sociais e cria agentes de inteligência artificial que atendem, agendam e cobram com supervisão humana. Nossa equipe, em Maringá-PR, cuida de todo o desenvolvimento e acompanha cada cliente do primeiro esboço à operação. Mantemos contas ativas na App Store (Apple) e no Google Play para publicar aplicativos para iPhone, iPad e Android. Peça a sua proposta em wmundi.com.",
+  "sobre": "A WMundi desenvolve sites, aplicativos e sistemas sob medida, cria automações para redes sociais e agentes de inteligência artificial que atendem, agendam e cobram com supervisão humana. Nossa equipe, em Maringá-PR, cuida de todo o desenvolvimento e acompanha cada cliente do primeiro esboço à operação. Mantemos contas ativas na App Store (Apple) e no Google Play para publicar aplicativos para iPhone, iPad e Android. Peça a sua proposta em wmundi.com.",
   "temas": [
     {
       "id": "marca",
       "titulo": "Tecnologia que trabalha para o seu negócio prosperar",
-      "texto": "Todo negócio ambicioso precisa de tecnologia à altura. Na WMundi, unimos sites, aplicativos, agentes de inteligência artificial e gestão de redes sociais em uma única equipe, para que a sua empresa cresça com organização e elegância.\n\nConheça as soluções e peça a sua proposta: wmundi.com",
+      "texto": "Todo negócio ambicioso precisa de tecnologia à altura. Na WMundi, unimos sites, aplicativos, agentes de inteligência artificial e automação de redes sociais em uma única equipe, para que a sua empresa cresça com organização e elegância.\n\nConheça as soluções e peça a sua proposta: wmundi.com",
       "hashtags": [
         "#WMundi",
         "#TransformacaoDigital",
@@ -36,13 +36,13 @@
     },
     {
       "id": "redes",
-      "titulo": "Presença digital que gera resultado",
-      "texto": "Instagram, Facebook, Google, TikTok, LinkedIn e X: cuidamos da estratégia, do conteúdo e dos anúncios, com relatórios claros para você acompanhar cada resultado. Sua marca presente onde o seu público está, com consistência e sofisticação.\n\nPeça a sua proposta: wmundi.com",
+      "titulo": "Automação para as suas redes sociais",
+      "texto": "Instagram, Facebook, Google, TikTok, LinkedIn e X: automatize publicações, crie conteúdo com inteligência artificial e responda com supervisão, enquanto as suas contas continuam sob o seu controle. Mais eficiência na gestão das suas redes, com a elegância que a sua marca merece.\n\nPeça a sua proposta: wmundi.com",
       "hashtags": [
-        "#GestaoDeRedesSociais",
+        "#AutomacaoDeMarketing",
+        "#RedesSociais",
+        "#InteligenciaArtificial",
         "#MarketingDigital",
-        "#SocialMedia",
-        "#TrafegoPago",
         "#WMundi",
         "#Marca"
       ]
@@ -75,16 +75,16 @@
     }
   ],
   "x": {
-    "marca": "Tecnologia que trabalha para o seu negócio prosperar: sites, aplicativos, agentes de IA e redes sociais em uma só equipe. Peça a sua proposta em wmundi.com",
+    "marca": "Tecnologia que trabalha para o seu negócio prosperar: sites, aplicativos, agentes de IA e automação de redes em uma só equipe. Peça a sua proposta em wmundi.com",
     "sites": "O seu site é a sala de visitas do seu negócio. Criamos sites, lojas virtuais e landing pages sob medida, em Maringá-PR. Peça a sua proposta: wmundi.com",
-    "redes": "Instagram, Facebook, Google, TikTok, LinkedIn e X: estratégia, conteúdo e anúncios com relatórios claros. Peça a sua proposta: wmundi.com",
+    "redes": "Automatize as suas redes: publicações agendadas, conteúdo com IA e respostas supervisionadas. Contas sob o seu controle. Peça a sua proposta: wmundi.com",
     "agentes": "Agentes de IA que atendem, agendam e cobram com educação, sempre com supervisão humana. Conheça: wmundi.com/agentes",
     "apps": "Do esboço à loja: aplicativos para iPhone, iPad e Android, com manutenção e suporte contínuos. Peça a sua proposta: wmundi.com"
   },
   "roteiros": [
     {
       "titulo": "Antes e depois da presença digital (sem prometer resultado)",
-      "roteiro": "0–3s: \"O seu negócio aparece quando o cliente procura?\" | 3–10s: mostrar busca no Google e perfil abandonado | 10–20s: o que fazemos (site, Google Meu Negócio, redes) | 20–25s: \"Peça a sua proposta em wmundi.com\"."
+      "roteiro": "0–3s: \"O seu negócio aparece quando o cliente procura?\" | 3–10s: mostrar busca no Google e perfil abandonado | 10–20s: o que fazemos (site, Google Meu Negócio, automação das redes) | 20–25s: \"Peça a sua proposta em wmundi.com\"."
     },
     {
       "titulo": "Um dia dos agentes de IA",
@@ -175,39 +175,39 @@
         "Aplicativos com agentes de IA integrados para atender e fidelizar clientes."
       ]
     },
-    "Gestão de redes sociais": {
+    "Automação de redes sociais": {
       "palavras": [
-        "gestão de redes sociais",
-        "agência de marketing digital",
-        "gestão de instagram",
-        "social media",
-        "tráfego pago",
-        "marketing digital para empresas",
-        "gerenciamento de redes sociais",
-        "agência de social media"
+        "automação de redes sociais",
+        "automação de instagram",
+        "agendar posts instagram",
+        "programar posts redes sociais",
+        "automação de marketing digital",
+        "responder comentários automaticamente",
+        "criar conteúdo com ia para redes sociais",
+        "ferramenta de automação de marketing"
       ],
       "titulos": [
-        "Gestão de Redes Sociais",
+        "Automação de Redes Sociais",
+        "Agende Posts Automaticamente",
+        "Conteúdo Criado por IA",
+        "Respostas Automáticas Seguras",
         "Instagram, Facebook e TikTok",
-        "LinkedIn e X para Empresas",
-        "Google Meu Negócio Otimizado",
-        "Anúncios no Google e Meta",
-        "Conteúdo com Estratégia",
-        "Relatórios Claros de Resultado",
-        "Marketing Digital Completo",
+        "LinkedIn e X Automatizados",
+        "Relatórios Automáticos",
+        "Você Aprova, a IA Executa",
         "Peça Sua Proposta Hoje",
         "WMundi Marketing Digital",
-        "Presença Digital Consistente",
-        "Equipe e IA Trabalhando Juntas",
-        "Atendimento Rápido nas Redes",
+        "Menos Tarefas Repetitivas",
+        "Suas Contas Sob Seu Controle",
         "Fale com a Nossa Equipe",
+        "Automação Sob Medida",
         "Solicite uma Proposta"
       ],
       "descricoes": [
-        "Estratégia, conteúdo e anúncios para Instagram, Facebook, Google, TikTok, LinkedIn e X.",
-        "Relatórios claros e acompanhamento próximo. Peça a sua proposta.",
-        "Sua marca presente onde o público está, com consistência e sofisticação.",
-        "Atendimento nas redes com apoio de agentes de IA e supervisão humana."
+        "Automatize agendamento, conteúdo e respostas das suas redes. Você mantém o controle.",
+        "Conteúdo criado por IA com a sua aprovação e relatórios automáticos de resultados.",
+        "Automação para Instagram, Facebook, Google, TikTok, LinkedIn e X. Peça a sua proposta.",
+        "Respostas automáticas com supervisão humana e registro de cada ação."
       ]
     },
     "Agentes de IA": {
@@ -269,20 +269,20 @@
     "título curto 1": "Sites, Apps e Agentes de IA",
     "título curto 2": "Tecnologia que Faz Prosperar",
     "título curto 3": "Peça Sua Proposta Hoje",
-    "título longo 1": "Sites, aplicativos, agentes de IA e redes sociais em uma só equipe. Peça a sua proposta.",
+    "título longo 1": "Sites, aplicativos, agentes de IA e automação de redes em uma só equipe. Peça a proposta.",
     "título longo 2": "Tecnologia que trabalha para o seu negócio prosperar. Desenvolvimento em Maringá-PR.",
     "descrição 1": "Sites, lojas virtuais, aplicativos e agentes de IA sob medida. Peça a sua proposta.",
-    "descrição 2": "Gestão de Instagram, Facebook, Google, TikTok, LinkedIn e X com relatórios claros."
+    "descrição 2": "Automação de Instagram, Facebook, Google, TikTok, LinkedIn e X, com você no controle."
   },
   "gmn": {
-    "descricao": "A WMundi cria sites, lojas virtuais e landing pages sob medida, desenvolve aplicativos para iPhone, iPad e Android, gerencia redes sociais e constrói agentes de inteligência artificial para atendimento, agenda, cobrança de atraso e avaliação, sempre com supervisão humana. Todo o desenvolvimento é feito em Maringá-PR, com acompanhamento do primeiro esboço à operação. Mantemos contas ativas na App Store e no Google Play. Peça a sua proposta em wmundi.com.",
+    "descricao": "A WMundi cria sites, lojas virtuais e landing pages sob medida, desenvolve aplicativos para iPhone, iPad e Android, cria automações para redes sociais e constrói agentes de inteligência artificial para atendimento, agenda, cobrança de atraso e avaliação, sempre com supervisão humana. Todo o desenvolvimento é feito em Maringá-PR, com acompanhamento do primeiro esboço à operação. Mantemos contas ativas na App Store e no Google Play. Peça a sua proposta em wmundi.com.",
     "servicos": [
       "Criação de sites",
       "Lojas virtuais",
       "Landing pages",
       "Desenvolvimento de aplicativos",
-      "Gestão de redes sociais",
-      "Anúncios no Google e na Meta",
+      "Automação de redes sociais",
+      "Automação de anúncios e relatórios",
       "Agentes de IA e chatbots",
       "Sistemas personalizados"
     ],
@@ -300,8 +300,8 @@
         "texto": "Do esboço à publicação nas lojas de aplicativos. Conte a sua ideia e receba uma proposta em wmundi.com."
       },
       {
-        "titulo": "Gestão de redes sociais",
-        "texto": "Estratégia, conteúdo e anúncios para Instagram, Facebook, Google, TikTok, LinkedIn e X. Peça a sua proposta em wmundi.com."
+        "titulo": "Automação de redes sociais",
+        "texto": "Automatize publicações, conteúdo e respostas de Instagram, Facebook, Google, TikTok, LinkedIn e X, com as suas contas sob o seu controle. Peça a sua proposta em wmundi.com."
       }
     ],
     "perguntas": [
@@ -314,8 +314,8 @@
         "r": "Pelo site wmundi.com, pelo WhatsApp ou pelo e-mail info@wmundi.com. Retornamos com uma proposta personalizada."
       },
       {
-        "p": "Vocês gerenciam quais redes sociais?",
-        "r": "Instagram, Facebook, Google, TikTok, LinkedIn e X."
+        "p": "Vocês gerenciam as redes sociais dos clientes?",
+        "r": "Não. Criamos automações para que você mesmo gerencie Instagram, Facebook, Google, TikTok, LinkedIn e X com mais eficiência, mantendo as suas contas sob o seu controle."
       }
     ]
   }
