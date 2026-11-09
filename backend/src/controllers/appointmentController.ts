@@ -1,4 +1,5 @@
 import { getHold, holdMessage } from '../services/financialHoldService'
+import { notifyHoldScheduled } from '../services/holdScheduleNotice'
 import { Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
@@ -258,12 +259,15 @@ export async function store(req: AuthRequest, res: Response) {
       return res.status(400).json({ error: 'Não é permitido criar agendamento em data ou horário retroativo.' })
     }
 
-    // Pendência financeira: 1 horário é permitido; o seguinte só depois de regularizar (admin pode liberar com justificativa).
+    // Pendência financeira: 1 horário é permitido com aviso; o seguinte pede regularizar ou "Agendar mesmo assim"
+    // (qualquer usuário da agenda; fica na auditoria e o gestor é avisado por e-mail).
     const hold = await getHold(req.user.clinicId, req.user.tenantId, patient.id).catch(() => null)
+    let overridden = false
     if (hold?.blocked) {
-      const override = req.body?.overrideFinancialHold === true && req.user.role === 'ADMIN' && String(req.body?.overrideReason || '').trim().length >= 5
-      if (!override) return res.status(409).json({ code: 'FINANCIAL_HOLD', error: holdMessage(hold), hold })
-      await writeAudit({ clinicId: req.user.clinicId, tenantId: req.user.tenantId, actorId: req.user.id, module: 'agenda', action: 'FINANCIAL_HOLD_OVERRIDE', entityType: 'Patient', entityId: patient.id, summary: `Agendamento liberado com pendência financeira por administrador: ${String(req.body.overrideReason).trim().slice(0, 200)}` }).catch((e: unknown) => console.error(e))
+      const scheduleAnyway = req.body?.scheduleAnyway === true || (req.body?.overrideFinancialHold === true && req.user.role === 'ADMIN')
+      if (!scheduleAnyway) return res.status(409).json({ code: 'FINANCIAL_HOLD', error: holdMessage(hold), hold, canScheduleAnyway: true })
+      overridden = true
+      await writeAudit({ clinicId: req.user.clinicId, tenantId: req.user.tenantId, actorId: req.user.id, module: 'agenda', action: 'FINANCIAL_HOLD_OVERRIDE', entityType: 'Patient', entityId: patient.id, summary: `Agendamento feito com pendência financeira em aberto ("Agendar mesmo assim")${String(req.body?.overrideReason || '').trim() ? `: ${String(req.body.overrideReason).trim().slice(0, 200)}` : '.'}` }).catch((e: unknown) => console.error(e))
     }
 
     const assistantId = req.body.assistantId ? String(req.body.assistantId) : null
@@ -378,6 +382,13 @@ export async function store(req: AuthRequest, res: Response) {
       ipAddress: req.ip,
       userAgent: req.get('user-agent')
     })
+
+    // Gestor avisado por e-mail: paciente com pendência foi agendado (regularizou ou não). Sem esperar, sem derrubar o agendamento.
+    const stillPending = !!hold?.hasPending
+    const regularizedNow = !stillPending && req.body?.holdWasShown === true
+    if (stillPending || regularizedNow) {
+      void notifyHoldScheduled({ clinicId: req.user.clinicId, tenantId: req.user.tenantId, actorId: req.user.id, patientId: patient.id, doctorId: doctor.id, procedure: String(procedure), scheduledAt: when, regularized: regularizedNow, hold: hold || null, overridden })
+    }
 
     if (evolutionId) await prisma.clinicalEvolution.updateMany({ where: { id: String(evolutionId), clinicId: req.user!.clinicId, patientId: patient.id }, data: { nextAppointmentCreated: true, appointmentId: appointment.id } }).catch(() => undefined)
     const full = await prisma.appointment.findUnique({ where: { id: appointment.id }, include: includeDetails })

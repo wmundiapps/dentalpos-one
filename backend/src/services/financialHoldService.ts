@@ -61,6 +61,6 @@ export async function getHold(clinicId: string, tenantId: string, patientId: str
 export function holdMessage(info: HoldInfo) {
   const total = info.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   return info.blocked
-    ? `Este paciente tem pendência financeira em aberto (${total}) e já possui um horário marcado. Para marcar outro horário, regularize antes: reemita o boleto, gere o Pix ou receba no cartão.`
-    : `Este paciente tem pendência financeira em aberto (${total}). Será permitido apenas este agendamento; novos horários só depois de regularizar.`
+    ? `Este paciente tem pendência financeira em aberto (${total}) e já possui um horário marcado. Regularize (reemita o boleto, gere o Pix ou receba no cartão) ou escolha "Agendar mesmo assim": o gestor será avisado por e-mail.`
+    : `Este paciente tem pendência financeira em aberto (${total}). Este agendamento está permitido; para novos horários, regularize ou use "Agendar mesmo assim" (o gestor é avisado por e-mail).`
 }

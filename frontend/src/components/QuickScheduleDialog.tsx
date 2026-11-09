@@ -1,6 +1,6 @@
 import FinancialHoldDialog from "./FinancialHoldDialog";
 import { loadPatientHold } from "../services/FinancialHoldApi";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -110,6 +110,8 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
   const [reminders, setReminders] = useState<ReminderSelection>({ onBooking: true, oneDayBefore: true, onDay: true });
   const [saving, setSaving] = useState(false);
   const [holdOpen, setHoldOpen] = useState(false);
+  const [holdRetry, setHoldRetry] = useState(false);
+  const holdResolvedFor = useRef<string | null>(null); // pendência mostrada e regularizada antes de agendar
   const [holdPatient, setHoldPatient] = useState<{ id: string; name: string } | null>(null);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
@@ -175,7 +177,8 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
     return choice.fullName.trim().length >= 3 && isValidPhoneBR(choice.phone);
   }, [choice]);
 
-  const save = async () => {
+  const save = () => saveWith(false);
+  const saveWith = async (anyway = false) => {
     if (!choice || !patientReady) {
       setError("Informe o paciente (para paciente novo: nome e telefone com DDD).");
       return;
@@ -209,15 +212,18 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
         assistantId: assistantId || undefined,
         reminderChannel: "WHATSAPP",
         reminders,
+        scheduleAnyway: anyway || undefined,
+        holdWasShown: holdResolvedFor.current === patient.id || undefined,
       });
+      holdResolvedFor.current = null;
       setDone(`${patient.fullName} agendado(a) em ${new Date(`${dateISO}T12:00:00`).toLocaleDateString("pt-BR")} às ${time}.`);
       onSaved?.();
       // Aviso de pendência financeira: este é o único horário permitido até regularizar.
       const hold = await loadPatientHold(patient.id).catch(() => null);
-      if (hold?.hasPending) setHoldOpen(true);
+      if (hold?.hasPending) { setHoldRetry(false); setHoldOpen(true); }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível agendar.");
-      if (isFinancialHold(e)) setHoldOpen(true);
+      if (isFinancialHold(e)) { setHoldRetry(true); setHoldOpen(true); }
     } finally {
       setSaving(false);
     }
@@ -308,7 +314,7 @@ export default function QuickScheduleDialog({ open, onClose, onSaved, fixedPatie
         ) : null}
       </DialogActions>
     </Dialog>
-      {holdPatient && <FinancialHoldDialog patientId={holdPatient.id} patientName={holdPatient.name} open={holdOpen} onClose={() => setHoldOpen(false)} />}
+      {holdPatient && <FinancialHoldDialog patientId={holdPatient.id} patientName={holdPatient.name} open={holdOpen} onClose={() => setHoldOpen(false)} onResolved={(id) => { holdResolvedFor.current = id; }} onScheduleAnyway={holdRetry ? () => { setHoldOpen(false); setHoldRetry(false); void saveWith(true); } : undefined} />}
     </>
   );
 }
