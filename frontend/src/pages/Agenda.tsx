@@ -43,7 +43,7 @@ import AgendaPatientSearch from "../components/AgendaPatientSearch";
 import PatientSearchField, { formatPhoneBR, isValidPhoneBR, type PatientChoice } from "../components/PatientSearchField";
 import DurationSelect from "../components/DurationSelect";
 import { suggestDuration } from "../services/ProcedureDurations";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   changeAppointmentWithHistory,
   createAppointment,
@@ -316,6 +316,17 @@ export default function Agenda() {
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(today());
   const [professional, setProfessional] = useState("Todos");
+  // Link vindo do aviso de pendências: ?date=AAAA-MM-DD&view=day abre a agenda exatamente no dia do atendimento sem desfecho.
+  const routeLocation = useLocation();
+  useEffect(() => {
+    const q = new URLSearchParams(routeLocation.search);
+    const d = q.get("date");
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      setDate(d);
+      const v = q.get("view");
+      if (v === "day" || v === "week" || v === "month") setView(v);
+    }
+  }, [routeLocation.search]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(((new URLSearchParams(window.location.search).get("status")) || "Todos") as StatusFilter);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<IntegratedAppointment | null>(null);
