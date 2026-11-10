@@ -17,7 +17,7 @@ const KEY_LOCK_MS = 15 * 60 * 1000
 type Mode = 'ALERT' | 'BLOCK'
 type Visibility = Record<string, string[]>
 type Settings = { enabled: boolean; mode: Mode; lastDigest: string | null; lockDepartments: string[]; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility; lockEvents: Record<string, { day: string; resolved: boolean }> }
-type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string }> }
+type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string; to?: string }> }
 
 // Quem enxerga cada tipo de pendência, por departamento (código do perfil de acesso). Admin vê tudo sempre.
 // Se o gestor não configurou nada, vale este padrão: cobrança vai para recepção, financeiro e clínico; laboratório não vê cobrança.
@@ -149,16 +149,49 @@ async function computeItems(clinicId: string, tenantId: string, codes: string[] 
   const today = startOfTodayBrt()
   const items: Item[] = []
   if (can('agenda.view', 'appointments')) {
-    const count = await prisma.appointment.count({
-      where: { clinicId, tenantId, status: { in: OPEN_APPOINTMENT_STATUSES }, scheduledAt: { lt: today, gte: new Date(today.getTime() - 30 * DAY) } }
-    })
-    if (count) items.push({ key: 'appointments', label: `${count} agendamento(s) de dias anteriores sem desfecho (finalizar, remarcar ou marcar falta)`, count, path: '/agenda' })
+    const where = { clinicId, tenantId, status: { in: OPEN_APPOINTMENT_STATUSES }, scheduledAt: { lt: today, gte: new Date(today.getTime() - 30 * DAY) } }
+    const count = await prisma.appointment.count({ where })
+    if (count) {
+      // Lista exatamente os pacientes que ainda estão sem desfecho; cada linha abre a agenda no dia do atendimento.
+      const open = await prisma.appointment.findMany({
+        where, orderBy: { scheduledAt: 'asc' }, take: 60,
+        select: { id: true, scheduledAt: true, procedure: true, status: true, patientId: true, patient: { select: { fullName: true } } }
+      }).catch(() => [])
+      const STATUS_PT: Record<string, string> = { SCHEDULED: 'Agendado', CONFIRMED: 'Confirmado', WAITING: 'Aguardando', ROOM_PREPARATION: 'Em preparo', IN_PROGRESS: 'Em atendimento' }
+      const rows = open.map(a => {
+        const brt = new Date(a.scheduledAt.getTime() - 3 * 3600000)
+        const iso = brt.toISOString()
+        return {
+          patientId: a.patientId, patientName: a.patient?.fullName || 'Paciente',
+          summary: `${iso.slice(8, 10)}/${iso.slice(5, 7)} às ${iso.slice(11, 16)} · ${a.procedure} · ${STATUS_PT[a.status] || a.status}`,
+          to: `/agenda?date=${iso.slice(0, 10)}&view=day`
+        }
+      })
+      items.push({ key: 'appointments', label: `${count} agendamento(s) de dias anteriores sem desfecho (finalizar, remarcar ou marcar falta)`, count, path: '/agenda', rows })
+    }
   }
   if (can('finance.view', 'receivables')) {
-    const count = await prisma.financialEntry.count({
-      where: { clinicId, tenantId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: today } }
-    })
-    if (count) items.push({ key: 'receivables', label: `${count} recebimento(s) vencido(s) (paciente em atraso: a régua de cobrança acompanha)`, count, path: '/financeiro' })
+    const where = { clinicId, tenantId, type: 'INCOME' as const, status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: today } }
+    const count = await prisma.financialEntry.count({ where })
+    if (count) {
+      const late = await prisma.financialEntry.findMany({
+        where: { ...where, patientId: { not: null } }, orderBy: { dueDate: 'asc' }, take: 300,
+        select: { patientId: true, amount: true, dueDate: true, patient: { select: { fullName: true } } }
+      }).catch(() => [])
+      const byPatient = new Map<string, { name: string; total: number; n: number; oldest: Date }>()
+      for (const e of late) {
+        if (!e.patientId) continue
+        const cur = byPatient.get(e.patientId) || { name: e.patient?.fullName || 'Paciente', total: 0, n: 0, oldest: e.dueDate }
+        cur.total += Number(e.amount); cur.n += 1
+        byPatient.set(e.patientId, cur)
+      }
+      const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      const rows = [...byPatient.entries()].slice(0, 60).map(([patientId, v]) => {
+        const d = new Date(v.oldest.getTime() - 3 * 3600000).toISOString()
+        return { patientId, patientName: v.name, summary: `${brl(v.total)} em ${v.n} cobrança(s) · a mais antiga venceu em ${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`, to: '/financeiro' }
+      })
+      items.push({ key: 'receivables', label: `${count} recebimento(s) vencido(s) (paciente em atraso: a régua de cobrança acompanha)`, count, path: '/financeiro', rows })
+    }
   }
   if (can('finance.view', 'budget')) {
     // Procedimento feito fora do plano: some da lista quando o paciente ganha um orçamento novo depois do lançamento. Só aviso (não trava a tela).

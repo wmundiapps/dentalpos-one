@@ -51,7 +51,11 @@ export default function PendingAlertsBar() {
               {shown.map((item) => (
                 <Box key={item.key}>
                   <Link component={RouterLink} to={item.path} sx={{ color: "inherit", fontWeight: 700, textDecoration: "underline" }}>{item.label}</Link>
-                  {item.rows?.length ? item.rows.map((r) => (
+                  {item.rows?.length ? item.rows.map((r, idx) => item.key !== "budget" ? (
+                    <Box key={`${r.patientId}-${idx}`} sx={{ my: 0.3 }}>
+                      <Link component={RouterLink} to={r.to || item.path} sx={{ color: "inherit", fontSize: 12, textDecoration: "underline" }}>{`• ${r.patientName}: ${r.summary}`}</Link>
+                    </Box>
+                  ) : (
                     <Box key={r.patientId} sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", my: 0.4 }}>
                       <Typography variant="caption" sx={{ flex: "1 1 320px", minWidth: 0 }}>{`• ${r.patientName}: ${r.summary}`}</Typography>
                       <Button size="small" variant="contained" color="inherit" sx={{ color: "error.main", fontWeight: 800, py: 0 }} onClick={async () => { if (window.confirm(`Confirmar que os procedimentos de ${r.patientName} já estavam incluídos no tratamento (não são novos)?`)) { try { await confirmUnplannedExisting(r.patientId); } catch (e) { window.alert(e instanceof Error ? e.message : "Não foi possível confirmar."); } } }}>Já estava no tratamento</Button>
