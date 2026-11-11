@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Checkbox, CircularProgress, FormControlLabel, MenuItem, Paper, TextField, Typography } from "@mui/material";
-import { appRootUrl } from "../services/DemoAccess";
+import { appRootUrl, clearClientSession, writeDemoAccess, writeSessionUser } from "../services/DemoAccess";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 import { brDate, brl, getOffer, signupTrial, type Offer, type SignupResult } from "../services/SubscriptionApi";
 
 function useCountdown(untilIso?: string) {
@@ -22,6 +24,7 @@ export default function SignupTrial() {
   const [result, setResult] = useState<SignupResult | null>(null);
   const [plan, setPlan] = useState("BASIC");
   const [form, setForm] = useState({ clinicName: "", firstName: "", lastName: "", phone: "", email: "", password: "", cro: "", specialty: "", cpfCnpj: "", postalCode: "", addressNumber: "", birthDate: "", street: "", city: "", state: "", acceptTerms: false });
+  const [password2, setPassword2] = useState("");
 
   useEffect(() => {
     getOffer().then(setOffer).catch((e) => setError(e instanceof Error ? e.message : "Não foi possível abrir o cadastro.")).finally(() => setLoading(false));
@@ -36,13 +39,29 @@ export default function SignupTrial() {
     ? `Entendi que o teste é grátis por ${offer.trialDays} dias, sem cartão. Para continuar depois do teste, preciso cadastrar o cartão no sistema (plano ${chosen.name}: ${brl(chosen.promoPrice)} por mês${offer.promoActive ? `, com ${offer.promoPercent}% de desconto nos primeiros ${offer.promoCycles} meses, depois ${brl(chosen.price)}` : ""}). Sem o cartão, ao fim do teste a conta fica somente para leitura e meus dados continuam guardados. Não há fidelidade e nada é cobrado sem eu cadastrar o cartão.`
     : "";
 
+  // Depois de criar a conta, entra direto no sistema com o e-mail e a senha que a pessoa acabou de criar.
+  async function enterNow(clinicId: string) {
+    const response = await fetch(`${API}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clinicId, email: form.email.trim().toLowerCase(), password: form.password }) });
+    const data = await response.json().catch(() => ({}));
+    const token = data?.token || data?.accessToken;
+    if (!response.ok || !token) throw new Error("login");
+    clearClientSession();
+    localStorage.setItem("dentalpos.token", token);
+    localStorage.setItem("dentalpos.clinicId", data.user?.clinicId || clinicId);
+    writeSessionUser(data.user as never);
+    writeDemoAccess(data.demo as never);
+    window.location.href = appRootUrl();
+  }
+
   async function submit() {
     setError("");
+    if (form.password !== password2) { setError("As senhas não são iguais. Digite a mesma senha nos dois campos."); return; }
     setBusy(true);
     try {
       const r = await signupTrial({ ...form, plan, specialty: form.specialty || "Clínica geral" });
-      setResult(r);
       localStorage.setItem("dentalpos.clinicId", r.clinicId);
+      try { await enterNow(r.clinicId); return; } catch { /* se não der para entrar sozinho, mostra a tela de sucesso com o botão Entrar */ }
+      setResult(r);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível concluir o cadastro.");
     } finally {
@@ -97,7 +116,8 @@ export default function SignupTrial() {
           <TextField label="E-mail" type="email" value={form.email} onChange={set("email")} autoComplete="email" />
           <TextField label="CRO" value={form.cro} onChange={set("cro")} />
           <TextField label="Data de nascimento" type="date" value={form.birthDate} onChange={set("birthDate")} slotProps={{ inputLabel: { shrink: true } }} />
-          <TextField label="Senha (mínimo 10 caracteres)" type="password" value={form.password} onChange={set("password")} autoComplete="new-password" />
+          <TextField label="Crie sua senha (mínimo 10 caracteres)" type="password" value={form.password} onChange={set("password")} autoComplete="new-password" />
+          <TextField label="Repita a senha" type="password" value={password2} onChange={(e) => setPassword2(e.target.value)} autoComplete="new-password" />
           <TextField label="CPF ou CNPJ do titular" value={form.cpfCnpj} onChange={set("cpfCnpj")} slotProps={{ htmlInput: { inputMode: "numeric" } }} />
           <TextField label="CEP" value={form.postalCode} onChange={set("postalCode")} autoComplete="postal-code" slotProps={{ htmlInput: { inputMode: "numeric" } }} />
           <TextField label="Número" value={form.addressNumber} onChange={set("addressNumber")} />
@@ -107,7 +127,7 @@ export default function SignupTrial() {
         </Box>
         <FormControlLabel sx={{ mt: 2, alignItems: "flex-start" }} control={<Checkbox checked={form.acceptTerms} onChange={(e) => setForm((f) => ({ ...f, acceptTerms: e.target.checked }))} />} label={<Typography variant="body2">{terms}</Typography>} />
         <Button fullWidth size="large" variant="contained" sx={{ mt: 2 }} disabled={busy || !form.acceptTerms} onClick={submit}>
-          {busy ? "Criando sua conta..." : `Começar meus ${offer?.trialDays ?? 30} dias grátis`}
+          {busy ? "Criando sua conta e entrando..." : `Criar minha conta e entrar (${offer?.trialDays ?? 30} dias grátis)`}
         </Button>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>Veja nossa <a href="/privacidade" target="_blank" rel="noreferrer">política de privacidade</a>.</Typography>
       </Paper>
