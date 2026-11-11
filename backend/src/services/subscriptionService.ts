@@ -56,7 +56,7 @@ export function publicOffer(now = new Date()) {
     promoCycles: promo ? PROMO_CYCLES : 0,
     promoUntil: promoUntil().toISOString(),
     firstChargeDate: firstCharge.toISOString(),
-    cardRequired: true,
+    cardRequired: false,
     minimumCommitment: false,
     plans: Object.values(PLANS).map(p => ({
       key: p.key,
@@ -65,6 +65,20 @@ export function publicOffer(now = new Date()) {
       promoPrice: promo ? round2(p.price * (1 - PROMO_PERCENT / 100)) : p.price,
     })),
   }
+}
+
+// Data de nascimento: aceita AAAA-MM-DD ou DD/MM/AAAA; so maiores de 18 anos e datas plausiveis.
+function parseBirthDate(v: unknown): Date | null {
+  const t = text(v)
+  let iso = ''
+  const br = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t)
+  if (br) iso = `${br[3]}-${br[2]}-${br[1]}`
+  else if (/^\d{4}-\d{2}-\d{2}$/.test(t)) iso = t
+  if (!iso) return null
+  const d = new Date(`${iso}T12:00:00-03:00`)
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== new Date(`${iso}T12:00:00Z`).toISOString().slice(0, 10)) return null
+  const age = (Date.now() - d.getTime()) / (365.25 * DAY_MS)
+  return age >= 18 && age <= 110 ? d : null
 }
 
 function luhn(num: string) {
@@ -122,6 +136,7 @@ export interface TrialSignupInput {
   clinicName?: unknown; firstName?: unknown; lastName?: unknown; phone?: unknown; email?: unknown
   password?: unknown; cro?: unknown; specialty?: unknown; plan?: unknown; cpfCnpj?: unknown
   postalCode?: unknown; addressNumber?: unknown; acceptTerms?: unknown
+  birthDate?: unknown; street?: unknown; city?: unknown; state?: unknown; croState?: unknown
   card?: { holderName?: unknown; number?: unknown; expiryMonth?: unknown; expiryYear?: unknown; ccv?: unknown }
 }
 
@@ -150,10 +165,22 @@ export async function startTrial(input: TrialSignupInput, remoteIp: string) {
   if (password.length < 10) throw new SubscriptionError('A senha deve possuir pelo menos 10 caracteres.')
   if (doc.length !== 11 && doc.length !== 14) throw new SubscriptionError('Informe o CPF ou CNPJ do titular da assinatura.')
   if (postalCode.length !== 8 || !addressNumber) throw new SubscriptionError('Informe o CEP e o número do endereço de cobrança.')
-  if (!holderName || cardNumber.length < 13 || cardNumber.length > 19 || !luhn(cardNumber)) throw new SubscriptionError('Confira o número do cartão e o nome impresso nele.')
-  if (!/^(0[1-9]|1[0-2])$/.test(expiryMonth) || expiryYear.length !== 4) throw new SubscriptionError('Confira a validade do cartão.')
-  if (ccv.length < 3 || ccv.length > 4) throw new SubscriptionError('Confira o código de segurança do cartão.')
-  if (input.acceptTerms !== true) throw new SubscriptionError('É necessário aceitar as condições do teste e da cobrança.')
+  // Cartao e opcional no cadastro: se vier preenchido, e validado e ja fica cadastrado; se nao, o sistema avisa durante o teste.
+  const hasCard = Boolean(cardNumber || holderName || ccv || digits(card.expiryYear))
+  if (hasCard) {
+    if (!holderName || cardNumber.length < 13 || cardNumber.length > 19 || !luhn(cardNumber)) throw new SubscriptionError('Confira o número do cartão e o nome impresso nele.')
+    if (!/^(0[1-9]|1[0-2])$/.test(expiryMonth) || expiryYear.length !== 4) throw new SubscriptionError('Confira a validade do cartão.')
+    if (ccv.length < 3 || ccv.length > 4) throw new SubscriptionError('Confira o código de segurança do cartão.')
+  }
+  const cro = text(input.cro)
+  const street = text(input.street)
+  const city = text(input.city)
+  const state = text(input.state).toUpperCase()
+  const birthDate = parseBirthDate(input.birthDate)
+  if (!cro) throw new SubscriptionError('Informe o número do CRO.')
+  if (!birthDate) throw new SubscriptionError('Informe uma data de nascimento válida.')
+  if (!street || !city || state.length !== 2) throw new SubscriptionError('Informe o endereço completo: rua, número, cidade e estado (UF).')
+  if (input.acceptTerms !== true) throw new SubscriptionError('É necessário aceitar as condições do teste.')
 
   const duplicateUser = await prisma.user.findFirst({ where: { email, isActive: true }, select: { id: true } })
   if (duplicateUser) throw new SubscriptionError('Este e-mail já possui acesso ao DentalPos. Entre com a conta existente.', 409)
@@ -178,18 +205,47 @@ export async function startTrial(input: TrialSignupInput, remoteIp: string) {
   const created = await prisma.$transaction(async tx => {
     const starter = await createStarterClinic(tx, {
       tenantId, clinicName, firstName, lastName, phone, email, passwordHash, cnpj: doc,
-      cro: text(input.cro) || undefined, specialty: text(input.specialty) || 'Clínica geral',
-      plan: plan.key, maxPatients: 100000, active: false,
+      cro, specialty: text(input.specialty) || 'Clínica geral',
+      plan: plan.key, maxPatients: 100000, active: !hasCard,
+      personal: { cpf: doc.length === 11 ? doc : undefined, birthDate, address: `${street}, ${addressNumber}`, city, state, zipCode: postalCode, croState: text(input.croState).toUpperCase().slice(0, 2) || state },
     })
     await tx.platformSubscription.create({
       data: {
-        id: subscriptionId, clinicId: starter.clinicId, tenantId, plan: plan.key, status: 'PENDENTE',
+        id: subscriptionId, clinicId: starter.clinicId, tenantId, plan: plan.key, status: hasCard ? 'PENDENTE' : 'TESTE', lastEvent: hasCard ? null : 'TESTE_SEM_CARTAO',
         fullPrice: plan.price, promoPrice, promoCycles, trialDays: TRIAL_DAYS, trialEndsAt, accessUntil: trialEndsAt,
         fullPriceAppliedAt: promoCycles === 0 ? now : null, termsAcceptedAt: now, termsVersion: TERMS_VERSION,
       },
     })
     return starter
   })
+
+  // Sem cartao: o teste ja comeca liberado. O cartao e cadastrado depois, em Configuracoes > Minha assinatura.
+  if (!hasCard) {
+    await sendMailWithSubject(
+      email,
+      'Seu teste grátis de 30 dias do DentalPos começou',
+      [
+        `Olá ${firstName},`,
+        '',
+        `O teste grátis de 30 dias do DentalPos (plano ${plan.name}) para "${clinicName}" já está liberado, sem precisar de cartão.`,
+        '',
+        'Acesse: https://app.dentalpos.com.br/',
+        `E-mail de login: ${email}`,
+        'Senha: a que você cadastrou agora',
+        '',
+        `Seu acesso grátis vai até ${brDate(trialEndsAt)}.`,
+        `Para continuar depois do teste, cadastre o cartão em Configurações > Minha assinatura. Nada é cobrado antes de ${brDate(trialEndsAt)}: ${chargeLine(promoPrice, plan.price, promoCycles)}.`,
+        'Sem fidelidade: você pode cancelar a qualquer momento. Vamos avisar por e-mail durante o teste.',
+        SIGN,
+      ].join('\n'),
+    )
+    await sendMailWithSubject('contato@dentalpos.com.br', `Novo teste de 30 dias (sem cartão) — ${clinicName}`, [`Clínica: ${clinicName}`, `Responsável: ${firstName} ${lastName}`, `CRO: ${cro}`, `Telefone: ${phone}`, `E-mail: ${email}`, `Cidade: ${city}/${state}`, `Plano: ${plan.name}`, `Fim do teste: ${brDate(trialEndsAt)}`].join('\n'))
+    return {
+      clinicId: created.clinicId, email, plan: plan.key, cardRegistered: false,
+      trialEndsAt: trialEndsAt.toISOString(), firstChargeDate: trialEndsAt.toISOString(),
+      firstChargeAmount: promoPrice, fullPrice: plan.price, promoCycles,
+    }
+  }
 
   // 2) Cliente + assinatura com cartao no Asaas. A primeira cobranca so acontece no fim do teste.
   let asaasSubscriptionId: string | null = null
@@ -259,6 +315,7 @@ export async function startTrial(input: TrialSignupInput, remoteIp: string) {
     clinicId: created.clinicId,
     email,
     plan: plan.key,
+    cardRegistered: true,
     trialEndsAt: trialEndsAt.toISOString(),
     firstChargeDate: trialEndsAt.toISOString(),
     firstChargeAmount: promoPrice,
@@ -282,6 +339,7 @@ export async function getSubscriptionView(clinicId: string) {
   }
   const inPromo = sub.promoCycles > 0 && sub.cyclesPaid < sub.promoCycles
   const accessUntil = sub.accessUntil
+  const noCard = !sub.asaasSubscriptionId
   return {
     exists: true as const,
     status: sub.status,
@@ -299,7 +357,11 @@ export async function getSubscriptionView(clinicId: string) {
     accessUntil: accessUntil ? accessUntil.toISOString() : null,
     pastDue: sub.status === 'ATRASADA',
     overdue,
-    readOnly: Boolean(sub.status === 'CANCELADA' && accessUntil && accessUntil.getTime() < now),
+    readOnly: Boolean((sub.status === 'CANCELADA' && accessUntil && accessUntil.getTime() < now) || (noCard && sub.trialEndsAt.getTime() < now)),
+    // Teste sem cartao: o contador de gratuidade continua; o cartao e cadastrado a qualquer momento.
+    hasCard: Boolean(sub.asaasSubscriptionId),
+    noCardTrial: noCard && sub.status === 'TESTE',
+    trialExpired: noCard && sub.status === 'TESTE' && sub.trialEndsAt.getTime() < now,
     hasSavedCard: Boolean(sub.cardTokenEnc),
     debtAtCancel: Number(sub.debtAtCancel),
     minimumCommitment: false,
@@ -342,6 +404,84 @@ export async function cancelSubscription(clinicId: string) {
       SIGN,
     ].join('\n'))
   }
+  return getSubscriptionView(clinicId)
+}
+
+// ---------- cadastrar cartao durante (ou depois de) o teste sem cartao ----------
+
+export interface AddCardInput {
+  postalCode?: unknown; addressNumber?: unknown
+  card?: { holderName?: unknown; number?: unknown; expiryMonth?: unknown; expiryYear?: unknown; ccv?: unknown }
+}
+
+// O cartao vai direto ao Asaas. Durante o teste a primeira cobranca fica para o fim dele; se o teste ja acabou, cobra no dia seguinte.
+export async function addCardToTrial(clinicId: string, input: AddCardInput, remoteIp: string) {
+  const sub = await prisma.platformSubscription.findUnique({ where: { clinicId } })
+  if (!sub || sub.asaasSubscriptionId || !['TESTE', 'CANCELADA'].includes(sub.status)) throw new SubscriptionError('Esta clínica já tem cartão cadastrado ou não está em teste.', 409)
+  const c = input.card || {}
+  const number = digits(c.number)
+  const holderName = text(c.holderName)
+  const expiryMonth = digits(c.expiryMonth).padStart(2, '0')
+  const expiryYear = digits(c.expiryYear)
+  const ccv = digits(c.ccv)
+  const postalCode = digits(input.postalCode)
+  const addressNumber = text(input.addressNumber)
+  if (!holderName || number.length < 13 || number.length > 19 || !luhn(number)) throw new SubscriptionError('Confira o número do cartão e o nome impresso nele.')
+  if (!/^(0[1-9]|1[0-2])$/.test(expiryMonth) || expiryYear.length !== 4 || ccv.length < 3 || ccv.length > 4) throw new SubscriptionError('Confira a validade e o código de segurança do cartão.')
+  if (postalCode.length !== 8 || !addressNumber) throw new SubscriptionError('Informe o CEP e o número do endereço de cobrança.')
+  const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { email: true, phone: true, cnpj: true } })
+  const admin = await adminOf(clinicId)
+  if (!clinic || !admin) throw new SubscriptionError('Clínica não encontrada.', 404)
+  const doc = digits(clinic.cnpj)
+  if (doc.length !== 11 && doc.length !== 14) throw new SubscriptionError('O CPF/CNPJ da clínica não está cadastrado. Fale com o suporte.', 409)
+
+  const now = new Date()
+  const trialRunning = sub.trialEndsAt.getTime() > now.getTime()
+  const firstDue = trialRunning ? sub.trialEndsAt : new Date(now.getTime() + DAY_MS)
+  const discounted = promoActive() && sub.promoCycles > 0 && sub.cyclesPaid < sub.promoCycles
+  const value = discounted ? Number(sub.promoPrice) : Number(sub.fullPrice)
+  let asaasSubscriptionId: string | null = null
+  try {
+    const customer = await ensureCustomer(clinicId)
+    const created = await call('/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify({
+        customer, billingType: 'CREDIT_CARD', value, nextDueDate: isoBrDate(firstDue), cycle: 'MONTHLY',
+        description: `DentalPos - plano ${PLANS[sub.plan]?.name || sub.plan}`, externalReference: `sub:${sub.id}`,
+        creditCard: { holderName, number, expiryMonth, expiryYear, ccv },
+        creditCardHolderInfo: { name: holderName, email: admin.email, cpfCnpj: doc, postalCode, addressNumber, mobilePhone: digits(clinic.phone) },
+        remoteIp,
+      }),
+    })
+    asaasSubscriptionId = String(created.id)
+    await prisma.platformSubscription.update({
+      where: { id: sub.id },
+      data: {
+        status: 'TESTE', canceledAt: null, asaasCustomerId: customer, asaasSubscriptionId,
+        cardBrand: created.creditCard?.creditCardBrand ? String(created.creditCard.creditCardBrand) : null,
+        cardLast4: created.creditCard?.creditCardNumber ? digits(created.creditCard.creditCardNumber).slice(-4) : number.slice(-4),
+        cardTokenEnc: sealToken(created.creditCard?.creditCardToken),
+        trialEndsAt: trialRunning ? sub.trialEndsAt : firstDue,
+        accessUntil: trialRunning ? sub.accessUntil : new Date(firstDue.getTime() + 3 * DAY_MS),
+        reminderSentAt: null, lastEvent: 'CARTAO_CADASTRADO_NO_TESTE', updatedAt: new Date(),
+      },
+    })
+  } catch (error) {
+    if (asaasSubscriptionId) await call(`/subscriptions/${asaasSubscriptionId}`, { method: 'DELETE' }).catch(() => undefined)
+    console.error('Falha ao cadastrar cartao no teste:', error instanceof Error ? error.message : 'erro')
+    const msg = error instanceof Error ? error.message : ''
+    throw new SubscriptionError(msg ? `Não foi possível validar o cartão: ${msg}` : 'Não foi possível validar o cartão. Confira os dados e tente de novo.', 402)
+  }
+  blockCache.delete(clinicId)
+  await sendMailWithSubject(admin.email, 'Cartão cadastrado no DentalPos', [
+    `Olá ${admin.firstName},`,
+    '',
+    trialRunning
+      ? `Recebemos o seu cartão final ${number.slice(-4)}. Nada é cobrado agora: a primeira cobrança de ${brl(value)} será em ${brDate(firstDue)}, no fim do seu teste grátis.`
+      : `Recebemos o seu cartão final ${number.slice(-4)}. A primeira cobrança de ${brl(value)} será em ${brDate(firstDue)} e seu acesso segue liberado.`,
+    'Sem fidelidade: você pode cancelar a qualquer momento em Configurações > Minha assinatura.',
+    SIGN,
+  ].join('\n'))
   return getSubscriptionView(clinicId)
 }
 
@@ -464,12 +604,12 @@ export async function subscriptionBlock(clinicId: string, action: string) {
   if (hit && hit.until > Date.now()) blocked = hit.blocked
   else {
     // Se a tabela ainda nao existir (SQL nao rodou), nao bloqueia ninguem.
-    const sub = await prisma.platformSubscription.findUnique({ where: { clinicId }, select: { status: true, accessUntil: true } }).catch(() => null)
-    blocked = Boolean(sub && sub.status === 'CANCELADA' && sub.accessUntil && sub.accessUntil.getTime() < Date.now())
+    const sub = await prisma.platformSubscription.findUnique({ where: { clinicId }, select: { status: true, accessUntil: true, asaasSubscriptionId: true, trialEndsAt: true } }).catch(() => null)
+    blocked = Boolean(sub && ((sub.status === 'CANCELADA' && sub.accessUntil && sub.accessUntil.getTime() < Date.now()) || (sub.status === 'TESTE' && !sub.asaasSubscriptionId && sub.trialEndsAt.getTime() < Date.now())))
     blockCache.set(clinicId, { until: Date.now() + 60_000, blocked })
   }
   if (!blocked) return null
-  return { code: 'SUBSCRIPTION_ENDED', error: 'A assinatura foi cancelada e o período pago terminou. Seus dados estão preservados e a conta está somente leitura.' }
+  return { code: 'SUBSCRIPTION_ENDED', error: 'O período de teste ou o período pago terminou. Seus dados estão preservados e a conta está somente leitura. Cadastre o cartão em Configurações > Minha assinatura para continuar.' }
 }
 
 // ---------- webhook do Asaas ----------
@@ -557,7 +697,7 @@ export async function handleSubscriptionWebhook(body: any) {
 // Aviso antes da primeira cobranca e nova tentativa de aplicar o valor cheio.
 export async function processSubscriptionJobs() {
   const soon = new Date(Date.now() + 3 * DAY_MS)
-  const reminders = await prisma.platformSubscription.findMany({ where: { status: 'TESTE', reminderSentAt: null, trialEndsAt: { lte: soon } }, take: 100 })
+  const reminders = await prisma.platformSubscription.findMany({ where: { status: 'TESTE', reminderSentAt: null, asaasSubscriptionId: { not: null }, trialEndsAt: { lte: soon } }, take: 100 })
   for (const sub of reminders) {
     const admin = await adminOf(sub.clinicId)
     if (admin) {
@@ -572,8 +712,66 @@ export async function processSubscriptionJobs() {
     await prisma.platformSubscription.update({ where: { id: sub.id }, data: { reminderSentAt: new Date(), updatedAt: new Date() } })
   }
 
+  const noCardNotices = await processNoCardTrialNotices()
+
   const pendingFull = await prisma.platformSubscription.findMany({ where: { status: { in: ['ATIVA', 'ATRASADA'] }, fullPriceAppliedAt: null }, take: 100 })
   for (const sub of pendingFull) if (sub.cyclesPaid >= sub.promoCycles) await applyFullPrice(sub)
 
-  return { reminders: reminders.length, fullPriceRetries: pendingFull.length }
+  return { reminders: reminders.length, noCardNotices, fullPriceRetries: pendingFull.length }
+}
+
+// Teste sem cartao: avisos por e-mail durante o teste (dia 7, dia 15, 3 dias antes e no ultimo dia) e um depois que acaba.
+// Cada aviso sai uma unica vez (trialNotices). Se a rotina atrasar, sai so o mais recente e os anteriores contam como enviados.
+const NOTICE_ORDER = ['D7', 'D15', 'D27', 'LAST', 'ENDED'] as const
+
+export function noticesDue(trialEndsAt: Date, now = new Date()): string[] {
+  const left = trialEndsAt.getTime() - now.getTime()
+  const daysLeft = Math.ceil(left / DAY_MS)
+  const daysUsed = TRIAL_DAYS - daysLeft
+  if (left < 0) return now.getTime() - trialEndsAt.getTime() > 30 * DAY_MS ? [] : ['D7', 'D15', 'D27', 'LAST', 'ENDED']
+  const due: string[] = []
+  if (daysUsed >= 7) due.push('D7')
+  if (daysUsed >= 15) due.push('D15')
+  if (daysLeft <= 3) due.push('D27')
+  if (daysLeft <= 1) due.push('LAST')
+  return due
+}
+
+async function processNoCardTrialNotices() {
+  const now = new Date()
+  const subs = await prisma.platformSubscription.findMany({ where: { status: 'TESTE', asaasSubscriptionId: null }, take: 200 })
+  let sent = 0
+  for (const sub of subs) {
+    const done = Array.isArray(sub.trialNotices) ? (sub.trialNotices as string[]) : []
+    const due = noticesDue(sub.trialEndsAt, now)
+    const pending = due.filter(k => !done.includes(k))
+    if (!pending.length) continue
+    const key = pending[pending.length - 1]
+    const admin = await adminOf(sub.clinicId)
+    if (admin) {
+      const plan = PLANS[sub.plan]?.name || sub.plan
+      const price = promoActive(now) && sub.promoCycles > 0 ? `${brl(Number(sub.promoPrice))} por mês nos primeiros ${sub.promoCycles} meses (50% de desconto) e ${brl(Number(sub.fullPrice))} depois` : `${brl(Number(sub.fullPrice))} por mês`
+      const daysLeft = Math.max(0, Math.ceil((sub.trialEndsAt.getTime() - now.getTime()) / DAY_MS))
+      const cta = 'Para cadastrar o cartão: entre em https://app.dentalpos.com.br/, abra Configurações > Minha assinatura e clique em "Cadastrar cartão". Nada é cobrado antes do fim do teste, não há fidelidade e você cancela quando quiser.'
+      let subject = ''
+      let lines: string[] = []
+      if (key === 'ENDED') {
+        subject = 'Seu teste grátis do DentalPos terminou: seus dados estão guardados'
+        lines = ['Seu teste grátis terminou e sua conta está somente para leitura. Seus pacientes, agenda e financeiro continuam guardados.', `Para voltar a usar tudo (plano ${plan}: ${price}), cadastre o cartão.`, cta]
+      } else if (key === 'LAST') {
+        subject = 'Hoje é o último dia do seu teste grátis do DentalPos'
+        lines = [`Hoje é o último dia do seu teste grátis (até ${brDate(sub.trialEndsAt)}). Depois dele a conta fica somente para leitura.`, `Cadastre o cartão agora para continuar sem interrupção e aproveitar as condições do plano ${plan}: ${price}.`, cta]
+      } else if (key === 'D27') {
+        subject = `Faltam ${daysLeft} dia(s) do seu teste grátis do DentalPos`
+        lines = [`Seu teste grátis termina em ${brDate(sub.trialEndsAt)} (faltam ${daysLeft} dia(s)).`, `Cadastre o cartão para não perder o acesso e aproveitar as condições do plano ${plan}: ${price}.`, cta]
+      } else {
+        subject = key === 'D7' ? 'Como está sendo seu teste do DentalPos?' : 'Metade do seu teste grátis do DentalPos já passou'
+        lines = [`Seu teste grátis vai até ${brDate(sub.trialEndsAt)} (faltam ${daysLeft} dia(s)).`, `Se está gostando, já pode cadastrar o cartão e garantir as condições do plano ${plan}: ${price}.`, cta]
+      }
+      await sendMailWithSubject(admin.email, subject, [`Olá ${admin.firstName},`, '', ...lines, SIGN].join('\n'))
+      sent++
+    }
+    await prisma.platformSubscription.update({ where: { id: sub.id }, data: { trialNotices: [...new Set([...done, ...due])] as Prisma.InputJsonValue, updatedAt: new Date() } })
+  }
+  return sent
 }

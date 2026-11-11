@@ -28,16 +28,17 @@ export interface Offer {
 export interface SignupPayload {
   plan: string; clinicName: string; firstName: string; lastName: string; phone: string; email: string; password: string;
   cro: string; specialty: string; cpfCnpj: string; postalCode: string; addressNumber: string; acceptTerms: boolean;
-  card: { holderName: string; number: string; expiryMonth: string; expiryYear: string; ccv: string };
+  birthDate: string; street: string; city: string; state: string;
+  card?: { holderName: string; number: string; expiryMonth: string; expiryYear: string; ccv: string };
 }
 
-export interface SignupResult { clinicId: string; email: string; trialEndsAt: string; firstChargeAmount: number; fullPrice: number; promoCycles: number }
+export interface SignupResult { cardRegistered?: boolean; clinicId: string; email: string; trialEndsAt: string; firstChargeAmount: number; fullPrice: number; promoCycles: number }
 
 export interface SubscriptionView {
   exists: boolean; status?: string; planName?: string; trialEndsAt?: string; trialDaysLeft?: number; nextChargeAmount?: number;
   fullPrice?: number; promoCyclesLeft?: number; cardBrand?: string | null; cardLast4?: string | null; canceled?: boolean;
   accessUntil?: string | null; pastDue?: boolean;
-  overdue?: { total: number; invoiceUrl: string | null } | null; readOnly?: boolean; hasSavedCard?: boolean; debtAtCancel?: number;
+  overdue?: { total: number; invoiceUrl: string | null } | null; readOnly?: boolean; hasCard?: boolean; noCardTrial?: boolean; trialExpired?: boolean; hasSavedCard?: boolean; debtAtCancel?: number;
 }
 
 export interface ReactivatePayload {
@@ -51,6 +52,9 @@ export const getMySubscription = () => call<SubscriptionView>("/billing/subscrip
 export const cancelMySubscription = () => call<SubscriptionView>("/billing/subscription/cancel", { method: "POST", body: {}, auth: true });
 
 export const reactivateMySubscription = (body: ReactivatePayload) => call<SubscriptionView>("/billing/subscription/reactivate", { method: "POST", body, auth: true });
+
+export interface AddCardPayload { postalCode: string; addressNumber: string; card: { holderName: string; number: string; expiryMonth: string; expiryYear: string; ccv: string } }
+export const addMyCard = (body: AddCardPayload) => call<SubscriptionView>("/billing/subscription/card", { method: "POST", body, auth: true });
 
 export const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 export const brDate = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—");

@@ -31,6 +31,8 @@ export interface StarterClinicInput {
   maxPatients: number
   // false = clinica e usuario nascem inativos (cadastro pago so ativa depois do cartao aceito).
   active?: boolean
+  // Dados pessoais do titular (cadastro do teste sem cartao): vao para o cadastro do profissional.
+  personal?: { cpf?: string; birthDate?: Date; address?: string; city?: string; state?: string; zipCode?: string; croState?: string }
   // Quando informado, liga o acesso temporario do EXPERIENCE (so demo).
   demoMetadata?: Prisma.InputJsonValue
 }
@@ -77,6 +79,11 @@ export async function createStarterClinic(tx: Prisma.TransactionClient, input: S
       cro: input.cro || `NOVO-${randomUUID().slice(0, 8).toUpperCase()}`,
       specialty: input.specialty,
       isActive: true,
+      ...(input.personal ? {
+        cpf: input.personal.cpf || undefined, birthDate: input.personal.birthDate, personalAddress: input.personal.address || undefined,
+        personalCity: input.personal.city || undefined, personalState: input.personal.state || undefined,
+        personalZipCode: input.personal.zipCode || undefined, croState: input.personal.croState || undefined,
+      } : {}),
     },
   })
 

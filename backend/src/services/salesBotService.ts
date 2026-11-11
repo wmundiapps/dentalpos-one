@@ -94,7 +94,7 @@ function dentalposFacts() {
   const offer = publicOffer()
   const plans = offer.plans.map(p => `  - ${p.name}: ${brl(p.price)} por mês${offer.promoActive ? ` (com o desconto: ${brl(p.promoPrice)} por mês nos primeiros ${offer.promoCycles} meses)` : ''}`).join('\n')
   return `FATOS DO DENTALPOS (sistema de gestão para clínicas odontológicas, laboratórios e acadêmicos; só estes podem ser afirmados):
-- Teste grátis de 30 dias. O cartão de crédito é cadastrado no início, mas nada é cobrado nos 30 dias. A primeira cobrança é no 31º dia.
+- Teste grátis de 30 dias SEM cartão: o cadastro pede só dados pessoais (CRO, CPF, endereço, nascimento). O cartão é cadastrado depois, dentro do sistema, com avisos durante o teste; sem cartão ao fim dos 30 dias a conta fica somente para leitura (dados guardados). Com o cartão, a primeira cobrança é no 31º dia.
 - ${offer.promoActive ? `Promoção Black Friday: 50% de desconto nos 12 meses seguintes ao teste, para cadastros até ${brDate(new Date(offer.promoUntil))}; depois do 12º mês, valor cheio.` : 'No momento não há desconto promocional; o valor é o cheio.'}
 - Planos:
 ${plans}

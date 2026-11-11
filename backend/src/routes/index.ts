@@ -601,6 +601,7 @@ router.get('/finder/received', requirePermission('settings.view'), finderControl
 router.get('/billing/subscription', subscriptionController.mine)
 router.post('/billing/subscription/cancel', requirePermission('settings.edit'), subscriptionController.cancel)
 router.post('/billing/subscription/reactivate', subscriptionController.reactivate)
+router.post('/billing/subscription/card', subscriptionController.addCard)
 router.put('/revah/senders', requirePermission('marketing.send'), revahSenderController.upsert)
 router.get('/revah-bridge/status', requirePermission('marketing.view'), revahBridgeController.status)
 router.post('/revah-bridge/sso', requirePermission('marketing.view'), revahBridgeController.sso)

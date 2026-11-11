@@ -3029,6 +3029,7 @@ model PlatformSubscription {
   cardTokenEnc        String?
   debtAtCancel        Decimal   @default(0) @db.Decimal(12, 2)
   reminderSentAt      DateTime? @db.Timestamp(3)
+  trialNotices        Json      @default("[]")
   canceledAt          DateTime? @db.Timestamp(3)
   termsAcceptedAt     DateTime  @db.Timestamp(3)
   termsVersion        String
