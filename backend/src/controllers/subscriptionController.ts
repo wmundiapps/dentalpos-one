@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
 import type { AuthRequest } from '../middleware/auth'
-import { SubscriptionError, cancelSubscription, getSubscriptionView, publicOffer, reactivateSubscription, startTrial } from '../services/subscriptionService'
+import { SubscriptionError, addCardToTrial, cancelSubscription, getSubscriptionView, publicOffer, reactivateSubscription, startTrial } from '../services/subscriptionService'
 
 // Limite simples por IP para o cadastro com cartao (evita teste de cartoes roubados).
 const attempts = new Map<string, number[]>()
@@ -59,5 +59,19 @@ export async function reactivate(req: AuthRequest, res: Response) {
     if (error instanceof SubscriptionError) return res.status(error.status).json({ error: error.message })
     console.error('Erro ao reativar assinatura:', error instanceof Error ? error.message : 'erro')
     return res.status(500).json({ error: 'Não foi possível reativar agora.' })
+  }
+}
+
+// Cadastrar o cartao durante o teste sem cartao (vale tambem com o teste vencido, por isso nao passa por requirePermission).
+export async function addCard(req: AuthRequest, res: Response) {
+  try {
+    if (req.user!.role !== 'ADMIN') return res.status(403).json({ error: 'Só o administrador da clínica pode cadastrar o cartão.' })
+    const ip = req.ip || req.socket.remoteAddress || 'unknown'
+    if (tooMany(`card:${ip}`)) return res.status(429).json({ error: 'Muitas tentativas. Tente de novo em alguns minutos.' })
+    return res.json(await addCardToTrial(req.user!.clinicId, req.body || {}, ip))
+  } catch (error) {
+    if (error instanceof SubscriptionError) return res.status(error.status).json({ error: error.message })
+    console.error('Erro ao cadastrar cartão no teste:', error instanceof Error ? error.message : 'erro')
+    return res.status(500).json({ error: 'Não foi possível cadastrar o cartão agora.' })
   }
 }
