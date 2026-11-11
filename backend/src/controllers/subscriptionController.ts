@@ -2,15 +2,21 @@ import type { Request, Response } from 'express'
 import type { AuthRequest } from '../middleware/auth'
 import { SubscriptionError, addCardToTrial, cancelSubscription, getSubscriptionView, publicOffer, reactivateSubscription, startTrial } from '../services/subscriptionService'
 
-// Limite simples por IP para o cadastro com cartao (evita teste de cartoes roubados).
+// Limite simples por IP para o cadastro (10 min; evita teste de cartoes roubados e criacao em massa de contas).
+// Erro de preenchimento (campo faltando, data invalida...) NAO conta: so contam contas criadas e cartoes recusados.
 const attempts = new Map<string, number[]>()
-function tooMany(ip: string) {
+const WINDOW_MS = 10 * 60_000 // a trava dura 10 minutos
+const MAX_ATTEMPTS = 10
+function recent(ip: string) {
   const now = Date.now()
-  const recent = (attempts.get(ip) || []).filter(t => now - t < 3_600_000)
-  recent.push(now)
-  attempts.set(ip, recent)
-  return recent.length > 6
+  const list = (attempts.get(ip) || []).filter(t => now - t < WINDOW_MS)
+  attempts.set(ip, list)
+  return list
 }
+const isBlocked = (ip: string) => recent(ip).length >= MAX_ATTEMPTS
+const countAttempt = (ip: string) => { const l = recent(ip); l.push(Date.now()); attempts.set(ip, l) }
+// Usado por reativar/cadastrar cartao: cada chamada conta.
+function tooMany(ip: string) { countAttempt(ip); return recent(ip).length > MAX_ATTEMPTS }
 
 export async function offer(_req: Request, res: Response) {
   return res.json(publicOffer())
@@ -19,11 +25,16 @@ export async function offer(_req: Request, res: Response) {
 export async function signup(req: Request, res: Response) {
   try {
     const ip = req.ip || req.socket.remoteAddress || 'unknown'
-    if (tooMany(ip)) return res.status(429).json({ error: 'Muitas tentativas. Tente de novo em alguns minutos.' })
+    if (isBlocked(ip)) return res.status(429).json({ error: 'Muitas tentativas. Tente de novo em 10 minutos.' })
     const result = await startTrial(req.body || {}, ip)
+    countAttempt(ip)
     return res.status(201).json(result)
   } catch (error) {
-    if (error instanceof SubscriptionError) return res.status(error.status).json({ error: error.message })
+    if (error instanceof SubscriptionError) {
+      // Cartao recusado (402) conta; erro de preenchimento (400/409) nao.
+      if (error.status === 402) countAttempt(req.ip || req.socket.remoteAddress || 'unknown')
+      return res.status(error.status).json({ error: error.message })
+    }
     console.error('Erro no cadastro com teste de 30 dias:', error instanceof Error ? error.message : 'erro')
     return res.status(500).json({ error: 'Não foi possível concluir o cadastro agora. Tente de novo em instantes.' })
   }
@@ -53,7 +64,7 @@ export async function reactivate(req: AuthRequest, res: Response) {
   try {
     if (req.user!.role !== 'ADMIN') return res.status(403).json({ error: 'Só o administrador da clínica pode reativar a assinatura.' })
     const ip = req.ip || req.socket.remoteAddress || 'unknown'
-    if (tooMany(`re:${ip}`)) return res.status(429).json({ error: 'Muitas tentativas. Tente de novo em alguns minutos.' })
+    if (tooMany(`re:${ip}`)) return res.status(429).json({ error: 'Muitas tentativas. Tente de novo em 10 minutos.' })
     return res.json(await reactivateSubscription(req.user!.clinicId, req.body || {}, ip))
   } catch (error) {
     if (error instanceof SubscriptionError) return res.status(error.status).json({ error: error.message })
@@ -67,7 +78,7 @@ export async function addCard(req: AuthRequest, res: Response) {
   try {
     if (req.user!.role !== 'ADMIN') return res.status(403).json({ error: 'Só o administrador da clínica pode cadastrar o cartão.' })
     const ip = req.ip || req.socket.remoteAddress || 'unknown'
-    if (tooMany(`card:${ip}`)) return res.status(429).json({ error: 'Muitas tentativas. Tente de novo em alguns minutos.' })
+    if (tooMany(`card:${ip}`)) return res.status(429).json({ error: 'Muitas tentativas. Tente de novo em 10 minutos.' })
     return res.json(await addCardToTrial(req.user!.clinicId, req.body || {}, ip))
   } catch (error) {
     if (error instanceof SubscriptionError) return res.status(error.status).json({ error: error.message })
