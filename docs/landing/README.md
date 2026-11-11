@@ -3,6 +3,8 @@
 **Versão atual:** `landing-dentalpos-one-v3.html`, publicada em `https://one.dentalpos.com.br/landingpage` (projeto Vercel `dentalpos-landing`). A página principal (`/`) foi atualizada com a mesma política (cópia em `pagina-principal-www-dentalpos.html`); o formulário de contato (`api/contato.js`) não mudou.
 `landing-dentalpos-one-v1.html` é o rascunho original (artefato https://claude.ai/artifact/MqEQR3z6hwDpRX6j9Q3nyo), mantido só como histórico.
 
+**Atualização de 11/11/2026:** a landing do CompletoDonto (projeto `dentalpos-landing`, branch `landing-completodonto`) agora leva **todos os botões** para `https://app.completodonto.com.br/cadastro` (planos com `?plano=BASIC|INTERMEDIUM|PLENUM`); os formulários de e-mail foram trocados por botão de cadastro. Cópias atuais: `pagina-principal-completodonto.html` (`index.html`) e `landing-completodonto-v4.html` (`landingpage/index.html`). Os demais arquivos desta pasta são histórico.
+
 ## Política de atratividade e lançamento (definida em 03/10/2026)
 - **Promoção de lançamento:** 30 dias grátis, sem cartão de crédito, e **50% de desconto nos 12 meses seguintes**.
 - **Planos:** Basic R$ 197/mês, Intermedium R$ 397/mês, Plenum R$ 597/mês (com 50% no 1º ano: R$ 98,50, R$ 198,50 e R$ 298,50).
