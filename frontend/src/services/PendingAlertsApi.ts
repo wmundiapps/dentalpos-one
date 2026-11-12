@@ -1,6 +1,6 @@
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-export interface PendingAlertItem { key: string; label: string; count: number; path: string; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string; to?: string }> }
+export interface PendingAlertItem { key: string; label: string; count: number; path: string; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string; to?: string; noticeSent?: boolean }> }
 export interface LockedUser { id: string; name: string; count: number }
 export interface PendingAlerts {
   enabled: boolean;
@@ -92,6 +92,13 @@ export async function justifyPending(text: string) {
 // "Já estava no tratamento": confirma que os procedimentos lançados fora do plano deste paciente não são novos.
 export async function confirmUnplannedExisting(patientId: string) {
   const result = await parse<unknown>(await fetch(`${API}/pending-alerts/unplanned/resolve`, { method: "POST", headers: headers(true), body: JSON.stringify({ patientId }) }));
+  window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
+  return result;
+}
+
+// Gestor/proprietário autoriza o aviso ao paciente sobre procedimento novo. Devolve o texto para envio manual quando o paciente não tem e-mail.
+export async function authorizeUnplannedNotice(patientId: string) {
+  const result = await parse<{ sent: boolean; hasEmail: boolean; text: string; items: number }>(await fetch(`${API}/pending-alerts/unplanned/authorize-notice`, { method: "POST", headers: headers(true), body: JSON.stringify({ patientId }) }));
   window.dispatchEvent(new Event(PENDING_ALERTS_EVENT));
   return result;
 }

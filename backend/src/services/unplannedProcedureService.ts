@@ -16,7 +16,7 @@ export async function notifyManagersUnplanned(opts: { clinicId: string; tenantId
     select: { email: true }, take: 10
   })
   const to = [...new Set(managers.map(m => m.email).filter(Boolean))]
-  const message = `Novo procedimento lançado fora do plano de tratamento.\n\nPaciente: ${opts.patientName}\nProfissional: ${opts.professional || 'não informado'}\n${lines.join('\n')}\n\nPasse o orçamento deste procedimento ao paciente: abra Plano e orçamento na ficha do paciente.`
+  const message = `Novo procedimento lançado fora do plano de tratamento.\n\nPaciente: ${opts.patientName}\nProfissional: ${opts.professional || 'não informado'}\n${lines.join('\n')}\n\nPasse o orçamento deste procedimento ao paciente: abra Plano e orçamento na ficha do paciente.\n\nSe o lançamento ou o orçamento inicial puder ter erro de preenchimento, confira antes. Para avisar o paciente (ele pede que confira com a clínica se o procedimento já está no orçamento ou se precisa de nova combinação financeira), autorize o envio na barra de pendências do sistema: botão "Autorizar aviso ao paciente".`
   let sent = 0
   for (const address of to) {
     await dispatchRevah('EMAIL', address, message, { apiKey, subject: `Novo procedimento para orçar — ${opts.patientName}` }, 'CompletoDonto <contato@dentalpos.com.br>')
