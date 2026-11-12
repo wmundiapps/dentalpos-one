@@ -90,7 +90,7 @@ export default function PolosTab() {
           { key: "codigo", label: "Código", required: true }, { key: "nome", label: "Nome", required: true },
           { key: "responsavelNome", label: "Responsável" }, { key: "responsavelEmail", label: "E-mail do responsável" }, { key: "responsavelTelefone", label: "Telefone" },
           { key: "cep", label: "CEP" }, { key: "logradouro", label: "Logradouro" }, { key: "numero", label: "Número" }, { key: "bairro", label: "Bairro" },
-          { key: "cidade", label: "Cidade" }, { key: "uf", label: "UF (2 letras)" }, { key: "capacidade", label: "Capacidade (alunos)", type: "number" },
+          { key: "cidade", label: "Cidade" }, { key: "uf", label: "UF (2 letras)" }, { key: "latitude", label: "Latitude (mapa)", type: "number", helper: "Ex.: -23.42 (opcional; sem ela o mapa usa a cidade)" }, { key: "longitude", label: "Longitude (mapa)", type: "number", helper: "Ex.: -51.93" }, { key: "capacidade", label: "Capacidade (alunos)", type: "number" },
           { key: "atoNumero", label: "Ato de credenciamento (nº)" }, { key: "atoData", label: "Data do ato", type: "date" }, { key: "atoValidade", label: "Validade do ato", type: "date" },
           { key: "ativo", label: "Ativo", type: "bool" },
         ]}
@@ -102,11 +102,11 @@ export default function PolosTab() {
       <EduResourcePage title="Cursos ofertados por polo" base={BASE} resource="/polo-ofertas" dense searchable={false}
         columns={[
           { key: "poloId", label: "Polo", render: (r) => nameOf(polos, r.poloId) }, { key: "programId", label: "Curso", render: (r) => nameOf(cursos, r.programId) },
-          { key: "vagas", label: "Vagas" }, { key: "ativo", label: "Ativo" },
+          { key: "vagas", label: "Vagas" }, { key: "turnos", label: "Turnos", render: (r) => (r.turnos || "").split(",").filter(Boolean).join(" / ") || "—" }, { key: "ativo", label: "Ativo" },
         ]}
         fields={[
           { key: "poloId", label: "Polo", type: "select", options: polos, required: true, createOnly: true }, { key: "programId", label: "Curso", type: "select", options: cursos, required: true, createOnly: true },
-          { key: "vagas", label: "Vagas", type: "number", required: true }, { key: "ativo", label: "Ativo", type: "bool" },
+          { key: "vagas", label: "Vagas", type: "number", required: true }, { key: "turnos", label: "Turnos", helper: "MANHA, TARDE, NOITE, SABADO separados por vírgula (sem espaços)" }, { key: "ativo", label: "Ativo", type: "bool" },
         ]} />
       {chk ? <Checklist poloId={chk.id} nome={chk.nome} onClose={() => { setChk(null); ind.reload(); }} /> : null}
     </Box>

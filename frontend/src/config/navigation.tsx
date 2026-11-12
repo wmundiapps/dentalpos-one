@@ -250,6 +250,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Secretaria e certificados","/edu/secretaria",<DescriptionIcon/>),
       item("Calendário e salas","/edu/calendario",<EventIcon/>),
       item("Notas e diário","/edu/notas",<AssessmentIcon/>),
+      item("Polos EAD","/edu/polos-ead",<LocationCityIcon/>),
       item("Modalidades, EAD e pós","/edu/modalidades",<GroupsIcon/>),
       item("ENADE, OAB e desempenho","/edu/desempenho",<InsightsIcon/>),
       item("Biblioteca","/edu/biblioteca",<FolderSharedIcon/>),

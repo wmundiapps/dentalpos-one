@@ -29,6 +29,8 @@ ModPosBanca, ModPosBolsa, ModPosOferta.
   POST /pos/ofertas/:id/publicar|encerrar; GET /pos/ofertas-publicadas
 - Público (/api/public/edu/modalidades): GET /polos?tenantId= (polos credenciados)
 
+- **Polos EAD** (gestão por polo: cobrança, repasse, provas com aviso D-7/D-1, rematrícula, ENADE, egressos, ofertas automáticas e painéis): ver `README-POLOS.md` (prefixo `/polos-ead`).
+
 ## Jobs (registerEduJob)
 modalidades.sla-tutoria, modalidades.inatividade-ava, modalidades.prazos-pos, modalidades.atos-polos, modalidades.lives-pendentes
 
