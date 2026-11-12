@@ -25,10 +25,10 @@ export default function FinancialHoldSettingsCard() {
     <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: "1px solid", borderColor: "divider", mb: 3 }}>
       <Typography variant="h6" sx={{ fontWeight: 800 }}>Agenda e pendência financeira</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-        Paciente com cobrança vencida pode marcar apenas 1 horário. Enquanto não regularizar (boleto, Pix ou cartão), novos agendamentos são recusados. O paciente recebe o aviso junto com o lembrete da consulta.
+        Paciente com cobrança vencida pode marcar 1 horário. Para novos horários, a agenda mostra a pendência com as opções de regularizar (boleto, Pix ou cartão) e o botão "Agendar mesmo assim". Sempre que um paciente com pendência é agendado, o gestor recebe um e-mail dizendo se ele regularizou ou não. O paciente recebe o aviso junto com o lembrete da consulta.
       </Typography>
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-        <FormControlLabel control={<Switch checked={s.enabled} onChange={(_, v) => void save({ enabled: v })} />} label={s.enabled ? "Bloqueio de novos agendamentos: LIGADO" : "Bloqueio de novos agendamentos: DESLIGADO"} />
+        <FormControlLabel control={<Switch checked={s.enabled} onChange={(_, v) => void save({ enabled: v })} />} label={s.enabled ? "Aviso de pendência na agenda: LIGADO" : "Aviso de pendência na agenda: DESLIGADO"} />
         <TextField size="small" type="number" label="Carência (dias após o vencimento)" value={s.graceDays} onChange={(e) => setS({ ...s, graceDays: Number(e.target.value) })} onBlur={() => void save({ graceDays: s.graceDays })} slotProps={{ htmlInput: { min: 0, max: 60 } }} sx={{ width: 260 }} />
       </Box>
     </Paper>

@@ -1,5 +1,5 @@
 import { PENDING_ALERTS_EVENT } from "../services/PendingAlertsApi";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -341,7 +341,8 @@ export default function Agenda() {
   };
   const [absenceOpen, setAbsenceOpen] = useState(false);
   const [labOrderPrefill, setLabOrderPrefill] = useState<LabOrderPrefill | null>(null);
-  const [holdTarget, setHoldTarget] = useState<{ id: string; name: string } | null>(null);
+  const [holdTarget, setHoldTarget] = useState<{ id: string; name: string; retry?: boolean } | null>(null);
+  const holdResolvedFor = useRef<string | null>(null); // paciente cuja pendência foi mostrada e regularizada antes de agendar
   const [editReason, setEditReason] = useState("");
   const [editRequestedBy, setEditRequestedBy] = useState<"Paciente" | "Clínica" | "Dentista" | "Outro">("Paciente");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -822,7 +823,8 @@ export default function Agenda() {
     setOpen(true);
   };
 
-  const save = async () => {
+  const save = () => saveWith(false);
+  const saveWith = async (anyway = false) => {
     if (!form.procedure.trim()) return;
 
     const normalizeName = (value: string) =>
@@ -918,12 +920,19 @@ export default function Agenda() {
         durationMinutes: Number(form.durationMinutes || 30),
         reminderChannel: backendChannel(channel),
         reminders: reminderSelection,
+        scheduleAnyway: anyway || undefined,
+        holdWasShown: holdResolvedFor.current === backendPatient.id || undefined,
       });
     } catch (error) {
-      if (isFinancialHold(error)) setHoldTarget({ id: backendPatient.id, name: backendPatient.fullName });
+      if (isFinancialHold(error)) {
+        // Mantém o aviso e a abertura das opções de regularização; o botão "Agendar mesmo assim" repete o agendamento.
+        setHoldTarget({ id: backendPatient.id, name: backendPatient.fullName, retry: true });
+        return;
+      }
       window.alert(error instanceof Error ? error.message : "Não foi possível salvar o agendamento.");
       return;
     }
+    holdResolvedFor.current = null;
     // Aviso de pendência financeira: este é o único horário permitido até regularizar.
     void loadPatientHold(backendPatient.id).then((hold) => { if (hold.hasPending) setHoldTarget({ id: backendPatient.id, name: backendPatient.fullName }); }).catch(() => undefined);
     createAppointment({
@@ -1076,7 +1085,7 @@ export default function Agenda() {
       <AbsenceRecallBanner />
       <AbsenceRecallDialog open={absenceOpen} onClose={() => setAbsenceOpen(false)} />
       <CloseAgendaDialog open={closeAgendaOpen} onClose={() => setCloseAgendaOpen(false)} doctors={backendDoctors} defaultDoctorId={selectedBackendDoctorId} defaultDate={date} appointments={items} onSaved={refreshAgendaConfiguration} />
-      {holdTarget && <FinancialHoldDialog patientId={holdTarget.id} patientName={holdTarget.name} open onClose={() => setHoldTarget(null)} />}
+      {holdTarget && <FinancialHoldDialog patientId={holdTarget.id} patientName={holdTarget.name} open onClose={() => setHoldTarget(null)} onResolved={(id) => { holdResolvedFor.current = id; }} onScheduleAnyway={holdTarget.retry ? () => { setHoldTarget(null); void saveWith(true); } : undefined} />}
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
         <Box

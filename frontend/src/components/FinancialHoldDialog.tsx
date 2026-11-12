@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Paper, Typography } from "@mui/material";
 import ChargeDialog, { CopyField, type ChargeEntry } from "./ChargeDialog";
 import { loadPatientHold, type HoldEntry, type HoldInfo } from "../services/FinancialHoldApi";
@@ -8,20 +8,22 @@ import { errorMessage, toast } from "../utils/toast";
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 // Pendência financeira do paciente: reemitir boleto, gerar Pix, cobrar no cartão (online ou na maquininha) e liberar o agendamento.
-export default function FinancialHoldDialog({ patientId, patientName, open, onClose, onResolved }: { patientId: string; patientName: string; open: boolean; onClose: () => void; onResolved?: () => void }) {
+export default function FinancialHoldDialog({ patientId, patientName, open, onClose, onResolved, onScheduleAnyway }: { patientId: string; patientName: string; open: boolean; onClose: () => void; onResolved?: (patientId: string) => void; onScheduleAnyway?: () => void }) {
   const [info, setInfo] = useState<HoldInfo | null>(null);
   const [error, setError] = useState("");
   const [charging, setCharging] = useState<ChargeEntry | null>(null);
   const [busyId, setBusyId] = useState("");
+  const resolvedRef = useRef(onResolved);
+  resolvedRef.current = onResolved;
 
   const load = useCallback(async () => {
     setError("");
     try {
       const data = await loadPatientHold(patientId);
       setInfo(data);
-      if (!data.hasPending) onResolved?.();
+      if (!data.hasPending) resolvedRef.current?.(patientId);
     } catch (e) { setError(errorMessage(e, "Não foi possível consultar a pendência.")); }
-  }, [patientId, onResolved]);
+  }, [patientId]);
   useEffect(() => { if (open) void load(); }, [open, load]);
 
   const cardOnSite = async (e: HoldEntry) => {
@@ -43,6 +45,7 @@ export default function FinancialHoldDialog({ patientId, patientName, open, onCl
           {info?.message && <Alert severity={info.blocked ? "error" : "warning"} sx={{ mb: 2 }}>{info.message}</Alert>}
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           {info && !info.hasPending && <Alert severity="success">Nenhuma pendência em aberto. O agendamento está liberado.</Alert>}
+          {onScheduleAnyway && info?.hasPending && <Alert severity="info" sx={{ mb: 2 }}>Você pode regularizar abaixo ou agendar mesmo assim: o gestor recebe um e-mail avisando que o paciente com pendência foi agendado.</Alert>}
           <Box sx={{ display: "grid", gap: 1.5 }}>
             {info?.entries.map((e) => (
               <Paper key={e.id} variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
@@ -64,7 +67,10 @@ export default function FinancialHoldDialog({ patientId, patientName, open, onCl
             ))}
           </Box>
         </DialogContent>
-        <DialogActions><Button onClick={onClose}>Fechar</Button></DialogActions>
+        <DialogActions>
+          {onScheduleAnyway && <Button variant="contained" color="warning" onClick={onScheduleAnyway}>{info && !info.hasPending ? "Agendar" : "Agendar mesmo assim"}</Button>}
+          <Button onClick={onClose}>Fechar</Button>
+        </DialogActions>
       </Dialog>
       <ChargeDialog entry={charging} onClose={() => setCharging(null)} onChanged={() => void load()} />
     </>

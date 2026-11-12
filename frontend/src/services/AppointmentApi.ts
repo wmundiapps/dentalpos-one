@@ -145,6 +145,9 @@ export async function createBackendAppointment(input: {
   durationMinutes?: number;
   reminderChannel?: ReminderChannel;
   reminders?: ReminderSelection;
+  // Pendência financeira: "Agendar mesmo assim" e aviso de que a pendência foi mostrada e regularizada antes de agendar.
+  scheduleAnyway?: boolean;
+  holdWasShown?: boolean;
 }) {
   const response = await fetch(`${API}/appointments`, {
     method: "POST",
