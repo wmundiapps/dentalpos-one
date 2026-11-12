@@ -36,9 +36,12 @@ import InventarioQrTab from "../../edu/infraestrutura/InventarioQrTab";
 import LabelIcon from "@mui/icons-material/QrCode2";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
+import PlanejamentoTab from "../../edu/infraestrutura/PlanejamentoTab";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 const TABS: Array<{ key: string; label: string; icon: ReactElement; render: () => ReactNode }> = [
   { key: "painel", label: "Painel", icon: <DashboardIcon />, render: () => <PainelTab /> },
+  { key: "planejamento", label: "Planejamento", icon: <AccountTreeIcon />, render: () => <PlanejamentoTab /> },
   { key: "agenda", label: "Agenda", icon: <EventNoteIcon />, render: () => <AgendaTab /> },
   { key: "solicitacoes", label: "Solicitações e OS", icon: <ReportProblemIcon />, render: () => <SolicitacoesTab /> },
   { key: "frota", label: "Frota", icon: <DirectionsCarIcon />, render: () => <FrotaTab /> },

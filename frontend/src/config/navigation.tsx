@@ -15,6 +15,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import DescriptionIcon from "@mui/icons-material/Description";
 // import DesignServicesIcon from "@mui/icons-material/DesignServices"; // DPD oculto
 import EventIcon from "@mui/icons-material/Event";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -276,6 +277,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Apoio, ouvidoria e egressos","/edu/apoio",<SupportAgentIcon/>),
       item("Comunicação omnichannel","/edu/comunicacao",<ChatIcon/>),
       item("Infraestrutura e patrimônio","/edu/infraestrutura",<CleaningServicesIcon/>),
+      item("Infraestrutura · Planejamento","/edu/infraestrutura?secao=planejamento",<AccountTreeIcon/>),
       item("Agenda de infraestrutura","/edu/infraestrutura?secao=agenda",<EventIcon/>),
       item("Solicitações e OS (com fotos)","/edu/infraestrutura?secao=solicitacoes",<BugReportIcon/>),
       item("Frota","/edu/infraestrutura?secao=frota",<WorkIcon/>),
