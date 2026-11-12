@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
 import { audit } from '../core/notify'
+import { exigirSemBloqueio } from '../analise-docs/bloqueio'
 import { AuthenticatedRequest, Response, WRITE, asyncHandler, fail, money, parseBody, reqDate, requireRole, tid, uid } from './common'
 
 // Ciclo de vida comum a contratos, locações e contratos de polo:
@@ -37,6 +38,7 @@ export function mountCiclo(router: Router, o: CicloOpts) {
     if (!['RASCUNHO', 'EM_NEGOCIACAO'].includes(row.status)) fail(409, `Somente registros em rascunho/negociação podem ser ativados (status atual: ${row.status}).`)
     if (row.vigenciaFim && new Date(row.vigenciaFim).getTime() < Date.now() - 86_400_000) fail(422, 'A vigência já terminou: ajuste o fim da vigência antes de ativar.')
     await o.validarAtivar?.(row, tid(req))
+    await exigirSemBloqueio(tid(req), { refType: o.refType, refId: row.id }, 'ativar este contrato') // Agente de documentos: documento crítico pendente de decisão
     res.json(await gravar(req, row, { status: 'VIGENTE' }, 'ATIVAR'))
   }))
 

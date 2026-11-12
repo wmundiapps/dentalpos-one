@@ -1,3 +1,4 @@
+import { exigirSemBloqueio } from '../analise-docs/bloqueio'
 import { Router, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
@@ -281,6 +282,8 @@ export async function mudarStatusProtocolo(p: {
   const de = proto.status as ProtocoloStatus
   if (!podeTransitar(de, p.para)) throw Object.assign(new Error(`Transição inválida: ${etiqueta(de)} → ${etiqueta(p.para)}.`), { status: 409 })
   if (exigeParecer(p.para) && !(p.parecer && p.parecer.trim().length >= 5)) throw Object.assign(new Error('Informe o parecer/motivo (mín. 5 caracteres).'), { status: 400 })
+  // Agente de documentos: documento crítico sem decisão humana (ou decisão desfavorável) bloqueia a conclusão/deferimento.
+  if (p.para === 'DEFERIDO' || p.para === 'CONCLUIDO') await exigirSemBloqueio(tenantId, { refType: 'SecProtocolo', refId: proto.id }, p.para === 'DEFERIDO' ? 'deferir este protocolo' : 'concluir este protocolo')
   if (p.para === 'CONCLUIDO' && proto.taxaStatus === 'PENDENTE') {
     await sincronizarTaxa(proto)
     const novo = await prisma.secProtocolo.findUnique({ where: { id: proto.id }, select: { taxaStatus: true } })

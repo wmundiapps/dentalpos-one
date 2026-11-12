@@ -1,3 +1,4 @@
+import { exigirAlunoSemBloqueio } from '../analise-docs/bloqueio'
 import { Router, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
@@ -252,6 +253,7 @@ export function mountDiplomas(router: Router) {
     const d = await prisma.secDiploma.findFirst({ where: { id: String(req.params.id), tenantId } })
     if (!d) return res.status(404).json({ error: 'Diploma não encontrado.' })
     if (d.status !== 'REGISTRO') return res.status(409).json({ error: 'O diploma precisa estar na etapa REGISTRO.' })
+    await exigirAlunoSemBloqueio(tenantId, d.studentId, 'registrar este diploma')
     // Tudo em uma transação: o diploma é "reivindicado" (REGISTRO -> REGISTRADO) e o livro é travado (FOR UPDATE), assim
     // registros simultâneos não consomem dois números para o mesmo diploma nem geram lacunas/duplicidade na numeração.
     const httpErr = (status: number, msg: string, extra: object = {}) => Object.assign(new Error(msg), { status, ...extra })

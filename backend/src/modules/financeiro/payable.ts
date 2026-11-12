@@ -1,3 +1,4 @@
+import { exigirSemBloqueio } from '../analise-docs/bloqueio';
 import { Router, Response } from 'express';
 import { prisma } from '../../lib/prisma'; // AJUSTE: caminho real do seu cliente Prisma
 import {
@@ -72,6 +73,7 @@ router.post(
     if (payable.status === 'PAGO') {
       return res.status(409).json({ error: 'Esta conta já está paga.' });
     }
+    await exigirSemBloqueio(tenantId, { refType: 'AccountPayable', refId: payable.id }, 'pagar esta conta'); // Agente de documentos
     if (payable.status === 'CANCELADO') {
       return res.status(409).json({ error: 'Esta conta está cancelada.' });
     }

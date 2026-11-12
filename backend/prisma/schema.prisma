@@ -4665,6 +4665,231 @@ model AdmRematricula {
   @@index([tenantId, campanhaId, status])
 }
 
+// ---- edu/analise-docs.prisma ----
+// ============================================================
+// EDUMASTER PRO — AGENTE DE ANÁLISE DE DOCUMENTOS (prefixo Adc)
+// Dossiês ("casos") com documentos enviados à Secretaria, ao Financeiro e ao Jurídico: extração de campos, conferência,
+// conflitos, veracidade da instituição (provedor simulado/e-MEC), equivalência de disciplinas e fila de revisão humana.
+// Dados pessoais extraídos ficam CIFRADOS (AES-256-GCM, módulo segurança) em AdcDocumento.dadosCif; só o resumo mascarado é legível.
+// Referências a models de outros módulos = String ids sem @relation (Student, SecProtocolo, AcademicProgram, Discipline...).
+// Estados são String (validados por zod nas rotas) para manter a migration aditiva simples.
+// ============================================================
+
+model AdcContador {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chave     String
+  valor     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+}
+
+model AdcConfig {
+  id                          String   @id @default(uuid())
+  tenantId                    String   @unique
+  percentualAproveitamento    Int      @default(75)     // % mínimo da carga horária da disciplina de destino para aproveitar
+  similaridadeMinima          Int      @default(55)     // % mínimo de similaridade de ementa/nome para sugerir equivalência
+  validadeAproveitamentoAnos  Int      @default(10)     // disciplinas concluídas há mais que isso exigem revisão
+  slaHoras                    Int      @default(48)
+  slaCriticoHoras             Int      @default(4)
+  retencaoDias                Int      @default(180)    // após a decisão, os dados pessoais cifrados são apagados
+  diretoriaSecretaria         String   @default("COORDINATOR")
+  diretoriaFinanceiro         String   @default("FINANCE")
+  diretoriaJuridico           String   @default("LEGAL")
+  notificarReitor             Boolean  @default(true)
+  provedor                    String   @default("SIMULADO")   // SIMULADO | EMEC (ponto de integração real, exige credencial)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
+// Dossiê: um conjunto de documentos analisados em conjunto (mesma pessoa/processo).
+model AdcCaso {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  codigo             String                             // ADC-2026-0001
+  origem             String                             // SECRETARIA | FINANCEIRO | JURIDICO
+  contexto           String   @default("OUTRO")         // MATRICULA, TRANSFERENCIA, EQUIVALENCIA, DIPLOMA, COMPROVANTE, NOTA_FISCAL, CONTRATO, CERTIDAO, OUTRO
+  titulo             String
+  status             String   @default("EM_FILA")       // EM_FILA, ANALISADO, EM_REVISAO, APROVADO, REJEITADO, BLOQUEADO
+  resultado          String?                            // OK | ATENCAO | CRITICO (após a análise)
+  score              Int?                               // 0-100 (risco)
+  critico            Boolean  @default(false)
+  bloqueado          Boolean  @default(false)           // bloqueia a conclusão do processo de origem até decisão humana
+  studentId          String?
+  programId          String?                            // curso de destino (equivalência)
+  protocoloId        String?                            // SecProtocolo
+  refType            String?                            // SecProtocolo, SecAnexo, FinReceivable, FinPayable, FinInvoice, JurContrato, JurDocumento...
+  refId              String?
+  sujeitoNome        String?                            // nome MASCARADO (exibição)
+  sujeitoCpfHash     String?                            // HMAC do CPF (detecção de duplicidade sem guardar o número)
+  criadoPorId        String?
+  responsavelId      String?
+  slaEm              DateTime
+  analisadoEm        DateTime?
+  decididoEm         DateTime?
+  decididoPorId      String?
+  decisao            String?                            // APROVAR | APROVAR_COM_RESSALVA | REJEITAR | SOLICITAR_NOVO_DOCUMENTO
+  decisaoJustificativa String?
+  resumo             String?                            // laudo em texto (sem dados pessoais completos)
+  modoAnalise        String?                            // REGRAS | REGRAS+IA
+  criticoNotificadoEm DateTime?
+  expiraEm           DateTime?
+  dadosApagadosEm    DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  documentos         AdcDocumento[]
+  achados            AdcAchado[]
+  equivalencias      AdcEquivalenciaSug[]
+  consultas          AdcConsulta[]
+  eventos            AdcEvento[]
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status])
+  @@index([tenantId, origem, status])
+  @@index([tenantId, studentId])
+  @@index([tenantId, refType, refId])
+  @@index([tenantId, bloqueado])
+  @@index([tenantId, sujeitoCpfHash])
+}
+
+model AdcDocumento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  casoId        String
+  tipo          String                                  // HISTORICO_ESCOLAR, DIPLOMA, RG_CPF, COMPROVANTE, CONTRATO, NOTA_FISCAL, CERTIDAO, DECLARACAO, HISTORICO_ENSINO_MEDIO
+  arquivoNome   String?
+  mime          String?
+  tamanho       Int?
+  hashArquivo   String?                                 // SHA-256 do conteúdo (o arquivo em si NÃO é guardado)
+  chaveDup      String?                                 // HMAC de nº do diploma/registro + instituição (detecção de diploma duplicado)
+  dadosCif      String?  @db.Text                       // JSON dos campos extraídos, cifrado
+  camposResumo  Json?                                   // campos não sensíveis / mascarados para exibição
+  metadados     Json?                                   // producer, creator, datas do arquivo, sinais de edição
+  checklist     Json?                                   // [{item, ok, obrigatorio}]
+  confianca     Float?
+  modoExtracao  String?                                 // TEXTO | CAMPOS | PDF_TEXTO
+  createdAt     DateTime @default(now())
+
+  caso          AdcCaso  @relation(fields: [casoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, casoId])
+  @@index([tenantId, hashArquivo])
+  @@index([tenantId, chaveDup])
+}
+
+model AdcAchado {
+  id            String   @id @default(uuid())
+  tenantId      String
+  casoId        String
+  documentoId   String?
+  regra         String                                  // código estável da regra (CPF_INVALIDO, CONFLITO_NOME...)
+  categoria     String                                  // CONFORMIDADE, CONFLITO, AUTENTICIDADE, INSTITUICAO, EQUIVALENCIA, DUPLICIDADE
+  gravidade     String                                  // INFO, BAIXA, MEDIA, ALTA, CRITICA
+  titulo        String
+  explicacao    String
+  evidencia     Json?                                   // valores comparados (mascarados)
+  sugestao      String?
+  resolvido     Boolean  @default(false)
+  resolvidoPorId String?
+  resolvidoEm   DateTime?
+  resolucaoNota String?
+  createdAt     DateTime @default(now())
+
+  caso          AdcCaso  @relation(fields: [casoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, casoId])
+  @@index([tenantId, gravidade, resolvido])
+}
+
+// Sugestão de equivalência/dispensa de uma disciplina da instituição de origem com a matriz do curso.
+model AdcEquivalenciaSug {
+  id               String   @id @default(uuid())
+  tenantId         String
+  casoId           String
+  documentoId      String?
+  origemDisciplina String
+  origemCargaHoraria Int?
+  origemNota       Float?
+  origemAno        Int?
+  origemSituacao   String?
+  disciplineId     String?
+  disciplinaNome   String?
+  cargaDestino     Int?
+  similaridade     Float    @default(0)                 // 0-100
+  razaoCarga       Float    @default(0)                 // % da carga de destino coberta
+  sugestao         String   @default("NAO_EQUIVALENTE") // EQUIVALENCIA, DISPENSA_PARCIAL, NAO_EQUIVALENTE
+  avisos           Json?                                // [{tipo, gravidade, texto}]
+  decisao          String   @default("PENDENTE")        // PENDENTE, ACEITA, REJEITADA
+  decididoPorId    String?
+  decididoEm       DateTime?
+  createdAt        DateTime @default(now())
+
+  caso             AdcCaso  @relation(fields: [casoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, casoId])
+}
+
+// Consulta de veracidade de instituição (provedor SIMULADO ou real). Registra sempre o provedor usado.
+model AdcConsulta {
+  id            String   @id @default(uuid())
+  tenantId      String
+  casoId        String?
+  documentoId   String?
+  tipo          String                                  // IES | ESCOLA
+  termo         String
+  provedor      String                                  // SIMULADO | EMEC
+  simulada      Boolean  @default(true)
+  encontrada    Boolean  @default(false)
+  situacao      String?
+  resultado     Json?
+  createdAt     DateTime @default(now())
+
+  caso          AdcCaso? @relation(fields: [casoId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, casoId])
+}
+
+// Base local de demonstração (cadastro FICTÍCIO) consultada pelo provedor simulado. O administrador pode ajustar.
+model AdcInstituicao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tipo          String                                  // IES | ESCOLA
+  codigo        String                                  // código e-MEC (IES) ou código da escola (INEP/secretaria estadual)
+  nome          String
+  sigla         String?
+  uf            String
+  municipio     String?
+  situacao      String   @default("REGULAR")            // REGULAR, DESCREDENCIADA, EM_EXTINCAO, SUSPENSA, EM_DILIGENCIA
+  secretariaEstadual String?
+  cursos        Json?                                   // [{nome, grau, reconhecido, portaria}]
+  ativo         Boolean  @default(true)
+  fonte         String   @default("DEMONSTRACAO")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, tipo, codigo])
+  @@index([tenantId, tipo, nome])
+}
+
+// Histórico do caso: ações, comentários, decisões, notificações críticas e acessos a dados pessoais.
+model AdcEvento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  casoId      String
+  tipo        String                                    // CRIADO, ANALISADO, REANALISE, ATRIBUICAO, COMENTARIO, DECISAO, ACHADO_RESOLVIDO, CRITICO_NOTIFICADO, BLOQUEIO, DESBLOQUEIO, ACESSO_DADOS, EQUIVALENCIA_DECIDIDA
+  usuarioId   String?
+  usuarioNome String?
+  texto       String?
+  dados       Json?
+  createdAt   DateTime @default(now())
+
+  caso        AdcCaso  @relation(fields: [casoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, casoId, createdAt])
+}
+
 // ---- edu/apoio.prisma ----
 // ============================================================
 // EDUMASTER PRO — APOIO (discente, docente, ouvidoria, egressos)

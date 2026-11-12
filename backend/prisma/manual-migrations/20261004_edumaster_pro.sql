@@ -19859,6 +19859,9 @@ CREATE INDEX IF NOT EXISTS "CprUsoMedicamento_tenantId_supItemId_data_idx" ON "C
 -- ==== IPL:BEGIN (módulo infraestrutura/planejamento, prefixo Ipl - gerado por prisma migrate diff; somente CRIA) ====
 -- CreateTable
 CREATE TABLE IF NOT EXISTS "IplContador" (
+-- ==== ADC:BEGIN (Agente de análise de documentos, prefixo Adc - gerado por prisma migrate diff; só CRIA tabelas/índices/FKs, idempotente) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdcContador" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "chave" TEXT NOT NULL,
@@ -20036,3 +20039,274 @@ CREATE INDEX IF NOT EXISTS "IplSugestao_tenantId_status_idx" ON "IplSugestao"("t
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "IplSugestao_tenantId_chave_key" ON "IplSugestao"("tenantId", "chave");
 -- ==== IPL:END ====
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AdcContador_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdcConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "percentualAproveitamento" INTEGER NOT NULL DEFAULT 75,
+    "similaridadeMinima" INTEGER NOT NULL DEFAULT 55,
+    "validadeAproveitamentoAnos" INTEGER NOT NULL DEFAULT 10,
+    "slaHoras" INTEGER NOT NULL DEFAULT 48,
+    "slaCriticoHoras" INTEGER NOT NULL DEFAULT 4,
+    "retencaoDias" INTEGER NOT NULL DEFAULT 180,
+    "diretoriaSecretaria" TEXT NOT NULL DEFAULT 'COORDINATOR',
+    "diretoriaFinanceiro" TEXT NOT NULL DEFAULT 'FINANCE',
+    "diretoriaJuridico" TEXT NOT NULL DEFAULT 'LEGAL',
+    "notificarReitor" BOOLEAN NOT NULL DEFAULT true,
+    "provedor" TEXT NOT NULL DEFAULT 'SIMULADO',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AdcConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdcCaso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "origem" TEXT NOT NULL,
+    "contexto" TEXT NOT NULL DEFAULT 'OUTRO',
+    "titulo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'EM_FILA',
+    "resultado" TEXT,
+    "score" INTEGER,
+    "critico" BOOLEAN NOT NULL DEFAULT false,
+    "bloqueado" BOOLEAN NOT NULL DEFAULT false,
+    "studentId" TEXT,
+    "programId" TEXT,
+    "protocoloId" TEXT,
+    "refType" TEXT,
+    "refId" TEXT,
+    "sujeitoNome" TEXT,
+    "sujeitoCpfHash" TEXT,
+    "criadoPorId" TEXT,
+    "responsavelId" TEXT,
+    "slaEm" TIMESTAMP(3) NOT NULL,
+    "analisadoEm" TIMESTAMP(3),
+    "decididoEm" TIMESTAMP(3),
+    "decididoPorId" TEXT,
+    "decisao" TEXT,
+    "decisaoJustificativa" TEXT,
+    "resumo" TEXT,
+    "modoAnalise" TEXT,
+    "criticoNotificadoEm" TIMESTAMP(3),
+    "expiraEm" TIMESTAMP(3),
+    "dadosApagadosEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AdcCaso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdcDocumento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "arquivoNome" TEXT,
+    "mime" TEXT,
+    "tamanho" INTEGER,
+    "hashArquivo" TEXT,
+    "chaveDup" TEXT,
+    "dadosCif" TEXT,
+    "camposResumo" JSONB,
+    "metadados" JSONB,
+    "checklist" JSONB,
+    "confianca" DOUBLE PRECISION,
+    "modoExtracao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AdcDocumento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdcAchado" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT NOT NULL,
+    "documentoId" TEXT,
+    "regra" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL,
+    "gravidade" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "explicacao" TEXT NOT NULL,
+    "evidencia" JSONB,
+    "sugestao" TEXT,
+    "resolvido" BOOLEAN NOT NULL DEFAULT false,
+    "resolvidoPorId" TEXT,
+    "resolvidoEm" TIMESTAMP(3),
+    "resolucaoNota" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AdcAchado_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdcEquivalenciaSug" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT NOT NULL,
+    "documentoId" TEXT,
+    "origemDisciplina" TEXT NOT NULL,
+    "origemCargaHoraria" INTEGER,
+    "origemNota" DOUBLE PRECISION,
+    "origemAno" INTEGER,
+    "origemSituacao" TEXT,
+    "disciplineId" TEXT,
+    "disciplinaNome" TEXT,
+    "cargaDestino" INTEGER,
+    "similaridade" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "razaoCarga" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "sugestao" TEXT NOT NULL DEFAULT 'NAO_EQUIVALENTE',
+    "avisos" JSONB,
+    "decisao" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "decididoPorId" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AdcEquivalenciaSug_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdcConsulta" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT,
+    "documentoId" TEXT,
+    "tipo" TEXT NOT NULL,
+    "termo" TEXT NOT NULL,
+    "provedor" TEXT NOT NULL,
+    "simulada" BOOLEAN NOT NULL DEFAULT true,
+    "encontrada" BOOLEAN NOT NULL DEFAULT false,
+    "situacao" TEXT,
+    "resultado" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AdcConsulta_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdcInstituicao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "sigla" TEXT,
+    "uf" TEXT NOT NULL,
+    "municipio" TEXT,
+    "situacao" TEXT NOT NULL DEFAULT 'REGULAR',
+    "secretariaEstadual" TEXT,
+    "cursos" JSONB,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "fonte" TEXT NOT NULL DEFAULT 'DEMONSTRACAO',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AdcInstituicao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdcEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "casoId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "usuarioId" TEXT,
+    "usuarioNome" TEXT,
+    "texto" TEXT,
+    "dados" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AdcEvento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AdcContador_tenantId_chave_key" ON "AdcContador"("tenantId", "chave");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AdcConfig_tenantId_key" ON "AdcConfig"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcCaso_tenantId_status_idx" ON "AdcCaso"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcCaso_tenantId_origem_status_idx" ON "AdcCaso"("tenantId", "origem", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcCaso_tenantId_studentId_idx" ON "AdcCaso"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcCaso_tenantId_refType_refId_idx" ON "AdcCaso"("tenantId", "refType", "refId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcCaso_tenantId_bloqueado_idx" ON "AdcCaso"("tenantId", "bloqueado");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcCaso_tenantId_sujeitoCpfHash_idx" ON "AdcCaso"("tenantId", "sujeitoCpfHash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AdcCaso_tenantId_codigo_key" ON "AdcCaso"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcDocumento_tenantId_casoId_idx" ON "AdcDocumento"("tenantId", "casoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcDocumento_tenantId_hashArquivo_idx" ON "AdcDocumento"("tenantId", "hashArquivo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcDocumento_tenantId_chaveDup_idx" ON "AdcDocumento"("tenantId", "chaveDup");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcAchado_tenantId_casoId_idx" ON "AdcAchado"("tenantId", "casoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcAchado_tenantId_gravidade_resolvido_idx" ON "AdcAchado"("tenantId", "gravidade", "resolvido");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcEquivalenciaSug_tenantId_casoId_idx" ON "AdcEquivalenciaSug"("tenantId", "casoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcConsulta_tenantId_casoId_idx" ON "AdcConsulta"("tenantId", "casoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcInstituicao_tenantId_tipo_nome_idx" ON "AdcInstituicao"("tenantId", "tipo", "nome");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AdcInstituicao_tenantId_tipo_codigo_key" ON "AdcInstituicao"("tenantId", "tipo", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AdcEvento_tenantId_casoId_createdAt_idx" ON "AdcEvento"("tenantId", "casoId", "createdAt");
+
+-- AddForeignKey
+DO $$ BEGIN
+ALTER TABLE "AdcDocumento" ADD CONSTRAINT "AdcDocumento_casoId_fkey" FOREIGN KEY ("casoId") REFERENCES "AdcCaso"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+ALTER TABLE "AdcAchado" ADD CONSTRAINT "AdcAchado_casoId_fkey" FOREIGN KEY ("casoId") REFERENCES "AdcCaso"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+ALTER TABLE "AdcEquivalenciaSug" ADD CONSTRAINT "AdcEquivalenciaSug_casoId_fkey" FOREIGN KEY ("casoId") REFERENCES "AdcCaso"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+ALTER TABLE "AdcConsulta" ADD CONSTRAINT "AdcConsulta_casoId_fkey" FOREIGN KEY ("casoId") REFERENCES "AdcCaso"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+ALTER TABLE "AdcEvento" ADD CONSTRAINT "AdcEvento_casoId_fkey" FOREIGN KEY ("casoId") REFERENCES "AdcCaso"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ==== ADC:END ====
