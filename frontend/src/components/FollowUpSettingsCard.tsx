@@ -21,7 +21,7 @@ export default function FollowUpSettingsCard() {
     try { await fn(); setNotice(ok); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível concluir."); }
     finally { setBusy(false); }
   };
-  const toggle = (k: "weeklyList" | "dailyDebtors" | "debtorNotice" | "skipImported") => (_: unknown, v: boolean) => void run(() => saveFollowUpSettings({ [k]: v }), "Salvo.");
+  const toggle = (k: "weeklyList" | "dailyDebtors" | "dailyJourney" | "debtorNotice" | "skipImported") => (_: unknown, v: boolean) => void run(() => saveFollowUpSettings({ [k]: v }), "Salvo.");
 
   return (
     <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, mb: 3 }}>
@@ -31,6 +31,7 @@ export default function FollowUpSettingsCard() {
       {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
       <Box sx={{ display: "grid", gap: 0.5, mb: 2 }}>
         <FormControlLabel control={<Switch checked={data.weeklyList} onChange={toggle("weeklyList")} disabled={busy} />} label="Toda segunda-feira: lista de pacientes que ficaram sem agendar" />
+        <FormControlLabel control={<Switch checked={data.dailyJourney} onChange={toggle("dailyJourney")} disabled={busy} />} label="Todo dia: jornada dos pacientes (orçamento, consulta, procedimento, financeiro, laboratório e se o procedimento foi anotado)" />
         <FormControlLabel control={<Switch checked={data.dailyDebtors} onChange={toggle("dailyDebtors")} disabled={busy} />} label={`Todo dia: lista de pacientes devendo (hoje: ${data.debtorCount})`} />
         <FormControlLabel control={<Switch checked={data.debtorNotice} onChange={toggle("debtorNotice")} disabled={busy} />} label="Todo dia: e-mail ao paciente devedor pedindo que entre em contato com a clínica (sem citar valor)" />
         <FormControlLabel control={<Switch checked={data.skipImported} onChange={toggle("skipImported")} disabled={busy} />} label="Não cobrar parcelas importadas de outro sistema (Clinicorp) enquanto a baixa não for feita — o boleto delas foi emitido lá e o pagamento não chega aqui sozinho" />
