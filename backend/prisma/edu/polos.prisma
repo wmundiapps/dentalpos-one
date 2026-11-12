@@ -1,0 +1,168 @@
+// ============================================================
+// EDUMASTER PRO — POLOS EAD (prefixo Pol): repasse, provas presenciais, rematrícula por polo,
+// ENADE por polo e ofertas automáticas de segunda graduação / pós-graduação.
+// Estende o módulo modalidades (ModPolo, ModPoloOferta, ModPoloAluno) sem duplicá-lo.
+// ============================================================
+
+// Regra de repasse/receita do polo (percentual sobre o recebido + valor fixo por aluno ativo).
+model PolRepasseConfig {
+  id               String   @id @default(uuid())
+  tenantId         String
+  poloId           String
+  percentualRepasse Float   @default(30)
+  valorFixoAluno   Float    @default(0)
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([poloId])
+  @@index([tenantId])
+}
+
+model PolRepasse {
+  id             String   @id @default(uuid())
+  tenantId       String
+  poloId         String
+  competencia    String            // AAAA-MM
+  alunosAtivos   Int      @default(0)
+  receitaPrevista Float   @default(0)
+  receitaRecebida Float   @default(0)
+  inadimplencia  Float    @default(0)
+  percentual     Float    @default(0)
+  valorFixo      Float    @default(0)
+  valorRepasse   Float    @default(0)
+  status         String   @default("CALCULADO")   // CALCULADO | APROVADO | PAGO
+  aprovadoPorId  String?
+  pagoEm         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([poloId, competencia])
+  @@index([tenantId, competencia])
+}
+
+// Prova presencial realizada no polo, com aviso automático ao aluno 7 dias e 1 dia antes.
+model PolProva {
+  id          String   @id @default(uuid())
+  tenantId    String
+  poloId      String
+  programId   String?
+  titulo      String
+  disciplina  String?
+  dataHora    DateTime
+  duracaoMin  Int      @default(120)
+  local       String?
+  observacao  String?
+  status      String   @default("AGENDADA")   // AGENDADA | REALIZADA | CANCELADA
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  avisos      PolProvaAviso[]
+
+  @@index([tenantId, poloId, dataHora])
+  @@index([status, dataHora])
+}
+
+model PolProvaAviso {
+  id         String   @id @default(uuid())
+  tenantId   String
+  provaId    String
+  studentId  String
+  marco      String            // D7 | D1
+  notificacaoId String?
+  enviadoEm  DateTime @default(now())
+
+  prova      PolProva @relation(fields: [provaId], references: [id], onDelete: Cascade)
+
+  @@unique([provaId, studentId, marco])
+  @@index([tenantId, studentId])
+}
+
+// Vínculo polo -> campanha de rematrícula do módulo admissoes (a lista de itens fica em AdmRematricula).
+model PolRematriculaCampanha {
+  id          String   @id @default(uuid())
+  tenantId    String
+  poloId      String
+  campanhaId  String   @unique
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, poloId])
+}
+
+// Participação no ENADE por polo (integra com o módulo de exames apenas por link; indicadores próprios).
+model PolEnadeParticipacao {
+  id           String   @id @default(uuid())
+  tenantId     String
+  poloId       String
+  studentId    String
+  ano          Int
+  situacao     String   @default("PENDENTE")   // PENDENTE | INSCRITO | PARTICIPOU | AUSENTE | DISPENSADO
+  preparatorio Boolean  @default(false)
+  simuladoNota Float?
+  atualizadoPorId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([tenantId, studentId, ano])
+  @@index([tenantId, poloId, ano])
+}
+
+// Política configurável de oferta automática (segunda graduação / pós-graduação).
+model PolOfertaPolitica {
+  id              String   @id @default(uuid())
+  tenantId        String
+  poloId          String?                 // null = toda a rede
+  nome            String
+  tipo            String                  // SEGUNDA_GRADUACAO | POS_GRADUACAO
+  gatilho         String   @default("EGRESSO")   // CONCLUINTE | EGRESSO | AMBOS
+  descontoPct     Float    @default(0)
+  prazoDias       Int      @default(15)
+  canal           String   @default("EMAIL")     // EMAIL | WHATSAPP | SMS | IN_APP
+  limiteContatos  Int      @default(2)    // máx. de contatos por pessoa nesta política
+  janelaInicio    String   @default("09:00")
+  janelaFim       String   @default("20:00")
+  areaAfim        Json?                   // { "Administração": ["Contábeis","Gestão"], ... } palavras do nome do curso-alvo
+  cursoAlvoId     String?                 // curso-alvo fixo (AcademicProgram ou ModPosPrograma conforme o tipo)
+  exigeConsentimento Boolean @default(true)
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  ofertas         PolOferta[]
+
+  @@index([tenantId, ativo])
+}
+
+model PolOferta {
+  id            String   @id @default(uuid())
+  tenantId      String
+  politicaId    String
+  poloId        String?
+  studentId     String?
+  egressoId     String?
+  chave         String            // politicaId:pessoa (idempotência)
+  nome          String
+  programaOrigem String?
+  alvoTipo      String            // PROGRAMA | POS
+  alvoId        String?
+  alvoNome      String
+  descontoPct   Float    @default(0)
+  expiraEm      DateTime
+  canal         String
+  status        String   @default("OFERTADA")  // OFERTADA | ACEITA | MATRICULADA | RECUSADA | EXPIRADA
+  contatos      Int      @default(0)
+  ultimoContatoEm DateTime?
+  notificacaoId String?
+  ofertadaEm    DateTime @default(now())
+  aceitaEm      DateTime?
+  matriculadaEm DateTime?
+  recusadaEm    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  politica      PolOfertaPolitica @relation(fields: [politicaId], references: [id], onDelete: Cascade)
+
+  @@unique([chave])
+  @@index([tenantId, status])
+  @@index([tenantId, poloId])
+}

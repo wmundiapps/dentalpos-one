@@ -210,6 +210,8 @@ model ModPolo {
   bairro          String?
   cidade          String?
   uf              String?
+  latitude        Float?
+  longitude       Float?
   statusCredenciamento ModPoloStatus @default(EM_CREDENCIAMENTO)
   atoNumero       String?
   atoData         DateTime?
@@ -255,6 +257,7 @@ model ModPoloOferta {
   programId String
   termId    String?
   vagas     Int      @default(0)
+  turnos    String?          // MANHA,TARDE,NOITE,SABADO (separados por vírgula)
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

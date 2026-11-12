@@ -20746,3 +20746,221 @@ ALTER TABLE "ExaSessao" ADD CONSTRAINT "ExaSessao_simuladoId_fkey" FOREIGN KEY (
 
 
 -- ==== EXAMES:END ====
+
+-- ==== POL:BEGIN (Polos EAD, prefixo Pol + colunas em ModPolo/ModPoloOferta - gerado por prisma migrate diff; idempotente) ====
+-- AlterTable
+ALTER TABLE "ModPolo" ADD COLUMN IF NOT EXISTS "latitude" DOUBLE PRECISION,
+ADD COLUMN IF NOT EXISTS "longitude" DOUBLE PRECISION;
+
+-- AlterTable
+ALTER TABLE "ModPoloOferta" ADD COLUMN IF NOT EXISTS "turnos" TEXT;
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PolRepasseConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "poloId" TEXT NOT NULL,
+    "percentualRepasse" DOUBLE PRECISION NOT NULL DEFAULT 30,
+    "valorFixoAluno" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PolRepasseConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PolRepasse" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "poloId" TEXT NOT NULL,
+    "competencia" TEXT NOT NULL,
+    "alunosAtivos" INTEGER NOT NULL DEFAULT 0,
+    "receitaPrevista" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "receitaRecebida" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "inadimplencia" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "percentual" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorFixo" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorRepasse" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'CALCULADO',
+    "aprovadoPorId" TEXT,
+    "pagoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PolRepasse_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PolProva" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "poloId" TEXT NOT NULL,
+    "programId" TEXT,
+    "titulo" TEXT NOT NULL,
+    "disciplina" TEXT,
+    "dataHora" TIMESTAMP(3) NOT NULL,
+    "duracaoMin" INTEGER NOT NULL DEFAULT 120,
+    "local" TEXT,
+    "observacao" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'AGENDADA',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PolProva_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PolProvaAviso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "provaId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "marco" TEXT NOT NULL,
+    "notificacaoId" TEXT,
+    "enviadoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PolProvaAviso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PolRematriculaCampanha" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "poloId" TEXT NOT NULL,
+    "campanhaId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PolRematriculaCampanha_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PolEnadeParticipacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "poloId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "ano" INTEGER NOT NULL,
+    "situacao" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "preparatorio" BOOLEAN NOT NULL DEFAULT false,
+    "simuladoNota" DOUBLE PRECISION,
+    "atualizadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PolEnadeParticipacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PolOfertaPolitica" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "poloId" TEXT,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "gatilho" TEXT NOT NULL DEFAULT 'EGRESSO',
+    "descontoPct" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "prazoDias" INTEGER NOT NULL DEFAULT 15,
+    "canal" TEXT NOT NULL DEFAULT 'EMAIL',
+    "limiteContatos" INTEGER NOT NULL DEFAULT 2,
+    "janelaInicio" TEXT NOT NULL DEFAULT '09:00',
+    "janelaFim" TEXT NOT NULL DEFAULT '20:00',
+    "areaAfim" JSONB,
+    "cursoAlvoId" TEXT,
+    "exigeConsentimento" BOOLEAN NOT NULL DEFAULT true,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PolOfertaPolitica_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PolOferta" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "politicaId" TEXT NOT NULL,
+    "poloId" TEXT,
+    "studentId" TEXT,
+    "egressoId" TEXT,
+    "chave" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "programaOrigem" TEXT,
+    "alvoTipo" TEXT NOT NULL,
+    "alvoId" TEXT,
+    "alvoNome" TEXT NOT NULL,
+    "descontoPct" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "expiraEm" TIMESTAMP(3) NOT NULL,
+    "canal" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'OFERTADA',
+    "contatos" INTEGER NOT NULL DEFAULT 0,
+    "ultimoContatoEm" TIMESTAMP(3),
+    "notificacaoId" TEXT,
+    "ofertadaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "aceitaEm" TIMESTAMP(3),
+    "matriculadaEm" TIMESTAMP(3),
+    "recusadaEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PolOferta_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PolRepasseConfig_tenantId_idx" ON "PolRepasseConfig"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PolRepasseConfig_poloId_key" ON "PolRepasseConfig"("poloId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PolRepasse_tenantId_competencia_idx" ON "PolRepasse"("tenantId", "competencia");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PolRepasse_poloId_competencia_key" ON "PolRepasse"("poloId", "competencia");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PolProva_tenantId_poloId_dataHora_idx" ON "PolProva"("tenantId", "poloId", "dataHora");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PolProva_status_dataHora_idx" ON "PolProva"("status", "dataHora");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PolProvaAviso_tenantId_studentId_idx" ON "PolProvaAviso"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PolProvaAviso_provaId_studentId_marco_key" ON "PolProvaAviso"("provaId", "studentId", "marco");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PolRematriculaCampanha_campanhaId_key" ON "PolRematriculaCampanha"("campanhaId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PolRematriculaCampanha_tenantId_poloId_idx" ON "PolRematriculaCampanha"("tenantId", "poloId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PolEnadeParticipacao_tenantId_poloId_ano_idx" ON "PolEnadeParticipacao"("tenantId", "poloId", "ano");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PolEnadeParticipacao_tenantId_studentId_ano_key" ON "PolEnadeParticipacao"("tenantId", "studentId", "ano");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PolOfertaPolitica_tenantId_ativo_idx" ON "PolOfertaPolitica"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PolOferta_tenantId_status_idx" ON "PolOferta"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PolOferta_tenantId_poloId_idx" ON "PolOferta"("tenantId", "poloId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PolOferta_chave_key" ON "PolOferta"("chave");
+
+-- AddForeignKey
+DO $$ BEGIN
+ALTER TABLE "PolProvaAviso" ADD CONSTRAINT "PolProvaAviso_provaId_fkey" FOREIGN KEY ("provaId") REFERENCES "PolProva"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+ALTER TABLE "PolOferta" ADD CONSTRAINT "PolOferta_politicaId_fkey" FOREIGN KEY ("politicaId") REFERENCES "PolOfertaPolitica"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ==== POL:END ====

@@ -17,6 +17,7 @@ const poloSchema = z.object({
   responsavelTelefone: z.string().optional().nullable(), responsavelUserId: z.string().optional().nullable(),
   cep: z.string().optional().nullable(), logradouro: z.string().optional().nullable(), numero: z.string().optional().nullable(),
   bairro: z.string().optional().nullable(), cidade: z.string().optional().nullable(), uf: z.string().length(2).optional().nullable(),
+  latitude: z.number().min(-90).max(90).optional().nullable(), longitude: z.number().min(-180).max(180).optional().nullable(),
   statusCredenciamento: z.enum(['EM_CREDENCIAMENTO', 'CREDENCIADO', 'SUSPENSO', 'DESCREDENCIADO']).optional(),
   atoNumero: z.string().optional().nullable(), atoData: dateISO().optional().nullable(), atoValidade: dateISO().optional().nullable(),
   capacidade: z.number().int().min(0).optional(), ativo: z.boolean().optional(),
@@ -98,7 +99,7 @@ router.put('/polos/:id/checklist/:chave', requireRole(...MANAGE), asyncHandler(a
 }))
 
 // Ofertas por polo
-const poloOfertaSchema = z.object({ poloId: z.string(), programId: z.string(), termId: z.string().optional().nullable(), vagas: z.number().int().min(0), ativo: z.boolean().optional() })
+const poloOfertaSchema = z.object({ poloId: z.string(), programId: z.string(), termId: z.string().optional().nullable(), vagas: z.number().int().min(0), turnos: z.string().regex(/^(MANHA|TARDE|NOITE|SABADO)(,(MANHA|TARDE|NOITE|SABADO))*$/, 'Turnos: MANHA, TARDE, NOITE, SABADO separados por vírgula.').optional().nullable(), ativo: z.boolean().optional() })
 mountCrud(router, {
   model: 'modPoloOferta', path: '/polo-ofertas', read: [...TEACH], write: [...MANAGE], create: poloOfertaSchema, filters: ['poloId', 'programId', 'termId', 'ativo'], modulo: 'modalidades',
   beforeCreate: async (d, req) => {
