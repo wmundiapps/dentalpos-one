@@ -226,6 +226,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Comparativo com outras IES","/edu/reitoria/comparativo",<InsightsIcon/>),
       item("Jornadas e fluxogramas","/edu/jornadas",<HubIcon/>),
       item("Regulatório MEC","/edu/regulatorio",<HealthAndSafetyIcon/>),
+      item("Comissão de avaliação do MEC","/edu/regulatorio?aba=comissao",<GavelIcon/>),
       item("Governança e PDI","/edu/governanca",<AdminPanelSettingsIcon/>),
       item("Identidade e logomarcas","/edu/identidade",<SettingsIcon/>),
     ]
