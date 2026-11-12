@@ -9,6 +9,7 @@ import { mountProcessos } from './processos'
 import { mountAtos } from './atos'
 import { mountChecklists } from './checklists'
 import { mountDocumentos } from './documentos'
+import { mountMec } from './mec'
 import { mountPainel } from './painel'
 import './alertas' // registra o job diário (registerEduJob)
 
@@ -48,6 +49,7 @@ mountAtos(router)
 mountChecklists(router)
 mountAvaliacao(router)
 mountDocumentos(router)
+mountMec(router)
 
 router.use(academicErrorHandler)
 

@@ -3,6 +3,7 @@ import {
   Indicador, Perfil, Semaforo, Sentido, TTLCache, calcularNps, montarIndicador, pct, round1, round2,
   semaforoContagem, semaforoPorLimites, variacao, variacaoFavoravel,
 } from './logic'
+import { resumoCorpoDocente } from '../regulatorio/mecLogic'
 import { execucaoPdi, fracaoTempo as fracaoPdi, semaforo as semaforoPdi } from '../governanca/pdiLogic'
 
 // Catálogo de indicadores do painel executivo. Cada indicador consulta
@@ -431,6 +432,29 @@ export const DEFS: Def[] = [
       const media = rows.reduce((s, r) => s + (r.conceito ?? 0), 0) / rows.length
       const abaixo = rows.filter((r) => (r.conceito ?? 0) < 3).length
       return { valor: round1((media / 5) * 100), sentido: 'MAIOR_MELHOR', limites: { verde: 80, amarelo: 60 }, detalhe: { conceitoMedio: round2(media), indicadoresAvaliados: rows.length, abaixoDoMinimo: abaixo } }
+    },
+  },
+  {
+    chave: 'conceitos_mec', titulo: 'Conceitos MEC (CI, IGC e cursos) — faixa mínima', categoria: 'Regulatório e governança', perfis: ['reitoria', 'coordenacao'], unidade: 'faixa',
+    rota: '/edu/regulatorio?aba=excelencia', cursoFiltravel: true,
+    async run(c) {
+      const rows = await prisma.regMecConceito.findMany({ where: { tenantId: c.tenantId, ...(c.programId ? { OR: [{ programId: c.programId }, { escopo: 'INSTITUICAO' }] } : {}) }, orderBy: [{ ano: 'desc' }], take: 1000 })
+      if (!rows.length) return { valor: null }
+      const ult = new Map<string, { faixa: number; ano: number }>()
+      for (const r of rows) { const k = `${r.tipo}:${r.programId ?? r.cursoNome ?? '-'}`; if (!ult.has(k)) ult.set(k, { faixa: r.faixa, ano: r.ano }) }
+      const faixas = [...ult.values()].map((x) => x.faixa)
+      const f = (t: string) => rows.find((r) => r.tipo === t && r.escopo === 'INSTITUICAO')?.faixa ?? null
+      return { valor: Math.min(...faixas), meta: 5, sentido: 'MAIOR_MELHOR', limites: { verde: 4, amarelo: 3 }, detalhe: { ci: f('CI'), igc: f('IGC'), conceitosCurso: faixas.length, ficticio: rows.some((r) => r.ficticio), aviso: rows.some((r) => r.ficticio) ? 'DADOS FICTÍCIOS DE DEMONSTRAÇÃO' : undefined } }
+    },
+  },
+  {
+    chave: 'titulacao_docente', titulo: 'Docentes mestres ou doutores', categoria: 'Regulatório e governança', perfis: ['reitoria', 'coordenacao'], unidade: '%',
+    rota: '/edu/regulatorio?aba=excelencia',
+    async run(c) {
+      const perfis = await prisma.porProfessorPerfil.findMany({ where: { tenantId: c.tenantId }, select: { titulacao: true, regime: true }, take: 20_000 })
+      if (!perfis.length) return { valor: null }
+      const r = resumoCorpoDocente(perfis)
+      return { valor: r.pctMestresDoutores, meta: 90, sentido: 'MAIOR_MELHOR', limites: { verde: 80, amarelo: 60 }, detalhe: { docentes: r.total, pctDoutores: r.pctDoutores, pctIntegral: r.pctIntegral, pctIntegralParcial: r.pctIntegralParcial } }
     },
   },
   {

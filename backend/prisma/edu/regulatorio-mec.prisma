@@ -1,0 +1,140 @@
+// ============================================================
+// EDUMASTER PRO — REGULATÓRIO / COMISSÃO DE AVALIAÇÃO DO MEC — prefixo RegMec
+// Acompanhamento de processos de autorização, reconhecimento, renovação e (re)credenciamento:
+// fases, comissão avaliadora, visita in loco (roteiro por dimensão), evidências por indicador
+// (kit da visita) e conceitos regulatórios. Reaproveita os enums RegDimensao e RegItemStatus.
+// Os dados de demonstração (seeds/mec-comissao.ts) são FICTÍCIOS.
+// ============================================================
+
+// Fase do processo no acompanhamento da comissão. chave: PROTOCOLO | ANALISE_DOCUMENTAL |
+// DESIGNACAO_COMISSAO | VISITA_IN_LOCO | RELATORIO | CONCEITO | DESPACHO_PORTARIA
+// status: PENDENTE | EM_ANDAMENTO | CONCLUIDA | NAO_APLICAVEL
+model RegMecFase {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String               // RegProcesso (sem relation)
+  chave       String
+  nome        String
+  ordem       Int      @default(0)
+  status      String   @default("PENDENTE")
+  previstaEm  DateTime?
+  realizadaEm DateTime?
+  observacao  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([processoId, chave])
+  @@index([tenantId, processoId])
+  @@index([tenantId, status, previstaEm])
+}
+
+// Membro da comissão avaliadora designada (dados fictícios na demonstração).
+// papel: COORDENADOR | AVALIADOR | OBSERVADOR
+model RegMecMembro {
+  id           String   @id @default(uuid())
+  tenantId     String
+  processoId   String
+  nome         String
+  papel        String   @default("AVALIADOR")
+  instituicao  String?
+  titulacao    String?
+  areaAtuacao  String?
+  dimensaoFoco RegDimensao?
+  email        String?
+  designadoEm  DateTime?
+  observacao   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId, processoId])
+}
+
+// Visita in loco. status: AGENDADA | EM_ANDAMENTO | REALIZADA | CANCELADA
+model RegMecVisita {
+  id          String   @id @default(uuid())
+  tenantId    String
+  processoId  String
+  inicio      DateTime
+  fim         DateTime
+  status      String   @default("AGENDADA")
+  local       String?
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roteiro     RegMecRoteiro[]
+
+  @@index([tenantId, processoId])
+  @@index([tenantId, inicio])
+}
+
+// Item do roteiro da visita, organizado por dimensão do instrumento INEP.
+model RegMecRoteiro {
+  id           String   @id @default(uuid())
+  tenantId     String
+  visitaId     String
+  dia          DateTime
+  horaInicio   String   @default("09:00")
+  horaFim      String   @default("10:00")
+  dimensao     RegDimensao @default(ORGANIZACAO_DIDATICO_PEDAGOGICA)
+  atividade    String
+  local        String?
+  participantes String?
+  ordem        Int      @default(0)
+  realizada    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  visita       RegMecVisita @relation(fields: [visitaId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, visitaId, dia])
+}
+
+// Evidência por indicador (kit da visita): documento esperado, responsável, prazo e conceito estimado (1..5).
+model RegMecEvidencia {
+  id              String   @id @default(uuid())
+  tenantId        String
+  processoId      String
+  dimensao        RegDimensao
+  indicadorCodigo String
+  indicadorNome   String
+  descricao       String
+  obrigatorio     Boolean  @default(true)
+  responsavelId   String?
+  responsavelNome String?
+  prazo           DateTime?
+  status          RegItemStatus @default(PENDENTE)
+  documentoNome   String?
+  documentoUrl    String?
+  pastaKit        String?
+  conceitoEstimado Int?
+  observacao      String?
+  concluidoEm     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, processoId, dimensao])
+  @@index([tenantId, status, prazo])
+}
+
+// Conceitos regulatórios (CI, IGC, CPC, CC, ENADE, IDD). ficticio = true nos dados de demonstração.
+// escopo: INSTITUICAO | CURSO. chave = tipo:programId|-:ano (único por tenant).
+model RegMecConceito {
+  id          String   @id @default(uuid())
+  tenantId    String
+  chave       String
+  escopo      String   @default("INSTITUICAO")
+  programId   String?
+  cursoNome   String?
+  tipo        String
+  ano         Int
+  valor       Float?               // contínuo (0..5), quando existir
+  faixa       Int                  // 1..5
+  ficticio    Boolean  @default(false)
+  observacao  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, chave])
+  @@index([tenantId, tipo, ano])
+}

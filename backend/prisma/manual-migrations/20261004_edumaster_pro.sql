@@ -20314,3 +20314,164 @@ DO $$ BEGIN
 ALTER TABLE "AdcEvento" ADD CONSTRAINT "AdcEvento_casoId_fkey" FOREIGN KEY ("casoId") REFERENCES "AdcCaso"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- ==== ADC:END ====
+
+
+-- ==== MEC:BEGIN (Comissão de avaliação do MEC, prefixo RegMec - gerado por prisma migrate diff; só CRIA tabelas/índices, idempotente) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "RegMecFase" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "previstaEm" TIMESTAMP(3),
+    "realizadaEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RegMecFase_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "RegMecMembro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "papel" TEXT NOT NULL DEFAULT 'AVALIADOR',
+    "instituicao" TEXT,
+    "titulacao" TEXT,
+    "areaAtuacao" TEXT,
+    "dimensaoFoco" "RegDimensao",
+    "email" TEXT,
+    "designadoEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RegMecMembro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "RegMecVisita" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'AGENDADA',
+    "local" TEXT,
+    "observacoes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RegMecVisita_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "RegMecRoteiro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "visitaId" TEXT NOT NULL,
+    "dia" TIMESTAMP(3) NOT NULL,
+    "horaInicio" TEXT NOT NULL DEFAULT '09:00',
+    "horaFim" TEXT NOT NULL DEFAULT '10:00',
+    "dimensao" "RegDimensao" NOT NULL DEFAULT 'ORGANIZACAO_DIDATICO_PEDAGOGICA',
+    "atividade" TEXT NOT NULL,
+    "local" TEXT,
+    "participantes" TEXT,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "realizada" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RegMecRoteiro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "RegMecEvidencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "dimensao" "RegDimensao" NOT NULL,
+    "indicadorCodigo" TEXT NOT NULL,
+    "indicadorNome" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "obrigatorio" BOOLEAN NOT NULL DEFAULT true,
+    "responsavelId" TEXT,
+    "responsavelNome" TEXT,
+    "prazo" TIMESTAMP(3),
+    "status" "RegItemStatus" NOT NULL DEFAULT 'PENDENTE',
+    "documentoNome" TEXT,
+    "documentoUrl" TEXT,
+    "pastaKit" TEXT,
+    "conceitoEstimado" INTEGER,
+    "observacao" TEXT,
+    "concluidoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RegMecEvidencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "RegMecConceito" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "escopo" TEXT NOT NULL DEFAULT 'INSTITUICAO',
+    "programId" TEXT,
+    "cursoNome" TEXT,
+    "tipo" TEXT NOT NULL,
+    "ano" INTEGER NOT NULL,
+    "valor" DOUBLE PRECISION,
+    "faixa" INTEGER NOT NULL,
+    "ficticio" BOOLEAN NOT NULL DEFAULT false,
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RegMecConceito_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RegMecFase_tenantId_processoId_idx" ON "RegMecFase"("tenantId", "processoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RegMecFase_tenantId_status_previstaEm_idx" ON "RegMecFase"("tenantId", "status", "previstaEm");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "RegMecFase_processoId_chave_key" ON "RegMecFase"("processoId", "chave");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RegMecMembro_tenantId_processoId_idx" ON "RegMecMembro"("tenantId", "processoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RegMecVisita_tenantId_processoId_idx" ON "RegMecVisita"("tenantId", "processoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RegMecVisita_tenantId_inicio_idx" ON "RegMecVisita"("tenantId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RegMecRoteiro_tenantId_visitaId_dia_idx" ON "RegMecRoteiro"("tenantId", "visitaId", "dia");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RegMecEvidencia_tenantId_processoId_dimensao_idx" ON "RegMecEvidencia"("tenantId", "processoId", "dimensao");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RegMecEvidencia_tenantId_status_prazo_idx" ON "RegMecEvidencia"("tenantId", "status", "prazo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "RegMecConceito_tenantId_tipo_ano_idx" ON "RegMecConceito"("tenantId", "tipo", "ano");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "RegMecConceito_tenantId_chave_key" ON "RegMecConceito"("tenantId", "chave");
+
+-- AddForeignKey
+DO $$ BEGIN
+ALTER TABLE "RegMecRoteiro" ADD CONSTRAINT "RegMecRoteiro_visitaId_fkey" FOREIGN KEY ("visitaId") REFERENCES "RegMecVisita"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ==== MEC:END ====
