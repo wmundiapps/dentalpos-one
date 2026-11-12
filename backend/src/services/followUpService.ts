@@ -6,6 +6,7 @@ import { sendManagerDigest } from '../controllers/pendingAlertController'
 import { notifyPartners } from './stockPartnerService'
 import { sendCashClose } from './dailyCashService'
 import { sendMissingPunchAlerts } from './hrTimeAlertService'
+import { buildJourney, journeyBody, journeyWindow, patientAlerts } from './patientJourneyService'
 
 // Acompanhamento de pacientes sem agendar e de pacientes devendo:
 // - lista semanal por e-mail (segunda-feira) e nos painéis da recepção e clínico;
@@ -18,6 +19,7 @@ const DAY = 86400000
 const SENDER = 'CompletoDonto <contato@dentalpos.com.br>'
 const WEEKLY_HOUR_BRT = 8
 const DAILY_HOUR_BRT = 8
+const JOURNEY_HOUR_BRT = 8
 const NOTICE_HOUR_BRT = 9
 const NOTICE_MAX_PER_RUN = 100
 let running = false
@@ -32,11 +34,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export type FollowUpSettings = {
   weeklyList: boolean
   dailyDebtors: boolean
+  dailyJourney: boolean
   debtorNotice: boolean
   skipImported: boolean
   emails: string[]
   lastWeekly: string | null
   lastDaily: string | null
+  lastJourney: string | null
 }
 
 export async function loadSettings(clinicId: string): Promise<FollowUpSettings> {
@@ -45,11 +49,13 @@ export async function loadSettings(clinicId: string): Promise<FollowUpSettings> 
   return {
     weeklyList: m.weeklyList !== false,
     dailyDebtors: m.dailyDebtors !== false,
+    dailyJourney: m.dailyJourney !== false,
     debtorNotice: m.debtorNotice !== false,
     skipImported: m.skipImported !== false,
     emails: Array.isArray(m.emails) ? m.emails.map((e) => String(e).trim().toLowerCase()).filter((e) => EMAIL_RE.test(e)).slice(0, 10) : [],
     lastWeekly: m.lastWeekly || null,
     lastDaily: m.lastDaily || null,
+    lastJourney: m.lastJourney || null,
   }
 }
 
@@ -214,6 +220,25 @@ export async function sendDailyDebtors(c: Clinic, opts: { force?: boolean; now?:
   return { skipped: false, patients: list.length, sent }
 }
 
+// Jornada dos pacientes: um e-mail por dia ao responsável com o movimento de cada paciente (orçamento, consulta, procedimento, financeiro, laboratório).
+export async function sendDailyJourney(c: Clinic, opts: { force?: boolean; now?: Date } = {}) {
+  const now = opts.now || new Date()
+  const s = await loadSettings(c.id)
+  if (!opts.force && (!s.dailyJourney || brtHour(now) < JOURNEY_HOUR_BRT || s.lastJourney === brtDay(now))) return { skipped: true }
+  const { from, to } = journeyWindow(now)
+  const { patients, truncated } = await buildJourney(c.id, c.tenantId, from, to, now)
+  const to2 = await ownerEmails(c.id, c.tenantId, s)
+  let sent = 0
+  if (patients.length && to2.length) {
+    const body = journeyBody(c.name, from, to, patients, truncated)
+    const alerts = patients.filter((p) => patientAlerts(p).length).length
+    const subject = `Jornada dos pacientes — ${brtDay(from).slice(8, 10)}/${brtDay(from).slice(5, 7)}: ${patients.length} paciente(s)${alerts ? `, ${alerts} com atenção` : ''}`
+    for (const address of to2) if (await sendMail(address, subject, body)) sent += 1
+  }
+  if (!opts.force) await saveSettings(c.id, c.tenantId, { ...s, lastJourney: brtDay(now) })
+  return { skipped: false, patients: patients.length, sent }
+}
+
 // Um aviso por paciente por dia, sem valores, só pedindo contato com a clínica.
 export async function sendDebtorNotices(c: Clinic, opts: { now?: Date } = {}) {
   const now = opts.now || new Date()
@@ -242,6 +267,7 @@ export async function processFollowUps(now = new Date()) {
     for (const c of await paidClinics()) {
       await sendWeeklyList(c, { now }).catch((e) => console.error('Lista semanal:', e))
       await sendDailyDebtors(c, { now }).catch((e) => console.error('Resumo de devedores:', e))
+      await sendDailyJourney(c, { now }).catch((e) => console.error('Jornada dos pacientes:', e))
       await sendDebtorNotices(c, { now }).catch((e) => console.error('Aviso a devedores:', e))
       await sendManagerDigest(c.id, c.tenantId, now).catch((e) => console.error('Resumo de pendências ao gestor:', e))
       await notifyPartners(c, now).catch((e) => console.error('Aviso a parceiros de estoque:', e))
