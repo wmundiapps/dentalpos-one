@@ -2,6 +2,7 @@ import { Alert, Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogConten
 import AssignmentIndOutlinedIcon from "@mui/icons-material/AssignmentIndOutlined";
 import CastForEducationOutlinedIcon from "@mui/icons-material/CastForEducationOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EduShell from "../../edu/EduShell";
@@ -41,6 +42,20 @@ export default function EduInicio() {
             {e.itens.map((a) => <AmbienteCard key={a.id} a={a} onEscolher={(x) => { if (!x.atual) void selecionarAmbiente(x.id); }} />)}
           </Box>
         </Box>
+        <Paper
+          elevation={0} onClick={() => nav("/edu/exames")} role="link" tabIndex={0} onKeyDown={(ev) => ev.key === "Enter" && nav("/edu/exames")} aria-label="Abrir ENADE, ENAMED e OAB"
+          sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, cursor: "pointer", color: "#fff", display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", background: "linear-gradient(120deg, #7A5A00 0%, #D4A017 100%)", boxShadow: "0 8px 24px rgba(212,160,23,.35)" }}
+        >
+          <AutoAwesomeIcon sx={{ fontSize: 44 }} />
+          <Box sx={{ flex: 1, minWidth: 220 }}>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+              <Typography variant="h5" sx={{ fontWeight: 900 }}>ENADE · ENAMED · OAB</Typography>
+              <Chip size="small" label="Novo" sx={{ bgcolor: "#fff", color: "#7A5A00", fontWeight: 800 }} />
+            </Box>
+            <Typography sx={{ opacity: 0.95 }}>Trilhas de estudo com apoio de IA, simulados com tempo e gabarito comentado, flashcards e painel de prontidão do curso.</Typography>
+          </Box>
+          <Button variant="contained" sx={{ bgcolor: "#fff", color: "#7A5A00", fontWeight: 800, "&:hover": { bgcolor: "#FFF3CD" } }}>{papel === "STUDENT" ? "Estudar agora" : "Abrir"}</Button>
+        </Paper>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Atalhos</Typography>
           <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "minmax(0,1fr)", sm: "repeat(3, minmax(0,1fr))" } }}>

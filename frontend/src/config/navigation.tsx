@@ -212,6 +212,16 @@ const allNavigationGroups:NavigationGroup[] = [
     ])
   },
   {
+    label:"ENADE · ENAMED · OAB",
+    icon:tile(<AutoAwesomeIcon/>,"#D4A017"),
+    items:[
+      item("ENADE · ENAMED · OAB","/edu/exames",<AutoAwesomeIcon/>),
+      item("Simulados com gabarito comentado","/edu/exames?aba=simulados",<AssessmentIcon/>),
+      item("Painel de prontidão do curso","/edu/exames?aba=coordenacao",<InsightsIcon/>),
+      item("Banco de questões e gerador com IA","/edu/exames?aba=banco",<BiotechIcon/>),
+    ]
+  },
+  {
     label:"EduMaster · Reitoria",
     icon:tile(<AccountBalanceOutlinedIcon/>,"#0F766E"),
     items:[

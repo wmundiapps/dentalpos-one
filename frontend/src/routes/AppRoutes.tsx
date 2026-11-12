@@ -14,6 +14,7 @@ const EduCalendario = lazy(() => import("../pages/edu/EduCalendario"));
 const EduNotas = lazy(() => import("../pages/edu/EduNotas"));
 const EduModalidades = lazy(() => import("../pages/edu/EduModalidades"));
 const EduDesempenho = lazy(() => import("../pages/edu/EduDesempenho"));
+const EduExames = lazy(() => import("../pages/edu/EduExames"));
 const EduBiblioteca = lazy(() => import("../pages/edu/EduBiblioteca"));
 const EduPresenca = lazy(() => import("../pages/edu/EduPresenca"));
 const EduCamposPratica = lazy(() => import("../pages/edu/EduCamposPratica"));
@@ -171,6 +172,7 @@ export default function AppRoutes() {
       <Route path="/edu/notas" element={<EduNotas />} />
       <Route path="/edu/modalidades" element={<EduModalidades />} />
       <Route path="/edu/desempenho" element={<EduDesempenho />} />
+      <Route path="/edu/exames" element={<EduExames />} />
       <Route path="/edu/biblioteca" element={<EduBiblioteca />} />
       <Route path="/edu/campos-pratica" element={<EduCamposPratica />} />
       <Route path="/edu/presenca" element={<EduPresenca />} />

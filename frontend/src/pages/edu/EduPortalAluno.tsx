@@ -18,6 +18,7 @@ import PortalRequerimentos from "../../edu/portal/PortalRequerimentos";
 import PortalFinanceiro from "../../edu/portal/PortalFinanceiro";
 import PortalBiblioteca from "../../edu/portal/PortalBiblioteca";
 import MinhaBiometria from "../../edu/presenca/MinhaBiometria";
+import ExamesHub from "../../edu/exames/ExamesHub";
 import PortalServicos from "../../edu/atendimento/PortalServicos";
 import { PortalAvaliacaoDocente, PortalCarteirinha, PortalMensagens, PortalPrivacidade } from "../../edu/portal/PortalPessoal";
 import { qsOf } from "../../services/EduApi";
@@ -25,7 +26,7 @@ import { Feedback, StudentSearch, fmtNum, useLoad } from "../../edu/secretaria/u
 
 const ABAS: Array<[string, string]> = [
   ["geral", "Visão geral"], ["notas", "Notas e boletim"], ["frequencia", "Frequência"], ["salas", "Salas e materiais"], ["horario", "Horários"], ["fluxograma", "Fluxograma"],
-  ["requerimentos", "Requerimentos e processos"], ["servicos", "Serviços e atendimento"], ["financeiro", "Financeiro"], ["biblioteca", "Biblioteca"], ["mensagens", "Mensagens"], ["documentos", "Documentos"],
+  ["exames", "ENADE · ENAMED · OAB"], ["requerimentos", "Requerimentos e processos"], ["servicos", "Serviços e atendimento"], ["financeiro", "Financeiro"], ["biblioteca", "Biblioteca"], ["mensagens", "Mensagens"], ["documentos", "Documentos"],
   ["carteirinha", "Carteirinha"], ["biometria", "Presença facial e QR"], ["privacidade", "Privacidade (LGPD)"], ["avaliacao", "Avaliação docente"],
 ];
 
@@ -83,6 +84,7 @@ export default function EduPortalAluno() {
               </Box>
             </Box>
           )}
+          {aba === "exames" && (podeAgir ? <ExamesHub embutido /> : <Alert severity="info">Os simulados e flashcards são usados pelo próprio aluno logado. Gestores acompanham pelo menu ENADE · ENAMED · OAB.</Alert>)}
           {aba === "notas" && <PortalBoletim studentId={sidAlvo} podeAgir={podeAgir} onRevisao={(a) => setRev(a)} />}
           {aba === "frequencia" && <PortalFrequencia studentId={sidAlvo} podeAgir={podeAgir} />}
           {aba === "salas" && <SalasDoAluno studentId={sidAlvo} podeAgir={podeAgir} />}
