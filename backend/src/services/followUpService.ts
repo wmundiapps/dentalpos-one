@@ -80,6 +80,15 @@ export async function paidClinics(): Promise<Clinic[]> {
   return out
 }
 
+// Proprietário e gestor: administradores + usuários com perfil Gestor, mais os e-mails extras configurados em Acompanhamento.
+export async function managerEmails(clinicId: string, tenantId: string, s: FollowUpSettings): Promise<string[]> {
+  const users = await prisma.user.findMany({
+    where: { clinicId, tenantId, isActive: true, OR: [{ role: 'ADMIN' }, { accessProfiles: { some: { profile: { code: 'GESTOR', isActive: true } } } }] },
+    select: { email: true }, take: 12,
+  })
+  return [...new Set([...s.emails, ...users.map((u) => String(u.email || '').trim().toLowerCase())].filter((e) => EMAIL_RE.test(e)))].slice(0, 15)
+}
+
 export async function ownerEmails(clinicId: string, tenantId: string, s: FollowUpSettings): Promise<string[]> {
   if (s.emails.length) return s.emails
   const admins = await prisma.user.findMany({ where: { clinicId, tenantId, isActive: true, role: 'ADMIN' }, select: { email: true }, take: 5 })
@@ -227,7 +236,7 @@ export async function sendDailyJourney(c: Clinic, opts: { force?: boolean; now?:
   if (!opts.force && (!s.dailyJourney || brtHour(now) < JOURNEY_HOUR_BRT || s.lastJourney === brtDay(now))) return { skipped: true }
   const { from, to } = journeyWindow(now)
   const { patients, truncated } = await buildJourney(c.id, c.tenantId, from, to, now)
-  const to2 = await ownerEmails(c.id, c.tenantId, s)
+  const to2 = await managerEmails(c.id, c.tenantId, s)
   let sent = 0
   if (patients.length && to2.length) {
     const body = journeyBody(c.name, from, to, patients, truncated)
