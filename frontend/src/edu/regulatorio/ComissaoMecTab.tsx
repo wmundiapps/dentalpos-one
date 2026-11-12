@@ -127,7 +127,7 @@ export default function ComissaoMecTab() {
           </TextField>
           <TextField label="Título" value={novo?.titulo || ""} onChange={(e) => setNovo({ ...novo, titulo: e.target.value })} helperText="Ex.: Autorização — Enfermagem" />
           <TextField label="Curso (opcional)" value={novo?.cursoNome || ""} onChange={(e) => setNovo({ ...novo, cursoNome: e.target.value })} />
-          <TextField type="date" label="Prazo para protocolar" InputLabelProps={{ shrink: true }} value={novo?.prazoProtocolo || ""} onChange={(e) => setNovo({ ...novo, prazoProtocolo: e.target.value })} />
+          <TextField type="date" label="Prazo para protocolar" slotProps={{ inputLabel: { shrink: true } }} value={novo?.prazoProtocolo || ""} onChange={(e) => setNovo({ ...novo, prazoProtocolo: e.target.value })} />
         </DialogContent>
         <DialogActions><Button onClick={() => setNovo(null)}>Cancelar</Button><Button variant="contained" disabled={!novo?.titulo || novo.titulo.length < 3} onClick={criar}>Criar e iniciar</Button></DialogActions>
       </Dialog>

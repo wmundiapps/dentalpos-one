@@ -19,6 +19,11 @@ import { seedAtendimento } from './seeds/atendimento'
 import { seedMarketing } from './seeds/marketing'
 import { seedPresenca } from './seeds/presenca'
 import { seedCamposPratica } from './seeds/campos-pratica'
+import { seedPolos } from './seeds/polos'
+import { seedExames } from './seeds/exames'
+import { seedInfraPlanejamento } from './seeds/infra-planejamento'
+import { seedAnaliseDocs } from './seeds/analise-docs'
+import { seedMecComissao } from './seeds/mec-comissao'
 
 const API = process.env.API_URL || 'http://localhost:3000/api'
 const TENANT = 'sua-instituicao'
@@ -93,6 +98,10 @@ const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
   ['marketing', (c) => seedMarketing(c.api, { ...sCtx(c), siteSlug: 'sua-instituicao' })],
   ['presenca', (c) => seedPresenca(c.api, sCtx(c))],
   ['campos-pratica', (c) => seedCamposPratica(c.api, sCtx(c))],
+  ['polos', (c) => seedPolos(c.api, sCtx(c))],
+  ['exames', (c) => seedExames(c.api, sCtx(c))],
+  ['infra-planejamento', (c) => seedInfraPlanejamento(c.api, { ...sCtx(c), loginAs: c.loginAs } as any)],
+  ['analise-docs', (c) => seedAnaliseDocs(c.api, sCtx(c))],
   // fluxograma automático: gera a grade de cada período (salas, laboratórios, dias e horários) e avisa os alunos
   ['fluxograma', async (c) => {
     const ts: any = await c.api('GET', '/edu/academico/terms')
@@ -101,6 +110,8 @@ const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
       await c.api('POST', '/edu/academico/salas/avisar-alunos', { termId: t.id, dias: 7 })
     }
   }],
+  // por último: ajusta indicadores para a IES de demonstração "nota máxima" (dados fictícios)
+  ['mec-comissao', (c) => seedMecComissao(c.api, sCtx(c))],
 ]
 
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [

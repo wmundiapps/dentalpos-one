@@ -170,8 +170,8 @@ function Visita({ d, run, id }: { d: any; run: Run; id: string }) {
       <Dialog open={!!f} onClose={() => setF(null)} fullWidth maxWidth="xs">
         <DialogTitle>Agendar visita in loco</DialogTitle>
         <DialogContent dividers sx={{ display: "grid", gap: 2, pt: 2 }}>
-          <TextField type="date" label="Início" InputLabelProps={{ shrink: true }} value={f?.inicio || ""} onChange={(e) => setF({ ...f, inicio: e.target.value })} />
-          <TextField type="date" label="Fim" InputLabelProps={{ shrink: true }} value={f?.fim || ""} onChange={(e) => setF({ ...f, fim: e.target.value })} />
+          <TextField type="date" label="Início" slotProps={{ inputLabel: { shrink: true } }} value={f?.inicio || ""} onChange={(e) => setF({ ...f, inicio: e.target.value })} />
+          <TextField type="date" label="Fim" slotProps={{ inputLabel: { shrink: true } }} value={f?.fim || ""} onChange={(e) => setF({ ...f, fim: e.target.value })} />
           <TextField label="Local" value={f?.local || ""} onChange={(e) => setF({ ...f, local: e.target.value })} />
         </DialogContent>
         <DialogActions><Button onClick={() => setF(null)}>Cancelar</Button><Button variant="contained" disabled={!f?.inicio || !f?.fim} onClick={() => run(async () => { await eduApi.post(`/regulatorio/mec/processos/${id}/visita`, { inicio: toIso(f.inicio), fim: toIso(f.fim), local: f.local || undefined }); setF(null); }, "Visita agendada. A reitoria e a diretoria serão avisadas nos prazos críticos.")}>Salvar</Button></DialogActions>
@@ -203,7 +203,7 @@ function Evidencias({ d, run }: { d: any; run: Run }) {
               <Box sx={{ flex: 1, minWidth: 220 }}>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>{e.indicadorNome}</Typography>
                 <Typography variant="caption" color="text.secondary">{e.descricao}{e.documentoNome ? ` · arquivo: ${e.documentoNome}` : ""}</Typography>
-                <Typography variant="caption" display="block" color="text.secondary">Resp.: {e.responsavelNome || "—"} · prazo {fmtDate(e.prazo)} · pasta {e.pastaKit || "—"}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>Resp.: {e.responsavelNome || "—"} · prazo {fmtDate(e.prazo)} · pasta {e.pastaKit || "—"}</Typography>
               </Box>
               {e.conceitoEstimado && <Chip size="small" variant="outlined" label={`Conc. ${e.conceitoEstimado}`} />}
               <Chip size="small" color={STATUS_EV[e.status]} label={label(e.status)} />
@@ -221,7 +221,7 @@ function Evidencias({ d, run }: { d: any; run: Run }) {
           </TextField>
           <TextField label="Documento (nome do arquivo)" value={ed?.documentoNome || ""} onChange={(e) => setEd({ ...ed, documentoNome: e.target.value })} helperText="Obrigatório para marcar como atendido." />
           <TextField label="Responsável" value={ed?.responsavelNome || ""} onChange={(e) => setEd({ ...ed, responsavelNome: e.target.value })} />
-          <TextField type="date" label="Prazo" InputLabelProps={{ shrink: true }} value={ed?.prazo || ""} onChange={(e) => setEd({ ...ed, prazo: e.target.value })} />
+          <TextField type="date" label="Prazo" slotProps={{ inputLabel: { shrink: true } }} value={ed?.prazo || ""} onChange={(e) => setEd({ ...ed, prazo: e.target.value })} />
           <TextField select label="Conceito estimado (1 a 5)" value={ed?.conceitoEstimado ?? ""} onChange={(e) => setEd({ ...ed, conceitoEstimado: e.target.value === "" ? null : Number(e.target.value) })}>
             <MenuItem value="">—</MenuItem>{[1, 2, 3, 4, 5].map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
           </TextField>
