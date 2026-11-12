@@ -20475,3 +20475,274 @@ DO $$ BEGIN
 ALTER TABLE "RegMecRoteiro" ADD CONSTRAINT "RegMecRoteiro_visitaId_fkey" FOREIGN KEY ("visitaId") REFERENCES "RegMecVisita"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- ==== MEC:END ====
+
+-- ==== EXAMES:BEGIN (módulo Exames, prefixo Exa - gerado por prisma migrate diff; somente CRIA) ====
+-- CreateEnum
+CREATE TYPE "ExaStatusSessao" AS ENUM ('EM_ANDAMENTO', 'ENVIADA', 'EXPIRADA');
+
+-- CreateEnum
+CREATE TYPE "ExaRevisao" AS ENUM ('PENDENTE', 'APROVADA', 'REJEITADA');
+
+-- CreateEnum
+CREATE TYPE "ExaGeradaPor" AS ENUM ('MANUAL', 'SEED', 'IA', 'IA_SIMULADA');
+
+-- CreateEnum
+CREATE TYPE "ExaStatusSimulado" AS ENUM ('RASCUNHO', 'PUBLICADO', 'ARQUIVADO');
+
+-- CreateEnum
+CREATE TYPE "ExaOrigemCartao" AS ENUM ('MANUAL', 'ERRO', 'TEMA_FRACO', 'MODELO');
+
+-- CreateTable
+CREATE TABLE "ExaConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "revisaoDocenteObrigatoria" BOOLEAN NOT NULL DEFAULT true,
+    "rankingAtivo" BOOLEAN NOT NULL DEFAULT false,
+    "limiteRiscoPct" DOUBLE PRECISION NOT NULL DEFAULT 40,
+    "metaProntidaoPct" DOUBLE PRECISION NOT NULL DEFAULT 60,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExaConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExaPreferencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "rankingParticipa" BOOLEAN NOT NULL DEFAULT false,
+    "consentidoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExaPreferencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExaDescritor" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "exameId" TEXT NOT NULL,
+    "eixoId" TEXT,
+    "programId" TEXT,
+    "codigo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "resumo" TEXT,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExaDescritor_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExaPerfil" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "exameId" TEXT NOT NULL,
+    "ano" INTEGER NOT NULL,
+    "rotulo" TEXT NOT NULL DEFAULT '',
+    "temas" JSONB NOT NULL,
+    "estiloEnunciado" TEXT,
+    "nivelGeral" TEXT,
+    "fonteDescricao" TEXT NOT NULL,
+    "ilustrativo" BOOLEAN NOT NULL DEFAULT true,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExaPerfil_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExaQuestaoMeta" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "questaoId" TEXT NOT NULL,
+    "tema" TEXT,
+    "descritorId" TEXT,
+    "programId" TEXT,
+    "comentarios" JSONB,
+    "autoral" BOOLEAN NOT NULL DEFAULT true,
+    "geradaPor" "ExaGeradaPor" NOT NULL DEFAULT 'MANUAL',
+    "perfilId" TEXT,
+    "revisao" "ExaRevisao" NOT NULL DEFAULT 'PENDENTE',
+    "revisadoPorId" TEXT,
+    "revisadoEm" TIMESTAMP(3),
+    "revisaoNota" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExaQuestaoMeta_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExaTrilha" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "exameId" TEXT NOT NULL,
+    "programId" TEXT,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "area" TEXT,
+    "etapas" JSONB NOT NULL,
+    "geradaPorIa" BOOLEAN NOT NULL DEFAULT false,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExaTrilha_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExaTrilhaProgresso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "trilhaId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL,
+    "concluidoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ExaTrilhaProgresso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExaSimulado" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "exameId" TEXT NOT NULL,
+    "programId" TEXT,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "duracaoMin" INTEGER NOT NULL DEFAULT 120,
+    "questaoIds" JSONB NOT NULL,
+    "status" "ExaStatusSimulado" NOT NULL DEFAULT 'RASCUNHO',
+    "donoStudentId" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExaSimulado_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExaSessao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "simuladoId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "programId" TEXT,
+    "status" "ExaStatusSessao" NOT NULL DEFAULT 'EM_ANDAMENTO',
+    "iniciadaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiraEm" TIMESTAMP(3) NOT NULL,
+    "enviadaEm" TIMESTAMP(3),
+    "respostas" JSONB NOT NULL DEFAULT '{}',
+    "acertos" INTEGER NOT NULL DEFAULT 0,
+    "total" INTEGER NOT NULL DEFAULT 0,
+    "percentual" DOUBLE PRECISION,
+    "porEixo" JSONB,
+    "porTema" JSONB,
+    "porDescritor" JSONB,
+    "tempoSegundos" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExaSessao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExaFlashcard" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "studentId" TEXT,
+    "exameId" TEXT,
+    "eixoId" TEXT,
+    "questaoId" TEXT,
+    "tema" TEXT,
+    "frente" TEXT NOT NULL,
+    "verso" TEXT NOT NULL,
+    "origem" "ExaOrigemCartao" NOT NULL DEFAULT 'MANUAL',
+    "modeloId" TEXT,
+    "intervalo" INTEGER NOT NULL DEFAULT 0,
+    "fatorFacilidade" DOUBLE PRECISION NOT NULL DEFAULT 2.5,
+    "repeticoes" INTEGER NOT NULL DEFAULT 0,
+    "proximaRevisao" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ultimaRevisao" TIMESTAMP(3),
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExaFlashcard_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExaConfig_tenantId_key" ON "ExaConfig"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExaPreferencia_tenantId_studentId_key" ON "ExaPreferencia"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE INDEX "ExaDescritor_tenantId_exameId_eixoId_idx" ON "ExaDescritor"("tenantId", "exameId", "eixoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExaDescritor_tenantId_exameId_codigo_key" ON "ExaDescritor"("tenantId", "exameId", "codigo");
+
+-- CreateIndex
+CREATE INDEX "ExaPerfil_tenantId_exameId_idx" ON "ExaPerfil"("tenantId", "exameId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExaPerfil_tenantId_exameId_ano_rotulo_key" ON "ExaPerfil"("tenantId", "exameId", "ano", "rotulo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExaQuestaoMeta_questaoId_key" ON "ExaQuestaoMeta"("questaoId");
+
+-- CreateIndex
+CREATE INDEX "ExaQuestaoMeta_tenantId_tema_idx" ON "ExaQuestaoMeta"("tenantId", "tema");
+
+-- CreateIndex
+CREATE INDEX "ExaQuestaoMeta_tenantId_descritorId_idx" ON "ExaQuestaoMeta"("tenantId", "descritorId");
+
+-- CreateIndex
+CREATE INDEX "ExaQuestaoMeta_tenantId_revisao_idx" ON "ExaQuestaoMeta"("tenantId", "revisao");
+
+-- CreateIndex
+CREATE INDEX "ExaTrilha_tenantId_exameId_idx" ON "ExaTrilha"("tenantId", "exameId");
+
+-- CreateIndex
+CREATE INDEX "ExaTrilha_tenantId_programId_idx" ON "ExaTrilha"("tenantId", "programId");
+
+-- CreateIndex
+CREATE INDEX "ExaTrilhaProgresso_tenantId_studentId_idx" ON "ExaTrilhaProgresso"("tenantId", "studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExaTrilhaProgresso_trilhaId_studentId_ordem_key" ON "ExaTrilhaProgresso"("trilhaId", "studentId", "ordem");
+
+-- CreateIndex
+CREATE INDEX "ExaSimulado_tenantId_exameId_status_idx" ON "ExaSimulado"("tenantId", "exameId", "status");
+
+-- CreateIndex
+CREATE INDEX "ExaSessao_tenantId_studentId_status_idx" ON "ExaSessao"("tenantId", "studentId", "status");
+
+-- CreateIndex
+CREATE INDEX "ExaSessao_tenantId_simuladoId_status_idx" ON "ExaSessao"("tenantId", "simuladoId", "status");
+
+-- CreateIndex
+CREATE INDEX "ExaSessao_tenantId_programId_idx" ON "ExaSessao"("tenantId", "programId");
+
+-- CreateIndex
+CREATE INDEX "ExaFlashcard_tenantId_studentId_proximaRevisao_idx" ON "ExaFlashcard"("tenantId", "studentId", "proximaRevisao");
+
+-- CreateIndex
+CREATE INDEX "ExaFlashcard_tenantId_exameId_idx" ON "ExaFlashcard"("tenantId", "exameId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExaFlashcard_tenantId_studentId_questaoId_key" ON "ExaFlashcard"("tenantId", "studentId", "questaoId");
+
+-- AddForeignKey
+ALTER TABLE "ExaSessao" ADD CONSTRAINT "ExaSessao_simuladoId_fkey" FOREIGN KEY ("simuladoId") REFERENCES "ExaSimulado"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+-- ==== EXAMES:END ====

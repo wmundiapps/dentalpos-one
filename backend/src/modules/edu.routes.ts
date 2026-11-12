@@ -35,6 +35,7 @@ import presencaRouter from './presenca/routes'
 import { academico2Router, desenvolvimentoRouter } from './academico2/routes'
 import camposPraticaRouter from './campos-pratica/routes'
 import analiseDocsRouter from './analise-docs/routes'
+import examesRouter from './exames/routes'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
 const router = Router()
@@ -79,6 +80,7 @@ router.use('/tesouraria', tesourariaRouter)
 router.use('/cobranca', cobrancaRouter)
 router.use('/campos-pratica', camposPraticaRouter)
 router.use('/analise-docs', analiseDocsRouter)
+router.use('/exames', examesRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.
 router.use(academicErrorHandler)
 

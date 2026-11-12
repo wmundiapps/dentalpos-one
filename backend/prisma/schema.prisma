@@ -9861,6 +9861,234 @@ model DesTrilhaItem {
   @@index([tenantId, dataPrevista, status])
 }
 
+// ---- edu/exames.prisma ----
+// ============================================================
+// EDUMASTER PRO — EXAMES DE PROFICIÊNCIA E PREPARATÓRIO (prefixo Exa)
+// Complementa o módulo "desempenho" (Des*): reutiliza DesExame/DesEixo/DesQuestao/DesEdicao/DesInscricao
+// e acrescenta matriz de descritores, perfil de prova, questões comentadas, simulados do aluno
+// (com repetição), trilhas, flashcards (SM-2), preferências (ranking opcional) e configuração.
+// ============================================================
+
+enum ExaStatusSessao {
+  EM_ANDAMENTO
+  ENVIADA
+  EXPIRADA
+}
+
+enum ExaRevisao {
+  PENDENTE
+  APROVADA
+  REJEITADA
+}
+
+enum ExaGeradaPor {
+  MANUAL
+  SEED
+  IA
+  IA_SIMULADA
+}
+
+enum ExaStatusSimulado {
+  RASCUNHO
+  PUBLICADO
+  ARQUIVADO
+}
+
+enum ExaOrigemCartao {
+  MANUAL
+  ERRO
+  TEMA_FRACO
+  MODELO
+}
+
+model ExaConfig {
+  id                        String   @id @default(uuid())
+  tenantId                  String   @unique
+  revisaoDocenteObrigatoria Boolean  @default(true)  // questões de IA só chegam ao aluno após aprovação docente
+  rankingAtivo              Boolean  @default(false) // ranking por turma (só mostra quem optou por participar)
+  limiteRiscoPct            Float    @default(40)    // abaixo disto o aluno entra na lista de risco
+  metaProntidaoPct          Float    @default(60)    // meta de acerto para o índice de prontidão
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+model ExaPreferencia {
+  id               String    @id @default(uuid())
+  tenantId         String
+  studentId        String
+  rankingParticipa Boolean   @default(false)
+  consentidoEm     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([tenantId, studentId])
+}
+
+model ExaDescritor {
+  id        String   @id @default(uuid())
+  tenantId  String
+  exameId   String
+  eixoId    String?
+  programId String? // matriz específica de um curso (opcional)
+  codigo    String
+  descricao String // "Matriz de referência": o que o estudante deve ser capaz de fazer
+  resumo    String? // texto de estudo autoral (base para o auxílio de IA em conteúdo)
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, exameId, codigo])
+  @@index([tenantId, exameId, eixoId])
+}
+
+model ExaPerfil {
+  id              String   @id @default(uuid())
+  tenantId        String
+  exameId         String
+  ano             Int
+  rotulo          String   @default("")
+  temas           Json // [{tema, eixoCodigo?, frequenciaPct, nivelPredominante?, observacao?}]
+  estiloEnunciado String?
+  nivelGeral      String?
+  fonteDescricao  String // de onde veio o padrão (síntese autoral, estatística própria...) — sempre explícito
+  ilustrativo     Boolean  @default(true)
+  criadoPorId     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, exameId, ano, rotulo])
+  @@index([tenantId, exameId])
+}
+
+model ExaQuestaoMeta {
+  id            String       @id @default(uuid())
+  tenantId      String
+  questaoId     String       @unique
+  tema          String?
+  descritorId   String?
+  programId     String?
+  comentarios   Json? // {A:'por que está certa/errada', B:'...'}
+  autoral       Boolean      @default(true) // redigida pela instituição / IA, nunca cópia de prova real
+  geradaPor     ExaGeradaPor @default(MANUAL)
+  perfilId      String? // perfil de prova que inspirou a geração
+  revisao       ExaRevisao   @default(PENDENTE)
+  revisadoPorId String?
+  revisadoEm    DateTime?
+  revisaoNota   String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([tenantId, tema])
+  @@index([tenantId, descritorId])
+  @@index([tenantId, revisao])
+}
+
+model ExaTrilha {
+  id          String   @id @default(uuid())
+  tenantId    String
+  exameId     String
+  programId   String?
+  titulo      String
+  descricao   String?
+  area        String? // curso/área ou fase (ex.: "OAB 2ª fase — Penal")
+  etapas      Json // [{ordem,titulo,eixoId?,descritorIds?,tema?,qtdQuestoes?,orientacao?}]
+  geradaPorIa Boolean  @default(false)
+  ativo       Boolean  @default(true)
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, exameId])
+  @@index([tenantId, programId])
+}
+
+model ExaTrilhaProgresso {
+  id          String   @id @default(uuid())
+  tenantId    String
+  trilhaId    String
+  studentId   String
+  ordem       Int
+  concluidoEm DateTime @default(now())
+
+  @@unique([trilhaId, studentId, ordem])
+  @@index([tenantId, studentId])
+}
+
+model ExaSimulado {
+  id          String            @id @default(uuid())
+  tenantId    String
+  exameId     String
+  programId   String?
+  titulo      String
+  descricao   String?
+  duracaoMin  Int               @default(120)
+  questaoIds  Json // ["id", ...] na ordem da prova
+  status      ExaStatusSimulado @default(RASCUNHO)
+  donoStudentId String? // simulado de treino pessoal (só esse aluno enxerga)
+  criadoPorId String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  sessoes ExaSessao[]
+
+  @@index([tenantId, exameId, status])
+}
+
+model ExaSessao {
+  id            String          @id @default(uuid())
+  tenantId      String
+  simuladoId    String
+  studentId     String
+  programId     String?
+  status        ExaStatusSessao @default(EM_ANDAMENTO)
+  iniciadaEm    DateTime        @default(now())
+  expiraEm      DateTime
+  enviadaEm     DateTime?
+  respostas     Json            @default("{}") // {questaoId: 'A'}
+  acertos       Int             @default(0)
+  total         Int             @default(0)
+  percentual    Float?
+  porEixo       Json? // [{eixoId,nome,acertos,total,percentual}]
+  porTema       Json? // [{tema,acertos,total,percentual}]
+  porDescritor  Json? // [{descritorId,codigo,acertos,total,percentual}]
+  tempoSegundos Int?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  simulado ExaSimulado @relation(fields: [simuladoId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, studentId, status])
+  @@index([tenantId, simuladoId, status])
+  @@index([tenantId, programId])
+}
+
+model ExaFlashcard {
+  id              String          @id @default(uuid())
+  tenantId        String
+  studentId       String? // null = cartão-modelo da instituição (o aluno "adota" uma cópia)
+  exameId         String?
+  eixoId          String?
+  questaoId       String?
+  tema            String?
+  frente          String
+  verso           String
+  origem          ExaOrigemCartao @default(MANUAL)
+  modeloId        String?
+  intervalo       Int             @default(0)
+  fatorFacilidade Float           @default(2.5)
+  repeticoes      Int             @default(0)
+  proximaRevisao  DateTime        @default(now())
+  ultimaRevisao   DateTime?
+  criadoPorId     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([tenantId, studentId, questaoId])
+  @@index([tenantId, studentId, proximaRevisao])
+  @@index([tenantId, exameId])
+}
+
 // ---- edu/feedback.prisma ----
 // ============================================================
 // EDUMASTER PRO — CAIXA DE SUGESTÕES / BUGS (prefixo Fbk). Somente tabelas NOVAS.

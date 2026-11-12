@@ -641,6 +641,17 @@ export const DEFS: Def[] = [
     },
   },
 
+  {
+    chave: 'prontidao_exames', titulo: 'Prontidão para o ENADE (simulados) — índice 0-100', categoria: 'Desempenho em exames', perfis: ['reitoria', 'coordenacao'], unidade: 'pts',
+    rota: '/edu/exames?aba=coordenacao', cursoFiltravel: true,
+    async run(c) {
+      const { prontidaoEnade } = await import('../exames/coordenacao')
+      const r = await prontidaoEnade(c.tenantId, c.programId)
+      if (!r.comSimulado) return { valor: null, sentido: 'MAIOR_MELHOR', limites: { verde: 75, amarelo: 50 }, detalhe: { alunos: r.alunos, comSimulado: 0 } }
+      return { valor: r.indice, sentido: 'MAIOR_MELHOR', limites: { verde: 75, amarelo: 50 }, detalhe: { faixa: r.faixa, participacaoPct: r.participacaoPct, emRisco: r.emRisco, alunos: r.alunos } }
+    },
+  },
+
   // ===== PROCESSOS / PENDÊNCIAS =====
   {
     chave: 'jornadas_atrasadas', titulo: 'Etapas de jornada atrasadas', categoria: 'Processos e pendências', perfis: ['reitoria', 'secretaria', 'coordenacao'],
