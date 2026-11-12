@@ -1,5 +1,7 @@
 import { Alert, Box, Button, Tab, Tabs } from "@mui/material";
 import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import EduShell from "../../edu/EduShell";
 import ArquivoTab from "../../edu/secretaria/ArquivoTab";
@@ -14,6 +16,7 @@ const ABAS = ["Requerimentos", "Documentos acadêmicos", "Análise de documentos
 
 export default function EduSecretaria() {
   const [tab, setTab] = useState(0);
+  const nav = useNavigate();
   const [msg, setMsg] = useState<{ t: "success" | "error"; m: string } | null>(null);
   const [rev, setRev] = useState(0);
 
@@ -25,7 +28,7 @@ export default function EduSecretaria() {
 
   return (
     <EduShell title="Secretaria Acadêmica" subtitle="Protocolo e requerimentos, documentos, certificados, diplomas, colação e arquivo."
-      actions={<Button variant="contained" color="inherit" sx={{ color: "primary.main", bgcolor: "#fff" }} startIcon={<AutoFixHighOutlinedIcon />} onClick={bootstrap}>Configuração padrão</Button>}>
+      actions={<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}><Button variant="contained" color="inherit" sx={{ color: "primary.main", bgcolor: "#fff" }} startIcon={<SmartToyOutlinedIcon />} onClick={() => nav("/edu/analise-docs?secao=fila&novo=1&origem=SECRETARIA&contexto=TRANSFERENCIA&titulo=" + encodeURIComponent("Documentos de matrícula/transferência"))}>Analisar documentos (IA)</Button><Button variant="contained" color="inherit" sx={{ color: "primary.main", bgcolor: "#fff" }} startIcon={<AutoFixHighOutlinedIcon />} onClick={bootstrap}>Configuração padrão</Button></Box>}>
       {msg && <Alert severity={msg.t} onClose={() => setMsg(null)} sx={{ mb: 2 }}>{msg.m}</Alert>}
       <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>
         {ABAS.map((a) => <Tab key={a} label={a} />)}

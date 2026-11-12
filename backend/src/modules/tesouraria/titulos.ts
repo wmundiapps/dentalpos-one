@@ -1,3 +1,4 @@
+import { exigirSemBloqueio } from '../analise-docs/bloqueio'
 import { Router, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
@@ -135,6 +136,7 @@ export async function autorizarTitulo(req: AuthenticatedRequest, id: string) {
   const tenantId = tid(req), user = uid(req), papel = papelDe(req)
   const t = await buscarTitulo(tenantId, id)
   exigirTransicao(t.status as StatusTitulo, 'AUTORIZADO')
+  await exigirSemBloqueio(tenantId, { refType: 'TesTitulo', refId: id }, 'autorizar este título') // Agente de documentos: documento crítico pendente de decisão
   const cfg = await getConfig(tenantId)
   const faixas = await carregarAlcadas(tenantId)
   const faixa = faixaDoValor(faixas, t.valorBruto)
@@ -361,6 +363,7 @@ export function mountTitulos(router: Router) {
     const tenantId = tid(req), id = String(req.params.id)
     const d = parseBody(baixaSchema, req.body ?? {})
     const t = await buscarTitulo(tenantId, id)
+    await exigirSemBloqueio(tenantId, { refType: 'TesTitulo', refId: id }, 'dar baixa neste título') // Agente de documentos
     await exigir2fa(req, t.valorBruto)
     const out = await baixarTitulo({ tenantId, id, contaId: d.contaId, data: d.data, userId: uid(req), papel: papelDe(req), comprovante: d.comprovante, permutaId: d.permutaId, via: d.permutaId ? 'PERMUTA' : 'MANUAL' })
     await log(req, 'TITULO_BAIXADO', 'TesTitulo', id, { via: d.permutaId ? 'PERMUTA' : 'MANUAL', valor: out.valorLiquido })

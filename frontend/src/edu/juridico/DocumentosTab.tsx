@@ -1,5 +1,6 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from "@mui/material";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AlertaChip, J, LoadBox, ResourceTab, Status, call, fmtDate, itemsOf, opts, useApi, useRunner, useToast, FormDialog, type FormField } from "./kit";
 
 export const CATEGORIAS_DOC = ["INTERNO", "PARCERIA", "CONVENIO", "FISCAL", "TRABALHISTA", "COOPERACAO", "CONTRATO", "OUTRO"];
@@ -44,6 +45,7 @@ function Versoes({ doc, onClose }: { doc: any; onClose: () => void }) {
 }
 
 export default function DocumentosTab() {
+  const nav = useNavigate();
   const [ver, setVer] = useState<any>(null);
   return (
     <>
@@ -60,6 +62,7 @@ export default function DocumentosTab() {
           { label: "Responsável", hideOnMobile: true, render: (r) => r.responsavelNome || "—" },
         ]}
         rowActions={(r, { run }) => [
+          { label: "Analisar com o agente (IA)", onClick: () => nav(`/edu/analise-docs?secao=fila&novo=1&origem=JURIDICO&contexto=${r.categoria === "FISCAL" ? "CERTIDAO" : "CONTRATO"}&tipo=${r.categoria === "FISCAL" ? "CERTIDAO" : "CONTRATO"}&refType=JurDocumento&refId=${r.id}&titulo=${encodeURIComponent((r.titulo || "").slice(0, 120))}`) },
           { label: "Versões", onClick: () => setVer(r) },
           { label: "Encerrar", show: r.status === "VIGENTE" || r.status === "RASCUNHO", onClick: () => { void run(() => call("POST", `${J}/documentos/${r.id}/encerrar`), "Documento encerrado.", "Encerrar este documento? Os alertas de vencimento serão cancelados."); } },
         ]} />

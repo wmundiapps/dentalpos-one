@@ -1,5 +1,6 @@
 import { Typography } from "@mui/material";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AlertaChip, J, ResourceTab, Status, call, fmtDate, fmtMoney, opts, PromptDialog, type FormField } from "./kit";
 
 export const TIPOS_CONTRATO = ["PRESTACAO_SERVICOS", "FORNECIMENTO", "TRABALHO", "PARCERIA", "CONVENIO", "COOPERACAO", "TECNOLOGIA", "OUTRO"];
@@ -16,6 +17,7 @@ const FIELDS: FormField[] = [
 ];
 
 export default function ContratosTab() {
+  const nav = useNavigate();
   const [dlg, setDlg] = useState<null | { kind: "renovar" | "rescindir"; row: any }>(null);
   const [rev, setRev] = useState(0);
   return (
@@ -30,6 +32,7 @@ export default function ContratosTab() {
           { label: "Renova", hideOnMobile: true, render: (r) => (r.renovacaoAutomatica ? "automática" : "manual") }, { label: "Situação", render: (r) => <Status value={r.status} /> },
         ]}
         rowActions={(r, { run }) => [
+          { label: "Analisar com o agente (IA)", onClick: () => nav(`/edu/analise-docs?secao=fila&novo=1&origem=JURIDICO&contexto=CONTRATO&tipo=CONTRATO&refType=JurContrato&refId=${r.id}&titulo=${encodeURIComponent("Contrato " + (r.codigo || "") + " — " + (r.objeto || "").slice(0, 80))}`) },
           { label: "Ativar", show: r.status === "RASCUNHO", onClick: () => { void run(() => call("POST", `${J}/contratos/${r.id}/ativar`), "Contrato ativado."); } },
           { label: "Renovar / prorrogar", show: r.status === "VIGENTE", onClick: () => setDlg({ kind: "renovar", row: r }) },
           { label: "Encerrar", show: r.status === "VIGENTE", onClick: () => { void run(() => call("POST", `${J}/contratos/${r.id}/encerrar`), "Contrato encerrado.", "Encerrar o contrato ao término normal?"); } },

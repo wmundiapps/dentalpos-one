@@ -285,6 +285,15 @@ async function main() {
   const p2 = await call(fin, 'POST', `/edu/financeiro/payables/${pay.id}/pay`, { formaPagamento: 'PIX' })
   check('pagamento liberado após decisão humana', p2.status === 200, p2.json)
 
+  const tit = await prisma.tesTitulo.create({ data: { tenantId: T, numero: tx('TIT'), descricao: 'Serviço gráfico', fornecedor: 'Gráfica Arco-Íris', valorBruto: 500, valorLiquido: 500, vencimento: new Date(Date.now() + 5 * DAY), criadoPorId: fin.id, status: 'CONFERIDO' } as any })
+  const rt = await call(fin, 'POST', `${A}/casos`, { origem: 'FINANCEIRO', contexto: 'NOTA_FISCAL', titulo: 'NF do título com CNPJ do emitente em pessoa diferente', refType: 'TesTitulo', refId: tit.id, documentos: [{ tipo: 'NOTA_FISCAL', texto: 'Emitente: Gráfica Arco-Íris\nCNPJ: 11.222.333/0001-81\nNota fiscal nº 77\nValor total: R$ 500,00\nData de emissão: ' + br(ymd(-2)), metadados: { assinaturaPresente: true, assinaturaValida: false } }] })
+  check('financeiro (tesouraria): documento com assinatura inválida => CRITICO', rt.status === 201 && rt.json.resultado === 'CRITICO')
+  const au1 = await call(admin, 'POST', `/edu/tesouraria/titulos/${tit.id}/autorizar`, {})
+  check('autorização do título da tesouraria bloqueada (409)', au1.status === 409 && /Agente de documentos/.test(au1.json?.error || ''), au1.json)
+  check('baixa do título da tesouraria bloqueada (409)', (await call(admin, 'POST', `/edu/tesouraria/titulos/${tit.id}/baixa`, {})).status === 409)
+  await call(reitor, 'POST', `${A}/casos/${rt.json.id}/decisao`, { decisao: 'REJEITAR', justificativa: 'Assinatura inválida confirmada: nota devolvida ao fornecedor.' })
+  check('decisão REJEITAR mantém o título bloqueado', (await call(admin, 'POST', `/edu/tesouraria/titulos/${tit.id}/autorizar`, {})).status === 409)
+
   const contrato = await prisma.jurContrato.create({ data: { tenantId: T, codigo: tx('CT'), tipo: 'OUTRO', objeto: 'Serviço de teste', contraparteNome: 'Empresa Teste', vigenciaInicio: new Date(), vigenciaFim: new Date(Date.now() + 200 * DAY) } })
   const rj = await call(legal, 'POST', `${A}/casos`, { origem: 'JURIDICO', contexto: 'CONTRATO', titulo: 'Contrato com assinatura inválida', refType: 'JurContrato', refId: contrato.id, documentos: [{ tipo: 'CONTRATO', texto: `Contratante: SUA INSTITUIÇÃO\nContratada: Empresa Teste\nInício da vigência: ${br(ymd(0))}\nFim da vigência: ${br(ymd(200))}\nValor: R$ 1.000,00\nAssinatura digital: presente`, metadados: { assinaturaPresente: true, assinaturaValida: false } }] })
   check('jurídico: assinatura digital inválida => CRITICO', rj.json.resultado === 'CRITICO')

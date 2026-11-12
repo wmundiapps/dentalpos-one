@@ -3,6 +3,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useState } from "react";
+import AnalisarComAgente, { BloqueioChip } from "../analise-docs/AnalisarComAgente";
 import { eduApi, qsOf } from "../../services/EduApi";
 import EduResourcePage from "../EduResourcePage";
 import { Empty, Feedback, Status, StatCard, StatGrid, StudentSearch, fmtDate, fmtDateTime, itemsOf, label, useLoad } from "./util";
@@ -110,6 +111,10 @@ function Detalhe({ id, onClose, onChanged }: { id: string | null; onClose: () =>
             </Box>
             {p.descricao && <Paper variant="outlined" sx={{ p: 1.5 }}><Typography variant="body2">{p.descricao}</Typography></Paper>}
             {(p.anexos || []).length > 0 && <Box><Typography variant="subtitle2">Anexos</Typography>{p.anexos.map((a: any) => <Chip key={a.id} sx={{ mr: 0.5, mt: 0.5 }} size="small" label={`${a.nome}${a.enviadoPorAluno ? " (aluno)" : ""}`} />)}</Box>}
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+              <AnalisarComAgente protocoloId={p.id} preset={{ origem: "SECRETARIA", titulo: `Protocolo ${p.numero} — ${p.assunto}`, studentId: p.studentId || undefined }} />
+              <BloqueioChip refType="SecProtocolo" refId={p.id} />
+            </Box>
             <Divider />
             <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Linha do tempo</Typography>
             {(p.tramites || []).length === 0 && <Empty>Sem trâmites.</Empty>}

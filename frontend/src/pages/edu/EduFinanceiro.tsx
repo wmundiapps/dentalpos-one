@@ -1,4 +1,5 @@
-import { Box, Paper, Tab, Tabs } from "@mui/material";
+import { Box, Button, Paper, Tab, Tabs } from "@mui/material";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
@@ -8,7 +9,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import SendIcon from "@mui/icons-material/Send";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ReactElement, ReactNode } from "react";
 import EduShell from "../../edu/EduShell";
 import PainelTes from "../../edu/tesouraria/PainelTes";
@@ -28,6 +29,7 @@ const ALIAS: Record<string, string> = { bolsas: "permutas" };
 /** Financeiro Edu (Tesouraria): contas a receber/pagar, fila de conferência e autorização, bancos, notas, recibos, permutas e remessas. */
 export default function EduFinanceiro() {
   const [params, setParams] = useSearchParams();
+  const nav = useNavigate();
   const atual = ALIAS[params.get("secao") || ""] || params.get("secao") || "painel";
   const idx = Math.max(0, SECOES.indexOf(atual as (typeof SECOES)[number]));
   const ir = (s: string) => setParams({ secao: ALIAS[s] || s }, { replace: false });
@@ -44,7 +46,8 @@ export default function EduFinanceiro() {
     { key: "remessas", label: "Remessas", icon: <SendIcon />, render: () => <RemessasTab /> },
   ];
   return (
-    <EduShell title="Financeiro" subtitle="Tesouraria da instituição: recebimentos, contas a pagar com conferência e autorização, bancos, notas fiscais, recibos, permutas e remessas.">
+    <EduShell title="Financeiro" subtitle="Tesouraria da instituição: recebimentos, contas a pagar com conferência e autorização, bancos, notas fiscais, recibos, permutas e remessas."
+      actions={<Button variant="contained" color="inherit" sx={{ color: "primary.main", bgcolor: "#fff" }} startIcon={<SmartToyOutlinedIcon />} onClick={() => nav("/edu/analise-docs?secao=fila&novo=1&origem=FINANCEIRO&contexto=COMPROVANTE&tipo=COMPROVANTE&titulo=" + encodeURIComponent("Comprovante / nota fiscal"))}>Analisar comprovante ou nota (IA)</Button>}>
       <Paper variant="outlined" sx={{ borderRadius: 4, mb: 2 }}>
         <Tabs value={idx} onChange={(_, v) => ir(SECOES[v])} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
           {TABS.map((t) => <Tab key={t.key} label={t.label} icon={t.icon} iconPosition="start" sx={{ textTransform: "none", fontWeight: 700, minHeight: 56 }} />)}

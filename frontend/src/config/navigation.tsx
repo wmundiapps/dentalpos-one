@@ -5,6 +5,7 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import BiotechIcon from "@mui/icons-material/Biotech";
 import BugReportIcon from "@mui/icons-material/BugReport";
@@ -307,6 +308,16 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Emissão de documentos","/edu/atendimento?secao=emissao",<DescriptionIcon/>),
       item("Catálogo de serviços","/edu/atendimento?secao=catalogo",<Inventory2Icon/>),
       item("Painel / SLA","/edu/atendimento?secao=painel",<SpaceDashboardIcon/>),
+    ]
+  },
+  {
+    label:"EduMaster · Agente de documentos",
+    icon:tile(<SmartToyOutlinedIcon/>,"#6D28D9"),
+    items:[
+      item("Agente de documentos (IA)","/edu/analise-docs",<SmartToyOutlinedIcon/>),
+      item("Fila de revisão","/edu/analise-docs?secao=fila",<FactCheckIcon/>),
+      item("Equivalência de disciplinas","/edu/analise-docs?secao=equivalencia",<AssignmentIcon/>),
+      item("Instituições (MEC/estados)","/edu/analise-docs?secao=instituicoes",<AccountBalanceIcon/>),
     ]
   },
   {

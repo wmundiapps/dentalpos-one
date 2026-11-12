@@ -47,7 +47,7 @@ const casoSchema = z.object({
 
 const REF_MODELS: Record<string, string> = {
   SecProtocolo: 'secProtocolo', SecAnexo: 'secAnexo', SecConferenciaItem: 'secConferenciaItem', SecDiploma: 'secDiploma', AccountPayable: 'accountPayable', AccountReceivable: 'accountReceivable',
-  FiscalInvoice: 'fiscalInvoice', JurContrato: 'jurContrato', JurDocumento: 'jurDocumento', JurAnexo: 'jurAnexo',
+  FiscalInvoice: 'fiscalInvoice', TesTitulo: 'tesTitulo', TesNotaFiscal: 'tesNotaFiscal', TesRecibo: 'tesRecibo', JurContrato: 'jurContrato', JurDocumento: 'jurDocumento', JurAnexo: 'jurAnexo',
 }
 const ator = (req: AuthenticatedRequest) => ({ id: uid(req), clinicId: req.user?.clinicId, role: papel(req) })
 

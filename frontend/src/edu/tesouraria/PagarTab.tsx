@@ -1,4 +1,5 @@
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Tab, Tabs, TextField, Typography } from "@mui/material";
+import AnalisarComAgente, { BloqueioChip } from "../analise-docs/AnalisarComAgente";
 import AddIcon from "@mui/icons-material/Add";
 import { useState } from "react";
 import { eduApi } from "../../services/EduApi";
@@ -49,6 +50,10 @@ export function TituloDetalhe({ id, onClose, onChanged }: { id: string; onClose:
                   {t.codigoBarras && <Typography variant="body2" sx={{ wordBreak: "break-all" }}>Boleto: {t.codigoBarras}</Typography>}
                   {t.nota && <Typography variant="body2">Nota fiscal {t.nota.numero}/{t.nota.serie} — {t.nota.conciliacaoFiscal}</Typography>}
                   {t.remessa && <Typography variant="body2">Remessa nº {t.remessa.numero} ({t.remessa.status})</Typography>}
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap", mt: 1 }}>
+                    <AnalisarComAgente preset={{ origem: "FINANCEIRO", contexto: "NOTA_FISCAL", tipo: "NOTA_FISCAL", refType: "TesTitulo", refId: t.id, titulo: `Título ${t.numero} — ${t.fornecedor}`.slice(0, 120) }} label="Analisar nota/comprovante com o agente" />
+                    <BloqueioChip refType="TesTitulo" refId={t.id} />
+                  </Box>
                 </Box>
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Alçada e aprovações</Typography>
