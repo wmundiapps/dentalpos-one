@@ -19855,3 +19855,184 @@ CREATE INDEX IF NOT EXISTS "CprUsoMedicamento_tenantId_animalId_idx" ON "CprUsoM
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "CprUsoMedicamento_tenantId_supItemId_data_idx" ON "CprUsoMedicamento"("tenantId", "supItemId", "data");
 -- ==== CPR:END ====
+
+-- ==== IPL:BEGIN (módulo infraestrutura/planejamento, prefixo Ipl - gerado por prisma migrate diff; somente CRIA) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "IplContador" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "valor" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "IplContador_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "IplPolitica" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "limiteCotacao" DOUBLE PRECISION NOT NULL DEFAULT 8000,
+    "minCotacoes" INTEGER NOT NULL DEFAULT 3,
+    "alcadas" JSONB NOT NULL,
+    "alertaPrazoDias" INTEGER NOT NULL DEFAULT 15,
+    "alertaOrcamentoPct" DOUBLE PRECISION NOT NULL DEFAULT 90,
+    "orcamentoAnual" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "IplPolitica_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "IplPlano" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "prioridade" TEXT NOT NULL DEFAULT 'MEDIA',
+    "anoReferencia" INTEGER NOT NULL,
+    "programId" TEXT,
+    "spaceId" TEXT,
+    "descricao" TEXT,
+    "justificativa" TEXT NOT NULL,
+    "indicadorMec" TEXT,
+    "pdiMetaId" TEXT,
+    "requisitoId" TEXT,
+    "origem" TEXT NOT NULL DEFAULT 'MANUAL',
+    "sugestaoId" TEXT,
+    "orcamentoEstimado" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "valorExecutado" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "itens" JSONB,
+    "inicioPrevisto" TIMESTAMP(3),
+    "fimPrevisto" TIMESTAMP(3),
+    "concluidoEm" TIMESTAMP(3),
+    "responsavelUserId" TEXT,
+    "solicitanteUserId" TEXT,
+    "convertidoEm" TIMESTAMP(3),
+    "destino" TEXT,
+    "requisicaoId" TEXT,
+    "ordemServicoId" TEXT,
+    "projetoId" TEXT,
+    "motivoReprovacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "IplPlano_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "IplCotacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "planoId" TEXT NOT NULL,
+    "fornecedorId" TEXT,
+    "fornecedorNome" TEXT NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "prazoDias" INTEGER,
+    "validadeAte" TIMESTAMP(3),
+    "observacao" TEXT,
+    "escolhida" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "IplCotacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "IplMarco" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "planoId" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL DEFAULT 1,
+    "titulo" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "concluidoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "IplMarco_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "IplAprovacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "planoId" TEXT NOT NULL,
+    "nivel" INTEGER NOT NULL,
+    "papel" TEXT NOT NULL,
+    "rotulo" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "decididoPorId" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "parecer" TEXT,
+
+    CONSTRAINT "IplAprovacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "IplSugestao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "programId" TEXT,
+    "spaceId" TEXT,
+    "titulo" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "justificativa" TEXT NOT NULL,
+    "indicadorMec" TEXT,
+    "requisitoId" TEXT,
+    "origem" TEXT NOT NULL,
+    "motor" TEXT NOT NULL DEFAULT 'REGRAS',
+    "explicacao" JSONB NOT NULL,
+    "quantidade" INTEGER NOT NULL DEFAULT 1,
+    "valorEstimado" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "prioridade" TEXT NOT NULL DEFAULT 'MEDIA',
+    "chave" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "planoId" TEXT,
+    "decididoPorId" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "motivo" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "IplSugestao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "IplContador_tenantId_chave_key" ON "IplContador"("tenantId", "chave");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "IplPolitica_tenantId_key" ON "IplPolitica"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "IplPlano_tenantId_status_idx" ON "IplPlano"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "IplPlano_tenantId_anoReferencia_idx" ON "IplPlano"("tenantId", "anoReferencia");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "IplPlano_tenantId_programId_idx" ON "IplPlano"("tenantId", "programId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "IplPlano_tenantId_spaceId_idx" ON "IplPlano"("tenantId", "spaceId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "IplPlano_tenantId_numero_key" ON "IplPlano"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "IplCotacao_tenantId_planoId_idx" ON "IplCotacao"("tenantId", "planoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "IplMarco_tenantId_planoId_idx" ON "IplMarco"("tenantId", "planoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "IplAprovacao_tenantId_status_papel_idx" ON "IplAprovacao"("tenantId", "status", "papel");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "IplAprovacao_planoId_nivel_key" ON "IplAprovacao"("planoId", "nivel");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "IplSugestao_tenantId_status_idx" ON "IplSugestao"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "IplSugestao_tenantId_chave_key" ON "IplSugestao"("tenantId", "chave");
+-- ==== IPL:END ====

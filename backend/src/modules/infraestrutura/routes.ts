@@ -15,6 +15,7 @@ import { mountFotos } from './patrimonio-fotos'
 import { mountResponsabilidade } from './patrimonio-responsabilidade'
 import { mountInventarioQr } from './patrimonio-inventario'
 import { mountInfra2 } from './inf2/routes'
+import { mountPlanejamento } from './planejamento/routes'
 
 // Módulo "infraestrutura" — montado em /api/edu/infraestrutura.
 const router = Router()
@@ -34,6 +35,7 @@ mountAdequacao(router)
 mountIndicadores(router)
 registerInfraJobs()
 mountInfra2(router)
+mountPlanejamento(router)
 
 router.use(academicErrorHandler)
 
