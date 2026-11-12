@@ -178,7 +178,7 @@ export function mountPacientes(router: Router) {
   }))
 
   // ---------------------------------------------------------------- unidades e consultórios
-  const AREAS = ['PSICOLOGIA', 'BIOMEDICINA', 'FONOAUDIOLOGIA', 'VETERINARIA', 'ODONTOLOGIA', 'MEDICINA'] as const
+  const AREAS = ['PSICOLOGIA', 'BIOMEDICINA', 'FONOAUDIOLOGIA', 'VETERINARIA', 'ODONTOLOGIA', 'MEDICINA', 'ZOOTECNIA', 'ESTETICA', 'POS_GRADUACAO'] as const
   mountCrud(router, {
     model: 'cprUnidade', path: '/clinicas/unidades', read: [...RECEPCAO, 'TEACHER', 'STUDENT'], write: ['COORDINATOR'], modulo: MOD, filters: ['area', 'tipo', 'ativo'], search: ['nome'], orderBy: { nome: 'asc' },
     create: z.object({ nome: z.string().trim().min(3).max(160), tipo: z.enum(['CLINICA_ESCOLA', 'AMBULATORIO', 'HOSPITAL_VET', 'LABORATORIO']).default('CLINICA_ESCOLA'), area: z.enum(AREAS), programId: zId.optional(), endereco: z.string().max(200).optional(), telefone: z.string().max(30).optional(), ativo: z.boolean().optional() }),

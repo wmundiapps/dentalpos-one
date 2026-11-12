@@ -75,4 +75,5 @@ export function useDebounced<T>(v: T, ms = 300) {
 export const AREAS: Opt[] = [
   { value: "PSICOLOGIA", label: "Psicologia" }, { value: "BIOMEDICINA", label: "Biomedicina" }, { value: "FONOAUDIOLOGIA", label: "Fonoaudiologia" },
   { value: "VETERINARIA", label: "Medicina Veterinária" }, { value: "ODONTOLOGIA", label: "Odontologia" }, { value: "MEDICINA", label: "Medicina" },
+  { value: "ZOOTECNIA", label: "Zootecnia" }, { value: "ESTETICA", label: "Estética" }, { value: "POS_GRADUACAO", label: "Pós-graduação (especializações)" },
 ];

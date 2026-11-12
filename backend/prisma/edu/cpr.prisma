@@ -203,7 +203,7 @@ model CprUnidade {
   tenantId  String
   nome      String
   tipo      String   @default("CLINICA_ESCOLA")   // CLINICA_ESCOLA | AMBULATORIO | HOSPITAL_VET | LABORATORIO
-  area      String   // PSICOLOGIA | BIOMEDICINA | FONOAUDIOLOGIA | VETERINARIA | ODONTOLOGIA | MEDICINA
+  area      String   // PSICOLOGIA | BIOMEDICINA | FONOAUDIOLOGIA | VETERINARIA | ODONTOLOGIA | MEDICINA | ZOOTECNIA | ESTETICA | POS_GRADUACAO
   programId String?
   endereco  String?
   telefone  String?

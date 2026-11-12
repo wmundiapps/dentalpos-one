@@ -69,6 +69,7 @@ export async function seedCamposPratica(api: Api, ctx: SeedCtx = {}) {
     ['coord.campos', 'Fernanda', 'Lacerda', 'COORDINATOR'], ['prof.estagio', 'Beatriz', 'Sampaio', 'TEACHER'], ['prof.psicologia', 'Renata', 'Figueiredo', 'TEACHER'], ['prof.fono', 'Gustavo', 'Meirelles', 'TEACHER'],
     ['prof.biomed', 'Cláudia', 'Rangel', 'TEACHER'], ['prof.odonto', 'Rodrigo', 'Nogueira', 'TEACHER'], ['prof.medicina', 'Paulo', 'Vilela', 'TEACHER'], ['prof.vet', 'Henrique', 'Bastos', 'TEACHER'],
     ['prof.vetgrandes', 'Simone', 'Aragão', 'TEACHER'], ['prof.agro', 'Antônio', 'Carvalho', 'TEACHER'], ['recepcao.clinica', 'Marcos', 'Teixeira', 'STAFF'],
+    ['prof.zootecnia', 'Luciana', 'Fontes', 'TEACHER'], ['prof.estetica', 'Daniela', 'Prado', 'TEACHER'], ['prof.pos', 'Eduardo', 'Marinho', 'TEACHER'],
   ]
   const U: Record<string, any> = {}
   for (const [k, f, l, r] of equipe) U[k] = await mk(`${k}${DOM}`, f, l, r)
@@ -76,7 +77,7 @@ export async function seedCamposPratica(api: Api, ctx: SeedCtx = {}) {
   S.equipe = U
 
   // ---------------------------------------------------------------- cursos, alunos e turmas
-  const cursosDef: Array<[string, number]> = [['Psicologia', 4000], ['Biomedicina', 3600], ['Fonoaudiologia', 3200], ['Medicina Veterinária', 4200], ['Medicina', 7200], ['Agronomia', 3800]]
+  const cursosDef: Array<[string, number]> = [['Psicologia', 4000], ['Biomedicina', 3600], ['Fonoaudiologia', 3200], ['Medicina Veterinária', 4200], ['Medicina', 7200], ['Agronomia', 3800], ['Zootecnia', 3600], ['Estética e Cosmética', 1600], ['Especialização em Odontologia Clínica', 360]]
   const programas = lista(await api('GET', '/edu/academico/programs'))
   const C: Record<string, any> = {}
   for (const [nome, ch] of cursosDef) C[nome] = programas.find((p) => p.nome === nome) ?? (await api('POST', '/edu/academico/programs', { nome, modalidade: 'PRESENCIAL', cargaHorariaTotal: ch }))
@@ -93,6 +94,9 @@ export async function seedCamposPratica(api: Api, ctx: SeedCtx = {}) {
     ['Medicina Veterinária', 'Isadora Campos Vieira', 'isadora.campos'], ['Medicina Veterinária', 'Leonardo Prado Esteves', 'leonardo.prado'], ['Medicina Veterinária', 'Bruna Cavalcante Melo', 'bruna.cavalcante'],
     ['Medicina', 'Vitor Hugo Andrade', 'vitor.andrade'], ['Medicina', 'Letícia Moraes Carneiro', 'leticia.moraes'],
     ['Agronomia', 'Rafael Tavares Dutra', 'rafael.tavares'], ['Agronomia', 'Juliana Peixoto Lemos', 'juliana.peixoto'], ['Agronomia', 'Samuel Borges Queiroz', 'samuel.borges'],
+    ['Zootecnia', 'Helena Rocha Siqueira', 'helena.rocha'], ['Zootecnia', 'Diego Matos Pacheco', 'diego.matos'],
+    ['Estética e Cosmética', 'Priscila Andrade Leal', 'priscila.andrade'], ['Estética e Cosmética', 'Karina Lopes Vidal', 'karina.lopes'],
+    ['Especialização em Odontologia Clínica', 'Fábio Nunes Coutinho', 'fabio.nunes'], ['Especialização em Odontologia Clínica', 'Aline Prates Duarte', 'aline.prates'],
   ]
   const A: Record<string, any[]> = {}
   for (const [i, [curso, nome, login]] of alunosDef.entries()) {
@@ -253,6 +257,9 @@ export async function seedCamposPratica(api: Api, ctx: SeedCtx = {}) {
       { chave: 'fono', nome: 'Clínica de Fonoaudiologia', tipo: 'CLINICA_ESCOLA', area: 'FONOAUDIOLOGIA', curso: 'Fonoaudiologia', salas: [['Sala de avaliação'], ['Sala de terapia']], sup: 'prof.fono', alunos: 'Fonoaudiologia' },
       { chave: 'bio', nome: 'Laboratório-Escola de Análises Clínicas', tipo: 'LABORATORIO', area: 'BIOMEDICINA', curso: 'Biomedicina', salas: [['Coleta 1', 'SALA_ATENDIMENTO'], ['Coleta 2', 'SALA_ATENDIMENTO']], sup: 'prof.biomed', alunos: 'Biomedicina' },
       { chave: 'odo', nome: 'Clínica-Escola de Odontologia', tipo: 'CLINICA_ESCOLA', area: 'ODONTOLOGIA', curso: 'Odontologia', salas: [['Box 1'], ['Box 2'], ['Box 3']], sup: 'prof.odonto', alunos: 'Odontologia' },
+      { chave: 'zoot', nome: 'Núcleo de Zootecnia: Nutrição e Manejo Animal', tipo: 'AMBULATORIO', area: 'ZOOTECNIA', curso: 'Zootecnia', salas: [['Sala de avaliação nutricional'], ['Baia de manejo', 'A_CAMPO']], sup: 'prof.zootecnia', alunos: 'Zootecnia' },
+      { chave: 'est', nome: 'Clínica de Estética e Cosmética', tipo: 'CLINICA_ESCOLA', area: 'ESTETICA', curso: 'Estética e Cosmética', salas: [['Cabine facial'], ['Cabine corporal']], sup: 'prof.estetica', alunos: 'Estética e Cosmética' },
+      { chave: 'pos', nome: 'Clínica das Especializações (pós-graduação)', tipo: 'CLINICA_ESCOLA', area: 'POS_GRADUACAO', curso: 'Especialização em Odontologia Clínica', salas: [['Box de especialização 1'], ['Box de especialização 2']], sup: 'prof.pos', alunos: 'Especialização em Odontologia Clínica' },
       { chave: 'med', nome: 'Ambulatório-Escola de Medicina', tipo: 'AMBULATORIO', area: 'MEDICINA', curso: 'Medicina', salas: [['Consultório A'], ['Consultório B']], sup: 'prof.medicina', alunos: 'Medicina' },
     ]
     const UN: Record<string, any> = {}, SALAS: Record<string, any[]> = {}
@@ -280,6 +287,9 @@ export async function seedCamposPratica(api: Api, ctx: SeedCtx = {}) {
       ['fono3', 'Sofia Martins Azevedo', '710.000.007-07', { dataNascimento: '2019-02-18', responsavelNome: 'Renato Azevedo', responsavelCpf: '710.000.107-07' }],
       ['bio1', 'Cláudio Bernardes', '710.000.008-08', { dataNascimento: '1970-06-25' }], ['bio2', 'Tatiane Souza Freire', '710.000.009-09', { dataNascimento: '1995-12-01' }],
       ['odo1', 'Valéria Cunha Moreira', '710.000.010-10', { dataNascimento: '1988-04-04', saude: 'Alergia a penicilina.' }], ['odo2', 'Heitor Santana', '710.000.011-11', { dataNascimento: '1999-08-19' }], ['odo3', 'Maria Eduarda Pires', '710.000.012-12', { dataNascimento: '2012-10-10', responsavelNome: 'Carolina Pires', responsavelCpf: '710.000.112-12' }],
+      ['zoot1', 'Fazenda Boa Vista (lote de bovinos de leite)', '710.000.021-21', { dataNascimento: '1970-01-01' }], ['zoot2', 'Sítio Santa Clara (suínos)', '710.000.022-22', { dataNascimento: '1972-02-02' }],
+      ['est1', 'Bianca Moura Cardoso', '710.000.023-23', { dataNascimento: '1990-09-12', saude: 'Pele sensível; sem alergias conhecidas.' }], ['est2', 'Cíntia Barreto Lima', '710.000.024-24', { dataNascimento: '1984-03-30' }],
+      ['pos1', 'Wellington Prado Cunha', '710.000.025-25', { dataNascimento: '1979-07-07', saude: 'Hipertenso controlado.' }], ['pos2', 'Elaine Souza Matos', '710.000.026-26', { dataNascimento: '1992-10-10' }],
       ['med1', 'Antônio Carlos Veloso', '710.000.013-13', { dataNascimento: '1960-02-27', saude: 'Hipertensão em acompanhamento.' }], ['med2', 'Rosângela Dias', '710.000.014-14', { dataNascimento: '1975-05-15', saude: 'Diabetes tipo 2.' }],
     ]
     for (const [k, n, c, x] of pdef) PAC[k] = await pac(n, c, x)
@@ -305,12 +315,15 @@ export async function seedCamposPratica(api: Api, ctx: SeedCtx = {}) {
     // ---------- atendimentos: histórico (realizados e faltas) + agenda dos próximos dias
     const sup = (k: string) => como(`${k}${DOM}`)
     const ativos = unidadesDef.filter((u) => UN[u.chave] && (A[u.alunos]?.length ?? 0) > 0)
-    const pacientesDe: Record<string, string[]> = { psi: ['psi1', 'psi2', 'psi3', 'psi4'], fono: ['fono1', 'fono2', 'fono3'], bio: ['bio1', 'bio2'], odo: ['odo1', 'odo2', 'odo3'], med: ['med1', 'med2'] }
+    const pacientesDe: Record<string, string[]> = { psi: ['psi1', 'psi2', 'psi3', 'psi4'], fono: ['fono1', 'fono2', 'fono3'], bio: ['bio1', 'bio2'], odo: ['odo1', 'odo2', 'odo3'], zoot: ['zoot1', 'zoot2'], est: ['est1', 'est2'], pos: ['pos1', 'pos2'], med: ['med1', 'med2'] }
     const resumos: Record<string, string[]> = {
       psi: ['Acolhimento inicial; levantamento da demanda e contrato terapêutico.', 'Exploração de situações geradoras de ansiedade; técnicas de respiração.', 'Revisão de metas e devolutiva parcial.'],
       fono: ['Avaliação da linguagem oral; brincadeira dirigida.', 'Terapia de articulação; orientação à família.', 'Treino de deglutição com consistência pastosa.'],
       bio: ['Coleta de sangue venoso, identificação e encaminhamento ao laboratório.', 'Orientação de preparo para exame; coleta realizada sem intercorrências.'],
       odo: ['Anamnese, exame clínico e plano de tratamento.', 'Profilaxia e raspagem supracondiral.', 'Restauração em resina composta dente 36.'],
+      zoot: ['Avaliação de escore corporal e formulação de dieta para o lote.', 'Ajuste de manejo nutricional e orientação ao produtor.'],
+      est: ['Avaliação da pele e protocolo de limpeza facial.', 'Drenagem linfática corporal; orientação de cuidados domiciliares.'],
+      pos: ['Planejamento de caso clínico de especialização com o orientador.', 'Procedimento especializado supervisionado; registro fotográfico autorizado.'],
       med: ['Anamnese, aferição de pressão e orientação nutricional.', 'Retorno: ajuste de conduta e solicitação de exames.'],
     }
     let nPassado = 0
