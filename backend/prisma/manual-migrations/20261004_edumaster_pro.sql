@@ -19859,9 +19859,6 @@ CREATE INDEX IF NOT EXISTS "CprUsoMedicamento_tenantId_supItemId_data_idx" ON "C
 -- ==== IPL:BEGIN (módulo infraestrutura/planejamento, prefixo Ipl - gerado por prisma migrate diff; somente CRIA) ====
 -- CreateTable
 CREATE TABLE IF NOT EXISTS "IplContador" (
--- ==== ADC:BEGIN (Agente de análise de documentos, prefixo Adc - gerado por prisma migrate diff; só CRIA tabelas/índices/FKs, idempotente) ====
--- CreateTable
-CREATE TABLE IF NOT EXISTS "AdcContador" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "chave" TEXT NOT NULL,
@@ -20039,6 +20036,13 @@ CREATE INDEX IF NOT EXISTS "IplSugestao_tenantId_status_idx" ON "IplSugestao"("t
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "IplSugestao_tenantId_chave_key" ON "IplSugestao"("tenantId", "chave");
 -- ==== IPL:END ====
+-- ==== ADC:BEGIN (Agente de análise de documentos, prefixo Adc - gerado por prisma migrate diff; só CRIA tabelas/índices/FKs, idempotente) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AdcContador" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "valor" INTEGER NOT NULL DEFAULT 0,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "AdcContador_pkey" PRIMARY KEY ("id")

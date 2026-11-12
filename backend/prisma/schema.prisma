@@ -8967,7 +8967,7 @@ model CprUnidade {
   tenantId  String
   nome      String
   tipo      String   @default("CLINICA_ESCOLA")   // CLINICA_ESCOLA | AMBULATORIO | HOSPITAL_VET | LABORATORIO
-  area      String   // PSICOLOGIA | BIOMEDICINA | FONOAUDIOLOGIA | VETERINARIA | ODONTOLOGIA | MEDICINA
+  area      String   // PSICOLOGIA | BIOMEDICINA | FONOAUDIOLOGIA | VETERINARIA | ODONTOLOGIA | MEDICINA | ZOOTECNIA | ESTETICA | POS_GRADUACAO
   programId String?
   endereco  String?
   telefone  String?
@@ -10877,6 +10877,154 @@ model GovCarreiraProgressao {
 
   @@index([tenantId, status])
   @@index([tenantId, enquadramentoId])
+}
+
+// ---- edu/infra-planejamento.prisma ----
+// ============================================================
+// EDUMASTER PRO — INFRAESTRUTURA · PLANEJAMENTO (prefixo Ipl): planos de obras, reformas, expansão, reposição,
+// pinturas, plotagem e aquisição de materiais/equipamentos por curso, com cotações, cronograma, alçadas
+// de aprovação e conversão em requisição de compra / OS / projeto.
+// Somente tabelas NOVAS. Tipos/status/prioridade são String validados na API (zod). Referências a User,
+// AcademicProgram, EduSpace, SupRequisicao, InfOrdemServico, InfProjeto, GovPdiMeta, InfRequisitoCurso = String ids sem @relation.
+// ============================================================
+
+model IplContador {
+  id       String @id @default(uuid())
+  tenantId String
+  chave    String
+  valor    Int    @default(0)
+
+  @@unique([tenantId, chave])
+}
+
+// Política do tenant: limite que exige cotações, mínimo de cotações, alçadas e limiares de alerta.
+model IplPolitica {
+  id                String   @id @default(uuid())
+  tenantId          String   @unique
+  limiteCotacao     Float    @default(8000)     // acima deste valor exige `minCotacoes` cotações
+  minCotacoes       Int      @default(3)
+  alcadas           Json                         // [{nivel, papel, rotulo, valorMinimo}] em ordem de nível
+  alertaPrazoDias   Int      @default(15)       // alerta de marco/fim a vencer
+  alertaOrcamentoPct Float   @default(90)       // alerta de consumo do orçamento do ano
+  orcamentoAnual    Json?                        // [{ano, valor}] teto planejado por ano (opcional)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model IplPlano {
+  id                String   @id @default(uuid())
+  tenantId          String
+  numero            String
+  titulo            String
+  tipo              String                       // REFORMA | EXPANSAO | REPOSICAO | PINTURA | PLOTAGEM | EQUIPAMENTO | MATERIAL
+  status            String   @default("RASCUNHO") // RASCUNHO | AGUARDANDO_APROVACAO | APROVADO | REPROVADO | CONVERTIDO | EM_EXECUCAO | CONCLUIDO | CANCELADO
+  prioridade        String   @default("MEDIA")   // BAIXA | MEDIA | ALTA | CRITICA
+  anoReferencia     Int
+  programId         String?                      // curso beneficiado
+  spaceId           String?                      // espaço beneficiado
+  descricao         String?
+  justificativa     String
+  indicadorMec      String?                      // indicador / exigência do instrumento de avaliação do MEC
+  pdiMetaId         String?                      // meta do PDI (GovPdiMeta)
+  requisitoId       String?                      // InfRequisitoCurso que o item atende
+  origem            String   @default("MANUAL")  // MANUAL | CHECKLIST | MANUTENCAO | IA
+  sugestaoId        String?
+  orcamentoEstimado Float    @default(0)
+  valorExecutado    Float    @default(0)
+  itens             Json?                        // [{descricao, quantidade, unidade, precoEstimado}]
+  inicioPrevisto    DateTime?
+  fimPrevisto       DateTime?
+  concluidoEm       DateTime?
+  responsavelUserId String?
+  solicitanteUserId String?
+  convertidoEm      DateTime?
+  destino           String?                      // REQUISICAO | OS | PROJETO
+  requisicaoId      String?                      // SupRequisicao
+  ordemServicoId    String?                      // InfOrdemServico
+  projetoId         String?                      // InfProjeto
+  motivoReprovacao  String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+  @@index([tenantId, anoReferencia])
+  @@index([tenantId, programId])
+  @@index([tenantId, spaceId])
+}
+
+model IplCotacao {
+  id             String   @id @default(uuid())
+  tenantId       String
+  planoId        String
+  fornecedorId   String?                        // SupFornecedor (opcional)
+  fornecedorNome String
+  valor          Float
+  prazoDias      Int?
+  validadeAte    DateTime?
+  observacao     String?
+  escolhida      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, planoId])
+}
+
+model IplMarco {
+  id          String   @id @default(uuid())
+  tenantId    String
+  planoId     String
+  ordem       Int      @default(1)
+  titulo      String
+  data        DateTime
+  concluidoEm DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, planoId])
+}
+
+model IplAprovacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  planoId       String
+  nivel         Int
+  papel         String
+  rotulo        String?
+  status        String   @default("PENDENTE")   // PENDENTE | APROVADO | REPROVADO
+  decididoPorId String?
+  decididoEm    DateTime?
+  parecer       String?
+
+  @@unique([planoId, nivel])
+  @@index([tenantId, status, papel])
+}
+
+// Sugestões (regras + IA) — sempre revisáveis: o gestor aceita (vira plano) ou rejeita.
+model IplSugestao {
+  id             String   @id @default(uuid())
+  tenantId       String
+  programId      String?
+  spaceId        String?
+  titulo         String
+  tipo           String
+  justificativa  String
+  indicadorMec   String?
+  requisitoId    String?
+  origem         String                          // CHECKLIST | MANUTENCAO
+  motor          String   @default("REGRAS")     // REGRAS | IA
+  explicacao     Json                            // [{fato, detalhe}] evidências que sustentam a sugestão
+  quantidade     Int      @default(1)
+  valorEstimado  Float    @default(0)
+  prioridade     String   @default("MEDIA")
+  chave          String                          // dedupe (curso+requisito / espaço+categoria)
+  status         String   @default("PENDENTE")   // PENDENTE | ACEITA | REJEITADA
+  planoId        String?
+  decididoPorId  String?
+  decididoEm     DateTime?
+  motivo         String?
+  createdAt      DateTime @default(now())
+
+  @@unique([tenantId, chave])
+  @@index([tenantId, status])
 }
 
 // ---- edu/infra2.prisma ----
