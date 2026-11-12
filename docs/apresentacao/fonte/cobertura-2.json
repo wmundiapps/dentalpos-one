@@ -50,10 +50,10 @@
  },
  {
   "item": "Agendas por curso (psicologia, biomedicina, fonoaudiologia, medicina veterinária, odontologia, medicina)",
-  "existe": "NÃO EXISTE",
-  "modulo": "Nenhum no meu conjunto",
-  "rota": "—",
-  "como_funciona": "Não há agenda por curso nem clínica-escola por especialidade. Existem agenda de infraestrutura, atendimentos NAE com tipo psicológico, tipo de espaço CLINICA_ESCOLA e categorias de bens odontológicos; o menu Agenda/Clínico é do DentalPos One (odontologia), fora do EduMaster."
+  "existe": "SIM",
+  "modulo": "Campos de prática (clínicas-escola)",
+  "rota": "/edu/campos-pratica?secao=clinicas ; /edu/campos-pratica?secao=agenda",
+  "como_funciona": "Agendas próprias para psicologia, biomedicina, fonoaudiologia, medicina veterinária, odontologia e medicina, com consultórios, escalas de supervisor e alunos, fila de espera, lembretes de consulta e relatórios por curso. O aluno só atende com supervisor escalado no mesmo horário, e os dados de saúde ficam cifrados, em linha com a LGPD."
  },
  {
   "item": "Núcleos de agronomia/controle de culturas",

@@ -894,7 +894,7 @@
   "modulo": "Acadêmico (visão geral, cursos, professores, turmas, frequência e documentos)",
   "rota": "/academico",
   "titulo_chamada": "Porta de entrada acadêmica do menu clássico",
-  "descricao": "A página Acadêmico do menu clássico (DentalPos Academy) organiza a jornada acadêmica em seções: visão geral, alunos, cursos, professores, turmas, financeiro acadêmico e frequência e documentos. Ela serve de mapa de navegação para a operação acadêmica.\n\nAs telas operacionais completas estão nos itens EduMaster (alunos, matrizes, salas, notas, secretaria). Esta página é, em grande parte, institucional e de catálogo, por isso recomenda-se destacar no material comercial as telas EduMaster.",
+  "descricao": "A página Acadêmico do menu organiza a jornada acadêmica em seções: visão geral, alunos, cursos, professores, turmas, financeiro acadêmico e frequência e documentos. Ela serve de mapa de navegação para a operação acadêmica.\n\nAs telas operacionais completas estão nos itens EduMaster (alunos, matrizes, salas, notas, secretaria). Esta página é, em grande parte, institucional e de catálogo, por isso recomenda-se destacar no material comercial as telas EduMaster.",
   "funcionalidades": [
    "Navegação por seções (visão geral, alunos, cursos, professores, turmas, documentos)",
    "Catálogo de cursos com cartões (título, professor, carga, preço, avaliação)",

@@ -199,13 +199,13 @@ export async function seedAcademico2(api: SeedApi, ctx: SeedCtx = {}): Promise<R
 
   // ---------------------------------------------------------------- ligas, centros acadêmicos, extramuros e horas
   const liga = ok(await api('POST', `${A}/ligas`, { tipo: 'LIGA_ACADEMICA', nome: 'Liga Acadêmica de Endodontia', sigla: 'LAE', areaConhecimento: 'Odontologia', programId: progOdonto.id, descricao: 'Estudos, casos clínicos e ações de extensão em endodontia.', orientadorUserId: profId, orientadorNome: 'Prof. orientador', cargaHorariaMaxAluno: 60 }), 'liga')
-  const ca = ok(await api('POST', `${A}/ligas`, { tipo: 'CENTRO_ACADEMICO', nome: 'Centro Acadêmico Dr. Hélio Ravel', sigla: 'CAHR', areaConhecimento: 'Representação estudantil', programId: progOdonto.id, status: 'ATIVA' }), 'centro acadêmico')
+  const ca = ok(await api('POST', `${A}/ligas`, { tipo: 'CENTRO_ACADEMICO', nome: 'Centro Acadêmico Dr. Hélio Barros', sigla: 'CAHR', areaConhecimento: 'Representação estudantil', programId: progOdonto.id, status: 'ATIVA' }), 'centro acadêmico')
   if (liga) {
     r.ligas++
     for (let i = 0; i < 6 && i < lim.length; i++) await api('POST', `${A}/ligas/${liga.id}/membros`, { studentId: lim[i].id, papel: i === 0 ? 'PRESIDENTE' : i === 1 ? 'VICE' : 'MEMBRO' })
     const pl = await api('POST', `${A}/ligas/${liga.id}/planos`, { periodo: '2026/2', objetivos: 'Realizar ciclo de aulas, casos clínicos e uma ação social.', metas: '6 reuniões, 2 aulas abertas e 1 ação extramuros.', orcamento: 3500 })
     if (pl) { await api('POST', `${A}/ligas-planos/${pl.id}/enviar`, {}); await api('POST', `${A}/ligas-planos/${pl.id}/decidir`, { aprovar: true, parecer: 'Plano aprovado.' }) }
-    const at = await api('POST', `${A}/ligas/${liga.id}/atividades`, { planoId: pl?.id, tipo: 'AULA', titulo: 'Aula aberta: diagnóstico em endodontia', inicio: dia(-8), fim: dia(-8), cargaHoraria: 3, local: 'Auditório Ravel', publicarNoCalendario: true })
+    const at = await api('POST', `${A}/ligas/${liga.id}/atividades`, { planoId: pl?.id, tipo: 'AULA', titulo: 'Aula aberta: diagnóstico em endodontia', inicio: dia(-8), fim: dia(-8), cargaHoraria: 3, local: 'Auditório Central', publicarNoCalendario: true })
     if (at) await api('POST', `${A}/ligas-atividades/${at.id}/realizar`, { presentes: lim.slice(0, 5).map((s: any) => ({ studentId: s.id })), relatorio: 'Aula com 38 participantes.' })
     await api('POST', `${A}/ligas/${liga.id}/atividades`, { planoId: pl?.id, tipo: 'ACAO_SOCIAL', titulo: 'Ação social de saúde bucal', inicio: dia(25), cargaHoraria: 6, publicarNoCalendario: true })
   }

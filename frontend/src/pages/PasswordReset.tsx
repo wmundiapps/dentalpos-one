@@ -8,6 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { appRootUrl } from "../services/DemoAccess";
+import { MARCA_TOPO } from "../config/appMode";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -69,7 +70,7 @@ export default function PasswordReset() {
     >
       <Paper variant="outlined" sx={{ p: 4, borderRadius: 4, width: "min(460px,100%)" }}>
         <Typography variant="overline" color="primary" sx={{ fontWeight: 900 }}>
-          DENTALPOS ONE
+          {MARCA_TOPO}
         </Typography>
         <Typography variant="h4" sx={{ fontWeight: 950, mb: 1 }}>
           Nova senha

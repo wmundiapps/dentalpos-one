@@ -2,13 +2,14 @@ import { Box, Typography } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { navigationItems } from "../config/navigation";
 import { readSessionUser } from "../services/DemoAccess";
+import { EDU_ONLY, INSTITUICAO_PADRAO } from "../config/appMode";
 
 // Cabeçalho que só aparece na folha impressa: clínica, tela, data/hora e quem imprimiu.
 export default function PrintHeader() {
   const { pathname } = useLocation();
   const user = readSessionUser();
   const identity = (() => { try { return JSON.parse(localStorage.getItem("dentalpos.clinic.identity.v1") || "null") as { name?: string } | null; } catch { return null; } })();
-  const clinic = user?.clinic?.displayName || user?.clinic?.name || identity?.name || "DentalPos One";
+  const clinic = user?.clinic?.displayName || user?.clinic?.name || identity?.name || (EDU_ONLY ? INSTITUICAO_PADRAO : "DentalPos One");
   const item = navigationItems.find((i) => i.path.split("?")[0] === pathname)
     || navigationItems.filter((i) => i.path !== "/" && pathname.startsWith(i.path.split("?")[0])).sort((a, b) => b.path.length - a.path.length)[0];
   const who = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.email || "";

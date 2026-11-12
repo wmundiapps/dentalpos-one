@@ -9,6 +9,7 @@ import {
   hashPassword
 } from '../services/userService'
 import { writeAudit } from '../services/auditService'
+import { BRAND_NAME } from '../lib/brand'
 import { getDemoAccess } from '../services/demoAccessService'
 import { decryptSecret } from '../services/secretVault'
 import { dispatchRevah } from '../services/revahProviderService'
@@ -261,7 +262,7 @@ async function deliverPasswordReset(input: {
   const credentialsToUse = sender
     ? decryptSecret<Record<string, unknown>>(sender.encryptedCredentials) || {}
     : { apiKey: platformKey }
-  const addressToUse = sender ? sender.address : 'DentalPos One <contato@dentalpos.com.br>'
+  const addressToUse = sender ? sender.address : `${BRAND_NAME} <contato@dentalpos.com.br>`
 
   const url = new URL('redefinir-senha', base)
   url.searchParams.set('token', input.token)
@@ -273,14 +274,14 @@ async function deliverPasswordReset(input: {
     [
       `Olá, ${input.firstName}.`,
       '',
-      'Recebemos uma solicitação para redefinir sua senha do DentalPos One.',
+      `Recebemos uma solicitação para redefinir sua senha do ${BRAND_NAME}.`,
       `Use este link temporário: ${url.toString()}`,
       '',
       'O link expira em 30 minutos. Se você não solicitou a alteração, ignore esta mensagem.',
     ].join('\n'),
     {
       ...credentialsToUse,
-      subject: 'Redefinição de senha — DentalPos One',
+      subject: `Redefinição de senha — ${BRAND_NAME}`,
     },
     addressToUse,
   )

@@ -1,4 +1,4 @@
-import { EDU_ONLY } from "../config/appMode";
+import { APP_NAME, EDU_ONLY } from "../config/appMode";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Box, Typography } from "@mui/material";
@@ -133,7 +133,7 @@ function DemoInDevelopmentPage() {
         Em desenvolvimento
       </Typography>
       <Typography sx={{ color: "text.secondary", maxWidth: 420 }}>
-        Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no DentalPos One.
+        Esta funcionalidade está em desenvolvimento e será disponibilizada em breve no {APP_NAME}.
       </Typography>
     </Box>
   );

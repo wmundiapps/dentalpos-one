@@ -64,7 +64,7 @@ function telaDeBloqueio(titulo: string, texto: string) {
     const a = document.createElement("a");
     a.href = "https://one.dentalpos.com.br";
     a.rel = "noopener noreferrer";
-    a.textContent = "Acessar o endereço oficial do DentalPos One";
+    a.textContent = `Acessar o endereço oficial do ${APP_NAME}`;
     a.style.cssText = "color:#7fb3ff;font-weight:600";
     interno.append(a);
   }

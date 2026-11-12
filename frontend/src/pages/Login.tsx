@@ -1,5 +1,5 @@
 import EduCapa from "../edu/apresentacao/EduCapa";
-import { EDU_ONLY } from "../config/appMode";
+import { EDU_ONLY, MARCA_TOPO } from "../config/appMode";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, TextField, Typography } from "@mui/material";
@@ -207,7 +207,7 @@ export default function Login() {
         }}
       >
         <Typography variant="overline" color="primary" sx={{ fontWeight: 900 }}>
-          DENTALPOS ONE
+          {MARCA_TOPO}
         </Typography>
         <Typography variant="h4" sx={{ fontWeight: 950 }}>
           Bem-vindo

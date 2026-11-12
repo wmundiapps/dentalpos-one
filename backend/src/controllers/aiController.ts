@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth'
 import { prisma } from '../lib/prisma'
 import { runAiTask, type AiTask } from '../services/aiService'
 import { getWallet } from '../services/creditService'
+import { BRAND_NAME } from '../lib/brand'
 
 const ctx = (req: AuthRequest) => ({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId })
 
@@ -57,7 +58,7 @@ export async function run(req: AuthRequest, res: Response) {
   try {
     const c = ctx(req)
     const task = String(req.body?.task || '').toUpperCase() as AiTask
-    const system = String(req.body?.system || 'Voce e um assistente do DentalPos One. Responda em portugues do Brasil, de forma curta e pratica.')
+    const system = String(req.body?.system || `Voce e um assistente do ${BRAND_NAME}. Responda em portugues do Brasil, de forma curta e pratica.`)
     const prompt = String(req.body?.prompt || '').trim()
 
     if (!prompt) return res.status(400).json({ error: 'Informe o que voce precisa.' })
