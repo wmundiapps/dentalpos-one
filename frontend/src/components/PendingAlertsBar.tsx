@@ -3,7 +3,7 @@ import { Box, Button, Link, Typography } from "@mui/material";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import RiskPolicyDialog, { RISK_YELLOW } from "./RiskPolicyDialog";
 import { Link as RouterLink, useLocation } from "react-router-dom";
-import { confirmUnplannedExisting, loadPendingAlerts, PENDING_ALERTS_EVENT, type PendingAlerts } from "../services/PendingAlertsApi";
+import { authorizeUnplannedNotice, confirmUnplannedExisting, loadPendingAlerts, PENDING_ALERTS_EVENT, type PendingAlerts } from "../services/PendingAlertsApi";
 
 export default function PendingAlertsBar() {
   const [data, setData] = useState<PendingAlerts | null>(null);
@@ -59,6 +59,15 @@ export default function PendingAlertsBar() {
                     <Box key={r.patientId} sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", my: 0.4 }}>
                       <Typography variant="caption" sx={{ flex: "1 1 320px", minWidth: 0 }}>{`• ${r.patientName}: ${r.summary}`}</Typography>
                       <Button size="small" variant="contained" color="inherit" sx={{ color: "error.main", fontWeight: 800, py: 0 }} onClick={async () => { if (window.confirm(`Confirmar que os procedimentos de ${r.patientName} já estavam incluídos no tratamento (não são novos)?`)) { try { await confirmUnplannedExisting(r.patientId); } catch (e) { window.alert(e instanceof Error ? e.message : "Não foi possível confirmar."); } } }}>Já estava no tratamento</Button>
+                      {data.canManage && (r.noticeSent
+                        ? <Typography variant="caption" sx={{ fontWeight: 800 }}>Aviso ao paciente enviado</Typography>
+                        : <Button size="small" variant="outlined" color="inherit" sx={{ fontWeight: 800, py: 0 }} onClick={async () => {
+                            if (!window.confirm(`Autorizar o envio ao paciente ${r.patientName}?\n\nO paciente receberá, por e-mail, o aviso de que foi identificado o procedimento (${r.summary}) e que deve conferir com a clínica se já está no orçamento inicial ou se precisa de nova combinação financeira.\n\nConfira antes se o lançamento ou o orçamento inicial não tem erro de preenchimento.`)) return;
+                            try {
+                              const res = await authorizeUnplannedNotice(r.patientId);
+                              window.alert(res.sent ? "Aviso enviado ao paciente por e-mail." : `O paciente não tem e-mail válido cadastrado. Envie este texto por outro canal:\n\n${res.text}`);
+                            } catch (e) { window.alert(e instanceof Error ? e.message : "Não foi possível enviar o aviso."); }
+                          }}>Autorizar aviso ao paciente</Button>)}
                       <Button size="small" component={RouterLink} to={`/orcamentos-tratamentos?patientId=${encodeURIComponent(r.patientId)}`} sx={{ color: "#fff", textDecoration: "underline", py: 0 }}>É novo: passar orçamento</Button>
                     </Box>
                   )) : (item.lines || []).map((line, i) => <Typography key={i} variant="caption" sx={{ display: "block" }}>{`• ${line}`}</Typography>)}

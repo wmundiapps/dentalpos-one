@@ -7,6 +7,7 @@ import { getUserPermissionCodes } from '../services/permissionService'
 import { dispatchRevah } from '../services/revahProviderService'
 import { deliverWithCode } from '../services/labDeliveryCode'
 import { writeAudit } from '../services/auditService'
+import { sendUnplannedNotice } from '../services/unplannedPatientNotice'
 
 const FLAG_KEY = 'PENDING_ALERTS'
 const OPEN_APPOINTMENT_STATUSES = ['SCHEDULED', 'CONFIRMED', 'WAITING', 'ROOM_PREPARATION', 'IN_PROGRESS']
@@ -17,7 +18,7 @@ const KEY_LOCK_MS = 15 * 60 * 1000
 type Mode = 'ALERT' | 'BLOCK'
 type Visibility = Record<string, string[]>
 type Settings = { enabled: boolean; mode: Mode; lastDigest: string | null; lockDepartments: string[]; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility; lockEvents: Record<string, { day: string; resolved: boolean }> }
-type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string; to?: string }> }
+type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string; to?: string; noticeSent?: boolean }> }
 
 // Quem enxerga cada tipo de pendência, por departamento (código do perfil de acesso). Admin vê tudo sempre.
 // Se o gestor não configurou nada, vale este padrão: cobrança vai para recepção, financeiro e clínico; laboratório não vê cobrança.
@@ -197,7 +198,7 @@ async function computeItems(clinicId: string, tenantId: string, codes: string[] 
     // Procedimento feito fora do plano: some da lista quando o paciente ganha um orçamento novo depois do lançamento. Só aviso (não trava a tela).
     const fresh = await prisma.treatmentItem.findMany({
       where: { clinicId, tenantId, origin: 'ODONTOGRAM_NAO_PLANEJADO', createdAt: { gte: new Date(today.getTime() - 90 * DAY) } },
-      select: { patientId: true, tooth: true, procedure: true, createdAt: true, patient: { select: { fullName: true } } },
+      select: { patientId: true, tooth: true, procedure: true, createdAt: true, planningData: true, patient: { select: { fullName: true } } },
       orderBy: { createdAt: 'desc' }, take: 200
     }).catch(() => [])
     let open = fresh
@@ -206,10 +207,10 @@ async function computeItems(clinicId: string, tenantId: string, codes: string[] 
       open = fresh.filter(f => !budgets.some(b => b.patientId === f.patientId && b.createdAt >= f.createdAt))
     }
     if (open.length) {
-      const byPatient = new Map<string, { id: string; procs: string[] }>()
-      for (const f of open) { const cur = byPatient.get(f.patient.fullName) || { id: f.patientId, procs: [] }; cur.procs.push(`dente ${f.tooth ?? '—'} ${f.procedure}`); byPatient.set(f.patient.fullName, cur) }
+      const byPatient = new Map<string, { id: string; procs: string[]; sent: boolean }>()
+      for (const f of open) { const cur = byPatient.get(f.patient.fullName) || { id: f.patientId, procs: [], sent: true }; cur.procs.push(`dente ${f.tooth ?? '—'} ${f.procedure}`); if (!((f.planningData || {}) as { noticeSentAt?: string }).noticeSentAt) cur.sent = false; byPatient.set(f.patient.fullName, cur) }
       const lines = [...byPatient.entries()].slice(0, 8).map(([name, v]) => `${name}: ${v.procs.join(', ')}`)
-      const rows = [...byPatient.entries()].slice(0, 40).map(([name, v]) => ({ patientId: v.id, patientName: name, summary: v.procs.join(', ') }))
+      const rows = [...byPatient.entries()].slice(0, 40).map(([name, v]) => ({ patientId: v.id, patientName: name, summary: v.procs.join(', '), noticeSent: v.sent }))
       items.push({ key: 'budget', label: `${open.length} procedimento(s) novo(s) fora do plano: passar orçamento ao paciente`, count: open.length, blocks: 0, lines, rows, path: '/orcamentos-tratamentos' })
     }
   }
@@ -470,6 +471,22 @@ export async function sendManagerDigest(clinicId: string, tenantId: string, now 
   await notifyManagers(clinicId, tenantId, 'Pendências não resolvidas na clínica', `Estas pendências continuam sem resolução:\n\n${lines.join('\n')}\n\nOs departamentos foram avisados de que você é notificado. Acompanhe em Configurações > Avisos de pendências.`)
   await saveSettings(clinicId, tenantId, { ...settings, lastDigest: today })
   return { skipped: false, items: items.length }
+}
+
+// Gestor/proprietário autoriza o aviso ao paciente sobre procedimento novo (o orçamento inicial ou o lançamento pode ter erro).
+export async function authorizeUnplannedNotice(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, id: actorId, role } = req.user!
+    if (!(await isManager(actorId, String(role || '')))) return res.status(403).json({ error: 'Só o gestor ou o proprietário pode autorizar o envio ao paciente.' })
+    const patientId = String(req.body?.patientId || '')
+    if (!patientId) return res.status(400).json({ error: 'Informe o paciente.' })
+    const r = await sendUnplannedNotice({ clinicId, tenantId, actorId, patientId })
+    if (!r.ok) return res.status(r.status).json({ error: r.error })
+    return res.json({ sent: r.sent, hasEmail: r.hasEmail, text: r.text, items: r.items })
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Não foi possível enviar o aviso.' })
+  }
 }
 
 // "Já estava no tratamento": a equipe confirma que o procedimento lançado fora do plano na verdade já fazia parte do tratamento do paciente; sai da lista.

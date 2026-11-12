@@ -1,3 +1,4 @@
+import ProcedurePicker from "../components/ProcedurePicker";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, InputAdornment, LinearProgress, MenuItem, Paper, TextField, Typography } from "@mui/material";
@@ -342,7 +343,7 @@ export default function TreatmentPlanning({ initialPatientId }: { initialPatient
         <DialogTitle>Novo procedimento</DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "2fr 1fr 1fr" }, gap: 2 }}>
-            <TextField required label="Procedimento" value={form.procedure} onChange={(e) => setForm({ ...form, procedure: e.target.value })} />
+            <ProcedurePicker required label="Procedimento" placeholder="Digite ou escolha da lista" value={form.procedure} onChange={(name) => setForm((f) => ({ ...f, procedure: name }))} />
             <TextField label="Dente (FDI)" value={form.tooth} onChange={(e) => setForm({ ...form, tooth: e.target.value.replace(/\D/g, "").slice(0, 2) })} />
             <TextField label={"Região"} value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} />
             <TextField label="Fase" value={form.phase} onChange={(e) => setForm({ ...form, phase: e.target.value })} />

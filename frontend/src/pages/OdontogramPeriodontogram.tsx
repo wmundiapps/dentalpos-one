@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Alert, AppBar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Paper,
+  Alert, AppBar, Autocomplete, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, InputLabel, MenuItem, Paper,
   Select, Stack, Tab, Tabs, TextField, Toolbar, Typography
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
@@ -14,6 +14,8 @@ import PatientAlertBanner from '../components/patient/PatientAlertBanner'
 import EvolutionSignDialog, { type SignTarget } from '../components/patient/EvolutionSignDialog'
 import PatientPicker from '../components/patient/PatientPicker'
 import { DentalChartService } from '../services/DentalChartService'
+import { getTreatmentPlan, type TreatmentPlanItem } from '../services/TreatmentPlanApi'
+import { cbhpoProcedures } from '../data/cbhpoProcedures'
 import type {
   ClinicalState, DentalChartEntry, DentalFinding, Dentition,
   PeriodontalExam, PeriodontalSite, PeriodontalSiteRecord, ToothSurface
@@ -52,7 +54,8 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
   const [records,setRecords] = useState<Record<string,PeriodontalSiteRecord>>({})
   const [procTeeth,setProcTeeth] = useState<number[]>([])
   const [procFaces,setProcFaces] = useState<ToothSurface[]>([])
-  const [procFinding,setProcFinding] = useState('')
+  const [procName,setProcName] = useState('')
+  const [planItems,setPlanItems] = useState<TreatmentPlanItem[]>([])
   const [procNotes,setProcNotes] = useState('')
   const [procPro,setProcPro] = useState(()=>params.get('profissional') || (()=>{try{return localStorage.getItem('completodonto.lastProfessional')||''}catch{return ''}})())
   const [procNext,setProcNext] = useState('')
@@ -78,6 +81,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
     } catch (e:any) { setError(e.message) }
   }
   useEffect(()=>{ void load() },[patientId])
+  useEffect(()=>{ if(!patientId){setPlanItems([]);return} getTreatmentPlan(patientId).then(r=>setPlanItems(r.items.filter(i=>!['COMPLETED','CANCELLED'].includes(i.status)))).catch(()=>setPlanItems([])) },[patientId])
   useEffect(()=>{
     const adult=[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28,48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38]
     const child=[55,54,53,52,51,61,62,63,64,65,85,84,83,82,81,71,72,73,74,75]
@@ -115,7 +119,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
 
   // Registro do que foi feito no paciente: cada dente/face entra no odontograma como CONCLUÍDO e a evolução clínica fica no prontuário.
   async function saveProcedure() {
-    const finding = findings.find(f=>f.code===procFinding)
+    const finding = procName ? { code: findings.find(f=>f.label===procName)?.code || findings.find(f=>f.code==='OTHER_PROCEDURE')?.code || 'OTHER_PROCEDURE', label: procName } : undefined
     if (!patientId || !finding || !procTeeth.length || procPro.trim().length<2 || procNext.trim().length<3) return
     setProcBusy(true); setError(''); setProcOk(''); setUnplannedMsg('')
     try {
@@ -141,6 +145,15 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
     } catch(e:any){ setError(e.message) } finally { setProcBusy(false) }
   }
 
+  // Mesma lista do orçamento: primeiro o que está no plano deste paciente, depois a lista geral de procedimentos e os achados do odontograma.
+  const procedureOptions: Array<{ name: string; label: string; group: string; tooth?: number }> = [
+    ...planItems.map(i=>({ name:i.procedure, label:`${i.procedure}${i.tooth?` — dente ${i.tooth}`:''}`, group:'Do orçamento / plano deste paciente', tooth:i.tooth||undefined })),
+    ...cbhpoProcedures.map(p=>({ name:p.name, label:p.name, group:'Lista de procedimentos' })),
+    ...findings.map(f=>({ name:f.label, label:f.label, group:'Achados do odontograma' })),
+  ]
+  const procNorm=(v:string)=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()
+  const procOutsidePlan = !!procName && !planItems.some(i=>procNorm(i.procedure)===procNorm(procName))
+
   const procedureCard = (
     <Paper variant="outlined" sx={{p:2,borderRadius:3,mb:2,borderColor:'primary.main',borderWidth:2}}>
       <Typography variant="h6" sx={{ fontWeight:900 }}>Registrar procedimento realizado hoje</Typography>
@@ -149,6 +162,7 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
       {procOk && <Alert severity="success" sx={{mt:1}} onClose={()=>setProcOk('')}>{procOk}</Alert>}
       {unplannedMsg && <Alert severity="warning" sx={{mt:1}} onClose={()=>setUnplannedMsg('')} action={<Button size="small" onClick={()=>navigate(`/orcamentos-tratamentos?patientId=${encodeURIComponent(patientId)}`)}>Ir para o orçamento</Button>}>{unplannedMsg}</Alert>}
       {planMsg && <Alert severity="info" sx={{mt:1}} onClose={()=>setPlanMsg('')} action={<Button size="small" onClick={()=>navigate(`/orcamentos-tratamentos?patientId=${encodeURIComponent(patientId)}`)}>Abrir orçamento</Button>}>{planMsg}</Alert>}
+      {procOutsidePlan && <Alert severity="warning" sx={{mt:1}}>Este procedimento <b>não está no orçamento/plano</b> deste paciente. Ao salvar, o gestor é avisado e decide se o paciente recebe o aviso para conferir com a clínica.</Alert>}
       <Box sx={{display:'grid',gridTemplateColumns:{xs:'1fr',md:'1fr 1fr 1fr'},gap:1.5,mt:2}}>
         <FormControl><InputLabel>Dente(s) FDI</InputLabel><Select multiple value={procTeeth} label="Dente(s) FDI" onChange={e=>setProcTeeth((e.target.value as number[]).map(Number))} renderValue={(v)=><Box sx={{display:'flex',flexWrap:'wrap',gap:0.5}}>{(v as number[]).map(t=><Chip key={t} size="small" label={t} onMouseDown={e=>e.stopPropagation()} onDelete={()=>setProcTeeth(procTeeth.filter(x=>x!==t))}/>)}</Box>} endAdornment={procTeeth.length?<Button size="small" color="error" sx={{mr:3,minWidth:0}} onMouseDown={e=>e.stopPropagation()} onClick={()=>setProcTeeth([])}>Limpar</Button>:undefined}>
           {teeth.map(t=><MenuItem key={t} value={t}>{t}</MenuItem>)}
@@ -156,13 +170,19 @@ export default function OdontogramPeriodontogram({ startFullscreen = false, embe
         <FormControl><InputLabel>Face(s) (opcional)</InputLabel><Select multiple value={procFaces} label="Face(s) (opcional)" onChange={e=>setProcFaces(e.target.value as ToothSurface[])} renderValue={(v)=><Box sx={{display:'flex',flexWrap:'wrap',gap:0.5}}>{(v as string[]).map(f=><Chip key={f} size="small" label={f} onMouseDown={e=>e.stopPropagation()} onDelete={()=>setProcFaces(procFaces.filter(x=>x!==f))}/>)}</Box>}>
           {SURFACES.map(s=><MenuItem key={s} value={s}>{s}</MenuItem>)}
         </Select></FormControl>
-        <FormControl><InputLabel>Procedimento realizado</InputLabel><Select value={procFinding} label="Procedimento realizado" onChange={e=>setProcFinding(e.target.value)}>
-          {findings.map(f=><MenuItem key={f.id} value={f.code}>{f.label}</MenuItem>)}
-        </Select></FormControl>
+        <Autocomplete
+          options={procedureOptions}
+          groupBy={o=>o.group}
+          getOptionLabel={o=>o.label}
+          isOptionEqualToValue={(o,v)=>o.name===v.name&&o.group===v.group}
+          value={procedureOptions.find(o=>o.name===procName)||null}
+          onChange={(_,o)=>{ setProcName(o?.name||''); if(o?.tooth&&!procTeeth.length&&teeth.includes(o.tooth)) setProcTeeth([o.tooth]) }}
+          renderInput={params=><TextField {...params} label="Procedimento realizado (mesma lista do orçamento)" placeholder="Digite para pesquisar" />}
+        />
         <TextField sx={{gridColumn:{md:'1/-1'}}} multiline minRows={2} label="Observações — o que foi feito (opcional)" value={procNotes} onChange={e=>setProcNotes(e.target.value)}/>
         <TextField required label="Profissional" value={procPro} onChange={e=>setProcPro(e.target.value)} error={procTeeth.length>0&&procPro.trim().length<2}/>
         <TextField required label="Procedimento da próxima consulta (vai para a agenda)" value={procNext} onChange={e=>setProcNext(e.target.value)} placeholder="Ex.: Prova da coroa do 36 / Restauração do 14" error={procTeeth.length>0&&procNext.trim().length<3}/>
-        <Button variant="contained" size="large" disabled={procBusy||!procFinding||!procTeeth.length||procPro.trim().length<2||procNext.trim().length<3} onClick={()=>void saveProcedure()}>{procBusy?'Salvando...':'Salvar procedimento realizado'}</Button>
+        <Button variant="contained" size="large" disabled={procBusy||!procName||!procTeeth.length||procPro.trim().length<2||procNext.trim().length<3} onClick={()=>void saveProcedure()}>{procBusy?'Salvando...':'Salvar procedimento realizado'}</Button>
       </Box>
     </Paper>
   )
