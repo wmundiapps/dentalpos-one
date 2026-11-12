@@ -59,6 +59,7 @@ import { getTreatmentPlan } from "../services/TreatmentPlanApi";
 import { loadFinancialEntries } from "../services/FinancialApi";
 import { toast } from "../utils/toast";
 import FinancialHoldDialog from "../components/FinancialHoldDialog";
+import CloseAgendaDialog from "../components/CloseAgendaDialog";
 import { loadPatientHold } from "../services/FinancialHoldApi";
 import AbsenceRecallDialog from "../components/AbsenceRecallDialog";
 import AbsenceRecallBanner from "../components/AbsenceRecallBanner";
@@ -370,6 +371,7 @@ export default function Agenda() {
   const [backendDoctors, setBackendDoctors] = useState<BackendDoctor[]>([]);
   const [scheduleBlocks, setScheduleBlocks] = useState<BackendSchedule[]>([]);
   const [agendaBlocks, setAgendaBlocks] = useState<AgendaBlock[]>([]);
+  const [closeAgendaOpen, setCloseAgendaOpen] = useState(false);
   const [recurringBreaks, setRecurringBreaks] = useState<RecurringBreak[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
@@ -1073,6 +1075,7 @@ export default function Agenda() {
       </Box>
       <AbsenceRecallBanner />
       <AbsenceRecallDialog open={absenceOpen} onClose={() => setAbsenceOpen(false)} />
+      <CloseAgendaDialog open={closeAgendaOpen} onClose={() => setCloseAgendaOpen(false)} doctors={backendDoctors} defaultDoctorId={selectedBackendDoctorId} defaultDate={date} appointments={items} onSaved={refreshAgendaConfiguration} />
       {holdTarget && <FinancialHoldDialog patientId={holdTarget.id} patientName={holdTarget.name} open onClose={() => setHoldTarget(null)} />}
 
       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
@@ -1149,6 +1152,7 @@ export default function Agenda() {
         <Box sx={{ display: "flex", gap: 1, justifyContent: { xs: "center", lg: "flex-end" }, flexWrap: "wrap", mt: 1.25 }}>
           <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
           <Button onClick={() => void openOnlineSlots()}>Horários online</Button>
+          <Button color="warning" variant="outlined" onClick={() => setCloseAgendaOpen(true)}>Fechar agenda</Button>
           <Button onClick={() => setAvailabilitySettingsOpen(true)}>Jornada / bloqueios</Button>
           <Button startIcon={<TuneIcon />} onClick={() => setSettingsOpen(true)}>Inteligência</Button>
         </Box>
