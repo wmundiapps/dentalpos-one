@@ -11,6 +11,7 @@ function styleOf(el: Element): string {
   const ta = raw?.textAlign; if (["left", "right", "center", "justify"].includes(ta)) out.push(`text-align:${ta}`);
   const ff = raw?.fontFamily; if (ff) { const f = FONTS.find((x) => ff.toLowerCase().includes(x.toLowerCase())); if (f) out.push(`font-family:'${f}'`); }
   const fs = raw?.fontSize; if (fs && /^\d+(\.\d+)?pt$/.test(fs)) { const n = parseFloat(fs); if (n >= 6 && n <= 72) out.push(`font-size:${n}pt`); }
+  const lst = raw?.listStyleType; if (["lower-alpha", "decimal", "disc", "lower-roman"].includes(lst)) out.push(`list-style-type:${lst}`);
   if (raw?.fontWeight === "bold" || raw?.fontWeight === "700") out.push("font-weight:700");
   if (raw?.fontStyle === "italic") out.push("font-style:italic");
   if ((raw?.textDecorationLine || raw?.textDecoration || "").includes("underline")) out.push("text-decoration:underline");
