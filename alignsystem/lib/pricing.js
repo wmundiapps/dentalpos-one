@@ -1,0 +1,80 @@
+// Modelo único de pagamento e composição do valor do tratamento.
+//  - Pix à vista com desconto; cartão de crédito em até 18x sem juros (taxa absorvida e rateada);
+//    boleto: entrada de 50% (Pix ou cartão) + saldo em até 18 boletos mensais.
+//  - Composição: 50% alinhadores (AlignSystem), 30% atendimentos do dentista parceiro,
+//    20% supervisão clínica remota e teleatendimento (AlignSystem).
+//  - Descontos e taxas são compartilhados: o repasse ao dentista é percentual sobre o valor líquido.
+export const MODEL = {
+  pixDiscountPct: 12,
+  cardMaxInstallments: 18,
+  boletoEntryPct: 50,
+  boletoMaxInstallments: 18,
+  alignerPct: 50,
+  dentistPct: 30,
+  supervisionPct: 20,
+  withdrawalPenaltyPct: 20,
+  // modelo preço próprio: o dentista define os valores e compra os alinhadores; a AlignSystem fica com 20% (diagnóstico e planejamento)
+  ownPriceDentistPct: 80,
+  ownPricePlatformPct: 20,
+  // consultas presenciais incluídas no contrato, por complexidade; acima disso, aditivo pago pelo paciente
+  consultLimits: { simples: 8, mediano: 10, complexo: 15 },
+  // consulta por quebra/perda de alinhador: valor da consulta do dentista + 30% (o acréscimo fica com a AlignSystem)
+  breakageMarkupPct: 30,
+  // negociação on-line: teto padrão da AlignSystem (editável em Preços)
+  negotiation: { maxDiscountPct: 15, maxBoletos: 36, interestPctMonth: 1.99, noInterestUpTo: 18 },
+};
+
+export const COMPLEXITY_LABEL = { simples: 'simples', mediano: 'de média complexidade', complexo: 'complexo' };
+
+const round2 = (n) => Math.round(n * 100) / 100;
+
+// Parcela fixa com juros (tabela Price)
+export function pmt(value, n, ratePct) {
+  const v = Number(value), i = Number(ratePct) / 100;
+  if (!(n > 1) || !(i > 0)) return round2(v / Math.max(n, 1));
+  return round2((v * i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1));
+}
+
+// boletoMax pode passar de 18: acima de noInterestUpTo parcelas o saldo tem juros de interestPct ao mês
+export function quote(total, { cardMax = MODEL.cardMaxInstallments, boletoMax = MODEL.boletoMaxInstallments, boleto = true,
+  interestPct = MODEL.negotiation.interestPctMonth, noInterestUpTo = MODEL.negotiation.noInterestUpTo } = {}) {
+  const t = Number(total);
+  const pix = round2(t * (1 - MODEL.pixDiscountPct / 100));
+  const entry = round2(t * MODEL.boletoEntryPct / 100);
+  const rest = round2(t - entry);
+  return {
+    total: t,
+    pix,
+    card: Array.from({ length: Math.min(cardMax, MODEL.cardMaxInstallments) }, (_, i) => ({ installments: i + 1, each: round2(t / (i + 1)) })),
+    boleto: boleto ? {
+      entry, rest, noInterestUpTo, interestPct: Number(interestPct) || 0,
+      options: Array.from({ length: boletoMax }, (_, i) => {
+        const n = i + 1;
+        const withInterest = n > noInterestUpTo && Number(interestPct) > 0;
+        const each = withInterest ? pmt(rest, n, interestPct) : round2(rest / n);
+        return { installments: n, each, interest: withInterest, totalRest: round2(each * n) };
+      }),
+    } : null,
+  };
+}
+
+// Percentual do dentista sobre cada cobrança (aplicado pelo Asaas sobre o valor líquido)
+// Preço próprio: tira o custo dos alinhadores (AlignSystem) e divide o restante 80/20.
+// Devolve o percentual do dentista sobre o valor total, aplicado igual em todas as cobranças do caso.
+export function ownPriceDentistPct(total, alignerCost) {
+  const t = Number(total), a = Number(alignerCost) || 0;
+  if (!(t > 0) || a >= t) return 0;
+  return Math.round((MODEL.ownPriceDentistPct / 100) * ((t - a) / t) * 10000) / 100;
+}
+
+export function dentistSplitPct(part, model = '50/30/20') {
+  if (part === 'boleto_entry') return 0; // entrada = alinhadores, 100% AlignSystem
+  if (part === 'boleto_rest') return round2(MODEL.dentistPct / (100 - MODEL.alignerPct) * 100); // 30/50 = 60%
+  return MODEL.dentistPct; // Pix ou cartão: 30% do total pago
+}
+
+// Consulta por quebra: o dentista recebe o valor da consulta combinado; o paciente paga +30%
+export function breakagePrice(consultValue) {
+  const v = Number(consultValue) || 0;
+  return v > 0 ? Math.round(v * (1 + MODEL.breakageMarkupPct / 100) * 100) / 100 : 0;
+}

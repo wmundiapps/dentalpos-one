@@ -1,0 +1,6 @@
+{
+  "_sobre": "Mapa de CNAE da captação de dentistas da AlignSystem (aprovado pelo Robson em 10/10/2026). Usado pelo BuscarDentistas.exe na Receita Federal. Para mudar, edite aqui e rode a busca de novo.",
+  "_prioridade": ["ORTO", "ORTODONT", "ALINH", "SORRIS", "SMILE"],
+  "odontologia": { "nome": "Clínicas e consultórios odontológicos", "principal": ["8630504"] },
+  "odontologia-secundaria": { "nome": "Clínicas com odontologia como atividade secundária", "secundario": ["8630504"] }
+}

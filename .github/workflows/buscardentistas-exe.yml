@@ -1,0 +1,34 @@
+name: BuscarDentistas.exe (captação AlignSystem para Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/dental-consultation-platform-k5mei7]
+    paths:
+      - alignsystem/scripts/buscar_dentistas.py
+      - alignsystem/lib/data/cnae-dentistas.json
+      - .github/workflows/buscardentistas-exe.yml
+
+permissions:
+  contents: write   # publica o .exe na página de versões do repositório
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: alignsystem
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pyinstaller==6.*
+      - run: pyinstaller --onefile --console --name BuscarDentistas --add-data "lib/data/cnae-dentistas.json;data" scripts/buscar_dentistas.py
+      - name: Publicar na versão "buscardentistas"
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view buscardentistas >/dev/null 2>&1 || gh release create buscardentistas --target "${{ github.sha }}" --title "BuscarDentistas (captação AlignSystem)" --notes "Programa para Windows que busca clínicas e consultórios odontológicos na Receita Federal e manda para alignsystem.com.br/painel#/captacao."
+          gh release upload buscardentistas dist/BuscarDentistas.exe --clobber
