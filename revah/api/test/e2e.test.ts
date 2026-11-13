@@ -4,6 +4,8 @@ process.env.DENTALPOS_SHARED_SECRET = 'segredo-dentalpos-teste'
 process.env.STRIPE_PRICE_START = 'price_start_test'
 process.env.STRIPE_PRICE_PRO = 'price_pro_test'
 process.env.STRIPE_PRICE_LEADS = 'price_leads_test'
+process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_revah'
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_revah_teste'
 process.env.ANTHROPIC_API_KEY = ''
 process.env.REVAH_SUPERADMIN_EMAILS = 'admin@wmundi.com'
 process.env.CAMPAIGN_THROTTLE_MS = '0'
@@ -17,6 +19,7 @@ process.env.LEADS_EMAIL_DAILY_CAP = '2'
 // Asaas simulado (sem rede).
 const realFetch = globalThis.fetch
 const asaasCalls: { url: string; body: any }[] = []
+const asaasPayments: { subscription?: string } = {}
 globalThis.fetch = (async (input: any, init: any = {}) => {
   const url = String(input)
   if (!url.startsWith('http://asaas.mock')) return realFetch(input, init)
@@ -25,6 +28,12 @@ globalThis.fetch = (async (input: any, init: any = {}) => {
   const json = (d: unknown) => new Response(JSON.stringify(d), { status: 200, headers: { 'Content-Type': 'application/json' } })
   if (url.endsWith('/customers')) return json({ id: 'cus_asaas_1' })
   if (url.endsWith('/subscriptions')) return json({ id: `sub_asaas_${asaasCalls.length}` })
+  // Consulta de pagamento (o REVAH confere o webhook na API do Asaas).
+  const pay = /\/payments\/(pay_[a-z]+)$/.exec(url)
+  if (pay) {
+    const status = ({ pay_ok: 'CONFIRMED', pay_late: 'OVERDUE', pay_fake: 'PENDING' } as Record<string, string>)[pay[1]] || 'PENDING'
+    return json({ id: pay[1], status, subscription: asaasPayments.subscription, dueDate: '2026-10-08' })
+  }
   if (url.includes('/payments')) return json({ data: [{ invoiceUrl: 'https://asaas.mock/fatura', status: 'PENDING' }] })
   return json({ deleted: true })
 }) as typeof fetch
@@ -108,11 +117,17 @@ test('teste de 14 dias: forma de pagamento (Asaas), 20 contatos por campanha, co
 
   // Webhooks do Asaas: pagamento confirmado -> ativo; atraso -> bloqueia.
   const subId = (await prisma.subscription.findUnique({ where: { tenantId: tenant.id } })).asaasSubscriptionId
+  asaasPayments.subscription = subId
+  const statusBefore = (await prisma.tenant.findUnique({ where: { id: tenant.id } })).status
   const denied = await request(app).post('/webhooks/asaas').send({ id: 'e0', event: 'PAYMENT_CONFIRMED', payment: { subscription: subId } })
   assert.equal(denied.status, 401)
-  await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e1', event: 'PAYMENT_CONFIRMED', payment: { subscription: subId, dueDate: '2026-10-08' } })
+  // Evento forjado (token certo, mas o pagamento não está pago no Asaas) não ativa a conta.
+  const forged = await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e-fake', event: 'PAYMENT_CONFIRMED', payment: { id: 'pay_fake', subscription: subId } })
+  assert.equal(forged.body.status, 'IGNORED')
+  assert.equal((await prisma.tenant.findUnique({ where: { id: tenant.id } })).status, statusBefore)
+  await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e1', event: 'PAYMENT_CONFIRMED', payment: { id: 'pay_ok', subscription: subId, dueDate: '2026-10-08' } })
   assert.equal((await prisma.tenant.findUnique({ where: { id: tenant.id } })).status, 'ACTIVE')
-  await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e2', event: 'PAYMENT_OVERDUE', payment: { subscription: subId } })
+  await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e2', event: 'PAYMENT_OVERDUE', payment: { id: 'pay_late', subscription: subId } })
   assert.equal((await prisma.tenant.findUnique({ where: { id: tenant.id } })).status, 'PAST_DUE')
 
   // Mesmo telefone não ganha novos 14 dias.
@@ -470,4 +485,20 @@ test('e-mail para contatos da captação: limite diário por cliente, o resto va
   assert.equal(waiting.length, 1)
   assert.ok(waiting[0].runAt.getTime() > Date.now() + 60 * 60_000, 'remarcado para o dia seguinte')
   assert.match(waiting[0].lastError, /Limite diário/)
+})
+
+test('webhook da Stripe: sem assinatura válida é recusado com 400, com assinatura passa', async () => {
+  const payload = JSON.stringify({ id: 'evt_sig', object: 'event', type: 'customer.created', data: { object: {} } })
+  const none = await request(app).post('/webhooks/stripe').set('Content-Type', 'application/json').send(payload)
+  assert.equal(none.status, 400)
+  const bad = await request(app).post('/webhooks/stripe').set('Content-Type', 'application/json').set('stripe-signature', 't=1,v1=falsa').send(payload)
+  assert.equal(bad.status, 400)
+  assert.equal(bad.body.code, 'INVALID_SIGNATURE')
+  const Stripe = (await import('stripe')).default
+  const header = Stripe.webhooks.generateTestHeaderString({ payload, secret: 'whsec_revah_teste' })
+  const ok = await request(app).post('/webhooks/stripe').set('Content-Type', 'application/json').set('stripe-signature', header).send(payload)
+  assert.equal(ok.status, 200, JSON.stringify(ok.body))
+  // Corpo alterado depois de assinado.
+  const tampered = await request(app).post('/webhooks/stripe').set('Content-Type', 'application/json').set('stripe-signature', header).send(payload.replace('customer.created', 'invoice.paid'))
+  assert.equal(tampered.status, 400)
 })
