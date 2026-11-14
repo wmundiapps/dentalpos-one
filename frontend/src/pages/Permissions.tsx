@@ -10,7 +10,7 @@ const PROFILE_NAMES: Record<string, string> = {
 const PROFILE_ORDER = ["DENTISTA", "AUXILIAR", "RECEPCAO", "FINANCEIRO", "ADMINISTRACAO", "LABORATORIO", "CONTADOR", "JURIDICO", "GESTOR", "RH", "ADMIN"];
 const MODULE_NAMES: Record<string, string> = {
   dashboard: "Painel inicial", agenda: "Agenda e painel de atendimentos", patients: "Pacientes", clinical: "Clínico / prontuário", laboratory: "Laboratório",
-  design: "DentalPos Design", finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", sales: "Vendas", marketing: "Marketing e Revah",
+  design: "Design 3D", finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", sales: "Vendas", marketing: "Marketing e Revah",
   documents: "Documentos", settings: "Configurações (inclui importar clientes e alunos)", users: "Usuários e permissões", audit: "Auditoria",
 };
 const ACTION_NAMES: Record<string, string> = {
