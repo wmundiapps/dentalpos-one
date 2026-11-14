@@ -6,6 +6,8 @@ export interface PublicBookingDoctor {
   id: string;
   name: string;
   specialty?: string;
+  /** Dias da semana (0 = domingo) em que o profissional atende pelo agendamento online. */
+  workDays?: number[];
 }
 
 export interface PublicBookingConfig {

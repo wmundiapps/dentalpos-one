@@ -25,6 +25,27 @@ const today = () => {
   return date.toISOString().slice(0, 10);
 };
 
+const WEEKDAYS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+const weekdayOf = (dateISO: string) => new Date(`${dateISO}T12:00:00`).getDay();
+
+// Próxima data (a partir de hoje) em que o profissional atende.
+const nextWorkDate = (workDays: number[] | undefined, fromISO: string) => {
+  if (!workDays?.length) return fromISO;
+  const date = new Date(`${fromISO}T12:00:00`);
+  for (let i = 0; i < 14; i++) {
+    if (workDays.includes(date.getDay())) break;
+    date.setDate(date.getDate() + 1);
+  }
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 10);
+};
+
+const daysLabel = (workDays: number[]) => {
+  const names = workDays.map((day) => WEEKDAYS[day]);
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}` : names[0] || "";
+};
+
 export default function PublicBooking() {
   const clinicId = new URLSearchParams(window.location.search).get("clinicId") || "";
   const [config, setConfig] = useState<PublicBookingConfig | null>(null);
@@ -52,15 +73,21 @@ export default function PublicBooking() {
     loadPublicBookingConfig(clinicId)
       .then((data) => {
         setConfig(data);
-        if (data.doctors[0]) setForm((current) => ({ ...current, doctorId: data.doctors[0].id }));
+        const first = data.doctors[0];
+        if (first) setForm((current) => ({ ...current, doctorId: first.id, dateISO: nextWorkDate(first.workDays, current.dateISO) }));
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Não foi possível abrir o agendamento."))
       .finally(() => setLoading(false));
   }, [clinicId]);
 
+  const selectedDoctor = config?.doctors.find((doctor) => doctor.id === form.doctorId);
+  const workDays = selectedDoctor?.workDays || [];
+  const notWorkingDay = Boolean(form.dateISO && workDays.length && !workDays.includes(weekdayOf(form.dateISO)));
+
   useEffect(() => {
-    if (!clinicId || !form.doctorId || !form.dateISO) {
+    if (!clinicId || !form.doctorId || !form.dateISO || notWorkingDay) {
       setSlots([]);
+      setForm((current) => (current.time ? { ...current, time: "" } : current));
       return;
     }
     setLoadingSlots(true);
@@ -80,7 +107,7 @@ export default function PublicBooking() {
         setError(err instanceof Error ? err.message : "Não foi possível consultar os horários.");
       })
       .finally(() => setLoadingSlots(false));
-  }, [clinicId, form.doctorId, form.dateISO, form.durationMinutes]);
+  }, [clinicId, form.doctorId, form.dateISO, form.durationMinutes, notWorkingDay]);
 
   const save = async () => {
     if (
@@ -154,7 +181,10 @@ export default function PublicBooking() {
               select
               label="Profissional"
               value={form.doctorId}
-              onChange={(event) => setForm({ ...form, doctorId: event.target.value })}
+              onChange={(event) => {
+                const doctor = config?.doctors.find((item) => item.id === event.target.value);
+                setForm({ ...form, doctorId: event.target.value, dateISO: nextWorkDate(doctor?.workDays, form.dateISO) });
+              }}
             >
               {(config?.doctors || []).map((doctor) => (
                 <MenuItem key={doctor.id} value={doctor.id}>
@@ -196,9 +226,18 @@ export default function PublicBooking() {
                 Solicitar agendamento
               </Button>
             </Box>
-            {!loadingSlots && slots.length === 0 && form.doctorId ? (
+            {notWorkingDay ? (
+              <Alert severity="warning" sx={{ gridColumn: { md: "1/-1" } }}>
+                {selectedDoctor?.name} não atende neste dia. Atende {daysLabel(workDays)}. Escolha outra data.
+              </Alert>
+            ) : !loadingSlots && slots.length === 0 && form.doctorId ? (
               <Alert severity="info" sx={{ gridColumn: { md: "1/-1" } }}>
                 Não há horário online disponível nessa data. Escolha outra data.
+              </Alert>
+            ) : null}
+            {config && config.doctors.length === 0 ? (
+              <Alert severity="info" sx={{ gridColumn: { md: "1/-1" } }}>
+                No momento não há horários disponíveis para agendamento online. Entre em contato com a clínica.
               </Alert>
             ) : null}
           </Box>
