@@ -9,12 +9,12 @@ type Target = "fullName" | "phone" | "cpf" | "rg" | "birthDate" | "gender" | "em
 type Grid = { headers: string[]; rows: string[][] };
 
 const TARGETS: Array<[Target, string]> = [
-  ["fullName", "Nome do paciente"], ["phone", "Telefone / celular"], ["cpf", "CPF"], ["rg", "RG"], ["birthDate", "Data de nascimento"],
+  ["fullName", "Nome completo"], ["phone", "Telefone / celular"], ["cpf", "CPF"], ["rg", "RG"], ["birthDate", "Data de nascimento"],
   ["gender", "Sexo"], ["email", "E-mail"], ["address", "Endereço"], ["city", "Cidade"], ["state", "Estado"], ["zipCode", "CEP"], ["notes", "Observações"],
 ];
 
 const ALIASES: Record<Target, string[]> = {
-  fullName: ["nome", "nome completo", "paciente", "name", "nome do paciente"],
+  fullName: ["nome", "nome completo", "paciente", "aluno", "cliente", "name", "nome do paciente", "nome do aluno", "nome do cliente"],
   phone: ["telefone", "celular", "whatsapp", "fone", "phone", "tel"],
   cpf: ["cpf"],
   rg: ["rg"],
@@ -186,12 +186,12 @@ export default function ImportPatients() {
   return (
     <Box>
       <PageHeader
-        title="Importar pacientes de outro sistema"
-        description="Traga o cadastro dos seus pacientes de outro sistema, como o Clinicorp. Somente dados cadastrais são importados — financeiro, recebimentos e agenda permanecem no sistema de origem."
+        title="Importar clientes, alunos e cadastros de outro sistema"
+        description="Traga o cadastro de clientes, alunos ou outros contatos de outro sistema. Somente dados cadastrais são importados — financeiro, recebimentos e agenda permanecem no sistema de origem."
       />
 
       <Alert severity="info" sx={{ mb: 2 }}>
-        No sistema de origem, procure o relatório ou a exportação de pacientes para Excel (.xlsx) ou CSV e envie aqui. Você confere e ajusta quais colunas correspondem a cada campo antes de importar. Pacientes sem telefone com DDD não são importados (aparecem na lista de ignorados). Pacientes já cadastrados — mesmo nome e telefone, ou mesmo CPF — são ignorados, então é seguro reenviar o arquivo.
+        No sistema de origem, procure o relatório ou a exportação de clientes ou alunos para Excel (.xlsx) ou CSV e envie aqui. Você confere e ajusta quais colunas correspondem a cada campo antes de importar. Cadastros sem telefone com DDD não são importados (aparecem na lista de ignorados). Cadastros já existentes — mesmo nome e telefone, ou mesmo CPF — são ignorados, então é seguro reenviar o arquivo.
       </Alert>
 
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 3 }}>
@@ -263,7 +263,7 @@ export default function ImportPatients() {
               </Table>
             </Box>
             <Button sx={{ mt: 2 }} variant="contained" disabled={importing || validCount === 0 || !hasName || !hasPhone} onClick={() => void runImport()}>
-              {importing ? `Importando... ${progress}%` : `Importar ${validCount} paciente(s)`}
+              {importing ? `Importando... ${progress}%` : `Importar ${validCount} cadastro(s)`}
             </Button>
             {importing && <LinearProgress variant="determinate" value={progress} sx={{ mt: 2 }} />}
           </Paper>
@@ -272,7 +272,7 @@ export default function ImportPatients() {
 
       {result && (
         <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
-          <Alert severity="success" sx={{ mb: 2 }}>{result.createdCount} paciente(s) importado(s) com sucesso.</Alert>
+          <Alert severity="success" sx={{ mb: 2 }}>{result.createdCount} cadastro(s) importado(s) com sucesso.</Alert>
           {result.skipped.length > 0 && (
             <>
               <Typography sx={{ fontWeight: 900, mb: 1 }}>{result.skipped.length} linha(s) ignorada(s)</Typography>

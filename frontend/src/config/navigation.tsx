@@ -402,7 +402,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Configurações","/configuracoes",<SettingsIcon/>),
       item("Clínicas e unidades","/clinicas",<LocalHospitalIcon/>),
       item("Integrações","/integracoes",<HubIcon/>),
-      item("Importar Pacientes","/importar-pacientes",<UploadFileIcon/>),
+      item("Importar clientes e alunos","/importar-pacientes",<UploadFileIcon/>),
       item("Permissões","/permissoes",<AdminPanelSettingsIcon/>),
       item("Central LGPD","/edu/lgpd",<PrivacyTipIcon/>),
       item("Segurança da conta","/seguranca",<AdminPanelSettingsIcon/>),
