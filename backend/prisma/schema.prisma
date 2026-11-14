@@ -6930,6 +6930,225 @@ model BibRepositorioItem {
   @@index([tenantId, autorStudentId])
 }
 
+// ---- edu/boletos.prisma ----
+// ============================================================
+// EDUMASTER PRO — CAIXA DE BOLETOS (DDA e e-mail dedicado)
+// Prefixo Bol. Somente tabelas NOVAS. Referências a TesTitulo / TesNotaFiscal / SupFornecedor são String ids
+// sem @relation (o contas a pagar da Tesouraria continua sendo a fonte da verdade após a autorização).
+// ============================================================
+
+model BolConfig {
+  id                    String    @id @default(uuid())
+  tenantId              String    @unique
+  emailAtivo            Boolean   @default(false)
+  emailLocal            String    @default("boletos")        // parte antes do @
+  dominioEmail          String?                                // vazio = BOLETOS_DOMINIO_EMAIL (padrão fictício)
+  webhookTokenHash      String?                                // sha256 do segredo do webhook de e-mail (mostrado uma única vez)
+  webhookTokenPrefixo   String?
+  ddaAtivo              Boolean   @default(false)
+  ddaProvedor           String    @default("SIMULADO")
+  ddaDocumento          String?                                // CNPJ da instituição (pagador) consultado no DDA
+  ddaUltimaSincEm       DateTime?
+  ddaUltimaSincResumo   Json?
+  diasVencidoSuspeito   Int       @default(30)
+  fatorValorSuspeito    Float     @default(3)
+  toleranciaDiasDuplicidade Int   @default(5)
+  prazoNotaDias         Int       @default(120)
+  recorrenciaAprendizado Boolean  @default(true)
+  updatedAt             DateTime  @updatedAt
+  createdAt             DateTime  @default(now())
+}
+
+model BolEmail {
+  id            String   @id @default(uuid())
+  tenantId      String
+  messageId     String
+  origem        String   @default("WEBHOOK")   // WEBHOOK | SIMULADO
+  remetente     String?
+  destinatario  String?
+  assunto       String?
+  corpo         String?
+  recebidoEm    DateTime @default(now())
+  anexos        Int      @default(0)
+  boletosGerados Int     @default(0)
+  status        String   @default("PROCESSADO") // PROCESSADO | SEM_DADOS | ILEGIVEL | ERRO
+  observacao    String?
+  criadoPorId   String?
+  createdAt     DateTime @default(now())
+
+  @@unique([tenantId, messageId])
+  @@index([tenantId, recebidoEm])
+}
+
+model BolAnexo {
+  id            String   @id @default(uuid())
+  tenantId      String
+  emailId       String?
+  boletoId      String?
+  nome          String
+  mime          String?
+  tamanho       Int      @default(0)
+  sha256        String?
+  conteudo      String?                         // base64 (anexos até ~2,8 MB)
+  leitura       String   @default("LIDO")       // LIDO | SEM_TEXTO | NAO_SUPORTADO | BLOQUEADO
+  leituraNota   String?                         // explicação honesta (ex.: "PDF sem texto embutido; sem OCR")
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, emailId])
+  @@index([tenantId, boletoId])
+}
+
+model BolLote {
+  id            String   @id @default(uuid())
+  tenantId      String
+  numero        String
+  data          DateTime                          // dia (meio-dia UTC) do lote
+  status        String   @default("ABERTO")       // ABERTO | ENVIADO_APROVACAO | APROVADO | PARCIAL | REPROVADO
+  observacao    String?
+  criadoPorId   String?
+  enviadoPorId  String?
+  enviadoEm     DateTime?
+  decisao       String?                            // TOTAL | PARCIAL | REPROVAR
+  decididoPorId String?
+  decididoEm    DateTime?
+  decisaoMotivo String?
+  resumo        Json?                              // totais congelados na decisão
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, data])
+  @@index([tenantId, status])
+}
+
+model BolBoleto {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  numero             String
+  origem             String                          // DDA | EMAIL | MANUAL
+  origemRef          String?                         // idempotência (id DDA, messageId#n ...)
+  status             String   @default("RECEBIDO")   // RECEBIDO | A_CONFERIR | EM_APROVACAO | AUTORIZADO | REFUTADO
+  linhaDigitavel     String?
+  codigoBarras       String?                          // 44 dígitos
+  tipoBoleto         String?                          // BANCARIO | ARRECADACAO
+  banco              String?
+  valor              Float?
+  vencimento         DateTime?
+  beneficiarioNome   String?
+  beneficiarioDocumento String?
+  numeroDocumento    String?
+  nfChave            String?
+  nfNumero           String?
+  nfValor            Float?
+  descricao          String?
+  fornecedorId       String?                          // SupFornecedor
+  notaFiscalId       String?                          // TesNotaFiscal
+  tituloId           String?                          // TesTitulo
+  emailId            String?
+  loteId             String?
+  lancadoPorId       String?
+  recebidoEm         DateTime @default(now())
+  // check-up de autenticidade
+  resultado          String   @default("ATENCAO")     // OK | ATENCAO | SUSPEITO | DUPLICADO
+  score              Int      @default(0)             // 0 (sem risco) .. 100
+  motivos            Json?                            // [{codigo, gravidade, texto}]
+  checkupEm          DateTime?
+  duplicadoDeId      String?
+  duplicadoTituloId  String?
+  // decisão
+  observacao         String?
+  motivoRefutacao    String?
+  decididoPorId      String?
+  decididoEm         DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([tenantId, numero])
+  @@unique([tenantId, origemRef])
+  @@index([tenantId, status])
+  @@index([tenantId, resultado])
+  @@index([tenantId, recebidoEm])
+  @@index([tenantId, codigoBarras])
+  @@index([tenantId, loteId])
+}
+
+model BolEvento {
+  id        String   @id @default(uuid())
+  tenantId  String
+  boletoId  String?
+  loteId    String?
+  acao      String
+  de        String?
+  para      String?
+  userId    String?
+  papel     String?
+  detalhe   Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, boletoId])
+  @@index([tenantId, loteId])
+}
+
+model BolRecorrencia {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  fornecedorId       String?
+  fornecedorNome     String
+  fornecedorDocumento String?
+  descricao          String?
+  valorEstimado      Float
+  toleranciaPercentual Float  @default(20)
+  periodicidade      String   @default("MENSAL")      // MENSAL | BIMESTRAL | TRIMESTRAL | SEMESTRAL | ANUAL
+  mesBase            Int      @default(1)             // mês (1-12) de referência para periodicidades > mensal
+  diaMes             Int                               // dia do vencimento esperado
+  antecedenciaDias   Int      @default(5)             // normalmente lançada até N dias antes do vencimento
+  ativa              Boolean  @default(true)
+  origem             String   @default("MANUAL")      // MANUAL | APRENDIDA
+  criadoPorId        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([tenantId, ativa])
+}
+
+model BolRecorrenciaSugestao {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  chave              String                             // documento ou nome normalizado
+  fornecedorNome     String
+  fornecedorDocumento String?
+  valorMedio         Float
+  diaMedio           Int
+  meses              Int
+  status             String   @default("PENDENTE")     // PENDENTE | ACEITA | IGNORADA
+  createdAt          DateTime @default(now())
+
+  @@unique([tenantId, chave])
+  @@index([tenantId, status])
+}
+
+model BolEsperado {
+  id              String   @id @default(uuid())
+  tenantId        String
+  recorrenciaId   String
+  competencia     String                                // AAAA-MM
+  dataEsperada    DateTime                              // vencimento esperado
+  limiteLancamento DateTime                             // data a partir da qual a ausência vira alerta
+  status          String   @default("ESPERADO")        // ESPERADO | LANCADO | NAO_LANCADO | JUSTIFICADO | DISPENSADO
+  boletoId        String?
+  tituloId        String?
+  justificativa   String?
+  tratadoPorId    String?
+  tratadoEm       DateTime?
+  avisadoEm       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([recorrenciaId, competencia])
+  @@index([tenantId, status])
+  @@index([tenantId, dataEsperada])
+}
+
 // ---- edu/calendario.prisma ----
 // ============================================================
 // EDUMASTER PRO — CALENDÁRIO ACADÊMICO, RESERVAS, GRADE HORÁRIA, PROVAS E PRAZOS

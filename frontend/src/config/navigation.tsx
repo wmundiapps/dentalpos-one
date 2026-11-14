@@ -67,6 +67,7 @@ import PersonAddAlt1Icon from "@mui/icons-material/PersonAddAlt1";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
 import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
+import MarkEmailUnreadIcon from "@mui/icons-material/MarkEmailUnread";
 import { Box } from "@mui/material";
 import { createSvgIcon } from "@mui/material/utils";
 import type { ReactNode } from "react";
@@ -365,6 +366,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Recibos","/edu/financeiro?secao=recibos",<ReceiptLongIcon/>),
       item("Permutas e bolsas","/edu/financeiro?secao=permutas",<PeopleAltIcon/>),
       item("Remessas bancárias","/edu/financeiro?secao=remessas",<SendIcon/>),
+      item("Caixa de boletos (DDA)","/edu/financeiro?secao=boletos",<MarkEmailUnreadIcon/>),
     ]
   },
   {

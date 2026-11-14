@@ -9,6 +9,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import SendIcon from "@mui/icons-material/Send";
+import MarkEmailUnreadIcon from "@mui/icons-material/MarkEmailUnread";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ReactElement, ReactNode } from "react";
 import EduShell from "../../edu/EduShell";
@@ -21,8 +22,9 @@ import NotasTab from "../../edu/tesouraria/NotasTab";
 import RecibosTab from "../../edu/tesouraria/RecibosTab";
 import PermutasBolsasTab from "../../edu/tesouraria/PermutasBolsasTab";
 import RemessasTab from "../../edu/tesouraria/RemessasTab";
+import BoletosTab from "../../edu/tesouraria/BoletosTab";
 
-const SECOES = ["painel", "receber", "pagar", "fila", "bancos", "notas", "recibos", "permutas", "remessas"] as const;
+const SECOES = ["painel", "receber", "pagar", "fila", "bancos", "notas", "recibos", "permutas", "remessas", "boletos"] as const;
 // atalhos usados pelos alertas do painel
 const ALIAS: Record<string, string> = { bolsas: "permutas" };
 
@@ -30,7 +32,9 @@ const ALIAS: Record<string, string> = { bolsas: "permutas" };
 export default function EduFinanceiro() {
   const [params, setParams] = useSearchParams();
   const nav = useNavigate();
-  const atual = ALIAS[params.get("secao") || ""] || params.get("secao") || "painel";
+  // deep link: ?secao=boletos ou ?aba=boletos
+  const bruto = params.get("secao") || params.get("aba") || "";
+  const atual = ALIAS[bruto] || bruto || "painel";
   const idx = Math.max(0, SECOES.indexOf(atual as (typeof SECOES)[number]));
   const ir = (s: string) => setParams({ secao: ALIAS[s] || s }, { replace: false });
 
@@ -44,6 +48,7 @@ export default function EduFinanceiro() {
     { key: "recibos", label: "Recibos", icon: <ReceiptIcon />, render: () => <RecibosTab /> },
     { key: "permutas", label: "Permutas e bolsas", icon: <HandshakeIcon />, render: () => <PermutasBolsasTab /> },
     { key: "remessas", label: "Remessas", icon: <SendIcon />, render: () => <RemessasTab /> },
+    { key: "boletos", label: "Caixa de boletos (DDA)", icon: <MarkEmailUnreadIcon />, render: () => <BoletosTab /> },
   ];
   return (
     <EduShell title="Financeiro" subtitle="Tesouraria da instituição: recebimentos, contas a pagar com conferência e autorização, bancos, notas fiscais, recibos, permutas e remessas."

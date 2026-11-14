@@ -20964,3 +20964,281 @@ DO $$ BEGIN
 ALTER TABLE "PolOferta" ADD CONSTRAINT "PolOferta_politicaId_fkey" FOREIGN KEY ("politicaId") REFERENCES "PolOfertaPolitica"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- ==== POL:END ====
+
+-- ==== BOL:BEGIN (Caixa de boletos DDA/e-mail, prefixo Bol - gerado por prisma migrate diff; idempotente, somente CRIA) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "BolConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "emailAtivo" BOOLEAN NOT NULL DEFAULT false,
+    "emailLocal" TEXT NOT NULL DEFAULT 'boletos',
+    "dominioEmail" TEXT,
+    "webhookTokenHash" TEXT,
+    "webhookTokenPrefixo" TEXT,
+    "ddaAtivo" BOOLEAN NOT NULL DEFAULT false,
+    "ddaProvedor" TEXT NOT NULL DEFAULT 'SIMULADO',
+    "ddaDocumento" TEXT,
+    "ddaUltimaSincEm" TIMESTAMP(3),
+    "ddaUltimaSincResumo" JSONB,
+    "diasVencidoSuspeito" INTEGER NOT NULL DEFAULT 30,
+    "fatorValorSuspeito" DOUBLE PRECISION NOT NULL DEFAULT 3,
+    "toleranciaDiasDuplicidade" INTEGER NOT NULL DEFAULT 5,
+    "prazoNotaDias" INTEGER NOT NULL DEFAULT 120,
+    "recorrenciaAprendizado" BOOLEAN NOT NULL DEFAULT true,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BolConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "BolEmail" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "messageId" TEXT NOT NULL,
+    "origem" TEXT NOT NULL DEFAULT 'WEBHOOK',
+    "remetente" TEXT,
+    "destinatario" TEXT,
+    "assunto" TEXT,
+    "corpo" TEXT,
+    "recebidoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "anexos" INTEGER NOT NULL DEFAULT 0,
+    "boletosGerados" INTEGER NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'PROCESSADO',
+    "observacao" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BolEmail_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "BolAnexo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "emailId" TEXT,
+    "boletoId" TEXT,
+    "nome" TEXT NOT NULL,
+    "mime" TEXT,
+    "tamanho" INTEGER NOT NULL DEFAULT 0,
+    "sha256" TEXT,
+    "conteudo" TEXT,
+    "leitura" TEXT NOT NULL DEFAULT 'LIDO',
+    "leituraNota" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BolAnexo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "BolLote" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ABERTO',
+    "observacao" TEXT,
+    "criadoPorId" TEXT,
+    "enviadoPorId" TEXT,
+    "enviadoEm" TIMESTAMP(3),
+    "decisao" TEXT,
+    "decididoPorId" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "decisaoMotivo" TEXT,
+    "resumo" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BolLote_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "BolBoleto" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "origem" TEXT NOT NULL,
+    "origemRef" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'RECEBIDO',
+    "linhaDigitavel" TEXT,
+    "codigoBarras" TEXT,
+    "tipoBoleto" TEXT,
+    "banco" TEXT,
+    "valor" DOUBLE PRECISION,
+    "vencimento" TIMESTAMP(3),
+    "beneficiarioNome" TEXT,
+    "beneficiarioDocumento" TEXT,
+    "numeroDocumento" TEXT,
+    "nfChave" TEXT,
+    "nfNumero" TEXT,
+    "nfValor" DOUBLE PRECISION,
+    "descricao" TEXT,
+    "fornecedorId" TEXT,
+    "notaFiscalId" TEXT,
+    "tituloId" TEXT,
+    "emailId" TEXT,
+    "loteId" TEXT,
+    "lancadoPorId" TEXT,
+    "recebidoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resultado" TEXT NOT NULL DEFAULT 'ATENCAO',
+    "score" INTEGER NOT NULL DEFAULT 0,
+    "motivos" JSONB,
+    "checkupEm" TIMESTAMP(3),
+    "duplicadoDeId" TEXT,
+    "duplicadoTituloId" TEXT,
+    "observacao" TEXT,
+    "motivoRefutacao" TEXT,
+    "decididoPorId" TEXT,
+    "decididoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BolBoleto_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "BolEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "boletoId" TEXT,
+    "loteId" TEXT,
+    "acao" TEXT NOT NULL,
+    "de" TEXT,
+    "para" TEXT,
+    "userId" TEXT,
+    "papel" TEXT,
+    "detalhe" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BolEvento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "BolRecorrencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "fornecedorId" TEXT,
+    "fornecedorNome" TEXT NOT NULL,
+    "fornecedorDocumento" TEXT,
+    "descricao" TEXT,
+    "valorEstimado" DOUBLE PRECISION NOT NULL,
+    "toleranciaPercentual" DOUBLE PRECISION NOT NULL DEFAULT 20,
+    "periodicidade" TEXT NOT NULL DEFAULT 'MENSAL',
+    "mesBase" INTEGER NOT NULL DEFAULT 1,
+    "diaMes" INTEGER NOT NULL,
+    "antecedenciaDias" INTEGER NOT NULL DEFAULT 5,
+    "ativa" BOOLEAN NOT NULL DEFAULT true,
+    "origem" TEXT NOT NULL DEFAULT 'MANUAL',
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BolRecorrencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "BolRecorrenciaSugestao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "fornecedorNome" TEXT NOT NULL,
+    "fornecedorDocumento" TEXT,
+    "valorMedio" DOUBLE PRECISION NOT NULL,
+    "diaMedio" INTEGER NOT NULL,
+    "meses" INTEGER NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "BolRecorrenciaSugestao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "BolEsperado" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "recorrenciaId" TEXT NOT NULL,
+    "competencia" TEXT NOT NULL,
+    "dataEsperada" TIMESTAMP(3) NOT NULL,
+    "limiteLancamento" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ESPERADO',
+    "boletoId" TEXT,
+    "tituloId" TEXT,
+    "justificativa" TEXT,
+    "tratadoPorId" TEXT,
+    "tratadoEm" TIMESTAMP(3),
+    "avisadoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BolEsperado_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "BolConfig_tenantId_key" ON "BolConfig"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolEmail_tenantId_recebidoEm_idx" ON "BolEmail"("tenantId", "recebidoEm");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "BolEmail_tenantId_messageId_key" ON "BolEmail"("tenantId", "messageId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolAnexo_tenantId_emailId_idx" ON "BolAnexo"("tenantId", "emailId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolAnexo_tenantId_boletoId_idx" ON "BolAnexo"("tenantId", "boletoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolLote_tenantId_data_idx" ON "BolLote"("tenantId", "data");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolLote_tenantId_status_idx" ON "BolLote"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "BolLote_tenantId_numero_key" ON "BolLote"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolBoleto_tenantId_status_idx" ON "BolBoleto"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolBoleto_tenantId_resultado_idx" ON "BolBoleto"("tenantId", "resultado");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolBoleto_tenantId_recebidoEm_idx" ON "BolBoleto"("tenantId", "recebidoEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolBoleto_tenantId_codigoBarras_idx" ON "BolBoleto"("tenantId", "codigoBarras");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolBoleto_tenantId_loteId_idx" ON "BolBoleto"("tenantId", "loteId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "BolBoleto_tenantId_numero_key" ON "BolBoleto"("tenantId", "numero");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "BolBoleto_tenantId_origemRef_key" ON "BolBoleto"("tenantId", "origemRef");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolEvento_tenantId_boletoId_idx" ON "BolEvento"("tenantId", "boletoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolEvento_tenantId_loteId_idx" ON "BolEvento"("tenantId", "loteId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolRecorrencia_tenantId_ativa_idx" ON "BolRecorrencia"("tenantId", "ativa");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolRecorrenciaSugestao_tenantId_status_idx" ON "BolRecorrenciaSugestao"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "BolRecorrenciaSugestao_tenantId_chave_key" ON "BolRecorrenciaSugestao"("tenantId", "chave");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolEsperado_tenantId_status_idx" ON "BolEsperado"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "BolEsperado_tenantId_dataEsperada_idx" ON "BolEsperado"("tenantId", "dataEsperada");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "BolEsperado_recorrenciaId_competencia_key" ON "BolEsperado"("recorrenciaId", "competencia");
+-- ==== BOL:END ====
