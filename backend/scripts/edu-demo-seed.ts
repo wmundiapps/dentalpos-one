@@ -24,6 +24,7 @@ import { seedExames } from './seeds/exames'
 import { seedInfraPlanejamento } from './seeds/infra-planejamento'
 import { seedAnaliseDocs } from './seeds/analise-docs'
 import { seedMecComissao } from './seeds/mec-comissao'
+import { seedAva } from './seeds/ava'
 
 const API = process.env.API_URL || 'http://localhost:3000/api'
 const TENANT = 'sua-instituicao'
@@ -102,6 +103,7 @@ const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
   ['exames', (c) => seedExames(c.api, sCtx(c))],
   ['infra-planejamento', (c) => seedInfraPlanejamento(c.api, { ...sCtx(c), loginAs: c.loginAs } as any)],
   ['analise-docs', (c) => seedAnaliseDocs(c.api, sCtx(c))],
+  ['ava', (c) => seedAva(c.api, sCtx(c))],
   // fluxograma automático: gera a grade de cada período (salas, laboratórios, dias e horários) e avisa os alunos
   ['fluxograma', async (c) => {
     const ts: any = await c.api('GET', '/edu/academico/terms')

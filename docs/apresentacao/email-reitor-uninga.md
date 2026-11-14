@@ -27,7 +27,7 @@ Para facilitar a análise prévia de Vossa Magnificência, preparamos um ambient
 - Usuário: apresentacao@uninga.br
 - Senha: Uninga@2026
 
-Os dados exibidos são fictícios, e o nome da instituição aparece como "SUA INSTITUIÇÃO", pois a personalização com a identidade da Uningá é feita após a contratação. Segue também, em anexo, a apresentação com os principais pontos e links que levam diretamente a cada tela do sistema.
+Os dados exibidos são fictícios, e o nome da instituição aparece como "SUA INSTITUIÇÃO", pois a personalização com a identidade da Uningá é feita após a contratação. Preparamos também uma apresentação interativa, com links que levam diretamente a cada tela do sistema e uma caixa de busca por funcionalidade: https://web-production-5398c.up.railway.app/apresentacao/index.html (a versão em PDF segue em anexo).
 
 Colocamo-nos à inteira disposição para adequar o dia e o horário à agenda de Vossa Magnificência, presencialmente em Maringá ou por videoconferência.
 
