@@ -16,7 +16,8 @@ async function main() {
   const hash = await bcrypt.hash(password, 10)
   const ex = await prisma.user.findFirst({ where: { clinicId: clinic.id, email } })
   if (ex) {
-    await prisma.user.update({ where: { id: ex.id }, data: { password: hash, isActive: true } as any })
+    // O papel também é reaplicado: o usuário de apresentação sempre tem acesso total (ADMIN), mesmo que tenha sido criado antes com outro papel.
+    await prisma.user.update({ where: { id: ex.id }, data: { password: hash, isActive: true, role: process.env.DEMO_USER_ROLE || 'ADMIN' } as any })
     console.log(`[demo-user] atualizado: ${email}`)
   } else {
     await prisma.user.create({
