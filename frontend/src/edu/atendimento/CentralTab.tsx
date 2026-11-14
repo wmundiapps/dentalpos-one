@@ -2,6 +2,7 @@ import { Alert, Box, Button, Checkbox, Chip, Dialog, DialogActions, DialogConten
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useState } from "react";
+import AlertaHumano from "./AlertaHumano";
 import { A, CANAIS, CanalChip, FormDialog, LoadBox, Pick, PrioChip, PRIORIDADES, ROTULO_CANAL, ROTULO_STATUS, Section, SlaChip, StatusChip, call, fmtDateTime, itemsOf, opts, useApi, useIsMobile, useReload, useRunner, useToast, type FormField } from "./kit";
 
 const NOVO: FormField[] = [
@@ -30,6 +31,7 @@ export default function CentralTab() {
   const lista = (
     <Section title="Caixa única" actions={<><Button variant="outlined" size="small" onClick={() => setDlg("simular")}>Simular entrada de canal</Button><Button variant="contained" size="small" onClick={() => setDlg("novo")}>Novo atendimento</Button></>}>
       {node}
+      <AlertaHumano onAbrir={setSel} />
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
         <TextField size="small" label="Buscar" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} sx={{ flex: "1 1 140px", minWidth: 0 }} />
         <Pick label="Situação" value={f.status} onChange={(v) => setF({ ...f, status: v })} all="Todas" minWidth={140} options={[{ value: "ABERTOS", label: "Abertos" }, ...opts(["NOVO", "EM_FILA", "EM_ATENDIMENTO", "AGUARDANDO_SOLICITANTE", "RESOLVIDO", "FECHADO"], ROTULO_STATUS)]} />

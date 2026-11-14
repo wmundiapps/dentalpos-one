@@ -1,53 +1,62 @@
-# Sugestão de precificação (uso interno WMundi — NÃO enviar ao cliente sem aprovação)
+# Precificação definida (uso interno WMundi — NÃO enviar ao cliente sem aprovação)
 
-Valores de consumo abaixo são **referências para cálculo**, não tabelas oficiais: confirme preços atuais de WhatsApp (Meta), SMS e IA com os fornecedores antes de fechar.
+## 1. Estrutura (decidida pelo Robson em 2026-11-14)
+| Item | Valor |
+|---|---|
+| Mensalidade fixa | **R$ 41.900,00/mês**, com **franquia de até 20.000 alunos ativos** |
+| Acima da franquia | **R$ 1,20 por aluno ativo adicional/mês** |
+| Integrações com sistemas atuais | **tarifa única R$ 30.000,00**: 10x de R$ 3.000,00 ou **10% de desconto à vista (R$ 27.000,00)** |
+| IA (tokens), WhatsApp e SMS | **pagos direto aos fornecedores, sem intermediação** (opção A) |
+| Implantação | 90 dias, com agente presencial |
+| Atualizações | semanais, incluídas |
+| Teste | 3 meses sem custo (a confirmar) |
+| Apps Apple/Android | R$ 50.000 em 10x · hospedagem R$ 1.690/mês + R$ 1,02 por app baixado/mês |
+| Polos e unidades avançadas | módulos adicionais com orçamento negociado |
 
-## 1. Estrutura sugerida
-| Item | Valor sugerido | Observação |
+## 2. Simulação mensal (só a licença)
+| Alunos ativos | Licença | Por aluno |
 |---|---|---|
-| Mensalidade fixa | **R$ 42.000,00/mês** | todos os módulos, atualizações semanais, suporte, hospedagem do sistema |
-| Valor por aluno ativo | **R$ 2,90/mês** | R$ 1,90 anterior + R$ 1,00 pedido |
-| Implantação | 90 dias, com agente presencial | incluída (ou à parte, se preferir cobrar) |
-| Teste | 3 meses sem custo (a confirmar) | |
-| Apps Apple/Android | R$ 50.000 em 10x · hospedagem R$ 1.690/mês + R$ 1,02 por app baixado/mês | opcional, como já definido |
-| Unidades avançadas/polos | orçamento adicional negociado | marketing, agenda e demais módulos |
-| Integrações com sistemas atuais | orçamento por integração (ver item 3) | |
+| 3.000 | R$ 41.900 | R$ 13,97 |
+| 8.000 | R$ 41.900 | R$ 5,24 |
+| 15.000 | R$ 41.900 | R$ 2,79 |
+| 20.000 | R$ 41.900 | R$ 2,10 |
+| 30.000 | R$ 53.900 | R$ 1,80 |
 
-## 2. Consumo: tokens de IA, SMS e WhatsApp
-**Opção A (recomendada, mais simples de defender):** a instituição contrata e paga direto aos fornecedores (Meta/WhatsApp, operadora de SMS, provedor de IA). **Sem margem e sem repasse da WMundi.** É o que já constava na proposta.
+Preciso do número de alunos ativos da Uningá para saber em qual linha ela está.
 
-**Opção B (pacote "tudo incluído"):** soma ao valor por aluno uma franquia de consumo.
-- Franquia por aluno ativo/mês (hipótese de uso): 4 WhatsApp de utilidade, 0,5 de marketing, 1,5 SMS e 3 conversas atendidas por IA.
-- Custo de referência por unidade (a confirmar): WhatsApp utilidade R$ 0,05 · WhatsApp marketing R$ 0,40 · SMS R$ 0,09 · conversa de IA R$ 0,03.
-- Custo da franquia: ≈ **R$ 0,62 por aluno/mês**. Sugestão de cobrança: **R$ 0,90 por aluno/mês** (cobre variação de preço e gestão). Excedente cobrado ao custo + 20%, com extrato mensal.
-- Risco da B: se o preço do fornecedor subir ou o uso for maior, a margem some. Por isso exigir cláusula de reajuste do consumo.
+## 3. Argumento de custo para o cliente (com as suas estimativas, NÃO confirmadas)
+Estimativas do Robson para o que a Uningá paga hoje: Octadesk ≈ R$ 23.000/mês (+ tokens), Leadlovers ≈ R$ 1.000, Dynadoc ≈ R$ 4.000–5.000, Jacad desconhecido, Flugo desconhecido.
+- Soma sem Jacad e Flugo: **R$ 28.000 a R$ 29.000/mês**.
+- Se o EduMaster substituir esses sistemas, a proposta de R$ 41.900 fica mais barata se Jacad + Flugo custarem mais de ≈ **R$ 13.000 a R$ 14.000/mês**.
+- A conta só vale com contratos ou faturas reais.
 
-## 3. Simulação mensal (mensalidade + valor por aluno)
-| Alunos ativos | Licença (42.000 + 2,90/aluno) | Licença por aluno | Consumo A (direto ao fornecedor) | Total A | Opção B (licença + 0,90/aluno) | B por aluno |
-|---|---|---|---|---|---|---|
-| 3.000 | R$ 50.700 | R$ 16,90 | ≈ R$ 1.875 | R$ 52.575 | R$ 53.400 | R$ 17,80 |
-| 8.000 | R$ 65.200 | R$ 8,15 | ≈ R$ 5.000 | R$ 70.200 | R$ 72.400 | R$ 9,05 |
-| 15.000 | R$ 85.500 | R$ 5,70 | ≈ R$ 9.375 | R$ 94.875 | R$ 99.000 | R$ 6,60 |
-| 30.000 | R$ 129.000 | R$ 4,30 | ≈ R$ 18.750 | R$ 147.750 | R$ 156.000 | R$ 5,20 |
+## 4. Preços públicos pesquisados (2026-11-14) — pouco confiáveis
+Nenhum fornecedor publica tabela oficial para o porte de uma universidade:
+- **Octadesk:** só preços de entrada em comparadores (algo como R$ 149–199/mês no plano básico). Valor de universidade é sob proposta, com créditos de WhatsApp. A estimativa de R$ 23.000 é plausível, mas não confirmei.
+- **Leadlovers:** planos de entrada a partir de ~R$ 197/mês (US$ 47). Volumes grandes são negociados.
+- **Dynadoc:** não achei preço público. Pode haver confusão com produtos de nome parecido.
+- **Jacad:** sem preço público; costuma ser sob proposta. A empresa informa mais de 500 mil alunos atendidos e integrações com outras plataformas.
+- **Flugo:** o EduMaster substitui (módulo de salas, laboratórios e horários).
+Melhor caminho: pedir ao cliente as faturas dos cinco sistemas.
 
-Obs.: o fixo de R$ 42.000 pesa muito em instituição pequena. Se a Uningá tiver poucos alunos ativos, considerar degraus (ex.: fixo menor até X alunos). **Preciso do número de alunos ativos para fechar a proposta.**
+## 5. Integrações (tarifa única de R$ 30.000)
+Nenhuma está construída. Cada uma depende da documentação de API e do acesso que a instituição fornecer.
+| Sistema | Proposta |
+|---|---|
+| Jacad | importar alunos, matrículas, notas e financeiro; convivência na transição |
+| Flugo | **substituído** pelo módulo de salas, laboratórios e horários (geração automática); importar o que já está cadastrado |
+| Dynadoc | documentos e assinaturas ligados à secretaria e ao agente de análise de documentos |
+| Octadesk | agentes de IA e departamentos por API/webhook, ou migrar os canais para o EduMaster |
+| Leadlovers | leads para o funil de admissões e retorno do status da matrícula |
 
-## 4. Integração com os sistemas que eles já têm
-Nenhuma integração com estes sistemas está construída hoje. O que existe no EduMaster: importação/cadastro, rotas de API próprias, caixa de notificações e canais de comunicação. O que cada integração exige: **documentação de API/webhook e credenciais de cada fornecedor, fornecidas pela instituição.** Escopo e prazo só podem ser confirmados depois de ler essa documentação.
+Risco: se a API de algum fornecedor for fechada ou cobrada à parte, o escopo muda. Colocar essa cláusula no contrato.
 
-| Sistema | Papel provável | Como integrar (proposta) | Ponto a validar |
-|---|---|---|---|
-| Jacad | sistema acadêmico/financeiro atual | **Migração e convivência:** importar alunos, matrículas, notas e financeiro; sincronização enquanto os dois rodam; depois descontinuar o que for substituído | há API aberta? exportação em lote? quais módulos ficam |
-| Flugo | a confirmar com o cliente | conforme a função (captação, atendimento ou processos) | **qual o uso hoje** |
-| Dynadoc | documentos / assinatura digital | documentos e assinaturas conectados à secretaria e ao agente de análise de documentos | API de envio, consulta e status de assinatura |
-| Octadesk | atendimento omnicanal | manter como porta de entrada e plugar os agentes de IA e os setores via API/webhook, ou migrar os canais para o EduMaster | quais canais já estão no Octadesk (WhatsApp, e-mail, chat) |
-| Leadlovers | automação de marketing e funil | leads de campanha entram no funil de admissões; status de matrícula volta ao Leadlovers | webhooks e campos de lead |
+## 6. Biblioteca Pearson
+- O **conteúdo** (livros e acervo) é licenciado pela editora e **não podemos fornecê-lo**. Continua sendo contratado pela instituição.
+- O EduMaster faz a **administração e o controle**: cadastro da assinatura (institucional ou adesão individual com cobrança), link de acesso no portal do aluno, registro de acessos, bibliografia por disciplina e sugestão de aquisição.
+- Login único e relatórios de uso dependem da Pearson. Instituições brasileiras costumam acessar a Biblioteca Virtual Pearson por link no portal ou no sistema da biblioteca; não achei API pública. Consultar a Pearson.
 
-**Precificação sugerida:** cada integração como **projeto à parte**, com orçamento fechado depois da análise da API do fornecedor. Faixa de referência para negociar: **R$ 12.000 a R$ 25.000 por integração** (única) + manutenção incluída na mensalidade enquanto a API do fornecedor não mudar. Jacad tende a ser a maior, por envolver migração.
-
-## 5. O que preciso que você decida
-1. Opção A (consumo direto) ou B (pacote)?
-2. Confirma R$ 42.000 + R$ 2,90/aluno? E o teste grátis de 3 meses?
-3. Número aproximado de alunos ativos da Uningá.
-4. Integrações: cobrar à parte (faixa acima) ou incluir parte na implantação?
-5. O que é o Flugo para eles, e se há acesso à documentação dos cinco sistemas.
+## 7. Pendências
+1. Número de alunos ativos da Uningá.
+2. Faturas dos cinco sistemas (para fechar o argumento de custo).
+3. Confirmar o teste grátis de 3 meses.
