@@ -203,7 +203,7 @@ export async function config(req: Request, res: Response) {
 
     // Só aparecem profissionais com horários online liberados e jornada cadastrada.
     const onlineSettings = await loadOnlineBookingSettings(clinic.id)
-    const listed = []
+    const listed: Array<{ id: string; name: string; specialty: string; workDays: number[] }> = []
     for (const doctor of doctors) {
       const days = await workingDays(clinic.id, clinic.tenantId, doctor.id)
       const onlineDays = days.filter(day => onlineTimesFor(onlineSettings, doctor.id, day).length > 0)
