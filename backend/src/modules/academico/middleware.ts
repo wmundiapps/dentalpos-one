@@ -55,6 +55,9 @@ export function requireRole(...roles: AcademicRole[]) {
     if (!req.user) return res.status(401).json({ error: 'Não autenticado.' })
     const role = String(req.user.role || '').toUpperCase()
     if (SUPER_ROLES.includes(role) || roles.includes(role as AcademicRole)) return next()
+    // Acesso por cargo (modules/acesso): concessão PERMITIR do módulo atual libera rotas de gestão. Não vale para rotas só de
+    // STUDENT/TEACHER (checam o dono do dado) nem para rotas só da administração (roles vazio).
+    if ((req as any).acessoConcedido && roles.some((r) => r !== 'STUDENT' && r !== 'TEACHER')) return next()
     return res.status(403).json({ error: 'Sem permissão para esta ação.' })
   }
 }

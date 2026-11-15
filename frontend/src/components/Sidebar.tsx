@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
+import { rotaBloqueada, useModulosBloqueados } from "../edu/acesso/modulos";
 import {
   getDemoModuleStatus,
   readDemoAccess,
@@ -47,10 +48,14 @@ export default function Sidebar(){
   const [showInDevelopment,setShowInDevelopment]=useState(false);
 
   // No EXPERIENCE, nenhum item deve desaparecer do menu — apenas deduplicado.
+  const modulosBloqueados=useModulosBloqueados(); // acesso por cargo: esconde o que o cargo não pode abrir
+  const cargoLogado=String(sessionUser?.role||"").toUpperCase();
   const visibleGroups=useMemo(()=>{
     const seen=new Set<string>();
     return navigationGroups.map(group=>{
       const items=group.items.filter(it=>{
+        if(it.roles&&!it.roles.includes(cargoLogado))return false;
+        if(rotaBloqueada(it.path,modulosBloqueados))return false;
         const dedupeKey=it.path;
         if(seen.has(dedupeKey))return false;
         seen.add(dedupeKey);
@@ -58,7 +63,7 @@ export default function Sidebar(){
       });
       return {...group,items};
     }).filter(g=>g.items.length>0);
-  },[]);
+  },[modulosBloqueados,cargoLogado]);
 
   const activeGroup=useMemo(
     ()=>visibleGroups.find(g=>g.items.some(it=>pathMatches(it.path,location.pathname,location.search)))?.label,

@@ -38,12 +38,16 @@ import analiseDocsRouter from './analise-docs/routes'
 import examesRouter from './exames/routes'
 import boletosRouter from './boletos/routes'
 import boletosPublic from './boletos/publico'
+import acessoRouter from './acesso/routes'
+import { acessoPorCargo } from './acesso/regras'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
 const router = Router()
 router.use(eduContext)
 // Ambiente de ensino atual (cabeçalho X-Edu-Ambiente ou contexto salvo): filtra listas por curso. Ver modules/portal2/README.md.
 router.use(ambienteContext)
+// Acesso por cargo (matriz cargo x módulo): BLOQUEAR => 403; PERMITIR => requireRole libera o cargo. Ver modules/acesso/README.md.
+router.use(acessoPorCargo)
 // LGPD: registra quem acessa dados sensíveis (apoio/atendimentos, AEE, ocorrências, bolsas) - não altera a resposta.
 router.use(acessoSensivelLog)
 
@@ -84,6 +88,7 @@ router.use('/campos-pratica', camposPraticaRouter)
 router.use('/analise-docs', analiseDocsRouter)
 router.use('/exames', examesRouter)
 router.use('/boletos', boletosRouter)
+router.use('/acesso', acessoRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.
 router.use(academicErrorHandler)
 

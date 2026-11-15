@@ -72,10 +72,10 @@ import { Box } from "@mui/material";
 import { createSvgIcon } from "@mui/material/utils";
 import type { ReactNode } from "react";
 
-export interface NavigationItem { label: string; path: string; icon: ReactNode; }
+export interface NavigationItem { label: string; path: string; icon: ReactNode; /** Se informado, o item só aparece para estes cargos (papel do usuário logado). */ roles?: string[]; }
 export interface NavigationGroup { label: string; icon: ReactNode; items: NavigationItem[]; }
 
-const item = (label:string,path:string,icon:ReactNode):NavigationItem => ({label,path,icon});
+const item = (label:string,path:string,icon:ReactNode,roles?:string[]):NavigationItem => ({label,path,icon,...(roles?{roles}:{})});
 const alphabetical = (items:NavigationItem[]) => [...items].sort((a,b)=>a.label.localeCompare(b.label,"pt-BR"));
 
 const ToothIcon = createSvgIcon(
@@ -407,6 +407,7 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Importar clientes e alunos","/importar-pacientes",<UploadFileIcon/>),
       item("Permissões","/permissoes",<AdminPanelSettingsIcon/>),
       item("Central LGPD","/edu/lgpd",<PrivacyTipIcon/>),
+      item("Acesso por cargo","/edu/acesso-por-cargo",<AdminPanelSettingsIcon/>,["ADMIN","OWNER"]),
       item("Segurança da conta","/seguranca",<AdminPanelSettingsIcon/>),
       item("Eventos de segurança","/seguranca/eventos",<AdminPanelSettingsIcon/>),
       item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),

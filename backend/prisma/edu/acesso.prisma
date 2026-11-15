@@ -1,0 +1,20 @@
+// ============================================================
+// EDUMASTER PRO — ACESSO POR CARGO (matriz cargo x módulo)
+// Prefixo Acs. Somente tabela NOVA. Cada linha = regra de um cargo (papel do sistema) para um módulo (primeiro segmento de /api/edu/<modulo>).
+// Estados: PADRAO (comportamento atual) | PERMITIR (libera o cargo nas rotas com requireRole) | BLOQUEAR (403 em todo o módulo).
+// ============================================================
+
+model AcsRegra {
+  id              String   @id @default(uuid())
+  tenantId        String
+  cargo           String
+  modulo          String
+  estado          String   @default("PADRAO")
+  alteradoPor     String?
+  alteradoPorNome String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, cargo, modulo])
+  @@index([tenantId])
+}

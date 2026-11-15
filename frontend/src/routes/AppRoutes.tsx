@@ -32,6 +32,7 @@ const EduPortalAluno = lazy(() => import("../pages/edu/EduPortalAluno"));
 const EduPortalProfessor = lazy(() => import("../pages/edu/EduPortalProfessor"));
 const EduInicio = lazy(() => import("../pages/edu/EduInicio"));
 const EduLgpd = lazy(() => import("../pages/edu/EduLgpd"));
+const EduAcessoPorCargo = lazy(() => import("../pages/edu/EduAcessoPorCargo"));
 const EduFinanceiro = lazy(() => import("../pages/edu/EduFinanceiro"));
 const EduJuridico = lazy(() => import("../pages/edu/EduJuridico"));
 const EduAtendimento = lazy(() => import("../pages/edu/EduAtendimento"));
@@ -194,6 +195,7 @@ export default function AppRoutes() {
       <Route path="/edu/ambientes" element={<EduInicio />} />
       <Route path="/edu/identidade" element={<EduIdentity />} />
       <Route path="/edu/lgpd" element={<EduLgpd />} />
+      <Route path="/edu/acesso-por-cargo" element={<EduAcessoPorCargo />} />
       <Route path="/edu/rh" element={<EduRh />} />
       <Route path="/edu/financeiro" element={<EduFinanceiro />} />
       <Route path="/edu/juridico" element={<EduJuridico />} />

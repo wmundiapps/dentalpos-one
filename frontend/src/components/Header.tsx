@@ -32,6 +32,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
+import { rotaBloqueada, useModulosBloqueados } from "../edu/acesso/modulos";
 import { useAppTheme } from "../contexts/AppThemeContext";
 import InstitutionLogo from "../edu/InstitutionLogo";
 import { notifications } from "../services/NotificationService";
@@ -58,10 +59,12 @@ export default function Header() {
 
   const unreadCount = notifications.filter((notification) => !notification.lida).length;
 
+  const modulosBloqueados = useModulosBloqueados();
+  const cargoLogado = String(sessionUser?.role || "").toUpperCase();
   const searchableItems = useMemo(() => {
     const entries = navigationGroups.flatMap((group) =>
       group.items.map((item) => ({ ...item, group: group.label })),
-    );
+    ).filter((e) => (!e.roles || e.roles.includes(cargoLogado)) && !rotaBloqueada(e.path, modulosBloqueados));
 
     if (!demo?.isDemo) return entries;
 
@@ -74,7 +77,7 @@ export default function Header() {
       seen.add(entry.path);
       return true;
     });
-  }, [demo?.isDemo, demo?.modules.join("|")]);
+  }, [demo?.isDemo, demo?.modules.join("|"), modulosBloqueados, cargoLogado]);
 
   const results = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR");

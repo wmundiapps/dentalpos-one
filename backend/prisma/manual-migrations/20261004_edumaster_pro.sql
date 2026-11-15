@@ -21242,3 +21242,26 @@ CREATE INDEX IF NOT EXISTS "BolEsperado_tenantId_dataEsperada_idx" ON "BolEspera
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "BolEsperado_recorrenciaId_competencia_key" ON "BolEsperado"("recorrenciaId", "competencia");
 -- ==== BOL:END ====
+
+-- ==== ACS:BEGIN (Acesso por cargo, prefixo Acs - idempotente, somente CRIA) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcsRegra" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "cargo" TEXT NOT NULL,
+    "modulo" TEXT NOT NULL,
+    "estado" TEXT NOT NULL DEFAULT 'PADRAO',
+    "alteradoPor" TEXT,
+    "alteradoPorNome" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AcsRegra_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcsRegra_tenantId_idx" ON "AcsRegra"("tenantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcsRegra_tenantId_cargo_modulo_key" ON "AcsRegra"("tenantId", "cargo", "modulo");
+-- ==== ACS:END ====
