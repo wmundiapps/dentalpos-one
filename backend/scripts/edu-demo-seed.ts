@@ -28,6 +28,7 @@ import { seedAva } from './seeds/ava'
 import { seedBoletos } from './seeds/boletos'
 import { seedMensagens } from './seeds/mensagens'
 import { seedAcesso } from './seeds/acesso'
+import { seedMarca } from './seeds/marca'
 
 const API = process.env.API_URL || 'http://localhost:3000/api'
 const TENANT = 'sua-instituicao'
@@ -119,6 +120,7 @@ const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
   }],
   // por último: ajusta indicadores para a IES de demonstração "nota máxima" (dados fictícios)
   ['mec-comissao', (c) => seedMecComissao(c.api, sCtx(c))],
+  ['marca-final', (c) => seedMarca(c.api)],
   // acesso por cargo: deve ser o ÚLTIMO (as regras não podem bloquear os passos anteriores)
   ['acesso', (c) => seedAcesso(c.api, sCtx(c))],
 ]
