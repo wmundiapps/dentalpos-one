@@ -65,6 +65,8 @@ export const txt = (max = 200) => z.string().trim().max(max).transform((s) => s.
 export const txtOpt = (max = 200) => txt(max).optional().nullable().transform((v) => (v ? v : null))
 export const emailOpt = z.string().trim().toLowerCase().email('e-mail inválido').max(160).optional().nullable().or(z.literal('').transform(() => null))
 export const comp = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'competência deve ser AAAA-MM')
+/** Competência vinda de query: 400 em vez de 500 quando malformada. */
+export const compQ = (v: unknown, padrao: string) => { const r = comp.safeParse(v ?? padrao); if (!r.success) throw httpError(400, 'Competência/mês inválido (use AAAA-MM).'); return r.data }
 export const dataIso = z.union([z.string(), z.date()]).transform((v, ctx) => { const d = dia(v); if (!d) { ctx.addIssue({ code: 'custom', message: 'data inválida' }); return z.NEVER } return d })
 export const dataOpt = dataIso.optional().nullable()
 

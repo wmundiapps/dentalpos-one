@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto'
 import type { NextFunction, Request, Response, Router } from 'express'
 import {
-  CONTADORES, EQUIPE, INTERNO, PORTAL, asArray, clienteOuErro, comp, compAtual, dataOpt, emailOpt, exigir, getCfg, hojeMeioDia, httpError, pageParams, papelDe, parseBody, prisma, qs, somaMeses, tid, txt, txtOpt, uid, z,
+  CONTADORES, EQUIPE, INTERNO, PORTAL, asArray, clienteOuErro, comp, compAtual, compQ, dataOpt, emailOpt, exigir, getCfg, hojeMeioDia, httpError, pageParams, papelDe, parseBody, prisma, qs, somaMeses, tid, txt, txtOpt, uid, z,
 } from './common'
 import { asyncHandler, auditar, criarLoginPortal, desativarUsuario, nomesDeUsuarios, redefinirSenhaUsuario } from './host'
 import { enviarArquivo, MAX_ANEXO_BYTES } from './clientes'
@@ -56,12 +56,12 @@ export function registrarPortal(router: Router) {
   router.post('/clientes/:id/portal/acesso', exigir(CONTADORES), asyncHandler(async (req, res) => {
     const c = await clienteOuErro(req, String(req.params.id))
     if (c.anonimizadoEm || c.status === 'ENCERRADO') throw httpError(409, 'Cliente encerrado/anonimizado não recebe acesso ao portal.')
-    const d = parseBody(z.object({ email: z.string().trim().toLowerCase().email().max(160), nome: txt(120).pipe(z.string().min(2)) }), req.body)
-    const senha = senhaProvisoria()
+    const d = parseBody(z.object({ email: z.string().trim().toLowerCase().email().max(160), nome: txt(120).pipe(z.string().min(2)), senha: z.string().min(10, "a senha inicial precisa ter ao menos 10 caracteres").max(100).regex(/[A-Za-z]/, "use letras").regex(/\d/, "use números").optional() }), req.body)
+    const senha = d.senha ?? senhaProvisoria()
     const u = await criarLoginPortal(req, { email: d.email, nome: d.nome, senha })
     await prisma.ctbPortalAcesso.create({ data: { tenantId: tid(req), clienteId: c.id, userId: u.id } })
     await auditar(req, 'PORTAL_ACESSO_CRIADO', 'CtbCliente', c.id, { email: d.email })
-    res.status(201).json({ userId: u.id, email: u.email, senhaProvisoria: senha, aviso: 'Guarde esta senha agora: ela não será mostrada de novo. Oriente o cliente a trocá-la no primeiro acesso.' })
+    res.status(201).json({ userId: u.id, email: u.email, ...(d.senha ? {} : { senhaProvisoria: senha }), aviso: d.senha ? 'Acesso criado com a senha informada.' : 'Guarde esta senha agora: ela não será mostrada de novo. Oriente o cliente a trocá-la no primeiro acesso.' })
   }))
   router.post('/clientes/:id/portal/acesso/:pid/redefinir', exigir(CONTADORES), asyncHandler(async (req, res) => {
     const c = await clienteOuErro(req, String(req.params.id))
@@ -139,7 +139,7 @@ export function registrarPortal(router: Router) {
   }))
   router.get('/clientes/:id/pendencias-documentos', exigir(INTERNO), asyncHandler(async (req, res) => {
     const c = await clienteOuErro(req, String(req.params.id))
-    res.json(await pendenciasDoc(tid(req), c.id, comp.parse(qs(req.query.competencia) ?? somaMeses(compAtual(), -1))))
+    res.json(await pendenciasDoc(tid(req), c.id, compQ(qs(req.query.competencia), somaMeses(compAtual(), -1))))
   }))
 
   // ---- mensagens com o cliente (lado do escritório) ----
@@ -211,7 +211,7 @@ export function registrarPortal(router: Router) {
     res.status(201).json({ documento: r, pendencias: pend })
   }))
   router.get(`${P}/pendencias`, portalCtx, asyncHandler(async (req, res) => {
-    res.json(await pendenciasDoc(tid(req), pc(req).clienteId, comp.parse(qs(req.query.competencia) ?? somaMeses(compAtual(), -1))))
+    res.json(await pendenciasDoc(tid(req), pc(req).clienteId, compQ(qs(req.query.competencia), somaMeses(compAtual(), -1))))
   }))
 
   router.get(`${P}/mensagens`, portalCtx, asyncHandler(async (req, res) => {

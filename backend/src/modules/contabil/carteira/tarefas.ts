@@ -1,6 +1,6 @@
 import type { Request, Router } from 'express'
 import {
-  CONTADORES, EQUIPE, GESTAO, INTERNO, asArray, clienteOuErro, comp, compAtual, dataIso, dataOpt, diaDoMes, exigir, hojeMeioDia, httpError, idsVisiveis, iso10, pageParams, papelDe, parseBody, prisma, qs,
+  CONTADORES, EQUIPE, GESTAO, INTERNO, asArray, clienteOuErro, comp, compAtual, compQ, dataIso, dataOpt, diaDoMes, exigir, hojeMeioDia, httpError, idsVisiveis, iso10, pageParams, papelDe, parseBody, prisma, qs,
   restrito, somaDias, somaMeses, tid, txt, txtOpt, uid, z,
 } from './common'
 import { asyncHandler, auditar, nomesDeUsuarios } from './host'
@@ -170,7 +170,7 @@ export function registrarTarefas(router: Router) {
   // ---------- calendário de obrigações da carteira ----------
   router.get('/calendario', exigir(INTERNO), asyncHandler(async (req, res) => {
     const tenantId = tid(req)
-    const mes = comp.parse(qs(req.query.mes) ?? compAtual())
+    const mes = compQ(qs(req.query.mes), compAtual())
     const [a, m] = mes.split('-').map(Number)
     const ini = new Date(Date.UTC(a, m - 1, 1, 0)), fim = new Date(Date.UTC(a, m, 0, 23, 59, 59))
     const ids = await idsVisiveis(req)

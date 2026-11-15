@@ -189,12 +189,14 @@ export function registrarFunil(router: Router) {
     const p = await prisma.ctbProposta.findFirst({ where: { id: String(req.params.id), tenantId } })
     if (!p) throw httpError(404, 'Proposta não encontrada.')
     if (p.status !== 'ACEITA') throw httpError(409, 'Só é possível gerar contrato de uma proposta ACEITA.')
-    if (!p.clienteId) throw httpError(409, 'Converta o lead em cliente (informe o CPF/CNPJ) antes de gerar o contrato.')
+    let clienteId = p.clienteId
+    if (!clienteId && p.leadId) { clienteId = (await prisma.ctbLead.findFirst({ where: { id: p.leadId, tenantId }, select: { clienteId: true } }))?.clienteId ?? null; if (clienteId) await prisma.ctbProposta.update({ where: { id: p.id }, data: { clienteId } }) }
+    if (!clienteId) throw httpError(409, 'Converta o lead em cliente (informe o CPF/CNPJ) antes de gerar o contrato.')
     if (await prisma.ctbContrato.findFirst({ where: { tenantId, propostaId: p.id }, select: { id: true } })) throw httpError(409, 'Esta proposta já gerou um contrato.')
     const d = parseBody(z.object({ inicio: dataOpt, fim: dataOpt, diaVencimento: z.number().int().min(1).max(28).default(10), reajusteMes: z.number().int().min(1).max(12).optional().nullable(), reajustePercentual: z.number().min(0).max(100).optional().nullable() }), req.body)
     const inicio = d.inicio ?? hojeMeioDia()
     const c = await comNumero('ctbContrato', tenantId, (numero) => prisma.ctbContrato.create({
-      data: { tenantId, numero, clienteId: p.clienteId!, propostaId: p.id, valorMensal: p.valorMensal, escopo: p.escopo as any, inicio, fim: d.fim ?? null, diaVencimento: d.diaVencimento, reajusteMes: d.reajusteMes ?? inicio.getUTCMonth() + 1, reajusteIndice: p.reajusteIndice, reajustePercentual: d.reajustePercentual ?? null, criadoPorId: uid(req) },
+      data: { tenantId, numero, clienteId, propostaId: p.id, valorMensal: p.valorMensal, escopo: p.escopo as any, inicio, fim: d.fim ?? null, diaVencimento: d.diaVencimento, reajusteMes: d.reajusteMes ?? inicio.getUTCMonth() + 1, reajusteIndice: p.reajusteIndice, reajustePercentual: d.reajustePercentual ?? null, criadoPorId: uid(req) },
     }))
     if (p.leadId) await prisma.ctbLead.updateMany({ where: { id: p.leadId, tenantId, etapa: { in: ['LEAD', 'PROPOSTA'] } }, data: { etapa: 'CONTRATO', etapaEm: new Date() } })
     await auditar(req, 'CONTRATO_GERADO', 'CtbContrato', c.id, { propostaId: p.id, numero: c.numero })
