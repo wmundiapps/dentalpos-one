@@ -8566,6 +8566,351 @@ model ComWebhookLog {
   @@index([canalId, createdAt])
 }
 
+// ---- edu/contabil-fiscal.prisma ----
+// ============================================================
+// ESCRITÓRIO DE CONTABILIDADE (bloco portátil) — área contábil-fiscal. Prefixo Ctb.
+// PORTÁTIL: nenhuma @relation para tabelas do sistema hospedeiro; tudo é amarrado por tenantId (String) e ids opcionais (String).
+// userId/tenantId vêm do sistema hospedeiro (ver modules/contabil/README.md). Somente tabelas NOVAS.
+// O fragmento contabil-societario.prisma (outra área) usa o mesmo prefixo, com nomes próprios.
+// ============================================================
+
+/// Papel contábil explícito de um usuário (CONTADOR, FINANCEIRO, GESTOR, LEITOR). Sem registro, vale o mapeamento do cargo do sistema.
+model CtbMembro {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String
+  papel       String                       // CONTADOR | FINANCEIRO | GESTOR | LEITOR
+  ativo       Boolean  @default(true)
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, userId])
+  @@index([tenantId, ativo])
+}
+
+/// Empresa/cliente atendido pelo escritório (multi-empresa).
+model CtbEmpresa {
+  id               String    @id @default(uuid())
+  tenantId         String
+  tipoPessoa       String    @default("PJ")      // PJ | PF (PF usa CPF e carnê-leão)
+  documento        String                         // CNPJ/CPF só dígitos
+  razaoSocial      String
+  nomeFantasia     String?
+  regimeAtual      String    @default("SIMPLES")  // MEI | SIMPLES | PRESUMIDO | REAL
+  anexoSimples     String?                        // I | II | III | IV | V (quando regime SIMPLES; vazio = pelo CNAE)
+  cnae             String?                        // 7 dígitos
+  cnaeDescricao    String?
+  atividade        String?                        // COMERCIO | INDUSTRIA | SERVICOS | SERVICOS_ANEXO_IV | SERVICOS_FATOR_R | SERVICOS_HOSPITALAR
+  uf               String?
+  municipio        String?
+  issAliquota      Float?                         // % do município (ex.: 3 = 3%)
+  inicioAtividade  DateTime?
+  email            String?
+  telefone         String?
+  observacoes      String?
+  ativo            Boolean   @default(true)
+  origemExterna    String?                        // id da entidade no sistema hospedeiro (adapter)
+  criadoPorId      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([tenantId, documento])
+  @@index([tenantId, ativo])
+}
+
+/// Histórico mensal informado (sobrepõe o que seria derivado dos lançamentos contábeis naquele mês).
+model CtbHistoricoMensal {
+  id             String   @id @default(uuid())
+  tenantId       String
+  empresaId      String
+  competencia    String                           // AAAA-MM
+  receitaBruta   Float    @default(0)
+  despesas       Float    @default(0)
+  folha          Float    @default(0)             // salários brutos
+  comprasInsumos Float    @default(0)             // base de créditos PIS/COFINS no Lucro Real
+  irrfRetido     Float    @default(0)
+  fonte          String   @default("MANUAL")      // MANUAL | IMPORTADO | SEED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([empresaId, competencia])
+  @@index([tenantId, empresaId])
+}
+
+/// Simulação do recomendador de regime (guarda a memória de cálculo e a versão das tabelas usadas).
+model CtbSimulacaoRegime {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  empresaId          String
+  criadoPorId        String?
+  versaoTabelas      String
+  regimeRecomendado  String?
+  resultado          Json
+  createdAt          DateTime @default(now())
+
+  @@index([tenantId, empresaId, createdAt])
+}
+
+/// Numeração sequencial por tenant/empresa/chave (notas, recibos, lançamentos).
+model CtbSequencia {
+  id        String @id @default(uuid())
+  tenantId  String
+  empresaId String @default("")
+  chave     String
+  atual     Int    @default(0)
+
+  @@unique([tenantId, empresaId, chave])
+}
+
+/// Nota fiscal de entrada ou saída. Emissão SIMULADA (ver notas/provedor.ts); importação de XML é apenas leitura local.
+model CtbNota {
+  id                 String    @id @default(uuid())
+  tenantId           String
+  empresaId          String
+  direcao            String                         // ENTRADA | SAIDA
+  tipo               String                         // NFE | NFSE | NFCE
+  serie              String    @default("1")
+  numero             Int?
+  chaveAcesso        String?
+  status             String    @default("EMITIDA")  // EMITIDA | IMPORTADA | CANCELADA
+  emitidaEm          DateTime?
+  competencia        String?                        // AAAA-MM
+  parceiroNome       String
+  parceiroDoc        String?
+  descricao          String?
+  valorTotal         Float
+  valorServicos      Float     @default(0)
+  valorProdutos      Float     @default(0)
+  itens              Json?
+  impostos           Json?                          // { iss, pis, cofins, icms, irrf, inss, csll } destacados/retidos
+  xml                String?
+  protocolo          String?
+  provedor           String    @default("SIMULADO")
+  simulacao          Boolean   @default(true)
+  canceladaEm        DateTime?
+  motivoCancelamento String?
+  canceladaPorId     String?
+  tituloId           String?                        // vínculo com conta a pagar/receber (CtbTitulo)
+  criadoPorId        String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([tenantId, empresaId, chaveAcesso])
+  @@index([tenantId, empresaId, direcao, emitidaEm])
+  @@index([tenantId, tituloId])
+}
+
+/// Recibo (de recebimento ou de pagamento), numerado por empresa.
+model CtbRecibo {
+  id             String   @id @default(uuid())
+  tenantId       String
+  empresaId      String
+  tipo           String   @default("RECEBIMENTO")   // RECEBIMENTO | PAGAMENTO
+  numero         Int
+  pessoaNome     String
+  pessoaDoc      String?
+  valor          Float
+  referente      String
+  formaPagamento String?
+  data           DateTime
+  status         String   @default("EMITIDO")        // EMITIDO | CANCELADO
+  tituloId       String?
+  notaId         String?
+  criadoPorId    String?
+  createdAt      DateTime @default(now())
+
+  @@unique([tenantId, empresaId, numero])
+  @@index([tenantId, empresaId, data])
+}
+
+/// Conta a pagar / conta a receber.
+model CtbTitulo {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  empresaId           String
+  tipo                String                         // PAGAR | RECEBER
+  descricao           String
+  parceiroNome        String
+  parceiroDoc         String?
+  parceiroEmail       String?
+  parceiroTelefone    String?
+  categoria           String?
+  valor               Float
+  emissao             DateTime
+  vencimento          DateTime
+  status              String    @default("ABERTO")   // ABERTO | PAGO | CANCELADO
+  pagoEm              DateTime?
+  valorPago           Float?
+  formaPagamento      String?
+  contaContabilCodigo String?                        // receita/despesa (plano de contas) usada no lançamento automático
+  notaId              String?
+  extratoId           String?                        // linha de extrato que baixou o título (conciliação)
+  lancamentoId        String?
+  cobrancas           Int       @default(0)
+  ultimaCobrancaEm    DateTime?
+  criadoPorId         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([tenantId, empresaId, tipo, status, vencimento])
+}
+
+/// Evento de cobrança (régua) — e-mail/WhatsApp SIMULADOS.
+model CtbCobranca {
+  id          String   @id @default(uuid())
+  tenantId    String
+  empresaId   String
+  tituloId    String
+  etapa       String                              // D-3 | D0 | D+3 | D+7 | D+15 | MANUAL | SEGUNDA_VIA
+  canal       String                              // EMAIL | WHATSAPP
+  assunto     String?
+  mensagem    String
+  status      String   @default("SIMULADO")       // SIMULADO (nada é enviado de verdade)
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, tituloId])
+  @@index([tenantId, empresaId, createdAt])
+}
+
+model CtbContaBancaria {
+  id           String   @id @default(uuid())
+  tenantId     String
+  empresaId    String
+  apelido      String
+  banco        String?
+  agencia      String?
+  conta        String?
+  saldoInicial Float    @default(0)
+  ativo        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, empresaId])
+}
+
+/// Linha de extrato bancário importada (OFX/CSV) para conciliação.
+model CtbExtrato {
+  id              String    @id @default(uuid())
+  tenantId        String
+  empresaId       String
+  contaBancariaId String
+  data            DateTime
+  descricao       String
+  valor           Float                           // positivo = crédito, negativo = débito
+  fitid           String                          // identificador único da linha (OFX FITID ou hash)
+  status          String    @default("PENDENTE")  // PENDENTE | CONCILIADO | AJUSTADO | IGNORADO
+  tituloId        String?
+  lancamentoId    String?
+  observacao      String?
+  conciliadoPorId String?
+  conciliadoEm    DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@unique([tenantId, contaBancariaId, fitid])
+  @@index([tenantId, empresaId, status, data])
+}
+
+/// Plano de contas por empresa.
+model CtbPlanoConta {
+  id        String   @id @default(uuid())
+  tenantId  String
+  empresaId String
+  codigo    String                                // 1.1.1.01
+  nome      String
+  tipo      String                                // ATIVO | PASSIVO | PL | RECEITA | CUSTO | DESPESA
+  natureza  String                                // D | C (saldo normal)
+  analitica Boolean  @default(true)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, empresaId, codigo])
+  @@index([tenantId, empresaId])
+}
+
+/// Lançamento contábil (partidas dobradas: soma dos débitos = soma dos créditos).
+model CtbLancamento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  empresaId   String
+  numero      Int
+  data        DateTime
+  historico   String
+  origem      String   @default("MANUAL")        // MANUAL | TITULO | BAIXA | CONCILIACAO | ESTORNO
+  refId       String?
+  estornoDeId String?
+  estornado   Boolean  @default(false)
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, empresaId, numero])
+  @@index([tenantId, empresaId, data])
+}
+
+model CtbPartida {
+  id           String   @id @default(uuid())
+  tenantId     String
+  empresaId    String
+  lancamentoId String
+  data         DateTime
+  contaCodigo  String
+  tipo         String                              // D | C
+  valor        Float
+
+  @@index([tenantId, empresaId, contaCodigo, data])
+  @@index([lancamentoId])
+}
+
+/// Guia de tributo/contribuição (DARF, DAS, GPS, FGTS, ISS). SEMPRE simulada: código de barras fictício.
+model CtbGuia {
+  id              String    @id @default(uuid())
+  tenantId        String
+  empresaId       String
+  tributo         String                           // IRPJ | CSLL | PIS | COFINS | IRRF | IRPF_CARNE_LEAO | DAS | DAS_MEI | INSS | FGTS | ISS
+  tipoGuia        String                           // DARF | DAS | GPS | FGTS | ISS
+  codigoReceita   String?
+  competencia     String                           // AAAA-MM (trimestrais: último mês do trimestre)
+  periodicidade   String    @default("MENSAL")     // MENSAL | TRIMESTRAL
+  vencimento      DateTime
+  baseCalculo     Float     @default(0)
+  aliquota        Float?
+  valorPrincipal  Float
+  multa           Float     @default(0)
+  juros           Float     @default(0)
+  valorTotal      Float
+  status          String    @default("PENDENTE")   // PENDENTE | PAGA | CANCELADA
+  pagoEm          DateTime?
+  valorPago       Float?
+  linhaDigitavel  String
+  codigoBarras    String
+  memoria         Json?
+  simulacao       Boolean   @default(true)
+  versaoTabelas   String?
+  criadoPorId     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([tenantId, empresaId, competencia])
+  @@index([tenantId, status, vencimento])
+}
+
+/// Trilha de auditoria do módulo (portátil: não depende da auditoria do sistema hospedeiro).
+model CtbAuditoria {
+  id          String   @id @default(uuid())
+  tenantId    String
+  userId      String?
+  papel       String?
+  acao        String
+  entidade    String?
+  entidadeId  String?
+  empresaId   String?
+  detalhes    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, empresaId, acao])
+}
+
 // ---- edu/contabil-societario.prisma ----
 // ============================================================
 // EDUMASTER PRO — ESCRITÓRIO DE CONTABILIDADE (bloco portátil, parte 2: societário, RH/DP, imposto de renda, assistente)

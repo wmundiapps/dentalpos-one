@@ -42,6 +42,7 @@ import contabilParte2Router from './contabil/ctb2.routes'
 import acessoRouter from './acesso/routes'
 import { acessoPorCargo } from './acesso/regras'
 import mensagensRouter from './mensagens/routes'
+import contabilRouter from './contabil/routes'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
 const router = Router()
@@ -93,6 +94,7 @@ router.use('/boletos', boletosRouter)
 router.use('/contabil', contabilParte2Router)
 router.use('/acesso', acessoRouter)
 router.use('/mensagens', mensagensRouter)
+router.use('/contabil', contabilRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.
 router.use(academicErrorHandler)
 
