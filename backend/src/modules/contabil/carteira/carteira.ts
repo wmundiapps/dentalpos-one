@@ -78,6 +78,35 @@ export function registrarCarteira(router: Router) {
     res.json({ ...m.get(c.id), fiscal: { provedor: fiscalAtual().nome, simulado: fiscalAtual().simulado, pendenciasDisponiveis: !!fiscalAtual().pendenciasFiscais } })
   }))
 
+  // ---------- vínculo com a empresa do módulo fiscal (via adapter; sem ele a carteira usa a camada local) ----------
+  router.get('/clientes/:id/vinculo-fiscal', exigir(INTERNO), asyncHandler(async (req, res) => {
+    const c = await clienteOuErro(req, String(req.params.id))
+    const f = fiscalAtual()
+    const sugestao = !c.empresaId && c.documento && f.localizarEmpresa ? await f.localizarEmpresa(tid(req), c.documento).catch(() => null) : null
+    res.json({ provedor: f.nome, moduloFiscalConectado: !!f.localizarEmpresa, empresaId: c.empresaId, sugestao })
+  }))
+  router.post('/clientes/:id/vinculo-fiscal', exigir(CONTADORES), asyncHandler(async (req, res) => {
+    const c = await clienteOuErro(req, String(req.params.id))
+    const f = fiscalAtual()
+    if (!f.localizarEmpresa) throw httpError(409, 'O módulo fiscal não está conectado a esta carteira.')
+    const d = parseBody(z.object({ auto: z.boolean().optional(), empresaId: z.string().max(80).optional() }), req.body)
+    let empresaId = d.empresaId
+    if (!empresaId) {
+      if (!c.documento) throw httpError(409, 'Cliente sem documento para localizar a empresa.')
+      empresaId = (await f.localizarEmpresa(tid(req), c.documento))?.id
+      if (!empresaId) throw httpError(404, 'Nenhuma empresa com este CNPJ/CPF no módulo fiscal. Cadastre-a lá primeiro.')
+    } else if (f.empresaExiste && !(await f.empresaExiste(tid(req), empresaId))) throw httpError(404, 'Empresa não encontrada no módulo fiscal.')
+    const r = await prisma.ctbCliente.update({ where: { id: c.id }, data: { empresaId } })
+    await auditar(req, 'VINCULO_FISCAL', 'CtbCliente', c.id, { empresaId })
+    res.json({ empresaId: r.empresaId })
+  }))
+  router.delete('/clientes/:id/vinculo-fiscal', exigir(CONTADORES), asyncHandler(async (req, res) => {
+    const c = await clienteOuErro(req, String(req.params.id))
+    await prisma.ctbCliente.update({ where: { id: c.id }, data: { empresaId: null } })
+    await auditar(req, 'VINCULO_FISCAL_REMOVIDO', 'CtbCliente', c.id)
+    res.status(204).end()
+  }))
+
   router.get('/carteira/saude', exigir(INTERNO), asyncHandler(async (req, res) => {
     const tenantId = tid(req)
     const clientes = await prisma.ctbCliente.findMany({ where: whereCliente(req, { status: 'ATIVO' }), select: { id: true, nome: true, empresaId: true, responsavelId: true, regime: true, createdAt: true }, take: 1000 })

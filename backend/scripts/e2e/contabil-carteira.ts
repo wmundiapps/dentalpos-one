@@ -13,6 +13,7 @@ import { renderizarTexto } from '../../src/modules/contabil/carteira/comunicacao
 import { gerarCsv } from '../../src/modules/contabil/carteira/common'
 import { registrarFiscalProvider, fiscalLocal } from '../../src/modules/contabil/carteira/provedores'
 import { CARGOS, MODULOS } from '../../src/modules/acesso/catalogo'
+import { registrarIntegracaoFiscal } from '../../src/modules/contabil/carteira/integracaoFiscal'
 import { seedContabilCarteira } from '../seeds/contabil-carteira'
 
 const secao = (t: string) => console.log(`\n== ${t}`)
@@ -344,6 +345,28 @@ async function main() {
   check('com o módulo fiscal registrado, a saúde usa as guias e pendências dele', real.sinais.pendenciasFiscais === 2 && real.sinais.guiasAVencer7d === 1 && real.sinais.guiasVencidas === 0, real.sinais)
   registrarFiscalProvider(fiscalLocal)
 
+  secao('Integração com o módulo fiscal do escritório (CtbEmpresa/CtbGuia) via adapter')
+  registrarIntegracaoFiscal()
+  const vf0 = (await call(A.contador, 'GET', `${C}/clientes/${c3.id}/vinculo-fiscal`)).json
+  check('vínculo fiscal: módulo conectado, sem empresa ainda e sem sugestão', vf0.moduloFiscalConectado === true && vf0.empresaId === null && vf0.sugestao === null, vf0)
+  check('vincular sem empresa no fiscal: 404 explicando', (await call(A.contador, 'POST', `${C}/clientes/${c3.id}/vinculo-fiscal`, { auto: true })).status === 404)
+  const c3doc = (await prisma.ctbCliente.findUnique({ where: { id: c3.id } }))!.documento!
+  const emp = await prisma.ctbEmpresa.create({ data: { tenantId: t1.tenantId, tipoPessoa: 'PJ', documento: c3doc, razaoSocial: 'Empresa Três S.A.', regimeAtual: 'PRESUMIDO' } })
+  await prisma.ctbGuia.create({ data: { tenantId: t1.tenantId, empresaId: emp.id, tributo: 'IRPJ', tipoGuia: 'DARF', competencia: comp(-1), vencimento: dias(-2), valorPrincipal: 800, valorTotal: 812.5, status: 'PENDENTE', linhaDigitavel: '00000.00000 00000.000000 00000.000000 0 00000000000000', codigoBarras: '00000000000000000000000000000000000000000000' } })
+  const vf1 = (await call(A.contador, 'GET', `${C}/clientes/${c3.id}/vinculo-fiscal`)).json
+  check('vínculo fiscal: sugere a empresa pelo CNPJ', vf1.sugestao?.id === emp.id, vf1)
+  check('contador2 não vincula cliente de outra carteira (404)', (await call(A.contador2, 'POST', `${C}/clientes/${c3.id}/vinculo-fiscal`, { auto: true })).status === 404)
+  check('vincular pela busca automática', (await call(A.contador, 'POST', `${C}/clientes/${c3.id}/vinculo-fiscal`, { auto: true })).json.empresaId === emp.id)
+  check('empresa de outro tenant/inexistente é recusada', (await call(A.contador, 'POST', `${C}/clientes/${c3.id}/vinculo-fiscal`, { empresaId: 'nao-existe' })).status === 404)
+  const gF = (await call(A.contador, 'GET', `${C}/clientes/${c3.id}/guias`)).json
+  check('guias do módulo fiscal aparecem para o cliente vinculado (origem FISCAL, vencida)', gF.items.some((g: any) => g.origem === 'FISCAL' && g.tipo === 'IRPJ' && g.valor === 812.5) && gF.fiscal.provedor === 'MODULO_FISCAL', gF)
+  const saF = (await call(A.contador, 'GET', `${C}/clientes/${c3.id}/saude`)).json
+  check('saúde conta a guia vencida vinda do fiscal e marca risco fiscal ALTO', saF.sinais.guiasVencidas >= 1 && saF.riscoFiscal === 'ALTO', saF.sinais)
+  check('clientes sem vínculo continuam usando as guias locais', (await call(A.contador, 'GET', `${C}/clientes/${c1.id}/guias`)).json.items.every((g: any) => g.origem === 'LOCAL'))
+  check('remover o vínculo volta à camada local', (await call(A.contador, 'DELETE', `${C}/clientes/${c3.id}/vinculo-fiscal`)).status === 204 && (await call(A.contador, 'GET', `${C}/clientes/${c3.id}/guias`)).json.items.every((g: any) => g.origem === 'LOCAL'))
+  await call(A.contador, 'POST', `${C}/clientes/${c3.id}/vinculo-fiscal`, { auto: true })
+  check('o módulo fiscal enxerga o gestor da carteira (GESTOR_CONTABIL) e não o cliente final', (await call(A.gestor, 'GET', '/edu/contabil/empresas')).status === 200)
+
   // ====================================================================== carteira por responsável
   secao('Distribuição, capacidade e reatribuição em lote')
   const dist = (await call(A.gestor, 'GET', `${C}/carteira/distribuicao`)).json
@@ -400,7 +423,7 @@ async function main() {
   check('acesso ao portal criado com senha provisória exibida uma vez', acesso.status === 201 && /^Tmp-/.test(acesso.json.senhaProvisoria) && /não será mostrada/.test(acesso.json.aviso), acesso.json)
   check('e-mail já usado: 409', (await call(A.contador, 'POST', `${C}/clientes/${c3.id}/portal/acesso`, { email: 'portal.um@cliente.com.br', nome: 'Outro' })).status === 409)
   check('senha inicial fraca é recusada', (await call(A.contador, 'POST', `${C}/clientes/${c3.id}/portal/acesso`, { email: 'fraca@cliente.com.br', nome: 'Fraca', senha: '123' })).status === 400)
-  check('contador2 (sem carteira do cliente) não cria acesso (404)', (await call(A.contador2, 'POST', `${C}/clientes/${c3.id}/portal/acesso`, { email: 'x@cliente.com.br', nome: 'Xis Teste' })).status === 404 || true)
+  check('contador2 (sem carteira do cliente) não cria acesso (404)', (await call(A.contador2, 'POST', `${C}/clientes/${c3.id}/portal/acesso`, { email: 'x@cliente.com.br', nome: 'Xis Teste' })).status === 404)
   const acesso3 = await call(A.contador, 'POST', `${C}/clientes/${c3.id}/portal/acesso`, { email: 'portal.tres@cliente.com.br', nome: 'Responsável Três' })
   const P1 = tokenDe(acesso.json.userId, 'CLIENTE_CONTABIL', t1), P3 = tokenDe(acesso3.json.userId, 'CLIENTE_CONTABIL', t1)
   const pr = await call(P1, 'GET', `${C}/portal/resumo`)
@@ -424,7 +447,7 @@ async function main() {
   const docId = docsEsc.items[0].id
   check('conferir documento; rejeitar exige explicação', (await call(A.contador, 'PATCH', `${C}/caixa-documentos/${docId}`, { status: 'CONFERIDO' })).status === 200 && (await call(A.contador, 'PATCH', `${C}/caixa-documentos/${docsEsc.items[1].id}`, { status: 'REJEITADO' })).status === 400)
   check('portal: documento conferido/pendente com observação visível', (await call(A.contador, 'PATCH', `${C}/caixa-documentos/${docsEsc.items[1].id}`, { status: 'COM_PENDENCIA', observacao: 'Arquivo ilegível, reenvie.' })).status === 200 && (await call(P1, 'GET', `${C}/portal/documentos`)).json.items.some((d: any) => d.observacao === 'Arquivo ilegível, reenvie.'))
-  check('contador2 não baixa documento de cliente fora da sua carteira', (await call(A.contador2, 'GET', `${C}/caixa-documentos/${docId}/download`)).status === 404 || (await call(A.contador2, 'GET', `${C}/caixa-documentos/${docId}/download`)).status === 200)
+  check('contador2 não baixa documento de cliente fora da sua carteira', (await call(A.contador2, 'GET', `${C}/caixa-documentos/${docId}/download`)).status === 404)
   const dlP3 = await fetch(`${S.base}/edu/contabil/carteira/portal/documentos/${docId}/download`, { headers: { authorization: `Bearer ${P3.token}` } })
   check('portal do cliente 3 NÃO baixa documento do cliente 1 (404)', dlP3.status === 404)
   const dlP1 = await fetch(`${S.base}/edu/contabil/carteira/portal/documentos/${docId}/download`, { headers: { authorization: `Bearer ${P1.token}` } })

@@ -19,6 +19,9 @@ export interface FiscalProvider {
   guias(tenantId: string, clientes: ClienteRef[], opts?: { status?: 'ABERTA' | 'PAGA'; ateVencimento?: Date }): Promise<GuiaCarteira[]>
   /** Opcional: pendências fiscais por cliente (ex.: obrigações não entregues, divergências). */
   pendenciasFiscais?(tenantId: string, clientes: ClienteRef[]): Promise<Record<string, { total: number; itens: string[] }>>
+  /** Opcional: acha a empresa do módulo fiscal pelo CNPJ/CPF (só dígitos) para vincular ao cliente. */
+  localizarEmpresa?(tenantId: string, documento: string): Promise<{ id: string; nome: string; regime?: string | null } | null>
+  empresaExiste?(tenantId: string, id: string): Promise<boolean>
 }
 
 export const fiscalLocal: FiscalProvider = {

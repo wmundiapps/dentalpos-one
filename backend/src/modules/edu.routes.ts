@@ -44,6 +44,7 @@ import { acessoPorCargo } from './acesso/regras'
 import mensagensRouter from './mensagens/routes'
 import contabilRouter from './contabil/routes'
 import contabilCarteiraRouter from './contabil/carteira/routes'
+import { registrarIntegracaoFiscal } from './contabil/carteira/integracaoFiscal'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
 const router = Router()
@@ -96,6 +97,7 @@ router.use('/contabil', contabilParte2Router)
 router.use('/acesso', acessoRouter)
 router.use('/mensagens', mensagensRouter)
 // Contabilidade > Carteira de clientes (banco de clientes do escritório + portal do cliente). Ver contabil/carteira/README.md.
+registrarIntegracaoFiscal()   // guias do módulo fiscal (CtbGuia) para clientes vinculados a uma empresa
 router.use('/contabil/carteira', contabilCarteiraRouter)
 router.use('/contabil', contabilRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.

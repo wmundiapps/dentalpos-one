@@ -8566,6 +8566,388 @@ model ComWebhookLog {
   @@index([canalId, createdAt])
 }
 
+// ---- edu/contabil-carteira.prisma ----
+// ============================================================
+// EDUMASTER PRO — CONTABILIDADE · CARTEIRA DE CLIENTES (banco de clientes do escritório)
+// Prefixo Ctb. Bloco portátil: só depende de tenantId e do id do usuário (strings, sem @relation) — pode ser copiado
+// para outro produto. Referência ao módulo fiscal: CtbCliente.empresaId (string, sem @relation).
+// ============================================================
+
+model CtbCarConfig {
+  id                 String   @id @default(uuid())
+  tenantId           String   @unique
+  nomeEscritorio     String   @default("SUA INSTITUIÇÃO")
+  retencaoAnos       Int      @default(5)            // LGPD: anos de guarda após o encerramento do cliente
+  capacidadePadrao   Int      @default(40)           // clientes ativos por contador
+  capacidades        Json     @default("{}")         // { userId: capacidade } exceções
+  custoHora          Float    @default(80)           // custo interno por hora (rentabilidade)
+  diasRiscoInadimplencia Int  @default(30)
+  documentosEsperados Json    @default("[\"EXTRATO\",\"NOTAS_EMITIDAS\",\"NOTAS_RECEBIDAS\"]")
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+}
+
+model CtbCliente {
+  id               String    @id @default(uuid())
+  tenantId         String
+  tipo             String    // PF | PJ
+  documento        String?   // CPF (11) ou CNPJ (14, numérico ou alfanumérico) sem máscara; nulo após anonimização
+  nome             String    // razão social ou nome
+  nomeFantasia     String?
+  status           String    @default("PROSPECTO") // PROSPECTO | ATIVO | SUSPENSO | ENCERRADO
+  regime           String?   // MEI | SIMPLES | PRESUMIDO | REAL | PF | ISENTA | OUTRO
+  cnaePrincipal    String?
+  cnaesSecundarios Json      @default("[]")
+  segmento         String?
+  origem           String?
+  responsavelId    String?   // contador responsável
+  analistaId       String?
+  dataAbertura     DateTime? // abertura da empresa / nascimento (aniversário)
+  inicioRelacionamento DateTime?
+  encerradoEm      DateTime?
+  email            String?
+  telefone         String?
+  endereco         Json?
+  tags             String[]  @default([])
+  observacoes      String?
+  empresaId        String?   // vínculo opcional com a empresa do módulo fiscal
+  baseLegal        String?   // LGPD art. 7º
+  consentimentoEm  DateTime?
+  consentimentoObs String?
+  anonimizadoEm    DateTime?
+  criadoPorId      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([tenantId, documento])
+  @@index([tenantId, status])
+  @@index([tenantId, responsavelId])
+  @@index([tenantId, regime])
+}
+
+model CtbContato {
+  id         String   @id @default(uuid())
+  tenantId   String
+  clienteId  String
+  nome       String
+  papel      String   @default("OUTRO") // SOCIO | FINANCEIRO | FISCAL | RH | CONTATO_GERAL | OUTRO
+  email      String?
+  telefone   String?
+  whatsapp   String?
+  principal  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, clienteId])
+}
+
+model CtbSocio {
+  id            String    @id @default(uuid())
+  tenantId      String
+  clienteId     String
+  nome          String
+  cpf           String?
+  participacao  Float?
+  administrador Boolean   @default(false)
+  entradaEm     DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([tenantId, clienteId])
+}
+
+model CtbCliAnexo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  clienteId   String
+  nome        String
+  mime        String
+  tamanho     Int
+  categoria   String   @default("OUTRO")
+  conteudo    String   // data URL já varrida pelo uploadGuard global
+  criadoPorId String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, clienteId])
+}
+
+model CtbLead {
+  id             String    @id @default(uuid())
+  tenantId       String
+  nome           String
+  tipo           String    @default("PJ")
+  documento      String?
+  email          String?
+  telefone       String?
+  etapa          String    @default("LEAD") // LEAD | PROPOSTA | CONTRATO | ATIVO | PERDIDO
+  origem         String?
+  segmento       String?
+  valorEstimado  Float?
+  responsavelId  String?
+  clienteId      String?
+  motivoPerda    String?
+  proximoContato DateTime?
+  observacoes    String?
+  etapaEm        DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId, etapa])
+}
+
+model CtbProposta {
+  id           String    @id @default(uuid())
+  tenantId     String
+  numero       Int
+  leadId       String?
+  clienteId    String?
+  titulo       String
+  status       String    @default("RASCUNHO") // RASCUNHO | ENVIADA | ACEITA | RECUSADA | EXPIRADA
+  valorMensal  Float
+  escopo       Json      @default("[]")  // [{ servico, descricao }]
+  validadeAte  DateTime?
+  reajusteIndice String  @default("IPCA")
+  observacoes  String?
+  enviadaEm    DateTime?
+  decididaEm   DateTime?
+  criadoPorId  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, status])
+}
+
+model CtbContrato {
+  id                String    @id @default(uuid())
+  tenantId          String
+  numero            Int
+  clienteId         String
+  propostaId        String?
+  status            String    @default("RASCUNHO") // RASCUNHO | AGUARDANDO_ASSINATURA | VIGENTE | ENCERRADO | CANCELADO
+  valorMensal       Float
+  escopo            Json      @default("[]")
+  inicio            DateTime
+  fim               DateTime?
+  diaVencimento     Int       @default(10)
+  reajusteMes       Int?      // 1..12
+  reajusteIndice    String    @default("IPCA")
+  reajustePercentual Float?   // % aplicado a cada aniversário de reajuste
+  assinaturas       Json      @default("[]") // SIMULADAS: [{ parte, nome, em, hash, simulada: true }]
+  assinadoEm        DateTime?
+  observacoes       String?
+  criadoPorId       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([tenantId, numero])
+  @@index([tenantId, clienteId])
+  @@index([tenantId, status])
+}
+
+model CtbHonorario {
+  id          String    @id @default(uuid())
+  tenantId    String
+  clienteId   String
+  contratoId  String?
+  competencia String    // AAAA-MM
+  descricao   String?
+  valor       Float
+  vencimento  DateTime
+  status      String    @default("ABERTO") // ABERTO | PAGO | CANCELADO  (ATRASADO é derivado)
+  pagoEm      DateTime?
+  valorPago   Float?
+  forma       String?
+  avulso      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([tenantId, contratoId, competencia])
+  @@index([tenantId, clienteId])
+  @@index([tenantId, status, vencimento])
+  @@index([tenantId, competencia])
+}
+
+model CtbApontamento {
+  id          String   @id @default(uuid())
+  tenantId    String
+  clienteId   String
+  userId      String
+  data        DateTime
+  minutos     Int
+  categoria   String   @default("GERAL")
+  descricao   String?
+  tarefaId    String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, clienteId, data])
+  @@index([tenantId, userId, data])
+}
+
+model CtbTarefaModelo {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nome        String
+  descricao   String?
+  categoria   String   @default("OUTRA") // FECHAMENTO | OBRIGACAO | FOLHA | IR | OUTRA
+  regime      String?  // vazio = todos
+  segmento    String?
+  recorrencia String   @default("MENSAL") // MENSAL | TRIMESTRAL | ANUAL
+  diaPrazo    Int      @default(10)
+  mesPrazo    Int?     // ANUAL: mês do prazo
+  mesesAdiante Int     @default(1)  // prazo cai N meses depois da competência
+  itens       Json     @default("[]") // checklist: ["texto", ...]
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, ativo])
+}
+
+model CtbTarefa {
+  id            String    @id @default(uuid())
+  tenantId      String
+  clienteId     String
+  modeloId      String?
+  titulo        String
+  categoria     String    @default("OUTRA")
+  competencia   String?
+  prazo         DateTime
+  status        String    @default("A_FAZER") // A_FAZER | EM_ANDAMENTO | AGUARDANDO_CLIENTE | CONCLUIDA | CANCELADA
+  prioridade    String    @default("NORMAL")  // BAIXA | NORMAL | ALTA | URGENTE
+  responsavelId String?
+  checklist     Json      @default("[]")      // [{ texto, feito }]
+  observacoes   String?
+  concluidaEm   DateTime?
+  criadoPorId   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([tenantId, clienteId, modeloId, competencia])
+  @@index([tenantId, status, prazo])
+  @@index([tenantId, responsavelId, status])
+  @@index([tenantId, clienteId])
+}
+
+model CtbInteracao {
+  id          String    @id @default(uuid())
+  tenantId    String
+  clienteId   String
+  tipo        String    // LIGACAO | EMAIL | REUNIAO | WHATSAPP | NOTA
+  direcao     String    @default("SAIDA") // ENTRADA | SAIDA
+  assunto     String?
+  resumo      String?
+  simulada    Boolean   @default(false)   // envio SIMULADO pelo sistema (sem provedor real)
+  em          DateTime  @default(now())
+  lembreteEm  DateTime?
+  lembreteFeito Boolean @default(false)
+  userId      String?
+  createdAt   DateTime  @default(now())
+
+  @@index([tenantId, clienteId, em])
+  @@index([tenantId, lembreteEm])
+}
+
+model CtbModeloMsg {
+  id        String   @id @default(uuid())
+  tenantId  String
+  nome      String
+  canal     String   @default("EMAIL") // EMAIL | WHATSAPP
+  assunto   String?
+  corpo     String
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, ativo])
+}
+
+model CtbNps {
+  id         String   @id @default(uuid())
+  tenantId   String
+  clienteId  String
+  nota       Int
+  comentario String?
+  origem     String   @default("ESCRITORIO") // ESCRITORIO | PORTAL
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, clienteId])
+}
+
+model CtbPortalAcesso {
+  id        String   @id @default(uuid())
+  tenantId  String
+  clienteId String
+  userId    String
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, userId])
+  @@index([tenantId, clienteId])
+}
+
+model CtbPortalMsg {
+  id         String    @id @default(uuid())
+  tenantId   String
+  clienteId  String
+  autorTipo  String    // CLIENTE | ESCRITORIO
+  autorId    String?
+  texto      String
+  lidaEm     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([tenantId, clienteId, createdAt])
+}
+
+model CtbCaixaDoc {
+  id            String    @id @default(uuid())
+  tenantId      String
+  clienteId     String
+  tipo          String    @default("OUTRO") // NOTAS_EMITIDAS | NOTAS_RECEBIDAS | EXTRATO | FOLHA | CONTRATO | OUTRO
+  competencia   String?   // AAAA-MM
+  nome          String
+  mime          String
+  tamanho       Int
+  conteudo      String
+  status        String    @default("RECEBIDO") // RECEBIDO | CONFERIDO | COM_PENDENCIA | REJEITADO
+  observacao    String?
+  enviadoPorId  String?
+  conferidoPorId String?
+  conferidoEm   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([tenantId, clienteId, competencia])
+  @@index([tenantId, status])
+}
+
+// Guias da carteira (camada mínima local). Quando o módulo fiscal existir, registre um FiscalProvider (modules/contabil/carteira/provedores.ts)
+// e estas guias passam a ser apenas o fallback.
+model CtbCarGuia {
+  id          String    @id @default(uuid())
+  tenantId    String
+  clienteId   String
+  tipo        String    // DAS | DARF | GPS | FGTS | ISS | ICMS | OUTRA
+  competencia String?
+  vencimento  DateTime
+  valor       Float
+  status      String    @default("ABERTA") // ABERTA | PAGA | CANCELADA
+  codigo      String?   // código de barras/linha (simulado no demo)
+  pagaEm      DateTime?
+  criadoPorId String?
+  createdAt   DateTime  @default(now())
+
+  @@index([tenantId, clienteId, status])
+  @@index([tenantId, status, vencimento])
+}
+
+model CtbLgpdAcesso {
+  id        String   @id @default(uuid())
+  tenantId  String
+  clienteId String
+  userId    String
+  acao      String   // VISUALIZOU | EXPORTOU | BAIXOU_ANEXO | EXPORTOU_TITULAR | ANONIMIZOU
+  detalhe   String?
+  em        DateTime @default(now())
+
+  @@index([tenantId, clienteId, em])
+}
+
 // ---- edu/contabil-fiscal.prisma ----
 // ============================================================
 // ESCRITÓRIO DE CONTABILIDADE (bloco portátil) — área contábil-fiscal. Prefixo Ctb.

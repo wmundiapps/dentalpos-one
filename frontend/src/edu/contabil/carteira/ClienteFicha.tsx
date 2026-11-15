@@ -9,6 +9,24 @@ import LgpdCliente from "./LgpdCliente";
 const P = "/contabil/carteira";
 const PAPEIS = ["SOCIO", "FINANCEIRO", "FISCAL", "RH", "CONTATO_GERAL", "OUTRO"];
 
+function VinculoFiscal({ id }: { id: string }) {
+  const st = useApi<any>(`${P}/clientes/${id}/vinculo-fiscal`);
+  const toast = useToast();
+  return (
+    <Panel title="Módulo fiscal" subtitle="Guias e pendências fiscais deste cliente vêm da empresa vinculada; sem vínculo, vale o lançamento manual de guias." sx={{ mt: 2 }}>
+      <Async state={st}>{(v) => v.empresaId ? (
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}><Tag text="Vinculado à empresa do módulo fiscal" tone="success" />{ehContador() ? <Button size="small" color="error" onClick={() => toast.run(() => api.del(`/clientes/${id}/vinculo-fiscal`), "Vínculo removido.", st.reload, "Remover o vínculo com o módulo fiscal?")}>Desvincular</Button> : null}</Box>
+      ) : !v.moduloFiscalConectado ? <Typography variant="body2" color="text.secondary">Módulo fiscal não conectado: as guias são lançadas manualmente (aba Financeiro).</Typography> : (
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+          <Typography variant="body2">{v.sugestao ? <>Empresa encontrada pelo CNPJ/CPF: <b>{v.sugestao.nome}</b>.</> : "Nenhuma empresa com este CNPJ/CPF no módulo fiscal."}</Typography>
+          {v.sugestao && ehContador() ? <Button size="small" variant="contained" onClick={() => toast.run(() => api.post(`/clientes/${id}/vinculo-fiscal`, { auto: true }), "Cliente vinculado.", st.reload)}>Vincular</Button> : null}
+        </Box>
+      )}</Async>
+      {toast.node}
+    </Panel>
+  );
+}
+
 function Dados({ c, op, reload }: { c: any; op: any; reload: () => void }) {
   const [edit, setEdit] = useState(false);
   const [status, setStatus] = useState(false);
@@ -32,6 +50,7 @@ function Dados({ c, op, reload }: { c: any; op: any; reload: () => void }) {
         {(c.tags || []).length ? <Box sx={{ mt: 1.5, display: "flex", gap: 0.5, flexWrap: "wrap" }}>{c.tags.map((t: string) => <Tag key={t} text={t} />)}</Box> : null}
         {c.observacoes ? <Alert severity="info" sx={{ mt: 1.5 }}>{c.observacoes}</Alert> : null}
       </Panel>
+      {!c.anonimizadoEm ? <VinculoFiscal id={c.id} /> : null}
       <FormDialog open={edit} title="Editar cliente" fields={camposCliente(op).filter((f) => f.key !== "status")} initial={{ ...c, dataAbertura: c.dataAbertura }} onClose={() => setEdit(false)} onSubmit={async (b) => { await api.put(`/clientes/${c.id}`, b); toast.ok("Cliente atualizado."); reload(); }} />
       <FormDialog open={status} title="Mudar situação" fields={[{ key: "status", label: "Nova situação", type: "select", options: ["PROSPECTO", "ATIVO", "SUSPENSO", "ENCERRADO"], required: true }, { key: "motivo", label: "Motivo (obrigatório para suspender/encerrar)", type: "textarea" }]} onClose={() => setStatus(false)} onSubmit={async (b) => { await api.patch(`/clientes/${c.id}/status`, b); toast.ok("Situação alterada."); reload(); }} />
       {toast.node}{pr.node}

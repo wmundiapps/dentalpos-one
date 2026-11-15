@@ -22501,3 +22501,495 @@ CREATE INDEX IF NOT EXISTS "CtbAuditoria_tenantId_createdAt_idx" ON "CtbAuditori
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "CtbAuditoria_tenantId_empresaId_acao_idx" ON "CtbAuditoria"("tenantId", "empresaId", "acao");
 -- ==== CTB:END ====
+
+-- ==== CTB3:BEGIN (Contabilidade · Carteira de clientes) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbCarConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nomeEscritorio" TEXT NOT NULL DEFAULT 'SUA INSTITUIÇÃO',
+    "retencaoAnos" INTEGER NOT NULL DEFAULT 5,
+    "capacidadePadrao" INTEGER NOT NULL DEFAULT 40,
+    "capacidades" JSONB NOT NULL DEFAULT '{}',
+    "custoHora" DOUBLE PRECISION NOT NULL DEFAULT 80,
+    "diasRiscoInadimplencia" INTEGER NOT NULL DEFAULT 30,
+    "documentosEsperados" JSONB NOT NULL DEFAULT '["EXTRATO","NOTAS_EMITIDAS","NOTAS_RECEBIDAS"]',
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbCarConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbCliente" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "documento" TEXT,
+    "nome" TEXT NOT NULL,
+    "nomeFantasia" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PROSPECTO',
+    "regime" TEXT,
+    "cnaePrincipal" TEXT,
+    "cnaesSecundarios" JSONB NOT NULL DEFAULT '[]',
+    "segmento" TEXT,
+    "origem" TEXT,
+    "responsavelId" TEXT,
+    "analistaId" TEXT,
+    "dataAbertura" TIMESTAMP(3),
+    "inicioRelacionamento" TIMESTAMP(3),
+    "encerradoEm" TIMESTAMP(3),
+    "email" TEXT,
+    "telefone" TEXT,
+    "endereco" JSONB,
+    "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "observacoes" TEXT,
+    "empresaId" TEXT,
+    "baseLegal" TEXT,
+    "consentimentoEm" TIMESTAMP(3),
+    "consentimentoObs" TEXT,
+    "anonimizadoEm" TIMESTAMP(3),
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CtbCliente_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbContato" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "papel" TEXT NOT NULL DEFAULT 'OUTRO',
+    "email" TEXT,
+    "telefone" TEXT,
+    "whatsapp" TEXT,
+    "principal" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbContato_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbSocio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "cpf" TEXT,
+    "participacao" DOUBLE PRECISION,
+    "administrador" BOOLEAN NOT NULL DEFAULT false,
+    "entradaEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbSocio_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbCliAnexo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "mime" TEXT NOT NULL,
+    "tamanho" INTEGER NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'OUTRO',
+    "conteudo" TEXT NOT NULL,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbCliAnexo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbLead" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'PJ',
+    "documento" TEXT,
+    "email" TEXT,
+    "telefone" TEXT,
+    "etapa" TEXT NOT NULL DEFAULT 'LEAD',
+    "origem" TEXT,
+    "segmento" TEXT,
+    "valorEstimado" DOUBLE PRECISION,
+    "responsavelId" TEXT,
+    "clienteId" TEXT,
+    "motivoPerda" TEXT,
+    "proximoContato" TIMESTAMP(3),
+    "observacoes" TEXT,
+    "etapaEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CtbLead_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbProposta" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" INTEGER NOT NULL,
+    "leadId" TEXT,
+    "clienteId" TEXT,
+    "titulo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "valorMensal" DOUBLE PRECISION NOT NULL,
+    "escopo" JSONB NOT NULL DEFAULT '[]',
+    "validadeAte" TIMESTAMP(3),
+    "reajusteIndice" TEXT NOT NULL DEFAULT 'IPCA',
+    "observacoes" TEXT,
+    "enviadaEm" TIMESTAMP(3),
+    "decididaEm" TIMESTAMP(3),
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CtbProposta_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbContrato" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "numero" INTEGER NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "propostaId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'RASCUNHO',
+    "valorMensal" DOUBLE PRECISION NOT NULL,
+    "escopo" JSONB NOT NULL DEFAULT '[]',
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3),
+    "diaVencimento" INTEGER NOT NULL DEFAULT 10,
+    "reajusteMes" INTEGER,
+    "reajusteIndice" TEXT NOT NULL DEFAULT 'IPCA',
+    "reajustePercentual" DOUBLE PRECISION,
+    "assinaturas" JSONB NOT NULL DEFAULT '[]',
+    "assinadoEm" TIMESTAMP(3),
+    "observacoes" TEXT,
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CtbContrato_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbHonorario" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "contratoId" TEXT,
+    "competencia" TEXT NOT NULL,
+    "descricao" TEXT,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "vencimento" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ABERTO',
+    "pagoEm" TIMESTAMP(3),
+    "valorPago" DOUBLE PRECISION,
+    "forma" TEXT,
+    "avulso" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CtbHonorario_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbApontamento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "data" TIMESTAMP(3) NOT NULL,
+    "minutos" INTEGER NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'GERAL',
+    "descricao" TEXT,
+    "tarefaId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbApontamento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbTarefaModelo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "descricao" TEXT,
+    "categoria" TEXT NOT NULL DEFAULT 'OUTRA',
+    "regime" TEXT,
+    "segmento" TEXT,
+    "recorrencia" TEXT NOT NULL DEFAULT 'MENSAL',
+    "diaPrazo" INTEGER NOT NULL DEFAULT 10,
+    "mesPrazo" INTEGER,
+    "mesesAdiante" INTEGER NOT NULL DEFAULT 1,
+    "itens" JSONB NOT NULL DEFAULT '[]',
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbTarefaModelo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbTarefa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "modeloId" TEXT,
+    "titulo" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'OUTRA',
+    "competencia" TEXT,
+    "prazo" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'A_FAZER',
+    "prioridade" TEXT NOT NULL DEFAULT 'NORMAL',
+    "responsavelId" TEXT,
+    "checklist" JSONB NOT NULL DEFAULT '[]',
+    "observacoes" TEXT,
+    "concluidaEm" TIMESTAMP(3),
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CtbTarefa_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbInteracao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "direcao" TEXT NOT NULL DEFAULT 'SAIDA',
+    "assunto" TEXT,
+    "resumo" TEXT,
+    "simulada" BOOLEAN NOT NULL DEFAULT false,
+    "em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lembreteEm" TIMESTAMP(3),
+    "lembreteFeito" BOOLEAN NOT NULL DEFAULT false,
+    "userId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbInteracao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbModeloMsg" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "canal" TEXT NOT NULL DEFAULT 'EMAIL',
+    "assunto" TEXT,
+    "corpo" TEXT NOT NULL,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbModeloMsg_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbNps" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "nota" INTEGER NOT NULL,
+    "comentario" TEXT,
+    "origem" TEXT NOT NULL DEFAULT 'ESCRITORIO',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbNps_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbPortalAcesso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbPortalAcesso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbPortalMsg" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "autorTipo" TEXT NOT NULL,
+    "autorId" TEXT,
+    "texto" TEXT NOT NULL,
+    "lidaEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbPortalMsg_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbCaixaDoc" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'OUTRO',
+    "competencia" TEXT,
+    "nome" TEXT NOT NULL,
+    "mime" TEXT NOT NULL,
+    "tamanho" INTEGER NOT NULL,
+    "conteudo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'RECEBIDO',
+    "observacao" TEXT,
+    "enviadoPorId" TEXT,
+    "conferidoPorId" TEXT,
+    "conferidoEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbCaixaDoc_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbCarGuia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "competencia" TEXT,
+    "vencimento" TIMESTAMP(3) NOT NULL,
+    "valor" DOUBLE PRECISION NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ABERTA',
+    "codigo" TEXT,
+    "pagaEm" TIMESTAMP(3),
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbCarGuia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CtbLgpdAcesso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clienteId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "acao" TEXT NOT NULL,
+    "detalhe" TEXT,
+    "em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CtbLgpdAcesso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CtbCarConfig_tenantId_key" ON "CtbCarConfig"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbCliente_tenantId_status_idx" ON "CtbCliente"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbCliente_tenantId_responsavelId_idx" ON "CtbCliente"("tenantId", "responsavelId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbCliente_tenantId_regime_idx" ON "CtbCliente"("tenantId", "regime");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CtbCliente_tenantId_documento_key" ON "CtbCliente"("tenantId", "documento");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbContato_tenantId_clienteId_idx" ON "CtbContato"("tenantId", "clienteId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbSocio_tenantId_clienteId_idx" ON "CtbSocio"("tenantId", "clienteId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbCliAnexo_tenantId_clienteId_idx" ON "CtbCliAnexo"("tenantId", "clienteId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbLead_tenantId_etapa_idx" ON "CtbLead"("tenantId", "etapa");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbProposta_tenantId_status_idx" ON "CtbProposta"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CtbProposta_tenantId_numero_key" ON "CtbProposta"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbContrato_tenantId_clienteId_idx" ON "CtbContrato"("tenantId", "clienteId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbContrato_tenantId_status_idx" ON "CtbContrato"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CtbContrato_tenantId_numero_key" ON "CtbContrato"("tenantId", "numero");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbHonorario_tenantId_clienteId_idx" ON "CtbHonorario"("tenantId", "clienteId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbHonorario_tenantId_status_vencimento_idx" ON "CtbHonorario"("tenantId", "status", "vencimento");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbHonorario_tenantId_competencia_idx" ON "CtbHonorario"("tenantId", "competencia");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CtbHonorario_tenantId_contratoId_competencia_key" ON "CtbHonorario"("tenantId", "contratoId", "competencia");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbApontamento_tenantId_clienteId_data_idx" ON "CtbApontamento"("tenantId", "clienteId", "data");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbApontamento_tenantId_userId_data_idx" ON "CtbApontamento"("tenantId", "userId", "data");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbTarefaModelo_tenantId_ativo_idx" ON "CtbTarefaModelo"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbTarefa_tenantId_status_prazo_idx" ON "CtbTarefa"("tenantId", "status", "prazo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbTarefa_tenantId_responsavelId_status_idx" ON "CtbTarefa"("tenantId", "responsavelId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbTarefa_tenantId_clienteId_idx" ON "CtbTarefa"("tenantId", "clienteId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CtbTarefa_tenantId_clienteId_modeloId_competencia_key" ON "CtbTarefa"("tenantId", "clienteId", "modeloId", "competencia");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbInteracao_tenantId_clienteId_em_idx" ON "CtbInteracao"("tenantId", "clienteId", "em");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbInteracao_tenantId_lembreteEm_idx" ON "CtbInteracao"("tenantId", "lembreteEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbModeloMsg_tenantId_ativo_idx" ON "CtbModeloMsg"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbNps_tenantId_clienteId_idx" ON "CtbNps"("tenantId", "clienteId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbPortalAcesso_tenantId_clienteId_idx" ON "CtbPortalAcesso"("tenantId", "clienteId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CtbPortalAcesso_tenantId_userId_key" ON "CtbPortalAcesso"("tenantId", "userId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbPortalMsg_tenantId_clienteId_createdAt_idx" ON "CtbPortalMsg"("tenantId", "clienteId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbCaixaDoc_tenantId_clienteId_competencia_idx" ON "CtbCaixaDoc"("tenantId", "clienteId", "competencia");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbCaixaDoc_tenantId_status_idx" ON "CtbCaixaDoc"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbCarGuia_tenantId_clienteId_status_idx" ON "CtbCarGuia"("tenantId", "clienteId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbCarGuia_tenantId_status_vencimento_idx" ON "CtbCarGuia"("tenantId", "status", "vencimento");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CtbLgpdAcesso_tenantId_clienteId_em_idx" ON "CtbLgpdAcesso"("tenantId", "clienteId", "em");
+
+-- ==== CTB3:END ====

@@ -25,6 +25,8 @@ export const adapterEduMaster: ContabilAdapter = {
     if (SUPER.includes(c)) return 'GESTOR'
     if (c === 'FINANCE') return 'FINANCEIRO'
     if (c === 'CONTADOR' || c === 'ACCOUNTANT') return 'CONTADOR'
+    if (c === 'GESTOR_CONTABIL') return 'GESTOR'      // gestor do escritório (Carteira de clientes)
+    if (c === 'ANALISTA_CONTABIL') return 'LEITOR'    // analista: leitura
     return null
   },
   async nomesUsuarios(tenantId, ids) {
