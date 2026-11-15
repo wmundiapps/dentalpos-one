@@ -22,7 +22,7 @@ export async function criarTitulo(ctx: Pick<CtbCtx, 'tenantId' | 'userId'>, empr
   const ct = await prisma.ctbPlanoConta.findFirst({ where: { tenantId: ctx.tenantId, empresaId: empresa.id, codigo: conta } })
   if (!ct || !ct.analitica) throw httpError(400, `Conta contábil inválida para o título: ${conta}.`)
   if (i.tipo === 'RECEBER' && ct.tipo !== 'RECEITA') throw httpError(400, 'Conta a receber precisa usar uma conta de receita.')
-  if (i.tipo === 'PAGAR' && !['CUSTO', 'DESPESA', 'ATIVO'].includes(ct.tipo)) throw httpError(400, 'Conta a pagar precisa usar uma conta de custo, despesa ou ativo.')
+  if (i.tipo === 'PAGAR' && !(['CUSTO', 'DESPESA', 'ATIVO'].includes(ct.tipo) || (ct.tipo === 'RECEITA' && ct.natureza === 'D'))) throw httpError(400, 'Conta a pagar precisa usar uma conta de custo, despesa, ativo ou dedução da receita (impostos sobre vendas).')
   return prisma.$transaction(async (tx) => {
     const t = await tx.ctbTitulo.create({
       data: { tenantId: ctx.tenantId, empresaId: empresa.id, tipo: i.tipo, descricao: i.descricao, parceiroNome: i.parceiroNome, parceiroDoc: i.parceiroDoc ?? null, parceiroEmail: i.parceiroEmail ?? null, parceiroTelefone: i.parceiroTelefone ?? null,

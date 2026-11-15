@@ -254,7 +254,7 @@ export function simularRegimes(e: EntradaRegimes, t: TabelasFiscais): ResultadoR
     else if (rbt12 >= s.limiteAnual * 0.8) alertas.push({ nivel: 'atencao', texto: `Receita de ${brl(rbt12)} é ${pct((rbt12 / s.limiteAnual) * 100, 0)} do limite do Simples (${brl(s.limiteAnual)}).` })
     if (e.atividade === 'SERVICOS_FATOR_R' && fatorR != null) {
       const falta = t.simples.fatorRMinPct / 100 * rbt12 - folha12
-      if (fatorR < t.simples.fatorRMinPct && fatorR >= t.simples.fatorRMinPct - 6) alertas.push({ nivel: 'info', texto: `Fator R de ${pct(fatorR)} está abaixo de ${pct(t.simples.fatorRMinPct, 0)}: a empresa paga pelo Anexo V. Elevar a folha/pró-labore em cerca de ${brl(falta)} por ano levaria ao Anexo III (avalie o custo total antes).` })
+      if (fatorR < t.simples.fatorRMinPct) alertas.push({ nivel: 'info', texto: `Fator R de ${pct(fatorR)} está abaixo de ${pct(t.simples.fatorRMinPct, 0)}: a empresa paga pelo Anexo V. Elevar a folha/pró-labore em cerca de ${brl(falta)} por ano levaria ao Anexo III (avalie o custo total antes).` })
       else if (fatorR >= t.simples.fatorRMinPct && fatorR <= t.simples.fatorRMinPct + 2) alertas.push({ nivel: 'atencao', texto: `Fator R de ${pct(fatorR)} está muito próximo do mínimo de ${pct(t.simples.fatorRMinPct, 0)}: uma queda de folha pode jogar a empresa no Anexo V.` })
     }
     if (melhor && e.regimeAtual !== melhor.regime && economia != null && economia > 0) alertas.push({ nivel: 'info', texto: `Pela estimativa, ${melhor.nome} custaria ${brl(economia)} a menos por ano que o regime atual (${NOME_REGIME[e.regimeAtual]}). Mudanças de regime têm prazos (em geral só em janeiro) e regras próprias — consulte o contador.` })

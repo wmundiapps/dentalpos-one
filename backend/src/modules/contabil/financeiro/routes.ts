@@ -26,6 +26,8 @@ const tituloSchema = z.object({
   parceiroDoc: z.string().max(20).nullish(), parceiroEmail: z.string().email().max(160).nullish(), parceiroTelefone: z.string().max(30).nullish(),
   valor: z.number().positive().max(1e9), emissao: dataStr.optional(), vencimento: dataStr, categoria: z.string().max(80).nullish(), contaContabilCodigo: z.string().max(20).nullish(),
   notaId: z.string().nullish(), lancar: z.boolean().optional(),
+  /** Cadastro de título JÁ liquidado (importação de histórico): cria e baixa na mesma chamada. */
+  pagoEm: dataStr.optional(), formaPagamento: z.string().max(40).nullish(),
 })
 
 router.get('/titulos', asyncHandler(async (req, res) => {
@@ -61,7 +63,9 @@ router.post('/titulos', exigir('financeiro.escrever'), asyncHandler(async (req, 
   const b = parseBody(tituloSchema, req.body)
   const e = await empresaDoTenant(c.tenantId, b.empresaId)
   if (b.notaId) { const n = await prisma.ctbNota.findFirst({ where: { id: b.notaId, tenantId: c.tenantId, empresaId: e.id } }); if (!n) throw httpError(404, 'Nota informada não encontrada nesta empresa.') }
-  const t = await criarTitulo(c, e, { ...b, parceiroDoc: b.parceiroDoc ?? null, emissao: dia(b.emissao ?? iso10(new Date())), vencimento: dia(b.vencimento) })
+  if (b.pagoEm && dia(b.pagoEm) > new Date(Date.now() + 86_400_000)) throw httpError(400, 'A data de pagamento não pode estar no futuro.')
+  let t = await criarTitulo(c, e, { ...b, parceiroDoc: b.parceiroDoc ?? null, emissao: dia(b.emissao ?? iso10(new Date())), vencimento: dia(b.vencimento) })
+  if (b.pagoEm) t = await baixarTitulo(c, t, { pagoEm: dia(b.pagoEm), formaPagamento: b.formaPagamento ?? null })
   if (b.notaId) await prisma.ctbNota.updateMany({ where: { id: b.notaId, tenantId: c.tenantId }, data: { tituloId: t.id } })
   await auditar(c, 'titulo.criar', { entidade: 'CtbTitulo', entidadeId: t.id, empresaId: e.id, detalhes: { tipo: t.tipo, valor: t.valor, vencimento: iso10(t.vencimento) } })
   res.status(201).json(comSituacao(t))
