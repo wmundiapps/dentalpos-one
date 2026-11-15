@@ -25,7 +25,7 @@ function RoiPanel() {
           </Box>
           <Box sx={{ overflowX: "auto" }}>
             <Table size="small">
-              <TableHead><TableRow>{["Canal", "Campanhas", "Custo", "Leads", "Inscritos", "Matrículas", "CPL", "Custo/matrícula", "ROI", "Matrículas"].map((h) => <TableCell key={h} sx={{ fontWeight: 800 }}>{h}</TableCell>)}</TableRow></TableHead>
+              <TableHead><TableRow>{["Canal", "Campanhas", "Custo", "Leads", "Inscritos", "Matrículas", "CPL", "Custo/matrícula", "ROI", "Matrículas"].map((h, i) => <TableCell key={i} sx={{ fontWeight: 800 }}>{h}</TableCell>)}</TableRow></TableHead>
               <TableBody>
                 {canais.map((c) => (
                   <TableRow key={c.canal} hover>

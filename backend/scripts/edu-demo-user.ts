@@ -25,5 +25,14 @@ async function main() {
     })
     console.log(`[demo-user] criado: ${email}`)
   }
+  // Vincula o usuário de apresentação a um colaborador do RH (senão Ponto, Férias e Avaliações mostram "não vinculado").
+  try {
+    const u = await prisma.user.findFirst({ where: { clinicId: clinic.id, email } })
+    const rhe = (prisma as any).rheColaborador
+    if (u && rhe && !(await rhe.findFirst({ where: { tenantId, userId: u.id } }))) {
+      const livre = await rhe.findFirst({ where: { tenantId, userId: null, status: 'ATIVO' }, orderBy: { nome: 'asc' } })
+      if (livre) { await rhe.update({ where: { id: livre.id }, data: { userId: u.id } }); console.log(`[demo-user] vinculado ao colaborador do RH: ${livre.nome}`) }
+    }
+  } catch (e: any) { console.log('[demo-user] vínculo com o RH ignorado:', e?.message || e) }
 }
 main().catch((e) => { console.error('[demo-user] falhou:', e?.message || e) }).finally(() => prisma.$disconnect())

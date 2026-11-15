@@ -4,7 +4,8 @@ import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { eduApi } from "../../services/EduApi";
 import { useSearchParams } from "react-router-dom";
 import EduShell from "../../edu/EduShell";
 import { MeusDocumentos, NovoRequerimento, RevisaoDialog } from "../../edu/portal/PortalAcoes";
@@ -40,6 +41,16 @@ export default function EduPortalAluno() {
   const [rev, setRev] = useState<{ classSectionId: string; componenteId: string; titulo: string } | null>(null);
   const sidAlvo = override?.id ?? null;
   const [toast, setToast] = useState<{ t: "success" | "error"; m: string } | null>(null);
+  // Perfil de gestão sem vínculo com aluno: abre o portal do primeiro aluno da lista (demonstração), em vez de uma tela de erro.
+  const [autoTentado, setAutoTentado] = useState(false);
+  useEffect(() => {
+    if (!error || override || autoTentado || !/studentId|vinculado/i.test(error)) return;
+    setAutoTentado(true);
+    eduApi.get<any>("/secretaria/alunos?pageSize=1").then((r) => {
+      const a = (Array.isArray(r) ? r : r?.items ?? [])[0];
+      if (a?.id) setOverride({ id: a.id, nome: a.nome || a.name || "Aluno", ra: a.ra });
+    }).catch(() => undefined);
+  }, [error, override, autoTentado]);
   const podeAgir = !override; // gestão visualizando outro aluno não abre requerimentos em nome dele
 
   const cor = p?.marca?.cores?.primaria || "#0F5FDB";
