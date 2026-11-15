@@ -43,6 +43,9 @@ export const config = {
   ai: {
     apiKey: process.env.ANTHROPIC_API_KEY || '',
     model: process.env.REVAH_AI_MODEL || 'claude-opus-5',
+    // REVAH Ads (add-on): criação de anúncios, trabalho mais caprichado que o atendimento.
+    adsModel: process.env.REVAH_ADS_MODEL || 'claude-opus-5-5',
+    adsDailyGenerations: Number(process.env.REVAH_ADS_DAILY_GENERATIONS || 30),
   },
 
   meta: {

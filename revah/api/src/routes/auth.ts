@@ -47,6 +47,7 @@ export function sessionPayload(user: any, tenant: any, embedded = false) {
       status: tenant.status,
       source: tenant.source,
       leadsAddonActive: tenant.leadsAddonActive,
+      adsAddonActive: tenant.adsAddonActive,
       limits: limitsFor(tenant),
       trial: trialStatus(tenant),
     },

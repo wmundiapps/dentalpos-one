@@ -25,6 +25,7 @@ r.patch('/admin/tenants/:id', ah(async (req: AuthedRequest, res) => {
       plan: z.enum(['TRIAL', 'START', 'PRO', 'ENTERPRISE']).optional(),
       status: z.enum(['PENDING_PAYMENT', 'TRIAL', 'ACTIVE', 'PAST_DUE', 'CANCELED', 'SUSPENDED']).optional(),
       leadsAddonActive: z.boolean().optional(),
+      adsAddonActive: z.boolean().optional(),
       trialEndsAt: z.string().datetime().nullable().optional(),
       trialEligible: z.boolean().optional(),
     })

@@ -34,6 +34,7 @@ model Tenant {
   integrationWebhookUrl String?
   integrationSecret     String?
   leadsAddonActive      Boolean   @default(false)
+  adsAddonActive        Boolean   @default(false) // REVAH Ads: add-on vendido à parte
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -57,6 +58,7 @@ model Tenant {
   leadSources    LeadSource[]
   leadBlocks     LeadBlock[]
   leadAudiences  LeadAudience[]
+  adPlans        AdPlan[]
   apiKeys        ApiKey[]
   events         IntegrationEvent[]
   notes          Note[]
@@ -734,6 +736,27 @@ model LeadAudience {
   inviteText String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+// REVAH Ads: plano de anúncio criado pela IA (texto, variações, público, verba). Add-on vendido à parte.
+model AdPlan {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  business    String // o que a empresa vende e para quem
+  offer       String? // oferta/promoção
+  audience    String? // público que o cliente quer atingir
+  location    String? // cidade/região
+  goal        String    @default("MESSAGES") // MESSAGES | LEADS | SALES | TRAFFIC
+  dailyBudget Decimal?  @db.Decimal(10, 2)
+  platform    String    @default("META")
+  result      Json? // estratégia, público, variações e alertas gerados pela IA
+  generatedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([tenantId])
 }

@@ -471,3 +471,25 @@ test('e-mail para contatos da captação: limite diário por cliente, o resto va
   assert.ok(waiting[0].runAt.getTime() > Date.now() + 60 * 60_000, 'remarcado para o dia seguinte')
   assert.match(waiting[0].lastError, /Limite diário/)
 })
+
+test('REVAH Ads: add-on separado, liberado só pelo admin da WMundi', async () => {
+  const { token, tenant } = await register('ads@revah.test')
+  const blocked = await request(app).get('/ads/plans').set(auth(token))
+  assert.equal(blocked.status, 402)
+  assert.equal(blocked.body.code, 'ADS_ADDON_REQUIRED')
+  assert.equal((await request(app).get('/ads/access').set(auth(token))).body.addonActive, false)
+
+  await prisma.tenant.update({ where: { id: tenant.id }, data: { adsAddonActive: true } })
+  const bad = await request(app).post('/ads/plans').set(auth(token)).send({ name: 'Teste', business: 'Vendo nudes e putaria' })
+  assert.equal(bad.status, 400)
+  const p = await request(app).post('/ads/plans').set(auth(token)).send({ name: 'Implantes', business: 'Clínica odontológica de implantes em Maringá para adultos', offer: 'Avaliação gratuita', location: 'Maringá-PR', goal: 'MESSAGES', dailyBudget: 30 })
+  assert.equal(p.status, 201, JSON.stringify(p.body))
+  assert.equal((await request(app).get('/ads/plans').set(auth(token))).body.length, 1)
+  // Sem chave da IA no teste: responde claro, sem quebrar.
+  const gen = await request(app).post(`/ads/plans/${p.body.id}/generate`).set(auth(token))
+  assert.equal(gen.status, 503)
+  // Outro cliente não vê o plano.
+  const other = await register('ads-outro@revah.test')
+  await prisma.tenant.update({ where: { id: other.tenant.id }, data: { adsAddonActive: true } })
+  assert.equal((await request(app).get(`/ads/plans/${p.body.id}`).set(auth(other.token))).status, 404)
+})
