@@ -35,6 +35,7 @@ import { navigationGroups } from "../config/navigation";
 import { rotaBloqueada, useModulosBloqueados } from "../edu/acesso/modulos";
 import { useAppTheme } from "../contexts/AppThemeContext";
 import InstitutionLogo from "../edu/InstitutionLogo";
+import MensagensBadge from "../edu/mensagens/MensagensBadge";
 import { notifications } from "../services/NotificationService";
 import { endSession } from "../security/sessionGuard";
 import {
@@ -235,6 +236,8 @@ export default function Header() {
             {mode === "light" ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}
           </IconButton>
         </Tooltip>
+
+        {eduPath && String(sessionUser?.role || "").toUpperCase() !== "STUDENT" ? <MensagensBadge /> : null}
 
         {!demo?.isDemo ? (
           <Tooltip title="Abrir notificações">

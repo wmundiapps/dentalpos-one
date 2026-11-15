@@ -21,7 +21,7 @@ export default function CentralTab() {
   const { rev, reload } = useReload();
   const mobile = useIsMobile();
   const [f, setF] = useState({ status: "ABERTOS", canal: "", setorId: "", sla: "", q: "", minha: "" });
-  const [sel, setSel] = useState<string | null>(null);
+  const [sel, setSel] = useState<string | null>(() => new URLSearchParams(window.location.search).get("id")); // link direto vindo do Mensageiro (?id=)
   const [dlg, setDlg] = useState<null | "novo" | "simular">(null);
   const { toast, node } = useToast();
   const q = Object.entries({ pageSize: 50, status: f.status, canal: f.canal, setorId: f.setorId, sla: f.sla, q: f.q, minha: f.minha }).filter(([, v]) => v !== "").map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&");

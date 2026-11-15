@@ -21,7 +21,7 @@ function Lista() {
   const { rev, reload } = useReload();
   const [f, setF] = useState({ status: "ABERTOS", q: "", atrasados: "" });
   const [page, setPage] = useState(1);
-  const [sel, setSel] = useState<string | null>(null);
+  const [sel, setSel] = useState<string | null>(() => new URLSearchParams(window.location.search).get("id")); // link direto vindo do Mensageiro (?id=)
   const [novo, setNovo] = useState(false);
   const { toast, node } = useToast();
   const qs = `page=${page}&pageSize=20&status=${f.status}&q=${encodeURIComponent(f.q)}&atrasados=${f.atrasados}`;

@@ -10,6 +10,7 @@ import BarChartIcon from "@mui/icons-material/BarChart";
 import BiotechIcon from "@mui/icons-material/Biotech";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import ChatIcon from "@mui/icons-material/Chat";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -310,6 +311,8 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Emissão de documentos","/edu/atendimento?secao=emissao",<DescriptionIcon/>),
       item("Catálogo de serviços","/edu/atendimento?secao=catalogo",<Inventory2Icon/>),
       item("Painel / SLA","/edu/atendimento?secao=painel",<SpaceDashboardIcon/>),
+      item("Mensageiro interno","/edu/mensagens",<ForumOutlinedIcon/>),
+      item("Pedidos de atendimento humano","/edu/mensagens?aba=pedidos",<SupportAgentIcon/>),
     ]
   },
   {
