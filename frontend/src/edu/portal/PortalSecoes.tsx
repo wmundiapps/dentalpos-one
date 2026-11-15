@@ -20,7 +20,7 @@ export function Kpi({ title, value, hint, color }: { title: string; value: React
   return (
     <Paper elevation={0} sx={{ p: 2, borderRadius: 4, bgcolor: `${color}14`, border: `1px solid ${color}40` }}>
       <Typography variant="caption" sx={{ fontWeight: 800, color, textTransform: "uppercase", letterSpacing: ".05em" }}>{title}</Typography>
-      <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.1 }}>{value}</Typography>
+      <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.1, fontSize: { xs: "1.4rem", md: "2.125rem" }, overflowWrap: "anywhere" }}>{value}</Typography>
       {hint && <Typography variant="caption" color="text.secondary">{hint}</Typography>}
     </Paper>
   );

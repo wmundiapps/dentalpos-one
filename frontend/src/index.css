@@ -115,5 +115,6 @@ code {
   main .MuiBox-root > .MuiAlert-root,
   main .MuiBox-root > .MuiBox-root { min-width: 0; }
   main .MuiTextField-root { max-width: 100%; }
-  main table { display: block; max-width: 100%; overflow-x: auto; }
+  main table.MuiTable-root { display: block; max-width: 100%; overflow-x: auto; }
+  main .MuiPaper-root { min-width: 0; max-width: 100%; }
 }
