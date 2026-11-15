@@ -13,7 +13,7 @@ const ROTA_MODULO: Array<[string, string]> = [
   ["/edu/biblioteca", "biblioteca"], ["/edu/presenca", "presenca"], ["/edu/pesquisa", "pesquisa"],
   ["/edu/portal-aluno", "portal2"], ["/edu/portal-professor", "portal2"], ["/edu/inicio", "portal2"], ["/edu/ambientes", "portal2"],
   ["/edu/campos-pratica", "campos-pratica"], ["/edu/apoio", "apoio"], ["/edu/comunicacao", "comunicacao"],
-  ["/edu/infraestrutura", "infraestrutura"], ["/edu/suprimentos", "suprimentos"], ["/edu/atendimento", "atendimento"], ["/edu/mensagens", "mensagens"],
+  ["/edu/infraestrutura", "infraestrutura"], ["/edu/suprimentos", "suprimentos"], ["/edu/atendimento", "atendimento"], ["/edu/mensagens", "mensagens"], ["/edu/contabil", "contabil"],
   ["/edu/analise-docs", "analise-docs"], ["/edu/juridico", "juridico"], ["/edu/rh", "rh"], ["/edu/marketing", "marketing"],
   ["/edu/reitoria", "reitoria"], ["/edu/jornadas", "jornadas"], ["/edu/regulatorio", "regulatorio"],
   ["/edu/governanca", "governanca"], ["/edu/lgpd", "lgpd"], ["/edu/feedback", "feedback"],
