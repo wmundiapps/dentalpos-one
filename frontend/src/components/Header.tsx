@@ -112,7 +112,7 @@ export default function Header() {
   };
 
   const initials =
-    `${sessionUser?.firstName?.[0] || ""}${sessionUser?.lastName?.[0] || ""}`.toUpperCase() || "DP";
+    `${sessionUser?.firstName?.[0] || ""}${sessionUser?.lastName?.[0] || ""}`.toUpperCase() || (EDU_ONLY ? "EM" : "DP");
 
   return (
     <AppBar
@@ -155,7 +155,7 @@ export default function Header() {
           </Typography>
         </Box>
 
-        <Box sx={{ position: "relative", width: { xs: "100%", sm: 360, md: 440 }, maxWidth: 520 }}>
+        <Box sx={{ position: "relative", width: { xs: "100%", sm: 360, md: 440 }, maxWidth: 520, minWidth: 0, flexShrink: 1 }}>
           <TextField
             fullWidth
             size="small"

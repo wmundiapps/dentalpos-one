@@ -1,7 +1,7 @@
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Paper, ToggleButton, ToggleButtonGroup, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 import Cadastro from "./Cadastro";
-import { Acoes, ActionsMenu, Aviso, Btn, COLORS, type Col, DataList, Etiqueta, FormDialog, Kpi, KpiRow, LoadBox, Section, Status, cp, corSeveridade, fmtDate, fmtMoney, fmtNum, itemsOf, perfil, useCp, useEquipe, useRunner, useToast, type Opt } from "./kit";
+import { Acoes, ActionsMenu, Aviso, Btn, COLORS, type Col, DataList, Etiqueta, FormDialog, Kpi, KpiRow, LoadBox, Section, Status, cp, corSeveridade, fmtDate, fmtMoney, fmtNum, itemsOf, perfil, useApi, useCp, useEquipe, useRunner, useToast, type Opt } from "./kit";
 
 export default function AgroTab() {
   const [sub, setSub] = useState("ciclos");
@@ -33,7 +33,7 @@ function Ciclos({ podeEditar }: { podeEditar: boolean }) {
   const l = useCp<any>("/agro/ciclos", [rev]);
   const p = useCp<any>("/agro/painel", [rev]);
   const rows = itemsOf(l.data);
-  const tal = useCp<any>("/agro/talhoes?pageSize=200"), cul = useCp<any>("/agro/culturas?pageSize=200"), cvr = useCp<any>("/agro/cultivares?pageSize=200"), eq = useEquipe(), turmas = useCp<any>("/academico/class-sections");
+  const tal = useCp<any>("/agro/talhoes?pageSize=200"), cul = useCp<any>("/agro/culturas?pageSize=200"), cvr = useCp<any>("/agro/cultivares?pageSize=200"), eq = useEquipe(), turmas = useApi<any>("/academico/class-sections?pageSize=300");
   const o = (r: any, f: (x: any) => string): Opt[] => itemsOf(r.data).map((x: any) => ({ value: x.id, label: f(x) }));
   const cols: Col[] = [
     { label: "Cultura", primary: true, render: (c) => `${c.cultura} · ${c.safra}` }, { label: "Talhão", render: (c) => `${c.talhao} (${c.areaHa} ha)` },

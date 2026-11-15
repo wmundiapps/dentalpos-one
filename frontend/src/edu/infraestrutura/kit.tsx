@@ -231,11 +231,11 @@ export function Bars({ items, format = (v: number) => num(v, 0), empty = "Sem da
   const max = Math.max(...items.map((i) => i.value), 0);
   if (!items.length || max <= 0) return <Typography variant="body2" color="text.secondary">{empty}</Typography>;
   return (
-    <Box sx={{ display: "grid", gap: 1 }}>
+    <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: "minmax(0, 1fr)" }}>
       {items.map((i) => (
         <Box key={i.label}>
           <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
-            <Typography variant="body2" noWrap title={i.label}>{i.label}</Typography>
+            <Typography variant="body2" noWrap title={i.label} sx={{ minWidth: 0 }}>{i.label}</Typography>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>{format(i.value)}</Typography>
           </Box>
           <Box sx={{ height: 8, borderRadius: 4, bgcolor: "action.hover", overflow: "hidden" }}>
@@ -288,7 +288,7 @@ export function Kanban<T = any>({ columns, rows, groupBy, render, empty = "Vazio
               <Typography variant="subtitle2" sx={{ fontWeight: 800, flex: 1 }}>{c.title}</Typography>
               <Chip size="small" label={list.length} />
             </Box>
-            <Box sx={{ display: "grid", gap: 1 }}>
+            <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: "minmax(0, 1fr)" }}>
               {list.map((r, i) => <Paper key={i} variant="outlined" sx={{ p: 1.25, borderRadius: 2 }}>{render(r)}</Paper>)}
               {!list.length && <Typography variant="caption" color="text.secondary">{empty}</Typography>}
             </Box>

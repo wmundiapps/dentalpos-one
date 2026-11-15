@@ -7,7 +7,7 @@ export default function PainelTab() {
   const ind = useApi<any>("/infraestrutura/indicadores");
   const proj = useApi<any>("/infraestrutura/projetos/painel");
   return (
-    <Box sx={{ display: "grid", gap: 2 }}>
+    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: "minmax(0, 1fr)" }}>
       <Async state={ind}>
         {(d) => {
           const sla = d.slaCumpridoPct;
@@ -24,7 +24,7 @@ export default function PainelTab() {
                 <Stat label="Custo de manutenção" value={brl(d.custoManutencao?.total)} hint={`Custo/m²: ${brl(d.custoManutencao?.custoPorM2)}`} />
                 <Stat label="Preventivas" value={pct(d.preventivaPct)} hint="Parcela das OS do período" />
               </StatGrid>
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) minmax(0, 1fr)" }, gap: 2 }}>
                 <Panel title="Backlog por prioridade" subtitle="OS abertas agrupadas por prioridade">
                   <Bars items={Object.entries(d.backlog?.porPrioridade || {}).map(([k, v]) => ({ label: k, value: Number(v), color: PRIO_COR[k] }))} empty="Nenhuma OS em aberto." />
                 </Panel>

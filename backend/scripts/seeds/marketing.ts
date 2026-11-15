@@ -56,11 +56,11 @@ export async function seedMarketing(api: Api, ctx: SeedCtx = {}) {
   for (const [camp, origem, tipo, valor, desc] of [[c1, 'GOOGLE_ADS', 'MIDIA', 5200, 'Pesquisa paga — vestibular'], [c1, 'INSTAGRAM', 'MIDIA', 3100, 'Impulsionamento Instagram'], [c1, 'INSTAGRAM', 'PRODUCAO', 1800, 'Produção de vídeos'], [c2, 'FACEBOOK', 'MIDIA', 1400, 'Anúncios Meta'], [c2, 'TIKTOK', 'MIDIA', 900, 'Anúncios TikTok'], [c4, 'LINKEDIN', 'MIDIA', 2300, 'Anúncios LinkedIn']] as Array<[any, string, string, number, string]>) if (camp) await post('/custos', { campanhaId: camp.id, origem, tipo, valor, descricao: desc, data: day(-8) })
 
   // mídia offline
-  const radio = ok(await post('/midia-offline', { campanhaId: c1?.id, tipo: 'RADIO', veiculo: 'Rádio Cidade FM 98,1', praca: 'São Paulo', descricao: 'Spots de 30s, horário nobre', inicio: day(-15), fim: day(25), cupom: 'RAVELRADIO', telefoneExclusivo: '(11) 4000-1981' }), 'midia radio')
+  const radio = ok(await post('/midia-offline', { campanhaId: c1?.id, tipo: 'RADIO', veiculo: 'Rádio Cidade FM 98,1', praca: 'São Paulo', descricao: 'Spots de 30s, horário nobre', inicio: day(-15), fim: day(25), cupom: 'EDURADIO', telefoneExclusivo: '(11) 4000-1981' }), 'midia radio')
   if (radio) { await post(`/midia-offline/${radio.id}/insercoes`, { data: day(-14), quantidade: 30, custo: 2400, horario: '07:00-09:00' }); await post(`/midia-offline/${radio.id}/insercoes`, { data: day(-7), quantidade: 30, custo: 2400 }) }
-  const out = ok(await post('/midia-offline', { campanhaId: c1?.id, tipo: 'OUTDOOR', veiculo: 'Outdoor Av. Paulista (quadra 12)', inicio: day(-10), fim: day(20), cupom: 'RAVELOUT' }), 'midia outdoor')
+  const out = ok(await post('/midia-offline', { campanhaId: c1?.id, tipo: 'OUTDOOR', veiculo: 'Outdoor Av. Paulista (quadra 12)', inicio: day(-10), fim: day(20), cupom: 'EDUOUTDOOR' }), 'midia outdoor')
   if (out) await post(`/midia-offline/${out.id}/insercoes`, { data: day(-10), quantidade: 1, custo: 3800 })
-  const pan = ok(await post('/midia-offline', { campanhaId: c3?.id, tipo: 'PANFLETAGEM', veiculo: 'Panfletagem estações de metrô', inicio: day(2), fim: day(15), cupom: 'RAVELFLY' }), 'midia panfleto')
+  const pan = ok(await post('/midia-offline', { campanhaId: c3?.id, tipo: 'PANFLETAGEM', veiculo: 'Panfletagem estações de metrô', inicio: day(2), fim: day(15), cupom: 'EDUPANFLETO' }), 'midia panfleto')
   S.midias = [radio, out, pan]
 
   // leads (origens variadas; apenas alguns com opt-in de marketing)
@@ -73,7 +73,7 @@ export async function seedMarketing(api: Api, ctx: SeedCtx = {}) {
     const l = await post('/leads', { nome: nomes[i], email: `${nomes[i].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]+/g, '.')}@exemplo.example`, telefone: `(11) 9${String(8000 + i * 7).padStart(4, '0')}-${String(1000 + i * 13).slice(0, 4)}`, curso: cursos[i % cursos.length], origem, campanhaId: i % 3 === 0 ? c2?.id : c1?.id, consentimentoContato: true, consentimentoMarketing: i % 3 !== 2 })
     if (l) leads.push(l)
   }
-  const viaCupom = await post('/leads', { nome: 'Sérgio Vasconcelos', email: 'sergio.vasconcelos@exemplo.example', telefone: '(11) 98111-2233', curso: 'Odontologia', origem: 'OUTRO', cupom: 'RAVELRADIO', consentimentoContato: true, consentimentoMarketing: true })
+  const viaCupom = await post('/leads', { nome: 'Sérgio Vasconcelos', email: 'sergio.vasconcelos@exemplo.example', telefone: '(11) 98111-2233', curso: 'Odontologia', origem: 'OUTRO', cupom: 'EDURADIO', consentimentoContato: true, consentimentoMarketing: true })
   if (viaCupom) leads.push(viaCupom)
   S.leads = leads
   // andamento do funil

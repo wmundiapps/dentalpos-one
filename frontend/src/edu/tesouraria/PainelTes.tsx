@@ -114,7 +114,7 @@ function Dre() {
 export default function PainelTes({ onGo }: { onGo: (secao: string) => void }) {
   const st = useApi<any>(`${TES}/painel`);
   return (
-    <Box sx={{ display: "grid", gap: 2 }}>
+    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: "minmax(0, 1fr)" }}>
       <Async state={st}>
         {(p) => (
           <>

@@ -36,14 +36,14 @@ export function Kpi({ title, value, hint, color }: { title: string; value: React
   return (
     <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, borderLeft: color ? `5px solid ${color}` : undefined }}>
       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>{title}</Typography>
-      <Typography variant="h4" sx={{ fontWeight: 800 }}>{value}</Typography>
+      <Typography variant="h4" sx={{ fontWeight: 800, fontSize: { xs: "1.45rem", md: "2.125rem" }, overflowWrap: "anywhere" }}>{value}</Typography>
       {hint ? <Typography variant="caption" color="text.secondary">{hint}</Typography> : null}
     </Paper>
   );
 }
 
 export function KpiGrid({ children }: { children: ReactNode }) {
-  return <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 2 }}>{children}</Box>;
+  return <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" }, gap: 2, mb: 2 }}>{children}</Box>;
 }
 
 export const SEMAFORO: Record<string, string> = { VERDE: "#16a34a", AMARELO: "#eab308", VERMELHO: "#dc2626", CINZA: "#94a3b8" };

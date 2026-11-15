@@ -70,14 +70,14 @@ export function StatCard({ title, value, hint, color }: { title: string; value: 
   return (
     <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, borderLeft: color ? `5px solid ${color}` : undefined }}>
       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: "uppercase" }}>{title}</Typography>
-      <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.15 }}>{value}</Typography>
+      <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.15, fontSize: { xs: "1.45rem", md: "2.125rem" }, overflowWrap: "anywhere" }}>{value}</Typography>
       {hint ? <Typography variant="caption" color="text.secondary">{hint}</Typography> : null}
     </Paper>
   );
 }
 
 export function StatGrid({ children }: { children: ReactNode }) {
-  return <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, mb: 2 }}>{children}</Box>;
+  return <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" }, mb: 2 }}>{children}</Box>;
 }
 
 export function Progress({ value, color = "primary" }: { value: number; color?: "primary" | "success" | "warning" | "error" }) {

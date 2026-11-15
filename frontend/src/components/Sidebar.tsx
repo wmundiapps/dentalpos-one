@@ -1,4 +1,4 @@
-import { APP_NAME } from "../config/appMode";
+import { APP_NAME, EDU_ONLY } from "../config/appMode";
 import {
   Avatar, Box, Collapse, Divider, IconButton, List, ListItemButton, ListItemIcon,
   ListItemText, Tooltip, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button
@@ -83,7 +83,7 @@ export default function Sidebar(){
   useEffect(()=>{localStorage.setItem(OPEN_GROUPS_KEY,JSON.stringify(openGroups))},[openGroups]);
 
   const sidebarWidth=collapsed?58:224;
-  const initials=`${sessionUser?.firstName?.[0]||""}${sessionUser?.lastName?.[0]||""}`.toUpperCase()||"DP";
+  const initials=`${sessionUser?.firstName?.[0]||""}${sessionUser?.lastName?.[0]||""}`.toUpperCase()||(EDU_ONLY?"EM":"DP");
   const displayName=[sessionUser?.firstName,sessionUser?.lastName].filter(Boolean).join(" ")||"Usuário";
   const roleLabel=demo?.isDemo?"Demo / Administrador":sessionUser?.role||"Usuário";
 
@@ -238,7 +238,7 @@ export default function Sidebar(){
       )
     ) : (
       <Box sx={{py:1.2,textAlign:"center",color:"#64748B",whiteSpace:"nowrap"}}>
-        {collapsed?<Typography sx={{fontSize:9,fontWeight:800}}>DP</Typography>:
+        {collapsed?<Typography sx={{fontSize:9,fontWeight:800}}>{EDU_ONLY?"EM":"DP"}</Typography>:
           <Typography sx={{fontSize:10.5}}><BrandName/> • {appConfig.version}</Typography>}
       </Box>
     )}
