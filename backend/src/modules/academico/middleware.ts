@@ -23,6 +23,10 @@ export type AcademicRole =
   | 'ADMISSIONS'
   | 'SUPPORT'
   | 'STAFF'
+  | 'GESTOR_CONTABIL'
+  | 'CONTADOR'
+  | 'ANALISTA_CONTABIL'
+  | 'CLIENTE_CONTABIL'
 
 export interface AuthenticatedRequest extends Request {
   user?: {

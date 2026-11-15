@@ -27,6 +27,10 @@ export const CARGOS: Array<{ cargo: AcademicRole; nome: string }> = [
   { cargo: 'SUPPLIES', nome: 'Suprimentos' },
   { cargo: 'SUPPORT', nome: 'Apoio ao estudante' },
   { cargo: 'STAFF', nome: 'Colaborador (geral)' },
+  { cargo: 'GESTOR_CONTABIL', nome: 'Gestor do escritório de contabilidade' },
+  { cargo: 'CONTADOR', nome: 'Contador' },
+  { cargo: 'ANALISTA_CONTABIL', nome: 'Analista contábil' },
+  { cargo: 'CLIENTE_CONTABIL', nome: 'Cliente da contabilidade (portal)' },
 ]
 
 /** Módulos que NUNCA podem ser bloqueados nem receber concessão: sustentam o shell (marca, avisos) e esta própria tela. */
@@ -72,6 +76,7 @@ export const MODULOS: Array<{ modulo: string; nome: string; grupo: string }> = [
   { modulo: 'regulatorio', nome: 'Regulatório MEC', grupo: 'Gestão e conformidade' },
   { modulo: 'jornadas', nome: 'Jornadas e fluxogramas', grupo: 'Gestão e conformidade' },
   { modulo: 'lgpd', nome: 'Central LGPD', grupo: 'Gestão e conformidade' },
+  { modulo: 'contabil', nome: 'Contabilidade (carteira de clientes, portal do cliente)', grupo: 'Contabilidade' },
 ]
 
 export const cargoValido = (c: string) => CARGOS.some((x) => x.cargo === c)

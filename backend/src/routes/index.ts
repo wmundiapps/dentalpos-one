@@ -65,6 +65,7 @@ import * as financialAlertResolutionController from '../controllers/financialAle
 import * as operationalAlertResolutionController from '../controllers/operationalAlertResolutionController'
 import * as reportController5787 from '../controllers/reportController5787'
 import eduRoutes, { eduPublicRouter } from '../modules/edu.routes'
+import { bloqueioClienteContabil } from '../modules/contabil/carteira/routes'
 import { runEduJobs } from '../modules/core/jobs'
 import { processDueReminders } from '../modules/core/reminders'
 import segurancaRoutes from '../modules/seguranca/routes'
@@ -134,6 +135,8 @@ router.post('/public/booking/:clinicId', publicBookingController.store)
 
 router.use(authMiddleware)
 router.use(tenantMiddleware)
+// Cliente final da contabilidade (CLIENTE_CONTABIL): só alcança o portal; todo o resto da API responde 403.
+router.use(bloqueioClienteContabil)
 // Varredura anti-malware/SSRF de qualquer anexo (data URL, base64, URL externa) enviado por usuários autenticados.
 router.use(uploadGuard)
 
