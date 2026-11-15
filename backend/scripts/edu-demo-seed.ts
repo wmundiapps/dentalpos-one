@@ -26,6 +26,8 @@ import { seedAnaliseDocs } from './seeds/analise-docs'
 import { seedMecComissao } from './seeds/mec-comissao'
 import { seedAva } from './seeds/ava'
 import { seedBoletos } from './seeds/boletos'
+import { seedMensagens } from './seeds/mensagens'
+import { seedAcesso } from './seeds/acesso'
 
 const API = process.env.API_URL || 'http://localhost:3000/api'
 const TENANT = 'sua-instituicao'
@@ -106,6 +108,7 @@ const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
   ['analise-docs', (c) => seedAnaliseDocs(c.api, sCtx(c))],
   ['ava', (c) => seedAva(c.api, sCtx(c))],
   ['boletos', (c) => seedBoletos(c.api, sCtx(c))],
+  ['mensagens', (c) => seedMensagens(c.api, { ...sCtx(c), loginAs: c.loginAs } as any)],
   // fluxograma automático: gera a grade de cada período (salas, laboratórios, dias e horários) e avisa os alunos
   ['fluxograma', async (c) => {
     const ts: any = await c.api('GET', '/edu/academico/terms')
@@ -116,6 +119,8 @@ const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
   }],
   // por último: ajusta indicadores para a IES de demonstração "nota máxima" (dados fictícios)
   ['mec-comissao', (c) => seedMecComissao(c.api, sCtx(c))],
+  // acesso por cargo: deve ser o ÚLTIMO (as regras não podem bloquear os passos anteriores)
+  ['acesso', (c) => seedAcesso(c.api, sCtx(c))],
 ]
 
 const STEPS: [string, (c: Ctx) => Promise<void>][] = [
