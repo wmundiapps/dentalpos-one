@@ -2,7 +2,7 @@ import { Alert, Box, Button, Dialog, DialogContent, DialogTitle, IconButton, Tab
 import CloseIcon from "@mui/icons-material/Close";
 import { useState } from "react";
 import { Async, Empty, FormDialog, Panel, Stat, StatGrid, Tabela, Tag, brl, fmtDate, fmtDateTime, num, useApi, useToast, type Field } from "./host";
-import { ROTULO_REGIME, Situacao, api, abrirHtml, baixar, compMes, docFmt, ehContador, ehGestao, hojeIso, lerArquivo, usePrompt, Simulado } from "./kit";
+import { ROTULO_REGIME, Situacao, api, abrirHtml, baixar, compMes, docFmt, ehContador, hojeIso, lerArquivo, usePrompt, Simulado } from "./kit";
 import { camposCliente } from "./ClientesTab";
 import LgpdCliente from "./LgpdCliente";
 
@@ -104,7 +104,6 @@ function Relacionamento({ c }: { c: any }) {
   const md = useApi<any>(`${P}/modelos-msg`);
   const [nova, setNova] = useState(false);
   const [env, setEnv] = useState(false);
-  const [prev, setPrev] = useState<any>(null);
   const toast = useToast();
   return (
     <>
@@ -115,8 +114,7 @@ function Relacionamento({ c }: { c: any }) {
         onClose={() => setNova(false)} onSubmit={async (b) => { await api.post(`/clientes/${c.id}/interacoes`, b); toast.ok("Interação registrada."); it.reload(); }} />
       <FormDialog open={env} title="Enviar mensagem (SIMULADO)" intro={<Alert severity="warning" sx={{ mb: 2 }}>Nenhuma mensagem é realmente enviada: o sistema registra o envio no histórico. Integre um provedor de e-mail/WhatsApp para enviar de verdade.</Alert>}
         fields={[{ key: "modeloId", label: "Modelo de mensagem", type: "select", options: (md.data?.items || []).filter((m: any) => m.ativo).map((m: any) => ({ value: m.id, label: `${m.nome} (${m.canal})` })), helper: `Variáveis: ${(md.data?.variaveis || []).map((v: string) => `{{${v}}}`).join(" ")}` }, { key: "canal", label: "Canal", type: "select", options: ["EMAIL", "WHATSAPP"] }, { key: "assunto", label: "Assunto (se não usar modelo)" }, { key: "corpo", label: "Mensagem (se não usar modelo)", type: "textarea" }]}
-        submitLabel="Simular envio" onClose={() => { setEnv(false); setPrev(null); }} onSubmit={async (b) => { const r = await api.post(`/clientes/${c.id}/enviar`, b); toast.ok(r.aviso || "Envio simulado registrado."); it.reload(); }} />
-      {prev ? null : null}
+        submitLabel="Simular envio" onClose={() => setEnv(false)} onSubmit={async (b) => { const r = await api.post(`/clientes/${c.id}/enviar`, b); toast.ok(r.aviso || "Envio simulado registrado."); it.reload(); }} />
       {toast.node}
     </>
   );
@@ -195,7 +193,7 @@ export default function ClienteFicha({ id, opcoes, onClose, onChanged }: { id: s
         <IconButton onClick={onClose} aria-label="Fechar"><CloseIcon /></IconButton>
       </DialogTitle>
       <DialogContent dividers sx={{ bgcolor: "background.default" }}>
-        <Tabs value={aba} onChange={(_, v) => setAba(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>{nomes.filter((n) => n !== "LGPD" || ehGestao() || true).map((n) => <Tab key={n} label={n} />)}</Tabs>
+        <Tabs value={aba} onChange={(_, v) => setAba(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>{nomes.map((n) => <Tab key={n} label={n} />)}</Tabs>
         <Async state={st}>
           {(c) => (
             <>

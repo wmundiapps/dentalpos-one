@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, LinearProgress, MenuItem, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, LinearProgress, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Async, Empty, FormDialog, Kanban, Panel, SubNav, Tabela, Tag, brl, fmtDate, useApi, useToast } from "./host";
@@ -87,7 +87,7 @@ export default function TarefasTab() {
   const [nova, setNova] = useState(false);
   const [gerar, setGerar] = useState(false);
   const atrasadas = params.get("f") === "atrasadas";
-  const st = useApi<any>(sub === "kanban" || sub === "lista" ? `${P}/tarefas?pageSize=300${minhas ? "&minhas=1" : ""}${atrasadas ? "&atrasadas=1" : ""}${sub === "kanban" ? "&aberta=0" : ""}` : null);
+  const st = useApi<any>(sub === "kanban" || sub === "lista" ? `${P}/tarefas?pageSize=300${minhas ? "&minhas=1" : ""}${atrasadas ? "&atrasadas=1" : ""}${sub === "kanban" ? "" : ""}` : null);
   const clientes = useApi<any>(`${P}/clientes?pageSize=200&status=ATIVO`);
   const opt = useApi<any>(`${P}/clientes/opcoes`);
   const toast = useToast();
@@ -95,10 +95,10 @@ export default function TarefasTab() {
   const card = (t: any) => (
     <Box onClick={() => setAberta(t)} sx={{ cursor: "pointer" }}>
       <Typography variant="body2" sx={{ fontWeight: 800 }}>{t.titulo}</Typography>
-      <Typography variant="caption" color="text.secondary" display="block">{t.clienteNome}</Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>{t.clienteNome}</Typography>
       <Typography variant="caption" sx={{ color: t.atrasada ? "error.main" : "text.secondary" }}>Prazo {fmtDate(t.prazo)}{t.atrasada ? ` · ${t.diasAtraso}d de atraso` : ""}</Typography>
       {t.progresso !== null ? <LinearProgress variant="determinate" value={t.progresso} sx={{ mt: 0.5, height: 5, borderRadius: 3 }} /> : null}
-      <Typography variant="caption" display="block">{t.responsavelNome || "sem responsável"} {t.prioridade !== "NORMAL" ? <Tag text={t.prioridade} tone={t.prioridade === "URGENTE" ? "error" : "warning"} /> : null}</Typography>
+      <Typography variant="caption" sx={{ display: "block" }}>{t.responsavelNome || "sem responsável"} {t.prioridade !== "NORMAL" ? <Tag text={t.prioridade} tone={t.prioridade === "URGENTE" ? "error" : "warning"} /> : null}</Typography>
     </Box>
   );
   return (
@@ -125,4 +125,3 @@ export default function TarefasTab() {
     </>
   );
 }
-void MenuItem;

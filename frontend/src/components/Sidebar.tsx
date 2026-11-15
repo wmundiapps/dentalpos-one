@@ -56,7 +56,7 @@ export default function Sidebar(){
     const role=String(sessionUser?.role||"").toUpperCase();
     const alunoOk=["/edu/portal-aluno","/edu/minha-biometria","/edu/exames","/edu/inicio"];
     const profOk=[...alunoOk,"/edu/biblioteca","/edu/portal-professor","/edu/calendario","/edu/notas","/edu/presenca","/edu/desempenho"];
-    const permitidos=EDU_ONLY?(role==="STUDENT"?alunoOk:role==="TEACHER"?profOk:null):null;
+    const permitidos=EDU_ONLY?(role==="STUDENT"?alunoOk:role==="TEACHER"?profOk:role==="CLIENTE_CONTABIL"?["/edu/contabil/portal"]:null):null;
     return navigationGroups.map(group=>{
       const items=group.items.filter(it=>{
         if(it.roles&&!it.roles.includes(cargoLogado))return false;

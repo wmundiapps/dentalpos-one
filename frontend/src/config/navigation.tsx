@@ -79,6 +79,8 @@ export interface NavigationGroup { label: string; icon: ReactNode; items: Naviga
 /** Cargos que veem o submenu Contabilidade (alunos e professores não têm acesso). */
 const CTB_ROLES = ["ADMIN","OWNER","RECTOR","BOARD","FINANCE","ACCOUNTANT","CONTADOR","COORDINATOR"];
 const item = (label:string,path:string,icon:ReactNode,roles?:string[]):NavigationItem => ({label,path,icon,...(roles?{roles}:{})});
+/** Cargos que veem a Carteira de clientes do escritório de contabilidade (o servidor também valida). */
+const CARTEIRA_ROLES=["ADMIN","OWNER","RECTOR","BOARD","GESTOR_CONTABIL","CONTADOR","ACCOUNTANT","ANALISTA_CONTABIL","FINANCE"];
 const alphabetical = (items:NavigationItem[]) => [...items].sort((a,b)=>a.label.localeCompare(b.label,"pt-BR"));
 
 const ToothIcon = createSvgIcon(
@@ -330,6 +332,19 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Painel / SLA","/edu/atendimento?secao=painel",<SpaceDashboardIcon/>),
       item("Mensageiro interno","/edu/mensagens",<ForumOutlinedIcon/>),
       item("Pedidos de atendimento humano","/edu/mensagens?aba=pedidos",<SupportAgentIcon/>),
+    ]
+  },
+  {
+    label:"EduMaster · Contabilidade",
+    icon:tile(<AccountBalanceOutlinedIcon/>,"#0F766E"),
+    items:[
+      item("Carteira de clientes","/edu/contabil/carteira",<AccountBalanceOutlinedIcon/>,CARTEIRA_ROLES),
+      item("Clientes do escritório","/edu/contabil/carteira?aba=clientes",<FolderSharedIcon/>,CARTEIRA_ROLES),
+      item("Funil comercial e contratos","/edu/contabil/carteira?aba=funil",<TrendingUpIcon/>,["ADMIN","OWNER","RECTOR","BOARD","GESTOR_CONTABIL","CONTADOR","ACCOUNTANT"]),
+      item("Honorários e rentabilidade","/edu/contabil/carteira?aba=honorarios",<AccountBalanceWalletIcon/>,["ADMIN","OWNER","RECTOR","BOARD","GESTOR_CONTABIL","CONTADOR","ACCOUNTANT","FINANCE"]),
+      item("Tarefas e rotinas da carteira","/edu/contabil/carteira?aba=tarefas",<AssignmentIcon/>,CARTEIRA_ROLES),
+      item("Relatórios da carteira","/edu/contabil/carteira?aba=relatorios",<DescriptionIcon/>,CARTEIRA_ROLES),
+      item("Portal do cliente","/edu/contabil/portal",<FolderSharedIcon/>,["CLIENTE_CONTABIL"]),
     ]
   },
   {

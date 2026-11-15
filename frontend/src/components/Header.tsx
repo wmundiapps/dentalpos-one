@@ -237,7 +237,7 @@ export default function Header() {
           </IconButton>
         </Tooltip>
 
-        {eduPath && String(sessionUser?.role || "").toUpperCase() !== "STUDENT" ? <MensagensBadge /> : null}
+        {eduPath && !["STUDENT", "CLIENTE_CONTABIL"].includes(String(sessionUser?.role || "").toUpperCase()) ? <MensagensBadge /> : null}
 
         {!demo?.isDemo ? (
           <Tooltip title="Abrir notificações">

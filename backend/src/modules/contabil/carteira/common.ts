@@ -11,12 +11,12 @@ export const httpError = (status: number, message: string, extra?: Record<string
 // ADMIN/OWNER/RECTOR/BOARD = sócios (acesso total do tenant). GESTOR_CONTABIL = gestor do escritório. CONTADOR e ANALISTA_CONTABIL veem só a própria carteira.
 // FINANCE = financeiro do escritório (honorários). CLIENTE_CONTABIL = cliente final (só o portal). STUDENT/TEACHER e demais: sem acesso.
 export const GESTAO = ['ADMIN', 'OWNER', 'RECTOR', 'BOARD', 'GESTOR_CONTABIL']
-export const CONTADORES = [...GESTAO, 'CONTADOR']
+export const CONTADORES = [...GESTAO, 'CONTADOR', 'ACCOUNTANT']   // ACCOUNTANT = cargo usado pelo bloco fiscal/societário (mesmo papel)
 export const EQUIPE = [...CONTADORES, 'ANALISTA_CONTABIL']
 export const FINANCEIRO = [...GESTAO, 'FINANCE']
 export const INTERNO = [...EQUIPE, 'FINANCE']
 export const PORTAL = 'CLIENTE_CONTABIL'
-const RESTRITOS = ['CONTADOR', 'ANALISTA_CONTABIL']
+const RESTRITOS = ['CONTADOR', 'ACCOUNTANT', 'ANALISTA_CONTABIL']
 
 export const exigir = (...papeis: string[][]) => {
   const ok = new Set(papeis.flat())

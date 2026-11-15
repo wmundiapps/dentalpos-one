@@ -13,7 +13,7 @@ export default function PendingAlertsBar() {
   const load = useCallback(async () => {
     if (!localStorage.getItem("dentalpos.token")) return;
     // Alunos não têm alertas de gestão: evita um 403 a cada minuto.
-    if (String(readSessionUser()?.role || "").toUpperCase() === "STUDENT" || String(readSessionUser()?.role || "").toUpperCase() === "TEACHER") return;
+    if (String(readSessionUser()?.role || "").toUpperCase() === "STUDENT" || String(readSessionUser()?.role || "").toUpperCase() === "TEACHER" || String(readSessionUser()?.role || "").toUpperCase() === "CLIENTE_CONTABIL") return;
     try { setData(await loadPendingAlerts()); } catch { /* o aviso nunca atrapalha o uso do sistema */ }
   }, []);
 

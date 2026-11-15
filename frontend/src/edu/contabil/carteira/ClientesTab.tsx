@@ -109,7 +109,7 @@ export default function ClientesTab() {
           {(d) => (
             <>
               <Tabela rows={d.items} vazio="Nenhum cliente encontrado. Cadastre o primeiro ou importe um CSV." onRow={(r: any) => setParams({ aba: "clientes", cliente: r.id })} cols={[
-                { h: "Cliente", r: (r: any) => <><b>{r.nome}</b>{r.nomeFantasia ? <Typography variant="caption" color="text.secondary" display="block">{r.nomeFantasia}</Typography> : null}</> },
+                { h: "Cliente", r: (r: any) => <><b>{r.nome}</b>{r.nomeFantasia ? <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>{r.nomeFantasia}</Typography> : null}</> },
                 { h: "CNPJ / CPF", r: (r: any) => (r.anonimizadoEm ? "—" : docFmt(r.documento)) },
                 { h: "Situação", r: (r: any) => <Situacao value={r.status} /> }, { h: "Regime", r: (r: any) => ROTULO_REGIME[r.regime] || "—" },
                 { h: "Segmento", r: (r: any) => r.segmento || "—", hideMobile: true }, { h: "Responsável", r: (r: any) => r.responsavelNome || "—" },

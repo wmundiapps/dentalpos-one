@@ -76,7 +76,6 @@ export const MODULOS: Array<{ modulo: string; nome: string; grupo: string }> = [
   { modulo: 'regulatorio', nome: 'Regulatório MEC', grupo: 'Gestão e conformidade' },
   { modulo: 'jornadas', nome: 'Jornadas e fluxogramas', grupo: 'Gestão e conformidade' },
   { modulo: 'lgpd', nome: 'Central LGPD', grupo: 'Gestão e conformidade' },
-  { modulo: 'contabil', nome: 'Contabilidade (carteira de clientes, portal do cliente)', grupo: 'Contabilidade' },
 ]
 
 export const cargoValido = (c: string) => CARGOS.some((x) => x.cargo === c)

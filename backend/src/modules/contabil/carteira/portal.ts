@@ -1,7 +1,7 @@
 import { randomBytes } from 'crypto'
 import type { NextFunction, Request, Response, Router } from 'express'
 import {
-  CONTADORES, EQUIPE, INTERNO, PORTAL, asArray, clienteOuErro, comp, compAtual, compQ, dataOpt, emailOpt, exigir, getCfg, hojeMeioDia, httpError, pageParams, papelDe, parseBody, prisma, qs, somaMeses, tid, txt, txtOpt, uid, z,
+  CONTADORES, EQUIPE, INTERNO, PORTAL, asArray, clienteOuErro, comp, compAtual, compQ, dataOpt, emailOpt, exigir, getCfg, hojeMeioDia, httpError, pageParams, papelDe, parseBody, prisma, qs, restrito, somaMeses, tid, txt, txtOpt, uid, z,
 } from './common'
 import { asyncHandler, auditar, criarLoginPortal, desativarUsuario, nomesDeUsuarios, redefinirSenhaUsuario } from './host'
 import { enviarArquivo, MAX_ANEXO_BYTES } from './clientes'
@@ -114,8 +114,8 @@ export function registrarPortal(router: Router) {
     const where: any = { tenantId }
     for (const k of ['status', 'clienteId', 'competencia', 'tipo'] as const) if (qs(req.query[k])) where[k] = qs(req.query[k])
     // contador/analista: só documentos dos próprios clientes
-    const vis = await prisma.ctbCliente.findMany({ where: { tenantId, ...(papelDe(req) === 'CONTADOR' || papelDe(req) === 'ANALISTA_CONTABIL' ? { OR: [{ responsavelId: uid(req) }, { analistaId: uid(req) }] } : {}) }, select: { id: true, nome: true } })
-    if (papelDe(req) === 'CONTADOR' || papelDe(req) === 'ANALISTA_CONTABIL') where.clienteId = where.clienteId ? (vis.some((v) => v.id === where.clienteId) ? where.clienteId : '__nenhum__') : { in: vis.map((v) => v.id) }
+    const vis = await prisma.ctbCliente.findMany({ where: { tenantId, ...(restrito(req) ? { OR: [{ responsavelId: uid(req) }, { analistaId: uid(req) }] } : {}) }, select: { id: true, nome: true } })
+    if (restrito(req)) where.clienteId = where.clienteId ? (vis.some((v) => v.id === where.clienteId) ? where.clienteId : '__nenhum__') : { in: vis.map((v) => v.id) }
     const [total, rows] = await Promise.all([prisma.ctbCaixaDoc.count({ where }), prisma.ctbCaixaDoc.findMany({ where, select: { id: true, clienteId: true, tipo: true, competencia: true, nome: true, mime: true, tamanho: true, status: true, observacao: true, createdAt: true, conferidoEm: true }, orderBy: { createdAt: 'desc' }, skip, take })])
     const clis = rows.length ? await prisma.ctbCliente.findMany({ where: { tenantId, id: { in: rows.map((r) => r.clienteId) } }, select: { id: true, nome: true } }) : []
     res.json({ items: rows.map((r) => ({ ...r, clienteNome: clis.find((c) => c.id === r.clienteId)?.nome ?? null })), total, page, pageSize })

@@ -1,7 +1,7 @@
 import { Alert, Box, Button, Typography } from "@mui/material";
 import { useState } from "react";
 import { Async, FormDialog, Panel, Tabela, Tag, fmtDate, fmtDateTime, useApi, useToast } from "./host";
-import { api, baixar, ehContador, ehGestao, hojeIso, usePrompt } from "./kit";
+import { api, ehContador, ehGestao, hojeIso, usePrompt } from "./kit";
 
 const P = "/contabil/carteira";
 const BASES: Record<string, string> = { EXECUCAO_CONTRATO: "Execução de contrato", OBRIGACAO_LEGAL: "Obrigação legal/regulatória", CONSENTIMENTO: "Consentimento", LEGITIMO_INTERESSE: "Legítimo interesse", EXERCICIO_DIREITOS: "Exercício regular de direitos" };
@@ -48,7 +48,7 @@ export default function LgpdCliente({ c, reload }: { c: any; reload: () => void 
               <Button size="small" color="error" variant="outlined" onClick={excluir}>Excluir definitivamente…</Button>
             </Box>
           ) : null}
-          {!ehGestao() ? <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>Exportação, anonimização e exclusão são feitas pela gestão do escritório.</Typography> : null}
+          {!ehGestao() ? <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>Exportação, anonimização e exclusão são feitas pela gestão do escritório.</Typography> : null}
         </Panel>
       )}</Async>
       {ehGestao() ? (

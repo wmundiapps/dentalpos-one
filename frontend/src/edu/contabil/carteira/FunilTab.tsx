@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Chip, MenuItem, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Typography } from "@mui/material";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Async, FormDialog, Kanban, Panel, Stat, StatGrid, SubNav, Tabela, brl, fmtDate, num, useApi, useToast, type Field } from "./host";
@@ -37,10 +37,10 @@ export default function FunilTab() {
               <Kanban columns={ETAPAS} rows={d.colunas.flatMap((c: any) => c.leads)} groupBy={(l: any) => l.etapa} empty="Sem leads" render={(l: any) => (
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{l.nome}</Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">{l.origem || "—"} · {l.valorEstimado ? brl(l.valorEstimado) + "/mês" : "sem estimativa"}</Typography>
-                  {l.proximoContato ? <Typography variant="caption" display="block">Próximo contato: {fmtDate(l.proximoContato)}</Typography> : null}
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>{l.origem || "—"} · {l.valorEstimado ? brl(l.valorEstimado) + "/mês" : "sem estimativa"}</Typography>
+                  {l.proximoContato ? <Typography variant="caption" sx={{ display: "block" }}>Próximo contato: {fmtDate(l.proximoContato)}</Typography> : null}
                   {l.propostas?.length ? <Chip size="small" sx={{ mt: 0.5 }} label={`Proposta nº ${l.propostas[0].numero} (${l.propostas[0].status})`} /> : null}
-                  {l.motivoPerda ? <Typography variant="caption" color="error.main" display="block">{l.motivoPerda}</Typography> : null}
+                  {l.motivoPerda ? <Typography variant="caption" color="error.main" sx={{ display: "block" }}>{l.motivoPerda}</Typography> : null}
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.75 }}>
                     {l.etapa === "LEAD" || l.etapa === "PROPOSTA" ? <Button size="small" onClick={() => setNovaProp({ leadId: l.id, valorMensal: l.valorEstimado, titulo: `Contabilidade — ${l.nome}`, escopo: escopoPadrao })}>Proposta</Button> : null}
                     {!l.clienteId && l.etapa !== "ATIVO" && l.etapa !== "PERDIDO" ? <Button size="small" onClick={() => setConverter(l)}>Converter em cliente</Button> : null}
@@ -91,18 +91,15 @@ export default function FunilTab() {
 
 function NovaProposta({ open, base, onClose, onSaved }: { open: boolean; base: any; onClose: () => void; onSaved: () => void }) {
   const leads = useApi<any>(open && !base?.leadId ? `${P}/leads?pageSize=100` : null);
-  const [escopo, setEscopo] = useState("");
   const campos: Field[] = [
     ...(base?.leadId ? [] : [{ key: "leadId", label: "Lead", type: "select" as const, options: (leads.data?.items || []).map((l: any) => ({ value: l.id, label: l.nome })), required: true }]),
     { key: "titulo", label: "Título", required: true }, { key: "valorMensal", label: "Valor mensal", type: "number", required: true }, { key: "validadeAte", label: "Válida até", type: "date", def: hojeIso(15) },
     { key: "reajusteIndice", label: "Índice de reajuste", type: "select", options: ["IPCA", "IGP-M", "INPC", "SALARIO_MINIMO", "FIXO"], def: "IPCA" },
     { key: "escopoTxt", label: "Escopo (um serviço por linha: Serviço — descrição)", type: "textarea", def: (base?.escopo || []).map((e: any) => `${e.servico} — ${e.descricao || ""}`).join("\n") }, { key: "observacoes", label: "Observações", type: "textarea" },
   ];
-  void escopo; void setEscopo;
   return <FormDialog open={open} title="Nova proposta" fields={campos} initial={base} onClose={onClose} onSubmit={async (b) => {
     const { escopoTxt, ...resto } = b;
     const escopoArr = String(escopoTxt || "").split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const [s, ...d] = l.split(/\s[—-]\s/); return { servico: s.trim(), descricao: d.join(" — ").trim() || undefined }; });
     await api.post("/propostas", { ...resto, leadId: base?.leadId ?? resto.leadId, escopo: escopoArr }); onSaved();
   }} />;
 }
-void MenuItem; void TextField;

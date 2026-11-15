@@ -38,7 +38,7 @@ export async function nomesDeUsuarios(tenantId: string, ids: Array<string | null
 }
 
 /** Equipe interna do escritório (usuários do tenant com cargo de contabilidade). */
-export const CARGOS_EQUIPE = ['ADMIN', 'OWNER', 'GESTOR_CONTABIL', 'CONTADOR', 'ANALISTA_CONTABIL', 'FINANCE']
+export const CARGOS_EQUIPE = ['ADMIN', 'OWNER', 'GESTOR_CONTABIL', 'CONTADOR', 'ACCOUNTANT', 'ANALISTA_CONTABIL', 'FINANCE']
 export async function equipeDoTenant(tenantId: string) {
   return prisma.user.findMany({
     where: { tenantId, isActive: true, role: { in: CARGOS_EQUIPE } },

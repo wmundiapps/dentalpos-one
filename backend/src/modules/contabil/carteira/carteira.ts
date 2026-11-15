@@ -96,7 +96,7 @@ export function registrarCarteira(router: Router) {
     const caps = (cfg.capacidades ?? {}) as Record<string, number>
     const tarefas = await prisma.ctbTarefa.groupBy({ by: ['responsavelId'], where: { tenantId, status: { in: STATUS_ABERTOS_TAREFA } }, _count: true })
     const ativosPor = await prisma.ctbCliente.findMany({ where: { tenantId, status: 'ATIVO' }, select: { id: true, responsavelId: true } })
-    const linhas = equipe.filter((u) => ['CONTADOR', 'ANALISTA_CONTABIL', 'GESTOR_CONTABIL', 'ADMIN', 'OWNER'].includes(u.role)).map((u) => {
+    const linhas = equipe.filter((u) => ['CONTADOR', 'ACCOUNTANT', 'ANALISTA_CONTABIL', 'GESTOR_CONTABIL', 'ADMIN', 'OWNER'].includes(u.role)).map((u) => {
       const cont = (st: string) => grupos.filter((g) => g.responsavelId === u.id && g.status === st).reduce((s, g) => s + g._count, 0)
       const ativos = cont('ATIVO')
       const capacidade = caps[u.id] ?? cfg.capacidadePadrao

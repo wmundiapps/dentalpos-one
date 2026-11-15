@@ -1,6 +1,7 @@
 import { APP_NAME, EDU_ONLY } from "../config/appMode";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { readSessionUser } from "../services/DemoAccess";
 import { Box, Typography } from "@mui/material";
 
 import Academic from "../pages/Academic";
@@ -41,6 +42,8 @@ const EduContabilAbertura = lazy(() => import("../pages/edu/EduContabilAbertura"
 const EduContabilRhDp = lazy(() => import("../pages/edu/EduContabilRhDp"));
 const EduContabilIr = lazy(() => import("../pages/edu/EduContabilIr"));
 const EduContabilAssistente = lazy(() => import("../pages/edu/EduContabilAssistente"));
+const EduCarteira = lazy(() => import("../pages/edu/EduCarteira"));
+const EduPortalContabil = lazy(() => import("../pages/edu/EduPortalContabil"));
 const EduAnaliseDocs = lazy(() => import("../pages/edu/EduAnaliseDocs"));
 const EduMarketing = lazy(() => import("../pages/edu/EduMarketing"));
 const EduFeedback = lazy(() => import("../pages/edu/EduFeedback"));
@@ -170,7 +173,7 @@ export default function AppRoutes() {
       <Route path="/" element={EDU_ONLY ? <Navigate to="/edu" replace /> : <Dashboard />} />
 
       <Route path="/academico" element={<Academic />} />
-      <Route path="/edu" element={<EduReitoria />} />
+      <Route path="/edu" element={readSessionUser()?.role === "CLIENTE_CONTABIL" ? <Navigate to="/edu/contabil/portal" replace /> : <EduReitoria />} />
       <Route path="/edu/minha-mesa" element={<EduMinhaMesa />} />
       {(["agenda", "dou", "paineis", "convenios", "pessoas", "niveis", "comparativo"] as const).map((s) => <Route key={s} path={`/edu/reitoria/${s}`} element={<EduReitoriaGestao secao={s} />} />)}
       <Route path="/edu/jornadas" element={<EduJornadas />} />
@@ -210,6 +213,8 @@ export default function AppRoutes() {
       <Route path="/edu/contabil/rh-dp" element={<EduContabilRhDp />} />
       <Route path="/edu/contabil/imposto-renda" element={<EduContabilIr />} />
       <Route path="/edu/contabil/assistente" element={<EduContabilAssistente />} />
+      <Route path="/edu/contabil/carteira" element={<EduCarteira />} />
+      <Route path="/edu/contabil/portal" element={<EduPortalContabil />} />
       <Route path="/edu/analise-docs" element={<EduAnaliseDocs />} />
       <Route path="/edu/marketing" element={<EduMarketing />} />
       <Route path="/edu/feedback" element={<EduFeedback />} />
