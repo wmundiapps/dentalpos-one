@@ -194,8 +194,8 @@ router.post('/funcionarios/:id/concluir-admissao', asyncHandler(async (req: Auth
   const ev = await esocial(tenantId, 'S-2200', f, { admissao: f.admissao.toISOString().slice(0, 10), cargo: f.cargo })
   const nv = await prisma.ctbDpFuncionario.update({ where: { id: f.id }, data: { status: 'ATIVO' } })
   // períodos aquisitivos de férias
-  const per = periodosAquisitivos(f.admissao, somaDias(new Date(), 400))
-  for (const p of per.slice(0, 3)) {
+  const per = periodosAquisitivos(f.admissao, new Date())
+  for (const p of per.slice(-2)) {
     const ja = await prisma.ctbDpFerias.findFirst({ where: { tenantId, funcionarioId: f.id, aquisitivoInicio: p.inicio } })
     if (!ja) await prisma.ctbDpFerias.create({ data: { tenantId, funcionarioId: f.id, funcionarioNome: f.nome, aquisitivoInicio: p.inicio, aquisitivoFim: p.fim, concessivoFim: p.concessivoFim } })
   }

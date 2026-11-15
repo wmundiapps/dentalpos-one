@@ -62,6 +62,7 @@ export const MODULOS: Array<{ modulo: string; nome: string; grupo: string }> = [
   { modulo: 'tesouraria', nome: 'Tesouraria', grupo: 'Financeiro' },
   { modulo: 'cobranca', nome: 'Cobrança', grupo: 'Financeiro' },
   { modulo: 'boletos', nome: 'Caixa de boletos', grupo: 'Financeiro' },
+  { modulo: 'contabil', nome: 'Contabilidade (escritório contábil)', grupo: 'Financeiro' },
   { modulo: 'suprimentos', nome: 'Compras, estoque e vendas', grupo: 'Administrativo' },
   { modulo: 'infraestrutura', nome: 'Infraestrutura e patrimônio', grupo: 'Administrativo' },
   { modulo: 'rh', nome: 'RH e gestão de pessoas', grupo: 'Administrativo' },
