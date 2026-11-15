@@ -21265,3 +21265,202 @@ CREATE INDEX IF NOT EXISTS "AcsRegra_tenantId_idx" ON "AcsRegra"("tenantId");
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "AcsRegra_tenantId_cargo_modulo_key" ON "AcsRegra"("tenantId", "cargo", "modulo");
 -- ==== ACS:END ====
+-- ==== MSG:BEGIN (Mensageiro interno entre departamentos, prefixo Msg - gerado por prisma migrate diff; idempotente, somente CRIA) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MsgConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "retencaoDias" INTEGER DEFAULT 730,
+    "exportacaoAtiva" BOOLEAN NOT NULL DEFAULT true,
+    "anexoMaxKb" INTEGER NOT NULL DEFAULT 2048,
+    "lembretePedidoMin" INTEGER NOT NULL DEFAULT 10,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MsgConfig_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MsgCanal" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "descricao" TEXT,
+    "setorId" TEXT,
+    "restrito" BOOLEAN NOT NULL DEFAULT false,
+    "chaveDireta" TEXT,
+    "contextoTipo" TEXT,
+    "contextoId" TEXT,
+    "contextoRotulo" TEXT,
+    "contextoLink" TEXT,
+    "arquivado" BOOLEAN NOT NULL DEFAULT false,
+    "criadoPorId" TEXT,
+    "ultimaMensagemEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MsgCanal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MsgMembro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "canalId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "papel" TEXT NOT NULL DEFAULT 'MEMBRO',
+    "origem" TEXT NOT NULL DEFAULT 'MANUAL',
+    "ultimaLeituraEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "silenciado" BOOLEAN NOT NULL DEFAULT false,
+    "fixado" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MsgMembro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MsgMensagem" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "canalId" TEXT NOT NULL,
+    "autorId" TEXT,
+    "autorTipo" TEXT NOT NULL DEFAULT 'USUARIO',
+    "tipo" TEXT NOT NULL DEFAULT 'TEXTO',
+    "conteudo" TEXT NOT NULL,
+    "respostaAId" TEXT,
+    "mencoesUsuarios" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "mencoesSetores" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "metadados" JSONB,
+    "fixadaEm" TIMESTAMP(3),
+    "fixadaPorId" TEXT,
+    "editadaEm" TIMESTAMP(3),
+    "removidaEm" TIMESTAMP(3),
+    "removidaPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MsgMensagem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MsgAnexo" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "mensagemId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "mime" TEXT,
+    "tamanho" INTEGER,
+    "dataUrl" TEXT,
+    "url" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MsgAnexo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MsgAuto" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "canalId" TEXT NOT NULL,
+    "ativa" BOOLEAN NOT NULL DEFAULT false,
+    "ausenciaAtiva" BOOLEAN NOT NULL DEFAULT true,
+    "mensagemAusencia" TEXT,
+    "horarioInicio" TEXT NOT NULL DEFAULT '08:00',
+    "horarioFim" TEXT NOT NULL DEFAULT '18:00',
+    "diasSemana" INTEGER[] DEFAULT ARRAY[1, 2, 3, 4, 5]::INTEGER[],
+    "respostaAutomatica" BOOLEAN NOT NULL DEFAULT false,
+    "confiancaMinima" DOUBLE PRECISION NOT NULL DEFAULT 0.7,
+    "usarConhecimento" BOOLEAN NOT NULL DEFAULT true,
+    "usarFaqGeral" BOOLEAN NOT NULL DEFAULT true,
+    "mensagemSemResposta" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MsgAuto_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MsgPedidoHumano" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "canalId" TEXT NOT NULL,
+    "mensagemId" TEXT,
+    "solicitanteId" TEXT NOT NULL,
+    "motivo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "confianca" DOUBLE PRECISION,
+    "assumidoPorId" TEXT,
+    "assumidoEm" TIMESTAMP(3),
+    "resolvidoEm" TIMESTAMP(3),
+    "lembretes" INTEGER NOT NULL DEFAULT 0,
+    "ultimoLembreteEm" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MsgPedidoHumano_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MsgConfig_tenantId_key" ON "MsgConfig"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgCanal_tenantId_tipo_arquivado_idx" ON "MsgCanal"("tenantId", "tipo", "arquivado");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgCanal_tenantId_setorId_idx" ON "MsgCanal"("tenantId", "setorId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgCanal_tenantId_ultimaMensagemEm_idx" ON "MsgCanal"("tenantId", "ultimaMensagemEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgCanal_tenantId_contextoTipo_contextoId_idx" ON "MsgCanal"("tenantId", "contextoTipo", "contextoId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MsgCanal_tenantId_chaveDireta_key" ON "MsgCanal"("tenantId", "chaveDireta");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgMembro_tenantId_userId_idx" ON "MsgMembro"("tenantId", "userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MsgMembro_canalId_userId_key" ON "MsgMembro"("canalId", "userId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgMensagem_tenantId_canalId_createdAt_idx" ON "MsgMensagem"("tenantId", "canalId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgMensagem_tenantId_canalId_fixadaEm_idx" ON "MsgMensagem"("tenantId", "canalId", "fixadaEm");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgMensagem_tenantId_createdAt_idx" ON "MsgMensagem"("tenantId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgAnexo_tenantId_mensagemId_idx" ON "MsgAnexo"("tenantId", "mensagemId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MsgAuto_canalId_key" ON "MsgAuto"("canalId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgPedidoHumano_tenantId_status_createdAt_idx" ON "MsgPedidoHumano"("tenantId", "status", "createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MsgPedidoHumano_tenantId_canalId_status_idx" ON "MsgPedidoHumano"("tenantId", "canalId", "status");
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "MsgMembro" ADD CONSTRAINT "MsgMembro_canalId_fkey" FOREIGN KEY ("canalId") REFERENCES "MsgCanal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "MsgMensagem" ADD CONSTRAINT "MsgMensagem_canalId_fkey" FOREIGN KEY ("canalId") REFERENCES "MsgCanal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "MsgAnexo" ADD CONSTRAINT "MsgAnexo_mensagemId_fkey" FOREIGN KEY ("mensagemId") REFERENCES "MsgMensagem"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- AddForeignKey
+DO $$ BEGIN
+  ALTER TABLE "MsgAuto" ADD CONSTRAINT "MsgAuto_canalId_fkey" FOREIGN KEY ("canalId") REFERENCES "MsgCanal"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ==== MSG:END ====

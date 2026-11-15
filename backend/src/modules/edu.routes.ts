@@ -40,6 +40,7 @@ import boletosRouter from './boletos/routes'
 import boletosPublic from './boletos/publico'
 import acessoRouter from './acesso/routes'
 import { acessoPorCargo } from './acesso/regras'
+import mensagensRouter from './mensagens/routes'
 
 // Agregador de todos os módulos EduMaster Pro. Montado em /api/edu (autenticado).
 const router = Router()
@@ -89,6 +90,7 @@ router.use('/analise-docs', analiseDocsRouter)
 router.use('/exames', examesRouter)
 router.use('/boletos', boletosRouter)
 router.use('/acesso', acessoRouter)
+router.use('/mensagens', mensagensRouter)
 // Converte erros com .status (validação 400, 404, 409...) em respostas 4xx em vez de 500 genérico.
 router.use(academicErrorHandler)
 

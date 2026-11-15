@@ -14552,6 +14552,161 @@ model MktIndicacao {
   @@index([tenantId, indicadorId, status])
 }
 
+// ---- edu/mensagens.prisma ----
+// ============================================================
+// EDUMASTER PRO — MENSAGEIRO INTERNO ENTRE DEPARTAMENTOS (prefixo Msg)
+// Canais por departamento (reaproveitam AtdSetor), grupos e conversas diretas, anexos,
+// menções, leitura/não lidas, fixação, vínculo opcional a um contexto do sistema
+// (protocolo, atendimento, aluno, documento, título financeiro), resposta automática
+// por departamento (ausência/horário + FAQ) e pedidos de "falar com uma pessoa".
+// Valores de tipo/status são texto livre validado no código (evolui sem migration).
+// ============================================================
+
+model MsgConfig {
+  id                String   @id @default(uuid())
+  tenantId          String   @unique
+  retencaoDias      Int?     @default(730)               // null = não apaga automaticamente
+  exportacaoAtiva   Boolean  @default(true)              // exportação só por perfil de gestão superior, sempre auditada
+  anexoMaxKb        Int      @default(2048)
+  lembretePedidoMin Int      @default(10)                // reavisa o departamento enquanto o pedido de pessoa estiver pendente
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model MsgCanal {
+  id               String   @id @default(uuid())
+  tenantId         String
+  tipo             String                                // DEPARTAMENTO | GRUPO | DIRETA
+  nome             String
+  descricao        String?
+  setorId          String?                               // AtdSetor (tipo DEPARTAMENTO)
+  restrito         Boolean  @default(false)              // true: só membros (e gestão superior) leem e escrevem
+  chaveDireta      String?                               // "idMenor:idMaior" (conversa direta única por par)
+  contextoTipo     String?                               // PROTOCOLO | ATENDIMENTO | ALUNO | DOCUMENTO | TITULO
+  contextoId       String?
+  contextoRotulo   String?
+  contextoLink     String?
+  arquivado        Boolean  @default(false)
+  criadoPorId      String?
+  ultimaMensagemEm DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  membros          MsgMembro[]
+  mensagens        MsgMensagem[]
+  auto             MsgAuto?
+
+  @@unique([tenantId, chaveDireta])
+  @@index([tenantId, tipo, arquivado])
+  @@index([tenantId, setorId])
+  @@index([tenantId, ultimaMensagemEm])
+  @@index([tenantId, contextoTipo, contextoId])
+}
+
+model MsgMembro {
+  id              String   @id @default(uuid())
+  tenantId        String
+  canalId         String
+  userId          String
+  papel           String   @default("MEMBRO")            // ADMIN | MEMBRO
+  origem          String   @default("MANUAL")            // MANUAL | SETOR (acompanha AtdSetorMembro) | ENTROU
+  ultimaLeituraEm DateTime @default(now())
+  silenciado      Boolean  @default(false)
+  fixado          Boolean  @default(false)               // conversa fixada no topo da lista deste usuário
+  createdAt       DateTime @default(now())
+
+  canal           MsgCanal @relation(fields: [canalId], references: [id], onDelete: Cascade)
+
+  @@unique([canalId, userId])
+  @@index([tenantId, userId])
+}
+
+model MsgMensagem {
+  id              String    @id @default(uuid())
+  tenantId        String
+  canalId         String
+  autorId         String?                                // null = sistema / resposta automática
+  autorTipo       String    @default("USUARIO")          // USUARIO | SISTEMA | AUTO
+  tipo            String    @default("TEXTO")            // TEXTO | ENCAMINHAMENTO | AUTO_RESPOSTA | AUSENCIA | PEDIDO_HUMANO | SISTEMA
+  conteudo        String
+  respostaAId     String?
+  mencoesUsuarios String[]  @default([])
+  mencoesSetores  String[]  @default([])
+  metadados       Json?
+  fixadaEm        DateTime?
+  fixadaPorId     String?
+  editadaEm       DateTime?
+  removidaEm      DateTime?
+  removidaPorId   String?
+  createdAt       DateTime  @default(now())
+
+  canal           MsgCanal  @relation(fields: [canalId], references: [id], onDelete: Cascade)
+  anexos          MsgAnexo[]
+
+  @@index([tenantId, canalId, createdAt])
+  @@index([tenantId, canalId, fixadaEm])
+  @@index([tenantId, createdAt])
+}
+
+model MsgAnexo {
+  id         String   @id @default(uuid())
+  tenantId   String
+  mensagemId String
+  nome       String
+  mime       String?
+  tamanho    Int?
+  dataUrl    String?                                     // conteúdo já varrido pelo uploadGuard global
+  url        String?
+  createdAt  DateTime @default(now())
+
+  mensagem   MsgMensagem @relation(fields: [mensagemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, mensagemId])
+}
+
+// Resposta automática de um canal de departamento (ausência/horário + FAQ com confiança mínima).
+model MsgAuto {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  canalId            String   @unique
+  ativa              Boolean  @default(false)            // chave geral das respostas automáticas deste departamento
+  ausenciaAtiva      Boolean  @default(true)
+  mensagemAusencia   String?
+  horarioInicio      String   @default("08:00")          // horário de Brasília (UTC-3)
+  horarioFim         String   @default("18:00")
+  diasSemana         Int[]    @default([1, 2, 3, 4, 5])  // 0=domingo ... 6=sábado
+  respostaAutomatica Boolean  @default(false)            // FAQ
+  confiancaMinima    Float    @default(0.7)
+  usarConhecimento   Boolean  @default(true)             // AtdConhecimento do mesmo setor
+  usarFaqGeral       Boolean  @default(true)             // ComFaq (FAQ geral da comunicação)
+  mensagemSemResposta String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  canal              MsgCanal @relation(fields: [canalId], references: [id], onDelete: Cascade)
+}
+
+// "Falar com uma pessoa": o solicitante pediu, ou a resposta automática não soube responder.
+model MsgPedidoHumano {
+  id               String    @id @default(uuid())
+  tenantId         String
+  canalId          String
+  mensagemId       String?
+  solicitanteId    String
+  motivo           String                                // PEDIDO_EXPLICITO | SEM_RESPOSTA | SENSIVEL
+  status           String    @default("PENDENTE")        // PENDENTE | ASSUMIDO | RESOLVIDO
+  confianca        Float?
+  assumidoPorId    String?
+  assumidoEm       DateTime?
+  resolvidoEm      DateTime?
+  lembretes        Int       @default(0)
+  ultimoLembreteEm DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, canalId, status])
+}
+
 // ---- edu/modalidades.prisma ----
 // ============================================================
 // EDUMASTER PRO — MODALIDADES (presencial, semipresencial, EAD, híbrido,

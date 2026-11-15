@@ -146,6 +146,21 @@ export async function processarEntrada(p: { tenantId: string; canal: string; nom
 }
 
 const comSla = (a: any) => ({ ...a, sla: statusSla(a) })
+
+/** Transferência de atendimento entre setores/atendentes (regra única: usada pela rota /transferir e pelo Mensageiro interno). */
+export async function transferirAtendimento(tenantId: string, a: any, b: { setorId?: string; userId?: string; motivo: string }, porUserId?: string) {
+  if (['RESOLVIDO', 'FECHADO'].includes(a.status)) fail(409, 'Atendimento encerrado.')
+  if (!b.setorId && !b.userId) fail(400, 'Informe o setor e/ou o atendente de destino.')
+  await assertTenant(tenantId, 'atdSetor', b.setorId, 'Setor'); await assertTenant(tenantId, 'user', b.userId, 'Usuário')
+  const setorId = b.setorId ?? a.setorId
+  const sla = b.setorId && b.setorId !== a.setorId ? await slaDoSetor(tenantId, setorId, a.prioridade) : null
+  await prisma.atdTransferencia.create({ data: { tenantId, atendimentoId: a.id, deSetorId: a.setorId, paraSetorId: setorId, deUserId: a.atribuidoAId, paraUserId: b.userId, motivo: b.motivo, porUserId } })
+  await prisma.atdAtendimento.update({ where: { id: a.id }, data: { setorId, atribuidoAId: b.userId ?? null, status: b.userId ? 'EM_ATENDIMENTO' : 'EM_FILA', ...(sla ? { slaResolucaoEm: new Date(Date.now() + sla.resolucaoMin * 60_000), ...(a.primeiraRespostaEm ? {} : { slaPrimeiraRespostaEm: new Date(Date.now() + sla.primeiraMin * 60_000) }) } : {}) } })
+  await addMensagem({ tenantId, atendimentoId: a.id, direcao: 'NOTA_INTERNA', autorTipo: 'SISTEMA', conteudo: `Transferido: ${b.motivo}` })
+  if (!b.userId && setorId) await distribuir(tenantId, a.id, porUserId)
+  await audit({ tenantId, userId: porUserId, modulo: MOD, acao: 'ATENDIMENTO_TRANSFERIDO', refType: REF, refId: a.id, detalhes: { de: a.setorId, para: setorId } })
+  return prisma.atdAtendimento.findUniqueOrThrow({ where: { id: a.id } })
+}
 const visivelParaAluno = (m: any) => m.direcao !== 'NOTA_INTERNA'
 
 export function mountAtendimentos(router: Router) {
@@ -313,20 +328,9 @@ export function mountAtendimentos(router: Router) {
   }))
 
   router.post('/atendimentos/:id/transferir', requireRole(...ATENDE), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const tenantId = tid(req)
     const a = await carregar(req)
-    if (['RESOLVIDO', 'FECHADO'].includes(a.status)) fail(409, 'Atendimento encerrado.')
     const b = parseBody(z.object({ setorId: z.string().optional(), userId: z.string().optional(), motivo: z.string().min(3).max(500) }), req.body)
-    if (!b.setorId && !b.userId) fail(400, 'Informe o setor e/ou o atendente de destino.')
-    await assertTenant(tenantId, 'atdSetor', b.setorId, 'Setor'); await assertTenant(tenantId, 'user', b.userId, 'Usuário')
-    const setorId = b.setorId ?? a.setorId
-    const sla = b.setorId && b.setorId !== a.setorId ? await slaDoSetor(tenantId, setorId, a.prioridade) : null
-    await prisma.atdTransferencia.create({ data: { tenantId, atendimentoId: a.id, deSetorId: a.setorId, paraSetorId: setorId, deUserId: a.atribuidoAId, paraUserId: b.userId, motivo: b.motivo, porUserId: uid(req) } })
-    await prisma.atdAtendimento.update({ where: { id: a.id }, data: { setorId, atribuidoAId: b.userId ?? null, status: b.userId ? 'EM_ATENDIMENTO' : 'EM_FILA', ...(sla ? { slaResolucaoEm: new Date(Date.now() + sla.resolucaoMin * 60_000), ...(a.primeiraRespostaEm ? {} : { slaPrimeiraRespostaEm: new Date(Date.now() + sla.primeiraMin * 60_000) }) } : {}) } })
-    await addMensagem({ tenantId, atendimentoId: a.id, direcao: 'NOTA_INTERNA', autorTipo: 'SISTEMA', conteudo: `Transferido: ${b.motivo}` })
-    if (!b.userId && setorId) await distribuir(tenantId, a.id, uid(req))
-    await audit({ tenantId, userId: uid(req), modulo: MOD, acao: 'ATENDIMENTO_TRANSFERIDO', refType: REF, refId: a.id, detalhes: { de: a.setorId, para: setorId } })
-    res.json(comSla(await prisma.atdAtendimento.findUniqueOrThrow({ where: { id: a.id } })))
+    res.json(comSla(await transferirAtendimento(tid(req), a, b, uid(req))))
   }))
 
   router.patch('/atendimentos/:id', requireRole(...ATENDE), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
