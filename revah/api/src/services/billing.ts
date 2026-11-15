@@ -4,6 +4,7 @@ import { config, LEADS_PRICE_BRL, PLAN_PRICES_BRL, TRIAL_RULES } from '../config
 import { prisma } from '../lib/prisma'
 import { badRequest, conflict, HttpError } from '../lib/errors'
 import { audit } from './audit'
+import { creditFromCheckout, isAdsSubscription, syncAdsSubscription } from './adsBilling'
 
 // Cobrança recorrente mensal com 14 dias grátis:
 //  - ASAAS: clientes no Brasil (Pix, boleto, cartão). Primeira cobrança no fim do teste.
@@ -56,7 +57,7 @@ export function planForPrice(priceId: string | null | undefined): PaidPlan | nul
   return null
 }
 
-async function ensureStripeCustomer(tenant: Tenant, user: User) {
+export async function ensureStripeCustomer(tenant: Tenant, user: User) {
   if (tenant.stripeCustomerId) return tenant.stripeCustomerId
   const customer = await stripe().customers.create({
     name: tenant.name,
@@ -332,18 +333,21 @@ async function recordEvent(provider: string, eventId: string, type: string, payl
 export async function handleStripeEvent(event: Stripe.Event) {
   return recordEvent('STRIPE', event.id, event.type, event, async () => {
     const obj: any = event.data.object
+    // REVAH Ads é uma assinatura separada do plano REVAH (e a recarga do saldo é um pagamento avulso).
+    const syncAny = (sub: Stripe.Subscription) => (isAdsSubscription(sub) ? syncAdsSubscription(sub) : syncSubscription(sub))
     if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
+      if (obj.mode === 'payment' && obj.metadata?.kind === 'ads_credit') return (await creditFromCheckout(obj)) ? 'PROCESSED' : 'IGNORED'
       if (obj.mode === 'subscription' && obj.subscription) {
         const sub = await stripe().subscriptions.retrieve(typeof obj.subscription === 'string' ? obj.subscription : obj.subscription.id)
-        return (await syncSubscription(sub)) ? 'PROCESSED' : 'IGNORED'
+        return (await syncAny(sub)) ? 'PROCESSED' : 'IGNORED'
       }
     } else if (event.type.startsWith('customer.subscription.')) {
-      return (await syncSubscription(obj as Stripe.Subscription)) ? 'PROCESSED' : 'IGNORED'
+      return (await syncAny(obj as Stripe.Subscription)) ? 'PROCESSED' : 'IGNORED'
     } else if (event.type === 'invoice.payment_failed' || event.type === 'invoice.paid') {
       const subId = obj.parent?.subscription_details?.subscription || obj.subscription
       if (subId) {
         const sub = await stripe().subscriptions.retrieve(typeof subId === 'string' ? subId : subId.id)
-        return (await syncSubscription(sub)) ? 'PROCESSED' : 'IGNORED'
+        return (await syncAny(sub)) ? 'PROCESSED' : 'IGNORED'
       }
     }
     return 'IGNORED'

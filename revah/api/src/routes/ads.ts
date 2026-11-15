@@ -4,15 +4,32 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { ah, notFound } from '../lib/errors'
 import { assertCleanText } from '../lib/contentFilter'
-import type { AuthedRequest } from '../middleware/auth'
+import { requireRole, type AuthedRequest } from '../middleware/auth'
 import { audit } from '../services/audit'
 import { AD_GOALS, adsAccess, assertAdsAccess, generateAdPlan } from '../services/ads'
+import { adsCreditCheckout, adsSubscriptionCheckout, adsWallet } from '../services/adsBilling'
 
 const r = Router()
 
 r.get('/ads/access', (req, res) => {
-  res.json(adsAccess((req as AuthedRequest).tenant))
+  const t = (req as AuthedRequest).tenant
+  res.json({ ...adsAccess(t), subscriptionStatus: t.adsSubscriptionStatus, balanceCents: t.adsCreditCents, blocked: t.adsSpendBlocked })
 })
+
+// Cobrança em dólar pela Stripe: assinatura mensal e recarga pré-paga do saldo de gestão (5%).
+r.post('/ads/subscribe', requireRole('OWNER', 'ADMIN'), ah(async (req: AuthedRequest, res) => {
+  res.json(await adsSubscriptionCheckout(req.tenant, req.user))
+}))
+
+r.get('/ads/wallet', ah(async (req: AuthedRequest, res) => {
+  assertAdsAccess(req.tenant)
+  res.json(await adsWallet(req.tenant.id))
+}))
+
+r.post('/ads/credit', requireRole('OWNER', 'ADMIN'), ah(async (req: AuthedRequest, res) => {
+  const b = z.object({ plannedSpendUsd: z.number().positive().max(1_000_000) }).parse(req.body)
+  res.json(await adsCreditCheckout(req.tenant, req.user, b.plannedSpendUsd))
+}))
 
 const PlanSchema = z.object({
   name: z.string().trim().min(2).max(80),

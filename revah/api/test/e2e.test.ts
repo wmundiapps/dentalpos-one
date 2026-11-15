@@ -524,3 +524,42 @@ test('webhook da Stripe: sem assinatura válida é recusado com 400, com assinat
   const tampered = await request(app).post('/webhooks/stripe').set('Content-Type', 'application/json').set('stripe-signature', header).send(payload.replace('customer.created', 'invoice.paid'))
   assert.equal(tampered.status, 400)
 })
+
+test('REVAH Ads em dólar: assinatura separada, recarga pré-paga e 5% descontados do gasto', async () => {
+  const { token, tenant } = await register('ads-billing@revah.test')
+  const { handleStripeEvent } = await import('../src/services/billing')
+  const { recordAdSpend } = await import('../src/services/adsBilling')
+  // Assinatura do REVAH Ads (separada do plano REVAH).
+  const adsSub: any = { id: 'sub_ads_1', object: 'subscription', customer: 'cus_ads_1', status: 'active', metadata: { tenantId: tenant.id, product: 'REVAH_ADS' }, items: { data: [{ price: { id: 'price_ads' } }] } }
+  await handleStripeEvent({ id: 'evt_ads_sub', type: 'customer.subscription.created', data: { object: adsSub } } as any)
+  let t = await prisma.tenant.findUnique({ where: { id: tenant.id } })
+  assert.equal(t.adsAddonActive, true)
+  assert.equal(t.adsSubscriptionStatus, 'active')
+  assert.equal(await prisma.subscription.count({ where: { tenantId: tenant.id } }), 0, 'não mexe no plano REVAH')
+
+  // Recarga paga: vale o valor que a Stripe confirmou.
+  const session: any = { id: 'cs_ads_1', object: 'checkout.session', mode: 'payment', payment_status: 'paid', currency: 'usd', amount_total: 5000, client_reference_id: tenant.id, metadata: { tenantId: tenant.id, kind: 'ads_credit', spendCents: '100000' } }
+  await handleStripeEvent({ id: 'evt_ads_pay', type: 'checkout.session.completed', data: { object: session } } as any)
+  await handleStripeEvent({ id: 'evt_ads_pay_again', type: 'checkout.session.async_payment_succeeded', data: { object: session } } as any)
+  const w = await request(app).get('/ads/wallet').set(auth(token))
+  assert.equal(w.body.balanceCents, 5000, 'recarga lançada uma única vez')
+  // Pagamento não confirmado não credita.
+  await handleStripeEvent({ id: 'evt_ads_unpaid', type: 'checkout.session.completed', data: { object: { ...session, id: 'cs_ads_2', payment_status: 'unpaid' } } } as any)
+  assert.equal((await request(app).get('/ads/wallet').set(auth(token))).body.balanceCents, 5000)
+
+  // Gasto de US$ 600 no Meta: 5% = US$ 30. Mesmo lançamento duas vezes não desconta de novo.
+  await recordAdSpend(tenant.id, 'META', 60000, '2026-11-15')
+  await recordAdSpend(tenant.id, 'META', 60000, '2026-11-15')
+  t = await prisma.tenant.findUnique({ where: { id: tenant.id } })
+  assert.equal(t.adsCreditCents, 2000)
+  assert.equal(t.adsSpendBlocked, false)
+  // Gasto maior que o saldo: bloqueia até recarregar.
+  await recordAdSpend(tenant.id, 'GOOGLE', 50000, '2026-11-16')
+  t = await prisma.tenant.findUnique({ where: { id: tenant.id } })
+  assert.equal(t.adsCreditCents, -500)
+  assert.equal(t.adsSpendBlocked, true)
+
+  // Cancelou a assinatura: o REVAH Ads deixa de funcionar.
+  await handleStripeEvent({ id: 'evt_ads_del', type: 'customer.subscription.deleted', data: { object: { ...adsSub, status: 'canceled' } } } as any)
+  assert.equal((await request(app).get('/ads/plans').set(auth(token))).status, 402)
+})

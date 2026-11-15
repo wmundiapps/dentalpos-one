@@ -28,6 +28,8 @@ export const config = {
       START: process.env.STRIPE_PRICE_START || '',
       PRO: process.env.STRIPE_PRICE_PRO || '',
       LEADS: process.env.STRIPE_PRICE_LEADS || '',
+      // REVAH Ads: preço mensal em dólar (US$ 29) criado na Stripe.
+      ADS: process.env.STRIPE_PRICE_ADS || '',
     },
     // Vendas internacionais: cartão. Adicione boleto/pix se a conta Stripe permitir.
     paymentMethods: list(process.env.STRIPE_PAYMENT_METHODS || 'card'),
@@ -46,6 +48,9 @@ export const config = {
     // REVAH Ads (add-on): criação de anúncios, trabalho mais caprichado que o atendimento.
     adsModel: process.env.REVAH_ADS_MODEL || 'claude-opus-5-5',
     adsDailyGenerations: Number(process.env.REVAH_ADS_DAILY_GENERATIONS || 30),
+    // Taxa de gestão sobre a verba de anúncios (pré-paga) e recarga mínima do saldo, em dólar.
+    adsFeePercent: Number(process.env.REVAH_ADS_FEE_PERCENT || 5),
+    adsMinTopupUsd: Number(process.env.REVAH_ADS_MIN_TOPUP_USD || 5),
   },
 
   meta: {

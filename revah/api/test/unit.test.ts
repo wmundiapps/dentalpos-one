@@ -138,3 +138,10 @@ test('REVAH Ads: respeita os limites do Meta e passa pelo filtro de conteúdo', 
   assert.equal(r.variants[0].description.length, 30)
   assert.deepEqual(r.flagged, ['Variação 2: texto recusado pelo filtro de conteúdo.'])
 })
+
+test('REVAH Ads: taxa de 5% em centavos de dólar, arredondada para cima', async () => {
+  const { feeForSpend } = await import('../src/services/adsBilling')
+  assert.equal(feeForSpend(100000), 5000)
+  assert.equal(feeForSpend(1999), 100)
+  assert.equal(feeForSpend(1), 1)
+})

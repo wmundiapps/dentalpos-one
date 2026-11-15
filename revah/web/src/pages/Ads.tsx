@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, Megaphone, Plus, Sparkles, Trash2 } from 'lucide-react'
 import { del, get, post, put } from '../lib/api'
+import { useAuthed } from '../lib/session'
 import { useFeedback } from '../components/feedback'
 import { Alert, Badge, Button, Card, CopyButton, EmptyState, ErrorBox, Field, Loading, PageHeader, useLoad } from '../components/ui'
 
@@ -58,18 +59,44 @@ interface AdPlan {
 }
 
 export default function Ads() {
-  const access = useLoad(() => get<{ addonActive: boolean; aiAvailable: boolean }>('/ads/access'))
+  const access = useLoad(() => get<{ addonActive: boolean; aiAvailable: boolean; blocked: boolean }>('/ads/access'))
   const a = access.data
+  const fb = useFeedback()
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    if (q.get('assinatura') === 'ok') fb.success('Assinatura do REVAH Ads confirmada. Pode levar alguns segundos para liberar.')
+    if (q.get('recarga') === 'ok') fb.success('Recarga paga. O saldo aparece assim que a Stripe confirmar.')
+    if (q.has('assinatura') || q.has('recarga')) window.history.replaceState(null, '', '/ads')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   return (
     <div className="page">
       <PageHeader title="REVAH Ads" subtitle="A IA monta seus anúncios para Facebook e Instagram: estratégia, público, verba e textos prontos." />
       <ErrorBox error={access.error} onRetry={access.reload} />
-      {access.loading && !a ? <Loading /> : a && !a.addonActive ? <AdsCta /> : a ? <AdsWorkspace aiAvailable={a.aiAvailable} /> : null}
+      {access.loading && !a ? <Loading /> : a && !a.addonActive ? <AdsCta /> : a ? (
+        <>
+          <Wallet />
+          <AdsWorkspace aiAvailable={a.aiAvailable} />
+        </>
+      ) : null}
     </div>
   )
 }
 
 function AdsCta() {
+  const fb = useFeedback()
+  const { canManage } = useAuthed()
+  const [busy, setBusy] = useState(false)
+  async function subscribe() {
+    setBusy(true)
+    try {
+      const r = await post<{ url: string }>('/ads/subscribe')
+      window.location.href = r.url
+    } catch (e) {
+      fb.fail(e)
+      setBusy(false)
+    }
+  }
   return (
     <Card>
       <div className="cta">
@@ -83,11 +110,91 @@ function AdsCta() {
           <li>Alertas de reprovação (políticas do Meta e regras do seu conselho profissional)</li>
           <li>O lead do anúncio entra no CRM e é atendido na hora pelo robô do REVAH</li>
         </ul>
+        <p className="strong">US$ 29 por mês + 5% sobre o que você investir em anúncios, pré-pago.</p>
+        <p className="small muted">A verba dos anúncios você paga direto ao Facebook/Instagram, Google ou TikTok. Ao REVAH vai só a mensalidade e a taxa de gestão.</p>
         <div className="row wrap gap-sm center-x">
-          <a className="btn btn-primary" href="https://revah.com.br/#contato" target="_blank" rel="noreferrer">
-            Quero contratar
-          </a>
+          {canManage ? (
+            <Button variant="primary" onClick={subscribe} loading={busy}>
+              Assinar o REVAH Ads
+            </Button>
+          ) : (
+            <p className="small muted">Peça ao proprietário ou administrador da conta para assinar.</p>
+          )}
         </div>
+      </div>
+    </Card>
+  )
+}
+
+interface WalletData {
+  balanceCents: number
+  blocked: boolean
+  feePercent: number
+  minTopupUsd: number
+  entries: { id: string; kind: string; amountCents: number; spendCents: number | null; platform: string | null; note: string | null; createdAt: string }[]
+}
+
+const usd = (cents: number) => `US$ ${(cents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+// Saldo de gestão pré-pago: 5% sobre a verba que o cliente vai investir nas plataformas.
+function Wallet() {
+  const fb = useFeedback()
+  const { canManage } = useAuthed()
+  const w = useLoad(() => get<WalletData>('/ads/wallet'))
+  const [spend, setSpend] = useState('')
+  const [busy, setBusy] = useState(false)
+  const d = w.data
+  const spendNum = Number(spend.replace(/\./g, '').replace(',', '.')) || 0
+  const fee = d ? Math.ceil(spendNum * d.feePercent) / 100 : 0
+  async function topup() {
+    setBusy(true)
+    try {
+      const r = await post<{ url: string }>('/ads/credit', { plannedSpendUsd: spendNum })
+      window.location.href = r.url
+    } catch (e) {
+      fb.fail(e)
+      setBusy(false)
+    }
+  }
+  if (!d) return w.error ? <ErrorBox error={w.error} onRetry={w.reload} /> : null
+  return (
+    <Card title="Saldo de gestão">
+      <div className="stack">
+        {d.blocked && <Alert tone="red">Saldo esgotado: os anúncios ficam pausados até você recarregar.</Alert>}
+        <div className="row wrap gap-sm between">
+          <div>
+            <div className="small muted">Saldo disponível</div>
+            <div className="strong" style={{ fontSize: 24 }}>{usd(d.balanceCents)}</div>
+            <div className="small muted">Cobre {usd(Math.max(0, d.balanceCents) * (100 / d.feePercent))} de investimento em anúncios ({d.feePercent}%).</div>
+          </div>
+          {canManage && (
+            <div className="row wrap gap-sm" style={{ alignItems: 'flex-end' }}>
+              <Field label="Quanto vai investir em anúncios (US$)">
+                <input inputMode="decimal" value={spend} onChange={(e) => setSpend(e.target.value)} placeholder="ex.: 1000" />
+              </Field>
+              <Button variant="primary" onClick={topup} loading={busy} disabled={fee < d.minTopupUsd}>
+                Pagar {fee ? usd(Math.round(fee * 100)) : `${d.feePercent}%`}
+              </Button>
+            </div>
+          )}
+        </div>
+        {d.entries.length > 0 && (
+          <div className="table-wrap">
+            <table className="table">
+              <tbody>
+                {d.entries.slice(0, 10).map((e) => (
+                  <tr key={e.id}>
+                    <td className="small">{new Date(e.createdAt).toLocaleDateString('pt-BR')}</td>
+                    <td className="small">
+                      {e.kind === 'TOPUP' ? 'Recarga' : e.kind === 'FEE' ? `Taxa sobre ${usd(e.spendCents || 0)} em ${e.platform}` : e.note || 'Ajuste'}
+                    </td>
+                    <td className={`small strong ${e.amountCents < 0 ? 'text-red' : ''}`}>{usd(e.amountCents)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </Card>
   )
