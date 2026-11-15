@@ -14,8 +14,7 @@ const MOD = 'rh-dp'
 
 const CHECKLIST_ADMISSAO = ['Documento de identidade e CPF', 'CTPS digital / PIS', 'Comprovante de residência', 'Certidões de dependentes (se houver)', 'Exame admissional (ASO)', 'Contrato de trabalho assinado', 'Dados bancários / PIX', 'Declaração de opção pelo vale-transporte']
 const ETAPAS_CAND = ['TRIAGEM', 'ENTREVISTA', 'TESTE', 'PROPOSTA', 'APROVADO', 'REPROVADO', 'DESISTIU'] as const
-const ehSuperPapel = (p: string) => ['ADMIN', 'OWNER', 'RECTOR', 'BOARD'].includes(p)
-const cpfVisivel = (req: AuthenticatedRequest) => papelDe(req) !== 'COORDINATOR'
+const cpfVisivel = (req: AuthenticatedRequest) => papelDe(req) !== 'LEITOR'
 const refFim = (competencia: string) => { const [a, m] = competencia.split('-').map(Number); return new Date(Date.UTC(a, m, 0, 12)) }
 const compSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'competência deve ser AAAA-MM')
 const dataSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}/, 'data deve ser AAAA-MM-DD')
@@ -441,4 +440,3 @@ router.delete('/rescisoes/:id', asyncHandler(async (req: AuthenticatedRequest, r
 }))
 
 export default router
-export { ehSuperPapel, versaoVigente, diffDias }

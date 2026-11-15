@@ -25,6 +25,9 @@ async function main() {
   const { call, t1, t2, close } = await setup()
   const adm = await t1.mk('ADMIN'), fin = await t1.mk('FINANCE'), contador = await t1.mk('ACCOUNTANT'), gestor = await t1.mk('COORDINATOR'), aluno = await t1.mk('STUDENT', true), prof = await t1.mk('TEACHER')
   const finB = await t2.mk('FINANCE'), admB = await t2.mk('ADMIN')
+  // papéis da Contabilidade: o "gestor" deste teste é um LEITOR designado (CtbMembro); COORDINATOR sem designação não tem acesso
+  const coordSem = await t1.mk('COORDINATOR')
+  await prisma.ctbMembro.create({ data: { tenantId: t1.tenantId, userId: gestor.id, papel: 'LEITOR' } })
 
   // ======================================================================== funções puras
   secao('Cálculos puros com casos conhecidos (tabelas 2026 parametrizadas)')
@@ -86,6 +89,16 @@ async function main() {
     check(`contador lê ${rota}`, (await call(contador, 'GET', rota)).status === 200)
   }
   check('aluno não grava abertura', (await call(aluno, 'POST', `${S}/aberturas`, { nomeEmpresarial: 'X Y LTDA', tipo: 'LTDA' })).status === 403)
+  check('cargo sem papel contábil (COORDINATOR não designado) -> 403 em leitura e escrita', (await call(coordSem, 'GET', `${S}/painel`)).status === 403 && (await call(coordSem, 'POST', `${S}/aberturas`, { nomeEmpresarial: 'Sem Papel LTDA', tipo: 'LTDA' })).status === 403 && (await call(coordSem, 'GET', `${A}/meta`)).status === 403)
+  const desig = await t1.mk('TEACHER')
+  await prisma.ctbMembro.create({ data: { tenantId: t1.tenantId, userId: desig.id, papel: 'CONTADOR' } })
+  check('professor continua sem acesso mesmo se designado por engano (aluno/professor nunca)', (await call(desig, 'GET', `${S}/painel`)).status === 403)
+  const finLeitor = await t1.mk('FINANCE')
+  await prisma.ctbMembro.create({ data: { tenantId: t1.tenantId, userId: finLeitor.id, papel: 'LEITOR' } })
+  check('designação explícita (LEITOR) prevalece sobre o cargo FINANCE: lê, mas não grava', (await call(finLeitor, 'GET', `${S}/painel`)).status === 200 && (await call(finLeitor, 'POST', `${S}/aberturas`, { nomeEmpresarial: 'Leitor Teste LTDA', tipo: 'LTDA' })).status === 403)
+  const gestorDes = await t1.mk('COORDINATOR')
+  await prisma.ctbMembro.create({ data: { tenantId: t1.tenantId, userId: gestorDes.id, papel: 'GESTOR' } })
+  check('GESTOR designado grava e acessa a fila', (await call(gestorDes, 'GET', `${A}/revisoes`)).status === 200 && (await call(gestorDes, 'POST', `${S}/aberturas`, { nomeEmpresarial: 'Gestor Designado LTDA', tipo: 'LTDA' })).status === 201)
   check('gestor (leitura) não cria abertura', (await call(gestor, 'POST', `${S}/aberturas`, { nomeEmpresarial: 'Gestor Teste LTDA', tipo: 'LTDA' })).status === 403)
   check('gestor não cria vaga nem declaração', (await call(gestor, 'POST', `${D}/vagas`, { empresaId: 'e', titulo: 'Vaga' })).status === 403 && (await call(gestor, 'POST', `${I}/declaracoes`, { tipo: 'PF', titularNome: 'Fulano de Tal', exercicio: 2026 })).status === 403)
   check('gestor não altera tabelas fiscais', (await call(gestor, 'POST', `${D}/parametros`, { chave: 'SALARIO_MINIMO', vigenciaInicio: '2030-01-01', dados: { valor: 2000 } })).status === 403)
@@ -398,8 +411,8 @@ async function main() {
   check('PII digitada é mascarada no registro da conversa', await (async () => { const r = await call(gestor, 'POST', `${A}/conversas/${cid}/mensagens`, { texto: `Meu CPF é ${cpfT} e meu e-mail joao@exemplo.com, como declarar aluguel?` }); return r.json.pergunta.conteudo.includes('[CPF]') && r.json.pergunta.conteudo.includes('[EMAIL]') && !r.json.pergunta.conteudo.includes(cpfT) })())
   check('texto muito curto/vazio -> 400', (await call(gestor, 'POST', `${A}/conversas/${cid}/mensagens`, { texto: '' })).status === 400)
   check('outro usuário (contador) não envia mensagem na conversa alheia, mas pode lê-la (auditoria)', (await call(contador, 'POST', `${A}/conversas/${cid}/mensagens`, { texto: 'teste de intrusão' })).status === 403 && (await call(contador, 'GET', `${A}/conversas/${cid}`)).status === 200)
-  check('financeiro de outro usuário sem ser contador? (FINANCE = contador) lista só as próprias por padrão', (await call(contador, 'GET', `${A}/conversas`)).json.total === 0 && (await call(contador, 'GET', `${A}/conversas?todas=true`)).json.total >= 1)
-  check('gestor não lê conversa de outro (somente contador/ADMIN) — outro gestor é 404', await (async () => { const g2 = await t1.mk('COORDINATOR'); return (await call(g2, 'GET', `${A}/conversas/${cid}`)).status === 404 })())
+  check('contador vê todas as conversas (auditoria); financeiro, só as próprias', (await call(contador, 'GET', `${A}/conversas`)).json.total === 0 && (await call(contador, 'GET', `${A}/conversas?todas=true`)).json.total >= 1 && (await call(fin, 'GET', `${A}/conversas?todas=true`)).json.total === 0 && (await call(fin, 'GET', `${A}/conversas/${cid}`)).status === 404)
+  check('gestor não lê conversa de outro (somente contador/ADMIN) — outro gestor é 404', await (async () => { const g2 = await t1.mk('COORDINATOR'); await prisma.ctbMembro.create({ data: { tenantId: t1.tenantId, userId: g2.id, papel: 'LEITOR' } }); return (await call(g2, 'GET', `${A}/conversas/${cid}`)).status === 404 })())
   check('tenant B não lê conversa do A', (await call(finB, 'GET', `${A}/conversas/${cid}`)).status === 404 && (await call(admB, 'GET', `${A}/conversas?todas=true`)).json.total === 0)
   // revisão
   const msgAs = respostas[0].json.resposta.id
@@ -412,6 +425,7 @@ async function main() {
   check('contador vê a fila de pendentes', fila.status === 200 && fila.json.items.some((x: any) => x.id === sr.json.id))
   check('gestor só vê as próprias solicitações', (await call(gestor, 'GET', `${A}/revisoes`)).json.items.every((x: any) => x.solicitanteId === gestor.id))
   check('aluno não acessa a fila', (await call(aluno, 'GET', `${A}/revisoes`)).status === 403)
+  check('financeiro também NÃO decide o parecer (só contador/gestor)', (await call(fin, 'PUT', `${A}/revisoes/${sr.json.id}/parecer`, { status: 'APROVADO', parecer: 'Financeiro tentando decidir' })).status === 403)
   check('gestor NÃO decide o parecer (humano = contador)', (await call(gestor, 'PUT', `${A}/revisoes/${sr.json.id}/parecer`, { status: 'APROVADO', parecer: 'Aprovado por mim mesmo' })).status === 403)
   check('parecer curto -> 400; status inválido -> 400', (await call(contador, 'PUT', `${A}/revisoes/${sr.json.id}/parecer`, { status: 'APROVADO', parecer: 'ok' })).status === 400 && (await call(contador, 'PUT', `${A}/revisoes/${sr.json.id}/parecer`, { status: 'TALVEZ', parecer: 'parecer longo o suficiente' })).status === 400)
   const aj = await call(contador, 'PUT', `${A}/revisoes/${sr.json.id}/parecer`, { status: 'AJUSTAR', parecer: 'Falta considerar o fator R da atividade; ajustar a resposta.' })
@@ -419,7 +433,7 @@ async function main() {
   check('decidir de novo -> 409', (await call(contador, 'PUT', `${A}/revisoes/${sr.json.id}/parecer`, { status: 'APROVADO', parecer: 'tentando decidir outra vez' })).status === 409)
   check('solicitante reabre a revisão (volta a PENDENTE) e o contador aprova', (await call(gestor, 'POST', `${A}/revisoes/${sr.json.id}/reabrir`, {})).json.status === 'PENDENTE' && (await call(contador, 'PUT', `${A}/revisoes/${sr.json.id}/parecer`, { status: 'APROVADO', parecer: 'Resposta correta após o ajuste; validar o fator R no caso concreto.' })).json.status === 'APROVADO')
   check('conversa mostra a revisão com o parecer humano', (await call(gestor, 'GET', `${A}/conversas/${cid}`)).json.revisoes.some((x: any) => x.status === 'APROVADO' && /fator R/.test(x.parecer)))
-  check('tenant B não vê nem decide revisão do A', (await call(finB, 'GET', `${A}/revisoes`)).json.total === 0 && (await call(finB, 'PUT', `${A}/revisoes/${sr.json.id}/parecer`, { status: 'APROVADO', parecer: 'tentativa cruzada de tenant' })).status === 404)
+  check('tenant B não vê nem decide revisão do A', (await call(finB, 'GET', `${A}/revisoes`)).json.total === 0 && (await call(admB, 'PUT', `${A}/revisoes/${sr.json.id}/parecer`, { status: 'APROVADO', parecer: 'tentativa cruzada de tenant' })).status === 404)
   // notificação sem PII
   const notifs = await prisma.eduNotification.findMany({ where: { tenantId: t1.tenantId, templateKey: 'ctb2.generico' } })
   check('notificação aos contadores é genérica, sem texto da pergunta nem PII', notifs.length >= 1 && notifs.every((n) => !/Simples|CPF|@|\d{3}\.\d{3}/.test(`${n.assunto} ${n.mensagem}`)))
@@ -430,7 +444,7 @@ async function main() {
   check('artigo do tenant entra nas respostas (também com avisos)', /5 dias úteis/.test(rArt.json.resposta.conteudo) && rArt.json.resposta.conteudo.includes(AVISO))
   check('artigo de outro tenant não vaza', await (async () => { const g = await t2.mk('FINANCE'); const c = await call(g, 'POST', `${A}/conversas`, {}); const r = await call(g, 'POST', `${A}/conversas/${c.json.id}/mensagens`, { texto: 'Como funciona o reembolso de viagem?' }); return !/5 dias úteis/.test(r.json.resposta.conteudo) })())
   // config e retenção
-  check('gestor não altera a configuração; contador sim (validação de retenção)', (await call(gestor, 'PUT', `${A}/config`, { retencaoDias: 30 })).status === 403 && (await call(contador, 'PUT', `${A}/config`, { retencaoDias: 3 })).status === 400 && (await call(contador, 'PUT', `${A}/config`, { retencaoDias: 30 })).status === 200)
+  check('gestor/financeiro não alteram a configuração; contador sim (validação de retenção)', (await call(gestor, 'PUT', `${A}/config`, { retencaoDias: 30 })).status === 403 && (await call(fin, 'PUT', `${A}/config`, { retencaoDias: 30 })).status === 403 && (await call(contador, 'PUT', `${A}/config`, { retencaoDias: 3 })).status === 400 && (await call(contador, 'PUT', `${A}/config`, { retencaoDias: 30 })).status === 200)
   check('aviso de LGPD reflete a retenção configurada', /30 dias/.test((await call(gestor, 'GET', `${A}/meta`)).json.avisoLgpd))
   const cOld = await call(gestor, 'POST', `${A}/conversas`, {})
   await call(gestor, 'POST', `${A}/conversas/${cOld.json.id}/mensagens`, { texto: 'Qual o prazo da DEFIS?' })

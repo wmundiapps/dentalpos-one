@@ -6,16 +6,25 @@
 import type { NextFunction, Request, Response } from 'express'
 import { z, type ZodTypeAny } from 'zod'
 import { prisma } from '../../lib/prisma'
-import { asyncHandler, requireAuth, requireRole } from '../academico/middleware'
+import { asyncHandler, requireAuth } from '../academico/middleware'
+import { resolverPapel } from './nucleo/rbac'
 import type { AuthenticatedRequest } from '../academico/middleware'
 import { notify } from '../core/notify'
+import { registerEduJob } from '../core/jobs'
 
-export { prisma, asyncHandler, requireAuth, requireRole }
+export { prisma, asyncHandler, requireAuth }
+/** Rotinas periódicas (cron único do hospedeiro). */
+export const registrarJob = registerEduJob
 export type { AuthenticatedRequest }
 
-/** Papéis (strings do campo role do usuário). "Contador" = FINANCE ou ACCOUNTANT; "gestor" = COORDINATOR (leitura e pedido de revisão). ADMIN/OWNER/RECTOR/BOARD são super. */
-export const ROLES_ESCRITA: any[] = ['FINANCE', 'ACCOUNTANT']
-export const ROLES_LEITURA: any[] = ['FINANCE', 'ACCOUNTANT', 'COORDINATOR']
+/**
+ * Papéis contábeis (mesmo modelo da parte fiscal: nucleo/rbac.ts + adapter): GESTOR (cargos de gestão do hospedeiro), CONTADOR, FINANCEIRO e LEITOR.
+ * Aluno e professor nunca acessam. Designação explícita (CtbMembro) vale mais que o mapeamento do cargo.
+ * Nesta parte: leitura = qualquer papel; escrita = GESTOR/CONTADOR/FINANCEIRO; parecer, configuração e auditoria de conversas = GESTOR/CONTADOR.
+ */
+export type PapelCtb = 'GESTOR' | 'CONTADOR' | 'FINANCEIRO' | 'LEITOR'
+export const PAPEIS_ESCRITA: PapelCtb[] = ['GESTOR', 'CONTADOR', 'FINANCEIRO']
+export const PAPEIS_PARECER: PapelCtb[] = ['GESTOR', 'CONTADOR']
 
 export function httpError(status: number, message: string, extra?: Record<string, unknown>) {
   return Object.assign(new Error(message), { status, ...(extra || {}) })
@@ -29,7 +38,10 @@ export const uid = (req: AuthenticatedRequest): string => {
   if (!req.user?.id) throw httpError(401, 'Usuário não identificado.')
   return req.user.id
 }
-export const papelDe = (req: AuthenticatedRequest) => String(req.user?.role || '').toUpperCase()
+/** Papel contábil já resolvido pelo middleware (porMetodo/soLeitura/soEscrita/soParecer). */
+export const papelDe = (req: AuthenticatedRequest): PapelCtb | undefined => (req as any).ctb?.papel
+export const podeEscrever = (req: AuthenticatedRequest) => PAPEIS_ESCRITA.includes(papelDe(req) as PapelCtb)
+export const ehAuditor = (req: AuthenticatedRequest) => PAPEIS_PARECER.includes(papelDe(req) as PapelCtb)
 
 export function parseBody<T extends ZodTypeAny>(schema: T, body: unknown): z.infer<T> {
   const r = schema.safeParse(body)
@@ -43,13 +55,24 @@ export function pageParams(query: any) {
   return { page, pageSize, skip: (page - 1) * pageSize, take: pageSize }
 }
 
-/** Leitura (GET/HEAD): contador, financeiro e gestor. Escrita: contador/financeiro. Alunos e professores nunca passam. */
-export function porMetodo(req: Request, res: Response, next: NextFunction) {
-  const r = req.method === 'GET' || req.method === 'HEAD' ? requireRole(...ROLES_LEITURA) : requireRole(...ROLES_ESCRITA)
-  return r(req as AuthenticatedRequest, res, next)
+const guarda = (permitidos?: PapelCtb[]) => async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const r = req as AuthenticatedRequest
+    if (!r.user) return res.status(401).json({ error: 'Não autenticado.' })
+    const ctx = (req as any).ctb ?? (await resolverPapel(req))
+    if (!ctx) return res.status(403).json({ error: 'Seu cargo não tem acesso à Contabilidade. Peça ao gestor para designar o papel de contador, financeiro ou leitor.', codigo: 'CTB_SEM_PAPEL' })
+    ;(req as any).ctb = ctx
+    if (permitidos && !permitidos.includes(ctx.papel)) return res.status(403).json({ error: 'Seu papel na Contabilidade não permite esta ação.', codigo: 'CTB_SEM_PERMISSAO' })
+    next()
+  } catch (e) { next(e) }
 }
-export const soLeitura = requireRole(...ROLES_LEITURA)
-export const soEscrita = requireRole(...ROLES_ESCRITA)
+/** Leitura (GET/HEAD): qualquer papel contábil. Escrita: GESTOR/CONTADOR/FINANCEIRO. Alunos e professores nunca passam. */
+export function porMetodo(req: Request, res: Response, next: NextFunction) {
+  return guarda(req.method === 'GET' || req.method === 'HEAD' ? undefined : PAPEIS_ESCRITA)(req, res, next)
+}
+export const soLeitura = guarda()
+export const soEscrita = guarda(PAPEIS_ESCRITA)
+export const soParecer = guarda(PAPEIS_PARECER)
 
 /** Auditoria própria do bloco (sem dados pessoais em `detalhes`: use ids e contagens). */
 export async function auditar(req: AuthenticatedRequest | null, modulo: string, acao: string, ref?: { tipo?: string; id?: string }, detalhes?: unknown, tenantId?: string, userId?: string) {
@@ -70,6 +93,11 @@ export const registrarEmpresaProvider = (p: EmpresaProvider | null) => { provide
 /** Resolve a empresa pelo provedor registrado; sem provedor, usa as "fotos" guardadas neste bloco (aberturas, funcionários, declarações). */
 export async function resolverEmpresa(tenantId: string, empresaId: string): Promise<EmpresaRef> {
   if (provider) { try { const e = await provider(tenantId, empresaId); if (e) return e } catch (e) { console.error('[ctb2-empresa-provider]', (e as any)?.message) } }
+  // cadastro de empresas da parte fiscal (mesmo bloco contábil), quando existir
+  try {
+    const fe = await prisma.ctbEmpresa.findFirst({ where: { id: empresaId, tenantId }, select: { id: true, razaoSocial: true, documento: true, regimeAtual: true, municipio: true, uf: true } })
+    if (fe) return { id: fe.id, nome: fe.razaoSocial, documento: fe.documento, regime: fe.regimeAtual, municipio: fe.municipio, uf: fe.uf }
+  } catch { /* tabela ausente neste hospedeiro */ }
   const ab = await prisma.ctbSocAbertura.findFirst({ where: { tenantId, empresaId }, select: { nomeEmpresarial: true, cnpj: true, municipio: true, uf: true } })
   if (ab) return { id: empresaId, nome: ab.nomeEmpresarial, documento: ab.cnpj, municipio: ab.municipio, uf: ab.uf }
   const f = await prisma.ctbDpFuncionario.findFirst({ where: { tenantId, empresaId }, select: { empresaNome: true } })
@@ -86,7 +114,9 @@ export async function nomeEmpresa(tenantId: string, empresaId?: string | null, i
 /** Notificação interna SEM dados pessoais (apenas título genérico e referência). Melhor esforço: nunca derruba a operação. */
 export async function notificarContadores(tenantId: string, assunto: string, mensagem: string, ref?: { tipo: string; id: string }) {
   try {
-    const us = await prisma.user.findMany({ where: { tenantId, role: { in: ['FINANCE', 'ACCOUNTANT'] } }, select: { id: true }, take: 50 })
-    for (const u of us) await notify({ tenantId, userId: u.id, assunto, mensagem, templateKey: 'ctb2.generico', refType: ref?.tipo, refId: ref?.id })
+    const us = await prisma.user.findMany({ where: { tenantId, role: { in: ['FINANCE', 'ACCOUNTANT', 'CONTADOR'] } }, select: { id: true }, take: 50 })
+    const ms = await prisma.ctbMembro.findMany({ where: { tenantId, ativo: true, papel: { in: ['CONTADOR', 'GESTOR'] } }, select: { userId: true }, take: 50 })
+    const ids = [...new Set([...us.map((u) => u.id), ...ms.map((m) => m.userId)])]
+    for (const u of ids.map((id) => ({ id }))) await notify({ tenantId, userId: u.id, assunto, mensagem, templateKey: 'ctb2.generico', refType: ref?.tipo, refId: ref?.id })
   } catch (e) { console.error('[ctb2-notify]', (e as any)?.message) }
 }

@@ -1,8 +1,7 @@
 import { createHash } from 'crypto'
 import { Router } from 'express'
 import { z } from 'zod'
-import { AuthenticatedRequest, asyncHandler, auditar, httpError, notificarContadores, nomeEmpresa, pageParams, papelDe, parseBody, prisma, qs, requireAuth, soEscrita, soLeitura, tid, uid } from '../host2'
-import { registerEduJob } from '../../core/jobs'
+import { AuthenticatedRequest, asyncHandler, auditar, httpError, notificarContadores, nomeEmpresa, pageParams, papelDe, ehAuditor, parseBody, prisma, qs, registrarJob, requireAuth, soParecer, soLeitura, tid, uid } from '../host2'
 import { FAIXA_AVISO, redigirPii } from '../util'
 import { BASE_CONHECIMENTO } from './conhecimento'
 import { consultarLlm, llmConfigurado } from './llm'
@@ -14,8 +13,7 @@ const router = Router()
 router.use(requireAuth)
 router.use(soLeitura)
 const MOD = 'assistente'
-const SUPERS = ['ADMIN', 'OWNER', 'RECTOR', 'BOARD']
-const ehEscrita = (req: AuthenticatedRequest) => SUPERS.includes(papelDe(req)) || ['FINANCE', 'ACCOUNTANT'].includes(papelDe(req))
+const ehEscrita = ehAuditor   // GESTOR e CONTADOR: veem conversas e fila inteira, configuram e decidem pareceres
 
 export async function getCfg(tenantId: string) {
   return prisma.ctbAsConfig.upsert({ where: { tenantId }, create: { tenantId }, update: {} })
@@ -37,7 +35,7 @@ router.get('/meta', asyncHandler(async (req: AuthenticatedRequest, res) => {
 }))
 
 router.get('/config', asyncHandler(async (req: AuthenticatedRequest, res) => res.json(await getCfg(tid(req)))))
-router.put('/config', soEscrita, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/config', soParecer, asyncHandler(async (req: AuthenticatedRequest, res) => {
   const tenantId = tid(req)
   const d = parseBody(z.object({ ativo: z.boolean().optional(), retencaoDias: z.number().int().min(7).max(3650).optional(), usarLlmExterno: z.boolean().optional(), enviarContexto: z.boolean().optional() }), req.body)
   await getCfg(tenantId)
@@ -52,14 +50,14 @@ router.get('/artigos', asyncHandler(async (req: AuthenticatedRequest, res) => {
   const proprios = await prisma.ctbAsArtigo.findMany({ where: { tenantId }, orderBy: { titulo: 'asc' } })
   res.json({ padrao: BASE_CONHECIMENTO.map(({ slug, titulo, categoria }) => ({ slug, titulo, categoria })), proprios })
 }))
-router.post('/artigos', soEscrita, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.post('/artigos', soParecer, asyncHandler(async (req: AuthenticatedRequest, res) => {
   const tenantId = tid(req)
   const d = parseBody(z.object({ slug: z.string().regex(/^[a-z0-9-]{3,60}$/), titulo: z.string().min(3).max(160), categoria: z.string().max(40).default('GERAL'), palavrasChave: z.string().max(400).default(''), conteudo: z.string().min(20).max(6000) }), req.body)
   const a = await prisma.ctbAsArtigo.upsert({ where: { tenantId_slug: { tenantId, slug: d.slug } }, create: { tenantId, ...d, criadoPorId: uid(req) }, update: { ...d, ativo: true } })
   await auditar(req, MOD, 'ARTIGO_SALVO', { tipo: 'CtbAsArtigo', id: a.id })
   res.status(201).json(a)
 }))
-router.delete('/artigos/:id', soEscrita, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.delete('/artigos/:id', soParecer, asyncHandler(async (req: AuthenticatedRequest, res) => {
   const r = await prisma.ctbAsArtigo.updateMany({ where: { id: String(req.params.id), tenantId: tid(req) }, data: { ativo: false } })
   if (!r.count) throw httpError(404, 'Artigo não encontrado.')
   res.json({ ok: true })
@@ -97,7 +95,7 @@ router.get('/conversas/:id', asyncHandler(async (req: AuthenticatedRequest, res)
 }))
 router.delete('/conversas/:id', asyncHandler(async (req: AuthenticatedRequest, res) => {
   const c = await minhaConversa(req, String(req.params.id))
-  if (c.userId !== uid(req) && !SUPERS.includes(papelDe(req))) throw httpError(403, 'Apenas o autor ou a administração pode apagar a conversa.')
+  if (c.userId !== uid(req) && papelDe(req) !== 'GESTOR') throw httpError(403, 'Apenas o autor ou a administração pode apagar a conversa.')
   await prisma.ctbAsMensagem.deleteMany({ where: { tenantId: c.tenantId, conversaId: c.id } })
   await prisma.ctbAsConversa.delete({ where: { id: c.id } })
   await auditar(req, MOD, 'CONVERSA_APAGADA', { tipo: 'CtbAsConversa', id: c.id })
@@ -158,7 +156,7 @@ router.get('/revisoes', asyncHandler(async (req: AuthenticatedRequest, res) => {
   const [total, items] = await Promise.all([prisma.ctbAsRevisao.count({ where }), prisma.ctbAsRevisao.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take })])
   res.json({ total, page, pageSize, items, aviso: 'O parecer final é sempre humano (contador).' })
 }))
-router.put('/revisoes/:id/parecer', soEscrita, asyncHandler(async (req: AuthenticatedRequest, res) => {
+router.put('/revisoes/:id/parecer', soParecer, asyncHandler(async (req: AuthenticatedRequest, res) => {
   const tenantId = tid(req)
   const r = await prisma.ctbAsRevisao.findFirst({ where: { id: String(req.params.id), tenantId } })
   if (!r) throw httpError(404, 'Solicitação não encontrada.')
@@ -192,8 +190,8 @@ export async function purgarConversas(tenantId?: string) {
   }
   return { tenants: cfgs.length, conversas }
 }
-router.post('/retencao/executar', soEscrita, asyncHandler(async (req: AuthenticatedRequest, res) => res.json(await purgarConversas(tid(req)))))
-export const registrarJobsAssistente = () => registerEduJob('contabil.assistente-retencao', () => purgarConversas())
+router.post('/retencao/executar', soParecer, asyncHandler(async (req: AuthenticatedRequest, res) => res.json(await purgarConversas(tid(req)))))
+export const registrarJobsAssistente = () => registrarJob('contabil.assistente-retencao', () => purgarConversas())
 registrarJobsAssistente()
 
 export default router

@@ -37,7 +37,10 @@ export async function seedContabilSocietario(api: SeedApi, ctx: SeedCtx = {}): P
   const ja = await api('GET', `${S}/aberturas?pageSize=1`)
   if (ja && (ja.total ?? 0) > 0) return r   // idempotente
   const ok = async <T>(p: Promise<T>, nome: string): Promise<T | null> => { const v = await p; if (!v) falha(nome); return v }
-  const EMP = 'emp-demo-escola', EMP_NOME = 'Escola Modelo Educação Ltda'
+  // Se a parte fiscal do bloco já tiver empresas-cliente neste tenant, usa a primeira (demo coerente); senão, um código fictício.
+  const refs = await api('GET', `${S}/empresas-ref`)
+  const ref = (refs?.itens || []).find((x: any) => x.nome)
+  const EMP: string = ref?.id ?? 'emp-demo-escola', EMP_NOME: string = ref?.nome ?? 'Escola Modelo Educação Ltda'
 
   // ---------------- 1. abertura de empresa em andamento (LTDA odontológica) ----------------
   const ab = await ok(api('POST', `${S}/aberturas`, {

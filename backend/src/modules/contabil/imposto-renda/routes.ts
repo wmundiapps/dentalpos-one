@@ -28,7 +28,7 @@ async function declaracao(tenantId: string, id: string) {
   if (!d) throw httpError(404, 'Declaração não encontrada.')
   return d
 }
-const docVisivel = (req: AuthenticatedRequest) => papelDe(req) !== 'COORDINATOR'
+const docVisivel = (req: AuthenticatedRequest) => papelDe(req) !== 'LEITOR'
 const outDecl = (d: any, ver: boolean) => ({ ...d, titularDoc: ver ? d.titularDoc : d.tipo === 'PF' ? mascaraCpf(d.titularDoc) : d.titularDoc })
 const tabelaIr = async (tenantId: string, anoCalendario: number) => (await versaoVigente<TabelaIrpfAnual>(tenantId, 'IRPF_ANUAL', new Date(Date.UTC(anoCalendario, 11, 31, 12)))).dados
 const asItens = (rows: any[]): ItemIr[] => rows.map((r) => ({ id: r.id, secao: r.secao, categoria: r.categoria, descricao: r.descricao, valor: r.valor, valorAnterior: r.valorAnterior, documento: r.documento, dados: r.dados }))

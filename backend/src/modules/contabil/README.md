@@ -49,8 +49,9 @@ Sem provedor, o nome vem das "fotos" guardadas neste bloco. `GET /societario/emp
 
 ### Papéis e segurança
 
-- **Contador** = cargo `FINANCE` (ou `ACCOUNTANT`) — opera tudo e decide pareceres; **gestor** = `COORDINATOR` — só leitura (CPF mascarado) e pode conversar com o assistente e solicitar revisão;
-  `ADMIN/OWNER/RECTOR/BOARD` têm acesso total; **aluno e professor não têm acesso (403)**. Regra: GET exige leitura; POST/PUT/DELETE exigem escrita (`porMetodo`).
+- Papéis contábeis iguais aos da parte fiscal (`nucleo/rbac.ts` + `adapter`): **GESTOR** (cargos de gestão do hospedeiro ou designado), **CONTADOR** (`ACCOUNTANT`/`CONTADOR` ou designado), **FINANCEIRO** (`FINANCE`) e **LEITOR**; designação explícita (`CtbMembro`) prevalece sobre o cargo.
+  Nesta parte: **leitura** = qualquer papel (CPF mascarado para LEITOR); **escrita** (abrir empresas, DP, IR, conversar e pedir revisão) = GESTOR/CONTADOR/FINANCEIRO; **parecer da revisão, configuração do assistente, artigos e retenção** = só GESTOR/CONTADOR;
+  **aluno e professor não têm acesso (403)**, nem se forem designados por engano. Cargos sem papel (ex.: COORDINATOR não designado) recebem 403 com orientação para pedir a designação. `host2.ts` aplica essas regras (`porMetodo`, `soLeitura`, `soEscrita`, `soParecer`).
 - Módulo de acesso por cargo: `contabil` (catálogo em `modules/acesso/catalogo.ts`; menu e `frontend/src/edu/acesso/modulos.ts`).
 - Isolamento por tenant em **toda** consulta (`tenantId` do token); outro tenant recebe 404.
 - Validação de entrada com `zod`; CPF/CNPJ com dígito verificador; uploads (comprovantes do IR) passam pelo **uploadGuard global** (varredura de tipo real/malware) e têm limite de tamanho/tipo.

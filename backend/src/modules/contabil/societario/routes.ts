@@ -80,6 +80,8 @@ router.get('/empresas-ref', asyncHandler(async (req: AuthenticatedRequest, res) 
     prisma.ctbIrDeclaracao.findMany({ where: { tenantId, empresaId: { not: null } }, select: { empresaId: true, titularNome: true }, distinct: ['empresaId'] }),
   ])
   const m = new Map<string, string | null>()
+  // empresas cadastradas na parte fiscal (mesmo bloco contábil), quando existirem
+  try { for (const x of await prisma.ctbEmpresa.findMany({ where: { tenantId, ativo: true }, select: { id: true, razaoSocial: true }, orderBy: { razaoSocial: 'asc' }, take: 300 })) m.set(x.id, x.razaoSocial) } catch { /* sem a parte fiscal */ }
   for (const x of a) m.set(x.empresaId!, x.nomeEmpresarial)
   for (const x of f) if (!m.has(x.empresaId)) m.set(x.empresaId, x.empresaNome)
   for (const x of d) if (!m.has(x.empresaId!)) m.set(x.empresaId!, x.titularNome)

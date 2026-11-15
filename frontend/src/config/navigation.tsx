@@ -77,7 +77,7 @@ export interface NavigationItem { label: string; path: string; icon: ReactNode; 
 export interface NavigationGroup { label: string; icon: ReactNode; items: NavigationItem[]; }
 
 /** Cargos que veem o submenu Contabilidade (alunos e professores não têm acesso). */
-const CTB_ROLES = ["ADMIN","OWNER","RECTOR","BOARD","FINANCE","ACCOUNTANT","COORDINATOR"];
+const CTB_ROLES = ["ADMIN","OWNER","RECTOR","BOARD","FINANCE","ACCOUNTANT","CONTADOR","COORDINATOR"];
 const item = (label:string,path:string,icon:ReactNode,roles?:string[]):NavigationItem => ({label,path,icon,...(roles?{roles}:{})});
 const alphabetical = (items:NavigationItem[]) => [...items].sort((a,b)=>a.label.localeCompare(b.label,"pt-BR"));
 
