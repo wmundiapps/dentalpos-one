@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 import { useEffect, type ReactNode } from "react";
 import { syncProcedureDurations } from "../services/ProcedureDurations";
+import { EDU_ONLY } from "../config/appMode";
 
 import DemoBanner from "./DemoBanner";
 import EvaluationWidget from "./EvaluationWidget";
@@ -20,7 +21,7 @@ interface LayoutProps {
 export default function Layout({
   children,
 }: LayoutProps) {
-  useEffect(() => { void syncProcedureDurations(); }, []);
+  useEffect(() => { if (!EDU_ONLY) void syncProcedureDurations(); }, []);
 
   return (
     <Box

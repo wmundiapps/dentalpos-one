@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { loadPendingAlerts, PENDING_ALERTS_EVENT, PENDING_ALERTS_MESSAGE, unlockPendingAlerts, unlockUserScreen, type PendingAlerts } from "../services/PendingAlertsApi";
+import { readSessionUser } from "../services/DemoAccess";
 
 export default function PendingAlertsBar() {
   const [data, setData] = useState<PendingAlerts | null>(null);
@@ -11,6 +12,8 @@ export default function PendingAlertsBar() {
 
   const load = useCallback(async () => {
     if (!localStorage.getItem("dentalpos.token")) return;
+    // Alunos não têm alertas de gestão: evita um 403 a cada minuto.
+    if (String(readSessionUser()?.role || "").toUpperCase() === "STUDENT" || String(readSessionUser()?.role || "").toUpperCase() === "TEACHER") return;
     try { setData(await loadPendingAlerts()); } catch { /* o aviso nunca atrapalha o uso do sistema */ }
   }, []);
 

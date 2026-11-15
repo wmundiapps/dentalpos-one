@@ -52,10 +52,16 @@ export default function Sidebar(){
   const cargoLogado=String(sessionUser?.role||"").toUpperCase();
   const visibleGroups=useMemo(()=>{
     const seen=new Set<string>();
+    // EduMaster: aluno e professor só veem as telas do seu papel (o servidor também bloqueia o resto).
+    const role=String(sessionUser?.role||"").toUpperCase();
+    const alunoOk=["/edu/portal-aluno","/edu/minha-biometria","/edu/exames","/edu/inicio"];
+    const profOk=[...alunoOk,"/edu/biblioteca","/edu/portal-professor","/edu/calendario","/edu/notas","/edu/presenca","/edu/desempenho"];
+    const permitidos=EDU_ONLY?(role==="STUDENT"?alunoOk:role==="TEACHER"?profOk:null):null;
     return navigationGroups.map(group=>{
       const items=group.items.filter(it=>{
         if(it.roles&&!it.roles.includes(cargoLogado))return false;
         if(rotaBloqueada(it.path,modulosBloqueados))return false;
+        if(permitidos&&!permitidos.some(pp=>it.path.split("?")[0]===pp))return false;
         const dedupeKey=it.path;
         if(seen.has(dedupeKey))return false;
         seen.add(dedupeKey);

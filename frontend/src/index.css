@@ -112,6 +112,8 @@ code {
 /* Celular: cartões dentro de grades não podem alargar a página (min-width automático de itens de grid). */
 @media (max-width: 600px) {
   main .MuiBox-root > .MuiPaper-root,
-  main .MuiBox-root > .MuiAlert-root { min-width: 0; }
+  main .MuiBox-root > .MuiAlert-root,
+  main .MuiBox-root > .MuiBox-root { min-width: 0; }
   main .MuiTextField-root { max-width: 100%; }
+  main table { display: block; max-width: 100%; overflow-x: auto; }
 }
