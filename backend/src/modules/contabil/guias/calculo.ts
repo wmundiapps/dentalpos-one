@@ -100,6 +100,11 @@ export function calcularGuias(emp: EmpresaFiscal, d: DadosCompetencia, t: Tabela
     mem.push(`DAS = receita do mês ${brl(d.receita)} × ${pct(ef.efetivaPct, 4)} = ${brl(v)}.`)
     if (rbt12 > t.simples.sublimiteAnual) mem.push('ATENÇÃO: RBT12 acima do sublimite — ICMS/ISS são recolhidos fora do DAS; esta guia não inclui esses valores.')
     push({ tributo: 'DAS', tipoGuia: 'DAS', codigoReceita: 'DAS', competencia: comp, periodicidade: 'MENSAL', vencimento: venc('DAS')!, baseCalculo: d.receita, aliquota: r2(ef.efetivaPct * 10000) / 10000, valorPrincipal: v, memoria: mem })
+    if (anexo !== 'IV' && d.folha > 0) {
+      // Fora do Anexo IV a CPP patronal já está no DAS; continua devida a parcela descontada dos empregados (estimativa).
+      const sg = t.encargosFolha.seguradosMediaPct
+      push({ tributo: 'INSS', tipoGuia: 'GPS', codigoReceita: '2003', competencia: comp, periodicidade: 'MENSAL', vencimento: venc('INSS')!, baseCalculo: d.folha, aliquota: sg, valorPrincipal: (d.folha * sg) / 100, memoria: [`Simples (Anexo ${anexo}): a CPP patronal está dentro do DAS; resta o INSS descontado dos empregados (média estimada ${pct(sg)}) sobre a folha ${brl(d.folha)}. O valor real vem da folha de pagamento.`] })
+    }
     if (anexo === 'IV' && d.folha > 0) {
       const p = t.simples.cppPatronalPct + t.simples.ratPct
       push({ tributo: 'INSS', tipoGuia: 'GPS', codigoReceita: '2003', competencia: comp, periodicidade: 'MENSAL', vencimento: venc('INSS')!, baseCalculo: d.folha, aliquota: p + t.encargosFolha.seguradosMediaPct, valorPrincipal: (d.folha * (p + t.encargosFolha.seguradosMediaPct)) / 100, memoria: [`Anexo IV: INSS patronal fora do DAS: ${pct(p)} + descontado dos empregados (média estimada ${pct(t.encargosFolha.seguradosMediaPct)}) sobre folha ${brl(d.folha)}.`] })
