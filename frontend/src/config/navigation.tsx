@@ -76,6 +76,8 @@ import type { ReactNode } from "react";
 export interface NavigationItem { label: string; path: string; icon: ReactNode; /** Se informado, o item só aparece para estes cargos (papel do usuário logado). */ roles?: string[]; }
 export interface NavigationGroup { label: string; icon: ReactNode; items: NavigationItem[]; }
 
+/** Cargos que veem o submenu Contabilidade (alunos e professores não têm acesso). */
+const CTB_ROLES = ["ADMIN","OWNER","RECTOR","BOARD","FINANCE","ACCOUNTANT","COORDINATOR"];
 const item = (label:string,path:string,icon:ReactNode,roles?:string[]):NavigationItem => ({label,path,icon,...(roles?{roles}:{})});
 const alphabetical = (items:NavigationItem[]) => [...items].sort((a,b)=>a.label.localeCompare(b.label,"pt-BR"));
 
@@ -298,6 +300,21 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Frota","/edu/infraestrutura?secao=frota",<WorkIcon/>),
       item("Segurança patrimonial","/edu/infraestrutura?secao=seguranca",<ShieldIcon/>),
       item("Compras, estoque e vendas","/edu/suprimentos",<Inventory2Icon/>),
+    ]
+  },
+  {
+    label:"EduMaster · Contabilidade",
+    icon:tile(<AccountBalanceOutlinedIcon/>,"#0369A1"),
+    items:[
+      item("Abertura de empresas","/edu/contabil/abertura",<WorkIcon/>,CTB_ROLES),
+      item("Alvarás e licenças","/edu/contabil/abertura?aba=alvaras",<FactCheckIcon/>,CTB_ROLES),
+      item("RH e Departamento Pessoal","/edu/contabil/rh-dp",<BadgeIcon/>,CTB_ROLES),
+      item("Folha, 13º e férias","/edu/contabil/rh-dp?aba=folha",<PaymentsIcon/>,CTB_ROLES),
+      item("Rescisões","/edu/contabil/rh-dp?aba=rescisoes",<AssignmentIcon/>,CTB_ROLES),
+      item("Imposto de renda PF e PJ","/edu/contabil/imposto-renda",<DescriptionIcon/>,CTB_ROLES),
+      item("Obrigações acessórias","/edu/contabil/imposto-renda?aba=obrigacoes",<EventIcon/>,CTB_ROLES),
+      item("Assistente Contábil (IA)","/edu/contabil/assistente",<SmartToyOutlinedIcon/>,CTB_ROLES),
+      item("Revisão do contador","/edu/contabil/assistente?aba=revisoes",<HowToRegIcon/>,CTB_ROLES),
     ]
   },
   {

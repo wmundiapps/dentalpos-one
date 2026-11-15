@@ -8,6 +8,7 @@ import { eduApi } from "../../services/EduApi";
 const ROTA_MODULO: Array<[string, string]> = [
   ["/edu/academico", "academico"], ["/edu/matriculas", "academico"],
   ["/edu/financeiro", "financeiro"], ["/edu/tesouraria", "tesouraria"], ["/edu/cobranca", "cobranca"],
+  ["/edu/contabil", "contabil"],
   ["/edu/admissoes", "admissoes"], ["/edu/secretaria", "secretaria"], ["/edu/calendario", "calendario"], ["/edu/notas", "notas"],
   ["/edu/polos-ead", "modalidades"], ["/edu/modalidades", "modalidades"], ["/edu/desempenho", "desempenho"], ["/edu/exames", "exames"],
   ["/edu/biblioteca", "biblioteca"], ["/edu/presenca", "presenca"], ["/edu/pesquisa", "pesquisa"],

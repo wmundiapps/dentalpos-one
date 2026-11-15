@@ -37,6 +37,10 @@ const EduFinanceiro = lazy(() => import("../pages/edu/EduFinanceiro"));
 const EduJuridico = lazy(() => import("../pages/edu/EduJuridico"));
 const EduAtendimento = lazy(() => import("../pages/edu/EduAtendimento"));
 const EduMensagens = lazy(() => import("../pages/edu/EduMensagens"));
+const EduContabilAbertura = lazy(() => import("../pages/edu/EduContabilAbertura"));
+const EduContabilRhDp = lazy(() => import("../pages/edu/EduContabilRhDp"));
+const EduContabilIr = lazy(() => import("../pages/edu/EduContabilIr"));
+const EduContabilAssistente = lazy(() => import("../pages/edu/EduContabilAssistente"));
 const EduAnaliseDocs = lazy(() => import("../pages/edu/EduAnaliseDocs"));
 const EduMarketing = lazy(() => import("../pages/edu/EduMarketing"));
 const EduFeedback = lazy(() => import("../pages/edu/EduFeedback"));
@@ -202,6 +206,10 @@ export default function AppRoutes() {
       <Route path="/edu/juridico" element={<EduJuridico />} />
       <Route path="/edu/atendimento" element={<EduAtendimento />} />
       <Route path="/edu/mensagens" element={<EduMensagens />} />
+      <Route path="/edu/contabil/abertura" element={<EduContabilAbertura />} />
+      <Route path="/edu/contabil/rh-dp" element={<EduContabilRhDp />} />
+      <Route path="/edu/contabil/imposto-renda" element={<EduContabilIr />} />
+      <Route path="/edu/contabil/assistente" element={<EduContabilAssistente />} />
       <Route path="/edu/analise-docs" element={<EduAnaliseDocs />} />
       <Route path="/edu/marketing" element={<EduMarketing />} />
       <Route path="/edu/feedback" element={<EduFeedback />} />
