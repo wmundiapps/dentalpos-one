@@ -29,6 +29,9 @@ import { seedBoletos } from './seeds/boletos'
 import { seedMensagens } from './seeds/mensagens'
 import { seedAcesso } from './seeds/acesso'
 import { seedMarca } from './seeds/marca'
+import { seedContabilFiscal } from './seeds/contabil-fiscal'
+import { seedContabilSocietario } from './seeds/contabil-societario'
+import { seedContabilCarteira } from './seeds/contabil-carteira'
 
 const API = process.env.API_URL || 'http://localhost:3000/api'
 const TENANT = 'sua-instituicao'
@@ -121,6 +124,15 @@ const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
   // por último: ajusta indicadores para a IES de demonstração "nota máxima" (dados fictícios)
   ['mec-comissao', (c) => seedMecComissao(c.api, sCtx(c))],
   ['marca-final', (c) => seedMarca(c.api)],
+  // escritório de contabilidade (bloco portátil): fiscal -> societário/RH/IR/IA -> carteira de clientes
+  ['contabil-fiscal', (c) => seedContabilFiscal(c.api, { failures: c.failures, apiAs: apiAsDe(c) as any })],
+  ['contabil-societario', (c) => seedContabilSocietario(c.api, sCtx(c))],
+  ['contabil-carteira', async (c) => {
+    for (const [loc, fn, ln, role] of [['gestor.contabil', 'Helena', 'Ribeiro', 'GESTOR_CONTABIL'], ['contador1', 'Marcos', 'Teixeira', 'CONTADOR'], ['contador2', 'Patrícia', 'Andrade', 'CONTADOR'], ['analista.contabil', 'Bruno', 'Cavalcanti', 'ANALISTA_CONTABIL'], ['financeiro.contabil', 'Renata', 'Moura', 'FINANCE']]) {
+      await c.mk(`${loc}@suainstituicao.edu.br`, 'Demo@2026', fn, ln, role)
+    }
+    await seedContabilCarteira(c.api, { ...sCtx(c), loginAs: async (email: string, senha: string) => { try { return apiComToken(c, await c.loginAs({ email, password: senha })) } catch { return null } } } as any)
+  }],
   // acesso por cargo: deve ser o ÚLTIMO (as regras não podem bloquear os passos anteriores)
   ['acesso', (c) => seedAcesso(c.api, sCtx(c))],
 ]
