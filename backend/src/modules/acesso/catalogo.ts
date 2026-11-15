@@ -57,6 +57,7 @@ export const MODULOS: Array<{ modulo: string; nome: string; grupo: string }> = [
   { modulo: 'comunicacao', nome: 'Comunicação omnichannel', grupo: 'Secretaria e relacionamento' },
   { modulo: 'marketing', nome: 'Marketing', grupo: 'Secretaria e relacionamento' },
   { modulo: 'feedback', nome: 'Central de feedback', grupo: 'Secretaria e relacionamento' },
+  { modulo: 'mensagens', nome: 'Mensageiro interno entre departamentos', grupo: 'Secretaria e relacionamento' },
   { modulo: 'financeiro', nome: 'Financeiro acadêmico', grupo: 'Financeiro' },
   { modulo: 'tesouraria', nome: 'Tesouraria', grupo: 'Financeiro' },
   { modulo: 'cobranca', nome: 'Cobrança', grupo: 'Financeiro' },
