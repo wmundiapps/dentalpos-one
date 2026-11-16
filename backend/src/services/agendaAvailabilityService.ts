@@ -344,10 +344,42 @@ function normalizeRecurringBreak(value: unknown): RecurringBreak | undefined {
   }
 }
 
+const seededDoctorsOf = (metadata: Record<string, unknown>) =>
+  Array.isArray(metadata.lunchSeeded) ? metadata.lunchSeeded.map(String) : []
+
+// Almoço fechado por padrão para TODOS os profissionais (12:00 às 13:59, nos dias em que atendem).
+// Cada profissional entra uma única vez: se a clínica remover o almoço dele, não volta. Profissional novo ganha o almoço sozinho.
+async function seedLunchBreaks(clinicId: string, row: { tenantId: string; metadata: unknown } | null) {
+  const metadata = (row?.metadata || {}) as Record<string, unknown>
+  const seeded = seededDoctorsOf(metadata)
+  const doctors = await prisma.doctor.findMany({ where: { clinicId, isActive: true }, select: { id: true, tenantId: true } })
+  const pending = doctors.filter(d => !seeded.includes(d.id))
+  if (!pending.length) return
+  const tenantId = row?.tenantId || pending[0].tenantId
+  const schedules = await prisma.schedule.findMany({ where: { clinicId, doctorId: { in: pending.map(d => d.id) } }, select: { doctorId: true, dayOfWeek: true } })
+  const current = (Array.isArray(metadata.breaks) ? metadata.breaks : [])
+    .map(normalizeRecurringBreak)
+    .filter((item): item is RecurringBreak => Boolean(item))
+  for (const doctor of pending) {
+    const days = [...new Set(schedules.filter(x => x.doctorId === doctor.id).map(x => x.dayOfWeek))]
+    for (const day of days.length ? days : [1, 2, 3, 4, 5]) {
+      const covered = current.some(b => b.doctorId === doctor.id && b.dayOfWeek === day && clockMinutes(b.startTime) < 14 * 60 && clockMinutes(b.endTime) > 12 * 60)
+      if (!covered) current.push({ id: randomUUID(), doctorId: doctor.id, dayOfWeek: day, startTime: '12:00', endTime: '14:00', reason: 'Almoço' })
+    }
+  }
+  await persistRecurringBreaks(clinicId, tenantId, current, [...seeded, ...pending.map(d => d.id)])
+}
+
 export async function listRecurringBreaks(clinicId: string): Promise<RecurringBreak[]> {
-  const row = await prisma.tenantFeatureFlag.findUnique({
+  let row = await prisma.tenantFeatureFlag.findUnique({
     where: { clinicId_key: { clinicId, key: RECURRING_BREAK_FLAG } },
   })
+  try {
+    await seedLunchBreaks(clinicId, row)
+    row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: RECURRING_BREAK_FLAG } } })
+  } catch (error) {
+    console.error('Falha ao incluir almoço na agenda:', error instanceof Error ? error.message : error)
+  }
   const metadata = (row?.metadata || {}) as Record<string, unknown>
   const raw = Array.isArray(metadata.breaks) ? metadata.breaks : []
   return raw
@@ -364,13 +396,17 @@ async function persistRecurringBreaks(
   clinicId: string,
   tenantId: string,
   breaks: RecurringBreak[],
+  lunchSeeded?: string[],
 ) {
+  // Mantém a lista de profissionais que já receberam o almoço padrão (senão um almoço removido voltaria).
+  const seeded = lunchSeeded ?? seededDoctorsOf(((await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: RECURRING_BREAK_FLAG } } }))?.metadata || {}) as Record<string, unknown>)
+  const metadata = { version: 1, breaks, lunchSeeded: seeded } as unknown as Parameters<typeof prisma.tenantFeatureFlag.upsert>[0]['create']['metadata']
   await prisma.tenantFeatureFlag.upsert({
     where: { clinicId_key: { clinicId, key: RECURRING_BREAK_FLAG } },
     update: {
       enabled: true,
       rolloutStage: 'PILOT',
-      metadata: { version: 1, breaks },
+      metadata,
     },
     create: {
       clinicId,
@@ -378,7 +414,7 @@ async function persistRecurringBreaks(
       key: RECURRING_BREAK_FLAG,
       enabled: true,
       rolloutStage: 'PILOT',
-      metadata: { version: 1, breaks },
+      metadata,
     },
   })
 }

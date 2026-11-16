@@ -1,5 +1,6 @@
 import { MarkerDots } from "../contexts/AgendaMarkers";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import { Box, Chip, Paper, Tooltip, Typography, useMediaQuery } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import type { IntegratedAppointment } from "../types/operationsHub";
@@ -32,6 +33,8 @@ interface Props {
   onNew: (prefill: AppointmentPrefill) => void;
   // Arrastar a borda de baixo do agendamento muda a duração (como no Clinicorp). Deve lançar erro se não puder salvar.
   onResize?: (appointment: IntegratedAppointment, durationMinutes: number) => Promise<void> | void;
+  // Altura máxima da área rolável (o cabeçalho dos dias fica fixo no topo enquanto a grade rola).
+  maxHeight?: string | number;
   materialAlerts?: Map<string, string>;
   financialAlerts?: Map<string, { open: number; overdue: number }>;
 }
@@ -350,12 +353,19 @@ function TimeGridView({
   onAppointmentClick,
   onNew,
   onResize,
+  maxHeight,
   materialAlerts,
   financialAlerts,
 }: Omit<Props, "onDateChange">) {
   const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
   // Redimensionando: duração provisória enquanto o dedo/mouse arrasta a borda de baixo.
   const [resizing, setResizing] = useState<{ id: string | number; duration: number } | null>(null);
+  // Linha vermelha do horário de agora: desce sozinha com o passar do tempo.
+  const [nowTick, setNowTick] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowTick(new Date()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
   const colors = professionalColorMap([...professionalNames, ...items.map((item) => item.professionalName)]);
   const colorOf = (name: string) => colors.get(name.trim()) || "#1976d2";
   const weekAll = view === "day" ? [dateISO] : weekDates(dateISO);
@@ -453,9 +463,9 @@ function TimeGridView({
   };
 
   return (
-    <Box sx={{ overflowX: "auto" }}>
+    <Box sx={{ overflow: "auto", maxHeight: maxHeight ?? "calc(100vh - 230px)" }}>
       <Box sx={{ minWidth: view === "week" ? (mergeSunday ? HOUR_GUTTER + 6 * 168 : 1160) : 760 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns }}>
+        <Box sx={{ display: "grid", gridTemplateColumns, position: "sticky", top: 0, zIndex: 8, bgcolor: "background.paper", boxShadow: "0 2px 4px rgba(0,0,0,.08)" }}>
           <Box sx={{ borderRight: 1, borderBottom: 1, borderColor: "divider", bgcolor: "action.hover" }} />
           {dates.map((dayISO) => (
             <Box
@@ -504,7 +514,18 @@ function TimeGridView({
           ))}
         </Box>
 
-        <Box sx={{ display: "grid", gridTemplateColumns }}>
+        <Box sx={{ display: "grid", gridTemplateColumns, position: "relative" }}>
+          {(() => {
+            const nowISO = `${nowTick.getFullYear()}-${String(nowTick.getMonth() + 1).padStart(2, "0")}-${String(nowTick.getDate()).padStart(2, "0")}`;
+            const nowMinutes = nowTick.getHours() * 60 + nowTick.getMinutes();
+            if (!dates.includes(nowISO) || nowMinutes < START_MINUTES || nowMinutes >= END_MINUTES) return null;
+            const top = ((nowMinutes - START_MINUTES) / TOTAL_MINUTES) * GRID_HEIGHT;
+            return (
+              <Box aria-label={`Agora: ${timeFromMinutes(nowMinutes)}`} title={`Agora: ${timeFromMinutes(nowMinutes)}`} sx={{ position: "absolute", left: 0, right: 0, top, height: 0, borderTop: "2px solid #e53935", zIndex: 6, pointerEvents: "none" }}>
+                <Box sx={{ position: "absolute", left: HOUR_GUTTER - 6, top: -6, width: 10, height: 10, borderRadius: "50%", bgcolor: "#e53935" }} />
+              </Box>
+            );
+          })()}
           <Box sx={{ position: "relative", height: GRID_HEIGHT, borderRight: 1, borderColor: "divider" }}>
             {hours.map((hour) => (
               <Typography
@@ -625,8 +646,14 @@ function TimeGridView({
                           outlineColor: "primary.light",
                           outlineOffset: "-1px",
                         },
+                        "&:hover .slot-time": { display: "flex" },
                       }}
-                    />
+                    >
+                      <Box className="slot-time" sx={{ display: "none", position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", alignItems: "center", gap: 0.5, color: "#e8641b", fontWeight: 800, fontSize: 12, pointerEvents: "none" }}>
+                        <EventAvailableIcon sx={{ fontSize: 16 }} />
+                        {startLabel}
+                      </Box>
+                    </Box>
                     </Tooltip>
                   );
                 })}
@@ -848,6 +875,7 @@ export default function AgendaCalendarBoard(props: Props) {
       onAppointmentClick={props.onAppointmentClick}
       onNew={props.onNew}
       onResize={props.onResize}
+      maxHeight={props.maxHeight}
       materialAlerts={props.materialAlerts}
       financialAlerts={props.financialAlerts}
     />
