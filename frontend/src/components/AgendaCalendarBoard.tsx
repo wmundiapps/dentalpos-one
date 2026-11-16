@@ -1,5 +1,5 @@
 import { MarkerDots } from "../contexts/AgendaMarkers";
-import { Box, Chip, Paper, Typography, useMediaQuery } from "@mui/material";
+import { Box, Chip, Paper, Tooltip, Typography, useMediaQuery } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import type { IntegratedAppointment } from "../types/operationsHub";
 import type { AgendaBlock, BackendSchedule, RecurringBreak } from "../services/ScheduleApi";
@@ -93,6 +93,19 @@ function endTime(appointment: IntegratedAppointment) {
   return timeFromMinutes(minuteOfDay(appointment.time) + Math.max(10, appointment.durationMinutes || 30) - 1);
 }
 
+// Balão ao passar o mouse (como no Clinicorp): nome completo, horário de início e fim e procedimento, mesmo quando o card é pequeno.
+function appointmentTip(appointment: IntegratedAppointment) {
+  const start = minuteOfDay(appointment.time);
+  const end = timeFromMinutes(start + Math.max(10, appointment.durationMinutes || 30));
+  return (
+    <Box sx={{ py: 0.2 }}>
+      <Typography sx={{ fontWeight: 900, fontSize: 13, lineHeight: 1.25 }}>{appointment.patientName}</Typography>
+      <Typography sx={{ fontSize: 12, lineHeight: 1.25 }}>{appointment.time} - {end}</Typography>
+      {appointment.procedure ? <Typography sx={{ fontSize: 12, lineHeight: 1.25, opacity: 0.9 }}>{appointment.procedure}</Typography> : null}
+    </Box>
+  );
+}
+
 function weekDates(dateISO: string) {
   const base = new Date(`${dateISO}T12:00:00`);
   const weekday = base.getDay() || 7;
@@ -172,6 +185,7 @@ function AppointmentCard({
 }) {
   const badges = operationalBadges(appointment, materialAlerts, financialAlerts);
   return (
+    <Tooltip title={appointmentTip(appointment)} arrow enterDelay={150} placement="top">
     <Paper
       variant="outlined"
       onClick={(event) => {
@@ -209,6 +223,7 @@ function AppointmentCard({
         </>
       ) : null}
     </Paper>
+    </Tooltip>
   );
 }
 
@@ -541,11 +556,14 @@ function TimeGridView({
                   const startLabel = timeFromMinutes(slot.start);
                   const endLabel = timeFromMinutes(slot.end - 1);
                   return (
-                    <Box
+                    <Tooltip
                       key={`free-${dayISO}-${slot.start}`}
+                      title={<Box><Typography sx={{ fontSize: 13, fontWeight: 800 }}>Clique para criar um agendamento</Typography><Typography sx={{ fontSize: 12 }}>{startLabel} - {endLabel}</Typography></Box>}
+                      followCursor arrow enterDelay={200}
+                    >
+                    <Box
                       role="button"
                       tabIndex={0}
-                      title={`Novo agendamento • ${startLabel}–${endLabel}`}
                       onClick={(event) => {
                         event.stopPropagation();
                         onNew({
@@ -584,6 +602,7 @@ function TimeGridView({
                         },
                       }}
                     />
+                    </Tooltip>
                   );
                 })}
 
@@ -649,8 +668,8 @@ function TimeGridView({
                   const height = Math.max(28, ((visibleEnd - visibleStart) / TOTAL_MINUTES) * GRID_HEIGHT);
                   const badges = operationalBadges(appointment, materialAlerts, financialAlerts);
                   return (
+                    <Tooltip key={`${sunday ? "dom-" : ""}${appointment.id}`} title={appointmentTip(appointment)} arrow enterDelay={150} placement="top">
                     <Box
-                      key={`${sunday ? "dom-" : ""}${appointment.id}`}
                       onClick={(event) => {
                         event.stopPropagation();
                         onAppointmentClick(appointment);
@@ -698,6 +717,7 @@ function TimeGridView({
                         <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />
                       ) : null}
                     </Box>
+                    </Tooltip>
                   );
                 })}
               </Box>
