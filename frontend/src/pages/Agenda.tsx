@@ -472,12 +472,14 @@ export default function Agenda() {
     if (!doctorId) return undefined;
     const dayStart = new Date(`${date}T00:00:00`).getTime();
     const dayEnd = dayStart + 24 * 3600000;
-    return agendaBlocks.find((block) => block.doctorId === doctorId && new Date(block.startAt).getTime() <= dayStart && new Date(block.endAt).getTime() >= dayEnd);
+    return agendaBlocks.find((block) => (block.doctorId === doctorId || !block.doctorId) && new Date(block.startAt).getTime() <= dayStart && new Date(block.endAt).getTime() >= dayEnd);
   };
   const toggleCloseDay = async (doctorId: string) => {
     const existing = closedDayBlock(doctorId);
     try {
       if (existing) {
+        // Bloqueio sem profissional = feriado (ou dia fechado para todos): reabrir vale para a clínica inteira.
+        if (!existing.doctorId && !window.confirm(`${existing.reason}. Reabrir a agenda neste dia para TODOS os profissionais da clínica?`)) return;
         await deleteAgendaBlock(existing.id);
         toast.success("Agenda reaberta para este dia.");
       } else {

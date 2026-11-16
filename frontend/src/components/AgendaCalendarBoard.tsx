@@ -427,6 +427,13 @@ function TimeGridView({
     return rows;
   };
 
+  // Dia fechado para todos os profissionais (feriado ou bloqueio de agenda inteira): mostra faixa com o motivo.
+  const closedDay = (dayISO: string) => {
+    const start = new Date(`${dayISO}T00:00:00`).getTime();
+    const end = start + 86400000 - 60000;
+    return agendaBlocks.find((item) => !item.doctorId && new Date(item.startAt).getTime() <= start + 60000 && new Date(item.endAt).getTime() >= end) || null;
+  };
+
   const breakRows = (dayISO: string) => {
     if (!professionalId) return [];
     const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
@@ -483,6 +490,11 @@ function TimeGridView({
                   + {shortDate(sundayISO)} (tracejado)
                 </Typography>
               ) : null}
+              {closedDay(dayISO) ? (
+                <Typography variant="caption" sx={{ display: "block", fontSize: 10, fontWeight: 900, color: "warning.dark" }}>
+                  {closedDay(dayISO)!.reason}
+                </Typography>
+              ) : null}
               {view === "week" ? (
                 <Typography variant="caption" color="primary.main" sx={{ display: "block", fontSize: 10 }}>
                   Clique para abrir o dia
@@ -534,6 +546,13 @@ function TimeGridView({
                     "repeating-linear-gradient(to bottom, transparent 0, transparent 29px, rgba(0,0,0,.08) 30px)",
                 }}
               >
+                {closedDay(dayISO) ? (
+                  <Box sx={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", bgcolor: "rgba(237,108,2,.07)", backgroundImage: "repeating-linear-gradient(135deg, transparent 0 14px, rgba(237,108,2,.16) 14px 16px)", display: "flex", justifyContent: "center", pt: 1.5 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 900, textTransform: "uppercase", textAlign: "center", color: "warning.dark", bgcolor: "background.paper", borderRadius: 1, px: 1, py: 0.3, height: "fit-content", maxWidth: "92%" }}>
+                      {closedDay(dayISO)!.reason} • agenda fechada
+                    </Typography>
+                  </Box>
+                ) : null}
                 {!isFirstDay && hours.map((hour) => (
                   <Typography
                     key={`h-${dayISO}-${hour}`}
