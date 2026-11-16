@@ -238,20 +238,22 @@ async function computeItems(clinicId: string, tenantId: string, codes: string[] 
     // Fila diária do laboratório: todo trabalho não excluído e ainda não entregue ao dentista/clínica.
     // Só sai da fila quando o status vira Entregue/Liberado (deliveredAt). Apenas os vencidos contam para o bloqueio.
     // Tolerante: se a tabela ainda não foi criada no banco, a fila fica vazia em vez de derrubar os avisos.
-    const queue = await prisma.labOrder.findMany({
+    const allOpen = await prisma.labOrder.findMany({
       where: { clinicId, tenantId, deletedAt: null, deliveredAt: null },
       select: { patientName: true, workType: true, dentistName: true, status: true, dueDate: true },
       orderBy: [{ dueDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
       take: 300
     }).catch(() => [])
+    // O aviso mostra só o que exige ação agora: trabalhos ATRASADOS e com entrega HOJE. Os demais (prazo futuro ou sem prazo) continuam na tela do laboratório.
+    const tomorrow = new Date(today.getTime() + DAY)
+    const queue = allOpen.filter(o => o.dueDate && o.dueDate < tomorrow)
     if (queue.length) {
-      const tomorrow = new Date(today.getTime() + DAY)
       const overdue = queue.filter(o => o.dueDate && o.dueDate < today).length
       const dueToday = queue.filter(o => o.dueDate && o.dueDate >= today && o.dueDate < tomorrow).length
       const fmt = (d: Date | null) => (d ? new Date(d.getTime() - 3 * 3600000).toISOString().slice(8, 10) + '/' + new Date(d.getTime() - 3 * 3600000).toISOString().slice(5, 7) : 'sem prazo')
-      const lines = queue.slice(0, 8).map(o => `${o.patientName} · ${o.workType}${o.dentistName ? ` (${o.dentistName})` : ''} · ${o.status} · prazo ${fmt(o.dueDate)}${o.dueDate && o.dueDate < today ? ' · ATRASADO' : ''}`)
+      const lines = queue.slice(0, 15).map(o => `${o.patientName} · ${o.workType}${o.dentistName ? ` (${o.dentistName})` : ''} · ${o.status} · prazo ${fmt(o.dueDate)}${o.dueDate && o.dueDate < today ? ' · ATRASADO' : ''}`)
       if (queue.length > lines.length) lines.push(`+ ${queue.length - lines.length} trabalho(s) na fila`)
-      let label = `Fila do laboratório: ${queue.length} trabalho(s) (${overdue} atrasado(s), ${dueToday} vencem hoje). Só saem da fila quando concluídos e entregues ao dentista/clínica.`
+      let label = `Laboratório: ${queue.length} trabalho(s) para resolver (${overdue} atrasado(s), ${dueToday} com entrega hoje). Saem da lista quando concluídos e entregues ao dentista/clínica.`
       if (blockMode && overdue) label += ' Se os atrasados não forem resolvidos, o sistema será bloqueado.'
       items.push({ key: 'laboratory', label, count: queue.length, blocks: overdue, lines, path: '/laboratorio' })
     }
