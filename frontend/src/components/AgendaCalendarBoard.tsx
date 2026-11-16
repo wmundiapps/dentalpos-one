@@ -1,4 +1,5 @@
 import { MarkerDots } from "../contexts/AgendaMarkers";
+import { useState } from "react";
 import { Box, Chip, Paper, Tooltip, Typography, useMediaQuery } from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 import type { IntegratedAppointment } from "../types/operationsHub";
@@ -29,6 +30,8 @@ interface Props {
   onDayOpen?: (dateISO: string) => void;
   onAppointmentClick: (appointment: IntegratedAppointment) => void;
   onNew: (prefill: AppointmentPrefill) => void;
+  // Arrastar a borda de baixo do agendamento muda a duração (como no Clinicorp). Deve lançar erro se não puder salvar.
+  onResize?: (appointment: IntegratedAppointment, durationMinutes: number) => Promise<void> | void;
   materialAlerts?: Map<string, string>;
   financialAlerts?: Map<string, { open: number; overdue: number }>;
 }
@@ -346,10 +349,13 @@ function TimeGridView({
   onDayOpen,
   onAppointmentClick,
   onNew,
+  onResize,
   materialAlerts,
   financialAlerts,
 }: Omit<Props, "onDateChange">) {
   const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
+  // Redimensionando: duração provisória enquanto o dedo/mouse arrasta a borda de baixo.
+  const [resizing, setResizing] = useState<{ id: string | number; duration: number } | null>(null);
   const colors = professionalColorMap([...professionalNames, ...items.map((item) => item.professionalName)]);
   const colorOf = (name: string) => colors.get(name.trim()) || "#1976d2";
   const weekAll = view === "day" ? [dateISO] : weekDates(dateISO);
@@ -660,7 +666,10 @@ function TimeGridView({
                     : []),
                 ].map(({ appointment, sunday }) => {
                   const start = minuteOfDay(appointment.time);
-                  const duration = Math.max(10, appointment.durationMinutes || 30);
+                  const savedDuration = Math.max(10, appointment.durationMinutes || 30);
+                  const isResizing = resizing?.id === appointment.id;
+                  const duration = isResizing ? resizing.duration : savedDuration;
+                  const canResize = Boolean(onResize && appointment.backendId && !sunday && appointment.status !== "Desmarcado");
                   if (start >= END_MINUTES || start + duration <= START_MINUTES) return null;
                   const visibleStart = Math.max(START_MINUTES, start);
                   const visibleEnd = Math.min(END_MINUTES, start + duration);
@@ -668,7 +677,7 @@ function TimeGridView({
                   const height = Math.max(28, ((visibleEnd - visibleStart) / TOTAL_MINUTES) * GRID_HEIGHT);
                   const badges = operationalBadges(appointment, materialAlerts, financialAlerts);
                   return (
-                    <Tooltip key={`${sunday ? "dom-" : ""}${appointment.id}`} title={appointmentTip(appointment)} arrow enterDelay={150} placement="top">
+                    <Tooltip key={`${sunday ? "dom-" : ""}${appointment.id}`} title={appointmentTip({ ...appointment, durationMinutes: duration })} arrow enterDelay={150} placement="top">
                     <Box
                       onClick={(event) => {
                         event.stopPropagation();
@@ -715,6 +724,55 @@ function TimeGridView({
                       ) : null}
                       {height >= 48 && badges[0] ? (
                         <Chip size="small" label={badges[0].label} color={badges[0].color} sx={{ mt: 0.4, maxWidth: "100%" }} />
+                      ) : null}
+                      {isResizing ? (
+                        <Typography variant="caption" sx={{ position: "absolute", right: 6, bottom: 8, fontWeight: 900, bgcolor: "primary.main", color: "primary.contrastText", borderRadius: 1, px: 0.6 }}>
+                          {appointment.time} - {timeFromMinutes(start + duration)}
+                        </Typography>
+                      ) : null}
+                      {canResize ? (
+                        <Box
+                          role="separator"
+                          aria-label="Arraste para mudar a duração"
+                          title="Arraste para mudar a duração"
+                          onClick={(event) => event.stopPropagation()}
+                          onPointerDown={(event) => {
+                            event.stopPropagation();
+                            event.preventDefault();
+                            const target = event.currentTarget;
+                            target.setPointerCapture(event.pointerId);
+                            const startY = event.clientY;
+                            const pxPerMinute = GRID_HEIGHT / TOTAL_MINUTES;
+                            const limit = END_MINUTES - start;
+                            let latest = savedDuration;
+                            setResizing({ id: appointment.id, duration: savedDuration });
+                            const move = (e: PointerEvent) => {
+                              const delta = Math.round((e.clientY - startY) / pxPerMinute / 15) * 15;
+                              latest = Math.min(limit, Math.max(15, savedDuration + delta));
+                              setResizing({ id: appointment.id, duration: latest });
+                            };
+                            const finish = async (e: PointerEvent) => {
+                              target.removeEventListener("pointermove", move);
+                              target.removeEventListener("pointerup", finish);
+                              target.removeEventListener("pointercancel", finish);
+                              try { target.releasePointerCapture(e.pointerId); } catch { /* já liberado */ }
+                              if (e.type === "pointerup" && latest !== savedDuration) {
+                                try { await onResize?.(appointment, latest); }
+                                catch (error) { window.alert(error instanceof Error ? error.message : "Não foi possível mudar a duração."); }
+                              }
+                              setResizing(null);
+                            };
+                            target.addEventListener("pointermove", move);
+                            target.addEventListener("pointerup", finish);
+                            target.addEventListener("pointercancel", finish);
+                          }}
+                          sx={{
+                            position: "absolute", left: 0, right: 0, bottom: 0, height: 9, cursor: "ns-resize", touchAction: "none", zIndex: 4,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            "&::after": { content: '""', width: 28, height: 3, borderRadius: 2, bgcolor: "text.secondary", opacity: isResizing ? 0.9 : 0, transition: "opacity .15s" },
+                            "&:hover::after": { opacity: 0.7 },
+                          }}
+                        />
                       ) : null}
                     </Box>
                     </Tooltip>
@@ -770,6 +828,7 @@ export default function AgendaCalendarBoard(props: Props) {
       onDayOpen={props.onDayOpen}
       onAppointmentClick={props.onAppointmentClick}
       onNew={props.onNew}
+      onResize={props.onResize}
       materialAlerts={props.materialAlerts}
       financialAlerts={props.financialAlerts}
     />
