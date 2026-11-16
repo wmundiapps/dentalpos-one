@@ -1258,6 +1258,14 @@ export default function Agenda() {
               setEditSmartSuggestion(null);
             }}
             onNew={(prefill) => openNew(prefill)}
+            onResize={async (appointment, durationMinutes) => {
+              if (!appointment.backendId) return;
+              await updateBackendAppointment(appointment.backendId, { durationMinutes, reason: "Duração ajustada na agenda (arrastando a borda)", requestedBy: backendRequestedBy("Clínica") });
+              const refreshed = (await loadBackendAppointments()).map(mapBackendAppointment);
+              saveAppointments(refreshed);
+              setItems(refreshed);
+              toast.success(`Duração alterada para ${durationMinutes} min.`);
+            }}
           />
           </AgendaMarkersContext.Provider>
         </Paper>
