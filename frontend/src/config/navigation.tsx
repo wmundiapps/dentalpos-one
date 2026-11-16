@@ -440,7 +440,7 @@ const allNavigationGroups:NavigationGroup[] = [
     icon:tile(<SettingsIcon/>,"#64748B"),
     items:alphabetical([
       item("Configurações","/configuracoes",<SettingsIcon/>),
-      item("Clínicas e unidades","/clinicas",<LocalHospitalIcon/>),
+      item(EDU_ONLY?"Unidades e polos":"Clínicas e unidades","/clinicas",<LocalHospitalIcon/>),
       item("Integrações","/integracoes",<HubIcon/>),
       item("Importar clientes e alunos","/importar-pacientes",<UploadFileIcon/>),
       item("Permissões","/permissoes",<AdminPanelSettingsIcon/>),

@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Checkbox, Chip, FormControlLabel, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import PageHeader from "../components/PageHeader";
+import { EDU_ONLY } from "../config/appMode";
 import { AccessApi, type AccessProfile, type AccessUser, type PermissionItem } from "../services/AccessApi";
 
-const PROFILE_NAMES: Record<string, string> = {
+const PROFILE_NAMES_BASE: Record<string, string> = {
   DENTISTA: "Dentista", AUXILIAR: "Auxiliares", RECEPCAO: "Recepção", FINANCEIRO: "Financeiro", ADMINISTRACAO: "Administração",
   LABORATORIO: "Laboratório", CONTADOR: "Contador", JURIDICO: "Jurídico", GESTOR: "Gestor", RH: "Recursos Humanos", ADMIN: "Administrador (Master)",
 };
+const PROFILE_NAMES: Record<string, string> = EDU_ONLY ? { ...PROFILE_NAMES_BASE, DENTISTA: "Docentes e profissionais", AUXILIAR: "Apoio", RECEPCAO: "Atendimento e secretaria", LABORATORIO: "Laboratórios" } : PROFILE_NAMES_BASE;
 const PROFILE_ORDER = ["DENTISTA", "AUXILIAR", "RECEPCAO", "FINANCEIRO", "ADMINISTRACAO", "LABORATORIO", "CONTADOR", "JURIDICO", "GESTOR", "RH", "ADMIN"];
-const MODULE_NAMES: Record<string, string> = {
+const MODULE_NAMES_BASE: Record<string, string> = {
   dashboard: "Painel inicial", agenda: "Agenda e painel de atendimentos", patients: "Pacientes", clinical: "Clínico / prontuário", laboratory: "Laboratório",
   design: "Design 3D", finance: "Financeiro", accounting: "Contabilidade", hr: "Recursos humanos", sales: "Vendas", marketing: "Marketing e Revah",
   documents: "Documentos", settings: "Configurações (inclui importar clientes e alunos)", users: "Usuários e permissões", audit: "Auditoria",
 };
+const MODULE_NAMES: Record<string, string> = EDU_ONLY ? { ...MODULE_NAMES_BASE, agenda: "Agenda e atendimentos", patients: "Alunos e clientes", clinical: "Acadêmico e ficha do aluno", laboratory: "Laboratórios", design: "Design", marketing: "Marketing" } : MODULE_NAMES_BASE;
 const ACTION_NAMES: Record<string, string> = {
   view: "Ver", create: "Criar", edit: "Editar", cancel: "Cancelar", approve: "Aprovar", values: "Ver valores", sensitive: "Dados sensíveis",
   send: "Enviar", portal: "Portal do contador", manage: "Gerenciar",
