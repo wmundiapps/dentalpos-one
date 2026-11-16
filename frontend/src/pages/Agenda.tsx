@@ -18,9 +18,10 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
-
+  Collapse,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import MiniMonthCalendar from "../components/MiniMonthCalendar";
 import LinkIcon from "@mui/icons-material/Link";
 
 import TuneIcon from "@mui/icons-material/Tune";
@@ -317,6 +318,8 @@ export default function Agenda() {
   const [view, setView] = useState<View>("week");
   const [date, setDate] = useState(today());
   const [professional, setProfessional] = useState("Todos");
+  // Por padrão a agenda abre sozinha, grande; busca, filtros, atalhos e pendências ficam em "Mais opções".
+  const [showMore, setShowMore] = useState(() => { try { return localStorage.getItem("dentalpos.agenda.showMore") === "1"; } catch { return false; } });
   // Link vindo do aviso de pendências: ?date=AAAA-MM-DD&view=day abre a agenda exatamente no dia do atendimento sem desfecho.
   const routeLocation = useLocation();
   useEffect(() => {
@@ -1068,23 +1071,11 @@ export default function Agenda() {
   return (
     <Box>
       <PageHeader
-        title="Agenda inteligente"
-        description="Tempo clínico, retorno, laboratório, plano financeiro e dia habitual do paciente em uma única agenda."
+        title="Agenda"
         actionLabel="Novo agendamento"
         actionIcon={<AddIcon />}
         onAction={() => openNew({ dateISO: date })}
       />
-      <AgendaPatientSearch
-        patients={backendPatients}
-        appointments={items}
-        onSchedule={(patient) => openNew({ patientName: patient.fullName, patientPhone: patient.phone || "", dateISO: date })}
-        onGoToDate={(dateISO) => { setDate(dateISO); setView("day"); }}
-        onOpenFile={(patient) => navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}`)}
-      />
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
-        <Button variant="outlined" onClick={() => setAbsenceOpen(true)}>Pacientes ausentes: convidar para retorno</Button>
-      </Box>
-      <AbsenceRecallBanner />
       <AbsenceRecallDialog open={absenceOpen} onClose={() => setAbsenceOpen(false)} />
       <CloseAgendaDialog open={closeAgendaOpen} onClose={() => setCloseAgendaOpen(false)} doctors={backendDoctors} defaultDoctorId={selectedBackendDoctorId} defaultDate={date} appointments={items} onSaved={refreshAgendaConfiguration} />
       {holdTarget && <FinancialHoldDialog patientId={holdTarget.id} patientName={holdTarget.name} open onClose={() => setHoldTarget(null)} onResolved={(id) => { holdResolvedFor.current = id; }} onScheduleAnyway={holdTarget.retry ? () => { setHoldTarget(null); void saveWith(true); } : undefined} />}
@@ -1154,12 +1145,34 @@ export default function Agenda() {
             label="Agenda / profissional"
             value={professional}
             onChange={(event) => setProfessional(event.target.value)}
-            sx={{ minWidth: 220, maxWidth: 320, justifySelf: { lg: "end" } }}
+            sx={{ minWidth: 220, maxWidth: 320, justifySelf: { lg: "end" }, display: { xs: "block", md: "none" } }}
           >
             {professionals.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
           </TextField>
+          <Button
+            variant={showMore ? "contained" : "outlined"}
+            onClick={() => setShowMore((v) => { const next = !v; try { localStorage.setItem("dentalpos.agenda.showMore", next ? "1" : "0"); } catch { /* sem armazenamento */ } return next; })}
+            sx={{ justifySelf: { lg: "end" } }}
+          >
+            {showMore ? "Ocultar opções" : "Mais opções"}
+          </Button>
         </Box>
 
+      </Paper>
+      <Collapse in={showMore} unmountOnExit>
+        <Box sx={{ mb: 2 }}>
+      <AgendaPatientSearch
+        patients={backendPatients}
+        appointments={items}
+        onSchedule={(patient) => openNew({ patientName: patient.fullName, patientPhone: patient.phone || "", dateISO: date })}
+        onGoToDate={(dateISO) => { setDate(dateISO); setView("day"); }}
+        onOpenFile={(patient) => navigate(`/ficha-paciente?patientId=${encodeURIComponent(patient.id)}`)}
+      />
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+        <Button variant="outlined" onClick={() => setAbsenceOpen(true)}>Pacientes ausentes: convidar para retorno</Button>
+      </Box>
+      <AbsenceRecallBanner />
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
         <Box sx={{ display: "flex", gap: 1, justifyContent: { xs: "center", lg: "flex-end" }, flexWrap: "wrap", mt: 1.25 }}>
           <Button startIcon={<LinkIcon />} onClick={copyBooking}>Agendamento online</Button>
           <Button onClick={() => void openOnlineSlots()}>Horários online</Button>
@@ -1186,15 +1199,43 @@ export default function Agenda() {
             />
           ))}
         </Box>
-      </Paper>
+          </Paper>
+        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
+          <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório e agenda ficam visíveis para a equipe.</Typography>
+          {alerts.length === 0 ? <Alert severity="success">Nenhuma pendência crítica agora.</Alert> : (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" }, gap: 1, maxHeight: 420, overflow: "auto" }}>
+              {alerts.map((alert) => (
+                <Alert key={alert.id} severity={alert.severity}><b>{alert.title}</b><br />{alert.description}</Alert>
+              ))}
+            </Box>
+          )}
+        </Paper>
+        </Box>
+      </Collapse>
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "minmax(0,1fr)",
+          gridTemplateColumns: { xs: "minmax(0,1fr)", md: "250px minmax(0,1fr)" },
           gap: 2,
           width: "100%",
+          alignItems: "start",
         }}
       >
+        <Paper variant="outlined" sx={{ display: { xs: "none", md: "block" }, p: 1.5, borderRadius: 3, position: "sticky", top: 8 }}>
+          <MiniMonthCalendar dateISO={date} view={view} onSelect={(day) => setDate(day)} markedDates={new Set(items.filter((a) => a.status !== "Cancelado").map((a) => a.dateISO))} />
+          <Typography sx={{ fontWeight: 900, fontSize: 14, mt: 2, mb: 0.5 }}>Profissionais</Typography>
+          <Box sx={{ display: "grid", gap: 0.25, maxHeight: 320, overflowY: "auto" }}>
+            {professionals.map((name) => (
+              <FormControlLabel
+                key={name}
+                sx={{ m: 0 }}
+                control={<Checkbox size="small" checked={professional === name} onChange={() => setProfessional(name)} />}
+                label={<Typography variant="body2" sx={{ fontWeight: professional === name ? 800 : 500 }}>{name}</Typography>}
+              />
+            ))}
+          </Box>
+        </Paper>
         <Paper
           variant="outlined"
           sx={{
@@ -1259,6 +1300,7 @@ export default function Agenda() {
               setEditRequestedBy("Paciente");
               setEditSmartSuggestion(null);
             }}
+            maxHeight="calc(100vh - 220px)"
             onNew={(prefill) => openNew(prefill)}
             onResize={async (appointment, durationMinutes) => {
               if (!appointment.backendId) return;
@@ -1270,17 +1312,6 @@ export default function Agenda() {
             }}
           />
           </AgendaMarkersContext.Provider>
-        </Paper>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Pendências até resolver</Typography>
-          <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>Financeiro, faltas, laboratório e agenda ficam visíveis para a equipe.</Typography>
-          {alerts.length === 0 ? <Alert severity="success">Nenhuma pendência crítica agora.</Alert> : (
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))", xl: "repeat(3, minmax(0, 1fr))" }, gap: 1, maxHeight: 420, overflow: "auto" }}>
-              {alerts.map((alert) => (
-                <Alert key={alert.id} severity={alert.severity}><b>{alert.title}</b><br />{alert.description}</Alert>
-              ))}
-            </Box>
-          )}
         </Paper>
       </Box>
 
