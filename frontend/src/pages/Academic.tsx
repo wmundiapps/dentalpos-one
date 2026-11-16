@@ -23,6 +23,7 @@ import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
+import { EDU_ONLY } from "../config/appMode";
 import { educationalCourses, formatCoursePrice } from "../services/EducationService";
 
 type AcademicSection = "visao-geral" | "alunos" | "cursos" | "professores" | "turmas" | "financeiro" | "documentos";
@@ -83,7 +84,7 @@ export default function Academic() {
   return (
     <Box>
       <PageHeader
-        title="DentalPos Academy"
+        title={EDU_ONLY ? "Instituição Academy" : "DentalPos Academy"}
         description="Gestão acadêmica, cursos, professores, turmas, alunos, frequência, documentos e financeiro em um único ambiente."
         actionLabel="Cadastrar curso"
         actionIcon={<AddIcon />}

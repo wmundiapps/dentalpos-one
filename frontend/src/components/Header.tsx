@@ -267,7 +267,7 @@ export default function Header() {
           ) : (
             <Box sx={{ height: 40, px: 1.25, display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 0.75, border: "1px dashed", borderColor: "divider", borderRadius: 2, color: "text.secondary" }}>
               <LocalHospitalOutlinedIcon fontSize="small" />
-              <Typography variant="caption" sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>{"Sua clínica"}</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>{EDU_ONLY ? "Sua instituição" : "Sua clínica"}</Typography>
             </Box>
           )}
         </Tooltip>
