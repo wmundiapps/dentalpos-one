@@ -27,7 +27,7 @@ export default function PendingLockGate({ children }: { children: ReactNode }) {
   }, [load]);
 
   if (!data?.blocked) return <>{children}</>;
-  const resolvable = data.items.some((i) => location.pathname === i.path || location.pathname.startsWith(`${i.path}/`));
+  const resolvable = data.items.filter((i) => !i.info).some((i) => location.pathname === i.path || location.pathname.startsWith(`${i.path}/`));
 
   const submit = async (fn: () => Promise<unknown>) => {
     setBusy(true); setError("");
@@ -48,7 +48,7 @@ export default function PendingLockGate({ children }: { children: ReactNode }) {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}><LockIcon color="error" /><Typography variant="h5" sx={{ fontWeight: 800 }}>Sistema travado hoje</Typography></Box>
           <Typography sx={{ mb: 2 }}>O seu departamento não resolveu as pendências abaixo. Resolva-as para liberar o sistema, ou justifique por escrito. Se não forem resolvidas, seu gestor será notificado por e-mail.</Typography>
           <Box sx={{ display: "grid", gap: 1, mb: 3 }}>
-            {data.items.map((i) => (
+            {data.items.filter((i) => !i.info).map((i) => (
               <Box key={i.key} sx={{ display: "flex", gap: 2, alignItems: "center", justifyContent: "space-between" }}>
                 <Typography variant="body2">{i.label}</Typography>
                 <Button component={RouterLink} to={i.path} variant="contained" size="small" sx={{ whiteSpace: "nowrap" }}>Ir resolver</Button>

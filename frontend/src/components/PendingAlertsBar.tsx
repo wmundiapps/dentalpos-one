@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Box, Button, Link, Typography } from "@mui/material";
+import { Alert, Box, Button, Link, Typography } from "@mui/material";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import RiskPolicyDialog, { RISK_YELLOW } from "./RiskPolicyDialog";
 import { Link as RouterLink, useLocation } from "react-router-dom";
@@ -10,6 +10,7 @@ export default function PendingAlertsBar() {
   const location = useLocation();
   const [expanded, setExpanded] = useState(false);
   const [riskOpen, setRiskOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!localStorage.getItem("dentalpos.token")) return;
@@ -25,9 +26,33 @@ export default function PendingAlertsBar() {
 
   if (!data || !data.enabled) return null;
   // Gestor/admin veem todas as pendências; cada departamento vê só a da sua própria tela.
-  const shown = data.canManage ? data.items : data.items.filter((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
+  const visibleItems = data.canManage ? data.items : data.items.filter((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`));
+  // Avisos "para conferir" (ex.: parcelas importadas do Clinicorp, pagas pelo banco de lá) ficam fora do risco.
+  const shown = visibleItems.filter((item) => !item.info);
+  const infoItems = visibleItems.filter((item) => item.info);
   const shownCount = shown.reduce((sum, item) => sum + item.count, 0);
-  if (shown.length === 0) return null;
+  if (shown.length === 0 && infoItems.length === 0) return null;
+
+  const infoBlock = infoItems.length > 0 && (
+    <Alert severity="info" icon={false} sx={{ borderRadius: 0, py: 0.5, "& .MuiAlert-message": { width: "100%" } }}>
+      {infoItems.map((item) => (
+        <Box key={item.key}>
+          <Box role="button" tabIndex={0} onClick={() => setInfoOpen((v) => !v)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setInfoOpen((v) => !v); }} sx={{ cursor: "pointer", display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 13 }}>Para conferir: {item.label}</Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: 12, textDecoration: "underline", whiteSpace: "nowrap" }}>{infoOpen ? "ocultar" : "ver pacientes"}</Typography>
+          </Box>
+          {infoOpen && (
+            <Box sx={{ mt: 0.75 }}>
+              <Typography variant="caption" sx={{ display: "block", mb: 0.5 }}>Confira o pagamento no Clinicorp ou no Unicred e dê a baixa em Financeiro (ou pela planilha de baixa na importação). Quem já pagou sai desta lista.</Typography>
+              {(item.rows || []).map((r, idx) => <Link key={`${r.patientId}-${idx}`} component={RouterLink} to={r.to || item.path} sx={{ display: "block", color: "inherit", fontSize: 12, textDecoration: "underline", my: 0.3 }}>{`• ${r.patientName}: ${r.summary}`}</Link>)}
+            </Box>
+          )}
+        </Box>
+      ))}
+    </Alert>
+  );
+
+  if (shown.length === 0) return <>{infoBlock}</>;
 
   return (
     <>
@@ -77,6 +102,7 @@ export default function PendingAlertsBar() {
           </Box>
         )}
       </Box>
+      {infoBlock}
       <RiskPolicyDialog open={riskOpen} onClose={() => setRiskOpen(false)} />
     </>
   );

@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma'
+import { importedOriginsToSkip } from './importedHold'
 
 // Pendência financeira x agenda: paciente com cobrança vencida pode marcar UM horário; enquanto a pendência não for
 // regularizada, novos agendamentos são recusados. A regra é da clínica (gestor liga/desliga) e fica na flag FINANCIAL_HOLD.
@@ -33,8 +34,10 @@ export async function getHold(clinicId: string, tenantId: string, patientId: str
   const settings = await loadHoldSettings(clinicId)
   if (!settings.enabled) return { enabled: false, hasPending: false, blocked: false, total: 0, futureAppointments: 0, entries: [] }
   const limit = new Date(startOfTodayBrt(now).getTime() - settings.graceDays * DAY)
+  // Parcelas importadas do Clinicorp são pagas pelo banco de lá (baixa manual): não travam o agendamento.
+  const skip = await importedOriginsToSkip(clinicId)
   const rows = await prisma.financialEntry.findMany({
-    where: { clinicId, tenantId, patientId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: limit } },
+    where: { clinicId, tenantId, patientId, type: 'INCOME', status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: limit }, ...(skip.length ? { origin: { notIn: skip } } : {}) },
     select: { id: true, description: true, amount: true, dueDate: true }, orderBy: { dueDate: 'asc' }, take: 50,
   })
   const charges = rows.length

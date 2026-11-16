@@ -7,6 +7,7 @@ import { getUserPermissionCodes } from '../services/permissionService'
 import { dispatchRevah } from '../services/revahProviderService'
 import { deliverWithCode } from '../services/labDeliveryCode'
 import { writeAudit } from '../services/auditService'
+import { importedOriginsToSkip } from '../services/importedHold'
 import { sendUnplannedNotice } from '../services/unplannedPatientNotice'
 
 const FLAG_KEY = 'PENDING_ALERTS'
@@ -18,7 +19,7 @@ const KEY_LOCK_MS = 15 * 60 * 1000
 type Mode = 'ALERT' | 'BLOCK'
 type Visibility = Record<string, string[]>
 type Settings = { enabled: boolean; mode: Mode; lastDigest: string | null; lockDepartments: string[]; lockedUserIds: string[]; keyHash: string | null; unlocks: Record<string, string>; visibility: Visibility; lockEvents: Record<string, { day: string; resolved: boolean }> }
-type Item = { key: string; label: string; count: number; path: string; blocks?: number; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string; to?: string; noticeSent?: boolean }> }
+type Item = { key: string; label: string; count: number; path: string; blocks?: number; info?: boolean; lines?: string[]; rows?: Array<{ patientId: string; patientName: string; summary: string; to?: string; noticeSent?: boolean }> }
 
 // Quem enxerga cada tipo de pendência, por departamento (código do perfil de acesso). Admin vê tudo sempre.
 // Se o gestor não configurou nada, vale este padrão: cobrança vai para recepção, financeiro e clínico; laboratório não vê cobrança.
@@ -172,26 +173,45 @@ async function computeItems(clinicId: string, tenantId: string, codes: string[] 
     }
   }
   if (can('finance.view', 'receivables')) {
-    const where = { clinicId, tenantId, type: 'INCOME' as const, status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: today } }
+    // Parcelas importadas de outro sistema (Clinicorp etc.) são pagas pelo banco de lá: a baixa é manual e elas NUNCA entram no risco.
+    // Ficam num aviso separado ("conferir no Clinicorp/Unicred"), que não conta como pendência nem trava a tela.
+    const importedOrigins = await importedOriginsToSkip(clinicId)
+    const base = { clinicId, tenantId, type: 'INCOME' as const, status: { notIn: ['PAID', 'CANCELLED'] }, dueDate: { lt: today } }
+    const where = importedOrigins.length ? { ...base, origin: { notIn: importedOrigins } } : base
+    const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    const dmy = (d: Date) => { const i = new Date(d.getTime() - 3 * 3600000).toISOString(); return `${i.slice(8, 10)}/${i.slice(5, 7)}/${i.slice(0, 4)}` }
+    const groupByPatient = (list: Array<{ patientId: string | null; amount: number; dueDate: Date; patient: { fullName: string } | null }>, to: string) => {
+      const byPatient = new Map<string, { name: string; total: number; n: number; oldest: Date }>()
+      for (const e of list) {
+        if (!e.patientId) continue
+        const cur = byPatient.get(e.patientId) || { name: e.patient?.fullName || 'Paciente', total: 0, n: 0, oldest: e.dueDate }
+        cur.total += Number(e.amount); cur.n += 1
+        byPatient.set(e.patientId, cur)
+      }
+      return [...byPatient.entries()].slice(0, 60).map(([patientId, v]) => ({ patientId, patientName: v.name, summary: `${brl(v.total)} em ${v.n} parcela(s) · a mais antiga venceu em ${dmy(v.oldest)}`, to }))
+    }
     const count = await prisma.financialEntry.count({ where })
     if (count) {
       const late = await prisma.financialEntry.findMany({
         where: { ...where, patientId: { not: null } }, orderBy: { dueDate: 'asc' }, take: 300,
         select: { patientId: true, amount: true, dueDate: true, patient: { select: { fullName: true } } }
       }).catch(() => [])
-      const byPatient = new Map<string, { name: string; total: number; n: number; oldest: Date }>()
-      for (const e of late) {
-        if (!e.patientId) continue
-        const cur = byPatient.get(e.patientId) || { name: e.patient?.fullName || 'Paciente', total: 0, n: 0, oldest: e.dueDate }
-        cur.total += Number(e.amount); cur.n += 1
-        byPatient.set(e.patientId, cur)
+      items.push({ key: 'receivables', label: `${count} recebimento(s) vencido(s) (paciente em atraso: a régua de cobrança acompanha)`, count, path: '/financeiro', rows: groupByPatient(late, '/financeiro') })
+    }
+    if (importedOrigins.length) {
+      const importedWhere = { ...base, origin: { in: importedOrigins } }
+      const importedCount = await prisma.financialEntry.count({ where: importedWhere })
+      if (importedCount) {
+        const late = await prisma.financialEntry.findMany({
+          where: { ...importedWhere, patientId: { not: null } }, orderBy: { dueDate: 'asc' }, take: 800,
+          select: { patientId: true, amount: true, dueDate: true, patient: { select: { fullName: true } } }
+        }).catch(() => [])
+        items.push({
+          key: 'receivables-imported', info: true, blocks: 0, count: importedCount, path: '/financeiro',
+          label: `${importedCount} parcela(s) importada(s) do sistema anterior (Clinicorp) vencida(s): para conferir no Clinicorp ou no Unicred. O pagamento chega pelo banco de lá, então a baixa é manual aqui. Não conta como risco.`,
+          rows: groupByPatient(late, '/financeiro')
+        })
       }
-      const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      const rows = [...byPatient.entries()].slice(0, 60).map(([patientId, v]) => {
-        const d = new Date(v.oldest.getTime() - 3 * 3600000).toISOString()
-        return { patientId, patientName: v.name, summary: `${brl(v.total)} em ${v.n} cobrança(s) · a mais antiga venceu em ${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`, to: '/financeiro' }
-      })
-      items.push({ key: 'receivables', label: `${count} recebimento(s) vencido(s) (paciente em atraso: a régua de cobrança acompanha)`, count, path: '/financeiro', rows })
     }
   }
   if (can('finance.view', 'budget')) {
@@ -269,8 +289,8 @@ export async function show(req: AuthRequest, res: Response) {
     const visibleKeys = visibleCategories(settings, profileCodes)
 
     const items = settings.enabled ? await computeItems(clinicId, tenantId, codes, visibleKeys, settings.mode === 'BLOCK') : []
-    const total = items.reduce((sum, item) => sum + item.count, 0)
-    const blockingTotal = items.reduce((sum, item) => sum + (item.blocks ?? item.count), 0)
+    const total = items.filter(i => !i.info).reduce((sum, item) => sum + item.count, 0)
+    const blockingTotal = items.filter(i => !i.info).reduce((sum, item) => sum + (item.blocks ?? item.count), 0)
     // Quem gerencia nunca é travado (precisa conseguir destravar os outros e mexer na configuração).
     const configured = (settings.lockedUserIds.includes(userId) || (profileCodes !== null && profileCodes.some(c => settings.lockDepartments.includes(c)))) && !canManage
     const blocked = settings.enabled && settings.mode === 'BLOCK' && configured && blockingTotal > 0 && !isUnlocked(settings, userId)
@@ -443,7 +463,7 @@ export async function justify(req: AuthRequest, res: Response) {
     const settings = await loadSettings(clinicId)
     const codes = role === 'ADMIN' ? null : await getUserPermissionCodes(userId)
     const profileCodes = role === 'ADMIN' ? null : await getUserProfileCodes(userId)
-    const items = await computeItems(clinicId, tenantId, codes, visibleCategories(settings, profileCodes), true)
+    const items = (await computeItems(clinicId, tenantId, codes, visibleCategories(settings, profileCodes), true)).filter(i => !i.info)
     const lines = items.map(i => `• ${i.label}`)
     settings.unlocks[userId] = endOfTodayBrt().toISOString()
     await saveSettings(clinicId, tenantId, settings)
@@ -465,7 +485,7 @@ export async function sendManagerDigest(clinicId: string, tenantId: string, now 
   const brt = new Date(now.getTime() - 3 * 3600000)
   const today = brt.toISOString().slice(0, 10)
   if (!settings.enabled || brt.getUTCHours() < 9 || settings.lastDigest === today) return { skipped: true }
-  const items = await computeItems(clinicId, tenantId, null, ALERT_CATEGORIES.map(c => c.key), false)
+  const items = (await computeItems(clinicId, tenantId, null, ALERT_CATEGORIES.map(c => c.key), false)).filter(i => !i.info)
   if (!items.length) return { skipped: true }
   const lines = items.flatMap(i => [`• ${i.label}`, ...(i.lines || []).slice(0, 5).map(l => `    - ${l}`)])
   await notifyManagers(clinicId, tenantId, 'Pendências não resolvidas na clínica', `Estas pendências continuam sem resolução:\n\n${lines.join('\n')}\n\nOs departamentos foram avisados de que você é notificado. Acompanhe em Configurações > Avisos de pendências.`)
