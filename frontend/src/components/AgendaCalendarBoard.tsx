@@ -445,15 +445,19 @@ function TimeGridView({
   };
 
   const breakRows = (dayISO: string) => {
-    if (!professionalId) return [];
     const dayOfWeek = new Date(`${dayISO}T12:00:00`).getDay();
+    // Com "Todos" os profissionais, mostra o almoço (e demais intervalos) uma vez por horário, mesmo que valha para vários.
+    const wanted = professionalId
+      ? recurringBreaks.filter((item) => item.doctorId === professionalId && item.dayOfWeek === dayOfWeek)
+      : Array.from(
+          new Map(
+            recurringBreaks
+              .filter((item) => item.dayOfWeek === dayOfWeek)
+              .map((item) => [`${item.startTime}-${item.endTime}-${item.reason}`, item] as const),
+          ).values(),
+        );
 
-    return recurringBreaks
-      .filter(
-        (item) =>
-          item.doctorId === professionalId &&
-          item.dayOfWeek === dayOfWeek,
-      )
+    return wanted
       .map((item) => ({
         ...item,
         start: Math.max(START_MINUTES, minuteOfDay(item.startTime)),
