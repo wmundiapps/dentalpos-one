@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
 import { prisma } from '../lib/prisma'
+import { nationalHolidays } from '../lib/holidays'
 
 const BLOCK_FLAG = 'AGENDA_BLOCKS'
 const RECURRING_BREAK_FLAG = 'AGENDA_RECURRING_BREAKS'
@@ -180,10 +181,49 @@ function normalizeAgendaBlock(value: unknown): AgendaBlock | undefined {
   }
 }
 
+const holidayYearsOf = (metadata: Record<string, unknown>) =>
+  Array.isArray(metadata.holidayYears) ? metadata.holidayYears.map(Number).filter(Number.isFinite) : []
+
+// Feriados nacionais entram sozinhos como dias fechados (agenda toda, todos os profissionais) do ano atual e do próximo.
+// Cada ano entra uma única vez: se a clínica abrir num feriado e remover o bloqueio, ele não volta.
+async function seedHolidayBlocks(clinicId: string, row: { tenantId: string; metadata: unknown } | null) {
+  const year = Number(new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 4))
+  const metadata = (row?.metadata || {}) as Record<string, unknown>
+  const done = holidayYearsOf(metadata)
+  const missing = [year, year + 1].filter(y => !done.includes(y))
+  if (!missing.length) return
+  const tenantId = row?.tenantId || (await prisma.clinic.findUnique({ where: { id: clinicId }, select: { tenantId: true } }))?.tenantId
+  if (!tenantId) return
+  const current = (Array.isArray(metadata.blocks) ? metadata.blocks : [])
+    .map(normalizeAgendaBlock)
+    .filter((item): item is AgendaBlock => Boolean(item))
+  const known = new Set(current.map(b => b.id))
+  const next = new Date(0)
+  for (const y of missing) {
+    for (const h of nationalHolidays(y)) {
+      const id = `feriado-${h.date}`
+      if (known.has(id)) continue
+      next.setTime(new Date(`${h.date}T00:00:00-03:00`).getTime() + 86400000)
+      current.push({ id, doctorId: null, startAt: new Date(`${h.date}T00:00:00-03:00`).toISOString(), endAt: next.toISOString(), reason: `Feriado nacional: ${h.name}` })
+    }
+  }
+  await persistAgendaBlocks(clinicId, tenantId, current, [...done, ...missing])
+}
+
 export async function listAgendaBlocks(clinicId: string): Promise<AgendaBlock[]> {
-  const row = await prisma.tenantFeatureFlag.findUnique({
+  let row = await prisma.tenantFeatureFlag.findUnique({
     where: { clinicId_key: { clinicId, key: BLOCK_FLAG } },
   })
+  try {
+    const year = Number(new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 4))
+    const done = holidayYearsOf((row?.metadata || {}) as Record<string, unknown>)
+    if (![year, year + 1].every(y => done.includes(y))) {
+      await seedHolidayBlocks(clinicId, row)
+      row = await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: BLOCK_FLAG } } })
+    }
+  } catch (error) {
+    console.error('Falha ao incluir feriados na agenda:', error instanceof Error ? error.message : error)
+  }
   const metadata = (row?.metadata || {}) as Record<string, unknown>
   const raw = Array.isArray(metadata.blocks) ? metadata.blocks : []
   return raw
@@ -196,13 +236,17 @@ async function persistAgendaBlocks(
   clinicId: string,
   tenantId: string,
   blocks: AgendaBlock[],
+  holidayYears?: number[],
 ) {
+  // Mantém a lista de anos de feriados já incluídos (senão um feriado removido pela clínica voltaria).
+  const years = holidayYears ?? holidayYearsOf(((await prisma.tenantFeatureFlag.findUnique({ where: { clinicId_key: { clinicId, key: BLOCK_FLAG } } }))?.metadata || {}) as Record<string, unknown>)
+  const metadata = { version: 1, blocks, holidayYears: years } as unknown as Parameters<typeof prisma.tenantFeatureFlag.upsert>[0]['create']['metadata']
   await prisma.tenantFeatureFlag.upsert({
     where: { clinicId_key: { clinicId, key: BLOCK_FLAG } },
     update: {
       enabled: true,
       rolloutStage: 'PILOT',
-      metadata: { version: 1, blocks },
+      metadata,
     },
     create: {
       clinicId,
@@ -210,7 +254,7 @@ async function persistAgendaBlocks(
       key: BLOCK_FLAG,
       enabled: true,
       rolloutStage: 'PILOT',
-      metadata: { version: 1, blocks },
+      metadata,
     },
   })
 }
