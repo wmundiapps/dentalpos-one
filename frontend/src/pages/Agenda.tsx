@@ -1069,8 +1069,9 @@ export default function Agenda() {
   };
 
   return (
-    <Box>
+    <Box sx={{ textAlign: "left" }}>
       <PageHeader
+        compact
         title="Agenda"
         actionLabel="Novo agendamento"
         actionIcon={<AddIcon />}
@@ -1080,7 +1081,7 @@ export default function Agenda() {
       <CloseAgendaDialog open={closeAgendaOpen} onClose={() => setCloseAgendaOpen(false)} doctors={backendDoctors} defaultDoctorId={selectedBackendDoctorId} defaultDate={date} appointments={items} onSaved={refreshAgendaConfiguration} />
       {holdTarget && <FinancialHoldDialog patientId={holdTarget.id} patientName={holdTarget.name} open onClose={() => setHoldTarget(null)} onResolved={(id) => { holdResolvedFor.current = id; }} onScheduleAnyway={holdTarget.retry ? () => { setHoldTarget(null); void saveWith(true); } : undefined} />}
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, mb: 2 }}>
+      <Paper variant="outlined" sx={{ p: 1, borderRadius: 3, mb: 1 }}>
         <Box
           sx={{
             display: "grid",
@@ -1300,7 +1301,7 @@ export default function Agenda() {
               setEditRequestedBy("Paciente");
               setEditSmartSuggestion(null);
             }}
-            maxHeight="calc(100vh - 220px)"
+            maxHeight="calc(100vh - 190px)"
             onNew={(prefill) => openNew(prefill)}
             onResize={async (appointment, durationMinutes) => {
               if (!appointment.backendId) return;

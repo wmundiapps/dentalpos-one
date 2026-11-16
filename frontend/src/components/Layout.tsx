@@ -56,10 +56,10 @@ export default function Layout({
           component="main"
           sx={{
             flex: 1,
-            p: {
-              xs: 2,
-              md: 4,
-            },
+            // A agenda usa a tela toda (margens pequenas) para mostrar mais horários e pacientes.
+            p: location.pathname.startsWith("/agenda") && !location.pathname.startsWith("/agendamento")
+              ? { xs: 1, md: 1.5 }
+              : { xs: 2, md: 4 },
           }}
         >
           <PrintHeader />

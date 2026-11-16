@@ -7,6 +7,7 @@ interface PageHeaderProps {
   actionLabel?: string;
   actionIcon?: ReactNode;
   onAction?: () => void;
+  compact?: boolean;
 }
 
 export default function PageHeader({
@@ -15,6 +16,7 @@ export default function PageHeader({
   actionLabel,
   actionIcon,
   onAction,
+  compact = false,
 }: PageHeaderProps) {
   return (
     <Box
@@ -30,7 +32,7 @@ export default function PageHeader({
         },
         justifyContent: "space-between",
         gap: 2,
-        mb: 4,
+        mb: compact ? 1 : 4,
       }}
     >
       <Box>
