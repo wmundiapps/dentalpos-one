@@ -12,7 +12,7 @@ export type LabOrderStage = "IN_PROGRESS" | "FINISHED" | "DELIVERED";
 export const STAGE_LABELS: Record<LabOrderStage, string> = { IN_PROGRESS: "Em andamento", FINISHED: "Finalizado", DELIVERED: "Entregue" };
 // Frases rápidas de "como está" (o texto pode ser escrito livremente).
 export const PROGRESS_PRESETS = ["Aguardando projeto", "Projetando", "Falta fresar", "Fresando", "Falta maquear", "Maqueando", "Falta chegar material", "Em prova / ajuste", "Pronto para entrega"];
-export interface LabOrderProgressEntry { at: string; byName: string | null; stage: LabOrderStage; note: string }
+export interface LabOrderProgressEntry { at: string; byName: string | null; stage: LabOrderStage; note: string; readyBy?: string | null }
 export type ErrorResponsible = "AUXILIAR" | "DENTISTA" | "RECEPCAO" | "LABORATORIO";
 export const RESPONSIBLE_LABELS: Record<ErrorResponsible, string> = { AUXILIAR: "Auxiliar", DENTISTA: "Dentista", RECEPCAO: "Recepção", LABORATORIO: "Laboratório" };
 
@@ -27,7 +27,7 @@ export interface LabServiceOrder {
   scanUpper: boolean; scanLower: boolean; scanBite: boolean; impressionUpper: boolean; impressionLower: boolean; waxBite: boolean;
   status: LabOrderStatus; receivedAt: string | null; receivedByName: string | null; refusalReason: string | null; deliveredAt: string | null;
   errors: LabOrderError[]; createdByName: string | null; createdAt: string; receiptCode?: string | null;
-  stage?: "IN_PROGRESS" | "FINISHED"; progressNote?: string | null; progressAt?: string | null; progressByName?: string | null; progressLog?: LabOrderProgressEntry[];
+  stage?: "IN_PROGRESS" | "FINISHED"; progressNote?: string | null; progressAt?: string | null; progressByName?: string | null; readyBy?: string | null; progressLog?: LabOrderProgressEntry[];
 }
 export type LabServiceOrderInput = Pick<LabServiceOrder, "patientName" | "patientContact" | "dentistName" | "dentistContact" | "assistantName" | "laboratoryName" | "service" | "shade" | "elements" | "scanUpper" | "scanLower" | "scanBite" | "impressionUpper" | "impressionLower" | "waxBite"> & { sentAt: string; dueAt: string; patientId?: string | null; appointmentId?: string | null };
 
@@ -48,4 +48,5 @@ export const loadPendingLabReceipts = () => call<LabServiceOrder[]>("/lab-servic
 export const reportLabOrderError = (id: string, responsibleType: ErrorResponsible, responsibleName: string, description: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/errors`, "POST", { responsibleType, responsibleName, description });
 export const resolveLabOrderError = (id: string, errorId: string, resolution: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/errors/${errorId}/resolve`, "POST", { resolution });
 export const deliverLabOrder = (id: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/deliver`, "POST", {});
-export const updateLabOrderProgress = (id: string, stage: LabOrderStage, note: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/progress`, "POST", { stage, note });
+// readyBy: data (AAAA-MM-DD) em que o trabalho precisa estar pronto; vazio limpa a data.
+export const updateLabOrderProgress = (id: string, stage: LabOrderStage, note: string, readyBy: string) => call<LabServiceOrder>(`/lab-service-orders/${id}/progress`, "POST", { stage, note, readyBy });

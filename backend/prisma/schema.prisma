@@ -2738,6 +2738,7 @@ model LabServiceOrder {
   progressNote    String?
   progressAt      DateTime?
   progressByName  String?
+  readyBy         DateTime?
   progressLog     Json      @default("[]")
   errors          Json      @default("[]")
   createdById     String?
