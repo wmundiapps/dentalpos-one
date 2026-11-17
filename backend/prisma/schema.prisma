@@ -2733,6 +2733,12 @@ model LabServiceOrder {
   receiptCode     String?
   refusalReason   String?
   deliveredAt     DateTime?
+  // Andamento no laboratório (depois do recebimento): IN_PROGRESS | FINISHED; "entregue" continua sendo status DELIVERED.
+  stage           String    @default("IN_PROGRESS")
+  progressNote    String?
+  progressAt      DateTime?
+  progressByName  String?
+  progressLog     Json      @default("[]")
   errors          Json      @default("[]")
   createdById     String?
   createdByName   String?
