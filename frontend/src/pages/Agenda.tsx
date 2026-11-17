@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import MiniMonthCalendar from "../components/MiniMonthCalendar";
+import AgendaPrintDialog from "../components/AgendaPrintDialog";
 import LinkIcon from "@mui/icons-material/Link";
 
 import TuneIcon from "@mui/icons-material/Tune";
@@ -376,6 +377,7 @@ export default function Agenda() {
   const [scheduleBlocks, setScheduleBlocks] = useState<BackendSchedule[]>([]);
   const [agendaBlocks, setAgendaBlocks] = useState<AgendaBlock[]>([]);
   const [closeAgendaOpen, setCloseAgendaOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
   const [recurringBreaks, setRecurringBreaks] = useState<RecurringBreak[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
@@ -1078,6 +1080,7 @@ export default function Agenda() {
         onAction={() => openNew({ dateISO: date })}
       />
       <AbsenceRecallDialog open={absenceOpen} onClose={() => setAbsenceOpen(false)} />
+      <AgendaPrintDialog open={printOpen} onClose={() => setPrintOpen(false)} items={items} professionals={professionals} defaultView={view} dateISO={date} defaultProfessional={professional} />
       <CloseAgendaDialog open={closeAgendaOpen} onClose={() => setCloseAgendaOpen(false)} doctors={backendDoctors} defaultDoctorId={selectedBackendDoctorId} defaultDate={date} appointments={items} onSaved={refreshAgendaConfiguration} />
       {holdTarget && <FinancialHoldDialog patientId={holdTarget.id} patientName={holdTarget.name} open onClose={() => setHoldTarget(null)} onResolved={(id) => { holdResolvedFor.current = id; }} onScheduleAnyway={holdTarget.retry ? () => { setHoldTarget(null); void saveWith(true); } : undefined} />}
 
@@ -1101,6 +1104,7 @@ export default function Agenda() {
             />
             <Button variant="outlined" onClick={() => move(1)} aria-label="Próximo período" sx={{ minWidth: 44, fontSize: 24, lineHeight: 1 }}>›</Button>
             <Button variant="contained" onClick={() => setDate(today())}>Hoje</Button>
+            <Button variant="contained" size="small" onClick={() => setPrintOpen(true)}>Imprimir agenda</Button>
             <ExportMenu
               label="Baixar / imprimir agenda"
               build={() => {
