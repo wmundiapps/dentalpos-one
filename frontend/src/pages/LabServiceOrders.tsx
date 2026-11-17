@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import PageHeader from "../components/PageHeader";
+import { PENDING_ALERTS_EVENT } from "../services/PendingAlertsApi";
 import LabServiceOrderDialog from "../components/LabServiceOrderDialog";
 import { accompanyingItems, printLabLabels, printLabOrder } from "../utils/labOrderPrint";
 import {
@@ -166,6 +167,7 @@ export default function LabServiceOrders() {
               if (progStage === "DELIVERED" && progOrder.status !== "DELIVERED" && !window.confirm("Confirmar que o trabalho voltou do laboratório para a clínica?")) return;
               await updateLabOrderProgress(progOrder.id, progStage, progNote.trim());
               setProgOrder(null);
+              window.dispatchEvent(new Event(PENDING_ALERTS_EVENT)); // atualiza a faixa de avisos na hora
             })}>Salvar andamento</Button>
         </DialogActions>
       </Dialog>
