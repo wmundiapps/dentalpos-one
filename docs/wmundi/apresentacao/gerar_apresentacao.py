@@ -251,7 +251,7 @@ GRADE = [('Saúde', 'saude', ['Completodonto', 'AlignSystem', 'MedicinaOnline'])
          ('Educação', 'edu', ['WhatSpeak', 'AllCollege', 'EduMaster Pro']),
          ('Comércio e serviços', 'neg', ['Venda de Empresas', 'SpaceHour', 'Studio BB', 'Lavacar Smart', 'ClubeFaz', 'Cashbacksmart']),
          ('Mobilidade e carreira', 'mob', ['EarlyCar', 'UrbanFlow', 'MeuEmprego']),
-         ('Gestão empresarial', 'mod', ['Gerenciador de vendas', 'Gerenciador fiscal e contábil', 'Gerenciador de RH', 'Ponto por reconhecimento facial', 'Precificador'])]
+         ('Gestão empresarial', 'mod', ['Gerenciador de vendas', 'Gerenciador fiscal e contábil', 'Gerenciador de RH', 'Ponto por reconhecimento facial', 'Precificador de Hotelaria'])]
 def grade():
     out = ''
     for tit, cat, nomes in GRADE:
@@ -320,8 +320,9 @@ add(p('Cashbacksmart', 'neg', 'Cashback para qualquer segmento.',
       ['Programa de cashback multiempresa', 'Lojistas de todos os segmentos podem aderir', 'Clientes acumulam e usam os benefícios', 'Fidelização e recompra'], 'cash', 'Cashbacksmart · Benefícios'))
 add(p('EarlyCar', 'mob', 'Carona e compartilhamento de rotas entre usuários cadastrados, com endereço fixo.',
       ['Usuários cadastrados e identificados', 'Rotas e horários combinados', 'Endereço fixo de origem e destino', 'Carona corporativa e entre colegas'], 'map', 'EarlyCar · Rotas'), 'alt')
-add(p('UrbanFlow', 'mob', 'Cobrança de estacionamento rotativo e localização de vagas para estacionar na rua.',
-      ['Cobrança de estacionamento rotativo', 'Localização de vagas na rua', 'Menos tempo procurando vaga', 'Gestão para quem administra o estacionamento'], 'map', 'UrbanFlow · Vagas'))
+add(p('UrbanFlow', 'mob', 'Estacionamento rotativo inteligente: vaga visível, pagamento pelo celular e arrecadação transparente para a prefeitura.',
+      ['Aplicativo mostra as vagas livres por rua e quadra', 'Ticket por tempo, com Pix e cartão e tolerância de 15 minutos', 'Contadores nos postes e câmeras de placa para quem não ativou o ticket',
+       'Painel do administrador com aviso e sugestão de ronda da fiscalização', 'Implantação por piloto e expansão gradual'], 'map', 'UrbanFlow · Vagas'))
 add(p('MeuEmprego', 'car', 'Sistema de oferta e procura de vagas, regional ou municipal.',
       ['Empresas publicam vagas', 'Candidatos encontram oportunidades na sua região', 'Foco regional ou municipal', 'Contato direto entre candidato e empresa'], 'cards', 'MeuEmprego · Vagas'), 'alt')
 add(p('Gerenciador de vendas', 'mod', 'Controle de vendedores, comissões, entregas de produtos e muito mais.',
@@ -332,9 +333,11 @@ add(p('Gerenciador fiscal e contábil', 'mod', 'Toda a contabilidade da empresa,
 add(p('Gerenciador de RH', 'mod', 'Controle de toda a jornada do funcionário, de ponta a ponta.',
       ['Cadastro de colaboradores e documentos', 'Férias, escalas e salário', 'Avaliação de desempenho', 'Indicadores de pessoas'], 'cards', 'Gerenciador de RH'))
 add(p('Ponto por reconhecimento facial', 'mod', 'Cuida da jornada do funcionário e envia tudo para o RH.',
-      ['Registro de entrada, intervalos e saída pelo rosto', 'Controle de faltas e atrasos', 'Sem relógio de ponto e com menos fraude', 'Envio automático para o RH e a folha'], 'face', 'Ponto facial'), 'alt')
-add(p('Precificador', 'mod', 'Sugere o preço certo e mostra o ponto de equilíbrio para o seu negócio ter lucro.',
-      ['Sugestão de preço com base em valores de mercado', 'Considera custo fixo, custo variável e impostos', 'Considera o pró-labore', 'Mostra o ponto de equilíbrio do faturamento, do produto ou do serviço'], 'calc', 'Precificador'))
+      ['Registro pelo rosto, com prova de vida, em terminais da empresa', 'Modo manual e modo sem internet', 'Atestados, banco de horas e fechamento do mês no RH',
+       'Alertas ao gestor: férias, experiência e isentos de ponto', 'Quantos terminais precisar, em vários locais'], 'face', 'Ponto facial'), 'alt')
+add(p('Precificador de Hotelaria', 'mod', 'Sugere a diária certa por nível de apartamento e mostra o ponto de equilíbrio para o hotel ter lucro.',
+      ['Hotel comum, 4 estrelas e resort, com níveis de apartamento', 'Custos fixos e variáveis, impostos e lucro mensal desejado', 'Comparação com concorrentes e prestadores da região',
+       'Ocupação mínima, prazos de pagamento e correção', 'Personalizado para qualquer segmento, sob medida'], 'calc', 'Precificador de Hotelaria'))
 
 # integração
 add(f'''<div class="pad"><div class="eyebrow">Ecossistema</div><h2>Soluções que <em>conversam entre si</em>.</h2>
@@ -344,6 +347,13 @@ add(f'''<div class="pad"><div class="eyebrow">Ecossistema</div><h2>Soluções qu
 <div class="card"><h3><span class="dot" style="--c:{CORAL}"></span>Marketing e mensageria</h3><p>REVAH e Mundi Business falam com os clientes do seu sistema.</p></div>
 <div class="card"><h3><span class="dot" style="--c:{MINT}"></span>Gestão empresarial</h3><p>Financeiro, contabilidade, RH, ponto e precificação na mesma base.</p></div>
 <div class="card"><h3><span class="dot" style="--c:{SUN}"></span>Agentes de IA</h3><p>Atendem, agendam, cobram e avaliam dentro de cada sistema.</p></div></div></div>''', 'alt')
+
+add(f'''<div class="pad"><div class="eyebrow">Teste você mesmo</div><h2>Demonstrações <em>interativas</em>.</h2>
+<p class="lead">Três soluções para experimentar agora, com dados fictícios. Disponíveis até 02/12/2026.</p>
+<div class="cards" style="grid-template-columns:repeat(3,1fr)">
+<div class="card"><h3><span class="dot"></span>Ponto Facial</h3><p><a href="https://wmundi-ofertas.netlify.app/ponto/" style="color:#2f5bff">wmundi-ofertas.netlify.app/ponto</a></p></div>
+<div class="card"><h3><span class="dot" style="--c:{CORAL}"></span>Precificador de Hotelaria</h3><p><a href="https://wmundi-ofertas.netlify.app/precificador-8f3k/" style="color:#2f5bff">wmundi-ofertas.netlify.app/precificador-8f3k</a></p></div>
+<div class="card"><h3><span class="dot" style="--c:{MINT}"></span>UrbanFlow</h3><p><a href="https://wmundi-ofertas.netlify.app/urbanflow/" style="color:#2f5bff">wmundi-ofertas.netlify.app/urbanflow</a></p></div></div></div>''')
 
 # divisor gestores
 add(f'''<div class="pad" style="display:flex;flex-direction:column;justify-content:center;--c:{CORAL}"><div class="eyebrow">Parte 3</div><h2 style="font-size:130px;max-width:1500px">Programa de <em>Gestores WMundi</em></h2><p class="lead" style="font-size:40px">Leve a WMundi para a sua região, com o apoio da matriz.</p></div>''', 'div')
