@@ -4,6 +4,8 @@ process.env.DENTALPOS_SHARED_SECRET = 'segredo-dentalpos-teste'
 process.env.STRIPE_PRICE_START = 'price_start_test'
 process.env.STRIPE_PRICE_PRO = 'price_pro_test'
 process.env.STRIPE_PRICE_LEADS = 'price_leads_test'
+process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_revah'
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_revah_teste'
 process.env.ANTHROPIC_API_KEY = ''
 process.env.REVAH_SUPERADMIN_EMAILS = 'admin@wmundi.com'
 process.env.CAMPAIGN_THROTTLE_MS = '0'
@@ -17,6 +19,7 @@ process.env.LEADS_EMAIL_DAILY_CAP = '2'
 // Asaas simulado (sem rede).
 const realFetch = globalThis.fetch
 const asaasCalls: { url: string; body: any }[] = []
+const asaasPayments: { subscription?: string } = {}
 globalThis.fetch = (async (input: any, init: any = {}) => {
   const url = String(input)
   if (!url.startsWith('http://asaas.mock')) return realFetch(input, init)
@@ -25,6 +28,12 @@ globalThis.fetch = (async (input: any, init: any = {}) => {
   const json = (d: unknown) => new Response(JSON.stringify(d), { status: 200, headers: { 'Content-Type': 'application/json' } })
   if (url.endsWith('/customers')) return json({ id: 'cus_asaas_1' })
   if (url.endsWith('/subscriptions')) return json({ id: `sub_asaas_${asaasCalls.length}` })
+  // Consulta de pagamento (o REVAH confere o webhook na API do Asaas).
+  const pay = /\/payments\/(pay_[a-z]+)$/.exec(url)
+  if (pay) {
+    const status = ({ pay_ok: 'CONFIRMED', pay_late: 'OVERDUE', pay_fake: 'PENDING' } as Record<string, string>)[pay[1]] || 'PENDING'
+    return json({ id: pay[1], status, subscription: asaasPayments.subscription, dueDate: '2026-10-08' })
+  }
   if (url.includes('/payments')) return json({ data: [{ invoiceUrl: 'https://asaas.mock/fatura', status: 'PENDING' }] })
   return json({ deleted: true })
 }) as typeof fetch
@@ -108,11 +117,17 @@ test('teste de 14 dias: forma de pagamento (Asaas), 20 contatos por campanha, co
 
   // Webhooks do Asaas: pagamento confirmado -> ativo; atraso -> bloqueia.
   const subId = (await prisma.subscription.findUnique({ where: { tenantId: tenant.id } })).asaasSubscriptionId
+  asaasPayments.subscription = subId
+  const statusBefore = (await prisma.tenant.findUnique({ where: { id: tenant.id } })).status
   const denied = await request(app).post('/webhooks/asaas').send({ id: 'e0', event: 'PAYMENT_CONFIRMED', payment: { subscription: subId } })
   assert.equal(denied.status, 401)
-  await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e1', event: 'PAYMENT_CONFIRMED', payment: { subscription: subId, dueDate: '2026-10-08' } })
+  // Evento forjado (token certo, mas o pagamento não está pago no Asaas) não ativa a conta.
+  const forged = await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e-fake', event: 'PAYMENT_CONFIRMED', payment: { id: 'pay_fake', subscription: subId } })
+  assert.equal(forged.body.status, 'IGNORED')
+  assert.equal((await prisma.tenant.findUnique({ where: { id: tenant.id } })).status, statusBefore)
+  await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e1', event: 'PAYMENT_CONFIRMED', payment: { id: 'pay_ok', subscription: subId, dueDate: '2026-10-08' } })
   assert.equal((await prisma.tenant.findUnique({ where: { id: tenant.id } })).status, 'ACTIVE')
-  await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e2', event: 'PAYMENT_OVERDUE', payment: { subscription: subId } })
+  await request(app).post('/webhooks/asaas').set('asaas-access-token', 'asaas-webhook-token').send({ id: 'e2', event: 'PAYMENT_OVERDUE', payment: { id: 'pay_late', subscription: subId } })
   assert.equal((await prisma.tenant.findUnique({ where: { id: tenant.id } })).status, 'PAST_DUE')
 
   // Mesmo telefone não ganha novos 14 dias.
@@ -470,4 +485,81 @@ test('e-mail para contatos da captação: limite diário por cliente, o resto va
   assert.equal(waiting.length, 1)
   assert.ok(waiting[0].runAt.getTime() > Date.now() + 60 * 60_000, 'remarcado para o dia seguinte')
   assert.match(waiting[0].lastError, /Limite diário/)
+})
+
+test('REVAH Ads: add-on separado, liberado só pelo admin da WMundi', async () => {
+  const { token, tenant } = await register('ads@revah.test')
+  const blocked = await request(app).get('/ads/plans').set(auth(token))
+  assert.equal(blocked.status, 402)
+  assert.equal(blocked.body.code, 'ADS_ADDON_REQUIRED')
+  assert.equal((await request(app).get('/ads/access').set(auth(token))).body.addonActive, false)
+
+  await prisma.tenant.update({ where: { id: tenant.id }, data: { adsAddonActive: true } })
+  const bad = await request(app).post('/ads/plans').set(auth(token)).send({ name: 'Teste', business: 'Vendo nudes e putaria' })
+  assert.equal(bad.status, 400)
+  const p = await request(app).post('/ads/plans').set(auth(token)).send({ name: 'Implantes', business: 'Clínica odontológica de implantes em Maringá para adultos', offer: 'Avaliação gratuita', location: 'Maringá-PR', goal: 'MESSAGES', dailyBudget: 30 })
+  assert.equal(p.status, 201, JSON.stringify(p.body))
+  assert.equal((await request(app).get('/ads/plans').set(auth(token))).body.length, 1)
+  // Sem chave da IA no teste: responde claro, sem quebrar.
+  const gen = await request(app).post(`/ads/plans/${p.body.id}/generate`).set(auth(token))
+  assert.equal(gen.status, 503)
+  // Outro cliente não vê o plano.
+  const other = await register('ads-outro@revah.test')
+  await prisma.tenant.update({ where: { id: other.tenant.id }, data: { adsAddonActive: true } })
+  assert.equal((await request(app).get(`/ads/plans/${p.body.id}`).set(auth(other.token))).status, 404)
+})
+
+test('webhook da Stripe: sem assinatura válida é recusado com 400, com assinatura passa', async () => {
+  const payload = JSON.stringify({ id: 'evt_sig', object: 'event', type: 'customer.created', data: { object: {} } })
+  const none = await request(app).post('/webhooks/stripe').set('Content-Type', 'application/json').send(payload)
+  assert.equal(none.status, 400)
+  const bad = await request(app).post('/webhooks/stripe').set('Content-Type', 'application/json').set('stripe-signature', 't=1,v1=falsa').send(payload)
+  assert.equal(bad.status, 400)
+  assert.equal(bad.body.code, 'INVALID_SIGNATURE')
+  const Stripe = (await import('stripe')).default
+  const header = Stripe.webhooks.generateTestHeaderString({ payload, secret: 'whsec_revah_teste' })
+  const ok = await request(app).post('/webhooks/stripe').set('Content-Type', 'application/json').set('stripe-signature', header).send(payload)
+  assert.equal(ok.status, 200, JSON.stringify(ok.body))
+  // Corpo alterado depois de assinado.
+  const tampered = await request(app).post('/webhooks/stripe').set('Content-Type', 'application/json').set('stripe-signature', header).send(payload.replace('customer.created', 'invoice.paid'))
+  assert.equal(tampered.status, 400)
+})
+
+test('REVAH Ads em dólar: assinatura separada, recarga pré-paga e 5% descontados do gasto', async () => {
+  const { token, tenant } = await register('ads-billing@revah.test')
+  const { handleStripeEvent } = await import('../src/services/billing')
+  const { recordAdSpend } = await import('../src/services/adsBilling')
+  // Assinatura do REVAH Ads (separada do plano REVAH).
+  const adsSub: any = { id: 'sub_ads_1', object: 'subscription', customer: 'cus_ads_1', status: 'active', metadata: { tenantId: tenant.id, product: 'REVAH_ADS' }, items: { data: [{ price: { id: 'price_ads' } }] } }
+  await handleStripeEvent({ id: 'evt_ads_sub', type: 'customer.subscription.created', data: { object: adsSub } } as any)
+  let t = await prisma.tenant.findUnique({ where: { id: tenant.id } })
+  assert.equal(t.adsAddonActive, true)
+  assert.equal(t.adsSubscriptionStatus, 'active')
+  assert.equal(await prisma.subscription.count({ where: { tenantId: tenant.id } }), 0, 'não mexe no plano REVAH')
+
+  // Recarga paga: vale o valor que a Stripe confirmou.
+  const session: any = { id: 'cs_ads_1', object: 'checkout.session', mode: 'payment', payment_status: 'paid', currency: 'usd', amount_total: 5000, client_reference_id: tenant.id, metadata: { tenantId: tenant.id, kind: 'ads_credit', spendCents: '100000' } }
+  await handleStripeEvent({ id: 'evt_ads_pay', type: 'checkout.session.completed', data: { object: session } } as any)
+  await handleStripeEvent({ id: 'evt_ads_pay_again', type: 'checkout.session.async_payment_succeeded', data: { object: session } } as any)
+  const w = await request(app).get('/ads/wallet').set(auth(token))
+  assert.equal(w.body.balanceCents, 5000, 'recarga lançada uma única vez')
+  // Pagamento não confirmado não credita.
+  await handleStripeEvent({ id: 'evt_ads_unpaid', type: 'checkout.session.completed', data: { object: { ...session, id: 'cs_ads_2', payment_status: 'unpaid' } } } as any)
+  assert.equal((await request(app).get('/ads/wallet').set(auth(token))).body.balanceCents, 5000)
+
+  // Gasto de US$ 600 no Meta: 5% = US$ 30. Mesmo lançamento duas vezes não desconta de novo.
+  await recordAdSpend(tenant.id, 'META', 60000, '2026-11-15')
+  await recordAdSpend(tenant.id, 'META', 60000, '2026-11-15')
+  t = await prisma.tenant.findUnique({ where: { id: tenant.id } })
+  assert.equal(t.adsCreditCents, 2000)
+  assert.equal(t.adsSpendBlocked, false)
+  // Gasto maior que o saldo: bloqueia até recarregar.
+  await recordAdSpend(tenant.id, 'GOOGLE', 50000, '2026-11-16')
+  t = await prisma.tenant.findUnique({ where: { id: tenant.id } })
+  assert.equal(t.adsCreditCents, -500)
+  assert.equal(t.adsSpendBlocked, true)
+
+  // Cancelou a assinatura: o REVAH Ads deixa de funcionar.
+  await handleStripeEvent({ id: 'evt_ads_del', type: 'customer.subscription.deleted', data: { object: { ...adsSub, status: 'canceled' } } } as any)
+  assert.equal((await request(app).get('/ads/plans').set(auth(token))).status, 402)
 })

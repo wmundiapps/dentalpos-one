@@ -6,6 +6,7 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Menu,
   MessageSquare,
   Phone,
@@ -60,6 +61,8 @@ export function Layout() {
   ]
   // Leads é add-on: no modo embutido só aparece se já estiver contratado.
   if (!embedded || tenant.leadsAddonActive) items.push({ to: '/leads', label: embedded ? 'Leads' : 'REVAH Leads', icon: <Search size={18} /> })
+  // REVAH Ads é add-on vendido à parte: no modo embutido só aparece se já estiver contratado.
+  if (!embedded || tenant.adsAddonActive) items.push({ to: '/ads', label: embedded ? 'Anúncios' : 'REVAH Ads', icon: <Megaphone size={18} /> })
   if (!embedded) items.push({ to: '/assinatura', label: 'Assinatura', icon: <CreditCard size={18} /> })
   items.push({ to: '/configuracoes', label: 'Configurações', icon: <Settings size={18} /> })
   // Backoffice WMundi fica fora do menu: acesso só pelo endereço /admin (e só para superadmins).

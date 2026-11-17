@@ -53,6 +53,7 @@ export interface Session {
     status: string
     source: string
     leadsAddonActive: boolean
+    adsAddonActive?: boolean
     limits: Limits
     trial: TrialStatus
   }

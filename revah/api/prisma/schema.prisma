@@ -15,27 +15,33 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model Tenant {
-  id                    String    @id @default(cuid())
-  name                  String
-  slug                  String    @unique
-  document              String?
-  phone                 String?
-  plan                  String    @default("TRIAL") // TRIAL | START | PRO | ENTERPRISE
-  status                String    @default("PENDING_PAYMENT") // PENDING_PAYMENT | TRIAL | ACTIVE | PAST_DUE | CANCELED | SUSPENDED
-  trialCampaignsUsed    Int       @default(0)
-  trialEndsAt           DateTime? // teste de 14 dias (começa ao cadastrar a forma de pagamento)
-  trialEligible         Boolean   @default(true) // false se e-mail/telefone/documento já usou o teste
-  billingProvider       String? // ASAAS (Brasil) | STRIPE (internacional)
-  stripeCustomerId      String?   @unique
-  asaasCustomerId       String?   @unique
-  timezone              String    @default("America/Sao_Paulo")
-  source                String    @default("DIRECT") // DIRECT | DENTALPOS
-  externalRef           String?   @unique // ex.: "dentalpos:<clinicId>"
-  integrationWebhookUrl String?
-  integrationSecret     String?
-  leadsAddonActive      Boolean   @default(false)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                      String    @id @default(cuid())
+  name                    String
+  slug                    String    @unique
+  document                String?
+  phone                   String?
+  plan                    String    @default("TRIAL") // TRIAL | START | PRO | ENTERPRISE
+  status                  String    @default("PENDING_PAYMENT") // PENDING_PAYMENT | TRIAL | ACTIVE | PAST_DUE | CANCELED | SUSPENDED
+  trialCampaignsUsed      Int       @default(0)
+  trialEndsAt             DateTime? // teste de 14 dias (começa ao cadastrar a forma de pagamento)
+  trialEligible           Boolean   @default(true) // false se e-mail/telefone/documento já usou o teste
+  billingProvider         String? // ASAAS (Brasil) | STRIPE (internacional)
+  stripeCustomerId        String?   @unique
+  asaasCustomerId         String?   @unique
+  timezone                String    @default("America/Sao_Paulo")
+  source                  String    @default("DIRECT") // DIRECT | DENTALPOS
+  externalRef             String?   @unique // ex.: "dentalpos:<clinicId>"
+  integrationWebhookUrl   String?
+  integrationSecret       String?
+  leadsAddonActive        Boolean   @default(false)
+  adsAddonActive          Boolean   @default(false) // REVAH Ads: add-on vendido à parte
+  // REVAH Ads é vendido à parte, em dólar pela Stripe: US$ 29/mês + 5% pré-pago sobre a verba de anúncios.
+  adsStripeSubscriptionId String?
+  adsSubscriptionStatus   String?
+  adsCreditCents          Int       @default(0) // saldo de gestão (5%) em centavos de dólar
+  adsSpendBlocked         Boolean   @default(false) // saldo acabou: anúncios pausados até recarregar
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   users          User[]
   subscription   Subscription?
@@ -57,6 +63,8 @@ model Tenant {
   leadSources    LeadSource[]
   leadBlocks     LeadBlock[]
   leadAudiences  LeadAudience[]
+  adPlans        AdPlan[]
+  adsCredits     AdsCreditEntry[]
   apiKeys        ApiKey[]
   events         IntegrationEvent[]
   notes          Note[]
@@ -736,4 +744,41 @@ model LeadAudience {
   updatedAt  DateTime @updatedAt
 
   @@index([tenantId])
+}
+
+// REVAH Ads: plano de anúncio criado pela IA (texto, variações, público, verba). Add-on vendido à parte.
+model AdPlan {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  business    String // o que a empresa vende e para quem
+  offer       String? // oferta/promoção
+  audience    String? // público que o cliente quer atingir
+  location    String? // cidade/região
+  goal        String    @default("MESSAGES") // MESSAGES | LEADS | SALES | TRAFFIC
+  dailyBudget Decimal?  @db.Decimal(10, 2)
+  platform    String    @default("META")
+  result      Json? // estratégia, público, variações e alertas gerados pela IA
+  generatedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+// Extrato do saldo de gestão do REVAH Ads (centavos de dólar). Recarga (+), taxa de 5% sobre a verba gasta (−), ajuste.
+model AdsCreditEntry {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kind        String // TOPUP | FEE | ADJUST
+  amountCents Int
+  spendCents  Int? // verba de anúncio que gerou a taxa
+  platform    String? // META | GOOGLE | TIKTOK
+  ref         String   @unique // sessão da Stripe ou plataforma+período: não lança duas vezes
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
 }

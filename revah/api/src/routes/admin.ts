@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { AD_PLATFORMS, recordAdSpend } from '../services/adsBilling'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { ah, notFound } from '../lib/errors'
@@ -25,6 +26,7 @@ r.patch('/admin/tenants/:id', ah(async (req: AuthedRequest, res) => {
       plan: z.enum(['TRIAL', 'START', 'PRO', 'ENTERPRISE']).optional(),
       status: z.enum(['PENDING_PAYMENT', 'TRIAL', 'ACTIVE', 'PAST_DUE', 'CANCELED', 'SUSPENDED']).optional(),
       leadsAddonActive: z.boolean().optional(),
+      adsAddonActive: z.boolean().optional(),
       trialEndsAt: z.string().datetime().nullable().optional(),
       trialEligible: z.boolean().optional(),
     })
@@ -34,6 +36,14 @@ r.patch('/admin/tenants/:id', ah(async (req: AuthedRequest, res) => {
   const updated = await prisma.tenant.update({ where: { id: t.id }, data: { ...b, trialEndsAt: b.trialEndsAt === undefined ? undefined : b.trialEndsAt ? new Date(b.trialEndsAt) : null } })
   await audit(t.id, req.user.id, 'ADMIN_TENANT_UPDATE', 'Tenant', t.id, b)
   res.json(updated)
+}))
+
+// REVAH Ads: lança o gasto real de anúncios de um cliente (até as integrações lerem sozinhas) e desconta 5% do saldo.
+r.post('/admin/tenants/:id/ads-spend', ah(async (req: AuthedRequest, res) => {
+  const b = z.object({ platform: z.enum(AD_PLATFORMS), spendUsd: z.number().positive().max(1_000_000), ref: z.string().trim().min(3).max(80), note: z.string().max(200).optional() }).parse(req.body)
+  const out = await recordAdSpend(req.params.id, b.platform, Math.round(b.spendUsd * 100), b.ref, b.note)
+  await audit(req.params.id, req.user.id, 'ADMIN_ADS_SPEND', 'Tenant', req.params.id, b)
+  res.json(out)
 }))
 
 r.get('/admin/sales-inquiries', ah(async (_req, res) => {

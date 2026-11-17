@@ -12,6 +12,7 @@ import Templates from './pages/Templates'
 import Channels from './pages/Channels'
 import Voice from './pages/Voice'
 import Leads from './pages/Leads'
+import Ads from './pages/Ads'
 import Billing from './pages/Billing'
 import SettingsPage from './pages/Settings'
 import Admin from './pages/Admin'
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/canais" element={<Channels />} />
         <Route path="/voz" element={<Voice />} />
         <Route path="/leads" element={<Leads />} />
+        <Route path="/ads" element={<Ads />} />
         <Route path="/assinatura" element={<NotEmbedded><Billing /></NotEmbedded>} />
         <Route path="/configuracoes" element={<SettingsPage />} />
         <Route path="/admin" element={<SuperadminOnly><Admin /></SuperadminOnly>} />
