@@ -196,6 +196,39 @@ export async function deliver(req: AuthRequest, res: Response) {
   }
 }
 
+// Andamento do trabalho no laboratório: etapa (em andamento / finalizado / entregue) e texto livre de como está
+// (aguardando projeto, falta fresar, fresando, falta maquear, falta chegar material...). Cada atualização fica no histórico.
+const STAGES = ['IN_PROGRESS', 'FINISHED', 'DELIVERED']
+export async function updateProgress(req: AuthRequest, res: Response) {
+  try {
+    const { clinicId, tenantId, userId } = ctx(req)
+    const order = await loadOrder(req)
+    if (!order) return res.status(404).json({ error: 'Ordem de serviço não encontrada.' })
+    if (order.status === 'SENT') return res.status(409).json({ error: 'Registre antes o recebimento pelo laboratório.' })
+    if (order.status === 'REFUSED') return res.status(409).json({ error: 'Esta ordem foi recusada pelo laboratório.' })
+    const stage = String(req.body?.stage || order.stage || 'IN_PROGRESS').toUpperCase()
+    if (!STAGES.includes(stage)) return res.status(400).json({ error: 'Escolha: em andamento, finalizado ou entregue.' })
+    const note = text(req.body?.note, 500)
+    if (order.status === 'DELIVERED' && stage !== 'DELIVERED') return res.status(409).json({ error: 'Esta ordem já foi entregue à clínica.' })
+    if (!note && stage === (order.status === 'DELIVERED' ? 'DELIVERED' : order.stage) && !(stage === 'DELIVERED' && order.status !== 'DELIVERED')) return res.status(400).json({ error: 'Escreva como está o trabalho ou mude a etapa.' })
+    const name = await userName(userId)
+    const entry = { at: new Date().toISOString(), byName: name, stage, note }
+    const log = [...(Array.isArray(order.progressLog) ? (order.progressLog as unknown[]) : []), entry].slice(-30)
+    const data: Prisma.LabServiceOrderUpdateInput = {
+      progressNote: note || order.progressNote, progressAt: new Date(), progressByName: name,
+      progressLog: log as unknown as Prisma.InputJsonValue,
+    }
+    if (stage === 'DELIVERED') { if (order.status !== 'DELIVERED') { data.status = 'DELIVERED'; data.deliveredAt = new Date() } }
+    else data.stage = stage
+    const updated = await prisma.labServiceOrder.update({ where: { id: order.id }, data })
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: 'LAB_ORDER_PROGRESS', entityType: 'LabServiceOrder', entityId: order.id, summary: `${order.protocol}: ${stage === 'IN_PROGRESS' ? 'em andamento' : stage === 'FINISHED' ? 'finalizado' : 'entregue'}${note ? ` — ${note}` : ''}.` }).catch((e: unknown) => console.error(e))
+    return res.json((await labOnly(req)) ? hide(updated) : updated)
+  } catch (error) {
+    console.error('Erro ao atualizar andamento da ordem:', error)
+    return res.status(500).json({ error: 'Erro ao atualizar o andamento.' })
+  }
+}
+
 // Ordens novas aguardando o laboratório confirmar o recebimento (aparecem como notificação para quem tem a função de laboratório).
 export async function pendingReceipt(req: AuthRequest, res: Response) {
   try {

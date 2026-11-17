@@ -373,6 +373,7 @@ router.post('/lab-service-orders/:id/receipt', requirePermission('laboratory.rec
 router.post('/lab-service-orders/:id/errors', requirePermission('laboratory.edit'), labServiceOrderController.reportError)
 router.post('/lab-service-orders/:id/errors/:errorId/resolve', requirePermission('laboratory.edit'), labServiceOrderController.resolveError)
 router.post('/lab-service-orders/:id/deliver', requirePermission('laboratory.edit'), labServiceOrderController.deliver)
+router.post('/lab-service-orders/:id/progress', requirePermission('laboratory.edit'), labServiceOrderController.updateProgress)
 router.get('/lab-notifications', requirePermission('laboratory.view'), labNotificationController.list)
 router.post('/lab-notifications/schedule', requirePermission('laboratory.create'), labNotificationController.schedule)
 router.post('/lab-notifications/cancel', requirePermission('laboratory.edit'), labNotificationController.cancel)

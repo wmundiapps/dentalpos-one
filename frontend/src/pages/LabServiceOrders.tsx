@@ -5,7 +5,8 @@ import LabServiceOrderDialog from "../components/LabServiceOrderDialog";
 import { accompanyingItems, printLabLabels, printLabOrder } from "../utils/labOrderPrint";
 import {
   deliverLabOrder, loadLabServiceOrders, registerLabReceipt, reportLabOrderError, resolveLabOrderError, RESPONSIBLE_LABELS,
-  type ErrorResponsible, type LabServiceOrder,
+  updateLabOrderProgress, PROGRESS_PRESETS, STAGE_LABELS,
+  type ErrorResponsible, type LabOrderStage, type LabServiceOrder,
 } from "../services/LabServiceOrderApi";
 
 const STATUS: Record<string, { label: string; color: "default" | "warning" | "success" | "error" | "info" }> = {
@@ -31,6 +32,10 @@ export default function LabServiceOrders() {
   const [errName, setErrName] = useState("");
   const [errText, setErrText] = useState("");
   const [busy, setBusy] = useState(false);
+  // Andamento: etapa + texto de como está o trabalho.
+  const [progOrder, setProgOrder] = useState<LabServiceOrder | null>(null);
+  const [progStage, setProgStage] = useState<LabOrderStage>("IN_PROGRESS");
+  const [progNote, setProgNote] = useState("");
 
   const refresh = useCallback(async () => {
     try { setOrders(await loadLabServiceOrders()); setError(""); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível carregar as ordens."); }
@@ -78,6 +83,24 @@ export default function LabServiceOrders() {
               <Typography variant="body2" color="text.secondary">Laboratório: {o.laboratoryName} · Dentista: {o.dentistName} · Auxiliar: {o.assistantName}</Typography>
               <Typography variant="body2" color="text.secondary">Envio {dmy(o.sentAt)} · Entrega {dmy(o.dueAt)} · Acompanha: {accompanyingItems(o).join(", ")}</Typography>
               {o.status === "RECEIVED" && <Alert severity="success" sx={{ mt: 1 }}>RECEBIDO pelo laboratório — por {o.receivedByName} em {o.receivedAt ? dmyHm(o.receivedAt) : ""}</Alert>}
+              {(o.status === "RECEIVED" || o.status === "DELIVERED") && (
+                <Box sx={{ mt: 1, p: 1.25, borderRadius: 2, bgcolor: "action.hover", border: 1, borderColor: "divider" }}>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                    <Typography variant="body2" sx={{ fontWeight: 900 }}>Andamento:</Typography>
+                    <Chip size="small" color={o.status === "DELIVERED" ? "success" : o.stage === "FINISHED" ? "success" : "info"} variant={o.status === "DELIVERED" || o.stage === "FINISHED" ? "filled" : "outlined"} label={o.status === "DELIVERED" ? STAGE_LABELS.DELIVERED : STAGE_LABELS[o.stage || "IN_PROGRESS"]} />
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>{o.progressNote || "Sem informação de andamento ainda."}</Typography>
+                  </Box>
+                  {o.progressAt && <Typography variant="caption" color="text.secondary">Atualizado por {o.progressByName || "—"} em {dmyHm(o.progressAt)}</Typography>}
+                  {(o.progressLog || []).length > 1 && (
+                    <Box component="details" sx={{ mt: 0.5 }}>
+                      <summary style={{ cursor: "pointer", fontSize: 12 }}>Ver histórico do andamento ({(o.progressLog || []).length})</summary>
+                      {[...(o.progressLog || [])].reverse().slice(0, 12).map((h, i) => (
+                        <Typography key={i} variant="caption" sx={{ display: "block" }}>{dmyHm(h.at)} · {STAGE_LABELS[h.stage] || h.stage}{h.note ? ` — ${h.note}` : ""}{h.byName ? ` (${h.byName})` : ""}</Typography>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              )}
               {o.status === "REFUSED" && <Alert severity="error" sx={{ mt: 1 }}>RECUSADO pelo laboratório — por {o.receivedByName} em {o.receivedAt ? dmyHm(o.receivedAt) : ""}. Motivo: {o.refusalReason}</Alert>}
               {(o.errors || []).map((e) => (
                 <Alert key={e.id} severity={e.resolved ? "success" : "warning"} sx={{ mt: 1 }}
@@ -95,6 +118,7 @@ export default function LabServiceOrders() {
                   <Button size="small" color="error" variant="outlined" disabled={busy} onClick={() => { setReceipt({ order: o, outcome: "REFUSED" }); setRcCode(""); setRcName(""); setRcReason(""); }}>Laboratório recusou</Button>
                 </>}
                 {o.status === "RECEIVED" && <Button size="small" color="success" variant="outlined" disabled={busy} onClick={() => { if (window.confirm("Confirmar que o trabalho voltou do laboratório para a clínica?")) void act(() => deliverLabOrder(o.id)); }}>Registrar entrega à clínica</Button>}
+                {(o.status === "RECEIVED" || o.status === "DELIVERED") && <Button size="small" variant="contained" disabled={busy} onClick={() => { setProgOrder(o); setProgStage(o.status === "DELIVERED" ? "DELIVERED" : (o.stage || "IN_PROGRESS")); setProgNote(""); }}>Atualizar andamento</Button>}
                 <Button size="small" color="warning" variant="outlined" onClick={() => { setErrOrder(o); setErrType(""); setErrName(""); setErrText(""); }}>Registrar erro</Button>
               </Box>
             </Paper>
@@ -115,6 +139,34 @@ export default function LabServiceOrders() {
           <Button onClick={() => setReceipt(null)}>Cancelar</Button>
           <Button variant="contained" disabled={busy || !rcName.trim() || rcCode.length < 6 || (receipt?.outcome === "REFUSED" && !rcReason.trim())}
             onClick={() => receipt && void act(async () => { await registerLabReceipt(receipt.order.id, receipt.outcome, rcName.trim(), rcReason.trim(), rcCode.trim()); setReceipt(null); })}>Registrar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(progOrder)} onClose={() => setProgOrder(null)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 900 }}>Andamento — {progOrder?.protocol} · {progOrder?.patientName}</DialogTitle>
+        <DialogContent sx={{ display: "grid", gap: 2, pt: "12px!important" }}>
+          <TextField select label="Etapa" value={progStage} onChange={(e) => setProgStage(e.target.value as LabOrderStage)} disabled={progOrder?.status === "DELIVERED"}>
+            <MenuItem value="IN_PROGRESS">{STAGE_LABELS.IN_PROGRESS}</MenuItem>
+            <MenuItem value="FINISHED">{STAGE_LABELS.FINISHED} (pronto no laboratório)</MenuItem>
+            <MenuItem value="DELIVERED">{STAGE_LABELS.DELIVERED} (voltou para a clínica)</MenuItem>
+          </TextField>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>Como está o trabalho? (toque numa frase ou escreva)</Typography>
+            <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
+              {PROGRESS_PRESETS.map((p) => <Chip key={p} size="small" clickable label={p} color={progNote === p ? "primary" : "default"} variant={progNote === p ? "filled" : "outlined"} onClick={() => setProgNote(p)} />)}
+            </Box>
+          </Box>
+          <TextField label="Como está (texto livre)" value={progNote} onChange={(e) => setProgNote(e.target.value)} multiline minRows={2} placeholder="Ex.: falta fresar o coping do 36; material chega quinta" slotProps={{ htmlInput: { maxLength: 500 } }} />
+          {progOrder?.progressNote && <Typography variant="caption" color="text.secondary">Último registro: {progOrder.progressNote}</Typography>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProgOrder(null)}>Cancelar</Button>
+          <Button variant="contained" disabled={busy || (!progNote.trim() && progStage === (progOrder?.status === "DELIVERED" ? "DELIVERED" : progOrder?.stage || "IN_PROGRESS"))}
+            onClick={() => progOrder && void act(async () => {
+              if (progStage === "DELIVERED" && progOrder.status !== "DELIVERED" && !window.confirm("Confirmar que o trabalho voltou do laboratório para a clínica?")) return;
+              await updateLabOrderProgress(progOrder.id, progStage, progNote.trim());
+              setProgOrder(null);
+            })}>Salvar andamento</Button>
         </DialogActions>
       </Dialog>
 
