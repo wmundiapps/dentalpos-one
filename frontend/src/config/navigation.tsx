@@ -442,7 +442,8 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Configurações","/configuracoes",<SettingsIcon/>),
       item(EDU_ONLY?"Unidades e polos":"Clínicas e unidades","/clinicas",<LocalHospitalIcon/>),
       item("Integrações","/integracoes",<HubIcon/>),
-      item("Importar clientes e alunos","/importar-pacientes",<UploadFileIcon/>),
+      // No EduMaster a importação genérica grava "pacientes" (tela de clínica, fora do menu); a importação que aparece nas telas é a da carteira contábil.
+      EDU_ONLY?item("Importar clientes (CSV)","/edu/contabil/carteira?aba=clientes",<UploadFileIcon/>,CARTEIRA_ROLES):item("Importar clientes e alunos","/importar-pacientes",<UploadFileIcon/>),
       item("Permissões","/permissoes",<AdminPanelSettingsIcon/>),
       item("Central LGPD","/edu/lgpd",<PrivacyTipIcon/>),
       item("Acesso por cargo","/edu/acesso-por-cargo",<AdminPanelSettingsIcon/>,["ADMIN","OWNER"]),
