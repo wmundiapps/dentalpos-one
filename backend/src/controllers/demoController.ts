@@ -256,7 +256,7 @@ export async function register(req: Request, res: Response) {
           '',
           'Dentro do sistema, na última página do menu, tem um espaço dedicado para sugestões, elogios ou reclamações — fique à vontade para nos contar o que achou.',
           '',
-          'Qualquer dúvida, estamos à disposição pelo WhatsApp: (44) 98453-5069.',
+          'Qualquer dúvida, estamos à disposição pelo WhatsApp: (44) 99946-6451.',
           '',
           'Equipe CompletoDonto',
           'Você só precisa atender.',

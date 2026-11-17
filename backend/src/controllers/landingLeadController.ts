@@ -68,7 +68,7 @@ export async function submitLead(req: Request, res: Response) {
     '',
     'Durante o período de teste, dentro do próprio sistema, na última página do menu você vai encontrar um espaço dedicado exclusivamente para sugestões, elogios ou reclamações. Fique à vontade para nos contar o que funcionou bem, o que faltou, ou qualquer ideia que você tiver — nossa equipe analisa cada mensagem, e o que for aprovado entra em funcionamento em breve.',
     '',
-    'Qualquer dúvida, estamos à disposição pelo WhatsApp: (44) 98453-5069.',
+    'Qualquer dúvida, estamos à disposição pelo WhatsApp: (44) 99946-6451.',
     '',
     'Bem-vindo(a) à experiência CompletoDonto.',
     '',

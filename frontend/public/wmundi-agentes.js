@@ -114,7 +114,7 @@
       var rotulo = this.getAttribute('rotulo') || 'Peça o seu agente'
       this._app = this.getAttribute('app') || 'site'
       this._endpoint = this.getAttribute('endpoint') || ''
-      this._wa = (this.getAttribute('whatsapp') || '5544984535069').replace(/\D/g, '')
+      this._wa = (this.getAttribute('whatsapp') || '5544999466451').replace(/\D/g, '')
       this._mail = this.getAttribute('email') || 'info@wmundi.com'
 
       var root = this.attachShadow({ mode: 'open' })

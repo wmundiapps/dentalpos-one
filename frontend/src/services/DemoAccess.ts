@@ -91,7 +91,7 @@ export function publicBookingUrl(clinicId?: string | null) {
 }
 
 export function demoSalesUrl() {
-  const phone = "5544984535069";
+  const phone = "5544999466451";
   const message = "Quero contratar o CompletoDonto";
   return (
     import.meta.env.VITE_SALES_URL ||

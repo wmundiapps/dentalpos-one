@@ -106,7 +106,7 @@ export default async function handler(req, res) {
         '<p style="line-height:1.6">Recebemos seus dados e entraremos em contato em breve para mostrar o CompletoDonto funcionando com a rotina da sua clínica.</p>' +
         (canal ? blocoAcesso : '') +
         '<p style="line-height:1.6">Se preferir falar agora, é só chamar no WhatsApp: ' +
-        '<a href="https://wa.me/5544984535069" style="color:#B9821F;font-weight:700">(44) 98453-5069</a>.</p>' +
+        '<a href="https://wa.me/5544999466451" style="color:#B9821F;font-weight:700">(44) 99946-6451</a>.</p>' +
         '<p style="line-height:1.6">O Experience são 30 dias gratuitos, sem cartão de crédito, e tudo o que você registrar fica guardado mesmo que decida não seguir.</p>' +
         '<p style="margin-top:26px;color:#6B6660;font-size:13.5px">CompletoDonto · Desenvolvido por WMundi Technologies &amp; Co® · operado por Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · Maringá/PR</p>' +
         '</div>'
