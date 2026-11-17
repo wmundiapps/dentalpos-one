@@ -67,7 +67,7 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
 <div id="mailbtns"></div><div id="mailbox"></div><label>Enviar de exemplo para (opcional)</label><input id="mto" placeholder="gestor@empresa.com.br"><p><button class="b" id="mailto">Abrir no meu e-mail</button></p><p class="note">Na versão contratada o envio é automático, às 7h, com resumo diário.</p></div></section>
 
 <section id="precos"><div class="card"><h2>Planos</h2><p class="m">Mensalidade por faixa de funcionários cadastrados. Valores sugeridos, sujeitos a aprovação.</p>
-<table id="pt"></table><div class="grid" style="margin-top:14px"><div><label>Funcionários</label><input type="number" id="pn" value="42" min="1"><label>Horas por mês que o RH gasta hoje com folha de ponto</label><input type="number" id="ph2" value="30"><label>Custo da hora do RH (R$)</label><input type="number" id="pc" value="35"><label>Horas extras/atrasos pagos por erro, por mês (R$)</label><input type="number" id="pe" value="400"></div>
+<table id="pt"></table><div class="grid" style="margin-top:14px"><div><label>Funcionários</label><input type="number" id="pn" value="42" min="1"><label>Horas por mês que o RH gasta hoje com folha de ponto</label><input type="number" id="ph2" value="30"><label>Custo da hora do RH (R$)</label><input type="number" id="pc" value="35"><label>Horas extras/atrasos pagos por falta de controle exato, por mês (R$)</label><input type="number" id="pe" value="400"></div>
 <div><div class="msg ok" id="pr"></div></div></div><p class="note">Payback = implantação ÷ economia mensal líquida (economia − mensalidade). Estimativa com os números digitados; resultado real depende da empresa.</p></div></section>
 </main><footer>WMundi · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · info@wmundi.com · (44) 99946-6451</footer>
 
@@ -156,6 +156,6 @@ const FAIXAS=[[1,50,297],[51,100,497],[101,150,697],[151,200,897]];const IMPL=[[
 function plano(n){if(n<=200){const i=FAIXAS.findIndex(f=>n>=f[0]&&n<=f[1]);return{m:FAIXAS[i][2],i:IMPL[i][1]}}return{m:897+(n-200)*1,i:2490}}
 $("#pt").innerHTML="<tr><th>Faixa</th><th>Mensalidade</th><th>Implantação (única)</th></tr>"+FAIXAS.map((f,i)=>`<tr><td>${f[0]} a ${f[1]} funcionários</td><td>${brl(f[2])}</td><td>${brl(IMPL[i][1])}</td></tr>`).join("")+"<tr><td>201 ou mais</td><td>"+brl(897)+" + R$ 1,00 por funcionário acima de 200 (ou sob consulta)</td><td>"+brl(2490)+"</td></tr>";
 function pr(){const n=+$("#pn").value||1,p=plano(n),eco=(+$("#ph2").value||0)*0.7*(+$("#pc").value||0)+(+$("#pe").value||0),liq=eco-p.m;
- $("#pr").innerHTML=`<b>${n} funcionários</b>: mensalidade ${brl(p.m)} · implantação ${brl(p.i)}<br>Economia estimada: ${brl(eco)}/mês (70% das horas do RH + erros evitados)<br>Economia líquida: ${brl(liq)}/mês<br><b>Payback: ${liq>0?(p.i/liq).toFixed(1).replace(".",",")+" mês(es)":"não se paga com estes números"}</b>`}
+ $("#pr").innerHTML=`<b>${n} funcionários</b>: mensalidade ${brl(p.m)} · implantação ${brl(p.i)}<br>Economia estimada: ${brl(eco)}/mês (70% das horas do RH + controle exato da jornada)<br>Economia líquida: ${brl(liq)}/mês<br><b>Payback: ${liq>0?(p.i/liq).toFixed(1).replace(".",",")+" mês(es)":"não se paga com estes números"}</b>`}
 ["pn","ph2","pc","pe"].forEach(i=>$("#"+i).oninput=pr);pr();
 </script></body></html>

@@ -56,7 +56,7 @@ ponto = [
 <table><tr><th>Faixa</th><th>Mensalidade</th><th>Implantação</th></tr>{rows}</table>
 <p class="nt">Valores sugeridos, sujeitos a confirmação. Os terminais são equipamentos da empresa (tablet Android/iPad ou leitor fixo), do cliente ou fornecidos sob consulta. <b>Quantidade de terminais ilimitada, sem custo extra</b>, para empresas com locais de trabalho distantes entre si.</p>
 <h2 style="margin-top:8mm">Retorno do investimento (payback)</h2>
-<div class="box ok"><b>Exemplo: empresa com 42 funcionários</b> (faixa 1 a 50).<br>Horas do RH gastas hoje com folha de ponto: 30 h/mês, das quais 70% são eliminadas, a R$ 35 a hora; mais R$ 400/mês de horas extras e atrasos pagos por erro de controle.<br>
+<div class="box ok"><b>Exemplo: empresa com 42 funcionários</b> (faixa 1 a 50).<br>Horas do RH gastas hoje com folha de ponto: 30 h/mês, das quais 70% são eliminadas, a R$ 35 a hora; mais R$ 400/mês de horas extras e atrasos pagos por falta de controle exato da jornada.<br>
 Economia estimada: <b>{brl(eco)}/mês</b> · Mensalidade: {brl(297)} · Economia líquida: <b>{brl(liq)}/mês</b><br>Implantação de {brl(990)} ÷ {brl(liq)} = <b>payback em cerca de {mes(pay)} mês</b>.</div>
 <p class="nt">Exemplo ilustrativo, não é promessa de resultado. Na demonstração (aba “Planos e retorno”) você digita os números da sua empresa e o payback é recalculado.</p>
 <h3>Condições</h3><ul><li>Contrato mensal, sem fidelidade no primeiro período (a definir).</li><li>Suporte por e-mail; queda de serviços de terceiros tratada com os fornecedores responsáveis, conforme cláusulas-padrão.</li><li>Atualizações podem causar indisponibilidade temporária: a jornada da equipe deve ser configurada para que as atualizações não coincidam com horários de entrada/saída ou intervalos dos funcionários.</li></ul>
@@ -82,7 +82,7 @@ preci = [
 <tr><td>Personalizado para o seu negócio (campos, regras, marca)</td><td>{brl(297)}/mês</td><td>sob consulta (referência: a partir de {brl(4900)})</td></tr></table>
 <p class="nt">Valores sugeridos, sujeitos a confirmação. Personalização é orçada após levantamento.</p>
 <h2 style="margin-top:8mm">Retorno do investimento (payback)</h2>
-<div class="box ok"><b>Exemplo ilustrativo: hotel com {n_ap} apartamentos, ocupação de 65%.</b><br>Ao corrigir a diária média em apenas {brl(dia_extra)} (por conhecer o ponto de equilíbrio e o preço da região), a receita sobe cerca de <b>{brl(ganho)}/mês</b>.<br>
+<div class="box ok"><b>Exemplo ilustrativo: hotel com {n_ap} apartamentos, ocupação de 65%.</b><br>Ao ajustar a diária média em apenas {brl(dia_extra)} (por conhecer o ponto de equilíbrio e o preço da região), a receita sobe cerca de <b>{brl(ganho)}/mês</b>.<br>
 Versão personalizada: implantação {brl(4900)} + mensalidade {brl(297)}.<br>Payback: {brl(4900)} ÷ ({brl(ganho)} − {brl(297)}) ≈ <b>{mes(pay_p)} mês</b>.</div>
 <div class="box al"><b>Atenção:</b> o exemplo mostra o método; o ganho real depende do mercado e da gestão.</div>
 <h3>Próximos passos</h3><ol><li>Teste a demonstração com os números do seu negócio.</li><li>Reunião de 30 minutos para levantar custos e regras.</li><li>Proposta fechada e entrega em até 15 dias úteis (referência).</li></ol>""",
