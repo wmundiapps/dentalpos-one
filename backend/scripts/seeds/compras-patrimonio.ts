@@ -76,7 +76,7 @@ export async function seedComprasPatrimonio(api: SeedApi, ctx: SeedCtx = {}): Pr
 
   // ---------------- fornecedores ----------------
   const forn: any[] = []
-  for (const [i, nome] of ['Dental Brasil Distribuidora', 'MedLab Comércio de Materiais', 'Odonto Supply Ltda', 'Papelaria Central', 'Toner Express Informática'].entries()) {
+  for (const [i, nome] of ['Brasil Distribuidora Acadêmica', 'MedLab Comércio de Materiais', 'Edu Supply Ltda', 'Papelaria Central', 'Toner Express Informática'].entries()) {
     const f = await sup('POST', `${S}/fornecedores`, { razaoSocial: nome, cnpj: `1234567800${String(1000 + i)}`, prazoPagamentoDias: 30, email: `contato${i}@exemplo.com.br`, categorias: ['material odontológico'] })
     if (f) { forn.push(f); r.fornecedores++ }
   }
@@ -181,7 +181,7 @@ export async function seedComprasPatrimonio(api: SeedApi, ctx: SeedCtx = {}): Pr
   // ---------------- patrimônio: locais, layouts e bens ----------------
   const espacos = lst(await fac('GET', '/edu/core/espacos?pageSize=100'))
   const mkEspaco = async (codigo: string, nome: string, bloco: string, andar: string, tipo: string) => espacos.find((e: any) => e.codigo === codigo) ?? (await fac('POST', '/edu/core/espacos', { codigo, nome, tipo, bloco, andar, capacidade: 30 }))
-  const lab = await mkEspaco('CPP-B-LAB1', 'Laboratório Odontológico 1', 'B', '1', 'LABORATORIO')
+  const lab = await mkEspaco('CPP-B-LAB1', 'Laboratório de Habilidades 1', 'B', '1', 'LABORATORIO')
   const clinica = await mkEspaco('CPP-B-CLI1', 'Clínica Escola', 'B', '2', 'LABORATORIO')
   const sala = await mkEspaco('CPP-A-S101', 'Sala 101', 'A', '1', 'SALA_AULA')
   const secretaria = await mkEspaco('CPP-A-SEC', 'Secretaria Acadêmica', 'A', '0', 'ADMINISTRATIVO')
@@ -236,7 +236,7 @@ export async function seedComprasPatrimonio(api: SeedApi, ctx: SeedCtx = {}): Pr
   }
   // inventário físico por QR no Laboratório: leituras parciais
   if (lab) {
-    const inv = await fac('POST', `${I}/inventarios`, { titulo: 'Inventário do Laboratório Odontológico 1 (QR)', spaceId: lab.id })
+    const inv = await fac('POST', `${I}/inventarios`, { titulo: 'Inventário do Laboratório de Habilidades 1 (QR)', spaceId: lab.id })
     if (inv) {
       r.inventariosPatrimonio++
       const noLab = bens.filter((b) => b.spaceId === lab.id)

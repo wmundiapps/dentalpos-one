@@ -299,7 +299,7 @@ async function financeiro(c: Ctx) {
     void gerou
   }
   const pagar: [string, string, number, number][] = [
-    ['Folha de pagamento — docentes', 'Recursos Humanos', 184000, 5], ['Energia elétrica — Campus Central', 'Concessionária', 21800, 8], ['Material de laboratório (resinas e brocas)', 'DentalSupply Ltda', 12750, -6],
+    ['Folha de pagamento — docentes', 'Recursos Humanos', 184000, 5], ['Energia elétrica — Campus Central', 'Concessionária', 21800, 8], ['Material de laboratório (resinas e brocas)', 'EduSupply Ltda', 12750, -6],
     ['Licenças de software acadêmico', 'EduTech S.A.', 9400, 12], ['Manutenção do ar-condicionado', 'ClimaFrio', 4300, -2], ['Serviço de limpeza', 'LimpaMais', 16200, 3],
   ]
   for (const [descricao, fornecedor, valor, venc] of pagar) await c.api('POST', '/edu/financeiro/payables', { descricao, fornecedor, categoria: 'Operacional', valor, dataVencimento: day(venc) })
@@ -435,7 +435,7 @@ async function suprimentos(c: Ctx) {
   const alm = alms.find((a) => a.codigo === 'CENTRAL') ?? alms[0]
   const cc = (await prisma.eduCostCenter.findFirst({ where: { tenantId: c.tenantId } })) ?? (await prisma.eduCostCenter.create({ data: { tenantId: c.tenantId, nome: 'Curso de Odontologia' } }))
   const forn: any[] = []
-  for (const [i, n] of ['DentalSupply Ltda', 'PapelaMax Papelaria', 'TonerTech Informática', 'LabQuímica Reagentes'].entries()) {
+  for (const [i, n] of ['EduSupply Ltda', 'PapelaMax Papelaria', 'TonerTech Informática', 'LabQuímica Reagentes'].entries()) {
     const f = await c.api('POST', `${R}/fornecedores`, { razaoSocial: n, cnpj: ['11.222.333/0001-81', '45.997.418/0001-53', '33.000.167/0001-01', '60.746.948/0001-12'][i], prazoPagamentoDias: 30 })
     if (f) forn.push(f)
   }
@@ -586,7 +586,7 @@ async function apoio(c: Ctx) {
   if (mans[0]) await c.api('POST', `${A}/ouvidoria/manifestacoes/${mans[0].id}/triar`, {})
   await c.api('POST', `${A}/risco/recalcular`, {})
   for (const [n, ano, sit] of [['Paulo Henrique Duarte', 2021, 'EMPREGADO'], ['Clara Magalhães', 2022, 'EMPREGADO'], ['Rodolfo Nascimento', 2020, 'EMPREENDEDOR'], ['Vera Lúcia Pinto', 2023, 'DESEMPREGADO']]) await c.api('POST', `${A}/egressos`, { nome: n, email: n.split(' ')[0].toLowerCase() + '@egresso.com', anoConclusao: ano, situacaoProfissional: sit, atuaNaArea: sit !== 'DESEMPREGADO' })
-  const emp = await c.api('POST', `${A}/empregabilidade/empresas`, { razaoSocial: 'Clínica Sorriso Total Ltda', nomeFantasia: 'Clínica Sorriso Total', cnpj: '11.222.333/0001-81' })
+  const emp = await c.api('POST', `${A}/empregabilidade/empresas`, { razaoSocial: 'Centro de Saúde Vida Total Ltda', nomeFantasia: 'Clínica Sorriso Total', cnpj: '11.222.333/0001-81' })
   if (emp) await c.api('POST', `${A}/empregabilidade/vagas`, { empresaId: emp.id, titulo: 'Estágio em Odontologia', tipo: 'ESTAGIO', descricao: 'Estágio em clínica odontológica geral.' })
   await c.api('POST', `${A}/monitoria/vagas`, { disciplineId: S.secs.odonto[0].disciplina.id, professorUserId: S.users['prof.anatomia'].id, termId: S.term.id, vagas: 2, requisitos: 'Média mínima 7,0 em Anatomia.' })
 }

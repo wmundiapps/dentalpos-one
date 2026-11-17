@@ -386,7 +386,7 @@ async function main() {
     const rs2 = await seedContabilFiscal(apiAdminB, { failures })
     check('seed é idempotente (2ª execução não faz nada)', rs2.pulado === true && rs2.empresas === 0 && (await prisma.ctbEmpresa.count({ where: { tenantId: tenantC } })) === 4)
     const emps = (await call(adminC, 'GET', `${C}/empresas`)).json.items
-    const clin = emps.find((e: any) => /Sorriso/.test(e.razaoSocial)), tech = emps.find((e: any) => /TechNova/.test(e.razaoSocial)), merc = emps.find((e: any) => /Bom Preço/.test(e.razaoSocial)), meiE = emps.find((e: any) => /Maria/.test(e.razaoSocial))
+    const clin = emps.find((e: any) => /Aurora/.test(e.razaoSocial)), tech = emps.find((e: any) => /TechNova/.test(e.razaoSocial)), merc = emps.find((e: any) => /Bom Preço/.test(e.razaoSocial)), meiE = emps.find((e: any) => /Maria/.test(e.razaoSocial))
     const ano = `${hoje.getUTCFullYear()}-01-01`
     const dreS = await call(adminC, 'GET', `${C}/dre?empresaId=${clin.id}&de=${somaMeses(iso(hoje).slice(0, 7), -11)}-01&ate=${iso(hoje)}`)
     const rb = dv(dreS.json, 'receitaBruta'), rl = dv(dreS.json, 'resultadoLiquido')

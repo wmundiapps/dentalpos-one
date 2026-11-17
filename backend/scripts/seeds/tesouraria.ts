@@ -98,7 +98,7 @@ export async function seedTesouraria(api: SeedApi, ctx: SeedCtx = {}): Promise<R
   const pag1 = await criar({ descricao: 'Serviço de limpeza — outubro', fornecedor: 'LimpaMais Serviços', valorBruto: 3980, vencimento: dia(3), fornecedorDocumento: CNPJ_INSTITUICAO })
   const pag2 = await criar({ descricao: 'Licenças de software acadêmico (trimestre)', fornecedor: 'EduTech S.A.', valorBruto: 9400, formaPagamento: 'TED', favorecidoBanco: '237', favorecidoAgencia: '1234', favorecidoConta: '55412-8', chavePix: undefined, tipoChavePix: undefined, vencimento: dia(8) })
   const pag3 = await criar({ descricao: 'Energia elétrica — Campus Central', fornecedor: 'Concessionária de Energia', valorBruto: 21800, formaPagamento: 'BOLETO', codigoBarras: '23793381286000000000300000000403456780000012345', chavePix: undefined, tipoChavePix: undefined, fornecedorDocumento: undefined, vencimento: dia(4) })
-  const equip = await criar({ descricao: 'Equipamentos odontológicos — laboratório (compra)', fornecedor: 'DentalSupply Ltda', valorBruto: 48500, origem: 'COMPRA', vencimento: dia(15) })
+  const equip = await criar({ descricao: 'Equipamentos de laboratório — habilidades (compra)', fornecedor: 'EduSupply Ltda', valorBruto: 48500, origem: 'COMPRA', vencimento: dia(15) })
   for (const t of [pag1, pag2, pag3, equip]) await conferir(t)
   for (const t of [pag1, pag2, pag3]) await autorizar(t)
   // acima do limite global exige dupla aprovação da diretoria: a 1ª aprovação do reitor deixa o título em "1/2"

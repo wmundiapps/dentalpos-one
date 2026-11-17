@@ -81,7 +81,7 @@ export async function seedReitoria(api: SeedApi, ctx: SeedCtx = {}): Promise<Res
   // ---------------- Convênios ----------------
   const convExist = new Set(lst(await api('GET', `${R}/convenios?pageSize=200`)).map((c: any) => c.numero))
   const convs: any[] = [
-    { numero: 'CV-2024-001', tipo: 'ESTAGIO', titulo: 'Convênio de estágio — Rede Sorriso Clínicas', parteNome: 'Rede Sorriso Clínicas Ltda.', parteCnpj: cnpjDe('11222333'), area: 'Estágio', inicio: dia(-700), fim: dia(25), responsavelNome: 'Coordenação de Estágios', valor: 0 },
+    { numero: 'CV-2024-001', tipo: 'ESTAGIO', titulo: 'Convênio de estágio — Rede Vida Saúde', parteNome: 'Rede Vida Saúde Ltda.', parteCnpj: cnpjDe('11222333'), area: 'Estágio', inicio: dia(-700), fim: dia(25), responsavelNome: 'Coordenação de Estágios', valor: 0 },
     { numero: 'CV-2023-014', tipo: 'ACORDO_COOPERACAO', titulo: 'Cooperação técnica com a Secretaria Municipal de Saúde', parteNome: 'Secretaria Municipal de Saúde', parteTipo: 'ORGAO_PUBLICO', inicio: dia(-900), fim: dia(70), valor: 120000, renovacaoAutomatica: true },
     { numero: 'CV-2025-003', tipo: 'INTERNACIONAL', titulo: 'Intercâmbio acadêmico — Universidade de Coimbra', parteNome: 'Universidade de Coimbra', parteTipo: 'IES', abrangencia: 'INTERNACIONAL', pais: 'Portugal', area: 'Mobilidade', inicio: dia(-200), fim: dia(1100) },
     { numero: 'CV-2022-009', tipo: 'TERMO_PARCERIA', titulo: 'Parceria com hospital-escola', parteNome: 'Hospital Santa Clara', parteCnpj: cnpjDe('44555666'), inicio: dia(-1500), fim: dia(-12), valor: 350000 },

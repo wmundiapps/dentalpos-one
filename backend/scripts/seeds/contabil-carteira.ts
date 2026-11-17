@@ -52,7 +52,7 @@ export async function criarEquipeContabilDemo(prisma: any, o: { tenantId: string
 const NOMES_PJ: Array<[string, string, string, string, string, string]> = [
   // razão social, fantasia, regime, segmento, cnae, origem
   ['Padaria Pão Quente Ltda', 'Padaria Pão Quente', 'SIMPLES', 'Alimentação', '1091-1/02', 'Indicação'],
-  ['Clínica Odontológica Sorriso Ltda', 'Sorriso Odonto', 'PRESUMIDO', 'Saúde', '8630-5/04', 'Indicação'],
+  ['Centro Médico Vida Plena Ltda', 'Vida Plena', 'PRESUMIDO', 'Saúde', '8630-5/03', 'Indicação'],
   ['Mercado Bom Preço Eireli', 'Bom Preço', 'SIMPLES', 'Comércio', '4712-1/00', 'Site'],
   ['Construtora Alicerce S.A.', 'Alicerce', 'REAL', 'Construção', '4120-4/00', 'Evento'],
   ['TecnoSoft Desenvolvimento Ltda', 'TecnoSoft', 'SIMPLES', 'Tecnologia', '6201-5/01', 'Site'],

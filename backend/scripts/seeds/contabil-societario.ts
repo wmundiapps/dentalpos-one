@@ -1,6 +1,6 @@
 /**
  * Seed do ESCRITÓRIO DE CONTABILIDADE (parte 2: societário, RH/DP, imposto de renda e assistente).
- * Cria, SOMENTE pela API: abertura de empresa em andamento (LTDA odontológica) e um MEI com CNPJ SIMULADO, alvarás com vencimentos
+ * Cria, SOMENTE pela API: abertura de empresa em andamento (LTDA de saúde) e um MEI com CNPJ SIMULADO, alvarás com vencimentos
  * (vigente, a vencer e vencido), vagas/candidatos/funcionários, folhas (uma fechada e uma em rascunho), rescisões (rascunho e homologada),
  * declaração de IR PF e PJ em rascunho, calendário de obrigações acessórias, conversas do assistente e uma solicitação de revisão PENDENTE.
  * Idempotente: se já existir abertura de empresa neste tenant, não faz nada. Dados 100% fictícios. Tudo que simula órgãos públicos é marcado.
@@ -42,10 +42,10 @@ export async function seedContabilSocietario(api: SeedApi, ctx: SeedCtx = {}): P
   const ref = (refs?.itens || []).find((x: any) => x.nome)
   const EMP: string = ref?.id ?? 'emp-demo-escola', EMP_NOME: string = ref?.nome ?? 'Escola Modelo Educação Ltda'
 
-  // ---------------- 1. abertura de empresa em andamento (LTDA odontológica) ----------------
+  // ---------------- 1. abertura de empresa em andamento (LTDA de saúde) ----------------
   const ab = await ok(api('POST', `${S}/aberturas`, {
-    nomeEmpresarial: 'Clínica Sorriso Pleno Odontologia LTDA', nomeFantasia: 'Sorriso Pleno', tipo: 'LTDA', capitalSocial: 60000,
-    objetoSocial: 'Prestação de serviços odontológicos ambulatoriais, consultas, procedimentos clínicos e comércio de produtos de higiene bucal.',
+    nomeEmpresarial: 'Instituto Bem Viver Saúde LTDA', nomeFantasia: 'Bem Viver', tipo: 'LTDA', capitalSocial: 60000,
+    objetoSocial: 'Prestação de serviços de saúde ambulatoriais, consultas, procedimentos clínicos e comércio de produtos de bem-estar.',
     endereco: { cep: '01310-100', logradouro: 'Avenida Paulista', numero: '1000', bairro: 'Bela Vista', municipio: 'São Paulo', uf: 'SP', tipoImovel: 'COMERCIAL', areaM2: 90 },
     municipio: 'São Paulo', uf: 'SP', cnaePrincipal: '8630504', cnaesSecundarios: ['8630503', '4772500'], dataPrevistaAbertura: iso(somaDias(40)), responsavelNome: 'Equipe contábil',
     socios: [
