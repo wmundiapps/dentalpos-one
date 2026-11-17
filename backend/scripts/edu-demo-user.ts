@@ -34,5 +34,18 @@ async function main() {
       if (livre) { await rhe.update({ where: { id: livre.id }, data: { userId: u.id } }); console.log(`[demo-user] vinculado ao colaborador do RH: ${livre.nome}`) }
     }
   } catch (e: any) { console.log('[demo-user] vínculo com o RH ignorado:', e?.message || e) }
+  // Entra nos canais de departamento e grupos já semeados do Mensageiro (senão /edu/mensagens abre com "Nenhuma conversa ainda").
+  try {
+    const u = await prisma.user.findFirst({ where: { clinicId: clinic.id, email } })
+    const canal = (prisma as any).msgCanal
+    const membro = (prisma as any).msgMembro
+    if (u && canal && membro) {
+      const canais = await canal.findMany({ where: { tenantId, tipo: { in: ['DEPARTAMENTO', 'GRUPO'] }, arquivado: false }, select: { id: true } })
+      if (canais.length) {
+        const r = await membro.createMany({ data: canais.map((c: any) => ({ tenantId, canalId: c.id, userId: u.id, papel: 'MEMBRO', origem: 'ENTROU' })), skipDuplicates: true })
+        console.log(`[demo-user] adicionado a ${r.count} canal(is) do Mensageiro`)
+      }
+    }
+  } catch (e: any) { console.log('[demo-user] canais do Mensageiro ignorados:', e?.message || e) }
 }
 main().catch((e) => { console.error('[demo-user] falhou:', e?.message || e) }).finally(() => prisma.$disconnect())

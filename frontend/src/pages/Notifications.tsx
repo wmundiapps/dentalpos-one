@@ -6,6 +6,7 @@ import {
   Typography,
 } from "@mui/material";
 
+import { EDU_ONLY } from "../config/appMode";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -68,7 +69,7 @@ export default function Notifications() {
     <Box>
       <PageHeader
         title="Central de Notificações"
-        description="Alertas clínicos, financeiros, operacionais e administrativos."
+        description={EDU_ONLY ? "Alertas acadêmicos, financeiros, operacionais e administrativos." : "Alertas clínicos, financeiros, operacionais e administrativos."}
         actionLabel="Marcar todas como lidas"
         actionIcon={<DoneAllIcon />}
       />

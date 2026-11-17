@@ -174,7 +174,7 @@ export default function AppRoutes() {
       <Route path="/" element={EDU_ONLY ? <Navigate to="/edu" replace /> : <Dashboard />} />
 
       <Route path="/academico" element={<Academic />} />
-      <Route path="/edu" element={readSessionUser()?.role === "CLIENTE_CONTABIL" ? <Navigate to="/edu/contabil/portal" replace /> : <EduReitoria />} />
+      <Route path="/edu" element={readSessionUser()?.role === "CLIENTE_CONTABIL" ? <Navigate to="/edu/contabil/portal" replace /> : readSessionUser()?.role === "STUDENT" ? <Navigate to="/edu/portal-aluno" replace /> : readSessionUser()?.role === "TEACHER" ? <Navigate to="/edu/portal-professor" replace /> : <EduReitoria />} />
       <Route path="/edu/minha-mesa" element={<EduMinhaMesa />} />
       {(["agenda", "dou", "paineis", "convenios", "pessoas", "niveis", "comparativo"] as const).map((s) => <Route key={s} path={`/edu/reitoria/${s}`} element={<EduReitoriaGestao secao={s} />} />)}
       <Route path="/edu/jornadas" element={<EduJornadas />} />

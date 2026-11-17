@@ -15,7 +15,7 @@ function Resultado({ r, tipo }: { r: any; tipo: string }) {
   );
   const linha = (nome: string, x: any, rec: boolean) => (
     <Box sx={{ flex: "1 1 260px", p: 2, border: "1px solid", borderColor: rec ? "success.main" : "divider", borderRadius: 3 }}>
-      <Typography sx={{ fontWeight: 800 }}>{nome} {rec ? <Chip size="small" color="success" label="recomendada" sx={{ ml: 1 }} /> : null}</Typography>
+      <Typography component="div" sx={{ fontWeight: 800 }}>{nome} {rec ? <Chip size="small" color="success" label="recomendada" sx={{ ml: 1 }} /> : null}</Typography>
       <Typography variant="body2">Base de cálculo: {brl(x.baseCalculo)}</Typography>
       <Typography variant="body2">Imposto devido: <b>{brl(x.devido)}</b>{x.redutor ? ` (redutor ${brl(x.redutor)})` : ""}</Typography>
       <Typography variant="h6" sx={{ fontWeight: 800, color: x.situacao === "A_RESTITUIR" ? "success.main" : x.situacao === "A_PAGAR" ? "error.main" : undefined }}>{x.situacao === "A_RESTITUIR" ? "Restituir" : x.situacao === "A_PAGAR" ? "A pagar" : "Zerado"} {brl(Math.abs(x.saldo))}</Typography>

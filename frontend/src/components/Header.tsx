@@ -155,7 +155,7 @@ export default function Header() {
           </Typography>
         </Box>
 
-        <Box sx={{ position: "relative", width: { xs: "100%", sm: 360, md: 440 }, maxWidth: 520, minWidth: 0, flexShrink: 1 }}>
+        <Box sx={{ position: "relative", display: { xs: "none", sm: "block" }, width: { xs: "100%", sm: 360, md: 440 }, maxWidth: 520, minWidth: 0, flexShrink: 1 }}>
           <TextField
             fullWidth
             size="small"
@@ -232,7 +232,7 @@ export default function Header() {
         </Tooltip>
         <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
         <Tooltip title={mode === "light" ? "Ativar modo escuro" : "Ativar modo claro"}>
-          <IconButton onClick={toggleMode}>
+          <IconButton onClick={toggleMode} sx={{ display: { xs: "none", sm: "inline-flex" } }}>
             {mode === "light" ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}
           </IconButton>
         </Tooltip>

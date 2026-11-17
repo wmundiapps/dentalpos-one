@@ -44,7 +44,7 @@ export default function Chat() {
   const { toast, node } = useToast();
   const run = useRun(toast);
   const [texto, setTexto] = useState(""); const [enviando, setEnviando] = useState(false);
-  const [nova, setNova] = useState(false); const [empresaNova, setEmpresaNova] = useState("");
+  const [nova, setNova] = useState(false); const [pend, setPend] = useState(""); const [empresaNova, setEmpresaNova] = useState("");
   const [rev, setRev] = useState<any | null>(null); const [obs, setObs] = useState("");
   const fim = useRef<HTMLDivElement>(null);
   const m = meta.data;
@@ -60,7 +60,7 @@ export default function Chat() {
   }
   async function criar() {
     const nome = (emp.data?.itens || []).find((x: any) => x.id === empresaNova)?.nome;
-    try { const c: any = await host.post(`${AS}/conversas`, empresaNova ? { empresaId: empresaNova, empresaNome: nome } : {}); setNova(false); setEmpresaNova(""); lista.reload(); setSel(c.id); } catch (e: any) { toast({ type: "error", text: e.message }); }
+    try { const c: any = await host.post(`${AS}/conversas`, empresaNova ? { empresaId: empresaNova, empresaNome: nome } : {}); if (pend) { try { await host.post(`${AS}/conversas/${c.id}/mensagens`, { texto: pend }); } catch (e2: any) { toast({ type: "error", text: e2.message }); } setPend(""); } setNova(false); setEmpresaNova(""); lista.reload(); setSel(c.id); } catch (e: any) { toast({ type: "error", text: e.message }); }
   }
   const painelLista = (
     <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 3, width: { xs: "100%", md: 280 }, flexShrink: 0, maxHeight: { md: 640 }, overflowY: "auto" }}>
@@ -89,7 +89,7 @@ export default function Chat() {
                 <SmartToyOutlinedIcon sx={{ fontSize: 48, color: "text.secondary" }} />
                 <Typography variant="h6" sx={{ fontWeight: 800 }}>Assistente Contábil</Typography>
                 <Typography color="text.secondary" sx={{ mb: 2 }}>Tire dúvidas sobre regimes, guias, prazos, abertura de empresa, folha, rescisão, MEI e imposto de renda. Escolha uma conversa ou comece uma nova.</Typography>
-                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "center" }}>{(m?.sugestoes || []).map((s: string) => <Chip key={s} label={s} variant="outlined" onClick={() => setNova(true)} />)}</Box>
+                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: "center" }}>{(m?.sugestoes || []).map((s: string) => <Chip key={s} label={s} variant="outlined" onClick={() => { setPend(s); setNova(true); }} />)}</Box>
               </Box>
             ) : (
               <>
@@ -116,13 +116,13 @@ export default function Chat() {
           </Paper>
         ) : null}
       </Box>
-      <Dialog open={nova} onClose={() => setNova(false)} fullWidth maxWidth="xs">
+      <Dialog open={nova} onClose={() => { setNova(false); setPend(""); }} fullWidth maxWidth="xs">
         <DialogTitle>Nova conversa</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 2 }}>Selecione a empresa para que o assistente use os dados dela (alvarás, folha, obrigações). Só os dados desta empresa são consultados.</Typography>
           <TextField fullWidth size="small" select label="Empresa do cliente (opcional)" value={empresaNova} onChange={(e) => setEmpresaNova(e.target.value)}><MenuItem value="">Sem empresa</MenuItem>{(emp.data?.itens || []).map((x: any) => <MenuItem key={x.id} value={x.id}>{x.nome || x.id}</MenuItem>)}</TextField>
         </DialogContent>
-        <DialogActions><Button onClick={() => setNova(false)}>Cancelar</Button><Button variant="contained" onClick={criar}>Iniciar</Button></DialogActions>
+        <DialogActions><Button onClick={() => { setNova(false); setPend(""); }}>Cancelar</Button><Button variant="contained" onClick={criar}>Iniciar</Button></DialogActions>
       </Dialog>
       <Dialog open={!!rev} onClose={() => setRev(null)} fullWidth maxWidth="sm">
         <DialogTitle>Solicitar revisão do contador</DialogTitle>

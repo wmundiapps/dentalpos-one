@@ -40,7 +40,7 @@ export function ProfPainel({ onIr }: { onIr: (aba: string) => void }) {
               {!data.risco.top.length && <Empty>Nenhum aluno em risco no momento.</Empty>}
               {data.risco.top.map((a: any) => (
                 <Box key={a.classSectionId + a.studentId} sx={{ py: 0.5 }}>
-                  <Typography variant="body2"><b>{a.aluno}</b> · {a.disciplina} <Chip size="small" color={a.nivel === "ALTO" ? "error" : "warning"} label={a.nivel === "ALTO" ? "Alto" : "Médio"} /></Typography>
+                  <Typography component="div" variant="body2"><b>{a.aluno}</b> · {a.disciplina} <Chip size="small" color={a.nivel === "ALTO" ? "error" : "warning"} label={a.nivel === "ALTO" ? "Alto" : "Médio"} /></Typography>
                   <Typography variant="caption" color="text.secondary">{a.motivos.slice(0, 2).join(" · ")}</Typography>
                 </Box>
               ))}

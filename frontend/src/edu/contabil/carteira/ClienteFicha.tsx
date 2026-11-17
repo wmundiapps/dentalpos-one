@@ -35,7 +35,7 @@ function Dados({ c, op, reload }: { c: any; op: any; reload: () => void }) {
   const e = c.endereco || {};
   return (
     <>
-      <StatGrid min={150}>
+      <StatGrid min={220}>
         <Stat label="Situação" value={<Situacao value={c.status} />} /><Stat label="Regime" value={ROTULO_REGIME[c.regime] || "—"} />
         <Stat label="Contrato vigente" value={c.contratoVigente ? brl(c.contratoVigente.valorMensal) : "—"} hint={c.contratoVigente ? `nº ${c.contratoVigente.numero}` : "sem contrato"} />
         <Stat label="Tarefas abertas" value={c.tarefasAbertas} hint={`${c.honorariosAbertos} honorário(s) em aberto`} />
