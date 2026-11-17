@@ -75,7 +75,7 @@ export default function RichTextEditor({ value, onChange, label, helperText, min
           onInput={emit}
           onBlur={emit}
           onPaste={(e) => { e.preventDefault(); document.execCommand("insertText", false, e.clipboardData.getData("text/plain")); }}
-          sx={{ minHeight, maxHeight: 460, overflowY: "auto", p: 2, outline: "none", textAlign: "center", fontSize: "12pt", lineHeight: 1.6, bgcolor: "background.paper", "&:focus": { boxShadow: "inset 0 0 0 2px", color: "inherit" }, "& ul,& ol": { textAlign: "left" } }}
+          sx={{ minHeight, maxHeight: 460, overflowY: "auto", p: 2, outline: "none", textAlign: "center", fontSize: "12pt", lineHeight: 1.6, bgcolor: "background.paper", "&:focus": { boxShadow: "inset 0 0 0 2px", color: "inherit" }, "& ul,& ol": { textAlign: "left", display: "block", pl: 3 } }}
         />
       </Box>
       {helperText && <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, ml: 0.5 }}>{helperText}</Typography>}
