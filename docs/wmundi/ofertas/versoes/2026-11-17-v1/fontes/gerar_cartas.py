@@ -172,7 +172,7 @@ gerar("proposta-silvio-breda", "Proposta ao parceiro: Silvio Breda", [
     ("table", [["Referência (800 vagas)", "Bruto por mês", "Prefeitura (50%)", "Parceiro (15%)", "WMundi (35%)"], ["Cenário base (60% de ocupação, 85% de pagamento)", brl(gp.base), brl(gp.base * .5), brl(gp.base * .15), brl(gp.base * .35)], ["Cenário conservador (40% e 70%)", brl(gp.cons), brl(gp.cons * .5), brl(gp.cons * .15), brl(gp.cons * .35)]]),
     ("nt", "Valores estimados. A arrecadação real depende de vagas, tarifa, ocupação e pagamento de cada cidade."),
     ("h3", "Ponto e Precificador"),
-    ("p", "As condições comerciais do Ponto e do Precificador são combinadas por proposta, cliente a cliente, a partir dos valores acima."),
+    ("p", "**Ponto Facial e Precificador:** o parceiro recebe **30% da receita recorrente** (mensalidades) efetivamente recebida de cada cliente que indicar. Exemplo: um cliente do Ponto na faixa de 1 a 50 funcionários, com mensalidade de R$ 297, gera R$ 89,10 por mês ao parceiro, enquanto o contrato estiver ativo. A implantação não entra na base."),
     ("h3", "Quem faz o quê"),
     ("table", [["Parceiro", "WMundi"], ["Apresenta as soluções e abre as reuniões\nAcompanha o cliente até o fechamento", "Desenvolve, instala e mantém os sistemas\nFaz demonstrações, propostas e suporte"]]),
     ("h3", "Material para enviar"),
