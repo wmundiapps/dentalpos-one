@@ -15,7 +15,7 @@ main{max-width:1100px;margin:0 auto;padding:20px}section{display:none}section.on
 button.b{background:var(--azul);color:#fff;border:0;padding:9px 14px;border-radius:10px;cursor:pointer;font:inherit;font-weight:600;margin:4px 6px 4px 0}button.b.alt{background:#fff;color:var(--azul);border:1px solid var(--azul)}button.b.g{background:var(--menta)}
 label{display:block;font-size:13px;color:var(--mut);margin:8px 0 3px}input,select{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;font:inherit}
 table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:7px;border-bottom:1px solid var(--bd)}
-.street{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:6px 0}.v{aspect-ratio:1/1.5;border-radius:5px;background:var(--menta)}.v.o{background:var(--coral)}.v.e{background:var(--sol)}
+.street{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:6px 0}.v{aspect-ratio:1/1.5;border-radius:5px;background:var(--menta)}.v.o{background:var(--coral)}.v.e{background:var(--sol)}.v.sem{outline:3px solid #14213d;outline-offset:-3px}
 .phone{width:290px;max-width:100%;margin:0 auto;background:#111a33;border-radius:28px;padding:12px}.scr{background:#fff;border-radius:18px;padding:14px;min-height:430px}
 .res{background:#eef2ff;border-radius:12px;padding:14px}.res b.big{font-size:22px;color:var(--azul)}.kpi{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #cfd8f5}
 .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:#eef2ff;color:var(--azul)}.tag.g{background:#e4f8f1;color:#0b7a60}.tag.r{background:#ffe8e6;color:#c63a2f}.tag.y{background:#fff3d1;color:#8a6200}
@@ -38,7 +38,8 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
 <div class="g3" style="margin-top:8px"><div class="st">Capacidade<b id="cap">80</b></div><div class="st">Entraram<b id="ent">0</b></div><div class="st">Saíram<b id="sai">0</b></div></div></div>
 <div><p><button class="b" id="play">▶ Iniciar simulação</button></p>
 <div class="msg" id="mm">Exemplo: 80 vagas, 500 carros entram e 495 saem: 5 vagas ocupadas. O aplicativo mostra a vaga como ocupada depois da confirmação de até 15 minutos do veículo que entrou e não saiu.</div>
-<label>Velocidade</label><input type="range" id="vel" min="1" max="5" value="3"><p class="note">Verde = livre · Amarelo = veículo entrou, em confirmação · Vermelho = ocupada confirmada. Na simulação, 1 segundo = 1 minuto.</p></div></div></div></section>
+<div class="msg" id="adm" style="background:#fff3d1"><b>Painel do administrador</b><div id="admt">Nenhum alerta no momento.</div></div>
+<label>Velocidade</label><input type="range" id="vel" min="1" max="5" value="3"><p class="note">Verde = livre · Amarelo = veículo entrou, em confirmação · Vermelho = ocupada confirmada · Contorno = sem ticket ativado. Na simulação, 1 segundo = 1 minuto.</p></div></div></div></section>
 
 <section id="app"><div class="card"><h2>Aplicativo do motorista</h2><p class="m">Toque nas telas para ver o fluxo.</p><div class="phone"><div class="scr" id="scr"></div></div></div></section>
 
@@ -67,12 +68,15 @@ $("#nav").innerHTML=abas.map(a=>`<button data-t="${a[0]}">${a[1]}</button>`).joi
 function ir(t){$$("section").forEach(s=>s.classList.toggle("on",s.id===t));$$("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));if(t==="app")tela(0)}
 $$("nav button").forEach(b=>b.onclick=()=>ir(b.dataset.t));ir("apres");
 // Simulação de vagas (1 tick = 1 minuto)
-const CAP=80;let real=Array(CAP).fill(0),ent=0,sai=0,min=0,timer=null;   // real[i]=0 livre, ou minuto em que o carro entrou
+const CAP=80;let real=Array(CAP).fill(0),pago=Array(CAP).fill(true),ent=0,sai=0,min=0,timer=null;   // real[i]=0 livre, ou minuto em que o carro entrou
 function draw(){let conf=0,ocf=0;real.forEach(x=>{if(x){(min-x<15)?conf++:ocf++}});
- $("#st").innerHTML=real.map(x=>`<div class="v ${x?(min-x<15?"e":"o"):""}"></div>`).join("");
+ $("#st").innerHTML=real.map((x,i)=>`<div class="v ${x?(min-x<15?"e":"o"):""} ${x&&!pago[i]&&min-x>=15?"sem":""}"></div>`).join("");
+ const sem=real.filter((x,i)=>x&&!pago[i]&&min-x>=15).length;
+ $("#admt").innerHTML=sem?`<span class="tag r">${sem} veículo(s) sem ticket há mais de 15 min</span><br>Quadra 1 · Rua das Flores. <b>Sugestão: enviar a ronda da fiscalização a esta quadra.</b><br><button class="b alt" id="ronda" style="margin-top:6px">Enviar ronda à fiscalização</button>`:"Nenhum alerta no momento.";
+ const rb=$("#ronda");if(rb)rb.onclick=()=>{real.forEach((x,i)=>{if(x&&!pago[i]&&min-x>=15)pago[i]=true});$("#admt").innerHTML='<span class="tag g">Ronda enviada</span> A equipe da fiscalização da prefeitura foi avisada com as placas e a quadra.';setTimeout(draw,2500)};
  $("#liv").textContent=CAP-conf-ocf;$("#conf").textContent=conf;$("#ocf").textContent=ocf;$("#ent").textContent=ent;$("#sai").textContent=sai}
 function tick(){min++;const livres=real.map((x,i)=>x?-1:i).filter(i=>i>=0),oc=real.map((x,i)=>x?i:-1).filter(i=>i>=0);
- if(Math.random()<.55&&livres.length){real[livres[Math.random()*livres.length|0]]=min;ent++}else if(oc.length){real[oc[Math.random()*oc.length|0]]=0;sai++}draw()}
+ if(Math.random()<.55&&livres.length){const i=livres[Math.random()*livres.length|0];real[i]=min;pago[i]=Math.random()<.75;ent++}else if(oc.length){real[oc[Math.random()*oc.length|0]]=0;sai++}draw()}
 $("#play").onclick=()=>{if(timer){clearInterval(timer);timer=null;$("#play").textContent="▶ Iniciar simulação"}else{timer=setInterval(tick,1000/+$("#vel").value);$("#play").textContent="⏸ Pausar"}};
 $("#vel").oninput=()=>{if(timer){clearInterval(timer);timer=setInterval(tick,1000/+$("#vel").value)}};draw();
 // App
