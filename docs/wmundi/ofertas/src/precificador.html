@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex"><title>Precificador — demonstração</title>
+<meta name="robots" content="noindex"><title>Precificador de Hotelaria — demonstração</title>
 <style>
 :root{--navy:#0b1b3f;--sol:#ffc94d;--coral:#ff5a4e;--azul:#2f5bff;--menta:#13b58f;--bg:#f5f7fc;--tx:#14213d;--mut:#5b6785;--bd:#e1e6f2}
 *{box-sizing:border-box}body{margin:0;font:15px/1.5 "DM Sans",system-ui,sans-serif;background:var(--bg);color:var(--tx)}
@@ -18,7 +18,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .bars{display:flex;align-items:flex-end;gap:6px;height:120px;margin-top:8px}.bars div{flex:1;background:var(--azul);border-radius:5px 5px 0 0;position:relative;min-height:2px}.bars div.n{background:var(--coral)}.bars span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:11px;color:var(--mut)}
 footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
 </style></head><body>
-<header><img src="__LOGO__" alt="WMundi"><div><h1>Precificador</h1><span>Demonstração com dados fictícios · nada é gravado nem enviado · cálculos reais</span></div></header>
+<header><img src="__LOGO__" alt="WMundi"><div><h1>Precificador de Hotelaria</h1><span>Demonstração com dados fictícios · nada é gravado nem enviado · cálculos reais</span></div></header>
 <nav id="nav"></nav><main>
 
 <section id="hotel" class="on"><div class="card"><h2>Hotel / Resort</h2><p class="m">Preço da diária por tipo de apartamento, ponto de equilíbrio, comparação com o mercado e prazo de pagamento.</p>
@@ -34,34 +34,17 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
 <h3>Prazo de pagamento</h3><div class="row2"><div><label>Prazo (dias)</label><input type="number" id="h_d" value="60"></div><div><label>Correção ao mês (%)</label><input type="number" id="h_i" value="1.5"></div></div>
 </div><div><div class="res" id="h_res"></div><div id="h_sens"></div></div></div></div></section>
 
-<section id="saude"><div class="card"><h2>Consultório (dentistas e médicos)</h2><p class="m">Valor do atendimento, atendimentos para empatar e quanto muda o lucro se você atender mais.</p>
-<div class="grid"><div><div class="row2">
-<div><label>Custos fixos/mês (R$)</label><input type="number" id="s_f" value="22000"></div><div><label>Custo variável por atendimento (R$)</label><input type="number" id="s_v" value="38"></div>
-<div><label>Impostos (%)</label><input type="number" id="s_t" value="6"></div><div><label>Taxa de cartão (%)</label><input type="number" id="s_c" value="3"></div>
-<div><label>Atendimentos por mês hoje</label><input type="number" id="s_n" value="120"></div><div><label>Lucro desejado/mês (R$)</label><input type="number" id="s_l" value="15000"></div>
-<div><label>Valor cobrado hoje (R$)</label><input type="number" id="s_p" value="260"></div><div><label>Atendimentos a mais (simular)</label><input type="number" id="s_up" value="30"></div></div></div>
-<div><div class="res" id="s_res"></div></div></div></div></section>
 
-<section id="produto"><div class="card"><h2>Produtos</h2><p class="m">Preço de venda a partir do custo, despesas e margem.</p><div class="grid"><div><div class="row2">
-<div><label>Custo do produto (R$)</label><input type="number" id="p_c" value="48"></div><div><label>Frete/embalagem (R$)</label><input type="number" id="p_fr" value="6"></div>
-<div><label>Impostos (%)</label><input type="number" id="p_t" value="8"></div><div><label>Comissão/cartão/marketplace (%)</label><input type="number" id="p_k" value="12"></div>
-<div><label>Margem de lucro desejada (%)</label><input type="number" id="p_m" value="25"></div><div><label>Preço do concorrente (R$)</label><input type="number" id="p_x" value="119"></div></div></div><div><div class="res" id="p_res"></div></div></div></div></section>
 
-<section id="servico"><div class="card"><h2>Serviços</h2><p class="m">Preço do serviço pela hora técnica, materiais e custos indiretos.</p><div class="grid"><div><div class="row2">
-<div><label>Salário/retirada desejada/mês (R$)</label><input type="number" id="v_s" value="8000"></div><div><label>Horas vendáveis/mês</label><input type="number" id="v_h" value="100"></div>
-<div><label>Custos fixos/mês (R$)</label><input type="number" id="v_f" value="3500"></div><div><label>Horas gastas no serviço</label><input type="number" id="v_hs" value="3"></div>
-<div><label>Materiais (R$)</label><input type="number" id="v_m" value="60"></div><div><label>Impostos (%)</label><input type="number" id="v_t" value="6"></div>
-<div><label>Margem de lucro (%)</label><input type="number" id="v_l" value="20"></div></div></div><div><div class="res" id="v_res"></div></div></div></div></section>
 
-<section id="locacao"><div class="card"><h2>Locação</h2><p class="m">Diária e mensalidade de um bem (equipamento, sala, veículo, imóvel) para o investimento voltar no prazo.</p><div class="grid"><div><div class="row2">
-<div><label>Valor do bem (R$)</label><input type="number" id="l_v" value="90000"></div><div><label>Vida útil (meses)</label><input type="number" id="l_u" value="60"></div>
-<div><label>Valor de revenda no fim (R$)</label><input type="number" id="l_r" value="30000"></div><div><label>Manutenção/seguro por mês (R$)</label><input type="number" id="l_m" value="900"></div>
-<div><label>Dias alugados no mês</label><input type="number" id="l_d" value="18"></div><div><label>Retorno desejado ao mês sobre o bem (%)</label><input type="number" id="l_i" value="1.2"></div>
-<div><label>Impostos (%)</label><input type="number" id="l_t" value="8"></div></div></div><div><div class="res" id="l_res"></div></div></div></div></section>
 
-<section id="custom"><div class="card"><h2>Personalizar para o seu negócio</h2><p class="m">Na versão contratada montamos o precificador com os campos, nomes e regras do seu negócio. Aqui você pode salvar os valores que digitou e carregar depois.</p>
+
+
+
+
+<section id="custom"><div class="card"><h2>Personalizado para o seu negócio</h2><p class="m">Esta demonstração é o precificador de <b>hotelaria</b>. Desenvolvemos o precificador sob medida para <b>qualquer segmento</b>, com os campos, nomes e regras do seu negócio.</p>
+<ul><li><b>Hotéis, pousadas e resorts:</b> níveis de apartamento, alta e baixa temporada, pacotes, ligação com o site de reservas.</li><li><b>Clínicas e consultórios:</b> tabela por procedimento, convênios, atendimentos necessários para o lucro e ganho com mais atendimentos.</li><li><b>Comércio e indústria:</b> lista de produtos com custo atualizado e margem por canal.</li><li><b>Serviços:</b> hora técnica, materiais e custos indiretos.</li><li><b>Locadoras:</b> frota ou equipamentos com depreciação e payback por item.</li></ul>
 <button class="b" id="sv">Salvar valores (arquivo)</button><label style="display:inline-block;margin-left:8px">Carregar: <input type="file" id="ld" accept=".json" style="width:auto"></label>
-<h3>Exemplos de personalização</h3><ul><li>Hotéis, pousadas e resorts: níveis de apartamento, alta e baixa temporada, pacotes, ligação com o site de reservas.</li><li>Clínicas: tabela por procedimento, convênios, repasse a profissionais.</li><li>Comércio e indústria: lista de produtos com custo atualizado, margem por canal.</li><li>Locadoras: frota ou equipamentos com depreciação por item.</li></ul>
 <p class="note">Valores sob consulta.</p></div></section>
 </main><footer>WMundi · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · info@wmundi.com · (44) 99946-6451</footer>
 
@@ -90,7 +73,7 @@ function locacao(a){const dep=(a.v-a.r)/a.u,ret=a.v*a.i,custo=dep+a.m+ret,receit
 <script>
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const n=id=>+$("#"+id).value||0;
 const brl=v=>isFinite(v)?v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}):"—";
-const abas=[["hotel","Hotel / Resort"],["saude","Dentistas e médicos"],["produto","Produtos"],["servico","Serviços"],["locacao","Locação"],["custom","Personalizar"]];
+const abas=[["hotel","Hotel / Resort"],["custom","Personalizado"]];
 $("#nav").innerHTML=abas.map(a=>`<button data-t="${a[0]}">${a[1]}</button>`).join("");
 function ir(t){$$("section").forEach(s=>s.classList.toggle("on",s.id===t));$$("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t))}
 $$("nav button").forEach(b=>b.onclick=()=>ir(b.dataset.t));ir("hotel");
@@ -103,15 +86,7 @@ function H(){const a={quartos:Q.map((q,i)=>({nome:$("#q"+i+"n").value,n:n("q"+i+
  const oc=[.3,.4,.5,.6,.7,.8,.9];const ls=oc.map(o=>lucroHotel(a,o)),mx=Math.max(...ls.map(Math.abs),1);
  $("#h_sens").innerHTML=`<h3>Lucro mensal por ocupação (com os preços calculados)</h3><div class="bars" style="margin-bottom:24px">${ls.map((v,i)=>`<div class="${v<0?"n":""}" style="height:${Math.max(3,Math.abs(v)/mx*110)}px" title="${brl(v)}"><span>${oc[i]*100}%</span></div>`).join("")}</div><p class="note">Barras vermelhas = prejuízo. Passe o mouse para ver o valor.</p>`}
 $("#h_avg").onclick=()=>{const v=$("#h_comp").value.split(/[;,\s]+/).map(Number).filter(Boolean);if(v.length){$("#h_mkt").value=Math.round(v.reduce((a,b)=>a+b)/v.length);H()}};
-function S(){const a={F:n("s_f"),V:n("s_v"),t:n("s_t")/100,c:n("s_c")/100,n:n("s_n"),L:n("s_l"),p:n("s_p"),up:n("s_up")},r=saude(a);
- $("#s_res").innerHTML=`<div>Valor para atingir o lucro desejado</div><b class="big">${brl(r.pMeta)}</b>`+k("Valor mínimo (empate) nos atendimentos de hoje",brl(r.pEq))+k("Você cobra hoje",brl(a.p),a.p>=r.pMeta?"ok":"bad")+k("Sobra por atendimento (depois de impostos e custos)",brl(r.mc))+k("Atendimentos para empatar no seu preço",r.nEq)+k("Atendimentos para o lucro desejado",r.nMeta)+k("Lucro hoje ("+a.n+" atend.)",brl(r.lucroHoje),r.lucroHoje<0?"bad":"ok")+k("Lucro com +"+a.up+" atendimentos ("+(a.n+a.up)+")",brl(r.lucroMais),"ok")+k("Ganho extra por mês",brl(r.lucroMais-r.lucroHoje),"ok")}
-function P(){const a={c:n("p_c"),fr:n("p_fr"),t:n("p_t")/100,k:n("p_k")/100,m:n("p_m")/100},r=produto(a),x=n("p_x");
- $("#p_res").innerHTML=`<div>Preço de venda</div><b class="big">${brl(r.preco)}</b>`+k("Lucro por unidade",brl(r.lucro))+k("Preço mínimo (lucro zero)",brl(r.minimo))+k("Concorrente",brl(x))+k("Seu preço vs. concorrente",((r.preco/x-1)*100).toFixed(1)+"%",r.preco>x?"bad":"ok")}
-function V(){const a={s:n("v_s"),f:n("v_f"),h:n("v_h"),hs:n("v_hs"),m:n("v_m"),t:n("v_t")/100,l:n("v_l")/100},r=servico(a);
- $("#v_res").innerHTML=`<div>Preço do serviço</div><b class="big">${brl(r.preco)}</b>`+k("Sua hora técnica (sem lucro)",brl(r.hora))+k("Custo do serviço",brl(r.custo))+k("Lucro",brl(r.lucro))}
-function L(){const a={v:n("l_v"),u:n("l_u")||1,r:n("l_r"),m:n("l_m"),d:n("l_d")||1,i:n("l_i")/100,t:n("l_t")/100},r=locacao(a);
- $("#l_res").innerHTML=`<div>Diária sugerida</div><b class="big">${brl(r.diaria)}</b>`+k("Mensalidade equivalente",brl(r.mensal))+k("Depreciação mensal",brl(r.dep))+k("Custo mensal (deprec. + manutenção + retorno)",brl(r.custo))+k("Payback do bem",isFinite(r.paybackMeses)&&r.paybackMeses>0?r.paybackMeses.toFixed(1).replace(".",",")+" meses":"—")}
-const ALL=()=>{H();S();P();V();L()};$$("input,select").forEach(e=>e.addEventListener("input",ALL));ALL();
+const ALL=()=>{H()};$$("input,select").forEach(e=>e.addEventListener("input",ALL));ALL();
 $("#sv").onclick=()=>{const o={};$$("input:not([type=file]),select").forEach(e=>o[e.id]=e.value);const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:"application/json"}));a.download="precificador-valores.json";a.click()};
 $("#ld").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);for(const i in o){const el=document.getElementById(i);if(el)el.value=o[i]}ALL()}catch(_){alert("Arquivo inválido")}})};
 </script></body></html>

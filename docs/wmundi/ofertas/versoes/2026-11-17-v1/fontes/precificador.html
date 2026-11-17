@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Precificador de Hotelaria — demonstração</title>
+<style>
+:root{--navy:#0b1b3f;--sol:#ffc94d;--coral:#ff5a4e;--azul:#2f5bff;--menta:#13b58f;--bg:#f5f7fc;--tx:#14213d;--mut:#5b6785;--bd:#e1e6f2}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 "DM Sans",system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}header img{height:34px}header h1{font-size:18px;margin:0}header span{color:#aab6d8;font-size:13px}
+nav{display:flex;gap:6px;flex-wrap:wrap;padding:12px 20px;background:#fff;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+nav button{border:1px solid var(--bd);background:#fff;padding:8px 14px;border-radius:999px;cursor:pointer;font:inherit;color:var(--tx)}nav button.on{background:var(--azul);color:#fff;border-color:var(--azul)}
+main{max-width:1100px;margin:0 auto;padding:20px}section{display:none}section.on{display:block}
+.card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:16px}h2{margin:0 0 6px;font-size:20px}h3{margin:14px 0 6px;font-size:15px}p.m{color:var(--mut);margin:0 0 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 3px}input,select{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;font:inherit}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:7px;border-bottom:1px solid var(--bd)}td input{padding:6px}
+.res{background:#eef2ff;border-radius:12px;padding:14px}.res b.big{font-size:22px;color:var(--azul)}.kpi{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #cfd8f5}
+.ok{color:#0b7a60}.bad{color:#c63a2f}button.b{background:var(--azul);color:#fff;border:0;padding:9px 14px;border-radius:10px;cursor:pointer;font:inherit;font-weight:600;margin:4px 6px 4px 0}button.b.alt{background:#fff;color:var(--azul);border:1px solid var(--azul)}
+.note{font-size:12px;color:var(--mut)}.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bars{display:flex;align-items:flex-end;gap:6px;height:120px;margin-top:8px}.bars div{flex:1;background:var(--azul);border-radius:5px 5px 0 0;position:relative;min-height:2px}.bars div.n{background:var(--coral)}.bars span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:11px;color:var(--mut)}
+footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
+</style></head><body>
+<header><img src="__LOGO__" alt="WMundi"><div><h1>Precificador de Hotelaria</h1><span>Demonstração com dados fictícios · nada é gravado nem enviado · cálculos reais</span></div></header>
+<nav id="nav"></nav><main>
+
+<section id="hotel" class="on"><div class="card"><h2>Hotel / Resort</h2><p class="m">Preço da diária por tipo de apartamento, ponto de equilíbrio, comparação com o mercado e prazo de pagamento.</p>
+<div class="grid"><div>
+<div class="row2"><div><label>Categoria</label><select id="h_cat"><option value="1">Hotel comum</option><option value="1.35">Hotel 4 estrelas</option><option value="1.8">Resort 5 estrelas</option></select></div>
+<div><label>Ocupação esperada (%)</label><input type="number" id="h_occ" value="65"></div></div>
+<h3>Apartamentos</h3><table id="h_q"><tr><th>Nível</th><th>Qtd</th><th>Fator de preço</th></tr></table>
+<h3>Custos</h3><div class="row2"><div><label>Custos fixos/mês (R$)</label><input type="number" id="h_f" value="400000"><span class="note">folha, energia, água, manutenção, seguros</span></div>
+<div><label>Custo variável por diária vendida (R$)</label><input type="number" id="h_v" value="45"><span class="note">limpeza, enxoval, café, amenities</span></div>
+<div><label>Impostos sobre a receita (%)</label><input type="number" id="h_t" value="8.5"></div><div><label>Comissão de OTA/cartão (%)</label><input type="number" id="h_c" value="9"></div>
+<div><label>Lucro mensal desejado (R$)</label><input type="number" id="h_l" value="60000"></div><div><label>Preço médio do mercado (R$)</label><input type="number" id="h_mkt" value="380"></div></div>
+<h3>Concorrentes / similares da região (diária)</h3><div class="row2"><input id="h_comp" value="340, 395, 420, 360, 410"><button class="b alt" id="h_avg">Usar a média</button></div>
+<h3>Prazo de pagamento</h3><div class="row2"><div><label>Prazo (dias)</label><input type="number" id="h_d" value="60"></div><div><label>Correção ao mês (%)</label><input type="number" id="h_i" value="1.5"></div></div>
+</div><div><div class="res" id="h_res"></div><div id="h_sens"></div></div></div></div></section>
+
+
+
+
+
+
+
+
+
+<section id="custom"><div class="card"><h2>Personalizado para o seu negócio</h2><p class="m">Esta demonstração é o precificador de <b>hotelaria</b>. Desenvolvemos o precificador sob medida para <b>qualquer segmento</b>, com os campos, nomes e regras do seu negócio.</p>
+<ul><li><b>Hotéis, pousadas e resorts:</b> níveis de apartamento, alta e baixa temporada, pacotes, ligação com o site de reservas.</li><li><b>Clínicas e consultórios:</b> tabela por procedimento, convênios, atendimentos necessários para o lucro e ganho com mais atendimentos.</li><li><b>Comércio e indústria:</b> lista de produtos com custo atualizado e margem por canal.</li><li><b>Serviços:</b> hora técnica, materiais e custos indiretos.</li><li><b>Locadoras:</b> frota ou equipamentos com depreciação e payback por item.</li></ul>
+<button class="b" id="sv">Salvar valores (arquivo)</button><label style="display:inline-block;margin-left:8px">Carregar: <input type="file" id="ld" accept=".json" style="width:auto"></label>
+<p class="note">Valores sob consulta.</p></div></section>
+</main><footer>WMundi · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · info@wmundi.com · (44) 99946-6451</footer>
+
+<script id="core">
+// ===== Funções puras de cálculo (testadas) =====
+const pct=x=>x/100;
+function precoEquilibrio(F,V,N,t,c){return (F/N+V)/(1-t-c)}            // preço médio p/ empatar vendendo N unidades
+function precoMeta(F,V,N,t,c,L){return ((F+L)/N+V)/(1-t-c)}             // inclui lucro desejado
+function ocupEquilibrio(F,V,quartos,dias,p,t,c){const mc=p*(1-t-c)-V;return mc<=0?Infinity:F/(quartos*dias*mc)}
+function prazo(p,i,d){return p*Math.pow(1+i,d/30)}                        // preço a prazo (juros compostos)
+function hotel(a){const noites=a.quartos.reduce((s,q)=>s+q.n,0)*30,vend=noites*a.occ;
+ const pesos=a.quartos.reduce((s,q)=>s+q.n*q.fator,0)/a.quartos.reduce((s,q)=>s+q.n,0);               // fator médio ponderado
+ const pm=precoMeta(a.F,a.V,vend,a.t,a.c,a.L),pe=precoEquilibrio(a.F,a.V,vend,a.t,a.c);
+ const base=pm/pesos,porNivel=a.quartos.map(q=>({nome:q.nome,preco:base*q.fator,equil:pe/pesos*q.fator}));
+ const ocEq=ocupEquilibrio(a.F,a.V,a.quartos.reduce((s,q)=>s+q.n,0),30,pm,a.t,a.c);
+ return{noites,vend,pm,pe,porNivel,ocEq,aPrazo:prazo(pm,a.i,a.d)}}
+function lucroHotel(a,occ){const v=a.quartos.reduce((s,q)=>s+q.n,0)*30*occ,pm=precoMeta(a.F,a.V,a.quartos.reduce((s,q)=>s+q.n,0)*30*a.occ,a.t,a.c,a.L);return v*(pm*(1-a.t-a.c)-a.V)-a.F}
+function saude(a){const mc=a.p*(1-a.t-a.c)-a.V,lucroHoje=a.n*mc-a.F,lucroMais=(a.n+a.up)*mc-a.F;
+ return{mc,lucroHoje,lucroMais,nEq:mc>0?Math.ceil(a.F/mc):Infinity,nMeta:mc>0?Math.ceil((a.F+a.L)/mc):Infinity,pEq:precoEquilibrio(a.F,a.V,a.n,a.t,a.c),pMeta:precoMeta(a.F,a.V,a.n,a.t,a.c,a.L)}}
+function produto(a){const custo=a.c+a.fr,preco=custo/(1-a.t-a.k-a.m),lucro=preco*a.m;return{preco,lucro,minimo:custo/(1-a.t-a.k)}}
+function servico(a){const hora=(a.s+a.f)/a.h,custo=hora*a.hs+a.m,preco=custo/(1-a.t-a.l);return{hora,custo,preco,lucro:preco*a.l}}
+function locacao(a){const dep=(a.v-a.r)/a.u,ret=a.v*a.i,custo=dep+a.m+ret,receita=custo/(1-a.t),diaria=receita/a.d;
+ return{dep,custo,mensal:receita,diaria,paybackMeses:a.v/(receita*(1-a.t)-a.m)}}
+// ===== fim =====
+</script>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const n=id=>+$("#"+id).value||0;
+const brl=v=>isFinite(v)?v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}):"—";
+const abas=[["hotel","Hotel / Resort"],["custom","Personalizado"]];
+$("#nav").innerHTML=abas.map(a=>`<button data-t="${a[0]}">${a[1]}</button>`).join("");
+function ir(t){$$("section").forEach(s=>s.classList.toggle("on",s.id===t));$$("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t))}
+$$("nav button").forEach(b=>b.onclick=()=>ir(b.dataset.t));ir("hotel");
+const Q=[["Standard",40,1],["Superior",30,1.25],["Luxo",15,1.6],["Suíte",5,2.2]];
+$("#h_q").innerHTML+=Q.map((q,i)=>`<tr><td><input id="q${i}n" value="${q[0]}"></td><td><input type="number" id="q${i}q" value="${q[1]}"></td><td><input type="number" step="0.05" id="q${i}f" value="${q[2]}"></td></tr>`).join("");
+const k=(a,b,c)=>`<div class="kpi"><span>${a}</span><b class="${c||""}">${b}</b></div>`;
+function H(){const a={quartos:Q.map((q,i)=>({nome:$("#q"+i+"n").value,n:n("q"+i+"q"),fator:n("q"+i+"f")})),occ:n("h_occ")/100,F:n("h_f"),V:n("h_v"),t:n("h_t")/100,c:n("h_c")/100,L:n("h_l"),i:n("h_i")/100,d:n("h_d")};
+ const r=hotel(a),mk=n("h_mkt"),dif=(r.pm/mk-1)*100;
+ $("#h_res").innerHTML=`<div>Diária média para atingir o lucro desejado</div><b class="big">${brl(r.pm)}</b>`+k("Diária média de empate (lucro zero)",brl(r.pe))+k("Ocupação mínima (ponto de equilíbrio)",isFinite(r.ocEq)?(r.ocEq*100).toFixed(1)+"%":"—")+k("Ocupação esperada",(a.occ*100).toFixed(0)+"%")+k("Diárias vendidas/mês",Math.round(r.vend)+" de "+r.noites)+k("Mercado (média)",brl(mk))+k("Seu preço vs. mercado",(dif>=0?"+":"")+dif.toFixed(1)+"%",dif>15?"bad":"ok")+k("Se parcelar/pagar em "+a.d+" dias",brl(r.aPrazo)+" por diária")+`<h3>Diária por tipo de apartamento (categoria ${$("#h_cat").selectedOptions[0].text})</h3><table><tr><th>Nível</th><th>Mínimo (empate)</th><th>Com lucro</th></tr>${r.porNivel.map(x=>`<tr><td>${x.nome}</td><td>${brl(x.equil)}</td><td><b>${brl(x.preco)}</b></td></tr>`).join("")}</table><p class="note">A categoria (hotel comum, 4 ou 5 estrelas) muda a referência de mercado e os custos que você informa; o preço sai dos seus custos e do lucro desejado. Distribuição do lucro: ${brl(a.L)}/mês na ocupação esperada.</p>`;
+ const oc=[.3,.4,.5,.6,.7,.8,.9];const ls=oc.map(o=>lucroHotel(a,o)),mx=Math.max(...ls.map(Math.abs),1);
+ $("#h_sens").innerHTML=`<h3>Lucro mensal por ocupação (com os preços calculados)</h3><div class="bars" style="margin-bottom:24px">${ls.map((v,i)=>`<div class="${v<0?"n":""}" style="height:${Math.max(3,Math.abs(v)/mx*110)}px" title="${brl(v)}"><span>${oc[i]*100}%</span></div>`).join("")}</div><p class="note">Barras vermelhas = prejuízo. Passe o mouse para ver o valor.</p>`}
+$("#h_avg").onclick=()=>{const v=$("#h_comp").value.split(/[;,\s]+/).map(Number).filter(Boolean);if(v.length){$("#h_mkt").value=Math.round(v.reduce((a,b)=>a+b)/v.length);H()}};
+const ALL=()=>{H()};$$("input,select").forEach(e=>e.addEventListener("input",ALL));ALL();
+$("#sv").onclick=()=>{const o={};$$("input:not([type=file]),select").forEach(e=>o[e.id]=e.value);const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:"application/json"}));a.download="precificador-valores.json";a.click()};
+$("#ld").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);for(const i in o){const el=document.getElementById(i);if(el)el.value=o[i]}ALL()}catch(_){alert("Arquivo inválido")}})};
+</script></body></html>

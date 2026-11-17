@@ -25,7 +25,7 @@ FT = '<div class="ft">WMundi · Instituto Ravel de Ensino Superior Ltda. · CNPJ
 BASE = "https://wmundi-ofertas.netlify.app/"
 LINKS = {
     "Ponto por Reconhecimento Facial": [("Testar a demonstração do Ponto Facial", BASE + "ponto/")],
-    "Precificador": [("Testar a demonstração do Precificador", BASE + "precificador-8f3k/")],
+    "Precificador de Hotelaria": [("Testar a demonstração do Precificador de Hotelaria", BASE + "precificador-8f3k/")],
     "UrbanFlow": [("Testar a demonstração do UrbanFlow", BASE + "urbanflow/")],
     "Guia do vendedor": [("Demo Ponto Facial", BASE + "ponto/"), ("Demo Precificador (não divulgar)", BASE + "precificador-8f3k/"), ("Demo UrbanFlow", BASE + "urbanflow/")],
 }
@@ -71,23 +71,21 @@ dia_extra = 12
 ganho = n_ap * 30 * ocup * dia_extra
 pay_p = 4900 / (ganho - 297)
 preci = [
-    f"""<h2>O que é</h2><p>Ferramenta para <b>formar preço com cálculo real</b>: produtos, serviços, locação, hotelaria e consultórios. O resultado muda na hora conforme você ajusta custos, impostos, ocupação ou número de atendimentos.</p>
-<h3>Hotéis e resorts</h3><ul><li>Diária por nível de apartamento, com fator de preço entre padrão, superior, luxo e suíte.</li><li>Hotel comum, 4 e 5 estrelas / resort.</li><li>Custos fixos e variáveis, impostos e comissão de reservas.</li><li>Lucro mensal desejado e sua distribuição.</li><li>Comparação com concorrentes e prestadores da região (média de mercado).</li><li><b>Ocupação mínima</b> e diárias vendidas para o ponto de equilíbrio.</li><li>Prazo de pagamento e correção, para não perder no financiamento.</li><li>Gráfico de lucro por ocupação (onde dá prejuízo).</li></ul>
-<h3>Dentistas e médicos</h3><ul><li>Valor do atendimento para empatar e para atingir o lucro desejado.</li><li>Atendimentos necessários por mês.</li><li>Quanto o lucro aumenta se atender mais pacientes.</li></ul>
-<h3>Produtos, serviços e locação</h3><ul><li>Preço pelo custo, impostos, comissões e margem.</li><li>Hora técnica e custo indireto.</li><li>Diária e mensalidade de bens locados, com depreciação e payback do bem.</li></ul>
-<h3>Personalização</h3><p>Montamos a ferramenta com os campos, nomes e regras do seu negócio (temporada, pacotes, convênios, frota).</p>""",
+    f"""<h2>O que é</h2><p>Ferramenta que <b>forma o preço da diária com cálculo real</b>. O resultado muda na hora conforme você ajusta custos, impostos, ocupação e lucro desejado.</p>
+<h3>Precificador de Hotelaria</h3><ul><li>Diária por <b>nível de apartamento</b>, com fator de preço entre padrão, superior, luxo e suíte.</li><li>Hotel comum, 4 estrelas e resort 5 estrelas.</li><li>Custos fixos e variáveis, impostos e comissão de reservas.</li><li><b>Lucro mensal desejado</b> e sua distribuição.</li><li><b>Valor médio de mercado</b>: concorrentes, similares e prestadores da região.</li><li><b>Ocupação mínima</b> e diárias vendidas para o ponto de equilíbrio.</li><li><b>Prazos de pagamento e correção</b>, para não perder no financiamento.</li><li>Gráfico de lucro por ocupação: onde a operação deixa de dar resultado.</li></ul>
+<h3>Personalizado para qualquer segmento</h3><p>O precificador é desenvolvido sob medida, com os campos, nomes e regras do seu negócio. Já mapeamos clínicas e consultórios (valor por atendimento e ganho com mais atendimentos), comércio e indústria, serviços e locadoras.</p>""",
     f"""<h2>Investimento</h2>
 <table><tr><th>Opção</th><th>Mensalidade</th><th>Implantação</th></tr>
-<tr><td>Padrão (um segmento: hotel, saúde, comércio, serviços ou locação)</td><td>{brl(197)}/mês</td><td>{brl(990)}</td></tr>
+<tr><td>Precificador de Hotelaria (versão pronta)</td><td>{brl(197)}/mês</td><td>{brl(990)}</td></tr>
 <tr><td>Personalizado para o seu negócio (campos, regras, marca)</td><td>{brl(297)}/mês</td><td>sob consulta (referência: a partir de {brl(4900)})</td></tr></table>
-<p class="nt">Valores sugeridos, sujeitos a confirmação. Personalização é orçada após levantamento.</p>
+<p class="nt">Valores sugeridos, sujeitos a confirmação. A personalização é orçada após levantamento.</p>
 <h2 style="margin-top:8mm">Retorno do investimento (payback)</h2>
-<div class="box ok"><b>Exemplo ilustrativo: hotel com {n_ap} apartamentos, ocupação de 65%.</b><br>Ao ajustar a diária média em apenas {brl(dia_extra)} (por conhecer o ponto de equilíbrio e o preço da região), a receita sobe cerca de <b>{brl(ganho)}/mês</b>.<br>
+<div class="box ok"><b>Exemplo: hotel com {n_ap} apartamentos, ocupação de 65%.</b><br>Ao ajustar a diária média em apenas {brl(dia_extra)} (por conhecer o ponto de equilíbrio e o preço da região), a receita sobe cerca de <b>{brl(ganho)}/mês</b>.<br>
 Versão personalizada: implantação {brl(4900)} + mensalidade {brl(297)}.<br>Payback: {brl(4900)} ÷ ({brl(ganho)} − {brl(297)}) ≈ <b>{mes(pay_p)} mês</b>.</div>
-<div class="box al"><b>Atenção:</b> o exemplo mostra o método; o ganho real depende do mercado e da gestão.</div>
-<h3>Próximos passos</h3><ol><li>Teste a demonstração com os números do seu negócio.</li><li>Reunião de 30 minutos para levantar custos e regras.</li><li>Proposta fechada e entrega em até 15 dias úteis (referência).</li></ol>""",
+<p class="nt">O exemplo mostra o método; o ganho real depende do mercado e da gestão.</p>
+<h3>Próximos passos</h3><ol><li>Teste a demonstração com os números do seu hotel.</li><li>Reunião de 30 minutos para levantar custos e regras.</li><li>Proposta fechada e entrega em até 15 dias úteis (referência).</li></ol>""",
 ]
-(a / "pdf" / "proposta-precificador.html").write_text(doc("Precificador", "Preço certo para produtos, serviços, locação, hotéis e consultórios", preci))
+(a / "pdf" / "proposta-precificador.html").write_text(doc("Precificador de Hotelaria", "Diária certa por nível de apartamento, com ponto de equilíbrio e lucro desejado · personalizado para qualquer segmento", preci))
 
 # ---------- URBANFLOW (prefeitura) ----------
 TARIFA = 1.75                      # Setor Verde de Maringá: R$ 1,75 por hora (60 min = R$ 1,75; 120 = R$ 3,50; 180 = R$ 5,25)
@@ -201,7 +199,7 @@ comp = [
 guia = [
     f"""<h2>Guia do vendedor (interno)</h2>
 <p class="nt">Documento interno. Não encaminhar ao cliente.</p>
-<h3>O que vender</h3><table><tr><th>Oferta</th><th>Cliente ideal</th><th>Demo</th></tr><tr><td>Ponto Facial</td><td>Empresas com 10 a 200 funcionários, clínicas, lojas, indústrias</td><td>/ponto</td></tr><tr><td>Precificador</td><td>Hotéis, pousadas, clínicas, comércio, locadoras</td><td>/precificador</td></tr><tr><td>UrbanFlow</td><td>Prefeituras e concessionárias de estacionamento</td><td>/urbanflow</td></tr></table>
+<h3>O que vender</h3><table><tr><th>Oferta</th><th>Cliente ideal</th><th>Demo</th></tr><tr><td>Ponto Facial</td><td>Empresas com 10 a 200 funcionários, clínicas, lojas, indústrias</td><td>/ponto</td></tr><tr><td>Precificador de Hotelaria (personalizável para qualquer segmento)</td><td>Hotéis, pousadas e resorts; sob medida para clínicas, comércio, locadoras</td><td>/precificador</td></tr><tr><td>UrbanFlow</td><td>Prefeituras e concessionárias de estacionamento</td><td>/urbanflow</td></tr></table>
 <h3>Divisão de receita do UrbanFlow (interna)</h3>
 <div class="box">Arrecadação bruta: <b>50% prefeitura</b>. Dos 50% restantes: <b>parceiro 30%</b> e <b>WMundi 70%</b>.<br>
 Ou seja, sobre a arrecadação bruta: prefeitura 50% · parceiro <b>15%</b> · WMundi <b>35%</b>.</div>
