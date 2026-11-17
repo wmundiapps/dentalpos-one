@@ -110,7 +110,7 @@ inv_pil = 4 * (C_CONT + C_SIN + I_QUAD) + 2 * (C_CAM + I_CAM) + APP
 inv_cid = 40 * (C_CONT + C_SIN + I_QUAD) + 20 * (C_CAM + I_CAM) + APP
 urb = [
     f"""<h2>A proposta</h2><p>O <b>UrbanFlow</b> organiza o estacionamento rotativo da cidade: o motorista vê onde há vaga e paga pelo celular; a prefeitura acompanha ocupação, tempo de permanência e arrecadação em tempo real e fiscaliza com mais eficiência.</p>
-<h3>Como funciona</h3><ul><li><b>Aplicativo do motorista:</b> mapa de vagas livres por quadra, ativação do ticket por tempo (60, 120 e 180 minutos), pagamento por Pix e cartão, saldo, aviso antes de vencer e prorrogação pelo celular.</li><li><b>Contagem de vagas:</b> contadores nos postes registram entradas e saídas da quadra; o veículo que entrou e não saiu é confirmado como vaga ocupada em até 15 minutos (exemplo: 80 vagas, 500 entradas e 495 saídas = 5 ocupadas).</li><li><b>Câmeras de placa:</b> leem a placa e lançam o tempo de quem não usa o aplicativo.</li><li><b>Painel do administrador:</b> ocupação, rotatividade, tempo médio, arrecadação e irregularidades. Quando há veículos que entraram e não ativaram o ticket, o painel emite um <b>aviso</b> e sugere a <b>ronda da fiscalização</b> àquela quadra, com um clique para acionar os agentes da prefeitura.</li></ul>
+<h3>Como funciona</h3><ul><li><b>Aplicativo do motorista:</b> mapa de vagas livres por quadra, ativação do ticket por tempo (60, 120 e 180 minutos), pagamento por Pix e cartão, saldo, aviso antes de vencer e prorrogação pelo celular.</li><li><b>Contagem de vagas:</b> contadores nos postes registram entradas e saídas da quadra; o veículo que entrou e não saiu é confirmado como vaga ocupada em até 15 minutos (exemplo: 80 vagas, 500 entradas e 495 saídas = 5 ocupadas).</li><li><b>Câmeras de placa:</b> se o motorista não aciona o aplicativo, a câmera lê a placa e verifica o tempo de permanência na quadra. Passou de 15 minutos, é lançada uma <b>permanência de R$ 10,00</b> no cadastro do veículo. O motorista tem <b>30 dias</b> para regularizar pelo próprio aplicativo; depois disso, a permanência vira multa conforme a legislação de trânsito do município.</li><li><b>Painel do administrador:</b> ocupação, rotatividade, tempo médio, arrecadação e irregularidades. Quando há veículos que entraram e não ativaram o ticket, o painel emite um <b>aviso</b> e sugere a <b>ronda da fiscalização</b> àquela quadra, com um clique para acionar os agentes da prefeitura.</li></ul>
 <h3>Funcionamento do rotativo</h3><p>Segunda a sexta, das 8h às 18h, e sábados, das 8h às 12h. <b>Tolerância de 15 minutos</b> para o motorista.</p>
 <h3>Quem faz o quê</h3><table><tr><th>WMundi</th><th>Prefeitura</th></tr><tr><td>Desenvolve o aplicativo e o painel<br>Instala o sistema (contadores, câmeras, sinalização com QR)<br>Mantém e atualiza o sistema, com manutenção quando necessário</td><td>Arca com o investimento de implantação e instalação<br>Realiza a fiscalização (agentes e autuação)<br>Define tarifa, setores e regras do rotativo</td></tr></table>
 <h3>Divisão da receita</h3><div class="box"><b>50% para a prefeitura</b> sobre toda a arrecadação do rotativo. Os outros 50% remuneram o aplicativo, a licença do sistema, a hospedagem, o suporte e a manutenção.</div>""",
@@ -139,6 +139,47 @@ urb = [
 <h3>Próximos passos</h3><ol><li>Teste a demonstração interativa.</li><li>Levantamento: vagas, setores e arrecadação atual do rotativo.</li><li>Orçamento final e início do piloto.</li></ol>""",
 ]
 (a / "pdf" / "proposta-urbanflow.html").write_text(doc("UrbanFlow", "Estacionamento rotativo inteligente: vaga visível, pagamento pelo celular, arrecadação transparente", urb))
+
+# ---------- CARTA-PROPOSTA GENÉRICA PARA PREFEITURAS ----------
+def carta():
+    ref = brl(base / 2)
+    p1 = f"""<div style="display:flex;justify-content:space-between;align-items:center"><img src="{logo}" style="height:16mm;background:#0b1b3f;padding:2mm 4mm;border-radius:2mm"><div class="nt" style="text-align:right">[Cidade], [data]</div></div>
+<p style="margin-top:8mm">Ao Excelentíssimo(a) Senhor(a) Prefeito(a) Municipal de <b>[Município]</b><br>Ao(À) Secretário(a) de Trânsito e Mobilidade</p>
+<h2 style="margin-top:6mm">Carta-proposta: estacionamento rotativo inteligente</h2>
+<p>Senhor(a) Prefeito(a),</p>
+<p>Apresentamos o <b>UrbanFlow</b>, sistema que mostra ao motorista, pelo celular, onde há vaga livre na rua ou na quadra, cobra o rotativo por tempo exato e entrega à prefeitura um painel com ocupação, rotatividade e arrecadação em tempo real.</p>
+<h3>O problema</h3>
+<ul><li><b>Motoristas rodando em busca de vaga.</b> Estudos que reuniram 16 pesquisas entre 1927 e 2001 (Donald Shoup, Universidade da Califórnia) encontraram, em média, cerca de <b>30% dos carros</b> do trânsito congestionado do centro procurando vaga.</li>
+<li><b>Efeito no trânsito.</b> Simulação publicada no Simpósio Brasileiro de Computação Urbana mostrou que, com 30% a 50% dos veículos em busca de vaga, o atraso médio de deslocamento aumenta de <b>2 a 3 minutos</b>.</li>
+<li><b>Medição de vaga vazia é prática de órgão de trânsito.</b> A CET de São Paulo mantém indicador técnico (Nota Técnica 207) para medir a facilidade de encontrar vaga livre na Zona Azul.</li>
+<li><b>Consequências:</b> mais congestionamento, mais combustível queimado, mais poluição, comércio perdendo cliente que desiste de parar e receita de rotativo abaixo do potencial.</li></ul>
+<div class="box"><b>Dados do município:</b> [número de vagas de rotativo] vagas · [arrecadação atual do rotativo] por mês · [número de infrações de estacionamento por ano]. Preenchidos com os dados da prefeitura no levantamento.</div>
+<h3>A solução</h3>
+<ul><li><b>Aplicativo do motorista:</b> mapa de vagas livres por quadra, ativação do ticket por tempo, pagamento por Pix e cartão e aviso antes do vencimento.</li>
+<li><b>Contadores nos postes</b> registram entradas e saídas; o veículo que entra e não sai é confirmado como vaga ocupada em até 15 minutos.</li>
+<li><b>Câmeras de placa:</b> se o motorista não aciona o aplicativo e passa de 15 minutos de tolerância, é lançada permanência de R$ 10,00. Ele tem 30 dias para regularizar pelo aplicativo; depois disso, vira multa conforme a legislação de trânsito do município.</li>
+<li><b>Painel do administrador:</b> avisa quando há veículos sem ticket e sugere a ronda da fiscalização à quadra certa.</li></ul>"""
+    p2 = f"""<h3>Como funciona o acordo</h3>
+<table><tr><th>WMundi</th><th>Prefeitura</th></tr><tr><td>Desenvolve o aplicativo e o painel<br>Instala o sistema (contadores, câmeras e sinalização com QR)<br>Mantém e atualiza o sistema</td><td>Investimento de implantação e instalação<br>Fiscalização e autuação pelos agentes municipais<br>Define tarifa, setores e regras</td></tr></table>
+<p><b>Divisão da arrecadação do rotativo:</b> 50% para a prefeitura; os outros 50% remuneram aplicativo, licença, hospedagem, suporte e manutenção.</p>
+<h3>Investimento e retorno (referência)</h3>
+<table><tr><th></th><th>Piloto (4 quadras, 80 vagas)</th><th>Cidade (referência de 800 vagas)</th></tr>
+<tr><td>Investimento inicial da prefeitura</td><td>{brl(inv_pil)}</td><td>{brl(inv_cid)}</td></tr>
+<tr><td>Parte da prefeitura por mês (50%)</td><td>{brl(pil_base/2)}</td><td>{ref}</td></tr>
+<tr><td><b>Payback</b></td><td><b>{mes(inv_pil/(pil_base/2))} meses</b></td><td><b>{mes(inv_cid/(base/2))} meses</b></td></tr></table>
+<p class="nt">Cálculo com a tarifa de R$ 1,75 por hora, funcionamento de segunda a sexta das 8h às 18h e sábados das 8h às 12h, tolerância de 15 minutos, ocupação de 60% e pagamento de 85%. Os números reais saem do levantamento do município.</p>
+<h3>Implantação</h3>
+<ol><li>Reunião técnica e levantamento das quadras e da arrecadação atual.</li><li>Piloto de 4 quadras em até 2 meses.</li><li>Avaliação com números reais no terceiro mês.</li><li>Expansão gradual até a cidade toda.</li></ol>
+<h3>Demonstração para testar</h3>
+<p>Aplicativo, painel, câmera de placa e cálculo de arrecadação: <a href="https://wmundi-ofertas.netlify.app/urbanflow/" style="color:#2f5bff">https://wmundi-ofertas.netlify.app/urbanflow/</a></p>
+<p>Colocamo-nos à disposição para uma apresentação à equipe da secretaria.</p>
+<p style="margin-top:8mm">Atenciosamente,<br><br><b>Robson Ravel de Oliveira</b><br>WMundi · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10<br>(44) 99946-6451 · info@wmundi.com</p>
+<p class="nt" style="margin-top:6mm">Fontes: <a href="https://parkingtoday.com/article/is-30-percent-of-traffic-cruising-for-parking">estudos de Shoup sobre procura por vaga</a> · <a href="https://sol.sbc.org.br/index.php/courb/article/download/24569/24390">simulação, Simpósio Brasileiro de Computação Urbana</a> · <a href="https://cetsp.com.br/media/20782/nt%20207%20revisado.pdf">CET-SP, Nota Técnica 207</a>.</p>"""
+    return f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Carta-proposta UrbanFlow</title><style>{CSS}</style></head><body><div class="pg">{p1}{FT}</div><div class="pg">{p2}{FT}</div></body></html>'
+
+
+(a / "pdf" / "carta-proposta-prefeituras.html").write_text(carta())
+
 
 # ---------- COMPARATIVO URBANFLOW (para o Robson) ----------
 comp = [
