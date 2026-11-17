@@ -22,7 +22,19 @@ ul{margin:1mm 0 2mm 5mm;padding:0}li{margin:1mm 0}.ft{position:absolute;bottom:8
 FT = '<div class="ft">WMundi · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · Av. XV de Novembro, 255, Sobreloja, Maringá-PR · info@wmundi.com · (44) 99946-6451 · wmundi.com</div>'
 
 
+BASE = "https://wmundi-ofertas.netlify.app/"
+LINKS = {
+    "Ponto por Reconhecimento Facial": [("Testar a demonstração do Ponto Facial", BASE + "ponto/")],
+    "Precificador": [("Testar a demonstração do Precificador", BASE + "precificador-8f3k/")],
+    "UrbanFlow": [("Testar a demonstração do UrbanFlow", BASE + "urbanflow/")],
+    "Guia do vendedor": [("Demo Ponto Facial", BASE + "ponto/"), ("Demo Precificador (não divulgar)", BASE + "precificador-8f3k/"), ("Demo UrbanFlow", BASE + "urbanflow/")],
+}
+
+
 def doc(titulo, sub, paginas, interno=False):
+    if titulo in LINKS:
+        itens = "".join(f'<p style="margin:1.5mm 0"><b>{t}:</b> <a href="{u}" style="color:#2f5bff">{u}</a></p>' for t, u in LINKS[titulo])
+        paginas = paginas[:-1] + [paginas[-1] + f'<div class="box" style="margin-top:5mm"><b>Clique para abrir</b>{itens}</div>']
     cap = f'<div class="pg cap"><div class="in"><img src="{logo}" alt="WMundi"><h1>{titulo}</h1><p>{sub}</p><p style="margin-top:30mm;font-size:10pt">Novembro de 2026 · Proposta comercial{" · USO INTERNO, NÃO ENCAMINHAR AO CLIENTE" if interno else " · validade de 30 dias"}</p></div><div class="bar"></div></div>'
     corpo = "".join(f'<div class="pg">{p}{FT}</div>' for p in paginas)
     return f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>{titulo}</title><style>{CSS}</style></head><body>{cap}{corpo}</body></html>'
