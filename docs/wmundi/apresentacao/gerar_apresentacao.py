@@ -185,7 +185,7 @@ def produto(num, nome, cat, tag, itens, mock, titulo_dev, chips=None, logo=None,
 # ---------- CONTEÚDO ----------
 CONTATO = [('Razão social', 'Instituto Ravel de Ensino Superior Ltda.<br>CNPJ 03.162.275/0001-10'),
            ('Endereço', 'Av. XV de Novembro, 255, Sobreloja<br>Maringá · Paraná · Brasil'),
-           ('E-mail', 'info@wmundi.com'), ('Telefone e WhatsApp', '(44) 98453-5069<br>wmundi.com')]
+           ('E-mail', 'info@wmundi.com'), ('Telefone e WhatsApp', '(44) 99946-6451<br>wmundi.com')]
 
 # 1 capa
 add(f'''<div class="pad capa" style="padding-top:110px"><div class="ring"><i></i><i></i><i></i><i></i></div>
