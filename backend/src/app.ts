@@ -11,6 +11,9 @@ import { ContextRequest, requestContext } from './middleware/requestContext'
 import { prisma } from './lib/prisma'
 import { apiSecurityHeaders, origemPermitida, originGuard } from './modules/seguranca/origem'
 import { instalarLogSeguro, sanitizarUrl } from './modules/lgpd/mascara'
+import { timingSafeEqual } from 'crypto'
+import { concluirLogin } from './controllers/authController'
+import { getDemoAccess } from './services/demoAccessService'
 
 dotenv.config()
 
@@ -112,6 +115,24 @@ app.use('/api/auth/password-reset/request', authLimiter)
 app.use('/api/auth/password-reset/confirm', authLimiter)
 app.use('/api/auth/register', authLimiter)
 app.use('/api/auth/2fa/verify', authLimiter)
+// Acesso direto à demonstração por link (sem digitar login e senha). Só existe com DEMO_ACCESS_KEY definida.
+app.post('/api/demo-acesso', authLimiter, async (req, res) => {
+  try {
+    const chave = String(process.env.DEMO_ACCESS_KEY || '')
+    const enviada = String(req.body?.k || '')
+    const a = Buffer.from(chave)
+    const b = Buffer.from(enviada)
+    if (!chave || a.length !== b.length || !timingSafeEqual(a, b)) return res.status(403).json({ error: 'Link de acesso inválido.' })
+    const email = String(process.env.DEMO_ACCESS_EMAIL || 'apresentacao@uninga.br').toLowerCase()
+    const user = await prisma.user.findFirst({ where: { email, isActive: true }, orderBy: { createdAt: 'asc' } })
+    if (!user) return res.status(404).json({ error: 'Usuário da demonstração não encontrado.' })
+    const demo = await getDemoAccess(user.clinicId)
+    return res.json(await concluirLogin(req, user as any, demo, 'Acesso direto à demonstração.'))
+  } catch (e) {
+    console.error(e)
+    return res.status(500).json({ error: 'Erro interno do servidor.' })
+  }
+})
 app.use('/api/demo/register', authLimiter)
 app.use('/api', apiLimiter)
 

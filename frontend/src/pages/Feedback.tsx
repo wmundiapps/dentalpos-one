@@ -41,10 +41,10 @@ export default function Feedback() {
 
   return (
     <Box>
-      <PageHeader title={"Sugestões e Problemas"} description={"Relate bugs, botões que não funcionam, correções, elogios e ideias de novas funcionalidades. Cada relato chega direto à equipe " + (EDU_ONLY ? "EduMaster / WMundi" : "DentalPos One") + "."} />
+      <PageHeader title={"Sugestões e Problemas"} description={"Relate bugs, botões que não funcionam, correções, elogios e ideias de novas funcionalidades. Cada relato chega direto à equipe " + (EDU_ONLY ? "EduMaster / WMundi®" : "DentalPos One") + "."} />
       <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
         <Button variant="contained" startIcon={<AddCommentIcon />} onClick={() => setOpen(true)}>Novo relato</Button>
-        {staff && <FormControlLabel control={<Switch checked={all} onChange={(_, v) => setAll(v)} />} label={"Todas as clínicas (equipe WMundi)"} />}
+        {staff && <FormControlLabel control={<Switch checked={all} onChange={(_, v) => setAll(v)} />} label={"Todas as clínicas (equipe WMundi®)"} />}
       </Box>
       {!staff && (
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>

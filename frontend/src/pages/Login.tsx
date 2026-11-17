@@ -66,6 +66,22 @@ export default function Login() {
 
   const segundosBloqueio = Math.max(0, Math.ceil((bloqueioAte - agora) / 1000));
 
+  // Link de acesso direto à demonstração (?acesso=...): entra sem digitar usuário e senha.
+  useEffect(() => {
+    const chave = new URLSearchParams(window.location.search).get("acesso");
+    if (!chave) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    setBusy(true);
+    fetch(`${API}/demo-acesso`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ k: chave }) })
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "Link de acesso inválido.");
+        concluirLogin(data);
+      })
+      .catch((err) => { setError(err instanceof Error ? err.message : "Link de acesso inválido."); setBusy(false); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function concluirLogin(data: any) {
     const token = data.token || data.accessToken;
     if (!token) throw new Error("Token não retornado");

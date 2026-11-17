@@ -3,7 +3,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import conteudo from "./conteudo.json";
 
-/** Capa do ambiente de demonstração: apresenta o produto e a desenvolvedora (WMundi). */
+/** Capa do ambiente de demonstração: apresenta o produto e a desenvolvedora (WMundi®). */
 export default function EduCapa() {
   const { produto, wmundi, curriculo, seguranca } = conteudo;
   const temCurriculo = Boolean(curriculo.nome || curriculo.resumo);
@@ -18,7 +18,7 @@ export default function EduCapa() {
 
       <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.18)", mb: 2.5 }}>
         <Typography variant="overline" sx={{ opacity: 0.8, letterSpacing: 1.2 }}>Desenvolvido por</Typography>
-        <Box component="img" src="/wmundi-logo.png" alt="WMundi Technologies" sx={{ height: 40, borderRadius: 1, mb: 1 }} />
+        <Box sx={{ display: "flex", alignItems: "flex-start" }}><Box component="img" src="/wmundi-logo.png" alt="WMundi Technologies" sx={{ height: 40, borderRadius: 1, mb: 1 }} /><sup style={{ fontSize: 14, marginLeft: 2 }}>®</sup></Box>
         <Typography variant="h6" sx={{ fontWeight: 800 }}>{wmundi.nome}</Typography>
         <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>{wmundi.resumo}</Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 1.5 }}>

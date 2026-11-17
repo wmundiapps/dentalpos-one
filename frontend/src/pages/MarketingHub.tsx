@@ -62,7 +62,7 @@ export default function MarketingHub() {
           <Typography variant="h6">Marketing não está ativo para esta clínica</Typography>
           <Typography color="text.secondary" sx={{ mt: 1 }}>
             Com o Marketing ativo, a clínica envia lembretes de consulta, recupera faltas, acompanha orçamentos, faz cobranças e recall por WhatsApp, SMS, e-mail e
-            ligação, com atendimento automático por IA. Fale com a WMundi para ativar.
+            ligação, com atendimento automático por IA. Fale com a WMundi® para ativar.
           </Typography>
         </Paper>
       )}

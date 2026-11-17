@@ -28,7 +28,7 @@ export default function Apresentacao() {
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Paper sx={{ p: 3, borderRadius: 4, mb: 3 }}>
           <Typography variant="overline" color="text.secondary">Desenvolvido por</Typography>
-          <Box component="img" src="/wmundi-logo.png" alt="WMundi Technologies" sx={{ height: 40, borderRadius: 1, mb: 1 }} />
+          <Box sx={{ display: "flex", alignItems: "flex-start" }}><Box component="img" src="/wmundi-logo.png" alt="WMundi Technologies" sx={{ height: 40, borderRadius: 1, mb: 1 }} /><sup style={{ fontSize: 14, marginLeft: 2 }}>®</sup></Box>
         <Typography variant="h5" sx={{ fontWeight: 800 }}>{wmundi.nome}</Typography>
           <Typography sx={{ mt: 1 }}>{wmundi.resumo}</Typography>
           <Box component="ul" sx={{ pl: 2.5, mt: 1.5, mb: 0 }}>{wmundi.itens.map((i) => <li key={i}><Typography variant="body2">{i}</Typography></li>)}</Box>
