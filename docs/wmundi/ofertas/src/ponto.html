@@ -33,14 +33,14 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
 <nav id="nav"></nav>
 <main>
 <section id="facial" class="on"><div class="grid">
-<div class="card"><h2>Bater o ponto pelo rosto</h2><p class="m">O funcionário olha para a câmera do tablet ou do celular. O sistema confere o rosto com o cadastro e registra a hora.</p>
+<div class="card"><h2>Bater o ponto pelo rosto</h2><p class="m">O funcionário olha para a câmera de um terminal de ponto da empresa (tablet ou leitor fixo). O sistema confere o rosto com o cadastro e registra a hora.</p>
 <div class="cam" id="cam"><svg viewBox="0 0 300 400"><ellipse class="oval" cx="150" cy="190" rx="95" ry="130"/><g id="face" stroke="#cfd8f5" fill="none" stroke-width="3"><ellipse cx="150" cy="190" rx="70" ry="95"/><g id="eyes"><ellipse cx="120" cy="170" rx="11" ry="6"/><ellipse cx="180" cy="170" rx="11" ry="6"/></g><path d="M150 180v35m-14 0h28M125 235q25 22 50 0"/></g><text id="ph" x="150" y="372" text-anchor="middle" fill="#8fa0d0" font-size="14">Posicione o rosto no oval</text></svg><div class="scan"></div></div>
 <div class="msg" id="fmsg">Escolha uma situação e toque em <b>Simular</b>.</div>
 <label>Situação</label><select id="sit"><option value="ok">Funcionário cadastrado</option><option value="foto">Tentativa com foto de outra pessoa</option><option value="outro">Pessoa não cadastrada</option><option value="escuro">Pouca luz</option></select>
 <p style="margin-top:10px"><button class="b" id="go">Simular batida</button></p></div>
 <div class="card"><h2>Como funciona, em 4 passos</h2><ol class="steps"><li><b>Detecta o rosto</b> e confere se há luz suficiente.</li><li><b>Prova de vida:</b> pede para piscar ou virar a cabeça (foto e vídeo não passam).</li><li><b>Compara</b> com o cadastro feito com consentimento do funcionário.</li><li><b>Registra</b> hora, local e aparelho; a batida entra na folha de ponto.</li></ol>
 <h3>Últimas batidas</h3><table id="log"><tr><th>Hora</th><th>Quem</th><th>Resultado</th></tr></table>
-<p class="note">Biometria é dado pessoal sensível (LGPD): coleta com consentimento, finalidade clara e alternativa de registro (senha ou aplicativo) para quem não aceitar. Texto jurídico a validar com o advogado do cliente.</p></div></div></section>
+<p class="note"><b>Só equipamento da empresa:</b> o ponto não é batido no celular pessoal do funcionário, para evitar questionamento trabalhista. Pode usar quantos terminais precisar, em locais diferentes.</p><p class="note">Biometria é dado pessoal sensível (LGPD): coleta com consentimento, finalidade clara e alternativa de registro (senha, no próprio terminal da empresa) para quem não aceitar. Texto jurídico a validar com o advogado do cliente.</p></div></div></section>
 
 <section id="instalar"><div class="card"><h2>Como instalar</h2><p class="m">Marque cada etapa. Leva cerca de uma tarde para uma empresa pequena.</p>
 <div class="chk" id="inst"></div><div class="bar"><i id="ib"></i></div><p id="it" class="note"></p></div></section>
@@ -87,7 +87,7 @@ $("#go").onclick=async()=>{const s=$("#sit").value;cam.className="cam run";fm.cl
  fin("ok","Olá, Mariana Souza! Entrada registrada às "+hh()+" ✔","Mariana Souza · Entrada")};
 function fin(c,t,l){cam.className="cam "+c;fm.className="msg "+c;fm.textContent=t;const r=$("#log").insertRow(1);r.innerHTML=`<td>${hh()}</td><td>${l.split(" · ")[0]}</td><td><span class="tag ${c==="ok"?"g":"r"}">${c==="ok"?"Registrada":l}</span></td>`}
 // Instalação
-const inst=["Contratar o plano e receber o acesso","Cadastrar a empresa, horários e jornadas","Importar os funcionários (planilha Excel)","Colar o aparelho: tablet na entrada com o aplicativo (qualquer tablet Android/iPad) ou celular de cada um","Coletar o consentimento e fazer a foto de cadastro de cada funcionário","Definir quem é isento de ponto (diretoria, cargo de confiança, freelancer)","Ligar os e-mails de alerta ao dono/gestor","Fazer 1 semana em paralelo (ponto atual + facial) e conferir","Desligar o ponto antigo"];
+const inst=["Contratar o plano e receber o acesso","Cadastrar a empresa, horários e jornadas","Importar os funcionários (planilha Excel)","Instalar os terminais de ponto, que são equipamentos da empresa (tablet ou leitor fixo), na entrada de cada local de trabalho; vários terminais em locais distantes, sem custo extra por terminal","Coletar o consentimento e fazer a foto de cadastro de cada funcionário","Definir quem é isento de ponto (diretoria, cargo de confiança, freelancer)","Ligar os e-mails de alerta ao dono/gestor","Fazer 1 semana em paralelo (ponto atual + facial) e conferir","Desligar o ponto antigo"];
 $("#inst").innerHTML=inst.map((t,i)=>`<label><input type="checkbox" data-i="${i}"> ${t}</label>`).join("");
 function ia(){const n=$$("#inst input:checked").length;$("#ib").style.width=n/inst.length*100+"%";$("#it").textContent=n+" de "+inst.length+" etapas"+(n==inst.length?" — pronto para usar!":"")}
 $$("#inst input").forEach(i=>i.onchange=ia);ia();
