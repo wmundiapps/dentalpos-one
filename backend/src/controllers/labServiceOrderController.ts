@@ -206,22 +206,38 @@ export async function updateProgress(req: AuthRequest, res: Response) {
     if (!order) return res.status(404).json({ error: 'Ordem de serviço não encontrada.' })
     if (order.status === 'SENT') return res.status(409).json({ error: 'Registre antes o recebimento pelo laboratório.' })
     if (order.status === 'REFUSED') return res.status(409).json({ error: 'Esta ordem foi recusada pelo laboratório.' })
-    const stage = String(req.body?.stage || order.stage || 'IN_PROGRESS').toUpperCase()
+    const currentStage = order.status === 'DELIVERED' ? 'DELIVERED' : order.stage || 'IN_PROGRESS'
+    const stage = String(req.body?.stage || currentStage).toUpperCase()
     if (!STAGES.includes(stage)) return res.status(400).json({ error: 'Escolha: em andamento, finalizado ou entregue.' })
     const note = text(req.body?.note, 500)
-    if (order.status === 'DELIVERED' && stage !== 'DELIVERED') return res.status(409).json({ error: 'Esta ordem já foi entregue à clínica.' })
-    if (!note && stage === (order.status === 'DELIVERED' ? 'DELIVERED' : order.stage) && !(stage === 'DELIVERED' && order.status !== 'DELIVERED')) return res.status(400).json({ error: 'Escreva como está o trabalho ou mude a etapa.' })
+    // Data em que o trabalho precisa estar pronto: vazio limpa; sem o campo mantém a anterior.
+    let readyBy: Date | null | undefined
+    if (req.body && 'readyBy' in req.body) {
+      const raw = String(req.body.readyBy || '').trim()
+      if (!raw) readyBy = null
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(raw) && !Number.isNaN(new Date(`${raw}T12:00:00.000Z`).getTime())) readyBy = new Date(`${raw}T12:00:00.000Z`)
+      else return res.status(400).json({ error: 'Data inválida.' })
+    }
+    const readyChanged = readyBy !== undefined && (readyBy?.getTime() ?? null) !== (order.readyBy?.getTime() ?? null)
+    if (stage === currentStage && note === (order.progressNote || '') && !readyChanged) return res.status(400).json({ error: 'Nada foi alterado.' })
     const name = await userName(userId)
-    const entry = { at: new Date().toISOString(), byName: name, stage, note }
+    const entry = { at: new Date().toISOString(), byName: name, stage, note, readyBy: (readyBy === undefined ? order.readyBy : readyBy)?.toISOString().slice(0, 10) || null }
     const log = [...(Array.isArray(order.progressLog) ? (order.progressLog as unknown[]) : []), entry].slice(-30)
     const data: Prisma.LabServiceOrderUpdateInput = {
-      progressNote: note || order.progressNote, progressAt: new Date(), progressByName: name,
+      progressNote: note || null, progressAt: new Date(), progressByName: name,
       progressLog: log as unknown as Prisma.InputJsonValue,
     }
-    if (stage === 'DELIVERED') { if (order.status !== 'DELIVERED') { data.status = 'DELIVERED'; data.deliveredAt = new Date() } }
-    else data.stage = stage
+    if (readyBy !== undefined) data.readyBy = readyBy
+    if (stage === 'DELIVERED') {
+      if (order.status !== 'DELIVERED') { data.status = 'DELIVERED'; data.deliveredAt = new Date() }
+    } else {
+      data.stage = stage
+      // Corrigir uma entrega marcada por engano: o trabalho volta a "recebido pelo laboratório".
+      if (order.status === 'DELIVERED') { data.status = 'RECEIVED'; data.deliveredAt = null }
+    }
     const updated = await prisma.labServiceOrder.update({ where: { id: order.id }, data })
-    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: 'LAB_ORDER_PROGRESS', entityType: 'LabServiceOrder', entityId: order.id, summary: `${order.protocol}: ${stage === 'IN_PROGRESS' ? 'em andamento' : stage === 'FINISHED' ? 'finalizado' : 'entregue'}${note ? ` — ${note}` : ''}.` }).catch((e: unknown) => console.error(e))
+    const reopened = order.status === 'DELIVERED' && stage !== 'DELIVERED'
+    await writeAudit({ clinicId, tenantId, actorId: userId, module: 'laboratory', action: reopened ? 'LAB_ORDER_DELIVERY_UNDONE' : 'LAB_ORDER_PROGRESS', entityType: 'LabServiceOrder', entityId: order.id, summary: `${order.protocol}: ${reopened ? 'entrega desfeita, ' : ''}${stage === 'IN_PROGRESS' ? 'em andamento' : stage === 'FINISHED' ? 'finalizado' : 'entregue'}${note ? ` — ${note}` : ''}${entry.readyBy ? ` (pronto até ${entry.readyBy})` : ''}.` }).catch((e: unknown) => console.error(e))
     return res.json((await labOnly(req)) ? hide(updated) : updated)
   } catch (error) {
     console.error('Erro ao atualizar andamento da ordem:', error)
