@@ -2,7 +2,8 @@
 import base64, pathlib
 
 a = pathlib.Path(__file__).parent
-logo = "data:image/png;base64," + base64.b64encode((a.parent / "site-novo/assets/logo-wmundi.png").read_bytes()).decode()
+from marca import logo_com_r, reg_html
+logo = "data:image/png;base64," + base64.b64encode(logo_com_r().read_bytes()).decode()
 brl = lambda v: "R$ " + f"{v:,.0f}".replace(",", ".")
 brl2 = lambda v: "R$ " + f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 mes = lambda v: f"{v:.1f}".replace(".", ",")
@@ -41,7 +42,7 @@ def doc(titulo, sub, paginas, interno=False):
         t0, u0 = LINKS[titulo][0]
         ft = FT.replace('</div>', f'<br><b>Teste a demonstração:</b> <a href="{u0}" style="color:#2f5bff">{u0}</a></div>')
     corpo = "".join(f'<div class="pg">{p}{ft}</div>' for p in paginas)
-    return f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>{titulo}</title><style>{CSS}</style></head><body>{cap}{corpo}</body></html>'
+    return reg_html(f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>{titulo}</title><style>{CSS}</style></head><body>{cap}{corpo}</body></html>')
 
 
 # ---------- PONTO ----------

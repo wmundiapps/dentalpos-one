@@ -169,7 +169,7 @@ SLIDES = []
 def add(h, cls=''): SLIDES.append((h, cls))
 
 def foot(n):
-    return f'<div class="foot"><img src="logo-wmundi.png" alt=""><span>wmundi.com · <b>WMundi Technologies &amp; Co®</b></span><span>{n}</span></div>'
+    return f'<div class="foot"><img src="logo-wmundi-r.png" alt=""><span>wmundi.com · <b>WMundi Technologies &amp; Co®</b></span><span>{n}</span></div>'
 
 def produto(num, nome, cat, tag, itens, mock, titulo_dev, chips=None, logo=None, extra=None, nota=None, sufixo=''):
     cor = CAT[cat][1]
@@ -189,7 +189,7 @@ CONTATO = [('Razão social', 'Instituto Ravel de Ensino Superior Ltda.<br>CNPJ 0
 
 # 1 capa
 add(f'''<div class="pad capa" style="padding-top:110px"><div class="ring"><i></i><i></i><i></i><i></i></div>
-<img class="logo" src="logo-wmundi.png" alt="WMundi Marketing Digital"><div class="rule"></div>
+<img class="logo" src="logo-wmundi-r.png" alt="WMundi Marketing Digital"><div class="rule"></div>
 <h1>Tecnologia que trabalha para o seu negócio <em>prosperar</em>.</h1>
 <p class="sub">Portfólio de soluções e Programa de Gestores WMundi</p></div>
 <div class="foot"><span>Maringá · Paraná · Brasil</span><span>wmundi.com · <b>WMundi Technologies &amp; Co®</b></span></div>''')
@@ -397,5 +397,8 @@ for i, (h, cls) in enumerate(SLIDES, 1):
 doc = f'''<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>WMundi · Portfólio e Programa de Gestores</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap">
 <style>{CSS}</style></head><body>{corpo}</body></html>'''
-open(os.path.join(AQUI, 'apresentacao.html'), 'w', encoding='utf-8').write(doc)
+import sys
+sys.path.insert(0, os.path.join(AQUI, '..', 'ofertas'))
+from marca import reg_html
+open(os.path.join(AQUI, 'apresentacao.html'), 'w', encoding='utf-8').write(reg_html(doc))
 print('slides:', len(SLIDES))

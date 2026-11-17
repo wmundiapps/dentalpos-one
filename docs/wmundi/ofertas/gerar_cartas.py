@@ -16,7 +16,8 @@ BASE = "https://wmundi-ofertas.netlify.app/"
 L_PONTO, L_PREC, L_URB = BASE + "ponto/", BASE + "precificador-8f3k/", BASE + "urbanflow/"
 
 # logo sobre fundo marinho para o DOCX
-lg = Image.open(a.parent / "site-novo/assets/logo-wmundi.png").convert("RGBA")
+from marca import reg_html, reg_runs, logo_com_r
+lg = Image.open(logo_com_r()).convert("RGBA")
 bg = Image.new("RGBA", (lg.width + 80, lg.height + 40), (11, 27, 63, 255))
 bg.paste(lg, (40, 20), lg)
 bg.convert("RGB").save(a / "pdf" / "logo-docx.png")
@@ -41,9 +42,7 @@ def to_html(blocos):
 
 
 def runs(par, txt):
-    for i, part in enumerate(re.split(r"\*\*(.+?)\*\*", txt)):
-        r = par.add_run(part)
-        r.bold = i % 2 == 1
+    reg_runs(par, txt)
 
 
 def to_docx(blocos, path):
@@ -54,10 +53,10 @@ def to_docx(blocos, path):
     d.add_picture(str(a / "pdf" / "logo-docx.png"), width=Cm(5))
     for k, v in blocos:
         if k == "h2":
-            h = d.add_heading(v, level=1)
+            h = d.add_heading("", level=1); reg_runs(h, v)
             for r in h.runs: r.font.color.rgb = RGBColor(0x0b, 0x1b, 0x3f)
         elif k == "h3":
-            h = d.add_heading(v, level=2)
+            h = d.add_heading("", level=2); reg_runs(h, v)
             for r in h.runs: r.font.color.rgb = RGBColor(0x2f, 0x5b, 0xff)
         elif k in ("p", "nt"):
             p = d.add_paragraph(); runs(p, v)
@@ -78,7 +77,7 @@ def to_docx(blocos, path):
             d.add_paragraph()
         elif k == "pb": d.add_page_break()
     d.add_paragraph()
-    f = d.add_paragraph("WMundi · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · Av. XV de Novembro, 255, Sobreloja, Maringá-PR · info@wmundi.com · (44) 99946-6451 · wmundi.com")
+    f = d.add_paragraph(); reg_runs(f, "WMundi · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · Av. XV de Novembro, 255, Sobreloja, Maringá-PR · info@wmundi.com · (44) 99946-6451 · wmundi.com")
     for r in f.runs: r.font.size = Pt(8)
     d.save(path)
 
@@ -99,7 +98,7 @@ def gerar(nome, titulo, blocos, fluido=False):
     # divide em páginas quando houver "pb"
     htm = htm.replace(f'{gp.FT}</div></body>', f'{gp.FT}</div></body>')
     htm = htm.replace('</div><div class="pg">', ftx + '</div><div class="pg">')
-    (a / "pdf" / f"{nome}.html").write_text(htm)
+    (a / "pdf" / f"{nome}.html").write_text(reg_html(htm))
     to_docx(blocos, a / "pdf" / f"{nome}.docx")
 
 
