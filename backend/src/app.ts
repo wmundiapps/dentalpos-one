@@ -74,6 +74,23 @@ app.use('/api', (_req, res, next) => {
   next()
 })
 
+// Prazo da demonstração: com DEMO_EXPIRES_AT (ISO) definido, informa a data e bloqueia a API depois dela.
+app.get('/api/demo-info', (_req, res) => {
+  const raw = process.env.DEMO_EXPIRES_AT
+  const t = raw ? Date.parse(raw) : NaN
+  if (!Number.isFinite(t)) return res.json({ expiresAt: null, expired: false, daysLeft: null })
+  const ms = t - Date.now()
+  res.json({ expiresAt: new Date(t).toISOString(), expired: ms <= 0, daysLeft: Math.max(0, Math.ceil(ms / 86400000)) })
+})
+app.use('/api', (req, res, next) => {
+  const raw = process.env.DEMO_EXPIRES_AT
+  const t = raw ? Date.parse(raw) : NaN
+  if (Number.isFinite(t) && Date.now() > t && req.path !== '/demo-info' && req.path !== '/health') {
+    return res.status(403).json({ error: 'Esta demonstração foi encerrada em ' + new Date(t).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + '. Solicite um novo acesso à WMundi Technologies.', demoExpired: true })
+  }
+  next()
+})
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: Number(process.env.AUTH_RATE_LIMIT_MAX || 10),

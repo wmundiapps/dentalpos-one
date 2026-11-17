@@ -12,6 +12,7 @@ import PendingAlertsBar from "./PendingAlertsBar";
 import ToastHost from "./ToastHost";
 import PrintHeader from "./PrintHeader";
 import FeedbackButton from "../edu/feedback/FeedbackButton";
+import DemoExpiryBanner from "./DemoExpiryBanner";
 import Sidebar from "./Sidebar";
 
 interface LayoutProps {
@@ -59,6 +60,7 @@ export default function Layout({
             },
           }}
         >
+          {EDU_ONLY ? <DemoExpiryBanner /> : null}
           <PrintHeader />
           {children}
           <SuggestionBox />

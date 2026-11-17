@@ -731,9 +731,9 @@ async function mesa(c: Ctx) {
 
 async function marca(c: Ctx) {
   await c.api('PUT', '/edu/core/instituicao', {
-    nome: 'SUA INSTITUIÇÃO', nomeFantasia: 'SUA INSTITUIÇÃO', sigla: 'SUAINST', mantenedora: 'Mantenedora de Exemplo Ltda.', cnpj: '12.345.678/0001-90', codigoEmec: '24819',
+    nome: 'UNINGÁ', nomeFantasia: 'Uningá', sigla: 'UNINGÁ', mantenedora: 'Mantenedora de Exemplo Ltda.', cnpj: '12.345.678/0001-90', codigoEmec: '24819',
     categoria: 'Centro Universitário', organizacao: 'Privada com fins lucrativos', email: 'contato@suainstituicao.edu.br', telefone: '(11) 4002-8922', site: 'https://www.suainstituicao.edu.br',
-    endereco: 'Av. das Acácias, 1200 — Jardim Universitário', cidade: 'São Paulo', uf: 'SP', corPrimaria: '#1F3A8A', corSecundaria: '#0B1F4D', corDestaque: '#D4A017',
+    endereco: 'Av. das Acácias, 1200 — Jardim Universitário', cidade: 'São Paulo', uf: 'SP', corPrimaria: '#3162A9', corSecundaria: '#EC6236', corDestaque: '#A32D3B',
     reitorNome: 'Profa. Dra. Helena Souza', reitorCargo: 'Reitora', lema: 'Ciência, ética e cuidado', portariaCredenciamento: 'Portaria MEC nº 412/2023',
   })
   const svg = (fundo: string, tipo: 'principal' | 'brasao' | 'escura') => {
