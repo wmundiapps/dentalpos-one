@@ -88,10 +88,12 @@ FLU = 'body{font-size:9.4pt}p{margin:1.5mm 0}.pg{height:auto;min-height:0;overfl
 
 def gerar(nome, titulo, blocos, fluido=False):
     corpo = to_html(blocos)
-    DEMO = {"carta-ponto": L_PONTO, "carta-precificador-hotelaria": L_PREC, "carta-urbanflow-prefeituras": L_URB}
+    DEMO = {"carta-ponto": [("", L_PONTO)], "carta-precificador-hotelaria": [("", L_PREC)], "carta-urbanflow-prefeituras": [("", L_URB)],
+            "carta-proposta-hotelaria": [("Ponto Facial: ", L_PONTO), ("Precificador de Hotelaria: ", L_PREC)]}
     ftx = gp.FT
     if nome in DEMO:
-        ftx = gp.FT.replace('</div>', f'<br><b>Teste a demonstração:</b> <a href="{DEMO[nome]}" style="color:#2f5bff">{DEMO[nome]}</a></div>')
+        ls = " · ".join(f'{lb}<a href="{u}" style="color:#2f5bff">{u}</a>' for lb, u in DEMO[nome])
+        ftx = gp.FT.replace('</div>', f'<br><b>Teste a demonstração:</b> {ls}</div>')
     head = f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6mm"><img src="{gp.logo}" style="height:15mm;background:#0b1b3f;padding:2mm 4mm;border-radius:2mm"><div class="nt">[Cidade], [data]</div></div>'
     htm = f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>{titulo}</title><style>{gp.CSS}{FLU if fluido else ''}</style></head><body><div class="pg">{head}{corpo}{ftx}</div></body></html>'
     # divide em páginas quando houver "pb"

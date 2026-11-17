@@ -5,7 +5,7 @@ const r = createRequire(import.meta.url)
 let ch
 try { ({ chromium: ch } = r('playwright')) } catch { ({ chromium: ch } = r('/opt/node-tools/node_modules/playwright')) }
 const nav = await ch.launch({ executablePath: '/opt/pw-browsers/chromium' })
-for (const n of ['proposta-ponto', 'proposta-precificador', 'proposta-urbanflow', 'comparativo-urbanflow', 'guia-vendedor-INTERNO', 'carta-proposta-prefeituras', 'carta-ponto', 'carta-precificador-hotelaria', 'carta-urbanflow-prefeituras', 'proposta-silvio-breda', 'parceria-carta-proposta', 'parceria-termos', 'parceria-confidencialidade']) {
+for (const n of ['proposta-ponto', 'proposta-precificador', 'proposta-urbanflow', 'comparativo-urbanflow', 'guia-vendedor-INTERNO', 'carta-proposta-prefeituras', 'carta-ponto', 'carta-precificador-hotelaria', 'carta-urbanflow-prefeituras', 'proposta-silvio-breda', 'parceria-carta-proposta', 'parceria-termos', 'parceria-confidencialidade', 'carta-proposta-hotelaria']) {
   const p = await nav.newPage()
   await p.goto(pathToFileURL(resolve('pdf', n + '.html')).href)
   await p.evaluate(() => document.fonts.ready)
