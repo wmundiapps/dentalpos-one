@@ -32,13 +32,13 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
 <div class="card"><h3>Para a prefeitura</h3><p class="m">Painel com ocupação, tempo médio, rotatividade, arrecadação e irregularidades. 50% da arrecadação do rotativo para a prefeitura.</p></div>
 <div class="card"><h3>Para a fiscalização</h3><p class="m">Câmeras leem a placa e confrontam com os pagamentos, e os agentes da prefeitura recebem a lista de irregulares.</p></div></div></section>
 
-<section id="mapa"><div class="card"><h2>Vagas em tempo real</h2><p class="m">Contadores nos postes registram carros que entram e saem da quadra. Vagas livres = capacidade − (entradas − saídas). Câmeras recalibram a contagem periodicamente.</p>
+<section id="mapa"><div class="card"><h2>Vagas em tempo real</h2><p class="m">Contadores nos postes registram os carros que entram e saem da quadra. Cada veículo que entra e não sai é confirmado como vaga ocupada em até 15 minutos.</p>
 <div class="grid"><div><div class="street" id="st"></div>
-<div class="g3"><div class="st">Capacidade<b id="cap">80</b></div><div class="st">Entraram<b id="ent">0</b></div><div class="st">Saíram<b id="sai">0</b></div></div>
-<div class="g3" style="margin-top:8px"><div class="st">Ocupadas (contador)<b id="oc">0</b></div><div class="st">Ocupadas (real)<b id="or">0</b></div><div class="st">Erro<b id="er">0</b></div></div></div>
-<div><p><button class="b" id="play">▶ Iniciar simulação</button><button class="b alt" id="cal">📷 Calibrar com a câmera</button></p>
-<div class="msg" id="mm">Exemplo: 80 vagas, 500 carros entram, 495 saem: 5 vagas ocupadas. O contador pode errar um pouco (carro que passa sem estacionar, moto); por isso a câmera confere e corrige.</div>
-<label>Velocidade</label><input type="range" id="vel" min="1" max="5" value="3"><p class="note">Verde = livre · Vermelho = ocupada · Amarelo = tempo vencido.</p></div></div></div></section>
+<div class="g3"><div class="st">Vagas livres<b id="liv">80</b></div><div class="st">Em confirmação (até 15 min)<b id="conf">0</b></div><div class="st">Ocupadas confirmadas<b id="ocf">0</b></div></div>
+<div class="g3" style="margin-top:8px"><div class="st">Capacidade<b id="cap">80</b></div><div class="st">Entraram<b id="ent">0</b></div><div class="st">Saíram<b id="sai">0</b></div></div></div>
+<div><p><button class="b" id="play">▶ Iniciar simulação</button></p>
+<div class="msg" id="mm">Exemplo: 80 vagas, 500 carros entram e 495 saem: 5 vagas ocupadas. O aplicativo mostra a vaga como ocupada depois da confirmação de até 15 minutos do veículo que entrou e não saiu.</div>
+<label>Velocidade</label><input type="range" id="vel" min="1" max="5" value="3"><p class="note">Verde = livre · Amarelo = veículo entrou, em confirmação · Vermelho = ocupada confirmada. Na simulação, 1 segundo = 1 minuto.</p></div></div></div></section>
 
 <section id="app"><div class="card"><h2>Aplicativo do motorista</h2><p class="m">Toque nas telas para ver o fluxo.</p><div class="phone"><div class="scr" id="scr"></div></div></div></section>
 
@@ -66,16 +66,15 @@ const abas=[["apres","Apresentação"],["mapa","Vagas em tempo real"],["app","Ap
 $("#nav").innerHTML=abas.map(a=>`<button data-t="${a[0]}">${a[1]}</button>`).join("");
 function ir(t){$$("section").forEach(s=>s.classList.toggle("on",s.id===t));$$("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));if(t==="app")tela(0)}
 $$("nav button").forEach(b=>b.onclick=()=>ir(b.dataset.t));ir("apres");
-// Simulação de vagas
-const CAP=80;let real=Array(CAP).fill(0),ent=0,sai=0,timer=null;
-function draw(){$("#st").innerHTML=real.map(x=>`<div class="v ${x===1?"o":x===2?"e":""}"></div>`).join("");const ro=real.filter(x=>x).length,oc=ent-sai;$("#ent").textContent=ent;$("#sai").textContent=sai;$("#oc").textContent=Math.max(0,oc);$("#or").textContent=ro;const e=Math.max(0,oc)-ro;$("#er").textContent=(e>0?"+":"")+e;$("#er").style.color=Math.abs(e)>2?"#c63a2f":"#0b7a60"}
-function tick(){const livres=real.map((x,i)=>x?-1:i).filter(i=>i>=0),oc=real.map((x,i)=>x?i:-1).filter(i=>i>=0);
- if(Math.random()<.55&&livres.length){real[livres[Math.random()*livres.length|0]]=1;ent++}else if(oc.length){const i=oc[Math.random()*oc.length|0];real[i]=0;sai++}
- if(Math.random()<.08)ent++;   // carro que entra na quadra sem estacionar (erro do contador)
- if(Math.random()<.02&&oc.length)real[oc[Math.random()*oc.length|0]]=2;draw()}
-$("#play").onclick=()=>{if(timer){clearInterval(timer);timer=null;$("#play").textContent="▶ Iniciar simulação"}else{const v=+$("#vel").value;timer=setInterval(tick,600/v);$("#play").textContent="⏸ Pausar"}};
-$("#cal").onclick=()=>{const ro=real.filter(x=>x).length;ent=sai+ro;draw();$("#mm").className="msg ok";$("#mm").textContent="Câmera conferiu a quadra: "+ro+" vagas ocupadas. Contador corrigido."};
-$("#vel").oninput=()=>{if(timer){clearInterval(timer);timer=setInterval(tick,600/+$("#vel").value)}};draw();
+// Simulação de vagas (1 tick = 1 minuto)
+const CAP=80;let real=Array(CAP).fill(0),ent=0,sai=0,min=0,timer=null;   // real[i]=0 livre, ou minuto em que o carro entrou
+function draw(){let conf=0,ocf=0;real.forEach(x=>{if(x){(min-x<15)?conf++:ocf++}});
+ $("#st").innerHTML=real.map(x=>`<div class="v ${x?(min-x<15?"e":"o"):""}"></div>`).join("");
+ $("#liv").textContent=CAP-conf-ocf;$("#conf").textContent=conf;$("#ocf").textContent=ocf;$("#ent").textContent=ent;$("#sai").textContent=sai}
+function tick(){min++;const livres=real.map((x,i)=>x?-1:i).filter(i=>i>=0),oc=real.map((x,i)=>x?i:-1).filter(i=>i>=0);
+ if(Math.random()<.55&&livres.length){real[livres[Math.random()*livres.length|0]]=min;ent++}else if(oc.length){real[oc[Math.random()*oc.length|0]]=0;sai++}draw()}
+$("#play").onclick=()=>{if(timer){clearInterval(timer);timer=null;$("#play").textContent="▶ Iniciar simulação"}else{timer=setInterval(tick,1000/+$("#vel").value);$("#play").textContent="⏸ Pausar"}};
+$("#vel").oninput=()=>{if(timer){clearInterval(timer);timer=setInterval(tick,1000/+$("#vel").value)}};draw();
 // App
 const T=[()=>`<b>UrbanFlow</b><p class="note">Seg–sex 8h–18h · sáb 8h–12h · tolerância 15 min</p>${[["Quadra 1 · R. das Flores",4,20],["Quadra 2 · Av. Brasil",0,20],["Quadra 3 · R. Paraná",11,20],["Quadra 4 · Praça",2,20]].map(q=>`<div class="msg ${q[1]?"ok":"bad"}" data-go="1" style="cursor:pointer">${q[0]}<br><b>${q[1]?q[1]+" vagas livres":"Lotada"}</b> <span class="note">· R$ 1,75/h</span></div>`).join("")}`,
  ()=>`<b>Quadra 1 · R. das Flores</b><p class="note">4 vagas livres</p><label>Placa</label><input value="ABC1D23"><label>Tempo</label><select id="tp"><option selected>60 min · R$ 1,75</option><option>120 min · R$ 3,50</option><option>180 min · R$ 5,25</option></select><p><button class="b g" data-go="2">Pagar com Pix</button></p>`,
