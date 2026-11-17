@@ -176,3 +176,10 @@ Sem acesso a e-mail, ao site wmundi.com nem a páginas de Harvard/Stanford/Cours
 
 ## 24. Telefone da apresentação (17/11/2026)
 - O Robson mandou usar **(44) 99946-6451** como telefone/WhatsApp na apresentação em PDF (substitui (44) 98453-5069 só nesse arquivo). **O número antigo continua** no site novo (`docs/wmundi/site-novo`, rodapé e link do WhatsApp), no ícone de agentes (`wmundi-agentes.js`, também copiado em `frontend/public`, `revah/web/public`, `espacos/web/public`), nas páginas `docs/landing/*` e em código do DentalPos (`frontend/src/services/DemoAccess.ts`, `backend/src/controllers/landingLeadController.ts` e `demoController.ts`). **Perguntar ao Robson se troca em tudo.** Aviso: o gerador do site novo (`build.py`) ficava no scratchpad da sessão e foi apagado; para mudar o site, editar os HTML de `docs/wmundi/site-novo` diretamente.
+
+## 25. Ofertas individuais (Ponto Facial, Precificador, UrbanFlow)
+- Pasta `docs/wmundi/ofertas/`: `src/*.html` (demos), `montar.py` (embute a logo e gera `dist/`), `teste_precificador.mjs` (testa a matemática), `testar.mjs` (navegador), `gerar_propostas.py` + `pdf.mjs` (propostas em PDF A4 em `pdf/`).
+- Publicadas no Netlify, site `wmundi-ofertas` (noindex): `/ponto/`, `/urbanflow/`, `/precificador-8f3k/` (precificador sem link público, hotel interessado).
+- Preços do ponto, do precificador e custos do UrbanFlow são SUGESTÕES a aprovar. Payback incluído em todas as propostas.
+- Split do parceiro (30/70 dos 50% restantes) só no `guia-vendedor-INTERNO`. Sem a palavra "Claude" em arquivos/links entregues ao cliente.
+- Pendente: confirmar "R$ 1,00 por funcionário acima de 200", valores, revisão jurídica (LGPD biometria, contrato com prefeitura).
