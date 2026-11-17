@@ -84,40 +84,59 @@ preci = [
 <h2 style="margin-top:8mm">Retorno do investimento (payback)</h2>
 <div class="box ok"><b>Exemplo ilustrativo: hotel com {n_ap} apartamentos, ocupação de 65%.</b><br>Ao corrigir a diária média em apenas {brl(dia_extra)} (por conhecer o ponto de equilíbrio e o preço da região), a receita sobe cerca de <b>{brl(ganho)}/mês</b>.<br>
 Versão personalizada: implantação {brl(4900)} + mensalidade {brl(297)}.<br>Payback: {brl(4900)} ÷ ({brl(ganho)} − {brl(297)}) ≈ <b>{mes(pay_p)} mês</b>.</div>
-<div class="box al"><b>Atenção:</b> o exemplo mostra o método; o ganho real depende do mercado e da gestão. Os cálculos são estimativas para apoiar decisões e não substituem contador.</div>
+<div class="box al"><b>Atenção:</b> o exemplo mostra o método; o ganho real depende do mercado e da gestão.</div>
 <h3>Próximos passos</h3><ol><li>Teste a demonstração com os números do seu negócio.</li><li>Reunião de 30 minutos para levantar custos e regras.</li><li>Proposta fechada e entrega em até 15 dias úteis (referência).</li></ol>""",
 ]
 (a / "pdf" / "proposta-precificador.html").write_text(doc("Precificador", "Preço certo para produtos, serviços, locação, hotéis e consultórios", preci))
 
 # ---------- URBANFLOW (prefeitura) ----------
-def cenario(vagas, ocup, horas, tarifa, dias, efet):
-    return vagas * ocup * horas * tarifa * dias * efet
+TARIFA = 1.75                      # Setor Verde de Maringá: R$ 1,75 por hora (60 min = R$ 1,75; 120 = R$ 3,50; 180 = R$ 5,25)
+H_SEMANA = 5 * 10 + 4              # seg-sex 8h-18h (10 h) + sábado 8h-12h (4 h)
+H_MES = H_SEMANA * 52 / 12         # horas de operação por mês
+PERM, TOL = 90, 15                 # permanência média e tolerância (min)
+FAT = (PERM - TOL) / PERM          # parcela faturável depois da tolerância de 15 min
 
-base = cenario(800, .60, 10, 3, 26, .85)
-cons = cenario(800, .40, 10, 3, 26, .70)
-pil_base = cenario(80, .60, 10, 3, 26, .85)
-pil_cons = cenario(80, .40, 10, 3, 26, .70)
-inv_pil = 4 * 4500 + 2 * 9000 + 4 * 800 + 38000
-inv_cid = 40 * 4500 + 20 * 9000 + 40 * 800 + 38000
+
+def cenario(vagas, ocup, efet):
+    return vagas * ocup * H_MES * TARIFA * efet * FAT
+
+
+base = cenario(800, .60, .85)
+cons = cenario(800, .40, .70)
+pil_base = cenario(80, .60, .85)
+pil_cons = cenario(80, .40, .70)
+C_CONT, C_CAM, C_SIN, I_QUAD, I_CAM, APP = 4500, 9000, 800, 1500, 2500, 38000
+inv_pil = 4 * (C_CONT + C_SIN + I_QUAD) + 2 * (C_CAM + I_CAM) + APP
+inv_cid = 40 * (C_CONT + C_SIN + I_QUAD) + 20 * (C_CAM + I_CAM) + APP
 urb = [
-    f"""<h2>A proposta</h2><p>O <b>UrbanFlow</b> organiza o estacionamento rotativo da cidade: o motorista vê onde há vaga e paga pelo celular; a prefeitura acompanha ocupação, tempo de permanência e arrecadação em tempo real, com fiscalização mais eficiente.</p>
-<h3>Como funciona</h3><ul><li><b>Aplicativo do motorista:</b> mapa de vagas livres por quadra, pagamento por tempo exato (Pix e cartão), aviso antes de vencer e prorrogação pelo celular.</li><li><b>Contagem de vagas:</b> contadores nos postes registram entradas e saídas da quadra; câmeras conferem e corrigem periodicamente (exemplo: 80 vagas, 500 entradas e 495 saídas = 5 ocupadas).</li><li><b>Câmeras de placa:</b> leem a placa, lançam o tempo de quem não usa o aplicativo e notificam somente os irregulares.</li><li><b>Painel da prefeitura:</b> ocupação, rotatividade, tempo médio, arrecadação e irregularidades.</li></ul>
-<h3>Divisão da receita</h3><div class="box"><b>50% para a prefeitura</b> sobre toda a arrecadação do rotativo. Os outros 50% cobrem tecnologia, operação, fiscalização, atendimento e manutenção.</div>
-<h3>Implantação</h3><ol><li><b>Mês 0:</b> contrato/licença e regras da lei municipal, com tratamento de dados (LGPD).</li><li><b>Meses 1–2:</b> piloto em 4 quadras (80 vagas).</li><li><b>Mês 3:</b> avaliação com números reais.</li><li><b>Meses 4–9:</b> expansão pelas quadras de maior movimento.</li><li><b>Mês 10 em diante:</b> cidade completa.</li></ol>""",
-    f"""<h2>Investimento e retorno (estimativas)</h2>
-<p>Referência de cidade com <b>800 vagas</b> de rotativo e tarifa de R$ 3,00 por hora. Cenário base: ocupação de 60% e 85% de pagamento efetivo. Cenário conservador: 40% e 70%.</p>
-<table><tr><th></th><th>Piloto (4 quadras)</th><th>Cidade (800 vagas)</th></tr>
-<tr><td>Investimento inicial (referência)</td><td>{brl(inv_pil)}</td><td>{brl(inv_cid)}</td></tr>
+    f"""<h2>A proposta</h2><p>O <b>UrbanFlow</b> organiza o estacionamento rotativo da cidade: o motorista vê onde há vaga e paga pelo celular; a prefeitura acompanha ocupação, tempo de permanência e arrecadação em tempo real e fiscaliza com mais eficiência.</p>
+<h3>Como funciona</h3><ul><li><b>Aplicativo do motorista:</b> mapa de vagas livres por quadra, ativação do ticket por tempo (60, 120 e 180 minutos), pagamento por Pix e cartão, saldo, aviso antes de vencer e prorrogação pelo celular.</li><li><b>Contagem de vagas:</b> contadores nos postes registram entradas e saídas da quadra; câmeras conferem e corrigem periodicamente (exemplo: 80 vagas, 500 entradas e 495 saídas = 5 ocupadas).</li><li><b>Câmeras de placa:</b> leem a placa e lançam o tempo de quem não usa o aplicativo.</li><li><b>Painel e aplicativo da fiscalização:</b> ocupação, rotatividade, tempo médio, arrecadação e irregularidades, para os agentes da prefeitura.</li></ul>
+<h3>Funcionamento do rotativo</h3><p>Segunda a sexta, das 8h às 18h, e sábados, das 8h às 12h. <b>Tolerância de 15 minutos</b> para o motorista.</p>
+<h3>Quem faz o quê</h3><table><tr><th>WMundi</th><th>Prefeitura</th></tr><tr><td>Desenvolve o aplicativo e o painel<br>Instala o sistema (contadores, câmeras, sinalização com QR)<br>Mantém e atualiza o sistema, com manutenção quando necessário</td><td>Arca com o investimento de implantação e instalação<br>Realiza a fiscalização (agentes e autuação)<br>Define tarifa, setores e regras do rotativo</td></tr></table>
+<h3>Divisão da receita</h3><div class="box"><b>50% para a prefeitura</b> sobre toda a arrecadação do rotativo. Os outros 50% remuneram o aplicativo, a licença do sistema, a hospedagem, o suporte e a manutenção.</div>""",
+    f"""<h2>Implantação</h2><ol><li><b>Mês 0:</b> contrato e definição dos setores e quadras.</li><li><b>Meses 1–2:</b> piloto em 4 quadras (80 vagas): aplicativo no ar, instalação dos contadores e das câmeras.</li><li><b>Mês 3:</b> avaliação com números reais.</li><li><b>Meses 4–9:</b> expansão pelas quadras de maior movimento.</li><li><b>Mês 10 em diante:</b> cidade completa.</li></ol>
+<h2 style="margin-top:6mm">Investimento inicial (da prefeitura)</h2>
+<table><tr><th>Item</th><th>Valor unitário</th><th>Piloto (4 quadras)</th><th>Cidade (40 quadras)</th></tr>
+<tr><td>Contador nos postes, por quadra</td><td>{brl(C_CONT)}</td><td>{brl(4*C_CONT)}</td><td>{brl(40*C_CONT)}</td></tr>
+<tr><td>Instalação dos contadores, por quadra</td><td>{brl(I_QUAD)}</td><td>{brl(4*I_QUAD)}</td><td>{brl(40*I_QUAD)}</td></tr>
+<tr><td>Sinalização e QR, por quadra</td><td>{brl(C_SIN)}</td><td>{brl(4*C_SIN)}</td><td>{brl(40*C_SIN)}</td></tr>
+<tr><td>Câmera de placa (2 no piloto, 20 na cidade)</td><td>{brl(C_CAM)}</td><td>{brl(2*C_CAM)}</td><td>{brl(20*C_CAM)}</td></tr>
+<tr><td>Instalação das câmeras</td><td>{brl(I_CAM)}</td><td>{brl(2*I_CAM)}</td><td>{brl(20*I_CAM)}</td></tr>
+<tr><td>Aplicativo e painel (implantação, uma vez)</td><td>{brl(APP)}</td><td>{brl(APP)}</td><td>{brl(APP)}</td></tr>
+<tr><td><b>Total</b></td><td></td><td><b>{brl(inv_pil)}</b></td><td><b>{brl(inv_cid)}</b></td></tr></table>
+<p class="nt">Valores de referência por unidade; o orçamento final segue o levantamento das quadras.</p>""",
+    f"""<h2>Arrecadação e retorno (payback)</h2>
+<p>Referência de <b>800 vagas</b>. Tarifa do Setor Verde: <b>R$ 1,75 por hora</b> (60 min R$ 1,75 · 120 min R$ 3,50 · 180 min R$ 5,25). Operação de segunda a sexta (8h–18h) e sábados (8h–12h): {H_MES:.0f} horas por mês. Tolerância de 15 minutos descontada de uma permanência média de 90 minutos. Cenário base: ocupação de 60% e 85% de pagamento. Cenário conservador: 40% e 70%.</p>
+<table><tr><th></th><th>Piloto (80 vagas)</th><th>Cidade (800 vagas)</th></tr>
 <tr><td>Arrecadação bruta/mês · base</td><td>{brl(pil_base)}</td><td>{brl(base)}</td></tr>
 <tr><td>Parte da prefeitura (50%) · base</td><td>{brl(pil_base/2)}</td><td>{brl(base/2)}</td></tr>
 <tr><td><b>Payback · base</b></td><td><b>{mes(inv_pil/(pil_base/2))} meses</b></td><td><b>{mes(inv_cid/(base/2))} meses</b></td></tr>
 <tr><td>Arrecadação bruta/mês · conservador</td><td>{brl(pil_cons)}</td><td>{brl(cons)}</td></tr>
 <tr><td>Parte da prefeitura (50%) · conservador</td><td>{brl(pil_cons/2)}</td><td>{brl(cons/2)}</td></tr>
 <tr><td><b>Payback · conservador</b></td><td><b>{mes(inv_pil/(pil_cons/2))} meses</b></td><td><b>{mes(inv_cid/(cons/2))} meses</b></td></tr></table>
-<p class="nt">Composição do investimento (referência, a confirmar com fornecedores): contador por quadra R$ 4.500; câmera de placa R$ 9.000 (2 no piloto, 20 na cidade); sinalização e QR R$ 800 por quadra; aplicativo e painel R$ 38.000. Payback = investimento ÷ parte mensal da prefeitura.</p>
-<div class="box ok"><b>Sem custo inicial para a prefeitura:</b> no modelo de concessão, o investimento é da operadora e a prefeitura recebe 50% desde o primeiro mês. O formato (concessão, credenciamento ou contratação) depende da lei municipal e do processo licitatório.</div>
-<div class="box al"><b>Premissas:</b> tarifa, número de vagas e ocupação são exemplos e serão substituídos pelos dados da cidade. Contrato e processo devem ser revisados pela procuradoria do município.</div>
-<h3>Próximos passos</h3><ol><li>Teste a demonstração interativa.</li><li>Levantamento: vagas, tarifa atual e arrecadação do rotativo.</li><li>Desenho do piloto e minuta de contrato.</li></ol>""",
+<div class="box ok"><b>Em um ano</b> (cenário base, cidade com 800 vagas): a prefeitura recebe {brl(base*6)} e o investimento de {brl(inv_cid)} se paga em {mes(inv_cid/(base/2))} meses. Depois disso, a receita é toda de ganho.</div>
+<p class="nt">Número de vagas, ocupação e pagamento são estimativas e serão ajustados com os dados da cidade. Payback = investimento ÷ parte mensal da prefeitura.</p>
+<h3>Próximos passos</h3><ol><li>Teste a demonstração interativa.</li><li>Levantamento: vagas, setores e arrecadação atual do rotativo.</li><li>Orçamento final e início do piloto.</li></ol>""",
 ]
 (a / "pdf" / "proposta-urbanflow.html").write_text(doc("UrbanFlow", "Estacionamento rotativo inteligente: vaga visível, pagamento pelo celular, arrecadação transparente", urb))
 
@@ -131,7 +150,7 @@ comp = [
 <tr><td><b>C. Câmeras de placa nas esquinas da quadra</b></td><td>Sim, exata (placas dentro da quadra)</td><td>Sim, entrada e saída</td><td>Médio/alto</td><td>3–6 meses</td><td>Custo por quadra; luz e ângulo; LGPD</td></tr>
 <tr><td><b>D. Sensor em cada vaga</b></td><td>Sim, exata</td><td>Sim (com pagamento)</td><td>Alto</td><td>6–12 meses</td><td>Obras, manutenção e vandalismo</td></tr></table>
 <h3>Minha recomendação: começar simples e juntar as ideias</h3>
-<ol><li><b>Fase 1 (B):</b> aplicativo + Pix/QR + um carro de fiscalização com leitura de placa. Já arrecada, mede o tempo de permanência por placa e gera os primeiros dados. Quase sem obra.</li><li><b>Fase 2 (A + C nos pontos críticos):</b> sua ideia dos contadores entra como camada de “vaga livre” nas quadras de maior procura, e câmeras de placa só nas esquinas das quadras principais para <b>recalibrar o contador automaticamente</b>.</li><li><b>Fase 3:</b> expandir onde os números do piloto mostrarem retorno.</li></ol>
+<ol><li><b>Fase 1 (B):</b> aplicativo + Pix/QR + veículo da fiscalização municipal equipado com leitura de placa. Já arrecada, mede o tempo de permanência por placa e gera os primeiros dados. Quase sem obra.</li><li><b>Fase 2 (A + C nos pontos críticos):</b> sua ideia dos contadores entra como camada de “vaga livre” nas quadras de maior procura, e câmeras de placa só nas esquinas das quadras principais para <b>recalibrar o contador automaticamente</b>.</li><li><b>Fase 3:</b> expandir onde os números do piloto mostrarem retorno.</li></ol>
 <div class="box"><b>Por que não só contadores:</b> contar carros mostra quantas vagas estão ocupadas, mas não diz <i>quem</i> está estacionado, nem <i>há quanto tempo</i>, nem se pagou. Para cobrar e fiscalizar, a placa é necessária. E a conta “entrou menos saiu” erra um pouco a cada passagem; sem conferência por câmera, em poucos dias o número deixa de bater.</div>
 <h3>Cuidados</h3><ul><li>Leitura de placa e dados de localização exigem tratamento de dados (LGPD), com prazo de guarda e finalidade definidos.</li><li>Cobrança de rotativo depende de lei municipal e de licitação/concessão: consultar a Dra. Roberta e a procuradoria do município.</li><li>Preços dos equipamentos são referências e precisam de cotação de fornecedores.</li></ul>""",
 ]
@@ -148,7 +167,7 @@ Ou seja, sobre a arrecadação bruta: prefeitura 50% · parceiro <b>15%</b> · W
 <table><tr><th>Cenário (800 vagas)</th><th>Bruto/mês</th><th>Prefeitura</th><th>Parceiro</th><th>WMundi</th></tr>
 <tr><td>Base</td><td>{brl(base)}</td><td>{brl(base*.5)}</td><td>{brl(base*.15)}</td><td>{brl(base*.35)}</td></tr>
 <tr><td>Conservador</td><td>{brl(cons)}</td><td>{brl(cons*.5)}</td><td>{brl(cons*.15)}</td><td>{brl(cons*.35)}</td></tr></table>
-<p class="nt">Os 35% da WMundi ainda pagam tecnologia, nuvem, suporte e manutenção; no modelo de concessão também o investimento inicial. A margem líquida deve ser calculada antes de fechar. Percentuais do parceiro nunca aparecem na proposta nem na demonstração do cliente.</p>
+<p class="nt">Os 35% da WMundi pagam nuvem, suporte, manutenção e atualização do aplicativo. A instalação e o investimento inicial são pagos pela prefeitura; a fiscalização é da prefeitura. A margem líquida deve ser calculada antes de fechar. Percentuais do parceiro nunca aparecem na proposta nem na demonstração do cliente.</p>
 """,
     """<h2>Conduzindo a venda</h2><h3>Como conduzir a conversa</h3><ol><li>Mostrar a demonstração (10 minutos) e deixar o cliente mexer.</li><li>Perguntar o número de vagas, a tarifa atual e a arrecadação do rotativo (UrbanFlow); número de funcionários (ponto); tipo de negócio e custos (precificador).</li><li>Enviar a proposta em PDF e combinar uma reunião de decisão em até 7 dias.</li></ol>
 <h3>O que não prometer</h3><ul><li>Resultado financeiro garantido: os paybacks são exemplos.</li><li>Exatidão de 100% na contagem de vagas: o sistema calibra por câmera, mas há margem de erro.</li><li>Conformidade jurídica: lei municipal, licitação e LGPD são revisadas pela assessoria jurídica.</li><li>Prazos e valores além das propostas sem aprovação do Robson.</li></ul>
