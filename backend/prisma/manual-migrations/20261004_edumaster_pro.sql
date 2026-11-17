@@ -22993,3 +22993,61 @@ CREATE INDEX IF NOT EXISTS "CtbCarGuia_tenantId_status_vencimento_idx" ON "CtbCa
 CREATE INDEX IF NOT EXISTS "CtbLgpdAcesso_tenantId_clienteId_em_idx" ON "CtbLgpdAcesso"("tenantId", "clienteId", "em");
 
 -- ==== CTB3:END ====
+
+-- ==== ACP:BEGIN (Acompanhamento virtual do aluno, prefixo Acp; idempotente, somente CRIA) ====
+CREATE TABLE IF NOT EXISTS "AcpConfig" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "maxPorAlunoDia" INTEGER NOT NULL DEFAULT 2,
+    "maxPorAlunoSemana" INTEGER NOT NULL DEFAULT 5,
+    "remetenteNome" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "AcpConfig_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "AcpRegra" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "descricao" TEXT,
+    "canal" TEXT NOT NULL DEFAULT 'EMAIL',
+    "ativa" BOOLEAN NOT NULL DEFAULT true,
+    "antecedenciaDias" INTEGER NOT NULL DEFAULT 3,
+    "limiarDias" INTEGER,
+    "cooldownDias" INTEGER NOT NULL DEFAULT 7,
+    "eventoTipo" TEXT,
+    "tituloContem" TEXT,
+    "assunto" TEXT NOT NULL,
+    "corpo" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "AcpRegra_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "AcpEnvio" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "regraId" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "chave" TEXT NOT NULL,
+    "resultado" TEXT NOT NULL DEFAULT 'ENFILEIRADO',
+    "notificationId" TEXT,
+    "assunto" TEXT,
+    "resumo" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "AcpEnvio_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "AcpConfig_tenantId_key" ON "AcpConfig"("tenantId");
+CREATE INDEX IF NOT EXISTS "AcpRegra_tenantId_ativa_idx" ON "AcpRegra"("tenantId", "ativa");
+CREATE UNIQUE INDEX IF NOT EXISTS "AcpEnvio_regraId_studentId_chave_key" ON "AcpEnvio"("regraId", "studentId", "chave");
+CREATE INDEX IF NOT EXISTS "AcpEnvio_tenantId_createdAt_idx" ON "AcpEnvio"("tenantId", "createdAt");
+CREATE INDEX IF NOT EXISTS "AcpEnvio_tenantId_studentId_createdAt_idx" ON "AcpEnvio"("tenantId", "studentId", "createdAt");
+
+DO $$ BEGIN
+  ALTER TABLE "AcpEnvio" ADD CONSTRAINT "AcpEnvio_regraId_fkey" FOREIGN KEY ("regraId") REFERENCES "AcpRegra"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- ==== ACP:END ====

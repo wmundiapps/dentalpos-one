@@ -4183,6 +4183,67 @@ model AcsRegra {
   @@index([tenantId])
 }
 
+// ---- edu/acompanhamento.prisma ----
+// ============================================================
+// EDUMASTER PRO — ACOMPANHAMENTO VIRTUAL DO ALUNO (prefixo Acp)
+// Régua automática de e-mails de incentivo e lembretes: volta aos estudos (inatividade), videoaulas pendentes,
+// prazos de atividades, provas, aulas práticas, estágios, ENADE/PIESC e resumo semanal. Usa a caixa de saída
+// da Comunicação (EduNotification) e respeita opt-out/LGPD. Tipos de regra e resultados são texto validado no código.
+// ============================================================
+
+model AcpConfig {
+  id                 String   @id @default(uuid())
+  tenantId           String   @unique
+  ativo              Boolean  @default(true)
+  maxPorAlunoDia     Int      @default(2)               // teto de e-mails por aluno por dia (evita excesso)
+  maxPorAlunoSemana  Int      @default(5)
+  remetenteNome      String?                            // assinatura ao final do e-mail
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model AcpRegra {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tipo            String                                // INATIVIDADE | VIDEOAULA | ATIVIDADE | PROVA | AULA_PRATICA | ESTAGIO | EVENTO | RESUMO_SEMANAL
+  nome            String
+  descricao       String?
+  canal           String   @default("EMAIL")
+  ativa           Boolean  @default(true)
+  antecedenciaDias Int     @default(3)                  // avisa N dias antes (prazo, prova, prática, estágio, evento)
+  limiarDias      Int?                                  // INATIVIDADE: dias sem acessar o ambiente
+  cooldownDias    Int      @default(7)                  // intervalo mínimo entre dois e-mails da mesma regra ao mesmo aluno
+  eventoTipo      String?                               // EVENTO: tipo do calendário (ENADE, SEMANA_ACADEMICA, OUTRO...)
+  tituloContem    String?                               // EVENTO: filtra pelo título (ex.: PIESC)
+  assunto         String
+  corpo           String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  envios          AcpEnvio[]
+
+  @@index([tenantId, ativa])
+}
+
+model AcpEnvio {
+  id              String   @id @default(uuid())
+  tenantId        String
+  regraId         String
+  studentId       String
+  chave           String                                // idempotência: item que originou o aviso (ex.: prova + dia)
+  resultado       String   @default("ENFILEIRADO")      // ENFILEIRADO | SEM_DESTINO | BLOQUEADO_OPTOUT | LIMITE_DIARIO
+  notificationId  String?
+  assunto         String?
+  resumo          String?
+  createdAt       DateTime @default(now())
+
+  regra           AcpRegra @relation(fields: [regraId], references: [id], onDelete: Cascade)
+
+  @@unique([regraId, studentId, chave])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, studentId, createdAt])
+}
+
 // ---- edu/admissoes.prisma ----
 // ============================================================
 // EDUMASTER PRO — ADMISSÕES (prefixo Adm): captação, vestibular,

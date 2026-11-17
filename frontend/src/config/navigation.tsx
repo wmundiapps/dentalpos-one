@@ -295,6 +295,7 @@ const allNavigationGroups:NavigationGroup[] = [
     items:[
       item("Apoio, ouvidoria e egressos","/edu/apoio",<SupportAgentIcon/>),
       item("Comunicação omnichannel","/edu/comunicacao",<ChatIcon/>),
+      item("Acompanhamento do aluno","/edu/comunicacao?aba=acompanhamento",<SchoolIcon/>),
       item("Infraestrutura e patrimônio","/edu/infraestrutura",<CleaningServicesIcon/>),
       item("Infraestrutura · Planejamento","/edu/infraestrutura?secao=planejamento",<AccountTreeIcon/>),
       item("Agenda de infraestrutura","/edu/infraestrutura?secao=agenda",<EventIcon/>),

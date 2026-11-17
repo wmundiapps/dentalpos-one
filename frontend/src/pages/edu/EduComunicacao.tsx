@@ -1,6 +1,7 @@
 import { Box, Tab, Tabs } from "@mui/material";
 import { useState } from "react";
 import EduShell from "../../edu/EduShell";
+import AcompanhamentoTab from "../../edu/comunicacao/AcompanhamentoTab";
 import BotTab from "../../edu/comunicacao/BotTab";
 import CampanhasTab from "../../edu/comunicacao/CampanhasTab";
 import CanaisTab from "../../edu/comunicacao/CanaisTab";
@@ -11,11 +12,12 @@ import SocialTab from "../../edu/comunicacao/SocialTab";
 import TemplatesTab from "../../edu/comunicacao/TemplatesTab";
 import { useToast } from "../../edu/comunicacao/common";
 
-const ABAS = ["Painel", "Atendimento (inbox)", "Templates e contatos", "Campanhas", "Régua de cobrança", "Chatbot e FAQ", "Redes sociais", "Canais e envios"];
+const ABAS = ["Painel", "Atendimento (inbox)", "Templates e contatos", "Campanhas", "Régua de cobrança", "Acompanhamento do aluno", "Chatbot e FAQ", "Redes sociais", "Canais e envios"];
 
 export default function EduComunicacao() {
   const [tab, setTab] = useState(() => {
-    try { return Number(localStorage.getItem("edu.comunicacao.tab")) || 0; } catch { return 0; }
+    try {
+      if (new URLSearchParams(window.location.search).get("aba") === "acompanhamento") return 5; return Number(localStorage.getItem("edu.comunicacao.tab")) || 0; } catch { return 0; }
   });
   const { setMsg, node } = useToast();
   function go(v: number) { setTab(v); try { localStorage.setItem("edu.comunicacao.tab", String(v)); } catch { /* sem armazenamento */ } }
@@ -31,9 +33,10 @@ export default function EduComunicacao() {
         {tab === 2 && <TemplatesTab toast={setMsg} />}
         {tab === 3 && <CampanhasTab toast={setMsg} />}
         {tab === 4 && <ReguaTab toast={setMsg} />}
-        {tab === 5 && <BotTab toast={setMsg} />}
-        {tab === 6 && <SocialTab toast={setMsg} />}
-        {tab === 7 && <CanaisTab toast={setMsg} />}
+        {tab === 5 && <AcompanhamentoTab toast={setMsg} />}
+        {tab === 6 && <BotTab toast={setMsg} />}
+        {tab === 7 && <SocialTab toast={setMsg} />}
+        {tab === 8 && <CanaisTab toast={setMsg} />}
       </Box>
       {node}
     </EduShell>
