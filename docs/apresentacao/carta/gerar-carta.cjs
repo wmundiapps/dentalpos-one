@@ -37,7 +37,7 @@ a{color:#3162A9;font-weight:700;text-decoration:none}
 <li><b>Contabilidade integrada:</b> regime fiscal, notas, guias, conciliação, DRE, RH e departamento pessoal, imposto de renda e assistente de IA.</li>
 <li><b>Segurança e LGPD:</b> criptografia, autenticação em duas etapas, auditoria, isolamento de dados e dados sob a guarda da instituição.</li>
 </ul>
-</div><div class="ft">WMundi Technologies · www.wmundi.com · info@wmundi.com · WhatsApp (44) 99946-6451 · Av. XV de Novembro, 255, Maringá/PR</div></section>
+</div><div class="ft"><b>Instituto Ravel de Ensino Superior Ltda</b> (WMundi Technologies) · CNPJ 03.162.275/0001-10 · Av. XV de Novembro, 255, sala C, Maringá/PR · info@wmundi.com · www.wmundi.com · WhatsApp (44) 99946-6451</div></section>
 
 <section class="pg"><div class="top"></div>
 <div class="hd"><img src="data:image/png;base64,${wm}"><img class="u" src="data:image/png;base64,${un}"></div>
@@ -63,7 +63,7 @@ a{color:#3162A9;font-weight:700;text-decoration:none}
 <div class="box"><b>Conheça o sistema na prática.</b> A demonstração, personalizada com as cores e a marca da Uningá, está disponível por <b>20 dias, até 07/12/2026</b>:<br><a href="${URL}">${URL}</a><br>Usuário: <b>apresentacao@uninga.br</b> · Senha: <b>Uninga@2026</b></div>
 <p>Estamos à disposição para agendar uma apresentação à Diretoria e iniciar o planejamento da implantação.</p>
 <p class="sig">Atenciosamente,<br><b>Prof. Me. Robson Ravel de Oliveira</b><br>Diretoria Comercial<br>WMundi Technologies</p>
-</div><div class="ft">WMundi Technologies · www.wmundi.com · info@wmundi.com · WhatsApp (44) 99946-6451 · Av. XV de Novembro, 255, Maringá/PR</div></section>
+</div><div class="ft"><b>Instituto Ravel de Ensino Superior Ltda</b> (WMundi Technologies) · CNPJ 03.162.275/0001-10 · Av. XV de Novembro, 255, sala C, Maringá/PR · info@wmundi.com · www.wmundi.com · WhatsApp (44) 99946-6451</div></section>
 </body></html>`;
 (async () => {
   const b = await chromium.launch(); const pg = await b.newPage();
