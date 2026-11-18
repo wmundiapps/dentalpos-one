@@ -1,16 +1,14 @@
 import { useMemo, useState } from "react";
-import { Box, Button, Collapse, IconButton, InputAdornment, List, ListItemButton, ListItemText, Paper, TextField, Typography } from "@mui/material";
+import { Box, Collapse, IconButton, InputAdornment, List, ListItemButton, ListItemText, Paper, TextField, Typography } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import { useLocation, useNavigate } from "react-router-dom";
 import { navigationGroups } from "../config/navigation";
 import { ajudaDoItem, groupHelp } from "../config/menuHelp";
-import { readSessionUser } from "../services/DemoAccess";
 
-const KEY = "treinamento.concluido.v1";
 const LEITURA = "treinamento.min.v1";
-/** Enquanto o treinamento não for concluído, a caixinha fica visível em todas as telas. */
+/** A caixinha é permanente: fica em todas as telas (pode ser minimizada, nunca removida). */
 const lido = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
 const grava = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* sem armazenamento */ } };
 
@@ -42,9 +40,6 @@ export default function AssistenteTreinamento() {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const achados = useMemo(() => pesquisar(busca), [busca]);
-  const user = readSessionUser();
-  const chave = `${KEY}.${user?.id ?? user?.email ?? "u"}`;
-  const [concluido, setConcluido] = useState(() => lido(chave) === "1");
   const [minimizado, setMinimizado] = useState(() => lido(LEITURA) === "1");
 
   const atual = useMemo(() => {
@@ -56,7 +51,6 @@ export default function AssistenteTreinamento() {
     return null;
   }, [loc.pathname, loc.search]);
 
-  if (concluido) return null;
   const grupoAjuda = atual ? groupHelp[atual.grupo] : undefined;
 
   return <Box className="no-print" sx={{ position: "fixed", right: 16, bottom: 16, zIndex: 1300, width: { xs: "calc(100vw - 32px)", sm: 340 } }}>
@@ -89,10 +83,6 @@ export default function AssistenteTreinamento() {
           </> : <Typography sx={{ fontSize: 13.5 }}>
             Clique no ícone <b>?</b> ao lado de cada item do menu para ver para que serve e como usar. Ao abrir uma tela, a explicação dela aparece aqui.
           </Typography>}
-          <Button size="small" fullWidth variant="outlined" sx={{ mt: 1.5, textTransform: "none", fontWeight: 700 }}
-            onClick={() => { grava(chave, "1"); setConcluido(true); }}>
-            Concluí o treinamento — ocultar assistente
-          </Button>
         </Box>
       </Collapse>
     </Paper>
