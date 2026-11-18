@@ -11,7 +11,7 @@ const BASE = 'https://web-production-5398c.up.railway.app';
 const KEY = process.env.DEMO_KEY || '';
 const LINK = KEY ? `${BASE}/?acesso=${KEY}` : BASE;
 const shot = (n) => b64(path.join(D, 'shots', n + '.jpg'), 'image/jpeg');
-const win = (n, label, cls = '') => `<div class="win ${cls}"><div class="bar"><i></i><i></i><i></i><span>${label}</span></div><img src="${shot(n)}"></div>`;
+const win = (n, label, cls = '') => `<div class="win ${cls}" style="--s:url(${shot(n)})"><div class="bar"><i></i><i></i><i></i><span>${label}</span></div><div class="hd"></div><div class="bd"></div></div>`;
 const li = (arr) => `<ul>${arr.map((t) => `<li>${t}</li>`).join('')}</ul>`;
 const chips = (arr) => `<div class="chips">${arr.map((t) => `<span>${t}</span>`).join('')}</div>`;
 const S = [];
@@ -65,16 +65,12 @@ feat({ kicker: 'RELATÓRIOS PARA REITORIA E ADMINISTRAÇÃO', title: 'Painéis q
   shots: ['paineis', 'comparativo'], label: ['EduMaster Pro · Painéis executivos', 'EduMaster Pro · Comparativo'], side: 'right' });
 
 feat({ kicker: 'AVA E PORTAL DO ALUNO', title: 'A sala de aula virtual que o aluno quer usar', sub: 'Tudo o que o aluno precisa para estudar, em um só portal, no computador ou no celular.',
-  bullets: ['<b>Sala virtual por disciplina</b> com videoaulas, aulas gravadas, materiais e trilhas', '<b>Aulas ao vivo</b> com o Meet, Teams ou Zoom que a Uningá já utiliza', '<b>Atividades com entrega e correção</b>, fóruns e recados da turma', '<b>Notas, frequência, financeiro e requerimentos</b> no mesmo lugar', '<b>Flashcards e simulados</b> para ENADE, ENAMED e OAB'],
+  bullets: ['<b>Sala virtual por disciplina</b> com videoaulas, aulas gravadas, materiais e trilhas', '<b>Aulas ao vivo</b> com o Meet, Teams ou Zoom que a Uningá já utiliza', '<b>Atividades com entrega e correção</b>, fóruns e recados da turma', '<b>Notas, frequência, financeiro e requerimentos</b> no mesmo lugar', '<b>Flashcards e simulados</b> para ENADE, ENAMED e OAB', '<b>Portal do professor</b> com diário, frequência, notas, banco de questões e gerador de provas com IA'],
   shots: ['aluno-portal'], label: ['EduMaster Pro · Portal do aluno'], side: 'left' });
 
 feat({ kicker: 'PERMANÊNCIA E ENGAJAMENTO', title: 'Acompanhamento virtual do aluno', sub: 'Um assistente que incentiva, lembra e traz o aluno de volta, por e-mail, sem trabalho manual.',
   bullets: ['<b>Volta aos estudos</b>: convite carinhoso para quem ficou dias sem acessar', '<b>Videoaulas e atividades</b>: lembrete do que está pendente e dos prazos', '<b>Provas, aulas práticas, estágios, PIESC e ENADE</b>: aviso antes de cada data', '<b>Resumo semanal</b> com a agenda de estudos de cada aluno', 'Textos editáveis, limite de e-mails por aluno e opção de sair a qualquer momento'],
   shots: ['acompanhamento'], label: ['EduMaster Pro · Acompanhamento do aluno'], side: 'right' });
-
-feat({ kicker: 'PORTAL DO PROFESSOR', title: 'Menos burocracia, mais tempo para ensinar', sub: 'O professor concentra turmas, diário, avaliações e comunicação no mesmo ambiente.',
-  bullets: ['Diário de classe, frequência e lançamento de notas', 'Materiais, atividades e correções direto na sala virtual', 'Banco de questões e gerador de provas com apoio de IA', 'Agenda de aulas, salas e laboratórios'],
-  shots: ['prof-portal'], label: ['EduMaster Pro · Portal do professor'], side: 'left' });
 
 feat({ kicker: 'COBRANÇA', title: 'Recuperação de receita com método', sub: 'A inadimplência da Uningá em um painel, com a política e a régua que a instituição definir.',
   bullets: ['<b>Painel de inadimplência</b> com aging por faixa de atraso, saldo atualizado e taxa', '<b>Política configurável</b>: tolerância, multa, juros e correção', '<b>Acordos e negociações</b> com promessas e acompanhamento das parcelas', '<b>Histórico de contatos</b> em conformidade com o CDC e a LGPD', '<b>Escalonamento ao Jurídico</b> com um clique quando necessário'],
@@ -218,10 +214,10 @@ h2{font-size:64px;line-height:1.08;margin:0 0 20px;font-weight:800;letter-spacin
 .cv-ft{position:absolute;left:120px;right:120px;bottom:60px;font-size:21px;opacity:.85}
 .ft{position:absolute;left:120px;right:120px;bottom:38px;display:flex;align-items:center;font-size:20px;color:var(--muted);border-top:1px solid #dbe3ef;padding-top:16px}.ft.d{color:#cfdcf2;border-color:rgba(255,255,255,.25)}
 .wml{width:84px;height:34px;background:var(--wm) no-repeat center/contain;border-radius:4px}.ft .fx{margin-left:18px;flex:1}.ft .pn{font-weight:800;color:var(--orange)}
-.fe{display:flex;gap:56px;align-items:center;height:100%}.fe.left{flex-direction:row-reverse}.fe .tx{flex:0 0 640px}.fe .vs{flex:1;min-width:0;display:flex;flex-direction:column;gap:22px;justify-content:center}
-ul{list-style:none;padding:0;margin:0}.tx li{font-size:27px;line-height:1.32;margin:0 0 16px;padding-left:44px;position:relative}.tx li::before{content:"";position:absolute;left:0;top:7px;width:24px;height:24px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 6px rgba(236,98,54,.16)}
-.win{border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 30px 70px rgba(11,42,85,.28),0 0 0 1px rgba(11,42,85,.1)}.win .bar{height:44px;background:linear-gradient(180deg,#eef2f8,#e3e9f3);display:flex;align-items:center;gap:9px;padding:0 18px;font-size:17px;color:#5b6b82}.win .bar i{width:13px;height:13px;border-radius:50%;background:#ff6159}.win .bar i:nth-child(2){background:#ffbd2e}.win .bar i:nth-child(3){background:#27c93f}.win .bar span{margin-left:14px}.win img{display:block;width:100%}
-.win.half{width:100%}.vs .win.half img{max-height:380px;object-fit:cover;object-position:top}
+.fe{display:flex;gap:48px;align-items:center;height:100%}.fe.left{flex-direction:row-reverse}.fe .tx{flex:0 0 560px}.fe .vs{flex:1;min-width:0;display:flex;flex-direction:column;gap:22px;justify-content:center}
+ul{list-style:none;padding:0;margin:0}.tx li{font-size:25px;line-height:1.3;margin:0 0 14px;padding-left:44px;position:relative}.tx li::before{content:"";position:absolute;left:0;top:7px;width:24px;height:24px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 6px rgba(236,98,54,.16)}
+.win{border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 30px 70px rgba(11,42,85,.28),0 0 0 1px rgba(11,42,85,.1)}.win .bar{height:44px;background:linear-gradient(180deg,#eef2f8,#e3e9f3);display:flex;align-items:center;gap:9px;padding:0 18px;font-size:17px;color:#5b6b82}.win .bar i{width:13px;height:13px;border-radius:50%;background:#ff6159}.win .bar i:nth-child(2){background:#ffbd2e}.win .bar i:nth-child(3){background:#27c93f}.win .bar span{margin-left:14px}.win{container-type:inline-size}.win .hd{aspect-ratio:1100/54;background:var(--s) 0 0/100% auto no-repeat}.win .bd{aspect-ratio:1100/600;background:var(--s) 0 -4.9cqw/100% auto no-repeat}
+.win.half{width:100%}.vs .win.half .bd{aspect-ratio:1100/300}
 .grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:22px;margin-top:18px}.card{background:#fff;border-radius:22px;padding:34px 26px;box-shadow:0 14px 40px rgba(11,42,85,.1);border-top:6px solid var(--blue);text-align:center}.card .old{font-size:30px;font-weight:800;color:#9aa7ba;text-decoration:line-through;text-decoration-color:var(--red)}.card .arr{font-size:38px;color:var(--orange);margin:6px 0}.card b{font-size:27px;color:var(--navy);display:block;margin-bottom:10px}.card p{font-size:21px;color:var(--muted);margin:0;line-height:1.3}
 .note{font-size:28px;color:var(--navy);background:#fff4ee;border-left:8px solid var(--orange);padding:22px 30px;border-radius:12px;margin:44px 0 0;max-width:1560px}
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}.tile{border-radius:20px;padding:30px 28px;color:#fff;min-height:170px}.tile b{display:block;font-size:30px;margin-bottom:10px}.tile span{font-size:21px;opacity:.92}.t0{background:linear-gradient(135deg,#0B2A55,#3162A9)}.t1{background:linear-gradient(135deg,#3162A9,#4f86d6)}.t2{background:linear-gradient(135deg,#EC6236,#A32D3B)}
