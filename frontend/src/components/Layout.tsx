@@ -14,6 +14,7 @@ import PrintHeader from "./PrintHeader";
 import FeedbackButton from "../edu/feedback/FeedbackButton";
 import DemoExpiryBanner from "./DemoExpiryBanner";
 import Sidebar from "./Sidebar";
+import AssistenteTreinamento from "./AssistenteTreinamento";
 
 interface LayoutProps {
   children: ReactNode;
@@ -65,6 +66,7 @@ export default function Layout({
           {children}
           <SuggestionBox />
           <FeedbackButton />
+          <AssistenteTreinamento />
         </Box>
 
         <Footer />

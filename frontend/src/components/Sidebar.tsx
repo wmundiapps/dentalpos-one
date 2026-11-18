@@ -13,6 +13,8 @@ import { useEffect, useMemo, useState } from "react";
 import BrandName from "./BrandName";
 import { appConfig } from "../config/app";
 import { navigationGroups } from "../config/navigation";
+import { ajudaDoItem, groupHelp } from "../config/menuHelp";
+import MenuHelp from "./MenuHelp";
 import { rotaBloqueada, useModulosBloqueados } from "../edu/acesso/modulos";
 import {
   getDemoModuleStatus,
@@ -172,6 +174,7 @@ export default function Sidebar(){
             }}>
               <ListItemIcon sx={{color:"inherit",minWidth:34}}>{group.icon}</ListItemIcon>
               <ListItemText primary={<Typography component="span" sx={{fontWeight:selected?800:700,fontSize:13}}>{group.label}</Typography>}/>
+              <MenuHelp titulo={group.label} ajuda={ajudaDoItem(only.path,only.label)}/>
             </ListItemButton>
           </Box>
         }
@@ -183,6 +186,7 @@ export default function Sidebar(){
           }}>
             <ListItemIcon sx={{color:"inherit",minWidth:34}}>{group.icon}</ListItemIcon>
             <ListItemText primary={<Typography component="span" sx={{fontWeight:selected?800:700,fontSize:13}}>{group.label}</Typography>}/>
+            {groupHelp[group.label]&&<MenuHelp titulo={group.label} ajuda={groupHelp[group.label]}/>}
             {open?<ExpandLessIcon fontSize="small"/>:<ExpandMoreIcon fontSize="small"/>}
           </ListItemButton>
           <Collapse in={open} timeout="auto" unmountOnExit>
@@ -196,6 +200,7 @@ export default function Sidebar(){
                 }}>
                   <ListItemIcon sx={{color:"inherit",minWidth:30}}>{it.icon}</ListItemIcon>
                   <ListItemText primary={<Typography component="span" sx={{fontSize:12.5}}>{it.label}</Typography>}/>
+                  <MenuHelp titulo={it.label} ajuda={ajudaDoItem(it.path,it.label)}/>
                   {inProgress&&<Tooltip title="Em desenvolvimento"><ConstructionOutlinedIcon sx={{fontSize:15,color:"#94A3B8",ml:.5}}/></Tooltip>}
                 </ListItemButton>
               })}
