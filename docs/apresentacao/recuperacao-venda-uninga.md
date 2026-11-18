@@ -12,7 +12,7 @@ Seguem a proposta e o acesso à demonstração do EduMaster Pro, já com a marca
 
 - Plataforma única que substitui, em 90 dias, Jacad, Flugo, Dynadoc, Octadesk e Leadlovers, com 30 dias de convivência.
 - Atualizações mensais incluídas e personalização completa.
-- Mensalidade de R$ 41.900,00 com franquia de 20.000 alunos e implantação única de R$ 30.000,00 (R$ 27.000,00 à vista).
+- Mensalidade, valor por aluno e implantação: a definir em conjunto com a Diretoria.
 
 Demonstração: https://web-production-5398c.up.railway.app
 Usuário: apresentacao@uninga.br · Senha: Uninga@2026

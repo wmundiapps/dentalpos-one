@@ -132,20 +132,20 @@
     "titulo": "Proposta comercial",
     "implantacao": "90 dias de implementação",
     "teste": "3 meses de teste gratuito",
-    "valorFixo": "R$ 42.000,00 por mês",
-    "valorAluno": "R$ 1,90 por aluno por mês",
+    "valorFixo": "Mensalidade: a definir em conjunto com a Diretoria",
+    "valorAluno": "Valor por aluno: a definir em conjunto com a Diretoria",
     "terceiros": "Tokens de IA, Meta (WhatsApp) e SMS são pagos diretamente às empresas contratadas, sem repasse nem margem da WMundi.",
     "itens": [
       "Implementação e migração de dados acompanhadas pela equipe da WMundi® em até 90 dias",
       "3 meses de teste gratuito, sem compromisso, com todos os módulos",
-      "Após o teste: R$ 42.000,00 mensais + R$ 1,90 por aluno, também mensal",
+      "Mensalidade e valor por aluno: a definir em conjunto com a Diretoria",
       "Custos de IA, Meta (WhatsApp) e SMS contratados e pagos direto aos fornecedores"
     ],
     "app": {
       "titulo": "Aplicativos Apple e Android (opcional)",
       "itens": [
-        "Desenvolvimento dos aplicativos para Apple (iOS) e Android: R$ 50.000,00, parcelados em 10x de R$ 5.000,00",
-        "Hospedagem, banco de dados e servidores: R$ 1.690,00 mensais, mais R$ 1,02 por aplicativo baixado, por mês",
+        "Desenvolvimento dos aplicativos para Apple (iOS) e Android: valor a definir em conjunto com a Diretoria",
+        "Hospedagem, banco de dados e servidores: valor a definir em conjunto com a Diretoria",
         "Atualizações: a combinar, conforme telas e funcionalidades, a pedido da instituição e com orçamento prévio aprovado pelas partes"
       ]
     }

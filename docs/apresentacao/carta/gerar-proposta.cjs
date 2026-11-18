@@ -56,8 +56,9 @@ const carta = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><ti
 <li>Depois desse período, a Uningá arca <b>somente com deslocamento, estadia e alimentação</b>, caso necessite de assistência presencial.</li>
 <li><b>Personalização completa</b> (marca, cargos, fluxos, modelos e relatórios) e <b>atualizações mensais incluídas</b>.</li></ul>
 <h2>Investimento</h2>
-<table><tr><td class="n">Mensalidade</td><td><b>R$ 41.900,00</b> por mês, com franquia de até 20.000 alunos ativos (R$ 1,20 por aluno ativo adicional)</td></tr>
-<tr><td class="n">Implantação e integrações</td><td><b>R$ 30.000,00</b> em 10 parcelas de R$ 3.000,00, ou <b>R$ 27.000,00 à vista</b>, incluindo a equipe dedicada descrita acima</td></tr>
+<table><tr><td class="n">Mensalidade e valor por aluno</td><td><b>A definir em conjunto com a Diretoria</b></td></tr>
+<tr><td class="n">Implantação e integrações</td><td><b>A definir em conjunto com a Diretoria</b>, incluindo a equipe dedicada descrita acima</td></tr>
+<tr><td class="n">Aplicativos (opcional)</td><td>Desenvolvimento e hospedagem: <b>a definir em conjunto com a Diretoria</b></td></tr>
 <tr><td class="n">Serviços de terceiros</td><td>IA, WhatsApp, SMS e e-mail contratados e pagos diretamente aos fornecedores, sem margem da WMundi®</td></tr></table>
 <h2>Próximos passos</h2>
 <p>Para que a implantação comece assim que as aulas forem encerradas, nos colocamos à disposição para ajustar e formalizar o contrato nos próximos dias úteis e para realizar a <b>apresentação de cerca de 90 minutos</b> à Diretoria, ao Ensino Presencial, à EAD e à Diretoria de TI, na data que a Pró-Reitoria indicar.</p>
