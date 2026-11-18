@@ -23,10 +23,11 @@ export const punchPhoto = (punchId: string) => call<{ photo: string | null }>(`/
 export const employeeFacePhoto = (employeeId: string) => call<{ photo: string | null }>(`/hr/employees/${encodeURIComponent(employeeId)}/face-photo`);
 export const setEmployeePortalPassword = (employeeId: string, password: string) => call<{ ok: boolean }>(`/hr/employees/${encodeURIComponent(employeeId)}/portal-password`, { method: "PUT", body: { password } });
 export const firstFaceEnroll = (cpf: string, samples: number[][], photo: string, geo: { latitude?: number; longitude?: number; accuracy?: number }) => call<FacePunchResult & { enrolled: boolean }>("/hr/timeclock/face-first-enroll", { method: "POST", body: { cpf, samples, photo, consent: true, ...geo } });
-export const cpfCheck = (cpf: string) => call<{ found: boolean; employeeName: string; hasFace: boolean }>("/hr/timeclock/cpf-check", { method: "POST", body: { cpf } });
+export const cpfCheck = (cpf: string, geo?: { latitude?: number; longitude?: number; accuracy?: number }) => call<{ found: boolean; employeeName: string; hasFace: boolean }>("/hr/timeclock/cpf-check", { method: "POST", body: { cpf, ...geo } });
 
 export interface PunchApi {
-  cpfCheck: (cpf: string) => Promise<{ found: boolean; employeeName: string; hasFace: boolean }>;
+  // O polo confere o local já na consulta do CPF: fora do raio confirmado nada funciona.
+  cpfCheck: (cpf: string, geo?: { latitude?: number; longitude?: number; accuracy?: number }) => Promise<{ found: boolean; employeeName: string; hasFace: boolean }>;
   facePunch: (cpf: string, descriptor: number[], photo: string, geo: { latitude?: number; longitude?: number; accuracy?: number }) => Promise<FacePunchResult>;
   firstFaceEnroll: (cpf: string, samples: number[][], photo: string, geo: { latitude?: number; longitude?: number; accuracy?: number }) => Promise<FacePunchResult & { enrolled: boolean }>;
 }

@@ -74,7 +74,7 @@ export default function PoloPunch({ slug }: { slug: string }) {
   const api: PunchApi = useMemo(() => {
     const wrap = async <T,>(fn: () => Promise<T>) => { try { return await fn(); } catch (e) { if ((e as { code?: string }).code === "POLO_LOCKED") lockOut(); throw e; } };
     return {
-      cpfCheck: (cpf) => wrap(() => call(`${slug}/cpf-check`, token, { cpf })),
+      cpfCheck: (cpf, geo) => wrap(() => call(`${slug}/cpf-check`, token, { cpf, ...geo })),
       facePunch: (cpf, descriptor, photo, geo) => wrap(() => call(`${slug}/face-punch`, token, { cpf, descriptor, photo, ...geo })),
       firstFaceEnroll: (cpf, samples, photo, geo) => wrap(() => call(`${slug}/face-first-enroll`, token, { cpf, samples, photo, consent: true, ...geo })),
     };
