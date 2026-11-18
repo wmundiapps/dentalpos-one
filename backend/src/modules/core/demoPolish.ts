@@ -16,7 +16,7 @@ export async function polirDemo(prisma: PrismaClient) {
 
   // Financeiro: poucas parcelas em aberto (normal), o restante pago; sem vencidas sem destino
   await run('receber-atrasadas-pagas', `UPDATE "AccountReceivable" SET status='PAGO', "dataPagamento"="dataVencimento" + interval '2 days' WHERE status='ATRASADO' AND abs(hashtext(id::text)) % 7 <> 0`)
-  await run('receber-vencidas-pagas', `UPDATE "AccountReceivable" SET status='PAGO', "dataPagamento"="dataVencimento" + interval '1 day' WHERE status='PENDENTE' AND "dataVencimento" < now() - interval '1 day' AND abs(hashtext(id::text)) % 7 <> 0`)
+  await run('receber-vencidas-pagas', `UPDATE "AccountReceivable" SET status='PAGO', "dataPagamento"="dataVencimento" + interval '1 day' WHERE status='PENDENTE' AND "dataVencimento" < now() - interval '1 day'`)
   await run('pagar-vencidas', `UPDATE "AccountPayable" SET status='PAGO', "dataPagamento"="dataVencimento" WHERE "dataVencimento" < now() AND status::text !~* '${FINAIS}'`)
 
   // Alunos e matrículas: sem evasão/cancelamento aparente
@@ -50,7 +50,7 @@ export async function polirDemo(prisma: PrismaClient) {
 
   // Financeiro: a despesa do mês não pode aparecer acima do mês anterior; inadimplência residual mínima
   await run('despesa-mes', `UPDATE "PaymentTransaction" SET "dataTransacao"="dataTransacao" - interval '1 month' WHERE id IN (SELECT id FROM "PaymentTransaction" WHERE tipo='DESPESA' AND "dataTransacao" >= date_trunc('month', now()) ORDER BY valor ASC OFFSET 1)`)
-  await run('inadimplencia-residual', `UPDATE "AccountReceivable" SET status='PAGO', "dataPagamento"="dataVencimento" + interval '3 days' WHERE status='ATRASADO' AND id NOT IN (SELECT id FROM "AccountReceivable" WHERE status='ATRASADO' ORDER BY "dataVencimento" DESC LIMIT 4)`)
+  await run('inadimplencia-residual', `UPDATE "AccountReceivable" SET status='PAGO', "dataPagamento"="dataVencimento" + interval '3 days' WHERE status='ATRASADO' AND id NOT IN (SELECT id FROM "AccountReceivable" WHERE status='ATRASADO' ORDER BY "dataVencimento" DESC LIMIT 3)`)
 
   // Biblioteca: tudo devolvido no prazo
   await run('biblioteca-emprestimos', `UPDATE "BibEmprestimo" SET status='DEVOLVIDO', "dataDevolucao"=LEAST(now(), "dataPrevista"), "diasAtraso"=0, "multaPrevista"=0 WHERE status='ATIVO' AND "dataPrevista" < now()`)
