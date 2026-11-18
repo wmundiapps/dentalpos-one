@@ -23,6 +23,10 @@ fi
 if [ -n "$EDU_SEED_STEPS" ]; then
   SEED_STEPS="$EDU_SEED_STEPS" API_URL="http://127.0.0.1:${PORT:-3000}/api" npx tsx scripts/edu-demo-seed.ts || echo 'Seed parcial terminou com avisos'
 fi
+# EDU_POLISH=1: deixa a demonstração sempre em boa situação (prazos vencidos reprogramados, parcelas pagas, alertas resolvidos).
+if [ "$EDU_POLISH" = "1" ]; then
+  npx tsx scripts/edu-demo-polish.ts || echo 'Polimento terminou com avisos'
+fi
 # Usuário de apresentação (se configurado por variável de ambiente)
 npx tsx scripts/edu-demo-user.ts || true
 wait $SERVER
