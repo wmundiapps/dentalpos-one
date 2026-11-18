@@ -3,7 +3,7 @@ import { useState } from "react";
 import EduShell from "../../edu/EduShell";
 import { eduApi } from "../../services/EduApi";
 import { Section, Stat, StateBox, useLoad, useToast } from "../../edu/admissoes/common";
-import { FormDialog, Pill, dt, dth } from "../../edu/operacao/ui";
+import { FormDialog, dt, dth } from "../../edu/operacao/ui";
 
 const ROTULO: Record<string, string> = { SOLICITADA: "Solicitada", COLETADA: "Coletada", EM_TRANSPORTE: "Em transporte", NA_LAVANDERIA: "Na lavanderia", LAVADA: "Lavada", EM_RETORNO: "Em retorno", ENTREGUE: "Entregue", CONFERIDA: "Conferida" };
 const DIAS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -24,12 +24,12 @@ export default function EduLavanderia() {
     <EduShell title="Lavanderia e rouparia" subtitle="Rol de rouparia enviada por departamento e jornada completa: coleta, transporte, lavagem, retorno, entrega e conferência.">
       <StateBox loading={painel.loading} error={painel.error} onRetry={painel.reload}>
         {p && (<>
-          <Stack direction="row" gap={2} flexWrap="wrap" sx={{ mb: 3 }}>
+          <Stack direction="row" spacing={2} useFlexGap sx={{ mb: 3, flexWrap: "wrap" }}>
             <Stat label="Remessas em andamento" value={p.abertas} /><Stat label="Atrasadas" value={p.atrasadas} color={p.atrasadas ? "#B91C1C" : "#15803D"} />
             <Stat label="Peças em processo" value={p.pecasEmProcesso} /><Stat label="Divergências de conferência" value={p.divergencias} color={p.divergencias ? "#B45309" : undefined} />
           </Stack>
           <Section title="Jornada da rouparia" description="Quantas remessas estão em cada etapa agora.">
-            <Stack direction="row" gap={1} flexWrap="wrap">{p.etapas.map((e: any) => <Chip key={e.etapa} label={`${e.rotulo}: ${p.porStatus[e.etapa] ?? 0}`} color={p.porStatus[e.etapa] ? "primary" : "default"} variant={p.porStatus[e.etapa] ? "filled" : "outlined"} />)}</Stack>
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>{p.etapas.map((e: any) => <Chip key={e.etapa} label={`${e.rotulo}: ${p.porStatus[e.etapa] ?? 0}`} color={p.porStatus[e.etapa] ? "primary" : "default"} variant={p.porStatus[e.etapa] ? "filled" : "outlined"} />)}</Stack>
           </Section>
           <Section title="Rol por departamento"><Table size="small"><TableHead><TableRow><TableCell>Departamento</TableCell><TableCell>Remessas</TableCell><TableCell>Peças enviadas</TableCell><TableCell>Em aberto</TableCell></TableRow></TableHead>
             <TableBody>{p.porDepartamento.map((d: any) => <TableRow key={d.departamento}><TableCell>{d.departamento}</TableCell><TableCell>{d.enviadas}</TableCell><TableCell>{d.pecas}</TableCell><TableCell>{d.abertas}</TableCell></TableRow>)}</TableBody></Table></Section>
@@ -51,7 +51,7 @@ export default function EduLavanderia() {
       <Dialog open={!!det} onClose={() => setDet(null)} fullWidth maxWidth="md">
         <DialogTitle>{det?.codigo} — {det?.departamento}</DialogTitle>
         <DialogContent dividers>
-          {det && (<Stack gap={2}>
+          {det && (<Stack spacing={2} useFlexGap>
             <Typography>{det.itens.map((i: any) => `${i.qtd}× ${i.peca}`).join(" · ")} — <b>{det.totalPecas} peças</b>{det.rota ? ` · Rota: ${det.rota.nome}` : ""}</Typography>
             {det.divergencia && <Alert severity="warning">{det.divergencia}</Alert>}
             <Stepper orientation="vertical" activeStep={det.jornada.findIndex((j: any) => !j.registro)}>

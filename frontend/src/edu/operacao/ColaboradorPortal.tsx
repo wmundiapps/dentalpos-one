@@ -20,7 +20,7 @@ export default function ColaboradorPortal() {
     <StateBox loading={loading} error={error} onRetry={reload}>
       {data && !data.colaborador ? <Alert severity="info">{data.mensagem}</Alert> : data && (
         <>
-          <Stack direction="row" gap={2} flexWrap="wrap" sx={{ mb: 3 }}>
+          <Stack direction="row" spacing={2} useFlexGap sx={{ mb: 3, flexWrap: "wrap" }}>
             <Stat label="Colaborador" value={data.colaborador.nome} hint={`${data.colaborador.cargo ?? "—"} · matrícula ${data.colaborador.matricula}`} />
             <Stat label="Setor" value={data.colaborador.departamento ?? "—"} hint={`Admissão: ${dt(data.colaborador.admissao)}`} />
             <Stat label="Pendências obrigatórias" value={data.pendentes} color={data.pendentes ? "#B45309" : "#15803D"} hint="documentos e treinamentos sem ciência" />
@@ -28,9 +28,9 @@ export default function ColaboradorPortal() {
           </Stack>
 
           <Section title="A quem me reportar" description="Sua cadeia hierárquica, do gestor direto para cima.">
-            <Stack direction={{ xs: "column", md: "row" }} alignItems="center" gap={1} flexWrap="wrap">
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center" }}>
               <Chip label={`Você: ${data.colaborador.nome}`} color="primary" />
-              {data.hierarquia.map((h: any) => (<Stack key={h.id} direction="row" alignItems="center" gap={1}><ArrowDownwardIcon fontSize="small" sx={{ transform: "rotate(-90deg)" }} /><Chip variant="outlined" label={`${h.nome}${h.cargo ? ` · ${h.cargo}` : ""}`} /></Stack>))}
+              {data.hierarquia.map((h: any) => (<Stack key={h.id} direction="row" spacing={1} useFlexGap sx={{ alignItems: "center" }}><ArrowDownwardIcon fontSize="small" sx={{ transform: "rotate(-90deg)" }} /><Chip variant="outlined" label={`${h.nome}${h.cargo ? ` · ${h.cargo}` : ""}`} /></Stack>))}
               {!data.hierarquia.length && <Typography color="text.secondary">Gestor direto ainda não informado. Procure o RH.</Typography>}
             </Stack>
             {data.escalonamento.length > 0 && (
@@ -46,10 +46,10 @@ export default function ColaboradorPortal() {
           </Section>
 
           <Section title="Minhas declarações" description="Peça e imprima a declaração de que precisar; ela é emitida na hora com seus dados.">
-            <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mb: 2 }}>
+            <Stack direction="row" spacing={1} useFlexGap sx={{ mb: 2, flexWrap: "wrap" }}>
               {data.documentos.filter((d: any) => d.tipo === "DECLARACAO").map((d: any) => <Button key={d.id} variant="outlined" onClick={() => pedir(d)}>{d.titulo}</Button>)}
             </Stack>
-            {data.solicitacoes.map((s: any) => (<Stack key={s.id} direction="row" gap={1} alignItems="center" sx={{ py: .5 }}><Pill v={s.status} /><Typography sx={{ flex: 1 }}>{s.titulo} — {dt(s.solicitadoEm)}</Typography><Button size="small" onClick={() => setDecl(s)}>Ver / imprimir</Button></Stack>))}
+            {data.solicitacoes.map((s: any) => (<Stack key={s.id} direction="row" spacing={1} useFlexGap sx={{ py: .5, alignItems: "center" }}><Pill v={s.status} /><Typography sx={{ flex: 1 }}>{s.titulo} — {dt(s.solicitadoEm)}</Typography><Button size="small" onClick={() => setDecl(s)}>Ver / imprimir</Button></Stack>))}
           </Section>
 
           {Object.keys(TIPO).map((t) => {
@@ -58,7 +58,7 @@ export default function ColaboradorPortal() {
             return (
               <Section key={t} title={TIPO[t]}>
                 {lista.map((d: any) => (
-                  <Stack key={d.id} direction="row" gap={1} alignItems="center" sx={{ py: .75, borderBottom: "1px solid", borderColor: "divider" }}>
+                  <Stack key={d.id} direction="row" spacing={1} useFlexGap sx={{ py: .75, borderBottom: "1px solid", borderColor: "divider", alignItems: "center" }}>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={{ fontWeight: 700 }}>{d.titulo}{d.duracaoHoras ? ` · ${d.duracaoHoras} h` : ""}</Typography>
                       {d.descricao && <Typography variant="body2" color="text.secondary">{d.descricao}</Typography>}
@@ -74,7 +74,7 @@ export default function ColaboradorPortal() {
 
           <Section title="Meus EPIs" description="Equipamentos de proteção individual do seu cargo e se você já retirou.">
             {data.epis.length === 0 ? <Typography color="text.secondary">Nenhum EPI definido para você.</Typography> : data.epis.map((e: any) => (
-              <Stack key={e.id} direction="row" gap={1} alignItems="center" sx={{ py: .75, borderBottom: "1px solid", borderColor: "divider" }}>
+              <Stack key={e.id} direction="row" spacing={1} useFlexGap sx={{ py: .75, borderBottom: "1px solid", borderColor: "divider", alignItems: "center" }}>
                 <Pill v={e.status === "PENDENTE" ? "PENDENTE" : e.status} />
                 <Typography sx={{ flex: 1 }}><b>{e.epi}</b>{e.ca ? ` · ${e.ca}` : ""}{e.tamanho ? ` · tam. ${e.tamanho}` : ""}</Typography>
                 <Typography variant="body2" color="text.secondary">{e.status === "PENDENTE" ? "Você ainda NÃO retirou este EPI — procure o almoxarifado." : `Entregue em ${dt(e.entregueEm)}${e.validadeAte ? ` · troca até ${dt(e.validadeAte)}` : ""}`}</Typography>

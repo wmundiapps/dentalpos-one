@@ -19,7 +19,7 @@ export function PainelCipa({ ir }: { ir: (a: string) => void }) {
   return (
     <StateBox loading={loading} error={error} onRetry={reload}>
       {data && (<>
-        <Stack direction="row" gap={2} flexWrap="wrap" sx={{ mb: 3 }}>
+        <Stack direction="row" spacing={2} useFlexGap sx={{ mb: 3, flexWrap: "wrap" }}>
           <Stat label="Membros da CIPA" value={data.membros} /><Stat label="Brigadistas" value={data.brigadistas} />
           <Stat label="Certificados vencendo (60 dias)" value={data.certificadosVencendo} color={data.certificadosVencendo ? "#B45309" : undefined} />
           <Stat label="Registros de CAT" value={data.catsTotal} /><Stat label="CAT aguardando providência" value={data.catsAbertas} color={data.catsAbertas ? "#B91C1C" : "#15803D"} />
@@ -49,8 +49,8 @@ export function CatTab() {
       <Dialog open={!!sel} onClose={() => { setSel(null); setDet(null); }} fullWidth maxWidth="md">
         <DialogTitle>{sel?.protocolo} — {sel?.colaboradorNome}</DialogTitle>
         <DialogContent dividers>
-          {det && (<Stack gap={1.5}>
-            <Stack direction="row" gap={1}><Pill v={det.status} /><Pill v={det.gravidade} /><Chip size="small" label={det.tipo.replace(/_/g, " ")} />{det.afastamento && <Chip size="small" color="warning" label="Com afastamento" />}</Stack>
+          {det && (<Stack spacing={1.5} useFlexGap>
+            <Stack direction="row" spacing={1} useFlexGap><Pill v={det.status} /><Pill v={det.gravidade} /><Chip size="small" label={det.tipo.replace(/_/g, " ")} />{det.afastamento && <Chip size="small" color="warning" label="Com afastamento" />}</Stack>
             <Typography>{det.descricao}</Typography>
             <Typography variant="body2" color="text.secondary">Local: {det.local ?? "—"} · Ocorrência: {dth(det.dataOcorrencia)} · Prazo da providência: {dth(det.prazoProvidenciaEm)}</Typography>
             {det.providencia && <Alert severity="success"><b>Providência confirmada</b> por {det.confirmadoPor} em {dth(det.confirmadoEm)}: {det.providencia}{det.comunicadoOrgaoEm ? ` · CAT comunicada ao órgão em ${dt(det.comunicadoOrgaoEm)}` : ""}</Alert>}
@@ -109,7 +109,7 @@ export function InstrucoesTab() {
   const { node, dlg, setDlg, run } = useAcoes();
   return (
     <Section title="Urgência, emergência e primeiros socorros" description="O que fazer, até onde ir e quem chamar. Leitura para todos." actions={<Button variant="contained" onClick={() => setDlg("n")}>Nova instrução</Button>}>
-      {(tel.data ?? []).length > 0 && <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: "error.50" }}><Typography sx={{ fontWeight: 800, mb: .5 }}>Números de emergência</Typography><Stack direction="row" gap={2} flexWrap="wrap">{tel.data!.filter((t) => t.categoria === "EMERGENCIA").map((t) => <Typography key={t.id}><b>{t.numero}</b> {t.nome}</Typography>)}</Stack></Paper>}
+      {(tel.data ?? []).length > 0 && <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: "error.50" }}><Typography sx={{ fontWeight: 800, mb: .5 }}>Números de emergência</Typography><Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: "wrap" }}>{tel.data!.filter((t) => t.categoria === "EMERGENCIA").map((t) => <Typography key={t.id}><b>{t.numero}</b> {t.nome}</Typography>)}</Stack></Paper>}
       <StateBox loading={loading} error={error} onRetry={reload} empty={!data?.length}>
         <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { md: "repeat(2, 1fr)" } }}>
           {data?.map((i) => (<Paper key={i.id} variant="outlined" sx={{ p: 2 }}><Chip size="small" label={CAT_INSTR[i.categoria] ?? i.categoria} sx={{ mb: 1 }} /><Typography sx={{ fontWeight: 800 }}>{i.titulo}</Typography><Typography variant="body2" sx={{ whiteSpace: "pre-line", mt: .5 }}>{i.passos}</Typography></Paper>))}

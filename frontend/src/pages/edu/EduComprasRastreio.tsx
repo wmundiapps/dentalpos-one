@@ -18,7 +18,7 @@ export default function EduComprasRastreio() {
   return (
     <EduShell title="Acompanhamento de compras" subtitle="Cada compra do pedido até o setor que solicitou: chegada, conferência, entrada no sistema, saída para entrega e recebimento, sempre com o responsável de cada etapa.">
       <StateBox loading={loading} error={error} onRetry={reload} empty={!pedidos.length} emptyText="Nenhum pedido de compra emitido ainda.">
-        <Stack direction="row" gap={2} flexWrap="wrap" sx={{ mb: 3 }}>
+        <Stack direction="row" spacing={2} useFlexGap sx={{ mb: 3, flexWrap: "wrap" }}>
           <Stat label="Pedidos acompanhados" value={pedidos.length} /><Stat label="Em andamento" value={pedidos.filter((p) => !p.concluido).length} />
           <Stat label="Atrasados" value={pedidos.filter((p) => p.atrasado).length} color="#B91C1C" /><Stat label="Entregues ao setor" value={pedidos.filter((p) => p.concluido).length} color="#15803D" />
         </Stack>
@@ -32,7 +32,7 @@ export default function EduComprasRastreio() {
       <Dialog open={!!aberto} onClose={() => setSel(null)} fullWidth maxWidth="md">
         <DialogTitle>{aberto?.numero} — {aberto?.fornecedor}</DialogTitle>
         <DialogContent dividers>
-          {aberto && (<Stack gap={2}>
+          {aberto && (<Stack spacing={2} useFlexGap>
             <Typography><b>Produtos:</b> {aberto.produtos.join(", ")}</Typography>
             <Typography><b>Destino:</b> {aberto.departamento ?? "não definido"}{aberto.solicitante ? ` · solicitante: ${aberto.solicitante}` : ""}</Typography>
             {!aberto.departamento && <Alert severity="warning" action={<Button size="small" onClick={() => setDest(true)}>Definir</Button>}>Informe o setor de destino e os responsáveis de cada etapa.</Alert>}
