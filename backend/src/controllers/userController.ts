@@ -5,6 +5,7 @@ import { createUser, updateUser, deleteUser } from '../services/userService'
 import { writeAudit } from '../services/auditService'
 import { validarSenhaForte } from '../modules/seguranca/senha'
 import { eventoDeRequisicao } from '../modules/seguranca/eventos'
+import { enviarConviteAcesso } from '../modules/seguranca/convite'
 
 const publicUserSelect = {
   id: true, clinicId: true, tenantId: true, email: true, firstName: true, lastName: true,
@@ -39,6 +40,8 @@ export async function store(req: AuthRequest, res: Response) {
   }
   const user = await createUser(payload)
   await writeAudit({ clinicId: req.user!.clinicId, tenantId: req.user!.tenantId, actorId: req.user!.id, module: 'users', action: 'create', entityType: 'User', entityId: user.id, afterData: { ...user, password: undefined } })
+  // Convite para a própria pessoa definir a senha (recuperação já funcionando desde o cadastro). Não bloqueia o cadastro.
+  if (req.body?.enviarConvite !== false && user.email) await enviarConviteAcesso(user as any).catch((e) => console.warn('[convite]', e?.message))
   const { password, ...safe } = user
   return res.status(201).json(safe)
 }

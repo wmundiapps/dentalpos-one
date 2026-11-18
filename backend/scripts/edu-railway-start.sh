@@ -19,6 +19,10 @@ if node -e "const {PrismaClient}=require('@prisma/client');const p=new PrismaCli
   echo 'Banco vazio: carregando demonstração...'
   API_URL="http://127.0.0.1:${PORT:-3000}/api" npx tsx scripts/edu-demo-seed.ts || echo 'Seed terminou com avisos'
 fi
+# EDU_SEED_STEPS=passo1,passo2: roda só esses passos do seed (idempotentes) sobre um banco já carregado.
+if [ -n "$EDU_SEED_STEPS" ]; then
+  SEED_STEPS="$EDU_SEED_STEPS" API_URL="http://127.0.0.1:${PORT:-3000}/api" npx tsx scripts/edu-demo-seed.ts || echo 'Seed parcial terminou com avisos'
+fi
 # Usuário de apresentação (se configurado por variável de ambiente)
 npx tsx scripts/edu-demo-user.ts || true
 wait $SERVER

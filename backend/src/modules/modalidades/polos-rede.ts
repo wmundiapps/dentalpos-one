@@ -1,3 +1,4 @@
+import { escopoPolos } from '../operacao/polos'
 import { Router, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../../lib/prisma'
@@ -92,7 +93,7 @@ export async function kpisPolo(tenantId: string, poloId: string) {
 // ---------------------------------------------------------------- painéis
 router.get(`${BASE}/rede`, requireRole(...FIN), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
-  const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true }, select: { id: true }, orderBy: { nome: 'asc' } })
+  const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true, ...(await escopoPolos(req as any)) }, select: { id: true }, orderBy: { nome: 'asc' } })
   const items: any[] = []
   for (const p of polos) items.push(await kpisPolo(tenantId, p.id))
   const soma = (f: (k: any) => number) => items.reduce((s, k) => s + f(k), 0)
@@ -111,7 +112,7 @@ router.get(`${BASE}/rede`, requireRole(...FIN), asyncHandler(async (req: Authent
 
 router.get(`${BASE}/mapa`, requireRole(...TEACH, 'FINANCE'), asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const tenantId = getTenantId(req)
-  const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true }, include: { ofertas: { where: { ativo: true } }, _count: { select: { alunos: { where: { ativo: true } } } } }, orderBy: [{ uf: 'asc' }, { cidade: 'asc' }] })
+  const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true, ...(await escopoPolos(req as any)) }, include: { ofertas: { where: { ativo: true } }, _count: { select: { alunos: { where: { ativo: true } } } } }, orderBy: [{ uf: 'asc' }, { cidade: 'asc' }] })
   const progs = await prisma.academicProgram.findMany({ where: { tenantId }, select: { id: true, nome: true } })
   const nomeCurso = new Map(progs.map((p) => [p.id, p.nome]))
   const pontos = polos.map((p) => {
@@ -564,7 +565,7 @@ router.get(`${BASE}/enade-rede`, requireRole(...FIN), asyncHandler(async (req: A
   const tenantId = getTenantId(req)
   const ano = Number(req.query.ano) || new Date().getFullYear()
   const rows = await prisma.polEnadeParticipacao.findMany({ where: { tenantId, ano }, select: { poloId: true, situacao: true, preparatorio: true, simuladoNota: true } })
-  const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true }, select: { id: true, nome: true, cidade: true, uf: true }, orderBy: { nome: 'asc' } })
+  const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true, ...(await escopoPolos(req as any)) }, select: { id: true, nome: true, cidade: true, uf: true }, orderBy: { nome: 'asc' } })
   res.json({ ano, links: LINKS_EXAMES, rede: indicadoresEnade(rows), polos: polos.map((p) => { const r = rows.filter((x) => x.poloId === p.id); const notas = r.filter((x) => x.simuladoNota != null).map((x) => x.simuladoNota as number); return { polo: p, ...indicadoresEnade(r), mediaSimulado: notas.length ? r2(notas.reduce((a, b2) => a + b2, 0) / notas.length) : null } }) })
 }))
 
@@ -726,7 +727,7 @@ router.get(`${BASE}/ofertas-auto/funil`, requireRole(...TEACH, 'MARKETING', 'FIN
   const poloId = req.query.poloId ? String(req.query.poloId) : undefined
   const politicaId = req.query.politicaId ? String(req.query.politicaId) : undefined
   const geral = await funilOfertas(tenantId, { poloId, politicaId })
-  const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true }, select: { id: true, nome: true, cidade: true, uf: true } })
+  const polos = await prisma.modPolo.findMany({ where: { tenantId, ativo: true, ...(await escopoPolos(req as any)) }, select: { id: true, nome: true, cidade: true, uf: true } })
   const porPolo: any[] = []
   if (!poloId) for (const p of polos) { const f = await funilOfertas(tenantId, { poloId: p.id, politicaId }); if (f.total) porPolo.push({ polo: p, ...f }) }
   res.json({ ...geral, porPolo })

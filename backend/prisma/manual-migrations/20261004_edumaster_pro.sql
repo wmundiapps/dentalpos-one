@@ -23051,3 +23051,401 @@ DO $$ BEGIN
   ALTER TABLE "AcpEnvio" ADD CONSTRAINT "AcpEnvio_regraId_fkey" FOREIGN KEY ("regraId") REFERENCES "AcpRegra"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 -- ==== ACP:END ====
+
+-- ==== OPS:BEGIN (Operação: portal do colaborador, CIPA, lavanderia, rastreio de compras, polos por gestor; idempotente, somente CRIA) ====
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ColDocumento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "conteudo" TEXT,
+    "url" TEXT,
+    "departamentoId" TEXT,
+    "cargoId" TEXT,
+    "obrigatorio" BOOLEAN NOT NULL DEFAULT false,
+    "duracaoHoras" DOUBLE PRECISION,
+    "prazoDias" INTEGER,
+    "versao" INTEGER NOT NULL DEFAULT 1,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ColDocumento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ColCiencia" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "documentoId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "cienteEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ColCiencia_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ColSolicitacao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "documentoId" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'SOLICITADA',
+    "textoEmitido" TEXT,
+    "observacao" TEXT,
+    "solicitadoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "emitidoEm" TIMESTAMP(3),
+    "emitidoPor" TEXT,
+
+    CONSTRAINT "ColSolicitacao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ColEpi" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "ca" TEXT,
+    "categoria" TEXT,
+    "validadeDias" INTEGER,
+    "departamentoId" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ColEpi_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ColEpiEntrega" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "colaboradorId" TEXT NOT NULL,
+    "epiId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDENTE',
+    "tamanho" TEXT,
+    "entregueEm" TIMESTAMP(3),
+    "entreguePor" TEXT,
+    "validadeAte" TIMESTAMP(3),
+    "cienteEm" TIMESTAMP(3),
+    "observacao" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ColEpiEntrega_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "ColEscalonamento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "departamentoId" TEXT,
+    "demanda" TEXT NOT NULL,
+    "nivel" INTEGER NOT NULL DEFAULT 1,
+    "responsavel" TEXT NOT NULL,
+    "cargo" TEXT,
+    "contato" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ColEscalonamento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CipMembro" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "colaboradorId" TEXT,
+    "funcao" TEXT NOT NULL DEFAULT 'TITULAR',
+    "representacao" TEXT NOT NULL DEFAULT 'EMPREGADOS',
+    "poloId" TEXT,
+    "setor" TEXT,
+    "mandatoInicio" TIMESTAMP(3),
+    "mandatoFim" TIMESTAMP(3),
+    "contato" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CipMembro_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CipBrigadista" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "colaboradorId" TEXT,
+    "funcao" TEXT NOT NULL DEFAULT 'BRIGADISTA',
+    "setor" TEXT,
+    "poloId" TEXT,
+    "turno" TEXT,
+    "contato" TEXT,
+    "certificadoAte" TIMESTAMP(3),
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CipBrigadista_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CipEvento" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "tipo" TEXT NOT NULL DEFAULT 'TREINAMENTO',
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT,
+    "inicio" TIMESTAMP(3) NOT NULL,
+    "fim" TIMESTAMP(3),
+    "local" TEXT,
+    "instrutor" TEXT,
+    "cargaHoras" DOUBLE PRECISION,
+    "publico" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'AGENDADO',
+    "participantes" JSONB NOT NULL DEFAULT '[]',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CipEvento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CipInstrucao" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "passos" TEXT NOT NULL,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "CipInstrucao_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CipContato" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "numero" TEXT NOT NULL,
+    "categoria" TEXT NOT NULL DEFAULT 'EMERGENCIA',
+    "poloId" TEXT,
+    "ordem" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "CipContato_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CipCat" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "protocolo" TEXT NOT NULL,
+    "colaboradorId" TEXT,
+    "colaboradorNome" TEXT NOT NULL,
+    "setor" TEXT,
+    "poloId" TEXT,
+    "dataOcorrencia" TIMESTAMP(3) NOT NULL,
+    "local" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'TIPICO',
+    "gravidade" TEXT NOT NULL DEFAULT 'LEVE',
+    "afastamento" BOOLEAN NOT NULL DEFAULT false,
+    "descricao" TEXT NOT NULL,
+    "responsaveis" JSONB NOT NULL DEFAULT '[]',
+    "status" TEXT NOT NULL DEFAULT 'REGISTRADA',
+    "prazoProvidenciaEm" TIMESTAMP(3),
+    "providencia" TEXT,
+    "confirmadoEm" TIMESTAMP(3),
+    "confirmadoPor" TEXT,
+    "comunicadoOrgaoEm" TIMESTAMP(3),
+    "encerradoEm" TIMESTAMP(3),
+    "criadoPorId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CipCat_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "CipAviso" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "catId" TEXT NOT NULL,
+    "canal" TEXT NOT NULL,
+    "destinatario" TEXT NOT NULL,
+    "destinatarioId" TEXT,
+    "nivel" INTEGER NOT NULL DEFAULT 0,
+    "enviadoEm" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "reconhecidoEm" TIMESTAMP(3),
+
+    CONSTRAINT "CipAviso_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "LavRota" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "nome" TEXT NOT NULL,
+    "departamento" TEXT NOT NULL,
+    "poloId" TEXT,
+    "diaSemana" INTEGER NOT NULL,
+    "horaColeta" TEXT NOT NULL DEFAULT '08:00',
+    "horaEntrega" TEXT NOT NULL DEFAULT '16:00',
+    "prazoRetornoDias" INTEGER NOT NULL DEFAULT 2,
+    "responsavelColeta" TEXT,
+    "transportador" TEXT,
+    "responsavelEntrega" TEXT,
+    "ativo" BOOLEAN NOT NULL DEFAULT true,
+
+    CONSTRAINT "LavRota_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "LavRemessa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "codigo" TEXT NOT NULL,
+    "departamento" TEXT NOT NULL,
+    "poloId" TEXT,
+    "tipo" TEXT NOT NULL DEFAULT 'UNIFORME',
+    "itens" JSONB NOT NULL DEFAULT '[]',
+    "totalPecas" INTEGER NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'SOLICITADA',
+    "rotaId" TEXT,
+    "previsaoRetornoEm" TIMESTAMP(3),
+    "solicitante" TEXT,
+    "divergencia" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LavRemessa_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "LavEtapa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "remessaId" TEXT NOT NULL,
+    "etapa" TEXT NOT NULL,
+    "responsavel" TEXT NOT NULL,
+    "qtdPecas" INTEGER,
+    "observacao" TEXT,
+    "em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "LavEtapa_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "SupPedidoDestino" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "pedidoId" TEXT NOT NULL,
+    "departamento" TEXT NOT NULL,
+    "solicitante" TEXT,
+    "responsaveis" JSONB NOT NULL DEFAULT '{}',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SupPedidoDestino_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "SupPedidoEtapa" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "pedidoId" TEXT NOT NULL,
+    "etapa" TEXT NOT NULL,
+    "responsavel" TEXT NOT NULL,
+    "observacao" TEXT,
+    "em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SupPedidoEtapa_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "AcsPoloGestor" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "poloId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AcsPoloGestor_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "ColDocumento_tenantId_tipo_ativo_idx" ON "ColDocumento"("tenantId", "tipo", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "ColCiencia_tenantId_colaboradorId_idx" ON "ColCiencia"("tenantId", "colaboradorId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "ColCiencia_documentoId_colaboradorId_key" ON "ColCiencia"("documentoId", "colaboradorId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "ColSolicitacao_tenantId_colaboradorId_idx" ON "ColSolicitacao"("tenantId", "colaboradorId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "ColSolicitacao_tenantId_status_idx" ON "ColSolicitacao"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "ColEpi_tenantId_ativo_idx" ON "ColEpi"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "ColEpiEntrega_tenantId_colaboradorId_idx" ON "ColEpiEntrega"("tenantId", "colaboradorId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "ColEpiEntrega_tenantId_status_idx" ON "ColEpiEntrega"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "ColEscalonamento_tenantId_departamentoId_idx" ON "ColEscalonamento"("tenantId", "departamentoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CipMembro_tenantId_ativo_idx" ON "CipMembro"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CipBrigadista_tenantId_ativo_idx" ON "CipBrigadista"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CipEvento_tenantId_inicio_idx" ON "CipEvento"("tenantId", "inicio");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CipInstrucao_tenantId_categoria_idx" ON "CipInstrucao"("tenantId", "categoria");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CipContato_tenantId_idx" ON "CipContato"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CipCat_tenantId_status_idx" ON "CipCat"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CipCat_tenantId_protocolo_key" ON "CipCat"("tenantId", "protocolo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "CipAviso_tenantId_catId_idx" ON "CipAviso"("tenantId", "catId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "LavRota_tenantId_ativo_idx" ON "LavRota"("tenantId", "ativo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "LavRemessa_tenantId_status_idx" ON "LavRemessa"("tenantId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "LavRemessa_tenantId_codigo_key" ON "LavRemessa"("tenantId", "codigo");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "LavEtapa_tenantId_remessaId_idx" ON "LavEtapa"("tenantId", "remessaId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "SupPedidoDestino_pedidoId_key" ON "SupPedidoDestino"("pedidoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "SupPedidoDestino_tenantId_idx" ON "SupPedidoDestino"("tenantId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "SupPedidoEtapa_tenantId_pedidoId_idx" ON "SupPedidoEtapa"("tenantId", "pedidoId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "AcsPoloGestor_tenantId_userId_idx" ON "AcsPoloGestor"("tenantId", "userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "AcsPoloGestor_userId_poloId_key" ON "AcsPoloGestor"("userId", "poloId");
+-- ==== OPS:END ====

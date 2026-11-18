@@ -15,13 +15,15 @@ type Fase = "iniciando" | "procurando" | "desafio" | "capturando" | "enviando" |
  * confirma a vivacidade, calcula o embedding no navegador e entrega {embeddings, liveness} ao `onCaptura`.
  * Modo "identificar" repete sozinho (quiosque); modo "cadastrar" captura `amostras` vetores quando o usuário clica em iniciar.
  */
-export default function FaceCamera({ modo, onCaptura, amostras = 1, pausado = false, esperaMs = 2500, aspecto = "4 / 3" }: {
+export default function FaceCamera({ modo, onCaptura, amostras = 1, pausado = false, esperaMs = 2500, aspecto = "4 / 3", pedirDesafio }: {
   modo: "identificar" | "cadastrar";
   onCaptura: (c: CapturaFacial) => Promise<void> | void;
   amostras?: number;
   pausado?: boolean;
   esperaMs?: number;
   aspecto?: string;
+  /** Substitui o pedido do desafio de vivacidade (ex.: tela de login, ainda sem sessão). */
+  pedirDesafio?: () => Promise<Desafio>;
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const [fase, setFase] = useState<Fase>("iniciando");
@@ -60,7 +62,7 @@ export default function FaceCamera({ modo, onCaptura, amostras = 1, pausado = fa
       estavel = 0;
       // 2) desafio de vivacidade (nonce de uso único emitido pelo servidor)
       let desafio: Desafio;
-      try { desafio = await eduApi.get<Desafio>("/presenca/biometria/desafio"); } catch (e: any) { setErro(e?.message || "Falha ao pedir o desafio."); setF("erro"); await dormir(3000); setErro(null); continue; }
+      try { desafio = pedirDesafio ? await pedirDesafio() : await eduApi.get<Desafio>("/presenca/biometria/desafio"); } catch (e: any) { setErro(e?.message || "Falha ao pedir o desafio."); setF("erro"); await dormir(3000); setErro(null); continue; }
       setF("desafio", desafio.instrucao);
       const amostrasL: Amostra[] = [];
       const t0 = performance.now();

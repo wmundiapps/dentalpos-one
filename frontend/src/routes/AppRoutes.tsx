@@ -55,6 +55,11 @@ const EduSalas = lazy(() => import("../pages/edu/EduSalas"));
 const EduDesenvolvimento = lazy(() => import("../pages/edu/EduDesenvolvimento"));
 const EduPesquisaExtensao = lazy(() => import("../pages/edu/EduPesquisaExtensao"));
 const EduRh = lazy(() => import("../pages/edu/EduRh"));
+const EduColaborador = lazy(() => import("../pages/edu/EduColaborador"));
+const EduCipa = lazy(() => import("../pages/edu/EduCipa"));
+const EduLavanderia = lazy(() => import("../pages/edu/EduLavanderia"));
+const EduComprasRastreio = lazy(() => import("../pages/edu/EduComprasRastreio"));
+const EduAcessoPolos = lazy(() => import("../pages/edu/EduAcessoPolos"));
 const AccountSecurity = lazy(() => import("../pages/AccountSecurity"));
 const SecurityEvents = lazy(() => import("../pages/SecurityEvents"));
 const EduIdentity = lazy(() => import("../pages/EduIdentity"));
@@ -206,6 +211,11 @@ export default function AppRoutes() {
       <Route path="/edu/lgpd" element={<EduLgpd />} />
       <Route path="/edu/acesso-por-cargo" element={<EduAcessoPorCargo />} />
       <Route path="/edu/rh" element={<EduRh />} />
+      <Route path="/edu/colaborador" element={<EduColaborador />} />
+      <Route path="/edu/cipa" element={<EduCipa />} />
+      <Route path="/edu/lavanderia" element={<EduLavanderia />} />
+      <Route path="/edu/compras-rastreio" element={<EduComprasRastreio />} />
+      <Route path="/edu/acesso-polos" element={<EduAcessoPolos />} />
       <Route path="/edu/financeiro" element={<EduFinanceiro />} />
       <Route path="/edu/juridico" element={<EduJuridico />} />
       <Route path="/edu/atendimento" element={<EduAtendimento />} />

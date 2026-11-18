@@ -17071,6 +17071,335 @@ model NtRevisao {
   @@index([tenantId, classSectionId])
 }
 
+// ---- edu/operacao.prisma ----
+// ============================================================
+// EDUMASTER PRO — OPERAÇÃO: Portal do colaborador (RH), CIPA/SST, Lavanderia, rastreio de compras e polos por gestor.
+// Prefixos Col, Cip, Lav, SupPedidoEtapa/Destino, Acs. Somente tabelas NOVAS; referências = String ids sem @relation.
+// ============================================================
+
+// ---------- PORTAL DO COLABORADOR ----------
+// Biblioteca do colaborador: declaração (modelo configurável), POP, instrução de trabalho, manual, treinamento e regra.
+model ColDocumento {
+  id             String   @id @default(uuid())
+  tenantId       String
+  tipo           String                       // DECLARACAO | POP | INSTRUCAO | MANUAL | TREINAMENTO | REGRA
+  titulo         String
+  descricao      String?
+  conteudo       String?  @db.Text            // texto (declaração aceita {{nome}}, {{cargo}}, {{matricula}}, {{admissao}}, {{departamento}}, {{data}})
+  url            String?
+  departamentoId String?                      // vazio = todos os setores
+  cargoId        String?                      // vazio = todos os cargos
+  obrigatorio    Boolean  @default(false)     // exige ciência/conclusão do colaborador
+  duracaoHoras   Float?
+  prazoDias      Int?                         // prazo para ciência/conclusão após a publicação
+  versao         Int      @default(1)
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, tipo, ativo])
+}
+
+// Ciência / conclusão do colaborador.
+model ColCiencia {
+  id            String   @id @default(uuid())
+  tenantId      String
+  documentoId   String
+  colaboradorId String
+  cienteEm      DateTime @default(now())
+
+  @@unique([documentoId, colaboradorId])
+  @@index([tenantId, colaboradorId])
+}
+
+// Pedido de declaração pelo colaborador (emitida automaticamente a partir do modelo ou com aprovação do RH).
+model ColSolicitacao {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  documentoId   String                        // modelo (ColDocumento tipo DECLARACAO)
+  titulo        String
+  status        String   @default("SOLICITADA")   // SOLICITADA | EMITIDA | NEGADA
+  textoEmitido  String?  @db.Text
+  observacao    String?
+  solicitadoEm  DateTime @default(now())
+  emitidoEm     DateTime?
+  emitidoPor    String?
+
+  @@index([tenantId, colaboradorId])
+  @@index([tenantId, status])
+}
+
+// Catálogo de EPIs.
+model ColEpi {
+  id             String   @id @default(uuid())
+  tenantId       String
+  nome           String
+  ca             String?                      // nº do Certificado de Aprovação
+  categoria      String?
+  validadeDias   Int?                         // troca periódica
+  departamentoId String?                      // vazio = todos
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, ativo])
+}
+
+// Entrega de EPI ao colaborador: PENDENTE (ainda não retirou) | ENTREGUE | DEVOLVIDO.
+model ColEpiEntrega {
+  id            String   @id @default(uuid())
+  tenantId      String
+  colaboradorId String
+  epiId         String
+  status        String   @default("PENDENTE")
+  tamanho       String?
+  entregueEm    DateTime?
+  entreguePor   String?
+  validadeAte   DateTime?
+  cienteEm      DateTime?                     // o colaborador confirmou o recebimento
+  observacao    String?
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, colaboradorId])
+  @@index([tenantId, status])
+}
+
+// A quem se reportar por tipo de demanda (cadeia de escalonamento por setor).
+model ColEscalonamento {
+  id             String   @id @default(uuid())
+  tenantId       String
+  departamentoId String?                      // vazio = geral
+  demanda        String                       // ex.: "Falta de material", "Acidente", "Dúvida de folha"
+  nivel          Int      @default(1)
+  responsavel    String
+  cargo          String?
+  contato        String?
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, departamentoId])
+}
+
+// ---------- CIPA / SST ----------
+model CipMembro {
+  id             String   @id @default(uuid())
+  tenantId       String
+  nome           String
+  colaboradorId  String?
+  funcao         String   @default("TITULAR")     // PRESIDENTE | VICE_PRESIDENTE | SECRETARIO | TITULAR | SUPLENTE
+  representacao  String   @default("EMPREGADOS")  // EMPREGADOR | EMPREGADOS
+  poloId         String?
+  setor          String?
+  mandatoInicio  DateTime?
+  mandatoFim     DateTime?
+  contato        String?
+  ativo          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@index([tenantId, ativo])
+}
+
+model CipBrigadista {
+  id              String   @id @default(uuid())
+  tenantId        String
+  nome            String
+  colaboradorId   String?
+  funcao          String   @default("BRIGADISTA")  // CHEFE | LIDER_ANDAR | BRIGADISTA | SOCORRISTA
+  setor           String?
+  poloId          String?
+  turno           String?
+  contato         String?
+  certificadoAte  DateTime?
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([tenantId, ativo])
+}
+
+// Calendário: treinamentos, reuniões, simulados de abandono, SIPAT.
+model CipEvento {
+  id            String   @id @default(uuid())
+  tenantId      String
+  tipo          String   @default("TREINAMENTO")  // TREINAMENTO | REUNIAO | SIMULADO | SIPAT | INSPECAO
+  titulo        String
+  descricao     String?
+  inicio        DateTime
+  fim           DateTime?
+  local         String?
+  instrutor     String?
+  cargaHoras    Float?
+  publico       String?
+  status        String   @default("AGENDADO")     // AGENDADO | REALIZADO | CANCELADO
+  participantes Json     @default("[]")           // [{ nome, presente }]
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId, inicio])
+}
+
+// Instruções de urgência, emergência, autossocorro, socorro ao próximo e limites de atuação.
+model CipInstrucao {
+  id         String   @id @default(uuid())
+  tenantId   String
+  categoria  String                               // URGENCIA | EMERGENCIA | AUTOSSOCORRO | SOCORRO_PROXIMO | LIMITES
+  titulo     String
+  passos     String   @db.Text
+  ordem      Int      @default(0)
+  ativo      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, categoria])
+}
+
+model CipContato {
+  id        String   @id @default(uuid())
+  tenantId  String
+  nome      String
+  numero    String
+  categoria String   @default("EMERGENCIA")        // EMERGENCIA | INTERNO | SAUDE | SEGURANCA
+  poloId    String?
+  ordem     Int      @default(0)
+
+  @@index([tenantId])
+}
+
+// Comunicação de Acidente de Trabalho / ocorrência. Vai direto aos responsáveis e só fecha com providência confirmada.
+model CipCat {
+  id               String   @id @default(uuid())
+  tenantId         String
+  protocolo        String
+  colaboradorId    String?
+  colaboradorNome  String
+  setor            String?
+  poloId           String?
+  dataOcorrencia   DateTime
+  local            String?
+  tipo             String   @default("TIPICO")      // TIPICO | TRAJETO | DOENCA_OCUPACIONAL | INCIDENTE
+  gravidade        String   @default("LEVE")        // LEVE | MODERADA | GRAVE | FATAL
+  afastamento      Boolean  @default(false)
+  descricao        String   @db.Text
+  responsaveis     Json     @default("[]")          // [{ userId?, nome, papel, email? }]
+  status           String   @default("REGISTRADA")  // REGISTRADA | EM_TRATATIVA | PROVIDENCIA_CONFIRMADA | ENCERRADA
+  prazoProvidenciaEm DateTime?
+  providencia      String?  @db.Text
+  confirmadoEm     DateTime?
+  confirmadoPor    String?
+  comunicadoOrgaoEm DateTime?                        // CAT enviada ao INSS/eSocial
+  encerradoEm      DateTime?
+  criadoPorId      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, protocolo])
+  @@index([tenantId, status])
+}
+
+// Cada aviso enviado (multicanal) e seu reconhecimento; sem reconhecimento o job reforça e escalona.
+model CipAviso {
+  id             String   @id @default(uuid())
+  tenantId       String
+  catId          String
+  canal          String                              // IN_APP | EMAIL | WHATSAPP
+  destinatario   String
+  destinatarioId String?
+  nivel          Int      @default(0)                // 0 inicial | 1 reforço | 2 escalonamento
+  enviadoEm      DateTime @default(now())
+  reconhecidoEm  DateTime?
+
+  @@index([tenantId, catId])
+}
+
+// ---------- LAVANDERIA ----------
+// Rota logística combinada (coleta, transporte, entrega, devolução) por setor.
+model LavRota {
+  id             String   @id @default(uuid())
+  tenantId       String
+  nome           String
+  departamento   String
+  poloId         String?
+  diaSemana      Int                                  // 0 (dom) a 6 (sáb)
+  horaColeta     String   @default("08:00")
+  horaEntrega    String   @default("16:00")
+  prazoRetornoDias Int    @default(2)
+  responsavelColeta   String?
+  transportador       String?
+  responsavelEntrega  String?
+  ativo          Boolean  @default(true)
+
+  @@index([tenantId, ativo])
+}
+
+model LavRemessa {
+  id             String   @id @default(uuid())
+  tenantId       String
+  codigo         String
+  departamento   String
+  poloId         String?
+  tipo           String   @default("UNIFORME")        // UNIFORME | JALECO | ENXOVAL | CAMPO_CIRURGICO | OUTRO
+  itens          Json     @default("[]")              // [{ peca, qtd }]
+  totalPecas     Int      @default(0)
+  status         String   @default("SOLICITADA")      // SOLICITADA | COLETADA | EM_TRANSPORTE | NA_LAVANDERIA | LAVADA | EM_RETORNO | ENTREGUE | CONFERIDA
+  rotaId         String?
+  previsaoRetornoEm DateTime?
+  solicitante    String?
+  divergencia    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([tenantId, codigo])
+  @@index([tenantId, status])
+}
+
+// Histórico da jornada: cada etapa com responsável e quantidade conferida.
+model LavEtapa {
+  id           String   @id @default(uuid())
+  tenantId     String
+  remessaId    String
+  etapa        String
+  responsavel  String
+  qtdPecas     Int?
+  observacao   String?
+  em           DateTime @default(now())
+
+  @@index([tenantId, remessaId])
+}
+
+// ---------- RASTREIO DE COMPRAS ----------
+// Destino e responsáveis esperados de cada etapa do pedido de compra.
+model SupPedidoDestino {
+  id            String   @id @default(uuid())
+  tenantId      String
+  pedidoId      String   @unique
+  departamento  String
+  solicitante   String?
+  responsaveis  Json     @default("{}")               // { CHEGOU: "Fulano", CONFERIDO: "...", ... }
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model SupPedidoEtapa {
+  id           String   @id @default(uuid())
+  tenantId     String
+  pedidoId     String
+  etapa        String                                 // ENVIADO_FORNECEDOR | CHEGOU | CONFERIDO | ENTRADA_ESTOQUE | SAIU_ENTREGA | ENTREGUE_SETOR
+  responsavel  String
+  observacao   String?
+  em           DateTime @default(now())
+
+  @@index([tenantId, pedidoId])
+}
+
+// ---------- ACESSO POR POLO (gestor com um ou mais polos) ----------
+model AcsPoloGestor {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  poloId    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, poloId])
+  @@index([tenantId, userId])
+}
+
 // ---- edu/pesquisa.prisma ----
 // ============================================================
 // EDUMASTER PRO — PESQUISA (prefixo Pes)

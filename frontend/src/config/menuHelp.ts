@@ -23,10 +23,25 @@ export const groupHelp: Record<string, HelpEntry> = {
   "EduMaster · Financeiro": e("Financeiro da instituição: receber, pagar, conciliação bancária, notas, recibos, remessas e boletos.", "Comece pelo Painel financeiro; use Conferência e autorização para aprovar pagamentos."),
   "EduMaster · Cobrança": e("Recuperação de inadimplência com régua automática, acordos e histórico de contatos.", "Veja o Painel, abra Inadimplentes para agir e ajuste a Régua e Políticas para automatizar."),
   "EduMaster · Marketing": e("Captação de alunos: campanhas, leads, funil, canais, mídia offline, site, eventos e conformidade LGPD.", "Crie uma campanha, acompanhe os leads no Funil e meça no Painel."),
+  "EduMaster · CIPA e segurança": e("Segurança do trabalho: membros da CIPA, brigada, treinamentos, instruções de emergência e registro de acidentes (CAT) com aviso e confirmação.", "Em caso de acidente, registre em Registro de CAT. Os responsáveis são avisados por vários canais até confirmarem a providência."),
   "Configurações": e("Ajustes gerais do sistema: unidades, usuários, importações e preferências.", "Altere com cuidado; mudanças valem para toda a instituição."),
 };
 
 const itemList: Array<[string, string, string]> = [
+
+  ["/edu/colaborador", "Seu portal de colaborador: a quem se reportar, declarações, POPs, instruções, manuais, treinamentos, EPIs e regras do seu setor.", "Veja as pendências no topo, abra cada documento e clique em “Li e estou ciente”. Peça declarações e elas saem na hora."],
+  ["/edu/colaborador?aba=gestao", "Área do RH para publicar documentos, definir EPIs e escalonamento por demanda.", "Publique o documento, marque se é obrigatório e acompanhe quantos colaboradores deram ciência. Designe EPIs e registre a entrega."],
+  ["/edu/cipa?secao=painel", "Resumo da CIPA: membros, brigada, certificados vencendo, próximas reuniões e ocorrências abertas.", "Confira os alertas vermelhos primeiro e abra o item pendente."],
+  ["/edu/cipa?secao=cat", "Registro de CAT e ocorrências com aviso automático aos responsáveis e confirmação de providência.", "Clique em Comunicar acidente, preencha e registre. Acompanhe os avisos e só encerre depois de confirmar a providência."],
+  ["/edu/cipa?secao=instrucoes", "Instruções de urgência, emergência, autossocorro, socorro ao próximo e limites de atuação.", "Leia antes de precisar. Em emergência, siga o passo a passo e chame ajuda."],
+  ["/edu/cipa?secao=membros", "Composição da CIPA, representação e mandato.", "Cadastre os membros eleitos e indicados e acompanhe o fim do mandato."],
+  ["/edu/cipa?secao=brigada", "Brigada de incêndio e socorristas, com turno e validade do certificado.", "Cadastre cada brigadista e renove o certificado quando estiver amarelo."],
+  ["/edu/cipa?secao=calendario", "Calendário de treinamentos, reuniões da CIPA, simulados e SIPAT.", "Agende o evento com data, local e instrutor."],
+  ["/edu/cipa?secao=telefones", "Números de emergência externos e internos.", "Mantenha atualizado; este quadro aparece para todos em Urgência e emergência."],
+  ["/edu/compras-rastreio", "Acompanha cada compra até o setor que pediu, com responsável por etapa.", "Abra o pedido, defina o setor de destino e registre cada etapa na ordem: chegou, conferido, entrada no estoque, saiu para entrega e entregue."],
+  ["/edu/lavanderia", "Controle da rouparia enviada por departamento e jornada de coleta, transporte, lavagem, retorno e entrega.", "Registre a remessa com as peças, avance cada etapa informando o responsável e confira as peças na devolução."],
+  ["/edu/acesso-polos", "Define quais polos cada gestor pode ver.", "Escolha o gestor e marque um ou mais polos. Sem polos marcados, ele vê todos."],
+  ["/seguranca", "Segurança da sua conta: ativar a autenticação em 2 etapas e códigos de recuperação.", "Ative com o app autenticador e guarde os códigos de recuperação em local seguro."],
   // Acadêmico (cadastro)
   ["/academico", "Resumo geral da vida acadêmica com números de alunos, cursos e turmas.", "Use como ponto de partida e clique nos cartões para abrir cada assunto."],
   ["/academico?secao=alunos", "Cadastro e consulta de alunos.", "Pesquise pelo nome ou matrícula, abra a ficha e edite dados, situação e documentos."],

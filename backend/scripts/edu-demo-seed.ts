@@ -28,6 +28,7 @@ import { seedAva } from './seeds/ava'
 import { seedBoletos } from './seeds/boletos'
 import { seedMensagens } from './seeds/mensagens'
 import { seedAcompanhamento } from './seeds/acompanhamento'
+import { seedOperacao } from './seeds/operacao'
 import { seedAcesso } from './seeds/acesso'
 import { seedMarca } from './seeds/marca'
 import { seedContabilFiscal } from './seeds/contabil-fiscal'
@@ -135,6 +136,7 @@ const ONDA2: [string, (c: Ctx) => Promise<any>][] = [
     await seedContabilCarteira(c.api, { ...sCtx(c), loginAs: async (email: string, senha: string) => { try { return apiComToken(c, await c.loginAs({ email, password: senha })) } catch { return null } } } as any)
   }],
   ['acompanhamento', (c) => seedAcompanhamento(c.api, { failures: c.failures })],
+  ['operacao', (c) => seedOperacao(c.api, { failures: c.failures })],
   // acesso por cargo: deve ser o ÚLTIMO (as regras não podem bloquear os passos anteriores)
   ['acesso', (c) => seedAcesso(c.api, sCtx(c))],
 ]

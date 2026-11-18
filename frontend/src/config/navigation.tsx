@@ -303,6 +303,8 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Frota","/edu/infraestrutura?secao=frota",<WorkIcon/>),
       item("Segurança patrimonial","/edu/infraestrutura?secao=seguranca",<ShieldIcon/>),
       item("Compras, estoque e vendas","/edu/suprimentos",<Inventory2Icon/>),
+      item("Acompanhamento de compras","/edu/compras-rastreio",<FactCheckIcon/>),
+      item("Lavanderia e rouparia","/edu/lavanderia",<CleaningServicesIcon/>),
     ]
   },
   {
@@ -390,6 +392,21 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Avaliações","/edu/rh?secao=avaliacoes",<FactCheckIcon/>),
       item("Folha","/edu/rh?secao=folha",<RequestQuoteIcon/>),
       item("Pró-labore e Terceiros","/edu/rh?secao=socios",<AccountBalanceWalletIcon/>),
+      item("Portal do colaborador","/edu/colaborador",<BadgeIcon/>),
+      item("Biblioteca e EPIs (RH)","/edu/colaborador?aba=gestao",<FactCheckIcon/>),
+    ]
+  },
+  {
+    label:"EduMaster · CIPA e segurança",
+    icon:tile(<HealthAndSafetyIcon/>,"#B91C1C"),
+    items:[
+      item("CIPA: Painel","/edu/cipa?secao=painel",<SpaceDashboardIcon/>),
+      item("Registro de CAT","/edu/cipa?secao=cat",<ReportProblemIcon/>),
+      item("Urgência e emergência","/edu/cipa?secao=instrucoes",<MedicalServicesIcon/>),
+      item("Membros da CIPA","/edu/cipa?secao=membros",<GroupsIcon/>),
+      item("Brigada de incêndio","/edu/cipa?secao=brigada",<ShieldIcon/>),
+      item("Calendário de treinamentos","/edu/cipa?secao=calendario",<CalendarMonthIcon/>),
+      item("Números de emergência","/edu/cipa?secao=telefones",<SupportAgentIcon/>),
     ]
   },
   {
@@ -448,6 +465,8 @@ const allNavigationGroups:NavigationGroup[] = [
       item("Permissões","/permissoes",<AdminPanelSettingsIcon/>),
       item("Central LGPD","/edu/lgpd",<PrivacyTipIcon/>),
       item("Acesso por cargo","/edu/acesso-por-cargo",<AdminPanelSettingsIcon/>,["ADMIN","OWNER"]),
+      item("Acesso por polo","/edu/acesso-polos",<LocationCityIcon/>,["ADMIN","OWNER"]),
+      item("Segurança da conta (2 etapas)","/seguranca",<ShieldIcon/>),
       item("Segurança da conta","/seguranca",<AdminPanelSettingsIcon/>),
       item("Eventos de segurança","/seguranca/eventos",<AdminPanelSettingsIcon/>),
       item("Sugestões e Problemas","/sugestoes-problemas",<BugReportIcon/>),

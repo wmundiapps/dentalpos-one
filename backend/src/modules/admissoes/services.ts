@@ -1,3 +1,4 @@
+import { enviarConviteAcesso } from '../seguranca/convite'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../lib/prisma'
 import { audit, notify } from '../core/notify'
@@ -404,6 +405,8 @@ export async function efetivarMatricula(params: { tenantId: string; matriculaId:
     mensagem: `Bem-vindo(a), ${c.nome}! Seu RA é ${result.ra}. Acesse com o e-mail ${email}; no primeiro acesso use "Esqueci minha senha" para definir a sua senha (a senha provisória foi entregue apenas à secretaria).`,
     templateKey: 'adm.matricula.concluida', refType: 'AdmMatricula', refId: m.id,
   })
+  // Convite para o aluno definir a própria senha (recuperação de senha já ativa desde a matrícula).
+  try { const u = await prisma.user.findUnique({ where: { id: result.userId } }); if (u) await enviarConviteAcesso(u as any) } catch (e: any) { console.warn('[convite-aluno]', e?.message) }
   await audit({ tenantId, userId: params.userId, modulo: 'admissoes', acao: 'EFETIVAR_MATRICULA', refType: 'AdmMatricula', refId: m.id, detalhes: { ra: result.ra, studentId: result.studentId } })
   return { matricula: mat, ra: result.ra, studentId: result.studentId, enrollmentId: result.enrollmentId, userId: result.userId, senhaProvisoria: senha, parcelasGeradas: parcelas.length }
 }

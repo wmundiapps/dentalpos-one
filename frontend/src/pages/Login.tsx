@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, TextField, Typography } from "@mui/material";
 import TwoFactorSetupPanel from "../components/security/TwoFactorSetupPanel";
+import FaceCamera, { type CapturaFacial } from "../edu/presenca/FaceCamera";
 import { CHAVE_MOTIVO } from "../security/sessionGuard";
 import { securityApi, SecurityApiError } from "../services/SecurityApi";
 import {
@@ -35,6 +36,8 @@ export default function Login() {
   const [error, setError] = useState("");
   const [expired, setExpired] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [faceOpen, setFaceOpen] = useState(false);
+  const [faceErro, setFaceErro] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetClinicId, setResetClinicId] = useState("");
@@ -127,6 +130,21 @@ export default function Login() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Entrada por reconhecimento facial (alternativa à senha): exige e-mail, cadastro prévio do rosto e prova de vivacidade.
+  async function entrarComRosto(c: CapturaFacial) {
+    setFaceErro("");
+    const r = await fetch(`${API}/auth/face/login`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, ...(clinicId.trim() ? { clinicId: clinicId.trim() } : {}), embedding: c.embeddings[0], liveness: c.liveness }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { setFaceErro(data.error || "Não foi possível confirmar o rosto."); return; }
+    setFaceOpen(false);
+    if (data.requires2fa) { setChallengeToken(data.challengeToken); setEtapa("codigo"); return; }
+    if (data.requires2faSetup) { setSetupToken(data.setupToken); setEtapa("configurar2fa"); return; }
+    concluirLogin(data);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -394,6 +412,14 @@ export default function Login() {
         <Button
           fullWidth
           sx={{ mt: 1 }}
+          disabled={!email.trim()}
+          onClick={() => { setFaceErro(""); setFaceOpen(true); }}
+        >
+          Entrar com reconhecimento facial
+        </Button>
+        <Button
+          fullWidth
+          sx={{ mt: 1 }}
           onClick={() => {
             setResetEmail(email);
             setResetClinicId(clinicId);
@@ -410,6 +436,17 @@ export default function Login() {
           <a href="/privacidade">Política de Privacidade</a> · <a href="/termos">Termos de Uso</a> · <a href="/portal-titular">Portal do Titular (LGPD)</a>
         </Typography>
       </Paper>
+
+      <Dialog open={faceOpen} onClose={() => setFaceOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Entrar com o rosto</DialogTitle>
+        <DialogContent sx={{ pt: "12px!important" }}>
+          <Typography variant="body2" sx={{ mb: 1.5 }}>Conta: <b>{email}</b>. Posicione o rosto e siga a instrução (piscar ou virar a cabeça). Disponível para quem já cadastrou o rosto em “Minha biometria”.</Typography>
+          {faceErro && <Alert severity="error" sx={{ mb: 1.5 }}>{faceErro}</Alert>}
+          {faceOpen && <FaceCamera modo="identificar" esperaMs={4000} onCaptura={entrarComRosto}
+            pedirDesafio={async () => { const r = await fetch(`${API}/auth/face/desafio`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, ...(clinicId.trim() ? { clinicId: clinicId.trim() } : {}) }) }); if (!r.ok) throw new Error("Falha ao iniciar a verificação."); return r.json(); }} />}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setFaceOpen(false)}>Cancelar</Button></DialogActions>
+      </Dialog>
 
       <Dialog open={resetOpen} onClose={resetBusy ? undefined : () => setResetOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>Redefinir senha</DialogTitle>

@@ -14,6 +14,7 @@ import { instalarLogSeguro, sanitizarUrl } from './modules/lgpd/mascara'
 import { timingSafeEqual } from 'crypto'
 import { concluirLogin } from './controllers/authController'
 import { getDemoAccess } from './services/demoAccessService'
+import { montarLoginFacial } from './modules/seguranca/loginFacial'
 
 dotenv.config()
 
@@ -133,6 +134,7 @@ app.post('/api/demo-acesso', authLimiter, async (req, res) => {
     return res.status(500).json({ error: 'Erro interno do servidor.' })
   }
 })
+montarLoginFacial(app, authLimiter)
 app.use('/api/demo/register', authLimiter)
 app.use('/api', apiLimiter)
 
