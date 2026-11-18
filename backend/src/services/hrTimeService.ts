@@ -162,6 +162,19 @@ function assertWorkplace(emp: { workplaceId?: string | null }, place?: Place) {
   else if (emp.workplaceId) throw new HrError(403, 'O seu ponto é registrado no celular do seu polo, pelo link do polo. Fale com o RH se precisar de ajuda.')
 }
 
+// Trava do polo: depois que o local foi confirmado no primeiro acesso, NADA do ponto funciona fora do raio dele
+// (consultar CPF, cadastrar rosto ou bater ponto). Enquanto a calibragem está liberada o local ainda está sendo definido, então não trava.
+function assertInsidePlace(place: Place | undefined, body: any) {
+  if (!place || place.calibrating) return
+  if (place.pending) throw new HrError(409, `O local do polo ${place.name} ainda não foi definido. A pessoa responsável pelo polo precisa confirmar o local pelo celular do polo (calibragem liberada pelo RH).`)
+  const lat = body?.latitude === undefined || body?.latitude === null ? NaN : Number(body.latitude)
+  const lng = body?.longitude === undefined || body?.longitude === null ? NaN : Number(body.longitude)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new HrError(400, 'Ative a localização do aparelho: o ponto só funciona dentro do polo.')
+  if (Number.isFinite(Number(body?.accuracy)) && Number(body.accuracy) > 150) throw new HrError(400, `A localização do aparelho está imprecisa (±${Math.round(Number(body.accuracy))} m). Vá para perto de uma janela ou área aberta e tente de novo.`)
+  const distance = haversine(place.latitude, place.longitude, lat, lng)
+  if (distance > place.radiusMeters) throw new HrError(403, `Você está a ${Math.round(distance)} m do polo ${place.name}. O ponto só funciona a até ${place.radiusMeters} m do local confirmado do polo.`)
+}
+
 async function recordPunch(emp: { id: string; name: string }, c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, method: 'PASSWORD' | 'FACE', extraNote?: string, place?: Place) {
   if (place?.pending) throw new HrError(409, `O local do polo ${place.name} ainda não foi definido. A pessoa responsável pelo polo precisa confirmar o local pelo celular do polo (calibragem liberada pelo RH).`)
   const base = await getTimeSettings(c.clinicId)
@@ -216,6 +229,7 @@ async function emailConfirmation(clinicId: string, emp: { name: string; email: s
 }
 
 export async function facePunch(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, place?: Place) {
+  assertInsidePlace(place, body)
   const key = `${c.clinicId}:${String(body?.cpf || '').replace(/\D/g, '')}`
   const lock = faceFailures.get(key)
   if (lock && lock.until > Date.now()) throw new HrError(429, 'Muitas tentativas. Aguarde alguns minutos ou fale com o RH.')
@@ -490,6 +504,7 @@ export async function decideRequest(c: { clinicId: string; tenantId: string; act
 // Primeiro acesso no aparelho da clínica: o próprio colaborador (que digitou o CPF) cadastra o rosto, com consentimento, e já bate o ponto.
 const enrollFailures = new Map<string, { count: number; until: number }>()
 export async function firstFaceEnroll(c: { clinicId: string; tenantId: string; userId: string }, meta: { ip: string; userAgent: string }, body: any, place?: Place) {
+  assertInsidePlace(place, body) // antes de gravar qualquer coisa do rosto
   const key = `${c.clinicId}:${String(body?.cpf || '').replace(/\D/g, '')}`
   const lock = enrollFailures.get(key)
   if (lock && lock.until > Date.now()) throw new HrError(429, 'Muitas tentativas. Aguarde alguns minutos ou fale com o RH.')
@@ -518,6 +533,7 @@ export async function cpfCheck(c: { clinicId: string; tenantId: string }, ip: st
   st.count += 1
   cpfChecks.set(k, st)
   if (st.count > 60) throw new HrError(429, 'Muitas consultas. Aguarde alguns minutos.')
+  assertInsidePlace(place, body)
   const emp = await findByCpf(c.clinicId, c.tenantId, body?.cpf)
   if (!emp) throw new HrError(404, 'CPF não encontrado no cadastro de colaboradores. Fale com o RH.')
   assertWorkplace(emp, place)

@@ -71,7 +71,7 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
     if (checking || cpfDigits.length !== 11) return;
     setChecking(true); setProblem("");
     try {
-      const c = await api.cpfCheck(cpfDigits);
+      const c = await api.cpfCheck(cpfDigits, geo.current);
       if (c.hasFace) setStep("camera"); else { setFirstName(c.employeeName); setStep("enroll"); }
     } catch (e) { setProblem(e instanceof Error ? e.message : "Não foi possível verificar o CPF."); }
     finally { setChecking(false); }
