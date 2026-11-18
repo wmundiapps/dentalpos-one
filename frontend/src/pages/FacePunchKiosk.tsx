@@ -21,7 +21,9 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
   const [result, setResult] = useState<FacePunchResult | null>(null);
   const [problem, setProblem] = useState("");
   const [geoMsg, setGeoMsg] = useState("");
+  const [geoAcc, setGeoAcc] = useState<number | null>(null);
   const geo = useRef<Geo>({});
+  const geoAt = useRef(0);
 
   // Atalho na tela inicial: troca o manifesto do app só nesta tela, para abrir direto no ponto.
   useEffect(() => {
@@ -35,10 +37,21 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
 
   useEffect(() => {
     if (!navigator.geolocation) { setGeoMsg("Este aparelho não informa a localização."); return; }
+    // Guarda a MELHOR leitura dos últimos segundos (a mais precisa), e não só a última: um sinal de Wi-Fi impreciso não pode
+    // trocar uma leitura boa de GPS. Sem cache (maximumAge 0): cada leitura é nova. O primeiro acesso do polo grava este local.
     const id = navigator.geolocation.watchPosition(
-      (p) => { geo.current = { latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy }; setGeoMsg(""); },
+      (p) => {
+        const now = Date.now();
+        const cur = geo.current;
+        if (cur.accuracy === undefined || p.coords.accuracy <= cur.accuracy || now - geoAt.current > 25000) {
+          geo.current = { latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy };
+          geoAt.current = now;
+          setGeoAcc(Math.round(p.coords.accuracy));
+        }
+        setGeoMsg("");
+      },
       () => setGeoMsg("Ative a localização do aparelho: o ponto exige o local da clínica."),
-      { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 },
     );
     return () => navigator.geolocation.clearWatch(id);
   }, []);
@@ -68,6 +81,7 @@ export default function FacePunchKiosk({ api = clinicPunchApi, title = "Ponto po
       {embedded ? <Typography variant="h5" sx={{ fontWeight: 900, textAlign: "center", mb: 0.5 }}>{title}</Typography> : <PageHeader title={title} description={description} />}
       {embedded && <Typography color="text.secondary" sx={{ textAlign: "center", mb: 2 }}>{description}</Typography>}
       {geoMsg && <Alert severity="warning" sx={{ mb: 2 }}>{geoMsg}</Alert>}
+      {!geoMsg && geoAcc !== null && geoAcc > 60 && <Alert severity="info" sx={{ mb: 2 }}>Buscando a localização exata do aparelho (precisão atual ±{geoAcc} m). No primeiro acesso do polo ela precisa chegar a ±60 m: aguarde alguns segundos, vá para perto de uma janela ou área aberta e use o celular do polo, não o computador.</Alert>}
       {result ? (
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 3, textAlign: "center", maxWidth: 520, mx: "auto" }}>
           <Typography variant="h4" sx={{ fontWeight: 900 }}>{result.employeeName}</Typography>
