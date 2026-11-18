@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>UrbanFlow — demonstração</title>
+<style>
+:root{--navy:#0b1b3f;--sol:#ffc94d;--coral:#ff5a4e;--azul:#2f5bff;--menta:#13b58f;--bg:#f5f7fc;--tx:#14213d;--mut:#5b6785;--bd:#e1e6f2}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 "DM Sans",system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}header img{height:34px}header h1{font-size:18px;margin:0}header span{color:#aab6d8;font-size:13px}
+nav{display:flex;gap:6px;flex-wrap:wrap;padding:12px 20px;background:#fff;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+nav button{border:1px solid var(--bd);background:#fff;padding:8px 14px;border-radius:999px;cursor:pointer;font:inherit;color:var(--tx)}nav button.on{background:var(--azul);color:#fff;border-color:var(--azul)}
+main{max-width:1100px;margin:0 auto;padding:20px}section{display:none}section.on{display:block}
+.card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:16px}h2{margin:0 0 6px;font-size:20px}h3{margin:14px 0 6px;font-size:15px}p.m{color:var(--mut);margin:0 0 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}@media(max-width:800px){.grid,.g3{grid-template-columns:1fr}}
+.hero{background:linear-gradient(135deg,var(--navy),#1b3a8a);color:#fff;border-radius:16px;padding:26px}.hero h2{font-size:26px}.hero p{color:#d6def5}
+.st{background:#eef2ff;border-radius:12px;padding:12px}.st b{display:block;font-size:22px;color:var(--azul)}
+button.b{background:var(--azul);color:#fff;border:0;padding:9px 14px;border-radius:10px;cursor:pointer;font:inherit;font-weight:600;margin:4px 6px 4px 0}button.b.alt{background:#fff;color:var(--azul);border:1px solid var(--azul)}button.b.g{background:var(--menta)}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 3px}input,select{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;font:inherit}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:7px;border-bottom:1px solid var(--bd)}
+.street{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:6px 0}.v{aspect-ratio:1/1.5;border-radius:5px;background:var(--menta)}.v.o{background:var(--coral)}.v.e{background:var(--sol)}.v.sem{outline:3px solid #14213d;outline-offset:-3px}
+.phone{width:290px;max-width:100%;margin:0 auto;background:#111a33;border-radius:28px;padding:12px}.scr{background:#fff;border-radius:18px;padding:14px;min-height:430px}
+.res{background:#eef2ff;border-radius:12px;padding:14px}.res b.big{font-size:22px;color:var(--azul)}.kpi{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #cfd8f5}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:#eef2ff;color:var(--azul)}.tag.g{background:#e4f8f1;color:#0b7a60}.tag.r{background:#ffe8e6;color:#c63a2f}.tag.y{background:#fff3d1;color:#8a6200}
+.plate{display:inline-block;background:#fff;border:3px solid #223;border-top:10px solid #1d4fd8;border-radius:6px;padding:2px 10px;font:700 20px monospace;letter-spacing:2px}
+.msg{padding:10px;border-radius:10px;background:#eef2ff;margin:8px 0}.msg.ok{background:#e4f8f1}.msg.bad{background:#ffe8e6}.note{font-size:12px;color:var(--mut)}
+.tl{border-left:3px solid var(--azul);padding-left:14px}.tl div{margin:0 0 14px;position:relative}.tl div:before{content:"";position:absolute;left:-21px;top:5px;width:12px;height:12px;border-radius:50%;background:var(--azul)}
+footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
+</style></head><body>
+<header><img src="__LOGO__" alt="WMundi"><div><h1>UrbanFlow — estacionamento rotativo inteligente</h1><span>Demonstração com dados fictícios · valores de referência a confirmar</span></div></header>
+<nav id="nav"></nav><main>
+
+<section id="apres" class="on"><div class="hero"><h2>Cada vaga da cidade, visível, paga e fiscalizada</h2><p>Motorista vê onde há vaga e paga pelo celular. A prefeitura acompanha tudo em tempo real e arrecada mais, com menos fiscais na rua e sem aumentar a tarifa.</p></div>
+<div class="g3" style="margin-top:16px"><div class="card"><h3>Para o motorista</h3><p class="m">Aplicativo mostra vagas livres por quadra, cobra por tempo exato (Pix, cartão) e avisa antes de vencer.</p></div>
+<div class="card"><h3>Para a prefeitura</h3><p class="m">Painel com ocupação, tempo médio, rotatividade, arrecadação e irregularidades. 50% da arrecadação do rotativo para a prefeitura.</p></div>
+<div class="card"><h3>Para a fiscalização</h3><p class="m">Câmeras leem a placa e confrontam com os pagamentos, e os agentes da prefeitura recebem a lista de irregulares.</p></div></div></section>
+
+<section id="mapa"><div class="card"><h2>Vagas em tempo real</h2><p class="m">Contadores nos postes registram os carros que entram e saem da quadra. Cada veículo que entra e não sai é confirmado como vaga ocupada em até 15 minutos.</p>
+<div class="grid"><div><div class="street" id="st"></div>
+<div class="g3"><div class="st">Vagas livres<b id="liv">80</b></div><div class="st">Em confirmação (até 15 min)<b id="conf">0</b></div><div class="st">Ocupadas confirmadas<b id="ocf">0</b></div></div>
+<div class="g3" style="margin-top:8px"><div class="st">Capacidade<b id="cap">80</b></div><div class="st">Entraram<b id="ent">0</b></div><div class="st">Saíram<b id="sai">0</b></div></div></div>
+<div><p><button class="b" id="play">▶ Iniciar simulação</button></p>
+<div class="msg" id="mm">Exemplo: 80 vagas, 500 carros entram e 495 saem: 5 vagas ocupadas. O aplicativo mostra a vaga como ocupada depois da confirmação de até 15 minutos do veículo que entrou e não saiu.</div>
+<div class="msg" id="adm" style="background:#fff3d1"><b>Painel do administrador</b><div id="admt">Nenhum alerta no momento.</div></div>
+<label>Velocidade</label><input type="range" id="vel" min="1" max="5" value="3"><p class="note">Verde = livre · Amarelo = veículo entrou, em confirmação · Vermelho = ocupada confirmada · Contorno = sem ticket ativado. Na simulação, 1 segundo = 1 minuto.</p></div></div></div></section>
+
+<section id="app"><div class="card"><h2>Aplicativo do motorista</h2><p class="m">Toque nas telas para ver o fluxo.</p><div class="phone"><div class="scr" id="scr"></div></div></div></section>
+
+<section id="placa"><div class="card"><h2>Câmera de placa (fiscalização)</h2><p class="m">Quem não aciona o aplicativo também é alcançado: a câmera lê a placa e verifica o tempo de permanência na quadra. Passou de 15 minutos, é lançada uma <b>permanência de R$ 10,00</b> no cadastro do veículo. O motorista tem <b>30 dias</b> para regularizar pelo próprio aplicativo; depois disso, vira multa conforme a legislação de trânsito do município. Escolha o caso e passe o veículo.</p>
+<div class="grid"><div><label>Veículo passando</label><select id="pcar"><option value="0">Com pagamento em dia</option><option value="1">Sem aplicativo, mais de 15 min na quadra</option><option value="4">Sem aplicativo, menos de 15 min (tolerância)</option><option value="5">Permanência lançada há 31 dias, não regularizada</option><option value="2">Tempo vencido</option><option value="3">Placa ilegível (revisão humana)</option></select>
+<p><button class="b" id="pgo">Ler placa</button></p><div style="text-align:center;margin:12px 0"><span class="plate" id="pl">— — —</span></div><div class="msg" id="pm">Aguardando veículo.</div></div>
+<div><h3>Registro</h3><table id="plog"><tr><th>Hora</th><th>Placa</th><th>Situação</th></tr></table><p class="note">Dado de placa usado só para o rotativo, com prazo de guarda definido em contrato.</p></div></div></div></section>
+
+<section id="arrec"><div class="card"><h2>Estimativa de arrecadação</h2><p class="m">Rotativo de segunda a sexta (8h às 18h) e sábados (8h às 12h), com tolerância de 15 minutos. Tarifa do Setor Verde. Altere os números da sua cidade.</p><div class="grid"><div>
+<label>Vagas de rotativo na cidade</label><input type="number" id="a_v" value="800"><label>Ocupação média (%)</label><input type="number" id="a_o" value="60">
+<label>Horas por dia, segunda a sexta</label><input type="number" id="a_h" value="10"><label>Horas no sábado</label><input type="number" id="a_hs" value="4"><label>Tarifa por hora (R$)</label><input type="number" id="a_t" value="1.75" step="0.25">
+<label>Permanência média (min)</label><input type="number" id="a_p" value="90"><label>Tolerância (min)</label><input type="number" id="a_tol" value="15"><label>Pagamento efetivo com fiscalização (%)</label><input type="number" id="a_e" value="85"></div>
+<div><div class="res" id="a_res"></div></div></div></div></section>
+
+<section id="impl"><div class="card"><h2>Implantação e investimento inicial</h2><p class="m">Começa com uma fase piloto, mede o retorno e só depois amplia. O investimento de implantação e instalação é da prefeitura. Valores de referência.</p>
+<div class="grid"><div><div class="tl"><div><b>Mês 0 · Contrato</b><br>Definição de setores e quadras.</div><div><b>Meses 1–2 · Piloto de 4 quadras</b><br>Aplicativo no ar, instalação dos contadores e câmeras, sinalização.</div><div><b>Mês 3 · Resultados do piloto</b><br>Arrecadação, tempo médio, taxa de pagamento, tempo de confirmação das vagas.</div><div><b>Meses 4–9 · Expansão</b><br>Quadras de maior movimento.</div><div><b>Mês 10+ · Cidade toda</b><br>Painel completo e apoio à fiscalização da prefeitura.</div></div>
+<h3>Quem faz o quê</h3><p><b>WMundi:</b> aplicativo, instalação do sistema e manutenção.<br><b>Prefeitura:</b> investimento de implantação e instalação, fiscalização, tarifa e regras.</p></div>
+<div><h3>Investimento inicial (prefeitura)</h3><label>Quadras no piloto</label><input type="number" id="i_q" value="4"><label>Contador por quadra (R$)</label><input type="number" id="i_c" value="4500"><label>Instalação do contador por quadra (R$)</label><input type="number" id="i_i" value="1500"><label>Sinalização e QR por quadra (R$)</label><input type="number" id="i_s" value="800"><label>Quadras com câmera de placa</label><input type="number" id="i_nc" value="2"><label>Câmera de placa (R$)</label><input type="number" id="i_cam" value="9000"><label>Instalação da câmera (R$)</label><input type="number" id="i_ic" value="2500"><label>Aplicativo e painel, implantação (R$)</label><input type="number" id="i_a" value="38000"><div class="res" id="i_res" style="margin-top:10px"></div></div></div></div></section>
+</main><footer>WMundi · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · info@wmundi.com · (44) 99946-6451</footer>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const n=id=>+$("#"+id).value||0;
+const brl=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
+const abas=[["apres","Apresentação"],["mapa","Vagas em tempo real"],["app","Aplicativo"],["placa","Câmera de placa"],["arrec","Arrecadação"],["impl","Implantação e retorno"]];
+$("#nav").innerHTML=abas.map(a=>`<button data-t="${a[0]}">${a[1]}</button>`).join("");
+function ir(t){$$("section").forEach(s=>s.classList.toggle("on",s.id===t));$$("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));if(t==="app")tela(0)}
+$$("nav button").forEach(b=>b.onclick=()=>ir(b.dataset.t));ir("apres");
+// Simulação de vagas (1 tick = 1 minuto)
+const CAP=80;let real=Array(CAP).fill(0),pago=Array(CAP).fill(true),ent=0,sai=0,min=0,timer=null;   // real[i]=0 livre, ou minuto em que o carro entrou
+function draw(){let conf=0,ocf=0;real.forEach(x=>{if(x){(min-x<15)?conf++:ocf++}});
+ $("#st").innerHTML=real.map((x,i)=>`<div class="v ${x?(min-x<15?"e":"o"):""} ${x&&!pago[i]&&min-x>=15?"sem":""}"></div>`).join("");
+ const sem=real.filter((x,i)=>x&&!pago[i]&&min-x>=15).length;
+ $("#admt").innerHTML=sem?`<span class="tag r">${sem} veículo(s) sem ticket há mais de 15 min</span><br>Quadra 1 · Rua das Flores. <b>Sugestão: enviar a ronda da fiscalização a esta quadra.</b><br><button class="b alt" id="ronda" style="margin-top:6px">Enviar ronda à fiscalização</button>`:"Nenhum alerta no momento.";
+ const rb=$("#ronda");if(rb)rb.onclick=()=>{real.forEach((x,i)=>{if(x&&!pago[i]&&min-x>=15)pago[i]=true});$("#admt").innerHTML='<span class="tag g">Ronda enviada</span> A equipe da fiscalização da prefeitura foi avisada com as placas e a quadra.';setTimeout(draw,2500)};
+ $("#liv").textContent=CAP-conf-ocf;$("#conf").textContent=conf;$("#ocf").textContent=ocf;$("#ent").textContent=ent;$("#sai").textContent=sai}
+function tick(){min++;const livres=real.map((x,i)=>x?-1:i).filter(i=>i>=0),oc=real.map((x,i)=>x?i:-1).filter(i=>i>=0);
+ if(Math.random()<.55&&livres.length){const i=livres[Math.random()*livres.length|0];real[i]=min;pago[i]=Math.random()<.75;ent++}else if(oc.length){real[oc[Math.random()*oc.length|0]]=0;sai++}draw()}
+$("#play").onclick=()=>{if(timer){clearInterval(timer);timer=null;$("#play").textContent="▶ Iniciar simulação"}else{timer=setInterval(tick,1000/+$("#vel").value);$("#play").textContent="⏸ Pausar"}};
+$("#vel").oninput=()=>{if(timer){clearInterval(timer);timer=setInterval(tick,1000/+$("#vel").value)}};draw();
+// App
+const T=[()=>`<b>UrbanFlow</b><p class="note">Seg–sex 8h–18h · sáb 8h–12h · tolerância 15 min</p><div class="msg bad" data-go="3" style="cursor:pointer"><b>1 permanência a regularizar</b><br>R$ 10,00 · prazo: 30 dias · toque para pagar</div>${[["Quadra 1 · R. das Flores",4,20],["Quadra 2 · Av. Brasil",0,20],["Quadra 3 · R. Paraná",11,20],["Quadra 4 · Praça",2,20]].map(q=>`<div class="msg ${q[1]?"ok":"bad"}" data-go="1" style="cursor:pointer">${q[0]}<br><b>${q[1]?q[1]+" vagas livres":"Lotada"}</b> <span class="note">· R$ 1,75/h</span></div>`).join("")}`,
+ ()=>`<b>Quadra 1 · R. das Flores</b><p class="note">4 vagas livres</p><label>Placa</label><input value="ABC1D23"><label>Tempo</label><select id="tp"><option selected>60 min · R$ 1,75</option><option>120 min · R$ 3,50</option><option>180 min · R$ 5,25</option></select><p><button class="b g" data-go="2">Pagar com Pix</button></p>`,
+ ()=>`<div style="text-align:center"><div style="font-size:40px">✅</div><b>Pago!</b><p>Placa ABC1D23<br>Válido até <b>${new Date(Date.now()+36e5).toTimeString().slice(0,5)}</b></p><p class="note">Tolerância de 15 minutos. Aviso 10 min antes de vencer. Toque para prorrogar sem voltar ao carro.</p><button class="b alt" data-go="0">Voltar</button></div>`];
+T.push(()=>`<b>Permanência a regularizar</b><div class="msg bad">Placa QWE4R56<br>Mais de 15 min na Quadra 1 sem ticket<br><b>Valor: R$ 10,00</b><br>Prazo: 30 dias (restam 29)</div><p class="note">Regularize aqui no aplicativo. Passado o prazo, a permanência vira multa conforme a legislação de trânsito do município.</p><p><button class="b g" data-go="4">Pagar com Pix</button></p>`);
+T.push(()=>`<div style="text-align:center"><div style="font-size:40px">✅</div><b>Regularizado!</b><p>R$ 10,00 pagos.<br>Nenhuma multa será gerada.</p><button class="b alt" data-go="0">Voltar</button></div>`);
+function tela(i){$("#scr").innerHTML=T[i]();$$("#scr [data-go]").forEach(e=>e.onclick=()=>tela(+e.dataset.go))}
+// Placa
+const L=[["ABC1D23","ok","Pago até 15:40"],["QWE4R56","lanc","Permanência de R$ 10,00 lançada · entrada 14:02, mais de 15 min na quadra · 30 dias para regularizar pelo aplicativo"],["JKL7M89","venc","Tempo vencido há 18 min · enviado à fiscalização da prefeitura"],["???????","rev","Leitura incerta · enviado para revisão humana"],["MNO2P34","tol","Menos de 15 min na quadra · dentro da tolerância, sem cobrança"],["RST5U67","multa","Permanência de R$ 10,00 não regularizada em 30 dias · convertida em multa conforme a legislação de trânsito do município"]];
+$("#pgo").onclick=()=>{const l=L[$("#pcar").value];$("#pl").textContent=l[0];$("#pm").className="msg "+(l[1]==="ok"||l[1]==="lanc"||l[1]==="tol"?"ok":"bad");$("#pm").textContent=l[2];const r=$("#plog").insertRow(1);r.innerHTML=`<td>${new Date().toTimeString().slice(0,8)}</td><td>${l[0]}</td><td><span class="tag ${l[1]==="ok"||l[1]==="tol"?"g":l[1]==="lanc"?"y":"r"}">${l[2].split(" · ")[0]}</span></td>`};
+// Arrecadação
+function horasMes(){return (5*n("a_h")+n("a_hs"))*52/12}
+function fat(){const p=n("a_p")||1;return Math.max(0,(p-n("a_tol"))/p)}
+function bruto(v){return v*n("a_o")/100*horasMes()*n("a_t")*n("a_e")/100*fat()}
+function A(){const b=bruto(n("a_v"));
+ $("#a_res").innerHTML=`<div>Arrecadação bruta por mês</div><b class="big">${brl(b)}</b><div class="kpi"><span>Horas de operação por mês</span><b>${horasMes().toFixed(0)} h</b></div><div class="kpi"><span>Parcela cobrada após a tolerância</span><b>${(fat()*100).toFixed(0)}%</b></div><div class="kpi"><span>Por ano</span><b>${brl(b*12)}</b></div><div class="kpi"><span>Prefeitura (50%)</span><b style="color:#0b7a60">${brl(b*.5)}/mês</b></div><div class="kpi"><span>Prefeitura por ano</span><b>${brl(b*6)}</b></div><div class="kpi"><span>Aplicativo, licença, suporte e manutenção (50%)</span><b>${brl(b*.5)}/mês</b></div><p class="note">Vagas × ocupação × horas × tarifa × pagamento × parcela cobrada. A fiscalização é feita pela prefeitura.</p>`;I()}
+function I(){const q=n("i_q"),inv=q*(n("i_c")+n("i_i")+n("i_s"))+n("i_nc")*(n("i_cam")+n("i_ic"))+n("i_a"),pref=bruto(q*20)*.5;
+ $("#i_res").innerHTML=`<div>Investimento inicial do piloto</div><b class="big">${brl(inv)}</b><div class="kpi"><span>Arrecadação bruta do piloto/mês</span><b>${brl(bruto(q*20))}</b></div><div class="kpi"><span>Parte da prefeitura (50%)</span><b>${brl(pref)}</b></div><div class="kpi"><span>Payback do investimento</span><b style="color:#0b7a60">${pref>0?(inv/pref).toFixed(1).replace(".",",")+" meses":"—"}</b></div><p class="note">Payback = investimento inicial ÷ parte mensal da prefeitura.</p>`}
+$$("#arrec input,#impl input").forEach(e=>e.oninput=A);A();
+</script></body></html>

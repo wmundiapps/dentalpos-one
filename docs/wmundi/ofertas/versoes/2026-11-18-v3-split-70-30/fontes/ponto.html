@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Ponto Facial — demonstração</title>
+<style>
+:root{--navy:#0b1b3f;--sol:#ffc94d;--coral:#ff5a4e;--azul:#2f5bff;--menta:#13b58f;--bg:#f5f7fc;--tx:#14213d;--mut:#5b6785;--bd:#e1e6f2}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 "DM Sans",system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header img{height:34px}header h1{font-size:18px;margin:0;font-weight:700}header span{color:#aab6d8;font-size:13px}
+nav{display:flex;gap:6px;flex-wrap:wrap;padding:12px 20px;background:#fff;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+nav button{border:1px solid var(--bd);background:#fff;padding:8px 14px;border-radius:999px;cursor:pointer;font:inherit;color:var(--tx)}
+nav button.on{background:var(--azul);color:#fff;border-color:var(--azul)}
+main{max-width:1060px;margin:0 auto;padding:20px}section{display:none}section.on{display:block}
+.card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:16px}
+h2{margin:0 0 6px;font-size:20px}h3{margin:0 0 8px;font-size:16px}p.m{color:var(--mut);margin:0 0 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+button.b{background:var(--azul);color:#fff;border:0;padding:10px 16px;border-radius:10px;cursor:pointer;font:inherit;font-weight:600}
+button.b.alt{background:#fff;color:var(--azul);border:1px solid var(--azul)}button.b.red{background:var(--coral)}button.b.g{background:var(--menta)}
+.cam{position:relative;width:100%;max-width:340px;aspect-ratio:3/4;margin:0 auto;background:#0e1730;border-radius:16px;overflow:hidden}
+.cam svg{width:100%;height:100%}.scan{position:absolute;left:8%;right:8%;height:3px;background:var(--menta);box-shadow:0 0 12px var(--menta);top:15%;display:none}
+.cam.run .scan{display:block;animation:s 1.6s ease-in-out infinite alternate}@keyframes s{to{top:80%}}
+.oval{fill:none;stroke:#fff;stroke-width:2;stroke-dasharray:6 6}.cam.ok .oval{stroke:var(--menta);stroke-dasharray:none;stroke-width:4}.cam.bad .oval{stroke:var(--coral);stroke-dasharray:none;stroke-width:4}
+.msg{margin-top:10px;padding:10px;border-radius:10px;background:#eef2ff;min-height:44px}.msg.ok{background:#e4f8f1}.msg.bad{background:#ffe8e6}
+.steps li{margin:6px 0}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd);vertical-align:top}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:#eef2ff;color:var(--azul)}.tag.r{background:#ffe8e6;color:#c63a2f}.tag.y{background:#fff3d1;color:#8a6200}.tag.g{background:#e4f8f1;color:#0b7a60}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 3px}input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;font:inherit}
+.mail{background:#fff;border:1px solid var(--bd);border-left:4px solid var(--azul);border-radius:8px;padding:12px;margin:8px 0;white-space:pre-wrap;font-size:14px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal div{padding:8px 0;text-align:center;border-radius:8px;background:#f0f3fa;cursor:pointer;font-size:13px}.cal div.s{background:var(--azul);color:#fff}.cal div.h{background:none;color:var(--mut);cursor:default;font-size:11px}
+.note{font-size:12px;color:var(--mut)}.chk label{display:flex;gap:8px;align-items:flex-start;color:var(--tx);font-size:15px;margin:8px 0}.chk input{width:auto;margin-top:4px}
+.bar{height:10px;background:#e6ebf7;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--menta);width:0;transition:width .3s}
+footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
+</style></head><body>
+<header><img src="__LOGO__" alt="WMundi"><div><h1>Ponto por Reconhecimento Facial</h1><span>Demonstração interativa · dados fictícios · nada é gravado nem enviado</span></div></header>
+<nav id="nav"></nav>
+<main>
+<section id="facial" class="on"><div class="grid">
+<div class="card"><h2>Bater o ponto pelo rosto</h2><p class="m">O funcionário olha para a câmera de um terminal de ponto da empresa (tablet ou leitor fixo). O sistema confere o rosto com o cadastro e registra a hora.</p>
+<div class="cam" id="cam"><svg viewBox="0 0 300 400"><ellipse class="oval" cx="150" cy="190" rx="95" ry="130"/><g id="face" stroke="#cfd8f5" fill="none" stroke-width="3"><ellipse cx="150" cy="190" rx="70" ry="95"/><g id="eyes"><ellipse cx="120" cy="170" rx="11" ry="6"/><ellipse cx="180" cy="170" rx="11" ry="6"/></g><path d="M150 180v35m-14 0h28M125 235q25 22 50 0"/></g><text id="ph" x="150" y="372" text-anchor="middle" fill="#8fa0d0" font-size="14">Posicione o rosto no oval</text></svg><div class="scan"></div></div>
+<div class="msg" id="fmsg">Escolha uma situação e toque em <b>Simular</b>.</div>
+<label>Situação</label><select id="sit"><option value="ok">Funcionário cadastrado</option><option value="foto">Tentativa com foto de outra pessoa</option><option value="outro">Pessoa não cadastrada</option><option value="escuro">Pouca luz</option></select>
+<p style="margin-top:10px"><button class="b" id="go">Simular batida</button></p>
+<div class="msg" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><label style="margin:0;display:flex;gap:6px;align-items:center;color:inherit"><input type="checkbox" id="net" checked style="width:auto"> Internet conectada</label><span id="fila" class="tag g">Nada pendente</span></div>
+<p class="note">Sem internet, o terminal continua reconhecendo o rosto (cadastro guardado no aparelho), guarda a batida e envia sozinho quando a internet volta.</p>
+<p><button class="b alt" id="manbtn">Não reconheceu meu rosto? Lançar manualmente</button></p>
+<div id="man" style="display:none" class="msg"><b>Registro manual</b> — fica marcado como “manual” e depende de aprovação do gestor.<label>Funcionário</label><select id="mf"></select><label>Tipo</label><select id="mt"><option>Entrada</option><option>Saída para o almoço</option><option>Volta do almoço</option><option>Saída</option></select><label>Hora</label><input type="time" id="mh"><label>Motivo</label><select id="mm2"><option>Rosto não reconhecido</option><option>Câmera com defeito</option><option>Esqueci de bater</option></select><p><button class="b g" id="msv">Registrar manualmente</button></p></div></div>
+<div class="card"><h2>Como funciona, em 4 passos</h2><ol class="steps"><li><b>Detecta o rosto</b> e confere se há luz suficiente.</li><li><b>Prova de vida:</b> pede para piscar ou virar a cabeça (foto e vídeo não passam).</li><li><b>Compara</b> com o cadastro feito com consentimento do funcionário.</li><li><b>Registra</b> hora, local e aparelho; a batida entra na folha de ponto.</li></ol>
+<h3>Últimas batidas</h3><table id="log"><tr><th>Hora</th><th>Quem</th><th>Resultado</th></tr></table>
+<p class="note"><b>Só equipamento da empresa:</b> a WMundi não recomenda o uso de celulares pessoais ou de máquinas do funcionário, para minimizar riscos trabalhistas. Pode usar quantos terminais precisar, em locais diferentes.</p><p class="note">Biometria é dado pessoal sensível (LGPD): coleta com consentimento, finalidade clara e alternativa de registro (senha, no próprio terminal da empresa) para quem não aceitar.</p></div></div></section>
+
+<section id="instalar"><div class="card"><h2>Como instalar</h2><p class="m">Marque cada etapa. Leva cerca de uma tarde para uma empresa pequena.</p>
+<div class="chk" id="inst"></div><div class="bar"><i id="ib"></i></div><p id="it" class="note"></p></div></section>
+
+<section id="rh"><div class="card"><h2>Integração com o RH</h2><p class="m">As batidas alimentam a folha de ponto, o banco de horas e o fechamento do mês. Escolha o período e veja o que vai para o RH.</p>
+<div class="grid"><div><label>Funcionário</label><select id="rhf"></select><label>Mês</label><select id="rhm"><option>Outubro/2026</option><option>Novembro/2026</option></select><p><button class="b" id="rhgo">Fechar período</button> <button class="b alt" id="rhcsv">Baixar CSV</button></p></div>
+<div><div class="msg" id="rhmsg">Escolha e feche o período.</div></div></div><table id="rht"></table>
+<p class="note">Exporta CSV para folha de pagamento/contabilidade. Integrações diretas (eSocial, sistemas de folha) sob consulta.</p></div></section>
+
+<section id="atestado"><div class="card"><h2>Inserir atestado</h2><p class="m">O RH escolhe o funcionário e os dias. Os dias saem como “atestado” (justificado), sem desconto e sem alerta de falta.</p>
+<div class="grid"><div><label>Funcionário</label><select id="atf"></select><label>Dias do atestado (toque para marcar)</label><div class="cal" id="cal"></div><label>CID / observação (opcional, só RH vê)</label><input id="atobs" placeholder="Ex.: repouso de 3 dias"><label>Arquivo do atestado</label><input type="file" id="atfile"><p><button class="b" id="atgo">Registrar atestado</button></p></div>
+<div><div class="msg" id="atmsg">Marque os dias e registre.</div><table id="atl"><tr><th>Funcionário</th><th>Dias</th><th>Status</th></tr></table></div></div></div></section>
+
+<section id="equipe"><div class="card"><h2>Equipe e alertas</h2><p class="m">Mude o “dia de hoje” para ver os alertas aparecerem. Cada vínculo tem regras próprias.</p>
+<label>Hoje (simulação)</label><input type="date" id="hoje" value="2026-11-17"><div id="alertas"></div>
+<table id="eq"></table>
+<p class="note">Regras de referência: experiência até 90 dias, com uma renovação; férias a cada 12 meses (vencidas = pagamento em dobra); estágio até 2 anos com recesso; diretoria/sócio e cargos de confiança (art. 62 da CLT) podem ser isentos de ponto; freelancer não tem ponto nem férias.</p></div></section>
+
+<section id="emails"><div class="card"><h2>E-mails ao dono ou gestor</h2><p class="m">O sistema avisa sozinho. Escolha o gatilho e veja o e-mail.</p>
+<div id="mailbtns"></div><div id="mailbox"></div><label>Enviar de exemplo para (opcional)</label><input id="mto" placeholder="gestor@empresa.com.br"><p><button class="b" id="mailto">Abrir no meu e-mail</button></p><p class="note">Na versão contratada o envio é automático, às 7h, com resumo diário.</p></div></section>
+
+<section id="precos"><div class="card"><h2>Planos</h2><p class="m">Mensalidade por faixa de funcionários cadastrados. Valores sugeridos, sujeitos a aprovação.</p>
+<table id="pt"></table><div class="grid" style="margin-top:14px"><div><label>Funcionários</label><input type="number" id="pn" value="42" min="1"><label>Horas por mês que o RH gasta hoje com folha de ponto</label><input type="number" id="ph2" value="30"><label>Custo da hora do RH (R$)</label><input type="number" id="pc" value="35"><label>Horas extras/atrasos pagos por falta de controle exato, por mês (R$)</label><input type="number" id="pe" value="400"></div>
+<div><div class="msg ok" id="pr"></div></div></div><p class="note">Payback = implantação ÷ economia mensal líquida (economia − mensalidade). Estimativa com os números digitados; resultado real depende da empresa.</p></div></section>
+</main><footer>WMundi · Instituto Ravel de Ensino Superior Ltda. · CNPJ 03.162.275/0001-10 · info@wmundi.com · (44) 99946-6451</footer>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const abas=[["facial","Reconhecimento"],["instalar","Instalação"],["rh","Integração com o RH"],["atestado","Atestado"],["equipe","Equipe e alertas"],["emails","E-mails"],["precos","Planos e retorno"]];
+$("#nav").innerHTML=abas.map(a=>`<button data-t="${a[0]}">${a[1]}</button>`).join("");
+function ir(t){$$("section").forEach(s=>s.classList.toggle("on",s.id===t));$$("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));scrollTo(0,0)}
+$$("nav button").forEach(b=>b.onclick=()=>ir(b.dataset.t));ir("facial");
+const brl=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const hh=()=>new Date().toTimeString().slice(0,8);
+// Reconhecimento
+const cam=$("#cam"),fm=$("#fmsg");
+$("#go").onclick=async()=>{const s=$("#sit").value;cam.className="cam run";fm.className="msg";fm.textContent="Procurando rosto…";
+ const w=ms=>new Promise(r=>setTimeout(r,ms));await w(900);
+ if(s==="escuro"){fin("bad","Pouca luz. Aproxime-se de uma fonte de luz e tente de novo.","Recusada (luz)");return}
+ fm.textContent="Prova de vida: pisque os olhos…";const e=$("#eyes");for(let i=0;i<2;i++){e.style.transform="scaleY(.1)";e.style.transformOrigin="150px 170px";await w(200);e.style.transform="";await w(300)}
+ if(s==="foto"){fin("bad","Prova de vida falhou: parece uma foto. Batida recusada e gestor avisado.","Fraude barrada");return}
+ fm.textContent="Comparando com o cadastro…";await w(900);
+ if(s==="outro"){fin("bad","Rosto não encontrado no cadastro. Chame o RH para cadastrar.","Não cadastrado");return}
+ fin("ok","Olá, Mariana Souza! Entrada registrada às "+hh()+" ✔","Mariana Souza · Entrada")};
+function fin(c,t,l){const off=!$("#net").checked&&c==="ok";cam.className="cam "+c;fm.className="msg "+c;fm.textContent=off?"Olá, Mariana Souza! Sem internet: entrada guardada no terminal às "+hh()+". Será enviada quando a conexão voltar.":(c==="bad"?t+" Toque em “Lançar manualmente” se precisar.":t);const r=$("#log").insertRow(1);
+ r.innerHTML=`<td>${hh()}</td><td>${l.split(" · ")[0]}</td><td><span class="tag ${off?"y":c==="ok"?"g":"r"}">${off?"Guardada no terminal (sem internet)":c==="ok"?"Registrada":l}</span></td>`;if(off){FILA.push(r);fl()}}
+
+// Offline e manual
+const FILA=[];
+function fl(){const n=FILA.length;$("#fila").className="tag "+(n?"y":"g");$("#fila").textContent=n?n+" batida(s) guardada(s) no terminal":"Nada pendente"}
+$("#net").onchange=()=>{if($("#net").checked&&FILA.length){const q=FILA.splice(0);q.forEach(r=>{r.cells[2].innerHTML=r.dataset.man?'<span class="tag y">Manual · enviada, aguardando aprovação do gestor</span>':'<span class="tag g">Registrada (enviada ao voltar a internet)</span>'});fm.className="msg ok";fm.textContent="Internet voltou: "+q.length+" batida(s) enviada(s) ao sistema, com a hora original.";cam.className="cam"}fl()};
+$("#manbtn").onclick=()=>{const m=$("#man");m.style.display=m.style.display==="none"?"block":"none";$("#mh").value=new Date().toTimeString().slice(0,5)};
+$("#msv").onclick=()=>{const on=$("#net").checked,r=$("#log").insertRow(1);r.innerHTML=`<td>${$("#mh").value}</td><td>${$("#mf").value}</td><td></td>`;r.dataset.man=1;
+ r.cells[2].innerHTML=on?'<span class="tag y">Manual · aguardando aprovação do gestor</span>':'<span class="tag y">Manual · guardada no terminal (sem internet)</span>';if(!on)FILA.push(r);
+ fm.className="msg ok";fm.textContent="Registro manual feito ("+$("#mt").value+", "+$("#mm2").value+"). O gestor recebe e-mail para aprovar.";$("#man").style.display="none";fl()};
+// Instalação
+const inst=["Contratar o plano e receber o acesso","Cadastrar a empresa, horários e jornadas","Importar os funcionários (planilha Excel)","Instalar os terminais de ponto, que são equipamentos da empresa (tablet ou leitor fixo), na entrada de cada local de trabalho; vários terminais em locais distantes, sem custo extra por terminal","Coletar o consentimento e fazer a foto de cadastro de cada funcionário","Definir quem é isento de ponto (diretoria, cargo de confiança, freelancer)","Ligar os e-mails de alerta ao dono/gestor","Fazer 1 semana em paralelo (ponto atual + facial) e conferir","Desligar o ponto antigo"];
+$("#inst").innerHTML=inst.map((t,i)=>`<label><input type="checkbox" data-i="${i}"> ${t}</label>`).join("");
+function ia(){const n=$$("#inst input:checked").length;$("#ib").style.width=n/inst.length*100+"%";$("#it").textContent=n+" de "+inst.length+" etapas"+(n==inst.length?" — pronto para usar!":"")}
+$$("#inst input").forEach(i=>i.onchange=ia);ia();
+// Funcionários fictícios
+const F=[
+ {n:"Mariana Souza",c:"Recepcionista",v:"CLT",adm:"2025-02-03",exp:null,fer:null,ponto:true},
+ {n:"Carlos Lima",c:"Auxiliar administrativo",v:"CLT",adm:"2026-09-01",exp:"2026-11-29",fer:null,ponto:true},
+ {n:"Dra. Paula Reis",c:"Cirurgiã-dentista",v:"CLT",adm:"2024-11-20",exp:null,ferVenc:"2026-11-20",ponto:true},
+ {n:"João Pedro",c:"Estagiário",v:"Estágio",adm:"2026-03-02",exp:null,estFim:"2028-03-01",ponto:true},
+ {n:"Renata Alves",c:"Designer",v:"Freelancer",adm:"2026-06-10",exp:null,ponto:false},
+ {n:"Roberto Mendes",c:"Diretor administrativo",v:"Diretoria",adm:"2020-01-15",exp:null,ponto:false},
+ {n:"Fernanda Costa",c:"Gerente (cargo de confiança)",v:"CLT",adm:"2022-05-09",exp:null,ferVenc:"2025-12-01",ponto:false},
+ {n:"Lucas Prado",c:"Técnico de laboratório",v:"CLT",adm:"2026-08-24",exp:"2026-11-22",fer:null,ponto:true,renovada:true}
+];
+$("#mf").innerHTML=F.filter(f=>f.ponto).map(f=>`<option>${f.n}</option>`).join("");
+["#rhf","#atf"].forEach(s=>$(s).innerHTML=F.filter(f=>f.v!=="Freelancer").map((f,i)=>`<option>${f.n}</option>`).join(""));
+const dd=s=>new Date(s+"T12:00:00"),dif=(a,b)=>Math.round((dd(a)-dd(b))/864e5),fmt=s=>dd(s).toLocaleDateString("pt-BR");
+function alertas(){const h=$("#hoje").value;const A=[];
+ F.forEach(f=>{if(f.exp){const d=dif(f.exp,h);if(d<0)A.push(["r",f.n,"Experiência terminou há "+(-d)+" dias. Efetivar ou desligar."]);else if(d<=15)A.push(["y",f.n,"Experiência termina em "+d+" dia(s) ("+fmt(f.exp)+"). "+(f.renovada?"Já foi renovada: não renova de novo, decidir efetivar ou desligar.":"Decidir: renovar (1 vez, total máx. 90 dias), efetivar ou desligar.")])}
+  if(f.ferVenc){const d=dif(f.ferVenc,h);if(d<0)A.push(["r",f.n,"Férias VENCIDAS desde "+fmt(f.ferVenc)+": risco de pagamento em dobra. Programar já."]);else if(d<=60)A.push(["y",f.n,"Férias vencem em "+d+" dias ("+fmt(f.ferVenc)+"). Programar."])}
+  if(f.estFim){const d=dif(f.estFim,h);if(d<=90)A.push(["y",f.n,"Contrato de estágio termina em "+d+" dias."])}});
+ $("#alertas").innerHTML=A.length?A.map(a=>`<div class="msg ${a[0]==="r"?"bad":""}" style="margin:6px 0"><b>${a[1]}:</b> ${a[2]}</div>`).join(""):'<div class="msg ok">Nenhum alerta para esta data.</div>';
+ const reg={CLT:"Ponto + férias + experiência",Estágio:"Ponto + recesso; contrato máx. 2 anos",Freelancer:"Sem ponto e sem férias (contrato por serviço)",Diretoria:"Isento de ponto"};
+ $("#eq").innerHTML="<tr><th>Nome</th><th>Cargo (função)</th><th>Vínculo</th><th>Ponto</th><th>Regras</th></tr>"+F.map(f=>`<tr><td>${f.n}</td><td>${f.c}</td><td><span class="tag">${f.v}</span></td><td>${f.ponto?'<span class="tag g">Bate ponto</span>':'<span class="tag y">Isento</span>'}</td><td>${f.c.includes("confiança")?"Cargo de confiança: isento de ponto (art. 62)":reg[f.v]}</td></tr>`).join("");
+ window.AL=A}
+$("#hoje").onchange=()=>{alertas();mails()};alertas();
+// RH
+$("#rhgo").onclick=()=>{const m=$("#rhm").value,n=$("#rhf").value;const dias=[];let ex=0,at=0,fa=0,tot=0;for(let d=1;d<=22;d++){const e=8*60+((d*7)%11)-3,s=17*60+((d*5)%9),h=(s-e-60)/60;let st="Presente";if(d===9){st="Atestado";at++}else if(d===16){st="Falta";fa++}else{tot+=h;if(h>8)ex+=h-8}
+ dias.push([d,st,st==="Presente"?`${String(e/60|0).padStart(2,"0")}:${String(e%60).padStart(2,"0")} – ${String(s/60|0).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`:"—",st==="Presente"?h.toFixed(1)+" h":"—"])}
+ window.RHD={n,m,dias};$("#rht").innerHTML="<tr><th>Dia</th><th>Situação</th><th>Entrada – Saída (com 1 h de almoço)</th><th>Horas</th></tr>"+dias.map(x=>`<tr><td>${x[0]}</td><td>${x[1]==="Presente"?x[1]:`<span class="tag ${x[1]==="Falta"?"r":"y"}">${x[1]}</span>`}</td><td>${x[2]}</td><td>${x[3]}</td></tr>`).join("");
+ $("#rhmsg").className="msg ok";$("#rhmsg").innerHTML=`<b>${n}</b> · ${m}<br>Horas trabalhadas: ${tot.toFixed(1)} h · Extras no banco de horas: ${ex.toFixed(1)} h · Atestado: ${at} dia · Falta: ${fa} dia<br>Enviado ao RH e à folha de pagamento.`};
+$("#rhcsv").onclick=()=>{if(!window.RHD){$("#rhgo").click()}const r=window.RHD;const csv="dia;situacao;jornada;horas\n"+r.dias.map(x=>x.join(";")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="ponto-"+r.n.replace(/\s/g,"-")+".csv";a.click()};
+// Atestado
+const sel=new Set();let cal="";["D","S","T","Q","Q","S","S"].forEach(x=>cal+=`<div class="h">${x}</div>`);for(let d=1;d<=30;d++)cal+=`<div data-d="${d}">${d}</div>`;$("#cal").innerHTML=cal;
+$$("#cal [data-d]").forEach(e=>e.onclick=()=>{const d=e.dataset.d;sel.has(d)?sel.delete(d):sel.add(d);e.classList.toggle("s")});
+$("#atgo").onclick=()=>{if(!sel.size){$("#atmsg").className="msg bad";$("#atmsg").textContent="Marque ao menos um dia.";return}
+ const ds=[...sel].sort((a,b)=>a-b).join(", ");$("#atmsg").className="msg ok";$("#atmsg").textContent="Atestado registrado para "+$("#atf").value+" nos dias "+ds+" de novembro. Os dias ficam justificados e o gestor foi avisado.";
+ const r=$("#atl").insertRow(1);r.innerHTML=`<td>${$("#atf").value}</td><td>${ds}</td><td><span class="tag g">Justificado</span></td>`};
+// E-mails
+function mails(){const h=$("#hoje").value;const g=(c)=>(window.AL||[]).filter(a=>c.test(a[2]));
+ const M={"Resumo diário":`Assunto: Resumo do ponto — ${fmt(h)}\n\nBom dia! Ontem: 6 presentes, 1 atestado, 1 atraso (Carlos Lima, 12 min), 0 faltas sem justificativa.\nPendências: ${(window.AL||[]).length} alerta(s) de pessoal. Veja a aba Equipe.`,
+ "Experiência":"Assunto: Fim de experiência chegando\n\n"+(g(/xperi/).map(a=>"• "+a[1]+": "+a[2]).join("\n")||"Nenhuma experiência vencendo nos próximos 15 dias."),
+ "Férias":"Assunto: Férias a programar\n\n"+(g(/rias/).map(a=>"• "+a[1]+": "+a[2]).join("\n")||"Nenhuma férias vencendo."),
+ "Fraude":"Assunto: Tentativa de batida com foto\n\nHoje "+hh()+": a câmera da recepção barrou uma tentativa de registro com foto. Nenhum ponto foi gravado."};
+ $("#mailbtns").innerHTML=Object.keys(M).map(k=>`<button class="b alt" data-m="${k}" style="margin:0 6px 6px 0">${k}</button>`).join("");
+ const show=k=>{$("#mailbox").innerHTML=`<div class="mail">${M[k].replace(/</g,"&lt;")}</div>`;window.CUR=M[k]};show("Resumo diário");
+ $$("#mailbtns button").forEach(b=>b.onclick=()=>show(b.dataset.m))}
+mails();
+$("#mailto").onclick=()=>{const t=window.CUR.split("\n");location.href="mailto:"+encodeURIComponent($("#mto").value)+"?subject="+encodeURIComponent(t[0].replace("Assunto: ",""))+"&body="+encodeURIComponent(t.slice(2).join("\n"))};
+// Planos
+const FAIXAS=[[1,50,297],[51,100,497],[101,150,697],[151,200,897]];const IMPL=[[50,990],[100,1490],[150,1990],[200,2490]];
+function plano(n){if(n<=200){const i=FAIXAS.findIndex(f=>n>=f[0]&&n<=f[1]);return{m:FAIXAS[i][2],i:IMPL[i][1]}}return{m:897+(n-200)*1,i:2490}}
+$("#pt").innerHTML="<tr><th>Faixa</th><th>Mensalidade</th><th>Implantação (única)</th></tr>"+FAIXAS.map((f,i)=>`<tr><td>${f[0]} a ${f[1]} funcionários</td><td>${brl(f[2])}</td><td>${brl(IMPL[i][1])}</td></tr>`).join("")+"<tr><td>201 ou mais</td><td>"+brl(897)+" + R$ 1,00 por funcionário acima de 200 (ou sob consulta)</td><td>"+brl(2490)+"</td></tr>";
+function pr(){const n=+$("#pn").value||1,p=plano(n),eco=(+$("#ph2").value||0)*0.7*(+$("#pc").value||0)+(+$("#pe").value||0),liq=eco-p.m;
+ $("#pr").innerHTML=`<b>${n} funcionários</b>: mensalidade ${brl(p.m)} · implantação ${brl(p.i)}<br>Economia estimada: ${brl(eco)}/mês (70% das horas do RH + controle exato da jornada)<br>Economia líquida: ${brl(liq)}/mês<br><b>Payback: ${liq>0?(p.i/liq).toFixed(1).replace(".",",")+" mês(es)":"não se paga com estes números"}</b>`}
+["pn","ph2","pc","pe"].forEach(i=>$("#"+i).oninput=pr);pr();
+</script></body></html>

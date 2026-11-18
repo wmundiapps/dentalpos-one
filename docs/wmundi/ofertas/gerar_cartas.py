@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw
 
 a = pathlib.Path(__file__).parent
 brl, mes = gp.brl, gp.mes
+brl2 = gp.brl2
 EXP = "02/12/2026"
 BASE = "https://wmundi-ofertas.netlify.app/"
 L_PONTO, L_PREC, L_URB = BASE + "ponto/", BASE + "precificador-8f3k/", BASE + "urbanflow/"
@@ -82,7 +83,7 @@ def to_docx(blocos, path):
     d.save(path)
 
 
-FLU = 'body{font-size:9.4pt}p{margin:1.5mm 0}.pg{height:auto;min-height:0;overflow:visible;page-break-after:auto;padding-bottom:2mm}.ft{position:static;margin-top:3mm;padding-bottom:0}h3{page-break-after:avoid}tr,li{page-break-inside:avoid}'
+FLU = 'body{font-size:9.4pt}p{margin:1.5mm 0}.pg{height:auto;min-height:0;overflow:visible;page-break-after:auto;padding-bottom:2mm}.ft{position:static;margin-top:3mm;padding-bottom:0}h3{page-break-after:avoid}tr,li{page-break-inside:avoid}table{page-break-inside:avoid}'
 
 
 def gerar(nome, titulo, blocos, fluido=False):
@@ -160,29 +161,34 @@ gerar("carta-urbanflow-prefeituras", "Carta-proposta: UrbanFlow", [
 
 # ---------- Proposta ao Silvio Breda ----------
 bruto = gp.base
+op_u = bruto * .5   # UrbanFlow: parcela que cabe à operação, depois da parte da prefeitura
 gerar("proposta-silvio-breda", "Proposta ao parceiro: Silvio Breda", [
-    ("h2", "Proposta de parceria comercial"),
-    ("p", "A/C: **Silvio Breda**"),
-    ("p", "Silvio, a WMundi prepara para o seu segmento três soluções prontas para apresentação aos seus clientes. Cada uma tem demonstração interativa, carta de apresentação e proposta comercial."),
-    ("h3", "1. Ponto por Reconhecimento Facial"),
-    ("p", "Registro de jornada por rosto em terminais da empresa, integrado ao RH, com modo manual, modo sem internet e alertas por e-mail ao gestor."),
-    ("table", tab_ponto),
-    ("h3", "2. Precificador de Hotelaria (personalizado para qualquer segmento)"),
-    ("table", [["Opção", "Mensalidade", "Implantação"], ["Versão pronta de hotelaria", brl(197) + "/mês", brl(990)], ["Personalizado", brl(297) + "/mês", f"sob consulta (a partir de {brl(4900)})"]]),
-    ("h3", "3. UrbanFlow: estacionamento rotativo inteligente para prefeituras"),
-    ("p", f"Aplicativo, contadores nos postes, câmeras de placa e painel. Investimento inicial da prefeitura de {brl(gp.inv_pil)} no piloto de 4 quadras e {brl(gp.inv_cid)} na cidade (referência de 800 vagas), com payback estimado de {mes(gp.inv_pil/(gp.pil_base/2))} e {mes(gp.inv_cid/(gp.base/2))} meses. A prefeitura fica com 50% da arrecadação do rotativo."),
-    ("pb", None),
-    ("h3", "Sua participação no UrbanFlow"),
-    ("p", "Dos 50% da arrecadação que não ficam com a prefeitura, **30% são do parceiro** e **70% da WMundi**. Sobre a arrecadação bruta, isso equivale a 15% para o parceiro e 35% para a WMundi."),
-    ("table", [["Referência (800 vagas)", "Bruto por mês", "Prefeitura (50%)", "Parceiro (15%)", "WMundi (35%)"], ["Cenário base (60% de ocupação, 85% de pagamento)", brl(gp.base), brl(gp.base * .5), brl(gp.base * .15), brl(gp.base * .35)], ["Cenário conservador (40% e 70%)", brl(gp.cons), brl(gp.cons * .5), brl(gp.cons * .15), brl(gp.cons * .35)]]),
-    ("nt", "Valores estimados. A arrecadação real depende de vagas, tarifa, ocupação e pagamento de cada cidade."),
-    ("h3", "Ponto e Precificador"),
-    ("p", "**Ponto Facial e Precificador:** o parceiro recebe **30% da receita recorrente** (mensalidades) e **30% da implantação** de cada cliente que indicar, pois cuida da implantação na região dos clientes que vender. Exemplo: cliente do Ponto na faixa de 1 a 50 funcionários, com mensalidade de R$ 297 e implantação de R$ 990, gera R$ 89,10 por mês ao parceiro, enquanto o contrato estiver ativo, mais R$ 297,00 pela implantação."),
-    ("h3", "Quem faz o quê"),
-    ("table", [["Parceiro", "WMundi"], ["Apresenta as soluções e abre as reuniões\nAcompanha o cliente até o fechamento\nCuida da implantação na região dos clientes que vender", "Desenvolve, instala e mantém os sistemas\nFaz demonstrações, propostas e suporte"]]),
-    ("h3", "Material para enviar"),
-    ("ul", [f"Ponto Facial: {L_PONTO}", f"Precificador de Hotelaria: {L_PREC}", f"UrbanFlow: {L_URB}", f"As demonstrações ficam disponíveis por 15 dias, até {EXP}. Depois, a WMundi libera novamente a pedido.", "PDFs: carta de apresentação e proposta de cada solução."]),
+    ("h2", "Proposta de parceria comercial (pré-contrato)"),
+    ("p", "A/C: **Silvio Breda** · **[empresa]**"),
+    ("p", "Silvio, a WMundi propõe à sua empresa uma parceria em que você capta clientes e a matriz cria, entrega e mantém as soluções. A receita dos clientes que você captar é **dividida em split: 70% para a WMundi e 30% para a sua empresa**."),
+    ("h3", "1. Soluções para ofertar"),
+    ("table", [["Solução", "Para quem", "Investimento do cliente"],
+               ["Ponto por Reconhecimento Facial", "Empresas e hotelaria", "de " + brl(297) + " a " + brl(897) + "/mês, conforme a faixa de funcionários, e implantação de " + brl(990) + " a " + brl(2490)],
+               ["Precificador de Hotelaria (personalizável para qualquer segmento)", "Hotéis, pousadas e resorts", brl(197) + "/mês e implantação de " + brl(990) + "; personalizado: " + brl(297) + "/mês e implantação a partir de " + brl(4900)],
+               ["UrbanFlow", "Prefeituras", f"Investimento inicial da prefeitura (piloto: {brl(gp.inv_pil)}; cidade de referência: {brl(gp.inv_cid)}) e 50% da arrecadação do rotativo para a prefeitura"]]),
+    ("h3", "2. Receita compartilhada: split 70/30"),
+    ("ul", ["**70% WMundi e 30% da sua empresa**, sobre os valores efetivamente recebidos dos clientes que você captar: mensalidades, implantação e demais valores.", "O split é feito no recebimento: o que entra é dividido na proporção combinada.", "**Somente valores efetivamente recebidos.** O que não é pago pelo cliente não entra na divisão.", "**A receita é compartilhada enquanto o contrato entre a WMundi e a sua empresa permanecer ativo.**", "**UrbanFlow:** a base é a parcela da arrecadação que cabe à operação, depois da parte da prefeitura (50%)."]),
+    ("table", [["Exemplos", "Total recebido", "Sua empresa (30%)", "WMundi (70%)"],
+               ["Ponto Facial, 1 a 50 funcionários: mensalidade", brl(297) + "/mês", brl2(297 * .3) + "/mês", brl2(297 * .7) + "/mês"],
+               ["Ponto Facial, 1 a 50 funcionários: implantação", brl(990), brl2(990 * .3), brl2(990 * .7)],
+               ["Precificador de Hotelaria: mensalidade", brl(197) + "/mês", brl2(197 * .3) + "/mês", brl2(197 * .7) + "/mês"],
+               ["UrbanFlow, cidade de referência de 800 vagas (cenário base): parcela da operação", brl(op_u) + "/mês", brl(op_u * .3) + "/mês", brl(op_u * .7) + "/mês"]]),
+    ("nt", "Valores de referência. A arrecadação real depende de cada cliente e cidade."),
+    ("h3", "3. Quem faz o quê"),
+    ("table", [["Matriz WMundi", "Sua empresa"],
+               ["Criação e entrega dos produtos\nDivulgação ampla das soluções\nAssuntos técnicos: instalação, manutenção, atualizações e suporte\nAssuntos administrativos: contratos, cobrança e relatórios\nDesenvolvimento exclusivo dos sistemas", "Capta e acompanha os clientes\nMantém o relacionamento e o acompanhamento local da implantação\nArca com as próprias despesas: contratações, demissões, propagandas, aluguéis, seguros e demais itens da empresa"]]),
+    ("h3", "4. Condições"),
+    ("ul", ["**Cobranças e responsabilidades** são de ambos: cada parte cumpre as suas atribuições e acompanha a cobrança e a regularização dos clientes.", "**Desenvolvimentos exclusivos da WMundi**, que detém o direito à comercialização total ou em partes do portfólio.", "Parceria sem exclusividade e sem vínculo trabalhista ou societário: as despesas da sua empresa são da sua empresa.", "Cada cliente captado é registrado por e-mail e confirmado pela WMundi."]),
+    ("h3", "5. Vigência"),
+    ("p", "**Pré-contrato inicial de 6 meses**, que pode se estender **até 24 meses**, renovável por igual período, caso nenhuma das partes manifeste desistência."),
+    ("h3", "6. Material para enviar"),
+    ("ul", [f"Ponto Facial: {L_PONTO}", f"Precificador de Hotelaria: {L_PREC}", f"UrbanFlow: {L_URB}", f"As demonstrações ficam disponíveis até {EXP}. Depois, a WMundi libera novamente a pedido.", "Cartas de apresentação e apresentações de cada solução, em PDF."]),
     ("h3", "Próximos passos"),
-    ("ol", ["Você escolhe quais clientes receberão cada solução.", "Enviamos as cartas e os links.", "Agendamos as reuniões e as demonstrações com cada cliente."]),
-] + ass)
+    ("ol", ["Você revisa os termos do pré-contrato e o termo de confidencialidade.", "Assinamos os dois documentos, inclusive por meio eletrônico.", "Liberamos o material e você começa as apresentações."]),
+] + ass, fluido=True)
 print("cartas ok")

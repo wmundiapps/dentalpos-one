@@ -208,6 +208,7 @@ guia = [
 <h3>Divisão de receita do UrbanFlow (interna)</h3>
 <div class="box">Arrecadação bruta: <b>50% prefeitura</b>. Dos 50% restantes: <b>parceiro 30%</b> e <b>WMundi 70%</b>.<br>
 Ou seja, sobre a arrecadação bruta: prefeitura 50% · parceiro <b>15%</b> · WMundi <b>35%</b>.</div>
+<div class="box"><b>Modelo geral do parceiro:</b> split de <b>70% WMundi e 30% parceiro</b> sobre os valores efetivamente recebidos dos clientes captados por ele (mensalidade, implantação e demais valores), enquanto o contrato entre a WMundi e a empresa do parceiro estiver ativo. Vigência do pré-contrato: 6 meses, até 24 meses, renovável por igual período se nenhuma parte desistir.</div>
 <table><tr><th>Cenário (800 vagas)</th><th>Bruto/mês</th><th>Prefeitura</th><th>Parceiro</th><th>WMundi</th></tr>
 <tr><td>Base</td><td>{brl(base)}</td><td>{brl(base*.5)}</td><td>{brl(base*.15)}</td><td>{brl(base*.35)}</td></tr>
 <tr><td>Conservador</td><td>{brl(cons)}</td><td>{brl(cons*.5)}</td><td>{brl(cons*.15)}</td><td>{brl(cons*.35)}</td></tr></table>

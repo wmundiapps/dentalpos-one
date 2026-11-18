@@ -1,0 +1,10 @@
+WMundi® · Demonstrações interativas (dados fictícios) · disponíveis até 02/12/2026
+
+1. Ponto por Reconhecimento Facial
+https://wmundi-ofertas.netlify.app/ponto/
+
+2. Precificador de Hotelaria
+https://wmundi-ofertas.netlify.app/precificador-8f3k/
+
+3. UrbanFlow (prefeituras)
+https://wmundi-ofertas.netlify.app/urbanflow/
