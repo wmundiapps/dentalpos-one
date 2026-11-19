@@ -5,9 +5,9 @@ import { HrApi, type DayReportData, type DayReportRow, type DayStatus, type Work
 const todayISO = () => new Date().toLocaleDateString("sv-SE");
 const dmy = (d: string) => d.split("-").reverse().join("/");
 const weekday = (d: string) => { const w = new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long" }); return w.charAt(0).toUpperCase() + w.slice(1); };
-const ORDER: Record<DayStatus, number> = { NAO_BATEU: 0, AINDA_NAO: 2, BATEU: 3, JUSTIFICADO: 4, SEM_EXPEDIENTE: 5, FUTURO: 6 };
-const LABEL: Record<DayStatus, string> = { BATEU: "Bateu", NAO_BATEU: "NÃO BATEU", AINDA_NAO: "Ainda não deu a hora", JUSTIFICADO: "Justificado", SEM_EXPEDIENTE: "Sem expediente", FUTURO: "Dia futuro" };
-const COLOR: Record<DayStatus, "success" | "error" | "warning" | "info" | "default"> = { BATEU: "success", NAO_BATEU: "error", AINDA_NAO: "warning", JUSTIFICADO: "info", SEM_EXPEDIENTE: "default", FUTURO: "default" };
+const ORDER: Record<DayStatus, number> = { NAO_BATEU: 0, NA_TOLERANCIA: 1, AINDA_NAO: 2, BATEU: 3, JUSTIFICADO: 4, SEM_EXPEDIENTE: 5, FUTURO: 6 };
+const LABEL: Record<DayStatus, string> = { BATEU: "Bateu", NAO_BATEU: "NÃO BATEU", AINDA_NAO: "Ainda não deu a hora", NA_TOLERANCIA: "Na tolerância", JUSTIFICADO: "Justificado", SEM_EXPEDIENTE: "Sem expediente", FUTURO: "Dia futuro" };
+const COLOR: Record<DayStatus, "success" | "error" | "warning" | "info" | "default"> = { BATEU: "success", NAO_BATEU: "error", AINDA_NAO: "warning", NA_TOLERANCIA: "warning", JUSTIFICADO: "info", SEM_EXPEDIENTE: "default", FUTURO: "default" };
 const SHORT: Record<string, string> = { ENTRADA: "Entrada", SAIDA_ALMOCO: "Saiu p/ almoço", VOLTA_ALMOCO: "Voltou do almoço", SAIDA: "Saída" };
 
 // Conferência diária do RH: quem bateu o ponto, quem não bateu e quem está justificado, por polo.
@@ -67,7 +67,7 @@ export default function DayReport() {
           <Chip color="success" label={`Bateram: ${t.bateu}`} />
           <Chip color={t.naoBateu ? "error" : "default"} label={`NÃO bateram: ${t.naoBateu}`} sx={{ fontWeight: 900 }} />
           {t.incompletas > 0 && <Chip color="warning" label={`Saída sem registro: ${t.incompletas}`} />}
-          {t.ainda > 0 && <Chip color="warning" variant="outlined" label={`Ainda não deu a hora: ${t.ainda}`} />}
+          {t.ainda > 0 && <Chip color="warning" variant="outlined" label={`Ainda sem batida (no horário/tolerância): ${t.ainda}`} />}
           <Chip color="info" variant="outlined" label={`Justificados: ${t.justificado}`} />
           {t.semExpediente > 0 && <Chip variant="outlined" label={`Sem expediente: ${t.semExpediente}`} />}
         </Box>
